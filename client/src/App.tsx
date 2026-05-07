@@ -19,7 +19,7 @@ import './App.css'
 const TILE_FIRE = 4
 
 function App() {
-  const { world, connected, send } = useSimulation()
+  const { world, connected } = useSimulation()
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null)
   const [followOrgId, setFollowOrgId]     = useState<string | null>(null)
   const [showLanguages,  setShowLanguages]  = useState(false)
@@ -286,7 +286,6 @@ function App() {
               overlay={overlay}
               focus={focus}
               viewFlags={viewFlags}
-              onViewportPan={send}
             />
 
             {/* ── Right panel: organisms ───────────────────────────── */}

@@ -100,6 +100,8 @@ export interface WorldState {
   grid: {
     width: number
     height: number
+    origin_x: number
+    origin_y: number
     tiles: number[][]
     fire_intensity: number[][]
     biomes?: number[][]

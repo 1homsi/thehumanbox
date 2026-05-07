@@ -564,59 +564,25 @@ function WorldTextureUpdater({ world, selectedOrgId, overlay, focus, viewFlags }
   return null
 }
 
-// ── OriginTracker ─────────────────────────────────────────────────────────────
-// Compensates camera position when the server shifts the viewport origin,
-// so the world appears stationary as new tiles load.
-
-function OriginTracker({ ox, oy, cameraStateRef }: {
-  ox: number; oy: number
-  cameraStateRef: React.MutableRefObject<{ x: number; y: number; zoom: number }>
-}) {
-  const camera = useCamera()
-  const prev = useRef<{ ox: number; oy: number } | null>(null)
-
-  useEffect(() => {
-    if (prev.current === null) { prev.current = { ox, oy }; return }
-    const dox = ox - prev.current.ox
-    const doy = oy - prev.current.oy
-    if (dox !== 0 || doy !== 0) {
-      const pos = camera.getPosition()
-      const nx = pos.x - dox * TILE
-      const ny = pos.y - doy * TILE
-      camera.setPosition(nx, ny)
-      cameraStateRef.current.x = nx
-      cameraStateRef.current.y = ny
-    }
-    prev.current = { ox, oy }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ox, oy])
-
-  return null
-}
-
 // ── CameraController ──────────────────────────────────────────────────────────
 // Must be inside <Game>. Handles mouse drag (pan) and scroll wheel (zoom).
 // containerEl: the outer div — wheel/pointerdown scoped to it so sidebar scrolls freely.
 
 function CameraController({
-  worldW, worldH, containerW, containerH, ox, oy,
-  containerEl, cameraStateRef, followTarget, onViewportPan,
+  worldW, worldH, containerW, containerH,
+  containerEl, cameraStateRef, followTarget,
 }: {
   worldW: number
   worldH: number
   containerW: number
   containerH: number
-  ox: number
-  oy: number
   containerEl: HTMLDivElement | null
   cameraStateRef: React.MutableRefObject<{ x: number; y: number; zoom: number }>
   followTarget: { x: number; y: number } | null
-  onViewportPan?: (msg: unknown) => void
 }) {
   const camera = useCamera()
   const drag = useRef({ active: false, startPX: 0, startPY: 0, startCamX: 0, startCamY: 0 })
   const initialised = useRef(false)
-  const vpThrottle = useRef(0)
 
   // cubeforge's Camera2D isn't wired to the engine until after its first tick,
   // so setPosition called synchronously in useLayoutEffect lands on a stub.
@@ -655,15 +621,6 @@ function CameraController({
   useEffect(() => {
     if (!containerEl) return
 
-    const sendViewport = (camX: number, camY: number) => {
-      const now = Date.now()
-      if (now - vpThrottle.current < 150) return
-      vpThrottle.current = now
-      const worldCx = Math.round(camX / TILE) + ox
-      const worldCy = Math.round(camY / TILE) + oy
-      onViewportPan?.({ cx: worldCx, cy: worldCy })
-    }
-
     const onDown = (e: PointerEvent) => {
       drag.current.active = true
       drag.current.startPX = e.clientX
@@ -680,25 +637,19 @@ function CameraController({
       camera.setPosition(nx, ny)
       cameraStateRef.current.x = nx
       cameraStateRef.current.y = ny
-      sendViewport(nx, ny)
     }
-    const onUp = () => {
-      drag.current.active = false
-      const pos = camera.getPosition()
-      sendViewport(pos.x, pos.y)
-    }
+    const onUp = () => { drag.current.active = false }
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
+      const minZoom = Math.max(containerW / worldW, containerH / worldH)
       const factor = e.deltaY < 0 ? 1.1 : 0.9
-      const nz = Math.max(0.3, Math.min(8, camera.getZoom() * factor))
+      const nz = Math.max(minZoom, Math.min(8, camera.getZoom() * factor))
       camera.setZoom(nz)
       cameraStateRef.current.zoom = nz
     }
 
-    // pointerdown + wheel scoped to the canvas container only
     containerEl.addEventListener('pointerdown', onDown)
     containerEl.addEventListener('wheel', onWheel, { passive: false })
-    // move/up on window so dragging outside the container still works
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
     return () => {
@@ -707,7 +658,7 @@ function CameraController({
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
     }
-  }, [camera, containerEl])
+  }, [camera, containerEl, containerW, containerH, worldW, worldH])
 
   return null
 }
@@ -722,10 +673,9 @@ interface Props {
   overlay:       string | null
   focus:         string
   viewFlags:     ViewFlags
-  onViewportPan?: (msg: unknown) => void
 }
 
-export function WorldView({ world, selectedOrgId, followOrgId, onOrgSelect, overlay, focus, viewFlags, onViewportPan }: Props) {
+export function WorldView({ world, selectedOrgId, followOrgId, onOrgSelect, overlay, focus, viewFlags }: Props) {
   const W = world.grid.width * TILE
   const H = world.grid.height * TILE
   const cx = W / 2
@@ -809,7 +759,6 @@ export function WorldView({ world, selectedOrgId, followOrgId, onOrgSelect, over
                 zIndex={0}
               />
               <WorldTextureUpdater world={world} selectedOrgId={selectedOrgId} overlay={overlay} focus={focus} viewFlags={viewFlags} />
-              <OriginTracker ox={ox} oy={oy} cameraStateRef={cameraStateRef} />
             </Entity>
 
             <CameraController
@@ -817,12 +766,9 @@ export function WorldView({ world, selectedOrgId, followOrgId, onOrgSelect, over
               worldH={H}
               containerW={dims.w}
               containerH={dims.h}
-              ox={ox}
-              oy={oy}
               containerEl={containerRef.current}
               cameraStateRef={cameraStateRef}
               followTarget={followTarget}
-              onViewportPan={onViewportPan}
             />
           </World>
         </Game>
