@@ -144,12 +144,14 @@ export function FamilyTreeModal({ organisms: livOrgs, onClose }: Props) {
     ctx.lineWidth = 1.5
     for (const e of edges) {
       const mx = (e.x1 + e.x2) / 2
-      ctx.strokeStyle = e.color + '55'
+      ctx.globalAlpha = 0.33
+      ctx.strokeStyle = e.color
       ctx.beginPath()
       ctx.moveTo(e.x1, e.y1)
       ctx.bezierCurveTo(mx, e.y1, mx, e.y2, e.x2, e.y2)
       ctx.stroke()
     }
+    ctx.globalAlpha = 1
 
     // Nodes
     for (const { org, x, y } of nodes) {
@@ -158,19 +160,26 @@ export function FamilyTreeModal({ organisms: livOrgs, onClose }: Props) {
       const isHover = org.id === hoverId
 
       // Card bg
+      ctx.globalAlpha = 1
       ctx.fillStyle = isAlive ? '#181818' : '#101010'
-      ctx.strokeStyle = isHover ? '#ddd' : color + (isAlive ? 'cc' : '44')
-      ctx.lineWidth = isHover ? 1.5 : 0.8
       ctx.beginPath()
       ctx.roundRect(x, y, NODE_W, NODE_H, 3)
       ctx.fill()
+
+      // Card border
+      ctx.globalAlpha = isHover ? 1 : (isAlive ? 0.8 : 0.27)
+      ctx.strokeStyle = isHover ? '#ddd' : color
+      ctx.lineWidth = isHover ? 1.5 : 0.8
       ctx.stroke()
+      ctx.globalAlpha = 1
 
       // Lineage bar
-      ctx.fillStyle = color + (isAlive ? 'e6' : '44')
+      ctx.globalAlpha = isAlive ? 0.9 : 0.27
+      ctx.fillStyle = color
       ctx.beginPath()
       ctx.roundRect(x, y, 3, NODE_H, 2)
       ctx.fill()
+      ctx.globalAlpha = 1
 
       // Name
       ctx.font = '600 10px monospace'
