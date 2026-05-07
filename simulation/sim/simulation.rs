@@ -321,11 +321,11 @@ impl Simulation {
             }
         }
 
-        // Prune old dead organisms — keep last 100 for family-tree display
+        // Prune old dead organisms — keep last 300 for family-tree display
         if self.tick_count % 1200 == 0 {
             let dead_count = self.organisms.iter().filter(|o| !o.alive).count();
-            if dead_count > 100 {
-                let excess = dead_count - 100;
+            if dead_count > 300 {
+                let excess = dead_count - 300;
                 let mut removed = 0usize;
                 self.organisms.retain(|o| {
                     if o.alive { return true; }
