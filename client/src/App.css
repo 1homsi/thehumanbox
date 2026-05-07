@@ -489,14 +489,20 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 110px;
+  min-width: 190px;
   z-index: 200;
   box-shadow: 0 4px 16px rgba(0,0,0,0.5);
 }
 
 .more-dropdown .lang-btn {
-  width: 100%;
   text-align: left;
+  white-space: nowrap;
+}
+
+.more-dropdown-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
 }
 
 .more-dropdown-section {

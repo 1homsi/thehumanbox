@@ -31,6 +31,10 @@ function App() {
   const [overlay,        setOverlay]        = useState<string | null>(null)
   const [showMore,       setShowMore]       = useState(false)
   const [isFullscreen,   setIsFullscreen]   = useState(false)
+  const [focus,          setFocus]          = useState<string>('all')
+  const [viewFlags,      setViewFlags]      = useState({
+    territory: true, names: true, thoughts: true, animals: true, grid: false,
+  })
   const moreRef = useRef<HTMLDivElement>(null)
 
   const toggleFullscreen = useCallback(() => {
@@ -127,13 +131,41 @@ function App() {
               <button className={`lang-btn${showMore ? ' active' : ''}`} onClick={() => setShowMore(p => !p)}>··· more</button>
               {showMore && (
                 <div className="more-dropdown">
+
                   <div className="more-dropdown-section">overlays</div>
-                  <button className={`lang-btn overlay-btn${overlay === 'fertility' ? ' active' : ''}`} onClick={() => { setOverlay(o => o === 'fertility' ? null : 'fertility'); setShowMore(false) }} title="Soil fertility">🌱 soil</button>
-                  <button className={`lang-btn overlay-btn${overlay === 'hazard' ? ' active' : ''}`} onClick={() => { setOverlay(o => o === 'hazard' ? null : 'hazard'); setShowMore(false) }} title="Hazard memory">☠ hazard</button>
-                  <button className={`lang-btn overlay-btn${overlay === 'pressure' ? ' active' : ''}`} onClick={() => { setOverlay(o => o === 'pressure' ? null : 'pressure'); setShowMore(false) }} title="Migration trails">👣 trails</button>
+                  <div className="more-dropdown-grid">
+                    <button className={`lang-btn${overlay === 'fertility' ? ' active' : ''}`} onClick={() => setOverlay(o => o === 'fertility' ? null : 'fertility')} title="Soil fertility">🌱 soil</button>
+                    <button className={`lang-btn${overlay === 'hazard' ? ' active' : ''}`} onClick={() => setOverlay(o => o === 'hazard' ? null : 'hazard')} title="Hazard memory">☠ hazard</button>
+                    <button className={`lang-btn${overlay === 'pressure' ? ' active' : ''}`} onClick={() => setOverlay(o => o === 'pressure' ? null : 'pressure')} title="Migration trails">👣 trails</button>
+                    <button className={`lang-btn${overlay === 'density' ? ' active' : ''}`} onClick={() => setOverlay(o => o === 'density' ? null : 'density')} title="Population density">👥 crowd</button>
+                  </div>
+
                   <div className="more-dropdown-divider" />
-                  <button className="lang-btn" onClick={() => { setShowLanguages(true); setShowMore(false) }}>⌖ lang</button>
-                  <button className="lang-btn" onClick={() => { setShowFamilyTree(true); setShowMore(false) }}>⬡ tree</button>
+                  <div className="more-dropdown-section">focus</div>
+                  <div className="more-dropdown-grid">
+                    <button className={`lang-btn${focus === 'all' ? ' active' : ''}`} onClick={() => setFocus('all')}>· all</button>
+                    <button className={`lang-btn${focus === 'sick' ? ' active' : ''}`} onClick={() => setFocus(f => f === 'sick' ? 'all' : 'sick')} title="Highlight sick organisms">🤒 sick</button>
+                    <button className={`lang-btn${focus === 'hungry' ? ' active' : ''}`} onClick={() => setFocus(f => f === 'hungry' ? 'all' : 'hungry')} title="Highlight starving organisms">😫 hungry</button>
+                    <button className={`lang-btn${focus === 'elders' ? ' active' : ''}`} onClick={() => setFocus(f => f === 'elders' ? 'all' : 'elders')} title="Highlight elders">👴 elders</button>
+                    <button className={`lang-btn${focus === 'builders' ? ' active' : ''}`} onClick={() => setFocus(f => f === 'builders' ? 'all' : 'builders')} title="Highlight builders">🏗 builders</button>
+                    <button className={`lang-btn${focus === 'thriving' ? ' active' : ''}`} onClick={() => setFocus(f => f === 'thriving' ? 'all' : 'thriving')} title="Highlight thriving organisms">✦ thriving</button>
+                  </div>
+
+                  <div className="more-dropdown-divider" />
+                  <div className="more-dropdown-section">view</div>
+                  <div className="more-dropdown-grid">
+                    <button className={`lang-btn${viewFlags.territory ? ' active' : ''}`} onClick={() => setViewFlags(v => ({ ...v, territory: !v.territory }))}>⬡ territory</button>
+                    <button className={`lang-btn${viewFlags.names ? ' active' : ''}`} onClick={() => setViewFlags(v => ({ ...v, names: !v.names }))}>Aa names</button>
+                    <button className={`lang-btn${viewFlags.thoughts ? ' active' : ''}`} onClick={() => setViewFlags(v => ({ ...v, thoughts: !v.thoughts }))}>💭 thoughts</button>
+                    <button className={`lang-btn${viewFlags.animals ? ' active' : ''}`} onClick={() => setViewFlags(v => ({ ...v, animals: !v.animals }))}>🦌 animals</button>
+                    <button className={`lang-btn${viewFlags.grid ? ' active' : ''}`} onClick={() => setViewFlags(v => ({ ...v, grid: !v.grid }))}>⊞ grid</button>
+                  </div>
+
+                  <div className="more-dropdown-divider" />
+                  <div className="more-dropdown-grid">
+                    <button className="lang-btn" onClick={() => { setShowLanguages(true); setShowMore(false) }}>⌖ lang</button>
+                    <button className="lang-btn" onClick={() => { setShowFamilyTree(true); setShowMore(false) }}>⬡ tree</button>
+                  </div>
                 </div>
               )}
             </div>
@@ -207,6 +239,8 @@ function App() {
               followOrgId={followOrgId}
               onOrgSelect={handleOrgSelect}
               overlay={overlay}
+              focus={focus}
+              viewFlags={viewFlags}
             />
 
             {/* ── Right panel: organisms ───────────────────────────── */}

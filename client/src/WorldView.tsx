@@ -109,11 +109,15 @@ function drawOverlay(
   }
 }
 
+type ViewFlags = { territory: boolean; names: boolean; thoughts: boolean; animals: boolean; grid: boolean }
+
 function drawWorldOnCanvas(
   ctx: CanvasRenderingContext2D,
   world: WorldState,
   selectedOrgId: string | null,
   overlay: string | null,
+  focus: string,
+  viewFlags: ViewFlags,
 ) {
   const { width, height, tiles, fire_intensity, biomes, structure } = world.grid
   const animals = world.animals ?? []
@@ -259,11 +263,39 @@ function drawWorldOnCanvas(
       const t = v / 255
       return `rgba(60,${Math.round(100 + t * 120)},255,${t * 0.55})`
     })
+  } else if (overlay === 'density') {
+    // Population density — compute from organism positions
+    const grid2d: number[][] = Array.from({ length: height }, () => new Array(width).fill(0))
+    for (const org of world.organisms) {
+      if (!org.alive) continue
+      const tx2 = Math.round(org.x), ty2 = Math.round(org.y)
+      const R = 4
+      for (let dy = -R; dy <= R; dy++) {
+        for (let dx = -R; dx <= R; dx++) {
+          const d = Math.abs(dx) + Math.abs(dy)
+          if (d > R) continue
+          const nx = tx2 + dx, ny = ty2 + dy
+          if (nx >= 0 && ny >= 0 && ny < height && nx < width) {
+            grid2d[ny][nx] += (R - d + 1)
+          }
+        }
+      }
+    }
+    const maxD = Math.max(...grid2d.flat(), 1)
+    for (let row = 0; row < height; row++) {
+      for (let col = 0; col < width; col++) {
+        const v = grid2d[row][col]
+        if (v < 1) continue
+        const t2 = Math.min(v / maxD, 1)
+        ctx.fillStyle = `rgba(${Math.round(80 + t2 * 175)},${Math.round(200 - t2 * 100)},${Math.round(255 - t2 * 200)},${0.25 + t2 * 0.45})`
+        ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
+      }
+    }
   }
 
   // Territory Voronoi overlay
   const liveOrgs = world.organisms.filter(o => o.alive && o.lineage_id)
-  if (liveOrgs.length > 0) {
+  if (viewFlags.territory && liveOrgs.length > 0) {
     const RADIUS = 8
     for (let ty = 0; ty < height; ty++) {
       for (let tx = 0; tx < width; tx++) {
@@ -317,18 +349,8 @@ function drawWorldOnCanvas(
     ctx.restore()
   }
 
-  // Subtle grid lines
-  ctx.strokeStyle = 'rgba(0,0,0,0.12)'
-  ctx.lineWidth = 0.5
-  for (let x = 0; x <= width; x++) {
-    ctx.beginPath(); ctx.moveTo(x * TILE, 0); ctx.lineTo(x * TILE, H); ctx.stroke()
-  }
-  for (let y = 0; y <= height; y++) {
-    ctx.beginPath(); ctx.moveTo(0, y * TILE); ctx.lineTo(W, y * TILE); ctx.stroke()
-  }
-
   // Draw animals (under organisms)
-  for (const animal of animals) {
+  for (const animal of (viewFlags.animals ? animals : [])) {
     const px = animal.x * TILE + TILE / 2
     const py = animal.y * TILE + TILE / 2
     if (animal.kind === 'rabbit') {
@@ -344,11 +366,24 @@ function drawWorldOnCanvas(
     }
   }
 
+  // Focus filter helper
+  const isFocused = (org: WorldState['organisms'][0]) => {
+    if (focus === 'all') return true
+    if (focus === 'sick')     return org.infection > 0.15
+    if (focus === 'hungry')   return org.energy < 0.3
+    if (focus === 'elders')   return !!org.is_elder
+    if (focus === 'builders') return !!(org.discoveries ?? []).some(d => ['shelter','fire','masonry','stone_tools','spear'].includes(d))
+    if (focus === 'thriving') return org.energy > 0.8 && org.hydration > 0.8
+    return true
+  }
+
   // Draw organisms
   for (const org of world.organisms) {
     if (!org.alive) continue
     const px = org.x * TILE + TILE / 2
     const py = org.y * TILE + TILE / 2
+    const focused = isFocused(org)
+    ctx.globalAlpha = focused ? 1 : 0.12
 
     // Drop shadow
     ctx.fillStyle = 'rgba(0,0,0,0.4)'
@@ -423,16 +458,32 @@ function drawWorldOnCanvas(
     ctx.fillStyle = '#4499ff';          ctx.fillRect(bx, org.y * TILE - 2, barW * org.hydration, 2)
 
     // Name
-    ctx.fillStyle = 'rgba(255,255,255,0.85)'
-    ctx.font = '9px monospace'
-    ctx.textAlign = 'center'
-    ctx.fillText(org.name, px, py - 9)
+    if (viewFlags.names) {
+      ctx.fillStyle = 'rgba(255,255,255,0.85)'
+      ctx.font = '9px monospace'
+      ctx.textAlign = 'center'
+      ctx.fillText(org.name, px, py - 9)
+    }
 
     // Thought
-    if (org.thought && org.thought !== 'observing') {
+    if (viewFlags.thoughts && org.thought && org.thought !== 'observing') {
       ctx.fillStyle = 'rgba(180,220,255,0.7)'
       ctx.font = '8px monospace'
-      ctx.fillText(org.thought, px, py - 18)
+      ctx.textAlign = 'center'
+      ctx.fillText(org.thought, px, py - (viewFlags.names ? 18 : 9))
+    }
+  }
+  ctx.globalAlpha = 1
+
+  // Grid lines (optional)
+  if (viewFlags.grid) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)'
+    ctx.lineWidth = 0.5
+    for (let x = 0; x <= width; x++) {
+      ctx.beginPath(); ctx.moveTo(x * TILE, 0); ctx.lineTo(x * TILE, H); ctx.stroke()
+    }
+    for (let y = 0; y <= height; y++) {
+      ctx.beginPath(); ctx.moveTo(0, y * TILE); ctx.lineTo(W, y * TILE); ctx.stroke()
     }
   }
 }
@@ -440,7 +491,7 @@ function drawWorldOnCanvas(
 // ── WorldTextureUpdater ───────────────────────────────────────────────────────
 // Must be inside <Entity>. Injects a WebGL texture and updates it each tick.
 
-function WorldTextureUpdater({ world, selectedOrgId, overlay }: { world: WorldState; selectedOrgId: string | null; overlay: string | null }) {
+function WorldTextureUpdater({ world, selectedOrgId, overlay, focus, viewFlags }: { world: WorldState; selectedOrgId: string | null; overlay: string | null; focus: string; viewFlags: ViewFlags }) {
   const engine = useGame()
   useEntity()
   const glTexRef  = useRef<WebGLTexture | null>(null)
@@ -491,7 +542,7 @@ function WorldTextureUpdater({ world, selectedOrgId, overlay }: { world: WorldSt
     const gl: WebGL2RenderingContext = rs.gl
 
     const ctx = offscreen.current.getContext('2d')!
-    drawWorldOnCanvas(ctx, world, selectedOrgId, overlay)
+    drawWorldOnCanvas(ctx, world, selectedOrgId, overlay, focus, viewFlags)
 
     gl.bindTexture(gl.TEXTURE_2D, glTexRef.current)
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, offscreen.current)
@@ -499,7 +550,7 @@ function WorldTextureUpdater({ world, selectedOrgId, overlay }: { world: WorldSt
     // Keep key alive in LRU
     rs.textures.set(texKeyRef.current, glTexRef.current)
     if (rs.touchTexture) rs.touchTexture(texKeyRef.current)
-  }, [world, engine, selectedOrgId, overlay])
+  }, [world, engine, selectedOrgId, overlay, focus, viewFlags])
 
   return null
 }
@@ -608,9 +659,11 @@ interface Props {
   followOrgId:   string | null
   onOrgSelect:   (id: string | null) => void
   overlay:       string | null
+  focus:         string
+  viewFlags:     ViewFlags
 }
 
-export function WorldView({ world, selectedOrgId, followOrgId, onOrgSelect, overlay }: Props) {
+export function WorldView({ world, selectedOrgId, followOrgId, onOrgSelect, overlay, focus, viewFlags }: Props) {
   const W = world.grid.width * TILE
   const H = world.grid.height * TILE
   const cx = W / 2
@@ -686,7 +739,7 @@ export function WorldView({ world, selectedOrgId, followOrgId, onOrgSelect, over
                 color="#ffffff"
                 zIndex={0}
               />
-              <WorldTextureUpdater world={world} selectedOrgId={selectedOrgId} overlay={overlay} />
+              <WorldTextureUpdater world={world} selectedOrgId={selectedOrgId} overlay={overlay} focus={focus} viewFlags={viewFlags} />
             </Entity>
 
             <CameraController
