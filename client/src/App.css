@@ -454,6 +454,45 @@ body {
 .lang-btn:hover { background: #1a1a1a; color: #aaffdd; border-color: #335533; }
 .lang-btn.active { background: #1a2a1a; color: #aaffdd; border-color: #335533; }
 
+.more-menu {
+  position: relative;
+}
+
+.more-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: #141414;
+  border: 1px solid #2a2a2a;
+  border-radius: 5px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 110px;
+  z-index: 200;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+
+.more-dropdown .lang-btn {
+  width: 100%;
+  text-align: left;
+}
+
+.more-dropdown-section {
+  font-size: 8px;
+  color: #444;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 4px 0;
+}
+
+.more-dropdown-divider {
+  height: 1px;
+  background: #222;
+  margin: 2px 0;
+}
+
 /* Vocabulary grid in OrgDetail */
 .vocab-grid {
   display: grid;
