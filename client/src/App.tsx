@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useSimulation } from './useSimulation'
 import { WorldView } from './WorldView'
 import { OrgCard } from './components/OrgCard'
@@ -29,6 +29,19 @@ function App() {
   const [panelOpen,      setPanelOpen]      = useState(false)
   const [leftOpen,       setLeftOpen]       = useState(true)
   const [overlay,        setOverlay]        = useState<string | null>(null)
+  const [showMore,       setShowMore]       = useState(false)
+  const moreRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!showMore) return
+    const handler = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setShowMore(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showMore])
 
   // Keep selected org in sync with live world data
   const selectedOrg = selectedOrgId
@@ -90,16 +103,25 @@ function App() {
         {world && (
           <div className="header-actions">
             <button className={`lang-btn${leftOpen ? ' active' : ''}`} onClick={() => setLeftOpen(p => !p)}>⊞ world</button>
-            <button className={`lang-btn overlay-btn${overlay === 'fertility' ? ' active' : ''}`} onClick={() => setOverlay(o => o === 'fertility' ? null : 'fertility')} title="Soil fertility — depletes where food is consumed">🌱 soil</button>
-            <button className={`lang-btn overlay-btn${overlay === 'hazard' ? ' active' : ''}`} onClick={() => setOverlay(o => o === 'hazard' ? null : 'hazard')} title="Hazard memory — persists from fire, death, disease">☠ hazard</button>
-            <button className={`lang-btn overlay-btn${overlay === 'pressure' ? ' active' : ''}`} onClick={() => setOverlay(o => o === 'pressure' ? null : 'pressure')} title="Migration pressure — historical footprint of movement">👣 trails</button>
             <button className="lang-btn" onClick={() => setShowStats(true)}>▦ stats</button>
             <button className="lang-btn" onClick={() => setShowOrgSearch(true)}>⌕ search</button>
-            <button className="lang-btn" onClick={() => setShowLanguages(true)}>⌖ lang</button>
             <button className="lang-btn" onClick={() => setShowChronicles(true)}>
               ✦ chronicles{world.story_history?.length > 0 ? ` (${world.story_history.length})` : ''}
             </button>
-            <button className="lang-btn" onClick={() => setShowFamilyTree(true)}>⬡ tree</button>
+            <div className="more-menu" ref={moreRef}>
+              <button className={`lang-btn${showMore ? ' active' : ''}`} onClick={() => setShowMore(p => !p)}>··· more</button>
+              {showMore && (
+                <div className="more-dropdown">
+                  <div className="more-dropdown-section">overlays</div>
+                  <button className={`lang-btn overlay-btn${overlay === 'fertility' ? ' active' : ''}`} onClick={() => { setOverlay(o => o === 'fertility' ? null : 'fertility'); setShowMore(false) }} title="Soil fertility">🌱 soil</button>
+                  <button className={`lang-btn overlay-btn${overlay === 'hazard' ? ' active' : ''}`} onClick={() => { setOverlay(o => o === 'hazard' ? null : 'hazard'); setShowMore(false) }} title="Hazard memory">☠ hazard</button>
+                  <button className={`lang-btn overlay-btn${overlay === 'pressure' ? ' active' : ''}`} onClick={() => { setOverlay(o => o === 'pressure' ? null : 'pressure'); setShowMore(false) }} title="Migration trails">👣 trails</button>
+                  <div className="more-dropdown-divider" />
+                  <button className="lang-btn" onClick={() => { setShowLanguages(true); setShowMore(false) }}>⌖ lang</button>
+                  <button className="lang-btn" onClick={() => { setShowFamilyTree(true); setShowMore(false) }}>⬡ tree</button>
+                </div>
+              )}
+            </div>
           </div>
         )}
         {world && (
