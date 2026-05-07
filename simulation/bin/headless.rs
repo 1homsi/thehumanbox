@@ -19,8 +19,8 @@ fn main() {
         .and_then(|s| s.parse().ok()).unwrap_or(6_000);  // default 1 in-world day
 
     println!("headless  seed={}  max_ticks={}  print_every={}", seed, max_ticks, print_every);
-    println!("{:<10} {:>5} {:>7} {:>7} {:>7} {:>7} {:>6} {:>6} {:>6} {:>8}",
-        "tick", "alive", "births", "fire", "shelter", "lineages", "starv", "dehy", "sick", "events");
+    println!("{:<10} {:>5} {:>7} {:>7} {:>7} {:>7} {:>7} {:>6} {:>6} {:>6}",
+        "tick", "alive", "births", "animals", "fire", "shelter", "lineages", "starv", "dehy", "sick");
     println!("{}", "-".repeat(80));
 
     let mut sim = Simulation::new(seed);
@@ -42,14 +42,14 @@ fn main() {
         if t % print_every == 0 {
             let fire_count    = sim.organisms.iter().filter(|o| o.alive && o.discoveries.contains(&"fire".to_string())).count();
             let shelter_count = sim.organisms.iter().filter(|o| o.alive && o.discoveries.contains(&"shelter".to_string())).count();
+            let animal_count  = sim.animals.iter().filter(|a| a.alive).count();
             let lineage_count: std::collections::HashSet<&str> = sim.organisms.iter()
                 .filter(|o| o.alive).map(|o| o.lineage_id.as_str()).collect();
             let h = &sim.history;
-            println!("{:<10} {:>5} {:>7} {:>7} {:>7} {:>7} {:>6} {:>6} {:>6} {:>8}",
-                t, alive, h.births,
+            println!("{:<10} {:>5} {:>7} {:>7} {:>7} {:>7} {:>7} {:>6} {:>6} {:>6}",
+                t, alive, h.births, animal_count,
                 fire_count, shelter_count, lineage_count.len(),
                 h.deaths_starvation, h.deaths_dehydration, h.deaths_sickness,
-                sim.events.len(),
             );
         }
     }
@@ -75,10 +75,14 @@ fn main() {
         println!("  {:>10}  {}", count, thought);
     }
 
-    // Fire/shelter discoveries
+    // Fire/shelter/hunt discoveries
     let fire_disc    = sim.organisms.iter().filter(|o| o.discoveries.contains(&"fire".to_string())).count();
     let shelter_disc = sim.organisms.iter().filter(|o| o.discoveries.contains(&"shelter".to_string())).count();
-    println!("\nDiscoveries (ever, alive+dead):  fire={}  shelter={}", fire_disc, shelter_disc);
+    let hunt_disc    = sim.organisms.iter().filter(|o| o.discoveries.contains(&"hunt".to_string())).count();
+    let medicine_disc = sim.organisms.iter().filter(|o| o.discoveries.contains(&"medicine".to_string())).count();
+    println!("\nDiscoveries (ever, alive+dead):  fire={}  shelter={}  hunt={}  medicine={}",
+        fire_disc, shelter_disc, hunt_disc, medicine_disc);
+    println!("Animals alive at end: {}", sim.animals.iter().filter(|a| a.alive).count());
 
     // Lineage survival
     let mut lineage_alive: HashMap<&str, usize> = HashMap::new();
