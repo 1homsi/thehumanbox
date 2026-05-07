@@ -94,6 +94,16 @@ fn apply_weather(
         }
     }
 
+    // Rain replenishes fertility on parched/desert tiles — makes land cultivable again
+    for _ in 0..8 {
+        let x = rng.gen_range(1..WIDTH as i32 - 1);
+        let y = rng.gen_range(1..HEIGHT as i32 - 1);
+        let idx = WorldGrid::idx(x, y);
+        if grid.fertility[idx] < 0.35 {
+            grid.fertility[idx] = (grid.fertility[idx] + 0.015 * weather.intensity).min(0.55);
+        }
+    }
+
     // Storm effects
     if weather.kind == 2 {
         // Energy drain on all organisms (storm exposure)
@@ -119,11 +129,12 @@ pub struct DroughtState {
     pub active:        bool,
     pub start_tick:    u64,
     pub dried_tiles:   Vec<(i32, i32)>,
+    pub rain_relief:   u64,   // rain ticks accumulated during drought
 }
 
 impl Default for DroughtState {
     fn default() -> Self {
-        DroughtState { active: false, start_tick: 0, dried_tiles: Vec::new() }
+        DroughtState { active: false, start_tick: 0, dried_tiles: Vec::new(), rain_relief: 0 }
     }
 }
 
@@ -131,6 +142,7 @@ pub fn tick_drought(
     drought: &mut DroughtState,
     grid: &mut WorldGrid,
     _organisms: &[Organism],
+    weather: &WeatherState,
     tick: u64,
     season: &str,
     history: &mut super::simulation::History,
@@ -138,7 +150,12 @@ pub fn tick_drought(
     rng: &mut impl Rng,
 ) {
     if drought.active {
-        if tick - drought.start_tick >= DROUGHT_DURATION {
+        // Rain accelerates drought end: each rain tick counts as 2 elapsed ticks
+        if weather.is_raining() {
+            drought.rain_relief += 1;
+        }
+        let effective_elapsed = (tick - drought.start_tick) + drought.rain_relief;
+        if effective_elapsed >= DROUGHT_DURATION {
             end_drought(drought, grid, tick, events);
         }
         return;
@@ -156,8 +173,9 @@ fn start_drought(
     history: &mut super::simulation::History,
     events: &mut Vec<super::simulation::Event>,
 ) {
-    drought.active     = true;
-    drought.start_tick = tick;
+    drought.active       = true;
+    drought.start_tick   = tick;
+    drought.rain_relief  = 0;
     let mut dried: Vec<(i32,i32)> = Vec::new();
     for (cx, cy) in grid.pool_centers.clone() {
         for dx in -4i32..=4 {
@@ -185,7 +203,8 @@ fn end_drought(
     tick: u64,
     events: &mut Vec<super::simulation::Event>,
 ) {
-    drought.active = false;
+    drought.active      = false;
+    drought.rain_relief = 0;
     let mut restored = 0usize;
     for (x, y) in &drought.dried_tiles {
         if matches!(grid.get(*x, *y), Tile::Grass | Tile::Ash) {
