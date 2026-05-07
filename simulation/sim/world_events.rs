@@ -440,6 +440,61 @@ pub fn tick_world_evolution(
         }
     }
 
+    // ── h) River / lake drift — water sources slowly migrate over time ────────
+    // Every ~5 in-world days, a few water tiles at the edge of a body dry up
+    // and equivalent new water appears near another existing water tile.
+    // Net water count stays stable; organisms must re-find displaced sources.
+    if tick % 3000 == 0 && tick >= 9000 {
+        // Collect edge-water tiles: Water with at least one non-water, non-rock neighbor
+        let mut edge_water: Vec<(i32, i32)> = Vec::new();
+        for _ in 0..2000 {
+            let x = rng.gen_range(1..WIDTH as i32 - 1);
+            let y = rng.gen_range(1..HEIGHT as i32 - 1);
+            if grid.get(x, y) != Tile::Water { continue; }
+            let has_land_neighbor = [(-1,0),(1,0),(0,-1),(0,1)].iter()
+                .any(|&(dx,dy)| {
+                    let t = grid.get(x+dx, y+dy);
+                    !matches!(t, Tile::Water | Tile::Void | Tile::Rock)
+                });
+            if has_land_neighbor { edge_water.push((x, y)); }
+            if edge_water.len() >= 12 { break; }
+        }
+
+        // Shift 1 water tile per cycle — river meanders to an adjacent tile
+        // (new water spawns within 6 tiles of where it dried, so organisms can adapt)
+        let shifts = 1.min(edge_water.len());
+        for _ in 0..shifts {
+            let (wx, wy) = edge_water[rng.gen_range(0..edge_water.len())];
+            // Find a grass tile within 3-6 tiles of the drying tile (meander radius)
+            let mut candidates: Vec<(i32, i32)> = Vec::new();
+            for ddx in -6i32..=6 {
+                for ddy in -6i32..=6 {
+                    let d = ddx.abs() + ddy.abs();
+                    if d < 3 || d > 6 { continue; }
+                    let (nx, ny) = (wx + ddx, wy + ddy);
+                    if WorldGrid::in_bounds(nx, ny) && matches!(grid.get(nx, ny), Tile::Grass | Tile::Food) {
+                        candidates.push((nx, ny));
+                    }
+                }
+            }
+            if candidates.is_empty() { continue; }
+            let (nx, ny) = candidates[rng.gen_range(0..candidates.len())];
+            // Dry out edge tile
+            let biome = grid.biome_at(wx, wy);
+            let dry_tile = if biome == Biome::Desert { Tile::Ash } else { Tile::Grass };
+            grid.set(wx, wy, dry_tile);
+            let wi = WorldGrid::idx(wx, wy);
+            grid.fertility[wi] = (grid.fertility[wi] + 0.15).min(0.7);
+            // Spawn new water nearby
+            grid.set(nx, ny, Tile::Water);
+        }
+
+        if shifts > 0 {
+            push_event(events, tick, "season", "world",
+                &format!("water sources shifted ({} tiles drifted)", shifts));
+        }
+    }
+
     // ── f) Biome trait pressure on organisms ──────────────────────────────────
     for org in organisms.iter_mut() {
         if !org.alive { continue; }
