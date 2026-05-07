@@ -902,35 +902,44 @@ body {
   text-align: center;
 }
 
-/* ── Custom badge tooltips ──────────────────────────────────────────── */
-[data-tip] {
-  position: relative;
-  cursor: default;
-}
-[data-tip]::after {
-  content: attr(data-tip);
-  position: absolute;
-  bottom: calc(100% + 7px);
-  left: 50%;
-  transform: translateX(-50%) scale(0.95);
-  background: #1c1c1c;
+/* ── Custom portal tooltip ──────────────────────────────────────────── */
+.ui-tooltip {
+  position: fixed;
+  transform: translate(-50%, -100%);
+  background: #1a1a1a;
   color: #c8c8c8;
   font-size: 11px;
+  font-family: monospace;
   font-weight: 400;
   letter-spacing: 0;
   text-transform: none;
-  padding: 5px 9px;
+  padding: 5px 10px;
   border-radius: 5px;
-  border: 1px solid #333;
+  border: 1px solid #2e2e2e;
   white-space: nowrap;
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.12s ease, transform 0.12s ease;
-  z-index: 9999;
+  z-index: 99999;
+  animation: tooltip-in 0.1s ease forwards;
 }
-[data-tip]:hover::after {
-  opacity: 1;
-  transform: translateX(-50%) scale(1);
+.ui-tooltip-arrow {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #2e2e2e;
+}
+.ui-tooltip-arrow::after {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: -4px;
+  border: 4px solid transparent;
+  border-top-color: #1a1a1a;
+}
+@keyframes tooltip-in {
+  from { opacity: 0; transform: translate(-50%, calc(-100% + 4px)); }
+  to   { opacity: 1; transform: translate(-50%, -100%); }
 }
 
 /* ── Weather badges ─────────────────────────────────────────────────── */
