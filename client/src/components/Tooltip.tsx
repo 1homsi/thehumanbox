@@ -2,6 +2,10 @@ import { useState, cloneElement } from 'react'
 import { createPortal } from 'react-dom'
 import type { ReactElement, ReactNode } from 'react'
 
+const OFFSET = 8
+// Flip to below when less than this many px from the top of the viewport
+const FLIP_PX = 80
+
 interface Props {
   tip: ReactNode
   children: ReactElement
@@ -21,13 +25,18 @@ export function Tooltip({ tip, children }: Props) {
     },
   })
 
+  const above = rect ? rect.top > FLIP_PX : true
+
   return (
     <>
       {child}
       {rect && createPortal(
         <div
-          className="ui-tooltip"
-          style={{ left: rect.left + rect.width / 2, top: rect.top - 8 }}
+          className={`ui-tooltip ui-tooltip--${above ? 'above' : 'below'}`}
+          style={{
+            left: rect.left + rect.width / 2,
+            top: above ? rect.top - OFFSET : rect.bottom + OFFSET,
+          }}
         >
           {tip}
           <div className="ui-tooltip-arrow" />
