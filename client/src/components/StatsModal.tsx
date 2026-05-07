@@ -147,7 +147,11 @@ function DiscoveryTimeline({ events }: { events: WorldState['events'] }) {
 
 export function StatsModal({ world, onClose }: Props) {
   const liveCount  = world.organisms.filter(o => o.alive).length
-  const deadCount  = world.organisms.filter(o => !o.alive).length
+  const totalDeaths = (world.history.deaths_old_age ?? 0)
+    + (world.history.deaths_starvation ?? 0)
+    + (world.history.deaths_dehydration ?? 0)
+    + (world.history.deaths_sickness ?? 0)
+    + (world.history.deaths_combat ?? 0)
   const fireCount    = world.organisms.filter(o => o.alive && (o.discoveries ?? []).includes('fire')).length
   const shelterCount = world.organisms.filter(o => o.alive && (o.discoveries ?? []).includes('shelter')).length
   const currentDay   = Math.floor(world.tick / DAY_LENGTH)
@@ -171,8 +175,8 @@ export function StatsModal({ world, onClose }: Props) {
               <div className="stats-num-label">alive</div>
             </div>
             <div className="stats-num-card">
-              <div className="stats-num">{deadCount}</div>
-              <div className="stats-num-label">ancestors</div>
+              <div className="stats-num">{totalDeaths}</div>
+              <div className="stats-num-label">total deaths</div>
             </div>
             <div className="stats-num-card">
               <div className="stats-num">{world.history.births}</div>
