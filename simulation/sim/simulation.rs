@@ -591,7 +591,7 @@ impl Simulation {
             let tile = self.grid.get(ix, iy);
             if self.organisms[idx].carrying > 0
                && self.organisms[idx].carrying_type != 2
-               && matches!(tile, Tile::Grass | Tile::Ash | Tile::Food)
+               && matches!(tile, Tile::Grass | Tile::Ash | Tile::Food | Tile::Snow | Tile::Sand)
             {
                 self.grid.set(ix, iy, Tile::Campfire);
                 *self.grid.fire_intensity_mut(ix, iy) = 1.0;
@@ -678,7 +678,7 @@ impl Simulation {
         // Stone deposits more durable traces than wood.
         if self.organisms[idx].carrying > 0 {
             let tile = self.grid.get(cx, cy);
-            if matches!(tile, Tile::Grass | Tile::Food | Tile::Ash | Tile::Hut) {
+            if matches!(tile, Tile::Grass | Tile::Food | Tile::Ash | Tile::Hut | Tile::Snow | Tile::Sand) {
                 let prev_s = self.grid.structure_at(cx, cy);
                 let has_masonry = self.organisms[idx].discoveries.iter().any(|d| d == "masonry");
                 let deposit = match (self.organisms[idx].carrying_type, has_masonry) {

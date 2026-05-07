@@ -18,15 +18,17 @@ const TILE_COLORS: Record<number, string> = {
   9: '#3a6688',   // flooded — steel blue
   10: '#c8a020',  // mineral — gold/amber
   11: '#2a2018',  // scorched — very dark brown
+  12: '#ddeef5',  // snow — icy blue-white
+  13: '#d9c07a',  // sand — warm desert tan
 }
 
 const BIOME_OVERLAYS: Record<number, string> = {
   0: 'rgba(80,140,60,0.08)',    // grassland
-  1: 'rgba(20,80,20,0.12)',     // forest
-  2: 'rgba(160,120,40,0.14)',   // desert
+  1: 'rgba(20,80,20,0.14)',     // forest
+  2: 'rgba(200,160,60,0.28)',   // desert — warm sand tint
   3: 'rgba(20,100,100,0.10)',   // wetland
-  4: 'rgba(120,160,200,0.10)',  // tundra
-  5: 'rgba(160,40,20,0.14)',    // volcanic
+  4: 'rgba(200,230,255,0.30)',  // tundra — strong icy blue-white
+  5: 'rgba(160,40,20,0.18)',    // volcanic
 }
 
 const THOUGHT_COLORS: Record<string, string> = {

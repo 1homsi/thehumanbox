@@ -495,6 +495,11 @@ pub fn tick_world_evolution(
         }
     }
 
+    // ── Geological drift — slow coastal reshaping ─────────────────────────────
+    if tick % 5000 == 0 {
+        grid.tick_geology(rng);
+    }
+
     // ── f) Biome trait pressure on organisms ──────────────────────────────────
     for org in organisms.iter_mut() {
         if !org.alive { continue; }

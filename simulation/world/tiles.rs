@@ -51,6 +51,8 @@ pub enum Tile {
     Flooded  = 9,  // temporary shallow water from storm flooding, reverts after time
     Mineral  = 10, // rare volcanic mineral deposit
     Scorched = 11, // long-term burn scar after major fires, slowly recovers to grass
+    Snow     = 12, // polar/tundra ground
+    Sand     = 13, // desert ground
 }
 
 impl Tile {
@@ -67,6 +69,8 @@ impl Tile {
             9  => Tile::Flooded,
             10 => Tile::Mineral,
             11 => Tile::Scorched,
+            12 => Tile::Snow,
+            13 => Tile::Sand,
             _  => Tile::Void,
         }
     }

@@ -184,23 +184,45 @@ impl WorldGrid {
         use std::f32::consts::TAU;
         let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
 
-        // ── 0. Continent mask — creates organic "world map" shape ─────────
         let phases: [f32; 8] = std::array::from_fn(|_| rng.gen::<f32>() * TAU);
+
+        // ── 0. Multi-continent land mask ──────────────────────────────────────
+        // Three separate landmasses with ocean gaps between them.
+        // Each entry: (center_nx, center_ny, mul_x, mul_y, sx, sy)
+        //   mul_x/mul_y scale the coordinate before distance calc (higher = smaller continent)
+        //   sx/sy are ellipse axis stretches
+        let continents: [(f32, f32, f32, f32, f32, f32); 3] = [
+            (0.20, 0.49,  6.2, 4.8,  0.85, 1.15),  // west
+            (0.76, 0.47,  6.0, 4.6,  0.88, 1.10),  // east (slightly larger)
+            (0.50, 0.77,  9.5, 7.5,  0.75, 1.00),  // south archipelago
+        ];
+
         let mut land_mask = vec![false; WIDTH * HEIGHT];
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
                 let nx = x as f32 / WIDTH  as f32;
                 let ny = y as f32 / HEIGHT as f32;
-                let dx = (nx - 0.5) * 2.0;
-                let dy = (ny - 0.5) * 2.0;
-                let base_elev = 1.0 - (dx * dx * 1.05 + dy * dy * 1.65).sqrt();
+
+                let mut max_elev = -999.0f32;
+                for &(cx, cy, mx, my, sx, sy) in &continents {
+                    let dx = (nx - cx) * mx;
+                    let dy = (ny - cy) * my;
+                    let e  = 1.0 - (dx * dx * sx + dy * dy * sy).sqrt();
+                    if e > max_elev { max_elev = e; }
+                }
+
+                // Organic coastline noise (4 octaves)
                 let noise =
-                    0.10 * ((nx * 5.0 * TAU + phases[0]).sin() * (ny * 4.0 * TAU + phases[1]).cos()) +
-                    0.06 * ((nx * 11.0 * TAU + phases[2]).sin() * (ny * 9.0 * TAU + phases[3]).cos()) +
-                    0.03 * ((nx * 22.0 * TAU + phases[4]).sin() * (ny * 18.0 * TAU + phases[5]).cos());
-                land_mask[Self::idx(x, y)] = (base_elev + noise) > 0.05;
+                    0.11 * ((nx * 5.3 * TAU + phases[0]).sin() * (ny * 4.1 * TAU + phases[1]).cos()) +
+                    0.07 * ((nx * 11.7 * TAU + phases[2]).sin() * (ny * 8.9 * TAU + phases[3]).cos()) +
+                    0.04 * ((nx * 23.1 * TAU + phases[4]).sin() * (ny * 17.3 * TAU + phases[5]).cos()) +
+                    0.02 * ((nx * 47.0 * TAU + phases[6]).sin() * (ny * 36.0 * TAU + phases[7]).cos());
+
+                // Hard ocean floor below -0.35 prevents continents merging through noise
+                land_mask[Self::idx(x, y)] = max_elev > -0.35 && (max_elev + noise) > 0.06;
             }
         }
+
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
                 if !land_mask[Self::idx(x, y)] {
@@ -209,40 +231,48 @@ impl WorldGrid {
             }
         }
 
-        // ── 1. Biome Voronoi (land tiles only) ───────────────────────────
-        let biome_distribution: &[(u8, usize)] = &[
-            (Biome::Grassland as u8, 8),
-            (Biome::Forest    as u8, 6),
-            (Biome::Desert    as u8, 4),
-            (Biome::Wetland   as u8, 4),
-            (Biome::Tundra    as u8, 3),
-            (Biome::Volcanic  as u8, 2),
-        ];
-        let land_tiles: Vec<(i32, i32)> = (0..HEIGHT as i32)
-            .flat_map(|y| (0..WIDTH as i32).map(move |x| (x, y)))
-            .filter(|&(x, y)| land_mask[Self::idx(x, y)])
-            .collect();
-
-        let mut centers: Vec<(i32, i32, u8)> = Vec::new();
-        if !land_tiles.is_empty() {
-            for &(btype, count) in biome_distribution {
-                for _ in 0..count {
-                    let &(x, y) = &land_tiles[rng.gen_range(0..land_tiles.len())];
-                    centers.push((x, y, btype));
-                }
-            }
-        }
+        // ── 1. Latitude-based biome assignment ───────────────────────────────
+        // lat=0 at equator (center row), lat=1 at poles (top/bottom rows).
+        // Desert belts sit in the subtropical Hadley-cell zone.
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
                 if !land_mask[Self::idx(x, y)] { continue; }
-                let nearest = centers.iter()
-                    .min_by_key(|(cx, cy, _)| (x - cx).abs() + (y - cy).abs())
-                    .unwrap();
-                self.biome[Self::idx(x, y)] = nearest.2;
+                let nx = x as f32 / WIDTH  as f32;
+                let ny = y as f32 / HEIGHT as f32;
+                let lat = (ny - 0.5).abs() * 2.0;
+                // Longitude-varying wave breaks up perfectly uniform latitude bands
+                let lon_wave = ((nx * 4.7 + ny * 1.8) * TAU + phases[0]).sin() * 0.10;
+
+                let biome = if lat > 0.72 + lon_wave * 0.10 {
+                    Biome::Tundra
+                } else if lat > 0.52 + lon_wave * 0.10 {
+                    if rng.gen::<f32>() < 0.80 { Biome::Tundra } else { Biome::Grassland }
+                } else if lat > 0.36 + lon_wave * 0.08 {
+                    // Subtropical desert belt
+                    let dp = ((lat - 0.36) / 0.18).powf(1.3) * 0.85 + lon_wave * 0.15;
+                    let r = rng.gen::<f32>();
+                    if r < dp { Biome::Desert } else { Biome::Grassland }
+                } else if lat > 0.18 {
+                    // Temperate
+                    let r = rng.gen::<f32>();
+                    if r < 0.38      { Biome::Forest   }
+                    else if r < 0.72 { Biome::Grassland }
+                    else if r < 0.88 { Biome::Wetland   }
+                    else             { Biome::Volcanic  }
+                } else {
+                    // Equatorial / tropical
+                    let r = rng.gen::<f32>();
+                    if r < 0.52      { Biome::Forest   }
+                    else if r < 0.72 { Biome::Wetland   }
+                    else if r < 0.90 { Biome::Grassland }
+                    else             { Biome::Volcanic  }
+                };
+
+                self.biome[Self::idx(x, y)] = biome as u8;
             }
         }
 
-        // ── 2. Inland water pools — placed on land only ───────────────────
+        // ── 2. Inland water pools — skip desert and polar zones ──────────────
         let zones_x = 8usize;
         let zones_y = 5usize;
         let zone_w  = WIDTH  / zones_x;
@@ -256,7 +286,11 @@ impl WorldGrid {
                 let y1 = ((zy + 1) * zone_h - 4) as i32;
                 let candidates: Vec<(i32, i32)> = (y0..y1)
                     .flat_map(|y| (x0..x1).map(move |x| (x, y)))
-                    .filter(|&(x, y)| Self::in_bounds(x, y) && land_mask[Self::idx(x, y)])
+                    .filter(|&(x, y)| {
+                        if !Self::in_bounds(x, y) || !land_mask[Self::idx(x, y)] { return false; }
+                        let b = Biome::from_u8(self.biome[Self::idx(x, y)]);
+                        !matches!(b, Biome::Desert | Biome::Tundra)
+                    })
                     .collect();
                 if !candidates.is_empty() {
                     let &(cx, cy) = &candidates[rng.gen_range(0..candidates.len())];
@@ -279,7 +313,7 @@ impl WorldGrid {
             }
         }
 
-        // ── 3. Rivers — connect some pool pairs ──────────────────────────
+        // ── 3. Rivers ─────────────────────────────────────────────────────────
         let n = pool_centers.len();
         if n >= 2 {
             for i in 0..n.saturating_sub(1) {
@@ -291,7 +325,7 @@ impl WorldGrid {
             }
         }
 
-        // ── 4. Rocks ─────────────────────────────────────────────────────
+        // ── 4. Rocks ──────────────────────────────────────────────────────────
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
                 if self.get(x, y) != Tile::Grass { continue; }
@@ -300,7 +334,7 @@ impl WorldGrid {
             }
         }
 
-        // ── 5. Initial food ───────────────────────────────────────────────
+        // ── 5. Initial food (Grass only — Snow/Sand follow in step 6) ─────────
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
                 if self.get(x, y) != Tile::Grass { continue; }
@@ -309,7 +343,37 @@ impl WorldGrid {
             }
         }
 
-        // ── 6. Volcanic fire seeds ────────────────────────────────────────
+        // ── 6. Snow and Sand tiles ────────────────────────────────────────────
+        // Applied after food placement: converts Grass/Food in polar zones to Snow,
+        // and Grass in desert zones to Sand.
+        for y in 0..HEIGHT as i32 {
+            for x in 0..WIDTH as i32 {
+                if !land_mask[Self::idx(x, y)] { continue; }
+                let idx = Self::idx(x, y);
+                let tile  = Tile::from_i8(self.tiles[idx]);
+                if !matches!(tile, Tile::Grass | Tile::Food) { continue; }
+                let biome = Biome::from_u8(self.biome[idx]);
+                let ny    = y as f32 / HEIGHT as f32;
+                let lat   = (ny - 0.5).abs() * 2.0;
+                match biome {
+                    Biome::Tundra => {
+                        // Deep polar = near-100% snow; sub-polar = partial
+                        let snow_p = ((lat - 0.48).max(0.0) / 0.52).powf(0.55) * 0.96;
+                        if rng.gen::<f32>() < snow_p {
+                            self.tiles[idx] = Tile::Snow as i8;
+                        }
+                    }
+                    Biome::Desert => {
+                        if matches!(tile, Tile::Grass) && rng.gen::<f32>() < 0.82 {
+                            self.tiles[idx] = Tile::Sand as i8;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        // ── 7. Volcanic fire seeds ────────────────────────────────────────────
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
                 if Biome::from_u8(self.biome[Self::idx(x, y)]) == Biome::Volcanic
@@ -322,17 +386,19 @@ impl WorldGrid {
             }
         }
 
-        // ── 7. Temperature from biome ─────────────────────────────────────
+        // ── 8. Temperature (biome base + latitude correction) ─────────────────
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
-                self.temperature[Self::idx(x, y)] =
-                    Biome::from_u8(self.biome[Self::idx(x, y)]).base_temp();
+                let base  = Biome::from_u8(self.biome[Self::idx(x, y)]).base_temp();
+                let ny    = y as f32 / HEIGHT as f32;
+                let lat_c = (ny - 0.5).abs() * 2.0 * 8.0; // ±8°C polar correction
+                self.temperature[Self::idx(x, y)] = base - lat_c;
             }
         }
 
         self.pool_centers = pool_centers;
 
-        // ── 8. Initial fertility from biome ───────────────────────────────
+        // ── 9. Initial fertility ───────────────────────────────────────────────
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
                 let i = Self::idx(x, y);
@@ -368,6 +434,54 @@ impl WorldGrid {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    /// Slow geological coastal change — called every ~5000 ticks.
+    /// Floods a handful of coastal land tiles and exposes a few coastal water tiles.
+    pub fn tick_geology(&mut self, rng: &mut impl Rng) {
+        let flood_count  = rng.gen_range(6..=18usize);
+        let emerge_count = rng.gen_range(2..=8usize);
+
+        // Flood random coastal land tiles
+        let mut flooded = 0usize;
+        for _ in 0..800 {
+            if flooded >= flood_count { break; }
+            let x = rng.gen_range(1..WIDTH as i32 - 1);
+            let y = rng.gen_range(1..HEIGHT as i32 - 1);
+            if !matches!(self.get(x, y), Tile::Grass | Tile::Snow | Tile::Sand | Tile::Food | Tile::Ash) { continue; }
+            let coastal = [(x-1,y),(x+1,y),(x,y-1),(x,y+1)].iter()
+                .any(|&(nx, ny)| Self::in_bounds(nx, ny) && self.get(nx, ny) == Tile::Water);
+            if coastal {
+                self.tiles[Self::idx(x, y)] = Tile::Water as i8;
+                flooded += 1;
+            }
+        }
+
+        // Expose random coastal water tiles
+        let mut emerged = 0usize;
+        for _ in 0..600 {
+            if emerged >= emerge_count { break; }
+            let x = rng.gen_range(1..WIDTH as i32 - 1);
+            let y = rng.gen_range(1..HEIGHT as i32 - 1);
+            if self.get(x, y) != Tile::Water { continue; }
+            let coastal = [(x-1,y),(x+1,y),(x,y-1),(x,y+1)].iter()
+                .any(|&(nx, ny)| Self::in_bounds(nx, ny)
+                    && !matches!(self.get(nx, ny), Tile::Water | Tile::Void));
+            if coastal {
+                let ny_n = y as f32 / HEIGHT as f32;
+                let lat  = (ny_n - 0.5).abs() * 2.0;
+                let (tile, biome) = if lat > 0.65 {
+                    (Tile::Snow, Biome::Tundra)
+                } else if lat > 0.40 {
+                    (Tile::Sand, Biome::Desert)
+                } else {
+                    (Tile::Grass, Biome::Grassland)
+                };
+                self.tiles[Self::idx(x, y)] = tile as i8;
+                self.biome[Self::idx(x, y)] = biome as u8;
+                emerged += 1;
             }
         }
     }
