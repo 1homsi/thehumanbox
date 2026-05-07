@@ -54,12 +54,17 @@ function buildLayout(orgs: OrganismState[]) {
   return { nodes, w: Math.max(maxX, 400), h: Math.max(maxY, 200) }
 }
 
-export function FamilyTreeModal({ organisms, onClose }: Props) {
-  const svgRef     = useRef<SVGSVGElement>(null)
-  const wrapRef    = useRef<HTMLDivElement>(null)
+export function FamilyTreeModal({ organisms: livOrgs, onClose }: Props) {
+  // Snapshot on mount — never re-layout from live data (live updates cause constant re-renders)
+  const organisms = useRef(livOrgs).current
+
+  const canvasRef   = useRef<HTMLCanvasElement>(null)
+  const wrapRef     = useRef<HTMLDivElement>(null)
   const [hoverId, setHoverId] = useState<string | null>(null)
   const [tf, setTf] = useState<Transform>({ x: 20, y: 20, scale: 0.75 })
-  const dragging   = useRef<{ ox: number; oy: number; sx: number; sy: number } | null>(null)
+  const dragging    = useRef<{ ox: number; oy: number; sx: number; sy: number } | null>(null)
+  const tfRef       = useRef(tf)
+  tfRef.current = tf
 
   const { nodes, w: svgW, h: svgH } = useMemo(() => buildLayout(organisms), [organisms])
 
@@ -70,28 +75,131 @@ export function FamilyTreeModal({ organisms, onClose }: Props) {
   }, [nodes])
 
   const { edges, ghostEdges } = useMemo(() => {
-    const edges: { d: string; color: string; key: string }[] = []
-    const ghostEdges: { x: number; y: number; key: string }[] = []
+    const edges: { x1: number; y1: number; x2: number; y2: number; color: string }[] = []
+    const ghostEdges: { x: number; y: number }[] = []
     for (const n of nodes) {
       const p = posById.get(n.org.parent_id)
       if (p) {
-        const x1 = p.x + NODE_W, y1 = p.y + NODE_H / 2
-        const x2 = n.x,          y2 = n.y + NODE_H / 2
-        const mx = (x1 + x2) / 2
         edges.push({
-          d: `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`,
+          x1: p.x + NODE_W, y1: p.y + NODE_H / 2,
+          x2: n.x,          y2: n.y + NODE_H / 2,
           color: lineageColor(n.org.lineage_id),
-          key: `${n.org.parent_id}-${n.org.id}`,
         })
       } else if (n.org.generation > 0 && n.org.parent_id) {
-        // Parent was pruned from history — draw a ghost stub going left
-        ghostEdges.push({ x: n.x, y: n.y + NODE_H / 2, key: `ghost-${n.org.id}` })
+        ghostEdges.push({ x: n.x, y: n.y + NODE_H / 2 })
       }
     }
     return { edges, ghostEdges }
   }, [nodes, posById])
 
-  // Fit all content into the viewport
+  const gens = useMemo(() =>
+    [...new Set(nodes.map(n => n.org.generation))].sort((a, b) => a - b),
+    [nodes])
+
+  // ── Canvas draw ────────────────────────────────────────────────────────
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current
+    const wrap   = wrapRef.current
+    if (!canvas || !wrap) return
+    const dpr = window.devicePixelRatio || 1
+    const vw  = wrap.clientWidth
+    const vh  = wrap.clientHeight
+    if (canvas.width !== vw * dpr || canvas.height !== vh * dpr) {
+      canvas.width  = vw * dpr
+      canvas.height = vh * dpr
+      canvas.style.width  = vw + 'px'
+      canvas.style.height = vh + 'px'
+    }
+    const ctx = canvas.getContext('2d')!
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    ctx.clearRect(0, 0, vw, vh)
+
+    const { x: tx, y: ty, scale: ts } = tfRef.current
+    ctx.save()
+    ctx.translate(tx, ty)
+    ctx.scale(ts, ts)
+
+    // Gen labels
+    ctx.font = '9px monospace'
+    ctx.fillStyle = '#333'
+    ctx.textAlign = 'center'
+    gens.forEach((gen, i) => {
+      const gx = PAD_X + i * (NODE_W + GAP_X) + NODE_W / 2
+      ctx.fillText(`gen ${gen}`, gx, 14)
+    })
+
+    // Ghost stubs
+    ctx.strokeStyle = '#2a2a2a'
+    ctx.setLineDash([3, 3])
+    ctx.lineWidth = 1
+    for (const g of ghostEdges) {
+      ctx.beginPath()
+      ctx.moveTo(g.x, g.y)
+      ctx.lineTo(g.x - 40, g.y)
+      ctx.stroke()
+    }
+    ctx.setLineDash([])
+
+    // Edges
+    ctx.lineWidth = 1.5
+    for (const e of edges) {
+      const mx = (e.x1 + e.x2) / 2
+      ctx.strokeStyle = e.color + '55'
+      ctx.beginPath()
+      ctx.moveTo(e.x1, e.y1)
+      ctx.bezierCurveTo(mx, e.y1, mx, e.y2, e.x2, e.y2)
+      ctx.stroke()
+    }
+
+    // Nodes
+    for (const { org, x, y } of nodes) {
+      const color   = lineageColor(org.lineage_id)
+      const isAlive = org.alive
+      const isHover = org.id === hoverId
+
+      // Card bg
+      ctx.fillStyle = isAlive ? '#181818' : '#101010'
+      ctx.strokeStyle = isHover ? '#ddd' : color + (isAlive ? 'cc' : '44')
+      ctx.lineWidth = isHover ? 1.5 : 0.8
+      ctx.beginPath()
+      ctx.roundRect(x, y, NODE_W, NODE_H, 3)
+      ctx.fill()
+      ctx.stroke()
+
+      // Lineage bar
+      ctx.fillStyle = color + (isAlive ? 'e6' : '44')
+      ctx.beginPath()
+      ctx.roundRect(x, y, 3, NODE_H, 2)
+      ctx.fill()
+
+      // Name
+      ctx.font = '600 10px monospace'
+      ctx.fillStyle = isAlive ? '#ddd' : '#555'
+      ctx.textAlign = 'left'
+      ctx.fillText(org.name + (isAlive ? '' : ' †'), x + 8, y + 13)
+
+      // Sub info
+      ctx.font = '8px monospace'
+      ctx.fillStyle = '#444'
+      ctx.fillText(`${org.lineage_id.slice(0, 5)} · ${Math.floor(org.age / DAY_LENGTH)}d`, x + 8, y + 26)
+
+      // Discovery icons
+      const hasFire = org.discoveries?.includes('fire')
+      const hasHut  = org.discoveries?.includes('shelter')
+      if (hasFire || hasHut) {
+        ctx.font = '9px monospace'
+        ctx.textAlign = 'right'
+        ctx.fillText((hasFire ? '🔥' : '') + (hasHut ? '🏠' : ''), x + NODE_W - 4, y + 13)
+      }
+    }
+
+    ctx.restore()
+  }, [nodes, edges, ghostEdges, gens, hoverId])
+
+  // Redraw whenever transform or hover changes
+  useEffect(() => { draw() }, [draw, tf, hoverId])
+
+  // Fit all content into viewport
   const fitAll = useCallback(() => {
     const wrap = wrapRef.current
     if (!wrap || !nodes.length) return
@@ -101,10 +209,18 @@ export function FamilyTreeModal({ organisms, onClose }: Props) {
     setTf({ x: (vw - svgW * s) / 2, y: (vh - svgH * s) / 2, scale: s })
   }, [svgW, svgH, nodes.length])
 
-  // Fit on first mount
   useEffect(() => { fitAll() }, [fitAll])
 
-  // Wheel → zoom toward cursor
+  // Resize observer
+  useEffect(() => {
+    const wrap = wrapRef.current
+    if (!wrap) return
+    const ro = new ResizeObserver(() => draw())
+    ro.observe(wrap)
+    return () => ro.disconnect()
+  }, [draw])
+
+  // Wheel zoom
   const onWheel = useCallback((e: WheelEvent) => {
     e.preventDefault()
     const rect = wrapRef.current!.getBoundingClientRect()
@@ -125,11 +241,11 @@ export function FamilyTreeModal({ organisms, onClose }: Props) {
     return () => el.removeEventListener('wheel', onWheel)
   }, [onWheel])
 
-  // Drag to pan (background only)
-  const onMouseDown = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    if ((e.target as Element).closest('g[data-node]')) return
+  // Drag to pan
+  const onMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     e.preventDefault()
-    dragging.current = { ox: tf.x, oy: tf.y, sx: e.clientX, sy: e.clientY }
+    const t = tfRef.current
+    dragging.current = { ox: t.x, oy: t.y, sx: e.clientX, sy: e.clientY }
     const onMove = (ev: MouseEvent) => {
       if (!dragging.current) return
       const { ox, oy, sx, sy } = dragging.current
@@ -142,16 +258,27 @@ export function FamilyTreeModal({ organisms, onClose }: Props) {
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
-  }, [tf])
+  }, [])
+
+  // Hover hit-test
+  const onMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (dragging.current) return
+    const rect = canvasRef.current!.getBoundingClientRect()
+    const { x: tx, y: ty, scale: ts } = tfRef.current
+    const wx = (e.clientX - rect.left - tx) / ts
+    const wy = (e.clientY - rect.top  - ty) / ts
+    const hit = nodes.find(n =>
+      wx >= n.x && wx <= n.x + NODE_W && wy >= n.y && wy <= n.y + NODE_H
+    )
+    setHoverId(hit?.org.id ?? null)
+  }, [nodes])
 
   const hovered = hoverId != null ? (organisms.find(o => o.id === hoverId) ?? null) : null
-  const disc = (org: OrganismState) => org.discoveries ?? []
 
   return (
     <div className="lang-modal-backdrop" onClick={onClose}>
       <div className="tree-modal" onClick={e => e.stopPropagation()}>
 
-        {/* Header */}
         <div className="lang-modal-header">
           <span className="lang-modal-title">FAMILY TREE</span>
           <span className="tree-modal-sub">
@@ -160,14 +287,13 @@ export function FamilyTreeModal({ organisms, onClose }: Props) {
           <button className="close-btn" onClick={onClose}>✕</button>
         </div>
 
-        {/* Hover info bar */}
         <div className="tree-tooltip">
           {hovered ? (
             <>
               <span style={{ color: lineageColor(hovered.lineage_id), fontWeight: 600 }}>{hovered.name}</span>
               <span style={{ color: '#666' }}> · gen {hovered.generation} · age {hovered.age} · {hovered.lineage_id.slice(0, 6)}</span>
-              {disc(hovered).includes('fire')    && <span> 🔥</span>}
-              {disc(hovered).includes('shelter') && <span> 🏠</span>}
+              {hovered.discoveries?.includes('fire')    && <span> 🔥</span>}
+              {hovered.discoveries?.includes('shelter') && <span> 🏠</span>}
               <span className="tree-tooltip-thought"> "{hovered.thought}"</span>
             </>
           ) : (
@@ -175,98 +301,16 @@ export function FamilyTreeModal({ organisms, onClose }: Props) {
           )}
         </div>
 
-        {/* Canvas */}
         <div className="tree-scroll" ref={wrapRef} style={{ overflow: 'hidden', cursor: 'grab' }}>
-          <svg
-            ref={svgRef}
-            width="100%"
-            height="100%"
+          <canvas
+            ref={canvasRef}
             onMouseDown={onMouseDown}
+            onMouseMove={onMouseMove}
+            onMouseLeave={() => setHoverId(null)}
             style={{ display: 'block', userSelect: 'none' }}
-          >
-            <g transform={`translate(${tf.x.toFixed(1)}, ${tf.y.toFixed(1)}) scale(${tf.scale.toFixed(3)})`}>
-              {/* Gen column headers */}
-              {[...new Set(nodes.map(n => n.org.generation))].sort((a,b)=>a-b).map((gen, i) => (
-                <text
-                  key={gen}
-                  x={PAD_X + i * (NODE_W + GAP_X) + NODE_W / 2}
-                  y={14}
-                  textAnchor="middle"
-                  fill="#333"
-                  fontSize={9}
-                  fontFamily="monospace"
-                  letterSpacing="0.08em"
-                >
-                  gen {gen}
-                </text>
-              ))}
-
-              {/* Ghost stubs: ancestor pruned from history */}
-              {ghostEdges.map(g => (
-                <g key={g.key}>
-                  <line
-                    x1={g.x} y1={g.y} x2={g.x - 40} y2={g.y}
-                    stroke="#333" strokeWidth={1} strokeDasharray="3 3"
-                  />
-                  <text x={g.x - 46} y={g.y + 3} textAnchor="end"
-                    fill="#2a2a2a" fontSize={8} fontFamily="monospace">···</text>
-                </g>
-              ))}
-
-              {/* Edges */}
-              {edges.map(e => (
-                <path key={e.key} d={e.d} stroke={e.color}
-                  strokeWidth={1.5} strokeOpacity={0.35} fill="none" />
-              ))}
-
-              {/* Nodes */}
-              {nodes.map(({ org, x, y }) => {
-                const color    = lineageColor(org.lineage_id)
-                const isAlive  = org.alive
-                const isHover  = org.id === hoverId
-                const hasFire  = disc(org).includes('fire')
-                const hasHut   = disc(org).includes('shelter')
-                return (
-                  <g
-                    key={org.id}
-                    data-node="1"
-                    transform={`translate(${x}, ${y})`}
-                    onMouseEnter={() => setHoverId(org.id)}
-                    onMouseLeave={() => setHoverId(null)}
-                    style={{ cursor: 'default' }}
-                  >
-                    <rect width={NODE_W} height={NODE_H} rx={3}
-                      fill={isAlive ? '#181818' : '#101010'}
-                      stroke={isHover ? '#ddd' : color}
-                      strokeWidth={isHover ? 1.5 : 0.8}
-                      strokeOpacity={isAlive ? 0.85 : 0.3}
-                    />
-                    {/* Left lineage bar */}
-                    <rect width={3} height={NODE_H} rx={2}
-                      fill={color} fillOpacity={isAlive ? 0.9 : 0.3} />
-                    {/* Name */}
-                    <text x={8} y={13} fill={isAlive ? '#ddd' : '#555'}
-                      fontSize={10} fontFamily="monospace" fontWeight="600">
-                      {org.name}{!isAlive ? ' †' : ''}
-                    </text>
-                    {/* Sub-line: lineage + age */}
-                    <text x={8} y={26} fill="#444" fontSize={8} fontFamily="monospace">
-                      {org.lineage_id.slice(0, 5)} · {Math.floor(org.age / DAY_LENGTH)}d
-                    </text>
-                    {/* Discoveries */}
-                    {(hasFire || hasHut) && (
-                      <text x={NODE_W - (hasFire && hasHut ? 24 : 14)} y={13} fontSize={9}>
-                        {hasFire ? '🔥' : ''}{hasHut ? '🏠' : ''}
-                      </text>
-                    )}
-                  </g>
-                )
-              })}
-            </g>
-          </svg>
+          />
         </div>
 
-        {/* Zoom controls + legend */}
         <div className="tree-legend">
           <button className="tree-zoom-btn" onClick={() => setTf(t => ({ ...t, scale: Math.min(4, t.scale * 1.25) }))}>＋</button>
           <button className="tree-zoom-btn" onClick={fitAll}>fit</button>
