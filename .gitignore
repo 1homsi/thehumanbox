@@ -1,0 +1,15 @@
+# Rust
+simulation/target/
+simulation/*.save
+simulation/.env
+
+# Node
+client/node_modules/
+client/dist/
+client/dist-ssr/
+client/*.local
+
+# Misc
+.DS_Store
+*.log
+simulation-py/
