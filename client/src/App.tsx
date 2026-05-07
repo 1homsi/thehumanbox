@@ -9,6 +9,7 @@ import { ChroniclesModal } from './components/ChroniclesModal'
 import { FamilyTreeModal } from './components/FamilyTreeModal'
 import { OrgSearchModal } from './components/OrgSearchModal'
 import { StatsModal } from './components/StatsModal'
+import { Tooltip } from './components/Tooltip'
 import type { OrganismState } from './types'
 import {
   lineageColor, lineageWord, HIDDEN_EVENT_TYPES,
@@ -108,16 +109,46 @@ function App() {
           {world && <span className="tick">tick {world.tick.toLocaleString()}</span>}
         </div>
         <div className="header-badges">
-          {world && <span className="daynight" data-tip={world.is_day ? 'Daytime — organisms are active and foraging' : 'Nighttime — energy drain slows, less activity'}>{world.is_day ? '☀️ day' : '🌙 night'}</span>}
-          {world && <span className={`season-badge season-${world.season}`} data-tip="Current season — affects food growth rate, drought risk, and organism energy drain">{world.season}</span>}
-          {world?.current_era && world.current_era !== 'genesis' && world.current_era !== 'equilibrium' && (
-            <span className={`era-badge era-${world.current_era}`} data-tip={`World era: ${world.current_era} — shapes resource availability and organism behaviour`}>{world.current_era}</span>
+          {world && (
+            <Tooltip tip={world.is_day ? 'Daytime — organisms are active and foraging' : 'Nighttime — energy drain slows, less activity'}>
+              <span className="daynight">{world.is_day ? '☀️ day' : '🌙 night'}</span>
+            </Tooltip>
           )}
-          {world?.drought && <span className="drought-badge" data-tip="Drought active — water tiles shrinking, dehydration deaths rising">drought</span>}
-          {world?.weather?.kind === 'rain'  && <span className="weather-badge rain" data-tip="Rain — accelerating drought recovery, replenishing dry soil">🌧 rain</span>}
-          {world?.weather?.kind === 'storm' && <span className="weather-badge storm" data-tip="Storm — draining organism energy, lightning strikes possible">⛈ storm</span>}
-          {fireTiles > 0 && <span className="fire-badge" data-tip={`${fireTiles} tile${fireTiles > 1 ? 's' : ''} on fire — spreading to nearby flammable terrain`}>🔥 {fireTiles}</span>}
-          {sickOrgs  > 0 && <span className="sick-badge" data-tip={`${sickOrgs} organism${sickOrgs > 1 ? 's' : ''} infected — sickness spreads through close contact`}>🤒 {sickOrgs}</span>}
+          {world && (
+            <Tooltip tip="Current season — affects food growth rate, drought risk, and organism energy drain">
+              <span className={`season-badge season-${world.season}`}>{world.season}</span>
+            </Tooltip>
+          )}
+          {world?.current_era && world.current_era !== 'genesis' && world.current_era !== 'equilibrium' && (
+            <Tooltip tip={`World era: ${world.current_era} — shapes resource availability and organism behaviour`}>
+              <span className={`era-badge era-${world.current_era}`}>{world.current_era}</span>
+            </Tooltip>
+          )}
+          {world?.drought && (
+            <Tooltip tip="Drought active — water tiles shrinking, dehydration deaths rising">
+              <span className="drought-badge">drought</span>
+            </Tooltip>
+          )}
+          {world?.weather?.kind === 'rain' && (
+            <Tooltip tip="Rain — accelerating drought recovery, replenishing dry soil">
+              <span className="weather-badge rain">🌧 rain</span>
+            </Tooltip>
+          )}
+          {world?.weather?.kind === 'storm' && (
+            <Tooltip tip="Storm — draining organism energy, lightning strikes possible">
+              <span className="weather-badge storm">⛈ storm</span>
+            </Tooltip>
+          )}
+          {fireTiles > 0 && (
+            <Tooltip tip={`${fireTiles} tile${fireTiles > 1 ? 's' : ''} on fire — spreading to nearby flammable terrain`}>
+              <span className="fire-badge">🔥 {fireTiles}</span>
+            </Tooltip>
+          )}
+          {sickOrgs > 0 && (
+            <Tooltip tip={`${sickOrgs} organism${sickOrgs > 1 ? 's' : ''} infected — sickness spreads through close contact`}>
+              <span className="sick-badge">🤒 {sickOrgs}</span>
+            </Tooltip>
+          )}
         </div>
         {world && (
           <div className="header-actions">
