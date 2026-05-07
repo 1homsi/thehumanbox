@@ -930,8 +930,11 @@ async fn ws_handler(
     ws.on_upgrade(move |socket| handle_socket(socket, rx, sim))
 }
 
-async fn handle_socket(mut socket: WebSocket, mut rx: broadcast::Receiver<String>,
-                       sim: SharedSim) {
+async fn handle_socket(
+    mut socket: WebSocket,
+    mut rx: broadcast::Receiver<String>,
+    sim: SharedSim,
+) {
     // Push current state immediately so the client never stares at a blank screen
     {
         let snapshot = sim.lock().await.state_json().to_string();
@@ -939,12 +942,22 @@ async fn handle_socket(mut socket: WebSocket, mut rx: broadcast::Receiver<String
     }
 
     loop {
-        match rx.recv().await {
-            Ok(msg) => {
-                if socket.send(Message::Text(msg.into())).await.is_err() { break; }
+        tokio::select! {
+            result = rx.recv() => {
+                match result {
+                    Ok(msg) => {
+                        if socket.send(Message::Text(msg.into())).await.is_err() { break; }
+                    }
+                    Err(broadcast::error::RecvError::Lagged(_)) => {}
+                    Err(_) => break,
+                }
             }
-            Err(broadcast::error::RecvError::Lagged(_)) => {}
-            Err(_) => break,
+            msg = socket.recv() => {
+                match msg {
+                    Some(Ok(Message::Close(_))) | None => break,
+                    _ => {}
+                }
+            }
         }
     }
 }

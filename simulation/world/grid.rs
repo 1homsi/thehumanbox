@@ -2,8 +2,12 @@ use rand::Rng;
 use serde::Serialize;
 use super::tiles::{Tile, Biome};
 
-pub const WIDTH:  usize = 200;
-pub const HEIGHT: usize = 100;
+pub const WIDTH:  usize = 600;
+pub const HEIGHT: usize = 300;
+
+// Viewport = full world — entire grid is serialised every tick
+pub const VP_W: usize = WIDTH;
+pub const VP_H: usize = HEIGHT;
 
 
 pub struct WorldGrid {
@@ -181,20 +185,15 @@ impl WorldGrid {
         let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
 
         // ── 0. Continent mask — creates organic "world map" shape ─────────
-        // Uses an elliptical base (wider than tall, 2:1 world ratio) with
-        // multi-octave sine/cosine noise to produce irregular, natural coastlines.
         let phases: [f32; 8] = std::array::from_fn(|_| rng.gen::<f32>() * TAU);
         let mut land_mask = vec![false; WIDTH * HEIGHT];
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
-                let nx = x as f32 / WIDTH  as f32; // 0..1
-                let ny = y as f32 / HEIGHT as f32; // 0..1
-                // Elliptical distance from centre — scaled so edges are clearly ocean
-                let dx = (nx - 0.5) * 2.0; // -1..1
-                let dy = (ny - 0.5) * 2.0; // -1..1
-                // Wider horizontally (2:1 map), tighter vertically (polar caps)
+                let nx = x as f32 / WIDTH  as f32;
+                let ny = y as f32 / HEIGHT as f32;
+                let dx = (nx - 0.5) * 2.0;
+                let dy = (ny - 0.5) * 2.0;
                 let base_elev = 1.0 - (dx * dx * 1.05 + dy * dy * 1.65).sqrt();
-                // Coastal noise (multi-frequency, low amplitude)
                 let noise =
                     0.10 * ((nx * 5.0 * TAU + phases[0]).sin() * (ny * 4.0 * TAU + phases[1]).cos()) +
                     0.06 * ((nx * 11.0 * TAU + phases[2]).sin() * (ny * 9.0 * TAU + phases[3]).cos()) +
@@ -202,7 +201,6 @@ impl WorldGrid {
                 land_mask[Self::idx(x, y)] = (base_elev + noise) > 0.05;
             }
         }
-        // Ocean tiles for non-land cells
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
                 if !land_mask[Self::idx(x, y)] {
@@ -212,16 +210,14 @@ impl WorldGrid {
         }
 
         // ── 1. Biome Voronoi (land tiles only) ───────────────────────────
-        // Seeds placed only inside continent; polar y positions bias tundra
         let biome_distribution: &[(u8, usize)] = &[
-            (Biome::Grassland as u8, 5),
-            (Biome::Forest    as u8, 4),
-            (Biome::Desert    as u8, 3),
-            (Biome::Wetland   as u8, 3),
-            (Biome::Tundra    as u8, 2),
-            (Biome::Volcanic  as u8, 1),
+            (Biome::Grassland as u8, 8),
+            (Biome::Forest    as u8, 6),
+            (Biome::Desert    as u8, 4),
+            (Biome::Wetland   as u8, 4),
+            (Biome::Tundra    as u8, 3),
+            (Biome::Volcanic  as u8, 2),
         ];
-        // Collect land tile positions for seed placement
         let land_tiles: Vec<(i32, i32)> = (0..HEIGHT as i32)
             .flat_map(|y| (0..WIDTH as i32).map(move |x| (x, y)))
             .filter(|&(x, y)| land_mask[Self::idx(x, y)])
@@ -236,7 +232,6 @@ impl WorldGrid {
                 }
             }
         }
-        // Assign biome to land tiles via Voronoi; ocean tiles get Grassland (irrelevant)
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
                 if !land_mask[Self::idx(x, y)] { continue; }
@@ -248,9 +243,8 @@ impl WorldGrid {
         }
 
         // ── 2. Inland water pools — placed on land only ───────────────────
-        // Divide land into a grid of zones, pick one pool per zone
-        let zones_x = 5usize;
-        let zones_y = 3usize;
+        let zones_x = 8usize;
+        let zones_y = 5usize;
         let zone_w  = WIDTH  / zones_x;
         let zone_h  = HEIGHT / zones_y;
         let mut pool_centers: Vec<(i32, i32)> = Vec::new();
@@ -260,7 +254,6 @@ impl WorldGrid {
                 let y0 = (zy * zone_h + 4) as i32;
                 let x1 = ((zx + 1) * zone_w - 4) as i32;
                 let y1 = ((zy + 1) * zone_h - 4) as i32;
-                // Collect land candidates in this zone
                 let candidates: Vec<(i32, i32)> = (y0..y1)
                     .flat_map(|y| (x0..x1).map(move |x| (x, y)))
                     .filter(|&(x, y)| Self::in_bounds(x, y) && land_mask[Self::idx(x, y)])
@@ -337,7 +330,6 @@ impl WorldGrid {
             }
         }
 
-        // Store pool centres so other subsystems can reference them
         self.pool_centers = pool_centers;
 
         // ── 8. Initial fertility from biome ───────────────────────────────
@@ -368,7 +360,6 @@ impl WorldGrid {
                 for ry in -1i32..=1 {
                     if rx.abs() + ry.abs() <= 1 {
                         let (nx, ny) = (x + rx, y + ry);
-                        // Rivers stay on land — no cutting through ocean
                         if Self::in_bounds(nx, ny) && land_mask[Self::idx(nx, ny)]
                             && self.get(nx, ny) != Tile::Rock
                         {
@@ -381,29 +372,48 @@ impl WorldGrid {
         }
     }
 
-    pub fn to_json(&self) -> GridJson {
-        let tiles_2d:  Vec<Vec<i8>>  = (0..HEIGHT).map(|y| self.tiles[y*WIDTH..(y+1)*WIDTH].to_vec()).collect();
-        let fire_2d:   Vec<Vec<f32>> = (0..HEIGHT).map(|y| self.fire_intensity[y*WIDTH..(y+1)*WIDTH].to_vec()).collect();
-        let biome_2d:  Vec<Vec<u8>>  = (0..HEIGHT).map(|y| self.biome[y*WIDTH..(y+1)*WIDTH].to_vec()).collect();
-        let struct_2d: Vec<Vec<f32>> = (0..HEIGHT).map(|y| {
-            self.structure[y*WIDTH..(y+1)*WIDTH].iter()
+    // Serialize a viewport window centered on (cx, cy) of size vw×vh tiles.
+    // origin_x / origin_y in GridJson tell the client how to offset world-space coords.
+    pub fn to_json_viewport(&self, cx: i32, cy: i32, vw: usize, vh: usize) -> GridJson {
+        let ox = (cx - vw as i32 / 2).clamp(0, (WIDTH as i32 - vw as i32).max(0)) as usize;
+        let oy = (cy - vh as i32 / 2).clamp(0, (HEIGHT as i32 - vh as i32).max(0)) as usize;
+
+        let slice_row = |vec: &[i8], y: usize| vec[y * WIDTH + ox .. y * WIDTH + ox + vw].to_vec();
+        let slice_f32 = |vec: &[f32], y: usize| vec[y * WIDTH + ox .. y * WIDTH + ox + vw].to_vec();
+        let slice_u8  = |vec: &[u8],  y: usize| vec[y * WIDTH + ox .. y * WIDTH + ox + vw].to_vec();
+
+        let tiles_2d:  Vec<Vec<i8>>  = (oy..oy+vh).map(|y| slice_row(&self.tiles, y)).collect();
+        let fire_2d:   Vec<Vec<f32>> = (oy..oy+vh).map(|y| slice_f32(&self.fire_intensity, y)).collect();
+        let biome_2d:  Vec<Vec<u8>>  = (oy..oy+vh).map(|y| slice_u8(&self.biome, y)).collect();
+        let struct_2d: Vec<Vec<f32>> = (oy..oy+vh).map(|y| {
+            self.structure[y * WIDTH + ox .. y * WIDTH + ox + vw].iter()
                 .map(|&v| (v * 100.0).round() / 100.0)
                 .collect()
         }).collect();
-        let fertility_map: Vec<Vec<u8>> = (0..HEIGHT).map(|y|
-            self.fertility[y*WIDTH..(y+1)*WIDTH].iter().map(|&v| (v * 255.0) as u8).collect()
+        let fertility_map: Vec<Vec<u8>> = (oy..oy+vh).map(|y|
+            self.fertility[y * WIDTH + ox .. y * WIDTH + ox + vw].iter()
+                .map(|&v| (v * 255.0) as u8).collect()
         ).collect();
-        let hazard_map: Vec<Vec<u8>> = (0..HEIGHT).map(|y|
-            self.hazard[y*WIDTH..(y+1)*WIDTH].iter().map(|&v| (v * 255.0) as u8).collect()
+        let hazard_map: Vec<Vec<u8>> = (oy..oy+vh).map(|y|
+            self.hazard[y * WIDTH + ox .. y * WIDTH + ox + vw].iter()
+                .map(|&v| (v * 255.0) as u8).collect()
         ).collect();
-        let pressure_map: Vec<Vec<u8>> = (0..HEIGHT).map(|y|
-            self.pressure[y*WIDTH..(y+1)*WIDTH].iter().map(|&v| (v / 10.0 * 255.0).min(255.0) as u8).collect()
+        let pressure_map: Vec<Vec<u8>> = (oy..oy+vh).map(|y|
+            self.pressure[y * WIDTH + ox .. y * WIDTH + ox + vw].iter()
+                .map(|&v| (v / 10.0 * 255.0).min(255.0) as u8).collect()
         ).collect();
+
         GridJson {
-            width: WIDTH, height: HEIGHT,
+            width: vw, height: vh,
+            origin_x: ox as i32, origin_y: oy as i32,
             tiles: tiles_2d, fire_intensity: fire_2d, biomes: biome_2d, structure: struct_2d,
             fertility_map, hazard_map, pressure_map,
         }
+    }
+
+    // Full-grid serialization (used by headless binary for payload benchmarking)
+    pub fn to_json(&self) -> GridJson {
+        self.to_json_viewport(WIDTH as i32 / 2, HEIGHT as i32 / 2, WIDTH, HEIGHT)
     }
 }
 
@@ -414,6 +424,8 @@ pub enum TrailKind { Food, Water, Path }
 pub struct GridJson {
     pub width:          usize,
     pub height:         usize,
+    pub origin_x:       i32,
+    pub origin_y:       i32,
     pub tiles:          Vec<Vec<i8>>,
     pub fire_intensity: Vec<Vec<f32>>,
     pub biomes:         Vec<Vec<u8>>,

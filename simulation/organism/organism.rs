@@ -485,7 +485,9 @@ impl Organism {
         let animal_char = if animal_near { 'A' } else { '.' };
 
         // H = high hazard (>0.15 at current tile); h = mild (>0.05); . = safe
-        let hazard_val = grid.hazard[crate::world::grid::WorldGrid::idx(ix, iy)];
+        let hazard_val = if crate::world::grid::WorldGrid::in_bounds(ix, iy) {
+            grid.hazard[crate::world::grid::WorldGrid::idx(ix, iy)]
+        } else { 0.0 };
         let hazard_char = if hazard_val > 0.15 { 'H' } else if hazard_val > 0.05 { 'h' } else { '.' };
 
         format!("{hunger}{thirst}{food_dir}{water_dir}{fire_near_c}{org_near}{food_tr}{water_tr}{kin_near}{att_char}{inf_level}{dnear}{warmth}{carry}{shelter}{animal}{hazard}",

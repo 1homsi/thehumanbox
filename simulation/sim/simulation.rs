@@ -1667,7 +1667,7 @@ impl Simulation {
                 if tick.saturating_sub(org.last_invention_tick) >= 5000 {
                     org.last_invention_tick = tick - rng.gen_range(0..5000);
                 }
-                // Clamp positions in case world dimensions changed
+                // Clamp positions to current world bounds (handles dimension changes on load)
                 org.x = org.x.clamp(1.0, WIDTH as f32 - 2.0);
                 org.y = org.y.clamp(1.0, HEIGHT as f32 - 2.0);
             }
@@ -1704,7 +1704,21 @@ impl Simulation {
 
     // ── Serialization ─────────────────────────────────────────────────────────
 
+    // Centroid-following version (used for initial WS snapshot)
     pub fn state_json(&self) -> serde_json::Value {
+        let alive: Vec<_> = self.organisms.iter().filter(|o| o.alive).collect();
+        let (cx, cy) = if alive.is_empty() {
+            (crate::world::grid::WIDTH as i32 / 2, crate::world::grid::HEIGHT as i32 / 2)
+        } else {
+            let n = alive.len() as f32;
+            ((alive.iter().map(|o| o.x).sum::<f32>() / n) as i32,
+             (alive.iter().map(|o| o.y).sum::<f32>() / n) as i32)
+        };
+        self.state_json_at(cx, cy)
+    }
+
+    // Explicit viewport center — called from main loop with client-supplied position
+    pub fn state_json_at(&self, vp_cx: i32, vp_cy: i32) -> serde_json::Value {
         use serde_json::json;
 
         // Tribal relations: average attitude per alive-lineage pair
@@ -1742,9 +1756,12 @@ impl Simulation {
         let lineage_sizes_json: Vec<serde_json::Value> = lineage_sizes.into_iter()
             .map(|(id, count)| json!({"id": id, "count": count})).collect();
 
+        let grid_json = self.grid.to_json_viewport(vp_cx, vp_cy,
+            crate::world::grid::VP_W, crate::world::grid::VP_H);
+
         json!({
             "tick":            self.tick_count,
-            "grid":            serde_json::to_value(self.grid.to_json()).unwrap(),
+            "grid":            serde_json::to_value(grid_json).unwrap(),
             "organisms":       self.organisms.iter().map(|o| serde_json::to_value(o.to_json()).unwrap()).collect::<Vec<_>>(),
             "animals":         self.animals.iter().map(|a| serde_json::to_value(a.to_json()).unwrap()).collect::<Vec<_>>(),
             "events":          serde_json::to_value(&self.events).unwrap(),
