@@ -103,9 +103,7 @@ function App() {
       <header className="header">
         <div className="header-left">
           <h1>The Human Box</h1>
-          <span className={`status ${connected ? 'online' : 'offline'}`}>
-            {connected ? '● LIVE' : '○ connecting...'}
-          </span>
+          {!connected && <span className="status offline">○ connecting...</span>}
           {world && <span className="tick">tick {world.tick.toLocaleString()}</span>}
         </div>
         <div className="header-badges">
