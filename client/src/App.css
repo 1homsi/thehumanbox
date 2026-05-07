@@ -905,7 +905,6 @@ body {
 /* ── Custom portal tooltip ──────────────────────────────────────────── */
 .ui-tooltip {
   position: fixed;
-  transform: translate(-50%, -100%);
   background: #1a1a1a;
   color: #c8c8c8;
   font-size: 11px;
@@ -919,9 +918,13 @@ body {
   white-space: nowrap;
   pointer-events: none;
   z-index: 99999;
-  animation: tooltip-in 0.1s ease forwards;
 }
-.ui-tooltip-arrow {
+/* Above anchor — tooltip sits above, arrow points down */
+.ui-tooltip--above {
+  transform: translate(-50%, -100%);
+  animation: tooltip-in-above 0.1s ease forwards;
+}
+.ui-tooltip--above .ui-tooltip-arrow {
   position: absolute;
   top: 100%;
   left: 50%;
@@ -929,7 +932,7 @@ body {
   border: 5px solid transparent;
   border-top-color: #2e2e2e;
 }
-.ui-tooltip-arrow::after {
+.ui-tooltip--above .ui-tooltip-arrow::after {
   content: '';
   position: absolute;
   top: -6px;
@@ -937,9 +940,34 @@ body {
   border: 4px solid transparent;
   border-top-color: #1a1a1a;
 }
-@keyframes tooltip-in {
+/* Below anchor — tooltip sits below, arrow points up */
+.ui-tooltip--below {
+  transform: translate(-50%, 0);
+  animation: tooltip-in-below 0.1s ease forwards;
+}
+.ui-tooltip--below .ui-tooltip-arrow {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: #2e2e2e;
+}
+.ui-tooltip--below .ui-tooltip-arrow::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: -4px;
+  border: 4px solid transparent;
+  border-bottom-color: #1a1a1a;
+}
+@keyframes tooltip-in-above {
   from { opacity: 0; transform: translate(-50%, calc(-100% + 4px)); }
   to   { opacity: 1; transform: translate(-50%, -100%); }
+}
+@keyframes tooltip-in-below {
+  from { opacity: 0; transform: translate(-50%, -4px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
 }
 
 /* ── Weather badges ─────────────────────────────────────────────────── */
