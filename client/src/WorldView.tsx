@@ -594,7 +594,7 @@ function CameraController({
     const tx = worldW / 2
     const ty = worldH / 2
     // Fit world to container so there's no blue background
-    const fitZoom = Math.min(containerW / worldW, containerH / worldH)
+    const fitZoom = Math.min(containerW / worldW, containerH / worldH) * 0.80
     let raf = 0
     const trySet = () => {
       camera.setPosition(tx, ty)
