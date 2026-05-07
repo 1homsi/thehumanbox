@@ -96,9 +96,19 @@ body {
 }
 
 .status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 4px;
+}
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
 }
 .status.online  { background: #1a3a1a; color: #55dd55; }
 .status.offline { background: #2a1a1a; color: #cc5555; }

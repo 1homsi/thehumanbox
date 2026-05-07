@@ -110,7 +110,8 @@ function App() {
             GitHub
           </a>
           <span className={`status ${connected ? 'online' : 'offline'}`}>
-            {connected ? '● LIVE' : '○ connecting...'}
+            <span className="status-dot" />
+            {connected ? 'LIVE' : 'connecting...'}
           </span>
           {world && <span className="tick">tick {world.tick.toLocaleString()}</span>}
         </div>
