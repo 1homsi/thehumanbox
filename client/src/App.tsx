@@ -30,7 +30,22 @@ function App() {
   const [leftOpen,       setLeftOpen]       = useState(true)
   const [overlay,        setOverlay]        = useState<string | null>(null)
   const [showMore,       setShowMore]       = useState(false)
+  const [isFullscreen,   setIsFullscreen]   = useState(false)
   const moreRef = useRef<HTMLDivElement>(null)
+
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {})
+    } else {
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {})
+    }
+  }, [])
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', handler)
+    return () => document.removeEventListener('fullscreenchange', handler)
+  }, [])
 
   useEffect(() => {
     if (!showMore) return
@@ -129,6 +144,9 @@ function App() {
             {panelOpen ? '✕' : '≡'} panel
           </button>
         )}
+        <button className="fullscreen-btn" onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
+          {isFullscreen ? '⊡' : '⊞'}
+        </button>
       </header>
 
       <main className="main">

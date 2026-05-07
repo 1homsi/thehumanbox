@@ -51,6 +51,24 @@ body {
 
 .panel-toggle-btn { display: none; }
 
+.fullscreen-btn {
+  margin-left: 8px;
+  flex-shrink: 0;
+  font-size: 14px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  border: 1px solid #333;
+  background: transparent;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.fullscreen-btn:hover { color: #aaa; border-color: #555; background: #1a1a1a; }
+
 .header h1 {
   font-size: 14px;
   font-weight: 600;
@@ -562,7 +580,12 @@ body {
 
 .lang-modal-header .tree-modal-sub,
 .lang-modal-header .lang-modal-sub {
+  margin-right: 0;
+}
+
+.lang-modal-header .close-btn {
   margin-left: auto;
+  flex-shrink: 0;
 }
 .lang-modal-title {
   font-size: 11px;
