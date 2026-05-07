@@ -12,8 +12,8 @@ export function lineageColor(lineageId: string): string {
   // Vary saturation and lightness independently using different hash bits
   // Three saturation bands: vivid (90%), standard (72%), muted (55%)
   const sat = [90, 72, 55][(h >> 8) % 3]
-  // Three lightness bands: light (72%), mid (58%), deep (44%)
-  const lit = [72, 58, 44][(h >> 16) % 3]
+  // Three lightness bands: light (75%), mid (62%), deep (52%) — all visible on #111
+  const lit = [75, 62, 52][(h >> 16) % 3]
 
   return `hsl(${hue.toFixed(0)}, ${sat}%, ${lit}%)`
 }
