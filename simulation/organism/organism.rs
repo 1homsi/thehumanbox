@@ -372,7 +372,7 @@ impl Organism {
 
     // ── Perception ────────────────────────────────────────────────────────────
 
-    pub fn perceive(&self, grid: &WorldGrid, organisms: &[Organism], night: bool) -> String {
+    pub fn perceive(&self, grid: &WorldGrid, organisms: &[Organism], night: bool, animal_near: bool) -> String {
         let (ix, iy) = (self.x as i32, self.y as i32);
         // Curious/explorer organisms develop better night awareness
         let scan: i32 = if night {
@@ -481,7 +481,14 @@ impl Organism {
             if s { 'S' } else { 'E' }
         };
 
-        format!("{hunger}{thirst}{food_dir}{water_dir}{fire_near_c}{org_near}{food_tr}{water_tr}{kin_near}{att_char}{inf_level}{dnear}{warmth}{carry}{shelter}",
+        // A = animal within scan radius; . = none
+        let animal_char = if animal_near { 'A' } else { '.' };
+
+        // H = high hazard (>0.15 at current tile); h = mild (>0.05); . = safe
+        let hazard_val = grid.hazard[crate::world::grid::WorldGrid::idx(ix, iy)];
+        let hazard_char = if hazard_val > 0.15 { 'H' } else if hazard_val > 0.05 { 'h' } else { '.' };
+
+        format!("{hunger}{thirst}{food_dir}{water_dir}{fire_near_c}{org_near}{food_tr}{water_tr}{kin_near}{att_char}{inf_level}{dnear}{warmth}{carry}{shelter}{animal}{hazard}",
             hunger = hunger,
             thirst = thirst,
             food_dir = food_dir,
@@ -497,6 +504,8 @@ impl Organism {
             warmth = warmth_char,
             carry  = carry_char,
             shelter = shelter_char,
+            animal  = animal_char,
+            hazard  = hazard_char,
         )
     }
 
@@ -505,7 +514,7 @@ impl Organism {
     // Returns (action, new_thought). Caller applies the thought to avoid &mut self + &[Organism] aliasing.
     pub fn choose_action(&self, grid: &WorldGrid, tick: u64,
                          epsilon: f32, organisms: &[Organism], night: bool,
-                         weather_kind: u8, rng: &mut impl Rng) -> (usize, Option<String>)
+                         weather_kind: u8, rng: &mut impl Rng, animal_near: bool) -> (usize, Option<String>)
     {
         let (ix, iy) = (self.x as i32, self.y as i32);
         let tile = grid.get(ix, iy);
@@ -550,7 +559,7 @@ impl Organism {
 
         // Urgent needs
         if self.hydration < 0.5 {
-            let scan_r = if self.hydration < 0.25 { 15 } else if night { 6 } else { 8 };
+            let scan_r = if self.hydration < 0.25 { 22 } else if night { 8 } else { 12 };
             if let Some(v) = self.nearest_visible(grid, Tile::Water, scan_r) {
                 set_thought!("moving to water");
                 return (self.toward(v, grid), thought);
@@ -728,7 +737,7 @@ impl Organism {
             return (rng.gen_range(0..N_ACTIONS), thought);
         }
 
-        let perception = self.perceive(grid, organisms, night);
+        let perception = self.perceive(grid, organisms, night, animal_near);
         let q_row = self.q_table.get(&perception).cloned()
             .unwrap_or_else(|| vec![0.0; N_ACTIONS]);
         let best = q_row.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
