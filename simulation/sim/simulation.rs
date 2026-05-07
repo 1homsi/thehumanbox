@@ -419,10 +419,14 @@ impl Simulation {
             }
         }
 
-        let perception = self.organisms[idx].perceive(&self.grid, &self.organisms, night);
+        let animal_near = {
+            let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
+            self.animals.iter().any(|a| a.alive && (a.x - ox).abs() + (a.y - oy).abs() <= 8.0)
+        };
+        let perception = self.organisms[idx].perceive(&self.grid, &self.organisms, night, animal_near);
         let (action, new_thought) = self.organisms[idx].choose_action(
             &self.grid, self.tick_count, epsilon, &self.organisms, night,
-            self.weather.kind, &mut self.rng);
+            self.weather.kind, &mut self.rng, animal_near);
         if let Some(t) = new_thought {
             self.organisms[idx].think(&t, self.tick_count);
         }
@@ -678,20 +682,16 @@ impl Simulation {
                 let prev_s = self.grid.structure_at(cx, cy);
                 let has_masonry = self.organisms[idx].discoveries.iter().any(|d| d == "masonry");
                 let deposit = match (self.organisms[idx].carrying_type, has_masonry) {
-                    (2, true)  => 0.00065, // stone + masonry knowledge
-                    (2, false) => 0.00042, // stone
-                    _          => 0.00028, // wood
+                    (2, true)  => 0.0090, // stone + masonry knowledge
+                    (2, false) => 0.0060, // stone
+                    _          => 0.0035, // wood
                 };
                 self.grid.add_structure(cx, cy, deposit);
                 let new_s = self.grid.structure_at(cx, cy);
                 let name = self.organisms[idx].name.clone();
                 if prev_s < 0.35 && new_s >= 0.35 {
                     push_event(&mut self.events, self.tick_count, "build", &name, "a crude shelter took shape");
-                } else if prev_s < 0.70 && new_s >= 0.70 {
-                    push_event(&mut self.events, self.tick_count, "build", &name, "a rocky shelter formed");
-                } else if prev_s < 0.85 && new_s >= 0.85 {
-                    self.organisms[idx].log_event(format!("a dwelling emerged at ({},{})", cx, cy));
-                    push_event(&mut self.events, self.tick_count, "build", &name, "a dwelling emerged");
+                    // Shelter discovery fires at crude-shelter threshold — more achievable
                     if self.organisms[idx].discover("shelter") {
                         push_event(&mut self.events, self.tick_count, "build", &name, "understood shelter");
                         let lid = self.organisms[idx].lineage_id.clone();
@@ -944,7 +944,7 @@ impl Simulation {
             }
         }
 
-        let next_perception = self.organisms[idx].perceive(&self.grid, &self.organisms, night);
+        let next_perception = self.organisms[idx].perceive(&self.grid, &self.organisms, night, animal_near);
         self.organisms[idx].learn(&perception, action, reward, &next_perception);
 
         // ── Social thoughts ───────────────────────────────────────────────────
