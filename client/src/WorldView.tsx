@@ -641,9 +641,8 @@ function CameraController({
     const onUp = () => { drag.current.active = false }
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
-      const minZoom = Math.max(containerW / worldW, containerH / worldH)
       const factor = e.deltaY < 0 ? 1.1 : 0.9
-      const nz = Math.max(minZoom, Math.min(8, camera.getZoom() * factor))
+      const nz = Math.max(0.05, Math.min(8, camera.getZoom() * factor))
       camera.setZoom(nz)
       cameraStateRef.current.zoom = nz
     }
@@ -746,7 +745,7 @@ export function WorldView({ world, selectedOrgId, followOrgId, onOrgSelect, over
           height={dims.h}
           style={{ display: 'block' }}
         >
-          <World background="#0a0a0a">
+          <World background="#1a3a5a">
             <Camera2D />
 
             <Entity>
