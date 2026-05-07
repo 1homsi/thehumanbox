@@ -902,6 +902,37 @@ body {
   text-align: center;
 }
 
+/* ── Custom badge tooltips ──────────────────────────────────────────── */
+[data-tip] {
+  position: relative;
+  cursor: default;
+}
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.95);
+  background: #1c1c1c;
+  color: #c8c8c8;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  padding: 5px 9px;
+  border-radius: 5px;
+  border: 1px solid #333;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  z-index: 9999;
+}
+[data-tip]:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
 /* ── Weather badges ─────────────────────────────────────────────────── */
 .weather-badge {
   font-size: 11px;
