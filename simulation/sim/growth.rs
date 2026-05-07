@@ -54,8 +54,9 @@ pub fn try_reproduce(
     if alive_count >= MAX_POPULATION { return; }
 
     let org = &organisms[org_idx];
-    if !(org.energy > 0.82 && org.hydration > 0.82 && org.health > 0.9 && org.age > 400) { return; }
-    if tick - org.last_reproduced < 600 { return; }
+    // Must be at least 5 days old (adults only), and 8 days between births
+    if !(org.energy > 0.82 && org.hydration > 0.82 && org.health > 0.9 && org.age > 3000) { return; }
+    if tick - org.last_reproduced < 4800 { return; }
     if org.infection > 0.25 { return; }
 
     let spawn_pos = find_spawn_near(grid, org.x as i32, org.y as i32, rng);
