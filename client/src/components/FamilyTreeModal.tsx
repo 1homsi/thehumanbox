@@ -69,21 +69,26 @@ export function FamilyTreeModal({ organisms, onClose }: Props) {
     return m
   }, [nodes])
 
-  const edges = useMemo(() => {
-    const out: { d: string; color: string; key: string }[] = []
+  const { edges, ghostEdges } = useMemo(() => {
+    const edges: { d: string; color: string; key: string }[] = []
+    const ghostEdges: { x: number; y: number; key: string }[] = []
     for (const n of nodes) {
       const p = posById.get(n.org.parent_id)
-      if (!p) continue
-      const x1 = p.x + NODE_W, y1 = p.y + NODE_H / 2
-      const x2 = n.x,          y2 = n.y + NODE_H / 2
-      const mx = (x1 + x2) / 2
-      out.push({
-        d: `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`,
-        color: lineageColor(n.org.lineage_id),
-        key: `${n.org.parent_id}-${n.org.id}`,
-      })
+      if (p) {
+        const x1 = p.x + NODE_W, y1 = p.y + NODE_H / 2
+        const x2 = n.x,          y2 = n.y + NODE_H / 2
+        const mx = (x1 + x2) / 2
+        edges.push({
+          d: `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`,
+          color: lineageColor(n.org.lineage_id),
+          key: `${n.org.parent_id}-${n.org.id}`,
+        })
+      } else if (n.org.generation > 0 && n.org.parent_id) {
+        // Parent was pruned from history — draw a ghost stub going left
+        ghostEdges.push({ x: n.x, y: n.y + NODE_H / 2, key: `ghost-${n.org.id}` })
+      }
     }
-    return out
+    return { edges, ghostEdges }
   }, [nodes, posById])
 
   // Fit all content into the viewport
@@ -194,6 +199,18 @@ export function FamilyTreeModal({ organisms, onClose }: Props) {
                 >
                   gen {gen}
                 </text>
+              ))}
+
+              {/* Ghost stubs: ancestor pruned from history */}
+              {ghostEdges.map(g => (
+                <g key={g.key}>
+                  <line
+                    x1={g.x} y1={g.y} x2={g.x - 40} y2={g.y}
+                    stroke="#333" strokeWidth={1} strokeDasharray="3 3"
+                  />
+                  <text x={g.x - 46} y={g.y + 3} textAnchor="end"
+                    fill="#2a2a2a" fontSize={8} fontFamily="monospace">···</text>
+                </g>
               ))}
 
               {/* Edges */}
