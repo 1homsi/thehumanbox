@@ -124,8 +124,8 @@ async fn main() {
     let (tx, _rx) = broadcast::channel::<String>(16);
 
     // Channels
-    let (narration_tx, narration_rx) = mpsc::channel::<NarrationReq>(32);
-    let (think_tx, think_rx)         = mpsc::channel::<ThinkTrigger>(32);
+    let (narration_tx, narration_rx) = mpsc::channel::<NarrationReq>(4);
+    let (think_tx, think_rx)         = mpsc::channel::<ThinkTrigger>(8);
 
     let stories: Arc<Mutex<std::collections::HashMap<String, String>>> =
         Arc::new(Mutex::new(std::collections::HashMap::new()));
@@ -515,6 +515,11 @@ async fn think_worker(
                 None    => break,
             }
         };
+
+        // Rate-limit: max ~24 req/min (Groq cap is 30 req/min; narration worker uses the rest)
+        if attempt == 0 {
+            tokio::time::sleep(tokio::time::Duration::from_millis(2500)).await;
+        }
 
         println!("[think] {} scenario={}{}", trigger.org_name, trigger.scenario,
             if attempt > 0 { format!(" (retry {})", attempt) } else { String::new() });
