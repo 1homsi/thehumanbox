@@ -77,6 +77,15 @@ body {
   color: #fff;
 }
 
+.github-link {
+  font-size: 11px;
+  color: #888;
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  transition: color 0.12s;
+}
+.github-link:hover { color: #ccc; }
+
 .status {
   font-size: 11px;
   padding: 2px 8px;
