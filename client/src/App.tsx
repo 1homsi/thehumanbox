@@ -159,7 +159,6 @@ function App() {
         </div>
         {world && (
           <div className="header-actions">
-            <button className="lang-btn" onClick={() => setLeftOpen(p => !p)}>⊞ world</button>
             <button className="lang-btn" onClick={() => setShowStats(true)}>▦ stats</button>
             <button className="lang-btn" onClick={() => setShowOrgSearch(true)}>⌕ search</button>
             <button className="lang-btn" onClick={() => setShowChronicles(true)}>
@@ -203,6 +202,7 @@ function App() {
                   <div className="more-dropdown-grid">
                     <button className="lang-btn" onClick={() => { setShowLanguages(true); setShowMore(false) }}>⌖ lang</button>
                     <button className="lang-btn" onClick={() => { setShowFamilyTree(true); setShowMore(false) }}>⬡ tree</button>
+                    <button className={`lang-btn${leftOpen ? ' active' : ''}`} onClick={() => { setLeftOpen(p => !p); setShowMore(false) }}>⊞ world</button>
                   </div>
                 </div>
               )}
