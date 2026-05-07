@@ -108,16 +108,16 @@ function App() {
           {world && <span className="tick">tick {world.tick.toLocaleString()}</span>}
         </div>
         <div className="header-badges">
-          {world && <span className="daynight">{world.is_day ? '☀️ day' : '🌙 night'}</span>}
-          {world && <span className={`season-badge season-${world.season}`} title="Current season — affects food growth rate, drought risk, and organism energy drain">{world.season}</span>}
+          {world && <span className="daynight" data-tip={world.is_day ? 'Daytime — organisms are active and foraging' : 'Nighttime — energy drain slows, less activity'}>{world.is_day ? '☀️ day' : '🌙 night'}</span>}
+          {world && <span className={`season-badge season-${world.season}`} data-tip="Current season — affects food growth rate, drought risk, and organism energy drain">{world.season}</span>}
           {world?.current_era && world.current_era !== 'genesis' && world.current_era !== 'equilibrium' && (
-            <span className={`era-badge era-${world.current_era}`} title={`Current world era: ${world.current_era}`}>{world.current_era}</span>
+            <span className={`era-badge era-${world.current_era}`} data-tip={`World era: ${world.current_era} — shapes resource availability and organism behaviour`}>{world.current_era}</span>
           )}
-          {world?.drought && <span className="drought-badge" title="Drought active — water tiles shrinking, dehydration deaths rising">drought</span>}
-          {world?.weather?.kind === 'rain'  && <span className="weather-badge rain" title="Rain — extinguishing fires, refilling water sources">🌧 rain</span>}
-          {world?.weather?.kind === 'storm' && <span className="weather-badge storm" title="Storm — draining organism energy, lightning strikes possible">⛈ storm</span>}
-          {fireTiles > 0 && <span className="fire-badge" title={`${fireTiles} tiles currently on fire — spreading to nearby flammable terrain`}>🔥 {fireTiles}</span>}
-          {sickOrgs  > 0 && <span className="sick-badge" title={`${sickOrgs} organism${sickOrgs > 1 ? 's' : ''} infected — sickness spreads through close contact`}>🤒 {sickOrgs}</span>}
+          {world?.drought && <span className="drought-badge" data-tip="Drought active — water tiles shrinking, dehydration deaths rising">drought</span>}
+          {world?.weather?.kind === 'rain'  && <span className="weather-badge rain" data-tip="Rain — accelerating drought recovery, replenishing dry soil">🌧 rain</span>}
+          {world?.weather?.kind === 'storm' && <span className="weather-badge storm" data-tip="Storm — draining organism energy, lightning strikes possible">⛈ storm</span>}
+          {fireTiles > 0 && <span className="fire-badge" data-tip={`${fireTiles} tile${fireTiles > 1 ? 's' : ''} on fire — spreading to nearby flammable terrain`}>🔥 {fireTiles}</span>}
+          {sickOrgs  > 0 && <span className="sick-badge" data-tip={`${sickOrgs} organism${sickOrgs > 1 ? 's' : ''} infected — sickness spreads through close contact`}>🤒 {sickOrgs}</span>}
         </div>
         {world && (
           <div className="header-actions">
