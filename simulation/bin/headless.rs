@@ -27,8 +27,13 @@ fn main() {
     let mut peak_pop = 0usize;
     let mut thought_freq: HashMap<String, u64> = HashMap::new();
 
+    let mut tick_times_us: Vec<u64> = Vec::new();
+    let mut json_sizes_bytes: Vec<usize> = Vec::new();
+
     while sim.tick_count < max_ticks {
+        let t0 = std::time::Instant::now();
         sim.tick();
+        tick_times_us.push(t0.elapsed().as_micros() as u64);
         let t = sim.tick_count;
 
         let alive = sim.organisms.iter().filter(|o| o.alive).count();
@@ -51,6 +56,9 @@ fn main() {
                 fire_count, shelter_count, lineage_count.len(),
                 h.deaths_starvation, h.deaths_dehydration, h.deaths_sickness,
             );
+
+            let json_bytes = sim.state_json().to_string().len();
+            json_sizes_bytes.push(json_bytes);
         }
     }
 
@@ -99,5 +107,30 @@ fn main() {
             .fold((0.0, 0.0), |(s, c), g| (s + g, c + 1.0));
         let gen_avg = if avg_gen.1 > 0.0 { avg_gen.0 / avg_gen.1 } else { 0.0 };
         println!("  {}…  count={}  avg_gen={:.1}", &lid[..lid.len().min(8)], count, gen_avg);
+    }
+
+    // Performance report
+    if !tick_times_us.is_empty() {
+        let mut sorted_us = tick_times_us.clone();
+        sorted_us.sort_unstable();
+        let n = sorted_us.len();
+        let mean_us  = sorted_us.iter().sum::<u64>() / n as u64;
+        let p50      = sorted_us[n * 50 / 100];
+        let p95      = sorted_us[n * 95 / 100];
+        let p99      = sorted_us[n * 99 / 100];
+        let max_us   = *sorted_us.last().unwrap();
+        let total_ms = tick_times_us.iter().sum::<u64>() / 1000;
+        println!("\n=== TICK TIMING ({} ticks) ===", n);
+        println!("  mean={:>6}µs  p50={:>6}µs  p95={:>6}µs  p99={:>6}µs  max={:>7}µs",
+            mean_us, p50, p95, p99, max_us);
+        println!("  total wall: {}ms  ({:.0} ticks/s)",
+            total_ms, n as f64 / (total_ms as f64 / 1000.0));
+    }
+    if !json_sizes_bytes.is_empty() {
+        let avg_kb = json_sizes_bytes.iter().sum::<usize>() / json_sizes_bytes.len() / 1024;
+        let max_kb = json_sizes_bytes.iter().max().copied().unwrap_or(0) / 1024;
+        println!("\n=== WS PAYLOAD ESTIMATE ===");
+        println!("  avg={} KB   max={} KB   samples={}", avg_kb, max_kb, json_sizes_bytes.len());
+        println!("  at 10 tps: ~{} KB/s per client", avg_kb * 10);
     }
 }
