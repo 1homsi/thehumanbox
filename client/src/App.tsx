@@ -117,7 +117,7 @@ function App() {
         </div>
         {world && (
           <div className="header-actions">
-            <button className={`lang-btn${leftOpen ? ' active' : ''}`} onClick={() => setLeftOpen(p => !p)}>⊞ world</button>
+            <button className="lang-btn" onClick={() => setLeftOpen(p => !p)}>⊞ world</button>
             <button className="lang-btn" onClick={() => setShowStats(true)}>▦ stats</button>
             <button className="lang-btn" onClick={() => setShowOrgSearch(true)}>⌕ search</button>
             <button className="lang-btn" onClick={() => setShowChronicles(true)}>
