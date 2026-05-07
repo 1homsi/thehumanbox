@@ -103,6 +103,7 @@ function App() {
       <header className="header">
         <div className="header-left">
           <h1>The Human Box</h1>
+          <a className="github-link" href="https://github.com/stackxio/thehumanbox" target="_blank" rel="noreferrer">GitHub</a>
           {!connected && <span className="status offline">○ connecting...</span>}
           {world && <span className="tick">tick {world.tick.toLocaleString()}</span>}
         </div>
