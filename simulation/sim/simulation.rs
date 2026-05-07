@@ -180,6 +180,7 @@ impl Simulation {
             &mut self.drought,
             &mut self.grid,
             &self.organisms,
+            &self.weather,
             self.tick_count,
             &season_str,
             &mut self.history,
@@ -440,6 +441,14 @@ impl Simulation {
                 self.organisms[idx].y = ny as f32;
                 self.grid.leave_trail(nx, ny, TrailKind::Path, 0.06);
                 self.grid.stamp_pressure(nx, ny);
+                // Farmers passively cultivate parched land they walk through
+                let has_farming = self.organisms[idx].discoveries.iter().any(|d| d == "farm");
+                if has_farming {
+                    let fidx = WorldGrid::idx(nx, ny);
+                    if self.grid.fertility[fidx] < 0.25 {
+                        self.grid.fertility[fidx] = (self.grid.fertility[fidx] + 0.004).min(0.55);
+                    }
+                }
             }
         } else if action == 8 {
             let (cx, cy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
@@ -1569,6 +1578,7 @@ impl Simulation {
                 active:      self.drought.active,
                 start_tick:  self.drought.start_tick,
                 dried_tiles: self.drought.dried_tiles.iter().map(|&(x,y)| [x,y]).collect(),
+                rain_relief: self.drought.rain_relief,
             },
             weather: WeatherSave {
                 kind:       self.weather.kind,
@@ -1641,6 +1651,7 @@ impl Simulation {
             active:      state.drought.active,
             start_tick:  state.drought.start_tick,
             dried_tiles: state.drought.dried_tiles.into_iter().map(|[x,y]| (x,y)).collect(),
+            rain_relief: state.drought.rain_relief,
         };
 
         // Spread out think/invention cooldowns so a restart doesn't burst-fire every trigger at once
@@ -1779,6 +1790,8 @@ struct DroughtSave {
     active:      bool,
     start_tick:  u64,
     dried_tiles: Vec<[i32; 2]>,
+    #[serde(default)]
+    rain_relief: u64,
 }
 
 #[derive(Serialize, Deserialize, Default)]
