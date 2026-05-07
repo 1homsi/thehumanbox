@@ -54,38 +54,38 @@ export function LanguageModal({ organisms, onClose }: Props) {
           <span className="lang-modal-title">LANGUAGES OF THE WORLD</span>
           <button className="close-btn" onClick={onClose}>✕</button>
         </div>
-        <p className="lang-modal-sub">
-          Each lineage develops its own words. Words mutate across generations and spread through contact.
-        </p>
+        <div className="lang-modal-body">
+          <p className="lang-modal-sub">
+            Each lineage develops its own words. Words mutate across generations and spread through contact.
+          </p>
 
-        <div className="lang-table-wrap">
-          {/* Header row */}
-          <div
-            className="lang-table"
-            style={{ gridTemplateColumns: `70px repeat(${lineages.length}, 1fr)` }}
-          >
-            <div className="lang-th lang-concept-col">concept</div>
-            {lineages.map(l => (
-              <div key={l.lineageId} className="lang-th lang-lineage-col">
-                <span className="lang-lineage-dot" style={{ background: lineageColor(l.lineageId) }} />
-                {l.lineageId.slice(0, 6)}
-                <span className="lang-lineage-count">×{l.count}</span>
-              </div>
-            ))}
-
-            {/* Data rows */}
-            {CONCEPTS.map(concept => (
-              <>
-                <div key={`eng-${concept}`} className="lang-td lang-concept-col lang-english">
-                  {concept}
+          <div className="lang-table-wrap">
+            <div
+              className="lang-table"
+              style={{ gridTemplateColumns: `70px repeat(${lineages.length}, 1fr)` }}
+            >
+              <div className="lang-th lang-concept-col">concept</div>
+              {lineages.map(l => (
+                <div key={l.lineageId} className="lang-th lang-lineage-col">
+                  <span className="lang-lineage-dot" style={{ background: lineageColor(l.lineageId) }} />
+                  {l.lineageId.slice(0, 6)}
+                  <span className="lang-lineage-count">×{l.count}</span>
                 </div>
-                {lineages.map(l => (
-                  <div key={`${l.lineageId}-${concept}`} className="lang-td lang-lineage-col lang-word">
-                    {l.words[concept] ?? <span className="lang-unknown">—</span>}
+              ))}
+
+              {CONCEPTS.map(concept => (
+                <>
+                  <div key={`eng-${concept}`} className="lang-td lang-concept-col lang-english">
+                    {concept}
                   </div>
-                ))}
-              </>
-            ))}
+                  {lineages.map(l => (
+                    <div key={`${l.lineageId}-${concept}`} className="lang-td lang-lineage-col lang-word">
+                      {l.words[concept] ?? <span className="lang-unknown">—</span>}
+                    </div>
+                  ))}
+                </>
+              ))}
+            </div>
           </div>
         </div>
 
