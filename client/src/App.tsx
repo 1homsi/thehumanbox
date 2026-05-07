@@ -109,7 +109,9 @@ function App() {
             </svg>
             GitHub
           </a>
-          {!connected && <span className="status offline">○ connecting...</span>}
+          <span className={`status ${connected ? 'online' : 'offline'}`}>
+            {connected ? '● LIVE' : '○ connecting...'}
+          </span>
           {world && <span className="tick">tick {world.tick.toLocaleString()}</span>}
         </div>
         <div className="header-badges">
