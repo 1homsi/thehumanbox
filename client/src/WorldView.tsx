@@ -592,7 +592,7 @@ function CameraController({
     const tx = worldW / 2
     const ty = worldH / 2
     // Fit world to container so there's no blue background
-    const fitZoom = Math.max(containerW / worldW, containerH / worldH)
+    const fitZoom = Math.min(containerW / worldW, containerH / worldH)
     let raf = 0
     const trySet = () => {
       camera.setPosition(tx, ty)
@@ -745,7 +745,7 @@ export function WorldView({ world, selectedOrgId, followOrgId, onOrgSelect, over
           height={dims.h}
           style={{ display: 'block' }}
         >
-          <World background="#1a3a5a">
+          <World background="#1a4a80">
             <Camera2D />
 
             <Entity>
