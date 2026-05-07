@@ -272,6 +272,21 @@ body {
 .lineage-count { color: #fff; font-weight: 600; width: 18px; text-align: right; }
 .lineage-gen   { color: #999; width: 36px; text-align: right; }
 .lineage-strat { color: #99aacc; font-size: 8px; letter-spacing: 0.05em; width: 52px; text-align: right; }
+.view-all-btn {
+  margin-top: 2px;
+  background: none;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 3px;
+  color: #aaa;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  padding: 3px 6px;
+  cursor: pointer;
+  text-align: center;
+  width: 100%;
+  transition: border-color 0.15s, color 0.15s;
+}
+.view-all-btn:hover { border-color: rgba(255,255,255,0.3); color: #fff; }
 
 /* Event log */
 .event-log {

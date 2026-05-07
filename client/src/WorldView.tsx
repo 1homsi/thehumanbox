@@ -120,6 +120,8 @@ function drawWorldOnCanvas(
   viewFlags: ViewFlags,
 ) {
   const { width, height, tiles, fire_intensity, biomes, structure } = world.grid
+  const ox = world.grid.origin_x ?? 0
+  const oy = world.grid.origin_y ?? 0
   const animals = world.animals ?? []
   const W = width * TILE
   const H = height * TILE
@@ -264,11 +266,11 @@ function drawWorldOnCanvas(
       return `rgba(60,${Math.round(100 + t * 120)},255,${t * 0.55})`
     })
   } else if (overlay === 'density') {
-    // Population density — compute from organism positions
+    // Population density — compute from organism positions (offset to viewport coords)
     const grid2d: number[][] = Array.from({ length: height }, () => new Array(width).fill(0))
     for (const org of world.organisms) {
       if (!org.alive) continue
-      const tx2 = Math.round(org.x), ty2 = Math.round(org.y)
+      const tx2 = Math.round(org.x - ox), ty2 = Math.round(org.y - oy)
       const R = 4
       for (let dy = -R; dy <= R; dy++) {
         for (let dx = -R; dx <= R; dx++) {
@@ -293,24 +295,30 @@ function drawWorldOnCanvas(
     }
   }
 
-  // Territory Voronoi overlay
+  // Territory Voronoi overlay — limited to orgs in viewport for performance
   const liveOrgs = world.organisms.filter(o => o.alive && o.lineage_id)
   if (viewFlags.territory && liveOrgs.length > 0) {
     const RADIUS = 8
-    for (let ty = 0; ty < height; ty++) {
-      for (let tx = 0; tx < width; tx++) {
-        let nearest = null as typeof liveOrgs[0] | null
-        let nearestDist = RADIUS + 1
-        for (const org of liveOrgs) {
-          const d = Math.abs(org.x - tx) + Math.abs(org.y - ty)
-          if (d < nearestDist) { nearestDist = d; nearest = org }
-        }
-        if (nearest && nearestDist <= RADIUS) {
-          const alpha = 0.09 * (1 - nearestDist / RADIUS)
-          const col = lineageColor(nearest.lineage_id)
-          // parse hsl and add alpha
-          ctx.fillStyle = col.replace('hsl', 'hsla').replace(')', `, ${alpha})`)
-          ctx.fillRect(tx * TILE, ty * TILE, TILE, TILE)
+    // Only consider orgs visible in viewport (+ radius buffer), cap at 200 for perf
+    const vportOrgs = liveOrgs.filter(o => {
+      const cx2 = o.x - ox, cy2 = o.y - oy
+      return cx2 >= -RADIUS && cx2 < width + RADIUS && cy2 >= -RADIUS && cy2 < height + RADIUS
+    }).slice(0, 200)
+    if (vportOrgs.length > 0) {
+      for (let ty = 0; ty < height; ty++) {
+        for (let tx = 0; tx < width; tx++) {
+          let nearest = null as typeof vportOrgs[0] | null
+          let nearestDist = RADIUS + 1
+          for (const org of vportOrgs) {
+            const d = Math.abs((org.x - ox) - tx) + Math.abs((org.y - oy) - ty)
+            if (d < nearestDist) { nearestDist = d; nearest = org }
+          }
+          if (nearest && nearestDist <= RADIUS) {
+            const alpha = 0.09 * (1 - nearestDist / RADIUS)
+            const col = lineageColor(nearest.lineage_id)
+            ctx.fillStyle = col.replace('hsl', 'hsla').replace(')', `, ${alpha})`)
+            ctx.fillRect(tx * TILE, ty * TILE, TILE, TILE)
+          }
         }
       }
     }
@@ -351,8 +359,8 @@ function drawWorldOnCanvas(
 
   // Draw animals (under organisms)
   for (const animal of (viewFlags.animals ? animals : [])) {
-    const px = animal.x * TILE + TILE / 2
-    const py = animal.y * TILE + TILE / 2
+    const px = (animal.x - ox) * TILE + TILE / 2
+    const py = (animal.y - oy) * TILE + TILE / 2
     if (animal.kind === 'rabbit') {
       ctx.fillStyle = '#c8a050'
       ctx.beginPath(); ctx.arc(px, py, 2.5, 0, Math.PI * 2); ctx.fill()
@@ -377,11 +385,11 @@ function drawWorldOnCanvas(
     return true
   }
 
-  // Draw organisms
+  // Draw organisms (translate world coords to viewport canvas coords)
   for (const org of world.organisms) {
     if (!org.alive) continue
-    const px = org.x * TILE + TILE / 2
-    const py = org.y * TILE + TILE / 2
+    const px = (org.x - ox) * TILE + TILE / 2
+    const py = (org.y - oy) * TILE + TILE / 2
     const focused = isFocused(org)
     ctx.globalAlpha = focused ? 1 : 0.12
 
@@ -451,11 +459,12 @@ function drawWorldOnCanvas(
 
     // Energy + hydration bars
     const barW = TILE - 2
-    const bx = org.x * TILE + 1
-    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(bx, org.y * TILE - 5, barW, 2)
-    ctx.fillStyle = '#55dd55';          ctx.fillRect(bx, org.y * TILE - 5, barW * org.energy, 2)
-    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(bx, org.y * TILE - 2, barW, 2)
-    ctx.fillStyle = '#4499ff';          ctx.fillRect(bx, org.y * TILE - 2, barW * org.hydration, 2)
+    const bx = (org.x - ox) * TILE + 1
+    const by = (org.y - oy) * TILE
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(bx, by - 5, barW, 2)
+    ctx.fillStyle = '#55dd55';          ctx.fillRect(bx, by - 5, barW * org.energy, 2)
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(bx, by - 2, barW, 2)
+    ctx.fillStyle = '#4499ff';          ctx.fillRect(bx, by - 2, barW * org.hydration, 2)
 
     // Name
     if (viewFlags.names) {
@@ -555,22 +564,59 @@ function WorldTextureUpdater({ world, selectedOrgId, overlay, focus, viewFlags }
   return null
 }
 
+// ── OriginTracker ─────────────────────────────────────────────────────────────
+// Compensates camera position when the server shifts the viewport origin,
+// so the world appears stationary as new tiles load.
+
+function OriginTracker({ ox, oy, cameraStateRef }: {
+  ox: number; oy: number
+  cameraStateRef: React.MutableRefObject<{ x: number; y: number; zoom: number }>
+}) {
+  const camera = useCamera()
+  const prev = useRef<{ ox: number; oy: number } | null>(null)
+
+  useEffect(() => {
+    if (prev.current === null) { prev.current = { ox, oy }; return }
+    const dox = ox - prev.current.ox
+    const doy = oy - prev.current.oy
+    if (dox !== 0 || doy !== 0) {
+      const pos = camera.getPosition()
+      const nx = pos.x - dox * TILE
+      const ny = pos.y - doy * TILE
+      camera.setPosition(nx, ny)
+      cameraStateRef.current.x = nx
+      cameraStateRef.current.y = ny
+    }
+    prev.current = { ox, oy }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ox, oy])
+
+  return null
+}
+
 // ── CameraController ──────────────────────────────────────────────────────────
 // Must be inside <Game>. Handles mouse drag (pan) and scroll wheel (zoom).
 // containerEl: the outer div — wheel/pointerdown scoped to it so sidebar scrolls freely.
 
 function CameraController({
-  worldW, worldH, containerEl, cameraStateRef, followTarget,
+  worldW, worldH, containerW, containerH, ox, oy,
+  containerEl, cameraStateRef, followTarget, onViewportPan,
 }: {
   worldW: number
   worldH: number
+  containerW: number
+  containerH: number
+  ox: number
+  oy: number
   containerEl: HTMLDivElement | null
   cameraStateRef: React.MutableRefObject<{ x: number; y: number; zoom: number }>
   followTarget: { x: number; y: number } | null
+  onViewportPan?: (msg: unknown) => void
 }) {
   const camera = useCamera()
   const drag = useRef({ active: false, startPX: 0, startPY: 0, startCamX: 0, startCamY: 0 })
   const initialised = useRef(false)
+  const vpThrottle = useRef(0)
 
   // cubeforge's Camera2D isn't wired to the engine until after its first tick,
   // so setPosition called synchronously in useLayoutEffect lands on a stub.
@@ -579,16 +625,17 @@ function CameraController({
     if (initialised.current) return
     const tx = worldW / 2
     const ty = worldH / 2
+    // Fit world to container so there's no blue background
+    const fitZoom = Math.max(containerW / worldW, containerH / worldH)
     let raf = 0
     const trySet = () => {
       camera.setPosition(tx, ty)
-      camera.setZoom(0.3)
+      camera.setZoom(fitZoom)
       const pos = camera.getPosition?.()
-      // Keep retrying until the engine accepts the position
       if (!pos || Math.abs(pos.x - tx) > 2 || Math.abs(pos.y - ty) > 2) {
         raf = requestAnimationFrame(trySet)
       } else {
-        cameraStateRef.current = { x: tx, y: ty, zoom: 0.3 }
+        cameraStateRef.current = { x: tx, y: ty, zoom: fitZoom }
         initialised.current = true
       }
     }
@@ -608,6 +655,15 @@ function CameraController({
   useEffect(() => {
     if (!containerEl) return
 
+    const sendViewport = (camX: number, camY: number) => {
+      const now = Date.now()
+      if (now - vpThrottle.current < 150) return
+      vpThrottle.current = now
+      const worldCx = Math.round(camX / TILE) + ox
+      const worldCy = Math.round(camY / TILE) + oy
+      onViewportPan?.({ cx: worldCx, cy: worldCy })
+    }
+
     const onDown = (e: PointerEvent) => {
       drag.current.active = true
       drag.current.startPX = e.clientX
@@ -624,8 +680,13 @@ function CameraController({
       camera.setPosition(nx, ny)
       cameraStateRef.current.x = nx
       cameraStateRef.current.y = ny
+      sendViewport(nx, ny)
     }
-    const onUp = () => { drag.current.active = false }
+    const onUp = () => {
+      drag.current.active = false
+      const pos = camera.getPosition()
+      sendViewport(pos.x, pos.y)
+    }
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
       const factor = e.deltaY < 0 ? 1.1 : 0.9
@@ -661,23 +722,28 @@ interface Props {
   overlay:       string | null
   focus:         string
   viewFlags:     ViewFlags
+  onViewportPan?: (msg: unknown) => void
 }
 
-export function WorldView({ world, selectedOrgId, followOrgId, onOrgSelect, overlay, focus, viewFlags }: Props) {
+export function WorldView({ world, selectedOrgId, followOrgId, onOrgSelect, overlay, focus, viewFlags, onViewportPan }: Props) {
   const W = world.grid.width * TILE
   const H = world.grid.height * TILE
   const cx = W / 2
   const cy = H / 2
 
+  // World-space origin of the current viewport tile window
+  const ox = world.grid.origin_x ?? 0
+  const oy = world.grid.origin_y ?? 0
+
   const containerRef  = useRef<HTMLDivElement>(null)
   const cameraStateRef = useRef({ x: cx, y: cy, zoom: 1.5 })
   const [dims, setDims] = useState({ w: 0, h: 0 })
 
-  // Follow target: live-updated position of followed organism
+  // Follow target: canvas pixel coords (viewport-relative)
   const followTarget = followOrgId
     ? (() => {
         const org = world.organisms.find(o => o.id === followOrgId && o.alive)
-        return org ? { x: org.x * TILE, y: org.y * TILE } : null
+        return org ? { x: (org.x - ox) * TILE, y: (org.y - oy) * TILE } : null
       })()
     : null
 
@@ -686,8 +752,11 @@ export function WorldView({ world, selectedOrgId, followOrgId, onOrgSelect, over
     const sx = e.clientX - rect.left
     const sy = e.clientY - rect.top
     const { x: camX, y: camY, zoom } = cameraStateRef.current
-    const worldX = (camX + (sx - dims.w / 2) / zoom) / TILE
-    const worldY = (camY + (sy - dims.h / 2) / zoom) / TILE
+    // Convert screen → canvas tile → world tile
+    const canvasTileX = (camX + (sx - dims.w / 2) / zoom) / TILE
+    const canvasTileY = (camY + (sy - dims.h / 2) / zoom) / TILE
+    const worldX = canvasTileX + ox
+    const worldY = canvasTileY + oy
 
     let nearest: string | null = null
     let nearestDist = 3.0
@@ -727,7 +796,7 @@ export function WorldView({ world, selectedOrgId, followOrgId, onOrgSelect, over
           height={dims.h}
           style={{ display: 'block' }}
         >
-          <World background="#1a4a80">
+          <World background="#0a0a0a">
             <Camera2D />
 
             <Entity>
@@ -740,14 +809,20 @@ export function WorldView({ world, selectedOrgId, followOrgId, onOrgSelect, over
                 zIndex={0}
               />
               <WorldTextureUpdater world={world} selectedOrgId={selectedOrgId} overlay={overlay} focus={focus} viewFlags={viewFlags} />
+              <OriginTracker ox={ox} oy={oy} cameraStateRef={cameraStateRef} />
             </Entity>
 
             <CameraController
               worldW={W}
               worldH={H}
+              containerW={dims.w}
+              containerH={dims.h}
+              ox={ox}
+              oy={oy}
               containerEl={containerRef.current}
               cameraStateRef={cameraStateRef}
               followTarget={followTarget}
+              onViewportPan={onViewportPan}
             />
           </World>
         </Game>

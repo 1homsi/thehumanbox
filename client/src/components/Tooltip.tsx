@@ -8,7 +8,7 @@ const FLIP_PX = 80
 
 interface Props {
   tip: ReactNode
-  children: ReactElement
+  children: ReactElement<Record<string, unknown>>
 }
 
 export function Tooltip({ tip, children }: Props) {
@@ -17,11 +17,11 @@ export function Tooltip({ tip, children }: Props) {
   const child = cloneElement(children, {
     onMouseEnter: (e: React.MouseEvent) => {
       setRect((e.currentTarget as HTMLElement).getBoundingClientRect())
-      children.props.onMouseEnter?.(e)
+      ;(children.props.onMouseEnter as ((e: React.MouseEvent) => void) | undefined)?.(e)
     },
     onMouseLeave: (e: React.MouseEvent) => {
       setRect(null)
-      children.props.onMouseLeave?.(e)
+      ;(children.props.onMouseLeave as ((e: React.MouseEvent) => void) | undefined)?.(e)
     },
   })
 

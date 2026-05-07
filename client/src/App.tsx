@@ -19,7 +19,7 @@ import './App.css'
 const TILE_FIRE = 4
 
 function App() {
-  const { world, connected } = useSimulation()
+  const { world, connected, send } = useSimulation()
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null)
   const [followOrgId, setFollowOrgId]     = useState<string | null>(null)
   const [showLanguages,  setShowLanguages]  = useState(false)
@@ -30,7 +30,8 @@ function App() {
   const [panelOpen,      setPanelOpen]      = useState(false)
   const [leftOpen,       setLeftOpen]       = useState(true)
   const [overlay,        setOverlay]        = useState<string | null>(null)
-  const [showMore,       setShowMore]       = useState(false)
+  const [showMore,          setShowMore]          = useState(false)
+  const [showAllLineages,   setShowAllLineages]   = useState(false)
   const [isFullscreen,   setIsFullscreen]   = useState(false)
   const [focus,          setFocus]          = useState<string>('all')
   const [viewFlags,      setViewFlags]      = useState({
@@ -246,6 +247,7 @@ function App() {
               <div className="lineage-list">
                 {Object.entries(lineages)
                   .sort((a, b) => b[1].count - a[1].count)
+                  .slice(0, 5)
                   .map(([lid, info]) => (
                     <div key={lid} className="lineage-row">
                       <span className="lineage-dot" style={{ background: lineageColor(lid) }} />
@@ -259,6 +261,11 @@ function App() {
                       </span>
                     </div>
                   ))}
+                {Object.keys(lineages).length > 5 && (
+                  <button className="view-all-btn" onClick={() => setShowAllLineages(true)}>
+                    view all ({Object.keys(lineages).length})
+                  </button>
+                )}
               </div>
 
               <div className="section-title">EVENTS</div>
@@ -279,6 +286,7 @@ function App() {
               overlay={overlay}
               focus={focus}
               viewFlags={viewFlags}
+              onViewportPan={send}
             />
 
             {/* ── Right panel: organisms ───────────────────────────── */}
@@ -351,6 +359,35 @@ function App() {
           world={world}
           onClose={() => setShowStats(false)}
         />
+      )}
+      {showAllLineages && world && (
+        <div className="lang-modal-backdrop" onClick={() => setShowAllLineages(false)}>
+          <div className="lang-modal" onClick={e => e.stopPropagation()} style={{ width: 400 }}>
+            <div className="lang-modal-header">
+              <span className="lang-modal-title">ALL LINEAGES ({Object.keys(lineages).length})</span>
+              <button className="close-btn" onClick={() => setShowAllLineages(false)}>✕</button>
+            </div>
+            <div className="lang-modal-body">
+              <div className="lineage-list">
+                {Object.entries(lineages)
+                  .sort((a, b) => b[1].count - a[1].count)
+                  .map(([lid, info]) => (
+                    <div key={lid} className="lineage-row">
+                      <span className="lineage-dot" style={{ background: lineageColor(lid) }} />
+                      <span className="lineage-id">{lid.slice(0, 6)}</span>
+                      <span className="lineage-count">{info.count}</span>
+                      <span className="lineage-gen">
+                        g{info.minGen}{info.maxGen > info.minGen ? `–${info.maxGen}` : ''}
+                      </span>
+                      <span className="lineage-strat">
+                        {lineageWord(info.orgs, 'home') || lineageWord(info.orgs, 'food') || ''}
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
