@@ -78,6 +78,9 @@ body {
 }
 
 .github-link {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-size: 11px;
   color: #888;
   text-decoration: none;
@@ -85,6 +88,12 @@ body {
   transition: color 0.12s;
 }
 .github-link:hover { color: #ccc; }
+.github-icon {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+  flex-shrink: 0;
+}
 
 .status {
   font-size: 11px;
