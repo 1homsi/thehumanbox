@@ -3,16 +3,16 @@ import type { OrganismState } from '../types'
 import { lineageColor } from '../constants'
 
 const DAY_LENGTH = 600
-const NODE_W  = 100
-const NODE_H  = 34
-const GAP_Y   = 8
-const GAP_X   = 150
-const PAD_X   = 20
-const PAD_Y   = 30
+const NODE_R    = 22      // circle radius
+const ROW_H     = 130     // vertical space between generation rows
+const MIN_SEP   = 70      // minimum horizontal gap between sibling centers
+const PAD_X     = 60
+const PAD_Y     = 60
 
 interface Props {
   organisms: OrganismState[]
   currentTick: number
+  sexWords?: [string, string]   // [0]=male word, [1]=female word
   onClose: () => void
 }
 
@@ -20,83 +20,170 @@ interface NodePos { org: OrganismState; x: number; y: number }
 interface XY { x: number; y: number }
 interface Transform { x: number; y: number; scale: number }
 
+// Reingold-Tilford-inspired layout for a vertical tree
+// Generations go top→bottom (gen 0 at top, newest at bottom)
 function buildLayout(orgs: OrganismState[]) {
-  if (!orgs.length) return { nodes: [] as NodePos[], w: 400, h: 200 }
+  if (!orgs.length) return { nodes: [] as NodePos[], w: 400, h: 300 }
 
+  const byId = new Map<string, OrganismState>()
+  for (const o of orgs) byId.set(o.id, o)
+
+  // Build children map
+  const children = new Map<string, string[]>()
+  for (const o of orgs) {
+    if (!children.has(o.id)) children.set(o.id, [])
+    if (o.parent_id && byId.has(o.parent_id)) {
+      if (!children.has(o.parent_id)) children.set(o.parent_id, [])
+      children.get(o.parent_id)!.push(o.id)
+    }
+  }
+
+  // Find roots: no parent in the list
+  const roots = orgs.filter(o => !o.parent_id || !byId.has(o.parent_id))
+
+  // Compute subtree width for each node (recursive)
+  const subtreeWidth = new Map<string, number>()
+  function computeWidth(id: string): number {
+    const kids = children.get(id) ?? []
+    if (kids.length === 0) {
+      subtreeWidth.set(id, MIN_SEP)
+      return MIN_SEP
+    }
+    let total = 0
+    for (const kid of kids) total += computeWidth(kid)
+    subtreeWidth.set(id, Math.max(MIN_SEP, total))
+    return subtreeWidth.get(id)!
+  }
+  for (const r of roots) computeWidth(r.id)
+
+  // Assign x positions by distributing subtree widths
+  const posMap = new Map<string, XY>()
+  const maxGen = Math.max(...orgs.map(o => o.generation))
+
+  function assignX(id: string, left: number): number {
+    const org = byId.get(id)!
+    const y   = PAD_Y + org.generation * ROW_H
+    const kids = children.get(id) ?? []
+    if (kids.length === 0) {
+      const x = left + MIN_SEP / 2
+      posMap.set(id, { x, y })
+      return left + MIN_SEP
+    }
+    let cursor = left
+    for (const kid of kids) cursor = assignX(kid, cursor)
+    // Center parent above its children span
+    const firstChild = posMap.get(kids[0])!
+    const lastChild  = posMap.get(kids[kids.length - 1])!
+    const x = (firstChild.x + lastChild.x) / 2
+    posMap.set(id, { x, y })
+    return left + subtreeWidth.get(id)!
+  }
+
+  let cursor = PAD_X
+  for (const r of roots) cursor = assignX(r.id, cursor)
+
+  // Orphaned nodes (gen > 0 but parent not in list) — stack them in their gen row
+  const placed = new Set(posMap.keys())
   const byGen = new Map<number, OrganismState[]>()
   for (const o of orgs) {
-    if (!byGen.has(o.generation)) byGen.set(o.generation, [])
-    byGen.get(o.generation)!.push(o)
+    if (!placed.has(o.id)) {
+      if (!byGen.has(o.generation)) byGen.set(o.generation, [])
+      byGen.get(o.generation)!.push(o)
+    }
   }
-  const gens = [...byGen.keys()].sort((a, b) => a - b)
-
-  const posMap = new Map<string, XY>()
-  const nodes: NodePos[] = []
-
-  for (const gen of gens) {
-    const list = byGen.get(gen)!
-    list.sort((a, b) => {
-      const pyA = posMap.get(a.parent_id)?.y ?? 0
-      const pyB = posMap.get(b.parent_id)?.y ?? 0
-      if (Math.abs(pyA - pyB) > 1) return pyA - pyB
-      return a.name.localeCompare(b.name)
-    })
-    const colX = PAD_X + gens.indexOf(gen) * (NODE_W + GAP_X)
-    list.forEach((org, i) => {
-      const y = PAD_Y + i * (NODE_H + GAP_Y)
-      nodes.push({ org, x: colX, y })
-      posMap.set(org.id, { x: colX, y })
+  for (const [gen, list] of byGen) {
+    const y = PAD_Y + gen * ROW_H
+    let maxX = cursor
+    for (const n of posMap.values()) if (n.x > maxX) maxX = n.x
+    list.forEach((o, i) => {
+      posMap.set(o.id, { x: maxX + PAD_X + i * MIN_SEP, y })
     })
   }
 
-  const maxX = Math.max(...nodes.map(n => n.x)) + NODE_W + PAD_X
-  const maxY = Math.max(...nodes.map(n => n.y)) + NODE_H + PAD_Y
-  return { nodes, w: Math.max(maxX, 400), h: Math.max(maxY, 200) }
+  const nodes: NodePos[] = orgs.map(o => {
+    const p = posMap.get(o.id) ?? { x: PAD_X, y: PAD_Y + o.generation * ROW_H }
+    return { org: o, x: p.x, y: p.y }
+  })
+
+  const maxX = Math.max(...nodes.map(n => n.x)) + NODE_R + PAD_X
+  const maxY = PAD_Y + maxGen * ROW_H + NODE_R * 2 + PAD_Y
+  return { nodes, w: Math.max(maxX, 400), h: Math.max(maxY, 300), posMap, maxGen }
 }
 
-export function FamilyTreeModal({ organisms: livOrgs, onClose }: Props) {
-  // Snapshot on mount — never re-layout from live data (live updates cause constant re-renders)
+export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props) {
   const organisms = useRef(livOrgs).current
 
-  const canvasRef   = useRef<HTMLCanvasElement>(null)
-  const wrapRef     = useRef<HTMLDivElement>(null)
+  const canvasRef  = useRef<HTMLCanvasElement>(null)
+  const wrapRef    = useRef<HTMLDivElement>(null)
   const [hoverId, setHoverId] = useState<string | null>(null)
-  const [tf, setTf] = useState<Transform>({ x: 20, y: 20, scale: 0.75 })
-  const dragging    = useRef<{ ox: number; oy: number; sx: number; sy: number } | null>(null)
-  const tfRef       = useRef(tf)
+  const [tf, setTf] = useState<Transform>({ x: 0, y: 0, scale: 1 })
+  const dragging   = useRef<{ ox: number; oy: number; sx: number; sy: number } | null>(null)
+  const tfRef      = useRef(tf)
   tfRef.current = tf
 
-  const { nodes, w: svgW, h: svgH } = useMemo(() => buildLayout(organisms), [organisms])
+  const { nodes, w: svgW, h: svgH, maxGen } = useMemo(
+    () => buildLayout(organisms),
+    [organisms]
+  )
 
-  const posById = useMemo(() => {
-    const m = new Map<string, XY>()
-    for (const n of nodes) m.set(n.org.id, { x: n.x, y: n.y })
-    return m
-  }, [nodes])
-
-  const { edges, ghostEdges } = useMemo(() => {
-    const edges: { x1: number; y1: number; x2: number; y2: number; color: string }[] = []
-    const ghostEdges: { x: number; y: number }[] = []
+  // Build edge list (parent → child connecting lines)
+  const edges = useMemo(() => {
+    const list: { x1: number; y1: number; x2: number; y2: number; color: string }[] = []
+    const byId = new Map<string, { x: number; y: number }>()
+    for (const n of nodes) byId.set(n.org.id, { x: n.x, y: n.y })
     for (const n of nodes) {
-      const p = posById.get(n.org.parent_id)
+      const p = n.org.parent_id ? byId.get(n.org.parent_id) : null
       if (p) {
-        edges.push({
-          x1: p.x + NODE_W, y1: p.y + NODE_H / 2,
-          x2: n.x,          y2: n.y + NODE_H / 2,
+        list.push({
+          x1: p.x, y1: p.y + NODE_R,
+          x2: n.x, y2: n.y - NODE_R,
           color: lineageColor(n.org.lineage_id),
         })
-      } else if (n.org.generation > 0 && n.org.parent_id) {
-        ghostEdges.push({ x: n.x, y: n.y + NODE_H / 2 })
       }
     }
-    return { edges, ghostEdges }
-  }, [nodes, posById])
+    return list
+  }, [nodes])
 
-  const gens = useMemo(() =>
-    [...new Set(nodes.map(n => n.org.generation))].sort((a, b) => a - b),
-    [nodes])
+  // Paternity edges: father → child (separate from the maternal tree lines)
+  const paternityEdges = useMemo(() => {
+    const list: { x1: number; y1: number; x2: number; y2: number; color: string; isCheating: boolean }[] = []
+    const byId = new Map<string, { x: number; y: number; org: OrganismState }>()
+    for (const n of nodes) byId.set(n.org.id, { x: n.x, y: n.y, org: n.org })
+    for (const n of nodes) {
+      const fid = n.org.father_id
+      if (!fid || !byId.has(fid)) continue
+      const father = byId.get(fid)!
+      // Is this a "cheating" child? Father is someone other than the mother's partner
+      const mother = n.org.parent_id ? byId.get(n.org.parent_id) : null
+      const isCheating = mother ? (mother.org.partner_id !== fid) : false
+      list.push({
+        x1: father.x, y1: father.y + NODE_R,
+        x2: n.x + 4,  y2: n.y - NODE_R,   // slight horizontal offset so lines don't overlap
+        color: lineageColor(father.org.lineage_id),
+        isCheating,
+      })
+    }
+    return list
+  }, [nodes])
 
-  // ── Canvas draw ────────────────────────────────────────────────────────
+  // Partner lines
+  const partnerEdges = useMemo(() => {
+    const list: { x1: number; y1: number; x2: number; y2: number }[] = []
+    const byId = new Map<string, { x: number; y: number; org: OrganismState }>()
+    for (const n of nodes) byId.set(n.org.id, { x: n.x, y: n.y, org: n.org })
+    const done = new Set<string>()
+    for (const n of nodes) {
+      const pid = n.org.partner_id
+      if (pid && byId.has(pid) && !done.has(n.org.id) && !done.has(pid)) {
+        const partner = byId.get(pid)!
+        list.push({ x1: n.x, y1: n.y, x2: partner.x, y2: partner.y })
+        done.add(n.org.id)
+        done.add(pid)
+      }
+    }
+    return list
+  }, [nodes])
+
   const draw = useCallback(() => {
     const canvas = canvasRef.current
     const wrap   = wrapRef.current
@@ -119,108 +206,182 @@ export function FamilyTreeModal({ organisms: livOrgs, onClose }: Props) {
     ctx.translate(tx, ty)
     ctx.scale(ts, ts)
 
-    // Gen labels
+    // Generation row labels
     ctx.font = '9px monospace'
-    ctx.fillStyle = '#333'
-    ctx.textAlign = 'center'
-    gens.forEach((gen, i) => {
-      const gx = PAD_X + i * (NODE_W + GAP_X) + NODE_W / 2
-      ctx.fillText(`gen ${gen}`, gx, 14)
-    })
+    ctx.fillStyle = '#3a3028'
+    ctx.textAlign = 'left'
+    const genSet = [...new Set(nodes.map(n => n.org.generation))].sort((a, b) => a - b)
+    const minNodeX = Math.min(...nodes.map(n => n.x))
+    for (const gen of genSet) {
+      const gy = PAD_Y + gen * ROW_H
+      ctx.fillText(`generation ${gen}`, minNodeX - 40, gy - NODE_R - 6)
+    }
 
-    // Ghost stubs
-    ctx.strokeStyle = '#2a2a2a'
-    ctx.setLineDash([3, 3])
-    ctx.lineWidth = 1
-    for (const g of ghostEdges) {
+    // Partner edges (heart bond line)
+    ctx.lineWidth = 1.2
+    ctx.strokeStyle = '#c97'
+    ctx.setLineDash([4, 4])
+    ctx.globalAlpha = 0.45
+    for (const e of partnerEdges) {
       ctx.beginPath()
-      ctx.moveTo(g.x, g.y)
-      ctx.lineTo(g.x - 40, g.y)
+      ctx.moveTo(e.x1, e.y1)
+      ctx.lineTo(e.x2, e.y2)
       ctx.stroke()
     }
     ctx.setLineDash([])
+    ctx.globalAlpha = 1
 
-    // Edges
+    // Paternity edges: father → child (dashed, slightly different tone)
+    ctx.lineWidth = 1.2
+    ctx.setLineDash([3, 5])
+    for (const e of paternityEdges) {
+      const my = (e.y1 + e.y2) / 2
+      ctx.globalAlpha = e.isCheating ? 0.55 : 0.28
+      ctx.strokeStyle = e.isCheating ? '#e8b060' : e.color  // gold for infidelity
+      ctx.beginPath()
+      ctx.moveTo(e.x1, e.y1)
+      ctx.bezierCurveTo(e.x1, my, e.x2, my, e.x2, e.y2)
+      ctx.stroke()
+    }
+    ctx.setLineDash([])
+    ctx.globalAlpha = 1
+
+    // Mother → child connecting lines (solid)
     ctx.lineWidth = 1.5
     for (const e of edges) {
-      const mx = (e.x1 + e.x2) / 2
-      ctx.globalAlpha = 0.33
+      const my = (e.y1 + e.y2) / 2
+      ctx.globalAlpha = 0.40
       ctx.strokeStyle = e.color
       ctx.beginPath()
       ctx.moveTo(e.x1, e.y1)
-      ctx.bezierCurveTo(mx, e.y1, mx, e.y2, e.x2, e.y2)
+      ctx.bezierCurveTo(e.x1, my, e.x2, my, e.x2, e.y2)
       ctx.stroke()
     }
     ctx.globalAlpha = 1
 
-    // Nodes
+    // Node shapes: female=circle, male=rounded-square
+    const drawNodeShape = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number, isFemale: boolean) => {
+      ctx.beginPath()
+      if (isFemale) {
+        ctx.arc(x, y, r, 0, Math.PI * 2)
+      } else {
+        // Rounded square
+        const s = r * 1.22
+        const cr = r * 0.32
+        ctx.moveTo(x - s + cr, y - s)
+        ctx.lineTo(x + s - cr, y - s)
+        ctx.arcTo(x + s, y - s, x + s, y - s + cr, cr)
+        ctx.lineTo(x + s, y + s - cr)
+        ctx.arcTo(x + s, y + s, x + s - cr, y + s, cr)
+        ctx.lineTo(x - s + cr, y + s)
+        ctx.arcTo(x - s, y + s, x - s, y + s - cr, cr)
+        ctx.lineTo(x - s, y - s + cr)
+        ctx.arcTo(x - s, y - s, x - s + cr, y - s, cr)
+        ctx.closePath()
+      }
+    }
+
+    // Node shapes + labels
     for (const { org, x, y } of nodes) {
-      const color   = lineageColor(org.lineage_id)
-      const isAlive = org.alive
-      const isHover = org.id === hoverId
+      const color     = lineageColor(org.lineage_id)
+      const isAlive   = org.alive
+      const isHover   = org.id === hoverId
+      const isPartnered = !!org.partner_id
+      const isFemale  = org.sex === 'female'
 
-      // Card bg
-      ctx.globalAlpha = 1
-      ctx.fillStyle = isAlive ? '#181818' : '#101010'
-      ctx.beginPath()
-      ctx.roundRect(x, y, NODE_W, NODE_H, 3)
+      // Shadow for hovered node
+      if (isHover) {
+        ctx.shadowColor = color
+        ctx.shadowBlur  = 14
+      }
+
+      // Shape fill
+      ctx.globalAlpha = isAlive ? 0.22 : 0.10
+      ctx.fillStyle   = color
+      drawNodeShape(ctx, x, y, NODE_R, isFemale)
       ctx.fill()
 
-      // Card border
-      ctx.globalAlpha = isHover ? 1 : (isAlive ? 0.8 : 0.27)
-      ctx.strokeStyle = isHover ? '#ddd' : color
-      ctx.lineWidth = isHover ? 1.5 : 0.8
+      // Shape border
+      ctx.globalAlpha = isHover ? 1 : (isAlive ? 0.85 : 0.28)
+      ctx.strokeStyle = isHover ? '#fff' : color
+      ctx.lineWidth   = isHover ? 2 : (isAlive ? 1.5 : 0.8)
+      drawNodeShape(ctx, x, y, NODE_R, isFemale)
       ctx.stroke()
+
+      ctx.shadowBlur = 0
       ctx.globalAlpha = 1
 
-      // Lineage bar
-      ctx.globalAlpha = isAlive ? 0.9 : 0.27
-      ctx.fillStyle = color
-      ctx.beginPath()
-      ctx.roundRect(x, y, 3, NODE_H, 2)
-      ctx.fill()
-      ctx.globalAlpha = 1
+      // Partner heart dot
+      if (isPartnered && isAlive) {
+        ctx.fillStyle = '#c97'
+        ctx.globalAlpha = 0.9
+        ctx.beginPath()
+        ctx.arc(x + NODE_R - 5, y - NODE_R + 5, 4, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.globalAlpha = 1
+      }
 
-      // Name
-      ctx.font = '600 10px monospace'
-      ctx.fillStyle = isAlive ? '#ddd' : '#555'
-      ctx.textAlign = 'left'
-      ctx.fillText(org.name + (isAlive ? '' : ' †'), x + 8, y + 13)
+      // Name label below circle
+      ctx.font      = `${isHover ? 600 : 500} 9.5px monospace`
+      ctx.fillStyle = isAlive ? (isHover ? '#fff' : '#d0c8c0') : '#555'
+      ctx.textAlign = 'center'
+      ctx.fillText(org.name + (isAlive ? '' : ' †'), x, y + NODE_R + 13)
 
-      // Sub info
-      ctx.font = '8px monospace'
-      ctx.fillStyle = '#444'
-      ctx.fillText(`${org.lineage_id.slice(0, 5)} · ${Math.floor(org.age / DAY_LENGTH)}d`, x + 8, y + 26)
+      // Age/gen label below name
+      ctx.font      = '8px monospace'
+      ctx.fillStyle = '#4a3e35'
+      ctx.fillText(`${Math.floor(org.age / DAY_LENGTH)}d · g${org.generation}`, x, y + NODE_R + 24)
 
-      // Discovery icons
+      // Discovery icons inside node (top half)
       const hasFire = org.discoveries?.includes('fire')
       const hasHut  = org.discoveries?.includes('shelter')
       if (hasFire || hasHut) {
-        ctx.font = '9px monospace'
-        ctx.textAlign = 'right'
-        ctx.fillText((hasFire ? '🔥' : '') + (hasHut ? '🏠' : ''), x + NODE_W - 4, y + 13)
+        ctx.font = '9px sans-serif'
+        ctx.textAlign = 'center'
+        const icons = (hasFire ? '🔥' : '') + (hasHut ? '🏠' : '')
+        ctx.fillText(icons, x, y - 3)
+      } else {
+        // Initial
+        ctx.font      = '600 11px monospace'
+        ctx.fillStyle = isAlive ? color : '#444'
+        ctx.globalAlpha = isAlive ? 0.9 : 0.4
+        ctx.textAlign   = 'center'
+        ctx.fillText(org.name[0], x, y - 3)
+        ctx.globalAlpha = 1
+      }
+
+      // Sex word inside node (bottom half, small)
+      const sw = sexWords ? (isFemale ? sexWords[1] : sexWords[0]) : null
+      if (sw) {
+        ctx.font      = `500 7px monospace`
+        ctx.fillStyle = isFemale ? '#e09ab0' : '#7ab0e0'
+        ctx.globalAlpha = isAlive ? 0.85 : 0.35
+        ctx.textAlign   = 'center'
+        ctx.fillText(sw, x, y + 9)
+        ctx.globalAlpha = 1
       }
     }
 
     ctx.restore()
-  }, [nodes, edges, ghostEdges, gens, hoverId])
+  }, [nodes, edges, paternityEdges, partnerEdges, hoverId])
 
-  // Redraw whenever transform or hover changes
-  useEffect(() => { draw() }, [draw, tf, hoverId])
-
-  // Fit all content into viewport
+  // Fit so newest generation is visible at the bottom
   const fitAll = useCallback(() => {
     const wrap = wrapRef.current
     if (!wrap || !nodes.length) return
     const vw = wrap.clientWidth
     const vh = wrap.clientHeight
     const s  = Math.min(vw / (svgW + PAD_X * 2), vh / (svgH + PAD_Y * 2), 1.0)
-    setTf({ x: (vw - svgW * s) / 2, y: (vh - svgH * s) / 2, scale: s })
+    // Start scrolled to bottom (most recent generation)
+    const scaledH = svgH * s
+    const startY  = scaledH > vh ? vh - scaledH - PAD_Y : (vh - svgH * s) / 2
+    setTf({ x: (vw - svgW * s) / 2, y: startY, scale: s })
   }, [svgW, svgH, nodes.length])
 
   useEffect(() => { fitAll() }, [fitAll])
 
-  // Resize observer
+  useEffect(() => { draw() }, [draw, tf, hoverId])
+
   useEffect(() => {
     const wrap = wrapRef.current
     if (!wrap) return
@@ -229,7 +390,6 @@ export function FamilyTreeModal({ organisms: livOrgs, onClose }: Props) {
     return () => ro.disconnect()
   }, [draw])
 
-  // Wheel zoom
   const onWheel = useCallback((e: WheelEvent) => {
     e.preventDefault()
     const rect = wrapRef.current!.getBoundingClientRect()
@@ -237,7 +397,7 @@ export function FamilyTreeModal({ organisms: livOrgs, onClose }: Props) {
     const my = e.clientY - rect.top
     const factor = e.deltaY < 0 ? 1.15 : 0.87
     setTf(t => {
-      const ns = Math.max(0.1, Math.min(4, t.scale * factor))
+      const ns = Math.max(0.08, Math.min(4, t.scale * factor))
       const r  = ns / t.scale
       return { x: mx - r * (mx - t.x), y: my - r * (my - t.y), scale: ns }
     })
@@ -250,7 +410,6 @@ export function FamilyTreeModal({ organisms: livOrgs, onClose }: Props) {
     return () => el.removeEventListener('wheel', onWheel)
   }, [onWheel])
 
-  // Drag to pan
   const onMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     e.preventDefault()
     const t = tfRef.current
@@ -269,7 +428,6 @@ export function FamilyTreeModal({ organisms: livOrgs, onClose }: Props) {
     window.addEventListener('mouseup', onUp)
   }, [])
 
-  // Hover hit-test
   const onMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (dragging.current) return
     const rect = canvasRef.current!.getBoundingClientRect()
@@ -277,7 +435,7 @@ export function FamilyTreeModal({ organisms: livOrgs, onClose }: Props) {
     const wx = (e.clientX - rect.left - tx) / ts
     const wy = (e.clientY - rect.top  - ty) / ts
     const hit = nodes.find(n =>
-      wx >= n.x && wx <= n.x + NODE_W && wy >= n.y && wy <= n.y + NODE_H
+      Math.hypot(wx - n.x, wy - n.y) <= NODE_R + 4
     )
     setHoverId(hit?.org.id ?? null)
   }, [nodes])
@@ -291,7 +449,7 @@ export function FamilyTreeModal({ organisms: livOrgs, onClose }: Props) {
         <div className="lang-modal-header">
           <span className="lang-modal-title">FAMILY TREE</span>
           <span className="tree-modal-sub">
-            {organisms.filter(o => o.alive).length} alive · {organisms.filter(o => !o.alive).length} ancestors
+            {organisms.filter(o => o.alive).length} alive · {organisms.filter(o => !o.alive).length} ancestors · {(maxGen ?? 0) + 1} generations
           </span>
           <button className="close-btn" onClick={onClose}>✕</button>
         </div>
@@ -300,13 +458,32 @@ export function FamilyTreeModal({ organisms: livOrgs, onClose }: Props) {
           {hovered ? (
             <>
               <span style={{ color: lineageColor(hovered.lineage_id), fontWeight: 600 }}>{hovered.name}</span>
-              <span style={{ color: '#666' }}> · gen {hovered.generation} · age {hovered.age} · {hovered.lineage_id.slice(0, 6)}</span>
+              {sexWords && hovered.sex && (
+                <span style={{ color: hovered.sex === 'female' ? '#e09ab0' : '#7ab0e0', marginLeft: 4 }}>
+                  {hovered.sex === 'female' ? sexWords[1] : sexWords[0]}
+                </span>
+              )}
+              <span style={{ color: '#666' }}> · gen {hovered.generation} · {Math.floor(hovered.age / DAY_LENGTH)}d · {hovered.lineage_id.slice(0, 6)}</span>
+              {hovered.partner_id && <span style={{ color: '#c97' }}> ♥ bonded</span>}
+              {hovered.father_id && (() => {
+                const father = organisms.find(o => o.id === hovered.father_id)
+                const mother = organisms.find(o => o.id === hovered.parent_id)
+                const isCheating = mother && mother.partner_id !== hovered.father_id
+                return father ? (
+                  <span style={{ color: isCheating ? '#e8b060' : '#7ab0e0' }}>
+                    {' · '}{isCheating ? '⚡' : ''}father: {father.name}
+                  </span>
+                ) : null
+              })()}
+              {hovered.children_count != null && hovered.children_count > 0 && (
+                <span style={{ color: '#888' }}> · {hovered.children_count} children</span>
+              )}
               {hovered.discoveries?.includes('fire')    && <span> 🔥</span>}
               {hovered.discoveries?.includes('shelter') && <span> 🏠</span>}
               <span className="tree-tooltip-thought"> "{hovered.thought}"</span>
             </>
           ) : (
-            <span style={{ color: '#333' }}>scroll to zoom · drag to pan · hover a node for info</span>
+            <span style={{ color: '#333' }}>scroll to zoom · drag to pan · hover a node for info · <span style={{ color: '#c97' }}>─ ─</span> bonded pair</span>
           )}
         </div>
 
@@ -323,8 +500,16 @@ export function FamilyTreeModal({ organisms: livOrgs, onClose }: Props) {
         <div className="tree-legend">
           <button className="tree-zoom-btn" onClick={() => setTf(t => ({ ...t, scale: Math.min(4, t.scale * 1.25) }))}>＋</button>
           <button className="tree-zoom-btn" onClick={fitAll}>fit</button>
-          <button className="tree-zoom-btn" onClick={() => setTf(t => ({ ...t, scale: Math.max(0.1, t.scale * 0.8) }))}>－</button>
-          <span style={{ color: '#444', marginLeft: 8 }}>🔥 fire · 🏠 shelter · † deceased</span>
+          <button className="tree-zoom-btn" onClick={() => setTf(t => ({ ...t, scale: Math.max(0.08, t.scale * 0.8) }))}>－</button>
+          <span style={{ color: '#444', marginLeft: 8 }}>
+            🔥 fire · 🏠 shelter · † deceased · <span style={{ color: '#c97' }}>♥</span> bonded
+            · <span style={{ color: '#888' }}>— mother</span>
+            · <span style={{ color: '#888', borderBottom: '1px dashed #888' }}>- - father</span>
+            · <span style={{ color: '#e8b060' }}>- - infidelity</span>
+            {sexWords && (
+              <> · <span style={{ color: '#7ab0e0' }}>▪ {sexWords[0]}</span> · <span style={{ color: '#e09ab0' }}>● {sexWords[1]}</span></>
+            )}
+          </span>
           <span style={{ color: '#333', marginLeft: 'auto' }}>{Math.round(tf.scale * 100)}%</span>
         </div>
       </div>

@@ -9,6 +9,7 @@ const CONCEPTS = [
 
 interface Props {
   organisms: OrganismState[]
+  sexWords?: [string, string]   // [0]=male word, [1]=female word
   onClose: () => void
 }
 
@@ -44,7 +45,7 @@ function buildLineageVocabs(organisms: OrganismState[]): LineageVocab[] {
     })
 }
 
-export function LanguageModal({ organisms, onClose }: Props) {
+export function LanguageModal({ organisms, sexWords, onClose }: Props) {
   const lineages = buildLineageVocabs(organisms)
 
   return (
@@ -58,6 +59,16 @@ export function LanguageModal({ organisms, onClose }: Props) {
           <p className="lang-modal-sub">
             Each lineage develops its own words. Words mutate across generations and spread through contact.
           </p>
+
+          {sexWords && (
+            <div className="lang-sex-words">
+              <span className="lang-sex-label">their words for the two kinds:</span>
+              <span className="lang-sex-word lang-sex-word-0">{sexWords[0]}</span>
+              <span className="lang-sex-divider">·</span>
+              <span className="lang-sex-word lang-sex-word-1">{sexWords[1]}</span>
+              <span className="lang-sex-note">(coined by the founding generation)</span>
+            </div>
+          )}
 
           <div className="lang-table-wrap">
             <div

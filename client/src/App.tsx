@@ -321,7 +321,7 @@ function App() {
                   org={org}
                   sexWords={world?.sex_words}
                   onTrack={() => handleFollow(org.id)}
-                  onConvos={org.conversations?.length ? () => setConvoOrgId(org.id) : undefined}
+                  onConvos={org.conversation_count ? () => setConvoOrgId(org.id) : undefined}
                 />
               ))}
 
@@ -335,7 +335,7 @@ function App() {
                         <span className="org-meta">g{org.generation} · {org.age}</span>
                       </div>
                       <div className="org-thought">
-                        {org.thought_history[org.thought_history.length - 1]?.text ?? '—'}
+                        {org.thought ?? '—'}
                       </div>
                     </div>
                   ))}

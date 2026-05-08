@@ -7,10 +7,12 @@ use std::sync::Arc;
 use tokio::sync::{broadcast, Mutex, mpsc};
 use axum::{
     Router,
-    extract::{State, WebSocketUpgrade},
+    extract::{State, WebSocketUpgrade, Path},
     extract::ws::{Message, WebSocket},
     response::IntoResponse,
     routing::get,
+    Json,
+    http::StatusCode,
 };
 use serde::{Serialize, Deserialize};
 use tower_http::cors::{CorsLayer, Any};
@@ -365,6 +367,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/ws", get(ws_handler))
+        .route("/org/:id", get(org_detail_handler))
         .layer(cors)
         .with_state(state);
 
@@ -1057,6 +1060,20 @@ async fn ws_handler(
     let rx  = s.tx.subscribe();
     let sim = s.sim.clone();
     ws.on_upgrade(move |socket| handle_socket(socket, rx, sim))
+}
+
+/// GET /org/:id — returns full organism detail including conversations,
+/// vocabulary, thought_history, life_log.  Only called when a panel is open.
+async fn org_detail_handler(
+    Path(id): Path<String>,
+    State(s): State<AppState>,
+) -> Result<impl IntoResponse, StatusCode> {
+    use crate::organism::organism::OrgDetailJson;
+    let sim = s.sim.lock().await;
+    let org = sim.organisms.iter().find(|o| o.id == id)
+        .ok_or(StatusCode::NOT_FOUND)?;
+    let detail: OrgDetailJson = org.to_detail_json();
+    Ok(Json(detail))
 }
 
 async fn handle_socket(

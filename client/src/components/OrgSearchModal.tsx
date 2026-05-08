@@ -7,13 +7,14 @@ const DAY_LENGTH = 600
 
 interface Props {
   organisms: OrganismState[]
+  onTrack?:  (id: string) => void
   onClose: () => void
 }
 
 type StatusFilter    = 'all' | 'alive' | 'dead'
 type DiscoveryFilter = 'all' | 'fire' | 'shelter'
 
-export function OrgSearchModal({ organisms, onClose }: Props) {
+export function OrgSearchModal({ organisms, onTrack, onClose }: Props) {
   const [query,    setQuery]    = useState('')
   const [status,   setStatus]   = useState<StatusFilter>('all')
   const [lineageF, setLineageF] = useState('all')
@@ -112,7 +113,6 @@ export function OrgSearchModal({ organisms, onClose }: Props) {
               const color = lineageColor(org.lineage_id)
               const isSelected = org.id === selectedId
               const discs = org.discoveries ?? []
-              const lifeLog = org.life_log ?? []
               return (
                 <div
                   key={org.id}
@@ -134,6 +134,16 @@ export function OrgSearchModal({ organisms, onClose }: Props) {
                     <span className="org-search-meta" style={{ color: org.alive ? '#666' : '#444' }}>
                       g{org.generation} · {Math.floor(org.age / DAY_LENGTH)}d
                     </span>
+                    {org.alive && onTrack && (
+                      <button
+                        className="org-action-btn org-track-btn"
+                        title="track in world"
+                        onClick={e => { e.stopPropagation(); onTrack(org.id) }}
+                        style={{ marginLeft: 4 }}
+                      >
+                        ⊕
+                      </button>
+                    )}
                   </div>
 
                   {org.alive ? (
@@ -147,16 +157,6 @@ export function OrgSearchModal({ organisms, onClose }: Props) {
                     </>
                   ) : (
                     <div className="org-search-memorial">
-                      {org.daily_story && (
-                        <div className="org-memorial-story">"{org.daily_story}"</div>
-                      )}
-                      {lifeLog.length > 0 && (
-                        <div className="org-memorial-log">
-                          {lifeLog.slice(-3).map((e, i) => (
-                            <span key={i} className="org-memorial-entry">{e}</span>
-                          ))}
-                        </div>
-                      )}
                       {discs.length > 0 && (
                         <div className="org-memorial-discs">
                           {discs.filter(d => !d.startsWith('pact:')).map(d => (

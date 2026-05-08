@@ -1,5 +1,6 @@
 import type { OrganismState, ConversationEntry } from '../types'
 import { lineageColor } from '../constants'
+import { useOrgDetail } from '../useOrgDetail'
 
 const DAY_LENGTH = 600
 
@@ -72,7 +73,8 @@ function ConvoBlock({ entry, selfOrg, allOrgs }: {
 }
 
 export function ConversationsModal({ org, allOrgs, sexWords, onClose }: Props) {
-  const convos    = org.conversations ?? []
+  const detail    = useOrgDetail(org.id)
+  const convos    = detail?.conversations ?? []
   const partnerOrg = org.partner_id ? allOrgs.find(o => o.id === org.partner_id) : null
   const sexLabel   = sexWords
     ? (org.sex === 'female' ? sexWords[1] : sexWords[0])
