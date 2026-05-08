@@ -1169,12 +1169,8 @@ impl Organism {
 
     // ── Serialization ─────────────────────────────────────────────────────────
 
+    /// Lean per-tick snapshot — heavy fields omitted, see to_detail_json().
     pub fn to_json(&self) -> OrgJson {
-        let thought_history: Vec<ThoughtJson> = self.thought_history
-            .iter().rev().take(10).rev()
-            .map(|e| ThoughtJson { tick: e.tick, text: e.text.clone() })
-            .collect();
-
         let attitudes: HashMap<String, f32> = self.lineage_attitudes.iter()
             .filter(|(_, &v)| v.abs() > 0.1)
             .map(|(k, &v)| (k[..k.len().min(6)].to_string(), (v * 100.0).round() / 100.0))
@@ -1196,7 +1192,6 @@ impl Organism {
             age:      self.age,
             alive:    self.alive,
             thought:  self.thought.clone(),
-            thought_history,
             generation: self.generation,
             parent_id:  self.parent_id.clone(),
             father_id:  self.father_id.clone(),
@@ -1220,12 +1215,9 @@ impl Organism {
             infection:     (self.infection * 1000.0).round() / 1000.0,
             carrying:      self.carrying,
             carrying_type: self.carrying_type,
-            vocabulary:    self.vocabulary.words.clone(),
-            daily_story: self.daily_story.clone(),
             home_x:      (self.home_x * 10.0).round() / 10.0,
             home_y:      (self.home_y * 10.0).round() / 10.0,
             discoveries:         self.discoveries.clone(),
-            life_log:            self.life_log.iter().rev().take(8).rev().cloned().collect(),
             is_elder:            self.is_elder,
             has_reflected:       self.has_reflected,
             last_invention_tick: self.last_invention_tick,
@@ -1240,7 +1232,25 @@ impl Organism {
             sex:            self.sex.as_str().to_string(),
             pregnant:       self.pregnant,
             attracted_to:   self.attracted_to.clone(),
-            conversations:  self.conversations.iter().rev().take(15).rev().cloned().collect(),
+            vocabulary:      self.vocabulary.words.clone(),
+            conversation_count: self.conversations.len(),
+        }
+    }
+
+    /// Full detail snapshot for the GET /org/:id endpoint.
+    /// Includes everything in to_json() plus the heavy on-demand fields.
+    pub fn to_detail_json(&self) -> OrgDetailJson {
+        let thought_history: Vec<ThoughtJson> = self.thought_history
+            .iter().rev().take(20).rev()
+            .map(|e| ThoughtJson { tick: e.tick, text: e.text.clone() })
+            .collect();
+        OrgDetailJson {
+            base:            self.to_json(),
+            thought_history,
+            vocabulary:      self.vocabulary.words.clone(),
+            daily_story:     self.daily_story.clone(),
+            life_log:        self.life_log.iter().rev().take(12).rev().cloned().collect(),
+            conversations:   self.conversations.iter().rev().take(25).rev().cloned().collect(),
         }
     }
 }
@@ -1252,13 +1262,17 @@ impl Organism {
     pub memory_strength: f32, pub social_tendency: f32, pub resilience: f32,
 }
 #[derive(Serialize)]
+/// Lean per-tick snapshot — sent for every organism every 300 ms.
+/// Heavy on-demand fields (conversations, thought_history, life_log)
+/// are stripped here and served via GET /org/:id instead.
+/// Vocabulary is included here (small, ~14 short words) so LanguageModal
+/// can aggregate tribe-level word frequencies without extra requests.
 pub struct OrgJson {
     pub id: String, pub name: String,
     pub x: f32, pub y: f32,
     pub energy: f32, pub hydration: f32, pub health: f32,
     pub age: u32, pub alive: bool,
     pub thought: String,
-    pub thought_history: Vec<ThoughtJson>,
     pub generation: u32, pub parent_id: String, pub father_id: Option<String>, pub lineage_id: String, pub max_age: u32,
     pub memory_count: MemoryCount,
     pub attitudes:   HashMap<String, f32>,
@@ -1267,12 +1281,9 @@ pub struct OrgJson {
     pub infection:     f32,
     pub carrying:      u32,
     pub carrying_type: u8,
-    pub vocabulary:    HashMap<String, String>,
-    pub daily_story: String,
     pub home_x:      f32,
     pub home_y:      f32,
     pub discoveries:         Vec<String>,
-    pub life_log:            Vec<String>,
     pub is_elder:            bool,
     pub has_reflected:       bool,
     pub last_invention_tick: u64,
@@ -1288,5 +1299,21 @@ pub struct OrgJson {
     pub sex:            String,
     pub pregnant:       bool,
     pub attracted_to:   Option<String>,
-    pub conversations:  Vec<ConversationEntry>,
+    // Vocabulary — small map of concept→word, included for LanguageModal aggregation
+    pub vocabulary:      HashMap<String, String>,
+    // Conversation count only — full data served by GET /org/:id
+    pub conversation_count: usize,
+}
+
+/// Full detail snapshot — served on demand via GET /org/:id.
+/// Extends OrgJson with heavy fields that shouldn't be broadcast every tick.
+#[derive(Serialize)]
+pub struct OrgDetailJson {
+    #[serde(flatten)]
+    pub base:          OrgJson,
+    pub thought_history: Vec<ThoughtJson>,
+    pub vocabulary:      HashMap<String, String>,
+    pub daily_story:     String,
+    pub life_log:        Vec<String>,
+    pub conversations:   Vec<ConversationEntry>,
 }

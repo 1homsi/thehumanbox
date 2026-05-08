@@ -21,6 +21,7 @@ export interface Traits {
   resilience: number
 }
 
+/** Lean per-tick snapshot — heavy fields omitted, use OrgDetail for those */
 export interface OrganismState {
   id: string
   name: string
@@ -32,7 +33,6 @@ export interface OrganismState {
   age: number
   alive: boolean
   thought: string
-  thought_history: ThoughtEntry[]
   generation: number
   parent_id: string
   lineage_id: string
@@ -44,12 +44,9 @@ export interface OrganismState {
   infection:     number
   carrying:      number
   carrying_type: number   // 0=none, 1=wood, 2=stone
-  vocabulary:    Record<string, string>
-  daily_story: string
   home_x:      number
   home_y:      number
   discoveries: string[]
-  life_log:    string[]
   is_elder:    boolean
   // Emotional state
   loneliness?:  number
@@ -59,12 +56,22 @@ export interface OrganismState {
   grief_ticks?: number
   sleep_debt?:  number
   partner_id?:     string | null
-  father_id?:      string | null   // biological father (may differ from mother's partner)
+  father_id?:      string | null
   children_count?: number
   sex?:            'male' | 'female'
   pregnant?:       boolean
   attracted_to?:   string | null
-  conversations?:  ConversationEntry[]
+  vocabulary?:         Record<string, string>   // small map — included in tick data for LanguageModal
+  conversation_count?: number   // count only — full data in OrgDetail
+}
+
+/** Full detail — fetched on demand from GET /org/:id */
+export interface OrgDetail extends OrganismState {
+  thought_history: ThoughtEntry[]
+  vocabulary:    Record<string, string>
+  daily_story:   string
+  life_log:      string[]
+  conversations: ConversationEntry[]
 }
 
 export interface AnimalState {

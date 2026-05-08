@@ -1,5 +1,5 @@
 use rand::Rng;
-use crate::world::{grid::WorldGrid, tiles::Tile};
+use crate::world::{grid::{WorldGrid, WIDTH, HEIGHT}, tiles::{Tile, Biome}};
 use crate::organism::organism::Organism;
 use super::config::{DROUGHT_DURATION, DROUGHT_BASE_PROB, OUTBREAK_BASE_PROB};
 
@@ -292,8 +292,6 @@ pub fn tick_world_evolution(
     events: &mut Vec<super::simulation::Event>,
     rng: &mut impl Rng,
 ) {
-    use crate::world::{grid::{WIDTH, HEIGHT}, tiles::Biome};
-
     // ── a) Forest spread — skip during scarcity ───────────────────────────────
     if season != "scarcity" {
         let mut food_tiles: Vec<(i32, i32)> = Vec::new();
@@ -311,6 +309,12 @@ pub fn tick_world_evolution(
                 let (dx, dy) = dirs[rng.gen_range(0..4)];
                 let (nx, ny) = (fx + dx, fy + dy);
                 if WorldGrid::in_bounds(nx, ny) && grid.get(nx, ny) == Tile::Grass {
+                    // Strongly reduce food spread into water-adjacent tiles
+                    // so food concentrations naturally push inland, distributing resources.
+                    let near_water = [(-1i32,0i32),(1,0),(0,-1),(0,1)].iter()
+                        .any(|&(ox,oy)| WorldGrid::in_bounds(nx+ox, ny+oy)
+                            && grid.get(nx+ox, ny+oy) == Tile::Water);
+                    if near_water && rng.gen::<f32>() < 0.75 { continue; }
                     grid.set(nx, ny, Tile::Food);
                 }
             }
@@ -417,26 +421,94 @@ pub fn tick_world_evolution(
         }
     }
 
-    // ── g) Biome drift — overuse drives desertification; abandonment restores land ──
-    for _ in 0..8 {
+    // ── g) Biome drift — full ecological chain ───────────────────────────────
+    for _ in 0..20 {
         let x = rng.gen_range(0..WIDTH as i32);
         let y = rng.gen_range(0..HEIGHT as i32);
-        let i = crate::world::grid::WorldGrid::idx(x, y);
-        let biome = grid.biome_at(x, y);
-        let fert  = grid.fertility[i];
-        // Exhausted grassland slowly becomes desert
+        let i = WorldGrid::idx(x, y);
+        let biome    = grid.biome_at(x, y);
+        let fert     = grid.fertility[i];
+        let pressure = grid.pressure[i];
+        let hazard   = grid.hazard[i];
+
+        // ── Degradation chain (overuse collapses ecosystems) ─────────────────
+        // Forest → Grassland: heavy use + depleted soil
+        if biome == Biome::Forest && fert < 0.25 && pressure > 2.0 && rng.gen::<f32>() < 0.003 {
+            grid.biome[i] = Biome::Grassland as u8;
+        }
+        // Wetland → Grassland: prolonged drought drains wetlands
+        if biome == Biome::Wetland && drought_active && fert < 0.35 && rng.gen::<f32>() < 0.002 {
+            grid.biome[i] = Biome::Grassland as u8;
+        }
+        // Grassland → Desert: exhausted, dry land
         if biome == Biome::Grassland && fert < 0.07 && rng.gen::<f32>() < 0.004 {
             grid.biome[i] = Biome::Desert as u8;
         }
-        // Recovered desert can revert to grassland during abundance/recovery seasons
-        if biome == Biome::Desert && fert > 0.55 && (season == "recovery" || season == "abundance")
-            && rng.gen::<f32>() < 0.001
+
+        // ── Recovery chain (abandonment allows ecosystem recovery) ──────────
+        // Desert → Grassland: fertility recovered, wet season
+        if biome == Biome::Desert && fert > 0.55 && pressure < 0.5
+            && (season == "recovery" || season == "abundance") && rng.gen::<f32>() < 0.001
         {
             grid.biome[i] = Biome::Grassland as u8;
         }
-        // Fire-scorched volcanic zones build up hazard naturally
+        // Grassland → Forest: high fertility, near water, low pressure, wet season
+        if biome == Biome::Grassland && fert > 0.80 && pressure < 0.3
+            && (season == "abundance" || weather.kind >= 1)
+        {
+            let near_water = (-6i32..=6).any(|dx| (-6i32..=6).any(|dy| {
+                WorldGrid::in_bounds(x+dx, y+dy) && grid.get(x+dx, y+dy) == Tile::Water
+            }));
+            if near_water && rng.gen::<f32>() < 0.0008 {
+                grid.biome[i] = Biome::Forest as u8;
+                // Boost tile to Food to signal regrowth
+                if grid.get(x, y) == Tile::Grass { grid.set(x, y, Tile::Food); }
+            }
+        }
+        // Grassland near water → Wetland: persistently flooded areas become wetland
+        if biome == Biome::Grassland && fert > 0.70 {
+            let flood_adj = (-2i32..=2).any(|dx| (-2i32..=2).any(|dy| {
+                WorldGrid::in_bounds(x+dx, y+dy) && matches!(grid.get(x+dx, y+dy), Tile::Water | Tile::Flooded)
+            }));
+            if flood_adj && rng.gen::<f32>() < 0.0003 {
+                grid.biome[i] = Biome::Wetland as u8;
+            }
+        }
+
+        // ── Post-volcanic fertility surge ────────────────────────────────────
+        // Volcanic ash → super-fertile soil after recovery (real-world: volcanic soil)
+        if biome == Biome::Volcanic && grid.get(x, y) == Tile::Grass && fert < 0.50 && rng.gen::<f32>() < 0.008 {
+            grid.fertility[i] = (grid.fertility[i] + 0.18).min(0.95);
+        }
+        // Fire in volcanic biome builds hazard naturally
         if biome == Biome::Volcanic && grid.get(x, y) == Tile::Fire {
             grid.add_hazard(x, y, 0.001);
+        }
+
+        // ── Hazard-locked scars (high-hazard Ash → Scorched) ─────────────────
+        // Areas with many deaths resist ecological recovery
+        if grid.get(x, y) == Tile::Ash && hazard > 0.45 && rng.gen::<f32>() < 0.02 {
+            grid.set(x, y, Tile::Scorched);
+        }
+    }
+
+    // ── h_extra) Water-adjacency fertility pulse ──────────────────────────────
+    // Rivers and lakes continuously enrich adjacent land — the origin of river valley civilizations.
+    // Called occasionally to avoid performance cost; uses random sampling.
+    if tick % 600 == 0 {
+        for _ in 0..120 {
+            let x = rng.gen_range(1..WIDTH as i32 - 1);
+            let y = rng.gen_range(1..HEIGHT as i32 - 1);
+            if grid.get(x, y) != Tile::Water { continue; }
+            for (nx, ny) in WorldGrid::neighbors(x, y) {
+                let tile = grid.get(nx, ny);
+                if matches!(tile, Tile::Grass | Tile::Food | Tile::Sand | Tile::Snow | Tile::Ash) {
+                    let i = WorldGrid::idx(nx, ny);
+                    let biome_cap = Biome::from_u8(grid.biome[i]).base_fertility();
+                    // Water enrichment can push beyond normal biome cap (river valleys)
+                    grid.fertility[i] = (grid.fertility[i] + 0.003).min(biome_cap.max(0.80));
+                }
+            }
         }
     }
 

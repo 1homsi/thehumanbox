@@ -53,4 +53,17 @@ impl Traits {
             resilience:      clamp_trait(self.resilience      + gauss(rng, std)),
         }
     }
+
+    /// Mendelian-style trait mixing: each trait is inherited from either parent at random.
+    pub fn mix(&self, other: &Traits, rng: &mut impl Rng) -> Self {
+        macro_rules! pick { ($a:expr, $b:expr) => { if rng.gen::<bool>() { $a } else { $b } }; }
+        Traits {
+            curiosity:       pick!(self.curiosity,       other.curiosity),
+            aggression:      pick!(self.aggression,      other.aggression),
+            fear:            pick!(self.fear,            other.fear),
+            memory_strength: pick!(self.memory_strength, other.memory_strength),
+            social_tendency: pick!(self.social_tendency, other.social_tendency),
+            resilience:      pick!(self.resilience,      other.resilience),
+        }
+    }
 }

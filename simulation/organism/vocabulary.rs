@@ -23,6 +23,12 @@ fn gen_word(rng: &mut impl Rng) -> String {
     (0..syllables).map(|_| gen_syllable(rng)).collect()
 }
 
+/// Public: generate a short phonetic word from the organism phoneme pool.
+/// Used for world-level cultural words (e.g. the names organisms give to the two sexes).
+pub fn gen_phoneme_word(rng: &mut impl Rng) -> String {
+    gen_word(rng)
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Vocabulary {
     pub words: HashMap<String, String>,
