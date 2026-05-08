@@ -1,7 +1,39 @@
 import { useEffect, useRef, useState } from 'react'
-import type { WorldState } from './types'
+import type { WorldState, GridState, GridWire } from './types'
 
 const WS_URL = 'ws://localhost:8000/ws'
+
+/** Rebuild dense fire_intensity and structure 2D arrays from sparse wire format. */
+function applyGridWire(wire: GridWire, cache: GridState | null): GridState {
+  const w = wire.width
+  const h = wire.height
+
+  // Dense fire — zero out, then apply sparse entries
+  const fire: number[][] = Array.from({ length: h }, () => new Array(w).fill(0))
+  for (const [row, col, v] of wire.fire) {
+    if (row < h && col < w) fire[row][col] = v / 1000
+  }
+
+  // Dense structure — zero out, then apply sparse entries
+  const structure: number[][] = Array.from({ length: h }, () => new Array(w).fill(0))
+  for (const [row, col, v] of wire.structure) {
+    if (row < h && col < w) structure[row][col] = v / 100
+  }
+
+  return {
+    width:    wire.width,
+    height:   wire.height,
+    origin_x: wire.origin_x,
+    origin_y: wire.origin_y,
+    // Static maps: use incoming when present, fall back to cache
+    tiles:     wire.tiles     ?? cache?.tiles     ?? [],
+    biomes:    wire.biomes    ?? cache?.biomes,
+    depth_map: wire.depth_map ?? cache?.depth_map,
+    // Dynamic: always rebuilt from wire
+    fire_intensity: fire,
+    structure,
+  }
+}
 
 export function useSimulation() {
   const [world, setWorld]     = useState<WorldState | null>(null)
@@ -11,12 +43,20 @@ export function useSimulation() {
   // animation frame regardless of how fast the server sends.
   const latestMsg  = useRef<string | null>(null)
   const rafPending = useRef<number | null>(null)
+  // Grid cache — holds the last fully-populated grid state so we can fill in
+  // the static maps that aren't sent every tick.
+  const gridCache  = useRef<GridState | null>(null)
 
   useEffect(() => {
     function flushUpdate() {
       rafPending.current = null
       if (latestMsg.current) {
-        try { setWorld(JSON.parse(latestMsg.current)) } catch (_) {}
+        try {
+          const parsed = JSON.parse(latestMsg.current) as Omit<WorldState, 'grid'> & { grid: GridWire }
+          const grid   = applyGridWire(parsed.grid, gridCache.current)
+          gridCache.current = grid
+          setWorld({ ...parsed, grid })
+        } catch (_) {}
         latestMsg.current = null
       }
     }

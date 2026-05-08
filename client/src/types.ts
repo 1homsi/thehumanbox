@@ -118,22 +118,35 @@ export interface StoryEntry {
   story: string
 }
 
+/** Merged grid state held in the client cache — all dense, always fully populated. */
+export interface GridState {
+  width: number
+  height: number
+  origin_x: number
+  origin_y: number
+  tiles: number[][]               // dense — updated every 5 ticks
+  fire_intensity: number[][]      // dense (rebuilt from sparse fire each tick)
+  structure: number[][]           // dense (rebuilt from sparse structure each tick)
+  biomes?: number[][]             // dense — updated every 30 ticks
+  depth_map?: number[][]          // dense — updated every 30 ticks
+}
+
+/** Raw incoming WS grid payload — sparse fire/structure, optional static maps. */
+export interface GridWire {
+  width: number
+  height: number
+  origin_x: number
+  origin_y: number
+  tiles?: number[][]
+  fire: [number, number, number][]       // sparse: [row, col, v×1000]
+  structure: [number, number, number][]  // sparse: [row, col, v×100]
+  biomes?: number[][]
+  depth_map?: number[][]
+}
+
 export interface WorldState {
   tick: number
-  grid: {
-    width: number
-    height: number
-    origin_x: number
-    origin_y: number
-    tiles: number[][]
-    fire_intensity: number[][]
-    biomes?: number[][]
-    structure?: number[][]
-    fertility_map?: number[][]
-    hazard_map?: number[][]
-    pressure_map?: number[][]
-    depth_map?: number[][]
-  }
+  grid: GridState
   organisms: OrganismState[]
   animals: AnimalState[]
   events: SimEvent[]

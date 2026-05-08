@@ -2174,8 +2174,15 @@ impl Simulation {
         let lineage_sizes_json: Vec<serde_json::Value> = lineage_sizes.into_iter()
             .map(|(id, count)| json!({"id": id, "count": count})).collect();
 
+        // Stagger expensive static grid layers to cap per-tick payload size:
+        //   tiles (dense ~360 KB) — every 5 ticks  (≈ 1.5 s)
+        //   biomes + depth (~720 KB) — every 30 ticks (≈ 9 s)
+        // fire/structure are always sparse (0 bytes when no activity).
+        let include_tiles  = self.tick_count % 5  == 0 || self.tick_count <= 1;
+        let include_static = self.tick_count % 30 == 0 || self.tick_count <= 1;
         let grid_json = self.grid.to_json_viewport(vp_cx, vp_cy,
-            crate::world::grid::VP_W, crate::world::grid::VP_H);
+            crate::world::grid::VP_W, crate::world::grid::VP_H,
+            include_tiles, include_static);
 
         json!({
             "tick":            self.tick_count,

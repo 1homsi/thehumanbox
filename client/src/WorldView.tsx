@@ -157,23 +157,6 @@ function drawClouds(
   ctx.restore()
 }
 
-function drawOverlay(
-  ctx: CanvasRenderingContext2D,
-  map: number[][] | undefined,
-  width: number, height: number,
-  colorFn: (v: number) => string,
-) {
-  if (!map) return
-  for (let row = 0; row < height; row++) {
-    for (let col = 0; col < width; col++) {
-      const v = map[row]?.[col] ?? 0
-      if (v < 4) continue
-      ctx.fillStyle = colorFn(v)
-      ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
-    }
-  }
-}
-
 type ViewFlags = { territory: boolean; names: boolean; thoughts: boolean; animals: boolean; grid: boolean }
 
 function drawWorldOnCanvas(
@@ -185,7 +168,7 @@ function drawWorldOnCanvas(
   viewFlags: ViewFlags,
 ) {
   const { width, height, tiles, fire_intensity, biomes, structure } = world.grid
-  const depthGrid = world.grid.depth_map
+  const depthGrid = world.grid.depth_map as number[][] | undefined
   const ox = world.grid.origin_x ?? 0
   const oy = world.grid.origin_y ?? 0
   const animals = world.animals ?? []
@@ -355,24 +338,8 @@ function drawWorldOnCanvas(
     }
   }
 
-  // World memory overlays (fertility / hazard / pressure)
-  if (overlay === 'fertility') {
-    drawOverlay(ctx, world.grid.fertility_map, width, height, v => {
-      // Low fertility (0) = burnt orange warning; high (255) = transparent
-      const t = v / 255
-      return `rgba(${Math.round(220 - t * 200)},${Math.round(60 + t * 140)},${Math.round(20)},${0.55 - t * 0.50})`
-    })
-  } else if (overlay === 'hazard') {
-    drawOverlay(ctx, world.grid.hazard_map, width, height, v => {
-      const t = v / 255
-      return `rgba(255,${Math.round(20 + t * 30)},0,${t * 0.60})`
-    })
-  } else if (overlay === 'pressure') {
-    drawOverlay(ctx, world.grid.pressure_map, width, height, v => {
-      const t = v / 255
-      return `rgba(60,${Math.round(100 + t * 120)},255,${t * 0.55})`
-    })
-  } else if (overlay === 'density') {
+  // World memory overlays
+  if (overlay === 'density') {
     // Population density — compute from organism positions (offset to viewport coords)
     const grid2d: number[][] = Array.from({ length: height }, () => new Array(width).fill(0))
     for (const org of world.organisms) {
