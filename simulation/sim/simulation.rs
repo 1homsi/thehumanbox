@@ -159,6 +159,10 @@ fn invention_candidates(discoveries: &HashSet<String>) -> Vec<&'static str> {
     v
 }
 
+fn scarcity_driven_migration_season(season: &str) -> bool {
+    matches!(season, "scarcity" | "decline")
+}
+
 impl Simulation {
     pub fn new(seed: u64) -> Self {
         use rand::SeedableRng;
@@ -1411,7 +1415,7 @@ impl Simulation {
 
             // ── Migration pressure — seasonal food scarcity triggers relocation debate ─────
             let season_now = self.season();
-            if matches!(season_now, "winter" | "dry") {
+            if scarcity_driven_migration_season(season_now) {
                 let (ox2, oy2) = (self.organisms[idx].x, self.organisms[idx].y);
                 let last_think_m = self.organisms[idx].last_think_tick;
                 let food_nearby = (-6i32..=6).any(|ddx| (-6i32..=6).any(|ddy|
@@ -1526,7 +1530,7 @@ impl Simulation {
 
         // Seasonal migration pressure: in scarcity seasons, push toward known food sources farther out
         let season = self.season();
-        if matches!(season, "winter" | "dry") {
+        if scarcity_driven_migration_season(season) {
             let (ox2, oy2) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
             let food_near = (-8i32..=8).any(|ddx| (-8i32..=8).any(|ddy|
                 self.grid.get(ox2 + ddx, oy2 + ddy) == Tile::Food));
@@ -1536,8 +1540,8 @@ impl Simulation {
                 // Set a distant food-memory target or a random distant wander
                 if self.organisms[idx].wander_target.is_none() && self.organisms[idx].energy > 0.4 {
                     let hash = self.tick_count ^ idx as u64;
-                    let tx = (ox2 + ((hash % 40) as i32 - 20)).max(5).min(195);
-                    let ty = (oy2 + ((hash / 40 % 30) as i32 - 15)).max(5).min(95);
+                    let tx = (ox2 + ((hash % 40) as i32 - 20)).clamp(5, WIDTH as i32 - 5);
+                    let ty = (oy2 + ((hash / 40 % 30) as i32 - 15)).clamp(5, HEIGHT as i32 - 5);
                     self.organisms[idx].wander_target = Some((tx, ty));
                     self.organisms[idx].think("migrating for food", self.tick_count);
                 }
@@ -2540,4 +2544,17 @@ fn animal_from_save(s: AnimalSave) -> Animal {
     a.energy          = s.energy;
     a.last_reproduced = s.last_reproduced;
     a
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn scarcity_migration_uses_configured_season_names() {
+        assert!(scarcity_driven_migration_season("scarcity"));
+        assert!(scarcity_driven_migration_season("decline"));
+        assert!(!scarcity_driven_migration_season("winter"));
+        assert!(!scarcity_driven_migration_season("dry"));
+    }
 }
