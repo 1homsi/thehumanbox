@@ -16,6 +16,7 @@ use serde::{Serialize, Deserialize};
 use tower_http::cors::{CorsLayer, Any};
 
 use sim::simulation::{Simulation, StoryEntry, ThinkTrigger};
+use sim::local_think;
 
 type SharedSim = Arc<Mutex<Simulation>>;
 type Tx = broadcast::Sender<String>;
@@ -494,6 +495,111 @@ async fn narration_worker(
     }
 }
 
+// ── Local think result builder ────────────────────────────────────────────────
+
+fn build_result_from_local(trigger: &ThinkTrigger, local: local_think::LocalResult) -> Option<ThinkResult> {
+    let result = match trigger.scenario.as_str() {
+        "first_contact" => ThinkResult {
+            org_id:         trigger.org_id.clone(),
+            target_lineage: trigger.target_lineage.clone(),
+            attitude_delta: local.attitude_delta,
+            thought:        Some(local.thought.to_string()),
+            ..Default::default()
+        },
+        "council" => ThinkResult {
+            org_id:           trigger.org_id.clone(),
+            thought:          Some(format!("the tribe should {}", local.strategy.unwrap_or(local.word))),
+            strategy_lineage: Some(trigger.lineage_id.clone()),
+            strategy:         local.strategy.map(|s| s.to_string()),
+            ..Default::default()
+        },
+        "survival_crisis" => ThinkResult {
+            org_id:          trigger.org_id.clone(),
+            thought:         Some(local.thought.to_string()),
+            directive:       local.directive.map(|s| s.to_string()),
+            directive_ticks: local.directive_ticks,
+            ..Default::default()
+        },
+        "abundance" => ThinkResult {
+            org_id:          trigger.org_id.clone(),
+            thought:         Some(local.thought.to_string()),
+            directive:       local.directive.map(|s| s.to_string()),
+            directive_ticks: local.directive_ticks,
+            ..Default::default()
+        },
+        "threat" => ThinkResult {
+            org_id:          trigger.org_id.clone(),
+            thought:         Some(local.thought.to_string()),
+            directive:       local.directive.map(|s| s.to_string()),
+            directive_ticks: local.directive_ticks,
+            ..Default::default()
+        },
+        "lonely" => ThinkResult {
+            org_id:          trigger.org_id.clone(),
+            thought:         Some(local.thought.to_string()),
+            directive:       local.directive.map(|s| s.to_string()),
+            directive_ticks: local.directive_ticks,
+            ..Default::default()
+        },
+        "restless" => ThinkResult {
+            org_id:          trigger.org_id.clone(),
+            thought:         Some(local.thought.to_string()),
+            directive:       local.directive.map(|s| s.to_string()),
+            directive_ticks: local.directive_ticks,
+            ..Default::default()
+        },
+        "invention" => ThinkResult {
+            org_id:        trigger.org_id.clone(),
+            new_discovery: local.discovery,
+            thought:       Some(local.thought.to_string()),
+            ..Default::default()
+        },
+        "reflection" => ThinkResult {
+            org_id:      trigger.org_id.clone(),
+            thought:     Some(local.thought.to_string()),
+            trait_delta: local.trait_name.zip(local.trait_delta)
+                             .map(|(n, d)| (n.to_string(), d)),
+            ..Default::default()
+        },
+        "negotiation" => ThinkResult {
+            org_id:        trigger.org_id.clone(),
+            target_lineage: trigger.target_lineage.clone(),
+            target_org_id:  trigger.target_org_id.clone(),
+            alliance_type:  local.alliance.map(|s| s.to_string()),
+            thought:        Some(format!("{} with {}",
+                local.alliance.unwrap_or("deal").replace('_', " "),
+                trigger.other_name.as_deref().unwrap_or("them"))),
+            ..Default::default()
+        },
+        "grief" => ThinkResult {
+            org_id:  trigger.org_id.clone(),
+            thought: Some(local.thought.to_string()),
+            ..Default::default()
+        },
+        "illness" => ThinkResult {
+            org_id:          trigger.org_id.clone(),
+            directive:       local.directive.map(|s| s.to_string()),
+            directive_ticks: local.directive_ticks,
+            thought:         Some(local.thought.to_string()),
+            ..Default::default()
+        },
+        "migration" => ThinkResult {
+            org_id:          trigger.org_id.clone(),
+            thought:         Some(local.thought.to_string()),
+            directive:       local.directive.map(|s| s.to_string()),
+            directive_ticks: local.directive_ticks,
+            ..Default::default()
+        },
+        "discovery" => ThinkResult {
+            org_id:  trigger.org_id.clone(),
+            thought: Some(local.thought.to_string()),
+            ..Default::default()
+        },
+        _ => return None,
+    };
+    Some(result)
+}
+
 // ── Think worker ─────────────────────────────────────────────────────────────
 
 async fn think_worker(
@@ -523,9 +629,25 @@ async fn think_worker(
             }
         };
 
-        // Rate-limit: max ~24 req/min (Groq cap is 30 req/min; narration worker uses the rest)
+        // ── Local resolver: classification scenarios need no LLM ─────────────
+        // Only elder_teaching actually generates text — everything else is a
+        // weighted decision that we resolve instantly from organism traits.
+        if trigger.scenario != "elder_teaching" {
+            use rand::SeedableRng;
+            let mut rng = rand::rngs::SmallRng::from_entropy();
+            if let Some(local) = local_think::resolve(&trigger, &mut rng) {
+                println!("[think] {} {}→{} (local)", trigger.org_name, trigger.scenario, local.word);
+                let result = build_result_from_local(&trigger, local);
+                if let Some(r) = result {
+                    results.lock().await.push(r);
+                }
+            }
+            continue;
+        }
+
+        // Rate-limit: Groq cap ~30 req/min; narration uses some — throttle think worker.
         if attempt == 0 {
-            tokio::time::sleep(tokio::time::Duration::from_millis(2500)).await;
+            tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
         }
 
         println!("[think] {} scenario={}{}", trigger.org_name, trigger.scenario,
