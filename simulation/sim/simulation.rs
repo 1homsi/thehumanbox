@@ -133,6 +133,11 @@ pub struct Simulation {
     pub world_seed:            u64,          // seed used for this world's terrain — persisted so depth/elevation reload correctly
     next_animal_id:            usize,
     rng:                       rand::rngs::SmallRng,
+    // ── Throttled-computation cache ─────────────────────────────────────────
+    // These are derived from organism data; not saved, recomputed every N ticks.
+    cached_tribal_relations:   serde_json::Value,  // recomputed every 60 ticks
+    cached_lineage_sizes:      serde_json::Value,  // recomputed every 30 ticks
+    slow_compute_tick:         u64,
 }
 
 // Returns the possible inventions given current discoveries (prerequisites already met)
@@ -194,6 +199,9 @@ impl Simulation {
             world_seed: seed,
             next_animal_id: 0,
             rng,
+            cached_tribal_relations: serde_json::Value::Array(vec![]),
+            cached_lineage_sizes:    serde_json::Value::Array(vec![]),
+            slow_compute_tick:       0,
         };
         sim.spawn_founders();
         sim.spawn_animals(25);
@@ -2117,14 +2125,17 @@ impl Simulation {
             world_seed:             seed,  // already resolved to original seed in load_or_new
             next_animal_id:         state.next_animal_id,
             lineage_names:          state.lineage_names,
-            rng:                  rand::rngs::SmallRng::seed_from_u64(seed ^ state.tick_count),
+            rng:                    rand::rngs::SmallRng::seed_from_u64(seed ^ state.tick_count),
+            cached_tribal_relations: serde_json::Value::Array(vec![]),
+            cached_lineage_sizes:    serde_json::Value::Array(vec![]),
+            slow_compute_tick:       0,
         }
     }
 
     // ── Serialization ─────────────────────────────────────────────────────────
 
     // Centroid-following version (used for initial WS snapshot)
-    pub fn state_json(&self) -> serde_json::Value {
+    pub fn state_json(&mut self) -> serde_json::Value {
         let alive: Vec<_> = self.organisms.iter().filter(|o| o.alive).collect();
         let (cx, cy) = if alive.is_empty() {
             (crate::world::grid::WIDTH as i32 / 2, crate::world::grid::HEIGHT as i32 / 2)
@@ -2137,47 +2148,61 @@ impl Simulation {
     }
 
     // Explicit viewport center — called from main loop with client-supplied position
-    pub fn state_json_at(&self, vp_cx: i32, vp_cy: i32) -> serde_json::Value {
+    pub fn state_json_at(&mut self, vp_cx: i32, vp_cy: i32) -> serde_json::Value {
         use serde_json::json;
 
-        // Tribal relations: average attitude per alive-lineage pair
-        let alive_lineages: std::collections::HashSet<String> = self.organisms.iter()
-            .filter(|o| o.alive).map(|o| o.lineage_id.clone()).collect();
-        let mut att_totals: HashMap<(String, String), (f32, u32)> = HashMap::new();
-        for org in self.organisms.iter().filter(|o| o.alive) {
-            for (other_lid, &att) in &org.lineage_attitudes {
-                if alive_lineages.contains(other_lid) {
-                    let key = if org.lineage_id < *other_lid {
-                        (org.lineage_id.clone(), other_lid.clone())
-                    } else {
-                        (other_lid.clone(), org.lineage_id.clone())
-                    };
-                    let e = att_totals.entry(key).or_insert((0.0, 0));
-                    e.0 += att; e.1 += 1;
+        // ── Throttled slow-path computations (every 60 ticks ≈ 18 s) ─────────
+        // tribal_relations and lineage_sizes are O(organisms × lineages).
+        // Results are cached; stale values are fine — tribes don't flip allegiance
+        // tick-to-tick and users don't need sub-second lineage panel updates.
+        let needs_slow = self.tick_count == 0
+            || self.tick_count.saturating_sub(self.slow_compute_tick) >= 60;
+        if needs_slow {
+            let alive_lineages: std::collections::HashSet<String> = self.organisms.iter()
+                .filter(|o| o.alive).map(|o| o.lineage_id.clone()).collect();
+
+            // Tribal relations — use full lineage_id so frontend can look up tribe names
+            let mut att_totals: HashMap<(String, String), (f32, u32)> = HashMap::new();
+            for org in self.organisms.iter().filter(|o| o.alive) {
+                for (other_lid, &att) in &org.lineage_attitudes {
+                    if alive_lineages.contains(other_lid) {
+                        let key = if org.lineage_id < *other_lid {
+                            (org.lineage_id.clone(), other_lid.clone())
+                        } else {
+                            (other_lid.clone(), org.lineage_id.clone())
+                        };
+                        let e = att_totals.entry(key).or_insert((0.0, 0));
+                        e.0 += att; e.1 += 1;
+                    }
                 }
             }
-        }
-        let tribal_relations: Vec<serde_json::Value> = att_totals.into_iter()
-            .filter(|(_, (_, cnt))| *cnt > 0)
-            .map(|((a, b), (sum, cnt))| {
-                let avg = sum / cnt as f32;
-                let status = if avg > 0.3 { "ally" } else if avg < -0.3 { "rivals" } else { "neutral" };
-                json!({ "a": &a[..a.len().min(6)], "b": &b[..b.len().min(6)],
-                         "attitude": (avg * 100.0).round() / 100.0, "status": status })
-            }).collect();
+            self.cached_tribal_relations = serde_json::to_value(
+                att_totals.into_iter()
+                    .filter(|(_, (_, cnt))| *cnt > 0)
+                    .map(|((a, b), (sum, cnt))| {
+                        let avg = sum / cnt as f32;
+                        let status = if avg > 0.3 { "ally" } else if avg < -0.3 { "rivals" } else { "neutral" };
+                        // Use full lineage_id as key so frontend can resolve tribe names
+                        json!({ "a": a, "b": b,
+                                 "attitude": (avg * 100.0).round() / 100.0, "status": status })
+                    }).collect::<Vec<_>>()
+            ).unwrap();
 
-        // Lineage sizes (use full lineage_id as key for consistency)
-        let mut lineage_sizes: HashMap<String, usize> = HashMap::new();
-        for org in self.organisms.iter().filter(|o| o.alive) {
-            *lineage_sizes.entry(org.lineage_id.clone()).or_insert(0) += 1;
-        }
-        let lineage_sizes_json: Vec<serde_json::Value> = lineage_sizes.into_iter()
-            .map(|(id, count)| json!({"id": id, "count": count})).collect();
+            // Lineage sizes
+            let mut lineage_sizes: HashMap<String, usize> = HashMap::new();
+            for org in self.organisms.iter().filter(|o| o.alive) {
+                *lineage_sizes.entry(org.lineage_id.clone()).or_insert(0) += 1;
+            }
+            self.cached_lineage_sizes = serde_json::to_value(
+                lineage_sizes.into_iter()
+                    .map(|(id, count)| json!({"id": id, "count": count}))
+                    .collect::<Vec<_>>()
+            ).unwrap();
 
-        // Stagger expensive static grid layers to cap per-tick payload size:
-        //   tiles (dense ~360 KB) — every 5 ticks  (≈ 1.5 s)
-        //   biomes + depth (~720 KB) — every 30 ticks (≈ 9 s)
-        // fire/structure are always sparse (0 bytes when no activity).
+            self.slow_compute_tick = self.tick_count;
+        }
+
+        // Stagger expensive static grid layers to cap per-tick payload size
         let include_tiles  = self.tick_count % 5  == 0 || self.tick_count <= 1;
         let include_static = self.tick_count % 30 == 0 || self.tick_count <= 1;
         let grid_json = self.grid.to_json_viewport(vp_cx, vp_cy,
@@ -2187,8 +2212,6 @@ impl Simulation {
         json!({
             "tick":            self.tick_count,
             "grid":            serde_json::to_value(grid_json).unwrap(),
-            // Only send alive organisms — dead ones are not shown on the map and
-            // omitting them significantly reduces per-tick JSON payload size.
             "organisms":       self.organisms.iter().filter(|o| o.alive).map(|o| serde_json::to_value(o.to_json()).unwrap()).collect::<Vec<_>>(),
             "animals":         self.animals.iter().map(|a| serde_json::to_value(a.to_json()).unwrap()).collect::<Vec<_>>(),
             "events":          serde_json::to_value(&self.events).unwrap(),
@@ -2203,8 +2226,8 @@ impl Simulation {
                 self.story_history.iter().rev().take(120).collect::<Vec<_>>()
             ).unwrap(),
             "pop_history":     serde_json::to_value(&self.pop_history).unwrap(),
-            "tribal_relations": tribal_relations,
-            "lineage_sizes":    lineage_sizes_json,
+            "tribal_relations": &self.cached_tribal_relations,
+            "lineage_sizes":    &self.cached_lineage_sizes,
             "lineage_names":    serde_json::to_value(&self.lineage_names).unwrap(),
             "current_era":      &self.current_era,
             "sex_words":        &self.sex_words,

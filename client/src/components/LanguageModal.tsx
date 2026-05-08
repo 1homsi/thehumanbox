@@ -11,6 +11,7 @@ interface Props {
   organisms: OrganismState[]
   sexWords?: [string, string]   // [0]=male word, [1]=female word
   onClose: () => void
+  lineageNames?: Record<string, string>
 }
 
 interface LineageVocab {
@@ -45,8 +46,9 @@ function buildLineageVocabs(organisms: OrganismState[]): LineageVocab[] {
     })
 }
 
-export function LanguageModal({ organisms, sexWords, onClose }: Props) {
+export function LanguageModal({ organisms, sexWords, onClose, lineageNames }: Props) {
   const lineages = buildLineageVocabs(organisms)
+  const tn = (lid: string) => lineageNames?.[lid] ?? lid.slice(0, 6)
 
   return (
     <div className="lang-modal-backdrop" onClick={onClose}>
@@ -79,7 +81,7 @@ export function LanguageModal({ organisms, sexWords, onClose }: Props) {
               {lineages.map(l => (
                 <div key={l.lineageId} className="lang-th lang-lineage-col">
                   <span className="lang-lineage-dot" style={{ background: lineageColor(l.lineageId) }} />
-                  {l.lineageId.slice(0, 6)}
+                  {tn(l.lineageId)}
                   <span className="lang-lineage-count">×{l.count}</span>
                 </div>
               ))}

@@ -1171,9 +1171,10 @@ impl Organism {
 
     /// Lean per-tick snapshot — heavy fields omitted, see to_detail_json().
     pub fn to_json(&self) -> OrgJson {
+        // Use full lineage_id as key so the frontend can resolve tribe names from lineage_names
         let attitudes: HashMap<String, f32> = self.lineage_attitudes.iter()
             .filter(|(_, &v)| v.abs() > 0.1)
-            .map(|(k, &v)| (k[..k.len().min(6)].to_string(), (v * 100.0).round() / 100.0))
+            .map(|(k, &v)| (k.clone(), (v * 100.0).round() / 100.0))
             .collect();
 
         let org_trust: HashMap<String, f32> = self.org_trust.iter()

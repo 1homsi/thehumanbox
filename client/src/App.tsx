@@ -308,6 +308,7 @@ function App() {
                   onClose={() => handleOrgSelect(null)}
                   onFollow={handleFollow}
                   following={followOrgId === selectedOrg.id}
+                  lineageNames={world?.lineage_names}
                 />
               )}
 
@@ -319,6 +320,7 @@ function App() {
                   sexWords={world?.sex_words}
                   onTrack={() => handleFollow(org.id)}
                   onConvos={org.conversation_count ? () => setConvoOrgId(org.id) : undefined}
+                  lineageNames={world?.lineage_names}
                 />
               ))}
 
@@ -350,6 +352,7 @@ function App() {
           organisms={world.organisms.filter(o => o.alive)}
           sexWords={world.sex_words}
           onClose={() => setShowLanguages(false)}
+          lineageNames={world.lineage_names}
         />
       )}
       {showChronicles && world && (
@@ -371,6 +374,7 @@ function App() {
           organisms={world.organisms}
           onTrack={(id) => { handleFollow(id); setShowOrgSearch(false) }}
           onClose={() => setShowOrgSearch(false)}
+          lineageNames={world.lineage_names}
         />
       )}
       {convoOrgId && world && (() => {
