@@ -416,6 +416,180 @@ body {
   padding: 1px 4px;
   border-radius: 2px;
 }
+.org-sex-badge {
+  font-size: 8px;
+  font-family: monospace;
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.05);
+  letter-spacing: 0.02em;
+}
+.org-pregnant-badge {
+  font-size: 8px;
+  color: #f0c8d8;
+  background: rgba(200,80,120,0.18);
+  padding: 1px 4px;
+  border-radius: 2px;
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.85; }
+  50%       { opacity: 1.0; }
+}
+.org-attraction {
+  font-size: 9px;
+  color: #e8c84a;
+  font-style: italic;
+  padding: 2px 0 1px;
+  opacity: 0.8;
+}
+.org-action-btns {
+  display: flex;
+  gap: 3px;
+  margin-left: auto;
+}
+.org-action-btn {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 3px;
+  color: #999;
+  font-size: 9px;
+  padding: 1px 5px;
+  cursor: pointer;
+  line-height: 1.4;
+  transition: background 0.15s, color 0.15s;
+}
+.org-action-btn:hover {
+  background: rgba(255,255,255,0.14);
+  color: #fff;
+}
+.org-track-btn { font-size: 11px; font-weight: 700; }
+.org-convo-btn { letter-spacing: 0.01em; }
+
+/* ── Conversations modal (cv-*) ───────────────────────────────────────────── */
+.cv-modal {
+  background: #13110f;
+  border: 1px solid #2e2820;
+  border-radius: 10px;
+  width: 540px;
+  max-width: 96vw;
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+}
+.cv-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #2e2820;
+  background: #181410;
+  flex-shrink: 0;
+}
+.cv-modal-title {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #665;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.cv-modal-who {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  flex-wrap: wrap;
+}
+.cv-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cv-list { display: flex; flex-direction: column; gap: 14px; }
+.cv-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 20px;
+}
+
+/* Each conversation block */
+.cv-block {
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  padding: 10px 12px 12px;
+}
+.cv-block-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.cv-kind-icon  { font-size: 13px; flex-shrink: 0; }
+.cv-kind-label { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; flex-shrink: 0; }
+.cv-participants {
+  flex: 1;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.cv-sep { color: #445; font-size: 9px; }
+.cv-day { font-size: 8px; color: #445; margin-left: auto; flex-shrink: 0; }
+
+/* Lines — bubbles */
+.cv-lines { display: flex; flex-direction: column; gap: 8px; }
+.cv-line   { display: flex; }
+.cv-line-self  { justify-content: flex-start; }
+.cv-line-other { justify-content: flex-end; }
+
+.cv-bubble-wrap { display: flex; flex-direction: column; max-width: 78%; }
+.cv-line-self  .cv-bubble-wrap { align-items: flex-start; }
+.cv-line-other .cv-bubble-wrap { align-items: flex-end; }
+
+.cv-speaker {
+  font-size: 8.5px;
+  font-weight: 700;
+  font-family: monospace;
+  margin-bottom: 2px;
+  letter-spacing: 0.04em;
+}
+.cv-bubble {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid;
+  border-radius: 8px;
+  padding: 7px 10px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.cv-line-self  .cv-bubble { border-radius: 4px 10px 10px 10px; }
+.cv-line-other .cv-bubble { border-radius: 10px 4px 10px 10px; }
+
+.cv-text {
+  font-size: 12px;
+  font-family: monospace;
+  font-style: italic;
+  color: #d0c8c0;
+  letter-spacing: 0.02em;
+}
+.cv-meaning {
+  font-size: 9.5px;
+  color: #666;
+  font-style: normal;
+  line-height: 1.3;
+}
 
 /* World history grid */
 .history-grid {
@@ -678,6 +852,25 @@ body {
   vertical-align: middle;
 }
 .lang-lineage-count { font-size: 8px; color: #888; margin-left: 4px; }
+
+/* Sex-words banner in language modal */
+.lang-sex-words {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 4px;
+  flex-wrap: wrap;
+}
+.lang-sex-label { font-size: 9px; color: #666; font-style: italic; }
+.lang-sex-word  { font-size: 13px; font-family: monospace; font-weight: 700; letter-spacing: 0.04em; }
+.lang-sex-word-0 { color: #7ab0e0; }
+.lang-sex-word-1 { color: #e09ab0; }
+.lang-sex-divider { color: #444; font-size: 11px; }
+.lang-sex-note  { font-size: 8px; color: #444; font-style: italic; margin-left: auto; }
 .lang-english { color: #999; font-size: 9px; }
 .lang-word    { color: #aaffdd; font-weight: 600; font-family: monospace; }
 .lang-unknown { color: #444; }

@@ -1534,6 +1534,51 @@ impl Simulation {
             }
         }
 
+        // ── Casual conversation — any two nearby organisms ────────────────────
+        // Chat when close enough; hostile pairs argue, happy pairs share excitement
+        {
+            let spread_check = tc % 29 == (idx as u64 % 29);
+            if spread_check {
+                let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
+                // Find the closest alive non-partner organism within 6 tiles
+                let chat_target: Option<usize> = {
+                    let partner_id = self.organisms[idx].partner_id.clone();
+                    self.organisms.iter().enumerate()
+                        .filter(|(i, o)| *i != idx && o.alive
+                            && partner_id.as_deref() != Some(&o.id)
+                            && (o.x - ox).hypot(o.y - oy) < 6.0)
+                        .min_by(|(_, a), (_, b)| {
+                            let da = (a.x - ox).hypot(a.y - oy);
+                            let db = (b.x - ox).hypot(b.y - oy);
+                            da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
+                        })
+                        .map(|(i, _)| i)
+                };
+                if let Some(ci) = chat_target {
+                    let their_lid = self.organisms[ci].lineage_id.clone();
+                    let att = self.organisms[idx].attitude_toward(&their_lid);
+                    // Kind determined by relationship + combined energy
+                    let combined_energy = self.organisms[idx].energy + self.organisms[ci].energy;
+                    let kind = if att < -0.3 {
+                        "argue"
+                    } else if combined_energy > 1.5 && att >= 0.0 {
+                        "excited"
+                    } else {
+                        "chat"
+                    };
+                    // Probability: ~once per 5800 ticks per organism (~every 3 in-game days)
+                    if self.rng.gen::<f32>() < 0.004 {
+                        let (conv_a, conv_b) = courtship::generate_conversation(
+                            &self.organisms[idx], &self.organisms[ci],
+                            tc, kind, &mut self.rng,
+                        );
+                        self.organisms[idx].store_conversation(conv_a);
+                        self.organisms[ci].store_conversation(conv_b);
+                    }
+                }
+            }
+        }
+
         growth::try_reproduce(idx, &mut self.organisms, &self.grid,
                               self.tick_count, &mut self.events, &mut self.history,
                               &mut self.rng);
