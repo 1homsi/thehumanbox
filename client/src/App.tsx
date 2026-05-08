@@ -184,9 +184,6 @@ function App() {
 
                   <div className="more-dropdown-section">overlays</div>
                   <div className="more-dropdown-grid">
-                    <button className={`lang-btn${overlay === 'fertility' ? ' active' : ''}`} onClick={() => setOverlay(o => o === 'fertility' ? null : 'fertility')} title="Soil fertility">🌱 soil</button>
-                    <button className={`lang-btn${overlay === 'hazard' ? ' active' : ''}`} onClick={() => setOverlay(o => o === 'hazard' ? null : 'hazard')} title="Hazard memory">☠ hazard</button>
-                    <button className={`lang-btn${overlay === 'pressure' ? ' active' : ''}`} onClick={() => setOverlay(o => o === 'pressure' ? null : 'pressure')} title="Migration trails">👣 trails</button>
                     <button className={`lang-btn${overlay === 'density' ? ' active' : ''}`} onClick={() => setOverlay(o => o === 'density' ? null : 'density')} title="Population density">👥 crowd</button>
                   </div>
 

@@ -811,77 +811,102 @@ impl WorldGrid {
 
     // Serialize a viewport window centered on (cx, cy) of size vw×vh tiles.
     // origin_x / origin_y in GridJson tell the client how to offset world-space coords.
-    pub fn to_json_viewport(&self, cx: i32, cy: i32, vw: usize, vh: usize) -> GridJson {
+    /// Build a GridJson for the WS broadcast.
+    ///
+    /// `include_tiles`   — include the dense tiles array (every TILES_INTERVAL ticks)
+    /// `include_static`  — include biomes + depth_map (every STATIC_INTERVAL ticks)
+    pub fn to_json_viewport(
+        &self, cx: i32, cy: i32, vw: usize, vh: usize,
+        include_tiles: bool, include_static: bool,
+    ) -> GridJson {
         let ox = (cx - vw as i32 / 2).clamp(0, (WIDTH as i32 - vw as i32).max(0)) as usize;
         let oy = (cy - vh as i32 / 2).clamp(0, (HEIGHT as i32 - vh as i32).max(0)) as usize;
 
         let slice_row = |vec: &[i8], y: usize| vec[y * WIDTH + ox .. y * WIDTH + ox + vw].to_vec();
-        let slice_f32 = |vec: &[f32], y: usize| vec[y * WIDTH + ox .. y * WIDTH + ox + vw].to_vec();
         let slice_u8  = |vec: &[u8],  y: usize| vec[y * WIDTH + ox .. y * WIDTH + ox + vw].to_vec();
 
-        let tiles_2d:  Vec<Vec<i8>>  = (oy..oy+vh).map(|y| slice_row(&self.tiles, y)).collect();
-        let fire_2d:   Vec<Vec<f32>> = (oy..oy+vh).map(|y| slice_f32(&self.fire_intensity, y)).collect();
-        let biome_2d:  Vec<Vec<u8>>  = (oy..oy+vh).map(|y| slice_u8(&self.biome, y)).collect();
-        let struct_2d: Vec<Vec<f32>> = (oy..oy+vh).map(|y| {
-            self.structure[y * WIDTH + ox .. y * WIDTH + ox + vw].iter()
-                .map(|&v| (v * 100.0).round() / 100.0)
-                .collect()
-        }).collect();
-        let fertility_map: Vec<Vec<u8>> = (oy..oy+vh).map(|y|
-            self.fertility[y * WIDTH + ox .. y * WIDTH + ox + vw].iter()
-                .map(|&v| (v * 255.0) as u8).collect()
-        ).collect();
-        let hazard_map: Vec<Vec<u8>> = (oy..oy+vh).map(|y|
-            self.hazard[y * WIDTH + ox .. y * WIDTH + ox + vw].iter()
-                .map(|&v| (v * 255.0) as u8).collect()
-        ).collect();
-        let pressure_map: Vec<Vec<u8>> = (oy..oy+vh).map(|y|
-            self.pressure[y * WIDTH + ox .. y * WIDTH + ox + vw].iter()
-                .map(|&v| (v / 10.0 * 255.0).min(255.0) as u8).collect()
-        ).collect();
-        // Depth map: 0 = deepest ocean, 200 = shallowest (coast); 255 = land sentinel
-        let depth_map: Vec<Vec<u8>> = (oy..oy+vh).map(|y| {
-            let row_tiles = &self.tiles[y * WIDTH + ox .. y * WIDTH + ox + vw];
-            let row_depth = &self.depth[y * WIDTH + ox .. y * WIDTH + ox + vw];
-            row_tiles.iter().zip(row_depth.iter()).map(|(&t, &d)| {
-                if t == Tile::Water as i8 {
-                    // depth d ∈ [0,1]: 0=coast→200, 1=deepest→0
-                    ((1.0 - d) * 200.0) as u8
-                } else {
-                    255u8  // land
-                }
-            }).collect()
-        }).collect();
+        // Dense tile map — included every TILES_INTERVAL ticks
+        let tiles = if include_tiles {
+            Some((oy..oy+vh).map(|y| slice_row(&self.tiles, y)).collect())
+        } else {
+            None
+        };
 
-        GridJson {
-            width: vw, height: vh,
-            origin_x: ox as i32, origin_y: oy as i32,
-            tiles: tiles_2d, fire_intensity: fire_2d, biomes: biome_2d, structure: struct_2d,
-            fertility_map, hazard_map, pressure_map, depth_map,
+        // Sparse fire — [[row, col, intensity×1000], ...] only for non-zero cells
+        let mut fire: Vec<[u16; 3]> = Vec::new();
+        for y in oy..oy+vh {
+            let row = &self.fire_intensity[y * WIDTH + ox .. y * WIDTH + ox + vw];
+            for (col_off, &v) in row.iter().enumerate() {
+                if v > 0.001 {
+                    fire.push([(y - oy) as u16, col_off as u16, (v * 1000.0).min(65535.0) as u16]);
+                }
+            }
         }
+
+        // Sparse structure — [[row, col, level×100], ...] only for non-zero cells
+        let mut structure: Vec<[u16; 3]> = Vec::new();
+        for y in oy..oy+vh {
+            let row = &self.structure[y * WIDTH + ox .. y * WIDTH + ox + vw];
+            for (col_off, &v) in row.iter().enumerate() {
+                if v > 0.001 {
+                    structure.push([(y - oy) as u16, col_off as u16, (v * 100.0).min(65535.0) as u16]);
+                }
+            }
+        }
+
+        // Static maps — biomes + depth, only sent every STATIC_INTERVAL ticks
+        let (biomes, depth_map) = if include_static {
+            let b = (oy..oy+vh).map(|y| slice_u8(&self.biome, y)).collect();
+            let d = (oy..oy+vh).map(|y| {
+                let row_tiles = &self.tiles[y * WIDTH + ox .. y * WIDTH + ox + vw];
+                let row_depth = &self.depth[y * WIDTH + ox .. y * WIDTH + ox + vw];
+                row_tiles.iter().zip(row_depth.iter()).map(|(&t, &d)| {
+                    if t == Tile::Water as i8 { ((1.0 - d) * 200.0) as u8 } else { 255u8 }
+                }).collect()
+            }).collect();
+            (Some(b), Some(d))
+        } else {
+            (None, None)
+        };
+
+        GridJson { width: vw, height: vh, origin_x: ox as i32, origin_y: oy as i32,
+                   tiles, fire, structure, biomes, depth_map }
     }
 
-    // Full-grid serialization (used by headless binary for payload benchmarking)
+    // Full-grid serialization (used by headless binary)
     pub fn to_json(&self) -> GridJson {
-        self.to_json_viewport(WIDTH as i32 / 2, HEIGHT as i32 / 2, WIDTH, HEIGHT)
+        self.to_json_viewport(WIDTH as i32 / 2, HEIGHT as i32 / 2, WIDTH, HEIGHT, true, true)
     }
 }
 
 #[derive(Clone, Copy)]
 pub enum TrailKind { Food, Water, Path }
 
+/// Per-tick grid payload.
+///
+/// Payload budget breakdown (600×300 world):
+/// - tiles: 180 K values, dense — ~360 KB JSON, sent every 5 ticks
+/// - fire:  sparse list of (row,col,v×1000) — 0 bytes when no fire, <5 KB with fire
+/// - structure: sparse list of (row,col,v×100) — 0 bytes when no buildings
+/// - biomes / depth_map: ~360 KB each, only sent every 30 ticks (when Some)
+/// - fertility/hazard/pressure removed from broadcast (optional overlay endpoints)
 #[derive(Serialize)]
 pub struct GridJson {
-    pub width:          usize,
-    pub height:         usize,
-    pub origin_x:       i32,
-    pub origin_y:       i32,
-    pub tiles:          Vec<Vec<i8>>,
-    pub fire_intensity: Vec<Vec<f32>>,
-    pub biomes:         Vec<Vec<u8>>,
-    pub structure:      Vec<Vec<f32>>,
-    pub fertility_map:  Vec<Vec<u8>>,
-    pub hazard_map:     Vec<Vec<u8>>,
-    pub pressure_map:   Vec<Vec<u8>>,
-    pub depth_map:      Vec<Vec<u8>>,
+    pub width:     usize,
+    pub height:    usize,
+    pub origin_x:  i32,
+    pub origin_y:  i32,
+    /// Dense tile array — only present every TILES_INTERVAL ticks
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tiles:     Option<Vec<Vec<i8>>>,
+    /// Sparse fire: [[row, col, intensity×1000], ...]  — 0 bytes when no fire
+    pub fire:      Vec<[u16; 3]>,
+    /// Sparse structure: [[row, col, level×100], ...]  — 0 bytes when empty
+    pub structure: Vec<[u16; 3]>,
+    /// Dense biome layer — only present every STATIC_INTERVAL ticks
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub biomes:    Option<Vec<Vec<u8>>>,
+    /// Ocean depth — only present every STATIC_INTERVAL ticks
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub depth_map: Option<Vec<Vec<u8>>>,
 }
