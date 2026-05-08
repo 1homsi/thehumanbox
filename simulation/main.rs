@@ -603,6 +603,45 @@ fn build_result_from_local(trigger: &ThinkTrigger, local: local_think::LocalResu
     Some(result)
 }
 
+fn deterministic_think_seed(trigger: &ThinkTrigger, attempt: u8) -> u64 {
+    fn mix_bytes(mut h: u64, bytes: &[u8]) -> u64 {
+        for &b in bytes {
+            h ^= b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+        h
+    }
+
+    fn mix_str(h: u64, s: &str) -> u64 {
+        mix_bytes(h, s.as_bytes())
+    }
+
+    fn mix_f32(h: u64, v: f32) -> u64 {
+        mix_bytes(h, &v.to_bits().to_le_bytes())
+    }
+
+    let mut h = 0xcbf29ce484222325u64;
+    h = mix_str(h, &trigger.org_id);
+    h = mix_str(h, &trigger.lineage_id);
+    h = mix_str(h, &trigger.scenario);
+    h = mix_str(h, trigger.target_lineage.as_deref().unwrap_or(""));
+    h = mix_bytes(h, &(trigger.kin_count as u64).to_le_bytes());
+    h = mix_f32(h, trigger.energy_avg);
+    h = mix_str(h, &trigger.context);
+    for d in &trigger.discoveries { h = mix_str(h, d); }
+    for l in &trigger.life_log_top { h = mix_str(h, l); }
+    h = mix_str(h, &trigger.emotional_state);
+    h = mix_str(h, trigger.other_name.as_deref().unwrap_or(""));
+    for d in &trigger.other_discoveries { h = mix_str(h, d); }
+    h = mix_str(h, trigger.target_org_id.as_deref().unwrap_or(""));
+    h = mix_f32(h, trigger.aggression);
+    h = mix_f32(h, trigger.fear);
+    h = mix_f32(h, trigger.social_tendency);
+    h = mix_f32(h, trigger.curiosity);
+    h = mix_f32(h, trigger.resilience);
+    mix_bytes(h, &[attempt])
+}
+
 // ── Think worker ─────────────────────────────────────────────────────────────
 
 async fn think_worker(
@@ -637,7 +676,7 @@ async fn think_worker(
         // weighted decision that we resolve instantly from organism traits.
         if trigger.scenario != "elder_teaching" {
             use rand::SeedableRng;
-            let mut rng = rand::rngs::SmallRng::from_entropy();
+            let mut rng = rand::rngs::SmallRng::seed_from_u64(deterministic_think_seed(&trigger, attempt));
             if let Some(local) = local_think::resolve(&trigger, &mut rng) {
                 println!("[think] {} {}→{} (local)", trigger.org_name, trigger.scenario, local.word);
                 let result = build_result_from_local(&trigger, local);
@@ -1105,5 +1144,44 @@ async fn handle_socket(
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn local_trigger(context: &str) -> ThinkTrigger {
+        ThinkTrigger {
+            org_id: "org-1".to_string(),
+            org_name: "Org".to_string(),
+            lineage_id: "lineage-1".to_string(),
+            scenario: "migration".to_string(),
+            context: context.to_string(),
+            kin_count: 4,
+            aggression: 0.2,
+            fear: 0.4,
+            social_tendency: 0.6,
+            curiosity: 0.8,
+            resilience: 0.3,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn local_think_seed_is_stable_for_identical_triggers() {
+        let a = local_trigger("food scarce");
+        let b = local_trigger("food scarce");
+
+        assert_eq!(deterministic_think_seed(&a, 0), deterministic_think_seed(&b, 0));
+    }
+
+    #[test]
+    fn local_think_seed_changes_with_context_and_attempt() {
+        let a = local_trigger("food scarce");
+        let b = local_trigger("water scarce");
+
+        assert_ne!(deterministic_think_seed(&a, 0), deterministic_think_seed(&b, 0));
+        assert_ne!(deterministic_think_seed(&a, 0), deterministic_think_seed(&a, 1));
     }
 }
