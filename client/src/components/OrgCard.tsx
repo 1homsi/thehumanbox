@@ -29,10 +29,12 @@ interface OrgCardProps {
   onTrack?:  () => void
   onConvos?: () => void
   lineageNames?: Record<string, string>
+  organisms?: OrganismState[]
 }
 
-export function OrgCard({ org, sexWords, onTrack, onConvos, lineageNames }: OrgCardProps) {
+export function OrgCard({ org, sexWords, onTrack, onConvos, lineageNames, organisms }: OrgCardProps) {
   const tn     = (lid: string) => lineageNames?.[lid] ?? lid.slice(0, 6)
+  const on     = (oid: string) => organisms?.find(o => o.id === oid)?.name ?? oid.slice(0, 5)
   const isSick = org.infection > 0.15
   const sexLabel  = sexWords
     ? (org.sex === 'female' ? sexWords[1] : sexWords[0])
@@ -158,7 +160,7 @@ export function OrgCard({ org, sexWords, onTrack, onConvos, lineageNames }: OrgC
                   fontSize: '7px',
                 }}
               >
-                {trust >= 0.3 ? '◆' : trust <= -0.3 ? '◇' : '○'}{oid.slice(0, 5)}
+                {trust >= 0.3 ? '◆' : trust <= -0.3 ? '◇' : '○'}{on(oid)}
               </span>
             ))}
         </div>
