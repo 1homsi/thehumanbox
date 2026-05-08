@@ -388,7 +388,7 @@ function drawWorldOnCanvas(
         tx:     o.x - ox,
         ty:     o.y - oy,
         lid:    o.lineage_id,
-        fill:   hsl.replace('hsl(', 'hsla(').replace(')', ', 0.40)'),
+        fill:   hsl.replace('hsl(', 'hsla(').replace(')', ', 0.25)'),
         border: dark,
       }
     })
