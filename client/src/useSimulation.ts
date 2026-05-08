@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { WorldState, GridState, GridWire } from './types'
+import { WS_BASE } from './config'
 
-const WS_URL = 'ws://localhost:8000/ws'
+const WS_URL = `${WS_BASE}/ws`
 
 /** Rebuild dense fire_intensity and structure 2D arrays from sparse wire format. */
 function applyGridWire(wire: GridWire, cache: GridState | null): GridState {
