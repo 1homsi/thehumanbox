@@ -1,7 +1,7 @@
 use rand::Rng;
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
-use crate::organism::organism::{Organism, DIRECTIONS};
+use crate::organism::organism::{Organism, DIRECTIONS, generate_tribe_name};
 use crate::organism::animal::{Animal, AnimalKind};
 use crate::world::{grid::{WorldGrid, TrailKind, WIDTH, HEIGHT}, tiles::Tile};
 use crate::physics::engine::PhysicsEngine;
@@ -85,6 +85,7 @@ pub struct Simulation {
     pub flood_tiles:           Vec<(i32, i32, u64)>,
     pub story_history:         Vec<StoryEntry>,
     pub pending_thinks:        Vec<ThinkTrigger>,
+    pub lineage_names:         HashMap<String, String>,  // lineage_id → tribe name
     pub lineage_strategies:    HashMap<String, (String, u64)>,
     lineage_last_council:      HashMap<String, u64>,
     lineage_elders:            HashMap<String, String>,
@@ -145,6 +146,7 @@ impl Simulation {
             flood_tiles: Vec::new(),
             story_history: Vec::new(),
             pending_thinks: Vec::new(),
+            lineage_names:        HashMap::new(),
             lineage_strategies:   HashMap::new(),
             lineage_last_council: HashMap::new(),
             lineage_elders:       HashMap::new(),
@@ -165,8 +167,11 @@ impl Simulation {
         use crate::world::tiles::Tile;
         const TARGET: usize = 120;
 
+        // Each founder is the root of a new lineage (lineage_id == their own id).
+        // We assign a phonetic tribe name at spawn time and store it in lineage_names.
+        let before = self.organisms.len();
+
         // ── Phase 1: anchor groups near each water pool ───────────────────────
-        // Spread founders organically around existing water sources first.
         let centers = self.grid.pool_centers.clone();
         for (cx, cy) in &centers {
             let (cx, cy) = (*cx, *cy);
@@ -181,10 +186,7 @@ impl Simulation {
                 }
             }
             let n = land.len();
-            if n == 0 {
-                // No suitable land near this pool — skip it entirely
-                continue;
-            }
+            if n == 0 { continue; }
             for i in 0..n.min(3) {
                 let j = i + self.rng.gen_range(0..(n - i));
                 land.swap(i, j);
@@ -196,23 +198,17 @@ impl Simulation {
         }
 
         // ── Phase 2: top up to exactly TARGET founders ────────────────────────
-        // Collect all habitable land tiles, divide the world into a grid of cells,
-        // and pick one representative spawn per cell until we hit TARGET.
         let still_needed = TARGET.saturating_sub(self.organisms.len());
         if still_needed > 0 {
-            // Gather every walkable grass/food tile that isn't already crowded
             let mut all_land: Vec<(i32, i32)> = Vec::new();
-            for y in 2..(crate::world::grid::HEIGHT as i32 - 2) {
-                for x in 2..(crate::world::grid::WIDTH as i32 - 2) {
+            for y in 2..(HEIGHT as i32 - 2) {
+                for x in 2..(WIDTH as i32 - 2) {
                     if matches!(self.grid.get(x, y), Tile::Grass | Tile::Food) {
                         all_land.push((x, y));
                     }
                 }
             }
-
             if !all_land.is_empty() {
-                // Fisher-Yates shuffle the whole list, take first `still_needed` entries
-                // that are at least 8 tiles apart from each other (so groups spread out).
                 let mut picked: Vec<(f32, f32)> = Vec::with_capacity(still_needed);
                 let n = all_land.len();
                 let mut i = 0usize;
@@ -220,7 +216,6 @@ impl Simulation {
                     let j = i + self.rng.gen_range(0..(n - i));
                     all_land.swap(i, j);
                     let (x, y) = all_land[i];
-                    // Enforce minimum spacing so founders don't all pile up in one spot
                     let too_close = picked.iter().any(|&(px, py)| {
                         (px as i32 - x).abs() + (py as i32 - y).abs() < 8
                     });
@@ -233,6 +228,16 @@ impl Simulation {
                     growth::spawn_organism(&self.grid, &mut self.organisms, lx, ly, &mut self.rng);
                 }
             }
+        }
+
+        // ── Assign a unique tribe name to every new founder's lineage ─────────
+        // Founders have lineage_id == their own id; children inherit from parent.
+        // We also deduplicate so pool-adjacent founders sharing a tile get one name.
+        let after = self.organisms.len();
+        for org in &self.organisms[before..after] {
+            self.lineage_names
+                .entry(org.lineage_id.clone())
+                .or_insert_with(|| generate_tribe_name(&mut self.rng));
         }
     }
 
@@ -1929,9 +1934,10 @@ impl Simulation {
                 hazard:      self.grid.hazard.clone(),
                 pressure:    self.grid.pressure.clone(),
             },
-            current_era: self.current_era.clone(),
-            sex_words:   self.sex_words.to_vec(),
-            world_seed:  self.world_seed,
+            current_era:    self.current_era.clone(),
+            sex_words:      self.sex_words.to_vec(),
+            world_seed:     self.world_seed,
+            lineage_names:  self.lineage_names.clone(),
         };
         if let Ok(json) = serde_json::to_string(&state) {
             std::fs::write(path, json).ok();
@@ -2044,6 +2050,7 @@ impl Simulation {
             },
             world_seed:             seed,  // already resolved to original seed in load_or_new
             next_animal_id:         state.next_animal_id,
+            lineage_names:          state.lineage_names,
             rng:                  rand::rngs::SmallRng::seed_from_u64(seed ^ state.tick_count),
         }
     }
@@ -2093,11 +2100,10 @@ impl Simulation {
                          "attitude": (avg * 100.0).round() / 100.0, "status": status })
             }).collect();
 
-        // Lineage sizes
+        // Lineage sizes (use full lineage_id as key for consistency)
         let mut lineage_sizes: HashMap<String, usize> = HashMap::new();
         for org in self.organisms.iter().filter(|o| o.alive) {
-            *lineage_sizes.entry(org.lineage_id[..org.lineage_id.len().min(6)].to_string())
-                .or_insert(0) += 1;
+            *lineage_sizes.entry(org.lineage_id.clone()).or_insert(0) += 1;
         }
         let lineage_sizes_json: Vec<serde_json::Value> = lineage_sizes.into_iter()
             .map(|(id, count)| json!({"id": id, "count": count})).collect();
@@ -2126,6 +2132,7 @@ impl Simulation {
             "pop_history":     serde_json::to_value(&self.pop_history).unwrap(),
             "tribal_relations": tribal_relations,
             "lineage_sizes":    lineage_sizes_json,
+            "lineage_names":    serde_json::to_value(&self.lineage_names).unwrap(),
             "current_era":      &self.current_era,
             "sex_words":        &self.sex_words,
         })
@@ -2254,6 +2261,8 @@ struct SaveState {
     sex_words:      Vec<String>,  // [0]=Male word, [1]=Female word
     #[serde(default)]
     world_seed:     u64,          // terrain seed — reuse on load so depth map stays consistent
+    #[serde(default)]
+    lineage_names:  HashMap<String, String>,  // lineage_id → tribe name
 }
 
 fn mem_encode(m: &HashMap<(i32,i32), f32>) -> HashMap<String, f32> {

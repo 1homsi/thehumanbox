@@ -49,6 +49,34 @@ pub fn generate_name(rng: &mut impl Rng, sex: Sex) -> String {
     }
 }
 
+/// Generate a tribe/lineage name — heavier syllables, ends in a hard stop or open vowel.
+/// Intentionally different phoneme distribution from individual names so they sound "collective".
+pub fn generate_tribe_name(rng: &mut impl Rng) -> String {
+    const TRIBE_CONS: &[u8] = b"bdfghjklmnprstvwz";
+    const TRIBE_VOWELS: &[u8] = b"aeiou";
+    // Tribes get 2 syllables, with a 50% chance of a closing consonant on each syllable
+    // giving names like "Voruk", "Heli", "Zamod", "Tibas", "Nura"
+    let syllables = rng.gen_range(2..=3usize);
+    let mut s = String::new();
+    for i in 0..syllables {
+        s.push(TRIBE_CONS[rng.gen_range(0..TRIBE_CONS.len())] as char);
+        s.push(TRIBE_VOWELS[rng.gen_range(0..TRIBE_VOWELS.len())] as char);
+        // Occasional mid-syllable consonant cluster for variety
+        if i < syllables - 1 && rng.gen::<f32>() < 0.30 {
+            s.push(TRIBE_CONS[rng.gen_range(0..TRIBE_CONS.len())] as char);
+        }
+        // Final syllable: 60% chance of closing consonant
+        if i == syllables - 1 && rng.gen::<f32>() < 0.60 {
+            s.push(TRIBE_CONS[rng.gen_range(0..TRIBE_CONS.len())] as char);
+        }
+    }
+    let mut c = s.chars();
+    match c.next() {
+        None => s,
+        Some(f) => f.to_uppercase().to_string() + c.as_str(),
+    }
+}
+
 /// Apply subtle sex-linked trait biases (population averages, not deterministic destiny).
 pub fn apply_sex_traits(traits: &mut crate::organism::traits::Traits, sex: Sex) {
     match sex {
