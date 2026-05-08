@@ -371,30 +371,29 @@ function drawWorldOnCanvas(
     }
   }
 
-  // Territory Voronoi overlay — limited to orgs in viewport for performance
+  // Territory overlay — radial halo around each organism, drawn outward from org
+  // O(orgs × radius²) instead of O(width × height × orgs) — far faster at large radii
   const liveOrgs = world.organisms.filter(o => o.alive && o.lineage_id)
   if (viewFlags.territory && liveOrgs.length > 0) {
-    const RADIUS = 8
-    // Only consider orgs visible in viewport (+ radius buffer), cap at 200 for perf
+    const RADIUS = 20
     const vportOrgs = liveOrgs.filter(o => {
       const cx2 = o.x - ox, cy2 = o.y - oy
       return cx2 >= -RADIUS && cx2 < width + RADIUS && cy2 >= -RADIUS && cy2 < height + RADIUS
-    }).slice(0, 200)
-    if (vportOrgs.length > 0) {
-      for (let ty = 0; ty < height; ty++) {
-        for (let tx = 0; tx < width; tx++) {
-          let nearest = null as typeof vportOrgs[0] | null
-          let nearestDist = RADIUS + 1
-          for (const org of vportOrgs) {
-            const d = Math.abs((org.x - ox) - tx) + Math.abs((org.y - oy) - ty)
-            if (d < nearestDist) { nearestDist = d; nearest = org }
-          }
-          if (nearest && nearestDist <= RADIUS) {
-            const alpha = 0.09 * (1 - nearestDist / RADIUS)
-            const col = lineageColor(nearest.lineage_id)
-            ctx.fillStyle = col.replace('hsl', 'hsla').replace(')', `, ${alpha})`)
-            ctx.fillRect(tx * TILE, ty * TILE, TILE, TILE)
-          }
+    })
+    for (const org of vportOrgs) {
+      const otx = Math.round(org.x - ox)
+      const oty = Math.round(org.y - oy)
+      // Pre-compute HSLA prefix once per organism, e.g. "hsla(120, 90%, 75%, "
+      const hslaPrefix = lineageColor(org.lineage_id).replace('hsl(', 'hsla(').replace(')', ', ')
+      for (let dy = -RADIUS; dy <= RADIUS; dy++) {
+        for (let dx = -RADIUS; dx <= RADIUS; dx++) {
+          const d = Math.sqrt(dx * dx + dy * dy)
+          if (d > RADIUS) continue
+          const nx = otx + dx, ny = oty + dy
+          if (nx < 0 || ny < 0 || ny >= height || nx >= width) continue
+          const alpha = 0.28 * (1 - d / RADIUS)
+          ctx.fillStyle = `${hslaPrefix}${alpha.toFixed(3)})`
+          ctx.fillRect(nx * TILE, ny * TILE, TILE, TILE)
         }
       }
     }
