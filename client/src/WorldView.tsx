@@ -665,6 +665,8 @@ function CameraController({
   const camera = useCamera()
   const drag = useRef({ active: false, startPX: 0, startPY: 0, startCamX: 0, startCamY: 0 })
   const initialised = useRef(false)
+  // Dynamic min zoom: never let the world shrink smaller than ~85% of "fit to screen"
+  const minZoom = Math.min(containerW / worldW, containerH / worldH) * 0.85
 
   // cubeforge's Camera2D isn't wired to the engine until after its first tick,
   // so setPosition called synchronously in useLayoutEffect lands on a stub.
@@ -673,8 +675,8 @@ function CameraController({
     if (initialised.current) return
     const tx = worldW / 2
     const ty = worldH / 2
-    // Fit world to container — clamp so we never start more zoomed-out than min
-    const fitZoom = Math.max(0.04, Math.min(containerW / worldW, containerH / worldH) * 0.95)
+    // Fit world to container — start at fit zoom, never below dynamic min
+    const fitZoom = Math.max(minZoom, Math.min(containerW / worldW, containerH / worldH) * 0.95)
     let raf = 0
     const trySet = () => {
       camera.setPosition(tx, ty)
@@ -737,7 +739,7 @@ function CameraController({
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
       const factor = e.deltaY < 0 ? 1.1 : 0.9
-      const nz = Math.max(0.04, Math.min(8, camera.getZoom() * factor))
+      const nz = Math.max(minZoom, Math.min(8, camera.getZoom() * factor))
       camera.setZoom(nz)
       cameraStateRef.current.zoom = nz
     }
