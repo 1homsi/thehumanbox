@@ -27,8 +27,35 @@ const BIOME_OVERLAYS: Record<number, string> = {
   1: 'rgba(20,80,20,0.14)',     // forest
   2: 'rgba(200,160,60,0.28)',   // desert — warm sand tint
   3: 'rgba(20,100,100,0.10)',   // wetland
-  4: 'rgba(200,230,255,0.30)',  // tundra — strong icy blue-white
+  4: 'rgba(200,230,255,0.10)',  // tundra — subtle cold tint (snow/rock handle the look)
   5: 'rgba(160,40,20,0.18)',    // volcanic
+}
+
+// ── Pre-computed pixel-level lookup tables (avoid CSS parsing per tile) ───────
+function parseHex(h: string): [number, number, number] {
+  const s = h.replace('#', '')
+  return [parseInt(s.slice(0,2),16), parseInt(s.slice(2,4),16), parseInt(s.slice(4,6),16)]
+}
+function parseRgbaStr(s: string): [number, number, number, number] {
+  const m = s.match(/[\d.]+/g)!
+  return [+m[0], +m[1], +m[2], +m[3]]
+}
+
+// tile_id → [r, g, b]
+const TILE_RGB: Record<number, [number,number,number]> =
+  Object.fromEntries(Object.entries(TILE_COLORS).map(([k,v]) => [+k, parseHex(v)]))
+
+// biome_id → [r, g, b, a(0-1)]
+const BIOME_RGBA: Record<number, [number,number,number,number]> =
+  Object.fromEntries(Object.entries(BIOME_OVERLAYS).map(([k,v]) => [+k, parseRgbaStr(v)]))
+
+// Module-level reusable ImageData buffer — allocate once, write every frame
+let _imgBuf: ImageData | null = null
+function getReuseImgData(w: number, h: number): ImageData {
+  if (!_imgBuf || _imgBuf.width !== w || _imgBuf.height !== h) {
+    _imgBuf = new ImageData(w, h)
+  }
+  return _imgBuf
 }
 
 const THOUGHT_COLORS: Record<string, string> = {
@@ -122,6 +149,7 @@ function drawWorldOnCanvas(
   viewFlags: ViewFlags,
 ) {
   const { width, height, tiles, fire_intensity, biomes, structure } = world.grid
+  const depthGrid = world.grid.depth_map
   const ox = world.grid.origin_x ?? 0
   const oy = world.grid.origin_y ?? 0
   const animals = world.animals ?? []
@@ -129,9 +157,65 @@ function drawWorldOnCanvas(
   const H = height * TILE
   const t = Date.now()
 
-  ctx.clearRect(0, 0, W, H)
+  // ── Pass 1: Pixel-buffer base layer (tiles + biome blend, zero canvas API) ──
+  // Replaces 360k fillRect calls with a single putImageData. The ImageData
+  // buffer is allocated once at module level and reused every frame.
+  {
+    const imgData = getReuseImgData(W, H)
+    const d = imgData.data
+    for (let row = 0; row < height; row++) {
+      const tileRow  = tiles[row]
+      const biomeRow = biomes?.[row]
+      const depthRow = depthGrid?.[row]
+      for (let col = 0; col < width; col++) {
+        const tid = tileRow?.[col] ?? 0
+        const rgb = TILE_RGB[tid] ?? TILE_RGB[0]
+        let [r, g, b] = rgb
 
-  // Season sky tint (drawn behind everything)
+        // Water depth shading: 4-tier ocean depth based on depth_map
+        // depth_map value: 0=deepest ocean, 200=shallowest coast, 255=land sentinel
+        if (tid === 2 && depthRow) {
+          const dv = depthRow[col]
+          if (dv < 255) {
+            // t = 0 (coast/shallow) → 1 (deep ocean)
+            const t_ = 1 - dv / 200
+            // Shallow coastal blue → open ocean blue (subtle gradient, no dark corners)
+            r = (100 - t_ * 28) | 0  // 100 (coast) → 72 (deep)
+            g = (170 - t_ * 42) | 0  // 170 → 128
+            b = (220 - t_ * 30) | 0  // 220 → 190
+          }
+        }
+
+        // Biome overlay — alpha-blend for grass-family tiles only.
+        // Skip water (2), rock (5), snow (12) — they have their own look.
+        if (tid !== 2 && tid !== 5 && tid !== 12) {
+          const bm = biomeRow?.[col] ?? 0
+          const bo = BIOME_RGBA[bm]
+          if (bo) {
+            const a = bo[3]
+            if (a > 0) {
+              const ia = 1 - a
+              r = (r * ia + bo[0] * a) | 0
+              g = (g * ia + bo[1] * a) | 0
+              b = (b * ia + bo[2] * a) | 0
+            }
+          }
+        }
+
+        // Write TILE×TILE block
+        const bx = col * TILE, by = row * TILE
+        for (let ty = 0; ty < TILE; ty++) {
+          let pi = ((by + ty) * W + bx) * 4
+          for (let tx = 0; tx < TILE; tx++, pi += 4) {
+            d[pi] = r; d[pi+1] = g; d[pi+2] = b; d[pi+3] = 255
+          }
+        }
+      }
+    }
+    ctx.putImageData(imgData, 0, 0)
+  }
+
+  // Season sky tint (thin transparent pass over the already-drawn tiles)
   const seasonTints: Record<string, string> = {
     decline:  'rgba(180,110,30,0.07)',
     scarcity: 'rgba(90,60,30,0.11)',
@@ -140,24 +224,14 @@ function drawWorldOnCanvas(
   const skyTint = seasonTints[world.season]
   if (skyTint) { ctx.fillStyle = skyTint; ctx.fillRect(0, 0, W, H) }
 
-  // Draw tiles + biome overlay
+  // ── Pass 2: Special tile visuals (fire glow, campfires, huts) ───────────────
+  // Only iterates tiles that need extra rendering — typically <1% of tiles.
   for (let row = 0; row < height; row++) {
     for (let col = 0; col < width; col++) {
       const t = tiles[row][col]
+      if (t !== 4 && t !== 7 && t !== 8) continue  // skip 99%+ of tiles
       const px = col * TILE
       const py = row * TILE
-
-      ctx.fillStyle = TILE_COLORS[t] ?? '#111'
-      ctx.fillRect(px, py, TILE, TILE)
-
-      // Biome tint
-      if (biomes) {
-        const b = biomes[row][col]
-        if (b !== undefined) {
-          ctx.fillStyle = BIOME_OVERLAYS[b] ?? ''
-          if (ctx.fillStyle) ctx.fillRect(px, py, TILE, TILE)
-        }
-      }
 
       // Fire glow
       if (t === 4 && fire_intensity) {
@@ -171,7 +245,6 @@ function drawWorldOnCanvas(
         const fi = fire_intensity[row][col]
         ctx.fillStyle = `rgba(255,200,80,${fi * 0.7})`
         ctx.fillRect(px, py, TILE, TILE)
-        // soft halo on surrounding 2 tiles
         ctx.fillStyle = `rgba(255,160,40,${fi * 0.12})`
         ctx.fillRect(px - TILE * 2, py - TILE * 2, TILE * 5, TILE * 5)
       }
@@ -179,10 +252,8 @@ function drawWorldOnCanvas(
       // Hut — roof triangle + walls
       if (t === 8) {
         const cx2 = px + TILE / 2
-        // warm inner glow
         ctx.fillStyle = 'rgba(255,220,120,0.18)'
         ctx.fillRect(px - TILE, py - TILE, TILE * 3, TILE * 3)
-        // roof
         ctx.fillStyle = '#6b3a0a'
         ctx.beginPath()
         ctx.moveTo(cx2, py + 1)
@@ -190,10 +261,8 @@ function drawWorldOnCanvas(
         ctx.lineTo(px + 1,        py + TILE * 0.55)
         ctx.closePath()
         ctx.fill()
-        // walls
         ctx.fillStyle = '#c8a060'
         ctx.fillRect(px + 2, py + TILE * 0.55, TILE - 4, TILE * 0.45 - 1)
-        // door
         ctx.fillStyle = '#3a1a00'
         ctx.fillRect(cx2 - 1, py + TILE * 0.7, 3, TILE * 0.3 - 1)
       }
@@ -544,6 +613,17 @@ function WorldTextureUpdater({ world, selectedOrgId, overlay, focus, viewFlags }
     if (rs.touchTexture) rs.touchTexture(texKeyRef.current)
 
     initialised.current = true
+
+    // Cleanup on unmount — delete the GL texture to prevent VRAM leaks on HMR/remount
+    return () => {
+      try {
+        const cleanGl: WebGL2RenderingContext = (engine as any).activeRenderSystem.gl
+        if (glTexRef.current) { cleanGl.deleteTexture(glTexRef.current); glTexRef.current = null }
+      } catch (_) {}
+      offscreen.current    = null
+      initialised.current  = false
+      _imgBuf = null  // release module-level pixel buffer
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Re-draw and re-upload whenever world changes
@@ -593,8 +673,8 @@ function CameraController({
     if (initialised.current) return
     const tx = worldW / 2
     const ty = worldH / 2
-    // Fit world to container so there's no blue background
-    const fitZoom = Math.min(containerW / worldW, containerH / worldH) * 0.80
+    // Fit world to container — clamp so we never start more zoomed-out than min
+    const fitZoom = Math.max(0.35, Math.min(containerW / worldW, containerH / worldH) * 0.95)
     let raf = 0
     const trySet = () => {
       camera.setPosition(tx, ty)
@@ -612,12 +692,25 @@ function CameraController({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Follow a target organism
+  // Follow a target organism — pan to it AND zoom in so it fills the view
+  const prevFollowRef = useRef<{ x: number; y: number } | null>(null)
   useEffect(() => {
     if (!followTarget) return
+    const prev = prevFollowRef.current
+    // Zoom in when we first lock onto a new target (position changed significantly)
+    const isNewTarget = !prev
+      || Math.abs(prev.x - followTarget.x) > 30
+      || Math.abs(prev.y - followTarget.y) > 30
     camera.setPosition(followTarget.x, followTarget.y)
     cameraStateRef.current.x = followTarget.x
     cameraStateRef.current.y = followTarget.y
+    if (isNewTarget) {
+      // Zoom to a comfortable close-up level (3.5× = clearly individual organism)
+      const TRACK_ZOOM = 3.5
+      camera.setZoom(TRACK_ZOOM)
+      cameraStateRef.current.zoom = TRACK_ZOOM
+    }
+    prevFollowRef.current = { x: followTarget.x, y: followTarget.y }
   }, [followTarget, camera, cameraStateRef])
 
   useEffect(() => {
@@ -644,7 +737,7 @@ function CameraController({
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
       const factor = e.deltaY < 0 ? 1.1 : 0.9
-      const nz = Math.max(0.05, Math.min(8, camera.getZoom() * factor))
+      const nz = Math.max(0.35, Math.min(8, camera.getZoom() * factor))
       camera.setZoom(nz)
       cameraStateRef.current.zoom = nz
     }
