@@ -77,14 +77,16 @@ pub struct ThoughtEntry {
     pub text: String,
 }
 
-/// A stored exchange between two organisms — courtship, bonded talk, or farewell.
+/// A stored exchange between two organisms — courtship, bonded talk, farewell, chat, or argue.
 #[derive(Clone, Serialize, serde::Deserialize)]
 pub struct ConversationEntry {
     pub tick:      u64,
     pub with_name: String,
     pub with_id:   String,
-    pub kind:      String,             // "courtship" | "bonded" | "farewell"
+    pub kind:      String,             // "courtship" | "bonded" | "farewell" | "chat" | "argue"
     pub lines:     Vec<[String; 2]>,   // [speaker_name, utterance]
+    #[serde(default)]
+    pub meanings:  Vec<String>,        // English translation of each line
 }
 
 pub struct Organism {
@@ -834,6 +836,57 @@ impl Organism {
             }
         }
 
+        // ── Play behaviour (young) ────────────────────────────────────────────
+        // Juveniles run around excitedly, especially when kin are nearby.
+        if self.age < 900 && self.energy > 0.6 && self.hydration > 0.6 && !night {
+            let kin_nearby = organisms.iter().any(|o| {
+                !std::ptr::eq(o, self) && o.alive && o.lineage_id == self.lineage_id
+                    && (o.x - self.x).abs() + (o.y - self.y).abs() <= 8.0
+            });
+            let play_prob = if kin_nearby { 0.04 } else { 0.015 };
+            if rng.gen::<f32>() < play_prob * self.traits.curiosity {
+                let play_thoughts = ["playing", "chasing", "exploring with curiosity", "bounding around"];
+                set_thought!(play_thoughts[rng.gen_range(0..play_thoughts.len())]);
+                return (rng.gen_range(0..8), thought);
+            }
+        }
+
+        // ── Campfire socialising ──────────────────────────────────────────────
+        // Near a campfire with kin → linger and socialise rather than wander off
+        {
+            let near_fire = (-3i32..=3).any(|dx| (-3i32..=3).any(|dy| {
+                matches!(grid.get(ix + dx, iy + dy), Tile::Campfire)
+            }));
+            let kin_nearby = organisms.iter().filter(|o| {
+                !std::ptr::eq(*o, self) && o.alive && o.lineage_id == self.lineage_id
+                    && (o.x - self.x).abs() + (o.y - self.y).abs() <= 6.0
+            }).count();
+            if near_fire && kin_nearby >= 1 && self.energy > 0.5 && self.hydration > 0.5 {
+                if rng.gen::<f32>() < 0.12 * self.traits.social_tendency {
+                    let s = ["socialising by the fire", "warming by the fire",
+                             "telling stories", "resting with kin",
+                             "tending the fire", "sharing a meal"];
+                    set_thought!(s[rng.gen_range(0..s.len())]);
+                    return (rng.gen_range(0..8), thought);  // micro-movement in place
+                }
+            }
+        }
+
+        // ── Altruism: lead hungry kin to food ─────────────────────────────────
+        if self.energy > 0.82 && needs_ok {
+            let hungry_kin_nearby = organisms.iter().any(|o| {
+                !std::ptr::eq(o, self) && o.alive && o.lineage_id == self.lineage_id
+                    && o.energy < 0.30
+                    && (o.x - self.x).abs() + (o.y - self.y).abs() <= 14.0
+            });
+            if hungry_kin_nearby {
+                if let Some(f) = self.nearest_visible(grid, Tile::Food, 12) {
+                    set_thought!("leading kin to food");
+                    return (self.toward(f, grid), thought);
+                }
+            }
+        }
+
         // Young organisms imprint on and follow their lineage elder
         if self.age < 150 {
             let elder_pos: Option<(i32, i32)> = organisms.iter()
@@ -954,7 +1007,7 @@ impl Organism {
             }
         }
 
-        // Q-learning / exploration
+        // Q-learning / exploration — varied thoughts so no organism just says "exploring"
         let eff_eps = (epsilon * (0.5 + self.traits.curiosity)).max(0.05).min(0.95);
         if rng.gen::<f32>() < eff_eps {
             // Low path-trail following during exploration — prevents snowball clustering
@@ -963,7 +1016,21 @@ impl Organism {
                     return (self.toward(p, grid), thought);
                 }
             }
-            set_thought!("exploring");
+            // Pick an alive-feeling description based on context
+            let explore_thought = if night {
+                let opts = ["watching the stars", "listening to the dark",
+                            "patrolling at night", "restless"];
+                opts[rng.gen_range(0..opts.len())]
+            } else if self.traits.curiosity > 0.65 {
+                let opts = ["scouting ahead", "investigating", "searching for something new",
+                            "following a scent", "pushing further out"];
+                opts[rng.gen_range(0..opts.len())]
+            } else {
+                let opts = ["foraging", "wandering", "looking around",
+                            "exploring", "checking the area", "roaming"];
+                opts[rng.gen_range(0..opts.len())]
+            };
+            set_thought!(explore_thought);
             return (rng.gen_range(0..N_ACTIONS), thought);
         }
 

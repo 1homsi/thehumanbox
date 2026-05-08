@@ -3,6 +3,15 @@ export interface ThoughtEntry {
   text: string
 }
 
+export interface ConversationEntry {
+  tick:      number
+  with_name: string
+  with_id:   string
+  kind:      'courtship' | 'bonded' | 'farewell' | 'chat' | 'argue' | 'excited'
+  lines:     [string, string][]   // [speaker_name, utterance]
+  meanings?: string[]             // English caption for each line
+}
+
 export interface Traits {
   curiosity: number
   aggression: number
@@ -49,6 +58,13 @@ export interface OrganismState {
   comfort?:     number
   grief_ticks?: number
   sleep_debt?:  number
+  partner_id?:     string | null
+  father_id?:      string | null   // biological father (may differ from mother's partner)
+  children_count?: number
+  sex?:            'male' | 'female'
+  pregnant?:       boolean
+  attracted_to?:   string | null
+  conversations?:  ConversationEntry[]
 }
 
 export interface AnimalState {
@@ -109,6 +125,7 @@ export interface WorldState {
     fertility_map?: number[][]
     hazard_map?: number[][]
     pressure_map?: number[][]
+    depth_map?: number[][]
   }
   organisms: OrganismState[]
   animals: AnimalState[]
@@ -125,4 +142,5 @@ export interface WorldState {
   tribal_relations: TribalRelation[]
   lineage_sizes: { id: string; count: number }[]
   current_era?: string
+  sex_words?:   [string, string]   // [0]=word for male biology, [1]=word for female biology — coined by founding generation
 }
