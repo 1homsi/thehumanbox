@@ -116,9 +116,9 @@ function App() {
             </svg>
             GitHub
           </a>
-          <span className={`status ${connected ? 'online' : 'offline'}`}>
+          <span className={`status ${connected && world ? 'online' : 'offline'}`}>
             <span className="status-dot" />
-            {connected ? 'LIVE' : 'connecting...'}
+            {connected && world ? 'LIVE' : 'connecting...'}
           </span>
           {world && <Tooltip tip={`Simulation tick ${world.tick.toLocaleString()} — 600 ticks = 1 in-world day · ${Math.floor(world.tick / 600)} days elapsed`}><span className="tick" style={{ cursor: 'default' }}>tick {world.tick.toLocaleString()}</span></Tooltip>}
         </div>
