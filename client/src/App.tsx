@@ -37,7 +37,7 @@ function App() {
   const [isFullscreen,   setIsFullscreen]   = useState(false)
   const [focus,          setFocus]          = useState<string>('all')
   const [viewFlags,      setViewFlags]      = useState({
-    territory: true, names: true, thoughts: true, animals: true, grid: false,
+    territory: false, names: true, thoughts: true, animals: true, grid: false,
   })
   const moreRef = useRef<HTMLDivElement>(null)
 
