@@ -309,6 +309,7 @@ function App() {
                   onFollow={handleFollow}
                   following={followOrgId === selectedOrg.id}
                   lineageNames={world?.lineage_names}
+                  organisms={world?.organisms}
                 />
               )}
 

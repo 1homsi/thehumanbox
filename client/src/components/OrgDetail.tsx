@@ -42,12 +42,15 @@ interface Props {
   onFollow: (id: string | null) => void
   following: boolean
   lineageNames?: Record<string, string>
+  organisms?: OrganismState[]
 }
 
-export function OrgDetail({ org, onClose, onFollow, following, lineageNames }: Props) {
+export function OrgDetail({ org, onClose, onFollow, following, lineageNames, organisms }: Props) {
   const detail    = useOrgDetail(org.id)
   /** Resolve a lineage_id to its tribe name, falling back to first 6 chars. */
   const tn = (lid: string) => lineageNames?.[lid] ?? lid.slice(0, 6)
+  /** Resolve an organism id to its name, falling back to first 5 chars of id. */
+  const on = (oid: string) => organisms?.find(o => o.id === oid)?.name ?? oid.slice(0, 5)
   const ageInDays = Math.floor(org.age / DAY_LENGTH)
   const color     = lineageColor(org.lineage_id)
   const isSick   = org.infection > 0.15
@@ -157,13 +160,13 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames }: P
           <div className="org-detail-section">PERSONAL BONDS</div>
           <div className="relation-list">
             {trustedOrgs.slice(0, 4).map(([oid, v]) => (
-              <Tooltip key={oid} tip={`Trusts individual ${oid.slice(0, 5)} — personal bond at ${(v * 100).toFixed(0)}%. Built through shared experiences and cooperation.`}>
-                <span className="relation-tag ally" style={{ fontSize: '9px', cursor: 'default' }}>◆ {oid.slice(0, 5)} {(v * 100).toFixed(0)}</span>
+              <Tooltip key={oid} tip={`Trusts ${on(oid)} — personal bond at ${(v * 100).toFixed(0)}%. Built through shared experiences and cooperation.`}>
+                <span className="relation-tag ally" style={{ fontSize: '9px', cursor: 'default' }}>◆ {on(oid)} {(v * 100).toFixed(0)}</span>
               </Tooltip>
             ))}
             {fearedOrgs.slice(0, 4).map(([oid, v]) => (
-              <Tooltip key={oid} tip={`Fears individual ${oid.slice(0, 5)} — negative bond at ${(Math.abs(v) * 100).toFixed(0)}%. Result of past conflict or aggression.`}>
-                <span className="relation-tag enemy" style={{ fontSize: '9px', cursor: 'default' }}>◇ {oid.slice(0, 5)} {(v * 100).toFixed(0)}</span>
+              <Tooltip key={oid} tip={`Fears ${on(oid)} — negative bond at ${(Math.abs(v) * 100).toFixed(0)}%. Result of past conflict or aggression.`}>
+                <span className="relation-tag enemy" style={{ fontSize: '9px', cursor: 'default' }}>◇ {on(oid)} {(v * 100).toFixed(0)}</span>
               </Tooltip>
             ))}
           </div>
