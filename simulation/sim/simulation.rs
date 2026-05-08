@@ -1965,6 +1965,7 @@ impl Simulation {
     fn check_animal_catches(&mut self) {
         // Collect (org_idx, animal_idx) where they're adjacent
         let mut to_catch: Vec<(usize, usize)> = Vec::new();
+        let organism_spatial = SpatialIndex::build(&self.organisms, 10);
         for (oi, org) in self.organisms.iter().enumerate() {
             if !org.alive { continue; }
             let (ox, oy) = (org.x as i32, org.y as i32);
@@ -1999,10 +2000,18 @@ impl Simulation {
                 || self.organisms[oi].discoveries.contains("spear");
             let tool_bonus = if has_tools { 0.10 } else { 0.0 };
             // Pack hunting: 3+ kin within 5 tiles = coordinated group hunt
-            let pack_kin = self.organisms.iter()
-                .filter(|o| o.alive && o.lineage_id == self.organisms[oi].lineage_id)
-                .filter(|o| (o.x - self.organisms[oi].x).abs() + (o.y - self.organisms[oi].y).abs() <= 5.0)
-                .count().saturating_sub(1);
+            let hunter_lid = self.organisms[oi].lineage_id.clone();
+            let hunter_x = self.organisms[oi].x;
+            let hunter_y = self.organisms[oi].y;
+            let pack_kin = organism_spatial.query(hunter_x as i32, hunter_y as i32, 5)
+                .into_iter()
+                .filter(|&i| i != oi)
+                .filter(|&i| {
+                    let o = &self.organisms[i];
+                    o.alive && o.lineage_id == hunter_lid
+                        && (o.x - hunter_x).abs() + (o.y - hunter_y).abs() <= 5.0
+                })
+                .count();
             let pack_bonus = if pack_kin >= 3 { 0.14 } else if pack_kin >= 1 { 0.06 } else { 0.0 };
             if pack_kin >= 2 {
                 let name = self.organisms[oi].name.clone();
@@ -2025,7 +2034,7 @@ impl Simulation {
     fn broadcast_discovery(&mut self, actor_idx: usize, x: i32, y: i32,
                            rtype: &str, radius: i32) {
         let (ax, ay) = (self.organisms[actor_idx].x, self.organisms[actor_idx].y);
-        for i in 0..self.organisms.len() {
+        for i in self.current_nearby_organisms(ax as i32, ay as i32, radius) {
             if i == actor_idx || !self.organisms[i].alive { continue; }
             let dist = ((self.organisms[i].x - ax).abs() + (self.organisms[i].y - ay).abs()) as i32;
             if dist > radius { continue; }
@@ -2038,6 +2047,18 @@ impl Simulation {
                 _ => {}
             }
         }
+    }
+
+    fn current_nearby_organisms(&self, x: i32, y: i32, radius: i32) -> Vec<usize> {
+        let spatial = SpatialIndex::build(&self.organisms, 10);
+        spatial.query(x, y, radius)
+            .into_iter()
+            .filter(|&i| {
+                let o = &self.organisms[i];
+                o.alive
+                    && ((o.x as i32 - x).abs() + (o.y as i32 - y).abs()) <= radius
+            })
+            .collect()
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -2847,5 +2868,32 @@ mod tests {
         assert!(ids.contains(&near_id));
         assert!(!ids.contains(&far_id));
         assert_eq!(state["organisms_complete"], false);
+    }
+
+    #[test]
+    fn current_position_spatial_query_excludes_far_organisms() {
+        let mut sim = Simulation::new(23);
+        let center_idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+        sim.organisms[center_idx].x = 20.0;
+        sim.organisms[center_idx].y = 20.0;
+
+        let near_idx = sim.organisms.iter().enumerate()
+            .find(|(i, o)| *i != center_idx && o.alive)
+            .map(|(i, _)| i)
+            .unwrap();
+        sim.organisms[near_idx].x = 24.0;
+        sim.organisms[near_idx].y = 20.0;
+
+        let far_idx = sim.organisms.iter().enumerate()
+            .find(|(i, o)| *i != center_idx && *i != near_idx && o.alive)
+            .map(|(i, _)| i)
+            .unwrap();
+        sim.organisms[far_idx].x = 80.0;
+        sim.organisms[far_idx].y = 80.0;
+
+        let nearby = sim.current_nearby_organisms(20, 20, 6);
+        assert!(nearby.contains(&center_idx));
+        assert!(nearby.contains(&near_idx));
+        assert!(!nearby.contains(&far_idx));
     }
 }
