@@ -148,7 +148,9 @@ export interface WorldState {
   tick: number
   grid: GridState
   organisms: OrganismState[]
+  organisms_complete?: boolean
   animals: AnimalState[]
+  animals_complete?: boolean
   events: SimEvent[]
   is_day: boolean
   day_progress: number

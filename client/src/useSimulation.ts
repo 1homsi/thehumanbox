@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { WorldState, GridState, GridWire } from './types'
+import type { WorldState, GridState, GridWire, OrganismState, AnimalState } from './types'
 import { WS_BASE } from './config'
 
 const WS_URL = `${WS_BASE}/ws`
@@ -40,6 +40,8 @@ export function useSimulation() {
   const [world, setWorld]     = useState<WorldState | null>(null)
   const [connected, setConnected] = useState(false)
   const wsRef      = useRef<WebSocket | null>(null)
+  const organismCache = useRef<Map<string, OrganismState>>(new Map())
+  const animalCache   = useRef<Map<number, AnimalState>>(new Map())
   // RAF buffering — newest WS message wins; we only parse+setState once per
   // animation frame regardless of how fast the server sends.
   const latestMsg  = useRef<string | null>(null)
@@ -56,7 +58,25 @@ export function useSimulation() {
           const parsed = JSON.parse(latestMsg.current) as Omit<WorldState, 'grid'> & { grid: GridWire }
           const grid   = applyGridWire(parsed.grid, gridCache.current)
           gridCache.current = grid
-          setWorld({ ...parsed, grid })
+
+          if (parsed.organisms_complete) {
+            organismCache.current = new Map(parsed.organisms.map(o => [o.id, o]))
+          } else {
+            for (const org of parsed.organisms) organismCache.current.set(org.id, org)
+          }
+
+          if (parsed.animals_complete) {
+            animalCache.current = new Map(parsed.animals.map(a => [a.id, a]))
+          } else {
+            for (const animal of parsed.animals) animalCache.current.set(animal.id, animal)
+          }
+
+          setWorld({
+            ...parsed,
+            grid,
+            organisms: [...organismCache.current.values()],
+            animals: [...animalCache.current.values()],
+          })
         } catch (_) {}
         latestMsg.current = null
       }

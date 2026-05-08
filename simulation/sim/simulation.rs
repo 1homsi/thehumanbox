@@ -2302,6 +2302,11 @@ impl Simulation {
         self.state_json_inner(cx, cy, true)  // initial snapshot — always include static
     }
 
+    pub fn state_json_incremental(&mut self) -> serde_json::Value {
+        let (cx, cy) = self.viewport_centroid();
+        self.state_json_inner(cx, cy, false)
+    }
+
     // Explicit viewport center — called from main loop with client-supplied position
     pub fn state_json_at(&mut self, vp_cx: i32, vp_cy: i32) -> serde_json::Value {
         self.state_json_inner(vp_cx, vp_cy, false)
@@ -2381,12 +2386,32 @@ impl Simulation {
         let grid_json = self.grid.to_json_viewport(vp_cx, vp_cy,
             crate::world::grid::VP_W, crate::world::grid::VP_H,
             include_tiles, include_static);
+        let include_all_entities = force_full || self.tick_count % 30 == 0 || self.tick_count <= 1;
+        let left = vp_cx - crate::world::grid::VP_W as i32 / 2 - 8;
+        let right = vp_cx + crate::world::grid::VP_W as i32 / 2 + 8;
+        let top = vp_cy - crate::world::grid::VP_H as i32 / 2 - 8;
+        let bottom = vp_cy + crate::world::grid::VP_H as i32 / 2 + 8;
+        let in_view = |x: f32, y: f32| {
+            let x = x as i32;
+            let y = y as i32;
+            x >= left && x <= right && y >= top && y <= bottom
+        };
+        let organisms_json = self.organisms.iter()
+            .filter(|o| o.alive && (include_all_entities || in_view(o.x, o.y)))
+            .map(|o| serde_json::to_value(o.to_json()).unwrap())
+            .collect::<Vec<_>>();
+        let animals_json = self.animals.iter()
+            .filter(|a| include_all_entities || in_view(a.x, a.y))
+            .map(|a| serde_json::to_value(a.to_json()).unwrap())
+            .collect::<Vec<_>>();
 
         json!({
             "tick":            self.tick_count,
             "grid":            serde_json::to_value(grid_json).unwrap(),
-            "organisms":       self.organisms.iter().filter(|o| o.alive).map(|o| serde_json::to_value(o.to_json()).unwrap()).collect::<Vec<_>>(),
-            "animals":         self.animals.iter().map(|a| serde_json::to_value(a.to_json()).unwrap()).collect::<Vec<_>>(),
+            "organisms":       organisms_json,
+            "organisms_complete": include_all_entities,
+            "animals":         animals_json,
+            "animals_complete": include_all_entities,
             "events":          serde_json::to_value(&self.events).unwrap(),
             "is_day":          !self.is_night(),
             "day_progress":    ((self.tick_count % DAY_LENGTH) as f32 / DAY_LENGTH as f32 * 1000.0).round() / 1000.0,
@@ -2794,5 +2819,33 @@ mod tests {
         assert_eq!(trigger.social_tendency, 0.34);
         assert_eq!(trigger.curiosity, 0.56);
         assert_eq!(trigger.resilience, 0.78);
+    }
+
+    #[test]
+    fn viewport_state_excludes_far_organisms_on_incremental_ticks() {
+        let mut sim = Simulation::new(19);
+        sim.tick_count = 2;
+        let near_idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+        sim.organisms[near_idx].x = 10.0;
+        sim.organisms[near_idx].y = 10.0;
+        let near_id = sim.organisms[near_idx].id.clone();
+
+        let far_idx = sim.organisms.iter().enumerate()
+            .find(|(i, o)| *i != near_idx && o.alive)
+            .map(|(i, _)| i)
+            .unwrap();
+        sim.organisms[far_idx].x = (WIDTH - 10) as f32;
+        sim.organisms[far_idx].y = (HEIGHT - 10) as f32;
+        let far_id = sim.organisms[far_idx].id.clone();
+
+        let state = sim.state_json_at(10, 10);
+        let ids: Vec<String> = state["organisms"].as_array().unwrap()
+            .iter()
+            .filter_map(|o| o["id"].as_str().map(|s| s.to_string()))
+            .collect();
+
+        assert!(ids.contains(&near_id));
+        assert!(!ids.contains(&far_id));
+        assert_eq!(state["organisms_complete"], false);
     }
 }
