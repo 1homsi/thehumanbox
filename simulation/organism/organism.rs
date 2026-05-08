@@ -5,7 +5,7 @@ use super::traits::Traits;
 use super::vocabulary::Vocabulary;
 use crate::world::{grid::{WorldGrid, TrailKind}, tiles::Tile};
 
-pub const N_ACTIONS: usize = 17;
+pub const N_ACTIONS: usize = 18; // 0-7=move, 8=eat, 9=drink, 10=signal, 11=alarm, 12=challenge, 13=gift, 14=gather, 15=fire, 16=groom, 17=rest(no-op)
 
 pub const DIRECTIONS: [(i32, i32); 8] =
     [(0,-1),(0,1),(-1,0),(1,0),(-1,-1),(1,-1),(-1,1),(1,1)];
@@ -754,7 +754,7 @@ impl Organism {
             // Sheltered: rest readily — even light sleep debt triggers rest
             if ns && self.sleep_debt > 0.08 && self.energy > 0.25 && rng.gen::<f32>() < 0.65 {
                 set_thought!("resting");
-                return (rng.gen_range(0..8), thought);
+                return (17, thought); // REST: stay in place
             }
             // Not sheltered: seek any structure, then campfire
             if !ns && self.hydration > 0.25 {
@@ -780,7 +780,7 @@ impl Organism {
         // Mourning: reduced agency for a spell after witnessing kin death
         if self.grief_ticks > 40 && rng.gen::<f32>() < 0.45 {
             set_thought!("mourning kin");
-            return (rng.gen_range(0..8), thought);
+            return (17, thought); // REST: stay in place while grieving
         }
 
         // Rest near shelter — health recovery, grief, sleep debt
@@ -789,7 +789,7 @@ impl Organism {
             || (self.grief_ticks > 0 && self.near_shelter(grid));
         if should_rest && self.near_shelter(grid) && rng.gen::<f32>() < 0.52 {
             set_thought!("resting");
-            return (rng.gen_range(0..8), thought);
+            return (17, thought); // REST: stay in place
         }
 
         // Ollama directive — intentional goal that overrides default behaviour
@@ -867,7 +867,7 @@ impl Organism {
                              "telling stories", "resting with kin",
                              "tending the fire", "sharing a meal"];
                     set_thought!(s[rng.gen_range(0..s.len())]);
-                    return (rng.gen_range(0..8), thought);  // micro-movement in place
+                    return (17, thought); // REST: linger by fire, don't drift
                 }
             }
         }
@@ -1046,7 +1046,7 @@ impl Organism {
         let (ix, iy) = (self.x as i32, self.y as i32);
         (-2i32..=2).any(|dx| (-2i32..=2).any(|dy| {
             let nx = ix + dx; let ny = iy + dy;
-            matches!(grid.get(nx, ny), Tile::Hut | Tile::Rock)
+            matches!(grid.get(nx, ny), Tile::Hut | Tile::Rock | Tile::Campfire)
                 || grid.structure_at(nx, ny) >= 0.35
         }))
     }
