@@ -371,29 +371,34 @@ function drawWorldOnCanvas(
     }
   }
 
-  // Territory overlay — radial halo around each organism, drawn outward from org
-  // O(orgs × radius²) instead of O(width × height × orgs) — far faster at large radii
+  // Territory Voronoi overlay — each coarse block colored by nearest organism's lineage
+  // BLOCK=4 tiles per cell → ~100×67 cells × orgs iterations, runs at world-update rate (~300ms)
   const liveOrgs = world.organisms.filter(o => o.alive && o.lineage_id)
   if (viewFlags.territory && liveOrgs.length > 0) {
-    const RADIUS = 20
-    const vportOrgs = liveOrgs.filter(o => {
-      const cx2 = o.x - ox, cy2 = o.y - oy
-      return cx2 >= -RADIUS && cx2 < width + RADIUS && cy2 >= -RADIUS && cy2 < height + RADIUS
-    })
-    for (const org of vportOrgs) {
-      const otx = Math.round(org.x - ox)
-      const oty = Math.round(org.y - oy)
-      // Pre-compute HSLA prefix once per organism, e.g. "hsla(120, 90%, 75%, "
-      const hslaPrefix = lineageColor(org.lineage_id).replace('hsl(', 'hsla(').replace(')', ', ')
-      for (let dy = -RADIUS; dy <= RADIUS; dy++) {
-        for (let dx = -RADIUS; dx <= RADIUS; dx++) {
-          const d = Math.sqrt(dx * dx + dy * dy)
-          if (d > RADIUS) continue
-          const nx = otx + dx, ny = oty + dy
-          if (nx < 0 || ny < 0 || ny >= height || nx >= width) continue
-          const alpha = 0.28 * (1 - d / RADIUS)
-          ctx.fillStyle = `${hslaPrefix}${alpha.toFixed(3)})`
-          ctx.fillRect(nx * TILE, ny * TILE, TILE, TILE)
+    const BLOCK = 4  // tiles per Voronoi cell
+    const bw = Math.ceil(width  / BLOCK)
+    const bh = Math.ceil(height / BLOCK)
+    // Pre-convert each organism's position and colour once
+    const orgData = liveOrgs.map(o => ({
+      tx: o.x - ox,
+      ty: o.y - oy,
+      fill: lineageColor(o.lineage_id).replace('hsl(', 'hsla(').replace(')', ', 0.42)'),
+    }))
+    for (let by = 0; by < bh; by++) {
+      for (let bx = 0; bx < bw; bx++) {
+        // Centre of this block in tile-space
+        const cx2 = bx * BLOCK + BLOCK * 0.5
+        const cy2 = by * BLOCK + BLOCK * 0.5
+        let bestFill = ''
+        let bestDist = Infinity
+        for (const od of orgData) {
+          const dx = od.tx - cx2, dy = od.ty - cy2
+          const d = dx * dx + dy * dy   // skip sqrt — only need relative order
+          if (d < bestDist) { bestDist = d; bestFill = od.fill }
+        }
+        if (bestFill) {
+          ctx.fillStyle = bestFill
+          ctx.fillRect(bx * BLOCK * TILE, by * BLOCK * TILE, BLOCK * TILE, BLOCK * TILE)
         }
       }
     }
