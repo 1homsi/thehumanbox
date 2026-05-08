@@ -304,13 +304,11 @@ impl Organism {
             self.loneliness = (self.loneliness - kin_near as f32 * 0.012).max(0.0);
         }
 
-        // Boredom: grows whenever needs are adequately met and no threat.
-        // Lower threshold (was 0.75/0.75) so organisms get restless sooner
-        // and don't just sit at water sources indefinitely.
-        if self.energy > 0.50 && self.hydration > 0.50 && !hostile_near {
-            self.boredom = (self.boredom + 0.0005).min(1.0);
+        // Boredom always builds — only suppressed when critically needy or threatened.
+        if hostile_near || self.energy < 0.25 || self.hydration < 0.25 {
+            self.boredom = (self.boredom - 0.002).max(0.0);
         } else {
-            self.boredom = (self.boredom - 0.003).max(0.0);
+            self.boredom = (self.boredom + 0.002).min(1.0);
         }
 
         // Fear: spikes with enemies or crisis, bleeds off slowly
@@ -347,33 +345,48 @@ impl Organism {
             self.energy = (self.energy - drain).max(0.0);
         }
 
-        // Wanderlust: track time in same 10×10 region, eventually set a wander target
+        // Wanderlust: boredom-based AND time-based exploration pulses.
+        // Boredom gate: stayed in same 10×10 region too long → pick a far target.
         let cell = (self.x as i32 / 10, self.y as i32 / 10);
         if cell == self.last_area_cell {
             self.area_ticks = self.area_ticks.saturating_add(1);
-            // Set wander target when stuck in same region and bored + healthy enough.
-            // Lower thresholds so organisms explore much more readily.
-            if self.area_ticks > 200 && self.boredom > 0.45
-               && self.wander_target.is_none()
-               && self.energy > 0.45 && self.hydration > 0.45
-            {
+            if self.area_ticks > 60 && self.boredom > 0.20 && self.wander_target.is_none() {
                 let hash = self.id.bytes().fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
                 let angle = ((hash ^ tick) as f32) * 0.0000014;
-                // Much larger wander range so organisms spread across the whole world
-                let dist  = 35.0 + self.boredom * 80.0;
+                let dist  = 100.0 + self.traits.curiosity * 180.0; // 100–280 tiles
                 let tx = (self.x + angle.sin() * dist).round() as i32;
                 let ty = (self.y + angle.cos() * dist).round() as i32;
-                // Fixed: full world bounds (was wrongly capped at 195×95 — only top-left corner)
                 self.wander_target = Some((tx.clamp(5, 595), ty.clamp(5, 295)));
             }
         } else {
             self.last_area_cell = cell;
             self.area_ticks     = 0;
-            // Clear wander target once we've entered a new region
             if let Some(wt) = self.wander_target {
-                if (wt.0 - self.x as i32).abs() + (wt.1 - self.y as i32).abs() < 12 {
+                if (wt.0 - self.x as i32).abs() + (wt.1 - self.y as i32).abs() < 8 {
                     self.wander_target = None;
                 }
+            }
+        }
+
+        // Clear wander target once arrived (within 6 tiles)
+        if let Some(wt) = self.wander_target {
+            if (wt.0 - self.x as i32).abs() + (wt.1 - self.y as i32).abs() <= 6 {
+                self.wander_target = None;
+            }
+        }
+
+        // Periodic pulse: every 600–900 ticks (1–1.5 sim-days) each organism picks a new
+        // distant destination, staggered by their ID so they don't all move in sync.
+        if self.wander_target.is_none() {
+            let id_hash = self.id.bytes().fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
+            let period  = (900u64).saturating_sub((self.traits.curiosity * 300.0) as u64).max(300);
+            let offset  = id_hash % period;
+            if tick % period == offset {
+                let angle = ((id_hash ^ tick) as f32) * 0.0000014;
+                let dist  = 120.0 + self.traits.curiosity * 200.0; // 120–320 tiles
+                let tx = (self.x + angle.sin() * dist).round() as i32;
+                let ty = (self.y + angle.cos() * dist).round() as i32;
+                self.wander_target = Some((tx.clamp(5, 595), ty.clamp(5, 295)));
             }
         }
 
@@ -1008,10 +1021,11 @@ impl Organism {
             }
         }
 
-        // Wanderlust: bored organism heads toward a distant wander target
+        // Wanderlust: follow active wander target as long as not in survival emergency.
+        // (Arrival clearing happens in tick_inner_state via the area_ticks logic.)
         if let Some(wt) = self.wander_target {
             let dist = (wt.0 - ix).abs() + (wt.1 - iy).abs();
-            if dist > 3 && self.boredom > 0.45 && self.energy > 0.4 && self.hydration > 0.4 {
+            if dist > 4 && self.energy > 0.20 && self.hydration > 0.20 {
                 set_thought!("wandering");
                 return (self.toward(wt, grid), thought);
             }
@@ -1019,11 +1033,13 @@ impl Organism {
 
         // Home pull — accessible whenever basic needs are covered
         // Stronger pull the farther away and the lower the energy/hydration
-        if tick >= self.directive_until && self.energy > 0.45 && self.hydration > 0.45 {
+        if tick >= self.directive_until && self.energy > 0.45 && self.hydration > 0.45
+            && self.wander_target.is_none()
+        {
             let dist_home = (self.x - self.home_x).abs() + (self.y - self.home_y).abs();
-            let pull_prob = if dist_home > 40.0 { 0.08 }
-                           else if dist_home > 24.0 { 0.04 }
-                           else if dist_home > 14.0 { 0.015 }
+            let pull_prob = if dist_home > 80.0 { 0.02 }
+                           else if dist_home > 40.0 { 0.008 }
+                           else if dist_home > 20.0 { 0.003 }
                            else { 0.0 };
             if pull_prob > 0.0 && rng.gen::<f32>() < pull_prob {
                 set_thought!("heading home");
