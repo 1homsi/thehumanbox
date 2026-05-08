@@ -13,17 +13,55 @@ pub const DIRECTIONS: [(i32, i32); 8] =
 const CONSONANTS: &[u8] = b"bdfghjklmnprstvwz";
 const VOWELS:     &[u8] = b"aeiou";
 
-pub fn generate_name(rng: &mut impl Rng) -> String {
+/// Biological sex — assigned randomly at birth and inherited by offspring randomly.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, serde::Deserialize, Default)]
+pub enum Sex { #[default] Male, Female }
+
+impl Sex {
+    pub fn random(rng: &mut impl Rng) -> Self {
+        if rng.gen::<bool>() { Sex::Male } else { Sex::Female }
+    }
+    pub fn as_str(self) -> &'static str {
+        match self { Sex::Male => "male", Sex::Female => "female" }
+    }
+    pub fn from_str(s: &str) -> Self {
+        if s == "female" { Sex::Female } else { Sex::Male }
+    }
+}
+
+/// Generate a name that sounds phonetically consistent with the organism's sex.
+/// Females end on a vowel (soft close); males often end on a consonant (harder sound).
+pub fn generate_name(rng: &mut impl Rng, sex: Sex) -> String {
     let syllables = rng.gen_range(2..=3);
     let mut s = String::new();
-    for _ in 0..syllables {
+    for i in 0..syllables {
         s.push(CONSONANTS[rng.gen_range(0..CONSONANTS.len())] as char);
         s.push(VOWELS[rng.gen_range(0..VOWELS.len())] as char);
+        // Male names: last syllable 65% chance to close with a consonant
+        if i == syllables - 1 && sex == Sex::Male && rng.gen::<f32>() < 0.65 {
+            s.push(CONSONANTS[rng.gen_range(0..CONSONANTS.len())] as char);
+        }
     }
     let mut c = s.chars();
     match c.next() {
         None => s,
         Some(f) => f.to_uppercase().to_string() + c.as_str(),
+    }
+}
+
+/// Apply subtle sex-linked trait biases (population averages, not deterministic destiny).
+pub fn apply_sex_traits(traits: &mut crate::organism::traits::Traits, sex: Sex) {
+    match sex {
+        Sex::Male => {
+            traits.aggression      = (traits.aggression      + 0.06).clamp(0.05, 0.95);
+            traits.curiosity       = (traits.curiosity       + 0.02).clamp(0.05, 0.95);
+            traits.social_tendency = (traits.social_tendency - 0.04).clamp(0.05, 0.95);
+        }
+        Sex::Female => {
+            traits.resilience      = (traits.resilience      + 0.05).clamp(0.05, 0.95);
+            traits.social_tendency = (traits.social_tendency + 0.05).clamp(0.05, 0.95);
+            traits.memory_strength = (traits.memory_strength + 0.04).clamp(0.05, 0.95);
+        }
     }
 }
 
@@ -39,6 +77,16 @@ pub struct ThoughtEntry {
     pub text: String,
 }
 
+/// A stored exchange between two organisms — courtship, bonded talk, or farewell.
+#[derive(Clone, Serialize, serde::Deserialize)]
+pub struct ConversationEntry {
+    pub tick:      u64,
+    pub with_name: String,
+    pub with_id:   String,
+    pub kind:      String,             // "courtship" | "bonded" | "farewell"
+    pub lines:     Vec<[String; 2]>,   // [speaker_name, utterance]
+}
+
 pub struct Organism {
     pub id:          String,
     pub name:        String,
@@ -52,6 +100,7 @@ pub struct Organism {
     pub thought:     String,
     pub generation:  u32,
     pub parent_id:   String,
+    pub father_id:   Option<String>,   // biological father (may differ from mother's partner)
     pub lineage_id:  String,
     pub max_age:     u32,
 
@@ -105,6 +154,21 @@ pub struct Organism {
     pub wander_target:  Option<(i32, i32)>, // active wander destination
     pub last_groomed:   u64,           // tick of last grooming interaction
     pub last_fed_kin:   u64,           // tick of last food shared with kin
+
+    pub partner_id:     Option<String>,
+    pub children_count: u32,
+    pub sex:            Sex,
+
+    // Attraction / courtship
+    pub attracted_to:    Option<String>,  // id of the organism they're drawn to
+    pub attraction_tick: u64,             // when attraction started
+
+    // Pregnancy
+    pub pregnant:        bool,
+    pub pregnancy_start: u64,
+
+    // Stored conversations (capped at 15)
+    pub conversations:   Vec<ConversationEntry>,
 }
 
 impl Organism {
@@ -119,7 +183,7 @@ impl Organism {
             energy: 1.0, hydration: 1.0, health: 1.0,
             age: 0, alive: true,
             thought: "observing".to_string(),
-            generation, parent_id, lineage_id, max_age,
+            generation, parent_id, father_id: None, lineage_id, max_age,
             food_memory:   HashMap::new(),
             water_memory:  HashMap::new(),
             danger_memory: HashMap::new(),
@@ -156,6 +220,21 @@ impl Organism {
             wander_target:  None,
             last_groomed:   0,
             last_fed_kin:   0,
+            partner_id:     None,
+            children_count: 0,
+            sex:            Sex::Male,  // caller sets this after construction
+            attracted_to:    None,
+            attraction_tick: 0,
+            pregnant:        false,
+            pregnancy_start: 0,
+            conversations:   Vec::new(),
+        }
+    }
+
+    pub fn store_conversation(&mut self, entry: ConversationEntry) {
+        self.conversations.push(entry);
+        if self.conversations.len() > 15 {
+            self.conversations.remove(0);
         }
     }
 
@@ -200,11 +279,13 @@ impl Organism {
             self.loneliness = (self.loneliness - kin_near as f32 * 0.012).max(0.0);
         }
 
-        // Boredom: grows only when needs are fully met and no threat
-        if self.energy > 0.75 && self.hydration > 0.75 && !hostile_near {
-            self.boredom = (self.boredom + 0.0004).min(1.0);
+        // Boredom: grows whenever needs are adequately met and no threat.
+        // Lower threshold (was 0.75/0.75) so organisms get restless sooner
+        // and don't just sit at water sources indefinitely.
+        if self.energy > 0.50 && self.hydration > 0.50 && !hostile_near {
+            self.boredom = (self.boredom + 0.0005).min(1.0);
         } else {
-            self.boredom = (self.boredom - 0.004).max(0.0);
+            self.boredom = (self.boredom - 0.003).max(0.0);
         }
 
         // Fear: spikes with enemies or crisis, bleeds off slowly
@@ -227,34 +308,38 @@ impl Organism {
             self.fear_level = (self.fear_level + 0.004).min(1.0);
         }
 
-        // Sleep debt: builds at night without shelter, clears with rest
+        // Sleep debt: builds at night without shelter, clears much faster with shelter
         if night && !near_shelter {
-            self.sleep_debt = (self.sleep_debt + 0.0012).min(1.0);
+            self.sleep_debt = (self.sleep_debt + 0.0015).min(1.0);  // builds faster outside at night
         } else if near_shelter {
-            self.sleep_debt = (self.sleep_debt - 0.005).max(0.0);
+            self.sleep_debt = (self.sleep_debt - 0.010).max(0.0);   // 2× faster recovery in shelter
         } else {
             self.sleep_debt = (self.sleep_debt - 0.001).max(0.0);
         }
-        // Exhaustion drains energy
-        if self.sleep_debt > 0.5 {
-            self.energy = (self.energy - 0.0003 * self.sleep_debt).max(0.0);
+        // Exhaustion drains energy; shelter halves the drain
+        if self.sleep_debt > 0.4 {
+            let drain = 0.0004 * self.sleep_debt * (if near_shelter { 0.4 } else { 1.0 });
+            self.energy = (self.energy - drain).max(0.0);
         }
 
         // Wanderlust: track time in same 10×10 region, eventually set a wander target
         let cell = (self.x as i32 / 10, self.y as i32 / 10);
         if cell == self.last_area_cell {
             self.area_ticks = self.area_ticks.saturating_add(1);
-            // Set wander target when stuck in same region and bored + healthy enough
-            if self.area_ticks > 400 && self.boredom > 0.60
+            // Set wander target when stuck in same region and bored + healthy enough.
+            // Lower thresholds so organisms explore much more readily.
+            if self.area_ticks > 200 && self.boredom > 0.45
                && self.wander_target.is_none()
-               && self.energy > 0.55 && self.hydration > 0.55
+               && self.energy > 0.45 && self.hydration > 0.45
             {
                 let hash = self.id.bytes().fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
                 let angle = ((hash ^ tick) as f32) * 0.0000014;
-                let dist  = 20.0 + self.boredom * 25.0;
+                // Much larger wander range so organisms spread across the whole world
+                let dist  = 35.0 + self.boredom * 80.0;
                 let tx = (self.x + angle.sin() * dist).round() as i32;
                 let ty = (self.y + angle.cos() * dist).round() as i32;
-                self.wander_target = Some((tx.max(5).min(195), ty.max(5).min(95)));
+                // Fixed: full world bounds (was wrongly capped at 195×95 — only top-left corner)
+                self.wander_target = Some((tx.clamp(5, 595), ty.clamp(5, 295)));
             }
         } else {
             self.last_area_cell = cell;
@@ -559,9 +644,38 @@ impl Organism {
             }
         }
 
-        // Urgent needs
-        if self.hydration < 0.5 {
-            let scan_r = if self.hydration < 0.25 { 22 } else if night { 8 } else { 12 };
+        // ── Satisfied → return home / shelter ────────────────────────────────
+        // When needs are reasonably met, organisms gravitate back to their home
+        // region rather than camping indefinitely at water or drifting aimlessly.
+        let needs_ok = self.hydration > 0.62 && self.energy > 0.50;
+        if needs_ok && !self.pregnant {
+            let dist_home = (self.x - self.home_x).abs() + (self.y - self.home_y).abs();
+            // Just finished drinking at a water source — leave and head home
+            if tile == Tile::Water && self.hydration > 0.75 && dist_home > 8.0
+               && rng.gen::<f32>() < 0.60
+            {
+                set_thought!("heading home");
+                return (self.toward((self.home_x as i32, self.home_y as i32), grid), thought);
+            }
+            // Seek shelter when health is below ideal or carrying sleep debt
+            if (self.health < 0.80 || self.sleep_debt > 0.12) && !self.near_shelter(grid) {
+                if let Some(s) = self.find_shelter_tile(grid, 14) {
+                    set_thought!("returning to shelter");
+                    return (self.toward(s, grid), thought);
+                }
+            }
+            // Drifted far from home territory — moderate pull back
+            if dist_home > 18.0 && rng.gen::<f32>() < 0.20 {
+                set_thought!("heading home");
+                return (self.toward((self.home_x as i32, self.home_y as i32), grid), thought);
+            }
+        }
+
+        // ── Genuine thirst / hunger — lowered thresholds so needs win less often ──
+        // Organisms now only urgently chase resources when noticeably low,
+        // not at the first hint of any deficit.
+        if self.hydration < 0.38 {
+            let scan_r = if self.hydration < 0.20 { 24 } else if night { 8 } else { 14 };
             if let Some(v) = self.nearest_visible(grid, Tile::Water, scan_r) {
                 set_thought!("moving to water");
                 return (self.toward(v, grid), thought);
@@ -575,8 +689,8 @@ impl Organism {
                 return (self.toward(t, grid), thought);
             }
             set_thought!("thirsty — searching");
-        } else if self.energy < 0.5 {
-            let scan_r = if self.energy < 0.25 { 15 } else if night { 6 } else { 8 };
+        } else if self.energy < 0.42 {
+            let scan_r = if self.energy < 0.20 { 16 } else if night { 6 } else { 9 };
             if let Some(v) = self.nearest_visible(grid, Tile::Food, scan_r) {
                 set_thought!("moving to food");
                 return (self.toward(v, grid), thought);
@@ -592,7 +706,7 @@ impl Organism {
             set_thought!("hungry — searching");
         }
 
-        // Danger avoidance
+        // Danger avoidance (personal memory)
         if !self.danger_memory.is_empty() {
             let danger_thresh = (3.0 + 2.0 * self.traits.fear) as i32;
             if let Some((&(cx, cy), _)) = self.danger_memory.iter()
@@ -607,6 +721,23 @@ impl Organism {
             }
         }
 
+        // World hazard sensing — organisms avoid cursed/death-scarred land
+        // Fearful organisms are more sensitive; brave ones push through
+        {
+            let hz = grid.hazard_at(ix, iy);
+            let hz_flee_thresh = 0.60 - self.traits.fear * 0.25; // cowards flee at 0.35, brave at 0.60
+            if hz > hz_flee_thresh {
+                set_thought!("cursed land");
+                // Find direction of lowest hazard among 8 neighbors
+                let best = (0..8usize).min_by_key(|&d| {
+                    let (dx, dy) = crate::organism::organism::DIRECTIONS[d];
+                    let (nx, ny) = (ix + dx, iy + dy);
+                    (grid.hazard_at(nx, ny) * 1000.0) as i32
+                }).unwrap_or_else(|| rng.gen_range(0..8));
+                return (best, thought);
+            }
+        }
+
         // Storm sheltering: seek campfire / hut structure during bad weather
         if weather_kind >= 2 && !self.near_shelter(grid) {
             if let Some(v) = self.find_shelter_tile(grid, 14) {
@@ -615,19 +746,31 @@ impl Organism {
             }
         }
 
-        // Night behaviors: rest if sheltered + sleep debt; or seek campfire when cold
+        // Night behaviors: shelter is the primary destination after dark
         if night {
             let ns = self.near_shelter(grid);
-            if ns && self.sleep_debt > 0.20 && self.energy > 0.30 && rng.gen::<f32>() < 0.50 {
+            // Sheltered: rest readily — even light sleep debt triggers rest
+            if ns && self.sleep_debt > 0.08 && self.energy > 0.25 && rng.gen::<f32>() < 0.65 {
                 set_thought!("resting");
                 return (rng.gen_range(0..8), thought);
             }
-            if !ns && self.energy < 0.65 && self.hydration > 0.30 {
-                if let Some(camp) = self.nearest_visible(grid, Tile::Campfire, 10) {
+            // Not sheltered: seek any structure, then campfire
+            if !ns && self.hydration > 0.25 {
+                if let Some(s) = self.find_shelter_tile(grid, 16) {
+                    set_thought!("finding shelter");
+                    return (self.toward(s, grid), thought);
+                }
+                if let Some(camp) = self.nearest_visible(grid, Tile::Campfire, 12) {
                     if (camp.0 - ix).abs() + (camp.1 - iy).abs() > 2 {
                         set_thought!("heading to campfire");
                         return (self.toward(camp, grid), thought);
                     }
+                }
+                // No shelter found: drift toward home territory at night
+                let dist_home = (self.x - self.home_x).abs() + (self.y - self.home_y).abs();
+                if dist_home > 10.0 && rng.gen::<f32>() < 0.35 {
+                    set_thought!("heading home");
+                    return (self.toward((self.home_x as i32, self.home_y as i32), grid), thought);
                 }
             }
         }
@@ -638,9 +781,12 @@ impl Organism {
             return (rng.gen_range(0..8), thought);
         }
 
-        // Rest when injured near shelter — let health recover
-        if self.health < 0.35 && self.near_shelter(grid) && rng.gen::<f32>() < 0.48 {
-            set_thought!("resting (healing)");
+        // Rest near shelter — health recovery, grief, sleep debt
+        let should_rest = self.health < 0.65
+            || self.sleep_debt > 0.30
+            || (self.grief_ticks > 0 && self.near_shelter(grid));
+        if should_rest && self.near_shelter(grid) && rng.gen::<f32>() < 0.52 {
+            set_thought!("resting");
             return (rng.gen_range(0..8), thought);
         }
 
@@ -708,6 +854,83 @@ impl Organism {
             }
         }
 
+        // Attraction: seek the organism you're drawn to
+        if let Some(ref aid) = self.attracted_to {
+            let target = organisms.iter()
+                .find(|o| o.alive && &o.id == aid)
+                .map(|o| (o.x as i32, o.y as i32));
+            if let Some(tp) = target {
+                let dist = (tp.0 - ix).abs() + (tp.1 - iy).abs();
+                // Increased from 30 → 60 tiles so mates actually find each other
+                if dist > 3 && dist < 60 {
+                    set_thought!("drawn to someone");
+                    return (self.toward(tp, grid), thought);
+                }
+            }
+        }
+
+        // Colony formation: lonely organisms seek their kin or friendly strangers.
+        // This drives natural clustering / settlement behaviour.
+        if self.loneliness > 0.35 && needs_ok && self.fear_level < 0.5 {
+            // Look for nearest kin within 100 tiles
+            let kin_pos: Option<(i32, i32)> = organisms.iter()
+                .filter(|o| !std::ptr::eq(*o, self) && o.alive
+                            && o.lineage_id == self.lineage_id)
+                .map(|o| {
+                    let d = ((o.x - self.x).abs() + (o.y - self.y).abs()) as i32;
+                    (o.x as i32, o.y as i32, d)
+                })
+                .filter(|&(_, _, d)| d > 5 && d < 100)
+                .min_by_key(|&(_, _, d)| d)
+                .map(|(x, y, _)| (x, y));
+            if let Some(tp) = kin_pos {
+                set_thought!("seeking kin");
+                return (self.toward(tp, grid), thought);
+            }
+            // No kin nearby — high-social organisms seek any friendly organism
+            if self.traits.social_tendency > 0.4 {
+                let social_pos: Option<(i32, i32)> = organisms.iter()
+                    .filter(|o| !std::ptr::eq(*o, self) && o.alive)
+                    .filter(|o| self.attitude_toward(&o.lineage_id) >= -0.1)
+                    .map(|o| {
+                        let d = ((o.x - self.x).abs() + (o.y - self.y).abs()) as i32;
+                        (o.x as i32, o.y as i32, d)
+                    })
+                    .filter(|&(_, _, d)| d > 5 && d < 70)
+                    .min_by_key(|&(_, _, d)| d)
+                    .map(|(x, y, _)| (x, y));
+                if let Some(tp) = social_pos {
+                    set_thought!("seeking company");
+                    return (self.toward(tp, grid), thought);
+                }
+            }
+        }
+
+        // Pregnant: shelter-seeking before birth
+        if self.pregnant && !self.near_shelter(grid) && self.energy > 0.3 {
+            if let Some(s) = self.find_shelter_tile(grid, 18) {
+                set_thought!("nesting");
+                return (self.toward(s, grid), thought);
+            }
+        }
+        if self.pregnant && rng.gen::<f32>() < 0.08 {
+            set_thought!("expecting");
+        }
+
+        // Migration corridor following — social organisms prefer established routes
+        // High path-trail signals a well-traveled corridor; follow it rather than blazing new ground
+        if self.traits.social_tendency > 0.5 && self.energy > 0.55 && self.hydration > 0.55 {
+            if rng.gen::<f32>() < self.traits.social_tendency * 0.18 {
+                if let Some(t) = self.find_trail_target(grid, TrailKind::Path, 14) {
+                    let dist = (t.0 - ix).abs() + (t.1 - iy).abs();
+                    if dist > 5 {
+                        set_thought!("following migration path");
+                        return (self.toward(t, grid), thought);
+                    }
+                }
+            }
+        }
+
         // Wanderlust: bored organism heads toward a distant wander target
         if let Some(wt) = self.wander_target {
             let dist = (wt.0 - ix).abs() + (wt.1 - iy).abs();
@@ -717,10 +940,15 @@ impl Organism {
             }
         }
 
-        // Home-pull: only when truly thriving and very far from home
-        if tick >= self.directive_until && self.energy > 0.86 && self.hydration > 0.86 {
+        // Home pull — accessible whenever basic needs are covered
+        // Stronger pull the farther away and the lower the energy/hydration
+        if tick >= self.directive_until && self.energy > 0.45 && self.hydration > 0.45 {
             let dist_home = (self.x - self.home_x).abs() + (self.y - self.home_y).abs();
-            if dist_home > 28.0 && rng.gen::<f32>() < 0.015 {
+            let pull_prob = if dist_home > 40.0 { 0.08 }
+                           else if dist_home > 24.0 { 0.04 }
+                           else if dist_home > 14.0 { 0.015 }
+                           else { 0.0 };
+            if pull_prob > 0.0 && rng.gen::<f32>() < pull_prob {
                 set_thought!("heading home");
                 return (self.toward((self.home_x as i32, self.home_y as i32), grid), thought);
             }
@@ -876,6 +1104,7 @@ impl Organism {
             thought_history,
             generation: self.generation,
             parent_id:  self.parent_id.clone(),
+            father_id:  self.father_id.clone(),
             lineage_id: self.lineage_id.clone(),
             max_age:    self.max_age,
             memory_count: MemoryCount {
@@ -911,6 +1140,12 @@ impl Organism {
             comfort:     (self.comfort     * 100.0).round() / 100.0,
             grief_ticks: self.grief_ticks,
             sleep_debt:  (self.sleep_debt  * 100.0).round() / 100.0,
+            partner_id:     self.partner_id.clone(),
+            children_count: self.children_count,
+            sex:            self.sex.as_str().to_string(),
+            pregnant:       self.pregnant,
+            attracted_to:   self.attracted_to.clone(),
+            conversations:  self.conversations.iter().rev().take(15).rev().cloned().collect(),
         }
     }
 }
@@ -929,7 +1164,7 @@ pub struct OrgJson {
     pub age: u32, pub alive: bool,
     pub thought: String,
     pub thought_history: Vec<ThoughtJson>,
-    pub generation: u32, pub parent_id: String, pub lineage_id: String, pub max_age: u32,
+    pub generation: u32, pub parent_id: String, pub father_id: Option<String>, pub lineage_id: String, pub max_age: u32,
     pub memory_count: MemoryCount,
     pub attitudes:   HashMap<String, f32>,
     pub org_trust:   HashMap<String, f32>,
@@ -953,4 +1188,10 @@ pub struct OrgJson {
     pub comfort:     f32,
     pub grief_ticks: u32,
     pub sleep_debt:  f32,
+    pub partner_id:     Option<String>,
+    pub children_count: u32,
+    pub sex:            String,
+    pub pregnant:       bool,
+    pub attracted_to:   Option<String>,
+    pub conversations:  Vec<ConversationEntry>,
 }

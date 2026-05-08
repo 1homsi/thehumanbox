@@ -120,8 +120,15 @@ async fn main() {
         println!("[warn] GROQ_API_KEY not set — LLM calls will fail");
     }
 
-    let sim = Arc::new(Mutex::new(Simulation::load_or_new(42, SAVE_PATH)));
-    let (tx, _rx) = broadcast::channel::<String>(16);
+    // Fresh worlds get a truly random seed from system time + OS entropy.
+    // Loaded worlds ignore this — the seed is only used for fresh world gen.
+    let fresh_seed: u64 = {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let t = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default();
+        t.as_nanos() as u64 ^ (t.subsec_nanos() as u64).wrapping_mul(0x9e3779b97f4a7c15)
+    };
+    let sim = Arc::new(Mutex::new(Simulation::load_or_new(fresh_seed, SAVE_PATH)));
+    let (tx, _rx) = broadcast::channel::<String>(4);
 
     // Channels
     let (narration_tx, narration_rx) = mpsc::channel::<NarrationReq>(4);
