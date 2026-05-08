@@ -62,23 +62,31 @@ pub fn try_reproduce(
     organisms: &mut Vec<Organism>,
     grid: &WorldGrid,
     tick: u64,
-    events: &mut Vec<Event>,
+    events: &mut std::collections::VecDeque<Event>,
     history: &mut History,
     rng: &mut impl Rng,
+    alive_count: usize,
 ) {
-    let alive_count = organisms.iter().filter(|o| o.alive).count();
     if alive_count >= MAX_POPULATION { return; }
 
     let org = &organisms[org_idx];
     // Only females give birth
     if org.sex != Sex::Female { return; }
-    // Must be at least 5 days old (adults only), and 8 days between births
-    // Thresholds are moderate — a reasonably well-fed adult can reproduce
-    if !(org.energy > 0.55 && org.hydration > 0.55 && org.health > 0.65 && org.age > 3000) { return; }
-    if tick - org.last_reproduced < 4800 { return; }
-    if org.infection > 0.25 { return; }
 
-    // Partner requirement: must have a bonded male partner nearby
+    // When population is critically low, relax thresholds to allow recovery
+    let low_pop = alive_count < 25;
+    let (e_min, h_min, hp_min, cooldown, partner_dist) = if low_pop {
+        (0.38, 0.38, 0.45, 2400u64, 50.0f32)  // emergency: lower bar, wider partner search, halved cooldown
+    } else {
+        (0.50, 0.50, 0.60, 4800u64, 25.0f32)  // normal
+    };
+
+    // Must be at least 5 days old (adults only)
+    if !(org.energy > e_min && org.hydration > h_min && org.health > hp_min && org.age > 3000) { return; }
+    if tick - org.last_reproduced < cooldown { return; }
+    if org.infection > 0.30 { return; }
+
+    // Partner requirement: must have a bonded male partner nearby (wider search when pop is low)
     let partner_id = match org.partner_id.clone() {
         Some(pid) => pid,
         None => return,
@@ -86,7 +94,7 @@ pub fn try_reproduce(
     let (org_x, org_y) = (org.x, org.y);
     let partner_nearby = organisms.iter().any(|o| {
         o.alive && o.id == partner_id && o.sex == Sex::Male
-            && (o.x - org_x).hypot(o.y - org_y) < 20.0
+            && (o.x - org_x).hypot(o.y - org_y) < partner_dist
     });
     if !partner_nearby { return; }
 
@@ -245,19 +253,23 @@ pub const PREGNANCY_DURATION: u64 = 1800; // ~3 sim-days
 pub fn deliver_births(
     organisms: &mut Vec<Organism>,
     tick: u64,
-    events: &mut Vec<Event>,
+    events: &mut std::collections::VecDeque<Event>,
     history: &mut History,
 ) {
+    // Build O(N) lookup: parent_id → child_index for unborn children (alive=false, age=0)
+    let unborn_map: std::collections::HashMap<&str, usize> = organisms.iter().enumerate()
+        .filter(|(_, o)| !o.alive && o.age == 0)
+        .map(|(i, o)| (o.parent_id.as_str(), i))
+        .collect();
+
     // Collect deliveries: find pregnant mothers whose duration has elapsed
     let mut deliveries: Vec<(usize, usize)> = Vec::new(); // (mother_idx, child_idx)
     for mother_idx in 0..organisms.len() {
         if !organisms[mother_idx].pregnant { continue; }
         if tick.saturating_sub(organisms[mother_idx].pregnancy_start) < PREGNANCY_DURATION { continue; }
-        let mother_id = organisms[mother_idx].id.clone();
-        // Find the unborn child (alive=false, age=0, parent_id == mother_id)
-        if let Some(child_idx) = organisms.iter().position(|o|
-            !o.alive && o.age == 0 && o.parent_id == mother_id
-        ) {
+        let mother_id = organisms[mother_idx].id.as_str();
+        // O(1) lookup using the pre-built map
+        if let Some(&child_idx) = unborn_map.get(mother_id) {
             deliveries.push((mother_idx, child_idx));
         }
     }

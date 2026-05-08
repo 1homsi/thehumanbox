@@ -1,6 +1,6 @@
 use rand::Rng;
 use serde::{Serialize, Deserialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet, VecDeque};
 use crate::organism::organism::{Organism, DIRECTIONS, generate_tribe_name};
 use crate::organism::animal::{Animal, AnimalKind};
 use crate::world::{grid::{WorldGrid, TrailKind, WIDTH, HEIGHT}, tiles::Tile};
@@ -98,7 +98,7 @@ pub struct History {
     pub droughts:            u64,
     pub outbreaks:           u64,
     #[serde(default)]
-    pub era_history:         Vec<EraEntry>,
+    pub era_history:         VecDeque<EraEntry>,
 }
 
 #[derive(Default, Clone, Serialize, Deserialize)]
@@ -115,19 +115,19 @@ pub struct Simulation {
     pub organisms:             Vec<Organism>,
     pub animals:               Vec<Animal>,
     pub tick_count:            u64,
-    pub events:                Vec<Event>,
+    pub events:                VecDeque<Event>,
     pub history:               History,
     pub drought:               DroughtState,
     pub weather:               WeatherState,
     pub flood_tiles:           Vec<(i32, i32, u64)>,
-    pub story_history:         Vec<StoryEntry>,
+    pub story_history:         VecDeque<StoryEntry>,
     pub pending_thinks:        Vec<ThinkTrigger>,
     pub lineage_names:         HashMap<String, String>,  // lineage_id → tribe name
     pub lineage_strategies:    HashMap<String, (String, u64)>,
     lineage_last_council:      HashMap<String, u64>,
     lineage_elders:            HashMap<String, String>,
     lineage_negotiations:      HashMap<(String,String), u64>,
-    pub pop_history:           Vec<[u64; 2]>,
+    pub pop_history:           VecDeque<[u64; 2]>,
     pub current_era:           String,
     pub sex_words:             [String; 2],  // [0]=word for Male, [1]=word for Female — coined by founding generation
     pub world_seed:            u64,          // seed used for this world's terrain — persisted so depth/elevation reload correctly
@@ -138,11 +138,13 @@ pub struct Simulation {
     cached_tribal_relations:   serde_json::Value,  // recomputed every 60 ticks
     cached_lineage_sizes:      serde_json::Value,  // recomputed every 30 ticks
     slow_compute_tick:         u64,
+    // ── Hot-set for non-zero structure tiles ───────────────────────────────
+    active_structure_tiles:    HashSet<(i32, i32)>,  // tiles with structure > 0; not saved
 }
 
 // Returns the possible inventions given current discoveries (prerequisites already met)
-fn invention_candidates(discoveries: &[String]) -> Vec<&'static str> {
-    let has = |s: &str| discoveries.iter().any(|d| d == s);
+fn invention_candidates(discoveries: &HashSet<String>) -> Vec<&'static str> {
+    let has = |s: &str| discoveries.contains(s);
     let mut v = Vec::new();
     if has("fire") && has("wood")              && !has("cooking")     { v.push("cooking"); }
     if has("fire") && has("stone")             && !has("stone_tools") { v.push("stone_tools"); }
@@ -181,19 +183,19 @@ impl Simulation {
             organisms: Vec::new(),
             animals: Vec::new(),
             tick_count: 0,
-            events: Vec::new(),
+            events: VecDeque::new(),
             history: History::default(),
             drought: DroughtState::default(),
             weather: WeatherState::default(),
             flood_tiles: Vec::new(),
-            story_history: Vec::new(),
+            story_history: VecDeque::new(),
             pending_thinks: Vec::new(),
             lineage_names:        HashMap::new(),
             lineage_strategies:   HashMap::new(),
             lineage_last_council: HashMap::new(),
             lineage_elders:       HashMap::new(),
             lineage_negotiations: HashMap::new(),
-            pop_history: Vec::new(),
+            pop_history: VecDeque::new(),
             current_era: "genesis".to_string(),
             sex_words,
             world_seed: seed,
@@ -202,6 +204,7 @@ impl Simulation {
             cached_tribal_relations: serde_json::Value::Array(vec![]),
             cached_lineage_sizes:    serde_json::Value::Array(vec![]),
             slow_compute_tick:       0,
+            active_structure_tiles:  HashSet::new(),
         };
         sim.spawn_founders();
         sim.spawn_animals(25);
@@ -391,12 +394,12 @@ impl Simulation {
         if self.tick_count % 1200 == 0 {
             let new_era = self.compute_era();
             if new_era != self.current_era {
-                self.history.era_history.push(EraEntry {
+                self.history.era_history.push_back(EraEntry {
                     tick: self.tick_count,
                     era:  new_era.clone(),
                 });
                 if self.history.era_history.len() > 60 {
-                    self.history.era_history.remove(0);
+                    self.history.era_history.pop_front();
                 }
                 push_event(&mut self.events, self.tick_count, "era", "world",
                     &format!("the {} era begins", new_era));
@@ -411,8 +414,8 @@ impl Simulation {
         // Track population once per in-world day
         if self.tick_count % DAY_LENGTH == 0 {
             let alive = self.organisms.iter().filter(|o| o.alive).count() as u64;
-            self.pop_history.push([self.tick_count, alive]);
-            if self.pop_history.len() > 1000 { self.pop_history.remove(0); }
+            self.pop_history.push_back([self.tick_count, alive]);
+            if self.pop_history.len() > 1000 { self.pop_history.pop_front(); }
         }
 
         // ── Elder recomputation ───────────────────────────────────────────────
@@ -434,10 +437,11 @@ impl Simulation {
             }
         }
 
+        let alive_count_before_loop = self.organisms.iter().filter(|o| o.alive).count();
         for i in 0..self.organisms.len() {
             if self.organisms[i].alive {
                 let prev_len = self.organisms.len();
-                self.tick_organism(i);
+                self.tick_organism(i, alive_count_before_loop);
 
                 // Post-birth: if a child was just born, seed it with elder knowledge
                 if self.organisms.len() > prev_len {
@@ -509,31 +513,31 @@ impl Simulation {
         // Structures decay passively; organisms must place material to maintain them.
         // Transition: structure >= 0.85 auto-upgrades tile to Hut, below 0.1 demotes Hut to Ash.
         {
-            use crate::world::grid::{WIDTH, HEIGHT};
             let storm = self.weather.kind >= 2;
             let decay = if storm { 0.00025 } else { 0.000025 };
             let mut promote = Vec::new();
             let mut demote  = Vec::new();
-            for y in 0..HEIGHT as i32 {
-                for x in 0..WIDTH as i32 {
-                    let s = self.grid.structure_at(x, y);
-                    if s <= 0.0 { continue; }
-                    let ns = (s - decay).max(0.0);
-                    *self.grid.structure_at_mut(x, y) = ns;
-                    let tile = self.grid.get(x, y);
-                    if ns >= 0.85 && tile != Tile::Hut {
-                        promote.push((x, y));
-                    } else if ns < 0.1 && tile == Tile::Hut {
-                        demote.push((x, y));
-                    }
+            let mut to_remove = Vec::new();
+            for &(x, y) in &self.active_structure_tiles {
+                let s = self.grid.structure_at(x, y);
+                if s <= 0.0 { to_remove.push((x, y)); continue; }
+                let ns = (s - decay).max(0.0);
+                *self.grid.structure_at_mut(x, y) = ns;
+                if ns == 0.0 { to_remove.push((x, y)); }
+                let tile = self.grid.get(x, y);
+                if ns >= 0.85 && tile != Tile::Hut {
+                    promote.push((x, y));
+                } else if ns < 0.1 && tile == Tile::Hut {
+                    demote.push((x, y));
                 }
             }
+            for (x, y) in to_remove { self.active_structure_tiles.remove(&(x, y)); }
             for (x, y) in promote { self.grid.set(x, y, Tile::Hut); }
             for (x, y) in demote  { self.grid.set(x, y, Tile::Ash); }
         }
     }
 
-    fn tick_organism(&mut self, idx: usize) {
+    fn tick_organism(&mut self, idx: usize, alive_count: usize) {
         let night   = self.is_night();
         let epsilon = (0.5 - self.organisms[idx].age as f32 * 0.00008).max(0.12);
 
@@ -592,7 +596,7 @@ impl Simulation {
         let perception = self.organisms[idx].perceive(&self.grid, &self.organisms, night, animal_near);
         let (action, new_thought) = self.organisms[idx].choose_action(
             &self.grid, self.tick_count, epsilon, &self.organisms, night,
-            self.weather.kind, &mut self.rng, animal_near);
+            self.weather.kind, &mut self.rng, animal_near, &perception);
         if let Some(t) = new_thought {
             self.organisms[idx].think(&t, self.tick_count);
         }
@@ -612,7 +616,7 @@ impl Simulation {
                 self.grid.leave_trail(nx, ny, TrailKind::Path, 0.06);
                 self.grid.stamp_pressure(nx, ny);
                 // Farmers passively cultivate parched land they walk through
-                let has_farming = self.organisms[idx].discoveries.iter().any(|d| d == "farm");
+                let has_farming = self.organisms[idx].discoveries.contains("farm");
                 if has_farming {
                     let fidx = WorldGrid::idx(nx, ny);
                     if self.grid.fertility[fidx] < 0.25 {
@@ -623,7 +627,7 @@ impl Simulation {
         } else if action == 8 {
             let (cx, cy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
             if self.grid.get(cx, cy) == Tile::Food {
-                let cooking_bonus = if self.organisms[idx].discoveries.iter().any(|d| d == "cooking") {
+                let cooking_bonus = if self.organisms[idx].discoveries.contains("cooking") {
                     let near_fire = [(-1,0),(1,0),(0,-1),(0,1)].iter()
                         .any(|&(dx,dy)| matches!(self.grid.get(cx+dx, cy+dy), Tile::Campfire | Tile::Fire));
                     if near_fire { 0.12 } else { 0.0 }
@@ -663,10 +667,10 @@ impl Simulation {
             }
         } else if action == 10 {
             signal_reward += social::signal_food(idx, &mut self.organisms,
-                                                 &self.grid, self.tick_count, &mut self.events);
+                                                 &self.grid, self.tick_count, &mut self.events, &mut self.rng);
         } else if action == 11 {
             signal_reward += social::sound_alarm(idx, &mut self.organisms,
-                                                 &self.grid, self.tick_count, &mut self.events);
+                                                 &self.grid, self.tick_count, &mut self.events, &mut self.rng);
         } else if action == 12 {
             if self.tick_count - self.organisms[idx].last_challenged >= 80 {
                 let before = signal_reward;
@@ -682,7 +686,7 @@ impl Simulation {
         } else if action == 13 {
             let before = signal_reward;
             signal_reward += social::gift_knowledge(idx, &mut self.organisms,
-                self.tick_count, &mut self.events, &mut self.history);
+                self.tick_count, &mut self.events, &mut self.history, &mut self.rng);
             if signal_reward > before {
                 self.organisms[idx].log_event(
                     format!("shared knowledge with kin near ({},{})", ix, iy));
@@ -707,8 +711,8 @@ impl Simulation {
                     let last_neg = *self.lineage_negotiations.get(&neg_key).unwrap_or(&0);
                     if self.tick_count - last_neg >= 6000 {
                         self.lineage_negotiations.insert(neg_key, self.tick_count);
-                        let my_disc    = self.organisms[idx].discoveries.clone();
-                        let their_disc = self.organisms[ti].discoveries.clone();
+                        let my_disc: Vec<String>    = self.organisms[idx].discoveries.iter().cloned().collect();
+                        let their_disc: Vec<String> = self.organisms[ti].discoveries.iter().cloned().collect();
                         let their_name = self.organisms[ti].name.clone();
                         let their_oid  = self.organisms[ti].id.clone();
                         let my_kin = self.organisms.iter().filter(|o| o.alive && o.lineage_id == actor_lid).count();
@@ -761,6 +765,7 @@ impl Simulation {
             {
                 self.grid.set(ix, iy, Tile::Campfire);
                 *self.grid.fire_intensity_mut(ix, iy) = 1.0;
+                self.physics.register_fire(ix, iy);
                 self.organisms[idx].carrying      = 0;
                 self.organisms[idx].carrying_type = 0;
                 signal_reward += 0.05;
@@ -777,7 +782,7 @@ impl Simulation {
                         lineage_id: self.organisms[idx].lineage_id.clone(),
                         scenario:   "discovery".to_string(),
                         context:    "fire".to_string(),
-                        discoveries: self.organisms[idx].discoveries.clone(),
+                        discoveries: self.organisms[idx].discoveries.iter().cloned().collect(),
                         ..Default::default()
                     });
                 }
@@ -840,13 +845,14 @@ impl Simulation {
             let tile = self.grid.get(cx, cy);
             if matches!(tile, Tile::Grass | Tile::Food | Tile::Ash | Tile::Hut | Tile::Snow | Tile::Sand) {
                 let prev_s = self.grid.structure_at(cx, cy);
-                let has_masonry = self.organisms[idx].discoveries.iter().any(|d| d == "masonry");
+                let has_masonry = self.organisms[idx].discoveries.contains("masonry");
                 let deposit = match (self.organisms[idx].carrying_type, has_masonry) {
                     (2, true)  => 0.0090, // stone + masonry knowledge
                     (2, false) => 0.0060, // stone
                     _          => 0.0035, // wood
                 };
                 self.grid.add_structure(cx, cy, deposit);
+                self.active_structure_tiles.insert((cx, cy));
                 let new_s = self.grid.structure_at(cx, cy);
                 let name = self.organisms[idx].name.clone();
                 if prev_s < 0.35 && new_s >= 0.35 {
@@ -861,7 +867,7 @@ impl Simulation {
                             lineage_id:  lid,
                             scenario:    "discovery".to_string(),
                             context:     "shelter".to_string(),
-                            discoveries: self.organisms[idx].discoveries.clone(),
+                            discoveries: self.organisms[idx].discoveries.iter().cloned().collect(),
                             ..Default::default()
                         });
                     }
@@ -966,7 +972,7 @@ impl Simulation {
         self.organisms[idx].energy    = (self.organisms[idx].energy    - 0.003 * shelter_drain_mult).max(0.0);
         self.organisms[idx].hydration = (self.organisms[idx].hydration - 0.002).max(0.0);
         if night {
-            let has_torch = self.organisms[idx].discoveries.iter().any(|d| d == "torch");
+            let has_torch = self.organisms[idx].discoveries.contains("torch");
             // Shelter also halves night cold-drain — a roof keeps warmth in
             let night_base = if has_torch { 0.0002 } else { 0.0005 };
             let night_drain = night_base * shelter_drain_mult;
@@ -1003,7 +1009,7 @@ impl Simulation {
 
         // Medicine discovery speeds infection recovery
         if self.organisms[idx].infection > 0.01 {
-            let med_mult = if self.organisms[idx].discoveries.iter().any(|d| d == "medicine") {
+            let med_mult = if self.organisms[idx].discoveries.contains("medicine") {
                 0.990
             } else {
                 0.997
@@ -1012,7 +1018,7 @@ impl Simulation {
         }
 
         // Trap: passive food capture near food trails for orgs with trap knowledge
-        if self.organisms[idx].discoveries.iter().any(|d| d == "trap") {
+        if self.organisms[idx].discoveries.contains("trap") {
             let (cx2, cy2) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
             let food_trail = self.grid.detect_trail(cx2, cy2, TrailKind::Food, 3);
             if food_trail > 0.45 && self.rng.gen::<f32>() < 0.0025 {
@@ -1024,7 +1030,7 @@ impl Simulation {
         }
 
         // Ritual discovery: near campfire at night → comfort and morale bonus
-        if night && self.organisms[idx].discoveries.iter().any(|d| d == "ritual") {
+        if night && self.organisms[idx].discoveries.contains("ritual") {
             let (cx2, cy2) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
             let near_fire = (-3i32..=3).any(|ddx| (-3i32..=3).any(|ddy| {
                 self.grid.get(cx2 + ddx, cy2 + ddy) == Tile::Campfire
@@ -1431,10 +1437,11 @@ impl Simulation {
             if self.tick_count - self.organisms[idx].last_invention_tick >= 5000
                && self.organisms[idx].age > 400
             {
-                let disc = self.organisms[idx].discoveries.clone();
-                let candidates = invention_candidates(&disc);
+                let disc = &self.organisms[idx].discoveries;
+                let candidates = invention_candidates(disc);
                 if !candidates.is_empty() {
                     self.organisms[idx].last_invention_tick = self.tick_count;
+                    let disc_vec: Vec<String> = self.organisms[idx].discoveries.iter().cloned().collect();
                     let life_top: Vec<String> = self.organisms[idx].life_log.iter()
                         .rev().take(3).cloned().collect();
                     self.pending_thinks.push(ThinkTrigger {
@@ -1442,7 +1449,7 @@ impl Simulation {
                         org_name:    self.organisms[idx].name.clone(),
                         lineage_id:  my_lid.clone(),
                         scenario:    "invention".to_string(),
-                        discoveries: disc,
+                        discoveries: disc_vec,
                         life_log_top: life_top,
                         context:     candidates.join(", "),
                         ..Default::default()
@@ -1482,7 +1489,7 @@ impl Simulation {
 
         // Elder teaching: elders periodically impart knowledge to young kin
         if self.organisms[idx].is_elder && self.tick_count % 60 == 0 {
-            social::teach(idx, &mut self.organisms, self.tick_count, &mut self.events);
+            social::teach(idx, &mut self.organisms, self.tick_count, &mut self.events, &mut self.rng);
         }
 
         // Comfort nesting: update home toward current shelter when thriving
@@ -1700,7 +1707,7 @@ impl Simulation {
 
         growth::try_reproduce(idx, &mut self.organisms, &self.grid,
                               self.tick_count, &mut self.events, &mut self.history,
-                              &mut self.rng);
+                              &mut self.rng, alive_count);
 
         // ── Death check ───────────────────────────────────────────────────────
         // Capture death info before marking dead, for grief propagation below
@@ -1895,8 +1902,8 @@ impl Simulation {
             let (ax, ay) = (self.animals[ai].x as i32, self.animals[ai].y as i32);
             self.animals[ai].alive = false;
             let ms = self.organisms[oi].traits.memory_strength;
-            let has_tools = self.organisms[oi].discoveries.iter()
-                .any(|d| d == "stone_tools" || d == "spear");
+            let has_tools = self.organisms[oi].discoveries.contains("stone_tools")
+                || self.organisms[oi].discoveries.contains("spear");
             let tool_bonus = if has_tools { 0.10 } else { 0.0 };
             // Pack hunting: 3+ kin within 5 tiles = coordinated group hunt
             let pack_kin = self.organisms.iter()
@@ -1992,11 +1999,11 @@ impl Simulation {
                 duration:   self.weather.duration,
                 intensity:  self.weather.intensity,
             },
-            pop_history:   self.pop_history.clone(),
-            events:    self.events.clone(),
+            pop_history:   self.pop_history.iter().cloned().collect(),
+            events:    self.events.iter().cloned().collect(),
             organisms:     self.organisms.iter().map(org_to_save).collect(),
             animals:       self.animals.iter().map(animal_to_save).collect(),
-            story_history: self.story_history.clone(),
+            story_history: self.story_history.iter().cloned().collect(),
             grid: GridSave {
                 tiles:       self.grid.tiles.clone(),
                 fire:        self.grid.fire_intensity.clone(),
@@ -2084,13 +2091,33 @@ impl Simulation {
             }
         }
 
+        // Rebuild hotsets BEFORE moving grid into the struct literal
+        let active_structure_tiles: HashSet<(i32, i32)> = {
+            let mut hs = HashSet::new();
+            for y in 0..crate::world::grid::HEIGHT as i32 {
+                for x in 0..crate::world::grid::WIDTH as i32 {
+                    if grid.structure_at(x, y) > 0.0 { hs.insert((x, y)); }
+                }
+            }
+            hs
+        };
+        let mut physics = PhysicsEngine::new();
+        // Rebuild fire hotset from loaded grid
+        for y in 0..crate::world::grid::HEIGHT as i32 {
+            for x in 0..crate::world::grid::WIDTH as i32 {
+                if matches!(grid.get(x, y), Tile::Fire | Tile::Campfire) {
+                    physics.register_fire(x, y);
+                }
+            }
+        }
+
         Simulation {
             grid,
-            physics:              PhysicsEngine::new(),
+            physics,
             organisms,
             animals:              state.animals.into_iter().map(animal_from_save).collect(),
             tick_count:           state.tick_count,
-            events:               state.events,
+            events:               state.events.into_iter().collect(),
             history:              state.history,
             drought,
             weather: WeatherState {
@@ -2100,13 +2127,13 @@ impl Simulation {
                 intensity:  state.weather.intensity,
             },
             flood_tiles:            Vec::new(),
-            story_history:          state.story_history,
+            story_history:          state.story_history.into_iter().collect(),
             pending_thinks:         Vec::new(),
             lineage_strategies:     HashMap::new(),
             lineage_last_council:   HashMap::new(),
             lineage_elders:         HashMap::new(),
             lineage_negotiations:   HashMap::new(),
-            pop_history:            state.pop_history,
+            pop_history:            state.pop_history.into_iter().collect(),
             current_era:            if state.current_era.is_empty() { "genesis".to_string() } else { state.current_era },
             sex_words: {
                 // Restore saved words, or regenerate from seed if save predates this feature
@@ -2129,6 +2156,7 @@ impl Simulation {
             cached_tribal_relations: serde_json::Value::Array(vec![]),
             cached_lineage_sizes:    serde_json::Value::Array(vec![]),
             slow_compute_tick:       0,
+            active_structure_tiles,
         }
     }
 
@@ -2386,7 +2414,7 @@ fn org_to_save(o: &Organism) -> OrgSave {
         food_memory:   mem_encode(&o.food_memory),
         water_memory:  mem_encode(&o.water_memory),
         danger_memory: mem_encode(&o.danger_memory),
-        thought_history:   o.thought_history.clone(),
+        thought_history:   o.thought_history.iter().cloned().collect(),
         q_table:           o.q_table.clone(),
         last_reproduced:   o.last_reproduced, last_challenged: o.last_challenged,
         lineage_attitudes: o.lineage_attitudes.clone(),
@@ -2397,8 +2425,8 @@ fn org_to_save(o: &Organism) -> OrgSave {
         vocabulary:  o.vocabulary.clone(),
         daily_story: o.daily_story.clone(),
         last_story_tick: o.last_story_tick,
-        life_log: o.life_log.clone(),
-        discoveries: o.discoveries.clone(),
+        life_log: o.life_log.iter().cloned().collect(),
+        discoveries: o.discoveries.iter().cloned().collect(),
         home_x: o.home_x,
         home_y: o.home_y,
         has_reflected:       o.has_reflected,
@@ -2411,7 +2439,7 @@ fn org_to_save(o: &Organism) -> OrgSave {
         attraction_tick:     o.attraction_tick,
         pregnant:            o.pregnant,
         pregnancy_start:     o.pregnancy_start,
-        conversations:       o.conversations.clone(),
+        conversations:       o.conversations.iter().cloned().collect(),
         father_id:           o.father_id.clone(),
     }
 }
@@ -2440,7 +2468,7 @@ fn org_from_save(s: OrgSave) -> Organism {
     o.food_memory   = mem_decode(s.food_memory);
     o.water_memory  = mem_decode(s.water_memory);
     o.danger_memory = mem_decode(s.danger_memory);
-    o.thought_history    = s.thought_history;
+    o.thought_history    = s.thought_history.into_iter().collect();
     o.q_table            = s.q_table;
     o.last_reproduced    = s.last_reproduced;
     o.last_challenged    = s.last_challenged;
@@ -2451,8 +2479,8 @@ fn org_from_save(s: OrgSave) -> Organism {
     o.carrying_type   = s.carrying_type;
     o.daily_story     = s.daily_story;
     o.last_story_tick = s.last_story_tick;
-    o.life_log        = s.life_log;
-    o.discoveries     = s.discoveries;
+    o.life_log        = s.life_log.into_iter().collect();
+    o.discoveries     = s.discoveries.into_iter().collect();
     if s.home_x != 0.0 || s.home_y != 0.0 {
         o.home_x = s.home_x;
         o.home_y = s.home_y;
@@ -2467,7 +2495,7 @@ fn org_from_save(s: OrgSave) -> Organism {
     o.attraction_tick     = s.attraction_tick;
     o.pregnant            = s.pregnant;
     o.pregnancy_start     = s.pregnancy_start;
-    o.conversations       = s.conversations;
+    o.conversations       = s.conversations.into_iter().collect();
     o.father_id           = s.father_id;
     if needs_vocab {
         use rand::SeedableRng;

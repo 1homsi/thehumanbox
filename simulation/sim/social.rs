@@ -12,7 +12,8 @@ pub fn signal_food(
     organisms: &mut Vec<Organism>,
     grid: &crate::world::grid::WorldGrid,
     tick: u64,
-    events: &mut Vec<Event>,
+    events: &mut std::collections::VecDeque<Event>,
+    rng: &mut impl Rng,
 ) -> f32 {
     let (ix, iy) = (organisms[org_idx].x as i32, organisms[org_idx].y as i32);
     let org_lineage = organisms[org_idx].lineage_id.clone();
@@ -61,7 +62,7 @@ pub fn signal_food(
         Organism::remember(&mut organisms[ni].food_memory, bx, by, strength, mem_trait);
 
         // Language exchange: hearing the signal creates vocabulary contact
-        organisms[ni].vocabulary.absorb_from(&my_vocab, &mut rand::thread_rng());
+        organisms[ni].vocabulary.absorb_from(&my_vocab, rng);
         if recognizes { understood += 1; }
         reached += 1;
     }
@@ -77,7 +78,8 @@ pub fn sound_alarm(
     organisms: &mut Vec<Organism>,
     grid: &crate::world::grid::WorldGrid,
     tick: u64,
-    events: &mut Vec<Event>,
+    events: &mut std::collections::VecDeque<Event>,
+    rng: &mut impl Rng,
 ) -> f32 {
     let (ix, iy) = (organisms[org_idx].x as i32, organisms[org_idx].y as i32);
     let org_lineage = organisms[org_idx].lineage_id.clone();
@@ -131,7 +133,7 @@ pub fn sound_alarm(
         Organism::remember(&mut organisms[ni].danger_memory, dlx, dly, strength, mem_trait);
 
         // Hearing the alarm word creates vocabulary contact
-        organisms[ni].vocabulary.absorb_from(&my_vocab, &mut rand::thread_rng());
+        organisms[ni].vocabulary.absorb_from(&my_vocab, rng);
         if is_kin { kin_warned += 1; }
     }
 
@@ -145,8 +147,9 @@ pub fn gift_knowledge(
     org_idx: usize,
     organisms: &mut Vec<Organism>,
     tick: u64,
-    events: &mut Vec<Event>,
+    events: &mut std::collections::VecDeque<Event>,
     history: &mut History,
+    rng: &mut impl Rng,
 ) -> f32 {
     let org_lineage = organisms[org_idx].lineage_id.clone();
     let org_id      = organisms[org_idx].id.clone();
@@ -206,9 +209,9 @@ pub fn gift_knowledge(
         let their_snap = organisms[ti].vocabulary.words.clone();
         let my_snap    = organisms[org_idx].vocabulary.words.clone();
         organisms[org_idx].vocabulary.absorb_from(
-            &crate::organism::vocabulary::Vocabulary { words: their_snap }, &mut rand::thread_rng());
+            &crate::organism::vocabulary::Vocabulary { words: their_snap }, rng);
         organisms[ti].vocabulary.absorb_from(
-            &crate::organism::vocabulary::Vocabulary { words: my_snap }, &mut rand::thread_rng());
+            &crate::organism::vocabulary::Vocabulary { words: my_snap }, rng);
     }
 
     let org_name = organisms[org_idx].name.clone();
@@ -225,7 +228,7 @@ pub fn challenge_stranger(
     org_idx: usize,
     organisms: &mut Vec<Organism>,
     tick: u64,
-    events: &mut Vec<Event>,
+    events: &mut std::collections::VecDeque<Event>,
     history: &mut History,
 ) -> f32 {
     let org_lineage = organisms[org_idx].lineage_id.clone();
@@ -313,7 +316,7 @@ pub fn groom(
     org_idx: usize,
     organisms: &mut Vec<Organism>,
     tick: u64,
-    events: &mut Vec<Event>,
+    events: &mut std::collections::VecDeque<Event>,
 ) -> f32 {
     let (ox, oy) = (organisms[org_idx].x, organisms[org_idx].y);
     let org_lineage = organisms[org_idx].lineage_id.clone();
@@ -367,7 +370,8 @@ pub fn teach(
     org_idx: usize,
     organisms: &mut Vec<Organism>,
     tick: u64,
-    events: &mut Vec<Event>,
+    events: &mut std::collections::VecDeque<Event>,
+    rng: &mut impl Rng,
 ) -> f32 {
     if !organisms[org_idx].is_elder { return 0.0; }
     let org_lineage = organisms[org_idx].lineage_id.clone();
@@ -399,16 +403,16 @@ pub fn teach(
 
     // Vocabulary teaching
     let elder_vocab = organisms[org_idx].vocabulary.clone();
-    organisms[ti].vocabulary.absorb_from(&elder_vocab, &mut rand::thread_rng());
+    organisms[ti].vocabulary.absorb_from(&elder_vocab, rng);
 
     // Discovery transfer to mature youth (5% chance per elder discovery)
     if organisms[ti].age > 200 {
-        let elder_disc = organisms[org_idx].discoveries.clone();
+        let elder_disc: Vec<String> = organisms[org_idx].discoveries.iter().cloned().collect();
         for disc in &elder_disc {
-            if !organisms[ti].discoveries.contains(disc)
-               && rand::thread_rng().gen::<f32>() < 0.05
+            if !organisms[ti].discoveries.contains(disc.as_str())
+               && rng.gen::<f32>() < 0.05
             {
-                organisms[ti].discoveries.push(disc.clone());
+                organisms[ti].discoveries.insert(disc.clone());
                 organisms[ti].log_event(format!("learned {} from elder", disc));
             }
         }
@@ -434,7 +438,7 @@ pub fn share_food(
     org_idx: usize,
     organisms: &mut Vec<Organism>,
     tick: u64,
-    events: &mut Vec<Event>,
+    events: &mut std::collections::VecDeque<Event>,
 ) -> f32 {
     let org_lineage = organisms[org_idx].lineage_id.clone();
     let (ox, oy) = (organisms[org_idx].x, organisms[org_idx].y);
