@@ -1954,12 +1954,6 @@ impl Simulation {
         }
 
         self.animals.retain(|a| a.alive);
-
-        // Respawn if too few
-        let alive = self.animals.iter().filter(|a| a.alive).count();
-        if alive < 12 {
-            self.spawn_animals(10);
-        }
     }
 
     fn check_animal_catches(&mut self) {
@@ -2895,5 +2889,15 @@ mod tests {
         assert!(nearby.contains(&center_idx));
         assert!(nearby.contains(&near_idx));
         assert!(!nearby.contains(&far_idx));
+    }
+
+    #[test]
+    fn animal_population_does_not_respawn_without_living_adults() {
+        let mut sim = Simulation::new(29);
+        sim.animals.clear();
+
+        sim.tick_animals();
+
+        assert_eq!(sim.animals.iter().filter(|a| a.alive).count(), 0);
     }
 }
