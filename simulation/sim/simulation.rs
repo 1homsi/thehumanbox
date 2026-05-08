@@ -1,4 +1,5 @@
-use rand::Rng;
+use rand::{Rng, SeedableRng};
+use rand_chacha::ChaCha8Rng;
 use serde::{Serialize, Deserialize};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::io;
@@ -23,7 +24,7 @@ pub struct StoryEntry {
     pub story:      String,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ThinkTrigger {
     pub org_id:            String,
     pub org_name:          String,
@@ -136,7 +137,7 @@ pub struct Simulation {
     pub sex_words:             [String; 2],  // [0]=word for Male, [1]=word for Female — coined by founding generation
     pub world_seed:            u64,          // seed used for this world's terrain — persisted so depth/elevation reload correctly
     next_animal_id:            usize,
-    rng:                       rand::rngs::SmallRng,
+    rng:                       ChaCha8Rng,
     // ── Throttled-computation cache ─────────────────────────────────────────
     // These are derived from organism data; not saved, recomputed every N ticks.
     cached_tribal_relations:   serde_json::Value,  // recomputed every 60 ticks
@@ -169,8 +170,7 @@ fn scarcity_driven_migration_season(season: &str) -> bool {
 
 impl Simulation {
     pub fn new(seed: u64) -> Self {
-        use rand::SeedableRng;
-        let rng  = rand::rngs::SmallRng::seed_from_u64(seed);
+        let rng  = ChaCha8Rng::seed_from_u64(seed);
         let grid = WorldGrid::new(seed);
         let physics = PhysicsEngine::new();
 
@@ -2119,6 +2119,14 @@ impl Simulation {
             sex_words:      self.sex_words.to_vec(),
             world_seed:     self.world_seed,
             lineage_names:  self.lineage_names.clone(),
+            lineage_strategies: self.lineage_strategies.clone(),
+            lineage_last_council: self.lineage_last_council.clone(),
+            lineage_elders: self.lineage_elders.clone(),
+            lineage_negotiations: self.lineage_negotiations.iter()
+                .map(|((a, b), &tick)| NegotiationSave { a: a.clone(), b: b.clone(), tick })
+                .collect(),
+            pending_thinks: self.pending_thinks.clone(),
+            rng: Some(self.rng.clone()),
         };
         let json = serde_json::to_string(&state)
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
@@ -2161,7 +2169,6 @@ impl Simulation {
     }
 
     fn from_save(seed: u64, state: SaveState) -> Self {
-        use rand::SeedableRng;
         let expected = WIDTH * HEIGHT;
         let mut grid = WorldGrid::new(seed);
         // If the saved grid doesn't match current dimensions, keep the freshly generated one
@@ -2250,11 +2257,16 @@ impl Simulation {
             },
             flood_tiles:            Vec::new(),
             story_history:          state.story_history.into_iter().collect(),
-            pending_thinks:         Vec::new(),
-            lineage_strategies:     HashMap::new(),
-            lineage_last_council:   HashMap::new(),
-            lineage_elders:         HashMap::new(),
-            lineage_negotiations:   HashMap::new(),
+            pending_thinks:         state.pending_thinks,
+            lineage_strategies:     state.lineage_strategies,
+            lineage_last_council:   state.lineage_last_council,
+            lineage_elders:         state.lineage_elders,
+            lineage_negotiations:   state.lineage_negotiations.into_iter()
+                .map(|n| {
+                    let key = if n.a < n.b { (n.a, n.b) } else { (n.b, n.a) };
+                    (key, n.tick)
+                })
+                .collect(),
             pop_history:            state.pop_history.into_iter().collect(),
             current_era:            if state.current_era.is_empty() { "genesis".to_string() } else { state.current_era },
             sex_words: {
@@ -2274,7 +2286,7 @@ impl Simulation {
             world_seed:             seed,  // already resolved to original seed in load_or_new
             next_animal_id:         state.next_animal_id,
             lineage_names:          state.lineage_names,
-            rng:                    rand::rngs::SmallRng::seed_from_u64(seed ^ state.tick_count),
+            rng:                    state.rng.unwrap_or_else(|| ChaCha8Rng::seed_from_u64(seed ^ state.tick_count)),
             cached_tribal_relations: serde_json::Value::Array(vec![]),
             cached_lineage_sizes:    serde_json::Value::Array(vec![]),
             slow_compute_tick:       0,
@@ -2497,6 +2509,13 @@ struct AnimalSave {
 }
 
 #[derive(Serialize, Deserialize)]
+struct NegotiationSave {
+    a: String,
+    b: String,
+    tick: u64,
+}
+
+#[derive(Serialize, Deserialize)]
 struct SaveState {
     #[serde(default)]
     version:        u32,
@@ -2522,6 +2541,18 @@ struct SaveState {
     world_seed:     u64,          // terrain seed — reuse on load so depth map stays consistent
     #[serde(default)]
     lineage_names:  HashMap<String, String>,  // lineage_id → tribe name
+    #[serde(default)]
+    lineage_strategies: HashMap<String, (String, u64)>,
+    #[serde(default)]
+    lineage_last_council: HashMap<String, u64>,
+    #[serde(default)]
+    lineage_elders: HashMap<String, String>,
+    #[serde(default)]
+    lineage_negotiations: Vec<NegotiationSave>,
+    #[serde(default)]
+    pending_thinks: Vec<ThinkTrigger>,
+    #[serde(default)]
+    rng: Option<ChaCha8Rng>,
 }
 
 fn mem_encode(m: &HashMap<(i32,i32), f32>) -> HashMap<String, f32> {
@@ -2689,6 +2720,56 @@ mod tests {
         assert!(!std::path::Path::new(&tmp_s).exists());
 
         let _ = std::fs::remove_file(&path_s);
+    }
+
+    #[test]
+    fn save_load_preserves_social_continuity_and_rng_stream() {
+        use rand::Rng;
+
+        let mut path = std::env::temp_dir();
+        path.push(format!("thehumanbox-continuity-test-{}.json", std::process::id()));
+        let path_s = path.to_string_lossy().to_string();
+        let tmp_s = format!("{}.tmp", path_s);
+        let _ = std::fs::remove_file(&path_s);
+        let _ = std::fs::remove_file(&tmp_s);
+
+        let mut sim = Simulation::new(17);
+        sim.tick_count = 12_345;
+        sim.lineage_strategies.insert("lineage-a".to_string(), ("settle".to_string(), 13_000));
+        sim.lineage_last_council.insert("lineage-a".to_string(), 12_000);
+        sim.lineage_elders.insert("lineage-a".to_string(), "elder-a".to_string());
+        sim.lineage_negotiations.insert(("lineage-a".to_string(), "lineage-b".to_string()), 11_500);
+        sim.pending_thinks.push(ThinkTrigger {
+            org_id: "org-a".to_string(),
+            org_name: "Org A".to_string(),
+            lineage_id: "lineage-a".to_string(),
+            scenario: "migration".to_string(),
+            context: "food scarce".to_string(),
+            ..Default::default()
+        });
+
+        let mut expected_rng = sim.rng.clone();
+        let expected_next: u64 = expected_rng.gen();
+
+        sim.save_result(&path_s).unwrap();
+        let mut loaded = Simulation::load_or_new(999, &path_s);
+
+        assert_eq!(
+            loaded.lineage_strategies.get("lineage-a"),
+            Some(&("settle".to_string(), 13_000))
+        );
+        assert_eq!(loaded.lineage_last_council.get("lineage-a"), Some(&12_000));
+        assert_eq!(loaded.lineage_elders.get("lineage-a"), Some(&"elder-a".to_string()));
+        assert_eq!(
+            loaded.lineage_negotiations.get(&("lineage-a".to_string(), "lineage-b".to_string())),
+            Some(&11_500)
+        );
+        assert_eq!(loaded.pending_thinks.len(), 1);
+        assert_eq!(loaded.pending_thinks[0].scenario, "migration");
+        assert_eq!(loaded.rng.gen::<u64>(), expected_next);
+
+        let _ = std::fs::remove_file(&path_s);
+        let _ = std::fs::remove_file(&tmp_s);
     }
 
     #[test]
