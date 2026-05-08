@@ -379,27 +379,39 @@ function drawWorldOnCanvas(
     const MAX_DIST_SQ = 40 * 40
     const bw = Math.ceil(width  / BLOCK)
     const bh = Math.ceil(height / BLOCK)
-    const orgData = liveOrgs.map(o => ({
-      tx:  o.x - ox,
-      ty:  o.y - oy,
-      lid: o.lineage_id,
-      fill: lineageColor(o.lineage_id).replace('hsl(', 'hsla(').replace(')', ', 0.40)'),
-    }))
+    const orgData = liveOrgs.map(o => {
+      // e.g. "hsl(120, 90%, 75%)" → fill at 40% alpha, border at same hue/sat but 30pts darker
+      const hsl = lineageColor(o.lineage_id)
+      const dark = hsl.replace(/(\d+)%\)$/, (_, l) => `${Math.max(15, Number(l) - 30)}%, 0.85)`)
+        .replace('hsl(', 'hsla(')
+      return {
+        tx:     o.x - ox,
+        ty:     o.y - oy,
+        lid:    o.lineage_id,
+        fill:   hsl.replace('hsl(', 'hsla(').replace(')', ', 0.40)'),
+        border: dark,
+      }
+    })
 
     // Pass 1: compute ownership grid
-    const ownerLid:  (string | null)[][] = Array.from({ length: bh }, () => new Array(bw).fill(null))
-    const ownerFill: (string | null)[][] = Array.from({ length: bh }, () => new Array(bw).fill(null))
+    const ownerLid:    (string | null)[][] = Array.from({ length: bh }, () => new Array(bw).fill(null))
+    const ownerFill:   (string | null)[][] = Array.from({ length: bh }, () => new Array(bw).fill(null))
+    const ownerBorder: (string | null)[][] = Array.from({ length: bh }, () => new Array(bw).fill(null))
     for (let by = 0; by < bh; by++) {
       for (let bx = 0; bx < bw; bx++) {
         const cx2 = bx * BLOCK + BLOCK * 0.5
         const cy2 = by * BLOCK + BLOCK * 0.5
         if (tiles[Math.floor(cy2)]?.[Math.floor(cx2)] === 2) continue  // skip water
-        let bestLid = '', bestFill = '', bestDist = MAX_DIST_SQ
+        let bestLid = '', bestFill = '', bestBorder = '', bestDist = MAX_DIST_SQ
         for (const od of orgData) {
           const d = (od.tx - cx2) ** 2 + (od.ty - cy2) ** 2
-          if (d < bestDist) { bestDist = d; bestLid = od.lid; bestFill = od.fill }
+          if (d < bestDist) { bestDist = d; bestLid = od.lid; bestFill = od.fill; bestBorder = od.border }
         }
-        if (bestLid) { ownerLid[by][bx] = bestLid; ownerFill[by][bx] = bestFill }
+        if (bestLid) {
+          ownerLid[by][bx]    = bestLid
+          ownerFill[by][bx]   = bestFill
+          ownerBorder[by][bx] = bestBorder
+        }
       }
     }
 
@@ -413,23 +425,26 @@ function drawWorldOnCanvas(
       }
     }
 
-    // Pass 3: draw dark border strips where ownership changes
+    // Pass 3: draw darkened border strips using the tribe's own darker shade
     const BW = 2  // border width in pixels
-    ctx.fillStyle = 'rgba(0,0,0,0.55)'
     for (let by = 0; by < bh; by++) {
       for (let bx = 0; bx < bw; bx++) {
-        const lid = ownerLid[by][bx]
-        if (!lid) continue
+        const lid    = ownerLid[by][bx]
+        const border = ownerBorder[by][bx]
+        if (!lid || !border) continue
         const px = bx * BLOCK * TILE, py = by * BLOCK * TILE
         const sz = BLOCK * TILE
         const top    = by > 0      ? ownerLid[by-1][bx] : null
         const bottom = by < bh - 1 ? ownerLid[by+1][bx] : null
         const left   = bx > 0      ? ownerLid[by][bx-1] : null
         const right  = bx < bw - 1 ? ownerLid[by][bx+1] : null
-        if (top    !== lid) ctx.fillRect(px,          py,          sz, BW)
-        if (bottom !== lid) ctx.fillRect(px,          py + sz - BW, sz, BW)
-        if (left   !== lid) ctx.fillRect(px,          py,          BW, sz)
-        if (right  !== lid) ctx.fillRect(px + sz - BW, py,          BW, sz)
+        if (top !== lid || bottom !== lid || left !== lid || right !== lid) {
+          ctx.fillStyle = border
+          if (top    !== lid) ctx.fillRect(px,           py,           sz, BW)
+          if (bottom !== lid) ctx.fillRect(px,           py + sz - BW, sz, BW)
+          if (left   !== lid) ctx.fillRect(px,           py,           BW, sz)
+          if (right  !== lid) ctx.fillRect(px + sz - BW, py,           BW, sz)
+        }
       }
     }
   }
