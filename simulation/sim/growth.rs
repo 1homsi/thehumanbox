@@ -63,7 +63,7 @@ pub fn try_reproduce(
     grid: &WorldGrid,
     tick: u64,
     events: &mut std::collections::VecDeque<Event>,
-    history: &mut History,
+    _history: &mut History,
     rng: &mut impl Rng,
     alive_count: usize,
 ) {

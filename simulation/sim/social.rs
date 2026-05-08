@@ -474,7 +474,7 @@ pub fn share_food(
 pub fn social_knowledge_share(
     org_idx: usize,
     organisms: &mut Vec<Organism>,
-    tick: u64,
+    _tick: u64,
     rng: &mut impl Rng,
 ) {
     let org_lineage = organisms[org_idx].lineage_id.clone();

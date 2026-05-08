@@ -661,7 +661,7 @@ impl Organism {
     // Returns (action, new_thought). Caller applies the thought to avoid &mut self + &[Organism] aliasing.
     pub fn choose_action(&self, grid: &WorldGrid, tick: u64,
                          epsilon: f32, organisms: &[Organism], night: bool,
-                         weather_kind: u8, rng: &mut impl Rng, animal_near: bool,
+                         weather_kind: u8, rng: &mut impl Rng, _animal_near: bool,
                          cached_perception: &str) -> (usize, Option<String>)
     {
         let (ix, iy) = (self.x as i32, self.y as i32);
