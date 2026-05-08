@@ -427,6 +427,28 @@ impl Organism {
         *self.lineage_attitudes.get(other_lid).unwrap_or(&0.0)
     }
 
+    /// Drop all heavy state fields, keeping only the skeleton needed for genealogy
+    /// (id, name, lineage_id, parent_id, father_id, generation, max_age, age,
+    ///  birth/death context). Once compressed, an organism contributes only a few
+    ///  hundred bytes — a 10 000-deep ancestor archive costs ~3 MB instead of
+    ///  hundreds of MB. Called on long-dead organisms to preserve lineage trees
+    ///  without holding decades-old q-tables and memory maps in RAM.
+    pub fn compress_for_archive(&mut self) {
+        if self.alive { return; } // never compress live organisms
+        self.food_memory.clear();
+        self.water_memory.clear();
+        self.danger_memory.clear();
+        self.thought_history.clear();
+        self.q_table.clear();
+        self.lineage_attitudes.clear();
+        self.org_trust.clear();
+        self.life_log.clear();
+        self.discoveries.clear();
+        self.conversations.clear();
+        // Keep: id, name, lineage_id, parent_id, father_id, generation, max_age,
+        // age, sex, traits (for lineage analysis), thought (last words).
+    }
+
     pub fn decay_memory(&mut self) {
         for mem in [&mut self.food_memory, &mut self.water_memory, &mut self.danger_memory] {
             mem.retain(|_, v| { *v *= 0.995; *v >= 0.04 });
@@ -1328,4 +1350,71 @@ pub struct OrgDetailJson {
     pub daily_story:     String,
     pub life_log:        Vec<String>,
     pub conversations:   Vec<ConversationEntry>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand::SeedableRng;
+    use rand::rngs::StdRng;
+
+    #[test]
+    fn compress_for_archive_clears_heavy_state_but_keeps_skeleton() {
+        let mut rng = StdRng::seed_from_u64(0);
+        let traits = Traits::random(&mut rng);
+        let mut org = Organism::new(
+            "abc12345".into(), "Testname".into(),
+            10.0, 20.0,
+            3, "parent99".into(), "lineage1".into(),
+            5000, traits.clone(),
+        );
+        // Populate heavy fields
+        org.food_memory.insert((1, 1), 0.5);
+        org.water_memory.insert((2, 2), 0.5);
+        org.danger_memory.insert((3, 3), 0.5);
+        org.q_table.insert("state".into(), vec![0.1; 14]);
+        org.lineage_attitudes.insert("other".into(), 0.7);
+        org.org_trust.insert("xyz".into(), 0.5);
+        org.life_log.push_back("something happened".into());
+        org.discoveries.insert("fire".into());
+        org.father_id = Some("father77".into());
+        org.alive = false;
+
+        org.compress_for_archive();
+
+        // Heavy state cleared
+        assert!(org.food_memory.is_empty());
+        assert!(org.water_memory.is_empty());
+        assert!(org.danger_memory.is_empty());
+        assert!(org.q_table.is_empty());
+        assert!(org.lineage_attitudes.is_empty());
+        assert!(org.org_trust.is_empty());
+        assert!(org.life_log.is_empty());
+        assert!(org.discoveries.is_empty());
+        // Skeleton preserved for genealogy
+        assert_eq!(org.id,          "abc12345");
+        assert_eq!(org.name,        "Testname");
+        assert_eq!(org.lineage_id,  "lineage1");
+        assert_eq!(org.parent_id,   "parent99");
+        assert_eq!(org.father_id,   Some("father77".into()));
+        assert_eq!(org.generation,  3);
+        assert_eq!(org.max_age,     5000);
+        // Trait values preserved for lineage analysis
+        assert_eq!(org.traits.aggression, traits.aggression);
+    }
+
+    #[test]
+    fn compress_for_archive_skips_live_organisms() {
+        let mut rng = StdRng::seed_from_u64(0);
+        let traits = Traits::random(&mut rng);
+        let mut org = Organism::new(
+            "id".into(), "Live".into(), 0.0, 0.0,
+            0, "".into(), "lin".into(), 5000, traits,
+        );
+        org.q_table.insert("s".into(), vec![0.0; 14]);
+        org.alive = true;
+        org.compress_for_archive();
+        // Live organism kept its q-table — never compress live ones
+        assert!(!org.q_table.is_empty());
+    }
 }
