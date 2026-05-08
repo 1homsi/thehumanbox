@@ -14,6 +14,19 @@ pub fn spawn_organism(
     x: f32, y: f32,
     rng: &mut impl Rng,
 ) {
+    let id = Uuid::new_v4().to_string()[..8].to_string();
+    spawn_organism_with_lineage(grid, organisms, x, y, id, rng);
+}
+
+/// Like spawn_organism but with an explicit lineage_id — used when spawning
+/// founding tribes so multiple members share the same lineage from birth.
+pub fn spawn_organism_with_lineage(
+    grid: &WorldGrid,
+    organisms: &mut Vec<Organism>,
+    x: f32, y: f32,
+    lineage_id: String,
+    rng: &mut impl Rng,
+) {
     let id     = Uuid::new_v4().to_string()[..8].to_string();
     let sex    = Sex::random(rng);
     let mut traits = Traits::random(rng);
@@ -25,7 +38,7 @@ pub fn spawn_organism(
 
     let mut org = Organism::new(
         id.clone(), generate_name(rng, sex),
-        x, y, 0, String::new(), id.clone(), max_age, traits,
+        x, y, 0, String::new(), lineage_id, max_age, traits,
     );
     org.sex = sex;
     org.vocabulary = Vocabulary::generate(rng);
@@ -60,7 +73,8 @@ pub fn try_reproduce(
     // Only females give birth
     if org.sex != Sex::Female { return; }
     // Must be at least 5 days old (adults only), and 8 days between births
-    if !(org.energy > 0.82 && org.hydration > 0.82 && org.health > 0.9 && org.age > 3000) { return; }
+    // Thresholds are moderate — a reasonably well-fed adult can reproduce
+    if !(org.energy > 0.55 && org.hydration > 0.55 && org.health > 0.65 && org.age > 3000) { return; }
     if tick - org.last_reproduced < 4800 { return; }
     if org.infection > 0.25 { return; }
 

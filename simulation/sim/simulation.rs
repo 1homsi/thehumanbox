@@ -202,79 +202,108 @@ impl Simulation {
 
     fn spawn_founders(&mut self) {
         use crate::world::tiles::Tile;
-        const TARGET: usize = 120;
+        use uuid::Uuid;
+        // 12 founding tribes × 10 members = 120. Each tribe shares a lineage_id
+        // so tribal identity, language, and relationships exist from day one.
+        const N_TRIBES:    usize = 12;
+        const TRIBE_SIZE:  usize = 10;
+        const TRIBE_RADIUS: i32  = 16;  // land search radius around each anchor
 
-        // Each founder is the root of a new lineage (lineage_id == their own id).
-        // We assign a phonetic tribe name at spawn time and store it in lineage_names.
-        let before = self.organisms.len();
+        // ── Step 1: pick anchor positions — one per water pool, rest random ──
+        let mut anchors: Vec<(i32, i32)> = self.grid.pool_centers
+            .iter()
+            .map(|&(cx, cy)| (cx, cy))
+            .collect();
 
-        // ── Phase 1: anchor groups near each water pool ───────────────────────
-        let centers = self.grid.pool_centers.clone();
-        for (cx, cy) in &centers {
-            let (cx, cy) = (*cx, *cy);
-            let mut land: Vec<(f32, f32)> = Vec::new();
-            for dx in -14i32..=14 {
-                for dy in -14i32..=14 {
-                    let nx = cx + dx; let ny = cy + dy;
+        // If fewer pools than tribes, scatter remaining anchors across all land
+        if anchors.len() < N_TRIBES {
+            let mut all_land: Vec<(i32, i32)> = (2..(HEIGHT as i32 - 2))
+                .flat_map(|y| (2..(WIDTH as i32 - 2)).map(move |x| (x, y)))
+                .filter(|&(x, y)| matches!(self.grid.get(x, y), Tile::Grass | Tile::Food))
+                .collect();
+            let n = all_land.len();
+            let mut placed = anchors.len();
+            let mut i = 0usize;
+            while placed < N_TRIBES && i < n {
+                let j = i + self.rng.gen_range(0..(n - i));
+                all_land.swap(i, j);
+                let (x, y) = all_land[i];
+                // keep tribes at least 30 tiles apart
+                let far_enough = anchors.iter().all(|&(ax, ay)| {
+                    (ax - x).abs() + (ay - y).abs() >= 30
+                });
+                if far_enough { anchors.push((x, y)); placed += 1; }
+                i += 1;
+            }
+        }
+        anchors.truncate(N_TRIBES);
+
+        // ── Step 2: for each anchor, spawn TRIBE_SIZE organisms with shared lineage ──
+        for &(ax, ay) in &anchors {
+            // Generate the shared lineage identity for this tribe
+            let lineage_id = Uuid::new_v4().to_string()[..8].to_string();
+            let tribe_name = generate_tribe_name(&mut self.rng);
+            self.lineage_names.insert(lineage_id.clone(), tribe_name);
+
+            // Collect nearby land tiles
+            let mut land: Vec<(i32, i32)> = Vec::new();
+            for dx in -TRIBE_RADIUS..=TRIBE_RADIUS {
+                for dy in -TRIBE_RADIUS..=TRIBE_RADIUS {
+                    let nx = ax + dx; let ny = ay + dy;
                     if !crate::world::grid::WorldGrid::in_bounds(nx, ny) { continue; }
                     if matches!(self.grid.get(nx, ny), Tile::Grass | Tile::Food) {
-                        land.push((nx as f32, ny as f32));
+                        land.push((nx, ny));
                     }
                 }
             }
+            if land.is_empty() { continue; }
+
+            // Shuffle and take up to TRIBE_SIZE positions
             let n = land.len();
-            if n == 0 { continue; }
-            for i in 0..n.min(3) {
+            let take = TRIBE_SIZE.min(n);
+            for i in 0..take {
                 let j = i + self.rng.gen_range(0..(n - i));
                 land.swap(i, j);
             }
-            for k in 0..n.min(3) {
+            for k in 0..take {
                 let (lx, ly) = land[k];
-                growth::spawn_organism(&self.grid, &mut self.organisms, lx, ly, &mut self.rng);
+                growth::spawn_organism_with_lineage(
+                    &self.grid, &mut self.organisms,
+                    lx as f32, ly as f32,
+                    lineage_id.clone(),
+                    &mut self.rng,
+                );
             }
         }
 
-        // ── Phase 2: top up to exactly TARGET founders ────────────────────────
-        let still_needed = TARGET.saturating_sub(self.organisms.len());
+        // ── Step 3: top up to exactly 120 if any tribe had too little land ───
+        let target = N_TRIBES * TRIBE_SIZE;
+        let still_needed = target.saturating_sub(self.organisms.len());
         if still_needed > 0 {
-            let mut all_land: Vec<(i32, i32)> = Vec::new();
-            for y in 2..(HEIGHT as i32 - 2) {
-                for x in 2..(WIDTH as i32 - 2) {
-                    if matches!(self.grid.get(x, y), Tile::Grass | Tile::Food) {
-                        all_land.push((x, y));
-                    }
-                }
+            // Distribute the remainder evenly across existing tribes
+            let tribe_ids: Vec<String> = self.lineage_names.keys().cloned().collect();
+            let n_tribes = tribe_ids.len();
+            let mut all_land: Vec<(i32, i32)> = (2..(HEIGHT as i32 - 2))
+                .flat_map(|y| (2..(WIDTH as i32 - 2)).map(move |x| (x, y)))
+                .filter(|&(x, y)| matches!(self.grid.get(x, y), Tile::Grass | Tile::Food))
+                .collect();
+            let n = all_land.len();
+            let mut spawned = 0;
+            let mut i = 0usize;
+            while spawned < still_needed && i < n {
+                let j = i + self.rng.gen_range(0..(n - i));
+                all_land.swap(i, j);
+                let (x, y) = all_land[i];
+                let lid = tribe_ids[spawned % n_tribes].clone();
+                growth::spawn_organism_with_lineage(
+                    &self.grid, &mut self.organisms,
+                    x as f32, y as f32,
+                    lid,
+                    &mut self.rng,
+                );
+                spawned += 1;
+                i += 1;
             }
-            if !all_land.is_empty() {
-                let mut picked: Vec<(f32, f32)> = Vec::with_capacity(still_needed);
-                let n = all_land.len();
-                let mut i = 0usize;
-                while picked.len() < still_needed && i < n {
-                    let j = i + self.rng.gen_range(0..(n - i));
-                    all_land.swap(i, j);
-                    let (x, y) = all_land[i];
-                    let too_close = picked.iter().any(|&(px, py)| {
-                        (px as i32 - x).abs() + (py as i32 - y).abs() < 8
-                    });
-                    if !too_close {
-                        picked.push((x as f32, y as f32));
-                    }
-                    i += 1;
-                }
-                for (lx, ly) in picked {
-                    growth::spawn_organism(&self.grid, &mut self.organisms, lx, ly, &mut self.rng);
-                }
-            }
-        }
-
-        // ── Assign a unique tribe name to every new founder's lineage ─────────
-        // Founders have lineage_id == their own id; children inherit from parent.
-        // We also deduplicate so pool-adjacent founders sharing a tile get one name.
-        let after = self.organisms.len();
-        for org in &self.organisms[before..after] {
-            self.lineage_names
-                .entry(org.lineage_id.clone())
-                .or_insert_with(|| generate_tribe_name(&mut self.rng));
         }
     }
 
