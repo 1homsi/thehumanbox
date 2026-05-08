@@ -19,7 +19,7 @@ pub struct StoryEntry {
     pub story:      String,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct ThinkTrigger {
     pub org_id:            String,
     pub org_name:          String,
@@ -35,6 +35,43 @@ pub struct ThinkTrigger {
     pub other_name:        Option<String>,
     pub other_discoveries: Vec<String>,
     pub target_org_id:     Option<String>,
+    // Organism traits — used by local resolver to make classification decisions
+    // without calling Groq (only elder_teaching needs the real LLM).
+    pub aggression:        f32,
+    pub fear:              f32,
+    pub social_tendency:   f32,
+    pub curiosity:         f32,
+    pub resilience:        f32,
+}
+
+impl Default for ThinkTrigger {
+    fn default() -> Self {
+        ThinkTrigger {
+            org_id: String::new(), org_name: String::new(),
+            lineage_id: String::new(), scenario: String::new(),
+            target_lineage: None, kin_count: 0, energy_avg: 0.5,
+            context: String::new(), discoveries: Vec::new(),
+            life_log_top: Vec::new(), emotional_state: String::new(),
+            other_name: None, other_discoveries: Vec::new(),
+            target_org_id: None,
+            // Middle-of-the-road defaults — push sites set these to real values
+            // for accurate weighting; 0.5 gives a neutral balanced distribution.
+            aggression: 0.5, fear: 0.5, social_tendency: 0.5,
+            curiosity: 0.5, resilience: 0.5,
+        }
+    }
+}
+
+impl ThinkTrigger {
+    /// Copy real trait values from a live organism into the trigger.
+    pub fn with_traits(mut self, org: &Organism) -> Self {
+        self.aggression      = org.traits.aggression;
+        self.fear            = org.traits.fear;
+        self.social_tendency = org.traits.social_tendency;
+        self.curiosity       = org.traits.curiosity;
+        self.resilience      = org.traits.resilience;
+        self
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
