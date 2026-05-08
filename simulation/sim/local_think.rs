@@ -166,9 +166,15 @@ pub fn resolve(trigger: &ThinkTrigger, rng: &mut impl Rng) -> Option<LocalResult
         }
 
         // ── invention ─────────────────────────────────────────────────────────
-        // Candidates are already pre-filtered by the sim; just pick one randomly.
+        // Candidates arrive as ", "-joined string from the sim. Filter out empty
+        // and whitespace-only entries — split("", ", ") returns [""], "a, , b"
+        // returns ["a", "", "b"], and we must never produce an empty discovery name.
         "invention" => {
-            let candidates: Vec<&str> = trigger.context.split(", ").collect();
+            let candidates: Vec<&str> = trigger.context
+                .split(", ")
+                .map(|s| s.trim())
+                .filter(|s| !s.is_empty())
+                .collect();
             if candidates.is_empty() { return None; }
             let pick = candidates[rng.gen_range(0..candidates.len())].to_string();
             Some(LocalResult {
@@ -291,5 +297,40 @@ pub fn resolve(trigger: &ThinkTrigger, rng: &mut impl Rng) -> Option<LocalResult
         "elder_teaching" => None,
 
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand::SeedableRng;
+    use rand::rngs::StdRng;
+
+    fn invention_trigger(context: &str) -> ThinkTrigger {
+        ThinkTrigger { scenario: "invention".to_string(), context: context.to_string(), ..Default::default() }
+    }
+
+    #[test]
+    fn invention_with_empty_context_returns_none() {
+        let mut rng = StdRng::seed_from_u64(0);
+        assert!(resolve(&invention_trigger(""), &mut rng).is_none());
+    }
+
+    #[test]
+    fn invention_filters_empty_candidates() {
+        // "a, , b" used to produce three candidates including an empty string.
+        let mut rng = StdRng::seed_from_u64(0);
+        for _ in 0..50 {
+            let res = resolve(&invention_trigger("a, , b, , c"), &mut rng).unwrap();
+            let d = res.discovery.unwrap();
+            assert!(!d.is_empty(), "invention discovery must never be empty");
+            assert!(["a", "b", "c"].contains(&d.as_str()), "got unexpected discovery: {:?}", d);
+        }
+    }
+
+    #[test]
+    fn invention_only_whitespace_returns_none() {
+        let mut rng = StdRng::seed_from_u64(0);
+        assert!(resolve(&invention_trigger(" ,  ,   "), &mut rng).is_none());
     }
 }
