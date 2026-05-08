@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import type { OrganismState } from '../types'
 import { lineageColor } from '../constants'
 import { OrgDetail } from './OrgDetail'
@@ -21,6 +21,21 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
   const [lineageF, setLineageF] = useState('all')
   const [discF,    setDiscF]    = useState<DiscoveryFilter>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [tribeOpen,  setTribeOpen]  = useState(false)
+  const tribeRef = useRef<HTMLDivElement>(null)
+
+  // Close tribe dropdown when clicking outside
+  useEffect(() => {
+    if (!tribeOpen) return
+    const handler = (e: MouseEvent) => {
+      if (tribeRef.current && !tribeRef.current.contains(e.target as Node)) setTribeOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [tribeOpen])
+
+  const tn = (lid: string) => lineageNames?.[lid] ?? lid.slice(0, 6)
+  const currentTribeLabel = lineageF === 'all' ? 'all tribes' : tn(lineageF)
 
   const lineages = useMemo(
     () => [...new Set(organisms.map(o => o.lineage_id))].sort(),
@@ -91,16 +106,35 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
               onClick={() => setDiscF(discF === 'shelter' ? 'all' : 'shelter')}
             >🏠 shelter</button>
             <span className="filter-sep">·</span>
-            <select
-              className="lineage-select"
-              value={lineageF}
-              onChange={e => setLineageF(e.target.value)}
-            >
-              <option value="all">all tribes</option>
-              {lineages.map(lid => (
-                <option key={lid} value={lid}>{lid.slice(0, 6)}</option>
-              ))}
-            </select>
+            <div className="tribe-dropdown" ref={tribeRef}>
+              <button
+                className={`filter-chip tribe-dropdown-btn${lineageF !== 'all' ? ' active' : ''}`}
+                onClick={() => setTribeOpen(o => !o)}
+              >
+                {lineageF !== 'all' && (
+                  <span className="tribe-dot" style={{ background: lineageColor(lineageF) }} />
+                )}
+                {currentTribeLabel} ▾
+              </button>
+              {tribeOpen && (
+                <div className="tribe-dropdown-menu">
+                  <div
+                    className={`tribe-dropdown-item${lineageF === 'all' ? ' active' : ''}`}
+                    onClick={() => { setLineageF('all'); setTribeOpen(false) }}
+                  >all tribes</div>
+                  {lineages.map(lid => (
+                    <div
+                      key={lid}
+                      className={`tribe-dropdown-item${lineageF === lid ? ' active' : ''}`}
+                      onClick={() => { setLineageF(lid); setTribeOpen(false) }}
+                    >
+                      <span className="tribe-dot" style={{ background: lineageColor(lid) }} />
+                      {tn(lid)}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
