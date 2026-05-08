@@ -1,6 +1,6 @@
 use rand::Rng;
 use serde::Serialize;
-use crate::world::{grid::WorldGrid, tiles::Tile};
+use crate::world::{grid::{WorldGrid, WIDTH, HEIGHT}, tiles::Tile};
 
 const DIRS: [(i32, i32); 8] = [(0,-1),(0,1),(-1,0),(1,0),(-1,-1),(1,-1),(-1,1),(1,1)];
 
@@ -76,7 +76,7 @@ impl Animal {
         for &(ddx, ddy) in &DIRS {
             let nx = ix + ddx;
             let ny = iy + ddy;
-            if nx < 1 || ny < 1 || nx > 98 || ny > 98 { continue; }
+            if nx < 1 || ny < 1 || nx >= WIDTH as i32 - 1 || ny >= HEIGHT as i32 - 1 { continue; }
             if matches!(grid.get(nx, ny), Tile::Void | Tile::Rock | Tile::Water | Tile::Fire) { continue; }
             let score = (tx - nx).abs() + (ty - ny).abs();
             if score < best_score { best_score = score; best_step = (ddx, ddy); moved = true; }
@@ -106,5 +106,24 @@ impl Animal {
             y:    (self.y * 10.0).round() / 10.0,
             kind: match self.kind { AnimalKind::Rabbit => "rabbit", AnimalKind::Deer => "deer" },
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand::SeedableRng;
+
+    #[test]
+    fn animals_can_move_outside_the_old_100_by_100_world_bounds() {
+        let mut grid = WorldGrid::new(7);
+        grid.set(121, 120, Tile::Food);
+        let mut animal = Animal::new(1, 120.0, 120.0, AnimalKind::Rabbit);
+        animal.energy = 0.3;
+        let mut rng = rand::rngs::SmallRng::seed_from_u64(3);
+
+        animal.tick(&grid, &[], &mut rng);
+
+        assert_ne!((animal.x as i32, animal.y as i32), (120, 120));
     }
 }
