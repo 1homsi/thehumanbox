@@ -85,6 +85,37 @@ const THOUGHT_COLORS: Record<string, string> = {
   'building shelter':      '#ffd700',
 }
 
+/** Draw a single cloud puff: a row of overlapping circles along the base + bumps on top. */
+function drawCloudShape(
+  ctx: CanvasRenderingContext2D,
+  cx: number, cy: number,
+  cloudW: number, cloudH: number,
+  alpha: number,
+  color: string,
+  bumpSeed: number,
+) {
+  ctx.fillStyle = `rgba(${color},${alpha})`
+
+  // Base body — flat-bottomed ellipse
+  ctx.beginPath()
+  ctx.ellipse(cx, cy + cloudH * 0.1, cloudW, cloudH * 0.65, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Bumps along the top — 4–6 overlapping circles of varying height & width
+  const nBumps = 4 + (bumpSeed % 3)
+  for (let b = 0; b < nBumps; b++) {
+    const t   = b / (nBumps - 1)          // 0..1 across the cloud width
+    const bx  = cx + (t - 0.5) * cloudW * 1.6
+    // height varies per bump using a deterministic pseudo-random offset
+    const h   = 0.5 + 0.45 * Math.abs(Math.sin(b * 2.1 + bumpSeed * 0.7))
+    const by  = cy - cloudH * (0.3 + h * 0.55)
+    const br  = cloudH * (0.45 + 0.35 * Math.abs(Math.sin(b * 1.5 + bumpSeed)))
+    ctx.beginPath()
+    ctx.arc(bx, by, br, 0, Math.PI * 2)
+    ctx.fill()
+  }
+}
+
 function drawClouds(
   ctx: CanvasRenderingContext2D,
   W: number, H: number,
@@ -92,31 +123,36 @@ function drawClouds(
   t: number,
 ) {
   if (!weather || weather.kind === 'clear') return
-  const isStorm = weather.kind === 'storm'
-  const count   = isStorm ? 9 : 5
-  const baseAlpha = weather.intensity * (isStorm ? 0.55 : 0.32)
+  const isStorm   = weather.kind === 'storm'
+  const count     = isStorm ? 9 : 5
+  const baseAlpha = weather.intensity * (isStorm ? 0.62 : 0.38)
+  const color     = isStorm ? '16,20,42' : '130,148,170'
 
   ctx.save()
   for (let i = 0; i < count; i++) {
-    const seed  = (i + 1) * 127.1
-    const baseX = ((seed * 73.3) % 1.0) * W
-    const baseY = ((seed * 41.7) % 1.0) * H
-    const speed = 0.018 + (i % 4) * 0.008
-    const x     = ((baseX + t * speed) % (W + 320)) - 160
-    const y     = baseY
-    const rw    = W * (0.10 + (i % 3) * 0.06)
-    const rh    = rw * 0.52
+    const seed   = (i + 1) * 137.5
+    const baseX  = ((seed * 73.3) % 1.0) * W
+    // Spread clouds across full height; storm clouds skew lower (more coverage)
+    const baseY  = isStorm
+      ? (((seed * 41.7) % 0.75) + 0.10) * H
+      : (((seed * 41.7) % 0.60) + 0.05) * H
+    const speed  = 0.014 + (i % 5) * 0.006
+    const cx     = ((baseX + t * speed) % (W + 360)) - 180
+    const cy     = baseY
 
-    const c   = isStorm ? '22,28,50' : '140,155,175'
-    const grd = ctx.createRadialGradient(x, y, 0, x, y, rw)
-    grd.addColorStop(0,   `rgba(${c},${baseAlpha})`)
-    grd.addColorStop(0.55,`rgba(${c},${baseAlpha * 0.55})`)
-    grd.addColorStop(1,   `rgba(${c},0)`)
-    ctx.fillStyle = grd
-    ctx.beginPath(); ctx.ellipse(x, y, rw, rh, 0, 0, Math.PI * 2); ctx.fill()
-    // second blob for puffiness
-    ctx.beginPath(); ctx.ellipse(x + rw * 0.28, y - rh * 0.3, rw * 0.65, rh * 0.75, 0, 0, Math.PI * 2); ctx.fill()
-    ctx.beginPath(); ctx.ellipse(x - rw * 0.22, y - rh * 0.2, rw * 0.55, rh * 0.65, 0, 0, Math.PI * 2); ctx.fill()
+    const cloudW = W * (0.09 + (i % 4) * 0.055)
+    const cloudH = cloudW * (0.28 + (i % 3) * 0.07)   // flatter than a circle
+    // vary alpha slightly per cloud so they don't all look identical
+    const alpha  = baseAlpha * (0.75 + 0.25 * ((i * 13 + 7) % 10) / 10)
+
+    drawCloudShape(ctx, cx, cy, cloudW, cloudH, alpha, color, i * 7 + 3)
+
+    // Storm: add a second darker underlayer for depth
+    if (isStorm) {
+      drawCloudShape(ctx, cx + cloudW * 0.08, cy + cloudH * 0.25,
+        cloudW * 0.88, cloudH * 0.70,
+        alpha * 0.55, '8,10,24', i * 5 + 11)
+    }
   }
   ctx.restore()
 }
