@@ -9,12 +9,13 @@ interface Props {
   organisms: OrganismState[]
   onTrack?:  (id: string) => void
   onClose: () => void
+  lineageNames?: Record<string, string>
 }
 
 type StatusFilter    = 'all' | 'alive' | 'dead'
 type DiscoveryFilter = 'all' | 'fire' | 'shelter'
 
-export function OrgSearchModal({ organisms, onTrack, onClose }: Props) {
+export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Props) {
   const [query,    setQuery]    = useState('')
   const [status,   setStatus]   = useState<StatusFilter>('all')
   const [lineageF, setLineageF] = useState('all')
@@ -178,6 +179,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose }: Props) {
                 onClose={() => setSelectedId(null)}
                 onFollow={() => {}}
                 following={false}
+                lineageNames={lineageNames}
               />
             ) : (
               <div className="org-search-placeholder">

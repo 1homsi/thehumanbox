@@ -41,10 +41,13 @@ interface Props {
   onClose: () => void
   onFollow: (id: string | null) => void
   following: boolean
+  lineageNames?: Record<string, string>
 }
 
-export function OrgDetail({ org, onClose, onFollow, following }: Props) {
+export function OrgDetail({ org, onClose, onFollow, following, lineageNames }: Props) {
   const detail    = useOrgDetail(org.id)
+  /** Resolve a lineage_id to its tribe name, falling back to first 6 chars. */
+  const tn = (lid: string) => lineageNames?.[lid] ?? lid.slice(0, 6)
   const ageInDays = Math.floor(org.age / DAY_LENGTH)
   const color     = lineageColor(org.lineage_id)
   const isSick   = org.infection > 0.15
@@ -79,7 +82,7 @@ export function OrgDetail({ org, onClose, onFollow, following }: Props) {
 
       <div className="org-detail-sub">
         gen {org.generation} · {ageInDays > 0 ? `${ageInDays} day${ageInDays !== 1 ? 's' : ''} old` : 'newborn'}
-        {' · '}{org.lineage_id.slice(0, 6)}
+        {' · '}{tn(org.lineage_id)}
         {org.max_age > 0 && ` · max ${fmt(org.max_age)}`}
       </div>
 
@@ -136,13 +139,13 @@ export function OrgDetail({ org, onClose, onFollow, following }: Props) {
           <div className="org-detail-section">RELATIONS</div>
           <div className="relation-list">
             {allies.map(([lid, v]) => (
-              <Tooltip key={lid} tip={`Allied with lineage ${lid.slice(0, 6)} — ${(v * 100).toFixed(0)}% positive attitude. Likely to trade and cooperate.`}>
-                <span className="relation-tag ally" style={{ cursor: 'default' }}>♥ {lid.slice(0, 6)} {(v * 100).toFixed(0)}%</span>
+              <Tooltip key={lid} tip={`Allied with ${tn(lid)} — ${(v * 100).toFixed(0)}% positive attitude. Likely to trade and cooperate.`}>
+                <span className="relation-tag ally" style={{ cursor: 'default' }}>♥ {tn(lid)} {(v * 100).toFixed(0)}%</span>
               </Tooltip>
             ))}
             {enemies.map(([lid, v]) => (
-              <Tooltip key={lid} tip={`Hostile toward lineage ${lid.slice(0, 6)} — ${(Math.abs(v) * 100).toFixed(0)}% negative attitude. Likely to challenge or avoid.`}>
-                <span className="relation-tag enemy" style={{ cursor: 'default' }}>✕ {lid.slice(0, 6)} {(v * 100).toFixed(0)}%</span>
+              <Tooltip key={lid} tip={`Hostile toward ${tn(lid)} — ${(Math.abs(v) * 100).toFixed(0)}% negative attitude. Likely to challenge or avoid.`}>
+                <span className="relation-tag enemy" style={{ cursor: 'default' }}>✕ {tn(lid)} {(v * 100).toFixed(0)}%</span>
               </Tooltip>
             ))}
           </div>

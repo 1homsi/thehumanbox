@@ -28,10 +28,12 @@ interface OrgCardProps {
   sexWords?: [string, string]
   onTrack?:  () => void
   onConvos?: () => void
+  lineageNames?: Record<string, string>
 }
 
-export function OrgCard({ org, sexWords, onTrack, onConvos }: OrgCardProps) {
-  const isSick    = org.infection > 0.15
+export function OrgCard({ org, sexWords, onTrack, onConvos, lineageNames }: OrgCardProps) {
+  const tn     = (lid: string) => lineageNames?.[lid] ?? lid.slice(0, 6)
+  const isSick = org.infection > 0.15
   const sexLabel  = sexWords
     ? (org.sex === 'female' ? sexWords[1] : sexWords[0])
     : undefined
@@ -136,7 +138,7 @@ export function OrgCard({ org, sexWords, onTrack, onConvos }: OrgCardProps) {
                 className="attitude-tag"
                 style={{ color: att >= 0.25 ? '#55ff88' : att <= -0.25 ? '#ff5544' : '#aaa' }}
               >
-                {att >= 0.25 ? '♥' : att <= -0.25 ? '✕' : '~'}{lid}
+                {att >= 0.25 ? '♥' : att <= -0.25 ? '✕' : '~'}{tn(lid)}
               </span>
             ))}
         </div>
