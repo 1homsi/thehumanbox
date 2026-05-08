@@ -61,12 +61,15 @@ export function useSimulation() {
       }
     }
 
+    let destroyed = false
+
     function connect() {
       const ws = new WebSocket(WS_URL)
       wsRef.current = ws
 
-      ws.onopen = () => setConnected(true)
+      ws.onopen = () => { if (!destroyed) setConnected(true) }
       ws.onclose = () => {
+        if (destroyed) return
         setConnected(false)
         if (rafPending.current !== null) {
           cancelAnimationFrame(rafPending.current)
@@ -75,6 +78,7 @@ export function useSimulation() {
         setTimeout(connect, 2000)
       }
       ws.onmessage = (e) => {
+        if (destroyed) return
         latestMsg.current = e.data          // always overwrite — skip stale messages
         if (rafPending.current === null) {
           rafPending.current = requestAnimationFrame(flushUpdate)
@@ -84,11 +88,18 @@ export function useSimulation() {
 
     connect()
     return () => {
+      destroyed = true
       if (rafPending.current !== null) {
         cancelAnimationFrame(rafPending.current)
         rafPending.current = null
       }
-      wsRef.current?.close()
+      const ws = wsRef.current
+      if (ws) {
+        ws.onclose = null   // prevent reconnect loop on intentional teardown
+        ws.onmessage = null
+        ws.close()
+        wsRef.current = null
+      }
     }
   }, [])
 
