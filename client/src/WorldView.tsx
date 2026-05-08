@@ -674,7 +674,7 @@ function CameraController({
     const tx = worldW / 2
     const ty = worldH / 2
     // Fit world to container — clamp so we never start more zoomed-out than min
-    const fitZoom = Math.max(0.15, Math.min(containerW / worldW, containerH / worldH) * 0.95)
+    const fitZoom = Math.max(0.04, Math.min(containerW / worldW, containerH / worldH) * 0.95)
     let raf = 0
     const trySet = () => {
       camera.setPosition(tx, ty)
@@ -737,7 +737,7 @@ function CameraController({
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
       const factor = e.deltaY < 0 ? 1.1 : 0.9
-      const nz = Math.max(0.15, Math.min(8, camera.getZoom() * factor))
+      const nz = Math.max(0.04, Math.min(8, camera.getZoom() * factor))
       camera.setZoom(nz)
       cameraStateRef.current.zoom = nz
     }
