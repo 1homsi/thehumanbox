@@ -9,6 +9,7 @@ use crate::physics::engine::PhysicsEngine;
 use super::config::{DAY_LENGTH, SEASON_LENGTH, SEASONS, season_growth};
 use super::world_events::{DroughtState, WeatherState, tick_drought, tick_outbreak, tick_weather, tick_world_evolution, push_event};
 use super::{social, growth, courtship};
+use super::spatial::SpatialIndex;
 
 const SAVE_SCHEMA_VERSION: u32 = 2;
 
@@ -449,10 +450,15 @@ impl Simulation {
         }
 
         let alive_count_before_loop = self.organisms.iter().filter(|o| o.alive).count();
+        // Build a spatial index over current organism positions once per tick.
+        // Per-organism proximity scans (kin_near, hostile_near, crowding, etc.) then run
+        // in O(neighbours_in_bucket) instead of O(N) per call. Bucket size 10 is a good
+        // fit for the radius-5-to-12 queries we do — most lookups touch a 3×3 block.
+        let spatial = SpatialIndex::build(&self.organisms, 10);
         for i in 0..self.organisms.len() {
             if self.organisms[i].alive {
                 let prev_len = self.organisms.len();
-                self.tick_organism(i, alive_count_before_loop);
+                self.tick_organism(i, alive_count_before_loop, &spatial);
 
                 // Post-birth: if a child was just born, seed it with elder knowledge
                 if self.organisms.len() > prev_len {
@@ -548,7 +554,7 @@ impl Simulation {
         }
     }
 
-    fn tick_organism(&mut self, idx: usize, alive_count: usize) {
+    fn tick_organism(&mut self, idx: usize, alive_count: usize, spatial: &SpatialIndex) {
         let night   = self.is_night();
         let epsilon = (0.5 - self.organisms[idx].age as f32 * 0.00008).max(0.12);
 
@@ -558,9 +564,15 @@ impl Simulation {
         // ── Inner emotional state ─────────────────────────────────────────────
         {
             let org = &self.organisms[idx];
-            let kin_near = self.organisms.iter()
-                .filter(|o| o.alive && !std::ptr::eq(*o, org) && o.lineage_id == org.lineage_id)
-                .filter(|o| (o.x - org.x).abs() + (o.y - org.y).abs() <= 5.0)
+            // Spatial-indexed kin scan: O(bucket) instead of O(N)
+            let kin_near = spatial.query(org.x as i32, org.y as i32, 5)
+                .into_iter()
+                .filter(|&i| {
+                    if i == idx { return false; }
+                    let o = &self.organisms[i];
+                    o.alive && o.lineage_id == org.lineage_id
+                        && (o.x - org.x).abs() + (o.y - org.y).abs() <= 5.0
+                })
                 .count();
             let (ox2, oy2) = (org.x as i32, org.y as i32);
             let near_shelter = (-2i32..=2).any(|dx| (-2i32..=2).any(|dy| {
@@ -568,10 +580,15 @@ impl Simulation {
                 matches!(self.grid.get(nx, ny), Tile::Hut | Tile::Rock)
                     || self.grid.structure_at(nx, ny) >= 0.35
             }));
-            let hostile_near = self.organisms.iter()
-                .filter(|o| o.alive && o.lineage_id != org.lineage_id)
-                .filter(|o| (o.x - org.x).abs() + (o.y - org.y).abs() <= 6.0)
-                .any(|o| org.attitude_toward(&o.lineage_id) < -0.2);
+            let hostile_near = spatial.query(org.x as i32, org.y as i32, 6)
+                .into_iter()
+                .any(|i| {
+                    if i == idx { return false; }
+                    let o = &self.organisms[i];
+                    o.alive && o.lineage_id != org.lineage_id
+                        && (o.x - org.x).abs() + (o.y - org.y).abs() <= 6.0
+                        && org.attitude_toward(&o.lineage_id) < -0.2
+                });
             let weather_kind = self.weather.kind;
             let tick_now = self.tick_count;
             self.organisms[idx].tick_inner_state(kin_near, near_shelter, hostile_near, weather_kind, tick_now, night);
@@ -1070,12 +1087,16 @@ impl Simulation {
 
         // ── Infection spread ──────────────────────────────────────────────────
         if self.organisms[idx].infection < 0.8 {
-            let spreaders: Vec<(f32, f32, f32)> = self.organisms.iter()
-                .enumerate()
-                .filter(|(i, o)| *i != idx && o.alive && o.infection >= 0.15)
-                .filter(|(_, o)| (o.x - self.organisms[idx].x).abs()
-                                +(o.y - self.organisms[idx].y).abs() <= 2.0)
-                .map(|(_, o)| (o.infection, 0.0, 0.0))
+            let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
+            let spreaders: Vec<(f32, f32, f32)> = spatial.query(sx as i32, sy as i32, 2)
+                .into_iter()
+                .filter(|&i| {
+                    if i == idx { return false; }
+                    let o = &self.organisms[i];
+                    o.alive && o.infection >= 0.15
+                        && (o.x - sx).abs() + (o.y - sy).abs() <= 2.0
+                })
+                .map(|i| (self.organisms[i].infection, 0.0, 0.0))
                 .collect();
             let res = self.organisms[idx].traits.resilience;
             let prev_inf = self.organisms[idx].infection;
@@ -1121,17 +1142,27 @@ impl Simulation {
         let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
         let lineage  = self.organisms[idx].lineage_id.clone();
         let soc      = self.organisms[idx].traits.social_tendency;
-        let kin_count = self.organisms.iter()
-            .filter(|o| o.alive && o.lineage_id == lineage)
-            .filter(|o| (o.x - ox).abs() + (o.y - oy).abs() <= 4.0)
-            .count().saturating_sub(1);
+        let kin_count = spatial.query(ox as i32, oy as i32, 4)
+            .into_iter()
+            .filter(|&i| {
+                if i == idx { return false; }
+                let o = &self.organisms[i];
+                o.alive && o.lineage_id == lineage
+                    && (o.x - ox).abs() + (o.y - oy).abs() <= 4.0
+            })
+            .count();
         // Cap at 1 nearby kin for social reward — beyond that, no extra benefit
         reward += 0.004 * (kin_count.min(1) as f32) * (0.5 + soc);
 
         // Crowding penalty — quadratic past 2, gets painful fast
-        let crowding = self.organisms.iter()
-            .filter(|o| o.alive && (o.x - ox).abs() + (o.y - oy).abs() <= 3.0)
-            .count().saturating_sub(1);
+        let crowding = spatial.query(ox as i32, oy as i32, 3)
+            .into_iter()
+            .filter(|&i| {
+                if i == idx { return false; }
+                let o = &self.organisms[i];
+                o.alive && (o.x - ox).abs() + (o.y - oy).abs() <= 3.0
+            })
+            .count();
         if crowding > 2 {
             let excess = (crowding - 2) as f32;
             reward -= 0.006 * excess * excess;
@@ -1222,11 +1253,20 @@ impl Simulation {
         // ── Social thoughts ───────────────────────────────────────────────────
         if self.organisms[idx].energy > 0.7 && self.organisms[idx].hydration > 0.7 {
             let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
-            let nearby_kin = self.organisms.iter()
-                .filter(|o| o.alive && o.lineage_id == lineage && (o.x-ox).abs()+(o.y-oy).abs() <= 3.0)
-                .count().saturating_sub(1);
-            let nearby_stranger_count = self.organisms.iter()
-                .filter(|o| o.alive && o.lineage_id != lineage && (o.x-ox).abs()+(o.y-oy).abs() <= 3.0)
+            let neighbour_idxs = spatial.query(ox as i32, oy as i32, 3);
+            let nearby_kin = neighbour_idxs.iter().copied()
+                .filter(|&i| {
+                    if i == idx { return false; }
+                    let o = &self.organisms[i];
+                    o.alive && o.lineage_id == lineage && (o.x-ox).abs()+(o.y-oy).abs() <= 3.0
+                })
+                .count();
+            let nearby_stranger_count = neighbour_idxs.iter().copied()
+                .filter(|&i| {
+                    if i == idx { return false; }
+                    let o = &self.organisms[i];
+                    o.alive && o.lineage_id != lineage && (o.x-ox).abs()+(o.y-oy).abs() <= 3.0
+                })
                 .count();
             let thought = self.organisms[idx].thought.clone();
             if nearby_kin >= 1 && matches!(thought.as_str(), "exploring"|"observing"|"satisfied") {
