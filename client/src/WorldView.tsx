@@ -782,12 +782,14 @@ function CameraController({
     if (!containerEl) return
 
     // Clamp camera center so the world always stays in view.
-    // When fully zoomed out (world fits inside viewport), just centre it — no panning needed.
+    // When fully zoomed out (world fits inside viewport) no clamping is needed —
+    // the world is always visible regardless of camera position.
+    // When zoomed in, keep the viewport from crossing world edges.
     const clamp = (x: number, y: number, zoom: number) => {
       const halfW = containerW / (2 * zoom)
       const halfH = containerH / (2 * zoom)
-      const cx = halfW >= worldW / 2 ? worldW / 2 : Math.max(halfW, Math.min(worldW - halfW, x))
-      const cy = halfH >= worldH / 2 ? worldH / 2 : Math.max(halfH, Math.min(worldH - halfH, y))
+      const cx = halfW >= worldW / 2 ? x : Math.max(halfW, Math.min(worldW - halfW, x))
+      const cy = halfH >= worldH / 2 ? y : Math.max(halfH, Math.min(worldH - halfH, y))
       return { x: cx, y: cy }
     }
 
