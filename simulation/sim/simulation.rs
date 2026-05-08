@@ -509,11 +509,35 @@ impl Simulation {
             }
         }
 
-        // Prune old dead organisms — keep last 300 for family-tree display
+        // Genealogy-preserving archive policy.
+        // The most recent ~300 dead organisms keep their full state so the UI
+        // can show their memories, q-tables, life logs, etc. Older dead are
+        // compressed — heavy fields cleared but the skeleton (id, name,
+        // lineage_id, parent_id, father_id, generation, traits, age, max_age)
+        // is preserved so the family tree and lineage archaeology remain intact.
+        // After ~10000 compressed, the oldest are hard-deleted to bound RAM.
         if self.tick_count % 1200 == 0 {
+            // Step 1: compress dead beyond the recent window
             let dead_count = self.organisms.iter().filter(|o| !o.alive).count();
-            if dead_count > 300 {
-                let excess = dead_count - 300;
+            const RECENT_DEAD_FULL: usize = 300;
+            const MAX_ARCHIVE: usize       = 10_000;
+            if dead_count > RECENT_DEAD_FULL {
+                let to_compress = dead_count - RECENT_DEAD_FULL;
+                let mut compressed = 0usize;
+                // Compress oldest-first (front of vec). Skip already-compressed
+                // organisms (q_table empty == previously compressed).
+                for o in self.organisms.iter_mut() {
+                    if compressed >= to_compress { break; }
+                    if !o.alive && !o.q_table.is_empty() {
+                        o.compress_for_archive();
+                        compressed += 1;
+                    }
+                }
+            }
+            // Step 2: hard-delete only when the archive itself overflows
+            let dead_now = self.organisms.iter().filter(|o| !o.alive).count();
+            if dead_now > MAX_ARCHIVE {
+                let excess = dead_now - MAX_ARCHIVE;
                 let mut removed = 0usize;
                 self.organisms.retain(|o| {
                     if o.alive { return true; }
