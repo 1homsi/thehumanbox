@@ -24,6 +24,7 @@ impl WeatherState {
 }
 
 const RAIN_BASE_PROB: f32 = 0.0005;
+const MAX_RECENT_EVENTS: usize = 300;
 
 pub fn tick_weather(
     weather: &mut WeatherState,
@@ -276,7 +277,24 @@ pub fn push_event(events: &mut std::collections::VecDeque<super::simulation::Eve
         actor: actor.to_string(),
         detail: detail.to_string(),
     });
-    if events.len() > 30 { events.pop_front(); }
+    if events.len() > MAX_RECENT_EVENTS { events.pop_front(); }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::VecDeque;
+
+    #[test]
+    fn recent_events_keep_enough_context_for_debugging() {
+        let mut events = VecDeque::new();
+        for i in 0..40 {
+            push_event(&mut events, i, "test", "world", "event");
+        }
+
+        assert_eq!(events.len(), 40);
+        assert_eq!(events.front().unwrap().tick, 0);
+    }
 }
 
 // ── World evolution — called every 300 ticks ───────────────────────────────────
