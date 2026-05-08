@@ -163,10 +163,13 @@ impl Simulation {
 
     fn spawn_founders(&mut self) {
         use crate::world::tiles::Tile;
+        const TARGET: usize = 120;
+
+        // ── Phase 1: anchor groups near each water pool ───────────────────────
+        // Spread founders organically around existing water sources first.
         let centers = self.grid.pool_centers.clone();
-        for (cx, cy) in centers {
-            // Collect passable land tiles within radius 14 of the pool center.
-            // Spawn there instead of on the water tile so home_x/home_y is on land.
+        for (cx, cy) in &centers {
+            let (cx, cy) = (*cx, *cy);
             let mut land: Vec<(f32, f32)> = Vec::new();
             for dx in -14i32..=14 {
                 for dy in -14i32..=14 {
@@ -177,21 +180,58 @@ impl Simulation {
                     }
                 }
             }
-            // Shuffle via Fisher-Yates and take up to 3 distinct spawn points
             let n = land.len();
+            if n == 0 {
+                // No suitable land near this pool — skip it entirely
+                continue;
+            }
             for i in 0..n.min(3) {
                 let j = i + self.rng.gen_range(0..(n - i));
                 land.swap(i, j);
             }
-            let count = n.min(3);
-            for k in 0..count {
+            for k in 0..n.min(3) {
                 let (lx, ly) = land[k];
                 growth::spawn_organism(&self.grid, &mut self.organisms, lx, ly, &mut self.rng);
             }
-            if count == 0 {
-                // Fallback: spawn at pool centre (water tile) if no land nearby
-                growth::spawn_organism(&self.grid, &mut self.organisms,
-                                       cx as f32, cy as f32, &mut self.rng);
+        }
+
+        // ── Phase 2: top up to exactly TARGET founders ────────────────────────
+        // Collect all habitable land tiles, divide the world into a grid of cells,
+        // and pick one representative spawn per cell until we hit TARGET.
+        let still_needed = TARGET.saturating_sub(self.organisms.len());
+        if still_needed > 0 {
+            // Gather every walkable grass/food tile that isn't already crowded
+            let mut all_land: Vec<(i32, i32)> = Vec::new();
+            for y in 2..(crate::world::grid::HEIGHT as i32 - 2) {
+                for x in 2..(crate::world::grid::WIDTH as i32 - 2) {
+                    if matches!(self.grid.get(x, y), Tile::Grass | Tile::Food) {
+                        all_land.push((x, y));
+                    }
+                }
+            }
+
+            if !all_land.is_empty() {
+                // Fisher-Yates shuffle the whole list, take first `still_needed` entries
+                // that are at least 8 tiles apart from each other (so groups spread out).
+                let mut picked: Vec<(f32, f32)> = Vec::with_capacity(still_needed);
+                let n = all_land.len();
+                let mut i = 0usize;
+                while picked.len() < still_needed && i < n {
+                    let j = i + self.rng.gen_range(0..(n - i));
+                    all_land.swap(i, j);
+                    let (x, y) = all_land[i];
+                    // Enforce minimum spacing so founders don't all pile up in one spot
+                    let too_close = picked.iter().any(|&(px, py)| {
+                        (px as i32 - x).abs() + (py as i32 - y).abs() < 8
+                    });
+                    if !too_close {
+                        picked.push((x as f32, y as f32));
+                    }
+                    i += 1;
+                }
+                for (lx, ly) in picked {
+                    growth::spawn_organism(&self.grid, &mut self.organisms, lx, ly, &mut self.rng);
+                }
             }
         }
     }
