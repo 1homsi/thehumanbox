@@ -17,6 +17,14 @@ fn main() {
     let print_every: u64 = args.iter()
         .position(|a| a == "--every").and_then(|i| args.get(i+1))
         .and_then(|s| s.parse().ok()).unwrap_or(6_000);  // default 1 in-world day
+    let sweep_seeds: usize = args.iter()
+        .position(|a| a == "--sweep-seeds").and_then(|i| args.get(i+1))
+        .and_then(|s| s.parse().ok()).unwrap_or(0);
+
+    if sweep_seeds > 0 {
+        run_seed_sweep(seed, sweep_seeds, max_ticks);
+        return;
+    }
 
     println!("headless  seed={}  max_ticks={}  print_every={}", seed, max_ticks, print_every);
     println!("{:<10} {:>5} {:>7} {:>7} {:>7} {:>7} {:>7} {:>6} {:>6} {:>6}",
@@ -132,5 +140,107 @@ fn main() {
         println!("\n=== WS PAYLOAD ESTIMATE ===");
         println!("  avg={} KB   max={} KB   samples={}", avg_kb, max_kb, json_sizes_bytes.len());
         println!("  at 10 tps: ~{} KB/s per client", avg_kb * 10);
+    }
+}
+
+struct SweepResult {
+    seed: u64,
+    final_alive: usize,
+    peak_pop: usize,
+    extinction_tick: Option<u64>,
+    births: u64,
+    deaths_old_age: u64,
+    deaths_starvation: u64,
+    deaths_dehydration: u64,
+    deaths_sickness: u64,
+    deaths_combat: u64,
+    surviving_lineages: usize,
+}
+
+fn run_one_seed(seed: u64, max_ticks: u64) -> SweepResult {
+    let mut sim = Simulation::new(seed);
+    let mut peak_pop = 0usize;
+    let mut extinction_tick = None;
+
+    while sim.tick_count < max_ticks {
+        sim.tick();
+        let alive = sim.organisms.iter().filter(|o| o.alive).count();
+        peak_pop = peak_pop.max(alive);
+        if alive == 0 {
+            extinction_tick = Some(sim.tick_count);
+            break;
+        }
+    }
+
+    let final_alive = sim.organisms.iter().filter(|o| o.alive).count();
+    let surviving_lineages = sim.organisms.iter()
+        .filter(|o| o.alive)
+        .map(|o| o.lineage_id.as_str())
+        .collect::<std::collections::HashSet<_>>()
+        .len();
+    let h = &sim.history;
+
+    SweepResult {
+        seed,
+        final_alive,
+        peak_pop,
+        extinction_tick,
+        births: h.births,
+        deaths_old_age: h.deaths_old_age,
+        deaths_starvation: h.deaths_starvation,
+        deaths_dehydration: h.deaths_dehydration,
+        deaths_sickness: h.deaths_sickness,
+        deaths_combat: h.deaths_combat,
+        surviving_lineages,
+    }
+}
+
+fn run_seed_sweep(start_seed: u64, sweep_seeds: usize, max_ticks: u64) {
+    println!("seed_sweep  start_seed={}  seeds={}  max_ticks={}", start_seed, sweep_seeds, max_ticks);
+    println!("{:<12} {:>7} {:>7} {:>10} {:>8} {:>7} {:>6} {:>6} {:>6} {:>6} {:>8}",
+        "seed", "alive", "peak", "extinct_at", "births", "old", "starv", "dehy", "sick", "combat", "lineages");
+    println!("{}", "-".repeat(96));
+
+    let mut results = Vec::with_capacity(sweep_seeds);
+    for offset in 0..sweep_seeds {
+        let seed = start_seed + offset as u64;
+        let r = run_one_seed(seed, max_ticks);
+        println!("{:<12} {:>7} {:>7} {:>10} {:>8} {:>7} {:>6} {:>6} {:>6} {:>6} {:>8}",
+            r.seed,
+            r.final_alive,
+            r.peak_pop,
+            r.extinction_tick.map(|t| t.to_string()).unwrap_or_else(|| "-".to_string()),
+            r.births,
+            r.deaths_old_age,
+            r.deaths_starvation,
+            r.deaths_dehydration,
+            r.deaths_sickness,
+            r.deaths_combat,
+            r.surviving_lineages,
+        );
+        results.push(r);
+    }
+
+    let extinct = results.iter().filter(|r| r.extinction_tick.is_some()).count();
+    let avg_final = results.iter().map(|r| r.final_alive as f64).sum::<f64>() / results.len().max(1) as f64;
+    let avg_peak = results.iter().map(|r| r.peak_pop as f64).sum::<f64>() / results.len().max(1) as f64;
+    println!("\n=== SWEEP SUMMARY ===");
+    println!("extinctions: {} / {}", extinct, results.len());
+    println!("avg final alive: {:.1}", avg_final);
+    println!("avg peak pop:    {:.1}", avg_peak);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn one_seed_sweep_reports_initial_population_without_advancing() {
+        let r = run_one_seed(42, 0);
+
+        assert_eq!(r.seed, 42);
+        assert!(r.final_alive > 0);
+        assert_eq!(r.extinction_tick, None);
+        assert_eq!(r.peak_pop, 0);
     }
 }
