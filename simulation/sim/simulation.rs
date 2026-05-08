@@ -608,17 +608,21 @@ impl Simulation {
 
         if action < 8 {
             let (dx, dy) = DIRECTIONS[action];
-            let (nx, ny) = (ix + dx, iy + dy);
-            let next_tile = self.grid.get(nx, ny);
-            if next_tile.walkable() {
-                self.organisms[idx].x = nx as f32;
-                self.organisms[idx].y = ny as f32;
-                self.grid.leave_trail(nx, ny, TrailKind::Path, 0.06);
-                self.grid.stamp_pressure(nx, ny);
+            // Move 2 tiles per step — mid tile must also be clear to prevent jumping over walls
+            let (mx, my) = (ix + dx,     iy + dy);
+            let (nx, ny) = (ix + dx * 2, iy + dy * 2);
+            let mid_ok  = self.grid.get(mx, my).walkable();
+            let dest_ok = self.grid.get(nx, ny).walkable();
+            let (fx, fy) = if mid_ok && dest_ok { (nx, ny) } else if mid_ok { (mx, my) } else { (ix, iy) };
+            if fx != ix || fy != iy {
+                self.organisms[idx].x = fx as f32;
+                self.organisms[idx].y = fy as f32;
+                self.grid.leave_trail(fx, fy, TrailKind::Path, 0.06);
+                self.grid.stamp_pressure(fx, fy);
                 // Farmers passively cultivate parched land they walk through
                 let has_farming = self.organisms[idx].discoveries.contains("farm");
                 if has_farming {
-                    let fidx = WorldGrid::idx(nx, ny);
+                    let fidx = WorldGrid::idx(fx, fy);
                     if self.grid.fertility[fidx] < 0.25 {
                         self.grid.fertility[fidx] = (self.grid.fertility[fidx] + 0.004).min(0.55);
                     }
@@ -1582,6 +1586,24 @@ impl Simulation {
             && self.organisms[idx].alive
             && self.organisms[idx].age > 1500
             && self.organisms[idx].traits.social_tendency > 0.20;
+
+        // Partner seeking: lonely unpartnered adults actively walk toward the nearest
+        // potential mate rather than relying on random wandering to bring them together.
+        if is_unpartnered_adult
+            && self.organisms[idx].attracted_to.is_none()
+            && self.organisms[idx].wander_target.is_none()
+            && self.organisms[idx].loneliness > 0.30
+        {
+            let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
+            let my_sex = self.organisms[idx].sex;
+            let target = self.organisms.iter()
+                .filter(|o| o.alive && o.sex != my_sex && o.age > 1500 && o.partner_id.is_none())
+                .min_by_key(|o| ((o.x - ox).hypot(o.y - oy) * 10.0) as i32)
+                .map(|o| (o.x as i32, o.y as i32));
+            if let Some((tx, ty)) = target {
+                self.organisms[idx].wander_target = Some((tx.clamp(5, 595), ty.clamp(5, 295)));
+            }
+        }
 
         // Phase 1 — develop attraction toward a nearby opposite-sex adult
         if is_unpartnered_adult
