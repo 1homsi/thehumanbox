@@ -375,35 +375,61 @@ function drawWorldOnCanvas(
   // Only colors land tiles within MAX_DIST tiles of any organism — ocean stays uncolored
   const liveOrgs = world.organisms.filter(o => o.alive && o.lineage_id)
   if (viewFlags.territory && liveOrgs.length > 0) {
-    const BLOCK = 4           // tiles per Voronoi cell
-    const MAX_DIST_SQ = 40 * 40  // skip blocks farther than 40 tiles from any organism
+    const BLOCK = 4
+    const MAX_DIST_SQ = 40 * 40
     const bw = Math.ceil(width  / BLOCK)
     const bh = Math.ceil(height / BLOCK)
-    // Pre-convert each organism's position and colour once
     const orgData = liveOrgs.map(o => ({
-      tx: o.x - ox,
-      ty: o.y - oy,
-      fill: lineageColor(o.lineage_id).replace('hsl(', 'hsla(').replace(')', ', 0.42)'),
+      tx:  o.x - ox,
+      ty:  o.y - oy,
+      lid: o.lineage_id,
+      fill: lineageColor(o.lineage_id).replace('hsl(', 'hsla(').replace(')', ', 0.40)'),
     }))
+
+    // Pass 1: compute ownership grid
+    const ownerLid:  (string | null)[][] = Array.from({ length: bh }, () => new Array(bw).fill(null))
+    const ownerFill: (string | null)[][] = Array.from({ length: bh }, () => new Array(bw).fill(null))
     for (let by = 0; by < bh; by++) {
       for (let bx = 0; bx < bw; bx++) {
-        // Centre of this block in tile-space
         const cx2 = bx * BLOCK + BLOCK * 0.5
         const cy2 = by * BLOCK + BLOCK * 0.5
-        // Skip water tiles — ocean can't be anyone's territory
-        const tileType = tiles[Math.floor(cy2)]?.[Math.floor(cx2)] ?? 0
-        if (tileType === 2) continue
-        let bestFill = ''
-        let bestDist = MAX_DIST_SQ  // acts as the cap — nothing beyond this wins
+        if (tiles[Math.floor(cy2)]?.[Math.floor(cx2)] === 2) continue  // skip water
+        let bestLid = '', bestFill = '', bestDist = MAX_DIST_SQ
         for (const od of orgData) {
-          const dx = od.tx - cx2, dy = od.ty - cy2
-          const d = dx * dx + dy * dy
-          if (d < bestDist) { bestDist = d; bestFill = od.fill }
+          const d = (od.tx - cx2) ** 2 + (od.ty - cy2) ** 2
+          if (d < bestDist) { bestDist = d; bestLid = od.lid; bestFill = od.fill }
         }
-        if (bestFill) {
-          ctx.fillStyle = bestFill
-          ctx.fillRect(bx * BLOCK * TILE, by * BLOCK * TILE, BLOCK * TILE, BLOCK * TILE)
-        }
+        if (bestLid) { ownerLid[by][bx] = bestLid; ownerFill[by][bx] = bestFill }
+      }
+    }
+
+    // Pass 2: draw fills
+    for (let by = 0; by < bh; by++) {
+      for (let bx = 0; bx < bw; bx++) {
+        const fill = ownerFill[by][bx]
+        if (!fill) continue
+        ctx.fillStyle = fill
+        ctx.fillRect(bx * BLOCK * TILE, by * BLOCK * TILE, BLOCK * TILE, BLOCK * TILE)
+      }
+    }
+
+    // Pass 3: draw dark border strips where ownership changes
+    const BW = 2  // border width in pixels
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'
+    for (let by = 0; by < bh; by++) {
+      for (let bx = 0; bx < bw; bx++) {
+        const lid = ownerLid[by][bx]
+        if (!lid) continue
+        const px = bx * BLOCK * TILE, py = by * BLOCK * TILE
+        const sz = BLOCK * TILE
+        const top    = by > 0      ? ownerLid[by-1][bx] : null
+        const bottom = by < bh - 1 ? ownerLid[by+1][bx] : null
+        const left   = bx > 0      ? ownerLid[by][bx-1] : null
+        const right  = bx < bw - 1 ? ownerLid[by][bx+1] : null
+        if (top    !== lid) ctx.fillRect(px,          py,          sz, BW)
+        if (bottom !== lid) ctx.fillRect(px,          py + sz - BW, sz, BW)
+        if (left   !== lid) ctx.fillRect(px,          py,          BW, sz)
+        if (right  !== lid) ctx.fillRect(px + sz - BW, py,          BW, sz)
       }
     }
   }
