@@ -634,13 +634,17 @@ function drawWorldOnCanvas(
 // ── WorldTextureUpdater ───────────────────────────────────────────────────────
 // Must be inside <Entity>. Injects a WebGL texture and updates it each tick.
 
-function WorldTextureUpdater({ world, selectedOrgId, overlay, focus, viewFlags }: { world: WorldState; selectedOrgId: string | null; overlay: string | null; focus: string; viewFlags: ViewFlags }) {
+function WorldTextureUpdater({ world, selectedOrgId, overlay, focus, viewFlags, onFirstDraw }: { world: WorldState; selectedOrgId: string | null; overlay: string | null; focus: string; viewFlags: ViewFlags; onFirstDraw: () => void }) {
   const engine = useGame()
   useEntity()
-  const glTexRef  = useRef<WebGLTexture | null>(null)
-  const offscreen = useRef<HTMLCanvasElement | null>(null)
-  const texKeyRef = useRef<string>('')
+  const glTexRef   = useRef<WebGLTexture | null>(null)
+  const offscreen  = useRef<HTMLCanvasElement | null>(null)
+  const texKeyRef  = useRef<string>('')
   const initialised = useRef(false)
+  const hasDrawn   = useRef(false)
+  // Cache the last-received static maps — depth_map/biomes only arrive every 30 ticks
+  const cachedDepth  = useRef<number[][] | null>(null)
+  const cachedBiomes = useRef<number[][] | null>(null)
 
   // Initialise texture once on mount — useLayoutEffect so the texture is injected
   // before Cubeforge's first WebGL frame, preventing the green placeholder flash.
@@ -697,10 +701,23 @@ function WorldTextureUpdater({ world, selectedOrgId, overlay, focus, viewFlags }
   useEffect(() => {
     if (!initialised.current || !glTexRef.current || !offscreen.current) return
     const rs = (engine as any).activeRenderSystem
+    if (!rs) return
     const gl: WebGL2RenderingContext = rs.gl
 
+    // Cache depth_map and biomes when the server sends them (every 30 ticks)
+    if (world.grid.depth_map)  cachedDepth.current  = world.grid.depth_map  as number[][]
+    if (world.grid.biomes)     cachedBiomes.current = world.grid.biomes     as number[][]
+
+    // Inject cached static maps so ocean depth renders on every tick, not just tick 0/30/60…
+    const enrichedGrid = {
+      ...world.grid,
+      depth_map: cachedDepth.current  ?? world.grid.depth_map,
+      biomes:    cachedBiomes.current ?? world.grid.biomes,
+    }
+    const enrichedWorld = { ...world, grid: enrichedGrid }
+
     const ctx = offscreen.current.getContext('2d')!
-    drawWorldOnCanvas(ctx, world, selectedOrgId, overlay, focus, viewFlags)
+    drawWorldOnCanvas(ctx, enrichedWorld, selectedOrgId, overlay, focus, viewFlags)
 
     gl.bindTexture(gl.TEXTURE_2D, glTexRef.current)
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, offscreen.current)
@@ -708,7 +725,10 @@ function WorldTextureUpdater({ world, selectedOrgId, overlay, focus, viewFlags }
     // Keep key alive in LRU
     rs.textures.set(texKeyRef.current, glTexRef.current)
     if (rs.touchTexture) rs.touchTexture(texKeyRef.current)
-  }, [world, engine, selectedOrgId, overlay, focus, viewFlags])
+
+    // Signal first draw so the ocean-blue overlay lifts
+    if (!hasDrawn.current) { hasDrawn.current = true; onFirstDraw() }
+  }, [world, engine, selectedOrgId, overlay, focus, viewFlags, onFirstDraw])
 
   return null
 }
@@ -869,9 +889,12 @@ export function WorldView({ world, selectedOrgId, followOrgId, onOrgSelect, over
   const ox = world.grid.origin_x ?? 0
   const oy = world.grid.origin_y ?? 0
 
-  const containerRef  = useRef<HTMLDivElement>(null)
+  const containerRef   = useRef<HTMLDivElement>(null)
   const cameraStateRef = useRef({ x: cx, y: cy, zoom: 1.5 })
   const [dims, setDims] = useState({ w: 0, h: 0 })
+  // Hide the game canvas behind a solid overlay until the first world draw lands,
+  // preventing the green Cubeforge placeholder from flashing on load.
+  const [mapReady, setMapReady] = useState(false)
 
   // Follow target: canvas pixel coords (viewport-relative)
   const followTarget = followOrgId
@@ -923,6 +946,12 @@ export function WorldView({ world, selectedOrgId, followOrgId, onOrgSelect, over
       style={{ flex: 1, minWidth: 0, overflow: 'hidden', cursor: 'grab', position: 'relative' }}
       onClick={handleClick}
     >
+      {!mapReady && (
+        <div style={{
+          position: 'absolute', inset: 0, background: '#1a4a80', zIndex: 10,
+          pointerEvents: 'none'
+        }} />
+      )}
       {dims.w > 0 && (
         <Game
           gravity={0}
@@ -942,7 +971,7 @@ export function WorldView({ world, selectedOrgId, followOrgId, onOrgSelect, over
                 color="#ffffff"
                 zIndex={0}
               />
-              <WorldTextureUpdater world={world} selectedOrgId={selectedOrgId} overlay={overlay} focus={focus} viewFlags={viewFlags} />
+              <WorldTextureUpdater world={world} selectedOrgId={selectedOrgId} overlay={overlay} focus={focus} viewFlags={viewFlags} onFirstDraw={() => setMapReady(true)} />
             </Entity>
 
             <CameraController
