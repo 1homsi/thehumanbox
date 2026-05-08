@@ -781,14 +781,14 @@ function CameraController({
   useEffect(() => {
     if (!containerEl) return
 
-    // Clamp camera center so the world always stays in view
+    // Clamp camera center so the world always stays in view.
+    // When fully zoomed out (world fits inside viewport), just centre it — no panning needed.
     const clamp = (x: number, y: number, zoom: number) => {
       const halfW = containerW / (2 * zoom)
       const halfH = containerH / (2 * zoom)
-      return {
-        x: Math.max(halfW, Math.min(worldW - halfW, x)),
-        y: Math.max(halfH, Math.min(worldH - halfH, y)),
-      }
+      const cx = halfW >= worldW / 2 ? worldW / 2 : Math.max(halfW, Math.min(worldW - halfW, x))
+      const cy = halfH >= worldH / 2 ? worldH / 2 : Math.max(halfH, Math.min(worldH - halfH, y))
+      return { x: cx, y: cy }
     }
 
     const onDown = (e: PointerEvent) => {
