@@ -642,8 +642,9 @@ function WorldTextureUpdater({ world, selectedOrgId, overlay, focus, viewFlags }
   const texKeyRef = useRef<string>('')
   const initialised = useRef(false)
 
-  // Initialise texture once on mount
-  useEffect(() => {
+  // Initialise texture once on mount — useLayoutEffect so the texture is injected
+  // before Cubeforge's first WebGL frame, preventing the green placeholder flash.
+  useLayoutEffect(() => {
     const rs = (engine as any).activeRenderSystem
     const gl: WebGL2RenderingContext = rs.gl
 
@@ -656,16 +657,19 @@ function WorldTextureUpdater({ world, selectedOrgId, overlay, focus, viewFlags }
     const tex = gl.createTexture()!
     glTexRef.current = tex
 
-    // Create offscreen canvas
+    // Create offscreen canvas — pre-fill with ocean blue so first frame isn't a flash of green
     const W = world.grid.width * TILE
     const H = world.grid.height * TILE
     const cv = document.createElement('canvas')
     cv.width = W; cv.height = H
+    const initCtx = cv.getContext('2d')!
+    initCtx.fillStyle = '#1a4a80'
+    initCtx.fillRect(0, 0, W, H)
     offscreen.current = cv
 
-    // Initial upload (blank/black so texture is valid)
+    // Initial upload — ocean-blue canvas so texture is valid and colour-matched from frame 1
     gl.bindTexture(gl.TEXTURE_2D, tex)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, W, H, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
