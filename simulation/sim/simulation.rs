@@ -2059,8 +2059,27 @@ impl Simulation {
         let json = serde_json::to_string(&state)
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
         let tmp_path = format!("{}.tmp", path);
-        std::fs::write(&tmp_path, json)?;
+
+        // Crash-hardened atomic save:
+        // 1. Write contents to temp file and fsync the file so bytes hit disk
+        // 2. Atomic rename temp → final path
+        // 3. fsync the parent directory so the rename is durable
+        // Without (1), a crash mid-write could leave a corrupt final file after rename.
+        // Without (3), a crash after rename could lose the directory entry update.
+        {
+            use std::io::Write;
+            let mut f = std::fs::File::create(&tmp_path)?;
+            f.write_all(json.as_bytes())?;
+            f.sync_all()?;
+        }
         std::fs::rename(&tmp_path, path)?;
+        if let Some(parent) = std::path::Path::new(path).parent() {
+            // Empty parent ("") happens when path is just a filename in CWD — fsync "."
+            let dir = if parent.as_os_str().is_empty() { std::path::Path::new(".") } else { parent };
+            if let Ok(d) = std::fs::File::open(dir) {
+                let _ = d.sync_all();  // best-effort — not all filesystems support directory fsync
+            }
+        }
         Ok(())
     }
 
