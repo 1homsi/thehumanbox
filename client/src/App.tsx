@@ -329,6 +329,7 @@ function App() {
                   onTrack={() => handleFollow(org.id)}
                   onConvos={org.conversation_count ? () => setConvoOrgId(org.id) : undefined}
                   lineageNames={world?.lineage_names}
+                  organisms={world?.organisms}
                 />
               ))}
 
