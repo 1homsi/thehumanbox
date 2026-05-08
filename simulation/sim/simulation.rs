@@ -1580,22 +1580,22 @@ impl Simulation {
         let tc = self.tick_count;
         let is_unpartnered_adult = self.organisms[idx].partner_id.is_none()
             && self.organisms[idx].alive
-            && self.organisms[idx].age > 3000
-            && self.organisms[idx].traits.social_tendency > 0.25;
+            && self.organisms[idx].age > 1500
+            && self.organisms[idx].traits.social_tendency > 0.20;
 
         // Phase 1 — develop attraction toward a nearby opposite-sex adult
         if is_unpartnered_adult
             && self.organisms[idx].attracted_to.is_none()
-            && self.rng.gen::<f32>() < 0.0025
+            && self.rng.gen::<f32>() < 0.005
         {
             let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
             let my_sex = self.organisms[idx].sex;
             let candidate = self.organisms.iter().enumerate().find(|(i, o)| {
                 *i != idx && o.alive && o.partner_id.is_none()
                     && o.attracted_to.is_none()
-                    && o.age > 3000
+                    && o.age > 1500
                     && o.sex != my_sex
-                    && (o.x - ox).hypot(o.y - oy) < 28.0
+                    && (o.x - ox).hypot(o.y - oy) < 35.0
             }).map(|(i, _)| i);
             if let Some(ci) = candidate {
                 let cid   = self.organisms[ci].id.clone();
@@ -1617,8 +1617,8 @@ impl Simulation {
                 let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
                 let attraction_age = tc.saturating_sub(self.organisms[idx].attraction_tick);
                 let partner_close = self.organisms.iter()
-                    .any(|o| o.alive && o.id == aid && (o.x - ox).hypot(o.y - oy) < 5.0);
-                if partner_close && attraction_age >= 600 && self.rng.gen::<f32>() < 0.025 {
+                    .any(|o| o.alive && o.id == aid && (o.x - ox).hypot(o.y - oy) < 8.0);
+                if partner_close && attraction_age >= 300 && self.rng.gen::<f32>() < 0.04 {
                     if let Some(pi) = self.organisms.iter().position(|o| o.alive && o.id == aid) {
                         let pid   = self.organisms[pi].id.clone();
                         let pname = self.organisms[pi].name.clone();

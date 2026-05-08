@@ -32,8 +32,8 @@ pub fn spawn_organism_with_lineage(
     let mut traits = Traits::random(rng);
     apply_sex_traits(&mut traits, sex);
     let max_age = rng.gen_range(
-        (3000.0 + 2500.0 * traits.resilience) as u32
-        ..=(5000.0 + 3500.0 * traits.resilience) as u32
+        (6000.0 + 4000.0 * traits.resilience) as u32
+        ..=(10000.0 + 6000.0 * traits.resilience) as u32
     );
 
     let mut org = Organism::new(
@@ -74,15 +74,15 @@ pub fn try_reproduce(
     if org.sex != Sex::Female { return; }
 
     // When population is critically low, relax thresholds to allow recovery
-    let low_pop = alive_count < 25;
+    let low_pop = alive_count < 60;
     let (e_min, h_min, hp_min, cooldown, partner_dist) = if low_pop {
-        (0.38, 0.38, 0.45, 2400u64, 50.0f32)  // emergency: lower bar, wider partner search, halved cooldown
+        (0.35, 0.35, 0.40, 1200u64, 60.0f32)  // emergency: lower bar, wider partner search, halved cooldown
     } else {
-        (0.50, 0.50, 0.60, 4800u64, 25.0f32)  // normal
+        (0.48, 0.48, 0.55, 2400u64, 30.0f32)  // normal: ~4 sim-days between births
     };
 
-    // Must be at least 5 days old (adults only)
-    if !(org.energy > e_min && org.hydration > h_min && org.health > hp_min && org.age > 3000) { return; }
+    // Must be at least 2.5 days old (adults only)
+    if !(org.energy > e_min && org.hydration > h_min && org.health > hp_min && org.age > 1500) { return; }
     if tick - org.last_reproduced < cooldown { return; }
     if org.infection > 0.30 { return; }
 
