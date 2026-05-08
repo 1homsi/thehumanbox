@@ -608,21 +608,17 @@ impl Simulation {
 
         if action < 8 {
             let (dx, dy) = DIRECTIONS[action];
-            // Move 2 tiles per step — mid tile must also be clear to prevent jumping over walls
-            let (mx, my) = (ix + dx,     iy + dy);
-            let (nx, ny) = (ix + dx * 2, iy + dy * 2);
-            let mid_ok  = self.grid.get(mx, my).walkable();
-            let dest_ok = self.grid.get(nx, ny).walkable();
-            let (fx, fy) = if mid_ok && dest_ok { (nx, ny) } else if mid_ok { (mx, my) } else { (ix, iy) };
-            if fx != ix || fy != iy {
-                self.organisms[idx].x = fx as f32;
-                self.organisms[idx].y = fy as f32;
-                self.grid.leave_trail(fx, fy, TrailKind::Path, 0.06);
-                self.grid.stamp_pressure(fx, fy);
+            let (nx, ny) = (ix + dx, iy + dy);
+            let next_tile = self.grid.get(nx, ny);
+            if next_tile.walkable() {
+                self.organisms[idx].x = nx as f32;
+                self.organisms[idx].y = ny as f32;
+                self.grid.leave_trail(nx, ny, TrailKind::Path, 0.06);
+                self.grid.stamp_pressure(nx, ny);
                 // Farmers passively cultivate parched land they walk through
                 let has_farming = self.organisms[idx].discoveries.contains("farm");
                 if has_farming {
-                    let fidx = WorldGrid::idx(fx, fy);
+                    let fidx = WorldGrid::idx(nx, ny);
                     if self.grid.fertility[fidx] < 0.25 {
                         self.grid.fertility[fidx] = (self.grid.fertility[fidx] + 0.004).min(0.55);
                     }
@@ -1617,7 +1613,7 @@ impl Simulation {
                     && o.attracted_to.is_none()
                     && o.age > 1500
                     && o.sex != my_sex
-                    && (o.x - ox).hypot(o.y - oy) < 35.0
+                    && (o.x - ox).hypot(o.y - oy) < 120.0
             }).map(|(i, _)| i);
             if let Some(ci) = candidate {
                 let cid   = self.organisms[ci].id.clone();
