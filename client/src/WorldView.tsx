@@ -372,10 +372,11 @@ function drawWorldOnCanvas(
   }
 
   // Territory Voronoi overlay — each coarse block colored by nearest organism's lineage
-  // BLOCK=4 tiles per cell → ~100×67 cells × orgs iterations, runs at world-update rate (~300ms)
+  // Only colors land tiles within MAX_DIST tiles of any organism — ocean stays uncolored
   const liveOrgs = world.organisms.filter(o => o.alive && o.lineage_id)
   if (viewFlags.territory && liveOrgs.length > 0) {
-    const BLOCK = 4  // tiles per Voronoi cell
+    const BLOCK = 4           // tiles per Voronoi cell
+    const MAX_DIST_SQ = 40 * 40  // skip blocks farther than 40 tiles from any organism
     const bw = Math.ceil(width  / BLOCK)
     const bh = Math.ceil(height / BLOCK)
     // Pre-convert each organism's position and colour once
@@ -389,11 +390,14 @@ function drawWorldOnCanvas(
         // Centre of this block in tile-space
         const cx2 = bx * BLOCK + BLOCK * 0.5
         const cy2 = by * BLOCK + BLOCK * 0.5
+        // Skip water tiles — ocean can't be anyone's territory
+        const tileType = tiles[Math.floor(cy2)]?.[Math.floor(cx2)] ?? 0
+        if (tileType === 2) continue
         let bestFill = ''
-        let bestDist = Infinity
+        let bestDist = MAX_DIST_SQ  // acts as the cap — nothing beyond this wins
         for (const od of orgData) {
           const dx = od.tx - cx2, dy = od.ty - cy2
-          const d = dx * dx + dy * dy   // skip sqrt — only need relative order
+          const d = dx * dx + dy * dy
           if (d < bestDist) { bestDist = d; bestFill = od.fill }
         }
         if (bestFill) {
