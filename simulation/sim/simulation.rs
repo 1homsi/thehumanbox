@@ -1,6 +1,7 @@
 use rand::Rng;
 use serde::{Serialize, Deserialize};
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::io;
 use crate::organism::organism::{Organism, DIRECTIONS, generate_tribe_name};
 use crate::organism::animal::{Animal, AnimalKind};
 use crate::world::{grid::{WorldGrid, TrailKind, WIDTH, HEIGHT}, tiles::Tile};
@@ -8,6 +9,8 @@ use crate::physics::engine::PhysicsEngine;
 use super::config::{DAY_LENGTH, SEASON_LENGTH, SEASONS, season_growth};
 use super::world_events::{DroughtState, WeatherState, tick_drought, tick_outbreak, tick_weather, tick_world_evolution, push_event};
 use super::{social, growth, courtship};
+
+const SAVE_SCHEMA_VERSION: u32 = 2;
 
 // ── Public types ─────────────────────────────────────────────────────────────
 
@@ -2005,7 +2008,14 @@ impl Simulation {
     // ── Persistence ───────────────────────────────────────────────────────────
 
     pub fn save(&self, path: &str) {
+        if let Err(e) = self.save_result(path) {
+            eprintln!("[save] failed to write {}: {}", path, e);
+        }
+    }
+
+    pub fn save_result(&self, path: &str) -> io::Result<()> {
         let state = SaveState {
+            version:        SAVE_SCHEMA_VERSION,
             tick_count:     self.tick_count,
             next_animal_id: self.next_animal_id,
             history:        self.history.clone(),
@@ -2042,9 +2052,12 @@ impl Simulation {
             world_seed:     self.world_seed,
             lineage_names:  self.lineage_names.clone(),
         };
-        if let Ok(json) = serde_json::to_string(&state) {
-            std::fs::write(path, json).ok();
-        }
+        let json = serde_json::to_string(&state)
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        let tmp_path = format!("{}.tmp", path);
+        std::fs::write(&tmp_path, json)?;
+        std::fs::rename(&tmp_path, path)?;
+        Ok(())
     }
 
     pub fn load_or_new(seed: u64, path: &str) -> Self {
@@ -2387,6 +2400,8 @@ struct AnimalSave {
 
 #[derive(Serialize, Deserialize)]
 struct SaveState {
+    #[serde(default)]
+    version:        u32,
     tick_count:     u64,
     next_animal_id: usize,
     history:        History,
@@ -2556,5 +2571,25 @@ mod tests {
         assert!(scarcity_driven_migration_season("decline"));
         assert!(!scarcity_driven_migration_season("winter"));
         assert!(!scarcity_driven_migration_season("dry"));
+    }
+
+    #[test]
+    fn save_result_writes_schema_version_and_cleans_temp_file() {
+        let mut path = std::env::temp_dir();
+        path.push(format!("thehumanbox-save-test-{}.json", std::process::id()));
+        let path_s = path.to_string_lossy().to_string();
+        let tmp_s = format!("{}.tmp", path_s);
+        let _ = std::fs::remove_file(&path_s);
+        let _ = std::fs::remove_file(&tmp_s);
+
+        let sim = Simulation::new(11);
+        sim.save_result(&path_s).unwrap();
+
+        let saved = std::fs::read_to_string(&path_s).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&saved).unwrap();
+        assert_eq!(parsed["version"], SAVE_SCHEMA_VERSION);
+        assert!(!std::path::Path::new(&tmp_s).exists());
+
+        let _ = std::fs::remove_file(&path_s);
     }
 }
