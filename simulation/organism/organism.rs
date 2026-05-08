@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet, VecDeque};
 use rand::Rng;
 use serde::Serialize;
 use super::traits::Traits;
@@ -138,7 +138,7 @@ pub struct Organism {
     pub water_memory:  HashMap<(i32,i32), f32>,
     pub danger_memory: HashMap<(i32,i32), f32>,
 
-    pub thought_history: Vec<ThoughtEntry>,
+    pub thought_history: VecDeque<ThoughtEntry>,
 
     pub q_table: HashMap<String, Vec<f32>>,
 
@@ -156,8 +156,8 @@ pub struct Organism {
     pub vocabulary:    Vocabulary,
     pub daily_story:   String,
     pub last_story_tick: u64,
-    pub life_log:      Vec<String>,
-    pub discoveries:   Vec<String>,  // "fire", "shelter", "parent"
+    pub life_log:      VecDeque<String>,
+    pub discoveries:   HashSet<String>,  // "fire", "shelter", "parent"
 
     pub home_x: f32,
     pub home_y: f32,
@@ -198,7 +198,7 @@ pub struct Organism {
     pub pregnancy_start: u64,
 
     // Stored conversations (capped at 15)
-    pub conversations:   Vec<ConversationEntry>,
+    pub conversations:   VecDeque<ConversationEntry>,
 }
 
 impl Organism {
@@ -217,7 +217,7 @@ impl Organism {
             food_memory:   HashMap::new(),
             water_memory:  HashMap::new(),
             danger_memory: HashMap::new(),
-            thought_history: Vec::new(),
+            thought_history: VecDeque::new(),
             q_table: HashMap::new(),
             last_reproduced: 0,
             last_challenged: 0,
@@ -229,8 +229,8 @@ impl Organism {
             vocabulary: Vocabulary { words: std::collections::HashMap::new() },
             daily_story: String::new(),
             last_story_tick: 0,
-            life_log: Vec::new(),
-            discoveries: Vec::new(),
+            life_log: VecDeque::new(),
+            discoveries: HashSet::new(),
             home_x: x,
             home_y: y,
             is_elder: false,
@@ -257,30 +257,25 @@ impl Organism {
             attraction_tick: 0,
             pregnant:        false,
             pregnancy_start: 0,
-            conversations:   Vec::new(),
+            conversations:   VecDeque::new(),
         }
     }
 
     pub fn store_conversation(&mut self, entry: ConversationEntry) {
-        self.conversations.push(entry);
+        self.conversations.push_back(entry);
         if self.conversations.len() > 15 {
-            self.conversations.remove(0);
+            self.conversations.pop_front();
         }
     }
 
     pub fn discover(&mut self, what: &str) -> bool {
-        if !self.discoveries.contains(&what.to_string()) {
-            self.discoveries.push(what.to_string());
-            true
-        } else {
-            false
-        }
+        self.discoveries.insert(what.to_string())
     }
 
     pub fn log_event(&mut self, event: String) {
-        self.life_log.push(event);
+        self.life_log.push_back(event);
         if self.life_log.len() > 24 {
-            self.life_log.remove(0);
+            self.life_log.pop_front();
         }
     }
 
@@ -479,9 +474,9 @@ impl Organism {
     pub fn think(&mut self, text: &str, tick: u64) {
         if self.thought == text { return; }
         self.thought = text.to_string();
-        self.thought_history.push(ThoughtEntry { tick, text: text.to_string() });
+        self.thought_history.push_back(ThoughtEntry { tick, text: text.to_string() });
         if self.thought_history.len() > 80 {
-            self.thought_history.remove(0);
+            self.thought_history.pop_front();
         }
     }
 
@@ -631,7 +626,8 @@ impl Organism {
     // Returns (action, new_thought). Caller applies the thought to avoid &mut self + &[Organism] aliasing.
     pub fn choose_action(&self, grid: &WorldGrid, tick: u64,
                          epsilon: f32, organisms: &[Organism], night: bool,
-                         weather_kind: u8, rng: &mut impl Rng, animal_near: bool) -> (usize, Option<String>)
+                         weather_kind: u8, rng: &mut impl Rng, animal_near: bool,
+                         cached_perception: &str) -> (usize, Option<String>)
     {
         let (ix, iy) = (self.x as i32, self.y as i32);
         let tile = grid.get(ix, iy);
@@ -1062,8 +1058,7 @@ impl Organism {
             return (rng.gen_range(0..N_ACTIONS), thought);
         }
 
-        let perception = self.perceive(grid, organisms, night, animal_near);
-        let q_row = self.q_table.get(&perception).cloned()
+        let q_row = self.q_table.get(cached_perception).cloned()
             .unwrap_or_else(|| vec![0.0; N_ACTIONS]);
         let best = q_row.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
         if best <= 0.0 { return (rng.gen_range(0..N_ACTIONS), thought); }
@@ -1218,7 +1213,7 @@ impl Organism {
             carrying_type: self.carrying_type,
             home_x:      (self.home_x * 10.0).round() / 10.0,
             home_y:      (self.home_y * 10.0).round() / 10.0,
-            discoveries:         self.discoveries.clone(),
+            discoveries:         self.discoveries.iter().cloned().collect(),
             is_elder:            self.is_elder,
             has_reflected:       self.has_reflected,
             last_invention_tick: self.last_invention_tick,

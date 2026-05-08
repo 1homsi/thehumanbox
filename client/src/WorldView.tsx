@@ -781,6 +781,16 @@ function CameraController({
   useEffect(() => {
     if (!containerEl) return
 
+    // Clamp camera center so the world always stays in view
+    const clamp = (x: number, y: number, zoom: number) => {
+      const halfW = containerW / (2 * zoom)
+      const halfH = containerH / (2 * zoom)
+      return {
+        x: Math.max(halfW, Math.min(worldW - halfW, x)),
+        y: Math.max(halfH, Math.min(worldH - halfH, y)),
+      }
+    }
+
     const onDown = (e: PointerEvent) => {
       drag.current.active = true
       drag.current.startPX = e.clientX
@@ -792,8 +802,11 @@ function CameraController({
     const onMove = (e: PointerEvent) => {
       if (!drag.current.active) return
       const zoom = camera.getZoom()
-      const nx = drag.current.startCamX - (e.clientX - drag.current.startPX) / zoom
-      const ny = drag.current.startCamY - (e.clientY - drag.current.startPY) / zoom
+      const raw = {
+        x: drag.current.startCamX - (e.clientX - drag.current.startPX) / zoom,
+        y: drag.current.startCamY - (e.clientY - drag.current.startPY) / zoom,
+      }
+      const { x: nx, y: ny } = clamp(raw.x, raw.y, zoom)
       camera.setPosition(nx, ny)
       cameraStateRef.current.x = nx
       cameraStateRef.current.y = ny
@@ -805,6 +818,12 @@ function CameraController({
       const nz = Math.max(minZoom, Math.min(8, camera.getZoom() * factor))
       camera.setZoom(nz)
       cameraStateRef.current.zoom = nz
+      // Re-clamp position since valid range changes with zoom
+      const pos = camera.getPosition()
+      const { x, y } = clamp(pos.x, pos.y, nz)
+      camera.setPosition(x, y)
+      cameraStateRef.current.x = x
+      cameraStateRef.current.y = y
     }
 
     containerEl.addEventListener('pointerdown', onDown)

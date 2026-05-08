@@ -31,7 +31,7 @@ pub fn tick_weather(
     organisms: &mut Vec<Organism>,
     tick: u64,
     season: &str,
-    events: &mut Vec<super::simulation::Event>,
+    events: &mut std::collections::VecDeque<super::simulation::Event>,
     rng: &mut impl Rng,
 ) {
     if weather.kind != 0 {
@@ -146,7 +146,7 @@ pub fn tick_drought(
     tick: u64,
     season: &str,
     history: &mut super::simulation::History,
-    events: &mut Vec<super::simulation::Event>,
+    events: &mut std::collections::VecDeque<super::simulation::Event>,
     rng: &mut impl Rng,
 ) {
     if drought.active {
@@ -171,7 +171,7 @@ fn start_drought(
     grid: &mut WorldGrid,
     tick: u64,
     history: &mut super::simulation::History,
-    events: &mut Vec<super::simulation::Event>,
+    events: &mut std::collections::VecDeque<super::simulation::Event>,
 ) {
     drought.active       = true;
     drought.start_tick   = tick;
@@ -201,7 +201,7 @@ fn end_drought(
     drought: &mut DroughtState,
     grid: &mut WorldGrid,
     tick: u64,
-    events: &mut Vec<super::simulation::Event>,
+    events: &mut std::collections::VecDeque<super::simulation::Event>,
 ) {
     drought.active      = false;
     drought.rain_relief = 0;
@@ -223,7 +223,7 @@ pub fn tick_outbreak(
     tick: u64,
     season: &str,
     history: &mut super::simulation::History,
-    events: &mut Vec<super::simulation::Event>,
+    events: &mut std::collections::VecDeque<super::simulation::Event>,
     rng: &mut impl Rng,
 ) {
     use crate::world::grid::{WIDTH, HEIGHT};
@@ -268,15 +268,15 @@ pub fn tick_outbreak(
     }
 }
 
-pub fn push_event(events: &mut Vec<super::simulation::Event>,
+pub fn push_event(events: &mut std::collections::VecDeque<super::simulation::Event>,
                   tick: u64, etype: &str, actor: &str, detail: &str) {
-    events.push(super::simulation::Event {
+    events.push_back(super::simulation::Event {
         tick,
         etype: etype.to_string(),
         actor: actor.to_string(),
         detail: detail.to_string(),
     });
-    if events.len() > 30 { events.remove(0); }
+    if events.len() > 30 { events.pop_front(); }
 }
 
 // ── World evolution — called every 300 ticks ───────────────────────────────────
@@ -289,7 +289,7 @@ pub fn tick_world_evolution(
     season: &str,
     drought_active: bool,
     weather: &WeatherState,
-    events: &mut Vec<super::simulation::Event>,
+    events: &mut std::collections::VecDeque<super::simulation::Event>,
     rng: &mut impl Rng,
 ) {
     // ── a) Forest spread — skip during scarcity ───────────────────────────────

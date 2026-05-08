@@ -194,7 +194,7 @@ async fn main() {
                                 // Invention: add discovery if not already known
                                 if let Some(disc) = &r.new_discovery {
                                     if !org.discoveries.contains(disc) {
-                                        org.discoveries.push(disc.clone());
+                                        org.discoveries.insert(disc.clone());
                                         org.log_event(format!("invented {}", disc.replace('_', " ")));
                                         invented = Some(disc.clone());
                                     }
@@ -266,23 +266,23 @@ async fn main() {
                                     "defense_pact" => {
                                         let pact_disc = format!("pact:{}", &their_lid[..their_lid.len().min(8)]);
                                         if let Some(org) = s.organisms.iter_mut().find(|o| o.id == r.org_id) {
-                                            if !org.discoveries.contains(&pact_disc) { org.discoveries.push(pact_disc.clone()); }
+                                            if !org.discoveries.contains(&pact_disc) { org.discoveries.insert(pact_disc.clone()); }
                                         }
                                         let actor_disc = format!("pact:{}", &actor_lid[..actor_lid.len().min(8)]);
                                         if let Some(org) = s.organisms.iter_mut().find(|o| o.id == their_oid) {
-                                            if !org.discoveries.contains(&actor_disc) { org.discoveries.push(actor_disc.clone()); }
+                                            if !org.discoveries.contains(&actor_disc) { org.discoveries.insert(actor_disc.clone()); }
                                         }
                                     },
                                     "knowledge_exchange" => {
                                         let actor_disc: Vec<String> = s.organisms.iter().find(|o| o.id == r.org_id)
-                                            .map(|o| o.discoveries.clone()).unwrap_or_default();
+                                            .map(|o| o.discoveries.iter().cloned().collect()).unwrap_or_default();
                                         let their_disc: Vec<String> = s.organisms.iter().find(|o| o.id == their_oid)
-                                            .map(|o| o.discoveries.clone()).unwrap_or_default();
+                                            .map(|o| o.discoveries.iter().cloned().collect()).unwrap_or_default();
                                         if let Some(org) = s.organisms.iter_mut().find(|o| o.id == r.org_id) {
-                                            for d in &their_disc { if !org.discoveries.contains(d) { org.discoveries.push(d.clone()); } }
+                                            for d in &their_disc { if !org.discoveries.contains(d) { org.discoveries.insert(d.clone()); } }
                                         }
                                         if let Some(org) = s.organisms.iter_mut().find(|o| o.id == their_oid) {
-                                            for d in &actor_disc { if !org.discoveries.contains(d) { org.discoveries.push(d.clone()); } }
+                                            for d in &actor_disc { if !org.discoveries.contains(d) { org.discoveries.insert(d.clone()); } }
                                         }
                                     },
                                     _ => {} // territory: attitude bump already done above
@@ -296,7 +296,7 @@ async fn main() {
                             // Elder teaching: apply to the specific child
                             if let (Some(teaching), Some(child_id)) = (&r.teaching, &r.target_org_id) {
                                 if let Some(child) = s.organisms.iter_mut().find(|o| o.id == *child_id) {
-                                    child.discoveries.push(teaching.clone());
+                                    child.discoveries.insert(teaching.clone());
                                     child.log_event(format!("taught: {}", teaching));
                                 }
                             }
@@ -312,11 +312,11 @@ async fn main() {
                                 org.daily_story = story.clone();
                                 let name  = org.name.clone();
                                 let lid   = org.lineage_id.clone();
-                                s.story_history.push(StoryEntry {
+                                s.story_history.push_back(StoryEntry {
                                     tick: cur_tick, org_name: name, lineage_id: lid, story,
                                 });
                                 if s.story_history.len() > 300 {
-                                    s.story_history.remove(0);
+                                    s.story_history.pop_front();
                                 }
                             }
                         }
@@ -328,7 +328,7 @@ async fn main() {
                             .filter(|o| o.alive && !o.life_log.is_empty())
                             .min_by_key(|o| o.last_story_tick)
                             .map(|o| (o.id.clone(), o.name.clone(),
-                                      o.life_log.clone(),
+                                      o.life_log.iter().cloned().collect::<Vec<String>>(),
                                       o.vocabulary.words.clone()));
                         if let Some((oid, oname, life_log, vocab)) = candidate {
                             let cur_tick = s.tick_count;

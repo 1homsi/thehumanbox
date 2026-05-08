@@ -192,12 +192,11 @@ impl WorldGrid {
     }
 
     pub fn neighbors(x: i32, y: i32) -> impl Iterator<Item = (i32, i32)> {
-        [(-1,0),(1,0),(0,-1),(0,1),(-1,-1),(1,-1),(-1,1),(1,1)]
-            .iter()
-            .map(move |(dx, dy)| (x + dx, y + dy))
-            .filter(|(nx, ny)| Self::in_bounds(*nx, *ny))
-            .collect::<Vec<_>>()
-            .into_iter()
+        let candidates = [
+            (x-1, y), (x+1, y), (x, y-1), (x, y+1),
+            (x-1, y-1), (x+1, y-1), (x-1, y+1), (x+1, y+1),
+        ];
+        candidates.into_iter().filter(|(nx, ny)| Self::in_bounds(*nx, *ny))
     }
 
     // ── Terrain noise primitives ───────────────────────────────────────────────
