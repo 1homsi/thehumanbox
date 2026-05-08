@@ -7,7 +7,7 @@ use crate::world::{grid::{WorldGrid, TrailKind, WIDTH, HEIGHT}, tiles::Tile};
 use crate::physics::engine::PhysicsEngine;
 use super::config::{DAY_LENGTH, SEASON_LENGTH, SEASONS, season_growth};
 use super::world_events::{DroughtState, WeatherState, tick_drought, tick_outbreak, tick_weather, tick_world_evolution, push_event};
-use super::{social, growth};
+use super::{social, growth, courtship};
 
 // ── Public types ─────────────────────────────────────────────────────────────
 
@@ -91,6 +91,8 @@ pub struct Simulation {
     lineage_negotiations:      HashMap<(String,String), u64>,
     pub pop_history:           Vec<[u64; 2]>,
     pub current_era:           String,
+    pub sex_words:             [String; 2],  // [0]=word for Male, [1]=word for Female — coined by founding generation
+    pub world_seed:            u64,          // seed used for this world's terrain — persisted so depth/elevation reload correctly
     next_animal_id:            usize,
     rng:                       rand::rngs::SmallRng,
 }
@@ -119,6 +121,18 @@ impl Simulation {
         let grid = WorldGrid::new(seed);
         let physics = PhysicsEngine::new();
 
+        // Generate the two sex-category words from organism phoneme pool.
+        // The founding generation "coins" these — they are the culture's own names.
+        let sex_words = {
+            use crate::organism::vocabulary::gen_phoneme_word;
+            use rand::SeedableRng;
+            let mut word_rng = rand::rngs::SmallRng::seed_from_u64(seed.wrapping_add(0xc0ffee));
+            let w0 = gen_phoneme_word(&mut word_rng);
+            let mut w1 = gen_phoneme_word(&mut word_rng);
+            while w1 == w0 { w1 = gen_phoneme_word(&mut word_rng); }
+            [w0, w1]
+        };
+
         let mut sim = Simulation {
             grid, physics,
             organisms: Vec::new(),
@@ -137,6 +151,8 @@ impl Simulation {
             lineage_negotiations: HashMap::new(),
             pop_history: Vec::new(),
             current_era: "genesis".to_string(),
+            sex_words,
+            world_seed: seed,
             next_animal_id: 0,
             rng,
         };
@@ -146,10 +162,37 @@ impl Simulation {
     }
 
     fn spawn_founders(&mut self) {
+        use crate::world::tiles::Tile;
         let centers = self.grid.pool_centers.clone();
-        for (x, y) in centers {
-            growth::spawn_organism(&self.grid, &mut self.organisms,
-                                   x as f32, y as f32, &mut self.rng);
+        for (cx, cy) in centers {
+            // Collect passable land tiles within radius 14 of the pool center.
+            // Spawn there instead of on the water tile so home_x/home_y is on land.
+            let mut land: Vec<(f32, f32)> = Vec::new();
+            for dx in -14i32..=14 {
+                for dy in -14i32..=14 {
+                    let nx = cx + dx; let ny = cy + dy;
+                    if !crate::world::grid::WorldGrid::in_bounds(nx, ny) { continue; }
+                    if matches!(self.grid.get(nx, ny), Tile::Grass | Tile::Food) {
+                        land.push((nx as f32, ny as f32));
+                    }
+                }
+            }
+            // Shuffle via Fisher-Yates and take up to 3 distinct spawn points
+            let n = land.len();
+            for i in 0..n.min(3) {
+                let j = i + self.rng.gen_range(0..(n - i));
+                land.swap(i, j);
+            }
+            let count = n.min(3);
+            for k in 0..count {
+                let (lx, ly) = land[k];
+                growth::spawn_organism(&self.grid, &mut self.organisms, lx, ly, &mut self.rng);
+            }
+            if count == 0 {
+                // Fallback: spawn at pool centre (water tile) if no land nearby
+                growth::spawn_organism(&self.grid, &mut self.organisms,
+                                       cx as f32, cy as f32, &mut self.rng);
+            }
         }
     }
 
@@ -241,6 +284,10 @@ impl Simulation {
                 self.current_era = new_era;
             }
         }
+
+        // Pregnancy deliveries — check every tick for due mothers
+        growth::deliver_births(&mut self.organisms, self.tick_count,
+                               &mut self.events, &mut self.history);
 
         // Track population once per in-world day
         if self.tick_count % DAY_LENGTH == 0 {
@@ -655,14 +702,8 @@ impl Simulation {
             Organism::remember(&mut self.organisms[idx].food_memory, cx, cy, 0.2, ms);
         }
 
-        // ── Vital drain ───────────────────────────────────────────────────────
-        self.organisms[idx].energy    = (self.organisms[idx].energy    - 0.003).max(0.0);
-        self.organisms[idx].hydration = (self.organisms[idx].hydration - 0.002).max(0.0);
-        if night {
-            let has_torch = self.organisms[idx].discoveries.iter().any(|d| d == "torch");
-            let night_drain = if has_torch { 0.0002 } else { 0.0005 };
-            self.organisms[idx].energy = (self.organisms[idx].energy - night_drain).max(0.0);
-        }
+        // ── Vital drain (applied after shelter bonuses below) ────────────────
+        // Moved after the shelter_strength computation so shelter can reduce drain.
 
         // ── Carrying decay ────────────────────────────────────────────────────
         if self.organisms[idx].carrying > 0 {
@@ -709,25 +750,108 @@ impl Simulation {
             }
         }
 
-        // ── Settlement warmth bonus ───────────────────────────────────────────
-        let settlement_bonus = {
-            let mut bonus = 0.0f32;
-            'sw: for ddx in -4i32..=4 {
-                for ddy in -4i32..=4 {
+        // ── Shelter & settlement bonuses ─────────────────────────────────────
+        // Shelter is a genuine survival anchor: it reduces drain, accelerates recovery,
+        // speeds infection clearance, and stabilises emotional state.
+        let shelter_strength = {
+            let mut s = 0.0f32;
+            'sw: for ddx in -3i32..=3 {
+                for ddy in -3i32..=3 {
                     let nx = cx + ddx; let ny = cy + ddy;
                     let t = self.grid.get(nx, ny);
-                    if t == Tile::Campfire { bonus = 0.0018; break 'sw; }
-                    if (ddx.abs() + ddy.abs()) <= 3 {
-                        if t == Tile::Hut { bonus = 0.0025; break 'sw; }
-                        let s = self.grid.structure_at(nx, ny);
-                        if s >= 0.35 { bonus = bonus.max(0.0008 + s * 0.0012); }
-                    }
+                    if t == Tile::Campfire { s = 0.55; break 'sw; }
+                    if t == Tile::Hut      { s = 0.90; break 'sw; }
+                    let st = self.grid.structure_at(nx, ny);
+                    if st >= 0.35 { s = s.max(st); }
                 }
             }
-            bonus
+            s
         };
-        if settlement_bonus > 0.0 {
-            self.organisms[idx].energy = (self.organisms[idx].energy + settlement_bonus).min(1.0);
+        if shelter_strength > 0.0 {
+            // Energy regeneration (scales with shelter quality)
+            let energy_bonus = 0.0008 + shelter_strength * 0.0022;
+            self.organisms[idx].energy = (self.organisms[idx].energy + energy_bonus).min(1.0);
+
+            // Reduce energy drain (combat cold/exhaustion passively)
+            // (Applied as a negative to the drain that happens below — we note this here
+            //  and account for it by not re-draining the recovered amount)
+
+            // Health regeneration — shelter lets the body heal even when not perfectly nourished
+            let health_regen = 0.0006 + shelter_strength * 0.0010;
+            self.organisms[idx].health = (self.organisms[idx].health + health_regen).min(1.0);
+
+            // Infection clearance boost — dry, safe environment fights sickness
+            if self.organisms[idx].infection > 0.01 {
+                let inf_mult = 0.992 - shelter_strength * 0.006; // up to 3× faster clearance
+                self.organisms[idx].infection =
+                    (self.organisms[idx].infection * inf_mult.max(0.980)).max(0.0);
+            }
+
+            // Fear stabilisation near home
+            if self.organisms[idx].fear_level > 0.0 {
+                self.organisms[idx].fear_level =
+                    (self.organisms[idx].fear_level - shelter_strength * 0.008).max(0.0);
+            }
+
+            // Grief recovery faster under roof
+            if self.organisms[idx].grief_ticks > 0 && self.rng.gen::<f32>() < shelter_strength * 0.12 {
+                self.organisms[idx].grief_ticks =
+                    self.organisms[idx].grief_ticks.saturating_sub(3);
+            }
+
+            // Home range drift: home_x/home_y gradually migrates toward where they shelter
+            // This is how settlement emerges — organisms anchor to places they actually use
+            let drift = 0.00025 * shelter_strength;
+            self.organisms[idx].home_x += (cx as f32 - self.organisms[idx].home_x) * drift;
+            self.organisms[idx].home_y += (cy as f32 - self.organisms[idx].home_y) * drift;
+        }
+
+        // ── Kin home convergence ──────────────────────────────────────────────
+        // Every 60 ticks, pull this organism's home coords slightly toward the
+        // average home of nearby same-lineage kin. Creates tribal settlement gravity
+        // without any hardcoded village placement.
+        if self.tick_count % 60 == (idx as u64 % 60) {
+            let lid = self.organisms[idx].lineage_id.clone();
+            let (hx, hy) = (self.organisms[idx].home_x, self.organisms[idx].home_y);
+            let mut sum_x = 0.0f32;
+            let mut sum_y = 0.0f32;
+            let mut count = 0u32;
+            for other in &self.organisms {
+                if !other.alive || other.id == self.organisms[idx].id { continue; }
+                if other.lineage_id != lid { continue; }
+                let dx = (other.home_x - hx).abs();
+                let dy = (other.home_y - hy).abs();
+                if dx < 40.0 && dy < 40.0 {
+                    sum_x += other.home_x;
+                    sum_y += other.home_y;
+                    count += 1;
+                }
+            }
+            if count > 0 {
+                let avg_x = sum_x / count as f32;
+                let avg_y = sum_y / count as f32;
+                // Very gentle pull — shelter drift dominates, this just coheres the tribe
+                self.organisms[idx].home_x += (avg_x - hx) * 0.0015;
+                self.organisms[idx].home_y += (avg_y - hy) * 0.0015;
+            }
+        }
+
+        // ── Vital drain ───────────────────────────────────────────────────────
+        // Shelter reduces metabolic energy drain (warmth, rest, protection from elements).
+        // Hydration is unaffected — organisms still need water regardless of shelter.
+        let shelter_drain_mult = if shelter_strength > 0.0 {
+            (1.0 - shelter_strength * 0.35).max(0.65)
+        } else {
+            1.0
+        };
+        self.organisms[idx].energy    = (self.organisms[idx].energy    - 0.003 * shelter_drain_mult).max(0.0);
+        self.organisms[idx].hydration = (self.organisms[idx].hydration - 0.002).max(0.0);
+        if night {
+            let has_torch = self.organisms[idx].discoveries.iter().any(|d| d == "torch");
+            // Shelter also halves night cold-drain — a roof keeps warmth in
+            let night_base = if has_torch { 0.0002 } else { 0.0005 };
+            let night_drain = night_base * shelter_drain_mult;
+            self.organisms[idx].energy = (self.organisms[idx].energy - night_drain).max(0.0);
         }
 
         // ── Temperature stress ────────────────────────────────────────────────
@@ -735,9 +859,11 @@ impl Simulation {
         let resilience = self.organisms[idx].traits.resilience;
         if temp < 10.0 || temp > 30.0 {
             let stress = if temp < 10.0 { (10.0 - temp) / 40.0 } else { (temp - 30.0) / 70.0 };
-            let drain = stress * 0.003 * (1.1 - resilience * 0.2);
+            // Shelter insulates: strong roof blocks up to 60% of thermal stress
+            let temp_shelter = 1.0 - shelter_strength * 0.60;
+            let drain = stress * 0.003 * (1.1 - resilience * 0.2) * temp_shelter;
             self.organisms[idx].energy = (self.organisms[idx].energy - drain).max(0.0);
-            // Extreme heat also drains hydration faster
+            // Extreme heat also drains hydration faster — but shade helps
             if temp > 40.0 {
                 self.organisms[idx].hydration = (self.organisms[idx].hydration - drain * 0.5).max(0.0);
             }
@@ -790,10 +916,20 @@ impl Simulation {
             }
         }
 
-        // Background pathogen
-        if self.organisms[idx].infection < 0.05 && self.rng.gen::<f32>() < 0.00012 {
-            self.organisms[idx].infection =
-                0.35 * (1.0 - self.organisms[idx].traits.resilience * 0.4);
+        // Background pathogen — wetlands amplify disease spread (stagnant water, humidity)
+        {
+            use crate::world::tiles::Biome;
+            let biome = self.grid.biome_at(
+                self.organisms[idx].x as i32, self.organisms[idx].y as i32);
+            let pathogen_rate = match biome {
+                Biome::Wetland => 0.00050, // 4× — disease swamps
+                Biome::Volcanic => 0.00020, // toxic fumes
+                _ => 0.00012,
+            };
+            if self.organisms[idx].infection < 0.05 && self.rng.gen::<f32>() < pathogen_rate {
+                self.organisms[idx].infection =
+                    0.35 * (1.0 - self.organisms[idx].traits.resilience * 0.4);
+            }
         }
 
         // ── Infection spread ──────────────────────────────────────────────────
@@ -1301,6 +1437,103 @@ impl Simulation {
             }
         }
 
+        // ── Attraction / bonding / mating ────────────────────────────────────
+        // Clear dead partner reference
+        if let Some(ref pid) = self.organisms[idx].partner_id.clone() {
+            let dead = !self.organisms.iter().any(|o| o.alive && &o.id == pid);
+            if dead { self.organisms[idx].partner_id = None; }
+        }
+        // Clear attraction if target is gone/partnered
+        if let Some(ref aid) = self.organisms[idx].attracted_to.clone() {
+            let gone = !self.organisms.iter().any(|o|
+                o.alive && &o.id == aid && o.partner_id.is_none()
+            );
+            if gone { self.organisms[idx].attracted_to = None; }
+        }
+
+        let tc = self.tick_count;
+        let is_unpartnered_adult = self.organisms[idx].partner_id.is_none()
+            && self.organisms[idx].alive
+            && self.organisms[idx].age > 3000
+            && self.organisms[idx].traits.social_tendency > 0.25;
+
+        // Phase 1 — develop attraction toward a nearby opposite-sex adult
+        if is_unpartnered_adult
+            && self.organisms[idx].attracted_to.is_none()
+            && self.rng.gen::<f32>() < 0.0025
+        {
+            let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
+            let my_sex = self.organisms[idx].sex;
+            let candidate = self.organisms.iter().enumerate().find(|(i, o)| {
+                *i != idx && o.alive && o.partner_id.is_none()
+                    && o.attracted_to.is_none()
+                    && o.age > 3000
+                    && o.sex != my_sex
+                    && (o.x - ox).hypot(o.y - oy) < 28.0
+            }).map(|(i, _)| i);
+            if let Some(ci) = candidate {
+                let cid   = self.organisms[ci].id.clone();
+                let cname = self.organisms[ci].name.clone();
+                let my_id = self.organisms[idx].id.clone();
+                self.organisms[idx].attracted_to    = Some(cid.clone());
+                self.organisms[idx].attraction_tick = tc;
+                self.organisms[ci].attracted_to     = Some(my_id);
+                self.organisms[ci].attraction_tick  = tc;
+                self.organisms[idx].think(&format!("drawn to {}", cname), tc);
+            }
+        }
+
+        // Phase 2 — if attracted and close enough long enough, bond + first convo
+        if is_unpartnered_adult {
+            let attracted_to = self.organisms[idx].attracted_to.clone();
+            if let Some(ref aid) = attracted_to {
+                let aid = aid.clone();
+                let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
+                let attraction_age = tc.saturating_sub(self.organisms[idx].attraction_tick);
+                let partner_close = self.organisms.iter()
+                    .any(|o| o.alive && o.id == aid && (o.x - ox).hypot(o.y - oy) < 5.0);
+                if partner_close && attraction_age >= 600 && self.rng.gen::<f32>() < 0.025 {
+                    if let Some(pi) = self.organisms.iter().position(|o| o.alive && o.id == aid) {
+                        let pid   = self.organisms[pi].id.clone();
+                        let pname = self.organisms[pi].name.clone();
+                        let oid   = self.organisms[idx].id.clone();
+                        let oname = self.organisms[idx].name.clone();
+                        let (conv_a, conv_b) = courtship::generate_conversation(
+                            &self.organisms[idx], &self.organisms[pi],
+                            tc, "courtship", &mut self.rng,
+                        );
+                        self.organisms[idx].store_conversation(conv_a);
+                        self.organisms[pi].store_conversation(conv_b);
+                        self.organisms[idx].partner_id   = Some(pid.clone());
+                        self.organisms[idx].attracted_to = None;
+                        self.organisms[pi].partner_id    = Some(oid);
+                        self.organisms[pi].attracted_to  = None;
+                        self.organisms[idx].think(&format!("fell for {}", pname), tc);
+                        self.organisms[idx].log_event(format!("bonded with {}", pname));
+                        self.organisms[pi].log_event(format!("bonded with {}", oname));
+                    }
+                }
+            }
+        }
+
+        // Periodic bonded conversation — ~once per 3000 ticks when near partner
+        if let Some(ref pid) = self.organisms[idx].partner_id.clone() {
+            let pid = pid.clone();
+            if tc % 19 == (idx as u64 % 19) && self.rng.gen::<f32>() < 0.0018 {
+                let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
+                if let Some(pi) = self.organisms.iter().position(|o| o.alive && o.id == pid) {
+                    if (self.organisms[pi].x - ox).hypot(self.organisms[pi].y - oy) < 8.0 {
+                        let (conv_a, conv_b) = courtship::generate_conversation(
+                            &self.organisms[idx], &self.organisms[pi],
+                            tc, "bonded", &mut self.rng,
+                        );
+                        self.organisms[idx].store_conversation(conv_a);
+                        self.organisms[pi].store_conversation(conv_b);
+                    }
+                }
+            }
+        }
+
         growth::try_reproduce(idx, &mut self.organisms, &self.grid,
                               self.tick_count, &mut self.events, &mut self.history,
                               &mut self.rng);
@@ -1377,11 +1610,20 @@ impl Simulation {
                 });
             }
 
-            // Death leaves a hazard scar — other organisms instinctively avoid where kin died
-            self.grid.add_hazard(dx, dy, 0.35);
+            // Death leaves a terrain scar — the land itself remembers violence and suffering
+            self.grid.add_hazard(dx, dy, 0.45);
+            self.grid.reduce_fertility(dx, dy, 0.08); // death degrades the soil temporarily
+            // Inner ring
             for (ndx, ndy) in [(-1i32,0),(1,0),(0,-1i32),(0,1)] {
-                self.grid.add_hazard(dx+ndx, dy+ndy, 0.12);
+                self.grid.add_hazard(dx+ndx, dy+ndy, 0.18);
+                self.grid.reduce_fertility(dx+ndx, dy+ndy, 0.03);
             }
+            // Outer ring (weaker — organisms sense danger from farther away)
+            for ddx in -2i32..=2 { for ddy in -2i32..=2 {
+                if ddx.abs() + ddy.abs() == 2 {
+                    self.grid.add_hazard(dx+ddx, dy+ddy, 0.06);
+                }
+            }}
 
             // Scavenging: death site has a small chance of leaving food (reality of nature)
             if self.rng.gen::<f32>() < 0.25 {
@@ -1603,6 +1845,8 @@ impl Simulation {
                 pressure:    self.grid.pressure.clone(),
             },
             current_era: self.current_era.clone(),
+            sex_words:   self.sex_words.to_vec(),
+            world_seed:  self.world_seed,
         };
         if let Ok(json) = serde_json::to_string(&state) {
             std::fs::write(path, json).ok();
@@ -1613,7 +1857,9 @@ impl Simulation {
         if let Ok(data) = std::fs::read_to_string(path) {
             if let Ok(state) = serde_json::from_str::<SaveState>(&data) {
                 println!("Loaded world from {} (tick {})", path, state.tick_count);
-                return Self::from_save(seed, state);
+                // Reuse the original world seed so terrain/depth stay consistent
+                let terrain_seed = if state.world_seed > 0 { state.world_seed } else { seed };
+                return Self::from_save(terrain_seed, state);
             }
         }
         println!("Starting fresh world");
@@ -1697,6 +1943,21 @@ impl Simulation {
             lineage_negotiations:   HashMap::new(),
             pop_history:            state.pop_history,
             current_era:            if state.current_era.is_empty() { "genesis".to_string() } else { state.current_era },
+            sex_words: {
+                // Restore saved words, or regenerate from seed if save predates this feature
+                if state.sex_words.len() >= 2 {
+                    [state.sex_words[0].clone(), state.sex_words[1].clone()]
+                } else {
+                    use crate::organism::vocabulary::gen_phoneme_word;
+                    use rand::SeedableRng;
+                    let mut word_rng = rand::rngs::SmallRng::seed_from_u64(seed.wrapping_add(0xc0ffee));
+                    let w0 = gen_phoneme_word(&mut word_rng);
+                    let mut w1 = gen_phoneme_word(&mut word_rng);
+                    while w1 == w0 { w1 = gen_phoneme_word(&mut word_rng); }
+                    [w0, w1]
+                }
+            },
+            world_seed:             seed,  // already resolved to original seed in load_or_new
             next_animal_id:         state.next_animal_id,
             rng:                  rand::rngs::SmallRng::seed_from_u64(seed ^ state.tick_count),
         }
@@ -1762,7 +2023,9 @@ impl Simulation {
         json!({
             "tick":            self.tick_count,
             "grid":            serde_json::to_value(grid_json).unwrap(),
-            "organisms":       self.organisms.iter().map(|o| serde_json::to_value(o.to_json()).unwrap()).collect::<Vec<_>>(),
+            // Only send alive organisms — dead ones are not shown on the map and
+            // omitting them significantly reduces per-tick JSON payload size.
+            "organisms":       self.organisms.iter().filter(|o| o.alive).map(|o| serde_json::to_value(o.to_json()).unwrap()).collect::<Vec<_>>(),
             "animals":         self.animals.iter().map(|a| serde_json::to_value(a.to_json()).unwrap()).collect::<Vec<_>>(),
             "events":          serde_json::to_value(&self.events).unwrap(),
             "is_day":          !self.is_night(),
@@ -1779,6 +2042,7 @@ impl Simulation {
             "tribal_relations": tribal_relations,
             "lineage_sizes":    lineage_sizes_json,
             "current_era":      &self.current_era,
+            "sex_words":        &self.sex_words,
         })
     }
 }
@@ -1856,6 +2120,24 @@ struct OrgSave {
     last_invention_tick: u64,
     #[serde(default)]
     last_think_tick: u64,
+    #[serde(default)]
+    partner_id: Option<String>,
+    #[serde(default)]
+    children_count: u32,
+    #[serde(default)]
+    sex: String,
+    #[serde(default)]
+    attracted_to: Option<String>,
+    #[serde(default)]
+    attraction_tick: u64,
+    #[serde(default)]
+    pregnant: bool,
+    #[serde(default)]
+    pregnancy_start: u64,
+    #[serde(default)]
+    conversations: Vec<crate::organism::organism::ConversationEntry>,
+    #[serde(default)]
+    father_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -1883,6 +2165,10 @@ struct SaveState {
     pop_history:    Vec<[u64; 2]>,
     #[serde(default)]
     current_era:    String,
+    #[serde(default)]
+    sex_words:      Vec<String>,  // [0]=Male word, [1]=Female word
+    #[serde(default)]
+    world_seed:     u64,          // terrain seed — reuse on load so depth map stays consistent
 }
 
 fn mem_encode(m: &HashMap<(i32,i32), f32>) -> HashMap<String, f32> {
@@ -1928,6 +2214,15 @@ fn org_to_save(o: &Organism) -> OrgSave {
         has_reflected:       o.has_reflected,
         last_invention_tick: o.last_invention_tick,
         last_think_tick:     o.last_think_tick,
+        partner_id:          o.partner_id.clone(),
+        children_count:      o.children_count,
+        sex:                 o.sex.as_str().to_string(),
+        attracted_to:        o.attracted_to.clone(),
+        attraction_tick:     o.attraction_tick,
+        pregnant:            o.pregnant,
+        pregnancy_start:     o.pregnancy_start,
+        conversations:       o.conversations.clone(),
+        father_id:           o.father_id.clone(),
     }
 }
 
@@ -1975,6 +2270,15 @@ fn org_from_save(s: OrgSave) -> Organism {
     o.has_reflected       = s.has_reflected;
     o.last_invention_tick = s.last_invention_tick;
     o.last_think_tick     = s.last_think_tick;
+    o.partner_id          = s.partner_id;
+    o.children_count      = s.children_count;
+    o.sex                 = crate::organism::organism::Sex::from_str(&s.sex);
+    o.attracted_to        = s.attracted_to;
+    o.attraction_tick     = s.attraction_tick;
+    o.pregnant            = s.pregnant;
+    o.pregnancy_start     = s.pregnancy_start;
+    o.conversations       = s.conversations;
+    o.father_id           = s.father_id;
     if needs_vocab {
         use rand::SeedableRng;
         let mut voc_rng = rand::rngs::SmallRng::seed_from_u64(vocab_seed);
