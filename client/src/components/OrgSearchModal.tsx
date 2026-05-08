@@ -180,6 +180,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
                 onFollow={() => {}}
                 following={false}
                 lineageNames={lineageNames}
+                organisms={organisms}
               />
             ) : (
               <div className="org-search-placeholder">
