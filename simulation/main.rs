@@ -342,7 +342,7 @@ async fn main() {
                     }
 
                     let pending = std::mem::take(&mut s.pending_thinks);
-                    let json    = s.state_json().to_string();
+                    let json    = s.state_json_incremental().to_string();
                     step += 1;
                     if step % 600 == 0 { s.save(SAVE_PATH); }
                     (json, pending)
