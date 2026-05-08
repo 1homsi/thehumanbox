@@ -141,6 +141,7 @@ export interface WorldState {
   pop_history: [number, number][]
   tribal_relations: TribalRelation[]
   lineage_sizes: { id: string; count: number }[]
+  lineage_names?: Record<string, string>   // lineage_id → tribe name
   current_era?: string
   sex_words?:   [string, string]   // [0]=word for male biology, [1]=word for female biology — coined by founding generation
 }

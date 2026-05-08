@@ -9,6 +9,7 @@ import { ChroniclesModal } from './components/ChroniclesModal'
 import { FamilyTreeModal } from './components/FamilyTreeModal'
 import { OrgSearchModal } from './components/OrgSearchModal'
 import { StatsModal } from './components/StatsModal'
+import { ConversationsModal } from './components/ConversationsModal'
 import { Tooltip } from './components/Tooltip'
 import type { OrganismState } from './types'
 import {
@@ -27,6 +28,7 @@ function App() {
   const [showFamilyTree, setShowFamilyTree] = useState(false)
   const [showOrgSearch,  setShowOrgSearch]  = useState(false)
   const [showStats,      setShowStats]      = useState(false)
+  const [convoOrgId,     setConvoOrgId]     = useState<string | null>(null)
   const [panelOpen,      setPanelOpen]      = useState(false)
   const [leftOpen,       setLeftOpen]       = useState(true)
   const [overlay,        setOverlay]        = useState<string | null>(null)
@@ -96,6 +98,10 @@ function App() {
     }
   }
 
+  // Helper: resolve a tribe name from lineage_id, falling back to first-6-chars of id
+  const tribeName = (lid: string) =>
+    world?.lineage_names?.[lid] ?? lid.slice(0, 6)
+
   const liveOrgs = world ? world.organisms.filter(o =>  o.alive) : []
   const deadOrgs = world ? world.organisms.filter(o => !o.alive) : []
 
@@ -114,7 +120,7 @@ function App() {
             <span className="status-dot" />
             {connected ? 'LIVE' : 'connecting...'}
           </span>
-          {world && <span className="tick">tick {world.tick.toLocaleString()}</span>}
+          {world && <Tooltip tip={`Simulation tick ${world.tick.toLocaleString()} — 600 ticks = 1 in-world day · ${Math.floor(world.tick / 600)} days elapsed`}><span className="tick" style={{ cursor: 'default' }}>tick {world.tick.toLocaleString()}</span></Tooltip>}
         </div>
         <div className="header-badges">
           {world && (
@@ -160,11 +166,17 @@ function App() {
         </div>
         {world && (
           <div className="header-actions">
-            <button className="lang-btn" onClick={() => setShowStats(true)}>▦ stats</button>
-            <button className="lang-btn" onClick={() => setShowOrgSearch(true)}>⌕ search</button>
-            <button className="lang-btn" onClick={() => setShowChronicles(true)}>
-              ✦ chronicles{world.story_history?.length > 0 ? ` (${world.story_history.length})` : ''}
-            </button>
+            <Tooltip tip="Population graphs, birth and death rates, lineage growth over time">
+              <button className="lang-btn" onClick={() => setShowStats(true)}>▦ stats</button>
+            </Tooltip>
+            <Tooltip tip="Search and filter all organisms — alive or dead — by name, thought, lineage, or discovery">
+              <button className="lang-btn" onClick={() => setShowOrgSearch(true)}>⌕ search</button>
+            </Tooltip>
+            <Tooltip tip="Stories generated from world events — the history of this civilisation as it unfolds">
+              <button className="lang-btn" onClick={() => setShowChronicles(true)}>
+                ✦ chronicles{world.story_history?.length > 0 ? ` (${world.story_history.length})` : ''}
+              </button>
+            </Tooltip>
             <div className="more-menu" ref={moreRef}>
               <button className={`lang-btn${showMore ? ' active' : ''}`} onClick={() => setShowMore(p => !p)}>··· more</button>
               {showMore && (
@@ -231,16 +243,16 @@ function App() {
             <aside className={`panel panel-left${leftOpen ? ' open' : ''}`}>
               <div className="section-title">WORLD HISTORY</div>
               <div className="history-grid">
-                <span className="hist-label">births</span>      <span className="hist-val">{world.history.births}</span>
-                <span className="hist-label">old age</span>     <span className="hist-val">{world.history.deaths_old_age}</span>
-                <span className="hist-label">starvation</span>  <span className="hist-val">{world.history.deaths_starvation}</span>
-                <span className="hist-label">sickness</span>    <span className="hist-val">{world.history.deaths_sickness}</span>
-                <span className="hist-label">combat</span>      <span className="hist-val">{world.history.deaths_combat}</span>
-                <span className="hist-label">alliances</span>   <span className="hist-val">{world.history.alliances_formed}</span>
-                <span className="hist-label">challenges</span>  <span className="hist-val">{world.history.challenges_total}</span>
-                <span className="hist-label">gifts</span>       <span className="hist-val">{world.history.gifts_total}</span>
-                <span className="hist-label">droughts</span>    <span className="hist-val">{world.history.droughts}</span>
-                <span className="hist-label">outbreaks</span>   <span className="hist-val">{world.history.outbreaks}</span>
+                <Tooltip tip="Total organisms ever born into this world"><span className="hist-label" style={{ cursor: 'default' }}>births</span></Tooltip>      <span className="hist-val">{world.history.births}</span>
+                <Tooltip tip="Deaths from old age — organisms that lived a full life"><span className="hist-label" style={{ cursor: 'default' }}>old age</span></Tooltip>     <span className="hist-val">{world.history.deaths_old_age}</span>
+                <Tooltip tip="Deaths from starvation or dehydration — not enough food or water"><span className="hist-label" style={{ cursor: 'default' }}>starvation</span></Tooltip>  <span className="hist-val">{world.history.deaths_starvation}</span>
+                <Tooltip tip="Deaths from disease — infection spread between organisms"><span className="hist-label" style={{ cursor: 'default' }}>sickness</span></Tooltip>    <span className="hist-val">{world.history.deaths_sickness}</span>
+                <Tooltip tip="Deaths from combat — organisms killed in territorial or resource disputes"><span className="hist-label" style={{ cursor: 'default' }}>combat</span></Tooltip>      <span className="hist-val">{world.history.deaths_combat}</span>
+                <Tooltip tip="Lineage alliances formed — mutual cooperation agreements between tribes"><span className="hist-label" style={{ cursor: 'default' }}>alliances</span></Tooltip>   <span className="hist-val">{world.history.alliances_formed}</span>
+                <Tooltip tip="Total territorial challenges issued — one organism confronting another"><span className="hist-label" style={{ cursor: 'default' }}>challenges</span></Tooltip>  <span className="hist-val">{world.history.challenges_total}</span>
+                <Tooltip tip="Food gifted between organisms — social bonding and kin support behaviour"><span className="hist-label" style={{ cursor: 'default' }}>gifts</span></Tooltip>       <span className="hist-val">{world.history.gifts_total}</span>
+                <Tooltip tip="Drought events — periods of water scarcity that forced migration and die-offs"><span className="hist-label" style={{ cursor: 'default' }}>droughts</span></Tooltip>    <span className="hist-val">{world.history.droughts}</span>
+                <Tooltip tip="Disease outbreaks — epidemic events that swept through the population"><span className="hist-label" style={{ cursor: 'default' }}>outbreaks</span></Tooltip>   <span className="hist-val">{world.history.outbreaks}</span>
               </div>
 
               <div className="section-title">LINEAGES ({Object.keys(lineages).length})</div>
@@ -251,7 +263,7 @@ function App() {
                   .map(([lid, info]) => (
                     <div key={lid} className="lineage-row">
                       <span className="lineage-dot" style={{ background: lineageColor(lid) }} />
-                      <span className="lineage-id">{lid.slice(0, 6)}</span>
+                      <span className="lineage-id">{tribeName(lid)}</span>
                       <span className="lineage-count">{info.count}</span>
                       <span className="lineage-gen">
                         g{info.minGen}{info.maxGen > info.minGen ? `–${info.maxGen}` : ''}
@@ -303,7 +315,15 @@ function App() {
               )}
 
               <div className="section-title">ALIVE ({liveOrgs.length})</div>
-              {liveOrgs.map(org => <OrgCard key={org.id} org={org} />)}
+              {liveOrgs.map(org => (
+                <OrgCard
+                  key={org.id}
+                  org={org}
+                  sexWords={world?.sex_words}
+                  onTrack={() => handleFollow(org.id)}
+                  onConvos={org.conversations?.length ? () => setConvoOrgId(org.id) : undefined}
+                />
+              ))}
 
               {deadOrgs.length > 0 && (
                 <>
@@ -331,6 +351,7 @@ function App() {
       {showLanguages && world && (
         <LanguageModal
           organisms={world.organisms.filter(o => o.alive)}
+          sexWords={world.sex_words}
           onClose={() => setShowLanguages(false)}
         />
       )}
@@ -344,15 +365,28 @@ function App() {
         <FamilyTreeModal
           organisms={world.organisms}
           currentTick={world.tick}
+          sexWords={world.sex_words}
           onClose={() => setShowFamilyTree(false)}
         />
       )}
       {showOrgSearch && world && (
         <OrgSearchModal
           organisms={world.organisms}
+          onTrack={(id) => { handleFollow(id); setShowOrgSearch(false) }}
           onClose={() => setShowOrgSearch(false)}
         />
       )}
+      {convoOrgId && world && (() => {
+        const org = world.organisms.find(o => o.id === convoOrgId)
+        return org ? (
+          <ConversationsModal
+            org={org}
+            allOrgs={world.organisms}
+            sexWords={world.sex_words}
+            onClose={() => setConvoOrgId(null)}
+          />
+        ) : null
+      })()}
       {showStats && world && (
         <StatsModal
           world={world}
@@ -373,7 +407,7 @@ function App() {
                   .map(([lid, info]) => (
                     <div key={lid} className="lineage-row">
                       <span className="lineage-dot" style={{ background: lineageColor(lid) }} />
-                      <span className="lineage-id">{lid.slice(0, 6)}</span>
+                      <span className="lineage-id">{tribeName(lid)}</span>
                       <span className="lineage-count">{info.count}</span>
                       <span className="lineage-gen">
                         g{info.minGen}{info.maxGen > info.minGen ? `–${info.maxGen}` : ''}
