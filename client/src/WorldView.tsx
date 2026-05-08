@@ -357,7 +357,7 @@ function drawWorldOnCanvas(
         }
       }
     }
-    const maxD = Math.max(...grid2d.flat(), 1)
+    const maxD = grid2d.reduce((m, row) => row.reduce((m2, v) => v > m2 ? v : m2, m), 1)
     for (let row = 0; row < height; row++) {
       for (let col = 0; col < width; col++) {
         const v = grid2d[row][col]
