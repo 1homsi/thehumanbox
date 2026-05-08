@@ -130,12 +130,12 @@ function drawClouds(
 
   ctx.save()
   for (let i = 0; i < count; i++) {
-    const seed   = (i + 1) * 137.5
-    const baseX  = ((seed * 73.3) % 1.0) * W
+    const seed   = (i + 1) * 137          // integer seed — avoids float-modulo always hitting 0
+    const baseX  = ((seed * 73)  % 1000) / 1000 * W
     // Spread clouds across full height; storm clouds skew lower (more coverage)
     const baseY  = isStorm
-      ? (((seed * 41.7) % 0.75) + 0.10) * H
-      : (((seed * 41.7) % 0.60) + 0.05) * H
+      ? (((seed * 41)  % 750)  / 750  * 0.75 + 0.10) * H
+      : (((seed * 41)  % 600)  / 600  * 0.60 + 0.05) * H
     const speed  = 0.014 + (i % 5) * 0.006
     const cx     = ((baseX + t * speed) % (W + 360)) - 180
     const cy     = baseY
