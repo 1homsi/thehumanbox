@@ -1358,21 +1358,22 @@ impl Simulation {
                 if kin_energies.len() >= 5 {
                     let avg = kin_energies.iter().sum::<f32>() / kin_energies.len() as f32;
                     if avg > 0.7 {
-                        // The elder speaks for the tribe — not a random member
-                        let (elder_name, elder_age, elder_gen, elder_ctx) = {
+                        // The elder speaks for the tribe — not a random member.
+                        // age/gen are already encoded in elder_ctx; we only need name + ctx.
+                        let (elder_name, elder_ctx) = {
                             if let Some(eid) = self.lineage_elders.get(&my_lid) {
                                 let eid = eid.clone();
                                 if let Some(e) = self.organisms.iter().find(|o| o.alive && o.id == eid) {
                                     let ctx = format!("age:{} gen:{} memories:{}",
                                         e.age, e.generation, e.danger_memory.len() + e.food_memory.len());
-                                    (e.name.clone(), e.age, e.generation, ctx)
+                                    (e.name.clone(), ctx)
                                 } else {
                                     let o = &self.organisms[idx];
-                                    (o.name.clone(), o.age, o.generation, String::new())
+                                    (o.name.clone(), String::new())
                                 }
                             } else {
                                 let o = &self.organisms[idx];
-                                (o.name.clone(), o.age, o.generation, String::new())
+                                (o.name.clone(), String::new())
                             }
                         };
                         self.lineage_last_council.insert(my_lid.clone(), self.tick_count);
@@ -1569,7 +1570,6 @@ impl Simulation {
 
         // Comfort nesting: update home toward current shelter when thriving
         {
-            let (cx2, cy2) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
             let org = &self.organisms[idx];
             if org.health > 0.7 && org.energy > 0.55 && self.tick_count % 80 == 0
                && org.near_shelter(&self.grid) && self.rng.gen::<f32>() < 0.06
