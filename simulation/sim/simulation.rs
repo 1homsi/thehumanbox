@@ -2286,19 +2286,27 @@ impl Simulation {
 
     // Centroid-following version (used for initial WS snapshot)
     pub fn state_json(&mut self) -> serde_json::Value {
+        let (cx, cy) = self.viewport_centroid();
+        self.state_json_inner(cx, cy, true)  // initial snapshot — always include static
+    }
+
+    // Explicit viewport center — called from main loop with client-supplied position
+    pub fn state_json_at(&mut self, vp_cx: i32, vp_cy: i32) -> serde_json::Value {
+        self.state_json_inner(vp_cx, vp_cy, false)
+    }
+
+    fn viewport_centroid(&self) -> (i32, i32) {
         let alive: Vec<_> = self.organisms.iter().filter(|o| o.alive).collect();
-        let (cx, cy) = if alive.is_empty() {
+        if alive.is_empty() {
             (crate::world::grid::WIDTH as i32 / 2, crate::world::grid::HEIGHT as i32 / 2)
         } else {
             let n = alive.len() as f32;
             ((alive.iter().map(|o| o.x).sum::<f32>() / n) as i32,
              (alive.iter().map(|o| o.y).sum::<f32>() / n) as i32)
-        };
-        self.state_json_at(cx, cy)
+        }
     }
 
-    // Explicit viewport center — called from main loop with client-supplied position
-    pub fn state_json_at(&mut self, vp_cx: i32, vp_cy: i32) -> serde_json::Value {
+    fn state_json_inner(&mut self, vp_cx: i32, vp_cy: i32, force_full: bool) -> serde_json::Value {
         use serde_json::json;
 
         // ── Throttled slow-path computations (every 60 ticks ≈ 18 s) ─────────
@@ -2352,9 +2360,12 @@ impl Simulation {
             self.slow_compute_tick = self.tick_count;
         }
 
-        // Stagger expensive static grid layers to cap per-tick payload size
-        let include_tiles  = self.tick_count % 5  == 0 || self.tick_count <= 1;
-        let include_static = self.tick_count % 30 == 0 || self.tick_count <= 1;
+        // Stagger expensive static grid layers to cap per-tick payload size.
+        // When force_full=true (initial WS snapshot), include everything regardless of
+        // tick — a fresh client otherwise renders flat ocean until the next tick%30
+        // boundary, which can be 9+ seconds away.
+        let include_tiles  = force_full || self.tick_count % 5  == 0 || self.tick_count <= 1;
+        let include_static = force_full || self.tick_count % 30 == 0 || self.tick_count <= 1;
         let grid_json = self.grid.to_json_viewport(vp_cx, vp_cy,
             crate::world::grid::VP_W, crate::world::grid::VP_H,
             include_tiles, include_static);
