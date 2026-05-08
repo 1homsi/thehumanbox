@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useSimulation } from './useSimulation'
 import { WorldView } from './WorldView'
 import { OrgCard } from './components/OrgCard'
@@ -80,30 +80,37 @@ function App() {
     setFollowOrgId(id)
   }, [])
 
-  const fireTiles = world ? world.grid.tiles.flat().filter(t => t === TILE_FIRE).length : 0
-  const sickOrgs  = world ? world.organisms.filter(o => o.alive && o.infection > 0.15).length : 0
+  // All expensive per-render computations memoized — only recompute when world changes
+  const fireTiles = useMemo(() =>
+    world ? world.grid.tiles.reduce((n, row) => n + row.filter(t => t === TILE_FIRE).length, 0) : 0
+  , [world])
+
+  const sickOrgs = useMemo(() =>
+    world ? world.organisms.filter(o => o.alive && o.infection > 0.15).length : 0
+  , [world])
+
+  const liveOrgs = useMemo(() => world ? world.organisms.filter(o =>  o.alive) : [], [world])
+  const deadOrgs = useMemo(() => world ? world.organisms.filter(o => !o.alive) : [], [world])
 
   // Group alive organisms by lineage
-  const lineages: Record<string, { count: number; minGen: number; maxGen: number; orgs: OrganismState[] }> = {}
-  if (world) {
-    for (const org of world.organisms) {
-      if (!org.alive) continue
-      if (!lineages[org.lineage_id]) {
-        lineages[org.lineage_id] = { count: 0, minGen: org.generation, maxGen: org.generation, orgs: [] }
+  const lineages = useMemo(() => {
+    const result: Record<string, { count: number; minGen: number; maxGen: number; orgs: OrganismState[] }> = {}
+    if (!world) return result
+    for (const org of liveOrgs) {
+      if (!result[org.lineage_id]) {
+        result[org.lineage_id] = { count: 0, minGen: org.generation, maxGen: org.generation, orgs: [] }
       }
-      lineages[org.lineage_id].count++
-      lineages[org.lineage_id].orgs.push(org)
-      lineages[org.lineage_id].minGen = Math.min(lineages[org.lineage_id].minGen, org.generation)
-      lineages[org.lineage_id].maxGen = Math.max(lineages[org.lineage_id].maxGen, org.generation)
+      result[org.lineage_id].count++
+      result[org.lineage_id].orgs.push(org)
+      result[org.lineage_id].minGen = Math.min(result[org.lineage_id].minGen, org.generation)
+      result[org.lineage_id].maxGen = Math.max(result[org.lineage_id].maxGen, org.generation)
     }
-  }
+    return result
+  }, [world, liveOrgs])
 
   // Helper: resolve a tribe name from lineage_id, falling back to first-6-chars of id
   const tribeName = (lid: string) =>
     world?.lineage_names?.[lid] ?? lid.slice(0, 6)
-
-  const liveOrgs = world ? world.organisms.filter(o =>  o.alive) : []
-  const deadOrgs = world ? world.organisms.filter(o => !o.alive) : []
 
   return (
     <div className="app">
