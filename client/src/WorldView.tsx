@@ -168,6 +168,8 @@ function drawWorldOnCanvas(
   viewFlags: ViewFlags,
 ) {
   const { width, height, tiles, fire_intensity, biomes, structure } = world.grid
+  // Tiles arrive on tick 0 and every 5th tick — skip this frame if not yet received
+  if (!tiles || tiles.length < height) return
   const depthGrid = world.grid.depth_map as number[][] | undefined
   const ox = world.grid.origin_x ?? 0
   const oy = world.grid.origin_y ?? 0
