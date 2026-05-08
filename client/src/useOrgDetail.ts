@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import type { OrgDetail } from './types'
+import { API_BASE } from './config'
 
 /**
  * Fetches full organism detail (conversations, vocabulary, thought_history,
@@ -20,7 +21,7 @@ export function useOrgDetail(id: string | null): OrgDetail | null {
 
     const fetchDetail = async () => {
       try {
-        const res = await fetch(`http://localhost:8000/org/${id}`)
+        const res = await fetch(`${API_BASE}/org/${id}`)
         if (res.ok) {
           const data = await res.json()
           setDetail(data)
