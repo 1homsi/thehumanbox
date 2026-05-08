@@ -325,6 +325,10 @@ impl Simulation {
         }
     }
 
+    fn push_think_for(&mut self, org_idx: usize, trigger: ThinkTrigger) {
+        self.pending_thinks.push(trigger.with_traits(&self.organisms[org_idx]));
+    }
+
     // ── Tick ──────────────────────────────────────────────────────────────────
 
     pub fn tick(&mut self) {
@@ -481,7 +485,7 @@ impl Simulation {
                                     let child_name = self.organisms[child_idx].name.clone();
                                     let child_id   = self.organisms[child_idx].id.clone();
                                     let lid        = self.organisms[child_idx].lineage_id.clone();
-                                    self.pending_thinks.push(ThinkTrigger {
+                                    self.push_think_for(epos, ThinkTrigger {
                                         org_id:        elder_id,
                                         org_name:      elder_name,
                                         lineage_id:    lid,
@@ -723,7 +727,7 @@ impl Simulation {
                         let their_name = self.organisms[ti].name.clone();
                         let their_oid  = self.organisms[ti].id.clone();
                         let my_kin = self.organisms.iter().filter(|o| o.alive && o.lineage_id == actor_lid).count();
-                        self.pending_thinks.push(ThinkTrigger {
+                        self.push_think_for(idx, ThinkTrigger {
                             org_id:            self.organisms[idx].id.clone(),
                             org_name:          self.organisms[idx].name.clone(),
                             lineage_id:        actor_lid.clone(),
@@ -783,7 +787,7 @@ impl Simulation {
                 if self.organisms[idx].discover("fire") {
                     push_event(&mut self.events, self.tick_count, "build", &name, "discovered fire");
                     // Trigger discovery think
-                    self.pending_thinks.push(ThinkTrigger {
+                    self.push_think_for(idx, ThinkTrigger {
                         org_id:     self.organisms[idx].id.clone(),
                         org_name:   self.organisms[idx].name.clone(),
                         lineage_id: self.organisms[idx].lineage_id.clone(),
@@ -868,7 +872,7 @@ impl Simulation {
                     if self.organisms[idx].discover("shelter") {
                         push_event(&mut self.events, self.tick_count, "build", &name, "understood shelter");
                         let lid = self.organisms[idx].lineage_id.clone();
-                        self.pending_thinks.push(ThinkTrigger {
+                        self.push_think_for(idx, ThinkTrigger {
                             org_id:      self.organisms[idx].id.clone(),
                             org_name:    self.organisms[idx].name.clone(),
                             lineage_id:  lid,
@@ -1267,7 +1271,7 @@ impl Simulation {
             if let Some(stranger_lid) = unknown_lid {
                 // Mark as seen immediately to prevent re-queuing
                 self.organisms[idx].lineage_attitudes.insert(stranger_lid.clone(), 0.001);
-                self.pending_thinks.push(ThinkTrigger {
+                self.push_think_for(idx, ThinkTrigger {
                     org_id:         self.organisms[idx].id.clone(),
                     org_name:       self.organisms[idx].name.clone(),
                     lineage_id:     my_lid.clone(),
@@ -1308,7 +1312,7 @@ impl Simulation {
                             }
                         };
                         self.lineage_last_council.insert(my_lid.clone(), self.tick_count);
-                        self.pending_thinks.push(ThinkTrigger {
+                        self.push_think_for(idx, ThinkTrigger {
                             org_id:     self.organisms[idx].id.clone(),
                             org_name:   elder_name,
                             lineage_id: my_lid.clone(),
@@ -1332,7 +1336,7 @@ impl Simulation {
                 // Survival crisis: both hungry AND thirsty
                 if energy < 0.25 && hydration < 0.25 {
                     self.organisms[idx].last_think_tick = self.tick_count;
-                    self.pending_thinks.push(ThinkTrigger {
+                    self.push_think_for(idx, ThinkTrigger {
                         org_id:     self.organisms[idx].id.clone(),
                         org_name:   self.organisms[idx].name.clone(),
                         lineage_id: my_lid.clone(),
@@ -1348,7 +1352,7 @@ impl Simulation {
                         .filter(|o| o.alive && o.lineage_id == my_lid)
                         .count();
                     self.organisms[idx].last_think_tick = self.tick_count;
-                    self.pending_thinks.push(ThinkTrigger {
+                    self.push_think_for(idx, ThinkTrigger {
                         org_id:     self.organisms[idx].id.clone(),
                         org_name:   self.organisms[idx].name.clone(),
                         lineage_id: my_lid.clone(),
@@ -1373,7 +1377,7 @@ impl Simulation {
                     };
                     if hostile_near {
                         self.organisms[idx].last_think_tick = self.tick_count;
-                        self.pending_thinks.push(ThinkTrigger {
+                        self.push_think_for(idx, ThinkTrigger {
                             org_id:     self.organisms[idx].id.clone(),
                             org_name:   self.organisms[idx].name.clone(),
                             lineage_id: my_lid.clone(),
@@ -1395,7 +1399,7 @@ impl Simulation {
 
                 if loneliness > 0.78 {
                     self.organisms[idx].last_think_tick = self.tick_count;
-                    self.pending_thinks.push(ThinkTrigger {
+                    self.push_think_for(idx, ThinkTrigger {
                         org_id:     self.organisms[idx].id.clone(),
                         org_name:   self.organisms[idx].name.clone(),
                         lineage_id: my_lid.clone(),
@@ -1405,7 +1409,7 @@ impl Simulation {
                     });
                 } else if boredom > 0.72 && energy > 0.75 {
                     self.organisms[idx].last_think_tick = self.tick_count;
-                    self.pending_thinks.push(ThinkTrigger {
+                    self.push_think_for(idx, ThinkTrigger {
                         org_id:     self.organisms[idx].id.clone(),
                         org_name:   self.organisms[idx].name.clone(),
                         lineage_id: my_lid.clone(),
@@ -1427,7 +1431,7 @@ impl Simulation {
                     let kin_count = self.organisms.iter()
                         .filter(|o| o.alive && o.lineage_id == my_lid).count();
                     self.organisms[idx].last_think_tick = self.tick_count;
-                    self.pending_thinks.push(ThinkTrigger {
+                    self.push_think_for(idx, ThinkTrigger {
                         org_id:     self.organisms[idx].id.clone(),
                         org_name:   self.organisms[idx].name.clone(),
                         lineage_id: my_lid.clone(),
@@ -1451,7 +1455,7 @@ impl Simulation {
                     let disc_vec: Vec<String> = self.organisms[idx].discoveries.iter().cloned().collect();
                     let life_top: Vec<String> = self.organisms[idx].life_log.iter()
                         .rev().take(3).cloned().collect();
-                    self.pending_thinks.push(ThinkTrigger {
+                    self.push_think_for(idx, ThinkTrigger {
                         org_id:      self.organisms[idx].id.clone(),
                         org_name:    self.organisms[idx].name.clone(),
                         lineage_id:  my_lid.clone(),
@@ -1475,7 +1479,7 @@ impl Simulation {
                 let org = &self.organisms[idx];
                 let emotional = format!("fear={:.1} comfort={:.1} lonely={:.1}",
                     org.fear_level, org.comfort, org.loneliness);
-                self.pending_thinks.push(ThinkTrigger {
+                self.push_think_for(idx, ThinkTrigger {
                     org_id:          org.id.clone(),
                     org_name:        org.name.clone(),
                     lineage_id:      org.lineage_id.clone(),
@@ -1558,7 +1562,7 @@ impl Simulation {
                 self.organisms[idx].last_think_tick = self.tick_count;
                 let energy = self.organisms[idx].energy;
                 let lid    = self.organisms[idx].lineage_id.clone();
-                self.pending_thinks.push(ThinkTrigger {
+                self.push_think_for(idx, ThinkTrigger {
                     org_id:     self.organisms[idx].id.clone(),
                     org_name:   self.organisms[idx].name.clone(),
                     lineage_id: lid,
@@ -1795,7 +1799,7 @@ impl Simulation {
             if let Some(&gi) = grievers.first() {
                 let energy = self.organisms[gi].energy;
                 let lid    = self.organisms[gi].lineage_id.clone();
-                self.pending_thinks.push(ThinkTrigger {
+                self.push_think_for(gi, ThinkTrigger {
                     org_id:     self.organisms[gi].id.clone(),
                     org_name:   self.organisms[gi].name.clone(),
                     lineage_id: lid,
@@ -2591,5 +2595,29 @@ mod tests {
         assert!(!std::path::Path::new(&tmp_s).exists());
 
         let _ = std::fs::remove_file(&path_s);
+    }
+
+    #[test]
+    fn queued_think_triggers_copy_live_organism_traits() {
+        let mut sim = Simulation::new(13);
+        let org_idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+        sim.organisms[org_idx].traits.aggression = 0.91;
+        sim.organisms[org_idx].traits.fear = 0.12;
+        sim.organisms[org_idx].traits.social_tendency = 0.34;
+        sim.organisms[org_idx].traits.curiosity = 0.56;
+        sim.organisms[org_idx].traits.resilience = 0.78;
+
+        sim.push_think_for(org_idx, ThinkTrigger {
+            org_id: sim.organisms[org_idx].id.clone(),
+            scenario: "first_contact".to_string(),
+            ..Default::default()
+        });
+
+        let trigger = sim.pending_thinks.last().unwrap();
+        assert_eq!(trigger.aggression, 0.91);
+        assert_eq!(trigger.fear, 0.12);
+        assert_eq!(trigger.social_tendency, 0.34);
+        assert_eq!(trigger.curiosity, 0.56);
+        assert_eq!(trigger.resilience, 0.78);
     }
 }
