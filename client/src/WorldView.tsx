@@ -3,7 +3,7 @@ import { Game, World, Entity, Transform, Sprite, Camera2D, useCamera, useGame, u
 import type { WorldState } from './types'
 import { lineageColor } from './constants'
 
-const TILE = 12
+const TILE = 4
 
 const TILE_COLORS: Record<number, string> = {
   0: '#0a0a0a',
@@ -268,24 +268,36 @@ function drawWorldOnCanvas(
         ctx.fillRect(px, py, TILE, TILE)
         ctx.fillStyle = `rgba(255,160,40,${fi * 0.12})`
         ctx.fillRect(px - TILE * 2, py - TILE * 2, TILE * 5, TILE * 5)
+        if (TILE >= 8) {
+          // detailed flame symbol only worth drawing at larger tile sizes
+          const cx2 = px + TILE / 2
+          ctx.fillStyle = `rgba(255,80,0,${fi * 0.6})`
+          ctx.beginPath(); ctx.arc(cx2, py + TILE * 0.4, TILE * 0.18, 0, Math.PI * 2); ctx.fill()
+        }
       }
 
-      // Hut — roof triangle + walls
+      // Hut — flat fill at small TILE, detailed at large TILE
       if (t === 8) {
-        const cx2 = px + TILE / 2
         ctx.fillStyle = 'rgba(255,220,120,0.18)'
         ctx.fillRect(px - TILE, py - TILE, TILE * 3, TILE * 3)
-        ctx.fillStyle = '#6b3a0a'
-        ctx.beginPath()
-        ctx.moveTo(cx2, py + 1)
-        ctx.lineTo(px + TILE - 1, py + TILE * 0.55)
-        ctx.lineTo(px + 1,        py + TILE * 0.55)
-        ctx.closePath()
-        ctx.fill()
-        ctx.fillStyle = '#c8a060'
-        ctx.fillRect(px + 2, py + TILE * 0.55, TILE - 4, TILE * 0.45 - 1)
-        ctx.fillStyle = '#3a1a00'
-        ctx.fillRect(cx2 - 1, py + TILE * 0.7, 3, TILE * 0.3 - 1)
+        if (TILE >= 8) {
+          const cx2 = px + TILE / 2
+          ctx.fillStyle = '#6b3a0a'
+          ctx.beginPath()
+          ctx.moveTo(cx2, py + 1)
+          ctx.lineTo(px + TILE - 1, py + TILE * 0.55)
+          ctx.lineTo(px + 1,        py + TILE * 0.55)
+          ctx.closePath()
+          ctx.fill()
+          ctx.fillStyle = '#c8a060'
+          ctx.fillRect(px + 2, py + TILE * 0.55, TILE - 4, TILE * 0.45 - 1)
+          ctx.fillStyle = '#3a1a00'
+          ctx.fillRect(cx2 - 1, py + TILE * 0.7, 3, TILE * 0.3 - 1)
+        } else {
+          // simple hut mark — bright spot
+          ctx.fillStyle = '#c8a060'
+          ctx.fillRect(px, py, TILE, TILE)
+        }
       }
     }
   }
@@ -300,41 +312,38 @@ function drawWorldOnCanvas(
         if (t === 8) continue  // Hut tile already drawn above
         const px = col * TILE
         const py = row * TILE
-        const cx2 = px + TILE / 2
-
-        if (s >= 0.70) {
-          // Rocky shed — stone walls, partial roof
-          ctx.fillStyle = `rgba(120,90,60,${0.6 + s * 0.3})`
-          ctx.fillRect(px + 1, py + TILE * 0.5, TILE - 2, TILE * 0.5 - 1)
-          ctx.fillStyle = `rgba(90,70,50,${0.7 + s * 0.25})`
-          ctx.beginPath()
-          ctx.moveTo(cx2, py + 2)
-          ctx.lineTo(px + TILE - 2, py + TILE * 0.52)
-          ctx.lineTo(px + 2, py + TILE * 0.52)
-          ctx.closePath()
-          ctx.fill()
-          // stone texture dots
-          ctx.fillStyle = 'rgba(160,140,110,0.5)'
-          ctx.fillRect(px + 2, py + TILE * 0.55, 3, 3)
-          ctx.fillRect(px + TILE - 5, py + TILE * 0.65, 3, 3)
-        } else if (s >= 0.35) {
-          // Crude shed — rough wood walls, no proper roof
-          ctx.fillStyle = `rgba(100,65,30,${0.45 + s * 0.4})`
-          ctx.fillRect(px + 2, py + TILE * 0.45, TILE - 4, TILE * 0.55 - 1)
-          // leaning roof
-          ctx.fillStyle = `rgba(80,50,20,${0.5 + s * 0.35})`
-          ctx.beginPath()
-          ctx.moveTo(cx2 - 1, py + 3)
-          ctx.lineTo(px + TILE - 2, py + TILE * 0.47)
-          ctx.lineTo(px + 2, py + TILE * 0.47)
-          ctx.closePath()
-          ctx.fill()
+        const alpha = Math.min(0.95, 0.4 + s * 0.55)
+        if (TILE >= 8) {
+          // Detailed sub-tile drawing — only worth it at larger tile sizes
+          const cx2 = px + TILE / 2
+          if (s >= 0.70) {
+            ctx.fillStyle = `rgba(120,90,60,${0.6 + s * 0.3})`
+            ctx.fillRect(px + 1, py + TILE * 0.5, TILE - 2, TILE * 0.5 - 1)
+            ctx.fillStyle = `rgba(90,70,50,${0.7 + s * 0.25})`
+            ctx.beginPath()
+            ctx.moveTo(cx2, py + 2); ctx.lineTo(px + TILE - 2, py + TILE * 0.52); ctx.lineTo(px + 2, py + TILE * 0.52)
+            ctx.closePath(); ctx.fill()
+            ctx.fillStyle = 'rgba(160,140,110,0.5)'
+            ctx.fillRect(px + 2, py + TILE * 0.55, 3, 3)
+            ctx.fillRect(px + TILE - 5, py + TILE * 0.65, 3, 3)
+          } else if (s >= 0.35) {
+            ctx.fillStyle = `rgba(100,65,30,${0.45 + s * 0.4})`
+            ctx.fillRect(px + 2, py + TILE * 0.45, TILE - 4, TILE * 0.55 - 1)
+            ctx.fillStyle = `rgba(80,50,20,${0.5 + s * 0.35})`
+            ctx.beginPath()
+            ctx.moveTo(cx2 - 1, py + 3); ctx.lineTo(px + TILE - 2, py + TILE * 0.47); ctx.lineTo(px + 2, py + TILE * 0.47)
+            ctx.closePath(); ctx.fill()
+          } else {
+            ctx.fillStyle = `rgba(130,95,45,${s * 2.5})`
+            ctx.fillRect(px + 1, py + TILE * 0.6, TILE - 2, TILE * 0.35)
+          }
         } else {
-          // Stick pile / early foundation — scattered material
-          ctx.fillStyle = `rgba(130,95,45,${s * 2.5})`
-          ctx.fillRect(px + 3, py + TILE - 4, TILE - 6, 3)
-          ctx.fillRect(px + 1, py + TILE - 7, 3, TILE * 0.4)
-          ctx.fillRect(px + TILE - 4, py + TILE - 7, 3, TILE * 0.4)
+          // Small TILE: flat tint scaled by construction progress
+          const r = s >= 0.70 ? 120 : s >= 0.35 ? 100 : 130
+          const g = s >= 0.70 ? 90  : s >= 0.35 ? 65  : 95
+          const b = s >= 0.70 ? 60  : s >= 0.35 ? 30  : 45
+          ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`
+          ctx.fillRect(px, py, TILE, TILE)
         }
       }
     }
