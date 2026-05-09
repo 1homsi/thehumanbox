@@ -2,7 +2,12 @@ import type { OrganismState } from './types'
 
 // ── Visual helpers ────────────────────────────────────────────────────────
 
-export function lineageColor(lineageId: string): string {
+export function lineageColor(lineageId: string | null | undefined): string {
+  // Defensive: a freshly-born organism can briefly exist in the cache before
+  // its cold fields (lineage_id) arrive on the next full snapshot. Render in
+  // a neutral grey so the UI doesn't crash.
+  if (!lineageId || typeof lineageId !== 'string') return 'hsl(0, 0%, 55%)'
+
   let h = 0
   for (const c of lineageId) h = Math.imul(h * 31 + c.charCodeAt(0), 1) >>> 0
 
