@@ -74,7 +74,7 @@ jobs:
           # The actual deploy: pull, rebuild release, restart systemd unit.
           # Using a single shell line so it runs in one /bin/sh invocation;
           # any step failing aborts the rest via && chaining.
-          DEPLOY_CMD='cd /opt/thehumanbox && git pull --ff-only && cargo build --release --manifest-path simulation/Cargo.toml && systemctl restart simulation'
+          DEPLOY_CMD='cd /home/ubuntu/thehumanbox && git pull --ff-only && cargo build --release --manifest-path simulation/Cargo.toml && systemctl restart simulation'
 
           CMD_ID=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
