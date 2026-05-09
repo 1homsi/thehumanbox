@@ -1203,13 +1203,23 @@ impl Organism {
     // ── Serialization ─────────────────────────────────────────────────────────
 
     /// Lean per-tick snapshot — heavy fields omitted, see to_detail_json().
-    pub fn to_json(&self) -> OrgJson {
-        // Use full lineage_id as key so the frontend can resolve tribe names from lineage_names
+    /// Per-tick organism JSON.
+    ///
+    /// `include_cold = false` skips static fields (name, traits, vocabulary,
+    /// lineage_id, parent_id, etc.) — anything that doesn't change tick-to-tick.
+    /// On these "hot" ticks the per-organism payload is roughly 1/3 the size
+    /// of a full snapshot. The frontend merges hot updates into a cache that
+    /// already holds the cold values from the most recent full snapshot.
+    ///
+    /// `include_cold = true` is sent on first connect and every ~30 ticks so
+    /// new clients and stale caches get refreshed.
+    pub fn to_json(&self) -> OrgJson { self.to_json_with(true) }
+
+    pub fn to_json_with(&self, include_cold: bool) -> OrgJson {
         let attitudes: HashMap<String, f32> = self.lineage_attitudes.iter()
             .filter(|(_, &v)| v.abs() > 0.1)
             .map(|(k, &v)| (k.clone(), (v * 100.0).round() / 100.0))
             .collect();
-
         let org_trust: HashMap<String, f32> = self.org_trust.iter()
             .filter(|(_, &v)| v.abs() > 0.15)
             .map(|(k, &v)| (k[..k.len().min(8)].to_string(), (v * 100.0).round() / 100.0))
@@ -1217,7 +1227,6 @@ impl Organism {
 
         OrgJson {
             id:       self.id.clone(),
-            name:     self.name.clone(),
             x:        (self.x * 10.0).round() / 10.0,
             y:        (self.y * 10.0).round() / 10.0,
             energy:   (self.energy    * 1000.0).round() / 1000.0,
@@ -1226,11 +1235,6 @@ impl Organism {
             age:      self.age,
             alive:    self.alive,
             thought:  self.thought.clone(),
-            generation: self.generation,
-            parent_id:  self.parent_id.clone(),
-            father_id:  self.father_id.clone(),
-            lineage_id: self.lineage_id.clone(),
-            max_age:    self.max_age,
             memory_count: MemoryCount {
                 food:   self.food_memory.len(),
                 water:  self.water_memory.len(),
@@ -1238,21 +1242,9 @@ impl Organism {
             },
             attitudes,
             org_trust,
-            traits: TraitsJson {
-                curiosity:       (self.traits.curiosity       * 100.0).round() / 100.0,
-                aggression:      (self.traits.aggression      * 100.0).round() / 100.0,
-                fear:            (self.traits.fear            * 100.0).round() / 100.0,
-                memory_strength: (self.traits.memory_strength * 100.0).round() / 100.0,
-                social_tendency: (self.traits.social_tendency * 100.0).round() / 100.0,
-                resilience:      (self.traits.resilience      * 100.0).round() / 100.0,
-            },
             infection:     (self.infection * 1000.0).round() / 1000.0,
             carrying:      self.carrying,
             carrying_type: self.carrying_type,
-            home_x:      (self.home_x * 10.0).round() / 10.0,
-            home_y:      (self.home_y * 10.0).round() / 10.0,
-            discoveries:         self.discoveries.iter().cloned().collect(),
-            is_elder:            self.is_elder,
             has_reflected:       self.has_reflected,
             last_invention_tick: self.last_invention_tick,
             loneliness:  (self.loneliness  * 100.0).round() / 100.0,
@@ -1263,11 +1255,33 @@ impl Organism {
             sleep_debt:  (self.sleep_debt  * 100.0).round() / 100.0,
             partner_id:     self.partner_id.clone(),
             children_count: self.children_count,
-            sex:            self.sex.as_str().to_string(),
             pregnant:       self.pregnant,
             attracted_to:   self.attracted_to.clone(),
-            vocabulary:      self.vocabulary.words.clone(),
             conversation_count: self.conversations.len(),
+
+            // Cold fields — only emit on full snapshots
+            name:       if include_cold { Some(self.name.clone())       } else { None },
+            generation: if include_cold { Some(self.generation)         } else { None },
+            parent_id:  if include_cold { Some(self.parent_id.clone())  } else { None },
+            father_id:  if include_cold { Some(self.father_id.clone())  } else { None },
+            lineage_id: if include_cold { Some(self.lineage_id.clone()) } else { None },
+            max_age:    if include_cold { Some(self.max_age)            } else { None },
+            sex:        if include_cold { Some(self.sex.as_str().to_string()) } else { None },
+            traits:     if include_cold {
+                Some(TraitsJson {
+                    curiosity:       (self.traits.curiosity       * 100.0).round() / 100.0,
+                    aggression:      (self.traits.aggression      * 100.0).round() / 100.0,
+                    fear:            (self.traits.fear            * 100.0).round() / 100.0,
+                    memory_strength: (self.traits.memory_strength * 100.0).round() / 100.0,
+                    social_tendency: (self.traits.social_tendency * 100.0).round() / 100.0,
+                    resilience:      (self.traits.resilience      * 100.0).round() / 100.0,
+                })
+            } else { None },
+            vocabulary:  if include_cold { Some(self.vocabulary.words.clone()) } else { None },
+            discoveries: if include_cold { Some(self.discoveries.iter().cloned().collect()) } else { None },
+            home_x:      if include_cold { Some((self.home_x * 10.0).round() / 10.0) } else { None },
+            home_y:      if include_cold { Some((self.home_y * 10.0).round() / 10.0) } else { None },
+            is_elder:    if include_cold { Some(self.is_elder) } else { None },
         }
     }
 
@@ -1302,26 +1316,20 @@ impl Organism {
 /// Vocabulary is included here (small, ~14 short words) so LanguageModal
 /// can aggregate tribe-level word frequencies without extra requests.
 pub struct OrgJson {
-    pub id: String, pub name: String,
+    // ── Hot fields (sent every tick) ──
+    pub id: String,
     pub x: f32, pub y: f32,
     pub energy: f32, pub hydration: f32, pub health: f32,
     pub age: u32, pub alive: bool,
     pub thought: String,
-    pub generation: u32, pub parent_id: String, pub father_id: Option<String>, pub lineage_id: String, pub max_age: u32,
     pub memory_count: MemoryCount,
     pub attitudes:   HashMap<String, f32>,
     pub org_trust:   HashMap<String, f32>,
-    pub traits:      TraitsJson,
     pub infection:     f32,
     pub carrying:      u32,
     pub carrying_type: u8,
-    pub home_x:      f32,
-    pub home_y:      f32,
-    pub discoveries:         Vec<String>,
-    pub is_elder:            bool,
     pub has_reflected:       bool,
     pub last_invention_tick: u64,
-    // Emotional / behavioral state
     pub loneliness:  f32,
     pub boredom:     f32,
     pub fear_level:  f32,
@@ -1330,13 +1338,26 @@ pub struct OrgJson {
     pub sleep_debt:  f32,
     pub partner_id:     Option<String>,
     pub children_count: u32,
-    pub sex:            String,
     pub pregnant:       bool,
     pub attracted_to:   Option<String>,
-    // Vocabulary — small map of concept→word, included for LanguageModal aggregation
-    pub vocabulary:      HashMap<String, String>,
-    // Conversation count only — full data served by GET /org/:id
     pub conversation_count: usize,
+
+    // ── Cold fields (sent only on full snapshots, ~every 30 ticks) ──
+    // Static identity (never changes after birth)
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub name:        Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub generation:  Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub parent_id:   Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub father_id:   Option<Option<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub lineage_id:  Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub max_age:     Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub sex:         Option<String>,
+    // Slowly evolving — vocabulary grows over a lifetime, traits change rarely via reflection
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub traits:      Option<TraitsJson>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub vocabulary:  Option<HashMap<String, String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub discoveries: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub home_x:      Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub home_y:      Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub is_elder:    Option<bool>,
 }
 
 /// Full detail snapshot — served on demand via GET /org/:id.
