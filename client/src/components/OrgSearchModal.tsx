@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import type { OrganismState } from '../types'
 import { lineageColor } from '../constants'
 import { OrgDetail } from './OrgDetail'
+import { Modal } from './Modal'
 
 const DAY_LENGTH = 600
 
@@ -67,9 +68,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
     : null
 
   return (
-    <div className="lang-modal-backdrop" onClick={onClose}>
-      <div className="org-search-modal" onClick={e => e.stopPropagation()}>
-
+    <Modal open onClose={onClose} className="org-search-modal" title="Organisms" hideTitle>
         {/* Header */}
         <div className="lang-modal-header">
           <span className="lang-modal-title">ORGANISMS</span>
@@ -224,7 +223,6 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
           </div>
         </div>
 
-      </div>
-    </div>
+    </Modal>
   )
 }

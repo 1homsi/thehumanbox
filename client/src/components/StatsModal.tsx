@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import type { WorldState, TribalRelation } from '../types'
 import { lineageColor } from '../constants'
+import { Modal } from './Modal'
 
 const DAY_LENGTH = 600
 
@@ -157,9 +158,7 @@ export function StatsModal({ world, onClose }: Props) {
   const currentDay   = Math.floor(world.tick / DAY_LENGTH)
 
   return (
-    <div className="lang-modal-backdrop" onClick={onClose}>
-      <div className="stats-modal" onClick={e => e.stopPropagation()}>
-
+    <Modal open onClose={onClose} className="stats-modal" title="Stats" hideTitle>
         <div className="lang-modal-header">
           <span className="lang-modal-title">STATS</span>
           <span className="tree-modal-sub">day {currentDay} · {liveCount} alive</span>
@@ -241,7 +240,6 @@ export function StatsModal({ world, onClose }: Props) {
           </div>
 
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

@@ -1,6 +1,8 @@
+import { memo } from 'react'
 import type { OrganismState, ConversationEntry } from '../types'
 import { lineageColor } from '../constants'
 import { useOrgDetail } from '../useOrgDetail'
+import { Modal } from './Modal'
 
 const DAY_LENGTH = 600
 
@@ -24,7 +26,7 @@ function kindMeta(kind: string) {
   return KIND_META[kind] ?? { icon: '💬', label: kind, color: '#666' }
 }
 
-function ConvoBlock({ entry, selfOrg, allOrgs }: {
+const ConvoBlock = memo(function ConvoBlock({ entry, selfOrg, allOrgs }: {
   entry: ConversationEntry
   selfOrg: OrganismState
   allOrgs: OrganismState[]
@@ -70,7 +72,7 @@ function ConvoBlock({ entry, selfOrg, allOrgs }: {
       </div>
     </div>
   )
-}
+})
 
 export function ConversationsModal({ org, allOrgs, sexWords, onClose }: Props) {
   const detail    = useOrgDetail(org.id)
@@ -81,48 +83,51 @@ export function ConversationsModal({ org, allOrgs, sexWords, onClose }: Props) {
     : org.sex
 
   return (
-    <div className="lang-modal-backdrop" onClick={onClose}>
-      <div className="cv-modal" onClick={e => e.stopPropagation()}>
-
-        {/* Modal header */}
-        <div className="cv-modal-head">
-          <span className="cv-modal-title">CONVERSATIONS</span>
-          <div className="cv-modal-who">
-            <span style={{ color: lineageColor(org.lineage_id), fontWeight: 700 }}>{org.name}</span>
-            {sexLabel && (
-              <span style={{ color: org.sex === 'female' ? '#e09ab0' : '#7ab0e0', marginLeft: 6 }}>
-                {sexLabel}
-              </span>
-            )}
-            {partnerOrg && (
-              <span style={{ color: '#c07090', marginLeft: 8 }}>
-                ♥ <span style={{ color: lineageColor(partnerOrg.lineage_id) }}>{partnerOrg.name}</span>
-              </span>
-            )}
-          </div>
-          <button className="close-btn" onClick={onClose}>✕</button>
-        </div>
-
-        {/* Body */}
-        <div className="cv-modal-body">
-          {convos.length === 0 ? (
-            <div className="cv-empty">
-              <div style={{ fontSize: 28, marginBottom: 8 }}>💬</div>
-              <div style={{ fontSize: 11, fontStyle: 'italic', color: '#555', textAlign: 'center' }}>
-                {org.attracted_to
-                  ? `${org.name} is drawn to someone — a first conversation is coming`
-                  : `${org.name} hasn't spoken with anyone yet`}
-              </div>
-            </div>
-          ) : (
-            <div className="cv-list">
-              {[...convos].reverse().map((entry, i) => (
-                <ConvoBlock key={i} entry={entry} selfOrg={org} allOrgs={allOrgs} />
-              ))}
-            </div>
+    <Modal
+      open
+      onClose={onClose}
+      className="cv-modal"
+      title={`Conversations of ${org.name}`}
+      hideTitle
+    >
+      {/* Modal header */}
+      <div className="cv-modal-head">
+        <span className="cv-modal-title">CONVERSATIONS</span>
+        <div className="cv-modal-who">
+          <span style={{ color: lineageColor(org.lineage_id), fontWeight: 700 }}>{org.name}</span>
+          {sexLabel && (
+            <span style={{ color: org.sex === 'female' ? '#e09ab0' : '#7ab0e0', marginLeft: 6 }}>
+              {sexLabel}
+            </span>
+          )}
+          {partnerOrg && (
+            <span style={{ color: '#c07090', marginLeft: 8 }}>
+              ♥ <span style={{ color: lineageColor(partnerOrg.lineage_id) }}>{partnerOrg.name}</span>
+            </span>
           )}
         </div>
+        <button className="close-btn" onClick={onClose}>✕</button>
       </div>
-    </div>
+
+      {/* Body */}
+      <div className="cv-modal-body">
+        {convos.length === 0 ? (
+          <div className="cv-empty">
+            <div style={{ fontSize: 28, marginBottom: 8 }}>💬</div>
+            <div style={{ fontSize: 11, fontStyle: 'italic', color: '#555', textAlign: 'center' }}>
+              {org.attracted_to
+                ? `${org.name} is drawn to someone — a first conversation is coming`
+                : `${org.name} hasn't spoken with anyone yet`}
+            </div>
+          </div>
+        ) : (
+          <div className="cv-list">
+            {[...convos].reverse().map((entry, i) => (
+              <ConvoBlock key={`${entry.tick}-${entry.with_id}-${i}`} entry={entry} selfOrg={org} allOrgs={allOrgs} />
+            ))}
+          </div>
+        )}
+      </div>
+    </Modal>
   )
 }

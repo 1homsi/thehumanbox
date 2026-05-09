@@ -1,5 +1,6 @@
 import type { StoryEntry } from '../types'
 import { lineageColor } from '../constants'
+import { Modal } from './Modal'
 
 const DAY_LENGTH = 600
 
@@ -13,9 +14,8 @@ export function ChroniclesModal({ stories, onClose }: Props) {
   const sorted = [...stories]
 
   return (
-    <div className="lang-modal-backdrop" onClick={onClose}>
-      <div className="lang-modal chronicles-modal" onClick={e => e.stopPropagation()}>
-        <div className="lang-modal-header">
+    <Modal open onClose={onClose} className="lang-modal chronicles-modal" title="Chronicles" hideTitle>
+      <div className="lang-modal-header">
           <span className="lang-modal-title">CHRONICLES</span>
           <button className="close-btn" onClick={onClose}>✕</button>
         </div>
@@ -45,7 +45,6 @@ export function ChroniclesModal({ stories, onClose }: Props) {
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
