@@ -190,9 +190,17 @@ pub fn generate_conversation(
     kind: &str,
     rng: &mut impl Rng,
 ) -> (ConversationEntry, ConversationEntry) {
+    // Conversation length per kind. Courtship/excited get the most lines —
+    // they're the dramatic moments players linger on. Argue/farewell stay short
+    // so they feel sharp. Casual chat falls in the middle.
     let n_lines = match kind {
-        "courtship" | "excited" => rng.gen_range(4..=6),
-        _                       => rng.gen_range(2..=4),
+        "courtship" => rng.gen_range(6..=10),
+        "excited"   => rng.gen_range(5..=8),
+        "bonded"    => rng.gen_range(4..=7),
+        "chat"      => rng.gen_range(3..=6),
+        "argue"     => rng.gen_range(4..=6),
+        "farewell"  => rng.gen_range(2..=3),
+        _           => rng.gen_range(3..=5),
     };
     let moods = mood_arc(kind);
 
