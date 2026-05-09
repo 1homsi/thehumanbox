@@ -73,30 +73,43 @@ pub fn try_reproduce(
     // Only females give birth
     if org.sex != Sex::Female { return; }
 
-    // When population is critically low, relax thresholds to allow recovery
-    let low_pop = alive_count < 60;
-    let (e_min, h_min, hp_min, cooldown, partner_dist) = if low_pop {
-        (0.30, 0.30, 0.35,  600u64, 60.0f32)  // emergency: lower bar, wider partner search, very short cooldown
+    let critical = alive_count < 30;
+    let low_pop  = alive_count < 80;
+    let (e_min, h_min, hp_min, cooldown, partner_dist) = if critical {
+        (0.18, 0.18, 0.22, 350u64, 200.0f32)
+    } else if low_pop {
+        (0.28, 0.28, 0.32, 500u64, 100.0f32)
     } else {
-        (0.42, 0.42, 0.45, 1500u64, 30.0f32)  // normal: ~2.5 sim-days between births
+        (0.42, 0.42, 0.45, 1500u64, 30.0f32)
     };
 
-    // Must be at least ~1.7 days old (adults only)
     if !(org.energy > e_min && org.hydration > h_min && org.health > hp_min && org.age > 1000) { return; }
     if tick - org.last_reproduced < cooldown { return; }
-    if org.infection > 0.30 { return; }
+    if !critical && org.infection > 0.30 { return; }
 
-    // Partner requirement: must have a bonded male partner nearby (wider search when pop is low)
-    let partner_id = match org.partner_id.clone() {
-        Some(pid) => pid,
-        None => return,
-    };
     let (org_x, org_y) = (org.x, org.y);
-    let partner_nearby = organisms.iter().any(|o| {
-        o.alive && o.id == partner_id && o.sex == Sex::Male
-            && (o.x - org_x).hypot(o.y - org_y) < partner_dist
-    });
-    if !partner_nearby { return; }
+    let partner_id: String = if critical {
+        let nearest = organisms.iter()
+            .filter(|o| o.alive && o.sex == Sex::Male && o.age > 1000
+                && (o.x - org_x).hypot(o.y - org_y) < partner_dist)
+            .min_by(|a, b| {
+                let da = (a.x - org_x).hypot(a.y - org_y);
+                let db = (b.x - org_x).hypot(b.y - org_y);
+                da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
+            });
+        match nearest {
+            Some(o) => o.id.clone(),
+            None    => return,
+        }
+    } else {
+        let Some(pid) = org.partner_id.clone() else { return };
+        let bonded_nearby = organisms.iter().any(|o| {
+            o.alive && o.id == pid && o.sex == Sex::Male
+                && (o.x - org_x).hypot(o.y - org_y) < partner_dist
+        });
+        if !bonded_nearby { return; }
+        pid
+    };
 
     // Biome survival pressure shapes reproduction rates
     let biome = grid.biome_at(org_x as i32, org_y as i32);

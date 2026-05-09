@@ -8,8 +8,8 @@ pub fn season_growth(season: &str) -> f32 {
     match season {
         "abundance" => 2.0,
         "decline"   => 1.0,
-        "scarcity"  => 0.28,
-        "recovery"  => 0.65,
+        "scarcity"  => 0.55,
+        "recovery"  => 0.85,
         _           => 1.0,
     }
 }
