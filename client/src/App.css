@@ -472,9 +472,9 @@ body {
   background: #13110f;
   border: 1px solid #2e2820;
   border-radius: 10px;
-  width: 540px;
+  width: 1200px;
   max-width: 96vw;
-  max-height: 82vh;
+  max-height: 88vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -513,7 +513,14 @@ body {
   flex-direction: column;
   gap: 2px;
 }
-.cv-list { display: flex; flex-direction: column; gap: 14px; }
+/* Conversation grid — convo blocks tile responsively. min 380px per column
+   means 1 column under ~440px viewport, 2 columns under ~860px, 3 above. */
+.cv-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
 .cv-empty {
   display: flex;
   flex-direction: column;
