@@ -33,6 +33,11 @@ interface OrgCardProps {
 }
 
 export function OrgCard({ org, sexWords, onTrack, onConvos, lineageNames, organisms }: OrgCardProps) {
+  // A newly-born organism can briefly exist in the cache without its cold
+  // fields (lineage_id, name, traits) until the next full WS snapshot lands.
+  // Skip rendering rather than crash on the missing data.
+  if (!org.lineage_id || !org.traits || !org.name) return null
+
   const tn     = (lid: string) => lineageNames?.[lid] ?? lid.slice(0, 6)
   const on     = (oid: string) => organisms?.find(o => o.id === oid)?.name ?? oid.slice(0, 5)
   const isSick = org.infection > 0.15
