@@ -1,0 +1,18 @@
+{
+  "models": [
+    {
+      "id": "gemma3:270m",
+      "family": "gemma3",
+      "runtime": "ollama",
+      "role": "small local instruction model for narrow thought and classification tasks",
+      "status": "candidate"
+    },
+    {
+      "id": "gguf-placeholder",
+      "family": "custom",
+      "runtime": "llama.cpp",
+      "role": "future exported local model slot for eval and packaging",
+      "status": "planned"
+    }
+  ]
+}

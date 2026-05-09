@@ -13,3 +13,18 @@ client/*.local
 .DS_Store
 *.log
 simulation-py/
+
+# Python lab
+lab/.venv/
+lab/.pytest_cache/
+lab/.ruff_cache/
+lab/.mypy_cache/
+lab/**/__pycache__/
+lab/**/*.pyc
+lab/**/*.egg-info/
+lab/models/cache/
+lab/models/checkpoints/
+lab/models/exports/
+lab/datasets/generated/*
+!lab/datasets/generated/.gitkeep
+lab/experiments/*.json

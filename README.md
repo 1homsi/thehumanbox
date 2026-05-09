@@ -7,7 +7,8 @@ A persistent artificial life simulation — a living world where organisms think
 ```
 thehumanbox/
 ├── simulation/   # Rust simulation engine (WebSocket server)
-└── client/       # React/Vite frontend
+├── client/       # React/Vite frontend
+└── lab/          # Python workspace for model experiments and eval tooling
 ```
 
 ## Quick Start

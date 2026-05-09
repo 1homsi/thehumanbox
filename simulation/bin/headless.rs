@@ -4,7 +4,10 @@
 #[path = "../sim/mod.rs"]      mod sim;
 
 use sim::simulation::Simulation;
+use serde_json::json;
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::{BufWriter, Write};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -19,6 +22,15 @@ fn main() {
         .and_then(|s| s.parse().ok()).unwrap_or(6_000);  // default 1 in-world day
     let sweep_seeds: usize = args.iter()
         .position(|a| a == "--sweep-seeds").and_then(|i| args.get(i+1))
+        .and_then(|s| s.parse().ok()).unwrap_or(0);
+    let trace_out = args.iter()
+        .position(|a| a == "--trace-out").and_then(|i| args.get(i+1))
+        .cloned();
+    let trace_every: u64 = args.iter()
+        .position(|a| a == "--trace-every").and_then(|i| args.get(i+1))
+        .and_then(|s| s.parse().ok()).unwrap_or(200);
+    let trace_limit: usize = args.iter()
+        .position(|a| a == "--trace-limit").and_then(|i| args.get(i+1))
         .and_then(|s| s.parse().ok()).unwrap_or(0);
     // --gate: exit non-zero if any seed's verdict is not Healthy. For CI use.
     let gate = args.iter().any(|a| a == "--gate");
@@ -40,6 +52,12 @@ fn main() {
     let mut sim = Simulation::new(seed);
     let mut peak_pop = 0usize;
     let mut thought_freq: HashMap<String, u64> = HashMap::new();
+    let mut trace_writer = trace_out.as_ref().map(|path| {
+        let file = File::create(path).unwrap_or_else(|err| {
+            panic!("failed to create trace file {}: {}", path, err);
+        });
+        BufWriter::new(file)
+    });
 
     let mut tick_times_us: Vec<u64> = Vec::new();
     let mut json_sizes_bytes: Vec<usize> = Vec::new();
@@ -52,6 +70,12 @@ fn main() {
 
         let alive = sim.organisms.iter().filter(|o| o.alive).count();
         if alive > peak_pop { peak_pop = alive; }
+
+        if let Some(writer) = trace_writer.as_mut() {
+            if trace_every > 0 && t % trace_every == 0 {
+                write_trace_rows(&sim, writer, trace_limit);
+            }
+        }
 
         // Tally thoughts
         for org in sim.organisms.iter().filter(|o| o.alive) {
@@ -146,6 +170,79 @@ fn main() {
         println!("\n=== WS PAYLOAD ESTIMATE ===");
         println!("  avg={} KB   max={} KB   samples={}", avg_kb, max_kb, json_sizes_bytes.len());
         println!("  at 10 tps: ~{} KB/s per client", avg_kb * 10);
+    }
+    if let Some(writer) = trace_writer.as_mut() {
+        writer.flush().ok();
+    }
+}
+
+fn infer_event_type(org: &organism::organism::Organism) -> &'static str {
+    let thought = org.thought.to_lowercase();
+    let last_log = org.life_log.back().map(|s| s.to_lowercase()).unwrap_or_default();
+    let text = if !last_log.is_empty() { last_log.as_str() } else { thought.as_str() };
+
+    if text.contains("danger") || text.contains("fire") || text.contains("struggling") {
+        "danger"
+    } else if text.contains("migrat") || text.contains("distant land") || text.contains("wandering") {
+        "migration"
+    } else if text.contains("teach") || text.contains("bond") || text.contains("fed by kin") {
+        "social"
+    } else if text.contains("remember") || text.contains("mourn") {
+        "memory"
+    } else if text.contains("drink") || text.contains("water") {
+        "water"
+    } else if text.contains("eat") || text.contains("food") || text.contains("hunt") {
+        "food"
+    } else {
+        "thought"
+    }
+}
+
+fn write_trace_rows(
+    sim: &Simulation,
+    writer: &mut BufWriter<File>,
+    trace_limit: usize,
+) {
+    let season = sim.season().to_string();
+    let weather = sim.weather.kind;
+    let mut written = 0usize;
+
+    for org in sim.organisms.iter().filter(|o| o.alive) {
+        if trace_limit > 0 && written >= trace_limit {
+            break;
+        }
+        let row = json!({
+            "tick": sim.tick_count,
+            "organism_id": org.id,
+            "organism_name": org.name,
+            "lineage_id": org.lineage_id,
+            "generation": org.generation,
+            "event_type": infer_event_type(org),
+            "text": org.thought,
+            "context_text": org.life_log.back().cloned().unwrap_or_default(),
+            "position": {
+                "x": org.x,
+                "y": org.y,
+            },
+            "state": {
+                "energy": org.energy,
+                "hydration": org.hydration,
+                "health": org.health,
+                "fear": org.fear_level,
+                "curiosity": org.traits.curiosity,
+                "comfort": org.comfort,
+                "loneliness": org.loneliness,
+            },
+            "world": {
+                "season": season,
+                "weather": weather,
+                "era": sim.current_era,
+            },
+            "discoveries": org.discoveries.iter().cloned().collect::<Vec<_>>(),
+        });
+        serde_json::to_writer(&mut *writer, &row).expect("failed to write trace row");
+        writer.write_all(b"\n").expect("failed to write trace newline");
+        written += 1;
     }
 }
 
