@@ -32,8 +32,8 @@ pub fn spawn_organism_with_lineage(
     let mut traits = Traits::random(rng);
     apply_sex_traits(&mut traits, sex);
     let max_age = rng.gen_range(
-        (6000.0 + 4000.0 * traits.resilience) as u32
-        ..=(10000.0 + 6000.0 * traits.resilience) as u32
+        (9000.0 + 4000.0 * traits.resilience) as u32
+        ..=(14000.0 + 6000.0 * traits.resilience) as u32
     );
 
     let mut org = Organism::new(
@@ -76,13 +76,13 @@ pub fn try_reproduce(
     // When population is critically low, relax thresholds to allow recovery
     let low_pop = alive_count < 60;
     let (e_min, h_min, hp_min, cooldown, partner_dist) = if low_pop {
-        (0.35, 0.35, 0.40, 1200u64, 60.0f32)  // emergency: lower bar, wider partner search, halved cooldown
+        (0.30, 0.30, 0.35,  600u64, 60.0f32)  // emergency: lower bar, wider partner search, very short cooldown
     } else {
-        (0.48, 0.48, 0.55, 2400u64, 30.0f32)  // normal: ~4 sim-days between births
+        (0.42, 0.42, 0.45, 1500u64, 30.0f32)  // normal: ~2.5 sim-days between births
     };
 
-    // Must be at least 2.5 days old (adults only)
-    if !(org.energy > e_min && org.hydration > h_min && org.health > hp_min && org.age > 1500) { return; }
+    // Must be at least ~1.7 days old (adults only)
+    if !(org.energy > e_min && org.hydration > h_min && org.health > hp_min && org.age > 1000) { return; }
     if tick - org.last_reproduced < cooldown { return; }
     if org.infection > 0.30 { return; }
 
@@ -123,10 +123,12 @@ pub fn try_reproduce(
     // 0.4 at barren land → 1.6 at rich land
     let land_mult = 0.4 + local_fert * 1.2;
 
-    // Birth rate variance: probability tied to social_tendency (some families large, some small)
+    // Birth rate variance: probability tied to social_tendency (some families large, some small).
+    // Generous floor so well-fed bonded couples reliably produce children — the world has to
+    // grow above replacement to be watchable for 30+ sim-days.
     let social = org.traits.social_tendency;
-    let fertility_prob = (0.15 + social * 0.40) * biome_mult * land_mult;
-    if rng.gen::<f32>() > fertility_prob.clamp(0.02, 0.80) { return; }
+    let fertility_prob = (0.30 + social * 0.50) * biome_mult * land_mult;
+    if rng.gen::<f32>() > fertility_prob.clamp(0.20, 0.95) { return; }
 
     let spawn_pos = find_spawn_near(grid, org.x as i32, org.y as i32, rng);
     let Some((sx, sy)) = spawn_pos else { return; };
@@ -142,9 +144,12 @@ pub fn try_reproduce(
     let mut child_traits_sexed = child_traits;
     apply_sex_traits(&mut child_traits_sexed, child_sex);
 
+    // Same lifespan range as founding spawns — was previously the much shorter
+    // 3000-8500 formula, which meant children died of old age ~half as fast as
+    // their parents and crashed the second-generation cohort.
     let max_age = rng.gen_range(
-        (3000.0 + 2500.0 * child_traits_sexed.resilience) as u32
-        ..=(5000.0 + 3500.0 * child_traits_sexed.resilience) as u32
+        (9000.0 + 4000.0 * child_traits_sexed.resilience) as u32
+        ..=(14000.0 + 6000.0 * child_traits_sexed.resilience) as u32
     );
 
     let child_id = Uuid::new_v4().to_string()[..8].to_string();
@@ -239,7 +244,7 @@ pub fn try_reproduce(
 
     let parent_name = organisms[org_idx].name.clone();
     organisms[org_idx].think("expecting", tick);
-    organisms[org_idx].log_event(format!("expecting {} (due in ~3 days)", child_name));
+    organisms[org_idx].log_event(format!("expecting {} (due in ~2 days)", child_name));
 
     push_event(events, tick, "born", &child_name,
                &format!("gen{} from {} (expecting)", generation, parent_name));
@@ -248,7 +253,7 @@ pub fn try_reproduce(
 
 /// Called every tick. If a pregnant organism's delivery period is over, flip the
 /// pending child (alive=false, age=0, parent_id points to pregnant mother) alive.
-pub const PREGNANCY_DURATION: u64 = 1800; // ~3 sim-days
+pub const PREGNANCY_DURATION: u64 = 1200; // ~2 sim-days
 
 pub fn deliver_births(
     organisms: &mut Vec<Organism>,

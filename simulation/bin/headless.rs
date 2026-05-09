@@ -211,7 +211,7 @@ fn classify(
     ticks_run: u64,
     surviving_lineages: usize,
 ) -> Verdict {
-    const MAX_POP: usize = 200; // matches sim::config::MAX_POPULATION
+    const MAX_POP: usize = 300; // matches sim::config::MAX_POPULATION
     if extinction_tick.is_some() { return Verdict::Extinct; }
     if alive_samples.is_empty()  { return Verdict::Healthy; }
 
@@ -370,8 +370,8 @@ mod tests {
 
     #[test]
     fn classify_runaway_when_capped_at_max_pop_majority_of_run() {
-        // 200 = MAX_POPULATION; 8 of 10 samples capped → 80% > 60% threshold
-        let samples = vec![150, 200, 200, 200, 200, 200, 200, 200, 200, 180];
+        // 300 = MAX_POPULATION; 8 of 10 samples capped → 80% > 60% threshold
+        let samples = vec![250, 300, 300, 300, 300, 300, 300, 300, 300, 280];
         let v = classify(None, &samples, &[12; 10], 60_000, 8);
         assert_eq!(v, Verdict::Runaway);
     }

@@ -1655,20 +1655,20 @@ impl Simulation {
         let tc = self.tick_count;
         let is_unpartnered_adult = self.organisms[idx].partner_id.is_none()
             && self.organisms[idx].alive
-            && self.organisms[idx].age > 1500
-            && self.organisms[idx].traits.social_tendency > 0.20;
+            && self.organisms[idx].age > 1000
+            && self.organisms[idx].traits.social_tendency > 0.15;
 
         // Partner seeking: lonely unpartnered adults actively walk toward the nearest
         // potential mate rather than relying on random wandering to bring them together.
         if is_unpartnered_adult
             && self.organisms[idx].attracted_to.is_none()
             && self.organisms[idx].wander_target.is_none()
-            && self.organisms[idx].loneliness > 0.30
+            && self.organisms[idx].loneliness > 0.20
         {
             let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
             let my_sex = self.organisms[idx].sex;
             let target = self.organisms.iter()
-                .filter(|o| o.alive && o.sex != my_sex && o.age > 1500 && o.partner_id.is_none())
+                .filter(|o| o.alive && o.sex != my_sex && o.age > 1000 && o.partner_id.is_none())
                 .min_by_key(|o| ((o.x - ox).hypot(o.y - oy) * 10.0) as i32)
                 .map(|o| (o.x as i32, o.y as i32));
             if let Some((tx, ty)) = target {
@@ -1679,14 +1679,14 @@ impl Simulation {
         // Phase 1 — develop attraction toward a nearby opposite-sex adult
         if is_unpartnered_adult
             && self.organisms[idx].attracted_to.is_none()
-            && self.rng.gen::<f32>() < 0.005
+            && self.rng.gen::<f32>() < 0.012
         {
             let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
             let my_sex = self.organisms[idx].sex;
             let candidate = self.organisms.iter().enumerate().find(|(i, o)| {
                 *i != idx && o.alive && o.partner_id.is_none()
                     && o.attracted_to.is_none()
-                    && o.age > 1500
+                    && o.age > 1000
                     && o.sex != my_sex
                     && (o.x - ox).hypot(o.y - oy) < 120.0
             }).map(|(i, _)| i);
@@ -1711,7 +1711,7 @@ impl Simulation {
                 let attraction_age = tc.saturating_sub(self.organisms[idx].attraction_tick);
                 let partner_close = self.organisms.iter()
                     .any(|o| o.alive && o.id == aid && (o.x - ox).hypot(o.y - oy) < 8.0);
-                if partner_close && attraction_age >= 300 && self.rng.gen::<f32>() < 0.04 {
+                if partner_close && attraction_age >= 150 && self.rng.gen::<f32>() < 0.08 {
                     if let Some(pi) = self.organisms.iter().position(|o| o.alive && o.id == aid) {
                         let pid   = self.organisms[pi].id.clone();
                         let pname = self.organisms[pi].name.clone();

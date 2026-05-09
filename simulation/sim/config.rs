@@ -1,4 +1,4 @@
-pub const MAX_POPULATION: usize = 200;
+pub const MAX_POPULATION: usize = 300;
 pub const DAY_LENGTH:     u64   = 600;
 pub const SEASON_LENGTH:  u64   = 3000;
 
