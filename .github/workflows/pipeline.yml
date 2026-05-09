@@ -1,0 +1,217 @@
+name: pipeline
+
+# Single workflow that owns the full path from a human push to a live deploy.
+#
+# Stages, in order:
+#   1. test-backend  : cargo build --release && cargo test on the runner.
+#   2. test-frontend : npm run build (also covers tsc -b). Built dist/ is
+#                      uploaded as an artifact so the deploy stage can ship
+#                      it directly without rebuilding.
+#   3. bump-version  : ONLY runs if both test jobs are green. Bumps the
+#                      patch version in simulation/Cargo.toml and
+#                      client/package.json (+ both lock files), commits
+#                      back to main as the bump bot. The commit message
+#                      contains [skip-bump] so the resulting push doesn't
+#                      retrigger this workflow's test/bump path.
+#   4. deploy-backend  : SSM fire-and-forget against the EC2. EC2 pulls
+#                        the bumped commit, rebuilds, restarts the unit.
+#   5. deploy-frontend : downloads the dist/ artifact built above and
+#                        wrangler-deploys to Cloudflare Pages. No second
+#                        build - we trust the test-frontend output.
+#
+# A bot push (its commit message contains [skip-bump]) re-fires this
+# workflow but every job's `if:` short-circuits, so the run is a no-op.
+#
+# This file replaces the old deploy.yml + deploy-simulation.yml. Both
+# are deleted in this commit.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Don't deploy two pushes concurrently. Queue them; never cancel an
+# in-flight deploy mid-run since SSM commands aren't safely interruptible.
+concurrency:
+  group: pipeline-main
+  cancel-in-progress: false
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────
+  # Stage 1: smoke tests. Both run in parallel.
+  # ────────────────────────────────────────────────────────────────────────
+  test-backend:
+    name: Test backend
+    if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: simulation -> target
+      - name: cargo build --release --locked
+        working-directory: simulation
+        run: cargo build --release --locked
+      - name: cargo test
+        working-directory: simulation
+        run: cargo test --locked
+
+  test-frontend:
+    name: Test + build frontend
+    if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - name: npm ci
+        working-directory: client
+        run: npm ci
+
+      # Capture a unix-second build timestamp so the About modal can show
+      # exactly when this bundle was built, in any timezone.
+      - id: ts
+        run: echo "build_ts=$(date -u +%s)" >> "$GITHUB_OUTPUT"
+
+      - name: npm run build
+        working-directory: client
+        run: npm run build
+        env:
+          VITE_API_BASE: ${{ secrets.VITE_API_BASE }}
+          # Bake identifiers in. The About modal reads import.meta.env.VITE_*
+          # so users can verify exactly which commit is live.
+          VITE_GIT_SHA:  ${{ github.sha }}
+          VITE_BUILD_TS: ${{ steps.ts.outputs.build_ts }}
+
+      # Hand the built dist/ to deploy-frontend so it doesn't rebuild.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: client-dist
+          path: client/dist
+          retention-days: 7
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Stage 2: version bump. Only runs after both tests are green.
+  # ────────────────────────────────────────────────────────────────────────
+  bump-version:
+    name: Bump version
+    needs: [test-backend, test-frontend]
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    outputs:
+      new: ${{ steps.bump.outputs.new }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # need full history so a rebase before push works
+
+      - name: Compute + apply patch bump
+        id: bump
+        run: |
+          set -euo pipefail
+          CURRENT=$(grep '^version = ' simulation/Cargo.toml | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          NEW="$MAJOR.$MINOR.$((PATCH + 1))"
+          echo "Bumping $CURRENT -> $NEW"
+          echo "new=$NEW" >> "$GITHUB_OUTPUT"
+
+          # simulation/Cargo.toml: replace ONLY the first version="..." line.
+          # The [package] block is at the top so this hits the right one.
+          sed -i -E "0,/^version = \"[^\"]+\"$/s//version = \"$NEW\"/" simulation/Cargo.toml
+
+          # simulation/Cargo.lock: bump the simulation-rs package entry.
+          # Match the `name = "simulation-rs"` line, then replace the
+          # very next `version = "..."` line with the new version.
+          awk -v new="$NEW" '
+            /^name = "simulation-rs"$/ { hit = 1; print; next }
+            hit && /^version = / { sub(/"[^"]+"/, "\"" new "\""); hit = 0 }
+            { print }
+          ' simulation/Cargo.lock > simulation/Cargo.lock.tmp
+          mv simulation/Cargo.lock.tmp simulation/Cargo.lock
+
+          # client/package.json + lock: jq does both safely.
+          tmp=$(mktemp)
+          jq --arg v "$NEW" '.version = $v' client/package.json > "$tmp" && mv "$tmp" client/package.json
+          tmp=$(mktemp)
+          jq --arg v "$NEW" '.version = $v | .packages."".version = $v' client/package-lock.json > "$tmp" && mv "$tmp" client/package-lock.json
+
+      - name: Commit + push as bump bot
+        env:
+          NEW: ${{ steps.bump.outputs.new }}
+        run: |
+          set -euo pipefail
+          git config user.name  "thb-bumpbot"
+          git config user.email "bumpbot@thehumanbox.com"
+          git add simulation/Cargo.toml simulation/Cargo.lock client/package.json client/package-lock.json
+          git commit -m "chore: release $NEW [skip-bump]"
+          # If another push raced into main during the test phase, rebase
+          # cleanly. The bump only touches manifest files so conflicts
+          # against application code are vanishingly unlikely.
+          git pull --rebase origin main
+          git push
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Stage 3: deploys. Run in parallel after bump-version succeeds.
+  # ────────────────────────────────────────────────────────────────────────
+  deploy-backend:
+    name: Deploy backend (SSM)
+    needs: bump-version
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 5
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ vars.AWS_REGION }}
+
+      - name: Send SSM deploy command
+        env:
+          INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
+          NEW_VERSION: ${{ needs.bump-version.outputs.new }}
+        run: |
+          set -euo pipefail
+          # Fire-and-forget. The on-box build takes ~10 min cold; we don't
+          # block the workflow on it. EC2 pulls the bumped commit, builds,
+          # and restarts via systemd. The /version endpoint reflects the
+          # new build once the unit is back up.
+          DEPLOY_CMD='cd /root/thehumanbox && git pull --ff-only && /root/.cargo/bin/cargo build --release --manifest-path simulation/Cargo.toml && systemctl restart simulation'
+          CMD_ID=$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --comment "deploy v$NEW_VERSION" \
+            --parameters "commands=[\"$DEPLOY_CMD\"]" \
+            --output text --query 'Command.CommandId')
+          echo "SSM command dispatched: $CMD_ID"
+          echo "Track: https://${{ vars.AWS_REGION }}.console.aws.amazon.com/systems-manager/run-command/$CMD_ID"
+
+  deploy-frontend:
+    name: Deploy frontend (Cloudflare Pages)
+    needs: bump-version
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 5
+    permissions:
+      contents:    read
+      deployments: write
+    steps:
+      - name: Download dist/ from test-frontend
+        uses: actions/download-artifact@v4
+        with:
+          name: client-dist
+          path: client/dist
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy client/dist --project-name=thehumanbox --branch=main
