@@ -36,6 +36,7 @@ interface UIState {
   showOrgSearch:   boolean
   showStats:       boolean
   showAllLineages: boolean
+  showAbout:       boolean
   convoOrgId:      string | null
 
   // Layout panels
@@ -67,6 +68,8 @@ interface UIState {
   closeStats:       () => void
   openAllLineages:  () => void
   closeAllLineages: () => void
+  openAbout:        () => void
+  closeAbout:       () => void
   openConvo:        (id: string) => void
   closeConvo:       () => void
   closeAllModals:   () => void
@@ -91,6 +94,7 @@ export const useUIStore = create<UIState>((set) => ({
   showOrgSearch:   false,
   showStats:       false,
   showAllLineages: false,
+  showAbout:       false,
   convoOrgId:      null,
 
   panelOpen: false,
@@ -121,6 +125,8 @@ export const useUIStore = create<UIState>((set) => ({
   closeStats:       () => set({ showStats:       false }),
   openAllLineages:  () => set({ showAllLineages: true }),
   closeAllLineages: () => set({ showAllLineages: false }),
+  openAbout:        () => set({ showAbout:       true }),
+  closeAbout:       () => set({ showAbout:       false }),
   openConvo:        (id) => set({ convoOrgId: id }),
   closeConvo:       () => set({ convoOrgId: null }),
   closeAllModals:   () => set({
@@ -130,6 +136,7 @@ export const useUIStore = create<UIState>((set) => ({
     showOrgSearch:   false,
     showStats:       false,
     showAllLineages: false,
+    showAbout:       false,
     convoOrgId:      null,
   }),
 

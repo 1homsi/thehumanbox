@@ -19,6 +19,7 @@ const FamilyTreeModal    = lazy(() => import('./components/FamilyTreeModal').the
 const OrgSearchModal     = lazy(() => import('./components/OrgSearchModal').then(m => ({ default: m.OrgSearchModal })))
 const StatsModal         = lazy(() => import('./components/StatsModal').then(m => ({ default: m.StatsModal })))
 const ConversationsModal = lazy(() => import('./components/ConversationsModal').then(m => ({ default: m.ConversationsModal })))
+const AboutModal         = lazy(() => import('./components/AboutModal').then(m => ({ default: m.AboutModal })))
 import type { OrganismState } from './types'
 import {
   lineageColor, lineageWord, HIDDEN_EVENT_TYPES,
@@ -39,6 +40,7 @@ function App() {
   const showOrgSearch   = useUIStore(s => s.showOrgSearch)
   const showStats       = useUIStore(s => s.showStats)
   const showAllLineages = useUIStore(s => s.showAllLineages)
+  const showAbout       = useUIStore(s => s.showAbout)
   const convoOrgId      = useUIStore(s => s.convoOrgId)
   const panelOpen       = useUIStore(s => s.panelOpen)
   const leftOpen        = useUIStore(s => s.leftOpen)
@@ -63,6 +65,8 @@ function App() {
   const closeStats       = useUIStore(s => s.closeStats)
   const openAllLineages  = useUIStore(s => s.openAllLineages)
   const closeAllLineages = useUIStore(s => s.closeAllLineages)
+  const openAbout        = useUIStore(s => s.openAbout)
+  const closeAbout       = useUIStore(s => s.closeAbout)
   const openConvo        = useUIStore(s => s.openConvo)
   const closeConvo       = useUIStore(s => s.closeConvo)
   const togglePanel      = useUIStore(s => s.togglePanel)
@@ -256,6 +260,7 @@ function App() {
                     <button className="lang-btn" onClick={() => { openLanguages();   useUIStore.setState({ showMore: false }) }}>⌖ lang</button>
                     <button className="lang-btn" onClick={() => { openFamilyTree();  useUIStore.setState({ showMore: false }) }}>⬡ tree</button>
                     <button className={clsx('lang-btn', leftOpen && 'active')} onClick={() => { toggleLeft(); useUIStore.setState({ showMore: false }) }}>⊞ world</button>
+                    <button className="lang-btn" onClick={() => { openAbout(); useUIStore.setState({ showMore: false }) }} title="Build info, versions, and links">ⓘ about</button>
                   </div>
                 </div>
               )}
@@ -437,6 +442,9 @@ function App() {
             world={world}
             onClose={closeStats}
           />
+        )}
+        {showAbout && (
+          <AboutModal onClose={closeAbout} />
         )}
       </Suspense>
       {showAllLineages && world && (

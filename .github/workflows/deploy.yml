@@ -31,11 +31,20 @@ jobs:
         run: npm ci
         working-directory: client
 
+      - name: Compute build timestamp
+        id: ts
+        run: echo "build_ts=$(date -u +%s)" >> "$GITHUB_OUTPUT"
+
       - name: Build
         run: npm run build
         working-directory: client
         env:
           VITE_API_BASE: ${{ secrets.VITE_API_BASE }}
+          # Bake the deployed commit SHA + unix timestamp into the bundle so
+          # the About modal can show "what's actually live right now". Values
+          # surface via import.meta.env.VITE_* in AboutModal.tsx.
+          VITE_GIT_SHA:  ${{ github.sha }}
+          VITE_BUILD_TS: ${{ steps.ts.outputs.build_ts }}
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3

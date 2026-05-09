@@ -1522,3 +1522,85 @@ body {
   .chronicle-name { grid-column: 2; }
   .chronicle-text { grid-column: 1 / -1; padding-top: 2px; }
 }
+
+/* ── About modal ─────────────────────────────────────────────────────────── */
+.about-modal {
+  background: #181410;
+  border: 1px solid #2e2820;
+  border-radius: 10px;
+  width: 480px;
+  max-width: 95vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+}
+.about-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #2e2820;
+  background: #13110f;
+}
+.about-title {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: #8b7e69;
+  text-transform: uppercase;
+}
+.about-body {
+  padding: 16px 18px 18px;
+  overflow-y: auto;
+}
+.about-blurb {
+  margin: 0 0 18px 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #b9b0a0;
+}
+.about-section {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #665e50;
+  text-transform: uppercase;
+  margin: 14px 0 6px 0;
+}
+.about-section:first-of-type { margin-top: 0; }
+.about-grid {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 4px 14px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.about-k { color: #6e6555; }
+.about-v { color: #d8d2c4; word-break: break-all; }
+.about-v code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: #d4a843;
+}
+.about-loading { font-size: 11px; color: #6e6555; font-style: italic; }
+.about-err {
+  font-size: 11px;
+  color: #e08070;
+  background: rgba(224, 112, 80, 0.08);
+  border: 1px solid rgba(224, 112, 80, 0.25);
+  border-radius: 4px;
+  padding: 6px 10px;
+}
+.about-links a {
+  font-size: 11px;
+  color: #7abbff;
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(122, 187, 255, 0.4);
+}
+.about-links a:hover { color: #a0d0ff; border-bottom-color: rgba(160, 208, 255, 0.7); }

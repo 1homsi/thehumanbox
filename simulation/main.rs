@@ -418,6 +418,7 @@ async fn main() {
     let app = Router::new()
         .route("/ws", get(ws_handler))
         .route("/org/:id", get(org_detail_handler))
+        .route("/version", get(version_handler))
         .layer(cors)
         .with_state(state);
 
@@ -1150,6 +1151,23 @@ async fn ws_handler(
     let sim         = s.sim.clone();
     let latest_full = s.latest_full.clone();
     ws.on_upgrade(move |socket| handle_socket(socket, rx, sim, latest_full))
+}
+
+/// GET /version - identifies which build is running on this host.
+/// Used by the frontend's About panel to verify a deploy actually landed,
+/// since we don't have an obvious user-visible signal otherwise.
+///
+/// THB_GIT_SHA and THB_BUILD_TS are baked in at compile time by build.rs;
+/// CARGO_PKG_VERSION comes from Cargo.toml. All three are static for the
+/// life of the binary, so this handler doesn't need to touch the sim.
+async fn version_handler() -> impl IntoResponse {
+    let built_at: u64 = env!("THB_BUILD_TS").parse().unwrap_or(0);
+    Json(serde_json::json!({
+        "name":     env!("CARGO_PKG_NAME"),
+        "version":  env!("CARGO_PKG_VERSION"),
+        "git_sha":  env!("THB_GIT_SHA"),
+        "built_at": built_at,
+    }))
 }
 
 /// GET /org/:id - returns full organism detail including conversations,
