@@ -65,6 +65,16 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
   const prevAtRef       = useRef<number>(0)
   const currentAtRef    = useRef<number>(0)
 
+  // React-state throttle. The canvas reads currentWorldRef every RAF (60fps),
+  // but the sidebar / cards / panels react to the `world` state — and at
+  // TICK_MS=100 the WS pushes 10 messages/sec, which would have React
+  // reconcile 200+ OrgCards ten times per second. Cap that to ~2 Hz so the
+  // sim layer is uncoupled from React's render budget.
+  const REACT_THROTTLE_MS  = 500
+  const lastSetWorldAtRef  = useRef<number>(0)
+  const pendingSetWorldRef = useRef<WorldState | null>(null)
+  const setWorldTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   useEffect(() => {
     function flushUpdate() {
       rafPending.current = null
@@ -112,7 +122,30 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
           currentWorldRef.current = next
           currentAtRef.current    = performance.now()
 
-          setWorld(next)
+          // Throttled setWorld for React-rendered UI.
+          // Always store the latest world; either commit it now (if enough
+          // time elapsed) or schedule a trailing-edge commit so the UI lands
+          // on the freshest value rather than a stale one.
+          pendingSetWorldRef.current = next
+          const sinceLast = performance.now() - lastSetWorldAtRef.current
+          if (sinceLast >= REACT_THROTTLE_MS) {
+            lastSetWorldAtRef.current = performance.now()
+            setWorld(next)
+            if (setWorldTimerRef.current) {
+              clearTimeout(setWorldTimerRef.current)
+              setWorldTimerRef.current = null
+            }
+          } else if (setWorldTimerRef.current === null) {
+            const delay = REACT_THROTTLE_MS - sinceLast
+            setWorldTimerRef.current = setTimeout(() => {
+              setWorldTimerRef.current = null
+              const w = pendingSetWorldRef.current
+              if (w) {
+                lastSetWorldAtRef.current = performance.now()
+                setWorld(w)
+              }
+            }, delay)
+          }
         } catch (_) {}
         latestMsg.current = null
       }
@@ -149,6 +182,10 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
       if (rafPending.current !== null) {
         cancelAnimationFrame(rafPending.current)
         rafPending.current = null
+      }
+      if (setWorldTimerRef.current !== null) {
+        clearTimeout(setWorldTimerRef.current)
+        setWorldTimerRef.current = null
       }
       const ws = wsRef.current
       if (ws) {
