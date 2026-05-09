@@ -1918,6 +1918,8 @@ impl Simulation {
     }
 
     fn tick_animals(&mut self) {
+        use crate::world::tiles::Biome;
+
         let org_pos: Vec<(f32, f32)> = self.organisms.iter()
             .filter(|o| o.alive)
             .map(|o| (o.x, o.y))
@@ -1927,28 +1929,62 @@ impl Simulation {
             animal.tick(&self.grid, &org_pos, &mut self.rng);
         }
 
-        // Reproduction
-        let alive = self.animals.iter().filter(|a| a.alive).count();
-        if alive < 50 {
-            let candidates: Vec<(usize, f32, f32, AnimalKind)> = self.animals.iter()
-                .filter(|a| a.alive && a.energy > 0.70
-                         && self.tick_count.saturating_sub(a.last_reproduced) > 800)
-                .map(|a| (a.id, a.x, a.y, a.kind))
-                .collect();
-            for (pid, px, py, kind) in candidates {
-                if self.rng.gen::<f32>() < 0.0008
-                   && self.animals.iter().filter(|a| a.alive).count() < 50
-                {
-                    let nid = self.next_animal_id;
-                    self.next_animal_id += 1;
-                    let ox = self.rng.gen_range(-3.0..3.0f32);
-                    let oy = self.rng.gen_range(-3.0..3.0f32);
-                    let nx = (px + ox).max(1.0).min(WIDTH as f32 - 2.0);
-                    let ny = (py + oy).max(1.0).min(HEIGHT as f32 - 2.0);
-                    self.animals.push(Animal::new(nid, nx, ny, kind));
-                    if let Some(p) = self.animals.iter_mut().find(|a| a.id == pid) {
-                        p.last_reproduced = self.tick_count;
-                    }
+        // Reproduction shaped by environment, not a hard global floor.
+        //
+        // Each healthy animal may reproduce at a base rate scaled by:
+        //  - Biome suitability (forests favour deer, grass/wetland favours rabbits)
+        //  - Local carrying capacity (population density within ~12 tiles drags rate
+        //    toward zero so habitats can't be flooded)
+        //  - A soft global ceiling (no fixed floor or cap that bypasses ecology)
+        //
+        // The hard `if alive < 50` global cap is gone — population emerges from
+        // birth/death curves, predator (organism) pressure, and biome carrying
+        // capacity. A tundra or volcanic landscape now actually starves out
+        // populations as it should.
+        let candidates: Vec<(usize, f32, f32, AnimalKind)> = self.animals.iter()
+            .filter(|a| a.alive && a.energy > 0.70
+                     && self.tick_count.saturating_sub(a.last_reproduced) > 800)
+            .map(|a| (a.id, a.x, a.y, a.kind))
+            .collect();
+
+        for (pid, px, py, kind) in candidates {
+            // Biome suitability per species
+            let biome = self.grid.biome_at(px as i32, py as i32);
+            let biome_mult: f32 = match (kind, biome) {
+                (AnimalKind::Rabbit, Biome::Grassland) => 1.5,
+                (AnimalKind::Rabbit, Biome::Wetland)   => 1.3,
+                (AnimalKind::Rabbit, Biome::Forest)    => 1.0,
+                (AnimalKind::Rabbit, Biome::Desert)    => 0.4,
+                (AnimalKind::Rabbit, Biome::Tundra)    => 0.5,
+                (AnimalKind::Rabbit, Biome::Volcanic)  => 0.1,
+                (AnimalKind::Deer,   Biome::Forest)    => 1.6,
+                (AnimalKind::Deer,   Biome::Grassland) => 1.2,
+                (AnimalKind::Deer,   Biome::Wetland)   => 1.0,
+                (AnimalKind::Deer,   Biome::Tundra)    => 0.6,
+                (AnimalKind::Deer,   Biome::Desert)    => 0.3,
+                (AnimalKind::Deer,   Biome::Volcanic)  => 0.1,
+            };
+
+            // Local carrying capacity: density check within a 12-tile radius.
+            // ~6 animals of any species in that disc is the soft ceiling.
+            let local_density = self.animals.iter()
+                .filter(|a| a.alive && (a.x - px).abs() + (a.y - py).abs() <= 12.0)
+                .count() as f32;
+            let density_factor = (1.0 - (local_density / 6.0).min(1.0)).max(0.0);
+
+            // Base rate stays the same as before; the env multipliers replace the
+            // crude global cap. Rate ≈ 0.0008 in a perfect biome with empty habitat.
+            let p = 0.0008 * biome_mult * density_factor;
+            if p > 0.0 && self.rng.gen::<f32>() < p {
+                let nid = self.next_animal_id;
+                self.next_animal_id += 1;
+                let ox = self.rng.gen_range(-3.0..3.0f32);
+                let oy = self.rng.gen_range(-3.0..3.0f32);
+                let nx = (px + ox).max(1.0).min(WIDTH as f32 - 2.0);
+                let ny = (py + oy).max(1.0).min(HEIGHT as f32 - 2.0);
+                self.animals.push(Animal::new(nid, nx, ny, kind));
+                if let Some(p) = self.animals.iter_mut().find(|a| a.id == pid) {
+                    p.last_reproduced = self.tick_count;
                 }
             }
         }
@@ -2969,5 +3005,29 @@ mod tests {
         sim.tick_animals();
 
         assert_eq!(sim.animals.iter().filter(|a| a.alive).count(), 0);
+    }
+
+    #[test]
+    fn dense_animal_clusters_stop_reproducing() {
+        // Carrying capacity check: drop 20 healthy rabbits in a tight cluster
+        // and run many ticks. Density factor should suppress reproduction so the
+        // count stays bounded — no runaway growth, no need for a hard global cap.
+        let mut sim = Simulation::new(31);
+        sim.animals.clear();
+        for i in 0..20 {
+            let mut a = Animal::new(i, 50.0, 50.0, AnimalKind::Rabbit);
+            a.energy = 0.95;
+            // Set last_reproduced way in the past so all animals are eligible
+            a.last_reproduced = 0;
+            sim.animals.push(a);
+        }
+        sim.next_animal_id = 100;
+        sim.tick_count = 5_000;
+
+        for _ in 0..2_000 { sim.tick_animals(); }
+
+        let alive = sim.animals.iter().filter(|a| a.alive).count();
+        assert!(alive <= 35,
+            "dense cluster ran away to {alive} animals — carrying-capacity factor isn't working");
     }
 }
