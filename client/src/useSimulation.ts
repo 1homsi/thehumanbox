@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Result, ok, err } from 'neverthrow'
 import type { WorldState, GridState, GridWire, OrganismState, AnimalState } from './types'
-import { WS_BASE } from './config'
+import { WS_BASE, API_BASE } from './config'
 import { WorldEnvelopeSchema } from './schemas'
 
-const WS_URL = `${WS_BASE}/ws`
+const WS_URL       = `${WS_BASE}/ws`
+const SNAPSHOT_URL = `${API_BASE}/snapshot`
 
 type ParseError =
   | { kind: 'json';     message: string }
@@ -234,6 +235,29 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
         }
       }
     }
+
+    // Race the snapshot HTTP fetch against the WebSocket. /snapshot is
+    // gzipped (~200 KB) and arrives in a couple of seconds even on slow
+    // links, while the WS doesn't send anything until the next tick. The
+    // first frame the client paints comes from whichever wins.
+    //
+    // If /snapshot 503s (server just started, cache empty), the WS will
+    // catch up within ~3 s when the tick loop builds the cache.
+    fetch(SNAPSHOT_URL, { cache: 'no-store' })
+      .then(r => {
+        if (!r.ok) return null
+        return r.text()
+      })
+      .then(text => {
+        if (destroyed || text == null) return
+        // Don't clobber a fresher message that already came over WS.
+        if (latestMsg.current != null) return
+        latestMsg.current = text
+        if (rafPending.current === null) {
+          rafPending.current = requestAnimationFrame(flushUpdate)
+        }
+      })
+      .catch(() => { /* WS will deliver the world even if HTTP fails */ })
 
     connect()
     return () => {
