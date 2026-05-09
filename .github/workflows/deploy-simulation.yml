@@ -65,35 +65,66 @@ jobs:
           echo "Command id: $CMD_ID"
           echo "cmd_id=$CMD_ID" >> "$GITHUB_OUTPUT"
 
-      - name: Wait for SSM command to finish
+      - name: Wait for SSM command + stream output
         env:
           INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
           CMD_ID:      ${{ steps.send.outputs.cmd_id }}
         run: |
           set -euo pipefail
+
+          # Tail SSM's StandardOutputContent / StandardErrorContent live.
+          # SSM updates these fields while the command is in flight (capped at
+          # 24 KB each), so we poll, print only the new bytes since last poll,
+          # and exit on a terminal status.
+          last_out_len=0
+          last_err_len=0
+          last_status=""
+
+          # ~30 minutes of headroom (240 * 8 s). cargo build --release on the
+          # c7g cold takes ~10 min; warm takes ~30 s.
           for _ in $(seq 1 240); do
-            STATUS=$(aws ssm get-command-invocation \
+            JSON=$(aws ssm get-command-invocation \
               --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" \
-              --query 'Status' --output text 2>/dev/null || echo "Pending")
+              --output json 2>/dev/null || echo '{}')
+
+            STATUS=$(echo "$JSON" | jq -r '.Status        // "Pending"')
+            OUT=$(   echo "$JSON" | jq -r '.StandardOutputContent // ""')
+            ERR=$(   echo "$JSON" | jq -r '.StandardErrorContent  // ""')
+
+            # Print new stdout chunk (if any).
+            cur_out_len=${#OUT}
+            if [ "$cur_out_len" -gt "$last_out_len" ]; then
+              printf '%s' "${OUT:$last_out_len}"
+              last_out_len=$cur_out_len
+            fi
+            # Print new stderr chunk (cargo emits "Compiling ..." on stderr).
+            cur_err_len=${#ERR}
+            if [ "$cur_err_len" -gt "$last_err_len" ]; then
+              printf '%s' "${ERR:$last_err_len}" >&2
+              last_err_len=$cur_err_len
+            fi
+
+            # Show status changes only — avoids "Pending - waiting" spam.
+            if [ "$STATUS" != "$last_status" ]; then
+              echo "::group::SSM status: $STATUS"
+              echo "::endgroup::"
+              last_status=$STATUS
+            fi
+
             case "$STATUS" in
               Success)
-                echo "::notice::SSM command succeeded"
-                break
+                echo "::notice::SSM deploy succeeded"
+                exit 0
                 ;;
               Failed|TimedOut|Cancelled|Cancelling|Undeliverable|Terminated)
-                echo "::error::SSM command finished with status: $STATUS"
-                aws ssm get-command-invocation \
-                  --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" \
-                  --query '{status:Status, stdout:StandardOutputContent, stderr:StandardErrorContent}' \
-                  --output json
+                echo "::error::SSM deploy finished with status: $STATUS"
                 exit 1
                 ;;
               *)
-                echo "Status: $STATUS - waiting..."
-                sleep 5
+                sleep 8
                 ;;
             esac
           done
-          aws ssm get-command-invocation \
-            --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" \
-            --query 'StandardOutputContent' --output text
+
+          echo "::error::Timed out after 30 minutes waiting for SSM command"
+          exit 1
