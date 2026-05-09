@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import type { OrganismState } from '../types'
 import { lineageColor } from '../constants'
 import { Tooltip } from './Tooltip'
@@ -76,7 +77,7 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
         {isSick && <span className="org-sick-badge">sick</span>}
         {carrying && <Tooltip tip="Carrying wood — organism is transporting material that slowly builds shelter structures wherever they rest"><span className="org-carrying-badge" style={{ cursor: 'default' }}>🪵 wood</span></Tooltip>}
         <button
-          className={`follow-btn${following ? ' active' : ''}`}
+          className={clsx('follow-btn', following && 'active')}
           onClick={() => onFollow(following ? null : org.id)}
           title="Follow this organism"
         >{following ? '⊙ following' : '⊙ follow'}</button>

@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import clsx from 'clsx'
 import type { OrganismState, ConversationEntry } from '../types'
 import { lineageColor } from '../constants'
 import { useOrgDetail } from '../useOrgDetail'
@@ -58,7 +59,7 @@ const ConvoBlock = memo(function ConvoBlock({ entry, selfOrg, allOrgs }: {
           const spColor = isSelf ? selfColor : pColor
           const meaning = entry.meanings?.[i]
           return (
-            <div key={i} className={`cv-line ${isSelf ? 'cv-line-self' : 'cv-line-other'}`}>
+            <div key={i} className={clsx('cv-line', isSelf ? 'cv-line-self' : 'cv-line-other')}>
               <div className="cv-bubble-wrap">
                 <span className="cv-speaker" style={{ color: spColor }}>{speaker}</span>
                 <div className="cv-bubble" style={{ borderColor: spColor + '55' }}>
