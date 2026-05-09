@@ -52,11 +52,111 @@ const BIOME_RGBA: Record<number, [number,number,number,number]> =
 
 // Module-level reusable ImageData buffer — allocate once, write every frame
 let _imgBuf: ImageData | null = null
+let _baseCanvas: HTMLCanvasElement | null = null
+let _baseKey: {
+  width: number
+  height: number
+  origin_x: number
+  origin_y: number
+  tiles: number[][]
+  biomes?: number[][]
+  depth_map?: number[][]
+} | null = null
 function getReuseImgData(w: number, h: number): ImageData {
   if (!_imgBuf || _imgBuf.width !== w || _imgBuf.height !== h) {
     _imgBuf = new ImageData(w, h)
   }
   return _imgBuf
+}
+
+function baseLayerMatches(
+  key: typeof _baseKey,
+  width: number,
+  height: number,
+  origin_x: number,
+  origin_y: number,
+  tiles: number[][],
+  biomes?: number[][],
+  depth_map?: number[][],
+) {
+  return !!key
+    && key.width === width
+    && key.height === height
+    && key.origin_x === origin_x
+    && key.origin_y === origin_y
+    && key.tiles === tiles
+    && key.biomes === biomes
+    && key.depth_map === depth_map
+}
+
+function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
+  const { width, height, tiles, biomes } = world.grid
+  if (!tiles || tiles.length < height) return null
+  const depth_map = world.grid.depth_map as number[][] | undefined
+  const origin_x = world.grid.origin_x ?? 0
+  const origin_y = world.grid.origin_y ?? 0
+  const W = width * TILE
+  const H = height * TILE
+
+  if (_baseCanvas && baseLayerMatches(_baseKey, width, height, origin_x, origin_y, tiles, biomes, depth_map)) {
+    return _baseCanvas
+  }
+
+  const canvas = _baseCanvas && _baseCanvas.width === W && _baseCanvas.height === H
+    ? _baseCanvas
+    : document.createElement('canvas')
+  canvas.width = W
+  canvas.height = H
+
+  const imgData = getReuseImgData(W, H)
+  const d = imgData.data
+  for (let row = 0; row < height; row++) {
+    const tileRow  = tiles[row]
+    const biomeRow = biomes?.[row]
+    const depthRow = depth_map?.[row]
+    for (let col = 0; col < width; col++) {
+      const tid = tileRow?.[col] ?? 0
+      const rgb = TILE_RGB[tid] ?? TILE_RGB[0]
+      let [r, g, b] = rgb
+
+      if (tid === 2 && depthRow) {
+        const dv = depthRow[col]
+        if (dv < 255) {
+          const t_ = 1 - dv / 200
+          r = (100 - t_ * 28) | 0
+          g = (170 - t_ * 42) | 0
+          b = (220 - t_ * 30) | 0
+        }
+      }
+
+      if (tid !== 2 && tid !== 5 && tid !== 12) {
+        const bm = biomeRow?.[col] ?? 0
+        const bo = BIOME_RGBA[bm]
+        if (bo) {
+          const a = bo[3]
+          if (a > 0) {
+            const ia = 1 - a
+            r = (r * ia + bo[0] * a) | 0
+            g = (g * ia + bo[1] * a) | 0
+            b = (b * ia + bo[2] * a) | 0
+          }
+        }
+      }
+
+      const bx = col * TILE, by = row * TILE
+      for (let ty = 0; ty < TILE; ty++) {
+        let pi = ((by + ty) * W + bx) * 4
+        for (let tx = 0; tx < TILE; tx++, pi += 4) {
+          d[pi] = r; d[pi+1] = g; d[pi+2] = b; d[pi+3] = 255
+        }
+      }
+    }
+  }
+
+  canvas.getContext('2d')!.putImageData(imgData, 0, 0)
+  _baseCanvas = canvas
+  _baseKey = { width, height, origin_x, origin_y, tiles, biomes, depth_map }
+  return canvas
 }
 
 const THOUGHT_COLORS: Record<string, string> = {
@@ -168,74 +268,20 @@ function drawWorldOnCanvas(
   focus: string,
   viewFlags: ViewFlags,
 ) {
-  const { width, height, tiles, fire_intensity, biomes, structure } = world.grid
+  const { width, height, tiles, fire_intensity, structure } = world.grid
   // Tiles arrive on tick 0 and every 5th tick — skip this frame if not yet received
   if (!tiles || tiles.length < height) return
-  const depthGrid = world.grid.depth_map as number[][] | undefined
   const ox = world.grid.origin_x ?? 0
   const oy = world.grid.origin_y ?? 0
-  const animals = world.animals ?? []
+  const organisms = world.viewport_organisms ?? world.organisms ?? []
+  const animals = world.viewport_animals ?? world.animals ?? []
   const W = width * TILE
   const H = height * TILE
   const t = Date.now()
 
-  // ── Pass 1: Pixel-buffer base layer (tiles + biome blend, zero canvas API) ──
-  // Replaces 360k fillRect calls with a single putImageData. The ImageData
-  // buffer is allocated once at module level and reused every frame.
-  {
-    const imgData = getReuseImgData(W, H)
-    const d = imgData.data
-    for (let row = 0; row < height; row++) {
-      const tileRow  = tiles[row]
-      const biomeRow = biomes?.[row]
-      const depthRow = depthGrid?.[row]
-      for (let col = 0; col < width; col++) {
-        const tid = tileRow?.[col] ?? 0
-        const rgb = TILE_RGB[tid] ?? TILE_RGB[0]
-        let [r, g, b] = rgb
-
-        // Water depth shading: 4-tier ocean depth based on depth_map
-        // depth_map value: 0=deepest ocean, 200=shallowest coast, 255=land sentinel
-        if (tid === 2 && depthRow) {
-          const dv = depthRow[col]
-          if (dv < 255) {
-            // t = 0 (coast/shallow) → 1 (deep ocean)
-            const t_ = 1 - dv / 200
-            // Shallow coastal blue → open ocean blue (subtle gradient, no dark corners)
-            r = (100 - t_ * 28) | 0  // 100 (coast) → 72 (deep)
-            g = (170 - t_ * 42) | 0  // 170 → 128
-            b = (220 - t_ * 30) | 0  // 220 → 190
-          }
-        }
-
-        // Biome overlay — alpha-blend for grass-family tiles only.
-        // Skip water (2), rock (5), snow (12) — they have their own look.
-        if (tid !== 2 && tid !== 5 && tid !== 12) {
-          const bm = biomeRow?.[col] ?? 0
-          const bo = BIOME_RGBA[bm]
-          if (bo) {
-            const a = bo[3]
-            if (a > 0) {
-              const ia = 1 - a
-              r = (r * ia + bo[0] * a) | 0
-              g = (g * ia + bo[1] * a) | 0
-              b = (b * ia + bo[2] * a) | 0
-            }
-          }
-        }
-
-        // Write TILE×TILE block
-        const bx = col * TILE, by = row * TILE
-        for (let ty = 0; ty < TILE; ty++) {
-          let pi = ((by + ty) * W + bx) * 4
-          for (let tx = 0; tx < TILE; tx++, pi += 4) {
-            d[pi] = r; d[pi+1] = g; d[pi+2] = b; d[pi+3] = 255
-          }
-        }
-      }
-    }
-    ctx.putImageData(imgData, 0, 0)
-  }
+  const base = getBaseLayerCanvas(world)
+  if (!base) return
+  ctx.drawImage(base, 0, 0)
 
   // Season sky tint (thin transparent pass over the already-drawn tiles)
   const seasonTints: Record<string, string> = {
@@ -354,7 +400,7 @@ function drawWorldOnCanvas(
   if (overlay === 'density') {
     // Population density — compute from organism positions (offset to viewport coords)
     const grid2d: number[][] = Array.from({ length: height }, () => new Array(width).fill(0))
-    for (const org of world.organisms) {
+    for (const org of organisms) {
       if (!org.alive) continue
       const tx2 = Math.round(org.x - ox), ty2 = Math.round(org.y - oy)
       const R = 4
@@ -383,7 +429,7 @@ function drawWorldOnCanvas(
 
   // Territory Voronoi overlay — each coarse block colored by nearest organism's lineage
   // Only colors land tiles within MAX_DIST tiles of any organism — ocean stays uncolored
-  const liveOrgs = world.organisms.filter(o => o.alive && o.lineage_id)
+  const liveOrgs = organisms.filter(o => o.alive && o.lineage_id)
   if (viewFlags.territory && liveOrgs.length > 0) {
     const BLOCK = 4
     const MAX_DIST_SQ = 40 * 40
@@ -521,7 +567,7 @@ function drawWorldOnCanvas(
   }
 
   // Draw organisms (translate world coords to viewport canvas coords)
-  for (const org of world.organisms) {
+  for (const org of organisms) {
     if (!org.alive) continue
     const px = (org.x - ox) * TILE + TILE / 2
     const py = (org.y - oy) * TILE + TILE / 2
@@ -695,6 +741,8 @@ function WorldTextureUpdater({ world, interp, selectedOrgId, overlay, focus, vie
       offscreen.current    = null
       initialised.current  = false
       _imgBuf = null  // release module-level pixel buffer
+      _baseCanvas = null
+      _baseKey = null
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -751,21 +799,23 @@ function WorldTextureUpdater({ world, interp, selectedOrgId, overlay, focus, vie
 
       // Build an interpolated organism list. When prev exists and the org was
       // alive in both snapshots, lerp x/y. Births/deaths use the current pos as-is.
-      let renderOrgs = w.organisms
+      let renderOrgs = w.viewport_organisms ?? w.organisms
       if (prev && t < 1 && cur === w) {
-        const prevById = new Map<string, typeof prev.organisms[number]>()
-        for (const o of prev.organisms) prevById.set(o.id, o)
-        renderOrgs = w.organisms.map(o => {
+        const prevOrgs = prev.viewport_organisms ?? prev.organisms
+        const prevById = new Map<string, typeof prevOrgs[number]>()
+        for (const o of prevOrgs) prevById.set(o.id, o)
+        renderOrgs = renderOrgs.map(o => {
           const p = prevById.get(o.id)
           if (!p || !p.alive || !o.alive) return o
           return { ...o, x: p.x + (o.x - p.x) * t, y: p.y + (o.y - p.y) * t }
         })
       }
-      let renderAnimals = w.animals
+      let renderAnimals = w.viewport_animals ?? w.animals
       if (prev && t < 1 && cur === w) {
-        const prevById = new Map<number, typeof prev.animals[number]>()
-        for (const a of prev.animals) prevById.set(a.id, a)
-        renderAnimals = w.animals.map(a => {
+        const prevAnimals = prev.viewport_animals ?? prev.animals
+        const prevById = new Map<number, typeof prevAnimals[number]>()
+        for (const a of prevAnimals) prevById.set(a.id, a)
+        renderAnimals = renderAnimals.map(a => {
           const p = prevById.get(a.id)
           if (!p) return a
           return { ...a, x: p.x + (a.x - p.x) * t, y: p.y + (a.y - p.y) * t }
@@ -780,8 +830,8 @@ function WorldTextureUpdater({ world, interp, selectedOrgId, overlay, focus, vie
       const enrichedWorld: WorldState = {
         ...w,
         grid:      enrichedGrid,
-        organisms: renderOrgs,
-        animals:   renderAnimals,
+        viewport_organisms: renderOrgs,
+        viewport_animals:   renderAnimals,
       }
 
       const ctx = offscreen.current.getContext('2d')!
@@ -987,7 +1037,7 @@ export function WorldView({ world, interp, selectedOrgId, followOrgId, onOrgSele
 
     let nearest: string | null = null
     let nearestDist = 3.0
-    for (const org of world.organisms) {
+    for (const org of (world.viewport_organisms ?? world.organisms)) {
       if (!org.alive) continue
       const d = Math.abs(org.x - worldX) + Math.abs(org.y - worldY)
       if (d < nearestDist) { nearestDist = d; nearest = org.id }

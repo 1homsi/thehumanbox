@@ -99,7 +99,9 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
             ...parsed,
             grid,
             organisms: [...organismCache.current.values()],
+            viewport_organisms: parsed.organisms,
             animals: [...animalCache.current.values()],
+            viewport_animals: parsed.animals,
           }
 
           // Roll the interpolation window forward. Renderer lerps organism

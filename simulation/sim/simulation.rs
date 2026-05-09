@@ -2450,7 +2450,7 @@ impl Simulation {
         let grid_json = self.grid.to_json_viewport(vp_cx, vp_cy,
             crate::world::grid::VP_W, crate::world::grid::VP_H,
             include_tiles, include_static);
-        let include_all_entities = force_full || self.tick_count % 30 == 0 || self.tick_count <= 1;
+        let include_all_entities = force_full || self.tick_count % 120 == 0 || self.tick_count <= 1;
         let left = vp_cx - crate::world::grid::VP_W as i32 / 2 - 8;
         let right = vp_cx + crate::world::grid::VP_W as i32 / 2 + 8;
         let top = vp_cy - crate::world::grid::VP_H as i32 / 2 - 8;
@@ -2460,12 +2460,21 @@ impl Simulation {
             let y = y as i32;
             x >= left && x <= right && y >= top && y <= bottom
         };
-        // Static identity / traits / vocabulary etc. only need to land on full snapshots.
+        // Static identity / traits / vocabulary etc. only need to land on full entity snapshots.
+        // Full entity snapshots are much rarer than grid-static snapshots so EC2 deployments
+        // don't spike the socket with every organism and animal several times per second.
         // The frontend caches them and merges hot updates into the existing entry, so
         // skipping cold fields per tick cuts payload roughly 60% at 300 organisms.
+        //
+        // Exception: newly-born organisms (age < 60 ticks) always include cold fields.
+        // Otherwise a baby born between full snapshots arrives at the client with no
+        // lineage_id, name, traits, etc., and the renderer can't draw them.
         let organisms_json = self.organisms.iter()
             .filter(|o| o.alive && (include_all_entities || in_view(o.x, o.y)))
-            .map(|o| serde_json::to_value(o.to_json_with(include_all_entities)).unwrap())
+            .map(|o| {
+                let include_cold = include_all_entities || o.age < 60;
+                serde_json::to_value(o.to_json_with(include_cold)).unwrap()
+            })
             .collect::<Vec<_>>();
         let animals_json = self.animals.iter()
             .filter(|a| include_all_entities || in_view(a.x, a.y))
