@@ -25,8 +25,33 @@ type Tx = broadcast::Sender<String>;
 
 const SAVE_PATH:  &str = "world.save";
 const DAY_LENGTH: u64  = 600;
-const GROQ_MODEL: &str = "llama-3.1-8b-instant";
-const GROQ_URL:   &str = "https://api.groq.com/openai/v1/chat/completions";
+
+// LLM provider config — read from env at startup with sensible defaults that
+// preserve the original Groq behaviour. Override any of these to point at a
+// different OpenAI-compatible endpoint (Ollama, llama.cpp, Together AI, Modal).
+//
+//   LLM_URL    — chat-completions endpoint (default: Groq)
+//   LLM_MODEL  — model name to send (default: llama-3.1-8b-instant)
+//   LLM_KEY    — bearer token (defaults to $GROQ_API_KEY for back-compat)
+//
+// Example overrides:
+//   Local Ollama:   LLM_URL=http://localhost:11434/v1/chat/completions
+//                   LLM_MODEL=gemma3:270m
+//                   LLM_KEY=ignored
+//   Local llama.cpp: LLM_URL=http://localhost:8080/v1/chat/completions
+//                    LLM_MODEL=gemma3-270m
+fn env_or(key: &str, default: &str) -> String {
+    std::env::var(key).unwrap_or_else(|_| default.to_string())
+}
+fn llm_key_default() -> String {
+    std::env::var("LLM_KEY").or_else(|_| std::env::var("GROQ_API_KEY")).unwrap_or_default()
+}
+
+static LLM_URL:   std::sync::LazyLock<String> = std::sync::LazyLock::new(||
+    env_or("LLM_URL", "https://api.groq.com/openai/v1/chat/completions"));
+static LLM_MODEL: std::sync::LazyLock<String> = std::sync::LazyLock::new(||
+    env_or("LLM_MODEL", "llama-3.1-8b-instant"));
+static LLM_KEY:   std::sync::LazyLock<String> = std::sync::LazyLock::new(llm_key_default);
 
 fn tick_ms() -> u64 {
     std::env::var("TICK_MS").ok()
@@ -74,16 +99,18 @@ struct GroqResponse {
     choices: Vec<GroqChoice>,
 }
 
-fn groq_body(prompt: String, max_tokens: u32) -> GroqRequest {
+/// Build an OpenAI-compatible chat-completions request body.
+/// `model` is per-call so we can have separate narration and agent lanes later.
+fn llm_body(prompt: String, max_tokens: u32, model: &str) -> GroqRequest {
     GroqRequest {
-        model:       GROQ_MODEL.to_string(),
+        model:       model.to_string(),
         messages:    vec![GroqMessage { role: "user".to_string(), content: prompt }],
         max_tokens,
         temperature: 0.7,
     }
 }
 
-fn groq_extract(resp: GroqResponse) -> String {
+fn llm_extract(resp: GroqResponse) -> String {
     resp.choices.into_iter().next()
         .map(|c| c.message.content)
         .unwrap_or_default()
@@ -118,9 +145,10 @@ struct ThinkResult {
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
-    let api_key = std::env::var("GROQ_API_KEY").unwrap_or_default();
-    if api_key.is_empty() {
-        println!("[warn] GROQ_API_KEY not set — LLM calls will fail");
+    // Resolved once via LLM_KEY (preferred) → GROQ_API_KEY (legacy) → empty.
+    let api_key = (*LLM_KEY).clone();
+    if api_key.is_empty() && !LLM_URL.contains("localhost") && !LLM_URL.contains("127.0.0.1") {
+        println!("[warn] no LLM_KEY / GROQ_API_KEY set — remote LLM calls will fail");
     }
 
     // Fresh worlds get a truly random seed from system time + OS entropy.
@@ -372,8 +400,8 @@ async fn main() {
         .with_state(state);
 
     let addr = "0.0.0.0:8000";
-    println!("simulation-rs listening on {}  tick={}ms  model={}",
-        addr, *TICK_MS, GROQ_MODEL);
+    println!("simulation-rs listening on {}  tick={}ms  llm={} ({})",
+        addr, *TICK_MS, *LLM_MODEL, *LLM_URL);
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
@@ -444,15 +472,15 @@ async fn narration_worker(
         );
 
         println!("[narrate] queuing story for {} — {} events", req.org_name, req.life_log.len());
-        match client.post(GROQ_URL)
+        match client.post(&**LLM_URL)
             .header("Authorization", format!("Bearer {}", api_key))
-            .json(&groq_body(prompt, 80))
+            .json(&llm_body(prompt, 80, &LLM_MODEL))
             .send().await
         {
             Ok(resp) => {
                 match resp.json::<GroqResponse>().await {
                     Ok(data) => {
-                        let story = strip_thinking(&groq_extract(data));
+                        let story = strip_thinking(&llm_extract(data));
                         if !story.is_empty() {
                             println!("[narrate] {} → {}", req.org_name, story);
                             let mut store = stories.lock().await;
@@ -788,33 +816,33 @@ async fn think_worker(
             _ => continue,
         };
 
-        let response = match client.post(GROQ_URL)
+        let response = match client.post(&**LLM_URL)
             .header("Authorization", format!("Bearer {}", api_key))
-            .json(&groq_body(prompt, 60))
+            .json(&llm_body(prompt, 60, &LLM_MODEL))
             .send().await
         {
             Ok(resp) => {
                 let status = resp.status();
                 if status == 429 || status.is_server_error() {
-                    // Rate-limited or Groq-side error — queue for retry
+                    // Rate-limited or upstream error — queue for retry
                     if attempt < 3 && retry_queue.len() < 20 {
-                        println!("[think] Groq {} — queuing retry {}/3 for {}",
+                        println!("[think] llm {} — queuing retry {}/3 for {}",
                             status, attempt + 1, trigger.org_name);
                         retry_queue.push_back((trigger, attempt + 1));
                     } else {
-                        println!("[think] Groq {} — giving up on {} after {} attempts",
+                        println!("[think] llm {} — giving up on {} after {} attempts",
                             status, trigger.org_name, attempt);
                     }
                     continue;
                 }
                 resp.json::<GroqResponse>().await
-                    .map(|r| strip_thinking(&groq_extract(r)).to_lowercase())
+                    .map(|r| strip_thinking(&llm_extract(r)).to_lowercase())
                     .unwrap_or_default()
             }
             Err(e) => {
                 // Network / timeout error — queue for retry
                 if attempt < 3 && retry_queue.len() < 20 {
-                    println!("[think] Groq network error (retry {}/3 for {}): {}",
+                    println!("[think] llm network error (retry {}/3 for {}): {}",
                         attempt + 1, trigger.org_name, e);
                     retry_queue.push_back((trigger, attempt + 1));
                 } else {
