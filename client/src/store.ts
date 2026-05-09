@@ -1,0 +1,126 @@
+import { create } from 'zustand'
+
+/**
+ * Global UI state.
+ *
+ * Anything that's "what's the user looking at right now" lives here so
+ * components can subscribe to specific slices without prop-drilling and
+ * without re-rendering when an unrelated slice changes.
+ *
+ * What does NOT live here:
+ *  - Live simulation data (organisms, world state) — those flow via the
+ *    useSimulation hook, kept out of zustand so the throttled React
+ *    state machinery there stays simple.
+ *  - Server-fetched data (organism details, etc.) — handled by
+ *    TanStack Query.
+ */
+
+export interface ViewFlags {
+  territory: boolean
+  names:     boolean
+  thoughts:  boolean
+  animals:   boolean
+  grid:      boolean
+}
+
+interface UIState {
+  // Selection & camera
+  selectedOrgId: string | null
+  followOrgId:   string | null
+
+  // Modals — one open at a time is the common case but we keep flags
+  // separate so a future "modal stack" doesn't need a refactor.
+  showLanguages:  boolean
+  showChronicles: boolean
+  showFamilyTree: boolean
+  showOrgSearch:  boolean
+  showStats:      boolean
+  convoOrgId:     string | null
+
+  // Layout panels
+  panelOpen: boolean
+  leftOpen:  boolean
+  showMore:  boolean
+  showAllLineages: boolean
+
+  // Map view
+  overlay:   string | null
+  focus:     string
+  viewFlags: ViewFlags
+
+  // Misc
+  isFullscreen: boolean
+
+  // Actions
+  selectOrg: (id: string | null) => void
+  followOrg: (id: string | null) => void
+
+  openLanguages:  () => void
+  openChronicles: () => void
+  openFamilyTree: () => void
+  openOrgSearch:  () => void
+  openStats:      () => void
+  openConvo:      (id: string) => void
+  closeAllModals: () => void
+
+  togglePanel:    () => void
+  toggleLeft:     () => void
+  toggleMore:     () => void
+  toggleAllLineages: () => void
+  setFullscreen:  (b: boolean) => void
+
+  setOverlay:   (o: string | null) => void
+  setFocus:     (f: string) => void
+  setViewFlag:  (k: keyof ViewFlags, v: boolean) => void
+}
+
+export const useUIStore = create<UIState>((set) => ({
+  selectedOrgId: null,
+  followOrgId:   null,
+
+  showLanguages:  false,
+  showChronicles: false,
+  showFamilyTree: false,
+  showOrgSearch:  false,
+  showStats:      false,
+  convoOrgId:     null,
+
+  panelOpen: false,
+  leftOpen:  true,
+  showMore:  false,
+  showAllLineages: false,
+
+  overlay:   null,
+  focus:     'all',
+  viewFlags: { territory: false, names: false, thoughts: false, animals: true, grid: false },
+
+  isFullscreen: false,
+
+  selectOrg: (id) => set({ selectedOrgId: id }),
+  followOrg: (id) => set({ followOrgId: id }),
+
+  openLanguages:  () => set({ showLanguages:  true }),
+  openChronicles: () => set({ showChronicles: true }),
+  openFamilyTree: () => set({ showFamilyTree: true }),
+  openOrgSearch:  () => set({ showOrgSearch:  true }),
+  openStats:      () => set({ showStats:      true }),
+  openConvo:      (id) => set({ convoOrgId: id }),
+  closeAllModals: () => set({
+    showLanguages:  false,
+    showChronicles: false,
+    showFamilyTree: false,
+    showOrgSearch:  false,
+    showStats:      false,
+    convoOrgId:     null,
+  }),
+
+  togglePanel:       () => set((s) => ({ panelOpen: !s.panelOpen })),
+  toggleLeft:        () => set((s) => ({ leftOpen:  !s.leftOpen })),
+  toggleMore:        () => set((s) => ({ showMore:  !s.showMore })),
+  toggleAllLineages: () => set((s) => ({ showAllLineages: !s.showAllLineages })),
+  setFullscreen:     (b) => set({ isFullscreen: b }),
+
+  setOverlay:    (o) => set({ overlay: o }),
+  setFocus:      (f) => set({ focus: f }),
+  setViewFlag:   (k, v) => set((s) => ({ viewFlags: { ...s.viewFlags, [k]: v } })),
+}))

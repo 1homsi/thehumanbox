@@ -1,8 +1,39 @@
 import { useEffect, useRef, useState } from 'react'
+import { Result, ok, err } from 'neverthrow'
 import type { WorldState, GridState, GridWire, OrganismState, AnimalState } from './types'
 import { WS_BASE } from './config'
+import { WorldEnvelopeSchema } from './schemas'
 
 const WS_URL = `${WS_BASE}/ws`
+
+type ParseError =
+  | { kind: 'json';     message: string }
+  | { kind: 'schema';   issues: string[] }
+
+/**
+ * Parse + validate one WS frame. Returns a Result so the caller can decide
+ * whether to log/skip/reconnect on bad data instead of swallowing it via
+ * try/catch (the previous behaviour silently dropped corrupt frames).
+ */
+function parseWorldFrame(raw: string): Result<Omit<WorldState, 'grid'> & { grid: GridWire }, ParseError> {
+  let json: unknown
+  try {
+    json = JSON.parse(raw)
+  } catch (e) {
+    return err({ kind: 'json', message: e instanceof Error ? e.message : String(e) })
+  }
+  const parsed = WorldEnvelopeSchema.safeParse(json)
+  if (!parsed.success) {
+    return err({
+      kind:   'schema',
+      issues: parsed.error.issues.slice(0, 3).map(i => `${i.path.join('.')}: ${i.message}`),
+    })
+  }
+  // Schema only validates a subset of fields (organisms / animals / ticks);
+  // the rest pass through via .passthrough(). Cast back to the WorldState
+  // shape that downstream code expects.
+  return ok(json as Omit<WorldState, 'grid'> & { grid: GridWire })
+}
 
 /** Rebuild dense fire_intensity and structure 2D arrays from sparse wire format. */
 function applyGridWire(wire: GridWire, cache: GridState | null): GridState {
@@ -79,8 +110,16 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
     function flushUpdate() {
       rafPending.current = null
       if (latestMsg.current) {
+        const parseResult = parseWorldFrame(latestMsg.current)
+        if (parseResult.isErr()) {
+          const e = parseResult.error
+          if (e.kind === 'json') console.warn('[ws] bad json:', e.message)
+          else                    console.warn('[ws] schema mismatch:', e.issues)
+          latestMsg.current = null
+          return
+        }
         try {
-          const parsed = JSON.parse(latestMsg.current) as Omit<WorldState, 'grid'> & { grid: GridWire }
+          const parsed = parseResult.value
           const grid   = applyGridWire(parsed.grid, gridCache.current)
           gridCache.current = grid
 
