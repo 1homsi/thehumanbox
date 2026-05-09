@@ -56,7 +56,7 @@ static LLM_KEY:   std::sync::LazyLock<String> = std::sync::LazyLock::new(llm_key
 fn tick_ms() -> u64 {
     std::env::var("TICK_MS").ok()
         .and_then(|v| v.parse().ok())
-        .unwrap_or(300)
+        .unwrap_or(100)
 }
 
 // Evaluated once at startup — see tick_ms()
