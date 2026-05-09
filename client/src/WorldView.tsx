@@ -762,14 +762,19 @@ function WorldTextureUpdater({ world, interp, selectedOrgId, overlay, focus, vie
   // Continuous RAF render loop.
   //
   // Replaces the old "redraw whenever `world` prop changes" pattern. The loop
-  // runs at the browser's refresh rate (~60 fps) and interpolates organism
-  // positions between the previous and current WS snapshots. When the network
-  // jitters and a snapshot lands 1 sec late, organisms keep gliding smoothly
-  // toward their last-known target instead of freezing and teleporting.
+  // runs at the browser's refresh rate (~60 fps) DURING interpolation between
+  // the previous and current WS snapshots. Once interpolation completes (t=1)
+  // and no new snapshot has arrived, we stop redrawing — there's nothing new
+  // on screen and another texSubImage2D would just re-upload the same 11.5 MB
+  // texture for no reason.
   useEffect(() => {
     if (!interp) return
     let raf = 0
     let stopped = false
+    // Track what we last drew so we can skip identical re-draws
+    let lastDrawnAt: number = 0
+    let lastDrawnT:  number = -1
+    let lastDrawnUI: string = ''
 
     const tick = () => {
       if (stopped) return
@@ -796,6 +801,15 @@ function WorldTextureUpdater({ world, interp, selectedOrgId, overlay, focus, vie
       const t = (cur && prev && interval > 0)
         ? Math.min(1, Math.max(0, (performance.now() - curAt) / interval))
         : 1
+
+      // ── Skip-when-settled ──────────────────────────────────────────────
+      // If interpolation has finished AND no new snapshot has arrived since
+      // the last draw AND no UI state changed (selected org, overlay, etc),
+      // there's literally nothing new to draw. Bail out — the previously
+      // uploaded GPU texture is still on screen and identical.
+      const uiKey = `${selectedOrgIdRef.current ?? ''}|${overlayRef.current ?? ''}|${focusRef.current}|${viewFlagsRef.current.territory ? 't':''}${viewFlagsRef.current.names ? 'n':''}${viewFlagsRef.current.thoughts ? 'h':''}${viewFlagsRef.current.animals ? 'a':''}${viewFlagsRef.current.grid ? 'g':''}`
+      const settled = t >= 1 && lastDrawnT >= 1 && curAt === lastDrawnAt && uiKey === lastDrawnUI
+      if (settled) return
 
       // Build an interpolated organism list. When prev exists and the org was
       // alive in both snapshots, lerp x/y. Births/deaths use the current pos as-is.
@@ -841,6 +855,10 @@ function WorldTextureUpdater({ world, interp, selectedOrgId, overlay, focus, vie
       gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, offscreen.current)
       rs.textures.set(texKeyRef.current, glTexRef.current)
       if (rs.touchTexture) rs.touchTexture(texKeyRef.current)
+
+      lastDrawnAt = curAt
+      lastDrawnT  = t
+      lastDrawnUI = uiKey
 
       if (!hasDrawn.current) { hasDrawn.current = true; onFirstDraw() }
     }
