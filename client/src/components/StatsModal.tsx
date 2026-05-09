@@ -11,9 +11,13 @@ interface Props {
 }
 
 function PopChart({ history }: { history: [number, number][] }) {
-  const W = 520
-  const H = 120
-  const PAD = { t: 10, r: 12, b: 28, l: 32 }
+  // viewBox-based chart — scales to whatever container width the modal
+  // gives it. The internal coordinate system stays at W=1000 H=240 so
+  // labels and stroke widths render at predictable sizes; CSS sets the
+  // SVG to width: 100% so the actual pixels follow the viewport.
+  const W = 1000
+  const H = 240
+  const PAD = { t: 14, r: 16, b: 36, l: 44 }
 
   const points = useMemo(() => {
     if (history.length < 2) return null
@@ -43,34 +47,34 @@ function PopChart({ history }: { history: [number, number][] }) {
   const yTicks = [0, Math.floor(maxPop / 2), maxPop]
 
   return (
-    <svg width={W} height={H} style={{ display: 'block', overflow: 'visible' }}>
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" style={{ display: 'block', width: '100%', height: 'auto', overflow: 'visible' }}>
       {/* Grid lines */}
       {yTicks.map(v => {
         const y = PAD.t + (H - PAD.t - PAD.b) - (v / maxPop) * (H - PAD.t - PAD.b)
         return (
           <g key={v}>
             <line x1={PAD.l} y1={y} x2={W - PAD.r} y2={y}
-              stroke="#222" strokeWidth={0.5} />
-            <text x={PAD.l - 4} y={y + 3} textAnchor="end" fill="#444"
-              fontSize={8} fontFamily="monospace">{v}</text>
+              stroke="#222" strokeWidth={1} />
+            <text x={PAD.l - 6} y={y + 4} textAnchor="end" fill="#666"
+              fontSize={11} fontFamily="monospace">{v}</text>
           </g>
         )
       })}
       {/* Area fill */}
-      <path d={area} fill="rgba(100,180,80,0.12)" />
+      <path d={area} fill="rgba(100,180,80,0.14)" />
       {/* Line */}
-      <path d={d} fill="none" stroke="#6abf45" strokeWidth={1.5} strokeLinejoin="round" />
+      <path d={d} fill="none" stroke="#6abf45" strokeWidth={2.2} strokeLinejoin="round" />
       {/* X-axis labels: day numbers */}
       {points.filter((_, i) => i === 0 || i === points.length - 1 ||
-        i % Math.max(1, Math.floor(points.length / 4)) === 0).map((p, i) => (
-        <text key={i} x={p.x} y={H - PAD.b + 10} textAnchor="middle"
-          fill="#333" fontSize={7} fontFamily="monospace">
+        i % Math.max(1, Math.floor(points.length / 6)) === 0).map((p, i) => (
+        <text key={i} x={p.x} y={H - PAD.b + 18} textAnchor="middle"
+          fill="#555" fontSize={11} fontFamily="monospace">
           d{Math.floor(p.tick / DAY_LENGTH)}
         </text>
       ))}
       {/* Current pop dot */}
       <circle cx={points[points.length-1].x} cy={points[points.length-1].y}
-        r={3} fill="#6abf45" />
+        r={5} fill="#6abf45" />
     </svg>
   )
 }

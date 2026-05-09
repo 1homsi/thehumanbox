@@ -179,6 +179,7 @@ pub struct Organism {
     // Behavioral state (transient — not persisted in saves, resets on load)
     pub grief_ticks:    u32,           // countdown of active mourning
     pub sleep_debt:     f32,           // 0=rested 1=exhausted
+    pub water_ticks:    u32,           // consecutive ticks spent swimming
     pub area_ticks:     u32,           // ticks in same 10×10 region
     pub last_area_cell: (i32, i32),    // current region cell for wanderlust
     pub wander_target:  Option<(i32, i32)>, // active wander destination
@@ -197,7 +198,10 @@ pub struct Organism {
     pub pregnant:        bool,
     pub pregnancy_start: u64,
 
-    // Stored conversations (capped at 15)
+    // Stored conversations — capped at 200 so a long-lived organism with
+    // dozens of partners and decades of friendships can keep their full
+    // social history. Memory cost is ~50-100 bytes per entry; 200 entries
+    // per organism × 300 organisms = ~30-60 MB worst case, fits comfortably.
     pub conversations:   VecDeque<ConversationEntry>,
 }
 
@@ -245,6 +249,7 @@ impl Organism {
             comfort:     0.5,
             grief_ticks:    0,
             sleep_debt:     0.0,
+            water_ticks:    0,
             area_ticks:     0,
             last_area_cell: (x as i32, y as i32),
             wander_target:  None,
@@ -263,7 +268,7 @@ impl Organism {
 
     pub fn store_conversation(&mut self, entry: ConversationEntry) {
         self.conversations.push_back(entry);
-        if self.conversations.len() > 15 {
+        if self.conversations.len() > 200 {
             self.conversations.pop_front();
         }
     }

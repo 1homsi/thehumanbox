@@ -1247,13 +1247,16 @@ body {
   background: #28201a;
   border: 1px solid #443329;
   border-radius: 6px;
-  width: 620px;
-  max-width: 95vw;
-  max-height: 80vh;
+  width: 1200px;
+  max-width: 96vw;
+  max-height: 90vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
+/* Quick-numbers row uses more horizontal space when the modal is wide. */
+.stats-quick { gap: 10px; }
+.stats-num-card { min-width: 92px; padding: 10px 16px; }
 /* stats modal header already inherits padding/border from .lang-modal-header */
 .stats-body {
   flex: 1;
