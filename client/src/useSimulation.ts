@@ -84,15 +84,35 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
           const grid   = applyGridWire(parsed.grid, gridCache.current)
           gridCache.current = grid
 
-          // Full snapshot resets the cache; hot ticks merge new fields onto the
-          // existing entries so cold fields (name, traits, vocabulary, lineage_id…)
-          // sent only with full snapshots stay populated between them.
+          // Merge that ignores null/undefined incoming values.
+          //
+          // The Rust backend serialises Option fields as JSON null when they're
+          // None, even with skip_serializing_if attributes (serde_json::to_value
+          // doesn't always honour those). A naive `{...existing, ...incoming}`
+          // would overwrite our cached cold fields (lineage_id, traits, name…)
+          // with null on every hot tick — the renderer would then crash trying
+          // to read .curiosity off null traits.
+          //
+          // Only copy keys whose value is actually present, so cold fields
+          // cached from the most recent full snapshot survive intact.
+          function mergeDefined<T extends object>(target: T, src: Partial<T>): T {
+            const out = { ...target } as Record<string, unknown>
+            for (const k in src) {
+              const v = (src as Record<string, unknown>)[k]
+              if (v !== null && v !== undefined) out[k] = v
+            }
+            return out as T
+          }
+
+          // Full snapshot resets the cache; hot ticks merge defined fields
+          // onto the existing entries so static fields stay populated between
+          // full snapshots.
           if (parsed.organisms_complete) {
             organismCache.current = new Map(parsed.organisms.map(o => [o.id, o]))
           } else {
             for (const org of parsed.organisms) {
               const existing = organismCache.current.get(org.id)
-              organismCache.current.set(org.id, existing ? { ...existing, ...org } : org)
+              organismCache.current.set(org.id, existing ? mergeDefined(existing, org) : org)
             }
           }
 
@@ -101,7 +121,7 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
           } else {
             for (const animal of parsed.animals) {
               const existing = animalCache.current.get(animal.id)
-              animalCache.current.set(animal.id, existing ? { ...existing, ...animal } : animal)
+              animalCache.current.set(animal.id, existing ? mergeDefined(existing, animal) : animal)
             }
           }
 
