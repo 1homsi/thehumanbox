@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import type { OrganismState } from '../types'
 import { lineageColor } from '../constants'
 import { Tooltip } from './Tooltip'
@@ -48,7 +49,7 @@ export function OrgCard({ org, sexWords, onTrack, onConvos, lineageNames, organi
 
   return (
     <div
-      className={`org-card ${isSick ? 'sick' : ''}`}
+      className={clsx('org-card', isSick && 'sick')}
       style={{ borderLeft: `3px solid ${lineageColor(org.lineage_id)}` }}
     >
       <div className="org-header">
