@@ -74,16 +74,25 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
           const grid   = applyGridWire(parsed.grid, gridCache.current)
           gridCache.current = grid
 
+          // Full snapshot resets the cache; hot ticks merge new fields onto the
+          // existing entries so cold fields (name, traits, vocabulary, lineage_id…)
+          // sent only with full snapshots stay populated between them.
           if (parsed.organisms_complete) {
             organismCache.current = new Map(parsed.organisms.map(o => [o.id, o]))
           } else {
-            for (const org of parsed.organisms) organismCache.current.set(org.id, org)
+            for (const org of parsed.organisms) {
+              const existing = organismCache.current.get(org.id)
+              organismCache.current.set(org.id, existing ? { ...existing, ...org } : org)
+            }
           }
 
           if (parsed.animals_complete) {
             animalCache.current = new Map(parsed.animals.map(a => [a.id, a]))
           } else {
-            for (const animal of parsed.animals) animalCache.current.set(animal.id, animal)
+            for (const animal of parsed.animals) {
+              const existing = animalCache.current.get(animal.id)
+              animalCache.current.set(animal.id, existing ? { ...existing, ...animal } : animal)
+            }
           }
 
           const next: WorldState = {
