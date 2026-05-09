@@ -6,9 +6,6 @@ import type { ReactElement, ReactNode } from 'react'
 const OFFSET = 8
 // Flip to below when less than this many px from the top of the viewport
 const FLIP_PX = 80
-// Mirror of `max-width` on .ui-tooltip in App.css. Used to clamp the
-// tooltip's centred position so it never overflows the viewport when
-// the anchor sits near the right edge of the screen.
 const MAX_TOOLTIP_W = 320
 const EDGE_PAD = 8
 
@@ -33,8 +30,6 @@ export function Tooltip({ tip, children }: Props) {
 
   const above = rect ? rect.top > FLIP_PX : true
 
-  // Clamp the centred tooltip position so it stays within the viewport
-  // even when the anchor is at the far left or far right edge.
   let clampedLeft = 0
   if (rect) {
     const ideal = rect.left + rect.width / 2

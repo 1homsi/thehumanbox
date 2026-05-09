@@ -9,10 +9,6 @@ import { EventRow } from './components/EventRow'
 import { Modal } from './components/Modal'
 import { Tooltip } from './components/Tooltip'
 
-// ── Lazy-loaded modals ──────────────────────────────────────────────────────
-// These are only opened on user action and pull in heavy deps (d3, etc).
-// Splitting them out shrinks the initial bundle from ~640 KB to under 300 KB
-// so the app paints much faster on cold loads - especially over slow links.
 const LanguageModal      = lazy(() => import('./components/LanguageModal').then(m => ({ default: m.LanguageModal })))
 const ChroniclesModal    = lazy(() => import('./components/ChroniclesModal').then(m => ({ default: m.ChroniclesModal })))
 const FamilyTreeModal    = lazy(() => import('./components/FamilyTreeModal').then(m => ({ default: m.FamilyTreeModal })))
@@ -93,9 +89,6 @@ function App() {
     return () => document.removeEventListener('fullscreenchange', handler)
   }, [setFullscreen])
 
-  // Fire `thb-world-ready` exactly once, when the first world frame arrives.
-  // main.tsx listens for this and fades the inline splash away - so the user
-  // never sees the bare "waiting for simulation…" placeholder.
   const splashHiddenRef = useRef(false)
   useEffect(() => {
     if (world && !splashHiddenRef.current) {
@@ -394,7 +387,6 @@ function App() {
           <div className="waiting">waiting for simulation...</div>
         )}
       </main>
-      {/* Lazy-loaded modals - chunks fetch on first open, then stay cached. */}
       <Suspense fallback={null}>
         {showLanguages && world && (
           <LanguageModal

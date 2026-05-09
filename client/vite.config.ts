@@ -6,17 +6,10 @@ export default defineConfig({
   plugins: [react()],
 
   build: {
-    // Push the chunk-size warning higher; we hand-split the heavy deps below
-    // and the remaining "main" chunk should sit comfortably under 300 KB.
     chunkSizeWarningLimit: 400,
 
     rollupOptions: {
       output: {
-        // Hand-split vendor chunks. Two goals:
-        //  1) Keep d3 isolated - it's only used by FamilyTreeModal which is
-        //     lazy-loaded, so this chunk is never fetched on first paint.
-        //  2) Cache vendor code separately from app code so a bug-fix in
-        //     src/* doesn't bust the React/Radix/d3 cache for returning users.
         manualChunks(id) {
           if (!id.includes('node_modules')) return
           if (id.includes('/d3-') || id.includes('/d3/'))            return 'd3-vendor'

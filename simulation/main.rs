@@ -27,20 +27,6 @@ type Tx = broadcast::Sender<String>;
 const SAVE_PATH:  &str = "world.save";
 const DAY_LENGTH: u64  = 600;
 
-// LLM provider config - read from env at startup with sensible defaults that
-// preserve the original Groq behaviour. Override any of these to point at a
-// different OpenAI-compatible endpoint (Ollama, llama.cpp, Together AI, Modal).
-//
-//   LLM_URL    - chat-completions endpoint (default: Groq)
-//   LLM_MODEL  - model name to send (default: llama-3.1-8b-instant)
-//   LLM_KEY    - bearer token (defaults to $GROQ_API_KEY for back-compat)
-//
-// Example overrides:
-//   Local Ollama:   LLM_URL=http://localhost:11434/v1/chat/completions
-//                   LLM_MODEL=gemma3:270m
-//                   LLM_KEY=ignored
-//   Local llama.cpp: LLM_URL=http://localhost:8080/v1/chat/completions
-//                    LLM_MODEL=gemma3-270m
 fn env_or(key: &str, default: &str) -> String {
     std::env::var(key).unwrap_or_else(|_| default.to_string())
 }
@@ -60,13 +46,8 @@ fn tick_ms() -> u64 {
         .unwrap_or(100)
 }
 
-// Evaluated once at startup - see tick_ms()
 static TICK_MS: std::sync::LazyLock<u64> = std::sync::LazyLock::new(tick_ms);
 
-/// Most-recent full snapshot, cached out-of-band of the broadcast channel so
-/// new WS connections can be answered without contending for the simulation
-/// mutex. Refreshed every 30 ticks (~3 s) by the tick loop. Held as `Arc<String>`
-/// so the WS handler can ship it to a slow client without holding the lock.
 type LatestFull = Arc<std::sync::RwLock<Option<Arc<String>>>>;
 
 #[derive(Clone)]
@@ -107,8 +88,6 @@ struct GroqResponse {
     choices: Vec<GroqChoice>,
 }
 
-/// Build an OpenAI-compatible chat-completions request body.
-/// `model` is per-call so we can have separate narration and agent lanes later.
 fn llm_body(prompt: String, max_tokens: u32, model: &str) -> GroqRequest {
     GroqRequest {
         model:       model.to_string(),
@@ -381,9 +360,6 @@ async fn main() {
 
                     let pending = std::mem::take(&mut s.pending_thinks);
                     let json    = s.state_json_incremental().to_string();
-                    // Refresh the cached full snapshot every 30 ticks (~3 s).
-                    // ws_handler reads this without contending on sim.lock(),
-                    // so a new client never has to wait for an in-flight tick.
                     let full = if step % 30 == 0 {
                         Some(s.state_json().to_string())
                     } else {
@@ -414,12 +390,6 @@ async fn main() {
         .allow_methods(Any)
         .allow_headers(Any);
 
-    // gzip the HTTP responses. The /snapshot payload is ~1.7 MB of JSON
-    // raw - gzip cuts it ~8x to ~200 KB on the wire, which is the
-    // difference between "site loads in 2 seconds" and "site loads in
-    // 30 seconds" on slow links. CompressionLayer respects the client's
-    // Accept-Encoding header and is a no-op on small responses, so it's
-    // safe to apply globally.
     let compression = CompressionLayer::new().gzip(true);
 
     let state = AppState { sim, tx, latest_full };
@@ -1164,20 +1134,6 @@ async fn ws_handler(
     ws.on_upgrade(move |socket| handle_socket(socket, rx, sim, latest_full))
 }
 
-/// GET /snapshot - the most recent full world snapshot, served as JSON
-/// so it can be fetched in parallel with (or instead of) the WebSocket
-/// upgrade. Reads the cached Arc<String> directly without touching the
-/// simulation mutex, so a slow client downloading the snapshot can't
-/// stall the tick loop.
-///
-/// HTTP gives us automatic gzip compression via the global
-/// CompressionLayer. The wire payload drops from ~1.7 MB raw JSON to
-/// ~200 KB, which is the single biggest improvement to first-paint
-/// time on slow connections - the client can render the world from
-/// this response alone, then layer on incremental WS updates.
-///
-/// Returns 503 if the cache hasn't been populated yet (first ~3 s of
-/// server lifetime). Clients should fall back to the WS first frame.
 async fn snapshot_handler(
     State(s): State<AppState>,
 ) -> Result<impl IntoResponse, StatusCode> {
@@ -1194,13 +1150,6 @@ async fn snapshot_handler(
     }
 }
 
-/// GET /version - identifies which build is running on this host.
-/// Used by the frontend's About panel to verify a deploy actually landed,
-/// since we don't have an obvious user-visible signal otherwise.
-///
-/// THB_GIT_SHA and THB_BUILD_TS are baked in at compile time by build.rs;
-/// CARGO_PKG_VERSION comes from Cargo.toml. All three are static for the
-/// life of the binary, so this handler doesn't need to touch the sim.
 async fn version_handler() -> impl IntoResponse {
     let built_at: u64 = env!("THB_BUILD_TS").parse().unwrap_or(0);
     Json(serde_json::json!({
@@ -1211,8 +1160,6 @@ async fn version_handler() -> impl IntoResponse {
     }))
 }
 
-/// GET /org/:id - returns full organism detail including conversations,
-/// vocabulary, thought_history, life_log.  Only called when a panel is open.
 async fn org_detail_handler(
     Path(id): Path<String>,
     State(s): State<AppState>,

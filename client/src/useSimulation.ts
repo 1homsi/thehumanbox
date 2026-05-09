@@ -124,17 +124,6 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
           const grid   = applyGridWire(parsed.grid, gridCache.current)
           gridCache.current = grid
 
-          // Merge that ignores null/undefined incoming values.
-          //
-          // The Rust backend serialises Option fields as JSON null when they're
-          // None, even with skip_serializing_if attributes (serde_json::to_value
-          // doesn't always honour those). A naive `{...existing, ...incoming}`
-          // would overwrite our cached cold fields (lineage_id, traits, name…)
-          // with null on every hot tick - the renderer would then crash trying
-          // to read .curiosity off null traits.
-          //
-          // Only copy keys whose value is actually present, so cold fields
-          // cached from the most recent full snapshot survive intact.
           function mergeDefined<T extends object>(target: T, src: Partial<T>): T {
             const out = { ...target } as Record<string, unknown>
             for (const k in src) {
@@ -144,9 +133,6 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
             return out as T
           }
 
-          // Full snapshot resets the cache; hot ticks merge defined fields
-          // onto the existing entries so static fields stay populated between
-          // full snapshots.
           if (parsed.organisms_complete) {
             organismCache.current = new Map(parsed.organisms.map(o => [o.id, o]))
           } else {
@@ -165,10 +151,6 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
             }
           }
 
-          // viewport_organisms must come through the cache lookup so cold
-          // fields like name and lineage_id reach the canvas renderer.
-          // Reading parsed.organisms directly returned only the hot fields
-          // from this tick, which is why labels rendered as "undefined".
           const viewportOrgs = parsed.organisms.map(o =>
             organismCache.current.get(o.id) ?? o
           )
@@ -185,18 +167,11 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
             viewport_animals: viewportAnimals,
           }
 
-          // Roll the interpolation window forward. Renderer lerps organism
-          // positions from `prev` to `current` over the elapsed real-time
-          // gap, which absorbs network jitter into smooth motion.
           prevWorldRef.current    = currentWorldRef.current
           prevAtRef.current       = currentAtRef.current
           currentWorldRef.current = next
           currentAtRef.current    = performance.now()
 
-          // Throttled setWorld for React-rendered UI.
-          // Always store the latest world; either commit it now (if enough
-          // time elapsed) or schedule a trailing-edge commit so the UI lands
-          // on the freshest value rather than a stale one.
           pendingSetWorldRef.current = next
           const sinceLast = performance.now() - lastSetWorldAtRef.current
           if (sinceLast >= REACT_THROTTLE_MS) {
@@ -247,13 +222,6 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
       }
     }
 
-    // Race the snapshot HTTP fetch against the WebSocket. /snapshot is
-    // gzipped (~200 KB) and arrives in a couple of seconds even on slow
-    // links, while the WS doesn't send anything until the next tick. The
-    // first frame the client paints comes from whichever wins.
-    //
-    // If /snapshot 503s (server just started, cache empty), the WS will
-    // catch up within ~3 s when the tick loop builds the cache.
     fetch(SNAPSHOT_URL, { cache: 'no-store' })
       .then(r => {
         if (!r.ok) return null

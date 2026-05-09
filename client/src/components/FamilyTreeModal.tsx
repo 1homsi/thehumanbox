@@ -468,12 +468,6 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
           ref={canvasRef}
           onMouseMove={onMouseMove}
           onMouseLeave={() => setHoverId(null)}
-          // - width/height: 100% so the canvas fills the wrapper (was sized only
-          //   in pixel-dimensions, leaving CSS size unset and the d3-zoom hit
-          //   region offset from where the user clicks).
-          // - touchAction: none stops the browser from grabbing drag/scroll
-          //   gestures before d3-zoom can; without this, panning silently does
-          //   nothing on touch / trackpad gestures and feels broken.
           style={{
             display: 'block',
             width:  '100%',

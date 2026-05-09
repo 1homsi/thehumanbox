@@ -13,15 +13,12 @@ interface BackendVersion {
   built_at: number
 }
 
-// These are baked in by Vite at build time from the GitHub Actions workflow.
-// Locally `vite dev` falls back to "dev" / 0 so the modal still renders.
 const FE_GIT_SHA  = (import.meta.env.VITE_GIT_SHA  ?? 'dev') as string
 const FE_BUILD_TS = Number(import.meta.env.VITE_BUILD_TS ?? 0)
 
 function fmtTime(unixSec: number): string {
   if (!unixSec) return 'unknown'
   const d = new Date(unixSec * 1000)
-  // Show as UTC ISO since deploys care about absolute time, not local tz.
   return d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC')
 }
 
