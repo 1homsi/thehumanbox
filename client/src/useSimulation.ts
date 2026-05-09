@@ -165,13 +165,24 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
             }
           }
 
+          // viewport_organisms must come through the cache lookup so cold
+          // fields like name and lineage_id reach the canvas renderer.
+          // Reading parsed.organisms directly returned only the hot fields
+          // from this tick, which is why labels rendered as "undefined".
+          const viewportOrgs = parsed.organisms.map(o =>
+            organismCache.current.get(o.id) ?? o
+          )
+          const viewportAnimals = parsed.animals.map(a =>
+            animalCache.current.get(a.id) ?? a
+          )
+
           const next: WorldState = {
             ...parsed,
             grid,
             organisms: [...organismCache.current.values()],
-            viewport_organisms: parsed.organisms,
+            viewport_organisms: viewportOrgs,
             animals: [...animalCache.current.values()],
-            viewport_animals: parsed.animals,
+            viewport_animals: viewportAnimals,
           }
 
           // Roll the interpolation window forward. Renderer lerps organism

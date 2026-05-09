@@ -1228,15 +1228,16 @@ async fn org_detail_handler(
 async fn handle_socket(
     mut socket: WebSocket,
     mut rx: broadcast::Receiver<String>,
-    _sim: SharedSim,
-    _latest_full: LatestFull,
+    sim: SharedSim,
+    latest_full: LatestFull,
 ) {
-    // No more initial snapshot over WS - the client now fetches it from
-    // GET /snapshot (gzipped HTTP, ~8x smaller on the wire) and uses
-    // this WebSocket strictly for incremental tick updates.
-    //
-    // The two arguments above are kept on the signature so the wiring
-    // in ws_handler doesn't have to change, but they're unused here.
+    let cached = latest_full.read().ok().and_then(|g| g.clone());
+    let snapshot: String = if let Some(s) = cached {
+        s.as_ref().clone()
+    } else {
+        sim.lock().await.state_json().to_string()
+    };
+    if socket.send(Message::Text(snapshot.into())).await.is_err() { return; }
 
     loop {
         tokio::select! {
