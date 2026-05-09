@@ -157,6 +157,12 @@ export function StatsModal({ world, onClose }: Props) {
   const shelterCount = world.organisms.filter(o => o.alive && (o.discoveries ?? []).includes('shelter')).length
   const currentDay   = Math.floor(world.tick / DAY_LENGTH)
 
+  const animalCount  = world.animals.length
+  const animalKinds  = world.animals.reduce<Record<string, number>>((acc, a) => {
+    acc[a.kind] = (acc[a.kind] ?? 0) + 1
+    return acc
+  }, {})
+
   return (
     <Modal open onClose={onClose} className="stats-modal" title="Stats" hideTitle>
         <div className="lang-modal-header">
@@ -193,6 +199,16 @@ export function StatsModal({ world, onClose }: Props) {
               <div className="stats-num">{shelterCount}</div>
               <div className="stats-num-label">🏠 have shelter</div>
             </div>
+            <div className="stats-num-card">
+              <div className="stats-num">{animalCount}</div>
+              <div className="stats-num-label">🦌 animals</div>
+            </div>
+            {Object.entries(animalKinds).sort((a, b) => b[1] - a[1]).map(([kind, n]) => (
+              <div key={kind} className="stats-num-card">
+                <div className="stats-num">{n}</div>
+                <div className="stats-num-label">{kind === 'rabbit' ? '🐇' : kind === 'deer' ? '🦌' : '🐾'} {kind}</div>
+              </div>
+            ))}
           </div>
 
           <div className="stats-section-title">POPULATION OVER TIME</div>
