@@ -2142,6 +2142,7 @@ impl Simulation {
                 .collect(),
             pending_thinks: self.pending_thinks.clone(),
             rng: Some(self.rng.clone()),
+            flood_tiles: self.flood_tiles.clone(),
         };
         let json = serde_json::to_string(&state)
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
@@ -2216,18 +2217,30 @@ impl Simulation {
             rain_relief: state.drought.rain_relief,
         };
 
-        // Spread out think/invention cooldowns so a restart doesn't burst-fire every trigger at once
+        // Cooldown jitter for legacy saves only.
+        //
+        // Modern saves persist the RNG stream so a save→load→continue run produces
+        // bit-identical state to a continuous run — required for replay, viability
+        // gates, and bisecting bugs. Mutating last_think_tick / last_invention_tick
+        // on load would break that determinism.
+        //
+        // Legacy saves (state.rng == None) lose all RNG continuity anyway, so we
+        // keep the original behaviour for them: jitter cooldowns to avoid every
+        // organism bursting into thoughts/inventions on the same tick.
         let tick = state.tick_count;
+        let is_legacy_save = state.rng.is_none();
         let mut organisms: Vec<_> = state.organisms.into_iter().map(org_from_save).collect();
         {
             use rand::Rng;
             let mut rng = rand::rngs::SmallRng::seed_from_u64(seed ^ tick ^ 0xdeadbeef);
             for org in &mut organisms {
-                if tick.saturating_sub(org.last_think_tick) >= 4000 {
-                    org.last_think_tick = tick - rng.gen_range(0..4000);
-                }
-                if tick.saturating_sub(org.last_invention_tick) >= 5000 {
-                    org.last_invention_tick = tick - rng.gen_range(0..5000);
+                if is_legacy_save {
+                    if tick.saturating_sub(org.last_think_tick) >= 4000 {
+                        org.last_think_tick = tick - rng.gen_range(0..4000);
+                    }
+                    if tick.saturating_sub(org.last_invention_tick) >= 5000 {
+                        org.last_invention_tick = tick - rng.gen_range(0..5000);
+                    }
                 }
                 // Clamp positions to current world bounds (handles dimension changes on load)
                 org.x = org.x.clamp(1.0, WIDTH as f32 - 2.0);
@@ -2270,7 +2283,7 @@ impl Simulation {
                 duration:   state.weather.duration,
                 intensity:  state.weather.intensity,
             },
-            flood_tiles:            Vec::new(),
+            flood_tiles:            state.flood_tiles,
             story_history:          state.story_history.into_iter().collect(),
             pending_thinks:         state.pending_thinks,
             lineage_strategies:     state.lineage_strategies,
@@ -2593,6 +2606,10 @@ struct SaveState {
     pending_thinks: Vec<ThinkTrigger>,
     #[serde(default)]
     rng: Option<ChaCha8Rng>,
+    /// In-progress flood tiles (x, y, expires_at_tick). If a flood is mid-event
+    /// when saving, restoring without these would silently drop them.
+    #[serde(default)]
+    flood_tiles: Vec<(i32, i32, u64)>,
 }
 
 fn mem_encode(m: &HashMap<(i32,i32), f32>) -> HashMap<String, f32> {
@@ -2810,6 +2827,59 @@ mod tests {
 
         let _ = std::fs::remove_file(&path_s);
         let _ = std::fs::remove_file(&tmp_s);
+    }
+
+    #[test]
+    fn save_load_preserves_organism_cooldowns_for_deterministic_replay() {
+        // Modern saves must round-trip last_think_tick / last_invention_tick exactly,
+        // otherwise post-load behaviour diverges from a continuous run and replay
+        // becomes useless for debugging or viability gates.
+
+        let mut path = std::env::temp_dir();
+        path.push(format!("thehumanbox-cooldown-test-{}.json", std::process::id()));
+        let path_s = path.to_string_lossy().to_string();
+        let _ = std::fs::remove_file(&path_s);
+        let _ = std::fs::remove_file(format!("{}.tmp", path_s));
+
+        let mut sim = Simulation::new(42);
+        sim.tick_count = 50_000;
+        // Pick an organism whose cooldowns are far enough in the past that the legacy
+        // jitter logic WOULD trigger if it ran. We must verify it doesn't.
+        let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+        sim.organisms[idx].last_think_tick = 1_000;       // 49,000 ticks ago, well past 4000
+        sim.organisms[idx].last_invention_tick = 2_000;   // 48,000 ticks ago, well past 5000
+        let org_id = sim.organisms[idx].id.clone();
+
+        sim.save_result(&path_s).unwrap();
+        let loaded = Simulation::load_or_new(999, &path_s);
+
+        let loaded_org = loaded.organisms.iter().find(|o| o.id == org_id).unwrap();
+        assert_eq!(loaded_org.last_think_tick,     1_000, "cooldown was jittered on load — breaks determinism");
+        assert_eq!(loaded_org.last_invention_tick, 2_000, "cooldown was jittered on load — breaks determinism");
+
+        let _ = std::fs::remove_file(&path_s);
+        let _ = std::fs::remove_file(format!("{}.tmp", path_s));
+    }
+
+    #[test]
+    fn save_load_preserves_in_progress_flood_tiles() {
+        let mut path = std::env::temp_dir();
+        path.push(format!("thehumanbox-flood-test-{}.json", std::process::id()));
+        let path_s = path.to_string_lossy().to_string();
+        let _ = std::fs::remove_file(&path_s);
+        let _ = std::fs::remove_file(format!("{}.tmp", path_s));
+
+        let mut sim = Simulation::new(7);
+        sim.tick_count = 100;
+        sim.flood_tiles = vec![(10, 20, 200), (30, 40, 250)];
+
+        sim.save_result(&path_s).unwrap();
+        let loaded = Simulation::load_or_new(999, &path_s);
+
+        assert_eq!(loaded.flood_tiles, vec![(10, 20, 200), (30, 40, 250)]);
+
+        let _ = std::fs::remove_file(&path_s);
+        let _ = std::fs::remove_file(format!("{}.tmp", path_s));
     }
 
     #[test]
