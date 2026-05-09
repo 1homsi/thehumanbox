@@ -1,9 +1,12 @@
-import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
+import { useCallback, useRef, useEffect, useMemo } from 'react'
+import clsx from 'clsx'
 import { useSimulation } from './useSimulation'
+import { useUIStore } from './store'
 import { WorldView } from './WorldView'
 import { OrgCard } from './components/OrgCard'
 import { OrgDetail } from './components/OrgDetail'
 import { EventRow } from './components/EventRow'
+import { Modal } from './components/Modal'
 import { LanguageModal } from './components/LanguageModal'
 import { ChroniclesModal } from './components/ChroniclesModal'
 import { FamilyTreeModal } from './components/FamilyTreeModal'
@@ -21,45 +24,71 @@ const TILE_FIRE = 4
 
 function App() {
   const { world, connected, interp } = useSimulation()
-  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null)
-  const [followOrgId, setFollowOrgId]     = useState<string | null>(null)
-  const [showLanguages,  setShowLanguages]  = useState(false)
-  const [showChronicles, setShowChronicles] = useState(false)
-  const [showFamilyTree, setShowFamilyTree] = useState(false)
-  const [showOrgSearch,  setShowOrgSearch]  = useState(false)
-  const [showStats,      setShowStats]      = useState(false)
-  const [convoOrgId,     setConvoOrgId]     = useState<string | null>(null)
-  const [panelOpen,      setPanelOpen]      = useState(false)
-  const [leftOpen,       setLeftOpen]       = useState(true)
-  const [overlay,        setOverlay]        = useState<string | null>(null)
-  const [showMore,          setShowMore]          = useState(false)
-  const [showAllLineages,   setShowAllLineages]   = useState(false)
-  const [isFullscreen,   setIsFullscreen]   = useState(false)
-  const [focus,          setFocus]          = useState<string>('all')
-  const [viewFlags,      setViewFlags]      = useState({
-    territory: false, names: true, thoughts: true, animals: true, grid: false,
-  })
+
+  // ── UI state from zustand (no more prop drilling) ───────────────────────
+  const selectedOrgId   = useUIStore(s => s.selectedOrgId)
+  const followOrgId     = useUIStore(s => s.followOrgId)
+  const showLanguages   = useUIStore(s => s.showLanguages)
+  const showChronicles  = useUIStore(s => s.showChronicles)
+  const showFamilyTree  = useUIStore(s => s.showFamilyTree)
+  const showOrgSearch   = useUIStore(s => s.showOrgSearch)
+  const showStats       = useUIStore(s => s.showStats)
+  const showAllLineages = useUIStore(s => s.showAllLineages)
+  const convoOrgId      = useUIStore(s => s.convoOrgId)
+  const panelOpen       = useUIStore(s => s.panelOpen)
+  const leftOpen        = useUIStore(s => s.leftOpen)
+  const overlay         = useUIStore(s => s.overlay)
+  const focus           = useUIStore(s => s.focus)
+  const viewFlags       = useUIStore(s => s.viewFlags)
+  const showMore        = useUIStore(s => s.showMore)
+  const isFullscreen    = useUIStore(s => s.isFullscreen)
+
+  // Stable action selectors — these never trigger re-renders
+  const selectOrg        = useUIStore(s => s.selectOrg)
+  const followOrg        = useUIStore(s => s.followOrg)
+  const openLanguages    = useUIStore(s => s.openLanguages)
+  const closeLanguages   = useUIStore(s => s.closeLanguages)
+  const openChronicles   = useUIStore(s => s.openChronicles)
+  const closeChronicles  = useUIStore(s => s.closeChronicles)
+  const openFamilyTree   = useUIStore(s => s.openFamilyTree)
+  const closeFamilyTree  = useUIStore(s => s.closeFamilyTree)
+  const openOrgSearch    = useUIStore(s => s.openOrgSearch)
+  const closeOrgSearch   = useUIStore(s => s.closeOrgSearch)
+  const openStats        = useUIStore(s => s.openStats)
+  const closeStats       = useUIStore(s => s.closeStats)
+  const openAllLineages  = useUIStore(s => s.openAllLineages)
+  const closeAllLineages = useUIStore(s => s.closeAllLineages)
+  const openConvo        = useUIStore(s => s.openConvo)
+  const closeConvo       = useUIStore(s => s.closeConvo)
+  const togglePanel      = useUIStore(s => s.togglePanel)
+  const toggleLeft       = useUIStore(s => s.toggleLeft)
+  const toggleMore       = useUIStore(s => s.toggleMore)
+  const setOverlay       = useUIStore(s => s.setOverlay)
+  const setFocus         = useUIStore(s => s.setFocus)
+  const setViewFlag      = useUIStore(s => s.setViewFlag)
+  const setFullscreen    = useUIStore(s => s.setFullscreen)
+
   const moreRef = useRef<HTMLDivElement>(null)
 
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {})
+      document.documentElement.requestFullscreen().then(() => setFullscreen(true)).catch(() => {})
     } else {
-      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {})
+      document.exitFullscreen().then(() => setFullscreen(false)).catch(() => {})
     }
-  }, [])
+  }, [setFullscreen])
 
   useEffect(() => {
-    const handler = () => setIsFullscreen(!!document.fullscreenElement)
+    const handler = () => setFullscreen(!!document.fullscreenElement)
     document.addEventListener('fullscreenchange', handler)
     return () => document.removeEventListener('fullscreenchange', handler)
-  }, [])
+  }, [setFullscreen])
 
   useEffect(() => {
     if (!showMore) return
     const handler = (e: MouseEvent) => {
       if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
-        setShowMore(false)
+        useUIStore.setState({ showMore: false })
       }
     }
     document.addEventListener('mousedown', handler)
@@ -70,15 +99,6 @@ function App() {
   const selectedOrg = selectedOrgId
     ? world?.organisms.find(o => o.id === selectedOrgId) ?? null
     : null
-
-  const handleOrgSelect = useCallback((id: string | null) => {
-    setSelectedOrgId(id)
-    if (!id) setFollowOrgId(null)
-  }, [])
-
-  const handleFollow = useCallback((id: string | null) => {
-    setFollowOrgId(id)
-  }, [])
 
   // All expensive per-render computations memoized — only recompute when world changes
   const fireTiles = useMemo(() =>
@@ -123,7 +143,7 @@ function App() {
             </svg>
             GitHub
           </a>
-          <span className={`status ${connected && world ? 'online' : 'offline'}`}>
+          <span className={clsx('status', connected && world ? 'online' : 'offline')}>
             <span className="status-dot" />
             {connected && world ? 'LIVE' : 'connecting...'}
           </span>
@@ -137,12 +157,12 @@ function App() {
           )}
           {world && (
             <Tooltip tip="Current season — affects food growth rate, drought risk, and organism energy drain">
-              <span className={`season-badge season-${world.season}`}>{world.season}</span>
+              <span className={clsx('season-badge', `season-${world.season}`)}>{world.season}</span>
             </Tooltip>
           )}
           {world?.current_era && world.current_era !== 'genesis' && world.current_era !== 'equilibrium' && (
             <Tooltip tip={`World era: ${world.current_era} — shapes resource availability and organism behaviour`}>
-              <span className={`era-badge era-${world.current_era}`}>{world.current_era}</span>
+              <span className={clsx('era-badge', `era-${world.current_era}`)}>{world.current_era}</span>
             </Tooltip>
           )}
           {world?.drought && (
@@ -174,52 +194,52 @@ function App() {
         {world && (
           <div className="header-actions">
             <Tooltip tip="Population graphs, birth and death rates, lineage growth over time">
-              <button className="lang-btn" onClick={() => setShowStats(true)}>▦ stats</button>
+              <button className="lang-btn" onClick={openStats}>▦ stats</button>
             </Tooltip>
             <Tooltip tip="Search and filter all organisms — alive or dead — by name, thought, lineage, or discovery">
-              <button className="lang-btn" onClick={() => setShowOrgSearch(true)}>⌕ search</button>
+              <button className="lang-btn" onClick={openOrgSearch}>⌕ search</button>
             </Tooltip>
             <Tooltip tip="Stories generated from world events — the history of this civilisation as it unfolds">
-              <button className="lang-btn" onClick={() => setShowChronicles(true)}>
+              <button className="lang-btn" onClick={openChronicles}>
                 ✦ chronicles{world.story_history?.length > 0 ? ` (${world.story_history.length})` : ''}
               </button>
             </Tooltip>
             <div className="more-menu" ref={moreRef}>
-              <button className={`lang-btn${showMore ? ' active' : ''}`} onClick={() => setShowMore(p => !p)}>··· more</button>
+              <button className={clsx('lang-btn', showMore && 'active')} onClick={toggleMore}>··· more</button>
               {showMore && (
                 <div className="more-dropdown">
 
                   <div className="more-dropdown-section">overlays</div>
                   <div className="more-dropdown-grid">
-                    <button className={`lang-btn${overlay === 'density' ? ' active' : ''}`} onClick={() => setOverlay(o => o === 'density' ? null : 'density')} title="Population density">👥 crowd</button>
+                    <button className={clsx('lang-btn', overlay === 'density' && 'active')} onClick={() => setOverlay(overlay === 'density' ? null : 'density')} title="Population density">👥 crowd</button>
                   </div>
 
                   <div className="more-dropdown-divider" />
                   <div className="more-dropdown-section">focus</div>
                   <div className="more-dropdown-grid">
-                    <button className={`lang-btn${focus === 'all' ? ' active' : ''}`} onClick={() => setFocus('all')}>· all</button>
-                    <button className={`lang-btn${focus === 'sick' ? ' active' : ''}`} onClick={() => setFocus(f => f === 'sick' ? 'all' : 'sick')} title="Highlight sick organisms">🤒 sick</button>
-                    <button className={`lang-btn${focus === 'hungry' ? ' active' : ''}`} onClick={() => setFocus(f => f === 'hungry' ? 'all' : 'hungry')} title="Highlight starving organisms">😫 hungry</button>
-                    <button className={`lang-btn${focus === 'elders' ? ' active' : ''}`} onClick={() => setFocus(f => f === 'elders' ? 'all' : 'elders')} title="Highlight elders">👴 elders</button>
-                    <button className={`lang-btn${focus === 'builders' ? ' active' : ''}`} onClick={() => setFocus(f => f === 'builders' ? 'all' : 'builders')} title="Highlight builders">🏗 builders</button>
-                    <button className={`lang-btn${focus === 'thriving' ? ' active' : ''}`} onClick={() => setFocus(f => f === 'thriving' ? 'all' : 'thriving')} title="Highlight thriving organisms">✦ thriving</button>
+                    <button className={clsx('lang-btn', focus === 'all'      && 'active')} onClick={() => setFocus('all')}>· all</button>
+                    <button className={clsx('lang-btn', focus === 'sick'     && 'active')} onClick={() => setFocus(focus === 'sick' ? 'all' : 'sick')} title="Highlight sick organisms">🤒 sick</button>
+                    <button className={clsx('lang-btn', focus === 'hungry'   && 'active')} onClick={() => setFocus(focus === 'hungry' ? 'all' : 'hungry')} title="Highlight starving organisms">😫 hungry</button>
+                    <button className={clsx('lang-btn', focus === 'elders'   && 'active')} onClick={() => setFocus(focus === 'elders' ? 'all' : 'elders')} title="Highlight elders">👴 elders</button>
+                    <button className={clsx('lang-btn', focus === 'builders' && 'active')} onClick={() => setFocus(focus === 'builders' ? 'all' : 'builders')} title="Highlight builders">🏗 builders</button>
+                    <button className={clsx('lang-btn', focus === 'thriving' && 'active')} onClick={() => setFocus(focus === 'thriving' ? 'all' : 'thriving')} title="Highlight thriving organisms">✦ thriving</button>
                   </div>
 
                   <div className="more-dropdown-divider" />
                   <div className="more-dropdown-section">view</div>
                   <div className="more-dropdown-grid">
-                    <button className={`lang-btn${viewFlags.territory ? ' active' : ''}`} onClick={() => setViewFlags(v => ({ ...v, territory: !v.territory }))}>⬡ territory</button>
-                    <button className={`lang-btn${viewFlags.names ? ' active' : ''}`} onClick={() => setViewFlags(v => ({ ...v, names: !v.names }))}>Aa names</button>
-                    <button className={`lang-btn${viewFlags.thoughts ? ' active' : ''}`} onClick={() => setViewFlags(v => ({ ...v, thoughts: !v.thoughts }))}>💭 thoughts</button>
-                    <button className={`lang-btn${viewFlags.animals ? ' active' : ''}`} onClick={() => setViewFlags(v => ({ ...v, animals: !v.animals }))}>🦌 animals</button>
-                    <button className={`lang-btn${viewFlags.grid ? ' active' : ''}`} onClick={() => setViewFlags(v => ({ ...v, grid: !v.grid }))}>⊞ grid</button>
+                    <button className={clsx('lang-btn', viewFlags.territory && 'active')} onClick={() => setViewFlag('territory', !viewFlags.territory)}>⬡ territory</button>
+                    <button className={clsx('lang-btn', viewFlags.names     && 'active')} onClick={() => setViewFlag('names',     !viewFlags.names)}>Aa names</button>
+                    <button className={clsx('lang-btn', viewFlags.thoughts  && 'active')} onClick={() => setViewFlag('thoughts',  !viewFlags.thoughts)}>💭 thoughts</button>
+                    <button className={clsx('lang-btn', viewFlags.animals   && 'active')} onClick={() => setViewFlag('animals',   !viewFlags.animals)}>🦌 animals</button>
+                    <button className={clsx('lang-btn', viewFlags.grid      && 'active')} onClick={() => setViewFlag('grid',      !viewFlags.grid)}>⊞ grid</button>
                   </div>
 
                   <div className="more-dropdown-divider" />
                   <div className="more-dropdown-grid">
-                    <button className="lang-btn" onClick={() => { setShowLanguages(true); setShowMore(false) }}>⌖ lang</button>
-                    <button className="lang-btn" onClick={() => { setShowFamilyTree(true); setShowMore(false) }}>⬡ tree</button>
-                    <button className={`lang-btn${leftOpen ? ' active' : ''}`} onClick={() => { setLeftOpen(p => !p); setShowMore(false) }}>⊞ world</button>
+                    <button className="lang-btn" onClick={() => { openLanguages();   useUIStore.setState({ showMore: false }) }}>⌖ lang</button>
+                    <button className="lang-btn" onClick={() => { openFamilyTree();  useUIStore.setState({ showMore: false }) }}>⬡ tree</button>
+                    <button className={clsx('lang-btn', leftOpen && 'active')} onClick={() => { toggleLeft(); useUIStore.setState({ showMore: false }) }}>⊞ world</button>
                   </div>
                 </div>
               )}
@@ -227,7 +247,7 @@ function App() {
           </div>
         )}
         {world && (
-          <button className="panel-toggle-btn" onClick={() => setPanelOpen(p => !p)}>
+          <button className="panel-toggle-btn" onClick={togglePanel}>
             {panelOpen ? '✕' : '≡'} panel
           </button>
         )}
@@ -246,7 +266,7 @@ function App() {
           <div className="layout">
 
             {/* ── Left panel: world state ──────────────────────────── */}
-            <aside className={`panel panel-left${leftOpen ? ' open' : ''}`}>
+            <aside className={clsx('panel', 'panel-left', leftOpen && 'open')}>
               <div className="section-title">WORLD HISTORY</div>
               <div className="history-grid">
                 <Tooltip tip="Total organisms ever born into this world"><span className="hist-label" style={{ cursor: 'default' }}>births</span></Tooltip>      <span className="hist-val">{world.history.births}</span>
@@ -280,7 +300,7 @@ function App() {
                     </div>
                   ))}
                 {Object.keys(lineages).length > 5 && (
-                  <button className="view-all-btn" onClick={() => setShowAllLineages(true)}>
+                  <button className="view-all-btn" onClick={openAllLineages}>
                     view all ({Object.keys(lineages).length})
                   </button>
                 )}
@@ -299,24 +319,18 @@ function App() {
             <WorldView
               world={world}
               interp={interp}
-              selectedOrgId={selectedOrgId}
-              followOrgId={followOrgId}
-              onOrgSelect={handleOrgSelect}
-              overlay={overlay}
-              focus={focus}
-              viewFlags={viewFlags}
             />
 
             {/* ── Right panel: organisms ───────────────────────────── */}
             {panelOpen && (
-              <div className="panel-overlay" onClick={() => setPanelOpen(false)} />
+              <div className="panel-overlay" onClick={togglePanel} />
             )}
-            <aside className={`panel panel-right${panelOpen ? ' open' : ''}`}>
+            <aside className={clsx('panel', 'panel-right', panelOpen && 'open')}>
               {selectedOrg && (
                 <OrgDetail
                   org={selectedOrg}
-                  onClose={() => handleOrgSelect(null)}
-                  onFollow={handleFollow}
+                  onClose={() => selectOrg(null)}
+                  onFollow={followOrg}
                   following={followOrgId === selectedOrg.id}
                   lineageNames={world?.lineage_names}
                   organisms={world?.organisms}
@@ -329,8 +343,8 @@ function App() {
                   key={org.id}
                   org={org}
                   sexWords={world?.sex_words}
-                  onTrack={() => handleFollow(org.id)}
-                  onConvos={org.conversation_count ? () => setConvoOrgId(org.id) : undefined}
+                  onTrack={() => followOrg(org.id)}
+                  onConvos={org.conversation_count ? () => openConvo(org.id) : undefined}
                   lineageNames={world?.lineage_names}
                   organisms={world?.organisms}
                 />
@@ -363,14 +377,14 @@ function App() {
         <LanguageModal
           organisms={world.organisms.filter(o => o.alive)}
           sexWords={world.sex_words}
-          onClose={() => setShowLanguages(false)}
+          onClose={closeLanguages}
           lineageNames={world.lineage_names}
         />
       )}
       {showChronicles && world && (
         <ChroniclesModal
           stories={world.story_history ?? []}
-          onClose={() => setShowChronicles(false)}
+          onClose={closeChronicles}
         />
       )}
       {showFamilyTree && world && (
@@ -378,14 +392,14 @@ function App() {
           organisms={world.organisms}
           currentTick={world.tick}
           sexWords={world.sex_words}
-          onClose={() => setShowFamilyTree(false)}
+          onClose={closeFamilyTree}
         />
       )}
       {showOrgSearch && world && (
         <OrgSearchModal
           organisms={world.organisms}
-          onTrack={(id) => { handleFollow(id); setShowOrgSearch(false) }}
-          onClose={() => setShowOrgSearch(false)}
+          onTrack={(id) => { followOrg(id); closeOrgSearch() }}
+          onClose={closeOrgSearch}
           lineageNames={world.lineage_names}
         />
       )}
@@ -396,44 +410,42 @@ function App() {
             org={org}
             allOrgs={world.organisms}
             sexWords={world.sex_words}
-            onClose={() => setConvoOrgId(null)}
+            onClose={closeConvo}
           />
         ) : null
       })()}
       {showStats && world && (
         <StatsModal
           world={world}
-          onClose={() => setShowStats(false)}
+          onClose={closeStats}
         />
       )}
       {showAllLineages && world && (
-        <div className="lang-modal-backdrop" onClick={() => setShowAllLineages(false)}>
-          <div className="lang-modal" onClick={e => e.stopPropagation()} style={{ width: 400 }}>
-            <div className="lang-modal-header">
-              <span className="lang-modal-title">ALL LINEAGES ({Object.keys(lineages).length})</span>
-              <button className="close-btn" onClick={() => setShowAllLineages(false)}>✕</button>
-            </div>
-            <div className="lang-modal-body">
-              <div className="lineage-list">
-                {Object.entries(lineages)
-                  .sort((a, b) => b[1].count - a[1].count)
-                  .map(([lid, info]) => (
-                    <div key={lid} className="lineage-row">
-                      <span className="lineage-dot" style={{ background: lineageColor(lid) }} />
-                      <span className="lineage-id">{tribeName(lid)}</span>
-                      <span className="lineage-count">{info.count}</span>
-                      <span className="lineage-gen">
-                        g{info.minGen}{info.maxGen > info.minGen ? `–${info.maxGen}` : ''}
-                      </span>
-                      <span className="lineage-strat">
-                        {lineageWord(info.orgs, 'home') || lineageWord(info.orgs, 'food') || ''}
-                      </span>
-                    </div>
-                  ))}
-              </div>
+        <Modal open onClose={closeAllLineages} className="lang-modal" title="All lineages" hideTitle>
+          <div className="lang-modal-header">
+            <span className="lang-modal-title">ALL LINEAGES ({Object.keys(lineages).length})</span>
+            <button className="close-btn" onClick={closeAllLineages}>✕</button>
+          </div>
+          <div className="lang-modal-body">
+            <div className="lineage-list">
+              {Object.entries(lineages)
+                .sort((a, b) => b[1].count - a[1].count)
+                .map(([lid, info]) => (
+                  <div key={lid} className="lineage-row">
+                    <span className="lineage-dot" style={{ background: lineageColor(lid) }} />
+                    <span className="lineage-id">{tribeName(lid)}</span>
+                    <span className="lineage-count">{info.count}</span>
+                    <span className="lineage-gen">
+                      g{info.minGen}{info.maxGen > info.minGen ? `–${info.maxGen}` : ''}
+                    </span>
+                    <span className="lineage-strat">
+                      {lineageWord(info.orgs, 'home') || lineageWord(info.orgs, 'food') || ''}
+                    </span>
+                  </div>
+                ))}
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   )
