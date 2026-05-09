@@ -513,8 +513,6 @@ body {
   flex-direction: column;
   gap: 2px;
 }
-/* Conversation grid - convo blocks tile responsively. min 380px per column
-   means 1 column under ~440px viewport, 2 columns under ~860px, 3 above. */
 .cv-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
@@ -529,8 +527,6 @@ body {
   padding: 40px 20px;
 }
 
-/* Each conversation block - fixed height, head pinned, lines scroll internally
-   so cards in the grid are uniform regardless of how chatty the pair was. */
 .cv-block {
   background: rgba(255,255,255,0.025);
   border: 1px solid rgba(255,255,255,0.06);
@@ -561,7 +557,6 @@ body {
 .cv-sep { color: #445; font-size: 9px; }
 .cv-day { font-size: 8px; color: #445; margin-left: auto; flex-shrink: 0; }
 
-/* Lines - bubbles. Scrolls inside .cv-block so card height stays uniform. */
 .cv-lines {
   display: flex;
   flex-direction: column;
@@ -1194,9 +1189,6 @@ body {
   padding: 5px 10px;
   border-radius: 5px;
   border: 1px solid #4a372b;
-  /* Wrap long tooltips so they never overflow the viewport. Cap width so
-     a long sentence breaks across lines instead of running off-screen
-     when the tooltip's anchor is near the right edge. */
   max-width: 320px;
   white-space: normal;
   word-wrap: break-word;
@@ -1278,17 +1270,17 @@ body {
   flex-direction: column;
   overflow: hidden;
 }
-/* Quick-numbers row uses more horizontal space when the modal is wide. */
-.stats-quick { gap: 10px; }
-.stats-num-card { min-width: 92px; padding: 10px 16px; }
+.stats-quick { gap: 8px; }
+.stats-num-card { min-width: 78px; padding: 6px 12px; }
+.stats-num { font-size: 17px !important; }
 /* stats modal header already inherits padding/border from .lang-modal-header */
 .stats-body {
   flex: 1;
   overflow-y: auto;
-  padding: 14px 16px;
+  padding: 10px 14px 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
 }
 .stats-section-title {
   font-size: 9px;
@@ -1318,14 +1310,14 @@ body {
    actually paints. With just `width: 100%; height: auto` flex children
    sometimes resolve height to 0 and the chart disappears. */
 .stats-chart-wrap {
-  padding: 4px 0;
-  min-height: 260px;
+  padding: 2px 0;
+  min-height: 170px;
   display: flex;
   align-items: stretch;
 }
 .stats-chart-wrap > svg {
   width: 100%;
-  height: 260px;
+  height: 170px;
 }
 
 /* Two-column grid for the lower sections so the wide modal isn't a
@@ -1335,14 +1327,14 @@ body {
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px 24px;
+  gap: 10px 24px;
   align-items: start;
 }
 .stats-grid > section {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 .stats-relations { display: flex; flex-direction: column; gap: 4px; }
 .stats-rel-row {

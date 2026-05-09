@@ -11,10 +11,6 @@ interface Props {
 }
 
 function PopChart({ history }: { history: [number, number][] }) {
-  // viewBox-based chart - scales to whatever container width the modal
-  // gives it. The internal coordinate system stays at W=1000 H=240 so
-  // labels and stroke widths render at predictable sizes; CSS sets the
-  // SVG to width: 100% so the actual pixels follow the viewport.
   const W = 1000
   const H = 240
   const PAD = { t: 14, r: 16, b: 36, l: 44 }
@@ -199,15 +195,11 @@ export function StatsModal({ world, onClose }: Props) {
             </div>
           </div>
 
-          {/* Population chart - full width because it's a time series and
-              squashing it would lose readability. */}
           <div className="stats-section-title">POPULATION OVER TIME</div>
           <div className="stats-chart-wrap">
             <PopChart history={world.pop_history ?? []} />
           </div>
 
-          {/* Lower sections in a 2-column grid so the 1200 px modal
-              isn't a tall single column with whitespace on the right. */}
           <div className="stats-grid">
             <section>
               <div className="stats-section-title">TRIBAL RELATIONS</div>
