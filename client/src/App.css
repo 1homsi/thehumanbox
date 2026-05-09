@@ -519,7 +519,7 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
   gap: 14px;
-  align-items: start;
+  align-items: stretch;
 }
 .cv-empty {
   display: flex;
@@ -529,12 +529,17 @@ body {
   padding: 40px 20px;
 }
 
-/* Each conversation block */
+/* Each conversation block — fixed height, head pinned, lines scroll internally
+   so cards in the grid are uniform regardless of how chatty the pair was. */
 .cv-block {
   background: rgba(255,255,255,0.025);
   border: 1px solid rgba(255,255,255,0.06);
   border-radius: 8px;
   padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  height: 420px;
+  min-height: 0;
 }
 .cv-block-head {
   display: flex;
@@ -542,6 +547,7 @@ body {
   gap: 6px;
   margin-bottom: 10px;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 .cv-kind-icon  { font-size: 13px; flex-shrink: 0; }
 .cv-kind-label { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; flex-shrink: 0; }
@@ -555,8 +561,20 @@ body {
 .cv-sep { color: #445; font-size: 9px; }
 .cv-day { font-size: 8px; color: #445; margin-left: auto; flex-shrink: 0; }
 
-/* Lines — bubbles */
-.cv-lines { display: flex; flex-direction: column; gap: 8px; }
+/* Lines — bubbles. Scrolls inside .cv-block so card height stays uniform. */
+.cv-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.cv-lines::-webkit-scrollbar        { width: 6px; }
+.cv-lines::-webkit-scrollbar-track  { background: transparent; }
+.cv-lines::-webkit-scrollbar-thumb  { background: rgba(255,255,255,0.08); border-radius: 3px; }
+.cv-lines::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
 .cv-line   { display: flex; }
 .cv-line-self  { justify-content: flex-start; }
 .cv-line-other { justify-content: flex-end; }
