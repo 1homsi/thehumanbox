@@ -24,8 +24,8 @@ const THOUGHT_COLORS: Record<string, string> = {
   eating:                '#6abf45',
   drinking:              '#4499ff',
   'heat dangerous':      '#e8450a',
-  'hungry — searching':  '#cc8800',
-  'thirsty — searching': '#0099cc',
+  'hungry - searching':  '#cc8800',
+  'thirsty - searching': '#0099cc',
   'moving to known food':  '#aadd55',
   'moving to known water': '#55aaff',
   'avoiding danger':     '#ff6644',
@@ -77,7 +77,7 @@ export function WorldCanvas({ world }: Props) {
       }
     }
 
-    // Territory overlay — nearest-organism Voronoi, radius-capped
+    // Territory overlay - nearest-organism Voronoi, radius-capped
     const liveOrgs = world.organisms.filter(o => o.alive && o.lineage_id)
     if (liveOrgs.length > 0) {
       const TERRITORY_RADIUS = 9  // tiles
@@ -98,7 +98,7 @@ export function WorldCanvas({ world }: Props) {
       }
     }
 
-    // Night overlay — darkens canvas proportional to night depth
+    // Night overlay - darkens canvas proportional to night depth
     if (!world.is_day) {
       const phase = world.day_progress  // 0.7–1.0 during night
       const nightDepth = Math.sin(Math.PI * (phase - 0.7) / 0.3)  // 0 at dusk/dawn, 1 at deep night
@@ -149,7 +149,7 @@ export function WorldCanvas({ world }: Props) {
         ctx.stroke()
       }
 
-      // Infection aura — sickly glow around infected organisms
+      // Infection aura - sickly glow around infected organisms
       if (org.alive && org.infection > 0.15) {
         ctx.beginPath()
         ctx.arc(px, py, 8, 0, Math.PI * 2)
@@ -157,7 +157,7 @@ export function WorldCanvas({ world }: Props) {
         ctx.fill()
       }
 
-      // Lineage ring (tribe identity) — thickness scales with resilience trait
+      // Lineage ring (tribe identity) - thickness scales with resilience trait
       if (org.lineage_id) {
         ctx.strokeStyle = lineageColor(org.lineage_id)
         ctx.lineWidth = org.traits ? 1 + org.traits.resilience * 2 : 2

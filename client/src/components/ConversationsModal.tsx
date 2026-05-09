@@ -117,7 +117,7 @@ export function ConversationsModal({ org, allOrgs, sexWords, onClose }: Props) {
             <div style={{ fontSize: 28, marginBottom: 8 }}>💬</div>
             <div style={{ fontSize: 11, fontStyle: 'italic', color: '#555', textAlign: 'center' }}>
               {org.attracted_to
-                ? `${org.name} is drawn to someone — a first conversation is coming`
+                ? `${org.name} is drawn to someone - a first conversation is coming`
                 : `${org.name} hasn't spoken with anyone yet`}
             </div>
           </div>

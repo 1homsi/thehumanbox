@@ -513,7 +513,7 @@ body {
   flex-direction: column;
   gap: 2px;
 }
-/* Conversation grid — convo blocks tile responsively. min 380px per column
+/* Conversation grid - convo blocks tile responsively. min 380px per column
    means 1 column under ~440px viewport, 2 columns under ~860px, 3 above. */
 .cv-list {
   display: grid;
@@ -529,7 +529,7 @@ body {
   padding: 40px 20px;
 }
 
-/* Each conversation block — fixed height, head pinned, lines scroll internally
+/* Each conversation block - fixed height, head pinned, lines scroll internally
    so cards in the grid are uniform regardless of how chatty the pair was. */
 .cv-block {
   background: rgba(255,255,255,0.025);
@@ -561,7 +561,7 @@ body {
 .cv-sep { color: #445; font-size: 9px; }
 .cv-day { font-size: 8px; color: #445; margin-left: auto; flex-shrink: 0; }
 
-/* Lines — bubbles. Scrolls inside .cv-block so card height stays uniform. */
+/* Lines - bubbles. Scrolls inside .cv-block so card height stays uniform. */
 .cv-lines {
   display: flex;
   flex-direction: column;
@@ -1198,7 +1198,7 @@ body {
   pointer-events: none;
   z-index: 99999;
 }
-/* Above anchor — tooltip sits above, arrow points down */
+/* Above anchor - tooltip sits above, arrow points down */
 .ui-tooltip--above {
   transform: translate(-50%, -100%);
   animation: tooltip-in-above 0.1s ease forwards;
@@ -1219,7 +1219,7 @@ body {
   border: 4px solid transparent;
   border-top-color: #32271f;
 }
-/* Below anchor — tooltip sits below, arrow points up */
+/* Below anchor - tooltip sits below, arrow points up */
 .ui-tooltip--below {
   transform: translate(-50%, 0);
   animation: tooltip-in-below 0.1s ease forwards;
@@ -1431,7 +1431,7 @@ body {
     position: relative;
   }
 
-  /* Left panel handled by JS toggle — no mobile override needed */
+  /* Left panel handled by JS toggle - no mobile override needed */
 
   /* Overlay behind right panel drawer */
   .panel-overlay {

@@ -93,7 +93,7 @@ export function LanguageModal({ organisms, sexWords, onClose, lineageNames }: Pr
                   </div>
                   {lineages.map(l => (
                     <div key={`${l.lineageId}-${concept}`} className="lang-td lang-lineage-col lang-word">
-                      {l.words[concept] ?? <span className="lang-unknown">—</span>}
+                      {l.words[concept] ?? <span className="lang-unknown">-</span>}
                     </div>
                   ))}
                 </>

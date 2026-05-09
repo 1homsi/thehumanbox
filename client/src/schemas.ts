@@ -63,7 +63,7 @@ export const OrganismSchema = z.object({
   attracted_to: z.string().nullable().optional(),
   conversation_count: z.number(),
 
-  // Cold fields (only sent on full snapshots — every 30+ ticks)
+  // Cold fields (only sent on full snapshots - every 30+ ticks)
   name:        z.string().optional(),
   generation:  z.number().optional(),
   parent_id:   z.string().optional(),
@@ -92,7 +92,7 @@ export const AnimalSchema = z.object({
 
 // ── World envelope ────────────────────────────────────────────────────────
 
-// Lenient on purpose — only validate the shape we care to assert. The full
+// Lenient on purpose - only validate the shape we care to assert. The full
 // payload includes many fields the existing TypeScript types already
 // describe; we don't duplicate them all here. Use these schemas at the
 // WS-parse boundary to catch corrupt messages (HTML error pages, partial

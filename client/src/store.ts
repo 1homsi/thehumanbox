@@ -8,10 +8,10 @@ import { create } from 'zustand'
  * without re-rendering when an unrelated slice changes.
  *
  * What does NOT live here:
- *  - Live simulation data (organisms, world state) — those flow via the
+ *  - Live simulation data (organisms, world state) - those flow via the
  *    useSimulation hook, kept out of zustand so the throttled React
  *    state machinery there stays simple.
- *  - Server-fetched data (organism details, etc.) — handled by
+ *  - Server-fetched data (organism details, etc.) - handled by
  *    TanStack Query.
  */
 
@@ -28,7 +28,7 @@ interface UIState {
   selectedOrgId: string | null
   followOrgId:   string | null
 
-  // Modals — one open at a time is the common case but we keep flags
+  // Modals - one open at a time is the common case but we keep flags
   // separate so a future "modal stack" doesn't need a refactor.
   showLanguages:   boolean
   showChronicles:  boolean
@@ -103,7 +103,7 @@ export const useUIStore = create<UIState>((set) => ({
 
   isFullscreen: false,
 
-  // Selecting an org with id=null also clears the follow target — picking
+  // Selecting an org with id=null also clears the follow target - picking
   // someone else and then unselecting shouldn't leave the camera locked
   // on the previous follow.
   selectOrg: (id) => set(id == null ? { selectedOrgId: null, followOrgId: null } : { selectedOrgId: id }),

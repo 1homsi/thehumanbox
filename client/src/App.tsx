@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect, useMemo } from 'react'
+import { useCallback, useRef, useEffect, useMemo, lazy, Suspense } from 'react'
 import clsx from 'clsx'
 import { useSimulation } from './useSimulation'
 import { useUIStore } from './store'
@@ -7,13 +7,18 @@ import { OrgCard } from './components/OrgCard'
 import { OrgDetail } from './components/OrgDetail'
 import { EventRow } from './components/EventRow'
 import { Modal } from './components/Modal'
-import { LanguageModal } from './components/LanguageModal'
-import { ChroniclesModal } from './components/ChroniclesModal'
-import { FamilyTreeModal } from './components/FamilyTreeModal'
-import { OrgSearchModal } from './components/OrgSearchModal'
-import { StatsModal } from './components/StatsModal'
-import { ConversationsModal } from './components/ConversationsModal'
 import { Tooltip } from './components/Tooltip'
+
+// ── Lazy-loaded modals ──────────────────────────────────────────────────────
+// These are only opened on user action and pull in heavy deps (d3, etc).
+// Splitting them out shrinks the initial bundle from ~640 KB to under 300 KB
+// so the app paints much faster on cold loads - especially over slow links.
+const LanguageModal      = lazy(() => import('./components/LanguageModal').then(m => ({ default: m.LanguageModal })))
+const ChroniclesModal    = lazy(() => import('./components/ChroniclesModal').then(m => ({ default: m.ChroniclesModal })))
+const FamilyTreeModal    = lazy(() => import('./components/FamilyTreeModal').then(m => ({ default: m.FamilyTreeModal })))
+const OrgSearchModal     = lazy(() => import('./components/OrgSearchModal').then(m => ({ default: m.OrgSearchModal })))
+const StatsModal         = lazy(() => import('./components/StatsModal').then(m => ({ default: m.StatsModal })))
+const ConversationsModal = lazy(() => import('./components/ConversationsModal').then(m => ({ default: m.ConversationsModal })))
 import type { OrganismState } from './types'
 import {
   lineageColor, lineageWord, HIDDEN_EVENT_TYPES,
@@ -43,7 +48,7 @@ function App() {
   const showMore        = useUIStore(s => s.showMore)
   const isFullscreen    = useUIStore(s => s.isFullscreen)
 
-  // Stable action selectors — these never trigger re-renders
+  // Stable action selectors - these never trigger re-renders
   const selectOrg        = useUIStore(s => s.selectOrg)
   const followOrg        = useUIStore(s => s.followOrg)
   const openLanguages    = useUIStore(s => s.openLanguages)
@@ -84,6 +89,17 @@ function App() {
     return () => document.removeEventListener('fullscreenchange', handler)
   }, [setFullscreen])
 
+  // Fire `thb-world-ready` exactly once, when the first world frame arrives.
+  // main.tsx listens for this and fades the inline splash away - so the user
+  // never sees the bare "waiting for simulation…" placeholder.
+  const splashHiddenRef = useRef(false)
+  useEffect(() => {
+    if (world && !splashHiddenRef.current) {
+      splashHiddenRef.current = true
+      window.dispatchEvent(new Event('thb-world-ready'))
+    }
+  }, [world])
+
   useEffect(() => {
     if (!showMore) return
     const handler = (e: MouseEvent) => {
@@ -100,7 +116,7 @@ function App() {
     ? world?.organisms.find(o => o.id === selectedOrgId) ?? null
     : null
 
-  // All expensive per-render computations memoized — only recompute when world changes
+  // All expensive per-render computations memoized - only recompute when world changes
   const fireTiles = useMemo(() =>
     world ? world.grid.tiles.reduce((n, row) => n + row.filter(t => t === TILE_FIRE).length, 0) : 0
   , [world])
@@ -147,46 +163,46 @@ function App() {
             <span className="status-dot" />
             {connected && world ? 'LIVE' : 'connecting...'}
           </span>
-          {world && <Tooltip tip={`Simulation tick ${world.tick.toLocaleString()} — 600 ticks = 1 in-world day · ${Math.floor(world.tick / 600)} days elapsed`}><span className="tick" style={{ cursor: 'default' }}>tick {world.tick.toLocaleString()}</span></Tooltip>}
+          {world && <Tooltip tip={`Simulation tick ${world.tick.toLocaleString()} - 600 ticks = 1 in-world day · ${Math.floor(world.tick / 600)} days elapsed`}><span className="tick" style={{ cursor: 'default' }}>tick {world.tick.toLocaleString()}</span></Tooltip>}
         </div>
         <div className="header-badges">
           {world && (
-            <Tooltip tip={world.is_day ? 'Daytime — organisms are active and foraging' : 'Nighttime — energy drain slows, less activity'}>
+            <Tooltip tip={world.is_day ? 'Daytime - organisms are active and foraging' : 'Nighttime - energy drain slows, less activity'}>
               <span className="daynight">{world.is_day ? '☀️ day' : '🌙 night'}</span>
             </Tooltip>
           )}
           {world && (
-            <Tooltip tip="Current season — affects food growth rate, drought risk, and organism energy drain">
+            <Tooltip tip="Current season - affects food growth rate, drought risk, and organism energy drain">
               <span className={clsx('season-badge', `season-${world.season}`)}>{world.season}</span>
             </Tooltip>
           )}
           {world?.current_era && world.current_era !== 'genesis' && world.current_era !== 'equilibrium' && (
-            <Tooltip tip={`World era: ${world.current_era} — shapes resource availability and organism behaviour`}>
+            <Tooltip tip={`World era: ${world.current_era} - shapes resource availability and organism behaviour`}>
               <span className={clsx('era-badge', `era-${world.current_era}`)}>{world.current_era}</span>
             </Tooltip>
           )}
           {world?.drought && (
-            <Tooltip tip="Drought active — water tiles shrinking, dehydration deaths rising">
+            <Tooltip tip="Drought active - water tiles shrinking, dehydration deaths rising">
               <span className="drought-badge">drought</span>
             </Tooltip>
           )}
           {world?.weather?.kind === 'rain' && (
-            <Tooltip tip="Rain — accelerating drought recovery, replenishing dry soil">
+            <Tooltip tip="Rain - accelerating drought recovery, replenishing dry soil">
               <span className="weather-badge rain">🌧 rain</span>
             </Tooltip>
           )}
           {world?.weather?.kind === 'storm' && (
-            <Tooltip tip="Storm — draining organism energy, lightning strikes possible">
+            <Tooltip tip="Storm - draining organism energy, lightning strikes possible">
               <span className="weather-badge storm">⛈ storm</span>
             </Tooltip>
           )}
           {fireTiles > 0 && (
-            <Tooltip tip={`${fireTiles} tile${fireTiles > 1 ? 's' : ''} on fire — spreading to nearby flammable terrain`}>
+            <Tooltip tip={`${fireTiles} tile${fireTiles > 1 ? 's' : ''} on fire - spreading to nearby flammable terrain`}>
               <span className="fire-badge">🔥 {fireTiles}</span>
             </Tooltip>
           )}
           {sickOrgs > 0 && (
-            <Tooltip tip={`${sickOrgs} organism${sickOrgs > 1 ? 's' : ''} infected — sickness spreads through close contact`}>
+            <Tooltip tip={`${sickOrgs} organism${sickOrgs > 1 ? 's' : ''} infected - sickness spreads through close contact`}>
               <span className="sick-badge">🤒 {sickOrgs}</span>
             </Tooltip>
           )}
@@ -196,10 +212,10 @@ function App() {
             <Tooltip tip="Population graphs, birth and death rates, lineage growth over time">
               <button className="lang-btn" onClick={openStats}>▦ stats</button>
             </Tooltip>
-            <Tooltip tip="Search and filter all organisms — alive or dead — by name, thought, lineage, or discovery">
+            <Tooltip tip="Search and filter all organisms - alive or dead - by name, thought, lineage, or discovery">
               <button className="lang-btn" onClick={openOrgSearch}>⌕ search</button>
             </Tooltip>
-            <Tooltip tip="Stories generated from world events — the history of this civilisation as it unfolds">
+            <Tooltip tip="Stories generated from world events - the history of this civilisation as it unfolds">
               <button className="lang-btn" onClick={openChronicles}>
                 ✦ chronicles{world.story_history?.length > 0 ? ` (${world.story_history.length})` : ''}
               </button>
@@ -270,15 +286,15 @@ function App() {
               <div className="section-title">WORLD HISTORY</div>
               <div className="history-grid">
                 <Tooltip tip="Total organisms ever born into this world"><span className="hist-label" style={{ cursor: 'default' }}>births</span></Tooltip>      <span className="hist-val">{world.history.births}</span>
-                <Tooltip tip="Deaths from old age — organisms that lived a full life"><span className="hist-label" style={{ cursor: 'default' }}>old age</span></Tooltip>     <span className="hist-val">{world.history.deaths_old_age}</span>
-                <Tooltip tip="Deaths from starvation or dehydration — not enough food or water"><span className="hist-label" style={{ cursor: 'default' }}>starvation</span></Tooltip>  <span className="hist-val">{world.history.deaths_starvation}</span>
-                <Tooltip tip="Deaths from disease — infection spread between organisms"><span className="hist-label" style={{ cursor: 'default' }}>sickness</span></Tooltip>    <span className="hist-val">{world.history.deaths_sickness}</span>
-                <Tooltip tip="Deaths from combat — organisms killed in territorial or resource disputes"><span className="hist-label" style={{ cursor: 'default' }}>combat</span></Tooltip>      <span className="hist-val">{world.history.deaths_combat}</span>
-                <Tooltip tip="Lineage alliances formed — mutual cooperation agreements between tribes"><span className="hist-label" style={{ cursor: 'default' }}>alliances</span></Tooltip>   <span className="hist-val">{world.history.alliances_formed}</span>
-                <Tooltip tip="Total territorial challenges issued — one organism confronting another"><span className="hist-label" style={{ cursor: 'default' }}>challenges</span></Tooltip>  <span className="hist-val">{world.history.challenges_total}</span>
-                <Tooltip tip="Food gifted between organisms — social bonding and kin support behaviour"><span className="hist-label" style={{ cursor: 'default' }}>gifts</span></Tooltip>       <span className="hist-val">{world.history.gifts_total}</span>
-                <Tooltip tip="Drought events — periods of water scarcity that forced migration and die-offs"><span className="hist-label" style={{ cursor: 'default' }}>droughts</span></Tooltip>    <span className="hist-val">{world.history.droughts}</span>
-                <Tooltip tip="Disease outbreaks — epidemic events that swept through the population"><span className="hist-label" style={{ cursor: 'default' }}>outbreaks</span></Tooltip>   <span className="hist-val">{world.history.outbreaks}</span>
+                <Tooltip tip="Deaths from old age - organisms that lived a full life"><span className="hist-label" style={{ cursor: 'default' }}>old age</span></Tooltip>     <span className="hist-val">{world.history.deaths_old_age}</span>
+                <Tooltip tip="Deaths from starvation or dehydration - not enough food or water"><span className="hist-label" style={{ cursor: 'default' }}>starvation</span></Tooltip>  <span className="hist-val">{world.history.deaths_starvation}</span>
+                <Tooltip tip="Deaths from disease - infection spread between organisms"><span className="hist-label" style={{ cursor: 'default' }}>sickness</span></Tooltip>    <span className="hist-val">{world.history.deaths_sickness}</span>
+                <Tooltip tip="Deaths from combat - organisms killed in territorial or resource disputes"><span className="hist-label" style={{ cursor: 'default' }}>combat</span></Tooltip>      <span className="hist-val">{world.history.deaths_combat}</span>
+                <Tooltip tip="Lineage alliances formed - mutual cooperation agreements between tribes"><span className="hist-label" style={{ cursor: 'default' }}>alliances</span></Tooltip>   <span className="hist-val">{world.history.alliances_formed}</span>
+                <Tooltip tip="Total territorial challenges issued - one organism confronting another"><span className="hist-label" style={{ cursor: 'default' }}>challenges</span></Tooltip>  <span className="hist-val">{world.history.challenges_total}</span>
+                <Tooltip tip="Food gifted between organisms - social bonding and kin support behaviour"><span className="hist-label" style={{ cursor: 'default' }}>gifts</span></Tooltip>       <span className="hist-val">{world.history.gifts_total}</span>
+                <Tooltip tip="Drought events - periods of water scarcity that forced migration and die-offs"><span className="hist-label" style={{ cursor: 'default' }}>droughts</span></Tooltip>    <span className="hist-val">{world.history.droughts}</span>
+                <Tooltip tip="Disease outbreaks - epidemic events that swept through the population"><span className="hist-label" style={{ cursor: 'default' }}>outbreaks</span></Tooltip>   <span className="hist-val">{world.history.outbreaks}</span>
               </div>
 
               <div className="section-title">LINEAGES ({Object.keys(lineages).length})</div>
@@ -360,7 +376,7 @@ function App() {
                         <span className="org-meta">g{org.generation} · {org.age}</span>
                       </div>
                       <div className="org-thought">
-                        {org.thought ?? '—'}
+                        {org.thought ?? '-'}
                       </div>
                     </div>
                   ))}
@@ -373,53 +389,56 @@ function App() {
           <div className="waiting">waiting for simulation...</div>
         )}
       </main>
-      {showLanguages && world && (
-        <LanguageModal
-          organisms={world.organisms.filter(o => o.alive)}
-          sexWords={world.sex_words}
-          onClose={closeLanguages}
-          lineageNames={world.lineage_names}
-        />
-      )}
-      {showChronicles && world && (
-        <ChroniclesModal
-          stories={world.story_history ?? []}
-          onClose={closeChronicles}
-        />
-      )}
-      {showFamilyTree && world && (
-        <FamilyTreeModal
-          organisms={world.organisms}
-          currentTick={world.tick}
-          sexWords={world.sex_words}
-          onClose={closeFamilyTree}
-        />
-      )}
-      {showOrgSearch && world && (
-        <OrgSearchModal
-          organisms={world.organisms}
-          onTrack={(id) => { followOrg(id); closeOrgSearch() }}
-          onClose={closeOrgSearch}
-          lineageNames={world.lineage_names}
-        />
-      )}
-      {convoOrgId && world && (() => {
-        const org = world.organisms.find(o => o.id === convoOrgId)
-        return org ? (
-          <ConversationsModal
-            org={org}
-            allOrgs={world.organisms}
+      {/* Lazy-loaded modals - chunks fetch on first open, then stay cached. */}
+      <Suspense fallback={null}>
+        {showLanguages && world && (
+          <LanguageModal
+            organisms={world.organisms.filter(o => o.alive)}
             sexWords={world.sex_words}
-            onClose={closeConvo}
+            onClose={closeLanguages}
+            lineageNames={world.lineage_names}
           />
-        ) : null
-      })()}
-      {showStats && world && (
-        <StatsModal
-          world={world}
-          onClose={closeStats}
-        />
-      )}
+        )}
+        {showChronicles && world && (
+          <ChroniclesModal
+            stories={world.story_history ?? []}
+            onClose={closeChronicles}
+          />
+        )}
+        {showFamilyTree && world && (
+          <FamilyTreeModal
+            organisms={world.organisms}
+            currentTick={world.tick}
+            sexWords={world.sex_words}
+            onClose={closeFamilyTree}
+          />
+        )}
+        {showOrgSearch && world && (
+          <OrgSearchModal
+            organisms={world.organisms}
+            onTrack={(id) => { followOrg(id); closeOrgSearch() }}
+            onClose={closeOrgSearch}
+            lineageNames={world.lineage_names}
+          />
+        )}
+        {convoOrgId && world && (() => {
+          const org = world.organisms.find(o => o.id === convoOrgId)
+          return org ? (
+            <ConversationsModal
+              org={org}
+              allOrgs={world.organisms}
+              sexWords={world.sex_words}
+              onClose={closeConvo}
+            />
+          ) : null
+        })()}
+        {showStats && world && (
+          <StatsModal
+            world={world}
+            onClose={closeStats}
+          />
+        )}
+      </Suspense>
       {showAllLineages && world && (
         <Modal open onClose={closeAllLineages} className="lang-modal" title="All lineages" hideTitle>
           <div className="lang-modal-header">

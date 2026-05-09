@@ -99,7 +99,7 @@ fn utterance_with_meaning(
              meanings[rng.gen_range(0..meanings.len())].to_string())
         }
 
-        // ── 5: casual talk — resources / environment ──────────────────────────
+        // ── 5: casual talk - resources / environment ──────────────────────────
         5 => {
             let topics: &[(&[&str], &[&str])] = &[
                 (&["food", "hunt"], &[
@@ -123,7 +123,7 @@ fn utterance_with_meaning(
             (w.to_string(), meanings[rng.gen_range(0..meanings.len())].to_string())
         }
 
-        // ── 6: social bonding — group / tribe ────────────────────────────────
+        // ── 6: social bonding - group / tribe ────────────────────────────────
         6 => {
             let w = pick_word(v, &["friend", "group", "day", "night"], rng);
             let meanings = [
@@ -190,7 +190,7 @@ pub fn generate_conversation(
     kind: &str,
     rng: &mut impl Rng,
 ) -> (ConversationEntry, ConversationEntry) {
-    // Conversation length per kind. Courtship/excited get the most lines —
+    // Conversation length per kind. Courtship/excited get the most lines -
     // they're the dramatic moments players linger on. Argue/farewell stay short
     // so they feel sharp. Casual chat falls in the middle.
     let n_lines = match kind {

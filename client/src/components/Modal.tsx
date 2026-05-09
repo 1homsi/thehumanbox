@@ -4,10 +4,10 @@ import type { ReactNode } from 'react'
 interface ModalProps {
   open:    boolean
   onClose: () => void
-  /** Class name applied to the inner panel — pick the existing CSS class
+  /** Class name applied to the inner panel - pick the existing CSS class
    *  used by each modal (e.g. `cv-modal`, `lang-modal`). */
   className?: string
-  /** Required for accessibility — used by screen readers, also visible
+  /** Required for accessibility - used by screen readers, also visible
    *  if the modal renders its own header you can pass empty and rely on
    *  aria-label via labelledBy. */
   title?:   string
@@ -29,7 +29,7 @@ interface ModalProps {
  *     re-renders don't reconcile the modal subtree)
  *   - ARIA roles + labelling for screen readers
  *
- * Visual styling is unchanged — pass the same `className` the existing
+ * Visual styling is unchanged - pass the same `className` the existing
  * hand-rolled modals used (e.g. `cv-modal`, `stats-modal`) and the CSS
  * keeps applying. The Radix Overlay reuses the existing
  * `.lang-modal-backdrop` class for the dimmed background.
@@ -47,7 +47,7 @@ export function Modal({ open, onClose, className, title, hideTitle = false, chil
           // Radix renders Overlay and Content as siblings inside the portal,
           // so the old "flex-center children" rule on .lang-modal-backdrop
           // doesn't reach the panel anymore. Position Content directly with
-          // a fixed-centered transform — works for any modal width/height,
+          // a fixed-centered transform - works for any modal width/height,
           // including the panel CSS classes that previously relied on
           // backdrop flex centering.
           style={{
@@ -58,7 +58,7 @@ export function Modal({ open, onClose, className, title, hideTitle = false, chil
             zIndex:    101,
           }}
           onOpenAutoFocus={(e) => {
-            // Don't grab focus on the first focusable element by default —
+            // Don't grab focus on the first focusable element by default -
             // many of our modals have non-essential buttons in the header
             // (close, etc.) and stealing focus there is jarring.
             e.preventDefault()

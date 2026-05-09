@@ -26,13 +26,13 @@ type Tx = broadcast::Sender<String>;
 const SAVE_PATH:  &str = "world.save";
 const DAY_LENGTH: u64  = 600;
 
-// LLM provider config — read from env at startup with sensible defaults that
+// LLM provider config - read from env at startup with sensible defaults that
 // preserve the original Groq behaviour. Override any of these to point at a
 // different OpenAI-compatible endpoint (Ollama, llama.cpp, Together AI, Modal).
 //
-//   LLM_URL    — chat-completions endpoint (default: Groq)
-//   LLM_MODEL  — model name to send (default: llama-3.1-8b-instant)
-//   LLM_KEY    — bearer token (defaults to $GROQ_API_KEY for back-compat)
+//   LLM_URL    - chat-completions endpoint (default: Groq)
+//   LLM_MODEL  - model name to send (default: llama-3.1-8b-instant)
+//   LLM_KEY    - bearer token (defaults to $GROQ_API_KEY for back-compat)
 //
 // Example overrides:
 //   Local Ollama:   LLM_URL=http://localhost:11434/v1/chat/completions
@@ -59,13 +59,20 @@ fn tick_ms() -> u64 {
         .unwrap_or(100)
 }
 
-// Evaluated once at startup — see tick_ms()
+// Evaluated once at startup - see tick_ms()
 static TICK_MS: std::sync::LazyLock<u64> = std::sync::LazyLock::new(tick_ms);
+
+/// Most-recent full snapshot, cached out-of-band of the broadcast channel so
+/// new WS connections can be answered without contending for the simulation
+/// mutex. Refreshed every 30 ticks (~3 s) by the tick loop. Held as `Arc<String>`
+/// so the WS handler can ship it to a slow client without holding the lock.
+type LatestFull = Arc<std::sync::RwLock<Option<Arc<String>>>>;
 
 #[derive(Clone)]
 struct AppState {
-    sim: SharedSim,
-    tx:  Tx,
+    sim:          SharedSim,
+    tx:           Tx,
+    latest_full:  LatestFull,
 }
 
 // ── Groq types ────────────────────────────────────────────────────────────────
@@ -148,11 +155,11 @@ async fn main() {
     // Resolved once via LLM_KEY (preferred) → GROQ_API_KEY (legacy) → empty.
     let api_key = (*LLM_KEY).clone();
     if api_key.is_empty() && !LLM_URL.contains("localhost") && !LLM_URL.contains("127.0.0.1") {
-        println!("[warn] no LLM_KEY / GROQ_API_KEY set — remote LLM calls will fail");
+        println!("[warn] no LLM_KEY / GROQ_API_KEY set - remote LLM calls will fail");
     }
 
     // Fresh worlds get a truly random seed from system time + OS entropy.
-    // Loaded worlds ignore this — the seed is only used for fresh world gen.
+    // Loaded worlds ignore this - the seed is only used for fresh world gen.
     let fresh_seed: u64 = {
         use std::time::{SystemTime, UNIX_EPOCH};
         let t = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default();
@@ -160,6 +167,7 @@ async fn main() {
     };
     let sim = Arc::new(Mutex::new(Simulation::load_or_new(fresh_seed, SAVE_PATH)));
     let (tx, _rx) = broadcast::channel::<String>(4);
+    let latest_full: LatestFull = Arc::new(std::sync::RwLock::new(None));
 
     // Channels
     let (narration_tx, narration_rx) = mpsc::channel::<NarrationReq>(4);
@@ -189,10 +197,11 @@ async fn main() {
         let stories_clone    = stories.clone();
         let think_res_clone  = think_results.clone();
         let narration_tx2    = narration_tx.clone();
+        let latest_full_w    = latest_full.clone();
         tokio::spawn(async move {
             let mut step: u64 = 0;
             loop {
-                let (json, pending_thinks) = {
+                let (json, pending_thinks, full_snapshot) = {
                     let mut s = sim_clone.lock().await;
                     s.tick(); // 1 tick per loop = 6s real → 600 ticks/day = 1 hr/day
 
@@ -252,7 +261,7 @@ async fn main() {
                                     &lid[..6.min(lid.len())], strategy, expiry);
                                 s.lineage_strategies.insert(lid, (strategy, expiry));
                             }
-                            // Alliance outcome — apply effects to both parties
+                            // Alliance outcome - apply effects to both parties
                             if let (Some(alliance), Some(their_lid)) = (&r.alliance_type, &r.target_lineage) {
                                 let their_oid = r.target_org_id.as_deref().unwrap_or("");
                                 // Raise attitudes for both lineages
@@ -371,14 +380,27 @@ async fn main() {
 
                     let pending = std::mem::take(&mut s.pending_thinks);
                     let json    = s.state_json_incremental().to_string();
+                    // Refresh the cached full snapshot every 30 ticks (~3 s).
+                    // ws_handler reads this without contending on sim.lock(),
+                    // so a new client never has to wait for an in-flight tick.
+                    let full = if step % 30 == 0 {
+                        Some(s.state_json().to_string())
+                    } else {
+                        None
+                    };
                     step += 1;
                     if step % 600 == 0 { s.save(SAVE_PATH); }
-                    (json, pending)
+                    (json, pending, full)
                 };
 
                 // Send think triggers outside lock
                 for t in pending_thinks {
                     let _ = think_tx.try_send(t);
+                }
+                if let Some(full) = full_snapshot {
+                    if let Ok(mut slot) = latest_full_w.write() {
+                        *slot = Some(Arc::new(full));
+                    }
                 }
                 let _ = tx_clone.send(json);
                 tokio::time::sleep(tokio::time::Duration::from_millis(*TICK_MS)).await;
@@ -391,7 +413,7 @@ async fn main() {
         .allow_methods(Any)
         .allow_headers(Any);
 
-    let state = AppState { sim, tx };
+    let state = AppState { sim, tx, latest_full };
 
     let app = Router::new()
         .route("/ws", get(ws_handler))
@@ -471,7 +493,7 @@ async fn narration_worker(
             req.org_name, events_str, vocab_str
         );
 
-        println!("[narrate] queuing story for {} — {} events", req.org_name, req.life_log.len());
+        println!("[narrate] queuing story for {} - {} events", req.org_name, req.life_log.len());
         match client.post(&**LLM_URL)
             .header("Authorization", format!("Bearer {}", api_key))
             .json(&llm_body(prompt, 80, &LLM_MODEL))
@@ -492,7 +514,7 @@ async fn narration_worker(
             }
             Err(e) => {
                 println!("[narrate] Groq error for {}: {}", req.org_name, e);
-                // Groq unreachable — generate minimal story from life_log
+                // Groq unreachable - generate minimal story from life_log
                 let food_word  = req.vocab.get("food").map(|s| s.as_str()).unwrap_or("food");
                 let water_word = req.vocab.get("water").map(|s| s.as_str()).unwrap_or("water");
                 let story = if let Some(ev) = req.life_log.iter().find(|e| e.contains("offspring")) {
@@ -682,7 +704,7 @@ async fn think_worker(
         .build()
         .unwrap_or_default();
 
-    // (trigger, attempt_number)  — attempt 0 = first try, max 3 retries
+    // (trigger, attempt_number)  - attempt 0 = first try, max 3 retries
     let mut retry_queue: std::collections::VecDeque<(ThinkTrigger, u8)> =
         std::collections::VecDeque::new();
 
@@ -700,7 +722,7 @@ async fn think_worker(
         };
 
         // ── Local resolver: classification scenarios need no LLM ─────────────
-        // Only elder_teaching actually generates text — everything else is a
+        // Only elder_teaching actually generates text - everything else is a
         // weighted decision that we resolve instantly from organism traits.
         if trigger.scenario != "elder_teaching" {
             use rand::SeedableRng;
@@ -715,7 +737,7 @@ async fn think_worker(
             continue;
         }
 
-        // Rate-limit: Groq cap ~30 req/min; narration uses some — throttle think worker.
+        // Rate-limit: Groq cap ~30 req/min; narration uses some - throttle think worker.
         if attempt == 0 {
             tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
         }
@@ -824,13 +846,13 @@ async fn think_worker(
             Ok(resp) => {
                 let status = resp.status();
                 if status == 429 || status.is_server_error() {
-                    // Rate-limited or upstream error — queue for retry
+                    // Rate-limited or upstream error - queue for retry
                     if attempt < 3 && retry_queue.len() < 20 {
-                        println!("[think] llm {} — queuing retry {}/3 for {}",
+                        println!("[think] llm {} - queuing retry {}/3 for {}",
                             status, attempt + 1, trigger.org_name);
                         retry_queue.push_back((trigger, attempt + 1));
                     } else {
-                        println!("[think] llm {} — giving up on {} after {} attempts",
+                        println!("[think] llm {} - giving up on {} after {} attempts",
                             status, trigger.org_name, attempt);
                     }
                     continue;
@@ -840,13 +862,13 @@ async fn think_worker(
                     .unwrap_or_default()
             }
             Err(e) => {
-                // Network / timeout error — queue for retry
+                // Network / timeout error - queue for retry
                 if attempt < 3 && retry_queue.len() < 20 {
                     println!("[think] llm network error (retry {}/3 for {}): {}",
                         attempt + 1, trigger.org_name, e);
                     retry_queue.push_back((trigger, attempt + 1));
                 } else {
-                    println!("[think] Groq unreachable — giving up on {} after {} attempts: {}",
+                    println!("[think] Groq unreachable - giving up on {} after {} attempts: {}",
                         trigger.org_name, attempt, e);
                 }
                 continue;
@@ -1030,7 +1052,7 @@ async fn think_worker(
                 }
             },
             "elder_teaching" => {
-                // Response is a free-form teaching sentence — keep it as-is (model was asked for <10 words)
+                // Response is a free-form teaching sentence - keep it as-is (model was asked for <10 words)
                 let teaching = strip_thinking(&response);
                 let teaching = if teaching.len() > 80 {
                     teaching.split_whitespace().take(12).collect::<Vec<_>>().join(" ")
@@ -1103,7 +1125,7 @@ async fn think_worker(
                 let feeling = if first.starts_with("excit") { "excited" }
                     else if first.starts_with("gratef") { "grateful" }
                     else { "cautious" };
-                let thought = format!("discovered {} — feeling {}", trigger.context, feeling);
+                let thought = format!("discovered {} - feeling {}", trigger.context, feeling);
                 println!("[think] {} discovery({}) → {}", trigger.org_name, trigger.context, feeling);
                 ThinkResult {
                     org_id:  trigger.org_id,
@@ -1124,12 +1146,13 @@ async fn ws_handler(
     ws: WebSocketUpgrade,
     State(s): State<AppState>,
 ) -> impl IntoResponse {
-    let rx  = s.tx.subscribe();
-    let sim = s.sim.clone();
-    ws.on_upgrade(move |socket| handle_socket(socket, rx, sim))
+    let rx          = s.tx.subscribe();
+    let sim         = s.sim.clone();
+    let latest_full = s.latest_full.clone();
+    ws.on_upgrade(move |socket| handle_socket(socket, rx, sim, latest_full))
 }
 
-/// GET /org/:id — returns full organism detail including conversations,
+/// GET /org/:id - returns full organism detail including conversations,
 /// vocabulary, thought_history, life_log.  Only called when a panel is open.
 async fn org_detail_handler(
     Path(id): Path<String>,
@@ -1147,12 +1170,23 @@ async fn handle_socket(
     mut socket: WebSocket,
     mut rx: broadcast::Receiver<String>,
     sim: SharedSim,
+    latest_full: LatestFull,
 ) {
-    // Push current state immediately so the client never stares at a blank screen
-    {
-        let snapshot = sim.lock().await.state_json().to_string();
-        if socket.send(Message::Text(snapshot.into())).await.is_err() { return; }
-    }
+    // Push current state immediately so the client never stares at a blank screen.
+    //
+    // Fast path: read the cached full snapshot - no contention with the tick
+    // loop, so this returns in microseconds even if a tick is in flight.
+    // Slow path (server just started, no snapshot built yet): fall back to
+    // computing fresh under sim.lock(), which can stall if a tick is running.
+    let cached = latest_full.read().ok().and_then(|g| g.clone());
+    let snapshot: String = if let Some(s) = cached {
+        // Arc<String> → owned String (cheap: clone bytes only when no other
+        // owner; the cache will be replaced soon anyway).
+        s.as_ref().clone()
+    } else {
+        sim.lock().await.state_json().to_string()
+    };
+    if socket.send(Message::Text(snapshot.into())).await.is_err() { return; }
 
     loop {
         tokio::select! {

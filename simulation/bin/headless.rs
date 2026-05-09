@@ -173,9 +173,9 @@ struct SweepResult {
 enum Verdict {
     Healthy,
     Extinct,        // hit zero alive
-    Runaway,        // sat at MAX_POPULATION for too long — indicates unbounded growth being clamped
+    Runaway,        // sat at MAX_POPULATION for too long - indicates unbounded growth being clamped
     Stagnant,       // population never recovered to a viable level
-    Homogenized,    // diversity collapsed — survivors all from one or two lineages
+    Homogenized,    // diversity collapsed - survivors all from one or two lineages
 }
 
 impl Verdict {
@@ -194,9 +194,9 @@ impl Verdict {
 /// Classify a finished run.
 ///
 /// Rules (first match wins):
-///   1. Extinct: any sample reached 0 — already captured by extinction_tick.
+///   1. Extinct: any sample reached 0 - already captured by extinction_tick.
 ///   2. Runaway: more than 60% of samples were at MAX_POPULATION (= 200). The cap
-///      is hiding what would otherwise be exponential growth — symptom of broken
+///      is hiding what would otherwise be exponential growth - symptom of broken
 ///      mortality or food economy.
 ///   3. Stagnant: peak across all samples never reached 30, OR mean alive across
 ///      the second half of the run was < 15. The world settled at a non-viable
@@ -229,9 +229,9 @@ fn classify(
         return Verdict::Stagnant;
     }
 
-    // Lineage homogenization only meaningful in long runs — early sweeps are noisy.
+    // Lineage homogenization only meaningful in long runs - early sweeps are noisy.
     if ticks_run >= 30_000 && surviving_lineages < 3 {
-        // Suppress the verdict if even the latest snapshot showed > 3 lineages —
+        // Suppress the verdict if even the latest snapshot showed > 3 lineages -
         // a single late-game collapse is not "homogenized".
         let last_lineage = lineage_samples.last().copied().unwrap_or(0);
         if last_lineage < 3 {
@@ -401,7 +401,7 @@ mod tests {
 
     #[test]
     fn classify_homogenized_only_after_long_run() {
-        // Same lineage collapse but only ran 10k ticks — early sweeps are noisy
+        // Same lineage collapse but only ran 10k ticks - early sweeps are noisy
         let samples = vec![80, 85];
         let lineages = vec![12, 2];
         let v = classify(None, &samples, &lineages, 10_000, 2);

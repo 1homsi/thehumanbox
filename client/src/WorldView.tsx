@@ -17,19 +17,19 @@ const TILE_COLORS: Record<number, string> = {
   6: '#555544',
   7: '#cc6600',   // campfire base
   8: '#8b6914',   // hut
-  9: '#3a6688',   // flooded — steel blue
-  10: '#c8a020',  // mineral — gold/amber
-  11: '#2a2018',  // scorched — very dark brown
-  12: '#ddeef5',  // snow — icy blue-white
-  13: '#d9c07a',  // sand — warm desert tan
+  9: '#3a6688',   // flooded - steel blue
+  10: '#c8a020',  // mineral - gold/amber
+  11: '#2a2018',  // scorched - very dark brown
+  12: '#ddeef5',  // snow - icy blue-white
+  13: '#d9c07a',  // sand - warm desert tan
 }
 
 const BIOME_OVERLAYS: Record<number, string> = {
   0: 'rgba(80,140,60,0.08)',    // grassland
   1: 'rgba(20,80,20,0.14)',     // forest
-  2: 'rgba(200,160,60,0.28)',   // desert — warm sand tint
+  2: 'rgba(200,160,60,0.28)',   // desert - warm sand tint
   3: 'rgba(20,100,100,0.10)',   // wetland
-  4: 'rgba(200,230,255,0.10)',  // tundra — subtle cold tint (snow/rock handle the look)
+  4: 'rgba(200,230,255,0.10)',  // tundra - subtle cold tint (snow/rock handle the look)
   5: 'rgba(160,40,20,0.18)',    // volcanic
 }
 
@@ -51,7 +51,7 @@ const TILE_RGB: Record<number, [number,number,number]> =
 const BIOME_RGBA: Record<number, [number,number,number,number]> =
   Object.fromEntries(Object.entries(BIOME_OVERLAYS).map(([k,v]) => [+k, parseRgbaStr(v)]))
 
-// Module-level reusable ImageData buffer — allocate once, write every frame
+// Module-level reusable ImageData buffer - allocate once, write every frame
 let _imgBuf: ImageData | null = null
 let _baseCanvas: HTMLCanvasElement | null = null
 let _baseKey: {
@@ -164,8 +164,8 @@ const THOUGHT_COLORS: Record<string, string> = {
   eating:                  '#6abf45',
   drinking:                '#4499ff',
   'heat dangerous':        '#e8450a',
-  'hungry — searching':    '#cc8800',
-  'thirsty — searching':   '#0099cc',
+  'hungry - searching':    '#cc8800',
+  'thirsty - searching':   '#0099cc',
   'moving to known food':  '#aadd55',
   'moving to known water': '#55aaff',
   'avoiding danger':       '#ff6644',
@@ -198,12 +198,12 @@ function drawCloudShape(
 ) {
   ctx.fillStyle = `rgba(${color},${alpha})`
 
-  // Base body — flat-bottomed ellipse
+  // Base body - flat-bottomed ellipse
   ctx.beginPath()
   ctx.ellipse(cx, cy + cloudH * 0.1, cloudW, cloudH * 0.65, 0, 0, Math.PI * 2)
   ctx.fill()
 
-  // Bumps along the top — 4–6 overlapping circles of varying height & width
+  // Bumps along the top - 4–6 overlapping circles of varying height & width
   const nBumps = 4 + (bumpSeed % 3)
   for (let b = 0; b < nBumps; b++) {
     const t   = b / (nBumps - 1)          // 0..1 across the cloud width
@@ -232,7 +232,7 @@ function drawClouds(
 
   ctx.save()
   for (let i = 0; i < count; i++) {
-    const seed   = (i + 1) * 137          // integer seed — avoids float-modulo always hitting 0
+    const seed   = (i + 1) * 137          // integer seed - avoids float-modulo always hitting 0
     const baseX  = ((seed * 73)  % 1000) / 1000 * W
     // Spread clouds across full height; storm clouds skew lower (more coverage)
     const baseY  = isStorm
@@ -270,7 +270,7 @@ function drawWorldOnCanvas(
   viewFlags: ViewFlags,
 ) {
   const { width, height, tiles, fire_intensity, structure } = world.grid
-  // Tiles arrive on tick 0 and every 5th tick — skip this frame if not yet received
+  // Tiles arrive on tick 0 and every 5th tick - skip this frame if not yet received
   if (!tiles || tiles.length < height) return
   const ox = world.grid.origin_x ?? 0
   const oy = world.grid.origin_y ?? 0
@@ -294,7 +294,7 @@ function drawWorldOnCanvas(
   if (skyTint) { ctx.fillStyle = skyTint; ctx.fillRect(0, 0, W, H) }
 
   // ── Pass 2: Special tile visuals (fire glow, campfires, huts) ───────────────
-  // Only iterates tiles that need extra rendering — typically <1% of tiles.
+  // Only iterates tiles that need extra rendering - typically <1% of tiles.
   for (let row = 0; row < height; row++) {
     for (let col = 0; col < width; col++) {
       const t = tiles[row][col]
@@ -309,7 +309,7 @@ function drawWorldOnCanvas(
         ctx.fillRect(px, py, TILE, TILE)
       }
 
-      // Campfire — warm amber glow + halo on neighboring tiles
+      // Campfire - warm amber glow + halo on neighboring tiles
       if (t === 7 && fire_intensity) {
         const fi = fire_intensity[row][col]
         ctx.fillStyle = `rgba(255,200,80,${fi * 0.7})`
@@ -324,7 +324,7 @@ function drawWorldOnCanvas(
         }
       }
 
-      // Hut — flat fill at small TILE, detailed at large TILE
+      // Hut - flat fill at small TILE, detailed at large TILE
       if (t === 8) {
         ctx.fillStyle = 'rgba(255,220,120,0.18)'
         ctx.fillRect(px - TILE, py - TILE, TILE * 3, TILE * 3)
@@ -342,7 +342,7 @@ function drawWorldOnCanvas(
           ctx.fillStyle = '#3a1a00'
           ctx.fillRect(cx2 - 1, py + TILE * 0.7, 3, TILE * 0.3 - 1)
         } else {
-          // simple hut mark — bright spot
+          // simple hut mark - bright spot
           ctx.fillStyle = '#c8a060'
           ctx.fillRect(px, py, TILE, TILE)
         }
@@ -350,7 +350,7 @@ function drawWorldOnCanvas(
     }
   }
 
-  // Structure tier overlay — renders progressive building stages below the Hut tile level
+  // Structure tier overlay - renders progressive building stages below the Hut tile level
   if (structure) {
     for (let row = 0; row < height; row++) {
       for (let col = 0; col < width; col++) {
@@ -362,7 +362,7 @@ function drawWorldOnCanvas(
         const py = row * TILE
         const alpha = Math.min(0.95, 0.4 + s * 0.55)
         if (TILE >= 8) {
-          // Detailed sub-tile drawing — only worth it at larger tile sizes
+          // Detailed sub-tile drawing - only worth it at larger tile sizes
           const cx2 = px + TILE / 2
           if (s >= 0.70) {
             ctx.fillStyle = `rgba(120,90,60,${0.6 + s * 0.3})`
@@ -399,7 +399,7 @@ function drawWorldOnCanvas(
 
   // World memory overlays
   if (overlay === 'density') {
-    // Population density — compute from organism positions (offset to viewport coords)
+    // Population density - compute from organism positions (offset to viewport coords)
     const grid2d: number[][] = Array.from({ length: height }, () => new Array(width).fill(0))
     for (const org of organisms) {
       if (!org.alive) continue
@@ -428,8 +428,8 @@ function drawWorldOnCanvas(
     }
   }
 
-  // Territory Voronoi overlay — each coarse block colored by nearest organism's lineage
-  // Only colors land tiles within MAX_DIST tiles of any organism — ocean stays uncolored
+  // Territory Voronoi overlay - each coarse block colored by nearest organism's lineage
+  // Only colors land tiles within MAX_DIST tiles of any organism - ocean stays uncolored
   const liveOrgs = organisms.filter(o => o.alive && o.lineage_id)
   if (viewFlags.territory && liveOrgs.length > 0) {
     const BLOCK = 4
@@ -514,7 +514,7 @@ function drawWorldOnCanvas(
     ctx.fillRect(0, 0, W, H)
   }
 
-  // Weather — clouds + rain streaks
+  // Weather - clouds + rain streaks
   const weather = world.weather
   drawClouds(ctx, W, H, weather, t)
   if (weather && weather.kind !== 'clear') {
@@ -523,7 +523,7 @@ function drawWorldOnCanvas(
     const tintAlpha = weather.intensity * (isStorm ? 0.38 : 0.22)
     ctx.fillStyle = isStorm ? `rgba(18,28,60,${tintAlpha})` : `rgba(45,90,170,${tintAlpha})`
     ctx.fillRect(0, 0, W, H)
-    // Animated rain streaks — offset by time so they fall each frame
+    // Animated rain streaks - offset by time so they fall each frame
     const streakSpacing = isStorm ? 5 : 9
     const streakOpacity = weather.intensity * (isStorm ? 0.75 : 0.50)
     const animOffset    = (t / (isStorm ? 40 : 65)) % streakSpacing
@@ -604,7 +604,7 @@ function drawWorldOnCanvas(
       ctx.fill()
     }
 
-    // Elder ring — oldest member of their lineage
+    // Elder ring - oldest member of their lineage
     if (org.is_elder) {
       ctx.strokeStyle = 'rgba(255,220,80,0.85)'
       ctx.lineWidth = 1.5
@@ -629,7 +629,7 @@ function drawWorldOnCanvas(
       ctx.beginPath(); ctx.arc(px, py, 7, 0, Math.PI * 2); ctx.stroke()
     }
 
-    // Carrying indicator — brown (wood) or gray (stone) square above body
+    // Carrying indicator - brown (wood) or gray (stone) square above body
     if (org.carrying > 0) {
       ctx.fillStyle = org.carrying_type === 2 ? '#9a9a9a' : '#8b5e3c'
       ctx.fillRect(px - 3, py - 13, 6, 4)
@@ -690,11 +690,11 @@ function WorldTextureUpdater({ world, interp, selectedOrgId, overlay, focus, vie
   const texKeyRef  = useRef<string>('')
   const initialised = useRef(false)
   const hasDrawn   = useRef(false)
-  // Cache the last-received static maps — depth_map/biomes only arrive every 30 ticks
+  // Cache the last-received static maps - depth_map/biomes only arrive every 30 ticks
   const cachedDepth  = useRef<number[][] | null>(null)
   const cachedBiomes = useRef<number[][] | null>(null)
 
-  // Initialise texture once on mount — useLayoutEffect so the texture is injected
+  // Initialise texture once on mount - useLayoutEffect so the texture is injected
   // before Cubeforge's first WebGL frame, preventing the green placeholder flash.
   useLayoutEffect(() => {
     const rs = (engine as any).activeRenderSystem
@@ -709,7 +709,7 @@ function WorldTextureUpdater({ world, interp, selectedOrgId, overlay, focus, vie
     const tex = gl.createTexture()!
     glTexRef.current = tex
 
-    // Create offscreen canvas — pre-fill with ocean blue so first frame isn't a flash of green
+    // Create offscreen canvas - pre-fill with ocean blue so first frame isn't a flash of green
     const W = world.grid.width * TILE
     const H = world.grid.height * TILE
     const cv = document.createElement('canvas')
@@ -719,7 +719,7 @@ function WorldTextureUpdater({ world, interp, selectedOrgId, overlay, focus, vie
     initCtx.fillRect(0, 0, W, H)
     offscreen.current = cv
 
-    // Initial upload — ocean-blue canvas so texture is valid and colour-matched from frame 1
+    // Initial upload - ocean-blue canvas so texture is valid and colour-matched from frame 1
     gl.bindTexture(gl.TEXTURE_2D, tex)
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
@@ -733,7 +733,7 @@ function WorldTextureUpdater({ world, interp, selectedOrgId, overlay, focus, vie
 
     initialised.current = true
 
-    // Cleanup on unmount — delete the GL texture to prevent VRAM leaks on HMR/remount
+    // Cleanup on unmount - delete the GL texture to prevent VRAM leaks on HMR/remount
     return () => {
       try {
         const cleanGl: WebGL2RenderingContext = (engine as any).activeRenderSystem.gl
@@ -765,7 +765,7 @@ function WorldTextureUpdater({ world, interp, selectedOrgId, overlay, focus, vie
   // Replaces the old "redraw whenever `world` prop changes" pattern. The loop
   // runs at the browser's refresh rate (~60 fps) DURING interpolation between
   // the previous and current WS snapshots. Once interpolation completes (t=1)
-  // and no new snapshot has arrived, we stop redrawing — there's nothing new
+  // and no new snapshot has arrived, we stop redrawing - there's nothing new
   // on screen and another texSubImage2D would just re-upload the same 11.5 MB
   // texture for no reason.
   useEffect(() => {
@@ -806,7 +806,7 @@ function WorldTextureUpdater({ world, interp, selectedOrgId, overlay, focus, vie
       // ── Skip-when-settled ──────────────────────────────────────────────
       // If interpolation has finished AND no new snapshot has arrived since
       // the last draw AND no UI state changed (selected org, overlay, etc),
-      // there's literally nothing new to draw. Bail out — the previously
+      // there's literally nothing new to draw. Bail out - the previously
       // uploaded GPU texture is still on screen and identical.
       const uiKey = `${selectedOrgIdRef.current ?? ''}|${overlayRef.current ?? ''}|${focusRef.current}|${viewFlagsRef.current.territory ? 't':''}${viewFlagsRef.current.names ? 'n':''}${viewFlagsRef.current.thoughts ? 'h':''}${viewFlagsRef.current.animals ? 'a':''}${viewFlagsRef.current.grid ? 'g':''}`
       const settled = t >= 1 && lastDrawnT >= 1 && curAt === lastDrawnAt && uiKey === lastDrawnUI
@@ -873,7 +873,7 @@ function WorldTextureUpdater({ world, interp, selectedOrgId, overlay, focus, vie
 
 // ── CameraController ──────────────────────────────────────────────────────────
 // Must be inside <Game>. Handles mouse drag (pan) and scroll wheel (zoom).
-// containerEl: the outer div — wheel/pointerdown scoped to it so sidebar scrolls freely.
+// containerEl: the outer div - wheel/pointerdown scoped to it so sidebar scrolls freely.
 
 function CameraController({
   worldW, worldH, containerW, containerH,
@@ -900,7 +900,7 @@ function CameraController({
     if (initialised.current) return
     const tx = worldW / 2
     const ty = worldH / 2
-    // Fit world to container — start at fit zoom, never below dynamic min
+    // Fit world to container - start at fit zoom, never below dynamic min
     const fitZoom = Math.max(minZoom, Math.min(containerW / worldW, containerH / worldH) * 0.95)
     let raf = 0
     const trySet = () => {
@@ -919,7 +919,7 @@ function CameraController({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Follow a target organism — pan to it AND zoom in so it fills the view
+  // Follow a target organism - pan to it AND zoom in so it fills the view
   const prevFollowRef = useRef<{ x: number; y: number } | null>(null)
   useEffect(() => {
     if (!followTarget) return
@@ -944,7 +944,7 @@ function CameraController({
     if (!containerEl) return
 
     // Clamp camera center so the world always stays in view.
-    // When fully zoomed out (world fits inside viewport) no clamping is needed —
+    // When fully zoomed out (world fits inside viewport) no clamping is needed -
     // the world is always visible regardless of camera position.
     // When zoomed in, keep the viewport from crossing world edges.
     const clamp = (x: number, y: number, zoom: number) => {

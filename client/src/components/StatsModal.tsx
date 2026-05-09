@@ -11,7 +11,7 @@ interface Props {
 }
 
 function PopChart({ history }: { history: [number, number][] }) {
-  // viewBox-based chart — scales to whatever container width the modal
+  // viewBox-based chart - scales to whatever container width the modal
   // gives it. The internal coordinate system stays at W=1000 H=240 so
   // labels and stroke widths render at predictable sizes; CSS sets the
   // SVG to width: 100% so the actual pixels follow the viewport.

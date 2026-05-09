@@ -7,13 +7,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <title>The Human Box</title>
-  <meta name="description" content="Watch a world of agents live, learn, bond, and build. A live emergent simulation — language, lineages, and civilisation rising from primitive instincts." />
+  <meta name="description" content="Watch a world of agents live, learn, bond, and build. A live emergent simulation - language, lineages, and civilisation rising from primitive instincts." />
 
   <!-- ── Open Graph (WhatsApp, LinkedIn, Discord, Slack, Telegram, etc.) ── -->
   <meta property="og:type"        content="website" />
   <meta property="og:url"         content="https://thehumanbox.com/" />
   <meta property="og:title"       content="The Human Box" />
-  <meta property="og:description" content="Watch a world of agents live, learn, bond, and build. A live emergent simulation — language, lineages, and civilisation rising from primitive instincts." />
+  <meta property="og:description" content="Watch a world of agents live, learn, bond, and build. A live emergent simulation - language, lineages, and civilisation rising from primitive instincts." />
   <meta property="og:image"             content="https://thehumanbox.com/og-cover.jpg?v=2" />
   <meta property="og:image:secure_url"  content="https://thehumanbox.com/og-cover.jpg?v=2" />
   <meta property="og:image:type"        content="image/jpeg" />
@@ -27,15 +27,49 @@
   <meta name="twitter:card"        content="summary_large_image" />
   <meta name="twitter:url"         content="https://thehumanbox.com/" />
   <meta name="twitter:title"       content="The Human Box" />
-  <meta name="twitter:description" content="Watch a world of agents live, learn, bond, and build. A live emergent simulation — language, lineages, and civilisation rising from primitive instincts." />
+  <meta name="twitter:description" content="Watch a world of agents live, learn, bond, and build. A live emergent simulation - language, lineages, and civilisation rising from primitive instincts." />
   <meta name="twitter:image"       content="https://thehumanbox.com/og-cover.jpg?v=2" />
   <meta name="twitter:image:alt"   content="A live aerial view of the simulated world: islands, tribes, fires, weather, and dozens of organisms moving across the map." />
 
   <!-- ── Theme colour (Android Chrome / iOS PWA) ── -->
   <meta name="theme-color" content="#1a4a80" />
+
+  <!-- ── Splash screen - paints before any JS evaluates so the user sees
+       something within ~100ms even on slow links. The React app removes
+       #thb-splash from the DOM after first paint. ── -->
+  <style>
+    html, body { margin: 0; padding: 0; background: #0c0a08; color: #c8c0b0; font-family: ui-sans-serif, system-ui, sans-serif; }
+    #thb-splash {
+      position: fixed; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 18px;
+      background: radial-gradient(ellipse at center, #14110d 0%, #07060a 100%);
+      z-index: 9999;
+      transition: opacity 360ms ease;
+    }
+    #thb-splash.hide { opacity: 0; pointer-events: none; }
+    #thb-splash h1 {
+      margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 0.18em;
+      color: #d8d2c4; text-transform: uppercase;
+    }
+    #thb-splash .thb-sub {
+      font-size: 11px; letter-spacing: 0.12em; color: #5e5648;
+      text-transform: uppercase;
+    }
+    #thb-splash .thb-spinner {
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 2px solid #2e2820; border-top-color: #d4a843;
+      animation: thb-spin 1s linear infinite;
+    }
+    @keyframes thb-spin { to { transform: rotate(360deg); } }
+  </style>
 </head>
 
 <body>
+  <div id="thb-splash">
+    <div class="thb-spinner" aria-hidden="true"></div>
+    <h1>The Human Box</h1>
+    <div class="thb-sub">spinning up the world…</div>
+  </div>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
