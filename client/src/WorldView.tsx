@@ -870,7 +870,10 @@ function WorldTextureUpdater({ world, interp, selectedOrgId, overlay, focus, vie
       lastDrawnT  = t
       lastDrawnUI = uiKey
 
-      if (!hasDrawn.current) { hasDrawn.current = true; onFirstDraw() }
+      if (!hasDrawn.current) {
+        hasDrawn.current = true
+        requestAnimationFrame(() => requestAnimationFrame(onFirstDraw))
+      }
     }
 
     raf = requestAnimationFrame(tick)
@@ -1095,12 +1098,12 @@ export function WorldView({ world, interp }: Props) {
       style={{ flex: 1, minWidth: 0, overflow: 'hidden', cursor: 'grab', position: 'relative' }}
       onClick={handleClick}
     >
-      {!mapReady && (
-        <div style={{
-          position: 'absolute', inset: 0, background: '#1a4a80', zIndex: 10,
-          pointerEvents: 'none'
-        }} />
-      )}
+      <div style={{
+        position: 'absolute', inset: 0, background: '#1a4a80', zIndex: 10,
+        pointerEvents: 'none',
+        opacity: mapReady ? 0 : 1,
+        transition: 'opacity 280ms ease-out',
+      }} />
       {dims.w > 0 && (
         <Game
           gravity={0}
