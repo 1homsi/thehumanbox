@@ -138,6 +138,10 @@ pub struct Simulation {
     pub world_seed:            u64,          // seed used for this world's terrain - persisted so depth/elevation reload correctly
     next_animal_id:            usize,
     rng:                       ChaCha8Rng,
+    // Tick of the last extinction-protection immigration. Throttles the
+    // safety net so we don't spam new tribes when the population briefly
+    // dips. Default 0 (never) so the first dip immediately triggers.
+    pub last_immigration_tick: u64,
     // ── Throttled-computation cache ─────────────────────────────────────────
     // These are derived from organism data; not saved, recomputed every N ticks.
     cached_tribal_relations:   serde_json::Value,  // recomputed every 60 ticks
@@ -209,6 +213,7 @@ impl Simulation {
             world_seed: seed,
             next_animal_id: 0,
             rng,
+            last_immigration_tick:   0,
             cached_tribal_relations: serde_json::Value::Array(vec![]),
             cached_lineage_sizes:    serde_json::Value::Array(vec![]),
             slow_compute_tick:       0,
@@ -324,6 +329,110 @@ impl Simulation {
                 i += 1;
             }
         }
+    }
+
+    /// Extinction-protection immigration. Spawn a small wandering tribe at
+    /// a fertile, well-watered spot away from any existing settlement so
+    /// they have room to recover. Members are pre-aged and pre-bonded so
+    /// the new tribe can start producing children almost immediately.
+    fn spawn_immigrant_tribe(&mut self) {
+        use crate::world::tiles::Tile;
+        use uuid::Uuid;
+        use crate::organism::organism::{generate_name, Sex, apply_sex_traits};
+        use crate::organism::traits::Traits;
+        use crate::organism::vocabulary::Vocabulary;
+        use crate::world::grid::WorldGrid;
+
+        // Find a fertile patch with water nearby. Score each candidate land
+        // tile by fertility * distance-to-water-bonus, pick from top quartile.
+        let mut candidates: Vec<(i32, i32, f32)> = Vec::new();
+        for y in 4..(crate::world::grid::HEIGHT as i32 - 4) {
+            for x in 4..(crate::world::grid::WIDTH as i32 - 4) {
+                if !matches!(self.grid.get(x, y), Tile::Grass | Tile::Food) { continue; }
+                let fert = self.grid.fertility_at(x, y);
+                if fert < 0.4 { continue; }
+                // Cheap water-nearby check
+                let mut water_near = false;
+                'wn: for dx in -4i32..=4 { for dy in -4i32..=4 {
+                    if WorldGrid::in_bounds(x+dx, y+dy)
+                        && matches!(self.grid.get(x+dx, y+dy), Tile::Water) { water_near = true; break 'wn; }
+                }}
+                if !water_near { continue; }
+                candidates.push((x, y, fert));
+            }
+        }
+        if candidates.is_empty() { return; }
+        // Pick a random candidate biased toward higher fertility (top half)
+        candidates.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
+        let pool = candidates.len().max(1).min(candidates.len()).max(8);
+        let half = candidates.len() / 2;
+        let (anchor_x, anchor_y, _) = candidates[self.rng.gen_range(0..half.max(1).min(pool))];
+
+        // Decide tribe size (6-10) and create a fresh lineage.
+        let tribe_size = self.rng.gen_range(6usize..=10);
+        let lineage_id = Uuid::new_v4().to_string()[..8].to_string();
+        let tribe_name = crate::organism::organism::generate_tribe_name(&mut self.rng);
+        self.lineage_names.insert(lineage_id.clone(), tribe_name.clone());
+
+        // Find tribe_size land tiles within radius 6 of the anchor.
+        let mut land: Vec<(i32, i32)> = Vec::new();
+        for dx in -6i32..=6 { for dy in -6i32..=6 {
+            let nx = anchor_x + dx; let ny = anchor_y + dy;
+            if !WorldGrid::in_bounds(nx, ny) { continue; }
+            if matches!(self.grid.get(nx, ny), Tile::Grass | Tile::Food) {
+                land.push((nx, ny));
+            }
+        }}
+        if land.is_empty() { return; }
+        let take = tribe_size.min(land.len());
+
+        // Spawn pre-aged adults (age ~2000-5000 = 3-8 sim-days) so they
+        // can reproduce immediately. Half male, half female so pairing is
+        // possible without waiting on chance.
+        let start_idx = self.organisms.len();
+        for k in 0..take {
+            let j = k + self.rng.gen_range(0..(land.len() - k));
+            land.swap(k, j);
+            let (lx, ly) = land[k];
+
+            let id = Uuid::new_v4().to_string()[..8].to_string();
+            let sex = if k % 2 == 0 { Sex::Male } else { Sex::Female };
+            let mut traits = Traits::random(&mut self.rng);
+            apply_sex_traits(&mut traits, sex);
+            let max_age = self.rng.gen_range(
+                (9000.0 + 4000.0 * traits.resilience) as u32
+                ..=(14000.0 + 6000.0 * traits.resilience) as u32
+            );
+            let mut org = Organism::new(
+                id.clone(), generate_name(&mut self.rng, sex),
+                lx as f32, ly as f32,
+                0, String::new(), lineage_id.clone(), max_age, traits,
+            );
+            org.sex = sex;
+            org.age = self.rng.gen_range(2000u32..=5000);  // already adult
+            org.energy    = 0.85;
+            org.hydration = 0.85;
+            org.health    = 0.95;
+            org.vocabulary = Vocabulary::generate(&mut self.rng);
+            self.organisms.push(org);
+        }
+
+        // Pair them up so reproduction has a partner from tick 0.
+        let n = self.organisms.len() - start_idx;
+        for k in (0..n).step_by(2) {
+            if k + 1 >= n { break; }
+            let a = start_idx + k;
+            let b = start_idx + k + 1;
+            let aid = self.organisms[a].id.clone();
+            let bid = self.organisms[b].id.clone();
+            self.organisms[a].partner_id = Some(bid);
+            self.organisms[b].partner_id = Some(aid);
+        }
+
+        // Announce the arrival in the world events log.
+        use crate::sim::world_events::push_event;
+        push_event(&mut self.events, self.tick_count, "migrate", &tribe_name,
+            &format!("a wandering tribe arrives ({} souls)", take));
     }
 
     fn push_think_for(&mut self, org_idx: usize, trigger: ThinkTrigger) {
@@ -450,6 +559,23 @@ impl Simulation {
         }
 
         let alive_count_before_loop = self.organisms.iter().filter(|o| o.alive).count();
+
+        // ── Extinction protection: immigration ─────────────────────────────
+        // Hard guarantee that the world never goes extinct. When the alive
+        // population drops below the survival floor we conjure a small
+        // wandering tribe of 6-10 adults at a fertile, well-watered spot.
+        //
+        // Throttled to once every 600 ticks (1 sim-day) so a series of
+        // unlucky deaths during a drought doesn't dump 100 immigrants in.
+        // Threshold of 25 is below the natural emergency-mode trigger so
+        // we only step in when the existing recovery logic can't cope.
+        if alive_count_before_loop < 25
+            && self.tick_count - self.last_immigration_tick >= 600
+        {
+            self.spawn_immigrant_tribe();
+            self.last_immigration_tick = self.tick_count;
+        }
+
         // Build a spatial index over current organism positions once per tick.
         // Per-organism proximity scans (kin_near, hostile_near, crowding, etc.) then run
         // in O(neighbours_in_bucket) instead of O(N) per call. Bucket size 10 is a good
@@ -2460,6 +2586,7 @@ impl Simulation {
             next_animal_id:         state.next_animal_id,
             lineage_names:          state.lineage_names,
             rng:                    state.rng.unwrap_or_else(|| ChaCha8Rng::seed_from_u64(seed ^ state.tick_count)),
+            last_immigration_tick:   0,  // reset on load - the immigration trigger is purely live-state
             cached_tribal_relations: serde_json::Value::Array(vec![]),
             cached_lineage_sizes:    serde_json::Value::Array(vec![]),
             slow_compute_tick:       0,

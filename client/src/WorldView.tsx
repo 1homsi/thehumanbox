@@ -690,6 +690,15 @@ function WorldTextureUpdater({ world, interp, selectedOrgId, overlay, focus, vie
   const texKeyRef  = useRef<string>('')
   const initialised = useRef(false)
   const hasDrawn   = useRef(false)
+  // When set, the next RAF tick will do a full texImage2D re-allocation
+  // (not just texSubImage2D) and re-inject into cubeforge's texture cache.
+  // Triggered on:
+  //   - visibilitychange (tab returning from background) - browsers throttle
+  //     hidden tabs and may release WebGL textures
+  //   - webglcontextrestored - explicit context-loss recovery
+  // Without this, returning to a hidden tab shows a single huge green
+  // rectangle because the GPU texture is stale/invalid.
+  const needsFullReupload = useRef(false)
   // Cache the last-received static maps - depth_map/biomes only arrive every 30 ticks
   const cachedDepth  = useRef<number[][] | null>(null)
   const cachedBiomes = useRef<number[][] | null>(null)
@@ -733,8 +742,36 @@ function WorldTextureUpdater({ world, interp, selectedOrgId, overlay, focus, vie
 
     initialised.current = true
 
+    // ── Tab-visibility / context-loss recovery ────────────────────────────
+    // Hidden tabs lose their WebGL context on most browsers (Chrome aggressively
+    // releases GPU memory in background tabs). When the user comes back, our
+    // `glTexRef` still points at a destroyed GL texture object, so the next
+    // texSubImage2D writes into nothing and Cubeforge's sprite shader samples
+    // a zero/garbage texture - which is what produces the giant green
+    // rectangle the user reported.
+    //
+    // Fix: every time visibility flips to visible, mark the texture for full
+    // re-allocation. The RAF tick (below) catches the flag and does a fresh
+    // texImage2D + re-inject so the world repaints correctly.
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') needsFullReupload.current = true
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+
+    // Explicit WebGL context-loss path. The canvas fires this when the GPU
+    // pulls the rug; we must re-create the texture rather than reuse the
+    // stale handle. preventDefault lets the browser fire `restored` later.
+    const cubeforgeCanvas = (rs as any).canvas as HTMLCanvasElement | undefined
+    const onContextLost = (e: Event) => { e.preventDefault(); needsFullReupload.current = true }
+    const onContextRestored = () => { needsFullReupload.current = true }
+    cubeforgeCanvas?.addEventListener('webglcontextlost',     onContextLost)
+    cubeforgeCanvas?.addEventListener('webglcontextrestored', onContextRestored)
+
     // Cleanup on unmount - delete the GL texture to prevent VRAM leaks on HMR/remount
     return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      cubeforgeCanvas?.removeEventListener('webglcontextlost',     onContextLost)
+      cubeforgeCanvas?.removeEventListener('webglcontextrestored', onContextRestored)
       try {
         const cleanGl: WebGL2RenderingContext = (engine as any).activeRenderSystem.gl
         if (glTexRef.current) { cleanGl.deleteTexture(glTexRef.current); glTexRef.current = null }
@@ -808,9 +845,13 @@ function WorldTextureUpdater({ world, interp, selectedOrgId, overlay, focus, vie
       // the last draw AND no UI state changed (selected org, overlay, etc),
       // there's literally nothing new to draw. Bail out - the previously
       // uploaded GPU texture is still on screen and identical.
+      //
+      // Exception: if we just came back from a hidden tab the GPU texture
+      // is gone and the on-screen image is whatever stale memory remains
+      // (the giant green rect bug). Force one draw + full re-upload then.
       const uiKey = `${selectedOrgIdRef.current ?? ''}|${overlayRef.current ?? ''}|${focusRef.current}|${viewFlagsRef.current.territory ? 't':''}${viewFlagsRef.current.names ? 'n':''}${viewFlagsRef.current.thoughts ? 'h':''}${viewFlagsRef.current.animals ? 'a':''}${viewFlagsRef.current.grid ? 'g':''}`
       const settled = t >= 1 && lastDrawnT >= 1 && curAt === lastDrawnAt && uiKey === lastDrawnUI
-      if (settled) return
+      if (settled && !needsFullReupload.current) return
 
       // Build an interpolated organism list. When prev exists and the org was
       // alive in both snapshots, lerp x/y. Births/deaths use the current pos as-is.

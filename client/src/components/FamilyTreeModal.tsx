@@ -463,12 +463,24 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
         )}
       </div>
 
-      <div className="tree-scroll" ref={wrapRef} style={{ overflow: 'hidden', cursor: 'grab' }}>
+      <div className="tree-scroll" ref={wrapRef} style={{ overflow: 'hidden', cursor: 'grab', position: 'relative' }}>
         <canvas
           ref={canvasRef}
           onMouseMove={onMouseMove}
           onMouseLeave={() => setHoverId(null)}
-          style={{ display: 'block', userSelect: 'none' }}
+          // - width/height: 100% so the canvas fills the wrapper (was sized only
+          //   in pixel-dimensions, leaving CSS size unset and the d3-zoom hit
+          //   region offset from where the user clicks).
+          // - touchAction: none stops the browser from grabbing drag/scroll
+          //   gestures before d3-zoom can; without this, panning silently does
+          //   nothing on touch / trackpad gestures and feels broken.
+          style={{
+            display: 'block',
+            width:  '100%',
+            height: '100%',
+            userSelect: 'none',
+            touchAction: 'none',
+          }}
         />
       </div>
 

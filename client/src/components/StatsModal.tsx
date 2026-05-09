@@ -199,48 +199,55 @@ export function StatsModal({ world, onClose }: Props) {
             </div>
           </div>
 
-          {/* Population chart */}
+          {/* Population chart - full width because it's a time series and
+              squashing it would lose readability. */}
           <div className="stats-section-title">POPULATION OVER TIME</div>
           <div className="stats-chart-wrap">
             <PopChart history={world.pop_history ?? []} />
           </div>
 
-          {/* Tribal relations */}
-          <div className="stats-section-title">TRIBAL RELATIONS</div>
-          <RelationsTable
-            relations={world.tribal_relations ?? []}
-            lineageSizes={world.lineage_sizes ?? []}
-          />
+          {/* Lower sections in a 2-column grid so the 1200 px modal
+              isn't a tall single column with whitespace on the right. */}
+          <div className="stats-grid">
+            <section>
+              <div className="stats-section-title">TRIBAL RELATIONS</div>
+              <RelationsTable
+                relations={world.tribal_relations ?? []}
+                lineageSizes={world.lineage_sizes ?? []}
+              />
+            </section>
 
-          {/* Discovery timeline */}
-          <div className="stats-section-title">DISCOVERY LOG</div>
-          <DiscoveryTimeline events={world.events ?? []} />
-
-          {/* World era history */}
-          {world.history.era_history && world.history.era_history.length > 0 && (
-            <>
-              <div className="stats-section-title">WORLD ERAS</div>
-              <div className="stats-timeline">
-                {[...world.history.era_history].reverse().slice(0, 12).map((e, i) => (
-                  <div key={i} className="stats-timeline-row">
-                    <span className="stats-tick">d{Math.floor(e.tick / DAY_LENGTH)}</span>
-                    <span className={`era-badge era-${e.era}`} style={{ fontSize: 9 }}>{e.era}</span>
-                  </div>
-                ))}
+            <section>
+              <div className="stats-section-title">CAUSES OF DEATH</div>
+              <div className="stats-death-grid">
+                <span className="hist-label">starvation</span>  <span className="hist-val">{world.history.deaths_starvation}</span>
+                <span className="hist-label">dehydration</span> <span className="hist-val">{world.history.deaths_dehydration}</span>
+                <span className="hist-label">sickness</span>    <span className="hist-val">{world.history.deaths_sickness}</span>
+                <span className="hist-label">combat</span>      <span className="hist-val">{world.history.deaths_combat}</span>
+                <span className="hist-label">old age</span>     <span className="hist-val">{world.history.deaths_old_age}</span>
+                <span className="hist-label">droughts</span>    <span className="hist-val">{world.history.droughts}</span>
+                <span className="hist-label">outbreaks</span>   <span className="hist-val">{world.history.outbreaks}</span>
               </div>
-            </>
-          )}
+            </section>
 
-          {/* Deaths breakdown */}
-          <div className="stats-section-title">CAUSES OF DEATH</div>
-          <div className="stats-death-grid">
-            <span className="hist-label">starvation</span>  <span className="hist-val">{world.history.deaths_starvation}</span>
-            <span className="hist-label">dehydration</span> <span className="hist-val">{world.history.deaths_dehydration}</span>
-            <span className="hist-label">sickness</span>    <span className="hist-val">{world.history.deaths_sickness}</span>
-            <span className="hist-label">combat</span>      <span className="hist-val">{world.history.deaths_combat}</span>
-            <span className="hist-label">old age</span>     <span className="hist-val">{world.history.deaths_old_age}</span>
-            <span className="hist-label">droughts</span>    <span className="hist-val">{world.history.droughts}</span>
-            <span className="hist-label">outbreaks</span>   <span className="hist-val">{world.history.outbreaks}</span>
+            <section>
+              <div className="stats-section-title">DISCOVERY LOG</div>
+              <DiscoveryTimeline events={world.events ?? []} />
+            </section>
+
+            {world.history.era_history && world.history.era_history.length > 0 && (
+              <section>
+                <div className="stats-section-title">WORLD ERAS</div>
+                <div className="stats-timeline">
+                  {[...world.history.era_history].reverse().slice(0, 12).map((e, i) => (
+                    <div key={i} className="stats-timeline-row">
+                      <span className="stats-tick">d{Math.floor(e.tick / DAY_LENGTH)}</span>
+                      <span className={`era-badge era-${e.era}`} style={{ fontSize: 9 }}>{e.era}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
 
         </div>
