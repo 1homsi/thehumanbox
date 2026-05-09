@@ -646,6 +646,7 @@ impl Simulation {
             self.animals.iter().any(|a| a.alive && (a.x - ox).abs() + (a.y - oy).abs() <= 8.0)
         };
         let perception = self.organisms[idx].perceive(&self.grid, &self.organisms, night, animal_near);
+        self.validate_or_assign_wander_target(idx);
         let (action, new_thought) = self.organisms[idx].choose_action(
             &self.grid, self.tick_count, epsilon, &self.organisms, night,
             self.weather.kind, &mut self.rng, animal_near, &perception);
@@ -1023,6 +1024,7 @@ impl Simulation {
         };
         self.organisms[idx].energy    = (self.organisms[idx].energy    - 0.003 * shelter_drain_mult).max(0.0);
         self.organisms[idx].hydration = (self.organisms[idx].hydration - 0.002).max(0.0);
+        self.apply_water_fatigue(idx, cx, cy);
         if night {
             let has_torch = self.organisms[idx].discoveries.contains("torch");
             // Shelter also halves night cold-drain — a roof keeps warmth in
@@ -2059,6 +2061,37 @@ impl Simulation {
         self.animals.retain(|a| a.alive);
     }
 
+    fn apply_water_fatigue(&mut self, idx: usize, x: i32, y: i32) {
+        if self.grid.get(x, y) != Tile::Water {
+            self.organisms[idx].water_ticks = 0;
+            return;
+        }
+
+        let depth = self.grid.depth_at(x, y);
+        let ticks = self.organisms[idx].water_ticks.saturating_add(1);
+        self.organisms[idx].water_ticks = ticks;
+
+        let fatigue = (ticks.saturating_sub(4) as f32 * 0.00045)
+            + 0.0015
+            + depth * 0.004;
+        self.organisms[idx].energy = (self.organisms[idx].energy - fatigue).max(0.0);
+
+        if ticks > 12 || depth > 0.45 {
+            let panic = (ticks.saturating_sub(12) as f32 * 0.0007) + depth * 0.0025;
+            self.organisms[idx].health = (self.organisms[idx].health - panic).max(0.0);
+            self.organisms[idx].fear_level = (self.organisms[idx].fear_level + 0.025 + depth * 0.04).min(1.0);
+            self.organisms[idx].think("struggling in water", self.tick_count);
+            let ms = self.organisms[idx].traits.memory_strength;
+            Organism::remember(&mut self.organisms[idx].danger_memory, x, y, 0.85, ms);
+        }
+
+        if ticks > 6 {
+            if let Some(land) = self.nearest_land_from(x, y, 18) {
+                self.organisms[idx].wander_target = Some(land);
+            }
+        }
+    }
+
     // ── Broadcast ─────────────────────────────────────────────────────────────
 
     fn broadcast_discovery(&mut self, actor_idx: usize, x: i32, y: i32,
@@ -2077,6 +2110,82 @@ impl Simulation {
                 _ => {}
             }
         }
+    }
+
+    fn validate_or_assign_wander_target(&mut self, idx: usize) {
+        if let Some((tx, ty)) = self.organisms[idx].wander_target {
+            if !self.is_good_land_target(tx, ty) {
+                self.organisms[idx].wander_target = None;
+            }
+        }
+
+        if self.organisms[idx].wander_target.is_some() { return; }
+        if self.organisms[idx].energy < 0.62 || self.organisms[idx].hydration < 0.62 { return; }
+        if self.organisms[idx].age < 800 || self.organisms[idx].fear_level > 0.45 { return; }
+
+        let curiosity = self.organisms[idx].traits.curiosity;
+        if curiosity < 0.72 { return; }
+
+        let hash = self.organisms[idx].id.bytes()
+            .fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
+        let period = (900u64).saturating_sub((curiosity * 420.0) as u64).max(260);
+        if self.tick_count % period != (hash % period) { return; }
+
+        let (x, y) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
+        let min_dist = 140 + (curiosity * 120.0) as i32;
+        let max_dist = 260 + (curiosity * 220.0) as i32;
+        if let Some(target) = self.find_distant_land_target(x, y, min_dist, max_dist) {
+            self.organisms[idx].wander_target = Some(target);
+            self.organisms[idx].think("planning expedition", self.tick_count);
+            self.organisms[idx].log_event(format!("set out toward distant land at ({},{})", target.0, target.1));
+        }
+    }
+
+    fn find_distant_land_target(&mut self, x: i32, y: i32, min_dist: i32, max_dist: i32) -> Option<(i32, i32)> {
+        for _ in 0..80 {
+            let dx = self.rng.gen_range(-max_dist..=max_dist);
+            let dy = self.rng.gen_range(-max_dist..=max_dist);
+            let dist = dx.abs() + dy.abs();
+            if dist < min_dist || dist > max_dist { continue; }
+            let tx = (x + dx).clamp(5, WIDTH as i32 - 5);
+            let ty = (y + dy).clamp(5, HEIGHT as i32 - 5);
+            if self.is_good_land_target(tx, ty) {
+                return Some((tx, ty));
+            }
+        }
+        None
+    }
+
+    fn is_good_land_target(&self, x: i32, y: i32) -> bool {
+        let tile = self.grid.get(x, y);
+        if matches!(tile, Tile::Water | Tile::Rock | Tile::Void | Tile::Fire | Tile::Hut | Tile::Mineral) {
+            return false;
+        }
+        // Avoid targets that are just a one-tile beach lip surrounded by deep water.
+        let nearby_water = (-2i32..=2).flat_map(|dx| (-2i32..=2).map(move |dy| (dx, dy)))
+            .filter(|(dx, dy)| {
+                self.grid.get(x + dx, y + dy) == Tile::Water && self.grid.depth_at(x + dx, y + dy) > 0.30
+            })
+            .count();
+        nearby_water < 5
+    }
+
+    fn nearest_land_from(&self, x: i32, y: i32, radius: i32) -> Option<(i32, i32)> {
+        let mut best = None;
+        let mut best_dist = radius + 1;
+        for dx in -radius..=radius {
+            for dy in -radius..=radius {
+                let nx = x + dx;
+                let ny = y + dy;
+                if !self.is_good_land_target(nx, ny) { continue; }
+                let dist = dx.abs() + dy.abs();
+                if dist > 0 && dist < best_dist {
+                    best = Some((nx, ny));
+                    best_dist = dist;
+                }
+            }
+        }
+        best
     }
 
     fn current_nearby_organisms(&self, x: i32, y: i32, radius: i32) -> Vec<usize> {
@@ -2559,6 +2668,8 @@ struct OrgSave {
     thought_history:    Vec<crate::organism::organism::ThoughtEntry>,
     q_table:            HashMap<String, Vec<f32>>,
     last_reproduced: u64, last_challenged: u64,
+    #[serde(default)]
+    water_ticks: u32,
     lineage_attitudes:  HashMap<String, f32>,
     org_trust:          HashMap<String, f32>,
     traits:      crate::organism::traits::Traits,
@@ -2688,6 +2799,7 @@ fn org_to_save(o: &Organism) -> OrgSave {
         thought_history:   o.thought_history.iter().cloned().collect(),
         q_table:           o.q_table.clone(),
         last_reproduced:   o.last_reproduced, last_challenged: o.last_challenged,
+        water_ticks:       o.water_ticks,
         lineage_attitudes: o.lineage_attitudes.clone(),
         org_trust:         o.org_trust.clone(),
         traits:      o.traits.clone(),
@@ -2743,6 +2855,7 @@ fn org_from_save(s: OrgSave) -> Organism {
     o.q_table            = s.q_table;
     o.last_reproduced    = s.last_reproduced;
     o.last_challenged    = s.last_challenged;
+    o.water_ticks        = s.water_ticks;
     o.lineage_attitudes  = s.lineage_attitudes;
     o.org_trust          = s.org_trust;
     o.infection       = s.infection;
@@ -3017,6 +3130,61 @@ mod tests {
         sim.tick_animals();
 
         assert_eq!(sim.animals.iter().filter(|a| a.alive).count(), 0);
+    }
+
+    #[test]
+    fn deep_water_fatigue_causes_panic_and_marks_danger() {
+        let mut sim = Simulation::new(33);
+        let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+        sim.organisms[idx].x = 50.0;
+        sim.organisms[idx].y = 50.0;
+        sim.organisms[idx].energy = 0.9;
+        sim.organisms[idx].health = 0.9;
+        sim.organisms[idx].fear_level = 0.1;
+        sim.organisms[idx].water_ticks = 13;
+        sim.grid.set(50, 50, Tile::Water);
+        sim.grid.depth[WorldGrid::idx(50, 50)] = 0.8;
+        sim.grid.set(51, 50, Tile::Grass);
+
+        sim.apply_water_fatigue(idx, 50, 50);
+
+        assert!(sim.organisms[idx].energy < 0.9);
+        assert!(sim.organisms[idx].health < 0.9);
+        assert!(sim.organisms[idx].fear_level > 0.1);
+        let escape = sim.organisms[idx].wander_target.expect("swimmer should pick nearby land");
+        assert_ne!(sim.grid.get(escape.0, escape.1), Tile::Water);
+        assert!(sim.organisms[idx].danger_memory.contains_key(&(50, 50)));
+    }
+
+    #[test]
+    fn curious_adults_choose_distant_land_expeditions() {
+        let mut sim = Simulation::new(35);
+        for x in 0..WIDTH as i32 {
+            for y in 0..HEIGHT as i32 {
+                sim.grid.set(x, y, Tile::Grass);
+            }
+        }
+        let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+        sim.organisms[idx].x = (WIDTH / 2) as f32;
+        sim.organisms[idx].y = (HEIGHT / 2) as f32;
+        sim.organisms[idx].age = 2_000;
+        sim.organisms[idx].energy = 0.95;
+        sim.organisms[idx].hydration = 0.95;
+        sim.organisms[idx].fear_level = 0.0;
+        sim.organisms[idx].traits.curiosity = 0.9;
+        let curiosity = sim.organisms[idx].traits.curiosity;
+        let hash = sim.organisms[idx].id.bytes()
+            .fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
+        let period = (900u64).saturating_sub((curiosity * 420.0) as u64).max(260);
+        sim.tick_count = hash % period;
+
+        sim.validate_or_assign_wander_target(idx);
+
+        let target = sim.organisms[idx].wander_target.expect("curious adult should choose a land expedition");
+        let dist = (target.0 - sim.organisms[idx].x as i32).abs()
+            + (target.1 - sim.organisms[idx].y as i32).abs();
+        assert!(dist >= 140 + (curiosity * 120.0) as i32);
+        assert_eq!(sim.grid.get(target.0, target.1), Tile::Grass);
     }
 
     #[test]

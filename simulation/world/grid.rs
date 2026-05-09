@@ -171,6 +171,10 @@ impl WorldGrid {
         if Self::in_bounds(x, y) { self.hazard[Self::idx(x, y)] } else { 0.0 }
     }
 
+    pub fn depth_at(&self, x: i32, y: i32) -> f32 {
+        if Self::in_bounds(x, y) { self.depth[Self::idx(x, y)] } else { 0.0 }
+    }
+
     // Called every 500 ticks — fertility recovers toward biome cap, hazard & pressure decay slowly
     pub fn decay_world_layers(&mut self) {
         for (i, v) in self.fertility.iter_mut().enumerate() {

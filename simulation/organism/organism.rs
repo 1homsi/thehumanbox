@@ -678,6 +678,14 @@ impl Organism {
         if tile == Tile::Water && self.hydration < 0.95 {
             set_thought!("drinking"); return (9, thought);
         }
+        if tile == Tile::Water
+            && (self.hydration >= 0.75 || self.water_ticks > 5 || self.energy < 0.55 || self.health < 0.90)
+        {
+            if let Some(land) = self.nearest_land(grid, 14) {
+                set_thought!("swimming ashore");
+                return (self.toward(land, grid), thought);
+            }
+        }
         if tile == Tile::Food && self.energy < 0.95 {
             set_thought!("eating"); return (8, thought);
         }
@@ -1139,15 +1147,48 @@ impl Organism {
         let (ix, iy) = (self.x as i32, self.y as i32);
         let (tx, ty) = target;
         let dx = tx - ix; let dy = ty - iy;
+        let target_is_water = grid.get(tx, ty) == Tile::Water;
         let mut best_action = 0;
         let mut best_score  = i32::MIN;
         for (i, (adx, ady)) in DIRECTIONS.iter().enumerate() {
             let mut score = adx * dx + ady * dy;
             let t = grid.get(ix + adx, iy + ady);
             if matches!(t, Tile::Rock | Tile::Void) { score = i32::MIN; }
+            if t == Tile::Water {
+                let depth = grid.depth_at(ix + adx, iy + ady);
+                if target_is_water {
+                    score -= (depth * 8.0).round() as i32;
+                } else if depth > 0.18 {
+                    score -= 10_000;
+                } else {
+                    score -= 6;
+                }
+            }
             if score > best_score { best_score = score; best_action = i; }
         }
         best_action
+    }
+
+    fn nearest_land(&self, grid: &WorldGrid, radius: i32) -> Option<(i32, i32)> {
+        let (ix, iy) = (self.x as i32, self.y as i32);
+        let mut best_dist = radius + 1;
+        let mut best = None;
+        for dx in -radius..=radius {
+            for dy in -radius..=radius {
+                let nx = ix + dx;
+                let ny = iy + dy;
+                let tile = grid.get(nx, ny);
+                if matches!(tile, Tile::Water | Tile::Rock | Tile::Void | Tile::Fire | Tile::Hut | Tile::Mineral) {
+                    continue;
+                }
+                let dist = dx.abs() + dy.abs();
+                if dist > 0 && dist < best_dist {
+                    best_dist = dist;
+                    best = Some((nx, ny));
+                }
+            }
+        }
+        best
     }
 
     fn nearest_visible(&self, grid: &WorldGrid, tile_type: Tile, radius: i32)
@@ -1442,5 +1483,47 @@ mod tests {
         org.compress_for_archive();
         // Live organism kept its q-table — never compress live ones
         assert!(!org.q_table.is_empty());
+    }
+
+    #[test]
+    fn hydrated_organisms_leave_water_instead_of_lingering() {
+        let mut rng = StdRng::seed_from_u64(0);
+        let traits = Traits::random(&mut rng);
+        let mut grid = WorldGrid::new(1);
+        grid.set(10, 10, Tile::Water);
+        grid.set(11, 10, Tile::Grass);
+
+        let mut org = Organism::new(
+            "id".into(), "Swimmer".into(), 10.0, 10.0,
+            0, "".into(), "lin".into(), 5000, traits,
+        );
+        org.hydration = 0.95;
+        org.water_ticks = 8;
+
+        let (action, thought) = org.choose_action(
+            &grid, 100, 0.0, &[], false, 0, &mut rng, false, ""
+        );
+
+        assert_eq!(DIRECTIONS[action], (1, 0));
+        assert_eq!(thought.as_deref(), Some("swimming ashore"));
+    }
+
+    #[test]
+    fn movement_toward_land_avoids_deep_water_step() {
+        let mut rng = StdRng::seed_from_u64(0);
+        let traits = Traits::random(&mut rng);
+        let mut grid = WorldGrid::new(2);
+        grid.set(10, 10, Tile::Grass);
+        grid.set(11, 10, Tile::Water);
+        let wi = WorldGrid::idx(11, 10);
+        grid.depth[wi] = 0.9;
+
+        let org = Organism::new(
+            "id".into(), "Walker".into(), 10.0, 10.0,
+            0, "".into(), "lin".into(), 5000, traits,
+        );
+
+        let action = org.toward((20, 10), &grid);
+        assert_ne!(DIRECTIONS[action], (1, 0));
     }
 }
