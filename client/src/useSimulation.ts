@@ -36,7 +36,14 @@ function applyGridWire(wire: GridWire, cache: GridState | null): GridState {
   }
 }
 
-export function useSimulation() {
+export interface InterpRefs {
+  prev:    React.MutableRefObject<WorldState | null>
+  current: React.MutableRefObject<WorldState | null>
+  prevAt:    React.MutableRefObject<number>
+  currentAt: React.MutableRefObject<number>
+}
+
+export function useSimulation(): { world: WorldState | null; connected: boolean; interp: InterpRefs } {
   const [world, setWorld]     = useState<WorldState | null>(null)
   const [connected, setConnected] = useState(false)
   const wsRef      = useRef<WebSocket | null>(null)
@@ -49,6 +56,14 @@ export function useSimulation() {
   // Grid cache — holds the last fully-populated grid state so we can fill in
   // the static maps that aren't sent every tick.
   const gridCache  = useRef<GridState | null>(null)
+  // Interpolation refs — the canvas reads these directly and runs a 60fps
+  // RAF loop that lerps organism positions between `prev` and `current`.
+  // This decouples render rate from message rate so a 1-second WS gap turns
+  // into smooth slow-motion instead of a freeze + teleport.
+  const prevWorldRef    = useRef<WorldState | null>(null)
+  const currentWorldRef = useRef<WorldState | null>(null)
+  const prevAtRef       = useRef<number>(0)
+  const currentAtRef    = useRef<number>(0)
 
   useEffect(() => {
     function flushUpdate() {
@@ -71,12 +86,22 @@ export function useSimulation() {
             for (const animal of parsed.animals) animalCache.current.set(animal.id, animal)
           }
 
-          setWorld({
+          const next: WorldState = {
             ...parsed,
             grid,
             organisms: [...organismCache.current.values()],
             animals: [...animalCache.current.values()],
-          })
+          }
+
+          // Roll the interpolation window forward. Renderer lerps organism
+          // positions from `prev` to `current` over the elapsed real-time
+          // gap, which absorbs network jitter into smooth motion.
+          prevWorldRef.current    = currentWorldRef.current
+          prevAtRef.current       = currentAtRef.current
+          currentWorldRef.current = next
+          currentAtRef.current    = performance.now()
+
+          setWorld(next)
         } catch (_) {}
         latestMsg.current = null
       }
@@ -124,5 +149,14 @@ export function useSimulation() {
     }
   }, [])
 
-  return { world, connected }
+  return {
+    world,
+    connected,
+    interp: {
+      prev:      prevWorldRef,
+      current:   currentWorldRef,
+      prevAt:    prevAtRef,
+      currentAt: currentAtRef,
+    },
+  }
 }

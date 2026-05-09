@@ -20,7 +20,7 @@ import './App.css'
 const TILE_FIRE = 4
 
 function App() {
-  const { world, connected } = useSimulation()
+  const { world, connected, interp } = useSimulation()
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null)
   const [followOrgId, setFollowOrgId]     = useState<string | null>(null)
   const [showLanguages,  setShowLanguages]  = useState(false)
@@ -298,6 +298,7 @@ function App() {
             {/* ── World canvas ─────────────────────────────────────── */}
             <WorldView
               world={world}
+              interp={interp}
               selectedOrgId={selectedOrgId}
               followOrgId={followOrgId}
               onOrgSelect={handleOrgSelect}

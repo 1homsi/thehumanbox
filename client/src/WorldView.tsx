@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Game, World, Entity, Transform, Sprite, Camera2D, useCamera, useGame, useEntity } from 'cubeforge'
 import type { WorldState } from './types'
+import type { InterpRefs } from './useSimulation'
 import { lineageColor } from './constants'
 
 const TILE = 4
@@ -634,7 +635,7 @@ function drawWorldOnCanvas(
 // ── WorldTextureUpdater ───────────────────────────────────────────────────────
 // Must be inside <Entity>. Injects a WebGL texture and updates it each tick.
 
-function WorldTextureUpdater({ world, selectedOrgId, overlay, focus, viewFlags, onFirstDraw }: { world: WorldState; selectedOrgId: string | null; overlay: string | null; focus: string; viewFlags: ViewFlags; onFirstDraw: () => void }) {
+function WorldTextureUpdater({ world, interp, selectedOrgId, overlay, focus, viewFlags, onFirstDraw }: { world: WorldState; interp?: InterpRefs; selectedOrgId: string | null; overlay: string | null; focus: string; viewFlags: ViewFlags; onFirstDraw: () => void }) {
   const engine = useGame()
   useEntity()
   const glTexRef   = useRef<WebGLTexture | null>(null)
@@ -697,38 +698,106 @@ function WorldTextureUpdater({ world, selectedOrgId, overlay, focus, viewFlags, 
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Re-draw and re-upload whenever world changes
+  // Keep latest world + UI state in refs so the RAF loop reads fresh values
+  // without restarting on every state change (selecting an org, toggling overlay).
+  const worldRef         = useRef<WorldState | null>(world)
+  const selectedOrgIdRef = useRef<string | null>(selectedOrgId)
+  const overlayRef       = useRef<string | null>(overlay)
+  const focusRef         = useRef<string>(focus)
+  const viewFlagsRef     = useRef<ViewFlags>(viewFlags)
+  worldRef.current         = world
+  selectedOrgIdRef.current = selectedOrgId
+  overlayRef.current       = overlay
+  focusRef.current         = focus
+  viewFlagsRef.current     = viewFlags
+
+  // Continuous RAF render loop.
+  //
+  // Replaces the old "redraw whenever `world` prop changes" pattern. The loop
+  // runs at the browser's refresh rate (~60 fps) and interpolates organism
+  // positions between the previous and current WS snapshots. When the network
+  // jitters and a snapshot lands 1 sec late, organisms keep gliding smoothly
+  // toward their last-known target instead of freezing and teleporting.
   useEffect(() => {
-    if (!initialised.current || !glTexRef.current || !offscreen.current) return
-    const rs = (engine as any).activeRenderSystem
-    if (!rs) return
-    const gl: WebGL2RenderingContext = rs.gl
+    if (!interp) return
+    let raf = 0
+    let stopped = false
 
-    // Cache depth_map and biomes when the server sends them (every 30 ticks)
-    if (world.grid.depth_map)  cachedDepth.current  = world.grid.depth_map  as number[][]
-    if (world.grid.biomes)     cachedBiomes.current = world.grid.biomes     as number[][]
+    const tick = () => {
+      if (stopped) return
+      raf = requestAnimationFrame(tick)
 
-    // Inject cached static maps so ocean depth renders on every tick, not just tick 0/30/60…
-    const enrichedGrid = {
-      ...world.grid,
-      depth_map: cachedDepth.current  ?? world.grid.depth_map,
-      biomes:    cachedBiomes.current ?? world.grid.biomes,
+      const w = worldRef.current
+      if (!w || !initialised.current || !glTexRef.current || !offscreen.current) return
+      const rs = (engine as any).activeRenderSystem
+      if (!rs) return
+      const gl: WebGL2RenderingContext = rs.gl
+
+      // Cache depth_map / biomes when present (sent every 30 ticks)
+      if (w.grid.depth_map) cachedDepth.current  = w.grid.depth_map  as number[][]
+      if (w.grid.biomes)    cachedBiomes.current = w.grid.biomes     as number[][]
+
+      // Compute interpolation factor from real-time elapsed since current snapshot
+      const cur     = interp.current.current
+      const prev    = interp.prev.current
+      const curAt   = interp.currentAt.current
+      const prevAt  = interp.prevAt.current
+      const interval = Math.max(50, curAt - prevAt) // expected real-time gap, lower-bounded
+      // t = 0 at curAt, 1 at curAt+interval. Clamps at 1 so we hold at `cur`
+      // when the next snapshot is late instead of overshooting.
+      const t = (cur && prev && interval > 0)
+        ? Math.min(1, Math.max(0, (performance.now() - curAt) / interval))
+        : 1
+
+      // Build an interpolated organism list. When prev exists and the org was
+      // alive in both snapshots, lerp x/y. Births/deaths use the current pos as-is.
+      let renderOrgs = w.organisms
+      if (prev && t < 1 && cur === w) {
+        const prevById = new Map<string, typeof prev.organisms[number]>()
+        for (const o of prev.organisms) prevById.set(o.id, o)
+        renderOrgs = w.organisms.map(o => {
+          const p = prevById.get(o.id)
+          if (!p || !p.alive || !o.alive) return o
+          return { ...o, x: p.x + (o.x - p.x) * t, y: p.y + (o.y - p.y) * t }
+        })
+      }
+      let renderAnimals = w.animals
+      if (prev && t < 1 && cur === w) {
+        const prevById = new Map<number, typeof prev.animals[number]>()
+        for (const a of prev.animals) prevById.set(a.id, a)
+        renderAnimals = w.animals.map(a => {
+          const p = prevById.get(a.id)
+          if (!p) return a
+          return { ...a, x: p.x + (a.x - p.x) * t, y: p.y + (a.y - p.y) * t }
+        })
+      }
+
+      const enrichedGrid = {
+        ...w.grid,
+        depth_map: cachedDepth.current  ?? w.grid.depth_map,
+        biomes:    cachedBiomes.current ?? w.grid.biomes,
+      }
+      const enrichedWorld: WorldState = {
+        ...w,
+        grid:      enrichedGrid,
+        organisms: renderOrgs,
+        animals:   renderAnimals,
+      }
+
+      const ctx = offscreen.current.getContext('2d')!
+      drawWorldOnCanvas(ctx, enrichedWorld, selectedOrgIdRef.current, overlayRef.current, focusRef.current, viewFlagsRef.current)
+
+      gl.bindTexture(gl.TEXTURE_2D, glTexRef.current)
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, offscreen.current)
+      rs.textures.set(texKeyRef.current, glTexRef.current)
+      if (rs.touchTexture) rs.touchTexture(texKeyRef.current)
+
+      if (!hasDrawn.current) { hasDrawn.current = true; onFirstDraw() }
     }
-    const enrichedWorld = { ...world, grid: enrichedGrid }
 
-    const ctx = offscreen.current.getContext('2d')!
-    drawWorldOnCanvas(ctx, enrichedWorld, selectedOrgId, overlay, focus, viewFlags)
-
-    gl.bindTexture(gl.TEXTURE_2D, glTexRef.current)
-    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, offscreen.current)
-
-    // Keep key alive in LRU
-    rs.textures.set(texKeyRef.current, glTexRef.current)
-    if (rs.touchTexture) rs.touchTexture(texKeyRef.current)
-
-    // Signal first draw so the ocean-blue overlay lifts
-    if (!hasDrawn.current) { hasDrawn.current = true; onFirstDraw() }
-  }, [world, engine, selectedOrgId, overlay, focus, viewFlags, onFirstDraw])
+    raf = requestAnimationFrame(tick)
+    return () => { stopped = true; cancelAnimationFrame(raf) }
+  }, [interp, engine, onFirstDraw])
 
   return null
 }
@@ -871,6 +940,7 @@ function CameraController({
 
 interface Props {
   world: WorldState
+  interp?: InterpRefs
   selectedOrgId: string | null
   followOrgId:   string | null
   onOrgSelect:   (id: string | null) => void
@@ -879,7 +949,7 @@ interface Props {
   viewFlags:     ViewFlags
 }
 
-export function WorldView({ world, selectedOrgId, followOrgId, onOrgSelect, overlay, focus, viewFlags }: Props) {
+export function WorldView({ world, interp, selectedOrgId, followOrgId, onOrgSelect, overlay, focus, viewFlags }: Props) {
   const W = world.grid.width * TILE
   const H = world.grid.height * TILE
   const cx = W / 2
@@ -971,7 +1041,7 @@ export function WorldView({ world, selectedOrgId, followOrgId, onOrgSelect, over
                 color="#ffffff"
                 zIndex={0}
               />
-              <WorldTextureUpdater world={world} selectedOrgId={selectedOrgId} overlay={overlay} focus={focus} viewFlags={viewFlags} onFirstDraw={() => setMapReady(true)} />
+              <WorldTextureUpdater world={world} interp={interp} selectedOrgId={selectedOrgId} overlay={overlay} focus={focus} viewFlags={viewFlags} onFirstDraw={() => setMapReady(true)} />
             </Entity>
 
             <CameraController
