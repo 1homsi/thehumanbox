@@ -27,7 +27,7 @@ jobs:
   # ── Stage 1: smoke build on the runner ─────────────────────────────────────
   build:
     name: Build & test
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -54,7 +54,7 @@ jobs:
   deploy:
     name: SSM rebuild + restart on EC2
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 25  # /root/.cargo/bin/cargo build --release on c7g.medium can take ~10 min
     steps:
       - name: Configure AWS credentials
