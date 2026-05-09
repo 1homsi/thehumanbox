@@ -20,9 +20,15 @@ fn main() {
     let sweep_seeds: usize = args.iter()
         .position(|a| a == "--sweep-seeds").and_then(|i| args.get(i+1))
         .and_then(|s| s.parse().ok()).unwrap_or(0);
+    // --gate: exit non-zero if any seed's verdict is not Healthy. For CI use.
+    let gate = args.iter().any(|a| a == "--gate");
 
     if sweep_seeds > 0 {
-        run_seed_sweep(seed, sweep_seeds, max_ticks);
+        let unhealthy = run_seed_sweep(seed, sweep_seeds, max_ticks);
+        if gate && unhealthy > 0 {
+            eprintln!("\nVIABILITY GATE FAILED: {} unhealthy seed(s)", unhealthy);
+            std::process::exit(1);
+        }
         return;
     }
 
@@ -155,17 +161,110 @@ struct SweepResult {
     deaths_sickness: u64,
     deaths_combat: u64,
     surviving_lineages: usize,
+    /// Sample of alive count every 1000 ticks. Used by the viability gate.
+    alive_samples: Vec<usize>,
+    /// Sample of distinct alive lineages every 1000 ticks.
+    lineage_samples: Vec<usize>,
+    ticks_run: u64,
+    verdict: Verdict,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Verdict {
+    Healthy,
+    Extinct,        // hit zero alive
+    Runaway,        // sat at MAX_POPULATION for too long — indicates unbounded growth being clamped
+    Stagnant,       // population never recovered to a viable level
+    Homogenized,    // diversity collapsed — survivors all from one or two lineages
+}
+
+impl Verdict {
+    fn label(self) -> &'static str {
+        match self {
+            Verdict::Healthy     => "HEALTHY",
+            Verdict::Extinct     => "EXTINCT",
+            Verdict::Runaway     => "RUNAWAY",
+            Verdict::Stagnant    => "STAGNANT",
+            Verdict::Homogenized => "HOMOGEN",
+        }
+    }
+    fn is_unhealthy(self) -> bool { self != Verdict::Healthy }
+}
+
+/// Classify a finished run.
+///
+/// Rules (first match wins):
+///   1. Extinct: any sample reached 0 — already captured by extinction_tick.
+///   2. Runaway: more than 60% of samples were at MAX_POPULATION (= 200). The cap
+///      is hiding what would otherwise be exponential growth — symptom of broken
+///      mortality or food economy.
+///   3. Stagnant: peak across all samples never reached 30, OR mean alive across
+///      the second half of the run was < 15. The world settled at a non-viable
+///      ebb that recovery_mode can't lift.
+///   4. Homogenized: ran for at least 30k ticks AND fewer than 3 lineages survived
+///      at the end (started with 12 founding tribes). Cultural-genetic collapse.
+///   5. Otherwise: Healthy.
+fn classify(
+    extinction_tick: Option<u64>,
+    alive_samples: &[usize],
+    lineage_samples: &[usize],
+    ticks_run: u64,
+    surviving_lineages: usize,
+) -> Verdict {
+    const MAX_POP: usize = 200; // matches sim::config::MAX_POPULATION
+    if extinction_tick.is_some() { return Verdict::Extinct; }
+    if alive_samples.is_empty()  { return Verdict::Healthy; }
+
+    let cap_count = alive_samples.iter().filter(|&&a| a >= MAX_POP).count();
+    if cap_count * 100 / alive_samples.len().max(1) > 60 {
+        return Verdict::Runaway;
+    }
+
+    let peak = *alive_samples.iter().max().unwrap_or(&0);
+    let half = alive_samples.len() / 2;
+    let second_half_mean = if alive_samples.len() > half {
+        alive_samples[half..].iter().sum::<usize>() / (alive_samples.len() - half).max(1)
+    } else { 0 };
+    if peak < 30 || second_half_mean < 15 {
+        return Verdict::Stagnant;
+    }
+
+    // Lineage homogenization only meaningful in long runs — early sweeps are noisy.
+    if ticks_run >= 30_000 && surviving_lineages < 3 {
+        // Suppress the verdict if even the latest snapshot showed > 3 lineages —
+        // a single late-game collapse is not "homogenized".
+        let last_lineage = lineage_samples.last().copied().unwrap_or(0);
+        if last_lineage < 3 {
+            return Verdict::Homogenized;
+        }
+    }
+
+    Verdict::Healthy
 }
 
 fn run_one_seed(seed: u64, max_ticks: u64) -> SweepResult {
     let mut sim = Simulation::new(seed);
     let mut peak_pop = 0usize;
     let mut extinction_tick = None;
+    let mut alive_samples   = Vec::new();
+    let mut lineage_samples = Vec::new();
 
     while sim.tick_count < max_ticks {
         sim.tick();
         let alive = sim.organisms.iter().filter(|o| o.alive).count();
         peak_pop = peak_pop.max(alive);
+
+        // Sample every 1000 ticks for viability classification.
+        if sim.tick_count % 1000 == 0 {
+            alive_samples.push(alive);
+            let lineages = sim.organisms.iter()
+                .filter(|o| o.alive)
+                .map(|o| o.lineage_id.as_str())
+                .collect::<std::collections::HashSet<_>>()
+                .len();
+            lineage_samples.push(lineages);
+        }
+
         if alive == 0 {
             extinction_tick = Some(sim.tick_count);
             break;
@@ -179,6 +278,10 @@ fn run_one_seed(seed: u64, max_ticks: u64) -> SweepResult {
         .collect::<std::collections::HashSet<_>>()
         .len();
     let h = &sim.history;
+    let ticks_run = sim.tick_count;
+    let verdict = classify(
+        extinction_tick, &alive_samples, &lineage_samples, ticks_run, surviving_lineages,
+    );
 
     SweepResult {
         seed,
@@ -192,21 +295,26 @@ fn run_one_seed(seed: u64, max_ticks: u64) -> SweepResult {
         deaths_sickness: h.deaths_sickness,
         deaths_combat: h.deaths_combat,
         surviving_lineages,
+        alive_samples,
+        lineage_samples,
+        ticks_run,
+        verdict,
     }
 }
 
-fn run_seed_sweep(start_seed: u64, sweep_seeds: usize, max_ticks: u64) {
+fn run_seed_sweep(start_seed: u64, sweep_seeds: usize, max_ticks: u64) -> usize {
     println!("seed_sweep  start_seed={}  seeds={}  max_ticks={}", start_seed, sweep_seeds, max_ticks);
-    println!("{:<12} {:>7} {:>7} {:>10} {:>8} {:>7} {:>6} {:>6} {:>6} {:>6} {:>8}",
-        "seed", "alive", "peak", "extinct_at", "births", "old", "starv", "dehy", "sick", "combat", "lineages");
-    println!("{}", "-".repeat(96));
+    println!("{:<8} {:<10} {:>7} {:>7} {:>10} {:>8} {:>7} {:>6} {:>6} {:>6} {:>6} {:>8}",
+        "seed", "verdict", "alive", "peak", "extinct_at", "births", "old", "starv", "dehy", "sick", "combat", "lineages");
+    println!("{}", "-".repeat(108));
 
     let mut results = Vec::with_capacity(sweep_seeds);
     for offset in 0..sweep_seeds {
         let seed = start_seed + offset as u64;
         let r = run_one_seed(seed, max_ticks);
-        println!("{:<12} {:>7} {:>7} {:>10} {:>8} {:>7} {:>6} {:>6} {:>6} {:>6} {:>8}",
+        println!("{:<8} {:<10} {:>7} {:>7} {:>10} {:>8} {:>7} {:>6} {:>6} {:>6} {:>6} {:>8}",
             r.seed,
+            r.verdict.label(),
             r.final_alive,
             r.peak_pop,
             r.extinction_tick.map(|t| t.to_string()).unwrap_or_else(|| "-".to_string()),
@@ -222,12 +330,22 @@ fn run_seed_sweep(start_seed: u64, sweep_seeds: usize, max_ticks: u64) {
     }
 
     let extinct = results.iter().filter(|r| r.extinction_tick.is_some()).count();
+    let unhealthy = results.iter().filter(|r| r.verdict.is_unhealthy()).count();
     let avg_final = results.iter().map(|r| r.final_alive as f64).sum::<f64>() / results.len().max(1) as f64;
     let avg_peak = results.iter().map(|r| r.peak_pop as f64).sum::<f64>() / results.len().max(1) as f64;
     println!("\n=== SWEEP SUMMARY ===");
-    println!("extinctions: {} / {}", extinct, results.len());
+    println!("verdict counts:");
+    for v in &[Verdict::Healthy, Verdict::Extinct, Verdict::Runaway, Verdict::Stagnant, Verdict::Homogenized] {
+        let n = results.iter().filter(|r| r.verdict == *v).count();
+        if n > 0 {
+            println!("  {:<10} {} / {}", v.label(), n, results.len());
+        }
+    }
+    println!("extinctions:     {} / {}", extinct, results.len());
+    println!("unhealthy:       {} / {}", unhealthy, results.len());
     println!("avg final alive: {:.1}", avg_final);
     println!("avg peak pop:    {:.1}", avg_peak);
+    unhealthy
 }
 
 #[cfg(test)]
@@ -242,5 +360,58 @@ mod tests {
         assert!(r.final_alive > 0);
         assert_eq!(r.extinction_tick, None);
         assert_eq!(r.peak_pop, 0);
+    }
+
+    #[test]
+    fn classify_extinct_when_extinction_tick_set() {
+        let v = classify(Some(5_000), &[100, 80, 50, 0], &[12, 10, 8, 0], 5_000, 0);
+        assert_eq!(v, Verdict::Extinct);
+    }
+
+    #[test]
+    fn classify_runaway_when_capped_at_max_pop_majority_of_run() {
+        // 200 = MAX_POPULATION; 8 of 10 samples capped → 80% > 60% threshold
+        let samples = vec![150, 200, 200, 200, 200, 200, 200, 200, 200, 180];
+        let v = classify(None, &samples, &[12; 10], 60_000, 8);
+        assert_eq!(v, Verdict::Runaway);
+    }
+
+    #[test]
+    fn classify_stagnant_when_peak_under_30() {
+        let samples = vec![25, 22, 20, 18, 15, 12, 10, 9];
+        let v = classify(None, &samples, &[6; 8], 60_000, 4);
+        assert_eq!(v, Verdict::Stagnant);
+    }
+
+    #[test]
+    fn classify_stagnant_when_second_half_collapses() {
+        // First half healthy, second half barely surviving
+        let samples = vec![80, 90, 85, 70, 14, 12, 10, 11];
+        let v = classify(None, &samples, &[8; 8], 60_000, 5);
+        assert_eq!(v, Verdict::Stagnant);
+    }
+
+    #[test]
+    fn classify_homogenized_when_lineages_collapse_in_long_run() {
+        let samples = vec![80, 85, 90, 95, 100, 105];
+        let lineages = vec![12, 10, 8, 5, 3, 2]; // collapses to 2 lineages
+        let v = classify(None, &samples, &lineages, 60_000, 2);
+        assert_eq!(v, Verdict::Homogenized);
+    }
+
+    #[test]
+    fn classify_homogenized_only_after_long_run() {
+        // Same lineage collapse but only ran 10k ticks — early sweeps are noisy
+        let samples = vec![80, 85];
+        let lineages = vec![12, 2];
+        let v = classify(None, &samples, &lineages, 10_000, 2);
+        assert_eq!(v, Verdict::Healthy, "short run shouldn't trigger homogenization verdict");
+    }
+
+    #[test]
+    fn classify_healthy_when_population_is_stable() {
+        let samples = vec![80, 90, 100, 110, 120, 115, 105, 100];
+        let v = classify(None, &samples, &[10; 8], 60_000, 8);
+        assert_eq!(v, Verdict::Healthy);
     }
 }
