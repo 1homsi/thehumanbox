@@ -30,18 +30,18 @@ interface UIState {
 
   // Modals — one open at a time is the common case but we keep flags
   // separate so a future "modal stack" doesn't need a refactor.
-  showLanguages:  boolean
-  showChronicles: boolean
-  showFamilyTree: boolean
-  showOrgSearch:  boolean
-  showStats:      boolean
-  convoOrgId:     string | null
+  showLanguages:   boolean
+  showChronicles:  boolean
+  showFamilyTree:  boolean
+  showOrgSearch:   boolean
+  showStats:       boolean
+  showAllLineages: boolean
+  convoOrgId:      string | null
 
   // Layout panels
   panelOpen: boolean
   leftOpen:  boolean
   showMore:  boolean
-  showAllLineages: boolean
 
   // Map view
   overlay:   string | null
@@ -55,18 +55,25 @@ interface UIState {
   selectOrg: (id: string | null) => void
   followOrg: (id: string | null) => void
 
-  openLanguages:  () => void
-  openChronicles: () => void
-  openFamilyTree: () => void
-  openOrgSearch:  () => void
-  openStats:      () => void
-  openConvo:      (id: string) => void
-  closeAllModals: () => void
+  openLanguages:    () => void
+  closeLanguages:   () => void
+  openChronicles:   () => void
+  closeChronicles:  () => void
+  openFamilyTree:   () => void
+  closeFamilyTree:  () => void
+  openOrgSearch:    () => void
+  closeOrgSearch:   () => void
+  openStats:        () => void
+  closeStats:       () => void
+  openAllLineages:  () => void
+  closeAllLineages: () => void
+  openConvo:        (id: string) => void
+  closeConvo:       () => void
+  closeAllModals:   () => void
 
   togglePanel:    () => void
   toggleLeft:     () => void
   toggleMore:     () => void
-  toggleAllLineages: () => void
   setFullscreen:  (b: boolean) => void
 
   setOverlay:   (o: string | null) => void
@@ -78,46 +85,57 @@ export const useUIStore = create<UIState>((set) => ({
   selectedOrgId: null,
   followOrgId:   null,
 
-  showLanguages:  false,
-  showChronicles: false,
-  showFamilyTree: false,
-  showOrgSearch:  false,
-  showStats:      false,
-  convoOrgId:     null,
+  showLanguages:   false,
+  showChronicles:  false,
+  showFamilyTree:  false,
+  showOrgSearch:   false,
+  showStats:       false,
+  showAllLineages: false,
+  convoOrgId:      null,
 
   panelOpen: false,
   leftOpen:  true,
   showMore:  false,
-  showAllLineages: false,
 
   overlay:   null,
   focus:     'all',
-  viewFlags: { territory: false, names: false, thoughts: false, animals: true, grid: false },
+  viewFlags: { territory: false, names: true, thoughts: true, animals: true, grid: false },
 
   isFullscreen: false,
 
-  selectOrg: (id) => set({ selectedOrgId: id }),
+  // Selecting an org with id=null also clears the follow target — picking
+  // someone else and then unselecting shouldn't leave the camera locked
+  // on the previous follow.
+  selectOrg: (id) => set(id == null ? { selectedOrgId: null, followOrgId: null } : { selectedOrgId: id }),
   followOrg: (id) => set({ followOrgId: id }),
 
-  openLanguages:  () => set({ showLanguages:  true }),
-  openChronicles: () => set({ showChronicles: true }),
-  openFamilyTree: () => set({ showFamilyTree: true }),
-  openOrgSearch:  () => set({ showOrgSearch:  true }),
-  openStats:      () => set({ showStats:      true }),
-  openConvo:      (id) => set({ convoOrgId: id }),
-  closeAllModals: () => set({
-    showLanguages:  false,
-    showChronicles: false,
-    showFamilyTree: false,
-    showOrgSearch:  false,
-    showStats:      false,
-    convoOrgId:     null,
+  openLanguages:    () => set({ showLanguages:   true }),
+  closeLanguages:   () => set({ showLanguages:   false }),
+  openChronicles:   () => set({ showChronicles:  true }),
+  closeChronicles:  () => set({ showChronicles:  false }),
+  openFamilyTree:   () => set({ showFamilyTree:  true }),
+  closeFamilyTree:  () => set({ showFamilyTree:  false }),
+  openOrgSearch:    () => set({ showOrgSearch:   true }),
+  closeOrgSearch:   () => set({ showOrgSearch:   false }),
+  openStats:        () => set({ showStats:       true }),
+  closeStats:       () => set({ showStats:       false }),
+  openAllLineages:  () => set({ showAllLineages: true }),
+  closeAllLineages: () => set({ showAllLineages: false }),
+  openConvo:        (id) => set({ convoOrgId: id }),
+  closeConvo:       () => set({ convoOrgId: null }),
+  closeAllModals:   () => set({
+    showLanguages:   false,
+    showChronicles:  false,
+    showFamilyTree:  false,
+    showOrgSearch:   false,
+    showStats:       false,
+    showAllLineages: false,
+    convoOrgId:      null,
   }),
 
   togglePanel:       () => set((s) => ({ panelOpen: !s.panelOpen })),
   toggleLeft:        () => set((s) => ({ leftOpen:  !s.leftOpen })),
   toggleMore:        () => set((s) => ({ showMore:  !s.showMore })),
-  toggleAllLineages: () => set((s) => ({ showAllLineages: !s.showAllLineages })),
   setFullscreen:     (b) => set({ isFullscreen: b }),
 
   setOverlay:    (o) => set({ overlay: o }),

@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Game, World, Entity, Transform, Sprite, Camera2D, useCamera, useGame, useEntity } from 'cubeforge'
 import type { WorldState } from './types'
 import type { InterpRefs } from './useSimulation'
+import { useUIStore } from './store'
 import { lineageColor } from './constants'
 
 const TILE = 4
@@ -1009,15 +1010,16 @@ function CameraController({
 interface Props {
   world: WorldState
   interp?: InterpRefs
-  selectedOrgId: string | null
-  followOrgId:   string | null
-  onOrgSelect:   (id: string | null) => void
-  overlay:       string | null
-  focus:         string
-  viewFlags:     ViewFlags
 }
 
-export function WorldView({ world, interp, selectedOrgId, followOrgId, onOrgSelect, overlay, focus, viewFlags }: Props) {
+export function WorldView({ world, interp }: Props) {
+  // Read UI state from the global store. No prop drilling.
+  const selectedOrgId = useUIStore(s => s.selectedOrgId)
+  const followOrgId   = useUIStore(s => s.followOrgId)
+  const overlay       = useUIStore(s => s.overlay)
+  const focus         = useUIStore(s => s.focus)
+  const viewFlags     = useUIStore(s => s.viewFlags)
+  const onOrgSelect   = useUIStore(s => s.selectOrg)
   const W = world.grid.width * TILE
   const H = world.grid.height * TILE
   const cx = W / 2
