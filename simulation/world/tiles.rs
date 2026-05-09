@@ -80,7 +80,7 @@ impl Tile {
     }
 
     pub fn flammable(self) -> bool {
-        matches!(self, Tile::Grass | Tile::Food)  // Farm is irrigated — not flammable
+        matches!(self, Tile::Grass | Tile::Food)  // Farm is irrigated - not flammable
     }
 
 

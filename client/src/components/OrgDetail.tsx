@@ -75,7 +75,7 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
         <span className="org-detail-dot" style={{ background: color }} />
         <span className="org-detail-name">{org.name}</span>
         {isSick && <span className="org-sick-badge">sick</span>}
-        {carrying && <Tooltip tip="Carrying wood — organism is transporting material that slowly builds shelter structures wherever they rest"><span className="org-carrying-badge" style={{ cursor: 'default' }}>🪵 wood</span></Tooltip>}
+        {carrying && <Tooltip tip="Carrying wood - organism is transporting material that slowly builds shelter structures wherever they rest"><span className="org-carrying-badge" style={{ cursor: 'default' }}>🪵 wood</span></Tooltip>}
         <button
           className={clsx('follow-btn', following && 'active')}
           onClick={() => onFollow(following ? null : org.id)}
@@ -101,11 +101,11 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
         <>
           <div className="org-detail-section">MENTAL STATE</div>
           <div className="trait-full-grid">
-            {org.comfort     !== undefined && <MiniBar label="comfort"    value={org.comfort}    color="#88ddbb" tip="Comfort — rises near shelter and kin, falls in harsh conditions. High comfort boosts recovery." />}
-            {org.loneliness  !== undefined && <MiniBar label="loneliness" value={org.loneliness} color="#aa88ff" invert tip="Loneliness — builds when isolated, eased by social contact. High loneliness drives them to seek others." />}
-            {org.fear_level  !== undefined && <MiniBar label="fear"       value={org.fear_level} color="#ff8844" invert tip="Fear — spikes near predators and danger. Overrides normal behaviour; organism will flee." />}
-            {org.boredom     !== undefined && <MiniBar label="boredom"    value={org.boredom}    color="#ffcc44" invert tip="Boredom — rises when idle. Pushes the organism to explore, wander, or take risks." />}
-            {org.sleep_debt  !== undefined && org.sleep_debt > 0.05 && <MiniBar label="fatigue"    value={org.sleep_debt} color="#8899bb" invert tip="Fatigue — builds without rest. Organism seeks shelter to sleep; high fatigue drains health." />}
+            {org.comfort     !== undefined && <MiniBar label="comfort"    value={org.comfort}    color="#88ddbb" tip="Comfort - rises near shelter and kin, falls in harsh conditions. High comfort boosts recovery." />}
+            {org.loneliness  !== undefined && <MiniBar label="loneliness" value={org.loneliness} color="#aa88ff" invert tip="Loneliness - builds when isolated, eased by social contact. High loneliness drives them to seek others." />}
+            {org.fear_level  !== undefined && <MiniBar label="fear"       value={org.fear_level} color="#ff8844" invert tip="Fear - spikes near predators and danger. Overrides normal behaviour; organism will flee." />}
+            {org.boredom     !== undefined && <MiniBar label="boredom"    value={org.boredom}    color="#ffcc44" invert tip="Boredom - rises when idle. Pushes the organism to explore, wander, or take risks." />}
+            {org.sleep_debt  !== undefined && org.sleep_debt > 0.05 && <MiniBar label="fatigue"    value={org.sleep_debt} color="#8899bb" invert tip="Fatigue - builds without rest. Organism seeks shelter to sleep; high fatigue drains health." />}
             {org.grief_ticks !== undefined && org.grief_ticks > 0 && (
               <div className="trait-full-row">
                 <span className="trait-full-label">grieving</span>
@@ -119,12 +119,12 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
       <div className="org-detail-section">TRAITS</div>
       <div className="trait-full-grid">
         {([
-          ['curiosity',   org.traits.curiosity,       '#88aaff', 'Curiosity — drives exploration and risk-taking. High curiosity organisms wander further and discover more.'],
-          ['aggression',  org.traits.aggression,      '#ff6655', 'Aggression — determines combat initiation and territorial behaviour. High aggression = more challenges.'],
-          ['fear',        org.traits.fear,            '#ffcc44', 'Fear — how quickly they flee danger. High fear means early retreat; low fear means standing ground.'],
-          ['memory',      org.traits.memory_strength, '#aa88ff', 'Memory — how many locations they retain and how strongly. Better memory = smarter navigation.'],
-          ['social',      org.traits.social_tendency, '#55ddaa', 'Social tendency — drives bonding, trading, and group travel. High social organisms form tribes faster.'],
-          ['resilience',  org.traits.resilience,      '#ff8844', 'Resilience — resistance to disease, extreme temperatures, and starvation. Longer lifespan at high values.'],
+          ['curiosity',   org.traits.curiosity,       '#88aaff', 'Curiosity - drives exploration and risk-taking. High curiosity organisms wander further and discover more.'],
+          ['aggression',  org.traits.aggression,      '#ff6655', 'Aggression - determines combat initiation and territorial behaviour. High aggression = more challenges.'],
+          ['fear',        org.traits.fear,            '#ffcc44', 'Fear - how quickly they flee danger. High fear means early retreat; low fear means standing ground.'],
+          ['memory',      org.traits.memory_strength, '#aa88ff', 'Memory - how many locations they retain and how strongly. Better memory = smarter navigation.'],
+          ['social',      org.traits.social_tendency, '#55ddaa', 'Social tendency - drives bonding, trading, and group travel. High social organisms form tribes faster.'],
+          ['resilience',  org.traits.resilience,      '#ff8844', 'Resilience - resistance to disease, extreme temperatures, and starvation. Longer lifespan at high values.'],
         ] as [string, number, string, string][]).map(([label, val, col, tip]) => (
           <div key={label} className="trait-full-row">
             <Tooltip tip={tip}>
@@ -143,12 +143,12 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
           <div className="org-detail-section">RELATIONS</div>
           <div className="relation-list">
             {allies.map(([lid, v]) => (
-              <Tooltip key={lid} tip={`Allied with ${tn(lid)} — ${(v * 100).toFixed(0)}% positive attitude. Likely to trade and cooperate.`}>
+              <Tooltip key={lid} tip={`Allied with ${tn(lid)} - ${(v * 100).toFixed(0)}% positive attitude. Likely to trade and cooperate.`}>
                 <span className="relation-tag ally" style={{ cursor: 'default' }}>♥ {tn(lid)} {(v * 100).toFixed(0)}%</span>
               </Tooltip>
             ))}
             {enemies.map(([lid, v]) => (
-              <Tooltip key={lid} tip={`Hostile toward ${tn(lid)} — ${(Math.abs(v) * 100).toFixed(0)}% negative attitude. Likely to challenge or avoid.`}>
+              <Tooltip key={lid} tip={`Hostile toward ${tn(lid)} - ${(Math.abs(v) * 100).toFixed(0)}% negative attitude. Likely to challenge or avoid.`}>
                 <span className="relation-tag enemy" style={{ cursor: 'default' }}>✕ {tn(lid)} {(v * 100).toFixed(0)}%</span>
               </Tooltip>
             ))}
@@ -161,12 +161,12 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
           <div className="org-detail-section">PERSONAL BONDS</div>
           <div className="relation-list">
             {trustedOrgs.slice(0, 4).map(([oid, v]) => (
-              <Tooltip key={oid} tip={`Trusts ${on(oid)} — personal bond at ${(v * 100).toFixed(0)}%. Built through shared experiences and cooperation.`}>
+              <Tooltip key={oid} tip={`Trusts ${on(oid)} - personal bond at ${(v * 100).toFixed(0)}%. Built through shared experiences and cooperation.`}>
                 <span className="relation-tag ally" style={{ fontSize: '9px', cursor: 'default' }}>◆ {on(oid)} {(v * 100).toFixed(0)}</span>
               </Tooltip>
             ))}
             {fearedOrgs.slice(0, 4).map(([oid, v]) => (
-              <Tooltip key={oid} tip={`Fears ${on(oid)} — negative bond at ${(Math.abs(v) * 100).toFixed(0)}%. Result of past conflict or aggression.`}>
+              <Tooltip key={oid} tip={`Fears ${on(oid)} - negative bond at ${(Math.abs(v) * 100).toFixed(0)}%. Result of past conflict or aggression.`}>
                 <span className="relation-tag enemy" style={{ fontSize: '9px', cursor: 'default' }}>◇ {on(oid)} {(v * 100).toFixed(0)}</span>
               </Tooltip>
             ))}
@@ -176,9 +176,9 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
 
       <div className="org-detail-section">MEMORY</div>
       <div className="org-memory" style={{ marginBottom: 6 }}>
-        <Tooltip tip={`${org.memory_count.food} food tile locations remembered — organism navigates toward these when hungry`}><span style={{ cursor: 'default' }}>food ×{org.memory_count.food}</span></Tooltip>
-        <Tooltip tip={`${org.memory_count.water} water source locations remembered — organism navigates toward these when thirsty`}><span style={{ cursor: 'default' }}>water ×{org.memory_count.water}</span></Tooltip>
-        <Tooltip tip={`${org.memory_count.danger} danger zones remembered — organism avoids these areas when possible`}><span style={{ cursor: 'default' }}>danger ×{org.memory_count.danger}</span></Tooltip>
+        <Tooltip tip={`${org.memory_count.food} food tile locations remembered - organism navigates toward these when hungry`}><span style={{ cursor: 'default' }}>food ×{org.memory_count.food}</span></Tooltip>
+        <Tooltip tip={`${org.memory_count.water} water source locations remembered - organism navigates toward these when thirsty`}><span style={{ cursor: 'default' }}>water ×{org.memory_count.water}</span></Tooltip>
+        <Tooltip tip={`${org.memory_count.danger} danger zones remembered - organism avoids these areas when possible`}><span style={{ cursor: 'default' }}>danger ×{org.memory_count.danger}</span></Tooltip>
       </div>
 
       {history.length > 0 && (

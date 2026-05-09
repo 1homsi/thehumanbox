@@ -32,7 +32,7 @@ pub fn signal_food(
         }
     };
 
-    // Broadcast to nearby organisms — kin priority but non-kin can overhear
+    // Broadcast to nearby organisms - kin priority but non-kin can overhear
     let nearby_indices: Vec<usize> = organisms.iter().enumerate()
         .filter(|(i, o)| *i != org_idx && o.alive)
         .filter(|(_, o)| (o.x - organisms[org_idx].x).abs()+(o.y - organisms[org_idx].y).abs() <= 12.0)
@@ -101,7 +101,7 @@ pub fn sound_alarm(
         return 0.0;
     };
 
-    // All nearby organisms can hear the alarm — language determines how much they understand
+    // All nearby organisms can hear the alarm - language determines how much they understand
     let nearby_indices: Vec<usize> = organisms.iter().enumerate()
         .filter(|(i, o)| *i != org_idx && o.alive)
         .filter(|(_, o)| (o.x - organisms[org_idx].x).abs()+(o.y - organisms[org_idx].y).abs() <= 14.0)
@@ -125,7 +125,7 @@ pub fn sound_alarm(
         // Kin with shared language: full danger memory; strangers with shared language: partial
         let strength = match (is_kin, recognizes) {
             (true,  true)  => 0.70,
-            (true,  false) => 0.35, // kin but dialect gap — some urgency transfers from tone
+            (true,  false) => 0.35, // kin but dialect gap - some urgency transfers from tone
             (false, true)  => 0.30, // not kin but speaks same tongue
             (false, false) => 0.08, // alien signal, mostly ignored
         };
@@ -283,7 +283,7 @@ pub fn challenge_stranger(
     let t_trust = organisms[ti].org_trust.entry(org_id).or_insert(0.0);
     *t_trust = (*t_trust - 0.20).max(-1.0);
 
-    // Victim burns this tile into danger_memory — hostile territory awareness
+    // Victim burns this tile into danger_memory - hostile territory awareness
     let (tx, ty) = (organisms[ti].x as i32, organisms[ti].y as i32);
     let att_after   = organisms[ti].attitude_toward(&org_lineage);
     let ti_mem_trait = organisms[ti].traits.memory_strength;
@@ -340,7 +340,7 @@ pub fn groom(
     let target_name = organisms[ti].name.clone();
     let ti_id       = organisms[ti].id.clone();
 
-    // Reduce infection in both — grooming prevents pathogen spread
+    // Reduce infection in both - grooming prevents pathogen spread
     organisms[org_idx].infection = (organisms[org_idx].infection * 0.94).max(0.0);
     organisms[ti].infection      = (organisms[ti].infection      * 0.94).max(0.0);
 

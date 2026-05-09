@@ -54,8 +54,8 @@ export function OrgCard({ org, sexWords, onTrack, onConvos, lineageNames, organi
     >
       <div className="org-header">
         <span className="org-name">{org.name}</span>
-        {isSick && <Tooltip tip={`Infected (${(org.infection * 100).toFixed(0)}%) — illness spreads through close contact with others`}><span className="org-sick-badge" style={{ cursor: 'default' }}>sick</span></Tooltip>}
-        {org.pregnant && <Tooltip tip="Pregnant — a child will be born in ~3 in-world days"><span className="org-pregnant-badge" style={{ cursor: 'default' }}>expecting</span></Tooltip>}
+        {isSick && <Tooltip tip={`Infected (${(org.infection * 100).toFixed(0)}%) - illness spreads through close contact with others`}><span className="org-sick-badge" style={{ cursor: 'default' }}>sick</span></Tooltip>}
+        {org.pregnant && <Tooltip tip="Pregnant - a child will be born in ~3 in-world days"><span className="org-pregnant-badge" style={{ cursor: 'default' }}>expecting</span></Tooltip>}
         {sexLabel && sexWords && (
           <Tooltip tip={
             <span>
@@ -100,17 +100,17 @@ export function OrgCard({ org, sexWords, onTrack, onConvos, lineageNames, organi
       </div>
 
       {org.attracted_to && !org.partner_id && (
-        <Tooltip tip="This organism is drawn to another — they are building attraction and may bond">
+        <Tooltip tip="This organism is drawn to another - they are building attraction and may bond">
           <div className="org-attraction" style={{ cursor: 'default' }}>drawn to someone ✦</div>
         </Tooltip>
       )}
 
       <div className="org-thought">{org.thought}</div>
 
-      <Bar label="E" value={org.energy}    color="#55dd55" tip="Energy — depletes over time, restored by eating food tiles. At 0% the organism starves." />
-      <Bar label="H" value={org.hydration} color="#4499ff" tip="Hydration — depletes over time, restored by drinking water. At 0% the organism dehydrates." />
-      <Bar label="♥" value={org.health}    color="#ff6644" tip="Health — damaged by starvation, infection, and combat. Recovers slowly when needs are met." />
-      {isSick && <Bar label="🤒" value={org.infection} color="#bbff44" tip="Infection level — organism is sick and may spread illness to others nearby. Clears over time or near shelter." />}
+      <Bar label="E" value={org.energy}    color="#55dd55" tip="Energy - depletes over time, restored by eating food tiles. At 0% the organism starves." />
+      <Bar label="H" value={org.hydration} color="#4499ff" tip="Hydration - depletes over time, restored by drinking water. At 0% the organism dehydrates." />
+      <Bar label="♥" value={org.health}    color="#ff6644" tip="Health - damaged by starvation, infection, and combat. Recovers slowly when needs are met." />
+      {isSick && <Bar label="🤒" value={org.infection} color="#bbff44" tip="Infection level - organism is sick and may spread illness to others nearby. Clears over time or near shelter." />}
 
       <div className="trait-grid">
         <TraitBar value={org.traits.curiosity}       color="#88aaff" />
@@ -121,12 +121,12 @@ export function OrgCard({ org, sexWords, onTrack, onConvos, lineageNames, organi
         <TraitBar value={org.traits.resilience}      color="#ff8844" />
       </div>
       <div className="trait-labels">
-        <Tooltip tip="Curiosity — drives exploration and willingness to take risks"><span style={{ cursor: 'default' }}>cur</span></Tooltip>
-        <Tooltip tip="Aggression — determines combat and territorial behaviour"><span style={{ cursor: 'default' }}>agg</span></Tooltip>
-        <Tooltip tip="Fear — how cautious the organism is around danger and predators"><span style={{ cursor: 'default' }}>fear</span></Tooltip>
-        <Tooltip tip="Memory — how many locations they can remember and how well"><span style={{ cursor: 'default' }}>mem</span></Tooltip>
-        <Tooltip tip="Social — tendency to form bonds, trade, and travel with groups"><span style={{ cursor: 'default' }}>soc</span></Tooltip>
-        <Tooltip tip="Resilience — resistance to disease, temperature stress, and starvation"><span style={{ cursor: 'default' }}>res</span></Tooltip>
+        <Tooltip tip="Curiosity - drives exploration and willingness to take risks"><span style={{ cursor: 'default' }}>cur</span></Tooltip>
+        <Tooltip tip="Aggression - determines combat and territorial behaviour"><span style={{ cursor: 'default' }}>agg</span></Tooltip>
+        <Tooltip tip="Fear - how cautious the organism is around danger and predators"><span style={{ cursor: 'default' }}>fear</span></Tooltip>
+        <Tooltip tip="Memory - how many locations they can remember and how well"><span style={{ cursor: 'default' }}>mem</span></Tooltip>
+        <Tooltip tip="Social - tendency to form bonds, trade, and travel with groups"><span style={{ cursor: 'default' }}>soc</span></Tooltip>
+        <Tooltip tip="Resilience - resistance to disease, temperature stress, and starvation"><span style={{ cursor: 'default' }}>res</span></Tooltip>
       </div>
 
       <div className="org-memory">

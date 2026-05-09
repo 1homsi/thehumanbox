@@ -9,7 +9,7 @@ use crate::sim::simulation::ThinkTrigger;
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /// Weighted random pick over (value, weight) pairs.
-/// Weights don't need to sum to 1 — they're normalised internally.
+/// Weights don't need to sum to 1 - they're normalised internally.
 fn weighted_pick<'a>(rng: &mut impl Rng, options: &[(&'a str, f32)]) -> &'a str {
     let total: f32 = options.iter().map(|(_, w)| w.max(0.0)).sum();
     if total <= 0.0 {
@@ -167,7 +167,7 @@ pub fn resolve(trigger: &ThinkTrigger, rng: &mut impl Rng) -> Option<LocalResult
 
         // ── invention ─────────────────────────────────────────────────────────
         // Candidates arrive as ", "-joined string from the sim. Filter out empty
-        // and whitespace-only entries — split("", ", ") returns [""], "a, , b"
+        // and whitespace-only entries - split("", ", ") returns [""], "a, , b"
         // returns ["a", "", "b"], and we must never produce an empty discovery name.
         "invention" => {
             let candidates: Vec<&str> = trigger.context

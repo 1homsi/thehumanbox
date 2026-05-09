@@ -5,7 +5,7 @@ use crate::world::{grid::WorldGrid, tiles::Tile};
 pub struct PhysicsEngine {
     pub tick_count:       u64,
     pub growth_mult:      f32,
-    // Hot-set of tiles currently on fire — avoids scanning entire grid every tick
+    // Hot-set of tiles currently on fire - avoids scanning entire grid every tick
     active_fire_tiles:    HashSet<(i32, i32)>,
     // Scratch buffers reused each update_fire call to avoid per-call allocation
     burn_out:  Vec<(i32, i32)>,
@@ -77,7 +77,7 @@ impl PhysicsEngine {
                     }
                 }
                 _ => {
-                    // Tile changed (e.g. extinguished by rain) — remove from hotset on next pass
+                    // Tile changed (e.g. extinguished by rain) - remove from hotset on next pass
                     self.burn_out.push((x, y));
                 }
             }
@@ -140,7 +140,7 @@ impl PhysicsEngine {
                         let trail = grid.trail_at(x, y, TrailKind::Food);
                         let trail_boost = 1.0 + trail * 1.2;
                         let fertility = grid.fertility[WorldGrid::idx(x, y)];
-                        // Soil fertility gates regrowth — exhausted land stays bare
+                        // Soil fertility gates regrowth - exhausted land stays bare
                         let grow_rate = base_grow * grid.biome_growth_mult(x, y) * trail_boost * fertility;
                         if rng.gen::<f32>() < grow_rate { grid.set(x, y, Tile::Food); }
                     }

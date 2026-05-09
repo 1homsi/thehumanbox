@@ -25,7 +25,7 @@ interface NodePos { org: OrganismState; x: number; y: number }
  * data set (founders + orphans whose parents fell out of the snapshot
  * window). d3.tree() then runs the Reingold-Tilford algorithm with
  * nodeSize() so siblings get a constant minimum horizontal gap regardless
- * of subtree depth — same intent as the old hand-written layout, with
+ * of subtree depth - same intent as the old hand-written layout, with
  * battle-tested d3 maths instead of recursion we maintain ourselves.
  */
 function layoutTree(orgs: OrganismState[]): { nodes: NodePos[]; w: number; h: number; maxGen: number } {
@@ -37,7 +37,7 @@ function layoutTree(orgs: OrganismState[]): { nodes: NodePos[]; w: number; h: nu
   // Find roots: any org whose parent isn't in our data set
   const roots = orgs.filter(o => !o.parent_id || !byId.has(o.parent_id))
 
-  // Synthetic root that holds all the real roots — keeps the d3 hierarchy
+  // Synthetic root that holds all the real roots - keeps the d3 hierarchy
   // strictly tree-shaped even if the data has multiple founding lineages.
   const SYNTHETIC_ROOT = '__root__'
   const synthetic: OrganismState = {
@@ -85,7 +85,7 @@ function layoutTree(orgs: OrganismState[]): { nodes: NodePos[]; w: number; h: nu
     if (n.data.generation > maxGen) maxGen = n.data.generation
   })
 
-  // Shift all nodes so the leftmost is at x=0 — d3 centers root at x=0 and
+  // Shift all nodes so the leftmost is at x=0 - d3 centers root at x=0 and
   // can produce negative coordinates we'd rather not deal with downstream.
   for (const n of nodes) n.x -= minX
 
@@ -98,7 +98,7 @@ function layoutTree(orgs: OrganismState[]): { nodes: NodePos[]; w: number; h: nu
 }
 
 export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props) {
-  // Snapshot once on open — the modal shows a static tree, not a moving
+  // Snapshot once on open - the modal shows a static tree, not a moving
   // one. Avoids re-laying out on every world tick.
   const organisms = useRef(livOrgs).current
 
@@ -113,7 +113,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
 
   const { nodes, maxGen } = useMemo(() => layoutTree(organisms), [organisms])
 
-  // Edges keyed by relationship type — drawn separately so each gets its
+  // Edges keyed by relationship type - drawn separately so each gets its
   // own visual style without per-edge string compares.
   const { motherEdges, paternityEdges, partnerEdges } = useMemo(() => {
     const byId = new Map<string, NodePos>()
@@ -178,7 +178,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
     return () => { sel.on('.zoom', null) }
   }, [])
 
-  // Initial fit — pan so the topmost generation is visible at the top
+  // Initial fit - pan so the topmost generation is visible at the top
   useEffect(() => {
     const canvas = canvasRef.current
     const wrap   = wrapRef.current
@@ -196,7 +196,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
     d3.select(canvas).call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(k))
   }, [nodes])
 
-  // Drawing — pure canvas, transform comes from d3-zoom
+  // Drawing - pure canvas, transform comes from d3-zoom
   const draw = useCallback(() => {
     const canvas = canvasRef.current
     const wrap   = wrapRef.current
@@ -393,7 +393,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
     setHoverId(hit?.org.id ?? null)
   }, [nodes])
 
-  // Imperative zoom controls — drive the d3 zoom behaviour so its internal
+  // Imperative zoom controls - drive the d3 zoom behaviour so its internal
   // state stays in sync with our buttons.
   const zoomBy = (factor: number) => {
     const canvas = canvasRef.current
@@ -478,7 +478,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
         <button className="tree-zoom-btn" onClick={() => zoomBy(0.8)}>－</button>
         <span style={{ color: '#444', marginLeft: 8 }}>
           🔥 fire · 🏠 shelter · † deceased · <span style={{ color: '#c97' }}>♥</span> bonded
-          · <span style={{ color: '#888' }}>— mother</span>
+          · <span style={{ color: '#888' }}>- mother</span>
           · <span style={{ color: '#888', borderBottom: '1px dashed #888' }}>- - father</span>
           · <span style={{ color: '#e8b060' }}>- - infidelity</span>
           {sexWords && (

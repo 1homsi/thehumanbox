@@ -11,19 +11,19 @@ export function lineageColor(lineageId: string | null | undefined): string {
   let h = 0
   for (const c of lineageId) h = Math.imul(h * 31 + c.charCodeAt(0), 1) >>> 0
 
-  // Golden-angle hue spread — maximally separates adjacent lineages in hue space
+  // Golden-angle hue spread - maximally separates adjacent lineages in hue space
   const hue = (h * 137.508) % 360
 
   // Vary saturation and lightness independently using different hash bits
   // Three saturation bands: vivid (90%), standard (72%), muted (55%)
   const sat = [90, 72, 55][(h >>> 8) % 3]
-  // Three lightness bands: light (75%), mid (62%), deep (52%) — all visible on #111
+  // Three lightness bands: light (75%), mid (62%), deep (52%) - all visible on #111
   const lit = [75, 62, 52][(h >>> 16) % 3]
 
   return `hsl(${hue.toFixed(0)}, ${sat}%, ${lit}%)`
 }
 
-// Dominant vocabulary word shared by a lineage — their word for "home"
+// Dominant vocabulary word shared by a lineage - their word for "home"
 export function lineageWord(orgs: OrganismState[], concept: string): string {
   const counts: Record<string, number> = {}
   for (const org of orgs) {

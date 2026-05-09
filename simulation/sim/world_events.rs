@@ -95,7 +95,7 @@ fn apply_weather(
         }
     }
 
-    // Rain replenishes fertility on parched/desert tiles — makes land cultivable again
+    // Rain replenishes fertility on parched/desert tiles - makes land cultivable again
     for _ in 0..8 {
         let x = rng.gen_range(1..WIDTH as i32 - 1);
         let y = rng.gen_range(1..HEIGHT as i32 - 1);
@@ -111,7 +111,7 @@ fn apply_weather(
         for org in organisms.iter_mut().filter(|o| o.alive) {
             org.energy = (org.energy - 0.0006 * weather.intensity).max(0.0);
         }
-        // Lightning strike — starts a new fire
+        // Lightning strike - starts a new fire
         if rng.gen::<f32>() < 0.06 * weather.intensity {
             for _ in 0..30 {
                 let x = rng.gen_range(5..WIDTH as i32 - 5);
@@ -195,7 +195,7 @@ fn start_drought(
     drought.dried_tiles = dried;
     history.droughts += 1;
     push_event(events, tick, "drought", "world",
-        &format!("drought begins — {} water tiles dry", count));
+        &format!("drought begins - {} water tiles dry", count));
 }
 
 fn end_drought(
@@ -215,7 +215,7 @@ fn end_drought(
     }
     drought.dried_tiles.clear();
     push_event(events, tick, "drought", "world",
-        &format!("drought ends — {} water tiles restored", restored));
+        &format!("drought ends - {} water tiles restored", restored));
 }
 
 pub fn tick_outbreak(
@@ -254,8 +254,8 @@ pub fn tick_outbreak(
             names.join(", ")
         };
         push_event(events, tick, "outbreak", "world",
-            &format!("disease wave — {}", preview));
-        // Disease scars the landscape — the outbreak zone remains psychologically dangerous
+            &format!("disease wave - {}", preview));
+        // Disease scars the landscape - the outbreak zone remains psychologically dangerous
         let hx = cx as i32; let hy = cy as i32;
         let hr = radius as i32;
         for dx in -hr..=hr {
@@ -297,7 +297,7 @@ mod tests {
     }
 }
 
-// ── World evolution — called every 300 ticks ───────────────────────────────────
+// ── World evolution - called every 300 ticks ───────────────────────────────────
 
 pub fn tick_world_evolution(
     grid: &mut WorldGrid,
@@ -310,7 +310,7 @@ pub fn tick_world_evolution(
     events: &mut std::collections::VecDeque<super::simulation::Event>,
     rng: &mut impl Rng,
 ) {
-    // ── a) Forest spread — skip during scarcity ───────────────────────────────
+    // ── a) Forest spread - skip during scarcity ───────────────────────────────
     if season != "scarcity" {
         let mut food_tiles: Vec<(i32, i32)> = Vec::new();
         for _ in 0..800 {
@@ -339,7 +339,7 @@ pub fn tick_world_evolution(
         }
     }
 
-    // ── b) Desert creep — during drought or scarcity ──────────────────────────
+    // ── b) Desert creep - during drought or scarcity ──────────────────────────
     if drought_active || season == "scarcity" {
         let mut desert_grass: Vec<(i32, i32)> = Vec::new();
         for _ in 0..600 {
@@ -357,7 +357,7 @@ pub fn tick_world_evolution(
         }
     }
 
-    // ── c) Flood pulse — during storm weather ─────────────────────────────────
+    // ── c) Flood pulse - during storm weather ─────────────────────────────────
     if weather.kind == 2 {
         let mut water_tiles: Vec<(i32, i32)> = Vec::new();
         for _ in 0..1000 {
@@ -381,7 +381,7 @@ pub fn tick_world_evolution(
         }
     }
 
-    // ── Flood expiry — revert old Flooded tiles back to Grass ─────────────────
+    // ── Flood expiry - revert old Flooded tiles back to Grass ─────────────────
     let mut i = 0;
     while i < flood_tiles.len() {
         let (fx, fy, expiry) = flood_tiles[i];
@@ -395,7 +395,7 @@ pub fn tick_world_evolution(
         }
     }
 
-    // ── d) Volcanic eruption — very rare ──────────────────────────────────────
+    // ── d) Volcanic eruption - very rare ──────────────────────────────────────
     // ~0.000005 per call × called every 300 ticks ≈ once per 60,000,000 ticks on average
     {
         let x = rng.gen_range(0..WIDTH as i32);
@@ -430,7 +430,7 @@ pub fn tick_world_evolution(
         }
     }
 
-    // ── e) Scorched recovery — scan up to 20 random Scorched tiles ────────────
+    // ── e) Scorched recovery - scan up to 20 random Scorched tiles ────────────
     for _ in 0..20 {
         let x = rng.gen_range(0..WIDTH as i32);
         let y = rng.gen_range(0..HEIGHT as i32);
@@ -439,7 +439,7 @@ pub fn tick_world_evolution(
         }
     }
 
-    // ── g) Biome drift — full ecological chain ───────────────────────────────
+    // ── g) Biome drift - full ecological chain ───────────────────────────────
     for _ in 0..20 {
         let x = rng.gen_range(0..WIDTH as i32);
         let y = rng.gen_range(0..HEIGHT as i32);
@@ -511,7 +511,7 @@ pub fn tick_world_evolution(
     }
 
     // ── h_extra) Water-adjacency fertility pulse ──────────────────────────────
-    // Rivers and lakes continuously enrich adjacent land — the origin of river valley civilizations.
+    // Rivers and lakes continuously enrich adjacent land - the origin of river valley civilizations.
     // Called occasionally to avoid performance cost; uses random sampling.
     if tick % 600 == 0 {
         for _ in 0..120 {
@@ -530,7 +530,7 @@ pub fn tick_world_evolution(
         }
     }
 
-    // ── h) River / lake drift — water sources slowly migrate over time ────────
+    // ── h) River / lake drift - water sources slowly migrate over time ────────
     // Every ~5 in-world days, a few water tiles at the edge of a body dry up
     // and equivalent new water appears near another existing water tile.
     // Net water count stays stable; organisms must re-find displaced sources.
@@ -550,7 +550,7 @@ pub fn tick_world_evolution(
             if edge_water.len() >= 12 { break; }
         }
 
-        // Shift 1 water tile per cycle — river meanders to an adjacent tile
+        // Shift 1 water tile per cycle - river meanders to an adjacent tile
         // (new water spawns within 6 tiles of where it dried, so organisms can adapt)
         let shifts = 1.min(edge_water.len());
         for _ in 0..shifts {
@@ -585,7 +585,7 @@ pub fn tick_world_evolution(
         }
     }
 
-    // ── Geological drift — slow coastal reshaping ─────────────────────────────
+    // ── Geological drift - slow coastal reshaping ─────────────────────────────
     if tick % 5000 == 0 {
         grid.tick_geology(rng);
     }

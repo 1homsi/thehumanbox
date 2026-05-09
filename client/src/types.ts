@@ -21,7 +21,7 @@ export interface Traits {
   resilience: number
 }
 
-/** Lean per-tick snapshot — heavy fields omitted, use OrgDetail for those */
+/** Lean per-tick snapshot - heavy fields omitted, use OrgDetail for those */
 export interface OrganismState {
   id: string
   name: string
@@ -61,11 +61,11 @@ export interface OrganismState {
   sex?:            'male' | 'female'
   pregnant?:       boolean
   attracted_to?:   string | null
-  vocabulary?:         Record<string, string>   // small map — included in tick data for LanguageModal
-  conversation_count?: number   // count only — full data in OrgDetail
+  vocabulary?:         Record<string, string>   // small map - included in tick data for LanguageModal
+  conversation_count?: number   // count only - full data in OrgDetail
 }
 
-/** Full detail — fetched on demand from GET /org/:id */
+/** Full detail - fetched on demand from GET /org/:id */
 export interface OrgDetail extends OrganismState {
   thought_history: ThoughtEntry[]
   vocabulary:    Record<string, string>
@@ -118,20 +118,20 @@ export interface StoryEntry {
   story: string
 }
 
-/** Merged grid state held in the client cache — all dense, always fully populated. */
+/** Merged grid state held in the client cache - all dense, always fully populated. */
 export interface GridState {
   width: number
   height: number
   origin_x: number
   origin_y: number
-  tiles: number[][]               // dense — updated every 5 ticks
+  tiles: number[][]               // dense - updated every 5 ticks
   fire_intensity: number[][]      // dense (rebuilt from sparse fire each tick)
   structure: number[][]           // dense (rebuilt from sparse structure each tick)
-  biomes?: number[][]             // dense — updated every 30 ticks
-  depth_map?: number[][]          // dense — updated every 30 ticks
+  biomes?: number[][]             // dense - updated every 30 ticks
+  depth_map?: number[][]          // dense - updated every 30 ticks
 }
 
-/** Raw incoming WS grid payload — sparse fire/structure, optional static maps. */
+/** Raw incoming WS grid payload - sparse fire/structure, optional static maps. */
 export interface GridWire {
   width: number
   height: number
@@ -167,5 +167,5 @@ export interface WorldState {
   lineage_sizes: { id: string; count: number }[]
   lineage_names?: Record<string, string>   // lineage_id → tribe name
   current_era?: string
-  sex_words?:   [string, string]   // [0]=word for male biology, [1]=word for female biology — coined by founding generation
+  sex_words?:   [string, string]   // [0]=word for male biology, [1]=word for female biology - coined by founding generation
 }

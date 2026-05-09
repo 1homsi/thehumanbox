@@ -18,7 +18,7 @@ pub fn spawn_organism(
     spawn_organism_with_lineage(grid, organisms, x, y, id, rng);
 }
 
-/// Like spawn_organism but with an explicit lineage_id — used when spawning
+/// Like spawn_organism but with an explicit lineage_id - used when spawning
 /// founding tribes so multiple members share the same lineage from birth.
 pub fn spawn_organism_with_lineage(
     grid: &WorldGrid,
@@ -109,7 +109,7 @@ pub fn try_reproduce(
         Biome::Forest    => 1.30, // forest abundance
     };
 
-    // Local soil fertility shapes birth rates — fertile land supports more children
+    // Local soil fertility shapes birth rates - fertile land supports more children
     let local_fert = {
         let cx = org_x as i32; let cy = org_y as i32;
         let mut sum = 0.0f32; let mut n = 0u32;
@@ -124,7 +124,7 @@ pub fn try_reproduce(
     let land_mult = 0.4 + local_fert * 1.2;
 
     // Birth rate variance: probability tied to social_tendency (some families large, some small).
-    // Generous floor so well-fed bonded couples reliably produce children — the world has to
+    // Generous floor so well-fed bonded couples reliably produce children - the world has to
     // grow above replacement to be watchable for 30+ sim-days.
     let social = org.traits.social_tendency;
     let fertility_prob = (0.30 + social * 0.50) * biome_mult * land_mult;
@@ -144,7 +144,7 @@ pub fn try_reproduce(
     let mut child_traits_sexed = child_traits;
     apply_sex_traits(&mut child_traits_sexed, child_sex);
 
-    // Same lifespan range as founding spawns — was previously the much shorter
+    // Same lifespan range as founding spawns - was previously the much shorter
     // 3000-8500 formula, which meant children died of old age ~half as fast as
     // their parents and crashed the second-generation cohort.
     let max_age = rng.gen_range(
@@ -167,7 +167,7 @@ pub fn try_reproduce(
     child.sex = child_sex;
     child.vocabulary = Vocabulary::inherit_from(&organisms[org_idx].vocabulary, rng);
 
-    // Q-table inheritance — more noise so children explore rather than copying parent routes
+    // Q-table inheritance - more noise so children explore rather than copying parent routes
     for (state, actions) in &organisms[org_idx].q_table {
         let mut row = actions.clone();
         while row.len() < N_ACTIONS { row.push(0.0); }
@@ -181,7 +181,7 @@ pub fn try_reproduce(
         child.q_table.insert(state.clone(), row);
     }
 
-    // Partial memory inheritance — danger passes strongly, food/water only hints
+    // Partial memory inheritance - danger passes strongly, food/water only hints
     let mem_trait = child.traits.memory_strength;
     for (&k, &v) in &organisms[org_idx].food_memory {
         if rng.gen::<f32>() < 0.12 {
@@ -207,7 +207,7 @@ pub fn try_reproduce(
         child.org_trust.insert(oid.clone(), trust * 0.4);
     }
 
-    // Inherit home location — children know where they came from
+    // Inherit home location - children know where they came from
     child.home_x = organisms[org_idx].home_x;
     child.home_y = organisms[org_idx].home_y;
 
@@ -231,7 +231,7 @@ pub fn try_reproduce(
     organisms[org_idx].pregnant        = true;
     organisms[org_idx].pregnancy_start = tick;
 
-    // Store the child as a pending birth — we'll deliver it after the pregnancy period.
+    // Store the child as a pending birth - we'll deliver it after the pregnancy period.
     // To avoid storing the full child object (costly), we push it immediately but mark
     // it as alive=false with a sentinel pregnancy_start check in simulation.rs.
     // Simpler: just push the child now as "unborn" with alive=false and let
@@ -239,7 +239,7 @@ pub fn try_reproduce(
     // We use the child's age=0 and alive=false as the pending-birth marker.
     child.alive     = false;
     child.age       = 0;
-    // Record biological father — tracks paternity even if parents later split or cheated
+    // Record biological father - tracks paternity even if parents later split or cheated
     child.father_id = Some(partner_id.clone());
 
     let parent_name = organisms[org_idx].name.clone();

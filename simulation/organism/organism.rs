@@ -13,7 +13,7 @@ pub const DIRECTIONS: [(i32, i32); 8] =
 const CONSONANTS: &[u8] = b"bdfghjklmnprstvwz";
 const VOWELS:     &[u8] = b"aeiou";
 
-/// Biological sex — assigned randomly at birth and inherited by offspring randomly.
+/// Biological sex - assigned randomly at birth and inherited by offspring randomly.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, serde::Deserialize, Default)]
 pub enum Sex { #[default] Male, Female }
 
@@ -49,7 +49,7 @@ pub fn generate_name(rng: &mut impl Rng, sex: Sex) -> String {
     }
 }
 
-/// Generate a tribe/lineage name — heavier syllables, ends in a hard stop or open vowel.
+/// Generate a tribe/lineage name - heavier syllables, ends in a hard stop or open vowel.
 /// Intentionally different phoneme distribution from individual names so they sound "collective".
 pub fn generate_tribe_name(rng: &mut impl Rng) -> String {
     const TRIBE_CONS: &[u8] = b"bdfghjklmnprstvwz";
@@ -105,7 +105,7 @@ pub struct ThoughtEntry {
     pub text: String,
 }
 
-/// A stored exchange between two organisms — courtship, bonded talk, farewell, chat, or argue.
+/// A stored exchange between two organisms - courtship, bonded talk, farewell, chat, or argue.
 #[derive(Clone, Serialize, serde::Deserialize)]
 pub struct ConversationEntry {
     pub tick:      u64,
@@ -176,7 +176,7 @@ pub struct Organism {
     pub fear_level:  f32,  // 0=calm    1=terrified
     pub comfort:     f32,  // 0=miserable 1=content
 
-    // Behavioral state (transient — not persisted in saves, resets on load)
+    // Behavioral state (transient - not persisted in saves, resets on load)
     pub grief_ticks:    u32,           // countdown of active mourning
     pub sleep_debt:     f32,           // 0=rested 1=exhausted
     pub water_ticks:    u32,           // consecutive ticks spent swimming
@@ -198,7 +198,7 @@ pub struct Organism {
     pub pregnant:        bool,
     pub pregnancy_start: u64,
 
-    // Stored conversations — capped at 200 so a long-lived organism with
+    // Stored conversations - capped at 200 so a long-lived organism with
     // dozens of partners and decades of friendships can keep their full
     // social history. Memory cost is ~50-100 bytes per entry; 200 entries
     // per organism × 300 organisms = ~30-60 MB worst case, fits comfortably.
@@ -309,7 +309,7 @@ impl Organism {
             self.loneliness = (self.loneliness - kin_near as f32 * 0.012).max(0.0);
         }
 
-        // Boredom always builds — only suppressed when critically needy or threatened.
+        // Boredom always builds - only suppressed when critically needy or threatened.
         if hostile_near || self.energy < 0.25 || self.hydration < 0.25 {
             self.boredom = (self.boredom - 0.002).max(0.0);
         } else {
@@ -330,7 +330,7 @@ impl Organism {
             self.fear_level = (self.fear_level + 0.008).min(1.0);
         }
 
-        // Grief: countdown — fear persists while mourning
+        // Grief: countdown - fear persists while mourning
         if self.grief_ticks > 0 {
             self.grief_ticks = self.grief_ticks.saturating_sub(1);
             self.fear_level = (self.fear_level + 0.004).min(1.0);
@@ -395,7 +395,7 @@ impl Organism {
             }
         }
 
-        // Comfort: composite feel-good — shelter and kin improve it, rain and fear drag it down
+        // Comfort: composite feel-good - shelter and kin improve it, rain and fear drag it down
         let shelter_bonus = if near_shelter { 0.25 } else { 0.0 };
         let wet_penalty   = if weather_kind >= 2 && !near_shelter { 0.2 }
                             else if weather_kind == 1 && !near_shelter { 0.08 }
@@ -406,7 +406,7 @@ impl Organism {
             - self.fear_level * 0.3
             - self.sleep_debt * 0.15) / 4.0).clamp(0.0, 1.0);
 
-        // Passive thought — only overrides if organism isn't mid-action
+        // Passive thought - only overrides if organism isn't mid-action
         let passive = matches!(self.thought.as_str(),
             "observing"|"exploring"|"satisfied"|"at peace"|"restless"|"feeling alone"|
             "terrified"|"mourning kin"|"exhausted"|"wandering");
@@ -435,7 +435,7 @@ impl Organism {
     /// Drop all heavy state fields, keeping only the skeleton needed for genealogy
     /// (id, name, lineage_id, parent_id, father_id, generation, max_age, age,
     ///  birth/death context). Once compressed, an organism contributes only a few
-    ///  hundred bytes — a 10 000-deep ancestor archive costs ~3 MB instead of
+    ///  hundred bytes - a 10 000-deep ancestor archive costs ~3 MB instead of
     ///  hundreds of MB. Called on long-dead organisms to preserve lineage trees
     ///  without holding decades-old q-tables and memory maps in RAM.
     pub fn compress_for_archive(&mut self) {
@@ -470,7 +470,7 @@ impl Organism {
         trim_mem(&mut self.water_memory,   50);
         trim_mem(&mut self.danger_memory,  30);
         self.lineage_attitudes.retain(|_, v| { *v *= 0.998; v.abs() >= 0.01 });
-        // Positive trust decays slower — good relationships are remembered longer
+        // Positive trust decays slower - good relationships are remembered longer
         self.org_trust.retain(|_, v| {
             *v *= if *v > 0.0 { 0.9997 } else { 0.999 };
             v.abs() >= 0.01
@@ -724,7 +724,7 @@ impl Organism {
         let needs_ok = self.hydration > 0.62 && self.energy > 0.50;
         if needs_ok && !self.pregnant {
             let dist_home = (self.x - self.home_x).abs() + (self.y - self.home_y).abs();
-            // Just finished drinking at a water source — leave and head home
+            // Just finished drinking at a water source - leave and head home
             if tile == Tile::Water && self.hydration > 0.75 && dist_home > 8.0
                && rng.gen::<f32>() < 0.60
             {
@@ -738,14 +738,14 @@ impl Organism {
                     return (self.toward(s, grid), thought);
                 }
             }
-            // Drifted far from home territory — moderate pull back
+            // Drifted far from home territory - moderate pull back
             if dist_home > 18.0 && rng.gen::<f32>() < 0.20 {
                 set_thought!("heading home");
                 return (self.toward((self.home_x as i32, self.home_y as i32), grid), thought);
             }
         }
 
-        // ── Genuine thirst / hunger — lowered thresholds so needs win less often ──
+        // ── Genuine thirst / hunger - lowered thresholds so needs win less often ──
         // Organisms now only urgently chase resources when noticeably low,
         // not at the first hint of any deficit.
         if self.hydration < 0.38 {
@@ -762,7 +762,7 @@ impl Organism {
                 set_thought!("following water trail");
                 return (self.toward(t, grid), thought);
             }
-            set_thought!("thirsty — searching");
+            set_thought!("thirsty - searching");
         } else if self.energy < 0.42 {
             let scan_r = if self.energy < 0.20 { 16 } else if night { 6 } else { 9 };
             if let Some(v) = self.nearest_visible(grid, Tile::Food, scan_r) {
@@ -777,7 +777,7 @@ impl Organism {
                 set_thought!("following food trail");
                 return (self.toward(t, grid), thought);
             }
-            set_thought!("hungry — searching");
+            set_thought!("hungry - searching");
         }
 
         // Danger avoidance (personal memory)
@@ -795,7 +795,7 @@ impl Organism {
             }
         }
 
-        // World hazard sensing — organisms avoid cursed/death-scarred land
+        // World hazard sensing - organisms avoid cursed/death-scarred land
         // Fearful organisms are more sensitive; brave ones push through
         {
             let hz = grid.hazard_at(ix, iy);
@@ -823,7 +823,7 @@ impl Organism {
         // Night behaviors: shelter is the primary destination after dark
         if night {
             let ns = self.near_shelter(grid);
-            // Sheltered: rest readily — even light sleep debt triggers rest
+            // Sheltered: rest readily - even light sleep debt triggers rest
             if ns && self.sleep_debt > 0.08 && self.energy > 0.25 && rng.gen::<f32>() < 0.65 {
                 set_thought!("resting");
                 return (17, thought); // REST: stay in place
@@ -855,7 +855,7 @@ impl Organism {
             return (17, thought); // REST: stay in place while grieving
         }
 
-        // Rest near shelter — health recovery, grief, sleep debt
+        // Rest near shelter - health recovery, grief, sleep debt
         let should_rest = self.health < 0.65
             || self.sleep_debt > 0.30
             || (self.grief_ticks > 0 && self.near_shelter(grid));
@@ -864,7 +864,7 @@ impl Organism {
             return (17, thought); // REST: stay in place
         }
 
-        // Ollama directive — intentional goal that overrides default behaviour
+        // Ollama directive - intentional goal that overrides default behaviour
         if tick < self.directive_until && !self.directive.is_empty() {
             match self.directive.as_str() {
                 "seek_food" if self.energy < 0.85 => {
@@ -1012,7 +1012,7 @@ impl Organism {
                 set_thought!("seeking kin");
                 return (self.toward(tp, grid), thought);
             }
-            // No kin nearby — high-social organisms seek any friendly organism
+            // No kin nearby - high-social organisms seek any friendly organism
             if self.traits.social_tendency > 0.4 {
                 let social_pos: Option<(i32, i32)> = organisms.iter()
                     .filter(|o| !std::ptr::eq(*o, self) && o.alive)
@@ -1042,7 +1042,7 @@ impl Organism {
             set_thought!("expecting");
         }
 
-        // Migration corridor following — social organisms prefer established routes
+        // Migration corridor following - social organisms prefer established routes
         // High path-trail signals a well-traveled corridor; follow it rather than blazing new ground
         if self.traits.social_tendency > 0.5 && self.energy > 0.55 && self.hydration > 0.55 {
             if rng.gen::<f32>() < self.traits.social_tendency * 0.18 {
@@ -1066,7 +1066,7 @@ impl Organism {
             }
         }
 
-        // Home pull — accessible whenever basic needs are covered
+        // Home pull - accessible whenever basic needs are covered
         // Stronger pull the farther away and the lower the energy/hydration
         if tick >= self.directive_until && self.energy > 0.45 && self.hydration > 0.45
             && self.wander_target.is_none()
@@ -1082,10 +1082,10 @@ impl Organism {
             }
         }
 
-        // Q-learning / exploration — varied thoughts so no organism just says "exploring"
+        // Q-learning / exploration - varied thoughts so no organism just says "exploring"
         let eff_eps = (epsilon * (0.5 + self.traits.curiosity)).max(0.05).min(0.95);
         if rng.gen::<f32>() < eff_eps {
-            // Low path-trail following during exploration — prevents snowball clustering
+            // Low path-trail following during exploration - prevents snowball clustering
             if rng.gen::<f32>() < 0.10 {
                 if let Some(p) = self.find_trail_target(grid, TrailKind::Path, 5) {
                     return (self.toward(p, grid), thought);
@@ -1248,11 +1248,11 @@ impl Organism {
 
     // ── Serialization ─────────────────────────────────────────────────────────
 
-    /// Lean per-tick snapshot — heavy fields omitted, see to_detail_json().
+    /// Lean per-tick snapshot - heavy fields omitted, see to_detail_json().
     /// Per-tick organism JSON.
     ///
     /// `include_cold = false` skips static fields (name, traits, vocabulary,
-    /// lineage_id, parent_id, etc.) — anything that doesn't change tick-to-tick.
+    /// lineage_id, parent_id, etc.) - anything that doesn't change tick-to-tick.
     /// On these "hot" ticks the per-organism payload is roughly 1/3 the size
     /// of a full snapshot. The frontend merges hot updates into a cache that
     /// already holds the cold values from the most recent full snapshot.
@@ -1305,7 +1305,7 @@ impl Organism {
             attracted_to:   self.attracted_to.clone(),
             conversation_count: self.conversations.len(),
 
-            // Cold fields — only emit on full snapshots
+            // Cold fields - only emit on full snapshots
             name:       if include_cold { Some(self.name.clone())       } else { None },
             generation: if include_cold { Some(self.generation)         } else { None },
             parent_id:  if include_cold { Some(self.parent_id.clone())  } else { None },
@@ -1356,7 +1356,7 @@ impl Organism {
     pub memory_strength: f32, pub social_tendency: f32, pub resilience: f32,
 }
 #[derive(Serialize)]
-/// Lean per-tick snapshot — sent for every organism every 300 ms.
+/// Lean per-tick snapshot - sent for every organism every 300 ms.
 /// Heavy on-demand fields (conversations, thought_history, life_log)
 /// are stripped here and served via GET /org/:id instead.
 /// Vocabulary is included here (small, ~14 short words) so LanguageModal
@@ -1397,7 +1397,7 @@ pub struct OrgJson {
     #[serde(default, skip_serializing_if = "Option::is_none")] pub lineage_id:  Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub max_age:     Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub sex:         Option<String>,
-    // Slowly evolving — vocabulary grows over a lifetime, traits change rarely via reflection
+    // Slowly evolving - vocabulary grows over a lifetime, traits change rarely via reflection
     #[serde(default, skip_serializing_if = "Option::is_none")] pub traits:      Option<TraitsJson>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub vocabulary:  Option<HashMap<String, String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub discoveries: Option<Vec<String>>,
@@ -1406,7 +1406,7 @@ pub struct OrgJson {
     #[serde(default, skip_serializing_if = "Option::is_none")] pub is_elder:    Option<bool>,
 }
 
-/// Full detail snapshot — served on demand via GET /org/:id.
+/// Full detail snapshot - served on demand via GET /org/:id.
 /// Extends OrgJson with heavy fields that shouldn't be broadcast every tick.
 #[derive(Serialize)]
 pub struct OrgDetailJson {
@@ -1481,7 +1481,7 @@ mod tests {
         org.q_table.insert("s".into(), vec![0.0; 14]);
         org.alive = true;
         org.compress_for_archive();
-        // Live organism kept its q-table — never compress live ones
+        // Live organism kept its q-table - never compress live ones
         assert!(!org.q_table.is_empty());
     }
 

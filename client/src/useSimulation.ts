@@ -40,13 +40,13 @@ function applyGridWire(wire: GridWire, cache: GridState | null): GridState {
   const w = wire.width
   const h = wire.height
 
-  // Dense fire — zero out, then apply sparse entries
+  // Dense fire - zero out, then apply sparse entries
   const fire: number[][] = Array.from({ length: h }, () => new Array(w).fill(0))
   for (const [row, col, v] of wire.fire) {
     if (row < h && col < w) fire[row][col] = v / 1000
   }
 
-  // Dense structure — zero out, then apply sparse entries
+  // Dense structure - zero out, then apply sparse entries
   const structure: number[][] = Array.from({ length: h }, () => new Array(w).fill(0))
   for (const [row, col, v] of wire.structure) {
     if (row < h && col < w) structure[row][col] = v / 100
@@ -80,14 +80,14 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
   const wsRef      = useRef<WebSocket | null>(null)
   const organismCache = useRef<Map<string, OrganismState>>(new Map())
   const animalCache   = useRef<Map<number, AnimalState>>(new Map())
-  // RAF buffering — newest WS message wins; we only parse+setState once per
+  // RAF buffering - newest WS message wins; we only parse+setState once per
   // animation frame regardless of how fast the server sends.
   const latestMsg  = useRef<string | null>(null)
   const rafPending = useRef<number | null>(null)
-  // Grid cache — holds the last fully-populated grid state so we can fill in
+  // Grid cache - holds the last fully-populated grid state so we can fill in
   // the static maps that aren't sent every tick.
   const gridCache  = useRef<GridState | null>(null)
-  // Interpolation refs — the canvas reads these directly and runs a 60fps
+  // Interpolation refs - the canvas reads these directly and runs a 60fps
   // RAF loop that lerps organism positions between `prev` and `current`.
   // This decouples render rate from message rate so a 1-second WS gap turns
   // into smooth slow-motion instead of a freeze + teleport.
@@ -97,7 +97,7 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
   const currentAtRef    = useRef<number>(0)
 
   // React-state throttle. The canvas reads currentWorldRef every RAF (60fps),
-  // but the sidebar / cards / panels react to the `world` state — and at
+  // but the sidebar / cards / panels react to the `world` state - and at
   // TICK_MS=100 the WS pushes 10 messages/sec, which would have React
   // reconcile 200+ OrgCards ten times per second. Cap that to ~2 Hz so the
   // sim layer is uncoupled from React's render budget.
@@ -129,7 +129,7 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
           // None, even with skip_serializing_if attributes (serde_json::to_value
           // doesn't always honour those). A naive `{...existing, ...incoming}`
           // would overwrite our cached cold fields (lineage_id, traits, name…)
-          // with null on every hot tick — the renderer would then crash trying
+          // with null on every hot tick - the renderer would then crash trying
           // to read .curiosity off null traits.
           //
           // Only copy keys whose value is actually present, so cold fields
@@ -228,7 +228,7 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
       }
       ws.onmessage = (e) => {
         if (destroyed) return
-        latestMsg.current = e.data          // always overwrite — skip stale messages
+        latestMsg.current = e.data          // always overwrite - skip stale messages
         if (rafPending.current === null) {
           rafPending.current = requestAnimationFrame(flushUpdate)
         }

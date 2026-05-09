@@ -5,7 +5,7 @@ use super::tiles::{Tile, Biome};
 pub const WIDTH:  usize = 600;
 pub const HEIGHT: usize = 300;
 
-// Viewport = full world — entire grid is serialised every tick
+// Viewport = full world - entire grid is serialised every tick
 pub const VP_W: usize = WIDTH;
 pub const VP_H: usize = HEIGHT;
 
@@ -175,12 +175,12 @@ impl WorldGrid {
         if Self::in_bounds(x, y) { self.depth[Self::idx(x, y)] } else { 0.0 }
     }
 
-    // Called every 500 ticks — fertility recovers toward biome cap, hazard & pressure decay slowly
+    // Called every 500 ticks - fertility recovers toward biome cap, hazard & pressure decay slowly
     pub fn decay_world_layers(&mut self) {
         for (i, v) in self.fertility.iter_mut().enumerate() {
             let cap = Biome::from_u8(self.biome[i]).base_fertility();
             if *v < cap {
-                // High-pressure tiles recover more slowly — soil compaction under heavy use
+                // High-pressure tiles recover more slowly - soil compaction under heavy use
                 let rate = if self.pressure[i] > 5.0 {
                     0.000008  // heavily trampled: 7.5× slower recovery
                 } else if self.pressure[i] > 2.5 {
@@ -218,7 +218,7 @@ impl WorldGrid {
         (h as f32 / u64::MAX as f32) * 2.0 - 1.0
     }
 
-    /// Smooth 2-D value noise — bilinear interpolation of hashed corners, quintic ease
+    /// Smooth 2-D value noise - bilinear interpolation of hashed corners, quintic ease
     fn value_noise(px: f32, py: f32, seed: u64) -> f32 {
         let ix = px.floor() as u32;
         let iy = py.floor() as u32;
@@ -236,7 +236,7 @@ impl WorldGrid {
         ab + uy * (cd - ab)
     }
 
-    /// Fractional Brownian Motion — 7 octaves, lacunarity 2.05, gain 0.50
+    /// Fractional Brownian Motion - 7 octaves, lacunarity 2.05, gain 0.50
     fn fbm(nx: f32, ny: f32, seed: u64) -> f32 {
         let mut val  = 0.0f32;
         let mut amp  = 0.50f32;
@@ -258,7 +258,7 @@ impl WorldGrid {
         let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
         let size = WIDTH * HEIGHT;
 
-        // ── 0. Continent centres — guaranteed vertical spread ────────────────
+        // ── 0. Continent centres - guaranteed vertical spread ────────────────
         // Divide the world into N vertical bands (top→bottom) and place one
         // continent nucleus per band.  This prevents all land merging into a
         // single horizontal equatorial strip.
@@ -341,7 +341,7 @@ impl WorldGrid {
             }
         }
 
-        // ── 2. Sea level — target ~33 % land ────────────────────────────────
+        // ── 2. Sea level - target ~33 % land ────────────────────────────────
         let mut sorted_elev = raw_elev.clone();
         sorted_elev.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
         let sea_level    = sorted_elev[(size as f32 * 0.67) as usize];
@@ -400,7 +400,7 @@ impl WorldGrid {
         }
         // Depth is filled after coastal-distance BFS (step 6) so it's smooth.
 
-        // ── 6. Coastal distance BFS — for moisture model ─────────────────────
+        // ── 6. Coastal distance BFS - for moisture model ─────────────────────
         // Seeded from all ocean water tiles (land_mask = false), grows into land.
         // Used in step 7 for moisture calculation.
         // (Depth BFS runs at the end of generate() so it catches pools + rivers.)
@@ -475,7 +475,7 @@ impl WorldGrid {
                 let moist = moist_map[i];
 
                 let biome = if norm_elev > 0.72 {
-                    Biome::Tundra    // High mountain — always cold
+                    Biome::Tundra    // High mountain - always cold
                 } else if temp < -2.0 {
                     Biome::Tundra
                 } else if temp < 7.0 {
@@ -666,7 +666,7 @@ impl WorldGrid {
 
         self.pool_centers = pool_centers;
 
-        // ── 17. Depth map — BFS after all water placed ────────────────────────
+        // ── 17. Depth map - BFS after all water placed ────────────────────────
         // Must run AFTER pools and rivers so inland water is correctly shallow.
         // Seed from every non-water tile adjacent to water, flood outward into
         // water tiles.  Distance = 0 at shoreline → grows into open ocean.
@@ -715,7 +715,7 @@ impl WorldGrid {
     fn carve_river(&mut self, from: (i32, i32), to: (i32, i32), rng: &mut impl Rng, land_mask: &[bool]) {
         let (mut x, mut y) = from;
         let max_steps = ((from.0 - to.0).abs() + (from.1 - to.1).abs()) * 6;
-        // Running perpendicular bias — flips sign every ~8–20 steps to create S-curves
+        // Running perpendicular bias - flips sign every ~8–20 steps to create S-curves
         let mut perp_bias: f32 = if rng.gen::<bool>() { 1.0 } else { -1.0 };
         let mut steps_since_flip = 0i32;
         let flip_interval = rng.gen_range(8i32..=20);
@@ -764,7 +764,7 @@ impl WorldGrid {
         }
     }
 
-    /// Slow geological coastal change — called every ~5000 ticks.
+    /// Slow geological coastal change - called every ~5000 ticks.
     /// Floods a handful of coastal land tiles and exposes a few coastal water tiles.
     pub fn tick_geology(&mut self, rng: &mut impl Rng) {
         let flood_count  = rng.gen_range(6..=18usize);
@@ -816,8 +816,8 @@ impl WorldGrid {
     // origin_x / origin_y in GridJson tell the client how to offset world-space coords.
     /// Build a GridJson for the WS broadcast.
     ///
-    /// `include_tiles`   — include the dense tiles array (every TILES_INTERVAL ticks)
-    /// `include_static`  — include biomes + depth_map (every STATIC_INTERVAL ticks)
+    /// `include_tiles`   - include the dense tiles array (every TILES_INTERVAL ticks)
+    /// `include_static`  - include biomes + depth_map (every STATIC_INTERVAL ticks)
     pub fn to_json_viewport(
         &self, cx: i32, cy: i32, vw: usize, vh: usize,
         include_tiles: bool, include_static: bool,
@@ -828,14 +828,14 @@ impl WorldGrid {
         let slice_row = |vec: &[i8], y: usize| vec[y * WIDTH + ox .. y * WIDTH + ox + vw].to_vec();
         let slice_u8  = |vec: &[u8],  y: usize| vec[y * WIDTH + ox .. y * WIDTH + ox + vw].to_vec();
 
-        // Dense tile map — included every TILES_INTERVAL ticks
+        // Dense tile map - included every TILES_INTERVAL ticks
         let tiles = if include_tiles {
             Some((oy..oy+vh).map(|y| slice_row(&self.tiles, y)).collect())
         } else {
             None
         };
 
-        // Sparse fire — [[row, col, intensity×1000], ...] only for non-zero cells
+        // Sparse fire - [[row, col, intensity×1000], ...] only for non-zero cells
         let mut fire: Vec<[u16; 3]> = Vec::new();
         for y in oy..oy+vh {
             let row = &self.fire_intensity[y * WIDTH + ox .. y * WIDTH + ox + vw];
@@ -846,7 +846,7 @@ impl WorldGrid {
             }
         }
 
-        // Sparse structure — [[row, col, level×100], ...] only for non-zero cells
+        // Sparse structure - [[row, col, level×100], ...] only for non-zero cells
         let mut structure: Vec<[u16; 3]> = Vec::new();
         for y in oy..oy+vh {
             let row = &self.structure[y * WIDTH + ox .. y * WIDTH + ox + vw];
@@ -857,7 +857,7 @@ impl WorldGrid {
             }
         }
 
-        // Static maps — biomes + depth, only sent every STATIC_INTERVAL ticks
+        // Static maps - biomes + depth, only sent every STATIC_INTERVAL ticks
         let (biomes, depth_map) = if include_static {
             let b = (oy..oy+vh).map(|y| slice_u8(&self.biome, y)).collect();
             let d = (oy..oy+vh).map(|y| {
@@ -888,9 +888,9 @@ pub enum TrailKind { Food, Water, Path }
 /// Per-tick grid payload.
 ///
 /// Payload budget breakdown (600×300 world):
-/// - tiles: 180 K values, dense — ~360 KB JSON, sent every 5 ticks
-/// - fire:  sparse list of (row,col,v×1000) — 0 bytes when no fire, <5 KB with fire
-/// - structure: sparse list of (row,col,v×100) — 0 bytes when no buildings
+/// - tiles: 180 K values, dense - ~360 KB JSON, sent every 5 ticks
+/// - fire:  sparse list of (row,col,v×1000) - 0 bytes when no fire, <5 KB with fire
+/// - structure: sparse list of (row,col,v×100) - 0 bytes when no buildings
 /// - biomes / depth_map: ~360 KB each, only sent every 30 ticks (when Some)
 /// - fertility/hazard/pressure removed from broadcast (optional overlay endpoints)
 #[derive(Serialize)]
@@ -899,17 +899,17 @@ pub struct GridJson {
     pub height:    usize,
     pub origin_x:  i32,
     pub origin_y:  i32,
-    /// Dense tile array — only present every TILES_INTERVAL ticks
+    /// Dense tile array - only present every TILES_INTERVAL ticks
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tiles:     Option<Vec<Vec<i8>>>,
-    /// Sparse fire: [[row, col, intensity×1000], ...]  — 0 bytes when no fire
+    /// Sparse fire: [[row, col, intensity×1000], ...]  - 0 bytes when no fire
     pub fire:      Vec<[u16; 3]>,
-    /// Sparse structure: [[row, col, level×100], ...]  — 0 bytes when empty
+    /// Sparse structure: [[row, col, level×100], ...]  - 0 bytes when empty
     pub structure: Vec<[u16; 3]>,
-    /// Dense biome layer — only present every STATIC_INTERVAL ticks
+    /// Dense biome layer - only present every STATIC_INTERVAL ticks
     #[serde(skip_serializing_if = "Option::is_none")]
     pub biomes:    Option<Vec<Vec<u8>>>,
-    /// Ocean depth — only present every STATIC_INTERVAL ticks
+    /// Ocean depth - only present every STATIC_INTERVAL ticks
     #[serde(skip_serializing_if = "Option::is_none")]
     pub depth_map: Option<Vec<Vec<u8>>>,
 }
