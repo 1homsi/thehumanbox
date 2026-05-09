@@ -1,5 +1,6 @@
 import { useState, cloneElement } from 'react'
 import { createPortal } from 'react-dom'
+import clsx from 'clsx'
 import type { ReactElement, ReactNode } from 'react'
 
 const OFFSET = 8
@@ -32,7 +33,7 @@ export function Tooltip({ tip, children }: Props) {
       {child}
       {rect && createPortal(
         <div
-          className={`ui-tooltip ui-tooltip--${above ? 'above' : 'below'}`}
+          className={clsx('ui-tooltip', above ? 'ui-tooltip--above' : 'ui-tooltip--below')}
           style={{
             left: rect.left + rect.width / 2,
             top: above ? rect.top - OFFSET : rect.bottom + OFFSET,

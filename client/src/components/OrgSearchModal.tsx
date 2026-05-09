@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
+import clsx from 'clsx'
 import type { OrganismState } from '../types'
 import { lineageColor } from '../constants'
 import { OrgDetail } from './OrgDetail'
@@ -91,23 +92,23 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
             {(['all', 'alive', 'dead'] as StatusFilter[]).map(s => (
               <button
                 key={s}
-                className={`filter-chip${status === s ? ' active' : ''}`}
+                className={clsx('filter-chip', status === s && 'active')}
                 onClick={() => setStatus(s)}
               >{s}</button>
             ))}
             <span className="filter-sep">·</span>
             <button
-              className={`filter-chip${discF === 'fire'    ? ' active' : ''}`}
+              className={clsx('filter-chip', discF === 'fire' && 'active')}
               onClick={() => setDiscF(discF === 'fire'    ? 'all' : 'fire')}
             >🔥 fire</button>
             <button
-              className={`filter-chip${discF === 'shelter' ? ' active' : ''}`}
+              className={clsx('filter-chip', discF === 'shelter' && 'active')}
               onClick={() => setDiscF(discF === 'shelter' ? 'all' : 'shelter')}
             >🏠 shelter</button>
             <span className="filter-sep">·</span>
             <div className="tribe-dropdown" ref={tribeRef}>
               <button
-                className={`filter-chip tribe-dropdown-btn${lineageF !== 'all' ? ' active' : ''}`}
+                className={clsx('filter-chip', 'tribe-dropdown-btn', lineageF !== 'all' && 'active')}
                 onClick={() => setTribeOpen(o => !o)}
               >
                 {lineageF !== 'all' && (
@@ -118,13 +119,13 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
               {tribeOpen && (
                 <div className="tribe-dropdown-menu">
                   <div
-                    className={`tribe-dropdown-item${lineageF === 'all' ? ' active' : ''}`}
+                    className={clsx('tribe-dropdown-item', lineageF === 'all' && 'active')}
                     onClick={() => { setLineageF('all'); setTribeOpen(false) }}
                   >all tribes</div>
                   {lineages.map(lid => (
                     <div
                       key={lid}
-                      className={`tribe-dropdown-item${lineageF === lid ? ' active' : ''}`}
+                      className={clsx('tribe-dropdown-item', lineageF === lid && 'active')}
                       onClick={() => { setLineageF(lid); setTribeOpen(false) }}
                     >
                       <span className="tribe-dot" style={{ background: lineageColor(lid) }} />
@@ -150,7 +151,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
               return (
                 <div
                   key={org.id}
-                  className={`org-search-entry${!org.alive ? ' dead' : ''}${isSelected ? ' selected' : ''}`}
+                  className={clsx('org-search-entry', !org.alive && 'dead', isSelected && 'selected')}
                   style={{ borderLeft: `3px solid ${org.alive ? color : '#3a3a3a'}` }}
                   onClick={() => setSelectedId(isSelected ? null : org.id)}
                 >
