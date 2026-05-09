@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.15",
     "cubeforge": "^0.8.1",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"

@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, useCallback, useEffect } from 'react'
 import type { OrganismState } from '../types'
 import { lineageColor } from '../constants'
+import { Modal } from './Modal'
 
 const DAY_LENGTH = 600
 const NODE_R    = 22      // circle radius
@@ -443,9 +444,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
   const hovered = hoverId != null ? (organisms.find(o => o.id === hoverId) ?? null) : null
 
   return (
-    <div className="lang-modal-backdrop" onClick={onClose}>
-      <div className="tree-modal" onClick={e => e.stopPropagation()}>
-
+    <Modal open onClose={onClose} className="tree-modal" title="Family tree" hideTitle>
         <div className="lang-modal-header">
           <span className="lang-modal-title">FAMILY TREE</span>
           <span className="tree-modal-sub">
@@ -512,7 +511,6 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
           </span>
           <span style={{ color: '#333', marginLeft: 'auto' }}>{Math.round(tf.scale * 100)}%</span>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

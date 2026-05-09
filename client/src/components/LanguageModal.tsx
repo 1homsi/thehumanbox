@@ -1,5 +1,6 @@
 import type { OrganismState } from '../types'
 import { lineageColor } from '../constants'
+import { Modal } from './Modal'
 
 const CONCEPTS = [
   'food', 'water', 'fire', 'danger', 'friend',
@@ -51,8 +52,7 @@ export function LanguageModal({ organisms, sexWords, onClose, lineageNames }: Pr
   const tn = (lid: string) => lineageNames?.[lid] ?? lid.slice(0, 6)
 
   return (
-    <div className="lang-modal-backdrop" onClick={onClose}>
-      <div className="lang-modal" onClick={e => e.stopPropagation()}>
+    <Modal open onClose={onClose} className="lang-modal" title="Languages of the world" hideTitle>
         <div className="lang-modal-header">
           <span className="lang-modal-title">LANGUAGES OF THE WORLD</span>
           <button className="close-btn" onClick={onClose}>✕</button>
@@ -102,7 +102,6 @@ export function LanguageModal({ organisms, sexWords, onClose, lineageNames }: Pr
           </div>
         </div>
 
-      </div>
-    </div>
+    </Modal>
   )
 }
