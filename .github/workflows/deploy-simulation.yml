@@ -37,25 +37,25 @@ jobs:
 
       # Cache target/ + ~/.cargo so subsequent runs finish in seconds.
       # Keyed on Cargo.lock so dep bumps invalidate cleanly.
-      - name: Cache cargo build
+      - name: Cache /root/.cargo/bin/cargo build
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: simulation -> target
 
-      - name: cargo build --release
+      - name: /root/.cargo/bin/cargo build --release
         working-directory: simulation
-        run: cargo build --release --locked
+        run: /root/.cargo/bin/cargo build --release --locked
 
-      - name: cargo test
+      - name: /root/.cargo/bin/cargo test
         working-directory: simulation
-        run: cargo test --locked
+        run: /root/.cargo/bin/cargo test --locked
 
   # ── Stage 2: trigger the prod rebuild via SSM ──────────────────────────────
   deploy:
     name: SSM rebuild + restart on EC2
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 25  # cargo build --release on c7g.medium can take ~10 min
+    timeout-minutes: 25  # /root/.cargo/bin/cargo build --release on c7g.medium can take ~10 min
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -74,7 +74,7 @@ jobs:
           # The actual deploy: pull, rebuild release, restart systemd unit.
           # Using a single shell line so it runs in one /bin/sh invocation;
           # any step failing aborts the rest via && chaining.
-          DEPLOY_CMD='source /root/.cargo/env && cd /root/thehumanbox && git pull --ff-only && cargo build --release --manifest-path simulation/Cargo.toml && systemctl restart simulation'
+          DEPLOY_CMD='cd /root/thehumanbox && git pull --ff-only && /root/.cargo/bin/cargo build --release --manifest-path simulation/Cargo.toml && systemctl restart simulation'
 
           CMD_ID=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
@@ -95,7 +95,7 @@ jobs:
 
           # Poll until the command reaches a terminal state. SSM's built-in
           # `wait command-executed` only waits 100 attempts at 5 s = ~8 min,
-          # which isn't enough headroom for a cold cargo build on the box.
+          # which isn't enough headroom for a cold /root/.cargo/bin/cargo build on the box.
           for _ in $(seq 1 240); do
             STATUS=$(aws ssm get-command-invocation \
               --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" \
