@@ -289,12 +289,12 @@ function drawTrees(
     let chance = 0
     let spacing = 2
     switch (biome) {
-      case BIOME_FOREST:   chance = 0.55; spacing = 1; break
-      case BIOME_WETLAND:  chance = 0.30; spacing = 2; break
-      case BIOME_GRASS:    chance = 0.14; spacing = 3; break
-      case BIOME_TUNDRA:   chance = 0.18; spacing = 3; break
-      case BIOME_DESERT:   chance = 0.06; spacing = 4; break
-      case BIOME_VOLCANIC: chance = 0.10; spacing = 3; break
+      case BIOME_FOREST:   chance = 0.32; spacing = 2; break
+      case BIOME_WETLAND:  chance = 0.18; spacing = 3; break
+      case BIOME_GRASS:    chance = 0.06; spacing = 5; break
+      case BIOME_TUNDRA:   chance = 0.10; spacing = 4; break
+      case BIOME_DESERT:   chance = 0.03; spacing = 6; break
+      case BIOME_VOLCANIC: chance = 0.05; spacing = 4; break
     }
     if (r0 > chance) continue
 
@@ -814,20 +814,25 @@ function drawWorldOnCanvas(
     ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(bx, by - 2, barW, 2)
     ctx.fillStyle = '#4499ff';          ctx.fillRect(bx, by - 2, barW * org.hydration, 2)
 
-    // Name
-    if (viewFlags.names) {
-      ctx.fillStyle = 'rgba(255,255,255,0.85)'
-      ctx.font = '9px monospace'
+    // Labels: by default only the selected organism shows name + thought.
+    // The viewFlags toggles become "force all on" for power users — they
+    // were spamming the entire map with overlapping text otherwise.
+    const isSelected = org.id === selectedOrgId
+    const showName    = isSelected || viewFlags.names
+    const showThought = (isSelected || viewFlags.thoughts) && org.thought && org.thought !== 'observing'
+
+    if (showName) {
+      ctx.fillStyle = isSelected ? '#ffffff' : 'rgba(255,255,255,0.85)'
+      ctx.font = isSelected ? 'bold 10px monospace' : '9px monospace'
       ctx.textAlign = 'center'
       ctx.fillText(org.name, px, py - 9)
     }
 
-    // Thought
-    if (viewFlags.thoughts && org.thought && org.thought !== 'observing') {
-      ctx.fillStyle = 'rgba(180,220,255,0.7)'
+    if (showThought) {
+      ctx.fillStyle = isSelected ? 'rgba(180,220,255,0.95)' : 'rgba(180,220,255,0.7)'
       ctx.font = '8px monospace'
       ctx.textAlign = 'center'
-      ctx.fillText(org.thought, px, py - (viewFlags.names ? 18 : 9))
+      ctx.fillText(org.thought, px, py - (showName ? 18 : 9))
     }
   }
   ctx.globalAlpha = 1

@@ -103,7 +103,7 @@ export const useUIStore = create<UIState>((set) => ({
 
   overlay:   null,
   focus:     'all',
-  viewFlags: { territory: false, names: true, thoughts: true, animals: true, grid: false },
+  viewFlags: { territory: false, names: false, thoughts: false, animals: true, grid: false },
 
   isFullscreen: false,
 
