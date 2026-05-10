@@ -8,6 +8,7 @@ import { OrgDetail } from './components/OrgDetail'
 import { EventRow } from './components/EventRow'
 import { Modal } from './components/Modal'
 import { Tooltip } from './components/Tooltip'
+import { WorldFooter } from './components/WorldFooter'
 
 const LanguageModal      = lazy(() => import('./components/LanguageModal').then(m => ({ default: m.LanguageModal })))
 const ChroniclesModal    = lazy(() => import('./components/ChroniclesModal').then(m => ({ default: m.ChroniclesModal })))
@@ -327,6 +328,8 @@ function App() {
                   .slice(0, 20)
                   .map((e, i) => <EventRow key={i} event={e} />)}
               </div>
+
+              <WorldFooter world={world} />
             </aside>
 
             {/* ── World canvas ─────────────────────────────────────── */}
