@@ -2427,6 +2427,8 @@ impl Simulation {
             if dist < min_dist || dist > max_dist { continue; }
             let tx = (x + dx).clamp(5, WIDTH as i32 - 5);
             let ty = (y + dy).clamp(5, HEIGHT as i32 - 5);
+            let actual_dist = (tx - x).abs() + (ty - y).abs();
+            if actual_dist < min_dist { continue; }
             if self.is_good_land_target(tx, ty) {
                 return Some((tx, ty));
             }
@@ -3458,6 +3460,7 @@ mod tests {
             }
         }
         let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+        sim.organisms[idx].id = "curious-adult".to_string();
         sim.organisms[idx].x = (WIDTH / 2) as f32;
         sim.organisms[idx].y = (HEIGHT / 2) as f32;
         sim.organisms[idx].age = 2_000;
@@ -3476,7 +3479,8 @@ mod tests {
         let target = sim.organisms[idx].wander_target.expect("curious adult should choose a land expedition");
         let dist = (target.0 - sim.organisms[idx].x as i32).abs()
             + (target.1 - sim.organisms[idx].y as i32).abs();
-        assert!(dist >= 140 + (curiosity * 120.0) as i32);
+        assert!(dist >= 140 + (curiosity * 120.0) as i32,
+            "dist={} curiosity={} period={} tick_count={}", dist, curiosity, period, sim.tick_count);
         assert_eq!(sim.grid.get(target.0, target.1), Tile::Grass);
     }
 
