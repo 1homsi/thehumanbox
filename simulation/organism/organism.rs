@@ -744,28 +744,22 @@ impl Organism {
             }
         }
 
-        // ── Satisfied → return home / shelter ────────────────────────────────
-        // When needs are reasonably met, organisms gravitate back to their home
-        // region rather than camping indefinitely at water or drifting aimlessly.
         let needs_ok = self.hydration > 0.62 && self.energy > 0.50;
         if needs_ok && !self.pregnant {
             let dist_home = (self.x - self.home_x).abs() + (self.y - self.home_y).abs();
-            // Just finished drinking at a water source - leave and head home
-            if tile == Tile::Water && self.hydration > 0.75 && dist_home > 8.0
-               && rng.gen::<f32>() < 0.60
+            if tile == Tile::Water && self.hydration > 0.75 && dist_home > 30.0
+               && rng.gen::<f32>() < 0.15
             {
                 set_thought!("heading home");
                 return (self.toward((self.home_x as i32, self.home_y as i32), grid), thought);
             }
-            // Seek shelter when health is below ideal or carrying sleep debt
             if (self.health < 0.80 || self.sleep_debt > 0.12) && !self.near_shelter(grid) {
                 if let Some(s) = self.find_shelter_tile(grid, 14) {
                     set_thought!("returning to shelter");
                     return (self.toward(s, grid), thought);
                 }
             }
-            // Drifted far from home territory - moderate pull back
-            if dist_home > 18.0 && rng.gen::<f32>() < 0.20 {
+            if dist_home > 45.0 && rng.gen::<f32>() < 0.05 {
                 set_thought!("heading home");
                 return (self.toward((self.home_x as i32, self.home_y as i32), grid), thought);
             }
@@ -866,9 +860,8 @@ impl Organism {
                         return (self.toward(camp, grid), thought);
                     }
                 }
-                // No shelter found: drift toward home territory at night
                 let dist_home = (self.x - self.home_x).abs() + (self.y - self.home_y).abs();
-                if dist_home > 10.0 && rng.gen::<f32>() < 0.35 {
+                if dist_home > 25.0 && rng.gen::<f32>() < 0.20 {
                     set_thought!("heading home");
                     return (self.toward((self.home_x as i32, self.home_y as i32), grid), thought);
                 }

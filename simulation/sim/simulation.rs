@@ -1140,11 +1140,7 @@ impl Simulation {
             self.organisms[idx].home_y += (cy as f32 - self.organisms[idx].home_y) * drift;
         }
 
-        // ── Kin home convergence ──────────────────────────────────────────────
-        // Every 60 ticks, pull this organism's home coords slightly toward the
-        // average home of nearby same-lineage kin. Creates tribal settlement gravity
-        // without any hardcoded village placement.
-        if self.tick_count % 60 == (idx as u64 % 60) {
+        if self.tick_count % 180 == (idx as u64 % 180) {
             let lid = self.organisms[idx].lineage_id.clone();
             let (hx, hy) = (self.organisms[idx].home_x, self.organisms[idx].home_y);
             let mut sum_x = 0.0f32;
@@ -1155,7 +1151,7 @@ impl Simulation {
                 if other.lineage_id != lid { continue; }
                 let dx = (other.home_x - hx).abs();
                 let dy = (other.home_y - hy).abs();
-                if dx < 40.0 && dy < 40.0 {
+                if dx < 25.0 && dy < 25.0 {
                     sum_x += other.home_x;
                     sum_y += other.home_y;
                     count += 1;
@@ -1164,9 +1160,8 @@ impl Simulation {
             if count > 0 {
                 let avg_x = sum_x / count as f32;
                 let avg_y = sum_y / count as f32;
-                // Very gentle pull - shelter drift dominates, this just coheres the tribe
-                self.organisms[idx].home_x += (avg_x - hx) * 0.0015;
-                self.organisms[idx].home_y += (avg_y - hy) * 0.0015;
+                self.organisms[idx].home_x += (avg_x - hx) * 0.0004;
+                self.organisms[idx].home_y += (avg_y - hy) * 0.0004;
             }
         }
 
@@ -3583,6 +3578,38 @@ mod tests {
                 "seed {seed} lineage centroids only {} wide", cxmax - cxmin);
             assert!(cymax - cymin >= HEIGHT as f32 * 0.20,
                 "seed {seed} lineage centroids only {} tall", cymax - cymin);
+        }
+    }
+
+    #[test]
+    fn population_stays_dispersed_after_many_days() {
+        // Spawn placement spreads tribes across a 4x3 sector grid, but if home
+        // pull or kin convergence is too strong they collapse back together
+        // within a sim-day or two. Run ~1.5 sim-days (9k ticks) and require
+        // the live population's std-dev to remain a meaningful fraction of
+        // the world. Guards against regressions where a tweak to home pull,
+        // shelter drift, or kin convergence quietly re-clusters everyone.
+        for seed in [42u64, 99] {
+            let mut sim = Simulation::new(seed);
+            for _ in 0..9_000 {
+                sim.tick();
+            }
+            let alive: Vec<_> = sim.organisms.iter().filter(|o| o.alive).collect();
+            assert!(alive.len() >= 80,
+                "seed {seed} population collapsed to {} after 3 days", alive.len());
+
+            let n = alive.len() as f32;
+            let mx = alive.iter().map(|o| o.x).sum::<f32>() / n;
+            let my = alive.iter().map(|o| o.y).sum::<f32>() / n;
+            let varx = alive.iter().map(|o| (o.x - mx).powi(2)).sum::<f32>() / n;
+            let vary = alive.iter().map(|o| (o.y - my).powi(2)).sum::<f32>() / n;
+            let stdx = varx.sqrt();
+            let stdy = vary.sqrt();
+
+            assert!(stdx >= WIDTH as f32 * 0.18,
+                "seed {seed} stdx {stdx} too small (clustered) - WIDTH={WIDTH}");
+            assert!(stdy >= HEIGHT as f32 * 0.10,
+                "seed {seed} stdy {stdy} too small (clustered) - HEIGHT={HEIGHT}");
         }
     }
 
