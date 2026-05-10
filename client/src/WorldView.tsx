@@ -620,12 +620,40 @@ function drawWorldOnCanvas(
     }
   }
 
-  // Night overlay
-  if (!world.is_day) {
+  // Day-to-night transition. Continuous over the full day_progress
+  // cycle so we get smooth dawn/dusk ramps with warm sunrise + sunset
+  // tints, instead of the canvas snapping between day and night.
+  //
+  //   day_progress  visible state
+  //   0.00          dawn glow peak (pink-orange)
+  //   0.05 - 0.60   bright daytime, no overlay
+  //   0.60 - 0.70   dusk: warm orange tint + darkness ramp in
+  //   0.70 - 0.85   night descending, peak darkness at 0.85
+  //   0.85 - 0.95   deep night
+  //   0.95 - 1.00   pre-dawn fade
+  {
     const phase = world.day_progress
-    const nightDepth = Math.sin(Math.PI * (phase - 0.7) / 0.3)
-    ctx.fillStyle = `rgba(0,0,40,${0.38 * nightDepth})`
-    ctx.fillRect(0, 0, W, H)
+    let darkness = 0
+    if (phase >= 0.60 && phase < 0.70)      darkness = (phase - 0.60) / 0.10 * 0.40
+    else if (phase >= 0.70 && phase < 0.85) darkness = 0.40 + (phase - 0.70) / 0.15 * 0.45
+    else if (phase >= 0.85 && phase < 0.95) darkness = 0.85
+    else if (phase >= 0.95)                 darkness = 0.85 * (1 - (phase - 0.95) / 0.05)
+
+    const distSunset = Math.abs(phase - 0.65)
+    const sunsetWarm = Math.max(0, 1 - distSunset / 0.07)
+    let distSunrise = Math.abs(phase - 0.02)
+    distSunrise = Math.min(distSunrise, 1 - distSunrise)
+    const sunriseWarm = Math.max(0, 1 - distSunrise / 0.05)
+    const warm = Math.max(sunsetWarm, sunriseWarm)
+
+    if (warm > 0) {
+      ctx.fillStyle = `rgba(255, 100, 40, ${warm * 0.18})`
+      ctx.fillRect(0, 0, W, H)
+    }
+    if (darkness > 0) {
+      ctx.fillStyle = `rgba(0, 0, 40, ${darkness * 0.55})`
+      ctx.fillRect(0, 0, W, H)
+    }
   }
 
   // Weather - clouds + rain streaks
