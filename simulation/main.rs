@@ -25,7 +25,7 @@ use sim::local_think;
 type SharedSim = Arc<Mutex<Simulation>>;
 type Tx = broadcast::Sender<String>;
 type FrameClock = Arc<AtomicU64>;
-type SharedTransportStats = Arc<std::sync::Mutex<TransportStats>>;
+type SharedTransportStats = Arc<TransportStats>;
 
 const SAVE_PATH:  &str = "world.save";
 const DAY_LENGTH: u64  = 600;
@@ -95,15 +95,19 @@ impl TransportWindow {
     }
 }
 
+// Counters live as atomics so the hot path (one record_sent per WS message
+// per client) doesn't contend on a shared lock. Sample windows still need a
+// mutex but they're only touched on frame-generation events, which run on
+// the single broadcast loop and the rare resync path.
 #[derive(Default)]
 struct TransportStats {
-    generated_frames: u64,
-    sent_frames:      u64,
-    lagged_frames:    u64,
-    dropped_frames:   u64,
-    resync_frames:    u64,
-    payload_bytes:    TransportWindow,
-    frame_gen_ms:     TransportWindow,
+    generated_frames: AtomicU64,
+    sent_frames:      AtomicU64,
+    lagged_frames:    AtomicU64,
+    dropped_frames:   AtomicU64,
+    resync_frames:    AtomicU64,
+    payload_bytes:    std::sync::Mutex<TransportWindow>,
+    frame_gen_ms:     std::sync::Mutex<TransportWindow>,
 }
 
 #[derive(Serialize)]
@@ -120,36 +124,44 @@ struct TransportStatsSnapshot {
 }
 
 impl TransportStats {
-    fn record_generated(&mut self, payload_bytes: usize, frame_gen_ms: u64) {
-        self.generated_frames += 1;
-        self.payload_bytes.push(payload_bytes as u64);
-        self.frame_gen_ms.push(frame_gen_ms);
+    fn record_generated(&self, payload_bytes: usize, frame_gen_ms: u64) {
+        self.generated_frames.fetch_add(1, Ordering::Relaxed);
+        if let Ok(mut w) = self.payload_bytes.lock() {
+            w.push(payload_bytes as u64);
+        }
+        if let Ok(mut w) = self.frame_gen_ms.lock() {
+            w.push(frame_gen_ms);
+        }
     }
 
-    fn record_sent(&mut self) {
-        self.sent_frames += 1;
+    fn record_sent(&self) {
+        self.sent_frames.fetch_add(1, Ordering::Relaxed);
     }
 
-    fn record_lagged(&mut self, dropped: u64) {
-        self.lagged_frames += 1;
-        self.dropped_frames += dropped;
+    fn record_lagged(&self, dropped: u64) {
+        self.lagged_frames.fetch_add(1, Ordering::Relaxed);
+        self.dropped_frames.fetch_add(dropped, Ordering::Relaxed);
     }
 
-    fn record_resync(&mut self) {
-        self.resync_frames += 1;
+    fn record_resync(&self) {
+        self.resync_frames.fetch_add(1, Ordering::Relaxed);
     }
 
     fn snapshot(&self) -> TransportStatsSnapshot {
+        let (avg_bytes, p95_bytes) = self.payload_bytes.lock()
+            .map(|w| (w.avg(), w.p95())).unwrap_or((0, 0));
+        let (avg_ms, p95_ms) = self.frame_gen_ms.lock()
+            .map(|w| (w.avg(), w.p95())).unwrap_or((0, 0));
         TransportStatsSnapshot {
-            generated_frames:        self.generated_frames,
-            sent_frames:             self.sent_frames,
-            lagged_frames:           self.lagged_frames,
-            dropped_frames:          self.dropped_frames,
-            resync_frames:           self.resync_frames,
-            avg_payload_bytes:       self.payload_bytes.avg(),
-            p95_payload_bytes:       self.payload_bytes.p95(),
-            avg_frame_generation_ms: self.frame_gen_ms.avg(),
-            p95_frame_generation_ms: self.frame_gen_ms.p95(),
+            generated_frames:        self.generated_frames.load(Ordering::Relaxed),
+            sent_frames:             self.sent_frames.load(Ordering::Relaxed),
+            lagged_frames:           self.lagged_frames.load(Ordering::Relaxed),
+            dropped_frames:          self.dropped_frames.load(Ordering::Relaxed),
+            resync_frames:           self.resync_frames.load(Ordering::Relaxed),
+            avg_payload_bytes:       avg_bytes,
+            p95_payload_bytes:       p95_bytes,
+            avg_frame_generation_ms: avg_ms,
+            p95_frame_generation_ms: p95_ms,
         }
     }
 }
@@ -272,7 +284,7 @@ async fn main() {
     let (tx, _rx) = broadcast::channel::<String>(WS_BROADCAST_BUFFER);
     let latest_full: LatestFull = Arc::new(std::sync::RwLock::new(None));
     let frame_clock: FrameClock = Arc::new(AtomicU64::new(0));
-    let transport_stats: SharedTransportStats = Arc::new(std::sync::Mutex::new(TransportStats::default()));
+    let transport_stats: SharedTransportStats = Arc::new(TransportStats::default());
 
     // Prime the cached full snapshot before any client connects so the first
     // websocket or /snapshot reader gets a sequence-aware full frame.
@@ -284,9 +296,7 @@ async fn main() {
         if let Ok(mut slot) = latest_full.write() {
             *slot = Some(Arc::new(full.clone()));
         }
-        if let Ok(mut stats) = transport_stats.lock() {
-            stats.record_generated(full.len(), frame_started.elapsed().as_millis() as u64);
-        }
+        transport_stats.record_generated(full.len(), frame_started.elapsed().as_millis() as u64);
     }
 
     // Channels
@@ -509,9 +519,7 @@ async fn main() {
                     } else {
                         encode_frame(s.state_json_incremental(), frame_id, now_ms(), "delta")
                     };
-                    if let Ok(mut stats) = transport_stats_w.lock() {
-                        stats.record_generated(json.len(), frame_started.elapsed().as_millis() as u64);
-                    }
+                    transport_stats_w.record_generated(json.len(), frame_started.elapsed().as_millis() as u64);
                     step += 1;
                     if step % 600 == 0 { s.save(SAVE_PATH); }
                     let latest_full = if is_full_frame { Some(json.clone()) } else { None };
@@ -1331,22 +1339,9 @@ async fn org_detail_handler(
 async fn transport_handler(
     State(s): State<AppState>,
 ) -> impl IntoResponse {
-    let snapshot = s.transport_stats.lock()
-        .map(|stats| stats.snapshot())
-        .unwrap_or(TransportStatsSnapshot {
-            generated_frames: 0,
-            sent_frames: 0,
-            lagged_frames: 0,
-            dropped_frames: 0,
-            resync_frames: 0,
-            avg_payload_bytes: 0,
-            p95_payload_bytes: 0,
-            avg_frame_generation_ms: 0,
-            p95_frame_generation_ms: 0,
-        });
     (
         [(axum::http::header::CACHE_CONTROL, "no-store".to_string())],
-        Json(snapshot),
+        Json(s.transport_stats.snapshot()),
     )
 }
 
@@ -1361,18 +1356,23 @@ async fn handle_socket(
     let snapshot: String = if let Some(s) = cached {
         s.as_ref().clone()
     } else {
+        // Fallback bootstrap: the broadcaster hadn't yet primed `latest_full`
+        // when this client connected. We mint a one-off full frame straight
+        // from the sim and tag it frame_id=0 as a sentinel meaning "before
+        // any broadcast frame the client will see". Real broadcaster frames
+        // start at 1 (next_frame_id is fetch_add+1 from an initial 0). The
+        // client's `lastFrameIdRef` also starts at 0, so the dedupe gate
+        // `parsed.frame_id <= lastFrameIdRef` skips frame_id=0 only after
+        // a real frame has been processed - this bootstrap is always
+        // accepted on first arrival.
         let frame_started = std::time::Instant::now();
         let mut sim = sim.lock().await;
         let payload = encode_frame(sim.state_json(), 0, now_ms(), "full");
-        if let Ok(mut stats) = transport_stats.lock() {
-            stats.record_generated(payload.len(), frame_started.elapsed().as_millis() as u64);
-        }
+        transport_stats.record_generated(payload.len(), frame_started.elapsed().as_millis() as u64);
         payload
     };
     if socket.send(Message::Text(snapshot.into())).await.is_err() { return; }
-    if let Ok(mut stats) = transport_stats.lock() {
-        stats.record_sent();
-    }
+    transport_stats.record_sent();
 
     loop {
         tokio::select! {
@@ -1380,24 +1380,18 @@ async fn handle_socket(
                 match result {
                     Ok(msg) => {
                         if socket.send(Message::Text(msg.into())).await.is_err() { break; }
-                        if let Ok(mut stats) = transport_stats.lock() {
-                            stats.record_sent();
-                        }
+                        transport_stats.record_sent();
                     }
                     Err(broadcast::error::RecvError::Lagged(skipped)) => {
-                        if let Ok(mut stats) = transport_stats.lock() {
-                            stats.record_lagged(skipped as u64);
-                        }
+                        transport_stats.record_lagged(skipped as u64);
                         if skipped as u64 >= WS_RESYNC_LAG_THRESHOLD {
                             let cached = latest_full.read().ok().and_then(|g| g.clone());
                             if let Some(full) = cached {
                                 if socket.send(Message::Text(full.as_ref().clone().into())).await.is_err() {
                                     break;
                                 }
-                                if let Ok(mut stats) = transport_stats.lock() {
-                                    stats.record_sent();
-                                    stats.record_resync();
-                                }
+                                transport_stats.record_sent();
+                                transport_stats.record_resync();
                             }
                         }
                     }
@@ -1465,7 +1459,7 @@ mod tests {
 
     #[test]
     fn transport_stats_roll_up_payload_and_lag_metrics() {
-        let mut stats = TransportStats::default();
+        let stats = TransportStats::default();
         stats.record_generated(1200, 4);
         stats.record_generated(800, 8);
         stats.record_sent();
