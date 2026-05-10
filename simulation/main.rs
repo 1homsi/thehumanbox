@@ -3,6 +3,7 @@ mod organism;
 mod physics;
 mod sim;
 mod transport;
+mod routes;
 
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
@@ -27,13 +28,13 @@ use transport::{
     encode_frame, next_frame_id, now_ms,
 };
 
-type SharedSim = Arc<Mutex<Simulation>>;
-type Tx = broadcast::Sender<String>;
+pub type SharedSim = Arc<Mutex<Simulation>>;
+pub type Tx = broadcast::Sender<String>;
 
 const SAVE_PATH:  &str = "world.save";
 const DAY_LENGTH: u64  = 600;
 const WS_BROADCAST_BUFFER: usize = 64;
-const WS_RESYNC_LAG_THRESHOLD: u64 = 3;
+pub const WS_RESYNC_LAG_THRESHOLD: u64 = 3;
 
 fn env_or(key: &str, default: &str) -> String {
     std::env::var(key).unwrap_or_else(|_| default.to_string())
@@ -56,14 +57,14 @@ fn tick_ms() -> u64 {
 
 static TICK_MS: std::sync::LazyLock<u64> = std::sync::LazyLock::new(tick_ms);
 
-type LatestFull = Arc<std::sync::RwLock<Option<Arc<String>>>>;
+pub type LatestFull = Arc<std::sync::RwLock<Option<Arc<String>>>>;
 
 #[derive(Clone)]
-struct AppState {
-    sim:             SharedSim,
-    tx:              Tx,
-    latest_full:     LatestFull,
-    transport_stats: SharedTransportStats,
+pub struct AppState {
+    pub sim:             SharedSim,
+    pub tx:              Tx,
+    pub latest_full:     LatestFull,
+    pub transport_stats: SharedTransportStats,
 }
 
 
@@ -426,11 +427,11 @@ async fn main() {
     let state = AppState { sim, tx, latest_full, transport_stats };
 
     let app = Router::new()
-        .route("/ws", get(ws_handler))
-        .route("/org/:id", get(org_detail_handler))
-        .route("/version", get(version_handler))
-        .route("/snapshot", get(snapshot_handler))
-        .route("/transport", get(transport_handler))
+        .route("/ws", get(routes::ws_handler))
+        .route("/org/:id", get(routes::org_detail_handler))
+        .route("/version", get(routes::version_handler))
+        .route("/snapshot", get(routes::snapshot_handler))
+        .route("/transport", get(routes::transport_handler))
         .layer(compression)
         .layer(cors)
         .with_state(state);
@@ -1154,134 +1155,6 @@ async fn think_worker(
     }
 }
 
-// ── WebSocket ─────────────────────────────────────────────────────────────────
-
-async fn ws_handler(
-    ws: WebSocketUpgrade,
-    State(s): State<AppState>,
-) -> impl IntoResponse {
-    let rx              = s.tx.subscribe();
-    let sim             = s.sim.clone();
-    let latest_full     = s.latest_full.clone();
-    let transport_stats = s.transport_stats.clone();
-    ws.on_upgrade(move |socket| handle_socket(socket, rx, sim, latest_full, transport_stats))
-}
-
-async fn snapshot_handler(
-    State(s): State<AppState>,
-) -> Result<impl IntoResponse, StatusCode> {
-    let cached = s.latest_full.read().ok().and_then(|g| g.clone());
-    match cached {
-        Some(arc) => Ok((
-            [
-                (axum::http::header::CONTENT_TYPE,  "application/json".to_string()),
-                (axum::http::header::CACHE_CONTROL, "no-store".to_string()),
-            ],
-            arc.as_ref().clone(),
-        )),
-        None => Err(StatusCode::SERVICE_UNAVAILABLE),
-    }
-}
-
-async fn version_handler() -> impl IntoResponse {
-    let built_at: u64 = env!("THB_BUILD_TS").parse().unwrap_or(0);
-    (
-        [(axum::http::header::CACHE_CONTROL, "no-store".to_string())],
-        Json(serde_json::json!({
-            "name":     env!("CARGO_PKG_NAME"),
-            "version":  env!("CARGO_PKG_VERSION"),
-            "git_sha":  env!("THB_GIT_SHA"),
-            "built_at": built_at,
-        })),
-    )
-}
-
-async fn org_detail_handler(
-    Path(id): Path<String>,
-    State(s): State<AppState>,
-) -> Result<impl IntoResponse, StatusCode> {
-    use crate::organism::organism::OrgDetailJson;
-    let sim = s.sim.lock().await;
-    let org = sim.organisms.iter().find(|o| o.id == id)
-        .ok_or(StatusCode::NOT_FOUND)?;
-    let detail: OrgDetailJson = org.to_detail_json();
-    Ok((
-        [(axum::http::header::CACHE_CONTROL, "no-store".to_string())],
-        Json(detail),
-    ))
-}
-
-async fn transport_handler(
-    State(s): State<AppState>,
-) -> impl IntoResponse {
-    (
-        [(axum::http::header::CACHE_CONTROL, "no-store".to_string())],
-        Json(s.transport_stats.snapshot()),
-    )
-}
-
-async fn handle_socket(
-    mut socket: WebSocket,
-    mut rx: broadcast::Receiver<String>,
-    sim: SharedSim,
-    latest_full: LatestFull,
-    transport_stats: SharedTransportStats,
-) {
-    let cached = latest_full.read().ok().and_then(|g| g.clone());
-    let snapshot: String = if let Some(s) = cached {
-        s.as_ref().clone()
-    } else {
-        // Fallback bootstrap: the broadcaster hadn't yet primed `latest_full`
-        // when this client connected. We mint a one-off full frame straight
-        // from the sim and tag it frame_id=0 as a sentinel meaning "before
-        // any broadcast frame the client will see". Real broadcaster frames
-        // start at 1 (next_frame_id is fetch_add+1 from an initial 0). The
-        // client's `lastFrameIdRef` also starts at 0, so the dedupe gate
-        // `parsed.frame_id <= lastFrameIdRef` skips frame_id=0 only after
-        // a real frame has been processed - this bootstrap is always
-        // accepted on first arrival.
-        let frame_started = std::time::Instant::now();
-        let mut sim = sim.lock().await;
-        let payload = encode_frame(sim.state_json(), 0, now_ms(), "full");
-        transport_stats.record_generated(payload.len(), frame_started.elapsed().as_millis() as u64);
-        payload
-    };
-    if socket.send(Message::Text(snapshot.into())).await.is_err() { return; }
-    transport_stats.record_sent();
-
-    loop {
-        tokio::select! {
-            result = rx.recv() => {
-                match result {
-                    Ok(msg) => {
-                        if socket.send(Message::Text(msg.into())).await.is_err() { break; }
-                        transport_stats.record_sent();
-                    }
-                    Err(broadcast::error::RecvError::Lagged(skipped)) => {
-                        transport_stats.record_lagged(skipped as u64);
-                        if skipped as u64 >= WS_RESYNC_LAG_THRESHOLD {
-                            let cached = latest_full.read().ok().and_then(|g| g.clone());
-                            if let Some(full) = cached {
-                                if socket.send(Message::Text(full.as_ref().clone().into())).await.is_err() {
-                                    break;
-                                }
-                                transport_stats.record_sent();
-                                transport_stats.record_resync();
-                            }
-                        }
-                    }
-                    Err(_) => break,
-                }
-            }
-            msg = socket.recv() => {
-                match msg {
-                    Some(Ok(Message::Close(_))) | None => break,
-                    _ => {}
-                }
-            }
-        }
-    }
-}
 
 #[cfg(test)]
 mod tests {
