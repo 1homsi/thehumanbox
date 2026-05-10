@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Game, World, Entity, Transform, Sprite, Camera2D, useCamera, useGame, useEntity } from 'cubeforge'
+import { Game, World, Entity, Transform, Sprite, Camera2D, useCamera, useEntity, useDynamicCanvas } from 'cubeforge'
 import type { WorldState } from './types'
 import type { InterpRefs } from './useSimulation'
 import { useUIStore } from './store'
@@ -686,10 +686,19 @@ function drawWorldOnCanvas(
     const px = (animal.x - ox) * TILE
     const py = (animal.y - oy) * TILE
     const tile = pickAnimalTile(animal.kind, animal.id)
-    // Fish: smaller sprite, sit a touch lower so they look submerged
-    // not floating above the surface.
     const aSize = animal.kind === 'fish' ? 10 : 14
-    const yOff  = animal.kind === 'fish' ? -1 : -3
+    const yBase = animal.kind === 'fish' ? -1 : -3
+    // Procedural bob: sine wave keyed off time + id hash so each sprite
+    // bobs at a slightly different phase, giving the herd a living feel
+    // without per-entity ECS overhead. Fish bob more (water motion),
+    // dogs/wolves/birds bob faster.
+    const speed   = animal.kind === 'fish' ? 0.0028
+                  : animal.kind === 'bird' ? 0.0050
+                  : animal.kind === 'wolf' || animal.kind === 'dog' ? 0.0042
+                  : 0.0036
+    const amp     = animal.kind === 'fish' ? 1.4 : 0.8
+    const phase   = (t * speed) + (animal.id * 0.7)
+    const yOff    = yBase + Math.sin(phase) * amp
     if (ATLAS_CREATURE.complete) {
       drawTile(ctx, ATLAS_CREATURE, tile, px - aSize / 2 + TILE / 2, py + yOff, aSize)
     } else {
@@ -836,90 +845,34 @@ function drawWorldOnCanvas(
   }
 }
 
-// ── WorldTextureUpdater ───────────────────────────────────────────────────────
-// Must be inside <Entity>. Injects a WebGL texture and updates it each tick.
+// World map sprite — uses Cubeforge's official useDynamicCanvas hook so the
+// engine owns the WebGL texture lifecycle (tab-visibility recovery, context
+// loss, LRU). Replaces the older code that reached into rs.textures /
+// rs.touchTexture directly. The RAF loop draws the world to the dynamic
+// canvas's 2D context and calls markDirty() — Cubeforge handles the upload.
 
-function WorldTextureUpdater({ world, interp, selectedOrgId, overlay, focus, viewFlags, onFirstDraw }: { world: WorldState; interp?: InterpRefs; selectedOrgId: string | null; overlay: string | null; focus: string; viewFlags: ViewFlags; onFirstDraw: () => void }) {
-  const engine = useGame()
+function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, onFirstDraw, atX, atY }: { world: WorldState; interp?: InterpRefs; selectedOrgId: string | null; overlay: string | null; focus: string; viewFlags: ViewFlags; onFirstDraw: () => void; atX: number; atY: number }) {
   useEntity()
-  const glTexRef   = useRef<WebGLTexture | null>(null)
-  const offscreen  = useRef<HTMLCanvasElement | null>(null)
-  const texKeyRef  = useRef<string>('')
-  const initialised = useRef(false)
+
+  const W = world.grid.width  * TILE
+  const H = world.grid.height * TILE
+  const dyn = useDynamicCanvas(W, H)
+
   const hasDrawn   = useRef(false)
-  const needsFullReupload = useRef(false)
-  // Cache the last-received static maps - depth_map/biomes only arrive every 30 ticks
   const cachedDepth  = useRef<number[][] | null>(null)
   const cachedBiomes = useRef<number[][] | null>(null)
+  const filledOnce   = useRef(false)
 
-  // Initialise texture once on mount - useLayoutEffect so the texture is injected
-  // before Cubeforge's first WebGL frame, preventing the green placeholder flash.
+  // Pre-fill once with ocean blue so the first composited frame from
+  // Cubeforge isn't a transparent canvas / random GPU memory.
   useLayoutEffect(() => {
-    const rs = (engine as any).activeRenderSystem
-    const gl: WebGL2RenderingContext = rs.gl
+    if (filledOnce.current) return
+    dyn.ctx.fillStyle = '#1a4a80'
+    dyn.ctx.fillRect(0, 0, W, H)
+    dyn.markDirty()
+    filledOnce.current = true
+  }, [dyn, W, H])
 
-    // Determine the resolved URL key cubeforge will use for "world_canvas"
-    const tmp = new Image()
-    tmp.src = 'world_canvas'
-    texKeyRef.current = tmp.src   // browser resolves to absolute URL
-
-    // Create persistent GL texture
-    const tex = gl.createTexture()!
-    glTexRef.current = tex
-
-    // Create offscreen canvas - pre-fill with ocean blue so first frame isn't a flash of green
-    const W = world.grid.width * TILE
-    const H = world.grid.height * TILE
-    const cv = document.createElement('canvas')
-    cv.width = W; cv.height = H
-    const initCtx = cv.getContext('2d')!
-    initCtx.fillStyle = '#1a4a80'
-    initCtx.fillRect(0, 0, W, H)
-    offscreen.current = cv
-
-    // Initial upload - ocean-blue canvas so texture is valid and colour-matched from frame 1
-    gl.bindTexture(gl.TEXTURE_2D, tex)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-
-    // Inject into cubeforge's texture cache
-    rs.textures.set(texKeyRef.current, tex)
-    if (rs.touchTexture) rs.touchTexture(texKeyRef.current)
-
-    initialised.current = true
-
-    const onVisibility = () => {
-      if (document.visibilityState === 'visible') needsFullReupload.current = true
-    }
-    document.addEventListener('visibilitychange', onVisibility)
-
-    const cubeforgeCanvas = (rs as any).canvas as HTMLCanvasElement | undefined
-    const onContextLost = (e: Event) => { e.preventDefault(); needsFullReupload.current = true }
-    const onContextRestored = () => { needsFullReupload.current = true }
-    cubeforgeCanvas?.addEventListener('webglcontextlost',     onContextLost)
-    cubeforgeCanvas?.addEventListener('webglcontextrestored', onContextRestored)
-
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibility)
-      cubeforgeCanvas?.removeEventListener('webglcontextlost',     onContextLost)
-      cubeforgeCanvas?.removeEventListener('webglcontextrestored', onContextRestored)
-      try {
-        const cleanGl: WebGL2RenderingContext = (engine as any).activeRenderSystem.gl
-        if (glTexRef.current) { cleanGl.deleteTexture(glTexRef.current); glTexRef.current = null }
-      } catch (_) {}
-      offscreen.current    = null
-      initialised.current  = false
-      _imgBuf = null  // release module-level pixel buffer
-      _baseCanvas = null
-      _baseKey = null
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Keep latest world + UI state in refs so the RAF loop reads fresh values
-  // without restarting on every state change (selecting an org, toggling overlay).
   const worldRef         = useRef<WorldState | null>(world)
   const selectedOrgIdRef = useRef<string | null>(selectedOrgId)
   const overlayRef       = useRef<string | null>(overlay)
@@ -931,19 +884,10 @@ function WorldTextureUpdater({ world, interp, selectedOrgId, overlay, focus, vie
   focusRef.current         = focus
   viewFlagsRef.current     = viewFlags
 
-  // Continuous RAF render loop.
-  //
-  // Replaces the old "redraw whenever `world` prop changes" pattern. The loop
-  // runs at the browser's refresh rate (~60 fps) DURING interpolation between
-  // the previous and current WS snapshots. Once interpolation completes (t=1)
-  // and no new snapshot has arrived, we stop redrawing - there's nothing new
-  // on screen and another texSubImage2D would just re-upload the same 11.5 MB
-  // texture for no reason.
   useEffect(() => {
     if (!interp) return
     let raf = 0
     let stopped = false
-    // Track what we last drew so we can skip identical re-draws
     let lastDrawnAt: number = 0
     let lastDrawnT:  number = -1
     let lastDrawnUI: string = ''
@@ -953,33 +897,24 @@ function WorldTextureUpdater({ world, interp, selectedOrgId, overlay, focus, vie
       raf = requestAnimationFrame(tick)
 
       const w = worldRef.current
-      if (!w || !initialised.current || !glTexRef.current || !offscreen.current) return
-      const rs = (engine as any).activeRenderSystem
-      if (!rs) return
-      const gl: WebGL2RenderingContext = rs.gl
+      if (!w) return
 
-      // Cache depth_map / biomes when present (sent every 30 ticks)
       if (w.grid.depth_map) cachedDepth.current  = w.grid.depth_map  as number[][]
       if (w.grid.biomes)    cachedBiomes.current = w.grid.biomes     as number[][]
 
-      // Compute interpolation factor from real-time elapsed since current snapshot
       const cur     = interp.current.current
       const prev    = interp.prev.current
       const curAt   = interp.currentAt.current
       const prevAt  = interp.prevAt.current
-      const interval = Math.max(50, curAt - prevAt) // expected real-time gap, lower-bounded
-      // t = 0 at curAt, 1 at curAt+interval. Clamps at 1 so we hold at `cur`
-      // when the next snapshot is late instead of overshooting.
+      const interval = Math.max(50, curAt - prevAt)
       const t = (cur && prev && interval > 0)
         ? Math.min(1, Math.max(0, (performance.now() - curAt) / interval))
         : 1
 
       const uiKey = `${selectedOrgIdRef.current ?? ''}|${overlayRef.current ?? ''}|${focusRef.current}|${viewFlagsRef.current.territory ? 't':''}${viewFlagsRef.current.names ? 'n':''}${viewFlagsRef.current.thoughts ? 'h':''}${viewFlagsRef.current.animals ? 'a':''}${viewFlagsRef.current.grid ? 'g':''}`
       const settled = t >= 1 && lastDrawnT >= 1 && curAt === lastDrawnAt && uiKey === lastDrawnUI
-      if (settled && !needsFullReupload.current) return
+      if (settled) return
 
-      // Build an interpolated organism list. When prev exists and the org was
-      // alive in both snapshots, lerp x/y. Births/deaths use the current pos as-is.
       let renderOrgs = w.viewport_organisms ?? w.organisms
       if (prev && t < 1 && cur === w) {
         const prevOrgs = prev.viewport_organisms ?? prev.organisms
@@ -1015,13 +950,8 @@ function WorldTextureUpdater({ world, interp, selectedOrgId, overlay, focus, vie
         viewport_animals:   renderAnimals,
       }
 
-      const ctx = offscreen.current.getContext('2d')!
-      drawWorldOnCanvas(ctx, enrichedWorld, selectedOrgIdRef.current, overlayRef.current, focusRef.current, viewFlagsRef.current)
-
-      gl.bindTexture(gl.TEXTURE_2D, glTexRef.current)
-      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, offscreen.current)
-      rs.textures.set(texKeyRef.current, glTexRef.current)
-      if (rs.touchTexture) rs.touchTexture(texKeyRef.current)
+      drawWorldOnCanvas(dyn.ctx, enrichedWorld, selectedOrgIdRef.current, overlayRef.current, focusRef.current, viewFlagsRef.current)
+      dyn.markDirty()
 
       lastDrawnAt = curAt
       lastDrawnT  = t
@@ -1034,10 +964,27 @@ function WorldTextureUpdater({ world, interp, selectedOrgId, overlay, focus, vie
     }
 
     raf = requestAnimationFrame(tick)
-    return () => { stopped = true; cancelAnimationFrame(raf) }
-  }, [interp, engine, onFirstDraw])
+    return () => {
+      stopped = true
+      cancelAnimationFrame(raf)
+      _imgBuf = null
+      _baseCanvas = null
+      _baseKey = null
+    }
+  }, [interp, dyn, onFirstDraw])
 
-  return null
+  return (
+    <>
+      <Transform x={atX} y={atY} />
+      <Sprite
+        width={W}
+        height={H}
+        dynamicSrc={dyn.id}
+        color="#ffffff"
+        zIndex={0}
+      />
+    </>
+  )
 }
 
 // ── CameraController ──────────────────────────────────────────────────────────
@@ -1272,15 +1219,17 @@ export function WorldView({ world, interp }: Props) {
             <Camera2D />
 
             <Entity>
-              <Transform x={cx} y={cy} />
-              <Sprite
-                width={W}
-                height={H}
-                src="world_canvas"
-                color="#ffffff"
-                zIndex={0}
+              <WorldSprite
+                world={world}
+                interp={interp}
+                selectedOrgId={selectedOrgId}
+                overlay={overlay}
+                focus={focus}
+                viewFlags={viewFlags}
+                onFirstDraw={() => setMapReady(true)}
+                atX={cx}
+                atY={cy}
               />
-              <WorldTextureUpdater world={world} interp={interp} selectedOrgId={selectedOrgId} overlay={overlay} focus={focus} viewFlags={viewFlags} onFirstDraw={() => setMapReady(true)} />
             </Entity>
 
             <CameraController
