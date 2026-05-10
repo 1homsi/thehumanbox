@@ -250,6 +250,22 @@ function App() {
                   </div>
 
                   <div className="more-dropdown-divider" />
+                  <div className="more-dropdown-section">overlays</div>
+                  <div className="more-dropdown-grid">
+                    <button className={clsx('lang-btn', viewFlags.lineageDot && 'active')} onClick={() => setViewFlag('lineageDot', !viewFlags.lineageDot)} title="Colored dot per organism showing tribe affiliation">⬤ lineage</button>
+                    <button className={clsx('lang-btn', viewFlags.health     && 'active')} onClick={() => setViewFlag('health',     !viewFlags.health)} title="Ring tint by health">♥ health</button>
+                    <button className={clsx('lang-btn', viewFlags.age        && 'active')} onClick={() => setViewFlag('age',        !viewFlags.age)} title="Age tint: child / adult / elder">⏳ age</button>
+                    <button className={clsx('lang-btn', viewFlags.fear       && 'active')} onClick={() => setViewFlag('fear',       !viewFlags.fear)} title="Fear halo">⚠ fear</button>
+                    <button className={clsx('lang-btn', viewFlags.partners   && 'active')} onClick={() => setViewFlag('partners',   !viewFlags.partners)} title="Bond line between partners">♥♥ pairs</button>
+                    <button className={clsx('lang-btn', viewFlags.pregnancy  && 'active')} onClick={() => setViewFlag('pregnancy',  !viewFlags.pregnancy)} title="Pregnancy marker">◯ pregnant</button>
+                    <button className={clsx('lang-btn', viewFlags.trails     && 'active')} onClick={() => setViewFlag('trails',     !viewFlags.trails)} title="Food / water / path stigmergy">⋯ trails</button>
+                    <button className={clsx('lang-btn', viewFlags.structures && 'active')} onClick={() => setViewFlag('structures', !viewFlags.structures)} title="Highlight huts and campfires">⌂ builds</button>
+                    <button className={clsx('lang-btn', viewFlags.fertility  && 'active')} onClick={() => setViewFlag('fertility',  !viewFlags.fertility)} title="Soil fertility heat">✿ fertility</button>
+                    <button className={clsx('lang-btn', viewFlags.hazard     && 'active')} onClick={() => setViewFlag('hazard',     !viewFlags.hazard)} title="Hazard scars - violence and death">✶ hazard</button>
+                    <button className={clsx('lang-btn', viewFlags.fps        && 'active')} onClick={() => setViewFlag('fps',        !viewFlags.fps)} title="Frames-per-second + frame timing">⏱ perf</button>
+                  </div>
+
+                  <div className="more-dropdown-divider" />
                   <div className="more-dropdown-grid">
                     <button className="lang-btn" onClick={() => { openLanguages();   useUIStore.setState({ showMore: false }) }}>⌖ lang</button>
                     <button className="lang-btn" onClick={() => { openFamilyTree();  useUIStore.setState({ showMore: false }) }}>⬡ tree</button>

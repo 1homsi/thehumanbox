@@ -16,11 +16,24 @@ import { create } from 'zustand'
  */
 
 export interface ViewFlags {
-  territory: boolean
-  names:     boolean
-  thoughts:  boolean
-  animals:   boolean
-  grid:      boolean
+  territory:  boolean
+  names:      boolean
+  thoughts:   boolean
+  animals:    boolean
+  grid:       boolean
+  // New overlays added 2026-05-11 to surface state that was already in
+  // the world but had no UI affordance.
+  trails:     boolean   // food / water / path stigmergy
+  structures: boolean   // huts + campfires highlighted
+  fertility:  boolean   // green-tint overlay for fertile soil
+  hazard:     boolean   // hazard scars
+  lineageDot: boolean   // colored dot per organism (tribe affiliation)
+  health:     boolean   // ring tint by health / hunger
+  age:        boolean   // age tint (child / adult / elder)
+  fear:       boolean   // fear halo
+  partners:   boolean   // bond line between partners
+  pregnancy:  boolean   // pregnancy marker
+  fps:        boolean   // perf overlay
 }
 
 interface UIState {
@@ -103,7 +116,12 @@ export const useUIStore = create<UIState>((set) => ({
 
   overlay:   null,
   focus:     'all',
-  viewFlags: { territory: false, names: true, thoughts: false, animals: true, grid: false },
+  viewFlags: {
+    territory: false, names: true, thoughts: false, animals: true, grid: false,
+    trails: false, structures: false, fertility: false, hazard: false,
+    lineageDot: false, health: false, age: false, fear: false,
+    partners: false, pregnancy: false, fps: false,
+  },
 
   isFullscreen: false,
 

@@ -373,7 +373,16 @@ function drawClouds(
   ctx.restore()
 }
 
-type ViewFlags = { territory: boolean; names: boolean; thoughts: boolean; animals: boolean; grid: boolean }
+type ViewFlags = {
+  territory: boolean; names: boolean; thoughts: boolean; animals: boolean; grid: boolean
+  trails: boolean; structures: boolean; fertility: boolean; hazard: boolean
+  lineageDot: boolean; health: boolean; age: boolean; fear: boolean
+  partners: boolean; pregnancy: boolean; fps: boolean
+}
+
+// FPS overlay state. Module-level so it survives between draw calls -
+// drawWorldOnCanvas is a free function, not a hook.
+const fpsSamples: number[] = []
 
 function drawWorldOnCanvas(
   ctx: CanvasRenderingContext2D,
@@ -681,6 +690,48 @@ function drawWorldOnCanvas(
     ctx.restore()
   }
 
+  // Structure highlight: ring every tile with non-zero structure
+  if (viewFlags.structures && structure) {
+    ctx.save()
+    ctx.strokeStyle = 'rgba(255,210,140,0.7)'
+    ctx.lineWidth = 1
+    for (let row = 0; row < height; row++) {
+      const r = structure[row]
+      if (!r) continue
+      for (let col = 0; col < width; col++) {
+        if (r[col] && r[col] > 0.1) {
+          ctx.strokeRect(col * TILE + 0.5, row * TILE + 0.5, TILE - 1, TILE - 1)
+        }
+      }
+    }
+    ctx.restore()
+  }
+
+  // Partner bond lines: a soft pink line between each org and its partner
+  // when both are in viewport. Use a Map for O(1) partner lookup.
+  if (viewFlags.partners) {
+    const byId = new Map(organisms.filter(o => o.alive).map(o => [o.id, o]))
+    ctx.save()
+    ctx.strokeStyle = 'rgba(255,170,200,0.55)'
+    ctx.lineWidth = 1
+    for (const org of organisms) {
+      if (!org.alive || !org.partner_id) continue
+      // Only draw each bond once (lexicographic order on id)
+      if (org.id >= org.partner_id) continue
+      const partner = byId.get(org.partner_id)
+      if (!partner || !partner.alive) continue
+      const ax = (org.x - ox) * TILE + TILE / 2
+      const ay = (org.y - oy) * TILE + TILE / 2
+      const bx = (partner.x - ox) * TILE + TILE / 2
+      const by = (partner.y - oy) * TILE + TILE / 2
+      ctx.beginPath()
+      ctx.moveTo(ax, ay)
+      ctx.lineTo(bx, by)
+      ctx.stroke()
+    }
+    ctx.restore()
+  }
+
   // Draw animals (under organisms)
   for (const animal of (viewFlags.animals ? animals : [])) {
     const px = (animal.x - ox) * TILE
@@ -796,8 +847,47 @@ function drawWorldOnCanvas(
     const variant = orgVariant(org.id)
     const bodyR = variant.bodyRadius * (org.sex === 'male' ? 1.05 : 0.95)
 
-    ctx.fillStyle = THOUGHT_COLORS[org.thought] ?? '#cccccc'
+    // Body color: by default use the thought-derived palette. Health
+    // overlay tints toward red when health drops; fully overrides only
+    // when the toggle is on so default look is preserved.
+    let bodyFill = THOUGHT_COLORS[org.thought] ?? '#cccccc'
+    if (viewFlags.health) {
+      const h = Math.max(0, Math.min(1, org.health))
+      const r = Math.round(220 * (1 - h) + 80 * h)
+      const g = Math.round( 80 * (1 - h) + 200 * h)
+      const b = Math.round( 80 * (1 - h) + 100 * h)
+      bodyFill = `rgb(${r},${g},${b})`
+    } else if (viewFlags.age) {
+      // child (<900) → soft blue, adult → neutral, elder (is_elder) → gold
+      if (org.is_elder) bodyFill = '#e9c87a'
+      else if (org.age < 900) bodyFill = '#8db5d6'
+      else bodyFill = '#b8b8a8'
+    }
+    ctx.fillStyle = bodyFill
     ctx.beginPath(); ctx.arc(px, py, bodyR, 0, Math.PI * 2); ctx.fill()
+
+    // Fear halo
+    if (viewFlags.fear && (org.fear_level ?? 0) > 0.25) {
+      const fa = Math.min(0.55, (org.fear_level ?? 0) * 0.8)
+      ctx.beginPath(); ctx.arc(px, py, bodyR + 4, 0, Math.PI * 2)
+      ctx.fillStyle = `rgba(220,70,70,${fa})`
+      ctx.fill()
+    }
+
+    // Lineage dot (tiny solid dot inside the body)
+    if (viewFlags.lineageDot && org.lineage_id) {
+      ctx.fillStyle = lineageColor(org.lineage_id)
+      ctx.beginPath(); ctx.arc(px, py + bodyR * 0.4, 1.6, 0, Math.PI * 2); ctx.fill()
+    }
+
+    // Pregnancy marker - gold ring
+    if (viewFlags.pregnancy && org.pregnant) {
+      ctx.strokeStyle = 'rgba(255,220,120,0.9)'
+      ctx.lineWidth = 1.3
+      ctx.setLineDash([2, 2])
+      ctx.beginPath(); ctx.arc(px, py, bodyR + 2.5, 0, Math.PI * 2); ctx.stroke()
+      ctx.setLineDash([])
+    }
 
     ctx.fillStyle = variant.hairColor
     ctx.beginPath(); ctx.arc(px, py - bodyR * 0.7, bodyR * 0.55, 0, Math.PI * 2); ctx.fill()
@@ -836,6 +926,29 @@ function drawWorldOnCanvas(
     }
   }
   ctx.globalAlpha = 1
+
+  // FPS / frame-timing overlay (top-right of canvas). Module-level
+  // sliding-window keyed off the `t` arg the draw fn already receives.
+  if (viewFlags.fps) {
+    fpsSamples.push(t)
+    if (fpsSamples.length > 60) fpsSamples.shift()
+    let fps = 0
+    if (fpsSamples.length >= 2) {
+      const span = fpsSamples[fpsSamples.length - 1] - fpsSamples[0]
+      if (span > 0) fps = ((fpsSamples.length - 1) * 1000) / span
+    }
+    const text = `${fps.toFixed(0)} fps · ${organisms.filter(o => o.alive).length} org`
+    ctx.save()
+    ctx.font = 'bold 10px monospace'
+    ctx.textAlign = 'right'
+    const padX = 6
+    const tw = ctx.measureText(text).width
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'
+    ctx.fillRect(W - tw - padX * 2 - 4, 4, tw + padX * 2, 16)
+    ctx.fillStyle = '#aaffdd'
+    ctx.fillText(text, W - padX - 4, 16)
+    ctx.restore()
+  }
 
   // Grid lines (optional)
   if (viewFlags.grid) {
