@@ -2077,10 +2077,10 @@ impl Simulation {
     fn spawn_animals(&mut self, count: usize) {
         for _ in 0..count {
             let r = self.rng.gen::<f32>();
-            let kind = if r < 0.30 { AnimalKind::Rabbit }
-                       else if r < 0.50 { AnimalKind::Deer }
-                       else if r < 0.62 { AnimalKind::Boar }
-                       else if r < 0.78 { AnimalKind::Bird }
+            let kind = if r < 0.32 { AnimalKind::Rabbit }
+                       else if r < 0.55 { AnimalKind::Deer }
+                       else if r < 0.70 { AnimalKind::Boar }
+                       else if r < 0.84 { AnimalKind::Bird }
                        else if r < 0.92 { AnimalKind::Fish }
                        else                { AnimalKind::Wolf };
             for _ in 0..60 {
@@ -2249,8 +2249,8 @@ impl Simulation {
                 (AnimalKind::Bird,   Biome::Tundra)    => 0.7,
                 (AnimalKind::Bird,   Biome::Desert)    => 0.4,
                 (AnimalKind::Bird,   Biome::Volcanic)  => 0.1,
-                (AnimalKind::Fish,   Biome::Wetland)   => 1.5,
-                (AnimalKind::Fish,   _)                => 1.0,
+                (AnimalKind::Fish,   Biome::Wetland)   => 0.7,
+                (AnimalKind::Fish,   _)                => 0.5,
                 (AnimalKind::Wolf,   Biome::Forest)    => 0.8,
                 (AnimalKind::Wolf,   Biome::Tundra)    => 1.0,
                 (AnimalKind::Wolf,   Biome::Grassland) => 0.5,
