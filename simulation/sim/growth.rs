@@ -27,6 +27,17 @@ pub fn spawn_organism_with_lineage(
     lineage_id: String,
     rng: &mut impl Rng,
 ) {
+    spawn_organism_with_home(grid, organisms, x, y, x, y, lineage_id, rng);
+}
+
+pub fn spawn_organism_with_home(
+    grid: &WorldGrid,
+    organisms: &mut Vec<Organism>,
+    x: f32, y: f32,
+    home_x: f32, home_y: f32,
+    lineage_id: String,
+    rng: &mut impl Rng,
+) {
     let id     = Uuid::new_v4().to_string()[..8].to_string();
     let sex    = Sex::random(rng);
     let mut traits = Traits::random(rng);
@@ -40,6 +51,8 @@ pub fn spawn_organism_with_lineage(
         id.clone(), generate_name(rng, sex),
         x, y, 0, String::new(), lineage_id, max_age, traits,
     );
+    org.home_x = home_x;
+    org.home_y = home_y;
     org.sex = sex;
     org.vocabulary = Vocabulary::generate(rng);
 
@@ -220,18 +233,8 @@ pub fn try_reproduce(
         child.org_trust.insert(oid.clone(), trust * 0.4);
     }
 
-    // Inherit home location - children know where they came from
     child.home_x = organisms[org_idx].home_x;
     child.home_y = organisms[org_idx].home_y;
-
-    // Settlement imprinting: if born near an existing structure, that place is home
-    let struct_near = (-4i32..=4).flat_map(|dx| (-4i32..=4).map(move |dy| (sx as i32 + dx, sy as i32 + dy)))
-        .map(|(x, y)| grid.structure_at(x, y))
-        .fold(0.0f32, f32::max);
-    if struct_near >= 0.2 {
-        child.home_x = sx as f32;
-        child.home_y = sy as f32;
-    }
 
     // Birth infection
     if organisms[org_idx].infection > 0.1 {

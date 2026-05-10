@@ -746,22 +746,11 @@ impl Organism {
 
         let needs_ok = self.hydration > 0.62 && self.energy > 0.50;
         if needs_ok && !self.pregnant {
-            let dist_home = (self.x - self.home_x).abs() + (self.y - self.home_y).abs();
-            if tile == Tile::Water && self.hydration > 0.75 && dist_home > 30.0
-               && rng.gen::<f32>() < 0.15
-            {
-                set_thought!("heading home");
-                return (self.toward((self.home_x as i32, self.home_y as i32), grid), thought);
-            }
             if (self.health < 0.80 || self.sleep_debt > 0.12) && !self.near_shelter(grid) {
                 if let Some(s) = self.find_shelter_tile(grid, 14) {
                     set_thought!("returning to shelter");
                     return (self.toward(s, grid), thought);
                 }
-            }
-            if dist_home > 45.0 && rng.gen::<f32>() < 0.05 {
-                set_thought!("heading home");
-                return (self.toward((self.home_x as i32, self.home_y as i32), grid), thought);
             }
         }
 

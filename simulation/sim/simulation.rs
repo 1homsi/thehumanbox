@@ -291,11 +291,12 @@ impl Simulation {
         anchors.truncate(N_TRIBES);
 
         // ── Step 2: for each anchor, spawn TRIBE_SIZE organisms with shared lineage ──
+        let mut tribe_anchor: std::collections::HashMap<String, (f32, f32)> = std::collections::HashMap::new();
         for &(ax, ay) in &anchors {
-            // Generate the shared lineage identity for this tribe
             let lineage_id = Uuid::new_v4().to_string()[..8].to_string();
             let tribe_name = generate_tribe_name(&mut self.rng);
             self.lineage_names.insert(lineage_id.clone(), tribe_name);
+            tribe_anchor.insert(lineage_id.clone(), (ax as f32, ay as f32));
 
             // Collect nearby land tiles
             let mut land: Vec<(i32, i32)> = Vec::new();
@@ -319,9 +320,10 @@ impl Simulation {
             }
             for k in 0..take {
                 let (lx, ly) = land[k];
-                growth::spawn_organism_with_lineage(
+                growth::spawn_organism_with_home(
                     &self.grid, &mut self.organisms,
                     lx as f32, ly as f32,
+                    ax as f32, ay as f32,
                     lineage_id.clone(),
                     &mut self.rng,
                 );
@@ -347,9 +349,11 @@ impl Simulation {
                 all_land.swap(i, j);
                 let (x, y) = all_land[i];
                 let lid = tribe_ids[spawned % n_tribes].clone();
-                growth::spawn_organism_with_lineage(
+                let (hx, hy) = tribe_anchor.get(&lid).copied().unwrap_or((x as f32, y as f32));
+                growth::spawn_organism_with_home(
                     &self.grid, &mut self.organisms,
                     x as f32, y as f32,
+                    hx, hy,
                     lid,
                     &mut self.rng,
                 );
@@ -423,6 +427,8 @@ impl Simulation {
                 lx as f32, ly as f32,
                 0, String::new(), lineage_id.clone(), max_age, traits,
             );
+            org.home_x = anchor_x as f32;
+            org.home_y = anchor_y as f32;
             org.sex = sex;
             org.age = self.rng.gen_range(2000u32..=5000);
             org.energy    = 0.85;
@@ -1133,36 +1139,6 @@ impl Simulation {
                     self.organisms[idx].grief_ticks.saturating_sub(3);
             }
 
-            // Home range drift: home_x/home_y gradually migrates toward where they shelter
-            // This is how settlement emerges - organisms anchor to places they actually use
-            let drift = 0.00025 * shelter_strength;
-            self.organisms[idx].home_x += (cx as f32 - self.organisms[idx].home_x) * drift;
-            self.organisms[idx].home_y += (cy as f32 - self.organisms[idx].home_y) * drift;
-        }
-
-        if self.tick_count % 180 == (idx as u64 % 180) {
-            let lid = self.organisms[idx].lineage_id.clone();
-            let (hx, hy) = (self.organisms[idx].home_x, self.organisms[idx].home_y);
-            let mut sum_x = 0.0f32;
-            let mut sum_y = 0.0f32;
-            let mut count = 0u32;
-            for other in &self.organisms {
-                if !other.alive || other.id == self.organisms[idx].id { continue; }
-                if other.lineage_id != lid { continue; }
-                let dx = (other.home_x - hx).abs();
-                let dy = (other.home_y - hy).abs();
-                if dx < 25.0 && dy < 25.0 {
-                    sum_x += other.home_x;
-                    sum_y += other.home_y;
-                    count += 1;
-                }
-            }
-            if count > 0 {
-                let avg_x = sum_x / count as f32;
-                let avg_y = sum_y / count as f32;
-                self.organisms[idx].home_x += (avg_x - hx) * 0.0004;
-                self.organisms[idx].home_y += (avg_y - hy) * 0.0004;
-            }
         }
 
         // ── Vital drain ───────────────────────────────────────────────────────
@@ -1735,18 +1711,6 @@ impl Simulation {
         // Elder teaching: elders periodically impart knowledge to young kin
         if self.organisms[idx].is_elder && self.tick_count % 60 == 0 {
             social::teach(idx, &mut self.organisms, self.tick_count, &mut self.events, &mut self.rng);
-        }
-
-        // Comfort nesting: update home toward current shelter when thriving
-        {
-            let org = &self.organisms[idx];
-            if org.health > 0.7 && org.energy > 0.55 && self.tick_count % 80 == 0
-               && org.near_shelter(&self.grid) && self.rng.gen::<f32>() < 0.06
-            {
-                let (ox2, oy2) = (org.x, org.y);
-                self.organisms[idx].home_x = ox2;
-                self.organisms[idx].home_y = oy2;
-            }
         }
 
         // Personality drift: traits slowly adapt to lived experience (every 2000 ticks)
@@ -2429,9 +2393,55 @@ impl Simulation {
         if self.organisms[idx].energy < 0.45 || self.organisms[idx].hydration < 0.45 { return; }
         if self.organisms[idx].age < 600 || self.organisms[idx].fear_level > 0.65 { return; }
 
+        // ── Crowding-driven dispersal ─────────────────────────────────────────
+        // When the local same-lineage density exceeds the tribe's comfortable
+        // packing, push outward along the vector from the local kin centroid.
+        // This naturally expands the tribe's footprint as it grows - no
+        // splinter, no new lineage; the village just spreads.
+        let lid = self.organisms[idx].lineage_id.clone();
+        let (mx, my) = (self.organisms[idx].x, self.organisms[idx].y);
+        let mut sumx = 0.0f32; let mut sumy = 0.0f32; let mut count = 0u32;
+        for o in &self.organisms {
+            if !o.alive || o.id == self.organisms[idx].id { continue; }
+            if o.lineage_id != lid { continue; }
+            let d = (o.x - mx).abs() + (o.y - my).abs();
+            if d <= 8.0 { sumx += o.x; sumy += o.y; count += 1; }
+        }
+        if count >= 4 {
+            let curiosity = self.organisms[idx].traits.curiosity;
+            let age = self.organisms[idx].age;
+            let fork_eligible = age >= 1500 && curiosity >= 0.6 && count >= 6;
+            if fork_eligible && self.rng.gen::<f32>() < 0.05 {
+                if let Some((fx, fy)) = self.find_far_empty_anchor(mx as i32, my as i32) {
+                    self.fork_new_tribe(idx, fx, fy);
+                    return;
+                }
+            }
+
+            let cx = sumx / count as f32;
+            let cy = sumy / count as f32;
+            let mut dx = mx - cx;
+            let mut dy = my - cy;
+            let len = (dx * dx + dy * dy).sqrt();
+            if len < 0.5 {
+                let a = self.rng.gen::<f32>() * std::f32::consts::TAU;
+                dx = a.cos(); dy = a.sin();
+            } else {
+                dx /= len; dy /= len;
+            }
+            let push = 60.0 + (count as f32 - 4.0) * 14.0;
+            let tx = (mx + dx * push).round() as i32;
+            let ty = (my + dy * push).round() as i32;
+            let tx = tx.clamp(5, WIDTH as i32 - 5);
+            let ty = ty.clamp(5, HEIGHT as i32 - 5);
+            if self.is_good_land_target(tx, ty) {
+                self.organisms[idx].wander_target = Some((tx, ty));
+                self.organisms[idx].think("seeking elbow room", self.tick_count);
+                return;
+            }
+        }
+
         let curiosity = self.organisms[idx].traits.curiosity;
-        // Was 0.72 (top ~28% of orgs only). Drop to 0.40 so most orgs above
-        // average curiosity will set out instead of huddling near spawn.
         if curiosity < 0.40 { return; }
 
         let hash = self.organisms[idx].id.bytes()
@@ -2469,6 +2479,50 @@ impl Simulation {
             }
         }
         None
+    }
+
+    fn find_far_empty_anchor(&mut self, fx: i32, fy: i32) -> Option<(i32, i32)> {
+        // Find a fertile tile at least 120 tiles away from the forker AND from
+        // every other living organism's home. New tribes need real elbow room
+        // or the fork instantly re-clusters with a neighbouring lineage.
+        const MIN_DIST_FROM_OTHER_HOMES: i32 = 90;
+        const MIN_DIST_FROM_FORKER:      i32 = 120;
+        for _ in 0..120 {
+            let tx = self.rng.gen_range(8..(WIDTH as i32 - 8));
+            let ty = self.rng.gen_range(8..(HEIGHT as i32 - 8));
+            if (tx - fx).abs() + (ty - fy).abs() < MIN_DIST_FROM_FORKER { continue; }
+            if !self.is_good_land_target(tx, ty) { continue; }
+            let too_close = self.organisms.iter().any(|o| {
+                o.alive && (o.home_x as i32 - tx).abs() + (o.home_y as i32 - ty).abs() < MIN_DIST_FROM_OTHER_HOMES
+            });
+            if too_close { continue; }
+            return Some((tx, ty));
+        }
+        None
+    }
+
+    fn fork_new_tribe(&mut self, idx: usize, anchor_x: i32, anchor_y: i32) {
+        use uuid::Uuid;
+        use crate::organism::organism::generate_tribe_name;
+        let new_lid = Uuid::new_v4().to_string()[..8].to_string();
+        let new_name = generate_tribe_name(&mut self.rng);
+        self.lineage_names.insert(new_lid.clone(), new_name.clone());
+
+        let founder_name = self.organisms[idx].name.clone();
+        let old_name = self.lineage_names
+            .get(&self.organisms[idx].lineage_id).cloned().unwrap_or_default();
+
+        self.organisms[idx].lineage_id = new_lid.clone();
+        self.organisms[idx].home_x = anchor_x as f32;
+        self.organisms[idx].home_y = anchor_y as f32;
+        self.organisms[idx].wander_target = Some((anchor_x, anchor_y));
+        self.organisms[idx].think("founding new tribe", self.tick_count);
+        self.organisms[idx].log_event(format!(
+            "broke from the {} and set out to found the {}",
+            old_name, new_name
+        ));
+        push_event(&mut self.events, self.tick_count, "migrate", &founder_name,
+            &format!("breaks off to found the {}", new_name));
     }
 
     fn is_good_land_target(&self, x: i32, y: i32) -> bool {
