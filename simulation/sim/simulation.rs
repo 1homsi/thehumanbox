@@ -2083,6 +2083,43 @@ impl Simulation {
             animal.tick(&self.grid, &org_pos, &mut self.rng);
         }
 
+        // Wolf attacks: any wolf within 1 tile of a human can bite.
+        // Damage scales with the wolf's energy (hungrier wolves hit harder).
+        // Each successful bite drains the human's health and energizes
+        // the wolf, modelling predation. Pack-hunting humans (>=2 kin
+        // adjacent to the wolf) cut the bite chance in half.
+        let mut bites: Vec<(usize, usize)> = Vec::new();
+        for (ai, a) in self.animals.iter().enumerate() {
+            if !a.alive || !matches!(a.kind, AnimalKind::Wolf) { continue; }
+            let (ax, ay) = (a.x, a.y);
+            for (oi, o) in self.organisms.iter().enumerate() {
+                if !o.alive { continue; }
+                let manh = (o.x - ax).abs() + (o.y - ay).abs();
+                if manh <= 1.5 {
+                    let kin_nearby = self.organisms.iter()
+                        .filter(|k| k.alive && k.id != o.id && k.lineage_id == o.lineage_id)
+                        .filter(|k| (k.x - ax).abs() + (k.y - ay).abs() <= 3.0)
+                        .count();
+                    let pack_defence = if kin_nearby >= 2 { 0.5 } else { 1.0 };
+                    let weak_bonus = if o.health < 0.5 || o.energy < 0.3 { 0.20 } else { 0.0 };
+                    let bite_p = (0.18 + a.energy * 0.10 + weak_bonus) * pack_defence;
+                    if self.rng.gen::<f32>() < bite_p {
+                        bites.push((ai, oi));
+                    }
+                }
+            }
+        }
+        for (ai, oi) in bites {
+            let dmg = 0.12 + self.rng.gen::<f32>() * 0.08;
+            let oname = self.organisms[oi].name.clone();
+            self.organisms[oi].health = (self.organisms[oi].health - dmg).max(0.0);
+            self.organisms[oi].think("a wolf attacks", self.tick_count);
+            self.organisms[oi].fear_level = (self.organisms[oi].fear_level + 0.25).min(1.0);
+            self.animals[ai].energy = (self.animals[ai].energy + 0.20).min(1.0);
+            push_event(&mut self.events, self.tick_count, "danger", &oname,
+                "mauled by a wolf");
+        }
+
         // Reproduction shaped by environment, not a hard global floor.
         //
         // Each healthy animal may reproduce at a base rate scaled by:
