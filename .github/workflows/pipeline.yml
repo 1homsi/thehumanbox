@@ -184,7 +184,7 @@ jobs:
           # block the workflow on it. EC2 pulls the bumped commit, builds,
           # and restarts via systemd. The /version endpoint reflects the
           # new build once the unit is back up.
-          DEPLOY_CMD='cd /root/thehumanbox && git pull --ff-only && /root/.cargo/bin/cargo build --release --manifest-path simulation/Cargo.toml && systemctl restart simulation'
+          DEPLOY_CMD='cd /root/thehumanbox && git pull --ff-only && /root/.cargo/bin/cargo build --release --manifest-path simulation/Cargo.toml && systemctl restart thehumanbox'
           CMD_ID=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
