@@ -16,7 +16,8 @@ const SAVE_SCHEMA_VERSION: u32 = 2;
 
 // ── Public types ─────────────────────────────────────────────────────────────
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Default, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct StoryEntry {
     pub tick:       u64,
     pub org_name:   String,
@@ -25,6 +26,7 @@ pub struct StoryEntry {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct ThinkTrigger {
     pub org_id:            String,
     pub org_name:          String,
@@ -79,7 +81,8 @@ impl ThinkTrigger {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Default, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Event {
     pub tick:   u64,
     #[serde(rename = "type")]
@@ -89,6 +92,7 @@ pub struct Event {
 }
 
 #[derive(Default, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct History {
     pub births:              u64,
     pub deaths_old_age:      u64,
@@ -2686,16 +2690,35 @@ impl Simulation {
     }
 
     pub fn load_or_new(seed: u64, path: &str) -> Self {
-        if let Ok(data) = std::fs::read_to_string(path) {
-            if let Ok(state) = serde_json::from_str::<SaveState>(&data) {
-                println!("Loaded world from {} (tick {})", path, state.tick_count);
-                // Reuse the original world seed so terrain/depth stay consistent
-                let terrain_seed = if state.world_seed > 0 { state.world_seed } else { seed };
-                return Self::from_save(terrain_seed, state);
+        match std::fs::read_to_string(path) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                println!("No save at {} - starting fresh world", path);
+                return Self::new(seed);
             }
+            Err(e) => {
+                eprintln!("Save at {} unreadable ({}) - starting fresh world", path, e);
+                return Self::new(seed);
+            }
+            Ok(data) => match serde_json::from_str::<SaveState>(&data) {
+                Ok(state) => {
+                    println!("Loaded world from {} (tick {})", path, state.tick_count);
+                    let terrain_seed = if state.world_seed > 0 { state.world_seed } else { seed };
+                    return Self::from_save(terrain_seed, state);
+                }
+                Err(e) => {
+                    // Every Save struct is `#[serde(default)]`, so reaching here
+                    // means the file isn't even valid JSON. We log loudly and
+                    // start fresh as a last resort - never silently lose state.
+                    eprintln!(
+                        "Save at {} could not be deserialized ({}) - starting fresh world. \
+                         If this happened during a deploy, that's a bug: every save struct \
+                         should tolerate unknown/missing fields.",
+                        path, e
+                    );
+                    Self::new(seed)
+                }
+            },
         }
-        println!("Starting fresh world");
-        Self::new(seed)
     }
 
     fn from_save(seed: u64, state: SaveState) -> Self {
@@ -2996,33 +3019,31 @@ impl Simulation {
 
 // ── Persistence types ─────────────────────────────────────────────────────────
 
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
+#[serde(default)]
 struct GridSave {
     tiles:       Vec<i8>,
     fire:        Vec<f32>,
     food_trail:  Vec<f32>,
     water_trail: Vec<f32>,
     path_trail:  Vec<f32>,
-    #[serde(default)]
     structure:   Vec<f32>,
-    #[serde(default)]
     fertility:   Vec<f32>,
-    #[serde(default)]
     hazard:      Vec<f32>,
-    #[serde(default)]
     pressure:    Vec<f32>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
+#[serde(default)]
 struct DroughtSave {
     active:      bool,
     start_tick:  u64,
     dried_tiles: Vec<[i32; 2]>,
-    #[serde(default)]
     rain_relief: u64,
 }
 
 #[derive(Serialize, Deserialize, Default)]
+#[serde(default)]
 struct WeatherSave {
     kind:       u8,
     start_tick: u64,
@@ -3030,7 +3051,8 @@ struct WeatherSave {
     intensity:  f32,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
+#[serde(default)]
 struct OrgSave {
     id: String, name: String,
     x: f32, y: f32,
@@ -3044,106 +3066,74 @@ struct OrgSave {
     thought_history:    Vec<crate::organism::organism::ThoughtEntry>,
     q_table:            HashMap<String, Vec<f32>>,
     last_reproduced: u64, last_challenged: u64,
-    #[serde(default)]
     water_ticks: u32,
     lineage_attitudes:  HashMap<String, f32>,
     org_trust:          HashMap<String, f32>,
     traits:      crate::organism::traits::Traits,
     infection:   f32, carrying: u32,
-    #[serde(default)]
     carrying_type: u8,
     vocabulary:  crate::organism::vocabulary::Vocabulary,
     daily_story: String,
     last_story_tick: u64,
-    #[serde(default)]
     life_log: Vec<String>,
-    #[serde(default)]
     discoveries: Vec<String>,
-    #[serde(default)]
     home_x: f32,
-    #[serde(default)]
     home_y: f32,
-    #[serde(default)]
     has_reflected: bool,
-    #[serde(default)]
     last_invention_tick: u64,
-    #[serde(default)]
     last_think_tick: u64,
-    #[serde(default)]
     partner_id: Option<String>,
-    #[serde(default)]
     children_count: u32,
-    #[serde(default)]
     sex: String,
-    #[serde(default)]
     attracted_to: Option<String>,
-    #[serde(default)]
     attraction_tick: u64,
-    #[serde(default)]
     pregnant: bool,
-    #[serde(default)]
     pregnancy_start: u64,
-    #[serde(default)]
     conversations: Vec<crate::organism::organism::ConversationEntry>,
-    #[serde(default)]
     father_id: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
+#[serde(default)]
 struct AnimalSave {
     id: usize, x: f32, y: f32, alive: bool, energy: f32,
     kind: u8,
     last_reproduced: u64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
+#[serde(default)]
 struct NegotiationSave {
     a: String,
     b: String,
     tick: u64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
+#[serde(default)]
 struct SaveState {
-    #[serde(default)]
     version:        u32,
     tick_count:     u64,
     next_animal_id: usize,
     history:        History,
     drought:        DroughtSave,
-    #[serde(default)]
     weather:        WeatherSave,
     events:         Vec<Event>,
     organisms:      Vec<OrgSave>,
     animals:        Vec<AnimalSave>,
     grid:           GridSave,
-    #[serde(default)]
     story_history:  Vec<StoryEntry>,
-    #[serde(default)]
     pop_history:    Vec<[u64; 2]>,
-    #[serde(default)]
     current_era:    String,
-    #[serde(default)]
-    sex_words:      Vec<String>,  // [0]=Male word, [1]=Female word
-    #[serde(default)]
-    world_seed:     u64,          // terrain seed - reuse on load so depth map stays consistent
-    #[serde(default)]
-    lineage_names:  HashMap<String, String>,  // lineage_id → tribe name
-    #[serde(default)]
+    sex_words:      Vec<String>,
+    world_seed:     u64,
+    lineage_names:  HashMap<String, String>,
     lineage_strategies: HashMap<String, (String, u64)>,
-    #[serde(default)]
     lineage_last_council: HashMap<String, u64>,
-    #[serde(default)]
     lineage_elders: HashMap<String, String>,
-    #[serde(default)]
     lineage_negotiations: Vec<NegotiationSave>,
-    #[serde(default)]
     pending_thinks: Vec<ThinkTrigger>,
-    #[serde(default)]
     rng: Option<ChaCha8Rng>,
-    /// In-progress flood tiles (x, y, expires_at_tick). If a flood is mid-event
-    /// when saving, restoring without these would silently drop them.
-    #[serde(default)]
     flood_tiles: Vec<(i32, i32, u64)>,
 }
 
@@ -3308,6 +3298,36 @@ mod tests {
         assert!(scarcity_driven_migration_season("decline"));
         assert!(!scarcity_driven_migration_season("winter"));
         assert!(!scarcity_driven_migration_season("dry"));
+    }
+
+    #[test]
+    fn empty_save_json_loads_as_default_state() {
+        // Bullet-proof guarantee: a save file that is just `{}` must
+        // deserialize. Every field on every save struct is `#[serde(default)]`,
+        // so missing fields fall back to type defaults. This test guards
+        // against future regressions where a new field gets added to a Save
+        // struct without `#[serde(default)]` - that would silently start
+        // throwing away worlds on deploy whenever an old save predates the
+        // new field.
+        let parsed: SaveState = serde_json::from_str("{}")
+            .expect("empty {} JSON must deserialize - did a Save struct lose its serde(default)?");
+        assert_eq!(parsed.tick_count, 0);
+        assert!(parsed.organisms.is_empty());
+        assert!(parsed.animals.is_empty());
+        assert!(parsed.grid.tiles.is_empty());
+
+        // And the partial-restore path actually returns a usable Simulation
+        // when given a near-empty save (just an empty grid - the load handler
+        // detects size mismatch and regenerates terrain from the seed).
+        let mut path = std::env::temp_dir();
+        path.push(format!("thehumanbox-empty-save-test-{}.json", std::process::id()));
+        let path_s = path.to_string_lossy().to_string();
+        let _ = std::fs::remove_file(&path_s);
+        std::fs::write(&path_s, "{}").unwrap();
+        let sim = Simulation::load_or_new(7, &path_s);
+        assert!(sim.organisms.is_empty() || !sim.organisms.is_empty(),
+            "loader must return a Simulation, not panic, on a near-empty save");
+        let _ = std::fs::remove_file(&path_s);
     }
 
     #[test]

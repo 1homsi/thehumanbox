@@ -29,7 +29,8 @@ pub fn gen_phoneme_word(rng: &mut impl Rng) -> String {
     gen_word(rng)
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Default, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Vocabulary {
     pub words: HashMap<String, String>,
 }

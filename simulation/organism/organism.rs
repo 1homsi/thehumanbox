@@ -99,22 +99,22 @@ fn dir_char(dx: i32, dy: i32) -> char {
     else                    { if dy > 0 { 'S' } else { 'N' } }
 }
 
-#[derive(Clone, Serialize, serde::Deserialize)]
+#[derive(Default, Clone, Serialize, serde::Deserialize)]
+#[serde(default)]
 pub struct ThoughtEntry {
     pub tick: u64,
     pub text: String,
 }
 
-/// A stored exchange between two organisms - courtship, bonded talk, farewell, chat, or argue.
-#[derive(Clone, Serialize, serde::Deserialize)]
+#[derive(Default, Clone, Serialize, serde::Deserialize)]
+#[serde(default)]
 pub struct ConversationEntry {
     pub tick:      u64,
     pub with_name: String,
     pub with_id:   String,
-    pub kind:      String,             // "courtship" | "bonded" | "farewell" | "chat" | "argue"
-    pub lines:     Vec<[String; 2]>,   // [speaker_name, utterance]
-    #[serde(default)]
-    pub meanings:  Vec<String>,        // English translation of each line
+    pub kind:      String,
+    pub lines:     Vec<[String; 2]>,
+    pub meanings:  Vec<String>,
 }
 
 pub struct Organism {
