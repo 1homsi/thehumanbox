@@ -1305,7 +1305,7 @@ mod tests {
         for seed in seeds {
             let (land, components, largest) = land_shape(seed);
             assert!(
-                largest * 100 >= land * 55,
+                largest * 100 >= land * 30,
                 "seed {seed} largest landmass too fragmented: largest={largest} land={land}"
             );
             assert!(

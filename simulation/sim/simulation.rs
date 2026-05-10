@@ -2431,20 +2431,27 @@ impl Simulation {
         }
 
         if self.organisms[idx].wander_target.is_some() { return; }
-        if self.organisms[idx].energy < 0.62 || self.organisms[idx].hydration < 0.62 { return; }
-        if self.organisms[idx].age < 800 || self.organisms[idx].fear_level > 0.45 { return; }
+        if self.organisms[idx].energy < 0.45 || self.organisms[idx].hydration < 0.45 { return; }
+        if self.organisms[idx].age < 600 || self.organisms[idx].fear_level > 0.65 { return; }
 
         let curiosity = self.organisms[idx].traits.curiosity;
-        if curiosity < 0.72 { return; }
+        // Was 0.72 (top ~28% of orgs only). Drop to 0.40 so most orgs above
+        // average curiosity will set out instead of huddling near spawn.
+        if curiosity < 0.40 { return; }
 
         let hash = self.organisms[idx].id.bytes()
             .fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
-        let period = (900u64).saturating_sub((curiosity * 420.0) as u64).max(260);
+        // Halved the period so the hash-aligned trigger fires roughly every
+        // half sim-day per eligible org instead of every full day.
+        let period = (450u64).saturating_sub((curiosity * 200.0) as u64).max(140);
         if self.tick_count % period != (hash % period) { return; }
 
         let (x, y) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
-        let min_dist = 140 + (curiosity * 120.0) as i32;
-        let max_dist = 260 + (curiosity * 220.0) as i32;
+        // Shorter trips so more attempts succeed - 600x300 grid means a
+        // 60-150 tile expedition still pushes them well off the home patch
+        // without forcing them into impossible-to-reach distant lands.
+        let min_dist = 60  + (curiosity * 90.0)  as i32;
+        let max_dist = 180 + (curiosity * 200.0) as i32;
         if let Some(target) = self.find_distant_land_target(x, y, min_dist, max_dist) {
             self.organisms[idx].wander_target = Some(target);
             self.organisms[idx].think("planning expedition", self.tick_count);
@@ -3504,7 +3511,8 @@ mod tests {
         let curiosity = sim.organisms[idx].traits.curiosity;
         let hash = sim.organisms[idx].id.bytes()
             .fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
-        let period = (900u64).saturating_sub((curiosity * 420.0) as u64).max(260);
+        // Mirrors the period formula in validate_or_assign_wander_target.
+        let period = (450u64).saturating_sub((curiosity * 200.0) as u64).max(140);
         sim.tick_count = hash % period;
 
         sim.validate_or_assign_wander_target(idx);
@@ -3512,9 +3520,70 @@ mod tests {
         let target = sim.organisms[idx].wander_target.expect("curious adult should choose a land expedition");
         let dist = (target.0 - sim.organisms[idx].x as i32).abs()
             + (target.1 - sim.organisms[idx].y as i32).abs();
-        assert!(dist >= 140 + (curiosity * 120.0) as i32,
-            "dist={} curiosity={} period={} tick_count={}", dist, curiosity, period, sim.tick_count);
+        let expected_min = 60 + (curiosity * 90.0) as i32;
+        assert!(dist >= expected_min,
+            "dist={} curiosity={} period={} tick_count={} expected>={}",
+            dist, curiosity, period, sim.tick_count, expected_min);
         assert_eq!(sim.grid.get(target.0, target.1), Tile::Grass);
+    }
+
+    #[test]
+    fn founders_spread_across_world_sectors() {
+        // The user reported tribes clumping in one corner of the map. With
+        // a 4x3 sector partition and the random scatter fallback, spawn
+        // positions should cover at least half the sectors and reach into
+        // both halves of the world along each axis. Run several seeds so
+        // a single unlucky one doesn't mask a regression.
+        for seed in [1u64, 7, 42, 99, 137] {
+            let sim = Simulation::new(seed);
+            let alive: Vec<_> = sim.organisms.iter().filter(|o| o.alive).collect();
+            assert!(alive.len() >= 100, "seed {seed} fewer founders than expected: {}", alive.len());
+
+            let xs: Vec<f32> = alive.iter().map(|o| o.x).collect();
+            let ys: Vec<f32> = alive.iter().map(|o| o.y).collect();
+            let xmin = xs.iter().cloned().fold(f32::INFINITY, f32::min);
+            let xmax = xs.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
+            let ymin = ys.iter().cloned().fold(f32::INFINITY, f32::min);
+            let ymax = ys.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
+            let span_x = xmax - xmin;
+            let span_y = ymax - ymin;
+
+            // Tribes must span at least 40% of the world's width and 30%
+            // of its height. If they all cluster in one sector both spans
+            // collapse to a few dozen tiles and the test fires.
+            assert!(span_x >= WIDTH as f32 * 0.40,
+                "seed {seed} founders span only {} of {} tiles wide", span_x, WIDTH);
+            assert!(span_y >= HEIGHT as f32 * 0.30,
+                "seed {seed} founders span only {} of {} tiles tall", span_y, HEIGHT);
+
+            // Per-lineage centroids: at least 6 distinct lineages should
+            // exist, and their centroids should cover at least 30% of
+            // each axis (otherwise tribes are bunched even if individuals
+            // wander a bit).
+            use std::collections::HashMap;
+            let mut by_lid: HashMap<String, Vec<(f32, f32)>> = HashMap::new();
+            for o in &alive {
+                by_lid.entry(o.lineage_id.clone()).or_default().push((o.x, o.y));
+            }
+            let centroids: Vec<(f32, f32)> = by_lid.values()
+                .map(|pts| {
+                    let n = pts.len() as f32;
+                    let cx = pts.iter().map(|p| p.0).sum::<f32>() / n;
+                    let cy = pts.iter().map(|p| p.1).sum::<f32>() / n;
+                    (cx, cy)
+                })
+                .collect();
+            assert!(centroids.len() >= 6,
+                "seed {seed} only produced {} lineages", centroids.len());
+            let cxmin = centroids.iter().map(|c| c.0).fold(f32::INFINITY, f32::min);
+            let cxmax = centroids.iter().map(|c| c.0).fold(f32::NEG_INFINITY, f32::max);
+            let cymin = centroids.iter().map(|c| c.1).fold(f32::INFINITY, f32::min);
+            let cymax = centroids.iter().map(|c| c.1).fold(f32::NEG_INFINITY, f32::max);
+            assert!(cxmax - cxmin >= WIDTH as f32 * 0.30,
+                "seed {seed} lineage centroids only {} wide", cxmax - cxmin);
+            assert!(cymax - cymin >= HEIGHT as f32 * 0.20,
+                "seed {seed} lineage centroids only {} tall", cymax - cymin);
+        }
     }
 
     #[test]
