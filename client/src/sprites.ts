@@ -51,11 +51,18 @@ export const SPRITE = {
 } as const
 
 const cache: Record<string, HTMLImageElement> = {}
+const onLoad: Array<() => void> = []
+
+export function onAnyAtlasLoaded(fn: () => void) {
+  onLoad.push(fn)
+  if (ATLAS_TOWN.complete && ATLAS_CREATURE.complete) fn()
+}
 
 export function loadAtlas(url: string): HTMLImageElement {
   if (cache[url]) return cache[url]
   const img = new Image()
   img.src = url
+  img.addEventListener('load', () => onLoad.forEach(fn => fn()), { once: true })
   cache[url] = img
   return img
 }

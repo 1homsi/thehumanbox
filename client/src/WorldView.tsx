@@ -4,9 +4,11 @@ import type { WorldState } from './types'
 import type { InterpRefs } from './useSimulation'
 import { useUIStore } from './store'
 import { lineageColor } from './constants'
-import { SPRITE, ATLAS_TOWN, ATLAS_CREATURE, drawTile } from './sprites'
+import { SPRITE, ATLAS_TOWN, ATLAS_CREATURE, drawTile, onAnyAtlasLoaded } from './sprites'
 
-const TILE = 4
+onAnyAtlasLoaded(() => { _baseKey = null })
+
+const TILE = 8
 
 const TILE_COLORS: Record<number, string> = {
   0: '#0a0a0a',
@@ -171,7 +173,11 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
     }
   }
 
-  canvas.getContext('2d')!.putImageData(imgData, 0, 0)
+  const baseCtx = canvas.getContext('2d')!
+  baseCtx.putImageData(imgData, 0, 0)
+  if (biomes && ATLAS_TOWN.complete) {
+    drawTrees(baseCtx, width, height, tiles, biomes)
+  }
   _baseCanvas = canvas
   _baseKey = { width, height, origin_x, origin_y, tiles, biomes, depth_map }
   return canvas
@@ -250,7 +256,7 @@ function drawTrees(
   const BIOME_WETLAND  = 4
   const BIOME_VOLCANIC = 5
 
-  const TREE_SIZE = 6 // px on the offscreen canvas (each tile is TILE px wide)
+  const TREE_SIZE = 16
 
   for (let y = 0; y < height; y++) {
     const tRow = tiles[y]; const bRow = biomes[y]
@@ -276,8 +282,9 @@ function drawTrees(
       }
       if (r0 > density) continue
 
-      const cx = x * TILE + (TILE - TREE_SIZE) / 2 + (r1 - 0.5) * TILE * 0.3
-      const cy = y * TILE + (TILE - TREE_SIZE) / 2 + (r0 * 7 % 1 - 0.5) * TILE * 0.3
+      const sz = TREE_SIZE * (0.85 + (r1 * 17 % 1) * 0.4)
+      const cx = x * TILE + (TILE - sz) / 2 + (r1 - 0.5) * TILE * 0.4
+      const cy = y * TILE + (TILE - sz) / 2 + (r0 * 7 % 1 - 0.5) * TILE * 0.4
 
       let sprite = SPRITE.trees.oak_mid
       switch (biome) {
@@ -292,7 +299,7 @@ function drawTrees(
         case BIOME_DESERT:   sprite = r1 < 0.5 ? SPRITE.trees.cactus : SPRITE.trees.dead; break
         case BIOME_VOLCANIC: sprite = SPRITE.trees.dead; break
       }
-      drawTile(ctx, ATLAS_TOWN, sprite, cx, cy, TREE_SIZE)
+      drawTile(ctx, ATLAS_TOWN, sprite, cx, cy, sz)
     }
   }
 }
@@ -585,8 +592,6 @@ function drawWorldOnCanvas(
     }
   }
 
-  drawTrees(ctx, width, height, tiles, world.grid.biomes)
-
   // Night overlay
   if (!world.is_day) {
     const phase = world.day_progress
@@ -627,7 +632,7 @@ function drawWorldOnCanvas(
     const tile = SPRITE.animal[animal.kind as keyof typeof SPRITE.animal]
                  ?? SPRITE.animal.rabbit
     if (ATLAS_CREATURE.complete) {
-      drawTile(ctx, ATLAS_CREATURE, tile, px, py, 7)
+      drawTile(ctx, ATLAS_CREATURE, tile, px - 3, py - 3, 14)
     } else {
       const cx = px + TILE / 2; const cy = py + TILE / 2
       const r  = animal.kind === 'rabbit' || animal.kind === 'bird' ? 2.2
