@@ -46,3 +46,14 @@ Requires [Ollama](https://ollama.com) running locally with `gemma3:270m` pulled.
 ## Deployment
 
 See deploy script at `deploy.sh`. Runs as a systemd service on EC2, exposed via Cloudflare tunnel.
+
+For Cloudflare, keep backend routes uncached. Add bypass rules for:
+
+- `/ws`
+- `/snapshot`
+- `/transport`
+- `/version`
+- `/org/*`
+
+The server now exposes `/transport` for websocket timing and lag diagnostics,
+and all of the API routes above should stay `no-store` end to end.

@@ -2960,31 +2960,37 @@ impl Simulation {
             .map(|a| serde_json::to_value(a.to_json()).unwrap())
             .collect::<Vec<_>>();
 
-        json!({
+        let mut payload = json!({
             "tick":            self.tick_count,
             "grid":            serde_json::to_value(grid_json).unwrap(),
             "organisms":       organisms_json,
             "organisms_complete": include_all_entities,
             "animals":         animals_json,
             "animals_complete": include_all_entities,
-            "events":          serde_json::to_value(&self.events).unwrap(),
             "is_day":          !self.is_night(),
             "day_progress":    ((self.tick_count % DAY_LENGTH) as f32 / DAY_LENGTH as f32 * 1000.0).round() / 1000.0,
             "season":          self.season(),
             "season_progress": (self.season_progress() * 1000.0).round() / 1000.0,
             "drought":         self.drought.active,
             "weather":         { "kind": self.weather.kind_str(), "intensity": self.weather.intensity },
-            "history":         serde_json::to_value(&self.history).unwrap(),
-            "story_history":   serde_json::to_value(
-                self.story_history.iter().rev().take(120).collect::<Vec<_>>()
-            ).unwrap(),
-            "pop_history":     serde_json::to_value(&self.pop_history).unwrap(),
-            "tribal_relations": &self.cached_tribal_relations,
-            "lineage_sizes":    &self.cached_lineage_sizes,
-            "lineage_names":    serde_json::to_value(&self.lineage_names).unwrap(),
-            "current_era":      &self.current_era,
-            "sex_words":        &self.sex_words,
-        })
+        });
+        if force_full {
+            if let Some(obj) = payload.as_object_mut() {
+                obj.insert("events".to_string(), serde_json::to_value(&self.events).unwrap());
+                obj.insert("history".to_string(), serde_json::to_value(&self.history).unwrap());
+                obj.insert(
+                    "story_history".to_string(),
+                    serde_json::to_value(self.story_history.iter().rev().take(120).collect::<Vec<_>>()).unwrap(),
+                );
+                obj.insert("pop_history".to_string(), serde_json::to_value(&self.pop_history).unwrap());
+                obj.insert("tribal_relations".to_string(), self.cached_tribal_relations.clone());
+                obj.insert("lineage_sizes".to_string(), self.cached_lineage_sizes.clone());
+                obj.insert("lineage_names".to_string(), serde_json::to_value(&self.lineage_names).unwrap());
+                obj.insert("current_era".to_string(), serde_json::to_value(&self.current_era).unwrap());
+                obj.insert("sex_words".to_string(), serde_json::to_value(&self.sex_words).unwrap());
+            }
+        }
+        payload
     }
 }
 
@@ -3477,6 +3483,55 @@ mod tests {
         assert!(ids.contains(&near_id));
         assert!(!ids.contains(&far_id));
         assert_eq!(state["organisms_complete"], false);
+    }
+
+    #[test]
+    fn incremental_state_omits_cold_world_metadata() {
+        let mut sim = Simulation::new(29);
+        sim.tick_count = 2;
+
+        let state = sim.state_json_at(10, 10);
+        let obj = state.as_object().unwrap();
+
+        for key in [
+            "events",
+            "history",
+            "story_history",
+            "pop_history",
+            "tribal_relations",
+            "lineage_sizes",
+            "lineage_names",
+            "current_era",
+            "sex_words",
+        ] {
+            assert!(
+                !obj.contains_key(key),
+                "incremental frame unexpectedly included cold key {key}",
+            );
+        }
+    }
+
+    #[test]
+    fn full_state_keeps_cold_world_metadata() {
+        let mut sim = Simulation::new(31);
+        sim.tick_count = 2;
+
+        let state = sim.state_json();
+        let obj = state.as_object().unwrap();
+
+        for key in [
+            "events",
+            "history",
+            "story_history",
+            "pop_history",
+            "tribal_relations",
+            "lineage_sizes",
+            "lineage_names",
+            "current_era",
+            "sex_words",
+        ] {
+            assert!(obj.contains_key(key), "full frame omitted cold key {key}");
+        }
     }
 
     #[test]

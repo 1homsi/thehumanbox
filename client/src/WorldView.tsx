@@ -909,15 +909,16 @@ function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, 
 
       const cur     = interp.current.current
       const prev    = interp.prev.current
-      const curAt   = interp.currentAt.current
-      const prevAt  = interp.prevAt.current
-      const interval = Math.max(50, curAt - prevAt)
+      const curServerAt   = interp.currentServerAt.current
+      const prevServerAt  = interp.prevServerAt.current
+      const currentReceivedAt = interp.currentReceivedAt.current
+      const interval = Math.max(50, curServerAt - prevServerAt)
       const t = (cur && prev && interval > 0)
-        ? Math.min(1, Math.max(0, (performance.now() - curAt) / interval))
+        ? Math.min(1, Math.max(0, (performance.now() - currentReceivedAt) / interval))
         : 1
 
       const uiKey = `${selectedOrgIdRef.current ?? ''}|${overlayRef.current ?? ''}|${focusRef.current}|${viewFlagsRef.current.territory ? 't':''}${viewFlagsRef.current.names ? 'n':''}${viewFlagsRef.current.thoughts ? 'h':''}${viewFlagsRef.current.animals ? 'a':''}${viewFlagsRef.current.grid ? 'g':''}`
-      const settled = t >= 1 && lastDrawnT >= 1 && curAt === lastDrawnAt && uiKey === lastDrawnUI
+      const settled = t >= 1 && lastDrawnT >= 1 && curServerAt === lastDrawnAt && uiKey === lastDrawnUI
       if (settled) return
 
       let renderOrgs = w.viewport_organisms ?? w.organisms
@@ -958,7 +959,7 @@ function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, 
       drawWorldOnCanvas(dyn.ctx, enrichedWorld, selectedOrgIdRef.current, overlayRef.current, focusRef.current, viewFlagsRef.current)
       dyn.markDirty()
 
-      lastDrawnAt = curAt
+      lastDrawnAt = curServerAt
       lastDrawnT  = t
       lastDrawnUI = uiKey
 

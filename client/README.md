@@ -25,6 +25,20 @@ Expects the simulation server running at `ws://localhost:8000/ws`. See [thehuman
 
 Set `VITE_WS_URL=wss://api.thehumanbox.com/ws` in Cloudflare Pages build settings for production.
 
+## Cloudflare Pages + API host
+
+Keep the frontend on Pages, but treat the simulation API host as fully dynamic.
+In Cloudflare, set **Bypass cache** rules for:
+
+- `/ws`
+- `/snapshot`
+- `/transport`
+- `/version`
+- `/org/*`
+
+Also leave API-side performance features off for those routes. The live stream
+depends on low-jitter delivery, not CDN-style caching.
+
 ## Building
 
 ```bash

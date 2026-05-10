@@ -145,6 +145,9 @@ export interface GridWire {
 }
 
 export interface WorldState {
+  frame_id: number
+  server_sent_at_ms: number
+  frame_kind: 'delta' | 'full'
   tick: number
   grid: GridState
   organisms: OrganismState[]

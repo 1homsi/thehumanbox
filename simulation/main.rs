@@ -4,6 +4,7 @@ mod physics;
 mod sim;
 
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::sync::{broadcast, Mutex, mpsc};
 use axum::{
     Router,
@@ -23,9 +24,14 @@ use sim::local_think;
 
 type SharedSim = Arc<Mutex<Simulation>>;
 type Tx = broadcast::Sender<String>;
+type FrameClock = Arc<AtomicU64>;
+type SharedTransportStats = Arc<std::sync::Mutex<TransportStats>>;
 
 const SAVE_PATH:  &str = "world.save";
 const DAY_LENGTH: u64  = 600;
+const WS_BROADCAST_BUFFER: usize = 64;
+const WS_RESYNC_LAG_THRESHOLD: u64 = 3;
+const TRANSPORT_SAMPLE_WINDOW: usize = 512;
 
 fn env_or(key: &str, default: &str) -> String {
     std::env::var(key).unwrap_or_else(|_| default.to_string())
@@ -52,9 +58,126 @@ type LatestFull = Arc<std::sync::RwLock<Option<Arc<String>>>>;
 
 #[derive(Clone)]
 struct AppState {
-    sim:          SharedSim,
-    tx:           Tx,
-    latest_full:  LatestFull,
+    sim:             SharedSim,
+    tx:              Tx,
+    latest_full:     LatestFull,
+    transport_stats: SharedTransportStats,
+}
+
+#[derive(Default)]
+struct TransportWindow {
+    samples: std::collections::VecDeque<u64>,
+}
+
+impl TransportWindow {
+    fn push(&mut self, value: u64) {
+        if self.samples.len() >= TRANSPORT_SAMPLE_WINDOW {
+            self.samples.pop_front();
+        }
+        self.samples.push_back(value);
+    }
+
+    fn avg(&self) -> u64 {
+        if self.samples.is_empty() {
+            return 0;
+        }
+        (self.samples.iter().copied().sum::<u64>() / self.samples.len() as u64) as u64
+    }
+
+    fn p95(&self) -> u64 {
+        if self.samples.is_empty() {
+            return 0;
+        }
+        let mut sorted = self.samples.iter().copied().collect::<Vec<_>>();
+        sorted.sort_unstable();
+        let idx = ((sorted.len() * 95).div_ceil(100)).saturating_sub(1);
+        sorted[idx]
+    }
+}
+
+#[derive(Default)]
+struct TransportStats {
+    generated_frames: u64,
+    sent_frames:      u64,
+    lagged_frames:    u64,
+    dropped_frames:   u64,
+    resync_frames:    u64,
+    payload_bytes:    TransportWindow,
+    frame_gen_ms:     TransportWindow,
+}
+
+#[derive(Serialize)]
+struct TransportStatsSnapshot {
+    generated_frames:          u64,
+    sent_frames:               u64,
+    lagged_frames:             u64,
+    dropped_frames:            u64,
+    resync_frames:             u64,
+    avg_payload_bytes:         u64,
+    p95_payload_bytes:         u64,
+    avg_frame_generation_ms:   u64,
+    p95_frame_generation_ms:   u64,
+}
+
+impl TransportStats {
+    fn record_generated(&mut self, payload_bytes: usize, frame_gen_ms: u64) {
+        self.generated_frames += 1;
+        self.payload_bytes.push(payload_bytes as u64);
+        self.frame_gen_ms.push(frame_gen_ms);
+    }
+
+    fn record_sent(&mut self) {
+        self.sent_frames += 1;
+    }
+
+    fn record_lagged(&mut self, dropped: u64) {
+        self.lagged_frames += 1;
+        self.dropped_frames += dropped;
+    }
+
+    fn record_resync(&mut self) {
+        self.resync_frames += 1;
+    }
+
+    fn snapshot(&self) -> TransportStatsSnapshot {
+        TransportStatsSnapshot {
+            generated_frames:        self.generated_frames,
+            sent_frames:             self.sent_frames,
+            lagged_frames:           self.lagged_frames,
+            dropped_frames:          self.dropped_frames,
+            resync_frames:           self.resync_frames,
+            avg_payload_bytes:       self.payload_bytes.avg(),
+            p95_payload_bytes:       self.payload_bytes.p95(),
+            avg_frame_generation_ms: self.frame_gen_ms.avg(),
+            p95_frame_generation_ms: self.frame_gen_ms.p95(),
+        }
+    }
+}
+
+fn now_ms() -> u64 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64
+}
+
+fn next_frame_id(frame_clock: &AtomicU64) -> u64 {
+    frame_clock.fetch_add(1, Ordering::Relaxed) + 1
+}
+
+fn encode_frame(
+    mut payload: serde_json::Value,
+    frame_id: u64,
+    server_sent_at_ms: u64,
+    frame_kind: &str,
+) -> String {
+    if let Some(obj) = payload.as_object_mut() {
+        obj.insert("frame_id".to_string(), serde_json::json!(frame_id));
+        obj.insert("server_sent_at_ms".to_string(), serde_json::json!(server_sent_at_ms));
+        obj.insert("frame_kind".to_string(), serde_json::json!(frame_kind));
+    }
+    payload.to_string()
 }
 
 // ── Groq types ────────────────────────────────────────────────────────────────
@@ -146,8 +269,25 @@ async fn main() {
         t.as_nanos() as u64 ^ (t.subsec_nanos() as u64).wrapping_mul(0x9e3779b97f4a7c15)
     };
     let sim = Arc::new(Mutex::new(Simulation::load_or_new(fresh_seed, SAVE_PATH)));
-    let (tx, _rx) = broadcast::channel::<String>(4);
+    let (tx, _rx) = broadcast::channel::<String>(WS_BROADCAST_BUFFER);
     let latest_full: LatestFull = Arc::new(std::sync::RwLock::new(None));
+    let frame_clock: FrameClock = Arc::new(AtomicU64::new(0));
+    let transport_stats: SharedTransportStats = Arc::new(std::sync::Mutex::new(TransportStats::default()));
+
+    // Prime the cached full snapshot before any client connects so the first
+    // websocket or /snapshot reader gets a sequence-aware full frame.
+    {
+        let mut s = sim.lock().await;
+        let frame_started = std::time::Instant::now();
+        let frame_id = next_frame_id(&frame_clock);
+        let full = encode_frame(s.state_json(), frame_id, now_ms(), "full");
+        if let Ok(mut slot) = latest_full.write() {
+            *slot = Some(Arc::new(full.clone()));
+        }
+        if let Ok(mut stats) = transport_stats.lock() {
+            stats.record_generated(full.len(), frame_started.elapsed().as_millis() as u64);
+        }
+    }
 
     // Channels
     let (narration_tx, narration_rx) = mpsc::channel::<NarrationReq>(4);
@@ -178,10 +318,12 @@ async fn main() {
         let think_res_clone  = think_results.clone();
         let narration_tx2    = narration_tx.clone();
         let latest_full_w    = latest_full.clone();
+        let frame_clock_w    = frame_clock.clone();
+        let transport_stats_w = transport_stats.clone();
         tokio::spawn(async move {
             let mut step: u64 = 0;
             loop {
-                let (json, pending_thinks, full_snapshot) = {
+                let (json, pending_thinks, maybe_latest_full) = {
                     let mut s = sim_clone.lock().await;
                     s.tick(); // 1 tick per loop = 6s real → 600 ticks/day = 1 hr/day
 
@@ -359,22 +501,28 @@ async fn main() {
                     }
 
                     let pending = std::mem::take(&mut s.pending_thinks);
-                    let json    = s.state_json_incremental().to_string();
-                    let full = if step % 30 == 0 {
-                        Some(s.state_json().to_string())
+                    let is_full_frame = step % 30 == 0;
+                    let frame_started = std::time::Instant::now();
+                    let frame_id = next_frame_id(&frame_clock_w);
+                    let json = if is_full_frame {
+                        encode_frame(s.state_json(), frame_id, now_ms(), "full")
                     } else {
-                        None
+                        encode_frame(s.state_json_incremental(), frame_id, now_ms(), "delta")
                     };
+                    if let Ok(mut stats) = transport_stats_w.lock() {
+                        stats.record_generated(json.len(), frame_started.elapsed().as_millis() as u64);
+                    }
                     step += 1;
                     if step % 600 == 0 { s.save(SAVE_PATH); }
-                    (json, pending, full)
+                    let latest_full = if is_full_frame { Some(json.clone()) } else { None };
+                    (json, pending, latest_full)
                 };
 
                 // Send think triggers outside lock
                 for t in pending_thinks {
                     let _ = think_tx.try_send(t);
                 }
-                if let Some(full) = full_snapshot {
+                if let Some(full) = maybe_latest_full {
                     if let Ok(mut slot) = latest_full_w.write() {
                         *slot = Some(Arc::new(full));
                     }
@@ -392,13 +540,14 @@ async fn main() {
 
     let compression = CompressionLayer::new().gzip(true);
 
-    let state = AppState { sim, tx, latest_full };
+    let state = AppState { sim, tx, latest_full, transport_stats };
 
     let app = Router::new()
         .route("/ws", get(ws_handler))
         .route("/org/:id", get(org_detail_handler))
         .route("/version", get(version_handler))
         .route("/snapshot", get(snapshot_handler))
+        .route("/transport", get(transport_handler))
         .layer(compression)
         .layer(cors)
         .with_state(state);
@@ -1128,10 +1277,11 @@ async fn ws_handler(
     ws: WebSocketUpgrade,
     State(s): State<AppState>,
 ) -> impl IntoResponse {
-    let rx          = s.tx.subscribe();
-    let sim         = s.sim.clone();
-    let latest_full = s.latest_full.clone();
-    ws.on_upgrade(move |socket| handle_socket(socket, rx, sim, latest_full))
+    let rx              = s.tx.subscribe();
+    let sim             = s.sim.clone();
+    let latest_full     = s.latest_full.clone();
+    let transport_stats = s.transport_stats.clone();
+    ws.on_upgrade(move |socket| handle_socket(socket, rx, sim, latest_full, transport_stats))
 }
 
 async fn snapshot_handler(
@@ -1152,12 +1302,15 @@ async fn snapshot_handler(
 
 async fn version_handler() -> impl IntoResponse {
     let built_at: u64 = env!("THB_BUILD_TS").parse().unwrap_or(0);
-    Json(serde_json::json!({
-        "name":     env!("CARGO_PKG_NAME"),
-        "version":  env!("CARGO_PKG_VERSION"),
-        "git_sha":  env!("THB_GIT_SHA"),
-        "built_at": built_at,
-    }))
+    (
+        [(axum::http::header::CACHE_CONTROL, "no-store".to_string())],
+        Json(serde_json::json!({
+            "name":     env!("CARGO_PKG_NAME"),
+            "version":  env!("CARGO_PKG_VERSION"),
+            "git_sha":  env!("THB_GIT_SHA"),
+            "built_at": built_at,
+        })),
+    )
 }
 
 async fn org_detail_handler(
@@ -1169,7 +1322,32 @@ async fn org_detail_handler(
     let org = sim.organisms.iter().find(|o| o.id == id)
         .ok_or(StatusCode::NOT_FOUND)?;
     let detail: OrgDetailJson = org.to_detail_json();
-    Ok(Json(detail))
+    Ok((
+        [(axum::http::header::CACHE_CONTROL, "no-store".to_string())],
+        Json(detail),
+    ))
+}
+
+async fn transport_handler(
+    State(s): State<AppState>,
+) -> impl IntoResponse {
+    let snapshot = s.transport_stats.lock()
+        .map(|stats| stats.snapshot())
+        .unwrap_or(TransportStatsSnapshot {
+            generated_frames: 0,
+            sent_frames: 0,
+            lagged_frames: 0,
+            dropped_frames: 0,
+            resync_frames: 0,
+            avg_payload_bytes: 0,
+            p95_payload_bytes: 0,
+            avg_frame_generation_ms: 0,
+            p95_frame_generation_ms: 0,
+        });
+    (
+        [(axum::http::header::CACHE_CONTROL, "no-store".to_string())],
+        Json(snapshot),
+    )
 }
 
 async fn handle_socket(
@@ -1177,14 +1355,24 @@ async fn handle_socket(
     mut rx: broadcast::Receiver<String>,
     sim: SharedSim,
     latest_full: LatestFull,
+    transport_stats: SharedTransportStats,
 ) {
     let cached = latest_full.read().ok().and_then(|g| g.clone());
     let snapshot: String = if let Some(s) = cached {
         s.as_ref().clone()
     } else {
-        sim.lock().await.state_json().to_string()
+        let frame_started = std::time::Instant::now();
+        let mut sim = sim.lock().await;
+        let payload = encode_frame(sim.state_json(), 0, now_ms(), "full");
+        if let Ok(mut stats) = transport_stats.lock() {
+            stats.record_generated(payload.len(), frame_started.elapsed().as_millis() as u64);
+        }
+        payload
     };
     if socket.send(Message::Text(snapshot.into())).await.is_err() { return; }
+    if let Ok(mut stats) = transport_stats.lock() {
+        stats.record_sent();
+    }
 
     loop {
         tokio::select! {
@@ -1192,8 +1380,27 @@ async fn handle_socket(
                 match result {
                     Ok(msg) => {
                         if socket.send(Message::Text(msg.into())).await.is_err() { break; }
+                        if let Ok(mut stats) = transport_stats.lock() {
+                            stats.record_sent();
+                        }
                     }
-                    Err(broadcast::error::RecvError::Lagged(_)) => {}
+                    Err(broadcast::error::RecvError::Lagged(skipped)) => {
+                        if let Ok(mut stats) = transport_stats.lock() {
+                            stats.record_lagged(skipped as u64);
+                        }
+                        if skipped as u64 >= WS_RESYNC_LAG_THRESHOLD {
+                            let cached = latest_full.read().ok().and_then(|g| g.clone());
+                            if let Some(full) = cached {
+                                if socket.send(Message::Text(full.as_ref().clone().into())).await.is_err() {
+                                    break;
+                                }
+                                if let Ok(mut stats) = transport_stats.lock() {
+                                    stats.record_sent();
+                                    stats.record_resync();
+                                }
+                            }
+                        }
+                    }
                     Err(_) => break,
                 }
             }
@@ -1243,5 +1450,36 @@ mod tests {
 
         assert_ne!(deterministic_think_seed(&a, 0), deterministic_think_seed(&b, 0));
         assert_ne!(deterministic_think_seed(&a, 0), deterministic_think_seed(&a, 1));
+    }
+
+    #[test]
+    fn encode_frame_adds_transport_metadata() {
+        let payload = serde_json::json!({ "tick": 12, "organisms": [], "animals": [] });
+        let encoded = encode_frame(payload, 77, 123_456, "delta");
+        let decoded: serde_json::Value = serde_json::from_str(&encoded).unwrap();
+
+        assert_eq!(decoded["frame_id"], 77);
+        assert_eq!(decoded["server_sent_at_ms"], 123_456);
+        assert_eq!(decoded["frame_kind"], "delta");
+    }
+
+    #[test]
+    fn transport_stats_roll_up_payload_and_lag_metrics() {
+        let mut stats = TransportStats::default();
+        stats.record_generated(1200, 4);
+        stats.record_generated(800, 8);
+        stats.record_sent();
+        stats.record_sent();
+        stats.record_lagged(3);
+        stats.record_resync();
+
+        let snapshot = stats.snapshot();
+        assert_eq!(snapshot.generated_frames, 2);
+        assert_eq!(snapshot.sent_frames, 2);
+        assert_eq!(snapshot.lagged_frames, 1);
+        assert_eq!(snapshot.dropped_frames, 3);
+        assert_eq!(snapshot.resync_frames, 1);
+        assert!(snapshot.avg_payload_bytes >= 1000);
+        assert_eq!(snapshot.p95_frame_generation_ms, 8);
     }
 }

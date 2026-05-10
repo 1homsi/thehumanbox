@@ -99,6 +99,9 @@ export const AnimalSchema = z.object({
 // frames, etc.) before they crash the renderer.
 
 export const WorldEnvelopeSchema = z.object({
+  frame_id:           z.number(),
+  server_sent_at_ms:  z.number(),
+  frame_kind:         z.enum(['delta', 'full']),
   tick:               z.number(),
   organisms:          z.array(OrganismSchema),
   organisms_complete: z.boolean(),

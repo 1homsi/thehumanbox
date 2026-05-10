@@ -11,12 +11,41 @@ type ParseError =
   | { kind: 'json';     message: string }
   | { kind: 'schema';   issues: string[] }
 
+type IncomingWorldFrame =
+  Pick<WorldState,
+    'frame_id' |
+    'server_sent_at_ms' |
+    'frame_kind' |
+    'tick' |
+    'is_day' |
+    'day_progress' |
+    'season' |
+    'season_progress' |
+    'drought' |
+    'weather'
+  > & {
+    grid: GridWire
+    organisms: OrganismState[]
+    organisms_complete: boolean
+    animals: AnimalState[]
+    animals_complete: boolean
+    events?: WorldState['events']
+    history?: WorldState['history']
+    story_history?: WorldState['story_history']
+    pop_history?: WorldState['pop_history']
+    tribal_relations?: WorldState['tribal_relations']
+    lineage_sizes?: WorldState['lineage_sizes']
+    lineage_names?: WorldState['lineage_names']
+    current_era?: WorldState['current_era']
+    sex_words?: WorldState['sex_words']
+  }
+
 /**
  * Parse + validate one WS frame. Returns a Result so the caller can decide
  * whether to log/skip/reconnect on bad data instead of swallowing it via
  * try/catch (the previous behaviour silently dropped corrupt frames).
  */
-function parseWorldFrame(raw: string): Result<Omit<WorldState, 'grid'> & { grid: GridWire }, ParseError> {
+function parseWorldFrame(raw: string): Result<IncomingWorldFrame, ParseError> {
   let json: unknown
   try {
     json = JSON.parse(raw)
@@ -33,7 +62,7 @@ function parseWorldFrame(raw: string): Result<Omit<WorldState, 'grid'> & { grid:
   // Schema only validates a subset of fields (organisms / animals / ticks);
   // the rest pass through via .passthrough(). Cast back to the WorldState
   // shape that downstream code expects.
-  return ok(json as Omit<WorldState, 'grid'> & { grid: GridWire })
+  return ok(json as IncomingWorldFrame)
 }
 
 /** Rebuild dense fire_intensity and structure 2D arrays from sparse wire format. */
@@ -71,8 +100,25 @@ function applyGridWire(wire: GridWire, cache: GridState | null): GridState {
 export interface InterpRefs {
   prev:    React.MutableRefObject<WorldState | null>
   current: React.MutableRefObject<WorldState | null>
-  prevAt:    React.MutableRefObject<number>
-  currentAt: React.MutableRefObject<number>
+  prevServerAt: React.MutableRefObject<number>
+  currentServerAt: React.MutableRefObject<number>
+  currentReceivedAt: React.MutableRefObject<number>
+}
+
+const EMPTY_HISTORY: WorldState['history'] = {
+  births: 0,
+  deaths_old_age: 0,
+  deaths_starvation: 0,
+  deaths_dehydration: 0,
+  deaths_sickness: 0,
+  deaths_combat: 0,
+  sickness_events: 0,
+  alliances_formed: 0,
+  challenges_total: 0,
+  gifts_total: 0,
+  droughts: 0,
+  outbreaks: 0,
+  era_history: [],
 }
 
 export function useSimulation(): { world: WorldState | null; connected: boolean; interp: InterpRefs } {
@@ -81,9 +127,7 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
   const wsRef      = useRef<WebSocket | null>(null)
   const organismCache = useRef<Map<string, OrganismState>>(new Map())
   const animalCache   = useRef<Map<number, AnimalState>>(new Map())
-  // RAF buffering - newest WS message wins; we only parse+setState once per
-  // animation frame regardless of how fast the server sends.
-  const latestMsg  = useRef<string | null>(null)
+  const queuedMsgs  = useRef<string[]>([])
   const rafPending = useRef<number | null>(null)
   // Grid cache - holds the last fully-populated grid state so we can fill in
   // the static maps that aren't sent every tick.
@@ -94,8 +138,12 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
   // into smooth slow-motion instead of a freeze + teleport.
   const prevWorldRef    = useRef<WorldState | null>(null)
   const currentWorldRef = useRef<WorldState | null>(null)
-  const prevAtRef       = useRef<number>(0)
-  const currentAtRef    = useRef<number>(0)
+  const prevServerAtRef    = useRef<number>(0)
+  const currentServerAtRef = useRef<number>(0)
+  const currentReceivedAtRef = useRef<number>(0)
+  const lastFrameIdRef = useRef<number>(0)
+  const awaitingFullFrameRef = useRef(false)
+  const snapshotPendingRef = useRef(false)
 
   // React-state throttle. The canvas reads currentWorldRef every RAF (60fps),
   // but the sidebar / cards / panels react to the `world` state - and at
@@ -108,19 +156,70 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
   const setWorldTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
+    const MAX_BUFFERED_MESSAGES = 8
+
+    function scheduleFlush() {
+      if (rafPending.current === null) {
+        rafPending.current = requestAnimationFrame(flushUpdate)
+      }
+    }
+
+    function enqueueMessage(raw: string) {
+      if (queuedMsgs.current.length >= MAX_BUFFERED_MESSAGES) {
+        queuedMsgs.current.shift()
+        awaitingFullFrameRef.current = true
+        requestSnapshotResync()
+      }
+      queuedMsgs.current.push(raw)
+      scheduleFlush()
+    }
+
+    function requestSnapshotResync() {
+      if (destroyed || snapshotPendingRef.current) return
+      snapshotPendingRef.current = true
+      fetch(SNAPSHOT_URL, { cache: 'no-store' })
+        .then(r => {
+          if (!r.ok) return null
+          return r.text()
+        })
+        .then(text => {
+          if (destroyed || text == null) return
+          enqueueMessage(text)
+        })
+        .catch(() => {})
+        .finally(() => {
+          snapshotPendingRef.current = false
+        })
+    }
+
     function flushUpdate() {
       rafPending.current = null
-      if (latestMsg.current) {
-        const parseResult = parseWorldFrame(latestMsg.current)
+      const pending = queuedMsgs.current.splice(0, queuedMsgs.current.length)
+      for (const raw of pending) {
+        const parseResult = parseWorldFrame(raw)
         if (parseResult.isErr()) {
           const e = parseResult.error
           if (e.kind === 'json') console.warn('[ws] bad json:', e.message)
           else                    console.warn('[ws] schema mismatch:', e.issues)
-          latestMsg.current = null
-          return
+          continue
         }
         try {
           const parsed = parseResult.value
+          if (!awaitingFullFrameRef.current && lastFrameIdRef.current > 0 && parsed.frame_id <= lastFrameIdRef.current) {
+            continue
+          }
+          if (lastFrameIdRef.current > 0 && parsed.frame_id > lastFrameIdRef.current + 1) {
+            const gap = parsed.frame_id - lastFrameIdRef.current - 1
+            console.warn('[ws] frame gap detected:', { from: lastFrameIdRef.current, to: parsed.frame_id, gap })
+            if (gap > 2) {
+              awaitingFullFrameRef.current = true
+              requestSnapshotResync()
+            }
+          }
+          if (awaitingFullFrameRef.current && parsed.frame_kind !== 'full') {
+            continue
+          }
+
           const grid   = applyGridWire(parsed.grid, gridCache.current)
           gridCache.current = grid
 
@@ -157,20 +256,46 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
           const viewportAnimals = parsed.animals.map(a =>
             animalCache.current.get(a.id) ?? a
           )
+          const base = currentWorldRef.current
 
           const next: WorldState = {
-            ...parsed,
+            frame_id: parsed.frame_id,
+            server_sent_at_ms: parsed.server_sent_at_ms,
+            frame_kind: parsed.frame_kind,
+            tick: parsed.tick,
             grid,
+            events: parsed.events ?? base?.events ?? [],
+            is_day: parsed.is_day,
+            day_progress: parsed.day_progress,
+            season: parsed.season,
+            season_progress: parsed.season_progress,
+            drought: parsed.drought,
+            weather: parsed.weather,
+            history: parsed.history ?? base?.history ?? EMPTY_HISTORY,
+            story_history: parsed.story_history ?? base?.story_history ?? [],
+            pop_history: parsed.pop_history ?? base?.pop_history ?? [],
+            tribal_relations: parsed.tribal_relations ?? base?.tribal_relations ?? [],
+            lineage_sizes: parsed.lineage_sizes ?? base?.lineage_sizes ?? [],
+            lineage_names: parsed.lineage_names ?? base?.lineage_names,
+            current_era: parsed.current_era ?? base?.current_era,
+            sex_words: parsed.sex_words ?? base?.sex_words,
             organisms: [...organismCache.current.values()],
             viewport_organisms: viewportOrgs,
+            organisms_complete: parsed.organisms_complete,
             animals: [...animalCache.current.values()],
             viewport_animals: viewportAnimals,
+            animals_complete: parsed.animals_complete,
           }
 
           prevWorldRef.current    = currentWorldRef.current
-          prevAtRef.current       = currentAtRef.current
+          prevServerAtRef.current = currentServerAtRef.current
           currentWorldRef.current = next
-          currentAtRef.current    = performance.now()
+          currentServerAtRef.current = parsed.server_sent_at_ms
+          currentReceivedAtRef.current = performance.now()
+          lastFrameIdRef.current = parsed.frame_id
+          if (parsed.frame_kind === 'full') {
+            awaitingFullFrameRef.current = false
+          }
 
           pendingSetWorldRef.current = next
           const sinceLast = performance.now() - lastSetWorldAtRef.current
@@ -193,7 +318,6 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
             }, delay)
           }
         } catch (_) {}
-        latestMsg.current = null
       }
     }
 
@@ -211,32 +335,16 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
           cancelAnimationFrame(rafPending.current)
           rafPending.current = null
         }
+        queuedMsgs.current = []
         setTimeout(connect, 2000)
       }
       ws.onmessage = (e) => {
         if (destroyed) return
-        latestMsg.current = e.data          // always overwrite - skip stale messages
-        if (rafPending.current === null) {
-          rafPending.current = requestAnimationFrame(flushUpdate)
-        }
+        enqueueMessage(e.data)
       }
     }
 
-    fetch(SNAPSHOT_URL, { cache: 'no-store' })
-      .then(r => {
-        if (!r.ok) return null
-        return r.text()
-      })
-      .then(text => {
-        if (destroyed || text == null) return
-        // Don't clobber a fresher message that already came over WS.
-        if (latestMsg.current != null) return
-        latestMsg.current = text
-        if (rafPending.current === null) {
-          rafPending.current = requestAnimationFrame(flushUpdate)
-        }
-      })
-      .catch(() => { /* WS will deliver the world even if HTTP fails */ })
+    requestSnapshotResync()
 
     connect()
     return () => {
@@ -249,6 +357,7 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
         clearTimeout(setWorldTimerRef.current)
         setWorldTimerRef.current = null
       }
+      queuedMsgs.current = []
       const ws = wsRef.current
       if (ws) {
         ws.onclose = null   // prevent reconnect loop on intentional teardown
@@ -265,8 +374,9 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
     interp: {
       prev:      prevWorldRef,
       current:   currentWorldRef,
-      prevAt:    prevAtRef,
-      currentAt: currentAtRef,
+      prevServerAt: prevServerAtRef,
+      currentServerAt: currentServerAtRef,
+      currentReceivedAt: currentReceivedAtRef,
     },
   }
 }
