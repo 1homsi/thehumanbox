@@ -154,9 +154,17 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
   const lastSetWorldAtRef  = useRef<number>(0)
   const pendingSetWorldRef = useRef<WorldState | null>(null)
   const setWorldTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const snapshotFetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const MAX_BUFFERED_MESSAGES = 8
+    // Server pushes the cached `latest_full` frame over the open WS as soon
+    // as it sees a Lagged(>=3) on the broadcast channel. That arrives in a
+    // few ms over the already-open socket, so we wait this long before
+    // falling back to an HTTP /snapshot fetch. If a `full` frame lands
+    // during the grace window the timer is cancelled and we never spend
+    // the round-trip.
+    const SNAPSHOT_FETCH_GRACE_MS = 250
 
     function scheduleFlush() {
       if (rafPending.current === null) {
@@ -167,11 +175,28 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
     function enqueueMessage(raw: string) {
       if (queuedMsgs.current.length >= MAX_BUFFERED_MESSAGES) {
         queuedMsgs.current.shift()
-        awaitingFullFrameRef.current = true
-        requestSnapshotResync()
+        markAwaitingFullFrame()
       }
       queuedMsgs.current.push(raw)
       scheduleFlush()
+    }
+
+    function markAwaitingFullFrame() {
+      awaitingFullFrameRef.current = true
+      if (snapshotFetchTimerRef.current !== null) return
+      snapshotFetchTimerRef.current = setTimeout(() => {
+        snapshotFetchTimerRef.current = null
+        if (destroyed) return
+        if (!awaitingFullFrameRef.current) return
+        requestSnapshotResync()
+      }, SNAPSHOT_FETCH_GRACE_MS)
+    }
+
+    function cancelPendingSnapshotFetch() {
+      if (snapshotFetchTimerRef.current !== null) {
+        clearTimeout(snapshotFetchTimerRef.current)
+        snapshotFetchTimerRef.current = null
+      }
     }
 
     function requestSnapshotResync() {
@@ -195,6 +220,7 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
     function flushUpdate() {
       rafPending.current = null
       const pending = queuedMsgs.current.splice(0, queuedMsgs.current.length)
+      let latest: WorldState | null = null
       for (const raw of pending) {
         const parseResult = parseWorldFrame(raw)
         if (parseResult.isErr()) {
@@ -212,8 +238,7 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
             const gap = parsed.frame_id - lastFrameIdRef.current - 1
             console.warn('[ws] frame gap detected:', { from: lastFrameIdRef.current, to: parsed.frame_id, gap })
             if (gap > 2) {
-              awaitingFullFrameRef.current = true
-              requestSnapshotResync()
+              markAwaitingFullFrame()
             }
           }
           if (awaitingFullFrameRef.current && parsed.frame_kind !== 'full') {
@@ -295,29 +320,33 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
           lastFrameIdRef.current = parsed.frame_id
           if (parsed.frame_kind === 'full') {
             awaitingFullFrameRef.current = false
+            cancelPendingSnapshotFetch()
           }
-
-          pendingSetWorldRef.current = next
-          const sinceLast = performance.now() - lastSetWorldAtRef.current
-          if (sinceLast >= REACT_THROTTLE_MS) {
-            lastSetWorldAtRef.current = performance.now()
-            setWorld(next)
-            if (setWorldTimerRef.current) {
-              clearTimeout(setWorldTimerRef.current)
-              setWorldTimerRef.current = null
-            }
-          } else if (setWorldTimerRef.current === null) {
-            const delay = REACT_THROTTLE_MS - sinceLast
-            setWorldTimerRef.current = setTimeout(() => {
-              setWorldTimerRef.current = null
-              const w = pendingSetWorldRef.current
-              if (w) {
-                lastSetWorldAtRef.current = performance.now()
-                setWorld(w)
-              }
-            }, delay)
-          }
+          latest = next
         } catch (_) {}
+      }
+
+      if (latest === null) return
+
+      pendingSetWorldRef.current = latest
+      const sinceLast = performance.now() - lastSetWorldAtRef.current
+      if (sinceLast >= REACT_THROTTLE_MS) {
+        lastSetWorldAtRef.current = performance.now()
+        setWorld(latest)
+        if (setWorldTimerRef.current) {
+          clearTimeout(setWorldTimerRef.current)
+          setWorldTimerRef.current = null
+        }
+      } else if (setWorldTimerRef.current === null) {
+        const delay = REACT_THROTTLE_MS - sinceLast
+        setWorldTimerRef.current = setTimeout(() => {
+          setWorldTimerRef.current = null
+          const w = pendingSetWorldRef.current
+          if (w) {
+            lastSetWorldAtRef.current = performance.now()
+            setWorld(w)
+          }
+        }, delay)
       }
     }
 
@@ -356,6 +385,10 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
       if (setWorldTimerRef.current !== null) {
         clearTimeout(setWorldTimerRef.current)
         setWorldTimerRef.current = null
+      }
+      if (snapshotFetchTimerRef.current !== null) {
+        clearTimeout(snapshotFetchTimerRef.current)
+        snapshotFetchTimerRef.current = null
       }
       queuedMsgs.current = []
       const ws = wsRef.current
