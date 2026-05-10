@@ -23,9 +23,9 @@ impl PhysicsEngine {
         }
     }
 
-    pub fn tick(&mut self, grid: &mut WorldGrid, rng: &mut impl Rng) {
+    pub fn tick(&mut self, grid: &mut WorldGrid, rng: &mut impl Rng, weather_kind: u8) {
         self.tick_count += 1;
-        self.update_fire(grid, rng);
+        self.update_fire(grid, rng, weather_kind);
         self.grow_plants(grid, rng);
         grid.decay_trails();
 
@@ -41,35 +41,51 @@ impl PhysicsEngine {
         self.active_fire_tiles.insert((x, y));
     }
 
-    fn update_fire(&mut self, grid: &mut WorldGrid, rng: &mut impl Rng) {
+    fn update_fire(&mut self, grid: &mut WorldGrid, rng: &mut impl Rng, weather_kind: u8) {
         use crate::world::tiles::Biome;
 
         self.burn_out.clear();
         self.new_fires.clear();
 
-        // Also scan for campfires in the hotset
+        // Rain dampens every active fire and storm extinguishes them outright -
+        // applied to the full hotset so a single rainstorm clears the world's
+        // fires instead of relying on random tile sampling that almost never
+        // hits an actual Fire tile.
+        let rain_drain = match weather_kind {
+            1 => 0.04,
+            2 => 0.20,
+            _ => 0.0,
+        };
+        let spread_mult = match weather_kind {
+            1 => 0.25,
+            2 => 0.0,
+            _ => 1.0,
+        };
+
         let mut campfire_burn_out: Vec<(i32, i32)> = Vec::new();
 
         for &(x, y) in &self.active_fire_tiles {
             match grid.get(x, y) {
                 Tile::Fire => {
                     let intensity = grid.fire_intensity(x, y);
-                    let new_int = intensity - 0.015;
+                    let new_int = intensity - 0.015 - rain_drain;
                     if new_int <= 0.0 {
                         self.burn_out.push((x, y));
                     } else {
                         *grid.fire_intensity_mut(x, y) = new_int;
-                        // Volcanic biome has 3× faster fire spread
-                        let spread_chance = if grid.biome_at(x, y) == Biome::Volcanic { 0.012 } else { 0.004 };
-                        for (nx, ny) in WorldGrid::neighbors(x, y) {
-                            if grid.get(nx, ny).flammable() && rng.gen::<f32>() < spread_chance {
-                                self.new_fires.push((nx, ny));
+                        let base = if grid.biome_at(x, y) == Biome::Volcanic { 0.012 } else { 0.004 };
+                        let spread_chance = base * spread_mult;
+                        if spread_chance > 0.0 {
+                            for (nx, ny) in WorldGrid::neighbors(x, y) {
+                                if grid.get(nx, ny).flammable() && rng.gen::<f32>() < spread_chance {
+                                    self.new_fires.push((nx, ny));
+                                }
                             }
                         }
                     }
                 }
                 Tile::Campfire => {
-                    let new_int = grid.fire_intensity(x, y) - 0.00025;
+                    let new_int = grid.fire_intensity(x, y) - 0.00025 - rain_drain * 0.5;
                     if new_int <= 0.0 {
                         campfire_burn_out.push((x, y));
                     } else {
@@ -77,7 +93,6 @@ impl PhysicsEngine {
                     }
                 }
                 _ => {
-                    // Tile changed (e.g. extinguished by rain) - remove from hotset on next pass
                     self.burn_out.push((x, y));
                 }
             }
