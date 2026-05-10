@@ -4,7 +4,7 @@ import type { WorldState } from './types'
 import type { InterpRefs } from './useSimulation'
 import { useUIStore } from './store'
 import { lineageColor } from './constants'
-import { SPRITE, ATLAS_TOWN, ATLAS_CREATURE, drawTile, onAnyAtlasLoaded } from './sprites'
+import { SPRITE, ATLAS_TOWN, ATLAS_CREATURE, drawTile, onAnyAtlasLoaded, pickAnimalTile } from './sprites'
 
 onAnyAtlasLoaded(() => { _baseKey = null })
 
@@ -657,8 +657,7 @@ function drawWorldOnCanvas(
   for (const animal of (viewFlags.animals ? animals : [])) {
     const px = (animal.x - ox) * TILE
     const py = (animal.y - oy) * TILE
-    const tile = SPRITE.animal[animal.kind as keyof typeof SPRITE.animal]
-                 ?? SPRITE.animal.rabbit
+    const tile = pickAnimalTile(animal.kind, animal.id)
     if (ATLAS_CREATURE.complete) {
       drawTile(ctx, ATLAS_CREATURE, tile, px - 3, py - 3, 14)
     } else {

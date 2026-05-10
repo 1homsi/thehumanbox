@@ -39,16 +39,50 @@ export const SPRITE = {
     elder:   [2, 8] as Tile,
     child:   [3, 8] as Tile,
   },
-  animal: {
-    rabbit: [0, 13] as Tile,
-    deer:   [1, 13] as Tile,
-    boar:   [2, 13] as Tile,
-    bird:   [3, 13] as Tile,
-    fish:   [4, 17] as Tile,
-    wolf:   [5, 13] as Tile,
-    dog:    [6, 13] as Tile,
+  // Per-kind tile arrays. picKindTile() picks one deterministically by id
+  // so two rabbits with different ids reliably look different but never
+  // shimmer between sprites across reloads.
+  animals: {
+    rabbit: [[0, 13], [1, 13], [2, 13]] as Tile[],
+    deer:   [[3, 13], [4, 13], [5, 13]] as Tile[],
+    boar:   [[6, 13], [7, 13]] as Tile[],
+    bird:   [[8, 13], [9, 13], [0, 14]] as Tile[],
+    fish:   [[1, 17], [2, 17], [3, 17], [4, 17]] as Tile[],
+    wolf:   [[5, 14], [6, 14], [7, 14]] as Tile[],
+    dog:    [[8, 14], [9, 14], [0, 15]] as Tile[],
   },
+  humans: [
+    [0, 8] as Tile,
+    [1, 8] as Tile,
+    [2, 8] as Tile,
+    [3, 8] as Tile,
+    [4, 8] as Tile,
+    [5, 8] as Tile,
+    [6, 8] as Tile,
+    [7, 8] as Tile,
+  ],
 } as const
+
+function hashStr(s: string): number {
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) }
+  return (h >>> 0)
+}
+function hashNum(n: number): number {
+  let h = n | 0
+  h = (h ^ (h >>> 16)) >>> 0
+  h = Math.imul(h, 0x85ebca6b)
+  h = (h ^ (h >>> 13)) >>> 0
+  return h >>> 0
+}
+
+export function pickAnimalTile(kind: string, id: number): Tile {
+  const list = (SPRITE.animals as Record<string, Tile[]>)[kind] ?? SPRITE.animals.rabbit
+  return list[hashNum(id) % list.length]
+}
+export function pickHumanTile(id: string): Tile {
+  return SPRITE.humans[hashStr(id) % SPRITE.humans.length]
+}
 
 const cache: Record<string, HTMLImageElement> = {}
 const onLoad: Array<() => void> = []
