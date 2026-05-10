@@ -4,5 +4,6 @@ pub mod social;
 pub mod growth;
 pub mod courtship;
 pub mod simulation;
+pub mod spawn;
 pub mod local_think;
 pub mod spatial;
