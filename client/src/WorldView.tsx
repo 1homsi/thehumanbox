@@ -258,49 +258,77 @@ function drawTrees(
 
   const TREE_SIZE = 16
 
-  for (let y = 0; y < height; y++) {
+  // Poisson-disc-style placement. Each candidate tile that passes the
+  // probability roll is rejected if any tree already lives within
+  // min_spacing tiles. Result: organic clusters with empty meadows
+  // between them, instead of a uniform-noise blanket.
+  const placed: Uint8Array = new Uint8Array(width * height)
+  const order: number[] = []
+  for (let i = 0; i < width * height; i++) order.push(i)
+  // Hash-shuffle the order so nearby tiles aren't consistently winning
+  for (let i = order.length - 1; i > 0; i--) {
+    const r = (i * 2654435761) >>> 0
+    const j = r % (i + 1)
+    const tmp = order[i]; order[i] = order[j]; order[j] = tmp
+  }
+
+  for (const idx of order) {
+    const x = idx % width
+    const y = Math.floor(idx / width)
     const tRow = tiles[y]; const bRow = biomes[y]
     if (!tRow || !bRow) continue
-    for (let x = 0; x < width; x++) {
-      const t = tRow[x]
-      if (t !== TILE_GRASS && t !== TILE_FOOD) continue
-      const biome = bRow[x] ?? 0
+    const t = tRow[x]
+    if (t !== TILE_GRASS && t !== TILE_FOOD) continue
+    const biome = bRow[x] ?? 0
 
-      let hash = (x * 73856093) ^ (y * 19349663)
-      hash = ((hash ^ (hash >>> 13)) * 0x5bd1e995) >>> 0
-      const r0 = (hash & 0xff) / 255
-      const r1 = ((hash >>> 8) & 0xff) / 255
+    let hash = (x * 73856093) ^ (y * 19349663)
+    hash = ((hash ^ (hash >>> 13)) * 0x5bd1e995) >>> 0
+    const r0 = (hash & 0xff) / 255
+    const r1 = ((hash >>> 8) & 0xff) / 255
 
-      let density = 0
-      switch (biome) {
-        case BIOME_FOREST:   density = 0.45; break
-        case BIOME_WETLAND:  density = 0.18; break
-        case BIOME_GRASS:    density = 0.05; break
-        case BIOME_TUNDRA:   density = 0.08; break
-        case BIOME_DESERT:   density = 0.018; break
-        case BIOME_VOLCANIC: density = 0.04; break
-      }
-      if (r0 > density) continue
-
-      const sz = TREE_SIZE * (0.85 + (r1 * 17 % 1) * 0.4)
-      const cx = x * TILE + (TILE - sz) / 2 + (r1 - 0.5) * TILE * 0.4
-      const cy = y * TILE + (TILE - sz) / 2 + (r0 * 7 % 1 - 0.5) * TILE * 0.4
-
-      let sprite = SPRITE.trees.oak_mid
-      switch (biome) {
-        case BIOME_FOREST:
-          sprite = r1 < 0.45 ? SPRITE.trees.conifer
-                 : r1 < 0.75 ? SPRITE.trees.oak_dark
-                 : SPRITE.trees.oak_mid
-          break
-        case BIOME_WETLAND:  sprite = r1 < 0.6 ? SPRITE.trees.bush : SPRITE.trees.oak_mid; break
-        case BIOME_GRASS:    sprite = r1 < 0.6 ? SPRITE.trees.oak_light : SPRITE.trees.oak_mid; break
-        case BIOME_TUNDRA:   sprite = SPRITE.trees.conifer_dk; break
-        case BIOME_DESERT:   sprite = r1 < 0.5 ? SPRITE.trees.cactus : SPRITE.trees.dead; break
-        case BIOME_VOLCANIC: sprite = SPRITE.trees.dead; break
-      }
-      drawTile(ctx, ATLAS_TOWN, sprite, cx, cy, sz)
+    let chance = 0
+    let spacing = 2
+    switch (biome) {
+      case BIOME_FOREST:   chance = 0.55; spacing = 1; break
+      case BIOME_WETLAND:  chance = 0.30; spacing = 2; break
+      case BIOME_GRASS:    chance = 0.14; spacing = 3; break
+      case BIOME_TUNDRA:   chance = 0.18; spacing = 3; break
+      case BIOME_DESERT:   chance = 0.06; spacing = 4; break
+      case BIOME_VOLCANIC: chance = 0.10; spacing = 3; break
     }
+    if (r0 > chance) continue
+
+    let too_close = false
+    for (let dy = -spacing; dy <= spacing && !too_close; dy++) {
+      for (let dx = -spacing; dx <= spacing && !too_close; dx++) {
+        if (dx === 0 && dy === 0) continue
+        const nx = x + dx; const ny = y + dy
+        if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue
+        if (placed[ny * width + nx]) too_close = true
+      }
+    }
+    if (too_close) continue
+
+    placed[y * width + x] = 1
+
+    const sz = TREE_SIZE * (0.85 + (r1 * 17 % 1) * 0.4)
+    const cx = x * TILE + (TILE - sz) / 2 + (r1 - 0.5) * TILE * 0.5
+    const cy = y * TILE + (TILE - sz) / 2 + (r0 * 7 % 1 - 0.5) * TILE * 0.5
+
+    let sprite = SPRITE.trees.oak_mid
+    switch (biome) {
+      case BIOME_FOREST:
+        sprite = r1 < 0.45 ? SPRITE.trees.conifer
+               : r1 < 0.75 ? SPRITE.trees.oak_dark
+               : SPRITE.trees.oak_mid
+        break
+      case BIOME_WETLAND:  sprite = r1 < 0.6 ? SPRITE.trees.bush : SPRITE.trees.oak_mid; break
+      case BIOME_GRASS:    sprite = r1 < 0.6 ? SPRITE.trees.oak_light : SPRITE.trees.oak_mid; break
+      case BIOME_TUNDRA:   sprite = SPRITE.trees.conifer_dk; break
+      case BIOME_DESERT:   sprite = r1 < 0.5 ? SPRITE.trees.cactus : SPRITE.trees.dead; break
+      case BIOME_VOLCANIC: sprite = SPRITE.trees.dead; break
+    }
+    drawTile(ctx, ATLAS_TOWN, sprite, cx, cy, sz)
   }
 }
 
