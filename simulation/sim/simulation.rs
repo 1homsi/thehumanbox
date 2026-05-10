@@ -746,16 +746,39 @@ impl Simulation {
         };
         let perception = self.organisms[idx].perceive(&self.grid, &self.organisms, night, animal_near);
         self.validate_or_assign_wander_target(idx);
-        let (action, new_thought) = self.organisms[idx].choose_action(
-            &self.grid, self.tick_count, epsilon, &self.organisms, night,
-            self.weather.kind, &mut self.rng, animal_near, &perception);
+
+        let hungry = self.organisms[idx].energy < 0.55;
+        let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
+        let prey_nearby = if hungry {
+            self.animals.iter()
+                .filter(|a| a.alive && !matches!(a.kind, AnimalKind::Wolf))
+                .map(|a| ((a.x - ox).abs() + (a.y - oy).abs(), a.x, a.y))
+                .filter(|&(d, _, _)| d <= 6.0)
+                .min_by(|(a,_,_),(b,_,_)| a.partial_cmp(b).unwrap())
+        } else {
+            None
+        };
+
+        let (action, new_thought): (usize, Option<String>) = if let Some((_, ax, ay)) = prey_nearby {
+            let dx = (ax - ox).signum();
+            let dy = (ay - oy).signum();
+            let dir = match (dx as i32, dy as i32) {
+                ( 0, -1) => 0, ( 0,  1) => 1, (-1,  0) => 2, ( 1,  0) => 3,
+                (-1, -1) => 4, ( 1, -1) => 5, (-1,  1) => 6, ( 1,  1) => 7,
+                _        => 3,
+            };
+            (dir, Some("stalking prey".to_string()))
+        } else {
+            self.organisms[idx].choose_action(
+                &self.grid, self.tick_count, epsilon, &self.organisms, night,
+                self.weather.kind, &mut self.rng, animal_near, &perception)
+        };
         if let Some(t) = new_thought {
             self.organisms[idx].think(&t, self.tick_count);
         }
 
         let (ix, iy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
 
-        // ── Execute action ────────────────────────────────────────────────────
         let mut signal_reward = 0.0f32;
 
         if action < 8 {
@@ -2138,17 +2161,25 @@ impl Simulation {
             for (ai, animal) in self.animals.iter().enumerate() {
                 if !animal.alive { continue; }
                 let (ax, ay) = (animal.x as i32, animal.y as i32);
-                if (ox - ax).abs() <= 1 && (oy - ay).abs() <= 1 {
-                    if matches!(animal.kind, AnimalKind::Wolf | AnimalKind::Dog) { continue; }
+                let manh = (ox - ax).abs() + (oy - ay).abs();
+                if manh <= 2 {
+                    if matches!(animal.kind, AnimalKind::Dog) { continue; }
                     let base_p = match animal.kind {
-                        AnimalKind::Rabbit => 0.28,
-                        AnimalKind::Deer   => 0.14,
-                        AnimalKind::Boar   => 0.10,
-                        AnimalKind::Bird   => 0.12,
-                        AnimalKind::Fish   => 0.22,
+                        AnimalKind::Rabbit => 0.32,
+                        AnimalKind::Deer   => 0.18,
+                        AnimalKind::Boar   => 0.14,
+                        AnimalKind::Bird   => 0.16,
+                        AnimalKind::Fish   => 0.26,
+                        AnimalKind::Wolf   => 0.10,
                         _                  => 0.0,
                     };
-                    if self.rng.gen::<f32>() < base_p + org.traits.aggression * 0.18 {
+                    let weapon_bonus = if org.discoveries.contains("spear") { 0.22 }
+                                       else if org.discoveries.contains("stone_tools") { 0.12 }
+                                       else if org.discoveries.contains("hunt") { 0.06 }
+                                       else { 0.0 };
+                    let dist_penalty = if manh == 2 { 0.6 } else { 1.0 };
+                    let p = (base_p + org.traits.aggression * 0.18 + weapon_bonus) * dist_penalty;
+                    if self.rng.gen::<f32>() < p {
                         to_catch.push((oi, ai));
                     }
                 }
