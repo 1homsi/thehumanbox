@@ -7,5 +7,6 @@ pub mod simulation;
 pub mod spawn;
 pub mod wander;
 pub mod serialize;
+pub mod persistence;
 pub mod local_think;
 pub mod spatial;
