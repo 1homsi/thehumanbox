@@ -2083,6 +2083,61 @@ impl Simulation {
             animal.tick(&self.grid, &org_pos, &mut self.rng);
         }
 
+        // Dog domestication: a fed (energy > 0.7) friendly (low aggression)
+        // human within 2 tiles of a hungry (energy < 0.4) wolf has a small
+        // chance to convert it into a dog. The dog bonds to that human and
+        // stops being a predator.
+        let mut tames: Vec<(usize, usize)> = Vec::new();
+        for (ai, a) in self.animals.iter().enumerate() {
+            if !a.alive || !matches!(a.kind, AnimalKind::Wolf) { continue; }
+            if a.energy >= 0.4 { continue; }
+            for (oi, o) in self.organisms.iter().enumerate() {
+                if !o.alive || o.energy < 0.7 { continue; }
+                if o.traits.aggression > 0.5 { continue; }
+                if (o.x - a.x).abs() + (o.y - a.y).abs() > 2.5 { continue; }
+                let tame_p = 0.004 + (1.0 - o.traits.aggression) * 0.006;
+                if self.rng.gen::<f32>() < tame_p {
+                    tames.push((ai, oi));
+                    break;
+                }
+            }
+        }
+        for (ai, oi) in tames {
+            self.animals[ai].kind        = AnimalKind::Dog;
+            self.animals[ai].bonded_org  = Some(self.organisms[oi].id.clone());
+            self.animals[ai].energy      = (self.animals[ai].energy + 0.30).min(1.0);
+            let oname = self.organisms[oi].name.clone();
+            self.organisms[oi].discoveries.insert("dog".to_string());
+            self.organisms[oi].think("befriended a wolf", self.tick_count);
+            self.organisms[oi].log_event("tamed a wolf into a dog".to_string());
+            push_event(&mut self.events, self.tick_count, "build", &oname,
+                "befriended a wolf — it follows them now");
+        }
+
+        // Dogs follow their bonded human (one tile per tick toward them when out of range).
+        for ai in 0..self.animals.len() {
+            if !self.animals[ai].alive { continue; }
+            if !matches!(self.animals[ai].kind, AnimalKind::Dog) { continue; }
+            let bonded = self.animals[ai].bonded_org.clone();
+            if let Some(bid) = bonded {
+                if let Some(o) = self.organisms.iter().find(|o| o.alive && o.id == bid) {
+                    let (ax, ay) = (self.animals[ai].x, self.animals[ai].y);
+                    let dist = (o.x - ax).abs() + (o.y - ay).abs();
+                    if dist > 3.0 {
+                        let dx = (o.x - ax).signum();
+                        let dy = (o.y - ay).signum();
+                        let nx = (ax + dx).max(1.0).min(WIDTH as f32 - 2.0);
+                        let ny = (ay + dy).max(1.0).min(HEIGHT as f32 - 2.0);
+                        let t = self.grid.get(nx as i32, ny as i32);
+                        if !matches!(t, Tile::Void | Tile::Rock | Tile::Water | Tile::Fire) {
+                            self.animals[ai].x = nx;
+                            self.animals[ai].y = ny;
+                        }
+                    }
+                }
+            }
+        }
+
         // Wolf attacks: any wolf within 1 tile of a human can bite.
         // Damage scales with the wolf's energy (hungrier wolves hit harder).
         // Each successful bite drains the human's health and energizes
