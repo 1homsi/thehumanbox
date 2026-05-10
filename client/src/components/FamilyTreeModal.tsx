@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, useCallback, useEffect } from 'react'
 import * as d3 from 'd3'
 import type { OrganismState } from '../types'
 import { lineageColor } from '../constants'
+import { useFrozenSnapshot } from '../useFrozenSnapshot'
 import { Modal } from './Modal'
 
 const DAY_LENGTH = 600
@@ -99,8 +100,9 @@ function layoutTree(orgs: OrganismState[]): { nodes: NodePos[]; w: number; h: nu
 
 export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props) {
   // Snapshot once on open - the modal shows a static tree, not a moving
-  // one. Avoids re-laying out on every world tick.
-  const organisms = useRef(livOrgs).current
+  // one. Avoids re-laying out on every world tick. The reload button in
+  // the header swaps in a fresh snapshot of the current world.
+  const { frozen: organisms, reload } = useFrozenSnapshot(() => livOrgs)
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wrapRef   = useRef<HTMLDivElement>(null)
@@ -427,7 +429,10 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
         <span className="tree-modal-sub">
           {organisms.filter(o => o.alive).length} alive · {organisms.filter(o => !o.alive).length} ancestors · {(maxGen ?? 0) + 1} generations
         </span>
-        <button className="close-btn" onClick={onClose}>✕</button>
+        <div className="modal-header-actions">
+          <button className="reload-btn" onClick={reload} title="Reload from current world">⟳</button>
+          <button className="close-btn" onClick={onClose}>✕</button>
+        </div>
       </div>
 
       <div className="tree-tooltip">

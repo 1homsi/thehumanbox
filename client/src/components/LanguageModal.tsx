@@ -1,5 +1,6 @@
 import type { OrganismState } from '../types'
 import { lineageColor } from '../constants'
+import { useFrozenSnapshot } from '../useFrozenSnapshot'
 import { Modal } from './Modal'
 
 const CONCEPTS = [
@@ -48,14 +49,21 @@ function buildLineageVocabs(organisms: OrganismState[]): LineageVocab[] {
 }
 
 export function LanguageModal({ organisms, sexWords, onClose, lineageNames }: Props) {
-  const lineages = buildLineageVocabs(organisms)
+  // Freeze the org list at open time. The world ticks every 600ms but
+  // re-deriving the lineage vocabulary tables on every tick was both
+  // pointless (words mutate slowly) and visually distracting.
+  const { frozen, reload } = useFrozenSnapshot(() => organisms)
+  const lineages = buildLineageVocabs(frozen)
   const tn = (lid: string) => lineageNames?.[lid] ?? (lid ?? '').slice(0, 6)
 
   return (
     <Modal open onClose={onClose} className="lang-modal" title="Languages of the world" hideTitle>
         <div className="lang-modal-header">
           <span className="lang-modal-title">LANGUAGES OF THE WORLD</span>
-          <button className="close-btn" onClick={onClose}>✕</button>
+          <div className="modal-header-actions">
+            <button className="reload-btn" onClick={reload} title="Reload from current world">⟳</button>
+            <button className="close-btn" onClick={onClose}>✕</button>
+          </div>
         </div>
         <div className="lang-modal-body">
           <p className="lang-modal-sub">

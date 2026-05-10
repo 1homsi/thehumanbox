@@ -738,6 +738,26 @@ body {
   cursor: pointer;
 }
 .close-btn:hover { color: #cc4444; border-color: #4a1a1a; }
+
+/* Modal-header action cluster: reload + close grouped at top-right */
+.modal-header-actions {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  margin-left: auto;
+}
+.reload-btn {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid #2e3d51;
+  background: transparent;
+  color: #88aacc;
+  cursor: pointer;
+  line-height: 1;
+}
+.reload-btn:hover { color: #aaffdd; border-color: #335533; }
+.reload-btn:active { transform: rotate(180deg); transition: transform 0.3s ease; }
 .org-carrying-badge {
   font-size: 8px;
   padding: 1px 4px;

@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import type { WorldState, TribalRelation } from '../types'
 import { lineageColor } from '../constants'
+import { useFrozenSnapshot } from '../useFrozenSnapshot'
 import { Modal } from './Modal'
 
 const DAY_LENGTH = 600
@@ -159,7 +160,10 @@ function DiscoveryTimeline({ events }: { events: WorldState['events'] }) {
   )
 }
 
-export function StatsModal({ world, onClose }: Props) {
+export function StatsModal({ world: liveWorld, onClose }: Props) {
+  // Snapshot at open time so the panel doesn't churn on every WS tick.
+  // The reload icon swaps in the current world.
+  const { frozen: world, reload } = useFrozenSnapshot(() => liveWorld)
   const liveCount  = world.organisms.filter(o => o.alive).length
   const totalDeaths = (world.history.deaths_old_age ?? 0)
     + (world.history.deaths_starvation ?? 0)
@@ -181,7 +185,10 @@ export function StatsModal({ world, onClose }: Props) {
         <div className="lang-modal-header">
           <span className="lang-modal-title">STATS</span>
           <span className="tree-modal-sub">day {currentDay} · {liveCount} alive</span>
-          <button className="close-btn" onClick={onClose}>✕</button>
+          <div className="modal-header-actions">
+            <button className="reload-btn" onClick={reload} title="Reload from current world">⟳</button>
+            <button className="close-btn" onClick={onClose}>✕</button>
+          </div>
         </div>
 
         <div className="stats-body">
