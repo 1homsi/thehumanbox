@@ -4,6 +4,7 @@ mod physics;
 mod sim;
 mod transport;
 mod routes;
+mod llm;
 
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
@@ -27,6 +28,10 @@ use transport::{
     FrameClock, SharedTransportStats, TransportStats, TransportStatsSnapshot,
     encode_frame, next_frame_id, now_ms,
 };
+use llm::{
+    GroqMessage, GroqRequest, GroqResponse, LLM_KEY, LLM_MODEL, LLM_URL,
+    llm_body, llm_extract, strip_thinking,
+};
 
 pub type SharedSim = Arc<Mutex<Simulation>>;
 pub type Tx = broadcast::Sender<String>;
@@ -35,19 +40,6 @@ const SAVE_PATH:  &str = "world.save";
 const DAY_LENGTH: u64  = 600;
 const WS_BROADCAST_BUFFER: usize = 64;
 pub const WS_RESYNC_LAG_THRESHOLD: u64 = 3;
-
-fn env_or(key: &str, default: &str) -> String {
-    std::env::var(key).unwrap_or_else(|_| default.to_string())
-}
-fn llm_key_default() -> String {
-    std::env::var("LLM_KEY").or_else(|_| std::env::var("GROQ_API_KEY")).unwrap_or_default()
-}
-
-static LLM_URL:   std::sync::LazyLock<String> = std::sync::LazyLock::new(||
-    env_or("LLM_URL", "https://api.groq.com/openai/v1/chat/completions"));
-static LLM_MODEL: std::sync::LazyLock<String> = std::sync::LazyLock::new(||
-    env_or("LLM_MODEL", "llama-3.1-8b-instant"));
-static LLM_KEY:   std::sync::LazyLock<String> = std::sync::LazyLock::new(llm_key_default);
 
 fn tick_ms() -> u64 {
     std::env::var("TICK_MS").ok()
@@ -68,51 +60,6 @@ pub struct AppState {
 }
 
 
-// ── Groq types ────────────────────────────────────────────────────────────────
-
-#[derive(Serialize)]
-struct GroqMessage {
-    role:    String,
-    content: String,
-}
-
-#[derive(Serialize)]
-struct GroqRequest {
-    model:       String,
-    messages:    Vec<GroqMessage>,
-    max_tokens:  u32,
-    temperature: f32,
-}
-
-#[derive(Deserialize)]
-struct GroqChoice {
-    message: GroqMessageResp,
-}
-
-#[derive(Deserialize)]
-struct GroqMessageResp {
-    content: String,
-}
-
-#[derive(Deserialize)]
-struct GroqResponse {
-    choices: Vec<GroqChoice>,
-}
-
-fn llm_body(prompt: String, max_tokens: u32, model: &str) -> GroqRequest {
-    GroqRequest {
-        model:       model.to_string(),
-        messages:    vec![GroqMessage { role: "user".to_string(), content: prompt }],
-        max_tokens,
-        temperature: 0.7,
-    }
-}
-
-fn llm_extract(resp: GroqResponse) -> String {
-    resp.choices.into_iter().next()
-        .map(|c| c.message.content)
-        .unwrap_or_default()
-}
 
 // Narration request sent from sim loop → Ollama worker
 struct NarrationReq {
@@ -444,26 +391,6 @@ async fn main() {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-// Strip <think>…</think> / <thinking>…</thinking> blocks that reasoning models emit
-fn strip_thinking(s: &str) -> String {
-    let mut out = s.to_string();
-    for tag in &["thinking", "think"] {
-        loop {
-            let lo = out.to_lowercase();
-            let open  = format!("<{}>",  tag);
-            let close = format!("</{}>", tag);
-            match (lo.find(&open), lo.find(&close)) {
-                (Some(a), Some(b)) if b >= a => {
-                    out.drain(a..b + close.len());
-                }
-                (Some(a), _) => { out.drain(a..); break; }
-                _ => break,
-            }
-        }
-    }
-    out.trim().to_string()
-}
 
 // ── Narration worker ──────────────────────────────────────────────────────────
 
