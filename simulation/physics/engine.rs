@@ -130,8 +130,8 @@ impl PhysicsEngine {
 
     fn grow_plants(&self, grid: &mut WorldGrid, rng: &mut impl Rng) {
         use crate::world::grid::{WIDTH, HEIGHT, TrailKind};
-        let base_grow    = 0.003 * self.growth_mult;
-        let recover_rate = 0.001 * (self.growth_mult * 0.7).max(0.4);
+        let base_grow    = 0.0055 * self.growth_mult;
+        let recover_rate = 0.0018 * (self.growth_mult * 0.7).max(0.4);
 
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {

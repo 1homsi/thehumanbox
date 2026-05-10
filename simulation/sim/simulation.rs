@@ -805,7 +805,7 @@ impl Simulation {
         } else if action == 9 {
             let (cx, cy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
             if self.grid.get(cx, cy) == Tile::Water {
-                self.organisms[idx].hydration = (self.organisms[idx].hydration + 0.35).min(1.0);
+                self.organisms[idx].hydration = 1.0;
                 let ms = self.organisms[idx].traits.memory_strength;
                 Organism::remember(&mut self.organisms[idx].water_memory, cx, cy, 1.0, ms);
                 self.organisms[idx].think("water consumed here", self.tick_count);
@@ -1121,8 +1121,16 @@ impl Simulation {
         } else {
             1.0
         };
-        self.organisms[idx].energy    = (self.organisms[idx].energy    - 0.003 * shelter_drain_mult).max(0.0);
-        self.organisms[idx].hydration = (self.organisms[idx].hydration - 0.002).max(0.0);
+        let mut water_near = false;
+        'wn: for ddx in -4i32..=4 {
+            for ddy in -4i32..=4 {
+                if self.grid.get(cx + ddx, cy + ddy) == Tile::Water { water_near = true; break 'wn; }
+            }
+        }
+        let hydration_mult = if water_near { 0.5 } else { 1.0 };
+
+        self.organisms[idx].energy    = (self.organisms[idx].energy    - 0.0022 * shelter_drain_mult).max(0.0);
+        self.organisms[idx].hydration = (self.organisms[idx].hydration - 0.0014 * hydration_mult).max(0.0);
         self.apply_water_fatigue(idx, cx, cy);
         if night {
             let has_torch = self.organisms[idx].discoveries.contains("torch");
