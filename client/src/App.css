@@ -1633,3 +1633,10 @@ body {
   border-bottom: 1px dashed rgba(122, 187, 255, 0.4);
 }
 .about-links a:hover { color: #a0d0ff; border-bottom-color: rgba(160, 208, 255, 0.7); }
+.about-built-with-detail {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  color: #6e6555;
+  line-height: 1.45;
+}

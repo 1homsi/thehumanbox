@@ -88,6 +88,17 @@ export function AboutModal({ onClose }: Props) {
           </div>
         )}
 
+        <div className="about-section">BUILT WITH</div>
+        <div className="about-links">
+          <a href="https://github.com/1homsi/cubeforge" target="_blank" rel="noreferrer">
+            cubeforge
+          </a>
+          <span className="about-built-with-detail">
+            React-first 2D browser game engine. The world canvas, camera,
+            input handling, and WebGL pipeline all run on it.
+          </span>
+        </div>
+
         <div className="about-section">LINKS</div>
         <div className="about-links">
           <a href="https://github.com/stackxio/thehumanbox" target="_blank" rel="noreferrer">github.com/stackxio/thehumanbox</a>
