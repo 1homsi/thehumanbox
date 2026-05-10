@@ -34,6 +34,22 @@ const BIOME_OVERLAYS: Record<number, string> = {
 }
 
 // ── Pre-computed pixel-level lookup tables (avoid CSS parsing per tile) ───────
+function orgVariant(id: string): { hueShift: number; accent: string; bodyRadius: number; hairColor: string } {
+  let h = 2166136261
+  for (let i = 0; i < id.length; i++) { h ^= id.charCodeAt(i); h = Math.imul(h, 16777619) }
+  const a = (h >>> 0) / 0xffffffff
+  const b = ((h ^ 0x9e3779b9) >>> 0) / 0xffffffff
+  const c = ((h ^ 0x85ebca6b) >>> 0) / 0xffffffff
+  const accents = ['#d4a843', '#e08070', '#7ab0e0', '#9070b0', '#7ebd6a', '#e0c070', '#c08060']
+  const hairs   = ['#1a1310', '#3a2618', '#5a3a20', '#7a5028', '#a86838', '#cc9844', '#dcdcdc']
+  return {
+    hueShift:   (a - 0.5) * 36,
+    accent:     accents[Math.floor(b * accents.length)],
+    bodyRadius: 4.6 + c * 1.0,
+    hairColor:  hairs[Math.floor(c * hairs.length)],
+  }
+}
+
 function parseHex(h: string): [number, number, number] {
   const s = h.replace('#', '')
   return [parseInt(s.slice(0,2),16), parseInt(s.slice(2,4),16), parseInt(s.slice(4,6),16)]
@@ -635,9 +651,17 @@ function drawWorldOnCanvas(
       ctx.fillRect(px - 3, py - 13, 6, 4)
     }
 
-    // Body
+    const variant = orgVariant(org.id)
+    const bodyR = variant.bodyRadius * (org.sex === 'male' ? 1.05 : 0.95)
+
     ctx.fillStyle = THOUGHT_COLORS[org.thought] ?? '#cccccc'
-    ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI * 2); ctx.fill()
+    ctx.beginPath(); ctx.arc(px, py, bodyR, 0, Math.PI * 2); ctx.fill()
+
+    ctx.fillStyle = variant.hairColor
+    ctx.beginPath(); ctx.arc(px, py - bodyR * 0.7, bodyR * 0.55, 0, Math.PI * 2); ctx.fill()
+
+    ctx.fillStyle = variant.accent
+    ctx.fillRect(px - bodyR * 0.7, py + bodyR * 0.15, bodyR * 1.4, 1.4)
 
     // Energy + hydration bars
     const barW = TILE - 2
