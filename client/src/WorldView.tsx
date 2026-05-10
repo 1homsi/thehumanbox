@@ -686,8 +686,12 @@ function drawWorldOnCanvas(
     const px = (animal.x - ox) * TILE
     const py = (animal.y - oy) * TILE
     const tile = pickAnimalTile(animal.kind, animal.id)
+    // Fish: smaller sprite, sit a touch lower so they look submerged
+    // not floating above the surface.
+    const aSize = animal.kind === 'fish' ? 10 : 14
+    const yOff  = animal.kind === 'fish' ? -1 : -3
     if (ATLAS_CREATURE.complete) {
-      drawTile(ctx, ATLAS_CREATURE, tile, px - 3, py - 3, 14)
+      drawTile(ctx, ATLAS_CREATURE, tile, px - aSize / 2 + TILE / 2, py + yOff, aSize)
     } else {
       const cx = px + TILE / 2; const cy = py + TILE / 2
       const r  = animal.kind === 'rabbit' || animal.kind === 'bird' ? 2.2
