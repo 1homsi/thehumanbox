@@ -78,7 +78,7 @@ export interface AnimalState {
   id: number
   x: number
   y: number
-  kind: 'rabbit' | 'deer'
+  kind: 'rabbit' | 'deer' | 'boar' | 'bird' | 'fish' | 'wolf' | 'dog'
 }
 
 export interface SimEvent {

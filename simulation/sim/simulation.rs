@@ -2011,12 +2011,23 @@ impl Simulation {
 
     fn spawn_animals(&mut self, count: usize) {
         for _ in 0..count {
-            let kind = if self.rng.gen::<f32>() < 0.7 { AnimalKind::Rabbit } else { AnimalKind::Deer };
+            let r = self.rng.gen::<f32>();
+            let kind = if r < 0.30 { AnimalKind::Rabbit }
+                       else if r < 0.50 { AnimalKind::Deer }
+                       else if r < 0.62 { AnimalKind::Boar }
+                       else if r < 0.78 { AnimalKind::Bird }
+                       else if r < 0.92 { AnimalKind::Fish }
+                       else                { AnimalKind::Wolf };
             for _ in 0..60 {
                 let x = self.rng.gen_range(3..(WIDTH as i32 - 3)) as f32;
                 let y = self.rng.gen_range(3..(HEIGHT as i32 - 3)) as f32;
-                if !matches!(self.grid.get(x as i32, y as i32),
-                             Tile::Void | Tile::Rock | Tile::Water | Tile::Fire) {
+                let tile = self.grid.get(x as i32, y as i32);
+                let valid = if kind.aquatic() {
+                    tile == Tile::Water
+                } else {
+                    !matches!(tile, Tile::Void | Tile::Rock | Tile::Water | Tile::Fire)
+                };
+                if valid {
                     let id = self.next_animal_id;
                     self.next_animal_id += 1;
                     self.animals.push(Animal::new(id, x, y, kind));
@@ -2057,7 +2068,6 @@ impl Simulation {
             .collect();
 
         for (pid, px, py, kind) in candidates {
-            // Biome suitability per species
             let biome = self.grid.biome_at(px as i32, py as i32);
             let biome_mult: f32 = match (kind, biome) {
                 (AnimalKind::Rabbit, Biome::Grassland) => 1.5,
@@ -2072,6 +2082,23 @@ impl Simulation {
                 (AnimalKind::Deer,   Biome::Tundra)    => 0.6,
                 (AnimalKind::Deer,   Biome::Desert)    => 0.3,
                 (AnimalKind::Deer,   Biome::Volcanic)  => 0.1,
+                (AnimalKind::Boar,   Biome::Forest)    => 1.4,
+                (AnimalKind::Boar,   Biome::Wetland)   => 1.2,
+                (AnimalKind::Boar,   Biome::Grassland) => 0.8,
+                (AnimalKind::Boar,   _)                => 0.2,
+                (AnimalKind::Bird,   Biome::Forest)    => 1.4,
+                (AnimalKind::Bird,   Biome::Wetland)   => 1.3,
+                (AnimalKind::Bird,   Biome::Grassland) => 1.1,
+                (AnimalKind::Bird,   Biome::Tundra)    => 0.7,
+                (AnimalKind::Bird,   Biome::Desert)    => 0.4,
+                (AnimalKind::Bird,   Biome::Volcanic)  => 0.1,
+                (AnimalKind::Fish,   Biome::Wetland)   => 1.5,
+                (AnimalKind::Fish,   _)                => 1.0,
+                (AnimalKind::Wolf,   Biome::Forest)    => 0.8,
+                (AnimalKind::Wolf,   Biome::Tundra)    => 1.0,
+                (AnimalKind::Wolf,   Biome::Grassland) => 0.5,
+                (AnimalKind::Wolf,   _)                => 0.2,
+                (AnimalKind::Dog,    _)                => 0.0,
             };
 
             // Local carrying capacity: density check within a 12-tile radius.
@@ -2112,9 +2139,14 @@ impl Simulation {
                 if !animal.alive { continue; }
                 let (ax, ay) = (animal.x as i32, animal.y as i32);
                 if (ox - ax).abs() <= 1 && (oy - ay).abs() <= 1 {
+                    if matches!(animal.kind, AnimalKind::Wolf | AnimalKind::Dog) { continue; }
                     let base_p = match animal.kind {
                         AnimalKind::Rabbit => 0.28,
                         AnimalKind::Deer   => 0.14,
+                        AnimalKind::Boar   => 0.10,
+                        AnimalKind::Bird   => 0.12,
+                        AnimalKind::Fish   => 0.22,
+                        _                  => 0.0,
                     };
                     if self.rng.gen::<f32>() < base_p + org.traits.aggression * 0.18 {
                         to_catch.push((oi, ai));
@@ -2131,6 +2163,11 @@ impl Simulation {
             let (kind, boost) = match self.animals[ai].kind {
                 AnimalKind::Rabbit => ("rabbit", 0.30),
                 AnimalKind::Deer   => ("deer",   0.55),
+                AnimalKind::Boar   => ("boar",   0.65),
+                AnimalKind::Bird   => ("bird",   0.18),
+                AnimalKind::Fish   => ("fish",   0.32),
+                AnimalKind::Wolf   => ("wolf",   0.45),
+                AnimalKind::Dog    => ("dog",    0.0),
             };
             let (ax, ay) = (self.animals[ai].x as i32, self.animals[ai].y as i32);
             self.animals[ai].alive = false;
@@ -3000,16 +3037,30 @@ fn org_from_save(s: OrgSave) -> Organism {
 }
 
 fn animal_to_save(a: &Animal) -> AnimalSave {
-    AnimalSave {
-        id: a.id, x: a.x, y: a.y, alive: a.alive, energy: a.energy,
-        kind: if a.kind == AnimalKind::Rabbit { 0 } else { 1 },
-        last_reproduced: a.last_reproduced,
-    }
+    let kind = match a.kind {
+        AnimalKind::Rabbit => 0,
+        AnimalKind::Deer   => 1,
+        AnimalKind::Boar   => 2,
+        AnimalKind::Bird   => 3,
+        AnimalKind::Fish   => 4,
+        AnimalKind::Wolf   => 5,
+        AnimalKind::Dog    => 6,
+    };
+    AnimalSave { id: a.id, x: a.x, y: a.y, alive: a.alive, energy: a.energy, kind, last_reproduced: a.last_reproduced }
 }
 
 fn animal_from_save(s: AnimalSave) -> Animal {
-    let mut a = Animal::new(s.id, s.x, s.y,
-        if s.kind == 0 { AnimalKind::Rabbit } else { AnimalKind::Deer });
+    let kind = match s.kind {
+        0 => AnimalKind::Rabbit,
+        1 => AnimalKind::Deer,
+        2 => AnimalKind::Boar,
+        3 => AnimalKind::Bird,
+        4 => AnimalKind::Fish,
+        5 => AnimalKind::Wolf,
+        6 => AnimalKind::Dog,
+        _ => AnimalKind::Rabbit,
+    };
+    let mut a = Animal::new(s.id, s.x, s.y, kind);
     a.alive           = s.alive;
     a.energy          = s.energy;
     a.last_reproduced = s.last_reproduced;

@@ -5,6 +5,19 @@ import { Modal } from './Modal'
 
 const DAY_LENGTH = 600
 
+function kindIcon(kind: string): string {
+  switch (kind) {
+    case 'rabbit': return '🐇'
+    case 'deer':   return '🦌'
+    case 'boar':   return '🐗'
+    case 'bird':   return '🐦'
+    case 'fish':   return '🐟'
+    case 'wolf':   return '🐺'
+    case 'dog':    return '🐕'
+    default:       return '🐾'
+  }
+}
+
 interface Props {
   world: WorldState
   onClose: () => void
@@ -206,7 +219,7 @@ export function StatsModal({ world, onClose }: Props) {
             {Object.entries(animalKinds).sort((a, b) => b[1] - a[1]).map(([kind, n]) => (
               <div key={kind} className="stats-num-card">
                 <div className="stats-num">{n}</div>
-                <div className="stats-num-label">{kind === 'rabbit' ? '🐇' : kind === 'deer' ? '🦌' : '🐾'} {kind}</div>
+                <div className="stats-num-label">{kindIcon(kind)} {kind}</div>
               </div>
             ))}
           </div>
