@@ -217,7 +217,7 @@ impl Simulation {
             active_structure_tiles:  HashSet::new(),
         };
         sim.spawn_founders();
-        sim.spawn_animals(25);
+        sim.spawn_animals(14);
         sim
     }
 
@@ -230,13 +230,45 @@ impl Simulation {
         const TRIBE_SIZE:  usize = 10;
         const TRIBE_RADIUS: i32  = 16;  // land search radius around each anchor
 
-        // ── Step 1: pick anchor positions - one per water pool, rest random ──
-        let mut anchors: Vec<(i32, i32)> = self.grid.pool_centers
-            .iter()
-            .map(|&(cx, cy)| (cx, cy))
-            .collect();
+        // Partition the map into a 4×3 grid of sectors and place at most one
+        // tribe per sector. This guarantees tribes spread across the whole
+        // world instead of all clustering near pool_centers, which on
+        // pool-poor maps used to leave half the continent empty.
+        let cols = 4i32;
+        let rows = 3i32;
+        let sw = WIDTH  as i32 / cols;
+        let sh = HEIGHT as i32 / rows;
 
-        // If fewer pools than tribes, scatter remaining anchors across all land
+        let mut anchors: Vec<(i32, i32)> = Vec::new();
+        let mut sector_order: Vec<(i32, i32)> = (0..cols).flat_map(|c| (0..rows).map(move |r| (c, r))).collect();
+        for i in (1..sector_order.len()).rev() {
+            let j = self.rng.gen_range(0..=i);
+            sector_order.swap(i, j);
+        }
+
+        for (sc, sr) in sector_order {
+            if anchors.len() >= N_TRIBES { break; }
+            let x0 = sc * sw + 4;
+            let y0 = sr * sh + 4;
+            let x1 = ((sc + 1) * sw - 4).min(WIDTH as i32 - 2);
+            let y1 = ((sr + 1) * sh - 4).min(HEIGHT as i32 - 2);
+
+            let mut land: Vec<(i32, i32)> = Vec::new();
+            for y in y0..y1 {
+                for x in x0..x1 {
+                    if matches!(self.grid.get(x, y), Tile::Grass | Tile::Food) {
+                        land.push((x, y));
+                    }
+                }
+            }
+            if land.is_empty() { continue; }
+            let pick = land[self.rng.gen_range(0..land.len())];
+            anchors.push(pick);
+        }
+
+        // If 12 sectors didn't fill, fall back to fully random scatter for
+        // any remaining tribes - keeps the count at 12 even on archipelago
+        // maps where some sectors are nearly all water.
         if anchors.len() < N_TRIBES {
             let mut all_land: Vec<(i32, i32)> = (2..(HEIGHT as i32 - 2))
                 .flat_map(|y| (2..(WIDTH as i32 - 2)).map(move |x| (x, y)))
@@ -249,9 +281,8 @@ impl Simulation {
                 let j = i + self.rng.gen_range(0..(n - i));
                 all_land.swap(i, j);
                 let (x, y) = all_land[i];
-                // keep tribes at least 30 tiles apart
                 let far_enough = anchors.iter().all(|&(ax, ay)| {
-                    (ax - x).abs() + (ay - y).abs() >= 30
+                    (ax - x).abs() + (ay - y).abs() >= 40
                 });
                 if far_enough { anchors.push((x, y)); placed += 1; }
                 i += 1;
@@ -2227,16 +2258,18 @@ impl Simulation {
                 (AnimalKind::Dog,    _)                => 0.0,
             };
 
-            // Local carrying capacity: density check within a 12-tile radius.
-            // ~6 animals of any species in that disc is the soft ceiling.
             let local_density = self.animals.iter()
-                .filter(|a| a.alive && (a.x - px).abs() + (a.y - py).abs() <= 12.0)
+                .filter(|a| a.alive && (a.x - px).abs() + (a.y - py).abs() <= 14.0)
                 .count() as f32;
-            let density_factor = (1.0 - (local_density / 6.0).min(1.0)).max(0.0);
+            let density_factor = (1.0 - (local_density / 3.0).min(1.0)).max(0.0);
 
-            // Base rate stays the same as before; the env multipliers replace the
-            // crude global cap. Rate ≈ 0.0008 in a perfect biome with empty habitat.
-            let p = 0.0008 * biome_mult * density_factor;
+            // Global soft cap: birth rate halves once total alive animals
+            // crosses 600, drops to ~0 around 1000. Keeps the world from
+            // being smothered by a runaway prey explosion.
+            let total_alive = self.animals.iter().filter(|a| a.alive).count() as f32;
+            let global_factor = (1.0 - (total_alive - 600.0).max(0.0) / 400.0).max(0.0);
+
+            let p = 0.0005 * biome_mult * density_factor * global_factor;
             if p > 0.0 && self.rng.gen::<f32>() < p {
                 let nid = self.next_animal_id;
                 self.next_animal_id += 1;
