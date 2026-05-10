@@ -1,39 +1,80 @@
-#[path = "../world/mod.rs"]    mod world;
-#[path = "../organism/mod.rs"] mod organism;
-#[path = "../physics/mod.rs"]  mod physics;
-#[path = "../sim/mod.rs"]      mod sim;
+#[path = "../organism/mod.rs"]
+mod organism;
+#[path = "../physics/mod.rs"]
+mod physics;
+#[path = "../sim/mod.rs"]
+mod sim;
+#[path = "../world/mod.rs"]
+mod world;
 
-use sim::simulation::Simulation;
 use serde_json::json;
+use sim::simulation::Simulation;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufWriter, Write};
+use world::grid::{WorldGrid, HEIGHT, WIDTH};
+use world::tiles::{Biome, Tile};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    let seed: u64 = args.iter()
-        .position(|a| a == "--seed").and_then(|i| args.get(i+1))
-        .and_then(|s| s.parse().ok()).unwrap_or(42);
-    let max_ticks: u64 = args.iter()
-        .position(|a| a == "--ticks").and_then(|i| args.get(i+1))
-        .and_then(|s| s.parse().ok()).unwrap_or(60_000);
-    let print_every: u64 = args.iter()
-        .position(|a| a == "--every").and_then(|i| args.get(i+1))
-        .and_then(|s| s.parse().ok()).unwrap_or(6_000);  // default 1 in-world day
-    let sweep_seeds: usize = args.iter()
-        .position(|a| a == "--sweep-seeds").and_then(|i| args.get(i+1))
-        .and_then(|s| s.parse().ok()).unwrap_or(0);
-    let trace_out = args.iter()
-        .position(|a| a == "--trace-out").and_then(|i| args.get(i+1))
+    let seed: u64 = args
+        .iter()
+        .position(|a| a == "--seed")
+        .and_then(|i| args.get(i + 1))
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(42);
+    let max_ticks: u64 = args
+        .iter()
+        .position(|a| a == "--ticks")
+        .and_then(|i| args.get(i + 1))
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(60_000);
+    let print_every: u64 = args
+        .iter()
+        .position(|a| a == "--every")
+        .and_then(|i| args.get(i + 1))
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(6_000); // default 1 in-world day
+    let sweep_seeds: usize = args
+        .iter()
+        .position(|a| a == "--sweep-seeds")
+        .and_then(|i| args.get(i + 1))
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0);
+    let trace_out = args
+        .iter()
+        .position(|a| a == "--trace-out")
+        .and_then(|i| args.get(i + 1))
         .cloned();
-    let trace_every: u64 = args.iter()
-        .position(|a| a == "--trace-every").and_then(|i| args.get(i+1))
-        .and_then(|s| s.parse().ok()).unwrap_or(200);
-    let trace_limit: usize = args.iter()
-        .position(|a| a == "--trace-limit").and_then(|i| args.get(i+1))
-        .and_then(|s| s.parse().ok()).unwrap_or(0);
+    let trace_every: u64 = args
+        .iter()
+        .position(|a| a == "--trace-every")
+        .and_then(|i| args.get(i + 1))
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(200);
+    let trace_limit: usize = args
+        .iter()
+        .position(|a| a == "--trace-limit")
+        .and_then(|i| args.get(i + 1))
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0);
+    let world_report = args.iter().any(|a| a == "--world-report");
+    let world_gate = args.iter().any(|a| a == "--world-gate");
     // --gate: exit non-zero if any seed's verdict is not Healthy. For CI use.
     let gate = args.iter().any(|a| a == "--gate");
+
+    if world_report {
+        if sweep_seeds > 0 {
+            let unhealthy = run_world_report_sweep(seed, sweep_seeds);
+            if world_gate && unhealthy > 0 {
+                eprintln!("\nWORLD GATE FAILED: {} low-quality seed(s)", unhealthy);
+                std::process::exit(1);
+            }
+        } else {
+            print_world_report(seed);
+        }
+        return;
+    }
 
     if sweep_seeds > 0 {
         let unhealthy = run_seed_sweep(seed, sweep_seeds, max_ticks);
@@ -44,9 +85,23 @@ fn main() {
         return;
     }
 
-    println!("headless  seed={}  max_ticks={}  print_every={}", seed, max_ticks, print_every);
-    println!("{:<10} {:>5} {:>7} {:>7} {:>7} {:>7} {:>7} {:>6} {:>6} {:>6}",
-        "tick", "alive", "births", "animals", "fire", "shelter", "lineages", "starv", "dehy", "sick");
+    println!(
+        "headless  seed={}  max_ticks={}  print_every={}",
+        seed, max_ticks, print_every
+    );
+    println!(
+        "{:<10} {:>5} {:>7} {:>7} {:>7} {:>7} {:>7} {:>6} {:>6} {:>6}",
+        "tick",
+        "alive",
+        "births",
+        "animals",
+        "fire",
+        "shelter",
+        "lineages",
+        "starv",
+        "dehy",
+        "sick"
+    );
     println!("{}", "-".repeat(80));
 
     let mut sim = Simulation::new(seed);
@@ -69,7 +124,9 @@ fn main() {
         let t = sim.tick_count;
 
         let alive = sim.organisms.iter().filter(|o| o.alive).count();
-        if alive > peak_pop { peak_pop = alive; }
+        if alive > peak_pop {
+            peak_pop = alive;
+        }
 
         if let Some(writer) = trace_writer.as_mut() {
             if trace_every > 0 && t % trace_every == 0 {
@@ -83,16 +140,36 @@ fn main() {
         }
 
         if t % print_every == 0 {
-            let fire_count    = sim.organisms.iter().filter(|o| o.alive && o.discoveries.contains(&"fire".to_string())).count();
-            let shelter_count = sim.organisms.iter().filter(|o| o.alive && o.discoveries.contains(&"shelter".to_string())).count();
-            let animal_count  = sim.animals.iter().filter(|a| a.alive).count();
-            let lineage_count: std::collections::HashSet<&str> = sim.organisms.iter()
-                .filter(|o| o.alive).map(|o| o.lineage_id.as_str()).collect();
+            let fire_count = sim
+                .organisms
+                .iter()
+                .filter(|o| o.alive && o.discoveries.contains(&"fire".to_string()))
+                .count();
+            let shelter_count = sim
+                .organisms
+                .iter()
+                .filter(|o| o.alive && o.discoveries.contains(&"shelter".to_string()))
+                .count();
+            let animal_count = sim.animals.iter().filter(|a| a.alive).count();
+            let lineage_count: std::collections::HashSet<&str> = sim
+                .organisms
+                .iter()
+                .filter(|o| o.alive)
+                .map(|o| o.lineage_id.as_str())
+                .collect();
             let h = &sim.history;
-            println!("{:<10} {:>5} {:>7} {:>7} {:>7} {:>7} {:>7} {:>6} {:>6} {:>6}",
-                t, alive, h.births, animal_count,
-                fire_count, shelter_count, lineage_count.len(),
-                h.deaths_starvation, h.deaths_dehydration, h.deaths_sickness,
+            println!(
+                "{:<10} {:>5} {:>7} {:>7} {:>7} {:>7} {:>7} {:>6} {:>6} {:>6}",
+                t,
+                alive,
+                h.births,
+                animal_count,
+                fire_count,
+                shelter_count,
+                lineage_count.len(),
+                h.deaths_starvation,
+                h.deaths_dehydration,
+                h.deaths_sickness,
             );
 
             let json_bytes = sim.state_json().to_string().len();
@@ -104,13 +181,24 @@ fn main() {
     println!("\n=== SUMMARY ===");
     println!("ticks run:   {}", sim.tick_count);
     println!("peak pop:    {}", peak_pop);
-    println!("final alive: {}", sim.organisms.iter().filter(|o| o.alive).count());
+    println!(
+        "final alive: {}",
+        sim.organisms.iter().filter(|o| o.alive).count()
+    );
     let h = &sim.history;
-    println!("births:      {}  |  deaths: old={} starv={} dehy={} sick={} combat={}",
-        h.births, h.deaths_old_age, h.deaths_starvation, h.deaths_dehydration,
-        h.deaths_sickness, h.deaths_combat);
-    println!("alliances:   {}  challenges: {}  gifts: {}",
-        h.alliances_formed, h.challenges_total, h.gifts_total);
+    println!(
+        "births:      {}  |  deaths: old={} starv={} dehy={} sick={} combat={}",
+        h.births,
+        h.deaths_old_age,
+        h.deaths_starvation,
+        h.deaths_dehydration,
+        h.deaths_sickness,
+        h.deaths_combat
+    );
+    println!(
+        "alliances:   {}  challenges: {}  gifts: {}",
+        h.alliances_formed, h.challenges_total, h.gifts_total
+    );
     println!("droughts:    {}  outbreaks: {}", h.droughts, h.outbreaks);
 
     // Top thoughts (behavior fingerprint)
@@ -122,13 +210,34 @@ fn main() {
     }
 
     // Fire/shelter/hunt discoveries
-    let fire_disc    = sim.organisms.iter().filter(|o| o.discoveries.contains(&"fire".to_string())).count();
-    let shelter_disc = sim.organisms.iter().filter(|o| o.discoveries.contains(&"shelter".to_string())).count();
-    let hunt_disc    = sim.organisms.iter().filter(|o| o.discoveries.contains(&"hunt".to_string())).count();
-    let medicine_disc = sim.organisms.iter().filter(|o| o.discoveries.contains(&"medicine".to_string())).count();
-    println!("\nDiscoveries (ever, alive+dead):  fire={}  shelter={}  hunt={}  medicine={}",
-        fire_disc, shelter_disc, hunt_disc, medicine_disc);
-    println!("Animals alive at end: {}", sim.animals.iter().filter(|a| a.alive).count());
+    let fire_disc = sim
+        .organisms
+        .iter()
+        .filter(|o| o.discoveries.contains(&"fire".to_string()))
+        .count();
+    let shelter_disc = sim
+        .organisms
+        .iter()
+        .filter(|o| o.discoveries.contains(&"shelter".to_string()))
+        .count();
+    let hunt_disc = sim
+        .organisms
+        .iter()
+        .filter(|o| o.discoveries.contains(&"hunt".to_string()))
+        .count();
+    let medicine_disc = sim
+        .organisms
+        .iter()
+        .filter(|o| o.discoveries.contains(&"medicine".to_string()))
+        .count();
+    println!(
+        "\nDiscoveries (ever, alive+dead):  fire={}  shelter={}  hunt={}  medicine={}",
+        fire_disc, shelter_disc, hunt_disc, medicine_disc
+    );
+    println!(
+        "Animals alive at end: {}",
+        sim.animals.iter().filter(|a| a.alive).count()
+    );
 
     // Lineage survival
     let mut lineage_alive: HashMap<&str, usize> = HashMap::new();
@@ -139,12 +248,23 @@ fn main() {
     alive_lineages.sort_by(|a, b| b.1.cmp(&a.1));
     println!("\nSurviving lineages:");
     for (lid, count) in alive_lineages.iter().take(8) {
-        let avg_gen = sim.organisms.iter()
+        let avg_gen = sim
+            .organisms
+            .iter()
             .filter(|o| o.alive && o.lineage_id == *lid)
             .map(|o| o.generation as f32)
             .fold((0.0, 0.0), |(s, c), g| (s + g, c + 1.0));
-        let gen_avg = if avg_gen.1 > 0.0 { avg_gen.0 / avg_gen.1 } else { 0.0 };
-        println!("  {}…  count={}  avg_gen={:.1}", &lid[..lid.len().min(8)], count, gen_avg);
+        let gen_avg = if avg_gen.1 > 0.0 {
+            avg_gen.0 / avg_gen.1
+        } else {
+            0.0
+        };
+        println!(
+            "  {}…  count={}  avg_gen={:.1}",
+            &lid[..lid.len().min(8)],
+            count,
+            gen_avg
+        );
     }
 
     // Performance report
@@ -152,23 +272,33 @@ fn main() {
         let mut sorted_us = tick_times_us.clone();
         sorted_us.sort_unstable();
         let n = sorted_us.len();
-        let mean_us  = sorted_us.iter().sum::<u64>() / n as u64;
-        let p50      = sorted_us[n * 50 / 100];
-        let p95      = sorted_us[n * 95 / 100];
-        let p99      = sorted_us[n * 99 / 100];
-        let max_us   = *sorted_us.last().unwrap();
+        let mean_us = sorted_us.iter().sum::<u64>() / n as u64;
+        let p50 = sorted_us[n * 50 / 100];
+        let p95 = sorted_us[n * 95 / 100];
+        let p99 = sorted_us[n * 99 / 100];
+        let max_us = *sorted_us.last().unwrap();
         let total_ms = tick_times_us.iter().sum::<u64>() / 1000;
         println!("\n=== TICK TIMING ({} ticks) ===", n);
-        println!("  mean={:>6}µs  p50={:>6}µs  p95={:>6}µs  p99={:>6}µs  max={:>7}µs",
-            mean_us, p50, p95, p99, max_us);
-        println!("  total wall: {}ms  ({:.0} ticks/s)",
-            total_ms, n as f64 / (total_ms as f64 / 1000.0));
+        println!(
+            "  mean={:>6}µs  p50={:>6}µs  p95={:>6}µs  p99={:>6}µs  max={:>7}µs",
+            mean_us, p50, p95, p99, max_us
+        );
+        println!(
+            "  total wall: {}ms  ({:.0} ticks/s)",
+            total_ms,
+            n as f64 / (total_ms as f64 / 1000.0)
+        );
     }
     if !json_sizes_bytes.is_empty() {
         let avg_kb = json_sizes_bytes.iter().sum::<usize>() / json_sizes_bytes.len() / 1024;
         let max_kb = json_sizes_bytes.iter().max().copied().unwrap_or(0) / 1024;
         println!("\n=== WS PAYLOAD ESTIMATE ===");
-        println!("  avg={} KB   max={} KB   samples={}", avg_kb, max_kb, json_sizes_bytes.len());
+        println!(
+            "  avg={} KB   max={} KB   samples={}",
+            avg_kb,
+            max_kb,
+            json_sizes_bytes.len()
+        );
         println!("  at 10 tps: ~{} KB/s per client", avg_kb * 10);
     }
     if let Some(writer) = trace_writer.as_mut() {
@@ -178,12 +308,21 @@ fn main() {
 
 fn infer_event_type(org: &organism::organism::Organism) -> &'static str {
     let thought = org.thought.to_lowercase();
-    let last_log = org.life_log.back().map(|s| s.to_lowercase()).unwrap_or_default();
-    let text = if !last_log.is_empty() { last_log.as_str() } else { thought.as_str() };
+    let last_log = org
+        .life_log
+        .back()
+        .map(|s| s.to_lowercase())
+        .unwrap_or_default();
+    let text = if !last_log.is_empty() {
+        last_log.as_str()
+    } else {
+        thought.as_str()
+    };
 
     if text.contains("danger") || text.contains("fire") || text.contains("struggling") {
         "danger"
-    } else if text.contains("migrat") || text.contains("distant land") || text.contains("wandering") {
+    } else if text.contains("migrat") || text.contains("distant land") || text.contains("wandering")
+    {
         "migration"
     } else if text.contains("teach") || text.contains("bond") || text.contains("fed by kin") {
         "social"
@@ -198,11 +337,7 @@ fn infer_event_type(org: &organism::organism::Organism) -> &'static str {
     }
 }
 
-fn write_trace_rows(
-    sim: &Simulation,
-    writer: &mut BufWriter<File>,
-    trace_limit: usize,
-) {
+fn write_trace_rows(sim: &Simulation, writer: &mut BufWriter<File>, trace_limit: usize) {
     let season = sim.season().to_string();
     let weather = sim.weather.kind;
     let mut written = 0usize;
@@ -241,7 +376,9 @@ fn write_trace_rows(
             "discoveries": org.discoveries.iter().cloned().collect::<Vec<_>>(),
         });
         serde_json::to_writer(&mut *writer, &row).expect("failed to write trace row");
-        writer.write_all(b"\n").expect("failed to write trace newline");
+        writer
+            .write_all(b"\n")
+            .expect("failed to write trace newline");
         written += 1;
     }
 }
@@ -269,23 +406,25 @@ struct SweepResult {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Verdict {
     Healthy,
-    Extinct,        // hit zero alive
-    Runaway,        // sat at MAX_POPULATION for too long - indicates unbounded growth being clamped
-    Stagnant,       // population never recovered to a viable level
-    Homogenized,    // diversity collapsed - survivors all from one or two lineages
+    Extinct,     // hit zero alive
+    Runaway,     // sat at MAX_POPULATION for too long - indicates unbounded growth being clamped
+    Stagnant,    // population never recovered to a viable level
+    Homogenized, // diversity collapsed - survivors all from one or two lineages
 }
 
 impl Verdict {
     fn label(self) -> &'static str {
         match self {
-            Verdict::Healthy     => "HEALTHY",
-            Verdict::Extinct     => "EXTINCT",
-            Verdict::Runaway     => "RUNAWAY",
-            Verdict::Stagnant    => "STAGNANT",
+            Verdict::Healthy => "HEALTHY",
+            Verdict::Extinct => "EXTINCT",
+            Verdict::Runaway => "RUNAWAY",
+            Verdict::Stagnant => "STAGNANT",
             Verdict::Homogenized => "HOMOGEN",
         }
     }
-    fn is_unhealthy(self) -> bool { self != Verdict::Healthy }
+    fn is_unhealthy(self) -> bool {
+        self != Verdict::Healthy
+    }
 }
 
 /// Classify a finished run.
@@ -309,8 +448,12 @@ fn classify(
     surviving_lineages: usize,
 ) -> Verdict {
     const MAX_POP: usize = 300; // matches sim::config::MAX_POPULATION
-    if extinction_tick.is_some() { return Verdict::Extinct; }
-    if alive_samples.is_empty()  { return Verdict::Healthy; }
+    if extinction_tick.is_some() {
+        return Verdict::Extinct;
+    }
+    if alive_samples.is_empty() {
+        return Verdict::Healthy;
+    }
 
     let cap_count = alive_samples.iter().filter(|&&a| a >= MAX_POP).count();
     if cap_count * 100 / alive_samples.len().max(1) > 60 {
@@ -321,7 +464,9 @@ fn classify(
     let half = alive_samples.len() / 2;
     let second_half_mean = if alive_samples.len() > half {
         alive_samples[half..].iter().sum::<usize>() / (alive_samples.len() - half).max(1)
-    } else { 0 };
+    } else {
+        0
+    };
     if peak < 30 || second_half_mean < 15 {
         return Verdict::Stagnant;
     }
@@ -343,7 +488,7 @@ fn run_one_seed(seed: u64, max_ticks: u64) -> SweepResult {
     let mut sim = Simulation::new(seed);
     let mut peak_pop = 0usize;
     let mut extinction_tick = None;
-    let mut alive_samples   = Vec::new();
+    let mut alive_samples = Vec::new();
     let mut lineage_samples = Vec::new();
 
     while sim.tick_count < max_ticks {
@@ -354,7 +499,9 @@ fn run_one_seed(seed: u64, max_ticks: u64) -> SweepResult {
         // Sample every 1000 ticks for viability classification.
         if sim.tick_count % 1000 == 0 {
             alive_samples.push(alive);
-            let lineages = sim.organisms.iter()
+            let lineages = sim
+                .organisms
+                .iter()
                 .filter(|o| o.alive)
                 .map(|o| o.lineage_id.as_str())
                 .collect::<std::collections::HashSet<_>>()
@@ -369,7 +516,9 @@ fn run_one_seed(seed: u64, max_ticks: u64) -> SweepResult {
     }
 
     let final_alive = sim.organisms.iter().filter(|o| o.alive).count();
-    let surviving_lineages = sim.organisms.iter()
+    let surviving_lineages = sim
+        .organisms
+        .iter()
         .filter(|o| o.alive)
         .map(|o| o.lineage_id.as_str())
         .collect::<std::collections::HashSet<_>>()
@@ -377,7 +526,11 @@ fn run_one_seed(seed: u64, max_ticks: u64) -> SweepResult {
     let h = &sim.history;
     let ticks_run = sim.tick_count;
     let verdict = classify(
-        extinction_tick, &alive_samples, &lineage_samples, ticks_run, surviving_lineages,
+        extinction_tick,
+        &alive_samples,
+        &lineage_samples,
+        ticks_run,
+        surviving_lineages,
     );
 
     SweepResult {
@@ -400,21 +553,40 @@ fn run_one_seed(seed: u64, max_ticks: u64) -> SweepResult {
 }
 
 fn run_seed_sweep(start_seed: u64, sweep_seeds: usize, max_ticks: u64) -> usize {
-    println!("seed_sweep  start_seed={}  seeds={}  max_ticks={}", start_seed, sweep_seeds, max_ticks);
-    println!("{:<8} {:<10} {:>7} {:>7} {:>10} {:>8} {:>7} {:>6} {:>6} {:>6} {:>6} {:>8}",
-        "seed", "verdict", "alive", "peak", "extinct_at", "births", "old", "starv", "dehy", "sick", "combat", "lineages");
+    println!(
+        "seed_sweep  start_seed={}  seeds={}  max_ticks={}",
+        start_seed, sweep_seeds, max_ticks
+    );
+    println!(
+        "{:<8} {:<10} {:>7} {:>7} {:>10} {:>8} {:>7} {:>6} {:>6} {:>6} {:>6} {:>8}",
+        "seed",
+        "verdict",
+        "alive",
+        "peak",
+        "extinct_at",
+        "births",
+        "old",
+        "starv",
+        "dehy",
+        "sick",
+        "combat",
+        "lineages"
+    );
     println!("{}", "-".repeat(108));
 
     let mut results = Vec::with_capacity(sweep_seeds);
     for offset in 0..sweep_seeds {
         let seed = start_seed + offset as u64;
         let r = run_one_seed(seed, max_ticks);
-        println!("{:<8} {:<10} {:>7} {:>7} {:>10} {:>8} {:>7} {:>6} {:>6} {:>6} {:>6} {:>8}",
+        println!(
+            "{:<8} {:<10} {:>7} {:>7} {:>10} {:>8} {:>7} {:>6} {:>6} {:>6} {:>6} {:>8}",
             r.seed,
             r.verdict.label(),
             r.final_alive,
             r.peak_pop,
-            r.extinction_tick.map(|t| t.to_string()).unwrap_or_else(|| "-".to_string()),
+            r.extinction_tick
+                .map(|t| t.to_string())
+                .unwrap_or_else(|| "-".to_string()),
             r.births,
             r.deaths_old_age,
             r.deaths_starvation,
@@ -426,13 +598,24 @@ fn run_seed_sweep(start_seed: u64, sweep_seeds: usize, max_ticks: u64) -> usize 
         results.push(r);
     }
 
-    let extinct = results.iter().filter(|r| r.extinction_tick.is_some()).count();
+    let extinct = results
+        .iter()
+        .filter(|r| r.extinction_tick.is_some())
+        .count();
     let unhealthy = results.iter().filter(|r| r.verdict.is_unhealthy()).count();
-    let avg_final = results.iter().map(|r| r.final_alive as f64).sum::<f64>() / results.len().max(1) as f64;
-    let avg_peak = results.iter().map(|r| r.peak_pop as f64).sum::<f64>() / results.len().max(1) as f64;
+    let avg_final =
+        results.iter().map(|r| r.final_alive as f64).sum::<f64>() / results.len().max(1) as f64;
+    let avg_peak =
+        results.iter().map(|r| r.peak_pop as f64).sum::<f64>() / results.len().max(1) as f64;
     println!("\n=== SWEEP SUMMARY ===");
     println!("verdict counts:");
-    for v in &[Verdict::Healthy, Verdict::Extinct, Verdict::Runaway, Verdict::Stagnant, Verdict::Homogenized] {
+    for v in &[
+        Verdict::Healthy,
+        Verdict::Extinct,
+        Verdict::Runaway,
+        Verdict::Stagnant,
+        Verdict::Homogenized,
+    ] {
         let n = results.iter().filter(|r| r.verdict == *v).count();
         if n > 0 {
             println!("  {:<10} {} / {}", v.label(), n, results.len());
@@ -442,6 +625,288 @@ fn run_seed_sweep(start_seed: u64, sweep_seeds: usize, max_ticks: u64) -> usize 
     println!("unhealthy:       {} / {}", unhealthy, results.len());
     println!("avg final alive: {:.1}", avg_final);
     println!("avg peak pop:    {:.1}", avg_peak);
+    unhealthy
+}
+
+#[derive(Debug)]
+struct WorldReport {
+    land_tiles: usize,
+    livable_tiles: usize,
+    harsh_tiles: usize,
+    water_tiles: usize,
+    coastline_tiles: usize,
+    land_components: usize,
+    largest_land_component: usize,
+    grassland_tiles: usize,
+    forest_tiles: usize,
+    wetland_tiles: usize,
+    desert_tiles: usize,
+    tundra_tiles: usize,
+    volcanic_tiles: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum WorldVerdict {
+    Healthy,
+    Harsh,
+    Fragmented,
+}
+
+impl WorldVerdict {
+    fn label(self) -> &'static str {
+        match self {
+            WorldVerdict::Healthy => "HEALTHY",
+            WorldVerdict::Harsh => "HARSH",
+            WorldVerdict::Fragmented => "FRAGMENT",
+        }
+    }
+
+    fn is_unhealthy(self) -> bool {
+        self != WorldVerdict::Healthy
+    }
+}
+
+impl WorldReport {
+    fn habitability_ratio(&self) -> f32 {
+        if self.land_tiles == 0 {
+            0.0
+        } else {
+            self.livable_tiles as f32 / self.land_tiles as f32
+        }
+    }
+
+    fn coastline_ratio(&self) -> f32 {
+        if self.land_tiles == 0 {
+            0.0
+        } else {
+            self.coastline_tiles as f32 / self.land_tiles as f32
+        }
+    }
+
+    fn largest_component_ratio(&self) -> f32 {
+        if self.land_tiles == 0 {
+            0.0
+        } else {
+            self.largest_land_component as f32 / self.land_tiles as f32
+        }
+    }
+
+    fn quality_score(&self) -> f32 {
+        let habitability = self.habitability_ratio();
+        let coastline = self.coastline_ratio();
+        let fragmentation_penalty = if self.land_components > 8 {
+            ((self.land_components - 8) as f32 * 0.02).min(0.20)
+        } else {
+            0.0
+        };
+        let harsh_penalty = if self.land_tiles == 0 {
+            0.0
+        } else {
+            self.harsh_tiles as f32 / self.land_tiles as f32 * 0.35
+        };
+        (habitability * 0.60 + coastline.min(0.45) * 0.25 + self.largest_component_ratio() * 0.15
+            - fragmentation_penalty
+            - harsh_penalty)
+            .max(0.0)
+    }
+
+    fn verdict(&self) -> WorldVerdict {
+        if self.habitability_ratio() < 0.70 || self.harsh_tiles > self.livable_tiles {
+            WorldVerdict::Harsh
+        } else if self.largest_component_ratio() < 0.58 || self.land_components > 55 {
+            WorldVerdict::Fragmented
+        } else {
+            WorldVerdict::Healthy
+        }
+    }
+}
+
+fn build_world_report(seed: u64) -> WorldReport {
+    let grid = WorldGrid::new(seed);
+    let mut land_tiles = 0usize;
+    let mut livable_tiles = 0usize;
+    let mut harsh_tiles = 0usize;
+    let mut water_tiles = 0usize;
+    let mut coastline_tiles = 0usize;
+    let mut grassland_tiles = 0usize;
+    let mut forest_tiles = 0usize;
+    let mut wetland_tiles = 0usize;
+    let mut desert_tiles = 0usize;
+    let mut tundra_tiles = 0usize;
+    let mut volcanic_tiles = 0usize;
+
+    for y in 0..HEIGHT as i32 {
+        for x in 0..WIDTH as i32 {
+            let tile = grid.get(x, y);
+            let biome = grid.biome_at(x, y);
+            match tile {
+                Tile::Water | Tile::Void => {
+                    water_tiles += 1;
+                }
+                Tile::Grass | Tile::Food | Tile::Ash => {
+                    land_tiles += 1;
+                    livable_tiles += 1;
+                }
+                Tile::Rock
+                | Tile::Snow
+                | Tile::Sand
+                | Tile::Fire
+                | Tile::Scorched
+                | Tile::Mineral => {
+                    land_tiles += 1;
+                    harsh_tiles += 1;
+                }
+                Tile::Campfire | Tile::Hut | Tile::Flooded => {
+                    land_tiles += 1;
+                }
+            }
+
+            if !matches!(tile, Tile::Water | Tile::Void) {
+                let coastal = [(-1i32, 0i32), (1, 0), (0, -1), (0, 1)]
+                    .iter()
+                    .any(|&(dx, dy)| {
+                        WorldGrid::in_bounds(x + dx, y + dy)
+                            && grid.get(x + dx, y + dy) == Tile::Water
+                    });
+                if coastal {
+                    coastline_tiles += 1;
+                }
+            }
+
+            match biome {
+                Biome::Grassland => grassland_tiles += 1,
+                Biome::Forest => forest_tiles += 1,
+                Biome::Wetland => wetland_tiles += 1,
+                Biome::Desert => desert_tiles += 1,
+                Biome::Tundra => tundra_tiles += 1,
+                Biome::Volcanic => volcanic_tiles += 1,
+            }
+        }
+    }
+
+    let (land_components, largest_land_component) = land_component_stats(&grid);
+
+    WorldReport {
+        land_tiles,
+        livable_tiles,
+        harsh_tiles,
+        water_tiles,
+        coastline_tiles,
+        land_components,
+        largest_land_component,
+        grassland_tiles,
+        forest_tiles,
+        wetland_tiles,
+        desert_tiles,
+        tundra_tiles,
+        volcanic_tiles,
+    }
+}
+
+fn land_component_stats(grid: &WorldGrid) -> (usize, usize) {
+    let mut visited = vec![false; WIDTH * HEIGHT];
+    let mut components = 0usize;
+    let mut largest = 0usize;
+
+    for y in 0..HEIGHT as i32 {
+        for x in 0..WIDTH as i32 {
+            let idx = WorldGrid::idx(x, y);
+            if visited[idx] || matches!(grid.get(x, y), Tile::Water | Tile::Void) {
+                continue;
+            }
+            components += 1;
+            let mut stack = vec![(x, y)];
+            visited[idx] = true;
+            let mut size = 0usize;
+            while let Some((cx, cy)) = stack.pop() {
+                size += 1;
+                for (nx, ny) in WorldGrid::neighbors(cx, cy) {
+                    let ni = WorldGrid::idx(nx, ny);
+                    if visited[ni] || matches!(grid.get(nx, ny), Tile::Water | Tile::Void) {
+                        continue;
+                    }
+                    visited[ni] = true;
+                    stack.push((nx, ny));
+                }
+            }
+            largest = largest.max(size);
+        }
+    }
+
+    (components, largest)
+}
+
+fn print_world_report(seed: u64) {
+    let report = build_world_report(seed);
+    println!("world_report seed={}", seed);
+    println!(
+        " land={} livable={} harsh={} water={} habitability={:.1}%",
+        report.land_tiles,
+        report.livable_tiles,
+        report.harsh_tiles,
+        report.water_tiles,
+        report.habitability_ratio() * 100.0,
+    );
+    println!(
+        " coastline={} land_components={} largest_component={} largest_component_ratio={:.1}%",
+        report.coastline_tiles,
+        report.land_components,
+        report.largest_land_component,
+        report.largest_component_ratio() * 100.0,
+    );
+    println!(
+        " biomes grass={} forest={} wetland={} desert={} tundra={} volcanic={}",
+        report.grassland_tiles,
+        report.forest_tiles,
+        report.wetland_tiles,
+        report.desert_tiles,
+        report.tundra_tiles,
+        report.volcanic_tiles,
+    );
+    println!(
+        " quality_score={:.3} verdict={}",
+        report.quality_score(),
+        report.verdict().label(),
+    );
+}
+
+fn run_world_report_sweep(start_seed: u64, sweep_seeds: usize) -> usize {
+    println!(
+        "{:<8} {:<9} {:>7} {:>7} {:>7} {:>8} {:>8} {:>8} {:>8}",
+        "seed", "verdict", "land", "live", "harsh", "habit%", "coast%", "pieces", "score"
+    );
+    println!("{}", "-".repeat(90));
+    let mut reports = Vec::new();
+    for offset in 0..sweep_seeds {
+        let seed = start_seed + offset as u64;
+        let report = build_world_report(seed);
+        println!(
+            "{:<8} {:<9} {:>7} {:>7} {:>7} {:>7.1} {:>8.1} {:>8} {:>8.3}",
+            seed,
+            report.verdict().label(),
+            report.land_tiles,
+            report.livable_tiles,
+            report.harsh_tiles,
+            report.habitability_ratio() * 100.0,
+            report.coastline_ratio() * 100.0,
+            report.land_components,
+            report.quality_score(),
+        );
+        reports.push(report);
+    }
+
+    let avg_habitability =
+        reports.iter().map(|r| r.habitability_ratio()).sum::<f32>() / reports.len().max(1) as f32;
+    let avg_score =
+        reports.iter().map(|r| r.quality_score()).sum::<f32>() / reports.len().max(1) as f32;
+    let unhealthy = reports
+        .iter()
+        .filter(|r| r.verdict().is_unhealthy())
+        .count();
+    println!("\nworld_report summary");
+    println!(" avg_habitability={:.1}%", avg_habitability * 100.0);
+    println!(" avg_quality_score={:.3}", avg_score);
+    println!(" unhealthy_worlds={} / {}", unhealthy, reports.len());
     unhealthy
 }
 
@@ -502,7 +967,11 @@ mod tests {
         let samples = vec![80, 85];
         let lineages = vec![12, 2];
         let v = classify(None, &samples, &lineages, 10_000, 2);
-        assert_eq!(v, Verdict::Healthy, "short run shouldn't trigger homogenization verdict");
+        assert_eq!(
+            v,
+            Verdict::Healthy,
+            "short run shouldn't trigger homogenization verdict"
+        );
     }
 
     #[test]
@@ -510,5 +979,47 @@ mod tests {
         let samples = vec![80, 90, 100, 110, 120, 115, 105, 100];
         let v = classify(None, &samples, &[10; 8], 60_000, 8);
         assert_eq!(v, Verdict::Healthy);
+    }
+
+    #[test]
+    fn world_report_verdict_marks_harsh_worlds() {
+        let report = WorldReport {
+            land_tiles: 10_000,
+            livable_tiles: 4_000,
+            harsh_tiles: 6_000,
+            water_tiles: 20_000,
+            coastline_tiles: 900,
+            land_components: 12,
+            largest_land_component: 7_000,
+            grassland_tiles: 4_000,
+            forest_tiles: 0,
+            wetland_tiles: 0,
+            desert_tiles: 4_000,
+            tundra_tiles: 2_000,
+            volcanic_tiles: 0,
+        };
+
+        assert_eq!(report.verdict(), WorldVerdict::Harsh);
+    }
+
+    #[test]
+    fn world_report_verdict_marks_fragmented_worlds() {
+        let report = WorldReport {
+            land_tiles: 10_000,
+            livable_tiles: 8_000,
+            harsh_tiles: 2_000,
+            water_tiles: 20_000,
+            coastline_tiles: 1_100,
+            land_components: 72,
+            largest_land_component: 4_000,
+            grassland_tiles: 6_000,
+            forest_tiles: 2_000,
+            wetland_tiles: 0,
+            desert_tiles: 1_500,
+            tundra_tiles: 500,
+            volcanic_tiles: 0,
+        };
+
+        assert_eq!(report.verdict(), WorldVerdict::Fragmented);
     }
 }
