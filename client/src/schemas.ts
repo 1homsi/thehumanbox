@@ -87,7 +87,7 @@ export const AnimalSchema = z.object({
   id:   z.number(),
   x:    z.number(),
   y:    z.number(),
-  kind: z.enum(['rabbit', 'deer']),
+  kind: z.enum(['rabbit', 'deer', 'boar', 'bird', 'fish', 'wolf', 'dog']),
 }).passthrough()
 
 // ── World envelope ────────────────────────────────────────────────────────
