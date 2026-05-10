@@ -1454,6 +1454,47 @@ body {
 }
 .stats-death-grid .hist-val { text-align: right; font-variant-numeric: tabular-nums; }
 
+/* Age pyramid */
+.age-pyramid { display: flex; flex-direction: column; gap: 4px; }
+.age-row { display: flex; align-items: center; gap: 8px; font-size: 10px; }
+.age-label { flex: 0 0 40px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; font-size: 9px; }
+.age-bar-pair { display: flex; flex: 1; height: 14px; gap: 2px; }
+.age-bar {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: #1a1a1a;
+  font-weight: 600;
+  border-radius: 2px;
+  min-width: 0;
+}
+.age-bar-m { background: #7faec8; }
+.age-bar-f { background: #e2a4b6; }
+
+/* Trait averages */
+.trait-avgs { display: flex; flex-direction: column; gap: 4px; }
+.trait-row { display: flex; align-items: center; gap: 8px; font-size: 10px; }
+.trait-label { flex: 0 0 90px; color: #888; text-transform: capitalize; }
+.trait-bar-wrap { flex: 1; height: 6px; background: #1c1c1c; border-radius: 3px; overflow: hidden; }
+.trait-bar { height: 100%; background: linear-gradient(90deg, #4a6e3a, #7fce7f); }
+.trait-val { flex: 0 0 36px; color: #ccc; font-variant-numeric: tabular-nums; text-align: right; font-size: 10px; }
+
+/* Discovery rollup */
+.disc-rollup { display: flex; flex-direction: column; gap: 2px; max-width: 320px; }
+.disc-row { display: grid; grid-template-columns: 1fr auto 40px; gap: 8px; font-size: 11px; align-items: baseline; }
+.disc-name { color: #ddd; text-transform: lowercase; }
+.disc-count { color: #aaffdd; font-variant-numeric: tabular-nums; }
+.disc-pct { color: #666; font-size: 10px; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Notable orgs */
+.notable-grid { display: flex; flex-direction: column; gap: 4px; }
+.notable-row { display: flex; gap: 8px; font-size: 10px; align-items: baseline; }
+.notable-label { flex: 0 0 80px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; font-size: 9px; }
+.notable-list { display: inline-flex; gap: 8px; flex-wrap: wrap; }
+.notable-entry { font-size: 10px; }
+
 .tree-zoom-btn {
   background: #32271f;
   border: 1px solid #443329;

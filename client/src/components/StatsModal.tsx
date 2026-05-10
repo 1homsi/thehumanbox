@@ -160,6 +160,135 @@ function DiscoveryTimeline({ events }: { events: WorldState['events'] }) {
   )
 }
 
+function AgePyramid({ organisms }: { organisms: WorldState['organisms'] }) {
+  // Three bands: child (<900), adult (900-3600), elder (3600+ or is_elder).
+  // Each split by inferred sex for a left/right pyramid.
+  let cm = 0, cf = 0, am = 0, af = 0, em = 0, ef = 0
+  for (const o of organisms) {
+    const isMale = o.sex === 'male'
+    const isElder = o.is_elder || o.age >= 3600
+    if (isElder) { if (isMale) em++; else ef++; }
+    else if (o.age < 900) { if (isMale) cm++; else cf++; }
+    else { if (isMale) am++; else af++; }
+  }
+  const max = Math.max(cm + cf, am + af, em + ef, 1)
+  const row = (label: string, m: number, f: number) => (
+    <div className="age-row" key={label}>
+      <span className="age-label">{label}</span>
+      <div className="age-bar-pair">
+        <div className="age-bar age-bar-m" style={{ width: `${(m / max) * 100}%` }}>{m > 0 && m}</div>
+        <div className="age-bar age-bar-f" style={{ width: `${(f / max) * 100}%` }}>{f > 0 && f}</div>
+      </div>
+    </div>
+  )
+  return (
+    <div className="age-pyramid">
+      {row('elder', em, ef)}
+      {row('adult', am, af)}
+      {row('child', cm, cf)}
+    </div>
+  )
+}
+
+function TraitAverages({ organisms }: { organisms: WorldState['organisms'] }) {
+  if (organisms.length === 0) return null
+  const keys = ['curiosity', 'fear', 'social_tendency', 'resilience', 'aggression', 'memory_strength'] as const
+  const sums: Record<string, number> = {}
+  let n = 0
+  for (const o of organisms) {
+    if (!o.traits) continue
+    n++
+    for (const k of keys) sums[k] = (sums[k] ?? 0) + (o.traits as unknown as Record<string, number>)[k]
+  }
+  if (n === 0) return null
+  return (
+    <div className="trait-avgs">
+      {keys.map(k => {
+        const v = (sums[k] ?? 0) / n
+        return (
+          <div key={k} className="trait-row">
+            <span className="trait-label">{k.replace('_', ' ')}</span>
+            <div className="trait-bar-wrap">
+              <div className="trait-bar" style={{ width: `${Math.round(v * 100)}%` }} />
+            </div>
+            <span className="trait-val">{v.toFixed(2)}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function DiscoveryRollup({ organisms }: { organisms: WorldState['organisms'] }) {
+  const counts: Record<string, number> = {}
+  for (const o of organisms) for (const d of (o.discoveries ?? [])) counts[d] = (counts[d] ?? 0) + 1
+  const rows = Object.entries(counts).sort((a, b) => b[1] - a[1])
+  if (rows.length === 0) {
+    return <div style={{ color: '#333', fontSize: 11, padding: '8px 0' }}>no discoveries yet</div>
+  }
+  return (
+    <div className="disc-rollup">
+      {rows.map(([name, count]) => (
+        <div key={name} className="disc-row">
+          <span className="disc-name">{name}</span>
+          <span className="disc-count">{count}</span>
+          <span className="disc-pct">{Math.round((count / organisms.length) * 100)}%</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function BondStats({ organisms }: { organisms: WorldState['organisms'] }) {
+  let partnered = 0, pregnant = 0, withKids = 0, sick = 0, hungry = 0, thirsty = 0
+  for (const o of organisms) {
+    if (o.partner_id) partnered++
+    if (o.pregnant) pregnant++
+    if ((o.children_count ?? 0) > 0) withKids++
+    if (o.infection > 0.15) sick++
+    if (o.energy < 0.3) hungry++
+    if (o.hydration < 0.3) thirsty++
+  }
+  const n = organisms.length || 1
+  const pct = (x: number) => `${Math.round((x / n) * 100)}%`
+  return (
+    <div className="stats-death-grid">
+      <span className="hist-label">partnered</span>   <span className="hist-val">{partnered} ({pct(partnered)})</span>
+      <span className="hist-label">pregnant</span>    <span className="hist-val">{pregnant}</span>
+      <span className="hist-label">with kids</span>   <span className="hist-val">{withKids}</span>
+      <span className="hist-label">sick</span>        <span className="hist-val">{sick}</span>
+      <span className="hist-label">hungry</span>      <span className="hist-val">{hungry}</span>
+      <span className="hist-label">thirsty</span>     <span className="hist-val">{thirsty}</span>
+    </div>
+  )
+}
+
+function NotableOrgs({ organisms }: { organisms: WorldState['organisms'] }) {
+  if (organisms.length === 0) return null
+  const byAge   = [...organisms].sort((a, b) => b.age - a.age).slice(0, 3)
+  const byKids  = [...organisms].sort((a, b) => (b.children_count ?? 0) - (a.children_count ?? 0)).slice(0, 3)
+  const byGen   = [...organisms].sort((a, b) => b.generation - a.generation).slice(0, 3)
+  const row = (label: string, list: WorldState['organisms'], pick: (o: WorldState['organisms'][number]) => string) => (
+    <div className="notable-row" key={label}>
+      <span className="notable-label">{label}</span>
+      <span className="notable-list">
+        {list.map(o => (
+          <span key={o.id} className="notable-entry" style={{ color: lineageColor(o.lineage_id) }}>
+            {o.name} <span style={{ color: '#666' }}>{pick(o)}</span>
+          </span>
+        ))}
+      </span>
+    </div>
+  )
+  return (
+    <div className="notable-grid">
+      {row('oldest',     byAge,  o => `· ${Math.floor(o.age / DAY_LENGTH)}d`)}
+      {row('parents',    byKids, o => `· ${o.children_count ?? 0} kids`)}
+      {row('deepest gen', byGen, o => `· g${o.generation}`)}
+    </div>
+  )
+}
+
 export function StatsModal({ world: liveWorld, onClose }: Props) {
   // Snapshot at open time so the panel doesn't churn on every WS tick.
   // The reload icon swaps in the current world.
@@ -238,11 +367,26 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
 
           <div className="stats-grid">
             <section>
+              <div className="stats-section-title">AGE PYRAMID</div>
+              <AgePyramid organisms={world.organisms.filter(o => o.alive)} />
+            </section>
+
+            <section>
+              <div className="stats-section-title">POPULATION TRAITS</div>
+              <TraitAverages organisms={world.organisms.filter(o => o.alive)} />
+            </section>
+
+            <section>
               <div className="stats-section-title">TRIBAL RELATIONS</div>
               <RelationsTable
                 relations={world.tribal_relations ?? []}
                 lineageSizes={world.lineage_sizes ?? []}
               />
+            </section>
+
+            <section>
+              <div className="stats-section-title">DISCOVERY ROLLUP</div>
+              <DiscoveryRollup organisms={world.organisms.filter(o => o.alive)} />
             </section>
 
             <section>
@@ -256,6 +400,16 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
                 <span className="hist-label">droughts</span>    <span className="hist-val">{world.history.droughts}</span>
                 <span className="hist-label">outbreaks</span>   <span className="hist-val">{world.history.outbreaks}</span>
               </div>
+            </section>
+
+            <section>
+              <div className="stats-section-title">BONDS &amp; FAMILY</div>
+              <BondStats organisms={world.organisms.filter(o => o.alive)} />
+            </section>
+
+            <section>
+              <div className="stats-section-title">NOTABLE ORGANISMS</div>
+              <NotableOrgs organisms={world.organisms.filter(o => o.alive)} />
             </section>
 
             <section>
