@@ -829,6 +829,9 @@ impl Simulation {
             let (cx, cy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
             if self.grid.get(cx, cy) == Tile::Water {
                 self.organisms[idx].hydration = 1.0;
+                let room = self.organisms[idx].carry_room();
+                let fill = room.min(4) as u8;
+                self.organisms[idx].inv_water = self.organisms[idx].inv_water.saturating_add(fill);
                 let ms = self.organisms[idx].traits.memory_strength;
                 Organism::remember(&mut self.organisms[idx].water_memory, cx, cy, 1.0, ms);
                 self.organisms[idx].think("water consumed here", self.tick_count);
@@ -1154,6 +1157,14 @@ impl Simulation {
 
         self.organisms[idx].energy    = (self.organisms[idx].energy    - 0.0022 * shelter_drain_mult).max(0.0);
         self.organisms[idx].hydration = (self.organisms[idx].hydration - 0.0014 * hydration_mult).max(0.0);
+
+        // Auto-sip from canteen when parched. One unit per ~30s of thirst.
+        if self.organisms[idx].hydration < 0.55 && self.organisms[idx].inv_water > 0
+            && self.tick_count % 8 == 0
+        {
+            self.organisms[idx].inv_water -= 1;
+            self.organisms[idx].hydration = (self.organisms[idx].hydration + 0.18).min(1.0);
+        }
         self.apply_water_fatigue(idx, cx, cy);
         if night {
             let has_torch = self.organisms[idx].discoveries.contains("torch");
