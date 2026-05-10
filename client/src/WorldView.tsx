@@ -234,6 +234,112 @@ function drawCloudShape(
   }
 }
 
+function drawTrees(
+  ctx: CanvasRenderingContext2D,
+  width: number, height: number,
+  tiles: number[][], biomes?: number[][],
+) {
+  if (!biomes) return
+  const TILE_GRASS = 1
+  const TILE_FOOD  = 3
+  const BIOME_GRASS    = 0
+  const BIOME_FOREST   = 1
+  const BIOME_DESERT   = 2
+  const BIOME_TUNDRA   = 3
+  const BIOME_WETLAND  = 4
+  const BIOME_VOLCANIC = 5
+
+  for (let y = 0; y < height; y++) {
+    const tRow = tiles[y]; const bRow = biomes[y]
+    if (!tRow || !bRow) continue
+    for (let x = 0; x < width; x++) {
+      const t = tRow[x]
+      if (t !== TILE_GRASS && t !== TILE_FOOD) continue
+      const biome = bRow[x] ?? 0
+
+      let hash = (x * 73856093) ^ (y * 19349663)
+      hash = ((hash ^ (hash >>> 13)) * 0x5bd1e995) >>> 0
+      const r0 = (hash & 0xff) / 255
+      const r1 = ((hash >>> 8) & 0xff) / 255
+
+      let density = 0
+      switch (biome) {
+        case BIOME_FOREST:   density = 0.45; break
+        case BIOME_WETLAND:  density = 0.18; break
+        case BIOME_GRASS:    density = 0.05; break
+        case BIOME_TUNDRA:   density = 0.08; break
+        case BIOME_DESERT:   density = 0.018; break
+        case BIOME_VOLCANIC: density = 0.04; break
+      }
+      if (r0 > density) continue
+
+      const cx = x * TILE + TILE / 2 + (r1 - 0.5) * TILE * 0.3
+      const cy = y * TILE + TILE / 2 + (r0 * 7 % 1 - 0.5) * TILE * 0.3
+
+      switch (biome) {
+        case BIOME_FOREST: {
+          ctx.fillStyle = '#3a1a0c'
+          ctx.fillRect(cx - 0.4, cy + 0.2, 0.9, 1.6)
+          if (r1 < 0.55) {
+            ctx.fillStyle = '#1f4d23'
+            ctx.beginPath()
+            ctx.moveTo(cx, cy - 2.2); ctx.lineTo(cx + 1.6, cy + 0.6); ctx.lineTo(cx - 1.6, cy + 0.6)
+            ctx.closePath(); ctx.fill()
+          } else {
+            ctx.fillStyle = r1 < 0.78 ? '#2d6e34' : '#3a8843'
+            ctx.beginPath(); ctx.arc(cx, cy - 0.4, 1.7, 0, Math.PI * 2); ctx.fill()
+          }
+          break
+        }
+        case BIOME_WETLAND: {
+          ctx.fillStyle = '#345e2a'
+          ctx.beginPath(); ctx.arc(cx, cy, 1.3, 0, Math.PI * 2); ctx.fill()
+          break
+        }
+        case BIOME_GRASS: {
+          ctx.fillStyle = '#4a7a3e'
+          ctx.beginPath(); ctx.arc(cx, cy - 0.3, 1.4, 0, Math.PI * 2); ctx.fill()
+          ctx.fillStyle = '#2a1a0c'
+          ctx.fillRect(cx - 0.3, cy + 0.3, 0.6, 1.2)
+          break
+        }
+        case BIOME_TUNDRA: {
+          ctx.fillStyle = '#1a3a25'
+          ctx.beginPath()
+          ctx.moveTo(cx, cy - 1.8); ctx.lineTo(cx + 1.1, cy + 0.7); ctx.lineTo(cx - 1.1, cy + 0.7)
+          ctx.closePath(); ctx.fill()
+          break
+        }
+        case BIOME_DESERT: {
+          if (r1 < 0.7) {
+            ctx.fillStyle = '#4d6020'
+            ctx.fillRect(cx - 0.4, cy - 1.0, 0.9, 2.0)
+            ctx.fillStyle = '#608030'
+            ctx.fillRect(cx - 0.8, cy - 0.4, 0.4, 1.0)
+            ctx.fillRect(cx + 0.4, cy - 0.4, 0.4, 1.0)
+          } else {
+            ctx.fillStyle = '#2a1a0c'
+            ctx.fillRect(cx - 0.3, cy - 0.6, 0.6, 1.8)
+            ctx.fillStyle = '#506830'
+            ctx.beginPath(); ctx.arc(cx, cy - 1.3, 1.0, 0, Math.PI * 2); ctx.fill()
+          }
+          break
+        }
+        case BIOME_VOLCANIC: {
+          ctx.strokeStyle = '#1a0a06'
+          ctx.lineWidth = 0.6
+          ctx.beginPath()
+          ctx.moveTo(cx, cy + 1); ctx.lineTo(cx, cy - 1.5)
+          ctx.moveTo(cx, cy - 0.4); ctx.lineTo(cx + 1.0, cy - 1.2)
+          ctx.moveTo(cx, cy - 0.4); ctx.lineTo(cx - 1.0, cy - 1.2)
+          ctx.stroke()
+          break
+        }
+      }
+    }
+  }
+}
+
 function drawClouds(
   ctx: CanvasRenderingContext2D,
   W: number, H: number,
@@ -521,6 +627,8 @@ function drawWorldOnCanvas(
       }
     }
   }
+
+  drawTrees(ctx, width, height, tiles, world.grid.biomes)
 
   // Night overlay
   if (!world.is_day) {
