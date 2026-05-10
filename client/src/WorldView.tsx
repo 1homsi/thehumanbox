@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Game, World, Entity, Transform, Sprite, Camera2D, useCamera, useEntity, useDynamicCanvas } from 'cubeforge'
+import { Game, World, Entity, Transform, Sprite, Camera2D, useCamera, useEntity, useDynamicCanvas, useGestures } from 'cubeforge'
 import type { WorldState } from './types'
 import type { InterpRefs } from './useSimulation'
 import { useUIStore } from './store'
@@ -1122,6 +1122,29 @@ function CameraController({
       window.removeEventListener('pointerup', onUp)
     }
   }, [camera, containerEl, containerW, containerH, worldW, worldH])
+
+  const clampCam = useRef<((x: number, y: number, zoom: number) => { x: number; y: number }) | null>(null)
+  clampCam.current = (x, y, zoom) => {
+    const halfW = containerW / (2 * zoom)
+    const halfH = containerH / (2 * zoom)
+    const cx = halfW >= worldW / 2 ? x : Math.max(halfW, Math.min(worldW - halfW, x))
+    const cy = halfH >= worldH / 2 ? y : Math.max(halfH, Math.min(worldH - halfH, y))
+    return { x: cx, y: cy }
+  }
+
+  useGestures({
+    onPinch: ({ delta }) => {
+      const factor = 1 + delta
+      const nz = Math.max(minZoom, Math.min(8, camera.getZoom() * factor))
+      camera.setZoom(nz)
+      cameraStateRef.current.zoom = nz
+      const pos = camera.getPosition()
+      const { x, y } = clampCam.current!(pos.x, pos.y, nz)
+      camera.setPosition(x, y)
+      cameraStateRef.current.x = x
+      cameraStateRef.current.y = y
+    },
+  }, { target: containerEl })
 
   return null
 }
