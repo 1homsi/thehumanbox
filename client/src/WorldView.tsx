@@ -4,6 +4,7 @@ import type { WorldState } from './types'
 import type { InterpRefs } from './useSimulation'
 import { useUIStore } from './store'
 import { lineageColor } from './constants'
+import { SPRITE, ATLAS_TOWN, ATLAS_CREATURE, drawTile } from './sprites'
 
 const TILE = 4
 
@@ -239,7 +240,7 @@ function drawTrees(
   width: number, height: number,
   tiles: number[][], biomes?: number[][],
 ) {
-  if (!biomes) return
+  if (!biomes || !ATLAS_TOWN.complete) return
   const TILE_GRASS = 1
   const TILE_FOOD  = 3
   const BIOME_GRASS    = 0
@@ -248,6 +249,8 @@ function drawTrees(
   const BIOME_TUNDRA   = 3
   const BIOME_WETLAND  = 4
   const BIOME_VOLCANIC = 5
+
+  const TREE_SIZE = 6 // px on the offscreen canvas (each tile is TILE px wide)
 
   for (let y = 0; y < height; y++) {
     const tRow = tiles[y]; const bRow = biomes[y]
@@ -273,69 +276,23 @@ function drawTrees(
       }
       if (r0 > density) continue
 
-      const cx = x * TILE + TILE / 2 + (r1 - 0.5) * TILE * 0.3
-      const cy = y * TILE + TILE / 2 + (r0 * 7 % 1 - 0.5) * TILE * 0.3
+      const cx = x * TILE + (TILE - TREE_SIZE) / 2 + (r1 - 0.5) * TILE * 0.3
+      const cy = y * TILE + (TILE - TREE_SIZE) / 2 + (r0 * 7 % 1 - 0.5) * TILE * 0.3
 
+      let sprite = SPRITE.trees.oak_mid
       switch (biome) {
-        case BIOME_FOREST: {
-          ctx.fillStyle = '#3a1a0c'
-          ctx.fillRect(cx - 0.4, cy + 0.2, 0.9, 1.6)
-          if (r1 < 0.55) {
-            ctx.fillStyle = '#1f4d23'
-            ctx.beginPath()
-            ctx.moveTo(cx, cy - 2.2); ctx.lineTo(cx + 1.6, cy + 0.6); ctx.lineTo(cx - 1.6, cy + 0.6)
-            ctx.closePath(); ctx.fill()
-          } else {
-            ctx.fillStyle = r1 < 0.78 ? '#2d6e34' : '#3a8843'
-            ctx.beginPath(); ctx.arc(cx, cy - 0.4, 1.7, 0, Math.PI * 2); ctx.fill()
-          }
+        case BIOME_FOREST:
+          sprite = r1 < 0.45 ? SPRITE.trees.conifer
+                 : r1 < 0.75 ? SPRITE.trees.oak_dark
+                 : SPRITE.trees.oak_mid
           break
-        }
-        case BIOME_WETLAND: {
-          ctx.fillStyle = '#345e2a'
-          ctx.beginPath(); ctx.arc(cx, cy, 1.3, 0, Math.PI * 2); ctx.fill()
-          break
-        }
-        case BIOME_GRASS: {
-          ctx.fillStyle = '#4a7a3e'
-          ctx.beginPath(); ctx.arc(cx, cy - 0.3, 1.4, 0, Math.PI * 2); ctx.fill()
-          ctx.fillStyle = '#2a1a0c'
-          ctx.fillRect(cx - 0.3, cy + 0.3, 0.6, 1.2)
-          break
-        }
-        case BIOME_TUNDRA: {
-          ctx.fillStyle = '#1a3a25'
-          ctx.beginPath()
-          ctx.moveTo(cx, cy - 1.8); ctx.lineTo(cx + 1.1, cy + 0.7); ctx.lineTo(cx - 1.1, cy + 0.7)
-          ctx.closePath(); ctx.fill()
-          break
-        }
-        case BIOME_DESERT: {
-          if (r1 < 0.7) {
-            ctx.fillStyle = '#4d6020'
-            ctx.fillRect(cx - 0.4, cy - 1.0, 0.9, 2.0)
-            ctx.fillStyle = '#608030'
-            ctx.fillRect(cx - 0.8, cy - 0.4, 0.4, 1.0)
-            ctx.fillRect(cx + 0.4, cy - 0.4, 0.4, 1.0)
-          } else {
-            ctx.fillStyle = '#2a1a0c'
-            ctx.fillRect(cx - 0.3, cy - 0.6, 0.6, 1.8)
-            ctx.fillStyle = '#506830'
-            ctx.beginPath(); ctx.arc(cx, cy - 1.3, 1.0, 0, Math.PI * 2); ctx.fill()
-          }
-          break
-        }
-        case BIOME_VOLCANIC: {
-          ctx.strokeStyle = '#1a0a06'
-          ctx.lineWidth = 0.6
-          ctx.beginPath()
-          ctx.moveTo(cx, cy + 1); ctx.lineTo(cx, cy - 1.5)
-          ctx.moveTo(cx, cy - 0.4); ctx.lineTo(cx + 1.0, cy - 1.2)
-          ctx.moveTo(cx, cy - 0.4); ctx.lineTo(cx - 1.0, cy - 1.2)
-          ctx.stroke()
-          break
-        }
+        case BIOME_WETLAND:  sprite = r1 < 0.6 ? SPRITE.trees.bush : SPRITE.trees.oak_mid; break
+        case BIOME_GRASS:    sprite = r1 < 0.6 ? SPRITE.trees.oak_light : SPRITE.trees.oak_mid; break
+        case BIOME_TUNDRA:   sprite = SPRITE.trees.conifer_dk; break
+        case BIOME_DESERT:   sprite = r1 < 0.5 ? SPRITE.trees.cactus : SPRITE.trees.dead; break
+        case BIOME_VOLCANIC: sprite = SPRITE.trees.dead; break
       }
+      drawTile(ctx, ATLAS_TOWN, sprite, cx, cy, TREE_SIZE)
     }
   }
 }
@@ -665,18 +622,22 @@ function drawWorldOnCanvas(
 
   // Draw animals (under organisms)
   for (const animal of (viewFlags.animals ? animals : [])) {
-    const px = (animal.x - ox) * TILE + TILE / 2
-    const py = (animal.y - oy) * TILE + TILE / 2
-    if (animal.kind === 'rabbit') {
-      ctx.fillStyle = '#c8a050'
-      ctx.beginPath(); ctx.arc(px, py, 2.5, 0, Math.PI * 2); ctx.fill()
+    const px = (animal.x - ox) * TILE
+    const py = (animal.y - oy) * TILE
+    const tile = SPRITE.animal[animal.kind as keyof typeof SPRITE.animal]
+                 ?? SPRITE.animal.rabbit
+    if (ATLAS_CREATURE.complete) {
+      drawTile(ctx, ATLAS_CREATURE, tile, px, py, 7)
     } else {
-      // Deer: slightly larger, darker
-      ctx.fillStyle = '#7a4e28'
-      ctx.beginPath(); ctx.arc(px, py, 3.5, 0, Math.PI * 2); ctx.fill()
-      ctx.strokeStyle = '#c8a050'
-      ctx.lineWidth = 0.8
-      ctx.beginPath(); ctx.arc(px, py, 3.5, 0, Math.PI * 2); ctx.stroke()
+      const cx = px + TILE / 2; const cy = py + TILE / 2
+      const r  = animal.kind === 'rabbit' || animal.kind === 'bird' ? 2.2
+               : animal.kind === 'fish' ? 2.0
+               : 3.2
+      const c  = animal.kind === 'wolf' ? '#999' : animal.kind === 'dog' ? '#dca070'
+               : animal.kind === 'fish' ? '#5a9090' : animal.kind === 'bird' ? '#b070b0'
+               : animal.kind === 'boar' ? '#5a3a20' : '#7a4e28'
+      ctx.fillStyle = c
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill()
     }
   }
 
