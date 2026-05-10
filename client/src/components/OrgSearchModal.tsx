@@ -36,7 +36,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
     return () => document.removeEventListener('mousedown', handler)
   }, [tribeOpen])
 
-  const tn = (lid: string) => lineageNames?.[lid] ?? lid.slice(0, 6)
+  const tn = (lid: string) => lineageNames?.[lid] ?? (lid ?? '').slice(0, 6)
   const currentTribeLabel = lineageF === 'all' ? 'all tribes' : tn(lineageF)
 
   const lineages = useMemo(

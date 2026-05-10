@@ -143,7 +143,7 @@ function App() {
 
   // Helper: resolve a tribe name from lineage_id, falling back to first-6-chars of id
   const tribeName = (lid: string) =>
-    world?.lineage_names?.[lid] ?? lid.slice(0, 6)
+    world?.lineage_names?.[lid] ?? (lid ?? '').slice(0, 6)
 
   return (
     <div className="app">

@@ -48,10 +48,8 @@ interface Props {
 
 export function OrgDetail({ org, onClose, onFollow, following, lineageNames, organisms }: Props) {
   const detail    = useOrgDetail(org.id)
-  /** Resolve a lineage_id to its tribe name, falling back to first 6 chars. */
-  const tn = (lid: string) => lineageNames?.[lid] ?? lid.slice(0, 6)
-  /** Resolve an organism id to its name, falling back to first 5 chars of id. */
-  const on = (oid: string) => organisms?.find(o => o.id === oid)?.name ?? oid.slice(0, 5)
+  const tn = (lid: string) => lineageNames?.[lid] ?? (lid ?? '').slice(0, 6)
+  const on = (oid: string) => organisms?.find(o => o.id === oid)?.name ?? (oid ?? '').slice(0, 5)
   const ageInDays = Math.floor(org.age / DAY_LENGTH)
   const color     = lineageColor(org.lineage_id)
   const isSick   = org.infection > 0.15

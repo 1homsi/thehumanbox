@@ -49,7 +49,7 @@ function buildLineageVocabs(organisms: OrganismState[]): LineageVocab[] {
 
 export function LanguageModal({ organisms, sexWords, onClose, lineageNames }: Props) {
   const lineages = buildLineageVocabs(organisms)
-  const tn = (lid: string) => lineageNames?.[lid] ?? lid.slice(0, 6)
+  const tn = (lid: string) => lineageNames?.[lid] ?? (lid ?? '').slice(0, 6)
 
   return (
     <Modal open onClose={onClose} className="lang-modal" title="Languages of the world" hideTitle>

@@ -439,7 +439,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
                 {hovered.sex === 'female' ? sexWords[1] : sexWords[0]}
               </span>
             )}
-            <span style={{ color: '#666' }}> · gen {hovered.generation} · {Math.floor(hovered.age / DAY_LENGTH)}d · {hovered.lineage_id.slice(0, 6)}</span>
+            <span style={{ color: '#666' }}> · gen {hovered.generation} · {Math.floor(hovered.age / DAY_LENGTH)}d · {(hovered.lineage_id ?? '').slice(0, 6)}</span>
             {hovered.partner_id && <span style={{ color: '#c97' }}> ♥ bonded</span>}
             {hovered.father_id && (() => {
               const father = organisms.find(o => o.id === hovered.father_id)
