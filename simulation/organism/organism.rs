@@ -198,6 +198,14 @@ pub struct Organism {
     pub pregnant:        bool,
     pub pregnancy_start: u64,
 
+    // Inventory (stackable resources). Weight = sum of fields. max_carry derived
+    // from sex + resilience trait. Replaces the legacy `carrying`/`carrying_type`
+    // pair which only tracked one resource.
+    pub inv_water: u8,
+    pub inv_food:  u8,
+    pub inv_wood:  u8,
+    pub inv_stone: u8,
+
     // Stored conversations - capped at 200 so a long-lived organism with
     // dozens of partners and decades of friendships can keep their full
     // social history. Memory cost is ~50-100 bytes per entry; 200 entries
@@ -206,6 +214,20 @@ pub struct Organism {
 }
 
 impl Organism {
+    pub fn carry_load(&self) -> u32 {
+        self.inv_water as u32 + self.inv_food as u32
+            + self.inv_wood as u32 + self.inv_stone as u32
+    }
+
+    pub fn carry_max(&self) -> u32 {
+        let base: u32 = match self.sex { Sex::Male => 12, Sex::Female => 8 };
+        base + (self.traits.resilience * 4.0) as u32
+    }
+
+    pub fn carry_room(&self) -> u32 {
+        self.carry_max().saturating_sub(self.carry_load())
+    }
+
     pub fn new(
         id: String, name: String,
         x: f32, y: f32,
@@ -262,6 +284,10 @@ impl Organism {
             attraction_tick: 0,
             pregnant:        false,
             pregnancy_start: 0,
+            inv_water:       0,
+            inv_food:        0,
+            inv_wood:        0,
+            inv_stone:       0,
             conversations:   VecDeque::new(),
         }
     }
