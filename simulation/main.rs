@@ -55,9 +55,15 @@ fn tick_ms() -> u64 {
 }
 
 fn network_ms() -> u64 {
+    // 100ms = 10 Hz, matching the sim tick rate. Each sim tick gets its
+    // own broadcast, so the client never sees a sim step happen between
+    // two snapshots - interpolation always has exactly one tick of work
+    // to spread over the interval. Was 200ms; bumping cut visible
+    // latency from ~300ms to ~150ms after the msgpack + payload-slim
+    // commits made the bandwidth headroom available.
     std::env::var("NETWORK_MS").ok()
         .and_then(|v| v.parse().ok())
-        .unwrap_or(200)
+        .unwrap_or(100)
 }
 
 static TICK_MS:    std::sync::LazyLock<u64> = std::sync::LazyLock::new(tick_ms);
