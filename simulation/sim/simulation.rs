@@ -416,6 +416,34 @@ impl Simulation {
             }
         }
 
+        // Update smoothed per-organism velocities for the WS lookahead
+        // projection. Exponential moving average so transient
+        // jitter (find-best-move flip-flops) doesn't make positions
+        // shimmy in the rendered frame, and so a sudden teleport
+        // (fork, immigrant spawn) decays naturally over the next few
+        // ticks instead of locking in a huge predicted velocity.
+        // Clamp to a sane per-tick max - real organisms move <2 tiles
+        // per tick under any circumstance; anything larger is a
+        // teleport and should not project forward.
+        const VEL_EMA_ALPHA: f32 = 0.4;
+        const MAX_PER_TICK:  f32 = 2.0;
+        for o in self.organisms.iter_mut() {
+            if !o.alive { continue; }
+            let inst_vx = o.x - o.prev_x;
+            let inst_vy = o.y - o.prev_y;
+            o.prev_x = o.x;
+            o.prev_y = o.y;
+            if inst_vx.abs() > MAX_PER_TICK || inst_vy.abs() > MAX_PER_TICK {
+                // Teleport detected - reset velocity to zero so the
+                // lookahead doesn't fling the org across the map.
+                o.vx_smooth = 0.0;
+                o.vy_smooth = 0.0;
+                continue;
+            }
+            o.vx_smooth = VEL_EMA_ALPHA * inst_vx + (1.0 - VEL_EMA_ALPHA) * o.vx_smooth;
+            o.vy_smooth = VEL_EMA_ALPHA * inst_vy + (1.0 - VEL_EMA_ALPHA) * o.vy_smooth;
+        }
+
         // Genealogy-preserving archive policy.
         // The most recent ~300 dead organisms keep their full state so the UI
         // can show their memories, q-tables, life logs, etc. Older dead are

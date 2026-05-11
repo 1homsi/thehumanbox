@@ -74,8 +74,23 @@ fn network_ms() -> u64 {
         .unwrap_or(100)
 }
 
-static TICK_MS:    std::sync::LazyLock<u64> = std::sync::LazyLock::new(tick_ms);
-static NETWORK_MS: std::sync::LazyLock<u64> = std::sync::LazyLock::new(network_ms);
+fn lookahead_ms() -> u64 {
+    // Server-side prediction: the broadcaster ships each org's
+    // position projected forward by this many milliseconds along
+    // its smoothed velocity. The intent is that by the time a
+    // packet has crossed the network + been parsed + been rendered,
+    // the projected position matches the org's "now" coordinate as
+    // computed by the sim. ~150ms is a reasonable mix of half a
+    // network interval + render lag + typical RTT over Cloudflare
+    // Tunnel; tune via the LOOKAHEAD_MS env var per deployment.
+    std::env::var("LOOKAHEAD_MS").ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(150)
+}
+
+static TICK_MS:      std::sync::LazyLock<u64> = std::sync::LazyLock::new(tick_ms);
+static NETWORK_MS:   std::sync::LazyLock<u64> = std::sync::LazyLock::new(network_ms);
+pub static LOOKAHEAD_MS: std::sync::LazyLock<u64> = std::sync::LazyLock::new(lookahead_ms);
 
 /// Cadence at which the broadcaster emits a "full" frame (with the static
 /// metadata - history, lineage names, sex words, etc.). Counted in sim

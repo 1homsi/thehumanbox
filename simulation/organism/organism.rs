@@ -122,6 +122,18 @@ pub struct Organism {
     pub name:        String,
     pub x:           f32,
     pub y:           f32,
+    /// Position from the previous tick, used to derive a smoothed
+    /// velocity for server-side prediction. Reset on save-load so a
+    /// loaded org just has zero velocity for one tick.
+    pub prev_x:      f32,
+    pub prev_y:      f32,
+    /// Exponentially-smoothed per-tick velocity. Drives the lookahead
+    /// projection in the WS broadcaster: the position we ship is
+    /// `(x, y) + vel * lookahead_ticks` so by the time the client
+    /// renders the frame, the organism is already where it "is"
+    /// according to wall-clock time at the user's eyes.
+    pub vx_smooth:   f32,
+    pub vy_smooth:   f32,
     pub energy:      f32,
     pub hydration:   f32,
     pub health:      f32,
@@ -236,6 +248,8 @@ impl Organism {
     ) -> Self {
         Organism {
             id, name, x, y,
+            prev_x: x, prev_y: y,
+            vx_smooth: 0.0, vy_smooth: 0.0,
             energy: 1.0, hydration: 1.0, health: 1.0,
             age: 0, alive: true,
             thought: "observing".to_string(),
@@ -1005,10 +1019,18 @@ impl OrgsHotSoa {
         }
     }
 
-    pub fn push(&mut self, o: &Organism) {
+    /// Push one organism into the SoA payload, projecting position
+    /// forward by `lookahead_ticks * smoothed_velocity`. By the time
+    /// the client renders this frame (network RTT + half-interval),
+    /// the org should be approximately at the projected coordinate -
+    /// no client-side prediction needed for straight-line motion. A
+    /// lookahead of 0 falls back to plain "current position".
+    pub fn push(&mut self, o: &Organism, lookahead_ticks: f32) {
+        let pred_x = o.x + o.vx_smooth * lookahead_ticks;
+        let pred_y = o.y + o.vy_smooth * lookahead_ticks;
         self.ids.push(o.id.clone());
-        self.xs.push(q_pos(o.x));
-        self.ys.push(q_pos(o.y));
+        self.xs.push(q_pos(pred_x));
+        self.ys.push(q_pos(pred_y));
         self.energies.push(q_pct(o.energy));
         self.hydrations.push(q_pct(o.hydration));
         self.healths.push(q_pct(o.health));

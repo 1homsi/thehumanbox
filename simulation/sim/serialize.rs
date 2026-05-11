@@ -5,6 +5,20 @@ use serde_json::json;
 use crate::sim::config::DAY_LENGTH;
 use crate::sim::simulation::Simulation;
 
+/// Server-side prediction lookahead, expressed in sim ticks. Read once
+/// at startup from `LOOKAHEAD_MS` / `TICK_MS` env vars (both shared with
+/// main.rs). Hot deltas project each organism's position forward by
+/// this many ticks along its smoothed velocity, so the value the client
+/// renders matches the org's "now" coordinate after the network +
+/// render-lag round trip. 0 disables prediction.
+static LOOKAHEAD_TICKS: std::sync::LazyLock<f32> = std::sync::LazyLock::new(|| {
+    let look_ms = std::env::var("LOOKAHEAD_MS").ok()
+        .and_then(|v| v.parse::<f32>().ok()).unwrap_or(150.0);
+    let tick_ms = std::env::var("TICK_MS").ok()
+        .and_then(|v| v.parse::<f32>().ok()).unwrap_or(100.0);
+    if tick_ms <= 0.0 { 0.0 } else { (look_ms / tick_ms).max(0.0) }
+});
+
 impl Simulation {
     pub fn state_json(&mut self) -> serde_json::Value {
         let (cx, cy) = self.viewport_centroid();
@@ -135,8 +149,9 @@ impl Simulation {
             })
         } else {
             let mut soa = OrgsHotSoa::with_capacity(self.organisms.len() / 2);
+            let lookahead = *LOOKAHEAD_TICKS;
             for o in &self.organisms {
-                if o.alive && in_view(o.x, o.y) { soa.push(o); }
+                if o.alive && in_view(o.x, o.y) { soa.push(o, lookahead); }
             }
             let animals_json = self.animals.iter()
                 .filter(|a| in_view(a.x, a.y))
