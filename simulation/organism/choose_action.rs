@@ -317,6 +317,27 @@ impl Organism {
             }
         }
 
+        // ── Partner companionship ─────────────────────────────────────────────
+        // Bonded partners drift toward each other when their basic needs
+        // are met. Real human pairs spend most of their time together;
+        // this gives bonded couples a visible "walking together" signature
+        // on the map and lets the partners view-toggle render a meaningful
+        // bond line.
+        if let Some(ref pid) = self.partner_id {
+            if needs_ok && self.fear_level < 0.5 {
+                let partner = organisms.iter()
+                    .find(|o| o.alive && &o.id == pid)
+                    .map(|o| (o.x as i32, o.y as i32));
+                if let Some(pp) = partner {
+                    let dist = (pp.0 - ix).abs() + (pp.1 - iy).abs();
+                    if dist > 4 && dist < 40 && rng.gen::<f32>() < 0.30 {
+                        set_thought!("walking with partner");
+                        return (self.toward(pp, grid), thought);
+                    }
+                }
+            }
+        }
+
         // Colony formation: lonely organisms seek their kin or friendly strangers.
         // This drives natural clustering / settlement behaviour.
         if self.loneliness > 0.35 && needs_ok && self.fear_level < 0.5 {
