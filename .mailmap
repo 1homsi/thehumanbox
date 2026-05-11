@@ -1,0 +1,12 @@
+# Collapse multiple commit identities into the canonical author so
+# GitHub's contributors page and `git shortlog` don't list robots and
+# AI assistants alongside the human author.
+#
+# Format per row: <canonical name> <canonical-email> <matched-name> <matched-email>
+# Lines starting with # are comments. Updates apply retroactively to
+# all of git history - no rebase required.
+
+Mohamad Homsi <homsimohamad4@gmail.com> Claude <noreply@anthropic.com>
+Mohamad Homsi <homsimohamad4@gmail.com> Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+Mohamad Homsi <homsimohamad4@gmail.com> thb-bumpbot <bumpbot@thehumanbox.com>
+Mohamad Homsi <homsimohamad4@gmail.com> blacksmith-sh[bot] <157653362+blacksmith-sh[bot]@users.noreply.github.com>
