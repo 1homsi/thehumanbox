@@ -64,7 +64,6 @@ function App() {
   const closeAllLineages = useUIStore(s => s.closeAllLineages)
   const openAbout        = useUIStore(s => s.openAbout)
   const closeAbout       = useUIStore(s => s.closeAbout)
-  const openConvo        = useUIStore(s => s.openConvo)
   const closeConvo       = useUIStore(s => s.closeConvo)
   const togglePanel      = useUIStore(s => s.togglePanel)
   const toggleLeft       = useUIStore(s => s.toggleLeft)
@@ -371,16 +370,8 @@ function App() {
               )}
 
               <div className="section-title">ALIVE ({liveOrgs.length})</div>
-              {liveOrgs.map(org => (
-                <OrgCard
-                  key={org.id}
-                  org={org}
-                  sexWords={world?.sex_words}
-                  onTrack={() => followOrg(org.id)}
-                  onConvos={org.conversation_count ? () => openConvo(org.id) : undefined}
-                  lineageNames={world?.lineage_names}
-                  organisms={world?.organisms}
-                />
+              {liveOrgs.map((org) => (
+                <OrgCard key={org.id} orgId={org.id} />
               ))}
 
               {deadOrgs.length > 0 && (

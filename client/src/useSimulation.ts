@@ -4,6 +4,7 @@ import { decode as msgpackDecode } from '@msgpack/msgpack'
 import type { WorldState, GridState, GridWire, OrganismState, AnimalState } from './types'
 import { WS_BASE, API_BASE } from './config'
 import { WorldEnvelopeSchema } from './schemas'
+import { useWorldStore } from './worldStore'
 
 const WS_URL       = `${WS_BASE}/ws`
 const SNAPSHOT_URL = `${API_BASE}/snapshot`
@@ -388,9 +389,16 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
 
       pendingSetWorldRef.current = latest
       const sinceLast = performance.now() - lastSetWorldAtRef.current
-      if (sinceLast >= REACT_THROTTLE_MS) {
+      const publish = (w: WorldState) => {
         lastSetWorldAtRef.current = performance.now()
-        setWorld(latest)
+        // Zustand store is the canonical place panels subscribe through.
+        // setWorld (useState) is kept for back-compat with components that
+        // still consume `world` via useSimulation's return value.
+        useWorldStore.getState().setWorld(w)
+        setWorld(w)
+      }
+      if (sinceLast >= REACT_THROTTLE_MS) {
+        publish(latest)
         if (setWorldTimerRef.current) {
           clearTimeout(setWorldTimerRef.current)
           setWorldTimerRef.current = null
@@ -400,10 +408,7 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
         setWorldTimerRef.current = setTimeout(() => {
           setWorldTimerRef.current = null
           const w = pendingSetWorldRef.current
-          if (w) {
-            lastSetWorldAtRef.current = performance.now()
-            setWorld(w)
-          }
+          if (w) publish(w)
         }, delay)
       }
     }
