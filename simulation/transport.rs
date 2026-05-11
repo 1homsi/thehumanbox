@@ -57,8 +57,13 @@ pub struct TransportStats {
     lagged_frames:    AtomicU64,
     dropped_frames:   AtomicU64,
     resync_frames:    AtomicU64,
+    // Number of broadcaster cycles where work took longer than the
+    // network period - i.e. we lost cadence to a slow serialize.
+    overrun_cycles:   AtomicU64,
+    sim_overrun_ticks: AtomicU64,
     payload_bytes:    std::sync::Mutex<TransportWindow>,
     frame_gen_ms:     std::sync::Mutex<TransportWindow>,
+    sim_tick_ms:      std::sync::Mutex<TransportWindow>,
 }
 
 #[derive(Serialize)]
@@ -68,10 +73,14 @@ pub struct TransportStatsSnapshot {
     pub lagged_frames:           u64,
     pub dropped_frames:          u64,
     pub resync_frames:           u64,
+    pub overrun_cycles:          u64,
+    pub sim_overrun_ticks:       u64,
     pub avg_payload_bytes:       u64,
     pub p95_payload_bytes:       u64,
     pub avg_frame_generation_ms: u64,
     pub p95_frame_generation_ms: u64,
+    pub avg_sim_tick_ms:         u64,
+    pub p95_sim_tick_ms:         u64,
 }
 
 impl TransportStats {
@@ -98,12 +107,33 @@ impl TransportStats {
         self.resync_frames.fetch_add(1, Ordering::Relaxed);
     }
 
+    /// One broadcaster cycle blew past its budget. The next frame still
+    /// goes out immediately (no double-stall) but cadence is lost for now.
+    pub fn record_broadcaster_overrun(&self) {
+        self.overrun_cycles.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn record_sim_tick(&self, sim_tick_ms: u64, budget_ms: u64) {
+        if let Ok(mut w) = self.sim_tick_ms.lock() {
+            w.push(sim_tick_ms);
+        }
+        if sim_tick_ms > budget_ms {
+            self.sim_overrun_ticks.fetch_add(1, Ordering::Relaxed);
+        }
+    }
+
     pub fn snapshot(&self) -> TransportStatsSnapshot {
         let (avg_bytes, p95_bytes) = self.payload_bytes.lock()
             .map(|w| (w.avg(), w.p95())).unwrap_or((0, 0));
         let (avg_ms, p95_ms) = self.frame_gen_ms.lock()
             .map(|w| (w.avg(), w.p95())).unwrap_or((0, 0));
+        let (avg_sim, p95_sim) = self.sim_tick_ms.lock()
+            .map(|w| (w.avg(), w.p95())).unwrap_or((0, 0));
         TransportStatsSnapshot {
+            overrun_cycles:          self.overrun_cycles.load(Ordering::Relaxed),
+            sim_overrun_ticks:       self.sim_overrun_ticks.load(Ordering::Relaxed),
+            avg_sim_tick_ms:         avg_sim,
+            p95_sim_tick_ms:         p95_sim,
             generated_frames:        self.generated_frames.load(Ordering::Relaxed),
             sent_frames:             self.sent_frames.load(Ordering::Relaxed),
             lagged_frames:           self.lagged_frames.load(Ordering::Relaxed),

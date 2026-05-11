@@ -51,7 +51,32 @@ fn tick_ms() -> u64 {
         .unwrap_or(100)
 }
 
-static TICK_MS: std::sync::LazyLock<u64> = std::sync::LazyLock::new(tick_ms);
+fn network_ms() -> u64 {
+    std::env::var("NETWORK_MS").ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(200)
+}
+
+static TICK_MS:    std::sync::LazyLock<u64> = std::sync::LazyLock::new(tick_ms);
+static NETWORK_MS: std::sync::LazyLock<u64> = std::sync::LazyLock::new(network_ms);
+
+/// Cadence at which the broadcaster emits a "full" frame (with the static
+/// metadata - history, lineage names, sex words, etc.). Counted in sim
+/// ticks. At default 100ms sim tick that's every ~3 seconds.
+const FULL_FRAME_EVERY_TICKS: u64 = 30;
+
+/// Sim ticks per save flush. At default 100ms sim tick that's every minute.
+const SAVE_EVERY_TICKS: u64 = 600;
+
+/// Sleep just long enough that `(now - cycle_start) == period_ms`. If the
+/// work already took longer than the period, returns immediately so the
+/// next cycle starts ASAP - drift, but no double-stall. This keeps each
+/// loop on a fixed cadence even when the sim or serialize hiccups.
+async fn sleep_until_period_end(cycle_start: std::time::Instant, period_ms: u64) {
+    let elapsed = cycle_start.elapsed().as_millis() as u64;
+    if elapsed >= period_ms { return; }
+    tokio::time::sleep(tokio::time::Duration::from_millis(period_ms - elapsed)).await;
+}
 
 pub type LatestFull = Arc<std::sync::RwLock<Option<Arc<String>>>>;
 
@@ -123,21 +148,29 @@ async fn main() {
     }
 
     // ── Simulation loop ───────────────────────────────────────────────────────
+    //
+    // Decoupled from the WS broadcaster. This task only advances world state,
+    // applies completed think results, queues narration, drains pending think
+    // triggers, and periodically saves. It does NOT serialize or send WS
+    // frames - that's the broadcaster's job, on its own cadence.
+    //
+    // The two tasks share the sim mutex but each holds it only as long as it
+    // takes to do its own job. Previously the lock was held across the
+    // tick + serialize + send path, so a slow full-frame serialize would
+    // stall the next sim tick by 50-100ms, causing the bursty WS pattern
+    // users were seeing on the client.
     {
         let sim_clone        = sim.clone();
-        let tx_clone         = tx.clone();
         let stories_clone    = stories.clone();
         let think_res_clone  = think_results.clone();
         let narration_tx2    = narration_tx.clone();
-        let latest_full_w    = latest_full.clone();
-        let frame_clock_w    = frame_clock.clone();
-        let transport_stats_w = transport_stats.clone();
+        let transport_stats_s = transport_stats.clone();
         tokio::spawn(async move {
-            let mut step: u64 = 0;
             loop {
-                let (json, pending_thinks, maybe_latest_full) = {
+                let tick_started = std::time::Instant::now();
+                let pending_thinks = {
                     let mut s = sim_clone.lock().await;
-                    s.tick(); // 1 tick per loop = 6s real → 600 ticks/day = 1 hr/day
+                    s.tick(); // 1 tick per loop = TICK_MS real
 
                     // Apply completed think results
                     {
@@ -293,8 +326,8 @@ async fn main() {
                         }
                     }
 
-                    // Queue 1 narration per in-world day (was /5 = 1.2s at 10ms/tick, causing overheating)
-                    if step % DAY_LENGTH == 0 {
+                    // Queue 1 narration per in-world day
+                    if s.tick_count % DAY_LENGTH == 0 {
                         let candidate = s.organisms.iter()
                             .filter(|o| o.alive && !o.life_log.is_empty())
                             .min_by_key(|o| o.last_story_tick)
@@ -312,33 +345,75 @@ async fn main() {
                         }
                     }
 
-                    let pending = std::mem::take(&mut s.pending_thinks);
-                    let is_full_frame = step % 30 == 0;
-                    let frame_started = std::time::Instant::now();
+                    if s.tick_count % SAVE_EVERY_TICKS == 0 {
+                        s.save(SAVE_PATH);
+                    }
+
+                    std::mem::take(&mut s.pending_thinks)
+                };
+
+                // Send think triggers outside the sim lock so the broadcaster
+                // and the think worker can both make progress while this
+                // task is waiting on its sleep deadline.
+                for t in pending_thinks {
+                    let _ = think_tx.try_send(t);
+                }
+                transport_stats_s.record_sim_tick(
+                    tick_started.elapsed().as_millis() as u64,
+                    *TICK_MS,
+                );
+                sleep_until_period_end(tick_started, *TICK_MS).await;
+            }
+        });
+    }
+
+    // ── WebSocket broadcaster ─────────────────────────────────────────────────
+    //
+    // Runs at NETWORK_MS cadence (default 200ms = 5Hz) independent of the
+    // simulation tick rate. Each cycle: take the sim lock briefly, serialize
+    // a snapshot of current state, drop the lock, broadcast over WS.
+    //
+    // Full frames (with cold metadata) every FULL_FRAME_EVERY_TICKS sim
+    // ticks; everything else is a delta. Each frame also updates the cached
+    // `latest_full` slot so the WS handler can prime new clients without
+    // ever touching the sim lock.
+    {
+        let sim_clone        = sim.clone();
+        let tx_clone         = tx.clone();
+        let latest_full_w    = latest_full.clone();
+        let frame_clock_w    = frame_clock.clone();
+        let transport_stats_w = transport_stats.clone();
+        tokio::spawn(async move {
+            loop {
+                let cycle_started = std::time::Instant::now();
+                let (json, full_payload) = {
+                    let mut s = sim_clone.lock().await;
+                    let is_full_frame = s.tick_count % FULL_FRAME_EVERY_TICKS == 0;
+                    let serialize_started = std::time::Instant::now();
                     let frame_id = next_frame_id(&frame_clock_w);
                     let json = if is_full_frame {
                         encode_frame(s.state_json(), frame_id, now_ms(), "full")
                     } else {
                         encode_frame(s.state_json_incremental(), frame_id, now_ms(), "delta")
                     };
-                    transport_stats_w.record_generated(json.len(), frame_started.elapsed().as_millis() as u64);
-                    step += 1;
-                    if step % 600 == 0 { s.save(SAVE_PATH); }
-                    let latest_full = if is_full_frame { Some(json.clone()) } else { None };
-                    (json, pending, latest_full)
+                    transport_stats_w.record_generated(
+                        json.len(),
+                        serialize_started.elapsed().as_millis() as u64,
+                    );
+                    let full = if is_full_frame { Some(json.clone()) } else { None };
+                    (json, full)
                 };
 
-                // Send think triggers outside lock
-                for t in pending_thinks {
-                    let _ = think_tx.try_send(t);
-                }
-                if let Some(full) = maybe_latest_full {
+                if let Some(full) = full_payload {
                     if let Ok(mut slot) = latest_full_w.write() {
                         *slot = Some(Arc::new(full));
                     }
                 }
                 let _ = tx_clone.send(json);
-                tokio::time::sleep(tokio::time::Duration::from_millis(*TICK_MS)).await;
+                if cycle_started.elapsed().as_millis() as u64 > *NETWORK_MS {
+                    transport_stats_w.record_broadcaster_overrun();
+                }
+                sleep_until_period_end(cycle_started, *NETWORK_MS).await;
             }
         });
     }
