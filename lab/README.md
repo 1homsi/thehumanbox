@@ -129,3 +129,27 @@ The included sample trace uses one JSON object per line with fields like:
 ```
 
 This format is intentionally simple so we can evolve it with the simulation instead of locking ourselves into a premature training pipeline.
+
+## Bridging lab/ back into the simulation
+
+The simulation already exposes a per-org reasoning hook through `ThinkTrigger` / `ThinkResult` (see `simulation/think_worker.rs`). Most scenarios resolve locally via `local_think.rs` without any LLM call; only the `elder_teaching` scenario currently goes to a chat-completions endpoint.
+
+When you're ready to wire a distilled model in, the integration point is straightforward:
+
+1. Train a small task-specific model on a JSONL captured here.
+2. Serve it through any OpenAI-compatible endpoint (vLLM, llama.cpp's server, Ollama with an `OPENAI_API_BASE`, etc.).
+3. Point the simulation at it by setting `LLM_URL` and optionally `LLM_MODEL`. The existing client primitives in `simulation/llm.rs` already speak that protocol.
+4. Resist the urge to route _everything_ through the model. The local resolver in `local_think.rs` handles weighted-pick scenarios deterministically and is much cheaper. Only push to the model the scenarios that genuinely benefit from generated text.
+
+The goal is augmentation, not replacement. The Rust simulation owns causality; lab/ ships small models that flavor specific moments. Anything that smells like "let the model decide every action" is the wrong layer.
+
+## Roadmap
+
+Active threads of work, in rough priority:
+
+- `thought_eval`: scoring how well a small model picks a thought-line consistent with state. Existing eval set is a starting point; needs more cases pulled from real headless traces.
+- `narration_eval`: end-of-day story generation. The simulation already falls back to a stitched-from-life-log story when the LLM is unreachable, so this is a quality bar, not a feature gate.
+- `invention_eval`: given prerequisites, pick the most plausible next invention. Currently the local resolver picks uniformly at random from candidates — a model that biases toward culturally coherent picks (cooking before stone_tools when fire is dominant) is the goal.
+- `trace_collector.py`: helper to subscribe to the running simulation's WS feed and write thought events to disk continuously. Not yet implemented.
+
+If you add anything here, update this list so future you (or another collaborator) can see what's been tried.
