@@ -13,6 +13,29 @@ type ParseError =
   | { kind: 'json';     message: string }
   | { kind: 'schema';   issues: string[] }
 
+/** Structure-of-arrays hot payload. Sent on every delta in place of
+ *  the AoS `organisms` array. Each field is N entries long where N is
+ *  the number of in-viewport alive organisms; all arrays share an
+ *  index, so `ids[i] -> xs[i], ys[i], ...`. */
+interface OrgsHotSoa {
+  ids:            string[]
+  xs:             number[]
+  ys:             number[]
+  energies:       number[]
+  hydrations:     number[]
+  healths:        number[]
+  ages:           number[]
+  alives:         boolean[]
+  thoughts:       string[]
+  infections:     number[]
+  fear_levels:    number[]
+  carryings:      number[]
+  carrying_types: number[]
+  pregnants:      boolean[]
+  partner_ids:    (string | null)[]
+  attracted_tos:  (string | null)[]
+}
+
 type IncomingWorldFrame =
   Pick<WorldState,
     'frame_id' |
@@ -27,7 +50,11 @@ type IncomingWorldFrame =
     'weather'
   > & {
     grid: GridWire
-    organisms: OrganismState[]
+    // Exactly one of `organisms` (AoS, full snapshots) or `organisms_hot`
+    // (SoA, deltas) is present. Sender guarantees this; receiver branches
+    // in flushUpdate.
+    organisms?: OrganismState[]
+    organisms_hot?: OrgsHotSoa
     organisms_complete: boolean
     animals: AnimalState[]
     animals_complete: boolean
@@ -41,6 +68,39 @@ type IncomingWorldFrame =
     current_era?: WorldState['current_era']
     sex_words?: WorldState['sex_words']
   }
+
+/** Expand a SoA payload into per-organism partial updates. The caller
+ *  then merges these into the existing cache (same path the AoS-delta
+ *  branch used to follow). Cost: O(N) where N is the number of orgs in
+ *  the delta - one allocation per org, no per-field key parsing. */
+function expandOrgsSoa(soa: OrgsHotSoa): OrganismState[] {
+  const out: OrganismState[] = new Array(soa.ids.length)
+  for (let i = 0; i < soa.ids.length; i++) {
+    out[i] = {
+      id:            soa.ids[i],
+      x:             soa.xs[i],
+      y:             soa.ys[i],
+      energy:        soa.energies[i],
+      hydration:     soa.hydrations[i],
+      health:        soa.healths[i],
+      age:           soa.ages[i],
+      alive:         soa.alives[i],
+      thought:       soa.thoughts[i],
+      infection:     soa.infections[i],
+      fear_level:    soa.fear_levels[i],
+      carrying:      soa.carryings[i],
+      carrying_type: soa.carrying_types[i],
+      pregnant:      soa.pregnants[i],
+      partner_id:    soa.partner_ids[i] ?? undefined,
+      attracted_to:  soa.attracted_tos[i] ?? undefined,
+      // Cold/warm fields rely on the existing cache via mergeDefined.
+      // OrganismState requires lineage_id/generation/parent_id/etc but
+      // those are filled in from the cached full-snapshot entry, so the
+      // expanded record acts as a partial update.
+    } as OrganismState
+  }
+  return out
+}
 
 /**
  * Decode + validate one WS frame. The wire format is MessagePack (binary),
@@ -316,10 +376,17 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
             return out as T
           }
 
+          // Resolve organisms list from whichever wire format is in
+          // this frame. Full snapshots ship AoS under `organisms`;
+          // deltas ship SoA under `organisms_hot`, which we expand
+          // into the same partial-update shape the AoS path used.
+          const frameOrganisms: OrganismState[] = parsed.organisms
+            ?? (parsed.organisms_hot ? expandOrgsSoa(parsed.organisms_hot) : [])
+
           if (parsed.organisms_complete) {
-            organismCache.current = new Map(parsed.organisms.map(o => [o.id, o]))
+            organismCache.current = new Map(frameOrganisms.map(o => [o.id, o]))
           } else {
-            for (const org of parsed.organisms) {
+            for (const org of frameOrganisms) {
               const existing = organismCache.current.get(org.id)
               organismCache.current.set(org.id, existing ? mergeDefined(existing, org) : org)
             }
@@ -334,7 +401,7 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
             }
           }
 
-          const viewportOrgs = parsed.organisms.map(o =>
+          const viewportOrgs = frameOrganisms.map(o =>
             organismCache.current.get(o.id) ?? o
           )
           const viewportAnimals = parsed.animals.map(a =>

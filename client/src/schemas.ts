@@ -102,12 +102,24 @@ export const AnimalSchema = z.object({
 // WS-parse boundary to catch corrupt messages (HTML error pages, partial
 // frames, etc.) before they crash the renderer.
 
+// Hot delta payload as structure-of-arrays. Validated lightly because
+// the parallel arrays have the same length contract that the producer
+// guarantees - we just check that the required `ids` array is present.
+const OrgsHotSoaSchema = z.object({
+  ids: z.array(z.string()),
+}).passthrough()
+
 export const WorldEnvelopeSchema = z.object({
   frame_id:           z.number(),
   server_sent_at_ms:  z.number(),
   frame_kind:         z.enum(['delta', 'full']),
   tick:               z.number(),
-  organisms:          z.array(OrganismSchema),
+  // Either `organisms` (AoS, on full snapshots) or `organisms_hot` (SoA,
+  // on deltas) is present. The frame_kind tag also distinguishes them;
+  // both are optional here so a frame missing one doesn't fail
+  // validation on the other path.
+  organisms:          z.array(OrganismSchema).optional(),
+  organisms_hot:      OrgsHotSoaSchema.optional(),
   organisms_complete: z.boolean(),
   animals:            z.array(AnimalSchema),
   animals_complete:   z.boolean(),

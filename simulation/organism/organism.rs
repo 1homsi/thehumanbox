@@ -931,6 +931,83 @@ impl Organism {
 
 #[derive(Serialize)] pub struct ThoughtJson { pub tick: u64, pub text: String }
 #[derive(Serialize)] pub struct MemoryCount  { pub food: usize, pub water: usize, pub danger: usize }
+
+/// Structure-of-arrays packing for the hot per-tick organism payload.
+///
+/// Every delta carries the same 16 hot fields for every alive in-viewport
+/// organism. As an array of maps that's ~50 bytes per record (with
+/// MessagePack named-key encoding repeating every field name per
+/// organism). Re-packed column-by-column the per-record cost drops to
+/// ~12 bytes - one slot in each parallel array - because each field
+/// name only ships once per delta. At 300 organisms that's roughly
+/// 25 KB -> 10 KB per delta, plus the client decodes 16 typed arrays
+/// rather than parsing 300 maps.
+///
+/// Sent under the wire key `organisms_hot`. Full snapshots keep the
+/// AoS `organisms` array because that path also carries the cold
+/// fields (name, lineage_id, traits, vocabulary, discoveries, ...) and
+/// the SoA tax on optional cold fields outweighs its savings.
+#[derive(Serialize)]
+pub struct OrgsHotSoa {
+    pub ids:            Vec<String>,
+    pub xs:             Vec<f32>,
+    pub ys:             Vec<f32>,
+    pub energies:       Vec<f32>,
+    pub hydrations:     Vec<f32>,
+    pub healths:        Vec<f32>,
+    pub ages:           Vec<u32>,
+    pub alives:         Vec<bool>,
+    pub thoughts:       Vec<String>,
+    pub infections:     Vec<f32>,
+    pub fear_levels:    Vec<f32>,
+    pub carryings:      Vec<u32>,
+    pub carrying_types: Vec<u8>,
+    pub pregnants:      Vec<bool>,
+    pub partner_ids:    Vec<Option<String>>,
+    pub attracted_tos:  Vec<Option<String>>,
+}
+
+impl OrgsHotSoa {
+    pub fn with_capacity(n: usize) -> Self {
+        OrgsHotSoa {
+            ids:            Vec::with_capacity(n),
+            xs:             Vec::with_capacity(n),
+            ys:             Vec::with_capacity(n),
+            energies:       Vec::with_capacity(n),
+            hydrations:     Vec::with_capacity(n),
+            healths:        Vec::with_capacity(n),
+            ages:           Vec::with_capacity(n),
+            alives:         Vec::with_capacity(n),
+            thoughts:       Vec::with_capacity(n),
+            infections:     Vec::with_capacity(n),
+            fear_levels:    Vec::with_capacity(n),
+            carryings:      Vec::with_capacity(n),
+            carrying_types: Vec::with_capacity(n),
+            pregnants:      Vec::with_capacity(n),
+            partner_ids:    Vec::with_capacity(n),
+            attracted_tos:  Vec::with_capacity(n),
+        }
+    }
+
+    pub fn push(&mut self, o: &Organism) {
+        self.ids.push(o.id.clone());
+        self.xs.push((o.x * 10.0).round() / 10.0);
+        self.ys.push((o.y * 10.0).round() / 10.0);
+        self.energies.push((o.energy * 1000.0).round() / 1000.0);
+        self.hydrations.push((o.hydration * 1000.0).round() / 1000.0);
+        self.healths.push((o.health * 1000.0).round() / 1000.0);
+        self.ages.push(o.age);
+        self.alives.push(o.alive);
+        self.thoughts.push(o.thought.clone());
+        self.infections.push((o.infection * 1000.0).round() / 1000.0);
+        self.fear_levels.push((o.fear_level * 100.0).round() / 100.0);
+        self.carryings.push(o.carrying);
+        self.carrying_types.push(o.carrying_type);
+        self.pregnants.push(o.pregnant);
+        self.partner_ids.push(o.partner_id.clone());
+        self.attracted_tos.push(o.attracted_to.clone());
+    }
+}
 #[derive(Serialize)] pub struct TraitsJson   {
     pub curiosity: f32, pub aggression: f32, pub fear: f32,
     pub memory_strength: f32, pub social_tendency: f32, pub resilience: f32,

@@ -2519,14 +2519,18 @@ mod tests {
         let far_id = sim.organisms[far_idx].id.clone();
 
         let state = sim.state_json_at(10, 10);
-        let ids: Vec<String> = state["organisms"].as_array().unwrap()
+        // Deltas use structure-of-arrays packing under `organisms_hot`.
+        // Full snapshots would use the AoS `organisms` array instead.
+        let ids: Vec<String> = state["organisms_hot"]["ids"].as_array().unwrap()
             .iter()
-            .filter_map(|o| o["id"].as_str().map(|s| s.to_string()))
+            .filter_map(|v| v.as_str().map(|s| s.to_string()))
             .collect();
 
         assert!(ids.contains(&near_id));
         assert!(!ids.contains(&far_id));
         assert_eq!(state["organisms_complete"], false);
+        assert!(state.get("organisms").is_none(),
+            "deltas should not carry the AoS organisms array");
     }
 
     #[test]

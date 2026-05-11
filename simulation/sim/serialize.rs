@@ -98,40 +98,65 @@ impl Simulation {
             let y = y as i32;
             x >= left && x <= right && y >= top && y <= bottom
         };
-        // Static identity / traits / vocabulary land only on full snapshots.
-        // Full snapshots are rare so the socket isn't pummeled with every
-        // organism several times per second. The frontend caches them and
-        // merges hot fields into the existing entry; cold fields skipped on
-        // hot ticks save ~60% payload at 300 organisms.
-        // Exception: newly-born organisms (age < 60 ticks) always include
-        // cold fields - otherwise a baby born between full snapshots
-        // arrives with no name/lineage_id/traits and can't be drawn.
-        let organisms_json = self.organisms.iter()
-            .filter(|o| o.alive && (include_all_entities || in_view(o.x, o.y)))
-            .map(|o| {
-                let include_cold = include_all_entities || o.age < 60;
-                serde_json::to_value(o.to_json_with(include_cold)).unwrap()
+        // Per-organism encoding splits two ways:
+        //  - Hot deltas use structure-of-arrays (`organisms_hot`).
+        //    Every alive in-viewport org contributes one slot to each of
+        //    the 16 parallel arrays. ~50% smaller on the wire than the
+        //    AoS version and the client decodes 16 typed arrays instead
+        //    of 300 maps.
+        //  - Full snapshots use the AoS array (`organisms`) because that
+        //    path also carries cold/identity fields and SoA-with-many-
+        //    optional-columns costs more than it saves.
+        // Newborns (age < 60 ticks) always get their cold fields in the
+        // AoS path; the SoA hot path never carries cold fields, so a new
+        // baby's static identity arrives on the next full snapshot.
+        use crate::organism::organism::OrgsHotSoa;
+        let mut payload = if include_all_entities {
+            let organisms_json = self.organisms.iter()
+                .filter(|o| o.alive)
+                .map(|o| serde_json::to_value(o.to_json_with(true)).unwrap())
+                .collect::<Vec<_>>();
+            let animals_json = self.animals.iter()
+                .map(|a| serde_json::to_value(a.to_json()).unwrap())
+                .collect::<Vec<_>>();
+            json!({
+                "tick":               self.tick_count,
+                "grid":               serde_json::to_value(grid_json).unwrap(),
+                "organisms":          organisms_json,
+                "organisms_complete": true,
+                "animals":            animals_json,
+                "animals_complete":   true,
+                "is_day":             !self.is_night(),
+                "day_progress":       ((self.tick_count % DAY_LENGTH) as f32 / DAY_LENGTH as f32 * 1000.0).round() / 1000.0,
+                "season":             self.season(),
+                "season_progress":    (self.season_progress() * 1000.0).round() / 1000.0,
+                "drought":            self.drought.active,
+                "weather":            { "kind": self.weather.kind_str(), "intensity": self.weather.intensity },
             })
-            .collect::<Vec<_>>();
-        let animals_json = self.animals.iter()
-            .filter(|a| include_all_entities || in_view(a.x, a.y))
-            .map(|a| serde_json::to_value(a.to_json()).unwrap())
-            .collect::<Vec<_>>();
-
-        let mut payload = json!({
-            "tick":            self.tick_count,
-            "grid":            serde_json::to_value(grid_json).unwrap(),
-            "organisms":       organisms_json,
-            "organisms_complete": include_all_entities,
-            "animals":         animals_json,
-            "animals_complete": include_all_entities,
-            "is_day":          !self.is_night(),
-            "day_progress":    ((self.tick_count % DAY_LENGTH) as f32 / DAY_LENGTH as f32 * 1000.0).round() / 1000.0,
-            "season":          self.season(),
-            "season_progress": (self.season_progress() * 1000.0).round() / 1000.0,
-            "drought":         self.drought.active,
-            "weather":         { "kind": self.weather.kind_str(), "intensity": self.weather.intensity },
-        });
+        } else {
+            let mut soa = OrgsHotSoa::with_capacity(self.organisms.len() / 2);
+            for o in &self.organisms {
+                if o.alive && in_view(o.x, o.y) { soa.push(o); }
+            }
+            let animals_json = self.animals.iter()
+                .filter(|a| in_view(a.x, a.y))
+                .map(|a| serde_json::to_value(a.to_json()).unwrap())
+                .collect::<Vec<_>>();
+            json!({
+                "tick":               self.tick_count,
+                "grid":               serde_json::to_value(grid_json).unwrap(),
+                "organisms_hot":      serde_json::to_value(&soa).unwrap(),
+                "organisms_complete": false,
+                "animals":            animals_json,
+                "animals_complete":   false,
+                "is_day":             !self.is_night(),
+                "day_progress":       ((self.tick_count % DAY_LENGTH) as f32 / DAY_LENGTH as f32 * 1000.0).round() / 1000.0,
+                "season":             self.season(),
+                "season_progress":    (self.season_progress() * 1000.0).round() / 1000.0,
+                "drought":            self.drought.active,
+                "weather":            { "kind": self.weather.kind_str(), "intensity": self.weather.intensity },
+            })
+        };
         if force_full {
             if let Some(obj) = payload.as_object_mut() {
                 obj.insert("events".to_string(), serde_json::to_value(&self.events).unwrap());
