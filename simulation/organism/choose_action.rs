@@ -47,15 +47,25 @@ impl Organism {
             return (rng.gen_range(0..8), thought);
         }
 
-        // Sick isolation: infected organisms avoid clustering with kin to limit spread
-        if self.infection > 0.35 {
-            let sick_kin_near = organisms.iter()
-                .filter(|o| !std::ptr::eq(*o, self) && o.alive && o.lineage_id == self.lineage_id)
-                .filter(|o| (o.x - self.x).abs() + (o.y - self.y).abs() <= 3.0)
-                .count();
-            if sick_kin_near >= 2 {
+        // Sick isolation: infected organisms walk away from healthy kin so
+        // they don't spread the infection. Real disease behaviour: the
+        // afflicted withdraw. Stronger response when very sick.
+        if self.infection > 0.30 {
+            let healthy_kin_nearby: Vec<(f32, f32)> = organisms.iter()
+                .filter(|o| !std::ptr::eq(*o, self) && o.alive
+                    && o.lineage_id == self.lineage_id && o.infection < 0.10)
+                .filter(|o| (o.x - self.x).abs() + (o.y - self.y).abs() <= 4.0)
+                .map(|o| (o.x, o.y))
+                .collect();
+            if !healthy_kin_nearby.is_empty() {
                 set_thought!("isolating (sick)");
-                return (rng.gen_range(0..8), thought);
+                let cx = healthy_kin_nearby.iter().map(|p| p.0).sum::<f32>() / healthy_kin_nearby.len() as f32;
+                let cy = healthy_kin_nearby.iter().map(|p| p.1).sum::<f32>() / healthy_kin_nearby.len() as f32;
+                // Step away from the kin centroid (opposite direction).
+                let dx = self.x - cx;
+                let dy = self.y - cy;
+                let target = (ix + (dx * 4.0).round() as i32, iy + (dy * 4.0).round() as i32);
+                return (self.toward(target, grid), thought);
             }
         }
 
