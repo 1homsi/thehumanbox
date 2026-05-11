@@ -130,9 +130,9 @@ export function OrgCard({ org, sexWords, onTrack, onConvos, lineageNames, organi
       </div>
 
       <div className="org-memory">
-        <Tooltip tip={`${org.memory_count.food} food locations memorized`}><span style={{ cursor: 'default' }}>f{org.memory_count.food}</span></Tooltip>
-        <Tooltip tip={`${org.memory_count.water} water sources memorized`}><span style={{ cursor: 'default' }}>w{org.memory_count.water}</span></Tooltip>
-        <Tooltip tip={`${org.memory_count.danger} danger zones memorized`}><span style={{ cursor: 'default' }}>d{org.memory_count.danger}</span></Tooltip>
+        <Tooltip tip={`${org.memory_count?.food ?? 0} food locations memorized`}><span style={{ cursor: 'default' }}>f{org.memory_count?.food ?? 0}</span></Tooltip>
+        <Tooltip tip={`${org.memory_count?.water ?? 0} water sources memorized`}><span style={{ cursor: 'default' }}>w{org.memory_count?.water ?? 0}</span></Tooltip>
+        <Tooltip tip={`${org.memory_count?.danger ?? 0} danger zones memorized`}><span style={{ cursor: 'default' }}>d{org.memory_count?.danger ?? 0}</span></Tooltip>
       </div>
 
       {org.attitudes && Object.keys(org.attitudes).length > 0 && (

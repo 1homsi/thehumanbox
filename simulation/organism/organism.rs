@@ -833,16 +833,8 @@ impl Organism {
     pub fn to_json(&self) -> OrgJson { self.to_json_with(true) }
 
     pub fn to_json_with(&self, include_cold: bool) -> OrgJson {
-        let attitudes: HashMap<String, f32> = self.lineage_attitudes.iter()
-            .filter(|(_, &v)| v.abs() > 0.1)
-            .map(|(k, &v)| (k.clone(), (v * 100.0).round() / 100.0))
-            .collect();
-        let org_trust: HashMap<String, f32> = self.org_trust.iter()
-            .filter(|(_, &v)| v.abs() > 0.15)
-            .map(|(k, &v)| (k[..k.len().min(8)].to_string(), (v * 100.0).round() / 100.0))
-            .collect();
-
         OrgJson {
+            // Hot fields - always emitted
             id:       self.id.clone(),
             x:        (self.x * 10.0).round() / 10.0,
             y:        (self.y * 10.0).round() / 10.0,
@@ -852,29 +844,46 @@ impl Organism {
             age:      self.age,
             alive:    self.alive,
             thought:  self.thought.clone(),
-            memory_count: MemoryCount {
-                food:   self.food_memory.len(),
-                water:  self.water_memory.len(),
-                danger: self.danger_memory.len(),
-            },
-            attitudes,
-            org_trust,
             infection:     (self.infection * 1000.0).round() / 1000.0,
+            fear_level:    (self.fear_level * 100.0).round() / 100.0,
             carrying:      self.carrying,
             carrying_type: self.carrying_type,
-            has_reflected:       self.has_reflected,
-            last_invention_tick: self.last_invention_tick,
-            loneliness:  (self.loneliness  * 100.0).round() / 100.0,
-            boredom:     (self.boredom     * 100.0).round() / 100.0,
-            fear_level:  (self.fear_level  * 100.0).round() / 100.0,
-            comfort:     (self.comfort     * 100.0).round() / 100.0,
-            grief_ticks: self.grief_ticks,
-            sleep_debt:  (self.sleep_debt  * 100.0).round() / 100.0,
-            partner_id:     self.partner_id.clone(),
-            children_count: self.children_count,
-            pregnant:       self.pregnant,
-            attracted_to:   self.attracted_to.clone(),
-            conversation_count: self.conversations.len(),
+            pregnant:      self.pregnant,
+            partner_id:    self.partner_id.clone(),
+            attracted_to:  self.attracted_to.clone(),
+
+            // Warm fields - only on full snapshots. Optional so the
+            // client cache merges by last-known when absent. This is the
+            // largest payload savings; the two HashMaps below were the
+            // dominant per-tick cost (5-10 entries each * 300 orgs).
+            attitudes: if include_cold {
+                Some(self.lineage_attitudes.iter()
+                    .filter(|(_, &v)| v.abs() > 0.1)
+                    .map(|(k, &v)| (k.clone(), (v * 100.0).round() / 100.0))
+                    .collect())
+            } else { None },
+            org_trust: if include_cold {
+                Some(self.org_trust.iter()
+                    .filter(|(_, &v)| v.abs() > 0.15)
+                    .map(|(k, &v)| (k[..k.len().min(8)].to_string(), (v * 100.0).round() / 100.0))
+                    .collect())
+            } else { None },
+            memory_count: if include_cold {
+                Some(MemoryCount {
+                    food:   self.food_memory.len(),
+                    water:  self.water_memory.len(),
+                    danger: self.danger_memory.len(),
+                })
+            } else { None },
+            has_reflected:       if include_cold { Some(self.has_reflected) }       else { None },
+            last_invention_tick: if include_cold { Some(self.last_invention_tick) } else { None },
+            loneliness:          if include_cold { Some((self.loneliness * 100.0).round() / 100.0) } else { None },
+            boredom:             if include_cold { Some((self.boredom    * 100.0).round() / 100.0) } else { None },
+            comfort:             if include_cold { Some((self.comfort    * 100.0).round() / 100.0) } else { None },
+            grief_ticks:         if include_cold { Some(self.grief_ticks) }         else { None },
+            sleep_debt:          if include_cold { Some((self.sleep_debt * 100.0).round() / 100.0) } else { None },
+            children_count:      if include_cold { Some(self.children_count) }      else { None },
+            conversation_count:  if include_cold { Some(self.conversations.len()) } else { None },
 
             // Cold fields - only emit on full snapshots
             name:       if include_cold { Some(self.name.clone())       } else { None },
@@ -933,31 +942,39 @@ impl Organism {
 /// Vocabulary is included here (small, ~14 short words) so LanguageModal
 /// can aggregate tribe-level word frequencies without extra requests.
 pub struct OrgJson {
-    // ── Hot fields (sent every tick) ──
+    // ── Hot fields (sent every delta) ──
+    // Kept lean. The canvas uses these every frame.
     pub id: String,
     pub x: f32, pub y: f32,
     pub energy: f32, pub hydration: f32, pub health: f32,
     pub age: u32, pub alive: bool,
     pub thought: String,
-    pub memory_count: MemoryCount,
-    pub attitudes:   HashMap<String, f32>,
-    pub org_trust:   HashMap<String, f32>,
     pub infection:     f32,
+    pub fear_level:    f32,
     pub carrying:      u32,
     pub carrying_type: u8,
-    pub has_reflected:       bool,
-    pub last_invention_tick: u64,
-    pub loneliness:  f32,
-    pub boredom:     f32,
-    pub fear_level:  f32,
-    pub comfort:     f32,
-    pub grief_ticks: u32,
-    pub sleep_debt:  f32,
+    pub pregnant:      bool,
     pub partner_id:     Option<String>,
-    pub children_count: u32,
-    pub pregnant:       bool,
     pub attracted_to:   Option<String>,
-    pub conversation_count: usize,
+
+    // ── Warm fields (sent only on full snapshots, ~6s cadence) ──
+    // These changed every delta in the old protocol - that was the
+    // dominant cause of per-frame payload bloat. They mostly drift slowly
+    // and the panels can tolerate a 6s refresh. The canvas doesn't use
+    // them at all. All Optional so the client cache merges by
+    // last-known-value when absent.
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub memory_count:        Option<MemoryCount>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub attitudes:           Option<HashMap<String, f32>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub org_trust:           Option<HashMap<String, f32>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub has_reflected:       Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub last_invention_tick: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub loneliness:          Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub boredom:             Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub comfort:             Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub grief_ticks:         Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub sleep_debt:          Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub children_count:      Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub conversation_count:  Option<usize>,
 
     // ── Cold fields (sent only on full snapshots, ~every 30 ticks) ──
     // Static identity (never changes after birth)

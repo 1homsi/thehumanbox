@@ -55,11 +55,11 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
   const isSick   = org.infection > 0.15
   const carrying = org.carrying > 0
 
-  const allies  = Object.entries(org.attitudes).filter(([, v]) => v >= 0.25).sort((a, b) => b[1] - a[1])
-  const enemies = Object.entries(org.attitudes).filter(([, v]) => v <= -0.25).sort((a, b) => a[1] - b[1])
+  const allies  = Object.entries(org.attitudes ?? {}).filter(([, v]) => v >= 0.25).sort((a, b) => b[1] - a[1])
+  const enemies = Object.entries(org.attitudes ?? {}).filter(([, v]) => v <= -0.25).sort((a, b) => a[1] - b[1])
 
-  const trustedOrgs = Object.entries(org.org_trust).filter(([, v]) => v >= 0.2).sort((a, b) => b[1] - a[1])
-  const fearedOrgs  = Object.entries(org.org_trust).filter(([, v]) => v <= -0.2).sort((a, b) => a[1] - b[1])
+  const trustedOrgs = Object.entries(org.org_trust ?? {}).filter(([, v]) => v >= 0.2).sort((a, b) => b[1] - a[1])
+  const fearedOrgs  = Object.entries(org.org_trust ?? {}).filter(([, v]) => v <= -0.2).sort((a, b) => a[1] - b[1])
 
   // Significant thought events from on-demand detail (polled every 3s)
   const history = [...(detail?.thought_history ?? [])]
@@ -174,9 +174,9 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
 
       <div className="org-detail-section">MEMORY</div>
       <div className="org-memory" style={{ marginBottom: 6 }}>
-        <Tooltip tip={`${org.memory_count.food} food tile locations remembered - organism navigates toward these when hungry`}><span style={{ cursor: 'default' }}>food ×{org.memory_count.food}</span></Tooltip>
-        <Tooltip tip={`${org.memory_count.water} water source locations remembered - organism navigates toward these when thirsty`}><span style={{ cursor: 'default' }}>water ×{org.memory_count.water}</span></Tooltip>
-        <Tooltip tip={`${org.memory_count.danger} danger zones remembered - organism avoids these areas when possible`}><span style={{ cursor: 'default' }}>danger ×{org.memory_count.danger}</span></Tooltip>
+        <Tooltip tip={`${org.memory_count?.food ?? 0} food tile locations remembered - organism navigates toward these when hungry`}><span style={{ cursor: 'default' }}>food ×{org.memory_count?.food ?? 0}</span></Tooltip>
+        <Tooltip tip={`${org.memory_count?.water ?? 0} water source locations remembered - organism navigates toward these when thirsty`}><span style={{ cursor: 'default' }}>water ×{org.memory_count?.water ?? 0}</span></Tooltip>
+        <Tooltip tip={`${org.memory_count?.danger ?? 0} danger zones remembered - organism avoids these areas when possible`}><span style={{ cursor: 'default' }}>danger ×{org.memory_count?.danger ?? 0}</span></Tooltip>
       </div>
 
       {history.length > 0 && (

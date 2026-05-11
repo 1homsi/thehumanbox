@@ -37,9 +37,9 @@ export interface OrganismState {
   parent_id: string
   lineage_id: string
   max_age: number
-  memory_count: { food: number; water: number; danger: number }
-  attitudes: Record<string, number>
-  org_trust: Record<string, number>
+  memory_count?: { food: number; water: number; danger: number }
+  attitudes?: Record<string, number>
+  org_trust?: Record<string, number>
   traits: Traits
   infection:     number
   carrying:      number
