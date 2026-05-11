@@ -7,6 +7,8 @@ mod routes;
 mod llm;
 mod narration_worker;
 mod think_worker;
+#[cfg(feature = "webtransport")]
+mod webtransport;
 
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
