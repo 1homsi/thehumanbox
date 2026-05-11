@@ -653,34 +653,50 @@ function drawWorldOnCanvas(
     }
   }
 
-  // Day-to-night transition. Continuous over the full day_progress
-  // cycle so we get smooth dawn/dusk ramps with warm sunrise + sunset
-  // tints, instead of the canvas snapping between day and night.
+  // Day-to-night transition. Continuous, C^1-smooth over the full
+  // day_progress cycle so dawn/dusk feel like real ramps instead of a
+  // few visible kinks where the piecewise linear curve changed slope.
   //
   //   day_progress  visible state
-  //   0.00          dawn glow peak (pink-orange)
-  //   0.05 - 0.60   bright daytime, no overlay
-  //   0.60 - 0.70   dusk: warm orange tint + darkness ramp in
-  //   0.70 - 0.85   night descending, peak darkness at 0.85
-  //   0.85 - 0.95   deep night
-  //   0.95 - 1.00   pre-dawn fade
+  //   0.05 - 0.55   bright daytime, no overlay
+  //   0.55 - 0.80   dusk: smoothstep darkness ramp + warm sunset tint
+  //   0.80 - 0.95   deep night
+  //   0.95 - 0.05   dawn: smoothstep darkness ramp out + warm sunrise tint
   {
     const phase = world.day_progress
+    // smoothstep keeps the second derivative continuous so the eye
+    // sees a fade, not a slope change.
+    const smoothstep = (t: number) => t * t * (3 - 2 * t)
+
     let darkness = 0
-    if (phase >= 0.60 && phase < 0.70)      darkness = (phase - 0.60) / 0.10 * 0.40
-    else if (phase >= 0.70 && phase < 0.85) darkness = 0.40 + (phase - 0.70) / 0.15 * 0.45
-    else if (phase >= 0.85 && phase < 0.95) darkness = 0.85
-    else if (phase >= 0.95)                 darkness = 0.85 * (1 - (phase - 0.95) / 0.05)
+    if (phase >= 0.55 && phase < 0.80) {
+      // Dusk ramp 0 -> 0.85 across 25% of the cycle (~25 ticks at
+      // DAY_LENGTH=100 - perceptible fade, not a snap).
+      darkness = 0.85 * smoothstep((phase - 0.55) / 0.25)
+    } else if (phase >= 0.80 && phase < 0.95) {
+      darkness = 0.85
+    } else if (phase >= 0.95) {
+      // Dawn ramp first half (phase 0.95 -> 1.00 = first 5% of 10%-wide
+      // dawn band, value ramps 0.85 -> ~0.43).
+      darkness = 0.85 * (1 - smoothstep((phase - 0.95) / 0.10))
+    } else if (phase < 0.05) {
+      // Dawn ramp second half (phase 0.00 -> 0.05, value ramps ~0.43 -> 0).
+      darkness = 0.85 * (1 - smoothstep((phase + 0.05) / 0.10))
+    }
 
-    const distSunset = Math.abs(phase - 0.65)
-    const sunsetWarm = Math.max(0, 1 - distSunset / 0.07)
-    let distSunrise = Math.abs(phase - 0.02)
-    distSunrise = Math.min(distSunrise, 1 - distSunrise)
-    const sunriseWarm = Math.max(0, 1 - distSunrise / 0.05)
-    const warm = Math.max(sunsetWarm, sunriseWarm)
+    // Warm tints follow gaussian bells centred on dusk (sunset) and
+    // dawn so the warm glow ramps in/out instead of being a linear
+    // triangle that pops at its edges.
+    const gauss = (d: number, sigma: number) =>
+      Math.exp(-(d * d) / (2 * sigma * sigma))
 
-    if (warm > 0) {
-      ctx.fillStyle = `rgba(255, 100, 40, ${warm * 0.18})`
+    const sunsetDist = Math.abs(phase - 0.67)
+    let dawnDist     = Math.abs(phase - 0.0)
+    dawnDist         = Math.min(dawnDist, 1 - dawnDist)
+    const warm = Math.max(gauss(sunsetDist, 0.06), gauss(dawnDist, 0.04))
+
+    if (warm > 0.01) {
+      ctx.fillStyle = `rgba(255, 100, 40, ${warm * 0.20})`
       ctx.fillRect(0, 0, W, H)
     }
     if (darkness > 0) {
