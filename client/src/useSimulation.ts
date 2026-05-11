@@ -354,22 +354,29 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
         }
         try {
           const parsed = parseResult.value
-          if (!awaitingFullFrameRef.current && lastFrameIdRef.current > 0 && parsed.frame_id <= lastFrameIdRef.current) {
+          // Out-of-order or stale: a frame_id we've already processed.
+          // Always safe to drop.
+          if (lastFrameIdRef.current > 0 && parsed.frame_id <= lastFrameIdRef.current) {
             continue
           }
+          // Gap detection. A "gap" means one or more frames the
+          // broadcaster sent never reached us (server-side Lagged or
+          // network drop). We APPLY this delta anyway - the cache is
+          // merge-only and a few hundred ms of slightly stale organism
+          // state is far better than freezing the world for 3 seconds
+          // waiting for the next full snapshot. We also kick off an
+          // HTTP snapshot fetch to catch up cleanly when the gap is
+          // big enough that culled organisms or new births might be
+          // missing from the cache.
           if (lastFrameIdRef.current > 0 && parsed.frame_id > lastFrameIdRef.current + 1) {
             const gap = parsed.frame_id - lastFrameIdRef.current - 1
-            // 1-2 frame gaps are normal at high broadcast rates (background
-            // tab momentary throttle, single packet jitter). Only warn for
-            // gaps big enough to trigger a resync, which is the genuinely
-            // interesting case.
-            if (gap > 2) {
+            // Log once per resync arc, not per delta in the gap. The
+            // awaitingFullFrameRef flag dedupes: it's set here and
+            // cleared further down when a `full` frame lands.
+            if (gap > 2 && !awaitingFullFrameRef.current) {
               console.warn('[ws] frame gap detected:', { from: lastFrameIdRef.current, to: parsed.frame_id, gap })
               markAwaitingFullFrame()
             }
-          }
-          if (awaitingFullFrameRef.current && parsed.frame_kind !== 'full') {
-            continue
           }
 
           const grid   = applyGridWire(parsed.grid, gridCache.current)
