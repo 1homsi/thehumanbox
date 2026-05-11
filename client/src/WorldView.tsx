@@ -210,7 +210,16 @@ const THOUGHT_COLORS: Record<string, string> = {
   'building shelter':      '#ffd700',
 }
 
-/** Draw a single cloud puff: a row of overlapping circles along the base + bumps on top. */
+/**
+ * Draw a cloud. Each cloud is a stack of ~10 radial-gradient puffs of
+ * varying size, deterministically jittered by `bumpSeed` so a given
+ * cloud index always looks the same shape but every cloud differs.
+ *
+ * Radial gradients give a soft falloff at the puff edges so the
+ * silhouette reads as a wispy mass rather than a row of circles. The
+ * gradient peaks below the centre (cloud-bottoms are typically the
+ * flattest, brightest part).
+ */
 function drawCloudShape(
   ctx: CanvasRenderingContext2D,
   cx: number, cy: number,
@@ -219,25 +228,39 @@ function drawCloudShape(
   color: string,
   bumpSeed: number,
 ) {
-  ctx.fillStyle = `rgba(${color},${alpha})`
+  // Cheap deterministic PRNG keyed off the bump seed. Same cloud index
+  // -> same shape every frame, so the silhouette doesn't shimmer.
+  let state = (bumpSeed | 0) || 1
+  const rand = () => {
+    state = (state * 1664525 + 1013904223) | 0
+    return ((state >>> 0) % 10000) / 10000
+  }
 
-  // Base body - flat-bottomed ellipse
-  ctx.beginPath()
-  ctx.ellipse(cx, cy + cloudH * 0.1, cloudW, cloudH * 0.65, 0, 0, Math.PI * 2)
-  ctx.fill()
-
-  // Bumps along the top - 4–6 overlapping circles of varying height & width
-  const nBumps = 4 + (bumpSeed % 3)
-  for (let b = 0; b < nBumps; b++) {
-    const t   = b / (nBumps - 1)          // 0..1 across the cloud width
-    const bx  = cx + (t - 0.5) * cloudW * 1.6
-    // height varies per bump using a deterministic pseudo-random offset
-    const h   = 0.5 + 0.45 * Math.abs(Math.sin(b * 2.1 + bumpSeed * 0.7))
-    const by  = cy - cloudH * (0.3 + h * 0.55)
-    const br  = cloudH * (0.45 + 0.35 * Math.abs(Math.sin(b * 1.5 + bumpSeed)))
+  const drawPuff = (px: number, py: number, pr: number, pa: number) => {
+    const g = ctx.createRadialGradient(px, py, 0, px, py, pr)
+    g.addColorStop(0,    `rgba(${color},${pa})`)
+    g.addColorStop(0.55, `rgba(${color},${pa * 0.7})`)
+    g.addColorStop(0.85, `rgba(${color},${pa * 0.25})`)
+    g.addColorStop(1,    `rgba(${color},0)`)
+    ctx.fillStyle = g
     ctx.beginPath()
-    ctx.arc(bx, by, br, 0, Math.PI * 2)
+    ctx.arc(px, py, pr, 0, Math.PI * 2)
     ctx.fill()
+  }
+
+  // One big anchor puff that defines the silhouette's flat bottom.
+  drawPuff(cx, cy + cloudH * 0.15, Math.max(cloudW, cloudH) * 0.85, alpha * 0.9)
+
+  // ~8-12 smaller puffs scattered along the top edge. Sizes weighted so
+  // the centre tends to bulge taller than the edges, mimicking cumulus.
+  const nPuffs = 8 + Math.floor(rand() * 5)
+  for (let p = 0; p < nPuffs; p++) {
+    const t = p / (nPuffs - 1)                       // 0..1 across width
+    const edgeBias = 1 - Math.abs(t - 0.5) * 1.6     // 1 in centre, ~0.2 at edges
+    const px = cx + (t - 0.5) * cloudW * 1.55 + (rand() - 0.5) * cloudW * 0.25
+    const py = cy - cloudH * (0.05 + rand() * 0.5 * edgeBias)
+    const pr = cloudH * (0.45 + rand() * 0.55 * edgeBias)
+    drawPuff(px, py, pr, alpha * (0.55 + rand() * 0.45))
   }
 }
 
