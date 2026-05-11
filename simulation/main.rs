@@ -38,7 +38,10 @@ use narration_worker::{NarrationReq, narration_worker};
 use think_worker::{ThinkResult, think_worker};
 
 pub type SharedSim = Arc<Mutex<Simulation>>;
-pub type Tx = broadcast::Sender<String>;
+// Broadcast channel carries pre-encoded MessagePack bytes. Wrapping in
+// Arc keeps fan-out cheap for many subscribers (no per-receiver clone of
+// the Vec<u8>).
+pub type Tx = broadcast::Sender<Arc<Vec<u8>>>;
 
 const SAVE_PATH:  &str = "world.save";
 const DAY_LENGTH: u64  = 600;
@@ -78,7 +81,7 @@ async fn sleep_until_period_end(cycle_start: std::time::Instant, period_ms: u64)
     tokio::time::sleep(tokio::time::Duration::from_millis(period_ms - elapsed)).await;
 }
 
-pub type LatestFull = Arc<std::sync::RwLock<Option<Arc<String>>>>;
+pub type LatestFull = Arc<std::sync::RwLock<Option<Arc<Vec<u8>>>>>;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -108,7 +111,7 @@ async fn main() {
         t.as_nanos() as u64 ^ (t.subsec_nanos() as u64).wrapping_mul(0x9e3779b97f4a7c15)
     };
     let sim = Arc::new(Mutex::new(Simulation::load_or_new(fresh_seed, SAVE_PATH)));
-    let (tx, _rx) = broadcast::channel::<String>(WS_BROADCAST_BUFFER);
+    let (tx, _rx) = broadcast::channel::<Arc<Vec<u8>>>(WS_BROADCAST_BUFFER);
     let latest_full: LatestFull = Arc::new(std::sync::RwLock::new(None));
     let frame_clock: FrameClock = Arc::new(AtomicU64::new(0));
     let transport_stats: SharedTransportStats = Arc::new(TransportStats::default());
@@ -119,11 +122,11 @@ async fn main() {
         let mut s = sim.lock().await;
         let frame_started = std::time::Instant::now();
         let frame_id = next_frame_id(&frame_clock);
-        let full = encode_frame(s.state_json(), frame_id, now_ms(), "full");
-        if let Ok(mut slot) = latest_full.write() {
-            *slot = Some(Arc::new(full.clone()));
-        }
+        let full = Arc::new(encode_frame(s.state_json(), frame_id, now_ms(), "full"));
         transport_stats.record_generated(full.len(), frame_started.elapsed().as_millis() as u64);
+        if let Ok(mut slot) = latest_full.write() {
+            *slot = Some(full);
+        }
     }
 
     // Channels
@@ -386,30 +389,31 @@ async fn main() {
         tokio::spawn(async move {
             loop {
                 let cycle_started = std::time::Instant::now();
-                let (json, full_payload) = {
+                let (frame, full_payload) = {
                     let mut s = sim_clone.lock().await;
                     let is_full_frame = s.tick_count % FULL_FRAME_EVERY_TICKS == 0;
                     let serialize_started = std::time::Instant::now();
                     let frame_id = next_frame_id(&frame_clock_w);
-                    let json = if is_full_frame {
+                    let bytes = if is_full_frame {
                         encode_frame(s.state_json(), frame_id, now_ms(), "full")
                     } else {
                         encode_frame(s.state_json_incremental(), frame_id, now_ms(), "delta")
                     };
                     transport_stats_w.record_generated(
-                        json.len(),
+                        bytes.len(),
                         serialize_started.elapsed().as_millis() as u64,
                     );
-                    let full = if is_full_frame { Some(json.clone()) } else { None };
-                    (json, full)
+                    let frame = Arc::new(bytes);
+                    let full = if is_full_frame { Some(frame.clone()) } else { None };
+                    (frame, full)
                 };
 
                 if let Some(full) = full_payload {
                     if let Ok(mut slot) = latest_full_w.write() {
-                        *slot = Some(Arc::new(full));
+                        *slot = Some(full);
                     }
                 }
-                let _ = tx_clone.send(json);
+                let _ = tx_clone.send(frame);
                 if cycle_started.elapsed().as_millis() as u64 > *NETWORK_MS {
                     transport_stats_w.record_broadcaster_overrun();
                 }

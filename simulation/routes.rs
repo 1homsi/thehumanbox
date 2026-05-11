@@ -5,6 +5,8 @@
 //! plumbing that has nothing to do with the broadcast loop, the think
 //! worker, or any of the bootstrap wiring still in main.rs.
 
+use std::sync::Arc;
+
 use axum::{
     Json,
     extract::{Path, State, WebSocketUpgrade},
@@ -39,7 +41,9 @@ pub async fn snapshot_handler(
     match cached {
         Some(arc) => Ok((
             [
-                (axum::http::header::CONTENT_TYPE,  "application/json".to_string()),
+                // Same MessagePack format as WS frames so the client uses
+                // one parser for both initial bootstrap and live updates.
+                (axum::http::header::CONTENT_TYPE,  "application/msgpack".to_string()),
                 (axum::http::header::CACHE_CONTROL, "no-store".to_string()),
             ],
             arc.as_ref().clone(),
@@ -87,14 +91,14 @@ pub async fn transport_handler(
 
 async fn handle_socket(
     mut socket: WebSocket,
-    mut rx: broadcast::Receiver<String>,
+    mut rx: broadcast::Receiver<Arc<Vec<u8>>>,
     sim: SharedSim,
     latest_full: LatestFull,
     transport_stats: SharedTransportStats,
 ) {
     let cached = latest_full.read().ok().and_then(|g| g.clone());
-    let snapshot: String = if let Some(s) = cached {
-        s.as_ref().clone()
+    let snapshot: Arc<Vec<u8>> = if let Some(s) = cached {
+        s
     } else {
         // Fallback bootstrap: the broadcaster hadn't yet primed `latest_full`
         // when this client connected. We mint a one-off full frame straight
@@ -102,16 +106,15 @@ async fn handle_socket(
         // any broadcast frame the client will see". Real broadcaster frames
         // start at 1 (next_frame_id is fetch_add+1 from an initial 0). The
         // client's `lastFrameIdRef` also starts at 0, so the dedupe gate
-        // `parsed.frame_id <= lastFrameIdRef` skips frame_id=0 only after
-        // a real frame has been processed - this bootstrap is always
-        // accepted on first arrival.
+        // skips frame_id=0 only after a real frame has been processed -
+        // this bootstrap is always accepted on first arrival.
         let frame_started = std::time::Instant::now();
         let mut sim = sim.lock().await;
         let payload = encode_frame(sim.state_json(), 0, now_ms(), "full");
         transport_stats.record_generated(payload.len(), frame_started.elapsed().as_millis() as u64);
-        payload
+        Arc::new(payload)
     };
-    if socket.send(Message::Text(snapshot.into())).await.is_err() { return; }
+    if socket.send(Message::Binary(snapshot.as_ref().clone().into())).await.is_err() { return; }
     transport_stats.record_sent();
 
     loop {
@@ -119,7 +122,7 @@ async fn handle_socket(
             result = rx.recv() => {
                 match result {
                     Ok(msg) => {
-                        if socket.send(Message::Text(msg.into())).await.is_err() { break; }
+                        if socket.send(Message::Binary(msg.as_ref().clone().into())).await.is_err() { break; }
                         transport_stats.record_sent();
                     }
                     Err(broadcast::error::RecvError::Lagged(skipped)) => {
@@ -127,7 +130,7 @@ async fn handle_socket(
                         if skipped >= WS_RESYNC_LAG_THRESHOLD {
                             let cached = latest_full.read().ok().and_then(|g| g.clone());
                             if let Some(full) = cached {
-                                if socket.send(Message::Text(full.as_ref().clone().into())).await.is_err() {
+                                if socket.send(Message::Binary(full.as_ref().clone().into())).await.is_err() {
                                     break;
                                 }
                                 transport_stats.record_sent();
