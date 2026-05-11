@@ -5,7 +5,9 @@ import { useUIStore } from './store'
 import { WorldView } from './WorldView'
 import { OrgCard } from './components/OrgCard'
 import { OrgDetail } from './components/OrgDetail'
-import { EventRow } from './components/EventRow'
+import { EventLog } from './components/EventLog'
+import { HistoryGrid } from './components/HistoryGrid'
+import { LineagesList } from './components/LineagesList'
 import { Modal } from './components/Modal'
 import { Tooltip } from './components/Tooltip'
 import { WorldFooter } from './components/WorldFooter'
@@ -18,9 +20,7 @@ const StatsModal         = lazy(() => import('./components/StatsModal').then(m =
 const ConversationsModal = lazy(() => import('./components/ConversationsModal').then(m => ({ default: m.ConversationsModal })))
 const AboutModal         = lazy(() => import('./components/AboutModal').then(m => ({ default: m.AboutModal })))
 import type { OrganismState } from './types'
-import {
-  lineageColor, lineageWord, HIDDEN_EVENT_TYPES,
-} from './constants'
+import { lineageColor, lineageWord } from './constants'
 import './App.css'
 
 const TILE_FIRE = 4
@@ -60,7 +60,6 @@ function App() {
   const closeOrgSearch   = useUIStore(s => s.closeOrgSearch)
   const openStats        = useUIStore(s => s.openStats)
   const closeStats       = useUIStore(s => s.closeStats)
-  const openAllLineages  = useUIStore(s => s.openAllLineages)
   const closeAllLineages = useUIStore(s => s.closeAllLineages)
   const openAbout        = useUIStore(s => s.openAbout)
   const closeAbout       = useUIStore(s => s.closeAbout)
@@ -297,53 +296,9 @@ function App() {
 
             {/* ── Left panel: world state ──────────────────────────── */}
             <aside className={clsx('panel', 'panel-left', leftOpen && 'open')}>
-              <div className="section-title">WORLD HISTORY</div>
-              <div className="history-grid">
-                <Tooltip tip="Total organisms ever born into this world"><span className="hist-label" style={{ cursor: 'default' }}>births</span></Tooltip>      <span className="hist-val">{world.history.births}</span>
-                <Tooltip tip="Deaths from old age - organisms that lived a full life"><span className="hist-label" style={{ cursor: 'default' }}>old age</span></Tooltip>     <span className="hist-val">{world.history.deaths_old_age}</span>
-                <Tooltip tip="Deaths from starvation or dehydration - not enough food or water"><span className="hist-label" style={{ cursor: 'default' }}>starvation</span></Tooltip>  <span className="hist-val">{world.history.deaths_starvation}</span>
-                <Tooltip tip="Deaths from disease - infection spread between organisms"><span className="hist-label" style={{ cursor: 'default' }}>sickness</span></Tooltip>    <span className="hist-val">{world.history.deaths_sickness}</span>
-                <Tooltip tip="Deaths from combat - organisms killed in territorial or resource disputes"><span className="hist-label" style={{ cursor: 'default' }}>combat</span></Tooltip>      <span className="hist-val">{world.history.deaths_combat}</span>
-                <Tooltip tip="Lineage alliances formed - mutual cooperation agreements between tribes"><span className="hist-label" style={{ cursor: 'default' }}>alliances</span></Tooltip>   <span className="hist-val">{world.history.alliances_formed}</span>
-                <Tooltip tip="Total territorial challenges issued - one organism confronting another"><span className="hist-label" style={{ cursor: 'default' }}>challenges</span></Tooltip>  <span className="hist-val">{world.history.challenges_total}</span>
-                <Tooltip tip="Food gifted between organisms - social bonding and kin support behaviour"><span className="hist-label" style={{ cursor: 'default' }}>gifts</span></Tooltip>       <span className="hist-val">{world.history.gifts_total}</span>
-                <Tooltip tip="Drought events - periods of water scarcity that forced migration and die-offs"><span className="hist-label" style={{ cursor: 'default' }}>droughts</span></Tooltip>    <span className="hist-val">{world.history.droughts}</span>
-                <Tooltip tip="Disease outbreaks - epidemic events that swept through the population"><span className="hist-label" style={{ cursor: 'default' }}>outbreaks</span></Tooltip>   <span className="hist-val">{world.history.outbreaks}</span>
-              </div>
-
-              <div className="section-title">LINEAGES ({Object.keys(lineages).length})</div>
-              <div className="lineage-list">
-                {Object.entries(lineages)
-                  .sort((a, b) => b[1].count - a[1].count)
-                  .slice(0, 5)
-                  .map(([lid, info]) => (
-                    <div key={lid} className="lineage-row">
-                      <span className="lineage-dot" style={{ background: lineageColor(lid) }} />
-                      <span className="lineage-id">{tribeName(lid)}</span>
-                      <span className="lineage-count">{info.count}</span>
-                      <span className="lineage-gen">
-                        g{info.minGen}{info.maxGen > info.minGen ? `–${info.maxGen}` : ''}
-                      </span>
-                      <span className="lineage-strat">
-                        {lineageWord(info.orgs, 'home') || lineageWord(info.orgs, 'food') || ''}
-                      </span>
-                    </div>
-                  ))}
-                {Object.keys(lineages).length > 5 && (
-                  <button className="view-all-btn" onClick={openAllLineages}>
-                    view all ({Object.keys(lineages).length})
-                  </button>
-                )}
-              </div>
-
-              <div className="section-title">EVENTS</div>
-              <div className="event-log">
-                {[...world.events].reverse()
-                  .filter(e => !HIDDEN_EVENT_TYPES.has(e.type))
-                  .slice(0, 20)
-                  .map((e, i) => <EventRow key={i} event={e} />)}
-              </div>
-
+              <HistoryGrid />
+              <LineagesList />
+              <EventLog />
               <WorldFooter world={world} />
             </aside>
 
