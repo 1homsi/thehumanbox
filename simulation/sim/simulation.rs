@@ -985,6 +985,36 @@ impl Simulation {
             self.organisms[idx].infection = (self.organisms[idx].infection * med_mult).max(0.0);
         }
 
+        // ── Passive kin food sharing ──────────────────────────────────────────
+        // When a well-fed organism stands within two tiles of a kin who's
+        // about to starve, slip them a portion. This is what a real human
+        // tribe does at the margin - the strong feed the weak. Capped to
+        // one transfer per tick and gated on the donor's reserves so the
+        // donor doesn't tank their own survival.
+        if self.organisms[idx].energy > 0.75 && self.tick_count % 5 == (idx as u64 % 5) {
+            let lid = self.organisms[idx].lineage_id.clone();
+            let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
+            let recipient = self.organisms.iter().enumerate()
+                .filter(|(i, o)| *i != idx && o.alive && o.lineage_id == lid && o.energy < 0.30)
+                .filter(|(_, o)| (o.x - sx).abs() + (o.y - sy).abs() < 2.5)
+                .min_by(|a, b| a.1.energy.partial_cmp(&b.1.energy).unwrap_or(std::cmp::Ordering::Equal))
+                .map(|(i, _)| i);
+            if let Some(ri) = recipient {
+                self.organisms[idx].energy = (self.organisms[idx].energy - 0.10).max(0.40);
+                self.organisms[ri].energy = (self.organisms[ri].energy + 0.16).min(1.0);
+                let recipient_id = self.organisms[ri].id.clone();
+                let donor_name = self.organisms[idx].name.clone();
+                self.organisms[idx].think("sharing food", self.tick_count);
+                self.organisms[ri].think("fed by kin", self.tick_count);
+                let cur = self.organisms[idx].org_trust.get(&recipient_id).copied().unwrap_or(0.0);
+                self.organisms[idx].org_trust.insert(recipient_id, (cur + 0.04).min(1.0));
+                self.history.gifts_total += 1;
+                if self.rng.gen::<f32>() < 0.10 {
+                    push_event(&mut self.events, self.tick_count, "gift", &donor_name, "shared food with starving kin");
+                }
+            }
+        }
+
         // Trap: passive food capture near food trails for orgs with trap knowledge
         if self.organisms[idx].discoveries.contains("trap") {
             let (cx2, cy2) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
