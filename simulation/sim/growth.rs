@@ -256,13 +256,19 @@ pub fn try_reproduce(
     // ticks (measured: 51% of population in a single 60x60 cell at 90k ticks).
     // Gaussian-ish drift via two uniform samples keeps tails small while
     // letting a tribe slowly migrate across many generations.
+    // Reflect at world borders rather than clamp - clamping creates an
+    // absorbing wall that piles density at the edge (measured: 48% of
+    // population at x in [0..59] when clamp was in place).
     let drift = 12.0;
     let dx = rng.gen_range(-drift..=drift) * 0.5 + rng.gen_range(-drift..=drift) * 0.5;
     let dy = rng.gen_range(-drift..=drift) * 0.5 + rng.gen_range(-drift..=drift) * 0.5;
-    child.home_x = (organisms[org_idx].home_x + dx)
-        .clamp(0.0, (crate::world::grid::WIDTH  - 1) as f32);
-    child.home_y = (organisms[org_idx].home_y + dy)
-        .clamp(0.0, (crate::world::grid::HEIGHT - 1) as f32);
+    let reflect = |mut v: f32, max: f32| {
+        if v < 0.0 { v = -v; }
+        if v > max { v = 2.0 * max - v; }
+        v.clamp(0.0, max)
+    };
+    child.home_x = reflect(organisms[org_idx].home_x + dx, (crate::world::grid::WIDTH  - 1) as f32);
+    child.home_y = reflect(organisms[org_idx].home_y + dy, (crate::world::grid::HEIGHT - 1) as f32);
 
     // Birth infection
     if organisms[org_idx].infection > 0.1 {
