@@ -1091,8 +1091,14 @@ function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, 
       const prevServerAt  = interp.prevServerAt.current
       const currentReceivedAt = interp.currentReceivedAt.current
       const interval = Math.max(50, curServerAt - prevServerAt)
+      // Render-lag buffer: lag behind real time by half the network
+      // interval. Without this lag, a late packet leaves t pinned at 1
+      // and the world visually snaps when the late packet eventually
+      // arrives. With ~100ms lag (at default 200ms NETWORK_MS) a
+      // packet up to ~100ms late is absorbed into the smooth blend.
+      const RENDER_LAG_MS = Math.min(120, interval * 0.5)
       const t = (cur && prev && interval > 0)
-        ? Math.min(1, Math.max(0, (performance.now() - currentReceivedAt) / interval))
+        ? Math.min(1, Math.max(0, (performance.now() - currentReceivedAt - RENDER_LAG_MS) / interval))
         : 1
 
       const uiKey = `${selectedOrgIdRef.current ?? ''}|${overlayRef.current ?? ''}|${focusRef.current}|${viewFlagsRef.current.territory ? 't':''}${viewFlagsRef.current.names ? 'n':''}${viewFlagsRef.current.thoughts ? 'h':''}${viewFlagsRef.current.animals ? 'a':''}${viewFlagsRef.current.grid ? 'g':''}`
