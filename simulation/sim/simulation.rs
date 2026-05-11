@@ -985,6 +985,58 @@ impl Simulation {
             self.organisms[idx].infection = (self.organisms[idx].infection * med_mult).max(0.0);
         }
 
+        // ── Passive kin water sharing ─────────────────────────────────────────
+        // The canteen analogue of food sharing - an organism with full
+        // canteens slips a sip to a parched same-lineage neighbour.
+        if self.organisms[idx].inv_water >= 2 && self.tick_count % 7 == (idx as u64 % 7) {
+            let lid = self.organisms[idx].lineage_id.clone();
+            let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
+            let recipient = self.organisms.iter().enumerate()
+                .filter(|(i, o)| *i != idx && o.alive && o.lineage_id == lid && o.hydration < 0.30)
+                .filter(|(_, o)| (o.x - sx).abs() + (o.y - sy).abs() < 2.5)
+                .min_by(|a, b| a.1.hydration.partial_cmp(&b.1.hydration).unwrap_or(std::cmp::Ordering::Equal))
+                .map(|(i, _)| i);
+            if let Some(ri) = recipient {
+                self.organisms[idx].inv_water -= 1;
+                self.organisms[ri].hydration = (self.organisms[ri].hydration + 0.22).min(1.0);
+                self.organisms[idx].think("sharing water", self.tick_count);
+                self.organisms[ri].think("watered by kin", self.tick_count);
+                self.history.gifts_total += 1;
+            }
+        }
+
+        // ── Firelight storytelling ────────────────────────────────────────────
+        // At night near a campfire, kin exchange memory hints with each
+        // other. Real human behaviour: the campfire is where the tribe
+        // pools knowledge of where water flows, where game grazes, where
+        // the predator passed. Much weaker than the elder-teach pathway
+        // and limited to one exchange per organism per tick.
+        if night && self.tick_count % 17 == (idx as u64 % 17) {
+            let (sx, sy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
+            let near_fire = (-2i32..=2).any(|ddx| (-2i32..=2).any(|ddy| {
+                matches!(self.grid.get(sx + ddx, sy + ddy), Tile::Campfire | Tile::Fire)
+            }));
+            if near_fire {
+                let lid = self.organisms[idx].lineage_id.clone();
+                let (fx, fy) = (self.organisms[idx].x, self.organisms[idx].y);
+                let listener = self.organisms.iter().enumerate()
+                    .filter(|(i, o)| *i != idx && o.alive && o.lineage_id == lid && o.age < 1800)
+                    .filter(|(_, o)| (o.x - fx).abs() + (o.y - fy).abs() < 3.5)
+                    .min_by_key(|(_, o)| o.age)
+                    .map(|(i, _)| i);
+                if let Some(li) = listener {
+                    let ms = self.organisms[li].traits.memory_strength;
+                    let food_hints: Vec<((i32,i32), f32)> = self.organisms[idx].food_memory.iter()
+                        .filter(|(_, &v)| v > 0.5).take(2).map(|(&k, &v)| (k, v)).collect();
+                    let water_hints: Vec<((i32,i32), f32)> = self.organisms[idx].water_memory.iter()
+                        .filter(|(_, &v)| v > 0.5).take(2).map(|(&k, &v)| (k, v)).collect();
+                    for ((x, y), v) in food_hints  { Organism::remember(&mut self.organisms[li].food_memory,  x, y, v * 0.3, ms); }
+                    for ((x, y), v) in water_hints { Organism::remember(&mut self.organisms[li].water_memory, x, y, v * 0.3, ms); }
+                    self.organisms[li].think("listening by the fire", self.tick_count);
+                }
+            }
+        }
+
         // ── Passive kin food sharing ──────────────────────────────────────────
         // When a well-fed organism stands within two tiles of a kin who's
         // about to starve, slip them a portion. This is what a real human
