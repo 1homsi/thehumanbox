@@ -204,7 +204,11 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
   const snapshotFetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    const MAX_BUFFERED_MESSAGES = 8
+    // Client-side absorb buffer. At 10 Hz, 32 messages = ~3.2s of work
+    // that the RAF loop can swallow before we start dropping. Mostly
+    // matters when the tab unbackgrounds and several queued WS messages
+    // arrive in one event-loop tick.
+    const MAX_BUFFERED_MESSAGES = 32
     // Server pushes the cached `latest_full` frame over the open WS as soon
     // as it sees a Lagged(>=3) on the broadcast channel. That arrives in a
     // few ms over the already-open socket, so we wait this long before
@@ -286,8 +290,12 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
           }
           if (lastFrameIdRef.current > 0 && parsed.frame_id > lastFrameIdRef.current + 1) {
             const gap = parsed.frame_id - lastFrameIdRef.current - 1
-            console.warn('[ws] frame gap detected:', { from: lastFrameIdRef.current, to: parsed.frame_id, gap })
+            // 1-2 frame gaps are normal at high broadcast rates (background
+            // tab momentary throttle, single packet jitter). Only warn for
+            // gaps big enough to trigger a resync, which is the genuinely
+            // interesting case.
             if (gap > 2) {
+              console.warn('[ws] frame gap detected:', { from: lastFrameIdRef.current, to: parsed.frame_id, gap })
               markAwaitingFullFrame()
             }
           }

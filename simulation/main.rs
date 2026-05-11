@@ -45,7 +45,13 @@ pub type Tx = broadcast::Sender<Arc<Vec<u8>>>;
 
 const SAVE_PATH:  &str = "world.save";
 const DAY_LENGTH: u64  = 600;
-const WS_BROADCAST_BUFFER: usize = 64;
+// Broadcast queue depth. At 10 Hz network rate that's ~30 seconds of
+// buffer per receiver - enough to absorb a backgrounded tab,
+// Cloudflare Tunnel batch, or short network blip without forcing a
+// Lagged + full-frame resync. Above this point the older messages get
+// evicted, the client sees a frame gap, and we log a warning + push
+// the cached `latest_full` so it can catch up.
+const WS_BROADCAST_BUFFER: usize = 300;
 pub const WS_RESYNC_LAG_THRESHOLD: u64 = 3;
 
 fn tick_ms() -> u64 {
