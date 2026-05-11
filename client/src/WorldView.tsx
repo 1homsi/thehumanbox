@@ -1128,6 +1128,24 @@ function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, 
         })
       }
 
+      // Interpolate cyclic scalars (day_progress, season_progress)
+      // between prev and cur so the dawn/dusk tint and the seasonal sky
+      // ramp don't visibly snap at WS-frame boundaries. lerpCycle handles
+      // wrap-around (0.98 → 0.02 must cross 1.0/0.0, not 0.5).
+      const lerpCycle = (a: number, b: number, k: number) => {
+        let diff = b - a
+        if (diff >  0.5) diff -= 1
+        if (diff < -0.5) diff += 1
+        const out = a + diff * k
+        return (out % 1 + 1) % 1
+      }
+      const lerpedDay    = prev && t < 1
+        ? lerpCycle(prev.day_progress, w.day_progress, t)
+        : w.day_progress
+      const lerpedSeason = prev && t < 1
+        ? lerpCycle(prev.season_progress, w.season_progress, t)
+        : w.season_progress
+
       const enrichedGrid = {
         ...w.grid,
         depth_map: cachedDepth.current  ?? w.grid.depth_map,
@@ -1135,9 +1153,11 @@ function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, 
       }
       const enrichedWorld: WorldState = {
         ...w,
-        grid:      enrichedGrid,
+        grid:               enrichedGrid,
         viewport_organisms: renderOrgs,
         viewport_animals:   renderAnimals,
+        day_progress:       lerpedDay,
+        season_progress:    lerpedSeason,
       }
 
       drawWorldOnCanvas(dyn.ctx, enrichedWorld, selectedOrgIdRef.current, overlayRef.current, focusRef.current, viewFlagsRef.current)
