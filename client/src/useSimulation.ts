@@ -70,16 +70,50 @@ function applyGridWire(wire: GridWire, cache: GridState | null): GridState {
   const w = wire.width
   const h = wire.height
 
-  // Dense fire - zero out, then apply sparse entries
   const fire: number[][] = Array.from({ length: h }, () => new Array(w).fill(0))
   for (const [row, col, v] of wire.fire) {
     if (row < h && col < w) fire[row][col] = v / 1000
   }
 
-  // Dense structure - zero out, then apply sparse entries
   const structure: number[][] = Array.from({ length: h }, () => new Array(w).fill(0))
   for (const [row, col, v] of wire.structure) {
     if (row < h && col < w) structure[row][col] = v / 100
+  }
+
+  // Static overlays - trails / fertility / hazard. Only refreshed on
+  // static frames (every 30 ticks). Fall back to the cached layer when
+  // the wire doesn't include them.
+  let food_trail = cache?.food_trail
+  let water_trail = cache?.water_trail
+  let path_trail = cache?.path_trail
+  if (wire.trails) {
+    food_trail  = Array.from({ length: h }, () => new Array(w).fill(0))
+    water_trail = Array.from({ length: h }, () => new Array(w).fill(0))
+    path_trail  = Array.from({ length: h }, () => new Array(w).fill(0))
+    for (const [row, col, f, wv, p] of wire.trails) {
+      if (row < h && col < w) {
+        food_trail[row][col]  = f / 100
+        water_trail[row][col] = wv / 100
+        path_trail[row][col]  = p / 100
+      }
+    }
+  }
+
+  let fertility = cache?.fertility
+  if (wire.fertility) {
+    // Default baseline 0.40; sparse entries override.
+    fertility = Array.from({ length: h }, () => new Array(w).fill(0.4))
+    for (const [row, col, v] of wire.fertility) {
+      if (row < h && col < w) fertility[row][col] = v / 100
+    }
+  }
+
+  let hazard = cache?.hazard
+  if (wire.hazard) {
+    hazard = Array.from({ length: h }, () => new Array(w).fill(0))
+    for (const [row, col, v] of wire.hazard) {
+      if (row < h && col < w) hazard[row][col] = v / 100
+    }
   }
 
   return {
@@ -87,13 +121,16 @@ function applyGridWire(wire: GridWire, cache: GridState | null): GridState {
     height:   wire.height,
     origin_x: wire.origin_x,
     origin_y: wire.origin_y,
-    // Static maps: use incoming when present, fall back to cache
     tiles:     wire.tiles     ?? cache?.tiles     ?? [],
     biomes:    wire.biomes    ?? cache?.biomes,
     depth_map: wire.depth_map ?? cache?.depth_map,
-    // Dynamic: always rebuilt from wire
     fire_intensity: fire,
     structure,
+    food_trail,
+    water_trail,
+    path_trail,
+    fertility,
+    hazard,
   }
 }
 

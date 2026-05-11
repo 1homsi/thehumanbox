@@ -393,6 +393,7 @@ function drawWorldOnCanvas(
   viewFlags: ViewFlags,
 ) {
   const { width, height, tiles, fire_intensity, structure } = world.grid
+  const { food_trail, water_trail, path_trail, fertility, hazard } = world.grid
   // Tiles arrive on tick 0 and every 5th tick - skip this frame if not yet received
   if (!tiles || tiles.length < height) return
   const ox = world.grid.origin_x ?? 0
@@ -686,6 +687,70 @@ function drawWorldOnCanvas(
       ctx.moveTo(sx, 0)
       ctx.lineTo(sx + H * 0.35, H)
       ctx.stroke()
+    }
+    ctx.restore()
+  }
+
+  // Fertility heatmap - green tint on rich soil, brown on barren
+  if (viewFlags.fertility && fertility) {
+    ctx.save()
+    for (let row = 0; row < height; row++) {
+      const r = fertility[row]
+      if (!r) continue
+      for (let col = 0; col < width; col++) {
+        const f = r[col]
+        if (f == null) continue
+        if (f > 0.55) {
+          ctx.fillStyle = `rgba(80,180,80,${Math.min(0.45, (f - 0.55) * 1.2)})`
+          ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
+        } else if (f < 0.25) {
+          ctx.fillStyle = `rgba(150,90,50,${Math.min(0.45, (0.25 - f) * 1.5)})`
+          ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
+        }
+      }
+    }
+    ctx.restore()
+  }
+
+  // Hazard scars - red tint where combat / death has happened
+  if (viewFlags.hazard && hazard) {
+    ctx.save()
+    for (let row = 0; row < height; row++) {
+      const r = hazard[row]
+      if (!r) continue
+      for (let col = 0; col < width; col++) {
+        const h = r[col]
+        if (h == null || h < 0.02) continue
+        ctx.fillStyle = `rgba(200,40,40,${Math.min(0.55, h * 0.9)})`
+        ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
+      }
+    }
+    ctx.restore()
+  }
+
+  // Trails - food (yellow), water (blue), path (white). Stacked
+  // additively at low alpha so multi-use corridors light up.
+  if (viewFlags.trails && (food_trail || water_trail || path_trail)) {
+    ctx.save()
+    for (let row = 0; row < height; row++) {
+      for (let col = 0; col < width; col++) {
+        const f = food_trail?.[row]?.[col] ?? 0
+        const w = water_trail?.[row]?.[col] ?? 0
+        const p = path_trail?.[row]?.[col] ?? 0
+        if (f < 0.1 && w < 0.1 && p < 0.1) continue
+        if (p >= 0.1) {
+          ctx.fillStyle = `rgba(220,220,220,${Math.min(0.35, p * 0.5)})`
+          ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
+        }
+        if (f >= 0.1) {
+          ctx.fillStyle = `rgba(240,220,80,${Math.min(0.40, f * 0.5)})`
+          ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
+        }
+        if (w >= 0.1) {
+          ctx.fillStyle = `rgba(100,170,240,${Math.min(0.40, w * 0.5)})`
+          ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
+        }
+      }
     }
     ctx.restore()
   }

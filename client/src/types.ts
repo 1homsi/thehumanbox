@@ -129,6 +129,16 @@ export interface GridState {
   structure: number[][]           // dense (rebuilt from sparse structure each tick)
   biomes?: number[][]             // dense - updated every 30 ticks
   depth_map?: number[][]          // dense - updated every 30 ticks
+  /** Dense food trail layer, 0..1 - rebuilt from sparse trails on static frames */
+  food_trail?: number[][]
+  /** Dense water trail layer */
+  water_trail?: number[][]
+  /** Dense path trail (organism footfall) */
+  path_trail?: number[][]
+  /** Dense fertility 0..1 - only diverged tiles refreshed each static frame */
+  fertility?: number[][]
+  /** Dense hazard 0..1 - combat/death scars */
+  hazard?: number[][]
 }
 
 /** Raw incoming WS grid payload - sparse fire/structure, optional static maps. */
@@ -142,6 +152,12 @@ export interface GridWire {
   structure: [number, number, number][]  // sparse: [row, col, v×100]
   biomes?: number[][]
   depth_map?: number[][]
+  /** Sparse trails: [row, col, food×100, water×100, path×100] */
+  trails?: [number, number, number, number, number][]
+  /** Sparse fertility deviation: [row, col, fertility×100] */
+  fertility?: [number, number, number][]
+  /** Sparse hazard: [row, col, hazard×100] */
+  hazard?: [number, number, number][]
 }
 
 export interface WorldState {

@@ -1113,6 +1113,69 @@ impl WorldGrid {
             }
         }
 
+        // Sparse trails - emit a row whenever any of food/water/path exceeds
+        // 0.10. Three channels packed into a single entry to amortize the
+        // [row,col] cost. Only emitted on static frames since trails decay
+        // slowly and don't need per-tick updates.
+        let trails: Option<Vec<[u16; 5]>> = if include_static {
+            let mut v: Vec<[u16; 5]> = Vec::new();
+            for y in oy..oy + vh {
+                for col_off in 0..vw {
+                    let x = (ox + col_off) as i32;
+                    let yy = y as i32;
+                    let f = self.trail_at(x, yy, TrailKind::Food);
+                    let w = self.trail_at(x, yy, TrailKind::Water);
+                    let p = self.trail_at(x, yy, TrailKind::Path);
+                    if f > 0.10 || w > 0.10 || p > 0.10 {
+                        v.push([
+                            (y - oy) as u16,
+                            col_off as u16,
+                            (f * 100.0).min(65535.0) as u16,
+                            (w * 100.0).min(65535.0) as u16,
+                            (p * 100.0).min(65535.0) as u16,
+                        ]);
+                    }
+                }
+            }
+            Some(v)
+        } else {
+            None
+        };
+
+        // Sparse fertility - tiles whose value deviates from a 0.40 baseline
+        // by more than ±0.15. Keeps the list short; most ungrazed land at
+        // baseline contributes nothing.
+        let fertility: Option<Vec<[u16; 3]>> = if include_static {
+            let mut v: Vec<[u16; 3]> = Vec::new();
+            for y in oy..oy + vh {
+                let row = &self.fertility[y * WIDTH + ox..y * WIDTH + ox + vw];
+                for (col_off, &f) in row.iter().enumerate() {
+                    if (f - 0.40).abs() > 0.15 {
+                        v.push([(y - oy) as u16, col_off as u16, (f * 100.0).min(65535.0) as u16]);
+                    }
+                }
+            }
+            Some(v)
+        } else {
+            None
+        };
+
+        // Sparse hazard - only non-zero tiles. Combat / death scars.
+        let hazard: Option<Vec<[u16; 3]>> = if include_static {
+            let mut v: Vec<[u16; 3]> = Vec::new();
+            for y in oy..oy + vh {
+                let row = &self.hazard[y * WIDTH + ox..y * WIDTH + ox + vw];
+                for (col_off, &h) in row.iter().enumerate() {
+                    if h > 0.02 {
+                        v.push([(y - oy) as u16, col_off as u16, (h * 100.0).min(65535.0) as u16]);
+                    }
+                }
+            }
+            Some(v)
+        } else {
+            None
+        };
+
         // Static maps - biomes + depth, only sent every STATIC_INTERVAL ticks
         let (biomes, depth_map) = if include_static {
             let b = (oy..oy + vh).map(|y| slice_u8(&self.biome, y)).collect();
@@ -1148,6 +1211,9 @@ impl WorldGrid {
             structure,
             biomes,
             depth_map,
+            trails,
+            fertility,
+            hazard,
         }
     }
 
@@ -1178,7 +1244,9 @@ pub enum TrailKind {
 /// - fire:  sparse list of (row,col,v×1000) - 0 bytes when no fire, <5 KB with fire
 /// - structure: sparse list of (row,col,v×100) - 0 bytes when no buildings
 /// - biomes / depth_map: ~360 KB each, only sent every 30 ticks (when Some)
-/// - fertility/hazard/pressure removed from broadcast (optional overlay endpoints)
+/// - trails / fertility / hazard: sparse, threshold-gated, only present when
+///   include_static is true (every 30 ticks) so they cost roughly the same
+///   bandwidth as structure
 #[derive(Serialize)]
 pub struct GridJson {
     pub width: usize,
@@ -1198,6 +1266,20 @@ pub struct GridJson {
     /// Ocean depth - only present every STATIC_INTERVAL ticks
     #[serde(skip_serializing_if = "Option::is_none")]
     pub depth_map: Option<Vec<Vec<u8>>>,
+    /// Sparse trails: [[row, col, food×100, water×100, path×100], ...]
+    /// Only entries where at least one trail exceeds the threshold. Empty
+    /// vec when no trails active. Optional - only on static frames.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trails: Option<Vec<[u16; 5]>>,
+    /// Sparse fertility deviation: [[row, col, fertility×100], ...]
+    /// Only tiles whose fertility is notably above or below 0.40 baseline.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fertility: Option<Vec<[u16; 3]>>,
+    /// Sparse hazard scars: [[row, col, hazard×100], ...]
+    /// Hazard accumulates from combat / death; default is 0 so the sparse
+    /// representation is naturally compact.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hazard: Option<Vec<[u16; 3]>>,
 }
 
 #[cfg(test)]
