@@ -1115,21 +1115,31 @@ function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, 
       const currentReceivedAt = interp.currentReceivedAt.current
       const interval = Math.max(50, curServerAt - prevServerAt)
       // Render-lag buffer: lag behind real time by half the network
-      // interval. Without this lag, a late packet leaves t pinned at 1
-      // and the world visually snaps when the late packet eventually
-      // arrives. With ~100ms lag (at default 200ms NETWORK_MS) a
-      // packet up to ~100ms late is absorbed into the smooth blend.
+      // interval. Absorbs packet jitter into the interpolation window.
       const RENDER_LAG_MS = Math.min(120, interval * 0.5)
+      // Client-side prediction (dead reckoning). When we've crossed
+      // t=1 the next packet hasn't arrived yet. Instead of pausing at
+      // the last-known position, keep moving in the prev->cur
+      // direction. Capped at t=2 (one full broadcast interval beyond)
+      // so the prediction can't run away on direction changes; the
+      // worst-case snap when the real packet lands is one extra
+      // tick's worth of motion. Same lerp math (p + (o - p) * t)
+      // already extrapolates linearly when t > 1.
+      const PREDICT_CAP = 2.0
       const t = (cur && prev && interval > 0)
-        ? Math.min(1, Math.max(0, (performance.now() - currentReceivedAt - RENDER_LAG_MS) / interval))
+        ? Math.max(0, Math.min(PREDICT_CAP, (performance.now() - currentReceivedAt - RENDER_LAG_MS) / interval))
         : 1
 
       const uiKey = `${selectedOrgIdRef.current ?? ''}|${overlayRef.current ?? ''}|${focusRef.current}|${viewFlagsRef.current.territory ? 't':''}${viewFlagsRef.current.names ? 'n':''}${viewFlagsRef.current.thoughts ? 'h':''}${viewFlagsRef.current.animals ? 'a':''}${viewFlagsRef.current.grid ? 'g':''}`
-      const settled = t >= 1 && lastDrawnT >= 1 && curServerAt === lastDrawnAt && uiKey === lastDrawnUI
+      const settled = t >= PREDICT_CAP && lastDrawnT >= PREDICT_CAP && curServerAt === lastDrawnAt && uiKey === lastDrawnUI
       if (settled) return
 
+      // Same lerp formula handles both regular interpolation (t in
+      // [0, 1]) and prediction beyond (t in (1, PREDICT_CAP]).
+      // Linear extrapolation past t=1 keeps organisms moving in their
+      // last-known direction when packets are late.
       let renderOrgs = w.viewport_organisms ?? w.organisms
-      if (prev && t < 1 && cur === w) {
+      if (prev && cur === w) {
         const prevOrgs = prev.viewport_organisms ?? prev.organisms
         const prevById = new Map<string, typeof prevOrgs[number]>()
         for (const o of prevOrgs) prevById.set(o.id, o)
@@ -1140,7 +1150,7 @@ function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, 
         })
       }
       let renderAnimals = w.viewport_animals ?? w.animals
-      if (prev && t < 1 && cur === w) {
+      if (prev && cur === w) {
         const prevAnimals = prev.viewport_animals ?? prev.animals
         const prevById = new Map<number, typeof prevAnimals[number]>()
         for (const a of prevAnimals) prevById.set(a.id, a)
@@ -1151,10 +1161,9 @@ function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, 
         })
       }
 
-      // Interpolate cyclic scalars (day_progress, season_progress)
-      // between prev and cur so the dawn/dusk tint and the seasonal sky
-      // ramp don't visibly snap at WS-frame boundaries. lerpCycle handles
-      // wrap-around (0.98 → 0.02 must cross 1.0/0.0, not 0.5).
+      // Cyclic scalars (day_progress, season_progress). Lerp covers
+      // wrap-around at 1.0 -> 0.0. For prediction beyond t=1 we keep
+      // advancing the cycle; modulo at the end keeps it in [0, 1).
       const lerpCycle = (a: number, b: number, k: number) => {
         let diff = b - a
         if (diff >  0.5) diff -= 1
@@ -1162,10 +1171,10 @@ function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, 
         const out = a + diff * k
         return (out % 1 + 1) % 1
       }
-      const lerpedDay    = prev && t < 1
+      const lerpedDay    = prev
         ? lerpCycle(prev.day_progress, w.day_progress, t)
         : w.day_progress
-      const lerpedSeason = prev && t < 1
+      const lerpedSeason = prev
         ? lerpCycle(prev.season_progress, w.season_progress, t)
         : w.season_progress
 
