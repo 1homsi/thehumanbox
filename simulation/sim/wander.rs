@@ -30,14 +30,17 @@ impl Simulation {
             let d = (o.x - mx).abs() + (o.y - my).abs();
             if d <= 8.0 { sumx += o.x; sumy += o.y; count += 1; }
         }
-        if count >= 4 {
+        // Lowered count threshold 4 -> 3: villages start spreading as soon
+        // as a 17x17 patch holds 3 kin, not waiting for a 5th. Combined with
+        // stronger push, the tribe's footprint grows faster than its density.
+        if count >= 3 {
             let curiosity = self.organisms[idx].traits.curiosity;
             let age = self.organisms[idx].age;
             // Fork thresholds tuned to fight late-game consolidation. Earlier age
             // gate + higher probability means tribes splinter while the world is
             // still spreading, before crowding forces re-collection into a
             // super-cluster.
-            let fork_eligible = age >= 1200 && curiosity >= 0.55 && count >= 6;
+            let fork_eligible = age >= 1200 && curiosity >= 0.55 && count >= 5;
             if fork_eligible && self.rng.gen::<f32>() < 0.15 {
                 if let Some((fx, fy)) = self.find_far_empty_anchor(mx as i32, my as i32) {
                     self.fork_new_tribe(idx, fx, fy);
@@ -56,7 +59,9 @@ impl Simulation {
             } else {
                 dx /= len; dy /= len;
             }
-            let push = 60.0 + (count as f32 - 4.0) * 14.0;
+            // Stronger push (80 base, +18 per extra kin) keeps a swelling
+            // tribe spreading out as it grows rather than just orbiting.
+            let push = 80.0 + (count as f32 - 3.0) * 18.0;
             let tx = (mx + dx * push).round() as i32;
             let ty = (my + dy * push).round() as i32;
             let tx = tx.clamp(5, WIDTH as i32 - 5);

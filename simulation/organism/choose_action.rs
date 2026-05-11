@@ -174,8 +174,13 @@ impl Organism {
                         return (self.toward(camp, grid), thought);
                     }
                 }
+                // Nightly home-pull: was 0.20 per tick, which over a long
+                // night converged ~all dispersed kin back to the founder's
+                // tile. Halved to 0.08 - still a clear "head home at night"
+                // pressure but lets adolescents/wanderers ride out the night
+                // closer to wherever they were exploring.
                 let dist_home = (self.x - self.home_x).abs() + (self.y - self.home_y).abs();
-                if dist_home > 25.0 && rng.gen::<f32>() < 0.20 {
+                if dist_home > 25.0 && rng.gen::<f32>() < 0.08 {
                     set_thought!("heading home");
                     return (self.toward((self.home_x as i32, self.home_y as i32), grid), thought);
                 }
@@ -425,10 +430,15 @@ impl Organism {
         if tick >= self.directive_until && self.energy > 0.45 && self.hydration > 0.45
             && self.wander_target.is_none()
         {
+            // Daytime home-pull: halved from previous (0.02 / 0.008 / 0.003)
+            // because every per-tick coin-flip is multiplicative across hours.
+            // Even at 0.01 per tick, an org >80 tiles from home gets pulled
+            // home within ~100 ticks on average - plenty to keep tribes
+            // cohesive without crushing dispersal.
             let dist_home = (self.x - self.home_x).abs() + (self.y - self.home_y).abs();
-            let pull_prob = if dist_home > 80.0 { 0.02 }
-                           else if dist_home > 40.0 { 0.008 }
-                           else if dist_home > 20.0 { 0.003 }
+            let pull_prob = if dist_home > 80.0 { 0.01 }
+                           else if dist_home > 40.0 { 0.004 }
+                           else if dist_home > 20.0 { 0.0015 }
                            else { 0.0 };
             if pull_prob > 0.0 && rng.gen::<f32>() < pull_prob {
                 set_thought!("heading home");
