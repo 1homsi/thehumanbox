@@ -1832,12 +1832,49 @@ impl Simulation {
                 .collect();
 
             let griever_count = grievers.len();
+
+            // Pass the deceased's strongest food/water memories on to the
+            // grieving kin. Real human bands carry the dead's knowledge
+            // forward through retelling - "she always said the spring
+            // was three ridges east". Each griever picks up a few of
+            // the deceased's most-trusted memory tiles at reduced
+            // strength. Without this, every death erases that person's
+            // accumulated map of the world.
+            let inherited_food: Vec<((i32, i32), f32)> = self.organisms[idx].food_memory.iter()
+                .filter(|(_, &v)| v > 0.5).take(5).map(|(&k, &v)| (k, v)).collect();
+            let inherited_water: Vec<((i32, i32), f32)> = self.organisms[idx].water_memory.iter()
+                .filter(|(_, &v)| v > 0.5).take(5).map(|(&k, &v)| (k, v)).collect();
+            let inherited_disc: Vec<String> = self.organisms[idx].discoveries.iter().cloned().collect();
+
             for gi in &grievers {
                 let ms = self.organisms[*gi].traits.memory_strength;
                 Organism::remember(&mut self.organisms[*gi].danger_memory, dx, dy, 0.65, ms);
                 self.organisms[*gi].fear_level    = (self.organisms[*gi].fear_level + 0.22).min(1.0);
                 self.organisms[*gi].grief_ticks   = 80 + self.rng.gen_range(0u32..40);
                 self.organisms[*gi].think("mourning kin", self.tick_count);
+
+                // Inherit a slice of the deceased's wisdom
+                for &((mx, my), v) in &inherited_food {
+                    Organism::remember(&mut self.organisms[*gi].food_memory, mx, my, v * 0.4, ms);
+                }
+                for &((mx, my), v) in &inherited_water {
+                    Organism::remember(&mut self.organisms[*gi].water_memory, mx, my, v * 0.4, ms);
+                }
+                // Direct kin (partner / father / parent) also pick up rare
+                // discoveries that hadn't yet spread - last-chance cultural
+                // preservation.
+                let is_direct_kin = self.organisms[*gi].partner_id.as_ref() == Some(&self.organisms[idx].id)
+                    || self.organisms[*gi].parent_id == self.organisms[idx].id
+                    || self.organisms[*gi].father_id.as_ref() == Some(&self.organisms[idx].id);
+                if is_direct_kin {
+                    for d in &inherited_disc {
+                        if !self.organisms[*gi].discoveries.contains(d.as_str())
+                            && self.rng.gen::<f32>() < 0.45
+                        {
+                            self.organisms[*gi].discoveries.insert(d.clone());
+                        }
+                    }
+                }
             }
 
             if griever_count >= 2 {
