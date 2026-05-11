@@ -33,8 +33,12 @@ impl Simulation {
         if count >= 4 {
             let curiosity = self.organisms[idx].traits.curiosity;
             let age = self.organisms[idx].age;
-            let fork_eligible = age >= 1500 && curiosity >= 0.6 && count >= 6;
-            if fork_eligible && self.rng.gen::<f32>() < 0.05 {
+            // Fork thresholds tuned to fight late-game consolidation. Earlier age
+            // gate + higher probability means tribes splinter while the world is
+            // still spreading, before crowding forces re-collection into a
+            // super-cluster.
+            let fork_eligible = age >= 1200 && curiosity >= 0.55 && count >= 6;
+            if fork_eligible && self.rng.gen::<f32>() < 0.15 {
                 if let Some((fx, fy)) = self.find_far_empty_anchor(mx as i32, my as i32) {
                     self.fork_new_tribe(idx, fx, fy);
                     return;

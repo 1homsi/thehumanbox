@@ -250,8 +250,19 @@ pub fn try_reproduce(
         }
     }
 
-    child.home_x = organisms[org_idx].home_x;
-    child.home_y = organisms[org_idx].home_y;
+    // Children's homes drift a few tiles each generation. Without this every
+    // descendant inherits the founder's exact tile and the home-pull force
+    // re-collects dispersed orgs into one super-dense cluster after ~10k+
+    // ticks (measured: 51% of population in a single 60x60 cell at 90k ticks).
+    // Gaussian-ish drift via two uniform samples keeps tails small while
+    // letting a tribe slowly migrate across many generations.
+    let drift = 12.0;
+    let dx = rng.gen_range(-drift..=drift) * 0.5 + rng.gen_range(-drift..=drift) * 0.5;
+    let dy = rng.gen_range(-drift..=drift) * 0.5 + rng.gen_range(-drift..=drift) * 0.5;
+    child.home_x = (organisms[org_idx].home_x + dx)
+        .clamp(0.0, (crate::world::grid::WIDTH  - 1) as f32);
+    child.home_y = (organisms[org_idx].home_y + dy)
+        .clamp(0.0, (crate::world::grid::HEIGHT - 1) as f32);
 
     // Birth infection
     if organisms[org_idx].infection > 0.1 {
