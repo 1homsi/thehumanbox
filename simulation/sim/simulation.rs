@@ -2177,8 +2177,29 @@ impl Simulation {
             self.organisms[oi].think("hunting", self.tick_count);
             self.organisms[oi].log_event(format!("hunted a {} at ({},{})", kind, ax, ay));
             self.organisms[oi].discover("hunt");
-            // Remember this tile as a good hunting ground (food memory)
             Organism::remember(&mut self.organisms[oi].food_memory, ax, ay, 0.65, ms);
+
+            // Share the kill with the pack. Pack hunting is the canonical
+            // human cooperative behaviour - the carcass feeds everyone who
+            // helped bring it down, not just the org that landed the
+            // killing blow. Each pack member within 5 tiles gets a share
+            // proportional to how much remains after the hunter's portion.
+            if pack_kin >= 1 {
+                let share = if pack_kin >= 3 { 0.12 } else { 0.08 };
+                let helpers: Vec<usize> = organism_spatial.query(hunter_x as i32, hunter_y as i32, 5)
+                    .into_iter()
+                    .filter(|&i| i != oi)
+                    .filter(|&i| {
+                        let o = &self.organisms[i];
+                        o.alive && o.lineage_id == hunter_lid
+                            && (o.x - hunter_x).abs() + (o.y - hunter_y).abs() <= 5.0
+                    })
+                    .collect();
+                for hi in helpers {
+                    self.organisms[hi].energy = (self.organisms[hi].energy + share).min(1.0);
+                    self.organisms[hi].think("shared in the hunt", self.tick_count);
+                }
+            }
         }
 
         self.animals.retain(|a| a.alive);

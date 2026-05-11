@@ -65,11 +65,20 @@ impl Simulation {
         }
 
         let curiosity = self.organisms[idx].traits.curiosity;
-        if curiosity < 0.40 { return; }
+        let age = self.organisms[idx].age;
+
+        // Adolescent dispersal: in the 1500-1900 age window, every
+        // organism (regardless of curiosity) gets a wider wander
+        // bandwidth. This is the "leaving home" stage - the rest of
+        // their life they may settle, but adolescence they explore.
+        let adolescent = age >= 1500 && age < 1900;
+        if curiosity < 0.40 && !adolescent { return; }
 
         let hash = self.organisms[idx].id.bytes()
             .fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
-        let period = (450u64).saturating_sub((curiosity * 200.0) as u64).max(140);
+        let base_period = (450u64).saturating_sub((curiosity * 200.0) as u64).max(140);
+        // Adolescents wander roughly twice as often as their curiosity alone would dictate.
+        let period = if adolescent { base_period.max(120) / 2 } else { base_period };
         if self.tick_count % period != (hash % period) { return; }
 
         let (x, y) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
