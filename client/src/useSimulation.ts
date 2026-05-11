@@ -16,12 +16,18 @@ type ParseError =
 /** Structure-of-arrays hot payload. Sent on every delta in place of
  *  the AoS `organisms` array. Each field is N entries long where N is
  *  the number of in-viewport alive organisms; all arrays share an
- *  index, so `ids[i] -> xs[i], ys[i], ...`. */
+ *  index, so `ids[i] -> xs[i], ys[i], ...`.
+ *
+ *  Numeric quantization on the wire (decoded back to floats below):
+ *   - xs/ys: i16 decimetres (server divided original x by 0.1 before
+ *     casting). Client re-multiplies to recover the original f32.
+ *   - energies/hydrations/healths/infections/fear_levels: u8 percent
+ *     (0..100). Client divides by 100 to recover the 0..1 range. */
 interface OrgsHotSoa {
   ids:            string[]
-  xs:             number[]
+  xs:             number[]   // i16 * 10 on the wire
   ys:             number[]
-  energies:       number[]
+  energies:       number[]   // u8 percent on the wire
   hydrations:     number[]
   healths:        number[]
   ages:           number[]
@@ -78,16 +84,18 @@ function expandOrgsSoa(soa: OrgsHotSoa): OrganismState[] {
   for (let i = 0; i < soa.ids.length; i++) {
     out[i] = {
       id:            soa.ids[i],
-      x:             soa.xs[i],
-      y:             soa.ys[i],
-      energy:        soa.energies[i],
-      hydration:     soa.hydrations[i],
-      health:        soa.healths[i],
+      // Reverse the wire-side quantization. Multipliers must match
+      // organism.rs::q_pos / q_pct.
+      x:             soa.xs[i] / 10,
+      y:             soa.ys[i] / 10,
+      energy:        soa.energies[i] / 100,
+      hydration:     soa.hydrations[i] / 100,
+      health:        soa.healths[i] / 100,
       age:           soa.ages[i],
       alive:         soa.alives[i],
       thought:       soa.thoughts[i],
-      infection:     soa.infections[i],
-      fear_level:    soa.fear_levels[i],
+      infection:     soa.infections[i] / 100,
+      fear_level:    soa.fear_levels[i] / 100,
       carrying:      soa.carryings[i],
       carrying_type: soa.carrying_types[i],
       pregnant:      soa.pregnants[i],

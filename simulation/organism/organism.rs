@@ -934,37 +934,53 @@ impl Organism {
 
 /// Structure-of-arrays packing for the hot per-tick organism payload.
 ///
-/// Every delta carries the same 16 hot fields for every alive in-viewport
-/// organism. As an array of maps that's ~50 bytes per record (with
-/// MessagePack named-key encoding repeating every field name per
-/// organism). Re-packed column-by-column the per-record cost drops to
-/// ~12 bytes - one slot in each parallel array - because each field
-/// name only ships once per delta. At 300 organisms that's roughly
-/// 25 KB -> 10 KB per delta, plus the client decodes 16 typed arrays
-/// rather than parsing 300 maps.
+/// Every delta carries the same hot fields for every alive in-viewport
+/// organism. Column-major + numeric quantization brings the per-record
+/// cost to ~8 bytes (down from ~50 bytes AoS):
+///
+/// - Positions: `i16` decimetres (x*10, y*10). Range covers the 600x300
+///   world easily. MessagePack encodes these in 1-3 bytes; an f32 always
+///   costs 5.
+/// - 0..1 vital floats (energy / hydration / health / infection /
+///   fear_level): `u8` percentage points (value*100, clamped 0..100).
+///   Two bytes in msgpack vs five for f32. Resolution is 1% which is
+///   below visual perception for the bars in OrgCard.
 ///
 /// Sent under the wire key `organisms_hot`. Full snapshots keep the
-/// AoS `organisms` array because that path also carries the cold
-/// fields (name, lineage_id, traits, vocabulary, discoveries, ...) and
-/// the SoA tax on optional cold fields outweighs its savings.
+/// AoS `organisms` array because that path also carries cold/identity
+/// fields where the SoA-per-column tax outweighs the savings.
 #[derive(Serialize)]
 pub struct OrgsHotSoa {
     pub ids:            Vec<String>,
-    pub xs:             Vec<f32>,
-    pub ys:             Vec<f32>,
-    pub energies:       Vec<f32>,
-    pub hydrations:     Vec<f32>,
-    pub healths:        Vec<f32>,
+    /// x position quantized to decimetres (x * 10, rounded to i16).
+    /// Client divides by 10 to get the original f32 back.
+    pub xs:             Vec<i16>,
+    pub ys:             Vec<i16>,
+    /// Energy/hydration/health quantized to percentage points 0..100.
+    /// Client divides by 100 to get the 0..1 f32 back.
+    pub energies:       Vec<u8>,
+    pub hydrations:     Vec<u8>,
+    pub healths:        Vec<u8>,
     pub ages:           Vec<u32>,
     pub alives:         Vec<bool>,
     pub thoughts:       Vec<String>,
-    pub infections:     Vec<f32>,
-    pub fear_levels:    Vec<f32>,
+    pub infections:     Vec<u8>,
+    pub fear_levels:    Vec<u8>,
     pub carryings:      Vec<u32>,
     pub carrying_types: Vec<u8>,
     pub pregnants:      Vec<bool>,
     pub partner_ids:    Vec<Option<String>>,
     pub attracted_tos:  Vec<Option<String>>,
+}
+
+#[inline]
+fn q_pos(v: f32) -> i16 {
+    (v * 10.0).round().clamp(i16::MIN as f32, i16::MAX as f32) as i16
+}
+
+#[inline]
+fn q_pct(v: f32) -> u8 {
+    (v * 100.0).round().clamp(0.0, 100.0) as u8
 }
 
 impl OrgsHotSoa {
@@ -991,16 +1007,16 @@ impl OrgsHotSoa {
 
     pub fn push(&mut self, o: &Organism) {
         self.ids.push(o.id.clone());
-        self.xs.push((o.x * 10.0).round() / 10.0);
-        self.ys.push((o.y * 10.0).round() / 10.0);
-        self.energies.push((o.energy * 1000.0).round() / 1000.0);
-        self.hydrations.push((o.hydration * 1000.0).round() / 1000.0);
-        self.healths.push((o.health * 1000.0).round() / 1000.0);
+        self.xs.push(q_pos(o.x));
+        self.ys.push(q_pos(o.y));
+        self.energies.push(q_pct(o.energy));
+        self.hydrations.push(q_pct(o.hydration));
+        self.healths.push(q_pct(o.health));
         self.ages.push(o.age);
         self.alives.push(o.alive);
         self.thoughts.push(o.thought.clone());
-        self.infections.push((o.infection * 1000.0).round() / 1000.0);
-        self.fear_levels.push((o.fear_level * 100.0).round() / 100.0);
+        self.infections.push(q_pct(o.infection));
+        self.fear_levels.push(q_pct(o.fear_level));
         self.carryings.push(o.carrying);
         self.carrying_types.push(o.carrying_type);
         self.pregnants.push(o.pregnant);
