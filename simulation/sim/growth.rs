@@ -233,6 +233,23 @@ pub fn try_reproduce(
         child.org_trust.insert(oid.clone(), trust * 0.4);
     }
 
+    // Inherit parent's "obvious" discoveries. Real humans grow up
+    // already knowing fire/shelter/water exist - they don't have to
+    // re-discover them. The advanced ones (cooking, masonry, medicine,
+    // tools) pass on at lower probability so cultural transmission still
+    // feels earned across generations rather than free.
+    let always_inherit = ["fire", "shelter", "water", "wood", "stone", "hunt"];
+    let sometimes_inherit = ["cooking", "masonry", "stone_tools", "torch", "medicine", "ritual", "farm", "spear"];
+    for d in &organisms[org_idx].discoveries {
+        if always_inherit.contains(&d.as_str()) {
+            child.discoveries.insert(d.clone());
+        } else if sometimes_inherit.contains(&d.as_str()) && rng.gen::<f32>() < 0.55 {
+            child.discoveries.insert(d.clone());
+        } else if rng.gen::<f32>() < 0.20 {
+            child.discoveries.insert(d.clone());
+        }
+    }
+
     child.home_x = organisms[org_idx].home_x;
     child.home_y = organisms[org_idx].home_y;
 
