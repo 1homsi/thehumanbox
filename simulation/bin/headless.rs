@@ -62,6 +62,15 @@ fn main() {
     let world_gate = args.iter().any(|a| a == "--world-gate");
     // --gate: exit non-zero if any seed's verdict is not Healthy. For CI use.
     let gate = args.iter().any(|a| a == "--gate");
+    // --coverage-every N: every N ticks, print spatial-distribution metrics
+    // so we can see whether the population fills the map or collapses to a
+    // single corner over time. 0 = disabled (default).
+    let coverage_every: u64 = args
+        .iter()
+        .position(|a| a == "--coverage-every")
+        .and_then(|i| args.get(i + 1))
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0);
 
     if world_report {
         if sweep_seeds > 0 {
@@ -132,6 +141,10 @@ fn main() {
             if trace_every > 0 && t % trace_every == 0 {
                 write_trace_rows(&sim, writer, trace_limit);
             }
+        }
+
+        if coverage_every > 0 && t % coverage_every == 0 {
+            print_coverage_row(t, &sim);
         }
 
         // Tally thoughts
@@ -335,6 +348,75 @@ fn infer_event_type(org: &organism::organism::Organism) -> &'static str {
     } else {
         "thought"
     }
+}
+
+/// One-row summary of organism spatial distribution at a moment in time.
+/// Helps answer "are they spread across the map or huddled in one corner?"
+/// without staring at the canvas.
+///
+/// Columns:
+///   tick      - sim tick at sample
+///   alive     - organisms alive
+///   cx, cy    - population centroid
+///   stdx,stdy - std-dev of x/y positions (0 = single point, large = spread)
+///   cells     - count of 50x50 cells with at least one organism (the world
+///               is 600x300, so max meaningful value is 12x6 = 72)
+///   q_xx      - % of population in top-left / top-right / bottom-left /
+///               bottom-right quadrant. A balanced world shows ~25 each.
+///   dense     - max organisms inside any single 30x30 window. A healthy
+///               sim has dense roughly proportional to (alive / cells).
+///               Pathological clustering shows dense near alive itself.
+fn print_coverage_row(tick: u64, sim: &Simulation) {
+    use crate::world::grid::{HEIGHT, WIDTH};
+    let alive: Vec<&_> = sim.organisms.iter().filter(|o| o.alive).collect();
+    if alive.is_empty() {
+        println!("coverage  tick={:<6} alive=0", tick);
+        return;
+    }
+    let n = alive.len() as f32;
+    let mx = alive.iter().map(|o| o.x).sum::<f32>() / n;
+    let my = alive.iter().map(|o| o.y).sum::<f32>() / n;
+    let varx = alive.iter().map(|o| (o.x - mx).powi(2)).sum::<f32>() / n;
+    let vary = alive.iter().map(|o| (o.y - my).powi(2)).sum::<f32>() / n;
+    let stdx = varx.sqrt();
+    let stdy = vary.sqrt();
+
+    // Cells occupied (50x50 buckets)
+    const CELL: i32 = 50;
+    let mut cells: std::collections::HashSet<(i32, i32)> = std::collections::HashSet::new();
+    for o in &alive {
+        cells.insert((o.x as i32 / CELL, o.y as i32 / CELL));
+    }
+    let cell_count = cells.len();
+
+    // Quadrant % using world midpoint, so empty quadrants are obvious
+    let half_w = WIDTH as f32 / 2.0;
+    let half_h = HEIGHT as f32 / 2.0;
+    let mut q_tl = 0; let mut q_tr = 0; let mut q_bl = 0; let mut q_br = 0;
+    for o in &alive {
+        match (o.x < half_w, o.y < half_h) {
+            (true, true)   => q_tl += 1,
+            (false, true)  => q_tr += 1,
+            (true, false)  => q_bl += 1,
+            (false, false) => q_br += 1,
+        }
+    }
+    let pct = |x: usize| (x as f32 * 100.0 / n).round() as i32;
+
+    // Max density: any 30x30 window. Bucket into 30-tile cells and tally,
+    // then sum a 1x1 / 2x2 window worth - cheap upper bound on density.
+    let mut buckets: std::collections::HashMap<(i32, i32), u32> = std::collections::HashMap::new();
+    for o in &alive {
+        let k = (o.x as i32 / 30, o.y as i32 / 30);
+        *buckets.entry(k).or_insert(0) += 1;
+    }
+    let dense = buckets.values().copied().max().unwrap_or(0);
+
+    println!(
+        "coverage  tick={:<6} alive={:<4} cx={:>5.0} cy={:>5.0} stdx={:>5.0} stdy={:>4.0} cells={:>3}/72 q_tl={:>3}% q_tr={:>3}% q_bl={:>3}% q_br={:>3}% dense={}",
+        tick, alive.len(), mx, my, stdx, stdy, cell_count,
+        pct(q_tl), pct(q_tr), pct(q_bl), pct(q_br), dense
+    );
 }
 
 fn write_trace_rows(sim: &Simulation, writer: &mut BufWriter<File>, trace_limit: usize) {
