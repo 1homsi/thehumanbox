@@ -145,11 +145,20 @@ impl Simulation {
         // Newborns (age < 60 ticks) always get their cold fields in the
         // AoS path; the SoA hot path never carries cold fields, so a new
         // baby's static identity arrives on the next full snapshot.
+        // Per-org cold fields (name, traits, vocabulary, discoveries,
+        // attitudes maps, etc.) only ride along on the HTTP /snapshot
+        // path (include_cold=true). Periodic WS full frames just need
+        // hot + warm fields; the client already has the cold fields
+        // cached from the bootstrap snapshot. This dropped the per-org
+        // wire payload from ~5KB to ~1.5KB, which was the source of
+        // the 200KB-1.5MB "slim" periodic full frames choking
+        // Cloudflare and triggering frame gaps.
+        let per_org_cold = include_cold;
         use crate::organism::organism::OrgsHotSoa;
         let mut payload = if include_all_entities {
             let organisms_json = self.organisms.iter()
                 .filter(|o| o.alive)
-                .map(|o| serde_json::to_value(o.to_json_with(true)).unwrap())
+                .map(|o| serde_json::to_value(o.to_json_with(per_org_cold)).unwrap())
                 .collect::<Vec<_>>();
             let animals_json = self.animals.iter()
                 .map(|a| serde_json::to_value(a.to_json()).unwrap())
