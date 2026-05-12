@@ -423,13 +423,15 @@ async fn main() {
                     let is_full_frame = s.tick_count % FULL_FRAME_EVERY_TICKS == 0;
                     // Cold metadata (events, history, pop_history,
                     // story_history, lineage_centroid_history, etc.) is
-                    // expensive to serialize and barely changes between
-                    // periodic-full frames. Slow its cadence down to every
-                    // 300 ticks (~30s) so periodic fulls in between are
-                    // grid+AoS only. This is also the cadence the
-                    // `latest_full` cache refreshes at, because that's the
-                    // snapshot new clients prime from - it must include
-                    // cold metadata.
+                    // expensive to serialize and barely changes
+                    // tick-to-tick. We never include it in the broadcast
+                    // path: WS frames are always slim. Cold metadata
+                    // lives exclusively in the cached `latest_full`
+                    // which is served by HTTP /snapshot - new clients
+                    // bootstrap from there, existing clients re-fetch
+                    // on demand. The cache itself refreshes every 300
+                    // ticks via a separate heavy serialize that's only
+                    // paid every ~30s instead of every ~3s.
                     let is_deep_full = is_full_frame && (s.tick_count % 300 == 0);
                     let serialize_started = std::time::Instant::now();
                     let frame_id = next_frame_id(&frame_clock_w);
@@ -442,9 +444,20 @@ async fn main() {
                         bytes.len(),
                         serialize_started.elapsed().as_millis() as u64,
                     );
+                    // On deep cadence, build a SECOND heavy snapshot
+                    // under the same lock (so its contents stay
+                    // tick-consistent with the broadcast frame). This
+                    // is what HTTP /snapshot returns. Adds 30-100ms to
+                    // the broadcaster's lock window every 300 ticks -
+                    // perceivable, but contained to one cycle every
+                    // ~30 wall seconds.
+                    let heavy = if is_deep_full {
+                        Some(Arc::new(encode_frame(s.state_json(), frame_id, now_ms(), "full")))
+                    } else {
+                        None
+                    };
                     let frame = Arc::new(bytes);
-                    let full = if is_deep_full { Some(frame.clone()) } else { None };
-                    (frame, full)
+                    (frame, heavy)
                 };
 
                 if let Some(full) = full_payload {

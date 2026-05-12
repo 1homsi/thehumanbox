@@ -92,30 +92,20 @@ pub async fn transport_handler(
 async fn handle_socket(
     mut socket: WebSocket,
     mut rx: broadcast::Receiver<Arc<Vec<u8>>>,
-    sim: SharedSim,
-    latest_full: LatestFull,
+    _sim: SharedSim,
+    _latest_full: LatestFull,
     transport_stats: SharedTransportStats,
 ) {
-    let cached = latest_full.read().ok().and_then(|g| g.clone());
-    let snapshot: Arc<Vec<u8>> = if let Some(s) = cached {
-        s
-    } else {
-        // Fallback bootstrap: the broadcaster hadn't yet primed `latest_full`
-        // when this client connected. We mint a one-off full frame straight
-        // from the sim and tag it frame_id=0 as a sentinel meaning "before
-        // any broadcast frame the client will see". Real broadcaster frames
-        // start at 1 (next_frame_id is fetch_add+1 from an initial 0). The
-        // client's `lastFrameIdRef` also starts at 0, so the dedupe gate
-        // skips frame_id=0 only after a real frame has been processed -
-        // this bootstrap is always accepted on first arrival.
-        let frame_started = std::time::Instant::now();
-        let mut sim = sim.lock().await;
-        let payload = encode_frame(sim.state_json(), 0, now_ms(), "full");
-        transport_stats.record_generated(payload.len(), frame_started.elapsed().as_millis() as u64);
-        Arc::new(payload)
-    };
-    if socket.send(Message::Binary(snapshot.as_ref().clone().into())).await.is_err() { return; }
-    transport_stats.record_sent();
+    // No on-connect primer. The client fetches the heavy bootstrap
+    // snapshot via HTTP /snapshot (gzipped, single big response) and
+    // then opens this WebSocket for live deltas + slim periodic fulls.
+    // Keeping the WS bootstrap-free means the broadcaster never has to
+    // serialize the heavy cold-metadata block on the hot path.
+    //
+    // The sim and latest_full handles are kept around (prefixed `_`)
+    // because resync still uses them implicitly via the broadcast
+    // channel - lag-recovery now just lets the client notice the gap
+    // and re-fetch /snapshot at its own pace.
 
     loop {
         tokio::select! {
@@ -127,15 +117,12 @@ async fn handle_socket(
                     }
                     Err(broadcast::error::RecvError::Lagged(skipped)) => {
                         transport_stats.record_lagged(skipped);
+                        // No longer replay latest_full inline - that was
+                        // the freeze. Lag is reported via the client's
+                        // gap detector (lastFrameIdRef jumps), which is
+                        // its cue to re-fetch /snapshot over HTTP.
                         if skipped >= WS_RESYNC_LAG_THRESHOLD {
-                            let cached = latest_full.read().ok().and_then(|g| g.clone());
-                            if let Some(full) = cached {
-                                if socket.send(Message::Binary(full.as_ref().clone().into())).await.is_err() {
-                                    break;
-                                }
-                                transport_stats.record_sent();
-                                transport_stats.record_resync();
-                            }
+                            transport_stats.record_resync();
                         }
                     }
                     Err(_) => break,

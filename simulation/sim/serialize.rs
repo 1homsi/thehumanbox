@@ -26,16 +26,18 @@ impl Simulation {
         self.state_json_inner(cx, cy, true, true)
     }
 
-    /// Broadcaster's periodic "full" frame. Keeps full-frame perks
-    /// (force_full=true so AoS orgs + static grid layers ship), but
-    /// only re-ships the heavy cold-metadata block on a slower cadence
-    /// (every 300 ticks ~ 30s) - the rest of the time clients cache
-    /// the previous metadata. Cuts per-tick serialize work and the
-    /// sim-lock window the broadcaster holds.
+    /// Broadcaster's periodic "full" frame. Always slim - keeps
+    /// full-frame perks (force_full=true so AoS orgs + static grid
+    /// layers ship) but never includes the heavy cold-metadata block.
+    /// Cold metadata (events, history, pop_history, story_history,
+    /// lineage_centroid_history, lineage_names, ...) is exclusively
+    /// served by the HTTP /snapshot endpoint - new clients prime from
+    /// that, existing clients keep their cached metadata and can
+    /// re-fetch on demand. Keeps per-WS-frame bytes-on-wire small and
+    /// the sim-lock window short.
     pub fn state_json_periodic_full(&mut self) -> serde_json::Value {
         let (cx, cy) = self.viewport_centroid();
-        let cold_due = self.tick_count % 300 == 0 || self.tick_count <= 1;
-        self.state_json_inner(cx, cy, true, cold_due)
+        self.state_json_inner(cx, cy, true, false)
     }
 
     pub fn state_json_incremental(&mut self) -> serde_json::Value {
@@ -112,9 +114,15 @@ impl Simulation {
         // until the next tick%30 boundary.
         let include_tiles  = force_full || self.tick_count % 5  == 0 || self.tick_count <= 1;
         let include_static = force_full || self.tick_count % 30 == 0 || self.tick_count <= 1;
+        // Heavy static layers (biomes + depth_map, ~720 KB combined) only
+        // ship on the cold/snapshot path. WS periodic fulls keep the slim
+        // dynamic-static layers (trails, fertility, hazard) but skip
+        // terrain - clients have it cached from the initial snapshot and
+        // it changes only on biome drift, never for depth.
+        let include_terrain = include_cold;
         let grid_json = self.grid.to_json_viewport(vp_cx, vp_cy,
             crate::world::grid::VP_W, crate::world::grid::VP_H,
-            include_tiles, include_static);
+            include_tiles, include_static, include_terrain);
         let include_all_entities = force_full || self.tick_count % 120 == 0 || self.tick_count <= 1;
         let left = vp_cx - crate::world::grid::VP_W as i32 / 2 - 8;
         let right = vp_cx + crate::world::grid::VP_W as i32 / 2 + 8;

@@ -1059,8 +1059,14 @@ impl WorldGrid {
     // origin_x / origin_y in GridJson tell the client how to offset world-space coords.
     /// Build a GridJson for the WS broadcast.
     ///
-    /// `include_tiles`   - include the dense tiles array (every TILES_INTERVAL ticks)
-    /// `include_static`  - include biomes + depth_map (every STATIC_INTERVAL ticks)
+    /// `include_tiles`   - dense tiles array (every TILES_INTERVAL ticks)
+    /// `include_static`  - sparse dynamic-static layers: trails, fertility,
+    ///                     hazard. Cheap to serialize, fine on WS cadence.
+    /// `include_terrain` - heavy static layers: biomes + depth_map (~720 KB
+    ///                     combined per frame). These change very slowly
+    ///                     (depth never, biomes only on biome-drift), so we
+    ///                     only ship them on the HTTP /snapshot path - WS
+    ///                     periodic fulls never re-ship them.
     pub fn to_json_viewport(
         &self,
         cx: i32,
@@ -1069,6 +1075,7 @@ impl WorldGrid {
         vh: usize,
         include_tiles: bool,
         include_static: bool,
+        include_terrain: bool,
     ) -> GridJson {
         let ox = (cx - vw as i32 / 2).clamp(0, (WIDTH as i32 - vw as i32).max(0)) as usize;
         let oy = (cy - vh as i32 / 2).clamp(0, (HEIGHT as i32 - vh as i32).max(0)) as usize;
@@ -1176,8 +1183,11 @@ impl WorldGrid {
             None
         };
 
-        // Static maps - biomes + depth, only sent every STATIC_INTERVAL ticks
-        let (biomes, depth_map) = if include_static {
+        // Static maps - biomes + depth. Gated on include_terrain (HTTP
+        // /snapshot only). WS broadcasts skip this; clients keep the
+        // initial-snapshot copy cached and update only if a new /snapshot
+        // is fetched (e.g. on reconnect / big WS gap).
+        let (biomes, depth_map) = if include_terrain {
             let b = (oy..oy + vh).map(|y| slice_u8(&self.biome, y)).collect();
             let d = (oy..oy + vh)
                 .map(|y| {
@@ -1224,6 +1234,7 @@ impl WorldGrid {
             HEIGHT as i32 / 2,
             WIDTH,
             HEIGHT,
+            true,
             true,
             true,
         )
