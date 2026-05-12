@@ -47,7 +47,7 @@ interface Props {
 }
 
 export function OrgDetail({ org, onClose, onFollow, following, lineageNames, organisms }: Props) {
-  const detail    = useOrgDetail(org.id)
+  const { data: detail } = useOrgDetail(org.id)
   const tn = (lid: string) => lineageNames?.[lid] ?? (lid ?? '').slice(0, 6)
   const on = (oid: string) => organisms?.find(o => o.id === oid)?.name ?? (oid ?? '').slice(0, 5)
   const ageInDays = Math.floor(org.age / DAY_LENGTH)

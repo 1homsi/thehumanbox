@@ -76,7 +76,7 @@ const ConvoBlock = memo(function ConvoBlock({ entry, selfOrg, allOrgs }: {
 })
 
 export function ConversationsModal({ org, allOrgs, sexWords, onClose }: Props) {
-  const detail    = useOrgDetail(org.id)
+  const { data: detail, isLoading } = useOrgDetail(org.id)
   const convos    = detail?.conversations ?? []
   const partnerOrg = org.partner_id ? allOrgs.find(o => o.id === org.partner_id) : null
   const sexLabel   = sexWords
@@ -112,7 +112,18 @@ export function ConversationsModal({ org, allOrgs, sexWords, onClose }: Props) {
 
       {/* Body */}
       <div className="cv-modal-body">
-        {convos.length === 0 ? (
+        {isLoading && !detail ? (
+          // First fetch in flight - the panel hint may show 3 chats but
+          // the detail endpoint hasn't returned yet (slow Wi-Fi etc.).
+          // Showing the "hasn't spoken yet" message here would be wrong;
+          // show a loading state until the request resolves.
+          <div className="cv-empty">
+            <div className="cv-loading-dot" aria-hidden>•••</div>
+            <div style={{ fontSize: 11, fontStyle: 'italic', color: '#555', textAlign: 'center' }}>
+              loading {org.name}'s conversations…
+            </div>
+          </div>
+        ) : convos.length === 0 ? (
           <div className="cv-empty">
             <div style={{ fontSize: 28, marginBottom: 8 }}>💬</div>
             <div style={{ fontSize: 11, fontStyle: 'italic', color: '#555', textAlign: 'center' }}>

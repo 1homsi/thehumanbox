@@ -14,8 +14,14 @@ import { API_BASE } from './config'
  * (query disabled) or when the tab is hidden (refetchIntervalInBackground
  * default off).
  */
-export function useOrgDetail(id: string | null): OrgDetail | null {
-  const { data } = useQuery<OrgDetail>({
+export interface UseOrgDetailResult {
+  data:      OrgDetail | null
+  isLoading: boolean          // true on first fetch, before any data has arrived
+  isError:   boolean
+}
+
+export function useOrgDetail(id: string | null): UseOrgDetailResult {
+  const { data, isLoading, isError } = useQuery<OrgDetail>({
     queryKey:        ['orgDetail', id],
     queryFn:         async () => {
       const res = await fetch(`${API_BASE}/org/${id}`)
@@ -28,5 +34,5 @@ export function useOrgDetail(id: string | null): OrgDetail | null {
     retry:           1,                    // sim might be restarting; one quick retry then hush
     refetchOnWindowFocus: false,
   })
-  return data ?? null
+  return { data: data ?? null, isLoading: id != null && isLoading, isError }
 }
