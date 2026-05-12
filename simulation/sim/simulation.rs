@@ -376,11 +376,28 @@ impl Simulation {
             *lineage_counts.entry(o.lineage_id.clone()).or_insert(0) += 1;
         }
 
-        if alive_count_before_loop < 50
-            && self.tick_count - self.last_immigration_tick >= 300
-        {
-            self.spawn_immigrant_tribe();
-            self.last_immigration_tick = self.tick_count;
+        // Recovery from a crashed world. Previously immigration only
+        // kicked in below 50 alive on a 300-tick cooldown, which left
+        // a "dead zone" at 50-80 where the world flatlined: too few
+        // breeding adults to grow naturally, too many alive to trigger
+        // fresh immigrants. Two tiers now:
+        //   - <60 alive: aggressive, every 200 ticks (~20s wall). The
+        //     world is collapsing - flood it with young new tribes.
+        //   - <100 alive: gentle, every 600 ticks (~60s wall). The
+        //     world is greying - keep a trickle of new tribes so the
+        //     age pyramid doesn't get top-heavy.
+        let immig_cooldown = if alive_count_before_loop < 60 {
+            Some(200u64)
+        } else if alive_count_before_loop < 100 {
+            Some(600u64)
+        } else {
+            None
+        };
+        if let Some(cd) = immig_cooldown {
+            if self.tick_count - self.last_immigration_tick >= cd {
+                self.spawn_immigrant_tribe();
+                self.last_immigration_tick = self.tick_count;
+            }
         }
 
         // Build a spatial index over current organism positions once per tick.

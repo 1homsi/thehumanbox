@@ -159,7 +159,9 @@ impl Simulation {
         let half = candidates.len() / 2;
         let (anchor_x, anchor_y, _) = candidates[self.rng.gen_range(0..half.max(1).min(pool))];
 
-        let tribe_size = self.rng.gen_range(6usize..=10);
+        // Bigger immigrant tribes (was 6-10): a crashed world needs
+        // enough breeding pairs in one arrival to actually re-seed.
+        let tribe_size = self.rng.gen_range(8usize..=14);
         let lineage_id = Uuid::new_v4().to_string()[..8].to_string();
         let tribe_name = generate_tribe_name(&mut self.rng);
         self.lineage_names.insert(lineage_id.clone(), tribe_name.clone());
@@ -185,9 +187,11 @@ impl Simulation {
             let sex = if k % 2 == 0 { Sex::Male } else { Sex::Female };
             let mut traits = Traits::random(&mut self.rng);
             apply_sex_traits(&mut traits, sex);
+            // Wider range than founders so the immigrant cohort doesn't
+            // die together a single sim-month from arrival.
             let max_age = self.rng.gen_range(
-                (9000.0 + 4000.0 * traits.resilience) as u32
-                ..=(14000.0 + 6000.0 * traits.resilience) as u32
+                (8000.0 + 4000.0 * traits.resilience) as u32
+                ..=(18000.0 + 8000.0 * traits.resilience) as u32
             );
             let mut org = Organism::new(
                 id.clone(), generate_name(&mut self.rng, sex),

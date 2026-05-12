@@ -185,12 +185,17 @@ pub fn try_reproduce(
     let mut child_traits_sexed = child_traits;
     apply_sex_traits(&mut child_traits_sexed, child_sex);
 
-    // Same lifespan range as founding spawns - was previously the much shorter
-    // 3000-8500 formula, which meant children died of old age ~half as fast as
-    // their parents and crashed the second-generation cohort.
+    // Wider lifespan range than founding spawns. The previous narrow
+    // range (~9k-20k) meant a cohort born in the same season would all
+    // hit max_age within ~10 sim-days of each other - the world saw
+    // pop graphs full of cliff drops. Stretched to 8k-26k so kids in
+    // the same cohort spread their deaths over ~30 sim-days instead
+    // of clustering. Prevents the boom-bust spirals where a single
+    // cohort die-off can't be replaced because every reproductive-age
+    // adult also died.
     let max_age = rng.gen_range(
-        (9000.0 + 4000.0 * child_traits_sexed.resilience) as u32
-        ..=(14000.0 + 6000.0 * child_traits_sexed.resilience) as u32
+        (8000.0 + 4000.0 * child_traits_sexed.resilience) as u32
+        ..=(18000.0 + 8000.0 * child_traits_sexed.resilience) as u32
     );
 
     let child_id = Uuid::new_v4().to_string()[..8].to_string();
