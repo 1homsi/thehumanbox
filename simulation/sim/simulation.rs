@@ -137,6 +137,12 @@ pub struct Simulation {
     pub(crate) lineage_elders:       HashMap<String, String>,
     pub(crate) lineage_negotiations: HashMap<(String,String), u64>,
     pub pop_history:           VecDeque<[u64; 2]>,
+    // Lineage centroid history. One sample (tick, cx, cy) per lineage per
+    // sim-day (every 600 ticks), capped at 60 samples (~2 sim-months) per
+    // lineage. Foundation for regional oral history and historical-geography
+    // UI - a tribe that's drifted 200 tiles across its lifetime can have
+    // that drift visualised as a trail.
+    pub lineage_centroid_history: HashMap<String, VecDeque<[i32; 3]>>,
     pub current_era:           String,
     pub sex_words:             [String; 2],  // [0]=word for Male, [1]=word for Female - coined by founding generation
     pub world_seed:            u64,          // seed used for this world's terrain - persisted so depth/elevation reload correctly
@@ -209,6 +215,7 @@ impl Simulation {
             lineage_elders:       HashMap::new(),
             lineage_negotiations: HashMap::new(),
             pop_history: VecDeque::new(),
+            lineage_centroid_history: HashMap::new(),
             current_era: "genesis".to_string(),
             sex_words,
             world_seed: seed,
@@ -327,6 +334,7 @@ impl Simulation {
             let alive = self.organisms.iter().filter(|o| o.alive).count() as u64;
             self.pop_history.push_back([self.tick_count, alive]);
             if self.pop_history.len() > 1000 { self.pop_history.pop_front(); }
+            self.sample_lineage_centroids();
         }
 
         // ── Elder recomputation ───────────────────────────────────────────────
@@ -350,6 +358,15 @@ impl Simulation {
 
         let alive_count_before_loop = self.organisms.iter().filter(|o| o.alive).count();
 
+        // Per-lineage alive counts, computed once per tick. Birth decisions
+        // consult this to enforce a per-lineage population cap (see
+        // growth::try_reproduce). O(N) once is cheaper than O(N) inside
+        // every per-organism reproduction check.
+        let mut lineage_counts: HashMap<String, usize> = HashMap::new();
+        for o in self.organisms.iter().filter(|o| o.alive) {
+            *lineage_counts.entry(o.lineage_id.clone()).or_insert(0) += 1;
+        }
+
         if alive_count_before_loop < 50
             && self.tick_count - self.last_immigration_tick >= 300
         {
@@ -365,7 +382,7 @@ impl Simulation {
         for i in 0..self.organisms.len() {
             if self.organisms[i].alive {
                 let prev_len = self.organisms.len();
-                self.tick_organism(i, alive_count_before_loop, &spatial);
+                self.tick_organism(i, alive_count_before_loop, &lineage_counts, &spatial);
 
                 // Post-birth: if a child was just born, seed it with elder knowledge
                 if self.organisms.len() > prev_len {
@@ -513,7 +530,9 @@ impl Simulation {
         }
     }
 
-    fn tick_organism(&mut self, idx: usize, alive_count: usize, spatial: &SpatialIndex) {
+    fn tick_organism(&mut self, idx: usize, alive_count: usize,
+                     lineage_counts: &HashMap<String, usize>,
+                     spatial: &SpatialIndex) {
         let night   = self.is_night();
         let epsilon = (0.5 - self.organisms[idx].age as f32 * 0.00008).max(0.12);
 
@@ -1814,7 +1833,7 @@ impl Simulation {
 
         growth::try_reproduce(idx, &mut self.organisms, &self.grid,
                               self.tick_count, &mut self.events, &mut self.history,
-                              &mut self.rng, alive_count);
+                              &mut self.rng, alive_count, lineage_counts);
 
         // ── Death check ───────────────────────────────────────────────────────
         // Capture death info before marking dead, for grief propagation below
@@ -2334,6 +2353,39 @@ impl Simulation {
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /// Sample each living lineage's centroid (mean x, mean y) and append
+    /// it to that lineage's history. Called once per sim-day from `tick`.
+    /// Dead lineages get aged out: after 30 days with no living members we
+    /// drop their history so the map doesn't accumulate ancestor trails
+    /// from extinct tribes indefinitely.
+    fn sample_lineage_centroids(&mut self) {
+        let mut sums: HashMap<&str, (f32, f32, u32)> = HashMap::new();
+        for o in self.organisms.iter().filter(|o| o.alive) {
+            let e = sums.entry(o.lineage_id.as_str()).or_insert((0.0, 0.0, 0));
+            e.0 += o.x; e.1 += o.y; e.2 += 1;
+        }
+        let tick = self.tick_count as i32;
+        let alive_lineages: HashSet<String> = sums.keys().map(|s| s.to_string()).collect();
+        for (lid_str, (sx, sy, n)) in sums {
+            if n == 0 { continue; }
+            let entry = self.lineage_centroid_history
+                .entry(lid_str.to_string())
+                .or_default();
+            entry.push_back([tick, (sx / n as f32) as i32, (sy / n as f32) as i32]);
+            // Keep ~60 samples (~60 sim-days) per lineage; trail still
+            // reads as a continuous drift but bounded memory.
+            if entry.len() > 60 { entry.pop_front(); }
+        }
+        // Age out lineages that have been extinct for > 30 sample-gaps
+        // (30 sim-days). Last sample tick + 30*DAY_LENGTH < now means
+        // we haven't seen this lineage alive in two months.
+        let cutoff = tick - 30 * DAY_LENGTH as i32;
+        self.lineage_centroid_history.retain(|lid, samples| {
+            if alive_lineages.contains(lid) { return true; }
+            samples.back().map(|s| s[0] >= cutoff).unwrap_or(false)
+        });
+    }
 
     pub fn is_night(&self) -> bool {
         (self.tick_count % DAY_LENGTH) >= (DAY_LENGTH as f64 * 0.7) as u64

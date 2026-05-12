@@ -79,12 +79,27 @@ pub fn try_reproduce(
     _history: &mut History,
     rng: &mut impl Rng,
     alive_count: usize,
+    lineage_counts: &std::collections::HashMap<String, usize>,
 ) {
     if alive_count >= MAX_POPULATION { return; }
 
     let org = &organisms[org_idx];
     // Only females give birth
     if org.sex != Sex::Female { return; }
+
+    // Per-lineage population cap. Without this, the most successful tribe
+    // keeps adding babies indefinitely and turns a 60x60 cell into a
+    // 200-strong blob (measured: 70% of world pop in one cell at 90k ticks).
+    // 50 is a "village" - enough to feel alive, not enough to dominate.
+    // Cap is per-lineage, not per-location, so a tribe that disperses
+    // across the map can still grow; only the locally-fat tribe stops
+    // breeding until age or forks reduce the count.
+    // lineage_counts is precomputed once per tick by the caller - O(1) lookup
+    // here instead of an O(N) scan per reproduction attempt.
+    const MAX_LINEAGE_POP: usize = 50;
+    if lineage_counts.get(&org.lineage_id).copied().unwrap_or(0) >= MAX_LINEAGE_POP {
+        return;
+    }
 
     let critical = alive_count < 30;
     let low_pop  = alive_count < 80;
