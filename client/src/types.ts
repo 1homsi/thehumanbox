@@ -185,6 +185,10 @@ export interface WorldState {
   tribal_relations: TribalRelation[]
   lineage_sizes: { id: string; count: number }[]
   lineage_names?: Record<string, string>   // lineage_id → tribe name
+  // Per-lineage centroid samples. Each entry is one sample per sim-day,
+  // capped server-side at 60 samples per lineage. Shape: [tick, cx, cy].
+  // Rendered as a thin trail line per tribe.
+  lineage_centroid_history?: Record<string, [number, number, number][]>
   current_era?: string
   sex_words?:   [string, string]   // [0]=word for male biology, [1]=word for female biology - coined by founding generation
 }

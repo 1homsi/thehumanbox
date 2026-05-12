@@ -71,6 +71,7 @@ type IncomingWorldFrame =
     tribal_relations?: WorldState['tribal_relations']
     lineage_sizes?: WorldState['lineage_sizes']
     lineage_names?: WorldState['lineage_names']
+    lineage_centroid_history?: WorldState['lineage_centroid_history']
     current_era?: WorldState['current_era']
     sex_words?: WorldState['sex_words']
   }
@@ -443,6 +444,7 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
             tribal_relations: parsed.tribal_relations ?? base?.tribal_relations ?? [],
             lineage_sizes: parsed.lineage_sizes ?? base?.lineage_sizes ?? [],
             lineage_names: parsed.lineage_names ?? base?.lineage_names,
+            lineage_centroid_history: parsed.lineage_centroid_history ?? base?.lineage_centroid_history,
             current_era: parsed.current_era ?? base?.current_era,
             sex_words: parsed.sex_words ?? base?.sex_words,
             organisms: [...organismCache.current.values()],

@@ -260,6 +260,7 @@ function App() {
                     <button className={clsx('lang-btn', viewFlags.structures && 'active')} onClick={() => setViewFlag('structures', !viewFlags.structures)} title="Highlight huts and campfires">⌂ builds</button>
                     <button className={clsx('lang-btn', viewFlags.fertility  && 'active')} onClick={() => setViewFlag('fertility',  !viewFlags.fertility)} title="Soil fertility heat">✿ fertility</button>
                     <button className={clsx('lang-btn', viewFlags.hazard     && 'active')} onClick={() => setViewFlag('hazard',     !viewFlags.hazard)} title="Hazard scars - violence and death">✶ hazard</button>
+                    <button className={clsx('lang-btn', viewFlags.history    && 'active')} onClick={() => setViewFlag('history',    !viewFlags.history)} title="Per-lineage drift over the last ~60 sim-days">↝ history</button>
                     <button className={clsx('lang-btn', viewFlags.fps        && 'active')} onClick={() => setViewFlag('fps',        !viewFlags.fps)} title="Frames-per-second + frame timing">⏱ perf</button>
                   </div>
 

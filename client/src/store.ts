@@ -33,6 +33,7 @@ export interface ViewFlags {
   fear:       boolean   // fear halo
   partners:   boolean   // bond line between partners
   pregnancy:  boolean   // pregnancy marker
+  history:    boolean   // per-lineage centroid drift trails (historical geography)
   fps:        boolean   // perf overlay
 }
 
@@ -120,7 +121,7 @@ export const useUIStore = create<UIState>((set) => ({
     territory: false, names: true, thoughts: false, animals: true, grid: false,
     trails: false, structures: false, fertility: false, hazard: false,
     lineageDot: false, health: false, age: false, fear: false,
-    partners: false, pregnancy: false, fps: false,
+    partners: false, pregnancy: false, history: false, fps: false,
   },
 
   isFullscreen: false,

@@ -400,7 +400,7 @@ type ViewFlags = {
   territory: boolean; names: boolean; thoughts: boolean; animals: boolean; grid: boolean
   trails: boolean; structures: boolean; fertility: boolean; hazard: boolean
   lineageDot: boolean; health: boolean; age: boolean; fear: boolean
-  partners: boolean; pregnancy: boolean; fps: boolean
+  partners: boolean; pregnancy: boolean; history: boolean; fps: boolean
 }
 
 // FPS overlay state. Module-level so it survives between draw calls -
@@ -726,6 +726,40 @@ function drawWorldOnCanvas(
       ctx.moveTo(sx, 0)
       ctx.lineTo(sx + H * 0.35, H)
       ctx.stroke()
+    }
+    ctx.restore()
+  }
+
+  // Lineage centroid trails (historical geography). Each tribe gets a thin
+  // colored polyline through its centroid samples over the last ~60 sim-days.
+  // Endpoint dot marks "now". Older samples fade toward transparent so the
+  // eye reads direction of drift without the trail clogging the map.
+  if (viewFlags.history && world.lineage_centroid_history) {
+    ctx.save()
+    ctx.lineWidth = 1.2
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    for (const [lid, samples] of Object.entries(world.lineage_centroid_history)) {
+      if (!samples || samples.length < 2) continue
+      const hsl = lineageColor(lid)
+      // Draw segment-by-segment with per-segment alpha so the trail fades
+      // from low alpha (oldest) to ~0.85 (most recent).
+      for (let i = 1; i < samples.length; i++) {
+        const [, x0, y0] = samples[i - 1]
+        const [, x1, y1] = samples[i]
+        const a = 0.15 + 0.70 * (i / samples.length)
+        ctx.strokeStyle = hsl.replace('hsl(', 'hsla(').replace(')', `, ${a.toFixed(2)})`)
+        ctx.beginPath()
+        ctx.moveTo((x0 - ox) * TILE + TILE / 2, (y0 - oy) * TILE + TILE / 2)
+        ctx.lineTo((x1 - ox) * TILE + TILE / 2, (y1 - oy) * TILE + TILE / 2)
+        ctx.stroke()
+      }
+      // "Now" marker at the most recent sample.
+      const [, lx, ly] = samples[samples.length - 1]
+      ctx.fillStyle = hsl.replace('hsl(', 'hsla(').replace(')', ', 0.95)')
+      ctx.beginPath()
+      ctx.arc((lx - ox) * TILE + TILE / 2, (ly - oy) * TILE + TILE / 2, 2.5, 0, Math.PI * 2)
+      ctx.fill()
     }
     ctx.restore()
   }
