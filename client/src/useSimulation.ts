@@ -335,6 +335,19 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
     function requestSnapshotResync() {
       if (destroyed || snapshotPendingRef.current) return
       snapshotPendingRef.current = true
+      // Re-engage the bootstrap gate for the duration of the fetch.
+      // Without this, WS deltas arriving during the ~200-500ms fetch
+      // would flush through flushUpdate, advance lastFrameIdRef past
+      // the snapshot's frame_id, and the snapshot would be dropped by
+      // dedupe when it finally arrives. Holding the gate makes the
+      // arriving snapshot the next thing applied, which is the point.
+      bootstrapPendingRef.current = true
+      // Also reset the dedupe ref to 0 - the snapshot we're about to
+      // get is the new ground truth, and any frames buffered after
+      // the snapshot should re-apply on top of it. lastFrameIdRef=0
+      // skips the dedupe gate for the next applied frame.
+      const savedLastFrameId = lastFrameIdRef.current
+      lastFrameIdRef.current = 0
       fetch(SNAPSHOT_URL, { cache: 'no-store' })
         .then(r => {
           if (!r.ok) return null
@@ -346,9 +359,10 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
         .then(buf => {
           if (destroyed) return
           if (buf == null) {
-            // Snapshot fetch failed - let live WS deltas start flushing
-            // anyway so the world isn't permanently stuck. They will
-            // accumulate into a viewable state even without bootstrap.
+            // Snapshot fetch failed - restore the previous frame_id so
+            // dedupe still drops already-applied frames, and let live
+            // WS deltas resume so the world isn't permanently stuck.
+            lastFrameIdRef.current = savedLastFrameId
             if (bootstrapPendingRef.current) {
               bootstrapPendingRef.current = false
               scheduleFlush()
@@ -366,6 +380,7 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
           scheduleFlush()
         })
         .catch(() => {
+          lastFrameIdRef.current = savedLastFrameId
           if (bootstrapPendingRef.current) {
             bootstrapPendingRef.current = false
             scheduleFlush()
