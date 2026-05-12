@@ -339,6 +339,78 @@ pub fn tick_world_evolution(
         }
     }
 
+    // ── a2) Lakes dry up during drought / scarcity ────────────────────────────
+    // Inland lakes shrink when rain is scarce: a shallow water tile that's
+    // mostly surrounded by land becomes Sand. Excludes the ocean by
+    // gating on shallow depth AND requiring a majority of land
+    // neighbours in a 2-radius window - true ocean tiles have deep
+    // depth and very few land neighbours. Recovery happens in (a3).
+    if drought_active || season == "scarcity" {
+        let mut lake_candidates: Vec<(i32, i32)> = Vec::new();
+        for _ in 0..400 {
+            let x = rng.gen_range(2..(WIDTH as i32 - 2));
+            let y = rng.gen_range(2..(HEIGHT as i32 - 2));
+            if grid.get(x, y) != Tile::Water { continue; }
+            if grid.depth_at(x, y) > 0.35 { continue; } // deep ocean: skip
+            // Count land neighbours in 2-radius (16 tiles total around center)
+            let mut land_neighbours = 0;
+            let mut total = 0;
+            for dy in -2i32..=2 { for dx in -2i32..=2 {
+                if dx == 0 && dy == 0 { continue; }
+                let (nx, ny) = (x + dx, y + dy);
+                if !WorldGrid::in_bounds(nx, ny) { continue; }
+                total += 1;
+                if !matches!(grid.get(nx, ny), Tile::Water | Tile::Flooded) {
+                    land_neighbours += 1;
+                }
+            }}
+            // > 60% land neighbours = small inland lake / pond
+            if total > 0 && land_neighbours * 5 > total * 3 {
+                lake_candidates.push((x, y));
+                if lake_candidates.len() >= 4 { break; }
+            }
+        }
+        for (lx, ly) in lake_candidates {
+            if rng.gen::<f32>() < 0.12 {
+                grid.set(lx, ly, Tile::Sand);
+                // Mark depth as land so any depth-based queries reflect
+                // the new state. depth=0 is the "this is land" sentinel.
+                let i = WorldGrid::idx(lx, ly);
+                grid.depth[i] = 0.0;
+            }
+        }
+    }
+
+    // ── a3) Lakes refill during rain / abundance ──────────────────────────────
+    // Sand tiles surrounded by water on most sides slowly return to
+    // water during rain. Pairs with (a2) - a lake that dried out can
+    // come back if conditions improve.
+    if !drought_active && (weather.kind >= 1 || season == "abundance" || season == "recovery") {
+        let mut refill: Vec<(i32, i32)> = Vec::new();
+        for _ in 0..400 {
+            let x = rng.gen_range(2..(WIDTH as i32 - 2));
+            let y = rng.gen_range(2..(HEIGHT as i32 - 2));
+            if grid.get(x, y) != Tile::Sand { continue; }
+            let water_adj = (-1i32..=1).flat_map(|dx| (-1i32..=1).map(move |dy| (dx, dy)))
+                .filter(|&(dx, dy)| (dx != 0 || dy != 0)
+                    && WorldGrid::in_bounds(x + dx, y + dy)
+                    && grid.get(x + dx, y + dy) == Tile::Water)
+                .count();
+            // Sand surrounded on >=3 sides by water - it's in a lakebed
+            if water_adj >= 3 {
+                refill.push((x, y));
+                if refill.len() >= 3 { break; }
+            }
+        }
+        for (rx, ry) in refill {
+            if rng.gen::<f32>() < 0.10 {
+                grid.set(rx, ry, Tile::Water);
+                let i = WorldGrid::idx(rx, ry);
+                grid.depth[i] = 0.20; // shallow lake water
+            }
+        }
+    }
+
     // ── b) Desert creep - during drought or scarcity ──────────────────────────
     if drought_active || season == "scarcity" {
         let mut desert_grass: Vec<(i32, i32)> = Vec::new();
