@@ -120,6 +120,7 @@ pub(crate) struct SaveState {
     pub(crate) grid:           GridSave,
     story_history:  Vec<StoryEntry>,
     pop_history:    Vec<[u64; 2]>,
+    lineage_centroid_history: HashMap<String, Vec<[i32; 3]>>,
     current_era:    String,
     sex_words:      Vec<String>,
     pub(crate) world_seed:     u64,
@@ -313,6 +314,9 @@ impl Simulation {
                 intensity:  self.weather.intensity,
             },
             pop_history:   self.pop_history.iter().cloned().collect(),
+            lineage_centroid_history: self.lineage_centroid_history.iter()
+                .map(|(k, v)| (k.clone(), v.iter().cloned().collect()))
+                .collect(),
             events:    self.events.iter().cloned().collect(),
             organisms:     self.organisms.iter().map(org_to_save).collect(),
             animals:       self.animals.iter().map(animal_to_save).collect(),
@@ -501,6 +505,9 @@ impl Simulation {
                 })
                 .collect(),
             pop_history:            state.pop_history.into_iter().collect(),
+            lineage_centroid_history: state.lineage_centroid_history.into_iter()
+                .map(|(k, v)| (k, v.into_iter().collect()))
+                .collect(),
             current_era:            if state.current_era.is_empty() { "genesis".to_string() } else { state.current_era },
             sex_words: {
                 if state.sex_words.len() >= 2 {

@@ -184,6 +184,8 @@ impl Simulation {
                 obj.insert("tribal_relations".to_string(), self.cached_tribal_relations.clone());
                 obj.insert("lineage_sizes".to_string(), self.cached_lineage_sizes.clone());
                 obj.insert("lineage_names".to_string(), serde_json::to_value(&self.lineage_names).unwrap());
+                obj.insert("lineage_centroid_history".to_string(),
+                    serde_json::to_value(&self.lineage_centroid_history).unwrap());
                 obj.insert("current_era".to_string(), serde_json::to_value(&self.current_era).unwrap());
                 obj.insert("sex_words".to_string(), serde_json::to_value(&self.sex_words).unwrap());
             }
