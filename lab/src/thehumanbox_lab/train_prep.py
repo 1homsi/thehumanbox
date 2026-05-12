@@ -30,12 +30,18 @@ def split_rows(
 def teacher_rows_to_sft(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     dataset: list[dict[str, Any]] = []
     for row in rows:
+        # Accept either capture_teacher_thoughts output (teacher_response,
+        # the distillation flow) or build_thought_dataset output (response,
+        # the self-supervised flow where the sim's own thoughts are the
+        # training target). This lets prepare-sft-dataset work end-to-end
+        # without requiring a teacher model pass first.
+        assistant_text = row.get("teacher_response", row.get("response", ""))
         dataset.append(
             {
                 "messages": [
                     {"role": "system", "content": row.get("system_prompt", "")},
                     {"role": "user", "content": str(row["prompt"])},
-                    {"role": "assistant", "content": str(row["teacher_response"])},
+                    {"role": "assistant", "content": str(assistant_text)},
                 ],
                 "metadata": {
                     "task": row.get("task", "unknown"),

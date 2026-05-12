@@ -164,14 +164,19 @@ def cmd_capture_teacher_thoughts(args: argparse.Namespace) -> int:
 
 def cmd_prepare_sft_dataset(args: argparse.Namespace) -> int:
     teacher_rows = list(read_jsonl(args.input))
-    sft_rows = teacher_rows_to_sft(teacher_rows)
-    train_rows, valid_rows = split_rows(sft_rows, validation_ratio=args.validation_ratio)
+    # Split FIRST on the teacher rows where each row still has a top-level
+    # "prompt" key. Then wrap into SFT messages. Splitting after wrapping
+    # was a bug: every wrapped row had no top-level "prompt" so split_rows
+    # treated them all as the same hash key and put 99.99% in train.
+    train_teacher, valid_teacher = split_rows(teacher_rows, validation_ratio=args.validation_ratio)
+    train_rows = teacher_rows_to_sft(train_teacher)
+    valid_rows = teacher_rows_to_sft(valid_teacher)
     write_jsonl(args.train_output, train_rows)
     write_jsonl(args.valid_output, valid_rows)
     print(
         json.dumps(
             {
-                "total": len(sft_rows),
+                "total": len(train_rows) + len(valid_rows),
                 "train": len(train_rows),
                 "valid": len(valid_rows),
                 "validation_ratio": args.validation_ratio,
