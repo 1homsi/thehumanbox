@@ -337,6 +337,15 @@ impl Simulation {
             self.sample_lineage_centroids();
         }
 
+        // Regional oral history. Every ~60 ticks, scan a few random orgs
+        // for proximity to an OLD centroid of their own lineage. If an
+        // org wanders within a few tiles of where their tribe lived
+        // many generations ago, set a thought - the world feels lived-in
+        // when a passing org thinks "this was our grandparents' camp".
+        if self.tick_count % 60 == 0 && !self.lineage_centroid_history.is_empty() {
+            self.tick_ancestral_recognition();
+        }
+
         // ── Elder recomputation ───────────────────────────────────────────────
         // The oldest living organism per lineage is the elder - tribal memory keeper.
         if self.tick_count % 200 == 0 {
@@ -2353,6 +2362,68 @@ impl Simulation {
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /// Regional oral history: scan a handful of random alive orgs and
+    /// check whether any is standing near an OLD centroid of their own
+    /// lineage (10+ sim-days back). If so, fire a "this was our
+    /// grandparents' land" thought. Cheap by design - we cap the scan
+    /// to a few orgs and a few historical samples per call.
+    fn tick_ancestral_recognition(&mut self) {
+        // Look back at samples this many sim-days old or older. Less than
+        // this and the org's just standing in their tribe's current
+        // village - not interesting. More than this and the centroid is
+        // genuinely ancestral.
+        const ANCIENT_AFTER_DAYS: u64 = 10;
+        const RECOG_RADIUS: f32 = 5.0;
+        const ORGS_TO_CHECK: usize = 6;
+        const COOLDOWN_TICKS: u64 = 1800;
+
+        let now = self.tick_count;
+        let ancient_cutoff = now as i32 - (ANCIENT_AFTER_DAYS * DAY_LENGTH) as i32;
+
+        let alive_indices: Vec<usize> = self.organisms.iter().enumerate()
+            .filter(|(_, o)| o.alive)
+            .map(|(i, _)| i)
+            .collect();
+        if alive_indices.is_empty() { return; }
+
+        for _ in 0..ORGS_TO_CHECK {
+            let idx = alive_indices[self.rng.gen_range(0..alive_indices.len())];
+            // Cooldown so an org doesn't spam ancestral thoughts every
+            // 60 ticks while standing in the same spot.
+            if now.saturating_sub(self.organisms[idx].last_ancestral_thought) < COOLDOWN_TICKS {
+                continue;
+            }
+            let org_lid = self.organisms[idx].lineage_id.clone();
+            let ox = self.organisms[idx].x;
+            let oy = self.organisms[idx].y;
+            let Some(samples) = self.lineage_centroid_history.get(&org_lid) else { continue };
+            // Walk only the ancient half of the history - oldest samples
+            // are at the front of the VecDeque.
+            let mut matched: Option<i32> = None;
+            for s in samples.iter() {
+                if s[0] >= ancient_cutoff { break; }
+                let dx = ox - s[1] as f32;
+                let dy = oy - s[2] as f32;
+                if dx * dx + dy * dy <= RECOG_RADIUS * RECOG_RADIUS {
+                    matched = Some(s[0]);
+                    break;
+                }
+            }
+            if let Some(sample_tick) = matched {
+                let age_days = (now as i32 - sample_tick) / DAY_LENGTH as i32;
+                let thought = if age_days >= 30 {
+                    "ancestors walked here"
+                } else if age_days >= 20 {
+                    "our grandparents' land"
+                } else {
+                    "the elders mentioned this place"
+                };
+                self.organisms[idx].thought = thought.to_string();
+                self.organisms[idx].last_ancestral_thought = now;
+            }
+        }
+    }
 
     /// Sample each living lineage's centroid (mean x, mean y) and append
     /// it to that lineage's history. Called once per sim-day from `tick`.

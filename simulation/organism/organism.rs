@@ -197,6 +197,7 @@ pub struct Organism {
     pub wander_target:  Option<(i32, i32)>, // active wander destination
     pub last_groomed:   u64,           // tick of last grooming interaction
     pub last_fed_kin:   u64,           // tick of last food shared with kin
+    pub last_ancestral_thought: u64,   // tick of last "this is ancestral land" recognition
 
     pub partner_id:     Option<String>,
     pub children_count: u32,
@@ -291,6 +292,7 @@ impl Organism {
             wander_target:  None,
             last_groomed:   0,
             last_fed_kin:   0,
+            last_ancestral_thought: 0,
             partner_id:     None,
             children_count: 0,
             sex:            Sex::Male,  // caller sets this after construction
