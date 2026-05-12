@@ -24,9 +24,25 @@ Example usage:
         --output datasets/traces/run_2026-05-11.jsonl \
         --duration 600     # 10 minutes of wall clock
 
-This script intentionally has no external deps beyond `websockets` so
-it can be run from a fresh venv that hasn't installed the full lab
-toolkit yet. `pip install websockets` is enough.
+External deps: `websockets` for the connection, `msgpack` to decode
+the simulation's binary wire format. `pip install websockets msgpack`,
+or `pip install -e lab[trace]` from the repo root.
+
+The simulation broadcasts full snapshots (with thoughts / traits /
+discoveries) periodically and bandwidth-slim SoA delta frames in
+between; this collector picks up the full snapshots and ignores the
+deltas. With the simulation's default cadence that's one row roughly
+every 12 seconds of wall clock at the default `--min-tick-gap`.
+
+Alternative path - for offline / deterministic data, run the headless
+binary directly:
+
+    ./simulation/target/release/headless --seed 42 --ticks 50000 \\
+        --trace-out lab/datasets/generated/seed42.jsonl \\
+        --trace-every 50 --trace-limit 999999
+
+The JSONL it writes is the same shape this script produces, so it
+feeds straight into `build_thought_dataset.py`.
 """
 
 from __future__ import annotations
@@ -43,6 +59,14 @@ try:
 except ImportError:
     print("trace_collector needs the `websockets` package: pip install websockets", file=sys.stderr)
     sys.exit(2)
+
+try:
+    import msgpack
+except ImportError:
+    msgpack = None  # type: ignore[assignment]
+    # JSON-only fallback. The current simulation sends MessagePack binary
+    # frames, so without msgpack installed we'll skip every frame and
+    # the user will see a clear error message at startup.
 
 
 def parse_args() -> argparse.Namespace:
@@ -115,6 +139,30 @@ def organism_event_rows(snapshot: dict, accept_ids: set[str] | None = None) -> l
     return rows
 
 
+def _decode_frame(raw: bytes | str) -> dict | None:
+    """The simulation switched to MessagePack binary frames for bandwidth,
+    but older clients sent JSON. Handle both: bytes -> try msgpack first
+    (with named keys, as the server uses `to_vec_named`), then JSON;
+    text -> JSON only. Returns None on any decode failure so we can just
+    skip the frame instead of crashing the collector."""
+    if isinstance(raw, (bytes, bytearray)):
+        if msgpack is not None:
+            try:
+                obj = msgpack.unpackb(raw, raw=False)
+                if isinstance(obj, dict):
+                    return obj
+            except Exception:
+                pass
+        try:
+            return json.loads(raw)
+        except Exception:
+            return None
+    try:
+        return json.loads(raw)
+    except Exception:
+        return None
+
+
 async def collect(args: argparse.Namespace) -> int:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     written = 0
@@ -126,9 +174,14 @@ async def collect(args: argparse.Namespace) -> int:
             if deadline is not None and time.monotonic() > deadline:
                 break
             raw = await ws.recv()
-            try:
-                snapshot = json.loads(raw)
-            except json.JSONDecodeError:
+            snapshot = _decode_frame(raw)
+            if snapshot is None:
+                continue
+            # Only full snapshots carry per-organism thought / trait /
+            # discovery fields; the wire format's SoA delta frames
+            # (`organisms_hot`) are hot positional data and don't have
+            # what we need for thought training. Skip them.
+            if "organisms" not in snapshot:
                 continue
             tick = snapshot.get("tick")
             if tick is None or tick - last_tick < args.min_tick_gap:
@@ -146,6 +199,12 @@ async def collect(args: argparse.Namespace) -> int:
 
 def main() -> int:
     args = parse_args()
+    if msgpack is None:
+        print("trace_collector: msgpack is not installed, but the live "
+              "simulation broadcasts MessagePack frames. Either "
+              "`pip install msgpack` or use the headless --trace-out "
+              "path instead (see docstring).", file=sys.stderr)
+        return 2
     try:
         return asyncio.run(collect(args))
     except KeyboardInterrupt:

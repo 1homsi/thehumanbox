@@ -18,6 +18,10 @@ dev = [
   "pytest>=8.0",
   "ruff>=0.6",
 ]
+trace = [
+  "websockets>=12.0",
+  "msgpack>=1.0",
+]
 train = [
   "accelerate>=0.33",
   "datasets>=2.20",
