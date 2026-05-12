@@ -261,6 +261,12 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
   const lastFrameIdRef = useRef<number>(0)
   const awaitingFullFrameRef = useRef(false)
   const snapshotPendingRef = useRef(false)
+  // True until the first HTTP /snapshot has been applied. While set,
+  // WS deltas land in queuedMsgs but flushUpdate is NOT scheduled - the
+  // snapshot's arrival is what flushes everything. Without this gate,
+  // deltas with frame_id > snapshot's would set lastFrameIdRef first
+  // and the snapshot would get dropped by dedupe.
+  const bootstrapPendingRef = useRef(true)
 
   // React-state throttle. The canvas reads currentWorldRef every RAF (60fps),
   // but the sidebar / cards / panels react to the `world` state - and at
@@ -299,7 +305,13 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
         markAwaitingFullFrame()
       }
       queuedMsgs.current.push(raw)
-      scheduleFlush()
+      // While bootstrap is pending the WS is feeding us deltas that
+      // can't be applied yet (their frame_id is ahead of the snapshot
+      // we'll bootstrap from). We buffer them and the snapshot's
+      // arrival flushes everything in one go.
+      if (!bootstrapPendingRef.current) {
+        scheduleFlush()
+      }
     }
 
     function markAwaitingFullFrame() {
@@ -332,10 +344,33 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
           return r.arrayBuffer()
         })
         .then(buf => {
-          if (destroyed || buf == null) return
-          enqueueMessage(buf)
+          if (destroyed) return
+          if (buf == null) {
+            // Snapshot fetch failed - let live WS deltas start flushing
+            // anyway so the world isn't permanently stuck. They will
+            // accumulate into a viewable state even without bootstrap.
+            if (bootstrapPendingRef.current) {
+              bootstrapPendingRef.current = false
+              scheduleFlush()
+            }
+            return
+          }
+          // The snapshot must apply BEFORE any buffered WS deltas, even
+          // though the deltas are from a later tick. Prepend it to the
+          // queue and unblock the flush gate. flushUpdate processes
+          // the snapshot first (sets lastFrameIdRef and seeds caches),
+          // then applies the deltas - any with frame_id <= snapshot's
+          // get dropped by the existing dedupe.
+          queuedMsgs.current.unshift(buf)
+          bootstrapPendingRef.current = false
+          scheduleFlush()
         })
-        .catch(() => {})
+        .catch(() => {
+          if (bootstrapPendingRef.current) {
+            bootstrapPendingRef.current = false
+            scheduleFlush()
+          }
+        })
         .finally(() => {
           snapshotPendingRef.current = false
         })
@@ -507,7 +542,16 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
       ws.binaryType = 'arraybuffer'
       wsRef.current = ws
 
-      ws.onopen = () => { if (!destroyed) setConnected(true) }
+      ws.onopen = () => {
+        if (destroyed) return
+        setConnected(true)
+        // Server doesn't send a primer on WS connect anymore - the
+        // bootstrap snapshot rides HTTP /snapshot (gzipped, no impact
+        // on the sim-lock hot path). Fire the fetch as soon as we know
+        // the socket is alive so live deltas + the HTTP snapshot can
+        // race - the dedupe-by-frame_id path stitches them in order.
+        requestSnapshotResync()
+      }
       ws.onclose = () => {
         if (destroyed) return
         setConnected(false)
@@ -516,6 +560,10 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
           rafPending.current = null
         }
         queuedMsgs.current = []
+        // Re-arm the bootstrap gate so the reconnect's first deltas
+        // get buffered and the post-reconnect /snapshot fetch flushes
+        // them with the right ordering.
+        bootstrapPendingRef.current = true
         setTimeout(connect, 2000)
       }
       ws.onmessage = (e) => {
@@ -523,8 +571,6 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
         enqueueMessage(e.data)
       }
     }
-
-    requestSnapshotResync()
 
     connect()
     return () => {
