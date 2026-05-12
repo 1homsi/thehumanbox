@@ -450,9 +450,25 @@ pub fn tick_world_evolution(
         let hazard   = grid.hazard[i];
 
         // ── Degradation chain (overuse collapses ecosystems) ─────────────────
-        // Forest → Grassland: heavy use + depleted soil
+        // Forest → Grassland: heavy use + depleted soil. Also clear the
+        // visual tree on this tile (Tile::Food rendered as a tree) so the
+        // forest visibly recedes rather than ghost-trees lingering on a
+        // grassland biome. Neighbour-tree thinning amplifies the visual:
+        // when a forest patch dies, surrounding trees on the same patch
+        // also have a small chance of falling, so the receding edge reads
+        // as a moving boundary.
         if biome == Biome::Forest && fert < 0.25 && pressure > 2.0 && rng.gen::<f32>() < 0.003 {
             grid.biome[i] = Biome::Grassland as u8;
+            if grid.get(x, y) == Tile::Food { grid.set(x, y, Tile::Grass); }
+            for (dx, dy) in [(-1i32, 0i32), (1, 0), (0, -1), (0, 1)] {
+                let (nx, ny) = (x + dx, y + dy);
+                if WorldGrid::in_bounds(nx, ny)
+                    && grid.get(nx, ny) == Tile::Food
+                    && rng.gen::<f32>() < 0.35
+                {
+                    grid.set(nx, ny, Tile::Grass);
+                }
+            }
         }
         // Wetland → Grassland: prolonged drought drains wetlands
         if biome == Biome::Wetland && drought_active && fert < 0.35 && rng.gen::<f32>() < 0.002 {
