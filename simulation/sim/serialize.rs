@@ -22,16 +22,29 @@ static LOOKAHEAD_TICKS: std::sync::LazyLock<f32> = std::sync::LazyLock::new(|| {
 impl Simulation {
     pub fn state_json(&mut self) -> serde_json::Value {
         let (cx, cy) = self.viewport_centroid();
-        self.state_json_inner(cx, cy, true)
+        // Initial snapshots and HTTP /snapshot always include cold metadata.
+        self.state_json_inner(cx, cy, true, true)
+    }
+
+    /// Broadcaster's periodic "full" frame. Keeps full-frame perks
+    /// (force_full=true so AoS orgs + static grid layers ship), but
+    /// only re-ships the heavy cold-metadata block on a slower cadence
+    /// (every 300 ticks ~ 30s) - the rest of the time clients cache
+    /// the previous metadata. Cuts per-tick serialize work and the
+    /// sim-lock window the broadcaster holds.
+    pub fn state_json_periodic_full(&mut self) -> serde_json::Value {
+        let (cx, cy) = self.viewport_centroid();
+        let cold_due = self.tick_count % 300 == 0 || self.tick_count <= 1;
+        self.state_json_inner(cx, cy, true, cold_due)
     }
 
     pub fn state_json_incremental(&mut self) -> serde_json::Value {
         let (cx, cy) = self.viewport_centroid();
-        self.state_json_inner(cx, cy, false)
+        self.state_json_inner(cx, cy, false, false)
     }
 
     pub fn state_json_at(&mut self, vp_cx: i32, vp_cy: i32) -> serde_json::Value {
-        self.state_json_inner(vp_cx, vp_cy, false)
+        self.state_json_inner(vp_cx, vp_cy, false, false)
     }
 
     fn viewport_centroid(&self) -> (i32, i32) {
@@ -45,7 +58,7 @@ impl Simulation {
         }
     }
 
-    fn state_json_inner(&mut self, vp_cx: i32, vp_cy: i32, force_full: bool) -> serde_json::Value {
+    fn state_json_inner(&mut self, vp_cx: i32, vp_cy: i32, force_full: bool, include_cold: bool) -> serde_json::Value {
         // Throttled tribal_relations + lineage_sizes (O(orgs * lineages) each).
         // Cached for 60 ticks (~18 s); stale is fine - tribes don't flip
         // allegiance every tick and the panel doesn't need sub-second updates.
@@ -172,7 +185,7 @@ impl Simulation {
                 "weather":            { "kind": self.weather.kind_str(), "intensity": self.weather.intensity },
             })
         };
-        if force_full {
+        if include_cold {
             if let Some(obj) = payload.as_object_mut() {
                 obj.insert("events".to_string(), serde_json::to_value(&self.events).unwrap());
                 obj.insert("history".to_string(), serde_json::to_value(&self.history).unwrap());

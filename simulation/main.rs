@@ -421,10 +421,20 @@ async fn main() {
                 let (frame, full_payload) = {
                     let mut s = sim_clone.lock().await;
                     let is_full_frame = s.tick_count % FULL_FRAME_EVERY_TICKS == 0;
+                    // Cold metadata (events, history, pop_history,
+                    // story_history, lineage_centroid_history, etc.) is
+                    // expensive to serialize and barely changes between
+                    // periodic-full frames. Slow its cadence down to every
+                    // 300 ticks (~30s) so periodic fulls in between are
+                    // grid+AoS only. This is also the cadence the
+                    // `latest_full` cache refreshes at, because that's the
+                    // snapshot new clients prime from - it must include
+                    // cold metadata.
+                    let is_deep_full = is_full_frame && (s.tick_count % 300 == 0);
                     let serialize_started = std::time::Instant::now();
                     let frame_id = next_frame_id(&frame_clock_w);
                     let bytes = if is_full_frame {
-                        encode_frame(s.state_json(), frame_id, now_ms(), "full")
+                        encode_frame(s.state_json_periodic_full(), frame_id, now_ms(), "full")
                     } else {
                         encode_frame(s.state_json_incremental(), frame_id, now_ms(), "delta")
                     };
@@ -433,7 +443,7 @@ async fn main() {
                         serialize_started.elapsed().as_millis() as u64,
                     );
                     let frame = Arc::new(bytes);
-                    let full = if is_full_frame { Some(frame.clone()) } else { None };
+                    let full = if is_deep_full { Some(frame.clone()) } else { None };
                     (frame, full)
                 };
 
