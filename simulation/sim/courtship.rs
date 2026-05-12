@@ -4,20 +4,64 @@ use crate::organism::organism::{Organism, ConversationEntry};
 // ── Conversation generation ────────────────────────────────────────────────────
 // Builds a short exchange between two organisms using their own vocabulary.
 // Each line pairs an utterance in the organisms' invented language with an
-// English "meaning" caption so players can follow what is happening.
+// English "meaning" caption.
+//
+// Design rule (added 2026-05): one concept = one gloss. When a speaker
+// says the word for "food", the gloss says "food", every time. Earlier
+// the gloss was picked at random from a small pool that *only loosely*
+// corresponded to the speaker's word - so the same coined word "miba"
+// could appear glossed as "food" in one chat and "the hunt" in another,
+// and a single-word utterance was often glossed as a full English
+// sentence. Caption now reads directly from the concept(s) the speaker
+// actually used, optionally wrapped in mood framing.
 
-fn pick_word<'a>(vocab: &'a std::collections::HashMap<String, String>,
-                 concepts: &[&str], rng: &mut impl Rng) -> &'a str {
+/// Canonical English gloss for each concept the vocabulary covers.
+/// Mirrors CONCEPTS in organism::vocabulary so the dialogue layer is
+/// the single source of truth for "what does this concept mean in
+/// English".
+fn concept_gloss(concept: &str) -> &'static str {
+    match concept {
+        "food"    => "food",
+        "water"   => "water",
+        "fire"    => "fire",
+        "danger"  => "danger",
+        "friend"  => "friend",
+        "foe"     => "enemy",
+        "shelter" => "shelter",
+        "hunt"    => "the hunt",
+        "night"   => "night",
+        "day"     => "day",
+        "sick"    => "sickness",
+        "home"    => "home",
+        "group"   => "the tribe",
+        "alone"   => "alone",
+        // Unknown concept - fall back to a generic gloss rather than
+        // returning the input ref (would force a non-static lifetime).
+        _         => "something",
+    }
+}
+
+/// Pick a concept from `concepts` whose word actually exists in `vocab`.
+/// Returns both the concept (for glossing) and the spoken word so the
+/// caller can tie the caption to the actual utterance.
+fn pick_concept_and_word<'a>(
+    vocab: &'a std::collections::HashMap<String, String>,
+    concepts: &[&'a str],
+    rng: &mut impl Rng,
+) -> (&'a str, &'a str) {
     for _ in 0..8 {
         let c = concepts[rng.gen_range(0..concepts.len())];
         if let Some(w) = vocab.get(c) {
-            return w.as_str();
+            return (c, w.as_str());
         }
     }
-    "~"
+    (concepts.first().copied().unwrap_or("~"), "~")
 }
 
 /// Returns (utterance_text, english_meaning).
+/// The English meaning is composed from the concept(s) the speaker
+/// actually picked - so the gloss reflects the word that was said, not
+/// a random sentence from a pool. Mood adds short framing words.
 fn utterance_with_meaning(
     speaker: &Organism,
     listener: &Organism,
@@ -27,144 +71,101 @@ fn utterance_with_meaning(
     let v  = &speaker.vocabulary.words;
     let lv = &listener.vocabulary.words;
 
+    // Mood-prefixed gloss helper. Single-concept utterances become
+    // "{mood-prefix} {concept gloss}", e.g. "calling: friend" instead
+    // of a full sentence.
+    fn one(prefix: &str, c: &str) -> String {
+        format!("{}: {}", prefix, concept_gloss(c))
+    }
+    fn two(prefix: &str, c1: &str, c2: &str) -> String {
+        let g1 = concept_gloss(c1);
+        let g2 = concept_gloss(c2);
+        if g1 == g2 {
+            format!("{}: {}", prefix, g1)
+        } else {
+            format!("{}: {} + {}", prefix, g1, g2)
+        }
+    }
+
     match mood {
         // ── 0: greeting ──────────────────────────────────────────────────────
         0 => {
-            let text = if rng.gen::<f32>() < 0.55 {
-                listener.name.clone()
+            if rng.gen::<f32>() < 0.55 {
+                // Just the name
+                (listener.name.clone(), format!("greeting {}", listener.name))
             } else {
-                let w = pick_word(v, &["friend", "home", "day"], rng);
-                format!("{} {}", listener.name, w)
-            };
-            (text, format!("Greeting {}", listener.name))
+                let (c, w) = pick_concept_and_word(v, &["friend", "home", "day"], rng);
+                (format!("{} {}", listener.name, w),
+                 format!("greeting {} ({})", listener.name, concept_gloss(c)))
+            }
         }
 
         // ── 1: affection / warmth ─────────────────────────────────────────────
         1 => {
-            let w1 = pick_word(v, &["friend", "home", "group", "alone"], rng);
-            let text = if rng.gen::<f32>() < 0.45 {
-                format!("{} {}", w1, listener.name)
+            let (c1, w1) = pick_concept_and_word(v, &["friend", "home", "group", "alone"], rng);
+            if rng.gen::<f32>() < 0.45 {
+                (format!("{} {}", w1, listener.name),
+                 format!("warmth: {} ({})", concept_gloss(c1), listener.name))
             } else {
-                let w2 = pick_word(lv, &["home", "night", "day", "shelter"], rng);
-                format!("{} {}", w1, w2)
-            };
-            let meanings = [
-                "Expressing warmth and companionship",
-                "Saying they are glad to be together",
-                "Sharing a moment of closeness",
-                "Feeling safe together",
-            ];
-            (text, meanings[rng.gen_range(0..meanings.len())].to_string())
+                let (c2, w2) = pick_concept_and_word(lv, &["home", "night", "day", "shelter"], rng);
+                (format!("{} {}", w1, w2), two("warmth", c1, c2))
+            }
         }
 
         // ── 2: question / curiosity ───────────────────────────────────────────
         2 => {
-            let w1 = pick_word(v, &["food", "hunt", "day", "water"], rng);
-            let w2 = pick_word(v, &["home", "shelter", "group"], rng);
-            let meanings = [
-                "Asking where the food is",
-                "Wondering about water nearby",
-                "Curious about shelter for the night",
-                "Asking if the hunt was good",
-            ];
-            (format!("{} {}", w1, w2), meanings[rng.gen_range(0..meanings.len())].to_string())
+            let (c1, w1) = pick_concept_and_word(v, &["food", "hunt", "day", "water"], rng);
+            let (c2, w2) = pick_concept_and_word(v, &["home", "shelter", "group"], rng);
+            (format!("{} {}", w1, w2), two("asking about", c1, c2))
         }
 
         // ── 3: reassurance ────────────────────────────────────────────────────
         3 => {
-            let w = pick_word(v, &["shelter", "home", "friend", "group"], rng);
-            let text = if rng.gen::<f32>() < 0.4 {
-                format!("{} {}", listener.name, w)
+            let (c, w) = pick_concept_and_word(v, &["shelter", "home", "friend", "group"], rng);
+            if rng.gen::<f32>() < 0.4 {
+                (format!("{} {}", listener.name, w),
+                 format!("reassuring {} ({})", listener.name, concept_gloss(c)))
             } else {
-                w.to_string()
-            };
-            let meanings = [
-                "Offering comfort and safety",
-                "Saying everything will be alright",
-                "Promising to stay close",
-                "Reminding them home is near",
-            ];
-            (text, meanings[rng.gen_range(0..meanings.len())].to_string())
+                (w.to_string(), one("reassuring", c))
+            }
         }
 
         // ── 4: farewell ───────────────────────────────────────────────────────
         4 => {
-            let w = pick_word(v, &["alone", "night", "home"], rng);
-            let meanings = [
-                "Saying goodbye for now",
-                "Wishing them safe travels",
-                "Until they meet again",
-            ];
+            let (c, w) = pick_concept_and_word(v, &["alone", "night", "home"], rng);
             (format!("{} {}", listener.name, w),
-             meanings[rng.gen_range(0..meanings.len())].to_string())
+             format!("farewell to {} ({})", listener.name, concept_gloss(c)))
         }
 
         // ── 5: casual talk - resources / environment ──────────────────────────
         5 => {
-            let topics: &[(&[&str], &[&str])] = &[
-                (&["food", "hunt"], &[
-                    "Talking about where to find food",
-                    "Sharing news about the hunt",
-                    "Pointing out a good foraging spot",
-                ]),
-                (&["water", "day"], &[
-                    "Mentioning a water source they found",
-                    "Talking about the weather",
-                    "Discussing how the day went",
-                ]),
-                (&["fire", "shelter"], &[
-                    "Talking about keeping the fire going",
-                    "Discussing the shelter they built",
-                    "Mentioning a warm spot to rest",
-                ]),
-            ];
-            let (concepts, meanings) = topics[rng.gen_range(0..topics.len())];
-            let w = pick_word(v, concepts, rng);
-            (w.to_string(), meanings[rng.gen_range(0..meanings.len())].to_string())
+            let (c, w) = pick_concept_and_word(v,
+                &["food", "hunt", "water", "day", "fire", "shelter"], rng);
+            (w.to_string(), one("talking about", c))
         }
 
         // ── 6: social bonding - group / tribe ────────────────────────────────
         6 => {
-            let w = pick_word(v, &["friend", "group", "day", "night"], rng);
-            let meanings = [
-                "Catching up on news from the tribe",
-                "Talking about the others in the group",
-                "Sharing a laugh about something that happened",
-                "Gossiping about another member of the group",
-                "Planning where to camp tonight",
-            ];
-            (w.to_string(), meanings[rng.gen_range(0..meanings.len())].to_string())
+            let (c, w) = pick_concept_and_word(v, &["friend", "group", "day", "night"], rng);
+            (w.to_string(), one("catching up", c))
         }
 
         // ── 7: tension / dispute ──────────────────────────────────────────────
         7 => {
-            let w1 = pick_word(v, &["danger", "fire", "hunt", "alone"], rng);
-            let w2 = pick_word(v, &["home", "shelter", "water"], rng);
-            let meanings = [
-                "Arguing about who gets the food",
-                "Disputing territory boundaries",
-                "Complaining about a shared danger",
-                "Disagreeing about which direction to go",
-                "Accusing the other of taking too much",
-            ];
-            (format!("{} {}", w1, w2), meanings[rng.gen_range(0..meanings.len())].to_string())
+            let (c1, w1) = pick_concept_and_word(v, &["danger", "fire", "hunt", "alone"], rng);
+            let (c2, w2) = pick_concept_and_word(v, &["home", "shelter", "water"], rng);
+            (format!("{} {}", w1, w2), two("arguing about", c1, c2))
         }
 
         // ── 8: excitement / discovery ─────────────────────────────────────────
         8 => {
-            let w1 = pick_word(v, &["fire", "food", "day", "hunt"], rng);
-            let w2 = pick_word(v, &["friend", "group", "shelter"], rng);
-            let meanings = [
-                "Excitedly sharing a discovery",
-                "Telling them about something new they found",
-                "Surprised by what they saw today",
-                "Describing an amazing place they visited",
-            ];
-            (format!("{} {}", w1, w2), meanings[rng.gen_range(0..meanings.len())].to_string())
+            let (c1, w1) = pick_concept_and_word(v, &["fire", "food", "day", "hunt"], rng);
+            let (c2, w2) = pick_concept_and_word(v, &["friend", "group", "shelter"], rng);
+            (format!("{} {}", w1, w2), two("excited about", c1, c2))
         }
 
         // ── default ───────────────────────────────────────────────────────────
-        _ => ("~".to_string(), "".to_string()),
+        _ => ("~".to_string(), String::new()),
     }
 }
 
