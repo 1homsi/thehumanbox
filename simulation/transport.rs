@@ -62,8 +62,24 @@ pub struct TransportStats {
     overrun_cycles:   AtomicU64,
     sim_overrun_ticks: AtomicU64,
     payload_bytes:    std::sync::Mutex<TransportWindow>,
+    // Split-by-kind payload windows. Lets /transport show full vs
+    // delta sizes independently so we can verify the slim periodic
+    // full is actually slim on prod (~80-150 KB) and deltas are tiny
+    // (~5-20 KB). Both windows feed payload_bytes too so the legacy
+    // combined avg/p95 still works.
+    full_bytes:       std::sync::Mutex<TransportWindow>,
+    delta_bytes:      std::sync::Mutex<TransportWindow>,
     frame_gen_ms:     std::sync::Mutex<TransportWindow>,
     sim_tick_ms:      std::sync::Mutex<TransportWindow>,
+}
+
+/// Frame classification for payload-size accounting. Lets TransportStats
+/// keep separate histograms for the two cadences without callers having
+/// to know about the internal windows.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum FrameKind {
+    Full,
+    Delta,
 }
 
 #[derive(Serialize)]
@@ -77,6 +93,12 @@ pub struct TransportStatsSnapshot {
     pub sim_overrun_ticks:       u64,
     pub avg_payload_bytes:       u64,
     pub p95_payload_bytes:       u64,
+    /// Split-by-kind. Lets us see if slim periodic fulls actually
+    /// shrank after the cold-metadata / per-org-cold strip changes.
+    pub avg_full_bytes:          u64,
+    pub p95_full_bytes:          u64,
+    pub avg_delta_bytes:         u64,
+    pub p95_delta_bytes:         u64,
     pub avg_frame_generation_ms: u64,
     pub p95_frame_generation_ms: u64,
     pub avg_sim_tick_ms:         u64,
@@ -85,9 +107,34 @@ pub struct TransportStatsSnapshot {
 
 impl TransportStats {
     pub fn record_generated(&self, payload_bytes: usize, frame_gen_ms: u64) {
+        self.record_generated_kind(payload_bytes, frame_gen_ms, None);
+    }
+
+    /// Like record_generated but routes payload-size into the
+    /// kind-specific histogram (Full or Delta) in addition to the
+    /// combined one. Callers that know the kind should prefer this.
+    pub fn record_generated_kind(
+        &self,
+        payload_bytes: usize,
+        frame_gen_ms: u64,
+        kind: Option<FrameKind>,
+    ) {
         self.generated_frames.fetch_add(1, Ordering::Relaxed);
         if let Ok(mut w) = self.payload_bytes.lock() {
             w.push(payload_bytes as u64);
+        }
+        match kind {
+            Some(FrameKind::Full) => {
+                if let Ok(mut w) = self.full_bytes.lock() {
+                    w.push(payload_bytes as u64);
+                }
+            }
+            Some(FrameKind::Delta) => {
+                if let Ok(mut w) = self.delta_bytes.lock() {
+                    w.push(payload_bytes as u64);
+                }
+            }
+            None => {}
         }
         if let Ok(mut w) = self.frame_gen_ms.lock() {
             w.push(frame_gen_ms);
@@ -125,6 +172,10 @@ impl TransportStats {
     pub fn snapshot(&self) -> TransportStatsSnapshot {
         let (avg_bytes, p95_bytes) = self.payload_bytes.lock()
             .map(|w| (w.avg(), w.p95())).unwrap_or((0, 0));
+        let (avg_full,  p95_full)  = self.full_bytes.lock()
+            .map(|w| (w.avg(), w.p95())).unwrap_or((0, 0));
+        let (avg_delta, p95_delta) = self.delta_bytes.lock()
+            .map(|w| (w.avg(), w.p95())).unwrap_or((0, 0));
         let (avg_ms, p95_ms) = self.frame_gen_ms.lock()
             .map(|w| (w.avg(), w.p95())).unwrap_or((0, 0));
         let (avg_sim, p95_sim) = self.sim_tick_ms.lock()
@@ -141,6 +192,10 @@ impl TransportStats {
             resync_frames:           self.resync_frames.load(Ordering::Relaxed),
             avg_payload_bytes:       avg_bytes,
             p95_payload_bytes:       p95_bytes,
+            avg_full_bytes:          avg_full,
+            p95_full_bytes:          p95_full,
+            avg_delta_bytes:         avg_delta,
+            p95_delta_bytes:         p95_delta,
             avg_frame_generation_ms: avg_ms,
             p95_frame_generation_ms: p95_ms,
         }

@@ -31,7 +31,7 @@ use sim::simulation::{Simulation, StoryEntry, ThinkTrigger};
 use sim::local_think;
 use transport::{
     FrameClock, SharedTransportStats, TransportStats, TransportStatsSnapshot,
-    encode_frame, next_frame_id, now_ms,
+    FrameKind, encode_frame, next_frame_id, now_ms,
 };
 use llm::{
     GroqMessage, GroqRequest, GroqResponse,
@@ -456,14 +456,17 @@ async fn main() {
                     let is_deep_full = is_full_frame && (s.tick_count % 300 == 0);
                     let serialize_started = std::time::Instant::now();
                     let frame_id = next_frame_id(&frame_clock_w);
-                    let bytes = if is_full_frame {
-                        encode_frame(s.state_json_periodic_full(), frame_id, now_ms(), "full")
+                    let (bytes, kind) = if is_full_frame {
+                        (encode_frame(s.state_json_periodic_full(), frame_id, now_ms(), "full"),
+                         FrameKind::Full)
                     } else {
-                        encode_frame(s.state_json_incremental(), frame_id, now_ms(), "delta")
+                        (encode_frame(s.state_json_incremental(), frame_id, now_ms(), "delta"),
+                         FrameKind::Delta)
                     };
-                    transport_stats_w.record_generated(
+                    transport_stats_w.record_generated_kind(
                         bytes.len(),
                         serialize_started.elapsed().as_millis() as u64,
+                        Some(kind),
                     );
                     // On deep cadence, build a SECOND heavy snapshot
                     // under the same lock (so its contents stay
