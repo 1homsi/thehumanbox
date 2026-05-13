@@ -89,6 +89,19 @@ pub async fn transport_handler(
     )
 }
 
+/// Per-lane LLM latency + error counters. Useful during the dual-lane
+/// migration: hit this endpoint to see if narration (Groq) and think
+/// (local llama.cpp) are actually serving traffic and how the p95s
+/// compare side-by-side.
+pub async fn llm_handler(
+    State(s): State<AppState>,
+) -> impl IntoResponse {
+    (
+        [(axum::http::header::CACHE_CONTROL, "no-store".to_string())],
+        Json(s.llm_stats.snapshot()),
+    )
+}
+
 async fn handle_socket(
     mut socket: WebSocket,
     mut rx: broadcast::Receiver<Arc<Vec<u8>>>,

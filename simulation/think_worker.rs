@@ -13,6 +13,7 @@ use rand::SeedableRng;
 use tokio::sync::{Mutex, mpsc};
 
 use crate::llm::{GroqResponse, THINK_LLM_MODEL, THINK_LLM_URL, llm_body, llm_extract, strip_thinking};
+use crate::llm_stats::SharedLlmStats;
 use crate::sim::local_think;
 use crate::sim::simulation::ThinkTrigger;
 
@@ -182,6 +183,7 @@ pub async fn think_worker(
     mut rx: mpsc::Receiver<ThinkTrigger>,
     results: Arc<Mutex<Vec<ThinkResult>>>,
     api_key: String,
+    stats: SharedLlmStats,
 ) {
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(12))
@@ -322,6 +324,10 @@ pub async fn think_worker(
             _ => continue,
         };
 
+        // Wall-clock the round-trip so the /llm endpoint can show
+        // think-lane p50/p95. After the dual-lane swap this is what
+        // we'll watch to confirm local llama is faster than Groq.
+        let started = std::time::Instant::now();
         let response = match client.post(&**THINK_LLM_URL)
             .header("Authorization", format!("Bearer {}", api_key))
             .json(&llm_body(prompt, 60, &THINK_LLM_MODEL))
@@ -330,6 +336,7 @@ pub async fn think_worker(
             Ok(resp) => {
                 let status = resp.status();
                 if status == 429 || status.is_server_error() {
+                    stats.record_think(started.elapsed().as_millis() as u64, true);
                     // Rate-limited or upstream error - queue for retry
                     if attempt < 3 && retry_queue.len() < 20 {
                         println!("[think] llm {} - queuing retry {}/3 for {}",
@@ -341,11 +348,14 @@ pub async fn think_worker(
                     }
                     continue;
                 }
-                resp.json::<GroqResponse>().await
+                let parsed = resp.json::<GroqResponse>().await
                     .map(|r| strip_thinking(&llm_extract(r)).to_lowercase())
-                    .unwrap_or_default()
+                    .unwrap_or_default();
+                stats.record_think(started.elapsed().as_millis() as u64, parsed.is_empty());
+                parsed
             }
             Err(e) => {
+                stats.record_think(started.elapsed().as_millis() as u64, true);
                 // Network / timeout error - queue for retry
                 if attempt < 3 && retry_queue.len() < 20 {
                     println!("[think] llm network error (retry {}/3 for {}): {}",

@@ -5,6 +5,7 @@ mod sim;
 mod transport;
 mod routes;
 mod llm;
+mod llm_stats;
 mod narration_worker;
 mod think_worker;
 #[cfg(feature = "webtransport")]
@@ -123,6 +124,7 @@ pub struct AppState {
     pub tx:              Tx,
     pub latest_full:     LatestFull,
     pub transport_stats: SharedTransportStats,
+    pub llm_stats:       crate::llm_stats::SharedLlmStats,
 }
 
 
@@ -160,6 +162,7 @@ async fn main() {
     let latest_full: LatestFull = Arc::new(std::sync::RwLock::new(None));
     let frame_clock: FrameClock = Arc::new(AtomicU64::new(0));
     let transport_stats: SharedTransportStats = Arc::new(TransportStats::default());
+    let llm_stats: llm_stats::SharedLlmStats = Arc::new(llm_stats::LlmStats::default());
 
     // Prime the cached full snapshot before any client connects so the first
     // websocket or /snapshot reader gets a sequence-aware full frame.
@@ -187,12 +190,14 @@ async fn main() {
     {
         let stories_w = stories.clone();
         let key = narration_key.clone();
-        tokio::spawn(narration_worker(narration_rx, stories_w, key));
+        let stats = llm_stats.clone();
+        tokio::spawn(narration_worker(narration_rx, stories_w, key, stats));
     }
     {
         let results_w = think_results.clone();
         let key = think_key.clone();
-        tokio::spawn(think_worker(think_rx, results_w, key));
+        let stats = llm_stats.clone();
+        tokio::spawn(think_worker(think_rx, results_w, key, stats));
     }
 
     // ── Simulation loop ───────────────────────────────────────────────────────
@@ -497,7 +502,7 @@ async fn main() {
 
     let compression = CompressionLayer::new().gzip(true);
 
-    let state = AppState { sim, tx, latest_full, transport_stats };
+    let state = AppState { sim, tx, latest_full, transport_stats, llm_stats };
 
     let app = Router::new()
         .route("/ws", get(routes::ws_handler))
@@ -505,6 +510,7 @@ async fn main() {
         .route("/version", get(routes::version_handler))
         .route("/snapshot", get(routes::snapshot_handler))
         .route("/transport", get(routes::transport_handler))
+        .route("/llm", get(routes::llm_handler))
         .layer(compression)
         .layer(cors)
         .with_state(state);

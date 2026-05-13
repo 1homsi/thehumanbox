@@ -21,21 +21,21 @@ pub struct TransportWindow {
 }
 
 impl TransportWindow {
-    fn push(&mut self, value: u64) {
+    pub(crate) fn push(&mut self, value: u64) {
         if self.samples.len() >= TRANSPORT_SAMPLE_WINDOW {
             self.samples.pop_front();
         }
         self.samples.push_back(value);
     }
 
-    fn avg(&self) -> u64 {
+    pub(crate) fn avg(&self) -> u64 {
         if self.samples.is_empty() {
             return 0;
         }
         self.samples.iter().copied().sum::<u64>() / self.samples.len() as u64
     }
 
-    fn p95(&self) -> u64 {
+    pub(crate) fn p95(&self) -> u64 {
         if self.samples.is_empty() {
             return 0;
         }

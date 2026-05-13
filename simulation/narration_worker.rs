@@ -11,6 +11,7 @@ use std::sync::Arc;
 use tokio::sync::{Mutex, mpsc};
 
 use crate::llm::{GroqResponse, NARRATION_LLM_MODEL, NARRATION_LLM_URL, llm_body, llm_extract, strip_thinking};
+use crate::llm_stats::SharedLlmStats;
 
 pub struct NarrationReq {
     pub org_id:   String,
@@ -23,6 +24,7 @@ pub async fn narration_worker(
     mut rx: mpsc::Receiver<NarrationReq>,
     stories: Arc<Mutex<std::collections::HashMap<String, String>>>,
     api_key: String,
+    stats: SharedLlmStats,
 ) {
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(20))
@@ -61,6 +63,9 @@ pub async fn narration_worker(
         );
 
         println!("[narrate] queuing story for {} - {} events", req.org_name, req.life_log.len());
+        // Wall-clock the LLM round-trip so the /llm endpoint can show
+        // narration-lane p50/p95 alongside the think lane.
+        let started = std::time::Instant::now();
         match client.post(&**NARRATION_LLM_URL)
             .header("Authorization", format!("Bearer {}", api_key))
             .json(&llm_body(prompt, 80, &NARRATION_LLM_MODEL))
@@ -69,6 +74,7 @@ pub async fn narration_worker(
             Ok(resp) => {
                 match resp.json::<GroqResponse>().await {
                     Ok(data) => {
+                        stats.record_narration(started.elapsed().as_millis() as u64, false);
                         let story = strip_thinking(&llm_extract(data));
                         if !story.is_empty() {
                             println!("[narrate] {} → {}", req.org_name, story);
@@ -76,10 +82,14 @@ pub async fn narration_worker(
                             store.insert(req.org_id, story);
                         }
                     }
-                    Err(e) => println!("[narrate] Groq parse error for {}: {}", req.org_name, e),
+                    Err(e) => {
+                        stats.record_narration(started.elapsed().as_millis() as u64, true);
+                        println!("[narrate] Groq parse error for {}: {}", req.org_name, e);
+                    }
                 }
             }
             Err(e) => {
+                stats.record_narration(started.elapsed().as_millis() as u64, true);
                 println!("[narrate] Groq error for {}: {}", req.org_name, e);
                 // LLM unreachable - generate a minimal story from life_log
                 // events so the user still sees something useful.
