@@ -33,7 +33,9 @@ use transport::{
     encode_frame, next_frame_id, now_ms,
 };
 use llm::{
-    GroqMessage, GroqRequest, GroqResponse, LLM_KEY, LLM_MODEL, LLM_URL,
+    GroqMessage, GroqRequest, GroqResponse,
+    NARRATION_LLM_KEY, NARRATION_LLM_MODEL, NARRATION_LLM_URL,
+    THINK_LLM_KEY, THINK_LLM_MODEL, THINK_LLM_URL,
     llm_body, llm_extract, strip_thinking,
 };
 use narration_worker::{NarrationReq, narration_worker};
@@ -129,10 +131,21 @@ pub struct AppState {
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
-    // Resolved once via LLM_KEY (preferred) → GROQ_API_KEY (legacy) → empty.
-    let api_key = (*LLM_KEY).clone();
-    if api_key.is_empty() && !LLM_URL.contains("localhost") && !LLM_URL.contains("127.0.0.1") {
-        println!("[warn] no LLM_KEY / GROQ_API_KEY set - remote LLM calls will fail");
+    // Two-lane LLM config: narration (Groq, story prose) and think
+    // (local llama-server in prod, fast agent thoughts). Each lane
+    // resolves NARRATION_LLM_KEY / THINK_LLM_KEY then falls back to
+    // LLM_KEY then to legacy GROQ_API_KEY. Loopback URLs don't need
+    // an API key so we suppress the warning for them.
+    let narration_key = (*NARRATION_LLM_KEY).clone();
+    let think_key     = (*THINK_LLM_KEY).clone();
+    let is_local = |u: &str| u.contains("localhost") || u.contains("127.0.0.1");
+    if narration_key.is_empty() && !is_local(&NARRATION_LLM_URL) {
+        println!("[warn] no NARRATION_LLM_KEY / LLM_KEY / GROQ_API_KEY set - \
+                  remote narration calls will fail");
+    }
+    if think_key.is_empty() && !is_local(&THINK_LLM_URL) {
+        println!("[warn] no THINK_LLM_KEY / LLM_KEY / GROQ_API_KEY set - \
+                  remote think calls will fail");
     }
 
     // Fresh worlds get a truly random seed from system time + OS entropy.
@@ -173,12 +186,12 @@ async fn main() {
     // ── Workers ───────────────────────────────────────────────────────────────
     {
         let stories_w = stories.clone();
-        let key = api_key.clone();
+        let key = narration_key.clone();
         tokio::spawn(narration_worker(narration_rx, stories_w, key));
     }
     {
         let results_w = think_results.clone();
-        let key = api_key.clone();
+        let key = think_key.clone();
         tokio::spawn(think_worker(think_rx, results_w, key));
     }
 
@@ -497,8 +510,14 @@ async fn main() {
         .with_state(state);
 
     let addr = "0.0.0.0:8000";
-    println!("simulation-rs listening on {}  tick={}ms  llm={} ({})",
-        addr, *TICK_MS, *LLM_MODEL, *LLM_URL);
+    if *NARRATION_LLM_URL == *THINK_LLM_URL && *NARRATION_LLM_MODEL == *THINK_LLM_MODEL {
+        println!("simulation-rs listening on {}  tick={}ms  llm={} ({})",
+            addr, *TICK_MS, *NARRATION_LLM_MODEL, *NARRATION_LLM_URL);
+    } else {
+        println!("simulation-rs listening on {}  tick={}ms", addr, *TICK_MS);
+        println!("    narration: {} ({})", *NARRATION_LLM_MODEL, *NARRATION_LLM_URL);
+        println!("    think:     {} ({})", *THINK_LLM_MODEL, *THINK_LLM_URL);
+    }
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }

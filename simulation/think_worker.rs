@@ -12,7 +12,7 @@ use std::sync::Arc;
 use rand::SeedableRng;
 use tokio::sync::{Mutex, mpsc};
 
-use crate::llm::{GroqResponse, LLM_KEY, LLM_MODEL, LLM_URL, llm_body, llm_extract, strip_thinking};
+use crate::llm::{GroqResponse, THINK_LLM_MODEL, THINK_LLM_URL, llm_body, llm_extract, strip_thinking};
 use crate::sim::local_think;
 use crate::sim::simulation::ThinkTrigger;
 
@@ -322,9 +322,9 @@ pub async fn think_worker(
             _ => continue,
         };
 
-        let response = match client.post(&**LLM_URL)
+        let response = match client.post(&**THINK_LLM_URL)
             .header("Authorization", format!("Bearer {}", api_key))
-            .json(&llm_body(prompt, 60, &LLM_MODEL))
+            .json(&llm_body(prompt, 60, &THINK_LLM_MODEL))
             .send().await
         {
             Ok(resp) => {

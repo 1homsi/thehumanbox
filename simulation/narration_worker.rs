@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use tokio::sync::{Mutex, mpsc};
 
-use crate::llm::{GroqResponse, LLM_MODEL, LLM_URL, llm_body, llm_extract, strip_thinking};
+use crate::llm::{GroqResponse, NARRATION_LLM_MODEL, NARRATION_LLM_URL, llm_body, llm_extract, strip_thinking};
 
 pub struct NarrationReq {
     pub org_id:   String,
@@ -61,9 +61,9 @@ pub async fn narration_worker(
         );
 
         println!("[narrate] queuing story for {} - {} events", req.org_name, req.life_log.len());
-        match client.post(&**LLM_URL)
+        match client.post(&**NARRATION_LLM_URL)
             .header("Authorization", format!("Bearer {}", api_key))
-            .json(&llm_body(prompt, 80, &LLM_MODEL))
+            .json(&llm_body(prompt, 80, &NARRATION_LLM_MODEL))
             .send().await
         {
             Ok(resp) => {
