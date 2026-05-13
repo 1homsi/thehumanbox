@@ -994,8 +994,13 @@ impl WorldGrid {
     /// Slow geological coastal change - called every ~5000 ticks.
     /// Floods a handful of coastal land tiles and exposes a few coastal water tiles.
     pub fn tick_geology(&mut self, rng: &mut impl Rng) {
-        let flood_count = rng.gen_range(6..=18usize);
-        let emerge_count = rng.gen_range(2..=8usize);
+        // Per-call flip counts: scaled down so the cumulative effect over
+        // 1000 sim-days reads as "the coastline drifted a bit" rather than
+        // "the map keeps churning every month". Caller cadence is also
+        // slower (every 18000 ticks ~ 30 sim-days) - the two changes
+        // together push tile-flip rate to ~0.1-0.3 per sim-day.
+        let flood_count  = rng.gen_range(2..=6usize);
+        let emerge_count = rng.gen_range(1..=3usize);
 
         // Flood random coastal land tiles
         let mut flooded = 0usize;

@@ -619,10 +619,12 @@ pub fn tick_world_evolution(
     }
 
     // ── h) River / lake drift - water sources slowly migrate over time ────────
-    // Every ~5 in-world days, a few water tiles at the edge of a body dry up
-    // and equivalent new water appears near another existing water tile.
-    // Net water count stays stable; organisms must re-find displaced sources.
-    if tick % 3000 == 0 && tick >= 9000 {
+    // Geological timescale (every ~10 in-world days post-bootstrap): a single
+    // edge-water tile dries while a new water tile spawns nearby. Net water
+    // count stays stable; organisms must re-find displaced sources. SILENT -
+    // no events pushed. The user explicitly opted for terrain that drifts
+    // imperceptibly day-to-day rather than feed-spamming about coast moves.
+    if tick % 6000 == 0 && tick >= 9000 {
         // Collect edge-water tiles: Water with at least one non-water, non-rock neighbor
         let mut edge_water: Vec<(i32, i32)> = Vec::new();
         for _ in 0..2000 {
@@ -667,14 +669,16 @@ pub fn tick_world_evolution(
             grid.set(nx, ny, Tile::Water);
         }
 
-        if shifts > 0 {
-            push_event(events, tick, "season", "world",
-                &format!("water sources shifted ({} tiles drifted)", shifts));
-        }
+        // Silent on purpose - the drift is meant to read as background
+        // change the user notices over many sim-days, not a discrete event.
     }
 
     // ── Geological drift - slow coastal reshaping ─────────────────────────────
-    if tick % 5000 == 0 {
+    // Was every 5000 ticks (~8 sim-days) which produced ~1500 tile flips per
+    // 1000 sim-days - too fast for the "geological" feel the user wants. At
+    // 18000 ticks (~30 sim-days) it's ~90 tile flips per 1000 sim-days, which
+    // reads as a slow coastline shift rather than a churn.
+    if tick % 18000 == 0 && tick >= 18000 {
         grid.tick_geology(rng);
     }
 
