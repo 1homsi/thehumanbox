@@ -1,0 +1,62 @@
+# Example systemd unit for llama-server. Manual install per our infra
+# convention - do NOT add this to any deploy automation.
+#
+#   sudo cp scripts/llama-server.service.example /etc/systemd/system/llama-server.service
+#   # edit User= and the ExecStart path if you changed LLAMA_CPP_DIR
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now llama-server
+#   sudo journalctl -u llama-server -f
+#
+# Listens only on 127.0.0.1:8080 so it's reachable from the sim
+# process on the same box but not from the public internet. Don't
+# bind 0.0.0.0 - llama-server has no auth, anything reachable can
+# burn your CPU.
+#
+# c7g sizing note: gemma-3-270m at Q4_K_M is ~180 MB on disk, fits
+# easily in the c7g.large (4 GB) memory budget alongside the sim.
+# --threads is set to "nproc" at install time so update this file
+# if you resize the instance.
+
+[Unit]
+Description=llama.cpp inference server (gemma-3-270m-it Q4_K_M)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/llama.cpp
+
+# --host 127.0.0.1 is critical: keep this loopback-only.
+# --ctx-size 4096 is more than enough for the short-prompt
+#   thought-generation traffic; bump if you start handing it
+#   longer context windows.
+ExecStart=/home/ubuntu/llama.cpp/build/bin/llama-server \
+  --model /home/ubuntu/llama.cpp/models/gemma-3-270m-it-Q4_K_M.gguf \
+  --host 127.0.0.1 \
+  --port 8080 \
+  --ctx-size 4096 \
+  --threads 2
+
+Restart=on-failure
+RestartSec=5
+
+# Resource cap so a runaway request can't starve the sim process.
+# c7g.large has 2 vCPU - leave room for axum.
+CPUQuota=150%
+MemoryHigh=2G
+MemoryMax=2.5G
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/home/ubuntu/llama.cpp/models
+ProtectHome=read-only
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+[Install]
+WantedBy=multi-user.target
