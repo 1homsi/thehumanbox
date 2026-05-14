@@ -461,6 +461,60 @@ function drawWorldOnCanvas(
   const skyTint = seasonTints[world.season]
   if (skyTint) { ctx.fillStyle = skyTint; ctx.fillRect(0, 0, W, H) }
 
+  // ── Day / night ambient lighting ───────────────────────────────────────────
+  // A cool wash at night, warm hues at dawn and dusk. day_progress runs 0..1
+  // across the daylight portion; we treat its first/last ~12% as twilight.
+  {
+    const dp = world.day_progress ?? 0.5
+    if (!world.is_day) {
+      // Deep-night blue. Slightly deeper in the middle of the night.
+      const mid = 1 - Math.abs(dp - 0.5) * 2          // 0 at edges, 1 mid-night
+      ctx.fillStyle = `rgba(20,28,70,${0.30 + mid * 0.16})`
+      ctx.fillRect(0, 0, W, H)
+    } else if (dp < 0.12) {
+      // Dawn - warm amber easing out as the sun rises.
+      ctx.fillStyle = `rgba(255,150,60,${(0.12 - dp) / 0.12 * 0.22})`
+      ctx.fillRect(0, 0, W, H)
+    } else if (dp > 0.88) {
+      // Dusk - reddening as the light fails.
+      ctx.fillStyle = `rgba(220,90,40,${(dp - 0.88) / 0.12 * 0.24})`
+      ctx.fillRect(0, 0, W, H)
+    }
+  }
+
+  // ── Weather overlay ────────────────────────────────────────────────────────
+  // Rain cools and greys the scene; storms darken it hard and add a flicker.
+  if (world.weather && world.weather.kind !== 'clear') {
+    const wi = world.weather.intensity ?? 0.5
+    if (world.weather.kind === 'rain') {
+      ctx.fillStyle = `rgba(70,90,130,${0.10 + wi * 0.12})`
+      ctx.fillRect(0, 0, W, H)
+    } else {
+      // storm
+      ctx.fillStyle = `rgba(25,30,55,${0.22 + wi * 0.20})`
+      ctx.fillRect(0, 0, W, H)
+      // Occasional lightning flash, deterministic per ~600ms window.
+      if (Math.floor(t / 600) % 9 === 0) {
+        ctx.fillStyle = `rgba(220,230,255,${0.10 + wi * 0.10})`
+        ctx.fillRect(0, 0, W, H)
+      }
+    }
+    // Diagonal precipitation streaks (cheap, scrolls with time).
+    ctx.strokeStyle = world.weather.kind === 'storm'
+      ? 'rgba(180,195,230,0.35)' : 'rgba(170,190,225,0.28)'
+    ctx.lineWidth = 1
+    const streaks = world.weather.kind === 'storm' ? 220 : 130
+    const slant = world.weather.kind === 'storm' ? 7 : 4
+    for (let i = 0; i < streaks; i++) {
+      const sxp = (i * 137 + (t * 0.7)) % W
+      const syp = ((i * 251) + (t * (world.weather.kind === 'storm' ? 1.6 : 1.0))) % H
+      ctx.beginPath()
+      ctx.moveTo(sxp, syp)
+      ctx.lineTo(sxp - slant, syp + 10)
+      ctx.stroke()
+    }
+  }
+
   // ── Pass 2: Special tile visuals (fire glow, campfires, huts) ───────────────
   // Only iterates tiles that need extra rendering - typically <1% of tiles.
   for (let row = 0; row < height; row++) {
