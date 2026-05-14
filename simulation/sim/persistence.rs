@@ -530,6 +530,7 @@ impl Simulation {
             cached_lineage_sizes:    serde_json::Value::Array(vec![]),
             slow_compute_tick:       0,
             active_structure_tiles,
+            settlement_tiers:        std::collections::HashMap::new(),
         }
     }
 }

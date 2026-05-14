@@ -156,6 +156,10 @@ pub struct Simulation {
     pub(crate) slow_compute_tick:       u64,
     // ── Hot-set for non-zero structure tiles ───────────────────────────────
     pub(crate) active_structure_tiles: HashSet<(i32, i32)>,
+    // ── Emergent settlement tiers ──────────────────────────────────────────
+    // lineage_id → highest settlement tier reached (0=none .. 5=city).
+    // Derived from clustered structure tiles; not saved, recomputed.
+    pub(crate) settlement_tiers: HashMap<String, u8>,
 }
 
 // Returns the possible inventions given current discoveries (prerequisites already met)
@@ -226,6 +230,7 @@ impl Simulation {
             cached_lineage_sizes:    serde_json::Value::Array(vec![]),
             slow_compute_tick:       0,
             active_structure_tiles:  HashSet::new(),
+            settlement_tiers:        HashMap::new(),
         };
         sim.spawn_founders();
         sim.spawn_animals(14);
@@ -323,6 +328,12 @@ impl Simulation {
                     &format!("the {} era begins", new_era));
                 self.current_era = new_era;
             }
+        }
+
+        // Emergent settlement growth - clustered structures become camps,
+        // hamlets, villages, towns and cities as a lineage builds up.
+        if self.tick_count % 1200 == 600 {
+            self.tick_settlements();
         }
 
         // Pregnancy deliveries - check every tick for due mothers
@@ -2635,6 +2646,65 @@ impl Simulation {
             if alive_lineages.contains(lid) { return true; }
             samples.back().map(|s| s[0] >= cutoff).unwrap_or(false)
         });
+    }
+
+    /// Detect emergent settlements: clusters of built structure attributed
+    /// to the nearest lineage. As a tribe accumulates shelters its
+    /// settlement climbs tiers - camp, hamlet, village, town, city - and
+    /// each promotion is logged as a watchable milestone.
+    fn tick_settlements(&mut self) {
+        const TIER_NAMES: [&str; 6] =
+            ["wilderness", "camp", "hamlet", "village", "town", "city"];
+        // (tier index, structure-tile count needed)
+        const THRESHOLDS: [usize; 6] = [0, 4, 10, 22, 40, 70];
+
+        // Collect qualifying built tiles.
+        let mut built: Vec<(i32, i32)> = self.active_structure_tiles.iter()
+            .filter(|&&(x, y)| {
+                self.grid.structure_at(x, y) >= 0.35
+                    || matches!(self.grid.get(x, y), Tile::Hut | Tile::Campfire)
+            })
+            .copied()
+            .collect();
+        // Cap work - settlements are big but we don't need every tile.
+        if built.len() > 4000 { built.truncate(4000); }
+
+        // Attribute each built tile to the nearest living organism's lineage.
+        let mut counts: HashMap<String, usize> = HashMap::new();
+        for (bx, by) in built {
+            let mut best: Option<(f32, &str)> = None;
+            for o in self.organisms.iter().filter(|o| o.alive) {
+                let d = (o.x - bx as f32).abs() + (o.y - by as f32).abs();
+                if d <= 16.0 && best.map(|(bd, _)| d < bd).unwrap_or(true) {
+                    best = Some((d, o.lineage_id.as_str()));
+                }
+            }
+            if let Some((_, lid)) = best {
+                *counts.entry(lid.to_string()).or_insert(0) += 1;
+            }
+        }
+
+        for (lid, count) in counts {
+            let mut tier = 0u8;
+            for (t, &need) in THRESHOLDS.iter().enumerate() {
+                if count >= need { tier = t as u8; }
+            }
+            let prev = *self.settlement_tiers.get(&lid).unwrap_or(&0);
+            if tier > prev {
+                self.settlement_tiers.insert(lid.clone(), tier);
+                let tribe = self.lineage_names.get(&lid)
+                    .cloned()
+                    .unwrap_or_else(|| "a tribe".to_string());
+                let msg = format!(
+                    "{}'s settlement grew into a {}",
+                    tribe, TIER_NAMES[tier as usize]
+                );
+                push_event(&mut self.events, self.tick_count, "build", &tribe, &msg);
+            } else if tier < prev {
+                // Settlement decayed (abandoned / structures lost).
+                self.settlement_tiers.insert(lid.clone(), tier);
+            }
+        }
     }
 
     pub fn is_night(&self) -> bool {
