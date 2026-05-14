@@ -1016,6 +1016,9 @@ impl Simulation {
             self.active_structure_tiles.insert((ix, iy));
             self.organisms[idx].think("marking territory", self.tick_count);
             signal_reward += 0.002;
+        } else if action >= 26 {
+            // Extended action set (26..=125) - see sim/extended_actions.rs
+            signal_reward += self.apply_extended_action(idx, action, ix, iy);
         }
 
         // Re-read current tile after move
