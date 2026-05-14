@@ -3,9 +3,48 @@ use rand::Rng;
 use serde::{Serialize, Deserialize};
 
 pub const CONCEPTS: &[&str] = &[
+    // ── Core survival (original 14) ───────────────────────────────
     "food", "water", "fire", "danger", "friend",
     "foe", "shelter", "hunt", "night", "day",
     "sick", "home", "group", "alone",
+    // ── Sky & weather ─────────────────────────────────────────────
+    "sun", "moon", "star", "sky", "rain",
+    "storm", "wind", "snow", "ice", "cloud",
+    // ── Land & water features ─────────────────────────────────────
+    "river", "lake", "sea", "mountain", "forest",
+    "tree", "grass", "stone", "sand", "earth",
+    "cave", "path", "world",
+    // ── Body & vital states ───────────────────────────────────────
+    "hunger", "thirst", "pain", "tired", "strong",
+    "weak", "hurt", "heal", "rest", "sleep",
+    "breath", "blood", "old", "young", "born",
+    "death", "life",
+    // ── Emotions ──────────────────────────────────────────────────
+    "fear", "joy", "anger", "sad", "love",
+    "hate", "calm", "brave", "lonely", "hope",
+    "trust", "grief", "pride", "shame", "curious",
+    // ── Kin & social roles ────────────────────────────────────────
+    "kin", "child", "mother", "father", "elder",
+    "mate", "stranger", "leader", "tribe", "ally",
+    // ── Social acts ───────────────────────────────────────────────
+    "gift", "share", "help", "teach", "learn",
+    "story", "song", "dance", "play", "talk",
+    "listen", "greet", "fight", "war", "peace",
+    "trade",
+    // ── Verbs of motion & action ──────────────────────────────────
+    "go", "come", "stay", "run", "climb",
+    "swim", "dig", "build", "break", "carry",
+    "give", "find", "see", "hear", "hide",
+    "watch", "follow", "lead", "gather", "plant",
+    "make",
+    // ── Qualities & relations ─────────────────────────────────────
+    "cold", "warm", "dark", "light", "big",
+    "small", "near", "far", "many", "good",
+    "bad", "new", "here", "there",
+    // ── Things, tools & resources ─────────────────────────────────
+    "meat", "berry", "root", "wood", "tool",
+    "trap", "spear", "basket", "medicine", "farm",
+    "nest", "name", "time", "season",
 ];
 
 const CONSONANTS: &[u8] = b"bdfghjklmnprstvwz";
