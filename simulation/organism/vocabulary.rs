@@ -45,6 +45,46 @@ pub const CONCEPTS: &[&str] = &[
     "meat", "berry", "root", "wood", "tool",
     "trap", "spear", "basket", "medicine", "farm",
     "nest", "name", "time", "season",
+    // ── Body & senses ─────────────────────────────────────────────
+    "eye", "ear", "hand", "foot", "mouth",
+    "skin", "heart", "voice", "scent", "bone",
+    // ── Family & life events ──────────────────────────────────────
+    "birth", "wedding", "funeral", "ancestor", "twin",
+    "orphan", "widow", "sibling", "blood-kin", "lineage",
+    // ── Animals ───────────────────────────────────────────────────
+    "wolf", "bird", "deer", "bear", "snake",
+    "insect", "beast", "prey", "predator", "flock",
+    "pack", "swarm",
+    // ── Terrain ───────────────────────────────────────────────────
+    "cliff", "ridge", "plain", "marsh", "swamp",
+    "oasis", "dune", "glacier", "shore", "island",
+    "crater", "gorge", "meadow", "grove", "thicket",
+    "clearing", "valley", "hill", "spring",
+    // ── Weather & sky events ──────────────────────────────────────
+    "dawn", "dusk", "twilight", "fog", "frost",
+    "hail", "thunder", "lightning", "rainbow", "drought",
+    "flood", "heat", "eclipse",
+    // ── Materials ─────────────────────────────────────────────────
+    "clay", "mud", "hide", "fur", "feather",
+    "shell", "salt", "charcoal", "ore", "metal",
+    "gem", "flint", "thread",
+    // ── Abstract concepts ─────────────────────────────────────────
+    "truth", "lie", "secret", "promise", "oath",
+    "law", "custom", "tradition", "memory", "dream",
+    "idea", "plan", "choice", "fate", "luck",
+    "omen", "sign", "mystery", "wisdom", "honor",
+    "duty", "freedom", "power", "change", "beginning",
+    "ending", "journey", "return", "loss", "gain",
+    "debt", "balance",
+    // ── More acts ─────────────────────────────────────────────────
+    "bless", "curse", "forgive", "betray", "protect",
+    "abandon", "rescue", "sacrifice", "scatter", "destroy",
+    "create", "mend", "sharpen", "carve", "weave",
+    "guard", "chase", "flee", "attack", "defend",
+    // ── Quantity ──────────────────────────────────────────────────
+    "one", "two", "three", "half", "whole",
+    "none", "all", "more", "less", "enough",
+    "empty", "full",
 ];
 
 const CONSONANTS: &[u8] = b"bdfghjklmnprstvwz";
