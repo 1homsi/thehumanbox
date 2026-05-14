@@ -273,6 +273,16 @@ impl Organism {
             }).count();
             if near_fire && kin_nearby >= 1 && self.energy > 0.5 && self.hydration > 0.5 {
                 if rng.gen::<f32>() < 0.12 * self.traits.social_tendency {
+                    // Around the fire the tribe doesn't just rest - they
+                    // dance, sing and share. Roll for a cultural act.
+                    let roll = rng.gen::<f32>();
+                    if roll < 0.30 {
+                        set_thought!("dancing by the fire");
+                        return (20, thought);
+                    } else if roll < 0.55 {
+                        set_thought!("singing by the fire");
+                        return (21, thought);
+                    }
                     let s = ["socialising by the fire", "warming by the fire",
                              "telling stories", "resting with kin",
                              "tending the fire", "sharing a meal"];
@@ -443,6 +453,47 @@ impl Organism {
             if pull_prob > 0.0 && rng.gen::<f32>() < pull_prob {
                 set_thought!("heading home");
                 return (self.toward((self.home_x as i32, self.home_y as i32), grid), thought);
+            }
+        }
+
+        // ── Deliberate cultural / survival acts ───────────────────────────────
+        // A handful of context nudges so the newer actions surface as visible
+        // behaviour rather than waiting on pure Q-table exploration.
+        {
+            // Dig for water in sand when thirsty and stranded
+            if self.hydration < 0.45 && tile == Tile::Sand {
+                set_thought!("digging for water");
+                return (18, thought);
+            }
+            // Forage the brush when hungry and nothing is in sight
+            if self.energy < 0.50 && tile == Tile::Grass
+                && self.nearest_visible(grid, Tile::Food, 8).is_none()
+                && rng.gen::<f32>() < 0.30
+            {
+                set_thought!("foraging the brush");
+                return (19, thought);
+            }
+            // Reflect when bored and safe near shelter
+            if self.boredom > 0.55 && needs_ok && self.near_shelter(grid)
+                && rng.gen::<f32>() < 0.25
+            {
+                set_thought!("taking a quiet moment");
+                return (22, thought);
+            }
+            // Scout when curious, well-fed and not in any emergency
+            if self.traits.curiosity > 0.6 && needs_ok && !night
+                && rng.gen::<f32>() < 0.05 * self.traits.curiosity
+            {
+                set_thought!("surveying the land");
+                return (24, thought);
+            }
+            // Mark territory near home when content
+            if needs_ok && self.comfort > 0.5
+                && (self.x - self.home_x).abs() + (self.y - self.home_y).abs() < 10.0
+                && rng.gen::<f32>() < 0.04
+            {
+                set_thought!("marking the homeland");
+                return (25, thought);
             }
         }
 

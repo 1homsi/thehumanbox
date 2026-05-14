@@ -852,6 +852,159 @@ impl Simulation {
                 signal_reward += social::groom(idx, &mut self.organisms,
                                                self.tick_count, &mut self.events);
             }
+        } else if action == 18 {
+            // DIG: break open the ground. In sand it can strike water;
+            // on soil it loosens and enriches the earth for future food.
+            let tile = self.grid.get(ix, iy);
+            match tile {
+                Tile::Sand => {
+                    if self.rng.gen::<f32>() < 0.06 {
+                        self.grid.set(ix, iy, Tile::Water);
+                        signal_reward += 0.08;
+                        let name = self.organisms[idx].name.clone();
+                        self.organisms[idx].think("struck water", self.tick_count);
+                        self.organisms[idx].log_event(format!("dug a well at ({},{})", ix, iy));
+                        push_event(&mut self.events, self.tick_count, "build", &name, "dug a well");
+                        if self.organisms[idx].discover("well") {
+                            push_event(&mut self.events, self.tick_count, "build", &name, "discovered well-digging");
+                        }
+                    } else {
+                        self.organisms[idx].think("digging in the sand", self.tick_count);
+                        signal_reward += 0.001;
+                    }
+                }
+                Tile::Grass | Tile::Ash => {
+                    let fi = WorldGrid::idx(ix, iy);
+                    if self.grid.fertility[fi] < 0.85 {
+                        self.grid.fertility[fi] = (self.grid.fertility[fi] + 0.03).min(0.9);
+                        signal_reward += 0.004;
+                        self.organisms[idx].think("tilling the soil", self.tick_count);
+                    }
+                }
+                _ => {}
+            }
+            self.organisms[idx].energy = (self.organisms[idx].energy - 0.004).max(0.0);
+        } else if action == 19 {
+            // FORAGE: comb the brush for wild food. Fertile ground yields more.
+            let fi = WorldGrid::idx(ix, iy);
+            let fert = self.grid.fertility[fi];
+            if matches!(self.grid.get(ix, iy), Tile::Grass)
+                && self.rng.gen::<f32>() < 0.10 + fert * 0.18
+            {
+                self.grid.set(ix, iy, Tile::Food);
+                self.grid.reduce_fertility(ix, iy, 0.03);
+                signal_reward += 0.02;
+                let name = self.organisms[idx].name.clone();
+                self.organisms[idx].think("foraging wild food", self.tick_count);
+                self.organisms[idx].log_event(format!("foraged wild food at ({},{})", ix, iy));
+                if self.organisms[idx].discover("foraging") {
+                    push_event(&mut self.events, self.tick_count, "build", &name, "learned to forage");
+                }
+            } else {
+                self.organisms[idx].think("searching the brush", self.tick_count);
+            }
+            self.organisms[idx].energy = (self.organisms[idx].energy - 0.003).max(0.0);
+        } else if action == 20 {
+            // DANCE: a social ritual that lifts the spirits of nearby kin.
+            let lid = self.organisms[idx].lineage_id.clone();
+            let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
+            let kin: Vec<usize> = self.organisms.iter().enumerate()
+                .filter(|(i, o)| *i != idx && o.alive && o.lineage_id == lid)
+                .filter(|(_, o)| (o.x - sx).abs() + (o.y - sy).abs() <= 5.0)
+                .map(|(i, _)| i).collect();
+            if !kin.is_empty() {
+                for &ki in &kin {
+                    self.organisms[ki].loneliness = (self.organisms[ki].loneliness - 0.10).max(0.0);
+                    self.organisms[ki].boredom    = (self.organisms[ki].boredom - 0.12).max(0.0);
+                    self.organisms[ki].comfort    = (self.organisms[ki].comfort + 0.06).min(1.0);
+                }
+                self.organisms[idx].comfort = (self.organisms[idx].comfort + 0.05).min(1.0);
+                self.organisms[idx].boredom = (self.organisms[idx].boredom - 0.15).max(0.0);
+                signal_reward += 0.006 * kin.len().min(5) as f32;
+                let name = self.organisms[idx].name.clone();
+                self.organisms[idx].think("dancing with kin", self.tick_count);
+                push_event(&mut self.events, self.tick_count, "social", &name, "led a dance");
+                if self.organisms[idx].discover("dance") {
+                    push_event(&mut self.events, self.tick_count, "social", &name, "invented dance");
+                }
+            } else {
+                self.organisms[idx].think("dancing alone", self.tick_count);
+                self.organisms[idx].comfort = (self.organisms[idx].comfort + 0.02).min(1.0);
+            }
+        } else if action == 21 {
+            // SING: carry a vocabulary word on the air; listeners absorb it
+            // and are soothed.
+            let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
+            let my_vocab = self.organisms[idx].vocabulary.clone();
+            let listeners: Vec<usize> = self.organisms.iter().enumerate()
+                .filter(|(i, o)| *i != idx && o.alive)
+                .filter(|(_, o)| (o.x - sx).abs() + (o.y - sy).abs() <= 6.0)
+                .map(|(i, _)| i).collect();
+            for &li in &listeners {
+                self.organisms[li].vocabulary.absorb_from(&my_vocab, &mut self.rng);
+                self.organisms[li].fear_level = (self.organisms[li].fear_level - 0.05).max(0.0);
+                self.organisms[li].comfort    = (self.organisms[li].comfort + 0.03).min(1.0);
+            }
+            self.organisms[idx].think("singing", self.tick_count);
+            if !listeners.is_empty() {
+                signal_reward += 0.004 * listeners.len().min(6) as f32;
+                let name = self.organisms[idx].name.clone();
+                if self.organisms[idx].discover("song") {
+                    push_event(&mut self.events, self.tick_count, "social", &name, "sang the first song");
+                }
+            }
+        } else if action == 22 {
+            // REFLECT: a quiet moment that settles fear, grief and boredom.
+            let o = &mut self.organisms[idx];
+            o.fear_level = (o.fear_level - 0.06).max(0.0);
+            o.boredom    = (o.boredom - 0.04).max(0.0);
+            o.sleep_debt = (o.sleep_debt - 0.03).max(0.0);
+            o.comfort    = (o.comfort + 0.04).min(1.0);
+            if o.grief_ticks > 0 { o.grief_ticks = o.grief_ticks.saturating_sub(2); }
+            o.think("reflecting quietly", self.tick_count);
+            signal_reward += 0.002;
+        } else if action == 23 {
+            // STOCKPILE: carry food away from the tile to eat later.
+            if self.grid.get(ix, iy) == Tile::Food && self.organisms[idx].carry_room() > 0 {
+                self.organisms[idx].inv_food = self.organisms[idx].inv_food.saturating_add(1);
+                self.grid.set(ix, iy, Tile::Grass);
+                self.grid.reduce_fertility(ix, iy, 0.05);
+                signal_reward += 0.01;
+                let name = self.organisms[idx].name.clone();
+                self.organisms[idx].think("storing food", self.tick_count);
+                if self.organisms[idx].discover("food stores") {
+                    push_event(&mut self.events, self.tick_count, "build", &name, "began storing food");
+                }
+            }
+        } else if action == 24 {
+            // SCOUT: study the surroundings, committing resources to memory.
+            let ms = self.organisms[idx].traits.memory_strength;
+            let mut found = 0;
+            for dx in -10..=10 {
+                for dy in -10..=10 {
+                    match self.grid.get(ix + dx, iy + dy) {
+                        Tile::Food => {
+                            Organism::remember(&mut self.organisms[idx].food_memory, ix+dx, iy+dy, 0.6, ms);
+                            found += 1;
+                        }
+                        Tile::Water => {
+                            Organism::remember(&mut self.organisms[idx].water_memory, ix+dx, iy+dy, 0.6, ms);
+                            found += 1;
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            self.organisms[idx].think("scouting the area", self.tick_count);
+            if found > 0 { signal_reward += 0.003; }
+            self.organisms[idx].energy = (self.organisms[idx].energy - 0.002).max(0.0);
+        } else if action == 25 {
+            // MARK TERRITORY: lay a strong trail and a small structural marker.
+            self.grid.leave_trail(ix, iy, TrailKind::Path, 1.5);
+            self.grid.add_structure(ix, iy, 0.02);
+            self.active_structure_tiles.insert((ix, iy));
+            self.organisms[idx].think("marking territory", self.tick_count);
+            signal_reward += 0.002;
         }
 
         // Re-read current tile after move
@@ -1010,6 +1163,15 @@ impl Simulation {
         {
             self.organisms[idx].inv_water -= 1;
             self.organisms[idx].hydration = (self.organisms[idx].hydration + 0.18).min(1.0);
+        }
+
+        // Auto-eat from stored food when hungry - the payoff for stockpiling.
+        if self.organisms[idx].energy < 0.45 && self.organisms[idx].inv_food > 0
+            && self.tick_count % 6 == 0
+        {
+            self.organisms[idx].inv_food -= 1;
+            self.organisms[idx].energy = (self.organisms[idx].energy + 0.30).min(1.0);
+            self.organisms[idx].think("eating stored food", self.tick_count);
         }
         self.apply_water_fatigue(idx, cx, cy);
         if night {
