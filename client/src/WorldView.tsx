@@ -208,6 +208,27 @@ const THOUGHT_COLORS: Record<string, string> = {
   gathering:               '#c8a050',
   building:                '#ffcc44',
   'building shelter':      '#ffd700',
+  // ── New action thoughts ─────────────────────────────────────────
+  'digging for water':     '#3a9bd4',
+  'digging in the sand':   '#d9c07a',
+  'struck water':          '#33ddff',
+  'tilling the soil':      '#8a6a3a',
+  'foraging wild food':    '#7ed957',
+  'foraging the brush':    '#9bc850',
+  'searching the brush':   '#a8b86a',
+  'dancing with kin':      '#ff7fd4',
+  'dancing by the fire':   '#ff9ae0',
+  'dancing alone':         '#c885b0',
+  singing:                 '#a98fff',
+  'singing by the fire':   '#bda6ff',
+  'reflecting quietly':    '#8fd4c4',
+  'taking a quiet moment': '#9fd9ca',
+  'storing food':          '#d4b34a',
+  'eating stored food':    '#c8d96a',
+  'scouting the area':     '#6fc0e8',
+  'surveying the land':    '#7fcaf0',
+  'marking territory':     '#e0a040',
+  'marking the homeland':  '#e8b050',
 }
 
 /**
