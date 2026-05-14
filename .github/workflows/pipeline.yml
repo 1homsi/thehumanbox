@@ -43,7 +43,7 @@ jobs:
   test-backend:
     name: Test backend
     if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -61,7 +61,7 @@ jobs:
   test-frontend:
     name: Test + build frontend
     if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -102,7 +102,7 @@ jobs:
   bump-version:
     name: Bump version
     needs: [test-backend, test-frontend]
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       contents: write
@@ -164,7 +164,7 @@ jobs:
   deploy-backend:
     name: Deploy backend (SSM)
     needs: bump-version
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Configure AWS credentials
@@ -197,7 +197,7 @@ jobs:
   deploy-frontend:
     name: Deploy frontend (Cloudflare Pages)
     needs: bump-version
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       contents:    read
