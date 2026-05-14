@@ -85,6 +85,45 @@ pub const CONCEPTS: &[&str] = &[
     "one", "two", "three", "half", "whole",
     "none", "all", "more", "less", "enough",
     "empty", "full",
+    // ── Colours ───────────────────────────────────────────────────
+    "red", "blue", "green", "yellow", "white",
+    "black", "brown", "grey",
+    // ── Plants ────────────────────────────────────────────────────
+    "flower", "leaf", "seed", "vine", "moss",
+    "fern", "reed", "bark", "branch", "thorn",
+    "fruit", "nut", "herb", "sprout", "blossom",
+    // ── Finer time ────────────────────────────────────────────────
+    "morning", "noon", "evening", "midnight", "year",
+    "moment", "forever", "soon", "early", "late",
+    // ── Directions ────────────────────────────────────────────────
+    "north", "south", "east", "west", "up",
+    "down", "forward", "back", "between", "above",
+    "below", "inside", "outside", "around",
+    // ── Sounds ────────────────────────────────────────────────────
+    "cry", "shout", "whisper", "laugh", "roar",
+    "howl", "call", "echo", "silence", "noise",
+    "growl", "hum",
+    // ── Finer feelings ────────────────────────────────────────────
+    "worry", "relief", "longing", "envy", "gratitude",
+    "regret", "awe", "disgust", "surprise", "sorrow",
+    "delight", "dread", "yearning", "serenity",
+    // ── Social structures ─────────────────────────────────────────
+    "council", "clan", "family", "band", "gathering",
+    "market", "border", "neighbor", "kinship", "guest",
+    // ── Body actions ──────────────────────────────────────────────
+    "jump", "crawl", "crouch", "reach", "grab",
+    "throw", "push", "pull", "kick", "bite",
+    "sniff", "blink", "nod", "point", "wave",
+    "kneel",
+    // ── Abstract ──────────────────────────────────────────────────
+    "question", "answer", "word", "language", "speech",
+    "skill", "craft", "work", "effort", "ease",
+    "meaning", "purpose", "reason", "cause",
+    // ── Qualities ─────────────────────────────────────────────────
+    "heavy", "hard", "soft", "sharp", "dull",
+    "smooth", "rough", "wet", "dry", "hot",
+    "fast", "slow", "loud", "quiet", "bright",
+    "deep", "shallow", "high", "low", "wide",
 ];
 
 const CONSONANTS: &[u8] = b"bdfghjklmnprstvwz";
