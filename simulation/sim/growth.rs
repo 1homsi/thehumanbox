@@ -279,7 +279,10 @@ pub fn try_reproduce(
     // Reflect at world borders rather than clamp - clamping creates an
     // absorbing wall that piles density at the edge (measured: 48% of
     // population at x in [0..59] when clamp was in place).
-    let drift = 12.0;
+    // Wide drift so each generation actually homesteads new ground instead of
+    // packing the founder's pool. Triangular sum keeps most kids close while
+    // a long tail occasionally homesteads far.
+    let drift = 40.0;
     let dx = rng.gen_range(-drift..=drift) * 0.5 + rng.gen_range(-drift..=drift) * 0.5;
     let dy = rng.gen_range(-drift..=drift) * 0.5 + rng.gen_range(-drift..=drift) * 0.5;
     let reflect = |mut v: f32, max: f32| {

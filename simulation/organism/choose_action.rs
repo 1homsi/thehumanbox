@@ -364,8 +364,12 @@ impl Organism {
         }
 
         // Colony formation: lonely organisms seek their kin or friendly strangers.
-        // This drives natural clustering / settlement behaviour.
-        if self.loneliness > 0.35 && needs_ok && self.fear_level < 0.5 {
+        // Gated harder than before because the previous unconditional version
+        // pulled wanderers straight back into the home cluster.
+        if self.loneliness > 0.60 && needs_ok && self.fear_level < 0.5
+            && self.wander_target.is_none()
+            && rng.gen::<f32>() < 0.35
+        {
             // Look for nearest kin within 100 tiles
             let kin_pos: Option<(i32, i32)> = organisms.iter()
                 .filter(|o| !std::ptr::eq(*o, self) && o.alive
@@ -414,7 +418,7 @@ impl Organism {
         // Migration corridor following - social organisms prefer established routes
         // High path-trail signals a well-traveled corridor; follow it rather than blazing new ground
         if self.traits.social_tendency > 0.5 && self.energy > 0.55 && self.hydration > 0.55 {
-            if rng.gen::<f32>() < self.traits.social_tendency * 0.18 {
+            if rng.gen::<f32>() < self.traits.social_tendency * 0.06 {
                 if let Some(t) = self.find_trail_target(grid, TrailKind::Path, 14) {
                     let dist = (t.0 - ix).abs() + (t.1 - iy).abs();
                     if dist > 5 {
@@ -446,9 +450,10 @@ impl Organism {
             // home within ~100 ticks on average - plenty to keep tribes
             // cohesive without crushing dispersal.
             let dist_home = (self.x - self.home_x).abs() + (self.y - self.home_y).abs();
-            let pull_prob = if dist_home > 80.0 { 0.01 }
-                           else if dist_home > 40.0 { 0.004 }
-                           else if dist_home > 20.0 { 0.0015 }
+            // Softened so distant explorers actually stay out exploring.
+            let pull_prob = if dist_home > 200.0 { 0.004 }
+                           else if dist_home > 100.0 { 0.0015 }
+                           else if dist_home > 50.0 { 0.0005 }
                            else { 0.0 };
             if pull_prob > 0.0 && rng.gen::<f32>() < pull_prob {
                 set_thought!("heading home");
