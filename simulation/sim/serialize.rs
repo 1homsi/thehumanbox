@@ -108,12 +108,12 @@ impl Simulation {
             self.slow_compute_tick = self.tick_count;
         }
 
-        // Stagger expensive static grid layers to cap per-tick payload size.
-        // force_full=true (initial WS snapshot) bypasses the stagger so a
-        // fresh client gets terrain immediately rather than rendering ocean
-        // until the next tick%30 boundary.
-        let include_tiles  = force_full || self.tick_count % 5  == 0 || self.tick_count <= 1;
-        let include_static = force_full || self.tick_count % 30 == 0 || self.tick_count <= 1;
+        // Dense tile + static-layer payloads dominate frame size on a
+        // 600x300 world (~180k tiles × multiple layers). Ship them only on
+        // the HTTP /snapshot path or a slow refresh cadence; clients keep
+        // them cached and re-fetch /snapshot on big WS gaps.
+        let include_tiles  = include_cold || self.tick_count % 60 == 0 || self.tick_count <= 1;
+        let include_static = include_cold || self.tick_count % 60 == 0 || self.tick_count <= 1;
         // Heavy static layers (biomes + depth_map, ~720 KB combined) only
         // ship on the cold/snapshot path. WS periodic fulls keep the slim
         // dynamic-static layers (trails, fertility, hazard) but skip

@@ -59,7 +59,11 @@ const DAY_LENGTH: u64  = 600;
 // 19-frame gaps in prod that were within the previous buffer but had
 // already been broadcasted-and-evicted by the time the slow receiver
 // woke up.
-const WS_BROADCAST_BUFFER: usize = 600;
+// Cap memory pinned by slow subscribers. At ~1MB peak per buffered frame
+// a 600-slot buffer could hold ~600MB per laggard - enough to OOM a small
+// host. 60 caps it to a couple of seconds of broadcast at most; anyone
+// slower than that gets Lagged and re-fetches /snapshot.
+const WS_BROADCAST_BUFFER: usize = 60;
 pub const WS_RESYNC_LAG_THRESHOLD: u64 = 3;
 
 fn tick_ms() -> u64 {
