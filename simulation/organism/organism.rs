@@ -400,7 +400,7 @@ impl Organism {
             if self.area_ticks > 60 && self.boredom > 0.20 && self.wander_target.is_none() {
                 let hash = self.id.bytes().fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
                 let angle = ((hash ^ tick) as f32) * 0.0000014;
-                let dist  = 100.0 + self.traits.curiosity * 180.0; // 100–280 tiles
+                let dist  = 120.0 + self.traits.curiosity * 380.0; // up to ~500 tiles
                 let tx = (self.x + angle.sin() * dist).round() as i32;
                 let ty = (self.y + angle.cos() * dist).round() as i32;
                 self.wander_target = Some((tx.clamp(5, 595), ty.clamp(5, 295)));
@@ -430,7 +430,7 @@ impl Organism {
             let offset  = id_hash % period;
             if tick % period == offset {
                 let angle = ((id_hash ^ tick) as f32) * 0.0000014;
-                let dist  = 120.0 + self.traits.curiosity * 200.0; // 120–320 tiles
+                let dist  = 150.0 + self.traits.curiosity * 400.0; // up to ~550 tiles
                 let tx = (self.x + angle.sin() * dist).round() as i32;
                 let ty = (self.y + angle.cos() * dist).round() as i32;
                 self.wander_target = Some((tx.clamp(5, 595), ty.clamp(5, 295)));

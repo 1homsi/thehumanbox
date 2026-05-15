@@ -572,7 +572,10 @@ impl Simulation {
                      lineage_counts: &HashMap<String, usize>,
                      spatial: &SpatialIndex) {
         let night   = self.is_night();
-        let epsilon = (0.5 - self.organisms[idx].age as f32 * 0.00008).max(0.12);
+        // Lowered ceiling + floor: previously 0.50/0.12 meant a young org
+        // re-rolled a random direction every other tick, which read as the
+        // organism jittering back and forth instead of moving with purpose.
+        let epsilon = (0.30 - self.organisms[idx].age as f32 * 0.00005).max(0.08);
 
         let prev_energy    = self.organisms[idx].energy;
         let prev_hydration = self.organisms[idx].hydration;

@@ -503,15 +503,13 @@ impl Organism {
         }
 
         // Q-learning / exploration - varied thoughts so no organism just says "exploring"
-        let eff_eps = (epsilon * (0.5 + self.traits.curiosity)).max(0.05).min(0.95);
+        let eff_eps = (epsilon * (0.5 + self.traits.curiosity)).max(0.05).min(0.80);
         if rng.gen::<f32>() < eff_eps {
-            // Low path-trail following during exploration - prevents snowball clustering
             if rng.gen::<f32>() < 0.10 {
                 if let Some(p) = self.find_trail_target(grid, TrailKind::Path, 5) {
                     return (self.toward(p, grid), thought);
                 }
             }
-            // Pick an alive-feeling description based on context
             let explore_thought = if night {
                 let opts = ["watching the stars", "listening to the dark",
                             "patrolling at night", "restless"];
@@ -526,6 +524,15 @@ impl Organism {
                 opts[rng.gen_range(0..opts.len())]
             };
             set_thought!(explore_thought);
+            // Directional inertia: most of the time keep walking in the
+            // direction you were already moving, so explorers commit to a
+            // heading instead of jittering back and forth every tick.
+            let last_dx = (self.x - self.prev_x).signum() as i32;
+            let last_dy = (self.y - self.prev_y).signum() as i32;
+            if (last_dx != 0 || last_dy != 0) && rng.gen::<f32>() < 0.75 {
+                let target = (ix + last_dx * 5, iy + last_dy * 5);
+                return (self.toward(target, grid), thought);
+            }
             return (rng.gen_range(0..N_ACTIONS), thought);
         }
 

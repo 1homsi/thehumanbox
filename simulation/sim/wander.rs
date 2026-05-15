@@ -92,7 +92,7 @@ impl Simulation {
 
         let (x, y) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
         let min_dist = 60  + (curiosity * 90.0)  as i32;
-        let max_dist = 180 + (curiosity * 200.0) as i32;
+        let max_dist = 250 + (curiosity * 400.0) as i32;   // up to ~650 - lets the curious cross the map
         if let Some(target) = self.find_distant_land_target(x, y, min_dist, max_dist) {
             self.organisms[idx].wander_target = Some(target);
             self.organisms[idx].think("planning expedition", self.tick_count);
