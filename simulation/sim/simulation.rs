@@ -250,7 +250,8 @@ impl Simulation {
         self.physics.growth_mult = season_growth(season);
 
         if self.tick_count % 5 == 0 {
-            self.physics.tick(&mut self.grid, &mut self.rng, self.weather.kind);
+            let wet = self.weather.is_wet(self.tick_count);
+            self.physics.tick(&mut self.grid, &mut self.rng, self.weather.kind, wet);
         }
 
         // Clear daily life-log at dawn (dawn/dusk/season no longer pushed to event buffer

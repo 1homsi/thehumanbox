@@ -45,6 +45,7 @@ pub(crate) struct WeatherSave {
     start_tick: u64,
     duration:   u64,
     intensity:  f32,
+    #[serde(default)] wet_until: u64,
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -312,6 +313,7 @@ impl Simulation {
                 start_tick: self.weather.start_tick,
                 duration:   self.weather.duration,
                 intensity:  self.weather.intensity,
+                wet_until:  self.weather.wet_until,
             },
             pop_history:   self.pop_history.iter().cloned().collect(),
             lineage_centroid_history: self.lineage_centroid_history.iter()
@@ -491,6 +493,7 @@ impl Simulation {
                 start_tick: state.weather.start_tick,
                 duration:   state.weather.duration,
                 intensity:  state.weather.intensity,
+                wet_until:  state.weather.wet_until,
             },
             flood_tiles:            state.flood_tiles,
             story_history:          state.story_history.into_iter().collect(),

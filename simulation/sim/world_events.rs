@@ -10,21 +10,46 @@ pub struct WeatherState {
     pub start_tick: u64,
     pub duration:   u64,
     pub intensity:  f32,
+    pub wet_until:  u64,  // tick when the ground finishes drying after rain
 }
 
 impl Default for WeatherState {
-    fn default() -> Self { WeatherState { kind: 0, start_tick: 0, duration: 0, intensity: 0.0 } }
+    fn default() -> Self { WeatherState { kind: 0, start_tick: 0, duration: 0, intensity: 0.0, wet_until: 0 } }
 }
 
 impl WeatherState {
     pub fn is_raining(&self) -> bool { self.kind >= 1 }
+    pub fn is_wet(&self, tick: u64) -> bool { self.kind >= 1 || tick < self.wet_until }
     pub fn kind_str(&self) -> &'static str {
         match self.kind { 1 => "rain", 2 => "storm", _ => "clear" }
+    }
+    /// Phase the client renders. "wet" is the ground-still-damp aftermath
+    /// once rain stops; "clear" is fully dry.
+    pub fn phase(&self, tick: u64) -> &'static str {
+        match self.kind {
+            2 => "storm",
+            1 => "rain",
+            _ => if tick < self.wet_until { "wet" } else { "clear" },
+        }
+    }
+    /// Tapered intensity: ramps up over the first 10% and down over the
+    /// last 25% of duration so transitions look natural.
+    pub fn effective_intensity(&self, tick: u64) -> f32 {
+        if self.kind == 0 || self.duration == 0 { return 0.0; }
+        let elapsed = tick.saturating_sub(self.start_tick) as f32;
+        let total   = self.duration as f32;
+        let p       = (elapsed / total).clamp(0.0, 1.0);
+        let taper   = if p < 0.10 { p / 0.10 }
+                      else if p > 0.75 { ((1.0 - p) / 0.25).max(0.0) }
+                      else { 1.0 };
+        self.intensity * taper
     }
 }
 
 const RAIN_BASE_PROB: f32 = 0.0005;
 const MAX_RECENT_EVENTS: usize = 300;
+// How long ground stays wet after rain stops (in sim ticks).
+const WET_AFTERMATH_TICKS: u64 = 1200;
 
 pub fn tick_weather(
     weather: &mut WeatherState,
@@ -37,13 +62,31 @@ pub fn tick_weather(
 ) {
     if weather.kind != 0 {
         apply_weather(weather, grid, organisms, tick, rng);
-        if tick >= weather.start_tick + weather.duration {
-            let kind_str = weather.kind_str().to_string();
+        let elapsed = tick.saturating_sub(weather.start_tick);
+        // Storms weaken into plain rain before they fully die out, so the
+        // transition reads as "the storm passes" rather than a sudden switch.
+        if weather.kind == 2 && elapsed >= (weather.duration * 70 / 100) {
+            weather.kind      = 1;
+            weather.intensity = (weather.intensity * 0.55).max(0.25);
+            push_event(events, tick, "weather", "world", "the storm weakens into rain");
+        }
+        if elapsed >= weather.duration {
             weather.kind      = 0;
             weather.intensity = 0.0;
-            push_event(events, tick, "weather", "world", &format!("{} clears", kind_str));
+            weather.wet_until = tick + WET_AFTERMATH_TICKS;
+            push_event(events, tick, "weather", "world", "the rain stops; the ground is wet");
         }
         return;
+    }
+
+    // Ground drying aftermath - extinguishes lingering small fires, suppresses
+    // new ignition, and announces when the land is properly dry again.
+    if tick < weather.wet_until {
+        apply_wet_aftermath(weather, grid, tick, rng);
+        return;
+    } else if weather.wet_until != 0 && tick >= weather.wet_until {
+        push_event(events, tick, "weather", "world", "the ground is dry again");
+        weather.wet_until = 0;
     }
 
     let mult = match season {
@@ -61,6 +104,37 @@ pub fn tick_weather(
         weather.intensity = 0.4 + rng.gen::<f32>() * 0.6;
         let kind_str = weather.kind_str().to_string();
         push_event(events, tick, "weather", "world", &format!("{} begins", kind_str));
+    }
+}
+
+fn apply_wet_aftermath(
+    weather: &WeatherState,
+    grid: &mut WorldGrid,
+    tick: u64,
+    rng: &mut impl Rng,
+) {
+    if tick % 30 != 0 { return; }
+    // Wet ground keeps putting out fires for a while - any fire on damp
+    // soil is a candle in a downpour. Scan a few random tiles.
+    for _ in 0..3 {
+        let x = rng.gen_range(1..WIDTH as i32 - 1);
+        let y = rng.gen_range(1..HEIGHT as i32 - 1);
+        if grid.get(x, y) == Tile::Fire {
+            grid.set(x, y, Tile::Ash);
+            *grid.fire_intensity_mut(x, y) = 0.0;
+        }
+    }
+    // Slow fertility creep on parched land as the rainwater soaks in.
+    if tick % 60 == 0 {
+        let _ = weather;
+        for _ in 0..4 {
+            let x = rng.gen_range(1..WIDTH as i32 - 1);
+            let y = rng.gen_range(1..HEIGHT as i32 - 1);
+            let idx = WorldGrid::idx(x, y);
+            if grid.fertility[idx] < 0.5 {
+                grid.fertility[idx] = (grid.fertility[idx] + 0.005).min(0.6);
+            }
+        }
     }
 }
 
@@ -85,8 +159,10 @@ fn apply_weather(
         }
     }
 
-    // Rain extinguishes fires
-    for _ in 0..4 {
+    // Rain extinguishes fires - actively snuffs out wildfires across the map.
+    let eff = weather.effective_intensity(tick);
+    let snuff_passes = (10.0 + eff * 18.0) as i32;
+    for _ in 0..snuff_passes {
         let x = rng.gen_range(1..WIDTH as i32 - 1);
         let y = rng.gen_range(1..HEIGHT as i32 - 1);
         if grid.get(x, y) == Tile::Fire {

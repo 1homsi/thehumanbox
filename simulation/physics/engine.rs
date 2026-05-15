@@ -23,15 +23,16 @@ impl PhysicsEngine {
         }
     }
 
-    pub fn tick(&mut self, grid: &mut WorldGrid, rng: &mut impl Rng, weather_kind: u8) {
+    pub fn tick(&mut self, grid: &mut WorldGrid, rng: &mut impl Rng, weather_kind: u8, wet: bool) {
         self.tick_count += 1;
-        self.update_fire(grid, rng, weather_kind);
+        self.update_fire(grid, rng, weather_kind, wet);
         self.grow_plants(grid, rng);
         grid.decay_trails();
 
         let interval = (150.0 / self.growth_mult.max(0.3)) as u64;
         let interval = interval.max(80);
-        if self.tick_count % interval == 0 {
+        // No spontaneous wildfires while the ground is still wet from recent rain.
+        if !wet && weather_kind != 1 && weather_kind != 2 && self.tick_count % interval == 0 {
             self.lightning_strike(grid, rng);
         }
     }
@@ -41,7 +42,7 @@ impl PhysicsEngine {
         self.active_fire_tiles.insert((x, y));
     }
 
-    fn update_fire(&mut self, grid: &mut WorldGrid, rng: &mut impl Rng, weather_kind: u8) {
+    fn update_fire(&mut self, grid: &mut WorldGrid, rng: &mut impl Rng, weather_kind: u8, wet: bool) {
         use crate::world::tiles::Biome;
 
         self.burn_out.clear();
@@ -54,12 +55,12 @@ impl PhysicsEngine {
         let rain_drain = match weather_kind {
             1 => 0.04,
             2 => 0.20,
-            _ => 0.0,
+            _ => if wet { 0.015 } else { 0.0 },
         };
         let spread_mult = match weather_kind {
             1 => 0.25,
             2 => 0.0,
-            _ => 1.0,
+            _ => if wet { 0.1 } else { 1.0 },
         };
 
         let mut campfire_burn_out: Vec<(i32, i32)> = Vec::new();
