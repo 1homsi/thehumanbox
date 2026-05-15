@@ -1,14 +1,5 @@
-//! Extended action set (indices 26..=125).
-//!
-//! Tonight's big expansion: 100 additional things an organism can do.
-//! Each arm is a small but genuine effect on the world, the actor, or
-//! nearby organisms. Q-learning discovers them through exploration;
-//! the reward returned here feeds straight back into the learner.
-//!
-//! Effects are intentionally modest so no single action dominates -
-//! the point is breadth: a rich verb space the tribes can specialise
-//! within. Many actions also unlock a `discovery` the first time they
-//! succeed, which is logged as a watchable milestone event.
+//! Extended action set (indices 26..=125). Dispatched from
+//! `Simulation::tick_organism` and discovered via Q-learning exploration.
 
 use rand::Rng;
 
