@@ -450,7 +450,14 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
             ?? (parsed.organisms_hot ? expandOrgsSoa(parsed.organisms_hot) : [])
 
           if (parsed.organisms_complete) {
-            organismCache.current = new Map(frameOrganisms.map(o => [o.id, o]))
+            // Periodic WS fulls re-list every org but omit cold fields, so merge
+            // against the prior cache instead of replacing it wholesale.
+            const next = new Map<string, OrganismState>()
+            for (const org of frameOrganisms) {
+              const existing = organismCache.current.get(org.id)
+              next.set(org.id, existing ? mergeDefined(existing, org) : org)
+            }
+            organismCache.current = next
           } else {
             for (const org of frameOrganisms) {
               const existing = organismCache.current.get(org.id)
