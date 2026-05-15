@@ -52,7 +52,11 @@ impl WorldGrid {
     }
 
     pub fn idx(x: i32, y: i32) -> usize {
-        y as usize * WIDTH + x as usize
+        // Clamp so callers passing slightly-OOB coordinates don't trip
+        // the debug-mode overflow check on `-1 as usize * WIDTH`.
+        let x = x.clamp(0, WIDTH as i32 - 1) as usize;
+        let y = y.clamp(0, HEIGHT as i32 - 1) as usize;
+        y * WIDTH + x
     }
 
     pub fn in_bounds(x: i32, y: i32) -> bool {
