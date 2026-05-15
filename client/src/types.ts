@@ -178,7 +178,7 @@ export interface WorldState {
   season: string
   season_progress: number
   drought: boolean
-  weather: { kind: 'clear' | 'rain' | 'storm'; intensity: number }
+  weather: { kind: 'clear' | 'rain' | 'storm' | 'wet'; intensity: number }
   history: WorldHistory
   story_history: StoryEntry[]
   pop_history: [number, number][]
