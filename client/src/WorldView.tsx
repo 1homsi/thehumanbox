@@ -130,10 +130,27 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
 
   const imgData = getReuseImgData(W, H)
   const d = imgData.data
+  // Per-tile variation amplitude. Higher = more texture noise inside
+  // a single tile so the map doesn't read as flat colour blocks.
+  // Water stays subtle (would look noisy/ugly), sand/dirt/rock get
+  // the most jitter because real-world equivalents have grain.
+  const varAmtFor = (tid: number): number => {
+    if (tid === 2 || tid === 9) return 4    // water - calm
+    if (tid === 1 || tid === 3) return 13   // grass / food
+    if (tid === 5) return 17                // rock
+    if (tid === 6) return 19                // dirt
+    if (tid === 12) return 7                // snow
+    if (tid === 13) return 15               // sand
+    return 9
+  }
   for (let row = 0; row < height; row++) {
     const tileRow  = tiles[row]
     const biomeRow = biomes?.[row]
     const depthRow = depth_map?.[row]
+    // For sun-angle shading: brighten land tiles whose west/north
+    // neighbours are water (gives a fake "elevated bank" feel along
+    // coastlines). Computed once per tile, cheap.
+    const tileRowPrev = row > 0 ? tiles[row - 1] : undefined
     for (let col = 0; col < width; col++) {
       const tid = tileRow?.[col] ?? 0
       const rgb = TILE_RGB[tid] ?? TILE_RGB[0]
@@ -163,11 +180,33 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
         }
       }
 
+      // Coastal shading: land tile with water neighbour to NW gets +6
+      // brightness (sun-from-NW convention). Skips water itself.
+      let shading = 0
+      if (tid !== 2 && tid !== 9) {
+        const w = col > 0 ? tileRow?.[col - 1] : undefined
+        const n = tileRowPrev?.[col]
+        if (w === 2 || w === 9 || n === 2 || n === 9) shading = 6
+      }
+
+      const varAmt = varAmtFor(tid)
       const bx = col * TILE, by = row * TILE
       for (let ty = 0; ty < TILE; ty++) {
-        let pi = ((by + ty) * W + bx) * 4
+        const gy = by + ty
+        let pi = (gy * W + bx) * 4
         for (let tx = 0; tx < TILE; tx++, pi += 4) {
-          d[pi] = r; d[pi+1] = g; d[pi+2] = b; d[pi+3] = 255
+          const gx = bx + tx
+          // Cheap integer hash → per-pixel jitter in [-1, 1) * varAmt.
+          let h = (gx * 374761393 + gy * 668265263) | 0
+          h = ((h ^ (h >>> 13)) * 1274126177) | 0
+          const k = ((((h >>> 0) & 0xff) - 128) * varAmt) >> 7
+          let rr = r + k + shading
+          let gg = g + k + shading
+          let bb = b + k + shading
+          if (rr < 0) rr = 0; else if (rr > 255) rr = 255
+          if (gg < 0) gg = 0; else if (gg > 255) gg = 255
+          if (bb < 0) bb = 0; else if (bb > 255) bb = 255
+          d[pi] = rr; d[pi+1] = gg; d[pi+2] = bb; d[pi+3] = 255
         }
       }
     }
