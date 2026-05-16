@@ -148,7 +148,11 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
                   width={grid.width}
                   height={grid.height}
                 />
-                <Water width={grid.width} height={grid.height} />
+                <Water
+                  width={grid.width}
+                  height={grid.height}
+                  depthMap={grid.depth_map!}
+                />
                 <TileFeatures
                   tiles={grid.tiles!}
                   biomes={grid.biomes!}
