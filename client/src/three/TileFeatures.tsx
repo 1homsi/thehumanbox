@@ -1,7 +1,7 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { TILE_SCALE } from './constants'
+import { TILE_SCALE, BIOME_ELEVATION, BIOME_ROUGHNESS, terrainNoise } from './constants'
 import { heightAt } from './terrain-utils'
 import { applyWindSway, windUniforms } from './tree-wind'
 
@@ -84,6 +84,11 @@ function collectFeatures(
   const fires:     [number, number, number][] = []
   const rocks:     [number, number, number][] = []
   const minerals:  [number, number, number][] = []
+  // Volcanic peaks: tiles where biome is volcanic AND the procedural
+  // noise pushes elevation high enough to read as a crater. We
+  // attach small flame + ember effects so the volcanic biome glows
+  // from a distance.
+  const volcanic_peaks: [number, number, number][] = []
 
   // placed[i] = 1 means a tree exists at (x, y) - used for the
   // spacing reject test below.
@@ -101,9 +106,14 @@ function collectFeatures(
 
   // Non-tree features (rocks/huts/etc) - separate pass over the grid
   // since they're keyed on the tile enum, not biome density.
+  // Also collects volcanic peaks (any volcanic-biome tile where the
+  // computed elevation crosses a threshold). We stride 3 over the
+  // grid so a single peak doesn't spawn 9 ember columns - one per
+  // ~3x3 patch is plenty visual density.
   for (let y = 0; y < height; y++) {
     const tRow = tiles[y]
     const dRow = depthMap[y]
+    const bRow = biomes[y]
     if (!tRow || !dRow) continue
     for (let x = 0; x < width; x++) {
       const t = tRow[x]
@@ -118,6 +128,17 @@ function collectFeatures(
       else if (t === T_FIRE)     fires.push([px, ground, pz])
       else if (t === T_ROCK)     rocks.push([px, ground, pz])
       else if (t === T_MINERAL)  minerals.push([px, ground, pz])
+
+      // Volcanic peak detection.
+      const b = bRow?.[x] ?? 0
+      if (b === 5 && (x % 3 === 0) && (y % 3 === 0)) {
+        const base  = BIOME_ELEVATION[b] ?? 0
+        const rough = BIOME_ROUGHNESS[b] ?? 0.5
+        const elev  = base + terrainNoise(x, y) * rough
+        if (elev > 7.0) {
+          volcanic_peaks.push([px, ground + 0.4, pz])
+        }
+      }
     }
   }
 
@@ -160,7 +181,7 @@ function collectFeatures(
     trees[sp].push([px, ground, pz, hash])
   }
 
-  return { trees, huts, campfires, fires, rocks, minerals }
+  return { trees, huts, campfires, fires, rocks, minerals, volcanic_peaks }
 }
 
 // ── Shared geometry pool ────────────────────────────────────────────────
@@ -581,6 +602,13 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height }: Props) 
       <FireGlow positions={features.fires} maxCount={500} />
       <FireSmoke positions={features.fires} maxCount={500} intensity={1.4} />
       <FireSparks positions={features.fires} maxCount={500} />
+
+      {/* Volcanic peaks: bright lava glow + ember sparks so the
+          volcanic biome reads as 'this peak is alive' from a distance.
+          Smaller than wildfire glow, and lit-only (no destructive
+          fire mechanics in the sim - this is purely decorative). */}
+      <FireGlow positions={features.volcanic_peaks} maxCount={400} />
+      <FireSparks positions={features.volcanic_peaks} maxCount={400} />
 
       <InstanceLayer
         positions={features.rocks} yOffset={0.35}
