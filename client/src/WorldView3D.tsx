@@ -337,6 +337,11 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
         <div style={loadingStyle}>loading terrain…</div>
       )}
 
+      {/* Subtle film vignette - darkens corners to draw the eye inward.
+          Pure CSS radial gradient, no GPU cost. Hidden in immersive
+          mode for users who want a flat clean view. */}
+      <div className="thb-3d-vignette" style={vignetteStyle} />
+
       <div style={hudStyle}>
         click to look · WASD move · space/shift up/down · ctrl boost · F follow · J jump · click map to jump · esc release
         {follow && selectedOrgId && (
@@ -359,6 +364,14 @@ const hudStyle: React.CSSProperties = {
   padding: '6px 10px',
   borderRadius: 4,
   pointerEvents: 'none',
+}
+
+const vignetteStyle: React.CSSProperties = {
+  position: 'absolute',
+  inset: 0,
+  pointerEvents: 'none',
+  background: 'radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.42) 100%)',
+  zIndex: 4,
 }
 
 const loadingStyle: React.CSSProperties = {
