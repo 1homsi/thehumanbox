@@ -810,7 +810,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 190px;
+  min-width: 380px;
   z-index: 200;
   box-shadow: 0 4px 16px rgba(0,0,0,0.5);
 }
@@ -822,7 +822,7 @@ body {
 
 .more-dropdown-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   gap: 3px;
 }
 
