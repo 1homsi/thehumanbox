@@ -62,9 +62,22 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
         // Darken underwater vertices so submerged biomes read as
         // ocean floor instead of bright color through the water plane.
         const darken = d >= 254 ? 1.0 : 0.45
-        colors[i * 3]     = r * darken
-        colors[i * 3 + 1] = g * darken
-        colors[i * 3 + 2] = bl * darken
+        // Per-vertex deterministic colour jitter so the terrain doesn't
+        // read as a single flat biome paint. Cheap integer hash; same
+        // (x, y) always yields the same jitter so it doesn't shimmer.
+        let h = (x * 374761393 + y * 668265263) | 0
+        h = ((h ^ (h >>> 13)) * 1274126177) | 0
+        const jitter = (((h >>> 0) & 0xff) - 128) / 1700  // ~±0.075
+        // High-elevation peaks fade toward snow-white so volcanic /
+        // mountain ranges get a believable cap without needing a new
+        // biome enum.
+        const snow = d >= 254 ? Math.max(0, Math.min(0.55, (elev - 5.5) * 0.18)) : 0
+        const baseR = r + jitter
+        const baseG = g + jitter
+        const baseB = bl + jitter
+        colors[i * 3]     = (baseR + (1.0 - baseR) * snow) * darken
+        colors[i * 3 + 1] = (baseG + (1.0 - baseG) * snow) * darken
+        colors[i * 3 + 2] = (baseB + (1.0 - baseB) * snow) * darken
       }
     }
 
