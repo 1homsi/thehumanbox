@@ -1,10 +1,12 @@
 import { useEffect, useRef } from 'react'
 import { useGLTF } from '@react-three/drei'
+import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { AnimalState } from '../types'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
 import { AnimatedFigure } from './AnimatedFigure'
+import { getAnimalXY } from './motion-state'
 
 interface Props {
   animals:  AnimalState[]
@@ -191,14 +193,28 @@ function FishMesh({ tint }: { tint: string }) {
   )
 }
 
-function ProceduralAnimal({ kind, tint, position, yaw }: {
-  kind: AnimalState['kind']; tint: string;
-  position: [number, number, number]; yaw: number;
+function ProceduralAnimal({ id, kind, tint, yaw, depthMap, biomes }: {
+  id: number; kind: AnimalState['kind']; tint: string; yaw: number;
+  depthMap: number[][]; biomes: number[][];
 }) {
   const ref = useRef<THREE.Group>(null)
+  const lastPos = useRef<[number, number]>([0, 0])
   useEffect(() => {
     if (!ref.current) return
     ref.current.traverse(o => { o.frustumCulled = false })
+  })
+  useFrame(() => {
+    if (!ref.current) return
+    const [tx, ty] = getAnimalXY(id)
+    const groundY = heightAt(tx, ty, depthMap, biomes)
+    ref.current.position.set(tx * TILE_SCALE, groundY, ty * TILE_SCALE)
+    // Face direction of motion.
+    const [lx, lz] = lastPos.current
+    const dx = tx - lx, dz = ty - lz
+    if (dx * dx + dz * dz > 0.0005) {
+      ref.current.rotation.y = Math.atan2(dx, dz)
+    }
+    lastPos.current = [tx, ty]
   })
   let body
   switch (kind) {
@@ -211,7 +227,7 @@ function ProceduralAnimal({ kind, tint, position, yaw }: {
     default:       body = <RabbitMesh tint={tint} />
   }
   return (
-    <group ref={ref} position={position} rotation={[0, yaw, 0]} frustumCulled={false}>
+    <group ref={ref} rotation={[0, yaw, 0]} frustumCulled={false}>
       {body}
     </group>
   )
@@ -224,19 +240,19 @@ export function Animals3D({ animals, depthMap, biomes }: Props) {
   return (
     <>
       {animals.map(a => {
-        const groundY = heightAt(a.x, a.y, depthMap, biomes)
-        const pos: [number, number, number] = [a.x * TILE_SCALE, groundY, a.y * TILE_SCALE]
         const tint = KIND_TINT[a.kind] ?? '#aa8855'
         const yaw = seededYaw(a.id)
-        // Foxes use the actual GLB model. Everything else uses
-        // procedural meshes that are also recognisable from a distance.
         if (a.kind === 'dog') {
           return (
             <AnimatedFigure
               key={a.id}
               scene={scene}
               animations={animations}
-              position={pos}
+              getPosition={() => {
+                const [tx, ty] = getAnimalXY(a.id)
+                const groundY = heightAt(tx, ty, depthMap, biomes)
+                return [tx * TILE_SCALE, groundY, ty * TILE_SCALE]
+              }}
               rotationY={yaw}
               scale={0.012}
               animation="Walk"
@@ -247,10 +263,12 @@ export function Animals3D({ animals, depthMap, biomes }: Props) {
         return (
           <ProceduralAnimal
             key={a.id}
+            id={a.id}
             kind={a.kind}
             tint={tint}
-            position={pos}
             yaw={yaw}
+            depthMap={depthMap}
+            biomes={biomes}
           />
         )
       })}

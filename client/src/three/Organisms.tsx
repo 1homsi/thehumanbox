@@ -1,5 +1,5 @@
 import { useRef, useEffect, useMemo } from 'react'
-import { useThree } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { OrganismState } from '../types'
 import { lineageColor } from '../constants'
@@ -7,6 +7,7 @@ import { useUIStore } from '../store'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
 import { nearAnimatedIds } from './Humans3D'
+import { getOrgXY } from './motion-state'
 
 interface Props {
   organisms: OrganismState[]
@@ -35,25 +36,38 @@ export function Organisms({ organisms, depthMap, biomes }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organisms, camera.position.x, camera.position.z])
 
+  // Set colours once per render (depends on the org list).
   useEffect(() => {
+    const mesh = meshRef.current
+    if (!mesh) return
+    const count = Math.min(farOrgs.length, MAX_INSTANCES)
+    for (let i = 0; i < count; i++) {
+      const o = farOrgs[i]
+      tmpColor.set(lineageColor(o.lineage_id))
+      mesh.setColorAt(i, tmpColor)
+    }
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
+  }, [farOrgs])
+
+  // Lerp positions every frame so capsules drift smoothly between
+  // WS ticks instead of teleporting per snapshot.
+  useFrame(() => {
     const mesh = meshRef.current
     if (!mesh || !depthMap || !biomes) return
     const count = Math.min(farOrgs.length, MAX_INSTANCES)
     mesh.count = count
     for (let i = 0; i < count; i++) {
       const o = farOrgs[i]
-      const groundY = heightAt(o.x, o.y, depthMap, biomes)
-      tmp.position.set(o.x * TILE_SCALE, groundY + ORG_HEIGHT / 2, o.y * TILE_SCALE)
+      const [tx, ty] = getOrgXY(o.id)
+      const groundY = heightAt(tx, ty, depthMap, biomes)
+      tmp.position.set(tx * TILE_SCALE, groundY + ORG_HEIGHT / 2, ty * TILE_SCALE)
       tmp.rotation.set(0, 0, 0)
       tmp.scale.set(1, 1, 1)
       tmp.updateMatrix()
       mesh.setMatrixAt(i, tmp.matrix)
-      tmpColor.set(lineageColor(o.lineage_id))
-      mesh.setColorAt(i, tmpColor)
     }
     mesh.instanceMatrix.needsUpdate = true
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
-  }, [farOrgs, depthMap, biomes])
+  })
 
   return (
     <instancedMesh

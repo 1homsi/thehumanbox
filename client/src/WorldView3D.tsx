@@ -14,6 +14,7 @@ import { TileFeatures } from './three/TileFeatures'
 import { Weather } from './three/Weather'
 import { TILE_SCALE } from './three/constants'
 import { heightAtWorld } from './three/terrain-utils'
+import { updateOrgMotion, updateAnimalMotion } from './three/motion-state'
 
 type MoveKeys = 'forward' | 'back' | 'left' | 'right' | 'up' | 'down' | 'boost'
 
@@ -99,6 +100,15 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
   const grid = world?.grid
   const ready = !!(grid?.depth_map && grid?.biomes && grid?.tiles && grid?.width && grid?.height)
   const dayProgress = world?.day_progress ?? 0.3
+
+  // Feed the motion state map on every WS tick so every 3D component
+  // can read interpolated positions per frame for smooth motion.
+  const orgsForMotion    = world?.viewport_organisms ?? world?.organisms ?? []
+  const animalsForMotion = world?.viewport_animals   ?? world?.animals   ?? []
+  useEffect(() => {
+    updateOrgMotion(orgsForMotion)
+    updateAnimalMotion(animalsForMotion)
+  }, [orgsForMotion, animalsForMotion])
 
   // Spawn the camera high enough to see the whole world on first load.
   const cx = (grid?.width ?? 150) * TILE_SCALE * 0.5

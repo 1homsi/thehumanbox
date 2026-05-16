@@ -6,12 +6,16 @@ import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.j
 interface Props {
   scene:       THREE.Object3D
   animations:  THREE.AnimationClip[]
-  position:    [number, number, number]
+  // Either a static position or a getter that's polled every frame
+  // for smooth WS-tick interpolation. Pass `getPosition` for live
+  // orgs/animals so they tween instead of teleporting per tick.
+  position?:   [number, number, number]
+  getPosition?: () => [number, number, number]
   rotationY?:  number
   scale?:      number
-  animation:   string            // clip name to play
-  fadeMs?:     number            // cross-fade duration
-  color?:      string            // optional tint (applied to all meshes)
+  animation:   string
+  fadeMs?:     number
+  color?:      string
 }
 
 // One animated instance of a GLTF scene. Each <AnimatedFigure /> gets
@@ -22,7 +26,7 @@ interface Props {
 // per skinned mesh. Caller is expected to cap N (e.g. only the N
 // closest orgs).
 export function AnimatedFigure({
-  scene, animations, position, rotationY = 0, scale = 1,
+  scene, animations, position, getPosition, rotationY = 0, scale = 1,
   animation, fadeMs = 200, color,
 }: Props) {
   const ref = useRef<THREE.Group>(null)
@@ -60,12 +64,35 @@ export function AnimatedFigure({
     return () => { action.fadeOut(fadeMs / 1000); action.stop() }
   }, [mixer, animations, animation, fadeMs])
 
-  useFrame((_, dt) => mixer.update(dt))
+  useFrame((_, dt) => {
+    mixer.update(dt)
+    if (getPosition && ref.current) {
+      const [x, y, z] = getPosition()
+      ref.current.position.set(x, y, z)
+      // Face direction of motion if we can derive it from a moving
+      // group's last position. Captured via the closure inside the
+      // caller's getPosition - we just look at the velocity vector
+      // by comparing successive samples.
+      const lastX = (ref.current as THREE.Group & { _lastX?: number })._lastX
+      const lastZ = (ref.current as THREE.Group & { _lastZ?: number })._lastZ
+      if (lastX != null && lastZ != null) {
+        const dx = x - lastX
+        const dz = z - lastZ
+        if (dx * dx + dz * dz > 0.001) {
+          // Yaw to face motion direction. Atan2 gives the angle to
+          // turn the +Z axis (model's default forward) toward (dx, dz).
+          ref.current.rotation.y = Math.atan2(dx, dz)
+        }
+      }
+      ;(ref.current as THREE.Group & { _lastX?: number })._lastX = x
+      ;(ref.current as THREE.Group & { _lastZ?: number })._lastZ = z
+    }
+  })
 
   return (
     <group
       ref={ref}
-      position={position}
+      position={position ?? [0, 0, 0]}
       rotation={[0, rotationY, 0]}
       scale={[scale, scale, scale]}
     >

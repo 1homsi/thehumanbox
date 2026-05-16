@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useMemo } from 'react'
 import { useGLTF } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import type { OrganismState } from '../types'
@@ -6,6 +6,7 @@ import { lineageColor } from '../constants'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
 import { AnimatedFigure } from './AnimatedFigure'
+import { getOrgXY, getOrgVelocityXY } from './motion-state'
 
 interface Props {
   organisms: OrganismState[]
@@ -18,12 +19,6 @@ interface Props {
 // ~5 ms/frame even with dance/walk animation playing.
 const MAX_ANIMATED   = 40
 const NEAR_RADIUS_SQ = 140 * 140
-
-// Movement detection: keep the previous tick's positions per org id
-// in a module-level map so we can compute a velocity and switch
-// between Idle / Walking. Cleared automatically as orgs come and go
-// (we only read; stale entries are harmless).
-const prevPositions = new Map<string, { x: number; y: number }>()
 
 // Map an org's current behaviour state to a robot animation.
 // Robot Expressive clip names:
@@ -45,36 +40,21 @@ function pickAnim(o: OrganismState, isMoving: boolean): string {
 export function Humans3D({ organisms, depthMap, biomes }: Props) {
   const { camera } = useThree()
   const { scene, animations } = useGLTF('/models/robot-expressive.glb')
-  const tickRef = useRef(0)
 
-  // Pick N closest alive orgs. Each gets an animated robot.
-  // Velocity is the per-tick delta from the previous WS snapshot.
   const near = useMemo(() => {
     const cx = camera.position.x
     const cz = camera.position.z
-    const scored: { org: OrganismState; d: number; vmag: number }[] = []
+    const scored: { org: OrganismState; d: number }[] = []
     for (const o of organisms) {
       if (!o.alive) continue
       const dx = o.x * TILE_SCALE - cx
       const dz = o.y * TILE_SCALE - cz
       const d  = dx * dx + dz * dz
       if (d > NEAR_RADIUS_SQ) continue
-      // velocity magnitude in tile units / tick.
-      const prev = prevPositions.get(o.id)
-      const vmag = prev ? Math.hypot(o.x - prev.x, o.y - prev.y) : 0
-      scored.push({ org: o, d, vmag })
+      scored.push({ org: o, d })
     }
     scored.sort((a, b) => a.d - b.d)
-    const top = scored.slice(0, MAX_ANIMATED)
-    // Update prev for ALL alive orgs (not just near) so when they
-    // come into range we have a baseline.
-    tickRef.current++
-    if (tickRef.current % 1 === 0) {
-      for (const o of organisms) {
-        if (o.alive) prevPositions.set(o.id, { x: o.x, y: o.y })
-      }
-    }
-    return top
+    return scored.slice(0, MAX_ANIMATED).map(s => s.org)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organisms, camera.position.x, camera.position.z])
 
@@ -82,15 +62,19 @@ export function Humans3D({ organisms, depthMap, biomes }: Props) {
 
   return (
     <>
-      {near.map(({ org: o, vmag }) => {
-        const groundY = heightAt(o.x, o.y, depthMap, biomes)
-        const moving = vmag > 0.05
+      {near.map(o => {
+        const [vx, vy] = getOrgVelocityXY(o.id)
+        const moving = Math.hypot(vx, vy) > 0.05
         return (
           <AnimatedFigure
             key={o.id}
             scene={scene}
             animations={animations}
-            position={[o.x * TILE_SCALE, groundY, o.y * TILE_SCALE]}
+            getPosition={() => {
+              const [x, y] = getOrgXY(o.id)
+              const groundY = heightAt(x, y, depthMap, biomes)
+              return [x * TILE_SCALE, groundY, y * TILE_SCALE]
+            }}
             scale={0.45}
             animation={pickAnim(o, moving)}
             color={lineageColor(o.lineage_id)}
