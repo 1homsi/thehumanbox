@@ -14,6 +14,7 @@ import { TileFeatures } from './three/TileFeatures'
 import { Weather } from './three/Weather'
 import { MiniMap } from './three/MiniMap'
 import { CameraSync } from './three/CameraSync'
+import { SelectedOrgHighlight } from './three/SelectedOrgHighlight'
 import { TILE_SCALE } from './three/constants'
 import { heightAtWorld } from './three/terrain-utils'
 import { updateOrgMotion, updateAnimalMotion } from './three/motion-state'
@@ -172,6 +173,11 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
                   biomes={grid.biomes!}
                 />
                 <OrgLabels
+                  organisms={world.viewport_organisms ?? world.organisms ?? []}
+                  depthMap={grid.depth_map!}
+                  biomes={grid.biomes!}
+                />
+                <SelectedOrgHighlight
                   organisms={world.viewport_organisms ?? world.organisms ?? []}
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}
