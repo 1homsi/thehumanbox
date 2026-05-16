@@ -43,7 +43,11 @@ set -euo pipefail
 
 LLAMA_CPP_DIR="${LLAMA_CPP_DIR:-$HOME/llama.cpp}"
 LLAMA_REF="${LLAMA_REF:-master}"
-GEMMA_REPO="${GEMMA_REPO:-ggml-org/gemma-3-270m-it-GGUF}"
+# unsloth's GGUF mirror is the most reliable ungated source for the
+# Gemma 3 270m IT Q4_K_M file. ggml-org's path existed historically
+# but currently 404s; bartowski is a fine fallback with a different
+# naming convention - override via GEMMA_REPO / GEMMA_FILE.
+GEMMA_REPO="${GEMMA_REPO:-unsloth/gemma-3-270m-it-GGUF}"
 GEMMA_FILE="${GEMMA_FILE:-gemma-3-270m-it-Q4_K_M.gguf}"
 SKIP_DEPS="${SKIP_DEPS:-0}"
 SKIP_SMOKE="${SKIP_SMOKE:-0}"
@@ -106,22 +110,49 @@ else
 fi
 
 # ── 4. Download the Gemma 3 270m Q4_K_M GGUF ──────────────────────────────
+# Tries three paths in order:
+#   1. `hf download` (huggingface_hub >= 1.0, the modern CLI)
+#   2. `huggingface-cli download` (legacy huggingface_hub < 1.0)
+#   3. direct curl from the HF resolve URL
+# Each path is sandboxed with `if ! ... ; then` so we can fall through
+# to the next on failure instead of `set -e` killing the whole script.
+# Anonymous downloads work for ungated mirrors (unsloth, bartowski);
+# the official google/gemma-3 repo is gated and needs `hf auth login`.
 mkdir -p "$MODELS_DIR"
 if [[ -s "$MODEL_PATH" ]]; then
   echo "==> Model already present at $MODEL_PATH ($(du -h "$MODEL_PATH" | cut -f1))"
 else
   echo "==> Fetching $GEMMA_REPO/$GEMMA_FILE"
-  if command -v huggingface-cli >/dev/null 2>&1; then
-    huggingface-cli download "$GEMMA_REPO" "$GEMMA_FILE" \
-      --local-dir "$MODELS_DIR" --local-dir-use-symlinks False
-  else
-    echo "    huggingface-cli not found, trying direct curl from HF mirror"
-    echo "    (if this 401s, run: pip install -U huggingface_hub && huggingface-cli login)"
-    url="https://huggingface.co/$GEMMA_REPO/resolve/main/$GEMMA_FILE"
-    curl -L --fail --progress-bar -o "$MODEL_PATH" "$url"
+  hf_url="https://huggingface.co/$GEMMA_REPO/resolve/main/$GEMMA_FILE"
+  fetched=0
+  if command -v hf >/dev/null 2>&1; then
+    echo "    -> hf download (modern CLI)"
+    if hf download "$GEMMA_REPO" "$GEMMA_FILE" --local-dir "$MODELS_DIR"; then
+      fetched=1
+    else
+      echo "    hf download failed, trying next method"
+    fi
   fi
-  if [[ ! -s "$MODEL_PATH" ]]; then
-    echo "!! Download failed - $MODEL_PATH is empty. Check HF access."
+  if [[ "$fetched" -eq 0 ]] && command -v huggingface-cli >/dev/null 2>&1; then
+    echo "    -> huggingface-cli (legacy)"
+    # Suppress the deprecation-warning noise but keep stderr if it actually fails.
+    if huggingface-cli download "$GEMMA_REPO" "$GEMMA_FILE" \
+        --local-dir "$MODELS_DIR" --local-dir-use-symlinks False 2>/dev/null; then
+      fetched=1
+    else
+      echo "    huggingface-cli failed, trying next method"
+    fi
+  fi
+  if [[ "$fetched" -eq 0 ]]; then
+    echo "    -> direct curl from $hf_url"
+    if curl -L --fail --progress-bar -o "$MODEL_PATH" "$hf_url"; then
+      fetched=1
+    fi
+  fi
+  if [[ "$fetched" -eq 0 ]] || [[ ! -s "$MODEL_PATH" ]]; then
+    echo "!! All download methods failed."
+    echo "   Check HF access; gated repos need:  hf auth login"
+    echo "   Or override with:  GEMMA_REPO=... GEMMA_FILE=...  re-run"
     exit 1
   fi
   echo "    Saved $(du -h "$MODEL_PATH" | cut -f1) -> $MODEL_PATH"
