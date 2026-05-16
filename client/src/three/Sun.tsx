@@ -8,16 +8,22 @@ interface Props {
   dayProgress: number  // 0..1 — 0 = midnight, 0.25 = sunrise, 0.5 = noon, 0.75 = sunset
   width:  number
   height: number
+  weatherKind?: 'clear' | 'rain' | 'storm' | 'wet'
+  weatherIntensity?: number  // 0..1
 }
 
 // Day/night cycle. Sun follows a real arc east -> overhead -> west,
 // going BELOW the world plane at night. drei Sky renders bright/dim
 // based on sun elevation; we crossfade in stars + a moon when the
 // sun goes under the horizon.
-export function Sun({ dayProgress, width, height }: Props) {
+export function Sun({ dayProgress, width, height, weatherKind = 'clear', weatherIntensity = 0 }: Props) {
   const cx = width  * TILE_SCALE * 0.5
   const cz = height * TILE_SCALE * 0.5
   const r  = Math.max(width, height) * TILE_SCALE * 1.2
+  // Storms darken the world meaningfully; rain dims slightly.
+  const stormFactor = weatherKind === 'storm' ? 0.45 + weatherIntensity * 0.25
+                    : weatherKind === 'rain'  ? 0.7  + weatherIntensity * 0.15
+                    : 1.0
   // Sun position: altitude follows sin((p-0.25)*2π) so it's at
   //   p=0.25 (sunrise): horizon
   //   p=0.5  (noon):    peak
@@ -125,12 +131,16 @@ export function Sun({ dayProgress, width, height }: Props) {
         </mesh>
       )}
 
-      {/* Sun light (above horizon only) - warm and bright. */}
+      {/* Sun light (above horizon only) - warm and bright, dimmed by storms. */}
       {!isNight && (
         <directionalLight
           position={sunPos}
-          intensity={0.4 + dayStrength * 1.0}
-          color={dayStrength < 0.2 ? '#ffb070' : '#fff6e0'}
+          intensity={(0.4 + dayStrength * 1.0) * stormFactor}
+          color={
+            weatherKind === 'storm' ? '#8a98b8' :
+            dayStrength < 0.2       ? '#ffb070' :
+                                      '#fff6e0'
+          }
           castShadow
           shadow-mapSize={[2048, 2048]}
           shadow-camera-left={-300}
@@ -147,26 +157,38 @@ export function Sun({ dayProgress, width, height }: Props) {
       {isNight && (
         <directionalLight
           position={moonPos}
-          intensity={0.6}
+          intensity={0.6 * stormFactor}
           color="#a8b8e0"
         />
       )}
 
-      {/* Ambient. Bright enough that nothing is ever a black silhouette,
-          even at midnight. Day boosts it further; night drops to a
-          cool floor. */}
       <ambientLight
         intensity={isNight ? 0.45 : 0.35 + dayStrength * 0.35}
         color={isNight ? '#5a6890' : '#ffffff'}
       />
 
-      {/* Hemisphere light: brighter from the sky direction, dimmer
-          from below. Adds shading naturalism cheaply. */}
       <hemisphereLight
         args={[
           isNight ? '#4a5878' : '#9bb8e0',
           isNight ? '#1a2030' : '#3d5e3d',
-          isNight ? 0.3 : 0.4 + dayStrength * 0.2,
+          (isNight ? 0.3 : 0.4 + dayStrength * 0.2) * stormFactor,
+        ]}
+      />
+
+      {/* Atmospheric fog: fades distant terrain into the sky color,
+          and during storms tightens the visible range. Without fog
+          the world reads as a flat plate with abrupt distant
+          silhouettes. Color picked to match the sky for seamless
+          blend. */}
+      <fog
+        attach="fog"
+        args={[
+          weatherKind === 'storm' ? '#525d70' :
+          weatherKind === 'rain'  ? '#7e8a9a' :
+          isNight                 ? '#0a0e1c' :
+                                    '#9bb8e0',
+          weatherKind === 'storm' ? 80  : 250,
+          weatherKind === 'storm' ? 800 : weatherKind === 'rain' ? 1400 : 2400,
         ]}
       />
     </>

@@ -137,6 +137,8 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
                   dayProgress={dayProgress}
                   width={grid.width}
                   height={grid.height}
+                  weatherKind={world.weather?.kind ?? 'clear'}
+                  weatherIntensity={world.weather?.intensity ?? 0}
                 />
                 <Terrain
                   depthMap={grid.depth_map!}

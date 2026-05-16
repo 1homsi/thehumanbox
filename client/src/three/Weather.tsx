@@ -7,6 +7,33 @@ interface Props {
   intensity: number  // 0..1
 }
 
+// Lightning: occasional bright flash across the whole scene during
+// storms. Uses an ambientLight pulse rather than a point flash so it
+// affects the entire visible terrain at once.
+function Lightning({ active }: { active: boolean }) {
+  const lightRef = useRef<THREE.AmbientLight>(null)
+  const nextStrike = useRef(performance.now() + 4000 + Math.random() * 6000)
+  const strikeEnd  = useRef(0)
+
+  useFrame(() => {
+    if (!lightRef.current) return
+    const now = performance.now()
+    if (active && now >= nextStrike.current) {
+      strikeEnd.current = now + 120
+      nextStrike.current = now + 5000 + Math.random() * 12000
+    }
+    if (now < strikeEnd.current) {
+      const t = (strikeEnd.current - now) / 120
+      lightRef.current.intensity = t * 4.0
+    } else {
+      lightRef.current.intensity = 0
+    }
+  })
+
+  if (!active) return null
+  return <ambientLight ref={lightRef} color="#e8eeff" intensity={0} />
+}
+
 const tmp = new THREE.Object3D()
 
 // Rain as instanced thin cylinders falling around the camera. Each
@@ -62,19 +89,25 @@ export function Weather({ kind, intensity }: Props) {
     mesh.instanceMatrix.needsUpdate = true
   })
 
-  if (maxDrops === 0) return null
+  if (maxDrops === 0) {
+    return <Lightning active={false} />
+  }
 
   return (
-    <instancedMesh
-      ref={meshRef}
-      args={[RAIN_GEO, undefined, maxDrops]}
-      count={maxDrops}
-    >
-      <meshBasicMaterial
-        color={kind === 'storm' ? '#a8c0e0' : '#c4d4e8'}
-        transparent
-        opacity={Math.min(0.85, 0.35 + intensity * 0.5)}
-      />
-    </instancedMesh>
+    <>
+      <instancedMesh
+        ref={meshRef}
+        args={[RAIN_GEO, undefined, maxDrops]}
+        count={maxDrops}
+        frustumCulled={false}
+      >
+        <meshBasicMaterial
+          color={kind === 'storm' ? '#a8c0e0' : '#c4d4e8'}
+          transparent
+          opacity={Math.min(0.85, 0.35 + intensity * 0.5)}
+        />
+      </instancedMesh>
+      <Lightning active={kind === 'storm'} />
+    </>
   )
 }
