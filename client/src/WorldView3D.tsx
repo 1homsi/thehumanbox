@@ -12,6 +12,8 @@ import { Animals3D } from './three/Animals3D'
 import { OrgLabels } from './three/OrgLabels'
 import { TileFeatures } from './three/TileFeatures'
 import { Weather } from './three/Weather'
+import { MiniMap } from './three/MiniMap'
+import { CameraSync } from './three/CameraSync'
 import { TILE_SCALE } from './three/constants'
 import { heightAtWorld } from './three/terrain-utils'
 import { updateOrgMotion, updateAnimalMotion } from './three/motion-state'
@@ -35,7 +37,7 @@ interface FlyCameraProps {
 
 const FLOOR_CLEARANCE = 0.8     // eye height above terrain/water
 const MIN_SEA_LEVEL   = 0.6     // never drop below water surface
-const MAX_ALTITUDE    = 220     // can't fly above this; world reads as a map up here
+const MAX_ALTITUDE    = 900     // fly high enough to see the whole map from above
 
 function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
   const [, get] = useKeyboardControls<MoveKeys>()
@@ -181,10 +183,21 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
               </>
             )}
             <FlyCamera depthMap={grid?.depth_map} biomes={grid?.biomes} />
+            <CameraSync />
             <PointerLockControls />
           </Suspense>
         </Canvas>
       </KeyboardControls>
+
+      {ready && grid && (
+        <MiniMap
+          organisms={world.viewport_organisms ?? world.organisms ?? []}
+          depthMap={grid.depth_map!}
+          biomes={grid.biomes!}
+          width={grid.width}
+          height={grid.height}
+        />
+      )}
 
       {!ready && (
         <div style={loadingStyle}>loading terrain…</div>

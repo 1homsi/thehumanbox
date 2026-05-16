@@ -850,7 +850,8 @@ body {
    can still toggle 3d / hide-ui off. */
 body.thb-3d-immersive .panel,
 body.thb-3d-immersive .panel-overlay,
-body.thb-3d-immersive .panel-toggle-btn {
+body.thb-3d-immersive .panel-toggle-btn,
+body.thb-3d-immersive .thb-3d-minimap {
   display: none !important;
 }
 
