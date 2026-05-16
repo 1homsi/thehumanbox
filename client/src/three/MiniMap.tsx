@@ -1,10 +1,12 @@
 import { useEffect, useRef } from 'react'
-import type { OrganismState } from '../types'
+import type { OrganismState, AnimalState } from '../types'
 import { TILE_SCALE } from './constants'
 import { cameraSnapshot } from './camera-state'
+import { useUIStore } from '../store'
 
 interface Props {
   organisms: OrganismState[]
+  animals?:  AnimalState[]
   depthMap?: number[][]
   biomes?:   number[][]
   width:     number
@@ -28,10 +30,11 @@ const BIOME_HEX: string[] = [
   '#4a3d3d', // 5 Volcanic
 ]
 
-export function MiniMap({ organisms, depthMap, biomes, width, height }: Props) {
+export function MiniMap({ organisms, animals, depthMap, biomes, width, height }: Props) {
   const canvasRef  = useRef<HTMLCanvasElement>(null)
   const terrainRef = useRef<HTMLCanvasElement | null>(null)
   const rafRef     = useRef<number>(0)
+  const selectedOrgId = useUIStore(s => s.selectedOrgId)
 
   // Bake the terrain background once (changes rarely). Re-bake on
   // depthMap / biomes reference change.
@@ -88,13 +91,42 @@ export function MiniMap({ organisms, depthMap, biomes, width, height }: Props) {
         ctx.fillRect(0, 0, MAP_W, MAP_H)
       }
 
+      // Animal dots first (drawn under orgs so orgs read on top).
+      if (animals && animals.length) {
+        ctx.fillStyle = 'rgba(180, 140, 80, 0.85)'
+        for (const a of animals) {
+          const mx = (a.x / width)  * MAP_W
+          const my = (a.y / height) * MAP_H
+          ctx.fillRect(Math.floor(mx), Math.floor(my), 1, 1)
+        }
+      }
+
       // Org dots
       ctx.fillStyle = '#ffe680'
+      let selDot: [number, number] | null = null
       for (const o of organisms) {
         if (!o.alive) continue
         const mx = (o.x / width)  * MAP_W
         const my = (o.y / height) * MAP_H
+        if (o.id === selectedOrgId) {
+          selDot = [mx, my]
+          continue   // draw selected last so it lands on top
+        }
         ctx.fillRect(Math.floor(mx), Math.floor(my), 2, 2)
+      }
+
+      // Selected org: pulsing ring so it's findable at a glance.
+      if (selDot) {
+        const [mx, my] = selDot
+        const t  = performance.now() * 0.005
+        const rr = 4 + Math.sin(t) * 1.5
+        ctx.beginPath()
+        ctx.arc(mx, my, rr, 0, Math.PI * 2)
+        ctx.strokeStyle = '#ff8a3a'
+        ctx.lineWidth   = 1.4
+        ctx.stroke()
+        ctx.fillStyle = '#ffcf6a'
+        ctx.fillRect(Math.floor(mx) - 1, Math.floor(my) - 1, 3, 3)
       }
 
       // Camera marker: triangle pointing in look direction (yaw)
@@ -120,7 +152,7 @@ export function MiniMap({ organisms, depthMap, biomes, width, height }: Props) {
     }
     rafRef.current = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(rafRef.current)
-  }, [organisms, width, height])
+  }, [organisms, animals, width, height, selectedOrgId])
 
   return (
     <div className="thb-3d-minimap" style={miniMapWrap}>
