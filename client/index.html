@@ -52,20 +52,33 @@
       font-size: 11px; letter-spacing: 0.12em; color: #5e5648;
       text-transform: uppercase;
     }
-    #thb-splash .thb-spinner {
-      width: 22px; height: 22px; border-radius: 50%;
-      border: 2px solid #2e2820; border-top-color: #7eb96b;
-      animation: thb-spin 1s linear infinite;
+    #thb-splash .thb-progress {
+      width: 240px; height: 4px; background: #1c1612;
+      border-radius: 2px; overflow: hidden; position: relative;
     }
-    @keyframes thb-spin { to { transform: rotate(360deg); } }
+    #thb-splash .thb-progress-bar {
+      position: absolute; left: 0; top: 0; bottom: 0; width: 0%;
+      background: linear-gradient(90deg, #7eb96b, #b8e088);
+      transition: width 180ms ease-out;
+    }
+    /* Indeterminate state - bar slides while total size unknown. */
+    #thb-splash .thb-progress.indeterminate .thb-progress-bar {
+      width: 35%; animation: thb-slide 1.4s ease-in-out infinite;
+    }
+    @keyframes thb-slide {
+      0%   { transform: translateX(-100%); }
+      100% { transform: translateX(280%); }
+    }
   </style>
 </head>
 
 <body>
   <div id="thb-splash">
-    <div class="thb-spinner" aria-hidden="true"></div>
     <h1>The Human Box</h1>
-    <div class="thb-sub">spinning up the world…</div>
+    <div class="thb-progress indeterminate" aria-hidden="true">
+      <div class="thb-progress-bar" id="thb-progress-bar"></div>
+    </div>
+    <div class="thb-sub" id="thb-progress-text">downloading metadata…</div>
   </div>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>

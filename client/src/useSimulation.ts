@@ -76,6 +76,43 @@ type IncomingWorldFrame =
     sex_words?: WorldState['sex_words']
   }
 
+// Stream the /snapshot response and emit progress events as bytes
+// arrive. Returns the assembled ArrayBuffer, or null on failure.
+// Uses Content-Length to drive a determinate progress bar when the
+// server provides it (it does); otherwise reports loaded-bytes-only.
+async function fetchSnapshotWithProgress(url: string): Promise<ArrayBuffer | null> {
+  let resp: Response
+  try {
+    resp = await fetch(url, { cache: 'no-store' })
+  } catch {
+    return null
+  }
+  if (!resp.ok || !resp.body) return null
+
+  const lenHeader = resp.headers.get('content-length')
+  const total = lenHeader ? parseInt(lenHeader, 10) : null
+  const reader = resp.body.getReader()
+  const chunks: Uint8Array[] = []
+  let loaded = 0
+  const emit = () => window.dispatchEvent(
+    new CustomEvent('thb-snapshot-progress', { detail: { loaded, total } })
+  )
+  emit()
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    if (value) {
+      chunks.push(value)
+      loaded += value.byteLength
+      emit()
+    }
+  }
+  const out = new Uint8Array(loaded)
+  let pos = 0
+  for (const c of chunks) { out.set(c, pos); pos += c.byteLength }
+  return out.buffer
+}
+
 /** Expand a SoA payload into per-organism partial updates. The caller
  *  then merges these into the existing cache (same path the AoS-delta
  *  branch used to follow). Cost: O(N) where N is the number of orgs in
@@ -348,14 +385,7 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
       // skips the dedupe gate for the next applied frame.
       const savedLastFrameId = lastFrameIdRef.current
       lastFrameIdRef.current = 0
-      fetch(SNAPSHOT_URL, { cache: 'no-store' })
-        .then(r => {
-          if (!r.ok) return null
-          // /snapshot serves MessagePack (Content-Type: application/msgpack).
-          // Use arrayBuffer regardless of header so legacy JSON deployments
-          // still parse - parseWorldFrame autodetects from the raw bytes.
-          return r.arrayBuffer()
-        })
+      fetchSnapshotWithProgress(SNAPSHOT_URL)
         .then(buf => {
           if (destroyed) return
           if (buf == null) {
