@@ -305,6 +305,129 @@ function FireGlow({
   )
 }
 
+// Smoke column rising from each campfire / wildfire. A vertical
+// stack of translucent quads that drift upward and fade out. Pure
+// instancing - per-frame matrix updates only. Smoke particles per
+// fire = SMOKE_PER_FIRE; we recycle particles by wrapping the y
+// offset every WRAP_HEIGHT units so the column reads as continuous.
+const SMOKE_GEO = new THREE.PlaneGeometry(1, 1)
+const SMOKE_PER_FIRE = 6
+const SMOKE_WRAP_H = 10
+
+function FireSmoke({
+  positions, maxCount, intensity = 1.0,
+}: { positions: [number, number, number][]; maxCount: number; intensity?: number }) {
+  const meshRef = useRef<THREE.InstancedMesh>(null)
+  const total   = Math.min(positions.length, maxCount) * SMOKE_PER_FIRE
+
+  useFrame(({ clock, camera }) => {
+    const mesh = meshRef.current
+    if (!mesh || total === 0) return
+    const t = clock.getElapsedTime()
+    const fireCount = Math.min(positions.length, maxCount)
+    let inst = 0
+    for (let f = 0; f < fireCount; f++) {
+      const [px, py, pz] = positions[f]
+      for (let p = 0; p < SMOKE_PER_FIRE; p++) {
+        // Each particle has a stable phase offset so they don't all
+        // pop simultaneously. The lifecycle progresses with time
+        // modulo SMOKE_WRAP_H (per particle).
+        const phase = (f * 0.61 + p * 1.37) % 1
+        const lifeRaw = (t * 1.4 + phase * SMOKE_WRAP_H) % SMOKE_WRAP_H
+        const life = lifeRaw / SMOKE_WRAP_H   // 0..1
+        const y = py + 0.8 + life * SMOKE_WRAP_H * 1.2
+        // Drift sideways a little, more as the particle rises.
+        const drift = life * 1.8
+        const x = px + Math.cos(t * 0.4 + phase * 6) * drift
+        const z = pz + Math.sin(t * 0.5 + phase * 4) * drift
+        // Particle grows + fades.
+        const scale = (0.4 + life * 1.6) * intensity
+        // Billboard so the plane always faces the camera.
+        tmp.position.set(x, y, z)
+        tmp.lookAt(camera.position)
+        tmp.scale.set(scale, scale, scale)
+        tmp.updateMatrix()
+        mesh.setMatrixAt(inst++, tmp.matrix)
+      }
+    }
+    mesh.count = inst
+    mesh.instanceMatrix.needsUpdate = true
+  })
+
+  if (total === 0) return null
+  return (
+    <instancedMesh
+      ref={meshRef}
+      args={[SMOKE_GEO, undefined, total]}
+      frustumCulled={false}
+    >
+      <meshBasicMaterial
+        color="#aaaaaa"
+        transparent
+        opacity={0.32}
+        depthWrite={false}
+      />
+    </instancedMesh>
+  )
+}
+
+// Sparks: small orange points that shoot upward from each wildfire,
+// fade out within ~1s. Adds visual energy to fire tiles. Recycled
+// the same way smoke particles are.
+const SPARK_GEO = new THREE.SphereGeometry(0.06, 4, 3)
+const SPARKS_PER_FIRE = 10
+const SPARK_LIFE = 1.2
+
+function FireSparks({
+  positions, maxCount,
+}: { positions: [number, number, number][]; maxCount: number }) {
+  const meshRef = useRef<THREE.InstancedMesh>(null)
+  const fireCount = Math.min(positions.length, maxCount)
+  const total     = fireCount * SPARKS_PER_FIRE
+
+  useFrame(({ clock }) => {
+    const mesh = meshRef.current
+    if (!mesh || total === 0) return
+    const t = clock.getElapsedTime()
+    let inst = 0
+    for (let f = 0; f < fireCount; f++) {
+      const [px, py, pz] = positions[f]
+      for (let p = 0; p < SPARKS_PER_FIRE; p++) {
+        const phase = (f * 0.71 + p * 0.97) % 1
+        const lifeRaw = (t + phase * SPARK_LIFE) % SPARK_LIFE
+        const life = lifeRaw / SPARK_LIFE   // 0..1
+        // Each spark gets a stable random direction per (f, p) pair.
+        const dirSeed = ((f * 7919 + p * 6151) * 1664525) >>> 0
+        const ang = (dirSeed & 0xffff) / 0xffff * Math.PI * 2
+        const speed = 1.0 + ((dirSeed >>> 16) & 0xff) / 255 * 1.8
+        const r = life * speed
+        const x = px + Math.cos(ang) * r
+        const z = pz + Math.sin(ang) * r
+        const y = py + 0.9 + life * 3.0 - life * life * 1.5   // rise then fall slightly
+        const scale = (1 - life) * 1.1
+        tmp.position.set(x, y, z)
+        tmp.rotation.set(0, 0, 0)
+        tmp.scale.set(scale, scale, scale)
+        tmp.updateMatrix()
+        mesh.setMatrixAt(inst++, tmp.matrix)
+      }
+    }
+    mesh.count = inst
+    mesh.instanceMatrix.needsUpdate = true
+  })
+
+  if (total === 0) return null
+  return (
+    <instancedMesh
+      ref={meshRef}
+      args={[SPARK_GEO, undefined, total]}
+      frustumCulled={false}
+    >
+      <meshBasicMaterial color="#ffb050" toneMapped={false} />
+    </instancedMesh>
+  )
+}
+
 function CampfireFlames({
   positions, maxCount,
 }: { positions: [number, number, number][]; maxCount: number }) {
@@ -438,6 +561,7 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height }: Props) 
         randomYaw
       />
       <CampfireFlames positions={features.campfires} maxCount={300} />
+      <FireSmoke positions={features.campfires} maxCount={300} intensity={0.7} />
 
       {/* Wildfires: bright two-layer flame, glowing. Outer translucent
           flame + inner solid orange. Animated flicker via the same
@@ -448,6 +572,8 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height }: Props) 
         maxCount={500} scale={1.4}
       />
       <FireGlow positions={features.fires} maxCount={500} />
+      <FireSmoke positions={features.fires} maxCount={500} intensity={1.4} />
+      <FireSparks positions={features.fires} maxCount={500} />
 
       <InstanceLayer
         positions={features.rocks} yOffset={0.35}

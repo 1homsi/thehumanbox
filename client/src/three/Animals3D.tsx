@@ -6,7 +6,7 @@ import type { AnimalState } from '../types'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
 import { AnimatedFigure } from './AnimatedFigure'
-import { getAnimalXY } from './motion-state'
+import { getAnimalXY, getAnimalHeading } from './motion-state'
 
 interface Props {
   animals:  AnimalState[]
@@ -208,11 +208,19 @@ function ProceduralAnimal({ id, kind, tint, yaw, depthMap, biomes }: {
     const [tx, ty] = getAnimalXY(id)
     const groundY = heightAt(tx, ty, depthMap, biomes)
     ref.current.position.set(tx * TILE_SCALE, groundY, ty * TILE_SCALE)
-    // Face direction of motion.
-    const [lx, lz] = lastPos.current
-    const dx = tx - lx, dz = ty - lz
-    if (dx * dx + dz * dz > 0.0005) {
-      ref.current.rotation.y = Math.atan2(dx, dz)
+    // Prefer the predicted heading from client-side prediction
+    // (smoothed slew toward velocity direction). Falls back to the
+    // raw position-delta heading if the animal isn't moving enough
+    // to trigger the prediction heading update.
+    const predicted = getAnimalHeading(id)
+    if (predicted !== 0 || (tx === lastPos.current[0] && ty === lastPos.current[1])) {
+      ref.current.rotation.y = predicted
+    } else {
+      const [lx, lz] = lastPos.current
+      const dx = tx - lx, dz = ty - lz
+      if (dx * dx + dz * dz > 0.0005) {
+        ref.current.rotation.y = Math.atan2(dx, dz)
+      }
     }
     lastPos.current = [tx, ty]
   })
@@ -252,6 +260,10 @@ export function Animals3D({ animals, depthMap, biomes }: Props) {
                 const [tx, ty] = getAnimalXY(a.id)
                 const groundY = heightAt(tx, ty, depthMap, biomes)
                 return [tx * TILE_SCALE, groundY, ty * TILE_SCALE]
+              }}
+              getHeading={() => {
+                const h = getAnimalHeading(a.id)
+                return h !== 0 ? h : yaw
               }}
               rotationY={yaw}
               scale={0.012}

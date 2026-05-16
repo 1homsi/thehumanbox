@@ -11,6 +11,7 @@ import { Animals3D } from './three/Animals3D'
 import { OrgLabels } from './three/OrgLabels'
 import { TileFeatures } from './three/TileFeatures'
 import { Weather } from './three/Weather'
+import { Birds } from './three/Birds'
 import { MiniMap } from './three/MiniMap'
 import { CameraSync } from './three/CameraSync'
 import { SelectedOrgHighlight } from './three/SelectedOrgHighlight'
@@ -102,6 +103,9 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
   const grid = world?.grid
   const ready = !!(grid?.depth_map && grid?.biomes && grid?.tiles && grid?.width && grid?.height)
   const dayProgress = world?.day_progress ?? 0.3
+  // Match Sun.tsx's altitude formula so Birds know night status.
+  const sunAlt   = Math.sin((dayProgress - 0.25) * 2 * Math.PI)
+  const isNight  = sunAlt < 0
 
   // Feed the motion state map on every WS tick so every 3D component
   // can read interpolated positions per frame for smooth motion.
@@ -183,6 +187,12 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
                 <Weather
                   kind={world.weather?.kind ?? 'clear'}
                   intensity={world.weather?.intensity ?? 0}
+                />
+                <Birds
+                  width={grid.width}
+                  height={grid.height}
+                  isNight={isNight}
+                  weatherKind={world.weather?.kind ?? 'clear'}
                 />
               </>
             )}
