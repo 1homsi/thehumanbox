@@ -854,7 +854,9 @@ body.thb-3d-immersive .panel-toggle-btn,
 body.thb-3d-immersive .thb-3d-minimap,
 body.thb-3d-immersive .thb-3d-hud,
 body.thb-3d-immersive .thb-3d-orgcard,
-body.thb-3d-immersive .thb-3d-vignette {
+body.thb-3d-immersive .thb-3d-vignette,
+body.thb-3d-immersive .thb-3d-helpbtn,
+body.thb-3d-immersive .thb-3d-help {
   display: none !important;
 }
 

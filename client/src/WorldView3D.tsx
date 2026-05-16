@@ -15,6 +15,7 @@ import { Weather } from './three/Weather'
 import { Birds } from './three/Birds'
 import { Clouds3D } from './three/Clouds3D'
 import { Snow } from './three/Snow'
+import { HelpOverlay } from './three/HelpOverlay'
 import { MiniMap } from './three/MiniMap'
 import { CameraSync } from './three/CameraSync'
 import { SelectedOrgHighlight } from './three/SelectedOrgHighlight'
@@ -346,6 +347,8 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
           Pure CSS radial gradient, no GPU cost. Hidden in immersive
           mode for users who want a flat clean view. */}
       <div className="thb-3d-vignette" style={vignetteStyle} />
+
+      <HelpOverlay />
 
       <div style={hudStyle}>
         click to look · WASD move · space/shift up/down · ctrl boost · F follow · J jump · click map to jump · esc release
