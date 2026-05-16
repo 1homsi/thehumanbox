@@ -43,8 +43,8 @@ window.addEventListener('thb-snapshot-progress', (e: Event) => {
     wrap.classList.remove('indeterminate')
     const pct = Math.min(100, Math.round((detail.loaded / detail.total) * 100))
     bar.style.width = pct + '%'
-    text.textContent = `downloading metadata · ${kb(detail.loaded)} / ${kb(detail.total)} kb`
+    text.textContent = `downloading · ${kb(detail.loaded)} / ${kb(detail.total)} kb`
   } else {
-    text.textContent = `downloading metadata · ${kb(detail.loaded)} kb`
+    text.textContent = `downloading · ${kb(detail.loaded)} kb`
   }
 })
