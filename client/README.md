@@ -11,8 +11,8 @@ React/Vite frontend for [The Human Box](https://thehumanbox.com). Connects to th
 ## Running locally
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 Expects the simulation server running at `ws://localhost:8000/ws`. See [thehumanbox](https://github.com/stackxio/thehumanbox) to run it.
@@ -42,7 +42,7 @@ depends on low-jitter delivery, not CDN-style caching.
 ## Building
 
 ```bash
-npm run build   # outputs to dist/
+pnpm run build   # outputs to dist/
 ```
 
 ## What you're looking at

@@ -4,7 +4,7 @@ name: pipeline
 #
 # Stages, in order:
 #   1. test-backend  : cargo build --release && cargo test on the runner.
-#   2. test-frontend : npm run build (also covers tsc -b). Built dist/ is
+#   2. test-frontend : pnpm run build (also covers tsc -b). Built dist/ is
 #                      uploaded as an artifact so the deploy stage can ship
 #                      it directly without rebuilding.
 #   3. bump-version  : ONLY runs if both test jobs are green. Bumps the
@@ -65,23 +65,26 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: client/package-lock.json
-      - name: npm ci
+          cache: pnpm
+          cache-dependency-path: client/pnpm-lock.yaml
+      - name: pnpm install
         working-directory: client
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       # Capture a unix-second build timestamp so the About modal can show
       # exactly when this bundle was built, in any timezone.
       - id: ts
         run: echo "build_ts=$(date -u +%s)" >> "$GITHUB_OUTPUT"
 
-      - name: npm run build
+      - name: pnpm run build
         working-directory: client
-        run: npm run build
+        run: pnpm run build
         env:
           VITE_API_BASE: ${{ secrets.VITE_API_BASE }}
           # Bake identifiers in. The About modal reads import.meta.env.VITE_*
@@ -137,11 +140,11 @@ jobs:
           ' simulation/Cargo.lock > simulation/Cargo.lock.tmp
           mv simulation/Cargo.lock.tmp simulation/Cargo.lock
 
-          # client/package.json + lock: jq does both safely.
+          # client/package.json: jq sets the new version. pnpm-lock.yaml
+          # does not carry the root project version (only dependency
+          # versions live in importers:), so no lockfile edit is needed.
           tmp=$(mktemp)
           jq --arg v "$NEW" '.version = $v' client/package.json > "$tmp" && mv "$tmp" client/package.json
-          tmp=$(mktemp)
-          jq --arg v "$NEW" '.version = $v | .packages."".version = $v' client/package-lock.json > "$tmp" && mv "$tmp" client/package-lock.json
 
       - name: Commit + push as bump bot
         env:
@@ -150,7 +153,7 @@ jobs:
           set -euo pipefail
           git config user.name  "thb-bumpbot"
           git config user.email "bumpbot@thehumanbox.com"
-          git add simulation/Cargo.toml simulation/Cargo.lock client/package.json client/package-lock.json
+          git add simulation/Cargo.toml simulation/Cargo.lock client/package.json
           git commit -m "chore: release $NEW [skip-bump]"
           # If another push raced into main during the test phase, rebase
           # cleanly. The bump only touches manifest files so conflicts
