@@ -500,6 +500,160 @@ impl Organism {
                 set_thought!("marking the homeland");
                 return (25, thought);
             }
+
+            // ── Phase-2 situational triggers (actions 126..=225) ────────
+            // These nudges surface the newer behaviours as visible action
+            // rather than waiting for Q-learning to discover them. Each
+            // gate is narrow (specific traits + context + low prob) so
+            // the existing dynamics aren't overwhelmed.
+
+            // Helper: any nearby kin
+            let kin_nearby_n = organisms.iter().filter(|o|
+                !std::ptr::eq(*o, self) && o.alive
+                && o.lineage_id == self.lineage_id
+                && (o.x - self.x).abs() + (o.y - self.y).abs() <= 6.0
+            ).count();
+
+            let fire_adj = matches!(tile, Tile::Campfire | Tile::Fire)
+                || self.nearest_visible(grid, Tile::Campfire, 2).is_some()
+                || self.nearest_visible(grid, Tile::Fire, 2).is_some();
+
+            // Boil water clean if you have it and a fire, when sick.
+            if self.infection > 0.20 && self.inv_water > 0 && fire_adj
+                && rng.gen::<f32>() < 0.18
+            {
+                set_thought!("boiling water clean");
+                return (141, thought);
+            }
+
+            // Stockpile food when you carry several units and you're home.
+            if self.inv_food >= 2
+                && (self.x - self.home_x).abs() + (self.y - self.home_y).abs() < 8.0
+                && rng.gen::<f32>() < 0.06
+            {
+                set_thought!("caching food");
+                return (146, thought);
+            }
+
+            // Share a meal when surrounded by kin and well fed.
+            if self.inv_food > 0 && kin_nearby_n >= 2 && self.energy > 0.7
+                && rng.gen::<f32>() < 0.08
+            {
+                set_thought!("sharing a meal");
+                return (147, thought);
+            }
+
+            // Brew tea on a slow evening when comfortable and fire-adjacent.
+            if self.inv_water > 0 && fire_adj && self.energy > 0.55
+                && self.boredom > 0.40 && rng.gen::<f32>() < 0.05
+            {
+                set_thought!("brewing tea");
+                return (148, thought);
+            }
+
+            // Sharpen a blade when you have one and you're bored at home.
+            let has_blade = self.discoveries.contains("knife")
+                         || self.discoveries.contains("axe")
+                         || self.discoveries.contains("spear");
+            if has_blade && self.boredom > 0.50 && self.near_shelter(grid)
+                && rng.gen::<f32>() < 0.04
+            {
+                set_thought!("sharpening a blade");
+                return (157, thought);
+            }
+
+            // Dig a deep well as a last-ditch hydration play on sand.
+            if self.hydration < 0.30 && tile == Tile::Sand
+                && rng.gen::<f32>() < 0.10
+            {
+                set_thought!("digging deeper");
+                return (166, thought);
+            }
+
+            // Light a signal fire when kin are afraid and wood is at hand.
+            let kin_afraid = organisms.iter().filter(|o|
+                !std::ptr::eq(*o, self) && o.alive
+                && o.lineage_id == self.lineage_id
+                && o.fear_level > 0.55
+                && (o.x - self.x).abs() + (o.y - self.y).abs() <= 8.0
+            ).count();
+            if kin_afraid >= 1 && self.inv_wood > 0 && rng.gen::<f32>() < 0.10 {
+                set_thought!("lighting a signal fire");
+                return (179, thought);
+            }
+
+            // Build a cairn far from home when carrying stone (way-marker).
+            let far_from_home = (self.x - self.home_x).abs() + (self.y - self.home_y).abs() > 40.0;
+            if far_from_home && self.inv_stone > 0 && rng.gen::<f32>() < 0.05 {
+                set_thought!("stacking a cairn");
+                return (216, thought);
+            }
+
+            // Sit by water when comfortable and water-adjacent.
+            if self.comfort > 0.55
+                && self.nearest_visible(grid, Tile::Water, 2).is_some()
+                && rng.gen::<f32>() < 0.05
+            {
+                set_thought!("sitting by the water");
+                return (225, thought);
+            }
+
+            // Howl at the moon at night when kin are nearby.
+            if night && kin_nearby_n >= 1 && rng.gen::<f32>() < 0.04 {
+                set_thought!("howling at the moon");
+                return (223, thought);
+            }
+
+            // Play with the kids if any are nearby kin.
+            let kid_kin = organisms.iter().any(|o|
+                !std::ptr::eq(o, self) && o.alive && o.age < 500
+                && o.lineage_id == self.lineage_id
+                && (o.x - self.x).abs() + (o.y - self.y).abs() <= 4.0
+            );
+            if kid_kin && self.energy > 0.5 && rng.gen::<f32>() < 0.06 {
+                set_thought!("playing with the kids");
+                return (224, thought);
+            }
+
+            // Recite proverb when content and someone is nearby.
+            if self.is_elder && kin_nearby_n >= 1 && self.comfort > 0.55
+                && rng.gen::<f32>() < 0.06
+            {
+                set_thought!("reciting a proverb");
+                return (135, thought);
+            }
+
+            // Chant at dawn (day_progress 0.22-0.28 = sunrise window).
+            // We don't have day_progress here directly, but "not night"
+            // + low tick_age proxy via tick%24 ≈ dawn-ish is too crude.
+            // Skip - the harvest_festival / vision_quest triggers below
+            // are cleaner.
+
+            // Vision quest: lone, sleepy elder when content. Long rest +
+            // fear-drain + possible discovery.
+            if self.is_elder && kin_nearby_n == 0 && self.sleep_debt > 0.20
+                && self.comfort > 0.40 && rng.gen::<f32>() < 0.05
+            {
+                set_thought!("on a vision quest");
+                return (205, thought);
+            }
+
+            // Bless the field when comfortable on a fertile food tile.
+            if matches!(tile, Tile::Food)
+                && self.comfort > 0.50
+                && rng.gen::<f32>() < 0.04
+            {
+                set_thought!("blessing the field");
+                return (210, thought);
+            }
+
+            // Nap when sleep-debt is critical and you're safe at home.
+            if self.sleep_debt > 0.35 && self.near_shelter(grid)
+                && rng.gen::<f32>() < 0.12
+            {
+                set_thought!("taking a nap");
+                return (221, thought);
+            }
         }
 
         // Q-learning / exploration - varied thoughts so no organism just says "exploring"
