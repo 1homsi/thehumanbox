@@ -7,6 +7,8 @@ import { Terrain } from './three/Terrain'
 import { Water } from './three/Water'
 import { Sun } from './three/Sun'
 import { Organisms } from './three/Organisms'
+import { Humans3D } from './three/Humans3D'
+import { Animals3D } from './three/Animals3D'
 import { TileFeatures } from './three/TileFeatures'
 import { Weather } from './three/Weather'
 import { TILE_SCALE } from './three/constants'
@@ -141,6 +143,16 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
                 />
                 <Organisms
                   organisms={world.viewport_organisms ?? world.organisms ?? []}
+                  depthMap={grid.depth_map!}
+                  biomes={grid.biomes!}
+                />
+                <Humans3D
+                  organisms={world.viewport_organisms ?? world.organisms ?? []}
+                  depthMap={grid.depth_map!}
+                  biomes={grid.biomes!}
+                />
+                <Animals3D
+                  animals={world.viewport_animals ?? world.animals ?? []}
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}
                 />

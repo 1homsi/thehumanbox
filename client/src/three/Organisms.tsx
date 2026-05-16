@@ -7,6 +7,7 @@ import { lineageColor } from '../constants'
 import { useUIStore } from '../store'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
+import { nearAnimatedIds } from './Humans3D'
 
 interface Props {
   organisms: OrganismState[]
@@ -35,7 +36,13 @@ export function Organisms({ organisms, depthMap, biomes }: Props) {
 
   // alive subset is the canonical list - both the instances and the
   // labels read from this so click instanceId stays in sync with org.
-  const alive = useMemo(() => organisms.filter(o => o.alive), [organisms])
+  // Exclude orgs being rendered as full animated robots (LOD near
+  // camera) so we don't double-render the same person.
+  const alive = useMemo(() => {
+    const animated = nearAnimatedIds(organisms, camera.position.x, camera.position.z)
+    return organisms.filter(o => o.alive && !animated.has(o.id))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [organisms, camera.position.x, camera.position.z])
 
   useEffect(() => {
     const mesh = meshRef.current
