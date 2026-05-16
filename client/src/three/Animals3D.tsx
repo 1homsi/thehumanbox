@@ -199,12 +199,16 @@ function ProceduralAnimal({ id, kind, tint, yaw, depthMap, biomes }: {
 }) {
   const ref = useRef<THREE.Group>(null)
   const lastPos = useRef<[number, number]>([0, 0])
+  // Stable per-animal breathing phase offset so neighbouring animals
+  // don't breathe in unison.
+  const breathPhase = useRef(((id * 9301 + 49297) % 1000) / 1000 * Math.PI * 2)
   useEffect(() => {
     if (!ref.current) return
     ref.current.traverse(o => { o.frustumCulled = false })
   })
-  useFrame(() => {
+  useFrame(({ clock }) => {
     if (!ref.current) return
+    const t = clock.getElapsedTime()
     const [tx, ty] = getAnimalXY(id)
     const groundY = heightAt(tx, ty, depthMap, biomes)
     ref.current.position.set(tx * TILE_SCALE, groundY, ty * TILE_SCALE)
@@ -223,6 +227,10 @@ function ProceduralAnimal({ id, kind, tint, yaw, depthMap, biomes }: {
       }
     }
     lastPos.current = [tx, ty]
+    // Idle breathing: subtle Y-axis scale modulation. Tiny amplitude
+    // so it reads as 'alive' not 'inflated'.
+    const breath = 1 + Math.sin(t * 2.4 + breathPhase.current) * 0.035
+    ref.current.scale.set(1, breath, 1)
   })
   let body
   switch (kind) {

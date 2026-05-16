@@ -75,7 +75,8 @@ function pickAnim(o: OrganismState, isMoving: boolean): string {
 
 export function Humans3D({ organisms, depthMap, biomes }: Props) {
   const { camera } = useThree()
-  const selectOrg = useUIStore(s => s.selectOrg)
+  const selectOrg     = useUIStore(s => s.selectOrg)
+  const selectedOrgId = useUIStore(s => s.selectedOrgId)
   const { scene, animations } = useGLTF('/models/robot-expressive.glb')
 
   if (!depthMap || !biomes) return null
@@ -87,10 +88,13 @@ export function Humans3D({ organisms, depthMap, biomes }: Props) {
         const [vx, vy] = getOrgVelocityXY(o.id)
         const moving = Math.hypot(vx, vy) > 0.05
         // Distance gate for the animation mixer. We DON'T gate the
-        // figure itself - rendering happens for every org.
+        // figure itself - rendering happens for every org. Always
+        // animate the currently selected org so following them from
+        // far away still reads as alive instead of frozen.
         const dx = o.x * TILE_SCALE - camera.position.x
         const dz = o.y * TILE_SCALE - camera.position.z
-        const animate = dx * dx + dz * dz <= ANIMATE_RADIUS_SQ
+        const isSelected = o.id === selectedOrgId
+        const animate = isSelected || dx * dx + dz * dz <= ANIMATE_RADIUS_SQ
         return (
           <group
             key={o.id}
