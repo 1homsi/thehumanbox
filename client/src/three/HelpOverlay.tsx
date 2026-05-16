@@ -48,6 +48,7 @@ export function HelpOverlay() {
         <Row k="click org"   v="select an organism" />
         <Row k="F"           v="toggle follow selected" />
         <Row k="J"           v="jump camera to selected" />
+        <Row k="R"           v="random org + follow them" />
         <Row k="click map"   v="teleport camera anywhere" />
         <div style={spacer} />
         <Row k="?"   v="toggle this help" />

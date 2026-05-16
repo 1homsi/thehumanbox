@@ -50,10 +50,37 @@ const FLOOR_CLEARANCE = 0.8     // eye height above terrain/water
 const MIN_SEA_LEVEL   = 0.6     // never drop below water surface
 const MAX_ALTITUDE    = 900     // fly high enough to see the whole map from above
 
+// localStorage key for persisting the user's last camera pose so
+// reloads return them to where they were instead of the default
+// far-above-the-world view.
+const CAM_LS_KEY = 'thb-3d-cam-v1'
+
+function loadSavedCam(): { x: number; y: number; z: number; rx: number; ry: number } | null {
+  try {
+    const raw = localStorage.getItem(CAM_LS_KEY)
+    if (!raw) return null
+    const v = JSON.parse(raw)
+    if (typeof v?.x !== 'number') return null
+    return v
+  } catch { return null }
+}
+
 function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
   const [, get] = useKeyboardControls<MoveKeys>()
   const { camera } = useThree()
   const velocity = useRef(new THREE.Vector3())
+  const saveTimerRef = useRef(0)
+
+  // Apply saved camera pose once, on mount.
+  useEffect(() => {
+    const saved = loadSavedCam()
+    if (saved) {
+      camera.position.set(saved.x, saved.y, saved.z)
+      camera.rotation.x = saved.rx
+      camera.rotation.y = saved.ry
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useFrame((_, delta) => {
     // ── External commands (minimap click teleport) ─────────────────
@@ -126,6 +153,18 @@ function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
       if (camera.position.y < MIN_SEA_LEVEL) camera.position.y = MIN_SEA_LEVEL
     }
     if (camera.position.y > MAX_ALTITUDE) camera.position.y = MAX_ALTITUDE
+
+    // Persist camera pose every ~1s (no need for sub-frame fidelity).
+    saveTimerRef.current += delta
+    if (saveTimerRef.current > 1.0) {
+      saveTimerRef.current = 0
+      try {
+        localStorage.setItem(CAM_LS_KEY, JSON.stringify({
+          x: camera.position.x, y: camera.position.y, z: camera.position.z,
+          rx: camera.rotation.x, ry: camera.rotation.y,
+        }))
+      } catch { /* private mode / quota - ignore */ }
+    }
   })
   return null
 }
@@ -151,6 +190,7 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
   // Keyboard shortcuts:
   //   F        - toggle follow selected org
   //   J        - one-shot jump camera to selected org
+  //   R        - select a random alive org + start following them
   //   ESC      - clear follow (then PointerLock releases mouse on next press)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -167,13 +207,30 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
             }
           }
         }
+      } else if (e.code === 'KeyR' && !e.repeat) {
+        // Random pick from the live snapshot. We use the latest world
+        // captured in the closure - which is fresh per render.
+        const live = (world?.viewport_organisms ?? world?.organisms ?? []).filter(o => o.alive)
+        if (live.length) {
+          const pick = live[Math.floor(Math.random() * live.length)]
+          selectOrg(pick.id)
+          setFollow(true)
+          const [tx, ty] = getOrgXY(pick.id)
+          if (tx !== 0 || ty !== 0) {
+            cameraCommand.teleport = {
+              x: tx * TILE_SCALE,
+              y: 30,
+              z: ty * TILE_SCALE + 25,
+            }
+          }
+        }
       } else if (e.code === 'Escape' && follow) {
         setFollow(false)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [selectedOrgId, follow, selectOrg])
+  }, [selectedOrgId, follow, selectOrg, world])
 
   useEffect(() => {
     cameraCommand.followOrgId = (follow && selectedOrgId) ? selectedOrgId : null
@@ -353,7 +410,7 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
       <HelpOverlay />
 
       <div style={hudStyle}>
-        click to look · WASD move · space/shift up/down · ctrl boost · F follow · J jump · click map to jump · esc release
+        click to look · WASD move · space/shift up/down · ctrl boost · F follow · J jump · R random · click map · esc release
         {follow && selectedOrgId && (
           <span style={{ color: '#ff8a3a', marginLeft: 10 }}>· following</span>
         )}
