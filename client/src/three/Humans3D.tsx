@@ -3,6 +3,7 @@ import { useGLTF } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import type { OrganismState } from '../types'
 import { lineageColor } from '../constants'
+import { useUIStore } from '../store'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
 import { AnimatedFigure } from './AnimatedFigure'
@@ -39,6 +40,7 @@ function pickAnim(o: OrganismState, isMoving: boolean): string {
 
 export function Humans3D({ organisms, depthMap, biomes }: Props) {
   const { camera } = useThree()
+  const selectOrg = useUIStore(s => s.selectOrg)
   const { scene, animations } = useGLTF('/models/robot-expressive.glb')
 
   const near = useMemo(() => {
@@ -66,19 +68,26 @@ export function Humans3D({ organisms, depthMap, biomes }: Props) {
         const [vx, vy] = getOrgVelocityXY(o.id)
         const moving = Math.hypot(vx, vy) > 0.05
         return (
-          <AnimatedFigure
+          <group
             key={o.id}
-            scene={scene}
-            animations={animations}
-            getPosition={() => {
-              const [x, y] = getOrgXY(o.id)
-              const groundY = heightAt(x, y, depthMap, biomes)
-              return [x * TILE_SCALE, groundY, y * TILE_SCALE]
+            onClick={(e) => {
+              e.stopPropagation()
+              selectOrg(o.id)
             }}
-            scale={0.45}
-            animation={pickAnim(o, moving)}
-            color={lineageColor(o.lineage_id)}
-          />
+          >
+            <AnimatedFigure
+              scene={scene}
+              animations={animations}
+              getPosition={() => {
+                const [x, y] = getOrgXY(o.id)
+                const groundY = heightAt(x, y, depthMap, biomes)
+                return [x * TILE_SCALE, groundY, y * TILE_SCALE]
+              }}
+              scale={0.45}
+              animation={pickAnim(o, moving)}
+              color={lineageColor(o.lineage_id)}
+            />
+          </group>
         )
       })}
     </>
