@@ -16,6 +16,7 @@ import { Birds } from './three/Birds'
 import { MiniMap } from './three/MiniMap'
 import { CameraSync } from './three/CameraSync'
 import { SelectedOrgHighlight } from './three/SelectedOrgHighlight'
+import { SelectedOrgCard } from './three/SelectedOrgCard'
 import { TILE_SCALE } from './three/constants'
 import { heightAtWorld, heightAt } from './three/terrain-utils'
 import { updateOrgMotion, updateAnimalMotion, getOrgXY } from './three/motion-state'
@@ -138,17 +139,23 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
     return () => { document.body.style.overflow = prev }
   }, [])
 
+  const selectOrg = useUIStore(s => s.selectOrg)
+
   // F key toggles "follow selected org" mode. Clears automatically
-  // if no org is selected.
+  // if no org is selected. ESC clears the follow state (PointerLock
+  // already consumes ESC to release the mouse, but a brief tap exits
+  // follow first if active).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code === 'KeyF' && !e.repeat) {
         if (selectedOrgId) setFollow(prev => !prev)
+      } else if (e.code === 'Escape' && follow) {
+        setFollow(false)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [selectedOrgId])
+  }, [selectedOrgId, follow, selectOrg])
 
   useEffect(() => {
     cameraCommand.followOrgId = (follow && selectedOrgId) ? selectedOrgId : null
@@ -260,6 +267,12 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
           </Suspense>
         </Canvas>
       </KeyboardControls>
+
+      {ready && grid && (
+        <SelectedOrgCard
+          organisms={world.viewport_organisms ?? world.organisms ?? []}
+        />
+      )}
 
       {ready && grid && (
         <MiniMap
