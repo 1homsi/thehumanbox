@@ -13,6 +13,7 @@ import { OrgLabels } from './three/OrgLabels'
 import { TileFeatures } from './three/TileFeatures'
 import { Weather } from './three/Weather'
 import { Birds } from './three/Birds'
+import { Clouds3D } from './three/Clouds3D'
 import { MiniMap } from './three/MiniMap'
 import { CameraSync } from './three/CameraSync'
 import { SelectedOrgHighlight } from './three/SelectedOrgHighlight'
@@ -278,6 +279,13 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
                   height={grid.height}
                   isNight={isNight}
                   weatherKind={world.weather?.kind ?? 'clear'}
+                />
+                <Clouds3D
+                  width={grid.width}
+                  height={grid.height}
+                  isNight={isNight}
+                  weatherKind={world.weather?.kind ?? 'clear'}
+                  intensity={world.weather?.intensity ?? 0}
                 />
               </>
             )}
