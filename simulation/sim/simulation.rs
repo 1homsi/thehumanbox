@@ -510,7 +510,13 @@ impl Simulation {
             // Step 1: compress dead beyond the recent window
             let dead_count = self.organisms.iter().filter(|o| !o.alive).count();
             const RECENT_DEAD_FULL: usize = 300;
-            const MAX_ARCHIVE: usize       = 10_000;
+            // Dropped from 10_000 -> 3_000 to fit the c7g.medium memory
+            // budget. Each compressed dead org still holds id/name/traits/
+            // generation/age (~200B) - 10k of them was ~2 MB of archive
+            // tail before, plus HashMap overhead. 3k is enough to keep
+            // multi-generation lineage history visible in chronicles
+            // without hauling truly ancient ancestors around forever.
+            const MAX_ARCHIVE: usize       = 3_000;
             if dead_count > RECENT_DEAD_FULL {
                 let to_compress = dead_count - RECENT_DEAD_FULL;
                 let mut compressed = 0usize;

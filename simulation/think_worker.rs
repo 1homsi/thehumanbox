@@ -12,7 +12,7 @@ use std::sync::Arc;
 use rand::SeedableRng;
 use tokio::sync::{Mutex, mpsc};
 
-use crate::llm::{GroqResponse, THINK_LLM_MODEL, THINK_LLM_URL, llm_body, llm_extract, strip_thinking};
+use crate::llm::{GroqResponse, THINK_LLM_MODEL, THINK_LLM_URL, llm_body_with_stop, llm_extract, strip_thinking};
 use crate::llm_stats::SharedLlmStats;
 use crate::sim::local_think;
 use crate::sim::simulation::ThinkTrigger;
@@ -328,9 +328,18 @@ pub async fn think_worker(
         // think-lane p50/p95. After the dual-lane swap this is what
         // we'll watch to confirm local llama is faster than Groq.
         let started = std::time::Instant::now();
+        // Tight token budget + stop sequences for the local-llama lane.
+        // SmolLM2-135M (and even gemma 270m) tend to overgenerate past
+        // 12-word thoughts into full paragraphs - was costing 2-5s per
+        // call on c7g.medium. Cap at 25 tokens and stop on newline /
+        // period so the small model can't wander. Groq honours both
+        // too so we don't need a per-lane variant.
         let response = match client.post(&**THINK_LLM_URL)
             .header("Authorization", format!("Bearer {}", api_key))
-            .json(&llm_body(prompt, 60, &THINK_LLM_MODEL))
+            .json(&llm_body_with_stop(
+                prompt, 25, &THINK_LLM_MODEL,
+                vec!["\n".to_string(), ".".to_string(), "\"".to_string()],
+            ))
             .send().await
         {
             Ok(resp) => {

@@ -88,6 +88,12 @@ pub struct GroqRequest {
     pub messages:    Vec<GroqMessage>,
     pub max_tokens:  u32,
     pub temperature: f32,
+    /// Optional stop sequences. Both Groq and llama.cpp OpenAI-compat
+    /// honour this - the server cuts generation at the first match. Big
+    /// latency win on small models that tend to over-generate ("one
+    /// short thought" → 27-token monologue without a stop).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub stop:        Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -111,6 +117,26 @@ pub fn llm_body(prompt: String, max_tokens: u32, model: &str) -> GroqRequest {
         messages:    vec![GroqMessage { role: "user".to_string(), content: prompt }],
         max_tokens,
         temperature: 0.7,
+        stop:        Vec::new(),
+    }
+}
+
+/// Variant that lets the caller add stop sequences. Useful on small
+/// local models (think lane) which tend to over-generate past a
+/// natural sentence boundary. The default `llm_body()` (no stop)
+/// stays for the narration lane where we want the full paragraph.
+pub fn llm_body_with_stop(
+    prompt: String,
+    max_tokens: u32,
+    model: &str,
+    stop: Vec<String>,
+) -> GroqRequest {
+    GroqRequest {
+        model:       model.to_string(),
+        messages:    vec![GroqMessage { role: "user".to_string(), content: prompt }],
+        max_tokens,
+        temperature: 0.7,
+        stop,
     }
 }
 

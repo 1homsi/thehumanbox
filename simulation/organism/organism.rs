@@ -310,7 +310,12 @@ impl Organism {
 
     pub fn store_conversation(&mut self, entry: ConversationEntry) {
         self.conversations.push_back(entry);
-        if self.conversations.len() > 200 {
+        // 75 caps the per-org conversation log to ~225KB at typical
+        // line counts. Used to be 200 which ate ~600KB per org and
+        // pushed the c7g.medium box into swap once tribes started
+        // gossiping at scale. The conversations modal on the client
+        // only shows the last 25 anyway (to_detail_json take(25)).
+        if self.conversations.len() > 75 {
             self.conversations.pop_front();
         }
     }
@@ -518,9 +523,16 @@ impl Organism {
             v.abs() >= 0.01
         });
 
-        // Cap Q-table: keep the 600 entries with the highest max Q-value
-        const Q_MAX: usize = 800;
-        const Q_TRIM: usize = 600;
+        // Cap Q-table: keep the highest-value entries.
+        // N_ACTIONS jumped from 26 to 126 with the extended-actions
+        // commit, so each row is now ~570 bytes vs ~150 before. With
+        // 300 alive orgs and the old 800/600 caps, the Q-tables alone
+        // ate ~137 MB of resident RAM - enough to push c7g.medium
+        // (2 GB) into swap. Halving the caps recovers ~70 MB and
+        // doesn't hurt agent behaviour: most orgs never visit more
+        // than ~200 unique perception states across their lifetime.
+        const Q_MAX:  usize = 400;
+        const Q_TRIM: usize = 300;
         if self.q_table.len() > Q_MAX {
             let mut entries: Vec<(String, Vec<f32>)> = self.q_table.drain().collect();
             entries.sort_by(|a, b| {
