@@ -30,12 +30,17 @@ export function AnimatedFigure({
   // Deep clone with skeleton/skinnedmesh bindings preserved.
   const clonedScene = useMemo(() => {
     const c = cloneSkeleton(scene)
+    // Disable frustum culling so figures don't pop in/out when their
+    // bounding box center leaves the camera frustum (was causing
+    // visible figures to disappear when the camera turned slightly).
+    c.traverse(o => {
+      o.frustumCulled = false
+    })
     if (color) {
       const col = new THREE.Color(color)
       c.traverse(o => {
         const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined
         if (m && 'color' in m && m.color) {
-          // Clone material so per-instance color doesn't bleed across.
           const cloned = m.clone()
           cloned.color = col
           ;(o as THREE.Mesh).material = cloned

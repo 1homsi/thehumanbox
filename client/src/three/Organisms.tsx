@@ -23,11 +23,11 @@ const tmp         = new THREE.Object3D()
 const tmpColor    = new THREE.Color()
 const MAX_INSTANCES = 1024
 
-// Show name labels only for orgs within this many world units of the
-// camera. ~30 units is a few tiles away - close enough that you
-// actually care who you're looking at, far enough that you don't
-// label-spam the whole scene.
-const LABEL_RADIUS_SQ = 30 * 30
+// Bumped from 30 -> 80. With Text geometry centred on the org's
+// head and frustum culling disabled below, labels stay visible even
+// when the camera turns away briefly. 80 is still bounded so a
+// dense village doesn't dump 200 labels at once.
+const LABEL_RADIUS_SQ = 80 * 80
 
 export function Organisms({ organisms, depthMap, biomes }: Props) {
   const meshRef = useRef<THREE.InstancedMesh>(null)
@@ -116,7 +116,7 @@ export function Organisms({ organisms, depthMap, biomes }: Props) {
         }}
       />
       {nearLabels.map(l => (
-        <Billboard key={l.id} position={l.pos}>
+        <Billboard key={l.id} position={l.pos} frustumCulled={false}>
           <Text
             fontSize={0.55}
             color="#ffffff"
@@ -124,6 +124,8 @@ export function Organisms({ organisms, depthMap, biomes }: Props) {
             outlineColor="#000000"
             anchorX="center"
             anchorY="middle"
+            frustumCulled={false}
+            renderOrder={999}
           >
             {l.name}
           </Text>

@@ -1,4 +1,4 @@
-import { MAX_DEPTH, BIOME_ELEVATION, TILE_SCALE } from './constants'
+import { MAX_DEPTH, BIOME_ELEVATION, BIOME_ROUGHNESS, TILE_SCALE, terrainNoise } from './constants'
 
 // Terrain Y at a tile coordinate. Mirrors the heightfield math in
 // Terrain.tsx so anything that needs to sit on (or stay above) the
@@ -22,7 +22,11 @@ export function heightAt(
   const d = depthMap[iy]?.[ix] ?? 255
   if (d >= 254) {
     const b = biomes[iy]?.[ix] ?? 0
-    return BIOME_ELEVATION[b] ?? 0
+    const base  = BIOME_ELEVATION[b] ?? 0
+    const rough = BIOME_ROUGHNESS[b] ?? 0.5
+    let h = base + terrainNoise(ix, iy) * rough
+    if (b === 5 && h > 6) h += (h - 6) * 1.5
+    return h
   }
   const depthFrac = Math.max(0, Math.min(1, 1 - d / 200))
   return -depthFrac * MAX_DEPTH

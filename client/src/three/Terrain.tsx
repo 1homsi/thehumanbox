@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { TILE_SCALE, MAX_DEPTH, BIOME_COLORS, BIOME_ELEVATION } from './constants'
+import { TILE_SCALE, MAX_DEPTH, BIOME_COLORS, BIOME_ELEVATION, BIOME_ROUGHNESS, terrainNoise } from './constants'
 
 interface Props {
   depthMap: number[][]   // [row][col], 0=deepest water, 255=land
@@ -39,8 +39,15 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
         const b = bRow?.[x] ?? 0
         let elev: number
         if (d >= 254) {
-          // Land - use biome's natural elevation
-          elev = BIOME_ELEVATION[b] ?? 0
+          // Land: base biome elevation + noise variation. Volcanic
+          // gets dramatic peaks (rough=6), grassland gentle rolls
+          // (rough=0.6), wetland nearly flat.
+          const base   = BIOME_ELEVATION[b] ?? 0
+          const rough  = BIOME_ROUGHNESS[b] ?? 0.5
+          elev = base + terrainNoise(x, y) * rough
+          // Volcanic biome: extra spike on noise peaks for sharp
+          // mountains (raise peaks but keep valleys reasonable).
+          if (b === 5 && elev > 6) elev += (elev - 6) * 1.5
         } else {
           // Water - depth_map = (1 - depth) * 200, so depth = 1 - d/200
           const depthFrac = Math.max(0, Math.min(1, 1 - d / 200))
