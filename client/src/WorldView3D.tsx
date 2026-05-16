@@ -8,6 +8,7 @@ import { Water } from './three/Water'
 import { Sun } from './three/Sun'
 import { Organisms } from './three/Organisms'
 import { TileFeatures } from './three/TileFeatures'
+import { Weather } from './three/Weather'
 import { TILE_SCALE } from './three/constants'
 
 type MoveKeys = 'forward' | 'back' | 'left' | 'right' | 'up' | 'down' | 'boost'
@@ -122,6 +123,10 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
                   organisms={world.viewport_organisms ?? world.organisms ?? []}
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}
+                />
+                <Weather
+                  kind={world.weather?.kind ?? 'clear'}
+                  intensity={world.weather?.intensity ?? 0}
                 />
               </>
             )}
