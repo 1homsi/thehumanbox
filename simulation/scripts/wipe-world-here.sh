@@ -14,8 +14,8 @@ UNIT="${UNIT:-thehumanbox.service}"
 SKIP_PROMPT=0
 [[ "${1:-}" == "--yes" ]] && SKIP_PROMPT=1
 
-if ! systemctl list-unit-files --no-pager | grep -q "^$UNIT"; then
-  echo "!! unit $UNIT not found. Set UNIT=<name> or pass --help." >&2
+if ! systemctl cat "$UNIT" >/dev/null 2>&1; then
+  echo "!! unit $UNIT not found. Set UNIT=<name> to override." >&2
   exit 1
 fi
 
