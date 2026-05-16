@@ -16,6 +16,7 @@ import { Birds } from './three/Birds'
 import { Clouds3D } from './three/Clouds3D'
 import { Snow } from './three/Snow'
 import { HelpOverlay } from './three/HelpOverlay'
+import { AmbientMotes } from './three/AmbientMotes'
 import { MiniMap } from './three/MiniMap'
 import { CameraSync } from './three/CameraSync'
 import { SelectedOrgHighlight } from './three/SelectedOrgHighlight'
@@ -360,6 +361,10 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
                 <Snow
                   active={world.season === 'scarcity'}
                   intensity={0.55 + (world.weather?.intensity ?? 0) * 0.4}
+                />
+                <AmbientMotes
+                  isNight={isNight}
+                  weatherKind={world.weather?.kind ?? 'clear'}
                 />
               </>
             )}
