@@ -18,6 +18,7 @@ import { CameraSync } from './three/CameraSync'
 import { SelectedOrgHighlight } from './three/SelectedOrgHighlight'
 import { SelectedOrgCard } from './three/SelectedOrgCard'
 import { WorldHud } from './three/WorldHud'
+import { EventFloaters } from './three/EventFloaters'
 import { TILE_SCALE } from './three/constants'
 import { heightAtWorld, heightAt } from './three/terrain-utils'
 import { updateOrgMotion, updateAnimalMotion, getOrgXY } from './three/motion-state'
@@ -246,6 +247,12 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
                   biomes={grid.biomes!}
                 />
                 <SelectedOrgHighlight
+                  organisms={world.viewport_organisms ?? world.organisms ?? []}
+                  depthMap={grid.depth_map!}
+                  biomes={grid.biomes!}
+                />
+                <EventFloaters
+                  events={world.events ?? []}
                   organisms={world.viewport_organisms ?? world.organisms ?? []}
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}
