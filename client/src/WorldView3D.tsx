@@ -14,6 +14,7 @@ import { TileFeatures } from './three/TileFeatures'
 import { Weather } from './three/Weather'
 import { Birds } from './three/Birds'
 import { Clouds3D } from './three/Clouds3D'
+import { Snow } from './three/Snow'
 import { MiniMap } from './three/MiniMap'
 import { CameraSync } from './three/CameraSync'
 import { SelectedOrgHighlight } from './three/SelectedOrgHighlight'
@@ -297,6 +298,10 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
                   isNight={isNight}
                   weatherKind={world.weather?.kind ?? 'clear'}
                   intensity={world.weather?.intensity ?? 0}
+                />
+                <Snow
+                  active={world.season === 'scarcity'}
+                  intensity={0.55 + (world.weather?.intensity ?? 0) * 0.4}
                 />
               </>
             )}
