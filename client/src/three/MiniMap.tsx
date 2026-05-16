@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { OrganismState, AnimalState } from '../types'
+import { lineageColor } from '../constants'
 import { TILE_SCALE } from './constants'
 import { cameraSnapshot, cameraCommand } from './camera-state'
 import { useUIStore } from '../store'
@@ -157,8 +158,7 @@ export function MiniMap({ organisms, animals, tiles, depthMap, biomes, width, he
         ctx.fill()
       }
 
-      // Org dots
-      ctx.fillStyle = '#ffe680'
+      // Org dots tinted by lineage so you can see tribes spread.
       let selDot: [number, number] | null = null
       for (const o of organisms) {
         if (!o.alive) continue
@@ -166,8 +166,9 @@ export function MiniMap({ organisms, animals, tiles, depthMap, biomes, width, he
         const my = (o.y / height) * MAP_H
         if (o.id === selectedOrgId) {
           selDot = [mx, my]
-          continue   // draw selected last so it lands on top
+          continue
         }
+        ctx.fillStyle = lineageColor(o.lineage_id)
         ctx.fillRect(Math.floor(mx), Math.floor(my), 2, 2)
       }
 
