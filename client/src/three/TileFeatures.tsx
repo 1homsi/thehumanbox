@@ -3,6 +3,17 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
+import { applyWindSway, windUniforms } from './tree-wind'
+
+// Advances the shared wind uniform once per frame. All windy materials
+// (canopies + palm fronds) point at the same uTime so this single bump
+// animates every tree at once - the per-vertex sway happens on the GPU.
+function TreeWindController() {
+  useFrame(({ clock }) => {
+    windUniforms.uTime.value = clock.getElapsedTime()
+  })
+  return null
+}
 
 // Tile enum (from simulation/world/tiles.rs):
 const T_GRASS    = 1
@@ -191,13 +202,24 @@ interface InstanceProps {
   maxCount:  number
   scale?:    number
   randomYaw?: boolean
+  /** Enable per-instance wind sway in the vertex shader. Top of model sways more. */
+  wind?:     { heightRef: number; strength?: number }
 }
 
 function InstanceLayer({
-  positions, yOffset, geometry, color, maxCount, scale = 1, randomYaw = false,
+  positions, yOffset, geometry, color, maxCount, scale = 1, randomYaw = false, wind,
 }: InstanceProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null)
   const count = Math.min(positions.length, maxCount)
+
+  // Build the material once. If wind is on, inject the sway snippet
+  // into the standard material's vertex shader via onBeforeCompile.
+  const material = useMemo(() => {
+    const m = new THREE.MeshStandardMaterial({ color, roughness: 0.85 })
+    if (wind) applyWindSway(m, wind.heightRef, wind.strength ?? 1.0)
+    return m
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [color, wind?.heightRef, wind?.strength, !!wind])
 
   useMemo(() => {
     const mesh = meshRef.current
@@ -223,13 +245,11 @@ function InstanceLayer({
   return (
     <instancedMesh
       ref={meshRef}
-      args={[geometry, undefined, maxCount]}
+      args={[geometry, material, maxCount]}
       castShadow
       receiveShadow
       frustumCulled={false}
-    >
-      <meshStandardMaterial color={color} roughness={0.85} />
-    </instancedMesh>
+    />
   )
 }
 
@@ -347,6 +367,7 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height }: Props) 
 
   return (
     <>
+      <TreeWindController />
       {/* Pines (forest/tundra dominant) */}
       <InstanceLayer
         positions={features.trees[0]} yOffset={treeYAdjust}
@@ -357,6 +378,7 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height }: Props) 
         positions={features.trees[0]} yOffset={treeYAdjust + 2.0}
         geometry={PINE_CANOPY} color="#264f25"
         maxCount={20000} randomYaw
+        wind={{ heightRef: 1.6, strength: 0.9 }}
       />
 
       {/* Oaks (grass/wetland dominant) */}
@@ -369,9 +391,10 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height }: Props) 
         positions={features.trees[1]} yOffset={2.3}
         geometry={OAK_CANOPY} color="#37753c"
         maxCount={15000} randomYaw
+        wind={{ heightRef: 1.3, strength: 1.1 }}
       />
 
-      {/* Palms (desert + grass mix) */}
+      {/* Palms (desert + grass mix) - fronds sway more, trunk rigid. */}
       <InstanceLayer
         positions={features.trees[2]} yOffset={1.3}
         geometry={PALM_TRUNK} color="#7a5a2e"
@@ -381,6 +404,7 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height }: Props) 
         positions={features.trees[2]} yOffset={2.8}
         geometry={PALM_FRONDS} color="#4a8f3a"
         maxCount={4000} randomYaw
+        wind={{ heightRef: 0.3, strength: 1.4 }}
       />
 
       <InstanceLayer
