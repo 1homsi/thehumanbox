@@ -1,7 +1,10 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useMemo } from 'react'
+import { useThree } from '@react-three/fiber'
+import { Billboard, Text } from '@react-three/drei'
 import * as THREE from 'three'
 import type { OrganismState } from '../types'
 import { lineageColor } from '../constants'
+import { useUIStore } from '../store'
 import { TILE_SCALE, MAX_DEPTH, BIOME_ELEVATION } from './constants'
 
 interface Props {
@@ -16,15 +19,14 @@ const SHARED_GEO  = new THREE.CapsuleGeometry(ORG_RADIUS, ORG_HEIGHT - ORG_RADIU
 const SHARED_MAT  = new THREE.MeshStandardMaterial({ roughness: 0.7, metalness: 0.0 })
 const tmp         = new THREE.Object3D()
 const tmpColor    = new THREE.Color()
-
-// Single InstancedMesh draws every alive org in one GPU call. Each
-// instance gets its own matrix (position + scale) and per-instance
-// color (from lineageColor). Capped at 1024 instances - the sim's
-// MAX_POPULATION is 300, so this leaves headroom.
 const MAX_INSTANCES = 1024
 
-// Helper: terrain height at a tile coordinate, mirrors the math in
-// Terrain.tsx so orgs sit ON the surface (not floating, not buried).
+// Show name labels only for orgs within this many world units of the
+// camera. ~30 units is a few tiles away - close enough that you
+// actually care who you're looking at, far enough that you don't
+// label-spam the whole scene.
+const LABEL_RADIUS_SQ = 30 * 30
+
 function heightAt(x: number, y: number, depthMap: number[][], biomes: number[][]): number {
   const ix = Math.max(0, Math.min(depthMap[0]?.length - 1, Math.floor(x)))
   const iy = Math.max(0, Math.min(depthMap.length - 1, Math.floor(y)))
@@ -39,48 +41,98 @@ function heightAt(x: number, y: number, depthMap: number[][], biomes: number[][]
 
 export function Organisms({ organisms, depthMap, biomes }: Props) {
   const meshRef = useRef<THREE.InstancedMesh>(null)
+  const { camera } = useThree()
+  const selectOrg = useUIStore(s => s.selectOrg)
 
-  // Per-frame update of instance transforms + colors. Cheap: O(N) on
-  // an ~300-element array, plus the GPU upload at the end. Rebinds
-  // count so dead orgs don't ghost-render at their last position.
+  // alive subset is the canonical list - both the instances and the
+  // labels read from this so click instanceId stays in sync with org.
+  const alive = useMemo(() => organisms.filter(o => o.alive), [organisms])
+
   useEffect(() => {
     const mesh = meshRef.current
     if (!mesh || !depthMap || !biomes) return
-
-    const alive = organisms.filter(o => o.alive)
     const count = Math.min(alive.length, MAX_INSTANCES)
     mesh.count = count
-
     for (let i = 0; i < count; i++) {
       const o = alive[i]
       const groundY = heightAt(o.x, o.y, depthMap, biomes)
-      tmp.position.set(
-        o.x * TILE_SCALE,
-        groundY + ORG_HEIGHT / 2,
-        o.y * TILE_SCALE,
-      )
+      tmp.position.set(o.x * TILE_SCALE, groundY + ORG_HEIGHT / 2, o.y * TILE_SCALE)
       tmp.rotation.set(0, 0, 0)
       tmp.scale.set(1, 1, 1)
       tmp.updateMatrix()
       mesh.setMatrixAt(i, tmp.matrix)
-
-      // Color from lineage. Three.Color parses hsl() strings directly.
       tmpColor.set(lineageColor(o.lineage_id))
       mesh.setColorAt(i, tmpColor)
     }
     mesh.instanceMatrix.needsUpdate = true
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
-  }, [organisms, depthMap, biomes])
+  }, [alive, depthMap, biomes])
+
+  // Labels for nearby orgs only. Cheap to recompute every render -
+  // it's just a distance check per org, capped at a few visible
+  // labels. Camera position is read from the live three.js camera
+  // (not state) so panning doesn't trigger React re-renders.
+  const nearLabels = useMemo(() => {
+    if (!depthMap || !biomes) return []
+    const out: { id: string; name: string; pos: [number, number, number] }[] = []
+    const cx = camera.position.x
+    const cy = camera.position.y
+    const cz = camera.position.z
+    for (const o of alive) {
+      const px = o.x * TILE_SCALE
+      const pz = o.y * TILE_SCALE
+      const dx = px - cx
+      const dy = (heightAt(o.x, o.y, depthMap, biomes) + ORG_HEIGHT) - cy
+      const dz = pz - cz
+      if (dx * dx + dy * dy + dz * dz <= LABEL_RADIUS_SQ) {
+        out.push({
+          id: o.id,
+          name: o.name,
+          pos: [px, heightAt(o.x, o.y, depthMap, biomes) + ORG_HEIGHT + 0.5, pz],
+        })
+        if (out.length >= 30) break
+      }
+    }
+    return out
+    // camera position isn't a React dep (mutable Vector3), so labels
+    // recompute on each parent render - i.e. each WS tick. That's
+    // ~10 Hz which is fine.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alive, depthMap, biomes, camera.position.x, camera.position.y, camera.position.z])
 
   return (
-    <instancedMesh
-      ref={meshRef}
-      args={[SHARED_GEO, SHARED_MAT, MAX_INSTANCES]}
-      castShadow
-      receiveShadow
-      // Start with count=0 so we don't draw uninitialized instances
-      // on the very first frame before the effect runs.
-      count={0}
-    />
+    <>
+      <instancedMesh
+        ref={meshRef}
+        args={[SHARED_GEO, SHARED_MAT, MAX_INSTANCES]}
+        count={0}
+        castShadow
+        receiveShadow
+        onClick={(e) => {
+          // R3F gives us the instance id; map back to org.id.
+          const idx = e.instanceId
+          if (idx == null) return
+          const o = alive[idx]
+          if (o) {
+            e.stopPropagation()
+            selectOrg(o.id)
+          }
+        }}
+      />
+      {nearLabels.map(l => (
+        <Billboard key={l.id} position={l.pos}>
+          <Text
+            fontSize={0.55}
+            color="#ffffff"
+            outlineWidth={0.04}
+            outlineColor="#000000"
+            anchorX="center"
+            anchorY="middle"
+          >
+            {l.name}
+          </Text>
+        </Billboard>
+      ))}
+    </>
   )
 }
