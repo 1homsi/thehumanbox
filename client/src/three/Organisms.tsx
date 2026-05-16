@@ -5,7 +5,8 @@ import * as THREE from 'three'
 import type { OrganismState } from '../types'
 import { lineageColor } from '../constants'
 import { useUIStore } from '../store'
-import { TILE_SCALE, MAX_DEPTH, BIOME_ELEVATION } from './constants'
+import { TILE_SCALE } from './constants'
+import { heightAt } from './terrain-utils'
 
 interface Props {
   organisms: OrganismState[]
@@ -26,18 +27,6 @@ const MAX_INSTANCES = 1024
 // actually care who you're looking at, far enough that you don't
 // label-spam the whole scene.
 const LABEL_RADIUS_SQ = 30 * 30
-
-function heightAt(x: number, y: number, depthMap: number[][], biomes: number[][]): number {
-  const ix = Math.max(0, Math.min(depthMap[0]?.length - 1, Math.floor(x)))
-  const iy = Math.max(0, Math.min(depthMap.length - 1, Math.floor(y)))
-  const d = depthMap[iy]?.[ix] ?? 255
-  if (d >= 254) {
-    const b = biomes[iy]?.[ix] ?? 0
-    return BIOME_ELEVATION[b] ?? 0
-  }
-  const depthFrac = Math.max(0, Math.min(1, 1 - d / 200))
-  return -depthFrac * MAX_DEPTH
-}
 
 export function Organisms({ organisms, depthMap, biomes }: Props) {
   const meshRef = useRef<THREE.InstancedMesh>(null)

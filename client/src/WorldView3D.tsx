@@ -10,6 +10,7 @@ import { Organisms } from './three/Organisms'
 import { TileFeatures } from './three/TileFeatures'
 import { Weather } from './three/Weather'
 import { TILE_SCALE } from './three/constants'
+import { heightAtWorld } from './three/terrain-utils'
 
 type MoveKeys = 'forward' | 'back' | 'left' | 'right' | 'up' | 'down' | 'boost'
 
@@ -23,7 +24,16 @@ const KEY_MAP = [
   { name: 'boost',   keys: ['ControlLeft', 'ControlRight'] },
 ]
 
-function FlyCamera() {
+interface FlyCameraProps {
+  depthMap?: number[][]
+  biomes?:   number[][]
+}
+
+const FLOOR_CLEARANCE = 0.8     // eye height above terrain/water
+const MIN_SEA_LEVEL   = 0.6     // never drop below water surface
+const MAX_ALTITUDE    = 220     // can't fly above this; world reads as a map up here
+
+function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
   const [, get] = useKeyboardControls<MoveKeys>()
   const { camera } = useThree()
   const velocity = useRef(new THREE.Vector3())
@@ -51,6 +61,16 @@ function FlyCamera() {
       velocity.current.normalize().multiplyScalar(speed * delta)
       camera.position.add(velocity.current)
     }
+
+    // Vertical bounds only - horizontal stays free so the user can
+    // fly off the edge if they want.
+    if (depthMap && biomes) {
+      const groundY = heightAtWorld(camera.position.x, camera.position.z, depthMap, biomes)
+      const minY = Math.max(groundY, 0) + FLOOR_CLEARANCE
+      if (camera.position.y < minY) camera.position.y = minY
+      if (camera.position.y < MIN_SEA_LEVEL) camera.position.y = MIN_SEA_LEVEL
+    }
+    if (camera.position.y > MAX_ALTITUDE) camera.position.y = MAX_ALTITUDE
   })
   return null
 }
@@ -130,7 +150,7 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
                 />
               </>
             )}
-            <FlyCamera />
+            <FlyCamera depthMap={grid?.depth_map} biomes={grid?.biomes} />
             <PointerLockControls />
           </Suspense>
         </Canvas>

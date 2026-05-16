@@ -983,6 +983,69 @@ body {
 .lang-english { color: #999; font-size: 9px; }
 .lang-word    { color: #aaffdd; font-weight: 600; font-family: monospace; }
 .lang-unknown { color: #444; }
+.lang-word-match { background: rgba(255,220,80,0.15); color: #ffe680; }
+
+/* Section header above each concept group's mini-table. */
+.lang-section {
+  margin-bottom: 14px;
+}
+.lang-section-header {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #d49a55;
+  padding: 6px 4px 4px;
+  border-bottom: 1px solid #3b2d22;
+  margin-bottom: 4px;
+}
+
+/* Search bar above the sections. */
+.lang-search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.lang-search {
+  flex: 1;
+  background: #1c1612;
+  border: 1px solid #3b2d22;
+  border-radius: 4px;
+  color: #cad3df;
+  font-family: monospace;
+  font-size: 11px;
+  padding: 6px 10px;
+  outline: none;
+}
+.lang-search:focus { border-color: #d49a55; }
+.lang-search::placeholder { color: #555; }
+.lang-search-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: #888;
+  font-family: monospace;
+  white-space: nowrap;
+}
+.lang-search-clear {
+  background: transparent;
+  border: 1px solid #3b2d22;
+  color: #888;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.lang-search-clear:hover { color: #cad3df; border-color: #d49a55; }
+.lang-empty {
+  text-align: center;
+  color: #555;
+  font-style: italic;
+  font-family: monospace;
+  font-size: 11px;
+  padding: 30px 0;
+}
 
 /* Stories section */
 .lang-stories { display: flex; flex-direction: column; gap: 6px; }

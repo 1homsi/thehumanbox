@@ -275,11 +275,16 @@ function App() {
                     <button className="lang-btn" onClick={() => { openFamilyTree();  useUIStore.setState({ showMore: false }) }}>⬡ tree</button>
                     <button className={clsx('lang-btn', leftOpen && 'active')} onClick={() => { toggleLeft(); useUIStore.setState({ showMore: false }) }}>⊞ world</button>
                     <button className="lang-btn" onClick={() => { openAbout(); useUIStore.setState({ showMore: false }) }} title="Build info, versions, and links">ⓘ about</button>
+                  </div>
+
+                  <div className="more-dropdown-divider" />
+                  <div className="more-dropdown-section">experiments</div>
+                  <div className="more-dropdown-grid">
                     <button
                       className={clsx('lang-btn', viewFlags.threeD && 'active')}
                       onClick={() => setViewFlag('threeD', !viewFlags.threeD)}
                       title="Free-fly 3D world. WASD + mouse. Desktop only.">
-                      ◈ 3d (exp)
+                      ◈ 3d world
                     </button>
                     {viewFlags.threeD && (
                       <button
