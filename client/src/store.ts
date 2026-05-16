@@ -35,6 +35,8 @@ export interface ViewFlags {
   pregnancy:  boolean   // pregnancy marker
   history:    boolean   // per-lineage centroid drift trails (historical geography)
   fps:        boolean   // perf overlay
+  threeD:     boolean   // 3D world (experimental) - free-fly WASD + mouse
+  hideUI:     boolean   // hide sidebars in 3D for immersion
 }
 
 interface UIState {
@@ -122,6 +124,7 @@ export const useUIStore = create<UIState>((set) => ({
     trails: false, structures: false, fertility: false, hazard: false,
     lineageDot: false, health: false, age: false, fear: false,
     partners: false, pregnancy: false, history: false, fps: false,
+    threeD: false, hideUI: false,
   },
 
   isFullscreen: false,

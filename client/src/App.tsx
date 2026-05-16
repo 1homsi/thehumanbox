@@ -19,6 +19,11 @@ const OrgSearchModal     = lazy(() => import('./components/OrgSearchModal').then
 const StatsModal         = lazy(() => import('./components/StatsModal').then(m => ({ default: m.StatsModal })))
 const ConversationsModal = lazy(() => import('./components/ConversationsModal').then(m => ({ default: m.ConversationsModal })))
 const AboutModal         = lazy(() => import('./components/AboutModal').then(m => ({ default: m.AboutModal })))
+
+// 3D world is a separate chunk - 2D-only users never download it.
+// Lazy because @react-three/* + three.js add ~150 KB gzipped that the
+// default 2D path shouldn't pay for.
+const WorldView3D        = lazy(() => import('./WorldView3D'))
 import type { OrganismState } from './types'
 import { lineageColor, lineageWord } from './constants'
 import './App.css'
@@ -270,6 +275,20 @@ function App() {
                     <button className="lang-btn" onClick={() => { openFamilyTree();  useUIStore.setState({ showMore: false }) }}>⬡ tree</button>
                     <button className={clsx('lang-btn', leftOpen && 'active')} onClick={() => { toggleLeft(); useUIStore.setState({ showMore: false }) }}>⊞ world</button>
                     <button className="lang-btn" onClick={() => { openAbout(); useUIStore.setState({ showMore: false }) }} title="Build info, versions, and links">ⓘ about</button>
+                    <button
+                      className={clsx('lang-btn', viewFlags.threeD && 'active')}
+                      onClick={() => setViewFlag('threeD', !viewFlags.threeD)}
+                      title="Free-fly 3D world. WASD + mouse. Desktop only.">
+                      ◈ 3d (exp)
+                    </button>
+                    {viewFlags.threeD && (
+                      <button
+                        className={clsx('lang-btn', viewFlags.hideUI && 'active')}
+                        onClick={() => setViewFlag('hideUI', !viewFlags.hideUI)}
+                        title="Hide sidebars in 3D mode for immersion">
+                        ▤ hide ui
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -296,24 +315,41 @@ function App() {
           <div className="layout">
 
             {/* ── Left panel: world state ──────────────────────────── */}
-            <aside className={clsx('panel', 'panel-left', leftOpen && 'open')}>
-              <HistoryGrid />
-              <LineagesList />
-              <EventLog />
-              <WorldFooter world={world} />
-            </aside>
+            {(!viewFlags.threeD || !viewFlags.hideUI) && (
+              <aside className={clsx('panel', 'panel-left', leftOpen && 'open')}>
+                <HistoryGrid />
+                <LineagesList />
+                <EventLog />
+                <WorldFooter world={world} />
+              </aside>
+            )}
 
-            {/* ── World canvas ─────────────────────────────────────── */}
-            <WorldView
-              world={world}
-              interp={interp}
-            />
+            {/* ── World canvas: 2D (cubeforge) or 3D (r3f, lazy) ───── */}
+            {viewFlags.threeD ? (
+              <Suspense fallback={
+                <div style={{ position: 'fixed', inset: 0, display: 'grid',
+                              placeItems: 'center', color: '#cad3df',
+                              fontFamily: 'monospace', background: '#0c1018' }}>
+                  loading 3D…
+                </div>
+              }>
+                <WorldView3D hideUI={viewFlags.hideUI} />
+              </Suspense>
+            ) : (
+              <WorldView
+                world={world}
+                interp={interp}
+              />
+            )}
 
             {/* ── Right panel: organisms ───────────────────────────── */}
             {panelOpen && (
               <div className="panel-overlay" onClick={togglePanel} />
             )}
-            <aside className={clsx('panel', 'panel-right', panelOpen && 'open')}>
+            <aside className={clsx(
+              'panel', 'panel-right', panelOpen && 'open',
+              viewFlags.threeD && viewFlags.hideUI && 'hidden-by-3d'
+            )}>
               {selectedOrg && (
                 <OrgDetail
                   org={selectedOrg}

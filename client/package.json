@@ -14,6 +14,8 @@
   "dependencies": {
     "@msgpack/msgpack": "^3.1.3",
     "@radix-ui/react-dialog": "^1.1.15",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
     "@tanstack/react-query": "^5.100.9",
     "@types/d3": "^7.4.3",
     "clsx": "^2.1.1",
@@ -22,6 +24,7 @@
     "neverthrow": "^8.2.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "three": "^0.184.0",
     "zod": "^4.4.3",
     "zustand": "^5.0.13"
   },
@@ -30,6 +33,7 @@
     "@types/node": "^24.12.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.184.1",
     "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^10.2.1",
     "eslint-plugin-react-hooks": "^7.1.1",

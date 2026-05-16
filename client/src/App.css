@@ -840,6 +840,11 @@ body {
   margin: 2px 0;
 }
 
+/* In 3D + hide-ui mode the right panel folds out of the way too. */
+.panel.hidden-by-3d {
+  display: none;
+}
+
 /* Vocabulary grid in OrgDetail */
 .vocab-grid {
   display: grid;
