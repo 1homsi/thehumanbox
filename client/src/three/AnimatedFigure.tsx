@@ -11,6 +11,11 @@ interface Props {
   // orgs/animals so they tween instead of teleporting per tick.
   position?:   [number, number, number]
   getPosition?: () => [number, number, number]
+  // Optional predicted heading getter. If provided, overrides the
+  // derived-from-position heading - useful when the caller has a
+  // smoothed prediction model (client-side prediction in
+  // motion-state.ts) that should drive yaw directly.
+  getHeading?: () => number
   rotationY?:  number
   scale?:      number
   animation:   string
@@ -30,8 +35,8 @@ interface Props {
 // per skinned mesh. Caller is expected to cap N (e.g. only the N
 // closest orgs).
 export function AnimatedFigure({
-  scene, animations, position, getPosition, rotationY = 0, scale = 1,
-  animation, fadeMs = 200, color, animate = true,
+  scene, animations, position, getPosition, getHeading,
+  rotationY = 0, scale = 1, animation, fadeMs = 200, color, animate = true,
 }: Props) {
   const ref = useRef<THREE.Group>(null)
 
@@ -73,23 +78,26 @@ export function AnimatedFigure({
     if (getPosition && ref.current) {
       const [x, y, z] = getPosition()
       ref.current.position.set(x, y, z)
-      // Face direction of motion if we can derive it from a moving
-      // group's last position. Captured via the closure inside the
-      // caller's getPosition - we just look at the velocity vector
-      // by comparing successive samples.
-      const lastX = (ref.current as THREE.Group & { _lastX?: number })._lastX
-      const lastZ = (ref.current as THREE.Group & { _lastZ?: number })._lastZ
-      if (lastX != null && lastZ != null) {
-        const dx = x - lastX
-        const dz = z - lastZ
-        if (dx * dx + dz * dz > 0.001) {
-          // Yaw to face motion direction. Atan2 gives the angle to
-          // turn the +Z axis (model's default forward) toward (dx, dz).
-          ref.current.rotation.y = Math.atan2(dx, dz)
+      if (getHeading) {
+        // Caller supplies a smoothed predicted heading (from the
+        // client-side prediction model). Use it directly so the
+        // character starts turning toward its destination before
+        // visible movement.
+        ref.current.rotation.y = getHeading()
+      } else {
+        // Fallback: derive heading from successive position samples.
+        const lastX = (ref.current as THREE.Group & { _lastX?: number })._lastX
+        const lastZ = (ref.current as THREE.Group & { _lastZ?: number })._lastZ
+        if (lastX != null && lastZ != null) {
+          const dx = x - lastX
+          const dz = z - lastZ
+          if (dx * dx + dz * dz > 0.001) {
+            ref.current.rotation.y = Math.atan2(dx, dz)
+          }
         }
+        ;(ref.current as THREE.Group & { _lastX?: number })._lastX = x
+        ;(ref.current as THREE.Group & { _lastZ?: number })._lastZ = z
       }
-      ;(ref.current as THREE.Group & { _lastX?: number })._lastX = x
-      ;(ref.current as THREE.Group & { _lastZ?: number })._lastZ = z
     }
   })
 

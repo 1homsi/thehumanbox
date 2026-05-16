@@ -6,7 +6,7 @@ import { useUIStore } from '../store'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
 import { AnimatedFigure } from './AnimatedFigure'
-import { getOrgXY, getOrgVelocityXY } from './motion-state'
+import { getOrgXY, getOrgVelocityXY, getOrgHeading } from './motion-state'
 
 interface Props {
   organisms: OrganismState[]
@@ -71,6 +71,7 @@ export function Humans3D({ organisms, depthMap, biomes }: Props) {
                 const groundY = heightAt(x, y, depthMap, biomes)
                 return [x * TILE_SCALE, groundY, y * TILE_SCALE]
               }}
+              getHeading={() => getOrgHeading(o.id)}
               scale={0.45}
               animation={pickAnim(o, moving)}
               color={lineageColor(o.lineage_id)}
