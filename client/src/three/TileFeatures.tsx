@@ -162,13 +162,24 @@ const OAK_CANOPY   = new THREE.SphereGeometry(1.3, 6, 5)
 // Palm: thin trunk + low cone "fronds"
 const PALM_TRUNK   = new THREE.CylinderGeometry(0.12, 0.16, 2.6, 5)
 const PALM_FRONDS  = new THREE.ConeGeometry(1.6, 0.6, 6)
-// Buildings + structures
-const HUT_WALLS    = new THREE.BoxGeometry(2.0, 1.6, 2.0)
-const HUT_ROOF     = new THREE.ConeGeometry(1.7, 1.3, 4)
-const CAMP_DISC    = new THREE.CylinderGeometry(0.7, 0.7, 0.1, 8)
-const CAMP_FLAME   = new THREE.ConeGeometry(0.45, 1.0, 6)
-const ROCK_GEO     = new THREE.DodecahedronGeometry(0.65, 0)
-const MINERAL_GEO  = new THREE.OctahedronGeometry(0.55, 0)
+// Buildings + structures.
+// Hut walls = tall slim box (looks like a cabin, not a packing crate).
+// Hut roof rotated 45° so the ridge runs front-to-back (looks like a
+// proper pitched roof on a square hut).
+const HUT_WALLS    = new THREE.BoxGeometry(2.2, 1.8, 2.2)
+const HUT_ROOF     = (() => {
+  const g = new THREE.ConeGeometry(1.85, 1.5, 4)
+  g.rotateY(Math.PI / 4)
+  return g
+})()
+const HUT_DOOR     = new THREE.BoxGeometry(0.45, 0.95, 0.1)
+const CAMP_DISC    = new THREE.CylinderGeometry(0.85, 0.85, 0.12, 10)
+const CAMP_FLAME   = new THREE.ConeGeometry(0.5, 1.2, 6)
+const CAMP_LOG     = new THREE.CylinderGeometry(0.12, 0.12, 1.0, 5)
+const FIRE_INNER   = new THREE.ConeGeometry(0.5, 1.4, 6)
+const FIRE_OUTER   = new THREE.ConeGeometry(0.75, 2.0, 6)
+const ROCK_GEO     = new THREE.DodecahedronGeometry(0.7, 0)
+const MINERAL_GEO  = new THREE.OctahedronGeometry(0.6, 0)
 
 const tmp = new THREE.Object3D()
 
@@ -218,6 +229,58 @@ function InstanceLayer({
       frustumCulled={false}
     >
       <meshStandardMaterial color={color} roughness={0.85} />
+    </instancedMesh>
+  )
+}
+
+// Wildfire glow: bright inner flame + per-instance flicker. Renders
+// after the outer flame so the bright core punches through.
+function FireGlow({
+  positions, maxCount,
+}: { positions: [number, number, number][]; maxCount: number }) {
+  const meshRef = useRef<THREE.InstancedMesh>(null)
+  const count = Math.min(positions.length, maxCount)
+
+  useMemo(() => {
+    const mesh = meshRef.current
+    if (!mesh) return
+    for (let i = 0; i < count; i++) {
+      const [px, py, pz] = positions[i]
+      tmp.position.set(px, py + 0.6, pz)
+      tmp.rotation.set(0, 0, 0)
+      tmp.scale.setScalar(1.2)
+      tmp.updateMatrix()
+      mesh.setMatrixAt(i, tmp.matrix)
+    }
+    mesh.count = count
+    mesh.instanceMatrix.needsUpdate = true
+  }, [positions, count])
+
+  useFrame(({ clock }) => {
+    const mesh = meshRef.current
+    if (!mesh) return
+    const t = clock.getElapsedTime()
+    for (let i = 0; i < count; i++) {
+      const [px, py, pz] = positions[i]
+      const phase = i * 0.37
+      const s = 1.2 + Math.sin(t * 9 + phase) * 0.15 + Math.sin(t * 19 + phase) * 0.07
+      tmp.position.set(px, py + 0.6, pz)
+      tmp.rotation.set(0, 0, 0)
+      tmp.scale.set(s, s + 0.15, s)
+      tmp.updateMatrix()
+      mesh.setMatrixAt(i, tmp.matrix)
+    }
+    mesh.instanceMatrix.needsUpdate = true
+  })
+
+  if (count === 0) return null
+  return (
+    <instancedMesh
+      ref={meshRef}
+      args={[FIRE_INNER, undefined, maxCount]}
+      frustumCulled={false}
+    >
+      <meshBasicMaterial color="#ffd060" toneMapped={false} />
     </instancedMesh>
   )
 }
@@ -321,37 +384,55 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height }: Props) 
       />
 
       <InstanceLayer
-        positions={features.huts} yOffset={0.8}
+        positions={features.huts} yOffset={0.9}
         geometry={HUT_WALLS} color="#8a6a40"
         maxCount={500}
       />
       <InstanceLayer
-        positions={features.huts} yOffset={2.2}
-        geometry={HUT_ROOF} color="#5a3520"
+        positions={features.huts} yOffset={2.55}
+        geometry={HUT_ROOF} color="#4a2a18"
+        maxCount={500}
+      />
+      {/* Doors offset slightly forward so they read as part of the wall. */}
+      <InstanceLayer
+        positions={features.huts.map(p => [p[0], p[1], p[2] + 1.1] as [number, number, number, number?])}
+        yOffset={0.5}
+        geometry={HUT_DOOR} color="#3a1f10"
         maxCount={500}
       />
 
       <InstanceLayer
-        positions={features.campfires} yOffset={0.05}
-        geometry={CAMP_DISC} color="#3a2418"
+        positions={features.campfires} yOffset={0.06}
+        geometry={CAMP_DISC} color="#1a0f06"
         maxCount={300}
+      />
+      {/* Crossed logs on top of each campfire disc. */}
+      <InstanceLayer
+        positions={features.campfires} yOffset={0.18}
+        geometry={CAMP_LOG} color="#4a2e1a"
+        maxCount={300}
+        randomYaw
       />
       <CampfireFlames positions={features.campfires} maxCount={300} />
 
+      {/* Wildfires: bright two-layer flame, glowing. Outer translucent
+          flame + inner solid orange. Animated flicker via the same
+          CampfireFlames component scaled bigger. */}
       <InstanceLayer
-        positions={features.fires} yOffset={0.6}
-        geometry={CAMP_FLAME} color="#ff5028"
-        maxCount={500} scale={1.6}
+        positions={features.fires} yOffset={1.0}
+        geometry={FIRE_OUTER} color="#ff7820"
+        maxCount={500} scale={1.4}
       />
+      <FireGlow positions={features.fires} maxCount={500} />
 
       <InstanceLayer
-        positions={features.rocks} yOffset={0.3}
-        geometry={ROCK_GEO} color="#7a7a7a"
+        positions={features.rocks} yOffset={0.35}
+        geometry={ROCK_GEO} color="#6a6a6e"
         maxCount={4000} randomYaw
       />
 
       <InstanceLayer
-        positions={features.minerals} yOffset={0.3}
+        positions={features.minerals} yOffset={0.35}
         geometry={MINERAL_GEO} color="#a8b8d8"
         maxCount={1000} randomYaw
       />

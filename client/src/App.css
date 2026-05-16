@@ -845,6 +845,15 @@ body {
   display: none;
 }
 
+/* 3D immersive: hide every sidebar / floating panel / overlay so
+   only the canvas + header are visible. Header stays so the user
+   can still toggle 3d / hide-ui off. */
+body.thb-3d-immersive .panel,
+body.thb-3d-immersive .panel-overlay,
+body.thb-3d-immersive .panel-toggle-btn {
+  display: none !important;
+}
+
 /* Vocabulary grid in OrgDetail */
 .vocab-grid {
   display: grid;

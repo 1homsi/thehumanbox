@@ -101,6 +101,19 @@ function App() {
     }
   }, [world])
 
+  // Body class for 3D-immersive mode so CSS can definitively hide
+  // every panel + sidebar regardless of internal state. Cleaner
+  // than per-component conditionals that can be defeated by
+  // stacking context / z-index quirks.
+  useEffect(() => {
+    if (viewFlags.threeD && viewFlags.hideUI) {
+      document.body.classList.add('thb-3d-immersive')
+    } else {
+      document.body.classList.remove('thb-3d-immersive')
+    }
+    return () => { document.body.classList.remove('thb-3d-immersive') }
+  }, [viewFlags.threeD, viewFlags.hideUI])
+
   useEffect(() => {
     if (!showMore) return
     const handler = (e: MouseEvent) => {
