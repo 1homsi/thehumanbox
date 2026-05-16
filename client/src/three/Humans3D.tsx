@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { useGLTF } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import type { OrganismState } from '../types'
@@ -15,16 +14,17 @@ interface Props {
   biomes:    number[][]
 }
 
-// Render more orgs as full animated robots (was 15). 40 is the
-// sweet spot on a mid GPU - draw calls + mixer cost stay under
-// ~5 ms/frame even with dance/walk animation playing.
-const MAX_ANIMATED   = 40
-const NEAR_RADIUS_SQ = 140 * 140
+// Every alive org renders as a full robot. Capsule LOD has been
+// removed - the world reads as "a population of people" instead of
+// "some people and some capsules". To keep the cost down at scale,
+// only orgs within ANIMATE_RADIUS_SQ run their AnimationMixer; the
+// rest render in a static pose (still skinned, still coloured, just
+// not bone-updating each frame).
+const ANIMATE_RADIUS_SQ = 220 * 220
 
-// Map an org's current behaviour state to a robot animation.
-// Robot Expressive clip names:
-//   Idle, Walking, Running, Sitting, Death, Dance, ThumbsUp, Wave,
-//   Yes, No, Punch, Standing, WalkJump.
+// Map an org's current behaviour state to a robot animation. Robot
+// Expressive clip names: Idle, Walking, Running, Sitting, Death,
+// Dance, ThumbsUp, Wave, Yes, No, Punch, Standing, WalkJump.
 function pickAnim(o: OrganismState, isMoving: boolean): string {
   if (!o.alive) return 'Death'
   const t = (o.thought || '').toLowerCase()
@@ -34,7 +34,6 @@ function pickAnim(o: OrganismState, isMoving: boolean): string {
   if (t.includes('greet') || t.includes('wave'))                          return 'Wave'
   if (t.includes('yes')) return 'Yes'
   if (t.includes('no '))  return 'No'
-  // Default: walk if actually moving, otherwise idle.
   return isMoving ? 'Walking' : 'Idle'
 }
 
@@ -43,30 +42,19 @@ export function Humans3D({ organisms, depthMap, biomes }: Props) {
   const selectOrg = useUIStore(s => s.selectOrg)
   const { scene, animations } = useGLTF('/models/robot-expressive.glb')
 
-  const near = useMemo(() => {
-    const cx = camera.position.x
-    const cz = camera.position.z
-    const scored: { org: OrganismState; d: number }[] = []
-    for (const o of organisms) {
-      if (!o.alive) continue
-      const dx = o.x * TILE_SCALE - cx
-      const dz = o.y * TILE_SCALE - cz
-      const d  = dx * dx + dz * dz
-      if (d > NEAR_RADIUS_SQ) continue
-      scored.push({ org: o, d })
-    }
-    scored.sort((a, b) => a.d - b.d)
-    return scored.slice(0, MAX_ANIMATED).map(s => s.org)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [organisms, camera.position.x, camera.position.z])
-
   if (!depthMap || !biomes) return null
 
   return (
     <>
-      {near.map(o => {
+      {organisms.map(o => {
+        if (!o.alive) return null
         const [vx, vy] = getOrgVelocityXY(o.id)
         const moving = Math.hypot(vx, vy) > 0.05
+        // Distance gate for the animation mixer. We DON'T gate the
+        // figure itself - rendering happens for every org.
+        const dx = o.x * TILE_SCALE - camera.position.x
+        const dz = o.y * TILE_SCALE - camera.position.z
+        const animate = dx * dx + dz * dz <= ANIMATE_RADIUS_SQ
         return (
           <group
             key={o.id}
@@ -86,6 +74,7 @@ export function Humans3D({ organisms, depthMap, biomes }: Props) {
               scale={0.45}
               animation={pickAnim(o, moving)}
               color={lineageColor(o.lineage_id)}
+              animate={animate}
             />
           </group>
         )
@@ -95,20 +84,3 @@ export function Humans3D({ organisms, depthMap, biomes }: Props) {
 }
 
 useGLTF.preload('/models/robot-expressive.glb')
-
-export function nearAnimatedIds(
-  organisms: OrganismState[],
-  cameraX: number,
-  cameraZ: number,
-): Set<string> {
-  const scored: { id: string; d: number }[] = []
-  for (const o of organisms) {
-    if (!o.alive) continue
-    const dx = o.x * TILE_SCALE - cameraX
-    const dz = o.y * TILE_SCALE - cameraZ
-    const d  = dx * dx + dz * dz
-    if (d <= NEAR_RADIUS_SQ) scored.push({ id: o.id, d })
-  }
-  scored.sort((a, b) => a.d - b.d)
-  return new Set(scored.slice(0, MAX_ANIMATED).map(s => s.id))
-}

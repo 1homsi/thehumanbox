@@ -16,6 +16,10 @@ interface Props {
   animation:   string
   fadeMs?:     number
   color?:      string
+  // When false, skip the mixer.update call - the figure renders in
+  // its current pose but its limbs stop animating. Lets us put a
+  // robot on every org without running 200 skeletal animations.
+  animate?:    boolean
 }
 
 // One animated instance of a GLTF scene. Each <AnimatedFigure /> gets
@@ -27,7 +31,7 @@ interface Props {
 // closest orgs).
 export function AnimatedFigure({
   scene, animations, position, getPosition, rotationY = 0, scale = 1,
-  animation, fadeMs = 200, color,
+  animation, fadeMs = 200, color, animate = true,
 }: Props) {
   const ref = useRef<THREE.Group>(null)
 
@@ -65,7 +69,7 @@ export function AnimatedFigure({
   }, [mixer, animations, animation, fadeMs])
 
   useFrame((_, dt) => {
-    mixer.update(dt)
+    if (animate) mixer.update(dt)
     if (getPosition && ref.current) {
       const [x, y, z] = getPosition()
       ref.current.position.set(x, y, z)
