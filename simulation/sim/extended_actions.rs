@@ -773,6 +773,14 @@ impl Simulation {
                 } else { th!("remembering the lost"); }
             }
 
+            // Indices 126..=225 live in extended_actions_v2.rs.
+            a if (126..=225).contains(&a) => {
+                reward += self.apply_extended_action_v2(
+                    idx, a, ix, iy, &kin, &near,
+                    rock_near, water_near, fire_near, fidx, tile,
+                );
+            }
+
             _ => {}
         }
 
@@ -781,7 +789,7 @@ impl Simulation {
     }
 
     /// Consume one unit of any carried building material.
-    fn consume_material(&mut self, idx: usize) {
+    pub(crate) fn consume_material(&mut self, idx: usize) {
         let o = &mut self.organisms[idx];
         if o.inv_stone > 0 { o.inv_stone -= 1; }
         else if o.inv_wood > 0 { o.inv_wood -= 1; }
@@ -789,7 +797,7 @@ impl Simulation {
 
     /// Generic craft: unlock a discovery and grant a reward the first
     /// time, a smaller reward on repeats.
-    fn craft(&mut self, idx: usize, what: &str, base: f32, reward: &mut f32) {
+    pub(crate) fn craft(&mut self, idx: usize, what: &str, base: f32, reward: &mut f32) {
         let nm = self.organisms[idx].name.clone();
         if self.organisms[idx].discover(what) {
             *reward += base;

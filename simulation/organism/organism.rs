@@ -5,7 +5,7 @@ use super::traits::Traits;
 use super::vocabulary::Vocabulary;
 use crate::world::{grid::{WorldGrid, TrailKind}, tiles::Tile};
 
-pub const N_ACTIONS: usize = 126; // 0-25 core actions; 26-125 extended action set (see sim/extended_actions.rs)
+pub const N_ACTIONS: usize = 226; // 0-25 core; 26-125 extended_actions; 126-225 extended_actions_v2
 
 pub const DIRECTIONS: [(i32, i32); 8] =
     [(0,-1),(0,1),(-1,0),(1,0),(-1,-1),(1,-1),(-1,1),(1,1)];

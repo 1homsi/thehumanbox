@@ -5,6 +5,7 @@ pub mod growth;
 pub mod courtship;
 pub mod simulation;
 pub mod extended_actions;
+pub mod extended_actions_v2;
 pub mod spawn;
 pub mod wander;
 pub mod serialize;
