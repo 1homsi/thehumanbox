@@ -86,7 +86,8 @@ export function Humans3D({ organisms, depthMap, biomes }: Props) {
       {organisms.map(o => {
         if (!o.alive) return null
         const [vx, vy] = getOrgVelocityXY(o.id)
-        const moving = Math.hypot(vx, vy) > 0.05
+        const speed = Math.hypot(vx, vy)
+        const moving = speed > 0.05
         // Age-based scaling: children are smaller, adults full-size,
         // elders subtly shrunk to read as frail. Keeps lineage tint
         // visually consistent but adds a life-stage cue at a glance.
@@ -94,6 +95,12 @@ export function Humans3D({ organisms, depthMap, biomes }: Props) {
         if      (o.age < 500)        scale = 0.30
         else if (o.age < 900)        scale = 0.36
         else if (o.age > 3000)       scale = 0.42
+        // Pregnancy: a subtle scale bump so the org reads as carrying.
+        if (o.pregnant) scale *= 1.10
+        // Walk-rate scaling: walking speed varies with motion speed
+        // so sprinters cycle their legs faster than strollers. Capped
+        // so a frame-spike doesn't make them blur.
+        const timeScale = Math.max(0.55, Math.min(2.4, 1.0 + speed * 1.4))
         // Distance gate for the animation mixer. We DON'T gate the
         // figure itself - rendering happens for every org. Always
         // animate the currently selected org so following them from
@@ -123,6 +130,7 @@ export function Humans3D({ organisms, depthMap, biomes }: Props) {
               animation={pickAnim(o, moving)}
               color={lineageColor(o.lineage_id)}
               animate={animate}
+              timeScale={timeScale}
             />
           </group>
         )

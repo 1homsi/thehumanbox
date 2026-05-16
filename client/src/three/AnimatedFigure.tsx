@@ -25,6 +25,9 @@ interface Props {
   // its current pose but its limbs stop animating. Lets us put a
   // robot on every org without running 200 skeletal animations.
   animate?:    boolean
+  // Multiplier on the AnimationMixer's clock speed. Pass 1.5 to
+  // play the walk cycle 50% faster (e.g. for sprinting orgs).
+  timeScale?:  number
 }
 
 // One animated instance of a GLTF scene. Each <AnimatedFigure /> gets
@@ -37,6 +40,7 @@ interface Props {
 export function AnimatedFigure({
   scene, animations, position, getPosition, getHeading,
   rotationY = 0, scale = 1, animation, fadeMs = 200, color, animate = true,
+  timeScale = 1,
 }: Props) {
   const ref = useRef<THREE.Group>(null)
 
@@ -74,7 +78,7 @@ export function AnimatedFigure({
   }, [mixer, animations, animation, fadeMs])
 
   useFrame((_, dt) => {
-    if (animate) mixer.update(dt)
+    if (animate) mixer.update(dt * timeScale)
     if (getPosition && ref.current) {
       const [x, y, z] = getPosition()
       ref.current.position.set(x, y, z)
