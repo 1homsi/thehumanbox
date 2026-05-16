@@ -7,11 +7,17 @@ import { useUIStore } from '../store'
 interface Props {
   organisms: OrganismState[]
   animals?:  AnimalState[]
+  tiles?:    number[][]
   depthMap?: number[][]
   biomes?:   number[][]
   width:     number
   height:    number
 }
+
+// Tile enum entries we care about for minimap landmark markers.
+const T_FIRE     = 4
+const T_CAMPFIRE = 7
+const T_HUT      = 8
 
 // Small canvas-based mini-map in the top-right corner. Renders the
 // world as a 2D top-down map with biome colours, water, an org-dot
@@ -30,11 +36,34 @@ const BIOME_HEX: string[] = [
   '#4a3d3d', // 5 Volcanic
 ]
 
-export function MiniMap({ organisms, animals, depthMap, biomes, width, height }: Props) {
-  const canvasRef  = useRef<HTMLCanvasElement>(null)
-  const terrainRef = useRef<HTMLCanvasElement | null>(null)
-  const rafRef     = useRef<number>(0)
+export function MiniMap({ organisms, animals, tiles, depthMap, biomes, width, height }: Props) {
+  const canvasRef     = useRef<HTMLCanvasElement>(null)
+  const terrainRef    = useRef<HTMLCanvasElement | null>(null)
+  const landmarksRef  = useRef<{ huts: [number, number][]; campfires: [number, number][]; fires: [number, number][] }>(
+    { huts: [], campfires: [], fires: [] },
+  )
+  const rafRef        = useRef<number>(0)
   const selectedOrgId = useUIStore(s => s.selectedOrgId)
+
+  // Re-collect landmarks when the tile grid identity changes.
+  useEffect(() => {
+    const huts: [number, number][] = []
+    const campfires: [number, number][] = []
+    const fires: [number, number][] = []
+    if (tiles) {
+      for (let y = 0; y < height; y++) {
+        const row = tiles[y]
+        if (!row) continue
+        for (let x = 0; x < width; x++) {
+          const t = row[x]
+          if      (t === T_HUT)      huts.push([x, y])
+          else if (t === T_CAMPFIRE) campfires.push([x, y])
+          else if (t === T_FIRE)     fires.push([x, y])
+        }
+      }
+    }
+    landmarksRef.current = { huts, campfires, fires }
+  }, [tiles, width, height])
 
   // Bake the terrain background once (changes rarely). Re-bake on
   // depthMap / biomes reference change.
@@ -99,6 +128,33 @@ export function MiniMap({ organisms, animals, depthMap, biomes, width, height }:
           const my = (a.y / height) * MAP_H
           ctx.fillRect(Math.floor(mx), Math.floor(my), 1, 1)
         }
+      }
+
+      // Landmarks: huts (brown squares), campfires (orange dots),
+      // wildfires (bright red, flickering).
+      const lm = landmarksRef.current
+      ctx.fillStyle = '#8a6a40'
+      for (const [hx, hy] of lm.huts) {
+        const mx = (hx / width)  * MAP_W
+        const my = (hy / height) * MAP_H
+        ctx.fillRect(Math.floor(mx) - 1, Math.floor(my) - 1, 3, 3)
+      }
+      const tNow = performance.now() * 0.006
+      const camp = 0.85 + Math.sin(tNow * 4) * 0.15
+      ctx.fillStyle = `rgba(255, 144, 40, ${camp.toFixed(2)})`
+      for (const [cx2, cy2] of lm.campfires) {
+        const mx = (cx2 / width)  * MAP_W
+        const my = (cy2 / height) * MAP_H
+        ctx.fillRect(Math.floor(mx), Math.floor(my), 2, 2)
+      }
+      const fireFlick = 0.7 + Math.sin(tNow * 9) * 0.3
+      ctx.fillStyle = `rgba(255, 90, 20, ${fireFlick.toFixed(2)})`
+      for (const [fx, fy] of lm.fires) {
+        const mx = (fx / width)  * MAP_W
+        const my = (fy / height) * MAP_H
+        ctx.beginPath()
+        ctx.arc(mx, my, 2.4, 0, Math.PI * 2)
+        ctx.fill()
       }
 
       // Org dots

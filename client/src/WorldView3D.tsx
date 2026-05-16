@@ -199,6 +199,7 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
         <MiniMap
           organisms={world.viewport_organisms ?? world.organisms ?? []}
           animals={world.viewport_animals ?? world.animals ?? []}
+          tiles={grid.tiles!}
           depthMap={grid.depth_map!}
           biomes={grid.biomes!}
           width={grid.width}
