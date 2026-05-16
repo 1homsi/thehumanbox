@@ -7,6 +7,7 @@ import { Terrain } from './three/Terrain'
 import { Water } from './three/Water'
 import { Sun } from './three/Sun'
 import { Organisms } from './three/Organisms'
+import { TileFeatures } from './three/TileFeatures'
 import { TILE_SCALE } from './three/constants'
 
 type MoveKeys = 'forward' | 'back' | 'left' | 'right' | 'up' | 'down' | 'boost'
@@ -72,7 +73,7 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
   // the canvas so users see "the world is coming" not "everything is
   // broken".
   const grid = world?.grid
-  const ready = !!(grid?.depth_map && grid?.biomes && grid?.width && grid?.height)
+  const ready = !!(grid?.depth_map && grid?.biomes && grid?.tiles && grid?.width && grid?.height)
   const dayProgress = world?.day_progress ?? 0.3
 
   // Spawn the camera high enough to see the whole world on first load.
@@ -110,6 +111,13 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
                   height={grid.height}
                 />
                 <Water width={grid.width} height={grid.height} />
+                <TileFeatures
+                  tiles={grid.tiles!}
+                  biomes={grid.biomes!}
+                  depthMap={grid.depth_map!}
+                  width={grid.width}
+                  height={grid.height}
+                />
                 <Organisms
                   organisms={world.viewport_organisms ?? world.organisms ?? []}
                   depthMap={grid.depth_map!}
