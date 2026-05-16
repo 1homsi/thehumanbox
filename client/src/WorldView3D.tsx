@@ -6,6 +6,7 @@ import type { WorldState } from './types'
 import { Terrain } from './three/Terrain'
 import { Water } from './three/Water'
 import { Sun } from './three/Sun'
+import { Organisms } from './three/Organisms'
 import { TILE_SCALE } from './three/constants'
 
 type MoveKeys = 'forward' | 'back' | 'left' | 'right' | 'up' | 'down' | 'boost'
@@ -109,6 +110,11 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
                   height={grid.height}
                 />
                 <Water width={grid.width} height={grid.height} />
+                <Organisms
+                  organisms={world.viewport_organisms ?? world.organisms ?? []}
+                  depthMap={grid.depth_map!}
+                  biomes={grid.biomes!}
+                />
               </>
             )}
             <FlyCamera />
