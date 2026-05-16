@@ -324,6 +324,8 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
           dayProgress={dayProgress}
           tickCount={world?.tick}
           weatherKind={world?.weather?.kind ?? 'clear'}
+          season={world?.season}
+          population={(world?.organisms ?? []).filter(o => o.alive).length}
         />
       )}
 
