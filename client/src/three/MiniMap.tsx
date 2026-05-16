@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { OrganismState, AnimalState } from '../types'
 import { TILE_SCALE } from './constants'
-import { cameraSnapshot } from './camera-state'
+import { cameraSnapshot, cameraCommand } from './camera-state'
 import { useUIStore } from '../store'
 
 interface Props {
@@ -210,12 +210,26 @@ export function MiniMap({ organisms, animals, tiles, depthMap, biomes, width, he
     return () => cancelAnimationFrame(rafRef.current)
   }, [organisms, animals, width, height, selectedOrgId])
 
+  const onClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const rect = (e.target as HTMLCanvasElement).getBoundingClientRect()
+    const mx = e.clientX - rect.left
+    const my = e.clientY - rect.top
+    // Map pixel -> world tile -> world coords.
+    const tx = (mx / MAP_W) * width
+    const ty = (my / MAP_H) * height
+    const wx = tx * TILE_SCALE
+    const wz = ty * TILE_SCALE
+    // Preserve current altitude (don't yank the camera vertically).
+    cameraCommand.teleport = { x: wx, y: cameraSnapshot.y, z: wz }
+  }
+
   return (
     <div className="thb-3d-minimap" style={miniMapWrap}>
       <canvas
         ref={canvasRef}
         width={MAP_W}
         height={MAP_H}
+        onClick={onClick}
         style={miniMapCanvas}
       />
     </div>
@@ -232,7 +246,7 @@ const miniMapWrap: React.CSSProperties = {
   background: 'rgba(12, 16, 24, 0.75)',
   border: '1px solid rgba(255,255,255,0.12)',
   borderRadius: 4,
-  pointerEvents: 'none',
+  pointerEvents: 'auto',
   zIndex: 5,
 }
 
@@ -241,4 +255,6 @@ const miniMapCanvas: React.CSSProperties = {
   height: MAP_H,
   imageRendering: 'pixelated',
   display: 'block',
+  cursor: 'crosshair',
+  pointerEvents: 'auto',
 }

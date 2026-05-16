@@ -1,8 +1,9 @@
-import { Suspense, useRef, useEffect } from 'react'
+import { Suspense, useRef, useEffect, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { KeyboardControls, useKeyboardControls, PointerLockControls } from '@react-three/drei'
 import * as THREE from 'three'
 import type { WorldState } from './types'
+import { useUIStore } from './store'
 import { Terrain } from './three/Terrain'
 import { Water } from './three/Water'
 import { Sun } from './three/Sun'
@@ -16,8 +17,9 @@ import { MiniMap } from './three/MiniMap'
 import { CameraSync } from './three/CameraSync'
 import { SelectedOrgHighlight } from './three/SelectedOrgHighlight'
 import { TILE_SCALE } from './three/constants'
-import { heightAtWorld } from './three/terrain-utils'
-import { updateOrgMotion, updateAnimalMotion } from './three/motion-state'
+import { heightAtWorld, heightAt } from './three/terrain-utils'
+import { updateOrgMotion, updateAnimalMotion, getOrgXY } from './three/motion-state'
+import { cameraCommand } from './three/camera-state'
 
 type MoveKeys = 'forward' | 'back' | 'left' | 'right' | 'up' | 'down' | 'boost'
 
@@ -46,7 +48,45 @@ function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
   const velocity = useRef(new THREE.Vector3())
 
   useFrame((_, delta) => {
+    // ── External commands (minimap click teleport) ─────────────────
+    if (cameraCommand.teleport) {
+      const { x, y, z } = cameraCommand.teleport
+      camera.position.set(x, y, z)
+      cameraCommand.teleport = null
+    }
+
+    // ── Follow selected org ────────────────────────────────────────
+    // Soft chase: lerp the camera horizontal position toward the
+    // org's location at a small distance behind, without touching
+    // yaw/pitch (the user still mouselooks). Disabled when the user
+    // is actively driving with WASD so manual flight isn't fought.
     const k = get()
+    const userDriving = k.forward || k.back || k.left || k.right || k.up || k.down
+    if (cameraCommand.followOrgId && !userDriving) {
+      const [tx, ty] = getOrgXY(cameraCommand.followOrgId)
+      if (tx !== 0 || ty !== 0) {
+        const wx = tx * TILE_SCALE
+        const wz = ty * TILE_SCALE
+        // Target: 35 units behind the org along the camera's current
+        // horizontal facing, at ~12 units altitude.
+        const fwd = new THREE.Vector3()
+        camera.getWorldDirection(fwd)
+        fwd.y = 0
+        if (fwd.lengthSq() > 0) fwd.normalize()
+        const targetX = wx - fwd.x * 35
+        const targetZ = wz - fwd.z * 35
+        const groundY = (depthMap && biomes)
+          ? heightAt(tx, ty, depthMap, biomes)
+          : 0
+        const targetY = groundY + 12
+        // Lerp factor scaled by frame time for FPS-independent smoothing.
+        const lerp = 1 - Math.exp(-3.0 * delta)
+        camera.position.x += (targetX - camera.position.x) * lerp
+        camera.position.y += (targetY - camera.position.y) * lerp
+        camera.position.z += (targetZ - camera.position.z) * lerp
+      }
+    }
+
     const speed = 30 * (k.boost ? 4 : 1)
 
     const forward = new THREE.Vector3()
@@ -89,12 +129,30 @@ interface Props {
 
 export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const selectedOrgId = useUIStore(s => s.selectedOrgId)
+  const [follow, setFollow] = useState(false)
 
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = prev }
   }, [])
+
+  // F key toggles "follow selected org" mode. Clears automatically
+  // if no org is selected.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === 'KeyF' && !e.repeat) {
+        if (selectedOrgId) setFollow(prev => !prev)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selectedOrgId])
+
+  useEffect(() => {
+    cameraCommand.followOrgId = (follow && selectedOrgId) ? selectedOrgId : null
+  }, [follow, selectedOrgId])
 
   // Wait for terrain layers (cold metadata from HTTP /snapshot) before
   // building the heightfield. Until then, show a loading state inside
@@ -220,7 +278,10 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
       )}
 
       <div style={hudStyle}>
-        click to look · WASD move · space up · shift down · ctrl boost · esc release
+        click to look · WASD move · space up · shift down · ctrl boost · F follow · click map to jump · esc release
+        {follow && selectedOrgId && (
+          <span style={{ color: '#ff8a3a', marginLeft: 10 }}>· following</span>
+        )}
       </div>
     </div>
   )

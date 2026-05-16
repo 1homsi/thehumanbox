@@ -214,9 +214,16 @@ function InstanceLayer({
 
   // Build the material once. If wind is on, inject the sway snippet
   // into the standard material's vertex shader via onBeforeCompile.
+  // Wind-enabled materials get a tiny emissive at their base colour
+  // so canopies stay visible at night (was looking pitch-black under
+  // moonlight before).
   const material = useMemo(() => {
     const m = new THREE.MeshStandardMaterial({ color, roughness: 0.85 })
-    if (wind) applyWindSway(m, wind.heightRef, wind.strength ?? 1.0)
+    if (wind) {
+      m.emissive = new THREE.Color(color)
+      m.emissiveIntensity = 0.12
+      applyWindSway(m, wind.heightRef, wind.strength ?? 1.0)
+    }
     return m
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [color, wind?.heightRef, wind?.strength, !!wind])
