@@ -146,14 +146,25 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
 
   const selectOrg = useUIStore(s => s.selectOrg)
 
-  // F key toggles "follow selected org" mode. Clears automatically
-  // if no org is selected. ESC clears the follow state (PointerLock
-  // already consumes ESC to release the mouse, but a brief tap exits
-  // follow first if active).
+  // Keyboard shortcuts:
+  //   F        - toggle follow selected org
+  //   J        - one-shot jump camera to selected org
+  //   ESC      - clear follow (then PointerLock releases mouse on next press)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code === 'KeyF' && !e.repeat) {
         if (selectedOrgId) setFollow(prev => !prev)
+      } else if (e.code === 'KeyJ' && !e.repeat) {
+        if (selectedOrgId) {
+          const [tx, ty] = getOrgXY(selectedOrgId)
+          if (tx !== 0 || ty !== 0) {
+            cameraCommand.teleport = {
+              x: tx * TILE_SCALE,
+              y: 30,
+              z: ty * TILE_SCALE + 25,
+            }
+          }
+        }
       } else if (e.code === 'Escape' && follow) {
         setFollow(false)
       }
@@ -327,7 +338,7 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
       )}
 
       <div style={hudStyle}>
-        click to look · WASD move · space up · shift down · ctrl boost · F follow · click map to jump · esc release
+        click to look · WASD move · space/shift up/down · ctrl boost · F follow · J jump · click map to jump · esc release
         {follow && selectedOrgId && (
           <span style={{ color: '#ff8a3a', marginLeft: 10 }}>· following</span>
         )}

@@ -2,6 +2,9 @@ import { useMemo } from 'react'
 import type { OrganismState } from '../types'
 import { lineageColor } from '../constants'
 import { useUIStore } from '../store'
+import { TILE_SCALE } from './constants'
+import { cameraCommand, cameraSnapshot } from './camera-state'
+import { getOrgXY } from './motion-state'
 
 interface Props {
   organisms: OrganismState[]
@@ -27,6 +30,16 @@ export function SelectedOrgCard({ organisms }: Props) {
   )
   if (!org) return null
 
+  const onGo = () => {
+    const [tx, ty] = getOrgXY(org.id)
+    if (tx === 0 && ty === 0) return
+    cameraCommand.teleport = {
+      x: tx * TILE_SCALE,
+      y: cameraSnapshot.y,
+      z: ty * TILE_SCALE + 30,    // sit slightly south of org so they're in view
+    }
+  }
+
   return (
     <div className="thb-3d-orgcard" style={wrap}>
       <div style={header}>
@@ -35,6 +48,7 @@ export function SelectedOrgCard({ organisms }: Props) {
           background: lineageColor(org.lineage_id),
         }} />
         <span style={name}>{org.name}</span>
+        <button style={goBtn} onClick={onGo} title="jump camera here">go</button>
         <button style={dismiss} onClick={() => selectOrg(null)} title="release">×</button>
       </div>
       {org.thought && (
@@ -108,6 +122,19 @@ const name: React.CSSProperties = {
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
+}
+
+const goBtn: React.CSSProperties = {
+  background: 'rgba(255, 138, 58, 0.18)',
+  border: '1px solid rgba(255, 138, 58, 0.40)',
+  color: '#ffcf6a',
+  fontSize: 10,
+  fontFamily: 'monospace',
+  padding: '2px 7px',
+  borderRadius: 3,
+  cursor: 'pointer',
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
 }
 
 const dismiss: React.CSSProperties = {
