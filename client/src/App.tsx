@@ -333,7 +333,7 @@ function App() {
                   loading 3D…
                 </div>
               }>
-                <WorldView3D hideUI={viewFlags.hideUI} />
+                <WorldView3D world={world} hideUI={viewFlags.hideUI} />
               </Suspense>
             ) : (
               <WorldView
