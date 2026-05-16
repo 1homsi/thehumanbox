@@ -45,18 +45,29 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    env:
+      # Skip incremental files - Swatinem cache works better without them
+      # and CI never benefits from incremental anyway (every run is cold
+      # relative to the previous artifact).
+      CARGO_INCREMENTAL: 0
+      CARGO_NET_RETRY: 10
+      RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
     steps:
       - uses: actions/checkout@v4
+      - name: Install mold linker
+        run: sudo apt-get install -y mold
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: simulation -> target
-      - name: cargo build --release --locked
+      # One compile pass: cargo test --release compiles everything in
+      # release mode AND runs the tests. The old workflow did
+      # `cargo build --release` then `cargo test` (debug), which
+      # compiled the entire dep tree twice and was the source of the
+      # ~25-min CI runs.
+      - name: cargo test --release --locked
         working-directory: simulation
-        run: cargo build --release --locked
-      - name: cargo test
-        working-directory: simulation
-        run: cargo test --locked
+        run: cargo test --release --locked
 
   test-frontend:
     name: Test + build frontend
