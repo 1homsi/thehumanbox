@@ -550,6 +550,65 @@ function drawWorldOnCanvas(
     }
   }
 
+  // ── Pass 1.5: Water glints + shoreline foam ───────────────────────
+  // Sparse animated highlights over water tiles so the sea doesn't
+  // read as a flat blue field. Stable per-cell positions (hash-based)
+  // wink on/off via a sin keyed on (cell hash + time), giving the
+  // impression of moving sun-spots on swells without redrawing the
+  // whole base layer.
+  if (!world.is_day || (world.day_progress ?? 0) > 0.05) {
+    const tt = t * 0.001
+    ctx.fillStyle = world.is_day
+      ? 'rgba(255,255,255,0.55)'
+      : 'rgba(180,200,240,0.30)'
+    for (let row = 0; row < height; row += 2) {
+      const drow = world.grid.depth_map?.[row]
+      if (!drow) continue
+      for (let col = 0; col < width; col += 2) {
+        if ((drow[col] ?? 255) >= 254) continue
+        // Stable per-cell hash for phase + brightness gate.
+        let h = (col * 374761393 + row * 668265263) | 0
+        h = ((h ^ (h >>> 13)) * 1274126177) >>> 0
+        const phase = (h & 0xff) / 255 * Math.PI * 2
+        const blink = Math.sin(tt * 1.7 + phase) + Math.sin(tt * 0.9 + phase * 1.3)
+        if (blink < 1.3) continue
+        const px = col * TILE + ((h >>> 8) & 3)
+        const py = row * TILE + ((h >>> 10) & 3)
+        ctx.fillRect(px, py, 2, 1)
+      }
+    }
+  }
+
+  // Shoreline foam: thin white stroke along water-land boundaries
+  // (any water tile that has at least one land neighbour). Lightweight
+  // since coastline tiles are a small fraction of the world.
+  {
+    const dm = world.grid.depth_map
+    if (dm) {
+      ctx.fillStyle = 'rgba(255,255,255,0.42)'
+      for (let row = 1; row < height - 1; row++) {
+        const drow = dm[row]
+        if (!drow) continue
+        for (let col = 1; col < width - 1; col++) {
+          if ((drow[col] ?? 255) >= 254) continue
+          // Water tile - check 4-neighbour land.
+          const n  = dm[row - 1]?.[col]     ?? 255
+          const s  = dm[row + 1]?.[col]     ?? 255
+          const e  = drow[col + 1]          ?? 255
+          const w  = drow[col - 1]          ?? 255
+          if (n < 254 && s < 254 && e < 254 && w < 254) continue   // not coastline
+          const px = col * TILE
+          const py = row * TILE
+          // 1-px white band on the side adjacent to land.
+          if (n >= 254) ctx.fillRect(px, py,           TILE, 1)
+          if (s >= 254) ctx.fillRect(px, py + TILE - 1, TILE, 1)
+          if (e >= 254) ctx.fillRect(px + TILE - 1, py, 1, TILE)
+          if (w >= 254) ctx.fillRect(px, py,           1, TILE)
+        }
+      }
+    }
+  }
+
   // ── Pass 2: Special tile visuals (fire glow, campfires, huts) ───────────────
   // Only iterates tiles that need extra rendering - typically <1% of tiles.
   for (let row = 0; row < height; row++) {
