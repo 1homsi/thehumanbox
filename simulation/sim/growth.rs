@@ -270,19 +270,17 @@ pub fn try_reproduce(
         }
     }
 
-    // Children's homes drift a few tiles each generation. Without this every
-    // descendant inherits the founder's exact tile and the home-pull force
-    // re-collects dispersed orgs into one super-dense cluster after ~10k+
-    // ticks (measured: 51% of population in a single 60x60 cell at 90k ticks).
-    // Gaussian-ish drift via two uniform samples keeps tails small while
-    // letting a tribe slowly migrate across many generations.
+    // Children's homes drift each generation. Without this every
+    // descendant inherits the founder's exact tile and the home-pull
+    // force re-collects dispersed orgs into one super-dense cluster.
+    // Drift widened 40 -> 70 because the world is huge and the
+    // population was visibly consolidating on a single island - each
+    // generation now actually homesteads new ground.
+    // Triangular sum (two uniform samples averaged) keeps most kids
+    // moderately close while a long tail occasionally homesteads far.
     // Reflect at world borders rather than clamp - clamping creates an
-    // absorbing wall that piles density at the edge (measured: 48% of
-    // population at x in [0..59] when clamp was in place).
-    // Wide drift so each generation actually homesteads new ground instead of
-    // packing the founder's pool. Triangular sum keeps most kids close while
-    // a long tail occasionally homesteads far.
-    let drift = 40.0;
+    // absorbing wall that piles density at the edge.
+    let drift = 70.0;
     let dx = rng.gen_range(-drift..=drift) * 0.5 + rng.gen_range(-drift..=drift) * 0.5;
     let dy = rng.gen_range(-drift..=drift) * 0.5 + rng.gen_range(-drift..=drift) * 0.5;
     let reflect = |mut v: f32, max: f32| {

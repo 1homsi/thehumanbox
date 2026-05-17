@@ -3184,6 +3184,36 @@ mod tests {
     }
 
     #[test]
+    fn population_does_not_reconverge_after_many_sim_days() {
+        // Longer horizon check: 60k ticks (~10 sim-days). Previously the
+        // population would reconverge onto a single founder island around
+        // this scale because home-pull + birth-drift-too-tight overwhelmed
+        // the dispersal pressure. We test the strongest single signal of
+        // pathological clustering: at most 40% of the live population in
+        // any single 60x60 cell.
+        let mut sim = Simulation::new(7);
+        for _ in 0..60_000 {
+            sim.tick();
+        }
+        let alive: Vec<_> = sim.organisms.iter().filter(|o| o.alive).collect();
+        assert!(alive.len() >= 60,
+            "population collapsed to {} after 10 sim-days", alive.len());
+
+        // Histogram in 60x60 cells. World is 600x300 so 10x5 = 50 cells.
+        let cw = 60i32; let ch = 60i32;
+        let mut buckets: std::collections::HashMap<(i32, i32), u32> = Default::default();
+        for o in &alive {
+            let cx = (o.x as i32) / cw;
+            let cy = (o.y as i32) / ch;
+            *buckets.entry((cx, cy)).or_insert(0) += 1;
+        }
+        let max_bucket = buckets.values().copied().max().unwrap_or(0) as f32;
+        let frac = max_bucket / alive.len() as f32;
+        assert!(frac <= 0.40,
+            "at 60k ticks {:.0}% of population sits in a single 60x60 cell ({})", frac * 100.0, max_bucket as u32);
+    }
+
+    #[test]
     fn dense_animal_clusters_stop_reproducing() {
         // Carrying capacity check: drop 20 healthy rabbits in a tight cluster
         // and run many ticks. Density factor should suppress reproduction so the

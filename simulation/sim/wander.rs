@@ -30,18 +30,22 @@ impl Simulation {
             let d = (o.x - mx).abs() + (o.y - my).abs();
             if d <= 8.0 { sumx += o.x; sumy += o.y; count += 1; }
         }
-        // Lowered count threshold 4 -> 3: villages start spreading as soon
-        // as a 17x17 patch holds 3 kin, not waiting for a 5th. Combined with
-        // stronger push, the tribe's footprint grows faster than its density.
-        if count >= 3 {
+        // Lowered count threshold 3 -> 2: even pairs disperse rather
+        // than rooting. We measured population reconverging on a tiny
+        // island after ~200k ticks, despite vast empty continents -
+        // making the dispersal pressure trigger sooner is the single
+        // biggest knob.
+        if count >= 2 {
             let curiosity = self.organisms[idx].traits.curiosity;
             let age = self.organisms[idx].age;
-            // Fork thresholds tuned to fight late-game consolidation. Earlier age
-            // gate + higher probability means tribes splinter while the world is
-            // still spreading, before crowding forces re-collection into a
-            // super-cluster.
-            let fork_eligible = age >= 1200 && curiosity >= 0.55 && count >= 5;
-            if fork_eligible && self.rng.gen::<f32>() < 0.15 {
+            // Fork thresholds tuned aggressively to spread the population
+            // across the vast world land. Previous (age 1200, cur 0.55,
+            // count 5, p=0.15) kept everyone consolidated on a single
+            // founder island. Now: lower age, lower curiosity floor,
+            // count 4, p=0.35 - tribes splinter while still young so
+            // each generation can homestead new ground.
+            let fork_eligible = age >= 700 && curiosity >= 0.40 && count >= 4;
+            if fork_eligible && self.rng.gen::<f32>() < 0.35 {
                 if let Some((fx, fy)) = self.find_far_empty_anchor(mx as i32, my as i32) {
                     self.fork_new_tribe(idx, fx, fy);
                     return;
