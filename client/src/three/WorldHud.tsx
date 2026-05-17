@@ -1,23 +1,17 @@
 import { useEffect, useRef } from 'react'
 import { cameraSnapshot } from './camera-state'
 
-interface Props {
-  dayProgress: number   // 0..1
-  tickCount?:  number
-  weatherKind?: string
-  season?:      string
-  population?:  number
-}
+interface Props {}
 
-// Compact HUD strip sitting under the minimap: compass direction,
-// in-world time of day, weather kind, current season, and live
-// population count. Reads camera direction synchronously from the
-// shared snapshot - no React re-renders per frame.
+// Compass-only strip under the minimap. Just the cardinal direction
+// the camera is facing; the other stats live in the stats panel and
+// don't need to be on the HUD all the time. Reads camera direction
+// synchronously from the shared snapshot - no React re-renders.
 const COMPASS_W = 220
-const COMPASS_H = 50
+const COMPASS_H = 22
 const TWO_PI = Math.PI * 2
 
-export function WorldHud({ dayProgress, tickCount, weatherKind = 'clear', season, population }: Props) {
+export function WorldHud({}: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rafRef    = useRef<number>(0)
 
@@ -68,30 +62,11 @@ export function WorldHud({ dayProgress, tickCount, weatherKind = 'clear', season
       ctx.closePath()
       ctx.fill()
 
-      // Day clock / weather line
-      ctx.font = '10px monospace'
-      ctx.textAlign = 'left'
-      ctx.fillStyle = '#9fb6cc'
-      const hh = Math.floor(dayProgress * 24)
-      const mm = Math.floor((dayProgress * 24 - hh) * 60)
-      const time = `${hh.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')}`
-      ctx.fillText(`${time} · ${weatherKind}${season ? ' · ' + season : ''}`, 6, 28)
-
-      // Pop / tick line
-      const tickStr = tickCount != null ? `t${tickCount.toLocaleString()}` : ''
-      const popStr  = population != null ? `pop ${population}` : ''
-      const right   = [popStr, tickStr].filter(Boolean).join(' · ')
-      if (right) {
-        ctx.textAlign = 'left'
-        ctx.fillStyle = '#7f95ad'
-        ctx.fillText(right, 6, 42)
-      }
-
       rafRef.current = requestAnimationFrame(draw)
     }
     rafRef.current = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(rafRef.current)
-  }, [dayProgress, tickCount, weatherKind, season, population])
+  }, [])
 
   return (
     <div className="thb-3d-hud" style={wrap}>

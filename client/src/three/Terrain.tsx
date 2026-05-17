@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { TILE_SCALE, MAX_DEPTH, BIOME_COLORS, BIOME_ELEVATION, BIOME_ROUGHNESS, terrainNoise } from './constants'
+import { getTerrainTextures } from './terrain-textures'
 
 interface Props {
   depthMap: number[][]   // [row][col], 0=deepest water, 255=land
@@ -19,8 +20,18 @@ interface Props {
 // where S = TILE_SCALE and y is:
 //   land:  BIOME_ELEVATION[biome]
 //   water: -(1 - depth/200) * MAX_DEPTH    (depth_map value <255)
+//
+// Texturing: a procedural detail texture (warm tonal patches) is
+// multiplied with the per-vertex biome colour, and a separate
+// procedural bump texture gives microvariation that catches the
+// sunlight. Both are tileable so the world reads as a textured
+// surface from any reasonable camera distance.
+const TEX_TILES_PER_WORLD = 12   // texture repeats this many times per world axis
+
 export function Terrain({ depthMap, biomes, width, height }: Props) {
   const meshRef = useRef<THREE.Mesh>(null)
+
+  const { color: colorTex, bump: bumpTex } = useMemo(() => getTerrainTextures(), [])
 
   const geometry = useMemo(() => {
     if (!depthMap || !biomes) return null
@@ -28,6 +39,7 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
 
     const positions = new Float32Array(width * height * 3)
     const colors    = new Float32Array(width * height * 3)
+    const uvs       = new Float32Array(width * height * 2)
     const indices: number[] = []
 
     for (let y = 0; y < height; y++) {
@@ -57,6 +69,10 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
         positions[i * 3]     = x * TILE_SCALE
         positions[i * 3 + 1] = elev
         positions[i * 3 + 2] = y * TILE_SCALE
+
+        // UVs: tile the texture TEX_TILES_PER_WORLD times across the world.
+        uvs[i * 2]     = (x / width)  * TEX_TILES_PER_WORLD
+        uvs[i * 2 + 1] = (y / height) * TEX_TILES_PER_WORLD
 
         const [r, g, bl] = BIOME_COLORS[b] ?? BIOME_COLORS[0]
         // Darken underwater vertices so submerged biomes read as
@@ -94,6 +110,7 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
 
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
     geo.setAttribute('color',    new THREE.BufferAttribute(colors, 3))
+    geo.setAttribute('uv',       new THREE.BufferAttribute(uvs, 2))
     geo.setIndex(indices)
     geo.computeVertexNormals()
     return geo
@@ -105,7 +122,9 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
     <mesh ref={meshRef} geometry={geometry} receiveShadow castShadow>
       <meshStandardMaterial
         vertexColors
-        flatShading
+        map={colorTex}
+        bumpMap={bumpTex}
+        bumpScale={0.45}
         roughness={0.95}
         metalness={0.0}
       />
