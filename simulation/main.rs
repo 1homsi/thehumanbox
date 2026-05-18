@@ -6,6 +6,7 @@ mod transport;
 mod routes;
 mod llm;
 mod llm_stats;
+mod llm_rate;
 mod narration_worker;
 mod conversation_worker;
 mod think_worker;
@@ -142,12 +143,17 @@ async fn main() {
         Arc::new(Mutex::new(Vec::new()));
     let convo_store: conversation_worker::ConvoStore =
         Arc::new(Mutex::new(std::collections::HashMap::new()));
+    let groq_limit_per_min: usize = std::env::var("GROQ_RPM")
+        .ok().and_then(|s| s.parse().ok()).unwrap_or(28);
+    let groq_limiter = llm_rate::GroqRateLimiter::new(groq_limit_per_min);
+    println!("[groq] rate limit: {}/min", groq_limit_per_min);
 
     {
         let stories_w = stories.clone();
         let key = narration_key.clone();
         let stats = llm_stats.clone();
-        tokio::spawn(narration_worker(narration_rx, stories_w, key, stats));
+        let limiter = groq_limiter.clone();
+        tokio::spawn(narration_worker(narration_rx, stories_w, key, stats, limiter));
     }
     {
         let results_w = think_results.clone();
@@ -159,7 +165,8 @@ async fn main() {
         let store_w = convo_store.clone();
         let key = narration_key.clone();
         let stats = llm_stats.clone();
-        tokio::spawn(conversation_worker::conversation_worker(convo_rx, store_w, key, stats));
+        let limiter = groq_limiter.clone();
+        tokio::spawn(conversation_worker::conversation_worker(convo_rx, store_w, key, stats, limiter));
     }
 
     {

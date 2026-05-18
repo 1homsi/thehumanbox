@@ -4,6 +4,7 @@ use tokio::sync::{Mutex, mpsc};
 
 use crate::llm::{GroqResponse, NARRATION_LLM_MODEL, NARRATION_LLM_URL, llm_body, llm_extract, strip_thinking};
 use crate::llm_stats::SharedLlmStats;
+use crate::llm_rate::SharedGroqLimiter;
 use crate::sim::convo_req::{ConvoSpeaker, ConversationReq};
 
 pub type ConvoLines = Vec<[String; 2]>;
@@ -161,7 +162,9 @@ async fn one_call(
     prompt: String,
     stats: &SharedLlmStats,
     max_tokens: u32,
+    limiter: &SharedGroqLimiter,
 ) -> Result<String, ()> {
+    limiter.acquire().await;
     let started = std::time::Instant::now();
     let resp = client.post(&**NARRATION_LLM_URL)
         .header("Authorization", format!("Bearer {}", api_key))
@@ -184,6 +187,7 @@ pub async fn conversation_worker(
     store: ConvoStore,
     api_key: String,
     stats: SharedLlmStats,
+    limiter: SharedGroqLimiter,
 ) {
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(25))
@@ -192,14 +196,14 @@ pub async fn conversation_worker(
 
     while let Some(req) = rx.recv().await {
         let max_tokens = 32 + (req.n_lines as u32) * 28;
-        let raw = one_call(&client, &api_key, build_prompt(&req), &stats, max_tokens).await;
+        let raw = one_call(&client, &api_key, build_prompt(&req), &stats, max_tokens, &limiter).await;
         let lines = match raw {
             Ok(s) => match parse_and_validate(&s, &req) {
                 Ok(v) => Some(v),
                 Err(why) => {
                     println!("[convo] reject first ({} ↔ {} / {}): {} — raw: {:?}",
                              req.a.name, req.b.name, req.kind, why, s);
-                    let retry = one_call(&client, &api_key, build_retry_prompt(&req), &stats, max_tokens).await;
+                    let retry = one_call(&client, &api_key, build_retry_prompt(&req), &stats, max_tokens, &limiter).await;
                     match retry {
                         Ok(s2) => match parse_and_validate(&s2, &req) {
                             Ok(v) => Some(v),

@@ -4,6 +4,7 @@ use tokio::sync::{Mutex, mpsc};
 
 use crate::llm::{GroqResponse, NARRATION_LLM_MODEL, NARRATION_LLM_URL, llm_body, llm_extract, strip_thinking};
 use crate::llm_stats::SharedLlmStats;
+use crate::llm_rate::SharedGroqLimiter;
 
 pub struct NarrationReq {
     pub org_id:        String,
@@ -188,7 +189,9 @@ async fn one_call(
     api_key: &str,
     prompt: String,
     stats: &SharedLlmStats,
+    limiter: &SharedGroqLimiter,
 ) -> Result<String, ()> {
+    limiter.acquire().await;
     let started = std::time::Instant::now();
     let resp = client.post(&**NARRATION_LLM_URL)
         .header("Authorization", format!("Bearer {}", api_key))
@@ -211,6 +214,7 @@ pub async fn narration_worker(
     stories: Arc<Mutex<std::collections::HashMap<String, String>>>,
     api_key: String,
     stats: SharedLlmStats,
+    limiter: SharedGroqLimiter,
 ) {
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(20))
@@ -220,13 +224,13 @@ pub async fn narration_worker(
     while let Some(req) = rx.recv().await {
         println!("[narrate] queuing story for {} - {} events, mood={}", req.org_name, req.life_log.len(), req.mood);
 
-        let raw = one_call(&client, &api_key, build_prompt(&req), &stats).await;
+        let raw = one_call(&client, &api_key, build_prompt(&req), &stats, &limiter).await;
         let story = match raw {
             Ok(s) => match validate(&s, &req.org_name) {
                 Ok(ok) => Some(ok),
                 Err(why) => {
                     println!("[narrate] rejected first response for {} ({}): {:?}", req.org_name, why, s);
-                    let retry = one_call(&client, &api_key, build_strict_retry_prompt(&req), &stats).await;
+                    let retry = one_call(&client, &api_key, build_strict_retry_prompt(&req), &stats, &limiter).await;
                     match retry {
                         Ok(s2) => match validate(&s2, &req.org_name) {
                             Ok(ok) => Some(ok),
