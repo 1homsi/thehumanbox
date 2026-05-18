@@ -1784,17 +1784,29 @@ body.thb-photo-mode .thb-minimap-2d {
     align-items: center;
   }
 
-  .header h1 { display: none; }
+  .header h1 {
+    font-size: 9px;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
 
   .github-link { display: none; }
-  .tick { display: none; }
+
+  .tick {
+    font-size: 8px;
+    color: #777;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
 
   .header-left { flex-shrink: 0; gap: 4px; min-width: 0; }
   .header-left .status .status-dot { margin-right: 0; }
   .header-left .status {
     font-size: 8px;
-    padding: 2px 5px;
+    padding: 2px 4px;
     letter-spacing: 0.05em;
+    flex-shrink: 0;
   }
 
   .header-badges {
@@ -1818,14 +1830,14 @@ body.thb-photo-mode .thb-minimap-2d {
      keep the icon spans, keep any count. */
   .header-actions .lang-btn,
   .panel-toggle-btn {
-    font-size: 13px;
-    padding: 4px 6px;
-    min-width: 26px;
+    font-size: 12px;
+    padding: 3px 5px;
+    min-width: 22px;
     white-space: nowrap;
   }
   .header-actions .lang-btn .btn-label,
   .panel-toggle-btn .btn-label { display: none; }
-  .header-actions .lang-btn .btn-count { font-size: 9px; margin-left: 2px; }
+  .header-actions .lang-btn .btn-count { font-size: 8px; margin-left: 2px; }
 
   .fullscreen-btn { display: none; }
 
