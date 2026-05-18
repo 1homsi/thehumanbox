@@ -57,10 +57,10 @@ export type IncomingWorldFrame =
     sex_words?: WorldState['sex_words']
   }
 
-export async function fetchSnapshotWithProgress(url: string): Promise<ArrayBuffer | null> {
+export async function fetchSnapshotWithProgress(url: string, signal?: AbortSignal): Promise<ArrayBuffer | null> {
   let resp: Response
   try {
-    resp = await fetch(url, { cache: 'no-store' })
+    resp = await fetch(url, { cache: 'no-store', signal })
   } catch {
     return null
   }
@@ -75,14 +75,18 @@ export async function fetchSnapshotWithProgress(url: string): Promise<ArrayBuffe
     new CustomEvent('thb-snapshot-progress', { detail: { loaded, total } })
   )
   emit()
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    if (value) {
-      chunks.push(value)
-      loaded += value.byteLength
-      emit()
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      if (value) {
+        chunks.push(value)
+        loaded += value.byteLength
+        emit()
+      }
     }
+  } catch {
+    return null
   }
   const out = new Uint8Array(loaded)
   let pos = 0
@@ -137,16 +141,29 @@ export function parseWorldFrame(raw: ArrayBuffer | Uint8Array | string): Result<
   return ok(decoded as IncomingWorldFrame)
 }
 
+function take2D(existing: number[][] | undefined, h: number, w: number, fill: number): number[][] {
+  if (existing && existing.length === h && existing[0]?.length === w) {
+    for (let r = 0; r < h; r++) {
+      const row = existing[r]
+      for (let c = 0; c < w; c++) row[c] = fill
+    }
+    return existing
+  }
+  const out = new Array<number[]>(h)
+  for (let r = 0; r < h; r++) out[r] = new Array(w).fill(fill)
+  return out
+}
+
 export function applyGridWire(wire: GridWire, cache: GridState | null): GridState {
   const w = wire.width
   const h = wire.height
 
-  const fire: number[][] = Array.from({ length: h }, () => new Array(w).fill(0))
+  const fire = take2D(cache?.fire_intensity, h, w, 0)
   for (const [row, col, v] of wire.fire) {
     if (row < h && col < w) fire[row][col] = v / 1000
   }
 
-  const structure: number[][] = Array.from({ length: h }, () => new Array(w).fill(0))
+  const structure = take2D(cache?.structure, h, w, 0)
   for (const [row, col, v] of wire.structure) {
     if (row < h && col < w) structure[row][col] = v / 100
   }
@@ -155,9 +172,9 @@ export function applyGridWire(wire: GridWire, cache: GridState | null): GridStat
   let water_trail = cache?.water_trail
   let path_trail = cache?.path_trail
   if (wire.trails) {
-    food_trail  = Array.from({ length: h }, () => new Array(w).fill(0))
-    water_trail = Array.from({ length: h }, () => new Array(w).fill(0))
-    path_trail  = Array.from({ length: h }, () => new Array(w).fill(0))
+    food_trail  = take2D(food_trail,  h, w, 0)
+    water_trail = take2D(water_trail, h, w, 0)
+    path_trail  = take2D(path_trail,  h, w, 0)
     for (const [row, col, f, wv, p] of wire.trails) {
       if (row < h && col < w) {
         food_trail[row][col]  = f / 100
@@ -169,7 +186,7 @@ export function applyGridWire(wire: GridWire, cache: GridState | null): GridStat
 
   let fertility = cache?.fertility
   if (wire.fertility) {
-    fertility = Array.from({ length: h }, () => new Array(w).fill(0.4))
+    fertility = take2D(fertility, h, w, 0.4)
     for (const [row, col, v] of wire.fertility) {
       if (row < h && col < w) fertility[row][col] = v / 100
     }
@@ -177,7 +194,7 @@ export function applyGridWire(wire: GridWire, cache: GridState | null): GridStat
 
   let hazard = cache?.hazard
   if (wire.hazard) {
-    hazard = Array.from({ length: h }, () => new Array(w).fill(0))
+    hazard = take2D(hazard, h, w, 0)
     for (const [row, col, v] of wire.hazard) {
       if (row < h && col < w) hazard[row][col] = v / 100
     }

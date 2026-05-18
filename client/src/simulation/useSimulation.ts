@@ -80,15 +80,24 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
       }
     }
 
-    function requestSnapshotResync() {
-      if (destroyed || snapshotPendingRef.current) return
+    let snapshotAbort: AbortController | null = null
+
+    function requestSnapshotResync(force = false) {
+      if (destroyed) return
+      if (snapshotPendingRef.current) {
+        if (!force) return
+        if (snapshotAbort) snapshotAbort.abort()
+        snapshotPendingRef.current = false
+      }
       snapshotPendingRef.current = true
       bootstrapPendingRef.current = true
+      const ctl = new AbortController()
+      snapshotAbort = ctl
       const savedLastFrameId = lastFrameIdRef.current
       lastFrameIdRef.current = 0
-      fetchSnapshotWithProgress(SNAPSHOT_URL)
+      fetchSnapshotWithProgress(SNAPSHOT_URL, ctl.signal)
         .then(buf => {
-          if (destroyed) return
+          if (destroyed || ctl.signal.aborted) return
           if (buf == null) {
             lastFrameIdRef.current = savedLastFrameId
             if (bootstrapPendingRef.current) {
@@ -102,6 +111,7 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
           scheduleFlush()
         })
         .catch(() => {
+          if (ctl.signal.aborted) return
           lastFrameIdRef.current = savedLastFrameId
           if (bootstrapPendingRef.current) {
             bootstrapPendingRef.current = false
@@ -109,6 +119,7 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
           }
         })
         .finally(() => {
+          if (snapshotAbort === ctl) snapshotAbort = null
           snapshotPendingRef.current = false
         })
     }
@@ -217,8 +228,23 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
     }
 
     connect()
+
+    function onVisibilityChange() {
+      if (document.visibilityState !== 'visible') return
+      if (rafPending.current !== null) {
+        cancelAnimationFrame(rafPending.current)
+        rafPending.current = null
+      }
+      queuedMsgs.current = []
+      awaitingFullFrameRef.current = true
+      requestSnapshotResync(true)
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+
     return () => {
       destroyed = true
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      if (snapshotAbort) { snapshotAbort.abort(); snapshotAbort = null }
       if (rafPending.current !== null) {
         cancelAnimationFrame(rafPending.current)
         rafPending.current = null

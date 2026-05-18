@@ -420,6 +420,19 @@ function drawClouds(
 
 const fpsSamples: number[] = []
 
+let _scratchA: Float32Array | null = null
+let _scratchB: Float32Array | null = null
+function scratchA(n: number): Float32Array {
+  if (!_scratchA || _scratchA.length < n) _scratchA = new Float32Array(n)
+  else _scratchA.fill(0, 0, n)
+  return _scratchA
+}
+function scratchB(n: number): Float32Array {
+  if (!_scratchB || _scratchB.length < n) _scratchB = new Float32Array(n)
+  else _scratchB.fill(0, 0, n)
+  return _scratchB
+}
+
 function drawWorldOnCanvas(
   ctx: CanvasRenderingContext2D,
   world: WorldState,
@@ -704,8 +717,9 @@ function drawWorldOnCanvas(
   }
 
   if (overlay === 'age') {
-    const sum: number[][] = Array.from({ length: height }, () => new Array(width).fill(0))
-    const cnt: number[][] = Array.from({ length: height }, () => new Array(width).fill(0))
+    const n = height * width
+    const sum = scratchA(n)
+    const cnt = scratchB(n)
     for (const org of organisms) {
       if (!org.alive) continue
       const tx = Math.round(org.x - ox), ty = Math.round(org.y - oy)
@@ -714,17 +728,19 @@ function drawWorldOnCanvas(
         for (let dx = -1; dx <= 1; dx++) {
           const nx = tx + dx, ny = ty + dy
           if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue
-          sum[ny][nx] += org.age
-          cnt[ny][nx] += 1
+          const idx = ny * width + nx
+          sum[idx] += org.age
+          cnt[idx] += 1
         }
       }
     }
     for (let row = 0; row < height; row++) {
+      const rowBase = row * width
       for (let col = 0; col < width; col++) {
-        const c = cnt[row][col]
+        const idx = rowBase + col
+        const c = cnt[idx]
         if (c === 0) continue
-        const mean = sum[row][col] / c
-        const t = Math.min(1, mean / 3000)
+        const t = Math.min(1, (sum[idx] / c) / 3000)
         const r = Math.round(80 + t * 175)
         const g = Math.round(220 - t * 140)
         const b = Math.round(180 - t * 160)
@@ -735,7 +751,8 @@ function drawWorldOnCanvas(
   }
 
   if (overlay === 'threat') {
-    const heat: number[][] = Array.from({ length: height }, () => new Array(width).fill(0))
+    const n = height * width
+    const heat = scratchA(n)
     for (const org of organisms) {
       if (!org.alive || (org.fear_level ?? 0) < 0.30) continue
       const tx = Math.round(org.x - ox), ty = Math.round(org.y - oy)
@@ -747,13 +764,14 @@ function drawWorldOnCanvas(
           if (d > R) continue
           const nx = tx + dx, ny = ty + dy
           if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue
-          heat[ny][nx] += f * (R - d + 1) / (R + 1)
+          heat[ny * width + nx] += f * (R - d + 1) / (R + 1)
         }
       }
     }
     for (let row = 0; row < height; row++) {
+      const rowBase = row * width
       for (let col = 0; col < width; col++) {
-        const v = heat[row][col]
+        const v = heat[rowBase + col]
         if (v < 0.15) continue
         const t = Math.min(1, v / 2)
         ctx.fillStyle = `rgba(255,${Math.round(140 - t * 100)},${Math.round(60 - t * 40)},${(0.30 + t * 0.40).toFixed(2)})`
@@ -763,7 +781,8 @@ function drawWorldOnCanvas(
   }
 
   if (overlay === 'density') {
-    const grid2d: number[][] = Array.from({ length: height }, () => new Array(width).fill(0))
+    const n = height * width
+    const grid2d = scratchA(n)
     for (const org of organisms) {
       if (!org.alive) continue
       const tx2 = Math.round(org.x - ox), ty2 = Math.round(org.y - oy)
@@ -774,15 +793,17 @@ function drawWorldOnCanvas(
           if (d > R) continue
           const nx = tx2 + dx, ny = ty2 + dy
           if (nx >= 0 && ny >= 0 && ny < height && nx < width) {
-            grid2d[ny][nx] += (R - d + 1)
+            grid2d[ny * width + nx] += (R - d + 1)
           }
         }
       }
     }
-    const maxD = grid2d.reduce((m, row) => row.reduce((m2, v) => v > m2 ? v : m2, m), 1)
+    let maxD = 1
+    for (let k = 0; k < n; k++) if (grid2d[k] > maxD) maxD = grid2d[k]
     for (let row = 0; row < height; row++) {
+      const rowBase = row * width
       for (let col = 0; col < width; col++) {
-        const v = grid2d[row][col]
+        const v = grid2d[rowBase + col]
         if (v < 1) continue
         const t2 = Math.min(v / maxD, 1)
         ctx.fillStyle = `rgba(${Math.round(80 + t2 * 175)},${Math.round(200 - t2 * 100)},${Math.round(255 - t2 * 200)},${0.25 + t2 * 0.45})`
