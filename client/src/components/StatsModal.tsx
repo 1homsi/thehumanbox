@@ -1,5 +1,5 @@
 import type { WorldState } from '../types'
-import { useFrozenSnapshot } from '../useFrozenSnapshot'
+import { useFrozenSnapshot } from '../hooks/useFrozenSnapshot'
 import { Modal } from './Modal'
 import { DAY_LENGTH, kindIcon } from './stats/constants'
 import { PopChart } from './stats/PopChart'

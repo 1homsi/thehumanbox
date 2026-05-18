@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { OrganismState } from '../types'
-import { lineageColor } from '../constants'
-import { useFrozenSnapshot } from '../useFrozenSnapshot'
+import { lineageColor } from '../utils/constants'
+import { useFrozenSnapshot } from '../hooks/useFrozenSnapshot'
 import { Modal } from './Modal'
 
 // Mirrors simulation/organism/vocabulary.rs CONCEPTS, grouped by

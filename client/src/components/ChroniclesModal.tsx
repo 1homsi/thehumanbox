@@ -1,5 +1,5 @@
 import type { StoryEntry } from '../types'
-import { lineageColor } from '../constants'
+import { lineageColor } from '../utils/constants'
 import { Modal } from './Modal'
 
 const DAY_LENGTH = 600

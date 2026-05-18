@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import type { OrgDetail } from './types'
-import { API_BASE } from './config'
+import type { OrgDetail } from '../types'
+import { API_BASE } from '../config'
 
 /**
  * Fetches full organism detail (conversations, vocabulary, thought_history,

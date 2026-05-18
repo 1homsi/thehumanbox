@@ -1,8 +1,8 @@
 import clsx from 'clsx'
 import type { OrganismState } from '../types'
-import { lineageColor } from '../constants'
+import { lineageColor } from '../utils/constants'
 import { Tooltip } from './Tooltip'
-import { useOrgDetail } from '../useOrgDetail'
+import { useOrgDetail } from '../hooks/useOrgDetail'
 
 const DAY_LENGTH = 600
 

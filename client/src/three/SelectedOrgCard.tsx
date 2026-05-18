@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import type { OrganismState } from '../types'
-import { lineageColor } from '../constants'
+import { lineageColor } from '../utils/constants'
 import { useUIStore } from '../store'
 import { TILE_SCALE } from './constants'
 import { cameraCommand, cameraSnapshot } from './camera-state'

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { WorldState } from '../types'
-import { lineageColor } from '../constants'
+import { lineageColor } from '../utils/constants'
 import { useUIStore } from '../store'
 
 /**

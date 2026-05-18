@@ -1,7 +1,7 @@
 import { useGLTF } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import type { OrganismState } from '../types'
-import { lineageColor } from '../constants'
+import { lineageColor } from '../utils/constants'
 import { useUIStore } from '../store'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'

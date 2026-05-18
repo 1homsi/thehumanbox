@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react'
 import type { WorldState, OrganismState } from '../types'
 import { useUIStore } from '../store'
 import { Modal } from './Modal'
-import { lineageColor, lineageWord } from '../constants'
+import { lineageColor, lineageWord } from '../utils/constants'
 
 const LanguageModal      = lazy(() => import('./LanguageModal').then(m => ({ default: m.LanguageModal })))
 const ChroniclesModal    = lazy(() => import('./ChroniclesModal').then(m => ({ default: m.ChroniclesModal })))

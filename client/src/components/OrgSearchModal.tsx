@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import clsx from 'clsx'
 import type { OrganismState } from '../types'
-import { lineageColor } from '../constants'
+import { lineageColor } from '../utils/constants'
 import { OrgDetail } from './OrgDetail'
 import { Modal } from './Modal'
 

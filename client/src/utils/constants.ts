@@ -1,4 +1,4 @@
-import type { OrganismState } from './types'
+import type { OrganismState } from '../types'
 
 // ── Visual helpers ────────────────────────────────────────────────────────
 

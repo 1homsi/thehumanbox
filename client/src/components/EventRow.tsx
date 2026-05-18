@@ -1,5 +1,5 @@
 import type { SimEvent } from '../types'
-import { EVENT_ICONS, EVENT_COLORS } from '../constants'
+import { EVENT_ICONS, EVENT_COLORS } from '../utils/constants'
 
 export function EventRow({ event }: { event: SimEvent }) {
   return (

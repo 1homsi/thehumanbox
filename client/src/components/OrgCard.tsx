@@ -1,6 +1,6 @@
 import { memo, useCallback } from 'react'
 import clsx from 'clsx'
-import { lineageColor } from '../constants'
+import { lineageColor } from '../utils/constants'
 import { useUIStore } from '../store'
 import { useOrganism, useWorldStore } from '../worldStore'
 import { Tooltip } from './Tooltip'

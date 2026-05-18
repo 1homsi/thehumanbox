@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, lazy, Suspense } from 'react'
-import { useSimulation } from './useSimulation'
+import { useSimulation } from './simulation/useSimulation'
 import { useUIStore } from './store'
 import { WorldView } from './WorldView'
 import { EventLog } from './components/EventLog'

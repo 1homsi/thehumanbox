@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import type { WorldState, GridState, OrganismState, AnimalState } from './types'
-import { WS_BASE, API_BASE } from './config'
-import { useWorldStore } from './worldStore'
-import { fetchSnapshotWithProgress, parseWorldFrame } from './simulation-wire'
-import { mergeFrame, type MergeCaches } from './simulation-merge'
+import type { WorldState, GridState, OrganismState, AnimalState } from '../types'
+import { WS_BASE, API_BASE } from '../config'
+import { useWorldStore } from '../worldStore'
+import { fetchSnapshotWithProgress, parseWorldFrame } from './wire'
+import { mergeFrame, type MergeCaches } from './merge'
 
 // ── Public hook ──────────────────────────────────────────────────────────
 // useSimulation owns:
@@ -13,9 +13,9 @@ import { mergeFrame, type MergeCaches } from './simulation-merge'
 //   - the message queue + RAF-driven flush loop
 //   - the React-state throttle so the sidebar doesn't reconcile 10×/s
 //
-// Wire-format decoding and frame merging are in sibling modules
-// (simulation-wire.ts, simulation-merge.ts) so they stay independently
-// testable and so this hook can focus on orchestration.
+// Wire-format decoding and frame merging live in sibling modules
+// (./wire and ./merge) so they stay independently testable and the
+// hook can focus on orchestration.
 
 const WS_URL       = `${WS_BASE}/ws`
 const SNAPSHOT_URL = `${API_BASE}/snapshot`

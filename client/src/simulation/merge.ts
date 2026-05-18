@@ -1,5 +1,5 @@
-import type { WorldState, GridState, OrganismState, AnimalState } from './types'
-import { type IncomingWorldFrame, applyGridWire, expandOrgsSoa, EMPTY_HISTORY } from './simulation-wire'
+import type { WorldState, GridState, OrganismState, AnimalState } from '../types'
+import { type IncomingWorldFrame, applyGridWire, expandOrgsSoa, EMPTY_HISTORY } from './wire'
 
 // ── Frame merge ──────────────────────────────────────────────────────────
 // Pure-ish: takes a freshly-parsed WS frame plus the mutable caches the

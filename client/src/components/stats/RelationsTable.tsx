@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import type { TribalRelation } from '../../types'
-import { lineageColor } from '../../constants'
+import { lineageColor } from '../../utils/constants'
 
 export function RelationsTable({ relations, lineageSizes }: {
   relations: TribalRelation[]

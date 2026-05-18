@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react'
-import { lineageColor } from '../constants'
+import { lineageColor } from '../utils/constants'
 import { useUIStore } from '../store'
 import { useWorldStore } from '../worldStore'
 

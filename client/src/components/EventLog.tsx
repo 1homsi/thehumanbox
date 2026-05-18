@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react'
-import { HIDDEN_EVENT_TYPES } from '../constants'
+import { HIDDEN_EVENT_TYPES } from '../utils/constants'
 import { useWorldStore } from '../worldStore'
 import { EventRow } from './EventRow'
 

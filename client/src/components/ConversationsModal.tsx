@@ -1,8 +1,8 @@
 import { memo } from 'react'
 import clsx from 'clsx'
 import type { OrganismState, ConversationEntry } from '../types'
-import { lineageColor } from '../constants'
-import { useOrgDetail } from '../useOrgDetail'
+import { lineageColor } from '../utils/constants'
+import { useOrgDetail } from '../hooks/useOrgDetail'
 import { Modal } from './Modal'
 
 const DAY_LENGTH = 600

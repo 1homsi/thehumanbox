@@ -1,5 +1,5 @@
 import type { WorldState } from '../../types'
-import { lineageColor } from '../../constants'
+import { lineageColor } from '../../utils/constants'
 import { DAY_LENGTH } from './constants'
 
 export function NotableOrgs({ organisms }: { organisms: WorldState['organisms'] }) {

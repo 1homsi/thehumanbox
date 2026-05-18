@@ -1,8 +1,8 @@
 import { useMemo, useRef, useState, useCallback, useEffect } from 'react'
 import * as d3 from 'd3'
 import type { OrganismState } from '../types'
-import { lineageColor } from '../constants'
-import { useFrozenSnapshot } from '../useFrozenSnapshot'
+import { lineageColor } from '../utils/constants'
+import { useFrozenSnapshot } from '../hooks/useFrozenSnapshot'
 import { Modal } from './Modal'
 
 const DAY_LENGTH = 600
