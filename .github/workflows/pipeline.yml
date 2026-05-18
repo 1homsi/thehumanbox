@@ -95,46 +95,15 @@ jobs:
           path: client/dist
           retention-days: 7
 
-  # Build the linux-aarch64 release binary on a native ARM runner.
-  # Used to compile on the EC2 itself; that peaked rustc + linker at
-  # ~1.5 GB on a 2 GB box and was the cause of the OOM-impair.
-  build-backend-binary:
-    name: Build backend binary (aarch64)
-    if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
-    runs-on: ubuntu-24.04-arm
-    timeout-minutes: 20
-    env:
-      CARGO_INCREMENTAL: 0
-      CARGO_NET_RETRY: 10
-      RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install mold linker
-        run: sudo apt-get install -y mold
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: simulation -> target
-          key: aarch64-release
-      - name: cargo build --release --bin simulation-rs
-        working-directory: simulation
-        run: cargo build --release --locked --bin simulation-rs
-      - name: Strip binary
-        run: |
-          strip simulation/target/release/simulation-rs
-          ls -lh simulation/target/release/simulation-rs
-      - uses: actions/upload-artifact@v4
-        with:
-          name: simulation-rs-aarch64
-          path: simulation/target/release/simulation-rs
-          retention-days: 14
-
   # ────────────────────────────────────────────────────────────────────────
-  # Stage 2: version bump. Only runs after both tests + binary are green.
+  # Stage 2: version bump. Runs after tests are green. MUST run BEFORE
+  # build-backend-binary so the binary that lands in the GitHub release
+  # has the SAME version embedded as the release tag - otherwise the
+  # binary self-reports a version one bump behind its release.
   # ────────────────────────────────────────────────────────────────────────
   bump-version:
     name: Bump version
-    needs: [test-backend, test-frontend, build-backend-binary]
+    needs: [test-backend, test-frontend]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -179,6 +148,60 @@ jobs:
           git commit -m "chore: release $NEW [skip-bump]"
           git pull --rebase origin main
           git push
+
+  # Build the linux-aarch64 release binary AT THE BUMPED COMMIT.
+  # This runs after bump-version (rather than in parallel with tests
+  # like the very first iteration of this workflow) so the binary
+  # embeds the same version number as the release tag it'll be
+  # attached to. Without this ordering the binary self-reports a
+  # version one bump behind whatever the GitHub release is tagged
+  # as - confirmed live: a v0.0.76 release contained a binary whose
+  # /version endpoint said "0.0.75".
+  build-backend-binary:
+    name: Build backend binary (aarch64, at bumped commit)
+    needs: [bump-version]
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    env:
+      CARGO_INCREMENTAL: 0
+      CARGO_NET_RETRY: 10
+      RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Check out main rather than the commit that triggered the
+          # workflow - we need the bump-version commit that just landed.
+          ref: main
+      - name: Install mold linker
+        run: sudo apt-get install -y mold
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: simulation -> target
+          key: aarch64-release
+      - name: Verify version matches expected
+        env:
+          NEW: ${{ needs.bump-version.outputs.new }}
+        run: |
+          set -euo pipefail
+          ACTUAL=$(grep '^version = ' simulation/Cargo.toml | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+          if [[ "$ACTUAL" != "$NEW" ]]; then
+            echo "Cargo.toml says version=$ACTUAL but expected $NEW - did the bump push not land?" >&2
+            exit 1
+          fi
+          echo "OK: building binary with embedded version $ACTUAL"
+      - name: cargo build --release --bin simulation-rs
+        working-directory: simulation
+        run: cargo build --release --locked --bin simulation-rs
+      - name: Strip binary
+        run: |
+          strip simulation/target/release/simulation-rs
+          ls -lh simulation/target/release/simulation-rs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: simulation-rs-aarch64
+          path: simulation/target/release/simulation-rs
+          retention-days: 14
 
   # ────────────────────────────────────────────────────────────────────────
   # Stage 3: publish a GitHub release tagged v$NEW with the binary attached.
