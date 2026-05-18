@@ -1,6 +1,7 @@
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import { Billboard, Text } from '@react-three/drei'
-import { useThree } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
+import * as THREE from 'three'
 import type { OrganismState } from '../types'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
@@ -64,36 +65,81 @@ export function OrgStateBadges({ organisms, depthMap, biomes }: Props) {
 
   return (
     <>
-      {near.map(({ o, badges }) => {
-        const [tx, ty] = getOrgXY(o.id)
-        const groundY = heightAt(tx, ty, depthMap, biomes)
-        return (
-          <Billboard
-            key={o.id}
-            position={[tx * TILE_SCALE, groundY + 3.4, ty * TILE_SCALE]}
-            frustumCulled={false}
-          >
-            <group>
-              {badges.map((b, i) => (
-                <Text
-                  key={b.text + i}
-                  fontSize={0.55}
-                  color={b.color}
-                  anchorX="center"
-                  anchorY="middle"
-                  outlineWidth={0.04}
-                  outlineColor="#000000"
-                  outlineOpacity={0.85}
-                  position={[(i - (badges.length - 1) / 2) * 0.7, 0, 0]}
-                  renderOrder={995}
-                >
-                  {b.text}
-                </Text>
-              ))}
-            </group>
-          </Billboard>
-        )
-      })}
+      {near.map(({ o, badges }) => (
+        <BadgeRow
+          key={o.id}
+          orgId={o.id}
+          badges={badges}
+          depthMap={depthMap}
+          biomes={biomes}
+        />
+      ))}
     </>
+  )
+}
+
+// Per-org badge group with subtle animation: 'z' bobs upward (sleep),
+// '♥' pulses (pregnancy), '!' jitters (fear). Each badge animates
+// independently so the badge row reads as expressive rather than
+// static decals.
+function BadgeRow({ orgId, badges, depthMap, biomes }: {
+  orgId: string
+  badges: { text: string; color: string }[]
+  depthMap: number[][]
+  biomes: number[][]
+}) {
+  const groupRef = useRef<THREE.Group>(null)
+  const phase = useMemo(() => {
+    // Stable per-org phase offset.
+    let h = 0
+    for (let i = 0; i < orgId.length; i++) h = (h * 31 + orgId.charCodeAt(i)) | 0
+    return (h & 0xffff) / 0xffff * Math.PI * 2
+  }, [orgId])
+
+  useFrame(({ clock }) => {
+    if (!groupRef.current) return
+    const t = clock.getElapsedTime() + phase
+    // Children animate based on their character.
+    groupRef.current.children.forEach((child, i) => {
+      const b = badges[i]
+      if (!b) return
+      if (b.text === 'z') {
+        child.position.y = Math.sin(t * 2.2) * 0.18
+      } else if (b.text === '♥') {
+        const s = 1 + Math.sin(t * 3) * 0.18
+        child.scale.set(s, s, s)
+      } else if (b.text === '!') {
+        child.position.x = (i - (badges.length - 1) / 2) * 0.7
+                          + Math.sin(t * 18) * 0.06
+      }
+    })
+  })
+
+  const [tx, ty] = getOrgXY(orgId)
+  const groundY = heightAt(tx, ty, depthMap, biomes)
+  return (
+    <Billboard
+      position={[tx * TILE_SCALE, groundY + 3.4, ty * TILE_SCALE]}
+      frustumCulled={false}
+    >
+      <group ref={groupRef}>
+        {badges.map((b, i) => (
+          <Text
+            key={b.text + i}
+            fontSize={0.55}
+            color={b.color}
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.04}
+            outlineColor="#000000"
+            outlineOpacity={0.85}
+            position={[(i - (badges.length - 1) / 2) * 0.7, 0, 0]}
+            renderOrder={995}
+          >
+            {b.text}
+          </Text>
+        ))}
+      </group>
+    </Billboard>
   )
 }
