@@ -310,12 +310,15 @@ impl Organism {
 
     pub fn store_conversation(&mut self, entry: ConversationEntry) {
         self.conversations.push_back(entry);
-        // 75 caps the per-org conversation log to ~225KB at typical
-        // line counts. Used to be 200 which ate ~600KB per org and
-        // pushed the c7g.medium box into swap once tribes started
-        // gossiping at scale. The conversations modal on the client
-        // only shows the last 25 anyway (to_detail_json take(25)).
-        if self.conversations.len() > 75 {
+        // 40 caps the per-org conversation log to ~120KB at typical
+        // line counts. History:
+        //   200 -> 75 (~225KB)  - first cut, fit on c7g.medium
+        //   75  -> 40 (~120KB)  - second cut, save ~8MB at 300 orgs
+        // The conversations modal on the client only shows the last
+        // 25 anyway (to_detail_json take(25)), so 40 is comfortably
+        // beyond what's user-visible while keeping the memory floor
+        // low.
+        if self.conversations.len() > 40 {
             self.conversations.pop_front();
         }
     }
@@ -326,7 +329,9 @@ impl Organism {
 
     pub fn log_event(&mut self, event: String) {
         self.life_log.push_back(event);
-        if self.life_log.len() > 24 {
+        // 16 caps life_log to one entry every few minutes of real
+        // play; OrgDetail's life_log preview shows the last 12.
+        if self.life_log.len() > 16 {
             self.life_log.pop_front();
         }
     }
@@ -513,9 +518,9 @@ impl Organism {
                 for (k, _) in &e[..e.len() - max] { mem.remove(k); }
             }
         }
-        trim_mem(&mut self.food_memory,   100);
-        trim_mem(&mut self.water_memory,   50);
-        trim_mem(&mut self.danger_memory,  30);
+        trim_mem(&mut self.food_memory,    70);
+        trim_mem(&mut self.water_memory,   35);
+        trim_mem(&mut self.danger_memory,  20);
         self.lineage_attitudes.retain(|_, v| { *v *= 0.998; v.abs() >= 0.01 });
         // Positive trust decays slower - good relationships are remembered longer
         self.org_trust.retain(|_, v| {
@@ -530,13 +535,14 @@ impl Organism {
         // At 300 alive orgs:
         //   N=226, Q_MAX=400  -> ~108 MB total Q-tables
         //   N=226, Q_MAX=220  -> ~60 MB total Q-tables
-        // The 2 GB c7g.medium OOM-impaired itself, so we tighten the
-        // cap to 220/160 with the latest N_ACTIONS=226 bump. Most
-        // orgs never reach 200 distinct perception states in a
-        // lifetime; the trim only removes long-tail rarely-visited
-        // states whose Q-values are still near zero.
-        const Q_MAX:  usize = 220;
-        const Q_TRIM: usize = 160;
+        //   N=226, Q_MAX=180  -> ~48 MB total Q-tables
+        // Tightening further to 180/130 saves another ~12 MB on the
+        // 2 GB c7g.medium. Most orgs never reach 150 distinct
+        // perception states in a lifetime; the trim only removes
+        // long-tail rarely-visited states whose Q-values are still
+        // near zero.
+        const Q_MAX:  usize = 180;
+        const Q_TRIM: usize = 130;
         if self.q_table.len() > Q_MAX {
             let mut entries: Vec<(String, Vec<f32>)> = self.q_table.drain().collect();
             entries.sort_by(|a, b| {
@@ -573,7 +579,10 @@ impl Organism {
         if self.thought == text { return; }
         self.thought = text.to_string();
         self.thought_history.push_back(ThoughtEntry { tick, text: text.to_string() });
-        if self.thought_history.len() > 80 {
+        // 40 caps thought history at ~3KB per org (~600KB-ish saved
+        // at 300 orgs vs the old 80). OrgDetail renders the last
+        // 25 anyway.
+        if self.thought_history.len() > 40 {
             self.thought_history.pop_front();
         }
     }
