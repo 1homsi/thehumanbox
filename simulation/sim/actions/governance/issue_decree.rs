@@ -1,4 +1,4 @@
-//! Action 315: elder announces rule; all kin boredom -0.05.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

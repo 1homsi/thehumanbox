@@ -6,40 +6,27 @@ import { useFrozenSnapshot } from '../hooks/useFrozenSnapshot'
 import { Modal } from './Modal'
 
 const DAY_LENGTH = 600
-const NODE_R = 22       // circle radius
-const ROW_H  = 130      // vertical space between generation rows
-const NODE_SEP = 70     // minimum horizontal gap between sibling centers
+const NODE_R = 22
+const ROW_H  = 130
+const NODE_SEP = 70
 
 interface Props {
   organisms:   OrganismState[]
   currentTick: number
-  sexWords?:   [string, string]   // [0]=male word, [1]=female word
+  sexWords?:   [string, string]
   onClose:     () => void
 }
 
 interface NodePos { org: OrganismState; x: number; y: number }
 
-/**
- * Lay the family tree out using d3-hierarchy.
- *
- * Builds a synthetic root that holds every organism with no parent in the
- * data set (founders + orphans whose parents fell out of the snapshot
- * window). d3.tree() then runs the Reingold-Tilford algorithm with
- * nodeSize() so siblings get a constant minimum horizontal gap regardless
- * of subtree depth - same intent as the old hand-written layout, with
- * battle-tested d3 maths instead of recursion we maintain ourselves.
- */
 function layoutTree(orgs: OrganismState[]): { nodes: NodePos[]; w: number; h: number; maxGen: number } {
   if (!orgs.length) return { nodes: [], w: 400, h: 300, maxGen: 0 }
 
   const byId = new Map<string, OrganismState>()
   for (const o of orgs) byId.set(o.id, o)
 
-  // Find roots: any org whose parent isn't in our data set
   const roots = orgs.filter(o => !o.parent_id || !byId.has(o.parent_id))
 
-  // Synthetic root that holds all the real roots - keeps the d3 hierarchy
-  // strictly tree-shaped even if the data has multiple founding lineages.
   const SYNTHETIC_ROOT = '__root__'
   const synthetic: OrganismState = {
     ...orgs[0],
@@ -62,8 +49,6 @@ function layoutTree(orgs: OrganismState[]): { nodes: NodePos[]; w: number; h: nu
   try {
     root = stratify(allNodes)
   } catch (_e) {
-    // Defensive: stratify throws on cycles or duplicates. Fall back to a
-    // flat layout where every org is a child of the synthetic root.
     root = d3.hierarchy<OrganismState>(synthetic, n => {
       if (n.id === SYNTHETIC_ROOT) return orgs
       return []
@@ -86,8 +71,6 @@ function layoutTree(orgs: OrganismState[]): { nodes: NodePos[]; w: number; h: nu
     if (n.data.generation > maxGen) maxGen = n.data.generation
   })
 
-  // Shift all nodes so the leftmost is at x=0 - d3 centers root at x=0 and
-  // can produce negative coordinates we'd rather not deal with downstream.
   for (const n of nodes) n.x -= minX
 
   return {
@@ -99,24 +82,17 @@ function layoutTree(orgs: OrganismState[]): { nodes: NodePos[]; w: number; h: nu
 }
 
 export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props) {
-  // Snapshot once on open - the modal shows a static tree, not a moving
-  // one. Avoids re-laying out on every world tick. The reload button in
-  // the header swaps in a fresh snapshot of the current world.
   const { frozen: organisms, reload } = useFrozenSnapshot(() => livOrgs)
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wrapRef   = useRef<HTMLDivElement>(null)
   const [hoverId, setHoverId] = useState<string | null>(null)
-  // d3-zoom owns the transform; we mirror it to React state so the percent
-  // readout in the legend stays in sync.
   const [tf, setTf] = useState<d3.ZoomTransform>(d3.zoomIdentity)
   const tfRef = useRef(tf)
   tfRef.current = tf
 
   const { nodes, maxGen } = useMemo(() => layoutTree(organisms), [organisms])
 
-  // Edges keyed by relationship type - drawn separately so each gets its
-  // own visual style without per-edge string compares.
   const { motherEdges, paternityEdges, partnerEdges } = useMemo(() => {
     const byId = new Map<string, NodePos>()
     for (const n of nodes) byId.set(n.org.id, n)
@@ -128,12 +104,10 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
 
     for (const n of nodes) {
       const o = n.org
-      // Mother (parent_id) → solid bezier
       if (o.parent_id) {
         const m = byId.get(o.parent_id)
         if (m) motherEdges.push({ p: m, c: n })
       }
-      // Father (father_id) → dashed bezier; gold if mother's partner != father
       if (o.father_id) {
         const f = byId.get(o.father_id)
         if (f) {
@@ -142,7 +116,6 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
           paternityEdges.push({ f, c: n, isCheating })
         }
       }
-      // Partner (partner_id) → dashed heart line, deduped by sorted id pair
       const pid = o.partner_id
       if (pid && byId.has(pid) && !partnerDone.has(o.id) && !partnerDone.has(pid)) {
         partnerEdges.push({ a: n, b: byId.get(pid)! })
@@ -154,7 +127,6 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
     return { motherEdges, paternityEdges, partnerEdges }
   }, [nodes])
 
-  // d3-shape link generator for parent→child curves
   const linkPath = useMemo(
     () => d3.linkVertical<{ source: { x: number; y: number }; target: { x: number; y: number } }, { x: number; y: number }>()
             .x(d => d.x)
@@ -162,7 +134,6 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
     []
   )
 
-  // ── d3-zoom: replaces the hand-rolled wheel + mousedown logic ───────────
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -174,13 +145,11 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
 
     sel.call(zoom)
 
-    // Save the zoom controller on the canvas for the +/-/fit buttons to use
     ;(canvas as any).__d3zoom__ = zoom
 
     return () => { sel.on('.zoom', null) }
   }, [])
 
-  // Initial fit - pan so the topmost generation is visible at the top
   useEffect(() => {
     const canvas = canvasRef.current
     const wrap   = wrapRef.current
@@ -198,7 +167,6 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
     d3.select(canvas).call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(k))
   }, [nodes])
 
-  // Drawing - pure canvas, transform comes from d3-zoom
   const draw = useCallback(() => {
     const canvas = canvasRef.current
     const wrap   = wrapRef.current
@@ -221,7 +189,6 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
     ctx.translate(tx, ty)
     ctx.scale(ts, ts)
 
-    // Generation row labels
     ctx.font      = '9px monospace'
     ctx.fillStyle = '#3a3028'
     ctx.textAlign = 'left'
@@ -232,7 +199,6 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
       ctx.fillText(`generation ${gen}`, minNodeX - 40, gy - NODE_R - 6)
     }
 
-    // ── Partner edges (heart bond) ───────────────────────────────────
     ctx.lineWidth = 1.2
     ctx.strokeStyle = '#c97'
     ctx.setLineDash([4, 4])
@@ -246,7 +212,6 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
     ctx.setLineDash([])
     ctx.globalAlpha = 1
 
-    // ── Paternity edges (father → child, dashed) ─────────────────────
     ctx.lineWidth = 1.2
     ctx.setLineDash([3, 5])
     for (const e of paternityEdges) {
@@ -264,7 +229,6 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
     ctx.setLineDash([])
     ctx.globalAlpha = 1
 
-    // ── Mother edges (parent → child, solid) ─────────────────────────
     ctx.lineWidth = 1.5
     ctx.globalAlpha = 0.40
     for (const e of motherEdges) {
@@ -280,7 +244,6 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
     }
     ctx.globalAlpha = 1
 
-    // Node shapes: female=circle, male=rounded square
     const drawNodeShape = (
       c: CanvasRenderingContext2D, x: number, y: number, r: number, isFemale: boolean
     ) => {
@@ -303,7 +266,6 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
       }
     }
 
-    // Nodes + labels
     for (const { org, x, y } of nodes) {
       const color    = lineageColor(org.lineage_id)
       const isAlive  = org.alive
@@ -384,8 +346,6 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
     return () => ro.disconnect()
   }, [draw])
 
-  // Hover hit-test in screen space → world space (d3 transform.invert handles
-  // the math we used to do manually).
   const onMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const rect = canvasRef.current!.getBoundingClientRect()
     const sx = e.clientX - rect.left
@@ -395,8 +355,6 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
     setHoverId(hit?.org.id ?? null)
   }, [nodes])
 
-  // Imperative zoom controls - drive the d3 zoom behaviour so its internal
-  // state stays in sync with our buttons.
   const zoomBy = (factor: number) => {
     const canvas = canvasRef.current
     const zoom   = canvas && (canvas as any).__d3zoom__ as d3.ZoomBehavior<HTMLCanvasElement, unknown> | undefined

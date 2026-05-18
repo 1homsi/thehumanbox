@@ -1,4 +1,4 @@
-//! Action 387: express joy. High comfort spreads cheer to those nearby.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

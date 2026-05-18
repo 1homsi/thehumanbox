@@ -1,4 +1,4 @@
-//! Action 373: drain a swamp. Needs water nearby.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

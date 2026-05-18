@@ -1,4 +1,4 @@
-//! Action 274: tend to an elderly kin; their health +0.04, your comfort +0.03.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

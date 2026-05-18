@@ -1,4 +1,4 @@
-//! Action 378: stabilize a slope. Needs rock nearby and inv_wood.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

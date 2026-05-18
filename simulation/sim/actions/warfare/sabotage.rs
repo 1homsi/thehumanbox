@@ -1,4 +1,4 @@
-//! Action 99: sabotage. Convert a nearby Food tile back to Grass.
+
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
 

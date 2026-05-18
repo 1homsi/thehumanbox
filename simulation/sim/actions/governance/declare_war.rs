@@ -1,4 +1,4 @@
-//! Action 307: against a stranger lineage; attitude toward them -0.2.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

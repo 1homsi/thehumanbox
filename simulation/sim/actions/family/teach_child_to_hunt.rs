@@ -1,4 +1,4 @@
-//! Action 263: elder teaches young kin; young kin energy +0.05; discover "hunting_taught".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

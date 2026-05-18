@@ -1,4 +1,4 @@
-//! Action 476: mark the equinox; all kin boredom -0.06; discover "equinox_marking".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

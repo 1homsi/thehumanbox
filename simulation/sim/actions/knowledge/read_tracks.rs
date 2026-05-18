@@ -1,4 +1,4 @@
-//! Action 131: read animal tracks within 12 tiles, remember positions.
+
 use crate::organism::organism::Organism;
 use super::super::ctx::ActionCtx;
 

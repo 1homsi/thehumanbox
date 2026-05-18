@@ -18,8 +18,6 @@ pub fn spawn_organism(
     spawn_organism_with_lineage(grid, organisms, x, y, id, rng);
 }
 
-/// Like spawn_organism but with an explicit lineage_id - used when spawning
-/// founding tribes so multiple members share the same lineage from birth.
 pub fn spawn_organism_with_lineage(
     grid: &WorldGrid,
     organisms: &mut Vec<Organism>,
@@ -84,18 +82,8 @@ pub fn try_reproduce(
     if alive_count >= MAX_POPULATION { return; }
 
     let org = &organisms[org_idx];
-    // Only females give birth
     if org.sex != Sex::Female { return; }
 
-    // Per-lineage population cap. Without this, the most successful tribe
-    // keeps adding babies indefinitely and turns a 60x60 cell into a
-    // 200-strong blob (measured: 70% of world pop in one cell at 90k ticks).
-    // 50 is a "village" - enough to feel alive, not enough to dominate.
-    // Cap is per-lineage, not per-location, so a tribe that disperses
-    // across the map can still grow; only the locally-fat tribe stops
-    // breeding until age or forks reduce the count.
-    // lineage_counts is precomputed once per tick by the caller - O(1) lookup
-    // here instead of an O(N) scan per reproduction attempt.
     const MAX_LINEAGE_POP: usize = 50;
     if lineage_counts.get(&org.lineage_id).copied().unwrap_or(0) >= MAX_LINEAGE_POP {
         return;
@@ -139,18 +127,16 @@ pub fn try_reproduce(
         pid
     };
 
-    // Biome survival pressure shapes reproduction rates
     let biome = grid.biome_at(org_x as i32, org_y as i32);
     let biome_mult = match biome {
-        Biome::Volcanic  => 0.25, // extreme conditions crush birth rates
-        Biome::Tundra    => 0.40, // cold seasons reduce fertility
-        Biome::Desert    => 0.55, // harsh heat suppresses reproduction
+        Biome::Volcanic  => 0.25,
+        Biome::Tundra    => 0.40,
+        Biome::Desert    => 0.55,
         Biome::Grassland => 1.00,
-        Biome::Wetland   => 1.20, // wetland abundance
-        Biome::Forest    => 1.30, // forest abundance
+        Biome::Wetland   => 1.20,
+        Biome::Forest    => 1.30,
     };
 
-    // Local soil fertility shapes birth rates - fertile land supports more children
     let local_fert = {
         let cx = org_x as i32; let cy = org_y as i32;
         let mut sum = 0.0f32; let mut n = 0u32;
@@ -161,12 +147,8 @@ pub fn try_reproduce(
         }}
         if n > 0 { sum / n as f32 } else { 0.5 }
     };
-    // 0.4 at barren land → 1.6 at rich land
     let land_mult = 0.4 + local_fert * 1.2;
 
-    // Birth rate variance: probability tied to social_tendency (some families large, some small).
-    // Generous floor so well-fed bonded couples reliably produce children - the world has to
-    // grow above replacement to be watchable for 30+ sim-days.
     let social = org.traits.social_tendency;
     let fertility_prob = (0.30 + social * 0.50) * biome_mult * land_mult;
     if rng.gen::<f32>() > fertility_prob.clamp(0.20, 0.95) { return; }
@@ -174,7 +156,6 @@ pub fn try_reproduce(
     let spawn_pos = find_spawn_near(grid, org.x as i32, org.y as i32, rng);
     let Some((sx, sy)) = spawn_pos else { return; };
 
-    // Mendelian trait mixing: each trait randomly drawn from mother or father
     let father_traits = organisms.iter()
         .find(|o| o.id == partner_id)
         .map(|o| o.traits.clone())
@@ -185,14 +166,6 @@ pub fn try_reproduce(
     let mut child_traits_sexed = child_traits;
     apply_sex_traits(&mut child_traits_sexed, child_sex);
 
-    // Wider lifespan range than founding spawns. The previous narrow
-    // range (~9k-20k) meant a cohort born in the same season would all
-    // hit max_age within ~10 sim-days of each other - the world saw
-    // pop graphs full of cliff drops. Stretched to 8k-26k so kids in
-    // the same cohort spread their deaths over ~30 sim-days instead
-    // of clustering. Prevents the boom-bust spirals where a single
-    // cohort die-off can't be replaced because every reproductive-age
-    // adult also died.
     let max_age = rng.gen_range(
         (8000.0 + 4000.0 * child_traits_sexed.resilience) as u32
         ..=(18000.0 + 8000.0 * child_traits_sexed.resilience) as u32
@@ -213,9 +186,6 @@ pub fn try_reproduce(
     child.sex = child_sex;
     child.vocabulary = Vocabulary::inherit_from(&organisms[org_idx].vocabulary, rng);
 
-    // Q-table inheritance with noise - children explore rather than
-    // copying parent routes verbatim. Sparse row: we only iterate
-    // entries the parent actually learned, no padding to N_ACTIONS.
     for (state, actions) in &organisms[org_idx].q_table {
         let mut row: crate::organism::organism::QRow = Vec::with_capacity(actions.len());
         for &(a, v) in actions {
@@ -229,7 +199,6 @@ pub fn try_reproduce(
         child.q_table.insert(state.clone(), row);
     }
 
-    // Partial memory inheritance - danger passes strongly, food/water only hints
     let mem_trait = child.traits.memory_strength;
     for (&k, &v) in &organisms[org_idx].food_memory {
         if rng.gen::<f32>() < 0.12 {
@@ -247,7 +216,6 @@ pub fn try_reproduce(
         }
     }
 
-    // Inherit relationships (diluted)
     for (lid, &att) in &organisms[org_idx].lineage_attitudes {
         child.lineage_attitudes.insert(lid.clone(), att * 0.7);
     }
@@ -255,11 +223,6 @@ pub fn try_reproduce(
         child.org_trust.insert(oid.clone(), trust * 0.4);
     }
 
-    // Inherit parent's "obvious" discoveries. Real humans grow up
-    // already knowing fire/shelter/water exist - they don't have to
-    // re-discover them. The advanced ones (cooking, masonry, medicine,
-    // tools) pass on at lower probability so cultural transmission still
-    // feels earned across generations rather than free.
     let always_inherit = ["fire", "shelter", "water", "wood", "stone", "hunt"];
     let sometimes_inherit = ["cooking", "masonry", "stone_tools", "torch", "medicine", "ritual", "farm", "spear"];
     for d in &organisms[org_idx].discoveries {
@@ -272,16 +235,6 @@ pub fn try_reproduce(
         }
     }
 
-    // Children's homes drift each generation. Without this every
-    // descendant inherits the founder's exact tile and the home-pull
-    // force re-collects dispersed orgs into one super-dense cluster.
-    // Drift widened 40 -> 70 because the world is huge and the
-    // population was visibly consolidating on a single island - each
-    // generation now actually homesteads new ground.
-    // Triangular sum (two uniform samples averaged) keeps most kids
-    // moderately close while a long tail occasionally homesteads far.
-    // Reflect at world borders rather than clamp - clamping creates an
-    // absorbing wall that piles density at the edge.
     let drift = 70.0;
     let dx = rng.gen_range(-drift..=drift) * 0.5 + rng.gen_range(-drift..=drift) * 0.5;
     let dy = rng.gen_range(-drift..=drift) * 0.5 + rng.gen_range(-drift..=drift) * 0.5;
@@ -293,7 +246,6 @@ pub fn try_reproduce(
     child.home_x = reflect(organisms[org_idx].home_x + dx, (crate::world::grid::WIDTH  - 1) as f32);
     child.home_y = reflect(organisms[org_idx].home_y + dy, (crate::world::grid::HEIGHT - 1) as f32);
 
-    // Birth infection
     if organisms[org_idx].infection > 0.1 {
         child.infection = organisms[org_idx].infection * 0.15;
     }
@@ -304,15 +256,8 @@ pub fn try_reproduce(
     organisms[org_idx].pregnant        = true;
     organisms[org_idx].pregnancy_start = tick;
 
-    // Store the child as a pending birth - we'll deliver it after the pregnancy period.
-    // To avoid storing the full child object (costly), we push it immediately but mark
-    // it as alive=false with a sentinel pregnancy_start check in simulation.rs.
-    // Simpler: just push the child now as "unborn" with alive=false and let
-    // deliver_births() flip it alive after PREGNANCY_DURATION ticks.
-    // We use the child's age=0 and alive=false as the pending-birth marker.
     child.alive     = false;
     child.age       = 0;
-    // Record biological father - tracks paternity even if parents later split or cheated
     child.father_id = Some(partner_id.clone());
 
     let parent_name = organisms[org_idx].name.clone();
@@ -324,9 +269,7 @@ pub fn try_reproduce(
     organisms.push(child);
 }
 
-/// Called every tick. If a pregnant organism's delivery period is over, flip the
-/// pending child (alive=false, age=0, parent_id points to pregnant mother) alive.
-pub const PREGNANCY_DURATION: u64 = 1200; // ~2 sim-days
+pub const PREGNANCY_DURATION: u64 = 1200;
 
 pub fn deliver_births(
     organisms: &mut Vec<Organism>,
@@ -334,19 +277,16 @@ pub fn deliver_births(
     events: &mut std::collections::VecDeque<Event>,
     history: &mut History,
 ) {
-    // Build O(N) lookup: parent_id → child_index for unborn children (alive=false, age=0)
     let unborn_map: std::collections::HashMap<&str, usize> = organisms.iter().enumerate()
         .filter(|(_, o)| !o.alive && o.age == 0)
         .map(|(i, o)| (o.parent_id.as_str(), i))
         .collect();
 
-    // Collect deliveries: find pregnant mothers whose duration has elapsed
-    let mut deliveries: Vec<(usize, usize)> = Vec::new(); // (mother_idx, child_idx)
+    let mut deliveries: Vec<(usize, usize)> = Vec::new();
     for mother_idx in 0..organisms.len() {
         if !organisms[mother_idx].pregnant { continue; }
         if tick.saturating_sub(organisms[mother_idx].pregnancy_start) < PREGNANCY_DURATION { continue; }
         let mother_id = organisms[mother_idx].id.as_str();
-        // O(1) lookup using the pre-built map
         if let Some(&child_idx) = unborn_map.get(mother_id) {
             deliveries.push((mother_idx, child_idx));
         }

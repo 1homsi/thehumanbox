@@ -3,15 +3,9 @@ import { HIDDEN_EVENT_TYPES } from '../utils/constants'
 import { useWorldStore } from '../stores/worldStore'
 import { EventRow } from './EventRow'
 
-/**
- * Sidebar event log. Subscribes only to world.events so it re-renders
- * only when an event lands - not when organism positions tick.
- */
 function EventLogImpl() {
   const events = useWorldStore((s) => s.world?.events)
 
-  // Filter + slice once per render; events array reference only changes
-  // when a new event is appended on the server.
   const recent = useMemo(() => {
     if (!events) return []
     const out = []

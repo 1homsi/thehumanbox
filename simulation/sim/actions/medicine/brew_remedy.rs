@@ -1,4 +1,4 @@
-//! Action 248: use inv_food to brew medicine; discover "herbal_medicine".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

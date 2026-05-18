@@ -1,4 +1,4 @@
-//! Action 31: clear scorched/ash ground back to grass.
+
 
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;

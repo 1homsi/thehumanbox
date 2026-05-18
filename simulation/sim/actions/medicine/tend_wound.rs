@@ -1,4 +1,4 @@
-//! Action 246: heal a nearby kin's health; need inv_food or fire_near.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

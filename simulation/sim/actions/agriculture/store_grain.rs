@@ -1,4 +1,4 @@
-//! Action 343: store grain near a hut for later.
+
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
 

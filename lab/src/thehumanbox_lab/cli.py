@@ -15,7 +15,6 @@ from .teacher_dataset import build_distillation_rows
 from .train_manifest import default_manifest
 from .train_prep import split_rows, teacher_rows_to_sft
 
-
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="thb-lab", description="The Human Box lab tooling")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -65,14 +64,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     return parser
 
-
 def cmd_build_thought_dataset(args: argparse.Namespace) -> int:
     events = [TraceEvent.from_row(row) for row in read_jsonl(args.input)]
     examples = build_thought_examples(events, window=args.window, task_spec=THOUGHT_V1)
     write_jsonl(args.output, (example.to_row() for example in examples))
     print(f"built {len(examples)} thought examples -> {args.output}")
     return 0
-
 
 def cmd_inspect_jsonl(args: argparse.Namespace) -> int:
     rows = list(read_jsonl(args.path))
@@ -96,18 +93,15 @@ def cmd_inspect_jsonl(args: argparse.Namespace) -> int:
         print(f"organisms: {len(organisms)} unique")
     return 0
 
-
 def cmd_probe_stack(_: argparse.Namespace) -> int:
     for key, value in probe_stack().items():
         print(f"{key}: {value}")
     return 0
 
-
 def cmd_show_models(args: argparse.Namespace) -> int:
     registry = load_registry_with_runtime(args.registry)
     print(json.dumps(registry, indent=2))
     return 0
-
 
 def cmd_run_thought_eval(args: argparse.Namespace) -> int:
     examples = [ThoughtExample.from_row(row) for row in read_jsonl(args.input)]
@@ -130,7 +124,6 @@ def cmd_run_thought_eval(args: argparse.Namespace) -> int:
         print(f"wrote report -> {args.output}")
     return 0
 
-
 def cmd_sweep_thought_eval(args: argparse.Namespace) -> int:
     examples = [ThoughtExample.from_row(row) for row in read_jsonl(args.input)]
     models = args.models or candidate_ollama_models()
@@ -149,7 +142,6 @@ def cmd_sweep_thought_eval(args: argparse.Namespace) -> int:
         print(f"wrote report -> {args.output}")
     return 0
 
-
 def cmd_capture_teacher_thoughts(args: argparse.Namespace) -> int:
     examples = [ThoughtExample.from_row(row) for row in read_jsonl(args.input)]
     summary, predictions = run_eval(examples, ollama_engine(args.model, task_spec=THOUGHT_V1))
@@ -161,13 +153,8 @@ def cmd_capture_teacher_thoughts(args: argparse.Namespace) -> int:
     print(f"wrote teacher dataset -> {args.output}")
     return 0
 
-
 def cmd_prepare_sft_dataset(args: argparse.Namespace) -> int:
     teacher_rows = list(read_jsonl(args.input))
-    # Split FIRST on the teacher rows where each row still has a top-level
-    # "prompt" key. Then wrap into SFT messages. Splitting after wrapping
-    # was a bug: every wrapped row had no top-level "prompt" so split_rows
-    # treated them all as the same hash key and put 99.99% in train.
     train_teacher, valid_teacher = split_rows(teacher_rows, validation_ratio=args.validation_ratio)
     train_rows = teacher_rows_to_sft(train_teacher)
     valid_rows = teacher_rows_to_sft(valid_teacher)
@@ -186,7 +173,6 @@ def cmd_prepare_sft_dataset(args: argparse.Namespace) -> int:
     )
     return 0
 
-
 def cmd_plan_train_run(args: argparse.Namespace) -> int:
     manifest = default_manifest(
         train_file=args.train_file,
@@ -199,7 +185,6 @@ def cmd_plan_train_run(args: argparse.Namespace) -> int:
     output_path.write_text(json.dumps(manifest.to_row(), indent=2), encoding="utf-8")
     print(f"wrote train manifest -> {args.output}")
     return 0
-
 
 def main() -> int:
     parser = build_parser()
@@ -216,7 +201,6 @@ def main() -> int:
         "plan-train-run": cmd_plan_train_run,
     }
     return handlers[args.command](args)
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

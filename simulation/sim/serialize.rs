@@ -5,12 +5,6 @@ use serde_json::json;
 use crate::sim::config::DAY_LENGTH;
 use crate::sim::simulation::Simulation;
 
-/// Server-side prediction lookahead, expressed in sim ticks. Read once
-/// at startup from `LOOKAHEAD_MS` / `TICK_MS` env vars (both shared with
-/// main.rs). Hot deltas project each organism's position forward by
-/// this many ticks along its smoothed velocity, so the value the client
-/// renders matches the org's "now" coordinate after the network +
-/// render-lag round trip. 0 disables prediction.
 static LOOKAHEAD_TICKS: std::sync::LazyLock<f32> = std::sync::LazyLock::new(|| {
     let look_ms = std::env::var("LOOKAHEAD_MS").ok()
         .and_then(|v| v.parse::<f32>().ok()).unwrap_or(150.0);
@@ -22,19 +16,9 @@ static LOOKAHEAD_TICKS: std::sync::LazyLock<f32> = std::sync::LazyLock::new(|| {
 impl Simulation {
     pub fn state_json(&mut self) -> serde_json::Value {
         let (cx, cy) = self.viewport_centroid();
-        // Initial snapshots and HTTP /snapshot always include cold metadata.
         self.state_json_inner(cx, cy, true, true)
     }
 
-    /// Broadcaster's periodic "full" frame. Always slim - keeps
-    /// full-frame perks (force_full=true so AoS orgs + static grid
-    /// layers ship) but never includes the heavy cold-metadata block.
-    /// Cold metadata (events, history, pop_history, story_history,
-    /// lineage_centroid_history, lineage_names, ...) is exclusively
-    /// served by the HTTP /snapshot endpoint - new clients prime from
-    /// that, existing clients keep their cached metadata and can
-    /// re-fetch on demand. Keeps per-WS-frame bytes-on-wire small and
-    /// the sim-lock window short.
     pub fn state_json_periodic_full(&mut self) -> serde_json::Value {
         let (cx, cy) = self.viewport_centroid();
         self.state_json_inner(cx, cy, true, false)
@@ -61,9 +45,6 @@ impl Simulation {
     }
 
     fn state_json_inner(&mut self, vp_cx: i32, vp_cy: i32, force_full: bool, include_cold: bool) -> serde_json::Value {
-        // Throttled tribal_relations + lineage_sizes (O(orgs * lineages) each).
-        // Cached for 60 ticks (~18 s); stale is fine - tribes don't flip
-        // allegiance every tick and the panel doesn't need sub-second updates.
         let needs_slow = self.tick_count == 0
             || self.tick_count.saturating_sub(self.slow_compute_tick) >= 60;
         if needs_slow {
@@ -108,17 +89,8 @@ impl Simulation {
             self.slow_compute_tick = self.tick_count;
         }
 
-        // Dense tile + static-layer payloads dominate frame size on a
-        // 600x300 world (~180k tiles × multiple layers). Ship them only on
-        // the HTTP /snapshot path or a slow refresh cadence; clients keep
-        // them cached and re-fetch /snapshot on big WS gaps.
         let include_tiles  = include_cold || self.tick_count % 60 == 0 || self.tick_count <= 1;
         let include_static = include_cold || self.tick_count % 60 == 0 || self.tick_count <= 1;
-        // Heavy static layers (biomes + depth_map, ~720 KB combined) only
-        // ship on the cold/snapshot path. WS periodic fulls keep the slim
-        // dynamic-static layers (trails, fertility, hazard) but skip
-        // terrain - clients have it cached from the initial snapshot and
-        // it changes only on biome drift, never for depth.
         let include_terrain = include_cold;
         let grid_json = self.grid.to_json_viewport(vp_cx, vp_cy,
             crate::world::grid::VP_W, crate::world::grid::VP_H,
@@ -133,26 +105,6 @@ impl Simulation {
             let y = y as i32;
             x >= left && x <= right && y >= top && y <= bottom
         };
-        // Per-organism encoding splits two ways:
-        //  - Hot deltas use structure-of-arrays (`organisms_hot`).
-        //    Every alive in-viewport org contributes one slot to each of
-        //    the 16 parallel arrays. ~50% smaller on the wire than the
-        //    AoS version and the client decodes 16 typed arrays instead
-        //    of 300 maps.
-        //  - Full snapshots use the AoS array (`organisms`) because that
-        //    path also carries cold/identity fields and SoA-with-many-
-        //    optional-columns costs more than it saves.
-        // Newborns (age < 60 ticks) always get their cold fields in the
-        // AoS path; the SoA hot path never carries cold fields, so a new
-        // baby's static identity arrives on the next full snapshot.
-        // Per-org cold fields (name, traits, vocabulary, discoveries,
-        // attitudes maps, etc.) only ride along on the HTTP /snapshot
-        // path (include_cold=true). Periodic WS full frames just need
-        // hot + warm fields; the client already has the cold fields
-        // cached from the bootstrap snapshot. This dropped the per-org
-        // wire payload from ~5KB to ~1.5KB, which was the source of
-        // the 200KB-1.5MB "slim" periodic full frames choking
-        // Cloudflare and triggering frame gaps.
         let per_org_cold = include_cold;
         use crate::organism::organism::OrgsHotSoa;
         let mut payload = if include_all_entities {

@@ -5,9 +5,7 @@ use crate::world::{grid::WorldGrid, tiles::Tile};
 pub struct PhysicsEngine {
     pub tick_count:       u64,
     pub growth_mult:      f32,
-    // Hot-set of tiles currently on fire - avoids scanning entire grid every tick
     active_fire_tiles:    HashSet<(i32, i32)>,
-    // Scratch buffers reused each update_fire call to avoid per-call allocation
     burn_out:  Vec<(i32, i32)>,
     new_fires: Vec<(i32, i32)>,
 }
@@ -31,13 +29,11 @@ impl PhysicsEngine {
 
         let interval = (150.0 / self.growth_mult.max(0.3)) as u64;
         let interval = interval.max(80);
-        // No spontaneous wildfires while the ground is still wet from recent rain.
         if !wet && weather_kind != 1 && weather_kind != 2 && self.tick_count % interval == 0 {
             self.lightning_strike(grid, rng);
         }
     }
 
-    /// Register a new fire tile in the hotset. Called whenever a tile is set to Fire or Campfire.
     pub fn register_fire(&mut self, x: i32, y: i32) {
         self.active_fire_tiles.insert((x, y));
     }
@@ -48,10 +44,6 @@ impl PhysicsEngine {
         self.burn_out.clear();
         self.new_fires.clear();
 
-        // Rain dampens every active fire and storm extinguishes them outright -
-        // applied to the full hotset so a single rainstorm clears the world's
-        // fires instead of relying on random tile sampling that almost never
-        // hits an actual Fire tile.
         let rain_drain = match weather_kind {
             1 => 0.04,
             2 => 0.20,
@@ -120,7 +112,6 @@ impl PhysicsEngine {
             self.active_fire_tiles.insert((*x, *y));
         }
 
-        // Return scratch buffers
         self.burn_out  = burn_out;
         self.new_fires = new_fires;
     }
@@ -156,7 +147,6 @@ impl PhysicsEngine {
                         let trail = grid.trail_at(x, y, TrailKind::Food);
                         let trail_boost = 1.0 + trail * 1.2;
                         let fertility = grid.fertility[WorldGrid::idx(x, y)];
-                        // Soil fertility gates regrowth - exhausted land stays bare
                         let grow_rate = base_grow * grid.biome_growth_mult(x, y) * trail_boost * fertility;
                         if rng.gen::<f32>() < grow_rate { grid.set(x, y, Tile::Food); }
                     }

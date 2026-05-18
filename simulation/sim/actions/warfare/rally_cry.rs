@@ -1,4 +1,4 @@
-//! Action 196: rally cry. Strong fear-drop for kin.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

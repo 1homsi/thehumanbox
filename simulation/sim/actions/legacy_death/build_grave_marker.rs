@@ -1,4 +1,4 @@
-//! Action 489: build a grave marker using inv_stone; discover "grave_marking"; emit "build".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

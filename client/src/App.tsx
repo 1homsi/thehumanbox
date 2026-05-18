@@ -16,9 +16,6 @@ import type { OrganismState } from './types'
 import clsx from 'clsx'
 import './App.css'
 
-// 3D world is a separate chunk - 2D-only users never download it.
-// Lazy because @react-three/* + three.js add ~150 KB gzipped that the
-// default 2D path shouldn't pay for.
 const WorldView3D = lazy(() => import('./world/WorldView3D'))
 
 const TILE_FIRE = 4
@@ -38,10 +35,6 @@ function App() {
     }
   }, [world])
 
-  // Body class for 3D-immersive mode so CSS can definitively hide
-  // every panel + sidebar regardless of internal state. Cleaner
-  // than per-component conditionals that can be defeated by
-  // stacking context / z-index quirks.
   useEffect(() => {
     if (viewFlags.threeD && viewFlags.hideUI) {
       document.body.classList.add('thb-3d-immersive')
@@ -51,17 +44,12 @@ function App() {
     return () => { document.body.classList.remove('thb-3d-immersive') }
   }, [viewFlags.threeD, viewFlags.hideUI])
 
-  // Photo mode: hide every chrome element so only the canvas shows.
-  // The header reappears on hover via :hover rule on .header itself,
-  // so the user can still toggle the mode off.
   useEffect(() => {
     if (viewFlags.photoMode) document.body.classList.add('thb-photo-mode')
     else document.body.classList.remove('thb-photo-mode')
     return () => { document.body.classList.remove('thb-photo-mode') }
   }, [viewFlags.photoMode])
 
-  // Color-blind body class so the CSS variables / canvas reads can
-  // also branch on it without each component subscribing.
   useEffect(() => {
     if (viewFlags.colorBlind) document.body.classList.add('thb-colorblind')
     else document.body.classList.remove('thb-colorblind')
@@ -83,10 +71,6 @@ function App() {
   const liveOrgs = useMemo(() => world ? world.organisms.filter(o =>  o.alive) : [], [world])
   const deadOrgs = useMemo(() => world ? world.organisms.filter(o => !o.alive) : [], [world])
 
-  // Random tour: every 8s pick a different alive organism, select it
-  // and follow it. We close over liveOrgs through a ref so the timer
-  // body sees the latest cohort without resetting the interval on
-  // every WS tick.
   const liveOrgsRef = useRef<OrganismState[]>([])
   useEffect(() => { liveOrgsRef.current = liveOrgs }, [liveOrgs])
   useEffect(() => {

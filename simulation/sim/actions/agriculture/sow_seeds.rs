@@ -1,4 +1,4 @@
-//! Action 337: sow seeds into prepared or food-rich ground.
+
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
 

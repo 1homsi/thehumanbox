@@ -1,4 +1,4 @@
-//! Action 280: give inv_wood to a stranger; trust +0.1 toward them.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 279: negotiate with a stranger nearby.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

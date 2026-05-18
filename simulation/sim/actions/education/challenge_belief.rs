@@ -1,4 +1,4 @@
-//! Action 515: challenge a held belief; emit "culture"; discover "critical_inquiry"; own boredom -0.06.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

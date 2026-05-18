@@ -10,16 +10,6 @@ interface Props {
   organisms: OrganismState[]
 }
 
-// Compact info card pinned to the upper-left when an org is
-// selected. Shows the bare essentials so the user can keep flying
-// without opening the sidebar:
-//   - name + lineage colour dot
-//   - thought (live)
-//   - age / generation
-//   - vitals (energy, health, hydration) as tiny bars
-//   - hint to press F to follow, ESC to release
-//
-// Lives outside the R3F Canvas so HTML/CSS handles layout cheaply.
 export function SelectedOrgCard({ organisms }: Props) {
   const selectedOrgId = useUIStore(s => s.selectedOrgId)
   const selectOrg     = useUIStore(s => s.selectOrg)
@@ -36,7 +26,7 @@ export function SelectedOrgCard({ organisms }: Props) {
     cameraCommand.teleport = {
       x: tx * TILE_SCALE,
       y: cameraSnapshot.y,
-      z: ty * TILE_SCALE + 30,    // sit slightly south of org so they're in view
+      z: ty * TILE_SCALE + 30,
     }
   }
 
@@ -81,8 +71,6 @@ function Bar({ label, value, color }: { label: string; value: number; color: str
     </div>
   )
 }
-
-// ── styles ──────────────────────────────────────────────────────────
 
 const wrap: React.CSSProperties = {
   position: 'fixed',

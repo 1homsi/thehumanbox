@@ -14,16 +14,6 @@ interface Props {
   biomes:   number[][]
 }
 
-// Animals split two ways:
-//
-//   1. Foxes (the "dog" kind only) get the real Fox.glb model.
-//      Scale 0.012 so the fox is roughly knee-high on a robot.
-//
-//   2. Every other kind (rabbit, deer, boar, bird, wolf, fish)
-//      gets a procedural primitive shape until we have proper
-//      models. Each kind has its own silhouette so they read
-//      distinct from a distance.
-
 const KIND_TINT: Record<string, string> = {
   rabbit: '#cccccc',
   deer:   '#a8825a',
@@ -39,11 +29,6 @@ function seededYaw(id: number): number {
   return (x / 233280) * Math.PI * 2
 }
 
-// ── Procedural meshes per kind ──────────────────────────────────────────
-// Each function returns a Group containing the kind's silhouette,
-// ready to drop into the scene. They're not animated for now -
-// animation would need rigged GLBs.
-
 function RabbitMesh({ tint }: { tint: string }) {
   return (
     <group>
@@ -55,7 +40,7 @@ function RabbitMesh({ tint }: { tint: string }) {
         <sphereGeometry args={[0.16, 5, 5]} />
         <meshStandardMaterial color={tint} roughness={0.8} />
       </mesh>
-      {/* ears */}
+      {}
       <mesh position={[-0.06, 0.78, 0.04]} rotation={[0.1, 0, -0.15]} castShadow>
         <cylinderGeometry args={[0.025, 0.035, 0.28, 4]} />
         <meshStandardMaterial color={tint} roughness={0.8} />
@@ -71,24 +56,24 @@ function RabbitMesh({ tint }: { tint: string }) {
 function DeerMesh({ tint }: { tint: string }) {
   return (
     <group>
-      {/* body */}
+      {}
       <mesh position={[0, 0.8, 0]} rotation={[0, 0, 0]} castShadow>
         <capsuleGeometry args={[0.28, 0.6, 4, 6]} />
         <meshStandardMaterial color={tint} roughness={0.85} />
       </mesh>
-      {/* legs */}
+      {}
       {[[-0.18, 0.35], [0.18, 0.35], [-0.18, -0.35], [0.18, -0.35]].map(([x, z], i) => (
         <mesh key={i} position={[x, 0.4, z]} castShadow>
           <cylinderGeometry args={[0.06, 0.05, 0.8, 4]} />
           <meshStandardMaterial color="#3a2a1a" roughness={0.85} />
         </mesh>
       ))}
-      {/* head */}
+      {}
       <mesh position={[0, 1.2, 0.4]} castShadow>
         <sphereGeometry args={[0.22, 6, 5]} />
         <meshStandardMaterial color={tint} roughness={0.85} />
       </mesh>
-      {/* antlers */}
+      {}
       <mesh position={[-0.1, 1.5, 0.4]} rotation={[0.4, 0, -0.4]} castShadow>
         <cylinderGeometry args={[0.02, 0.04, 0.35, 3]} />
         <meshStandardMaterial color="#6b4a2a" />
@@ -129,7 +114,7 @@ function BirdMesh({ tint }: { tint: string }) {
         <sphereGeometry args={[0.16, 6, 5]} />
         <meshStandardMaterial color={tint} roughness={0.7} />
       </mesh>
-      {/* wings */}
+      {}
       <mesh position={[-0.18, 1.32, 0]} rotation={[0, 0, 0.3]} castShadow>
         <boxGeometry args={[0.3, 0.04, 0.18]} />
         <meshStandardMaterial color={tint} roughness={0.7} />
@@ -138,7 +123,7 @@ function BirdMesh({ tint }: { tint: string }) {
         <boxGeometry args={[0.3, 0.04, 0.18]} />
         <meshStandardMaterial color={tint} roughness={0.7} />
       </mesh>
-      {/* beak */}
+      {}
       <mesh position={[0, 1.32, 0.16]} rotation={[Math.PI / 2, 0, 0]} castShadow>
         <coneGeometry args={[0.04, 0.1, 4]} />
         <meshStandardMaterial color="#d8a040" />
@@ -164,7 +149,7 @@ function WolfMesh({ tint }: { tint: string }) {
         <sphereGeometry args={[0.17, 6, 5]} />
         <meshStandardMaterial color={tint} roughness={0.85} />
       </mesh>
-      {/* ears */}
+      {}
       <mesh position={[-0.08, 0.92, 0.42]} rotation={[0, 0, -0.3]} castShadow>
         <coneGeometry args={[0.05, 0.12, 3]} />
         <meshStandardMaterial color={tint} />
@@ -180,7 +165,7 @@ function WolfMesh({ tint }: { tint: string }) {
 function FishMesh({ tint }: { tint: string }) {
   return (
     <group>
-      {/* fish only renders if it happens to be near surface */}
+      {}
       <mesh rotation={[Math.PI / 2, 0, 0]} castShadow>
         <coneGeometry args={[0.18, 0.55, 5]} />
         <meshStandardMaterial color={tint} roughness={0.5} />
@@ -199,8 +184,6 @@ function ProceduralAnimal({ id, kind, tint, yaw, depthMap, biomes }: {
 }) {
   const ref = useRef<THREE.Group>(null)
   const lastPos = useRef<[number, number]>([0, 0])
-  // Stable per-animal breathing phase offset so neighbouring animals
-  // don't breathe in unison.
   const breathPhase = useRef(((id * 9301 + 49297) % 1000) / 1000 * Math.PI * 2)
   useEffect(() => {
     if (!ref.current) return
@@ -212,10 +195,6 @@ function ProceduralAnimal({ id, kind, tint, yaw, depthMap, biomes }: {
     const [tx, ty] = getAnimalXY(id)
     const groundY = heightAt(tx, ty, depthMap, biomes)
     ref.current.position.set(tx * TILE_SCALE, groundY, ty * TILE_SCALE)
-    // Prefer the predicted heading from client-side prediction
-    // (smoothed slew toward velocity direction). Falls back to the
-    // raw position-delta heading if the animal isn't moving enough
-    // to trigger the prediction heading update.
     const predicted = getAnimalHeading(id)
     if (predicted !== 0 || (tx === lastPos.current[0] && ty === lastPos.current[1])) {
       ref.current.rotation.y = predicted
@@ -227,8 +206,6 @@ function ProceduralAnimal({ id, kind, tint, yaw, depthMap, biomes }: {
       }
     }
     lastPos.current = [tx, ty]
-    // Idle breathing: subtle Y-axis scale modulation. Tiny amplitude
-    // so it reads as 'alive' not 'inflated'.
     const breath = 1 + Math.sin(t * 2.4 + breathPhase.current) * 0.035
     ref.current.scale.set(1, breath, 1)
   })

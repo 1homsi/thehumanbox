@@ -1,4 +1,4 @@
-//! Action 404: recover from trauma. Low health history; health and comfort restored.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

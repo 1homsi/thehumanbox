@@ -1,4 +1,4 @@
-//! Action 350: ferment grain near fire; comfort +0.04.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

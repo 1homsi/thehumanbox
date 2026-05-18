@@ -1,4 +1,4 @@
-//! Action 173: carve an amphitheater. Needs 1 stone.
+
 
 use super::super::ctx::ActionCtx;
 

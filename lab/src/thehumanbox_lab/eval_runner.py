@@ -11,9 +11,7 @@ from .ollama_client import generate
 from .schemas import ThoughtExample
 from .task_specs import TaskSpec, THOUGHT_V1, compact_response
 
-
 WORD_RE = re.compile(r"[a-z0-9']+")
-
 
 @dataclass(slots=True)
 class EvalPrediction:
@@ -29,10 +27,8 @@ class EvalPrediction:
     def to_row(self) -> dict[str, object]:
         return asdict(self)
 
-
 def normalize_tokens(text: str) -> set[str]:
     return set(WORD_RE.findall(text.lower()))
-
 
 def token_jaccard(left: str, right: str) -> float:
     left_tokens = normalize_tokens(left)
@@ -45,10 +41,8 @@ def token_jaccard(left: str, right: str) -> float:
     union = left_tokens | right_tokens
     return len(overlap) / len(union)
 
-
 def baseline_engine(prompt: str) -> str:
     return predict_thought(prompt)
-
 
 def ollama_engine(
     model: str, temperature: float = 0.2, task_spec: TaskSpec = THOUGHT_V1
@@ -63,7 +57,6 @@ def ollama_engine(
         return compact_response(response, task_spec.max_words)
 
     return run
-
 
 def run_eval(examples: list[ThoughtExample], engine: Callable[[str], str]) -> tuple[dict[str, float], list[EvalPrediction]]:
     predictions: list[EvalPrediction] = []
@@ -93,7 +86,6 @@ def run_eval(examples: list[ThoughtExample], engine: Callable[[str], str]) -> tu
         "avg_predicted_chars": mean(item.predicted_chars for item in predictions) if predictions else 0.0,
     }
     return summary, predictions
-
 
 def run_sweep(
     examples: list[ThoughtExample], engines: dict[str, Callable[[str], str]]

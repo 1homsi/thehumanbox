@@ -1,4 +1,4 @@
-//! Family actions (indices 261..=275).
+
 
 pub mod name_child;
 pub mod birth_ceremony;

@@ -1,9 +1,5 @@
 import { MAX_DEPTH, BIOME_ELEVATION, BIOME_ROUGHNESS, TILE_SCALE, terrainNoise } from './constants'
 
-// Heightfield Y at a tile-grid corner. Mirrors the per-vertex
-// elevation math in Terrain.tsx exactly so anything that needs to
-// sit on the ground gets the same answer the renderer used at the
-// nearest mesh vertex.
 function cornerHeight(
   ix: number, iy: number,
   depthMap: number[][], biomes: number[][],
@@ -19,20 +15,6 @@ function cornerHeight(
   return -depthFrac * MAX_DEPTH
 }
 
-// Terrain Y at a fractional tile coordinate. Reproduces the exact
-// rendered triangle surface from Terrain.tsx so an org at (10.7, 5.3)
-// lands on the slope rather than on the nearest corner alone (which
-// was burying characters under the rendered triangle when their
-// sampled corner happened to be the lowest of the four).
-//
-// Terrain.tsx triangulates each quad as:
-//   tri 1: (x,y), (x,y+1), (x+1,y)           when fx + fy < 1
-//   tri 2: (x+1,y), (x,y+1), (x+1,y+1)       when fx + fy >= 1
-// We use barycentric interpolation against whichever triangle the
-// fractional position falls into.
-//
-// Out-of-bounds: returns sea-level 0 so callers at the world edge
-// don't crash on undefined indexing.
 export function heightAt(
   tileX: number,
   tileY: number,
@@ -55,16 +37,11 @@ export function heightAt(
   const h11 = cornerHeight(x1, y1, depthMap, biomes)
 
   if (fx + fy <= 1) {
-    // Triangle (h00, h10, h01) with bary weights (1-fx-fy, fx, fy).
     return h00 * (1 - fx - fy) + h10 * fx + h01 * fy
   }
-  // Triangle (h10, h01, h11) — rotate barycentric to that corner.
   return h10 * (1 - fy) + h01 * (1 - fx) + h11 * (fx + fy - 1)
 }
 
-// Same as heightAt but takes world units instead of tile coords -
-// the camera operates in world units, this saves the * / TILE_SCALE
-// at every call site.
 export function heightAtWorld(
   worldX: number,
   worldZ: number,

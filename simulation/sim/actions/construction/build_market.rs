@@ -1,4 +1,4 @@
-//! Action 172: set up a market. Needs kin + material.
+
 
 use super::super::ctx::ActionCtx;
 

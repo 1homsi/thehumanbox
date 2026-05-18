@@ -1,4 +1,4 @@
-//! Action 336: plow a grass field to prepare for planting.
+
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
 

@@ -1,4 +1,4 @@
-//! Diplomacy & inter-tribal (indices 90..=95 and 181..=190).
+
 
 pub mod form_alliance;
 pub mod declare_rivalry;

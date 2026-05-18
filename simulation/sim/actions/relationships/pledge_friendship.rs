@@ -1,4 +1,4 @@
-//! Action 233: form a deep trust bond with a nearby kin.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

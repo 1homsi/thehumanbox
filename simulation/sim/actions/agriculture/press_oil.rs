@@ -1,4 +1,4 @@
-//! Action 349: press oil from food using stone.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

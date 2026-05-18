@@ -1,5 +1,4 @@
-//! Action 177: cut an irrigation canal. Bumps fertility in a 7x7
-//! patch and lays a path trail.
+
 
 use crate::world::grid::{TrailKind, WorldGrid};
 use crate::world::tiles::Tile;

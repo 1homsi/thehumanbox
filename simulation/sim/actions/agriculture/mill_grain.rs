@@ -1,4 +1,4 @@
-//! Action 342: mill grain using a stone grindstone.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

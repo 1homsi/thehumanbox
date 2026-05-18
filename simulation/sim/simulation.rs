@@ -14,8 +14,6 @@ use super::spatial::SpatialIndex;
 
 pub const SAVE_SCHEMA_VERSION: u32 = 2;
 
-// ── Public types ─────────────────────────────────────────────────────────────
-
 #[derive(Default, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct StoryEntry {
@@ -42,8 +40,6 @@ pub struct ThinkTrigger {
     pub other_name:        Option<String>,
     pub other_discoveries: Vec<String>,
     pub target_org_id:     Option<String>,
-    // Organism traits - used by local resolver to make classification decisions
-    // without calling Groq (only elder_teaching needs the real LLM).
     pub aggression:        f32,
     pub fear:              f32,
     pub social_tendency:   f32,
@@ -61,8 +57,6 @@ impl Default for ThinkTrigger {
             life_log_top: Vec::new(), emotional_state: String::new(),
             other_name: None, other_discoveries: Vec::new(),
             target_org_id: None,
-            // Middle-of-the-road defaults - push sites set these to real values
-            // for accurate weighting; 0.5 gives a neutral balanced distribution.
             aggression: 0.5, fear: 0.5, social_tendency: 0.5,
             curiosity: 0.5, resilience: 0.5,
         }
@@ -70,7 +64,6 @@ impl Default for ThinkTrigger {
 }
 
 impl ThinkTrigger {
-    /// Copy real trait values from a live organism into the trigger.
     pub fn with_traits(mut self, org: &Organism) -> Self {
         self.aggression      = org.traits.aggression;
         self.fear            = org.traits.fear;
@@ -116,8 +109,6 @@ pub struct EraEntry {
     pub era:  String,
 }
 
-// ── Simulation ────────────────────────────────────────────────────────────────
-
 pub struct Simulation {
     pub grid:                  WorldGrid,
     pub physics:               PhysicsEngine,
@@ -131,38 +122,26 @@ pub struct Simulation {
     pub flood_tiles:           Vec<(i32, i32, u64)>,
     pub story_history:         VecDeque<StoryEntry>,
     pub pending_thinks:        Vec<ThinkTrigger>,
-    pub lineage_names:         HashMap<String, String>,  // lineage_id → tribe name
+    pub lineage_names:         HashMap<String, String>,
     pub lineage_strategies:    HashMap<String, (String, u64)>,
     pub(crate) lineage_last_council: HashMap<String, u64>,
     pub(crate) lineage_elders:       HashMap<String, String>,
     pub(crate) lineage_negotiations: HashMap<(String,String), u64>,
     pub pop_history:           VecDeque<[u64; 2]>,
-    // Lineage centroid history. One sample (tick, cx, cy) per lineage per
-    // sim-day (every 600 ticks), capped at 60 samples (~2 sim-months) per
-    // lineage. Foundation for regional oral history and historical-geography
-    // UI - a tribe that's drifted 200 tiles across its lifetime can have
-    // that drift visualised as a trail.
     pub lineage_centroid_history: HashMap<String, VecDeque<[i32; 3]>>,
     pub current_era:           String,
-    pub sex_words:             [String; 2],  // [0]=word for Male, [1]=word for Female - coined by founding generation
-    pub world_seed:            u64,          // seed used for this world's terrain - persisted so depth/elevation reload correctly
+    pub sex_words:             [String; 2],
+    pub world_seed:            u64,
     pub(crate) next_animal_id: usize,
     pub(crate) rng:            ChaCha8Rng,
     pub last_immigration_tick: u64,
-    // ── Throttled-computation cache ─────────────────────────────────────────
-    // These are derived from organism data; not saved, recomputed every N ticks.
     pub(crate) cached_tribal_relations: serde_json::Value,
     pub(crate) cached_lineage_sizes:    serde_json::Value,
     pub(crate) slow_compute_tick:       u64,
-    // ── Hot-set for non-zero structure tiles ───────────────────────────────
     pub(crate) active_structure_tiles: HashSet<(i32, i32)>,
-    // ── Emergent settlement tiers ──────────────────────────────────────────
-    // lineage_id → highest settlement tier reached (0=none .. 5=city).
-    // Derived from clustered structure tiles; not saved, recomputed.
     pub(crate) settlement_tiers: HashMap<String, u8>,
 }
 
-// Returns the possible inventions given current discoveries (prerequisites already met)
 fn invention_candidates(discoveries: &HashSet<String>) -> Vec<&'static str> {
     let has = |s: &str| discoveries.contains(s);
     let mut v = Vec::new();
@@ -189,8 +168,6 @@ impl Simulation {
         let grid = WorldGrid::new(seed);
         let physics = PhysicsEngine::new();
 
-        // Generate the two sex-category words from organism phoneme pool.
-        // The founding generation "coins" these - they are the culture's own names.
         let sex_words = {
             use crate::organism::vocabulary::gen_phoneme_word;
             use rand::SeedableRng;
@@ -241,15 +218,9 @@ impl Simulation {
         self.pending_thinks.push(trigger.with_traits(&self.organisms[org_idx]));
     }
 
-    // ── Tick ──────────────────────────────────────────────────────────────────
-
     pub fn tick(&mut self) {
         self.tick_count += 1;
 
-        // Memory heartbeat every 6000 ticks (~1 sim-day, ~10 min real
-        // time). Printed to stdout so it lands in journalctl alongside
-        // the rest of the process output. Used to spot Q-table or
-        // memory-map creep BEFORE the 2 GB EC2 OOM-kills the process.
         if self.tick_count % 6000 == 0 {
             let alive = self.organisms.iter().filter(|o| o.alive).count();
             let q_rows: usize = self.organisms.iter()
@@ -280,8 +251,6 @@ impl Simulation {
             self.physics.tick(&mut self.grid, &mut self.rng, self.weather.kind, wet);
         }
 
-        // Clear daily life-log at dawn (dawn/dusk/season no longer pushed to event buffer
-        // - they crowded out real events since dawn fires every 3 min real-time)
         let phase = self.tick_count % DAY_LENGTH;
         if phase == 0 {
             for org in &mut self.organisms {
@@ -289,7 +258,6 @@ impl Simulation {
             }
         }
 
-        // Collect event/history refs via pointer gymnastics - easiest to just clone when needed
         let season_str = season.to_string();
         tick_drought(
             &mut self.drought,
@@ -335,12 +303,10 @@ impl Simulation {
             );
         }
 
-        // World memory layer decay - fertility recovers, hazard & pressure fade
         if self.tick_count % 500 == 0 {
             self.grid.decay_world_layers();
         }
 
-        // World era detection - track historical periods
         if self.tick_count % 1200 == 0 {
             let new_era = self.compute_era();
             if new_era != self.current_era {
@@ -357,17 +323,13 @@ impl Simulation {
             }
         }
 
-        // Emergent settlement growth - clustered structures become camps,
-        // hamlets, villages, towns and cities as a lineage builds up.
         if self.tick_count % 1200 == 600 {
             self.tick_settlements();
         }
 
-        // Pregnancy deliveries - check every tick for due mothers
         growth::deliver_births(&mut self.organisms, self.tick_count,
                                &mut self.events, &mut self.history);
 
-        // Track population once per in-world day
         if self.tick_count % DAY_LENGTH == 0 {
             let alive = self.organisms.iter().filter(|o| o.alive).count() as u64;
             self.pop_history.push_back([self.tick_count, alive]);
@@ -375,17 +337,10 @@ impl Simulation {
             self.sample_lineage_centroids();
         }
 
-        // Regional oral history. Every ~60 ticks, scan a few random orgs
-        // for proximity to an OLD centroid of their own lineage. If an
-        // org wanders within a few tiles of where their tribe lived
-        // many generations ago, set a thought - the world feels lived-in
-        // when a passing org thinks "this was our grandparents' camp".
         if self.tick_count % 60 == 0 && !self.lineage_centroid_history.is_empty() {
             self.tick_ancestral_recognition();
         }
 
-        // ── Elder recomputation ───────────────────────────────────────────────
-        // The oldest living organism per lineage is the elder - tribal memory keeper.
         if self.tick_count % 200 == 0 {
             let mut candidates: HashMap<String, (String, u32)> = HashMap::new();
             for org in self.organisms.iter().filter(|o| o.alive) {
@@ -405,25 +360,11 @@ impl Simulation {
 
         let alive_count_before_loop = self.organisms.iter().filter(|o| o.alive).count();
 
-        // Per-lineage alive counts, computed once per tick. Birth decisions
-        // consult this to enforce a per-lineage population cap (see
-        // growth::try_reproduce). O(N) once is cheaper than O(N) inside
-        // every per-organism reproduction check.
         let mut lineage_counts: HashMap<String, usize> = HashMap::new();
         for o in self.organisms.iter().filter(|o| o.alive) {
             *lineage_counts.entry(o.lineage_id.clone()).or_insert(0) += 1;
         }
 
-        // Recovery from a crashed world. Previously immigration only
-        // kicked in below 50 alive on a 300-tick cooldown, which left
-        // a "dead zone" at 50-80 where the world flatlined: too few
-        // breeding adults to grow naturally, too many alive to trigger
-        // fresh immigrants. Two tiers now:
-        //   - <60 alive: aggressive, every 200 ticks (~20s wall). The
-        //     world is collapsing - flood it with young new tribes.
-        //   - <100 alive: gentle, every 600 ticks (~60s wall). The
-        //     world is greying - keep a trickle of new tribes so the
-        //     age pyramid doesn't get top-heavy.
         let immig_cooldown = if alive_count_before_loop < 60 {
             Some(200u64)
         } else if alive_count_before_loop < 100 {
@@ -438,17 +379,12 @@ impl Simulation {
             }
         }
 
-        // Build a spatial index over current organism positions once per tick.
-        // Per-organism proximity scans (kin_near, hostile_near, crowding, etc.) then run
-        // in O(neighbours_in_bucket) instead of O(N) per call. Bucket size 10 is a good
-        // fit for the radius-5-to-12 queries we do - most lookups touch a 3×3 block.
         let spatial = SpatialIndex::build(&self.organisms, 10);
         for i in 0..self.organisms.len() {
             if self.organisms[i].alive {
                 let prev_len = self.organisms.len();
                 self.tick_organism(i, alive_count_before_loop, &lineage_counts, &spatial);
 
-                // Post-birth: if a child was just born, seed it with elder knowledge
                 if self.organisms.len() > prev_len {
                     let child_idx = self.organisms.len() - 1;
                     let child_lid = self.organisms[child_idx].lineage_id.clone();
@@ -470,7 +406,6 @@ impl Simulation {
                                     }
                                 }
 
-                                // Elder oral tradition: LLM generates a teaching from elder's lived experience
                                 if !self.organisms[epos].life_log.is_empty() {
                                     let elder_name = self.organisms[epos].name.clone();
                                     let elder_id   = self.organisms[epos].id.clone();
@@ -497,15 +432,6 @@ impl Simulation {
             }
         }
 
-        // Update smoothed per-organism velocities for the WS lookahead
-        // projection. Exponential moving average so transient
-        // jitter (find-best-move flip-flops) doesn't make positions
-        // shimmy in the rendered frame, and so a sudden teleport
-        // (fork, immigrant spawn) decays naturally over the next few
-        // ticks instead of locking in a huge predicted velocity.
-        // Clamp to a sane per-tick max - real organisms move <2 tiles
-        // per tick under any circumstance; anything larger is a
-        // teleport and should not project forward.
         const VEL_EMA_ALPHA: f32 = 0.4;
         const MAX_PER_TICK:  f32 = 2.0;
         for o in self.organisms.iter_mut() {
@@ -515,8 +441,6 @@ impl Simulation {
             o.prev_x = o.x;
             o.prev_y = o.y;
             if inst_vx.abs() > MAX_PER_TICK || inst_vy.abs() > MAX_PER_TICK {
-                // Teleport detected - reset velocity to zero so the
-                // lookahead doesn't fling the org across the map.
                 o.vx_smooth = 0.0;
                 o.vy_smooth = 0.0;
                 continue;
@@ -525,29 +449,13 @@ impl Simulation {
             o.vy_smooth = VEL_EMA_ALPHA * inst_vy + (1.0 - VEL_EMA_ALPHA) * o.vy_smooth;
         }
 
-        // Genealogy-preserving archive policy.
-        // The most recent ~300 dead organisms keep their full state so the UI
-        // can show their memories, q-tables, life logs, etc. Older dead are
-        // compressed - heavy fields cleared but the skeleton (id, name,
-        // lineage_id, parent_id, father_id, generation, traits, age, max_age)
-        // is preserved so the family tree and lineage archaeology remain intact.
-        // After ~10000 compressed, the oldest are hard-deleted to bound RAM.
         if self.tick_count % 1200 == 0 {
-            // Step 1: compress dead beyond the recent window
             let dead_count = self.organisms.iter().filter(|o| !o.alive).count();
             const RECENT_DEAD_FULL: usize = 300;
-            // Dropped from 10_000 -> 3_000 to fit the c7g.medium memory
-            // budget. Each compressed dead org still holds id/name/traits/
-            // generation/age (~200B) - 10k of them was ~2 MB of archive
-            // tail before, plus HashMap overhead. 3k is enough to keep
-            // multi-generation lineage history visible in chronicles
-            // without hauling truly ancient ancestors around forever.
             const MAX_ARCHIVE: usize       = 3_000;
             if dead_count > RECENT_DEAD_FULL {
                 let to_compress = dead_count - RECENT_DEAD_FULL;
                 let mut compressed = 0usize;
-                // Compress oldest-first (front of vec). Skip already-compressed
-                // organisms (q_table empty == previously compressed).
                 for o in self.organisms.iter_mut() {
                     if compressed >= to_compress { break; }
                     if !o.alive && !o.q_table.is_empty() {
@@ -556,7 +464,6 @@ impl Simulation {
                     }
                 }
             }
-            // Step 2: hard-delete only when the archive itself overflows
             let dead_now = self.organisms.iter().filter(|o| !o.alive).count();
             if dead_now > MAX_ARCHIVE {
                 let excess = dead_now - MAX_ARCHIVE;
@@ -572,9 +479,6 @@ impl Simulation {
         self.tick_animals();
         self.check_animal_catches();
 
-        // ── Structure decay and tile transitions ──────────────────────────────
-        // Structures decay passively; organisms must place material to maintain them.
-        // Transition: structure >= 0.85 auto-upgrades tile to Hut, below 0.1 demotes Hut to Ash.
         {
             let storm = self.weather.kind >= 2;
             let decay = if storm { 0.00025 } else { 0.000025 };
@@ -604,18 +508,13 @@ impl Simulation {
                      lineage_counts: &HashMap<String, usize>,
                      spatial: &SpatialIndex) {
         let night   = self.is_night();
-        // Lowered ceiling + floor: previously 0.50/0.12 meant a young org
-        // re-rolled a random direction every other tick, which read as the
-        // organism jittering back and forth instead of moving with purpose.
         let epsilon = (0.30 - self.organisms[idx].age as f32 * 0.00005).max(0.08);
 
         let prev_energy    = self.organisms[idx].energy;
         let prev_hydration = self.organisms[idx].hydration;
 
-        // ── Inner emotional state ─────────────────────────────────────────────
         {
             let org = &self.organisms[idx];
-            // Spatial-indexed kin scan: O(bucket) instead of O(N)
             let kin_near = spatial.query(org.x as i32, org.y as i32, 5)
                 .into_iter()
                 .filter(|&i| {
@@ -645,7 +544,6 @@ impl Simulation {
             self.organisms[idx].tick_inner_state(kin_near, near_shelter, hostile_near, weather_kind, tick_now, night);
         }
 
-        // ── Territory defense - organisms near their elder's home grow hostile toward intruders ──
         {
             let my_lid = self.organisms[idx].lineage_id.clone();
             let intruders: Vec<String> = if let Some(elder_id) = self.lineage_elders.get(&my_lid) {
@@ -720,7 +618,6 @@ impl Simulation {
                 self.organisms[idx].y = ny as f32;
                 self.grid.leave_trail(nx, ny, TrailKind::Path, 0.06);
                 self.grid.stamp_pressure(nx, ny);
-                // Farmers passively cultivate parched land they walk through
                 let has_farming = self.organisms[idx].discoveries.contains("farm");
                 if has_farming {
                     let fidx = WorldGrid::idx(nx, ny);
@@ -799,7 +696,6 @@ impl Simulation {
                 self.organisms[idx].log_event(
                     format!("shared knowledge with kin near ({},{})", ix, iy));
 
-                // Negotiation: when an established cross-lineage relationship hits a trust threshold
                 let actor_lid = self.organisms[idx].lineage_id.clone();
                 let neg_target: Option<(usize, String)> = self.organisms.iter().enumerate()
                     .filter(|(i, o)| *i != idx && o.alive && o.lineage_id != actor_lid)
@@ -841,15 +737,13 @@ impl Simulation {
                 }
             }
         } else if action == 14 {
-            // Gather materials - stone from Rock adjacency, wood/organic otherwise
             if self.organisms[idx].carrying == 0 {
                 let tile = self.grid.get(ix, iy);
-                // Check if any adjacent tile is Rock → gather stone
                 let rock_near = [(-1,0),(1,0),(0,-1),(0,1),(-1,-1),(1,-1),(-1,1),(1,1)]
                     .iter().any(|&(dx, dy)| matches!(self.grid.get(ix+dx, iy+dy), Tile::Rock));
                 if rock_near {
                     self.organisms[idx].carrying      = 200;
-                    self.organisms[idx].carrying_type = 2; // stone
+                    self.organisms[idx].carrying_type = 2;
                     signal_reward += 0.004;
                     self.organisms[idx].think("gathering stone", self.tick_count);
                     let name = self.organisms[idx].name.clone();
@@ -858,14 +752,13 @@ impl Simulation {
                     }
                 } else if matches!(tile, Tile::Grass | Tile::Food) {
                     self.organisms[idx].carrying      = 250;
-                    self.organisms[idx].carrying_type = 1; // wood/organic
+                    self.organisms[idx].carrying_type = 1;
                     signal_reward += 0.004;
                     self.organisms[idx].think("gathering wood", self.tick_count);
                     self.organisms[idx].discover("wood");
                 }
             }
         } else if action == 15 {
-            // Light a campfire - only organic/wood fuel works, not stone
             let tile = self.grid.get(ix, iy);
             if self.organisms[idx].carrying > 0
                && self.organisms[idx].carrying_type != 2
@@ -883,7 +776,6 @@ impl Simulation {
                 push_event(&mut self.events, self.tick_count, "build", &name, "lit a campfire");
                 if self.organisms[idx].discover("fire") {
                     push_event(&mut self.events, self.tick_count, "build", &name, "discovered fire");
-                    // Trigger discovery think
                     self.push_think_for(idx, ThinkTrigger {
                         org_id:     self.organisms[idx].id.clone(),
                         org_name:   self.organisms[idx].name.clone(),
@@ -896,14 +788,11 @@ impl Simulation {
                 }
             }
         } else if action == 16 {
-            // Groom: reduces infection spread between kin, deepens trust
             if self.tick_count - self.organisms[idx].last_groomed >= 60 {
                 signal_reward += social::groom(idx, &mut self.organisms,
                                                self.tick_count, &mut self.events);
             }
         } else if action == 18 {
-            // DIG: break open the ground. In sand it can strike water;
-            // on soil it loosens and enriches the earth for future food.
             let tile = self.grid.get(ix, iy);
             match tile {
                 Tile::Sand => {
@@ -934,7 +823,6 @@ impl Simulation {
             }
             self.organisms[idx].energy = (self.organisms[idx].energy - 0.004).max(0.0);
         } else if action == 19 {
-            // FORAGE: comb the brush for wild food. Fertile ground yields more.
             let fi = WorldGrid::idx(ix, iy);
             let fert = self.grid.fertility[fi];
             if matches!(self.grid.get(ix, iy), Tile::Grass)
@@ -954,7 +842,6 @@ impl Simulation {
             }
             self.organisms[idx].energy = (self.organisms[idx].energy - 0.003).max(0.0);
         } else if action == 20 {
-            // DANCE: a social ritual that lifts the spirits of nearby kin.
             let lid = self.organisms[idx].lineage_id.clone();
             let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
             let kin: Vec<usize> = self.organisms.iter().enumerate()
@@ -981,8 +868,6 @@ impl Simulation {
                 self.organisms[idx].comfort = (self.organisms[idx].comfort + 0.02).min(1.0);
             }
         } else if action == 21 {
-            // SING: carry a vocabulary word on the air; listeners absorb it
-            // and are soothed.
             let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
             let my_vocab = self.organisms[idx].vocabulary.clone();
             let listeners: Vec<usize> = self.organisms.iter().enumerate()
@@ -1003,7 +888,6 @@ impl Simulation {
                 }
             }
         } else if action == 22 {
-            // REFLECT: a quiet moment that settles fear, grief and boredom.
             let o = &mut self.organisms[idx];
             o.fear_level = (o.fear_level - 0.06).max(0.0);
             o.boredom    = (o.boredom - 0.04).max(0.0);
@@ -1013,7 +897,6 @@ impl Simulation {
             o.think("reflecting quietly", self.tick_count);
             signal_reward += 0.002;
         } else if action == 23 {
-            // STOCKPILE: carry food away from the tile to eat later.
             if self.grid.get(ix, iy) == Tile::Food && self.organisms[idx].carry_room() > 0 {
                 self.organisms[idx].inv_food = self.organisms[idx].inv_food.saturating_add(1);
                 self.grid.set(ix, iy, Tile::Grass);
@@ -1026,7 +909,6 @@ impl Simulation {
                 }
             }
         } else if action == 24 {
-            // SCOUT: study the surroundings, committing resources to memory.
             let ms = self.organisms[idx].traits.memory_strength;
             let mut found = 0;
             for dx in -10..=10 {
@@ -1048,31 +930,22 @@ impl Simulation {
             if found > 0 { signal_reward += 0.003; }
             self.organisms[idx].energy = (self.organisms[idx].energy - 0.002).max(0.0);
         } else if action == 25 {
-            // MARK TERRITORY: lay a strong trail and a small structural marker.
             self.grid.leave_trail(ix, iy, TrailKind::Path, 1.5);
             self.grid.add_structure(ix, iy, 0.02);
             self.active_structure_tiles.insert((ix, iy));
             self.organisms[idx].think("marking territory", self.tick_count);
             signal_reward += 0.002;
         } else if action >= 26 {
-            // Extended action set (26..=225). Dispatched through the
-            // per-action files under sim/actions/. Each action's logic
-            // lives in its own file.
             if let Some(r) = super::actions::try_apply(self, idx, action, ix, iy) {
                 signal_reward += r;
-                // Per-action energy decrement that the legacy giant
-                // match applied at its tail. Keeps tick energetics
-                // identical to pre-refactor behaviour.
                 self.organisms[idx].energy =
                     (self.organisms[idx].energy - 0.0015).max(0.0);
             }
         }
 
-        // Re-read current tile after move
         let (cx, cy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
         let current_tile = self.grid.get(cx, cy);
 
-        // ── Fire damage ───────────────────────────────────────────────────────
         if current_tile == Tile::Fire {
             let fire_dmg = 0.08 * (1.5 - self.organisms[idx].traits.resilience);
             let fire_dmg = if night { fire_dmg * 0.5 } else { fire_dmg };
@@ -1089,7 +962,6 @@ impl Simulation {
             }
         }
 
-        // ── Passive memory from standing tile ─────────────────────────────────
         if current_tile == Tile::Water {
             let ms = self.organisms[idx].traits.memory_strength;
             Organism::remember(&mut self.organisms[idx].water_memory, cx, cy, 0.2, ms);
@@ -1099,10 +971,6 @@ impl Simulation {
             Organism::remember(&mut self.organisms[idx].food_memory, cx, cy, 0.2, ms);
         }
 
-        // ── Vital drain (applied after shelter bonuses below) ────────────────
-        // Moved after the shelter_strength computation so shelter can reduce drain.
-
-        // ── Carrying decay ────────────────────────────────────────────────────
         if self.organisms[idx].carrying > 0 {
             self.organisms[idx].carrying -= 1;
             if self.organisms[idx].carrying == 0 {
@@ -1110,19 +978,15 @@ impl Simulation {
             }
         }
 
-        // ── Passive structure accumulation (stigmergy) ────────────────────────
-        // Organisms carrying materials deposit traces wherever they spend time.
-        // No "build" intent - shelter emerges from where they live with their load.
-        // Stone deposits more durable traces than wood.
         if self.organisms[idx].carrying > 0 {
             let tile = self.grid.get(cx, cy);
             if matches!(tile, Tile::Grass | Tile::Food | Tile::Ash | Tile::Hut | Tile::Snow | Tile::Sand) {
                 let prev_s = self.grid.structure_at(cx, cy);
                 let has_masonry = self.organisms[idx].discoveries.contains("masonry");
                 let deposit = match (self.organisms[idx].carrying_type, has_masonry) {
-                    (2, true)  => 0.0090, // stone + masonry knowledge
-                    (2, false) => 0.0060, // stone
-                    _          => 0.0035, // wood
+                    (2, true)  => 0.0090,
+                    (2, false) => 0.0060,
+                    _          => 0.0035,
                 };
                 self.grid.add_structure(cx, cy, deposit);
                 self.active_structure_tiles.insert((cx, cy));
@@ -1130,7 +994,6 @@ impl Simulation {
                 let name = self.organisms[idx].name.clone();
                 if prev_s < 0.35 && new_s >= 0.35 {
                     push_event(&mut self.events, self.tick_count, "build", &name, "a crude shelter took shape");
-                    // Shelter discovery fires at crude-shelter threshold - more achievable
                     if self.organisms[idx].discover("shelter") {
                         push_event(&mut self.events, self.tick_count, "build", &name, "understood shelter");
                         let lid = self.organisms[idx].lineage_id.clone();
@@ -1148,9 +1011,6 @@ impl Simulation {
             }
         }
 
-        // ── Shelter & settlement bonuses ─────────────────────────────────────
-        // Shelter is a genuine survival anchor: it reduces drain, accelerates recovery,
-        // speeds infection clearance, and stabilises emotional state.
         let shelter_strength = {
             let mut s = 0.0f32;
             'sw: for ddx in -3i32..=3 {
@@ -1166,32 +1026,23 @@ impl Simulation {
             s
         };
         if shelter_strength > 0.0 {
-            // Energy regeneration (scales with shelter quality)
             let energy_bonus = 0.0008 + shelter_strength * 0.0022;
             self.organisms[idx].energy = (self.organisms[idx].energy + energy_bonus).min(1.0);
 
-            // Reduce energy drain (combat cold/exhaustion passively)
-            // (Applied as a negative to the drain that happens below - we note this here
-            //  and account for it by not re-draining the recovered amount)
-
-            // Health regeneration - shelter lets the body heal even when not perfectly nourished
             let health_regen = 0.0006 + shelter_strength * 0.0010;
             self.organisms[idx].health = (self.organisms[idx].health + health_regen).min(1.0);
 
-            // Infection clearance boost - dry, safe environment fights sickness
             if self.organisms[idx].infection > 0.01 {
-                let inf_mult = 0.992 - shelter_strength * 0.006; // up to 3× faster clearance
+                let inf_mult = 0.992 - shelter_strength * 0.006;
                 self.organisms[idx].infection =
                     (self.organisms[idx].infection * inf_mult.max(0.980)).max(0.0);
             }
 
-            // Fear stabilisation near home
             if self.organisms[idx].fear_level > 0.0 {
                 self.organisms[idx].fear_level =
                     (self.organisms[idx].fear_level - shelter_strength * 0.008).max(0.0);
             }
 
-            // Grief recovery faster under roof
             if self.organisms[idx].grief_ticks > 0 && self.rng.gen::<f32>() < shelter_strength * 0.12 {
                 self.organisms[idx].grief_ticks =
                     self.organisms[idx].grief_ticks.saturating_sub(3);
@@ -1199,9 +1050,6 @@ impl Simulation {
 
         }
 
-        // ── Vital drain ───────────────────────────────────────────────────────
-        // Shelter reduces metabolic energy drain (warmth, rest, protection from elements).
-        // Hydration is unaffected - organisms still need water regardless of shelter.
         let shelter_drain_mult = if shelter_strength > 0.0 {
             (1.0 - shelter_strength * 0.35).max(0.65)
         } else {
@@ -1218,7 +1066,6 @@ impl Simulation {
         self.organisms[idx].energy    = (self.organisms[idx].energy    - 0.0022 * shelter_drain_mult).max(0.0);
         self.organisms[idx].hydration = (self.organisms[idx].hydration - 0.0014 * hydration_mult).max(0.0);
 
-        // Auto-sip from canteen when parched. One unit per ~30s of thirst.
         if self.organisms[idx].hydration < 0.55 && self.organisms[idx].inv_water > 0
             && self.tick_count % 8 == 0
         {
@@ -1226,7 +1073,6 @@ impl Simulation {
             self.organisms[idx].hydration = (self.organisms[idx].hydration + 0.18).min(1.0);
         }
 
-        // Auto-eat from stored food when hungry - the payoff for stockpiling.
         if self.organisms[idx].energy < 0.45 && self.organisms[idx].inv_food > 0
             && self.tick_count % 6 == 0
         {
@@ -1237,22 +1083,18 @@ impl Simulation {
         self.apply_water_fatigue(idx, cx, cy);
         if night {
             let has_torch = self.organisms[idx].discoveries.contains("torch");
-            // Shelter also halves night cold-drain - a roof keeps warmth in
             let night_base = if has_torch { 0.0002 } else { 0.0005 };
             let night_drain = night_base * shelter_drain_mult;
             self.organisms[idx].energy = (self.organisms[idx].energy - night_drain).max(0.0);
         }
 
-        // ── Temperature stress ────────────────────────────────────────────────
         let temp = self.grid.temp_at(cx, cy);
         let resilience = self.organisms[idx].traits.resilience;
         if temp < 10.0 || temp > 30.0 {
             let stress = if temp < 10.0 { (10.0 - temp) / 40.0 } else { (temp - 30.0) / 70.0 };
-            // Shelter insulates: strong roof blocks up to 60% of thermal stress
             let temp_shelter = 1.0 - shelter_strength * 0.60;
             let drain = stress * 0.003 * (1.1 - resilience * 0.2) * temp_shelter;
             self.organisms[idx].energy = (self.organisms[idx].energy - drain).max(0.0);
-            // Extreme heat also drains hydration faster - but shade helps
             if temp > 40.0 {
                 self.organisms[idx].hydration = (self.organisms[idx].hydration - drain * 0.5).max(0.0);
             }
@@ -1271,7 +1113,6 @@ impl Simulation {
             self.organisms[idx].infection *= 0.997;
         }
 
-        // Medicine discovery speeds infection recovery
         if self.organisms[idx].infection > 0.01 {
             let med_mult = if self.organisms[idx].discoveries.contains("medicine") {
                 0.990
@@ -1281,9 +1122,6 @@ impl Simulation {
             self.organisms[idx].infection = (self.organisms[idx].infection * med_mult).max(0.0);
         }
 
-        // ── Passive kin water sharing ─────────────────────────────────────────
-        // The canteen analogue of food sharing - an organism with full
-        // canteens slips a sip to a parched same-lineage neighbour.
         if self.organisms[idx].inv_water >= 2 && self.tick_count % 7 == (idx as u64 % 7) {
             let lid = self.organisms[idx].lineage_id.clone();
             let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
@@ -1301,12 +1139,6 @@ impl Simulation {
             }
         }
 
-        // ── Firelight storytelling ────────────────────────────────────────────
-        // At night near a campfire, kin exchange memory hints with each
-        // other. Real human behaviour: the campfire is where the tribe
-        // pools knowledge of where water flows, where game grazes, where
-        // the predator passed. Much weaker than the elder-teach pathway
-        // and limited to one exchange per organism per tick.
         if night && self.tick_count % 17 == (idx as u64 % 17) {
             let (sx, sy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
             let near_fire = (-2i32..=2).any(|ddx| (-2i32..=2).any(|ddy| {
@@ -1333,12 +1165,6 @@ impl Simulation {
             }
         }
 
-        // ── Passive kin food sharing ──────────────────────────────────────────
-        // When a well-fed organism stands within two tiles of a kin who's
-        // about to starve, slip them a portion. This is what a real human
-        // tribe does at the margin - the strong feed the weak. Capped to
-        // one transfer per tick and gated on the donor's reserves so the
-        // donor doesn't tank their own survival.
         if self.organisms[idx].energy > 0.75 && self.tick_count % 5 == (idx as u64 % 5) {
             let lid = self.organisms[idx].lineage_id.clone();
             let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
@@ -1363,7 +1189,6 @@ impl Simulation {
             }
         }
 
-        // Trap: passive food capture near food trails for orgs with trap knowledge
         if self.organisms[idx].discoveries.contains("trap") {
             let (cx2, cy2) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
             let food_trail = self.grid.detect_trail(cx2, cy2, TrailKind::Food, 3);
@@ -1375,7 +1200,6 @@ impl Simulation {
             }
         }
 
-        // Ritual discovery: near campfire at night → comfort and morale bonus
         if night && self.organisms[idx].discoveries.contains("ritual") {
             let (cx2, cy2) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
             let near_fire = (-3i32..=3).any(|ddx| (-3i32..=3).any(|ddy| {
@@ -1387,14 +1211,13 @@ impl Simulation {
             }
         }
 
-        // Background pathogen - wetlands amplify disease spread (stagnant water, humidity)
         {
             use crate::world::tiles::Biome;
             let biome = self.grid.biome_at(
                 self.organisms[idx].x as i32, self.organisms[idx].y as i32);
             let pathogen_rate = match biome {
-                Biome::Wetland => 0.00050, // 4× - disease swamps
-                Biome::Volcanic => 0.00020, // toxic fumes
+                Biome::Wetland => 0.00050,
+                Biome::Volcanic => 0.00020,
                 _ => 0.00012,
             };
             if self.organisms[idx].infection < 0.05 && self.rng.gen::<f32>() < pathogen_rate {
@@ -1403,7 +1226,6 @@ impl Simulation {
             }
         }
 
-        // ── Infection spread ──────────────────────────────────────────────────
         if self.organisms[idx].infection < 0.8 {
             let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
             let spreaders: Vec<(f32, f32, f32)> = spatial.query(sx as i32, sy as i32, 2)
@@ -1428,7 +1250,6 @@ impl Simulation {
             }
         }
 
-        // ── Regen / senescence ────────────────────────────────────────────────
         let senescence_start = if self.organisms[idx].max_age > 0 {
             (self.organisms[idx].max_age as f32 * 0.65) as u32
         } else {
@@ -1451,12 +1272,10 @@ impl Simulation {
             self.organisms[idx].decay_memory();
         }
 
-        // ── Reward computation ────────────────────────────────────────────────
         let mut reward = (self.organisms[idx].energy    - prev_energy)    * 2.0
                        + (self.organisms[idx].hydration - prev_hydration) * 2.0;
         if current_tile == Tile::Fire { reward -= 0.5; }
 
-        // Kin proximity reward
         let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
         let lineage  = self.organisms[idx].lineage_id.clone();
         let soc      = self.organisms[idx].traits.social_tendency;
@@ -1469,10 +1288,8 @@ impl Simulation {
                     && (o.x - ox).abs() + (o.y - oy).abs() <= 4.0
             })
             .count();
-        // Cap at 1 nearby kin for social reward - beyond that, no extra benefit
         reward += 0.004 * (kin_count.min(1) as f32) * (0.5 + soc);
 
-        // Crowding penalty - quadratic past 2, gets painful fast
         let crowding = spatial.query(ox as i32, oy as i32, 3)
             .into_iter()
             .filter(|&i| {
@@ -1486,7 +1303,6 @@ impl Simulation {
             reward -= 0.006 * excess * excess;
         }
 
-        // Stranger attitude reward
         let att_adjustments: Vec<(usize, f32)> = self.organisms.iter().enumerate()
             .filter(|(i, o)| *i != idx && o.alive && o.lineage_id != lineage)
             .filter(|(_, o)| (o.x - ox).abs() + (o.y - oy).abs() <= 4.0)
@@ -1506,7 +1322,6 @@ impl Simulation {
             if att >= 0.25 {
                 let lid = self.organisms[i].lineage_id.clone();
                 self.organisms[idx].update_attitude(&lid, 0.001);
-                // passive knowledge spread
                 if self.rng.gen::<f32>() < 0.04 {
                     let to_share: Vec<((i32,i32), f32)> = self.organisms[i].food_memory.iter()
                         .filter(|(_, &v)| v > 0.4)
@@ -1521,7 +1336,6 @@ impl Simulation {
             }
         }
 
-        // Lineage fitness reward
         let kin_orgs: Vec<f32> = self.organisms.iter()
             .filter(|o| o.alive && o.lineage_id == lineage)
             .map(|o| o.energy)
@@ -1533,24 +1347,19 @@ impl Simulation {
 
         reward += signal_reward;
 
-        // Inner-state reward modifiers - organisms feel the benefit of their actions
         let loneliness = self.organisms[idx].loneliness;
         let boredom    = self.organisms[idx].boredom;
         let comfort    = self.organisms[idx].comfort;
-        // Social actions feel extra good when lonely
         if loneliness > 0.5 && signal_reward > 0.0 {
             reward += loneliness * 0.015;
         }
-        // Building/exploring feels meaningful when bored
         if boredom > 0.4 && matches!(action, 14 | 15 | 16 | 0..=7) {
             reward += boredom * 0.008;
         }
-        // Being comfortable in a good spot is its own reward (reinforces settling)
         if comfort > 0.75 {
             reward += (comfort - 0.75) * 0.01;
         }
 
-        // Active tribe strategy bonus
         {
             let lid = self.organisms[idx].lineage_id.clone();
             if let Some((strategy, expiry)) = self.lineage_strategies.get(&lid) {
@@ -1568,7 +1377,6 @@ impl Simulation {
         let next_perception = self.organisms[idx].perceive(&self.grid, &self.organisms, night, animal_near);
         self.organisms[idx].learn(&perception, action, reward, &next_perception);
 
-        // ── Social thoughts ───────────────────────────────────────────────────
         if self.organisms[idx].energy > 0.7 && self.organisms[idx].hydration > 0.7 {
             let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
             let neighbour_idxs = spatial.query(ox as i32, oy as i32, 3);
@@ -1614,12 +1422,10 @@ impl Simulation {
             }
         }
 
-        // ── AI think triggers ─────────────────────────────────────────────────
         {
             let my_lid = self.organisms[idx].lineage_id.clone();
             let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
 
-            // First contact: unseen lineage within range
             let unknown_lid: Option<String> = self.organisms.iter()
                 .filter(|o| o.alive && o.lineage_id != my_lid)
                 .filter(|o| (o.x - ox).abs() + (o.y - oy).abs() <= 5.0)
@@ -1627,7 +1433,6 @@ impl Simulation {
                 .map(|o| o.lineage_id.clone())
                 .next();
             if let Some(stranger_lid) = unknown_lid {
-                // Mark as seen immediately to prevent re-queuing
                 self.organisms[idx].lineage_attitudes.insert(stranger_lid.clone(), 0.001);
                 self.push_think_for(idx, ThinkTrigger {
                     org_id:         self.organisms[idx].id.clone(),
@@ -1641,7 +1446,6 @@ impl Simulation {
                 });
             }
 
-            // Council: 5+ well-fed kin nearby, throttled per lineage - elder speaks
             let last_council = *self.lineage_last_council.get(&my_lid).unwrap_or(&0);
             if self.tick_count - last_council >= 6000 {
                 let kin_energies: Vec<f32> = self.organisms.iter()
@@ -1652,8 +1456,6 @@ impl Simulation {
                 if kin_energies.len() >= 5 {
                     let avg = kin_energies.iter().sum::<f32>() / kin_energies.len() as f32;
                     if avg > 0.7 {
-                        // The elder speaks for the tribe - not a random member.
-                        // age/gen are already encoded in elder_ctx; we only need name + ctx.
                         let (elder_name, elder_ctx) = {
                             if let Some(eid) = self.lineage_elders.get(&my_lid) {
                                 let eid = eid.clone();
@@ -1685,14 +1487,12 @@ impl Simulation {
                 }
             }
 
-            // Individual directives - throttled per organism
             let last_think = self.organisms[idx].last_think_tick;
             if self.tick_count - last_think >= 4000 {
                 let (ox2, oy2) = (self.organisms[idx].x, self.organisms[idx].y);
                 let energy     = self.organisms[idx].energy;
                 let hydration  = self.organisms[idx].hydration;
 
-                // Survival crisis: both hungry AND thirsty
                 if energy < 0.25 && hydration < 0.25 {
                     self.organisms[idx].last_think_tick = self.tick_count;
                     self.push_think_for(idx, ThinkTrigger {
@@ -1705,7 +1505,6 @@ impl Simulation {
                             energy * 100.0, hydration * 100.0),
                         ..Default::default()
                     });
-                // Abundance: thriving, no immediate needs
                 } else if energy > 0.85 && hydration > 0.85 {
                     let kin_count = self.organisms.iter()
                         .filter(|o| o.alive && o.lineage_id == my_lid)
@@ -1720,7 +1519,6 @@ impl Simulation {
                         energy_avg: energy,
                         ..Default::default()
                     });
-                // Threat: hostile lineage within 8 tiles
                 } else {
                     let (hostile_near, kin_near) = {
                         let org = &self.organisms[idx];
@@ -1749,7 +1547,6 @@ impl Simulation {
                 }
             }
 
-            // Emotional triggers - separate throttle
             let last_think = self.organisms[idx].last_think_tick;
             if self.tick_count - last_think >= 6000 {
                 let loneliness = self.organisms[idx].loneliness;
@@ -1779,7 +1576,6 @@ impl Simulation {
                 }
             }
 
-            // ── Migration pressure - seasonal food scarcity triggers relocation debate ─────
             let season_now = self.season();
             if scarcity_driven_migration_season(season_now) {
                 let (ox2, oy2) = (self.organisms[idx].x, self.organisms[idx].y);
@@ -1803,7 +1599,6 @@ impl Simulation {
                 }
             }
 
-            // ── Invention trigger - at most once per 5000 ticks, only when prerequisites met ──
             if self.tick_count - self.organisms[idx].last_invention_tick >= 5000
                && self.organisms[idx].age > 400
             {
@@ -1827,7 +1622,6 @@ impl Simulation {
                 }
             }
 
-            // ── Reflection - once per lifetime, at night, age > 800 ────────────────
             if night && !self.organisms[idx].has_reflected
                && self.organisms[idx].age > 800
                && self.organisms[idx].life_log.len() >= 4
@@ -1850,19 +1644,16 @@ impl Simulation {
             }
         }
 
-        // Food sharing: well-fed organism actively feeds starving kin nearby
         if self.organisms[idx].energy > 0.82
            && self.tick_count - self.organisms[idx].last_fed_kin >= 180
         {
             social::share_food(idx, &mut self.organisms, self.tick_count, &mut self.events);
         }
 
-        // Elder teaching: elders periodically impart knowledge to young kin
         if self.organisms[idx].is_elder && self.tick_count % 60 == 0 {
             social::teach(idx, &mut self.organisms, self.tick_count, &mut self.events, &mut self.rng);
         }
 
-        // Personality drift: traits slowly adapt to lived experience (every 2000 ticks)
         if self.tick_count % 2000 == (idx as u64 % 2000) {
             let org = &mut self.organisms[idx];
             if org.danger_memory.len() > 15 {
@@ -1881,7 +1672,6 @@ impl Simulation {
             }
         }
 
-        // Seasonal migration pressure: in scarcity seasons, push toward known food sources farther out
         let season = self.season();
         if scarcity_driven_migration_season(season) {
             let (ox2, oy2) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
@@ -1890,7 +1680,6 @@ impl Simulation {
             if !food_near && self.organisms[idx].food_memory.len() < 8
                && self.rng.gen::<f32>() < 0.0015
             {
-                // Set a distant food-memory target or a random distant wander
                 if self.organisms[idx].wander_target.is_none() && self.organisms[idx].energy > 0.4 {
                     let hash = self.tick_count ^ idx as u64;
                     let tx = (ox2 + ((hash % 40) as i32 - 20)).clamp(5, WIDTH as i32 - 5);
@@ -1901,7 +1690,6 @@ impl Simulation {
             }
         }
 
-        // Illness AI think trigger
         {
             let last_think = self.organisms[idx].last_think_tick;
             if self.organisms[idx].infection > 0.5 && self.tick_count - last_think >= 3000 {
@@ -1920,13 +1708,10 @@ impl Simulation {
             }
         }
 
-        // ── Attraction / bonding / mating ────────────────────────────────────
-        // Clear dead partner reference
         if let Some(ref pid) = self.organisms[idx].partner_id.clone() {
             let dead = !self.organisms.iter().any(|o| o.alive && &o.id == pid);
             if dead { self.organisms[idx].partner_id = None; }
         }
-        // Clear attraction if target is gone/partnered
         if let Some(ref aid) = self.organisms[idx].attracted_to.clone() {
             let gone = !self.organisms.iter().any(|o|
                 o.alive && &o.id == aid && o.partner_id.is_none()
@@ -1940,8 +1725,6 @@ impl Simulation {
             && self.organisms[idx].age > 1000
             && self.organisms[idx].traits.social_tendency > 0.15;
 
-        // Partner seeking: lonely unpartnered adults actively walk toward the nearest
-        // potential mate rather than relying on random wandering to bring them together.
         if is_unpartnered_adult
             && self.organisms[idx].attracted_to.is_none()
             && self.organisms[idx].wander_target.is_none()
@@ -1958,7 +1741,6 @@ impl Simulation {
             }
         }
 
-        // Phase 1 - develop attraction toward a nearby opposite-sex adult
         if is_unpartnered_adult
             && self.organisms[idx].attracted_to.is_none()
             && self.rng.gen::<f32>() < 0.012
@@ -1984,7 +1766,6 @@ impl Simulation {
             }
         }
 
-        // Phase 2 - if attracted and close enough long enough, bond + first convo
         if is_unpartnered_adult {
             let attracted_to = self.organisms[idx].attracted_to.clone();
             if let Some(ref aid) = attracted_to {
@@ -2017,7 +1798,6 @@ impl Simulation {
             }
         }
 
-        // Periodic bonded conversation - ~once per 3000 ticks when near partner
         if let Some(ref pid) = self.organisms[idx].partner_id.clone() {
             let pid = pid.clone();
             if tc % 19 == (idx as u64 % 19) && self.rng.gen::<f32>() < 0.0018 {
@@ -2035,13 +1815,10 @@ impl Simulation {
             }
         }
 
-        // ── Casual conversation - any two nearby organisms ────────────────────
-        // Chat when close enough; hostile pairs argue, happy pairs share excitement
         {
             let spread_check = tc % 29 == (idx as u64 % 29);
             if spread_check {
                 let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
-                // Find the closest alive non-partner organism within 6 tiles
                 let chat_target: Option<usize> = {
                     let partner_id = self.organisms[idx].partner_id.clone();
                     self.organisms.iter().enumerate()
@@ -2058,7 +1835,6 @@ impl Simulation {
                 if let Some(ci) = chat_target {
                     let their_lid = self.organisms[ci].lineage_id.clone();
                     let att = self.organisms[idx].attitude_toward(&their_lid);
-                    // Kind determined by relationship + combined energy
                     let combined_energy = self.organisms[idx].energy + self.organisms[ci].energy;
                     let kind = if att < -0.3 {
                         "argue"
@@ -2067,7 +1843,6 @@ impl Simulation {
                     } else {
                         "chat"
                     };
-                    // Probability: ~once per 5800 ticks per organism (~every 3 in-game days)
                     if self.rng.gen::<f32>() < 0.004 {
                         let (conv_a, conv_b) = courtship::generate_conversation(
                             &self.organisms[idx], &self.organisms[ci],
@@ -2084,8 +1859,6 @@ impl Simulation {
                               self.tick_count, &mut self.events, &mut self.history,
                               &mut self.rng, alive_count, lineage_counts);
 
-        // ── Death check ───────────────────────────────────────────────────────
-        // Capture death info before marking dead, for grief propagation below
         let death_grief: Option<(i32, i32, String)> = {
             let org = &self.organisms[idx];
             let dying = org.energy <= 0.0 || org.hydration <= 0.0 || org.health <= 0.0
@@ -2118,7 +1891,6 @@ impl Simulation {
             push_event(&mut self.events, self.tick_count, "died", &name, &msg);
         }
 
-        // ── Grief - nearby kin witness death, mourn, and gather ──────────────
         if let Some((dx, dy, dlid)) = death_grief {
             let dead_name = self.organisms[idx].name.clone();
             let grievers: Vec<usize> = self.organisms.iter().enumerate()
@@ -2129,13 +1901,6 @@ impl Simulation {
 
             let griever_count = grievers.len();
 
-            // Pass the deceased's strongest food/water memories on to the
-            // grieving kin. Real human bands carry the dead's knowledge
-            // forward through retelling - "she always said the spring
-            // was three ridges east". Each griever picks up a few of
-            // the deceased's most-trusted memory tiles at reduced
-            // strength. Without this, every death erases that person's
-            // accumulated map of the world.
             let inherited_food: Vec<((i32, i32), f32)> = self.organisms[idx].food_memory.iter()
                 .filter(|(_, &v)| v > 0.5).take(5).map(|(&k, &v)| (k, v)).collect();
             let inherited_water: Vec<((i32, i32), f32)> = self.organisms[idx].water_memory.iter()
@@ -2149,16 +1914,12 @@ impl Simulation {
                 self.organisms[*gi].grief_ticks   = 80 + self.rng.gen_range(0u32..40);
                 self.organisms[*gi].think("mourning kin", self.tick_count);
 
-                // Inherit a slice of the deceased's wisdom
                 for &((mx, my), v) in &inherited_food {
                     Organism::remember(&mut self.organisms[*gi].food_memory, mx, my, v * 0.4, ms);
                 }
                 for &((mx, my), v) in &inherited_water {
                     Organism::remember(&mut self.organisms[*gi].water_memory, mx, my, v * 0.4, ms);
                 }
-                // Direct kin (partner / father / parent) also pick up rare
-                // discoveries that hadn't yet spread - last-chance cultural
-                // preservation.
                 let is_direct_kin = self.organisms[*gi].partner_id.as_ref() == Some(&self.organisms[idx].id)
                     || self.organisms[*gi].parent_id == self.organisms[idx].id
                     || self.organisms[*gi].father_id.as_ref() == Some(&self.organisms[idx].id);
@@ -2178,7 +1939,6 @@ impl Simulation {
                            &format!("{} kin gather to mourn", griever_count));
             }
 
-            // Grief AI think trigger for the eldest griever
             if let Some(&gi) = grievers.first() {
                 let energy = self.organisms[gi].energy;
                 let lid    = self.organisms[gi].lineage_id.clone();
@@ -2193,22 +1953,18 @@ impl Simulation {
                 });
             }
 
-            // Death leaves a terrain scar - the land itself remembers violence and suffering
             self.grid.add_hazard(dx, dy, 0.45);
-            self.grid.reduce_fertility(dx, dy, 0.08); // death degrades the soil temporarily
-            // Inner ring
+            self.grid.reduce_fertility(dx, dy, 0.08);
             for (ndx, ndy) in [(-1i32,0),(1,0),(0,-1i32),(0,1)] {
                 self.grid.add_hazard(dx+ndx, dy+ndy, 0.18);
                 self.grid.reduce_fertility(dx+ndx, dy+ndy, 0.03);
             }
-            // Outer ring (weaker - organisms sense danger from farther away)
             for ddx in -2i32..=2 { for ddy in -2i32..=2 {
                 if ddx.abs() + ddy.abs() == 2 {
                     self.grid.add_hazard(dx+ddx, dy+ddy, 0.06);
                 }
             }}
 
-            // Scavenging: death site has a small chance of leaving food (reality of nature)
             if self.rng.gen::<f32>() < 0.25 {
                 if matches!(self.grid.get(dx, dy), Tile::Grass | Tile::Ash) {
                     self.grid.set(dx, dy, Tile::Food);
@@ -2216,8 +1972,6 @@ impl Simulation {
             }
         }
     }
-
-    // ── Animals ───────────────────────────────────────────────────────────────
 
     fn spawn_animals(&mut self, count: usize) {
         for _ in 0..count {
@@ -2259,10 +2013,6 @@ impl Simulation {
             animal.tick(&self.grid, &org_pos, &mut self.rng);
         }
 
-        // Dog domestication: a fed (energy > 0.7) friendly (low aggression)
-        // human within 2 tiles of a hungry (energy < 0.4) wolf has a small
-        // chance to convert it into a dog. The dog bonds to that human and
-        // stops being a predator.
         let mut tames: Vec<(usize, usize)> = Vec::new();
         for (ai, a) in self.animals.iter().enumerate() {
             if !a.alive || !matches!(a.kind, AnimalKind::Wolf) { continue; }
@@ -2290,7 +2040,6 @@ impl Simulation {
                 "befriended a wolf — it follows them now");
         }
 
-        // Dogs follow their bonded human (one tile per tick toward them when out of range).
         for ai in 0..self.animals.len() {
             if !self.animals[ai].alive { continue; }
             if !matches!(self.animals[ai].kind, AnimalKind::Dog) { continue; }
@@ -2314,11 +2063,6 @@ impl Simulation {
             }
         }
 
-        // Wolf attacks: any wolf within 1 tile of a human can bite.
-        // Damage scales with the wolf's energy (hungrier wolves hit harder).
-        // Each successful bite drains the human's health and energizes
-        // the wolf, modelling predation. Pack-hunting humans (>=2 kin
-        // adjacent to the wolf) cut the bite chance in half.
         let mut bites: Vec<(usize, usize)> = Vec::new();
         for (ai, a) in self.animals.iter().enumerate() {
             if !a.alive || !matches!(a.kind, AnimalKind::Wolf) { continue; }
@@ -2351,18 +2095,6 @@ impl Simulation {
                 "mauled by a wolf");
         }
 
-        // Reproduction shaped by environment, not a hard global floor.
-        //
-        // Each healthy animal may reproduce at a base rate scaled by:
-        //  - Biome suitability (forests favour deer, grass/wetland favours rabbits)
-        //  - Local carrying capacity (population density within ~12 tiles drags rate
-        //    toward zero so habitats can't be flooded)
-        //  - A soft global ceiling (no fixed floor or cap that bypasses ecology)
-        //
-        // The hard `if alive < 50` global cap is gone - population emerges from
-        // birth/death curves, predator (organism) pressure, and biome carrying
-        // capacity. A tundra or volcanic landscape now actually starves out
-        // populations as it should.
         let candidates: Vec<(usize, f32, f32, AnimalKind)> = self.animals.iter()
             .filter(|a| a.alive && a.energy > 0.70
                      && self.tick_count.saturating_sub(a.last_reproduced) > 800)
@@ -2408,9 +2140,6 @@ impl Simulation {
                 .count() as f32;
             let density_factor = (1.0 - (local_density / 3.0).min(1.0)).max(0.0);
 
-            // Global soft cap: birth rate halves once total alive animals
-            // crosses 600, drops to ~0 around 1000. Keeps the world from
-            // being smothered by a runaway prey explosion.
             let total_alive = self.animals.iter().filter(|a| a.alive).count() as f32;
             let global_factor = (1.0 - (total_alive - 600.0).max(0.0) / 400.0).max(0.0);
 
@@ -2433,7 +2162,6 @@ impl Simulation {
     }
 
     fn check_animal_catches(&mut self) {
-        // Collect (org_idx, animal_idx) where they're adjacent
         let mut to_catch: Vec<(usize, usize)> = Vec::new();
         let organism_spatial = SpatialIndex::build(&self.organisms, 10);
         for (oi, org) in self.organisms.iter().enumerate() {
@@ -2467,7 +2195,6 @@ impl Simulation {
             }
         }
 
-        // Apply catches - each animal caught once (first hunter wins)
         let mut caught: std::collections::HashSet<usize> = std::collections::HashSet::new();
         for (oi, ai) in to_catch {
             if caught.contains(&ai) { continue; }
@@ -2487,7 +2214,6 @@ impl Simulation {
             let has_tools = self.organisms[oi].discoveries.contains("stone_tools")
                 || self.organisms[oi].discoveries.contains("spear");
             let tool_bonus = if has_tools { 0.10 } else { 0.0 };
-            // Pack hunting: 3+ kin within 5 tiles = coordinated group hunt
             let hunter_lid = self.organisms[oi].lineage_id.clone();
             let hunter_x = self.organisms[oi].x;
             let hunter_y = self.organisms[oi].y;
@@ -2512,11 +2238,6 @@ impl Simulation {
             self.organisms[oi].discover("hunt");
             Organism::remember(&mut self.organisms[oi].food_memory, ax, ay, 0.65, ms);
 
-            // Share the kill with the pack. Pack hunting is the canonical
-            // human cooperative behaviour - the carcass feeds everyone who
-            // helped bring it down, not just the org that landed the
-            // killing blow. Each pack member within 5 tiles gets a share
-            // proportional to how much remains after the hunter's portion.
             if pack_kin >= 1 {
                 let share = if pack_kin >= 3 { 0.12 } else { 0.08 };
                 let helpers: Vec<usize> = organism_spatial.query(hunter_x as i32, hunter_y as i32, 5)
@@ -2569,8 +2290,6 @@ impl Simulation {
         }
     }
 
-    // ── Broadcast ─────────────────────────────────────────────────────────────
-
     fn broadcast_discovery(&mut self, actor_idx: usize, x: i32, y: i32,
                            rtype: &str, radius: i32) {
         let (ax, ay) = (self.organisms[actor_idx].x, self.organisms[actor_idx].y);
@@ -2601,18 +2320,7 @@ impl Simulation {
             .collect()
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
-    /// Regional oral history: scan a handful of random alive orgs and
-    /// check whether any is standing near an OLD centroid of their own
-    /// lineage (10+ sim-days back). If so, fire a "this was our
-    /// grandparents' land" thought. Cheap by design - we cap the scan
-    /// to a few orgs and a few historical samples per call.
     fn tick_ancestral_recognition(&mut self) {
-        // Look back at samples this many sim-days old or older. Less than
-        // this and the org's just standing in their tribe's current
-        // village - not interesting. More than this and the centroid is
-        // genuinely ancestral.
         const ANCIENT_AFTER_DAYS: u64 = 10;
         const RECOG_RADIUS: f32 = 5.0;
         const ORGS_TO_CHECK: usize = 6;
@@ -2629,8 +2337,6 @@ impl Simulation {
 
         for _ in 0..ORGS_TO_CHECK {
             let idx = alive_indices[self.rng.gen_range(0..alive_indices.len())];
-            // Cooldown so an org doesn't spam ancestral thoughts every
-            // 60 ticks while standing in the same spot.
             if now.saturating_sub(self.organisms[idx].last_ancestral_thought) < COOLDOWN_TICKS {
                 continue;
             }
@@ -2638,8 +2344,6 @@ impl Simulation {
             let ox = self.organisms[idx].x;
             let oy = self.organisms[idx].y;
             let Some(samples) = self.lineage_centroid_history.get(&org_lid) else { continue };
-            // Walk only the ancient half of the history - oldest samples
-            // are at the front of the VecDeque.
             let mut matched: Option<i32> = None;
             for s in samples.iter() {
                 if s[0] >= ancient_cutoff { break; }
@@ -2665,11 +2369,6 @@ impl Simulation {
         }
     }
 
-    /// Sample each living lineage's centroid (mean x, mean y) and append
-    /// it to that lineage's history. Called once per sim-day from `tick`.
-    /// Dead lineages get aged out: after 30 days with no living members we
-    /// drop their history so the map doesn't accumulate ancestor trails
-    /// from extinct tribes indefinitely.
     fn sample_lineage_centroids(&mut self) {
         let mut sums: HashMap<&str, (f32, f32, u32)> = HashMap::new();
         for o in self.organisms.iter().filter(|o| o.alive) {
@@ -2684,13 +2383,8 @@ impl Simulation {
                 .entry(lid_str.to_string())
                 .or_default();
             entry.push_back([tick, (sx / n as f32) as i32, (sy / n as f32) as i32]);
-            // Keep ~60 samples (~60 sim-days) per lineage; trail still
-            // reads as a continuous drift but bounded memory.
             if entry.len() > 60 { entry.pop_front(); }
         }
-        // Age out lineages that have been extinct for > 30 sample-gaps
-        // (30 sim-days). Last sample tick + 30*DAY_LENGTH < now means
-        // we haven't seen this lineage alive in two months.
         let cutoff = tick - 30 * DAY_LENGTH as i32;
         self.lineage_centroid_history.retain(|lid, samples| {
             if alive_lineages.contains(lid) { return true; }
@@ -2698,17 +2392,11 @@ impl Simulation {
         });
     }
 
-    /// Detect emergent settlements: clusters of built structure attributed
-    /// to the nearest lineage. As a tribe accumulates shelters its
-    /// settlement climbs tiers - camp, hamlet, village, town, city - and
-    /// each promotion is logged as a watchable milestone.
     fn tick_settlements(&mut self) {
         const TIER_NAMES: [&str; 6] =
             ["wilderness", "camp", "hamlet", "village", "town", "city"];
-        // (tier index, structure-tile count needed)
         const THRESHOLDS: [usize; 6] = [0, 4, 10, 22, 40, 70];
 
-        // Collect qualifying built tiles.
         let mut built: Vec<(i32, i32)> = self.active_structure_tiles.iter()
             .filter(|&&(x, y)| {
                 self.grid.structure_at(x, y) >= 0.35
@@ -2716,10 +2404,8 @@ impl Simulation {
             })
             .copied()
             .collect();
-        // Cap work - settlements are big but we don't need every tile.
         if built.len() > 4000 { built.truncate(4000); }
 
-        // Attribute each built tile to the nearest living organism's lineage.
         let mut counts: HashMap<String, usize> = HashMap::new();
         for (bx, by) in built {
             let mut best: Option<(f32, &str)> = None;
@@ -2751,7 +2437,6 @@ impl Simulation {
                 );
                 push_event(&mut self.events, self.tick_count, "build", &tribe, &msg);
             } else if tier < prev {
-                // Settlement decayed (abandoned / structures lost).
                 self.settlement_tiers.insert(lid.clone(), tier);
             }
         }
@@ -2788,11 +2473,8 @@ impl Simulation {
         "equilibrium".to_string()
     }
 
-
 }
 
-/// Read this process's resident-set size from /proc/self/status in KB.
-/// Returns 0 when the file isn't readable (non-Linux dev box).
 fn read_self_rss_kb_local() -> u64 {
     let s = match std::fs::read_to_string("/proc/self/status") {
         Ok(s) => s,
@@ -2806,7 +2488,6 @@ fn read_self_rss_kb_local() -> u64 {
     }
     0
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -2892,9 +2573,6 @@ mod tests {
 
     #[test]
     fn save_load_preserves_organism_cooldowns_for_deterministic_replay() {
-        // Modern saves must round-trip last_think_tick / last_invention_tick exactly,
-        // otherwise post-load behaviour diverges from a continuous run and replay
-        // becomes useless for debugging or viability gates.
 
         let mut path = std::env::temp_dir();
         path.push(format!("thehumanbox-cooldown-test-{}.json", std::process::id()));
@@ -2904,11 +2582,9 @@ mod tests {
 
         let mut sim = Simulation::new(42);
         sim.tick_count = 50_000;
-        // Pick an organism whose cooldowns are far enough in the past that the legacy
-        // jitter logic WOULD trigger if it ran. We must verify it doesn't.
         let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
-        sim.organisms[idx].last_think_tick = 1_000;       // 49,000 ticks ago, well past 4000
-        sim.organisms[idx].last_invention_tick = 2_000;   // 48,000 ticks ago, well past 5000
+        sim.organisms[idx].last_think_tick = 1_000;
+        sim.organisms[idx].last_invention_tick = 2_000;
         let org_id = sim.organisms[idx].id.clone();
 
         sim.save_result(&path_s).unwrap();
@@ -2985,8 +2661,6 @@ mod tests {
         let far_id = sim.organisms[far_idx].id.clone();
 
         let state = sim.state_json_at(10, 10);
-        // Deltas use structure-of-arrays packing under `organisms_hot`.
-        // Full snapshots would use the AoS `organisms` array instead.
         let ids: Vec<String> = state["organisms_hot"]["ids"].as_array().unwrap()
             .iter()
             .filter_map(|v| v.as_str().map(|s| s.to_string()))
@@ -3129,7 +2803,6 @@ mod tests {
         let curiosity = sim.organisms[idx].traits.curiosity;
         let hash = sim.organisms[idx].id.bytes()
             .fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
-        // Mirrors the period formula in validate_or_assign_wander_target.
         let period = (450u64).saturating_sub((curiosity * 200.0) as u64).max(140);
         sim.tick_count = hash % period;
 
@@ -3147,11 +2820,6 @@ mod tests {
 
     #[test]
     fn founders_spread_across_world_sectors() {
-        // The user reported tribes clumping in one corner of the map. With
-        // a 4x3 sector partition and the random scatter fallback, spawn
-        // positions should cover at least half the sectors and reach into
-        // both halves of the world along each axis. Run several seeds so
-        // a single unlucky one doesn't mask a regression.
         for seed in [1u64, 7, 42, 99, 137] {
             let sim = Simulation::new(seed);
             let alive: Vec<_> = sim.organisms.iter().filter(|o| o.alive).collect();
@@ -3166,18 +2834,11 @@ mod tests {
             let span_x = xmax - xmin;
             let span_y = ymax - ymin;
 
-            // Tribes must span at least 40% of the world's width and 30%
-            // of its height. If they all cluster in one sector both spans
-            // collapse to a few dozen tiles and the test fires.
             assert!(span_x >= WIDTH as f32 * 0.40,
                 "seed {seed} founders span only {} of {} tiles wide", span_x, WIDTH);
             assert!(span_y >= HEIGHT as f32 * 0.30,
                 "seed {seed} founders span only {} of {} tiles tall", span_y, HEIGHT);
 
-            // Per-lineage centroids: at least 6 distinct lineages should
-            // exist, and their centroids should cover at least 30% of
-            // each axis (otherwise tribes are bunched even if individuals
-            // wander a bit).
             use std::collections::HashMap;
             let mut by_lid: HashMap<String, Vec<(f32, f32)>> = HashMap::new();
             for o in &alive {
@@ -3206,12 +2867,6 @@ mod tests {
 
     #[test]
     fn population_stays_dispersed_after_many_days() {
-        // Spawn placement spreads tribes across a 4x3 sector grid, but if home
-        // pull or kin convergence is too strong they collapse back together
-        // within a sim-day or two. Run ~1.5 sim-days (9k ticks) and require
-        // the live population's std-dev to remain a meaningful fraction of
-        // the world. Guards against regressions where a tweak to home pull,
-        // shelter drift, or kin convergence quietly re-clusters everyone.
         for seed in [42u64, 99] {
             let mut sim = Simulation::new(seed);
             for _ in 0..9_000 {
@@ -3238,16 +2893,6 @@ mod tests {
 
     #[test]
     fn population_does_not_reconverge_after_many_sim_days() {
-        // Medium-horizon check: 30k ticks (~5 sim-days). Long enough that
-        // home-pull + birth-drift have had real opportunity to either
-        // reconverge the population or let it stay dispersed; short enough
-        // to keep CI test-backend under ~10 min even on the slowest
-        // GH-hosted public-repo runner.
-        //
-        // Threshold 0.50: the pathological cluster we caught from the user
-        // screenshot was ~70-90% in a single cell. Anything past 50% in
-        // one 60x60 patch by 30k ticks is unambiguously a regression to
-        // "most of the population on one island" rather than RNG noise.
         let mut sim = Simulation::new(7);
         for _ in 0..30_000 {
             sim.tick();
@@ -3256,7 +2901,6 @@ mod tests {
         assert!(alive.len() >= 60,
             "population collapsed to {} after 5 sim-days", alive.len());
 
-        // Histogram in 60x60 cells. World is 600x300 so 10x5 = 50 cells.
         let cw = 60i32; let ch = 60i32;
         let mut buckets: std::collections::HashMap<(i32, i32), u32> = Default::default();
         for o in &alive {
@@ -3272,15 +2916,11 @@ mod tests {
 
     #[test]
     fn dense_animal_clusters_stop_reproducing() {
-        // Carrying capacity check: drop 20 healthy rabbits in a tight cluster
-        // and run many ticks. Density factor should suppress reproduction so the
-        // count stays bounded - no runaway growth, no need for a hard global cap.
         let mut sim = Simulation::new(31);
         sim.animals.clear();
         for i in 0..20 {
             let mut a = Animal::new(i, 50.0, 50.0, AnimalKind::Rabbit);
             a.energy = 0.95;
-            // Set last_reproduced way in the past so all animals are eligible
             a.last_reproduced = 0;
             sim.animals.push(a);
         }

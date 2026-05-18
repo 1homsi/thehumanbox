@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 from typing import Iterable, Iterator, Mapping, Any
 
-
 def read_jsonl(path: str | Path) -> Iterator[dict[str, Any]]:
     file_path = Path(path)
     with file_path.open("r", encoding="utf-8") as handle:
@@ -19,7 +18,6 @@ def read_jsonl(path: str | Path) -> Iterator[dict[str, Any]]:
             if not isinstance(value, dict):
                 raise ValueError(f"expected JSON object in {file_path} at line {line_no}")
             yield value
-
 
 def write_jsonl(path: str | Path, rows: Iterable[Mapping[str, Any]]) -> None:
     file_path = Path(path)

@@ -1,4 +1,4 @@
-//! Action 469: a religious schism fractures the community.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

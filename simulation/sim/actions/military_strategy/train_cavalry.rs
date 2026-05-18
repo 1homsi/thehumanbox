@@ -1,4 +1,4 @@
-//! Action 445: train cavalry units.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

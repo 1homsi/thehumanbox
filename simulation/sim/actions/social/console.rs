@@ -1,4 +1,4 @@
-//! Action 80: console the most-grieving kin.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

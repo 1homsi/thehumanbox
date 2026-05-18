@@ -1,4 +1,4 @@
-//! Action 310: welcome a stranger into lineage; attitude +0.2.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

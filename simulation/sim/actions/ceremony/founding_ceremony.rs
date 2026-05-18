@@ -1,4 +1,4 @@
-//! Action 533: founding ceremony with a single kin; discover "founding"; emit "culture".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

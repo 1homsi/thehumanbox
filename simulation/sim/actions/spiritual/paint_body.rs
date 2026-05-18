@@ -1,4 +1,4 @@
-//! Action 202: paint the body.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

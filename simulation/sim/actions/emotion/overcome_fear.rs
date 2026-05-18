@@ -1,4 +1,4 @@
-//! Action 390: overcome fear after a threat. Boosts health and unlocks courage.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 268: welcome a stranger's child; emit "bond" event; attitude +0.1.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

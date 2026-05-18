@@ -1,4 +1,4 @@
-//! Action 483: new year ritual at year start; all kin comfort +0.08; discover "new_year"; emit "ritual".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 431: conduct an experiment using fire or water.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

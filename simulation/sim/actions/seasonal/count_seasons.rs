@@ -1,4 +1,4 @@
-//! Action 484: elder counts the seasons; discover "season_counting"; emit "build".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

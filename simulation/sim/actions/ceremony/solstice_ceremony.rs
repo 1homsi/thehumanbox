@@ -1,4 +1,4 @@
-//! Action 531: solstice ceremony; emit "ritual"; all kin boredom -0.08; discover "solstice_ceremony".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

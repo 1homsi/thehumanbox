@@ -1,4 +1,4 @@
-//! Action 121: hunt small game. 20% success.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

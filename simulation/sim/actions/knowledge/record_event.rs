@@ -1,4 +1,4 @@
-//! Action 138: record the day's events.
+
 use super::super::ctx::ActionCtx;
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     ctx.think("recording the day's events");

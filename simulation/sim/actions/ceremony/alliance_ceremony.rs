@@ -1,4 +1,4 @@
-//! Action 534: alliance ceremony with stranger and kin; attitude +0.12; discover "alliance_rite"; emit "ritual".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

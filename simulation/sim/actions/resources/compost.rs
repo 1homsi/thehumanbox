@@ -1,5 +1,4 @@
-//! Action 36: compost. Adds fertility to grass / ash tiles when
-//! the local fertility is below 0.9.
+
 
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;

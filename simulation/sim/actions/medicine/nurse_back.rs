@@ -1,4 +1,4 @@
-//! Action 252: extended care for a sick kin; health +0.08.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

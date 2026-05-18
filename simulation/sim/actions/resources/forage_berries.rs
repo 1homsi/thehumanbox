@@ -1,4 +1,4 @@
-//! Action 34: forage berries on grass. 18% pick rate.
+
 
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;

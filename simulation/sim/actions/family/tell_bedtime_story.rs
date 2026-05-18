@@ -1,4 +1,4 @@
-//! Action 264: night-only; reduce all kin sleep_debt; emit "social" event.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 175: build an observatory. Gated on "astronomy".
+
 
 use super::super::ctx::ActionCtx;
 

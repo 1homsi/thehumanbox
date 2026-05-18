@@ -1,4 +1,4 @@
-//! Action 300: restore attitude toward an exiled kin.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

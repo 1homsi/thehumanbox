@@ -1,4 +1,4 @@
-//! Action 236: whisper a secret to one kin; boost trust and comfort.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -15,7 +15,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     }
     {
         let o = &mut ctx.sim.organisms[ki];
-        let my_id_placeholder = oid; // reuse var (oid was the other's id)
+        let my_id_placeholder = oid;
         let _ = my_id_placeholder;
         o.comfort = (o.comfort + 0.03).min(1.0);
     }

@@ -1,4 +1,4 @@
-//! Action 191: muster a warband of adult kin (age >= 800).
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

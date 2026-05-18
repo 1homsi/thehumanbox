@@ -1,4 +1,4 @@
-//! Action 50: fortify the camp.
+
 
 use super::super::ctx::ActionCtx;
 

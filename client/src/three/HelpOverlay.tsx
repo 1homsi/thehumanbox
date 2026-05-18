@@ -1,8 +1,5 @@
 import { useEffect, useState } from 'react'
 
-// Press '?' or 'H' to toggle a help card listing every navigation
-// + interaction shortcut. Lives outside the R3F Canvas so it
-// renders cheaply as plain HTML/CSS.
 export function HelpOverlay() {
   const [open, setOpen] = useState(false)
 
@@ -20,8 +17,6 @@ export function HelpOverlay() {
   }, [open])
 
   if (!open) {
-    // Tiny "?" badge in the bottom-right corner so the affordance is
-    // discoverable. Click also opens.
     return (
       <button
         className="thb-3d-helpbtn"

@@ -1,5 +1,4 @@
-//! Action 39: build a wall. Consumes 1 unit of stone or wood,
-//! bumps structure on this tile.
+
 
 use super::super::ctx::ActionCtx;
 

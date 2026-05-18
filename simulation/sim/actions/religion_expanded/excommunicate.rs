@@ -1,4 +1,4 @@
-//! Action 459: excommunicate a kin member with low standing.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 465: perform a sacred dance with kin.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

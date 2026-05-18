@@ -1,4 +1,4 @@
-//! Action 420: send an inter-tribal signal to a stranger; improves diplomatic attitude.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

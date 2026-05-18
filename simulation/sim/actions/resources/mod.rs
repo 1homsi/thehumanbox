@@ -1,8 +1,4 @@
-//! Resource-gathering actions (indices 26..=38).
-//!
-//! These pull raw materials out of the world or convert tiles
-//! toward food-bearing states. Each action's body lives in its own
-//! file; this module just dispatches by index.
+
 
 pub mod mine;
 pub mod chop_wood;

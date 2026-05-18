@@ -1,4 +1,4 @@
-//! Action 44: build a watchtower. Needs wood or stone.
+
 
 use super::super::ctx::ActionCtx;
 

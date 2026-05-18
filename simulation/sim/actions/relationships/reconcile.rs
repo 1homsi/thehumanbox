@@ -1,9 +1,8 @@
-//! Action 234: restore attitude toward a lineage you have low attitude with.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let lid = ctx.lid.clone();
-    // Find a lineage we have a low attitude toward among nearby organisms
     let target_lid = ctx.near.iter().copied()
         .map(|k| ctx.sim.organisms[k].lineage_id.clone())
         .find(|l| *l != lid);

@@ -1,4 +1,4 @@
-//! Action 313: block a kin action symbolically.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

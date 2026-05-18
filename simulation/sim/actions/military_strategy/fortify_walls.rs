@@ -1,4 +1,4 @@
-//! Action 447: fortify defensive walls with stone.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

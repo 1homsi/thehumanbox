@@ -1,4 +1,4 @@
-//! Action 425: predict an eclipse; only elders have the pattern knowledge.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

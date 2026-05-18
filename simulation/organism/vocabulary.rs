@@ -3,72 +3,55 @@ use rand::Rng;
 use serde::{Serialize, Deserialize};
 
 pub const CONCEPTS: &[&str] = &[
-    // ── Core survival (original 14) ───────────────────────────────
     "food", "water", "fire", "danger", "friend",
     "foe", "shelter", "hunt", "night", "day",
     "sick", "home", "group", "alone",
-    // ── Sky & weather ─────────────────────────────────────────────
     "sun", "moon", "star", "sky", "rain",
     "storm", "wind", "snow", "ice", "cloud",
-    // ── Land & water features ─────────────────────────────────────
     "river", "lake", "sea", "mountain", "forest",
     "tree", "grass", "stone", "sand", "earth",
     "cave", "path", "world",
-    // ── Body & vital states ───────────────────────────────────────
     "hunger", "thirst", "pain", "tired", "strong",
     "weak", "hurt", "heal", "rest", "sleep",
     "breath", "blood", "old", "young", "born",
     "death", "life",
-    // ── Emotions ──────────────────────────────────────────────────
     "fear", "joy", "anger", "sad", "love",
     "hate", "calm", "brave", "lonely", "hope",
     "trust", "grief", "pride", "shame", "curious",
-    // ── Kin & social roles ────────────────────────────────────────
     "kin", "child", "mother", "father", "elder",
     "mate", "stranger", "leader", "tribe", "ally",
-    // ── Social acts ───────────────────────────────────────────────
     "gift", "share", "help", "teach", "learn",
     "story", "song", "dance", "play", "talk",
     "listen", "greet", "fight", "war", "peace",
     "trade",
-    // ── Verbs of motion & action ──────────────────────────────────
     "go", "come", "stay", "run", "climb",
     "swim", "dig", "build", "break", "carry",
     "give", "find", "see", "hear", "hide",
     "watch", "follow", "lead", "gather", "plant",
     "make",
-    // ── Qualities & relations ─────────────────────────────────────
     "cold", "warm", "dark", "light", "big",
     "small", "near", "far", "many", "good",
     "bad", "new", "here", "there",
-    // ── Things, tools & resources ─────────────────────────────────
     "meat", "berry", "root", "wood", "tool",
     "trap", "spear", "basket", "medicine", "farm",
     "nest", "name", "time", "season",
-    // ── Body & senses ─────────────────────────────────────────────
     "eye", "ear", "hand", "foot", "mouth",
     "skin", "heart", "voice", "scent", "bone",
-    // ── Family & life events ──────────────────────────────────────
     "birth", "wedding", "funeral", "ancestor", "twin",
     "orphan", "widow", "sibling", "blood-kin", "lineage",
-    // ── Animals ───────────────────────────────────────────────────
     "wolf", "bird", "deer", "bear", "snake",
     "insect", "beast", "prey", "predator", "flock",
     "pack", "swarm",
-    // ── Terrain ───────────────────────────────────────────────────
     "cliff", "ridge", "plain", "marsh", "swamp",
     "oasis", "dune", "glacier", "shore", "island",
     "crater", "gorge", "meadow", "grove", "thicket",
     "clearing", "valley", "hill", "spring",
-    // ── Weather & sky events ──────────────────────────────────────
     "dawn", "dusk", "twilight", "fog", "frost",
     "hail", "thunder", "lightning", "rainbow", "drought",
     "flood", "heat", "eclipse",
-    // ── Materials ─────────────────────────────────────────────────
     "clay", "mud", "hide", "fur", "feather",
     "shell", "salt", "charcoal", "ore", "metal",
     "gem", "flint", "thread",
-    // ── Abstract concepts ─────────────────────────────────────────
     "truth", "lie", "secret", "promise", "oath",
     "law", "custom", "tradition", "memory", "dream",
     "idea", "plan", "choice", "fate", "luck",
@@ -76,50 +59,38 @@ pub const CONCEPTS: &[&str] = &[
     "duty", "freedom", "power", "change", "beginning",
     "ending", "journey", "return", "loss", "gain",
     "debt", "balance",
-    // ── More acts ─────────────────────────────────────────────────
     "bless", "curse", "forgive", "betray", "protect",
     "abandon", "rescue", "sacrifice", "scatter", "destroy",
     "create", "mend", "sharpen", "carve", "weave",
     "guard", "chase", "flee", "attack", "defend",
-    // ── Quantity ──────────────────────────────────────────────────
     "one", "two", "three", "half", "whole",
     "none", "all", "more", "less", "enough",
     "empty", "full",
-    // ── Colours ───────────────────────────────────────────────────
     "red", "blue", "green", "yellow", "white",
     "black", "brown", "grey",
-    // ── Plants ────────────────────────────────────────────────────
     "flower", "leaf", "seed", "vine", "moss",
     "fern", "reed", "bark", "branch", "thorn",
     "fruit", "nut", "herb", "sprout", "blossom",
-    // ── Finer time ────────────────────────────────────────────────
     "morning", "noon", "evening", "midnight", "year",
     "moment", "forever", "soon", "early", "late",
-    // ── Directions ────────────────────────────────────────────────
     "north", "south", "east", "west", "up",
     "down", "forward", "back", "between", "above",
     "below", "inside", "outside", "around",
-    // ── Sounds ────────────────────────────────────────────────────
     "cry", "shout", "whisper", "laugh", "roar",
     "howl", "call", "echo", "silence", "noise",
     "growl", "hum",
-    // ── Finer feelings ────────────────────────────────────────────
     "worry", "relief", "longing", "envy", "gratitude",
     "regret", "awe", "disgust", "surprise", "sorrow",
     "delight", "dread", "yearning", "serenity",
-    // ── Social structures ─────────────────────────────────────────
     "council", "clan", "family", "band", "gathering",
     "market", "border", "neighbor", "kinship", "guest",
-    // ── Body actions ──────────────────────────────────────────────
     "jump", "crawl", "crouch", "reach", "grab",
     "throw", "push", "pull", "kick", "bite",
     "sniff", "blink", "nod", "point", "wave",
     "kneel",
-    // ── Abstract ──────────────────────────────────────────────────
     "question", "answer", "word", "language", "speech",
     "skill", "craft", "work", "effort", "ease",
     "meaning", "purpose", "reason", "cause",
-    // ── Qualities ─────────────────────────────────────────────────
     "heavy", "hard", "soft", "sharp", "dull",
     "smooth", "rough", "wet", "dry", "hot",
     "fast", "slow", "loud", "quiet", "bright",
@@ -141,8 +112,6 @@ fn gen_word(rng: &mut impl Rng) -> String {
     (0..syllables).map(|_| gen_syllable(rng)).collect()
 }
 
-/// Public: generate a short phonetic word from the organism phoneme pool.
-/// Used for world-level cultural words (e.g. the names organisms give to the two sexes).
 pub fn gen_phoneme_word(rng: &mut impl Rng) -> String {
     gen_word(rng)
 }
@@ -180,7 +149,6 @@ impl Vocabulary {
         Vocabulary { words }
     }
 
-    // Absorb up to 1 word from another's vocabulary via social contact
     pub fn absorb_from(&mut self, other: &Vocabulary, rng: &mut impl Rng) {
         let concepts: Vec<&str> = CONCEPTS.iter()
             .filter(|&&c| {
@@ -199,8 +167,6 @@ impl Vocabulary {
         }
     }
 
-    // Converge toward the majority word for each concept given a list of kin snapshots.
-    // adopt_rate: probability per concept to check and possibly adopt.
     pub fn converge_with(
         &mut self,
         snapshots: &[std::collections::HashMap<String, String>],

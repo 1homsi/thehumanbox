@@ -1,4 +1,4 @@
-//! Action 230: redistribute inv items with nearby kin.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -15,7 +15,6 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         return 0.0;
     }
 
-    // Give one of whatever we have most to first kin
     let ki = ctx.kin[0];
     if my_food > 0 {
         ctx.sim.organisms[ctx.idx].inv_food -= 1;

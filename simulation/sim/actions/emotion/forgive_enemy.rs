@@ -1,4 +1,4 @@
-//! Action 394: forgive an enemy. Needs a stranger nearby; improves attitude.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

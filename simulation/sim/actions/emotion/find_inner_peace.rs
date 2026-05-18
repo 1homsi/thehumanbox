@@ -1,4 +1,4 @@
-//! Action 402: find inner peace. Best when alone; major comfort and sleep debt relief.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 231: console a kin with low health or comfort.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

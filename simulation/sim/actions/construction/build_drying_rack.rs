@@ -1,4 +1,4 @@
-//! Action 180: hammer together a drying rack.
+
 
 use super::super::ctx::ActionCtx;
 

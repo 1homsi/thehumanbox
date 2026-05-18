@@ -1,4 +1,4 @@
-//! Action 499: elder establishes a dynasty with kin; discover "dynasty"; emit "governance".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

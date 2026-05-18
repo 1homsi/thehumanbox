@@ -2,12 +2,6 @@ import { memo } from 'react'
 import { useWorldStore } from '../stores/worldStore'
 import { Tooltip } from './Tooltip'
 
-/**
- * Sidebar "WORLD HISTORY" grid. Pure read of world.history — those
- * counters only change when an event lands (a birth, a death, an
- * alliance), so this component idles between events even though the
- * world ticks 10 Hz.
- */
 function HistoryGridImpl() {
   const h = useWorldStore((s) => s.world?.history)
   if (!h) return null

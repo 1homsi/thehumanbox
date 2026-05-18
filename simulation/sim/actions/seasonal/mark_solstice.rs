@@ -1,4 +1,4 @@
-//! Action 475: mark the solstice; all kin comfort +0.05; discover "solstice_marking".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

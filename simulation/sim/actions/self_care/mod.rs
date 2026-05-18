@@ -1,4 +1,4 @@
-//! Self-care & mood (indices 107..=116 and 221..=225).
+
 
 pub mod bathe;
 pub mod rest_deeply;

@@ -1,4 +1,4 @@
-//! Action 333: elder composes an anthem for the lineage.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

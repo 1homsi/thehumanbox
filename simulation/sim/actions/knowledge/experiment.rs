@@ -1,4 +1,4 @@
-//! Action 67: experiment. 6% chance to stumble on a random new discovery.
+
 use rand::Rng;
 use super::super::ctx::ActionCtx;
 

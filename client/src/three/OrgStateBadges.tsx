@@ -13,18 +13,6 @@ interface Props {
   biomes:    number[][]
 }
 
-// Small status icons that float above an org's head when their
-// internal state warrants it. Reads as "this character is doing X
-// right now" at a glance:
-//
-//   z  - sleeping / resting (thought contains 'sleep' or 'rest')
-//   ♥  - pregnant (orange)
-//   ◊  - elder (gold)
-//   !  - afraid (fear_level > 0.6)
-//   *  - in love / courting
-//
-// Only renders for orgs within BADGE_RADIUS_SQ of the camera so we
-// don't spam billboards across the whole world.
 const BADGE_RADIUS_SQ = 180 * 180
 
 function badgesFor(o: OrganismState): { text: string; color: string }[] {
@@ -78,10 +66,6 @@ export function OrgStateBadges({ organisms, depthMap, biomes }: Props) {
   )
 }
 
-// Per-org badge group with subtle animation: 'z' bobs upward (sleep),
-// '♥' pulses (pregnancy), '!' jitters (fear). Each badge animates
-// independently so the badge row reads as expressive rather than
-// static decals.
 function BadgeRow({ orgId, badges, depthMap, biomes }: {
   orgId: string
   badges: { text: string; color: string }[]
@@ -90,7 +74,6 @@ function BadgeRow({ orgId, badges, depthMap, biomes }: {
 }) {
   const groupRef = useRef<THREE.Group>(null)
   const phase = useMemo(() => {
-    // Stable per-org phase offset.
     let h = 0
     for (let i = 0; i < orgId.length; i++) h = (h * 31 + orgId.charCodeAt(i)) | 0
     return (h & 0xffff) / 0xffff * Math.PI * 2
@@ -99,7 +82,6 @@ function BadgeRow({ orgId, badges, depthMap, biomes }: {
   useFrame(({ clock }) => {
     if (!groupRef.current) return
     const t = clock.getElapsedTime() + phase
-    // Children animate based on their character.
     groupRef.current.children.forEach((child, i) => {
       const b = badges[i]
       if (!b) return

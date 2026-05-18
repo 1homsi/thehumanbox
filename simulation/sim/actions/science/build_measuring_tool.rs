@@ -1,4 +1,4 @@
-//! Action 423: build a measuring tool from wood and stone.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

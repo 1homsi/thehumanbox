@@ -1,4 +1,4 @@
-//! Action 106: claim this land. Path trail + structure stamp.
+
 use crate::world::grid::TrailKind;
 use super::super::ctx::ActionCtx;
 

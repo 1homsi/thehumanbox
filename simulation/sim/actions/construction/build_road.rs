@@ -1,4 +1,4 @@
-//! Action 42: lay a basic road - just leaves a path trail.
+
 
 use crate::world::grid::TrailKind;
 use super::super::ctx::ActionCtx;

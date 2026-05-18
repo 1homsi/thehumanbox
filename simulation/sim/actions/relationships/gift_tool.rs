@@ -1,4 +1,4 @@
-//! Action 227: give inv_wood to a nearby kin; boost trust.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

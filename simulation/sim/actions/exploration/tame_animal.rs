@@ -1,4 +1,4 @@
-//! Action 119: tame an animal. 15% success when one is within 4 tiles.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 417: develop a symbol language.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

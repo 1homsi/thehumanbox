@@ -1,4 +1,4 @@
-//! Action 120: herd animals.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

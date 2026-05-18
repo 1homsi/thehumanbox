@@ -13,10 +13,6 @@ interface Props {
   biomes:    number[][]
 }
 
-// Labels float above the nearest orgs regardless of LOD tier
-// (robot vs capsule). Capped so a dense village doesn't render
-// 100 text quads. Bigger radius than before so panning the camera
-// doesn't make names pop in/out.
 const LABEL_RADIUS_SQ = 140 * 140
 const MAX_LABELS      = 60
 
@@ -40,7 +36,6 @@ export function OrgLabels({ organisms, depthMap, biomes }: Props) {
       const dz = pz - cz
       const d  = dx * dx + dz * dz
       const isSel = o.id === selectedOrgId
-      // Selected org always gets a label, regardless of distance.
       if (!isSel && d > LABEL_RADIUS_SQ) continue
       const groundY = heightAt(o.x, o.y, depthMap, biomes)
       scored.push({
@@ -51,7 +46,6 @@ export function OrgLabels({ organisms, depthMap, biomes }: Props) {
         selected: isSel,
       })
     }
-    // Selected first, then nearest.
     scored.sort((a, b) => (a.selected === b.selected ? a.d - b.d : a.selected ? -1 : 1))
     return scored.slice(0, MAX_LABELS)
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -1,4 +1,4 @@
-//! Action 472: migrate during winter season; discover "seasonal_migration".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

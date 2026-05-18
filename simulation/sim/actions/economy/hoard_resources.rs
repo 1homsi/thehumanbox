@@ -1,4 +1,4 @@
-//! Action 285: keep all inv to self; comfort +0.02 but boredom -0.05.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

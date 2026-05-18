@@ -1,4 +1,4 @@
-//! Action 379: plant a grove. Needs inv_wood and a Grass tile.
+
 use super::super::ctx::ActionCtx;
 use crate::world::tiles::Tile;
 

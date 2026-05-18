@@ -1,4 +1,4 @@
-//! Action 145: salt meat. Needs water nearby + food.
+
 use super::super::ctx::ActionCtx;
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     if !ctx.water_near || ctx.org().inv_food == 0 { return 0.0; }

@@ -1,4 +1,4 @@
-//! Action 237: praise a kin's traits; boost their comfort.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

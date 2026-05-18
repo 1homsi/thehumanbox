@@ -1,4 +1,4 @@
-//! Action 521: coronation of a leader; elder + 3 kin; all comfort +0.08; discover "coronation"; emit "ritual".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 464: fast and deprive oneself for a spiritual vision.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

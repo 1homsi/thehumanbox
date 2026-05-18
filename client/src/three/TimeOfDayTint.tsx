@@ -1,20 +1,10 @@
 import { useMemo } from 'react'
 
 interface Props {
-  dayProgress: number   // 0..1
+  dayProgress: number
   weatherKind?: string
 }
 
-// CSS-only translucent overlay that gives the 3D scene a
-// time-of-day mood without needing a postprocessing pass. Lerps
-// between four colour stops:
-//   midnight     -> deep blue-purple wash
-//   sunrise/dusk -> warm orange/amber wash
-//   midday       -> no overlay
-// Plus a storm/rain desaturating slate at any time.
-//
-// Uses mix-blend-mode: overlay so highlights stay highlight and
-// shadows deepen, giving a graded look instead of a flat colour wash.
 export function TimeOfDayTint({ dayProgress, weatherKind = 'clear' }: Props) {
   const { color, opacity } = useMemo(() => {
     let color = 'rgba(0,0,0,0)'
@@ -23,8 +13,8 @@ export function TimeOfDayTint({ dayProgress, weatherKind = 'clear' }: Props) {
       color = '#1a2050'
       opacity = 0.32
     } else if (dayProgress < 0.32) {
-      const t = (dayProgress - 0.20) / 0.12   // 0..1 across sunrise
-      const fade = 1 - t                      // fade out as morning rises
+      const t = (dayProgress - 0.20) / 0.12
+      const fade = 1 - t
       color = '#ff8a3a'
       opacity = 0.05 + fade * 0.18
     } else if (dayProgress < 0.68) {

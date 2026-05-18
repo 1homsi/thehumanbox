@@ -1,4 +1,4 @@
-//! Action 440: establish a garrison at a defensible position.
+
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
 

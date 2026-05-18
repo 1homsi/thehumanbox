@@ -1,4 +1,4 @@
-//! Action 406: develop writing. Needs rock nearby to scratch symbols.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

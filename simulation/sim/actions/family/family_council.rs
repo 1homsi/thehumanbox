@@ -1,4 +1,4 @@
-//! Action 272: group decision-making; all kin comfort +0.03; discover "council".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

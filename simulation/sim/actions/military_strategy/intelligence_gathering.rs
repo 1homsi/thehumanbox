@@ -1,4 +1,4 @@
-//! Action 454: gather intelligence on nearby strangers.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

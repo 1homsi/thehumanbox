@@ -1,4 +1,4 @@
-//! Action 146: cache food. Leaves a food trail at this tile.
+
 use crate::world::grid::TrailKind;
 use super::super::ctx::ActionCtx;
 

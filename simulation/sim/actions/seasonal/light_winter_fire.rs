@@ -1,4 +1,4 @@
-//! Action 478: light fire in winter; all kin comfort +0.07; emit "culture".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

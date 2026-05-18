@@ -1,4 +1,4 @@
-//! Action 370: build a stone corral for containing livestock.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

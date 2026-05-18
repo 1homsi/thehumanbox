@@ -1,4 +1,4 @@
-//! Action 449: establish a lookout post on high ground or water's edge.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

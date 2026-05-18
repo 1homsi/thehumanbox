@@ -1,4 +1,4 @@
-//! Action 323: carve a mask from wood.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

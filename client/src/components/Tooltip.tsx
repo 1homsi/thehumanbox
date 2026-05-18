@@ -4,7 +4,6 @@ import clsx from 'clsx'
 import type { ReactElement, ReactNode } from 'react'
 
 const OFFSET = 8
-// Flip to below when less than this many px from the top of the viewport
 const FLIP_PX = 80
 const MAX_TOOLTIP_W = 320
 const EDGE_PAD = 8

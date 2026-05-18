@@ -1,15 +1,9 @@
-//! Combat utilities: raid, ambush. Anything that resolves "actor hits
-//! a target with a consequence" lives here.
+
 
 use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
 
 impl Simulation {
-    /// A raid: strike the nearest hostile organism from `near`.
-    /// Ambush bypasses the usual challenge cooldown, hits harder,
-    /// but is riskier socially. Plunders one unit of food if the
-    /// target was carrying any. Returns the Q-learning reward
-    /// (0.0 if no valid target).
     pub(crate) fn do_raid(&mut self, idx: usize, near: &[usize], ambush: bool) -> f32 {
         let lid = self.organisms[idx].lineage_id.clone();
         let target = near.iter().copied().find(|&k| {
@@ -26,7 +20,6 @@ impl Simulation {
         self.organisms[idx].update_attitude(&their, -0.10);
         self.organisms[ti].update_attitude(&lid, -0.15);
 
-        // Plunder one food if the target had any.
         if self.organisms[ti].inv_food > 0 {
             self.organisms[ti].inv_food -= 1;
             self.organisms[idx].inv_food = self.organisms[idx].inv_food.saturating_add(1);

@@ -1,4 +1,4 @@
-//! Action 194: duel a known rival. Both take damage.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

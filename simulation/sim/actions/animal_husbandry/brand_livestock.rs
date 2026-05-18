@@ -1,4 +1,4 @@
-//! Action 366: brand livestock near fire and rock to mark ownership.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

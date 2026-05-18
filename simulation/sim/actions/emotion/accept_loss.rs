@@ -1,4 +1,4 @@
-//! Action 391: accept loss when kin count is low.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

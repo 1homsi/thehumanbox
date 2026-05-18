@@ -1,4 +1,4 @@
-//! Action 241: sit silently with a kin; both reduce boredom.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

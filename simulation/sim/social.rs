@@ -4,9 +4,6 @@ use crate::world::tiles::Tile;
 use super::simulation::{Event, History};
 use super::world_events::push_event;
 
-// All functions take split borrows: (actor_idx, organisms_slice, grid, ...) pattern
-// to avoid aliasing. The caller is responsible for indexing.
-
 pub fn signal_food(
     org_idx: usize,
     organisms: &mut Vec<Organism>,
@@ -18,7 +15,6 @@ pub fn signal_food(
     let (ix, iy) = (organisms[org_idx].x as i32, organisms[org_idx].y as i32);
     let org_lineage = organisms[org_idx].lineage_id.clone();
     let org_id      = organisms[org_idx].id.clone();
-    // The word this organism uses for "food" is the signal content
     let signal_word = organisms[org_idx].vocabulary.word_for("food").to_string();
 
     let best = Organism::best_remembered(&organisms[org_idx].food_memory,
@@ -32,7 +28,6 @@ pub fn signal_food(
         }
     };
 
-    // Broadcast to nearby organisms - kin priority but non-kin can overhear
     let nearby_indices: Vec<usize> = organisms.iter().enumerate()
         .filter(|(i, o)| *i != org_idx && o.alive)
         .filter(|(_, o)| (o.x - organisms[org_idx].x).abs()+(o.y - organisms[org_idx].y).abs() <= 12.0)
@@ -55,13 +50,11 @@ pub fn signal_food(
         let is_kin     = organisms[ni].lineage_id == org_lineage;
         let trust      = *organisms[ni].org_trust.get(&org_id).unwrap_or(&0.0);
 
-        // Full benefit if they know the same word; reduced if dialect differs
         let base_strength = if is_kin { (0.5 * (0.5 + trust)).max(0.20) } else { 0.10 };
         let strength = if recognizes { base_strength } else { base_strength * 0.3 };
 
         Organism::remember(&mut organisms[ni].food_memory, bx, by, strength, mem_trait);
 
-        // Language exchange: hearing the signal creates vocabulary contact
         organisms[ni].vocabulary.absorb_from(&my_vocab, rng);
         if recognizes { understood += 1; }
         reached += 1;
@@ -83,7 +76,6 @@ pub fn sound_alarm(
 ) -> f32 {
     let (ix, iy) = (organisms[org_idx].x as i32, organisms[org_idx].y as i32);
     let org_lineage = organisms[org_idx].lineage_id.clone();
-    // Determine what kind of danger is being signaled
     let on_fire = grid.get(ix, iy) == Tile::Fire;
     let concept = if on_fire { "fire" } else { "danger" };
     let signal_word = organisms[org_idx].vocabulary.word_for(concept).to_string();
@@ -101,7 +93,6 @@ pub fn sound_alarm(
         return 0.0;
     };
 
-    // All nearby organisms can hear the alarm - language determines how much they understand
     let nearby_indices: Vec<usize> = organisms.iter().enumerate()
         .filter(|(i, o)| *i != org_idx && o.alive)
         .filter(|(_, o)| (o.x - organisms[org_idx].x).abs()+(o.y - organisms[org_idx].y).abs() <= 14.0)
@@ -122,17 +113,15 @@ pub fn sound_alarm(
         let recognizes = their_word == signal_word;
         let is_kin     = organisms[ni].lineage_id == org_lineage;
 
-        // Kin with shared language: full danger memory; strangers with shared language: partial
         let strength = match (is_kin, recognizes) {
             (true,  true)  => 0.70,
-            (true,  false) => 0.35, // kin but dialect gap - some urgency transfers from tone
-            (false, true)  => 0.30, // not kin but speaks same tongue
-            (false, false) => 0.08, // alien signal, mostly ignored
+            (true,  false) => 0.35,
+            (false, true)  => 0.30,
+            (false, false) => 0.08,
         };
 
         Organism::remember(&mut organisms[ni].danger_memory, dlx, dly, strength, mem_trait);
 
-        // Hearing the alarm word creates vocabulary contact
         organisms[ni].vocabulary.absorb_from(&my_vocab, rng);
         if is_kin { kin_warned += 1; }
     }
@@ -204,7 +193,6 @@ pub fn gift_knowledge(
 
     let reward_add = if new_att >= 0.0 { 0.014 } else { -0.003 };
 
-    // Cross-lineage language contact: exchange 1-2 words when gifting
     if new_att >= 0.25 {
         let their_snap = organisms[ti].vocabulary.words.clone();
         let my_snap    = organisms[org_idx].vocabulary.words.clone();
@@ -255,9 +243,8 @@ pub fn challenge_stranger(
     let kin_backing = organisms.iter()
         .filter(|o| o.alive && o.lineage_id == org_lineage)
         .filter(|o| (o.x - organisms[org_idx].x).abs()+(o.y - organisms[org_idx].y).abs() <= 4.0)
-        .count().saturating_sub(1); // subtract self
+        .count().saturating_sub(1);
 
-    // Coalition warfare: allied lineages back each other up
     let allied_backing = organisms.iter()
         .filter(|o| o.alive && o.lineage_id != org_lineage && o.lineage_id != target_lid)
         .filter(|o| organisms[org_idx].attitude_toward(&o.lineage_id) >= 0.4)
@@ -283,7 +270,6 @@ pub fn challenge_stranger(
     let t_trust = organisms[ti].org_trust.entry(org_id).or_insert(0.0);
     *t_trust = (*t_trust - 0.20).max(-1.0);
 
-    // Victim burns this tile into danger_memory - hostile territory awareness
     let (tx, ty) = (organisms[ti].x as i32, organisms[ti].y as i32);
     let att_after   = organisms[ti].attitude_toward(&org_lineage);
     let ti_mem_trait = organisms[ti].traits.memory_strength;
@@ -311,7 +297,6 @@ pub fn challenge_stranger(
     reward * (0.5 + organisms[org_idx].traits.aggression)
 }
 
-// Grooming: reduces infection on both parties, builds deep trust
 pub fn groom(
     org_idx: usize,
     organisms: &mut Vec<Organism>,
@@ -340,7 +325,6 @@ pub fn groom(
     let target_name = organisms[ti].name.clone();
     let ti_id       = organisms[ti].id.clone();
 
-    // Reduce infection in both - grooming prevents pathogen spread
     organisms[org_idx].infection = (organisms[org_idx].infection * 0.94).max(0.0);
     organisms[ti].infection      = (organisms[ti].infection      * 0.94).max(0.0);
 
@@ -351,7 +335,6 @@ pub fn groom(
     let o_t = organisms[org_idx].org_trust.entry(ti_id).or_insert(0.0);
     *o_t = (*o_t + 0.06).min(1.0);
 
-    // Clear some grief when grooming kin
     if organisms[org_idx].grief_ticks > 0 { organisms[org_idx].grief_ticks = organisms[org_idx].grief_ticks.saturating_sub(8); }
     if organisms[ti].grief_ticks > 0 { organisms[ti].grief_ticks = organisms[ti].grief_ticks.saturating_sub(8); }
 
@@ -365,7 +348,6 @@ pub fn groom(
     0.012
 }
 
-// Teaching: elder shares memories, vocabulary, and discoveries with young kin
 pub fn teach(
     org_idx: usize,
     organisms: &mut Vec<Organism>,
@@ -377,7 +359,6 @@ pub fn teach(
     let org_lineage = organisms[org_idx].lineage_id.clone();
     let (ox, oy) = (organisms[org_idx].x, organisms[org_idx].y);
 
-    // Find youngest kin nearby to teach
     let target_idx = organisms.iter().enumerate()
         .filter(|(i, o)| *i != org_idx && o.alive && o.lineage_id == org_lineage)
         .filter(|(_, o)| (o.x - ox).abs() + (o.y - oy).abs() <= 5.0)
@@ -389,7 +370,6 @@ pub fn teach(
     let target_name = organisms[ti].name.clone();
     let mem_trait   = organisms[org_idx].traits.memory_strength;
 
-    // Share food and water memories generously
     let food_share: Vec<((i32,i32), f32)> = organisms[org_idx].food_memory.iter()
         .filter(|(_, &v)| v > 0.4).take(6).map(|(&k, &v)| (k, v)).collect();
     let water_share: Vec<((i32,i32), f32)> = organisms[org_idx].water_memory.iter()
@@ -401,11 +381,9 @@ pub fn teach(
     for &((x,y), v) in &water_share { Organism::remember(&mut organisms[ti].water_memory,  x, y, v * 0.5, mem_trait); }
     for &((x,y), v) in &danger_share{ Organism::remember(&mut organisms[ti].danger_memory, x, y, v * 0.4, mem_trait); }
 
-    // Vocabulary teaching
     let elder_vocab = organisms[org_idx].vocabulary.clone();
     organisms[ti].vocabulary.absorb_from(&elder_vocab, rng);
 
-    // Discovery transfer to mature youth (5% chance per elder discovery)
     if organisms[ti].age > 200 {
         let elder_disc: Vec<String> = organisms[org_idx].discoveries.iter().cloned().collect();
         for disc in &elder_disc {
@@ -433,7 +411,6 @@ pub fn teach(
     0.018
 }
 
-// Food sharing: well-fed organism gives energy directly to a starving kin
 pub fn share_food(
     org_idx: usize,
     organisms: &mut Vec<Organism>,
@@ -489,7 +466,6 @@ pub fn social_knowledge_share(
 
     if kin_indices.is_empty() { return; }
 
-    // Collect food/water memories to share (avoid double borrow)
     let food_to_share: Vec<((i32,i32), f32)> = organisms[org_idx].food_memory.iter()
         .filter(|(&(x,y), &v)| v > 0.5 && (x-ox).abs()+(y-oy).abs() <= 20)
         .map(|(&k, &v)| (k, v))
@@ -500,7 +476,6 @@ pub fn social_knowledge_share(
         .collect();
     let mem_trait = organisms[org_idx].traits.memory_strength;
 
-    // Snapshot vocabulary to avoid borrow conflict
     let my_vocab = organisms[org_idx].vocabulary.clone();
 
     for ki in &kin_indices {
@@ -517,14 +492,10 @@ pub fn social_knowledge_share(
         *o_t = (*o_t + 0.008).min(1.0);
     }
 
-    // Civilization language convergence: all kin present adopt the majority word per concept.
-    // Snapshot every kin's vocabulary words (to avoid borrow conflicts).
     let kin_snapshots: Vec<std::collections::HashMap<String, String>> = kin_indices.iter()
         .map(|&ki| organisms[ki].vocabulary.words.clone())
         .collect();
-    // Actor converges toward kin majority
     organisms[org_idx].vocabulary.converge_with(&kin_snapshots, rng, 0.40);
-    // Each kin converges toward the group including actor
     let mut all_snapshots = kin_snapshots.clone();
     all_snapshots.push(my_vocab.words.clone());
     for &ki in &kin_indices {

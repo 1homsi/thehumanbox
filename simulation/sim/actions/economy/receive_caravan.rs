@@ -1,4 +1,4 @@
-//! Action 289: accept goods from a stranger; inv_food += 1.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

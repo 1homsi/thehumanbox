@@ -1,4 +1,4 @@
-//! Action 270: grieve a lost child; comfort -0.1 self, emit "death" event.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

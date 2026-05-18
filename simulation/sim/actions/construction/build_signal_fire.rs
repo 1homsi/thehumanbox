@@ -1,4 +1,4 @@
-//! Action 179: light a signal fire. Calms kin's fear.
+
 
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;

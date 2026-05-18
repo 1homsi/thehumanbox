@@ -1,10 +1,4 @@
-//! Daily-story narration worker.
-//!
-//! Pulls a queue of NarrationReq off the channel the broadcast loop fills,
-//! sends each through the chat-completions endpoint, and parks the resulting
-//! one-line story in the shared per-organism map. If the LLM is
-//! unreachable, falls back to a deterministic story stitched from life_log
-//! events so users still see something.
+
 
 use std::sync::Arc;
 
@@ -63,8 +57,6 @@ pub async fn narration_worker(
         );
 
         println!("[narrate] queuing story for {} - {} events", req.org_name, req.life_log.len());
-        // Wall-clock the LLM round-trip so the /llm endpoint can show
-        // narration-lane p50/p95 alongside the think lane.
         let started = std::time::Instant::now();
         match client.post(&**NARRATION_LLM_URL)
             .header("Authorization", format!("Bearer {}", api_key))
@@ -91,8 +83,6 @@ pub async fn narration_worker(
             Err(e) => {
                 stats.record_narration(started.elapsed().as_millis() as u64, true);
                 println!("[narrate] Groq error for {}: {}", req.org_name, e);
-                // LLM unreachable - generate a minimal story from life_log
-                // events so the user still sees something useful.
                 let food_word  = req.vocab.get("food").map(|s| s.as_str()).unwrap_or("food");
                 let water_word = req.vocab.get("water").map(|s| s.as_str()).unwrap_or("water");
                 let story = if let Some(ev) = req.life_log.iter().find(|e| e.contains("offspring")) {

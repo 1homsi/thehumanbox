@@ -1,4 +1,4 @@
-//! Ceremony actions (indices 521..=535).
+
 
 pub mod coronation;
 pub mod coming_of_age_expanded;

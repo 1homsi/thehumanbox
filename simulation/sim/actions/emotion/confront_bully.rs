@@ -1,4 +1,4 @@
-//! Action 399: confront a bully. Needs a stranger nearby with a negative attitude.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

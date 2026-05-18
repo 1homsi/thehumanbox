@@ -1,4 +1,4 @@
-//! Action 168: lay paving stones. Consumes 1 stone.
+
 
 use crate::world::grid::TrailKind;
 use super::super::ctx::ActionCtx;

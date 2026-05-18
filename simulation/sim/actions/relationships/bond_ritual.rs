@@ -1,4 +1,4 @@
-//! Action 240: group ritual with kin; discover "bond_ritual", emit ritual event.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 304: gather all kin; all kin boredom -0.1; discover "assembly".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

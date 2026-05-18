@@ -1,4 +1,4 @@
-//! Action 443: build a war camp from available timber.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 282: with 3+ kin nearby; discover "guild"; all kin comfort +0.05.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Military strategy & organised warfare (indices 436..=455).
+
 
 pub mod form_army;
 pub mod train_soldiers;

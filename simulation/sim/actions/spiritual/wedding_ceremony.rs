@@ -1,4 +1,4 @@
-//! Action 207: wedding ceremony. Needs 2+ kin.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

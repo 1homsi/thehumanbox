@@ -1,4 +1,4 @@
-//! Action 210: bless a field. Bumps fertility on grass/food tile.
+
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
 

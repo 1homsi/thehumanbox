@@ -1,11 +1,10 @@
-//! Action 247: reduce infection on a nearby kin.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let pick = ctx.kin.iter().copied()
         .find(|&ki| ctx.sim.organisms[ki].infection > 0.0);
     let Some(ki) = pick else {
-        // Try any kin that might be sick
         let fallback = ctx.kin.first().copied();
         let Some(ki2) = fallback else {
             ctx.think("no kin to treat");

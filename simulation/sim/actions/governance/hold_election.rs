@@ -1,4 +1,4 @@
-//! Action 296: 3+ kin needed; discover "democracy"; all kin comfort +0.04.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 118: climb the highest peak nearby.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

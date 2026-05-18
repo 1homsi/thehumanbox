@@ -1,4 +1,4 @@
-//! Action 504: write a scroll using inv_wood; discover "scroll_writing"; emit "build".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

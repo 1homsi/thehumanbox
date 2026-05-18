@@ -1,4 +1,4 @@
-//! Action 249: on Food tile, gather herbs; discover "medicinal_herbs".
+
 use super::super::ctx::ActionCtx;
 use crate::world::tiles::Tile;
 

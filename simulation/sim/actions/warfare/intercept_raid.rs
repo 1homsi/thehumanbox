@@ -1,4 +1,4 @@
-//! Action 199: intercept raiders. Needs hostile org nearby.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

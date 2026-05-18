@@ -1,4 +1,4 @@
-//! Action 269: elder gives inv_wood to a young kin; emit "legacy" event.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

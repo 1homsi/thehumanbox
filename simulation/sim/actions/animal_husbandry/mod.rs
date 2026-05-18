@@ -1,4 +1,4 @@
-//! Animal husbandry (indices 356..=370).
+
 
 pub mod pen_animal;
 pub mod breed_animals;

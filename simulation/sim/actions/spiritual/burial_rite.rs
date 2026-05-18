@@ -1,4 +1,4 @@
-//! Action 206: burial rite. Eases grief for grieving kin.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -13,8 +13,6 @@ use crate::sim::world_events::{DroughtState, WeatherState};
 use crate::world::grid::{HEIGHT, WIDTH, WorldGrid};
 use crate::world::tiles::Tile;
 
-// ── Save structs ─────────────────────────────────────────────────────────────
-
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub(crate) struct GridSave {
@@ -135,8 +133,6 @@ pub(crate) struct SaveState {
     flood_tiles: Vec<(i32, i32, u64)>,
 }
 
-// ── Memory codec ─────────────────────────────────────────────────────────────
-
 fn mem_encode(m: &HashMap<(i32,i32), f32>) -> HashMap<String, f32> {
     m.iter().map(|(&(x,y), &v)| (format!("{},{}", x, y), v)).collect()
 }
@@ -149,8 +145,6 @@ fn mem_decode(m: HashMap<String, f32>) -> HashMap<(i32,i32), f32> {
         Some(((x, y), v))
     }).collect()
 }
-
-// ── Organism ↔ OrgSave ───────────────────────────────────────────────────────
 
 fn org_to_save(o: &Organism) -> OrgSave {
     OrgSave {
@@ -287,8 +281,6 @@ fn animal_from_save(s: AnimalSave) -> Animal {
     a
 }
 
-// ── Save / load ──────────────────────────────────────────────────────────────
-
 impl Simulation {
     pub fn save(&self, path: &str) {
         if let Err(e) = self.save_result(path) {
@@ -352,12 +344,6 @@ impl Simulation {
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
         let tmp_path = format!("{}.tmp", path);
 
-        // Crash-hardened atomic save:
-        // 1. Write contents to temp file and fsync the file so bytes hit disk
-        // 2. Atomic rename temp → final path
-        // 3. fsync the parent directory so the rename is durable
-        // Without (1), a crash mid-write could leave a corrupt final file after rename.
-        // Without (3), a crash after rename could lose the directory entry update.
         {
             use std::io::Write;
             let mut f = std::fs::File::create(&tmp_path)?;
@@ -435,12 +421,6 @@ impl Simulation {
             rain_relief: state.drought.rain_relief,
         };
 
-        // Cooldown jitter for legacy saves only.
-        // Modern saves persist the RNG stream so save→load→continue produces
-        // bit-identical state - required for replay/viability/bisect work.
-        // Mutating last_think_tick / last_invention_tick on load would break
-        // that determinism. Legacy saves (state.rng == None) lose RNG
-        // continuity anyway, so we keep the original behaviour for them.
         let tick = state.tick_count;
         let is_legacy_save = state.rng.is_none();
         let mut organisms: Vec<_> = state.organisms.into_iter().map(org_from_save).collect();

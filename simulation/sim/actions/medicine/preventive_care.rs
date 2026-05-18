@@ -1,4 +1,4 @@
-//! Action 260: reduce own infection by 0.05; think "staying healthy".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

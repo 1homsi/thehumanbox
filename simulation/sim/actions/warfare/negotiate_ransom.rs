@@ -1,4 +1,4 @@
-//! Action 200: ransom a low-health hostage.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 26: mine stone from an adjacent rock/mineral tile.
+
 
 use super::super::ctx::ActionCtx;
 

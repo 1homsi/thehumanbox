@@ -1,4 +1,4 @@
-//! Action 322: perform a theater play with 3+ kin; comfort +0.07 all.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

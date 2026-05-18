@@ -1,18 +1,4 @@
-//! Per-lane LLM latency + error counters.
-//!
-//! Both narration_worker and think_worker call into a chat-completions
-//! endpoint. With the dual-lane env split (NARRATION_LLM_* vs THINK_LLM_*)
-//! these can point at different providers - typically Groq for narration
-//! and a local llama.cpp server for think. We want quick visibility on:
-//!
-//!   - How long does each lane's round-trip take (avg + p95)?
-//!   - How often does each lane error out?
-//!   - How many calls per lane since boot?
-//!
-//! This is the data needed to validate the dual-lane swap: if local llama
-//! is faster than Groq for think but produces equivalent thoughts, the
-//! migration is a clear win. Exposed via GET /llm so it's curlable from
-//! the EC2 box during the swap.
+
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -49,10 +35,6 @@ pub struct LlmStatsSnapshot {
 }
 
 impl LlmStats {
-    /// Record one round-trip on the narration lane. `error=true` if the
-    /// response was non-OK (HTTP error, network error, parse failure).
-    /// `ms` is the elapsed wall time of the call - includes serialization,
-    /// HTTP round-trip, and response decode.
     pub fn record_narration(&self, ms: u64, error: bool) {
         self.narration_calls.fetch_add(1, Ordering::Relaxed);
         if error {

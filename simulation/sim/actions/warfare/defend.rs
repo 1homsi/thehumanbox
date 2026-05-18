@@ -1,4 +1,4 @@
-//! Action 103: defend - small self-heal.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

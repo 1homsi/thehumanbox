@@ -1,4 +1,4 @@
-//! Action 412: sound the alarm when a stranger is near.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

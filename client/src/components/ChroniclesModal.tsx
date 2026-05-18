@@ -10,7 +10,6 @@ interface Props {
 }
 
 export function ChroniclesModal({ stories, onClose }: Props) {
-  // server sends newest-first already; display as-is
   const sorted = [...stories]
 
   return (

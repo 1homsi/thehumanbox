@@ -6,7 +6,6 @@ from .eval_runner import EvalPrediction
 from .schemas import ThoughtExample
 from .task_specs import THOUGHT_V1, TaskSpec
 
-
 def build_distillation_rows(
     examples: list[ThoughtExample],
     predictions: list[EvalPrediction],

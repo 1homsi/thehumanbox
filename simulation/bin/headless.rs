@@ -34,7 +34,7 @@ fn main() {
         .position(|a| a == "--every")
         .and_then(|i| args.get(i + 1))
         .and_then(|s| s.parse().ok())
-        .unwrap_or(6_000); // default 1 in-world day
+        .unwrap_or(6_000);
     let sweep_seeds: usize = args
         .iter()
         .position(|a| a == "--sweep-seeds")
@@ -60,11 +60,7 @@ fn main() {
         .unwrap_or(0);
     let world_report = args.iter().any(|a| a == "--world-report");
     let world_gate = args.iter().any(|a| a == "--world-gate");
-    // --gate: exit non-zero if any seed's verdict is not Healthy. For CI use.
     let gate = args.iter().any(|a| a == "--gate");
-    // --coverage-every N: every N ticks, print spatial-distribution metrics
-    // so we can see whether the population fills the map or collapses to a
-    // single corner over time. 0 = disabled (default).
     let coverage_every: u64 = args
         .iter()
         .position(|a| a == "--coverage-every")
@@ -147,7 +143,6 @@ fn main() {
             print_coverage_row(t, &sim);
         }
 
-        // Tally thoughts
         for org in sim.organisms.iter().filter(|o| o.alive) {
             *thought_freq.entry(org.thought.clone()).or_insert(0) += 1;
         }
@@ -190,7 +185,6 @@ fn main() {
         }
     }
 
-    // Final summary
     println!("\n=== SUMMARY ===");
     println!("ticks run:   {}", sim.tick_count);
     println!("peak pop:    {}", peak_pop);
@@ -214,7 +208,6 @@ fn main() {
     );
     println!("droughts:    {}  outbreaks: {}", h.droughts, h.outbreaks);
 
-    // Top thoughts (behavior fingerprint)
     let mut freq_vec: Vec<(String, u64)> = thought_freq.into_iter().collect();
     freq_vec.sort_by(|a, b| b.1.cmp(&a.1));
     println!("\nTop behaviors (thought frequency across all organism-ticks):");
@@ -222,7 +215,6 @@ fn main() {
         println!("  {:>10}  {}", count, thought);
     }
 
-    // Fire/shelter/hunt discoveries
     let fire_disc = sim
         .organisms
         .iter()
@@ -252,7 +244,6 @@ fn main() {
         sim.animals.iter().filter(|a| a.alive).count()
     );
 
-    // Lineage survival
     let mut lineage_alive: HashMap<&str, usize> = HashMap::new();
     for org in sim.organisms.iter().filter(|o| o.alive) {
         *lineage_alive.entry(&org.lineage_id).or_insert(0) += 1;
@@ -280,7 +271,6 @@ fn main() {
         );
     }
 
-    // Performance report
     if !tick_times_us.is_empty() {
         let mut sorted_us = tick_times_us.clone();
         sorted_us.sort_unstable();
@@ -350,22 +340,6 @@ fn infer_event_type(org: &organism::organism::Organism) -> &'static str {
     }
 }
 
-/// One-row summary of organism spatial distribution at a moment in time.
-/// Helps answer "are they spread across the map or huddled in one corner?"
-/// without staring at the canvas.
-///
-/// Columns:
-///   tick      - sim tick at sample
-///   alive     - organisms alive
-///   cx, cy    - population centroid
-///   stdx,stdy - std-dev of x/y positions (0 = single point, large = spread)
-///   cells     - count of 50x50 cells with at least one organism (the world
-///               is 600x300, so max meaningful value is 12x6 = 72)
-///   q_xx      - % of population in top-left / top-right / bottom-left /
-///               bottom-right quadrant. A balanced world shows ~25 each.
-///   dense     - max organisms inside any single 30x30 window. A healthy
-///               sim has dense roughly proportional to (alive / cells).
-///               Pathological clustering shows dense near alive itself.
 fn print_coverage_row(tick: u64, sim: &Simulation) {
     use crate::world::grid::{HEIGHT, WIDTH};
     let alive: Vec<&_> = sim.organisms.iter().filter(|o| o.alive).collect();
@@ -381,7 +355,6 @@ fn print_coverage_row(tick: u64, sim: &Simulation) {
     let stdx = varx.sqrt();
     let stdy = vary.sqrt();
 
-    // Cells occupied (50x50 buckets)
     const CELL: i32 = 50;
     let mut cells: std::collections::HashSet<(i32, i32)> = std::collections::HashSet::new();
     for o in &alive {
@@ -389,7 +362,6 @@ fn print_coverage_row(tick: u64, sim: &Simulation) {
     }
     let cell_count = cells.len();
 
-    // Quadrant % using world midpoint, so empty quadrants are obvious
     let half_w = WIDTH as f32 / 2.0;
     let half_h = HEIGHT as f32 / 2.0;
     let mut q_tl = 0; let mut q_tr = 0; let mut q_bl = 0; let mut q_br = 0;
@@ -403,8 +375,6 @@ fn print_coverage_row(tick: u64, sim: &Simulation) {
     }
     let pct = |x: usize| (x as f32 * 100.0 / n).round() as i32;
 
-    // Max density: any 30x30 window. Bucket into 30-tile cells and tally,
-    // then sum a 1x1 / 2x2 window worth - cheap upper bound on density.
     let mut buckets: std::collections::HashMap<(i32, i32), u32> = std::collections::HashMap::new();
     for o in &alive {
         let k = (o.x as i32 / 30, o.y as i32 / 30);
@@ -477,9 +447,7 @@ struct SweepResult {
     deaths_sickness: u64,
     deaths_combat: u64,
     surviving_lineages: usize,
-    /// Sample of alive count every 1000 ticks. Used by the viability gate.
     alive_samples: Vec<usize>,
-    /// Sample of distinct alive lineages every 1000 ticks.
     lineage_samples: Vec<usize>,
     ticks_run: u64,
     verdict: Verdict,
@@ -488,10 +456,10 @@ struct SweepResult {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Verdict {
     Healthy,
-    Extinct,     // hit zero alive
-    Runaway,     // sat at MAX_POPULATION for too long - indicates unbounded growth being clamped
-    Stagnant,    // population never recovered to a viable level
-    Homogenized, // diversity collapsed - survivors all from one or two lineages
+    Extinct,
+    Runaway,
+    Stagnant,
+    Homogenized,
 }
 
 impl Verdict {
@@ -509,19 +477,6 @@ impl Verdict {
     }
 }
 
-/// Classify a finished run.
-///
-/// Rules (first match wins):
-///   1. Extinct: any sample reached 0 - already captured by extinction_tick.
-///   2. Runaway: more than 60% of samples were at MAX_POPULATION (= 200). The cap
-///      is hiding what would otherwise be exponential growth - symptom of broken
-///      mortality or food economy.
-///   3. Stagnant: peak across all samples never reached 30, OR mean alive across
-///      the second half of the run was < 15. The world settled at a non-viable
-///      ebb that recovery_mode can't lift.
-///   4. Homogenized: ran for at least 30k ticks AND fewer than 3 lineages survived
-///      at the end (started with 12 founding tribes). Cultural-genetic collapse.
-///   5. Otherwise: Healthy.
 fn classify(
     extinction_tick: Option<u64>,
     alive_samples: &[usize],
@@ -529,7 +484,7 @@ fn classify(
     ticks_run: u64,
     surviving_lineages: usize,
 ) -> Verdict {
-    const MAX_POP: usize = 300; // matches sim::config::MAX_POPULATION
+    const MAX_POP: usize = 300;
     if extinction_tick.is_some() {
         return Verdict::Extinct;
     }
@@ -553,10 +508,7 @@ fn classify(
         return Verdict::Stagnant;
     }
 
-    // Lineage homogenization only meaningful in long runs - early sweeps are noisy.
     if ticks_run >= 30_000 && surviving_lineages < 3 {
-        // Suppress the verdict if even the latest snapshot showed > 3 lineages -
-        // a single late-game collapse is not "homogenized".
         let last_lineage = lineage_samples.last().copied().unwrap_or(0);
         if last_lineage < 3 {
             return Verdict::Homogenized;
@@ -578,7 +530,6 @@ fn run_one_seed(seed: u64, max_ticks: u64) -> SweepResult {
         let alive = sim.organisms.iter().filter(|o| o.alive).count();
         peak_pop = peak_pop.max(alive);
 
-        // Sample every 1000 ticks for viability classification.
         if sim.tick_count % 1000 == 0 {
             alive_samples.push(alive);
             let lineages = sim
@@ -1014,7 +965,6 @@ mod tests {
 
     #[test]
     fn classify_runaway_when_capped_at_max_pop_majority_of_run() {
-        // 300 = MAX_POPULATION; 8 of 10 samples capped → 80% > 60% threshold
         let samples = vec![250, 300, 300, 300, 300, 300, 300, 300, 300, 280];
         let v = classify(None, &samples, &[12; 10], 60_000, 8);
         assert_eq!(v, Verdict::Runaway);
@@ -1029,7 +979,6 @@ mod tests {
 
     #[test]
     fn classify_stagnant_when_second_half_collapses() {
-        // First half healthy, second half barely surviving
         let samples = vec![80, 90, 85, 70, 14, 12, 10, 11];
         let v = classify(None, &samples, &[8; 8], 60_000, 5);
         assert_eq!(v, Verdict::Stagnant);
@@ -1038,14 +987,13 @@ mod tests {
     #[test]
     fn classify_homogenized_when_lineages_collapse_in_long_run() {
         let samples = vec![80, 85, 90, 95, 100, 105];
-        let lineages = vec![12, 10, 8, 5, 3, 2]; // collapses to 2 lineages
+        let lineages = vec![12, 10, 8, 5, 3, 2];
         let v = classify(None, &samples, &lineages, 60_000, 2);
         assert_eq!(v, Verdict::Homogenized);
     }
 
     #[test]
     fn classify_homogenized_only_after_long_run() {
-        // Same lineage collapse but only ran 10k ticks - early sweeps are noisy
         let samples = vec![80, 85];
         let lineages = vec![12, 2];
         let v = classify(None, &samples, &lineages, 10_000, 2);

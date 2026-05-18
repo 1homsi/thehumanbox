@@ -1,4 +1,4 @@
-//! Action 221: take a nap.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

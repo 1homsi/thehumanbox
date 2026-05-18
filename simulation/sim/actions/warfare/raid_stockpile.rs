@@ -1,4 +1,4 @@
-//! Action 198: raid a nearby food stockpile trail.
+
 use crate::world::grid::TrailKind;
 use super::super::ctx::ActionCtx;
 

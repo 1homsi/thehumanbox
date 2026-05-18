@@ -1,4 +1,4 @@
-//! Action 430: refute an existing theory through evidence.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

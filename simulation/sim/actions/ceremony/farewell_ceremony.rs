@@ -1,4 +1,4 @@
-//! Action 535: farewell ceremony for an elder with low health; all kin comfort -0.03 then +0.05; emit "culture".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

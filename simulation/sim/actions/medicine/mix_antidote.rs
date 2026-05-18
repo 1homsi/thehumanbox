@@ -1,4 +1,4 @@
-//! Action 257: combine materials to create cure; reduce own infection.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 193: throw a stone at a disliked foreign org.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

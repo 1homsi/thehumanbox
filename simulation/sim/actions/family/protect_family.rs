@@ -1,4 +1,4 @@
-//! Action 275: guard a vulnerable kin; emit "defense" event.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

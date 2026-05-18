@@ -1,4 +1,4 @@
-//! Action 293: examine a stranger's inventory; discover "quality_control".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

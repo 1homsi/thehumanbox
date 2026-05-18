@@ -1,4 +1,4 @@
-//! Action 455: hold a victory parade to celebrate and boost morale.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

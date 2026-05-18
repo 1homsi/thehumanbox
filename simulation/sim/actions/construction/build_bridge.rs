@@ -1,4 +1,4 @@
-//! Action 41: build a bridge near water. Leaves a path trail.
+
 
 use crate::world::grid::TrailKind;
 use super::super::ctx::ActionCtx;

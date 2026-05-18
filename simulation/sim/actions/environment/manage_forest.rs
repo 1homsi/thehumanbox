@@ -1,4 +1,4 @@
-//! Action 375: manage a forest. Needs at least one Grass neighbour.
+
 use super::super::ctx::ActionCtx;
 use crate::world::tiles::Tile;
 

@@ -1,4 +1,4 @@
-//! Action 411: call for help when low on health; comfort boost from solidarity.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

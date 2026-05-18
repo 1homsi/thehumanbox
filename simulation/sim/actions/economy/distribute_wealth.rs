@@ -1,4 +1,4 @@
-//! Action 284: share inv_food evenly with all kin.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

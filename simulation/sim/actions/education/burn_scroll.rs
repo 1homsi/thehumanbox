@@ -1,4 +1,4 @@
-//! Action 508: burn a scroll near fire (destruction of knowledge); emit "culture"; comfort -0.04.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

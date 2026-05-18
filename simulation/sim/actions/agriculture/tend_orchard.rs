@@ -1,4 +1,4 @@
-//! Action 346: tend an orchard near a food tile.
+
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
 

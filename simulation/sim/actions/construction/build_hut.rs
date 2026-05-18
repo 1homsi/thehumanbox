@@ -1,5 +1,4 @@
-//! Action 49: build a hut. Needs wood. Converts current tile to Hut
-//! if grass / sand / snow.
+
 
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;

@@ -1,4 +1,4 @@
-//! Action 437: train nearby kin as soldiers.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

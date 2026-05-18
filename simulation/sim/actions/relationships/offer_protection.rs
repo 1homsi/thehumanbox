@@ -1,4 +1,4 @@
-//! Action 239: guard a low-health kin nearby; boost their health slightly.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

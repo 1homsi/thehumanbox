@@ -1,4 +1,4 @@
-//! Action 84: trade gossip - shares the first 3 food memories with kin.
+
 use crate::organism::organism::Organism;
 use super::super::ctx::ActionCtx;
 

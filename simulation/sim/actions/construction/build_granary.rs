@@ -1,4 +1,4 @@
-//! Action 43: build a granary. Needs wood.
+
 
 use super::super::ctx::ActionCtx;
 

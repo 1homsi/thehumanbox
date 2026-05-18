@@ -1,4 +1,4 @@
-//! Action 211: swim across nearby water. Costs energy.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

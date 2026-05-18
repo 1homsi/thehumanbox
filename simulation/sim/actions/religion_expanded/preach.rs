@@ -1,4 +1,4 @@
-//! Action 457: preach to nearby kin, lifting spirits and purpose.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

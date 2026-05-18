@@ -3,31 +3,15 @@ import { decode as msgpackDecode } from '@msgpack/msgpack'
 import type { WorldState, GridState, GridWire, OrganismState, AnimalState } from '../types'
 import { WorldEnvelopeSchema } from '../types/schemas'
 
-// ── Wire-format helpers ──────────────────────────────────────────────────
-// Pure functions and type definitions for decoding the simulation's
-// MessagePack WS payloads. Anything stateful (caches, refs, the WS
-// lifecycle) lives in useSimulation.ts; anything that touches React
-// stays out of this file so it stays unit-testable.
-
 export type ParseError =
   | { kind: 'json';     message: string }
   | { kind: 'schema';   issues: string[] }
 
-/** Structure-of-arrays hot payload. Sent on every delta in place of
- *  the AoS `organisms` array. Each field is N entries long where N is
- *  the number of in-viewport alive organisms; all arrays share an
- *  index, so `ids[i] -> xs[i], ys[i], ...`.
- *
- *  Numeric quantization on the wire (decoded back to floats below):
- *   - xs/ys: i16 decimetres (server divided original x by 0.1 before
- *     casting). Client re-multiplies to recover the original f32.
- *   - energies/hydrations/healths/infections/fear_levels: u8 percent
- *     (0..100). Client divides by 100 to recover the 0..1 range. */
 export interface OrgsHotSoa {
   ids:            string[]
-  xs:             number[]   // i16 * 10 on the wire
+  xs:             number[]
   ys:             number[]
-  energies:       number[]   // u8 percent on the wire
+  energies:       number[]
   hydrations:     number[]
   healths:        number[]
   ages:           number[]
@@ -56,9 +40,6 @@ export type IncomingWorldFrame =
     'weather'
   > & {
     grid: GridWire
-    // Exactly one of `organisms` (AoS, full snapshots) or `organisms_hot`
-    // (SoA, deltas) is present. Sender guarantees this; receiver branches
-    // in flushUpdate.
     organisms?: OrganismState[]
     organisms_hot?: OrgsHotSoa
     organisms_complete: boolean
@@ -76,10 +57,6 @@ export type IncomingWorldFrame =
     sex_words?: WorldState['sex_words']
   }
 
-// Stream the /snapshot response and emit progress events as bytes
-// arrive. Returns the assembled ArrayBuffer, or null on failure.
-// Uses Content-Length to drive a determinate progress bar when the
-// server provides it (it does); otherwise reports loaded-bytes-only.
 export async function fetchSnapshotWithProgress(url: string): Promise<ArrayBuffer | null> {
   let resp: Response
   try {
@@ -113,17 +90,11 @@ export async function fetchSnapshotWithProgress(url: string): Promise<ArrayBuffe
   return out.buffer
 }
 
-/** Expand a SoA payload into per-organism partial updates. The caller
- *  then merges these into the existing cache (same path the AoS-delta
- *  branch used to follow). Cost: O(N) where N is the number of orgs in
- *  the delta - one allocation per org, no per-field key parsing. */
 export function expandOrgsSoa(soa: OrgsHotSoa): OrganismState[] {
   const out: OrganismState[] = new Array(soa.ids.length)
   for (let i = 0; i < soa.ids.length; i++) {
     out[i] = {
       id:            soa.ids[i],
-      // Reverse the wire-side quantization. Multipliers must match
-      // organism.rs::q_pos / q_pct.
       x:             soa.xs[i] / 10,
       y:             soa.ys[i] / 10,
       energy:        soa.energies[i] / 100,
@@ -139,28 +110,15 @@ export function expandOrgsSoa(soa: OrgsHotSoa): OrganismState[] {
       pregnant:      soa.pregnants[i],
       partner_id:    soa.partner_ids[i] ?? undefined,
       attracted_to:  soa.attracted_tos[i] ?? undefined,
-      // Cold/warm fields rely on the existing cache via mergeDefined.
-      // OrganismState requires lineage_id/generation/parent_id/etc but
-      // those are filled in from the cached full-snapshot entry, so the
-      // expanded record acts as a partial update.
     } as OrganismState
   }
   return out
 }
 
-/**
- * Decode + validate one WS frame. The wire format is MessagePack (binary),
- * which decodes 3-5x faster than JSON.parse on the main thread and ships
- * ~5-15% fewer bytes for our payload shape. The legacy JSON fallback
- * stays for the rare case where a string lands (e.g. proxies that
- * convert binary). Returns a Result so the caller can log/skip on bad
- * data instead of swallowing it.
- */
 export function parseWorldFrame(raw: ArrayBuffer | Uint8Array | string): Result<IncomingWorldFrame, ParseError> {
   let decoded: unknown
   try {
     if (typeof raw === 'string') {
-      // JSON fallback for legacy/text frames.
       decoded = JSON.parse(raw)
     } else {
       const bytes = raw instanceof Uint8Array ? raw : new Uint8Array(raw)
@@ -179,7 +137,6 @@ export function parseWorldFrame(raw: ArrayBuffer | Uint8Array | string): Result<
   return ok(decoded as IncomingWorldFrame)
 }
 
-/** Rebuild dense fire_intensity and structure 2D arrays from sparse wire format. */
 export function applyGridWire(wire: GridWire, cache: GridState | null): GridState {
   const w = wire.width
   const h = wire.height
@@ -194,9 +151,6 @@ export function applyGridWire(wire: GridWire, cache: GridState | null): GridStat
     if (row < h && col < w) structure[row][col] = v / 100
   }
 
-  // Static overlays - trails / fertility / hazard. Only refreshed on
-  // static frames (every 30 ticks). Fall back to the cached layer when
-  // the wire doesn't include them.
   let food_trail = cache?.food_trail
   let water_trail = cache?.water_trail
   let path_trail = cache?.path_trail
@@ -215,7 +169,6 @@ export function applyGridWire(wire: GridWire, cache: GridState | null): GridStat
 
   let fertility = cache?.fertility
   if (wire.fertility) {
-    // Default baseline 0.40; sparse entries override.
     fertility = Array.from({ length: h }, () => new Array(w).fill(0.4))
     for (const [row, col, v] of wire.fertility) {
       if (row < h && col < w) fertility[row][col] = v / 100

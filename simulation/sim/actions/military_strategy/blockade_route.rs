@@ -1,4 +1,4 @@
-//! Action 446: blockade a route to cut off stranger movement.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

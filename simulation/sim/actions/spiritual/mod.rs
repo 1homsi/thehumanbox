@@ -1,4 +1,4 @@
-//! Spiritual & cultural rites (indices 201..=210).
+
 
 pub mod chant_at_dawn;
 pub mod paint_body;

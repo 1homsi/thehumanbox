@@ -1,4 +1,4 @@
-//! Action 392: celebrate victory with kin; all comfort boosted.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

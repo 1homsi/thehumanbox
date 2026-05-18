@@ -1,4 +1,4 @@
-//! Action 71: name a place. Tiny structure bump.
+
 use super::super::ctx::ActionCtx;
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let (ix, iy) = (ctx.ix, ctx.iy);

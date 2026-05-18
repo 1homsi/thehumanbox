@@ -1,4 +1,4 @@
-//! Action 122: set a hunting trap.
+
 use crate::world::grid::TrailKind;
 use super::super::ctx::ActionCtx;
 

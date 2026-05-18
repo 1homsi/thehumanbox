@@ -1,4 +1,4 @@
-//! Action 114: teach a discovery to the youngest junior kin.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

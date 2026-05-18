@@ -1,4 +1,4 @@
-//! Action 442: execute a flanking maneuver against a stranger.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

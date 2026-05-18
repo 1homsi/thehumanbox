@@ -1,4 +1,4 @@
-//! Action 213: climb a tree to scan for food in a 17x17 patch.
+
 use crate::organism::organism::Organism;
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;

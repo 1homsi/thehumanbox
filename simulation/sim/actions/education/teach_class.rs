@@ -1,4 +1,4 @@
-//! Action 502: teach a class to 2+ kin; all kin boredom -0.08; emit "culture"; discover "classroom_teaching".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

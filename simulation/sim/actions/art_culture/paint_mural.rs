@@ -1,4 +1,4 @@
-//! Action 318: paint a mural on a nearby rock face.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

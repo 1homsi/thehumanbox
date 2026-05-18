@@ -1,4 +1,4 @@
-//! Action 187: grant amnesty to nearby foreign orgs.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

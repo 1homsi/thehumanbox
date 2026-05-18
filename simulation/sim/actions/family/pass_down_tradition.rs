@@ -1,4 +1,4 @@
-//! Action 273: elder tells family history; discover "oral_tradition"; emit "culture" event.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

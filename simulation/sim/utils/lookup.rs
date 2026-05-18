@@ -1,11 +1,8 @@
-//! Nearest-X lookups against the live world.
+
 
 use crate::sim::simulation::Simulation;
 
 impl Simulation {
-    /// Lineage id of the nearest living organism to a point (Manhattan
-    /// distance). Used for territory + scouting heuristics where we
-    /// want to know "whose ground is this".
     pub(crate) fn nearest_lineage_at(&self, x: i32, y: i32) -> Option<String> {
         self.organisms.iter()
             .filter(|o| o.alive)

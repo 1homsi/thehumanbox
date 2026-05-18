@@ -1,4 +1,4 @@
-//! Action 169: hang a gate. Needs wood or stone.
+
 
 use super::super::ctx::ActionCtx;
 

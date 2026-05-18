@@ -8,7 +8,6 @@ from thehumanbox_lab.train_manifest import default_manifest
 from thehumanbox_lab.teacher_dataset import build_distillation_rows
 from thehumanbox_lab.train_prep import split_rows, teacher_rows_to_sft
 
-
 class DatasetBuilderTests(unittest.TestCase):
     def test_build_thought_examples_uses_recent_history(self) -> None:
         events = [
@@ -152,7 +151,6 @@ class DatasetBuilderTests(unittest.TestCase):
         self.assertEqual(row["task"], "thought-v1")
         self.assertEqual(row["base_model"], "google/gemma-3-270m")
         self.assertEqual(row["lora"]["rank"], 16)
-
 
 if __name__ == "__main__":
     unittest.main()

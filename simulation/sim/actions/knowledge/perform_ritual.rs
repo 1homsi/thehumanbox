@@ -1,4 +1,4 @@
-//! Action 75: perform a ritual. Needs fire nearby; spreads calm to kin.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

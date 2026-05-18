@@ -1,4 +1,4 @@
-//! Action 129: deeper study of stars at night.
+
 use super::super::ctx::ActionCtx;
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     if !ctx.is_night() {

@@ -1,4 +1,4 @@
-//! Action 453: break through a siege using force against a fortified stranger.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

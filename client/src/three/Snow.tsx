@@ -3,18 +3,10 @@ import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 
 interface Props {
-  // Active when season is 'scarcity' (winter-equivalent), or when
-  // currently over a tundra biome and dayProgress puts us in the
-  // night half (drives an atmospheric cold dusting).
   active:   boolean
-  // 0..1 intensity multiplier - sized to current weather state.
   intensity?: number
 }
 
-// Light snowflake particle field around the camera. Same structure
-// as Weather rain but particles drift sideways and tumble instead
-// of raining straight down. Recycles when a flake hits the floor
-// relative to the camera so the cloud feels continuous.
 const SNOW_VOLUME = 70
 const SNOW_HEIGHT = 50
 const SNOW_GEO = new THREE.SphereGeometry(0.05, 4, 3)
@@ -27,8 +19,6 @@ export function Snow({ active, intensity = 0.6 }: Props) {
 
   const maxFlakes = active ? Math.round(1100 * intensity) : 0
 
-  // Per-flake y offset + horizontal drift phase so they don't all
-  // start at the same height or sway in lockstep.
   const offsets = useMemo(() => {
     const arr = new Float32Array(maxFlakes)
     for (let i = 0; i < maxFlakes; i++) arr[i] = Math.random() * SNOW_HEIGHT

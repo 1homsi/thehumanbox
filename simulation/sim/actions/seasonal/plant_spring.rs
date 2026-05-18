@@ -1,4 +1,4 @@
-//! Action 473: plant crops in spring on Grass tile; inv_food += 1; discover "spring_planting".
+
 use super::super::ctx::ActionCtx;
 use crate::world::tiles::Tile;
 

@@ -1,4 +1,4 @@
-//! Education actions (indices 501..=520).
+
 
 pub mod start_school;
 pub mod teach_class;

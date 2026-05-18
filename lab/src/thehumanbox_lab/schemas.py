@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any
 
-
 @dataclass(slots=True)
 class TraceEvent:
     tick: int
@@ -25,7 +24,6 @@ class TraceEvent:
             text=str(row.get("text", "")),
             state={str(k): float(v) for k, v in dict(row.get("state", {})).items()},
         )
-
 
 @dataclass(slots=True)
 class ThoughtExample:

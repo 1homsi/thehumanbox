@@ -5,9 +5,6 @@ import { TILE_SCALE, BIOME_ELEVATION, BIOME_ROUGHNESS, terrainNoise } from './co
 import { heightAt } from './terrain-utils'
 import { applyWindSway, windUniforms } from './tree-wind'
 
-// Advances the shared wind uniform once per frame. All windy materials
-// (canopies + palm fronds) point at the same uTime so this single bump
-// animates every tree at once - the per-vertex sway happens on the GPU.
 function TreeWindController() {
   useFrame(({ clock }) => {
     windUniforms.uTime.value = clock.getElapsedTime()
@@ -15,7 +12,6 @@ function TreeWindController() {
   return null
 }
 
-// Tile enum (from simulation/world/tiles.rs):
 const T_GRASS    = 1
 const T_FOOD     = 3
 const T_FIRE     = 4
@@ -23,7 +19,6 @@ const T_ROCK     = 5
 const T_CAMPFIRE = 7
 const T_HUT      = 8
 const T_MINERAL  = 10
-// Biome enum (correct, matches rust):
 const B_GRASS    = 0
 const B_FOREST   = 1
 const B_DESERT   = 2
@@ -39,9 +34,6 @@ interface Props {
   height:   number
 }
 
-// Per-biome tree density (chance per tile) + min spacing (tiles).
-// Mirrors the 2D drawTrees() poisson-disc placement so the 3D forest
-// reads the same as the 2D map - was the user's #1 complaint.
 function biomeTreeRule(b: number): { chance: number; spacing: number } {
   switch (b) {
     case B_FOREST:   return { chance: 0.32, spacing: 2 }
@@ -54,17 +46,10 @@ function biomeTreeRule(b: number): { chance: number; spacing: number } {
   }
 }
 
-// Pick the tree species for a biome. Each species has its own
-// geometry pair (trunk + canopy) below; the caller picks 0 / 1 / 2
-// based on biome hint.
 function treeSpecies(b: number, hash: number): 0 | 1 | 2 {
-  // 0 = pine (tall cone, dark green) - dominant in forest/tundra
-  // 1 = oak  (sphere canopy, mid green) - grass/wetland
-  // 2 = palm (slim trunk, broad top) - desert/grass
   if (b === B_FOREST || b === B_TUNDRA) return (hash & 0x3) === 0 ? 1 : 0
   if (b === B_DESERT) return 2
   if (b === B_WETLAND) return (hash & 0x1) ? 1 : 0
-  // grassland: mix
   const r = hash & 0x7
   if (r < 4) return 1
   if (r < 6) return 0
@@ -75,7 +60,6 @@ function collectFeatures(
   tiles: number[][], biomes: number[][], depthMap: number[][],
   width: number, height: number,
 ) {
-  // Trees split by species so each instanced layer is uniform.
   const trees: { 0: [number, number, number, number][]; 1: typeof trees[0]; 2: typeof trees[0] } = {
     0: [], 1: [], 2: [],
   }
@@ -84,18 +68,10 @@ function collectFeatures(
   const fires:     [number, number, number][] = []
   const rocks:     [number, number, number][] = []
   const minerals:  [number, number, number][] = []
-  // Volcanic peaks: tiles where biome is volcanic AND the procedural
-  // noise pushes elevation high enough to read as a crater. We
-  // attach small flame + ember effects so the volcanic biome glows
-  // from a distance.
   const volcanic_peaks: [number, number, number][] = []
 
-  // placed[i] = 1 means a tree exists at (x, y) - used for the
-  // spacing reject test below.
   const placed = new Uint8Array(width * height)
 
-  // Hash-shuffle tile order so nearby tiles aren't always winning the
-  // chance roll - this avoids visible "stripes" of trees.
   const order: number[] = new Array(width * height)
   for (let i = 0; i < order.length; i++) order[i] = i
   for (let i = order.length - 1; i > 0; i--) {
@@ -104,12 +80,6 @@ function collectFeatures(
     const tmp = order[i]; order[i] = order[j]; order[j] = tmp
   }
 
-  // Non-tree features (rocks/huts/etc) - separate pass over the grid
-  // since they're keyed on the tile enum, not biome density.
-  // Also collects volcanic peaks (any volcanic-biome tile where the
-  // computed elevation crosses a threshold). We stride 3 over the
-  // grid so a single peak doesn't spawn 9 ember columns - one per
-  // ~3x3 patch is plenty visual density.
   for (let y = 0; y < height; y++) {
     const tRow = tiles[y]
     const dRow = depthMap[y]
@@ -129,7 +99,6 @@ function collectFeatures(
       else if (t === T_ROCK)     rocks.push([px, ground, pz])
       else if (t === T_MINERAL)  minerals.push([px, ground, pz])
 
-      // Volcanic peak detection.
       const b = bRow?.[x] ?? 0
       if (b === 5 && (x % 3 === 0) && (y % 3 === 0)) {
         const base  = BIOME_ELEVATION[b] ?? 0
@@ -142,27 +111,24 @@ function collectFeatures(
     }
   }
 
-  // Tree pass with poisson-disc rejection.
   for (const idx of order) {
     const x = idx % width
     const y = (idx - x) / width
     const tRow = tiles[y]; const bRow = biomes[y]; const dRow = depthMap[y]
     if (!tRow || !bRow || !dRow) continue
     const t = tRow[x]
-    if (t !== T_GRASS && t !== T_FOOD) continue   // trees only on grass/food
+    if (t !== T_GRASS && t !== T_FOOD) continue
     const d = dRow[x] ?? 255
-    if (d < 254) continue                          // skip underwater
+    if (d < 254) continue
     const b = bRow[x] ?? 0
     const rule = biomeTreeRule(b)
     if (rule.chance <= 0) continue
 
-    // Per-tile stable hash for chance + species.
     let hash = (x * 73856093) ^ (y * 19349663)
     hash = ((hash ^ (hash >>> 13)) * 0x5bd1e995) >>> 0
     const r0 = (hash & 0xff) / 255
     if (r0 >= rule.chance) continue
 
-    // Reject if any tree already sits within spacing tiles.
     let reject = false
     for (let dy = -rule.spacing; dy <= rule.spacing && !reject; dy++) {
       for (let dx = -rule.spacing; dx <= rule.spacing && !reject; dx++) {
@@ -184,20 +150,12 @@ function collectFeatures(
   return { trees, huts, campfires, fires, rocks, minerals, volcanic_peaks }
 }
 
-// ── Shared geometry pool ────────────────────────────────────────────────
-// Pine: trunk + tall cone canopy
 const PINE_TRUNK   = new THREE.CylinderGeometry(0.16, 0.22, 1.4, 5)
 const PINE_CANOPY  = new THREE.ConeGeometry(1.4, 3.2, 6)
-// Oak: trunk + sphere canopy
 const OAK_TRUNK    = new THREE.CylinderGeometry(0.20, 0.28, 1.6, 6)
 const OAK_CANOPY   = new THREE.SphereGeometry(1.3, 6, 5)
-// Palm: thin trunk + low cone "fronds"
 const PALM_TRUNK   = new THREE.CylinderGeometry(0.12, 0.16, 2.6, 5)
 const PALM_FRONDS  = new THREE.ConeGeometry(1.6, 0.6, 6)
-// Buildings + structures.
-// Hut walls = tall slim box (looks like a cabin, not a packing crate).
-// Hut roof rotated 45° so the ridge runs front-to-back (looks like a
-// proper pitched roof on a square hut).
 const HUT_WALLS    = new THREE.BoxGeometry(2.2, 1.8, 2.2)
 const HUT_ROOF     = (() => {
   const g = new THREE.ConeGeometry(1.85, 1.5, 4)
@@ -223,7 +181,6 @@ interface InstanceProps {
   maxCount:  number
   scale?:    number
   randomYaw?: boolean
-  /** Enable per-instance wind sway in the vertex shader. Top of model sways more. */
   wind?:     { heightRef: number; strength?: number }
 }
 
@@ -233,11 +190,6 @@ function InstanceLayer({
   const meshRef = useRef<THREE.InstancedMesh>(null)
   const count = Math.min(positions.length, maxCount)
 
-  // Build the material once. If wind is on, inject the sway snippet
-  // into the standard material's vertex shader via onBeforeCompile.
-  // Wind-enabled materials get a tiny emissive at their base colour
-  // so canopies stay visible at night (was looking pitch-black under
-  // moonlight before).
   const material = useMemo(() => {
     const m = new THREE.MeshStandardMaterial({ color, roughness: 0.85 })
     if (wind) {
@@ -281,8 +233,6 @@ function InstanceLayer({
   )
 }
 
-// Wildfire glow: bright inner flame + per-instance flicker. Renders
-// after the outer flame so the bright core punches through.
 function FireGlow({
   positions, maxCount,
 }: { positions: [number, number, number][]; maxCount: number }) {
@@ -333,11 +283,6 @@ function FireGlow({
   )
 }
 
-// Smoke column rising from each campfire / wildfire. A vertical
-// stack of translucent quads that drift upward and fade out. Pure
-// instancing - per-frame matrix updates only. Smoke particles per
-// fire = SMOKE_PER_FIRE; we recycle particles by wrapping the y
-// offset every WRAP_HEIGHT units so the column reads as continuous.
 const SMOKE_GEO = new THREE.PlaneGeometry(1, 1)
 const SMOKE_PER_FIRE = 6
 const SMOKE_WRAP_H = 10
@@ -357,20 +302,14 @@ function FireSmoke({
     for (let f = 0; f < fireCount; f++) {
       const [px, py, pz] = positions[f]
       for (let p = 0; p < SMOKE_PER_FIRE; p++) {
-        // Each particle has a stable phase offset so they don't all
-        // pop simultaneously. The lifecycle progresses with time
-        // modulo SMOKE_WRAP_H (per particle).
         const phase = (f * 0.61 + p * 1.37) % 1
         const lifeRaw = (t * 1.4 + phase * SMOKE_WRAP_H) % SMOKE_WRAP_H
-        const life = lifeRaw / SMOKE_WRAP_H   // 0..1
+        const life = lifeRaw / SMOKE_WRAP_H
         const y = py + 0.8 + life * SMOKE_WRAP_H * 1.2
-        // Drift sideways a little, more as the particle rises.
         const drift = life * 1.8
         const x = px + Math.cos(t * 0.4 + phase * 6) * drift
         const z = pz + Math.sin(t * 0.5 + phase * 4) * drift
-        // Particle grows + fades.
         const scale = (0.4 + life * 1.6) * intensity
-        // Billboard so the plane always faces the camera.
         tmp.position.set(x, y, z)
         tmp.lookAt(camera.position)
         tmp.scale.set(scale, scale, scale)
@@ -399,9 +338,6 @@ function FireSmoke({
   )
 }
 
-// Sparks: small orange points that shoot upward from each wildfire,
-// fade out within ~1s. Adds visual energy to fire tiles. Recycled
-// the same way smoke particles are.
 const SPARK_GEO = new THREE.SphereGeometry(0.06, 4, 3)
 const SPARKS_PER_FIRE = 10
 const SPARK_LIFE = 1.2
@@ -423,15 +359,14 @@ function FireSparks({
       for (let p = 0; p < SPARKS_PER_FIRE; p++) {
         const phase = (f * 0.71 + p * 0.97) % 1
         const lifeRaw = (t + phase * SPARK_LIFE) % SPARK_LIFE
-        const life = lifeRaw / SPARK_LIFE   // 0..1
-        // Each spark gets a stable random direction per (f, p) pair.
+        const life = lifeRaw / SPARK_LIFE
         const dirSeed = ((f * 7919 + p * 6151) * 1664525) >>> 0
         const ang = (dirSeed & 0xffff) / 0xffff * Math.PI * 2
         const speed = 1.0 + ((dirSeed >>> 16) & 0xff) / 255 * 1.8
         const r = life * speed
         const x = px + Math.cos(ang) * r
         const z = pz + Math.sin(ang) * r
-        const y = py + 0.9 + life * 3.0 - life * life * 1.5   // rise then fall slightly
+        const y = py + 0.9 + life * 3.0 - life * life * 1.5
         const scale = (1 - life) * 1.1
         tmp.position.set(x, y, z)
         tmp.rotation.set(0, 0, 0)
@@ -511,15 +446,12 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height }: Props) 
     [tiles, biomes, depthMap, width, height],
   )
 
-  // Hut bodies sit half-buried so the wall base aligns with terrain.
-  // The roof rides on top of the walls. Each is its own draw call but
-  // both layers share the same per-hut positions.
-  const treeYAdjust = 0.7  // trunk centre is 0.7 above ground for pine/oak
+  const treeYAdjust = 0.7
 
   return (
     <>
       <TreeWindController />
-      {/* Pines (forest/tundra dominant) */}
+      {}
       <InstanceLayer
         positions={features.trees[0]} yOffset={treeYAdjust}
         geometry={PINE_TRUNK} color="#5a3f25"
@@ -532,7 +464,7 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height }: Props) 
         wind={{ heightRef: 1.6, strength: 0.9 }}
       />
 
-      {/* Oaks (grass/wetland dominant) */}
+      {}
       <InstanceLayer
         positions={features.trees[1]} yOffset={0.8}
         geometry={OAK_TRUNK} color="#6a4a2c"
@@ -545,7 +477,7 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height }: Props) 
         wind={{ heightRef: 1.3, strength: 1.1 }}
       />
 
-      {/* Palms (desert + grass mix) - fronds sway more, trunk rigid. */}
+      {}
       <InstanceLayer
         positions={features.trees[2]} yOffset={1.3}
         geometry={PALM_TRUNK} color="#7a5a2e"
@@ -568,7 +500,7 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height }: Props) 
         geometry={HUT_ROOF} color="#4a2a18"
         maxCount={500}
       />
-      {/* Doors offset slightly forward so they read as part of the wall. */}
+      {}
       <InstanceLayer
         positions={features.huts.map(p => [p[0], p[1], p[2] + 1.1] as [number, number, number, number?])}
         yOffset={0.5}
@@ -581,7 +513,7 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height }: Props) 
         geometry={CAMP_DISC} color="#1a0f06"
         maxCount={300}
       />
-      {/* Crossed logs on top of each campfire disc. */}
+      {}
       <InstanceLayer
         positions={features.campfires} yOffset={0.18}
         geometry={CAMP_LOG} color="#4a2e1a"
@@ -591,9 +523,7 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height }: Props) 
       <CampfireFlames positions={features.campfires} maxCount={300} />
       <FireSmoke positions={features.campfires} maxCount={300} intensity={0.7} />
 
-      {/* Wildfires: bright two-layer flame, glowing. Outer translucent
-          flame + inner solid orange. Animated flicker via the same
-          CampfireFlames component scaled bigger. */}
+      {}
       <InstanceLayer
         positions={features.fires} yOffset={1.0}
         geometry={FIRE_OUTER} color="#ff7820"
@@ -603,8 +533,7 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height }: Props) 
       <FireSmoke positions={features.fires} maxCount={500} intensity={1.4} />
       <FireSparks positions={features.fires} maxCount={500} />
 
-      {/* Hut chimney smoke - thin column rising from each hut roof
-          so settled areas read as 'someone is cooking inside'. */}
+      {}
       <FireSmoke
         positions={features.huts.map(([px, py, pz]) =>
           [px, py + 2.2, pz] as [number, number, number]
@@ -613,10 +542,7 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height }: Props) 
         intensity={0.35}
       />
 
-      {/* Volcanic peaks: bright lava glow + ember sparks so the
-          volcanic biome reads as 'this peak is alive' from a distance.
-          Smaller than wildfire glow, and lit-only (no destructive
-          fire mechanics in the sim - this is purely decorative). */}
+      {}
       <FireGlow positions={features.volcanic_peaks} maxCount={400} />
       <FireSparks positions={features.volcanic_peaks} maxCount={400} />
 

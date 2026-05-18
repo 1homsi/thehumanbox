@@ -1,4 +1,4 @@
-//! Action 299: push a low-attitude kin away.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

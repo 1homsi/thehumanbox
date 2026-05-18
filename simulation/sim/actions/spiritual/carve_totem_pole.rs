@@ -1,4 +1,4 @@
-//! Action 203: carve a totem pole. Needs wood.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 528: initiation rite for young kin with an elder; discover "initiation"; emit "ritual".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

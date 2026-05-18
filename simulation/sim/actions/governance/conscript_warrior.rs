@@ -1,4 +1,4 @@
-//! Action 302: enlist a young kin for defense.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,5 +1,4 @@
-//! Action 38: plant crops. Converts a fertile grass tile into Food
-//! and reduces the local fertility.
+
 
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;

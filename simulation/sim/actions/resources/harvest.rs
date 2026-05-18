@@ -1,5 +1,4 @@
-//! Action 35: harvest a Food tile, converting it back to Grass.
-//! Returns +2 food.
+
 
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;

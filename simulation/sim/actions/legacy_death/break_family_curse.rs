@@ -1,4 +1,4 @@
-//! Action 500: break a family curse with fire and kin; discover "curse_breaking"; emit "ritual"; comfort +0.06.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

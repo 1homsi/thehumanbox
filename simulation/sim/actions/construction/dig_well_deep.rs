@@ -1,4 +1,4 @@
-//! Action 166: dig a deep well on sand/grass. 30% success.
+
 
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;

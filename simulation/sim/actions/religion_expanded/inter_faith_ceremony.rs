@@ -1,4 +1,4 @@
-//! Action 470: hold an inter-faith ceremony with stranger and kin.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

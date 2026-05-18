@@ -1,4 +1,4 @@
-//! Action 371: plant a windbreak. Needs inv_wood and a Grass tile.
+
 use super::super::ctx::ActionCtx;
 use crate::world::tiles::Tile;
 

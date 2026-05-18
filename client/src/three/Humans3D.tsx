@@ -14,54 +14,35 @@ interface Props {
   biomes:    number[][]
 }
 
-// Every alive org renders as a full robot. Capsule LOD has been
-// removed - the world reads as "a population of people" instead of
-// "some people and some capsules". To keep the cost down at scale,
-// only orgs within ANIMATE_RADIUS_SQ run their AnimationMixer; the
-// rest render in a static pose (still skinned, still coloured, just
-// not bone-updating each frame).
 const ANIMATE_RADIUS_SQ = 220 * 220
 
-// Map an org's current behaviour state to a robot animation. Robot
-// Expressive clip names: Idle, Walking, Running, Sitting, Death,
-// Dance, ThumbsUp, Wave, Yes, No, Punch, Standing, WalkJump.
-//
-// Order matters - more specific thought substrings first. Covers
-// both the original 26..=125 action thoughts and the 126..=225 set
-// added in extended_actions_v2.rs.
 function pickAnim(o: OrganismState, isMoving: boolean): string {
   if (!o.alive) return 'Death'
   const t = (o.thought || '').toLowerCase()
 
-  // ── Sitting / resting / meditating ────────────────────────────────
   if (t.includes('rest') || t.includes('sleep') || t.includes('sitting')
       || t.includes('nap') || t.includes('meditat') || t.includes('vision quest')
       || t.includes('quiet moment') || t.includes('reflecting')
       || t.includes('daydream') || t.includes('sitting by'))
     return 'Sitting'
 
-  // ── Dancing / celebrating / festivals ─────────────────────────────
   if (t.includes('dance') || t.includes('dancing') || t.includes('celebrat')
       || t.includes('festival') || t.includes('feast'))
     return 'Dance'
 
-  // ── Running / fleeing / chasing / hunting ─────────────────────────
   if (t.includes('flee') || t.includes('chase') || t.includes('hunt')
       || t.includes('raid') || t.includes('ambush') || t.includes('intercept')
       || t.includes('patrol') || t.includes('warband') || t.includes('rallying'))
     return 'Running'
 
-  // ── Greeting / waving / signalling ────────────────────────────────
   if (t.includes('greet') || t.includes('wave') || t.includes('welcoming')
       || t.includes('hosting') || t.includes('howling'))
     return 'Wave'
 
-  // ── Punch / combat / duelling ─────────────────────────────────────
   if (t.includes('duel') || t.includes('punch') || t.includes('throw')
       || t.includes('hurling') || t.includes('challeng'))
     return 'Punch'
 
-  // ── Thumbs-up / praise / blessing / approval ─────────────────────
   if (t.includes('praising') || t.includes('blessing') || t.includes('thumbs')
       || t.includes('rite-of') || t.includes('coming-of-age'))
     return 'ThumbsUp'
@@ -69,7 +50,6 @@ function pickAnim(o: OrganismState, isMoving: boolean): string {
   if (t.includes('yes')) return 'Yes'
   if (t.includes('no '))  return 'No'
 
-  // Default: walk if actually moving, otherwise idle.
   return isMoving ? 'Walking' : 'Idle'
 }
 
@@ -88,23 +68,12 @@ export function Humans3D({ organisms, depthMap, biomes }: Props) {
         const [vx, vy] = getOrgVelocityXY(o.id)
         const speed = Math.hypot(vx, vy)
         const moving = speed > 0.05
-        // Age-based scaling: children are smaller, adults full-size,
-        // elders subtly shrunk to read as frail. Keeps lineage tint
-        // visually consistent but adds a life-stage cue at a glance.
         let scale = 0.45
         if      (o.age < 500)        scale = 0.30
         else if (o.age < 900)        scale = 0.36
         else if (o.age > 3000)       scale = 0.42
-        // Pregnancy: a subtle scale bump so the org reads as carrying.
         if (o.pregnant) scale *= 1.10
-        // Walk-rate scaling: walking speed varies with motion speed
-        // so sprinters cycle their legs faster than strollers. Capped
-        // so a frame-spike doesn't make them blur.
         const timeScale = Math.max(0.55, Math.min(2.4, 1.0 + speed * 1.4))
-        // Distance gate for the animation mixer. We DON'T gate the
-        // figure itself - rendering happens for every org. Always
-        // animate the currently selected org so following them from
-        // far away still reads as alive instead of frozen.
         const dx = o.x * TILE_SCALE - camera.position.x
         const dz = o.y * TILE_SCALE - camera.position.z
         const isSelected = o.id === selectedOrgId

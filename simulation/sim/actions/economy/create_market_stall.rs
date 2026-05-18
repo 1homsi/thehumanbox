@@ -1,4 +1,4 @@
-//! Action 278: on Grass tile with materials; discover "market".
+
 use super::super::ctx::ActionCtx;
 use crate::world::tiles::Tile;
 

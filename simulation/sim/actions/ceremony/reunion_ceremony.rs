@@ -1,4 +1,4 @@
-//! Action 527: reunion ceremony with many kin; all comfort +0.07; emit "culture".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

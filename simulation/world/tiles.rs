@@ -48,11 +48,11 @@ pub enum Tile {
     Ash      = 6,
     Campfire = 7,
     Hut      = 8,
-    Flooded  = 9,  // temporary shallow water from storm flooding, reverts after time
-    Mineral  = 10, // rare volcanic mineral deposit
-    Scorched = 11, // long-term burn scar after major fires, slowly recovers to grass
-    Snow     = 12, // polar/tundra ground
-    Sand     = 13, // desert ground
+    Flooded  = 9,
+    Mineral  = 10,
+    Scorched = 11,
+    Snow     = 12,
+    Sand     = 13,
 }
 
 impl Tile {
@@ -80,9 +80,8 @@ impl Tile {
     }
 
     pub fn flammable(self) -> bool {
-        matches!(self, Tile::Grass | Tile::Food)  // Farm is irrigated - not flammable
+        matches!(self, Tile::Grass | Tile::Food)
     }
-
 
     pub fn is_warm(self) -> bool {
         matches!(self, Tile::Fire | Tile::Campfire)

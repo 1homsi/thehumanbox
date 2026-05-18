@@ -40,7 +40,7 @@ const ConvoBlock = memo(function ConvoBlock({ entry, selfOrg, allOrgs }: {
 
   return (
     <div className="cv-block">
-      {/* Header row */}
+      {}
       <div className="cv-block-head">
         <span className="cv-kind-icon">{meta.icon}</span>
         <span className="cv-kind-label" style={{ color: meta.color }}>{meta.label}</span>
@@ -52,7 +52,7 @@ const ConvoBlock = memo(function ConvoBlock({ entry, selfOrg, allOrgs }: {
         <span className="cv-day">day {day}</span>
       </div>
 
-      {/* Lines */}
+      {}
       <div className="cv-lines">
         {entry.lines.map(([speaker, text], i) => {
           const isSelf = speaker !== entry.with_name
@@ -91,7 +91,7 @@ export function ConversationsModal({ org, allOrgs, sexWords, onClose }: Props) {
       title={`Conversations of ${org.name}`}
       hideTitle
     >
-      {/* Modal header */}
+      {}
       <div className="cv-modal-head">
         <span className="cv-modal-title">CONVERSATIONS</span>
         <div className="cv-modal-who">
@@ -110,13 +110,9 @@ export function ConversationsModal({ org, allOrgs, sexWords, onClose }: Props) {
         <button className="close-btn" onClick={onClose}>✕</button>
       </div>
 
-      {/* Body */}
+      {}
       <div className="cv-modal-body">
         {isLoading && !detail ? (
-          // First fetch in flight - the panel hint may show 3 chats but
-          // the detail endpoint hasn't returned yet (slow Wi-Fi etc.).
-          // Showing the "hasn't spoken yet" message here would be wrong;
-          // show a loading state until the request resolves.
           <div className="cv-empty">
             <div className="cv-loading-dot" aria-hidden>•••</div>
             <div style={{ fontSize: 11, fontStyle: 'italic', color: '#555', textAlign: 'center' }}>

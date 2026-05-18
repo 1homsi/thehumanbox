@@ -1,15 +1,5 @@
 name: wipe-world
 
-# Manual-only workflow: terminates the live world.save on EC2 and
-# restarts the simulation. Use when:
-#   - A behaviour change is incompatible with the running save and you
-#     want the next cold start to draw a fresh seed.
-#   - You're showing the site to someone and want a pristine intro.
-#
-# Triggering: GitHub UI -> Actions -> wipe-world -> Run workflow.
-# Requires typing `WIPE` in the confirmation input to defuse accidental
-# clicks. There's no undo.
-
 on:
   workflow_dispatch:
     inputs:
@@ -42,9 +32,6 @@ jobs:
           INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
         run: |
           set -euo pipefail
-          # Cover the two most likely working dirs for the systemd unit.
-          # rm -f is no-op on absent files so we don't fail on the wrong
-          # path.
           WIPE='systemctl stop thehumanbox; rm -f /root/thehumanbox/world.save /root/thehumanbox/world.save.tmp /root/thehumanbox/world.save.bak /root/thehumanbox/simulation/world.save /var/lib/thehumanbox/world.save; systemctl start thehumanbox; sleep 2; systemctl status thehumanbox --no-pager | head -20'
           CMD_ID=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
@@ -60,9 +47,6 @@ jobs:
           INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
         run: |
           set -euo pipefail
-          # Re-resolve the most recent command id we just sent. SSM
-          # surfaces a status enum; we wait for one of the terminal
-          # values and surface stdout for the run log.
           for _ in $(seq 1 24); do
             CMD_ID=$(aws ssm list-commands \
               --instance-id "$INSTANCE_ID" \

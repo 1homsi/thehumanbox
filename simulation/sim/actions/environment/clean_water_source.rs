@@ -1,4 +1,4 @@
-//! Action 382: clean a water source. Needs water nearby. Boosts health of all kin.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

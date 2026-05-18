@@ -1,4 +1,4 @@
-//! Crafting & tool-making (indices 51..=65 and 151..=165).
+
 
 pub mod spear; pub mod basket; pub mod net; pub mod raft;
 pub mod toolmaking; pub mod clothing; pub mod leatherwork; pub mod drum;

@@ -1,4 +1,4 @@
-//! Action 359: shear wool from an animal; stored as inv_wood (fiber).
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 335: storytelling circle at night with 2+ kin; boredom -0.1 all.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

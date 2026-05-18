@@ -43,26 +43,10 @@ use narration_worker::{NarrationReq, narration_worker};
 use think_worker::{ThinkResult, think_worker};
 
 pub type SharedSim = Arc<Mutex<Simulation>>;
-// Broadcast channel carries pre-encoded MessagePack bytes. Wrapping in
-// Arc keeps fan-out cheap for many subscribers (no per-receiver clone of
-// the Vec<u8>).
 pub type Tx = broadcast::Sender<Arc<Vec<u8>>>;
 
 const SAVE_PATH:  &str = "world.save";
 const DAY_LENGTH: u64  = 600;
-// Broadcast queue depth. At 5 Hz network rate that's ~120 seconds of
-// buffer per receiver - enough to absorb a backgrounded tab,
-// Cloudflare Tunnel batch, or short network blip without forcing a
-// Lagged + full-frame resync. Above this point the older messages get
-// evicted, the client sees a frame gap, and the gap detector kicks off
-// an HTTP /snapshot resync. Doubled from 300 -> 600 after seeing
-// 19-frame gaps in prod that were within the previous buffer but had
-// already been broadcasted-and-evicted by the time the slow receiver
-// woke up.
-// Cap memory pinned by slow subscribers. At ~1MB peak per buffered frame
-// a 600-slot buffer could hold ~600MB per laggard - enough to OOM a small
-// host. 60 caps it to a couple of seconds of broadcast at most; anyone
-// slower than that gets Lagged and re-fetches /snapshot.
 const WS_BROADCAST_BUFFER: usize = 60;
 pub const WS_RESYNC_LAG_THRESHOLD: u64 = 3;
 
@@ -73,26 +57,12 @@ fn tick_ms() -> u64 {
 }
 
 fn network_ms() -> u64 {
-    // 100ms = 10 Hz, matching the sim tick rate. Each sim tick gets its
-    // own broadcast, so the client never sees a sim step happen between
-    // two snapshots - interpolation always has exactly one tick of work
-    // to spread over the interval. Was 200ms; bumping cut visible
-    // latency from ~300ms to ~150ms after the msgpack + payload-slim
-    // commits made the bandwidth headroom available.
     std::env::var("NETWORK_MS").ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(100)
 }
 
 fn lookahead_ms() -> u64 {
-    // Server-side prediction: the broadcaster ships each org's
-    // position projected forward by this many milliseconds along
-    // its smoothed velocity. The intent is that by the time a
-    // packet has crossed the network + been parsed + been rendered,
-    // the projected position matches the org's "now" coordinate as
-    // computed by the sim. ~150ms is a reasonable mix of half a
-    // network interval + render lag + typical RTT over Cloudflare
-    // Tunnel; tune via the LOOKAHEAD_MS env var per deployment.
     std::env::var("LOOKAHEAD_MS").ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(150)
@@ -102,18 +72,10 @@ static TICK_MS:      std::sync::LazyLock<u64> = std::sync::LazyLock::new(tick_ms
 static NETWORK_MS:   std::sync::LazyLock<u64> = std::sync::LazyLock::new(network_ms);
 pub static LOOKAHEAD_MS: std::sync::LazyLock<u64> = std::sync::LazyLock::new(lookahead_ms);
 
-/// Cadence at which the broadcaster emits a "full" frame (with the static
-/// metadata - history, lineage names, sex words, etc.). Counted in sim
-/// ticks. At default 100ms sim tick that's every ~3 seconds.
 const FULL_FRAME_EVERY_TICKS: u64 = 30;
 
-/// Sim ticks per save flush. At default 100ms sim tick that's every minute.
 const SAVE_EVERY_TICKS: u64 = 600;
 
-/// Sleep just long enough that `(now - cycle_start) == period_ms`. If the
-/// work already took longer than the period, returns immediately so the
-/// next cycle starts ASAP - drift, but no double-stall. This keeps each
-/// loop on a fixed cadence even when the sim or serialize hiccups.
 async fn sleep_until_period_end(cycle_start: std::time::Instant, period_ms: u64) {
     let elapsed = cycle_start.elapsed().as_millis() as u64;
     if elapsed >= period_ms { return; }
@@ -131,17 +93,9 @@ pub struct AppState {
     pub llm_stats:       crate::llm_stats::SharedLlmStats,
 }
 
-
-
-
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
-    // Two-lane LLM config: narration (Groq, story prose) and think
-    // (local llama-server in prod, fast agent thoughts). Each lane
-    // resolves NARRATION_LLM_KEY / THINK_LLM_KEY then falls back to
-    // LLM_KEY then to legacy GROQ_API_KEY. Loopback URLs don't need
-    // an API key so we suppress the warning for them.
     let narration_key = (*NARRATION_LLM_KEY).clone();
     let think_key     = (*THINK_LLM_KEY).clone();
     let is_local = |u: &str| u.contains("localhost") || u.contains("127.0.0.1");
@@ -154,8 +108,6 @@ async fn main() {
                   remote think calls will fail");
     }
 
-    // Fresh worlds get a truly random seed from system time + OS entropy.
-    // Loaded worlds ignore this - the seed is only used for fresh world gen.
     let fresh_seed: u64 = {
         use std::time::{SystemTime, UNIX_EPOCH};
         let t = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default();
@@ -168,8 +120,6 @@ async fn main() {
     let transport_stats: SharedTransportStats = Arc::new(TransportStats::default());
     let llm_stats: llm_stats::SharedLlmStats = Arc::new(llm_stats::LlmStats::default());
 
-    // Prime the cached full snapshot before any client connects so the first
-    // websocket or /snapshot reader gets a sequence-aware full frame.
     {
         let mut s = sim.lock().await;
         let frame_started = std::time::Instant::now();
@@ -181,7 +131,6 @@ async fn main() {
         }
     }
 
-    // Channels
     let (narration_tx, narration_rx) = mpsc::channel::<NarrationReq>(4);
     let (think_tx, think_rx)         = mpsc::channel::<ThinkTrigger>(8);
 
@@ -190,7 +139,6 @@ async fn main() {
     let think_results: Arc<Mutex<Vec<ThinkResult>>> =
         Arc::new(Mutex::new(Vec::new()));
 
-    // ── Workers ───────────────────────────────────────────────────────────────
     {
         let stories_w = stories.clone();
         let key = narration_key.clone();
@@ -204,18 +152,6 @@ async fn main() {
         tokio::spawn(think_worker(think_rx, results_w, key, stats));
     }
 
-    // ── Simulation loop ───────────────────────────────────────────────────────
-    //
-    // Decoupled from the WS broadcaster. This task only advances world state,
-    // applies completed think results, queues narration, drains pending think
-    // triggers, and periodically saves. It does NOT serialize or send WS
-    // frames - that's the broadcaster's job, on its own cadence.
-    //
-    // The two tasks share the sim mutex but each holds it only as long as it
-    // takes to do its own job. Previously the lock was held across the
-    // tick + serialize + send path, so a slow full-frame serialize would
-    // stall the next sim tick by 50-100ms, causing the bursty WS pattern
-    // users were seeing on the client.
     {
         let sim_clone        = sim.clone();
         let stories_clone    = stories.clone();
@@ -227,17 +163,14 @@ async fn main() {
                 let tick_started = std::time::Instant::now();
                 let pending_thinks = {
                     let mut s = sim_clone.lock().await;
-                    s.tick(); // 1 tick per loop = TICK_MS real
+                    s.tick();
 
-                    // Apply completed think results
                     {
                         let mut results = think_res_clone.lock().await;
                         let tick = s.tick_count;
                         for r in results.drain(..) {
-                            // Collect name for events before taking &mut borrow
                             let actor_name = s.organisms.iter().find(|o| o.id == r.org_id)
                                 .map(|o| o.name.clone()).unwrap_or_default();
-                            // Apply to actor organism
                             let mut invented: Option<String> = None;
                             if let Some(org) = s.organisms.iter_mut().find(|o| o.id == r.org_id) {
                                 if let (Some(lid), Some(delta)) = (&r.target_lineage, r.attitude_delta) {
@@ -252,7 +185,6 @@ async fn main() {
                                     org.directive       = d.clone();
                                     org.directive_until = tick + r.directive_ticks;
                                 }
-                                // Invention: add discovery if not already known
                                 if let Some(disc) = &r.new_discovery {
                                     if !org.discoveries.contains(disc) {
                                         org.discoveries.insert(disc.clone());
@@ -260,7 +192,6 @@ async fn main() {
                                         invented = Some(disc.clone());
                                     }
                                 }
-                                // Reflection: nudge a trait
                                 if let Some((trait_name, delta)) = &r.trait_delta {
                                     match trait_name.as_str() {
                                         "fear"            => org.traits.fear            = (org.traits.fear            + delta).clamp(0.0, 1.0),
@@ -272,23 +203,19 @@ async fn main() {
                                     }
                                 }
                             }
-                            // Invention event (after org borrow released)
                             if let Some(disc) = invented {
                                 use crate::sim::world_events::push_event;
                                 push_event(&mut s.events, tick, "build", &actor_name,
                                     &format!("invented {}", disc.replace('_', " ")));
                             }
-                            // Tribe strategy
                             if let (Some(lid), Some(strategy)) = (r.strategy_lineage, r.strategy) {
                                 let expiry = s.tick_count + 800;
                                 println!("[think] tribe {} → {} (until t{})",
                                     &lid[..6.min(lid.len())], strategy, expiry);
                                 s.lineage_strategies.insert(lid, (strategy, expiry));
                             }
-                            // Alliance outcome - apply effects to both parties
                             if let (Some(alliance), Some(their_lid)) = (&r.alliance_type, &r.target_lineage) {
                                 let their_oid = r.target_org_id.as_deref().unwrap_or("");
-                                // Raise attitudes for both lineages
                                 let actor_lid = s.organisms.iter().find(|o| o.id == r.org_id)
                                     .map(|o| o.lineage_id.clone()).unwrap_or_default();
                                 for org in s.organisms.iter_mut() {
@@ -298,10 +225,8 @@ async fn main() {
                                         org.update_attitude(&actor_lid, 0.25);
                                     }
                                 }
-                                // Type-specific effects
                                 match alliance.as_str() {
                                     "food_sharing" => {
-                                        // Merge food memories between actor and target
                                         let actor_food: Vec<_> = s.organisms.iter()
                                             .find(|o| o.id == r.org_id)
                                             .map(|o| o.food_memory.iter().map(|(&k,&v)|(k,v)).collect())
@@ -346,7 +271,7 @@ async fn main() {
                                             for d in &actor_disc { if !org.discoveries.contains(d) { org.discoveries.insert(d.clone()); } }
                                         }
                                     },
-                                    _ => {} // territory: attitude bump already done above
+                                    _ => {}
                                 }
                                 use crate::sim::world_events::push_event;
                                 push_event(&mut s.events, tick, "treaty", &actor_name,
@@ -354,7 +279,6 @@ async fn main() {
                                         &actor_lid[..actor_lid.len().min(6)],
                                         &their_lid[..their_lid.len().min(6)]));
                             }
-                            // Elder teaching: apply to the specific child
                             if let (Some(teaching), Some(child_id)) = (&r.teaching, &r.target_org_id) {
                                 if let Some(child) = s.organisms.iter_mut().find(|o| o.id == *child_id) {
                                     child.discoveries.insert(teaching.clone());
@@ -364,7 +288,6 @@ async fn main() {
                         }
                     }
 
-                    // Apply completed narration stories → story_history
                     {
                         let cur_tick = s.tick_count;
                         let mut store = stories_clone.lock().await;
@@ -383,7 +306,6 @@ async fn main() {
                         }
                     }
 
-                    // Queue 1 narration per in-world day
                     if s.tick_count % DAY_LENGTH == 0 {
                         let candidate = s.organisms.iter()
                             .filter(|o| o.alive && !o.life_log.is_empty())
@@ -409,9 +331,6 @@ async fn main() {
                     std::mem::take(&mut s.pending_thinks)
                 };
 
-                // Send think triggers outside the sim lock so the broadcaster
-                // and the think worker can both make progress while this
-                // task is waiting on its sleep deadline.
                 for t in pending_thinks {
                     let _ = think_tx.try_send(t);
                 }
@@ -424,16 +343,6 @@ async fn main() {
         });
     }
 
-    // ── WebSocket broadcaster ─────────────────────────────────────────────────
-    //
-    // Runs at NETWORK_MS cadence (default 200ms = 5Hz) independent of the
-    // simulation tick rate. Each cycle: take the sim lock briefly, serialize
-    // a snapshot of current state, drop the lock, broadcast over WS.
-    //
-    // Full frames (with cold metadata) every FULL_FRAME_EVERY_TICKS sim
-    // ticks; everything else is a delta. Each frame also updates the cached
-    // `latest_full` slot so the WS handler can prime new clients without
-    // ever touching the sim lock.
     {
         let sim_clone        = sim.clone();
         let tx_clone         = tx.clone();
@@ -446,17 +355,6 @@ async fn main() {
                 let (frame, full_payload) = {
                     let mut s = sim_clone.lock().await;
                     let is_full_frame = s.tick_count % FULL_FRAME_EVERY_TICKS == 0;
-                    // Cold metadata (events, history, pop_history,
-                    // story_history, lineage_centroid_history, etc.) is
-                    // expensive to serialize and barely changes
-                    // tick-to-tick. We never include it in the broadcast
-                    // path: WS frames are always slim. Cold metadata
-                    // lives exclusively in the cached `latest_full`
-                    // which is served by HTTP /snapshot - new clients
-                    // bootstrap from there, existing clients re-fetch
-                    // on demand. The cache itself refreshes every 300
-                    // ticks via a separate heavy serialize that's only
-                    // paid every ~30s instead of every ~3s.
                     let is_deep_full = is_full_frame && (s.tick_count % 300 == 0);
                     let serialize_started = std::time::Instant::now();
                     let frame_id = next_frame_id(&frame_clock_w);
@@ -472,13 +370,6 @@ async fn main() {
                         serialize_started.elapsed().as_millis() as u64,
                         Some(kind),
                     );
-                    // On deep cadence, build a SECOND heavy snapshot
-                    // under the same lock (so its contents stay
-                    // tick-consistent with the broadcast frame). This
-                    // is what HTTP /snapshot returns. Adds 30-100ms to
-                    // the broadcaster's lock window every 300 ticks -
-                    // perceivable, but contained to one cycle every
-                    // ~30 wall seconds.
                     let heavy = if is_deep_full {
                         Some(Arc::new(encode_frame(s.state_json(), frame_id, now_ms(), "full")))
                     } else {
@@ -535,8 +426,4 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-
 

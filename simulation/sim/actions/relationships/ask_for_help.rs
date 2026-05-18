@@ -1,4 +1,4 @@
-//! Action 229: call a nearby kin to assist; boost their boredom reduction.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

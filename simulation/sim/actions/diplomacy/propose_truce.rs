@@ -1,4 +1,4 @@
-//! Action 181: propose a truce with a foreign org we dislike.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

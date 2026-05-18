@@ -1,4 +1,4 @@
-//! Action 332: name a festival with 3+ kin; comfort +0.08 all.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 205: vision quest. 10% chance to find a vision.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

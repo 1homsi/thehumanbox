@@ -1,4 +1,4 @@
-//! Action 526: naming ceremony for a newborn kin (low age); emit "birth"; discover "naming_ceremony".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

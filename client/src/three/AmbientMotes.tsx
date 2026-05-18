@@ -7,10 +7,6 @@ interface Props {
   weatherKind?: 'clear' | 'rain' | 'storm' | 'wet'
 }
 
-// Tiny dust motes drift around the camera during clear days, giving
-// a "particle in sunlight" atmospheric feel. Pure instanced spheres
-// at minimum draw cost - only active when conditions warrant it
-// (clear/wet, daytime) so we don't paint over storm rain particles.
 const MOTE_COUNT = 220
 const MOTE_VOLUME = 26
 const MOTE_GEO = new THREE.SphereGeometry(0.03, 3, 2)
@@ -23,7 +19,6 @@ export function AmbientMotes({ isNight = false, weatherKind = 'clear' }: Props) 
 
   const active = !isNight && (weatherKind === 'clear' || weatherKind === 'wet')
 
-  // Stable per-mote phase params.
   const params = useMemo(() => {
     const arr: { ox: number; oy: number; oz: number; freq: number; phase: number }[] = []
     for (let i = 0; i < MOTE_COUNT; i++) {
@@ -42,7 +37,6 @@ export function AmbientMotes({ isNight = false, weatherKind = 'clear' }: Props) 
     const mesh = meshRef.current
     if (!mesh) return
     if (!active) {
-      // Park instances.
       for (let i = 0; i < MOTE_COUNT; i++) {
         tmp.position.set(0, -1000, 0)
         tmp.scale.set(0, 0, 0)
@@ -58,8 +52,6 @@ export function AmbientMotes({ isNight = false, weatherKind = 'clear' }: Props) 
     const cz = camera.position.z
     for (let i = 0; i < MOTE_COUNT; i++) {
       const p = params[i]
-      // Position is camera-local cube around the camera; per-mote
-      // micro-drift via sin so they bob lazily.
       const x = cx + p.ox * MOTE_VOLUME * 2 + Math.sin(t * p.freq + p.phase) * 0.7
       const y = cy + p.oy * MOTE_VOLUME * 1.5 + Math.cos(t * p.freq * 1.3 + p.phase) * 0.5
       const z = cz + p.oz * MOTE_VOLUME * 2 + Math.cos(t * p.freq * 0.9 + p.phase) * 0.7

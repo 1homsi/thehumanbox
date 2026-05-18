@@ -1,4 +1,4 @@
-//! Action 214: follow the river.
+
 use crate::world::grid::TrailKind;
 use super::super::ctx::ActionCtx;
 

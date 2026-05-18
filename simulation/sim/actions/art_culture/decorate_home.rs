@@ -1,4 +1,4 @@
-//! Action 326: decorate a home near a hut tile.
+
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
 

@@ -1,4 +1,4 @@
-//! Action 365: guard the flock from threats.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

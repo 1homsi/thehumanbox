@@ -1,4 +1,4 @@
-//! Exploration, animals, travel (indices 117..=125 and 211..=220).
+
 
 pub mod explore_cave;
 pub mod climb_peak;

@@ -1,4 +1,4 @@
-//! Action 503: graduate a young kin (age < 400); emit "culture"; discover "graduation".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

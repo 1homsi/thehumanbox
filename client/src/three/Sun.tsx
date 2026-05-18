@@ -5,30 +5,20 @@ import * as THREE from 'three'
 import { TILE_SCALE } from './constants'
 
 interface Props {
-  dayProgress: number  // 0..1 — 0 = midnight, 0.25 = sunrise, 0.5 = noon, 0.75 = sunset
+  dayProgress: number
   width:  number
   height: number
   weatherKind?: 'clear' | 'rain' | 'storm' | 'wet'
-  weatherIntensity?: number  // 0..1
+  weatherIntensity?: number
 }
 
-// Day/night cycle. Sun follows a real arc east -> overhead -> west,
-// going BELOW the world plane at night. drei Sky renders bright/dim
-// based on sun elevation; we crossfade in stars + a moon when the
-// sun goes under the horizon.
 export function Sun({ dayProgress, width, height, weatherKind = 'clear', weatherIntensity = 0 }: Props) {
   const cx = width  * TILE_SCALE * 0.5
   const cz = height * TILE_SCALE * 0.5
   const r  = Math.max(width, height) * TILE_SCALE * 1.2
-  // Storms darken the world meaningfully; rain dims slightly.
   const stormFactor = weatherKind === 'storm' ? 0.45 + weatherIntensity * 0.25
                     : weatherKind === 'rain'  ? 0.7  + weatherIntensity * 0.15
                     : 1.0
-  // Sun position: altitude follows sin((p-0.25)*2π) so it's at
-  //   p=0.25 (sunrise): horizon
-  //   p=0.5  (noon):    peak
-  //   p=0.75 (sunset):  horizon
-  //   p=0/1  (midnight): -peak (below ground)
   const dawn = (dayProgress - 0.25) * 2 * Math.PI
   const sunAlt = Math.sin(dawn)
   const sunAz  = Math.cos(dawn)
@@ -38,14 +28,10 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
     cz,
   ], [cx, cz, r, sunAz, sunAlt])
 
-  // Day strength: 1 at noon, 0 at sunrise/sunset, negative at night.
   const dayStrength = Math.max(0, sunAlt)
   const isNight = sunAlt < 0
   const isTwilight = !isNight && dayStrength < 0.25
 
-  // Moon: opposite side of the sky from sun, so when sun is down,
-  // moon is up. Positioned at sun's antipode so the two never
-  // collide.
   const moonPos = useMemo<[number, number, number]>(() => [
     cx + sunAz * r * 0.8,
     -sunAlt * r * 0.8,
@@ -54,30 +40,21 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
   const moonRef = useRef<THREE.Mesh>(null)
   useFrame(({ clock }) => {
     if (!moonRef.current) return
-    // Subtle pulse to keep the moon feeling like a light, not a sticker.
     const t = clock.getElapsedTime()
     const s = 1 + Math.sin(t * 0.5) * 0.02
     moonRef.current.scale.set(s, s, s)
   })
 
-  // Sky params: lerp turbidity/rayleigh from day -> twilight -> night
-  // so the transition is continuous (no wedge bug).
-  // Day: turbidity ~4, rayleigh ~2 (bright blue).
-  // Twilight: turbidity ~6, rayleigh ~4 (warm orange).
-  // Night: skip the Sky shader and use a deep blue background.
   const skyTurbidity = isTwilight ? 6 : 4
   const skyRayleigh  = isTwilight ? 3.5 : 2
 
   return (
     <>
-      {/* Solid background that's always visible. Color crossfades
-          day/twilight/night so the sky never "ends" abruptly. */}
+      {}
       <color
         attach="background"
         args={[
           new THREE.Color().setRGB(
-            // Slightly warm at twilight, cool/blue at night, bright
-            // sky-blue at day.
             isNight ? 0.04 : dayStrength * 0.45 + 0.18,
             isNight ? 0.06 : dayStrength * 0.55 + 0.22,
             isNight ? 0.12 : dayStrength * 0.55 + 0.42,
@@ -85,9 +62,7 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
         ]}
       />
 
-      {/* Procedural sky atmosphere - only when sun is above horizon.
-          Skipping at night avoids the wedge / shader artefacts that
-          appear when sun is below the rendering plane. */}
+      {}
       {!isNight && (
         <Sky
           distance={100000}
@@ -99,8 +74,7 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
         />
       )}
 
-      {/* Stars - always present in the sky sphere, faded by daylight.
-          drei's Stars renders far away and self-rotates slowly. */}
+      {}
       <Stars
         radius={r * 6}
         depth={r * 2}
@@ -111,8 +85,7 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
         speed={isNight ? 0.6 : 0.1}
       />
 
-      {/* Moon - a small bright sphere positioned opposite the sun.
-          Visible during day too (subtle) and pronounced at night. */}
+      {}
       <mesh ref={moonRef} position={moonPos} frustumCulled={false}>
         <sphereGeometry args={[60, 16, 12]} />
         <meshBasicMaterial
@@ -122,8 +95,7 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
         />
       </mesh>
 
-      {/* Sun visible disc at twilight for a warm sunrise/sunset feel.
-          Subtle - drei Sky already paints the sun position. */}
+      {}
       {isTwilight && (
         <mesh position={sunPos} frustumCulled={false}>
           <sphereGeometry args={[80, 12, 10]} />
@@ -131,7 +103,7 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
         </mesh>
       )}
 
-      {/* Sun light (above horizon only) - warm and bright, dimmed by storms. */}
+      {}
       {!isNight && (
         <directionalLight
           position={sunPos}
@@ -152,8 +124,7 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
         />
       )}
 
-      {/* Moon light - dim cool light at night so the world is still
-          navigable instead of pitch black. */}
+      {}
       {isNight && (
         <directionalLight
           position={moonPos}
@@ -175,11 +146,7 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
         ]}
       />
 
-      {/* Atmospheric fog: fades distant terrain into the sky color,
-          and during storms tightens the visible range. Without fog
-          the world reads as a flat plate with abrupt distant
-          silhouettes. Color picked to match the sky for seamless
-          blend. */}
+      {}
       <fog
         attach="fog"
         args={[

@@ -1,4 +1,4 @@
-//! Action 283: measure fairness of trade; discover "measurement".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

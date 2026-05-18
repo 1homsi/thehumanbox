@@ -1,4 +1,4 @@
-//! Action 305: elder + 2 kin; discover "council".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

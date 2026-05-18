@@ -1,4 +1,4 @@
-//! Action 47: build a shrine.
+
 
 use super::super::ctx::ActionCtx;
 

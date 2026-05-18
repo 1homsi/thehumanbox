@@ -1,4 +1,4 @@
-//! Action 413: signal allies using fire or elevated ground.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 414: establish a postal route between groups.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

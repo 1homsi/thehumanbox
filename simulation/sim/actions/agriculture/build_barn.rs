@@ -1,4 +1,4 @@
-//! Action 345: build a barn to shelter grain and animals.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

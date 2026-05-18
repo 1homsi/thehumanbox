@@ -1,4 +1,4 @@
-//! Action 381: remove obstacles. Needs rock nearby.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

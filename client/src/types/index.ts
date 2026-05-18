@@ -8,8 +8,8 @@ export interface ConversationEntry {
   with_name: string
   with_id:   string
   kind:      'courtship' | 'bonded' | 'farewell' | 'chat' | 'argue' | 'excited'
-  lines:     [string, string][]   // [speaker_name, utterance]
-  meanings?: string[]             // English caption for each line
+  lines:     [string, string][]
+  meanings?: string[]
 }
 
 export interface Traits {
@@ -21,7 +21,6 @@ export interface Traits {
   resilience: number
 }
 
-/** Lean per-tick snapshot - heavy fields omitted, use OrgDetail for those */
 export interface OrganismState {
   id: string
   name: string
@@ -43,12 +42,11 @@ export interface OrganismState {
   traits: Traits
   infection:     number
   carrying:      number
-  carrying_type: number   // 0=none, 1=wood, 2=stone
+  carrying_type: number
   home_x:      number
   home_y:      number
   discoveries: string[]
   is_elder:    boolean
-  // Emotional state
   loneliness?:  number
   boredom?:     number
   fear_level?:  number
@@ -61,11 +59,10 @@ export interface OrganismState {
   sex?:            'male' | 'female'
   pregnant?:       boolean
   attracted_to?:   string | null
-  vocabulary?:         Record<string, string>   // small map - included in tick data for LanguageModal
-  conversation_count?: number   // count only - full data in OrgDetail
+  vocabulary?:         Record<string, string>
+  conversation_count?: number
 }
 
-/** Full detail - fetched on demand from GET /org/:id */
 export interface OrgDetail extends OrganismState {
   thought_history: ThoughtEntry[]
   vocabulary:    Record<string, string>
@@ -118,45 +115,35 @@ export interface StoryEntry {
   story: string
 }
 
-/** Merged grid state held in the client cache - all dense, always fully populated. */
 export interface GridState {
   width: number
   height: number
   origin_x: number
   origin_y: number
-  tiles: number[][]               // dense - updated every 5 ticks
-  fire_intensity: number[][]      // dense (rebuilt from sparse fire each tick)
-  structure: number[][]           // dense (rebuilt from sparse structure each tick)
-  biomes?: number[][]             // dense - updated every 30 ticks
-  depth_map?: number[][]          // dense - updated every 30 ticks
-  /** Dense food trail layer, 0..1 - rebuilt from sparse trails on static frames */
+  tiles: number[][]
+  fire_intensity: number[][]
+  structure: number[][]
+  biomes?: number[][]
+  depth_map?: number[][]
   food_trail?: number[][]
-  /** Dense water trail layer */
   water_trail?: number[][]
-  /** Dense path trail (organism footfall) */
   path_trail?: number[][]
-  /** Dense fertility 0..1 - only diverged tiles refreshed each static frame */
   fertility?: number[][]
-  /** Dense hazard 0..1 - combat/death scars */
   hazard?: number[][]
 }
 
-/** Raw incoming WS grid payload - sparse fire/structure, optional static maps. */
 export interface GridWire {
   width: number
   height: number
   origin_x: number
   origin_y: number
   tiles?: number[][]
-  fire: [number, number, number][]       // sparse: [row, col, v×1000]
-  structure: [number, number, number][]  // sparse: [row, col, v×100]
+  fire: [number, number, number][]
+  structure: [number, number, number][]
   biomes?: number[][]
   depth_map?: number[][]
-  /** Sparse trails: [row, col, food×100, water×100, path×100] */
   trails?: [number, number, number, number, number][]
-  /** Sparse fertility deviation: [row, col, fertility×100] */
   fertility?: [number, number, number][]
-  /** Sparse hazard: [row, col, hazard×100] */
   hazard?: [number, number, number][]
 }
 
@@ -184,11 +171,8 @@ export interface WorldState {
   pop_history: [number, number][]
   tribal_relations: TribalRelation[]
   lineage_sizes: { id: string; count: number }[]
-  lineage_names?: Record<string, string>   // lineage_id → tribe name
-  // Per-lineage centroid samples. Each entry is one sample per sim-day,
-  // capped server-side at 60 samples per lineage. Shape: [tick, cx, cy].
-  // Rendered as a thin trail line per tribe.
+  lineage_names?: Record<string, string>
   lineage_centroid_history?: Record<string, [number, number, number][]>
   current_era?: string
-  sex_words?:   [string, string]   // [0]=word for male biology, [1]=word for female biology - coined by founding generation
+  sex_words?:   [string, string]
 }

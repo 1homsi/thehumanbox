@@ -1,4 +1,4 @@
-//! Action 314: reduce a kin's comfort as punishment.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

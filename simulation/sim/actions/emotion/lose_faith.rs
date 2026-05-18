@@ -1,4 +1,4 @@
-//! Action 397: lose faith. Comfort falls; boredom rises; deep questioning.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

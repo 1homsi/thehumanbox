@@ -1,4 +1,4 @@
-//! Action 328: erect a stone monument.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

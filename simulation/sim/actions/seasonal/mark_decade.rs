@@ -1,4 +1,4 @@
-//! Action 485: elder marks a decade with many kin; discover "decade_marking"; emit "culture".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

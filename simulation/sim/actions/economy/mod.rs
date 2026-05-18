@@ -1,4 +1,4 @@
-//! Economy actions (indices 276..=295).
+
 
 pub mod barter;
 pub mod set_price;

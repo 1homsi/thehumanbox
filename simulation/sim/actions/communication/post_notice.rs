@@ -1,4 +1,4 @@
-//! Action 408: post a notice near a Hut.
+
 use super::super::ctx::ActionCtx;
 use crate::world::tiles::Tile;
 

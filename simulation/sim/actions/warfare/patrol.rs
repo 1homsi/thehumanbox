@@ -1,4 +1,4 @@
-//! Action 100: patrol the border. Path trail + soothes kin fear.
+
 use crate::world::grid::TrailKind;
 use super::super::ctx::ActionCtx;
 

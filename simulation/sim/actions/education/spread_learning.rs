@@ -1,4 +1,4 @@
-//! Action 517: spread learning to a stranger; attitude +0.06; emit "culture"; discover "educational_outreach".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

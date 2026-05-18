@@ -16,11 +16,6 @@ impl Simulation {
         if self.organisms[idx].energy < 0.45 || self.organisms[idx].hydration < 0.45 { return; }
         if self.organisms[idx].age < 600 || self.organisms[idx].fear_level > 0.65 { return; }
 
-        // ── Crowding-driven dispersal ─────────────────────────────────────────
-        // When the local same-lineage density exceeds the tribe's comfortable
-        // packing, push outward along the vector from the local kin centroid.
-        // This naturally expands the tribe's footprint as it grows - no
-        // splinter, no new lineage; the village just spreads.
         let lid = self.organisms[idx].lineage_id.clone();
         let (mx, my) = (self.organisms[idx].x, self.organisms[idx].y);
         let mut sumx = 0.0f32; let mut sumy = 0.0f32; let mut count = 0u32;
@@ -30,20 +25,9 @@ impl Simulation {
             let d = (o.x - mx).abs() + (o.y - my).abs();
             if d <= 8.0 { sumx += o.x; sumy += o.y; count += 1; }
         }
-        // Lowered count threshold 3 -> 2: even pairs disperse rather
-        // than rooting. We measured population reconverging on a tiny
-        // island after ~200k ticks, despite vast empty continents -
-        // making the dispersal pressure trigger sooner is the single
-        // biggest knob.
         if count >= 2 {
             let curiosity = self.organisms[idx].traits.curiosity;
             let age = self.organisms[idx].age;
-            // Fork thresholds tuned aggressively to spread the population
-            // across the vast world land. Previous (age 1200, cur 0.55,
-            // count 5, p=0.15) kept everyone consolidated on a single
-            // founder island. Now: lower age, lower curiosity floor,
-            // count 4, p=0.35 - tribes splinter while still young so
-            // each generation can homestead new ground.
             let fork_eligible = age >= 700 && curiosity >= 0.40 && count >= 4;
             if fork_eligible && self.rng.gen::<f32>() < 0.35 {
                 if let Some((fx, fy)) = self.find_far_empty_anchor(mx as i32, my as i32) {
@@ -63,8 +47,6 @@ impl Simulation {
             } else {
                 dx /= len; dy /= len;
             }
-            // Stronger push (80 base, +18 per extra kin) keeps a swelling
-            // tribe spreading out as it grows rather than just orbiting.
             let push = 80.0 + (count as f32 - 3.0) * 18.0;
             let tx = (mx + dx * push).round() as i32;
             let ty = (my + dy * push).round() as i32;
@@ -80,23 +62,18 @@ impl Simulation {
         let curiosity = self.organisms[idx].traits.curiosity;
         let age = self.organisms[idx].age;
 
-        // Adolescent dispersal: in the 1500-1900 age window, every
-        // organism (regardless of curiosity) gets a wider wander
-        // bandwidth. This is the "leaving home" stage - the rest of
-        // their life they may settle, but adolescence they explore.
         let adolescent = age >= 1500 && age < 1900;
         if curiosity < 0.40 && !adolescent { return; }
 
         let hash = self.organisms[idx].id.bytes()
             .fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
         let base_period = (450u64).saturating_sub((curiosity * 200.0) as u64).max(140);
-        // Adolescents wander roughly twice as often as their curiosity alone would dictate.
         let period = if adolescent { base_period.max(120) / 2 } else { base_period };
         if self.tick_count % period != (hash % period) { return; }
 
         let (x, y) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
         let min_dist = 60  + (curiosity * 90.0)  as i32;
-        let max_dist = 250 + (curiosity * 400.0) as i32;   // up to ~650 - lets the curious cross the map
+        let max_dist = 250 + (curiosity * 400.0) as i32;
         if let Some(target) = self.find_distant_land_target(x, y, min_dist, max_dist) {
             self.organisms[idx].wander_target = Some(target);
             self.organisms[idx].think("planning expedition", self.tick_count);

@@ -1,4 +1,4 @@
-//! Action 329: elder establishes a tradition with 2+ kin present.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

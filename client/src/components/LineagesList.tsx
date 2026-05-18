@@ -11,12 +11,6 @@ interface LineageRow {
   maxGen: number
 }
 
-/**
- * Sidebar lineages panel. Subscribes only to world.organisms +
- * lineage_names and derives rows in a useMemo. Re-renders at the
- * world-store publish cadence (2 Hz throttled), but in isolation - a
- * change to events or history won't trigger a render here.
- */
 function LineagesListImpl() {
   const openAllLineages = useUIStore((s) => s.openAllLineages)
   const organisms    = useWorldStore((s) => s.world?.organisms)

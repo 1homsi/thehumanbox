@@ -6,7 +6,6 @@ import subprocess
 import sys
 from typing import Any
 
-
 def command_version(command: str, args: list[str]) -> str | None:
     path = shutil.which(command)
     if not path:
@@ -24,7 +23,6 @@ def command_version(command: str, args: list[str]) -> str | None:
     output = (result.stdout or result.stderr).strip().splitlines()
     version = output[0] if output else "version unknown"
     return f"{path} :: {version}"
-
 
 def list_ollama_models() -> list[dict[str, Any]]:
     path = shutil.which("ollama")
@@ -57,10 +55,8 @@ def list_ollama_models() -> list[dict[str, Any]]:
         )
     return models
 
-
 def installed_ollama_model_names() -> list[str]:
     return [model["name"] for model in list_ollama_models()]
-
 
 def probe_stack() -> dict[str, str]:
     result = {

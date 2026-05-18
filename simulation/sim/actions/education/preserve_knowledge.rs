@@ -1,4 +1,4 @@
-//! Action 507: preserve knowledge using rock storage; discover "knowledge_preservation"; emit "build".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 242: playful challenge with a kin; raise both energies slightly.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

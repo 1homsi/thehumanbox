@@ -1,4 +1,4 @@
-//! Action 352: plant an herb garden on grass.
+
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
 

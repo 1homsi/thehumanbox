@@ -1,4 +1,4 @@
-//! Action 176: build a temple. Needs stone + (faith OR ritual) discovery.
+
 
 use super::super::ctx::ActionCtx;
 

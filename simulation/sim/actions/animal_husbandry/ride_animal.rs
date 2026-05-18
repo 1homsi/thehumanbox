@@ -1,4 +1,4 @@
-//! Action 362: ride a trained animal for travel.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

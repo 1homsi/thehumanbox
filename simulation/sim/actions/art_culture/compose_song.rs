@@ -1,4 +1,4 @@
-//! Action 316: compose a song; reduce all kin boredom.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

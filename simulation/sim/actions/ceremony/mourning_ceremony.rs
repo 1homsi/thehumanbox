@@ -1,4 +1,4 @@
-//! Action 529: mourning ceremony with few kin; comfort -0.02 then +0.06 (catharsis); emit "death".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

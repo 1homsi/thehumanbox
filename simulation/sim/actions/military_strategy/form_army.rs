@@ -1,4 +1,4 @@
-//! Action 436: form an army from nearby kin.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

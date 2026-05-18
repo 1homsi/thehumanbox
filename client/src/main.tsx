@@ -28,8 +28,6 @@ function hideSplash() {
 window.addEventListener('thb-world-ready', hideSplash, { once: true })
 setTimeout(hideSplash, 30_000)
 
-// Real download progress for the bootstrap /snapshot fetch. useSimulation
-// emits these events as bytes stream in; we update the bar accordingly.
 type SnapshotProgress = { loaded: number; total: number | null }
 window.addEventListener('thb-snapshot-progress', (e: Event) => {
   const detail = (e as CustomEvent<SnapshotProgress>).detail

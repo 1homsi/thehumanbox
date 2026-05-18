@@ -1,4 +1,4 @@
-//! Action 253: observe a kin's symptoms; emit "medicine" event with diagnosis.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

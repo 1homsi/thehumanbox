@@ -2,21 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import type { OrgDetail } from '../types'
 import { API_BASE } from '../lib/config'
 
-/**
- * Fetches full organism detail (conversations, vocabulary, thought_history,
- * life_log, daily_story) from GET /org/:id.
- *
- * Powered by TanStack Query so we get caching, deduplication, and
- * automatic revalidation across components for free. Multiple components
- * can call useOrgDetail(id) for the same id and share one network request.
- *
- * Polls every 3 seconds while the panel is open. Stops when id is null
- * (query disabled) or when the tab is hidden (refetchIntervalInBackground
- * default off).
- */
 export interface UseOrgDetailResult {
   data:      OrgDetail | null
-  isLoading: boolean          // true on first fetch, before any data has arrived
+  isLoading: boolean
   isError:   boolean
 }
 
@@ -30,8 +18,8 @@ export function useOrgDetail(id: string | null): UseOrgDetailResult {
     },
     enabled:         id != null,
     refetchInterval: id != null ? 3000 : false,
-    staleTime:       1500,                 // briefly de-dupes parallel mounts
-    retry:           1,                    // sim might be restarting; one quick retry then hush
+    staleTime:       1500,
+    retry:           1,
     refetchOnWindowFocus: false,
   })
   return { data: data ?? null, isLoading: id != null && isLoading, isError }

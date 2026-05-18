@@ -1,57 +1,19 @@
 name: pipeline
 
-# Single workflow from a human push to a live deploy.
-#
-# Stages, in order:
-#   1. test-backend         x86 runner runs cargo test --release.
-#   2. test-frontend        pnpm build, uploads dist artifact.
-#   3. build-backend-binary aarch64 runner produces the production
-#                            simulation-rs binary, uploads as artifact.
-#                            Runs in parallel with tests.
-#   4. bump-version         Bumps the patch version + commits to main
-#                            with [skip-bump] sentinel. Waits for tests.
-#   5. publish-release      Creates GitHub release v$NEW with the
-#                            aarch64 binary attached.
-#   6. deploy-backend       SSMs EC2 to run /root/thehumanbox/update.sh
-#                            $NEW - which curls the binary from the
-#                            release + restarts the systemd unit. NO
-#                            on-box compile. The c7g.medium does not
-#                            have enough RAM to run rustc.
-#   7. deploy-frontend      Downloads dist artifact, wrangler-deploys.
-#
-# A bot push ([skip-bump] in the message) re-fires this workflow but
-# every job's `if:` short-circuits it to a no-op.
-
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
-#
-# Concurrency: every push gets its own concurrency group (keyed on
-# the commit SHA), so different commits don't share + don't cancel
-# each other. The pre-existing behaviour of "newer push cancels the
-# QUEUED older push" was losing intermediate deploys whenever pushes
-# came in rapid succession.
-#
-# Race we DO need to serialise: bump-version (parallel pipelines
-# would both try to push a [skip-bump] commit and step on each
-# other). That's gated per-job below.
 concurrency:
   group: pipeline-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
-  # ────────────────────────────────────────────────────────────────────────
-  # Stage 1: smoke tests + production binary build. All three run in parallel.
-  # ────────────────────────────────────────────────────────────────────────
   test-backend:
     name: Test backend
     if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
     runs-on: ubuntu-24.04
-    # 25 min: the 60k-tick population_does_not_reconverge_after_many_sim_days
-    # test is the long pole at ~5 min, and cold-cache compile is ~7 min.
-    # A 15-min cap was tripping right at the edge.
     timeout-minutes: 25
     env:
       CARGO_INCREMENTAL: 0
@@ -105,12 +67,6 @@ jobs:
           path: client/dist
           retention-days: 7
 
-  # ────────────────────────────────────────────────────────────────────────
-  # Stage 2: version bump. Runs after tests are green. MUST run BEFORE
-  # build-backend-binary so the binary that lands in the GitHub release
-  # has the SAME version embedded as the release tag - otherwise the
-  # binary self-reports a version one bump behind its release.
-  # ────────────────────────────────────────────────────────────────────────
   bump-version:
     name: Bump version
     needs: [test-backend, test-frontend]
@@ -118,12 +74,6 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: write
-    # Serialise bump-version + everything downstream across all
-    # pipelines on main. Two parallel pipelines would both try to
-    # bump Cargo.toml and push a [skip-bump] commit, racing. With
-    # `cancel-in-progress: false` the second waits its turn, then
-    # bumps from the now-updated Cargo.toml so versions never
-    # collide.
     concurrency:
       group: pipeline-deploy-main
       cancel-in-progress: false
@@ -168,20 +118,11 @@ jobs:
           git pull --rebase origin main
           git push
 
-  # Build the linux-aarch64 release binary AT THE BUMPED COMMIT.
-  # This runs after bump-version (rather than in parallel with tests
-  # like the very first iteration of this workflow) so the binary
-  # embeds the same version number as the release tag it'll be
-  # attached to. Without this ordering the binary self-reports a
-  # version one bump behind whatever the GitHub release is tagged
-  # as - confirmed live: a v0.0.76 release contained a binary whose
-  # /version endpoint said "0.0.75".
   build-backend-binary:
     name: Build backend binary (aarch64, at bumped commit)
     needs: [bump-version]
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 20
-    # Same serialising group as bump-version - inherits the queue.
     concurrency:
       group: pipeline-deploy-main
       cancel-in-progress: false
@@ -192,8 +133,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Check out main rather than the commit that triggered the
-          # workflow - we need the bump-version commit that just landed.
           ref: main
       - name: Install mold linker
         run: sudo apt-get install -y mold
@@ -226,9 +165,6 @@ jobs:
           path: simulation/target/release/simulation-rs
           retention-days: 14
 
-  # ────────────────────────────────────────────────────────────────────────
-  # Stage 3: publish a GitHub release tagged v$NEW with the binary attached.
-  # ────────────────────────────────────────────────────────────────────────
   publish-release:
     name: Publish release with aarch64 binary
     needs: [bump-version, build-backend-binary]
@@ -254,20 +190,11 @@ jobs:
           NEW:      ${{ needs.bump-version.outputs.new }}
         run: |
           set -euo pipefail
-          # IDEMPOTENT: if the release already exists (typically because
-          # a previous pipeline run got cancelled after it created the
-          # tag but before deploy), we replace the binary rather than
-          # fail. Without this, a single cancelled run blocks every
-          # subsequent run forever on `tag already exists` and the
-          # deploy chain just stops carrying new code to the EC2.
           if gh release view "v$NEW" >/dev/null 2>&1; then
             echo "Release v$NEW already exists - replacing binary"
             gh release upload "v$NEW" ./bin/simulation-rs --clobber
           else
             echo "Creating release v$NEW"
-            # --target=main so the release is anchored to the merged
-            # main branch tip (which includes the [skip-bump] commit by
-            # the time this job runs).
             gh release create "v$NEW" \
               --title "v$NEW" \
               --notes "Automated release. Backend binary built on ubuntu-24.04-arm runner; SHA ${GITHUB_SHA}." \
@@ -275,9 +202,6 @@ jobs:
               ./bin/simulation-rs
           fi
 
-  # ────────────────────────────────────────────────────────────────────────
-  # Stage 4: deploys. Run in parallel after publish-release succeeds.
-  # ────────────────────────────────────────────────────────────────────────
   deploy-backend:
     name: Deploy backend (SSM, no on-box compile)
     needs: [bump-version, publish-release]
@@ -300,14 +224,6 @@ jobs:
           NEW_VERSION: ${{ needs.bump-version.outputs.new }}
         run: |
           set -euo pipefail
-          # EC2 runs update.sh, which: pulls the version's binary from
-          # the GitHub release, atomically swaps it in, restarts the
-          # systemd unit. No rustc on the box. Build time on the box
-          # used to peak ~1.5 GB and OOM'd the c7g.medium yesterday.
-          #
-          # update.sh lives in the repo and is git-pulled by EC2 in
-          # the same SSM step, so changes to the deploy procedure
-          # ride along with normal pushes.
           DEPLOY_CMD="cd /root/thehumanbox && git pull --ff-only && chmod +x scripts/update.sh && scripts/update.sh ${NEW_VERSION}"
           CMD_ID=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \

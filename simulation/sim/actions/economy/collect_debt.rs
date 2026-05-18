@@ -1,4 +1,4 @@
-//! Action 281: reclaim lent goods from a stranger; inv_wood += 1 if chance(0.4).
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

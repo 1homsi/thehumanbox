@@ -1,4 +1,4 @@
-//! Action 290: give inv_stone to a stranger lineage; attitude toward them +0.08.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

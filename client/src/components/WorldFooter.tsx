@@ -17,11 +17,6 @@ const ERA_LABEL: Record<string, string> = {
   equilibrium:'EQUILIBRIUM',
 }
 
-/**
- * Bottom of the left sidebar. Surfaces the few derived facts that fit a
- * tight strip: current era, tribal mood (allies vs rivals), and the day
- * cycle. All sourced from world state we already ship - no extra fetches.
- */
 export function WorldFooter({ world }: Props) {
   const moodCounts = useMemo(() => {
     let ally = 0, rivals = 0, neutral = 0

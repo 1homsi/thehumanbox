@@ -1,9 +1,4 @@
-//! WS frame metadata + transport-stats counters.
-//!
-//! Pulled out of main.rs because the encode_frame, frame_id minting, and
-//! the atomic + mutex stats wiring add up to ~150 lines of self-contained
-//! plumbing that has nothing to do with the broadcast loop or the route
-//! handlers.
+
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -46,10 +41,6 @@ impl TransportWindow {
     }
 }
 
-// Counters live as atomics so the hot path (one record_sent per WS message
-// per client) doesn't contend on a shared lock. Sample windows still need a
-// mutex but they're only touched on frame-generation events, which run on
-// the single broadcast loop and the rare resync path.
 #[derive(Default)]
 pub struct TransportStats {
     generated_frames: AtomicU64,
@@ -57,25 +48,15 @@ pub struct TransportStats {
     lagged_frames:    AtomicU64,
     dropped_frames:   AtomicU64,
     resync_frames:    AtomicU64,
-    // Number of broadcaster cycles where work took longer than the
-    // network period - i.e. we lost cadence to a slow serialize.
     overrun_cycles:   AtomicU64,
     sim_overrun_ticks: AtomicU64,
     payload_bytes:    std::sync::Mutex<TransportWindow>,
-    // Split-by-kind payload windows. Lets /transport show full vs
-    // delta sizes independently so we can verify the slim periodic
-    // full is actually slim on prod (~80-150 KB) and deltas are tiny
-    // (~5-20 KB). Both windows feed payload_bytes too so the legacy
-    // combined avg/p95 still works.
     full_bytes:       std::sync::Mutex<TransportWindow>,
     delta_bytes:      std::sync::Mutex<TransportWindow>,
     frame_gen_ms:     std::sync::Mutex<TransportWindow>,
     sim_tick_ms:      std::sync::Mutex<TransportWindow>,
 }
 
-/// Frame classification for payload-size accounting. Lets TransportStats
-/// keep separate histograms for the two cadences without callers having
-/// to know about the internal windows.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum FrameKind {
     Full,
@@ -93,8 +74,6 @@ pub struct TransportStatsSnapshot {
     pub sim_overrun_ticks:       u64,
     pub avg_payload_bytes:       u64,
     pub p95_payload_bytes:       u64,
-    /// Split-by-kind. Lets us see if slim periodic fulls actually
-    /// shrank after the cold-metadata / per-org-cold strip changes.
     pub avg_full_bytes:          u64,
     pub p95_full_bytes:          u64,
     pub avg_delta_bytes:         u64,
@@ -110,9 +89,6 @@ impl TransportStats {
         self.record_generated_kind(payload_bytes, frame_gen_ms, None);
     }
 
-    /// Like record_generated but routes payload-size into the
-    /// kind-specific histogram (Full or Delta) in addition to the
-    /// combined one. Callers that know the kind should prefer this.
     pub fn record_generated_kind(
         &self,
         payload_bytes: usize,
@@ -154,8 +130,6 @@ impl TransportStats {
         self.resync_frames.fetch_add(1, Ordering::Relaxed);
     }
 
-    /// One broadcaster cycle blew past its budget. The next frame still
-    /// goes out immediately (no double-stall) but cadence is lost for now.
     pub fn record_broadcaster_overrun(&self) {
         self.overrun_cycles.fetch_add(1, Ordering::Relaxed);
     }
@@ -214,14 +188,6 @@ pub fn next_frame_id(frame_clock: &AtomicU64) -> u64 {
     frame_clock.fetch_add(1, Ordering::Relaxed) + 1
 }
 
-/// Encode a frame as MessagePack bytes. MessagePack ships ~30-50% smaller
-/// than equivalent JSON for our payload shape (lots of small floats, short
-/// strings, mixed maps and arrays) and decodes 3-5x faster on the client
-/// since the parser is single-pass binary rather than text JSON.
-///
-/// We keep the function returning bytes regardless of format - the choice
-/// of MessagePack is centralized here so a future format swap (CBOR,
-/// FlatBuffers, custom binary) is a one-file change.
 pub fn encode_frame(
     mut payload: serde_json::Value,
     frame_id: u64,
@@ -233,10 +199,6 @@ pub fn encode_frame(
         obj.insert("server_sent_at_ms".to_string(), serde_json::json!(server_sent_at_ms));
         obj.insert("frame_kind".to_string(), serde_json::json!(frame_kind));
     }
-    // `to_vec_named` keeps map keys as strings (the default would emit
-    // positional fields, which would force the client to know struct
-    // layout). Strings cost a little more bytes but keep the wire format
-    // self-describing and round-trippable to JSON for debugging.
     rmp_serde::to_vec_named(&payload).unwrap_or_else(|_| Vec::new())
 }
 
@@ -257,13 +219,6 @@ mod tests {
 
     #[test]
     fn encode_frame_no_larger_than_equivalent_json() {
-        // Realistic-shape payload: a handful of organisms with hot fields.
-        // Named-key MessagePack on a dynamic Value keeps every map key as
-        // a repeated string, so the per-organism overhead is similar to
-        // JSON's. The real wins from MessagePack on this shape are
-        // numeric compactness and client-side parse speed - not raw
-        // byte count. Test just guards against accidentally regressing
-        // to a format that's larger than JSON.
         let payload = serde_json::json!({
             "tick": 12345,
             "organisms": (0..50).map(|i| serde_json::json!({

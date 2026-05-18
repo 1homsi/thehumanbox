@@ -1,4 +1,4 @@
-//! Action 288: move toward stranger with food; emit "trade" event.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

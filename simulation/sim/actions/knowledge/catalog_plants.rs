@@ -1,4 +1,4 @@
-//! Action 132: catalogue plants on grass/food tiles.
+
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

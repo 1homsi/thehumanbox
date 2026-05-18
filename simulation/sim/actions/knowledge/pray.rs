@@ -1,4 +1,4 @@
-//! Action 76: pray. Raises self-comfort, drops fear.
+
 use super::super::ctx::ActionCtx;
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let o = ctx.org_mut();

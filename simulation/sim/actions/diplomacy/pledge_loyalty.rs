@@ -1,4 +1,4 @@
-//! Action 190: pledge loyalty to first kin. Asymmetric trust bump.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

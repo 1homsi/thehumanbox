@@ -1,4 +1,4 @@
-//! Action 474: harvest food in autumn; inv_food += 2; discover "autumn_harvest".
+
 use super::super::ctx::ActionCtx;
 use crate::world::tiles::Tile;
 

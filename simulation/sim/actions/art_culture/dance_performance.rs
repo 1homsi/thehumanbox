@@ -1,4 +1,4 @@
-//! Action 321: dance performance with 2+ kin; comfort +0.05 all.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

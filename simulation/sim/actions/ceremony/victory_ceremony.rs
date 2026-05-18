@@ -1,4 +1,4 @@
-//! Action 530: victory ceremony; all kin comfort +0.08; emit "culture"; discover "victory_rite".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

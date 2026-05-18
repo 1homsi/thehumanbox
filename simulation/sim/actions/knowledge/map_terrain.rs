@@ -1,5 +1,4 @@
-//! Action 70: map terrain - sweeps a 25x25 box around the org and
-//! commits found food/water tiles to its memory.
+
 
 use crate::organism::organism::Organism;
 use crate::world::tiles::Tile;

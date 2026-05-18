@@ -5,7 +5,6 @@ from collections import defaultdict
 from .schemas import ThoughtExample, TraceEvent
 from .task_specs import THOUGHT_V1, TaskSpec
 
-
 def build_thought_examples(
     events: list[TraceEvent], window: int = 4, task_spec: TaskSpec = THOUGHT_V1
 ) -> list[ThoughtExample]:
@@ -34,7 +33,6 @@ def build_thought_examples(
                 )
             )
     return examples
-
 
 def render_prompt(
     history: list[TraceEvent], current: TraceEvent, task_spec: TaskSpec = THOUGHT_V1

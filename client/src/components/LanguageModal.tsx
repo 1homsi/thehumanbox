@@ -4,10 +4,6 @@ import { lineageColor } from '../utils/constants'
 import { useFrozenSnapshot } from '../hooks/useFrozenSnapshot'
 import { Modal } from './Modal'
 
-// Mirrors simulation/organism/vocabulary.rs CONCEPTS, grouped by
-// section. Section order matches the source - if a concept is added
-// there it needs to land here too (or it won't render even though
-// the sim is tracking it).
 const CONCEPT_SECTIONS: { label: string; concepts: string[] }[] = [
   { label: 'core survival', concepts: [
     'food', 'water', 'fire', 'danger', 'friend',
@@ -165,14 +161,14 @@ const ALL_CONCEPTS = CONCEPT_SECTIONS.flatMap(s => s.concepts)
 
 interface Props {
   organisms: OrganismState[]
-  sexWords?: [string, string]   // [0]=male word, [1]=female word
+  sexWords?: [string, string]
   onClose: () => void
   lineageNames?: Record<string, string>
 }
 
 interface LineageVocab {
   lineageId: string
-  words: Record<string, string>   // concept → most common word in this lineage
+  words: Record<string, string>
   count: number
 }
 
@@ -207,9 +203,6 @@ export function LanguageModal({ organisms, sexWords, onClose, lineageNames }: Pr
   const lineages = buildLineageVocabs(frozen)
   const tn = (lid: string) => lineageNames?.[lid] ?? (lid ?? '').slice(0, 6)
 
-  // Free-text concept search. Matches both the English concept and
-  // any lineage's coined word for that concept - so you can search
-  // "river" OR a specific tribe's invented word and find the row.
   const [query, setQuery] = useState('')
   const q = query.trim().toLowerCase()
 
@@ -220,7 +213,6 @@ export function LanguageModal({ organisms, sexWords, onClose, lineageNames }: Pr
         label: s.label,
         concepts: s.concepts.filter(c => {
           if (c.toLowerCase().includes(q)) return true
-          // Match against any lineage's word for this concept.
           return lineages.some(l => l.words[c]?.toLowerCase().includes(q))
         }),
       }))

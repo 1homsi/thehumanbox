@@ -1,4 +1,4 @@
-//! Action 481: gather food in autumn; inv_food += 1; discover "gathering_tradition".
+
 use super::super::ctx::ActionCtx;
 use crate::world::tiles::Tile;
 

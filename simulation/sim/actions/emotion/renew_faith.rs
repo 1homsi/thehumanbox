@@ -1,4 +1,4 @@
-//! Action 398: renew faith. Fire nearby or kin present; comfort restored.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

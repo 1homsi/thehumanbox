@@ -1,4 +1,4 @@
-//! Action 493: honor ancestors near rock or Hut; all kin comfort +0.05; emit "ritual".
+
 use super::super::ctx::ActionCtx;
 use crate::world::tiles::Tile;
 

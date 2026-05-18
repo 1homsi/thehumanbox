@@ -1,4 +1,4 @@
-//! Action 171: build a forge. Needs stone + fire nearby.
+
 
 use super::super::ctx::ActionCtx;
 

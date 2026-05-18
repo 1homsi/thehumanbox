@@ -1,4 +1,4 @@
-//! Action 28: fish. Requires water within 2 tiles. 30% catch rate.
+
 
 use super::super::ctx::ActionCtx;
 

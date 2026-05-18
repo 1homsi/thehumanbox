@@ -1,4 +1,4 @@
-//! Governance actions (indices 296..=315).
+
 
 pub mod hold_election;
 pub mod pass_law;

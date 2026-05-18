@@ -1,4 +1,4 @@
-//! Action 372: build a terrace farm. Needs rock nearby and a Grass tile.
+
 use super::super::ctx::ActionCtx;
 use crate::world::tiles::Tile;
 

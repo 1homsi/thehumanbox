@@ -1,16 +1,6 @@
 import clsx from 'clsx'
 import { useUIStore } from '../stores/store'
 
-/**
- * The "··· more" dropdown panel shown from the header.
- *
- * Self-contained: pulls every flag and setter it needs from the
- * zustand store directly, so callers don't have to know about the
- * dozens of toggles it exposes.
- *
- * Close-on-outside-click is wired by the parent (AppHeader) via the
- * `moreRef` ref it places on the wrapping <div className="more-menu">.
- */
 export function MoreDropdown() {
   const overlay     = useUIStore(s => s.overlay)
   const focus       = useUIStore(s => s.focus)

@@ -1,4 +1,4 @@
-//! Action 418: create a secret code for private communication.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

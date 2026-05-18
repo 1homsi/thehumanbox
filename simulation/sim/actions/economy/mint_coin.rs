@@ -1,4 +1,4 @@
-//! Action 291: with rock_near and fire_near; discover "currency".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

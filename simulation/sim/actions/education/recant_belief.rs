@@ -1,4 +1,4 @@
-//! Action 516: recant a belief; emit "culture"; discover "recantation"; comfort -0.03.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

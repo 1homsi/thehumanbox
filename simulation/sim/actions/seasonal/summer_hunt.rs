@@ -1,4 +1,4 @@
-//! Action 480: hunt in summer; inv_food += 1; discover "summer_hunting"; emit "build".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

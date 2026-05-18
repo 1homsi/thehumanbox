@@ -1,4 +1,4 @@
-//! Action 419: decode a hidden message.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,5 +1,4 @@
-//! Action 37: irrigate. Bumps fertility in a 5x5 patch around the
-//! org if water is nearby and standing on grass.
+
 
 use crate::world::grid::WorldGrid;
 use crate::world::tiles::Tile;

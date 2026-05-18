@@ -1,4 +1,4 @@
-//! Action 452: organise units into a naval battle formation.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

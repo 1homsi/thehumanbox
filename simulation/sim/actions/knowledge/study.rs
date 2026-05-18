@@ -1,4 +1,4 @@
-//! Action 66: study the world. Cuts boredom, rare scholarship find.
+
 use super::super::ctx::ActionCtx;
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     ctx.org_mut().boredom = (ctx.org().boredom - 0.10).max(0.0);

@@ -1,4 +1,4 @@
-//! Action 327: carve a relief into a rock surface.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

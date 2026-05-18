@@ -1,4 +1,4 @@
-//! Action 477: stock winter provisions; emit "build"; think about preparing for cold.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

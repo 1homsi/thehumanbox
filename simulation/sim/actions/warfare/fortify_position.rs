@@ -1,4 +1,4 @@
-//! Action 192: fortify position - small structure bump.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

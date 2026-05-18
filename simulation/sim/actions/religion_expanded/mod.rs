@@ -1,4 +1,4 @@
-//! Religion expanded — organised faith and ritual (indices 456..=470).
+
 
 pub mod found_religion;
 pub mod preach;

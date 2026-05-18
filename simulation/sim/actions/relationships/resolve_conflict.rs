@@ -1,4 +1,4 @@
-//! Action 245: end a disagreement between two kin; discover "conflict_resolution".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

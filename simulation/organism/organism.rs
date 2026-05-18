@@ -5,27 +5,13 @@ use super::traits::Traits;
 use super::vocabulary::Vocabulary;
 use crate::world::{grid::{WorldGrid, TrailKind}, tiles::Tile};
 
-pub const N_ACTIONS: usize = 536; // 0-25 core; 26-225 phase-1/2; 226-535 phase-3
+pub const N_ACTIONS: usize = 536;
 
-/// One row of the Q-table — sparse representation. Only stores entries
-/// for actions the org has actually visited (`action_idx`, `q_value`).
-/// A typical adult org explores ~10-30 distinct actions per perception
-/// state, so a row is ~80-240 B vs the dense Vec<f32; N_ACTIONS>'s
-/// 2144 B at N=536. ~13× memory cut. Linear scan is fine because the
-/// row is tiny — never long enough for HashMap's hashing overhead to
-/// pay off.
 pub type QRow = Vec<(u16, f32)>;
 
-/// Extension methods on QRow so the rest of the code reads naturally.
 pub trait QRowExt {
-    /// Q-value for an action index. Returns 0.0 if the action hasn't
-    /// been visited yet (the implicit "uninitialised" value).
     fn get_q(&self, action: u16) -> f32;
-    /// Write a Q-value for an action, replacing the existing entry or
-    /// appending a new one.
     fn set_q(&mut self, action: u16, value: f32);
-    /// Highest Q-value across any explored action. Returns 0.0 when the
-    /// row is empty (i.e. nothing's been learned for this state yet).
     fn max_q(&self) -> f32;
 }
 
@@ -52,7 +38,6 @@ pub const DIRECTIONS: [(i32, i32); 8] =
 const CONSONANTS: &[u8] = b"bdfghjklmnprstvwz";
 const VOWELS:     &[u8] = b"aeiou";
 
-/// Biological sex - assigned randomly at birth and inherited by offspring randomly.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, serde::Deserialize, Default)]
 pub enum Sex { #[default] Male, Female }
 
@@ -68,15 +53,12 @@ impl Sex {
     }
 }
 
-/// Generate a name that sounds phonetically consistent with the organism's sex.
-/// Females end on a vowel (soft close); males often end on a consonant (harder sound).
 pub fn generate_name(rng: &mut impl Rng, sex: Sex) -> String {
     let syllables = rng.gen_range(2..=3);
     let mut s = String::new();
     for i in 0..syllables {
         s.push(CONSONANTS[rng.gen_range(0..CONSONANTS.len())] as char);
         s.push(VOWELS[rng.gen_range(0..VOWELS.len())] as char);
-        // Male names: last syllable 65% chance to close with a consonant
         if i == syllables - 1 && sex == Sex::Male && rng.gen::<f32>() < 0.65 {
             s.push(CONSONANTS[rng.gen_range(0..CONSONANTS.len())] as char);
         }
@@ -88,23 +70,17 @@ pub fn generate_name(rng: &mut impl Rng, sex: Sex) -> String {
     }
 }
 
-/// Generate a tribe/lineage name - heavier syllables, ends in a hard stop or open vowel.
-/// Intentionally different phoneme distribution from individual names so they sound "collective".
 pub fn generate_tribe_name(rng: &mut impl Rng) -> String {
     const TRIBE_CONS: &[u8] = b"bdfghjklmnprstvwz";
     const TRIBE_VOWELS: &[u8] = b"aeiou";
-    // Tribes get 2 syllables, with a 50% chance of a closing consonant on each syllable
-    // giving names like "Voruk", "Heli", "Zamod", "Tibas", "Nura"
     let syllables = rng.gen_range(2..=3usize);
     let mut s = String::new();
     for i in 0..syllables {
         s.push(TRIBE_CONS[rng.gen_range(0..TRIBE_CONS.len())] as char);
         s.push(TRIBE_VOWELS[rng.gen_range(0..TRIBE_VOWELS.len())] as char);
-        // Occasional mid-syllable consonant cluster for variety
         if i < syllables - 1 && rng.gen::<f32>() < 0.30 {
             s.push(TRIBE_CONS[rng.gen_range(0..TRIBE_CONS.len())] as char);
         }
-        // Final syllable: 60% chance of closing consonant
         if i == syllables - 1 && rng.gen::<f32>() < 0.60 {
             s.push(TRIBE_CONS[rng.gen_range(0..TRIBE_CONS.len())] as char);
         }
@@ -116,7 +92,6 @@ pub fn generate_tribe_name(rng: &mut impl Rng) -> String {
     }
 }
 
-/// Apply subtle sex-linked trait biases (population averages, not deterministic destiny).
 pub fn apply_sex_traits(traits: &mut crate::organism::traits::Traits, sex: Sex) {
     match sex {
         Sex::Male => {
@@ -161,16 +136,8 @@ pub struct Organism {
     pub name:        String,
     pub x:           f32,
     pub y:           f32,
-    /// Position from the previous tick, used to derive a smoothed
-    /// velocity for server-side prediction. Reset on save-load so a
-    /// loaded org just has zero velocity for one tick.
     pub prev_x:      f32,
     pub prev_y:      f32,
-    /// Exponentially-smoothed per-tick velocity. Drives the lookahead
-    /// projection in the WS broadcaster: the position we ship is
-    /// `(x, y) + vel * lookahead_ticks` so by the time the client
-    /// renders the frame, the organism is already where it "is"
-    /// according to wall-clock time at the user's eyes.
     pub vx_smooth:   f32,
     pub vy_smooth:   f32,
     pub energy:      f32,
@@ -181,7 +148,7 @@ pub struct Organism {
     pub thought:     String,
     pub generation:  u32,
     pub parent_id:   String,
-    pub father_id:   Option<String>,   // biological father (may differ from mother's partner)
+    pub father_id:   Option<String>,
     pub lineage_id:  String,
     pub max_age:     u32,
 
@@ -191,11 +158,6 @@ pub struct Organism {
 
     pub thought_history: VecDeque<ThoughtEntry>,
 
-    // Sparse Q-table: per-perception-state row of (action_index, q_value)
-    // pairs. Only actions the org has actually explored are present, so
-    // a row with ~20 explored actions is ~160 bytes vs the dense
-    // representation's ~2144 bytes (at N_ACTIONS=536). Roughly a 13×
-    // memory cut. Access goes through the QRowExt helpers below.
     pub q_table: HashMap<String, QRow>,
 
     pub last_reproduced: u64,
@@ -207,13 +169,13 @@ pub struct Organism {
     pub traits:         Traits,
     pub infection:      f32,
     pub carrying:       u32,
-    pub carrying_type:  u8,   // 0=none, 1=wood, 2=stone
+    pub carrying_type:  u8,
 
     pub vocabulary:    Vocabulary,
     pub daily_story:   String,
     pub last_story_tick: u64,
     pub life_log:      VecDeque<String>,
-    pub discoveries:   HashSet<String>,  // "fire", "shelter", "parent"
+    pub discoveries:   HashSet<String>,
 
     pub home_x: f32,
     pub home_y: f32,
@@ -226,47 +188,36 @@ pub struct Organism {
     pub directive_until: u64,
     pub last_think_tick: u64,
 
-    // Inner emotional/psychological state
-    pub loneliness:  f32,  // 0=social  1=isolated
-    pub boredom:     f32,  // 0=engaged 1=purposeless
-    pub fear_level:  f32,  // 0=calm    1=terrified
-    pub comfort:     f32,  // 0=miserable 1=content
+    pub loneliness:  f32,
+    pub boredom:     f32,
+    pub fear_level:  f32,
+    pub comfort:     f32,
 
-    // Behavioral state (transient - not persisted in saves, resets on load)
-    pub grief_ticks:    u32,           // countdown of active mourning
-    pub sleep_debt:     f32,           // 0=rested 1=exhausted
-    pub water_ticks:    u32,           // consecutive ticks spent swimming
-    pub area_ticks:     u32,           // ticks in same 10×10 region
-    pub last_area_cell: (i32, i32),    // current region cell for wanderlust
-    pub wander_target:  Option<(i32, i32)>, // active wander destination
-    pub last_groomed:   u64,           // tick of last grooming interaction
-    pub last_fed_kin:   u64,           // tick of last food shared with kin
-    pub last_ancestral_thought: u64,   // tick of last "this is ancestral land" recognition
+    pub grief_ticks:    u32,
+    pub sleep_debt:     f32,
+    pub water_ticks:    u32,
+    pub area_ticks:     u32,
+    pub last_area_cell: (i32, i32),
+    pub wander_target:  Option<(i32, i32)>,
+    pub last_groomed:   u64,
+    pub last_fed_kin:   u64,
+    pub last_ancestral_thought: u64,
 
     pub partner_id:     Option<String>,
     pub children_count: u32,
     pub sex:            Sex,
 
-    // Attraction / courtship
-    pub attracted_to:    Option<String>,  // id of the organism they're drawn to
-    pub attraction_tick: u64,             // when attraction started
+    pub attracted_to:    Option<String>,
+    pub attraction_tick: u64,
 
-    // Pregnancy
     pub pregnant:        bool,
     pub pregnancy_start: u64,
 
-    // Inventory (stackable resources). Weight = sum of fields. max_carry derived
-    // from sex + resilience trait. Replaces the legacy `carrying`/`carrying_type`
-    // pair which only tracked one resource.
     pub inv_water: u8,
     pub inv_food:  u8,
     pub inv_wood:  u8,
     pub inv_stone: u8,
 
-    // Stored conversations - capped at 200 so a long-lived organism with
-    // dozens of partners and decades of friendships can keep their full
-    // social history. Memory cost is ~50-100 bytes per entry; 200 entries
-    // per organism × 300 organisms = ~30-60 MB worst case, fits comfortably.
     pub conversations:   VecDeque<ConversationEntry>,
 }
 
@@ -339,7 +290,7 @@ impl Organism {
             last_ancestral_thought: 0,
             partner_id:     None,
             children_count: 0,
-            sex:            Sex::Male,  // caller sets this after construction
+            sex:            Sex::Male,
             attracted_to:    None,
             attraction_tick: 0,
             pregnant:        false,
@@ -354,14 +305,6 @@ impl Organism {
 
     pub fn store_conversation(&mut self, entry: ConversationEntry) {
         self.conversations.push_back(entry);
-        // 40 caps the per-org conversation log to ~120KB at typical
-        // line counts. History:
-        //   200 -> 75 (~225KB)  - first cut, fit on c7g.medium
-        //   75  -> 40 (~120KB)  - second cut, save ~8MB at 300 orgs
-        // The conversations modal on the client only shows the last
-        // 25 anyway (to_detail_json take(25)), so 40 is comfortably
-        // beyond what's user-visible while keeping the memory floor
-        // low.
         if self.conversations.len() > 40 {
             self.conversations.pop_front();
         }
@@ -373,14 +316,10 @@ impl Organism {
 
     pub fn log_event(&mut self, event: String) {
         self.life_log.push_back(event);
-        // 16 caps life_log to one entry every few minutes of real
-        // play; OrgDetail's life_log preview shows the last 12.
         if self.life_log.len() > 16 {
             self.life_log.pop_front();
         }
     }
-
-    // ── Memory ────────────────────────────────────────────────────────────────
 
     pub fn remember(mem: &mut HashMap<(i32,i32), f32>, x: i32, y: i32,
                     strength: f32, mem_trait: f32) {
@@ -395,24 +334,20 @@ impl Organism {
         *v = (*v + delta).max(-1.0).min(1.0);
     }
 
-    // Called every tick with precomputed context (avoids borrow conflicts with &[Organism]).
     pub fn tick_inner_state(&mut self, kin_near: usize, near_shelter: bool,
                             hostile_near: bool, weather_kind: u8, tick: u64, night: bool) {
-        // Loneliness: drifts up alone, drops with kin contact
         if kin_near == 0 {
             self.loneliness = (self.loneliness + 0.0008).min(1.0);
         } else {
             self.loneliness = (self.loneliness - kin_near as f32 * 0.012).max(0.0);
         }
 
-        // Boredom always builds - only suppressed when critically needy or threatened.
         if hostile_near || self.energy < 0.25 || self.hydration < 0.25 {
             self.boredom = (self.boredom - 0.002).max(0.0);
         } else {
             self.boredom = (self.boredom + 0.002).min(1.0);
         }
 
-        // Fear: spikes with enemies or crisis, bleeds off slowly
         if hostile_near {
             self.fear_level = (self.fear_level + 0.05).min(1.0);
         } else {
@@ -421,40 +356,34 @@ impl Organism {
         if self.energy < 0.2 || self.hydration < 0.2 {
             self.fear_level = (self.fear_level + 0.015).min(1.0);
         }
-        // Low health → fear spike (injury fear)
         if self.health < 0.3 {
             self.fear_level = (self.fear_level + 0.008).min(1.0);
         }
 
-        // Grief: countdown - fear persists while mourning
         if self.grief_ticks > 0 {
             self.grief_ticks = self.grief_ticks.saturating_sub(1);
             self.fear_level = (self.fear_level + 0.004).min(1.0);
         }
 
-        // Sleep debt: builds at night without shelter, clears much faster with shelter
         if night && !near_shelter {
-            self.sleep_debt = (self.sleep_debt + 0.0015).min(1.0);  // builds faster outside at night
+            self.sleep_debt = (self.sleep_debt + 0.0015).min(1.0);
         } else if near_shelter {
-            self.sleep_debt = (self.sleep_debt - 0.010).max(0.0);   // 2× faster recovery in shelter
+            self.sleep_debt = (self.sleep_debt - 0.010).max(0.0);
         } else {
             self.sleep_debt = (self.sleep_debt - 0.001).max(0.0);
         }
-        // Exhaustion drains energy; shelter halves the drain
         if self.sleep_debt > 0.4 {
             let drain = 0.0004 * self.sleep_debt * (if near_shelter { 0.4 } else { 1.0 });
             self.energy = (self.energy - drain).max(0.0);
         }
 
-        // Wanderlust: boredom-based AND time-based exploration pulses.
-        // Boredom gate: stayed in same 10×10 region too long → pick a far target.
         let cell = (self.x as i32 / 10, self.y as i32 / 10);
         if cell == self.last_area_cell {
             self.area_ticks = self.area_ticks.saturating_add(1);
             if self.area_ticks > 60 && self.boredom > 0.20 && self.wander_target.is_none() {
                 let hash = self.id.bytes().fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
                 let angle = ((hash ^ tick) as f32) * 0.0000014;
-                let dist  = 120.0 + self.traits.curiosity * 380.0; // up to ~500 tiles
+                let dist  = 120.0 + self.traits.curiosity * 380.0;
                 let tx = (self.x + angle.sin() * dist).round() as i32;
                 let ty = (self.y + angle.cos() * dist).round() as i32;
                 self.wander_target = Some((tx.clamp(5, 595), ty.clamp(5, 295)));
@@ -469,29 +398,25 @@ impl Organism {
             }
         }
 
-        // Clear wander target once arrived (within 6 tiles)
         if let Some(wt) = self.wander_target {
             if (wt.0 - self.x as i32).abs() + (wt.1 - self.y as i32).abs() <= 6 {
                 self.wander_target = None;
             }
         }
 
-        // Periodic pulse: every 600–900 ticks (1–1.5 sim-days) each organism picks a new
-        // distant destination, staggered by their ID so they don't all move in sync.
         if self.wander_target.is_none() {
             let id_hash = self.id.bytes().fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
             let period  = (900u64).saturating_sub((self.traits.curiosity * 300.0) as u64).max(300);
             let offset  = id_hash % period;
             if tick % period == offset {
                 let angle = ((id_hash ^ tick) as f32) * 0.0000014;
-                let dist  = 150.0 + self.traits.curiosity * 400.0; // up to ~550 tiles
+                let dist  = 150.0 + self.traits.curiosity * 400.0;
                 let tx = (self.x + angle.sin() * dist).round() as i32;
                 let ty = (self.y + angle.cos() * dist).round() as i32;
                 self.wander_target = Some((tx.clamp(5, 595), ty.clamp(5, 295)));
             }
         }
 
-        // Comfort: composite feel-good - shelter and kin improve it, rain and fear drag it down
         let shelter_bonus = if near_shelter { 0.25 } else { 0.0 };
         let wet_penalty   = if weather_kind >= 2 && !near_shelter { 0.2 }
                             else if weather_kind == 1 && !near_shelter { 0.08 }
@@ -502,7 +427,6 @@ impl Organism {
             - self.fear_level * 0.3
             - self.sleep_debt * 0.15) / 4.0).clamp(0.0, 1.0);
 
-        // Passive thought - only overrides if organism isn't mid-action
         let passive = matches!(self.thought.as_str(),
             "observing"|"exploring"|"satisfied"|"at peace"|"restless"|"feeling alone"|
             "terrified"|"mourning kin"|"exhausted"|"wandering");
@@ -528,14 +452,8 @@ impl Organism {
         *self.lineage_attitudes.get(other_lid).unwrap_or(&0.0)
     }
 
-    /// Drop all heavy state fields, keeping only the skeleton needed for genealogy
-    /// (id, name, lineage_id, parent_id, father_id, generation, max_age, age,
-    ///  birth/death context). Once compressed, an organism contributes only a few
-    ///  hundred bytes - a 10 000-deep ancestor archive costs ~3 MB instead of
-    ///  hundreds of MB. Called on long-dead organisms to preserve lineage trees
-    ///  without holding decades-old q-tables and memory maps in RAM.
     pub fn compress_for_archive(&mut self) {
-        if self.alive { return; } // never compress live organisms
+        if self.alive { return; }
         self.food_memory.clear();
         self.water_memory.clear();
         self.danger_memory.clear();
@@ -546,15 +464,12 @@ impl Organism {
         self.life_log.clear();
         self.discoveries.clear();
         self.conversations.clear();
-        // Keep: id, name, lineage_id, parent_id, father_id, generation, max_age,
-        // age, sex, traits (for lineage analysis), thought (last words).
     }
 
     pub fn decay_memory(&mut self) {
         for mem in [&mut self.food_memory, &mut self.water_memory, &mut self.danger_memory] {
             mem.retain(|_, v| { *v *= 0.995; *v >= 0.04 });
         }
-        // Cap memories to keep RAM bounded
         fn trim_mem(mem: &mut HashMap<(i32,i32), f32>, max: usize) {
             if mem.len() > max {
                 let mut e: Vec<_> = mem.iter().map(|(k,v)| (*k, *v)).collect();
@@ -566,26 +481,11 @@ impl Organism {
         trim_mem(&mut self.water_memory,   35);
         trim_mem(&mut self.danger_memory,  20);
         self.lineage_attitudes.retain(|_, v| { *v *= 0.998; v.abs() >= 0.01 });
-        // Positive trust decays slower - good relationships are remembered longer
         self.org_trust.retain(|_, v| {
             *v *= if *v > 0.0 { 0.9997 } else { 0.999 };
             v.abs() >= 0.01
         });
 
-        // Cap Q-table: keep the highest-value entries.
-        // History:
-        //   N_ACTIONS    26 -> 126 -> 226 -> 536
-        //   dense row    ~150 -> ~570 -> ~970 -> ~2.2 KB
-        //   sparse row   ~80-240 B regardless of N_ACTIONS (only stores
-        //                  explored actions, typically 10-30)
-        // The sparse representation made each row ~13× smaller at
-        // N=536, so we can hold many more perception states for the
-        // same memory budget. Bumping Q_MAX 120 -> 180 lets orgs
-        // remember more contexts while still using ~70% less RAM than
-        // the old dense layout would at the same cap.
-        // At 250 alive orgs:
-        //   N=536 sparse, Q_MAX=180, ~150 B/row -> ~6.7 MB total
-        //   (vs dense N=536, Q_MAX=120         -> ~79 MB total)
         const Q_MAX:  usize = 180;
         const Q_TRIM: usize = 130;
         if self.q_table.len() > Q_MAX {
@@ -618,25 +518,17 @@ impl Organism {
         best_loc
     }
 
-    // ── Thought ───────────────────────────────────────────────────────────────
-
     pub fn think(&mut self, text: &str, tick: u64) {
         if self.thought == text { return; }
         self.thought = text.to_string();
         self.thought_history.push_back(ThoughtEntry { tick, text: text.to_string() });
-        // 40 caps thought history at ~3KB per org (~600KB-ish saved
-        // at 300 orgs vs the old 80). OrgDetail renders the last
-        // 25 anyway.
         if self.thought_history.len() > 40 {
             self.thought_history.pop_front();
         }
     }
 
-    // ── Perception ────────────────────────────────────────────────────────────
-
     pub fn perceive(&self, grid: &WorldGrid, organisms: &[Organism], night: bool, animal_near: bool) -> String {
         let (ix, iy) = (self.x as i32, self.y as i32);
-        // Curious/explorer organisms develop better night awareness
         let scan: i32 = if night {
             if self.traits.curiosity > 0.7 { 8 } else { 6 }
         } else { 8 };
@@ -700,12 +592,10 @@ impl Organism {
 
         let inf_level = if self.infection > 0.4 { '2' } else if self.infection > 0.15 { '1' } else { '0' };
 
-        // D = hostile territory nearby (remembered danger within 5 tiles, strength > 0.3)
         let danger_near = self.danger_memory.iter().any(|(&(mx, my), &v)| {
             v > 0.30 && (mx - ix).abs() + (my - iy).abs() <= 5
         });
 
-        // W = campfire warmth within radius 4; C = cold tile (temp < 8); N = neutral
         let warmth_char = {
             let mut has_warmth = false;
             'outer: for ddx in -4i32..=4 {
@@ -720,14 +610,12 @@ impl Organism {
             else { 'N' }
         };
 
-        // K = carrying wood, R = carrying stone, 0 = empty
         let carry_char = match (self.carrying > 0, self.carrying_type) {
             (true, 2) => 'R',
             (true, _) => 'K',
             _         => '0',
         };
 
-        // S = sheltered (near hut/rock/structure >= 0.35); E = exposed
         let shelter_char = {
             let mut s = false;
             'sh: for ddx in -2i32..=2 {
@@ -743,10 +631,8 @@ impl Organism {
             if s { 'S' } else { 'E' }
         };
 
-        // A = animal within scan radius; . = none
         let animal_char = if animal_near { 'A' } else { '.' };
 
-        // H = high hazard (>0.15 at current tile); h = mild (>0.05); . = safe
         let hazard_val = if crate::world::grid::WorldGrid::in_bounds(ix, iy) {
             grid.hazard[crate::world::grid::WorldGrid::idx(ix, iy)]
         } else { 0.0 };
@@ -880,16 +766,11 @@ impl Organism {
         best_loc
     }
 
-    // ── Learning ──────────────────────────────────────────────────────────────
-
     pub fn learn(&mut self, perception: &str, action: usize, reward: f32, next_perception: &str) {
         let alpha = 0.15f32;
         let gamma = 0.9f32;
         let action_u16 = action as u16;
 
-        // Read max-q for the next state without holding a mutable
-        // borrow into the table (so we can mutate `perception`'s row
-        // freely below).
         let best_next = self.q_table.get(next_perception)
             .map(|r| r.max_q())
             .unwrap_or(0.0);
@@ -900,24 +781,10 @@ impl Organism {
         row.set_q(action_u16, new_val);
     }
 
-    // ── Serialization ─────────────────────────────────────────────────────────
-
-    /// Lean per-tick snapshot - heavy fields omitted, see to_detail_json().
-    /// Per-tick organism JSON.
-    ///
-    /// `include_cold = false` skips static fields (name, traits, vocabulary,
-    /// lineage_id, parent_id, etc.) - anything that doesn't change tick-to-tick.
-    /// On these "hot" ticks the per-organism payload is roughly 1/3 the size
-    /// of a full snapshot. The frontend merges hot updates into a cache that
-    /// already holds the cold values from the most recent full snapshot.
-    ///
-    /// `include_cold = true` is sent on first connect and every ~30 ticks so
-    /// new clients and stale caches get refreshed.
     pub fn to_json(&self) -> OrgJson { self.to_json_with(true) }
 
     pub fn to_json_with(&self, include_cold: bool) -> OrgJson {
         OrgJson {
-            // Hot fields - always emitted
             id:       self.id.clone(),
             x:        (self.x * 10.0).round() / 10.0,
             y:        (self.y * 10.0).round() / 10.0,
@@ -935,10 +802,6 @@ impl Organism {
             partner_id:    self.partner_id.clone(),
             attracted_to:  self.attracted_to.clone(),
 
-            // Warm fields - only on full snapshots. Optional so the
-            // client cache merges by last-known when absent. This is the
-            // largest payload savings; the two HashMaps below were the
-            // dominant per-tick cost (5-10 entries each * 300 orgs).
             attitudes: if include_cold {
                 Some(self.lineage_attitudes.iter()
                     .filter(|(_, &v)| v.abs() > 0.1)
@@ -968,7 +831,6 @@ impl Organism {
             children_count:      if include_cold { Some(self.children_count) }      else { None },
             conversation_count:  if include_cold { Some(self.conversations.len()) } else { None },
 
-            // Cold fields - only emit on full snapshots
             name:       if include_cold { Some(self.name.clone())       } else { None },
             generation: if include_cold { Some(self.generation)         } else { None },
             parent_id:  if include_cold { Some(self.parent_id.clone())  } else { None },
@@ -994,8 +856,6 @@ impl Organism {
         }
     }
 
-    /// Full detail snapshot for the GET /org/:id endpoint.
-    /// Includes everything in to_json() plus the heavy on-demand fields.
     pub fn to_detail_json(&self) -> OrgDetailJson {
         let thought_history: Vec<ThoughtJson> = self.thought_history
             .iter().rev().take(20).rev()
@@ -1015,32 +875,11 @@ impl Organism {
 #[derive(Serialize)] pub struct ThoughtJson { pub tick: u64, pub text: String }
 #[derive(Serialize)] pub struct MemoryCount  { pub food: usize, pub water: usize, pub danger: usize }
 
-/// Structure-of-arrays packing for the hot per-tick organism payload.
-///
-/// Every delta carries the same hot fields for every alive in-viewport
-/// organism. Column-major + numeric quantization brings the per-record
-/// cost to ~8 bytes (down from ~50 bytes AoS):
-///
-/// - Positions: `i16` decimetres (x*10, y*10). Range covers the 600x300
-///   world easily. MessagePack encodes these in 1-3 bytes; an f32 always
-///   costs 5.
-/// - 0..1 vital floats (energy / hydration / health / infection /
-///   fear_level): `u8` percentage points (value*100, clamped 0..100).
-///   Two bytes in msgpack vs five for f32. Resolution is 1% which is
-///   below visual perception for the bars in OrgCard.
-///
-/// Sent under the wire key `organisms_hot`. Full snapshots keep the
-/// AoS `organisms` array because that path also carries cold/identity
-/// fields where the SoA-per-column tax outweighs the savings.
 #[derive(Serialize)]
 pub struct OrgsHotSoa {
     pub ids:            Vec<String>,
-    /// x position quantized to decimetres (x * 10, rounded to i16).
-    /// Client divides by 10 to get the original f32 back.
     pub xs:             Vec<i16>,
     pub ys:             Vec<i16>,
-    /// Energy/hydration/health quantized to percentage points 0..100.
-    /// Client divides by 100 to get the 0..1 f32 back.
     pub energies:       Vec<u8>,
     pub hydrations:     Vec<u8>,
     pub healths:        Vec<u8>,
@@ -1088,12 +927,6 @@ impl OrgsHotSoa {
         }
     }
 
-    /// Push one organism into the SoA payload, projecting position
-    /// forward by `lookahead_ticks * smoothed_velocity`. By the time
-    /// the client renders this frame (network RTT + half-interval),
-    /// the org should be approximately at the projected coordinate -
-    /// no client-side prediction needed for straight-line motion. A
-    /// lookahead of 0 falls back to plain "current position".
     pub fn push(&mut self, o: &Organism, lookahead_ticks: f32) {
         let pred_x = o.x + o.vx_smooth * lookahead_ticks;
         let pred_y = o.y + o.vy_smooth * lookahead_ticks;
@@ -1120,14 +953,7 @@ impl OrgsHotSoa {
     pub memory_strength: f32, pub social_tendency: f32, pub resilience: f32,
 }
 #[derive(Serialize)]
-/// Lean per-tick snapshot - sent for every organism every 300 ms.
-/// Heavy on-demand fields (conversations, thought_history, life_log)
-/// are stripped here and served via GET /org/:id instead.
-/// Vocabulary is included here (small, ~14 short words) so LanguageModal
-/// can aggregate tribe-level word frequencies without extra requests.
 pub struct OrgJson {
-    // ── Hot fields (sent every delta) ──
-    // Kept lean. The canvas uses these every frame.
     pub id: String,
     pub x: f32, pub y: f32,
     pub energy: f32, pub hydration: f32, pub health: f32,
@@ -1141,12 +967,6 @@ pub struct OrgJson {
     pub partner_id:     Option<String>,
     pub attracted_to:   Option<String>,
 
-    // ── Warm fields (sent only on full snapshots, ~6s cadence) ──
-    // These changed every delta in the old protocol - that was the
-    // dominant cause of per-frame payload bloat. They mostly drift slowly
-    // and the panels can tolerate a 6s refresh. The canvas doesn't use
-    // them at all. All Optional so the client cache merges by
-    // last-known-value when absent.
     #[serde(default, skip_serializing_if = "Option::is_none")] pub memory_count:        Option<MemoryCount>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub attitudes:           Option<HashMap<String, f32>>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub org_trust:           Option<HashMap<String, f32>>,
@@ -1160,8 +980,6 @@ pub struct OrgJson {
     #[serde(default, skip_serializing_if = "Option::is_none")] pub children_count:      Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub conversation_count:  Option<usize>,
 
-    // ── Cold fields (sent only on full snapshots, ~every 30 ticks) ──
-    // Static identity (never changes after birth)
     #[serde(default, skip_serializing_if = "Option::is_none")] pub name:        Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub generation:  Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub parent_id:   Option<String>,
@@ -1169,7 +987,6 @@ pub struct OrgJson {
     #[serde(default, skip_serializing_if = "Option::is_none")] pub lineage_id:  Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub max_age:     Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub sex:         Option<String>,
-    // Slowly evolving - vocabulary grows over a lifetime, traits change rarely via reflection
     #[serde(default, skip_serializing_if = "Option::is_none")] pub traits:      Option<TraitsJson>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub vocabulary:  Option<HashMap<String, String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub discoveries: Option<Vec<String>>,
@@ -1178,8 +995,6 @@ pub struct OrgJson {
     #[serde(default, skip_serializing_if = "Option::is_none")] pub is_elder:    Option<bool>,
 }
 
-/// Full detail snapshot - served on demand via GET /org/:id.
-/// Extends OrgJson with heavy fields that shouldn't be broadcast every tick.
 #[derive(Serialize)]
 pub struct OrgDetailJson {
     #[serde(flatten)]
@@ -1207,7 +1022,6 @@ mod tests {
             3, "parent99".into(), "lineage1".into(),
             5000, traits.clone(),
         );
-        // Populate heavy fields
         org.food_memory.insert((1, 1), 0.5);
         org.water_memory.insert((2, 2), 0.5);
         org.danger_memory.insert((3, 3), 0.5);
@@ -1221,7 +1035,6 @@ mod tests {
 
         org.compress_for_archive();
 
-        // Heavy state cleared
         assert!(org.food_memory.is_empty());
         assert!(org.water_memory.is_empty());
         assert!(org.danger_memory.is_empty());
@@ -1230,7 +1043,6 @@ mod tests {
         assert!(org.org_trust.is_empty());
         assert!(org.life_log.is_empty());
         assert!(org.discoveries.is_empty());
-        // Skeleton preserved for genealogy
         assert_eq!(org.id,          "abc12345");
         assert_eq!(org.name,        "Testname");
         assert_eq!(org.lineage_id,  "lineage1");
@@ -1238,7 +1050,6 @@ mod tests {
         assert_eq!(org.father_id,   Some("father77".into()));
         assert_eq!(org.generation,  3);
         assert_eq!(org.max_age,     5000);
-        // Trait values preserved for lineage analysis
         assert_eq!(org.traits.aggression, traits.aggression);
     }
 
@@ -1253,7 +1064,6 @@ mod tests {
         org.q_table.insert("s".into(), vec![(0, 0.0), (1, 0.0)]);
         org.alive = true;
         org.compress_for_archive();
-        // Live organism kept its q-table - never compress live ones
         assert!(!org.q_table.is_empty());
     }
 

@@ -1,4 +1,4 @@
-//! Action 225: sit quietly by the water.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

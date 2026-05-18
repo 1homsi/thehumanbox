@@ -1,4 +1,4 @@
-//! Action 367: move the herd to new pasture.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

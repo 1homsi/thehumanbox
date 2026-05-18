@@ -1,4 +1,4 @@
-//! Action 532: new moon ceremony at night; emit "ritual"; comfort +0.04; discover "lunar_ceremony".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

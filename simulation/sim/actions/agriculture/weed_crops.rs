@@ -1,4 +1,4 @@
-//! Action 338: weed the crops to improve yield.
+
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
 

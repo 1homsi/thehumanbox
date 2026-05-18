@@ -13,17 +13,6 @@ interface Props {
   biomes:    number[][]
 }
 
-// World event feed rendered as floating text in the 3D scene.
-// Whenever the WS feed delivers a new event (born / built / signal
-// / etc.) we look up the actor by name to get their current
-// position, spawn a small text label there, rise it ~6 world units
-// over 4 seconds, fading out. Old floaters self-evict.
-//
-// Dedupe events by (tick, actor, type, detail) so the same event
-// seen across delta + full snapshots doesn't double-spawn.
-//
-// Floater cap so a spammy crowd doesn't tank perf. Oldest floaters
-// are evicted first.
 const FLOATER_LIFE_MS = 4200
 const MAX_FLOATERS    = 24
 
@@ -68,16 +57,12 @@ export function EventFloaters({ events, organisms, depthMap, biomes }: Props) {
   const [, setVersion] = useState(0)
   const bump = () => setVersion(v => (v + 1) & 0x7fffffff)
 
-  // name -> live org lookup so we can read the actor's predicted
-  // position via the client-side prediction model.
   const orgByName = useMemo(() => {
     const m = new Map<string, OrganismState>()
     for (const o of organisms) if (o.alive) m.set(o.name, o)
     return m
   }, [organisms])
 
-  // Walk the events tail for anything we haven't seen yet and spawn
-  // a floater at the actor's predicted position.
   let spawned = 0
   for (const e of events) {
     const key = `${e.tick}|${e.actor}|${e.type}|${e.detail}`
@@ -104,12 +89,8 @@ export function EventFloaters({ events, organisms, depthMap, biomes }: Props) {
   if (seenRef.current.size > 1000) {
     seenRef.current = new Set(Array.from(seenRef.current).slice(-500))
   }
-  // Force a render if we added floaters this pass (without it, the
-  // first frame of a brand-new floater wouldn't appear until the
-  // useFrame pruner fires).
   if (spawned > 0) queueMicrotask(bump)
 
-  // Per-frame pruning.
   useFrame(() => {
     const now = performance.now()
     const before = floatersRef.current.length

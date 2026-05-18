@@ -1,5 +1,4 @@
-//! Action 27: chop wood. Standing on grass with a 50% chance per
-//! attempt. Carry-cap gated so a loaded-up org doesn't keep chopping.
+
 
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;

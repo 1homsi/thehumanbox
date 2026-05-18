@@ -1,4 +1,4 @@
-//! Action 421: test a hypothesis through observation.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

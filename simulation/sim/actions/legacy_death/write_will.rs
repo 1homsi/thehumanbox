@@ -1,4 +1,4 @@
-//! Action 486: elder writes a will; discover "written_will"; emit "governance".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 330: record the cultural history of the lineage.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

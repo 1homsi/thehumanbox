@@ -1,4 +1,4 @@
-//! Action 238: ask for forgiveness; lower own boredom, emit social event.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

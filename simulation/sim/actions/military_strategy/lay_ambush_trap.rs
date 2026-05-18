@@ -1,4 +1,4 @@
-//! Action 439: lay an ambush trap using rocky terrain.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 297: elder or 3+ kin; discover "law".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

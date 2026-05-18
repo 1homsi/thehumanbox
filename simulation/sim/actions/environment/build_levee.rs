@@ -1,4 +1,4 @@
-//! Action 374: build a levee. Needs water nearby and inv_stone.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

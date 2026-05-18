@@ -1,4 +1,4 @@
-//! Action 258: discover "herb_garden" on Food tile; emit build event.
+
 use super::super::ctx::ActionCtx;
 use crate::world::tiles::Tile;
 

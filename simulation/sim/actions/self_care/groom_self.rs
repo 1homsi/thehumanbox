@@ -1,4 +1,4 @@
-//! Action 111: groom self.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

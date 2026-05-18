@@ -1,4 +1,4 @@
-//! Action 522: coming of age ceremony for young kin (age 300–500); emit "ritual"; discover "rites_of_passage".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

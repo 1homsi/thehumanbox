@@ -1,4 +1,4 @@
-//! Action 45: build a dock near water.
+
 
 use super::super::ctx::ActionCtx;
 

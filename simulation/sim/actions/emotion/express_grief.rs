@@ -1,4 +1,4 @@
-//! Action 386: express grief. Triggers when kin are low on health.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

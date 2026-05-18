@@ -1,4 +1,4 @@
-//! Action 311: remove authority from a kin elder.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

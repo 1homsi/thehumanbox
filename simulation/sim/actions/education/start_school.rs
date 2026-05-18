@@ -1,4 +1,4 @@
-//! Action 501: start a school near a Hut with 2 kin; discover "school"; emit "build".
+
 use super::super::ctx::ActionCtx;
 use crate::world::tiles::Tile;
 

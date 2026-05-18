@@ -1,4 +1,4 @@
-//! Action 479: spring cleaning in a Hut; discover "seasonal_hygiene"; emit "build".
+
 use super::super::ctx::ActionCtx;
 use crate::world::tiles::Tile;
 

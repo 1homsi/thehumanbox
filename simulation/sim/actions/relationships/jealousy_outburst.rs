@@ -1,4 +1,4 @@
-//! Action 232: jealousy at a stranger near kin; lower attitude briefly.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -13,7 +13,6 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("jealous but alone");
         return 0.0;
     }
-    // Lower attitude toward all foreign lineages slightly
     let foreign_lids: Vec<String> = ctx.near.iter()
         .map(|&k| ctx.sim.organisms[k].lineage_id.clone())
         .filter(|l| *l != lid)

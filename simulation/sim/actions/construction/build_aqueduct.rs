@@ -1,4 +1,4 @@
-//! Action 167: build an aqueduct. Needs water adjacency + material.
+
 
 use crate::world::grid::TrailKind;
 use super::super::ctx::ActionCtx;

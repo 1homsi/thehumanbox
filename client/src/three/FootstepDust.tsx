@@ -12,23 +12,15 @@ interface Props {
   biomes:    number[][]
 }
 
-// Tiny puffs of dust kicked up behind moving orgs. One shared
-// instanced mesh pool of N_PARTICLES particles, each particle has
-// a (position, age, scale, dirX, dirZ). When an org is moving and
-// near the camera, we spawn a fresh particle behind their feet on
-// a free slot. Particles fade + grow + drift over 1.2 seconds.
-//
-// All state is local refs (no React re-renders per frame). One
-// draw call for the whole pool.
 const N_PARTICLES = 200
-const PARTICLE_LIFE = 1.2     // seconds
+const PARTICLE_LIFE = 1.2
 const NEAR_RADIUS_SQ = 180 * 180
 const PARTICLE_GEO = new THREE.SphereGeometry(0.08, 4, 3)
 
 interface Particle {
   x: number; y: number; z: number
   vx: number; vz: number
-  born: number     // performance.now()
+  born: number
 }
 
 const tmp = new THREE.Object3D()
@@ -36,12 +28,9 @@ const tmp = new THREE.Object3D()
 export function FootstepDust({ organisms, depthMap, biomes }: Props) {
   const meshRef = useRef<THREE.InstancedMesh>(null)
   const pool    = useRef<Particle[]>([])
-  // Tracks the last position we spawned a dust for per org, so we
-  // throttle - one puff per ~0.5 world unit moved.
   const lastSpawn = useRef<Map<string, [number, number]>>(new Map())
   const { camera } = useThree()
 
-  // Allocate the pool once. Particles start "dead" (age > life).
   useMemo(() => {
     pool.current = []
     for (let i = 0; i < N_PARTICLES; i++) {
@@ -56,7 +45,6 @@ export function FootstepDust({ organisms, depthMap, biomes }: Props) {
     const t   = clock.getElapsedTime()
     void t
 
-    // Spawn new puffs for moving orgs near the camera.
     for (const o of organisms) {
       if (!o.alive) continue
       const [tx, ty] = getOrgXY(o.id)
@@ -68,15 +56,13 @@ export function FootstepDust({ organisms, depthMap, biomes }: Props) {
       const [vx, vy] = getOrgVelocityXY(o.id)
       const speed = Math.hypot(vx, vy)
       if (speed < 0.04) continue
-      // Throttle: require some travelled distance since last spawn.
       const last = lastSpawn.current.get(o.id)
       const movedSq = last
         ? (tx - last[0]) ** 2 + (ty - last[1]) ** 2
         : Infinity
-      if (movedSq < 0.20) continue   // ~0.45 tile units between puffs
+      if (movedSq < 0.20) continue
       lastSpawn.current.set(o.id, [tx, ty])
 
-      // Find a free slot (oldest particle).
       let slot = 0
       let oldestAge = -1
       for (let i = 0; i < pool.current.length; i++) {
@@ -84,8 +70,6 @@ export function FootstepDust({ organisms, depthMap, biomes }: Props) {
         if (age > oldestAge) { oldestAge = age; slot = i }
       }
       const groundY = heightAt(tx, ty, depthMap, biomes)
-      // Slight random offset behind motion direction so puffs land
-      // behind the feet, not at the centre.
       const offX = -vx * 0.4 + (Math.random() - 0.5) * 0.3
       const offZ = -vy * 0.4 + (Math.random() - 0.5) * 0.3
       pool.current[slot] = {
@@ -96,19 +80,17 @@ export function FootstepDust({ organisms, depthMap, biomes }: Props) {
       }
     }
 
-    // Per-particle matrix update.
     for (let i = 0; i < N_PARTICLES; i++) {
       const p = pool.current[i]
       const ageMs = now - p.born
       if (ageMs >= PARTICLE_LIFE * 1000 || p.y < -100) {
-        // Dead - park off-screen.
         tmp.position.set(0, -1000, 0)
         tmp.scale.set(0, 0, 0)
         tmp.updateMatrix()
         mesh.setMatrixAt(i, tmp.matrix)
         continue
       }
-      const life = ageMs / 1000 / PARTICLE_LIFE   // 0..1
+      const life = ageMs / 1000 / PARTICLE_LIFE
       const dt = life * PARTICLE_LIFE
       const px = p.x + p.vx * dt
       const py = p.y + life * 0.4

@@ -1,4 +1,4 @@
-//! Action 524: peace ceremony with a stranger; attitude +0.15; discover "peace_ceremony"; emit "ritual".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

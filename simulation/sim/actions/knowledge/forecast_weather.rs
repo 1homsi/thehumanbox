@@ -1,4 +1,4 @@
-//! Action 140: forecast tomorrow's weather. Requires meteorology/cloud-lore.
+
 use super::super::ctx::ActionCtx;
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let qualified = ctx.org().discoveries.contains("meteorology")

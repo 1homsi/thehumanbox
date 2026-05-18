@@ -1,4 +1,4 @@
-//! Action 448: coordinate a multi-unit attack on an enemy.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

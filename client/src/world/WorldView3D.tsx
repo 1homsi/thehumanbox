@@ -50,13 +50,10 @@ interface FlyCameraProps {
   biomes?:   number[][]
 }
 
-const FLOOR_CLEARANCE = 0.8     // eye height above terrain/water
-const MIN_SEA_LEVEL   = 0.6     // never drop below water surface
-const MAX_ALTITUDE    = 900     // fly high enough to see the whole map from above
+const FLOOR_CLEARANCE = 0.8
+const MIN_SEA_LEVEL   = 0.6
+const MAX_ALTITUDE    = 900
 
-// localStorage key for persisting the user's last camera pose so
-// reloads return them to where they were instead of the default
-// far-above-the-world view.
 const CAM_LS_KEY = 'thb-3d-cam-v1'
 
 function loadSavedCam(): { x: number; y: number; z: number; rx: number; ry: number } | null {
@@ -75,10 +72,6 @@ function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
   const velocity = useRef(new THREE.Vector3())
   const saveTimerRef = useRef(0)
 
-  // Apply saved camera pose once, on mount. Explicitly use Euler
-  // order 'YXZ' (PointerLockControls' convention) and ZERO rotation.z
-  // so a previously dirty roll value doesn't get re-applied - that was
-  // producing a sideways horizon for users with persisted state.
   useEffect(() => {
     const saved = loadSavedCam()
     if (saved) {
@@ -86,26 +79,17 @@ function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
       camera.rotation.order = 'YXZ'
       camera.rotation.set(saved.rx, saved.ry, 0, 'YXZ')
     }
-    // Belt-and-braces: also force the camera up vector back to world-up
-    // in case anything else nudged it (drei controls can occasionally
-    // leave .up tilted after a teleport).
     camera.up.set(0, 1, 0)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useFrame((_, delta) => {
-    // ── External commands (minimap click teleport) ─────────────────
     if (cameraCommand.teleport) {
       const { x, y, z } = cameraCommand.teleport
       camera.position.set(x, y, z)
       cameraCommand.teleport = null
     }
 
-    // ── Follow selected org ────────────────────────────────────────
-    // Soft chase: lerp the camera horizontal position toward the
-    // org's location at a small distance behind, without touching
-    // yaw/pitch (the user still mouselooks). Disabled when the user
-    // is actively driving with WASD so manual flight isn't fought.
     const k = get()
     const userDriving = k.forward || k.back || k.left || k.right || k.up || k.down
     if (cameraCommand.followOrgId && !userDriving) {
@@ -113,8 +97,6 @@ function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
       if (tx !== 0 || ty !== 0) {
         const wx = tx * TILE_SCALE
         const wz = ty * TILE_SCALE
-        // Target: 35 units behind the org along the camera's current
-        // horizontal facing, at ~12 units altitude.
         const fwd = new THREE.Vector3()
         camera.getWorldDirection(fwd)
         fwd.y = 0
@@ -125,7 +107,6 @@ function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
           ? heightAt(tx, ty, depthMap, biomes)
           : 0
         const targetY = groundY + 12
-        // Lerp factor scaled by frame time for FPS-independent smoothing.
         const lerp = 1 - Math.exp(-3.0 * delta)
         camera.position.x += (targetX - camera.position.x) * lerp
         camera.position.y += (targetY - camera.position.y) * lerp
@@ -155,8 +136,6 @@ function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
       camera.position.add(velocity.current)
     }
 
-    // Vertical bounds only - horizontal stays free so the user can
-    // fly off the edge if they want.
     if (depthMap && biomes) {
       const groundY = heightAtWorld(camera.position.x, camera.position.z, depthMap, biomes)
       const minY = Math.max(groundY, 0) + FLOOR_CLEARANCE
@@ -165,14 +144,8 @@ function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
     }
     if (camera.position.y > MAX_ALTITUDE) camera.position.y = MAX_ALTITUDE
 
-    // Defensive: stomp any drift in rotation.z (camera roll) flat
-    // every frame. PointerLockControls is only supposed to touch
-    // yaw + pitch, but with mixed Euler-order assignments we've
-    // seen the horizon tilt sideways. Cheap and idempotent when
-    // already zero.
     if (camera.rotation.z !== 0) camera.rotation.z = 0
 
-    // Persist camera pose every ~1s (no need for sub-frame fidelity).
     saveTimerRef.current += delta
     if (saveTimerRef.current > 1.0) {
       saveTimerRef.current = 0
@@ -181,7 +154,7 @@ function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
           x: camera.position.x, y: camera.position.y, z: camera.position.z,
           rx: camera.rotation.x, ry: camera.rotation.y,
         }))
-      } catch { /* private mode / quota - ignore */ }
+      } catch { }
     }
   })
   return null
@@ -192,8 +165,6 @@ interface Props {
   hideUI: boolean
 }
 
-// localStorage key for the last selected org so reloads remember
-// who the user was watching.
 const SEL_LS_KEY = 'thb-3d-sel-v1'
 
 export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
@@ -202,34 +173,26 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
   const selectOrgStore = useUIStore(s => s.selectOrg)
   const [follow, setFollow] = useState(false)
 
-  // Restore the previously-selected org once the world arrives and
-  // we can verify the id is still alive. Runs once.
   useEffect(() => {
     if (!world) return
-    if (selectedOrgId) return   // user already picked someone this session
+    if (selectedOrgId) return
     try {
       const id = localStorage.getItem(SEL_LS_KEY)
       if (!id) return
       const live = (world.viewport_organisms ?? world.organisms ?? [])
         .some(o => o.id === id && o.alive)
       if (live) selectOrgStore(id)
-    } catch { /* ignore */ }
-    // Only attempt once world is first non-null.
+    } catch { }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [!!world])
 
-  // Persist selection changes.
   useEffect(() => {
     try {
       if (selectedOrgId) localStorage.setItem(SEL_LS_KEY, selectedOrgId)
       else               localStorage.removeItem(SEL_LS_KEY)
-    } catch { /* ignore */ }
+    } catch { }
   }, [selectedOrgId])
 
-  // On first load with no saved camera, aim the camera at the
-  // population centroid instead of the world's geometric centre.
-  // Otherwise users with an empty middle-of-the-ocean spawn would
-  // see nothing interesting until they pan to find the tribes.
   const didInitialAimRef = useRef(false)
   useEffect(() => {
     if (didInitialAimRef.current) return
@@ -239,7 +202,7 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
     let hasSaved = false
     try {
       hasSaved = !!localStorage.getItem('thb-3d-cam-v1')
-    } catch { /* ignore */ }
+    } catch { }
     if (hasSaved) { didInitialAimRef.current = true; return }
     const cx = live.reduce((s, o) => s + o.x, 0) / live.length
     const cy = live.reduce((s, o) => s + o.y, 0) / live.length
@@ -259,11 +222,6 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
 
   const selectOrg = useUIStore(s => s.selectOrg)
 
-  // Keyboard shortcuts:
-  //   F        - toggle follow selected org
-  //   J        - one-shot jump camera to selected org
-  //   R        - select a random alive org + start following them
-  //   ESC      - clear follow (then PointerLock releases mouse on next press)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code === 'KeyF' && !e.repeat) {
@@ -280,8 +238,6 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
           }
         }
       } else if (e.code === 'KeyR' && !e.repeat) {
-        // Random pick from the live snapshot. We use the latest world
-        // captured in the closure - which is fresh per render.
         const live = (world?.viewport_organisms ?? world?.organisms ?? []).filter(o => o.alive)
         if (live.length) {
           const pick = live[Math.floor(Math.random() * live.length)]
@@ -308,19 +264,12 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
     cameraCommand.followOrgId = (follow && selectedOrgId) ? selectedOrgId : null
   }, [follow, selectedOrgId])
 
-  // Wait for terrain layers (cold metadata from HTTP /snapshot) before
-  // building the heightfield. Until then, show a loading state inside
-  // the canvas so users see "the world is coming" not "everything is
-  // broken".
   const grid = world?.grid
   const ready = !!(grid?.depth_map && grid?.biomes && grid?.tiles && grid?.width && grid?.height)
   const dayProgress = world?.day_progress ?? 0.3
-  // Match Sun.tsx's altitude formula so Birds know night status.
   const sunAlt   = Math.sin((dayProgress - 0.25) * 2 * Math.PI)
   const isNight  = sunAlt < 0
 
-  // Feed the motion state map on every WS tick so every 3D component
-  // can read interpolated positions per frame for smooth motion.
   const orgsForMotion    = world?.viewport_organisms ?? world?.organisms ?? []
   const animalsForMotion = world?.viewport_animals   ?? world?.animals   ?? []
   useEffect(() => {
@@ -328,7 +277,6 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
     updateAnimalMotion(animalsForMotion)
   }, [orgsForMotion, animalsForMotion])
 
-  // Spawn the camera high enough to see the whole world on first load.
   const cx = (grid?.width ?? 150) * TILE_SCALE * 0.5
   const cz = (grid?.height ?? 75) * TILE_SCALE * 0.5
 
@@ -484,17 +432,13 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
         <div style={loadingStyle}>loading terrain…</div>
       )}
 
-      {/* Time-of-day colour grade overlay. Renders BEHIND the vignette
-          (lower zIndex) so the vignette darkens the tinted scene
-          rather than the tint coating the vignette darkness. */}
+      {}
       <TimeOfDayTint
         dayProgress={dayProgress}
         weatherKind={world?.weather?.kind ?? 'clear'}
       />
 
-      {/* Subtle film vignette - darkens corners to draw the eye inward.
-          Pure CSS radial gradient, no GPU cost. Hidden in immersive
-          mode for users who want a flat clean view. */}
+      {}
       <div className="thb-3d-vignette" style={vignetteStyle} />
 
       <HelpOverlay />

@@ -1,4 +1,4 @@
-//! Action 255: near fire, emit spiritual healing; all kin comfort +0.04.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

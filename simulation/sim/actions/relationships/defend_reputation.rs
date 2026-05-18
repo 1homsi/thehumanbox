@@ -1,4 +1,4 @@
-//! Action 235: emit a social event defending actor's name.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

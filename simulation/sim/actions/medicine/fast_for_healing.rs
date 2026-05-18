@@ -1,4 +1,4 @@
-//! Action 254: reduce own energy slightly to boost health regeneration.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

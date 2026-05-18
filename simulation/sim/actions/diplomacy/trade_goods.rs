@@ -1,4 +1,4 @@
-//! Action 94: trade goods with a foreign org. Food <-> stone barter.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

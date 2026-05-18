@@ -1,4 +1,4 @@
-//! Action 433: create a classification system for observed phenomena.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -15,7 +15,6 @@ impl Organism {
         let mut thought: Option<String> = None;
         macro_rules! set_thought { ($t:expr) => { thought = Some($t.to_string()); }; }
 
-        // Prioritise standing resource
         if tile == Tile::Water && self.hydration < 0.95 {
             set_thought!("drinking"); return (9, thought);
         }
@@ -31,7 +30,6 @@ impl Organism {
             set_thought!("eating"); return (8, thought);
         }
 
-        // Flee fire
         let flee_r = (2.0 + 2.0 * self.traits.fear) as i32;
         let fire_tile = self.nearest_visible(grid, Tile::Fire, flee_r);
         let fire_dangerous = tile == Tile::Fire || (!night && fire_tile.is_some());
@@ -47,9 +45,6 @@ impl Organism {
             return (rng.gen_range(0..8), thought);
         }
 
-        // Sick isolation: infected organisms walk away from healthy kin so
-        // they don't spread the infection. Real disease behaviour: the
-        // afflicted withdraw. Stronger response when very sick.
         if self.infection > 0.30 {
             let healthy_kin_nearby: Vec<(f32, f32)> = organisms.iter()
                 .filter(|o| !std::ptr::eq(*o, self) && o.alive
@@ -61,7 +56,6 @@ impl Organism {
                 set_thought!("isolating (sick)");
                 let cx = healthy_kin_nearby.iter().map(|p| p.0).sum::<f32>() / healthy_kin_nearby.len() as f32;
                 let cy = healthy_kin_nearby.iter().map(|p| p.1).sum::<f32>() / healthy_kin_nearby.len() as f32;
-                // Step away from the kin centroid (opposite direction).
                 let dx = self.x - cx;
                 let dy = self.y - cy;
                 let target = (ix + (dx * 4.0).round() as i32, iy + (dy * 4.0).round() as i32);
@@ -79,9 +73,6 @@ impl Organism {
             }
         }
 
-        // ── Genuine thirst / hunger - lowered thresholds so needs win less often ──
-        // Organisms now only urgently chase resources when noticeably low,
-        // not at the first hint of any deficit.
         if self.hydration < 0.38 {
             let scan_r = if self.hydration < 0.20 { 24 } else if night { 8 } else { 14 };
             if let Some(v) = self.nearest_visible(grid, Tile::Water, scan_r) {
@@ -114,7 +105,6 @@ impl Organism {
             set_thought!("hungry - searching");
         }
 
-        // Danger avoidance (personal memory)
         if !self.danger_memory.is_empty() {
             let danger_thresh = (3.0 + 2.0 * self.traits.fear) as i32;
             if let Some((&(cx, cy), _)) = self.danger_memory.iter()
@@ -129,14 +119,11 @@ impl Organism {
             }
         }
 
-        // World hazard sensing - organisms avoid cursed/death-scarred land
-        // Fearful organisms are more sensitive; brave ones push through
         {
             let hz = grid.hazard_at(ix, iy);
-            let hz_flee_thresh = 0.60 - self.traits.fear * 0.25; // cowards flee at 0.35, brave at 0.60
+            let hz_flee_thresh = 0.60 - self.traits.fear * 0.25;
             if hz > hz_flee_thresh {
                 set_thought!("cursed land");
-                // Find direction of lowest hazard among 8 neighbors
                 let best = (0..8usize).min_by_key(|&d| {
                     let (dx, dy) = crate::organism::organism::DIRECTIONS[d];
                     let (nx, ny) = (ix + dx, iy + dy);
@@ -146,7 +133,6 @@ impl Organism {
             }
         }
 
-        // Storm sheltering: seek campfire / hut structure during bad weather
         if weather_kind >= 2 && !self.near_shelter(grid) {
             if let Some(v) = self.find_shelter_tile(grid, 14) {
                 set_thought!("sheltering from storm");
@@ -154,15 +140,12 @@ impl Organism {
             }
         }
 
-        // Night behaviors: shelter is the primary destination after dark
         if night {
             let ns = self.near_shelter(grid);
-            // Sheltered: rest readily - even light sleep debt triggers rest
             if ns && self.sleep_debt > 0.08 && self.energy > 0.25 && rng.gen::<f32>() < 0.65 {
                 set_thought!("resting");
-                return (17, thought); // REST: stay in place
+                return (17, thought);
             }
-            // Not sheltered: seek any structure, then campfire
             if !ns && self.hydration > 0.25 {
                 if let Some(s) = self.find_shelter_tile(grid, 16) {
                     set_thought!("finding shelter");
@@ -174,11 +157,6 @@ impl Organism {
                         return (self.toward(camp, grid), thought);
                     }
                 }
-                // Nightly home-pull, further weakened from 0.08 -> 0.03.
-                // Empirically the world's habitable land is vast but the
-                // population kept converging on the founder's island. With
-                // the pull this low, kin who wander a continent away can
-                // settle there overnight instead of always trekking back.
                 let dist_home = (self.x - self.home_x).abs() + (self.y - self.home_y).abs();
                 if dist_home > 25.0 && rng.gen::<f32>() < 0.03 {
                     set_thought!("heading home");
@@ -187,22 +165,19 @@ impl Organism {
             }
         }
 
-        // Mourning: reduced agency for a spell after witnessing kin death
         if self.grief_ticks > 40 && rng.gen::<f32>() < 0.45 {
             set_thought!("mourning kin");
-            return (17, thought); // REST: stay in place while grieving
+            return (17, thought);
         }
 
-        // Rest near shelter - health recovery, grief, sleep debt
         let should_rest = self.health < 0.65
             || self.sleep_debt > 0.30
             || (self.grief_ticks > 0 && self.near_shelter(grid));
         if should_rest && self.near_shelter(grid) && rng.gen::<f32>() < 0.52 {
             set_thought!("resting");
-            return (17, thought); // REST: stay in place
+            return (17, thought);
         }
 
-        // Ollama directive - intentional goal that overrides default behaviour
         if tick < self.directive_until && !self.directive.is_empty() {
             match self.directive.as_str() {
                 "seek_food" if self.energy < 0.85 => {
@@ -246,8 +221,6 @@ impl Organism {
             }
         }
 
-        // ── Play behaviour (young) ────────────────────────────────────────────
-        // Juveniles run around excitedly, especially when kin are nearby.
         if self.age < 900 && self.energy > 0.6 && self.hydration > 0.6 && !night {
             let kin_nearby = organisms.iter().any(|o| {
                 !std::ptr::eq(o, self) && o.alive && o.lineage_id == self.lineage_id
@@ -261,8 +234,6 @@ impl Organism {
             }
         }
 
-        // ── Campfire socialising ──────────────────────────────────────────────
-        // Near a campfire with kin → linger and socialise rather than wander off
         {
             let near_fire = (-3i32..=3).any(|dx| (-3i32..=3).any(|dy| {
                 matches!(grid.get(ix + dx, iy + dy), Tile::Campfire)
@@ -273,8 +244,6 @@ impl Organism {
             }).count();
             if near_fire && kin_nearby >= 1 && self.energy > 0.5 && self.hydration > 0.5 {
                 if rng.gen::<f32>() < 0.12 * self.traits.social_tendency {
-                    // Around the fire the tribe doesn't just rest - they
-                    // dance, sing and share. Roll for a cultural act.
                     let roll = rng.gen::<f32>();
                     if roll < 0.30 {
                         set_thought!("dancing by the fire");
@@ -287,12 +256,11 @@ impl Organism {
                              "telling stories", "resting with kin",
                              "tending the fire", "sharing a meal"];
                     set_thought!(s[rng.gen_range(0..s.len())]);
-                    return (17, thought); // REST: linger by fire, don't drift
+                    return (17, thought);
                 }
             }
         }
 
-        // ── Altruism: lead hungry kin to food ─────────────────────────────────
         if self.energy > 0.82 && needs_ok {
             let hungry_kin_nearby = organisms.iter().any(|o| {
                 !std::ptr::eq(o, self) && o.alive && o.lineage_id == self.lineage_id
@@ -307,7 +275,6 @@ impl Organism {
             }
         }
 
-        // Young organisms imprint on and follow their lineage elder
         if self.age < 150 {
             let elder_pos: Option<(i32, i32)> = organisms.iter()
                 .filter(|o| !std::ptr::eq(*o, self) && o.alive
@@ -327,14 +294,12 @@ impl Organism {
             }
         }
 
-        // Attraction: seek the organism you're drawn to
         if let Some(ref aid) = self.attracted_to {
             let target = organisms.iter()
                 .find(|o| o.alive && &o.id == aid)
                 .map(|o| (o.x as i32, o.y as i32));
             if let Some(tp) = target {
                 let dist = (tp.0 - ix).abs() + (tp.1 - iy).abs();
-                // Increased from 30 → 60 tiles so mates actually find each other
                 if dist > 3 && dist < 60 {
                     set_thought!("drawn to someone");
                     return (self.toward(tp, grid), thought);
@@ -342,12 +307,6 @@ impl Organism {
             }
         }
 
-        // ── Partner companionship ─────────────────────────────────────────────
-        // Bonded partners drift toward each other when their basic needs
-        // are met. Real human pairs spend most of their time together;
-        // this gives bonded couples a visible "walking together" signature
-        // on the map and lets the partners view-toggle render a meaningful
-        // bond line.
         if let Some(ref pid) = self.partner_id {
             if needs_ok && self.fear_level < 0.5 {
                 let partner = organisms.iter()
@@ -363,14 +322,10 @@ impl Organism {
             }
         }
 
-        // Colony formation: lonely organisms seek their kin or friendly strangers.
-        // Gated harder than before because the previous unconditional version
-        // pulled wanderers straight back into the home cluster.
         if self.loneliness > 0.60 && needs_ok && self.fear_level < 0.5
             && self.wander_target.is_none()
             && rng.gen::<f32>() < 0.35
         {
-            // Look for nearest kin within 100 tiles
             let kin_pos: Option<(i32, i32)> = organisms.iter()
                 .filter(|o| !std::ptr::eq(*o, self) && o.alive
                             && o.lineage_id == self.lineage_id)
@@ -385,7 +340,6 @@ impl Organism {
                 set_thought!("seeking kin");
                 return (self.toward(tp, grid), thought);
             }
-            // No kin nearby - high-social organisms seek any friendly organism
             if self.traits.social_tendency > 0.4 {
                 let social_pos: Option<(i32, i32)> = organisms.iter()
                     .filter(|o| !std::ptr::eq(*o, self) && o.alive)
@@ -404,7 +358,6 @@ impl Organism {
             }
         }
 
-        // Pregnant: shelter-seeking before birth
         if self.pregnant && !self.near_shelter(grid) && self.energy > 0.3 {
             if let Some(s) = self.find_shelter_tile(grid, 18) {
                 set_thought!("nesting");
@@ -415,8 +368,6 @@ impl Organism {
             set_thought!("expecting");
         }
 
-        // Migration corridor following - social organisms prefer established routes
-        // High path-trail signals a well-traveled corridor; follow it rather than blazing new ground
         if self.traits.social_tendency > 0.5 && self.energy > 0.55 && self.hydration > 0.55 {
             if rng.gen::<f32>() < self.traits.social_tendency * 0.06 {
                 if let Some(t) = self.find_trail_target(grid, TrailKind::Path, 14) {
@@ -429,8 +380,6 @@ impl Organism {
             }
         }
 
-        // Wanderlust: follow active wander target as long as not in survival emergency.
-        // (Arrival clearing happens in tick_inner_state via the area_ticks logic.)
         if let Some(wt) = self.wander_target {
             let dist = (wt.0 - ix).abs() + (wt.1 - iy).abs();
             if dist > 4 && self.energy > 0.20 && self.hydration > 0.20 {
@@ -439,13 +388,6 @@ impl Organism {
             }
         }
 
-        // Home pull - accessible whenever basic needs are covered.
-        // Empirically the population kept reconverging on a single
-        // founder-anchor island instead of spreading across the world's
-        // vast land. Pull probabilities further halved (was 0.004 /
-        // 0.0015 / 0.0005) so distant homesteaders actually stay where
-        // they wander to. The crowding-driven wander in wander.rs is
-        // what should be keeping tribes cohesive, not this.
         if tick >= self.directive_until && self.energy > 0.45 && self.hydration > 0.45
             && self.wander_target.is_none()
         {
@@ -460,16 +402,11 @@ impl Organism {
             }
         }
 
-        // ── Deliberate cultural / survival acts ───────────────────────────────
-        // A handful of context nudges so the newer actions surface as visible
-        // behaviour rather than waiting on pure Q-table exploration.
         {
-            // Dig for water in sand when thirsty and stranded
             if self.hydration < 0.45 && tile == Tile::Sand {
                 set_thought!("digging for water");
                 return (18, thought);
             }
-            // Forage the brush when hungry and nothing is in sight
             if self.energy < 0.50 && tile == Tile::Grass
                 && self.nearest_visible(grid, Tile::Food, 8).is_none()
                 && rng.gen::<f32>() < 0.30
@@ -477,21 +414,18 @@ impl Organism {
                 set_thought!("foraging the brush");
                 return (19, thought);
             }
-            // Reflect when bored and safe near shelter
             if self.boredom > 0.55 && needs_ok && self.near_shelter(grid)
                 && rng.gen::<f32>() < 0.25
             {
                 set_thought!("taking a quiet moment");
                 return (22, thought);
             }
-            // Scout when curious, well-fed and not in any emergency
             if self.traits.curiosity > 0.6 && needs_ok && !night
                 && rng.gen::<f32>() < 0.05 * self.traits.curiosity
             {
                 set_thought!("surveying the land");
                 return (24, thought);
             }
-            // Mark territory near home when content
             if needs_ok && self.comfort > 0.5
                 && (self.x - self.home_x).abs() + (self.y - self.home_y).abs() < 10.0
                 && rng.gen::<f32>() < 0.04
@@ -500,13 +434,6 @@ impl Organism {
                 return (25, thought);
             }
 
-            // ── Phase-2 situational triggers (actions 126..=225) ────────
-            // These nudges surface the newer behaviours as visible action
-            // rather than waiting for Q-learning to discover them. Each
-            // gate is narrow (specific traits + context + low prob) so
-            // the existing dynamics aren't overwhelmed.
-
-            // Helper: any nearby kin
             let kin_nearby_n = organisms.iter().filter(|o|
                 !std::ptr::eq(*o, self) && o.alive
                 && o.lineage_id == self.lineage_id
@@ -517,7 +444,6 @@ impl Organism {
                 || self.nearest_visible(grid, Tile::Campfire, 2).is_some()
                 || self.nearest_visible(grid, Tile::Fire, 2).is_some();
 
-            // Boil water clean if you have it and a fire, when sick.
             if self.infection > 0.20 && self.inv_water > 0 && fire_adj
                 && rng.gen::<f32>() < 0.18
             {
@@ -525,7 +451,6 @@ impl Organism {
                 return (141, thought);
             }
 
-            // Stockpile food when you carry several units and you're home.
             if self.inv_food >= 2
                 && (self.x - self.home_x).abs() + (self.y - self.home_y).abs() < 8.0
                 && rng.gen::<f32>() < 0.06
@@ -534,7 +459,6 @@ impl Organism {
                 return (146, thought);
             }
 
-            // Share a meal when surrounded by kin and well fed.
             if self.inv_food > 0 && kin_nearby_n >= 2 && self.energy > 0.7
                 && rng.gen::<f32>() < 0.08
             {
@@ -542,7 +466,6 @@ impl Organism {
                 return (147, thought);
             }
 
-            // Brew tea on a slow evening when comfortable and fire-adjacent.
             if self.inv_water > 0 && fire_adj && self.energy > 0.55
                 && self.boredom > 0.40 && rng.gen::<f32>() < 0.05
             {
@@ -550,7 +473,6 @@ impl Organism {
                 return (148, thought);
             }
 
-            // Sharpen a blade when you have one and you're bored at home.
             let has_blade = self.discoveries.contains("knife")
                          || self.discoveries.contains("axe")
                          || self.discoveries.contains("spear");
@@ -561,7 +483,6 @@ impl Organism {
                 return (157, thought);
             }
 
-            // Dig a deep well as a last-ditch hydration play on sand.
             if self.hydration < 0.30 && tile == Tile::Sand
                 && rng.gen::<f32>() < 0.10
             {
@@ -569,7 +490,6 @@ impl Organism {
                 return (166, thought);
             }
 
-            // Light a signal fire when kin are afraid and wood is at hand.
             let kin_afraid = organisms.iter().filter(|o|
                 !std::ptr::eq(*o, self) && o.alive
                 && o.lineage_id == self.lineage_id
@@ -581,14 +501,12 @@ impl Organism {
                 return (179, thought);
             }
 
-            // Build a cairn far from home when carrying stone (way-marker).
             let far_from_home = (self.x - self.home_x).abs() + (self.y - self.home_y).abs() > 40.0;
             if far_from_home && self.inv_stone > 0 && rng.gen::<f32>() < 0.05 {
                 set_thought!("stacking a cairn");
                 return (216, thought);
             }
 
-            // Sit by water when comfortable and water-adjacent.
             if self.comfort > 0.55
                 && self.nearest_visible(grid, Tile::Water, 2).is_some()
                 && rng.gen::<f32>() < 0.05
@@ -597,13 +515,11 @@ impl Organism {
                 return (225, thought);
             }
 
-            // Howl at the moon at night when kin are nearby.
             if night && kin_nearby_n >= 1 && rng.gen::<f32>() < 0.04 {
                 set_thought!("howling at the moon");
                 return (223, thought);
             }
 
-            // Play with the kids if any are nearby kin.
             let kid_kin = organisms.iter().any(|o|
                 !std::ptr::eq(o, self) && o.alive && o.age < 500
                 && o.lineage_id == self.lineage_id
@@ -614,7 +530,6 @@ impl Organism {
                 return (224, thought);
             }
 
-            // Recite proverb when content and someone is nearby.
             if self.is_elder && kin_nearby_n >= 1 && self.comfort > 0.55
                 && rng.gen::<f32>() < 0.06
             {
@@ -622,14 +537,6 @@ impl Organism {
                 return (135, thought);
             }
 
-            // Chant at dawn (day_progress 0.22-0.28 = sunrise window).
-            // We don't have day_progress here directly, but "not night"
-            // + low tick_age proxy via tick%24 ≈ dawn-ish is too crude.
-            // Skip - the harvest_festival / vision_quest triggers below
-            // are cleaner.
-
-            // Vision quest: lone, sleepy elder when content. Long rest +
-            // fear-drain + possible discovery.
             if self.is_elder && kin_nearby_n == 0 && self.sleep_debt > 0.20
                 && self.comfort > 0.40 && rng.gen::<f32>() < 0.05
             {
@@ -637,7 +544,6 @@ impl Organism {
                 return (205, thought);
             }
 
-            // Bless the field when comfortable on a fertile food tile.
             if matches!(tile, Tile::Food)
                 && self.comfort > 0.50
                 && rng.gen::<f32>() < 0.04
@@ -646,7 +552,6 @@ impl Organism {
                 return (210, thought);
             }
 
-            // Nap when sleep-debt is critical and you're safe at home.
             if self.sleep_debt > 0.35 && self.near_shelter(grid)
                 && rng.gen::<f32>() < 0.12
             {
@@ -655,7 +560,6 @@ impl Organism {
             }
         }
 
-        // Q-learning / exploration - varied thoughts so no organism just says "exploring"
         let eff_eps = (epsilon * (0.5 + self.traits.curiosity)).max(0.05).min(0.80);
         if rng.gen::<f32>() < eff_eps {
             if rng.gen::<f32>() < 0.10 {
@@ -677,16 +581,12 @@ impl Organism {
                 opts[rng.gen_range(0..opts.len())]
             };
             set_thought!(explore_thought);
-            // Directional inertia: most of the time keep walking in the
-            // direction you were already moving, so explorers commit to a
-            // heading instead of jittering back and forth every tick.
             let last_dx = (self.x - self.prev_x).signum() as i32;
             let last_dy = (self.y - self.prev_y).signum() as i32;
             if (last_dx != 0 || last_dy != 0) && rng.gen::<f32>() < 0.75 {
                 let target = (ix + last_dx * 5, iy + last_dy * 5);
                 return (self.toward(target, grid), thought);
             }
-            // Sample from available masked set so exploration stays relevant.
             let pool = if available.is_empty() { &[][..] } else { available };
             let pick = if pool.is_empty() {
                 rng.gen_range(0..N_ACTIONS)
@@ -696,9 +596,6 @@ impl Organism {
             return (pick, thought);
         }
 
-        // Sparse Q-table lookup. The row may not exist (org has never
-        // visited this perception state); treat all values as 0 in
-        // that case, which falls through to random exploration below.
         let q_row = self.q_table.get(cached_perception);
         let best_avail = available.iter().copied()
             .max_by(|&a, &b| {
@@ -712,7 +609,6 @@ impl Organism {
                 return (best_idx, thought);
             }
         }
-        // All Q-values zero or no available set — random from available pool.
         let pool = if available.is_empty() { &[][..] } else { available };
         let pick = if pool.is_empty() {
             rng.gen_range(0..N_ACTIONS)

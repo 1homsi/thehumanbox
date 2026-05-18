@@ -1,4 +1,4 @@
-//! Action 467: found a formal priesthood.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

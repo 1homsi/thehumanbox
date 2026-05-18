@@ -1,4 +1,4 @@
-//! Action 117: explore a cave.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 432: establish a repeatable scientific methodology.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

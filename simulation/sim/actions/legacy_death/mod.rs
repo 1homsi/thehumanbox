@@ -1,4 +1,4 @@
-//! Legacy and death actions (indices 486..=500).
+
 
 pub mod write_will;
 pub mod prepare_tomb;

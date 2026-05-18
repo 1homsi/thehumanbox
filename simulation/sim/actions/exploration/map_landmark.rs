@@ -1,4 +1,4 @@
-//! Action 220: note a landmark and commit it to memory.
+
 use crate::organism::organism::Organism;
 use super::super::ctx::ActionCtx;
 

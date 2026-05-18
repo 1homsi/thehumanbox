@@ -1,4 +1,4 @@
-//! Action 183: send an envoy to a foreign tribe.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

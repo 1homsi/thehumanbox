@@ -12,15 +12,6 @@ interface Props {
   biomes:    number[][]
 }
 
-// Large tribe-name labels floating high above each lineage's
-// centroid so you can see at a glance "this is Aldenvale's
-// territory" while flying around. One label per lineage (skipped
-// for lineages with <2 alive orgs so transient one-off-survivors
-// don't crowd the sky).
-//
-// Centroid is computed each render (cheap - a few hundred orgs
-// max). Label height is fixed at +35 above terrain so it floats
-// well above huts and trees.
 const MIN_LINEAGE_ORGS = 2
 
 interface TribeInfo {

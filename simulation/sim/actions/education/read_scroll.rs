@@ -1,4 +1,4 @@
-//! Action 506: read a scroll; boredom -0.1; discover "scroll_reading"; emit "culture".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

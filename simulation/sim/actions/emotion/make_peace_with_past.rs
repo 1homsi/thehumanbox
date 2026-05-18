@@ -1,4 +1,4 @@
-//! Action 405: make peace with the past. Elder only; comfort and wisdom unlocked.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

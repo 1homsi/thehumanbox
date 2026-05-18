@@ -54,7 +54,6 @@ impl Traits {
         }
     }
 
-    /// Mendelian-style trait mixing: each trait is inherited from either parent at random.
     pub fn mix(&self, other: &Traits, rng: &mut impl Rng) -> Self {
         macro_rules! pick { ($a:expr, $b:expr) => { if rng.gen::<bool>() { $a } else { $b } }; }
         Traits {

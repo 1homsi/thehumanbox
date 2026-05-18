@@ -1,20 +1,5 @@
 import { z } from 'zod'
 
-/**
- * Zod schemas for runtime validation of server-sent payloads.
- *
- * The Rust backend's serde structs are the source of truth for shape;
- * these mirror them so the frontend doesn't crash on a malformed message
- * (or silently keep using a stale type def after a server-side rename).
- *
- * For now we use lenient schemas (lots of .optional() and .passthrough())
- * because the wire format is fluid and we'd rather log the validation
- * error than reject a payload over a missing-but-harmless field. Tighten
- * over time as the protocol stabilises.
- */
-
-// ── Primitives ────────────────────────────────────────────────────────────
-
 const TraitsSchema = z.object({
   curiosity:       z.number(),
   aggression:      z.number(),
@@ -30,10 +15,7 @@ const MemoryCountSchema = z.object({
   danger: z.number(),
 })
 
-// ── Organism ──────────────────────────────────────────────────────────────
-
 export const OrganismSchema = z.object({
-  // Hot fields (sent every tick)
   id:           z.string(),
   x:            z.number(),
   y:            z.number(),
@@ -43,7 +25,6 @@ export const OrganismSchema = z.object({
   age:          z.number(),
   alive:        z.boolean(),
   thought:      z.string(),
-  // Hot - in every delta
   infection:    z.number(),
   fear_level:   z.number(),
   carrying:     z.number(),
@@ -52,8 +33,6 @@ export const OrganismSchema = z.object({
   partner_id:    z.string().nullable().optional(),
   attracted_to: z.string().nullable().optional(),
 
-  // Warm - only on full snapshots; the client cache merges by last-known
-  // value when absent from a delta.
   memory_count:        MemoryCountSchema.optional(),
   attitudes:           z.record(z.string(), z.number()).optional(),
   org_trust:           z.record(z.string(), z.number()).optional(),
@@ -67,7 +46,6 @@ export const OrganismSchema = z.object({
   children_count:      z.number().optional(),
   conversation_count:  z.number().optional(),
 
-  // Cold fields (only sent on full snapshots - every 30+ ticks)
   name:        z.string().optional(),
   generation:  z.number().optional(),
   parent_id:   z.string().optional(),
@@ -81,11 +59,9 @@ export const OrganismSchema = z.object({
   home_x:      z.number().optional(),
   home_y:      z.number().optional(),
   is_elder:    z.boolean().optional(),
-}).passthrough()  // accept future server-added fields without crashing
+}).passthrough()
 
 export type Organism = z.infer<typeof OrganismSchema>
-
-// ── Animal ────────────────────────────────────────────────────────────────
 
 export const AnimalSchema = z.object({
   id:   z.number(),
@@ -94,17 +70,6 @@ export const AnimalSchema = z.object({
   kind: z.enum(['rabbit', 'deer', 'boar', 'bird', 'fish', 'wolf', 'dog']),
 }).passthrough()
 
-// ── World envelope ────────────────────────────────────────────────────────
-
-// Lenient on purpose - only validate the shape we care to assert. The full
-// payload includes many fields the existing TypeScript types already
-// describe; we don't duplicate them all here. Use these schemas at the
-// WS-parse boundary to catch corrupt messages (HTML error pages, partial
-// frames, etc.) before they crash the renderer.
-
-// Hot delta payload as structure-of-arrays. Validated lightly because
-// the parallel arrays have the same length contract that the producer
-// guarantees - we just check that the required `ids` array is present.
 const OrgsHotSoaSchema = z.object({
   ids: z.array(z.string()),
 }).passthrough()
@@ -114,10 +79,6 @@ export const WorldEnvelopeSchema = z.object({
   server_sent_at_ms:  z.number(),
   frame_kind:         z.enum(['delta', 'full']),
   tick:               z.number(),
-  // Either `organisms` (AoS, on full snapshots) or `organisms_hot` (SoA,
-  // on deltas) is present. The frame_kind tag also distinguishes them;
-  // both are optional here so a frame missing one doesn't fail
-  // validation on the other path.
   organisms:          z.array(OrganismSchema).optional(),
   organisms_hot:      OrgsHotSoaSchema.optional(),
   organisms_complete: z.boolean(),

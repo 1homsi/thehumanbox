@@ -1,4 +1,4 @@
-//! Action 73: paint a symbol. Requires rock or existing structure.
+
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
 

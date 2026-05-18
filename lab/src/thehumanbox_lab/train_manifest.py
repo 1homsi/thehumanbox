@@ -3,14 +3,12 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any
 
-
 @dataclass(slots=True)
 class LoraConfig:
     rank: int = 16
     alpha: int = 32
     dropout: float = 0.05
     target_modules: tuple[str, ...] = ("q_proj", "k_proj", "v_proj", "o_proj")
-
 
 @dataclass(slots=True)
 class TrainManifest:
@@ -31,7 +29,6 @@ class TrainManifest:
         row = asdict(self)
         row["lora"]["target_modules"] = list(self.lora.target_modules)
         return row
-
 
 def default_manifest(
     train_file: str,

@@ -90,8 +90,6 @@ impl Animal {
 
         let step = self.kind.step_size();
 
-        // Predators (wolves): pursue weakest nearby organism. Dogs do NOT pursue
-        // - they follow their bonded human (handled outside).
         if self.kind.predator() && !org_positions.is_empty() {
             let prey = org_positions.iter()
                 .map(|&(ox, oy)| ((ox - self.x).abs() + (oy - self.y).abs(), ox, oy))
@@ -105,7 +103,6 @@ impl Animal {
             }
         }
 
-        // Aquatic: stay in / near water
         if self.kind.aquatic() {
             if grid.get(ix, iy) != Tile::Water {
                 let mut best = (ix, iy);
@@ -123,13 +120,11 @@ impl Animal {
                     return;
                 }
             }
-            // Wander within water
             let di = rng.gen_range(0..8usize);
             self.move_toward(grid, ix, iy, ix + DIRS[di].0 * step, iy + DIRS[di].1 * step);
             return;
         }
 
-        // Prey: flee humans
         let flee_r = self.kind.flee_radius();
         let nearest_org = if flee_r > 0.0 {
             org_positions.iter()

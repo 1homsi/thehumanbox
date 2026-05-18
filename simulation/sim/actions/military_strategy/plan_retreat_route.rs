@@ -1,4 +1,4 @@
-//! Action 450: plan a tactical retreat route in advance.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

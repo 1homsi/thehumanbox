@@ -3,15 +3,6 @@ import type { WorldState } from '../types'
 import { lineageColor } from '../utils/constants'
 import { useUIStore } from '../stores/store'
 
-/**
- * Compact top-right overview that renders the same world the canvas
- * is rendering, but tiny — useful when overlays obscure organism
- * positions or to spot lineage clusters at a glance. Clicking the
- * map clears the selected/follow state so the main canvas re-centers.
- *
- * We redraw on every WorldState change (≈ 2 Hz via React throttle).
- * Cheap: a 200×100 canvas with one px per tile.
- */
 export function MiniMap2D({ world }: { world: WorldState }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const selectOrg = useUIStore(s => s.selectOrg)
@@ -24,7 +15,6 @@ export function MiniMap2D({ world }: { world: WorldState }) {
     const h = world.grid.height
     if (w === 0 || h === 0) return
 
-    // Pick the largest pixel-per-tile that fits in 220×140
     const PX = Math.min(Math.floor(220 / w), Math.floor(140 / h), 4) || 1
     canvas.width = w * PX
     canvas.height = h * PX
@@ -32,14 +22,13 @@ export function MiniMap2D({ world }: { world: WorldState }) {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Biome tint background. Keep palette muted so org dots pop.
     const BIOME_TINT = [
-      '#3a4628',  // 0 grass
-      '#2d3d22',  // 1 forest
-      '#5a4a2a',  // 2 desert
-      '#264036',  // 3 wetland
-      '#5a5e6a',  // 4 tundra
-      '#3e2620',  // 5 volcanic
+      '#3a4628',
+      '#2d3d22',
+      '#5a4a2a',
+      '#264036',
+      '#5a5e6a',
+      '#3e2620',
     ]
     const biomes = world.grid.biomes
     const depth  = world.grid.depth_map
@@ -47,7 +36,7 @@ export function MiniMap2D({ world }: { world: WorldState }) {
       for (let x = 0; x < w; x++) {
         const d = depth?.[y]?.[x] ?? 255
         if (d < 254) {
-          ctx.fillStyle = '#1a2840'    // water
+          ctx.fillStyle = '#1a2840'
         } else {
           const b = biomes?.[y]?.[x] ?? 0
           ctx.fillStyle = BIOME_TINT[b] ?? BIOME_TINT[0]
@@ -56,7 +45,6 @@ export function MiniMap2D({ world }: { world: WorldState }) {
       }
     }
 
-    // Organism dots in lineage colour. Skip dead orgs.
     const ox = world.grid.origin_x ?? 0
     const oy = world.grid.origin_y ?? 0
     for (const org of world.organisms) {

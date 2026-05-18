@@ -1,4 +1,4 @@
-//! Action 195: shield the first nearby kin.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

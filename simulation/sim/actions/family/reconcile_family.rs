@@ -1,4 +1,4 @@
-//! Action 271: settle a family dispute; all kin attitude improved.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

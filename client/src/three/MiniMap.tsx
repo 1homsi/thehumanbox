@@ -15,26 +15,20 @@ interface Props {
   height:    number
 }
 
-// Tile enum entries we care about for minimap landmark markers.
 const T_FIRE     = 4
 const T_CAMPFIRE = 7
 const T_HUT      = 8
 
-// Small canvas-based mini-map in the top-right corner. Renders the
-// world as a 2D top-down map with biome colours, water, an org-dot
-// per alive organism, and a triangle marker pointing where the
-// camera is looking. Plain 2D canvas (no R3F) so it's lightweight
-// and lives OUTSIDE the R3F Canvas as a DOM overlay.
 const MAP_W = 220
 const MAP_H = 110
 
 const BIOME_HEX: string[] = [
-  '#6a9853', // 0 Grassland
-  '#3a5d2f', // 1 Forest
-  '#c2a566', // 2 Desert
-  '#4d8068', // 3 Wetland
-  '#d8dce8', // 4 Tundra
-  '#4a3d3d', // 5 Volcanic
+  '#6a9853',
+  '#3a5d2f',
+  '#c2a566',
+  '#4d8068',
+  '#d8dce8',
+  '#4a3d3d',
 ]
 
 export function MiniMap({ organisms, animals, tiles, depthMap, biomes, width, height }: Props) {
@@ -46,7 +40,6 @@ export function MiniMap({ organisms, animals, tiles, depthMap, biomes, width, he
   const rafRef        = useRef<number>(0)
   const selectedOrgId = useUIStore(s => s.selectedOrgId)
 
-  // Re-collect landmarks when the tile grid identity changes.
   useEffect(() => {
     const huts: [number, number][] = []
     const campfires: [number, number][] = []
@@ -66,8 +59,6 @@ export function MiniMap({ organisms, animals, tiles, depthMap, biomes, width, he
     landmarksRef.current = { huts, campfires, fires }
   }, [tiles, width, height])
 
-  // Bake the terrain background once (changes rarely). Re-bake on
-  // depthMap / biomes reference change.
   useEffect(() => {
     if (!depthMap || !biomes) return
     const tmp = document.createElement('canvas')
@@ -103,7 +94,6 @@ export function MiniMap({ organisms, animals, tiles, depthMap, biomes, width, he
     terrainRef.current = tmp
   }, [depthMap, biomes, width, height])
 
-  // Animate the overlay (orgs + camera marker) every animation frame.
   useEffect(() => {
     const c = canvasRef.current
     if (!c) return
@@ -121,7 +111,6 @@ export function MiniMap({ organisms, animals, tiles, depthMap, biomes, width, he
         ctx.fillRect(0, 0, MAP_W, MAP_H)
       }
 
-      // Animal dots first (drawn under orgs so orgs read on top).
       if (animals && animals.length) {
         ctx.fillStyle = 'rgba(180, 140, 80, 0.85)'
         for (const a of animals) {
@@ -131,8 +120,6 @@ export function MiniMap({ organisms, animals, tiles, depthMap, biomes, width, he
         }
       }
 
-      // Landmarks: huts (brown squares), campfires (orange dots),
-      // wildfires (bright red, flickering).
       const lm = landmarksRef.current
       ctx.fillStyle = '#8a6a40'
       for (const [hx, hy] of lm.huts) {
@@ -158,7 +145,6 @@ export function MiniMap({ organisms, animals, tiles, depthMap, biomes, width, he
         ctx.fill()
       }
 
-      // Org dots tinted by lineage so you can see tribes spread.
       let selDot: [number, number] | null = null
       for (const o of organisms) {
         if (!o.alive) continue
@@ -172,7 +158,6 @@ export function MiniMap({ organisms, animals, tiles, depthMap, biomes, width, he
         ctx.fillRect(Math.floor(mx), Math.floor(my), 2, 2)
       }
 
-      // Selected org: pulsing ring so it's findable at a glance.
       if (selDot) {
         const [mx, my] = selDot
         const t  = performance.now() * 0.005
@@ -186,7 +171,6 @@ export function MiniMap({ organisms, animals, tiles, depthMap, biomes, width, he
         ctx.fillRect(Math.floor(mx) - 1, Math.floor(my) - 1, 3, 3)
       }
 
-      // Camera marker: triangle pointing in look direction (yaw)
       const cx  = (cameraSnapshot.x / TILE_SCALE / width)  * MAP_W
       const cz  = (cameraSnapshot.z / TILE_SCALE / height) * MAP_H
       const yaw = Math.atan2(cameraSnapshot.dirX, cameraSnapshot.dirZ)
@@ -215,12 +199,10 @@ export function MiniMap({ organisms, animals, tiles, depthMap, biomes, width, he
     const rect = (e.target as HTMLCanvasElement).getBoundingClientRect()
     const mx = e.clientX - rect.left
     const my = e.clientY - rect.top
-    // Map pixel -> world tile -> world coords.
     const tx = (mx / MAP_W) * width
     const ty = (my / MAP_H) * height
     const wx = tx * TILE_SCALE
     const wz = ty * TILE_SCALE
-    // Preserve current altitude (don't yank the camera vertically).
     cameraCommand.teleport = { x: wx, y: cameraSnapshot.y, z: wz }
   }
 

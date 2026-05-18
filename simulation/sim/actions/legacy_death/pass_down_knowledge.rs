@@ -1,4 +1,4 @@
-//! Action 490: elder passes down knowledge to young kin; discover "knowledge_inheritance"; emit "culture".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

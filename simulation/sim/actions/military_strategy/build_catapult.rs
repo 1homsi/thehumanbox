@@ -1,4 +1,4 @@
-//! Action 451: build a catapult from wood and stone.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

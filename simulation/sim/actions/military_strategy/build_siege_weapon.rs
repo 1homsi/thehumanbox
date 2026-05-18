@@ -1,4 +1,4 @@
-//! Action 438: build a siege weapon from wood and stone.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

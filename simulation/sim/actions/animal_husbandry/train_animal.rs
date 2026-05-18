@@ -1,4 +1,4 @@
-//! Action 361: train an animal to assist with tasks.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

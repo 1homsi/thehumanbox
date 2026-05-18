@@ -4,12 +4,9 @@ import * as THREE from 'three'
 
 interface Props {
   kind:      'clear' | 'rain' | 'storm' | 'wet'
-  intensity: number  // 0..1
+  intensity: number
 }
 
-// Lightning: occasional bright flash across the whole scene during
-// storms. Uses an ambientLight pulse rather than a point flash so it
-// affects the entire visible terrain at once.
 function Lightning({ active }: { active: boolean }) {
   const lightRef = useRef<THREE.AmbientLight>(null)
   const nextStrike = useRef(performance.now() + 4000 + Math.random() * 6000)
@@ -36,12 +33,7 @@ function Lightning({ active }: { active: boolean }) {
 
 const tmp = new THREE.Object3D()
 
-// Rain as instanced thin cylinders falling around the camera. Each
-// frame, advance Y down by velocity * dt; when a drop hits the floor
-// (relative to camera), respawn at the top of the volume. This keeps
-// the rain "moving with you" without needing a global rain field
-// that'd need millions of drops for the whole 2400x1200 world.
-const RAIN_VOLUME = 80   // half-width of the cylinder around camera
+const RAIN_VOLUME = 80
 const RAIN_HEIGHT = 60
 const RAIN_GEO    = new THREE.CylinderGeometry(0.015, 0.015, 1.4, 4)
 
@@ -52,7 +44,6 @@ export function Weather({ kind, intensity }: Props) {
   const maxDrops = kind === 'storm' ? 2200 : kind === 'rain' ? 900 : 0
   const dropVelocity = kind === 'storm' ? 55 : 28
 
-  // Per-drop y offset (so they don't all start at the same height)
   const offsets = useMemo(() => {
     const arr = new Float32Array(maxDrops)
     for (let i = 0; i < maxDrops; i++) arr[i] = Math.random() * RAIN_HEIGHT
@@ -66,13 +57,10 @@ export function Weather({ kind, intensity }: Props) {
     const cy = camera.position.y
     const cz = camera.position.z
 
-    // Stable PRNG so the same instance keeps the same horizontal
-    // offset frame-to-frame (otherwise drops teleport randomly).
     for (let i = 0; i < maxDrops; i++) {
       offsets[i] -= dropVelocity * delta
       if (offsets[i] < 0) offsets[i] += RAIN_HEIGHT
 
-      // Pseudo-random horizontal offset per instance.
       const a = (i * 12.9898) % 1
       const b = (i * 78.233)  % 1
       const dx = (a - 0.5) * RAIN_VOLUME * 2

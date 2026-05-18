@@ -1,4 +1,4 @@
-//! Action 401: back down. De-escalates with a stranger; small comfort cost, attitude gain.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

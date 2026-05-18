@@ -1,4 +1,4 @@
-//! Action 144: dry herbs in the sun. Daytime only.
+
 use super::super::ctx::ActionCtx;
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     if ctx.is_night() { return 0.0; }

@@ -1,4 +1,4 @@
-//! Action 458: convert a stranger to the faith.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

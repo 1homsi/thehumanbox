@@ -1,4 +1,4 @@
-//! Action 142: bake bread. Needs fire + food. Big energy bump.
+
 use super::super::ctx::ActionCtx;
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     if !ctx.fire_near || ctx.org().inv_food == 0 { return 0.0; }

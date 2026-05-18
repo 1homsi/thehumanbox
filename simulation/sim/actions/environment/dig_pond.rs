@@ -1,4 +1,4 @@
-//! Action 380: dig a pond. Needs water nearby.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

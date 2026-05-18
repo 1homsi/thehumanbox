@@ -1,4 +1,4 @@
-//! Action 115: learn a discovery from an elder kin.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

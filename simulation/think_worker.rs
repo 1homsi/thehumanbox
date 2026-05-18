@@ -1,11 +1,4 @@
-//! Think worker: handles ThinkTrigger queue → ThinkResult fan-out.
-//!
-//! Each tick the simulation drains pending_thinks and forwards them here.
-//! Most scenarios are weighted-pick decisions resolved entirely from
-//! organism traits via local_think::resolve - no LLM call. The
-//! elder_teaching scenario is the only one that actually generates text
-//! and goes through the chat-completions endpoint with retry / rate
-//! limiting.
+
 
 use std::sync::Arc;
 
@@ -33,7 +26,6 @@ pub struct ThinkResult {
     pub teaching:         Option<String>,
     pub target_org_id:    Option<String>,
 }
-// ── Local think result builder ────────────────────────────────────────────────
 
 pub fn build_result_from_local(trigger: &ThinkTrigger, local: local_think::LocalResult) -> Option<ThinkResult> {
     let result = match trigger.scenario.as_str() {
@@ -177,8 +169,6 @@ pub fn deterministic_think_seed(trigger: &ThinkTrigger, attempt: u8) -> u64 {
     mix_bytes(h, &[attempt])
 }
 
-// ── Think worker ─────────────────────────────────────────────────────────────
-
 pub async fn think_worker(
     mut rx: mpsc::Receiver<ThinkTrigger>,
     results: Arc<Mutex<Vec<ThinkResult>>>,
@@ -190,14 +180,12 @@ pub async fn think_worker(
         .build()
         .unwrap_or_default();
 
-    // (trigger, attempt_number)  - attempt 0 = first try, max 3 retries
     let mut retry_queue: std::collections::VecDeque<(ThinkTrigger, u8)> =
         std::collections::VecDeque::new();
 
     loop {
-        // Drain retries before pulling new work; apply backoff proportional to attempt
         let (trigger, attempt) = if let Some(item) = retry_queue.pop_front() {
-            let delay_secs = 5u64 * (item.1 as u64);   // 5s, 10s, 15s
+            let delay_secs = 5u64 * (item.1 as u64);
             tokio::time::sleep(tokio::time::Duration::from_secs(delay_secs)).await;
             item
         } else {
@@ -207,9 +195,6 @@ pub async fn think_worker(
             }
         };
 
-        // ── Local resolver: classification scenarios need no LLM ─────────────
-        // Only elder_teaching actually generates text - everything else is a
-        // weighted decision that we resolve instantly from organism traits.
         if trigger.scenario != "elder_teaching" {
             use rand::SeedableRng;
             let mut rng = rand::rngs::SmallRng::seed_from_u64(deterministic_think_seed(&trigger, attempt));
@@ -223,7 +208,6 @@ pub async fn think_worker(
             continue;
         }
 
-        // Rate-limit: Groq cap ~30 req/min; narration uses some - throttle think worker.
         if attempt == 0 {
             tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
         }
@@ -324,16 +308,7 @@ pub async fn think_worker(
             _ => continue,
         };
 
-        // Wall-clock the round-trip so the /llm endpoint can show
-        // think-lane p50/p95. After the dual-lane swap this is what
-        // we'll watch to confirm local llama is faster than Groq.
         let started = std::time::Instant::now();
-        // Tight token budget + stop sequences for the local-llama lane.
-        // SmolLM2-135M (and even gemma 270m) tend to overgenerate past
-        // 12-word thoughts into full paragraphs - was costing 2-5s per
-        // call on c7g.medium. Cap at 25 tokens and stop on newline /
-        // period so the small model can't wander. Groq honours both
-        // too so we don't need a per-lane variant.
         let response = match client.post(&**THINK_LLM_URL)
             .header("Authorization", format!("Bearer {}", api_key))
             .json(&llm_body_with_stop(
@@ -346,7 +321,6 @@ pub async fn think_worker(
                 let status = resp.status();
                 if status == 429 || status.is_server_error() {
                     stats.record_think(started.elapsed().as_millis() as u64, true);
-                    // Rate-limited or upstream error - queue for retry
                     if attempt < 3 && retry_queue.len() < 20 {
                         println!("[think] llm {} - queuing retry {}/3 for {}",
                             status, attempt + 1, trigger.org_name);
@@ -365,7 +339,6 @@ pub async fn think_worker(
             }
             Err(e) => {
                 stats.record_think(started.elapsed().as_millis() as u64, true);
-                // Network / timeout error - queue for retry
                 if attempt < 3 && retry_queue.len() < 20 {
                     println!("[think] llm network error (retry {}/3 for {}): {}",
                         attempt + 1, trigger.org_name, e);
@@ -495,10 +468,8 @@ pub async fn think_worker(
                 }
             },
             "invention" => {
-                // context field holds the candidate list, e.g. "cooking, stone_tools"
                 let candidates: Vec<&str> = trigger.context.split(", ").collect();
                 let valid = ["cooking","stone_tools","masonry","spear","torch"];
-                // Pick the first candidate the model mentions, or first candidate if no match
                 let discovery = valid.iter()
                     .find(|&&v| response.contains(v) && candidates.contains(&v))
                     .copied()
@@ -555,7 +526,6 @@ pub async fn think_worker(
                 }
             },
             "elder_teaching" => {
-                // Response is a free-form teaching sentence - keep it as-is (model was asked for <10 words)
                 let teaching = strip_thinking(&response);
                 let teaching = if teaching.len() > 80 {
                     teaching.split_whitespace().take(12).collect::<Vec<_>>().join(" ")

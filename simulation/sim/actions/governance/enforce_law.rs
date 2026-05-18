@@ -1,4 +1,4 @@
-//! Action 298: scold a kin for low-comfort behavior.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

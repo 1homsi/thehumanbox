@@ -1,24 +1,10 @@
 import * as THREE from 'three'
 
-// Procedural terrain texture atlas. We pack four distinct ground
-// styles into one 512x512 image (4× 256x256 quadrants) so each
-// biome can sample its own micro-pattern via a UV offset in the
-// vertex shader. Same single texture binding for the whole world.
-//
-// Atlas layout (UV space):
-//   (0.0..0.5, 0.0..0.5)   quadrant 0  - grass / wetland (green stipple)
-//   (0.5..1.0, 0.0..0.5)   quadrant 1  - sand / tundra base (warm grain)
-//   (0.0..0.5, 0.5..1.0)   quadrant 2  - rock / volcanic (grey angular)
-//   (0.5..1.0, 0.5..1.0)   quadrant 3  - forest litter (dark mottled)
-//
-// Both colour and bump atlases share the same layout.
-
 const TILE   = 256
 const ATLAS  = TILE * 2
 
 let _cache: { color: THREE.DataTexture; bump: THREE.DataTexture } | null = null
 
-// Cheap deterministic value-noise sampler.
 function makeNoise() {
   const hash = (x: number, y: number, salt: number): number => {
     let h = (x * 374761393 + y * 668265263 + salt * 2147483647) | 0
@@ -39,8 +25,6 @@ function makeNoise() {
   return { noise, hash }
 }
 
-// Render a single tile of the atlas into the buffers. `tx`/`ty` are
-// the tile's top-left in the atlas (0 or TILE).
 function paintTile(
   cbuf: Uint8Array,
   bbuf: Uint8Array,
@@ -51,46 +35,42 @@ function paintTile(
   for (let py = 0; py < TILE; py++) {
     for (let px = 0; px < TILE; px++) {
       const x = px, y = py
-      // Variant-specific colour multiplier (centred near 1.0 so it
-      // multiplies cleanly with the vertex-color biome paint).
       let r = 1.0, g = 1.0, b = 1.0
       let bumpStr = 0.5
 
       const lo  = noise(x / 32, y / 32, variant) * 0.55
       const mid = noise(x / 12, y / 12, variant + 7) * 0.30
       const hi  = noise(x / 4,  y / 4,  variant + 13) * 0.15
-      const n = lo + mid + hi   // 0..1
+      const n = lo + mid + hi
       const grit = noise(x / 2.5, y / 2.5, variant + 23) * 0.7
                  + noise(x / 6,   y / 6,   variant + 29) * 0.3
       bumpStr = grit
 
       switch (variant) {
-        case 0: { // grass / wetland - green stipple
-          const tone = 0.85 + n * 0.35    // 0.85..1.20
+        case 0: {
+          const tone = 0.85 + n * 0.35
           r = tone * 0.95
           g = tone * 1.05
           b = tone * 0.92
           break
         }
-        case 1: { // sand / tundra - warm grain
+        case 1: {
           const tone = 0.88 + n * 0.30
           r = tone * 1.05
           g = tone * 1.00
           b = tone * 0.85
-          // Sand has finer grain - more bump weight on high freq.
           bumpStr = grit * 1.15
           break
         }
-        case 2: { // rock / volcanic - grey angular
+        case 2: {
           const tone = 0.70 + n * 0.50
           r = tone * 0.95
           g = tone * 0.95
           b = tone * 0.98
-          // Rock bumps are stronger.
           bumpStr = Math.min(1, grit * 1.3)
           break
         }
-        case 3: { // forest litter - dark mottled
+        case 3: {
           const tone = 0.75 + n * 0.40
           r = tone * 0.88
           g = tone * 0.95
@@ -122,14 +102,12 @@ export function getTerrainTextures(): { color: THREE.DataTexture; bump: THREE.Da
   const colorBuf = new Uint8Array(ATLAS * ATLAS * 4)
   const bumpBuf  = new Uint8Array(ATLAS * ATLAS * 4)
 
-  paintTile(colorBuf, bumpBuf, 0,    0,    0)   // grass / wetland
-  paintTile(colorBuf, bumpBuf, TILE, 0,    1)   // sand / tundra
-  paintTile(colorBuf, bumpBuf, 0,    TILE, 2)   // rock / volcanic
-  paintTile(colorBuf, bumpBuf, TILE, TILE, 3)   // forest litter
+  paintTile(colorBuf, bumpBuf, 0,    0,    0)
+  paintTile(colorBuf, bumpBuf, TILE, 0,    1)
+  paintTile(colorBuf, bumpBuf, 0,    TILE, 2)
+  paintTile(colorBuf, bumpBuf, TILE, TILE, 3)
 
   const color = new THREE.DataTexture(colorBuf, ATLAS, ATLAS, THREE.RGBAFormat)
-  // No wrap repeat for the atlas itself - we'll wrap manually in the
-  // shader by fract()-ing on each quadrant.
   color.wrapS = THREE.ClampToEdgeWrapping
   color.wrapT = THREE.ClampToEdgeWrapping
   color.magFilter = THREE.LinearFilter
@@ -151,13 +129,6 @@ export function getTerrainTextures(): { color: THREE.DataTexture; bump: THREE.Da
   return _cache
 }
 
-// Map a biome enum id to an atlas quadrant index (0..3).
-//   0 Grassland -> 0 (grass)
-//   1 Forest    -> 3 (litter)
-//   2 Desert    -> 1 (sand)
-//   3 Wetland   -> 0 (grass)
-//   4 Tundra    -> 1 (sand/tundra)
-//   5 Volcanic  -> 2 (rock)
 export function biomeQuadrant(biomeId: number): number {
   switch (biomeId) {
     case 0: return 0

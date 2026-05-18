@@ -1,4 +1,4 @@
-//! Action 462: an elder pronounces a divine prophecy.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

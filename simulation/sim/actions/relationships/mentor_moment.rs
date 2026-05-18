@@ -1,4 +1,4 @@
-//! Action 243: elder teaches a young kin; discover "mentorship".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

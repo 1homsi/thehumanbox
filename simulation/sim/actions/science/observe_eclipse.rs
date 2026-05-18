@@ -1,4 +1,4 @@
-//! Action 434: observe an eclipse and record the event.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

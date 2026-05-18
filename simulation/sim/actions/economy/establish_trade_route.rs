@@ -1,4 +1,4 @@
-//! Action 287: with a stranger present; discover "trade_route".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

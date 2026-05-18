@@ -18,25 +18,24 @@ const TILE_COLORS: Record<number, string> = {
   4: '#e8450a',
   5: '#888888',
   6: '#555544',
-  7: '#cc6600',   // campfire base
-  8: '#8b6914',   // hut
-  9: '#3a6688',   // flooded - steel blue
-  10: '#c8a020',  // mineral - gold/amber
-  11: '#2a2018',  // scorched - very dark brown
-  12: '#ddeef5',  // snow - icy blue-white
-  13: '#d9c07a',  // sand - warm desert tan
+  7: '#cc6600',
+  8: '#8b6914',
+  9: '#3a6688',
+  10: '#c8a020',
+  11: '#2a2018',
+  12: '#ddeef5',
+  13: '#d9c07a',
 }
 
 const BIOME_OVERLAYS: Record<number, string> = {
-  0: 'rgba(80,140,60,0.08)',    // grassland
-  1: 'rgba(20,80,20,0.14)',     // forest
-  2: 'rgba(200,160,60,0.28)',   // desert - warm sand tint
-  3: 'rgba(20,100,100,0.10)',   // wetland
-  4: 'rgba(200,230,255,0.10)',  // tundra - subtle cold tint (snow/rock handle the look)
-  5: 'rgba(160,40,20,0.18)',    // volcanic
+  0: 'rgba(80,140,60,0.08)',
+  1: 'rgba(20,80,20,0.14)',
+  2: 'rgba(200,160,60,0.28)',
+  3: 'rgba(20,100,100,0.10)',
+  4: 'rgba(200,230,255,0.10)',
+  5: 'rgba(160,40,20,0.18)',
 }
 
-// ── Pre-computed pixel-level lookup tables (avoid CSS parsing per tile) ───────
 function orgVariant(id: string): { hueShift: number; accent: string; bodyRadius: number; hairColor: string } {
   let h = 2166136261
   for (let i = 0; i < id.length; i++) { h ^= id.charCodeAt(i); h = Math.imul(h, 16777619) }
@@ -62,15 +61,12 @@ function parseRgbaStr(s: string): [number, number, number, number] {
   return [+m[0], +m[1], +m[2], +m[3]]
 }
 
-// tile_id → [r, g, b]
 const TILE_RGB: Record<number, [number,number,number]> =
   Object.fromEntries(Object.entries(TILE_COLORS).map(([k,v]) => [+k, parseHex(v)]))
 
-// biome_id → [r, g, b, a(0-1)]
 const BIOME_RGBA: Record<number, [number,number,number,number]> =
   Object.fromEntries(Object.entries(BIOME_OVERLAYS).map(([k,v]) => [+k, parseRgbaStr(v)]))
 
-// Module-level reusable ImageData buffer - allocate once, write every frame
 let _imgBuf: ImageData | null = null
 let _baseCanvas: HTMLCanvasElement | null = null
 let _baseKey: {
@@ -130,26 +126,19 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
 
   const imgData = getReuseImgData(W, H)
   const d = imgData.data
-  // Per-tile variation amplitude. Higher = more texture noise inside
-  // a single tile so the map doesn't read as flat colour blocks.
-  // Water stays subtle (would look noisy/ugly), sand/dirt/rock get
-  // the most jitter because real-world equivalents have grain.
   const varAmtFor = (tid: number): number => {
-    if (tid === 2 || tid === 9) return 4    // water - calm
-    if (tid === 1 || tid === 3) return 13   // grass / food
-    if (tid === 5) return 17                // rock
-    if (tid === 6) return 19                // dirt
-    if (tid === 12) return 7                // snow
-    if (tid === 13) return 15               // sand
+    if (tid === 2 || tid === 9) return 4
+    if (tid === 1 || tid === 3) return 13
+    if (tid === 5) return 17
+    if (tid === 6) return 19
+    if (tid === 12) return 7
+    if (tid === 13) return 15
     return 9
   }
   for (let row = 0; row < height; row++) {
     const tileRow  = tiles[row]
     const biomeRow = biomes?.[row]
     const depthRow = depth_map?.[row]
-    // For sun-angle shading: brighten land tiles whose west/north
-    // neighbours are water (gives a fake "elevated bank" feel along
-    // coastlines). Computed once per tile, cheap.
     const tileRowPrev = row > 0 ? tiles[row - 1] : undefined
     for (let col = 0; col < width; col++) {
       const tid = tileRow?.[col] ?? 0
@@ -180,8 +169,6 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
         }
       }
 
-      // Coastal shading: land tile with water neighbour to NW gets +6
-      // brightness (sun-from-NW convention). Skips water itself.
       let shading = 0
       if (tid !== 2 && tid !== 9) {
         const w = col > 0 ? tileRow?.[col - 1] : undefined
@@ -196,7 +183,6 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
         let pi = (gy * W + bx) * 4
         for (let tx = 0; tx < TILE; tx++, pi += 4) {
           const gx = bx + tx
-          // Cheap integer hash → per-pixel jitter in [-1, 1) * varAmt.
           let h = (gx * 374761393 + gy * 668265263) | 0
           h = ((h ^ (h >>> 13)) * 1274126177) | 0
           const k = ((((h >>> 0) & 0xff) - 128) * varAmt) >> 7
@@ -247,7 +233,6 @@ const THOUGHT_COLORS: Record<string, string> = {
   gathering:               '#c8a050',
   building:                '#ffcc44',
   'building shelter':      '#ffd700',
-  // ── New action thoughts ─────────────────────────────────────────
   'digging for water':     '#3a9bd4',
   'digging in the sand':   '#d9c07a',
   'struck water':          '#33ddff',
@@ -270,16 +255,6 @@ const THOUGHT_COLORS: Record<string, string> = {
   'marking the homeland':  '#e8b050',
 }
 
-/**
- * Draw a cloud. Each cloud is a stack of ~10 radial-gradient puffs of
- * varying size, deterministically jittered by `bumpSeed` so a given
- * cloud index always looks the same shape but every cloud differs.
- *
- * Radial gradients give a soft falloff at the puff edges so the
- * silhouette reads as a wispy mass rather than a row of circles. The
- * gradient peaks below the centre (cloud-bottoms are typically the
- * flattest, brightest part).
- */
 function drawCloudShape(
   ctx: CanvasRenderingContext2D,
   cx: number, cy: number,
@@ -288,8 +263,6 @@ function drawCloudShape(
   color: string,
   bumpSeed: number,
 ) {
-  // Cheap deterministic PRNG keyed off the bump seed. Same cloud index
-  // -> same shape every frame, so the silhouette doesn't shimmer.
   let state = (bumpSeed | 0) || 1
   const rand = () => {
     state = (state * 1664525 + 1013904223) | 0
@@ -308,15 +281,12 @@ function drawCloudShape(
     ctx.fill()
   }
 
-  // One big anchor puff that defines the silhouette's flat bottom.
   drawPuff(cx, cy + cloudH * 0.15, Math.max(cloudW, cloudH) * 0.85, alpha * 0.9)
 
-  // ~8-12 smaller puffs scattered along the top edge. Sizes weighted so
-  // the centre tends to bulge taller than the edges, mimicking cumulus.
   const nPuffs = 8 + Math.floor(rand() * 5)
   for (let p = 0; p < nPuffs; p++) {
-    const t = p / (nPuffs - 1)                       // 0..1 across width
-    const edgeBias = 1 - Math.abs(t - 0.5) * 1.6     // 1 in centre, ~0.2 at edges
+    const t = p / (nPuffs - 1)
+    const edgeBias = 1 - Math.abs(t - 0.5) * 1.6
     const px = cx + (t - 0.5) * cloudW * 1.55 + (rand() - 0.5) * cloudW * 0.25
     const py = cy - cloudH * (0.05 + rand() * 0.5 * edgeBias)
     const pr = cloudH * (0.45 + rand() * 0.55 * edgeBias)
@@ -341,14 +311,9 @@ function drawTrees(
 
   const TREE_SIZE = 16
 
-  // Poisson-disc-style placement. Each candidate tile that passes the
-  // probability roll is rejected if any tree already lives within
-  // min_spacing tiles. Result: organic clusters with empty meadows
-  // between them, instead of a uniform-noise blanket.
   const placed: Uint8Array = new Uint8Array(width * height)
   const order: number[] = []
   for (let i = 0; i < width * height; i++) order.push(i)
-  // Hash-shuffle the order so nearby tiles aren't consistently winning
   for (let i = order.length - 1; i > 0; i--) {
     const r = (i * 2654435761) >>> 0
     const j = r % (i + 1)
@@ -429,9 +394,8 @@ function drawClouds(
 
   ctx.save()
   for (let i = 0; i < count; i++) {
-    const seed   = (i + 1) * 137          // integer seed - avoids float-modulo always hitting 0
+    const seed   = (i + 1) * 137
     const baseX  = ((seed * 73)  % 1000) / 1000 * W
-    // Spread clouds across full height; storm clouds skew lower (more coverage)
     const baseY  = isStorm
       ? (((seed * 41)  % 750)  / 750  * 0.75 + 0.10) * H
       : (((seed * 41)  % 600)  / 600  * 0.60 + 0.05) * H
@@ -440,13 +404,11 @@ function drawClouds(
     const cy     = baseY
 
     const cloudW = W * (0.09 + (i % 4) * 0.055)
-    const cloudH = cloudW * (0.28 + (i % 3) * 0.07)   // flatter than a circle
-    // vary alpha slightly per cloud so they don't all look identical
+    const cloudH = cloudW * (0.28 + (i % 3) * 0.07)
     const alpha  = baseAlpha * (0.75 + 0.25 * ((i * 13 + 7) % 10) / 10)
 
     drawCloudShape(ctx, cx, cy, cloudW, cloudH, alpha, color, i * 7 + 3)
 
-    // Storm: add a second darker underlayer for depth
     if (isStorm) {
       drawCloudShape(ctx, cx + cloudW * 0.08, cy + cloudH * 0.25,
         cloudW * 0.88, cloudH * 0.70,
@@ -456,12 +418,6 @@ function drawClouds(
   ctx.restore()
 }
 
-// ViewFlags type is imported from the store so canvas + dropdown stay
-// in sync. New experiment flags (slowMo, fastMo, ...) light up here
-// automatically when added to the store.
-
-// FPS overlay state. Module-level so it survives between draw calls -
-// drawWorldOnCanvas is a free function, not a hook.
 const fpsSamples: number[] = []
 
 function drawWorldOnCanvas(
@@ -474,7 +430,6 @@ function drawWorldOnCanvas(
 ) {
   const { width, height, tiles, fire_intensity, structure } = world.grid
   const { food_trail, water_trail, path_trail, fertility, hazard } = world.grid
-  // Tiles arrive on tick 0 and every 5th tick - skip this frame if not yet received
   if (!tiles || tiles.length < height) return
   const ox = world.grid.origin_x ?? 0
   const oy = world.grid.origin_y ?? 0
@@ -488,7 +443,6 @@ function drawWorldOnCanvas(
   if (!base) return
   ctx.drawImage(base, 0, 0)
 
-  // Season sky tint (thin transparent pass over the already-drawn tiles)
   const seasonTints: Record<string, string> = {
     decline:  'rgba(180,110,30,0.07)',
     scarcity: 'rgba(90,60,30,0.11)',
@@ -497,11 +451,10 @@ function drawWorldOnCanvas(
   const skyTint = seasonTints[world.season]
   if (skyTint) { ctx.fillStyle = skyTint; ctx.fillRect(0, 0, W, H) }
 
-  // Subtle day/night/twilight wash that scrolls with time.
   {
     const dp = world.day_progress ?? 0.5
     if (!world.is_day) {
-      const mid = 1 - Math.abs(dp - 0.85) * 4          // peak ~deep night
+      const mid = 1 - Math.abs(dp - 0.85) * 4
       ctx.fillStyle = `rgba(20,28,70,${0.10 + Math.max(0, mid) * 0.06})`
       ctx.fillRect(0, 0, W, H)
     } else if (dp < 0.10) {
@@ -513,8 +466,6 @@ function drawWorldOnCanvas(
     }
   }
 
-  // Weather wash + precipitation. Intensity tapers in/out server-side so
-  // the visual fades cleanly between storm -> rain -> wet -> clear.
   if (world.weather && world.weather.kind !== 'clear') {
     const wi = Math.max(0, Math.min(1, world.weather.intensity ?? 0))
     const kind = world.weather.kind
@@ -525,7 +476,6 @@ function drawWorldOnCanvas(
       ctx.fillStyle = `rgba(70,90,130,${0.04 + wi * 0.06})`
       ctx.fillRect(0, 0, W, H)
     } else {
-      // wet aftermath - subtle damp ground darken, no precipitation
       ctx.fillStyle = 'rgba(35,45,60,0.07)'
       ctx.fillRect(0, 0, W, H)
     }
@@ -547,12 +497,6 @@ function drawWorldOnCanvas(
     }
   }
 
-  // ── Pass 1.5: Water glints + shoreline foam ───────────────────────
-  // Sparse animated highlights over water tiles so the sea doesn't
-  // read as a flat blue field. Stable per-cell positions (hash-based)
-  // wink on/off via a sin keyed on (cell hash + time), giving the
-  // impression of moving sun-spots on swells without redrawing the
-  // whole base layer.
   if (!world.is_day || (world.day_progress ?? 0) > 0.05) {
     const tt = t * 0.001
     ctx.fillStyle = world.is_day
@@ -563,7 +507,6 @@ function drawWorldOnCanvas(
       if (!drow) continue
       for (let col = 0; col < width; col += 2) {
         if ((drow[col] ?? 255) >= 254) continue
-        // Stable per-cell hash for phase + brightness gate.
         let h = (col * 374761393 + row * 668265263) | 0
         h = ((h ^ (h >>> 13)) * 1274126177) >>> 0
         const phase = (h & 0xff) / 255 * Math.PI * 2
@@ -576,9 +519,6 @@ function drawWorldOnCanvas(
     }
   }
 
-  // Shoreline foam: thin white stroke along water-land boundaries
-  // (any water tile that has at least one land neighbour). Lightweight
-  // since coastline tiles are a small fraction of the world.
   {
     const dm = world.grid.depth_map
     if (dm) {
@@ -588,15 +528,13 @@ function drawWorldOnCanvas(
         if (!drow) continue
         for (let col = 1; col < width - 1; col++) {
           if ((drow[col] ?? 255) >= 254) continue
-          // Water tile - check 4-neighbour land.
           const n  = dm[row - 1]?.[col]     ?? 255
           const s  = dm[row + 1]?.[col]     ?? 255
           const e  = drow[col + 1]          ?? 255
           const w  = drow[col - 1]          ?? 255
-          if (n < 254 && s < 254 && e < 254 && w < 254) continue   // not coastline
+          if (n < 254 && s < 254 && e < 254 && w < 254) continue
           const px = col * TILE
           const py = row * TILE
-          // 1-px white band on the side adjacent to land.
           if (n >= 254) ctx.fillRect(px, py,           TILE, 1)
           if (s >= 254) ctx.fillRect(px, py + TILE - 1, TILE, 1)
           if (e >= 254) ctx.fillRect(px + TILE - 1, py, 1, TILE)
@@ -606,23 +544,19 @@ function drawWorldOnCanvas(
     }
   }
 
-  // ── Pass 2: Special tile visuals (fire glow, campfires, huts) ───────────────
-  // Only iterates tiles that need extra rendering - typically <1% of tiles.
   for (let row = 0; row < height; row++) {
     for (let col = 0; col < width; col++) {
       const t = tiles[row][col]
-      if (t !== 4 && t !== 7 && t !== 8) continue  // skip 99%+ of tiles
+      if (t !== 4 && t !== 7 && t !== 8) continue
       const px = col * TILE
       const py = row * TILE
 
-      // Fire glow
       if (t === 4 && fire_intensity) {
         const fi = fire_intensity[row][col]
         ctx.fillStyle = `rgba(255,120,0,${fi * 0.55})`
         ctx.fillRect(px, py, TILE, TILE)
       }
 
-      // Campfire - warm amber glow + halo on neighboring tiles
       if (t === 7 && fire_intensity) {
         const fi = fire_intensity[row][col]
         ctx.fillStyle = `rgba(255,200,80,${fi * 0.7})`
@@ -630,14 +564,12 @@ function drawWorldOnCanvas(
         ctx.fillStyle = `rgba(255,160,40,${fi * 0.12})`
         ctx.fillRect(px - TILE * 2, py - TILE * 2, TILE * 5, TILE * 5)
         if (TILE >= 8) {
-          // detailed flame symbol only worth drawing at larger tile sizes
           const cx2 = px + TILE / 2
           ctx.fillStyle = `rgba(255,80,0,${fi * 0.6})`
           ctx.beginPath(); ctx.arc(cx2, py + TILE * 0.4, TILE * 0.18, 0, Math.PI * 2); ctx.fill()
         }
       }
 
-      // Hut - flat fill at small TILE, detailed at large TILE
       if (t === 8) {
         ctx.fillStyle = 'rgba(255,220,120,0.18)'
         ctx.fillRect(px - TILE, py - TILE, TILE * 3, TILE * 3)
@@ -655,7 +587,6 @@ function drawWorldOnCanvas(
           ctx.fillStyle = '#3a1a00'
           ctx.fillRect(cx2 - 1, py + TILE * 0.7, 3, TILE * 0.3 - 1)
         } else {
-          // simple hut mark - bright spot
           ctx.fillStyle = '#c8a060'
           ctx.fillRect(px, py, TILE, TILE)
         }
@@ -663,19 +594,17 @@ function drawWorldOnCanvas(
     }
   }
 
-  // Structure tier overlay - renders progressive building stages below the Hut tile level
   if (structure) {
     for (let row = 0; row < height; row++) {
       for (let col = 0; col < width; col++) {
         const s = structure[row][col]
         if (s < 0.05) continue
         const t = tiles[row][col]
-        if (t === 8) continue  // Hut tile already drawn above
+        if (t === 8) continue
         const px = col * TILE
         const py = row * TILE
         const alpha = Math.min(0.95, 0.4 + s * 0.55)
         if (TILE >= 8) {
-          // Detailed sub-tile drawing - only worth it at larger tile sizes
           const cx2 = px + TILE / 2
           if (s >= 0.70) {
             ctx.fillStyle = `rgba(120,90,60,${0.6 + s * 0.3})`
@@ -699,7 +628,6 @@ function drawWorldOnCanvas(
             ctx.fillRect(px + 1, py + TILE * 0.6, TILE - 2, TILE * 0.35)
           }
         } else {
-          // Small TILE: flat tint scaled by construction progress
           const r = s >= 0.70 ? 120 : s >= 0.35 ? 100 : 130
           const g = s >= 0.70 ? 90  : s >= 0.35 ? 65  : 95
           const b = s >= 0.70 ? 60  : s >= 0.35 ? 30  : 45
@@ -710,11 +638,6 @@ function drawWorldOnCanvas(
     }
   }
 
-  // ── Heatmap overlays ────────────────────────────────────────────────────
-  // Mutually exclusive (single-value `overlay` state). Each branch paints
-  // a per-tile coloured fill over the base layer. Data sources noted.
-
-  // hazard: red glow on combat/death tiles (world.grid.hazard, 0..1)
   if (overlay === 'hazard' && world.grid.hazard) {
     const haz = world.grid.hazard
     for (let row = 0; row < height; row++) {
@@ -729,8 +652,6 @@ function drawWorldOnCanvas(
     }
   }
 
-  // fertility: green where soil is fertile, fades to nothing on bare
-  // ground (world.grid.fertility, 0..1)
   if (overlay === 'fertility' && world.grid.fertility) {
     const fer = world.grid.fertility
     for (let row = 0; row < height; row++) {
@@ -745,7 +666,6 @@ function drawWorldOnCanvas(
     }
   }
 
-  // structures: amber density of huts/totems/forts (world.grid.structure, 0..1)
   if (overlay === 'structures' && world.grid.structure) {
     const str = world.grid.structure
     for (let row = 0; row < height; row++) {
@@ -760,7 +680,6 @@ function drawWorldOnCanvas(
     }
   }
 
-  // trails: blended food (yellow) + water (blue) + path (green) stigmergy
   if (overlay === 'trails') {
     const ft = world.grid.food_trail
     const wt = world.grid.water_trail
@@ -774,7 +693,6 @@ function drawWorldOnCanvas(
         const w = wr?.[col] ?? 0
         const p = pr?.[col] ?? 0
         if (f < 0.05 && w < 0.05 && p < 0.05) continue
-        // Mix by channel - lets co-located trails read as their blend.
         const r = Math.round(255 * f + 70 * w + 40 * p)
         const g = Math.round(200 * f + 130 * w + 200 * p)
         const b = Math.round(40 * f + 220 * w + 70 * p)
@@ -785,7 +703,6 @@ function drawWorldOnCanvas(
     }
   }
 
-  // age: per-tile mean organism age, mapped onto a red gradient (older = redder)
   if (overlay === 'age') {
     const sum: number[][] = Array.from({ length: height }, () => new Array(width).fill(0))
     const cnt: number[][] = Array.from({ length: height }, () => new Array(width).fill(0))
@@ -793,7 +710,6 @@ function drawWorldOnCanvas(
       if (!org.alive) continue
       const tx = Math.round(org.x - ox), ty = Math.round(org.y - oy)
       if (tx < 0 || ty < 0 || tx >= width || ty >= height) continue
-      // Splat into a 3x3 block so we get a smoothed field.
       for (let dy = -1; dy <= 1; dy++) {
         for (let dx = -1; dx <= 1; dx++) {
           const nx = tx + dx, ny = ty + dy
@@ -803,7 +719,6 @@ function drawWorldOnCanvas(
         }
       }
     }
-    // Normalise. Map age 0 → cyan, 600 (1 day) → green, 3000 (5 days, ~elder) → red.
     for (let row = 0; row < height; row++) {
       for (let col = 0; col < width; col++) {
         const c = cnt[row][col]
@@ -819,7 +734,6 @@ function drawWorldOnCanvas(
     }
   }
 
-  // threat: red where organisms feel fearful (fear_level > 0.3 splat)
   if (overlay === 'threat') {
     const heat: number[][] = Array.from({ length: height }, () => new Array(width).fill(0))
     for (const org of organisms) {
@@ -848,9 +762,7 @@ function drawWorldOnCanvas(
     }
   }
 
-  // World memory overlays
   if (overlay === 'density') {
-    // Population density - compute from organism positions (offset to viewport coords)
     const grid2d: number[][] = Array.from({ length: height }, () => new Array(width).fill(0))
     for (const org of organisms) {
       if (!org.alive) continue
@@ -879,8 +791,6 @@ function drawWorldOnCanvas(
     }
   }
 
-  // Territory Voronoi overlay - each coarse block colored by nearest organism's lineage
-  // Only colors land tiles within MAX_DIST tiles of any organism - ocean stays uncolored
   const liveOrgs = organisms.filter(o => o.alive && o.lineage_id)
   if (viewFlags.territory && liveOrgs.length > 0) {
     const BLOCK = 4
@@ -888,7 +798,6 @@ function drawWorldOnCanvas(
     const bw = Math.ceil(width  / BLOCK)
     const bh = Math.ceil(height / BLOCK)
     const orgData = liveOrgs.map(o => {
-      // e.g. "hsl(120, 90%, 75%)" → fill at 40% alpha, border at same hue/sat but 30pts darker
       const hsl = lineageColor(o.lineage_id)
       const dark = hsl.replace(/(\d+)%\)$/, (_, l) => `${Math.max(15, Number(l) - 30)}%, 0.85)`)
         .replace('hsl(', 'hsla(')
@@ -901,7 +810,6 @@ function drawWorldOnCanvas(
       }
     })
 
-    // Pass 1: compute ownership grid
     const ownerLid:    (string | null)[][] = Array.from({ length: bh }, () => new Array(bw).fill(null))
     const ownerFill:   (string | null)[][] = Array.from({ length: bh }, () => new Array(bw).fill(null))
     const ownerBorder: (string | null)[][] = Array.from({ length: bh }, () => new Array(bw).fill(null))
@@ -909,7 +817,7 @@ function drawWorldOnCanvas(
       for (let bx = 0; bx < bw; bx++) {
         const cx2 = bx * BLOCK + BLOCK * 0.5
         const cy2 = by * BLOCK + BLOCK * 0.5
-        if (tiles[Math.floor(cy2)]?.[Math.floor(cx2)] === 2) continue  // skip water
+        if (tiles[Math.floor(cy2)]?.[Math.floor(cx2)] === 2) continue
         let bestLid = '', bestFill = '', bestBorder = '', bestDist = MAX_DIST_SQ
         for (const od of orgData) {
           const d = (od.tx - cx2) ** 2 + (od.ty - cy2) ** 2
@@ -923,7 +831,6 @@ function drawWorldOnCanvas(
       }
     }
 
-    // Pass 2: draw fills
     for (let by = 0; by < bh; by++) {
       for (let bx = 0; bx < bw; bx++) {
         const fill = ownerFill[by][bx]
@@ -933,8 +840,7 @@ function drawWorldOnCanvas(
       }
     }
 
-    // Pass 3: draw darkened border strips using the tribe's own darker shade
-    const BW = 2  // border width in pixels
+    const BW = 2
     for (let by = 0; by < bh; by++) {
       for (let bx = 0; bx < bw; bx++) {
         const lid    = ownerLid[by][bx]
@@ -957,40 +863,21 @@ function drawWorldOnCanvas(
     }
   }
 
-  // Day-to-night transition. Continuous, C^1-smooth over the full
-  // day_progress cycle so dawn/dusk feel like real ramps instead of a
-  // few visible kinks where the piecewise linear curve changed slope.
-  //
-  //   day_progress  visible state
-  //   0.05 - 0.55   bright daytime, no overlay
-  //   0.55 - 0.80   dusk: smoothstep darkness ramp + warm sunset tint
-  //   0.80 - 0.95   deep night
-  //   0.95 - 0.05   dawn: smoothstep darkness ramp out + warm sunrise tint
   {
     const phase = world.day_progress
-    // smoothstep keeps the second derivative continuous so the eye
-    // sees a fade, not a slope change.
     const smoothstep = (t: number) => t * t * (3 - 2 * t)
 
     let darkness = 0
     if (phase >= 0.55 && phase < 0.80) {
-      // Dusk ramp 0 -> 0.85 across 25% of the cycle (~25 ticks at
-      // DAY_LENGTH=100 - perceptible fade, not a snap).
       darkness = 0.85 * smoothstep((phase - 0.55) / 0.25)
     } else if (phase >= 0.80 && phase < 0.95) {
       darkness = 0.85
     } else if (phase >= 0.95) {
-      // Dawn ramp first half (phase 0.95 -> 1.00 = first 5% of 10%-wide
-      // dawn band, value ramps 0.85 -> ~0.43).
       darkness = 0.85 * (1 - smoothstep((phase - 0.95) / 0.10))
     } else if (phase < 0.05) {
-      // Dawn ramp second half (phase 0.00 -> 0.05, value ramps ~0.43 -> 0).
       darkness = 0.85 * (1 - smoothstep((phase + 0.05) / 0.10))
     }
 
-    // Warm tints follow gaussian bells centred on dusk (sunset) and
-    // dawn so the warm glow ramps in/out instead of being a linear
-    // triangle that pops at its edges.
     const gauss = (d: number, sigma: number) =>
       Math.exp(-(d * d) / (2 * sigma * sigma))
 
@@ -1009,16 +896,13 @@ function drawWorldOnCanvas(
     }
   }
 
-  // Weather - clouds + rain streaks
   const weather = world.weather
   drawClouds(ctx, W, H, weather, t)
   if (weather && weather.kind !== 'clear') {
     const isStorm = weather.kind === 'storm'
-    // Tint
     const tintAlpha = weather.intensity * (isStorm ? 0.38 : 0.22)
     ctx.fillStyle = isStorm ? `rgba(18,28,60,${tintAlpha})` : `rgba(45,90,170,${tintAlpha})`
     ctx.fillRect(0, 0, W, H)
-    // Animated rain streaks - offset by time so they fall each frame
     const streakSpacing = isStorm ? 5 : 9
     const streakOpacity = weather.intensity * (isStorm ? 0.75 : 0.50)
     const animOffset    = (t / (isStorm ? 40 : 65)) % streakSpacing
@@ -1034,10 +918,6 @@ function drawWorldOnCanvas(
     ctx.restore()
   }
 
-  // Lineage centroid trails (historical geography). Each tribe gets a thin
-  // colored polyline through its centroid samples over the last ~60 sim-days.
-  // Endpoint dot marks "now". Older samples fade toward transparent so the
-  // eye reads direction of drift without the trail clogging the map.
   if (viewFlags.history && world.lineage_centroid_history) {
     ctx.save()
     ctx.lineWidth = 1.2
@@ -1046,8 +926,6 @@ function drawWorldOnCanvas(
     for (const [lid, samples] of Object.entries(world.lineage_centroid_history)) {
       if (!samples || samples.length < 2) continue
       const hsl = lineageColor(lid)
-      // Draw segment-by-segment with per-segment alpha so the trail fades
-      // from low alpha (oldest) to ~0.85 (most recent).
       for (let i = 1; i < samples.length; i++) {
         const [, x0, y0] = samples[i - 1]
         const [, x1, y1] = samples[i]
@@ -1058,7 +936,6 @@ function drawWorldOnCanvas(
         ctx.lineTo((x1 - ox) * TILE + TILE / 2, (y1 - oy) * TILE + TILE / 2)
         ctx.stroke()
       }
-      // "Now" marker at the most recent sample.
       const [, lx, ly] = samples[samples.length - 1]
       ctx.fillStyle = hsl.replace('hsl(', 'hsla(').replace(')', ', 0.95)')
       ctx.beginPath()
@@ -1068,7 +945,6 @@ function drawWorldOnCanvas(
     ctx.restore()
   }
 
-  // Fertility heatmap - green tint on rich soil, brown on barren
   if (viewFlags.fertility && fertility) {
     ctx.save()
     for (let row = 0; row < height; row++) {
@@ -1089,7 +965,6 @@ function drawWorldOnCanvas(
     ctx.restore()
   }
 
-  // Hazard scars - red tint where combat / death has happened
   if (viewFlags.hazard && hazard) {
     ctx.save()
     for (let row = 0; row < height; row++) {
@@ -1105,8 +980,6 @@ function drawWorldOnCanvas(
     ctx.restore()
   }
 
-  // Trails - food (yellow), water (blue), path (white). Stacked
-  // additively at low alpha so multi-use corridors light up.
   if (viewFlags.trails && (food_trail || water_trail || path_trail)) {
     ctx.save()
     for (let row = 0; row < height; row++) {
@@ -1132,7 +1005,6 @@ function drawWorldOnCanvas(
     ctx.restore()
   }
 
-  // Structure highlight: ring every tile with non-zero structure
   if (viewFlags.structures && structure) {
     ctx.save()
     ctx.strokeStyle = 'rgba(255,210,140,0.7)'
@@ -1149,8 +1021,6 @@ function drawWorldOnCanvas(
     ctx.restore()
   }
 
-  // Partner bond lines: a soft pink line between each org and its partner
-  // when both are in viewport. Use a Map for O(1) partner lookup.
   if (viewFlags.partners) {
     const byId = new Map(organisms.filter(o => o.alive).map(o => [o.id, o]))
     ctx.save()
@@ -1158,7 +1028,6 @@ function drawWorldOnCanvas(
     ctx.lineWidth = 1
     for (const org of organisms) {
       if (!org.alive || !org.partner_id) continue
-      // Only draw each bond once (lexicographic order on id)
       if (org.id >= org.partner_id) continue
       const partner = byId.get(org.partner_id)
       if (!partner || !partner.alive) continue
@@ -1174,17 +1043,12 @@ function drawWorldOnCanvas(
     ctx.restore()
   }
 
-  // Draw animals (under organisms)
   for (const animal of (viewFlags.animals ? animals : [])) {
     const px = (animal.x - ox) * TILE
     const py = (animal.y - oy) * TILE
     const tile = pickAnimalTile(animal.kind, animal.id)
     const aSize = animal.kind === 'fish' ? 10 : 14
     const yBase = animal.kind === 'fish' ? -1 : -3
-    // Procedural bob: sine wave keyed off time + id hash so each sprite
-    // bobs at a slightly different phase, giving the herd a living feel
-    // without per-entity ECS overhead. Fish bob more (water motion),
-    // dogs/wolves/birds bob faster.
     const speed   = animal.kind === 'fish' ? 0.0028
                   : animal.kind === 'bird' ? 0.0050
                   : animal.kind === 'wolf' || animal.kind === 'dog' ? 0.0042
@@ -1207,7 +1071,6 @@ function drawWorldOnCanvas(
     }
   }
 
-  // Focus filter helper
   const isFocused = (org: WorldState['organisms'][0]) => {
     if (focus === 'all') return true
     if (focus === 'sick')     return org.infection > 0.15
@@ -1218,7 +1081,6 @@ function drawWorldOnCanvas(
     return true
   }
 
-  // Draw organisms (translate world coords to viewport canvas coords)
   for (const org of organisms) {
     if (!org.alive) continue
     const px = (org.x - ox) * TILE + TILE / 2
@@ -1226,13 +1088,11 @@ function drawWorldOnCanvas(
     const focused = isFocused(org)
     ctx.globalAlpha = focused ? 1 : 0.12
 
-    // Drop shadow
     ctx.fillStyle = 'rgba(0,0,0,0.4)'
     ctx.beginPath()
     ctx.ellipse(px + 1, py + 3, 5, 3, 0, 0, Math.PI * 2)
     ctx.fill()
 
-    // Signal / combat ring
     const isSignaling = org.thought.startsWith('"') || org.thought.startsWith("'")
     if (isSignaling || org.thought === 'sounding alarm') {
       ctx.strokeStyle = (org.thought.includes('!') || org.thought === 'sounding alarm')
@@ -1248,14 +1108,12 @@ function drawWorldOnCanvas(
       ctx.closePath(); ctx.stroke()
     }
 
-    // Infection aura
     if (org.infection > 0.15) {
       ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI * 2)
       ctx.fillStyle = `rgba(187,255,68,${org.infection * 0.3})`
       ctx.fill()
     }
 
-    // Elder ring - oldest member of their lineage
     if (org.is_elder) {
       ctx.strokeStyle = 'rgba(255,220,80,0.85)'
       ctx.lineWidth = 1.5
@@ -1264,7 +1122,6 @@ function drawWorldOnCanvas(
       ctx.setLineDash([])
     }
 
-    // Selection ring
     if (org.id === selectedOrgId) {
       ctx.strokeStyle = 'rgba(255,255,255,0.9)'
       ctx.lineWidth = 1.5
@@ -1273,14 +1130,12 @@ function drawWorldOnCanvas(
       ctx.setLineDash([])
     }
 
-    // Lineage ring
     if (org.lineage_id) {
       ctx.strokeStyle = lineageColor(org.lineage_id)
       ctx.lineWidth = org.traits ? 1 + org.traits.resilience * 2 : 2
       ctx.beginPath(); ctx.arc(px, py, 7, 0, Math.PI * 2); ctx.stroke()
     }
 
-    // Carrying indicator - brown (wood) or gray (stone) square above body
     if (org.carrying > 0) {
       ctx.fillStyle = org.carrying_type === 2 ? '#9a9a9a' : '#8b5e3c'
       ctx.fillRect(px - 3, py - 13, 6, 4)
@@ -1289,9 +1144,6 @@ function drawWorldOnCanvas(
     const variant = orgVariant(org.id)
     const bodyR = variant.bodyRadius * (org.sex === 'male' ? 1.05 : 0.95)
 
-    // Body color: by default use the thought-derived palette. Health
-    // overlay tints toward red when health drops; fully overrides only
-    // when the toggle is on so default look is preserved.
     let bodyFill = THOUGHT_COLORS[org.thought] ?? '#cccccc'
     if (viewFlags.health) {
       const h = Math.max(0, Math.min(1, org.health))
@@ -1300,7 +1152,6 @@ function drawWorldOnCanvas(
       const b = Math.round( 80 * (1 - h) + 100 * h)
       bodyFill = `rgb(${r},${g},${b})`
     } else if (viewFlags.age) {
-      // child (<900) → soft blue, adult → neutral, elder (is_elder) → gold
       if (org.is_elder) bodyFill = '#e9c87a'
       else if (org.age < 900) bodyFill = '#8db5d6'
       else bodyFill = '#b8b8a8'
@@ -1308,7 +1159,6 @@ function drawWorldOnCanvas(
     ctx.fillStyle = bodyFill
     ctx.beginPath(); ctx.arc(px, py, bodyR, 0, Math.PI * 2); ctx.fill()
 
-    // Fear halo
     if (viewFlags.fear && (org.fear_level ?? 0) > 0.25) {
       const fa = Math.min(0.55, (org.fear_level ?? 0) * 0.8)
       ctx.beginPath(); ctx.arc(px, py, bodyR + 4, 0, Math.PI * 2)
@@ -1316,13 +1166,11 @@ function drawWorldOnCanvas(
       ctx.fill()
     }
 
-    // Lineage dot (tiny solid dot inside the body)
     if (viewFlags.lineageDot && org.lineage_id) {
       ctx.fillStyle = lineageColor(org.lineage_id)
       ctx.beginPath(); ctx.arc(px, py + bodyR * 0.4, 1.6, 0, Math.PI * 2); ctx.fill()
     }
 
-    // Pregnancy marker - gold ring
     if (viewFlags.pregnancy && org.pregnant) {
       ctx.strokeStyle = 'rgba(255,220,120,0.9)'
       ctx.lineWidth = 1.3
@@ -1337,7 +1185,6 @@ function drawWorldOnCanvas(
     ctx.fillStyle = variant.accent
     ctx.fillRect(px - bodyR * 0.7, py + bodyR * 0.15, bodyR * 1.4, 1.4)
 
-    // Energy + hydration bars
     const barW = TILE - 2
     const bx = (org.x - ox) * TILE + 1
     const by = (org.y - oy) * TILE
@@ -1346,17 +1193,10 @@ function drawWorldOnCanvas(
     ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(bx, by - 2, barW, 2)
     ctx.fillStyle = '#4499ff';          ctx.fillRect(bx, by - 2, barW * org.hydration, 2)
 
-    // Labels: by default only the selected organism shows name + thought.
-    // The viewFlags toggles become "force all on" for power users — they
-    // were spamming the entire map with overlapping text otherwise.
     const isSelected = org.id === selectedOrgId
     const showName    = isSelected || viewFlags.names
     const showThought = (isSelected || viewFlags.thoughts) && org.thought && org.thought !== 'observing'
 
-    // Text on the world canvas needs a dark stroke under it so it stays
-    // readable over light tiles (sand, dirt, hut, scorched). Without
-    // this, white org names disappear into the brown desert and light
-    // blue thoughts wash out on grass.
     if (showName) {
       ctx.font = isSelected ? 'bold 10px monospace' : '9px monospace'
       ctx.textAlign = 'center'
@@ -1379,8 +1219,6 @@ function drawWorldOnCanvas(
   }
   ctx.globalAlpha = 1
 
-  // FPS / frame-timing overlay (top-right of canvas). Module-level
-  // sliding-window keyed off the `t` arg the draw fn already receives.
   if (viewFlags.fps) {
     fpsSamples.push(t)
     if (fpsSamples.length > 60) fpsSamples.shift()
@@ -1402,7 +1240,6 @@ function drawWorldOnCanvas(
     ctx.restore()
   }
 
-  // Grid lines (optional)
   if (viewFlags.grid) {
     ctx.strokeStyle = 'rgba(255,255,255,0.06)'
     ctx.lineWidth = 0.5
@@ -1414,12 +1251,6 @@ function drawWorldOnCanvas(
     }
   }
 }
-
-// World map sprite — uses Cubeforge's official useDynamicCanvas hook so the
-// engine owns the WebGL texture lifecycle (tab-visibility recovery, context
-// loss, LRU). Replaces the older code that reached into rs.textures /
-// rs.touchTexture directly. The RAF loop draws the world to the dynamic
-// canvas's 2D context and calls markDirty() — Cubeforge handles the upload.
 
 function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, onFirstDraw, atX, atY }: { world: WorldState; interp?: InterpRefs; selectedOrgId: string | null; overlay: string | null; focus: string; viewFlags: ViewFlags; onFirstDraw: () => void; atX: number; atY: number }) {
   useEntity()
@@ -1433,8 +1264,6 @@ function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, 
   const cachedBiomes = useRef<number[][] | null>(null)
   const filledOnce   = useRef(false)
 
-  // Pre-fill once with ocean blue so the first composited frame from
-  // Cubeforge isn't a transparent canvas / random GPU memory.
   useLayoutEffect(() => {
     if (filledOnce.current) return
     dyn.ctx.fillStyle = '#1a4a80'
@@ -1477,24 +1306,11 @@ function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, 
       const curServerAt   = interp.currentServerAt.current
       const prevServerAt  = interp.prevServerAt.current
       const currentReceivedAt = interp.currentReceivedAt.current
-      // slowMo / fastMo experiment: stretch / compress the
-      // interpolation window so motion crawls (2×) or sprints (0.5×).
-      // Server clock isn't touched - only the client lerp rate.
       const slowMo = viewFlagsRef.current.slowMo
       const fastMo = viewFlagsRef.current.fastMo
       const speedDiv = slowMo ? 0.5 : fastMo ? 2.0 : 1.0
       const interval = Math.max(50, curServerAt - prevServerAt) / speedDiv
-      // Render-lag buffer: lag behind real time by half the network
-      // interval. Absorbs packet jitter into the interpolation window.
       const RENDER_LAG_MS = Math.min(120, interval * 0.5)
-      // Client-side prediction (dead reckoning). When we've crossed
-      // t=1 the next packet hasn't arrived yet. Instead of pausing at
-      // the last-known position, keep moving in the prev->cur
-      // direction. Capped at t=2 (one full broadcast interval beyond)
-      // so the prediction can't run away on direction changes; the
-      // worst-case snap when the real packet lands is one extra
-      // tick's worth of motion. Same lerp math (p + (o - p) * t)
-      // already extrapolates linearly when t > 1.
       const PREDICT_CAP = 2.0
       const t = (cur && prev && interval > 0)
         ? Math.max(0, Math.min(PREDICT_CAP, (performance.now() - currentReceivedAt - RENDER_LAG_MS) / interval))
@@ -1504,10 +1320,6 @@ function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, 
       const settled = t >= PREDICT_CAP && lastDrawnT >= PREDICT_CAP && curServerAt === lastDrawnAt && uiKey === lastDrawnUI
       if (settled) return
 
-      // Same lerp formula handles both regular interpolation (t in
-      // [0, 1]) and prediction beyond (t in (1, PREDICT_CAP]).
-      // Linear extrapolation past t=1 keeps organisms moving in their
-      // last-known direction when packets are late.
       let renderOrgs = w.viewport_organisms ?? w.organisms
       if (prev && cur === w) {
         const prevOrgs = prev.viewport_organisms ?? prev.organisms
@@ -1531,9 +1343,6 @@ function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, 
         })
       }
 
-      // Cyclic scalars (day_progress, season_progress). Lerp covers
-      // wrap-around at 1.0 -> 0.0. For prediction beyond t=1 we keep
-      // advancing the cycle; modulo at the end keeps it in [0, 1).
       const lerpCycle = (a: number, b: number, k: number) => {
         let diff = b - a
         if (diff >  0.5) diff -= 1
@@ -1599,10 +1408,6 @@ function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, 
   )
 }
 
-// ── CameraController ──────────────────────────────────────────────────────────
-// Must be inside <Game>. Handles mouse drag (pan) and scroll wheel (zoom).
-// containerEl: the outer div - wheel/pointerdown scoped to it so sidebar scrolls freely.
-
 function CameraController({
   worldW, worldH, containerW, containerH,
   containerEl, cameraStateRef, followTarget,
@@ -1618,17 +1423,12 @@ function CameraController({
   const camera = useCamera()
   const drag = useRef({ active: false, startPX: 0, startPY: 0, startCamX: 0, startCamY: 0 })
   const initialised = useRef(false)
-  // Dynamic min zoom: never let the world shrink smaller than ~85% of "fit to screen"
   const minZoom = Math.min(containerW / worldW, containerH / worldH) * 0.85
 
-  // cubeforge's Camera2D isn't wired to the engine until after its first tick,
-  // so setPosition called synchronously in useLayoutEffect lands on a stub.
-  // We retry every animation frame until the camera actually moves to the target.
   useEffect(() => {
     if (initialised.current) return
     const tx = worldW / 2
     const ty = worldH / 2
-    // Fit world to container - start at fit zoom, never below dynamic min
     const fitZoom = Math.max(minZoom, Math.min(containerW / worldW, containerH / worldH) * 0.95)
     let raf = 0
     const trySet = () => {
@@ -1647,12 +1447,10 @@ function CameraController({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Follow a target organism - pan to it AND zoom in so it fills the view
   const prevFollowRef = useRef<{ x: number; y: number } | null>(null)
   useEffect(() => {
     if (!followTarget) return
     const prev = prevFollowRef.current
-    // Zoom in when we first lock onto a new target (position changed significantly)
     const isNewTarget = !prev
       || Math.abs(prev.x - followTarget.x) > 30
       || Math.abs(prev.y - followTarget.y) > 30
@@ -1660,7 +1458,6 @@ function CameraController({
     cameraStateRef.current.x = followTarget.x
     cameraStateRef.current.y = followTarget.y
     if (isNewTarget) {
-      // Zoom to a comfortable close-up level (3.5× = clearly individual organism)
       const TRACK_ZOOM = 3.5
       camera.setZoom(TRACK_ZOOM)
       cameraStateRef.current.zoom = TRACK_ZOOM
@@ -1671,10 +1468,6 @@ function CameraController({
   useEffect(() => {
     if (!containerEl) return
 
-    // Clamp camera center so the world always stays in view.
-    // When fully zoomed out (world fits inside viewport) no clamping is needed -
-    // the world is always visible regardless of camera position.
-    // When zoomed in, keep the viewport from crossing world edges.
     const clamp = (x: number, y: number, zoom: number) => {
       const halfW = containerW / (2 * zoom)
       const halfH = containerH / (2 * zoom)
@@ -1710,7 +1503,6 @@ function CameraController({
       const nz = Math.max(minZoom, Math.min(8, camera.getZoom() * factor))
       camera.setZoom(nz)
       cameraStateRef.current.zoom = nz
-      // Re-clamp position since valid range changes with zoom
       const pos = camera.getPosition()
       const { x, y } = clamp(pos.x, pos.y, nz)
       camera.setPosition(x, y)
@@ -1756,15 +1548,12 @@ function CameraController({
   return null
 }
 
-// ── WorldView ─────────────────────────────────────────────────────────────────
-
 interface Props {
   world: WorldState
   interp?: InterpRefs
 }
 
 export function WorldView({ world, interp }: Props) {
-  // Read UI state from the global store. No prop drilling.
   const selectedOrgId = useUIStore(s => s.selectedOrgId)
   const followOrgId   = useUIStore(s => s.followOrgId)
   const overlay       = useUIStore(s => s.overlay)
@@ -1776,18 +1565,14 @@ export function WorldView({ world, interp }: Props) {
   const cx = W / 2
   const cy = H / 2
 
-  // World-space origin of the current viewport tile window
   const ox = world.grid.origin_x ?? 0
   const oy = world.grid.origin_y ?? 0
 
   const containerRef   = useRef<HTMLDivElement>(null)
   const cameraStateRef = useRef({ x: cx, y: cy, zoom: 1.5 })
   const [dims, setDims] = useState({ w: 0, h: 0 })
-  // Hide the game canvas behind a solid overlay until the first world draw lands,
-  // preventing the green Cubeforge placeholder from flashing on load.
   const [mapReady, setMapReady] = useState(false)
 
-  // Follow target: canvas pixel coords (viewport-relative)
   const followTarget = followOrgId
     ? (() => {
         const org = world.organisms.find(o => o.id === followOrgId && o.alive)
@@ -1800,7 +1585,6 @@ export function WorldView({ world, interp }: Props) {
     const sx = e.clientX - rect.left
     const sy = e.clientY - rect.top
     const { x: camX, y: camY, zoom } = cameraStateRef.current
-    // Convert screen → canvas tile → world tile
     const canvasTileX = (camX + (sx - dims.w / 2) / zoom) / TILE
     const canvasTileY = (camY + (sy - dims.h / 2) / zoom) / TILE
     const worldX = canvasTileX + ox

@@ -1,4 +1,4 @@
-//! Action 266: scold a young kin; their boredom -0.1; emit "social" event.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

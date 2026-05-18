@@ -1,4 +1,4 @@
-//! Action 512: elder mentors a young kin; young kin boredom -0.1; discover "apprenticeship".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

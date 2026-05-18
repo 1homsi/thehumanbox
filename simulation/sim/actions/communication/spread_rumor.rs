@@ -1,4 +1,4 @@
-//! Action 409: spread a rumour about a stranger.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

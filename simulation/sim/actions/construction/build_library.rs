@@ -1,5 +1,4 @@
-//! Action 174: build a library. Gated on the "chronicle" discovery
-//! so it requires record-keeping to come first.
+
 
 use super::super::ctx::ActionCtx;
 

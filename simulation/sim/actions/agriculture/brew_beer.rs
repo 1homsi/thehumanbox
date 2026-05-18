@@ -1,4 +1,4 @@
-//! Action 351: brew beer from grain and water; comfort all kin +0.05.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

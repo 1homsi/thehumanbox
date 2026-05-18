@@ -1,4 +1,4 @@
-//! Action 91: declare a rivalry with any foreign org nearby.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

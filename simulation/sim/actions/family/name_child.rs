@@ -1,4 +1,4 @@
-//! Action 261: name a young kin (age < 300); emit "birth" event; discover "naming".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

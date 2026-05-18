@@ -1,10 +1,4 @@
-/**
- * Fullscreen loading screen shown while the lazy 3D chunk
- * (@react-three + three.js, ~1.1 MB) downloads and parses.
- *
- * Built with inline CSS only so it never depends on App.css — the
- * Suspense fallback can run before any other style has flushed.
- */
+
 export function ThreeDLoading() {
   return (
     <div

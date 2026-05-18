@@ -1,4 +1,4 @@
-//! Action 48: set a fence.
+
 
 use super::super::ctx::ActionCtx;
 

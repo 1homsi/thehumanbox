@@ -1,4 +1,4 @@
-//! Action 466: undertake a pilgrimage to a sacred site.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

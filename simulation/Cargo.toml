@@ -25,10 +25,6 @@ tower-http  = { version = "0.5", features = ["cors", "compression-gzip"] }
 reqwest     = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
 dotenvy     = "0.15"
 
-# Optional WebTransport / HTTP/3 path. Off by default - enable with
-# --features webtransport once a TLS cert is available and the deploy
-# is ready to drop the WS-through-Cloudflare-Tunnel hop. See
-# docs/TRANSPORT.md for the migration plan.
 wtransport  = { version = "0.6", optional = true }
 
 [features]

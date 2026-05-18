@@ -1,4 +1,4 @@
-//! Action 523: harvest ceremony in autumn with food; all kin comfort +0.06; emit "ritual".
+
 use super::super::ctx::ActionCtx;
 use crate::world::tiles::Tile;
 

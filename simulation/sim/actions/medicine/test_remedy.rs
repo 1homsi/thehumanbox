@@ -1,4 +1,4 @@
-//! Action 256: experiment with plants; chance to discover "antidote".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

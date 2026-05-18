@@ -1,4 +1,4 @@
-//! Action 358: milk a domestic animal for food.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

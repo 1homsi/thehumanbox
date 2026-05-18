@@ -1,4 +1,4 @@
-//! Action 491: carry on the traditions of the fallen; discover "tradition_continuity"; emit "culture".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

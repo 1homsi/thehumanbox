@@ -1,4 +1,4 @@
-//! Action 93: surrender. Improves rep with foreign nearby, drops fear.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

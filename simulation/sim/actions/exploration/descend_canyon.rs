@@ -1,4 +1,4 @@
-//! Action 219: descend into a canyon (low elevation).
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

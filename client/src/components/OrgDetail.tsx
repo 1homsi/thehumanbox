@@ -61,7 +61,6 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
   const trustedOrgs = Object.entries(org.org_trust ?? {}).filter(([, v]) => v >= 0.2).sort((a, b) => b[1] - a[1])
   const fearedOrgs  = Object.entries(org.org_trust ?? {}).filter(([, v]) => v <= -0.2).sort((a, b) => a[1] - b[1])
 
-  // Significant thought events from on-demand detail (polled every 3s)
   const history = [...(detail?.thought_history ?? [])]
     .filter(e => !['observing', 'satisfied', 'exploring'].includes(e.text))
     .slice(-12)

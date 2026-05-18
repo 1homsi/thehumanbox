@@ -1,4 +1,4 @@
-//! Action 498: rename something in honor of the fallen; emit "culture"; discover "naming_honor".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

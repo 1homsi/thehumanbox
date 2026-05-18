@@ -1,4 +1,4 @@
-//! Action 110: bask in the sun. Daytime only.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

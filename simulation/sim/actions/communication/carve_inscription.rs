@@ -1,4 +1,4 @@
-//! Action 415: carve an inscription into rock.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 393: regret an action. Reduces comfort; self-reflection clears boredom.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

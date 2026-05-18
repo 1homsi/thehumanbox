@@ -1,4 +1,4 @@
-//! Action 226: give food to a nearby kin.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Warfare, scouting & territory (indices 96..=106 and 191..=200).
+
 
 pub mod raid;
 pub mod ambush;

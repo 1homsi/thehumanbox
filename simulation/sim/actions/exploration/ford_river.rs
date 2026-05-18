@@ -1,4 +1,4 @@
-//! Action 212: ford a river.
+
 use crate::world::grid::TrailKind;
 use super::super::ctx::ActionCtx;
 

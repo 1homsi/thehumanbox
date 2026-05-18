@@ -1,4 +1,4 @@
-//! Action 286: give food to low-energy kin; discover "charity".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

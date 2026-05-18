@@ -1,4 +1,4 @@
-//! Action 197: spy on rivals - remember hostile positions.
+
 use crate::organism::organism::Organism;
 use super::super::ctx::ActionCtx;
 

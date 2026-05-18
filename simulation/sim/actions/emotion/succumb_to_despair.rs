@@ -1,4 +1,4 @@
-//! Action 403: succumb to despair. Very low health and comfort; energy drains.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

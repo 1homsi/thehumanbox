@@ -1,4 +1,4 @@
-//! Action 216: stack a stone cairn as a way-marker.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

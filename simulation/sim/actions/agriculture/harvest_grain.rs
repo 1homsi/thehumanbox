@@ -1,4 +1,4 @@
-//! Action 340: harvest grain from a food tile.
+
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
 

@@ -1,4 +1,4 @@
-//! Action 468: engage a kin member in theological debate.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

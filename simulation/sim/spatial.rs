@@ -17,8 +17,6 @@ impl SpatialIndex {
         Self { buckets, bucket_size }
     }
 
-    /// Returns indices of all alive organisms within approximately `radius` tiles of (x, y).
-    /// May include organisms slightly outside the radius due to bucket boundary effects.
     pub fn query(&self, x: i32, y: i32, radius: i32) -> Vec<usize> {
         let bs = self.bucket_size;
         let bx = x / bs;

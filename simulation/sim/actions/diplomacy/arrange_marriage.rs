@@ -1,4 +1,4 @@
-//! Action 185: arrange a marriage between two adult kin.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

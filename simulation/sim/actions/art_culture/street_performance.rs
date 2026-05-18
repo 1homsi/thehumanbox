@@ -1,4 +1,4 @@
-//! Action 334: street performance for strangers; comfort +0.03 all near.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

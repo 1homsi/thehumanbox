@@ -1,4 +1,4 @@
-//! Action 488: memorialize the dead with kin; all comfort +0.04; emit "death"; discover "memorial".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

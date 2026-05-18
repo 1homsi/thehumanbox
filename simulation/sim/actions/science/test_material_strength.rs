@@ -1,4 +1,4 @@
-//! Action 427: test the strength of materials through experimentation.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

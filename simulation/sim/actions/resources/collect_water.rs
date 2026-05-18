@@ -1,4 +1,4 @@
-//! Action 33: fill canteen at adjacent water. +2 water in inventory.
+
 
 use super::super::ctx::ActionCtx;
 

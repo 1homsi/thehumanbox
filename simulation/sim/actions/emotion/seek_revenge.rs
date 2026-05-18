@@ -1,4 +1,4 @@
-//! Action 395: seek revenge. Needs a stranger nearby; damages attitude.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

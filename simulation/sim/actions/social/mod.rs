@@ -1,4 +1,4 @@
-//! Social bonding (indices 80..=89).
+
 
 pub mod console;
 pub mod comfort_child;

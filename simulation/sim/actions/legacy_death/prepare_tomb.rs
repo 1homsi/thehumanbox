@@ -1,4 +1,4 @@
-//! Action 487: prepare a tomb near rock; discover "tomb_preparation"; emit "build".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

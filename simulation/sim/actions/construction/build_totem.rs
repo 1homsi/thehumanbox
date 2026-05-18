@@ -1,4 +1,4 @@
-//! Action 46: raise a totem. Cheap, always succeeds.
+
 
 use super::super::ctx::ActionCtx;
 

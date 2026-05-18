@@ -1,4 +1,4 @@
-//! Action 308: with a stranger nearby; attitude +0.15; discover "treaty".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

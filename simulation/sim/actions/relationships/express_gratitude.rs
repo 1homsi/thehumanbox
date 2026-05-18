@@ -1,4 +1,4 @@
-//! Action 228: thank a nearby kin; boost both comforts.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

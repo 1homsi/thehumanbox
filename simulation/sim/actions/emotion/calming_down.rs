@@ -1,4 +1,4 @@
-//! Action 389: calming down after anger. Reduces boredom; restores comfort.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

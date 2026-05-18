@@ -1,4 +1,4 @@
-//! Action 511: give a lecture to 2+ kin; all boredom -0.07; emit "culture".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

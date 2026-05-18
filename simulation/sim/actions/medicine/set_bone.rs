@@ -1,4 +1,4 @@
-//! Action 251: heal a kin with very low health; discover "bone_setting".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

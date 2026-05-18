@@ -1,4 +1,4 @@
-//! Communication actions (indices 406..=420).
+
 
 pub mod develop_writing;
 pub mod send_message;

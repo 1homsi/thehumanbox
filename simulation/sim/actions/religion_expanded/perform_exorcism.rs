@@ -1,4 +1,4 @@
-//! Action 461: perform an exorcism on a heavily infected kin member.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

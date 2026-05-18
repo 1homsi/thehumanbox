@@ -1,4 +1,4 @@
-//! Action 189: appoint the oldest kin as an elder.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

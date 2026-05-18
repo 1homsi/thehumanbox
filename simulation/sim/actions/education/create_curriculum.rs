@@ -1,4 +1,4 @@
-//! Action 519: elder creates a curriculum with 2 kin; discover "curriculum"; emit "governance".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

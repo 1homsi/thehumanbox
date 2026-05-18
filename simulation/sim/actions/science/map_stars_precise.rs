@@ -1,4 +1,4 @@
-//! Action 424: map stars precisely during the night.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

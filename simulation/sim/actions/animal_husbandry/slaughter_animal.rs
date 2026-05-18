@@ -1,4 +1,4 @@
-//! Action 360: slaughter an animal to provide food for kin.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -3,14 +3,12 @@ use crate::world::{grid::{WorldGrid, WIDTH, HEIGHT}, tiles::{Tile, Biome}};
 use crate::organism::organism::Organism;
 use super::config::{DROUGHT_DURATION, DROUGHT_BASE_PROB, OUTBREAK_BASE_PROB};
 
-// ── Weather ────────────────────────────────────────────────────────────────────
-
 pub struct WeatherState {
-    pub kind:       u8,   // 0=clear 1=rain 2=storm
+    pub kind:       u8,
     pub start_tick: u64,
     pub duration:   u64,
     pub intensity:  f32,
-    pub wet_until:  u64,  // tick when the ground finishes drying after rain
+    pub wet_until:  u64,
 }
 
 impl Default for WeatherState {
@@ -23,8 +21,6 @@ impl WeatherState {
     pub fn kind_str(&self) -> &'static str {
         match self.kind { 1 => "rain", 2 => "storm", _ => "clear" }
     }
-    /// Phase the client renders. "wet" is the ground-still-damp aftermath
-    /// once rain stops; "clear" is fully dry.
     pub fn phase(&self, tick: u64) -> &'static str {
         match self.kind {
             2 => "storm",
@@ -32,8 +28,6 @@ impl WeatherState {
             _ => if tick < self.wet_until { "wet" } else { "clear" },
         }
     }
-    /// Tapered intensity: ramps up over the first 10% and down over the
-    /// last 25% of duration so transitions look natural.
     pub fn effective_intensity(&self, tick: u64) -> f32 {
         if self.kind == 0 || self.duration == 0 { return 0.0; }
         let elapsed = tick.saturating_sub(self.start_tick) as f32;
@@ -48,7 +42,6 @@ impl WeatherState {
 
 const RAIN_BASE_PROB: f32 = 0.0005;
 const MAX_RECENT_EVENTS: usize = 300;
-// How long ground stays wet after rain stops (in sim ticks).
 const WET_AFTERMATH_TICKS: u64 = 1200;
 
 pub fn tick_weather(
@@ -63,8 +56,6 @@ pub fn tick_weather(
     if weather.kind != 0 {
         apply_weather(weather, grid, organisms, tick, rng);
         let elapsed = tick.saturating_sub(weather.start_tick);
-        // Storms weaken into plain rain before they fully die out, so the
-        // transition reads as "the storm passes" rather than a sudden switch.
         if weather.kind == 2 && elapsed >= (weather.duration * 70 / 100) {
             weather.kind      = 1;
             weather.intensity = (weather.intensity * 0.55).max(0.25);
@@ -79,8 +70,6 @@ pub fn tick_weather(
         return;
     }
 
-    // Ground drying aftermath - extinguishes lingering small fires, suppresses
-    // new ignition, and announces when the land is properly dry again.
     if tick < weather.wet_until {
         apply_wet_aftermath(weather, grid, tick, rng);
         return;
@@ -114,8 +103,6 @@ fn apply_wet_aftermath(
     rng: &mut impl Rng,
 ) {
     if tick % 30 != 0 { return; }
-    // Wet ground keeps putting out fires for a while - any fire on damp
-    // soil is a candle in a downpour. Scan a few random tiles.
     for _ in 0..3 {
         let x = rng.gen_range(1..WIDTH as i32 - 1);
         let y = rng.gen_range(1..HEIGHT as i32 - 1);
@@ -124,7 +111,6 @@ fn apply_wet_aftermath(
             *grid.fire_intensity_mut(x, y) = 0.0;
         }
     }
-    // Slow fertility creep on parched land as the rainwater soaks in.
     if tick % 60 == 0 {
         let _ = weather;
         for _ in 0..4 {
@@ -148,7 +134,6 @@ fn apply_weather(
     use crate::world::grid::{WIDTH, HEIGHT};
     if tick % 20 != 0 { return; }
 
-    // Rain spreads water to adjacent dry grass tiles
     for _ in 0..3 {
         let x = rng.gen_range(1..WIDTH as i32 - 1);
         let y = rng.gen_range(1..HEIGHT as i32 - 1);
@@ -159,7 +144,6 @@ fn apply_weather(
         }
     }
 
-    // Rain extinguishes fires - actively snuffs out wildfires across the map.
     let eff = weather.effective_intensity(tick);
     let snuff_passes = (10.0 + eff * 18.0) as i32;
     for _ in 0..snuff_passes {
@@ -171,7 +155,6 @@ fn apply_weather(
         }
     }
 
-    // Rain replenishes fertility on parched/desert tiles - makes land cultivable again
     for _ in 0..8 {
         let x = rng.gen_range(1..WIDTH as i32 - 1);
         let y = rng.gen_range(1..HEIGHT as i32 - 1);
@@ -181,13 +164,10 @@ fn apply_weather(
         }
     }
 
-    // Storm effects
     if weather.kind == 2 {
-        // Energy drain on all organisms (storm exposure)
         for org in organisms.iter_mut().filter(|o| o.alive) {
             org.energy = (org.energy - 0.0006 * weather.intensity).max(0.0);
         }
-        // Lightning strike - starts a new fire
         if rng.gen::<f32>() < 0.06 * weather.intensity {
             for _ in 0..30 {
                 let x = rng.gen_range(5..WIDTH as i32 - 5);
@@ -206,7 +186,7 @@ pub struct DroughtState {
     pub active:        bool,
     pub start_tick:    u64,
     pub dried_tiles:   Vec<(i32, i32)>,
-    pub rain_relief:   u64,   // rain ticks accumulated during drought
+    pub rain_relief:   u64,
 }
 
 impl Default for DroughtState {
@@ -227,7 +207,6 @@ pub fn tick_drought(
     rng: &mut impl Rng,
 ) {
     if drought.active {
-        // Rain accelerates drought end: each rain tick counts as 2 elapsed ticks
         if weather.is_raining() {
             drought.rain_relief += 1;
         }
@@ -331,7 +310,6 @@ pub fn tick_outbreak(
         };
         push_event(events, tick, "outbreak", "world",
             &format!("disease wave - {}", preview));
-        // Disease scars the landscape - the outbreak zone remains psychologically dangerous
         let hx = cx as i32; let hy = cy as i32;
         let hr = radius as i32;
         for dx in -hr..=hr {
@@ -373,8 +351,6 @@ mod tests {
     }
 }
 
-// ── World evolution - called every 300 ticks ───────────────────────────────────
-
 pub fn tick_world_evolution(
     grid: &mut WorldGrid,
     organisms: &mut Vec<Organism>,
@@ -386,7 +362,6 @@ pub fn tick_world_evolution(
     events: &mut std::collections::VecDeque<super::simulation::Event>,
     rng: &mut impl Rng,
 ) {
-    // ── a) Forest spread - skip during scarcity ───────────────────────────────
     if season != "scarcity" {
         let mut food_tiles: Vec<(i32, i32)> = Vec::new();
         for _ in 0..800 {
@@ -403,8 +378,6 @@ pub fn tick_world_evolution(
                 let (dx, dy) = dirs[rng.gen_range(0..4)];
                 let (nx, ny) = (fx + dx, fy + dy);
                 if WorldGrid::in_bounds(nx, ny) && grid.get(nx, ny) == Tile::Grass {
-                    // Strongly reduce food spread into water-adjacent tiles
-                    // so food concentrations naturally push inland, distributing resources.
                     let near_water = [(-1i32,0i32),(1,0),(0,-1),(0,1)].iter()
                         .any(|&(ox,oy)| WorldGrid::in_bounds(nx+ox, ny+oy)
                             && grid.get(nx+ox, ny+oy) == Tile::Water);
@@ -415,20 +388,13 @@ pub fn tick_world_evolution(
         }
     }
 
-    // ── a2) Lakes dry up during drought / scarcity ────────────────────────────
-    // Inland lakes shrink when rain is scarce: a shallow water tile that's
-    // mostly surrounded by land becomes Sand. Excludes the ocean by
-    // gating on shallow depth AND requiring a majority of land
-    // neighbours in a 2-radius window - true ocean tiles have deep
-    // depth and very few land neighbours. Recovery happens in (a3).
     if drought_active || season == "scarcity" {
         let mut lake_candidates: Vec<(i32, i32)> = Vec::new();
         for _ in 0..400 {
             let x = rng.gen_range(2..(WIDTH as i32 - 2));
             let y = rng.gen_range(2..(HEIGHT as i32 - 2));
             if grid.get(x, y) != Tile::Water { continue; }
-            if grid.depth_at(x, y) > 0.35 { continue; } // deep ocean: skip
-            // Count land neighbours in 2-radius (16 tiles total around center)
+            if grid.depth_at(x, y) > 0.35 { continue; }
             let mut land_neighbours = 0;
             let mut total = 0;
             for dy in -2i32..=2 { for dx in -2i32..=2 {
@@ -440,7 +406,6 @@ pub fn tick_world_evolution(
                     land_neighbours += 1;
                 }
             }}
-            // > 60% land neighbours = small inland lake / pond
             if total > 0 && land_neighbours * 5 > total * 3 {
                 lake_candidates.push((x, y));
                 if lake_candidates.len() >= 4 { break; }
@@ -449,18 +414,12 @@ pub fn tick_world_evolution(
         for (lx, ly) in lake_candidates {
             if rng.gen::<f32>() < 0.12 {
                 grid.set(lx, ly, Tile::Sand);
-                // Mark depth as land so any depth-based queries reflect
-                // the new state. depth=0 is the "this is land" sentinel.
                 let i = WorldGrid::idx(lx, ly);
                 grid.depth[i] = 0.0;
             }
         }
     }
 
-    // ── a3) Lakes refill during rain / abundance ──────────────────────────────
-    // Sand tiles surrounded by water on most sides slowly return to
-    // water during rain. Pairs with (a2) - a lake that dried out can
-    // come back if conditions improve.
     if !drought_active && (weather.kind >= 1 || season == "abundance" || season == "recovery") {
         let mut refill: Vec<(i32, i32)> = Vec::new();
         for _ in 0..400 {
@@ -472,7 +431,6 @@ pub fn tick_world_evolution(
                     && WorldGrid::in_bounds(x + dx, y + dy)
                     && grid.get(x + dx, y + dy) == Tile::Water)
                 .count();
-            // Sand surrounded on >=3 sides by water - it's in a lakebed
             if water_adj >= 3 {
                 refill.push((x, y));
                 if refill.len() >= 3 { break; }
@@ -482,12 +440,11 @@ pub fn tick_world_evolution(
             if rng.gen::<f32>() < 0.10 {
                 grid.set(rx, ry, Tile::Water);
                 let i = WorldGrid::idx(rx, ry);
-                grid.depth[i] = 0.20; // shallow lake water
+                grid.depth[i] = 0.20;
             }
         }
     }
 
-    // ── b) Desert creep - during drought or scarcity ──────────────────────────
     if drought_active || season == "scarcity" {
         let mut desert_grass: Vec<(i32, i32)> = Vec::new();
         for _ in 0..600 {
@@ -505,7 +462,6 @@ pub fn tick_world_evolution(
         }
     }
 
-    // ── c) Flood pulse - during storm weather ─────────────────────────────────
     if weather.kind == 2 {
         let mut water_tiles: Vec<(i32, i32)> = Vec::new();
         for _ in 0..1000 {
@@ -529,7 +485,6 @@ pub fn tick_world_evolution(
         }
     }
 
-    // ── Flood expiry - revert old Flooded tiles back to Grass ─────────────────
     let mut i = 0;
     while i < flood_tiles.len() {
         let (fx, fy, expiry) = flood_tiles[i];
@@ -543,13 +498,10 @@ pub fn tick_world_evolution(
         }
     }
 
-    // ── d) Volcanic eruption - very rare ──────────────────────────────────────
-    // ~0.000005 per call × called every 300 ticks ≈ once per 60,000,000 ticks on average
     {
         let x = rng.gen_range(0..WIDTH as i32);
         let y = rng.gen_range(0..HEIGHT as i32);
         if grid.biome_at(x, y) == Biome::Volcanic && rng.gen::<f32>() < 0.000005 {
-            // Set tile and 4 random neighbors to Fire
             grid.set(x, y, Tile::Fire);
             *grid.fire_intensity_mut(x, y) = 1.0;
             for _ in 0..4 {
@@ -561,7 +513,6 @@ pub fn tick_world_evolution(
                     *grid.fire_intensity_mut(nx, ny) = 1.0;
                 }
             }
-            // Set 3 random nearby grass tiles to Mineral
             let mut placed = 0;
             for _ in 0..30 {
                 if placed >= 3 { break; }
@@ -578,7 +529,6 @@ pub fn tick_world_evolution(
         }
     }
 
-    // ── e) Scorched recovery - scan up to 20 random Scorched tiles ────────────
     for _ in 0..20 {
         let x = rng.gen_range(0..WIDTH as i32);
         let y = rng.gen_range(0..HEIGHT as i32);
@@ -587,7 +537,6 @@ pub fn tick_world_evolution(
         }
     }
 
-    // ── g) Biome drift - full ecological chain ───────────────────────────────
     for _ in 0..20 {
         let x = rng.gen_range(0..WIDTH as i32);
         let y = rng.gen_range(0..HEIGHT as i32);
@@ -597,14 +546,6 @@ pub fn tick_world_evolution(
         let pressure = grid.pressure[i];
         let hazard   = grid.hazard[i];
 
-        // ── Degradation chain (overuse collapses ecosystems) ─────────────────
-        // Forest → Grassland: heavy use + depleted soil. Also clear the
-        // visual tree on this tile (Tile::Food rendered as a tree) so the
-        // forest visibly recedes rather than ghost-trees lingering on a
-        // grassland biome. Neighbour-tree thinning amplifies the visual:
-        // when a forest patch dies, surrounding trees on the same patch
-        // also have a small chance of falling, so the receding edge reads
-        // as a moving boundary.
         if biome == Biome::Forest && fert < 0.25 && pressure > 2.0 && rng.gen::<f32>() < 0.003 {
             grid.biome[i] = Biome::Grassland as u8;
             if grid.get(x, y) == Tile::Food { grid.set(x, y, Tile::Grass); }
@@ -618,23 +559,18 @@ pub fn tick_world_evolution(
                 }
             }
         }
-        // Wetland → Grassland: prolonged drought drains wetlands
         if biome == Biome::Wetland && drought_active && fert < 0.35 && rng.gen::<f32>() < 0.002 {
             grid.biome[i] = Biome::Grassland as u8;
         }
-        // Grassland → Desert: exhausted, dry land
         if biome == Biome::Grassland && fert < 0.07 && rng.gen::<f32>() < 0.004 {
             grid.biome[i] = Biome::Desert as u8;
         }
 
-        // ── Recovery chain (abandonment allows ecosystem recovery) ──────────
-        // Desert → Grassland: fertility recovered, wet season
         if biome == Biome::Desert && fert > 0.55 && pressure < 0.5
             && (season == "recovery" || season == "abundance") && rng.gen::<f32>() < 0.001
         {
             grid.biome[i] = Biome::Grassland as u8;
         }
-        // Grassland → Forest: high fertility, near water, low pressure, wet season
         if biome == Biome::Grassland && fert > 0.80 && pressure < 0.3
             && (season == "abundance" || weather.kind >= 1)
         {
@@ -643,11 +579,9 @@ pub fn tick_world_evolution(
             }));
             if near_water && rng.gen::<f32>() < 0.0008 {
                 grid.biome[i] = Biome::Forest as u8;
-                // Boost tile to Food to signal regrowth
                 if grid.get(x, y) == Tile::Grass { grid.set(x, y, Tile::Food); }
             }
         }
-        // Grassland near water → Wetland: persistently flooded areas become wetland
         if biome == Biome::Grassland && fert > 0.70 {
             let flood_adj = (-2i32..=2).any(|dx| (-2i32..=2).any(|dy| {
                 WorldGrid::in_bounds(x+dx, y+dy) && matches!(grid.get(x+dx, y+dy), Tile::Water | Tile::Flooded)
@@ -657,26 +591,18 @@ pub fn tick_world_evolution(
             }
         }
 
-        // ── Post-volcanic fertility surge ────────────────────────────────────
-        // Volcanic ash → super-fertile soil after recovery (real-world: volcanic soil)
         if biome == Biome::Volcanic && grid.get(x, y) == Tile::Grass && fert < 0.50 && rng.gen::<f32>() < 0.008 {
             grid.fertility[i] = (grid.fertility[i] + 0.18).min(0.95);
         }
-        // Fire in volcanic biome builds hazard naturally
         if biome == Biome::Volcanic && grid.get(x, y) == Tile::Fire {
             grid.add_hazard(x, y, 0.001);
         }
 
-        // ── Hazard-locked scars (high-hazard Ash → Scorched) ─────────────────
-        // Areas with many deaths resist ecological recovery
         if grid.get(x, y) == Tile::Ash && hazard > 0.45 && rng.gen::<f32>() < 0.02 {
             grid.set(x, y, Tile::Scorched);
         }
     }
 
-    // ── h_extra) Water-adjacency fertility pulse ──────────────────────────────
-    // Rivers and lakes continuously enrich adjacent land - the origin of river valley civilizations.
-    // Called occasionally to avoid performance cost; uses random sampling.
     if tick % 600 == 0 {
         for _ in 0..120 {
             let x = rng.gen_range(1..WIDTH as i32 - 1);
@@ -687,21 +613,13 @@ pub fn tick_world_evolution(
                 if matches!(tile, Tile::Grass | Tile::Food | Tile::Sand | Tile::Snow | Tile::Ash) {
                     let i = WorldGrid::idx(nx, ny);
                     let biome_cap = Biome::from_u8(grid.biome[i]).base_fertility();
-                    // Water enrichment can push beyond normal biome cap (river valleys)
                     grid.fertility[i] = (grid.fertility[i] + 0.003).min(biome_cap.max(0.80));
                 }
             }
         }
     }
 
-    // ── h) River / lake drift - water sources slowly migrate over time ────────
-    // Geological timescale (every ~10 in-world days post-bootstrap): a single
-    // edge-water tile dries while a new water tile spawns nearby. Net water
-    // count stays stable; organisms must re-find displaced sources. SILENT -
-    // no events pushed. The user explicitly opted for terrain that drifts
-    // imperceptibly day-to-day rather than feed-spamming about coast moves.
     if tick % 6000 == 0 && tick >= 9000 {
-        // Collect edge-water tiles: Water with at least one non-water, non-rock neighbor
         let mut edge_water: Vec<(i32, i32)> = Vec::new();
         for _ in 0..2000 {
             let x = rng.gen_range(1..WIDTH as i32 - 1);
@@ -716,12 +634,9 @@ pub fn tick_world_evolution(
             if edge_water.len() >= 12 { break; }
         }
 
-        // Shift 1 water tile per cycle - river meanders to an adjacent tile
-        // (new water spawns within 6 tiles of where it dried, so organisms can adapt)
         let shifts = 1.min(edge_water.len());
         for _ in 0..shifts {
             let (wx, wy) = edge_water[rng.gen_range(0..edge_water.len())];
-            // Find a grass tile within 3-6 tiles of the drying tile (meander radius)
             let mut candidates: Vec<(i32, i32)> = Vec::new();
             for ddx in -6i32..=6 {
                 for ddy in -6i32..=6 {
@@ -735,30 +650,20 @@ pub fn tick_world_evolution(
             }
             if candidates.is_empty() { continue; }
             let (nx, ny) = candidates[rng.gen_range(0..candidates.len())];
-            // Dry out edge tile
             let biome = grid.biome_at(wx, wy);
             let dry_tile = if biome == Biome::Desert { Tile::Ash } else { Tile::Grass };
             grid.set(wx, wy, dry_tile);
             let wi = WorldGrid::idx(wx, wy);
             grid.fertility[wi] = (grid.fertility[wi] + 0.15).min(0.7);
-            // Spawn new water nearby
             grid.set(nx, ny, Tile::Water);
         }
 
-        // Silent on purpose - the drift is meant to read as background
-        // change the user notices over many sim-days, not a discrete event.
     }
 
-    // ── Geological drift - slow coastal reshaping ─────────────────────────────
-    // Was every 5000 ticks (~8 sim-days) which produced ~1500 tile flips per
-    // 1000 sim-days - too fast for the "geological" feel the user wants. At
-    // 18000 ticks (~30 sim-days) it's ~90 tile flips per 1000 sim-days, which
-    // reads as a slow coastline shift rather than a churn.
     if tick % 18000 == 0 && tick >= 18000 {
         grid.tick_geology(rng);
     }
 
-    // ── f) Biome trait pressure on organisms ──────────────────────────────────
     for org in organisms.iter_mut() {
         if !org.alive { continue; }
         let biome = grid.biome_at(org.x as i32, org.y as i32);

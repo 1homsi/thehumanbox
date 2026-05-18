@@ -1,4 +1,4 @@
-//! Seasonal actions (indices 471..=485).
+
 
 pub mod prepare_for_winter;
 pub mod migrate_south;

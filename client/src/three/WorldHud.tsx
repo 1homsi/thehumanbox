@@ -3,10 +3,6 @@ import { cameraSnapshot } from './camera-state'
 
 interface Props {}
 
-// Compass-only strip under the minimap. Just the cardinal direction
-// the camera is facing; the other stats live in the stats panel and
-// don't need to be on the HUD all the time. Reads camera direction
-// synchronously from the shared snapshot - no React re-renders.
 const COMPASS_W = 220
 const COMPASS_H = 22
 const TWO_PI = Math.PI * 2
@@ -22,8 +18,6 @@ export function WorldHud({}: Props) {
     if (!ctx) return
     const draw = () => {
       ctx.clearRect(0, 0, COMPASS_W, COMPASS_H)
-      // Compass strip - shows cardinal direction names sliding past
-      // as the user turns. 0 yaw = looking +Z.
       const yaw = Math.atan2(cameraSnapshot.dirX, cameraSnapshot.dirZ)
       const labels: { angle: number; text: string; major: boolean }[] = [
         { angle: 0,             text: 'N', major: true },
@@ -41,11 +35,10 @@ export function WorldHud({}: Props) {
       const cx = COMPASS_W / 2
       const cy = 14
       for (const lbl of labels) {
-        // Shortest angular distance to current yaw.
         let diff = lbl.angle - yaw
         while (diff >  Math.PI) diff -= TWO_PI
         while (diff < -Math.PI) diff += TWO_PI
-        const x = cx + (diff / (Math.PI / 2)) * 80   // 80 px per 90°
+        const x = cx + (diff / (Math.PI / 2)) * 80
         if (x < -20 || x > COMPASS_W + 20) continue
         const opacity = 1 - Math.abs(diff) / Math.PI
         ctx.fillStyle = lbl.major
@@ -53,7 +46,6 @@ export function WorldHud({}: Props) {
           : `rgba(180, 200, 220, ${(0.3 + opacity * 0.4).toFixed(2)})`
         ctx.fillText(lbl.text, x, cy)
       }
-      // Cursor: triangle pointing down at the centre.
       ctx.fillStyle = '#ff8a3a'
       ctx.beginPath()
       ctx.moveTo(cx, 0)
@@ -77,7 +69,7 @@ export function WorldHud({}: Props) {
 
 const wrap: React.CSSProperties = {
   position: 'fixed',
-  top: 60 + 110 + 8,   // below minimap (110px + padding)
+  top: 60 + 110 + 8,
   right: 16,
   width: COMPASS_W + 4,
   padding: 2,

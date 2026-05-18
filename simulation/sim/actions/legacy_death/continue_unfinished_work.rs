@@ -1,4 +1,4 @@
-//! Action 497: continue the unfinished work of the fallen; discover "perseverance"; emit "culture"; boredom -0.08.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

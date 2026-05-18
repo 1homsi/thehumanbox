@@ -1,4 +1,4 @@
-//! Action 108: rest deeply. Drops sleep debt.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

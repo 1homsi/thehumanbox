@@ -1,4 +1,4 @@
-//! Action 306: dissolve the governing council.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

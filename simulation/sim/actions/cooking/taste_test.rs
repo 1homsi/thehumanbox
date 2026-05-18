@@ -1,4 +1,4 @@
-//! Action 150: taste-test for flavour. 8% rare discovery.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

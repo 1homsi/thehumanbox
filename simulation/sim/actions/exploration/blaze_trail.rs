@@ -1,4 +1,4 @@
-//! Action 215: blaze a new trail.
+
 use crate::world::grid::TrailKind;
 use super::super::ctx::ActionCtx;
 

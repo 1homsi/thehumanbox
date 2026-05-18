@@ -1,4 +1,4 @@
-//! Action 428: improve an existing tool using available materials.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

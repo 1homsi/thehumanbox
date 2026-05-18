@@ -1,4 +1,4 @@
-//! Action 518: elder compiles knowledge near rock; discover "compendium"; emit "build".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

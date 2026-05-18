@@ -1,4 +1,4 @@
-//! Action 267: praise a young kin; comfort +0.08; discover "parenting".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

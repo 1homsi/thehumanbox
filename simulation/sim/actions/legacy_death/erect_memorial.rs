@@ -1,4 +1,4 @@
-//! Action 494: erect a memorial stone using inv_stone; discover "memorial_stone"; emit "build".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

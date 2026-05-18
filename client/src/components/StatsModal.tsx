@@ -17,8 +17,6 @@ interface Props {
 }
 
 export function StatsModal({ world: liveWorld, onClose }: Props) {
-  // Snapshot at open time so the panel doesn't churn on every WS tick.
-  // The reload icon swaps in the current world.
   const { frozen: world, reload } = useFrozenSnapshot(() => liveWorld)
   const liveCount  = world.organisms.filter(o => o.alive).length
   const totalDeaths = (world.history.deaths_old_age ?? 0)

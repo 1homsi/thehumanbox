@@ -1,4 +1,4 @@
-//! Action 384: restore burned land. Needs an Ash tile.
+
 use super::super::ctx::ActionCtx;
 use crate::world::tiles::Tile;
 

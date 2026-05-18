@@ -1,4 +1,4 @@
-//! Action 354: create a compost heap on ash or grass.
+
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
 

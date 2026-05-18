@@ -1,4 +1,4 @@
-//! Action 92: negotiate peace with a hostile foreign org.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

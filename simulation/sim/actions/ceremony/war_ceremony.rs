@@ -1,4 +1,4 @@
-//! Action 525: war ceremony with kin and stranger nearby; emit "warfare"; discover "war_ritual".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

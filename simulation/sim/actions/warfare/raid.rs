@@ -1,4 +1,4 @@
-//! Action 96: raid. Calls Simulation::do_raid which finds a hostile.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

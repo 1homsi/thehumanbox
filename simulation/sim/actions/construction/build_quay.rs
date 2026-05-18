@@ -1,4 +1,4 @@
-//! Action 178: build a stone quay next to water.
+
 
 use super::super::ctx::ActionCtx;
 

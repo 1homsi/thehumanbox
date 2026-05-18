@@ -1,4 +1,4 @@
-//! Action 59: brew medicine. Needs fire knowledge or adjacency.
+
 use super::super::ctx::ActionCtx;
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     if ctx.fire_near || ctx.org().discoveries.contains("fire") {

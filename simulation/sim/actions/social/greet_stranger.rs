@@ -1,4 +1,4 @@
-//! Action 85: greet a near stranger from another lineage.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

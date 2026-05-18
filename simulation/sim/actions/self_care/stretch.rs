@@ -1,4 +1,4 @@
-//! Action 109: stretch.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

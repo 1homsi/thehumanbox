@@ -1,4 +1,4 @@
-//! Action 331: devise a calendar to track seasons and cycles.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

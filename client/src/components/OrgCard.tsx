@@ -27,16 +27,9 @@ function TraitBar({ value, color }: { value: number; color: string }) {
 }
 
 interface OrgCardProps {
-  /** Identifies which organism to render. The card subscribes to the
-   *  world store for just this org and ignores world-wide updates. */
   orgId: string
 }
 
-/** Renders one organism card. Wrapped in React.memo so the only thing
- *  that re-renders the card is a change to this org's hot fields. The
- *  300-card list previously re-rendered every WS frame because the
- *  parent passed a fresh `org` object each render - now we subscribe by
- *  id and let the store's referential stability gate the render. */
 function OrgCardImpl({ orgId }: OrgCardProps) {
   const org = useOrganism(orgId)
   const sexWords     = useWorldStore((s) => s.world?.sex_words)
@@ -47,16 +40,9 @@ function OrgCardImpl({ orgId }: OrgCardProps) {
   const onConvos = useCallback(() => orgId && openConvo(orgId),  [orgId, openConvo])
 
   if (!org) return null
-  // A newly-born organism can briefly exist in the cache without its cold
-  // fields (lineage_id, name, traits) until the next full WS snapshot lands.
-  // Skip rendering rather than crash on the missing data.
   if (!org.lineage_id || !org.traits || !org.name) return null
 
   const tn = (lid: string) => lineageNames?.[lid] ?? (lid ?? '').slice(0, 6)
-  // Resolve a partner/lover name by id. Looks up via the store rather
-  // than receiving the whole organisms array - we don't need to subscribe
-  // for this read since the partner_id is already on `org` and any
-  // re-render that lookups stale data will fix itself on the next tick.
   const on = (oid: string) => useWorldStore.getState().byId.get(oid)?.name ?? (oid ?? '').slice(0, 5)
   const isSick = org.infection > 0.15
   const sexLabel  = sexWords
@@ -192,11 +178,4 @@ function OrgCardImpl({ orgId }: OrgCardProps) {
   )
 }
 
-/**
- * Memoised wrapper. Props are just `orgId` (a stable string), so the
- * default shallow comparison is exactly what we want - re-render only
- * when the parent list passes a different id, never on world ticks.
- * The underlying re-render still happens when the subscribed org's hot
- * fields change via useOrganism, just not when unrelated orgs do.
- */
 export const OrgCard = memo(OrgCardImpl)

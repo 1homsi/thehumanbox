@@ -4,10 +4,8 @@ import json
 import urllib.error
 import urllib.request
 
-
 class OllamaError(RuntimeError):
     pass
-
 
 def generate(
     model: str,

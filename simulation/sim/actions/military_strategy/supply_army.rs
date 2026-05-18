@@ -1,4 +1,4 @@
-//! Action 441: supply the army with food from inventory.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,6 +1,4 @@
-//! Action 30: plant a sapling on grass. Bumps fertility and adds a
-//! small structure tier (saplings will grow into forest cover via
-//! the world physics tick).
+
 
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;

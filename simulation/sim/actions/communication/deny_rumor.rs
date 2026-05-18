@@ -1,4 +1,4 @@
-//! Action 410: deny a rumour; own comfort boosted.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 514: elder awards mastery to a kin; kin comfort +0.08; discover "mastery"; emit "culture".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

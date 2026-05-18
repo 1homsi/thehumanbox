@@ -1,4 +1,4 @@
-//! Action 388: anger outburst. Low comfort; nearby kin take a comfort hit.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

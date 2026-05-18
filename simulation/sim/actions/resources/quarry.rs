@@ -1,5 +1,4 @@
-//! Action 29: quarry stone. Like mine but a separate discovery -
-//! organising a "quarry" is a small step up from one-off mining.
+
 
 use super::super::ctx::ActionCtx;
 

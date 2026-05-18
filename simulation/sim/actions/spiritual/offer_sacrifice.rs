@@ -1,4 +1,4 @@
-//! Action 204: offer a sacrifice.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

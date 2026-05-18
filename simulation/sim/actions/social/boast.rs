@@ -1,4 +1,4 @@
-//! Action 88: boast. Self-comfort up, near-comfort down.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

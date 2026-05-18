@@ -1,4 +1,4 @@
-//! Action 510: form an academy; elder + 3 kin + Hut; discover "academy"; emit "build".
+
 use super::super::ctx::ActionCtx;
 use crate::world::tiles::Tile;
 

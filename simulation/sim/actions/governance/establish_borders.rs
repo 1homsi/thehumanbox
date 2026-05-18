@@ -1,4 +1,4 @@
-//! Action 309: mark territory near rock; discover "borders".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

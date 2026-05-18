@@ -1,4 +1,4 @@
-//! Action 170: build a kiln. Needs 1 stone.
+
 
 use super::super::ctx::ActionCtx;
 

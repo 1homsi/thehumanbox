@@ -1,4 +1,4 @@
-//! Action 376: controlled burn. Needs fire nearby and a Grass tile.
+
 use super::super::ctx::ActionCtx;
 use crate::world::tiles::Tile;
 

@@ -1,4 +1,4 @@
-//! Action 520: teach language to a stranger; discover "language_teaching"; emit "culture"; attitude +0.08.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 377: reclaim land from ash. Needs an Ash tile.
+
 use super::super::ctx::ActionCtx;
 use crate::world::tiles::Tile;
 

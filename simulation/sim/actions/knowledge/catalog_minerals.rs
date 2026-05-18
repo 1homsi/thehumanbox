@@ -1,4 +1,4 @@
-//! Action 133: catalogue minerals near rock/mineral tiles.
+
 use super::super::ctx::ActionCtx;
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     if !ctx.rock_near {

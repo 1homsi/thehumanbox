@@ -1,5 +1,4 @@
-//! Action 32: dig for roots on grass tiles. 25% catch rate, restores
-//! a chunk of energy.
+
 
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;

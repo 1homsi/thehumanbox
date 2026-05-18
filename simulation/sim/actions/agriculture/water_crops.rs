@@ -1,4 +1,4 @@
-//! Action 339: water crops using a nearby water source.
+
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
 

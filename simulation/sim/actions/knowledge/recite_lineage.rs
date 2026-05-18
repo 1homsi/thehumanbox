@@ -1,4 +1,4 @@
-//! Action 126: recite the lineage to nearby kin.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 303: mark territory with a discover "land_grant".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

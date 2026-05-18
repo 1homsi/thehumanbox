@@ -1,4 +1,4 @@
-//! Action 160: hollow a canoe. Needs water nearby + wood.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

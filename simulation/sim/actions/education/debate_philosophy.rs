@@ -1,4 +1,4 @@
-//! Action 509: debate philosophy with kin; both boredom -0.08; discover "philosophical_debate".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

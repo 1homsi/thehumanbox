@@ -1,4 +1,4 @@
-//! Action 492: avenge a death by turning against a nearby stranger; emit "warfare".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

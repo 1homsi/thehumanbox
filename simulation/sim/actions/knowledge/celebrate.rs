@@ -1,4 +1,4 @@
-//! Action 77: celebrate. Lifts kin comfort/boredom.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

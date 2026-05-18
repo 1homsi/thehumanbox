@@ -3,11 +3,9 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
-
 def stable_split_key(prompt: str) -> float:
     digest = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
     return int(digest[:8], 16) / 0xFFFFFFFF
-
 
 def split_rows(
     rows: list[dict[str, Any]], validation_ratio: float = 0.15
@@ -26,15 +24,9 @@ def split_rows(
         train.append(valid.pop())
     return train, valid
 
-
 def teacher_rows_to_sft(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     dataset: list[dict[str, Any]] = []
     for row in rows:
-        # Accept either capture_teacher_thoughts output (teacher_response,
-        # the distillation flow) or build_thought_dataset output (response,
-        # the self-supervised flow where the sim's own thoughts are the
-        # training target). This lets prepare-sft-dataset work end-to-end
-        # without requiring a teacher model pass first.
         assistant_text = row.get("teacher_response", row.get("response", ""))
         dataset.append(
             {

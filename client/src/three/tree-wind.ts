@@ -1,17 +1,10 @@
 import * as THREE from 'three'
 
-// Shared wind state. One uniform per scene, all wind-aware materials
-// point at the same uTime / uStrength so a single useFrame bump is
-// enough to animate every tree (cheap, runs on GPU).
 export const windUniforms = {
   uTime:     { value: 0 },
   uStrength: { value: 0.22 },
 }
 
-// Hooks a vertex shader into a MeshStandardMaterial that sways verts
-// with y > 0 horizontally based on world-space instance offset.
-// Trunks stay rooted because we scale displacement by (y / heightRef);
-// only the upper half visibly moves.
 export function applyWindSway(
   mat: THREE.Material,
   heightRef = 2.5,
@@ -46,7 +39,6 @@ export function applyWindSway(
         `,
       )
   }
-  // Force re-link if the material had already compiled before we got here.
   mat.needsUpdate = true
   return mat
 }

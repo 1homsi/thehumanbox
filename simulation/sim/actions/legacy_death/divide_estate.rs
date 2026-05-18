@@ -1,4 +1,4 @@
-//! Action 496: elder divides estate; share inv_wood among kin; emit "governance".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 400: stand ground. Stranger nearby; resolve grants a health tick.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import re
 
-
 EVENT_RE = re.compile(
     r"type=(?P<event_type>\w+).*?energy=(?P<energy>[0-9.]+).*?hydration=(?P<hydration>[0-9.]+).*?"
     r"health=(?P<health>[0-9.]+).*?fear=(?P<fear>[0-9.]+).*?text=(?P<text>.*)$"
 )
-
 
 def predict_thought(prompt: str) -> str:
     event_lines = [line for line in prompt.splitlines() if line.startswith("- tick=")]

@@ -1,4 +1,4 @@
-//! Action 149: grind grain on stone.
+
 use super::super::ctx::ActionCtx;
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     if !ctx.rock_near || ctx.org().inv_food == 0 { return 0.0; }

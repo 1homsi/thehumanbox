@@ -1,4 +1,4 @@
-//! Action 87: mediate between two near orgs of different lineages.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

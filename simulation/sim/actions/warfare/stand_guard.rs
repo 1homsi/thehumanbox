@@ -1,4 +1,4 @@
-//! Action 101: stand guard. Lowers kin fear.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

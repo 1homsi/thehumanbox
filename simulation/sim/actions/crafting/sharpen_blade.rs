@@ -1,4 +1,4 @@
-//! Action 157: sharpen a blade. Requires having any blade discovery.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

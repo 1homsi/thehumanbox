@@ -1,4 +1,4 @@
-//! Action 123: check a previously-set trap.
+
 use crate::world::grid::TrailKind;
 use super::super::ctx::ActionCtx;
 

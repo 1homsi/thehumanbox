@@ -6,16 +6,13 @@ from typing import Any
 
 from .local_stack import installed_ollama_model_names, list_ollama_models
 
-
 def default_registry_path() -> Path:
     return Path(__file__).resolve().parents[2] / "models" / "registry.json"
-
 
 def load_registry(path: str | Path | None = None) -> dict[str, Any]:
     registry_path = Path(path) if path else default_registry_path()
     with registry_path.open("r", encoding="utf-8") as handle:
         return json.load(handle)
-
 
 def load_registry_with_runtime(path: str | Path | None = None) -> dict[str, Any]:
     registry = load_registry(path)
@@ -26,7 +23,6 @@ def load_registry_with_runtime(path: str | Path | None = None) -> dict[str, Any]
         enriched["installed"] = model.get("id") in installed
         enriched_models.append(enriched)
     return {"models": enriched_models}
-
 
 def candidate_ollama_models(path: str | Path | None = None, installed_only: bool = True) -> list[str]:
     registry = load_registry_with_runtime(path)

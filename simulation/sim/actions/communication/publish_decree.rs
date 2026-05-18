@@ -1,4 +1,4 @@
-//! Action 416: publish a decree. Elder only; reduces boredom for all kin.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 369: observe animal behaviour to understand the herd.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

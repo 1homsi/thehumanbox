@@ -1,4 +1,4 @@
-//! Action 147: share a meal with kin nearby.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

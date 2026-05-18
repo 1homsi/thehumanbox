@@ -1,4 +1,4 @@
-//! Action 209: harvest festival - needs food tile or stockpile.
+
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
 

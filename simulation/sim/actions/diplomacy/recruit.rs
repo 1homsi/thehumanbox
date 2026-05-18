@@ -1,4 +1,4 @@
-//! Action 95: welcome an outsider.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

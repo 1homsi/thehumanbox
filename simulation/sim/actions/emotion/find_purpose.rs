@@ -1,4 +1,4 @@
-//! Action 396: find purpose. Low boredom after meaningful action; comfort boost.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

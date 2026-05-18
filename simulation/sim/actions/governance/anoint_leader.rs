@@ -1,4 +1,4 @@
-//! Action 312: ceremonially appoint an elder kin; all kin comfort +0.05; discover "leadership".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

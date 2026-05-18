@@ -1,4 +1,4 @@
-//! Action 505: copy a scroll using inv_wood; discover "scroll_copying"; emit "build".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

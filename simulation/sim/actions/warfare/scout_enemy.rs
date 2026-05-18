@@ -1,4 +1,4 @@
-//! Action 105: scout enemy positions and remember them.
+
 use crate::organism::organism::Organism;
 use super::super::ctx::ActionCtx;
 

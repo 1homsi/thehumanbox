@@ -1,4 +1,4 @@
-//! Action 107: bathe in nearby water.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

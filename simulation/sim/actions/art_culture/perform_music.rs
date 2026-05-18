@@ -1,4 +1,4 @@
-//! Action 317: perform music near fire; comfort all kin.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

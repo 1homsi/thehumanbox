@@ -1,5 +1,4 @@
-//! Action 60: cook food on fire. Big energy gain, consumes the
-//! Food tile (back to Grass).
+
 
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;

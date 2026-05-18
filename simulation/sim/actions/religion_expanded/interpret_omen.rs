@@ -1,4 +1,4 @@
-//! Action 463: interpret an omen from ash or fire.
+
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
 

@@ -1,4 +1,4 @@
-//! Action 208: coming-of-age rite for an adolescent kin (age 700-900).
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

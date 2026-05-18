@@ -1,4 +1,4 @@
-//! Action 244: declare love to a kin; big comfort boost, emit bond event.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

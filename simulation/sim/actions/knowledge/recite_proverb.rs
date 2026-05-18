@@ -1,4 +1,4 @@
-//! Action 135: recite a proverb. Mild comfort bump for everyone nearby.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

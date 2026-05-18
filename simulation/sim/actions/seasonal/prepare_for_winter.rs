@@ -1,4 +1,4 @@
-//! Action 471: stock inv_food in preparation for winter; discover "winter_preparation".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

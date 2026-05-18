@@ -1,4 +1,4 @@
-//! Action 40: dig a well on sand/grass. 40% success → tile becomes water.
+
 
 use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;

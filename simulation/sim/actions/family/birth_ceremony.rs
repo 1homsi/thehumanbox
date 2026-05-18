@@ -1,4 +1,4 @@
-//! Action 262: celebrate a newborn; all kin comfort +0.07; discover "birth_rite".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

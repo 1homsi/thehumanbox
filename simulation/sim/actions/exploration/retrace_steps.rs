@@ -1,4 +1,4 @@
-//! Action 218: retrace steps.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

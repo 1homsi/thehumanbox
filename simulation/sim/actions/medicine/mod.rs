@@ -1,4 +1,4 @@
-//! Medicine actions (indices 246..=260).
+
 
 pub mod tend_wound;
 pub mod apply_poultice;

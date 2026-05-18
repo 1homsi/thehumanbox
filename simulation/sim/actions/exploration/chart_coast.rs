@@ -1,4 +1,4 @@
-//! Action 217: chart the coast.
+
 use crate::organism::organism::Organism;
 use super::super::ctx::ActionCtx;
 

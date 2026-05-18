@@ -1,4 +1,4 @@
-//! Action 224: play with kids in the tribe.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

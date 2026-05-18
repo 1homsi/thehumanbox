@@ -1,4 +1,4 @@
-//! Action 292: secretly move goods; chance(0.3) gain inv_food; emit "social" event if caught.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

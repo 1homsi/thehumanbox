@@ -1,4 +1,4 @@
-//! Action 356: build a pen to contain animals.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

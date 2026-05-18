@@ -1,4 +1,4 @@
-//! Action 341: thresh harvested grain to extract energy.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

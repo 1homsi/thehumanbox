@@ -1,4 +1,4 @@
-//! Action 295: collect from kin (reduce one kin's inv_food); emit "governance" event.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

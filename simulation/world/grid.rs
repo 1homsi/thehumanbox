@@ -5,7 +5,6 @@ use serde::Serialize;
 pub const WIDTH: usize = 600;
 pub const HEIGHT: usize = 300;
 
-// Viewport = full world - entire grid is serialised every tick
 pub const VP_W: usize = WIDTH;
 pub const VP_H: usize = HEIGHT;
 
@@ -19,13 +18,11 @@ pub struct WorldGrid {
     pub temperature: Vec<f32>,
     pub structure: Vec<f32>,
     pub pool_centers: Vec<(i32, i32)>,
-    // Persistent world memory layers
-    pub fertility: Vec<f32>, // 0.0–1.0  soil richness; depletes when food eaten, recovers slowly
-    pub hazard: Vec<f32>,    // 0.0–1.0  accumulated danger from fire/death/disease; very slow decay
-    pub pressure: Vec<f32>,  // 0.0–10.0 historical footprint of organism movement
-    // Terrain shape (generated once, used for depth rendering)
-    pub elevation: Vec<f32>, // normalised [0,1]; 0 = deepest ocean, 1 = highest peak
-    pub depth: Vec<f32>,     // water tiles: normalised depth [0,1] (0=coast, 1=deepest); land=0
+    pub fertility: Vec<f32>,
+    pub hazard: Vec<f32>,
+    pub pressure: Vec<f32>,
+    pub elevation: Vec<f32>,
+    pub depth: Vec<f32>,
 }
 
 impl WorldGrid {
@@ -52,8 +49,6 @@ impl WorldGrid {
     }
 
     pub fn idx(x: i32, y: i32) -> usize {
-        // Clamp so callers passing slightly-OOB coordinates don't trip
-        // the debug-mode overflow check on `-1 as usize * WIDTH`.
         let x = x.clamp(0, WIDTH as i32 - 1) as usize;
         let y = y.clamp(0, HEIGHT as i32 - 1) as usize;
         y * WIDTH + x
@@ -224,18 +219,16 @@ impl WorldGrid {
         }
     }
 
-    // Called every 500 ticks - fertility recovers toward biome cap, hazard & pressure decay slowly
     pub fn decay_world_layers(&mut self) {
         for (i, v) in self.fertility.iter_mut().enumerate() {
             let cap = Biome::from_u8(self.biome[i]).base_fertility();
             if *v < cap {
-                // High-pressure tiles recover more slowly - soil compaction under heavy use
                 let rate = if self.pressure[i] > 5.0 {
-                    0.000008 // heavily trampled: 7.5× slower recovery
+                    0.000008
                 } else if self.pressure[i] > 2.5 {
-                    0.000025 // moderate use: 2.4× slower
+                    0.000025
                 } else {
-                    0.00006 // undisturbed: normal recovery
+                    0.00006
                 };
                 *v = (*v + rate).min(cap);
             }
@@ -264,9 +257,6 @@ impl WorldGrid {
             .filter(|(nx, ny)| Self::in_bounds(*nx, *ny))
     }
 
-    // ── Terrain noise primitives ───────────────────────────────────────────────
-
-    /// Hash two grid-cell integers + seed → pseudo-random f32 in [-1, 1]
     fn corner_hash(ix: u32, iy: u32, seed: u64) -> f32 {
         let mut h: u64 = seed;
         h ^= (ix as u64).wrapping_mul(0x9e3779b97f4a7c15);
@@ -279,13 +269,11 @@ impl WorldGrid {
         (h as f32 / u64::MAX as f32) * 2.0 - 1.0
     }
 
-    /// Smooth 2-D value noise - bilinear interpolation of hashed corners, quintic ease
     fn value_noise(px: f32, py: f32, seed: u64) -> f32 {
         let ix = px.floor() as u32;
         let iy = py.floor() as u32;
         let fx = px - px.floor();
         let fy = py - py.floor();
-        // Quintic smooth-step: 6t^5 - 15t^4 + 10t^3
         let ux = fx * fx * fx * (fx * (fx * 6.0 - 15.0) + 10.0);
         let uy = fy * fy * fy * (fy * (fy * 6.0 - 15.0) + 10.0);
         let a = Self::corner_hash(ix, iy, seed);
@@ -297,7 +285,6 @@ impl WorldGrid {
         ab + uy * (cd - ab)
     }
 
-    /// Fractional Brownian Motion - 7 octaves, lacunarity 2.05, gain 0.50
     fn fbm(nx: f32, ny: f32, seed: u64) -> f32 {
         let mut val = 0.0f32;
         let mut amp = 0.50f32;
@@ -308,10 +295,8 @@ impl WorldGrid {
             amp *= 0.50;
             freq *= 2.05;
         }
-        val // typically [-0.70, 0.70]
+        val
     }
-
-    // ── World generation ───────────────────────────────────────────────────────
 
     fn generate(&mut self, seed: u64) {
         use rand::SeedableRng;
@@ -319,23 +304,15 @@ impl WorldGrid {
         let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
         let size = WIDTH * HEIGHT;
 
-        // ── 0. Continent centres - guaranteed vertical spread ────────────────
-        // Divide the world into N vertical bands (top→bottom) and place one
-        // continent nucleus per band.  This prevents all land merging into a
-        // single horizontal equatorial strip.
         let n_continents: usize = rng.gen_range(3usize..=5);
-        let band_h = 0.76f32 / n_continents as f32; // usable range 0.12–0.88
+        let band_h = 0.76f32 / n_continents as f32;
 
-        // Horizontal x-slots: guarantee full E/W coverage regardless of how many
-        // continents are generated.  Pattern: left → right → center → left-mid →
-        // right-mid so the first 3 continents always cover all three thirds of
-        // the world.  This eliminates the "empty right side" problem.
         let x_slots: [(f32, f32); 5] = [
-            (0.05, 0.38), // left third
-            (0.62, 0.95), // right third
-            (0.28, 0.72), // center
-            (0.05, 0.52), // left-centre
-            (0.48, 0.95), // right-centre
+            (0.05, 0.38),
+            (0.62, 0.95),
+            (0.28, 0.72),
+            (0.05, 0.52),
+            (0.48, 0.95),
         ];
         let cont_centers: Vec<(f32, f32)> = (0..n_continents)
             .map(|k| {
@@ -348,8 +325,6 @@ impl WorldGrid {
             })
             .collect();
 
-        // Per-continent shape: rotated elongated ellipse + domain-warp strength
-        // long_axis runs along `angle`, short_axis perpendicular.
         let cont_params: Vec<(f32, f32, f32, f32)> = cont_centers
             .iter()
             .map(|_| {
@@ -361,16 +336,12 @@ impl WorldGrid {
             })
             .collect();
 
-        // ── 1. FBM elevation + rotated-ellipse attractors + domain warp ─────
-        // Domain warp: apply a low-freq FBM offset before computing attractor
-        // distance so continent coastlines are organic rather than round blobs.
         let mut raw_elev = vec![0.0f32; size];
         for y in 0..HEIGHT {
             for x in 0..WIDTH {
                 let nx = x as f32 / WIDTH as f32;
                 let ny = y as f32 / HEIGHT as f32;
 
-                // Low-frequency domain warp (two independent FBM layers)
                 let wx = Self::fbm(
                     nx * 1.7 + 13.7,
                     ny * 1.7 + 52.4,
@@ -384,10 +355,8 @@ impl WorldGrid {
                 let wnx = nx + wx;
                 let wny = ny + wy;
 
-                // FBM terrain detail
                 let noise = Self::fbm(nx, ny, seed) * 0.55;
 
-                // Continental lift: rotated-ellipse attractor at each warped point
                 let cont_lift = (0..n_continents)
                     .map(|k| {
                         let (cx, cy) = cont_centers[k];
@@ -396,7 +365,6 @@ impl WorldGrid {
                         let dy = wny - cy;
                         let cos = ang.cos();
                         let sin = ang.sin();
-                        // Rotate into continent's local frame
                         let rdx = (cos * dx + sin * dy) / la;
                         let rdy = (-sin * dx + cos * dy) / sa;
                         let d = (rdx * rdx + rdy * rdy).sqrt();
@@ -404,8 +372,6 @@ impl WorldGrid {
                     })
                     .fold(0.0f32, f32::max);
 
-                // Strong polar fade: almost no land above lat 0.64.
-                // This keeps the poles from turning into giant dead continents.
                 let lat = (ny - 0.5).abs() * 2.0;
                 let polar_fade = if lat > 0.64 {
                     (1.0 - (lat - 0.64) / 0.36).max(0.03)
@@ -417,7 +383,6 @@ impl WorldGrid {
             }
         }
 
-        // ── 2. Sea level - target ~39 % land ────────────────────────────────
         let mut sorted_elev = raw_elev.clone();
         sorted_elev.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
         let sea_level = sorted_elev[(size as f32 * 0.61) as usize];
@@ -426,7 +391,6 @@ impl WorldGrid {
         let elev_full = (elev_max - elev_min).max(1e-5);
         let elev_land_rng = (elev_max - sea_level).max(1e-5);
 
-        // ── 3. Initial land mask ─────────────────────────────────────────────
         let mut land_mask = vec![false; size];
         for i in 0..size {
             if raw_elev[i] >= sea_level {
@@ -436,10 +400,6 @@ impl WorldGrid {
             }
         }
 
-        // ── 4. Smooth land topology before climate assignment ───────────────
-        // Fill near-sea-level choke points and cull lonely low-elevation spikes
-        // so we get coherent continents instead of lots of micro-islands and
-        // one-tile channels. This improves usable land without scripting biomes.
         for _ in 0..2 {
             let prev_mask = land_mask.clone();
             for y in 1..(HEIGHT as i32 - 1) {
@@ -479,7 +439,6 @@ impl WorldGrid {
             }
         }
 
-        // ── 5. Remove tiny islands (< 320 tiles) ────────────────────────────
         {
             let mut visited = vec![false; size];
             for sy in 0..HEIGHT as i32 {
@@ -515,16 +474,10 @@ impl WorldGrid {
             }
         }
 
-        // ── 6. Normalised elevation map ──────────────────────────────────────
         for i in 0..size {
             self.elevation[i] = (raw_elev[i] - elev_min) / elev_full;
         }
-        // Depth is filled after coastal-distance BFS (step 6) so it's smooth.
 
-        // ── 7. Coastal distance BFS - for moisture model ─────────────────────
-        // Seeded from all ocean water tiles (land_mask = false), grows into land.
-        // Used in step 7 for moisture calculation.
-        // (Depth BFS runs at the end of generate() so it catches pools + rivers.)
         let mut coast_dist = vec![i32::MAX / 2; size];
         {
             let mut queue: VecDeque<(i32, i32)> = VecDeque::new();
@@ -553,29 +506,24 @@ impl WorldGrid {
             }
         }
 
-        // ── 8. Climate: temperature & moisture ───────────────────────────────
         let mut temp_map = vec![0.0f32; size];
         let mut moist_map = vec![0.0f32; size];
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
                 let i = Self::idx(x, y);
                 let ny = y as f32 / HEIGHT as f32;
-                let lat = (ny - 0.5).abs() * 2.0; // 0 = equator, 1 = pole
+                let lat = (ny - 0.5).abs() * 2.0;
 
-                // Elevation above sea level, normalised [0,1]
                 let norm_elev = if land_mask[i] {
                     ((raw_elev[i] - sea_level) / elev_land_rng).clamp(0.0, 1.0)
                 } else {
                     0.0
                 };
 
-                // Temperature: keep more mid-latitude and upland land habitable.
-                // Cold poles and alpine peaks still exist, but they should not dominate.
                 let base_temp = 34.0 - lat * 42.0;
                 let elev_cool = norm_elev * 22.0;
                 temp_map[i] = base_temp - elev_cool;
 
-                // Moisture: coastal + equatorial minus Hadley-cell dry belt
                 let eq_moist = if lat < 0.15 {
                     1.0
                 } else {
@@ -585,7 +533,6 @@ impl WorldGrid {
                     let cd = coast_dist[i] as f32;
                     (1.0 - (cd / 90.0).min(1.0)).powf(1.25)
                 };
-                // Subtropical dry belt centred at lat ≈ 0.38
                 let hadley = {
                     let dist_from_belt = (lat - 0.38).abs();
                     if dist_from_belt < 0.12 {
@@ -598,7 +545,6 @@ impl WorldGrid {
             }
         }
 
-        // ── 9. Biome assignment (temperature × moisture matrix) ──────────────
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
                 let i = Self::idx(x, y);
@@ -611,7 +557,7 @@ impl WorldGrid {
                 let moist = moist_map[i];
 
                 let biome = if norm_elev > 0.84 {
-                    Biome::Tundra // High mountain - always cold
+                    Biome::Tundra
                 } else if temp < -8.0 {
                     Biome::Tundra
                 } else if temp < 4.0 {
@@ -643,7 +589,6 @@ impl WorldGrid {
                         Biome::Desert
                     }
                 } else {
-                    // Tropical
                     if moist > 0.58 {
                         Biome::Forest
                     } else if moist > 0.38 {
@@ -659,7 +604,6 @@ impl WorldGrid {
                     }
                 };
 
-                // Sparse volcanic pockets at mid-high elevation
                 let biome = if rng.gen::<f32>() < 0.004 && norm_elev > 0.42 && norm_elev < 0.72 {
                     Biome::Volcanic
                 } else {
@@ -670,7 +614,6 @@ impl WorldGrid {
             }
         }
 
-        // ── 10. Tile assignment (elevation bands + biome) ────────────────────
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
                 let i = Self::idx(x, y);
@@ -682,11 +625,11 @@ impl WorldGrid {
                 let biome = Biome::from_u8(self.biome[i]);
 
                 self.tiles[i] = if norm_elev > 0.94 {
-                    Tile::Snow as i8 // Mountain peak (rarer)
+                    Tile::Snow as i8
                 } else if norm_elev > 0.84 {
-                    Tile::Rock as i8 // Mountain rock (only the highest band)
+                    Tile::Rock as i8
                 } else if norm_elev < 0.03 {
-                    Tile::Sand as i8 // Beach / coastal strip
+                    Tile::Sand as i8
                 } else {
                     match biome {
                         Biome::Desert => {
@@ -711,7 +654,6 @@ impl WorldGrid {
             }
         }
 
-        // ── 11. Scattered biome rocks (ground texture, reduced) ──────────────
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
                 if self.get(x, y) != Tile::Grass {
@@ -724,7 +666,6 @@ impl WorldGrid {
             }
         }
 
-        // ── 12. Inland water pools (skip mountains + deserts + tundra) ───────
         let zones_x = 8usize;
         let zones_y = 5usize;
         let zone_w = WIDTH / zones_x;
@@ -750,7 +691,6 @@ impl WorldGrid {
                         if matches!(b, Biome::Desert | Biome::Tundra) {
                             return false;
                         }
-                        // Skip mountains
                         let ne = ((raw_elev[idx] - sea_level) / elev_land_rng).clamp(0.0, 1.0);
                         ne < 0.50
                     })
@@ -776,7 +716,6 @@ impl WorldGrid {
             }
         }
 
-        // ── 13. Rivers (MST pool-to-pool with S-curve meander) ───────────────
         let n = pool_centers.len();
         if n >= 2 {
             let mut connected = vec![false; n];
@@ -816,7 +755,6 @@ impl WorldGrid {
                     );
                 }
             }
-            // Extra tributary cross-connections
             for _ in 0..(n / 3) {
                 let a = rng.gen_range(0..n);
                 let mut dists: Vec<(i32, usize)> = (0..n)
@@ -835,7 +773,6 @@ impl WorldGrid {
             }
         }
 
-        // ── 14. Food placement ────────────────────────────────────────────────
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
                 if self.get(x, y) != Tile::Grass {
@@ -848,7 +785,6 @@ impl WorldGrid {
             }
         }
 
-        // ── 15. Volcanic fire seeds ───────────────────────────────────────────
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
                 let i = Self::idx(x, y);
@@ -862,22 +798,14 @@ impl WorldGrid {
             }
         }
 
-        // ── 16. Temperature map ───────────────────────────────────────────────
         self.temperature = temp_map;
 
-        // ── 17. Initial fertility ─────────────────────────────────────────────
         for i in 0..size {
             self.fertility[i] = Biome::from_u8(self.biome[i]).base_fertility();
         }
 
         self.pool_centers = pool_centers;
 
-        // ── 18. Depth map - BFS after all water placed ────────────────────────
-        // Must run AFTER pools and rivers so inland water is correctly shallow.
-        // Seed from every non-water tile adjacent to water, flood outward into
-        // water tiles.  Distance = 0 at shoreline → grows into open ocean.
-        // Inland lakes and rivers end up at distance 1–5 → very shallow (light blue).
-        // Open ocean centre ends up at distance >100 → deep (dark navy).
         {
             let mut od = vec![i32::MAX / 2i32; size];
             let mut queue: VecDeque<(i32, i32)> = VecDeque::new();
@@ -887,7 +815,6 @@ impl WorldGrid {
                     if self.tiles[i] != Tile::Water as i8 {
                         continue;
                     }
-                    // Is this water tile adjacent to any non-water tile?
                     let on_shore =
                         [(-1i32, 0i32), (1, 0), (0, -1), (0, 1)]
                             .iter()
@@ -916,7 +843,6 @@ impl WorldGrid {
                     }
                 }
             }
-            // Normalise: 0 tiles from shore = depth 0 (shallow), 100+ = depth 1 (deep)
             const DEEP_CAP: f32 = 100.0;
             for i in 0..size {
                 self.depth[i] = if self.tiles[i] == Tile::Water as i8 {
@@ -937,7 +863,6 @@ impl WorldGrid {
     ) {
         let (mut x, mut y) = from;
         let max_steps = ((from.0 - to.0).abs() + (from.1 - to.1).abs()) * 6;
-        // Running perpendicular bias - flips sign every ~8–20 steps to create S-curves
         let mut perp_bias: f32 = if rng.gen::<bool>() { 1.0 } else { -1.0 };
         let mut steps_since_flip = 0i32;
         let flip_interval = rng.gen_range(8i32..=20);
@@ -952,12 +877,10 @@ impl WorldGrid {
             }
             let dx = (to.0 - x).signum();
             let dy = (to.1 - y).signum();
-            // Perpendicular direction (rotated 90°)
             let (px, py) = (-dy, dx);
             let (mx, my) = {
                 let r = rng.gen::<f32>();
                 if r < 0.50 {
-                    // Towards target
                     if dx.abs() > dy.abs() {
                         (dx, 0)
                     } else if dy != 0 {
@@ -966,11 +889,9 @@ impl WorldGrid {
                         (dx, 0)
                     }
                 } else if r < 0.75 {
-                    // Perpendicular meander (creates curves)
                     let pb = if perp_bias > 0.0 { 1i32 } else { -1i32 };
                     (px * pb, py * pb)
                 } else {
-                    // Slight random wander
                     let rx = rng.gen_range(-1i32..=1);
                     let ry = rng.gen_range(-1i32..=1);
                     (rx, ry)
@@ -995,18 +916,10 @@ impl WorldGrid {
         }
     }
 
-    /// Slow geological coastal change - called every ~5000 ticks.
-    /// Floods a handful of coastal land tiles and exposes a few coastal water tiles.
     pub fn tick_geology(&mut self, rng: &mut impl Rng) {
-        // Per-call flip counts: scaled down so the cumulative effect over
-        // 1000 sim-days reads as "the coastline drifted a bit" rather than
-        // "the map keeps churning every month". Caller cadence is also
-        // slower (every 18000 ticks ~ 30 sim-days) - the two changes
-        // together push tile-flip rate to ~0.1-0.3 per sim-day.
         let flood_count  = rng.gen_range(2..=6usize);
         let emerge_count = rng.gen_range(1..=3usize);
 
-        // Flood random coastal land tiles
         let mut flooded = 0usize;
         for _ in 0..800 {
             if flooded >= flood_count {
@@ -1029,7 +942,6 @@ impl WorldGrid {
             }
         }
 
-        // Expose random coastal water tiles
         let mut emerged = 0usize;
         for _ in 0..600 {
             if emerged >= emerge_count {
@@ -1064,18 +976,6 @@ impl WorldGrid {
         }
     }
 
-    // Serialize a viewport window centered on (cx, cy) of size vw×vh tiles.
-    // origin_x / origin_y in GridJson tell the client how to offset world-space coords.
-    /// Build a GridJson for the WS broadcast.
-    ///
-    /// `include_tiles`   - dense tiles array (every TILES_INTERVAL ticks)
-    /// `include_static`  - sparse dynamic-static layers: trails, fertility,
-    ///                     hazard. Cheap to serialize, fine on WS cadence.
-    /// `include_terrain` - heavy static layers: biomes + depth_map (~720 KB
-    ///                     combined per frame). These change very slowly
-    ///                     (depth never, biomes only on biome-drift), so we
-    ///                     only ship them on the HTTP /snapshot path - WS
-    ///                     periodic fulls never re-ship them.
     pub fn to_json_viewport(
         &self,
         cx: i32,
@@ -1092,14 +992,12 @@ impl WorldGrid {
         let slice_row = |vec: &[i8], y: usize| vec[y * WIDTH + ox..y * WIDTH + ox + vw].to_vec();
         let slice_u8 = |vec: &[u8], y: usize| vec[y * WIDTH + ox..y * WIDTH + ox + vw].to_vec();
 
-        // Dense tile map - included every TILES_INTERVAL ticks
         let tiles = if include_tiles {
             Some((oy..oy + vh).map(|y| slice_row(&self.tiles, y)).collect())
         } else {
             None
         };
 
-        // Sparse fire - [[row, col, intensity×1000], ...] only for non-zero cells
         let mut fire: Vec<[u16; 3]> = Vec::new();
         for y in oy..oy + vh {
             let row = &self.fire_intensity[y * WIDTH + ox..y * WIDTH + ox + vw];
@@ -1114,7 +1012,6 @@ impl WorldGrid {
             }
         }
 
-        // Sparse structure - [[row, col, level×100], ...] only for non-zero cells
         let mut structure: Vec<[u16; 3]> = Vec::new();
         for y in oy..oy + vh {
             let row = &self.structure[y * WIDTH + ox..y * WIDTH + ox + vw];
@@ -1129,10 +1026,6 @@ impl WorldGrid {
             }
         }
 
-        // Sparse trails - emit a row whenever any of food/water/path exceeds
-        // 0.10. Three channels packed into a single entry to amortize the
-        // [row,col] cost. Only emitted on static frames since trails decay
-        // slowly and don't need per-tick updates.
         let trails: Option<Vec<[u16; 5]>> = if include_static {
             let mut v: Vec<[u16; 5]> = Vec::new();
             for y in oy..oy + vh {
@@ -1158,9 +1051,6 @@ impl WorldGrid {
             None
         };
 
-        // Sparse fertility - tiles whose value deviates from a 0.40 baseline
-        // by more than ±0.15. Keeps the list short; most ungrazed land at
-        // baseline contributes nothing.
         let fertility: Option<Vec<[u16; 3]>> = if include_static {
             let mut v: Vec<[u16; 3]> = Vec::new();
             for y in oy..oy + vh {
@@ -1176,7 +1066,6 @@ impl WorldGrid {
             None
         };
 
-        // Sparse hazard - only non-zero tiles. Combat / death scars.
         let hazard: Option<Vec<[u16; 3]>> = if include_static {
             let mut v: Vec<[u16; 3]> = Vec::new();
             for y in oy..oy + vh {
@@ -1192,10 +1081,6 @@ impl WorldGrid {
             None
         };
 
-        // Static maps - biomes + depth. Gated on include_terrain (HTTP
-        // /snapshot only). WS broadcasts skip this; clients keep the
-        // initial-snapshot copy cached and update only if a new /snapshot
-        // is fetched (e.g. on reconnect / big WS gap).
         let (biomes, depth_map) = if include_terrain {
             let b = (oy..oy + vh).map(|y| slice_u8(&self.biome, y)).collect();
             let d = (oy..oy + vh)
@@ -1236,7 +1121,6 @@ impl WorldGrid {
         }
     }
 
-    // Full-grid serialization (used by headless binary)
     pub fn to_json(&self) -> GridJson {
         self.to_json_viewport(
             WIDTH as i32 / 2,
@@ -1257,47 +1141,24 @@ pub enum TrailKind {
     Path,
 }
 
-/// Per-tick grid payload.
-///
-/// Payload budget breakdown (600×300 world):
-/// - tiles: 180 K values, dense - ~360 KB JSON, sent every 5 ticks
-/// - fire:  sparse list of (row,col,v×1000) - 0 bytes when no fire, <5 KB with fire
-/// - structure: sparse list of (row,col,v×100) - 0 bytes when no buildings
-/// - biomes / depth_map: ~360 KB each, only sent every 30 ticks (when Some)
-/// - trails / fertility / hazard: sparse, threshold-gated, only present when
-///   include_static is true (every 30 ticks) so they cost roughly the same
-///   bandwidth as structure
 #[derive(Serialize)]
 pub struct GridJson {
     pub width: usize,
     pub height: usize,
     pub origin_x: i32,
     pub origin_y: i32,
-    /// Dense tile array - only present every TILES_INTERVAL ticks
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tiles: Option<Vec<Vec<i8>>>,
-    /// Sparse fire: [[row, col, intensity×1000], ...]  - 0 bytes when no fire
     pub fire: Vec<[u16; 3]>,
-    /// Sparse structure: [[row, col, level×100], ...]  - 0 bytes when empty
     pub structure: Vec<[u16; 3]>,
-    /// Dense biome layer - only present every STATIC_INTERVAL ticks
     #[serde(skip_serializing_if = "Option::is_none")]
     pub biomes: Option<Vec<Vec<u8>>>,
-    /// Ocean depth - only present every STATIC_INTERVAL ticks
     #[serde(skip_serializing_if = "Option::is_none")]
     pub depth_map: Option<Vec<Vec<u8>>>,
-    /// Sparse trails: [[row, col, food×100, water×100, path×100], ...]
-    /// Only entries where at least one trail exceeds the threshold. Empty
-    /// vec when no trails active. Optional - only on static frames.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trails: Option<Vec<[u16; 5]>>,
-    /// Sparse fertility deviation: [[row, col, fertility×100], ...]
-    /// Only tiles whose fertility is notably above or below 0.40 baseline.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fertility: Option<Vec<[u16; 3]>>,
-    /// Sparse hazard scars: [[row, col, hazard×100], ...]
-    /// Hazard accumulates from combat / death; default is 0 so the sparse
-    /// representation is naturally compact.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hazard: Option<Vec<[u16; 3]>>,
 }

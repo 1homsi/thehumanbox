@@ -1,4 +1,4 @@
-//! Action 182: swear an oath with kin. Bidirectional trust bump.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

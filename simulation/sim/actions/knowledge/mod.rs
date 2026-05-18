@@ -1,4 +1,4 @@
-//! Knowledge & culture (indices 66..=79 and 126..=140).
+
 
 pub mod study;
 pub mod experiment;

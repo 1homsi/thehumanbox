@@ -1,4 +1,4 @@
-//! Action 495: compose a eulogy with kin; all boredom -0.06; emit "culture".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

@@ -1,4 +1,4 @@
-//! Action 482: tell stories in winter with kin; all boredom -0.09; emit "culture".
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

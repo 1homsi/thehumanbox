@@ -1,4 +1,4 @@
-//! Action 294: allow a stranger lineage to trade freely; attitude +0.1.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

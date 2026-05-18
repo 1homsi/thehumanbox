@@ -1,4 +1,4 @@
-//! Action 259: spiritual healing rite for a dying kin; health +0.06.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

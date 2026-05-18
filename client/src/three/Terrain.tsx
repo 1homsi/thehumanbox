@@ -10,21 +10,7 @@ interface Props {
   height:   number
 }
 
-// Single BufferGeometry over the whole world grid (~180k verts).
-//
-// Texturing strategy: ONE atlas with 4 sub-textures (grass / sand /
-// rock / litter). Each vertex carries an `aQuad` attribute (0..3)
-// based on its biome. A shader hook injects UV math to read the
-// correct atlas quadrant:
-//
-//   atlasUV.x = (fract(aBaseUV.x) * 0.5) + (quadrant.x ? 0.5 : 0.0)
-//   atlasUV.y = (fract(aBaseUV.y) * 0.5) + (quadrant.y ? 0.5 : 0.0)
-//
-// So grassland vertices read top-left, sand vertices read top-right,
-// rock reads bottom-left, forest reads bottom-right. The same map is
-// also used as bumpMap for surface relief.
-
-const TEX_TILES_PER_WORLD = 16   // how many times the BASE tile repeats per world axis
+const TEX_TILES_PER_WORLD = 16
 
 export function Terrain({ depthMap, biomes, width, height }: Props) {
   const meshRef = useRef<THREE.Mesh>(null)
@@ -38,8 +24,6 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
     const positions = new Float32Array(width * height * 3)
     const colors    = new Float32Array(width * height * 3)
     const uvs       = new Float32Array(width * height * 2)
-    // aQuad: 0..3 encoded as a single float per vertex. Vertex
-    // shader reads it and offsets the UV into the atlas accordingly.
     const quads     = new Float32Array(width * height)
     const indices: number[] = []
 
@@ -64,8 +48,6 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
         positions[i * 3 + 1] = elev
         positions[i * 3 + 2] = y * TILE_SCALE
 
-        // Base tile UV - shader will fract() this and offset into the
-        // chosen atlas quadrant.
         uvs[i * 2]     = (x / width)  * TEX_TILES_PER_WORLD
         uvs[i * 2 + 1] = (y / height) * TEX_TILES_PER_WORLD
 
@@ -105,11 +87,6 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
     return geo
   }, [depthMap, biomes, width, height])
 
-  // Inject shader code into the standard material so each vertex's
-  // UV is remapped to its biome's atlas quadrant. We can't do this
-  // in JS because triangle interpolation across a biome boundary
-  // would do the wrong thing - the GPU has to know the offset per
-  // vertex and let it interpolate.
   const material = useMemo(() => {
     const m = new THREE.MeshStandardMaterial({
       vertexColors: true,
@@ -120,7 +97,6 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
       metalness:  0.0,
     })
     m.onBeforeCompile = (shader) => {
-      // VERTEX: read aQuad, compute atlas offset, pass UV through.
       shader.vertexShader = shader.vertexShader
         .replace(
           '#include <common>',
@@ -138,11 +114,6 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
           `,
         )
 
-      // FRAGMENT: replace `vMapUv` / sampling with atlas-aware
-      // versions. The standard material uses `vMapUv` for diffuse
-      // and `vBumpMapUv` for bump (both come from <uv_pars_fragment>).
-      // We override their content by recomputing the sampling UV
-      // right before the texture fetches.
       shader.fragmentShader = shader.fragmentShader
         .replace(
           '#include <common>',

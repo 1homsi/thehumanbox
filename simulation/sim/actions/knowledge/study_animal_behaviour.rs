@@ -1,4 +1,4 @@
-//! Action 136: study animal behaviour. Requires animal within 5 tiles.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

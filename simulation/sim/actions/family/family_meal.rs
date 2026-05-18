@@ -1,4 +1,4 @@
-//! Action 265: share food with all kin; everyone energy +0.04; consume inv_food.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

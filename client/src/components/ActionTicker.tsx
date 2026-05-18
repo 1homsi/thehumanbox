@@ -3,12 +3,6 @@ import type { WorldState } from '../types'
 import { lineageColor } from '../utils/constants'
 import { useUIStore } from '../stores/store'
 
-/**
- * Bottom-of-screen marquee showing the live thought of each alive
- * organism. Updates whenever the world prop changes (i.e., every WS
- * snapshot). The track is duplicated so the CSS animation can loop
- * seamlessly.
- */
 export function ActionTicker({ world }: { world: WorldState }) {
   const selectOrg = useUIStore(s => s.selectOrg)
 

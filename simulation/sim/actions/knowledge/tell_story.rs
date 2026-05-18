@@ -1,4 +1,4 @@
-//! Action 72: tell a story to kin nearby.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

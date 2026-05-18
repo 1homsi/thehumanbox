@@ -1,4 +1,4 @@
-//! Action 86: apologize. Bumps trust both directions with first nearby.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

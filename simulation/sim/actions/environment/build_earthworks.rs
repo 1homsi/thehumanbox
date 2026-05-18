@@ -1,4 +1,4 @@
-//! Action 385: build earthworks. Needs inv_stone and a Grass tile.
+
 use super::super::ctx::ActionCtx;
 use crate::world::tiles::Tile;
 

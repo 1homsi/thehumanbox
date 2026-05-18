@@ -1,4 +1,4 @@
-//! Action 104: retreat. Drops own fear.
+
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {

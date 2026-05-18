@@ -26,7 +26,6 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
   const [tribeOpen,  setTribeOpen]  = useState(false)
   const tribeRef = useRef<HTMLDivElement>(null)
 
-  // Close tribe dropdown when clicking outside
   useEffect(() => {
     if (!tribeOpen) return
     const handler = (e: MouseEvent) => {
@@ -70,7 +69,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
 
   return (
     <Modal open onClose={onClose} className="org-search-modal" title="Organisms" hideTitle>
-        {/* Header */}
+        {}
         <div className="lang-modal-header">
           <span className="lang-modal-title">ORGANISMS</span>
           <span className="tree-modal-sub">
@@ -79,7 +78,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
           <button className="close-btn" onClick={onClose}>✕</button>
         </div>
 
-        {/* Toolbar */}
+        {}
         <div className="org-search-toolbar">
           <input
             className="org-search-input"
@@ -138,7 +137,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
           </div>
         </div>
 
-        {/* Body: list + detail */}
+        {}
         <div className="org-search-body">
           <div className="org-search-list">
             {filtered.length === 0 && (
