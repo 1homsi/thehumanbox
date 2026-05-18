@@ -37,6 +37,15 @@ export interface ViewFlags {
   fps:        boolean   // perf overlay
   threeD:     boolean   // 3D world (experimental) - free-fly WASD + mouse
   hideUI:     boolean   // hide sidebars in 3D for immersion
+  // ── Experiments (display modes) ───────────────────────────────────────
+  photoMode:  boolean   // hide ALL UI for screenshots (header + every panel)
+  actionTicker: boolean // bottom strip scrolling live actions
+  miniMap2D:  boolean   // top-right top-down overview in 2D mode
+  randomTour: boolean   // auto-cycle camera/selection every 8s
+  slowMo:     boolean   // 0.5× WS frame lerp (cinematic)
+  fastMo:     boolean   // 2× WS frame lerp
+  colorBlind: boolean   // deuteranopia-safe lineage palette
+  orgPov:     boolean   // 3D: first-person camera from selected org
 }
 
 interface UIState {
@@ -125,6 +134,9 @@ export const useUIStore = create<UIState>((set) => ({
     lineageDot: false, health: false, age: false, fear: false,
     partners: false, pregnancy: false, history: false, fps: false,
     threeD: false, hideUI: false,
+    photoMode: false, actionTicker: false, miniMap2D: false,
+    randomTour: false, slowMo: false, fastMo: false,
+    colorBlind: false, orgPov: false,
   },
 
   isFullscreen: false,

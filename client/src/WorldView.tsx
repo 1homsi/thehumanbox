@@ -713,6 +713,144 @@ function drawWorldOnCanvas(
     }
   }
 
+  // ── Heatmap overlays ────────────────────────────────────────────────────
+  // Mutually exclusive (single-value `overlay` state). Each branch paints
+  // a per-tile coloured fill over the base layer. Data sources noted.
+
+  // hazard: red glow on combat/death tiles (world.grid.hazard, 0..1)
+  if (overlay === 'hazard' && world.grid.hazard) {
+    const haz = world.grid.hazard
+    for (let row = 0; row < height; row++) {
+      const r = haz[row]
+      if (!r) continue
+      for (let col = 0; col < width; col++) {
+        const v = r[col] ?? 0
+        if (v < 0.05) continue
+        ctx.fillStyle = `rgba(220,40,30,${Math.min(0.75, v * 0.9)})`
+        ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
+      }
+    }
+  }
+
+  // fertility: green where soil is fertile, fades to nothing on bare
+  // ground (world.grid.fertility, 0..1)
+  if (overlay === 'fertility' && world.grid.fertility) {
+    const fer = world.grid.fertility
+    for (let row = 0; row < height; row++) {
+      const r = fer[row]
+      if (!r) continue
+      for (let col = 0; col < width; col++) {
+        const v = r[col] ?? 0
+        if (v < 0.10) continue
+        ctx.fillStyle = `rgba(80,200,80,${Math.min(0.55, v * 0.6)})`
+        ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
+      }
+    }
+  }
+
+  // structures: amber density of huts/totems/forts (world.grid.structure, 0..1)
+  if (overlay === 'structures' && world.grid.structure) {
+    const str = world.grid.structure
+    for (let row = 0; row < height; row++) {
+      const r = str[row]
+      if (!r) continue
+      for (let col = 0; col < width; col++) {
+        const v = r[col] ?? 0
+        if (v < 0.05) continue
+        ctx.fillStyle = `rgba(255,170,60,${Math.min(0.7, v * 0.8)})`
+        ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
+      }
+    }
+  }
+
+  // trails: blended food (yellow) + water (blue) + path (green) stigmergy
+  if (overlay === 'trails') {
+    const ft = world.grid.food_trail
+    const wt = world.grid.water_trail
+    const pt = world.grid.path_trail
+    for (let row = 0; row < height; row++) {
+      const fr = ft?.[row]
+      const wr = wt?.[row]
+      const pr = pt?.[row]
+      for (let col = 0; col < width; col++) {
+        const f = fr?.[col] ?? 0
+        const w = wr?.[col] ?? 0
+        const p = pr?.[col] ?? 0
+        if (f < 0.05 && w < 0.05 && p < 0.05) continue
+        // Mix by channel - lets co-located trails read as their blend.
+        const r = Math.round(255 * f + 70 * w + 40 * p)
+        const g = Math.round(200 * f + 130 * w + 200 * p)
+        const b = Math.round(40 * f + 220 * w + 70 * p)
+        const a = Math.min(0.65, (f + w + p) * 0.5)
+        ctx.fillStyle = `rgba(${r},${g},${b},${a.toFixed(2)})`
+        ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
+      }
+    }
+  }
+
+  // age: per-tile mean organism age, mapped onto a red gradient (older = redder)
+  if (overlay === 'age') {
+    const sum: number[][] = Array.from({ length: height }, () => new Array(width).fill(0))
+    const cnt: number[][] = Array.from({ length: height }, () => new Array(width).fill(0))
+    for (const org of organisms) {
+      if (!org.alive) continue
+      const tx = Math.round(org.x - ox), ty = Math.round(org.y - oy)
+      if (tx < 0 || ty < 0 || tx >= width || ty >= height) continue
+      // Splat into a 3x3 block so we get a smoothed field.
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const nx = tx + dx, ny = ty + dy
+          if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue
+          sum[ny][nx] += org.age
+          cnt[ny][nx] += 1
+        }
+      }
+    }
+    // Normalise. Map age 0 → cyan, 600 (1 day) → green, 3000 (5 days, ~elder) → red.
+    for (let row = 0; row < height; row++) {
+      for (let col = 0; col < width; col++) {
+        const c = cnt[row][col]
+        if (c === 0) continue
+        const mean = sum[row][col] / c
+        const t = Math.min(1, mean / 3000)
+        const r = Math.round(80 + t * 175)
+        const g = Math.round(220 - t * 140)
+        const b = Math.round(180 - t * 160)
+        ctx.fillStyle = `rgba(${r},${g},${b},0.55)`
+        ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
+      }
+    }
+  }
+
+  // threat: red where organisms feel fearful (fear_level > 0.3 splat)
+  if (overlay === 'threat') {
+    const heat: number[][] = Array.from({ length: height }, () => new Array(width).fill(0))
+    for (const org of organisms) {
+      if (!org.alive || (org.fear_level ?? 0) < 0.30) continue
+      const tx = Math.round(org.x - ox), ty = Math.round(org.y - oy)
+      const R = 3
+      const f = org.fear_level ?? 0
+      for (let dy = -R; dy <= R; dy++) {
+        for (let dx = -R; dx <= R; dx++) {
+          const d = Math.abs(dx) + Math.abs(dy)
+          if (d > R) continue
+          const nx = tx + dx, ny = ty + dy
+          if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue
+          heat[ny][nx] += f * (R - d + 1) / (R + 1)
+        }
+      }
+    }
+    for (let row = 0; row < height; row++) {
+      for (let col = 0; col < width; col++) {
+        const v = heat[row][col]
+        if (v < 0.15) continue
+        const t = Math.min(1, v / 2)
+        ctx.fillStyle = `rgba(255,${Math.round(140 - t * 100)},${Math.round(60 - t * 40)},${(0.30 + t * 0.40).toFixed(2)})`
+        ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
+      }
+    }
+  }
+
   // World memory overlays
   if (overlay === 'density') {
     // Population density - compute from organism positions (offset to viewport coords)

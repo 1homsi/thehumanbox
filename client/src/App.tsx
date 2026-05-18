@@ -241,7 +241,13 @@ function App() {
 
                   <div className="more-dropdown-section">overlays</div>
                   <div className="more-dropdown-grid">
-                    <button className={clsx('lang-btn', overlay === 'density' && 'active')} onClick={() => setOverlay(overlay === 'density' ? null : 'density')} title="Population density">👥 crowd</button>
+                    <button className={clsx('lang-btn', overlay === 'density'    && 'active')} onClick={() => setOverlay(overlay === 'density'    ? null : 'density')}    title="Population density">👥 crowd</button>
+                    <button className={clsx('lang-btn', overlay === 'hazard'     && 'active')} onClick={() => setOverlay(overlay === 'hazard'     ? null : 'hazard')}     title="Combat / death hotspots">⚠ hazard</button>
+                    <button className={clsx('lang-btn', overlay === 'fertility'  && 'active')} onClick={() => setOverlay(overlay === 'fertility'  ? null : 'fertility')}  title="Soil fertility">✿ fertile</button>
+                    <button className={clsx('lang-btn', overlay === 'structures' && 'active')} onClick={() => setOverlay(overlay === 'structures' ? null : 'structures')} title="Building density">⌂ builds</button>
+                    <button className={clsx('lang-btn', overlay === 'trails'     && 'active')} onClick={() => setOverlay(overlay === 'trails'     ? null : 'trails')}     title="Food / water / path stigmergy blended">⋯ trails</button>
+                    <button className={clsx('lang-btn', overlay === 'age'        && 'active')} onClick={() => setOverlay(overlay === 'age'        ? null : 'age')}        title="Per-tile mean age">⏳ age</button>
+                    <button className={clsx('lang-btn', overlay === 'threat'     && 'active')} onClick={() => setOverlay(overlay === 'threat'     ? null : 'threat')}     title="Where organisms feel fearful">🜸 threat</button>
                   </div>
 
                   <div className="more-dropdown-divider" />
@@ -307,6 +313,66 @@ function App() {
                         ▤ hide ui
                       </button>
                     )}
+                    {viewFlags.threeD && (
+                      <button
+                        className={clsx('lang-btn', viewFlags.orgPov && 'active')}
+                        onClick={() => setViewFlag('orgPov', !viewFlags.orgPov)}
+                        title="First-person camera from the selected org's head (3D only)">
+                        👁 org POV
+                      </button>
+                    )}
+                    <button
+                      className={clsx('lang-btn', viewFlags.photoMode && 'active')}
+                      onClick={() => setViewFlag('photoMode', !viewFlags.photoMode)}
+                      title="Hide every panel for clean screenshots. Move mouse to top-left to bring the header back.">
+                      📷 photo mode
+                    </button>
+                    <button
+                      className={clsx('lang-btn', viewFlags.actionTicker && 'active')}
+                      onClick={() => setViewFlag('actionTicker', !viewFlags.actionTicker)}
+                      title="Live ticker at the bottom: what each org is doing right now">
+                      ⋮⋮⋮ ticker
+                    </button>
+                    {!viewFlags.threeD && (
+                      <button
+                        className={clsx('lang-btn', viewFlags.miniMap2D && 'active')}
+                        onClick={() => setViewFlag('miniMap2D', !viewFlags.miniMap2D)}
+                        title="Top-right mini-globe overview (2D mode)">
+                        ◔ mini-map
+                      </button>
+                    )}
+                    <button
+                      className={clsx('lang-btn', viewFlags.randomTour && 'active')}
+                      onClick={() => setViewFlag('randomTour', !viewFlags.randomTour)}
+                      title="Auto-cycle the selected org every 8 seconds. Click an org to pause.">
+                      🎲 tour
+                    </button>
+                    <button
+                      className={clsx('lang-btn', viewFlags.slowMo && 'active')}
+                      onClick={() => {
+                        const v = !viewFlags.slowMo
+                        setViewFlag('slowMo', v)
+                        if (v) setViewFlag('fastMo', false)
+                      }}
+                      title="0.5× client-side motion lerp for cinematic playback">
+                      ◐ slow-mo
+                    </button>
+                    <button
+                      className={clsx('lang-btn', viewFlags.fastMo && 'active')}
+                      onClick={() => {
+                        const v = !viewFlags.fastMo
+                        setViewFlag('fastMo', v)
+                        if (v) setViewFlag('slowMo', false)
+                      }}
+                      title="2× client-side motion lerp">
+                      ◑ fast-mo
+                    </button>
+                    <button
+                      className={clsx('lang-btn', viewFlags.colorBlind && 'active')}
+                      onClick={() => setViewFlag('colorBlind', !viewFlags.colorBlind)}
+                      title="Deuteranopia-safe lineage palette (red-green swap)">
+                      ◓ colorblind
+                    </button>
                   </div>
                 </div>
               )}
