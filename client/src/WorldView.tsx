@@ -1480,7 +1480,13 @@ function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, 
       const curServerAt   = interp.currentServerAt.current
       const prevServerAt  = interp.prevServerAt.current
       const currentReceivedAt = interp.currentReceivedAt.current
-      const interval = Math.max(50, curServerAt - prevServerAt)
+      // slowMo / fastMo experiment: stretch / compress the
+      // interpolation window so motion crawls (2×) or sprints (0.5×).
+      // Server clock isn't touched - only the client lerp rate.
+      const slowMo = viewFlagsRef.current.slowMo
+      const fastMo = viewFlagsRef.current.fastMo
+      const speedDiv = slowMo ? 0.5 : fastMo ? 2.0 : 1.0
+      const interval = Math.max(50, curServerAt - prevServerAt) / speedDiv
       // Render-lag buffer: lag behind real time by half the network
       // interval. Absorbs packet jitter into the interpolation window.
       const RENDER_LAG_MS = Math.min(120, interval * 0.5)
