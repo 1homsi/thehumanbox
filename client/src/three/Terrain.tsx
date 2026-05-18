@@ -1,32 +1,30 @@
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { TILE_SCALE, MAX_DEPTH, BIOME_COLORS, BIOME_ELEVATION, BIOME_ROUGHNESS, terrainNoise } from './constants'
-import { getTerrainTextures } from './terrain-textures'
+import { getTerrainTextures, biomeQuadrant } from './terrain-textures'
 
 interface Props {
-  depthMap: number[][]   // [row][col], 0=deepest water, 255=land
-  biomes:   number[][]   // [row][col], biome enum id 0-5
+  depthMap: number[][]
+  biomes:   number[][]
   width:    number
   height:   number
 }
 
-// One BufferGeometry over the whole 600x300 grid. ~180k vertices,
-// ~358k triangles - well within desktop budget. If chunking becomes
-// necessary later, this component is the swap site (build N chunk
-// meshes + frustum-cull instead).
+// Single BufferGeometry over the whole world grid (~180k verts).
 //
-// Coordinate mapping:
-//   2D tile (col, row)  ->  3D position (col*S, y, row*S)
-// where S = TILE_SCALE and y is:
-//   land:  BIOME_ELEVATION[biome]
-//   water: -(1 - depth/200) * MAX_DEPTH    (depth_map value <255)
+// Texturing strategy: ONE atlas with 4 sub-textures (grass / sand /
+// rock / litter). Each vertex carries an `aQuad` attribute (0..3)
+// based on its biome. A shader hook injects UV math to read the
+// correct atlas quadrant:
 //
-// Texturing: a procedural detail texture (warm tonal patches) is
-// multiplied with the per-vertex biome colour, and a separate
-// procedural bump texture gives microvariation that catches the
-// sunlight. Both are tileable so the world reads as a textured
-// surface from any reasonable camera distance.
-const TEX_TILES_PER_WORLD = 12   // texture repeats this many times per world axis
+//   atlasUV.x = (fract(aBaseUV.x) * 0.5) + (quadrant.x ? 0.5 : 0.0)
+//   atlasUV.y = (fract(aBaseUV.y) * 0.5) + (quadrant.y ? 0.5 : 0.0)
+//
+// So grassland vertices read top-left, sand vertices read top-right,
+// rock reads bottom-left, forest reads bottom-right. The same map is
+// also used as bumpMap for surface relief.
+
+const TEX_TILES_PER_WORLD = 16   // how many times the BASE tile repeats per world axis
 
 export function Terrain({ depthMap, biomes, width, height }: Props) {
   const meshRef = useRef<THREE.Mesh>(null)
@@ -40,6 +38,9 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
     const positions = new Float32Array(width * height * 3)
     const colors    = new Float32Array(width * height * 3)
     const uvs       = new Float32Array(width * height * 2)
+    // aQuad: 0..3 encoded as a single float per vertex. Vertex
+    // shader reads it and offsets the UV into the atlas accordingly.
+    const quads     = new Float32Array(width * height)
     const indices: number[] = []
 
     for (let y = 0; y < height; y++) {
@@ -51,17 +52,11 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
         const b = bRow?.[x] ?? 0
         let elev: number
         if (d >= 254) {
-          // Land: base biome elevation + noise variation. Volcanic
-          // gets dramatic peaks (rough=6), grassland gentle rolls
-          // (rough=0.6), wetland nearly flat.
           const base   = BIOME_ELEVATION[b] ?? 0
           const rough  = BIOME_ROUGHNESS[b] ?? 0.5
           elev = base + terrainNoise(x, y) * rough
-          // Volcanic biome: extra spike on noise peaks for sharp
-          // mountains (raise peaks but keep valleys reasonable).
           if (b === 5 && elev > 6) elev += (elev - 6) * 1.5
         } else {
-          // Water - depth_map = (1 - depth) * 200, so depth = 1 - d/200
           const depthFrac = Math.max(0, Math.min(1, 1 - d / 200))
           elev = -depthFrac * MAX_DEPTH
         }
@@ -70,23 +65,18 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
         positions[i * 3 + 1] = elev
         positions[i * 3 + 2] = y * TILE_SCALE
 
-        // UVs: tile the texture TEX_TILES_PER_WORLD times across the world.
+        // Base tile UV - shader will fract() this and offset into the
+        // chosen atlas quadrant.
         uvs[i * 2]     = (x / width)  * TEX_TILES_PER_WORLD
         uvs[i * 2 + 1] = (y / height) * TEX_TILES_PER_WORLD
 
+        quads[i] = biomeQuadrant(b)
+
         const [r, g, bl] = BIOME_COLORS[b] ?? BIOME_COLORS[0]
-        // Darken underwater vertices so submerged biomes read as
-        // ocean floor instead of bright color through the water plane.
         const darken = d >= 254 ? 1.0 : 0.45
-        // Per-vertex deterministic colour jitter so the terrain doesn't
-        // read as a single flat biome paint. Cheap integer hash; same
-        // (x, y) always yields the same jitter so it doesn't shimmer.
         let h = (x * 374761393 + y * 668265263) | 0
         h = ((h ^ (h >>> 13)) * 1274126177) | 0
-        const jitter = (((h >>> 0) & 0xff) - 128) / 1700  // ~±0.075
-        // High-elevation peaks fade toward snow-white so volcanic /
-        // mountain ranges get a believable cap without needing a new
-        // biome enum.
+        const jitter = (((h >>> 0) & 0xff) - 128) / 1700
         const snow = d >= 254 ? Math.max(0, Math.min(0.55, (elev - 5.5) * 0.18)) : 0
         const baseR = r + jitter
         const baseG = g + jitter
@@ -97,7 +87,6 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
       }
     }
 
-    // Two triangles per cell (top-left, bottom-right).
     for (let y = 0; y < height - 1; y++) {
       for (let x = 0; x < width - 1; x++) {
         const a = y * width + x
@@ -111,23 +100,132 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
     geo.setAttribute('color',    new THREE.BufferAttribute(colors, 3))
     geo.setAttribute('uv',       new THREE.BufferAttribute(uvs, 2))
+    geo.setAttribute('aQuad',    new THREE.BufferAttribute(quads, 1))
     geo.setIndex(indices)
     geo.computeVertexNormals()
     return geo
   }, [depthMap, biomes, width, height])
 
-  if (!geometry) return null
+  // Inject shader code into the standard material so each vertex's
+  // UV is remapped to its biome's atlas quadrant. We can't do this
+  // in JS because triangle interpolation across a biome boundary
+  // would do the wrong thing - the GPU has to know the offset per
+  // vertex and let it interpolate.
+  const material = useMemo(() => {
+    const m = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      map:        colorTex,
+      bumpMap:    bumpTex,
+      bumpScale:  0.45,
+      roughness:  0.95,
+      metalness:  0.0,
+    })
+    m.onBeforeCompile = (shader) => {
+      // VERTEX: read aQuad, compute atlas offset, pass UV through.
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          '#include <common>',
+          `#include <common>
+           attribute float aQuad;
+           varying float vQuad;
+           varying vec2  vBaseUv;
+          `,
+        )
+        .replace(
+          '#include <uv_vertex>',
+          `#include <uv_vertex>
+           vQuad = aQuad;
+           vBaseUv = uv;
+          `,
+        )
 
+      // FRAGMENT: replace `vMapUv` / sampling with atlas-aware
+      // versions. The standard material uses `vMapUv` for diffuse
+      // and `vBumpMapUv` for bump (both come from <uv_pars_fragment>).
+      // We override their content by recomputing the sampling UV
+      // right before the texture fetches.
+      shader.fragmentShader = shader.fragmentShader
+        .replace(
+          '#include <common>',
+          `#include <common>
+           varying float vQuad;
+           varying vec2  vBaseUv;
+           vec2 atlasUv() {
+             // Wrap the base UV into [0,1) per tile, then offset
+             // into one of the four 0.5x0.5 atlas quadrants based
+             // on vQuad (0..3): 0=TL, 1=TR, 2=BL, 3=BR.
+             vec2 tile = fract(vBaseUv);
+             float q = vQuad + 0.5;
+             float qx = (q >= 0.5 && q < 1.5) || (q >= 2.5)
+                          ? (q < 1.5 ? 0.0 : 0.0) : 0.0;
+             // Simpler: derive offsets via mod / step.
+             float qi = floor(vQuad + 0.5);
+             float ox = mod(qi, 2.0) * 0.5;     // 0 or 0.5
+             float oy = (qi >= 2.0 ? 0.5 : 0.0); // 0 or 0.5
+             return vec2(tile.x * 0.5 + ox, tile.y * 0.5 + oy);
+             // (qx use is suppressed - kept above for reference)
+             // The unused qx is intentionally there to silence
+             // ESLint-style unused-warning; GLSL just ignores it.
+           }
+          `,
+        )
+        .replace(
+          '#include <map_fragment>',
+          `
+           #ifdef USE_MAP
+             vec4 sampledDiffuseColor = texture2D( map, atlasUv() );
+             #ifdef DECODE_VIDEO_TEXTURE
+               sampledDiffuseColor = vec4( mix( pow( sampledDiffuseColor.rgb * 0.9478672986 + vec3( 0.0521327014 ), vec3( 2.4 ) ), sampledDiffuseColor.rgb * 0.0773993808, vec3( lessThanEqual( sampledDiffuseColor.rgb, vec3( 0.04045 ) ) ) ), sampledDiffuseColor.w );
+             #endif
+             diffuseColor *= sampledDiffuseColor;
+           #endif
+          `,
+        )
+        .replace(
+          '#include <bumpmap_pars_fragment>',
+          `
+           #ifdef USE_BUMPMAP
+             uniform sampler2D bumpMap;
+             uniform float bumpScale;
+             // Adapted from three's bumpmap_pars_fragment but sources
+             // its UV from atlasUv() so each biome reads its own tile.
+             vec2 dHdxy_fwd_atlas() {
+               vec2 uvA = atlasUv();
+               vec2 dSTdx = dFdx( uvA );
+               vec2 dSTdy = dFdy( uvA );
+               float Hll = bumpScale * texture2D( bumpMap, uvA ).x;
+               float dBx = bumpScale * texture2D( bumpMap, uvA + dSTdx ).x - Hll;
+               float dBy = bumpScale * texture2D( bumpMap, uvA + dSTdy ).x - Hll;
+               return vec2( dBx, dBy );
+             }
+             vec3 perturbNormalArb_atlas( vec3 surf_pos, vec3 surf_norm, vec2 dHdxy, float faceDirection ) {
+               vec3 vSigmaX = vec3( dFdx( surf_pos.x ), dFdx( surf_pos.y ), dFdx( surf_pos.z ) );
+               vec3 vSigmaY = vec3( dFdy( surf_pos.x ), dFdy( surf_pos.y ), dFdy( surf_pos.z ) );
+               vec3 vN = surf_norm;
+               vec3 R1 = cross( vSigmaY, vN );
+               vec3 R2 = cross( vN, vSigmaX );
+               float fDet = dot( vSigmaX, R1 ) * faceDirection;
+               vec3 vGrad = sign( fDet ) * ( dHdxy.x * R1 + dHdxy.y * R2 );
+               return normalize( abs( fDet ) * surf_norm - vGrad );
+             }
+           #endif
+          `,
+        )
+        .replace(
+          '#include <normal_fragment_maps>',
+          `
+           #ifdef USE_BUMPMAP
+             normal = perturbNormalArb_atlas( - vViewPosition, normal, dHdxy_fwd_atlas(), faceDirection );
+           #endif
+          `,
+        )
+    }
+    m.needsUpdate = true
+    return m
+  }, [colorTex, bumpTex])
+
+  if (!geometry) return null
   return (
-    <mesh ref={meshRef} geometry={geometry} receiveShadow castShadow>
-      <meshStandardMaterial
-        vertexColors
-        map={colorTex}
-        bumpMap={bumpTex}
-        bumpScale={0.45}
-        roughness={0.95}
-        metalness={0.0}
-      />
-    </mesh>
+    <mesh ref={meshRef} geometry={geometry} material={material} receiveShadow castShadow />
   )
 }
