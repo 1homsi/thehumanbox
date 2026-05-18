@@ -75,14 +75,21 @@ function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
   const velocity = useRef(new THREE.Vector3())
   const saveTimerRef = useRef(0)
 
-  // Apply saved camera pose once, on mount.
+  // Apply saved camera pose once, on mount. Explicitly use Euler
+  // order 'YXZ' (PointerLockControls' convention) and ZERO rotation.z
+  // so a previously dirty roll value doesn't get re-applied - that was
+  // producing a sideways horizon for users with persisted state.
   useEffect(() => {
     const saved = loadSavedCam()
     if (saved) {
       camera.position.set(saved.x, saved.y, saved.z)
-      camera.rotation.x = saved.rx
-      camera.rotation.y = saved.ry
+      camera.rotation.order = 'YXZ'
+      camera.rotation.set(saved.rx, saved.ry, 0, 'YXZ')
     }
+    // Belt-and-braces: also force the camera up vector back to world-up
+    // in case anything else nudged it (drei controls can occasionally
+    // leave .up tilted after a teleport).
+    camera.up.set(0, 1, 0)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -157,6 +164,13 @@ function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
       if (camera.position.y < MIN_SEA_LEVEL) camera.position.y = MIN_SEA_LEVEL
     }
     if (camera.position.y > MAX_ALTITUDE) camera.position.y = MAX_ALTITUDE
+
+    // Defensive: stomp any drift in rotation.z (camera roll) flat
+    // every frame. PointerLockControls is only supposed to touch
+    // yaw + pitch, but with mixed Euler-order assignments we've
+    // seen the horizon tilt sideways. Cheap and idempotent when
+    // already zero.
+    if (camera.rotation.z !== 0) camera.rotation.z = 0
 
     // Persist camera pose every ~1s (no need for sub-frame fidelity).
     saveTimerRef.current += delta

@@ -74,6 +74,17 @@ export function Water({ width, height, depthMap }: Props) {
     } else {
       mask.fill(0)
     }
+    // Bake a constant up-facing normal for every vert so the per-
+    // frame wave displacement doesn't have to recompute normals
+    // (see useFrame comment above). The plane mesh is rotated -PI/2
+    // around X at render time, so the un-rotated geometry's up is +Z.
+    const normals = new Float32Array(pos.count * 3)
+    for (let i = 0; i < pos.count; i++) {
+      normals[i * 3]     = 0
+      normals[i * 3 + 1] = 0
+      normals[i * 3 + 2] = 1
+    }
+    geo.setAttribute('normal', new THREE.BufferAttribute(normals, 3))
     return { innerGeo: geo, landMask: mask }
   }, [PLANE_W, PLANE_H, width, height, depthMap])
 
@@ -105,7 +116,13 @@ export function Water({ width, height, depthMap }: Props) {
       pos.setZ(i, w)
     }
     pos.needsUpdate = true
-    geom.computeVertexNormals()
+    // Deliberately NOT calling geom.computeVertexNormals() here:
+    // with the pinned land-mask verts at z=-3 sitting next to free
+    // verts at z~0, the per-frame normal recompute would generate a
+    // wildly tilted normal at every boundary triangle and the whole
+    // sea would shimmer like television static. We bake a constant
+    // up-facing normal once (set on the geometry below) and rely on
+    // the lighting to read the very mild displacement.
   })
 
   return (
@@ -128,7 +145,10 @@ export function Water({ width, height, depthMap }: Props) {
         />
       </mesh>
 
-      {/* Inner world water - animated waves, land verts masked off */}
+      {/* Inner world water - animated waves, land verts masked off.
+          flatShading is OFF so the material respects our baked
+          uniform up-normals instead of deriving per-face normals
+          (which would re-introduce the boundary flicker). */}
       <mesh
         ref={innerRef}
         rotation-x={-Math.PI / 2}
@@ -143,7 +163,6 @@ export function Water({ width, height, depthMap }: Props) {
           opacity={0.82}
           roughness={0.18}
           metalness={0.15}
-          flatShading
         />
       </mesh>
     </>
