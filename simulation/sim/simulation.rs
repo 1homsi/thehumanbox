@@ -246,6 +246,32 @@ impl Simulation {
     pub fn tick(&mut self) {
         self.tick_count += 1;
 
+        // Memory heartbeat every 6000 ticks (~1 sim-day, ~10 min real
+        // time). Printed to stdout so it lands in journalctl alongside
+        // the rest of the process output. Used to spot Q-table or
+        // memory-map creep BEFORE the 2 GB EC2 OOM-kills the process.
+        if self.tick_count % 6000 == 0 {
+            let alive = self.organisms.iter().filter(|o| o.alive).count();
+            let q_rows: usize = self.organisms.iter()
+                .filter(|o| o.alive)
+                .map(|o| o.q_table.len())
+                .sum();
+            let food: usize = self.organisms.iter()
+                .filter(|o| o.alive)
+                .map(|o| o.food_memory.len())
+                .sum();
+            let trust: usize = self.organisms.iter()
+                .filter(|o| o.alive)
+                .map(|o| o.org_trust.len())
+                .sum();
+            let rss_kb = read_self_rss_kb_local();
+            println!(
+                "[mem] t{} alive={} q_rows={} food={} trust={} rss_mb={:.1}",
+                self.tick_count, alive, q_rows, food, trust,
+                rss_kb as f64 / 1024.0,
+            );
+        }
+
         let season = self.season();
         self.physics.growth_mult = season_growth(season);
 
@@ -2752,6 +2778,22 @@ impl Simulation {
     }
 
 
+}
+
+/// Read this process's resident-set size from /proc/self/status in KB.
+/// Returns 0 when the file isn't readable (non-Linux dev box).
+fn read_self_rss_kb_local() -> u64 {
+    let s = match std::fs::read_to_string("/proc/self/status") {
+        Ok(s) => s,
+        Err(_) => return 0,
+    };
+    for line in s.lines() {
+        if let Some(rest) = line.strip_prefix("VmRSS:") {
+            return rest.split_whitespace().next()
+                .and_then(|n| n.parse().ok()).unwrap_or(0);
+        }
+    }
+    0
 }
 
 

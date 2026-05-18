@@ -524,15 +524,19 @@ impl Organism {
         });
 
         // Cap Q-table: keep the highest-value entries.
-        // N_ACTIONS jumped from 26 to 126 with the extended-actions
-        // commit, so each row is now ~570 bytes vs ~150 before. With
-        // 300 alive orgs and the old 800/600 caps, the Q-tables alone
-        // ate ~137 MB of resident RAM - enough to push c7g.medium
-        // (2 GB) into swap. Halving the caps recovers ~70 MB and
-        // doesn't hurt agent behaviour: most orgs never visit more
-        // than ~200 unique perception states across their lifetime.
-        const Q_MAX:  usize = 400;
-        const Q_TRIM: usize = 300;
+        // History:
+        //   N_ACTIONS  26 -> 126 -> 226
+        //   row size   ~150 -> ~570 -> ~970 bytes
+        // At 300 alive orgs:
+        //   N=226, Q_MAX=400  -> ~108 MB total Q-tables
+        //   N=226, Q_MAX=220  -> ~60 MB total Q-tables
+        // The 2 GB c7g.medium OOM-impaired itself, so we tighten the
+        // cap to 220/160 with the latest N_ACTIONS=226 bump. Most
+        // orgs never reach 200 distinct perception states in a
+        // lifetime; the trim only removes long-tail rarely-visited
+        // states whose Q-values are still near zero.
+        const Q_MAX:  usize = 220;
+        const Q_TRIM: usize = 160;
         if self.q_table.len() > Q_MAX {
             let mut entries: Vec<(String, Vec<f32>)> = self.q_table.drain().collect();
             entries.sort_by(|a, b| {

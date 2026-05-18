@@ -518,6 +518,7 @@ async fn main() {
         .route("/snapshot", get(routes::snapshot_handler))
         .route("/transport", get(routes::transport_handler))
         .route("/llm", get(routes::llm_handler))
+        .route("/memory", get(routes::memory_handler))
         .layer(compression)
         .layer(cors)
         .with_state(state);

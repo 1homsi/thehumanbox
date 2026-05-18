@@ -102,6 +102,86 @@ pub async fn llm_handler(
     )
 }
 
+/// /memory - process RSS and the top per-org map sizes. The c7g.medium
+/// only has 2 GB; if the Q-tables or memory maps creep we want to
+/// see it WAY before the kernel OOM-killer steps in.
+///
+/// Reads RSS from /proc/self/status on Linux (no extra crate). Falls
+/// back to 0 when the file isn't readable (non-Linux dev box).
+pub async fn memory_handler(
+    State(s): State<AppState>,
+) -> impl IntoResponse {
+    let rss_kb = read_self_rss_kb();
+    let sim = s.sim.lock().await;
+    let alive = sim.organisms.iter().filter(|o| o.alive).count();
+    // Sum row + entry counts across living orgs so we can spot the
+    // single-org outlier that triggers Q-cap pressure.
+    let mut q_rows = 0usize;
+    let mut q_max_per_org = 0usize;
+    let mut food_entries = 0usize;
+    let mut water_entries = 0usize;
+    let mut danger_entries = 0usize;
+    let mut trust_entries = 0usize;
+    let mut discoveries  = 0usize;
+    let mut thought_hist = 0usize;
+    for o in &sim.organisms {
+        if !o.alive { continue; }
+        let qn = o.q_table.len();
+        q_rows += qn;
+        if qn > q_max_per_org { q_max_per_org = qn; }
+        food_entries   += o.food_memory.len();
+        water_entries  += o.water_memory.len();
+        danger_entries += o.danger_memory.len();
+        trust_entries  += o.org_trust.len();
+        discoveries    += o.discoveries.len();
+        thought_hist   += o.thought_history.len();
+    }
+    let n_actions = crate::organism::organism::N_ACTIONS;
+    // Approximate Q-table footprint: rows * N_ACTIONS * 4 bytes/f32
+    // (ignores HashMap overhead, which adds ~50%).
+    let q_bytes = q_rows * n_actions * 4;
+    (
+        [(axum::http::header::CACHE_CONTROL, "no-store".to_string())],
+        Json(serde_json::json!({
+            "rss_kb":          rss_kb,
+            "rss_mb":          (rss_kb as f64) / 1024.0,
+            "tick":            sim.tick_count,
+            "alive_orgs":      alive,
+            "events_buffered": sim.events.len(),
+            "q_rows_total":         q_rows,
+            "q_rows_max_per_org":   q_max_per_org,
+            "q_bytes_approx":       q_bytes,
+            "n_actions":            n_actions,
+            "food_memory_entries":  food_entries,
+            "water_memory_entries": water_entries,
+            "danger_memory_entries": danger_entries,
+            "org_trust_entries":    trust_entries,
+            "discoveries_total":    discoveries,
+            "thought_history_total": thought_hist,
+        })),
+    )
+}
+
+/// Read the running process's resident-set size from /proc/self/status.
+/// Returns 0 on any failure - this endpoint is observability, not load
+/// bearing.
+fn read_self_rss_kb() -> u64 {
+    let s = match std::fs::read_to_string("/proc/self/status") {
+        Ok(s) => s,
+        Err(_) => return 0,
+    };
+    for line in s.lines() {
+        if let Some(rest) = line.strip_prefix("VmRSS:") {
+            let kb: u64 = rest.split_whitespace()
+                .next()
+                .and_then(|n| n.parse().ok())
+                .unwrap_or(0);
+            return kb;
+        }
+    }
+    0
+}
+
 async fn handle_socket(
     mut socket: WebSocket,
     mut rx: broadcast::Receiver<Arc<Vec<u8>>>,

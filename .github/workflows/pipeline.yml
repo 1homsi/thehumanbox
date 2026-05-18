@@ -1,44 +1,39 @@
 name: pipeline
 
-# Single workflow that owns the full path from a human push to a live deploy.
+# Single workflow from a human push to a live deploy.
 #
 # Stages, in order:
-#   1. test-backend  : cargo build --release && cargo test on the runner.
-#   2. test-frontend : pnpm run build (also covers tsc -b). Built dist/ is
-#                      uploaded as an artifact so the deploy stage can ship
-#                      it directly without rebuilding.
-#   3. bump-version  : ONLY runs if both test jobs are green. Bumps the
-#                      patch version in simulation/Cargo.toml and
-#                      client/package.json (+ both lock files), commits
-#                      back to main as the bump bot. The commit message
-#                      contains [skip-bump] so the resulting push doesn't
-#                      retrigger this workflow's test/bump path.
-#   4. deploy-backend  : SSM fire-and-forget against the EC2. EC2 pulls
-#                        the bumped commit, rebuilds, restarts the unit.
-#   5. deploy-frontend : downloads the dist/ artifact built above and
-#                        wrangler-deploys to Cloudflare Pages. No second
-#                        build - we trust the test-frontend output.
+#   1. test-backend         x86 runner runs cargo test --release.
+#   2. test-frontend        pnpm build, uploads dist artifact.
+#   3. build-backend-binary aarch64 runner produces the production
+#                            simulation-rs binary, uploads as artifact.
+#                            Runs in parallel with tests.
+#   4. bump-version         Bumps the patch version + commits to main
+#                            with [skip-bump] sentinel. Waits for tests.
+#   5. publish-release      Creates GitHub release v$NEW with the
+#                            aarch64 binary attached.
+#   6. deploy-backend       SSMs EC2 to run /root/thehumanbox/update.sh
+#                            $NEW - which curls the binary from the
+#                            release + restarts the systemd unit. NO
+#                            on-box compile. The c7g.medium does not
+#                            have enough RAM to run rustc.
+#   7. deploy-frontend      Downloads dist artifact, wrangler-deploys.
 #
-# A bot push (its commit message contains [skip-bump]) re-fires this
-# workflow but every job's `if:` short-circuits, so the run is a no-op.
-#
-# This file replaces the old deploy.yml + deploy-simulation.yml. Both
-# are deleted in this commit.
+# A bot push ([skip-bump] in the message) re-fires this workflow but
+# every job's `if:` short-circuits it to a no-op.
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
-# Don't deploy two pushes concurrently. Queue them; never cancel an
-# in-flight deploy mid-run since SSM commands aren't safely interruptible.
 concurrency:
   group: pipeline-main
   cancel-in-progress: false
 
 jobs:
   # ────────────────────────────────────────────────────────────────────────
-  # Stage 1: smoke tests. Both run in parallel.
+  # Stage 1: smoke tests + production binary build. All three run in parallel.
   # ────────────────────────────────────────────────────────────────────────
   test-backend:
     name: Test backend
@@ -46,9 +41,6 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
-      # Skip incremental files - Swatinem cache works better without them
-      # and CI never benefits from incremental anyway (every run is cold
-      # relative to the previous artifact).
       CARGO_INCREMENTAL: 0
       CARGO_NET_RETRY: 10
       RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
@@ -60,11 +52,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: simulation -> target
-      # One compile pass: cargo test --release compiles everything in
-      # release mode AND runs the tests. The old workflow did
-      # `cargo build --release` then `cargo test` (debug), which
-      # compiled the entire dep tree twice and was the source of the
-      # ~25-min CI runs.
       - name: cargo test --release --locked
         working-directory: simulation
         run: cargo test --release --locked
@@ -88,8 +75,6 @@ jobs:
         working-directory: client
         run: pnpm install --frozen-lockfile
 
-      # Capture a unix-second build timestamp so the About modal can show
-      # exactly when this bundle was built, in any timezone.
       - id: ts
         run: echo "build_ts=$(date -u +%s)" >> "$GITHUB_OUTPUT"
 
@@ -98,24 +83,55 @@ jobs:
         run: pnpm run build
         env:
           VITE_API_BASE: ${{ secrets.VITE_API_BASE }}
-          # Bake identifiers in. The About modal reads import.meta.env.VITE_*
-          # so users can verify exactly which commit is live.
           VITE_GIT_SHA:  ${{ github.sha }}
           VITE_BUILD_TS: ${{ steps.ts.outputs.build_ts }}
 
-      # Hand the built dist/ to deploy-frontend so it doesn't rebuild.
       - uses: actions/upload-artifact@v4
         with:
           name: client-dist
           path: client/dist
           retention-days: 7
 
+  # Build the linux-aarch64 release binary on a native ARM runner.
+  # Used to compile on the EC2 itself; that peaked rustc + linker at
+  # ~1.5 GB on a 2 GB box and was the cause of the OOM-impair.
+  build-backend-binary:
+    name: Build backend binary (aarch64)
+    if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    env:
+      CARGO_INCREMENTAL: 0
+      CARGO_NET_RETRY: 10
+      RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install mold linker
+        run: sudo apt-get install -y mold
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: simulation -> target
+          key: aarch64-release
+      - name: cargo build --release --bin simulation-rs
+        working-directory: simulation
+        run: cargo build --release --locked --bin simulation-rs
+      - name: Strip binary
+        run: |
+          strip simulation/target/release/simulation-rs
+          ls -lh simulation/target/release/simulation-rs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: simulation-rs-aarch64
+          path: simulation/target/release/simulation-rs
+          retention-days: 14
+
   # ────────────────────────────────────────────────────────────────────────
-  # Stage 2: version bump. Only runs after both tests are green.
+  # Stage 2: version bump. Only runs after both tests + binary are green.
   # ────────────────────────────────────────────────────────────────────────
   bump-version:
     name: Bump version
-    needs: [test-backend, test-frontend]
+    needs: [test-backend, test-frontend, build-backend-binary]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -125,7 +141,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # need full history so a rebase before push works
+          fetch-depth: 0
 
       - name: Compute + apply patch bump
         id: bump
@@ -137,13 +153,8 @@ jobs:
           echo "Bumping $CURRENT -> $NEW"
           echo "new=$NEW" >> "$GITHUB_OUTPUT"
 
-          # simulation/Cargo.toml: replace ONLY the first version="..." line.
-          # The [package] block is at the top so this hits the right one.
           sed -i -E "0,/^version = \"[^\"]+\"$/s//version = \"$NEW\"/" simulation/Cargo.toml
 
-          # simulation/Cargo.lock: bump the simulation-rs package entry.
-          # Match the `name = "simulation-rs"` line, then replace the
-          # very next `version = "..."` line with the new version.
           awk -v new="$NEW" '
             /^name = "simulation-rs"$/ { hit = 1; print; next }
             hit && /^version = / { sub(/"[^"]+"/, "\"" new "\""); hit = 0 }
@@ -151,9 +162,6 @@ jobs:
           ' simulation/Cargo.lock > simulation/Cargo.lock.tmp
           mv simulation/Cargo.lock.tmp simulation/Cargo.lock
 
-          # client/package.json: jq sets the new version. pnpm-lock.yaml
-          # does not carry the root project version (only dependency
-          # versions live in importers:), so no lockfile edit is needed.
           tmp=$(mktemp)
           jq --arg v "$NEW" '.version = $v' client/package.json > "$tmp" && mv "$tmp" client/package.json
 
@@ -166,18 +174,49 @@ jobs:
           git config user.email "bumpbot@thehumanbox.com"
           git add simulation/Cargo.toml simulation/Cargo.lock client/package.json
           git commit -m "chore: release $NEW [skip-bump]"
-          # If another push raced into main during the test phase, rebase
-          # cleanly. The bump only touches manifest files so conflicts
-          # against application code are vanishingly unlikely.
           git pull --rebase origin main
           git push
 
   # ────────────────────────────────────────────────────────────────────────
-  # Stage 3: deploys. Run in parallel after bump-version succeeds.
+  # Stage 3: publish a GitHub release tagged v$NEW with the binary attached.
+  # ────────────────────────────────────────────────────────────────────────
+  publish-release:
+    name: Publish release with aarch64 binary
+    needs: [bump-version, build-backend-binary]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download binary artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: simulation-rs-aarch64
+          path: ./bin
+      - name: Make binary executable
+        run: chmod +x ./bin/simulation-rs
+      - name: Create release + attach binary
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEW:      ${{ needs.bump-version.outputs.new }}
+        run: |
+          set -euo pipefail
+          # Use --target=main so the release is anchored to the merged
+          # main branch tip (which includes the [skip-bump] commit by
+          # the time this job runs).
+          gh release create "v$NEW" \
+            --title "v$NEW" \
+            --notes "Automated release. Backend binary built on ubuntu-24.04-arm runner; SHA ${GITHUB_SHA}." \
+            --target main \
+            ./bin/simulation-rs
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Stage 4: deploys. Run in parallel after publish-release succeeds.
   # ────────────────────────────────────────────────────────────────────────
   deploy-backend:
-    name: Deploy backend (SSM)
-    needs: bump-version
+    name: Deploy backend (SSM, no on-box compile)
+    needs: [bump-version, publish-release]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -194,15 +233,19 @@ jobs:
           NEW_VERSION: ${{ needs.bump-version.outputs.new }}
         run: |
           set -euo pipefail
-          # Fire-and-forget. The on-box build takes ~10 min cold; we don't
-          # block the workflow on it. EC2 pulls the bumped commit, builds,
-          # and restarts via systemd. The /version endpoint reflects the
-          # new build once the unit is back up.
-          DEPLOY_CMD='cd /root/thehumanbox && git pull --ff-only && /root/.cargo/bin/cargo build --release --manifest-path simulation/Cargo.toml && systemctl restart thehumanbox'
+          # EC2 runs update.sh, which: pulls the version's binary from
+          # the GitHub release, atomically swaps it in, restarts the
+          # systemd unit. No rustc on the box. Build time on the box
+          # used to peak ~1.5 GB and OOM'd the c7g.medium yesterday.
+          #
+          # update.sh lives in the repo and is git-pulled by EC2 in
+          # the same SSM step, so changes to the deploy procedure
+          # ride along with normal pushes.
+          DEPLOY_CMD="cd /root/thehumanbox && git pull --ff-only && chmod +x scripts/update.sh && scripts/update.sh ${NEW_VERSION}"
           CMD_ID=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
-            --comment "deploy v$NEW_VERSION" \
+            --comment "deploy v$NEW_VERSION (gh-release binary)" \
             --parameters "commands=[\"$DEPLOY_CMD\"]" \
             --output text --query 'Command.CommandId')
           echo "SSM command dispatched: $CMD_ID"
