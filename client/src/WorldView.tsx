@@ -1218,17 +1218,27 @@ function drawWorldOnCanvas(
     const showName    = isSelected || viewFlags.names
     const showThought = (isSelected || viewFlags.thoughts) && org.thought && org.thought !== 'observing'
 
+    // Text on the world canvas needs a dark stroke under it so it stays
+    // readable over light tiles (sand, dirt, hut, scorched). Without
+    // this, white org names disappear into the brown desert and light
+    // blue thoughts wash out on grass.
     if (showName) {
-      ctx.fillStyle = isSelected ? '#ffffff' : 'rgba(255,255,255,0.85)'
       ctx.font = isSelected ? 'bold 10px monospace' : '9px monospace'
       ctx.textAlign = 'center'
+      ctx.lineWidth = 3
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)'
+      ctx.strokeText(org.name, px, py - 9)
+      ctx.fillStyle = isSelected ? '#ffffff' : 'rgba(255,255,255,0.95)'
       ctx.fillText(org.name, px, py - 9)
     }
 
     if (showThought) {
-      ctx.fillStyle = isSelected ? 'rgba(180,220,255,0.95)' : 'rgba(180,220,255,0.7)'
       ctx.font = '8px monospace'
       ctx.textAlign = 'center'
+      ctx.lineWidth = 2.5
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)'
+      ctx.strokeText(org.thought, px, py - (showName ? 18 : 9))
+      ctx.fillStyle = isSelected ? 'rgba(180,220,255,1)' : 'rgba(180,220,255,0.9)'
       ctx.fillText(org.thought, px, py - (showName ? 18 : 9))
     }
   }

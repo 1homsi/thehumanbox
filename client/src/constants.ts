@@ -15,10 +15,15 @@ export function lineageColor(lineageId: string | null | undefined): string {
   const hue = (h * 137.508) % 360
 
   // Vary saturation and lightness independently using different hash bits
-  // Three saturation bands: vivid (90%), standard (72%), muted (55%)
-  const sat = [90, 72, 55][(h >>> 8) % 3]
-  // Three lightness bands: light (75%), mid (62%), deep (52%) - all visible on #111
-  const lit = [75, 62, 52][(h >>> 16) % 3]
+  // Three saturation bands: vivid (90%), standard (72%), muted (60%)
+  const sat = [90, 72, 60][(h >>> 8) % 3]
+  // Three lightness bands: light (78%), mid (70%), deep (62%) - tuned for
+  // contrast over the brown panel backgrounds (#28201a, #3f2f23) used as
+  // the app theme. The previous floor of 52% washed out into the brown
+  // tint, especially for hues around 30° (literally brown). 62% gives
+  // enough luminance to read against any panel surface in the app
+  // while keeping the visual differentiation between lineages.
+  const lit = [78, 70, 62][(h >>> 16) % 3]
 
   return `hsl(${hue.toFixed(0)}, ${sat}%, ${lit}%)`
 }
