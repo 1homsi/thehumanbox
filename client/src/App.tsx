@@ -25,6 +25,7 @@ function App() {
 
   const selectedOrgId = useUIStore(s => s.selectedOrgId)
   const leftOpen      = useUIStore(s => s.leftOpen)
+  const toggleLeft    = useUIStore(s => s.toggleLeft)
   const viewFlags     = useUIStore(s => s.viewFlags)
 
   const splashHiddenRef = useRef(false)
@@ -116,12 +117,17 @@ function App() {
           <div className="layout">
 
             {(!viewFlags.threeD || !viewFlags.hideUI) && (
-              <aside className={clsx('panel', 'panel-left', leftOpen && 'open')}>
-                <HistoryGrid />
-                <LineagesList />
-                <EventLog />
-                <WorldFooter world={world} />
-              </aside>
+              <>
+                {leftOpen && (
+                  <div className="panel-overlay panel-overlay-left" onClick={toggleLeft} />
+                )}
+                <aside className={clsx('panel', 'panel-left', leftOpen && 'open')}>
+                  <HistoryGrid />
+                  <LineagesList />
+                  <EventLog />
+                  <WorldFooter world={world} />
+                </aside>
+              </>
             )}
 
             {viewFlags.threeD ? (

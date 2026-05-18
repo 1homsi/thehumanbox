@@ -18,6 +18,8 @@ export function AppHeader({ world, connected, fireTiles, sickOrgs }: Props) {
   const isFullscreen = useUIStore(s => s.isFullscreen)
 
   const togglePanel    = useUIStore(s => s.togglePanel)
+  const toggleLeft     = useUIStore(s => s.toggleLeft)
+  const leftOpen       = useUIStore(s => s.leftOpen)
   const toggleMore     = useUIStore(s => s.toggleMore)
   const openStats      = useUIStore(s => s.openStats)
   const openOrgSearch  = useUIStore(s => s.openOrgSearch)
@@ -129,8 +131,13 @@ export function AppHeader({ world, connected, fireTiles, sickOrgs }: Props) {
         </div>
       )}
       {world && (
+        <button className="panel-toggle-btn panel-toggle-left" onClick={toggleLeft}>
+          {leftOpen ? '✕' : '≡'} world
+        </button>
+      )}
+      {world && (
         <button className="panel-toggle-btn" onClick={togglePanel}>
-          {panelOpen ? '✕' : '≡'} panel
+          {panelOpen ? '✕' : '≡'} orgs
         </button>
       )}
       {world && (

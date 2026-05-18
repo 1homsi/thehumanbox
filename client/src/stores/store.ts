@@ -1,5 +1,8 @@
 import { create } from 'zustand'
 
+const isWideViewport = typeof window !== 'undefined'
+  && window.matchMedia('(min-width: 768px)').matches
+
 export interface ViewFlags {
   territory:  boolean
   names:      boolean
@@ -98,7 +101,7 @@ export const useUIStore = create<UIState>((set) => ({
   convoOrgId:      null,
 
   panelOpen: false,
-  leftOpen:  true,
+  leftOpen:  isWideViewport,
   showMore:  false,
 
   overlay:   null,
