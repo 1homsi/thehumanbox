@@ -1,7 +1,6 @@
 import { Result, ok, err } from 'neverthrow'
 import { decode as msgpackDecode } from '@msgpack/msgpack'
 import type { WorldState, GridState, GridWire, OrganismState, AnimalState } from '../types'
-import { WorldEnvelopeSchema } from '../types/schemas'
 
 export type ParseError =
   | { kind: 'json';     message: string }
@@ -131,12 +130,15 @@ export function parseWorldFrame(raw: ArrayBuffer | Uint8Array | string): Result<
   } catch (e) {
     return err({ kind: 'json', message: e instanceof Error ? e.message : String(e) })
   }
-  const parsed = WorldEnvelopeSchema.safeParse(decoded)
-  if (!parsed.success) {
-    return err({
-      kind:   'schema',
-      issues: parsed.error.issues.slice(0, 3).map(i => `${i.path.join('.')}: ${i.message}`),
-    })
+  if (!decoded || typeof decoded !== 'object') {
+    return err({ kind: 'schema', issues: ['root is not an object'] })
+  }
+  const d = decoded as Record<string, unknown>
+  if (typeof d.frame_id !== 'number' || typeof d.tick !== 'number'
+      || typeof d.organisms_complete !== 'boolean'
+      || typeof d.animals_complete !== 'boolean'
+      || !Array.isArray(d.animals)) {
+    return err({ kind: 'schema', issues: ['envelope shape mismatch'] })
   }
   return ok(decoded as IncomingWorldFrame)
 }
