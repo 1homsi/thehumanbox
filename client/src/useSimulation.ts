@@ -1,252 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
-import { Result, ok, err } from 'neverthrow'
-import { decode as msgpackDecode } from '@msgpack/msgpack'
-import type { WorldState, GridState, GridWire, OrganismState, AnimalState } from './types'
+import type { WorldState, GridState, OrganismState, AnimalState } from './types'
 import { WS_BASE, API_BASE } from './config'
-import { WorldEnvelopeSchema } from './schemas'
 import { useWorldStore } from './worldStore'
+import { fetchSnapshotWithProgress, parseWorldFrame } from './simulation-wire'
+import { mergeFrame, type MergeCaches } from './simulation-merge'
+
+// ── Public hook ──────────────────────────────────────────────────────────
+// useSimulation owns:
+//   - the WS connection lifecycle (open/close/reconnect)
+//   - the snapshot-bootstrap + gap-recovery dance (HTTP /snapshot fetch
+//     when the WS broadcast drops frames)
+//   - the message queue + RAF-driven flush loop
+//   - the React-state throttle so the sidebar doesn't reconcile 10×/s
+//
+// Wire-format decoding and frame merging are in sibling modules
+// (simulation-wire.ts, simulation-merge.ts) so they stay independently
+// testable and so this hook can focus on orchestration.
 
 const WS_URL       = `${WS_BASE}/ws`
 const SNAPSHOT_URL = `${API_BASE}/snapshot`
-
-type ParseError =
-  | { kind: 'json';     message: string }
-  | { kind: 'schema';   issues: string[] }
-
-/** Structure-of-arrays hot payload. Sent on every delta in place of
- *  the AoS `organisms` array. Each field is N entries long where N is
- *  the number of in-viewport alive organisms; all arrays share an
- *  index, so `ids[i] -> xs[i], ys[i], ...`.
- *
- *  Numeric quantization on the wire (decoded back to floats below):
- *   - xs/ys: i16 decimetres (server divided original x by 0.1 before
- *     casting). Client re-multiplies to recover the original f32.
- *   - energies/hydrations/healths/infections/fear_levels: u8 percent
- *     (0..100). Client divides by 100 to recover the 0..1 range. */
-interface OrgsHotSoa {
-  ids:            string[]
-  xs:             number[]   // i16 * 10 on the wire
-  ys:             number[]
-  energies:       number[]   // u8 percent on the wire
-  hydrations:     number[]
-  healths:        number[]
-  ages:           number[]
-  alives:         boolean[]
-  thoughts:       string[]
-  infections:     number[]
-  fear_levels:    number[]
-  carryings:      number[]
-  carrying_types: number[]
-  pregnants:      boolean[]
-  partner_ids:    (string | null)[]
-  attracted_tos:  (string | null)[]
-}
-
-type IncomingWorldFrame =
-  Pick<WorldState,
-    'frame_id' |
-    'server_sent_at_ms' |
-    'frame_kind' |
-    'tick' |
-    'is_day' |
-    'day_progress' |
-    'season' |
-    'season_progress' |
-    'drought' |
-    'weather'
-  > & {
-    grid: GridWire
-    // Exactly one of `organisms` (AoS, full snapshots) or `organisms_hot`
-    // (SoA, deltas) is present. Sender guarantees this; receiver branches
-    // in flushUpdate.
-    organisms?: OrganismState[]
-    organisms_hot?: OrgsHotSoa
-    organisms_complete: boolean
-    animals: AnimalState[]
-    animals_complete: boolean
-    events?: WorldState['events']
-    history?: WorldState['history']
-    story_history?: WorldState['story_history']
-    pop_history?: WorldState['pop_history']
-    tribal_relations?: WorldState['tribal_relations']
-    lineage_sizes?: WorldState['lineage_sizes']
-    lineage_names?: WorldState['lineage_names']
-    lineage_centroid_history?: WorldState['lineage_centroid_history']
-    current_era?: WorldState['current_era']
-    sex_words?: WorldState['sex_words']
-  }
-
-// Stream the /snapshot response and emit progress events as bytes
-// arrive. Returns the assembled ArrayBuffer, or null on failure.
-// Uses Content-Length to drive a determinate progress bar when the
-// server provides it (it does); otherwise reports loaded-bytes-only.
-async function fetchSnapshotWithProgress(url: string): Promise<ArrayBuffer | null> {
-  let resp: Response
-  try {
-    resp = await fetch(url, { cache: 'no-store' })
-  } catch {
-    return null
-  }
-  if (!resp.ok || !resp.body) return null
-
-  const lenHeader = resp.headers.get('content-length')
-  const total = lenHeader ? parseInt(lenHeader, 10) : null
-  const reader = resp.body.getReader()
-  const chunks: Uint8Array[] = []
-  let loaded = 0
-  const emit = () => window.dispatchEvent(
-    new CustomEvent('thb-snapshot-progress', { detail: { loaded, total } })
-  )
-  emit()
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    if (value) {
-      chunks.push(value)
-      loaded += value.byteLength
-      emit()
-    }
-  }
-  const out = new Uint8Array(loaded)
-  let pos = 0
-  for (const c of chunks) { out.set(c, pos); pos += c.byteLength }
-  return out.buffer
-}
-
-/** Expand a SoA payload into per-organism partial updates. The caller
- *  then merges these into the existing cache (same path the AoS-delta
- *  branch used to follow). Cost: O(N) where N is the number of orgs in
- *  the delta - one allocation per org, no per-field key parsing. */
-function expandOrgsSoa(soa: OrgsHotSoa): OrganismState[] {
-  const out: OrganismState[] = new Array(soa.ids.length)
-  for (let i = 0; i < soa.ids.length; i++) {
-    out[i] = {
-      id:            soa.ids[i],
-      // Reverse the wire-side quantization. Multipliers must match
-      // organism.rs::q_pos / q_pct.
-      x:             soa.xs[i] / 10,
-      y:             soa.ys[i] / 10,
-      energy:        soa.energies[i] / 100,
-      hydration:     soa.hydrations[i] / 100,
-      health:        soa.healths[i] / 100,
-      age:           soa.ages[i],
-      alive:         soa.alives[i],
-      thought:       soa.thoughts[i],
-      infection:     soa.infections[i] / 100,
-      fear_level:    soa.fear_levels[i] / 100,
-      carrying:      soa.carryings[i],
-      carrying_type: soa.carrying_types[i],
-      pregnant:      soa.pregnants[i],
-      partner_id:    soa.partner_ids[i] ?? undefined,
-      attracted_to:  soa.attracted_tos[i] ?? undefined,
-      // Cold/warm fields rely on the existing cache via mergeDefined.
-      // OrganismState requires lineage_id/generation/parent_id/etc but
-      // those are filled in from the cached full-snapshot entry, so the
-      // expanded record acts as a partial update.
-    } as OrganismState
-  }
-  return out
-}
-
-/**
- * Decode + validate one WS frame. The wire format is MessagePack (binary),
- * which decodes 3-5x faster than JSON.parse on the main thread and ships
- * ~5-15% fewer bytes for our payload shape. The legacy JSON fallback
- * stays for the rare case where a string lands (e.g. proxies that
- * convert binary). Returns a Result so the caller can log/skip on bad
- * data instead of swallowing it.
- */
-function parseWorldFrame(raw: ArrayBuffer | Uint8Array | string): Result<IncomingWorldFrame, ParseError> {
-  let decoded: unknown
-  try {
-    if (typeof raw === 'string') {
-      // JSON fallback for legacy/text frames.
-      decoded = JSON.parse(raw)
-    } else {
-      const bytes = raw instanceof Uint8Array ? raw : new Uint8Array(raw)
-      decoded = msgpackDecode(bytes)
-    }
-  } catch (e) {
-    return err({ kind: 'json', message: e instanceof Error ? e.message : String(e) })
-  }
-  const parsed = WorldEnvelopeSchema.safeParse(decoded)
-  if (!parsed.success) {
-    return err({
-      kind:   'schema',
-      issues: parsed.error.issues.slice(0, 3).map(i => `${i.path.join('.')}: ${i.message}`),
-    })
-  }
-  return ok(decoded as IncomingWorldFrame)
-}
-
-/** Rebuild dense fire_intensity and structure 2D arrays from sparse wire format. */
-function applyGridWire(wire: GridWire, cache: GridState | null): GridState {
-  const w = wire.width
-  const h = wire.height
-
-  const fire: number[][] = Array.from({ length: h }, () => new Array(w).fill(0))
-  for (const [row, col, v] of wire.fire) {
-    if (row < h && col < w) fire[row][col] = v / 1000
-  }
-
-  const structure: number[][] = Array.from({ length: h }, () => new Array(w).fill(0))
-  for (const [row, col, v] of wire.structure) {
-    if (row < h && col < w) structure[row][col] = v / 100
-  }
-
-  // Static overlays - trails / fertility / hazard. Only refreshed on
-  // static frames (every 30 ticks). Fall back to the cached layer when
-  // the wire doesn't include them.
-  let food_trail = cache?.food_trail
-  let water_trail = cache?.water_trail
-  let path_trail = cache?.path_trail
-  if (wire.trails) {
-    food_trail  = Array.from({ length: h }, () => new Array(w).fill(0))
-    water_trail = Array.from({ length: h }, () => new Array(w).fill(0))
-    path_trail  = Array.from({ length: h }, () => new Array(w).fill(0))
-    for (const [row, col, f, wv, p] of wire.trails) {
-      if (row < h && col < w) {
-        food_trail[row][col]  = f / 100
-        water_trail[row][col] = wv / 100
-        path_trail[row][col]  = p / 100
-      }
-    }
-  }
-
-  let fertility = cache?.fertility
-  if (wire.fertility) {
-    // Default baseline 0.40; sparse entries override.
-    fertility = Array.from({ length: h }, () => new Array(w).fill(0.4))
-    for (const [row, col, v] of wire.fertility) {
-      if (row < h && col < w) fertility[row][col] = v / 100
-    }
-  }
-
-  let hazard = cache?.hazard
-  if (wire.hazard) {
-    hazard = Array.from({ length: h }, () => new Array(w).fill(0))
-    for (const [row, col, v] of wire.hazard) {
-      if (row < h && col < w) hazard[row][col] = v / 100
-    }
-  }
-
-  return {
-    width:    wire.width,
-    height:   wire.height,
-    origin_x: wire.origin_x,
-    origin_y: wire.origin_y,
-    tiles:     wire.tiles     ?? cache?.tiles     ?? [],
-    biomes:    wire.biomes    ?? cache?.biomes,
-    depth_map: wire.depth_map ?? cache?.depth_map,
-    fire_intensity: fire,
-    structure,
-    food_trail,
-    water_trail,
-    path_trail,
-    fertility,
-    hazard,
-  }
-}
 
 export interface InterpRefs {
   prev:    React.MutableRefObject<WorldState | null>
@@ -254,22 +26,6 @@ export interface InterpRefs {
   prevServerAt: React.MutableRefObject<number>
   currentServerAt: React.MutableRefObject<number>
   currentReceivedAt: React.MutableRefObject<number>
-}
-
-const EMPTY_HISTORY: WorldState['history'] = {
-  births: 0,
-  deaths_old_age: 0,
-  deaths_starvation: 0,
-  deaths_dehydration: 0,
-  deaths_sickness: 0,
-  deaths_combat: 0,
-  sickness_events: 0,
-  alliances_formed: 0,
-  challenges_total: 0,
-  gifts_total: 0,
-  droughts: 0,
-  outbreaks: 0,
-  era_history: [],
 }
 
 export function useSimulation(): { world: WorldState | null; connected: boolean; interp: InterpRefs } {
@@ -461,87 +217,21 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
             }
           }
 
-          const grid   = applyGridWire(parsed.grid, gridCache.current)
-          gridCache.current = grid
-
-          function mergeDefined<T extends object>(target: T, src: Partial<T>): T {
-            const out = { ...target } as Record<string, unknown>
-            for (const k in src) {
-              const v = (src as Record<string, unknown>)[k]
-              if (v !== null && v !== undefined) out[k] = v
-            }
-            return out as T
+          // Delegate the heavy lifting (grid expand + organism / animal
+          // cache merge + WorldState assembly) to the dedicated module.
+          const caches: MergeCaches = {
+            organisms: organismCache.current,
+            animals:   animalCache.current,
+            grid:      gridCache.current,
+            prevWorld: currentWorldRef.current,
           }
-
-          // Resolve organisms list from whichever wire format is in
-          // this frame. Full snapshots ship AoS under `organisms`;
-          // deltas ship SoA under `organisms_hot`, which we expand
-          // into the same partial-update shape the AoS path used.
-          const frameOrganisms: OrganismState[] = parsed.organisms
-            ?? (parsed.organisms_hot ? expandOrgsSoa(parsed.organisms_hot) : [])
-
-          if (parsed.organisms_complete) {
-            // Periodic WS fulls re-list every org but omit cold fields, so merge
-            // against the prior cache instead of replacing it wholesale.
-            const next = new Map<string, OrganismState>()
-            for (const org of frameOrganisms) {
-              const existing = organismCache.current.get(org.id)
-              next.set(org.id, existing ? mergeDefined(existing, org) : org)
-            }
-            organismCache.current = next
-          } else {
-            for (const org of frameOrganisms) {
-              const existing = organismCache.current.get(org.id)
-              organismCache.current.set(org.id, existing ? mergeDefined(existing, org) : org)
-            }
-          }
-
-          if (parsed.animals_complete) {
-            animalCache.current = new Map(parsed.animals.map(a => [a.id, a]))
-          } else {
-            for (const animal of parsed.animals) {
-              const existing = animalCache.current.get(animal.id)
-              animalCache.current.set(animal.id, existing ? mergeDefined(existing, animal) : animal)
-            }
-          }
-
-          const viewportOrgs = frameOrganisms.map(o =>
-            organismCache.current.get(o.id) ?? o
-          )
-          const viewportAnimals = parsed.animals.map(a =>
-            animalCache.current.get(a.id) ?? a
-          )
-          const base = currentWorldRef.current
-
-          const next: WorldState = {
-            frame_id: parsed.frame_id,
-            server_sent_at_ms: parsed.server_sent_at_ms,
-            frame_kind: parsed.frame_kind,
-            tick: parsed.tick,
-            grid,
-            events: parsed.events ?? base?.events ?? [],
-            is_day: parsed.is_day,
-            day_progress: parsed.day_progress,
-            season: parsed.season,
-            season_progress: parsed.season_progress,
-            drought: parsed.drought,
-            weather: parsed.weather,
-            history: parsed.history ?? base?.history ?? EMPTY_HISTORY,
-            story_history: parsed.story_history ?? base?.story_history ?? [],
-            pop_history: parsed.pop_history ?? base?.pop_history ?? [],
-            tribal_relations: parsed.tribal_relations ?? base?.tribal_relations ?? [],
-            lineage_sizes: parsed.lineage_sizes ?? base?.lineage_sizes ?? [],
-            lineage_names: parsed.lineage_names ?? base?.lineage_names,
-            lineage_centroid_history: parsed.lineage_centroid_history ?? base?.lineage_centroid_history,
-            current_era: parsed.current_era ?? base?.current_era,
-            sex_words: parsed.sex_words ?? base?.sex_words,
-            organisms: [...organismCache.current.values()],
-            viewport_organisms: viewportOrgs,
-            organisms_complete: parsed.organisms_complete,
-            animals: [...animalCache.current.values()],
-            viewport_animals: viewportAnimals,
-            animals_complete: parsed.animals_complete,
-          }
+          const { next, grid } = mergeFrame(parsed, caches)
+          // mergeFrame may have rebuilt the org / animal maps (on a
+          // *_complete frame); store the post-merge map identities
+          // back into the refs.
+          organismCache.current = caches.organisms
+          animalCache.current   = caches.animals
+          gridCache.current     = grid
 
           prevWorldRef.current    = currentWorldRef.current
           prevServerAtRef.current = currentServerAtRef.current
