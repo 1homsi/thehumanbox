@@ -27,8 +27,18 @@ on:
     branches: [main]
   workflow_dispatch:
 
+#
+# Concurrency: every push gets its own concurrency group (keyed on
+# the commit SHA), so different commits don't share + don't cancel
+# each other. The pre-existing behaviour of "newer push cancels the
+# QUEUED older push" was losing intermediate deploys whenever pushes
+# came in rapid succession.
+#
+# Race we DO need to serialise: bump-version (parallel pipelines
+# would both try to push a [skip-bump] commit and step on each
+# other). That's gated per-job below.
 concurrency:
-  group: pipeline-main
+  group: pipeline-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -108,6 +118,15 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: write
+    # Serialise bump-version + everything downstream across all
+    # pipelines on main. Two parallel pipelines would both try to
+    # bump Cargo.toml and push a [skip-bump] commit, racing. With
+    # `cancel-in-progress: false` the second waits its turn, then
+    # bumps from the now-updated Cargo.toml so versions never
+    # collide.
+    concurrency:
+      group: pipeline-deploy-main
+      cancel-in-progress: false
     outputs:
       new: ${{ steps.bump.outputs.new }}
     steps:
@@ -162,6 +181,10 @@ jobs:
     needs: [bump-version]
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 20
+    # Same serialising group as bump-version - inherits the queue.
+    concurrency:
+      group: pipeline-deploy-main
+      cancel-in-progress: false
     env:
       CARGO_INCREMENTAL: 0
       CARGO_NET_RETRY: 10
@@ -213,6 +236,9 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: write
+    concurrency:
+      group: pipeline-deploy-main
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - name: Download binary artifact
@@ -222,20 +248,32 @@ jobs:
           path: ./bin
       - name: Make binary executable
         run: chmod +x ./bin/simulation-rs
-      - name: Create release + attach binary
+      - name: Create release + attach binary (idempotent)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NEW:      ${{ needs.bump-version.outputs.new }}
         run: |
           set -euo pipefail
-          # Use --target=main so the release is anchored to the merged
-          # main branch tip (which includes the [skip-bump] commit by
-          # the time this job runs).
-          gh release create "v$NEW" \
-            --title "v$NEW" \
-            --notes "Automated release. Backend binary built on ubuntu-24.04-arm runner; SHA ${GITHUB_SHA}." \
-            --target main \
-            ./bin/simulation-rs
+          # IDEMPOTENT: if the release already exists (typically because
+          # a previous pipeline run got cancelled after it created the
+          # tag but before deploy), we replace the binary rather than
+          # fail. Without this, a single cancelled run blocks every
+          # subsequent run forever on `tag already exists` and the
+          # deploy chain just stops carrying new code to the EC2.
+          if gh release view "v$NEW" >/dev/null 2>&1; then
+            echo "Release v$NEW already exists - replacing binary"
+            gh release upload "v$NEW" ./bin/simulation-rs --clobber
+          else
+            echo "Creating release v$NEW"
+            # --target=main so the release is anchored to the merged
+            # main branch tip (which includes the [skip-bump] commit by
+            # the time this job runs).
+            gh release create "v$NEW" \
+              --title "v$NEW" \
+              --notes "Automated release. Backend binary built on ubuntu-24.04-arm runner; SHA ${GITHUB_SHA}." \
+              --target main \
+              ./bin/simulation-rs
+          fi
 
   # ────────────────────────────────────────────────────────────────────────
   # Stage 4: deploys. Run in parallel after publish-release succeeds.
@@ -245,6 +283,9 @@ jobs:
     needs: [bump-version, publish-release]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    concurrency:
+      group: pipeline-deploy-main
+      cancel-in-progress: false
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
