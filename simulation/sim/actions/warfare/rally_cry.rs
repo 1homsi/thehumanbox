@@ -1,0 +1,14 @@
+//! Action 196: rally cry. Strong fear-drop for kin.
+use super::super::ctx::ActionCtx;
+
+pub fn apply(ctx: &mut ActionCtx) -> f32 {
+    for i in 0..ctx.kin.len() {
+        let ki = ctx.kin[i];
+        let o = &mut ctx.sim.organisms[ki];
+        o.fear_level = (o.fear_level - 0.10).max(0.0);
+        o.comfort = (o.comfort + 0.04).min(1.0);
+    }
+    let bonus = 0.004 * ctx.kin.len().min(6) as f32;
+    ctx.think("raising a rally cry");
+    bonus
+}

@@ -1053,8 +1053,17 @@ impl Simulation {
             self.organisms[idx].think("marking territory", self.tick_count);
             signal_reward += 0.002;
         } else if action >= 26 {
-            // Extended action set (26..=125) - see sim/extended_actions.rs
-            signal_reward += self.apply_extended_action(idx, action, ix, iy);
+            // Extended action set (26..=225). Dispatched through the
+            // per-action files under sim/actions/. Each action's logic
+            // lives in its own file.
+            if let Some(r) = super::actions::try_apply(self, idx, action, ix, iy) {
+                signal_reward += r;
+                // Per-action energy decrement that the legacy giant
+                // match applied at its tail. Keeps tick energetics
+                // identical to pre-refactor behaviour.
+                self.organisms[idx].energy =
+                    (self.organisms[idx].energy - 0.0015).max(0.0);
+            }
         }
 
         // Re-read current tile after move
