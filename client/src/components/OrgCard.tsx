@@ -1,8 +1,8 @@
 import { memo, useCallback } from 'react'
 import clsx from 'clsx'
 import { lineageColor } from '../utils/constants'
-import { useUIStore } from '../store'
-import { useOrganism, useWorldStore } from '../worldStore'
+import { useUIStore } from '../stores/store'
+import { useOrganism, useWorldStore } from '../stores/worldStore'
 import { Tooltip } from './Tooltip'
 
 function Bar({ label, value, color, tip }: { label: string; value: number; color: string; tip?: string }) {

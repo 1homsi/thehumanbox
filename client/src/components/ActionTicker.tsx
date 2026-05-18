@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import type { WorldState } from '../types'
 import { lineageColor } from '../utils/constants'
-import { useUIStore } from '../store'
+import { useUIStore } from '../stores/store'
 
 /**
  * Bottom-of-screen marquee showing the live thought of each alive

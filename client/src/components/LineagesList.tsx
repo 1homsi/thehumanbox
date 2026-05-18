@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react'
 import { lineageColor } from '../utils/constants'
-import { useUIStore } from '../store'
-import { useWorldStore } from '../worldStore'
+import { useUIStore } from '../stores/store'
+import { useWorldStore } from '../stores/worldStore'
 
 interface LineageRow {
   id: string

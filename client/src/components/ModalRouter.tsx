@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react'
 import type { WorldState, OrganismState } from '../types'
-import { useUIStore } from '../store'
+import { useUIStore } from '../stores/store'
 import { Modal } from './Modal'
 import { lineageColor, lineageWord } from '../utils/constants'
 

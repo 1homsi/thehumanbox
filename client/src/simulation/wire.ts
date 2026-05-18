@@ -1,7 +1,7 @@
 import { Result, ok, err } from 'neverthrow'
 import { decode as msgpackDecode } from '@msgpack/msgpack'
 import type { WorldState, GridState, GridWire, OrganismState, AnimalState } from '../types'
-import { WorldEnvelopeSchema } from '../schemas'
+import { WorldEnvelopeSchema } from '../types/schemas'
 
 // ── Wire-format helpers ──────────────────────────────────────────────────
 // Pure functions and type definitions for decoding the simulation's

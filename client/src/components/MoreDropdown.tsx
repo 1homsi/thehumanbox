@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { useUIStore } from '../store'
+import { useUIStore } from '../stores/store'
 
 /**
  * The "··· more" dropdown panel shown from the header.

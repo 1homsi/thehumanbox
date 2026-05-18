@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import clsx from 'clsx'
 import type { WorldState } from '../types'
-import { useUIStore } from '../store'
+import { useUIStore } from '../stores/store'
 import { Tooltip } from './Tooltip'
 import { MoreDropdown } from './MoreDropdown'
 

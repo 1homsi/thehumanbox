@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, lazy, Suspense } from 'react'
 import { useSimulation } from './simulation/useSimulation'
-import { useUIStore } from './store'
-import { WorldView } from './WorldView'
+import { useUIStore } from './stores/store'
+import { WorldView } from './world/WorldView'
 import { EventLog } from './components/EventLog'
 import { HistoryGrid } from './components/HistoryGrid'
 import { LineagesList } from './components/LineagesList'
@@ -19,7 +19,7 @@ import './App.css'
 // 3D world is a separate chunk - 2D-only users never download it.
 // Lazy because @react-three/* + three.js add ~150 KB gzipped that the
 // default 2D path shouldn't pay for.
-const WorldView3D = lazy(() => import('./WorldView3D'))
+const WorldView3D = lazy(() => import('./world/WorldView3D'))
 
 const TILE_FIRE = 4
 

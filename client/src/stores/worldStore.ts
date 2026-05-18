@@ -21,7 +21,7 @@
  */
 import { create } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
-import type { OrganismState, WorldState } from './types'
+import type { OrganismState, WorldState } from '../types'
 
 interface WorldStore {
   world: WorldState | null

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { WorldState, GridState, OrganismState, AnimalState } from '../types'
-import { WS_BASE, API_BASE } from '../config'
-import { useWorldStore } from '../worldStore'
+import { WS_BASE, API_BASE } from '../lib/config'
+import { useWorldStore } from '../stores/worldStore'
 import { fetchSnapshotWithProgress, parseWorldFrame } from './wire'
 import { mergeFrame, type MergeCaches } from './merge'
 

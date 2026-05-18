@@ -1,10 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Game, World, Entity, Transform, Sprite, Camera2D, useCamera, useEntity, useDynamicCanvas, useGestures } from 'cubeforge'
-import type { WorldState } from './types'
-import type { InterpRefs } from './simulation/useSimulation'
-import { useUIStore, type ViewFlags } from './store'
-import { lineageColor } from './utils/constants'
-import { SPRITE, ATLAS_TOWN, ATLAS_CREATURE, drawTile, onAnyAtlasLoaded, pickAnimalTile } from './utils/sprites'
+import type { WorldState } from '../types'
+import type { InterpRefs } from '../simulation/useSimulation'
+import { useUIStore, type ViewFlags } from '../stores/store'
+import { lineageColor } from '../utils/constants'
+import { SPRITE, ATLAS_TOWN, ATLAS_CREATURE, drawTile, onAnyAtlasLoaded, pickAnimalTile } from '../utils/sprites'
 
 onAnyAtlasLoaded(() => { _baseKey = null })
 

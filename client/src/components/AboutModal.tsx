@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Modal } from './Modal'
-import { API_BASE } from '../config'
+import { API_BASE } from '../lib/config'
 
 interface Props {
   onClose: () => void

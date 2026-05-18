@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { useWorldStore } from '../worldStore'
+import { useWorldStore } from '../stores/worldStore'
 import { Tooltip } from './Tooltip'
 
 /**

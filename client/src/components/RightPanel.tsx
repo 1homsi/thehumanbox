@@ -1,6 +1,6 @@
 import clsx from 'clsx'
 import type { OrganismState, WorldState } from '../types'
-import { useUIStore } from '../store'
+import { useUIStore } from '../stores/store'
 import { OrgCard } from './OrgCard'
 import { OrgDetail } from './OrgDetail'
 
