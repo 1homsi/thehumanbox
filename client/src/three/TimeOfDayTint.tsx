@@ -1,0 +1,63 @@
+import { useMemo } from 'react'
+
+interface Props {
+  dayProgress: number   // 0..1
+  weatherKind?: string
+}
+
+// CSS-only translucent overlay that gives the 3D scene a
+// time-of-day mood without needing a postprocessing pass. Lerps
+// between four colour stops:
+//   midnight     -> deep blue-purple wash
+//   sunrise/dusk -> warm orange/amber wash
+//   midday       -> no overlay
+// Plus a storm/rain desaturating slate at any time.
+//
+// Uses mix-blend-mode: overlay so highlights stay highlight and
+// shadows deepen, giving a graded look instead of a flat colour wash.
+export function TimeOfDayTint({ dayProgress, weatherKind = 'clear' }: Props) {
+  const { color, opacity } = useMemo(() => {
+    let color = 'rgba(0,0,0,0)'
+    let opacity = 0
+    if (dayProgress < 0.20 || dayProgress > 0.80) {
+      color = '#1a2050'
+      opacity = 0.32
+    } else if (dayProgress < 0.32) {
+      const t = (dayProgress - 0.20) / 0.12   // 0..1 across sunrise
+      const fade = 1 - t                      // fade out as morning rises
+      color = '#ff8a3a'
+      opacity = 0.05 + fade * 0.18
+    } else if (dayProgress < 0.68) {
+      opacity = 0
+    } else {
+      const t = (dayProgress - 0.68) / 0.12
+      const fade = t
+      color = '#ff6028'
+      opacity = 0.05 + fade * 0.18
+    }
+    if (weatherKind === 'storm') {
+      color = '#3a4258'
+      opacity = Math.max(opacity, 0.22)
+    } else if (weatherKind === 'rain') {
+      color = '#56607a'
+      opacity = Math.max(opacity, 0.14)
+    }
+    return { color, opacity }
+  }, [dayProgress, weatherKind])
+
+  if (opacity <= 0.01) return null
+  return (
+    <div
+      className="thb-3d-tint"
+      style={{
+        position: 'absolute',
+        inset: 0,
+        pointerEvents: 'none',
+        background: color,
+        opacity,
+        mixBlendMode: 'overlay',
+        zIndex: 3,
+      }}
+    />
+  )
+}

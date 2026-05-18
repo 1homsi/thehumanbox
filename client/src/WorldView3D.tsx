@@ -27,6 +27,7 @@ import { OrgStateBadges } from './three/OrgStateBadges'
 import { FootstepDust } from './three/FootstepDust'
 import { TribeLabels } from './three/TribeLabels'
 import { FireLights } from './three/FireLights'
+import { TimeOfDayTint } from './three/TimeOfDayTint'
 import { TILE_SCALE } from './three/constants'
 import { heightAtWorld, heightAt } from './three/terrain-utils'
 import { updateOrgMotion, updateAnimalMotion, getOrgXY } from './three/motion-state'
@@ -468,6 +469,14 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
       {!ready && (
         <div style={loadingStyle}>loading terrain…</div>
       )}
+
+      {/* Time-of-day colour grade overlay. Renders BEHIND the vignette
+          (lower zIndex) so the vignette darkens the tinted scene
+          rather than the tint coating the vignette darkness. */}
+      <TimeOfDayTint
+        dayProgress={dayProgress}
+        weatherKind={world?.weather?.kind ?? 'clear'}
+      />
 
       {/* Subtle film vignette - darkens corners to draw the eye inward.
           Pure CSS radial gradient, no GPU cost. Hidden in immersive
