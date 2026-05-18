@@ -114,30 +114,37 @@ export function AppHeader({ world, connected, fireTiles, sickOrgs }: Props) {
       {world && (
         <div className="header-actions">
           <Tooltip tip="Population graphs, birth and death rates, lineage growth over time">
-            <button className="lang-btn" onClick={openStats}>▦ stats</button>
+            <button className="lang-btn" onClick={openStats}>
+              <span className="btn-icon">▦</span><span className="btn-label">stats</span>
+            </button>
           </Tooltip>
           <Tooltip tip="Search and filter all organisms - alive or dead - by name, thought, lineage, or discovery">
-            <button className="lang-btn" onClick={openOrgSearch}>⌕ search</button>
+            <button className="lang-btn" onClick={openOrgSearch}>
+              <span className="btn-icon">⌕</span><span className="btn-label">search</span>
+            </button>
           </Tooltip>
           <Tooltip tip="Stories generated from world events - the history of this civilisation as it unfolds">
             <button className="lang-btn" onClick={openChronicles}>
-              ✦ chronicles{world.story_history?.length > 0 ? ` (${world.story_history.length})` : ''}
+              <span className="btn-icon">✦</span><span className="btn-label">chronicles</span>
+              {world.story_history?.length > 0 && <span className="btn-count"> ({world.story_history.length})</span>}
             </button>
           </Tooltip>
           <div className="more-menu" ref={moreRef}>
-            <button className={clsx('lang-btn', showMore && 'active')} onClick={toggleMore}>··· more</button>
+            <button className={clsx('lang-btn', showMore && 'active')} onClick={toggleMore}>
+              <span className="btn-icon">···</span><span className="btn-label">more</span>
+            </button>
             {showMore && <MoreDropdown />}
           </div>
         </div>
       )}
       {world && (
         <button className="panel-toggle-btn panel-toggle-left" onClick={toggleLeft}>
-          {leftOpen ? '✕' : '≡'} world
+          <span className="btn-icon">{leftOpen ? '✕' : '≡'}</span><span className="btn-label">world</span>
         </button>
       )}
       {world && (
         <button className="panel-toggle-btn" onClick={togglePanel}>
-          {panelOpen ? '✕' : '≡'} orgs
+          <span className="btn-icon">{panelOpen ? '✕' : '≡'}</span><span className="btn-label">orgs</span>
         </button>
       )}
       {world && (

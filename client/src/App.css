@@ -238,6 +238,10 @@ body {
 
 .panel-overlay-left { display: none; }
 
+/* Desktop: keep icon+label spans visually adjacent with a tiny gap. */
+.lang-btn .btn-icon + .btn-label,
+.panel-toggle-btn .btn-icon + .btn-label { margin-left: 4px; }
+
 .panel-right {
   width: 270px;
   border-left: 1px solid #372a21;
@@ -1773,22 +1777,25 @@ body.thb-photo-mode .thb-minimap-2d {
   body { overflow: hidden; }
 
   .header {
-    padding: 6px 10px;
-    gap: 6px;
+    padding: 6px 8px;
+    gap: 4px;
     flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
+    overflow: visible;
+    align-items: center;
   }
-  .header::-webkit-scrollbar { display: none; }
 
-  .header h1 { font-size: 11px; letter-spacing: 0.06em; }
+  .header h1 { display: none; }
 
   .github-link { display: none; }
   .tick { display: none; }
 
-  .header-left { flex-shrink: 0; gap: 6px; }
+  .header-left { flex-shrink: 0; gap: 4px; min-width: 0; }
   .header-left .status .status-dot { margin-right: 0; }
-  .header-left .status { font-size: 9px; padding: 2px 6px; }
+  .header-left .status {
+    font-size: 8px;
+    padding: 2px 5px;
+    letter-spacing: 0.05em;
+  }
 
   .header-badges {
     overflow-x: auto;
@@ -1799,26 +1806,32 @@ body.thb-photo-mode .thb-minimap-2d {
     min-width: 0;
   }
   .header-badges::-webkit-scrollbar { display: none; }
-  .header-badges > * { font-size: 9px; padding: 2px 5px; }
+  .header-badges > * { font-size: 9px; padding: 2px 4px; }
 
   .header-actions {
     flex-shrink: 0;
-    gap: 4px;
-    margin-left: 0;
-  }
-  .header-actions .lang-btn {
-    font-size: 10px;
-    padding: 4px 7px;
-    white-space: nowrap;
+    gap: 2px;
+    margin-left: auto;
   }
 
-  .fullscreen-btn { width: 22px; height: 22px; font-size: 11px; margin-left: 4px; }
+  /* Icon-only buttons in the mobile header — hide the label spans,
+     keep the icon spans, keep any count. */
+  .header-actions .lang-btn,
+  .panel-toggle-btn {
+    font-size: 13px;
+    padding: 4px 6px;
+    min-width: 26px;
+    white-space: nowrap;
+  }
+  .header-actions .lang-btn .btn-label,
+  .panel-toggle-btn .btn-label { display: none; }
+  .header-actions .lang-btn .btn-count { font-size: 9px; margin-left: 2px; }
+
+  .fullscreen-btn { display: none; }
 
   .panel-toggle-btn {
     display: flex;
     align-items: center;
-    font-size: 10px;
-    padding: 4px 8px;
     border-radius: 4px;
     border: 1px solid #513d2e;
     background: #32271f;
@@ -1826,7 +1839,6 @@ body.thb-photo-mode .thb-minimap-2d {
     cursor: pointer;
     font-family: monospace;
     flex-shrink: 0;
-    white-space: nowrap;
   }
   .panel-toggle-btn:hover { background: #3b2d22; color: #eee; }
 
