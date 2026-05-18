@@ -881,6 +881,59 @@ body.thb-photo-mode .header:hover {
   opacity: 1;
 }
 
+/* Action ticker: 28px strip pinned to the bottom of the viewport,
+   shows each alive organism's current thought scrolling right to
+   left. Doubled track + 60s linear animation gives a seamless loop. */
+.thb-action-ticker {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  background: linear-gradient(180deg, rgba(20, 16, 12, 0.78), rgba(20, 16, 12, 0.92));
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  z-index: 50;
+  pointer-events: auto;
+  font-family: monospace;
+  font-size: 11px;
+}
+.thb-action-ticker-track {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: thb-action-ticker-scroll 240s linear infinite;
+  padding-left: 100%;
+}
+.thb-action-ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  color: #cbd0d6;
+  height: 28px;
+  flex-shrink: 0;
+}
+.thb-action-ticker-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.thb-action-ticker-name {
+  font-weight: 700;
+}
+.thb-action-ticker-thought {
+  color: #9aa1a8;
+}
+.thb-action-ticker-thought::before {
+  content: '— ';
+  color: #6a7077;
+}
+@keyframes thb-action-ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
 /* Vocabulary grid in OrgDetail */
 .vocab-grid {
   display: grid;

@@ -9,6 +9,7 @@ import { WorldFooter } from './components/WorldFooter'
 import { AppHeader } from './components/AppHeader'
 import { RightPanel } from './components/RightPanel'
 import { ModalRouter } from './components/ModalRouter'
+import { ActionTicker } from './components/ActionTicker'
 import type { OrganismState } from './types'
 import clsx from 'clsx'
 import './App.css'
@@ -166,6 +167,8 @@ function App() {
           <div className="waiting">waiting for simulation...</div>
         )}
       </main>
+
+      {world && viewFlags.actionTicker && <ActionTicker world={world} />}
 
       {world && <ModalRouter world={world} lineages={lineages} />}
     </div>
