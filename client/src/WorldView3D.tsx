@@ -210,6 +210,31 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
     } catch { /* ignore */ }
   }, [selectedOrgId])
 
+  // On first load with no saved camera, aim the camera at the
+  // population centroid instead of the world's geometric centre.
+  // Otherwise users with an empty middle-of-the-ocean spawn would
+  // see nothing interesting until they pan to find the tribes.
+  const didInitialAimRef = useRef(false)
+  useEffect(() => {
+    if (didInitialAimRef.current) return
+    if (!world) return
+    const live = (world.viewport_organisms ?? world.organisms ?? []).filter(o => o.alive)
+    if (live.length < 5) return
+    let hasSaved = false
+    try {
+      hasSaved = !!localStorage.getItem('thb-3d-cam-v1')
+    } catch { /* ignore */ }
+    if (hasSaved) { didInitialAimRef.current = true; return }
+    const cx = live.reduce((s, o) => s + o.x, 0) / live.length
+    const cy = live.reduce((s, o) => s + o.y, 0) / live.length
+    cameraCommand.teleport = {
+      x: cx * TILE_SCALE,
+      y: 80,
+      z: cy * TILE_SCALE + 60,
+    }
+    didInitialAimRef.current = true
+  }, [world])
+
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
