@@ -934,6 +934,36 @@ body.thb-photo-mode .header:hover {
   to   { transform: translateX(-50%); }
 }
 
+/* 2D mini-map: 220x140 in the top-right corner. Pinned over the
+   canvas, click-through-able via the cursor but actually intercepts
+   clicks to clear selection. */
+.thb-minimap-2d {
+  position: fixed;
+  top: 56px;
+  right: 12px;
+  width: 220px;
+  max-width: 220px;
+  padding: 4px;
+  background: rgba(15, 12, 9, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 4px;
+  z-index: 40;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+}
+.thb-minimap-2d:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+.thb-minimap-2d canvas {
+  display: block;
+  image-rendering: pixelated;
+  margin: 0 auto;
+}
+body.thb-photo-mode .thb-minimap-2d {
+  display: none;
+}
+
 /* Vocabulary grid in OrgDetail */
 .vocab-grid {
   display: grid;
