@@ -48,6 +48,43 @@ function App() {
     return () => { document.body.classList.remove('thb-3d-immersive') }
   }, [viewFlags.threeD, viewFlags.hideUI])
 
+  // Photo mode: hide every chrome element so only the canvas shows.
+  // The header reappears on hover via :hover rule on .header itself,
+  // so the user can still toggle the mode off.
+  useEffect(() => {
+    if (viewFlags.photoMode) document.body.classList.add('thb-photo-mode')
+    else document.body.classList.remove('thb-photo-mode')
+    return () => { document.body.classList.remove('thb-photo-mode') }
+  }, [viewFlags.photoMode])
+
+  // Color-blind body class so the CSS variables / canvas reads can
+  // also branch on it without each component subscribing.
+  useEffect(() => {
+    if (viewFlags.colorBlind) document.body.classList.add('thb-colorblind')
+    else document.body.classList.remove('thb-colorblind')
+    return () => { document.body.classList.remove('thb-colorblind') }
+  }, [viewFlags.colorBlind])
+
+  // Random tour: every 8s pick a different alive organism, select it
+  // and follow it. We close over liveOrgs through a ref so the timer
+  // body sees the latest cohort without resetting the interval on
+  // every WS tick.
+  const liveOrgsRef = useRef<OrganismState[]>([])
+  useEffect(() => { liveOrgsRef.current = liveOrgs }, [liveOrgs])
+  useEffect(() => {
+    if (!viewFlags.randomTour) return
+    const tick = () => {
+      const pool = liveOrgsRef.current
+      if (pool.length === 0) return
+      const pick = pool[Math.floor(Math.random() * pool.length)]
+      useUIStore.getState().selectOrg(pick.id)
+      useUIStore.getState().followOrg(pick.id)
+    }
+    tick()
+    const id = window.setInterval(tick, 8000)
+    return () => window.clearInterval(id)
+  }, [viewFlags.randomTour])
+
   const selectedOrg = selectedOrgId
     ? world?.organisms.find(o => o.id === selectedOrgId) ?? null
     : null

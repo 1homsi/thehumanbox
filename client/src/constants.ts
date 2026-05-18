@@ -11,18 +11,34 @@ export function lineageColor(lineageId: string | null | undefined): string {
   let h = 0
   for (const c of lineageId) h = Math.imul(h * 31 + c.charCodeAt(0), 1) >>> 0
 
-  // Golden-angle hue spread - maximally separates adjacent lineages in hue space
-  const hue = (h * 137.508) % 360
+  // Color-blind palette restricts the hue circle to the blue-yellow
+  // axis (40°-300°) and skips the green band (90°-150°) where the
+  // hardest red-green confusions live. We read the body class so the
+  // canvas, modals and components all stay in sync without each one
+  // subscribing to the store.
+  const colorBlind = typeof document !== 'undefined'
+    && document.body?.classList?.contains('thb-colorblind')
+
+  let hue: number
+  if (colorBlind) {
+    // Wrap into a 220° "safe" arc (yellow → orange → magenta → blue),
+    // then push past the green band.
+    const raw = (h * 137.508) % 220
+    hue = raw < 50 ? raw + 40                    // 40°-90°   yellow → green-adjacent
+        : raw < 110 ? raw + 110                  // 150°-210° magenta / pink
+        :             raw + 130                  // 240°-300° blue / purple
+  } else {
+    // Golden-angle hue spread - maximally separates adjacent lineages
+    hue = (h * 137.508) % 360
+  }
 
   // Vary saturation and lightness independently using different hash bits
   // Three saturation bands: vivid (90%), standard (72%), muted (60%)
   const sat = [90, 72, 60][(h >>> 8) % 3]
   // Three lightness bands: light (78%), mid (70%), deep (62%) - tuned for
   // contrast over the brown panel backgrounds (#28201a, #3f2f23) used as
-  // the app theme. The previous floor of 52% washed out into the brown
-  // tint, especially for hues around 30° (literally brown). 62% gives
-  // enough luminance to read against any panel surface in the app
-  // while keeping the visual differentiation between lineages.
+  // the app theme. 62% floor keeps text readable against any panel
+  // surface while preserving differentiation between lineages.
   const lit = [78, 70, 62][(h >>> 16) % 3]
 
   return `hsl(${hue.toFixed(0)}, ${sat}%, ${lit}%)`

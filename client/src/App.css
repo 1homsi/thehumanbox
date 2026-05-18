@@ -861,6 +861,26 @@ body.thb-3d-immersive .thb-3d-help {
   display: none !important;
 }
 
+/* Photo mode: hide every chrome element so only the canvas / world is
+   visible. Header fades to a thin ghost strip but reappears on hover
+   so the user can still toggle the mode off. */
+body.thb-photo-mode .panel,
+body.thb-photo-mode .panel-overlay,
+body.thb-photo-mode .panel-toggle-btn,
+body.thb-photo-mode .thb-3d-minimap,
+body.thb-photo-mode .thb-3d-hud,
+body.thb-photo-mode .thb-3d-orgcard,
+body.thb-photo-mode .thb-action-ticker {
+  display: none !important;
+}
+body.thb-photo-mode .header {
+  opacity: 0.08;
+  transition: opacity 0.18s ease;
+}
+body.thb-photo-mode .header:hover {
+  opacity: 1;
+}
+
 /* Vocabulary grid in OrgDetail */
 .vocab-grid {
   display: grid;
