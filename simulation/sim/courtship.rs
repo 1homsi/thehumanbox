@@ -580,6 +580,7 @@ pub fn generate_conversation(
         kind:      kind.to_string(),
         lines:     lines.clone(),
         meanings:  meanings.clone(),
+        id:        String::new(),
     };
     let entry_b = ConversationEntry {
         tick,
@@ -588,6 +589,50 @@ pub fn generate_conversation(
         kind:      kind.to_string(),
         lines,
         meanings,
+        id:        String::new(),
     };
     (entry_a, entry_b)
+}
+
+pub fn generate_conversation_with_req(
+    a: &Organism, b: &Organism,
+    a_recent: Vec<String>, b_recent: Vec<String>,
+    a_tribe: Option<String>, b_tribe: Option<String>,
+    a_mood: String,          b_mood: String,
+    tick: u64, kind: &str,
+    rng: &mut impl Rng,
+) -> (ConversationEntry, ConversationEntry, super::convo_req::ConversationReq) {
+    let (mut conv_a, mut conv_b) = generate_conversation(a, b, tick, kind, rng);
+    let id = uuid::Uuid::new_v4().to_string();
+    conv_a.id = id.clone();
+    conv_b.id = id.clone();
+
+    let n_lines = conv_a.lines.len();
+    let day_len = super::config::DAY_LENGTH as u32;
+
+    use super::convo_req::{ConversationReq, ConvoSpeaker};
+
+    let speaker = |o: &Organism, mood: String, tribe: Option<String>, partner_of: Option<String>, recent: Vec<String>| ConvoSpeaker {
+        name:       o.name.clone(),
+        sex:        format!("{:?}", o.sex).to_lowercase(),
+        age_days:   (o.age / day_len.max(1)),
+        mood,
+        tribe_name: tribe,
+        partner_of,
+        vocab:      o.vocabulary.words.clone(),
+        recent,
+    };
+    let a_partner = a.partner_id.as_ref().and_then(|pid|
+        if pid == &b.id { Some(b.name.clone()) } else { None });
+    let b_partner = b.partner_id.as_ref().and_then(|pid|
+        if pid == &a.id { Some(a.name.clone()) } else { None });
+
+    let req = ConversationReq {
+        entry_id: id,
+        kind:     kind.to_string(),
+        n_lines,
+        a: speaker(a, a_mood, a_tribe, a_partner, a_recent),
+        b: speaker(b, b_mood, b_tribe, b_partner, b_recent),
+    };
+    (conv_a, conv_b, req)
 }

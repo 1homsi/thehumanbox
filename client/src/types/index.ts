@@ -10,6 +10,7 @@ export interface ConversationEntry {
   kind:      'courtship' | 'bonded' | 'farewell' | 'chat' | 'argue' | 'excited'
   lines:     [string, string][]
   meanings?: string[]
+  id?:       string
 }
 
 export interface Traits {

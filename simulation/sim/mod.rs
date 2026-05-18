@@ -3,6 +3,7 @@ pub mod world_events;
 pub mod social;
 pub mod growth;
 pub mod courtship;
+pub mod convo_req;
 pub mod simulation;
 pub mod actions;
 pub mod utils;

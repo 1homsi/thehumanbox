@@ -10,6 +10,17 @@ use crate::physics::engine::PhysicsEngine;
 use super::config::{DAY_LENGTH, SEASON_LENGTH, SEASONS, season_growth};
 use super::world_events::{DroughtState, WeatherState, tick_drought, tick_outbreak, tick_weather, tick_world_evolution, push_event};
 use super::{social, growth, courtship};
+
+fn derive_mood(o: &Organism) -> String {
+    if o.infection > 0.20 { "sick" }
+    else if o.energy   < 0.30 { "hungry" }
+    else if o.hydration< 0.30 { "thirsty" }
+    else if o.fear_level > 0.40 { "afraid" }
+    else if o.grief_ticks > 0 { "mourning" }
+    else if o.loneliness > 0.60 { "lonely" }
+    else if o.is_elder { "weary" }
+    else { "content" }.to_string()
+}
 use super::spatial::SpatialIndex;
 
 pub const SAVE_SCHEMA_VERSION: u32 = 2;
@@ -122,6 +133,7 @@ pub struct Simulation {
     pub flood_tiles:           Vec<(i32, i32, u64)>,
     pub story_history:         VecDeque<StoryEntry>,
     pub pending_thinks:        Vec<ThinkTrigger>,
+    pub pending_convos:        Vec<crate::sim::convo_req::ConversationReq>,
     pub lineage_names:         HashMap<String, String>,
     pub lineage_strategies:    HashMap<String, (String, u64)>,
     pub(crate) lineage_last_council: HashMap<String, u64>,
@@ -190,6 +202,7 @@ impl Simulation {
             flood_tiles: Vec::new(),
             story_history: VecDeque::new(),
             pending_thinks: Vec::new(),
+            pending_convos: Vec::new(),
             lineage_names:        HashMap::new(),
             lineage_strategies:   HashMap::new(),
             lineage_last_council: HashMap::new(),
@@ -1780,12 +1793,20 @@ impl Simulation {
                         let pname = self.organisms[pi].name.clone();
                         let oid   = self.organisms[idx].id.clone();
                         let oname = self.organisms[idx].name.clone();
-                        let (conv_a, conv_b) = courtship::generate_conversation(
+                        let a_mood = derive_mood(&self.organisms[idx]);
+                        let b_mood = derive_mood(&self.organisms[pi]);
+                        let a_recent: Vec<String> = self.organisms[idx].life_log.iter().rev().take(3).cloned().collect();
+                        let b_recent: Vec<String> = self.organisms[pi].life_log.iter().rev().take(3).cloned().collect();
+                        let a_tribe = self.lineage_names.get(&self.organisms[idx].lineage_id).cloned();
+                        let b_tribe = self.lineage_names.get(&self.organisms[pi].lineage_id).cloned();
+                        let (conv_a, conv_b, req) = courtship::generate_conversation_with_req(
                             &self.organisms[idx], &self.organisms[pi],
+                            a_recent, b_recent, a_tribe, b_tribe, a_mood, b_mood,
                             tc, "courtship", &mut self.rng,
                         );
                         self.organisms[idx].store_conversation(conv_a);
                         self.organisms[pi].store_conversation(conv_b);
+                        self.pending_convos.push(req);
                         self.organisms[idx].partner_id   = Some(pid.clone());
                         self.organisms[idx].attracted_to = None;
                         self.organisms[pi].partner_id    = Some(oid);
@@ -1804,12 +1825,20 @@ impl Simulation {
                 let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
                 if let Some(pi) = self.organisms.iter().position(|o| o.alive && o.id == pid) {
                     if (self.organisms[pi].x - ox).hypot(self.organisms[pi].y - oy) < 8.0 {
-                        let (conv_a, conv_b) = courtship::generate_conversation(
+                        let a_mood = derive_mood(&self.organisms[idx]);
+                        let b_mood = derive_mood(&self.organisms[pi]);
+                        let a_recent: Vec<String> = self.organisms[idx].life_log.iter().rev().take(3).cloned().collect();
+                        let b_recent: Vec<String> = self.organisms[pi].life_log.iter().rev().take(3).cloned().collect();
+                        let a_tribe = self.lineage_names.get(&self.organisms[idx].lineage_id).cloned();
+                        let b_tribe = self.lineage_names.get(&self.organisms[pi].lineage_id).cloned();
+                        let (conv_a, conv_b, req) = courtship::generate_conversation_with_req(
                             &self.organisms[idx], &self.organisms[pi],
+                            a_recent, b_recent, a_tribe, b_tribe, a_mood, b_mood,
                             tc, "bonded", &mut self.rng,
                         );
                         self.organisms[idx].store_conversation(conv_a);
                         self.organisms[pi].store_conversation(conv_b);
+                        self.pending_convos.push(req);
                     }
                 }
             }
@@ -1844,12 +1873,20 @@ impl Simulation {
                         "chat"
                     };
                     if self.rng.gen::<f32>() < 0.004 {
-                        let (conv_a, conv_b) = courtship::generate_conversation(
+                        let a_mood = derive_mood(&self.organisms[idx]);
+                        let b_mood = derive_mood(&self.organisms[ci]);
+                        let a_recent: Vec<String> = self.organisms[idx].life_log.iter().rev().take(3).cloned().collect();
+                        let b_recent: Vec<String> = self.organisms[ci].life_log.iter().rev().take(3).cloned().collect();
+                        let a_tribe = self.lineage_names.get(&self.organisms[idx].lineage_id).cloned();
+                        let b_tribe = self.lineage_names.get(&self.organisms[ci].lineage_id).cloned();
+                        let (conv_a, conv_b, req) = courtship::generate_conversation_with_req(
                             &self.organisms[idx], &self.organisms[ci],
+                            a_recent, b_recent, a_tribe, b_tribe, a_mood, b_mood,
                             tc, kind, &mut self.rng,
                         );
                         self.organisms[idx].store_conversation(conv_a);
                         self.organisms[ci].store_conversation(conv_b);
+                        self.pending_convos.push(req);
                     }
                 }
             }

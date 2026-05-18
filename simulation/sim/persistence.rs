@@ -478,6 +478,7 @@ impl Simulation {
             flood_tiles:            state.flood_tiles,
             story_history:          state.story_history.into_iter().collect(),
             pending_thinks:         state.pending_thinks,
+            pending_convos:         Vec::new(),
             lineage_strategies:     state.lineage_strategies,
             lineage_last_council:   state.lineage_last_council,
             lineage_elders:         state.lineage_elders,

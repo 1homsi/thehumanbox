@@ -7,6 +7,7 @@ mod routes;
 mod llm;
 mod llm_stats;
 mod narration_worker;
+mod conversation_worker;
 mod think_worker;
 #[cfg(feature = "webtransport")]
 mod webtransport;
@@ -133,11 +134,14 @@ async fn main() {
 
     let (narration_tx, narration_rx) = mpsc::channel::<NarrationReq>(4);
     let (think_tx, think_rx)         = mpsc::channel::<ThinkTrigger>(8);
+    let (convo_tx, convo_rx)         = mpsc::channel::<sim::convo_req::ConversationReq>(16);
 
     let stories: Arc<Mutex<std::collections::HashMap<String, String>>> =
         Arc::new(Mutex::new(std::collections::HashMap::new()));
     let think_results: Arc<Mutex<Vec<ThinkResult>>> =
         Arc::new(Mutex::new(Vec::new()));
+    let convo_store: conversation_worker::ConvoStore =
+        Arc::new(Mutex::new(std::collections::HashMap::new()));
 
     {
         let stories_w = stories.clone();
@@ -151,18 +155,26 @@ async fn main() {
         let stats = llm_stats.clone();
         tokio::spawn(think_worker(think_rx, results_w, key, stats));
     }
+    {
+        let store_w = convo_store.clone();
+        let key = narration_key.clone();
+        let stats = llm_stats.clone();
+        tokio::spawn(conversation_worker::conversation_worker(convo_rx, store_w, key, stats));
+    }
 
     {
         let sim_clone        = sim.clone();
         let stories_clone    = stories.clone();
         let think_res_clone  = think_results.clone();
+        let convo_store_cl   = convo_store.clone();
         let narration_tx2    = narration_tx.clone();
+        let convo_tx2        = convo_tx.clone();
         let transport_stats_s = transport_stats.clone();
         tokio::spawn(async move {
             loop {
                 let tick_started = std::time::Instant::now();
                 let pending_thinks = {
-                    let mut s = sim_clone.lock().await;
+                    let mut s: tokio::sync::MutexGuard<'_, _> = sim_clone.lock().await;
                     s.tick();
 
                     {
@@ -306,6 +318,22 @@ async fn main() {
                         }
                     }
 
+                    {
+                        let mut store = convo_store_cl.lock().await;
+                        if !store.is_empty() {
+                            let ready: Vec<(String, Vec<[String; 2]>)> = store.drain().collect();
+                            drop(store);
+                            for (entry_id, lines) in ready {
+                                for org in s.organisms.iter_mut() {
+                                    if let Some(c) = org.conversations.iter_mut().find(|c| c.id == entry_id) {
+                                        c.lines = lines.clone();
+                                        c.meanings.clear();
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     if s.tick_count % DAY_LENGTH == 0 {
                         let cur_tick = s.tick_count;
                         let era = s.current_era.clone();
@@ -361,11 +389,17 @@ async fn main() {
                         s.save(SAVE_PATH);
                     }
 
-                    std::mem::take(&mut s.pending_thinks)
+                    let pending_thinks = std::mem::take(&mut s.pending_thinks);
+                    let pending_convos = std::mem::take(&mut s.pending_convos);
+                    (pending_thinks, pending_convos)
                 };
 
+                let (pending_thinks, pending_convos) = pending_thinks;
                 for t in pending_thinks {
                     let _ = think_tx.try_send(t);
+                }
+                for c in pending_convos {
+                    let _ = convo_tx2.try_send(c);
                 }
                 transport_stats_s.record_sim_tick(
                     tick_started.elapsed().as_millis() as u64,

@@ -129,6 +129,8 @@ pub struct ConversationEntry {
     pub kind:      String,
     pub lines:     Vec<[String; 2]>,
     pub meanings:  Vec<String>,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub id:        String,
 }
 
 pub struct Organism {
