@@ -13,9 +13,7 @@ function cornerHeight(
     const b     = biomes[iy]?.[ix] ?? 0
     const base  = BIOME_ELEVATION[b] ?? 0
     const rough = BIOME_ROUGHNESS[b] ?? 0.5
-    let h = base + terrainNoise(ix, iy) * rough
-    if (b === 5 && h > 6) h += (h - 6) * 1.5
-    return h
+    return base + terrainNoise(ix, iy) * rough
   }
   const depthFrac = Math.max(0, Math.min(1, 1 - d / 200))
   return -depthFrac * MAX_DEPTH

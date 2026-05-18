@@ -31,8 +31,11 @@ export const BIOME_ROUGHNESS: number[] = [
   1.2,  // Forest - bumpy
   0.4,  // Desert - dunes
   0.3,  // Wetland - mostly flat
-  3.0,  // Tundra - hills
-  6.0,  // Volcanic - jagged peaks
+  2.2,  // Tundra - hills
+  3.2,  // Volcanic - mountain massifs. Was 6.0 + a 1.5× peak boost,
+        // which produced Toblerone-shaped spikes because adjacent
+        // vertices could differ by 8+ units. Halving the amplitude
+        // and dropping the boost gives broad rolling peaks.
 ]
 
 // Ocean plane extends this many world units past the actual world,

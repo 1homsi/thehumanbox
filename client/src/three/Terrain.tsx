@@ -55,7 +55,6 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
           const base   = BIOME_ELEVATION[b] ?? 0
           const rough  = BIOME_ROUGHNESS[b] ?? 0.5
           elev = base + terrainNoise(x, y) * rough
-          if (b === 5 && elev > 6) elev += (elev - 6) * 1.5
         } else {
           const depthFrac = Math.max(0, Math.min(1, 1 - d / 200))
           elev = -depthFrac * MAX_DEPTH
