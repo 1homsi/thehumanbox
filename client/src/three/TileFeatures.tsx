@@ -603,6 +603,16 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height }: Props) 
       <FireSmoke positions={features.fires} maxCount={500} intensity={1.4} />
       <FireSparks positions={features.fires} maxCount={500} />
 
+      {/* Hut chimney smoke - thin column rising from each hut roof
+          so settled areas read as 'someone is cooking inside'. */}
+      <FireSmoke
+        positions={features.huts.map(([px, py, pz]) =>
+          [px, py + 2.2, pz] as [number, number, number]
+        )}
+        maxCount={500}
+        intensity={0.35}
+      />
+
       {/* Volcanic peaks: bright lava glow + ember sparks so the
           volcanic biome reads as 'this peak is alive' from a distance.
           Smaller than wildfire glow, and lit-only (no destructive
