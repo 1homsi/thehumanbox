@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Game, World, Entity, Transform, Sprite, Camera2D, useCamera, useEntity, useDynamicCanvas, useGestures } from 'cubeforge'
 import type { WorldState } from './types'
 import type { InterpRefs } from './useSimulation'
-import { useUIStore } from './store'
+import { useUIStore, type ViewFlags } from './store'
 import { lineageColor } from './constants'
 import { SPRITE, ATLAS_TOWN, ATLAS_CREATURE, drawTile, onAnyAtlasLoaded, pickAnimalTile } from './sprites'
 
@@ -456,12 +456,9 @@ function drawClouds(
   ctx.restore()
 }
 
-type ViewFlags = {
-  territory: boolean; names: boolean; thoughts: boolean; animals: boolean; grid: boolean
-  trails: boolean; structures: boolean; fertility: boolean; hazard: boolean
-  lineageDot: boolean; health: boolean; age: boolean; fear: boolean
-  partners: boolean; pregnancy: boolean; history: boolean; fps: boolean
-}
+// ViewFlags type is imported from the store so canvas + dropdown stay
+// in sync. New experiment flags (slowMo, fastMo, ...) light up here
+// automatically when added to the store.
 
 // FPS overlay state. Module-level so it survives between draw calls -
 // drawWorldOnCanvas is a free function, not a hook.

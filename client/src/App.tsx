@@ -66,6 +66,21 @@ function App() {
     return () => { document.body.classList.remove('thb-colorblind') }
   }, [viewFlags.colorBlind])
 
+  const selectedOrg = selectedOrgId
+    ? world?.organisms.find(o => o.id === selectedOrgId) ?? null
+    : null
+
+  const fireTiles = useMemo(() =>
+    world ? world.grid.tiles.reduce((n, row) => n + row.filter(t => t === TILE_FIRE).length, 0) : 0
+  , [world])
+
+  const sickOrgs = useMemo(() =>
+    world ? world.organisms.filter(o => o.alive && o.infection > 0.15).length : 0
+  , [world])
+
+  const liveOrgs = useMemo(() => world ? world.organisms.filter(o =>  o.alive) : [], [world])
+  const deadOrgs = useMemo(() => world ? world.organisms.filter(o => !o.alive) : [], [world])
+
   // Random tour: every 8s pick a different alive organism, select it
   // and follow it. We close over liveOrgs through a ref so the timer
   // body sees the latest cohort without resetting the interval on
@@ -85,21 +100,6 @@ function App() {
     const id = window.setInterval(tick, 8000)
     return () => window.clearInterval(id)
   }, [viewFlags.randomTour])
-
-  const selectedOrg = selectedOrgId
-    ? world?.organisms.find(o => o.id === selectedOrgId) ?? null
-    : null
-
-  const fireTiles = useMemo(() =>
-    world ? world.grid.tiles.reduce((n, row) => n + row.filter(t => t === TILE_FIRE).length, 0) : 0
-  , [world])
-
-  const sickOrgs = useMemo(() =>
-    world ? world.organisms.filter(o => o.alive && o.infection > 0.15).length : 0
-  , [world])
-
-  const liveOrgs = useMemo(() => world ? world.organisms.filter(o =>  o.alive) : [], [world])
-  const deadOrgs = useMemo(() => world ? world.organisms.filter(o => !o.alive) : [], [world])
 
   const lineages = useMemo(() => {
     const result: Record<string, { count: number; minGen: number; maxGen: number; orgs: OrganismState[] }> = {}
