@@ -176,10 +176,39 @@ interface Props {
   hideUI: boolean
 }
 
+// localStorage key for the last selected org so reloads remember
+// who the user was watching.
+const SEL_LS_KEY = 'thb-3d-sel-v1'
+
 export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const selectedOrgId = useUIStore(s => s.selectedOrgId)
+  const selectOrgStore = useUIStore(s => s.selectOrg)
   const [follow, setFollow] = useState(false)
+
+  // Restore the previously-selected org once the world arrives and
+  // we can verify the id is still alive. Runs once.
+  useEffect(() => {
+    if (!world) return
+    if (selectedOrgId) return   // user already picked someone this session
+    try {
+      const id = localStorage.getItem(SEL_LS_KEY)
+      if (!id) return
+      const live = (world.viewport_organisms ?? world.organisms ?? [])
+        .some(o => o.id === id && o.alive)
+      if (live) selectOrgStore(id)
+    } catch { /* ignore */ }
+    // Only attempt once world is first non-null.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!world])
+
+  // Persist selection changes.
+  useEffect(() => {
+    try {
+      if (selectedOrgId) localStorage.setItem(SEL_LS_KEY, selectedOrgId)
+      else               localStorage.removeItem(SEL_LS_KEY)
+    } catch { /* ignore */ }
+  }, [selectedOrgId])
 
   useEffect(() => {
     const prev = document.body.style.overflow
