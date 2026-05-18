@@ -697,9 +697,11 @@ impl Simulation {
             };
             (dir, Some("stalking prey".to_string()))
         } else {
+            let (oa_ix, oa_iy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
+            let avail = crate::sim::actions::available_actions(&self, idx, oa_ix, oa_iy);
             self.organisms[idx].choose_action(
                 &self.grid, self.tick_count, epsilon, &self.organisms, night,
-                self.weather.kind, &mut self.rng, animal_near, &perception)
+                self.weather.kind, &mut self.rng, animal_near, &perception, &avail)
         };
         if let Some(t) = new_thought {
             self.organisms[idx].think(&t, self.tick_count);

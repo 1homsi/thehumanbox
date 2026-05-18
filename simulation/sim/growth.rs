@@ -213,16 +213,18 @@ pub fn try_reproduce(
     child.sex = child_sex;
     child.vocabulary = Vocabulary::inherit_from(&organisms[org_idx].vocabulary, rng);
 
-    // Q-table inheritance - more noise so children explore rather than copying parent routes
+    // Q-table inheritance with noise - children explore rather than
+    // copying parent routes verbatim. Sparse row: we only iterate
+    // entries the parent actually learned, no padding to N_ACTIONS.
     for (state, actions) in &organisms[org_idx].q_table {
-        let mut row = actions.clone();
-        while row.len() < N_ACTIONS { row.push(0.0); }
-        for v in &mut row {
-            if rng.gen::<f32>() > 0.08 {
-                *v += rng.gen_range(-0.15f32..0.15);
+        let mut row: crate::organism::organism::QRow = Vec::with_capacity(actions.len());
+        for &(a, v) in actions {
+            let new_v = if rng.gen::<f32>() > 0.08 {
+                v + rng.gen_range(-0.15f32..0.15)
             } else {
-                *v = rng.gen_range(-0.4f32..0.4);
-            }
+                rng.gen_range(-0.4f32..0.4)
+            };
+            row.push((a, new_v));
         }
         child.q_table.insert(state.clone(), row);
     }

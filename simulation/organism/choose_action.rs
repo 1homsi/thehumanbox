@@ -2,13 +2,13 @@ use rand::Rng;
 
 use crate::world::{grid::{TrailKind, WorldGrid}, tiles::Tile};
 
-use super::organism::{N_ACTIONS, Organism};
+use super::organism::{N_ACTIONS, Organism, QRowExt};
 
 impl Organism {
     pub fn choose_action(&self, grid: &WorldGrid, tick: u64,
                          epsilon: f32, organisms: &[Organism], night: bool,
                          weather_kind: u8, rng: &mut impl Rng, _animal_near: bool,
-                         cached_perception: &str) -> (usize, Option<String>)
+                         cached_perception: &str, available: &[usize]) -> (usize, Option<String>)
     {
         let (ix, iy) = (self.x as i32, self.y as i32);
         let tile = grid.get(ix, iy);
@@ -686,13 +686,39 @@ impl Organism {
                 let target = (ix + last_dx * 5, iy + last_dy * 5);
                 return (self.toward(target, grid), thought);
             }
-            return (rng.gen_range(0..N_ACTIONS), thought);
+            // Sample from available masked set so exploration stays relevant.
+            let pool = if available.is_empty() { &[][..] } else { available };
+            let pick = if pool.is_empty() {
+                rng.gen_range(0..N_ACTIONS)
+            } else {
+                pool[rng.gen_range(0..pool.len())]
+            };
+            return (pick, thought);
         }
 
-        let q_row = self.q_table.get(cached_perception).cloned()
-            .unwrap_or_else(|| vec![0.0; N_ACTIONS]);
-        let best = q_row.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
-        if best <= 0.0 { return (rng.gen_range(0..N_ACTIONS), thought); }
-        (q_row.iter().position(|&v| v == best).unwrap_or(0), thought)
+        // Sparse Q-table lookup. The row may not exist (org has never
+        // visited this perception state); treat all values as 0 in
+        // that case, which falls through to random exploration below.
+        let q_row = self.q_table.get(cached_perception);
+        let best_avail = available.iter().copied()
+            .max_by(|&a, &b| {
+                let va = q_row.map(|r| r.get_q(a as u16)).unwrap_or(0.0);
+                let vb = q_row.map(|r| r.get_q(b as u16)).unwrap_or(0.0);
+                va.partial_cmp(&vb).unwrap_or(std::cmp::Ordering::Equal)
+            });
+        if let Some(best_idx) = best_avail {
+            let best_val = q_row.map(|r| r.get_q(best_idx as u16)).unwrap_or(0.0);
+            if best_val > 0.0 {
+                return (best_idx, thought);
+            }
+        }
+        // All Q-values zero or no available set — random from available pool.
+        let pool = if available.is_empty() { &[][..] } else { available };
+        let pick = if pool.is_empty() {
+            rng.gen_range(0..N_ACTIONS)
+        } else {
+            pool[rng.gen_range(0..pool.len())]
+        };
+        (pick, thought)
     }
 }

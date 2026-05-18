@@ -61,7 +61,7 @@ pub(crate) struct OrgSave {
     water_memory:  HashMap<String, f32>,
     danger_memory: HashMap<String, f32>,
     thought_history:    Vec<crate::organism::organism::ThoughtEntry>,
-    q_table:            HashMap<String, Vec<f32>>,
+    q_table:            HashMap<String, Vec<(u16, f32)>>,
     last_reproduced: u64, last_challenged: u64,
     water_ticks: u32,
     lineage_attitudes:  HashMap<String, f32>,

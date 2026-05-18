@@ -5,7 +5,46 @@ use super::traits::Traits;
 use super::vocabulary::Vocabulary;
 use crate::world::{grid::{WorldGrid, TrailKind}, tiles::Tile};
 
-pub const N_ACTIONS: usize = 226; // 0-25 core; 26-125 extended_actions; 126-225 extended_actions_v2
+pub const N_ACTIONS: usize = 536; // 0-25 core; 26-225 phase-1/2; 226-535 phase-3
+
+/// One row of the Q-table — sparse representation. Only stores entries
+/// for actions the org has actually visited (`action_idx`, `q_value`).
+/// A typical adult org explores ~10-30 distinct actions per perception
+/// state, so a row is ~80-240 B vs the dense Vec<f32; N_ACTIONS>'s
+/// 2144 B at N=536. ~13× memory cut. Linear scan is fine because the
+/// row is tiny — never long enough for HashMap's hashing overhead to
+/// pay off.
+pub type QRow = Vec<(u16, f32)>;
+
+/// Extension methods on QRow so the rest of the code reads naturally.
+pub trait QRowExt {
+    /// Q-value for an action index. Returns 0.0 if the action hasn't
+    /// been visited yet (the implicit "uninitialised" value).
+    fn get_q(&self, action: u16) -> f32;
+    /// Write a Q-value for an action, replacing the existing entry or
+    /// appending a new one.
+    fn set_q(&mut self, action: u16, value: f32);
+    /// Highest Q-value across any explored action. Returns 0.0 when the
+    /// row is empty (i.e. nothing's been learned for this state yet).
+    fn max_q(&self) -> f32;
+}
+
+impl QRowExt for QRow {
+    fn get_q(&self, action: u16) -> f32 {
+        self.iter().find(|&&(a, _)| a == action).map(|&(_, v)| v).unwrap_or(0.0)
+    }
+    fn set_q(&mut self, action: u16, value: f32) {
+        if let Some(slot) = self.iter_mut().find(|(a, _)| *a == action) {
+            slot.1 = value;
+        } else {
+            self.push((action, value));
+        }
+    }
+    fn max_q(&self) -> f32 {
+        let m = self.iter().map(|&(_, v)| v).fold(f32::NEG_INFINITY, f32::max);
+        if m.is_finite() { m } else { 0.0 }
+    }
+}
 
 pub const DIRECTIONS: [(i32, i32); 8] =
     [(0,-1),(0,1),(-1,0),(1,0),(-1,-1),(1,-1),(-1,1),(1,1)];
@@ -152,7 +191,12 @@ pub struct Organism {
 
     pub thought_history: VecDeque<ThoughtEntry>,
 
-    pub q_table: HashMap<String, Vec<f32>>,
+    // Sparse Q-table: per-perception-state row of (action_index, q_value)
+    // pairs. Only actions the org has actually explored are present, so
+    // a row with ~20 explored actions is ~160 bytes vs the dense
+    // representation's ~2144 bytes (at N_ACTIONS=536). Roughly a 13×
+    // memory cut. Access goes through the QRowExt helpers below.
+    pub q_table: HashMap<String, QRow>,
 
     pub last_reproduced: u64,
     pub last_challenged: u64,
@@ -530,24 +574,25 @@ impl Organism {
 
         // Cap Q-table: keep the highest-value entries.
         // History:
-        //   N_ACTIONS  26 -> 126 -> 226
-        //   row size   ~150 -> ~570 -> ~970 bytes
-        // At 300 alive orgs:
-        //   N=226, Q_MAX=400  -> ~108 MB total Q-tables
-        //   N=226, Q_MAX=220  -> ~60 MB total Q-tables
-        //   N=226, Q_MAX=180  -> ~48 MB total Q-tables
-        // Tightening further to 180/130 saves another ~12 MB on the
-        // 2 GB c7g.medium. Most orgs never reach 150 distinct
-        // perception states in a lifetime; the trim only removes
-        // long-tail rarely-visited states whose Q-values are still
-        // near zero.
+        //   N_ACTIONS    26 -> 126 -> 226 -> 536
+        //   dense row    ~150 -> ~570 -> ~970 -> ~2.2 KB
+        //   sparse row   ~80-240 B regardless of N_ACTIONS (only stores
+        //                  explored actions, typically 10-30)
+        // The sparse representation made each row ~13× smaller at
+        // N=536, so we can hold many more perception states for the
+        // same memory budget. Bumping Q_MAX 120 -> 180 lets orgs
+        // remember more contexts while still using ~70% less RAM than
+        // the old dense layout would at the same cap.
+        // At 250 alive orgs:
+        //   N=536 sparse, Q_MAX=180, ~150 B/row -> ~6.7 MB total
+        //   (vs dense N=536, Q_MAX=120         -> ~79 MB total)
         const Q_MAX:  usize = 180;
         const Q_TRIM: usize = 130;
         if self.q_table.len() > Q_MAX {
-            let mut entries: Vec<(String, Vec<f32>)> = self.q_table.drain().collect();
+            let mut entries: Vec<(String, QRow)> = self.q_table.drain().collect();
             entries.sort_by(|a, b| {
-                let va = a.1.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
-                let vb = b.1.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
+                let va = a.1.max_q();
+                let vb = b.1.max_q();
                 vb.partial_cmp(&va).unwrap_or(std::cmp::Ordering::Equal)
             });
             entries.truncate(Q_TRIM);
@@ -840,22 +885,19 @@ impl Organism {
     pub fn learn(&mut self, perception: &str, action: usize, reward: f32, next_perception: &str) {
         let alpha = 0.15f32;
         let gamma = 0.9f32;
-        let n = N_ACTIONS;
+        let action_u16 = action as u16;
 
-        let ensure = |table: &mut HashMap<String, Vec<f32>>, key: &str| {
-            let row = table.entry(key.to_string()).or_insert_with(|| vec![0.0; n]);
-            if row.len() < n { row.resize(n, 0.0); }
-        };
-        ensure(&mut self.q_table, perception);
-        ensure(&mut self.q_table, next_perception);
+        // Read max-q for the next state without holding a mutable
+        // borrow into the table (so we can mutate `perception`'s row
+        // freely below).
+        let best_next = self.q_table.get(next_perception)
+            .map(|r| r.max_q())
+            .unwrap_or(0.0);
 
-        let best_next = self.q_table[next_perception].iter().cloned()
-            .fold(f32::NEG_INFINITY, f32::max);
-        let best_next = if best_next.is_infinite() { 0.0 } else { best_next };
-
-        let old = self.q_table[perception][action];
+        let row = self.q_table.entry(perception.to_string()).or_default();
+        let old = row.get_q(action_u16);
         let new_val = old + alpha * (reward + gamma * best_next - old);
-        self.q_table.get_mut(perception).unwrap()[action] = new_val;
+        row.set_q(action_u16, new_val);
     }
 
     // ── Serialization ─────────────────────────────────────────────────────────
@@ -1169,7 +1211,7 @@ mod tests {
         org.food_memory.insert((1, 1), 0.5);
         org.water_memory.insert((2, 2), 0.5);
         org.danger_memory.insert((3, 3), 0.5);
-        org.q_table.insert("state".into(), vec![0.1; 14]);
+        org.q_table.insert("state".into(), vec![(0, 0.1), (1, 0.1), (2, 0.1)]);
         org.lineage_attitudes.insert("other".into(), 0.7);
         org.org_trust.insert("xyz".into(), 0.5);
         org.life_log.push_back("something happened".into());
@@ -1208,7 +1250,7 @@ mod tests {
             "id".into(), "Live".into(), 0.0, 0.0,
             0, "".into(), "lin".into(), 5000, traits,
         );
-        org.q_table.insert("s".into(), vec![0.0; 14]);
+        org.q_table.insert("s".into(), vec![(0, 0.0), (1, 0.0)]);
         org.alive = true;
         org.compress_for_archive();
         // Live organism kept its q-table - never compress live ones
@@ -1231,7 +1273,7 @@ mod tests {
         org.water_ticks = 8;
 
         let (action, thought) = org.choose_action(
-            &grid, 100, 0.0, &[], false, 0, &mut rng, false, ""
+            &grid, 100, 0.0, &[], false, 0, &mut rng, false, "", &[],
         );
 
         assert_eq!(DIRECTIONS[action], (1, 0));
