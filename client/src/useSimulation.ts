@@ -451,11 +451,12 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
           // missing from the cache.
           if (lastFrameIdRef.current > 0 && parsed.frame_id > lastFrameIdRef.current + 1) {
             const gap = parsed.frame_id - lastFrameIdRef.current - 1
-            // Log once per resync arc, not per delta in the gap. The
-            // awaitingFullFrameRef flag dedupes: it's set here and
-            // cleared further down when a `full` frame lands.
+            // Trigger the snapshot resync silently. We used to log this
+            // but it fires every time the tab unfocuses / refocuses
+            // (browser throttles the WS), and the resync flow handles
+            // it cleanly without user-visible impact, so the console
+            // noise was pure developer signal that bothered users.
             if (gap > 2 && !awaitingFullFrameRef.current) {
-              console.warn('[ws] frame gap detected:', { from: lastFrameIdRef.current, to: parsed.frame_id, gap })
               markAwaitingFullFrame()
             }
           }

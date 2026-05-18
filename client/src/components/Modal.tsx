@@ -44,6 +44,11 @@ export function Modal({ open, onClose, className, title, hideTitle = false, chil
         <Dialog.Overlay className="lang-modal-backdrop" />
         <Dialog.Content
           className={className}
+          // Our modals carry their own rich subtitles in custom headers
+          // rather than a single accessible description. Opt out of
+          // Radix's aria-describedby auto-link to silence its dev-mode
+          // warning, since we don't want a redundant hidden description.
+          aria-describedby={undefined}
           // Radix renders Overlay and Content as siblings inside the portal,
           // so the old "flex-center children" rule on .lang-modal-backdrop
           // doesn't reach the panel anymore. Position Content directly with

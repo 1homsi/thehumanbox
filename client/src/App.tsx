@@ -10,6 +10,7 @@ import { AppHeader } from './components/AppHeader'
 import { RightPanel } from './components/RightPanel'
 import { ModalRouter } from './components/ModalRouter'
 import { ActionTicker } from './components/ActionTicker'
+import { ThreeDLoading } from './components/ThreeDLoading'
 import type { OrganismState } from './types'
 import clsx from 'clsx'
 import './App.css'
@@ -139,13 +140,7 @@ function App() {
             )}
 
             {viewFlags.threeD ? (
-              <Suspense fallback={
-                <div style={{ position: 'fixed', inset: 0, display: 'grid',
-                              placeItems: 'center', color: '#cad3df',
-                              fontFamily: 'monospace', background: '#0c1018' }}>
-                  loading 3D…
-                </div>
-              }>
+              <Suspense fallback={<ThreeDLoading />}>
                 <WorldView3D world={world} hideUI={viewFlags.hideUI} />
               </Suspense>
             ) : (
