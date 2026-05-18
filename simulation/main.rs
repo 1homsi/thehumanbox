@@ -307,20 +307,53 @@ async fn main() {
                     }
 
                     if s.tick_count % DAY_LENGTH == 0 {
-                        let candidate = s.organisms.iter()
-                            .filter(|o| o.alive && !o.life_log.is_empty())
-                            .min_by_key(|o| o.last_story_tick)
-                            .map(|o| (o.id.clone(), o.name.clone(),
-                                      o.life_log.iter().cloned().collect::<Vec<String>>(),
-                                      o.vocabulary.words.clone()));
-                        if let Some((oid, oname, life_log, vocab)) = candidate {
-                            let cur_tick = s.tick_count;
-                            if let Some(org) = s.organisms.iter_mut().find(|o| o.id == oid) {
-                                org.last_story_tick = cur_tick;
-                            }
-                            let _ = narration_tx2.try_send(NarrationReq {
-                                org_id: oid, org_name: oname, life_log, vocab,
+                        let cur_tick = s.tick_count;
+                        let era = s.current_era.clone();
+                        let lineage_names = s.lineage_names.clone();
+                        let name_for = |id: &str| -> Option<String> {
+                            s.organisms.iter().find(|o| o.id == id).map(|o| o.name.clone())
+                        };
+
+                        let mut candidates: Vec<NarrationReq> = Vec::new();
+                        for o in s.organisms.iter().filter(|o| o.alive && !o.life_log.is_empty()) {
+                            let mood = if o.infection > 0.20 { "sick" }
+                                else if o.energy   < 0.30 { "hungry" }
+                                else if o.hydration< 0.30 { "thirsty" }
+                                else if o.fear_level > 0.40 { "afraid" }
+                                else if o.grief_ticks > 0 { "mourning" }
+                                else if o.loneliness > 0.60 { "lonely" }
+                                else if o.is_elder { "weary" }
+                                else { "content" };
+                            let age_days = (o.age / DAY_LENGTH as u32).max(0);
+                            let tribe_name = lineage_names.get(&o.lineage_id).cloned();
+                            let partner_name = o.partner_id.as_ref().and_then(|pid| name_for(pid));
+                            candidates.push(NarrationReq {
+                                org_id:       o.id.clone(),
+                                org_name:     o.name.clone(),
+                                sex:          format!("{:?}", o.sex).to_lowercase(),
+                                age_days,
+                                tribe_name,
+                                life_log:     o.life_log.iter().cloned().collect(),
+                                vocab:        o.vocabulary.words.clone(),
+                                partner_name,
+                                children:     o.children_count,
+                                era:          era.clone(),
+                                mood:         mood.to_string(),
                             });
+                        }
+                        candidates.sort_by_key(|c| {
+                            s.organisms.iter().find(|o| o.id == c.org_id).map(|o| o.last_story_tick).unwrap_or(0)
+                        });
+                        for req in candidates {
+                            let oid = req.org_id.clone();
+                            match narration_tx2.try_send(req) {
+                                Ok(()) => {
+                                    if let Some(org) = s.organisms.iter_mut().find(|o| o.id == oid) {
+                                        org.last_story_tick = cur_tick;
+                                    }
+                                }
+                                Err(_) => break,
+                            }
                         }
                     }
 
