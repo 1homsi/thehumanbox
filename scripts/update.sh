@@ -67,13 +67,16 @@ mv "${DEST}.new" "$DEST"
 
 echo "[update.sh] installed ${SIZE} bytes -> ${DEST}"
 
-# Restart systemd. If the unit doesn't exist we still want to log
-# the situation rather than fail silently.
-if systemctl list-units --all "${UNIT}.service" 2>/dev/null | grep -q "${UNIT}.service"; then
+# Restart systemd. Use `systemctl cat` to detect unit existence -
+# it returns 0 iff the unit file is found, works under non-interactive
+# SSM shells, and doesn't rely on the unit already being loaded
+# (which `list-units` does, and which made an earlier version of
+# this script bail out on a real working unit).
+if systemctl cat "${UNIT}.service" >/dev/null 2>&1; then
   systemctl restart "$UNIT"
   sleep 1
-  systemctl is-active "$UNIT" || true
-  echo "[update.sh] ${UNIT} restarted"
+  ACTIVE=$(systemctl is-active "$UNIT" || true)
+  echo "[update.sh] ${UNIT} restart: ${ACTIVE}"
 else
   echo "[update.sh] systemd unit ${UNIT} not found - start the process yourself" >&2
 fi
