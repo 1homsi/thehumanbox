@@ -32,7 +32,7 @@ import { Fireflies } from '../three/Fireflies'
 import { SocialBeams } from '../three/SocialBeams'
 import { TILE_SCALE } from '../three/constants'
 import { heightAtWorld, heightAt } from '../three/terrain-utils'
-import { updateOrgMotion, updateAnimalMotion, getOrgXY } from '../three/motion-state'
+import { getOrgXY } from '../three/motion-state'
 import { cameraCommand } from '../three/camera-state'
 
 type MoveKeys = 'forward' | 'back' | 'left' | 'right' | 'up' | 'down' | 'boost'
@@ -109,7 +109,7 @@ function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
           ? heightAt(tx, ty, depthMap, biomes)
           : 0
         const targetY = groundY + 12
-        const lerp = 1 - Math.exp(-3.0 * delta)
+        const lerp = 1 - Math.exp(-5.0 * delta)
         camera.position.x += (targetX - camera.position.x) * lerp
         camera.position.y += (targetY - camera.position.y) * lerp
         camera.position.z += (targetZ - camera.position.z) * lerp
@@ -286,13 +286,6 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
     }
     return out
   }, [grid?.tiles, grid?.depth_map, grid?.biomes])
-
-  const orgsForMotion    = world?.viewport_organisms ?? world?.organisms ?? []
-  const animalsForMotion = world?.viewport_animals   ?? world?.animals   ?? []
-  useEffect(() => {
-    updateOrgMotion(orgsForMotion)
-    updateAnimalMotion(animalsForMotion)
-  }, [orgsForMotion, animalsForMotion])
 
   const cx = (grid?.width ?? 150) * TILE_SCALE * 0.5
   const cz = (grid?.height ?? 75) * TILE_SCALE * 0.5
