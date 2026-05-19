@@ -30,6 +30,7 @@ import { FireLights } from '../three/FireLights'
 import { TimeOfDayTint } from '../three/TimeOfDayTint'
 import { Fireflies } from '../three/Fireflies'
 import { SocialBeams } from '../three/SocialBeams'
+import { TerritoryOverlay } from '../three/TerritoryOverlay'
 import { TILE_SCALE } from '../three/constants'
 import { heightAtWorld, heightAt } from '../three/terrain-utils'
 import { getOrgXY } from '../three/motion-state'
@@ -171,8 +172,9 @@ const SEL_LS_KEY = 'thb-3d-sel-v1'
 
 export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const selectedOrgId = useUIStore(s => s.selectedOrgId)
+  const selectedOrgId  = useUIStore(s => s.selectedOrgId)
   const selectOrgStore = useUIStore(s => s.selectOrg)
+  const viewFlags      = useUIStore(s => s.viewFlags)
   const [follow, setFollow] = useState(false)
 
   useEffect(() => {
@@ -419,6 +421,13 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}
                 />
+                {viewFlags.territoryMap && world.territory && (
+                  <TerritoryOverlay
+                    territory={world.territory}
+                    depthMap={grid.depth_map!}
+                    biomes={grid.biomes!}
+                  />
+                )}
               </>
             )}
             <FlyCamera depthMap={grid?.depth_map} biomes={grid?.biomes} />

@@ -28,8 +28,9 @@ export interface ViewFlags {
   randomTour: boolean
   slowMo:     boolean
   fastMo:     boolean
-  colorBlind: boolean
-  orgPov:     boolean
+  colorBlind:   boolean
+  orgPov:       boolean
+  territoryMap: boolean
 }
 
 interface UIState {
@@ -113,7 +114,7 @@ export const useUIStore = create<UIState>((set) => ({
     threeD: false, hideUI: false,
     photoMode: false, actionTicker: false,
     randomTour: false, slowMo: false, fastMo: false,
-    colorBlind: false, orgPov: false,
+    colorBlind: false, orgPov: false, territoryMap: false,
   },
 
   isFullscreen: false,
