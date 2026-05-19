@@ -557,6 +557,56 @@ function drawWorldOnCanvas(
     }
   }
 
+  // Lake shimmer — animated sparkle on shallow water tiles (depth 180-253)
+  {
+    const dm = world.grid.depth_map
+    if (dm) {
+      const shimmerT = t * 0.0015
+      ctx.fillStyle = 'rgba(180,230,255,0.28)'
+      for (let row = 0; row < height; row++) {
+        const dr = dm[row]
+        if (!dr) continue
+        for (let col = 0; col < width; col++) {
+          const d = dr[col] ?? 255
+          if (d < 180 || d >= 254) continue
+          let h = (col * 374761393 + row * 668265263 + (shimmerT * 100 | 0)) | 0
+          h = ((h ^ (h >>> 13)) * 1274126177) >>> 0
+          const pulse = Math.sin(shimmerT * 2.1 + (h & 0xff) / 255 * Math.PI * 2)
+          if (pulse < 0.6) continue
+          ctx.fillRect(col * TILE + ((h >>> 8) & 3), row * TILE + ((h >>> 10) & 3), 2, 1)
+        }
+      }
+      // Subtle wave lines on lakes
+      ctx.save()
+      ctx.strokeStyle = 'rgba(140,200,240,0.18)'
+      ctx.lineWidth = 0.8
+      for (let row = 1; row < height - 1; row++) {
+        const dr = dm[row]
+        if (!dr) continue
+        let waveStart = -1
+        for (let col = 0; col <= width; col++) {
+          const d = col < width ? (dr[col] ?? 255) : 255
+          const shallow = d >= 180 && d < 254
+          if (shallow && waveStart < 0) waveStart = col
+          if (!shallow && waveStart >= 0) {
+            const wlen = col - waveStart
+            if (wlen >= 3) {
+              const wy = row * TILE + TILE / 2 + Math.sin(shimmerT + waveStart * 0.3) * 0.8
+              ctx.beginPath()
+              ctx.moveTo(waveStart * TILE + 2, wy)
+              for (let wx = waveStart + 1; wx < col; wx++) {
+                ctx.lineTo(wx * TILE + TILE / 2, wy + Math.sin(shimmerT * 1.4 + wx * 0.5) * 1.0)
+              }
+              ctx.stroke()
+            }
+            waveStart = -1
+          }
+        }
+      }
+      ctx.restore()
+    }
+  }
+
   for (let row = 0; row < height; row++) {
     for (let col = 0; col < width; col++) {
       const t = tiles[row][col]
@@ -580,6 +630,16 @@ function drawWorldOnCanvas(
           const cx2 = px + TILE / 2
           ctx.fillStyle = `rgba(255,80,0,${fi * 0.6})`
           ctx.beginPath(); ctx.arc(cx2, py + TILE * 0.4, TILE * 0.18, 0, Math.PI * 2); ctx.fill()
+          // Market stall awning adjacent to campfire
+          const stallAngle = (((col + row) * 137) % 360) * (Math.PI / 180)
+          const sd = TILE * 1.6
+          const sx = px + TILE / 2 + Math.cos(stallAngle) * sd
+          const sy = py + TILE / 2 + Math.sin(stallAngle) * sd
+          ctx.fillStyle = 'rgba(200,120,30,0.70)'
+          ctx.fillRect(sx - TILE * 0.6, sy - TILE * 0.3, TILE * 1.2, TILE * 0.6)
+          ctx.fillStyle = 'rgba(90,50,15,0.70)'
+          ctx.fillRect(sx - TILE * 0.5, sy, TILE * 0.15, TILE * 0.5)
+          ctx.fillRect(sx + TILE * 0.35, sy, TILE * 0.15, TILE * 0.5)
         }
       }
 
@@ -643,11 +703,47 @@ function drawWorldOnCanvas(
         const px2 = cx2 * TILE + TILE / 2
         const py2 = cy2 * TILE + TILE / 2
         ctx.save()
+        // Settlement ring
         ctx.strokeStyle = `rgba(200,170,80,${Math.min(0.45, 0.20 + cluster.length * 0.04)})`
         ctx.lineWidth = 1.2
         ctx.setLineDash([4, 3])
         ctx.beginPath(); ctx.arc(px2, py2, r2, 0, Math.PI * 2); ctx.stroke()
         ctx.setLineDash([])
+        // Town hall icon for large settlements (5+ huts)
+        if (cluster.length >= 5) {
+          const TH = TILE * 3.5 // town hall icon size
+          const tx = px2 - TH / 2; const ty = py2 - TH / 2
+          // Glow
+          ctx.fillStyle = 'rgba(255,220,130,0.22)'
+          ctx.fillRect(tx - TILE, ty - TILE, TH + TILE * 2, TH + TILE * 2)
+          // Main body
+          ctx.fillStyle = '#d4b87a'
+          ctx.fillRect(tx + 2, ty + TH * 0.36, TH - 4, TH * 0.64 - 1)
+          // Main roof
+          ctx.fillStyle = '#6a3820'
+          ctx.beginPath()
+          ctx.moveTo(px2, ty)
+          ctx.lineTo(tx + TH, ty + TH * 0.38)
+          ctx.lineTo(tx, ty + TH * 0.38)
+          ctx.closePath(); ctx.fill()
+          // Central tower
+          const tw = TH * 0.22; const th2 = TH * 0.85
+          ctx.fillStyle = '#c0a870'
+          ctx.fillRect(px2 - tw / 2, ty - th2 * 0.20, tw, th2 * 0.65)
+          ctx.fillStyle = '#6a3820'
+          ctx.beginPath()
+          ctx.moveTo(px2, ty - th2 * 0.28)
+          ctx.lineTo(px2 + tw / 2 + 1, ty - th2 * 0.20)
+          ctx.lineTo(px2 - tw / 2 - 1, ty - th2 * 0.20)
+          ctx.closePath(); ctx.fill()
+          // Door
+          ctx.fillStyle = '#2a1000'
+          ctx.fillRect(px2 - TH * 0.06, ty + TH * 0.55, TH * 0.12, TH * 0.45 - 1)
+          // Windows
+          ctx.fillStyle = 'rgba(255,235,150,0.65)'
+          ctx.fillRect(tx + 4, ty + TH * 0.42, 4, 4)
+          ctx.fillRect(tx + TH - 8, ty + TH * 0.42, 4, 4)
+        }
         ctx.restore()
       }
     }
