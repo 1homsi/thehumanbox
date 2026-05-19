@@ -1164,6 +1164,11 @@ body.thb-photo-mode .header:hover {
 
 /* Chronicles modal */
 .chronicles-modal { max-width: 720px; }
+
+/* Life modal */
+.life-modal { max-width: 560px; background: #111318; border-color: #2a2a3a; }
+.life-event-row { padding: 4px 0; }
+.life-event-row:last-child { margin-bottom: 0 !important; }
 .chronicle-list {
   display: flex;
   flex-direction: column;

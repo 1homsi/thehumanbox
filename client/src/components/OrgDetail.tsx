@@ -1,8 +1,10 @@
 import clsx from 'clsx'
+import { useState } from 'react'
 import type { OrganismState } from '../types'
 import { lineageColor } from '../utils/constants'
 import { Tooltip } from './Tooltip'
 import { useOrgDetail } from '../hooks/useOrgDetail'
+import { LifeModal } from './LifeModal'
 
 const DAY_LENGTH = 600
 
@@ -48,6 +50,7 @@ interface Props {
 
 export function OrgDetail({ org, onClose, onFollow, following, lineageNames, organisms }: Props) {
   const { data: detail } = useOrgDetail(org.id)
+  const [showLife, setShowLife] = useState(false)
   const tn = (lid: string) => lineageNames?.[lid] ?? (lid ?? '').slice(0, 6)
   const on = (oid: string) => organisms?.find(o => o.id === oid)?.name ?? (oid ?? '').slice(0, 5)
   const ageInDays = Math.floor(org.age / DAY_LENGTH)
@@ -67,12 +70,20 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
     .reverse()
 
   return (
+    <>
+    {showLife && <LifeModal orgId={org.id} orgName={org.name} onClose={() => setShowLife(false)} />}
     <div className="org-detail" style={{ borderTop: `3px solid ${color}` }}>
       <div className="org-detail-header">
         <span className="org-detail-dot" style={{ background: color }} />
         <span className="org-detail-name">{org.name}</span>
         {isSick && <span className="org-sick-badge">sick</span>}
         {carrying && <Tooltip tip="Carrying wood - organism is transporting material that slowly builds shelter structures wherever they rest"><span className="org-carrying-badge" style={{ cursor: 'default' }}>🪵 wood</span></Tooltip>}
+        <button
+          className="follow-btn"
+          onClick={() => setShowLife(true)}
+          title="View full life history"
+          style={{ marginRight: 2 }}
+        >📖 life</button>
         <button
           className={clsx('follow-btn', following && 'active')}
           onClick={() => onFollow(following ? null : org.id)}
@@ -213,5 +224,6 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
         </>
       )}
     </div>
+    </>
   )
 }

@@ -65,12 +65,38 @@ export interface OrganismState {
   friends?:            Record<string, string>
 }
 
+export interface LifeEvent {
+  tick:         number
+  category:     string
+  text:         string
+  related_id?:  string
+  related_name?: string
+}
+
 export interface OrgDetail extends OrganismState {
   thought_history: ThoughtEntry[]
   vocabulary:    Record<string, string>
   daily_story:   string
-  life_log:      string[]
+  life_log:      LifeEvent[]
   conversations: ConversationEntry[]
+}
+
+export interface OrgLife {
+  id:              string
+  name:            string
+  age_ticks:       number
+  generation:      number
+  lineage_id:      string
+  sex:             string
+  alive:           boolean
+  is_elder:        boolean
+  partner_id?:     string | null
+  children_count:  number
+  friends:         string[]
+  discoveries:     string[]
+  emotional_state: string
+  events:          LifeEvent[]
+  thought_history: ThoughtEntry[]
 }
 
 export interface AnimalState {
