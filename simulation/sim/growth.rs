@@ -3,7 +3,7 @@ use uuid::Uuid;
 use crate::organism::organism::{Organism, generate_name, N_ACTIONS, Sex, apply_sex_traits};
 use crate::organism::traits::Traits;
 use crate::organism::vocabulary::Vocabulary;
-use crate::organism::attributes::{assign_birth_attributes, check_earned_attributes};
+use crate::organism::attributes::{assign_birth_attributes, check_earned_attributes, inherit_attributes_from_parents};
 use crate::world::{grid::WorldGrid, tiles::{Tile, Biome}};
 use super::config::MAX_POPULATION;
 use super::simulation::{Event, History};
@@ -262,7 +262,16 @@ pub fn try_reproduce(
     child.alive     = false;
     child.age       = 0;
     child.father_id = Some(partner_id.clone());
+
+    // Collect parent attribute snapshots before mutating child
+    let mother_attrs = organisms[org_idx].attributes.clone();
+    let father_attrs = organisms.iter()
+        .find(|o| o.id == partner_id)
+        .map(|o| o.attributes.clone())
+        .unwrap_or_default();
+
     assign_birth_attributes(&mut child, rng);
+    inherit_attributes_from_parents(&mut child, &mother_attrs, &father_attrs, rng);
     check_earned_attributes(&mut child);
 
     let parent_name = organisms[org_idx].name.clone();
