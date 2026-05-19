@@ -438,6 +438,16 @@ fn pick_concept_and_word<'a>(
     (concepts.first().copied().unwrap_or("~"), "~")
 }
 
+fn gloss_one(c: &str) -> String {
+    concept_gloss(c).to_string()
+}
+
+fn gloss_two(c1: &str, c2: &str) -> String {
+    let g1 = concept_gloss(c1);
+    let g2 = concept_gloss(c2);
+    if g1 == g2 { g1.to_string() } else { format!("{} · {}", g1, g2) }
+}
+
 fn utterance_with_meaning(
     speaker: &Organism,
     listener: &Organism,
@@ -447,87 +457,75 @@ fn utterance_with_meaning(
     let v  = &speaker.vocabulary.words;
     let lv = &listener.vocabulary.words;
 
-    fn one(prefix: &str, c: &str) -> String {
-        format!("{}: {}", prefix, concept_gloss(c))
-    }
-    fn two(prefix: &str, c1: &str, c2: &str) -> String {
-        let g1 = concept_gloss(c1);
-        let g2 = concept_gloss(c2);
-        if g1 == g2 {
-            format!("{}: {}", prefix, g1)
-        } else {
-            format!("{}: {} + {}", prefix, g1, g2)
-        }
-    }
-
     match mood {
+        // greeting
         0 => {
             if rng.gen::<f32>() < 0.55 {
-                (listener.name.clone(), format!("greeting {}", listener.name))
+                (listener.name.clone(), listener.name.clone())
             } else {
                 let (c, w) = pick_concept_and_word(v, &["friend", "home", "day"], rng);
                 (format!("{} {}", listener.name, w),
-                 format!("greeting {} ({})", listener.name, concept_gloss(c)))
+                 format!("{} · {}", listener.name, gloss_one(c)))
             }
         }
-
+        // warmth / closeness
         1 => {
             let (c1, w1) = pick_concept_and_word(v, &["friend", "home", "group", "alone"], rng);
             if rng.gen::<f32>() < 0.45 {
                 (format!("{} {}", w1, listener.name),
-                 format!("warmth: {} ({})", concept_gloss(c1), listener.name))
+                 format!("{} · {}", gloss_one(c1), listener.name))
             } else {
                 let (c2, w2) = pick_concept_and_word(lv, &["home", "night", "day", "shelter"], rng);
-                (format!("{} {}", w1, w2), two("warmth", c1, c2))
+                (format!("{} {}", w1, w2), gloss_two(c1, c2))
             }
         }
-
+        // inquiry
         2 => {
             let (c1, w1) = pick_concept_and_word(v, &["food", "hunt", "day", "water"], rng);
             let (c2, w2) = pick_concept_and_word(v, &["home", "shelter", "group"], rng);
-            (format!("{} {}", w1, w2), two("asking about", c1, c2))
+            (format!("{} {}", w1, w2), gloss_two(c1, c2))
         }
-
+        // reassurance
         3 => {
             let (c, w) = pick_concept_and_word(v, &["shelter", "home", "friend", "group"], rng);
             if rng.gen::<f32>() < 0.4 {
                 (format!("{} {}", listener.name, w),
-                 format!("reassuring {} ({})", listener.name, concept_gloss(c)))
+                 format!("{} · {}", listener.name, gloss_one(c)))
             } else {
-                (w.to_string(), one("reassuring", c))
+                (w.to_string(), gloss_one(c))
             }
         }
-
+        // farewell
         4 => {
             let (c, w) = pick_concept_and_word(v, &["alone", "night", "home"], rng);
             (format!("{} {}", listener.name, w),
-             format!("farewell to {} ({})", listener.name, concept_gloss(c)))
+             format!("{} · {}", listener.name, gloss_one(c)))
         }
-
+        // casual talk
         5 => {
             let (c, w) = pick_concept_and_word(v,
                 &["food", "hunt", "water", "day", "fire", "shelter"], rng);
-            (w.to_string(), one("talking about", c))
+            (w.to_string(), gloss_one(c))
         }
-
+        // catching up
         6 => {
             let (c, w) = pick_concept_and_word(v, &["friend", "group", "day", "night"], rng);
-            (w.to_string(), one("catching up", c))
+            (w.to_string(), gloss_one(c))
         }
-
+        // argument
         7 => {
             let (c1, w1) = pick_concept_and_word(v, &["danger", "fire", "hunt", "alone"], rng);
             let (c2, w2) = pick_concept_and_word(v, &["home", "shelter", "water"], rng);
-            (format!("{} {}", w1, w2), two("arguing about", c1, c2))
+            (format!("{} {}", w1, w2), gloss_two(c1, c2))
         }
-
+        // excitement
         8 => {
             let (c1, w1) = pick_concept_and_word(v, &["fire", "food", "day", "hunt"], rng);
             let (c2, w2) = pick_concept_and_word(v, &["friend", "group", "shelter"], rng);
-            (format!("{} {}", w1, w2), two("excited about", c1, c2))
+            (format!("{} {}", w1, w2), gloss_two(c1, c2))
         }
 
-        _ => ("~".to_string(), String::new()),
+        _ => (String::new(), String::new()),
     }
 }
 
