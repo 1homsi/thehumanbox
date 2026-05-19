@@ -1,4 +1,5 @@
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
+import { lazyWithRetry as lazy } from '../utils/lazyWithRetry'
 import type { WorldState, OrganismState } from '../types'
 import { useUIStore } from '../stores/store'
 import { Modal } from './Modal'

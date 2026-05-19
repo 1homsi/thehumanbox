@@ -200,13 +200,32 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
 
     let destroyed = false
 
+    let reconnectDelayMs = 1000
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+
+    function scheduleReconnect() {
+      if (destroyed) return
+      if (reconnectTimer !== null) return
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null
+        connect()
+      }, reconnectDelayMs)
+      reconnectDelayMs = Math.min(reconnectDelayMs * 2, 15000)
+    }
+
     function connect() {
+      if (destroyed) return
+      const existing = wsRef.current
+      if (existing && (existing.readyState === WebSocket.OPEN || existing.readyState === WebSocket.CONNECTING)) {
+        return
+      }
       const ws = new WebSocket(WS_URL)
       ws.binaryType = 'arraybuffer'
       wsRef.current = ws
 
       ws.onopen = () => {
         if (destroyed) return
+        reconnectDelayMs = 1000
         setConnected(true)
         requestSnapshotResync()
       }
@@ -219,7 +238,10 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
         }
         queuedMsgs.current = []
         bootstrapPendingRef.current = true
-        setTimeout(connect, 2000)
+        scheduleReconnect()
+      }
+      ws.onerror = () => {
+        try { ws.close() } catch { /* noop */ }
       }
       ws.onmessage = (e) => {
         if (destroyed) return
@@ -237,13 +259,24 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
       }
       queuedMsgs.current = []
       awaitingFullFrameRef.current = true
-      requestSnapshotResync(true)
+      const ws = wsRef.current
+      const dead = !ws || ws.readyState === WebSocket.CLOSING || ws.readyState === WebSocket.CLOSED
+      if (dead) {
+        if (reconnectTimer !== null) { clearTimeout(reconnectTimer); reconnectTimer = null }
+        reconnectDelayMs = 1000
+        connect()
+      } else if (ws && ws.readyState === WebSocket.OPEN) {
+        requestSnapshotResync(true)
+      }
     }
     document.addEventListener('visibilitychange', onVisibilityChange)
+    window.addEventListener('online', onVisibilityChange)
 
     return () => {
       destroyed = true
       document.removeEventListener('visibilitychange', onVisibilityChange)
+      window.removeEventListener('online', onVisibilityChange)
+      if (reconnectTimer !== null) { clearTimeout(reconnectTimer); reconnectTimer = null }
       if (snapshotAbort) { snapshotAbort.abort(); snapshotAbort = null }
       if (rafPending.current !== null) {
         cancelAnimationFrame(rafPending.current)

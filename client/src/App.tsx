@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, lazy, Suspense } from 'react'
+import { useEffect, useMemo, useRef, Suspense } from 'react'
+import { lazyWithRetry } from './utils/lazyWithRetry'
 import { useSimulation } from './simulation/useSimulation'
 import { useUIStore } from './stores/store'
 import { WorldView } from './world/WorldView'
@@ -15,7 +16,7 @@ import type { OrganismState } from './types'
 import clsx from 'clsx'
 import './App.css'
 
-const WorldView3D = lazy(() => import('./world/WorldView3D'))
+const WorldView3D = lazyWithRetry(() => import('./world/WorldView3D'))
 
 const TILE_FIRE = 4
 
