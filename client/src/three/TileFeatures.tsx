@@ -201,7 +201,82 @@ function collectFeatures(
     }
   }
 
-  return { trees, huts, campfires, fires, rocks, minerals, fence_posts, wells, paths, volcanic_peaks }
+  // Reeds and lily pads at shallow water edges (lakes, ponds, wetlands)
+  const reeds:     [number, number, number, number][] = []
+  const lily_pads: [number, number, number, number][] = []
+  for (let y = 0; y < height; y++) {
+    const dRow = depthMap[y]
+    if (!dRow) continue
+    for (let x = 0; x < width; x++) {
+      const d = dRow[x] ?? 255
+      if (d >= 254 || d < 180) continue // only shallow water (d 180-253)
+      // Must be adjacent to a land tile
+      let nearLand = false
+      for (const [dy2, dx2] of [[-1,0],[1,0],[0,-1],[0,1]] as [number,number][]) {
+        const ny = y + dy2; const nx = x + dx2
+        if (ny < 0 || nx < 0 || ny >= height || nx >= width) continue
+        if ((depthMap[ny]?.[nx] ?? 255) >= 254) { nearLand = true; break }
+      }
+      if (!nearLand) continue
+      let hash = (x * 73856093) ^ (y * 19349663)
+      hash = ((hash ^ (hash >>> 13)) * 0x5bd1e995) >>> 0
+      const r0 = (hash & 0xff) / 255
+      const r1 = ((hash >>> 8) & 0xff) / 255
+      const r2 = ((hash >>> 16) & 0xff) / 255
+      if (r0 < 0.30) {
+        const jx = (r1 - 0.5) * TILE_SCALE * 0.5
+        const jz = (r2 - 0.5) * TILE_SCALE * 0.5
+        reeds.push([x * TILE_SCALE + jx, 0.0, y * TILE_SCALE + jz, hash])
+      }
+      if (r2 < 0.12) {
+        lily_pads.push([x * TILE_SCALE, 0.06, y * TILE_SCALE, hash])
+      }
+    }
+  }
+
+  // Town halls: one large landmark per cluster of 5+ huts
+  const town_halls: [number, number, number][] = []
+  const usedForTH = new Set<number>()
+  for (let i = 0; i < huts.length; i++) {
+    if (usedForTH.has(i)) continue
+    const [hx, hy, hz] = huts[i]
+    const cluster = [i]
+    for (let j = i + 1; j < huts.length; j++) {
+      if (usedForTH.has(j)) continue
+      const ddx = hx - huts[j][0]; const ddz = hz - huts[j][2]
+      if (ddx * ddx + ddz * ddz < 1764) cluster.push(j) // within 42 world units
+    }
+    if (cluster.length >= 5) {
+      const cx = cluster.reduce((s, k) => s + huts[k][0], 0) / cluster.length
+      const cz = cluster.reduce((s, k) => s + huts[k][2], 0) / cluster.length
+      town_halls.push([cx, hy, cz])
+      cluster.forEach(k => usedForTH.add(k))
+    }
+  }
+
+  // Market stalls: one per campfire, offset to the side
+  const stall_awnings:  [number, number, number][] = []
+  const stall_posts:    [number, number, number][] = []
+  for (let i = 0; i < campfires.length; i++) {
+    const [cx, cy, cz] = campfires[i]
+    const angle = ((i * 137) % 360) * (Math.PI / 180)
+    const dist = 4.8
+    const sx = cx + Math.cos(angle) * dist
+    const sz = cz + Math.sin(angle) * dist
+    stall_awnings.push([sx, cy, sz])
+    stall_posts.push(
+      [sx - 1.4, cy, sz - 0.95],
+      [sx + 1.4, cy, sz - 0.95],
+      [sx - 1.4, cy, sz + 0.95],
+      [sx + 1.4, cy, sz + 0.95],
+    )
+  }
+
+  return {
+    trees, huts, campfires, fires, rocks, minerals,
+    fence_posts, wells, paths, reeds, lily_pads,
+    town_halls, stall_awnings, stall_posts, volcanic_peaks,
+  }
 }
 
 const PINE_TRUNK   = new THREE.CylinderGeometry(0.16, 0.22, 1.4, 5)
@@ -243,6 +318,26 @@ const FIRE_INNER   = new THREE.ConeGeometry(0.5, 1.4, 6)
 const FIRE_OUTER   = new THREE.ConeGeometry(0.75, 2.0, 6)
 const ROCK_GEO     = new THREE.DodecahedronGeometry(0.7, 0)
 const MINERAL_GEO  = new THREE.OctahedronGeometry(0.6, 0)
+// Lake / wetland decorations
+const REED_STEM    = new THREE.CylinderGeometry(0.045, 0.07, 1.55, 4)
+const REED_HEAD    = new THREE.CylinderGeometry(0.13, 0.06, 0.55, 5)
+const LILY_PAD     = (() => {
+  const g = new THREE.CircleGeometry(0.50, 8)
+  g.rotateX(-Math.PI / 2)
+  return g
+})()
+// Town hall – central landmark for large settlements
+const TOWN_HALL_WALLS  = new THREE.BoxGeometry(7.5, 5.2, 7.5)
+const TOWN_HALL_ROOF   = (() => {
+  const g = new THREE.ConeGeometry(5.8, 4.0, 4)
+  g.rotateY(Math.PI / 4)
+  return g
+})()
+const TOWN_HALL_TOWER  = new THREE.CylinderGeometry(1.2, 1.3, 9.5, 8)
+const TOWN_HALL_CAP    = new THREE.ConeGeometry(1.6, 2.5, 8)
+// Market stalls near campfires
+const STALL_AWNING     = new THREE.BoxGeometry(3.2, 0.14, 2.4)
+const STALL_POST       = new THREE.CylinderGeometry(0.09, 0.11, 1.9, 4)
 
 const tmp = new THREE.Object3D()
 
@@ -679,6 +774,62 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height, pathTrail
         positions={features.minerals} yOffset={0.35}
         geometry={MINERAL_GEO} color="#a8b8d8"
         maxCount={1000} randomYaw
+      />
+
+      {/* Lake / wetland reeds at shallow water edges */}
+      <InstanceLayer
+        positions={features.reeds} yOffset={0.78}
+        geometry={REED_STEM} color="#5a7a3a"
+        maxCount={3000} randomYaw
+      />
+      <InstanceLayer
+        positions={features.reeds} yOffset={1.83}
+        geometry={REED_HEAD} color="#7a5a2a"
+        maxCount={3000} randomYaw
+      />
+
+      {/* Lily pads on water surface */}
+      <InstanceLayer
+        positions={features.lily_pads} yOffset={0.0}
+        geometry={LILY_PAD} color="#3a6a2a"
+        maxCount={1000} randomYaw
+      />
+
+      {/* Town hall – only appears when 5+ huts cluster together */}
+      <InstanceLayer
+        positions={features.town_halls} yOffset={2.6}
+        geometry={TOWN_HALL_WALLS} color="#c8b890"
+        maxCount={10}
+      />
+      <InstanceLayer
+        positions={features.town_halls} yOffset={7.2}
+        geometry={TOWN_HALL_ROOF} color="#5a3222"
+        maxCount={10}
+      />
+      {/* Central tower offset to front of town hall */}
+      <InstanceLayer
+        positions={features.town_halls.map(([x,y,z]) => [x, y, z + 3.0] as [number,number,number,number?])}
+        yOffset={4.75}
+        geometry={TOWN_HALL_TOWER} color="#b0a080"
+        maxCount={10}
+      />
+      <InstanceLayer
+        positions={features.town_halls.map(([x,y,z]) => [x, y, z + 3.0] as [number,number,number,number?])}
+        yOffset={10.45}
+        geometry={TOWN_HALL_CAP} color="#5a3222"
+        maxCount={10}
+      />
+
+      {/* Market stalls near campfires */}
+      <InstanceLayer
+        positions={features.stall_awnings} yOffset={2.0}
+        geometry={STALL_AWNING} color="#c88030"
+        maxCount={200}
+      />
+      <InstanceLayer
+        positions={features.stall_posts} yOffset={0.95}
+        geometry={STALL_POST} color="#5a3a1a"
+        maxCount={800}
       />
     </>
   )
