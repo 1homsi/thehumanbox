@@ -1,4 +1,4 @@
-import { Suspense, useRef, useEffect, useState } from 'react'
+import { Suspense, useRef, useEffect, useState, useMemo } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { KeyboardControls, useKeyboardControls, PointerLockControls } from '@react-three/drei'
 import * as THREE from 'three'
@@ -28,6 +28,7 @@ import { FootstepDust } from '../three/FootstepDust'
 import { TribeLabels } from '../three/TribeLabels'
 import { FireLights } from '../three/FireLights'
 import { TimeOfDayTint } from '../three/TimeOfDayTint'
+import { Fireflies } from '../three/Fireflies'
 import { TILE_SCALE } from '../three/constants'
 import { heightAtWorld, heightAt } from '../three/terrain-utils'
 import { updateOrgMotion, updateAnimalMotion, getOrgXY } from '../three/motion-state'
@@ -270,6 +271,21 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
   const sunAlt   = Math.sin((dayProgress - 0.25) * 2 * Math.PI)
   const isNight  = sunAlt < 0
 
+  // Hut world positions for Fireflies (computed once per grid change)
+  const hutWorldPositions = useMemo<[number, number, number][]>(() => {
+    if (!grid?.tiles || !grid?.depth_map || !grid?.biomes) return []
+    const out: [number, number, number][] = []
+    for (let row = 0; row < grid.height; row++) {
+      const tRow = grid.tiles[row]; if (!tRow) continue
+      for (let col = 0; col < grid.width; col++) {
+        if (tRow[col] !== 8) continue
+        const ground = heightAt(col, row, grid.depth_map, grid.biomes)
+        out.push([col * TILE_SCALE, ground, row * TILE_SCALE])
+      }
+    }
+    return out
+  }, [grid?.tiles, grid?.depth_map, grid?.biomes])
+
   const orgsForMotion    = world?.viewport_organisms ?? world?.organisms ?? []
   const animalsForMotion = world?.viewport_animals   ?? world?.animals   ?? []
   useEffect(() => {
@@ -399,6 +415,10 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
                 <AmbientMotes
                   isNight={isNight}
                   weatherKind={world.weather?.kind ?? 'clear'}
+                />
+                <Fireflies
+                  hutPositions={hutWorldPositions}
+                  isNight={isNight}
                 />
               </>
             )}
