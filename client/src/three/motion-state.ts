@@ -16,6 +16,9 @@ interface OrgPrediction {
   lastPredX: number
   lastPredY: number
   lastReadTime: number
+
+  targetX: number | undefined
+  targetY: number | undefined
 }
 
 interface AnimalPrediction extends OrgPrediction {}
@@ -33,13 +36,16 @@ const HEADING_TURN_RATE = Math.PI
 
 const MAX_EXTRAP_MS = 150
 
+// Approximate tile steps per second (1 tile/tick × 10 ticks/s)
+const TILES_PER_SECOND = 10
+
 export function updateOrgMotion(organisms: OrganismState[]) {
   const now = performance.now()
   for (const o of organisms) {
     if (!o.alive) continue
     const entry = orgState.get(o.id)
     if (entry) {
-      ingestSnapshot(entry, o.x, o.y, now, o.vx, o.vy)
+      ingestSnapshot(entry, o.x, o.y, now, o.vx, o.vy, o.target_x, o.target_y)
     } else {
       orgState.set(o.id, fresh(o.x, o.y, now))
     }
@@ -96,11 +102,21 @@ function fresh(x: number, y: number, now: number): OrgPrediction {
     heading: 0,
     lastPredX: x, lastPredY: y,
     lastReadTime: now,
+    targetX: undefined,
+    targetY: undefined,
   }
 }
 
-function ingestSnapshot(e: OrgPrediction, x: number, y: number, now: number, vx?: number, vy?: number) {
+function ingestSnapshot(
+  e: OrgPrediction,
+  x: number, y: number, now: number,
+  vx?: number, vy?: number,
+  targetX?: number, targetY?: number,
+) {
   if (e.serverX === x && e.serverY === y && now - e.serverTime < TICK_MS * 0.5) {
+    // still update target even if position hasn't changed
+    e.targetX = targetX
+    e.targetY = targetY
     return
   }
 
@@ -124,27 +140,48 @@ function ingestSnapshot(e: OrgPrediction, x: number, y: number, now: number, vx?
   e.serverX = x
   e.serverY = y
   e.serverTime = now
+  e.targetX = targetX
+  e.targetY = targetY
 }
 
 function advanceAndRead(e: OrgPrediction): [number, number] {
   const now = performance.now()
-  // per-frame delta for incremental error decay and heading rotation
   const frameDt = Math.max(0.001, (now - e.lastReadTime) * 0.001)
   e.lastReadTime = now
 
   const totalElapsed = now - e.serverTime
   const extrap = Math.min(totalElapsed, MAX_EXTRAP_MS) * 0.001
 
-  const reckonedX = e.serverX + e.velX * extrap
-  const reckonedY = e.serverY + e.velY * extrap
+  // Velocity-based dead reckoning
+  let outX = e.serverX + e.velX * extrap
+  let outY = e.serverY + e.velY * extrap
 
-  // decay error by actual frame time, not cumulative elapsed
+  // Blend toward target-based prediction as extrapolation grows.
+  // This curves the organism toward its actual destination instead of
+  // sliding in a straight line past it.
+  if (e.targetX !== undefined && e.targetY !== undefined) {
+    const tdx = e.targetX - e.serverX
+    const tdy = e.targetY - e.serverY
+    const tdist = Math.sqrt(tdx * tdx + tdy * tdy)
+    if (tdist > 1.5) {
+      const speed = Math.max(Math.sqrt(e.velX * e.velX + e.velY * e.velY), TILES_PER_SECOND * 0.5)
+      const moveAmt = Math.min(tdist, speed * extrap)
+      const tpX = e.serverX + (tdx / tdist) * moveAmt
+      const tpY = e.serverY + (tdy / tdist) * moveAmt
+      // blend factor: 0 at extrap=0, grows to ~0.6 at max extrap
+      const blend = Math.min(extrap / (MAX_EXTRAP_MS * 0.001), 1.0) * 0.6
+      outX = outX + (tpX - outX) * blend
+      outY = outY + (tpY - outY) * blend
+    }
+  }
+
+  // Incremental error correction using actual frame delta
   const decay = Math.exp(-ERROR_DECAY_PER_S * frameDt)
   e.errorX *= decay
   e.errorY *= decay
 
-  const outX = reckonedX + e.errorX
-  const outY = reckonedY + e.errorY
+  outX += e.errorX
+  outY += e.errorY
 
   const speed2 = e.velX * e.velX + e.velY * e.velY
   if (speed2 > 0.01) {
@@ -152,7 +189,7 @@ function advanceAndRead(e: OrgPrediction): [number, number] {
     let diff = target - e.heading
     while (diff >  Math.PI) diff -= Math.PI * 2
     while (diff < -Math.PI) diff += Math.PI * 2
-    const maxStep = HEADING_TURN_RATE * frameDt  // actual frame delta, not cumulative extrap
+    const maxStep = HEADING_TURN_RATE * frameDt
     if (Math.abs(diff) <= maxStep) e.heading = target
     else                            e.heading += Math.sign(diff) * maxStep
   }
