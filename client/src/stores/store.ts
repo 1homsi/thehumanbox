@@ -25,7 +25,6 @@ export interface ViewFlags {
   hideUI:     boolean
   photoMode:  boolean
   actionTicker: boolean
-  miniMap2D:  boolean
   randomTour: boolean
   slowMo:     boolean
   fastMo:     boolean
@@ -112,7 +111,7 @@ export const useUIStore = create<UIState>((set) => ({
     lineageDot: false, health: false, age: false, fear: false,
     partners: false, pregnancy: false, history: false, fps: false,
     threeD: false, hideUI: false,
-    photoMode: false, actionTicker: false, miniMap2D: false,
+    photoMode: false, actionTicker: false,
     randomTour: false, slowMo: false, fastMo: false,
     colorBlind: false, orgPov: false,
   },

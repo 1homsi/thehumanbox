@@ -113,14 +113,6 @@ export function MoreDropdown() {
           title="Live ticker at the bottom: what each org is doing right now">
           ⋮⋮⋮ ticker
         </button>
-        {!viewFlags.threeD && (
-          <button
-            className={clsx('lang-btn', viewFlags.miniMap2D && 'active')}
-            onClick={() => setViewFlag('miniMap2D', !viewFlags.miniMap2D)}
-            title="Top-right mini-globe overview (2D mode)">
-            ◔ mini-map
-          </button>
-        )}
         <button
           className={clsx('lang-btn', viewFlags.randomTour && 'active')}
           onClick={() => setViewFlag('randomTour', !viewFlags.randomTour)}

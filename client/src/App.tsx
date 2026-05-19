@@ -11,7 +11,6 @@ import { RightPanel } from './components/RightPanel'
 import { ModalRouter } from './components/ModalRouter'
 import { ActionTicker } from './components/ActionTicker'
 import { ThreeDLoading } from './components/ThreeDLoading'
-import { MiniMap2D } from './components/MiniMap2D'
 import type { OrganismState } from './types'
 import clsx from 'clsx'
 import './App.css'
@@ -155,7 +154,6 @@ function App() {
       </main>
 
       {world && viewFlags.actionTicker && <ActionTicker world={world} />}
-      {world && viewFlags.miniMap2D && !viewFlags.threeD && <MiniMap2D world={world} />}
 
       {world && <ModalRouter world={world} lineages={lineages} />}
     </div>
