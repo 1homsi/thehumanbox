@@ -16,6 +16,21 @@ interface Props {
 
 const ANIMATE_RADIUS_SQ = 220 * 220
 
+function isRestingThought(thought: string): boolean {
+  const t = thought.toLowerCase()
+  return t.includes('rest') || t.includes('sleep') || t.includes('nap')
+    || t.includes('meditat') || t.includes('daydream') || t.includes('reflecting')
+    || t.includes('sheltering') || t.includes('taking shelter') || t.includes('returning home')
+    || t.includes('inside') || t.includes('settling in')
+}
+
+function isAtHome(o: OrganismState): boolean {
+  if (!o.home_x || !o.home_y) return false
+  const dx = o.x - o.home_x
+  const dy = o.y - o.home_y
+  return dx * dx + dy * dy < 2.0
+}
+
 function pickAnim(o: OrganismState, isMoving: boolean): string {
   if (!o.alive) return 'Death'
   const t = (o.thought || '').toLowerCase()
@@ -65,6 +80,8 @@ export function Humans3D({ organisms, depthMap, biomes }: Props) {
     <>
       {organisms.map(o => {
         if (!o.alive) return null
+        // Hide organisms that are inside their home (sleeping/resting at home position)
+        if (isRestingThought(o.thought) && isAtHome(o)) return null
         const [vx, vy] = getOrgVelocityXY(o.id)
         const speed = Math.hypot(vx, vy)
         const moving = speed > 0.05
