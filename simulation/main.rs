@@ -207,7 +207,8 @@ async fn main() {
                                 if let Some(disc) = &r.new_discovery {
                                     if !org.discoveries.contains(disc) {
                                         org.discoveries.insert(disc.clone());
-                                        org.log_event(format!("invented {}", disc.replace('_', " ")));
+                                        org.log_life(tick, "discovery",
+                                            format!("invented {}", disc.replace('_', " ")));
                                         invented = Some(disc.clone());
                                     }
                                 }
@@ -368,7 +369,7 @@ async fn main() {
                                 sex:          format!("{:?}", o.sex).to_lowercase(),
                                 age_days,
                                 tribe_name,
-                                life_log:     o.life_log.iter().cloned().collect(),
+                                life_log:     o.life_log.iter().map(|e| e.text.clone()).collect(),
                                 vocab:        o.vocabulary.words.clone(),
                                 partner_name,
                                 children:     o.children_count,
@@ -479,6 +480,7 @@ async fn main() {
     let app = Router::new()
         .route("/ws", get(routes::ws_handler))
         .route("/org/:id", get(routes::org_detail_handler))
+        .route("/org/:id/life", get(routes::org_life_handler))
         .route("/version", get(routes::version_handler))
         .route("/snapshot", get(routes::snapshot_handler))
         .route("/transport", get(routes::transport_handler))

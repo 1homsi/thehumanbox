@@ -300,7 +300,11 @@ pub fn deliver_births(
         organisms[mi].pregnant = false;
         organisms[mi].children_count += 1;
         organisms[mi].think(&format!("gave birth: {}", child_name), tick);
-        organisms[mi].log_event(format!("gave birth to {}", child_name));
+        let ci_id = organisms[ci].id.clone();
+        let cn = child_name.clone();
+        organisms[mi].log_life_rel(tick, "birth",
+            format!("gave birth to {}", child_name),
+            Some(ci_id), Some(cn));
 
         push_event(events, tick, "born", &child_name,
                    &format!("gen{} born to {}", generation, parent_name));

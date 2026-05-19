@@ -120,6 +120,17 @@ pub struct ThoughtEntry {
     pub text: String,
 }
 
+#[derive(Clone, Serialize, serde::Deserialize)]
+pub struct LifeEvent {
+    pub tick: u64,
+    pub category: String,
+    pub text: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub related_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub related_name: Option<String>,
+}
+
 #[derive(Default, Clone, Serialize, serde::Deserialize)]
 #[serde(default)]
 pub struct ConversationEntry {
@@ -176,7 +187,7 @@ pub struct Organism {
     pub vocabulary:    Vocabulary,
     pub daily_story:   String,
     pub last_story_tick: u64,
-    pub life_log:      VecDeque<String>,
+    pub life_log:      VecDeque<LifeEvent>,
     pub discoveries:   HashSet<String>,
 
     pub home_x: f32,
@@ -312,10 +323,12 @@ impl Organism {
 
     // Promote an organism to named friend status.
     // Idempotent — safe to call repeatedly; only logs + mutates loneliness on first promotion.
-    pub fn add_friend(&mut self, id: &str, name: &str) {
+    pub fn add_friend(&mut self, id: &str, name: &str, tick: u64) {
         if !self.friends.contains_key(id) {
             self.friends.insert(id.to_string(), name.to_string());
-            self.log_event(format!("became friends with {}", name));
+            self.log_life_rel(tick, "friendship",
+                format!("became close friends with {}", name),
+                Some(id.to_string()), Some(name.to_string()));
             self.loneliness = (self.loneliness - 0.25).max(0.0);
         }
     }
@@ -331,9 +344,18 @@ impl Organism {
         self.discoveries.insert(what.to_string())
     }
 
-    pub fn log_event(&mut self, event: String) {
-        self.life_log.push_back(event);
-        if self.life_log.len() > 16 {
+    pub fn log_event(&mut self, text: String) {
+        self.log_life(0, "event", text);
+    }
+
+    pub fn log_life(&mut self, tick: u64, category: &str, text: String) {
+        self.log_life_rel(tick, category, text, None, None);
+    }
+
+    pub fn log_life_rel(&mut self, tick: u64, category: &str, text: String,
+                        related_id: Option<String>, related_name: Option<String>) {
+        self.life_log.push_back(LifeEvent { tick, category: category.to_string(), text, related_id, related_name });
+        if self.life_log.len() > 64 {
             self.life_log.pop_front();
         }
     }
@@ -882,19 +904,102 @@ impl Organism {
             .iter().rev().take(20).rev()
             .map(|e| ThoughtJson { tick: e.tick, text: e.text.clone() })
             .collect();
+        let life_log: Vec<LifeEventJson> = self.life_log.iter()
+            .map(|e| LifeEventJson {
+                tick:         e.tick,
+                category:     e.category.clone(),
+                text:         e.text.clone(),
+                related_id:   e.related_id.clone(),
+                related_name: e.related_name.clone(),
+            })
+            .collect();
         OrgDetailJson {
             base:            self.to_json(),
             thought_history,
             vocabulary:      self.vocabulary.words.clone(),
             daily_story:     self.daily_story.clone(),
-            life_log:        self.life_log.iter().rev().take(12).rev().cloned().collect(),
+            life_log,
             conversations:   self.conversations.iter().rev().take(25).rev().cloned().collect(),
+        }
+    }
+
+    pub fn to_life_json(&self) -> OrgLifeJson {
+        let events: Vec<LifeEventJson> = self.life_log.iter()
+            .map(|e| LifeEventJson {
+                tick:         e.tick,
+                category:     e.category.clone(),
+                text:         e.text.clone(),
+                related_id:   e.related_id.clone(),
+                related_name: e.related_name.clone(),
+            })
+            .collect();
+
+        let friend_names: Vec<String> = self.friends.values().cloned().collect();
+        let partner_id = self.partner_id.clone();
+        let discoveries: Vec<String> = self.discoveries.iter().cloned().collect();
+
+        let emotional_state = if self.grief_ticks > 50 { "devastated" }
+            else if self.grief_ticks > 0 { "grieving" }
+            else if self.loneliness > 0.75 { "desperately lonely" }
+            else if self.fear_level > 0.65 { "terrified" }
+            else if self.loneliness > 0.50 { "lonely" }
+            else if self.comfort > 0.80 { "content" }
+            else if self.boredom > 0.65 { "restless" }
+            else if self.energy < 0.25 { "starving" }
+            else { "stable" };
+
+        OrgLifeJson {
+            id:              self.id.clone(),
+            name:            self.name.clone(),
+            age_ticks:       self.age,
+            generation:      self.generation,
+            lineage_id:      self.lineage_id.clone(),
+            sex:             self.sex.as_str().to_string(),
+            alive:           self.alive,
+            is_elder:        self.is_elder,
+            partner_id,
+            children_count:  self.children_count,
+            friends:         friend_names,
+            discoveries,
+            emotional_state: emotional_state.to_string(),
+            events,
+            thought_history: self.thought_history.iter()
+                .map(|e| ThoughtJson { tick: e.tick, text: e.text.clone() })
+                .collect(),
         }
     }
 }
 
 #[derive(Serialize)] pub struct ThoughtJson { pub tick: u64, pub text: String }
 #[derive(Serialize)] pub struct MemoryCount  { pub food: usize, pub water: usize, pub danger: usize }
+
+#[derive(Serialize)]
+pub struct LifeEventJson {
+    pub tick:         u64,
+    pub category:     String,
+    pub text:         String,
+    #[serde(skip_serializing_if = "Option::is_none")] pub related_id:   Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")] pub related_name: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct OrgLifeJson {
+    pub id:              String,
+    pub name:            String,
+    pub age_ticks:       u32,
+    pub generation:      u32,
+    pub lineage_id:      String,
+    pub sex:             String,
+    pub alive:           bool,
+    pub is_elder:        bool,
+    pub partner_id:      Option<String>,
+    pub children_count:  u32,
+    pub friends:         Vec<String>,
+    pub discoveries:     Vec<String>,
+    pub emotional_state: String,
+    pub events:          Vec<LifeEventJson>,
+    pub thought_history: Vec<ThoughtJson>,
+}
 
 #[derive(Serialize)]
 pub struct OrgsHotSoa {
@@ -1024,7 +1129,7 @@ pub struct OrgDetailJson {
     pub thought_history: Vec<ThoughtJson>,
     pub vocabulary:      HashMap<String, String>,
     pub daily_story:     String,
-    pub life_log:        Vec<String>,
+    pub life_log:        Vec<LifeEventJson>,
     pub conversations:   Vec<ConversationEntry>,
 }
 
@@ -1050,7 +1155,7 @@ mod tests {
         org.q_table.insert("state".into(), vec![(0, 0.1), (1, 0.1), (2, 0.1)]);
         org.lineage_attitudes.insert("other".into(), 0.7);
         org.org_trust.insert("xyz".into(), 0.5);
-        org.life_log.push_back("something happened".into());
+        org.log_event("something happened".into());
         org.discoveries.insert("fire".into());
         org.father_id = Some("father77".into());
         org.alive = false;

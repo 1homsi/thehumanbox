@@ -73,6 +73,21 @@ pub async fn org_detail_handler(
     ))
 }
 
+pub async fn org_life_handler(
+    Path(id): Path<String>,
+    State(s): State<AppState>,
+) -> Result<impl IntoResponse, StatusCode> {
+    use crate::organism::organism::OrgLifeJson;
+    let sim = s.sim.lock().await;
+    let org = sim.organisms.iter().find(|o| o.id == id)
+        .ok_or(StatusCode::NOT_FOUND)?;
+    let life: OrgLifeJson = org.to_life_json();
+    Ok((
+        [(axum::http::header::CACHE_CONTROL, "no-store".to_string())],
+        Json(life),
+    ))
+}
+
 pub async fn transport_handler(
     State(s): State<AppState>,
 ) -> impl IntoResponse {

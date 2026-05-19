@@ -314,7 +314,7 @@ fn infer_event_type(org: &organism::organism::Organism) -> &'static str {
     let last_log = org
         .life_log
         .back()
-        .map(|s| s.to_lowercase())
+        .map(|e| e.text.to_lowercase())
         .unwrap_or_default();
     let text = if !last_log.is_empty() {
         last_log.as_str()
@@ -406,7 +406,7 @@ fn write_trace_rows(sim: &Simulation, writer: &mut BufWriter<File>, trace_limit:
             "generation": org.generation,
             "event_type": infer_event_type(org),
             "text": org.thought,
-            "context_text": org.life_log.back().cloned().unwrap_or_default(),
+            "context_text": org.life_log.back().map(|e| e.text.clone()).unwrap_or_default(),
             "position": {
                 "x": org.x,
                 "y": org.y,

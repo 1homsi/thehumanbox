@@ -342,11 +342,11 @@ pub fn groom(
     if ti_trust_after >= FRIEND_THRESHOLD {
         let oi = org_id.clone();
         let on = organisms[org_idx].name.clone();
-        organisms[ti].add_friend(&oi, &on);
+        organisms[ti].add_friend(&oi, &on, tick);
     }
     if my_trust_after >= FRIEND_THRESHOLD {
         let ti2 = ti_id.clone();
-        organisms[org_idx].add_friend(&ti2, &target_name);
+        organisms[org_idx].add_friend(&ti2, &target_name, tick);
     }
 
     if organisms[org_idx].grief_ticks > 0 { organisms[org_idx].grief_ticks = organisms[org_idx].grief_ticks.saturating_sub(8); }
@@ -422,8 +422,11 @@ pub fn teach(
         }
     }
     for disc in &learned {
-        let teacher_short = organisms[org_idx].name[..4.min(organisms[org_idx].name.len())].to_string();
-        organisms[ti].log_event(format!("learned {} from {}", disc, teacher_short));
+        let teacher_short = organisms[org_idx].name.clone();
+        let ti_id_str = organisms[ti].id.clone();
+        let _ = ti_id_str; // suppress warning
+        organisms[ti].log_life(tick, "discovery",
+            format!("learned {} from {}", disc, teacher_short));
     }
 
     let org_id2  = organisms[org_idx].id.clone();
@@ -440,15 +443,16 @@ pub fn teach(
     if ti_trust >= 0.55 {
         let on = org_name.clone();
         let oi = org_id2.clone();
-        organisms[ti].add_friend(&oi, &on);
+        organisms[ti].add_friend(&oi, &on, tick);
         let tn = target_name.clone();
-        organisms[org_idx].add_friend(&ti_id, &tn);
+        organisms[org_idx].add_friend(&ti_id, &tn, tick);
     }
 
     let role = if is_elder { "elder" } else { "kin" };
     organisms[org_idx].think(&format!("teaching {}", &target_name[..4.min(target_name.len())]), tick);
     organisms[ti].think(&format!("learning from {}", &org_name[..4.min(org_name.len())]), tick);
-    organisms[ti].log_event(format!("taught by {} {}", role, &org_name[..4.min(org_name.len())]));
+    organisms[ti].log_life(tick, "discovery",
+        format!("mentored by {} {}", role, org_name));
 
     if !learned.is_empty() || organisms[ti].age < 200 {
         push_event(events, tick, "teach", &org_name,
@@ -499,7 +503,7 @@ pub fn share_food(
 pub fn social_knowledge_share(
     org_idx: usize,
     organisms: &mut Vec<Organism>,
-    _tick: u64,
+    tick: u64,
     rng: &mut impl Rng,
 ) {
     let org_lineage = organisms[org_idx].lineage_id.clone();
@@ -546,11 +550,11 @@ pub fn social_knowledge_share(
         if ki_trust_after >= FRIEND_THRESHOLD {
             let on = organisms[org_idx].name.clone();
             let oi = org_id.clone();
-            organisms[*ki].add_friend(&oi, &on);
+            organisms[*ki].add_friend(&oi, &on, tick);
         }
         if my_trust_after >= FRIEND_THRESHOLD {
             let ki_name = organisms[*ki].name.clone();
-            organisms[org_idx].add_friend(&ki_id, &ki_name);
+            organisms[org_idx].add_friend(&ki_id, &ki_name, tick);
         }
     }
 

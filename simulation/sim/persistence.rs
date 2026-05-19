@@ -170,7 +170,7 @@ fn org_to_save(o: &Organism) -> OrgSave {
         vocabulary:  o.vocabulary.clone(),
         daily_story: o.daily_story.clone(),
         last_story_tick: o.last_story_tick,
-        life_log: o.life_log.iter().cloned().collect(),
+        life_log: o.life_log.iter().map(|e| e.text.clone()).collect(),
         discoveries: o.discoveries.iter().cloned().collect(),
         home_x: o.home_x,
         home_y: o.home_y,
@@ -223,7 +223,12 @@ fn org_from_save(s: OrgSave) -> Organism {
     o.carrying_type   = s.carrying_type;
     o.daily_story     = s.daily_story;
     o.last_story_tick = s.last_story_tick;
-    o.life_log        = s.life_log.into_iter().collect();
+    o.life_log        = s.life_log.into_iter()
+        .map(|t| crate::organism::organism::LifeEvent {
+            tick: 0, category: "event".to_string(), text: t,
+            related_id: None, related_name: None,
+        })
+        .collect();
     o.discoveries     = s.discoveries.into_iter().collect();
     if s.home_x != 0.0 || s.home_y != 0.0 {
         o.home_x = s.home_x;

@@ -265,11 +265,6 @@ impl Simulation {
         }
 
         let phase = self.tick_count % DAY_LENGTH;
-        if phase == 0 {
-            for org in &mut self.organisms {
-                org.life_log.clear();
-            }
-        }
 
         let season_str = season.to_string();
         tick_drought(
@@ -366,8 +361,13 @@ impl Simulation {
             }
             let elder_ids: std::collections::HashSet<String> =
                 self.lineage_elders.values().cloned().collect();
+            let tc = self.tick_count;
             for org in self.organisms.iter_mut() {
+                let was_elder = org.is_elder;
                 org.is_elder = elder_ids.contains(&org.id);
+                if org.is_elder && !was_elder {
+                    org.log_life(tc, "achievement", "became the elder of my people".to_string());
+                }
             }
         }
 
@@ -423,7 +423,7 @@ impl Simulation {
                                     let elder_name = self.organisms[epos].name.clone();
                                     let elder_id   = self.organisms[epos].id.clone();
                                     let life_top: Vec<String> = self.organisms[epos].life_log
-                                        .iter().take(4).cloned().collect();
+                                        .iter().take(4).map(|e| e.text.clone()).collect();
                                     let child_name = self.organisms[child_idx].name.clone();
                                     let child_id   = self.organisms[child_idx].id.clone();
                                     let lid        = self.organisms[child_idx].lineage_id.clone();
@@ -1621,7 +1621,7 @@ impl Simulation {
                     self.organisms[idx].last_invention_tick = self.tick_count;
                     let disc_vec: Vec<String> = self.organisms[idx].discoveries.iter().cloned().collect();
                     let life_top: Vec<String> = self.organisms[idx].life_log.iter()
-                        .rev().take(3).cloned().collect();
+                        .rev().take(3).map(|e| e.text.clone()).collect();
                     self.push_think_for(idx, ThinkTrigger {
                         org_id:      self.organisms[idx].id.clone(),
                         org_name:    self.organisms[idx].name.clone(),
@@ -1641,7 +1641,7 @@ impl Simulation {
             {
                 self.organisms[idx].has_reflected = true;
                 let life_top: Vec<String> = self.organisms[idx].life_log.iter()
-                    .take(5).cloned().collect();
+                    .take(5).map(|e| e.text.clone()).collect();
                 let org = &self.organisms[idx];
                 let emotional = format!("fear={:.1} comfort={:.1} lonely={:.1}",
                     org.fear_level, org.comfort, org.loneliness);
@@ -1725,8 +1725,20 @@ impl Simulation {
         }
 
         if let Some(ref pid) = self.organisms[idx].partner_id.clone() {
-            let dead = !self.organisms.iter().any(|o| o.alive && &o.id == pid);
-            if dead { self.organisms[idx].partner_id = None; }
+            let partner_pos = self.organisms.iter().position(|o| &o.id == pid);
+            let dead = partner_pos.map(|p| !self.organisms[p].alive).unwrap_or(true);
+            if dead {
+                let partner_name = partner_pos
+                    .map(|p| self.organisms[p].name.clone())
+                    .unwrap_or_else(|| "partner".to_string());
+                let tc = self.tick_count;
+                let pid_owned = pid.clone();
+                self.organisms[idx].partner_id = None;
+                self.organisms[idx].grief_ticks = (self.organisms[idx].grief_ticks + 120).min(300);
+                self.organisms[idx].log_life_rel(tc, "loss",
+                    format!("lost my beloved {}", partner_name),
+                    Some(pid_owned), Some(partner_name));
+            }
         }
         if let Some(ref aid) = self.organisms[idx].attracted_to.clone() {
             let gone = !self.organisms.iter().any(|o|
@@ -1822,8 +1834,8 @@ impl Simulation {
                         let oname = self.organisms[idx].name.clone();
                         let a_mood = derive_mood(&self.organisms[idx]);
                         let b_mood = derive_mood(&self.organisms[pi]);
-                        let a_recent: Vec<String> = self.organisms[idx].life_log.iter().rev().take(3).cloned().collect();
-                        let b_recent: Vec<String> = self.organisms[pi].life_log.iter().rev().take(3).cloned().collect();
+                        let a_recent: Vec<String> = self.organisms[idx].life_log.iter().rev().take(3).map(|e| e.text.clone()).collect();
+                        let b_recent: Vec<String> = self.organisms[pi].life_log.iter().rev().take(3).map(|e| e.text.clone()).collect();
                         let a_tribe = self.lineage_names.get(&self.organisms[idx].lineage_id).cloned();
                         let b_tribe = self.lineage_names.get(&self.organisms[pi].lineage_id).cloned();
                         let (conv_a, conv_b, req) = courtship::generate_conversation_with_req(
@@ -1836,11 +1848,15 @@ impl Simulation {
                         self.pending_convos.push(req);
                         self.organisms[idx].partner_id   = Some(pid.clone());
                         self.organisms[idx].attracted_to = None;
-                        self.organisms[pi].partner_id    = Some(oid);
+                        self.organisms[pi].partner_id    = Some(oid.clone());
                         self.organisms[pi].attracted_to  = None;
                         self.organisms[idx].think(&format!("fell for {}", pname), tc);
-                        self.organisms[idx].log_event(format!("bonded with {}", pname));
-                        self.organisms[pi].log_event(format!("bonded with {}", oname));
+                        self.organisms[idx].log_life_rel(tc, "love",
+                            format!("fell in love with {}", pname),
+                            Some(pid.clone()), Some(pname.clone()));
+                        self.organisms[pi].log_life_rel(tc, "love",
+                            format!("fell in love with {}", oname),
+                            Some(oid), Some(oname.clone()));
                     }
                 }
             }
@@ -1854,8 +1870,8 @@ impl Simulation {
                     if (self.organisms[pi].x - ox).hypot(self.organisms[pi].y - oy) < 8.0 {
                         let a_mood = derive_mood(&self.organisms[idx]);
                         let b_mood = derive_mood(&self.organisms[pi]);
-                        let a_recent: Vec<String> = self.organisms[idx].life_log.iter().rev().take(3).cloned().collect();
-                        let b_recent: Vec<String> = self.organisms[pi].life_log.iter().rev().take(3).cloned().collect();
+                        let a_recent: Vec<String> = self.organisms[idx].life_log.iter().rev().take(3).map(|e| e.text.clone()).collect();
+                        let b_recent: Vec<String> = self.organisms[pi].life_log.iter().rev().take(3).map(|e| e.text.clone()).collect();
                         let a_tribe = self.lineage_names.get(&self.organisms[idx].lineage_id).cloned();
                         let b_tribe = self.lineage_names.get(&self.organisms[pi].lineage_id).cloned();
                         let (conv_a, conv_b, req) = courtship::generate_conversation_with_req(
@@ -1902,8 +1918,8 @@ impl Simulation {
                     if self.rng.gen::<f32>() < 0.004 {
                         let a_mood = derive_mood(&self.organisms[idx]);
                         let b_mood = derive_mood(&self.organisms[ci]);
-                        let a_recent: Vec<String> = self.organisms[idx].life_log.iter().rev().take(3).cloned().collect();
-                        let b_recent: Vec<String> = self.organisms[ci].life_log.iter().rev().take(3).cloned().collect();
+                        let a_recent: Vec<String> = self.organisms[idx].life_log.iter().rev().take(3).map(|e| e.text.clone()).collect();
+                        let b_recent: Vec<String> = self.organisms[ci].life_log.iter().rev().take(3).map(|e| e.text.clone()).collect();
                         let a_tribe = self.lineage_names.get(&self.organisms[idx].lineage_id).cloned();
                         let b_tribe = self.lineage_names.get(&self.organisms[ci].lineage_id).cloned();
                         let (conv_a, conv_b, req) = courtship::generate_conversation_with_req(
@@ -1971,12 +1987,19 @@ impl Simulation {
                 .filter(|(_, &v)| v > 0.5).take(5).map(|(&k, &v)| (k, v)).collect();
             let inherited_disc: Vec<String> = self.organisms[idx].discoveries.iter().cloned().collect();
 
+            let dead_id = self.organisms[idx].id.clone();
             for gi in &grievers {
                 let ms = self.organisms[*gi].traits.memory_strength;
                 Organism::remember(&mut self.organisms[*gi].danger_memory, dx, dy, 0.65, ms);
                 self.organisms[*gi].fear_level    = (self.organisms[*gi].fear_level + 0.22).min(1.0);
                 self.organisms[*gi].grief_ticks   = 80 + self.rng.gen_range(0u32..40);
                 self.organisms[*gi].think("mourning kin", self.tick_count);
+                let tc = self.tick_count;
+                let dn = dead_name.clone();
+                let di = dead_id.clone();
+                self.organisms[*gi].log_life_rel(tc, "loss",
+                    format!("witnessed {} die", dn),
+                    Some(di), Some(dn));
 
                 for &((mx, my), v) in &inherited_food {
                     Organism::remember(&mut self.organisms[*gi].food_memory, mx, my, v * 0.4, ms);
