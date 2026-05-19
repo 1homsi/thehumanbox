@@ -384,10 +384,30 @@ impl Simulation {
             *lineage_counts.entry(o.lineage_id.clone()).or_insert(0) += 1;
         }
 
+        // Sparse-region check: split the world into a 3×3 grid of quadrants
+        // and count alive orgs per cell. If half or more quadrants hold
+        // ≤6 orgs, the world is heavily clumped and a fresh immigrant tribe
+        // somewhere remote can correct the distribution.
+        let sparse_quadrants = {
+            const QX: i32 = 3;
+            const QY: i32 = 3;
+            let qw = WIDTH  as f32 / QX as f32;
+            let qh = HEIGHT as f32 / QY as f32;
+            let mut counts = [[0u32; QX as usize]; QY as usize];
+            for o in self.organisms.iter().filter(|o| o.alive) {
+                let cx = ((o.x / qw).floor() as i32).clamp(0, QX - 1);
+                let cy = ((o.y / qh).floor() as i32).clamp(0, QY - 1);
+                counts[cy as usize][cx as usize] += 1;
+            }
+            counts.iter().flatten().filter(|&&n| n <= 6).count()
+        };
+        let world_is_clumped = sparse_quadrants >= 5;
         let immig_cooldown = if alive_count_before_loop < 60 {
             Some(200u64)
         } else if alive_count_before_loop < 100 {
             Some(600u64)
+        } else if world_is_clumped {
+            Some(1500u64)
         } else {
             None
         };
@@ -1859,11 +1879,17 @@ impl Simulation {
         {
             let friend_ids: Vec<String> = self.organisms[idx].friends.keys().cloned().collect();
             let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
-            // Pick the nearest living friend
+            // Only walk toward friends within this radius. Without a cap,
+            // every lonely org in the world eventually drifts toward whichever
+            // cluster has the densest friend network, producing a one-way
+            // attractor that empties out the rest of the map.
+            const FRIEND_SEEK_MAX_TILES: f32 = 60.0;
             let best = friend_ids.iter()
                 .filter_map(|fid| self.organisms.iter().find(|o| o.alive && &o.id == fid))
-                .min_by_key(|o| ((o.x - ox).hypot(o.y - oy) * 10.0) as i32)
-                .map(|o| (o.x as i32, o.y as i32, o.name.clone()));
+                .map(|o| (o, (o.x - ox).hypot(o.y - oy)))
+                .filter(|(_, d)| *d <= FRIEND_SEEK_MAX_TILES)
+                .min_by_key(|(_, d)| (*d * 10.0) as i32)
+                .map(|(o, _)| (o.x as i32, o.y as i32, o.name.clone()));
             if let Some((tx, ty, fname)) = best {
                 self.organisms[idx].wander_target = Some((tx.clamp(5, 595), ty.clamp(5, 295)));
                 let short = &fname[..4.min(fname.len())];

@@ -154,10 +154,26 @@ impl Simulation {
             }
         }
         if candidates.is_empty() { return; }
-        candidates.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
-        let pool = candidates.len().max(1).min(candidates.len()).max(8);
-        let half = candidates.len() / 2;
-        let (anchor_x, anchor_y, _) = candidates[self.rng.gen_range(0..half.max(1).min(pool))];
+        // Score each candidate by fertility AND distance to the nearest
+        // alive organism. Heavily favour remote tiles so a new tribe lands
+        // somewhere the existing population isn't, not next door to the
+        // densest cluster.
+        let scored: Vec<(i32, i32, f32)> = candidates.into_iter().map(|(x, y, fert)| {
+            let nearest_org_d2: f32 = self.organisms.iter()
+                .filter(|o| o.alive)
+                .map(|o| (o.x - x as f32).powi(2) + (o.y - y as f32).powi(2))
+                .fold(f32::INFINITY, f32::min);
+            let dist = if nearest_org_d2.is_finite() { nearest_org_d2.sqrt() } else { 9999.0 };
+            // Saturate the distance term at 80 tiles — beyond that, more
+            // distance doesn't matter; we already have isolation.
+            let dist_score = (dist / 80.0).min(1.0);
+            let score = dist_score * 0.7 + (fert.min(1.0)) * 0.3;
+            (x, y, score)
+        }).collect();
+        let mut scored = scored;
+        scored.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
+        let top = scored.len().min(12).max(1);
+        let (anchor_x, anchor_y, _) = scored[self.rng.gen_range(0..top)];
 
         let tribe_size = self.rng.gen_range(8usize..=14);
         let lineage_id = Uuid::new_v4().to_string()[..8].to_string();
