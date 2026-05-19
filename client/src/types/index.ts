@@ -67,6 +67,7 @@ export interface OrganismState {
   vocabulary?:         Record<string, string>
   conversation_count?: number
   friends?:            Record<string, string>
+  attributes?:         string[]
 }
 
 export interface LifeEvent {

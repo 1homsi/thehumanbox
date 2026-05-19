@@ -86,6 +86,8 @@ pub(crate) struct OrgSave {
     pregnancy_start: u64,
     conversations: Vec<crate::organism::organism::ConversationEntry>,
     father_id: Option<String>,
+    #[serde(default)]
+    attributes: Vec<String>,
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -188,6 +190,7 @@ fn org_to_save(o: &Organism) -> OrgSave {
         pregnancy_start:     o.pregnancy_start,
         conversations:       o.conversations.iter().cloned().collect(),
         father_id:           o.father_id.clone(),
+        attributes:          o.attributes.iter().cloned().collect(),
     }
 }
 
@@ -248,6 +251,7 @@ fn org_from_save(s: OrgSave) -> Organism {
     o.pregnancy_start     = s.pregnancy_start;
     o.conversations       = s.conversations.into_iter().collect();
     o.father_id           = s.father_id;
+    o.attributes          = s.attributes.into_iter().collect();
     if needs_vocab {
         let mut voc_rng = rand::rngs::SmallRng::seed_from_u64(vocab_seed);
         o.vocabulary = crate::organism::vocabulary::Vocabulary::generate(&mut voc_rng);

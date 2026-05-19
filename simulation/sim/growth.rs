@@ -3,6 +3,7 @@ use uuid::Uuid;
 use crate::organism::organism::{Organism, generate_name, N_ACTIONS, Sex, apply_sex_traits};
 use crate::organism::traits::Traits;
 use crate::organism::vocabulary::Vocabulary;
+use crate::organism::attributes::{assign_birth_attributes, check_earned_attributes};
 use crate::world::{grid::WorldGrid, tiles::{Tile, Biome}};
 use super::config::MAX_POPULATION;
 use super::simulation::{Event, History};
@@ -53,6 +54,8 @@ pub fn spawn_organism_with_home(
     org.home_y = home_y;
     org.sex = sex;
     org.vocabulary = Vocabulary::generate(rng);
+    assign_birth_attributes(&mut org, rng);
+    check_earned_attributes(&mut org);
 
     let ix = x as i32; let iy = y as i32;
     for dx in -6i32..=6 {
@@ -259,6 +262,8 @@ pub fn try_reproduce(
     child.alive     = false;
     child.age       = 0;
     child.father_id = Some(partner_id.clone());
+    assign_birth_attributes(&mut child, rng);
+    check_earned_attributes(&mut child);
 
     let parent_name = organisms[org_idx].name.clone();
     organisms[org_idx].think("expecting", tick);

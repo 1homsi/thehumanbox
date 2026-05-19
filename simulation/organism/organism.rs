@@ -236,6 +236,9 @@ pub struct Organism {
     // Named friends: org_id → name. Forms from repeated positive interaction.
     // Unlike org_trust (which is anonymous and decays), friendships are recognized bonds.
     pub friends: HashMap<String, String>,
+
+    // Accumulated descriptors: birth traits (handsome, curious) + earned ones (builder, sage).
+    pub attributes: HashSet<String>,
 }
 
 impl Organism {
@@ -318,6 +321,7 @@ impl Organism {
             inv_stone:       0,
             conversations:   VecDeque::new(),
             friends:         HashMap::new(),
+            attributes:      HashSet::new(),
         }
     }
 
@@ -504,6 +508,7 @@ impl Organism {
         self.discoveries.clear();
         self.conversations.clear();
         self.friends.clear();
+        self.attributes.clear();
     }
 
     pub fn decay_memory(&mut self) {
@@ -896,6 +901,11 @@ impl Organism {
             friends:     if include_cold && !self.friends.is_empty() {
                 Some(self.friends.clone())
             } else { None },
+            attributes:  if include_cold && !self.attributes.is_empty() {
+                let mut v: Vec<String> = self.attributes.iter().cloned().collect();
+                v.sort();
+                Some(v)
+            } else { None },
         }
     }
 
@@ -1140,6 +1150,7 @@ pub struct OrgJson {
     #[serde(default, skip_serializing_if = "Option::is_none")] pub home_y:      Option<f32>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub is_elder:    Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub friends:     Option<HashMap<String, String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub attributes:  Option<Vec<String>>,
 }
 
 #[derive(Serialize)]

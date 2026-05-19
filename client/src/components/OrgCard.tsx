@@ -110,6 +110,17 @@ function OrgCardImpl({ orgId }: OrgCardProps) {
 
       <div className="org-thought">{org.thought}</div>
 
+      {org.attributes && org.attributes.length > 0 && (
+        <div className="org-attributes">
+          {org.attributes.slice(0, 8).map(attr => (
+            <span key={attr} className="org-attr-tag">{attr}</span>
+          ))}
+          {org.attributes.length > 8 && (
+            <span className="org-attr-tag org-attr-more">+{org.attributes.length - 8}</span>
+          )}
+        </div>
+      )}
+
       <Bar label="E" value={org.energy}    color="#55dd55" tip="Energy - depletes over time, restored by eating food tiles. At 0% the organism starves." />
       <Bar label="H" value={org.hydration} color="#4499ff" tip="Hydration - depletes over time, restored by drinking water. At 0% the organism dehydrates." />
       <Bar label="♥" value={org.health}    color="#ff6644" tip="Health - damaged by starvation, infection, and combat. Recovers slowly when needs are met." />

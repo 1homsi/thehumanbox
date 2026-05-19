@@ -435,6 +435,29 @@ body {
   font-family: monospace;
 }
 
+/* Organism attribute tags */
+.org-attributes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 3px;
+  margin-bottom: 1px;
+}
+.org-attr-tag {
+  font-size: 7px;
+  font-family: monospace;
+  color: #b8a080;
+  background: #1e1810;
+  border: 1px solid #3a2e1e;
+  border-radius: 2px;
+  padding: 1px 4px;
+  letter-spacing: 0.03em;
+}
+.org-attr-more {
+  color: #665544;
+  border-color: #2a2010;
+}
+
 /* Traits mini bars */
 .trait-grid {
   display: grid;

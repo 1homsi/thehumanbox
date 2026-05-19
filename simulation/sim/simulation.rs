@@ -4,6 +4,7 @@ use serde::{Serialize, Deserialize};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::io;
 use crate::organism::organism::{Organism, DIRECTIONS, generate_tribe_name};
+use crate::organism::attributes::check_earned_attributes;
 use crate::organism::animal::{Animal, AnimalKind};
 use crate::world::{grid::{WorldGrid, TrailKind, WIDTH, HEIGHT}, tiles::Tile};
 use crate::physics::engine::PhysicsEngine;
@@ -1749,21 +1750,24 @@ impl Simulation {
         }
 
         if self.tick_count % 2000 == (idx as u64 % 2000) {
-            let org = &mut self.organisms[idx];
-            if org.danger_memory.len() > 15 {
-                org.traits.aggression = (org.traits.aggression + 0.005).min(1.0);
-                org.traits.fear       = (org.traits.fear       + 0.003).min(1.0);
+            {
+                let org = &mut self.organisms[idx];
+                if org.danger_memory.len() > 15 {
+                    org.traits.aggression = (org.traits.aggression + 0.005).min(1.0);
+                    org.traits.fear       = (org.traits.fear       + 0.003).min(1.0);
+                }
+                let social_success = org.lineage_attitudes.values().filter(|&&v| v > 0.3).count();
+                if social_success >= 2 {
+                    org.traits.social_tendency = (org.traits.social_tendency + 0.005).min(1.0);
+                }
+                if org.food_memory.len() > 20 {
+                    org.traits.curiosity = (org.traits.curiosity + 0.003).min(1.0);
+                }
+                if org.health < 0.4 {
+                    org.traits.resilience = (org.traits.resilience + 0.004).min(1.0);
+                }
             }
-            let social_success = org.lineage_attitudes.values().filter(|&&v| v > 0.3).count();
-            if social_success >= 2 {
-                org.traits.social_tendency = (org.traits.social_tendency + 0.005).min(1.0);
-            }
-            if org.food_memory.len() > 20 {
-                org.traits.curiosity = (org.traits.curiosity + 0.003).min(1.0);
-            }
-            if org.health < 0.4 {
-                org.traits.resilience = (org.traits.resilience + 0.004).min(1.0);
-            }
+            check_earned_attributes(&mut self.organisms[idx]);
         }
 
         let season = self.season();
