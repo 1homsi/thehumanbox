@@ -588,7 +588,17 @@ impl Simulation {
 
         let hungry = self.organisms[idx].energy < 0.55;
         let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
-        let prey_nearby = if hungry {
+        let fear_trait = self.organisms[idx].traits.fear;
+
+        // Wolf flee: instinctive — higher fear trait = larger detection radius
+        let wolf_flee_radius = 6.0 + fear_trait * 8.0;
+        let wolf_threat = self.animals.iter()
+            .filter(|a| a.alive && matches!(a.kind, AnimalKind::Wolf))
+            .map(|a| ((a.x - ox).abs() + (a.y - oy).abs(), a.x, a.y))
+            .filter(|&(d, _, _)| d <= wolf_flee_radius)
+            .min_by(|(a, _, _), (b, _, _)| a.partial_cmp(b).unwrap());
+
+        let prey_nearby = if hungry && wolf_threat.is_none() {
             self.animals.iter()
                 .filter(|a| a.alive && !matches!(a.kind, AnimalKind::Wolf))
                 .map(|a| ((a.x - ox).abs() + (a.y - oy).abs(), a.x, a.y))
@@ -598,7 +608,28 @@ impl Simulation {
             None
         };
 
-        let (action, new_thought): (usize, Option<String>) = if let Some((_, ax, ay)) = prey_nearby {
+        let (action, new_thought): (usize, Option<String>) = if let Some((_, wx, wy)) = wolf_threat {
+            let fdx = (ox - wx).signum();
+            let fdy = (oy - wy).signum();
+            let dir = match (fdx as i32, fdy as i32) {
+                ( 0, -1) => 0, ( 0,  1) => 1, (-1,  0) => 2, ( 1,  0) => 3,
+                (-1, -1) => 4, ( 1, -1) => 5, (-1,  1) => 6, ( 1,  1) => 7,
+                _        => 0,
+            };
+            // Set a distant flee target so they keep running after the wolf leaves range
+            let flee_dist = 20.0 + fear_trait * 30.0;
+            let tx = ((ox + fdx * flee_dist).round() as i32)
+                .clamp(5, crate::world::grid::WIDTH  as i32 - 5);
+            let ty = ((oy + fdy * flee_dist).round() as i32)
+                .clamp(5, crate::world::grid::HEIGHT as i32 - 5);
+            self.organisms[idx].wander_target = Some((tx, ty));
+            self.organisms[idx].fear_level = (self.organisms[idx].fear_level + 0.12).min(1.0);
+            // Burn wolf location into danger memory
+            let wx_i = wx as i32; let wy_i = wy as i32;
+            let prev = self.organisms[idx].danger_memory.get(&(wx_i, wy_i)).copied().unwrap_or(0.0);
+            self.organisms[idx].danger_memory.insert((wx_i, wy_i), (prev + 0.4).min(1.0));
+            (dir, Some("wolf! run!".to_string()))
+        } else if let Some((_, ax, ay)) = prey_nearby {
             let dx = (ax - ox).signum();
             let dy = (ay - oy).signum();
             let dir = match (dx as i32, dy as i32) {
