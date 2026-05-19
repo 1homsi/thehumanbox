@@ -7,6 +7,7 @@ use tokio::sync::{Mutex, mpsc};
 
 use crate::llm::{GroqResponse, THINK_LLM_MODEL, THINK_LLM_URL, llm_body_with_stop, llm_extract, strip_thinking};
 use crate::llm_stats::SharedLlmStats;
+use crate::llm_rate::SharedGroqLimiter;
 use crate::sim::local_think;
 use crate::sim::simulation::ThinkTrigger;
 
@@ -582,6 +583,7 @@ pub async fn think_worker(
     results: Arc<Mutex<Vec<ThinkResult>>>,
     api_key: String,
     stats: SharedLlmStats,
+    limiter: Option<SharedGroqLimiter>,
 ) {
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(18))
@@ -621,6 +623,10 @@ pub async fn think_worker(
 
         println!("[think] {} scenario={}{}", trigger.org_name, trigger.scenario,
             if attempt > 0 { format!(" (retry {})", attempt) } else { String::new() });
+
+        if let Some(ref l) = limiter {
+            l.acquire().await;
+        }
 
         let started = std::time::Instant::now();
         let response = match client.post(&**THINK_LLM_URL)

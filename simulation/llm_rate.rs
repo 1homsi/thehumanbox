@@ -44,3 +44,19 @@ impl GroqRateLimiter {
 }
 
 pub type SharedGroqLimiter = Arc<GroqRateLimiter>;
+
+pub fn url_needs_groq_quota(url: &str) -> bool {
+    let lower = url.to_ascii_lowercase();
+    if lower.contains("groq") { return true }
+    if lower.contains("localhost") || lower.contains("127.0.0.1") || lower.contains("0.0.0.0") {
+        return false
+    }
+    if lower.contains("://10.") || lower.contains("://192.168.")
+        || lower.contains("://172.16.") || lower.contains("://172.17.")
+        || lower.contains("://172.18.") || lower.contains("://172.19.")
+        || lower.contains("://172.2") || lower.contains("://172.30.")
+        || lower.contains("://172.31.") {
+        return false
+    }
+    false
+}

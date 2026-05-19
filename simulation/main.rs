@@ -159,7 +159,13 @@ async fn main() {
         let results_w = think_results.clone();
         let key = think_key.clone();
         let stats = llm_stats.clone();
-        tokio::spawn(think_worker(think_rx, results_w, key, stats));
+        let think_limiter = if llm_rate::url_needs_groq_quota(&THINK_LLM_URL) {
+            println!("[groq] think lane points at Groq — applying shared rate limit");
+            Some(groq_limiter.clone())
+        } else {
+            None
+        };
+        tokio::spawn(think_worker(think_rx, results_w, key, stats, think_limiter));
     }
     {
         let store_w = convo_store.clone();
