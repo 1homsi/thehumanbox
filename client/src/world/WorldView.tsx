@@ -584,25 +584,71 @@ function drawWorldOnCanvas(
       }
 
       if (t === 8) {
-        ctx.fillStyle = 'rgba(255,220,120,0.18)'
-        ctx.fillRect(px - TILE, py - TILE, TILE * 3, TILE * 3)
-        if (TILE >= 8) {
-          const cx2 = px + TILE / 2
-          ctx.fillStyle = '#6b3a0a'
-          ctx.beginPath()
-          ctx.moveTo(cx2, py + 1)
-          ctx.lineTo(px + TILE - 1, py + TILE * 0.55)
-          ctx.lineTo(px + 1,        py + TILE * 0.55)
-          ctx.closePath()
-          ctx.fill()
-          ctx.fillStyle = '#c8a060'
-          ctx.fillRect(px + 2, py + TILE * 0.55, TILE - 4, TILE * 0.45 - 1)
-          ctx.fillStyle = '#3a1a00'
-          ctx.fillRect(cx2 - 1, py + TILE * 0.7, 3, TILE * 0.3 - 1)
-        } else {
-          ctx.fillStyle = '#c8a060'
-          ctx.fillRect(px, py, TILE, TILE)
+        // Draw hut 2x larger than a tile, centered over the tile
+        const BW = TILE * 2
+        const BH = TILE * 2
+        const bx = px - TILE / 2
+        const by = py - TILE / 2
+        // Ambient glow (settlement warmth)
+        ctx.fillStyle = 'rgba(255,215,110,0.18)'
+        ctx.fillRect(bx - TILE, by - TILE, BW + TILE * 2, BH + TILE * 2)
+        // Roof
+        ctx.fillStyle = '#5a2e08'
+        ctx.beginPath()
+        ctx.moveTo(bx + BW / 2, by)
+        ctx.lineTo(bx + BW,     by + BH * 0.44)
+        ctx.lineTo(bx,          by + BH * 0.44)
+        ctx.closePath()
+        ctx.fill()
+        // Walls
+        ctx.fillStyle = '#b89060'
+        ctx.fillRect(bx + 1, by + BH * 0.44, BW - 2, BH * 0.56 - 1)
+        // Door
+        ctx.fillStyle = '#2a1000'
+        ctx.fillRect(bx + BW / 2 - 2, by + BH * 0.60, 4, BH * 0.36 - 1)
+        // Windows
+        ctx.fillStyle = 'rgba(255,230,140,0.60)'
+        ctx.fillRect(bx + 3,       by + BH * 0.50, 3, 3)
+        ctx.fillRect(bx + BW - 6,  by + BH * 0.50, 3, 3)
+      }
+    }
+  }
+
+  // Settlement markers: draw a subtle ring around clusters of 3+ huts
+  {
+    const hutPositions: [number, number][] = []
+    for (let row = 0; row < height; row++) {
+      const tr = tiles[row]
+      if (!tr) continue
+      for (let col = 0; col < width; col++) {
+        if (tr[col] === 8) hutPositions.push([col, row])
+      }
+    }
+    if (hutPositions.length >= 3) {
+      const usedInCluster = new Set<number>()
+      for (let i = 0; i < hutPositions.length; i++) {
+        if (usedInCluster.has(i)) continue
+        const [hx, hy] = hutPositions[i]
+        const cluster = [i]
+        for (let j = i + 1; j < hutPositions.length; j++) {
+          const [jx, jy] = hutPositions[j]
+          const d2 = (hx - jx) ** 2 + (hy - jy) ** 2
+          if (d2 < 64) { cluster.push(j); usedInCluster.add(j) }
         }
+        usedInCluster.add(i)
+        if (cluster.length < 3) continue
+        const cx2 = cluster.reduce((s, k) => s + hutPositions[k][0], 0) / cluster.length
+        const cy2 = cluster.reduce((s, k) => s + hutPositions[k][1], 0) / cluster.length
+        const r2 = Math.sqrt(cluster.length) * TILE * 2.2 + TILE * 3
+        const px2 = cx2 * TILE + TILE / 2
+        const py2 = cy2 * TILE + TILE / 2
+        ctx.save()
+        ctx.strokeStyle = `rgba(200,170,80,${Math.min(0.45, 0.20 + cluster.length * 0.04)})`
+        ctx.lineWidth = 1.2
+        ctx.setLineDash([4, 3])
+        ctx.beginPath(); ctx.arc(px2, py2, r2, 0, Math.PI * 2); ctx.stroke()
+        ctx.setLineDash([])
+        ctx.restore()
       }
     }
   }
@@ -1001,6 +1047,22 @@ function drawWorldOnCanvas(
     ctx.restore()
   }
 
+  // Always show high-traffic paths subtly (helps map feel lived-in)
+  if (path_trail) {
+    ctx.save()
+    for (let row = 0; row < height; row++) {
+      const pr = path_trail[row]
+      if (!pr) continue
+      for (let col = 0; col < width; col++) {
+        const p = pr[col] ?? 0
+        if (p < 0.55) continue
+        ctx.fillStyle = `rgba(160,130,80,${Math.min(0.28, p * 0.30)})`
+        ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
+      }
+    }
+    ctx.restore()
+  }
+
   if (viewFlags.trails && (food_trail || water_trail || path_trail)) {
     ctx.save()
     for (let row = 0; row < height; row++) {
@@ -1104,6 +1166,17 @@ function drawWorldOnCanvas(
 
   for (const org of organisms) {
     if (!org.alive) continue
+    // Hide organisms inside their home (resting/sleeping at home position)
+    {
+      const th = (org.thought || '').toLowerCase()
+      const resting = th.includes('rest') || th.includes('sleep') || th.includes('nap')
+        || th.includes('meditat') || th.includes('daydream') || th.includes('reflecting')
+        || th.includes('sheltering') || th.includes('returning home') || th.includes('settling in')
+      if (resting && org.home_x && org.home_y) {
+        const ddx = org.x - org.home_x; const ddy = org.y - org.home_y
+        if (ddx * ddx + ddy * ddy < 2.0) continue
+      }
+    }
     const px = (org.x - ox) * TILE + TILE / 2
     const py = (org.y - oy) * TILE + TILE / 2
     const focused = isFocused(org)

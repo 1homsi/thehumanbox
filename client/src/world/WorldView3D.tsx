@@ -323,6 +323,7 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
                   depthMap={grid.depth_map!}
                   width={grid.width}
                   height={grid.height}
+                  pathTrail={grid.path_trail}
                 />
                 <Humans3D
                   organisms={world.viewport_organisms ?? world.organisms ?? []}
