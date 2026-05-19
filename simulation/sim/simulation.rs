@@ -637,7 +637,25 @@ impl Simulation {
             None
         };
 
-        let (action, new_thought): (usize, Option<String>) = if let Some((_, wx, wy)) = wolf_threat {
+        // Need-driven construction: during storms, organisms with wood and no nearby shelter
+        // urgently build wherever they're standing if the tile allows it.
+        let storm_build: Option<(usize, Option<String>)> = if self.weather.kind >= 2
+            && self.organisms[idx].inv_wood >= 1
+        {
+            let (bx, by) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
+            let shelter_nearby = (-3i32..=3).any(|dx| (-3i32..=3).any(|dy|
+                matches!(self.grid.get(bx + dx, by + dy), Tile::Hut | Tile::Rock)));
+            if !shelter_nearby {
+                let tile = self.grid.get(bx, by);
+                if matches!(tile, Tile::Grass | Tile::Sand | Tile::Snow) {
+                    Some((49, Some("must build shelter now!".to_string())))
+                } else { None }
+            } else { None }
+        } else { None };
+
+        let (action, new_thought): (usize, Option<String>) = if let Some(sb) = storm_build {
+            sb
+        } else if let Some((_, wx, wy)) = wolf_threat {
             let fdx = (ox - wx).signum();
             let fdy = (oy - wy).signum();
             let dir = match (fdx as i32, fdy as i32) {
