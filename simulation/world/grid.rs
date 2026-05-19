@@ -181,6 +181,14 @@ impl WorldGrid {
         }
     }
 
+    pub fn restore_fertility(&mut self, x: i32, y: i32, amount: f32) {
+        if Self::in_bounds(x, y) {
+            let i = Self::idx(x, y);
+            let biome_cap = Biome::from_u8(self.biome[i]).base_fertility().min(1.0);
+            self.fertility[i] = (self.fertility[i] + amount).min(biome_cap);
+        }
+    }
+
     pub fn add_hazard(&mut self, x: i32, y: i32, amount: f32) {
         if Self::in_bounds(x, y) {
             let i = Self::idx(x, y);
