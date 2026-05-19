@@ -1262,15 +1262,12 @@ function drawWorldOnCanvas(
 
   for (const org of organisms) {
     if (!org.alive) continue
-    // Hide organisms inside their home (resting/sleeping at home position)
-    {
-      const th = (org.thought || '').toLowerCase()
-      const resting = th.includes('rest') || th.includes('sleep') || th.includes('nap')
-        || th.includes('meditat') || th.includes('daydream') || th.includes('reflecting')
-        || th.includes('sheltering') || th.includes('returning home') || th.includes('settling in')
-      if (resting && org.home_x && org.home_y) {
-        const ddx = org.x - org.home_x; const ddy = org.y - org.home_y
-        if (ddx * ddx + ddy * ddy < 2.0) continue
+    // Data-driven house entry: use actual sleep_debt, energy, health fields — no text matching
+    if (org.home_x && org.home_y) {
+      const ddx = org.x - org.home_x; const ddy = org.y - org.home_y
+      if (ddx * ddx + ddy * ddy < 2.0) {
+        if ((org as any).sleep_debt > 0.40 || org.energy < 0.10 || org.health < 0.15)
+          continue
       }
     }
     const px = (org.x - ox) * TILE + TILE / 2
@@ -1334,7 +1331,14 @@ function drawWorldOnCanvas(
     const variant = orgVariant(org.id)
     const bodyR = variant.bodyRadius * (org.sex === 'male' ? 1.05 : 0.95)
 
-    let bodyFill = THOUGHT_COLORS[org.thought] ?? '#cccccc'
+    // Body fill: data-driven emotional state overrides thought colors when strong
+    let bodyFill: string
+    if (org.infection > 0.38)             bodyFill = 'hsl(85,60%,48%)'
+    else if ((org.fear_level ?? 0) > 0.72) bodyFill = 'hsl(10,70%,48%)'
+    else if ((org.grief_ticks ?? 0) > 12) bodyFill = 'hsl(220,50%,50%)'
+    else if (org.energy < 0.12)           bodyFill = 'hsl(38,55%,38%)'
+    else                                  bodyFill = THOUGHT_COLORS[org.thought] ?? '#cccccc'
+
     if (viewFlags.health) {
       const h = Math.max(0, Math.min(1, org.health))
       const r = Math.round(220 * (1 - h) + 80 * h)
