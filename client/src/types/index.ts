@@ -62,6 +62,7 @@ export interface OrganismState {
   attracted_to?:   string | null
   vocabulary?:         Record<string, string>
   conversation_count?: number
+  friends?:            Record<string, string>
 }
 
 export interface OrgDetail extends OrganismState {

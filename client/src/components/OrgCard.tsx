@@ -155,6 +155,17 @@ function OrgCardImpl({ orgId }: OrgCardProps) {
         </div>
       )}
 
+      {org.friends && Object.keys(org.friends).length > 0 && (
+        <div className="org-attitudes">
+          <span style={{ fontSize: '7px', color: '#ffd070', marginRight: 2 }}>friends:</span>
+          {Object.values(org.friends).slice(0, 3).map(name => (
+            <span key={name} className="attitude-tag" style={{ color: '#ffd070', fontSize: '7px' }}>
+              ♦{name}
+            </span>
+          ))}
+        </div>
+      )}
+
       {org.org_trust && Object.keys(org.org_trust).length > 0 && (
         <div className="org-attitudes">
           {Object.entries(org.org_trust)

@@ -18,20 +18,30 @@ function connectionStrength(a: OrganismState, b: OrganismState): number {
   let s = 0
   if (a.partner_id === b.id || b.partner_id === a.id) s += 1.0   // partners
   if (a.parent_id  === b.id || b.parent_id  === a.id) s += 0.7   // parent-child
-  if (a.lineage_id === b.lineage_id)                  s += 0.25  // same tribe
-  if ((a.org_trust?.[b.id] ?? 0) > 0.6)              s += 0.4   // high trust
-  if ((b.org_trust?.[a.id] ?? 0) > 0.6)              s += 0.4
+  if (a.friends?.[b.id])                              s += 0.65  // named friend
+  if (b.friends?.[a.id])                              s += 0.35  // reciprocal
+  if (a.lineage_id === b.lineage_id)                  s += 0.20  // same tribe
+  if ((a.org_trust?.[b.id] ?? 0) > 0.6)              s += 0.3   // high trust
+  if ((b.org_trust?.[a.id] ?? 0) > 0.6)              s += 0.3
   return s
 }
 
-const MAX_BEAMS   = 60
-const BEAM_DIST   = 6   // tile units
+// RGB triplet per beam type — vertex colors so each segment can differ
+function beamRGB(a: OrganismState, b: OrganismState): [number, number, number] {
+  if (a.partner_id === b.id || b.partner_id === a.id) return [1.0, 0.69, 0.82]  // partners: pink
+  if (a.friends?.[b.id] || b.friends?.[a.id])         return [1.0, 0.82, 0.44]  // friends: amber
+  return [0.66, 0.85, 1.0]                                                        // kin: blue-white
+}
+
+const MAX_BEAMS    = 60
+const BEAM_DIST    = 6   // tile units
 const MIN_STRENGTH = 0.5
 
 export function SocialBeams({ organisms, depthMap, biomes }: Props) {
-  const geomRef  = useRef<THREE.BufferGeometry>(null)
-  const matRef   = useRef<THREE.LineBasicMaterial>(null)
-  const posArray = useMemo(() => new Float32Array(MAX_BEAMS * 6), [])
+  const geomRef    = useRef<THREE.BufferGeometry>(null)
+  const matRef     = useRef<THREE.LineBasicMaterial>(null)
+  const posArray   = useMemo(() => new Float32Array(MAX_BEAMS * 6), [])
+  const colorArray = useMemo(() => new Float32Array(MAX_BEAMS * 6), [])  // RGB per vertex
 
   useFrame(({ clock }) => {
     const geom = geomRef.current
@@ -62,15 +72,21 @@ export function SocialBeams({ organisms, depthMap, biomes }: Props) {
         posArray[base + 3] = bx * TILE_SCALE
         posArray[base + 4] = bgy + 1.5
         posArray[base + 5] = bz * TILE_SCALE
+
+        const [r, g, bv] = beamRGB(a, b)
+        colorArray[base + 0] = r;  colorArray[base + 1] = g;  colorArray[base + 2] = bv
+        colorArray[base + 3] = r;  colorArray[base + 4] = g;  colorArray[base + 5] = bv
         n++
       }
     }
 
-    const attr = geom.getAttribute('position') as THREE.BufferAttribute
-    attr.needsUpdate = true
+    const posAttr = geom.getAttribute('position') as THREE.BufferAttribute
+    posAttr.needsUpdate = true
+    const colAttr = geom.getAttribute('color') as THREE.BufferAttribute
+    colAttr.needsUpdate = true
     geom.setDrawRange(0, n * 2)
 
-    // Heartbeat pulse driven by clock — not hardcoded timing
+    // Heartbeat pulse driven by clock
     mat.opacity = 0.18 + Math.sin(t * 2.2) * 0.10
   })
 
@@ -82,10 +98,15 @@ export function SocialBeams({ organisms, depthMap, biomes }: Props) {
           args={[posArray, 3]}
           count={MAX_BEAMS * 2}
         />
+        <bufferAttribute
+          attach="attributes-color"
+          args={[colorArray, 3]}
+          count={MAX_BEAMS * 2}
+        />
       </bufferGeometry>
       <lineBasicMaterial
         ref={matRef}
-        color="#a8daff"
+        vertexColors
         transparent
         opacity={0.22}
         depthWrite={false}
