@@ -11,7 +11,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         return 0.0;
     };
     ctx.sim.organisms[ki].inv_food -= 1;
-    ctx.sim.organisms[ctx.idx].inv_food += 1;
+    ctx.sim.organisms[ctx.idx].inv_food =     ctx.sim.organisms[ctx.idx].inv_food.saturating_add(1);
     ctx.think("receiving caravan goods");
     ctx.event("trade", "received a caravan delivering food");
     0.008

@@ -3,7 +3,7 @@ use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     if ctx.chance(0.3) {
-        ctx.sim.organisms[ctx.idx].inv_food += 1;
+        ctx.sim.organisms[ctx.idx].inv_food =         ctx.sim.organisms[ctx.idx].inv_food.saturating_add(1);
         ctx.think("smuggled goods successfully");
         0.007
     } else {

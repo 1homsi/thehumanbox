@@ -6,7 +6,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let season_tick = ctx.tick % 12000;
     if season_tick < 6000 || season_tick >= 9000 { return 0.0; }
     if !matches!(ctx.tile, Tile::Food) { return 0.0; }
-    ctx.org_mut().inv_food += 1;
+    ctx.org_mut().inv_food =     ctx.org_mut().inv_food.saturating_add(1);
     ctx.think("gathering autumn fruits and berries");
     ctx.discover("gathering_tradition", "established an autumn gathering tradition");
     0.008

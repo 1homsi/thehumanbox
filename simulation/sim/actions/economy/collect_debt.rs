@@ -10,7 +10,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         return 0.0;
     }
     if ctx.chance(0.4) {
-        ctx.sim.organisms[ctx.idx].inv_wood += 1;
+        ctx.sim.organisms[ctx.idx].inv_wood =         ctx.sim.organisms[ctx.idx].inv_wood.saturating_add(1);
         ctx.think("collected the debt");
         0.008
     } else {

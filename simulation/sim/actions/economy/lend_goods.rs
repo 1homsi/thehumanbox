@@ -14,7 +14,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         return 0.0;
     };
     ctx.sim.organisms[ctx.idx].inv_wood -= 1;
-    ctx.sim.organisms[ki].inv_wood += 1;
+    ctx.sim.organisms[ki].inv_wood =     ctx.sim.organisms[ki].inv_wood.saturating_add(1);
     let their = ctx.sim.organisms[ki].lineage_id.clone();
     ctx.sim.organisms[ctx.idx].update_attitude(&their, 0.1);
     ctx.think("lending wood in good faith");
