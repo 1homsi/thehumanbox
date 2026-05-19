@@ -15,46 +15,35 @@ interface Props {
 
 const BADGE_RADIUS_SQ = 180 * 180
 
+// Entirely data-driven: every badge comes from a real numeric field on OrganismState.
+// No thought-text matching here — the server's AI drives the numbers, we visualize them.
 function badgesFor(o: OrganismState): { text: string; color: string }[] {
   const out: { text: string; color: string }[] = []
-  const th = (o.thought || '').toLowerCase()
 
-  // Status
-  if (th.includes('sleep') || th.includes('nap') || th.includes('daydream'))
-    out.push({ text: 'z', color: '#a8c0e0' })
-  if (o.pregnant)
-    out.push({ text: '♥', color: '#ff8aa8' })
-  if (o.is_elder)
-    out.push({ text: '◈', color: '#ffcf6a' })
-  if ((o.fear_level ?? 0) > 0.60)
-    out.push({ text: '!', color: '#ff7050' })
-  if (o.attracted_to)
-    out.push({ text: '✦', color: '#ffa0d0' })
+  // Survival needs (actual thresholds, not text)
+  if (o.energy < 0.22)                         out.push({ text: '▽', color: '#ff9040' }) // hungry
+  if (o.hydration < 0.22)                      out.push({ text: '≈', color: '#40b0ff' }) // thirsty
+  if (o.infection > 0.22)                      out.push({ text: '+', color: '#80ff44' }) // infected
+  if ((o.sleep_debt ?? 0) > 0.50)              out.push({ text: 'z', color: '#a8c0e0' }) // sleep-deprived
 
-  // Activities — make the AI feel alive and purposeful
-  if (th.includes('building') || th.includes('constructing') || th.includes('building shelter'))
-    out.push({ text: '⊞', color: '#f0c040' })
-  if (th.includes('tilling') || th.includes('foraging') || th.includes('gathering') || th.includes('farming'))
-    out.push({ text: '✿', color: '#80d840' })
-  if (th.includes('singing') || th.includes('dancing') || th.includes('dance') || th.includes('celebrat'))
-    out.push({ text: '♩', color: '#d080ff' })
-  if (th.includes('socializing') || th.includes('chatting') || th.includes('conversation')
-      || th.includes('greeting') || th.includes('treaty'))
-    out.push({ text: '◉', color: '#60c8f0' })
-  if (th.includes('hunting') || th.includes('tracking') || th.includes('stalking'))
-    out.push({ text: '◎', color: '#e07830' })
-  if (th.includes('storing') || th.includes('carrying') || th.includes('transporting'))
-    out.push({ text: '▣', color: '#c09060' })
+  // Emotional state (actual fields)
+  if ((o.fear_level ?? 0) > 0.58)              out.push({ text: '!', color: '#ff7050' }) // afraid
+  if ((o.grief_ticks ?? 0) > 12)               out.push({ text: '◌', color: '#6090c0' }) // grieving
+  if ((o.loneliness ?? 0) > 0.65)              out.push({ text: '○', color: '#8080c0' }) // isolated
+  if ((o.boredom ?? 0) > 0.70)                 out.push({ text: '·', color: '#909090' }) // bored
 
-  // Emotional states
-  if (o.grief_ticks && o.grief_ticks > 15)
-    out.push({ text: '◌', color: '#6090c0' })
-  if (o.infection > 0.30)
-    out.push({ text: '+', color: '#80ff44' })
-  if ((o.loneliness ?? 0) > 0.7)
-    out.push({ text: '○', color: '#8080c0' })
+  // Relational / life events
+  if (o.pregnant)                              out.push({ text: '♥', color: '#ff8aa8' }) // pregnant
+  if (o.attracted_to)                          out.push({ text: '♡', color: '#ffa0c0' }) // attracted
+  if (o.carrying > 0)                          out.push({ text: '▣', color: '#c09060' }) // carrying something
+  if ((o.comfort ?? 0) > 0.80)                 out.push({ text: '✦', color: '#ffe080' }) // comfortable
 
-  // Cap to avoid cluttered badges
+  // Status markers
+  if (o.is_elder)                              out.push({ text: '◈', color: '#ffcf6a' }) // elder
+  if ((o.traits?.aggression ?? 0) > 0.80)      out.push({ text: '⚡', color: '#ff5020' }) // aggressive trait
+  if ((o.traits?.social_tendency ?? 0) > 0.80) out.push({ text: '◉', color: '#60c8f0' }) // highly social
+
+  // Cap at 3 to avoid clutter
   return out.slice(0, 3)
 }
 
