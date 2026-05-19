@@ -54,6 +54,8 @@ export interface OrganismState {
   comfort?:     number
   grief_ticks?: number
   sleep_debt?:  number
+  vx?: number
+  vy?: number
   partner_id?:     string | null
   father_id?:      string | null
   children_count?: number

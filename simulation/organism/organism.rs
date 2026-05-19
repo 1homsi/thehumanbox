@@ -1006,6 +1006,8 @@ pub struct OrgsHotSoa {
     pub ids:            Vec<String>,
     pub xs:             Vec<i16>,
     pub ys:             Vec<i16>,
+    pub vxs:            Vec<i16>,
+    pub vys:            Vec<i16>,
     pub energies:       Vec<u8>,
     pub hydrations:     Vec<u8>,
     pub healths:        Vec<u8>,
@@ -1037,6 +1039,8 @@ impl OrgsHotSoa {
             ids:            Vec::with_capacity(n),
             xs:             Vec::with_capacity(n),
             ys:             Vec::with_capacity(n),
+            vxs:            Vec::with_capacity(n),
+            vys:            Vec::with_capacity(n),
             energies:       Vec::with_capacity(n),
             hydrations:     Vec::with_capacity(n),
             healths:        Vec::with_capacity(n),
@@ -1056,9 +1060,14 @@ impl OrgsHotSoa {
     pub fn push(&mut self, o: &Organism, lookahead_ticks: f32) {
         let pred_x = o.x + o.vx_smooth * lookahead_ticks;
         let pred_y = o.y + o.vy_smooth * lookahead_ticks;
+        // velocity in tiles/sec (* 10 for fixed-point, decoded as /10 on client)
+        let enc_vx = (o.vx_smooth * 100.0).round().clamp(i16::MIN as f32, i16::MAX as f32) as i16;
+        let enc_vy = (o.vy_smooth * 100.0).round().clamp(i16::MIN as f32, i16::MAX as f32) as i16;
         self.ids.push(o.id.clone());
         self.xs.push(q_pos(pred_x));
         self.ys.push(q_pos(pred_y));
+        self.vxs.push(enc_vx);
+        self.vys.push(enc_vy);
         self.energies.push(q_pct(o.energy));
         self.hydrations.push(q_pct(o.hydration));
         self.healths.push(q_pct(o.health));

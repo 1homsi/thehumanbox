@@ -10,6 +10,8 @@ export interface OrgsHotSoa {
   ids:            string[]
   xs:             number[]
   ys:             number[]
+  vxs?:           number[]
+  vys?:           number[]
   energies:       number[]
   hydrations:     number[]
   healths:        number[]
@@ -100,6 +102,8 @@ export function expandOrgsSoa(soa: OrgsHotSoa): OrganismState[] {
       id:            soa.ids[i],
       x:             soa.xs[i] / 10,
       y:             soa.ys[i] / 10,
+      vx:            soa.vxs ? soa.vxs[i] / 10 : undefined,
+      vy:            soa.vys ? soa.vys[i] / 10 : undefined,
       energy:        soa.energies[i] / 100,
       hydration:     soa.hydrations[i] / 100,
       health:        soa.healths[i] / 100,
