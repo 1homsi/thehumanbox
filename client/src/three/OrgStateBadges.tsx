@@ -18,17 +18,44 @@ const BADGE_RADIUS_SQ = 180 * 180
 function badgesFor(o: OrganismState): { text: string; color: string }[] {
   const out: { text: string; color: string }[] = []
   const th = (o.thought || '').toLowerCase()
-  if (th.includes('sleep') || th.includes('resting') || th.includes('nap'))
+
+  // Status
+  if (th.includes('sleep') || th.includes('nap') || th.includes('daydream'))
     out.push({ text: 'z', color: '#a8c0e0' })
   if (o.pregnant)
     out.push({ text: '♥', color: '#ff8aa8' })
   if (o.is_elder)
     out.push({ text: '◈', color: '#ffcf6a' })
-  if ((o.fear_level ?? 0) > 0.6)
+  if ((o.fear_level ?? 0) > 0.60)
     out.push({ text: '!', color: '#ff7050' })
   if (o.attracted_to)
     out.push({ text: '✦', color: '#ffa0d0' })
-  return out
+
+  // Activities — make the AI feel alive and purposeful
+  if (th.includes('building') || th.includes('constructing') || th.includes('building shelter'))
+    out.push({ text: '⊞', color: '#f0c040' })
+  if (th.includes('tilling') || th.includes('foraging') || th.includes('gathering') || th.includes('farming'))
+    out.push({ text: '✿', color: '#80d840' })
+  if (th.includes('singing') || th.includes('dancing') || th.includes('dance') || th.includes('celebrat'))
+    out.push({ text: '♩', color: '#d080ff' })
+  if (th.includes('socializing') || th.includes('chatting') || th.includes('conversation')
+      || th.includes('greeting') || th.includes('treaty'))
+    out.push({ text: '◉', color: '#60c8f0' })
+  if (th.includes('hunting') || th.includes('tracking') || th.includes('stalking'))
+    out.push({ text: '◎', color: '#e07830' })
+  if (th.includes('storing') || th.includes('carrying') || th.includes('transporting'))
+    out.push({ text: '▣', color: '#c09060' })
+
+  // Emotional states
+  if (o.grief_ticks && o.grief_ticks > 15)
+    out.push({ text: '◌', color: '#6090c0' })
+  if (o.infection > 0.30)
+    out.push({ text: '+', color: '#80ff44' })
+  if ((o.loneliness ?? 0) > 0.7)
+    out.push({ text: '○', color: '#8080c0' })
+
+  // Cap to avoid cluttered badges
+  return out.slice(0, 3)
 }
 
 export function OrgStateBadges({ organisms, depthMap, biomes }: Props) {
