@@ -1222,32 +1222,28 @@ function drawWorldOnCanvas(
     ctx.restore()
   }
 
+  const ANIMAL_EMOJI: Record<string, string> = {
+    wolf: '🐺', deer: '🦌', boar: '🐗', rabbit: '🐇',
+    fish: '🐟', bird: '🐦', dog: '🐕',
+  }
   for (const animal of (viewFlags.animals ? animals : [])) {
-    const px = (animal.x - ox) * TILE
-    const py = (animal.y - oy) * TILE
-    const tile = pickAnimalTile(animal.kind, animal.id)
-    const aSize = animal.kind === 'fish' ? 10 : 14
-    const yBase = animal.kind === 'fish' ? -1 : -3
-    const speed   = animal.kind === 'fish' ? 0.0028
-                  : animal.kind === 'bird' ? 0.0050
-                  : animal.kind === 'wolf' || animal.kind === 'dog' ? 0.0042
-                  : 0.0036
-    const amp     = animal.kind === 'fish' ? 1.4 : 0.8
-    const phase   = (t * speed) + (animal.id * 0.7)
-    const yOff    = yBase + Math.sin(phase) * amp
-    if (ATLAS_CREATURE.complete) {
-      drawTile(ctx, ATLAS_CREATURE, tile, px - aSize / 2 + TILE / 2, py + yOff, aSize)
-    } else {
-      const cx = px + TILE / 2; const cy = py + TILE / 2
-      const r  = animal.kind === 'rabbit' || animal.kind === 'bird' ? 2.2
-               : animal.kind === 'fish' ? 2.0
-               : 3.2
-      const c  = animal.kind === 'wolf' ? '#999' : animal.kind === 'dog' ? '#dca070'
-               : animal.kind === 'fish' ? '#5a9090' : animal.kind === 'bird' ? '#b070b0'
-               : animal.kind === 'boar' ? '#5a3a20' : '#7a4e28'
-      ctx.fillStyle = c
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill()
-    }
+    const emoji = ANIMAL_EMOJI[animal.kind] ?? '🐾'
+    const fontSize = animal.kind === 'fish' || animal.kind === 'bird' || animal.kind === 'rabbit' ? 9 : 11
+    const speed = animal.kind === 'fish' ? 0.0028
+                : animal.kind === 'bird' ? 0.0050
+                : animal.kind === 'wolf' || animal.kind === 'dog' ? 0.0042
+                : 0.0036
+    const amp   = animal.kind === 'fish' ? 1.4 : 0.8
+    const phase = (t * speed) + (animal.id * 0.7)
+    const yOff  = Math.sin(phase) * amp
+    const cx = (animal.x - ox) * TILE + TILE / 2
+    const cy = (animal.y - oy) * TILE + TILE / 2 + yOff
+    ctx.save()
+    ctx.font = `${fontSize}px serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(emoji, cx, cy)
+    ctx.restore()
   }
 
   const isFocused = (org: WorldState['organisms'][0]) => {
