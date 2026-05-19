@@ -169,6 +169,414 @@ pub fn deterministic_think_seed(trigger: &ThinkTrigger, attempt: u8) -> u64 {
     mix_bytes(h, &[attempt])
 }
 
+// Translate trait floats into a plain-English personality summary for the LLM.
+fn personality_summary(t: &ThinkTrigger) -> String {
+    let mut parts = Vec::new();
+    if t.aggression > 0.7        { parts.push("aggressive"); }
+    else if t.aggression < 0.3   { parts.push("peaceful"); }
+    if t.curiosity > 0.7         { parts.push("curious"); }
+    else if t.curiosity < 0.3    { parts.push("incurious"); }
+    if t.social_tendency > 0.7   { parts.push("very social"); }
+    else if t.social_tendency < 0.3 { parts.push("solitary"); }
+    if t.fear > 0.7              { parts.push("fearful"); }
+    else if t.fear < 0.3         { parts.push("brave"); }
+    if t.resilience > 0.7        { parts.push("resilient"); }
+    else if t.resilience < 0.3   { parts.push("fragile"); }
+    if parts.is_empty()          { "balanced".to_string() }
+    else                         { parts.join(", ") }
+}
+
+// Build a rich first-person prompt for the given scenario.
+// Returns (prompt_string, token_budget).
+fn build_prompt(trigger: &ThinkTrigger) -> (String, u32) {
+    let name        = &trigger.org_name;
+    let personality = personality_summary(trigger);
+    let emotion     = if trigger.emotional_state.is_empty() { "calm".to_string() }
+                      else { trigger.emotional_state.clone() };
+    let knowledge   = if trigger.discoveries.is_empty() { "nothing yet".to_string() }
+                      else { trigger.discoveries.join(", ") };
+    let memories    = if trigger.life_log_top.is_empty() { "no notable events".to_string() }
+                      else { trigger.life_log_top.join("; ") };
+
+    let preamble = format!(
+        "You are {name}, a primitive creature surviving in a harsh world.\n\
+         Personality: {personality}.\n\
+         Emotional state: {emotion}.\n\
+         Knowledge: {knowledge}.\n\
+         Memories: {memories}.\n"
+    );
+
+    let (scenario_text, action_choices, ticks) = match trigger.scenario.as_str() {
+        "first_contact" => (
+            format!(
+                "You just spotted {} for the first time. They are strangers. Your tribe has {} members nearby.",
+                trigger.other_name.as_deref().unwrap_or("an unknown group"),
+                trigger.kin_count
+            ),
+            "friendly, cautious, hostile",
+            0u64,
+        ),
+        "council" => (
+            format!(
+                "Your tribe of {} is well-fed and safe. As a leader you must decide the tribe's next goal.",
+                trigger.kin_count
+            ),
+            "settle, hunt, explore",
+            0,
+        ),
+        "survival_crisis" => (
+            format!("You are in a survival crisis: {}. You must act immediately.", trigger.context),
+            "food, water, shelter",
+            300,
+        ),
+        "abundance" => (
+            format!(
+                "You have plenty of food and water. {} kin are nearby. You feel free to do something meaningful.",
+                trigger.kin_count
+            ),
+            "build, explore, socialize",
+            400,
+        ),
+        "threat" => (
+            format!(
+                "You sense danger: {}. You have {} allies nearby.",
+                trigger.context, trigger.kin_count
+            ),
+            "fight, flee, trade",
+            250,
+        ),
+        "lonely" => (
+            "You have been alone too long. Loneliness gnaws at you.".to_string(),
+            "seek_kin, find_stranger, wander",
+            500,
+        ),
+        "restless" => (
+            "You are safe and fed but feel an aching restlessness — a need to do something more.".to_string(),
+            "explore, build, create",
+            500,
+        ),
+        "invention" => (
+            format!(
+                "A sudden insight strikes you. You could discover: {}.",
+                trigger.context
+            ),
+            "excited, focused, uncertain",
+            0,
+        ),
+        "reflection" => (
+            format!(
+                "You sit quietly and reflect on your life so far. You feel {}.",
+                trigger.emotional_state
+            ),
+            "braver, more_social, more_curious, more_resilient",
+            0,
+        ),
+        "negotiation" => (
+            format!(
+                "You are meeting {} face to face. They know: {}. You know: {}. There is an opportunity to make a deal.",
+                trigger.other_name.as_deref().unwrap_or("another tribe"),
+                trigger.other_discoveries.join(", "),
+                knowledge
+            ),
+            "territory, food_sharing, defense_pact, knowledge_exchange",
+            0,
+        ),
+        "elder_teaching" => (
+            format!(
+                "You are an elder. A newborn named {} sits before you, eager to learn. You have seen: {}.",
+                trigger.other_name.as_deref().unwrap_or("the child"),
+                memories
+            ),
+            "",  // no ACTION for elder_teaching — free-form teaching
+            0,
+        ),
+        "grief" => (
+            format!("You just lost someone close. Context: {}.", trigger.context),
+            "mourn, rage, endure",
+            0,
+        ),
+        "illness" => (
+            format!("You are gravely ill: {}.", trigger.context),
+            "rest, isolate, seek_help",
+            200,
+        ),
+        "migration" => (
+            format!(
+                "Your tribe of {} faces scarcity. {}.",
+                trigger.kin_count, trigger.context
+            ),
+            "migrate, forage, wait",
+            400,
+        ),
+        "discovery" => (
+            format!("You just discovered: {}.", trigger.context),
+            "excited, grateful, cautious",
+            0,
+        ),
+        _ => return (String::new(), 0),
+    };
+
+    let _ = ticks; // ticks are set during result construction, not in prompt
+
+    let prompt = if trigger.scenario == "elder_teaching" {
+        format!(
+            "{preamble}\n{scenario_text}\n\n\
+             Give ONE piece of wisdom to pass on. \
+             Start with Remember, Always, or Never. Under 12 words.\n\
+             TEACHING: "
+        )
+    } else {
+        format!(
+            "{preamble}\n{scenario_text}\n\n\
+             Respond in EXACTLY this format (no other text):\n\
+             THOUGHT: [your inner thought, 1-2 sentences, first person, as {name}]\n\
+             ACTION: [one word from: {action_choices}]"
+        )
+    };
+
+    let max_tokens = if trigger.scenario == "elder_teaching" { 30 } else { 60 };
+    (prompt, max_tokens)
+}
+
+// Extract the value after a line-prefix like "THOUGHT: " from the LLM response.
+fn extract_tagged(response: &str, tag: &str) -> Option<String> {
+    let lower = response.to_lowercase();
+    let tag_lower = tag.to_lowercase();
+    let start = lower.find(&tag_lower)?;
+    let after = &response[start + tag.len()..];
+    let line = after.lines().next().unwrap_or("").trim();
+    if line.is_empty() { None } else { Some(line.to_string()) }
+}
+
+// Build a ThinkResult from the LLM response for the given scenario.
+fn build_result_from_llm(
+    trigger: &ThinkTrigger,
+    response: &str,
+) -> Option<ThinkResult> {
+    let resp_lower = response.to_lowercase();
+
+    // Elder teaching: the whole response is the teaching itself
+    if trigger.scenario == "elder_teaching" {
+        // Try TEACHING: tag first, then use the full response
+        let teaching_raw = extract_tagged(response, "TEACHING:")
+            .unwrap_or_else(|| strip_thinking(response));
+        let teaching = teaching_raw.trim().to_string();
+        let teaching = if teaching.len() > 90 {
+            teaching.split_whitespace().take(14).collect::<Vec<_>>().join(" ")
+        } else { teaching };
+        if teaching.is_empty() { return None; }
+        println!("[think/llm] elder {} teaching → {}", trigger.org_name, teaching);
+        return Some(ThinkResult {
+            org_id:        trigger.org_id.clone(),
+            target_org_id: trigger.target_org_id.clone(),
+            teaching:      Some(teaching.clone()),
+            thought:       Some(format!("teaching {}", trigger.other_name.as_deref().unwrap_or("the child"))),
+            ..Default::default()
+        });
+    }
+
+    // All other scenarios: extract THOUGHT and ACTION
+    let thought = extract_tagged(response, "THOUGHT:")
+        .unwrap_or_else(|| {
+            // Fallback: use first non-empty line that isn't an ACTION line
+            response.lines()
+                .filter(|l| {
+                    let ll = l.to_lowercase();
+                    !ll.starts_with("action:") && !l.trim().is_empty()
+                })
+                .next()
+                .unwrap_or("")
+                .trim()
+                .to_string()
+        });
+
+    let action_raw = extract_tagged(response, "ACTION:")
+        .unwrap_or_default();
+    let action = action_raw.split_whitespace().next().unwrap_or("").to_lowercase();
+    let action = action.trim_matches(|c: char| !c.is_alphanumeric() && c != '_').to_string();
+
+    // Cap thought at 120 chars so it fits in the UI
+    let thought = if thought.len() > 120 {
+        thought.split_whitespace().take(18).collect::<Vec<_>>().join(" ")
+    } else { thought };
+
+    println!("[think/llm] {} {}→action={:?} thought={:?}", trigger.org_name, trigger.scenario, action, thought);
+
+    match trigger.scenario.as_str() {
+        "first_contact" => {
+            let delta: f32 = if action.starts_with("friend") { 0.35 }
+                else if action.starts_with("hostil") || action.starts_with("attack") { -0.4 }
+                else { 0.0 };
+            Some(ThinkResult {
+                org_id:         trigger.org_id.clone(),
+                target_lineage: trigger.target_lineage.clone(),
+                attitude_delta: Some(delta),
+                thought:        Some(if thought.is_empty() { "watching the stranger".to_string() } else { thought }),
+                ..Default::default()
+            })
+        }
+        "council" => {
+            let strategy = if action.starts_with("settle") || action.starts_with("build") { "settle" }
+                else if action.starts_with("hunt") || action.starts_with("food") { "hunt" }
+                else { "explore" };
+            Some(ThinkResult {
+                org_id:           trigger.org_id.clone(),
+                thought:          Some(if thought.is_empty() { format!("the tribe should {}", strategy) } else { thought }),
+                strategy_lineage: Some(trigger.lineage_id.clone()),
+                strategy:         Some(strategy.to_string()),
+                ..Default::default()
+            })
+        }
+        "survival_crisis" => {
+            let directive = if action.starts_with("food") || action.starts_with("eat") || action.starts_with("hunt") { "seek_food" }
+                else if action.starts_with("water") || action.starts_with("drink") { "seek_water" }
+                else { "flee" };
+            Some(ThinkResult {
+                org_id:          trigger.org_id.clone(),
+                thought:         Some(if thought.is_empty() { format!("desperate for {}", directive.replace("seek_", "")) } else { thought }),
+                directive:       Some(directive.to_string()),
+                directive_ticks: 300,
+                ..Default::default()
+            })
+        }
+        "abundance" => {
+            let directive = if action.starts_with("social") || action.starts_with("gather") || action.starts_with("celebrat") { "socialize" }
+                else if action.starts_with("explor") || action.starts_with("wander") { "explore" }
+                else { "socialize" };
+            Some(ThinkResult {
+                org_id:          trigger.org_id.clone(),
+                thought:         Some(if thought.is_empty() { format!("wanting to {}", directive) } else { thought }),
+                directive:       Some(directive.to_string()),
+                directive_ticks: 400,
+                ..Default::default()
+            })
+        }
+        "threat" => {
+            let directive = if action.starts_with("fight") || action.starts_with("attack") || action.starts_with("defend") { "fight" }
+                else if action.starts_with("trade") || action.starts_with("peace") || action.starts_with("gift") { "trade" }
+                else { "flee" };
+            Some(ThinkResult {
+                org_id:          trigger.org_id.clone(),
+                thought:         Some(if thought.is_empty() { format!("decided to {}", directive) } else { thought }),
+                directive:       Some(directive.to_string()),
+                directive_ticks: 250,
+                ..Default::default()
+            })
+        }
+        "lonely" => {
+            let directive = if action.starts_with("seek_kin") || action.starts_with("family") || action.starts_with("kin") { "socialize" }
+                else if action.starts_with("find_stranger") || action.starts_with("stranger") { "trade" }
+                else { "explore" };
+            Some(ThinkResult {
+                org_id:          trigger.org_id.clone(),
+                thought:         Some(if thought.is_empty() { "longing for company".to_string() } else { thought }),
+                directive:       Some(directive.to_string()),
+                directive_ticks: 500,
+                ..Default::default()
+            })
+        }
+        "restless" => {
+            let directive = if action.starts_with("build") { "explore" }
+                else if action.starts_with("create") { "socialize" }
+                else { "explore" };
+            Some(ThinkResult {
+                org_id:          trigger.org_id.clone(),
+                thought:         Some(if thought.is_empty() { "driven to explore".to_string() } else { thought }),
+                directive:       Some(directive.to_string()),
+                directive_ticks: 500,
+                ..Default::default()
+            })
+        }
+        "invention" => {
+            let candidates: Vec<&str> = trigger.context.split(", ").map(str::trim).filter(|s| !s.is_empty()).collect();
+            let valid = ["cooking", "stone_tools", "masonry", "spear", "torch"];
+            let discovery = valid.iter()
+                .find(|&&v| resp_lower.contains(v) && candidates.contains(&v))
+                .copied()
+                .or_else(|| candidates.first().copied())
+                .unwrap_or("stone_tools");
+            Some(ThinkResult {
+                org_id:        trigger.org_id.clone(),
+                new_discovery: Some(discovery.to_string()),
+                thought:       Some(if thought.is_empty() { format!("eureka: {}", discovery.replace('_', " ")) } else { thought }),
+                ..Default::default()
+            })
+        }
+        "reflection" => {
+            let (trait_name, delta): (&str, f32) = if resp_lower.contains("brave") || resp_lower.contains("courag") { ("fear", -0.06) }
+                else if resp_lower.contains("social") || resp_lower.contains("kind") || resp_lower.contains("friend") { ("social_tendency", 0.05) }
+                else if resp_lower.contains("curious") || resp_lower.contains("wonder") || resp_lower.contains("explor") { ("curiosity", 0.05) }
+                else if resp_lower.contains("aggress") || resp_lower.contains("fierce") || resp_lower.contains("strong") { ("aggression", 0.04) }
+                else { ("resilience", 0.04) };
+            Some(ThinkResult {
+                org_id:      trigger.org_id.clone(),
+                thought:     Some(if thought.is_empty() { "reflecting on life".to_string() } else { thought }),
+                trait_delta: Some((trait_name.to_string(), delta)),
+                ..Default::default()
+            })
+        }
+        "negotiation" => {
+            let alliance = if resp_lower.contains("food") || resp_lower.contains("share") || resp_lower.contains("feast") { "food_sharing" }
+                else if resp_lower.contains("defense") || resp_lower.contains("defend") || resp_lower.contains("protect") || resp_lower.contains("pact") { "defense_pact" }
+                else if resp_lower.contains("knowledge") || resp_lower.contains("teach") || resp_lower.contains("learn") { "knowledge_exchange" }
+                else { "territory" };
+            Some(ThinkResult {
+                org_id:        trigger.org_id.clone(),
+                target_lineage: trigger.target_lineage.clone(),
+                target_org_id:  trigger.target_org_id.clone(),
+                alliance_type:  Some(alliance.to_string()),
+                thought:        Some(if thought.is_empty() {
+                    format!("{} with {}", alliance.replace('_', " "), trigger.other_name.as_deref().unwrap_or("them"))
+                } else { thought }),
+                ..Default::default()
+            })
+        }
+        "grief" => {
+            Some(ThinkResult {
+                org_id:  trigger.org_id.clone(),
+                thought: Some(if thought.is_empty() { "lost someone close".to_string() } else { thought }),
+                ..Default::default()
+            })
+        }
+        "illness" => {
+            let directive = if action.starts_with("rest") { "rest" }
+                else if action.starts_with("isolat") { "isolate" }
+                else { "seek_help" };
+            Some(ThinkResult {
+                org_id:          trigger.org_id.clone(),
+                directive:       Some(directive.to_string()),
+                directive_ticks: 200,
+                thought:         Some(if thought.is_empty() { "sick and suffering".to_string() } else { thought }),
+                ..Default::default()
+            })
+        }
+        "migration" => {
+            let directive = if action.starts_with("migrat") || action.starts_with("move") { "explore" }
+                else if action.starts_with("forage") || action.starts_with("hunt") { "seek_food" }
+                else { "rest" };
+            Some(ThinkResult {
+                org_id:          trigger.org_id.clone(),
+                directive:       Some(directive.to_string()),
+                directive_ticks: 400,
+                thought:         Some(if thought.is_empty() {
+                    match directive { "explore" => "time to move on", "seek_food" => "foraging for food", _ => "waiting out scarcity" }.to_string()
+                } else { thought }),
+                ..Default::default()
+            })
+        }
+        "discovery" => {
+            Some(ThinkResult {
+                org_id:  trigger.org_id.clone(),
+                thought: Some(if thought.is_empty() {
+                    format!("discovered {} - feeling {}", trigger.context, action)
+                } else { thought }),
+                ..Default::default()
+            })
+        }
+        _ => None,
+    }
+}
+
 pub async fn think_worker(
     mut rx: mpsc::Receiver<ThinkTrigger>,
     results: Arc<Mutex<Vec<ThinkResult>>>,
@@ -176,7 +584,7 @@ pub async fn think_worker(
     stats: SharedLlmStats,
 ) {
     let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(12))
+        .timeout(std::time::Duration::from_secs(18))
         .build()
         .unwrap_or_default();
 
@@ -195,13 +603,12 @@ pub async fn think_worker(
             }
         };
 
-        if trigger.scenario != "elder_teaching" {
-            use rand::SeedableRng;
+        let (prompt, max_tokens) = build_prompt(&trigger);
+        if prompt.is_empty() {
+            // Unknown scenario — fall back to local
             let mut rng = rand::rngs::SmallRng::seed_from_u64(deterministic_think_seed(&trigger, attempt));
             if let Some(local) = local_think::resolve(&trigger, &mut rng) {
-                println!("[think] {} {}→{} (local)", trigger.org_name, trigger.scenario, local.word);
-                let result = build_result_from_local(&trigger, local);
-                if let Some(r) = result {
+                if let Some(r) = build_result_from_local(&trigger, local) {
                     results.lock().await.push(r);
                 }
             }
@@ -209,111 +616,18 @@ pub async fn think_worker(
         }
 
         if attempt == 0 {
-            tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+            tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
         }
 
         println!("[think] {} scenario={}{}", trigger.org_name, trigger.scenario,
             if attempt > 0 { format!(" (retry {})", attempt) } else { String::new() });
 
-        let prompt = match trigger.scenario.as_str() {
-            "first_contact" => format!(
-                "Primitive creature {} spots a stranger tribe for the first time. \
-                Reply with ONE word: friendly, cautious, or hostile.",
-                trigger.org_name
-            ),
-            "council" => format!(
-                "{} leads a thriving tribe of {} creatures with plenty of food. \
-                What should the tribe focus on? Reply with ONE word: settle, hunt, or explore.",
-                trigger.org_name, trigger.kin_count
-            ),
-            "survival_crisis" => format!(
-                "Primitive creature {} is both starving and dying of thirst ({}). \
-                What is most urgent? Reply with ONE word: food, water, or shelter.",
-                trigger.org_name, trigger.context
-            ),
-            "abundance" => format!(
-                "Primitive creature {} has a full belly and plenty of water. \
-                {} tribe members are nearby. What should they do with their free time? \
-                Reply with ONE word: build, explore, or socialize.",
-                trigger.org_name, trigger.kin_count
-            ),
-            "threat" => format!(
-                "Primitive creature {} sees enemies approaching. \
-                They have {} allies nearby. What should they do? \
-                Reply with ONE word: fight, flee, or trade.",
-                trigger.org_name, trigger.kin_count
-            ),
-            "lonely" => format!(
-                "Primitive creature {} has been wandering alone for too long and feels deeply isolated. \
-                What should they seek? Reply with ONE word: family, stranger, or wander.",
-                trigger.org_name
-            ),
-            "restless" => format!(
-                "Primitive creature {} has food, water, and safety but feels purposeless and restless. \
-                What should they pursue? Reply with ONE word: build, explore, or create.",
-                trigger.org_name
-            ),
-            "invention" => format!(
-                "Creature {} knows: {}. They just made a breakthrough. \
-                What did they invent? Reply with ONE of: {}. \
-                Only use a word from that exact list.",
-                trigger.org_name,
-                trigger.discoveries.join(", "),
-                trigger.context
-            ),
-            "reflection" => format!(
-                "Creature {} has lived: {}. Emotional state: {}. \
-                Life has made them: Reply with ONE word: more_brave, more_social, more_aggressive, more_curious, or more_resilient.",
-                trigger.org_name,
-                trigger.life_log_top.join("; "),
-                trigger.emotional_state
-            ),
-            "negotiation" => format!(
-                "Tribe {} ({} members, knows: {}) meets tribe {} (knows: {}). \
-                They trust each other. What agreement do they reach? \
-                Reply with ONE of: territory, food_sharing, defense_pact, knowledge_exchange.",
-                trigger.org_name, trigger.kin_count,
-                trigger.discoveries.join(", "),
-                trigger.other_name.as_deref().unwrap_or("them"),
-                trigger.other_discoveries.join(", ")
-            ),
-            "elder_teaching" => format!(
-                "Elder {} teaches newborn {}. Elder's life: {}. \
-                Write ONE teaching under 10 words. Start with Remember, Always, or Never.",
-                trigger.org_name,
-                trigger.other_name.as_deref().unwrap_or("the child"),
-                trigger.life_log_top.join("; ")
-            ),
-            "grief" => format!(
-                "Creature {} just lost a kin. Context: {}. \
-                How do they respond? Reply with ONE word: mourn, rage, or endure.",
-                trigger.org_name, trigger.context
-            ),
-            "illness" => format!(
-                "Creature {} is gravely sick ({}). \
-                What do they do? Reply with ONE word: rest, isolate, or seek_help.",
-                trigger.org_name, trigger.context
-            ),
-            "migration" => format!(
-                "Tribe {} has {} members. {}. Food is scarce. \
-                What should the tribe do? Reply with ONE word: migrate, forage, or wait.",
-                trigger.org_name, trigger.kin_count, trigger.context
-            ),
-            "discovery" => format!(
-                "Creature {} just discovered {}. They know: {}. \
-                How does this change them? Reply with ONE word: excited, grateful, or cautious.",
-                trigger.org_name, trigger.context,
-                if trigger.discoveries.is_empty() { "nothing yet".to_string() } else { trigger.discoveries.join(", ") }
-            ),
-            _ => continue,
-        };
-
         let started = std::time::Instant::now();
         let response = match client.post(&**THINK_LLM_URL)
             .header("Authorization", format!("Bearer {}", api_key))
             .json(&llm_body_with_stop(
-                prompt, 25, &THINK_LLM_MODEL,
-                vec!["\n".to_string(), ".".to_string(), "\"".to_string()],
+                prompt, max_tokens, &THINK_LLM_MODEL,
+                vec!["\n\n\n".to_string()],
             ))
             .send().await
         {
@@ -326,290 +640,64 @@ pub async fn think_worker(
                             status, attempt + 1, trigger.org_name);
                         retry_queue.push_back((trigger, attempt + 1));
                     } else {
-                        println!("[think] llm {} - giving up on {} after {} attempts",
-                            status, trigger.org_name, attempt);
+                        // Give up and use local fallback
+                        println!("[think] llm {} - falling back to local for {}", status, trigger.org_name);
+                        let mut rng = rand::rngs::SmallRng::seed_from_u64(
+                            deterministic_think_seed(&trigger, attempt));
+                        if let Some(local) = local_think::resolve(&trigger, &mut rng) {
+                            if let Some(r) = build_result_from_local(&trigger, local) {
+                                results.lock().await.push(r);
+                            }
+                        }
                     }
                     continue;
                 }
                 let parsed = resp.json::<GroqResponse>().await
-                    .map(|r| strip_thinking(&llm_extract(r)).to_lowercase())
+                    .map(|r| strip_thinking(&llm_extract(r)))
                     .unwrap_or_default();
                 stats.record_think(started.elapsed().as_millis() as u64, parsed.is_empty());
                 parsed
             }
             Err(e) => {
                 stats.record_think(started.elapsed().as_millis() as u64, true);
-                if attempt < 3 && retry_queue.len() < 20 {
-                    println!("[think] llm network error (retry {}/3 for {}): {}",
-                        attempt + 1, trigger.org_name, e);
-                    retry_queue.push_back((trigger, attempt + 1));
-                } else {
-                    println!("[think] Groq unreachable - giving up on {} after {} attempts: {}",
-                        trigger.org_name, attempt, e);
+                println!("[think] llm error for {} ({}): {} — using local fallback",
+                    trigger.org_name, trigger.scenario, e);
+                // Network error → local fallback immediately (no retry)
+                let mut rng = rand::rngs::SmallRng::seed_from_u64(
+                    deterministic_think_seed(&trigger, attempt));
+                if let Some(local) = local_think::resolve(&trigger, &mut rng) {
+                    if let Some(r) = build_result_from_local(&trigger, local) {
+                        results.lock().await.push(r);
+                    }
                 }
                 continue;
             }
         };
 
-        let first = response.split_whitespace().next().unwrap_or("cautious");
+        if response.is_empty() {
+            // Empty response → local fallback
+            let mut rng = rand::rngs::SmallRng::seed_from_u64(
+                deterministic_think_seed(&trigger, attempt));
+            if let Some(local) = local_think::resolve(&trigger, &mut rng) {
+                if let Some(r) = build_result_from_local(&trigger, local) {
+                    results.lock().await.push(r);
+                }
+            }
+            continue;
+        }
 
-        let result = match trigger.scenario.as_str() {
-            "first_contact" => {
-                let (delta, thought) = if first.starts_with("friend") {
-                    (0.35f32, "curious about them")
-                } else if first.starts_with("hostil") || first.starts_with("attack") || first.starts_with("enemy") {
-                    (-0.4f32, "wary of strangers")
-                } else {
-                    (0.0f32, "watching the stranger")
-                };
-                println!("[think] {} first_contact → {} (att {:.1})", trigger.org_name, first, delta);
-                ThinkResult {
-                    org_id:         trigger.org_id,
-                    target_lineage: trigger.target_lineage,
-                    attitude_delta: Some(delta),
-                    thought:        Some(thought.to_string()),
-                    ..Default::default()
+        if let Some(result) = build_result_from_llm(&trigger, &response) {
+            results.lock().await.push(result);
+        } else {
+            // Parse failure → local fallback
+            let mut rng = rand::rngs::SmallRng::seed_from_u64(
+                deterministic_think_seed(&trigger, attempt));
+            if let Some(local) = local_think::resolve(&trigger, &mut rng) {
+                if let Some(r) = build_result_from_local(&trigger, local) {
+                    results.lock().await.push(r);
                 }
-            },
-            "council" => {
-                let strategy = if first.starts_with("settle") || first.starts_with("build") || first.starts_with("home") {
-                    "settle"
-                } else if first.starts_with("hunt") || first.starts_with("food") || first.starts_with("eat") {
-                    "hunt"
-                } else {
-                    "explore"
-                };
-                println!("[think] tribe {} council → {}", &trigger.lineage_id[..6.min(trigger.lineage_id.len())], strategy);
-                ThinkResult {
-                    org_id:           trigger.org_id,
-                    thought:          Some(format!("the tribe should {}", strategy)),
-                    strategy_lineage: Some(trigger.lineage_id),
-                    strategy:         Some(strategy.to_string()),
-                    ..Default::default()
-                }
-            },
-            "survival_crisis" => {
-                let directive = if first.starts_with("food") || first.starts_with("eat") || first.starts_with("hunt") {
-                    "seek_food"
-                } else if first.starts_with("water") || first.starts_with("drink") {
-                    "seek_water"
-                } else {
-                    "flee"
-                };
-                println!("[think] {} survival_crisis → {}", trigger.org_name, directive);
-                ThinkResult {
-                    org_id:          trigger.org_id,
-                    thought:         Some(format!("desperate for {}", directive.replace("seek_", ""))),
-                    directive:       Some(directive.to_string()),
-                    directive_ticks: 300,
-                    ..Default::default()
-                }
-            },
-            "abundance" => {
-                let directive = if first.starts_with("social") || first.starts_with("gather") || first.starts_with("togeth") || first.starts_with("celebrat") {
-                    "socialize"
-                } else if first.starts_with("explor") || first.starts_with("wander") || first.starts_with("roam") {
-                    "explore"
-                } else {
-                    "socialize"
-                };
-                println!("[think] {} abundance → {}", trigger.org_name, directive);
-                ThinkResult {
-                    org_id:          trigger.org_id,
-                    thought:         Some(format!("wants to {}", directive)),
-                    directive:       Some(directive.to_string()),
-                    directive_ticks: 400,
-                    ..Default::default()
-                }
-            },
-            "threat" => {
-                let directive = if first.starts_with("fight") || first.starts_with("attack") || first.starts_with("defend") {
-                    "fight"
-                } else if first.starts_with("trade") || first.starts_with("gift") || first.starts_with("peace") {
-                    "trade"
-                } else {
-                    "flee"
-                };
-                println!("[think] {} threat → {}", trigger.org_name, directive);
-                ThinkResult {
-                    org_id:          trigger.org_id,
-                    thought:         Some(format!("decided to {}", directive)),
-                    directive:       Some(directive.to_string()),
-                    directive_ticks: 250,
-                    ..Default::default()
-                }
-            },
-            "lonely" => {
-                let directive = if first.starts_with("family") || first.starts_with("kin") || first.starts_with("tribe") {
-                    "socialize"
-                } else if first.starts_with("stranger") || first.starts_with("other") || first.starts_with("new") {
-                    "trade"
-                } else {
-                    "explore"
-                };
-                println!("[think] {} lonely → {}", trigger.org_name, directive);
-                ThinkResult {
-                    org_id:          trigger.org_id,
-                    thought:         Some("longing for company".to_string()),
-                    directive:       Some(directive.to_string()),
-                    directive_ticks: 500,
-                    ..Default::default()
-                }
-            },
-            "restless" => {
-                let directive = "explore";
-                println!("[think] {} restless → {}", trigger.org_name, directive);
-                ThinkResult {
-                    org_id:          trigger.org_id,
-                    thought:         Some(format!("driven to {}", directive)),
-                    directive:       Some(directive.to_string()),
-                    directive_ticks: 500,
-                    ..Default::default()
-                }
-            },
-            "invention" => {
-                let candidates: Vec<&str> = trigger.context.split(", ").collect();
-                let valid = ["cooking","stone_tools","masonry","spear","torch"];
-                let discovery = valid.iter()
-                    .find(|&&v| response.contains(v) && candidates.contains(&v))
-                    .copied()
-                    .unwrap_or(candidates[0]);
-                println!("[think] {} invented {} (had: {})", trigger.org_name, discovery,
-                    trigger.discoveries.join(", "));
-                ThinkResult {
-                    org_id:        trigger.org_id,
-                    new_discovery: Some(discovery.to_string()),
-                    thought:       Some(format!("eureka: {}", discovery.replace('_', " "))),
-                    ..Default::default()
-                }
-            },
-            "reflection" => {
-                let (trait_name, delta): (&str, f32) = if first.contains("brave") || first.contains("courag") {
-                    ("fear", -0.06)
-                } else if first.contains("social") || first.contains("kind") || first.contains("friend") {
-                    ("social_tendency", 0.05)
-                } else if first.contains("aggress") || first.contains("angry") || first.contains("fierce") {
-                    ("aggression", 0.05)
-                } else if first.contains("curious") || first.contains("wonder") || first.contains("explor") {
-                    ("curiosity", 0.05)
-                } else {
-                    ("resilience", 0.04)
-                };
-                println!("[think] {} reflected → {} {:+.2}", trigger.org_name, trait_name, delta);
-                ThinkResult {
-                    org_id:      trigger.org_id,
-                    thought:     Some(format!("life has made me {}", first.split_whitespace().next().unwrap_or("wiser"))),
-                    trait_delta: Some((trait_name.to_string(), delta)),
-                    ..Default::default()
-                }
-            },
-            "negotiation" => {
-                let alliance = if first.contains("food") || first.contains("share") || first.contains("feast") {
-                    "food_sharing"
-                } else if first.contains("defense") || first.contains("defend") || first.contains("protect") || first.contains("pact") {
-                    "defense_pact"
-                } else if first.contains("knowledge") || first.contains("teach") || first.contains("learn") {
-                    "knowledge_exchange"
-                } else {
-                    "territory"
-                };
-                println!("[think] {} negotiated {} with {:?}", trigger.org_name, alliance,
-                    trigger.other_name.as_deref().unwrap_or("?"));
-                ThinkResult {
-                    org_id:        trigger.org_id,
-                    target_lineage: trigger.target_lineage,
-                    target_org_id:  trigger.target_org_id,
-                    alliance_type:  Some(alliance.to_string()),
-                    thought:        Some(format!("{} with {}", alliance.replace('_', " "),
-                        trigger.other_name.as_deref().unwrap_or("them"))),
-                    ..Default::default()
-                }
-            },
-            "elder_teaching" => {
-                let teaching = strip_thinking(&response);
-                let teaching = if teaching.len() > 80 {
-                    teaching.split_whitespace().take(12).collect::<Vec<_>>().join(" ")
-                } else {
-                    teaching
-                };
-                if teaching.is_empty() { continue; }
-                println!("[think] elder {} teaching → {}", trigger.org_name, teaching);
-                ThinkResult {
-                    org_id:        trigger.org_id,
-                    target_org_id: trigger.target_org_id,
-                    teaching:      Some(teaching),
-                    thought:       Some(format!("teaching {}", trigger.other_name.as_deref().unwrap_or("the child"))),
-                    ..Default::default()
-                }
-            },
-            "grief" => {
-                let directive = if first.starts_with("mourn") { "mourn" }
-                    else if first.starts_with("rage") || first.starts_with("fight") { "fight" }
-                    else { "endure" };
-                let thought = match directive {
-                    "mourn"  => "lost someone close",
-                    "rage"   => "grieving in anger",
-                    _        => "enduring the loss",
-                };
-                println!("[think] {} grief → {}", trigger.org_name, directive);
-                ThinkResult {
-                    org_id:    trigger.org_id,
-                    thought:   Some(thought.to_string()),
-                    ..Default::default()
-                }
-            },
-            "illness" => {
-                let directive = if first.starts_with("rest") { "rest" }
-                    else if first.starts_with("isolat") { "isolate" }
-                    else { "seek_help" };
-                let (dir_str, thought) = match directive {
-                    "rest"     => ("rest",     "resting to recover"),
-                    "isolate"  => ("isolate",  "isolating (sick)"),
-                    _          => ("seek_help","seeking help (sick)"),
-                };
-                println!("[think] {} illness → {}", trigger.org_name, dir_str);
-                ThinkResult {
-                    org_id:          trigger.org_id,
-                    directive:       Some(dir_str.to_string()),
-                    directive_ticks: 200,
-                    thought:         Some(thought.to_string()),
-                    ..Default::default()
-                }
-            },
-            "migration" => {
-                let action = if first.starts_with("migrat") { "explore" }
-                    else if first.starts_with("forage") { "seek_food" }
-                    else { "endure" };
-                let thought = match action {
-                    "explore"   => "time to move on",
-                    "seek_food" => "foraging for food",
-                    _           => "waiting out scarcity",
-                };
-                println!("[think] {} migration → {}", trigger.org_name, action);
-                ThinkResult {
-                    org_id:          trigger.org_id,
-                    directive:       Some(action.to_string()),
-                    directive_ticks: 300,
-                    thought:         Some(thought.to_string()),
-                    ..Default::default()
-                }
-            },
-            "discovery" => {
-                let feeling = if first.starts_with("excit") { "excited" }
-                    else if first.starts_with("gratef") { "grateful" }
-                    else { "cautious" };
-                let thought = format!("discovered {} - feeling {}", trigger.context, feeling);
-                println!("[think] {} discovery({}) → {}", trigger.org_name, trigger.context, feeling);
-                ThinkResult {
-                    org_id:  trigger.org_id,
-                    thought: Some(thought),
-                    ..Default::default()
-                }
-            },
-            _ => continue,
-        };
-
-        results.lock().await.push(result);
+            }
+        }
     }
 }
 #[cfg(test)]
@@ -637,7 +725,6 @@ mod tests {
     fn local_think_seed_is_stable_for_identical_triggers() {
         let a = local_trigger("food scarce");
         let b = local_trigger("food scarce");
-
         assert_eq!(deterministic_think_seed(&a, 0), deterministic_think_seed(&b, 0));
     }
 
@@ -645,8 +732,47 @@ mod tests {
     fn local_think_seed_changes_with_context_and_attempt() {
         let a = local_trigger("food scarce");
         let b = local_trigger("water scarce");
-
         assert_ne!(deterministic_think_seed(&a, 0), deterministic_think_seed(&b, 0));
         assert_ne!(deterministic_think_seed(&a, 0), deterministic_think_seed(&a, 1));
+    }
+
+    #[test]
+    fn build_prompt_covers_all_known_scenarios() {
+        let base = ThinkTrigger {
+            org_id: "o1".to_string(), org_name: "Oru".to_string(),
+            lineage_id: "l1".to_string(), kin_count: 3,
+            aggression: 0.6, fear: 0.3, social_tendency: 0.7, curiosity: 0.5, resilience: 0.4,
+            ..Default::default()
+        };
+        for scenario in &[
+            "first_contact","council","survival_crisis","abundance","threat","lonely","restless",
+            "invention","reflection","negotiation","elder_teaching","grief","illness","migration","discovery",
+        ] {
+            let mut t = ThinkTrigger { scenario: scenario.to_string(), ..base.clone() };
+            t.context = "test context".to_string();
+            let (prompt, tokens) = build_prompt(&t);
+            assert!(!prompt.is_empty(), "empty prompt for scenario {}", scenario);
+            assert!(tokens > 0, "zero tokens for scenario {}", scenario);
+        }
+    }
+
+    #[test]
+    fn extract_tagged_finds_thought_and_action() {
+        let resp = "THOUGHT: I feel hungry and must find food soon.\nACTION: food";
+        assert_eq!(extract_tagged(resp, "THOUGHT:").as_deref(), Some("I feel hungry and must find food soon."));
+        assert_eq!(extract_tagged(resp, "ACTION:").as_deref(), Some("food"));
+    }
+
+    #[test]
+    fn build_result_from_llm_survival_crisis() {
+        let t = ThinkTrigger {
+            org_id: "o1".to_string(), org_name: "Oru".to_string(),
+            lineage_id: "l1".to_string(), scenario: "survival_crisis".to_string(),
+            context: "starving".to_string(), ..Default::default()
+        };
+        let resp = "THOUGHT: My stomach aches and I cannot go on without food.\nACTION: food";
+        let r = build_result_from_llm(&t, resp).unwrap();
+        assert_eq!(r.directive.as_deref(), Some("seek_food"));
+        assert!(r.thought.as_deref().unwrap().contains("stomach"));
     }
 }
