@@ -131,6 +131,8 @@ pub(crate) struct SaveState {
     pending_thinks: Vec<ThinkTrigger>,
     rng: Option<ChaCha8Rng>,
     flood_tiles: Vec<(i32, i32, u64)>,
+    #[serde(default)]
+    territory: HashMap<String, Vec<[i32; 2]>>,
 }
 
 fn mem_encode(m: &HashMap<(i32,i32), f32>) -> HashMap<String, f32> {
@@ -344,6 +346,9 @@ impl Simulation {
             pending_thinks: self.pending_thinks.clone(),
             rng: Some(self.rng.clone()),
             flood_tiles: self.flood_tiles.clone(),
+            territory: self.territory.iter()
+                .map(|(lid, tiles)| (lid.clone(), tiles.iter().map(|&(x,y)| [x,y]).collect()))
+                .collect(),
         };
         let json = serde_json::to_string(&state)
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
@@ -520,6 +525,10 @@ impl Simulation {
             slow_compute_tick:       0,
             active_structure_tiles,
             settlement_tiers:        std::collections::HashMap::new(),
+            territory: state.territory.into_iter()
+                .map(|(lid, tiles)| (lid, tiles.into_iter().map(|[x,y]| (x,y)).collect()))
+                .collect(),
+            cached_territory: serde_json::Value::Null,
         }
     }
 }

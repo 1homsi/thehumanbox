@@ -86,6 +86,26 @@ impl Simulation {
                     .collect::<Vec<_>>()
             ).unwrap();
 
+            // Compute contested tiles: any tile claimed by 2+ lineages
+            let mut tile_claim_count: HashMap<(i32, i32), u32> = HashMap::new();
+            for tiles in self.territory.values() {
+                for &tile in tiles {
+                    *tile_claim_count.entry(tile).or_insert(0) += 1;
+                }
+            }
+            let contested: Vec<[i32; 2]> = tile_claim_count.into_iter()
+                .filter(|(_, c)| *c >= 2)
+                .map(|((x, y), _)| [x, y])
+                .collect();
+            self.cached_territory = serde_json::json!({
+                "claimed": self.territory.iter()
+                    .map(|(lid, tiles)| {
+                        let pts: Vec<[i32;2]> = tiles.iter().map(|&(x,y)| [x,y]).collect();
+                        json!({"lid": lid, "tiles": pts})
+                    }).collect::<Vec<_>>(),
+                "contested": contested,
+            });
+
             self.slow_compute_tick = self.tick_count;
         }
 
@@ -165,6 +185,7 @@ impl Simulation {
                 obj.insert("pop_history".to_string(), serde_json::to_value(&self.pop_history).unwrap());
                 obj.insert("tribal_relations".to_string(), self.cached_tribal_relations.clone());
                 obj.insert("lineage_sizes".to_string(), self.cached_lineage_sizes.clone());
+                obj.insert("territory".to_string(), self.cached_territory.clone());
                 obj.insert("lineage_names".to_string(), serde_json::to_value(&self.lineage_names).unwrap());
                 obj.insert("lineage_centroid_history".to_string(),
                     serde_json::to_value(&self.lineage_centroid_history).unwrap());

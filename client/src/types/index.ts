@@ -207,4 +207,8 @@ export interface WorldState {
   lineage_centroid_history?: Record<string, [number, number, number][]>
   current_era?: string
   sex_words?:   [string, string]
+  territory?: {
+    claimed: { lid: string; tiles: [number, number][] }[]
+    contested: [number, number][]
+  }
 }

@@ -9,5 +9,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     ctx.sim.active_structure_tiles.insert((ix, iy));
     ctx.think("claiming this land");
     ctx.discover("territory", "claimed new territory");
-    0.004
+    let lid = ctx.lid.clone();
+    ctx.sim.claim_territory(&lid, ix, iy, 3);
+    0.008
 }

@@ -152,6 +152,9 @@ pub struct Simulation {
     pub(crate) slow_compute_tick:       u64,
     pub(crate) active_structure_tiles: HashSet<(i32, i32)>,
     pub(crate) settlement_tiers: HashMap<String, u8>,
+    // tile → lineage owner; contested when two lineages both claim it
+    pub territory: HashMap<String, HashSet<(i32, i32)>>,
+    pub(crate) cached_territory: serde_json::Value,
 }
 
 fn invention_candidates(discoveries: &HashSet<String>) -> Vec<&'static str> {
@@ -221,6 +224,8 @@ impl Simulation {
             slow_compute_tick:       0,
             active_structure_tiles:  HashSet::new(),
             settlement_tiers:        HashMap::new(),
+            territory:               HashMap::new(),
+            cached_territory:        serde_json::Value::Null,
         };
         sim.spawn_founders();
         sim.spawn_animals(14);
@@ -576,6 +581,30 @@ impl Simulation {
             for intruder_lid in intruders {
                 let att = self.organisms[idx].lineage_attitudes.entry(intruder_lid).or_insert(0.0);
                 *att = (*att - 0.0015).max(-1.0);
+            }
+        }
+
+        // Passive territory: organisms gradually stamp their lineage onto land they inhabit.
+        // Those with borders/territory discovery claim a wider radius around home.
+        if self.tick_count % 40 == (idx as u64 % 40) {
+            let has_borders = self.organisms[idx].discoveries.contains("territory")
+                || self.organisms[idx].discoveries.contains("borders");
+            let (hx, hy) = (self.organisms[idx].home_x as i32, self.organisms[idx].home_y as i32);
+            let lid = self.organisms[idx].lineage_id.clone();
+            let radius = if has_borders { 4 } else { 1 };
+            self.claim_territory(&lid, hx, hy, radius);
+        }
+
+        // Rival territory pressure: being on a rival's claimed tile degrades attitude.
+        {
+            let (ox_i, oy_i) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
+            let my_lid = self.organisms[idx].lineage_id.clone();
+            let rival_lid: Option<String> = self.territory.iter()
+                .find(|(lid, tiles)| lid.as_str() != my_lid && tiles.contains(&(ox_i, oy_i)))
+                .map(|(lid, _)| lid.clone());
+            if let Some(rival) = rival_lid {
+                let att = self.organisms[idx].lineage_attitudes.entry(rival).or_insert(0.0);
+                *att = (*att - 0.002).max(-1.0);
             }
         }
 
@@ -2556,6 +2585,30 @@ impl Simulation {
                 push_event(&mut self.events, self.tick_count, "build", &tribe, &msg);
             } else if tier < prev {
                 self.settlement_tiers.insert(lid.clone(), tier);
+            }
+        }
+    }
+
+    /// Claim all non-water tiles within `radius` of `(cx, cy)` for lineage `lid`.
+    /// Caps each lineage at 400 tiles — evicts tiles farthest from the claimed center.
+    pub(crate) fn claim_territory(&mut self, lid: &str, cx: i32, cy: i32, radius: i32) {
+        const MAX_TERRITORY: usize = 400;
+        let tiles = self.territory.entry(lid.to_string()).or_insert_with(HashSet::new);
+        for dy in -radius..=radius {
+            for dx in -radius..=radius {
+                if dx * dx + dy * dy > radius * radius { continue; }
+                let tx = (cx + dx).clamp(0, crate::world::grid::WIDTH  as i32 - 1);
+                let ty = (cy + dy).clamp(0, crate::world::grid::HEIGHT as i32 - 1);
+                if matches!(self.grid.get(tx, ty), Tile::Water | Tile::Void) { continue; }
+                tiles.insert((tx, ty));
+            }
+        }
+        if tiles.len() > MAX_TERRITORY {
+            let mut sorted: Vec<(i32, i32)> = tiles.iter().copied().collect();
+            sorted.sort_by_key(|&(x, y)| -((x - cx) * (x - cx) + (y - cy) * (y - cy)));
+            let excess = sorted.len() - MAX_TERRITORY;
+            for (x, y) in sorted.into_iter().take(excess) {
+                tiles.remove(&(x, y));
             }
         }
     }
