@@ -29,6 +29,7 @@ import { TribeLabels } from '../three/TribeLabels'
 import { FireLights } from '../three/FireLights'
 import { TimeOfDayTint } from '../three/TimeOfDayTint'
 import { Fireflies } from '../three/Fireflies'
+import { SocialBeams } from '../three/SocialBeams'
 import { TILE_SCALE } from '../three/constants'
 import { heightAtWorld, heightAt } from '../three/terrain-utils'
 import { updateOrgMotion, updateAnimalMotion, getOrgXY } from '../three/motion-state'
@@ -419,6 +420,11 @@ export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
                 <Fireflies
                   hutPositions={hutWorldPositions}
                   isNight={isNight}
+                />
+                <SocialBeams
+                  organisms={world.viewport_organisms ?? world.organisms ?? []}
+                  depthMap={grid.depth_map!}
+                  biomes={grid.biomes!}
                 />
               </>
             )}
