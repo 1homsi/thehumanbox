@@ -332,8 +332,22 @@ pub fn groom(
 
     let t = organisms[ti].org_trust.entry(org_id.clone()).or_insert(0.0);
     *t = (*t + 0.06).min(1.0);
-    let o_t = organisms[org_idx].org_trust.entry(ti_id).or_insert(0.0);
+    let ti_trust_after = *t;
+    let o_t = organisms[org_idx].org_trust.entry(ti_id.clone()).or_insert(0.0);
     *o_t = (*o_t + 0.06).min(1.0);
+    let my_trust_after = *o_t;
+
+    // Promote to named friend once mutual trust is strong enough
+    const FRIEND_THRESHOLD: f32 = 0.55;
+    if ti_trust_after >= FRIEND_THRESHOLD {
+        let oi = org_id.clone();
+        let on = organisms[org_idx].name.clone();
+        organisms[ti].add_friend(&oi, &on);
+    }
+    if my_trust_after >= FRIEND_THRESHOLD {
+        let ti2 = ti_id.clone();
+        organisms[org_idx].add_friend(&ti2, &target_name);
+    }
 
     if organisms[org_idx].grief_ticks > 0 { organisms[org_idx].grief_ticks = organisms[org_idx].grief_ticks.saturating_sub(8); }
     if organisms[ti].grief_ticks > 0 { organisms[ti].grief_ticks = organisms[ti].grief_ticks.saturating_sub(8); }
@@ -355,14 +369,25 @@ pub fn teach(
     events: &mut std::collections::VecDeque<Event>,
     rng: &mut impl Rng,
 ) -> f32 {
-    if !organisms[org_idx].is_elder { return 0.0; }
+    // Any organism with knowledge can teach, not just elders.
+    // Elders pass on richer memory alongside discoveries.
+    let is_elder      = organisms[org_idx].is_elder;
+    let disc_count    = organisms[org_idx].discoveries.len();
+    if disc_count < 1 && !is_elder { return 0.0; }
+
     let org_lineage = organisms[org_idx].lineage_id.clone();
     let (ox, oy) = (organisms[org_idx].x, organisms[org_idx].y);
 
+    // Find the nearby organism who knows the least and could benefit most
     let target_idx = organisms.iter().enumerate()
-        .filter(|(i, o)| *i != org_idx && o.alive && o.lineage_id == org_lineage)
-        .filter(|(_, o)| (o.x - ox).abs() + (o.y - oy).abs() <= 5.0)
-        .min_by_key(|(_, o)| o.age)
+        .filter(|(i, o)| {
+            if *i == org_idx || !o.alive { return false; }
+            let same_lineage = o.lineage_id == org_lineage;
+            let close_enough = (o.x - ox).abs() + (o.y - oy).abs() <= 5.0;
+            let has_less = o.discoveries.len() < disc_count;
+            same_lineage && close_enough && (has_less || o.age < 400)
+        })
+        .min_by_key(|(_, o)| o.discoveries.len())
         .map(|(i, _)| i);
 
     let Some(ti) = target_idx else { return 0.0; };
@@ -370,43 +395,66 @@ pub fn teach(
     let target_name = organisms[ti].name.clone();
     let mem_trait   = organisms[org_idx].traits.memory_strength;
 
-    let food_share: Vec<((i32,i32), f32)> = organisms[org_idx].food_memory.iter()
-        .filter(|(_, &v)| v > 0.4).take(6).map(|(&k, &v)| (k, v)).collect();
-    let water_share: Vec<((i32,i32), f32)> = organisms[org_idx].water_memory.iter()
-        .filter(|(_, &v)| v > 0.4).take(4).map(|(&k, &v)| (k, v)).collect();
-    let danger_share: Vec<((i32,i32), f32)> = organisms[org_idx].danger_memory.iter()
-        .filter(|(_, &v)| v > 0.3).take(4).map(|(&k, &v)| (k, v)).collect();
+    // Elders share full memory banks; knowledgeable non-elders share a subset
+    if is_elder {
+        let food_share: Vec<((i32,i32), f32)> = organisms[org_idx].food_memory.iter()
+            .filter(|(_, &v)| v > 0.4).take(6).map(|(&k, &v)| (k, v)).collect();
+        let water_share: Vec<((i32,i32), f32)> = organisms[org_idx].water_memory.iter()
+            .filter(|(_, &v)| v > 0.4).take(4).map(|(&k, &v)| (k, v)).collect();
+        let danger_share: Vec<((i32,i32), f32)> = organisms[org_idx].danger_memory.iter()
+            .filter(|(_, &v)| v > 0.3).take(4).map(|(&k, &v)| (k, v)).collect();
+        for &((x,y), v) in &food_share   { Organism::remember(&mut organisms[ti].food_memory,   x, y, v * 0.5, mem_trait); }
+        for &((x,y), v) in &water_share  { Organism::remember(&mut organisms[ti].water_memory,  x, y, v * 0.5, mem_trait); }
+        for &((x,y), v) in &danger_share { Organism::remember(&mut organisms[ti].danger_memory, x, y, v * 0.4, mem_trait); }
+    }
 
-    for &((x,y), v) in &food_share  { Organism::remember(&mut organisms[ti].food_memory,   x, y, v * 0.5, mem_trait); }
-    for &((x,y), v) in &water_share { Organism::remember(&mut organisms[ti].water_memory,  x, y, v * 0.5, mem_trait); }
-    for &((x,y), v) in &danger_share{ Organism::remember(&mut organisms[ti].danger_memory, x, y, v * 0.4, mem_trait); }
+    let teacher_vocab = organisms[org_idx].vocabulary.clone();
+    organisms[ti].vocabulary.absorb_from(&teacher_vocab, rng);
 
-    let elder_vocab = organisms[org_idx].vocabulary.clone();
-    organisms[ti].vocabulary.absorb_from(&elder_vocab, rng);
-
-    if organisms[ti].age > 200 {
-        let elder_disc: Vec<String> = organisms[org_idx].discoveries.iter().cloned().collect();
-        for disc in &elder_disc {
-            if !organisms[ti].discoveries.contains(disc.as_str())
-               && rng.gen::<f32>() < 0.05
-            {
-                organisms[ti].discoveries.insert(disc.clone());
-                organisms[ti].log_event(format!("learned {} from elder", disc));
-            }
+    // Transfer discoveries — elders have higher transmission rate
+    let transfer_chance = if is_elder { 0.06 } else { 0.025 };
+    let teacher_disc: Vec<String> = organisms[org_idx].discoveries.iter().cloned().collect();
+    let mut learned = Vec::new();
+    for disc in &teacher_disc {
+        if !organisms[ti].discoveries.contains(disc.as_str()) && rng.gen::<f32>() < transfer_chance {
+            organisms[ti].discoveries.insert(disc.clone());
+            learned.push(disc.clone());
         }
+    }
+    for disc in &learned {
+        let teacher_short = organisms[org_idx].name[..4.min(organisms[org_idx].name.len())].to_string();
+        organisms[ti].log_event(format!("learned {} from {}", disc, teacher_short));
     }
 
     let org_id2  = organisms[org_idx].id.clone();
     let org_name = organisms[org_idx].name.clone();
-    let t = organisms[ti].org_trust.entry(org_id2).or_insert(0.0);
+    let ti_id    = organisms[ti].id.clone();
+
+    // Teaching builds trust and friendship
+    let t = organisms[ti].org_trust.entry(org_id2.clone()).or_insert(0.0);
     *t = (*t + 0.10).min(1.0);
+    let ti_trust = *t;
+    let o_t = organisms[org_idx].org_trust.entry(ti_id.clone()).or_insert(0.0);
+    *o_t = (*o_t + 0.04).min(1.0);
 
+    if ti_trust >= 0.55 {
+        let on = org_name.clone();
+        let oi = org_id2.clone();
+        organisms[ti].add_friend(&oi, &on);
+        let tn = target_name.clone();
+        organisms[org_idx].add_friend(&ti_id, &tn);
+    }
+
+    let role = if is_elder { "elder" } else { "kin" };
     organisms[org_idx].think(&format!("teaching {}", &target_name[..4.min(target_name.len())]), tick);
-    organisms[ti].think("learning from elder", tick);
-    organisms[ti].log_event(format!("taught by elder {}", &org_name[..4.min(org_name.len())]));
+    organisms[ti].think(&format!("learning from {}", &org_name[..4.min(org_name.len())]), tick);
+    organisms[ti].log_event(format!("taught by {} {}", role, &org_name[..4.min(org_name.len())]));
 
-    if organisms[ti].age < 120 {
-        push_event(events, tick, "teach", &org_name, &format!("teaching young {}", target_name));
+    if !learned.is_empty() || organisms[ti].age < 200 {
+        push_event(events, tick, "teach", &org_name,
+            &format!("→ {} ({})", target_name,
+                if learned.is_empty() { "mentoring".to_string() }
+                else { learned.join(", ") }));
     }
     0.018
 }
@@ -488,8 +536,22 @@ pub fn social_knowledge_share(
         let ki_id = organisms[*ki].id.clone();
         let t = organisms[*ki].org_trust.entry(org_id.clone()).or_insert(0.0);
         *t = (*t + 0.008).min(1.0);
-        let o_t = organisms[org_idx].org_trust.entry(ki_id).or_insert(0.0);
+        let ki_trust_after = *t;
+        let o_t = organisms[org_idx].org_trust.entry(ki_id.clone()).or_insert(0.0);
         *o_t = (*o_t + 0.008).min(1.0);
+        let my_trust_after = *o_t;
+
+        // Repeated socializing gradually builds friendship
+        const FRIEND_THRESHOLD: f32 = 0.55;
+        if ki_trust_after >= FRIEND_THRESHOLD {
+            let on = organisms[org_idx].name.clone();
+            let oi = org_id.clone();
+            organisms[*ki].add_friend(&oi, &on);
+        }
+        if my_trust_after >= FRIEND_THRESHOLD {
+            let ki_name = organisms[*ki].name.clone();
+            organisms[org_idx].add_friend(&ki_id, &ki_name);
+        }
     }
 
     let kin_snapshots: Vec<std::collections::HashMap<String, String>> = kin_indices.iter()

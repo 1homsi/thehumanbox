@@ -221,6 +221,10 @@ pub struct Organism {
     pub inv_stone: u8,
 
     pub conversations:   VecDeque<ConversationEntry>,
+
+    // Named friends: org_id → name. Forms from repeated positive interaction.
+    // Unlike org_trust (which is anonymous and decays), friendships are recognized bonds.
+    pub friends: HashMap<String, String>,
 }
 
 impl Organism {
@@ -302,6 +306,17 @@ impl Organism {
             inv_wood:        0,
             inv_stone:       0,
             conversations:   VecDeque::new(),
+            friends:         HashMap::new(),
+        }
+    }
+
+    // Promote an organism to named friend status.
+    // Idempotent — safe to call repeatedly; only logs + mutates loneliness on first promotion.
+    pub fn add_friend(&mut self, id: &str, name: &str) {
+        if !self.friends.contains_key(id) {
+            self.friends.insert(id.to_string(), name.to_string());
+            self.log_event(format!("became friends with {}", name));
+            self.loneliness = (self.loneliness - 0.25).max(0.0);
         }
     }
 
@@ -466,6 +481,7 @@ impl Organism {
         self.life_log.clear();
         self.discoveries.clear();
         self.conversations.clear();
+        self.friends.clear();
     }
 
     pub fn decay_memory(&mut self) {
@@ -855,6 +871,9 @@ impl Organism {
             home_x:      if include_cold { Some((self.home_x * 10.0).round() / 10.0) } else { None },
             home_y:      if include_cold { Some((self.home_y * 10.0).round() / 10.0) } else { None },
             is_elder:    if include_cold { Some(self.is_elder) } else { None },
+            friends:     if include_cold && !self.friends.is_empty() {
+                Some(self.friends.clone())
+            } else { None },
         }
     }
 
@@ -995,6 +1014,7 @@ pub struct OrgJson {
     #[serde(default, skip_serializing_if = "Option::is_none")] pub home_x:      Option<f32>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub home_y:      Option<f32>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub is_elder:    Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub friends:     Option<HashMap<String, String>>,
 }
 
 #[derive(Serialize)]

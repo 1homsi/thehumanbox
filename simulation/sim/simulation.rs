@@ -1663,7 +1663,10 @@ impl Simulation {
             social::share_food(idx, &mut self.organisms, self.tick_count, &mut self.events);
         }
 
-        if self.organisms[idx].is_elder && self.tick_count % 60 == 0 {
+        // Any organism with knowledge can teach nearby kin — not just elders.
+        // Stagger by idx so not all organisms try to teach on the same tick.
+        let can_teach = !self.organisms[idx].discoveries.is_empty() || self.organisms[idx].is_elder;
+        if can_teach && self.tick_count % 120 == (idx as u64 % 120) {
             social::teach(idx, &mut self.organisms, self.tick_count, &mut self.events, &mut self.rng);
         }
 
@@ -1752,6 +1755,30 @@ impl Simulation {
             if let Some((tx, ty)) = target {
                 self.organisms[idx].wander_target = Some((tx.clamp(5, 595), ty.clamp(5, 295)));
             }
+        }
+
+        // Friend-seeking: lonely organisms with friends actively walk toward one
+        if self.organisms[idx].loneliness > 0.65
+            && self.organisms[idx].wander_target.is_none()
+            && !self.organisms[idx].friends.is_empty()
+            && self.organisms[idx].energy > 0.30
+        {
+            let friend_ids: Vec<String> = self.organisms[idx].friends.keys().cloned().collect();
+            let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
+            // Pick the nearest living friend
+            let best = friend_ids.iter()
+                .filter_map(|fid| self.organisms.iter().find(|o| o.alive && &o.id == fid))
+                .min_by_key(|o| ((o.x - ox).hypot(o.y - oy) * 10.0) as i32)
+                .map(|o| (o.x as i32, o.y as i32, o.name.clone()));
+            if let Some((tx, ty, fname)) = best {
+                self.organisms[idx].wander_target = Some((tx.clamp(5, 595), ty.clamp(5, 295)));
+                let short = &fname[..4.min(fname.len())];
+                self.organisms[idx].think(&format!("going to find {}", short), self.tick_count);
+            }
+            // Prune dead friends from the list
+            let alive_ids: std::collections::HashSet<String> = self.organisms.iter()
+                .filter(|o| o.alive).map(|o| o.id.clone()).collect();
+            self.organisms[idx].friends.retain(|id, _| alive_ids.contains(id));
         }
 
         if is_unpartnered_adult
