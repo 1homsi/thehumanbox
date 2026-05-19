@@ -1008,6 +1008,8 @@ pub struct OrgsHotSoa {
     pub ys:             Vec<i16>,
     pub vxs:            Vec<i16>,
     pub vys:            Vec<i16>,
+    pub target_xs:      Vec<i16>,
+    pub target_ys:      Vec<i16>,
     pub energies:       Vec<u8>,
     pub hydrations:     Vec<u8>,
     pub healths:        Vec<u8>,
@@ -1041,6 +1043,8 @@ impl OrgsHotSoa {
             ys:             Vec::with_capacity(n),
             vxs:            Vec::with_capacity(n),
             vys:            Vec::with_capacity(n),
+            target_xs:      Vec::with_capacity(n),
+            target_ys:      Vec::with_capacity(n),
             energies:       Vec::with_capacity(n),
             hydrations:     Vec::with_capacity(n),
             healths:        Vec::with_capacity(n),
@@ -1063,11 +1067,18 @@ impl OrgsHotSoa {
         // velocity in tiles/sec (* 10 for fixed-point, decoded as /10 on client)
         let enc_vx = (o.vx_smooth * 100.0).round().clamp(i16::MIN as f32, i16::MAX as f32) as i16;
         let enc_vy = (o.vy_smooth * 100.0).round().clamp(i16::MIN as f32, i16::MAX as f32) as i16;
+        // i16::MIN sentinel = no target
+        let (enc_tx, enc_ty) = match o.wander_target {
+            Some((tx, ty)) => (tx as i16, ty as i16),
+            None           => (i16::MIN, i16::MIN),
+        };
         self.ids.push(o.id.clone());
         self.xs.push(q_pos(pred_x));
         self.ys.push(q_pos(pred_y));
         self.vxs.push(enc_vx);
         self.vys.push(enc_vy);
+        self.target_xs.push(enc_tx);
+        self.target_ys.push(enc_ty);
         self.energies.push(q_pct(o.energy));
         self.hydrations.push(q_pct(o.hydration));
         self.healths.push(q_pct(o.health));

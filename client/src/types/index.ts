@@ -56,6 +56,8 @@ export interface OrganismState {
   sleep_debt?:  number
   vx?: number
   vy?: number
+  target_x?: number
+  target_y?: number
   partner_id?:     string | null
   father_id?:      string | null
   children_count?: number
