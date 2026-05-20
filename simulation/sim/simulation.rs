@@ -2168,11 +2168,25 @@ impl Simulation {
 
         if let Some((dx, dy, dlid)) = death_grief {
             let dead_name = self.organisms[idx].name.clone();
-            let grievers: Vec<usize> = self.organisms.iter().enumerate()
-                .filter(|(i, o)| *i != idx && o.alive && o.lineage_id == dlid)
-                .filter(|(_, o)| (o.x as i32 - dx).abs() + (o.y as i32 - dy).abs() <= 12)
-                .map(|(i, _)| i)
-                .collect();
+            let dead_id_str = self.organisms[idx].id.clone();
+            // Grievers: same-lineage tile-neighbours (original)
+            //         + adult children regardless of distance (father_id / parent_id match)
+            //         + named friends regardless of distance
+            // Without these, a parent's death didn't reach their
+            // distant children or cross-tribe friends.
+            let mut griever_set: std::collections::HashSet<usize> = std::collections::HashSet::new();
+            for (i, o) in self.organisms.iter().enumerate() {
+                if i == idx || !o.alive { continue }
+                let near_kin = o.lineage_id == dlid
+                    && (o.x as i32 - dx).abs() + (o.y as i32 - dy).abs() <= 12;
+                let child = o.parent_id == dead_id_str
+                    || o.father_id.as_deref() == Some(dead_id_str.as_str());
+                let friend = o.friends.contains_key(&dead_id_str);
+                if near_kin || child || friend {
+                    griever_set.insert(i);
+                }
+            }
+            let grievers: Vec<usize> = griever_set.into_iter().collect();
 
             let griever_count = grievers.len();
 
