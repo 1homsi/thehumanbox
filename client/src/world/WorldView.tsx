@@ -4,7 +4,7 @@ import type { WorldState } from '../types'
 import type { InterpRefs } from '../simulation/useSimulation'
 import { useUIStore, type ViewFlags } from '../stores/store'
 import { lineageColor } from '../utils/constants'
-import { SPRITE, ATLAS_TOWN, ATLAS_CREATURE, drawTile, onAnyAtlasLoaded, pickAnimalTile } from '../utils/sprites'
+import { SPRITE, ATLAS_TOWN, drawTile, onAnyAtlasLoaded } from '../utils/sprites'
 
 onAnyAtlasLoaded(() => { _baseKey = null })
 
