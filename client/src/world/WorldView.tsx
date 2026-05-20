@@ -1589,7 +1589,22 @@ export function WorldView({ world, interp }: Props) {
       })()
     : null
 
+  // Track pointer-down position so we can distinguish a tap (select)
+  // from a drag-then-release (pan). Without this every pan ends with
+  // an accidental org-select on the tile under the release point —
+  // especially painful on touch where finger jitter is large.
+  const pointerDownPos = useRef<{ x: number; y: number } | null>(null)
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    pointerDownPos.current = { x: e.clientX, y: e.clientY }
+  }
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const down = pointerDownPos.current
+    pointerDownPos.current = null
+    if (down) {
+      const dx = e.clientX - down.x
+      const dy = e.clientY - down.y
+      if (dx * dx + dy * dy > 36) return // > 6px movement → treat as drag
+    }
     const rect = containerRef.current!.getBoundingClientRect()
     const sx = e.clientX - rect.left
     const sy = e.clientY - rect.top
@@ -1600,7 +1615,11 @@ export function WorldView({ world, interp }: Props) {
     const worldY = canvasTileY + oy
 
     let nearest: string | null = null
-    let nearestDist = 3.0
+    // Wider tolerance for touch where finger occlusion makes precise
+    // taps hard.
+    const isCoarse = typeof window !== 'undefined'
+      && window.matchMedia?.('(pointer: coarse)').matches
+    let nearestDist = isCoarse ? 5.0 : 3.0
     for (const org of (world.viewport_organisms ?? world.organisms)) {
       if (!org.alive) continue
       const d = Math.abs(org.x - worldX) + Math.abs(org.y - worldY)
@@ -1627,7 +1646,15 @@ export function WorldView({ world, interp }: Props) {
   return (
     <div
       ref={containerRef}
-      style={{ flex: 1, minWidth: 0, overflow: 'hidden', cursor: 'grab', position: 'relative' }}
+      style={{
+        flex: 1, minWidth: 0, overflow: 'hidden',
+        cursor: 'grab', position: 'relative',
+        // touch-action: none stops the browser from claiming
+        // two-finger pinch as page-zoom; the gesture handler
+        // gets the events instead.
+        touchAction: 'none',
+      }}
+      onPointerDown={handlePointerDown}
       onClick={handleClick}
     >
       <div style={{
