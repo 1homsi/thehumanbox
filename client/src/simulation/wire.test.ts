@@ -65,7 +65,7 @@ describe('applyGridWire', () => {
 })
 
 describe('expandOrgsSoa', () => {
-  it('omits `age` from the expanded delta when the SoA has no ages field', () => {
+  it('omits `age` and `alive` from the expanded delta when those SoA fields are absent', () => {
     const expanded = expandOrgsSoa({
       ids:        ['a'],
       xs:         [100],
@@ -75,38 +75,64 @@ describe('expandOrgsSoa', () => {
       energies:   [80],
       hydrations: [80],
       healths:    [90],
-      alives:     [true],
-      thoughts:   [''],
+      // alives intentionally omitted (new sparse delta path).
+      thoughts:   [], // sparse-empty form
       infections: [0],
       fear_levels:[0],
       carryings:  [0],
       carrying_types: [0],
       pregnants:  [false],
-      partner_ids: [null],
-      attracted_tos: [null],
+      partner_ids: [],   // sparse-empty
+      attracted_tos: [], // sparse-empty
     })
     expect(expanded[0].id).toBe('a')
     expect(expanded[0].x).toBeCloseTo(10, 5)
     expect(expanded[0].vx).toBe(0)
-    // ages was intentionally omitted from delta payloads. The
-    // expanded record must not synthesise a fake 0 — that would
-    // overwrite the cached real age on merge.
     expect('age' in expanded[0]).toBe(false)
+    // alives dropped from deltas; client merge keeps cached value.
+    expect('alive' in expanded[0]).toBe(false)
+    // thoughts is sparse with no entry for this org → no thought field.
+    expect('thought' in expanded[0]).toBe(false)
+    expect(expanded[0].partner_id).toBeUndefined()
+    expect(expanded[0].attracted_to).toBeUndefined()
   })
 
-  it('honours ages when the SoA carries them', () => {
+  it('honours ages and alives when the SoA carries them (legacy)', () => {
     const expanded = expandOrgsSoa({
       ids: ['b'],
       xs: [0], ys: [0], vxs: [0], vys: [0],
       energies: [0], hydrations: [0], healths: [0],
       ages: [1234],
       alives: [true],
-      thoughts: [''],
+      thoughts: ['exploring'], // dense form (legacy)
       infections: [0], fear_levels: [0],
       carryings: [0], carrying_types: [0],
       pregnants: [false],
       partner_ids: [null], attracted_tos: [null],
     })
     expect(expanded[0].age).toBe(1234)
+    expect(expanded[0].alive).toBe(true)
+    expect(expanded[0].thought).toBe('exploring')
+  })
+
+  it('reads sparse thought / partner / attracted entries', () => {
+    const expanded = expandOrgsSoa({
+      ids: ['a', 'b', 'c'],
+      xs:  [0, 10, 20], ys: [0, 0, 0],
+      vxs: [0, 0, 0], vys: [0, 0, 0],
+      energies:   [50, 50, 50],
+      hydrations: [50, 50, 50],
+      healths:    [50, 50, 50],
+      thoughts:    [[1, 'wandering']],
+      infections: [0, 0, 0], fear_levels: [0, 0, 0],
+      carryings:  [0, 0, 0], carrying_types: [0, 0, 0],
+      pregnants:  [false, false, false],
+      partner_ids:   [[0, 'b']],
+      attracted_tos: [[2, 'a']],
+    })
+    expect(expanded[0].partner_id).toBe('b')
+    expect(expanded[1].partner_id).toBeUndefined()
+    expect(expanded[1].thought).toBe('wandering')
+    expect(expanded[2].attracted_to).toBe('a')
   })
 })

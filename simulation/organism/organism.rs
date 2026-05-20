@@ -159,6 +159,11 @@ pub struct Organism {
     pub age:         u32,
     pub alive:       bool,
     pub thought:     String,
+    /// True when `thought` was set this tick. The SoA delta builder
+    /// reads + clears this so we only ship a per-org thought string
+    /// over the wire when it changed. Initialised to `true` so a
+    /// freshly-spawned org's first thought reaches the client.
+    pub thought_dirty: bool,
     pub generation:  u32,
     pub parent_id:   String,
     pub father_id:   Option<String>,
@@ -273,6 +278,7 @@ impl Organism {
             energy: 1.0, hydration: 1.0, health: 1.0,
             age: 0, alive: true,
             thought: "observing".to_string(),
+            thought_dirty: true,
             generation, parent_id, father_id: None, lineage_id, max_age,
             food_memory:   HashMap::new(),
             water_memory:  HashMap::new(),
@@ -597,6 +603,7 @@ impl Organism {
     pub fn think(&mut self, text: &str, tick: u64) {
         if self.thought == text { return; }
         self.thought = text.to_string();
+        self.thought_dirty = true;
         self.thought_history.push_back(ThoughtEntry { tick, text: text.to_string() });
         if self.thought_history.len() > 40 {
             self.thought_history.pop_front();
@@ -1059,6 +1066,18 @@ pub struct OrgLifeJson {
 /// full frames carry ground truth for those and the client preserves
 /// them across deltas. Sending 4 bytes per org per tick for a counter
 /// that increments by 1 was pure waste.
+/// Hot Structure-of-Arrays payload for delta (viewport) frames.
+///
+/// Several historically per-org fields are now sparse or dropped to
+/// cut bandwidth. Specifically:
+/// - `alives` is gone — delta orgs are filtered to alive on the server
+///   already, so every entry was `true`. Client merge keeps the
+///   cached alive flag.
+/// - `thoughts` is now sparse `Vec<(u32 index, String)>` — most ticks
+///   the same thought repeats verbatim, so we only ship entries
+///   whose `thought_dirty` flag was set since the last delta.
+/// - `partner_ids` / `attracted_tos` are sparse `Vec<(u32, String)>`
+///   too — only a small minority of orgs have either at any tick.
 #[derive(Serialize)]
 pub struct OrgsHotSoa {
     pub ids:            Vec<String>,
@@ -1071,15 +1090,19 @@ pub struct OrgsHotSoa {
     pub energies:       Vec<u8>,
     pub hydrations:     Vec<u8>,
     pub healths:        Vec<u8>,
-    pub alives:         Vec<bool>,
-    pub thoughts:       Vec<String>,
+    /// Sparse: (index into ids, thought text). Only orgs whose thought
+    /// changed this tick. Client merges into prev cached thought.
+    pub thoughts:       Vec<(u32, String)>,
     pub infections:     Vec<u8>,
     pub fear_levels:    Vec<u8>,
     pub carryings:      Vec<u8>,
     pub carrying_types: Vec<u8>,
     pub pregnants:      Vec<bool>,
-    pub partner_ids:    Vec<Option<String>>,
-    pub attracted_tos:  Vec<Option<String>>,
+    /// Sparse: (index into ids, partner_id). Absent → unpartnered.
+    pub partner_ids:    Vec<(u32, String)>,
+    /// Sparse: (index into ids, attracted_to id). Absent → no
+    /// current attraction.
+    pub attracted_tos:  Vec<(u32, String)>,
 }
 
 #[inline]
@@ -1105,19 +1128,19 @@ impl OrgsHotSoa {
             energies:       Vec::with_capacity(n),
             hydrations:     Vec::with_capacity(n),
             healths:        Vec::with_capacity(n),
-            alives:         Vec::with_capacity(n),
-            thoughts:       Vec::with_capacity(n),
+            // Sparse fields start empty — only allocate slots actually used.
+            thoughts:       Vec::with_capacity(n / 4),
             infections:     Vec::with_capacity(n),
             fear_levels:    Vec::with_capacity(n),
             carryings:      Vec::with_capacity(n),
             carrying_types: Vec::with_capacity(n),
             pregnants:      Vec::with_capacity(n),
-            partner_ids:    Vec::with_capacity(n),
-            attracted_tos:  Vec::with_capacity(n),
+            partner_ids:    Vec::with_capacity(n / 8),
+            attracted_tos:  Vec::with_capacity(n / 16),
         }
     }
 
-    pub fn push(&mut self, o: &Organism, lookahead_ticks: f32) {
+    pub fn push(&mut self, o: &mut Organism, lookahead_ticks: f32) {
         let pred_x = o.x + o.vx_smooth * lookahead_ticks;
         let pred_y = o.y + o.vy_smooth * lookahead_ticks;
         // Velocity quantization: * 10 → i16, client decodes /10. Comment
@@ -1130,6 +1153,7 @@ impl OrgsHotSoa {
             Some((tx, ty)) => (tx as i16, ty as i16),
             None           => (i16::MIN, i16::MIN),
         };
+        let idx = self.ids.len() as u32;
         self.ids.push(o.id.clone());
         self.xs.push(q_pos(pred_x));
         self.ys.push(q_pos(pred_y));
@@ -1140,15 +1164,26 @@ impl OrgsHotSoa {
         self.energies.push(q_pct(o.energy));
         self.hydrations.push(q_pct(o.hydration));
         self.healths.push(q_pct(o.health));
-        self.alives.push(o.alive);
-        self.thoughts.push(o.thought.clone());
+        // Sparse: only emit thought if dirty since last send. Clear
+        // the flag after read so the next delta only ships subsequent
+        // changes. Full frames take the AoS JSON path and don't
+        // touch this flag (they emit the thought unconditionally).
+        if o.thought_dirty {
+            self.thoughts.push((idx, o.thought.clone()));
+            o.thought_dirty = false;
+        }
         self.infections.push(q_pct(o.infection));
         self.fear_levels.push(q_pct(o.fear_level));
         self.carryings.push(o.carrying.min(255) as u8);
         self.carrying_types.push(o.carrying_type);
         self.pregnants.push(o.pregnant);
-        self.partner_ids.push(o.partner_id.clone());
-        self.attracted_tos.push(o.attracted_to.clone());
+        // Sparse: only emit when set.
+        if let Some(pid) = &o.partner_id {
+            self.partner_ids.push((idx, pid.clone()));
+        }
+        if let Some(aid) = &o.attracted_to {
+            self.attracted_tos.push((idx, aid.clone()));
+        }
     }
 }
 #[derive(Serialize)] pub struct TraitsJson   {

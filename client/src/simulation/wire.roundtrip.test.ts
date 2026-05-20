@@ -44,15 +44,17 @@ const knownDelta = () => ({
     energies:   [82],
     hydrations: [70],
     healths:    [95],
-    alives:     [true],
-    thoughts:   ['exploring'],
+    // alives dropped from deltas; client merge preserves the cached
+    // value across deltas. Server only emits full-frame AoS when an
+    // org's alive flag changes anyway.
+    thoughts:    [[0, 'exploring']] as Array<[number, string]>,
     infections: [0],
     fear_levels:[0],
     carryings:  [0],
     carrying_types: [0],
     pregnants:  [false],
-    partner_ids: [null],
-    attracted_tos: [null],
+    partner_ids:   [] as Array<[number, string]>,
+    attracted_tos: [] as Array<[number, string]>,
   },
   organisms_complete: false,
   animals: [],
@@ -99,7 +101,11 @@ describe('wire round-trip', () => {
     expect(result.isOk()).toBe(true)
     if (result.isErr()) return
     expect(result.value.frame_id).toBe(42)
-    expect(result.value.organisms_hot?.thoughts[0]).toBe('exploring')
+    // thoughts is sparse `[[idx, text], …]` now — first entry tuple
+    // is the (index, text) pair for the only modified org.
+    const t = result.value.organisms_hot?.thoughts
+    expect(Array.isArray(t)).toBe(true)
+    expect((t as Array<[number, string]>)[0]).toEqual([0, 'exploring'])
   })
 
   it('rejects payloads missing required envelope fields', () => {

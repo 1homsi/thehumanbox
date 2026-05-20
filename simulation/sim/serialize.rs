@@ -162,7 +162,10 @@ impl Simulation {
         } else {
             let mut soa = OrgsHotSoa::with_capacity(self.organisms.len() / 2);
             let lookahead = *LOOKAHEAD_TICKS;
-            for o in &self.organisms {
+            // `soa.push` takes `&mut Organism` because it clears
+            // `thought_dirty` after emitting the change. That's fine
+            // — `state_json_inner` already holds `&mut self`.
+            for o in self.organisms.iter_mut() {
                 if o.alive && in_view(o.x, o.y) { soa.push(o, lookahead); }
             }
             let animals_json = self.animals.iter()

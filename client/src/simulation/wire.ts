@@ -21,15 +21,23 @@ export interface OrgsHotSoa {
   // are pure waste over the wire. Client preserves the value from the
   // last full frame in the merge layer.
   ages?:          number[]
-  alives:         boolean[]
-  thoughts:       string[]
+  // alives is gone from deltas — server already filters to alive
+  // before push, so every entry was true. Client merge keeps the
+  // cached alive flag.
+  alives?:        boolean[]
+  // Sparse: [index into ids, thought string]. Only orgs whose
+  // thought changed since the last delta. Legacy server can still
+  // send a dense `string[]`; we accept both.
+  thoughts:       Array<[number, string]> | string[]
   infections:     number[]
   fear_levels:    number[]
   carryings:      number[]
   carrying_types: number[]
   pregnants:      boolean[]
-  partner_ids:    (string | null)[]
-  attracted_tos:  (string | null)[]
+  // Sparse: [index, partner_id / attracted_to]. Absent → unset.
+  // Legacy server can still send dense `(string | null)[]`.
+  partner_ids:    Array<[number, string]> | (string | null)[]
+  attracted_tos:  Array<[number, string]> | (string | null)[]
 }
 
 export type IncomingWorldFrame =
@@ -114,10 +122,52 @@ export async function fetchSnapshotWithProgress(url: string, signal?: AbortSigna
  */
 export type ExpandedOrgDelta = Partial<OrganismState> & { id: string }
 
+// Detect sparse `Array<[number, string]>` vs dense `(string|null)[]`
+// form of a soa field. The sparse form is `[[idx, value], …]` while
+// the dense form is `[value, value, …]` (strings or nulls). Spotting
+// the difference by the first element's shape is reliable for our
+// schema: dense entries are strings/null, sparse entries are
+// `[number, string]` tuples.
+function isSparseStringArray(a: unknown): a is Array<[number, string]> {
+  if (!Array.isArray(a) || a.length === 0) return false
+  const first = a[0]
+  return Array.isArray(first) && first.length === 2 && typeof first[0] === 'number'
+}
+
 export function expandOrgsSoa(soa: OrgsHotSoa): ExpandedOrgDelta[] {
-  const out: ExpandedOrgDelta[] = new Array(soa.ids.length)
+  const n = soa.ids.length
+  const out: ExpandedOrgDelta[] = new Array(n)
   const hasAges = Array.isArray(soa.ages)
-  for (let i = 0; i < soa.ids.length; i++) {
+  const hasAlives = Array.isArray(soa.alives)
+
+  // Pre-explode sparse-or-dense string-ish fields into per-index
+  // lookup tables (sparse = [] for unset; dense = the array itself).
+  const sparseThoughts = isSparseStringArray(soa.thoughts) ? soa.thoughts : null
+  const sparsePartners = isSparseStringArray(soa.partner_ids) ? soa.partner_ids : null
+  const sparseAttracted = isSparseStringArray(soa.attracted_tos) ? soa.attracted_tos : null
+  const thoughtAt: (string | undefined)[] = new Array(n)
+  const partnerAt: (string | undefined)[] = new Array(n)
+  const attractedAt: (string | undefined)[] = new Array(n)
+  if (sparseThoughts) {
+    for (const [i, s] of sparseThoughts) thoughtAt[i] = s
+  } else {
+    const dense = soa.thoughts as string[]
+    for (let i = 0; i < n; i++) thoughtAt[i] = dense[i]
+  }
+  if (sparsePartners) {
+    for (const [i, s] of sparsePartners) partnerAt[i] = s
+  } else {
+    const dense = soa.partner_ids as (string | null)[]
+    for (let i = 0; i < n; i++) partnerAt[i] = dense[i] ?? undefined
+  }
+  if (sparseAttracted) {
+    for (const [i, s] of sparseAttracted) attractedAt[i] = s
+  } else {
+    const dense = soa.attracted_tos as (string | null)[]
+    for (let i = 0; i < n; i++) attractedAt[i] = dense[i] ?? undefined
+  }
+
+  for (let i = 0; i < n; i++) {
     const entry: ExpandedOrgDelta = {
       id:            soa.ids[i],
       x:             soa.xs[i] / 10,
@@ -129,20 +179,22 @@ export function expandOrgsSoa(soa: OrgsHotSoa): ExpandedOrgDelta[] {
       energy:        soa.energies[i] / 100,
       hydration:     soa.hydrations[i] / 100,
       health:        soa.healths[i] / 100,
-      alive:         soa.alives[i],
-      thought:       soa.thoughts[i],
       infection:     soa.infections[i] / 100,
       fear_level:    soa.fear_levels[i] / 100,
       carrying:      soa.carryings[i],
       carrying_type: soa.carrying_types[i],
       pregnant:      soa.pregnants[i],
-      partner_id:    soa.partner_ids[i] ?? undefined,
-      attracted_to:  soa.attracted_tos[i] ?? undefined,
+      partner_id:    partnerAt[i],
+      attracted_to:  attractedAt[i],
     }
-    // Server omits ages from delta frames (saves 4 bytes per org per
-    // tick). When the field is present (legacy server / full frame
-    // synthesised via SoA), still honour it.
+    // `alive` dropped from deltas (server filters to alive on push);
+    // when present (legacy server) honour it. Cached value persists
+    // otherwise — see merge.ts.
+    if (hasAlives) entry.alive = soa.alives![i]
+    // `age` dropped from deltas; same legacy-honor pattern.
     if (hasAges) entry.age = soa.ages![i]
+    // `thought` is sparse — only assign when this org had a change.
+    if (thoughtAt[i] !== undefined) entry.thought = thoughtAt[i]
     out[i] = entry
   }
   return out
