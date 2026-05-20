@@ -18,5 +18,15 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      // All console output goes through src/lib/logger.ts. The logger
+      // file itself is the only place allowed to call console directly
+      // (overridden below).
+      'no-console': 'error',
+    },
+  },
+  {
+    files: ['src/lib/logger.ts'],
+    rules: { 'no-console': 'off' },
   },
 ])

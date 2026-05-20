@@ -5,6 +5,7 @@ import { useWorldStore } from '../stores/worldStore'
 import { fetchSnapshotWithProgress, parseWorldFrame } from './wire'
 import { mergeFrame, type MergeCaches } from './merge'
 import { updateOrgMotion, updateAnimalMotion } from '../three/motion-state'
+import { logger } from '../lib/logger'
 
 const WS_URL       = `${WS_BASE}/ws`
 const SNAPSHOT_URL = `${API_BASE}/snapshot`
@@ -142,8 +143,8 @@ export function useSimulation(): {
         const parseResult = parseWorldFrame(raw)
         if (parseResult.isErr()) {
           const e = parseResult.error
-          if (e.kind === 'json') console.warn('[ws] bad json:', e.message)
-          else                    console.warn('[ws] schema mismatch:', e.issues)
+          if (e.kind === 'json') logger.warn('ws', 'bad json:', e.message)
+          else                    logger.warn('ws', 'schema mismatch:', e.issues)
           continue
         }
         try {
@@ -189,7 +190,7 @@ export function useSimulation(): {
           // frame with zero signal. Logging surfaces real bugs;
           // the loop continues so a single bad frame doesn't kill
           // the world.
-          console.warn('[ws] frame merge failed:', e)
+          logger.warn('ws', 'frame merge failed:', e)
         }
       }
 
