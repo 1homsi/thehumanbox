@@ -128,6 +128,16 @@ export function useSimulation(): {
             bootstrapPendingRef.current = false
             scheduleFlush()
           }
+          // The /snapshot route returns 503 until the sim has produced
+          // its first full frame. Retry after a short jittered delay
+          // so first-boot clients don't sit blind waiting for a gap
+          // detector to fire.
+          const retryMs = 600 + Math.round(Math.random() * 600)
+          setTimeout(() => {
+            if (!destroyed && !snapshotPendingRef.current) {
+              requestSnapshotResync(true)
+            }
+          }, retryMs)
         })
         .finally(() => {
           if (snapshotAbort === ctl) snapshotAbort = null
@@ -227,10 +237,15 @@ export function useSimulation(): {
     function scheduleReconnect() {
       if (destroyed) return
       if (reconnectTimer !== null) return
+      // Jittered backoff: a server restart sees hundreds of clients
+      // synchronise their retries at exactly 1s/2s/4s and re-crash the
+      // recovering server. Multiply by [0.5, 1.0] randomly so the
+      // herd disperses.
+      const jitter = 0.5 + Math.random() * 0.5
       reconnectTimer = setTimeout(() => {
         reconnectTimer = null
         connect()
-      }, reconnectDelayMs)
+      }, Math.round(reconnectDelayMs * jitter))
       reconnectDelayMs = Math.min(reconnectDelayMs * 2, 15000)
     }
 
