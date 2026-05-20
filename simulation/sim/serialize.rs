@@ -157,7 +157,7 @@ impl Simulation {
                 "season":             self.season(),
                 "season_progress":    (self.season_progress() * 1000.0).round() / 1000.0,
                 "drought":            self.drought.active,
-                "weather":            { "kind": self.weather.phase(self.tick_count), "intensity": self.weather.effective_intensity(self.tick_count) },
+                "weather":            { "kind": self.weather.phase(self.tick_count), "intensity": self.weather.effective_intensity(self.tick_count), "wind_x": self.weather.wind_x, "wind_y": self.weather.wind_y },
             })
         } else {
             let mut soa = OrgsHotSoa::with_capacity(self.organisms.len() / 2);
@@ -181,7 +181,7 @@ impl Simulation {
                 "season":             self.season(),
                 "season_progress":    (self.season_progress() * 1000.0).round() / 1000.0,
                 "drought":            self.drought.active,
-                "weather":            { "kind": self.weather.phase(self.tick_count), "intensity": self.weather.effective_intensity(self.tick_count) },
+                "weather":            { "kind": self.weather.phase(self.tick_count), "intensity": self.weather.effective_intensity(self.tick_count), "wind_x": self.weather.wind_x, "wind_y": self.weather.wind_y },
             })
         };
         if include_cold {

@@ -198,7 +198,15 @@ export interface WorldState {
   season: string
   season_progress: number
   drought: boolean
-  weather: { kind: 'clear' | 'rain' | 'storm' | 'wet'; intensity: number }
+  weather: {
+    kind: 'clear' | 'rain' | 'storm' | 'wet'
+    intensity: number
+    // Wind vector — drifts slowly each tick on the server. The 2D
+    // canvas slants rain streaks along (wind_x, wind_y); 3D uses it
+    // to rotate cloud motion.
+    wind_x?: number
+    wind_y?: number
+  }
   history: WorldHistory
   story_history: StoryEntry[]
   pop_history: [number, number][]

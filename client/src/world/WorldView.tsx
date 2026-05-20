@@ -515,15 +515,21 @@ function drawWorldOnCanvas(
                                 : `rgba(170,190,225,${0.08 + wi * 0.08})`
       ctx.lineWidth = 1
       const streaks = Math.round((isStorm ? 80 : 50) * (0.4 + wi * 0.6))
-      const slant   = isStorm ? 6 : 3
+      // Wind drives the streak angle. Magnitude controls slant
+      // intensity; storms are inherently more violent so multiply.
+      const wx = world.weather.wind_x ?? 0.4
+      const wy = world.weather.wind_y ?? 0.0
+      const baseSlant = isStorm ? 10 : 6
+      const slantX = wx * baseSlant
+      const slantY = (1 + wy * 0.5) * 8 // mostly downward, biased by wind_y
+      ctx.beginPath()
       for (let i = 0; i < streaks; i++) {
         const sxp = (i * 137 + (t * 0.7)) % W
         const syp = ((i * 251) + (t * (isStorm ? 1.4 : 1.0))) % H
-        ctx.beginPath()
         ctx.moveTo(sxp, syp)
-        ctx.lineTo(sxp - slant, syp + 8)
-        ctx.stroke()
+        ctx.lineTo(sxp + slantX, syp + slantY)
       }
+      ctx.stroke()
     }
   }
 

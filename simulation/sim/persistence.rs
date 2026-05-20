@@ -603,6 +603,11 @@ impl Simulation {
                 duration:   state.weather.duration,
                 intensity:  state.weather.intensity,
                 wet_until:  state.weather.wet_until,
+                // Wind state isn't persisted across restarts — the
+                // drift converges back within a few ticks anyway.
+                wind_x:          0.4,
+                wind_y:          0.0,
+                wind_last_tick:  state.tick_count,
             },
             flood_tiles:            state.flood_tiles,
             story_history:          state.story_history.into_iter().collect(),

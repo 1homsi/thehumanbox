@@ -9,13 +9,47 @@ pub struct WeatherState {
     pub duration:   u64,
     pub intensity:  f32,
     pub wet_until:  u64,
+    /// Wind direction unit-ish vector. Magnitude ∈ [0, ~1]. Drifts
+    /// slowly via `tick_wind`. Storms inherit wind direction so rain
+    /// streaks slant the right way and storms move across the map.
+    pub wind_x:     f32,
+    pub wind_y:     f32,
+    /// Last-updated tick for the wind drift, used to clamp the
+    /// integration step so paused/laggy worlds don't fling wind.
+    pub wind_last_tick: u64,
 }
 
 impl Default for WeatherState {
-    fn default() -> Self { WeatherState { kind: 0, start_tick: 0, duration: 0, intensity: 0.0, wet_until: 0 } }
+    fn default() -> Self {
+        WeatherState {
+            kind: 0, start_tick: 0, duration: 0, intensity: 0.0, wet_until: 0,
+            wind_x: 0.4, wind_y: 0.0, wind_last_tick: 0,
+        }
+    }
 }
 
 impl WeatherState {
+    /// Drift the wind vector. Called once per tick. The wind takes a
+    /// random walk on its angle and a small additive nudge on
+    /// magnitude, clamped to [0, 1]. Cheap (a handful of floats),
+    /// gives the world a coherent "today the wind is from the west,
+    /// strong" feel that downstream systems (rain slant, storm move,
+    /// dispatch fire spread) can read.
+    pub fn tick_wind(&mut self, tick: u64, rng: &mut impl Rng) {
+        let _ = tick; // reserved for if we ever rate-limit
+        // Small random nudge on direction (≈ ±5° per tick).
+        let theta = (self.wind_y.atan2(self.wind_x))
+            + (rng.gen::<f32>() - 0.5) * 0.08;
+        // Magnitude drifts toward a seasonal-ish baseline of 0.5.
+        let m = (self.wind_x * self.wind_x + self.wind_y * self.wind_y).sqrt();
+        let target = 0.5;
+        let new_m = (m + (target - m) * 0.02 + (rng.gen::<f32>() - 0.5) * 0.04)
+            .clamp(0.05, 1.0);
+        self.wind_x = theta.cos() * new_m;
+        self.wind_y = theta.sin() * new_m;
+        self.wind_last_tick = tick;
+    }
+
     pub fn is_raining(&self) -> bool { self.kind >= 1 }
     pub fn is_wet(&self, tick: u64) -> bool { self.kind >= 1 || tick < self.wet_until }
     pub fn kind_str(&self) -> &'static str {
@@ -53,6 +87,10 @@ pub fn tick_weather(
     events: &mut std::collections::VecDeque<super::simulation::Event>,
     rng: &mut impl Rng,
 ) {
+    // Wind drifts every tick, independent of whether there's active
+    // precipitation. The downstream renderer reads (wind_x, wind_y)
+    // to slant rain and orient storm motion.
+    weather.tick_wind(tick, rng);
     if weather.kind != 0 {
         apply_weather(weather, grid, organisms, tick, rng);
         let elapsed = tick.saturating_sub(weather.start_tick);
