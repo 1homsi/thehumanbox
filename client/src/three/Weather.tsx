@@ -50,6 +50,8 @@ export function Weather({ kind, intensity }: Props) {
   }, [maxDrops])
 
   useFrame((_, delta) => {
+    if (typeof document !== 'undefined' && document.hidden) return
+    if (delta > 0.1) return  // catch-up burst when returning from background
     const mesh = meshRef.current
     if (!mesh || maxDrops === 0) return
     const cx = camera.position.x

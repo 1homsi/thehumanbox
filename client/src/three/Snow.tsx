@@ -25,6 +25,8 @@ export function Snow({ active, intensity = 0.6 }: Props) {
   }, [maxFlakes])
 
   useFrame((_, delta) => {
+    if (typeof document !== 'undefined' && document.hidden) return
+    if (delta > 0.1) return  // catch-up burst when returning from background
     const mesh = meshRef.current
     if (!mesh || maxFlakes === 0) return
     const cx = camera.position.x
