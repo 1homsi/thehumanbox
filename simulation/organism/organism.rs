@@ -1100,9 +1100,11 @@ impl OrgsHotSoa {
     pub fn push(&mut self, o: &Organism, lookahead_ticks: f32) {
         let pred_x = o.x + o.vx_smooth * lookahead_ticks;
         let pred_y = o.y + o.vy_smooth * lookahead_ticks;
-        // velocity in tiles/sec (* 10 for fixed-point, decoded as /10 on client)
-        let enc_vx = (o.vx_smooth * 100.0).round().clamp(i16::MIN as f32, i16::MAX as f32) as i16;
-        let enc_vy = (o.vy_smooth * 100.0).round().clamp(i16::MIN as f32, i16::MAX as f32) as i16;
+        // Velocity quantization: * 10 → i16, client decodes /10. Comment
+        // and code were drifting at 10× off; standardising on /10 means
+        // ±3276.7 tiles/tick representable, plenty of headroom.
+        let enc_vx = (o.vx_smooth * 10.0).round().clamp(i16::MIN as f32, i16::MAX as f32) as i16;
+        let enc_vy = (o.vy_smooth * 10.0).round().clamp(i16::MIN as f32, i16::MAX as f32) as i16;
         // i16::MIN sentinel = no target
         let (enc_tx, enc_ty) = match o.wander_target {
             Some((tx, ty)) => (tx as i16, ty as i16),

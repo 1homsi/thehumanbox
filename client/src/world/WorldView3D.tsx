@@ -63,9 +63,11 @@ function loadSavedCam(): { x: number; y: number; z: number; rx: number; ry: numb
   try {
     const raw = localStorage.getItem(CAM_LS_KEY)
     if (!raw) return null
-    const v = JSON.parse(raw)
-    if (typeof v?.x !== 'number') return null
-    return v
+    const v = JSON.parse(raw) as Record<string, unknown>
+    if (!v || typeof v !== 'object') return null
+    const num = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n)
+    if (!num(v.x) || !num(v.y) || !num(v.z) || !num(v.rx) || !num(v.ry)) return null
+    return { x: v.x, y: v.y, z: v.z, rx: v.rx, ry: v.ry }
   } catch { return null }
 }
 

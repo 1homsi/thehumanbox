@@ -1262,7 +1262,7 @@ function drawWorldOnCanvas(
     if (org.home_x && org.home_y) {
       const ddx = org.x - org.home_x; const ddy = org.y - org.home_y
       if (ddx * ddx + ddy * ddy < 2.0) {
-        if ((org as any).sleep_debt > 0.40 || org.energy < 0.10 || org.health < 0.15)
+        if ((org.sleep_debt ?? 0) > 0.40 || org.energy < 0.10 || org.health < 0.15)
           continue
       }
     }

@@ -8,7 +8,7 @@ export function TraitAverages({ organisms }: { organisms: WorldState['organisms'
   for (const o of organisms) {
     if (!o.traits) continue
     n++
-    for (const k of keys) sums[k] = (sums[k] ?? 0) + (o.traits as unknown as Record<string, number>)[k]
+    for (const k of keys) sums[k] = (sums[k] ?? 0) + o.traits[k]
   }
   if (n === 0) return null
   return (
