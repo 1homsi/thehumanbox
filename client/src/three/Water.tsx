@@ -14,7 +14,11 @@ const SUB_Y = 48
 
 export function Water({ width, height, depthMap }: Props) {
   const outerMatRef = useRef<THREE.MeshStandardMaterial>(null)
-  const innerRef    = useRef<THREE.Mesh>(null)
+  const innerMatRef = useRef<THREE.MeshStandardMaterial>(null)
+  // Drives the time uniform that the patched vertex shader reads
+  // from. Frame-by-frame buffer uploads from CPU sine-wave displacement
+  // gone — the GPU now computes the wave per vertex per draw.
+  const waveTimeRef = useRef({ value: 0 })
 
   const cx = width  * TILE_SCALE * 0.5
   const cz = height * TILE_SCALE * 0.5
@@ -22,7 +26,9 @@ export function Water({ width, height, depthMap }: Props) {
   const PLANE_W = width  * TILE_SCALE
   const PLANE_H = height * TILE_SCALE
 
-  const { innerGeo, landMask } = useMemo(() => {
+  // Build the inner plane geometry once. Land mask becomes a vertex
+  // attribute the shader can read to skip displacement on land tiles.
+  const innerGeo = useMemo(() => {
     const geo = new THREE.PlaneGeometry(PLANE_W, PLANE_H, SUB_X, SUB_Y)
     const pos = geo.attributes.position as THREE.BufferAttribute
     const mask = new Float32Array(pos.count)
@@ -45,6 +51,7 @@ export function Water({ width, height, depthMap }: Props) {
     } else {
       mask.fill(0)
     }
+    geo.setAttribute('aLand', new THREE.BufferAttribute(mask, 1))
     const normals = new Float32Array(pos.count * 3)
     for (let i = 0; i < pos.count; i++) {
       normals[i * 3]     = 0
@@ -52,36 +59,44 @@ export function Water({ width, height, depthMap }: Props) {
       normals[i * 3 + 2] = 1
     }
     geo.setAttribute('normal', new THREE.BufferAttribute(normals, 3))
-    return { innerGeo: geo, landMask: mask }
+    return geo
   }, [PLANE_W, PLANE_H, width, height, depthMap])
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime()
+    waveTimeRef.current.value = t
     if (outerMatRef.current) {
       const s = Math.sin(t * 0.4) * 0.04
       outerMatRef.current.color.setRGB(0.16 + s, 0.32 + s * 0.5, 0.5)
     }
-    const mesh = innerRef.current
-    if (!mesh) return
-    const geom = mesh.geometry as THREE.PlaneGeometry
-    const pos = geom.attributes.position as THREE.BufferAttribute
-    for (let i = 0; i < pos.count; i++) {
-      if (landMask[i] > 0.5) {
-        continue
-      }
-      const x = pos.getX(i)
-      const y = pos.getY(i)
-      const w = Math.sin(x * 0.04 + t * 0.7) * 0.12
-              + Math.cos(y * 0.05 + t * 0.55) * 0.08
-              + Math.sin((x + y) * 0.02 + t * 0.3) * 0.05
-      pos.setZ(i, w)
-    }
-    pos.needsUpdate = true
   })
+
+  // Hook the material's onBeforeCompile to inject the wave displacement
+  // into the vertex shader. This runs once per material; per-frame we
+  // only need to update the `uWaveTime` uniform.
+  const onBeforeCompileInner = (shader: THREE.WebGLProgramParametersWithUniforms) => {
+    shader.uniforms.uWaveTime = waveTimeRef.current
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        '#include <common>',
+        `#include <common>
+         attribute float aLand;
+         uniform float uWaveTime;`,
+      )
+      .replace(
+        '#include <begin_vertex>',
+        `#include <begin_vertex>
+         if (aLand < 0.5) {
+           float wave = sin(position.x * 0.04 + uWaveTime * 0.7) * 0.12
+                      + cos(position.y * 0.05 + uWaveTime * 0.55) * 0.08
+                      + sin((position.x + position.y) * 0.02 + uWaveTime * 0.3) * 0.05;
+           transformed.z += wave;
+         }`,
+      )
+  }
 
   return (
     <>
-      {}
       <mesh
         rotation-x={-Math.PI / 2}
         position={[cx, -0.6, cz]}
@@ -99,9 +114,7 @@ export function Water({ width, height, depthMap }: Props) {
         />
       </mesh>
 
-      {}
       <mesh
-        ref={innerRef}
         rotation-x={-Math.PI / 2}
         position={[cx, -0.05, cz]}
         receiveShadow
@@ -109,11 +122,13 @@ export function Water({ width, height, depthMap }: Props) {
         frustumCulled={false}
       >
         <meshStandardMaterial
+          ref={innerMatRef}
           color="#3a78ac"
           transparent
           opacity={0.82}
           roughness={0.18}
           metalness={0.15}
+          onBeforeCompile={onBeforeCompileInner}
         />
       </mesh>
     </>
