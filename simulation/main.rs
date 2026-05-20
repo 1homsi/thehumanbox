@@ -28,7 +28,8 @@ use axum::{
     http::StatusCode,
 };
 use serde::{Serialize, Deserialize};
-use tower_http::cors::{CorsLayer, Any};
+use tower_http::cors::{CorsLayer, Any, AllowOrigin};
+use axum::http::HeaderValue;
 use tower_http::compression::CompressionLayer;
 
 use sim::simulation::{Simulation, StoryEntry, ThinkTrigger};
@@ -562,8 +563,29 @@ async fn main() {
         });
     }
 
+    // CORS: restrict origins to the production frontend + common dev
+    // hosts. Set `THB_EXTRA_CORS_ORIGINS` (comma-separated) to allow
+    // additional origins for staging environments. Wide-open `Any`
+    // origin lets any site embed our endpoints (cost amplification +
+    // scraping risk), so we lock it down by default.
+    let mut allowed: Vec<HeaderValue> = vec![
+        "https://thehumanbox.com",
+        "https://www.thehumanbox.com",
+        "http://localhost:5173",
+        "http://localhost:4173",
+        "http://127.0.0.1:5173",
+    ].into_iter()
+        .filter_map(|s| HeaderValue::from_str(s).ok())
+        .collect();
+    if let Ok(extra) = std::env::var("THB_EXTRA_CORS_ORIGINS") {
+        for origin in extra.split(',') {
+            let trimmed = origin.trim();
+            if trimmed.is_empty() { continue; }
+            if let Ok(hv) = HeaderValue::from_str(trimmed) { allowed.push(hv); }
+        }
+    }
     let cors = CorsLayer::new()
-        .allow_origin(Any)
+        .allow_origin(AllowOrigin::list(allowed))
         .allow_methods(Any)
         .allow_headers(Any);
 

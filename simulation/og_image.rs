@@ -175,9 +175,17 @@ pub fn render(snap: &OgSnapshot) -> Vec<u8> {
     draw_text(&mut img, "THE HUMAN BOX", 16, 6, 2, [220, 215, 200]);
 
     let mut buf = Vec::with_capacity(64 * 1024);
-    image::DynamicImage::ImageRgba8(img)
+    // PNG encode can fail (extremely rare — the image is well-formed
+    // here) but it's not worth panicking the request thread for. Log
+    // and return an empty buffer; the route will surface it to the
+    // client as a 0-byte response, which any real social crawler
+    // treats as "image unavailable, fall back to text card."
+    if let Err(e) = image::DynamicImage::ImageRgba8(img)
         .write_to(&mut Cursor::new(&mut buf), ImageFormat::Png)
-        .expect("PNG encode failed");
+    {
+        tracing::warn!(target: "og", "PNG encode failed: {e}");
+        buf.clear();
+    }
     buf
 }
 

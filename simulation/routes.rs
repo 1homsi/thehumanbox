@@ -26,7 +26,12 @@ pub async fn ws_handler(
     let sim             = s.sim.clone();
     let latest_full     = s.latest_full.clone();
     let transport_stats = s.transport_stats.clone();
-    ws.on_upgrade(move |socket| handle_socket(socket, rx, sim, latest_full, transport_stats))
+    // Clients never legitimately send anything beyond ping/pong/close
+    // on this socket, so cap inbound frames hard. Axum's default is
+    // 64 MiB which is a memory-exhaustion DoS vector.
+    ws.max_message_size(4 * 1024)
+        .max_frame_size(4 * 1024)
+        .on_upgrade(move |socket| handle_socket(socket, rx, sim, latest_full, transport_stats))
 }
 
 /// OG (Open Graph) social-share image. Renders the current world map
@@ -43,19 +48,20 @@ pub async fn og_handler(
 ) -> Result<impl IntoResponse, StatusCode> {
     const TTL_MS: u64 = 5 * 60 * 1000;
     let now = crate::transport::now_ms();
-    // Fast path: return cached bytes if still fresh.
-    {
-        let guard = s.og_cache.lock().await;
-        if let Some((generated_at, bytes)) = guard.as_ref() {
-            if now.saturating_sub(*generated_at) < TTL_MS {
-                return Ok((
-                    [
-                        (axum::http::header::CONTENT_TYPE,  "image/png".to_string()),
-                        (axum::http::header::CACHE_CONTROL, "public, max-age=300".to_string()),
-                    ],
-                    bytes.as_ref().clone(),
-                ));
-            }
+    // Hold the cache mutex across the entire critical section so a
+    // burst of N concurrent cold-cache requests serialises through
+    // one render — not N independent sim-locks + PNG encodes. The
+    // second request will find the cache populated by the first.
+    let mut guard = s.og_cache.lock().await;
+    if let Some((generated_at, bytes)) = guard.as_ref() {
+        if now.saturating_sub(*generated_at) < TTL_MS {
+            return Ok((
+                [
+                    (axum::http::header::CONTENT_TYPE,  "image/png".to_string()),
+                    (axum::http::header::CACHE_CONTROL, "public, max-age=300".to_string()),
+                ],
+                bytes.as_ref().clone(),
+            ));
         }
     }
 
@@ -89,17 +95,14 @@ pub async fn og_handler(
         }
     };
 
-    // PNG encode off the reactor.
+    // PNG encode off the reactor. spawn_blocking failure → 500.
     let bytes_arc: Arc<Vec<u8>> = match tokio::task::spawn_blocking(move || crate::og_image::render(&snapshot)).await {
         Ok(b) => Arc::new(b),
         Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
     };
 
-    // Store in cache.
-    {
-        let mut guard = s.og_cache.lock().await;
-        *guard = Some((now, bytes_arc.clone()));
-    }
+    *guard = Some((now, bytes_arc.clone()));
+    drop(guard);
 
     Ok((
         [
