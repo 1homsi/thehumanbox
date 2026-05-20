@@ -70,7 +70,10 @@ pub(crate) struct OrgSave {
     vocabulary:  crate::organism::vocabulary::Vocabulary,
     daily_story: String,
     last_story_tick: u64,
-    life_log: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    life_log_legacy: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    life_log: Vec<crate::organism::organism::LifeEvent>,
     discoveries: Vec<String>,
     home_x: f32,
     home_y: f32,
@@ -88,6 +91,27 @@ pub(crate) struct OrgSave {
     father_id: Option<String>,
     #[serde(default)]
     attributes: Vec<String>,
+    // ── Emotional / cognitive state (previously dropped on save) ──────
+    #[serde(default)] is_elder:            bool,
+    #[serde(default)] loneliness:          f32,
+    #[serde(default)] boredom:             f32,
+    #[serde(default)] fear_level:          f32,
+    #[serde(default)] comfort:             f32,
+    #[serde(default)] grief_ticks:         u32,
+    #[serde(default)] sleep_debt:          f32,
+    #[serde(default)] directive:           String,
+    #[serde(default)] directive_until:     u64,
+    #[serde(default)] last_groomed:        u64,
+    #[serde(default)] last_fed_kin:        u64,
+    #[serde(default)] last_ancestral_thought: u64,
+    // ── Inventory (previously dropped) ────────────────────────────────
+    #[serde(default)] inv_water: u8,
+    #[serde(default)] inv_food:  u8,
+    #[serde(default)] inv_wood:  u8,
+    #[serde(default)] inv_stone: u8,
+    // ── Friend network (previously dropped) ───────────────────────────
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    friends: HashMap<String, String>,
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -174,7 +198,8 @@ fn org_to_save(o: &Organism) -> OrgSave {
         vocabulary:  o.vocabulary.clone(),
         daily_story: o.daily_story.clone(),
         last_story_tick: o.last_story_tick,
-        life_log: o.life_log.iter().map(|e| e.text.clone()).collect(),
+        life_log_legacy: Vec::new(),
+        life_log: o.life_log.iter().cloned().collect(),
         discoveries: o.discoveries.iter().cloned().collect(),
         home_x: o.home_x,
         home_y: o.home_y,
@@ -191,6 +216,23 @@ fn org_to_save(o: &Organism) -> OrgSave {
         conversations:       o.conversations.iter().cloned().collect(),
         father_id:           o.father_id.clone(),
         attributes:          o.attributes.iter().cloned().collect(),
+        is_elder:            o.is_elder,
+        loneliness:          o.loneliness,
+        boredom:             o.boredom,
+        fear_level:          o.fear_level,
+        comfort:             o.comfort,
+        grief_ticks:         o.grief_ticks,
+        sleep_debt:          o.sleep_debt,
+        directive:           o.directive.clone(),
+        directive_until:     o.directive_until,
+        last_groomed:        o.last_groomed,
+        last_fed_kin:        o.last_fed_kin,
+        last_ancestral_thought: o.last_ancestral_thought,
+        inv_water: o.inv_water,
+        inv_food:  o.inv_food,
+        inv_wood:  o.inv_wood,
+        inv_stone: o.inv_stone,
+        friends:   o.friends.clone(),
     }
 }
 
@@ -228,12 +270,19 @@ fn org_from_save(s: OrgSave) -> Organism {
     o.carrying_type   = s.carrying_type;
     o.daily_story     = s.daily_story;
     o.last_story_tick = s.last_story_tick;
-    o.life_log        = s.life_log.into_iter()
-        .map(|t| crate::organism::organism::LifeEvent {
-            tick: 0, category: "event".to_string(), text: t,
-            related_id: None, related_name: None,
-        })
-        .collect();
+    // Prefer the structured LifeEvent log; fall back to legacy string
+    // log only if no structured entries exist (handles pre-LifeEvent
+    // saves without losing the history).
+    o.life_log = if !s.life_log.is_empty() {
+        s.life_log.into_iter().collect()
+    } else {
+        s.life_log_legacy.into_iter()
+            .map(|t| crate::organism::organism::LifeEvent {
+                tick: 0, category: "event".to_string(), text: t,
+                related_id: None, related_name: None,
+            })
+            .collect()
+    };
     o.discoveries     = s.discoveries.into_iter().collect();
     if s.home_x != 0.0 || s.home_y != 0.0 {
         o.home_x = s.home_x;
@@ -252,6 +301,23 @@ fn org_from_save(s: OrgSave) -> Organism {
     o.conversations       = s.conversations.into_iter().collect();
     o.father_id           = s.father_id;
     o.attributes          = s.attributes.into_iter().collect();
+    o.is_elder            = s.is_elder;
+    o.loneliness          = s.loneliness;
+    o.boredom             = s.boredom;
+    o.fear_level          = s.fear_level;
+    o.comfort             = s.comfort;
+    o.grief_ticks         = s.grief_ticks;
+    o.sleep_debt          = s.sleep_debt;
+    o.directive           = s.directive;
+    o.directive_until     = s.directive_until;
+    o.last_groomed        = s.last_groomed;
+    o.last_fed_kin        = s.last_fed_kin;
+    o.last_ancestral_thought = s.last_ancestral_thought;
+    o.inv_water           = s.inv_water;
+    o.inv_food            = s.inv_food;
+    o.inv_wood            = s.inv_wood;
+    o.inv_stone           = s.inv_stone;
+    o.friends             = s.friends;
     if needs_vocab {
         let mut voc_rng = rand::rngs::SmallRng::seed_from_u64(vocab_seed);
         o.vocabulary = crate::organism::vocabulary::Vocabulary::generate(&mut voc_rng);
@@ -386,15 +452,44 @@ impl Simulation {
             }
             Ok(data) => match serde_json::from_str::<SaveState>(&data) {
                 Ok(state) => {
-                    println!("Loaded world from {} (tick {})", path, state.tick_count);
+                    if state.version != 0 && state.version > SAVE_SCHEMA_VERSION {
+                        // Newer schema than this binary supports — back up and
+                        // start fresh rather than silently filling with defaults.
+                        let backup = format!("{}.future-v{}", path, state.version);
+                        let _ = std::fs::rename(path, &backup);
+                        eprintln!(
+                            "Save at {} is schema v{} but this binary only supports v{}. \
+                             Backed up to {} and starting fresh world.",
+                            path, state.version, SAVE_SCHEMA_VERSION, backup
+                        );
+                        return Self::new(seed)
+                    }
+                    if state.version != 0 && state.version < SAVE_SCHEMA_VERSION {
+                        println!(
+                            "Loaded world from {} (tick {}, migrating schema v{} → v{})",
+                            path, state.tick_count, state.version, SAVE_SCHEMA_VERSION
+                        );
+                    } else {
+                        println!("Loaded world from {} (tick {})", path, state.tick_count);
+                    }
                     let terrain_seed = if state.world_seed > 0 { state.world_seed } else { seed };
                     Self::from_save(terrain_seed, state)
                 }
                 Err(e) => {
+                    // Don't overwrite a possibly-recoverable save on the next
+                    // `save()`. Back it up with a timestamp so the operator
+                    // can inspect it.
+                    use std::time::{SystemTime, UNIX_EPOCH};
+                    let ts = SystemTime::now().duration_since(UNIX_EPOCH)
+                        .map(|d| d.as_secs()).unwrap_or(0);
+                    let backup = format!("{}.corrupt-{}", path, ts);
+                    if let Err(re) = std::fs::rename(path, &backup) {
+                        eprintln!("Failed to back up corrupt save to {}: {}", backup, re);
+                    } else {
+                        eprintln!("Backed up corrupt save to {}", backup);
+                    }
                     eprintln!(
-                        "Save at {} could not be deserialized ({}) - starting fresh world. \
-                         If this happened during a deploy, that's a bug: every save struct \
-                         should tolerate unknown/missing fields.",
+                        "Save at {} could not be deserialized ({}) - starting fresh world.",
                         path, e
                     );
                     Self::new(seed)
