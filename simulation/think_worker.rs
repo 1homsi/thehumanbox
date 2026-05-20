@@ -617,9 +617,10 @@ pub async fn think_worker(
             continue;
         }
 
-        if attempt == 0 {
-            tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
-        }
+        // (Removed: 200ms unconditional warmup that was burning ~48s of
+        // wall-clock per minute against the local 240/min budget for no
+        // measurable benefit. Rate limiting is now enforced by the
+        // shared GroqRateLimiter immediately before the POST.)
 
         println!("[think] {} scenario={}{}", trigger.org_name, trigger.scenario,
             if attempt > 0 { format!(" (retry {})", attempt) } else { String::new() });
@@ -639,6 +640,8 @@ pub async fn think_worker(
         {
             Ok(resp) => {
                 let status = resp.status();
+                if status == 429 { stats.note_think_429(); }
+                else if status.is_server_error() { stats.note_think_5xx(); }
                 if status == 429 || status.is_server_error() {
                     stats.record_think(started.elapsed().as_millis() as u64, true);
                     if attempt < 3 && retry_queue.len() < 20 {
@@ -646,14 +649,34 @@ pub async fn think_worker(
                             status, attempt + 1, trigger.org_name);
                         retry_queue.push_back((trigger, attempt + 1));
                     } else {
-                        // Give up and use local fallback
                         println!("[think] llm {} - falling back to local for {}", status, trigger.org_name);
+                        stats.note_think_local_fallback();
                         let mut rng = rand::rngs::SmallRng::seed_from_u64(
                             deterministic_think_seed(&trigger, attempt));
                         if let Some(local) = local_think::resolve(&trigger, &mut rng) {
                             if let Some(r) = build_result_from_local(&trigger, local) {
                                 results.lock().await.push(r);
                             }
+                        }
+                    }
+                    continue;
+                }
+                if !status.is_success() {
+                    // 4xx non-429 (e.g. revoked key, bad model name) used
+                    // to silently parse as empty and slip into the "looks
+                    // slow" bucket. Log + fallback like 5xx.
+                    stats.note_think_5xx();
+                    stats.record_think(started.elapsed().as_millis() as u64, true);
+                    let body = resp.text().await.unwrap_or_default();
+                    let body_snip: String = body.chars().take(200).collect();
+                    println!("[think] llm {} for {}: {} — local fallback",
+                        status, trigger.org_name, body_snip);
+                    stats.note_think_local_fallback();
+                    let mut rng = rand::rngs::SmallRng::seed_from_u64(
+                        deterministic_think_seed(&trigger, attempt));
+                    if let Some(local) = local_think::resolve(&trigger, &mut rng) {
+                        if let Some(r) = build_result_from_local(&trigger, local) {
+                            results.lock().await.push(r);
                         }
                     }
                     continue;

@@ -172,13 +172,13 @@ async fn one_call(
         .send().await;
     let resp = match resp {
         Ok(r) => r,
-        Err(_) => { stats.record_narration(started.elapsed().as_millis() as u64, true); return Err(()) }
+        Err(_) => { stats.record_conversation(started.elapsed().as_millis() as u64, true); return Err(()) }
     };
     let data: GroqResponse = match resp.json().await {
         Ok(d) => d,
-        Err(_) => { stats.record_narration(started.elapsed().as_millis() as u64, true); return Err(()) }
+        Err(_) => { stats.record_conversation(started.elapsed().as_millis() as u64, true); return Err(()) }
     };
-    stats.record_narration(started.elapsed().as_millis() as u64, false);
+    stats.record_conversation(started.elapsed().as_millis() as u64, false);
     Ok(strip_thinking(&llm_extract(data)))
 }
 
