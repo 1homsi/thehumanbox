@@ -504,7 +504,9 @@ export default function WorldView3D({ world }: Props) {
       <HelpOverlay />
 
       <div style={hudStyle}>
-        click to look · WASD move · space/shift up/down · ctrl boost · F follow · J jump · R random · click map · esc release
+        {isTouch
+          ? 'drag to orbit · pinch to zoom'
+          : 'click to look · WASD move · space/shift up/down · ctrl boost · F follow · J jump · R random · click map · esc release'}
         {follow && selectedOrgId && (
           <span style={{ color: '#ff8a3a', marginLeft: 10 }}>· following</span>
         )}
