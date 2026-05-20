@@ -2909,7 +2909,12 @@ mod tests {
     }
 
     #[test]
-    fn viewport_state_excludes_far_organisms_on_incremental_ticks() {
+    fn viewport_state_includes_all_alive_when_viewport_spans_world() {
+        // VP_W = WIDTH and VP_H = HEIGHT, so the in_view filter must
+        // never drop entities just because the centroid is off-center.
+        // (Previously a centroid-centered AABB could slide past the
+        // world edge and silently exclude orgs / animals on the far
+        // side. That caused "animals not showing" reports.)
         let mut sim = Simulation::new(19);
         sim.tick_count = 2;
         let near_idx = sim.organisms.iter().position(|o| o.alive).unwrap();
@@ -2931,8 +2936,9 @@ mod tests {
             .filter_map(|v| v.as_str().map(|s| s.to_string()))
             .collect();
 
-        assert!(ids.contains(&near_id));
-        assert!(!ids.contains(&far_id));
+        assert!(ids.contains(&near_id),  "centroid-local org must ship");
+        assert!(ids.contains(&far_id),
+            "with full-world viewport, the far-corner org must also ship");
         assert_eq!(state["organisms_complete"], false);
         assert!(state.get("organisms").is_none(),
             "deltas should not carry the AoS organisms array");
