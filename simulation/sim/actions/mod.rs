@@ -103,7 +103,12 @@ pub fn available_actions(sim: &Simulation, idx: usize, ix: i32, iy: i32) -> Vec<
         a.extend(276..=295);
     }
 
-    if kin_near { a.extend(296..=315); }
+    // Governance/diplomacy 296-315. Half of them (declare_war,
+    // sign_treaty, grant_citizenship, establish_borders) actually need
+    // a stranger nearby; gating only on kin_near made them
+    // unreachable unless kin and stranger happened to be in the same
+    // 6-tile bubble. Open the mask to either condition.
+    if kin_near || stranger_near { a.extend(296..=315); }
 
     a.extend(316..=335);
 

@@ -6,5 +6,5 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     if !stranger_near { return 0.0; }
     ctx.event("warfare", "executing a flanking maneuver on the enemy");
     ctx.discover("flanking_maneuver", "first successful flanking attack");
-    0.015
+    0.040
 }

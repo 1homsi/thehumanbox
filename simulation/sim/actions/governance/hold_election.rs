@@ -13,5 +13,5 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     ctx.think("holding an election");
     ctx.discover("democracy", "held the tribe's first election");
     ctx.event("governance", "conducted a democratic election among kin");
-    0.015
+    0.040
 }

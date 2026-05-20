@@ -13,5 +13,5 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     ctx.sim.organisms[ctx.idx].update_attitude(&their, 0.2);
     ctx.think("granting citizenship");
     ctx.event("bond", "welcomed a stranger into the tribe as a citizen");
-    0.015
+    0.040
 }

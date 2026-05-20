@@ -6,5 +6,5 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     if ctx.kin.len() < 2 || !stranger_near { return 0.0; }
     ctx.event("warfare", "coordinating a simultaneous assault from multiple directions");
     ctx.discover("coordinated_assault", "executed the first coordinated attack");
-    0.018
+    0.045
 }

@@ -7,5 +7,5 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     ctx.org_mut().inv_stone -= 1;
     ctx.event("build", "constructing a siege weapon from timber and stone");
     ctx.discover("siege_weapon", "built a siege weapon for the first time");
-    0.018
+    0.045
 }

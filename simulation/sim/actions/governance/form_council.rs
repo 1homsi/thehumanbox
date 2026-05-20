@@ -14,5 +14,5 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     ctx.think("forming a governing council");
     ctx.discover("council", "established a council of elders and kin");
     ctx.event("governance", "formed a formal council to govern the tribe");
-    0.015
+    0.040
 }

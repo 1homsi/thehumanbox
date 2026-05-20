@@ -7,5 +7,5 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     if !hut_near && !ctx.rock_near { return 0.0; }
     ctx.event("build", "establishing a garrison at a defensive position");
     ctx.discover("garrison", "set up the first permanent garrison");
-    0.015
+    0.040
 }

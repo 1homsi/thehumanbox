@@ -377,15 +377,24 @@ pub fn teach(
 
     let org_lineage = organisms[org_idx].lineage_id.clone();
     let (ox, oy) = (organisms[org_idx].x, organisms[org_idx].y);
+    let friend_ids: std::collections::HashSet<String> =
+        organisms[org_idx].friends.keys().cloned().collect();
+    let high_trust: std::collections::HashSet<String> = organisms[org_idx].org_trust.iter()
+        .filter(|(_, &v)| v >= 0.55)
+        .map(|(k, _)| k.clone()).collect();
 
-    // Find the nearby organism who knows the least and could benefit most
+    // Knowledge transmits to kin OR named friends OR strong-trust orgs.
+    // Previously only same-lineage kin could learn from elders/peers, so
+    // discoveries died at tribe boundaries even when cross-lineage friendship
+    // bonds had formed.
     let target_idx = organisms.iter().enumerate()
         .filter(|(i, o)| {
             if *i == org_idx || !o.alive { return false; }
             let same_lineage = o.lineage_id == org_lineage;
             let close_enough = (o.x - ox).abs() + (o.y - oy).abs() <= 5.0;
             let has_less = o.discoveries.len() < disc_count;
-            same_lineage && close_enough && (has_less || o.age < 400)
+            let bonded   = friend_ids.contains(&o.id) || high_trust.contains(&o.id);
+            (same_lineage || bonded) && close_enough && (has_less || o.age < 400)
         })
         .min_by_key(|(_, o)| o.discoveries.len())
         .map(|(i, _)| i);
@@ -472,8 +481,17 @@ pub fn share_food(
     let org_lineage = organisms[org_idx].lineage_id.clone();
     let (ox, oy) = (organisms[org_idx].x, organisms[org_idx].y);
 
+    let friend_ids: std::collections::HashSet<String> =
+        organisms[org_idx].friends.keys().cloned().collect();
+    let high_trust: std::collections::HashSet<String> = organisms[org_idx].org_trust.iter()
+        .filter(|(_, &v)| v >= 0.55)
+        .map(|(k, _)| k.clone()).collect();
+
+    // Share with hungry kin OR hungry named friends / strong-trust orgs.
     let target_idx = organisms.iter().enumerate()
-        .filter(|(i, o)| *i != org_idx && o.alive && o.lineage_id == org_lineage && o.energy < 0.30)
+        .filter(|(i, o)| *i != org_idx && o.alive && o.energy < 0.30)
+        .filter(|(_, o)| o.lineage_id == org_lineage
+            || friend_ids.contains(&o.id) || high_trust.contains(&o.id))
         .filter(|(_, o)| (o.x - ox).abs() + (o.y - oy).abs() <= 6.0)
         .min_by(|(_, a), (_, b)| a.energy.partial_cmp(&b.energy).unwrap())
         .map(|(i, _)| i);

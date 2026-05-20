@@ -15,5 +15,5 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     ctx.think("anointing a leader");
     ctx.discover("leadership", "performed the anointment ceremony for a new leader");
     ctx.event("governance", "ceremonially anointed an elder as tribal leader");
-    0.015
+    0.040
 }

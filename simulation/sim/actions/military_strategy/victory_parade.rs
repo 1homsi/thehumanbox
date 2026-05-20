@@ -9,5 +9,5 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     }
     ctx.org_mut().comfort = (ctx.org().comfort + 0.07).min(1.0);
     ctx.event("culture", "celebrating victory with a grand parade through the settlement");
-    0.015
+    0.040
 }

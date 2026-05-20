@@ -14,5 +14,5 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     ctx.think("signing a treaty");
     ctx.discover("treaty", "signed a formal peace treaty with a foreign lineage");
     ctx.event("governance", "concluded a binding treaty with a neighboring tribe");
-    0.015
+    0.040
 }

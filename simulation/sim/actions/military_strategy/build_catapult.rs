@@ -7,5 +7,5 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     ctx.org_mut().inv_stone -= 1;
     ctx.event("build", "engineering a catapult for siege warfare");
     ctx.discover("catapult", "built the first catapult");
-    0.020
+    0.050
 }

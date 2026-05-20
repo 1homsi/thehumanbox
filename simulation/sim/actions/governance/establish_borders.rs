@@ -12,5 +12,5 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     // Use rock outcrop as anchor — claim a wide area around this position
     let lid = ctx.lid.clone();
     ctx.sim.claim_territory(&lid, ctx.ix, ctx.iy, 6);
-    0.015
+    0.040
 }
