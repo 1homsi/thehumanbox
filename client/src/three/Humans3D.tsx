@@ -1,5 +1,10 @@
+import { useMemo, useRef, useEffect } from 'react'
 import { useGLTF } from '@react-three/drei'
-import { useThree } from '@react-three/fiber'
+import { useThree, useFrame } from '@react-three/fiber'
+import {
+  CapsuleGeometry, Color, Euler, InstancedMesh, Matrix4,
+  MeshStandardMaterial, Object3D, Quaternion, Vector3,
+} from 'three'
 import type { OrganismState } from '../types'
 import { lineageColor } from '../utils/constants'
 import { useUIStore } from '../stores/store'
@@ -14,7 +19,16 @@ interface Props {
   biomes:    number[][]
 }
 
+// Cull radius for full skinned-mesh AnimatedFigure rendering. Past
+// this distance we drop to an InstancedMesh capsule LOD — one draw
+// call total for the entire far cohort.
+const NEAR_RADIUS_SQ = 280 * 280
+// Distance at which the AnimationMixer keeps ticking. Slightly tighter
+// than NEAR so animation work also drops off before the mesh swap.
 const ANIMATE_RADIUS_SQ = 220 * 220
+// Hard cap on full skinned-mesh figures regardless of camera distance.
+// Bounds worst-case CPU when the camera flies over a dense settlement.
+const MAX_SKINNED = 80
 
 // Data-driven: organism is inside their home when they're genuinely at rest
 // Uses actual numeric fields — sleep_debt, energy — not thought text
@@ -77,34 +91,136 @@ function orgColor(o: OrganismState): string {
   return lineageColor(o.lineage_id)                                           // default: lineage hue
 }
 
+// Reused scratch — keeps the per-frame inner loop alloc-free.
+const _mat   = new Matrix4()
+const _quat  = new Quaternion()
+const _euler = new Euler()
+const _pos   = new Vector3()
+const _scale = new Vector3()
+const _col   = new Color()
+
+/**
+ * FarHumans: a single InstancedMesh of low-poly capsules covering all
+ * organisms outside the near-camera radius. One draw call regardless
+ * of cohort size. Per-instance colour comes from the same `orgColor`
+ * function so distant organisms still telegraph their lineage / fear
+ * / grief state without the cost of a skeletal mesh + mixer per org.
+ */
+function FarHumans({ organisms, depthMap, biomes }: {
+  organisms: OrganismState[]
+  depthMap: number[][]
+  biomes:   number[][]
+}) {
+  const meshRef = useRef<InstancedMesh | null>(null)
+  const geometry = useMemo(() => new CapsuleGeometry(0.18, 0.55, 4, 6), [])
+  const material = useMemo(() => new MeshStandardMaterial({ roughness: 0.85 }), [])
+  const count = organisms.length
+
+  useEffect(() => {
+    // Re-create the InstancedMesh when capacity changes — three.js
+    // bakes the instance count into the GPU buffer at construction.
+    const mesh = meshRef.current
+    if (!mesh) return
+    mesh.instanceMatrix.needsUpdate = true
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
+  }, [count])
+
+  useFrame(() => {
+    const mesh = meshRef.current
+    if (!mesh) return
+    for (let i = 0; i < count; i++) {
+      const o = organisms[i]
+      const [tx, ty] = getOrgXY(o.id)
+      const groundY = heightAt(tx, ty, depthMap, biomes)
+      // Height pinned to half-capsule so the foot sits on terrain.
+      _pos.set(tx * TILE_SCALE, groundY + 0.45, ty * TILE_SCALE)
+      _euler.set(0, getOrgHeading(o.id), 0)
+      _quat.setFromEuler(_euler)
+      // Inherit the same per-org scale we'd use for skinned figures
+      // so figures don't visibly snap on the LOD boundary.
+      let s = 0.45
+      if      (o.age < 500)  s = 0.30
+      else if (o.age < 900)  s = 0.36
+      else if (o.age > 3000) s = 0.42
+      if (o.pregnant) s *= 1.10
+      s *= 0.88 + (o.traits?.resilience ?? 0.5) * 0.24
+      s *= 0.85 + Math.min(1, o.health) * 0.15
+      _scale.set(s, s, s)
+      _mat.compose(_pos, _quat, _scale)
+      mesh.setMatrixAt(i, _mat)
+      _col.set(orgColor(o))
+      mesh.setColorAt(i, _col)
+    }
+    mesh.instanceMatrix.needsUpdate = true
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
+  })
+
+  if (count === 0) return null
+
+  return (
+    <instancedMesh
+      ref={meshRef}
+      key={`far-${count}`}
+      args={[geometry, material, count]}
+      castShadow
+      frustumCulled={false}
+    />
+  )
+}
+
 export function Humans3D({ organisms, depthMap, biomes }: Props) {
   const { camera } = useThree()
   const selectOrg     = useUIStore(s => s.selectOrg)
   const selectedOrgId = useUIStore(s => s.selectedOrgId)
   const { scene, animations } = useGLTF('/models/robot-expressive.glb')
 
+  // Partition organisms by distance every render. Far cohort becomes
+  // one InstancedMesh; near cohort renders full skinned figures with
+  // the existing AnimatedFigure path. The selection always renders
+  // as a skinned figure regardless of distance.
+  const { near, far } = useMemo(() => {
+    const near: OrganismState[] = []
+    const far:  OrganismState[] = []
+    const ranked: { o: OrganismState; d: number }[] = []
+    for (const o of organisms) {
+      if (!o.alive) continue
+      if (isInsideHouse(o)) continue
+      const dx = o.x * TILE_SCALE - camera.position.x
+      const dz = o.y * TILE_SCALE - camera.position.z
+      const d  = dx * dx + dz * dz
+      if (o.id === selectedOrgId || d <= NEAR_RADIUS_SQ) {
+        ranked.push({ o, d })
+      } else {
+        far.push(o)
+      }
+    }
+    // Enforce a hard cap on skinned figures: keep the closest
+    // MAX_SKINNED, demote the rest to the far cohort.
+    ranked.sort((a, b) => a.d - b.d)
+    for (let i = 0; i < ranked.length; i++) {
+      if (i < MAX_SKINNED) near.push(ranked[i].o)
+      else                 far.push(ranked[i].o)
+    }
+    return { near, far }
+    // depMap/biomes intentionally omitted: only used inside child
+    // components for height sampling, never in this partition.
+  }, [organisms, camera.position.x, camera.position.z, selectedOrgId])
+
   if (!depthMap || !biomes) return null
 
   return (
     <>
-      {organisms.map(o => {
-        if (!o.alive) return null
-        if (isInsideHouse(o)) return null
-
+      {near.map(o => {
         const [vx, vy] = getOrgVelocityXY(o.id)
         const speed  = Math.hypot(vx, vy)
         const moving = speed > 0.05
 
-        // Age-based scale
         let scale = 0.45
         if      (o.age < 500)  scale = 0.30
         else if (o.age < 900)  scale = 0.36
         else if (o.age > 3000) scale = 0.42
         if (o.pregnant) scale *= 1.10
-
-        // Trait-driven body size: resilience → sturdier; fear trait → slightly smaller
         scale *= 0.88 + (o.traits?.resilience ?? 0.5) * 0.24
-        // Health degradation shows physically
         scale *= 0.85 + Math.min(1, o.health) * 0.15
 
         const timeScale = Math.max(0.55, Math.min(2.4, 1.0 + speed * 1.4))
@@ -139,6 +255,7 @@ export function Humans3D({ organisms, depthMap, biomes }: Props) {
           </group>
         )
       })}
+      <FarHumans organisms={far} depthMap={depthMap} biomes={biomes} />
     </>
   )
 }
