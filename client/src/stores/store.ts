@@ -158,3 +158,13 @@ export const useUIStore = create<UIState>((set) => ({
   setFocus:      (f) => set({ focus: f }),
   setViewFlag:   (k, v) => set((s) => ({ viewFlags: { ...s.viewFlags, [k]: v } })),
 }))
+
+/**
+ * Subscribe to a single ViewFlag. Use this instead of reading the
+ * whole `viewFlags` object when a component only cares about one
+ * key — toggling one flag won't re-render components that pulled
+ * the whole object just for one boolean.
+ */
+export function useViewFlag<K extends keyof ViewFlags>(key: K): ViewFlags[K] {
+  return useUIStore((s) => s.viewFlags[key])
+}
