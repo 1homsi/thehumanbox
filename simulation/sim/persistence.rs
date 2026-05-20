@@ -244,7 +244,7 @@ fn org_from_save(s: OrgSave) -> Organism {
         let id_seed  = s.id.bytes().fold(0u64, |a, b| a.wrapping_add(b as u64));
         lid_seed ^ id_seed
     };
-    let needs_vocab = s.vocabulary.words.is_empty();
+    let needs_vocab = s.vocabulary.is_empty();
     let saved_vocab = s.vocabulary;
     let mut o = Organism::new(
         s.id, s.name, s.x, s.y,

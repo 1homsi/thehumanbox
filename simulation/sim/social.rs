@@ -194,12 +194,12 @@ pub fn gift_knowledge(
     let reward_add = if new_att >= 0.0 { 0.014 } else { -0.003 };
 
     if new_att >= 0.25 {
-        let their_snap = organisms[ti].vocabulary.words.clone();
-        let my_snap    = organisms[org_idx].vocabulary.words.clone();
+        let their_snap = organisms[ti].vocabulary.as_hashmap();
+        let my_snap    = organisms[org_idx].vocabulary.as_hashmap();
         organisms[org_idx].vocabulary.absorb_from(
-            &crate::organism::vocabulary::Vocabulary { words: their_snap }, rng);
+            &crate::organism::vocabulary::Vocabulary::from_hashmap(&their_snap), rng);
         organisms[ti].vocabulary.absorb_from(
-            &crate::organism::vocabulary::Vocabulary { words: my_snap }, rng);
+            &crate::organism::vocabulary::Vocabulary::from_hashmap(&my_snap), rng);
     }
 
     let org_name = organisms[org_idx].name.clone();
@@ -589,11 +589,11 @@ pub fn social_knowledge_share(
     }
 
     let kin_snapshots: Vec<std::collections::HashMap<String, String>> = kin_indices.iter()
-        .map(|&ki| organisms[ki].vocabulary.words.clone())
+        .map(|&ki| organisms[ki].vocabulary.as_hashmap())
         .collect();
     organisms[org_idx].vocabulary.converge_with(&kin_snapshots, rng, 0.40);
     let mut all_snapshots = kin_snapshots.clone();
-    all_snapshots.push(my_vocab.words.clone());
+    all_snapshots.push(my_vocab.as_hashmap());
     for &ki in &kin_indices {
         organisms[ki].vocabulary.converge_with(&all_snapshots, rng, 0.40);
     }

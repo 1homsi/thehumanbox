@@ -454,8 +454,13 @@ fn utterance_with_meaning(
     mood: u8,
     rng: &mut impl Rng,
 ) -> (String, String) {
-    let v  = &speaker.vocabulary.words;
-    let lv = &listener.vocabulary.words;
+    // `pick_concept_and_word` takes a `&HashMap<String, String>` — go
+    // through the as_hashmap view rather than reaching into the
+    // (now-positional) slots directly.
+    let v  = speaker.vocabulary.as_hashmap();
+    let lv = listener.vocabulary.as_hashmap();
+    let v  = &v;
+    let lv = &lv;
 
     match mood {
         // greeting
@@ -617,7 +622,7 @@ pub fn generate_conversation_with_req(
         mood,
         tribe_name: tribe,
         partner_of,
-        vocab:      o.vocabulary.words.clone(),
+        vocab:      o.vocabulary.as_hashmap(),
         recent,
     };
     let a_partner = a.partner_id.as_ref().and_then(|pid|

@@ -286,7 +286,7 @@ impl Organism {
             traits, infection: 0.0,
             carrying: 0,
             carrying_type: 0,
-            vocabulary: Vocabulary { words: std::collections::HashMap::new() },
+            vocabulary: Vocabulary::from_hashmap(&std::collections::HashMap::new()),
             daily_story: String::new(),
             last_story_tick: 0,
             life_log: VecDeque::new(),
@@ -924,7 +924,7 @@ impl Organism {
                     resilience:      (self.traits.resilience      * 100.0).round() / 100.0,
                 })
             } else { None },
-            vocabulary:  if include_cold { Some(self.vocabulary.words.clone()) } else { None },
+            vocabulary:  if include_cold { Some(self.vocabulary.as_hashmap()) } else { None },
             discoveries: if include_cold { Some(self.discoveries.iter().cloned().collect()) } else { None },
             home_x:      if include_cold { Some((self.home_x * 10.0).round() / 10.0) } else { None },
             home_y:      if include_cold { Some((self.home_y * 10.0).round() / 10.0) } else { None },
@@ -957,7 +957,7 @@ impl Organism {
         OrgDetailJson {
             base:            self.to_json(),
             thought_history,
-            vocabulary:      self.vocabulary.words.clone(),
+            vocabulary:      self.vocabulary.as_hashmap(),
             daily_story:     self.daily_story.clone(),
             life_log,
             conversations:   self.conversations.iter().rev().take(25).rev().cloned().collect(),
