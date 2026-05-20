@@ -134,11 +134,15 @@ pub async fn memory_handler(
     }
     let n_actions = crate::organism::organism::N_ACTIONS;
     let q_bytes = q_rows * n_actions * 4;
+    let pressure = format!("{:?}", s.memory_watch.pressure());
+    let box_avail_mb = s.memory_watch.box_available_mb();
     (
         [(axum::http::header::CACHE_CONTROL, "no-store".to_string())],
         Json(serde_json::json!({
             "rss_kb":          rss_kb,
             "rss_mb":          (rss_kb as f64) / 1024.0,
+            "box_available_mb": box_avail_mb,
+            "pressure":         pressure,
             "tick":            sim.tick_count,
             "alive_orgs":      alive,
             "events_buffered": sim.events.len(),
@@ -153,6 +157,74 @@ pub async fn memory_handler(
             "discoveries_total":    discoveries,
             "thought_history_total": thought_hist,
         })),
+    )
+}
+
+/// Aggregated health endpoint — single source of truth for "is the
+/// box working." Returns 200 OK with degraded:false when all green,
+/// 200 OK with degraded:true when any subsystem is in a warning state,
+/// 503 when the sim hasn't ticked in a while (we're dying).
+pub async fn health_handler(
+    State(s): State<AppState>,
+) -> impl IntoResponse {
+    let now = crate::transport::now_ms();
+    let last_full = s.latest_full_at.load(std::sync::atomic::Ordering::Relaxed);
+    let last_full_age_ms = now.saturating_sub(last_full);
+
+    let pressure = s.memory_watch.pressure();
+    let mem_critical = matches!(pressure, crate::sim::memory_pressure::MemoryPressure::Critical);
+    let mem_elevated = matches!(pressure, crate::sim::memory_pressure::MemoryPressure::Elevated);
+
+    let groq_avail = s.groq_limiter.available();
+    let groq_starved = groq_avail == 0;
+
+    let llm_snap = s.llm_stats.snapshot();
+    let narration_err_ratio = if llm_snap.narration.calls > 0 {
+        llm_snap.narration.errors as f64 / llm_snap.narration.calls as f64
+    } else { 0.0 };
+    let think_err_ratio = if llm_snap.think.calls > 0 {
+        llm_snap.think.errors as f64 / llm_snap.think.calls as f64
+    } else { 0.0 };
+    let llm_failing = narration_err_ratio > 0.5 || think_err_ratio > 0.5;
+
+    // Sim alive check: latest_full should refresh every ~3s. If it's
+    // been stale for 30s the sim is wedged.
+    let stale_ms = 30_000;
+    let sim_alive = last_full > 0 && last_full_age_ms < stale_ms;
+
+    let degraded = mem_elevated || mem_critical || groq_starved || llm_failing;
+    let status_code = if sim_alive {
+        axum::http::StatusCode::OK
+    } else {
+        axum::http::StatusCode::SERVICE_UNAVAILABLE
+    };
+
+    let body = serde_json::json!({
+        "ok": sim_alive && !degraded,
+        "sim_alive": sim_alive,
+        "degraded": degraded,
+        "uptime_ms": now.saturating_sub(s.start_ms),
+        "last_full_frame_age_ms": last_full_age_ms,
+        "memory": {
+            "pressure": format!("{:?}", pressure),
+            "box_available_mb": s.memory_watch.box_available_mb(),
+            "rss_mb": s.memory_watch.rss_mb(),
+        },
+        "groq": {
+            "available_permits": groq_avail,
+            "starved": groq_starved,
+        },
+        "llm": {
+            "narration_err_ratio": narration_err_ratio,
+            "think_err_ratio": think_err_ratio,
+            "failing": llm_failing,
+        },
+    });
+
+    (
+        status_code,
+        [(axum::http::header::CACHE_CONTROL, "no-store".to_string())],
+        Json(body),
     )
 }
 

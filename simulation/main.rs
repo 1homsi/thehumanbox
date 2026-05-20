@@ -92,8 +92,12 @@ pub struct AppState {
     pub sim:             SharedSim,
     pub tx:              Tx,
     pub latest_full:     LatestFull,
+    pub latest_full_at:  Arc<std::sync::atomic::AtomicU64>,
     pub transport_stats: SharedTransportStats,
     pub llm_stats:       crate::llm_stats::SharedLlmStats,
+    pub memory_watch:    crate::memory_watch::SharedMemoryWatch,
+    pub groq_limiter:    crate::llm_rate::SharedGroqLimiter,
+    pub start_ms:        u64,
 }
 
 #[tokio::main]
@@ -119,6 +123,8 @@ async fn main() {
     let sim = Arc::new(Mutex::new(Simulation::load_or_new(fresh_seed, SAVE_PATH)));
     let (tx, _rx) = broadcast::channel::<Arc<Vec<u8>>>(WS_BROADCAST_BUFFER);
     let latest_full: LatestFull = Arc::new(std::sync::RwLock::new(None));
+    let latest_full_at: Arc<std::sync::atomic::AtomicU64> =
+        Arc::new(std::sync::atomic::AtomicU64::new(0));
     let frame_clock: FrameClock = Arc::new(AtomicU64::new(0));
     let transport_stats: SharedTransportStats = Arc::new(TransportStats::default());
     let llm_stats: llm_stats::SharedLlmStats = Arc::new(llm_stats::LlmStats::default());
@@ -487,6 +493,7 @@ async fn main() {
         let sim_clone        = sim.clone();
         let tx_clone         = tx.clone();
         let latest_full_w    = latest_full.clone();
+        let latest_full_at_w = latest_full_at.clone();
         let frame_clock_w    = frame_clock.clone();
         let transport_stats_w = transport_stats.clone();
         tokio::spawn(async move {
@@ -523,6 +530,7 @@ async fn main() {
                     if let Ok(mut slot) = latest_full_w.write() {
                         *slot = Some(full);
                     }
+                    latest_full_at_w.store(transport::now_ms(), std::sync::atomic::Ordering::Relaxed);
                 }
                 let _ = tx_clone.send(frame);
                 if cycle_started.elapsed().as_millis() as u64 > *NETWORK_MS {
@@ -540,7 +548,16 @@ async fn main() {
 
     let compression = CompressionLayer::new().gzip(true);
 
-    let state = AppState { sim, tx, latest_full, transport_stats, llm_stats };
+    latest_full_at.store(transport::now_ms(), std::sync::atomic::Ordering::Relaxed);
+    let start_ms = transport::now_ms();
+    let state = AppState {
+        sim, tx, latest_full,
+        latest_full_at: latest_full_at.clone(),
+        transport_stats, llm_stats,
+        memory_watch,
+        groq_limiter,
+        start_ms,
+    };
 
     let app = Router::new()
         .route("/ws", get(routes::ws_handler))
@@ -551,6 +568,7 @@ async fn main() {
         .route("/transport", get(routes::transport_handler))
         .route("/llm", get(routes::llm_handler))
         .route("/memory", get(routes::memory_handler))
+        .route("/health", get(routes::health_handler))
         .layer(compression)
         .layer(cors)
         .with_state(state);
