@@ -42,51 +42,67 @@ export function SocialBeams({ organisms, depthMap, biomes }: Props) {
   const matRef     = useRef<LineBasicMaterial>(null)
   const posArray   = useMemo(() => new Float32Array(MAX_BEAMS * 6), [])
   const colorArray = useMemo(() => new Float32Array(MAX_BEAMS * 6), [])  // RGB per vertex
+  const frameCount = useRef(0)
+  const beamCount  = useRef(0)  // stable across throttled frames
 
   useFrame(({ clock }) => {
     const geom = geomRef.current
     const mat  = matRef.current
     if (!geom || !mat) return
 
-    const t     = clock.getElapsedTime()
-    const alive = organisms.filter(o => o.alive)
-    let n = 0
+    const t = clock.getElapsedTime()
 
-    outer: for (let i = 0; i < alive.length; i++) {
-      const a = alive[i]
-      const [ax, az] = getOrgXY(a.id)
-      for (let j = i + 1; j < alive.length; j++) {
-        if (n >= MAX_BEAMS) break outer
-        const b = alive[j]
-        const [bx, bz] = getOrgXY(b.id)
-        const ddx = ax - bx; const ddz = az - bz
-        if (ddx * ddx + ddz * ddz > BEAM_DIST * BEAM_DIST) continue
-        const str = connectionStrength(a, b)
-        if (str < MIN_STRENGTH) continue
-        const agy = heightAt(ax, az, depthMap, biomes)
-        const bgy = heightAt(bx, bz, depthMap, biomes)
-        const base = n * 6
-        posArray[base + 0] = ax * TILE_SCALE
-        posArray[base + 1] = agy + 1.5
-        posArray[base + 2] = az * TILE_SCALE
-        posArray[base + 3] = bx * TILE_SCALE
-        posArray[base + 4] = bgy + 1.5
-        posArray[base + 5] = bz * TILE_SCALE
+    // Heavy O(N^2) pair recompute only every 4 frames; in between, the
+    // previously written posArray/colorArray + draw range are reused.
+    if (frameCount.current % 4 === 0) {
+      let n = 0
+      const orgs = organisms
+      const len  = orgs.length
 
-        const [r, g, bv] = beamRGB(a, b)
-        colorArray[base + 0] = r;  colorArray[base + 1] = g;  colorArray[base + 2] = bv
-        colorArray[base + 3] = r;  colorArray[base + 4] = g;  colorArray[base + 5] = bv
-        n++
+      outer: for (let i = 0; i < len; i++) {
+        const a = orgs[i]
+        if (!a.alive) continue
+        const [ax, az] = getOrgXY(a.id)
+        for (let j = i + 1; j < len; j++) {
+          if (n >= MAX_BEAMS) break outer
+          const b = orgs[j]
+          if (!b.alive) continue
+          const [bx, bz] = getOrgXY(b.id)
+          const ddx = ax - bx; const ddz = az - bz
+          if (ddx * ddx + ddz * ddz > BEAM_DIST * BEAM_DIST) continue
+          const str = connectionStrength(a, b)
+          if (str < MIN_STRENGTH) continue
+          const agy = heightAt(ax, az, depthMap, biomes)
+          const bgy = heightAt(bx, bz, depthMap, biomes)
+          const base = n * 6
+          posArray[base + 0] = ax * TILE_SCALE
+          posArray[base + 1] = agy + 1.5
+          posArray[base + 2] = az * TILE_SCALE
+          posArray[base + 3] = bx * TILE_SCALE
+          posArray[base + 4] = bgy + 1.5
+          posArray[base + 5] = bz * TILE_SCALE
+
+          const [r, g, bv] = beamRGB(a, b)
+          colorArray[base + 0] = r;  colorArray[base + 1] = g;  colorArray[base + 2] = bv
+          colorArray[base + 3] = r;  colorArray[base + 4] = g;  colorArray[base + 5] = bv
+          n++
+        }
       }
+
+      beamCount.current = n
+      const posAttr = geom.getAttribute('position') as BufferAttribute
+      posAttr.needsUpdate = true
+      const colAttr = geom.getAttribute('color') as BufferAttribute
+      colAttr.needsUpdate = true
+      geom.setDrawRange(0, n * 2)
+    } else {
+      // Keep the previously computed draw range stable.
+      geom.setDrawRange(0, beamCount.current * 2)
     }
 
-    const posAttr = geom.getAttribute('position') as BufferAttribute
-    posAttr.needsUpdate = true
-    const colAttr = geom.getAttribute('color') as BufferAttribute
-    colAttr.needsUpdate = true
-    geom.setDrawRange(0, n * 2)
+    frameCount.current++
 
-    // Heartbeat pulse driven by clock
+    // Heartbeat pulse driven by clock (still per-frame for smooth animation)
     mat.opacity = 0.18 + Math.sin(t * 2.2) * 0.10
   })
 
