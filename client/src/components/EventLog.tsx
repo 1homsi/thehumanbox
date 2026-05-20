@@ -18,8 +18,13 @@ function EventLogImpl() {
 
   return (
     <>
-      <div className="section-title">EVENTS</div>
-      <div className="event-log">
+      <div className="section-title" id="event-log-heading">EVENTS</div>
+      <div
+        className="event-log"
+        role="log"
+        aria-live="polite"
+        aria-labelledby="event-log-heading"
+      >
         {recent.map((e, i) => (
           <EventRow key={`${e.tick}-${i}`} event={e} />
         ))}
