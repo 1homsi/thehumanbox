@@ -159,7 +159,17 @@ async fn one_call(
     max_tokens: u32,
     limiter: &SharedGroqLimiter,
 ) -> Result<String, ()> {
-    limiter.acquire().await;
+    // 5s cap on permit acquisition: if Groq is unreachable and the permit
+    // pool stays drained, blocking here would wedge the worker. Treat a
+    // timeout as a rate-limit miss — return Err so the caller falls back
+    // to its template path without recording a success.
+    if tokio::time::timeout(
+        std::time::Duration::from_secs(5),
+        limiter.acquire(),
+    ).await.is_err() {
+        tracing::warn!(target: "convo", "rate limiter acquire timed out after 5s — abort");
+        return Err(());
+    }
     let started = std::time::Instant::now();
     let resp = client.post(&**NARRATION_LLM_URL)
         .header("Authorization", format!("Bearer {}", api_key))
@@ -178,6 +188,8 @@ async fn one_call(
         let elapsed = started.elapsed().as_millis() as u64;
         if status.as_u16() == 429 {
             stats.note_conversation_429();
+        } else if status.as_u16() >= 500 {
+            stats.note_conversation_5xx();
         }
         stats.record_conversation(elapsed, true);
         tracing::warn!(target: "convo", "http {} from {}", status, &**NARRATION_LLM_URL);

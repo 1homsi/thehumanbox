@@ -869,10 +869,19 @@ impl Organism {
             .map(|r| r.max_q())
             .unwrap_or(0.0);
 
-        let row = self.q_table.entry(perception.to_string()).or_default();
-        let old = row.get_q(action_u16);
-        let new_val = old + alpha * (reward + gamma * best_next - old);
-        row.set_q(action_u16, new_val);
+        // Common hit path: row already exists, no allocation needed.
+        if let Some(row) = self.q_table.get_mut(perception) {
+            let old = row.get_q(action_u16);
+            let new_val = old + alpha * (reward + gamma * best_next - old);
+            row.set_q(action_u16, new_val);
+        } else {
+            // Rare miss: allocate the owned key and insert a fresh row.
+            let mut row = QRow::default();
+            let old = row.get_q(action_u16);
+            let new_val = old + alpha * (reward + gamma * best_next - old);
+            row.set_q(action_u16, new_val);
+            self.q_table.insert(perception.to_string(), row);
+        }
     }
 
     pub fn to_json(&self) -> OrgJson { self.to_json_with(true) }

@@ -210,6 +210,8 @@ async fn one_call(
         let elapsed = started.elapsed().as_millis() as u64;
         if status.as_u16() == 429 {
             stats.note_narration_429();
+        } else if status.as_u16() >= 500 {
+            stats.note_narration_5xx();
         }
         stats.record_narration(elapsed, true);
         tracing::warn!(target: "narrate", "http {} from {}", status, &**NARRATION_LLM_URL);

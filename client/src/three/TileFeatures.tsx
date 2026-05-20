@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { BoxGeometry, BufferGeometry, CircleGeometry, Color, ConeGeometry, CylinderGeometry, DodecahedronGeometry, InstancedMesh, MeshStandardMaterial, Object3D, OctahedronGeometry, PlaneGeometry, SphereGeometry, TorusGeometry } from 'three'
 import { TILE_SCALE, BIOME_ELEVATION, BIOME_ROUGHNESS, terrainNoise } from './constants'
@@ -341,6 +341,39 @@ const STALL_POST       = new CylinderGeometry(0.09, 0.11, 1.9, 4)
 
 const tmp = new Object3D()
 
+// Pooled, shared MeshStandardMaterials keyed by their visual config.
+// Previously each InstanceLayer instance allocated its own material — with ~28
+// layers in the scene that meant ~28 distinct GPU programs/uniform blocks for
+// what is effectively a small palette of colors. These are intentionally never
+// disposed: their lifetime matches the module (process lifetime), and they are
+// re-used across re-renders and across all InstanceLayer mounts.
+const PLAIN_MATERIAL_POOL  = new Map<string, MeshStandardMaterial>()
+const WIND_MATERIAL_POOL   = new Map<string, MeshStandardMaterial>()
+
+function getPlainMaterial(color: string): MeshStandardMaterial {
+  let m = PLAIN_MATERIAL_POOL.get(color)
+  if (!m) {
+    m = new MeshStandardMaterial({ color, roughness: 0.85 })
+    PLAIN_MATERIAL_POOL.set(color, m)
+  }
+  return m
+}
+
+function getWindMaterial(
+  color: string, heightRef: number, strength: number,
+): MeshStandardMaterial {
+  const key = `${color}|${heightRef}|${strength}`
+  let m = WIND_MATERIAL_POOL.get(key)
+  if (!m) {
+    m = new MeshStandardMaterial({ color, roughness: 0.85 })
+    m.emissive = new Color(color)
+    m.emissiveIntensity = 0.12
+    applyWindSway(m, heightRef, strength)
+    WIND_MATERIAL_POOL.set(key, m)
+  }
+  return m
+}
+
 interface InstanceProps {
   positions: [number, number, number, number?][]
   yOffset:   number
@@ -358,18 +391,15 @@ function InstanceLayer({
   const meshRef = useRef<InstancedMesh>(null)
   const count = Math.min(positions.length, maxCount)
 
-  const material = useMemo(() => {
-    const m = new MeshStandardMaterial({ color, roughness: 0.85 })
-    if (wind) {
-      m.emissive = new Color(color)
-      m.emissiveIntensity = 0.12
-      applyWindSway(m, wind.heightRef, wind.strength ?? 1.0)
-    }
-    return m
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [color, wind?.heightRef, wind?.strength, !!wind])
+  const material = wind
+    ? getWindMaterial(color, wind.heightRef, wind.strength ?? 1.0)
+    : getPlainMaterial(color)
 
-  useMemo(() => {
+  // Populate the InstancedMesh matrix buffer after mount, when meshRef.current
+  // is guaranteed non-null. useMemo on `meshRef.current` is unreliable (the ref
+  // is null on the first render pass), so we use useLayoutEffect with the same
+  // logical dependencies.
+  useLayoutEffect(() => {
     const mesh = meshRef.current
     if (!mesh) return
     const seed = (i: number) => {

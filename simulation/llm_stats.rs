@@ -47,7 +47,9 @@ pub struct LlmStatsSnapshot {
     pub think_5xx:            u64,
     pub think_local_fallback: u64,
     pub narration_429:        u64,
+    pub narration_5xx:        u64,
     pub conversation_429:     u64,
+    pub conversation_5xx:     u64,
 }
 
 impl LlmStats {
@@ -85,7 +87,9 @@ impl LlmStats {
     pub fn note_think_5xx(&self)             { self.think_5xx.fetch_add(1, Ordering::Relaxed); }
     pub fn note_think_local_fallback(&self)  { self.think_local_fallback.fetch_add(1, Ordering::Relaxed); }
     pub fn note_narration_429(&self)         { self.narration_429.fetch_add(1, Ordering::Relaxed); }
+    pub fn note_narration_5xx(&self)         { self.narration_5xx.fetch_add(1, Ordering::Relaxed); }
     pub fn note_conversation_429(&self)      { self.conversation_429.fetch_add(1, Ordering::Relaxed); }
+    pub fn note_conversation_5xx(&self)      { self.conversation_5xx.fetch_add(1, Ordering::Relaxed); }
 
     pub fn snapshot(&self) -> LlmStatsSnapshot {
         let (n_avg, n_p95) = self.narration_ms.lock()
@@ -114,7 +118,9 @@ impl LlmStats {
             think_5xx:            self.think_5xx.load(Ordering::Relaxed),
             think_local_fallback: self.think_local_fallback.load(Ordering::Relaxed),
             narration_429:        self.narration_429.load(Ordering::Relaxed),
+            narration_5xx:        self.narration_5xx.load(Ordering::Relaxed),
             conversation_429:     self.conversation_429.load(Ordering::Relaxed),
+            conversation_5xx:     self.conversation_5xx.load(Ordering::Relaxed),
         }
     }
 }

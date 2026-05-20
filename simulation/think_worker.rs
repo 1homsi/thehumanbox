@@ -28,6 +28,56 @@ pub struct ThinkResult {
     pub target_org_id:    Option<String>,
 }
 
+/// Strip obvious secret-looking substrings from a string before logging.
+/// Regex-free on purpose — we only need to neutralize a handful of known
+/// shapes (OpenAI/Groq API keys, the literal "authorization" header name).
+fn redact_secrets(s: &str) -> String {
+    fn redact_prefix(haystack: &str, prefix: &str) -> String {
+        let lower = haystack.to_ascii_lowercase();
+        let plower = prefix.to_ascii_lowercase();
+        let mut out = String::with_capacity(haystack.len());
+        let bytes = haystack.as_bytes();
+        let mut i = 0;
+        while i < bytes.len() {
+            if lower[i..].starts_with(&plower) {
+                out.push_str(prefix);
+                out.push_str("[redacted]");
+                let mut j = i + prefix.len();
+                while j < bytes.len() && (bytes[j] as char).is_ascii_alphanumeric() {
+                    j += 1;
+                }
+                i = j;
+            } else {
+                let ch = haystack[i..].chars().next().unwrap();
+                out.push(ch);
+                i += ch.len_utf8();
+            }
+        }
+        out
+    }
+    fn redact_literal(haystack: &str, needle: &str, replacement: &str) -> String {
+        let lower = haystack.to_ascii_lowercase();
+        let nlower = needle.to_ascii_lowercase();
+        let mut out = String::with_capacity(haystack.len());
+        let bytes = haystack.as_bytes();
+        let mut i = 0;
+        while i < bytes.len() {
+            if lower[i..].starts_with(&nlower) {
+                out.push_str(replacement);
+                i += needle.len();
+            } else {
+                let ch = haystack[i..].chars().next().unwrap();
+                out.push(ch);
+                i += ch.len_utf8();
+            }
+        }
+        out
+    }
+    let s = redact_prefix(s, "sk-");
+    let s = redact_prefix(&s, "gsk_");
+    redact_literal(&s, "authorization", "[redacted-header]")
+}
+
 pub fn build_result_from_local(trigger: &ThinkTrigger, local: local_think::LocalResult) -> Option<ThinkResult> {
     let result = match trigger.scenario.as_str() {
         "first_contact" => ThinkResult {
@@ -736,8 +786,9 @@ pub async fn think_worker(
                     stats.record_think(started.elapsed().as_millis() as u64, true);
                     let body = resp.text().await.unwrap_or_default();
                     let body_snip: String = body.chars().take(200).collect();
+                    let body_safe = redact_secrets(&body_snip);
                     tracing::info!(target: "think", "llm {} for {}: {} — local fallback",
-                        status, trigger.org_name, body_snip);
+                        status, trigger.org_name, body_safe);
                     stats.note_think_local_fallback();
                     let mut rng = rand::rngs::SmallRng::seed_from_u64(
                         deterministic_think_seed(&trigger, attempt));
@@ -850,6 +901,18 @@ mod tests {
             assert!(!prompt.is_empty(), "empty prompt for scenario {}", scenario);
             assert!(tokens > 0, "zero tokens for scenario {}", scenario);
         }
+    }
+
+    #[test]
+    fn redact_secrets_scrubs_known_shapes() {
+        let raw = "Invalid Authorization header. Key sk-AbCd1234XYZ and gsk_LiveKeyABC123 rejected.";
+        let out = redact_secrets(raw);
+        assert!(!out.contains("sk-AbCd1234XYZ"));
+        assert!(!out.contains("gsk_LiveKeyABC123"));
+        assert!(out.contains("sk-[redacted]"));
+        assert!(out.contains("gsk_[redacted]"));
+        assert!(!out.to_lowercase().contains("authorization"));
+        assert!(out.contains("[redacted-header]"));
     }
 
     #[test]

@@ -1,6 +1,6 @@
 import clsx from 'clsx'
 import type { OrganismState, WorldState } from '../types'
-import { useUIStore } from '../stores/store'
+import { useUIStore, useViewFlag } from '../stores/store'
 import { OrgCard } from './OrgCard'
 import { OrgDetail } from './OrgDetail'
 
@@ -14,7 +14,8 @@ interface Props {
 export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
   const panelOpen   = useUIStore(s => s.panelOpen)
   const followOrgId = useUIStore(s => s.followOrgId)
-  const viewFlags   = useUIStore(s => s.viewFlags)
+  const threeD      = useViewFlag('threeD')
+  const hideUI      = useViewFlag('hideUI')
   const selectOrg   = useUIStore(s => s.selectOrg)
   const followOrg   = useUIStore(s => s.followOrg)
   const togglePanel = useUIStore(s => s.togglePanel)
@@ -26,7 +27,7 @@ export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
       )}
       <aside className={clsx(
         'panel', 'panel-right', panelOpen && 'open',
-        viewFlags.threeD && viewFlags.hideUI && 'hidden-by-3d'
+        threeD && hideUI && 'hidden-by-3d'
       )}>
         {selectedOrg && (
           <OrgDetail
