@@ -203,6 +203,19 @@ async fn one_call(
         Ok(r) => r,
         Err(_) => { stats.record_narration(started.elapsed().as_millis() as u64, true); return Err(()) }
     };
+    // Honour HTTP status before attempting to parse the body — Groq's
+    // 429/5xx return JSON-shaped errors that won't deserialise into
+    // GroqResponse and were silently bucketed as generic errors.
+    let status = resp.status();
+    if !status.is_success() {
+        let elapsed = started.elapsed().as_millis() as u64;
+        if status.as_u16() == 429 {
+            stats.note_narration_429();
+        }
+        stats.record_narration(elapsed, true);
+        tracing::warn!(target: "narrate", "http {} from {}", status, &**NARRATION_LLM_URL);
+        return Err(())
+    }
     let data: GroqResponse = match resp.json().await {
         Ok(d) => d,
         Err(_) => { stats.record_narration(started.elapsed().as_millis() as u64, true); return Err(()) }

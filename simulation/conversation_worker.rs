@@ -174,6 +174,20 @@ async fn one_call(
         Ok(r) => r,
         Err(_) => { stats.record_conversation(started.elapsed().as_millis() as u64, true); return Err(()) }
     };
+    // Status-check before body parse — same rationale as the
+    // narration worker. A 429 body is JSON-shaped error that won't
+    // fit GroqResponse and was being silently classified as a
+    // generic decode failure.
+    let status = resp.status();
+    if !status.is_success() {
+        let elapsed = started.elapsed().as_millis() as u64;
+        if status.as_u16() == 429 {
+            stats.note_conversation_429();
+        }
+        stats.record_conversation(elapsed, true);
+        tracing::warn!(target: "convo", "http {} from {}", status, &**NARRATION_LLM_URL);
+        return Err(())
+    }
     let data: GroqResponse = match resp.json().await {
         Ok(d) => d,
         Err(_) => { stats.record_conversation(started.elapsed().as_millis() as u64, true); return Err(()) }
