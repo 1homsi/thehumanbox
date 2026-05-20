@@ -233,7 +233,7 @@ pub fn tick_drought(
     }
     let prob = DROUGHT_BASE_PROB * if season == "scarcity" { 3.0 } else { 1.0 };
     if rng.gen::<f32>() < prob {
-        start_drought(drought, grid, tick, history, events);
+        start_drought(drought, grid, tick, history, events, rng);
     }
 }
 
@@ -243,29 +243,45 @@ fn start_drought(
     tick: u64,
     history: &mut super::simulation::History,
     events: &mut std::collections::VecDeque<super::simulation::Event>,
+    rng: &mut impl Rng,
 ) {
     drought.active       = true;
     drought.start_tick   = tick;
     drought.rain_relief  = 0;
-    let mut dried: Vec<(i32,i32)> = Vec::new();
-    for (cx, cy) in grid.pool_centers.clone() {
-        for dx in -4i32..=4 {
-            for dy in -4i32..=4 {
-                if dx.abs() + dy.abs() == 3 {
-                    let (x, y) = (cx + dx, cy + dy);
-                    if grid.get(x, y) == Tile::Water {
-                        grid.set(x, y, Tile::Grass);
-                        dried.push((x, y));
-                    }
-                }
-            }
+    // Find every water tile that touches non-water — i.e. the
+    // shoreline. We dry a fraction of that, which gives a natural
+    // "lake retreated" look instead of the prior Manhattan-3 dotted
+    // ring pattern. Shrink-from-edge is what real droughts do.
+    use crate::world::grid::{WIDTH, HEIGHT};
+    let mut shoreline: Vec<(i32, i32)> = Vec::new();
+    for y in 0..HEIGHT as i32 {
+        for x in 0..WIDTH as i32 {
+            if grid.get(x, y) != Tile::Water { continue; }
+            let edge = matches!(grid.get(x - 1, y), Tile::Water) == false
+                    || matches!(grid.get(x + 1, y), Tile::Water) == false
+                    || matches!(grid.get(x, y - 1), Tile::Water) == false
+                    || matches!(grid.get(x, y + 1), Tile::Water) == false;
+            if edge { shoreline.push((x, y)); }
+        }
+    }
+    // Pick ~30% of the shoreline to dry up. We shuffle by random
+    // partition order so successive droughts don't always retreat from
+    // the same side.
+    use rand::seq::SliceRandom;
+    shoreline.shuffle(rng);
+    let target = ((shoreline.len() as f32) * 0.30).round() as usize;
+    let mut dried: Vec<(i32, i32)> = Vec::with_capacity(target);
+    for &(x, y) in shoreline.iter().take(target) {
+        if grid.get(x, y) == Tile::Water {
+            grid.set(x, y, Tile::Grass);
+            dried.push((x, y));
         }
     }
     let count = dried.len();
     drought.dried_tiles = dried;
     history.droughts += 1;
     push_event(events, tick, "drought", "world",
-        &format!("drought begins - {} water tiles dry", count));
+        &format!("drought begins - {} shoreline tiles retreat", count));
 }
 
 fn end_drought(

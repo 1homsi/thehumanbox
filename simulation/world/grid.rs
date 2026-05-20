@@ -23,6 +23,13 @@ pub struct WorldGrid {
     pub pressure: Vec<f32>,
     pub elevation: Vec<f32>,
     pub depth: Vec<f32>,
+    /// Indices of tiles with non-zero trail values across any of the
+    /// three trail layers. Lets `decay_trails*` skip the empty 99% of
+    /// the grid that was wasting 540k multiplies per pass. Tracked as
+    /// a HashSet so leave_trail can `insert` without worrying about
+    /// duplicates; decay passes compact entries that decay back to
+    /// zero so the set self-prunes.
+    pub trail_dirty: std::collections::HashSet<u32>,
 }
 
 impl WorldGrid {
@@ -43,6 +50,7 @@ impl WorldGrid {
             pressure: vec![0.0f32; size],
             elevation: vec![0.0f32; size],
             depth: vec![0.0f32; size],
+            trail_dirty: std::collections::HashSet::new(),
         };
         g.generate(seed);
         g
@@ -135,6 +143,7 @@ impl WorldGrid {
             TrailKind::Water => self.water_trail[i] = (self.water_trail[i] + strength).min(3.0),
             TrailKind::Path => self.path_trail[i] = (self.path_trail[i] + strength).min(5.0),
         }
+        self.trail_dirty.insert(i as u32);
     }
 
     pub fn trail_at(&self, x: i32, y: i32, kind: TrailKind) -> f32 {
@@ -162,28 +171,52 @@ impl WorldGrid {
         best
     }
 
+    // Cells with a trail value below this clip to zero so they drop
+    // out of `trail_dirty`. Below this the value is invisible to all
+    // queries (perception thresholds are ≥ 0.05).
+    const TRAIL_EPS: f32 = 1e-4;
+
     pub fn decay_trails(&mut self) {
-        for v in &mut self.food_trail {
-            *v *= 0.988;
-        }
-        for v in &mut self.water_trail {
-            *v *= 0.988;
-        }
-        for v in &mut self.path_trail {
-            *v *= 0.997;
-        }
+        Self::decay_dirty(
+            &mut self.trail_dirty,
+            &mut self.food_trail, &mut self.water_trail, &mut self.path_trail,
+            0.988, 0.988, 0.997,
+        );
     }
 
     /// Aggregated decay: applies the equivalent of three single-step
     /// decay passes in one go. Called once per 3 physics ticks to
-    /// amortise the 540k-cell sweep.
+    /// amortise the dirty-set sweep.
     pub fn decay_trails_strong(&mut self) {
         // 0.988^3 ≈ 0.9645, 0.997^3 ≈ 0.9910
         const F3: f32 = 0.964_426; // 0.988^3
         const P3: f32 = 0.991_026; // 0.997^3
-        for v in &mut self.food_trail  { *v *= F3; }
-        for v in &mut self.water_trail { *v *= F3; }
-        for v in &mut self.path_trail  { *v *= P3; }
+        Self::decay_dirty(
+            &mut self.trail_dirty,
+            &mut self.food_trail, &mut self.water_trail, &mut self.path_trail,
+            F3, F3, P3,
+        );
+    }
+
+    /// Walks `trail_dirty`, decays each tile's three trail layers by
+    /// the given factors, and removes the index from the dirty set
+    /// once all three layers are within `TRAIL_EPS` of zero.
+    fn decay_dirty(
+        dirty: &mut std::collections::HashSet<u32>,
+        food: &mut [f32], water: &mut [f32], path: &mut [f32],
+        ff: f32, fw: f32, fp: f32,
+    ) {
+        dirty.retain(|&i| {
+            let idx = i as usize;
+            let mut f = food[idx];
+            let mut w = water[idx];
+            let mut p = path[idx];
+            if f > 0.0 { f *= ff; if f < Self::TRAIL_EPS { f = 0.0; } food[idx]  = f; }
+            if w > 0.0 { w *= fw; if w < Self::TRAIL_EPS { w = 0.0; } water[idx] = w; }
+            if p > 0.0 { p *= fp; if p < Self::TRAIL_EPS { p = 0.0; } path[idx]  = p; }
+            // Keep the dirty entry as long as any layer is still active.
+            f > 0.0 || w > 0.0 || p > 0.0
+        });
     }
 
     pub fn reduce_fertility(&mut self, x: i32, y: i32, amount: f32) {
