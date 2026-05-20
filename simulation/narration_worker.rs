@@ -61,7 +61,7 @@ THEIR TRIBE'S WORDS:
 TODAY this org did, in order:
 {events}
 
-WRITE exactly one English sentence (max 25 words) describing this day.
+WRITE exactly one English sentence (max 30 words) describing this day.
 
 RULES:
 - Past tense, active voice, concrete.
@@ -94,7 +94,7 @@ EVENTS:
 {events}
 TRIBE WORDS (optional flavor): {vocab}
 
-OUTPUT exactly ONE past-tense English sentence under 25 words.
+OUTPUT exactly ONE past-tense English sentence under 30 words.
 - Start with a verb, pronoun, or noun (NOT the name {name}).
 - Reference one event above.
 - End with a period.
@@ -136,7 +136,9 @@ fn validate(s: &str, org_name: &str) -> Result<String, &'static str> {
     }
 
     let words = s.split_whitespace().count();
-    if words > 38 { return Err("too many words"); }
+    // Prompt asks for ≤30; validator allows a little slack (35) so a
+    // single extra clause doesn't waste a retry slot.
+    if words > 35 { return Err("too many words"); }
     if words < 3 { return Err("too few words"); }
 
     if !s.ends_with('.') && !s.ends_with('!') && !s.ends_with('?') {
