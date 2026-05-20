@@ -14,6 +14,9 @@ client/*.local
 *.log
 simulation-py/
 
+# Transient Agent-tool worktrees (filesystem-only; never committed)
+.claude/
+
 # Python lab
 lab/.venv/
 lab/.pytest_cache/
