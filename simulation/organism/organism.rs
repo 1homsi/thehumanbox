@@ -1054,7 +1054,7 @@ pub struct OrgsHotSoa {
     pub thoughts:       Vec<String>,
     pub infections:     Vec<u8>,
     pub fear_levels:    Vec<u8>,
-    pub carryings:      Vec<u32>,
+    pub carryings:      Vec<u8>,
     pub carrying_types: Vec<u8>,
     pub pregnants:      Vec<bool>,
     pub partner_ids:    Vec<Option<String>>,
@@ -1125,7 +1125,7 @@ impl OrgsHotSoa {
         self.thoughts.push(o.thought.clone());
         self.infections.push(q_pct(o.infection));
         self.fear_levels.push(q_pct(o.fear_level));
-        self.carryings.push(o.carrying);
+        self.carryings.push(o.carrying.min(255) as u8);
         self.carrying_types.push(o.carrying_type);
         self.pregnants.push(o.pregnant);
         self.partner_ids.push(o.partner_id.clone());
