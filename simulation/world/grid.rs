@@ -974,6 +974,76 @@ impl WorldGrid {
         }
     }
 
+    /// River meander: pick a water tile that has water-only neighbours
+    /// on at least one axis (i.e. sits in a linear stretch of river/lake
+    /// shore) and erode one bank tile to water while silting the
+    /// opposite bank to grass. Cheap (handful of tries per call), but
+    /// gives the world a "the river shifted" feel over long sessions —
+    /// the world-evolution spec calls this out specifically.
+    pub fn tick_river_meander(&mut self, rng: &mut impl Rng) {
+        for _ in 0..40 {
+            let x = rng.gen_range(2..WIDTH  as i32 - 2);
+            let y = rng.gen_range(2..HEIGHT as i32 - 2);
+            if self.get(x, y) != Tile::Water { continue; }
+            // Detect a linear water stretch on the N/S or E/W axis.
+            let (axis_dx, axis_dy) =
+                if self.get(x - 1, y) == Tile::Water && self.get(x + 1, y) == Tile::Water {
+                    (0i32, 1i32)
+                } else if self.get(x, y - 1) == Tile::Water && self.get(x, y + 1) == Tile::Water {
+                    (1, 0)
+                } else {
+                    continue;
+                };
+            // Bank tiles are perpendicular to the river axis. Erode
+            // one, silt the other.
+            let bank_a = (x + axis_dx, y + axis_dy);
+            let bank_b = (x - axis_dx, y - axis_dy);
+            let a_land = !matches!(self.get(bank_a.0, bank_a.1), Tile::Water | Tile::Void);
+            let b_land = !matches!(self.get(bank_b.0, bank_b.1), Tile::Water | Tile::Void);
+            if !(a_land && b_land) { continue; }
+            // Coin flip which side erodes.
+            let (erode, silt) = if rng.gen::<bool>() { (bank_a, bank_b) } else { (bank_b, bank_a) };
+            self.tiles[Self::idx(erode.0, erode.1)] = Tile::Water as i8;
+            // Silt opposite shore — only if it's currently water (rare
+            // mid-river drift case). Most of the time silt-side is
+            // already land, so the call is a no-op.
+            if self.get(silt.0, silt.1) == Tile::Water {
+                self.tiles[Self::idx(silt.0, silt.1)] = Tile::Grass as i8;
+            }
+            return; // one meander per call keeps this cheap.
+        }
+    }
+
+    /// Forest spread: a grass tile adjacent to ≥2 forest-biome
+    /// neighbours and with fert ≥ 0.55 can flip its own biome to
+    /// Forest. Closes the spec's "forests spread or die" loop — the
+    /// existing biome drift only ever *shrinks* forests, never grows
+    /// them. Capped to a small per-call budget so we don't fill the
+    /// map.
+    pub fn tick_forest_spread(&mut self, rng: &mut impl Rng) {
+        let mut grew = 0usize;
+        for _ in 0..120 {
+            if grew >= 12 { break; }
+            let x = rng.gen_range(1..WIDTH  as i32 - 1);
+            let y = rng.gen_range(1..HEIGHT as i32 - 1);
+            if self.get(x, y) != Tile::Grass { continue; }
+            let i = Self::idx(x, y);
+            if self.fertility[i] < 0.55 { continue; }
+            let mut forest_nb = 0u8;
+            for (dx, dy) in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
+                if Self::in_bounds(x + dx, y + dy)
+                    && self.biome_at(x + dx, y + dy) == Biome::Forest
+                {
+                    forest_nb += 1;
+                    if forest_nb >= 2 { break; }
+                }
+            }
+            if forest_nb < 2 { continue; }
+            self.biome[i] = Biome::Forest as u8;
+            grew += 1;
+        }
+    }
+
     pub fn tick_geology(&mut self, rng: &mut impl Rng) {
         // Per audit: previous counts (2-6 flood, 1-3 emerge) fired every
         // 18000 ticks; at 4 changes per ~30 min real that's invisible

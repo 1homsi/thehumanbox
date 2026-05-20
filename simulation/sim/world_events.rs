@@ -35,15 +35,31 @@ impl WeatherState {
     /// gives the world a coherent "today the wind is from the west,
     /// strong" feel that downstream systems (rain slant, storm move,
     /// dispatch fire spread) can read.
-    pub fn tick_wind(&mut self, tick: u64, rng: &mut impl Rng) {
-        let _ = tick; // reserved for if we ever rate-limit
-        // Small random nudge on direction (≈ ±5° per tick).
-        let theta = (self.wind_y.atan2(self.wind_x))
-            + (rng.gen::<f32>() - 0.5) * 0.08;
-        // Magnitude drifts toward a seasonal-ish baseline of 0.5.
+    ///
+    /// `season` biases both magnitude (stronger in scarcity / decline,
+    /// gentle in abundance / recovery) and the target heading
+    /// (continental dry winds in scarcity, onshore moisture in
+    /// recovery). The bias is weak — random walk still dominates
+    /// hour-to-hour — but over a session you can feel the prevailing
+    /// "monsoon" / "dry" wind shift.
+    pub fn tick_wind(&mut self, tick: u64, season: &str, rng: &mut impl Rng) {
+        let (target_m, bias_theta, bias_strength) = match season {
+            "abundance" => (0.45f32,  std::f32::consts::FRAC_PI_4,            0.005f32),
+            "recovery"  => (0.40,    -std::f32::consts::FRAC_PI_4,            0.005),
+            "decline"   => (0.60,     std::f32::consts::PI * 0.75,            0.008),
+            "scarcity"  => (0.75,     std::f32::consts::PI,                   0.010),
+            _           => (0.50,     0.0,                                    0.0),
+        };
+        // Small random nudge on direction (≈ ±5° per tick) + a tiny
+        // seasonal pull toward `bias_theta`.
+        let cur_theta = self.wind_y.atan2(self.wind_x);
+        let mut delta_theta = (rng.gen::<f32>() - 0.5) * 0.08;
+        let theta_err = (bias_theta - cur_theta + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU) - std::f32::consts::PI;
+        delta_theta += theta_err * bias_strength;
+        let theta = cur_theta + delta_theta;
+        // Magnitude drifts toward the season-specific baseline.
         let m = (self.wind_x * self.wind_x + self.wind_y * self.wind_y).sqrt();
-        let target = 0.5;
-        let new_m = (m + (target - m) * 0.02 + (rng.gen::<f32>() - 0.5) * 0.04)
+        let new_m = (m + (target_m - m) * 0.02 + (rng.gen::<f32>() - 0.5) * 0.04)
             .clamp(0.05, 1.0);
         self.wind_x = theta.cos() * new_m;
         self.wind_y = theta.sin() * new_m;
@@ -89,8 +105,10 @@ pub fn tick_weather(
 ) {
     // Wind drifts every tick, independent of whether there's active
     // precipitation. The downstream renderer reads (wind_x, wind_y)
-    // to slant rain and orient storm motion.
-    weather.tick_wind(tick, rng);
+    // to slant rain and orient storm motion. Season biases the
+    // target heading + magnitude so the world has a persistent
+    // "monsoon" / "dry" feel.
+    weather.tick_wind(tick, season, rng);
     if weather.kind != 0 {
         apply_weather(weather, grid, organisms, tick, rng);
         let elapsed = tick.saturating_sub(weather.start_tick);
@@ -762,6 +780,18 @@ pub fn tick_world_evolution(
     // one session (~10 min real between events instead of ~30 min).
     if tick % 6000 == 0 && tick >= 6000 {
         grid.tick_geology(rng);
+    }
+    // River meander: a single bank-flip per call, much faster cadence
+    // than geology — gives mid-session lakes a visible "shifted" feel
+    // without bulldozing them.
+    if tick % 1800 == 0 && tick >= 1800 {
+        grid.tick_river_meander(rng);
+    }
+    // Forest spread: counterbalance to the shrink-only forest drift
+    // already in the biome system. Closes the "forests spread or die"
+    // loop the world-evolution spec asks for.
+    if tick % 900 == 0 && tick >= 900 {
+        grid.tick_forest_spread(rng);
     }
 
     for org in organisms.iter_mut() {
