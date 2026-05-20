@@ -60,10 +60,18 @@ export function LifeModal({ orgId, orgName, onClose }: Props) {
   useEffect(() => {
     setLoading(true)
     setError(false)
-    fetch(`${API_BASE}/org/${orgId}/life`)
+    // Abort the in-flight fetch when the modal unmounts or orgId
+    // changes, so the late .then doesn't flip stale state onto the
+    // next-opened modal.
+    const ctrl = new AbortController()
+    fetch(`${API_BASE}/org/${orgId}/life`, { signal: ctrl.signal })
       .then(r => { if (!r.ok) throw new Error(); return r.json() })
       .then((d: OrgLife) => { setLife(d); setLoading(false) })
-      .catch(() => { setError(true); setLoading(false) })
+      .catch((e: unknown) => {
+        if (e instanceof DOMException && e.name === 'AbortError') return
+        setError(true); setLoading(false)
+      })
+    return () => ctrl.abort()
   }, [orgId])
 
   const ageInDays = life ? Math.floor(life.age_ticks / DAY_LENGTH) : 0
