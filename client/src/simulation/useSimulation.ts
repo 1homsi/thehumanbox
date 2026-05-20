@@ -183,7 +183,14 @@ export function useSimulation(): {
             cancelPendingSnapshotFetch()
           }
           latest = next
-        } catch (_) {}
+        } catch (e) {
+          // Don't swallow merge failures silently — a malformed
+          // organism record was previously taking down the whole
+          // frame with zero signal. Logging surfaces real bugs;
+          // the loop continues so a single bad frame doesn't kill
+          // the world.
+          console.warn('[ws] frame merge failed:', e)
+        }
       }
 
       if (latest === null) return

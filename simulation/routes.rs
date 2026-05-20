@@ -177,7 +177,7 @@ async fn handle_socket(
     mut socket: WebSocket,
     mut rx: broadcast::Receiver<Arc<Vec<u8>>>,
     _sim: SharedSim,
-    _latest_full: LatestFull,
+    latest_full: LatestFull,
     transport_stats: SharedTransportStats,
 ) {
 
@@ -193,6 +193,25 @@ async fn handle_socket(
                         transport_stats.record_lagged(skipped);
                         if skipped >= WS_RESYNC_LAG_THRESHOLD {
                             transport_stats.record_resync();
+                            // Without this, the client only learns it's
+                            // drifted via the next frame-id gap detection
+                            // (which only triggers a snapshot fetch if the
+                            // gap is > 2). Push the cached latest_full
+                            // directly so the laggy client catches up
+                            // immediately instead of running stale for
+                            // minutes.
+                            // Snapshot the Arc<Vec<u8>> while we hold the
+                            // RwLockReadGuard, then drop the guard before
+                            // .await — guards aren't Send across awaits.
+                            let payload: Option<Arc<Vec<u8>>> = latest_full.read().ok()
+                                .and_then(|slot| slot.clone());
+                            if let Some(full) = payload {
+                                let bytes: Vec<u8> = full.as_ref().clone();
+                                if socket.send(Message::Binary(bytes.into())).await.is_err() {
+                                    break;
+                                }
+                                transport_stats.record_sent();
+                            }
                         }
                     }
                     Err(_) => break,
