@@ -90,7 +90,21 @@ jobs:
           set -euo pipefail
           CURRENT=$(grep '^version = ' simulation/Cargo.toml | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-          NEW="$MAJOR.$MINOR.$((PATCH + 1))"
+          # Rollover scheme: patch increments to 99, then jumps to next
+          # minor with patch reset to 0. e.g. 0.0.99 -> 0.1.0, 0.1.99 -> 0.2.0.
+          # Minor rolls over the same way: 0.99.99 -> 1.0.0.
+          NEW_PATCH=$((PATCH + 1))
+          NEW_MINOR=$MINOR
+          NEW_MAJOR=$MAJOR
+          if [ "$NEW_PATCH" -gt 99 ]; then
+            NEW_PATCH=0
+            NEW_MINOR=$((MINOR + 1))
+            if [ "$NEW_MINOR" -gt 99 ]; then
+              NEW_MINOR=0
+              NEW_MAJOR=$((MAJOR + 1))
+            fi
+          fi
+          NEW="$NEW_MAJOR.$NEW_MINOR.$NEW_PATCH"
           echo "Bumping $CURRENT -> $NEW"
           echo "new=$NEW" >> "$GITHUB_OUTPUT"
 
