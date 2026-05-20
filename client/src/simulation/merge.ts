@@ -140,10 +140,21 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     lineage_centroid_history: parsed.lineage_centroid_history ?? base?.lineage_centroid_history,
     current_era: parsed.current_era ?? base?.current_era,
     sex_words: (reuseArrayIfShallowEqual(incomingSexWords as string[] | undefined, base?.sex_words as string[] | undefined) as [string, string] | undefined),
-    organisms: [...caches.organisms.values()],
+    // Materialise the org / animal arrays from the cache, then reuse
+    // the previous frame's array reference when membership *and*
+    // identities are unchanged. This is the key to keeping selectors
+    // like `s.world?.organisms` from re-firing every tick — zustand
+    // selectors short-circuit on Object.is(prev, next).
+    organisms: reuseArrayIfShallowEqual(
+      Array.from(caches.organisms.values()),
+      base?.organisms,
+    ) ?? [],
     viewport_organisms: viewportOrgs,
     organisms_complete: parsed.organisms_complete,
-    animals: [...caches.animals.values()],
+    animals: reuseArrayIfShallowEqual(
+      Array.from(caches.animals.values()),
+      base?.animals,
+    ) ?? [],
     viewport_animals: viewportAnimals,
     animals_complete: parsed.animals_complete,
   }

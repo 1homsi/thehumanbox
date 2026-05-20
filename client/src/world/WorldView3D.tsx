@@ -186,7 +186,10 @@ export default function WorldView3D({ world }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const selectedOrgId  = useUIStore(s => s.selectedOrgId)
   const selectOrgStore = useUIStore(s => s.selectOrg)
-  const viewFlags      = useUIStore(s => s.viewFlags)
+  // WorldView3D only reads one flag (territoryMap). Subscribing to
+  // the whole viewFlags object re-renders the entire 3D tree on
+  // every flag toggle; a scalar selector is virtually free.
+  const showTerritoryMap = useUIStore(s => s.viewFlags.territoryMap)
   const [follow, setFollow] = useState(false)
 
   useEffect(() => {
@@ -433,7 +436,7 @@ export default function WorldView3D({ world }: Props) {
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}
                 />
-                {viewFlags.territoryMap && world.territory && (
+                {showTerritoryMap && world.territory && (
                   <TerritoryOverlay
                     territory={world.territory}
                     depthMap={grid.depth_map!}
