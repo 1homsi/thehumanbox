@@ -1209,25 +1209,37 @@ function drawWorldOnCanvas(
   }
 
   if (viewFlags.partners) {
-    const byId = new Map(organisms.filter(o => o.alive).map(o => [o.id, o]))
-    ctx.save()
-    ctx.strokeStyle = 'rgba(255,170,200,0.55)'
-    ctx.lineWidth = 1
-    for (const org of organisms) {
-      if (!org.alive || !org.partner_id) continue
-      if (org.id >= org.partner_id) continue
-      const partner = byId.get(org.partner_id)
-      if (!partner || !partner.alive) continue
-      const ax = (org.x - ox) * TILE + TILE / 2
-      const ay = (org.y - oy) * TILE + TILE / 2
-      const bx = (partner.x - ox) * TILE + TILE / 2
-      const by = (partner.y - oy) * TILE + TILE / 2
-      ctx.beginPath()
-      ctx.moveTo(ax, ay)
-      ctx.lineTo(bx, by)
-      ctx.stroke()
+    // Pre-filter to partnered orgs before building the lookup map.
+    // Most orgs are unpartnered; building a full byId map of all
+    // organisms is wasted work each frame.
+    const partnered: WorldState['organisms'] = []
+    for (const o of organisms) {
+      if (o.alive && o.partner_id) partnered.push(o)
     }
-    ctx.restore()
+    if (partnered.length >= 2) {
+      const byId = new Map<string, typeof partnered[number]>()
+      for (const o of partnered) byId.set(o.id, o)
+      ctx.save()
+      ctx.strokeStyle = 'rgba(255,170,200,0.55)'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      for (const org of partnered) {
+        if (!org.partner_id) continue
+        if (org.id >= org.partner_id) continue
+        const partner = byId.get(org.partner_id)
+        if (!partner) continue
+        const ax = (org.x - ox) * TILE + TILE / 2
+        const ay = (org.y - oy) * TILE + TILE / 2
+        const bx = (partner.x - ox) * TILE + TILE / 2
+        const by = (partner.y - oy) * TILE + TILE / 2
+        ctx.moveTo(ax, ay)
+        ctx.lineTo(bx, by)
+      }
+      // Single stroke() at the end instead of per-edge — cuts state-
+      // change overhead when there are many partnered pairs.
+      ctx.stroke()
+      ctx.restore()
+    }
   }
 
   const ANIMAL_EMOJI: Record<string, string> = {
