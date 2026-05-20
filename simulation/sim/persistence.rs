@@ -397,14 +397,19 @@ impl Simulation {
                 intensity:  self.weather.intensity,
                 wet_until:  self.weather.wet_until,
             },
-            pop_history:   self.pop_history.iter().cloned().collect(),
+            // Cap unbounded VecDeques on save. Their in-memory caps
+            // are larger than what makes sense to persist; if we ship
+            // them whole, save bloats linearly with playtime and the
+            // serde_json::to_string allocation eats the spawn_blocking
+            // budget. The tail is what subsequent reads actually need.
+            pop_history: self.pop_history.iter().rev().take(300).rev().cloned().collect(),
             lineage_centroid_history: self.lineage_centroid_history.iter()
-                .map(|(k, v)| (k.clone(), v.iter().cloned().collect()))
+                .map(|(k, v)| (k.clone(), v.iter().rev().take(60).rev().cloned().collect()))
                 .collect(),
-            events:    self.events.iter().cloned().collect(),
+            events: self.events.iter().rev().take(200).rev().cloned().collect(),
             organisms:     self.organisms.iter().map(org_to_save).collect(),
             animals:       self.animals.iter().map(animal_to_save).collect(),
-            story_history: self.story_history.iter().cloned().collect(),
+            story_history: self.story_history.iter().rev().take(120).rev().cloned().collect(),
             grid: GridSave {
                 tiles:       self.grid.tiles.clone(),
                 fire:        self.grid.fire_intensity.clone(),
