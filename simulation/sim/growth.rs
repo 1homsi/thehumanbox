@@ -9,26 +9,6 @@ use super::config::MAX_POPULATION;
 use super::simulation::{Event, History};
 use super::world_events::push_event;
 
-pub fn spawn_organism(
-    grid: &WorldGrid,
-    organisms: &mut Vec<Organism>,
-    x: f32, y: f32,
-    rng: &mut impl Rng,
-) {
-    let id = Uuid::new_v4().to_string()[..8].to_string();
-    spawn_organism_with_lineage(grid, organisms, x, y, id, rng);
-}
-
-pub fn spawn_organism_with_lineage(
-    grid: &WorldGrid,
-    organisms: &mut Vec<Organism>,
-    x: f32, y: f32,
-    lineage_id: String,
-    rng: &mut impl Rng,
-) {
-    spawn_organism_with_home(grid, organisms, x, y, x, y, lineage_id, rng);
-}
-
 pub fn spawn_organism_with_home(
     grid: &WorldGrid,
     organisms: &mut Vec<Organism>,

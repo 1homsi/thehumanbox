@@ -172,12 +172,17 @@ function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
 
 interface Props {
   world: WorldState | null
-  hideUI: boolean
+  // hideUI is passed by the parent for symmetry with the 2D view's
+  // chrome control, but the 3D view doesn't have a separate HUD to
+  // hide — its in-canvas chrome is governed by viewFlags below.
+  // Kept on the prop interface for API stability; intentionally
+  // ignored here.
+  hideUI?: boolean
 }
 
 const SEL_LS_KEY = 'thb-3d-sel-v1'
 
-export default function WorldView3D({ world, hideUI: _hideUI }: Props) {
+export default function WorldView3D({ world }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const selectedOrgId  = useUIStore(s => s.selectedOrgId)
   const selectOrgStore = useUIStore(s => s.selectOrg)
