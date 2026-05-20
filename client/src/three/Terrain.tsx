@@ -1,5 +1,5 @@
 import { useMemo, useRef } from 'react'
-import * as THREE from 'three'
+import { BufferAttribute, BufferGeometry, Mesh, MeshStandardMaterial } from 'three'
 import { TILE_SCALE, MAX_DEPTH, BIOME_COLORS, BIOME_ELEVATION, BIOME_ROUGHNESS, terrainNoise } from './constants'
 import { getTerrainTextures, biomeQuadrant } from './terrain-textures'
 
@@ -13,13 +13,13 @@ interface Props {
 const TEX_TILES_PER_WORLD = 16
 
 export function Terrain({ depthMap, biomes, width, height }: Props) {
-  const meshRef = useRef<THREE.Mesh>(null)
+  const meshRef = useRef<Mesh>(null)
 
   const { color: colorTex, bump: bumpTex } = useMemo(() => getTerrainTextures(), [])
 
   const geometry = useMemo(() => {
     if (!depthMap || !biomes) return null
-    const geo = new THREE.BufferGeometry()
+    const geo = new BufferGeometry()
 
     const positions = new Float32Array(width * height * 3)
     const colors    = new Float32Array(width * height * 3)
@@ -78,17 +78,17 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
       }
     }
 
-    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-    geo.setAttribute('color',    new THREE.BufferAttribute(colors, 3))
-    geo.setAttribute('uv',       new THREE.BufferAttribute(uvs, 2))
-    geo.setAttribute('aQuad',    new THREE.BufferAttribute(quads, 1))
+    geo.setAttribute('position', new BufferAttribute(positions, 3))
+    geo.setAttribute('color',    new BufferAttribute(colors, 3))
+    geo.setAttribute('uv',       new BufferAttribute(uvs, 2))
+    geo.setAttribute('aQuad',    new BufferAttribute(quads, 1))
     geo.setIndex(indices)
     geo.computeVertexNormals()
     return geo
   }, [depthMap, biomes, width, height])
 
   const material = useMemo(() => {
-    const m = new THREE.MeshStandardMaterial({
+    const m = new MeshStandardMaterial({
       vertexColors: true,
       map:        colorTex,
       bumpMap:    bumpTex,

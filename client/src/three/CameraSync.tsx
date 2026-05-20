@@ -1,8 +1,8 @@
 import { useFrame, useThree } from '@react-three/fiber'
-import * as THREE from 'three'
+import { Vector3 } from 'three'
 import { cameraSnapshot } from './camera-state'
 
-const tmpDir = new THREE.Vector3()
+const tmpDir = new Vector3()
 
 export function CameraSync() {
   const { camera } = useThree()

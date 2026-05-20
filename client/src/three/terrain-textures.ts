@@ -1,9 +1,8 @@
-import * as THREE from 'three'
-
+import { ClampToEdgeWrapping, DataTexture, LinearFilter, LinearMipMapLinearFilter, RGBAFormat } from 'three'
 const TILE   = 256
 const ATLAS  = TILE * 2
 
-let _cache: { color: THREE.DataTexture; bump: THREE.DataTexture } | null = null
+let _cache: { color: DataTexture; bump: DataTexture } | null = null
 
 function makeNoise() {
   const hash = (x: number, y: number, salt: number): number => {
@@ -96,7 +95,7 @@ function paintTile(
   }
 }
 
-export function getTerrainTextures(): { color: THREE.DataTexture; bump: THREE.DataTexture } {
+export function getTerrainTextures(): { color: DataTexture; bump: DataTexture } {
   if (_cache) return _cache
 
   const colorBuf = new Uint8Array(ATLAS * ATLAS * 4)
@@ -107,20 +106,20 @@ export function getTerrainTextures(): { color: THREE.DataTexture; bump: THREE.Da
   paintTile(colorBuf, bumpBuf, 0,    TILE, 2)
   paintTile(colorBuf, bumpBuf, TILE, TILE, 3)
 
-  const color = new THREE.DataTexture(colorBuf, ATLAS, ATLAS, THREE.RGBAFormat)
-  color.wrapS = THREE.ClampToEdgeWrapping
-  color.wrapT = THREE.ClampToEdgeWrapping
-  color.magFilter = THREE.LinearFilter
-  color.minFilter = THREE.LinearMipMapLinearFilter
+  const color = new DataTexture(colorBuf, ATLAS, ATLAS, RGBAFormat)
+  color.wrapS = ClampToEdgeWrapping
+  color.wrapT = ClampToEdgeWrapping
+  color.magFilter = LinearFilter
+  color.minFilter = LinearMipMapLinearFilter
   color.generateMipmaps = true
   color.anisotropy = 4
   color.needsUpdate = true
 
-  const bump = new THREE.DataTexture(bumpBuf, ATLAS, ATLAS, THREE.RGBAFormat)
-  bump.wrapS = THREE.ClampToEdgeWrapping
-  bump.wrapT = THREE.ClampToEdgeWrapping
-  bump.magFilter = THREE.LinearFilter
-  bump.minFilter = THREE.LinearMipMapLinearFilter
+  const bump = new DataTexture(bumpBuf, ATLAS, ATLAS, RGBAFormat)
+  bump.wrapS = ClampToEdgeWrapping
+  bump.wrapT = ClampToEdgeWrapping
+  bump.magFilter = LinearFilter
+  bump.minFilter = LinearMipMapLinearFilter
   bump.generateMipmaps = true
   bump.anisotropy = 4
   bump.needsUpdate = true

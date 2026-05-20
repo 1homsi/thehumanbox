@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import * as THREE from 'three'
+import { BufferAttribute, BufferGeometry, CylinderGeometry, DoubleSide, Line, Mesh, TorusGeometry } from 'three'
 import type { OrganismState } from '../types'
 import { useUIStore } from '../stores/store'
 import { TILE_SCALE } from './constants'
@@ -13,17 +13,17 @@ interface Props {
   biomes:    number[][]
 }
 
-const RING_GEO   = new THREE.TorusGeometry(1.1, 0.09, 5, 16)
-const COLUMN_GEO = new THREE.CylinderGeometry(0.18, 0.18, 60, 8, 1, true)
+const RING_GEO   = new TorusGeometry(1.1, 0.09, 5, 16)
+const COLUMN_GEO = new CylinderGeometry(0.18, 0.18, 60, 8, 1, true)
 
 const TRAIL_LEN = 48
 const TRAIL_SAMPLE_MS = 90
 
 export function SelectedOrgHighlight({ organisms, depthMap, biomes }: Props) {
   const selectedOrgId = useUIStore(s => s.selectedOrgId)
-  const ringRef   = useRef<THREE.Mesh>(null)
-  const columnRef = useRef<THREE.Mesh>(null)
-  const trailRef  = useRef<THREE.Line | null>(null)
+  const ringRef   = useRef<Mesh>(null)
+  const columnRef = useRef<Mesh>(null)
+  const trailRef  = useRef<Line | null>(null)
   const trailBuf  = useRef<{ x: number; y: number; z: number }[]>([])
   const lastSample = useRef(0)
 
@@ -38,9 +38,9 @@ export function SelectedOrgHighlight({ organisms, depthMap, biomes }: Props) {
   }, [selectedOrgId])
 
   const trailGeo = useMemo(() => {
-    const geo = new THREE.BufferGeometry()
+    const geo = new BufferGeometry()
     const positions = new Float32Array(TRAIL_LEN * 3)
-    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+    geo.setAttribute('position', new BufferAttribute(positions, 3))
     return geo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -65,7 +65,7 @@ export function SelectedOrgHighlight({ organisms, depthMap, biomes }: Props) {
       if (trailBuf.current.length > TRAIL_LEN) {
         trailBuf.current.shift()
       }
-      const pos = trailGeo.attributes.position as THREE.BufferAttribute
+      const pos = trailGeo.attributes.position as BufferAttribute
       const N = trailBuf.current.length
       const first = trailBuf.current[0]
       for (let i = 0; i < TRAIL_LEN; i++) {
@@ -99,7 +99,7 @@ export function SelectedOrgHighlight({ organisms, depthMap, biomes }: Props) {
           opacity={0.18}
           toneMapped={false}
           depthWrite={false}
-          side={THREE.DoubleSide}
+          side={DoubleSide}
         />
       </mesh>
       <line
@@ -121,6 +121,6 @@ export function SelectedOrgHighlight({ organisms, depthMap, biomes }: Props) {
   )
 }
 
-function geomDrawRange(geo: THREE.BufferGeometry, count: number) {
+function geomDrawRange(geo: BufferGeometry, count: number) {
   geo.setDrawRange(0, count)
 }

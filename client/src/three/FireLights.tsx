@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import * as THREE from 'three'
+import { PointLight } from 'three'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
 
@@ -47,7 +47,7 @@ export function FireLights({ tiles, depthMap, biomes, width, height, isNight = f
     return out
   }, [tiles, depthMap, biomes, width, height])
 
-  const lightRefs = useRef<(THREE.PointLight | null)[]>(Array(MAX_LIGHTS).fill(null))
+  const lightRefs = useRef<(PointLight | null)[]>(Array(MAX_LIGHTS).fill(null))
   const nearestRef = useRef<FirePos[]>([])
 
   useFrame(({ clock }) => {

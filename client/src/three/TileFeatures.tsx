@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import * as THREE from 'three'
+import { BoxGeometry, BufferGeometry, CircleGeometry, Color, ConeGeometry, CylinderGeometry, DodecahedronGeometry, InstancedMesh, MeshStandardMaterial, Object3D, OctahedronGeometry, PlaneGeometry, SphereGeometry, TorusGeometry } from 'three'
 import { TILE_SCALE, BIOME_ELEVATION, BIOME_ROUGHNESS, terrainNoise } from './constants'
 import { heightAt } from './terrain-utils'
 import { applyWindSway, windUniforms } from './tree-wind'
@@ -279,72 +279,72 @@ function collectFeatures(
   }
 }
 
-const PINE_TRUNK   = new THREE.CylinderGeometry(0.16, 0.22, 1.4, 5)
-const PINE_CANOPY  = new THREE.ConeGeometry(1.4, 3.2, 6)
-const OAK_TRUNK    = new THREE.CylinderGeometry(0.20, 0.28, 1.6, 6)
-const OAK_CANOPY   = new THREE.SphereGeometry(1.3, 6, 5)
-const PALM_TRUNK   = new THREE.CylinderGeometry(0.12, 0.16, 2.6, 5)
-const PALM_FRONDS  = new THREE.ConeGeometry(1.6, 0.6, 6)
+const PINE_TRUNK   = new CylinderGeometry(0.16, 0.22, 1.4, 5)
+const PINE_CANOPY  = new ConeGeometry(1.4, 3.2, 6)
+const OAK_TRUNK    = new CylinderGeometry(0.20, 0.28, 1.6, 6)
+const OAK_CANOPY   = new SphereGeometry(1.3, 6, 5)
+const PALM_TRUNK   = new CylinderGeometry(0.12, 0.16, 2.6, 5)
+const PALM_FRONDS  = new ConeGeometry(1.6, 0.6, 6)
 // Huts made substantially larger so they look like real dwellings
-const HUT_WALLS    = new THREE.BoxGeometry(4.2, 3.0, 4.2)
+const HUT_WALLS    = new BoxGeometry(4.2, 3.0, 4.2)
 const HUT_ROOF     = (() => {
-  const g = new THREE.ConeGeometry(3.2, 2.4, 4)
+  const g = new ConeGeometry(3.2, 2.4, 4)
   g.rotateY(Math.PI / 4)
   return g
 })()
-const HUT_DOOR     = new THREE.BoxGeometry(0.85, 1.70, 0.12)
-const HUT_CHIMNEY  = new THREE.CylinderGeometry(0.20, 0.22, 0.8, 6)
+const HUT_DOOR     = new BoxGeometry(0.85, 1.70, 0.12)
+const HUT_CHIMNEY  = new CylinderGeometry(0.20, 0.22, 0.8, 6)
 // Fence posts around hut perimeters
-const FENCE_POST   = new THREE.CylinderGeometry(0.10, 0.13, 1.5, 5)
+const FENCE_POST   = new CylinderGeometry(0.10, 0.13, 1.5, 5)
 // Well: stone drum + torus ring + roof cone
-const WELL_DRUM    = new THREE.CylinderGeometry(0.50, 0.55, 0.90, 10)
-const WELL_LIP     = new THREE.TorusGeometry(0.52, 0.10, 5, 12)
-const WELL_POLE    = new THREE.CylinderGeometry(0.07, 0.07, 1.60, 4)
+const WELL_DRUM    = new CylinderGeometry(0.50, 0.55, 0.90, 10)
+const WELL_LIP     = new TorusGeometry(0.52, 0.10, 5, 12)
+const WELL_POLE    = new CylinderGeometry(0.07, 0.07, 1.60, 4)
 const WELL_ROOF    = (() => {
-  const g = new THREE.ConeGeometry(0.72, 0.55, 4)
+  const g = new ConeGeometry(0.72, 0.55, 4)
   g.rotateY(Math.PI / 4)
   return g
 })()
 // Worn path: flat plane per tile
 const PATH_GEO     = (() => {
-  const g = new THREE.PlaneGeometry(TILE_SCALE * 0.9, TILE_SCALE * 0.9)
+  const g = new PlaneGeometry(TILE_SCALE * 0.9, TILE_SCALE * 0.9)
   g.rotateX(-Math.PI / 2)
   return g
 })()
-const CAMP_DISC    = new THREE.CylinderGeometry(0.85, 0.85, 0.12, 10)
-const CAMP_FLAME   = new THREE.ConeGeometry(0.5, 1.2, 6)
-const CAMP_LOG     = new THREE.CylinderGeometry(0.12, 0.12, 1.0, 5)
-const FIRE_INNER   = new THREE.ConeGeometry(0.5, 1.4, 6)
-const FIRE_OUTER   = new THREE.ConeGeometry(0.75, 2.0, 6)
-const ROCK_GEO     = new THREE.DodecahedronGeometry(0.7, 0)
-const MINERAL_GEO  = new THREE.OctahedronGeometry(0.6, 0)
+const CAMP_DISC    = new CylinderGeometry(0.85, 0.85, 0.12, 10)
+const CAMP_FLAME   = new ConeGeometry(0.5, 1.2, 6)
+const CAMP_LOG     = new CylinderGeometry(0.12, 0.12, 1.0, 5)
+const FIRE_INNER   = new ConeGeometry(0.5, 1.4, 6)
+const FIRE_OUTER   = new ConeGeometry(0.75, 2.0, 6)
+const ROCK_GEO     = new DodecahedronGeometry(0.7, 0)
+const MINERAL_GEO  = new OctahedronGeometry(0.6, 0)
 // Lake / wetland decorations
-const REED_STEM    = new THREE.CylinderGeometry(0.045, 0.07, 1.55, 4)
-const REED_HEAD    = new THREE.CylinderGeometry(0.13, 0.06, 0.55, 5)
+const REED_STEM    = new CylinderGeometry(0.045, 0.07, 1.55, 4)
+const REED_HEAD    = new CylinderGeometry(0.13, 0.06, 0.55, 5)
 const LILY_PAD     = (() => {
-  const g = new THREE.CircleGeometry(0.50, 8)
+  const g = new CircleGeometry(0.50, 8)
   g.rotateX(-Math.PI / 2)
   return g
 })()
 // Town hall – central landmark for large settlements
-const TOWN_HALL_WALLS  = new THREE.BoxGeometry(7.5, 5.2, 7.5)
+const TOWN_HALL_WALLS  = new BoxGeometry(7.5, 5.2, 7.5)
 const TOWN_HALL_ROOF   = (() => {
-  const g = new THREE.ConeGeometry(5.8, 4.0, 4)
+  const g = new ConeGeometry(5.8, 4.0, 4)
   g.rotateY(Math.PI / 4)
   return g
 })()
-const TOWN_HALL_TOWER  = new THREE.CylinderGeometry(1.2, 1.3, 9.5, 8)
-const TOWN_HALL_CAP    = new THREE.ConeGeometry(1.6, 2.5, 8)
+const TOWN_HALL_TOWER  = new CylinderGeometry(1.2, 1.3, 9.5, 8)
+const TOWN_HALL_CAP    = new ConeGeometry(1.6, 2.5, 8)
 // Market stalls near campfires
-const STALL_AWNING     = new THREE.BoxGeometry(3.2, 0.14, 2.4)
-const STALL_POST       = new THREE.CylinderGeometry(0.09, 0.11, 1.9, 4)
+const STALL_AWNING     = new BoxGeometry(3.2, 0.14, 2.4)
+const STALL_POST       = new CylinderGeometry(0.09, 0.11, 1.9, 4)
 
-const tmp = new THREE.Object3D()
+const tmp = new Object3D()
 
 interface InstanceProps {
   positions: [number, number, number, number?][]
   yOffset:   number
-  geometry:  THREE.BufferGeometry
+  geometry:  BufferGeometry
   color:     string
   maxCount:  number
   scale?:    number
@@ -355,13 +355,13 @@ interface InstanceProps {
 function InstanceLayer({
   positions, yOffset, geometry, color, maxCount, scale = 1, randomYaw = false, wind,
 }: InstanceProps) {
-  const meshRef = useRef<THREE.InstancedMesh>(null)
+  const meshRef = useRef<InstancedMesh>(null)
   const count = Math.min(positions.length, maxCount)
 
   const material = useMemo(() => {
-    const m = new THREE.MeshStandardMaterial({ color, roughness: 0.85 })
+    const m = new MeshStandardMaterial({ color, roughness: 0.85 })
     if (wind) {
-      m.emissive = new THREE.Color(color)
+      m.emissive = new Color(color)
       m.emissiveIntensity = 0.12
       applyWindSway(m, wind.heightRef, wind.strength ?? 1.0)
     }
@@ -404,7 +404,7 @@ function InstanceLayer({
 function FireGlow({
   positions, maxCount,
 }: { positions: [number, number, number][]; maxCount: number }) {
-  const meshRef = useRef<THREE.InstancedMesh>(null)
+  const meshRef = useRef<InstancedMesh>(null)
   const count = Math.min(positions.length, maxCount)
 
   useMemo(() => {
@@ -451,14 +451,14 @@ function FireGlow({
   )
 }
 
-const SMOKE_GEO = new THREE.PlaneGeometry(1, 1)
+const SMOKE_GEO = new PlaneGeometry(1, 1)
 const SMOKE_PER_FIRE = 6
 const SMOKE_WRAP_H = 10
 
 function FireSmoke({
   positions, maxCount, intensity = 1.0,
 }: { positions: [number, number, number][]; maxCount: number; intensity?: number }) {
-  const meshRef = useRef<THREE.InstancedMesh>(null)
+  const meshRef = useRef<InstancedMesh>(null)
   const total   = Math.min(positions.length, maxCount) * SMOKE_PER_FIRE
 
   useFrame(({ clock, camera }) => {
@@ -506,14 +506,14 @@ function FireSmoke({
   )
 }
 
-const SPARK_GEO = new THREE.SphereGeometry(0.06, 4, 3)
+const SPARK_GEO = new SphereGeometry(0.06, 4, 3)
 const SPARKS_PER_FIRE = 10
 const SPARK_LIFE = 1.2
 
 function FireSparks({
   positions, maxCount,
 }: { positions: [number, number, number][]; maxCount: number }) {
-  const meshRef = useRef<THREE.InstancedMesh>(null)
+  const meshRef = useRef<InstancedMesh>(null)
   const fireCount = Math.min(positions.length, maxCount)
   const total     = fireCount * SPARKS_PER_FIRE
 
@@ -562,7 +562,7 @@ function FireSparks({
 function CampfireFlames({
   positions, maxCount,
 }: { positions: [number, number, number][]; maxCount: number }) {
-  const meshRef = useRef<THREE.InstancedMesh>(null)
+  const meshRef = useRef<InstancedMesh>(null)
   const count = Math.min(positions.length, maxCount)
 
   useMemo(() => {

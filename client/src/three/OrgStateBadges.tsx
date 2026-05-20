@@ -1,7 +1,7 @@
 import { useMemo, useRef } from 'react'
 import { Billboard, Text } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
-import * as THREE from 'three'
+import { Group } from 'three'
 import type { OrganismState } from '../types'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
@@ -88,7 +88,7 @@ function BadgeRow({ orgId, badges, depthMap, biomes }: {
   depthMap: number[][]
   biomes: number[][]
 }) {
-  const groupRef = useRef<THREE.Group>(null)
+  const groupRef = useRef<Group>(null)
   const phase = useMemo(() => {
     let h = 0
     for (let i = 0; i < orgId.length; i++) h = (h * 31 + orgId.charCodeAt(i)) | 0

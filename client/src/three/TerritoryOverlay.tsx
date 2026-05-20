@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import * as THREE from 'three'
+import { BufferAttribute, BufferGeometry, Color, DoubleSide, MeshBasicMaterial } from 'three'
 import type { WorldState } from '../types'
 import { lineageColor } from '../utils/constants'
 import { heightAt } from './terrain-utils'
@@ -16,7 +16,7 @@ const HOVER_Y = 0.25
 
 // Parse an hsl(...) string into [r, g, b] in [0,1] range
 function hslToRgb(hsl: string): [number, number, number] {
-  const tmp = new THREE.Color()
+  const tmp = new Color()
   tmp.setStyle(hsl)
   return [tmp.r, tmp.g, tmp.b]
 }
@@ -28,9 +28,9 @@ function buildTileGeometry(
   colorFn: (ix: number, iy: number) => [number, number, number],
   depthMap: number[][],
   biomes:   number[][],
-): THREE.BufferGeometry {
+): BufferGeometry {
   const n = tiles.length
-  if (n === 0) return new THREE.BufferGeometry()
+  if (n === 0) return new BufferGeometry()
 
   const positions = new Float32Array(n * 4 * 3) // 4 verts per quad, 3 floats each
   const colors    = new Float32Array(n * 4 * 3)
@@ -65,10 +65,10 @@ function buildTileGeometry(
     indices[ii + 3] = vi + 1; indices[ii + 4] = vi + 2; indices[ii + 5] = vi + 3
   }
 
-  const geo = new THREE.BufferGeometry()
-  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-  geo.setAttribute('color',    new THREE.BufferAttribute(colors,    3))
-  geo.setIndex(new THREE.BufferAttribute(indices, 1))
+  const geo = new BufferGeometry()
+  geo.setAttribute('position', new BufferAttribute(positions, 3))
+  geo.setAttribute('color',    new BufferAttribute(colors,    3))
+  geo.setIndex(new BufferAttribute(indices, 1))
   geo.computeVertexNormals()
   return geo
 }
@@ -106,7 +106,7 @@ function ClaimedMesh({ territory, depthMap, biomes }: Props) {
         transparent
         opacity={0.36}
         depthWrite={false}
-        side={THREE.DoubleSide}
+        side={DoubleSide}
       />
     </mesh>
   )
@@ -116,11 +116,11 @@ function ClaimedMesh({ territory, depthMap, biomes }: Props) {
 function ContestedMesh({
   territory, depthMap, biomes,
 }: Props) {
-  const matRef = useRef<THREE.MeshBasicMaterial>(null)
+  const matRef = useRef<MeshBasicMaterial>(null)
 
   const geo = useMemo(() => {
     const tiles = territory.contested
-    if (!tiles || tiles.length === 0) return new THREE.BufferGeometry()
+    if (!tiles || tiles.length === 0) return new BufferGeometry()
     return buildTileGeometry(
       tiles,
       () => [1, 1, 1],
@@ -145,7 +145,7 @@ function ContestedMesh({
         transparent
         opacity={0.28}
         depthWrite={false}
-        side={THREE.DoubleSide}
+        side={DoubleSide}
       />
     </mesh>
   )

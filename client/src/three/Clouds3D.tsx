@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import * as THREE from 'three'
+import { InstancedMesh, MeshStandardMaterial, Object3D, SphereGeometry } from 'three'
 import { TILE_SCALE } from './constants'
 
 interface Props {
@@ -13,7 +13,7 @@ interface Props {
 
 const BLOBS         = 48
 const SPHERES_PER   = 7
-const CLOUD_GEO     = new THREE.SphereGeometry(8, 8, 6)
+const CLOUD_GEO     = new SphereGeometry(8, 8, 6)
 
 interface BlobParams {
   baseX:  number
@@ -25,7 +25,7 @@ interface BlobParams {
   spread: number
 }
 
-const tmp = new THREE.Object3D()
+const tmp = new Object3D()
 
 function hash(i: number, salt: number): number {
   let h = ((i + 1) * 9301 + (salt + 17) * 49297) | 0
@@ -34,8 +34,8 @@ function hash(i: number, salt: number): number {
 }
 
 export function Clouds3D({ width, height, isNight = false, weatherKind = 'clear', intensity = 0 }: Props) {
-  const meshRef = useRef<THREE.InstancedMesh>(null)
-  const matRef  = useRef<THREE.MeshStandardMaterial>(null)
+  const meshRef = useRef<InstancedMesh>(null)
+  const matRef  = useRef<MeshStandardMaterial>(null)
 
   const cx = width  * TILE_SCALE * 0.5
   const cz = height * TILE_SCALE * 0.5

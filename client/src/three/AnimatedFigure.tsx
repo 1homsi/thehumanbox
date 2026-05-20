@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import * as THREE from 'three'
+import { AnimationClip, AnimationMixer, Color, Group, Mesh, MeshStandardMaterial, Object3D } from 'three'
 import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js'
 
 interface Props {
-  scene:       THREE.Object3D
-  animations:  THREE.AnimationClip[]
+  scene:       Object3D
+  animations:  AnimationClip[]
   position?:   [number, number, number]
   getPosition?: () => [number, number, number]
   getHeading?: () => number
@@ -23,7 +23,7 @@ export function AnimatedFigure({
   rotationY = 0, scale = 1, animation, fadeMs = 200, color, animate = true,
   timeScale = 1,
 }: Props) {
-  const ref = useRef<THREE.Group>(null)
+  const ref = useRef<Group>(null)
 
   const clonedScene = useMemo(() => {
     const c = cloneSkeleton(scene)
@@ -31,20 +31,20 @@ export function AnimatedFigure({
       o.frustumCulled = false
     })
     if (color) {
-      const col = new THREE.Color(color)
+      const col = new Color(color)
       c.traverse(o => {
-        const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined
+        const m = (o as Mesh).material as MeshStandardMaterial | undefined
         if (m && 'color' in m && m.color) {
           const cloned = m.clone()
           cloned.color = col
-          ;(o as THREE.Mesh).material = cloned
+          ;(o as Mesh).material = cloned
         }
       })
     }
     return c
   }, [scene, color])
 
-  const mixer = useMemo(() => new THREE.AnimationMixer(clonedScene), [clonedScene])
+  const mixer = useMemo(() => new AnimationMixer(clonedScene), [clonedScene])
 
   useEffect(() => {
     const clip = animations.find(a => a.name === animation)
@@ -62,8 +62,8 @@ export function AnimatedFigure({
       if (getHeading) {
         ref.current.rotation.y = getHeading()
       } else {
-        const lastX = (ref.current as THREE.Group & { _lastX?: number })._lastX
-        const lastZ = (ref.current as THREE.Group & { _lastZ?: number })._lastZ
+        const lastX = (ref.current as Group & { _lastX?: number })._lastX
+        const lastZ = (ref.current as Group & { _lastZ?: number })._lastZ
         if (lastX != null && lastZ != null) {
           const dx = x - lastX
           const dz = z - lastZ
@@ -71,8 +71,8 @@ export function AnimatedFigure({
             ref.current.rotation.y = Math.atan2(dx, dz)
           }
         }
-        ;(ref.current as THREE.Group & { _lastX?: number })._lastX = x
-        ;(ref.current as THREE.Group & { _lastZ?: number })._lastZ = z
+        ;(ref.current as Group & { _lastX?: number })._lastX = x
+        ;(ref.current as Group & { _lastZ?: number })._lastZ = z
       }
     }
   })

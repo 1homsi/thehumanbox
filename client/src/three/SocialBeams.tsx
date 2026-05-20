@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import * as THREE from 'three'
+import { BufferAttribute, BufferGeometry, LineBasicMaterial } from 'three'
 import type { OrganismState } from '../types'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
@@ -38,8 +38,8 @@ const BEAM_DIST    = 6   // tile units
 const MIN_STRENGTH = 0.5
 
 export function SocialBeams({ organisms, depthMap, biomes }: Props) {
-  const geomRef    = useRef<THREE.BufferGeometry>(null)
-  const matRef     = useRef<THREE.LineBasicMaterial>(null)
+  const geomRef    = useRef<BufferGeometry>(null)
+  const matRef     = useRef<LineBasicMaterial>(null)
   const posArray   = useMemo(() => new Float32Array(MAX_BEAMS * 6), [])
   const colorArray = useMemo(() => new Float32Array(MAX_BEAMS * 6), [])  // RGB per vertex
 
@@ -80,9 +80,9 @@ export function SocialBeams({ organisms, depthMap, biomes }: Props) {
       }
     }
 
-    const posAttr = geom.getAttribute('position') as THREE.BufferAttribute
+    const posAttr = geom.getAttribute('position') as BufferAttribute
     posAttr.needsUpdate = true
-    const colAttr = geom.getAttribute('color') as THREE.BufferAttribute
+    const colAttr = geom.getAttribute('color') as BufferAttribute
     colAttr.needsUpdate = true
     geom.setDrawRange(0, n * 2)
 

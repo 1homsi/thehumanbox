@@ -1,7 +1,7 @@
 import { Suspense, useRef, useEffect, useState, useMemo } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { KeyboardControls, useKeyboardControls, PointerLockControls } from '@react-three/drei'
-import * as THREE from 'three'
+import { Vector3 } from 'three'
 import type { WorldState } from '../types'
 import { useUIStore } from '../stores/store'
 import { Terrain } from '../three/Terrain'
@@ -74,13 +74,13 @@ function loadSavedCam(): { x: number; y: number; z: number; rx: number; ry: numb
 function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
   const [, get] = useKeyboardControls<MoveKeys>()
   const { camera } = useThree()
-  const velocity = useRef(new THREE.Vector3())
+  const velocity = useRef(new Vector3())
   const saveTimerRef = useRef(0)
   // Reuse these across every useFrame call instead of `new`-ing three
   // Vector3s per frame at 60 Hz.
-  const fwdScratch     = useRef(new THREE.Vector3())
-  const forwardScratch = useRef(new THREE.Vector3())
-  const rightScratch   = useRef(new THREE.Vector3())
+  const fwdScratch     = useRef(new Vector3())
+  const forwardScratch = useRef(new Vector3())
+  const rightScratch   = useRef(new Vector3())
 
   useEffect(() => {
     const saved = loadSavedCam()

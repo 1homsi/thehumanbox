@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import * as THREE from 'three'
+import { InstancedMesh, Object3D, SphereGeometry } from 'three'
 import type { OrganismState } from '../types'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
@@ -15,7 +15,7 @@ interface Props {
 const N_PARTICLES = 200
 const PARTICLE_LIFE = 1.2
 const NEAR_RADIUS_SQ = 180 * 180
-const PARTICLE_GEO = new THREE.SphereGeometry(0.08, 4, 3)
+const PARTICLE_GEO = new SphereGeometry(0.08, 4, 3)
 
 interface Particle {
   x: number; y: number; z: number
@@ -23,10 +23,10 @@ interface Particle {
   born: number
 }
 
-const tmp = new THREE.Object3D()
+const tmp = new Object3D()
 
 export function FootstepDust({ organisms, depthMap, biomes }: Props) {
-  const meshRef = useRef<THREE.InstancedMesh>(null)
+  const meshRef = useRef<InstancedMesh>(null)
   const pool    = useRef<Particle[]>([])
   const lastSpawn = useRef<Map<string, [number, number]>>(new Map())
   const { camera } = useThree()

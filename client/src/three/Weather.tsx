@@ -1,14 +1,13 @@
 import { useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import * as THREE from 'three'
-
+import { AmbientLight, CylinderGeometry, InstancedMesh, Object3D } from 'three'
 interface Props {
   kind:      'clear' | 'rain' | 'storm' | 'wet'
   intensity: number
 }
 
 function Lightning({ active }: { active: boolean }) {
-  const lightRef = useRef<THREE.AmbientLight>(null)
+  const lightRef = useRef<AmbientLight>(null)
   const nextStrike = useRef(performance.now() + 4000 + Math.random() * 6000)
   const strikeEnd  = useRef(0)
 
@@ -31,14 +30,14 @@ function Lightning({ active }: { active: boolean }) {
   return <ambientLight ref={lightRef} color="#e8eeff" intensity={0} />
 }
 
-const tmp = new THREE.Object3D()
+const tmp = new Object3D()
 
 const RAIN_VOLUME = 80
 const RAIN_HEIGHT = 60
-const RAIN_GEO    = new THREE.CylinderGeometry(0.015, 0.015, 1.4, 4)
+const RAIN_GEO    = new CylinderGeometry(0.015, 0.015, 1.4, 4)
 
 export function Weather({ kind, intensity }: Props) {
-  const meshRef = useRef<THREE.InstancedMesh>(null)
+  const meshRef = useRef<InstancedMesh>(null)
   const { camera } = useThree()
 
   const maxDrops = kind === 'storm' ? 2200 : kind === 'rain' ? 900 : 0

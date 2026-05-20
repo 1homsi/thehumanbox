@@ -1,12 +1,11 @@
-import * as THREE from 'three'
-
+import { Material } from 'three'
 export const windUniforms = {
   uTime:     { value: 0 },
   uStrength: { value: 0.22 },
 }
 
 export function applyWindSway(
-  mat: THREE.Material,
+  mat: Material,
   heightRef = 2.5,
   strength  = 1.0,
 ) {

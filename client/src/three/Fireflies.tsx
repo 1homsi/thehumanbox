@@ -1,18 +1,17 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import * as THREE from 'three'
-
+import { InstancedMesh, Object3D, SphereGeometry } from 'three'
 interface Props {
   hutPositions: [number, number, number][]
   isNight: boolean
 }
 
 const FIREFLY_COUNT = 120
-const FIREFLY_GEO   = new THREE.SphereGeometry(0.09, 4, 3)
-const tmp           = new THREE.Object3D()
+const FIREFLY_GEO   = new SphereGeometry(0.09, 4, 3)
+const tmp           = new Object3D()
 
 export function Fireflies({ hutPositions, isNight }: Props) {
-  const meshRef = useRef<THREE.InstancedMesh>(null)
+  const meshRef = useRef<InstancedMesh>(null)
 
   const params = useMemo(() => {
     if (hutPositions.length === 0) return []

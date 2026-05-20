@@ -1,7 +1,6 @@
 import { useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import * as THREE from 'three'
-
+import { InstancedMesh, Object3D, SphereGeometry } from 'three'
 interface Props {
   active:   boolean
   intensity?: number
@@ -9,12 +8,12 @@ interface Props {
 
 const SNOW_VOLUME = 70
 const SNOW_HEIGHT = 50
-const SNOW_GEO = new THREE.SphereGeometry(0.05, 4, 3)
+const SNOW_GEO = new SphereGeometry(0.05, 4, 3)
 
-const tmp = new THREE.Object3D()
+const tmp = new Object3D()
 
 export function Snow({ active, intensity = 0.6 }: Props) {
-  const meshRef = useRef<THREE.InstancedMesh>(null)
+  const meshRef = useRef<InstancedMesh>(null)
   const { camera } = useThree()
 
   const maxFlakes = active ? Math.round(1100 * intensity) : 0

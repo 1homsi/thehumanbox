@@ -1,7 +1,7 @@
 import { useMemo, useRef } from 'react'
 import { Sky, Stars } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import * as THREE from 'three'
+import { Color, Mesh } from 'three'
 import { TILE_SCALE } from './constants'
 
 interface Props {
@@ -37,7 +37,7 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
     -sunAlt * r * 0.8,
     cz,
   ], [cx, cz, r, sunAz, sunAlt])
-  const moonRef = useRef<THREE.Mesh>(null)
+  const moonRef = useRef<Mesh>(null)
   useFrame(({ clock }) => {
     if (!moonRef.current) return
     const t = clock.getElapsedTime()
@@ -54,7 +54,7 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
       <color
         attach="background"
         args={[
-          new THREE.Color().setRGB(
+          new Color().setRGB(
             isNight ? 0.04 : dayStrength * 0.45 + 0.18,
             isNight ? 0.06 : dayStrength * 0.55 + 0.22,
             isNight ? 0.12 : dayStrength * 0.55 + 0.42,

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useGLTF } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import * as THREE from 'three'
+import { BoxGeometry, BufferGeometry, CapsuleGeometry, ConeGeometry, CylinderGeometry, Euler, InstancedMesh, Matrix4, Quaternion, SphereGeometry, Vector3 } from 'three'
 import type { AnimalState } from '../types'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
@@ -33,7 +33,7 @@ function seededYaw(id: number): number {
 // transform applied after the root translation/rotation/scale. We keep
 // these declarative so a species is just an array of parts.
 interface PartDef {
-  geom: () => THREE.BufferGeometry
+  geom: () => BufferGeometry
   color: string
   offset: [number, number, number]
   rot:    [number, number, number]
@@ -44,19 +44,19 @@ interface PartDef {
 const TINT = (kind: string) => KIND_TINT[kind] ?? '#aa8855'
 
 function makeSphere(r: number, w: number, h: number) {
-  return new THREE.SphereGeometry(r, w, h)
+  return new SphereGeometry(r, w, h)
 }
 function makeCapsule(r: number, l: number, cap: number, rad: number) {
-  return new THREE.CapsuleGeometry(r, l, cap, rad)
+  return new CapsuleGeometry(r, l, cap, rad)
 }
 function makeCylinder(rt: number, rb: number, h: number, seg: number) {
-  return new THREE.CylinderGeometry(rt, rb, h, seg)
+  return new CylinderGeometry(rt, rb, h, seg)
 }
 function makeBox(x: number, y: number, z: number) {
-  return new THREE.BoxGeometry(x, y, z)
+  return new BoxGeometry(x, y, z)
 }
 function makeCone(r: number, h: number, seg: number) {
-  return new THREE.ConeGeometry(r, h, seg)
+  return new ConeGeometry(r, h, seg)
 }
 
 function buildPartsByKind(kind: AnimalState['kind']): PartDef[] {
@@ -122,27 +122,27 @@ interface InstancedSpeciesProps {
 }
 
 // Reused scratch — avoids per-frame allocation in useFrame.
-const rootMat   = new THREE.Matrix4()
-const partMat   = new THREE.Matrix4()
-const finalMat  = new THREE.Matrix4()
-const scratchEuler = new THREE.Euler()
-const scratchQuat  = new THREE.Quaternion()
-const scratchVec   = new THREE.Vector3()
-const scratchScale = new THREE.Vector3(1, 1, 1)
+const rootMat   = new Matrix4()
+const partMat   = new Matrix4()
+const finalMat  = new Matrix4()
+const scratchEuler = new Euler()
+const scratchQuat  = new Quaternion()
+const scratchVec   = new Vector3()
+const scratchScale = new Vector3(1, 1, 1)
 
 function InstancedSpecies({ kind, ids, depthMap, biomes }: InstancedSpeciesProps) {
   const parts = useMemo(() => buildPartsByKind(kind), [kind])
   // One mesh per part. We size capacity to ids.length and let React
   // re-create instances when capacity changes (rare — populations move
   // slowly relative to render rate).
-  const meshes = useRef<(THREE.InstancedMesh | null)[]>([])
+  const meshes = useRef<(InstancedMesh | null)[]>([])
   const count = ids.length
 
   // Per-part baked local matrix (offset · rotation · scale). Computed
   // once per parts change, reused every frame.
   const partLocalMats = useMemo(() => {
     return parts.map(p => {
-      const m = new THREE.Matrix4()
+      const m = new Matrix4()
       scratchEuler.set(p.rot[0], p.rot[1], p.rot[2])
       scratchQuat.setFromEuler(scratchEuler)
       scratchVec.set(p.offset[0], p.offset[1], p.offset[2])

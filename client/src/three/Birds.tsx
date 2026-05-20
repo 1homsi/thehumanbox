@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import * as THREE from 'three'
+import { ConeGeometry, InstancedMesh, Object3D } from 'three'
 import { TILE_SCALE } from './constants'
 
 interface Props {
@@ -11,10 +11,10 @@ interface Props {
 }
 
 const N_BIRDS = 80
-const BIRD_BODY = new THREE.ConeGeometry(0.18, 0.7, 4)
+const BIRD_BODY = new ConeGeometry(0.18, 0.7, 4)
 BIRD_BODY.rotateX(Math.PI / 2)
 
-const tmp = new THREE.Object3D()
+const tmp = new Object3D()
 
 function hash(i: number, salt: number) {
   let h = ((i + 1) * 9301 + (salt + 17) * 49297) | 0
@@ -23,7 +23,7 @@ function hash(i: number, salt: number) {
 }
 
 export function Birds({ width, height, isNight = false, weatherKind = 'clear' }: Props) {
-  const meshRef = useRef<THREE.InstancedMesh>(null)
+  const meshRef = useRef<InstancedMesh>(null)
   const { camera } = useThree()
 
   const cx = width  * TILE_SCALE * 0.5

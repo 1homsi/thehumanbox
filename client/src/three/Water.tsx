@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import * as THREE from 'three'
+import { BufferAttribute, MeshStandardMaterial, PlaneGeometry } from 'three'
+import type { WebGLProgramParametersWithUniforms } from 'three'
 import { TILE_SCALE, OCEAN_EXTENT } from './constants'
 
 interface Props {
@@ -13,8 +14,8 @@ const SUB_X = 96
 const SUB_Y = 48
 
 export function Water({ width, height, depthMap }: Props) {
-  const outerMatRef = useRef<THREE.MeshStandardMaterial>(null)
-  const innerMatRef = useRef<THREE.MeshStandardMaterial>(null)
+  const outerMatRef = useRef<MeshStandardMaterial>(null)
+  const innerMatRef = useRef<MeshStandardMaterial>(null)
   // Drives the time uniform that the patched vertex shader reads
   // from. Frame-by-frame buffer uploads from CPU sine-wave displacement
   // gone — the GPU now computes the wave per vertex per draw.
@@ -29,8 +30,8 @@ export function Water({ width, height, depthMap }: Props) {
   // Build the inner plane geometry once. Land mask becomes a vertex
   // attribute the shader can read to skip displacement on land tiles.
   const innerGeo = useMemo(() => {
-    const geo = new THREE.PlaneGeometry(PLANE_W, PLANE_H, SUB_X, SUB_Y)
-    const pos = geo.attributes.position as THREE.BufferAttribute
+    const geo = new PlaneGeometry(PLANE_W, PLANE_H, SUB_X, SUB_Y)
+    const pos = geo.attributes.position as BufferAttribute
     const mask = new Float32Array(pos.count)
     if (depthMap && depthMap.length) {
       for (let i = 0; i < pos.count; i++) {
@@ -51,14 +52,14 @@ export function Water({ width, height, depthMap }: Props) {
     } else {
       mask.fill(0)
     }
-    geo.setAttribute('aLand', new THREE.BufferAttribute(mask, 1))
+    geo.setAttribute('aLand', new BufferAttribute(mask, 1))
     const normals = new Float32Array(pos.count * 3)
     for (let i = 0; i < pos.count; i++) {
       normals[i * 3]     = 0
       normals[i * 3 + 1] = 0
       normals[i * 3 + 2] = 1
     }
-    geo.setAttribute('normal', new THREE.BufferAttribute(normals, 3))
+    geo.setAttribute('normal', new BufferAttribute(normals, 3))
     return geo
   }, [PLANE_W, PLANE_H, width, height, depthMap])
 
@@ -74,7 +75,7 @@ export function Water({ width, height, depthMap }: Props) {
   // Hook the material's onBeforeCompile to inject the wave displacement
   // into the vertex shader. This runs once per material; per-frame we
   // only need to update the `uWaveTime` uniform.
-  const onBeforeCompileInner = (shader: THREE.WebGLProgramParametersWithUniforms) => {
+  const onBeforeCompileInner = (shader: WebGLProgramParametersWithUniforms) => {
     shader.uniforms.uWaveTime = waveTimeRef.current
     shader.vertexShader = shader.vertexShader
       .replace(

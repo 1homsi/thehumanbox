@@ -1,7 +1,6 @@
 import { useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import * as THREE from 'three'
-
+import { InstancedMesh, Object3D, SphereGeometry } from 'three'
 interface Props {
   isNight?:    boolean
   weatherKind?: 'clear' | 'rain' | 'storm' | 'wet'
@@ -9,12 +8,12 @@ interface Props {
 
 const MOTE_COUNT = 220
 const MOTE_VOLUME = 26
-const MOTE_GEO = new THREE.SphereGeometry(0.03, 3, 2)
+const MOTE_GEO = new SphereGeometry(0.03, 3, 2)
 
-const tmp = new THREE.Object3D()
+const tmp = new Object3D()
 
 export function AmbientMotes({ isNight = false, weatherKind = 'clear' }: Props) {
-  const meshRef = useRef<THREE.InstancedMesh>(null)
+  const meshRef = useRef<InstancedMesh>(null)
   const { camera } = useThree()
 
   const active = !isNight && (weatherKind === 'clear' || weatherKind === 'wet')
