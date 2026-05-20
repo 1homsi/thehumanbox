@@ -1,14 +1,14 @@
-
-
-use super::super::ctx::ActionCtx;
+use super::super::ctx::{ActionCtx, BuildSpec};
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if ctx.org().inv_stone == 0 { return 0.0; }
-    ctx.org_mut().inv_stone -= 1;
-    let (ix, iy) = (ctx.ix, ctx.iy);
-    ctx.sim.grid.add_structure(ix, iy, 0.06);
-    ctx.sim.active_structure_tiles.insert((ix, iy));
-    ctx.think("carving an amphitheater");
-    ctx.discover("amphitheater", "carved an amphitheater");
-    0.014
+    ctx.build_one(BuildSpec {
+        need_stone:    true,
+        structure_add: 0.06,
+        mark_active:   true,
+        thought:       "carving an amphitheater",
+        discovery:     "amphitheater",
+        event_msg:     "carved an amphitheater",
+        reward:        0.014,
+        ..Default::default()
+    })
 }

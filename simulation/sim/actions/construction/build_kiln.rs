@@ -1,14 +1,14 @@
-
-
-use super::super::ctx::ActionCtx;
+use super::super::ctx::{ActionCtx, BuildSpec};
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if ctx.org().inv_stone == 0 { return 0.0; }
-    ctx.org_mut().inv_stone -= 1;
-    let (ix, iy) = (ctx.ix, ctx.iy);
-    ctx.sim.grid.add_structure(ix, iy, 0.05);
-    ctx.sim.active_structure_tiles.insert((ix, iy));
-    ctx.think("firing up a kiln");
-    ctx.discover("kilns", "fired a kiln");
-    0.012
+    ctx.build_one(BuildSpec {
+        need_stone:    true,
+        structure_add: 0.05,
+        mark_active:   true,
+        thought:       "firing up a kiln",
+        discovery:     "kilns",
+        event_msg:     "fired a kiln",
+        reward:        0.012,
+        ..Default::default()
+    })
 }

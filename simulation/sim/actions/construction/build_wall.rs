@@ -1,15 +1,14 @@
-
-
-use super::super::ctx::ActionCtx;
+use super::super::ctx::{ActionCtx, BuildSpec};
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    let has_mat = ctx.org().inv_stone > 0 || ctx.org().inv_wood > 0;
-    if !has_mat { return 0.0; }
-    ctx.consume_material();
-    let (ix, iy) = (ctx.ix, ctx.iy);
-    ctx.sim.grid.add_structure(ix, iy, 0.06);
-    ctx.sim.active_structure_tiles.insert((ix, iy));
-    ctx.think("raising a wall");
-    ctx.discover("walls", "built the first wall");
-    0.012
+    ctx.build_one(BuildSpec {
+        need_either_material: true,
+        structure_add:        0.06,
+        mark_active:          true,
+        thought:              "raising a wall",
+        discovery:            "walls",
+        event_msg:            "built the first wall",
+        reward:               0.012,
+        ..Default::default()
+    })
 }

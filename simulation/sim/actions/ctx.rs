@@ -112,3 +112,70 @@ impl<'a> ActionCtx<'a> {
         self.sim.is_night()
     }
 }
+
+/// Declarative spec for the canonical "build a thing on the current
+/// tile" action shape. Most of the construction/ folder followed this
+/// shape with cut-and-paste boilerplate; the helper below turns each
+/// action into a single declarative call.
+///
+/// All fields default to "off" / zero so callers only fill what they
+/// need. The result of `ActionCtx::build_one` is the reward to return
+/// from the action `apply` function.
+#[derive(Default)]
+pub struct BuildSpec<'a> {
+    /// Skip unless `ctx.water_near` is true.
+    pub need_water_near: bool,
+    /// Skip unless the organism has ≥1 stone. Consumed on success.
+    pub need_stone: bool,
+    /// Skip unless the organism has ≥1 wood. Consumed on success.
+    pub need_wood: bool,
+    /// Skip unless the organism has ≥1 stone OR ≥1 wood. The cheaper
+    /// "consume_material" rule applies (stone first, then wood).
+    pub need_either_material: bool,
+    /// How much structural integrity to add at (ix, iy).
+    pub structure_add: f32,
+    /// If true, registers (ix, iy) as an active structure tile.
+    pub mark_active: bool,
+    /// Optional trail to leave at (ix, iy).
+    pub trail: Option<(crate::world::grid::TrailKind, f32)>,
+    /// Thought to record on success.
+    pub thought: &'a str,
+    /// Discovery key + event message; passed to `ctx.discover`.
+    pub discovery: &'a str,
+    pub event_msg: &'a str,
+    /// Reward returned from the action on success.
+    pub reward: f32,
+}
+
+impl<'a> ActionCtx<'a> {
+    /// Apply a canonical build action. Returns `spec.reward` on
+    /// success, `0.0` if any guard fails. The caller's `apply` fn
+    /// just needs `ctx.build_one(BuildSpec { … })`.
+    pub fn build_one(&mut self, spec: BuildSpec) -> f32 {
+        if spec.need_water_near && !self.water_near { return 0.0; }
+        if spec.need_stone && self.sim.organisms[self.idx].inv_stone == 0 { return 0.0; }
+        if spec.need_wood  && self.sim.organisms[self.idx].inv_wood  == 0 { return 0.0; }
+        if spec.need_either_material
+            && self.sim.organisms[self.idx].inv_stone == 0
+            && self.sim.organisms[self.idx].inv_wood  == 0
+        { return 0.0; }
+        // Consume resources up-front so a guard failure later doesn't
+        // half-pay.
+        if spec.need_stone { self.sim.organisms[self.idx].inv_stone -= 1; }
+        if spec.need_wood  { self.sim.organisms[self.idx].inv_wood  -= 1; }
+        if spec.need_either_material { self.consume_material(); }
+        let (ix, iy) = (self.ix, self.iy);
+        if spec.structure_add > 0.0 {
+            self.sim.grid.add_structure(ix, iy, spec.structure_add);
+        }
+        if spec.mark_active {
+            self.sim.active_structure_tiles.insert((ix, iy));
+        }
+        if let Some((kind, strength)) = spec.trail {
+            self.sim.grid.leave_trail(ix, iy, kind, strength);
+        }
+        if !spec.thought.is_empty()   { self.think(spec.thought); }
+        if !spec.discovery.is_empty() { self.discover(spec.discovery, spec.event_msg); }
+        spec.reward
+    }
+}

@@ -1,12 +1,13 @@
-
-
-use super::super::ctx::ActionCtx;
+use super::super::ctx::{ActionCtx, BuildSpec};
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    let (ix, iy) = (ctx.ix, ctx.iy);
-    ctx.sim.grid.add_structure(ix, iy, 0.05);
-    ctx.sim.active_structure_tiles.insert((ix, iy));
-    ctx.think("fortifying the camp");
-    ctx.discover("fortification", "fortified the camp");
-    0.008
+    ctx.build_one(BuildSpec {
+        structure_add: 0.05,
+        mark_active:   true,
+        thought:       "fortifying the camp",
+        discovery:     "fortification",
+        event_msg:     "fortified the camp",
+        reward:        0.008,
+        ..Default::default()
+    })
 }
