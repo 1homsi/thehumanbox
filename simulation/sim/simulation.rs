@@ -1924,10 +1924,19 @@ impl Simulation {
             // proximity. Distance still matters (you have to walk there),
             // but two villagers who hate each other's lineages no longer
             // pair just because they happen to be the closest neighbour.
+            // Hard distance cap on mate search — same reasoning as the
+            // friend-seek cap. Without it, attraction can pull orgs
+            // across the entire map, defeating the cluster-breaking
+            // work in spawn.rs / friend-seek.
+            const MATE_SEEK_MAX_TILES: f32 = 80.0;
             let target = self.organisms.iter()
                 .filter(|o| o.alive && o.sex != my_sex && o.age > 1000 && o.partner_id.is_none())
                 .map(|o| {
                     let dist = (o.x - ox).hypot(o.y - oy);
+                    (o, dist)
+                })
+                .filter(|(_, d)| *d <= MATE_SEEK_MAX_TILES)
+                .map(|(o, dist)| {
                     let lineage_att = if o.lineage_id == my_lid { 0.3 }
                         else { my_atts.get(&o.lineage_id).copied().unwrap_or(0.0) };
                     let trust = my_trust.get(&o.id).copied().unwrap_or(0.0);
@@ -3249,5 +3258,104 @@ mod tests {
         let alive = sim.animals.iter().filter(|a| a.alive).count();
         assert!(alive <= 35,
             "dense cluster ran away to {alive} animals - carrying-capacity factor isn't working");
+    }
+
+    /// Friend-seek must respect the 60-tile distance cap. A lonely
+    /// org with only far-away friends should NOT set a wander_target
+    /// that pulls them across the map (the one-island attractor bug).
+    #[test]
+    fn lonely_org_with_only_distant_friends_stays_put() {
+        use crate::organism::organism::{Organism, generate_name, Sex, apply_sex_traits};
+        use crate::organism::traits::Traits;
+        let mut sim = Simulation::new(0xdef0);
+        // Wipe founders so we control the cast.
+        sim.organisms.clear();
+
+        // Lonely main org at (50, 50).
+        let mut traits = Traits::random(&mut sim.rng);
+        apply_sex_traits(&mut traits, Sex::Female);
+        let mut me = Organism::new(
+            "me-id".into(), generate_name(&mut sim.rng, Sex::Female),
+            50.0, 50.0, 1, "".into(), "lid-a".into(), 20_000, traits,
+        );
+        me.alive = true;
+        me.sex = Sex::Female;
+        me.age = 1500;
+        me.energy = 0.8;
+        me.loneliness = 0.85;
+        // Single named friend at (500, 250) — way past the 60-tile cap.
+        me.friends.insert("far-id".into(), "FarFriend".into());
+        sim.organisms.push(me);
+
+        let mut friend_traits = Traits::random(&mut sim.rng);
+        apply_sex_traits(&mut friend_traits, Sex::Male);
+        let mut far = Organism::new(
+            "far-id".into(), "FarFriend".into(),
+            500.0, 250.0, 1, "".into(), "lid-b".into(), 20_000, friend_traits,
+        );
+        far.alive = true; far.sex = Sex::Male; far.age = 1500;
+        sim.organisms.push(far);
+
+        sim.tick_count = 5_000;
+
+        // Drive the per-org tick to exercise the friend-seek block.
+        let alive_count = 2;
+        let mut lineage_counts = std::collections::HashMap::new();
+        lineage_counts.insert("lid-a".into(), 1);
+        lineage_counts.insert("lid-b".into(), 1);
+        let spatial = SpatialIndex::build(&sim.organisms, 10);
+        sim.tick_organism(0, alive_count, &lineage_counts, &spatial);
+
+        assert!(sim.organisms[0].wander_target.is_none(),
+            "lonely org with no in-range friends should NOT walk \
+             toward a friend 600 tiles away — wander_target was {:?}",
+            sim.organisms[0].wander_target);
+    }
+
+    /// And the opposite: a friend WITHIN the 60-tile cap should
+    /// produce a wander_target pointing at them.
+    #[test]
+    fn lonely_org_with_nearby_friend_walks_toward_them() {
+        use crate::organism::organism::{Organism, generate_name, Sex, apply_sex_traits};
+        use crate::organism::traits::Traits;
+        let mut sim = Simulation::new(0xdef1);
+        sim.organisms.clear();
+
+        let mut traits = Traits::random(&mut sim.rng);
+        apply_sex_traits(&mut traits, Sex::Female);
+        let mut me = Organism::new(
+            "me-id".into(), generate_name(&mut sim.rng, Sex::Female),
+            50.0, 50.0, 1, "".into(), "lid-a".into(), 20_000, traits,
+        );
+        me.alive = true; me.sex = Sex::Female; me.age = 1500;
+        me.energy = 0.8; me.loneliness = 0.85;
+        me.friends.insert("near-id".into(), "NearFriend".into());
+        sim.organisms.push(me);
+
+        let mut friend_traits = Traits::random(&mut sim.rng);
+        apply_sex_traits(&mut friend_traits, Sex::Male);
+        let mut near = Organism::new(
+            "near-id".into(), "NearFriend".into(),
+            70.0, 70.0, 1, "".into(), "lid-b".into(), 20_000, friend_traits,
+        );
+        near.alive = true; near.sex = Sex::Male; near.age = 1500;
+        sim.organisms.push(near);
+
+        sim.tick_count = 5_000;
+
+        let mut lineage_counts = std::collections::HashMap::new();
+        lineage_counts.insert("lid-a".into(), 1);
+        lineage_counts.insert("lid-b".into(), 1);
+        let spatial2 = SpatialIndex::build(&sim.organisms, 10);
+        sim.tick_organism(0, 2, &lineage_counts, &spatial2);
+
+        let wt = sim.organisms[0].wander_target;
+        assert!(wt.is_some(),
+            "in-range friend should set wander_target, got None");
+        // Should be roughly where NearFriend is.
+        if let Some((tx, ty)) = wt {
+            assert!((tx - 70).abs() <= 5 && (ty - 70).abs() <= 5,
+                "wander_target {:?} should point near (70,70)", wt);
+        }
     }
 }

@@ -124,3 +124,64 @@ fn read_box_mem_kb() -> Option<(u64, u64)> { None }
 fn read_own_rss_kb() -> Option<u64> { None }
 #[cfg(not(any(target_os = "linux", target_os = "macos")))]
 fn read_box_mem_kb() -> Option<(u64, u64)> { None }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// We can't easily test the spawn-blocking refill loop, but the
+    /// classify() decision table is pure and worth pinning down.
+    fn make_watch(floor_elevated: u64, floor_critical: u64) -> MemoryWatch {
+        MemoryWatch {
+            own_rss_kb:       AtomicU64::new(0),
+            box_available_kb: AtomicU64::new(0),
+            box_total_kb:     AtomicU64::new(0),
+            pressure:         AtomicU8::new(MemoryPressure::Normal as u8),
+            floor_mb_elevated: floor_elevated,
+            floor_mb_critical: floor_critical,
+        }
+    }
+
+    #[test]
+    fn classify_zero_avail_returns_normal_not_critical() {
+        // avail_kb == 0 means "unknown" (failed to read /proc/meminfo).
+        // Treat that as Normal so a probe failure doesn't trigger
+        // adaptive throttling unnecessarily.
+        let w = make_watch(400, 200);
+        assert!(matches!(w.classify(0), MemoryPressure::Normal));
+    }
+
+    #[test]
+    fn classify_above_elevated_floor_normal() {
+        let w = make_watch(400, 200);
+        // 500 MB available, elevated floor 400 — comfortably normal.
+        assert!(matches!(w.classify(500 * 1024), MemoryPressure::Normal));
+    }
+
+    #[test]
+    fn classify_below_elevated_above_critical_elevated() {
+        let w = make_watch(400, 200);
+        // 350 MB available → below elevated floor, above critical.
+        assert!(matches!(w.classify(350 * 1024), MemoryPressure::Elevated));
+    }
+
+    #[test]
+    fn classify_at_elevated_floor_is_elevated() {
+        let w = make_watch(400, 200);
+        // Boundary inclusive — at exactly the elevated floor we
+        // already want the watchdog engaged.
+        assert!(matches!(w.classify(400 * 1024), MemoryPressure::Elevated));
+    }
+
+    #[test]
+    fn classify_at_critical_floor_is_critical() {
+        let w = make_watch(400, 200);
+        assert!(matches!(w.classify(200 * 1024), MemoryPressure::Critical));
+    }
+
+    #[test]
+    fn classify_well_below_critical_is_critical() {
+        let w = make_watch(400, 200);
+        assert!(matches!(w.classify(50 * 1024), MemoryPressure::Critical));
+    }
+}
