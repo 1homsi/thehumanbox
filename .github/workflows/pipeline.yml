@@ -3,11 +3,16 @@ name: pipeline
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
+# PR runs are cancellable so that pushing new commits to a PR
+# supersedes the prior run. Main runs serialize (bump-version /
+# build / deploy chain must run in order without losing one).
 concurrency:
-  group: pipeline-${{ github.sha }}
-  cancel-in-progress: false
+  group: pipeline-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   test-backend:
@@ -24,12 +29,29 @@ jobs:
       - name: Install mold linker
         run: sudo apt-get install -y mold
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: simulation -> target
+      - name: cargo fmt --check
+        working-directory: simulation
+        run: cargo fmt --all -- --check
+        continue-on-error: true # ratchet — flip to hard-fail once
+                                # the existing tree is formatted.
+      - name: cargo clippy
+        working-directory: simulation
+        run: cargo clippy --all-targets --locked -- -W clippy::all
+        continue-on-error: true # ratchet — see fmt note above.
       - name: cargo test --release --locked
         working-directory: simulation
         run: cargo test --release --locked
+      - name: headless smoke (6000 ticks, fixed seed)
+        working-directory: simulation
+        run: |
+          cargo build --release --locked --bin headless
+          ./target/release/headless --seed 42 --ticks 6000 --every 6000
+        timeout-minutes: 4
 
   test-frontend:
     name: Test + build frontend
@@ -52,6 +74,17 @@ jobs:
 
       - id: ts
         run: echo "build_ts=$(date -u +%s)" >> "$GITHUB_OUTPUT"
+
+      - name: pnpm lint
+        working-directory: client
+        run: pnpm lint
+        continue-on-error: true # ratchet — flip once existing lint
+                                # debt is paid down.
+
+      - name: pnpm format:check
+        working-directory: client
+        run: pnpm format:check
+        continue-on-error: true # ratchet — same.
 
       - name: pnpm test
         working-directory: client
@@ -77,6 +110,9 @@ jobs:
 
   bump-version:
     name: Bump version
+    # Only runs for direct pushes to main (post-merge). PRs go through
+    # the test jobs only — no version bump, no deploy.
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     needs: [test-backend, test-frontend]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
