@@ -236,8 +236,14 @@ impl Simulation {
         sim
     }
 
-    fn push_think_for(&mut self, org_idx: usize, trigger: ThinkTrigger) {
-        self.pending_thinks.push(trigger.with_traits(&self.organisms[org_idx]));
+    fn push_think_for(&mut self, org_idx: usize, mut trigger: ThinkTrigger) {
+        trigger = trigger.with_traits(&self.organisms[org_idx]);
+        // Inject world context so the LLM knows what era / season the
+        // org lives in. Otherwise eras only show up as world events,
+        // never in organism cognition.
+        if trigger.world_era.is_empty() { trigger.world_era = self.current_era.clone(); }
+        if trigger.season.is_empty()    { trigger.season    = self.season().to_string(); }
+        self.pending_thinks.push(trigger);
     }
 
     pub fn apply_memory_pressure(&mut self, pressure: super::memory_pressure::MemoryPressure) {
@@ -1909,11 +1915,35 @@ impl Simulation {
             && self.organisms[idx].loneliness > 0.20
         {
             let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
-            let my_sex = self.organisms[idx].sex;
+            let my_sex   = self.organisms[idx].sex;
+            let my_age   = self.organisms[idx].age as f32;
+            let my_lid   = self.organisms[idx].lineage_id.clone();
+            let my_atts  = self.organisms[idx].lineage_attitudes.clone();
+            let my_trust = self.organisms[idx].org_trust.clone();
+            // Score candidates by attitude / trust / age compat, not raw
+            // proximity. Distance still matters (you have to walk there),
+            // but two villagers who hate each other's lineages no longer
+            // pair just because they happen to be the closest neighbour.
             let target = self.organisms.iter()
                 .filter(|o| o.alive && o.sex != my_sex && o.age > 1000 && o.partner_id.is_none())
-                .min_by_key(|o| ((o.x - ox).hypot(o.y - oy) * 10.0) as i32)
-                .map(|o| (o.x as i32, o.y as i32));
+                .map(|o| {
+                    let dist = (o.x - ox).hypot(o.y - oy);
+                    let lineage_att = if o.lineage_id == my_lid { 0.3 }
+                        else { my_atts.get(&o.lineage_id).copied().unwrap_or(0.0) };
+                    let trust = my_trust.get(&o.id).copied().unwrap_or(0.0);
+                    let age_gap = (my_age - o.age as f32).abs();
+                    let age_score = (1.0 - age_gap / 6000.0).clamp(0.0, 1.0);
+                    let dist_score = (1.0 - dist / 30.0).clamp(0.0, 1.0);
+                    // Hard-reject hostile lineages even if nearby.
+                    let viable = lineage_att > -0.3;
+                    let score = if viable {
+                        dist_score * 0.35 + lineage_att * 0.25 + trust * 0.20 + age_score * 0.20
+                    } else { -1.0 };
+                    (o, score)
+                })
+                .filter(|(_, s)| *s > 0.0)
+                .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
+                .map(|(o, _)| (o.x as i32, o.y as i32));
             if let Some((tx, ty)) = target {
                 self.organisms[idx].wander_target = Some((tx.clamp(5, 595), ty.clamp(5, 295)));
             }

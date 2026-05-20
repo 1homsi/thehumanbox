@@ -199,8 +199,20 @@ fn build_prompt(trigger: &ThinkTrigger) -> (String, u32) {
     let memories    = if trigger.life_log_top.is_empty() { "no notable events".to_string() }
                       else { trigger.life_log_top.join("; ") };
 
+    // System header is held to a stable prefix across all requests so
+    // llama.cpp's prompt-cache layer can reuse the KV state for the
+    // first ~30 tokens regardless of org/scenario. Per-org context
+    // moves to AFTER the scenario so it varies later in the prompt.
+    let world_ctx = {
+        let mut parts = Vec::new();
+        if !trigger.world_era.is_empty() { parts.push(format!("Era: {}", trigger.world_era)); }
+        if !trigger.season.is_empty()    { parts.push(format!("Season: {}", trigger.season)); }
+        if parts.is_empty() { String::new() } else { format!("World — {}.\n", parts.join(", ")) }
+    };
     let preamble = format!(
-        "You are {name}, a primitive creature surviving in a harsh world.\n\
+        "You are a primitive creature surviving in a harsh world.\n\
+         {world_ctx}\
+         You are {name}.\n\
          Personality: {personality}.\n\
          Emotional state: {emotion}.\n\
          Knowledge: {knowledge}.\n\
