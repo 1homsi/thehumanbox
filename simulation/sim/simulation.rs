@@ -710,14 +710,14 @@ impl Simulation {
             .filter(|a| a.alive && matches!(a.kind, AnimalKind::Wolf))
             .map(|a| ((a.x - ox).abs() + (a.y - oy).abs(), a.x, a.y))
             .filter(|&(d, _, _)| d <= wolf_flee_radius)
-            .min_by(|(a, _, _), (b, _, _)| a.partial_cmp(b).unwrap());
+            .min_by(|(a, _, _), (b, _, _)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
         let prey_nearby = if hungry && wolf_threat.is_none() {
             self.animals.iter()
                 .filter(|a| a.alive && !matches!(a.kind, AnimalKind::Wolf))
                 .map(|a| ((a.x - ox).abs() + (a.y - oy).abs(), a.x, a.y))
                 .filter(|&(d, _, _)| d <= 6.0)
-                .min_by(|(a,_,_),(b,_,_)| a.partial_cmp(b).unwrap())
+                .min_by(|(a,_,_),(b,_,_)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
         } else {
             None
         };
@@ -1583,7 +1583,7 @@ impl Simulation {
                     .min_by(|a,b| {
                         let da = (a.x-ox).abs()+(a.y-oy).abs();
                         let db = (b.x-ox).abs()+(b.y-oy).abs();
-                        da.partial_cmp(&db).unwrap()
+                        da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
                     })
                     .map(|o| o.lineage_id.clone());
                 if let Some(lid) = nearest_lid {

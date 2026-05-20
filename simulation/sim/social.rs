@@ -157,7 +157,7 @@ pub fn gift_knowledge(
         .min_by(|(_, a), (_, b)| {
             let da = (a.x - organisms[org_idx].x).abs() + (a.y - organisms[org_idx].y).abs();
             let db = (b.x - organisms[org_idx].x).abs() + (b.y - organisms[org_idx].y).abs();
-            da.partial_cmp(&db).unwrap()
+            da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
         })
         .map(|(i, _)| i);
 
@@ -228,7 +228,7 @@ pub fn challenge_stranger(
         .min_by(|(_, a), (_, b)| {
             let da = (a.x - organisms[org_idx].x).abs() + (a.y - organisms[org_idx].y).abs();
             let db = (b.x - organisms[org_idx].x).abs() + (b.y - organisms[org_idx].y).abs();
-            da.partial_cmp(&db).unwrap()
+            da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
         })
         .map(|(i, _)| i);
 
@@ -313,7 +313,7 @@ pub fn groom(
         .min_by(|(_, a), (_, b)| {
             let da = (a.x - ox).abs() + (a.y - oy).abs();
             let db = (b.x - ox).abs() + (b.y - oy).abs();
-            da.partial_cmp(&db).unwrap()
+            da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
         })
         .map(|(i, _)| i);
 

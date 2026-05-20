@@ -282,7 +282,7 @@ impl Organism {
                 .min_by(|a, b| {
                     let da = (a.x - self.x).abs() + (a.y - self.y).abs();
                     let db = (b.x - self.x).abs() + (b.y - self.y).abs();
-                    da.partial_cmp(&db).unwrap()
+                    da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
                 })
                 .map(|o| (o.x as i32, o.y as i32));
             if let Some(ep) = elder_pos {

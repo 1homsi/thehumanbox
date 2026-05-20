@@ -94,7 +94,7 @@ impl Animal {
             let prey = org_positions.iter()
                 .map(|&(ox, oy)| ((ox - self.x).abs() + (oy - self.y).abs(), ox, oy))
                 .filter(|&(d, _, _)| d < 12.0)
-                .min_by(|(a,_,_),(b,_,_)| a.partial_cmp(b).unwrap());
+                .min_by(|(a,_,_),(b,_,_)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
             if let Some((_, px, py)) = prey {
                 let tx = ix + ((px - self.x).signum() * step as f32) as i32;
                 let ty = iy + ((py - self.y).signum() * step as f32) as i32;
@@ -130,7 +130,7 @@ impl Animal {
             org_positions.iter()
                 .map(|&(ox, oy)| ((ox - self.x).abs() + (oy - self.y).abs(), ox, oy))
                 .filter(|&(d, _, _)| d < flee_r)
-                .min_by(|(a,_,_),(b,_,_)| a.partial_cmp(b).unwrap())
+                .min_by(|(a,_,_),(b,_,_)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
         } else { None };
 
         let (tx, ty): (i32, i32) = if let Some((_, ox, oy)) = nearest_org {

@@ -549,7 +549,7 @@ impl Organism {
         fn trim_mem(mem: &mut HashMap<(i32,i32), f32>, max: usize) {
             if mem.len() > max {
                 let mut e: Vec<_> = mem.iter().map(|(k,v)| (*k, *v)).collect();
-                e.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+                e.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
                 for (k, _) in &e[..e.len() - max] { mem.remove(k); }
             }
         }

@@ -628,7 +628,20 @@ async fn main() {
         tracing::info!("    narration: {} ({})", *NARRATION_LLM_MODEL, *NARRATION_LLM_URL);
         tracing::info!("    think:     {} ({})", *THINK_LLM_MODEL, *THINK_LLM_URL);
     }
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    // Bind / serve with clear error messages instead of `.unwrap()`
+    // panics — the most common failure here is "port already in use"
+    // during a deploy bounce, and the bare-bones panic message left
+    // operators chasing red herrings.
+    let listener = match tokio::net::TcpListener::bind(addr).await {
+        Ok(l) => l,
+        Err(e) => {
+            tracing::error!("failed to bind {}: {} — is another simulation-rs process holding the port?", addr, e);
+            std::process::exit(1);
+        }
+    };
+    if let Err(e) = axum::serve(listener, app).await {
+        tracing::error!("axum::serve exited: {}", e);
+        std::process::exit(1);
+    }
 }
 
