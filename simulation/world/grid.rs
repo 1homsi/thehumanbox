@@ -228,15 +228,20 @@ impl WorldGrid {
     }
 
     pub fn decay_world_layers(&mut self) {
+        // Fertility regrowth rates bumped ~5× from the original numbers
+        // so heavily-used tiles can actually recover within a session
+        // instead of needing tens of millions of ticks. The pressure
+        // gradient still slows recovery on overused soil, just not
+        // catastrophically.
         for (i, v) in self.fertility.iter_mut().enumerate() {
             let cap = Biome::from_u8(self.biome[i]).base_fertility();
             if *v < cap {
                 let rate = if self.pressure[i] > 5.0 {
-                    0.000008
+                    0.000040
                 } else if self.pressure[i] > 2.5 {
-                    0.000025
+                    0.000120
                 } else {
-                    0.00006
+                    0.000300
                 };
                 *v = (*v + rate).min(cap);
             }

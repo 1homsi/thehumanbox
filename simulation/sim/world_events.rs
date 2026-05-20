@@ -168,15 +168,30 @@ fn apply_weather(
         for org in organisms.iter_mut().filter(|o| o.alive) {
             org.energy = (org.energy - 0.0006 * weather.intensity).max(0.0);
         }
-        if rng.gen::<f32>() < 0.06 * weather.intensity {
+        // Storm lightning ignitions are a known runaway hazard: the
+        // suppression at engine.rs:52-56 only fires while kind==2, so
+        // any fires lit late in a storm explode the moment rain ends.
+        // Cap ignitions per storm at 3, and reject tiles adjacent to
+        // water (those would be soaked enough to fizzle realistically).
+        let ignitions_this_storm = (tick - weather.start_tick) / 20;
+        if ignitions_this_storm < 3 && rng.gen::<f32>() < 0.06 * weather.intensity {
             for _ in 0..30 {
                 let x = rng.gen_range(5..WIDTH as i32 - 5);
                 let y = rng.gen_range(5..HEIGHT as i32 - 5);
-                if grid.get(x, y).flammable() {
-                    grid.set(x, y, Tile::Fire);
-                    *grid.fire_intensity_mut(x, y) = 1.0;
-                    break;
+                if !grid.get(x, y).flammable() { continue; }
+                // Don't ignite within 2 tiles of water — wet ground.
+                let mut near_water = false;
+                'wcheck: for dy in -2i32..=2 {
+                    for dx in -2i32..=2 {
+                        if matches!(grid.get(x + dx, y + dy), Tile::Water) {
+                            near_water = true; break 'wcheck;
+                        }
+                    }
                 }
+                if near_water { continue; }
+                grid.set(x, y, Tile::Fire);
+                *grid.fire_intensity_mut(x, y) = 1.0;
+                break;
             }
         }
     }
