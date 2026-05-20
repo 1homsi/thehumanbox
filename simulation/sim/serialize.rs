@@ -116,11 +116,21 @@ impl Simulation {
             crate::world::grid::VP_W, crate::world::grid::VP_H,
             include_tiles, include_static, include_terrain);
         let include_all_entities = force_full || self.tick_count % 120 == 0 || self.tick_count <= 1;
-        let left = vp_cx - crate::world::grid::VP_W as i32 / 2 - 8;
-        let right = vp_cx + crate::world::grid::VP_W as i32 / 2 + 8;
-        let top = vp_cy - crate::world::grid::VP_H as i32 / 2 - 8;
-        let bottom = vp_cy + crate::world::grid::VP_H as i32 / 2 + 8;
+        // When the viewport spans the whole world (the current config),
+        // the centroid-centered window can slide off the map and filter
+        // out entities that are still on the canvas. Compute the actual
+        // visible AABB and clamp it to world bounds so we never drop
+        // entities the client needs to render.
+        let half_w = crate::world::grid::VP_W as i32 / 2 + 8;
+        let half_h = crate::world::grid::VP_H as i32 / 2 + 8;
+        let left   = (vp_cx - half_w).max(-8);
+        let right  = (vp_cx + half_w).min(crate::world::grid::WIDTH  as i32 + 8);
+        let top    = (vp_cy - half_h).max(-8);
+        let bottom = (vp_cy + half_h).min(crate::world::grid::HEIGHT as i32 + 8);
+        let full_world_vp = crate::world::grid::VP_W >= crate::world::grid::WIDTH
+            && crate::world::grid::VP_H >= crate::world::grid::HEIGHT;
         let in_view = |x: f32, y: f32| {
+            if full_world_vp { return true }
             let x = x as i32;
             let y = y as i32;
             x >= left && x <= right && y >= top && y <= bottom
