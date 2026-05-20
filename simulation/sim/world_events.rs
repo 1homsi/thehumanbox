@@ -276,16 +276,45 @@ fn end_drought(
 ) {
     drought.active      = false;
     drought.rain_relief = 0;
+    // Only restore tiles proportionally to rain_relief. A drought that
+    // ended via the rng cutoff (rain_relief == 0) doesn't fully refill;
+    // some tiles stay dry permanently. This is the geographic memory
+    // the world-evolution spec wants — past droughts leave shoreline
+    // scars instead of fully reverting to pre-drought.
+    let total = drought.dried_tiles.len();
+    // 0 relief → restore 50% of tiles; >= 200 ticks of rain → 100%.
+    let frac = ((drought.rain_relief as f32 / 200.0).clamp(0.0, 1.0) * 0.5) + 0.5;
+    let restore_count = ((total as f32) * frac).round() as usize;
     let mut restored = 0usize;
-    for (x, y) in &drought.dried_tiles {
-        if matches!(grid.get(*x, *y), Tile::Grass | Tile::Ash) {
-            grid.set(*x, *y, Tile::Water);
+    // Restore deepest-water tiles first (those closer to other water)
+    // so the partial restoration looks like shoreline retreat, not
+    // random patches.
+    let mut by_neighbor_water: Vec<(i32, i32, u8)> = drought.dried_tiles.iter()
+        .map(|&(x, y)| {
+            let mut n = 0u8;
+            for dy in -1i32..=1 { for dx in -1i32..=1 {
+                if dx == 0 && dy == 0 { continue; }
+                if matches!(grid.get(x + dx, y + dy), Tile::Water) { n += 1; }
+            }}
+            (x, y, n)
+        })
+        .collect();
+    by_neighbor_water.sort_by(|a, b| b.2.cmp(&a.2));
+    for (x, y, _) in by_neighbor_water.into_iter().take(restore_count) {
+        if matches!(grid.get(x, y), Tile::Grass | Tile::Ash) {
+            grid.set(x, y, Tile::Water);
             restored += 1;
         }
     }
+    let scars = total.saturating_sub(restored);
     drought.dried_tiles.clear();
-    push_event(events, tick, "drought", "world",
-        &format!("drought ends - {} water tiles restored", restored));
+    if scars > 0 {
+        push_event(events, tick, "drought", "world",
+            &format!("drought ends - {} restored, {} permanent scars", restored, scars));
+    } else {
+        push_event(events, tick, "drought", "world",
+            &format!("drought ends - {} water tiles restored", restored));
+    }
 }
 
 pub fn tick_outbreak(
