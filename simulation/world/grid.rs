@@ -930,8 +930,12 @@ impl WorldGrid {
     }
 
     pub fn tick_geology(&mut self, rng: &mut impl Rng) {
-        let flood_count  = rng.gen_range(2..=6usize);
-        let emerge_count = rng.gen_range(1..=3usize);
+        // Per audit: previous counts (2-6 flood, 1-3 emerge) fired every
+        // 18000 ticks; at 4 changes per ~30 min real that's invisible
+        // against the 180k land grid. Bumped 10× so coastlines actually
+        // drift on a session timescale.
+        let flood_count  = rng.gen_range(30..=80usize);
+        let emerge_count = rng.gen_range(20..=50usize);
 
         let mut flooded = 0usize;
         for _ in 0..800 {

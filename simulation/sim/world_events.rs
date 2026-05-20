@@ -704,7 +704,9 @@ pub fn tick_world_evolution(
 
     }
 
-    if tick % 18000 == 0 && tick >= 18000 {
+    // Bumped from 18000 → 6000 so coastline drift is observable within
+    // one session (~10 min real between events instead of ~30 min).
+    if tick % 6000 == 0 && tick >= 6000 {
         grid.tick_geology(rng);
     }
 
