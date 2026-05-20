@@ -597,11 +597,23 @@ impl Organism {
         }
 
         let q_row = self.q_table.get(cached_perception);
+        // Optimistic initialisation for never-visited actions: small
+        // positive seed proportional to action_id. Higher-tier phase-3
+        // actions (id ≥ 140) get a slightly larger seed so they get
+        // picked by ties early on, breaking the cold-start where they
+        // sat at Q=0 and never accumulated reward signal.
+        let seed_q = |a: usize| -> f32 {
+            if a >= 140 { 0.02 } else { 0.01 }
+        };
+        let lookup = |a: usize| -> f32 {
+            q_row.map(|r| {
+                let v = r.get_q(a as u16);
+                if v == 0.0 { seed_q(a) } else { v }
+            }).unwrap_or_else(|| seed_q(a))
+        };
         let best_avail = available.iter().copied()
             .max_by(|&a, &b| {
-                let va = q_row.map(|r| r.get_q(a as u16)).unwrap_or(0.0);
-                let vb = q_row.map(|r| r.get_q(b as u16)).unwrap_or(0.0);
-                va.partial_cmp(&vb).unwrap_or(std::cmp::Ordering::Equal)
+                lookup(a).partial_cmp(&lookup(b)).unwrap_or(std::cmp::Ordering::Equal)
             });
         // Commit to the best available action even when best_val ≤ 0.
         // The previous gate (`if best_val > 0.0`) silently fell through
