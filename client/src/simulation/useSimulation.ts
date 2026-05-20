@@ -17,9 +17,18 @@ export interface InterpRefs {
   currentReceivedAt: React.MutableRefObject<number>
 }
 
-export function useSimulation(): { world: WorldState | null; connected: boolean; interp: InterpRefs } {
+export type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'unreachable'
+
+export function useSimulation(): {
+  world: WorldState | null
+  connected: boolean
+  status: ConnectionStatus
+  failedAttempts: number
+  interp: InterpRefs
+} {
   const [world, setWorld]     = useState<WorldState | null>(null)
   const [connected, setConnected] = useState(false)
+  const [failedAttempts, setFailedAttempts] = useState(0)
   const wsRef      = useRef<WebSocket | null>(null)
   const organismCache = useRef<Map<string, OrganismState>>(new Map())
   const animalCache   = useRef<Map<number, AnimalState>>(new Map())
@@ -231,11 +240,13 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
         if (destroyed) return
         reconnectDelayMs = 1000
         setConnected(true)
+        setFailedAttempts(0)
         requestSnapshotResync()
       }
       ws.onclose = () => {
         if (destroyed) return
         setConnected(false)
+        setFailedAttempts(n => n + 1)
         if (rafPending.current !== null) {
           cancelAnimationFrame(rafPending.current)
           rafPending.current = null
@@ -305,9 +316,17 @@ export function useSimulation(): { world: WorldState | null; connected: boolean;
     }
   }, [])
 
+  const status: ConnectionStatus =
+    connected ? 'connected'
+    : failedAttempts >= 3 ? 'unreachable'
+    : failedAttempts > 0 ? 'reconnecting'
+    : 'connecting'
+
   return {
     world,
     connected,
+    status,
+    failedAttempts,
     interp: {
       prev:      prevWorldRef,
       current:   currentWorldRef,

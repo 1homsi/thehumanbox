@@ -205,11 +205,36 @@ body {
 
 .waiting {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 14px;
   width: 100%;
-  color: #888;
+  color: #aaa;
   font-size: 13px;
+  text-align: center;
+  padding: 24px;
+}
+.waiting-spinner {
+  width: 32px;
+  height: 32px;
+  border: 2px solid rgba(216, 200, 154, 0.15);
+  border-top-color: #d8c89a;
+  border-radius: 50%;
+  animation: waiting-spin 1.1s linear infinite;
+}
+@keyframes waiting-spin { to { transform: rotate(360deg); } }
+.waiting-title {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: #d8c89a;
+  text-transform: uppercase;
+}
+.waiting-sub {
+  font-size: 11px;
+  color: #877966;
+  max-width: 380px;
+  line-height: 1.5;
 }
 
 .panel {

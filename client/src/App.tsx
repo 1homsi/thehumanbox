@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, Suspense } from 'react'
 import { lazyWithRetry } from './utils/lazyWithRetry'
 import { useSimulation } from './simulation/useSimulation'
 import { useUIStore } from './stores/store'
+import { WS_BASE } from './lib/config'
+
+const WS_HOST = WS_BASE.replace(/^wss?:\/\//, '')
 import { WorldView } from './world/WorldView'
 import { EventLog } from './components/EventLog'
 import { HistoryGrid } from './components/HistoryGrid'
@@ -21,7 +24,7 @@ const WorldView3D = lazyWithRetry(() => import('./world/WorldView3D'))
 const TILE_FIRE = 4
 
 function App() {
-  const { world, connected, interp } = useSimulation()
+  const { world, connected, status, failedAttempts, interp } = useSimulation()
 
   const selectedOrgId = useUIStore(s => s.selectedOrgId)
   const leftOpen      = useUIStore(s => s.leftOpen)
@@ -150,7 +153,21 @@ function App() {
 
           </div>
         ) : (
-          <div className="waiting">waiting for simulation...</div>
+          <div className="waiting">
+            <div className="waiting-spinner" aria-hidden="true" />
+            <div className="waiting-title">
+              {status === 'unreachable' ? 'simulation server unreachable'
+                : status === 'reconnecting' ? 'reconnecting…'
+                : 'connecting…'}
+            </div>
+            <div className="waiting-sub">
+              {status === 'unreachable'
+                ? `tried ${failedAttempts} times. waiting for ${WS_HOST} to come back online — retries continue automatically.`
+                : status === 'reconnecting'
+                ? `attempt ${failedAttempts + 1} — backing off and retrying`
+                : 'opening websocket and fetching the world snapshot'}
+            </div>
+          </div>
         )}
       </main>
 
