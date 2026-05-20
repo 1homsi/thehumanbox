@@ -17,7 +17,10 @@ export interface OrgsHotSoa {
   energies:       number[]
   hydrations:     number[]
   healths:        number[]
-  ages:           number[]
+  // ages was dropped from delta payloads — increments by 1 per tick
+  // are pure waste over the wire. Client preserves the value from the
+  // last full frame in the merge layer.
+  ages?:          number[]
   alives:         boolean[]
   thoughts:       string[]
   infections:     number[]
@@ -113,8 +116,9 @@ export type ExpandedOrgDelta = Partial<OrganismState> & { id: string }
 
 export function expandOrgsSoa(soa: OrgsHotSoa): ExpandedOrgDelta[] {
   const out: ExpandedOrgDelta[] = new Array(soa.ids.length)
+  const hasAges = Array.isArray(soa.ages)
   for (let i = 0; i < soa.ids.length; i++) {
-    out[i] = {
+    const entry: ExpandedOrgDelta = {
       id:            soa.ids[i],
       x:             soa.xs[i] / 10,
       y:             soa.ys[i] / 10,
@@ -125,7 +129,6 @@ export function expandOrgsSoa(soa: OrgsHotSoa): ExpandedOrgDelta[] {
       energy:        soa.energies[i] / 100,
       hydration:     soa.hydrations[i] / 100,
       health:        soa.healths[i] / 100,
-      age:           soa.ages[i],
       alive:         soa.alives[i],
       thought:       soa.thoughts[i],
       infection:     soa.infections[i] / 100,
@@ -136,6 +139,11 @@ export function expandOrgsSoa(soa: OrgsHotSoa): ExpandedOrgDelta[] {
       partner_id:    soa.partner_ids[i] ?? undefined,
       attracted_to:  soa.attracted_tos[i] ?? undefined,
     }
+    // Server omits ages from delta frames (saves 4 bytes per org per
+    // tick). When the field is present (legacy server / full frame
+    // synthesised via SoA), still honour it.
+    if (hasAges) entry.age = soa.ages![i]
+    out[i] = entry
   }
   return out
 }

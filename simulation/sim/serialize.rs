@@ -192,7 +192,14 @@ impl Simulation {
                     "story_history".to_string(),
                     serde_json::to_value(self.story_history.iter().rev().take(120).collect::<Vec<_>>()).unwrap(),
                 );
-                obj.insert("pop_history".to_string(), serde_json::to_value(&self.pop_history).unwrap());
+                // Tail-only pop_history: only the most recent 60
+                // samples make it to the wire. The full ring buffer
+                // is kept server-side for trend analysis, but the
+                // client only graphs the tail.
+                let tail: Vec<&[u64; 2]> = self.pop_history.iter()
+                    .rev().take(60).collect::<Vec<_>>()
+                    .into_iter().rev().collect();
+                obj.insert("pop_history".to_string(), serde_json::to_value(&tail).unwrap());
                 obj.insert("tribal_relations".to_string(), self.cached_tribal_relations.clone());
                 obj.insert("lineage_sizes".to_string(), self.cached_lineage_sizes.clone());
                 obj.insert("territory".to_string(), self.cached_territory.clone());

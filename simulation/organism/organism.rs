@@ -1042,6 +1042,12 @@ pub struct OrgLifeJson {
     pub thought_history: Vec<ThoughtJson>,
 }
 
+/// Hot Structure-of-Arrays payload for delta (viewport) frames.
+///
+/// Ages and other slow-moving cold fields are *not* included here —
+/// full frames carry ground truth for those and the client preserves
+/// them across deltas. Sending 4 bytes per org per tick for a counter
+/// that increments by 1 was pure waste.
 #[derive(Serialize)]
 pub struct OrgsHotSoa {
     pub ids:            Vec<String>,
@@ -1054,7 +1060,6 @@ pub struct OrgsHotSoa {
     pub energies:       Vec<u8>,
     pub hydrations:     Vec<u8>,
     pub healths:        Vec<u8>,
-    pub ages:           Vec<u32>,
     pub alives:         Vec<bool>,
     pub thoughts:       Vec<String>,
     pub infections:     Vec<u8>,
@@ -1089,7 +1094,6 @@ impl OrgsHotSoa {
             energies:       Vec::with_capacity(n),
             hydrations:     Vec::with_capacity(n),
             healths:        Vec::with_capacity(n),
-            ages:           Vec::with_capacity(n),
             alives:         Vec::with_capacity(n),
             thoughts:       Vec::with_capacity(n),
             infections:     Vec::with_capacity(n),
@@ -1125,7 +1129,6 @@ impl OrgsHotSoa {
         self.energies.push(q_pct(o.energy));
         self.hydrations.push(q_pct(o.hydration));
         self.healths.push(q_pct(o.health));
-        self.ages.push(o.age);
         self.alives.push(o.alive);
         self.thoughts.push(o.thought.clone());
         self.infections.push(q_pct(o.infection));
