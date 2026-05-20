@@ -1,10 +1,9 @@
 import clsx from 'clsx'
-import { useUIStore } from '../stores/store'
+import { useUIStore, useViewFlag } from '../stores/store'
 
 export function MoreDropdown() {
   const overlay     = useUIStore(s => s.overlay)
   const focus       = useUIStore(s => s.focus)
-  const viewFlags   = useUIStore(s => s.viewFlags)
   const leftOpen    = useUIStore(s => s.leftOpen)
   const setOverlay  = useUIStore(s => s.setOverlay)
   const setFocus    = useUIStore(s => s.setFocus)
@@ -13,6 +12,36 @@ export function MoreDropdown() {
   const openLanguages  = useUIStore(s => s.openLanguages)
   const openFamilyTree = useUIStore(s => s.openFamilyTree)
   const openAbout      = useUIStore(s => s.openAbout)
+
+  // Per-flag scalar subscriptions so toggling one flag doesn't re-render
+  // every component that read `viewFlags` as a whole object.
+  const territory    = useViewFlag('territory')
+  const names        = useViewFlag('names')
+  const thoughts     = useViewFlag('thoughts')
+  const animals      = useViewFlag('animals')
+  const grid         = useViewFlag('grid')
+  const lineageDot   = useViewFlag('lineageDot')
+  const health       = useViewFlag('health')
+  const age          = useViewFlag('age')
+  const fear         = useViewFlag('fear')
+  const partners     = useViewFlag('partners')
+  const pregnancy    = useViewFlag('pregnancy')
+  const trails       = useViewFlag('trails')
+  const structures   = useViewFlag('structures')
+  const fertility    = useViewFlag('fertility')
+  const hazard       = useViewFlag('hazard')
+  const history      = useViewFlag('history')
+  const fps          = useViewFlag('fps')
+  const territoryMap = useViewFlag('territoryMap')
+  const threeD       = useViewFlag('threeD')
+  const hideUI       = useViewFlag('hideUI')
+  const orgPov       = useViewFlag('orgPov')
+  const photoMode    = useViewFlag('photoMode')
+  const actionTicker = useViewFlag('actionTicker')
+  const randomTour   = useViewFlag('randomTour')
+  const slowMo       = useViewFlag('slowMo')
+  const fastMo       = useViewFlag('fastMo')
+  const colorBlind   = useViewFlag('colorBlind')
 
   const closeMore = () => useUIStore.setState({ showMore: false })
 
@@ -44,29 +73,29 @@ export function MoreDropdown() {
       <div className="more-dropdown-divider" />
       <div className="more-dropdown-section">view</div>
       <div className="more-dropdown-grid">
-        <button className={clsx('lang-btn', viewFlags.territory && 'active')} aria-pressed={!!( viewFlags.territory )} onClick={() => setViewFlag('territory', !viewFlags.territory)}>⬡ territory</button>
-        <button className={clsx('lang-btn', viewFlags.names && 'active')} aria-pressed={!!( viewFlags.names )} onClick={() => setViewFlag('names',     !viewFlags.names)}>Aa names</button>
-        <button className={clsx('lang-btn', viewFlags.thoughts && 'active')} aria-pressed={!!( viewFlags.thoughts )} onClick={() => setViewFlag('thoughts',  !viewFlags.thoughts)}>💭 thoughts</button>
-        <button className={clsx('lang-btn', viewFlags.animals && 'active')} aria-pressed={!!( viewFlags.animals )} onClick={() => setViewFlag('animals',   !viewFlags.animals)}>🦌 animals</button>
-        <button className={clsx('lang-btn', viewFlags.grid && 'active')} aria-pressed={!!( viewFlags.grid )} onClick={() => setViewFlag('grid',      !viewFlags.grid)}>⊞ grid</button>
+        <button className={clsx('lang-btn', territory && 'active')} aria-pressed={!!( territory )} onClick={() => setViewFlag('territory', !territory)}>⬡ territory</button>
+        <button className={clsx('lang-btn', names && 'active')} aria-pressed={!!( names )} onClick={() => setViewFlag('names',     !names)}>Aa names</button>
+        <button className={clsx('lang-btn', thoughts && 'active')} aria-pressed={!!( thoughts )} onClick={() => setViewFlag('thoughts',  !thoughts)}>💭 thoughts</button>
+        <button className={clsx('lang-btn', animals && 'active')} aria-pressed={!!( animals )} onClick={() => setViewFlag('animals',   !animals)}>🦌 animals</button>
+        <button className={clsx('lang-btn', grid && 'active')} aria-pressed={!!( grid )} onClick={() => setViewFlag('grid',      !grid)}>⊞ grid</button>
       </div>
 
       <div className="more-dropdown-divider" />
       <div className="more-dropdown-section">organism decorations</div>
       <div className="more-dropdown-grid">
-        <button className={clsx('lang-btn', viewFlags.lineageDot && 'active')} aria-pressed={!!( viewFlags.lineageDot )} onClick={() => setViewFlag('lineageDot', !viewFlags.lineageDot)} title="Colored dot per organism showing tribe affiliation">⬤ lineage</button>
-        <button className={clsx('lang-btn', viewFlags.health && 'active')} aria-pressed={!!( viewFlags.health )} onClick={() => setViewFlag('health',     !viewFlags.health)} title="Ring tint by health">♥ health</button>
-        <button className={clsx('lang-btn', viewFlags.age && 'active')} aria-pressed={!!( viewFlags.age )} onClick={() => setViewFlag('age',        !viewFlags.age)} title="Age tint: child / adult / elder">⏳ age</button>
-        <button className={clsx('lang-btn', viewFlags.fear && 'active')} aria-pressed={!!( viewFlags.fear )} onClick={() => setViewFlag('fear',       !viewFlags.fear)} title="Fear halo">⚠ fear</button>
-        <button className={clsx('lang-btn', viewFlags.partners && 'active')} aria-pressed={!!( viewFlags.partners )} onClick={() => setViewFlag('partners',   !viewFlags.partners)} title="Bond line between partners">♥♥ pairs</button>
-        <button className={clsx('lang-btn', viewFlags.pregnancy && 'active')} aria-pressed={!!( viewFlags.pregnancy )} onClick={() => setViewFlag('pregnancy',  !viewFlags.pregnancy)} title="Pregnancy marker">◯ pregnant</button>
-        <button className={clsx('lang-btn', viewFlags.trails && 'active')} aria-pressed={!!( viewFlags.trails )} onClick={() => setViewFlag('trails',     !viewFlags.trails)} title="Food / water / path stigmergy">⋯ trails</button>
-        <button className={clsx('lang-btn', viewFlags.structures && 'active')} aria-pressed={!!( viewFlags.structures )} onClick={() => setViewFlag('structures', !viewFlags.structures)} title="Highlight huts and campfires">⌂ builds</button>
-        <button className={clsx('lang-btn', viewFlags.fertility && 'active')} aria-pressed={!!( viewFlags.fertility )} onClick={() => setViewFlag('fertility',  !viewFlags.fertility)} title="Soil fertility heat">✿ fertility</button>
-        <button className={clsx('lang-btn', viewFlags.hazard && 'active')} aria-pressed={!!( viewFlags.hazard )} onClick={() => setViewFlag('hazard',     !viewFlags.hazard)} title="Hazard scars - violence and death">✶ hazard</button>
-        <button className={clsx('lang-btn', viewFlags.history && 'active')} aria-pressed={!!( viewFlags.history )} onClick={() => setViewFlag('history',      !viewFlags.history)} title="Per-lineage drift over the last ~60 sim-days">↝ history</button>
-        <button className={clsx('lang-btn', viewFlags.fps && 'active')} aria-pressed={!!( viewFlags.fps )} onClick={() => setViewFlag('fps',          !viewFlags.fps)} title="Frames-per-second + frame timing">⏱ perf</button>
-        <button className={clsx('lang-btn', viewFlags.territoryMap && 'active')} aria-pressed={!!( viewFlags.territoryMap )} onClick={() => setViewFlag('territoryMap', !viewFlags.territoryMap)} title="3D territory overlay — lineage claims and contested zones">⬡ territory 3d</button>
+        <button className={clsx('lang-btn', lineageDot && 'active')} aria-pressed={!!( lineageDot )} onClick={() => setViewFlag('lineageDot', !lineageDot)} title="Colored dot per organism showing tribe affiliation">⬤ lineage</button>
+        <button className={clsx('lang-btn', health && 'active')} aria-pressed={!!( health )} onClick={() => setViewFlag('health',     !health)} title="Ring tint by health">♥ health</button>
+        <button className={clsx('lang-btn', age && 'active')} aria-pressed={!!( age )} onClick={() => setViewFlag('age',        !age)} title="Age tint: child / adult / elder">⏳ age</button>
+        <button className={clsx('lang-btn', fear && 'active')} aria-pressed={!!( fear )} onClick={() => setViewFlag('fear',       !fear)} title="Fear halo">⚠ fear</button>
+        <button className={clsx('lang-btn', partners && 'active')} aria-pressed={!!( partners )} onClick={() => setViewFlag('partners',   !partners)} title="Bond line between partners">♥♥ pairs</button>
+        <button className={clsx('lang-btn', pregnancy && 'active')} aria-pressed={!!( pregnancy )} onClick={() => setViewFlag('pregnancy',  !pregnancy)} title="Pregnancy marker">◯ pregnant</button>
+        <button className={clsx('lang-btn', trails && 'active')} aria-pressed={!!( trails )} onClick={() => setViewFlag('trails',     !trails)} title="Food / water / path stigmergy">⋯ trails</button>
+        <button className={clsx('lang-btn', structures && 'active')} aria-pressed={!!( structures )} onClick={() => setViewFlag('structures', !structures)} title="Highlight huts and campfires">⌂ builds</button>
+        <button className={clsx('lang-btn', fertility && 'active')} aria-pressed={!!( fertility )} onClick={() => setViewFlag('fertility',  !fertility)} title="Soil fertility heat">✿ fertility</button>
+        <button className={clsx('lang-btn', hazard && 'active')} aria-pressed={!!( hazard )} onClick={() => setViewFlag('hazard',     !hazard)} title="Hazard scars - violence and death">✶ hazard</button>
+        <button className={clsx('lang-btn', history && 'active')} aria-pressed={!!( history )} onClick={() => setViewFlag('history',      !history)} title="Per-lineage drift over the last ~60 sim-days">↝ history</button>
+        <button className={clsx('lang-btn', fps && 'active')} aria-pressed={!!( fps )} onClick={() => setViewFlag('fps',          !fps)} title="Frames-per-second + frame timing">⏱ perf</button>
+        <button className={clsx('lang-btn', territoryMap && 'active')} aria-pressed={!!( territoryMap )} onClick={() => setViewFlag('territoryMap', !territoryMap)} title="3D territory overlay — lineage claims and contested zones">⬡ territory 3d</button>
       </div>
 
       <div className="more-dropdown-divider" />
@@ -81,8 +110,8 @@ export function MoreDropdown() {
       <div className="more-dropdown-section">experiments</div>
       <div className="more-dropdown-grid">
         <button
-          className={clsx('lang-btn', viewFlags.threeD && 'active')} aria-pressed={!!( viewFlags.threeD )}
-          onClick={() => setViewFlag('threeD', !viewFlags.threeD)}
+          className={clsx('lang-btn', threeD && 'active')} aria-pressed={!!( threeD )}
+          onClick={() => setViewFlag('threeD', !threeD)}
           // Warm the lazy chunk before click so users don't stare at the
           // loading spinner for a second after pressing the button.
           onMouseEnter={() => { void import('../world/WorldView3D') }}
@@ -90,44 +119,44 @@ export function MoreDropdown() {
           title="Free-fly 3D world. WASD + mouse. Desktop only.">
           ◈ 3d world
         </button>
-        {viewFlags.threeD && (
+        {threeD && (
           <button
-            className={clsx('lang-btn', viewFlags.hideUI && 'active')} aria-pressed={!!( viewFlags.hideUI )}
-            onClick={() => setViewFlag('hideUI', !viewFlags.hideUI)}
+            className={clsx('lang-btn', hideUI && 'active')} aria-pressed={!!( hideUI )}
+            onClick={() => setViewFlag('hideUI', !hideUI)}
             title="Hide sidebars in 3D mode for immersion">
             ▤ hide ui
           </button>
         )}
-        {viewFlags.threeD && (
+        {threeD && (
           <button
-            className={clsx('lang-btn', viewFlags.orgPov && 'active')} aria-pressed={!!( viewFlags.orgPov )}
-            onClick={() => setViewFlag('orgPov', !viewFlags.orgPov)}
+            className={clsx('lang-btn', orgPov && 'active')} aria-pressed={!!( orgPov )}
+            onClick={() => setViewFlag('orgPov', !orgPov)}
             title="First-person camera from the selected org's head (3D only)">
             👁 org POV
           </button>
         )}
         <button
-          className={clsx('lang-btn', viewFlags.photoMode && 'active')} aria-pressed={!!( viewFlags.photoMode )}
-          onClick={() => setViewFlag('photoMode', !viewFlags.photoMode)}
+          className={clsx('lang-btn', photoMode && 'active')} aria-pressed={!!( photoMode )}
+          onClick={() => setViewFlag('photoMode', !photoMode)}
           title="Hide every panel for clean screenshots. Move mouse to top-left to bring the header back.">
           📷 photo mode
         </button>
         <button
-          className={clsx('lang-btn', viewFlags.actionTicker && 'active')} aria-pressed={!!( viewFlags.actionTicker )}
-          onClick={() => setViewFlag('actionTicker', !viewFlags.actionTicker)}
+          className={clsx('lang-btn', actionTicker && 'active')} aria-pressed={!!( actionTicker )}
+          onClick={() => setViewFlag('actionTicker', !actionTicker)}
           title="Live ticker at the bottom: what each org is doing right now">
           ⋮⋮⋮ ticker
         </button>
         <button
-          className={clsx('lang-btn', viewFlags.randomTour && 'active')} aria-pressed={!!( viewFlags.randomTour )}
-          onClick={() => setViewFlag('randomTour', !viewFlags.randomTour)}
+          className={clsx('lang-btn', randomTour && 'active')} aria-pressed={!!( randomTour )}
+          onClick={() => setViewFlag('randomTour', !randomTour)}
           title="Auto-cycle the selected org every 8 seconds. Click an org to pause.">
           🎲 tour
         </button>
         <button
-          className={clsx('lang-btn', viewFlags.slowMo && 'active')} aria-pressed={!!( viewFlags.slowMo )}
+          className={clsx('lang-btn', slowMo && 'active')} aria-pressed={!!( slowMo )}
           onClick={() => {
-            const v = !viewFlags.slowMo
+            const v = !slowMo
             setViewFlag('slowMo', v)
             if (v) setViewFlag('fastMo', false)
           }}
@@ -135,9 +164,9 @@ export function MoreDropdown() {
           ◐ slow-mo
         </button>
         <button
-          className={clsx('lang-btn', viewFlags.fastMo && 'active')} aria-pressed={!!( viewFlags.fastMo )}
+          className={clsx('lang-btn', fastMo && 'active')} aria-pressed={!!( fastMo )}
           onClick={() => {
-            const v = !viewFlags.fastMo
+            const v = !fastMo
             setViewFlag('fastMo', v)
             if (v) setViewFlag('slowMo', false)
           }}
@@ -145,8 +174,8 @@ export function MoreDropdown() {
           ◑ fast-mo
         </button>
         <button
-          className={clsx('lang-btn', viewFlags.colorBlind && 'active')} aria-pressed={!!( viewFlags.colorBlind )}
-          onClick={() => setViewFlag('colorBlind', !viewFlags.colorBlind)}
+          className={clsx('lang-btn', colorBlind && 'active')} aria-pressed={!!( colorBlind )}
+          onClick={() => setViewFlag('colorBlind', !colorBlind)}
           title="Deuteranopia-safe lineage palette (red-green swap)">
           ◓ colorblind
         </button>
