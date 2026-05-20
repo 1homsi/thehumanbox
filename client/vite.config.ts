@@ -18,6 +18,17 @@ export default defineConfig({
           if (id.includes('@tanstack'))                               return 'query-vendor'
           if (id.includes('/zustand/') || id.includes('/neverthrow/') ||
               id.includes('/zod/')     || id.includes('/clsx/'))      return 'state-vendor'
+          // Split the troika/SDF/bidi text rendering stack into its own
+          // chunk so the initial WorldView3D paint doesn't pay the
+          // download cost up front. Browsers fetch sibling chunks in
+          // parallel, so first-paint reaches the canvas sooner.
+          if (id.includes('/troika-')
+              || id.includes('/webgl-sdf-generator')
+              || id.includes('/bidi-js'))                             return 'text-vendor'
+          // three.js core into its own chunk for the same parallel-
+          // fetch reason — it's stable and rarely changes, so once
+          // cached it sticks across deploys.
+          if (id.includes('/three/') || id.includes('three-stdlib'))  return 'three-vendor'
         },
       },
     },
