@@ -97,8 +97,22 @@ export async function fetchSnapshotWithProgress(url: string, signal?: AbortSigna
   return out.buffer
 }
 
-export function expandOrgsSoa(soa: OrgsHotSoa): OrganismState[] {
-  const out: OrganismState[] = new Array(soa.ids.length)
+/**
+ * SoA frames carry only the per-tick "hot" fields. The cold fields
+ * (name, lineage_id, traits, etc.) come from a periodic AoS full
+ * snapshot and live in the cache. The merge step replaces the
+ * `as OrganismState` lie with a typed Partial that mergeDefined
+ * unions onto the cached entry.
+ *
+ * Returning Partial<OrganismState> & {id: string} also surfaces a
+ * real compile-time signal if a downstream consumer ever tries to
+ * read a cold field directly off an SoA-expanded record without
+ * going through the cache.
+ */
+export type ExpandedOrgDelta = Partial<OrganismState> & { id: string }
+
+export function expandOrgsSoa(soa: OrgsHotSoa): ExpandedOrgDelta[] {
+  const out: ExpandedOrgDelta[] = new Array(soa.ids.length)
   for (let i = 0; i < soa.ids.length; i++) {
     out[i] = {
       id:            soa.ids[i],
@@ -121,7 +135,7 @@ export function expandOrgsSoa(soa: OrgsHotSoa): OrganismState[] {
       pregnant:      soa.pregnants[i],
       partner_id:    soa.partner_ids[i] ?? undefined,
       attracted_to:  soa.attracted_tos[i] ?? undefined,
-    } as OrganismState
+    }
   }
   return out
 }

@@ -1,5 +1,5 @@
 import type { WorldState, GridState, OrganismState, AnimalState } from '../types'
-import { type IncomingWorldFrame, applyGridWire, expandOrgsSoa, EMPTY_HISTORY } from './wire'
+import { type IncomingWorldFrame, type ExpandedOrgDelta, applyGridWire, expandOrgsSoa, EMPTY_HISTORY } from './wire'
 
 function mergeDefined<T extends object>(target: T, src: Partial<T>): T {
   let changed = false
@@ -55,18 +55,36 @@ export interface MergeResult {
 export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): MergeResult {
   const grid = applyGridWire(parsed.grid, caches.grid)
 
-  const frameOrganisms: OrganismState[] = parsed.organisms
-    ?? (parsed.organisms_hot ? expandOrgsSoa(parsed.organisms_hot) : [])
+  // parsed.organisms is the full AoS (cold + hot fields). When absent,
+  // parsed.organisms_hot is the SoA delta — only hot fields. The SoA
+  // type tracks this honestly via ExpandedOrgDelta = Partial<OrganismState>
+  // so downstream code can't accidentally read a cold field off a
+  // SoA-only record.
+  const fullFrameOrgs: OrganismState[]   = parsed.organisms ?? []
+  const deltaFrameOrgs: ExpandedOrgDelta[] = parsed.organisms_hot
+    ? expandOrgsSoa(parsed.organisms_hot) : []
 
-  if (parsed.organisms_complete) {
+  if (parsed.organisms_complete && fullFrameOrgs.length > 0) {
     const next = new Map<string, OrganismState>()
-    for (const org of frameOrganisms) {
+    for (const org of fullFrameOrgs) {
       const existing = caches.organisms.get(org.id)
       next.set(org.id, existing ? mergeDefined(existing, org) : org)
     }
     caches.organisms = next
   } else {
-    for (const org of frameOrganisms) {
+    // Deltas (SoA) only merge onto an existing cache entry — a brand-
+    // new id appearing in a delta would be missing cold fields (name,
+    // lineage_id, traits) so we drop it; the next full frame will
+    // include it as AoS and seed the cache properly.
+    for (const org of deltaFrameOrgs) {
+      const existing = caches.organisms.get(org.id)
+      if (existing) {
+        caches.organisms.set(org.id, mergeDefined(existing, org as Partial<OrganismState>))
+      }
+    }
+    // Late-arriving cold fields can still come via a non-SoA full
+    // frame in the same parsed payload (very rare, but legal).
+    for (const org of fullFrameOrgs) {
       const existing = caches.organisms.get(org.id)
       caches.organisms.set(org.id, existing ? mergeDefined(existing, org) : org)
     }
@@ -81,9 +99,17 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     }
   }
 
-  const viewportOrgs = frameOrganisms.map(o =>
-    caches.organisms.get(o.id) ?? o
-  )
+  // Build the viewport list from whichever stream populated this frame.
+  // Always resolve through the cache so cold fields (name, lineage_id,
+  // traits) are present.
+  const viewportSource: { id: string }[] = fullFrameOrgs.length > 0
+    ? (fullFrameOrgs as { id: string }[])
+    : (deltaFrameOrgs as { id: string }[])
+  const viewportOrgs: OrganismState[] = []
+  for (const o of viewportSource) {
+    const cached = caches.organisms.get(o.id)
+    if (cached) viewportOrgs.push(cached)
+  }
   const viewportAnimals = parsed.animals.map(a =>
     caches.animals.get(a.id) ?? a
   )
