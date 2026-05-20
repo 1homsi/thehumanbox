@@ -488,12 +488,24 @@ pub fn share_food(
         .map(|(k, _)| k.clone()).collect();
 
     // Share with hungry kin OR hungry named friends / strong-trust orgs.
+    // Recently-orphaned minors get prioritised by sorting them ahead
+    // of all other candidates (they need adoption-tier care, not just
+    // food).
     let target_idx = organisms.iter().enumerate()
         .filter(|(i, o)| *i != org_idx && o.alive && o.energy < 0.30)
         .filter(|(_, o)| o.lineage_id == org_lineage
             || friend_ids.contains(&o.id) || high_trust.contains(&o.id))
         .filter(|(_, o)| (o.x - ox).abs() + (o.y - oy).abs() <= 6.0)
-        .min_by(|(_, a), (_, b)| a.energy.partial_cmp(&b.energy).unwrap())
+        .min_by(|(_, a), (_, b)| {
+            let a_recent_orphan = a.orphaned_tick > 0 && tick.saturating_sub(a.orphaned_tick) < 600;
+            let b_recent_orphan = b.orphaned_tick > 0 && tick.saturating_sub(b.orphaned_tick) < 600;
+            // Orphans first, then lowest-energy first.
+            match (a_recent_orphan, b_recent_orphan) {
+                (true, false) => std::cmp::Ordering::Less,
+                (false, true) => std::cmp::Ordering::Greater,
+                _ => a.energy.partial_cmp(&b.energy).unwrap_or(std::cmp::Ordering::Equal),
+            }
+        })
         .map(|(i, _)| i);
 
     let Some(ti) = target_idx else { return 0.0; };

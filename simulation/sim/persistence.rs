@@ -98,6 +98,7 @@ pub(crate) struct OrgSave {
     #[serde(default)] fear_level:          f32,
     #[serde(default)] comfort:             f32,
     #[serde(default)] grief_ticks:         u32,
+    #[serde(default)] orphaned_tick:       u64,
     #[serde(default)] sleep_debt:          f32,
     #[serde(default)] directive:           String,
     #[serde(default)] directive_until:     u64,
@@ -222,6 +223,7 @@ fn org_to_save(o: &Organism) -> OrgSave {
         fear_level:          o.fear_level,
         comfort:             o.comfort,
         grief_ticks:         o.grief_ticks,
+        orphaned_tick:       o.orphaned_tick,
         sleep_debt:          o.sleep_debt,
         directive:           o.directive.clone(),
         directive_until:     o.directive_until,
@@ -307,6 +309,7 @@ fn org_from_save(s: OrgSave) -> Organism {
     o.fear_level          = s.fear_level;
     o.comfort             = s.comfort;
     o.grief_ticks         = s.grief_ticks;
+    o.orphaned_tick       = s.orphaned_tick;
     o.sleep_debt          = s.sleep_debt;
     o.directive           = s.directive;
     o.directive_until     = s.directive_until;

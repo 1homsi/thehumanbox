@@ -207,6 +207,10 @@ pub struct Organism {
     pub comfort:     f32,
 
     pub grief_ticks:    u32,
+    /// Tick at which this org last lost a parent (parent_id / father_id
+    /// matched a death event). Used by kin in the social tick to bias
+    /// share_food / groom toward newly-orphaned minors. 0 = never.
+    pub orphaned_tick:  u64,
     pub sleep_debt:     f32,
     pub water_ticks:    u32,
     pub area_ticks:     u32,
@@ -300,6 +304,7 @@ impl Organism {
             fear_level:  0.0,
             comfort:     0.5,
             grief_ticks:    0,
+            orphaned_tick:  0,
             sleep_debt:     0.0,
             water_ticks:    0,
             area_ticks:     0,

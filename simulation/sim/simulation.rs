@@ -2201,7 +2201,17 @@ impl Simulation {
                 let ms = self.organisms[*gi].traits.memory_strength;
                 Organism::remember(&mut self.organisms[*gi].danger_memory, dx, dy, 0.65, ms);
                 self.organisms[*gi].fear_level    = (self.organisms[*gi].fear_level + 0.22).min(1.0);
-                self.organisms[*gi].grief_ticks   = 80 + self.rng.gen_range(0u32..40);
+                // Children of the dead get heavier grief AND get marked
+                // as orphaned for nearby kin to notice; adult mourners
+                // get the original lighter grief.
+                let is_child = (self.organisms[*gi].parent_id == dead_id_str
+                    || self.organisms[*gi].father_id.as_deref() == Some(dead_id_str.as_str()))
+                    && self.organisms[*gi].age < 1000;
+                let grief_base = if is_child { 200 } else { 80 };
+                if is_child {
+                    self.organisms[*gi].orphaned_tick = self.tick_count;
+                }
+                self.organisms[*gi].grief_ticks   = grief_base + self.rng.gen_range(0u32..40);
                 self.organisms[*gi].think("mourning kin", self.tick_count);
                 let tc = self.tick_count;
                 let dn = dead_name.clone();
