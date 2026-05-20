@@ -2243,6 +2243,20 @@ impl Simulation {
     }
 
     fn tick_animals(&mut self) {
+        // Passive respawn floor. Without this, a transient extinction
+        // (drought + hunting + wolves eating prey then starving) leaves
+        // the world animal-less forever, since reproduction requires
+        // living parents. Every 600 ticks, if the population dipped
+        // below the floor, drip-spawn some back.
+        if self.tick_count > 0 && self.tick_count % 600 == 0 {
+            let alive = self.animals.iter().filter(|a| a.alive).count();
+            const ANIMAL_FLOOR: usize = 40;
+            if alive < ANIMAL_FLOOR {
+                let to_add = (ANIMAL_FLOOR - alive).min(10);
+                self.spawn_animals(to_add);
+            }
+        }
+
         use crate::world::tiles::Biome;
 
         let org_pos: Vec<(f32, f32)> = self.organisms.iter()
