@@ -174,6 +174,18 @@ impl WorldGrid {
         }
     }
 
+    /// Aggregated decay: applies the equivalent of three single-step
+    /// decay passes in one go. Called once per 3 physics ticks to
+    /// amortise the 540k-cell sweep.
+    pub fn decay_trails_strong(&mut self) {
+        // 0.988^3 ≈ 0.9645, 0.997^3 ≈ 0.9910
+        const F3: f32 = 0.964_426; // 0.988^3
+        const P3: f32 = 0.991_026; // 0.997^3
+        for v in &mut self.food_trail  { *v *= F3; }
+        for v in &mut self.water_trail { *v *= F3; }
+        for v in &mut self.path_trail  { *v *= P3; }
+    }
+
     pub fn reduce_fertility(&mut self, x: i32, y: i32, amount: f32) {
         if Self::in_bounds(x, y) {
             let i = Self::idx(x, y);

@@ -25,7 +25,16 @@ impl PhysicsEngine {
         self.tick_count += 1;
         self.update_fire(grid, rng, weather_kind, wet);
         self.grow_plants(grid, rng);
-        grid.decay_trails();
+        // Decay trails less often. Per audit, decay_trails iterates 3
+        // full grid layers (~540k cells × 3 = ~1.6M float mul/add per
+        // call) — the dominant CPU cost in this module. With food/water
+        // half-life of ~285 sim ticks and path half-life ~1150, running
+        // decay every 3rd physics tick (every 15 sim ticks) is still
+        // well below those time constants. Apply a stronger decay factor
+        // so the effective half-life stays the same.
+        if self.tick_count % 3 == 0 {
+            grid.decay_trails_strong();
+        }
 
         let interval = (150.0 / self.growth_mult.max(0.3)) as u64;
         let interval = interval.max(80);
