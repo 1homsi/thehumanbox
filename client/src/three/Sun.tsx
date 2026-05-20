@@ -74,15 +74,24 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
         />
       )}
 
-      {}
+      {/*
+        Stars stay mounted with stable parameters across the whole
+        day/night cycle. Previously `count`, `factor`, and `speed`
+        flipped between day and night, which forced drei to rebuild
+        the entire star buffer (~5000 points × position+random attrs)
+        on every transition. The Sky component naturally occludes the
+        stars during daylight, so we don't need to swap counts to hide
+        them — the day-time render cost is the same as a 5000-point
+        Points draw, which is one cheap GL call.
+      */}
       <Stars
         radius={r * 6}
         depth={r * 2}
-        count={isNight ? 5000 : 800}
-        factor={isNight ? 5 : 2}
+        count={5000}
+        factor={5}
         saturation={0}
         fade
-        speed={isNight ? 0.6 : 0.1}
+        speed={0.6}
       />
 
       {}
