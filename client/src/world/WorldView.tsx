@@ -1234,23 +1234,38 @@ function drawWorldOnCanvas(
     wolf: '🐺', deer: '🦌', boar: '🐗', rabbit: '🐇',
     fish: '🐟', bird: '🐦', dog: '🐕',
   }
-  for (const animal of (viewFlags.animals ? animals : [])) {
-    const emoji = ANIMAL_EMOJI[animal.kind] ?? '🐾'
-    const fontSize = animal.kind === 'fish' || animal.kind === 'bird' || animal.kind === 'rabbit' ? 9 : 11
-    const speed = animal.kind === 'fish' ? 0.0028
-                : animal.kind === 'bird' ? 0.0050
-                : animal.kind === 'wolf' || animal.kind === 'dog' ? 0.0042
-                : 0.0036
-    const amp   = animal.kind === 'fish' ? 1.4 : 0.8
-    const phase = (t * speed) + (animal.id * 0.7)
-    const yOff  = Math.sin(phase) * amp
-    const cx = (animal.x - ox) * TILE + TILE / 2
-    const cy = (animal.y - oy) * TILE + TILE / 2 + yOff
+  if (viewFlags.animals && animals.length > 0) {
+    // Setting ctx.font invalidates Chrome's text-shaper cache. Group
+    // animals into the two size buckets and assign the font ONCE per
+    // bucket instead of once per animal.
     ctx.save()
-    ctx.font = `${fontSize}px serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText(emoji, cx, cy)
+    const small: typeof animals = []
+    const large: typeof animals = []
+    for (const animal of animals) {
+      const sm = animal.kind === 'fish' || animal.kind === 'bird' || animal.kind === 'rabbit'
+      ;(sm ? small : large).push(animal)
+    }
+    const drawBucket = (list: typeof animals, font: string) => {
+      if (list.length === 0) return
+      ctx.font = font
+      for (const animal of list) {
+        const emoji = ANIMAL_EMOJI[animal.kind] ?? '🐾'
+        const speed = animal.kind === 'fish' ? 0.0028
+                    : animal.kind === 'bird' ? 0.0050
+                    : animal.kind === 'wolf' || animal.kind === 'dog' ? 0.0042
+                    : 0.0036
+        const amp   = animal.kind === 'fish' ? 1.4 : 0.8
+        const phase = (t * speed) + (animal.id * 0.7)
+        const yOff  = Math.sin(phase) * amp
+        const cx = (animal.x - ox) * TILE + TILE / 2
+        const cy = (animal.y - oy) * TILE + TILE / 2 + yOff
+        ctx.fillText(emoji, cx, cy)
+      }
+    }
+    drawBucket(small, '9px serif')
+    drawBucket(large, '11px serif')
     ctx.restore()
   }
 

@@ -80,6 +80,28 @@ pub struct GroqResponse {
     pub choices: Vec<GroqChoice>,
 }
 
+pub fn llm_body_with_temp(prompt: String, max_tokens: u32, model: &str, temp: f32) -> GroqRequest {
+    GroqRequest {
+        model:       model.to_string(),
+        messages:    vec![GroqMessage { role: "user".to_string(), content: prompt }],
+        max_tokens,
+        temperature: temp,
+        stop:        Vec::new(),
+    }
+}
+
+pub fn llm_body_with_temp_stop(
+    prompt: String, max_tokens: u32, model: &str, temp: f32, stop: Vec<String>,
+) -> GroqRequest {
+    GroqRequest {
+        model:       model.to_string(),
+        messages:    vec![GroqMessage { role: "user".to_string(), content: prompt }],
+        max_tokens,
+        temperature: temp,
+        stop,
+    }
+}
+
 pub fn llm_body(prompt: String, max_tokens: u32, model: &str) -> GroqRequest {
     GroqRequest {
         model:       model.to_string(),

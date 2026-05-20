@@ -76,6 +76,11 @@ function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
   const { camera } = useThree()
   const velocity = useRef(new THREE.Vector3())
   const saveTimerRef = useRef(0)
+  // Reuse these across every useFrame call instead of `new`-ing three
+  // Vector3s per frame at 60 Hz.
+  const fwdScratch     = useRef(new THREE.Vector3())
+  const forwardScratch = useRef(new THREE.Vector3())
+  const rightScratch   = useRef(new THREE.Vector3())
 
   useEffect(() => {
     const saved = loadSavedCam()
@@ -102,7 +107,7 @@ function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
       if (tx !== 0 || ty !== 0) {
         const wx = tx * TILE_SCALE
         const wz = ty * TILE_SCALE
-        const fwd = new THREE.Vector3()
+        const fwd = fwdScratch.current
         camera.getWorldDirection(fwd)
         fwd.y = 0
         if (fwd.lengthSq() > 0) fwd.normalize()
@@ -121,12 +126,12 @@ function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
 
     const speed = 30 * (k.boost ? 4 : 1)
 
-    const forward = new THREE.Vector3()
+    const forward = forwardScratch.current
     camera.getWorldDirection(forward)
     forward.y = 0
     forward.normalize()
 
-    const right = new THREE.Vector3().crossVectors(forward, camera.up).normalize()
+    const right = rightScratch.current.crossVectors(forward, camera.up).normalize()
 
     velocity.current.set(0, 0, 0)
     if (k.forward) velocity.current.add(forward)

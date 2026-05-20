@@ -5,7 +5,7 @@ use std::sync::Arc;
 use rand::SeedableRng;
 use tokio::sync::{Mutex, mpsc};
 
-use crate::llm::{GroqResponse, THINK_LLM_MODEL, THINK_LLM_URL, llm_body_with_stop, llm_extract, strip_thinking};
+use crate::llm::{GroqResponse, THINK_LLM_MODEL, THINK_LLM_URL, llm_body_with_temp_stop, llm_extract, strip_thinking};
 use crate::llm_stats::SharedLlmStats;
 use crate::llm_rate::SharedGroqLimiter;
 use crate::sim::local_think;
@@ -641,12 +641,26 @@ pub async fn think_worker(
             l.acquire().await;
         }
 
+        // Temperature picked per scenario. Council / negotiation /
+        // illness / reflection are essentially classification tasks
+        // where free-form variation just inflates retry rate. Courtship
+        // and excited convo benefit from a higher temp.
+        let temp = match trigger.scenario.as_str() {
+            "council" | "negotiation" | "illness" | "reflection" | "first_contact" => 0.35,
+            "lonely" | "restless" | "abundance"                                    => 0.85,
+            "elder_teaching"                                                       => 0.50,
+            _                                                                      => 0.70,
+        };
+        let stop = vec![
+            "\n\nACTION".to_string(),  // legacy
+            "\n\n\n".to_string(),
+        ];
+
         let started = std::time::Instant::now();
         let response = match client.post(&**THINK_LLM_URL)
             .header("Authorization", format!("Bearer {}", api_key))
-            .json(&llm_body_with_stop(
-                prompt, max_tokens, &THINK_LLM_MODEL,
-                vec!["\n\n\n".to_string()],
+            .json(&llm_body_with_temp_stop(
+                prompt, max_tokens, &THINK_LLM_MODEL, temp, stop,
             ))
             .send().await
         {
