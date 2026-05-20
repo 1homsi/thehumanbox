@@ -29,6 +29,87 @@ pub async fn ws_handler(
     ws.on_upgrade(move |socket| handle_socket(socket, rx, sim, latest_full, transport_stats))
 }
 
+/// OG (Open Graph) social-share image. Renders the current world map
+/// to a 1200×630 PNG and caches it for 5 minutes so social crawlers
+/// (Facebook, WhatsApp, Twitter, Discord, LinkedIn) don't hammer the
+/// renderer. After the TTL elapses, the next request triggers a fresh
+/// render. The render runs under `spawn_blocking` because PNG encoding
+/// is CPU-bound and would otherwise stall the tokio reactor.
+///
+/// `Cache-Control: public, max-age=300` advertises the same TTL to
+/// downstream CDNs / crawlers.
+pub async fn og_handler(
+    State(s): State<AppState>,
+) -> Result<impl IntoResponse, StatusCode> {
+    const TTL_MS: u64 = 5 * 60 * 1000;
+    let now = crate::transport::now_ms();
+    // Fast path: return cached bytes if still fresh.
+    {
+        let guard = s.og_cache.lock().await;
+        if let Some((generated_at, bytes)) = guard.as_ref() {
+            if now.saturating_sub(*generated_at) < TTL_MS {
+                return Ok((
+                    [
+                        (axum::http::header::CONTENT_TYPE,  "image/png".to_string()),
+                        (axum::http::header::CACHE_CONTROL, "public, max-age=300".to_string()),
+                    ],
+                    bytes.as_ref().clone(),
+                ));
+            }
+        }
+    }
+
+    // Snapshot the world under the sim lock and release before the
+    // CPU-heavy PNG encode. We deliberately clone the few small
+    // vectors we need — the snapshot is far smaller than a full
+    // wire frame and is dropped after render.
+    let snapshot = {
+        use crate::sim::config::DAY_LENGTH;
+        let sim = s.sim.lock().await;
+        use crate::og_image::{OgSnapshot, OgOrg, lineage_color};
+        let g = &sim.grid;
+        let mut orgs: Vec<OgOrg> = Vec::with_capacity(sim.organisms.len());
+        for o in sim.organisms.iter().filter(|o| o.alive) {
+            orgs.push(OgOrg {
+                x: o.x,
+                y: o.y,
+                color: lineage_color(&o.lineage_id),
+            });
+        }
+        let phase = sim.tick_count % DAY_LENGTH;
+        let day_t = phase as f32 / DAY_LENGTH as f32;
+        OgSnapshot {
+            width:  crate::world::grid::WIDTH,
+            height: crate::world::grid::HEIGHT,
+            tiles:  g.tiles.clone(),
+            biome:  g.biome.clone(),
+            orgs,
+            tick:   sim.tick_count,
+            day_t,
+        }
+    };
+
+    // PNG encode off the reactor.
+    let bytes_arc: Arc<Vec<u8>> = match tokio::task::spawn_blocking(move || crate::og_image::render(&snapshot)).await {
+        Ok(b) => Arc::new(b),
+        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    };
+
+    // Store in cache.
+    {
+        let mut guard = s.og_cache.lock().await;
+        *guard = Some((now, bytes_arc.clone()));
+    }
+
+    Ok((
+        [
+            (axum::http::header::CONTENT_TYPE,  "image/png".to_string()),
+            (axum::http::header::CACHE_CONTROL, "public, max-age=300".to_string()),
+        ],
+        bytes_arc.as_ref().clone(),
+    ))
+}
+
 pub async fn snapshot_handler(
     State(s): State<AppState>,
 ) -> Result<impl IntoResponse, StatusCode> {

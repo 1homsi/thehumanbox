@@ -11,6 +11,7 @@ mod memory_watch;
 mod narration_worker;
 mod conversation_worker;
 mod think_worker;
+mod og_image;
 #[cfg(feature = "webtransport")]
 mod webtransport;
 
@@ -87,6 +88,11 @@ async fn sleep_until_period_end(cycle_start: std::time::Instant, period_ms: u64)
 
 pub type LatestFull = Arc<std::sync::RwLock<Option<Arc<Vec<u8>>>>>;
 
+/// Cached OG image bytes + epoch_ms of the render time. Wrapped in an
+/// async mutex so the route handler can do a brief await across the
+/// PNG encode without blocking the world-broadcast tasks.
+pub type OgCache = Arc<tokio::sync::Mutex<Option<(u64, Arc<Vec<u8>>)>>>;
+
 #[derive(Clone)]
 pub struct AppState {
     pub sim:             SharedSim,
@@ -97,6 +103,7 @@ pub struct AppState {
     pub llm_stats:       crate::llm_stats::SharedLlmStats,
     pub memory_watch:    crate::memory_watch::SharedMemoryWatch,
     pub groq_limiter:    crate::llm_rate::SharedGroqLimiter,
+    pub og_cache:        OgCache,
     pub start_ms:        u64,
 }
 
@@ -564,12 +571,14 @@ async fn main() {
 
     latest_full_at.store(transport::now_ms(), std::sync::atomic::Ordering::Relaxed);
     let start_ms = transport::now_ms();
+    let og_cache: OgCache = Arc::new(tokio::sync::Mutex::new(None));
     let state = AppState {
         sim, tx, latest_full,
         latest_full_at: latest_full_at.clone(),
         transport_stats, llm_stats,
         memory_watch,
         groq_limiter,
+        og_cache,
         start_ms,
     };
 
@@ -583,6 +592,7 @@ async fn main() {
         .route("/llm", get(routes::llm_handler))
         .route("/memory", get(routes::memory_handler))
         .route("/health", get(routes::health_handler))
+        .route("/og.png", get(routes::og_handler))
         .layer(compression)
         .layer(cors)
         .with_state(state);

@@ -57,9 +57,13 @@ jobs:
         working-directory: client
         run: pnpm run build
         env:
-          VITE_API_BASE: ${{ secrets.VITE_API_BASE }}
-          VITE_GIT_SHA:  ${{ github.sha }}
-          VITE_BUILD_TS: ${{ steps.ts.outputs.build_ts }}
+          VITE_API_BASE:     ${{ secrets.VITE_API_BASE }}
+          VITE_GIT_SHA:      ${{ github.sha }}
+          VITE_BUILD_TS:     ${{ steps.ts.outputs.build_ts }}
+          # Public URL of the dynamic OG endpoint exposed by the
+          # simulation server. Defaults to the public production URL
+          # if the repo secret isn't set yet.
+          VITE_OG_IMAGE_URL: ${{ secrets.VITE_OG_IMAGE_URL || 'https://api.thehumanbox.com/og.png' }}
 
       - uses: actions/upload-artifact@v4
         with:
