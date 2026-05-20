@@ -1,9 +1,31 @@
 import { useMemo, useRef, useState, useCallback, useEffect } from 'react'
-import * as d3 from 'd3'
+import { stratify as d3stratify, hierarchy as d3hierarchy, tree as d3tree } from 'd3-hierarchy'
+import type { HierarchyNode as D3HierarchyNode, HierarchyPointNode as D3HierarchyPointNode } from 'd3-hierarchy'
+import { zoom as d3zoom, zoomIdentity, type ZoomTransform as D3ZoomTransform, type ZoomBehavior as D3ZoomBehavior } from 'd3-zoom'
+import { select as d3select } from 'd3-selection'
+import 'd3-transition'  // augments d3-selection with .transition()
+import { linkVertical as d3linkVertical } from 'd3-shape'
 import type { OrganismState } from '../types'
 import { lineageColor } from '../utils/constants'
 import { useFrozenSnapshot } from '../hooks/useFrozenSnapshot'
 import { Modal } from './Modal'
+
+// Namespace shim so the rest of the file keeps using d3.X.* without
+// a sweep; tree-shaking still drops everything we don't list above.
+const d3 = {
+  stratify:     d3stratify,
+  hierarchy:    d3hierarchy,
+  tree:         d3tree,
+  zoom:         d3zoom,
+  zoomIdentity,
+  select:       d3select,
+  linkVertical: d3linkVertical,
+}
+// Type aliases so `d3HierarchyNode` etc. in the body still resolve.
+type d3HierarchyNode<T>      = D3HierarchyNode<T>
+type d3HierarchyPointNode<T> = D3HierarchyPointNode<T>
+type d3ZoomTransform         = D3ZoomTransform
+type d3ZoomBehavior<E extends Element, D> = D3ZoomBehavior<E, D>
 
 const DAY_LENGTH = 600
 const NODE_R = 22
@@ -45,7 +67,7 @@ function layoutTree(orgs: OrganismState[]): { nodes: NodePos[]; w: number; h: nu
       return d.parent_id || SYNTHETIC_ROOT
     })
 
-  let root: d3.HierarchyNode<OrganismState>
+  let root: d3HierarchyNode<OrganismState>
   try {
     root = stratify(allNodes)
   } catch (_e) {
@@ -63,8 +85,8 @@ function layoutTree(orgs: OrganismState[]): { nodes: NodePos[]; w: number; h: nu
   let minX = Infinity, maxX = -Infinity, maxGen = 0
   root.each((n) => {
     if (n.data.id === SYNTHETIC_ROOT) return
-    const x = (n as d3.HierarchyPointNode<OrganismState>).x
-    const y = (n as d3.HierarchyPointNode<OrganismState>).y
+    const x = (n as d3HierarchyPointNode<OrganismState>).x
+    const y = (n as d3HierarchyPointNode<OrganismState>).y
     nodes.push({ org: n.data, x, y })
     if (x < minX) minX = x
     if (x > maxX) maxX = x
@@ -87,7 +109,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wrapRef   = useRef<HTMLDivElement>(null)
   const [hoverId, setHoverId] = useState<string | null>(null)
-  const [tf, setTf] = useState<d3.ZoomTransform>(d3.zoomIdentity)
+  const [tf, setTf] = useState<d3ZoomTransform>(d3.zoomIdentity)
   const tfRef = useRef(tf)
   tfRef.current = tf
 
@@ -153,7 +175,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
   useEffect(() => {
     const canvas = canvasRef.current
     const wrap   = wrapRef.current
-    const zoom   = canvas && (canvas as any).__d3zoom__ as d3.ZoomBehavior<HTMLCanvasElement, unknown> | undefined
+    const zoom   = canvas && (canvas as any).__d3zoom__ as d3ZoomBehavior<HTMLCanvasElement, unknown> | undefined
     if (!canvas || !wrap || !zoom || !nodes.length) return
     const vw = wrap.clientWidth
     const vh = wrap.clientHeight
@@ -357,13 +379,13 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
 
   const zoomBy = (factor: number) => {
     const canvas = canvasRef.current
-    const zoom   = canvas && (canvas as any).__d3zoom__ as d3.ZoomBehavior<HTMLCanvasElement, unknown> | undefined
+    const zoom   = canvas && (canvas as any).__d3zoom__ as d3ZoomBehavior<HTMLCanvasElement, unknown> | undefined
     if (canvas && zoom) d3.select(canvas).transition().duration(150).call(zoom.scaleBy, factor)
   }
   const fitAll = () => {
     const canvas = canvasRef.current
     const wrap   = wrapRef.current
-    const zoom   = canvas && (canvas as any).__d3zoom__ as d3.ZoomBehavior<HTMLCanvasElement, unknown> | undefined
+    const zoom   = canvas && (canvas as any).__d3zoom__ as d3ZoomBehavior<HTMLCanvasElement, unknown> | undefined
     if (!canvas || !wrap || !zoom || !nodes.length) return
     const vw = wrap.clientWidth
     const vh = wrap.clientHeight

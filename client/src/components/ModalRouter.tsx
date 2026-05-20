@@ -2,8 +2,6 @@ import { Suspense } from 'react'
 import { lazyWithRetry as lazy } from '../utils/lazyWithRetry'
 import type { WorldState, OrganismState } from '../types'
 import { useUIStore } from '../stores/store'
-import { Modal } from './Modal'
-import { lineageColor, lineageWord } from '../utils/constants'
 
 const LanguageModal      = lazy(() => import('./LanguageModal').then(m => ({ default: m.LanguageModal })))
 const ChroniclesModal    = lazy(() => import('./ChroniclesModal').then(m => ({ default: m.ChroniclesModal })))
@@ -12,6 +10,7 @@ const OrgSearchModal     = lazy(() => import('./OrgSearchModal').then(m => ({ de
 const StatsModal         = lazy(() => import('./StatsModal').then(m => ({ default: m.StatsModal })))
 const ConversationsModal = lazy(() => import('./ConversationsModal').then(m => ({ default: m.ConversationsModal })))
 const AboutModal         = lazy(() => import('./AboutModal').then(m => ({ default: m.AboutModal })))
+const AllLineagesModal   = lazy(() => import('./AllLineagesModal').then(m => ({ default: m.AllLineagesModal })))
 
 interface LineageInfo {
   count: number
@@ -44,9 +43,6 @@ export function ModalRouter({ world, lineages }: Props) {
   const closeAbout       = useUIStore(s => s.closeAbout)
   const closeConvo       = useUIStore(s => s.closeConvo)
   const followOrg        = useUIStore(s => s.followOrg)
-
-  const tribeName = (lid: string) =>
-    world?.lineage_names?.[lid] ?? (lid ?? '').slice(0, 6)
 
   return (
     <>
@@ -104,31 +100,13 @@ export function ModalRouter({ world, lineages }: Props) {
       </Suspense>
 
       {showAllLineages && (
-        <Modal open onClose={closeAllLineages} className="lang-modal" title="All lineages" hideTitle>
-          <div className="lang-modal-header">
-            <span className="lang-modal-title">ALL LINEAGES ({Object.keys(lineages).length})</span>
-            <button aria-label="Close" className="close-btn" onClick={closeAllLineages}>✕</button>
-          </div>
-          <div className="lang-modal-body">
-            <div className="lineage-list">
-              {Object.entries(lineages)
-                .sort((a, b) => b[1].count - a[1].count)
-                .map(([lid, info]) => (
-                  <div key={lid} className="lineage-row">
-                    <span className="lineage-dot" style={{ background: lineageColor(lid) }} />
-                    <span className="lineage-id">{tribeName(lid)}</span>
-                    <span className="lineage-count">{info.count}</span>
-                    <span className="lineage-gen">
-                      g{info.minGen}{info.maxGen > info.minGen ? `–${info.maxGen}` : ''}
-                    </span>
-                    <span className="lineage-strat">
-                      {lineageWord(info.orgs, 'home') || lineageWord(info.orgs, 'food') || ''}
-                    </span>
-                  </div>
-                ))}
-            </div>
-          </div>
-        </Modal>
+        <Suspense fallback={null}>
+          <AllLineagesModal
+            lineages={lineages}
+            lineageNames={world.lineage_names}
+            onClose={closeAllLineages}
+          />
+        </Suspense>
       )}
     </>
   )
