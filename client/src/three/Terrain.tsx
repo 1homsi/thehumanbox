@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { BufferAttribute, BufferGeometry, Mesh, MeshStandardMaterial } from 'three'
 import { TILE_SCALE, MAX_DEPTH, BIOME_COLORS, BIOME_ELEVATION, BIOME_ROUGHNESS, terrainNoise } from './constants'
 import { getTerrainTextures, biomeQuadrant } from './terrain-textures'
@@ -193,6 +193,13 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
     m.needsUpdate = true
     return m
   }, [colorTex, bumpTex])
+
+  // Dispose GPU-side buffers when the memoised geometry/material is
+  // replaced (depthMap or biomes ref changes — happens on every full
+  // frame). Without this, three.js leaks the previous BufferGeometry
+  // and MeshStandardMaterial on every snapshot.
+  useEffect(() => () => { geometry.dispose() }, [geometry])
+  useEffect(() => () => { material.dispose() }, [material])
 
   if (!geometry) return null
   return (

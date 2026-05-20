@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { BufferAttribute, BufferGeometry, Color, DoubleSide, MeshBasicMaterial } from 'three'
 import type { WorldState } from '../types'
@@ -99,6 +99,10 @@ function ClaimedMesh({ territory, depthMap, biomes }: Props) {
     )
   }, [territory.claimed, depthMap, biomes])
 
+  // Dispose the buffer geometry when the memo replaces it — territory
+  // updates land every cold frame and three.js never auto-frees these.
+  useEffect(() => () => { geo.dispose() }, [geo])
+
   return (
     <mesh geometry={geo} renderOrder={1}>
       <meshBasicMaterial
@@ -128,6 +132,9 @@ function ContestedMesh({
       biomes,
     )
   }, [territory.contested, depthMap, biomes])
+
+  // Dispose the contested-tile geometry on each refresh.
+  useEffect(() => () => { geo.dispose() }, [geo])
 
   useFrame(({ clock }) => {
     if (matRef.current) {
