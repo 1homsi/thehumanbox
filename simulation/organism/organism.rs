@@ -603,7 +603,7 @@ impl Organism {
         }
     }
 
-    pub fn perceive(&self, grid: &WorldGrid, organisms: &[Organism], night: bool, animal_near: bool) -> String {
+    pub fn perceive(&self, grid: &WorldGrid, organisms: &[Organism], night: bool, animal_near: bool, spatial: &crate::sim::spatial::SpatialIndex) -> String {
         let (ix, iy) = (self.x as i32, self.y as i32);
         let scan: i32 = if night {
             if self.traits.curiosity > 0.7 { 8 } else { 6 }
@@ -636,13 +636,20 @@ impl Organism {
         let food_dir  = if food_dist  == 999 { 'X' } else { dir_char(food_dx,  food_dy)  };
         let water_dir = if water_dist == 999 { 'X' } else { dir_char(water_dx, water_dy) };
 
+        // Spatial-bucketed neighbour scan instead of walking every
+        // organism in the world. Radius 5 in tile space; the index
+        // returns a slight superset (bucket-aligned), so we still
+        // apply the Manhattan-distance filter on hits.
         let mut org_near = 0u8;
         let mut kin_near = 0u8;
-        for other in organisms {
+        let mut buf: Vec<usize> = Vec::with_capacity(16);
+        spatial.query_into(self.x as i32, self.y as i32, 5, &mut buf);
+        for &i in &buf {
+            let other = &organisms[i];
             if std::ptr::eq(other, self) || !other.alive { continue; }
             if (other.x - self.x).abs() + (other.y - self.y).abs() <= 5.0 {
                 org_near = 1;
-                if other.lineage_id == self.lineage_id { kin_near = 1; }
+                if other.lineage_id == self.lineage_id { kin_near = 1; break; }
             }
         }
 
@@ -652,7 +659,11 @@ impl Organism {
         let att_char = {
             let mut nearest_lid: Option<&str> = None;
             let mut nearest_d = 999.0f32;
-            for other in organisms {
+            // Same spatial bucket reuse — nearest non-kin within `scan`.
+            buf.clear();
+            spatial.query_into(self.x as i32, self.y as i32, scan as i32, &mut buf);
+            for &i in &buf {
+                let other = &organisms[i];
                 if std::ptr::eq(other, self) || !other.alive || other.lineage_id == self.lineage_id { continue; }
                 let d = (other.x - self.x).abs() + (other.y - self.y).abs();
                 if d < nearest_d { nearest_d = d; nearest_lid = Some(&other.lineage_id); }

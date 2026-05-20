@@ -697,7 +697,7 @@ impl Simulation {
             let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
             self.animals.iter().any(|a| a.alive && (a.x - ox).abs() + (a.y - oy).abs() <= 8.0)
         };
-        let perception = self.organisms[idx].perceive(&self.grid, &self.organisms, night, animal_near);
+        let perception = self.organisms[idx].perceive(&self.grid, &self.organisms, night, animal_near, spatial);
         self.validate_or_assign_wander_target(idx);
 
         let hungry = self.organisms[idx].energy < 0.55;
@@ -818,7 +818,7 @@ impl Simulation {
                 self.organisms[idx].think("food consumed here", self.tick_count);
                 self.organisms[idx].log_event(format!("found and ate food at ({},{})", cx, cy));
                 self.grid.leave_trail(cx, cy, TrailKind::Food, 2.0);
-                self.broadcast_discovery(idx, cx, cy, "food", 8);
+                self.broadcast_discovery(idx, cx, cy, "food", 8, spatial);
                 if self.organisms[idx].infection > 0.01 {
                     self.organisms[idx].infection *= 0.88;
                 }
@@ -840,7 +840,7 @@ impl Simulation {
                 self.organisms[idx].think("water consumed here", self.tick_count);
                 self.organisms[idx].log_event(format!("drank from water at ({},{})", cx, cy));
                 self.grid.leave_trail(cx, cy, TrailKind::Water, 2.0);
-                self.broadcast_discovery(idx, cx, cy, "water", 8);
+                self.broadcast_discovery(idx, cx, cy, "water", 8, spatial);
                 self.organisms[idx].discover("water");
                 if self.organisms[idx].infection > 0.01 {
                     self.organisms[idx].infection *= 0.94;
@@ -1131,7 +1131,7 @@ impl Simulation {
             let ms = self.organisms[idx].traits.memory_strength;
             Organism::remember(&mut self.organisms[idx].danger_memory, cx, cy, 0.8, ms);
             self.organisms[idx].think("heat dangerous", self.tick_count);
-            self.broadcast_discovery(idx, cx, cy, "danger", 12);
+            self.broadcast_discovery(idx, cx, cy, "danger", 12, spatial);
             if self.rng.gen::<f32>() < 0.15 * (1.0 - self.organisms[idx].traits.resilience) {
                 self.organisms[idx].infection =
                     (self.organisms[idx].infection + 0.02).min(1.0);
@@ -1550,7 +1550,7 @@ impl Simulation {
             }
         }
 
-        let next_perception = self.organisms[idx].perceive(&self.grid, &self.organisms, night, animal_near);
+        let next_perception = self.organisms[idx].perceive(&self.grid, &self.organisms, night, animal_near, spatial);
         self.organisms[idx].learn(&perception, action, reward, &next_perception);
 
         if self.organisms[idx].energy > 0.7 && self.organisms[idx].hydration > 0.7 {
@@ -2620,9 +2620,11 @@ impl Simulation {
     }
 
     fn broadcast_discovery(&mut self, actor_idx: usize, x: i32, y: i32,
-                           rtype: &str, radius: i32) {
+                           rtype: &str, radius: i32, spatial: &SpatialIndex) {
         let (ax, ay) = (self.organisms[actor_idx].x, self.organisms[actor_idx].y);
-        for i in self.current_nearby_organisms(ax as i32, ay as i32, radius) {
+        let mut buf: Vec<usize> = Vec::with_capacity(16);
+        spatial.query_into(ax as i32, ay as i32, radius, &mut buf);
+        for &i in &buf {
             if i == actor_idx || !self.organisms[i].alive { continue; }
             let dist = ((self.organisms[i].x - ax).abs() + (self.organisms[i].y - ay).abs()) as i32;
             if dist > radius { continue; }
