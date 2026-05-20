@@ -1494,12 +1494,12 @@ impl Simulation {
             }
         }
 
-        let kin_orgs: Vec<f32> = self.organisms.iter()
+        // Inline fold — no Vec allocation per organism per tick.
+        let (kin_sum, kin_count) = self.organisms.iter()
             .filter(|o| o.alive && o.lineage_id == lineage)
-            .map(|o| o.energy)
-            .collect();
-        if kin_orgs.len() >= 3 && self.organisms[idx].energy > 0.4 {
-            let avg = kin_orgs.iter().sum::<f32>() / kin_orgs.len() as f32;
+            .fold((0.0f32, 0u32), |(s, n), o| (s + o.energy, n + 1));
+        if kin_count >= 3 && self.organisms[idx].energy > 0.4 {
+            let avg = kin_sum / kin_count as f32;
             reward += 0.003 * (avg - 0.5).max(0.0);
         }
 
@@ -1606,13 +1606,12 @@ impl Simulation {
 
             let last_council = *self.lineage_last_council.get(&my_lid).unwrap_or(&0);
             if self.tick_count - last_council >= 6000 {
-                let kin_energies: Vec<f32> = self.organisms.iter()
+                let (kin_sum, kin_count) = self.organisms.iter()
                     .filter(|o| o.alive && o.lineage_id == my_lid)
                     .filter(|o| (o.x - ox).abs() + (o.y - oy).abs() <= 6.0)
-                    .map(|o| o.energy)
-                    .collect();
-                if kin_energies.len() >= 5 {
-                    let avg = kin_energies.iter().sum::<f32>() / kin_energies.len() as f32;
+                    .fold((0.0f32, 0u32), |(s, n), o| (s + o.energy, n + 1));
+                if kin_count >= 5 {
+                    let avg = kin_sum / kin_count as f32;
                     if avg > 0.7 {
                         let (elder_name, elder_ctx) = {
                             if let Some(eid) = self.lineage_elders.get(&my_lid) {
@@ -1636,7 +1635,7 @@ impl Simulation {
                             org_name:   elder_name,
                             lineage_id: my_lid.clone(),
                             scenario:   "council".to_string(),
-                            kin_count:  kin_energies.len(),
+                            kin_count:  kin_count as usize,
                             energy_avg: avg,
                             context:    elder_ctx,
                             ..Default::default()
