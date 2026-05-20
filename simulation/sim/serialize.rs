@@ -213,3 +213,62 @@ impl Simulation {
         payload
     }
 }
+
+#[cfg(test)]
+mod schema_tests {
+    use super::*;
+
+    /// Lock the delta payload's top-level shape. The client wire
+    /// round-trip test in client/src/simulation/wire.roundtrip.test.ts
+    /// expects these exact keys; if a refactor here removes one
+    /// without coordinating the rename, this test catches it before
+    /// it reaches the wire.
+    #[test]
+    fn delta_payload_has_expected_top_level_keys() {
+        let mut sim = Simulation::new(42);
+        // Bump tick past the boot-time "include all entities" cutoff so
+        // we exercise the actual delta path the client sees in steady
+        // state. Boot frames are conceptually a full snapshot anyway.
+        sim.tick_count = 5;
+        let payload = sim.state_json_incremental();
+        let obj = payload.as_object().expect("payload must be a JSON object");
+        for key in &[
+            "tick", "grid", "organisms_complete", "animals", "animals_complete",
+            "is_day", "day_progress", "season", "season_progress",
+            "drought", "weather",
+        ] {
+            assert!(obj.contains_key(*key), "delta payload missing key `{}`", key);
+        }
+        // The hot-SoA path is what the client decodes for deltas.
+        assert!(obj.contains_key("organisms_hot"),
+            "delta payload must carry organisms_hot");
+        // Wind made it into the weather object.
+        let weather = obj["weather"].as_object().unwrap();
+        for key in &["kind", "intensity", "wind_x", "wind_y"] {
+            assert!(weather.contains_key(*key),
+                "weather missing key `{}`", key);
+        }
+    }
+
+    /// Verify that ages was actually dropped from the SoA payload —
+    /// the wire-slim-down work is only worth committing if the
+    /// serialised payload actually omits the field.
+    #[test]
+    fn organisms_hot_does_not_include_ages() {
+        let mut sim = Simulation::new(7);
+        sim.tick_count = 5;
+        // Need at least one alive org so the SoA isn't empty.
+        // The default `new` constructor seeds a small starter pop.
+        let payload = sim.state_json_incremental();
+        let hot = payload.as_object().unwrap().get("organisms_hot")
+            .expect("organisms_hot present");
+        let obj = hot.as_object().expect("organisms_hot is an object");
+        assert!(!obj.contains_key("ages"),
+            "ages must NOT be serialized in delta SoA — saves 4 bytes/org/tick");
+        // Spot-check that we still have the fields the client expects.
+        for key in &["ids", "xs", "ys", "vxs", "vys", "energies", "thoughts"] {
+            assert!(obj.contains_key(*key),
+                "organisms_hot missing required key `{}`", key);
+        }
+    }
+}
