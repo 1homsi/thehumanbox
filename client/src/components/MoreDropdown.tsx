@@ -52,7 +52,7 @@ export function MoreDropdown() {
       </div>
 
       <div className="more-dropdown-divider" />
-      <div className="more-dropdown-section">overlays</div>
+      <div className="more-dropdown-section">organism decorations</div>
       <div className="more-dropdown-grid">
         <button className={clsx('lang-btn', viewFlags.lineageDot && 'active')} onClick={() => setViewFlag('lineageDot', !viewFlags.lineageDot)} title="Colored dot per organism showing tribe affiliation">⬤ lineage</button>
         <button className={clsx('lang-btn', viewFlags.health     && 'active')} onClick={() => setViewFlag('health',     !viewFlags.health)} title="Ring tint by health">♥ health</button>

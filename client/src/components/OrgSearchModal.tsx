@@ -75,7 +75,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
           <span className="tree-modal-sub">
             {filtered.length} shown · {organisms.filter(o => o.alive).length} alive · {organisms.filter(o => !o.alive).length} dead
           </span>
-          <button className="close-btn" onClick={onClose}>✕</button>
+          <button aria-label="Close" className="close-btn" onClick={onClose}>✕</button>
         </div>
 
         {}

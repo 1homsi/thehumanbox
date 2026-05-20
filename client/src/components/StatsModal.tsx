@@ -41,7 +41,7 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
           <span className="tree-modal-sub">day {currentDay} · {liveCount} alive</span>
           <div className="modal-header-actions">
             <button className="reload-btn" onClick={reload} title="Reload from current world">⟳</button>
-            <button className="close-btn" onClick={onClose}>✕</button>
+            <button aria-label="Close" className="close-btn" onClick={onClose}>✕</button>
           </div>
         </div>
 

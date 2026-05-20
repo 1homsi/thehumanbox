@@ -389,7 +389,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
         </span>
         <div className="modal-header-actions">
           <button className="reload-btn" onClick={reload} title="Reload from current world">⟳</button>
-          <button className="close-btn" onClick={onClose}>✕</button>
+          <button aria-label="Close" className="close-btn" onClick={onClose}>✕</button>
         </div>
       </div>
 

@@ -107,7 +107,7 @@ export function ModalRouter({ world, lineages }: Props) {
         <Modal open onClose={closeAllLineages} className="lang-modal" title="All lineages" hideTitle>
           <div className="lang-modal-header">
             <span className="lang-modal-title">ALL LINEAGES ({Object.keys(lineages).length})</span>
-            <button className="close-btn" onClick={closeAllLineages}>✕</button>
+            <button aria-label="Close" className="close-btn" onClick={closeAllLineages}>✕</button>
           </div>
           <div className="lang-modal-body">
             <div className="lineage-list">

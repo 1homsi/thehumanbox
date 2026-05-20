@@ -1955,7 +1955,10 @@ body.thb-photo-mode .header:hover {
   .chronicles-modal,
   .tree-modal,
   .org-search-modal,
-  .stats-modal {
+  .stats-modal,
+  .about-modal,
+  .cv-modal,
+  .life-modal {
     width: 100vw !important;
     max-width: 100vw !important;
     border-radius: 14px 14px 0 0 !important;

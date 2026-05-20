@@ -16,7 +16,7 @@ export function ChroniclesModal({ stories, onClose }: Props) {
     <Modal open onClose={onClose} className="lang-modal chronicles-modal" title="Chronicles" hideTitle>
       <div className="lang-modal-header">
           <span className="lang-modal-title">CHRONICLES</span>
-          <button className="close-btn" onClick={onClose}>✕</button>
+          <button aria-label="Close" className="close-btn" onClick={onClose}>✕</button>
         </div>
         <div className="lang-modal-body">
           <p className="lang-modal-sub">

@@ -76,7 +76,7 @@ export function LifeModal({ orgId, orgName, onClose }: Props) {
     <Modal open onClose={onClose} className="lang-modal life-modal" title={`${orgName}'s Life`} hideTitle>
       <div className="lang-modal-header">
         <span className="lang-modal-title">{orgName.toUpperCase()}'S LIFE</span>
-        <button className="close-btn" onClick={onClose}>✕</button>
+        <button aria-label="Close" className="close-btn" onClick={onClose}>✕</button>
       </div>
       <div className="lang-modal-body">
         {loading && <div style={{ color: '#888', textAlign: 'center', padding: 20 }}>loading biography…</div>}

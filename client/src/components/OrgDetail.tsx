@@ -89,7 +89,7 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
           onClick={() => onFollow(following ? null : org.id)}
           title="Follow this organism"
         >{following ? '⊙ following' : '⊙ follow'}</button>
-        <button className="close-btn" onClick={onClose}>✕</button>
+        <button aria-label="Close" className="close-btn" onClick={onClose}>✕</button>
       </div>
 
       <div className="org-detail-sub">

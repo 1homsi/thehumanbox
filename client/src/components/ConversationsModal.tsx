@@ -107,7 +107,7 @@ export function ConversationsModal({ org, allOrgs, sexWords, onClose }: Props) {
             </span>
           )}
         </div>
-        <button className="close-btn" onClick={onClose}>✕</button>
+        <button aria-label="Close" className="close-btn" onClick={onClose}>✕</button>
       </div>
 
       {}

@@ -227,7 +227,7 @@ export function LanguageModal({ organisms, sexWords, onClose, lineageNames }: Pr
         <span className="lang-modal-title">LANGUAGES OF THE WORLD</span>
         <div className="modal-header-actions">
           <button className="reload-btn" onClick={reload} title="Reload from current world">⟳</button>
-          <button className="close-btn" onClick={onClose}>✕</button>
+          <button aria-label="Close" className="close-btn" onClick={onClose}>✕</button>
         </div>
       </div>
       <div className="lang-modal-body">

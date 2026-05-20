@@ -50,7 +50,7 @@ export function AboutModal({ onClose }: Props) {
     <Modal open onClose={onClose} className="about-modal" title="About" hideTitle>
       <div className="about-head">
         <span className="about-title">ABOUT</span>
-        <button className="close-btn" onClick={onClose}>✕</button>
+        <button aria-label="Close" className="close-btn" onClick={onClose}>✕</button>
       </div>
 
       <div className="about-body">
