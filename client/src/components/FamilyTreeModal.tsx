@@ -107,6 +107,11 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
   const { frozen: organisms, reload } = useFrozenSnapshot(() => livOrgs)
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  // Stash the d3 zoom behavior in a ref instead of monkey-patching
+  // the DOM node via (canvas as any).__d3zoom__. The DOM hack broke
+  // if two FamilyTreeModal instances ever mounted, or if React
+  // reused the canvas node — both rare but real failure modes.
+  const zoomRef = useRef<d3ZoomBehavior<HTMLCanvasElement, unknown> | null>(null)
   const wrapRef   = useRef<HTMLDivElement>(null)
   const [hoverId, setHoverId] = useState<string | null>(null)
   const [tf, setTf] = useState<d3ZoomTransform>(d3.zoomIdentity)
@@ -167,7 +172,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
 
     sel.call(zoom)
 
-    ;(canvas as any).__d3zoom__ = zoom
+    zoomRef.current = zoom
 
     return () => { sel.on('.zoom', null) }
   }, [])
@@ -175,7 +180,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
   useEffect(() => {
     const canvas = canvasRef.current
     const wrap   = wrapRef.current
-    const zoom   = canvas && (canvas as any).__d3zoom__ as d3ZoomBehavior<HTMLCanvasElement, unknown> | undefined
+    const zoom   = zoomRef.current ?? undefined
     if (!canvas || !wrap || !zoom || !nodes.length) return
     const vw = wrap.clientWidth
     const vh = wrap.clientHeight
@@ -379,13 +384,13 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
 
   const zoomBy = (factor: number) => {
     const canvas = canvasRef.current
-    const zoom   = canvas && (canvas as any).__d3zoom__ as d3ZoomBehavior<HTMLCanvasElement, unknown> | undefined
+    const zoom   = zoomRef.current ?? undefined
     if (canvas && zoom) d3.select(canvas).transition().duration(150).call(zoom.scaleBy, factor)
   }
   const fitAll = () => {
     const canvas = canvasRef.current
     const wrap   = wrapRef.current
-    const zoom   = canvas && (canvas as any).__d3zoom__ as d3ZoomBehavior<HTMLCanvasElement, unknown> | undefined
+    const zoom   = zoomRef.current ?? undefined
     if (!canvas || !wrap || !zoom || !nodes.length) return
     const vw = wrap.clientWidth
     const vh = wrap.clientHeight

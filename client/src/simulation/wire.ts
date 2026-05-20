@@ -216,11 +216,44 @@ export function parseWorldFrame(raw: ArrayBuffer | Uint8Array | string): Result<
     return err({ kind: 'schema', issues: ['root is not an object'] })
   }
   const d = decoded as Record<string, unknown>
-  if (typeof d.frame_id !== 'number' || typeof d.tick !== 'number'
-      || typeof d.organisms_complete !== 'boolean'
-      || typeof d.animals_complete !== 'boolean'
-      || !Array.isArray(d.animals)) {
-    return err({ kind: 'schema', issues: ['envelope shape mismatch'] })
+  // Boundary validation: walk every field the renderer reads off the
+  // frame and surface a real schema error instead of letting a
+  // malformed payload blow up deep inside applyGridWire or
+  // expandOrgsSoa. Each issue is collected so a single bad frame
+  // tells us everything wrong with it.
+  const issues: string[] = []
+  const isNum  = (v: unknown): v is number  => typeof v === 'number'  && Number.isFinite(v)
+  const isStr  = (v: unknown): v is string  => typeof v === 'string'
+  const isBool = (v: unknown): v is boolean => typeof v === 'boolean'
+
+  if (!isNum (d.frame_id))          issues.push('frame_id is not a finite number')
+  if (!isNum (d.tick))              issues.push('tick is not a finite number')
+  if (!isBool(d.organisms_complete)) issues.push('organisms_complete is not a boolean')
+  if (!isBool(d.animals_complete))   issues.push('animals_complete is not a boolean')
+  if (!Array.isArray(d.animals))    issues.push('animals is not an array')
+  if (d.grid == null || typeof d.grid !== 'object') {
+    issues.push('grid is not an object')
+  } else {
+    const g = d.grid as Record<string, unknown>
+    if (!isNum(g.width))  issues.push('grid.width is not a number')
+    if (!isNum(g.height)) issues.push('grid.height is not a number')
+    if (!Array.isArray(g.fire))      issues.push('grid.fire is not an array')
+    if (!Array.isArray(g.structure)) issues.push('grid.structure is not an array')
+  }
+  if (d.weather == null || typeof d.weather !== 'object') {
+    issues.push('weather is not an object')
+  } else {
+    const w = d.weather as Record<string, unknown>
+    if (!isStr(w.kind)) issues.push('weather.kind is not a string')
+    if (!isNum(w.intensity)) issues.push('weather.intensity is not a number')
+  }
+  if (!isStr(d.season))                issues.push('season is not a string')
+  if (!isBool(d.is_day))               issues.push('is_day is not a boolean')
+  if (!isNum (d.day_progress))         issues.push('day_progress is not a number')
+  if (!isNum (d.season_progress))      issues.push('season_progress is not a number')
+
+  if (issues.length > 0) {
+    return err({ kind: 'schema', issues })
   }
   return ok(decoded as IncomingWorldFrame)
 }
