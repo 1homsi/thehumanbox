@@ -25,7 +25,9 @@ pub struct LlmStats {
     pub think_5xx:            AtomicU64,
     pub think_local_fallback: AtomicU64,
     pub narration_429:        AtomicU64,
+    pub narration_5xx:        AtomicU64,
     pub conversation_429:     AtomicU64,
+    pub conversation_5xx:     AtomicU64,
 }
 
 #[derive(Serialize)]

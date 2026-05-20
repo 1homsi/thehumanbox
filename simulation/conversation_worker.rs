@@ -11,15 +11,16 @@ pub type ConvoLines = Vec<[String; 2]>;
 pub type ConvoStore = Arc<Mutex<std::collections::HashMap<String, ConvoLines>>>;
 
 fn merge_vocab(a: &ConvoSpeaker, b: &ConvoSpeaker) -> String {
+    let present = |s: Option<&String>| s.map(|w| !w.trim().is_empty()).unwrap_or(false);
     let mut keys: Vec<&str> = Vec::new();
     for k in ["food", "water", "fire", "danger", "friend", "shelter", "home", "child", "tribe", "hunt"] {
-        if a.vocab.contains_key(k) || b.vocab.contains_key(k) { keys.push(k) }
+        if present(a.vocab.get(k)) || present(b.vocab.get(k)) { keys.push(k) }
     }
     if keys.is_empty() { return "  (no shared tribe words yet)".to_string() }
     keys.iter()
         .map(|&k| {
-            let aw = a.vocab.get(k).map(|s| s.as_str()).unwrap_or("-");
-            let bw = b.vocab.get(k).map(|s| s.as_str()).unwrap_or("-");
+            let aw = a.vocab.get(k).map(|s| s.as_str()).filter(|s| !s.trim().is_empty()).unwrap_or("-");
+            let bw = b.vocab.get(k).map(|s| s.as_str()).filter(|s| !s.trim().is_empty()).unwrap_or("-");
             if aw == bw { format!("  {}: both say \"{}\"", k, aw) }
             else        { format!("  {}: {} says \"{}\", {} says \"{}\"", k, a.name, aw, b.name, bw) }
         })
@@ -41,29 +42,23 @@ fn kind_brief(kind: &str) -> &'static str {
 
 fn build_prompt(req: &ConversationReq) -> String {
     format!("\
-You write short authentic dialogue for primitive tribespeople in a tribal-survival simulation. \
-They speak basic English; their tribe has only a few invented words for key concepts.
+Short dialogue for primitive tribespeople in a tribal-survival sim. Basic English with a few invented tribe words.
 
 SCENE: {scene}
-EXPECTED LENGTH: exactly {n} lines, alternating speakers starting with {a_name}.
 
-SPEAKER A — {a_name} ({a_sex}, {a_age} days, mood: {a_mood}, tribe: {a_tribe}{a_partner})
+A — {a_name} ({a_sex}, {a_age} days, mood: {a_mood}, tribe: {a_tribe}{a_partner})
   recent: {a_recent}
-SPEAKER B — {b_name} ({b_sex}, {b_age} days, mood: {b_mood}, tribe: {b_tribe}{b_partner})
+B — {b_name} ({b_sex}, {b_age} days, mood: {b_mood}, tribe: {b_tribe}{b_partner})
   recent: {b_recent}
 
-THEIR TRIBE'S WORDS (only these, never invent new ones):
+TRIBE WORDS (only these, never invent new ones):
 {vocab}
 
 RULES:
-- Output EXACTLY {n} lines.
-- Each line MUST start with either \"{a_name}:\" or \"{b_name}:\" alternating, starting with {a_name}:
-- Each line is short — 3 to 12 words. Real speech, not narration.
-- They have a small vocabulary. Most words must be ordinary English. You MAY substitute one tribe word per line where it fits naturally (e.g. \"there is bo this way\" for water).
-- Reference something concrete from their `recent` activity, mood, or scene.
-- No stage directions, no \"*smiles*\", no parentheses, no narration.
-- No translations. No glossary. No preamble. Just the lines.
-- Each line ends with a period, question mark, or exclamation.
+- Output EXACTLY {n} lines, each ending in . ? or !, alternating \"{a_name}:\" / \"{b_name}:\" starting with {a_name}:.
+- 3-12 words per line; real speech, not narration. Reference recent/mood/scene.
+- Mostly ordinary English; you MAY substitute one tribe word per line where it fits.
+- No stage directions, parentheses, markdown, translations, or preamble.
 
 Output ONLY the lines, one per line.",
         scene    = kind_brief(&req.kind),

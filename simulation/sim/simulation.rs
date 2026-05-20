@@ -24,7 +24,7 @@ fn derive_mood(o: &Organism) -> String {
 }
 use super::spatial::SpatialIndex;
 
-pub const SAVE_SCHEMA_VERSION: u32 = 2;
+pub const SAVE_SCHEMA_VERSION: u32 = 3;
 
 #[derive(Default, Clone, Serialize, Deserialize)]
 #[serde(default)]

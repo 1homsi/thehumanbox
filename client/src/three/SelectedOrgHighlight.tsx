@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { BufferAttribute, BufferGeometry, CylinderGeometry, DoubleSide, Line, Mesh, TorusGeometry } from 'three'
+import { BufferAttribute, BufferGeometry, CylinderGeometry, DoubleSide, Line, LineBasicMaterial, Mesh, TorusGeometry } from 'three'
 import type { OrganismState } from '../types'
 import { useUIStore } from '../stores/store'
 import { TILE_SCALE } from './constants'
@@ -23,7 +23,7 @@ export function SelectedOrgHighlight({ organisms, depthMap, biomes }: Props) {
   const selectedOrgId = useUIStore(s => s.selectedOrgId)
   const ringRef   = useRef<Mesh>(null)
   const columnRef = useRef<Mesh>(null)
-  const trailRef  = useRef<Line | null>(null)
+  const trailRef  = useRef<Line<BufferGeometry, LineBasicMaterial> | null>(null)
   const trailBuf  = useRef<{ x: number; y: number; z: number }[]>([])
   const lastSample = useRef(0)
 
@@ -103,7 +103,6 @@ export function SelectedOrgHighlight({ organisms, depthMap, biomes }: Props) {
         />
       </mesh>
       <line
-        // @ts-expect-error - drei/three's intrinsic 'line' element ref type
         ref={trailRef}
         geometry={trailGeo}
         renderOrder={996}

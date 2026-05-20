@@ -34,7 +34,9 @@ fn format_events(log: &[String]) -> String {
 fn format_vocab(vocab: &std::collections::HashMap<String, String>) -> String {
     let mut pairs: Vec<String> = ["food", "water", "fire", "danger", "friend", "shelter", "home", "child", "tribe"]
         .iter()
-        .filter_map(|&c| vocab.get(c).map(|w| format!("  {} = \"{}\"", c, w)))
+        .filter_map(|&c| vocab.get(c)
+            .filter(|w| !w.trim().is_empty())
+            .map(|w| format!("  {} = \"{}\"", c, w)))
         .collect();
     pairs.sort();
     if pairs.is_empty() { "  (no tribe words yet)".to_string() } else { pairs.join("\n") }
@@ -42,34 +44,21 @@ fn format_vocab(vocab: &std::collections::HashMap<String, String>) -> String {
 
 fn build_prompt(req: &NarrationReq) -> String {
     format!("\
-You write a single-sentence vignette about what one primitive tribesperson did today, \
-for a tribal-survival simulation.
+One-sentence vignette of a primitive tribesperson's day, for a tribal-survival sim.
 
-ORG:
-  name: {name}
-  sex: {sex}
-  age: {age} days
-  mood: {mood}
-  partner: {partner}
-  children: {children}
-  tribe: {tribe}
-  world era: {era}
+ORG: {name} ({sex}, {age} days, mood: {mood}, partner: {partner}, children: {children}, tribe: {tribe}, era: {era})
 
-THEIR TRIBE'S WORDS:
+TRIBE WORDS:
 {vocab}
 
-TODAY this org did, in order:
+TODAY, in order:
 {events}
 
-WRITE exactly one English sentence (max 30 words) describing this day.
-
 RULES:
-- Past tense, active voice, concrete.
-- Reference at least one specific event from the list — do not invent events.
-- You MAY embed 1-2 tribe words from the list above for flavor (e.g. write \"the bo\" instead of \"the water\"). Do not invent new tribe words.
-- Do NOT start with their name.
-- No preamble like \"Here is a sentence:\" or surrounding quotes. No markdown.
-- End with a period.
+- One past-tense active sentence, max 30 words, ending in a period.
+- Reference at least one event above; do not invent events.
+- You MAY embed 1-2 tribe words from the list (e.g. \"the bo\" for water). Do not invent new ones.
+- Do NOT start with the name {name}. No preamble, quotes, or markdown.
 
 Output ONLY the sentence.",
         name = req.org_name,
@@ -193,7 +182,17 @@ async fn one_call(
     stats: &SharedLlmStats,
     limiter: &SharedGroqLimiter,
 ) -> Result<String, ()> {
-    limiter.acquire().await;
+    // 5s cap on permit acquisition: if Groq is unreachable and the permit
+    // pool stays drained, blocking here would wedge the worker. Treat a
+    // timeout as a rate-limit miss — return Err so the caller falls back
+    // to its template path without recording a success.
+    if tokio::time::timeout(
+        std::time::Duration::from_secs(5),
+        limiter.acquire(),
+    ).await.is_err() {
+        tracing::warn!(target: "narrate", "rate limiter acquire timed out after 5s — abort");
+        return Err(());
+    }
     let started = std::time::Instant::now();
     let resp = client.post(&**NARRATION_LLM_URL)
         .header("Authorization", format!("Bearer {}", api_key))

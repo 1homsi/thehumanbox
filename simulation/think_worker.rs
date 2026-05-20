@@ -199,19 +199,28 @@ fn build_prompt(trigger: &ThinkTrigger) -> (String, u32) {
     let memories    = if trigger.life_log_top.is_empty() { "no notable events".to_string() }
                       else { trigger.life_log_top.join("; ") };
 
-    // System header is held to a stable prefix across all requests so
-    // llama.cpp's prompt-cache layer can reuse the KV state for the
-    // first ~30 tokens regardless of org/scenario. Per-org context
-    // moves to AFTER the scenario so it varies later in the prompt.
+    // Prompt is split into THREE sections, ordered most-stable to most-volatile
+    // so llama.cpp's prompt-cache layer can reuse the KV state for the longest
+    // possible prefix across requests:
+    //   1. STABLE_HEADER — identical for every call (high cache hit)
+    //   2. ORG_STATE     — varies per creature (name, personality, memories…)
+    //                      but is stable across many ticks for the same org
+    //   3. ASK           — per-call scenario text + response format
+    // Previously the org-specific bits were interpolated into the very first
+    // tokens, which made the prefix unique per-org and defeated the cache.
+    let stable_header =
+        "You are a primitive creature surviving in a harsh world.\n\
+         Decisions are short, first-person, and grounded in instinct.\n\
+         Follow the response format exactly when one is given.\n";
+
     let world_ctx = {
         let mut parts = Vec::new();
         if !trigger.world_era.is_empty() { parts.push(format!("Era: {}", trigger.world_era)); }
         if !trigger.season.is_empty()    { parts.push(format!("Season: {}", trigger.season)); }
         if parts.is_empty() { String::new() } else { format!("World — {}.\n", parts.join(", ")) }
     };
-    let preamble = format!(
-        "You are a primitive creature surviving in a harsh world.\n\
-         {world_ctx}\
+    let org_state = format!(
+        "{world_ctx}\
          You are {name}.\n\
          Personality: {personality}.\n\
          Emotional state: {emotion}.\n\
@@ -331,16 +340,23 @@ fn build_prompt(trigger: &ThinkTrigger) -> (String, u32) {
 
     let _ = ticks; // ticks are set during result construction, not in prompt
 
+    // Assemble: STABLE_HEADER → ORG_STATE → ASK (scenario + format).
+    // The stable header is byte-identical across every call, giving the
+    // prompt-cache its longest possible shared prefix.
     let prompt = if trigger.scenario == "elder_teaching" {
         format!(
-            "{preamble}\n{scenario_text}\n\n\
+            "{stable_header}\
+             {org_state}\n\
+             {scenario_text}\n\n\
              Give ONE piece of wisdom to pass on. \
              Start with Remember, Always, or Never. Under 12 words.\n\
              TEACHING: "
         )
     } else {
         format!(
-            "{preamble}\n{scenario_text}\n\n\
+            "{stable_header}\
+             {org_state}\n\
+             {scenario_text}\n\n\
              Respond in EXACTLY this format (no other text):\n\
              THOUGHT: [your inner thought, 1-2 sentences, first person, as {name}]\n\
              ACTION: [one word from: {action_choices}]"
@@ -638,7 +654,32 @@ pub async fn think_worker(
             if attempt > 0 { format!(" (retry {})", attempt) } else { String::new() });
 
         if let Some(ref l) = limiter {
-            l.acquire().await;
+            // 5s cap on permit acquisition: if Groq is unreachable and the
+            // permit pool stays drained, blocking here would wedge the
+            // worker indefinitely. Treat a timeout as a rate-limit miss
+            // and fall through to local resolution.
+            match tokio::time::timeout(
+                std::time::Duration::from_secs(5),
+                l.acquire(),
+            ).await {
+                Ok(()) => {}
+                Err(_) => {
+                    tracing::warn!(
+                        target: "think",
+                        "rate limiter acquire timed out after 5s for {} — local fallback",
+                        trigger.org_name,
+                    );
+                    stats.note_think_local_fallback();
+                    let mut rng = rand::rngs::SmallRng::seed_from_u64(
+                        deterministic_think_seed(&trigger, attempt));
+                    if let Some(local) = local_think::resolve(&trigger, &mut rng) {
+                        if let Some(r) = build_result_from_local(&trigger, local) {
+                            results.lock().await.push(r);
+                        }
+                    }
+                    continue;
+                }
+            }
         }
 
         // Temperature picked per scenario. Council / negotiation /

@@ -1108,6 +1108,54 @@ impl WorldGrid {
         }
     }
 
+    /// Rare tectonic event: pick a random fault line (a roughly straight
+    /// strip ~5 tiles wide across a chunk of the map) and uplift it.
+    /// Grass/sand along the fault → rock (mountain push-up); water →
+    /// grass (continental rise). Single pass, ~30 tiles affected, cheap
+    /// enough to call from the world-events tick without budget worry.
+    pub fn tick_earthquake(&mut self, rng: &mut impl Rng) {
+        // Pick a fault: two endpoints on the map, walk the line between.
+        let horizontal = rng.gen_bool(0.5);
+        let length: i32 = 30;
+        let half = length / 2;
+
+        let (cx, cy) = (
+            rng.gen_range(half + 2..WIDTH as i32 - half - 2),
+            rng.gen_range(half + 2..HEIGHT as i32 - half - 2),
+        );
+        // Small jitter so the fault isn't perfectly axis-aligned.
+        let drift: i32 = rng.gen_range(-2..=2);
+
+        let mut flipped = 0usize;
+        for step in -half..=half {
+            let (x, y) = if horizontal {
+                (cx + step, cy + drift * step / half.max(1))
+            } else {
+                (cx + drift * step / half.max(1), cy + step)
+            };
+            // ~5-tile-wide strip: walk perpendicular ±2.
+            for off in -2..=2 {
+                let (tx, ty) = if horizontal { (x, y + off) } else { (x + off, y) };
+                if !Self::in_bounds(tx, ty) { continue; }
+                let i = Self::idx(tx, ty);
+                match self.get(tx, ty) {
+                    Tile::Grass | Tile::Sand | Tile::Food | Tile::Ash => {
+                        self.tiles[i] = Tile::Rock as i8;
+                        self.biome[i] = Biome::Volcanic as u8;
+                        flipped += 1;
+                    }
+                    Tile::Water => {
+                        self.tiles[i] = Tile::Grass as i8;
+                        self.biome[i] = Biome::Grassland as u8;
+                        flipped += 1;
+                    }
+                    _ => {}
+                }
+                if flipped >= 30 { return; }
+            }
+        }
+    }
+
     pub fn to_json_viewport(
         &self,
         cx: i32,

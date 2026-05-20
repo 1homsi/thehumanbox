@@ -1,7 +1,7 @@
 import { Suspense, useRef, useEffect, useState, useMemo } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { KeyboardControls, useKeyboardControls, PointerLockControls } from '@react-three/drei'
-import { Vector3 } from 'three'
+import { KeyboardControls, useKeyboardControls, PointerLockControls, OrbitControls } from '@react-three/drei'
+import { Vector3, TOUCH } from 'three'
 import type { WorldState } from '../types'
 import { useUIStore } from '../stores/store'
 import { Terrain } from '../three/Terrain'
@@ -191,6 +191,15 @@ export default function WorldView3D({ world }: Props) {
   // every flag toggle; a scalar selector is virtually free.
   const showTerritoryMap = useUIStore(s => s.viewFlags.territoryMap)
   const [follow, setFollow] = useState(false)
+
+  // Touch detection — PointerLockControls requires a mouse, so on touch
+  // devices fall back to OrbitControls (drag to orbit, pinch to zoom).
+  const isTouch = useMemo(() => {
+    if (typeof window === 'undefined') return false
+    const hasTouchEvent = 'ontouchstart' in window
+    const coarsePointer = window.matchMedia?.('(pointer: coarse)').matches ?? false
+    return hasTouchEvent || coarsePointer
+  }, [])
 
   useEffect(() => {
     if (!world) return
@@ -447,7 +456,14 @@ export default function WorldView3D({ world }: Props) {
             )}
             <FlyCamera depthMap={grid?.depth_map} biomes={grid?.biomes} />
             <CameraSync />
-            <PointerLockControls />
+            {isTouch ? (
+              <OrbitControls
+                enableDamping
+                touches={{ ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_PAN }}
+              />
+            ) : (
+              <PointerLockControls />
+            )}
           </Suspense>
         </Canvas>
       </KeyboardControls>

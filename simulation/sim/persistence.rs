@@ -160,6 +160,10 @@ pub(crate) struct SaveState {
     flood_tiles: Vec<(i32, i32, u64)>,
     #[serde(default)]
     territory: HashMap<String, Vec<[i32; 2]>>,
+    #[serde(default)]
+    last_immigration_tick: u64,
+    #[serde(default)]
+    settlement_tiers: HashMap<String, u8>,
 }
 
 fn mem_encode(m: &HashMap<(i32,i32), f32>) -> HashMap<String, f32> {
@@ -437,6 +441,8 @@ impl Simulation {
             territory: self.territory.iter()
                 .map(|(lid, tiles)| (lid.clone(), tiles.iter().map(|&(x,y)| [x,y]).collect()))
                 .collect(),
+            last_immigration_tick: self.last_immigration_tick,
+            settlement_tiers: self.settlement_tiers.clone(),
         }
     }
 }
@@ -648,12 +654,12 @@ impl Simulation {
             next_animal_id:         state.next_animal_id,
             lineage_names:          state.lineage_names,
             rng:                    state.rng.unwrap_or_else(|| ChaCha8Rng::seed_from_u64(seed ^ state.tick_count)),
-            last_immigration_tick:   0,
+            last_immigration_tick:   state.last_immigration_tick,
             cached_tribal_relations: serde_json::Value::Array(vec![]),
             cached_lineage_sizes:    serde_json::Value::Array(vec![]),
             slow_compute_tick:       0,
             active_structure_tiles,
-            settlement_tiers:        std::collections::HashMap::new(),
+            settlement_tiers:        state.settlement_tiers,
             territory: state.territory.into_iter()
                 .map(|(lid, tiles)| (lid, tiles.into_iter().map(|[x,y]| (x,y)).collect()))
                 .collect(),

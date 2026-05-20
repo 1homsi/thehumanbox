@@ -156,7 +156,10 @@ export const useUIStore = create<UIState>((set) => ({
 
   setOverlay:    (o) => set({ overlay: o }),
   setFocus:      (f) => set({ focus: f }),
-  setViewFlag:   (k, v) => set((s) => ({ viewFlags: { ...s.viewFlags, [k]: v } })),
+  setViewFlag:   (k, v) => set((s) => {
+    if (s.viewFlags[k] === v) return s
+    return { viewFlags: { ...s.viewFlags, [k]: v } }
+  }),
 }))
 
 /**

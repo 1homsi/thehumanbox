@@ -793,6 +793,15 @@ pub fn tick_world_evolution(
     if tick % 900 == 0 && tick >= 900 {
         grid.tick_forest_spread(rng);
     }
+    // Rare tectonic event: every 30k ticks, flip a coin. On average one
+    // earthquake per ~60k ticks — uncommon enough that organisms can't
+    // build a routine around it, frequent enough that long-running worlds
+    // accumulate a few visible fault scars.
+    if tick % 30000 == 0 && tick >= 30000 && rng.gen_bool(0.5) {
+        grid.tick_earthquake(rng);
+        push_event(events, tick, "earthquake", "world",
+            "the ground shudders; a fault line lifts new rock and dry land");
+    }
 
     for org in organisms.iter_mut() {
         if !org.alive { continue; }
