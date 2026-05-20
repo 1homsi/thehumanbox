@@ -7,6 +7,7 @@ mod routes;
 mod llm;
 mod llm_stats;
 mod llm_rate;
+mod memory_watch;
 mod narration_worker;
 mod conversation_worker;
 mod think_worker;
@@ -148,6 +149,27 @@ async fn main() {
     let groq_limiter = llm_rate::GroqRateLimiter::new(groq_limit_per_min);
     println!("[groq] rate limit: {}/min", groq_limit_per_min);
 
+    // Box-wide memory floors. We watch /proc/meminfo MemAvailable and
+    // throttle when the WHOLE box (us + llama.cpp + everything) runs low.
+    // EC2 c7g.medium has 2 GB RAM; defaults leave generous breathing room.
+    let mem_elev_mb: u64 = std::env::var("MEM_FLOOR_ELEVATED_MB")
+        .ok().and_then(|s| s.parse().ok()).unwrap_or(400);
+    let mem_crit_mb: u64 = std::env::var("MEM_FLOOR_CRITICAL_MB")
+        .ok().and_then(|s| s.parse().ok()).unwrap_or(200);
+    let memory_watch = memory_watch::MemoryWatch::new(mem_elev_mb, mem_crit_mb);
+    println!("[mem] watchdog: elevated below {} MB available, critical below {} MB available",
+        mem_elev_mb, mem_crit_mb);
+
+    // Local think lane (llama.cpp) needs its own throttle. Without one,
+    // bursts of 14 think scenarios per tick flood llama.cpp's per-slot KV
+    // cache and drive the box toward OOM. Default: 240 req/min (4/s),
+    // generous enough for steady play but capped so we never queue
+    // hundreds of concurrent decodes.
+    let local_think_per_min: usize = std::env::var("LOCAL_THINK_RPM")
+        .ok().and_then(|s| s.parse().ok()).unwrap_or(240);
+    let local_think_limiter = llm_rate::GroqRateLimiter::new(local_think_per_min);
+    println!("[think] local rate limit: {}/min", local_think_per_min);
+
     {
         let stories_w = stories.clone();
         let key = narration_key.clone();
@@ -163,7 +185,7 @@ async fn main() {
             println!("[groq] think lane points at Groq — applying shared rate limit");
             Some(groq_limiter.clone())
         } else {
-            None
+            Some(local_think_limiter.clone())
         };
         tokio::spawn(think_worker(think_rx, results_w, key, stats, think_limiter));
     }
@@ -182,6 +204,7 @@ async fn main() {
         let convo_store_cl   = convo_store.clone();
         let narration_tx2    = narration_tx.clone();
         let convo_tx2        = convo_tx.clone();
+        let memory_watch_cl  = memory_watch.clone();
         let transport_stats_s = transport_stats.clone();
         tokio::spawn(async move {
             loop {
@@ -189,6 +212,13 @@ async fn main() {
                 let pending_thinks = {
                     let mut s: tokio::sync::MutexGuard<'_, _> = sim_clone.lock().await;
                     s.tick();
+
+                    if s.tick_count % 30 == 0 {
+                        let p = memory_watch_cl.pressure();
+                        if !matches!(p, memory_watch::MemoryPressure::Normal) {
+                            s.apply_memory_pressure(p);
+                        }
+                    }
 
                     {
                         let mut results = think_res_clone.lock().await;
@@ -348,7 +378,8 @@ async fn main() {
                         }
                     }
 
-                    if s.tick_count % DAY_LENGTH == 0 {
+                    if s.tick_count % DAY_LENGTH == 0
+                        && !matches!(memory_watch_cl.pressure(), memory_watch::MemoryPressure::Critical) {
                         let cur_tick = s.tick_count;
                         let era = s.current_era.clone();
                         let lineage_names = s.lineage_names.clone();
@@ -409,10 +440,22 @@ async fn main() {
                 };
 
                 let (pending_thinks, pending_convos) = pending_thinks;
-                for t in pending_thinks {
+                let pressure = memory_watch_cl.pressure();
+                let think_budget = match pressure {
+                    memory_watch::MemoryPressure::Normal   => usize::MAX,
+                    memory_watch::MemoryPressure::Elevated => 2,
+                    memory_watch::MemoryPressure::Critical => 0,
+                };
+                for (i, t) in pending_thinks.into_iter().enumerate() {
+                    if i >= think_budget { break }
                     let _ = think_tx.try_send(t);
                 }
-                for c in pending_convos {
+                let convos_to_send = if matches!(pressure, memory_watch::MemoryPressure::Critical) {
+                    Vec::new()
+                } else {
+                    pending_convos
+                };
+                for c in convos_to_send {
                     let _ = convo_tx2.try_send(c);
                 }
                 transport_stats_s.record_sim_tick(

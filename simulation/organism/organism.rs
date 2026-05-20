@@ -329,11 +329,37 @@ impl Organism {
     // Idempotent — safe to call repeatedly; only logs + mutates loneliness on first promotion.
     pub fn add_friend(&mut self, id: &str, name: &str, tick: u64) {
         if !self.friends.contains_key(id) {
+            const MAX_FRIENDS: usize = 12;
+            if self.friends.len() >= MAX_FRIENDS {
+                let weakest = self.friends.keys()
+                    .min_by_key(|fid| (self.org_trust.get(fid.as_str()).copied().unwrap_or(0.0) * 1000.0) as i32)
+                    .cloned();
+                if let Some(k) = weakest { self.friends.remove(&k); }
+            }
             self.friends.insert(id.to_string(), name.to_string());
             self.log_life_rel(tick, "friendship",
                 format!("became close friends with {}", name),
                 Some(id.to_string()), Some(name.to_string()));
             self.loneliness = (self.loneliness - 0.25).max(0.0);
+        }
+    }
+
+    pub fn trim_social_maps(&mut self) {
+        const MAX_TRUST:     usize = 32;
+        const TRUST_KEEP:    usize = 24;
+        const MAX_ATTITUDES: usize = 24;
+        const ATT_KEEP:      usize = 18;
+        if self.org_trust.len() > MAX_TRUST {
+            let mut v: Vec<(String, f32)> = self.org_trust.drain().collect();
+            v.sort_by(|a, b| b.1.abs().partial_cmp(&a.1.abs()).unwrap_or(std::cmp::Ordering::Equal));
+            v.truncate(TRUST_KEEP);
+            self.org_trust = v.into_iter().collect();
+        }
+        if self.lineage_attitudes.len() > MAX_ATTITUDES {
+            let mut v: Vec<(String, f32)> = self.lineage_attitudes.drain().collect();
+            v.sort_by(|a, b| b.1.abs().partial_cmp(&a.1.abs()).unwrap_or(std::cmp::Ordering::Equal));
+            v.truncate(ATT_KEEP);
+            self.lineage_attitudes = v.into_iter().collect();
         }
     }
 
