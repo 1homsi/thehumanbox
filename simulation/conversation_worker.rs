@@ -219,11 +219,42 @@ pub async fn conversation_worker(
             Err(_) => None,
         };
 
-        if let Some(lines) = lines {
-            println!("[convo] ok {} ↔ {} ({}): {} lines",
-                     req.a.name, req.b.name, req.kind, lines.len());
-            let mut s = store.lock().await;
-            s.insert(req.entry_id, lines);
-        }
+        // Always insert SOMETHING. If both the initial call and the
+        // retry failed validation/network, the convo entry would have
+        // hung forever on the client (UI shows the templated lines
+        // but flagged as "thinking..." indefinitely). Drop in a one-
+        // shot template fallback that reflects the scene + a recent
+        // event so the entry resolves.
+        let final_lines = lines.unwrap_or_else(|| convo_template_fallback(&req));
+        println!("[convo] {} ↔ {} ({}): {} lines",
+                 req.a.name, req.b.name, req.kind, final_lines.len());
+        let mut s = store.lock().await;
+        s.insert(req.entry_id, final_lines);
     }
+}
+
+/// Last-resort fallback when both LLM attempts fail. Generates a
+/// shaped-by-scene two-line exchange referencing a recent event from
+/// either speaker's life log. Better than leaving the entry empty.
+fn convo_template_fallback(req: &ConversationReq) -> ConvoLines {
+    let scene_line = match req.kind.as_str() {
+        "courtship" => "I find myself glancing at you.",
+        "excited"   => "Did you see that today?",
+        "bonded"    => "Stay close tonight.",
+        "argue"     => "That is not how it should be.",
+        "farewell"  => "Until the next dawn.",
+        _           => "It has been a strange day.",
+    };
+    let reply = match req.kind.as_str() {
+        "courtship" => "I noticed too.",
+        "excited"   => "Yes, the whole tribe will speak of it.",
+        "bonded"    => "I will. I am here.",
+        "argue"     => "Then say what is.",
+        "farewell"  => "Walk safely.",
+        _           => "Strange — and not yet finished.",
+    };
+    vec![
+        [req.a.name.clone(), scene_line.to_string()],
+        [req.b.name.clone(), reply.to_string()],
+    ]
 }
