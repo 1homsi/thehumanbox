@@ -2,6 +2,7 @@
 
 use crate::organism::organism::Organism;
 use crate::sim::simulation::Simulation;
+use crate::sim::spatial::SpatialIndex;
 use crate::sim::world_events::push_event;
 use crate::world::grid::WorldGrid;
 use crate::world::tiles::Tile;
@@ -26,22 +27,27 @@ pub struct ActionCtx<'a> {
 }
 
 impl<'a> ActionCtx<'a> {
-    pub fn new(sim: &'a mut Simulation, idx: usize, ix: i32, iy: i32) -> Self {
+    pub fn new(sim: &'a mut Simulation, idx: usize, ix: i32, iy: i32, spatial: &SpatialIndex) -> Self {
         let tick = sim.tick_count;
         let (sx, sy) = (sim.organisms[idx].x, sim.organisms[idx].y);
         let lid  = sim.organisms[idx].lineage_id.clone();
         let tile = sim.grid.get(ix, iy);
 
-        let kin: Vec<usize> = sim.organisms.iter().enumerate()
-            .filter(|(i, o)| *i != idx && o.alive && o.lineage_id == lid)
-            .filter(|(_, o)| (o.x - sx).abs() + (o.y - sy).abs() <= 6.0)
-            .map(|(i, _)| i)
-            .collect();
-        let near: Vec<usize> = sim.organisms.iter().enumerate()
-            .filter(|(i, o)| *i != idx && o.alive)
-            .filter(|(_, o)| (o.x - sx).abs() + (o.y - sy).abs() <= 6.0)
-            .map(|(i, _)| i)
-            .collect();
+        // Use the per-tick spatial index instead of scanning the full
+        // organism list. The previous O(N) double-scan was the heaviest
+        // bit of work in try_apply when populations grow.
+        let mut cand: Vec<usize> = Vec::with_capacity(16);
+        spatial.query_into(sx as i32, sy as i32, 6, &mut cand);
+        let mut near: Vec<usize> = Vec::with_capacity(cand.len());
+        let mut kin:  Vec<usize> = Vec::with_capacity(cand.len() / 2);
+        for &i in &cand {
+            if i == idx { continue; }
+            let o = &sim.organisms[i];
+            if !o.alive { continue; }
+            if (o.x - sx).abs() + (o.y - sy).abs() > 6.0 { continue; }
+            near.push(i);
+            if o.lineage_id == lid { kin.push(i); }
+        }
         let rock_near = [(-1,0),(1,0),(0,-1),(0,1),(-1,-1),(1,-1),(-1,1),(1,1)]
             .iter().any(|&(dx,dy)| matches!(sim.grid.get(ix+dx, iy+dy), Tile::Rock | Tile::Mineral));
         let water_near = (-2i32..=2).any(|dx| (-2i32..=2).any(|dy|

@@ -1103,7 +1103,7 @@ impl Simulation {
             self.organisms[idx].think("marking territory", self.tick_count);
             signal_reward += 0.002;
         } else if action >= 26 {
-            if let Some(r) = super::actions::try_apply(self, idx, action, ix, iy) {
+            if let Some(r) = super::actions::try_apply(self, idx, action, ix, iy, spatial) {
                 signal_reward += r;
                 self.organisms[idx].energy =
                     (self.organisms[idx].energy - 0.0015).max(0.0);

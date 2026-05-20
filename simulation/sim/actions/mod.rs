@@ -145,8 +145,8 @@ pub fn available_actions(sim: &Simulation, idx: usize, ix: i32, iy: i32) -> Vec<
     a
 }
 
-pub fn try_apply(sim: &mut Simulation, idx: usize, action: usize, ix: i32, iy: i32) -> Option<f32> {
-    let mut ctx = ActionCtx::new(sim, idx, ix, iy);
+pub fn try_apply(sim: &mut Simulation, idx: usize, action: usize, ix: i32, iy: i32, spatial: &crate::sim::spatial::SpatialIndex) -> Option<f32> {
+    let mut ctx = ActionCtx::new(sim, idx, ix, iy, spatial);
     let r = match action {
         26..=38     => resources::apply(action, &mut ctx),
         39..=50     => construction::apply(action, &mut ctx),
