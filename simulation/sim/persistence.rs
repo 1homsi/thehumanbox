@@ -588,7 +588,7 @@ impl Simulation {
             }
         }
 
-        Simulation {
+        let mut sim = Simulation {
             grid,
             physics,
             organisms,
@@ -647,8 +647,24 @@ impl Simulation {
             territory: state.territory.into_iter()
                 .map(|(lid, tiles)| (lid, tiles.into_iter().map(|[x,y]| (x,y)).collect()))
                 .collect(),
+            tile_owner: std::collections::HashMap::new(),
             cached_territory: serde_json::Value::Null,
+        };
+        // The save format only stores the forward map; rebuild the
+        // inverse map after the struct exists. Last claim in the
+        // iteration order wins (matches runtime "most recent wins"
+        // semantics — order is unstable but the next claim_territory
+        // call refreshes it deterministically).
+        {
+            let mut owner = std::collections::HashMap::new();
+            for (lid, tiles) in sim.territory.iter() {
+                for &p in tiles {
+                    owner.insert(p, lid.clone());
+                }
+            }
+            sim.tile_owner = owner;
         }
+        sim
     }
 }
 

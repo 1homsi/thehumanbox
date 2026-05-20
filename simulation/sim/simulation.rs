@@ -156,8 +156,14 @@ pub struct Simulation {
     pub(crate) slow_compute_tick:       u64,
     pub(crate) active_structure_tiles: HashSet<(i32, i32)>,
     pub(crate) settlement_tiers: HashMap<String, u8>,
-    // tile → lineage owner; contested when two lineages both claim it
+    // lineage_id → set of claimed tiles. Kept for serialisation, draw
+    // overlays, and territory-size eviction logic.
     pub territory: HashMap<String, HashSet<(i32, i32)>>,
+    // Inverse of `territory`: tile → most-recent-claimer lineage_id.
+    // Avoids the O(L × T) scan of the forward map for per-org rival
+    // lookups every tick. "Most recent wins" is fine for our attitude-
+    // decay use — we just need *a* rival, not the full conflict set.
+    pub(crate) tile_owner: HashMap<(i32, i32), String>,
     pub(crate) cached_territory: serde_json::Value,
 }
 
@@ -229,6 +235,7 @@ impl Simulation {
             active_structure_tiles:  HashSet::new(),
             settlement_tiers:        HashMap::new(),
             territory:               HashMap::new(),
+            tile_owner:              HashMap::new(),
             cached_territory:        serde_json::Value::Null,
         };
         sim.spawn_founders();
@@ -671,13 +678,15 @@ impl Simulation {
             self.claim_territory(&lid, hx, hy, radius);
         }
 
-        // Rival territory pressure: being on a rival's claimed tile degrades attitude.
+        // Rival territory pressure: being on a rival's claimed tile
+        // degrades attitude. The inverse map (tile_owner) makes this
+        // an O(1) lookup instead of an O(L × T_avg) scan of every
+        // lineage's claimed tile set.
         {
             let (ox_i, oy_i) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
-            let my_lid = self.organisms[idx].lineage_id.clone();
-            let rival_lid: Option<String> = self.territory.iter()
-                .find(|(lid, tiles)| lid.as_str() != my_lid && tiles.contains(&(ox_i, oy_i)))
-                .map(|(lid, _)| lid.clone());
+            let rival_lid: Option<String> = self.tile_owner.get(&(ox_i, oy_i))
+                .filter(|lid| lid.as_str() != self.organisms[idx].lineage_id)
+                .cloned();
             if let Some(rival) = rival_lid {
                 let att = self.organisms[idx].lineage_attitudes.entry(rival).or_insert(0.0);
                 *att = (*att - 0.002).max(-1.0);
@@ -2766,22 +2775,44 @@ impl Simulation {
     /// Caps each lineage at 400 tiles — evicts tiles farthest from the claimed center.
     pub(crate) fn claim_territory(&mut self, lid: &str, cx: i32, cy: i32, radius: i32) {
         const MAX_TERRITORY: usize = 400;
-        let tiles = self.territory.entry(lid.to_string()).or_insert_with(HashSet::new);
+        // Pre-compute the tile list so we can update both maps without
+        // holding two mutable borrows on `self` simultaneously.
+        let mut to_claim: Vec<(i32, i32)> = Vec::new();
         for dy in -radius..=radius {
             for dx in -radius..=radius {
                 if dx * dx + dy * dy > radius * radius { continue; }
                 let tx = (cx + dx).clamp(0, crate::world::grid::WIDTH  as i32 - 1);
                 let ty = (cy + dy).clamp(0, crate::world::grid::HEIGHT as i32 - 1);
                 if matches!(self.grid.get(tx, ty), Tile::Water | Tile::Void) { continue; }
-                tiles.insert((tx, ty));
+                to_claim.push((tx, ty));
             }
         }
+        let tiles = self.territory.entry(lid.to_string()).or_insert_with(HashSet::new);
+        for p in &to_claim {
+            tiles.insert(*p);
+        }
+        let mut evicted: Vec<(i32, i32)> = Vec::new();
         if tiles.len() > MAX_TERRITORY {
             let mut sorted: Vec<(i32, i32)> = tiles.iter().copied().collect();
             sorted.sort_by_key(|&(x, y)| -((x - cx) * (x - cx) + (y - cy) * (y - cy)));
             let excess = sorted.len() - MAX_TERRITORY;
-            for (x, y) in sorted.into_iter().take(excess) {
-                tiles.remove(&(x, y));
+            for p in sorted.into_iter().take(excess) {
+                tiles.remove(&p);
+                evicted.push(p);
+            }
+        }
+        // Update the inverse map. New claims overwrite (most-recent
+        // wins). Evictions only clear the inverse entry if it was
+        // owned by *this* lineage — another lineage may have a more
+        // recent claim on the same tile.
+        for p in to_claim {
+            self.tile_owner.insert(p, lid.to_string());
+        }
+        for p in evicted {
+            if let Some(owner) = self.tile_owner.get(&p) {
+                if owner == lid {
+                    self.tile_owner.remove(&p);
+                }
             }
         }
     }
