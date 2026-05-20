@@ -209,7 +209,7 @@ async fn main() {
         tokio::spawn(async move {
             loop {
                 let tick_started = std::time::Instant::now();
-                let pending_thinks = {
+                let tick_outputs = {
                     let mut s: tokio::sync::MutexGuard<'_, _> = sim_clone.lock().await;
                     s.tick();
 
@@ -430,16 +430,32 @@ async fn main() {
                         }
                     }
 
-                    if s.tick_count % SAVE_EVERY_TICKS == 0 {
-                        s.save(SAVE_PATH);
-                    }
+                    // Snapshot the save state while the lock is held
+                    // (cheap-ish clones); the heavy lifting (serde_json
+                    // + fs::write + fsync) happens on a blocking task so
+                    // the next tick can run during it. Previously this
+                    // blocked the lock for 100-300ms every 600 ticks,
+                    // causing visible tick-rate hitches and freezing
+                    // HTTP routes that share the same mutex.
+                    let pending_save = if s.tick_count % SAVE_EVERY_TICKS == 0 {
+                        Some(s.to_save_state())
+                    } else {
+                        None
+                    };
 
                     let pending_thinks = std::mem::take(&mut s.pending_thinks);
                     let pending_convos = std::mem::take(&mut s.pending_convos);
-                    (pending_thinks, pending_convos)
+                    (pending_thinks, pending_convos, pending_save)
                 };
 
-                let (pending_thinks, pending_convos) = pending_thinks;
+                let (pending_thinks, pending_convos, pending_save) = tick_outputs;
+                if let Some(state) = pending_save {
+                    tokio::task::spawn_blocking(move || {
+                        if let Err(e) = sim::persistence::write_save_to_disk(&state, SAVE_PATH) {
+                            eprintln!("[save] failed: {}", e);
+                        }
+                    });
+                }
                 let pressure = memory_watch_cl.pressure();
                 let think_budget = match pressure {
                     memory_watch::MemoryPressure::Normal   => usize::MAX,

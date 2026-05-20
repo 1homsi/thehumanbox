@@ -366,7 +366,17 @@ impl Simulation {
     }
 
     pub fn save_result(&self, path: &str) -> io::Result<()> {
-        let state = SaveState {
+        let state = self.to_save_state();
+        write_save_to_disk(&state, path)
+    }
+
+    /// Builds the in-memory SaveState snapshot. Cheap-ish (mostly
+    /// Vec/HashMap clones); no fs IO, no serialization. Call this
+    /// while you hold the sim lock, then pass the result to
+    /// `write_save_to_disk` on a background blocking task so the
+    /// next tick can run while serde_json + fs::write happen.
+    pub fn to_save_state(&self) -> SaveState {
+        SaveState {
             version:        SAVE_SCHEMA_VERSION,
             tick_count:     self.tick_count,
             next_animal_id: self.next_animal_id,
@@ -419,27 +429,34 @@ impl Simulation {
             territory: self.territory.iter()
                 .map(|(lid, tiles)| (lid.clone(), tiles.iter().map(|&(x,y)| [x,y]).collect()))
                 .collect(),
-        };
-        let json = serde_json::to_string(&state)
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-        let tmp_path = format!("{}.tmp", path);
-
-        {
-            use std::io::Write;
-            let mut f = std::fs::File::create(&tmp_path)?;
-            f.write_all(json.as_bytes())?;
-            f.sync_all()?;
         }
-        std::fs::rename(&tmp_path, path)?;
-        if let Some(parent) = std::path::Path::new(path).parent() {
-            let dir = if parent.as_os_str().is_empty() { std::path::Path::new(".") } else { parent };
-            if let Ok(d) = std::fs::File::open(dir) {
-                let _ = d.sync_all();
-            }
-        }
-        Ok(())
     }
+}
 
+/// Standalone IO so it can be called from a blocking task off the
+/// main runtime. Atomic rename + parent-dir fsync mirror the
+/// previous in-line behaviour.
+pub fn write_save_to_disk(state: &SaveState, path: &str) -> io::Result<()> {
+    let json = serde_json::to_string(state)
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    let tmp_path = format!("{}.tmp", path);
+    {
+        use std::io::Write;
+        let mut f = std::fs::File::create(&tmp_path)?;
+        f.write_all(json.as_bytes())?;
+        f.sync_all()?;
+    }
+    std::fs::rename(&tmp_path, path)?;
+    if let Some(parent) = std::path::Path::new(path).parent() {
+        let dir = if parent.as_os_str().is_empty() { std::path::Path::new(".") } else { parent };
+        if let Ok(d) = std::fs::File::open(dir) {
+            let _ = d.sync_all();
+        }
+    }
+    Ok(())
+}
+
+impl Simulation {
     pub fn load_or_new(seed: u64, path: &str) -> Self {
         match std::fs::read_to_string(path) {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
