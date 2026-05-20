@@ -440,12 +440,21 @@ function drawWorldOnCanvas(
   overlay: string | null,
   focus: string,
   viewFlags: ViewFlags,
+  bounds?: { c0: number; c1: number; r0: number; r1: number },
 ) {
   const { width, height, tiles, fire_intensity, structure } = world.grid
   const { food_trail, water_trail, path_trail, fertility, hazard } = world.grid
   if (!tiles || tiles.length < height) return
   const ox = world.grid.origin_x ?? 0
   const oy = world.grid.origin_y ?? 0
+  // Clip per-tile overlay loops to the visible window when bounds is
+  // provided. Bounds is computed by the caller from camera + dims and
+  // already includes a margin. When zoomed out (whole world visible)
+  // the bounds collapse to the full grid, so this is a no-op.
+  const r0 = bounds?.r0 ?? 0
+  const r1 = bounds?.r1 ?? height
+  const c0 = bounds?.c0 ?? 0
+  const c1 = bounds?.c1 ?? width
   // Prefer the viewport-filtered list (smaller) but fall back to the
   // full cache when it's empty. `??` alone returns [] when viewport is
   // an empty array, which silently hid all animals if the wire ever
@@ -523,10 +532,13 @@ function drawWorldOnCanvas(
     ctx.fillStyle = world.is_day
       ? 'rgba(255,255,255,0.55)'
       : 'rgba(180,200,240,0.30)'
-    for (let row = 0; row < height; row += 2) {
+    // Align to even boundaries so the star-on-water pattern stays
+    // stable as the camera pans (stride-2 sampling must visit the
+    // same cells from frame to frame).
+    for (let row = r0 & ~1; row < r1; row += 2) {
       const drow = world.grid.depth_map?.[row]
       if (!drow) continue
-      for (let col = 0; col < width; col += 2) {
+      for (let col = c0 & ~1; col < c1; col += 2) {
         if ((drow[col] ?? 255) >= 254) continue
         let h = (col * 374761393 + row * 668265263) | 0
         h = ((h ^ (h >>> 13)) * 1274126177) >>> 0
@@ -571,10 +583,10 @@ function drawWorldOnCanvas(
     if (dm) {
       const shimmerT = t * 0.0015
       ctx.fillStyle = 'rgba(180,230,255,0.28)'
-      for (let row = 0; row < height; row++) {
+      for (let row = r0; row < r1; row++) {
         const dr = dm[row]
         if (!dr) continue
-        for (let col = 0; col < width; col++) {
+        for (let col = c0; col < c1; col++) {
           const d = dr[col] ?? 255
           if (d < 180 || d >= 254) continue
           let h = (col * 374761393 + row * 668265263 + (shimmerT * 100 | 0)) | 0
@@ -615,8 +627,8 @@ function drawWorldOnCanvas(
     }
   }
 
-  for (let row = 0; row < height; row++) {
-    for (let col = 0; col < width; col++) {
+  for (let row = r0; row < r1; row++) {
+    for (let col = c0; col < c1; col++) {
       const t = tiles[row][col]
       if (t !== 4 && t !== 7 && t !== 8) continue
       const px = col * TILE
@@ -685,10 +697,10 @@ function drawWorldOnCanvas(
   // Settlement markers: draw a subtle ring around clusters of 3+ huts
   {
     const hutPositions: [number, number][] = []
-    for (let row = 0; row < height; row++) {
+    for (let row = r0; row < r1; row++) {
       const tr = tiles[row]
       if (!tr) continue
-      for (let col = 0; col < width; col++) {
+      for (let col = c0; col < c1; col++) {
         if (tr[col] === 8) hutPositions.push([col, row])
       }
     }
@@ -758,8 +770,8 @@ function drawWorldOnCanvas(
   }
 
   if (structure) {
-    for (let row = 0; row < height; row++) {
-      for (let col = 0; col < width; col++) {
+    for (let row = r0; row < r1; row++) {
+      for (let col = c0; col < c1; col++) {
         const s = structure[row][col]
         if (s < 0.05) continue
         const t = tiles[row][col]
@@ -803,10 +815,10 @@ function drawWorldOnCanvas(
 
   if (overlay === 'hazard' && world.grid.hazard) {
     const haz = world.grid.hazard
-    for (let row = 0; row < height; row++) {
+    for (let row = r0; row < r1; row++) {
       const r = haz[row]
       if (!r) continue
-      for (let col = 0; col < width; col++) {
+      for (let col = c0; col < c1; col++) {
         const v = r[col] ?? 0
         if (v < 0.05) continue
         ctx.fillStyle = `rgba(220,40,30,${Math.min(0.75, v * 0.9)})`
@@ -817,10 +829,10 @@ function drawWorldOnCanvas(
 
   if (overlay === 'fertility' && world.grid.fertility) {
     const fer = world.grid.fertility
-    for (let row = 0; row < height; row++) {
+    for (let row = r0; row < r1; row++) {
       const r = fer[row]
       if (!r) continue
-      for (let col = 0; col < width; col++) {
+      for (let col = c0; col < c1; col++) {
         const v = r[col] ?? 0
         if (v < 0.10) continue
         ctx.fillStyle = `rgba(80,200,80,${Math.min(0.55, v * 0.6)})`
@@ -831,10 +843,10 @@ function drawWorldOnCanvas(
 
   if (overlay === 'structures' && world.grid.structure) {
     const str = world.grid.structure
-    for (let row = 0; row < height; row++) {
+    for (let row = r0; row < r1; row++) {
       const r = str[row]
       if (!r) continue
-      for (let col = 0; col < width; col++) {
+      for (let col = c0; col < c1; col++) {
         const v = r[col] ?? 0
         if (v < 0.05) continue
         ctx.fillStyle = `rgba(255,170,60,${Math.min(0.7, v * 0.8)})`
@@ -847,11 +859,11 @@ function drawWorldOnCanvas(
     const ft = world.grid.food_trail
     const wt = world.grid.water_trail
     const pt = world.grid.path_trail
-    for (let row = 0; row < height; row++) {
+    for (let row = r0; row < r1; row++) {
       const fr = ft?.[row]
       const wr = wt?.[row]
       const pr = pt?.[row]
-      for (let col = 0; col < width; col++) {
+      for (let col = c0; col < c1; col++) {
         const f = fr?.[col] ?? 0
         const w = wr?.[col] ?? 0
         const p = pr?.[col] ?? 0
@@ -884,9 +896,9 @@ function drawWorldOnCanvas(
         }
       }
     }
-    for (let row = 0; row < height; row++) {
+    for (let row = r0; row < r1; row++) {
       const rowBase = row * width
-      for (let col = 0; col < width; col++) {
+      for (let col = c0; col < c1; col++) {
         const idx = rowBase + col
         const c = cnt[idx]
         if (c === 0) continue
@@ -918,9 +930,9 @@ function drawWorldOnCanvas(
         }
       }
     }
-    for (let row = 0; row < height; row++) {
+    for (let row = r0; row < r1; row++) {
       const rowBase = row * width
-      for (let col = 0; col < width; col++) {
+      for (let col = c0; col < c1; col++) {
         const v = heat[rowBase + col]
         if (v < 0.15) continue
         const t = Math.min(1, v / 2)
@@ -950,9 +962,9 @@ function drawWorldOnCanvas(
     }
     let maxD = 1
     for (let k = 0; k < n; k++) if (grid2d[k] > maxD) maxD = grid2d[k]
-    for (let row = 0; row < height; row++) {
+    for (let row = r0; row < r1; row++) {
       const rowBase = row * width
-      for (let col = 0; col < width; col++) {
+      for (let col = c0; col < c1; col++) {
         const v = grid2d[rowBase + col]
         if (v < 1) continue
         const t2 = Math.min(v / maxD, 1)
@@ -1146,10 +1158,10 @@ function drawWorldOnCanvas(
 
   if (viewFlags.fertility && fertility) {
     ctx.save()
-    for (let row = 0; row < height; row++) {
+    for (let row = r0; row < r1; row++) {
       const r = fertility[row]
       if (!r) continue
-      for (let col = 0; col < width; col++) {
+      for (let col = c0; col < c1; col++) {
         const f = r[col]
         if (f == null) continue
         if (f > 0.55) {
@@ -1166,10 +1178,10 @@ function drawWorldOnCanvas(
 
   if (viewFlags.hazard && hazard) {
     ctx.save()
-    for (let row = 0; row < height; row++) {
+    for (let row = r0; row < r1; row++) {
       const r = hazard[row]
       if (!r) continue
-      for (let col = 0; col < width; col++) {
+      for (let col = c0; col < c1; col++) {
         const h = r[col]
         if (h == null || h < 0.02) continue
         ctx.fillStyle = `rgba(200,40,40,${Math.min(0.55, h * 0.9)})`
@@ -1182,10 +1194,10 @@ function drawWorldOnCanvas(
   // Always show high-traffic paths subtly (helps map feel lived-in)
   if (path_trail) {
     ctx.save()
-    for (let row = 0; row < height; row++) {
+    for (let row = r0; row < r1; row++) {
       const pr = path_trail[row]
       if (!pr) continue
-      for (let col = 0; col < width; col++) {
+      for (let col = c0; col < c1; col++) {
         const p = pr[col] ?? 0
         if (p < 0.55) continue
         ctx.fillStyle = `rgba(160,130,80,${Math.min(0.28, p * 0.30)})`
@@ -1197,8 +1209,8 @@ function drawWorldOnCanvas(
 
   if (viewFlags.trails && (food_trail || water_trail || path_trail)) {
     ctx.save()
-    for (let row = 0; row < height; row++) {
-      for (let col = 0; col < width; col++) {
+    for (let row = r0; row < r1; row++) {
+      for (let col = c0; col < c1; col++) {
         const f = food_trail?.[row]?.[col] ?? 0
         const w = water_trail?.[row]?.[col] ?? 0
         const p = path_trail?.[row]?.[col] ?? 0
@@ -1224,10 +1236,10 @@ function drawWorldOnCanvas(
     ctx.save()
     ctx.strokeStyle = 'rgba(255,210,140,0.7)'
     ctx.lineWidth = 1
-    for (let row = 0; row < height; row++) {
+    for (let row = r0; row < r1; row++) {
       const r = structure[row]
       if (!r) continue
-      for (let col = 0; col < width; col++) {
+      for (let col = c0; col < c1; col++) {
         if (r[col] && r[col] > 0.1) {
           ctx.strokeRect(col * TILE + 0.5, row * TILE + 0.5, TILE - 1, TILE - 1)
         }
@@ -1505,7 +1517,7 @@ function drawWorldOnCanvas(
   }
 }
 
-function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, onFirstDraw, atX, atY }: { world: WorldState; interp?: InterpRefs; selectedOrgId: string | null; overlay: string | null; focus: string; viewFlags: ViewFlags; onFirstDraw: () => void; atX: number; atY: number }) {
+function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, onFirstDraw, atX, atY, cameraStateRef, viewportDims }: { world: WorldState; interp?: InterpRefs; selectedOrgId: string | null; overlay: string | null; focus: string; viewFlags: ViewFlags; onFirstDraw: () => void; atX: number; atY: number; cameraStateRef?: React.MutableRefObject<{ x: number; y: number; zoom: number }>; viewportDims?: { w: number; h: number } }) {
   useEntity()
 
   const W = world.grid.width  * TILE
@@ -1624,7 +1636,26 @@ function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, 
         season_progress:    lerpedSeason,
       }
 
-      drawWorldOnCanvas(dyn.ctx, enrichedWorld, selectedOrgIdRef.current, overlayRef.current, focusRef.current, viewFlagsRef.current)
+      // Compute the visible-tile window so per-tile overlay loops can
+      // skip rows/cols off-screen. We give a 4-tile margin so panning
+      // doesn't reveal blank borders before the next frame redraws.
+      let bounds: { c0: number; c1: number; r0: number; r1: number } | undefined
+      if (cameraStateRef && viewportDims && viewportDims.w > 0 && viewportDims.h > 0) {
+        const cam = cameraStateRef.current
+        const zoom = cam.zoom > 0 ? cam.zoom : 1
+        const halfW = viewportDims.w / (2 * zoom)
+        const halfH = viewportDims.h / (2 * zoom)
+        const MARGIN = 4
+        const wG = w.grid.width
+        const hG = w.grid.height
+        const c0 = Math.max(0,  Math.floor((cam.x - halfW) / TILE) - MARGIN)
+        const c1 = Math.min(wG, Math.ceil ((cam.x + halfW) / TILE) + MARGIN)
+        const r0 = Math.max(0,  Math.floor((cam.y - halfH) / TILE) - MARGIN)
+        const r1 = Math.min(hG, Math.ceil ((cam.y + halfH) / TILE) + MARGIN)
+        if (c1 > c0 && r1 > r0) bounds = { c0, c1, r0, r1 }
+      }
+
+      drawWorldOnCanvas(dyn.ctx, enrichedWorld, selectedOrgIdRef.current, overlayRef.current, focusRef.current, viewFlagsRef.current, bounds)
       dyn.markDirty()
 
       lastDrawnAt = curServerAt
@@ -1901,6 +1932,8 @@ export function WorldView({ world, interp }: Props) {
                 onFirstDraw={() => setMapReady(true)}
                 atX={cx}
                 atY={cy}
+                cameraStateRef={cameraStateRef}
+                viewportDims={dims}
               />
             </Entity>
 
