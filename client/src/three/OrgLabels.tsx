@@ -20,6 +20,9 @@ export function OrgLabels({ organisms, depthMap, biomes }: Props) {
   const { camera } = useThree()
   const selectedOrgId = useUIStore(s => s.selectedOrgId)
 
+  const camX5 = Math.round(camera.position.x / 5) * 5
+  const camZ5 = Math.round(camera.position.z / 5) * 5
+
   const labels = useMemo(() => {
     if (!depthMap || !biomes) return []
     const cx = camera.position.x
@@ -49,7 +52,7 @@ export function OrgLabels({ organisms, depthMap, biomes }: Props) {
     scored.sort((a, b) => (a.selected === b.selected ? a.d - b.d : a.selected ? -1 : 1))
     return scored.slice(0, MAX_LABELS)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [organisms, depthMap, biomes, camera.position.x, camera.position.z, selectedOrgId])
+  }, [organisms, depthMap, biomes, camX5, camZ5, selectedOrgId])
 
   return (
     <>
