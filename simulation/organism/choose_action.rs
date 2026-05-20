@@ -603,11 +603,14 @@ impl Organism {
                 let vb = q_row.map(|r| r.get_q(b as u16)).unwrap_or(0.0);
                 va.partial_cmp(&vb).unwrap_or(std::cmp::Ordering::Equal)
             });
+        // Commit to the best available action even when best_val ≤ 0.
+        // The previous gate (`if best_val > 0.0`) silently fell through
+        // to a uniform-random pick whenever every learned Q was negative,
+        // so the agent kept re-trying punished actions instead of
+        // settling on the least-bad. Greedy-on-best is the right policy
+        // here; exploration is already gated by `eff_eps` upstream.
         if let Some(best_idx) = best_avail {
-            let best_val = q_row.map(|r| r.get_q(best_idx as u16)).unwrap_or(0.0);
-            if best_val > 0.0 {
-                return (best_idx, thought);
-            }
+            return (best_idx, thought);
         }
         let pool = if available.is_empty() { &[][..] } else { available };
         let pick = if pool.is_empty() {

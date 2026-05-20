@@ -446,8 +446,16 @@ function drawWorldOnCanvas(
   if (!tiles || tiles.length < height) return
   const ox = world.grid.origin_x ?? 0
   const oy = world.grid.origin_y ?? 0
-  const organisms = world.viewport_organisms ?? world.organisms ?? []
-  const animals = world.viewport_animals ?? world.animals ?? []
+  // Prefer the viewport-filtered list (smaller) but fall back to the
+  // full cache when it's empty. `??` alone returns [] when viewport is
+  // an empty array, which silently hid all animals if the wire ever
+  // shipped a frame with `animals: []` even though the cache held many.
+  const orgPick = world.viewport_organisms && world.viewport_organisms.length > 0
+    ? world.viewport_organisms : (world.organisms ?? [])
+  const animalPick = world.viewport_animals && world.viewport_animals.length > 0
+    ? world.viewport_animals : (world.animals ?? [])
+  const organisms = orgPick
+  const animals = animalPick
   const W = width * TILE
   const H = height * TILE
   const t = Date.now()
