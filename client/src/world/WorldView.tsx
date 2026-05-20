@@ -968,67 +968,95 @@ function drawWorldOnCanvas(
     const MAX_DIST_SQ = 40 * 40
     const bw = Math.ceil(width  / BLOCK)
     const bh = Math.ceil(height / BLOCK)
-    const orgData = liveOrgs.map(o => {
-      const hsl = lineageColor(o.lineage_id)
-      const dark = hsl.replace(/(\d+)%\)$/, (_, l) => `${Math.max(15, Number(l) - 30)}%, 0.85)`)
-        .replace('hsl(', 'hsla(')
-      return {
-        tx:     o.x - ox,
-        ty:     o.y - oy,
-        lid:    o.lineage_id,
-        fill:   hsl.replace('hsl(', 'hsla(').replace(')', ', 0.25)'),
-        border: dark,
-      }
-    })
 
-    const ownerLid:    (string | null)[][] = Array.from({ length: bh }, () => new Array(bw).fill(null))
-    const ownerFill:   (string | null)[][] = Array.from({ length: bh }, () => new Array(bw).fill(null))
-    const ownerBorder: (string | null)[][] = Array.from({ length: bh }, () => new Array(bw).fill(null))
+    // Dedupe by lineage so two orgs of the same lineage share one
+    // palette entry (string ops happen once per lineage, not per org).
+    type Lin = { fill: string; border: string; lid: string }
+    const linByLid = new Map<string, number>()
+    const lineages: Lin[] = []
+    // Parallel SoA arrays for the nearest-org search — cache friendlier
+    // than walking an array of records, and lets us skip object lookups
+    // inside the hot inner loop.
+    const orgTx = new Float32Array(liveOrgs.length)
+    const orgTy = new Float32Array(liveOrgs.length)
+    const orgLin = new Int32Array(liveOrgs.length)
+    for (let i = 0; i < liveOrgs.length; i++) {
+      const o = liveOrgs[i]
+      orgTx[i] = o.x - ox
+      orgTy[i] = o.y - oy
+      let idx = linByLid.get(o.lineage_id)
+      if (idx === undefined) {
+        const hsl = lineageColor(o.lineage_id)
+        const dark = hsl.replace(/(\d+)%\)$/, (_, l) => `${Math.max(15, Number(l) - 30)}%, 0.85)`)
+          .replace('hsl(', 'hsla(')
+        const fill = hsl.replace('hsl(', 'hsla(').replace(')', ', 0.25)')
+        idx = lineages.length
+        lineages.push({ fill, border: dark, lid: o.lineage_id })
+        linByLid.set(o.lineage_id, idx)
+      }
+      orgLin[i] = idx
+    }
+
+    // Flat Int32Array for owner-lineage indices: 1 alloc instead of 3×
+    // nested arrays of strings. -1 = unowned, otherwise index into `lineages`.
+    const owner = new Int32Array(bw * bh)
+    owner.fill(-1)
+    const orgN = liveOrgs.length
     for (let by = 0; by < bh; by++) {
+      const rowOffset = by * bw
+      const cy2 = by * BLOCK + BLOCK * 0.5
+      const cy2i = Math.floor(cy2)
+      const tilesRow = tiles[cy2i]
       for (let bx = 0; bx < bw; bx++) {
         const cx2 = bx * BLOCK + BLOCK * 0.5
-        const cy2 = by * BLOCK + BLOCK * 0.5
-        if (tiles[Math.floor(cy2)]?.[Math.floor(cx2)] === 2) continue
-        let bestLid = '', bestFill = '', bestBorder = '', bestDist = MAX_DIST_SQ
-        for (const od of orgData) {
-          const d = (od.tx - cx2) ** 2 + (od.ty - cy2) ** 2
-          if (d < bestDist) { bestDist = d; bestLid = od.lid; bestFill = od.fill; bestBorder = od.border }
+        if (tilesRow?.[Math.floor(cx2)] === 2) continue
+        let bestIdx = -1, bestDist = MAX_DIST_SQ
+        for (let i = 0; i < orgN; i++) {
+          const dx = orgTx[i] - cx2
+          const dy = orgTy[i] - cy2
+          const d  = dx * dx + dy * dy
+          if (d < bestDist) { bestDist = d; bestIdx = orgLin[i] }
         }
-        if (bestLid) {
-          ownerLid[by][bx]    = bestLid
-          ownerFill[by][bx]   = bestFill
-          ownerBorder[by][bx] = bestBorder
-        }
+        if (bestIdx >= 0) owner[rowOffset + bx] = bestIdx
       }
     }
 
+    // Fill pass: batch contiguous spans of identical lineage on the same
+    // row into a single fillRect (avoids per-cell state-change cost).
     for (let by = 0; by < bh; by++) {
-      for (let bx = 0; bx < bw; bx++) {
-        const fill = ownerFill[by][bx]
-        if (!fill) continue
-        ctx.fillStyle = fill
-        ctx.fillRect(bx * BLOCK * TILE, by * BLOCK * TILE, BLOCK * TILE, BLOCK * TILE)
+      const rowOffset = by * bw
+      let bx = 0
+      while (bx < bw) {
+        const idx = owner[rowOffset + bx]
+        if (idx < 0) { bx++; continue }
+        let ex = bx + 1
+        while (ex < bw && owner[rowOffset + ex] === idx) ex++
+        ctx.fillStyle = lineages[idx].fill
+        ctx.fillRect(bx * BLOCK * TILE, by * BLOCK * TILE, (ex - bx) * BLOCK * TILE, BLOCK * TILE)
+        bx = ex
       }
     }
 
     const BW = 2
     for (let by = 0; by < bh; by++) {
+      const rowOffset = by * bw
+      const topOffset    = by > 0      ? rowOffset - bw : -1
+      const bottomOffset = by < bh - 1 ? rowOffset + bw : -1
       for (let bx = 0; bx < bw; bx++) {
-        const lid    = ownerLid[by][bx]
-        const border = ownerBorder[by][bx]
-        if (!lid || !border) continue
-        const px = bx * BLOCK * TILE, py = by * BLOCK * TILE
-        const sz = BLOCK * TILE
-        const top    = by > 0      ? ownerLid[by-1][bx] : null
-        const bottom = by < bh - 1 ? ownerLid[by+1][bx] : null
-        const left   = bx > 0      ? ownerLid[by][bx-1] : null
-        const right  = bx < bw - 1 ? ownerLid[by][bx+1] : null
-        if (top !== lid || bottom !== lid || left !== lid || right !== lid) {
-          ctx.fillStyle = border
-          if (top    !== lid) ctx.fillRect(px,           py,           sz, BW)
-          if (bottom !== lid) ctx.fillRect(px,           py + sz - BW, sz, BW)
-          if (left   !== lid) ctx.fillRect(px,           py,           BW, sz)
-          if (right  !== lid) ctx.fillRect(px + sz - BW, py,           BW, sz)
+        const idx = owner[rowOffset + bx]
+        if (idx < 0) continue
+        const top    = topOffset    >= 0 ? owner[topOffset + bx]    : -1
+        const bottom = bottomOffset >= 0 ? owner[bottomOffset + bx] : -1
+        const left   = bx > 0           ? owner[rowOffset + bx - 1] : -1
+        const right  = bx < bw - 1      ? owner[rowOffset + bx + 1] : -1
+        if (top !== idx || bottom !== idx || left !== idx || right !== idx) {
+          ctx.fillStyle = lineages[idx].border
+          const px = bx * BLOCK * TILE, py = by * BLOCK * TILE
+          const sz = BLOCK * TILE
+          if (top    !== idx) ctx.fillRect(px,           py,           sz, BW)
+          if (bottom !== idx) ctx.fillRect(px,           py + sz - BW, sz, BW)
+          if (left   !== idx) ctx.fillRect(px,           py,           BW, sz)
+          if (right  !== idx) ctx.fillRect(px + sz - BW, py,           BW, sz)
         }
       }
     }
