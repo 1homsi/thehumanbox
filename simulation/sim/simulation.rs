@@ -57,6 +57,8 @@ pub struct ThinkTrigger {
     pub social_tendency:   f32,
     pub curiosity:         f32,
     pub resilience:        f32,
+    pub world_era:         String,
+    pub season:            String,
 }
 
 impl Default for ThinkTrigger {
@@ -71,6 +73,7 @@ impl Default for ThinkTrigger {
             target_org_id: None,
             aggression: 0.5, fear: 0.5, social_tendency: 0.5,
             curiosity: 0.5, resilience: 0.5,
+            world_era: String::new(), season: String::new(),
         }
     }
 }
