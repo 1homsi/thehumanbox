@@ -310,8 +310,8 @@ impl Simulation {
                 .map(|o| o.org_trust.len())
                 .sum();
             let rss_kb = read_self_rss_kb_local();
-            println!(
-                "[mem] t{} alive={} q_rows={} food={} trust={} rss_mb={:.1}",
+            tracing::info!(target: "mem",
+                "t{} alive={} q_rows={} food={} trust={} rss_mb={:.1}",
                 self.tick_count, alive, q_rows, food, trust,
                 rss_kb as f64 / 1024.0,
             );

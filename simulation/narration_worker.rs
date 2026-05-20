@@ -224,20 +224,20 @@ pub async fn narration_worker(
         .unwrap_or_default();
 
     while let Some(req) = rx.recv().await {
-        println!("[narrate] queuing story for {} - {} events, mood={}", req.org_name, req.life_log.len(), req.mood);
+        tracing::info!(target: "narrate", "queuing story for {} - {} events, mood={}", req.org_name, req.life_log.len(), req.mood);
 
         let raw = one_call(&client, &api_key, build_prompt(&req), &stats, &limiter).await;
         let story = match raw {
             Ok(s) => match validate(&s, &req.org_name) {
                 Ok(ok) => Some(ok),
                 Err(why) => {
-                    println!("[narrate] rejected first response for {} ({}): {:?}", req.org_name, why, s);
+                    tracing::info!(target: "narrate", "rejected first response for {} ({}): {:?}", req.org_name, why, s);
                     let retry = one_call(&client, &api_key, build_strict_retry_prompt(&req), &stats, &limiter).await;
                     match retry {
                         Ok(s2) => match validate(&s2, &req.org_name) {
                             Ok(ok) => Some(ok),
                             Err(why2) => {
-                                println!("[narrate] rejected retry for {} ({}): {:?}", req.org_name, why2, s2);
+                                tracing::info!(target: "narrate", "rejected retry for {} ({}): {:?}", req.org_name, why2, s2);
                                 None
                             }
                         },
@@ -249,7 +249,7 @@ pub async fn narration_worker(
         };
 
         let final_story = story.unwrap_or_else(|| template_fallback(&req));
-        println!("[narrate] {} → {}", req.org_name, final_story);
+        tracing::info!(target: "narrate", "{} → {}", req.org_name, final_story);
         let mut store = stories.lock().await;
         store.insert(req.org_id, final_story);
     }

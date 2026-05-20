@@ -26,11 +26,11 @@ pub async fn serve(
         let incoming = server.accept().await;
         let session_req = match incoming.await {
             Ok(s) => s,
-            Err(e) => { eprintln!("[wt] connect error: {e}"); continue; }
+            Err(e) => { tracing::warn!(target: "wt", "connect error: {e}"); continue; }
         };
         let session = match session_req.accept().await {
             Ok(s) => s,
-            Err(e) => { eprintln!("[wt] accept error: {e}"); continue; }
+            Err(e) => { tracing::warn!(target: "wt", "accept error: {e}"); continue; }
         };
 
         let mut session_rx = rx.resubscribe();

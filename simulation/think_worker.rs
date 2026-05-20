@@ -378,7 +378,7 @@ fn build_result_from_llm(
             teaching.split_whitespace().take(14).collect::<Vec<_>>().join(" ")
         } else { teaching };
         if teaching.is_empty() { return None; }
-        println!("[think/llm] elder {} teaching → {}", trigger.org_name, teaching);
+        tracing::info!(target: "think/llm", "elder {} teaching → {}", trigger.org_name, teaching);
         return Some(ThinkResult {
             org_id:        trigger.org_id.clone(),
             target_org_id: trigger.target_org_id.clone(),
@@ -413,7 +413,7 @@ fn build_result_from_llm(
         thought.split_whitespace().take(18).collect::<Vec<_>>().join(" ")
     } else { thought };
 
-    println!("[think/llm] {} {}→action={:?} thought={:?}", trigger.org_name, trigger.scenario, action, thought);
+    tracing::info!(target: "think/llm", "{} {}→action={:?} thought={:?}", trigger.org_name, trigger.scenario, action, thought);
 
     match trigger.scenario.as_str() {
         "first_contact" => {
@@ -634,7 +634,7 @@ pub async fn think_worker(
         // measurable benefit. Rate limiting is now enforced by the
         // shared GroqRateLimiter immediately before the POST.)
 
-        println!("[think] {} scenario={}{}", trigger.org_name, trigger.scenario,
+        tracing::info!(target: "think", "{} scenario={}{}", trigger.org_name, trigger.scenario,
             if attempt > 0 { format!(" (retry {})", attempt) } else { String::new() });
 
         if let Some(ref l) = limiter {
@@ -671,11 +671,11 @@ pub async fn think_worker(
                 if status == 429 || status.is_server_error() {
                     stats.record_think(started.elapsed().as_millis() as u64, true);
                     if attempt < 3 && retry_queue.len() < 20 {
-                        println!("[think] llm {} - queuing retry {}/3 for {}",
+                        tracing::info!(target: "think", "llm {} - queuing retry {}/3 for {}",
                             status, attempt + 1, trigger.org_name);
                         retry_queue.push_back((trigger, attempt + 1));
                     } else {
-                        println!("[think] llm {} - falling back to local for {}", status, trigger.org_name);
+                        tracing::info!(target: "think", "llm {} - falling back to local for {}", status, trigger.org_name);
                         stats.note_think_local_fallback();
                         let mut rng = rand::rngs::SmallRng::seed_from_u64(
                             deterministic_think_seed(&trigger, attempt));
@@ -695,7 +695,7 @@ pub async fn think_worker(
                     stats.record_think(started.elapsed().as_millis() as u64, true);
                     let body = resp.text().await.unwrap_or_default();
                     let body_snip: String = body.chars().take(200).collect();
-                    println!("[think] llm {} for {}: {} — local fallback",
+                    tracing::info!(target: "think", "llm {} for {}: {} — local fallback",
                         status, trigger.org_name, body_snip);
                     stats.note_think_local_fallback();
                     let mut rng = rand::rngs::SmallRng::seed_from_u64(
@@ -715,7 +715,7 @@ pub async fn think_worker(
             }
             Err(e) => {
                 stats.record_think(started.elapsed().as_millis() as u64, true);
-                println!("[think] llm error for {} ({}): {} — using local fallback",
+                tracing::info!(target: "think", "llm error for {} ({}): {} — using local fallback",
                     trigger.org_name, trigger.scenario, e);
                 // Network error → local fallback immediately (no retry)
                 let mut rng = rand::rngs::SmallRng::seed_from_u64(

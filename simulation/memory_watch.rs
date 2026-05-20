@@ -48,7 +48,7 @@ impl MemoryWatch {
                 let pressure = w.classify(avail);
                 let prev = w.pressure.swap(pressure as u8, Ordering::Relaxed);
                 if prev != pressure as u8 {
-                    println!("[mem] pressure {:?} → {:?} (avail={:.0} MB, own_rss={:.0} MB)",
+                    tracing::warn!(target: "mem", "pressure {:?} → {:?} (avail={:.0} MB, own_rss={:.0} MB)",
                         pressure_from_u8(prev), pressure,
                         avail as f64 / 1024.0, own as f64 / 1024.0);
                 }

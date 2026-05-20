@@ -201,14 +201,14 @@ pub async fn conversation_worker(
             Ok(s) => match parse_and_validate(&s, &req) {
                 Ok(v) => Some(v),
                 Err(why) => {
-                    println!("[convo] reject first ({} ↔ {} / {}): {} — raw: {:?}",
+                    tracing::info!(target: "convo", "reject first ({} ↔ {} / {}): {} — raw: {:?}",
                              req.a.name, req.b.name, req.kind, why, s);
                     let retry = one_call(&client, &api_key, build_retry_prompt(&req), &stats, max_tokens, &limiter).await;
                     match retry {
                         Ok(s2) => match parse_and_validate(&s2, &req) {
                             Ok(v) => Some(v),
                             Err(why2) => {
-                                println!("[convo] reject retry ({}): {}", req.kind, why2);
+                                tracing::info!(target: "convo", "reject retry ({}): {}", req.kind, why2);
                                 None
                             }
                         },
@@ -226,7 +226,7 @@ pub async fn conversation_worker(
         // shot template fallback that reflects the scene + a recent
         // event so the entry resolves.
         let final_lines = lines.unwrap_or_else(|| convo_template_fallback(&req));
-        println!("[convo] {} ↔ {} ({}): {} lines",
+        tracing::info!(target: "convo", "{} ↔ {} ({}): {} lines",
                  req.a.name, req.b.name, req.kind, final_lines.len());
         let mut s = store.lock().await;
         s.insert(req.entry_id, final_lines);

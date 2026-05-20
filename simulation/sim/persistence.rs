@@ -364,7 +364,7 @@ fn animal_from_save(s: AnimalSave) -> Animal {
 impl Simulation {
     pub fn save(&self, path: &str) {
         if let Err(e) = self.save_result(path) {
-            eprintln!("[save] failed to write {}: {}", path, e);
+            tracing::warn!(target: "save", "failed to write {}: {}", path, e);
         }
     }
 
@@ -463,11 +463,11 @@ impl Simulation {
     pub fn load_or_new(seed: u64, path: &str) -> Self {
         match std::fs::read_to_string(path) {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                println!("No save at {} - starting fresh world", path);
+                tracing::info!("No save at {} - starting fresh world", path);
                 Self::new(seed)
             }
             Err(e) => {
-                eprintln!("Save at {} unreadable ({}) - starting fresh world", path, e);
+                tracing::warn!("Save at {} unreadable ({}) - starting fresh world", path, e);
                 Self::new(seed)
             }
             Ok(data) => match serde_json::from_str::<SaveState>(&data) {
@@ -477,7 +477,7 @@ impl Simulation {
                         // start fresh rather than silently filling with defaults.
                         let backup = format!("{}.future-v{}", path, state.version);
                         let _ = std::fs::rename(path, &backup);
-                        eprintln!(
+                        tracing::warn!(
                             "Save at {} is schema v{} but this binary only supports v{}. \
                              Backed up to {} and starting fresh world.",
                             path, state.version, SAVE_SCHEMA_VERSION, backup
@@ -485,12 +485,12 @@ impl Simulation {
                         return Self::new(seed)
                     }
                     if state.version != 0 && state.version < SAVE_SCHEMA_VERSION {
-                        println!(
+                        tracing::info!(
                             "Loaded world from {} (tick {}, migrating schema v{} → v{})",
                             path, state.tick_count, state.version, SAVE_SCHEMA_VERSION
                         );
                     } else {
-                        println!("Loaded world from {} (tick {})", path, state.tick_count);
+                        tracing::info!("Loaded world from {} (tick {})", path, state.tick_count);
                     }
                     let terrain_seed = if state.world_seed > 0 { state.world_seed } else { seed };
                     Self::from_save(terrain_seed, state)
@@ -504,11 +504,11 @@ impl Simulation {
                         .map(|d| d.as_secs()).unwrap_or(0);
                     let backup = format!("{}.corrupt-{}", path, ts);
                     if let Err(re) = std::fs::rename(path, &backup) {
-                        eprintln!("Failed to back up corrupt save to {}: {}", backup, re);
+                        tracing::warn!("Failed to back up corrupt save to {}: {}", backup, re);
                     } else {
-                        eprintln!("Backed up corrupt save to {}", backup);
+                        tracing::warn!("Backed up corrupt save to {}", backup);
                     }
-                    eprintln!(
+                    tracing::warn!(
                         "Save at {} could not be deserialized ({}) - starting fresh world.",
                         path, e
                     );
@@ -540,7 +540,7 @@ impl Simulation {
                 grid.pressure = state.grid.pressure;
             }
         } else {
-            println!("Save grid size mismatch (got {}, need {}) - regenerating world", state.grid.tiles.len(), expected);
+            tracing::info!("Save grid size mismatch (got {}, need {}) - regenerating world", state.grid.tiles.len(), expected);
         }
 
         let drought = DroughtState {

@@ -103,16 +103,30 @@ pub struct AppState {
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
+
+    // Tracing init. RUST_LOG drives the filter; default to `info` so
+    // the server starts loud enough to debug but quiet enough to read.
+    // The `simulation_rs=info` target prefix keeps third-party crates
+    // (reqwest, axum, hyper) at `warn` unless explicitly raised.
+    use tracing_subscriber::{EnvFilter, fmt};
+    let filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("info,reqwest=warn,hyper=warn,h2=warn"));
+    fmt()
+        .with_env_filter(filter)
+        .with_target(true)
+        .with_level(true)
+        .init();
+
     let narration_key = (*NARRATION_LLM_KEY).clone();
     let think_key     = (*THINK_LLM_KEY).clone();
     let is_local = |u: &str| u.contains("localhost") || u.contains("127.0.0.1");
     if narration_key.is_empty() && !is_local(&NARRATION_LLM_URL) {
-        println!("[warn] no NARRATION_LLM_KEY / LLM_KEY / GROQ_API_KEY set - \
-                  remote narration calls will fail");
+        tracing::warn!("no NARRATION_LLM_KEY / LLM_KEY / GROQ_API_KEY set — \
+                        remote narration calls will fail");
     }
     if think_key.is_empty() && !is_local(&THINK_LLM_URL) {
-        println!("[warn] no THINK_LLM_KEY / LLM_KEY / GROQ_API_KEY set - \
-                  remote think calls will fail");
+        tracing::warn!("no THINK_LLM_KEY / LLM_KEY / GROQ_API_KEY set — \
+                        remote think calls will fail");
     }
 
     let fresh_seed: u64 = {
@@ -153,7 +167,7 @@ async fn main() {
     let groq_limit_per_min: usize = std::env::var("GROQ_RPM")
         .ok().and_then(|s| s.parse().ok()).unwrap_or(28);
     let groq_limiter = llm_rate::GroqRateLimiter::new(groq_limit_per_min);
-    println!("[groq] rate limit: {}/min", groq_limit_per_min);
+    tracing::info!(target: "groq", "rate limit: {}/min", groq_limit_per_min);
 
     // Box-wide memory floors. We watch /proc/meminfo MemAvailable and
     // throttle when the WHOLE box (us + llama.cpp + everything) runs low.
@@ -163,7 +177,7 @@ async fn main() {
     let mem_crit_mb: u64 = std::env::var("MEM_FLOOR_CRITICAL_MB")
         .ok().and_then(|s| s.parse().ok()).unwrap_or(200);
     let memory_watch = memory_watch::MemoryWatch::new(mem_elev_mb, mem_crit_mb);
-    println!("[mem] watchdog: elevated below {} MB available, critical below {} MB available",
+    tracing::warn!(target: "mem", "watchdog: elevated below {} MB available, critical below {} MB available",
         mem_elev_mb, mem_crit_mb);
 
     // Local think lane (llama.cpp) needs its own throttle. Without one,
@@ -174,7 +188,7 @@ async fn main() {
     let local_think_per_min: usize = std::env::var("LOCAL_THINK_RPM")
         .ok().and_then(|s| s.parse().ok()).unwrap_or(240);
     let local_think_limiter = llm_rate::GroqRateLimiter::new(local_think_per_min);
-    println!("[think] local rate limit: {}/min", local_think_per_min);
+    tracing::info!(target: "think", "local rate limit: {}/min", local_think_per_min);
 
     {
         let stories_w = stories.clone();
@@ -188,7 +202,7 @@ async fn main() {
         let key = think_key.clone();
         let stats = llm_stats.clone();
         let think_limiter = if llm_rate::url_needs_groq_quota(&THINK_LLM_URL) {
-            println!("[groq] think lane points at Groq — applying shared rate limit");
+            tracing::info!(target: "groq", "think lane points at Groq — applying shared rate limit");
             Some(groq_limiter.clone())
         } else {
             Some(local_think_limiter.clone())
@@ -241,7 +255,7 @@ async fn main() {
                                     org.think(t, tick);
                                 }
                                 if let Some(d) = &r.directive {
-                                    println!("[think] {} directive={} for {} ticks",
+                                    tracing::info!(target: "think", "{} directive={} for {} ticks",
                                         org.name, d, r.directive_ticks);
                                     org.directive       = d.clone();
                                     org.directive_until = tick + r.directive_ticks;
@@ -272,7 +286,7 @@ async fn main() {
                             }
                             if let (Some(lid), Some(strategy)) = (r.strategy_lineage, r.strategy) {
                                 let expiry = s.tick_count + 800;
-                                println!("[think] tribe {} → {} (until t{})",
+                                tracing::info!(target: "think", "tribe {} → {} (until t{})",
                                     &lid[..6.min(lid.len())], strategy, expiry);
                                 s.lineage_strategies.insert(lid, (strategy, expiry));
                             }
@@ -458,7 +472,7 @@ async fn main() {
                 if let Some(state) = pending_save {
                     tokio::task::spawn_blocking(move || {
                         if let Err(e) = sim::persistence::write_save_to_disk(&state, SAVE_PATH) {
-                            eprintln!("[save] failed: {}", e);
+                            tracing::warn!(target: "save", "failed: {}", e);
                         }
                     });
                 }
@@ -575,12 +589,12 @@ async fn main() {
 
     let addr = "0.0.0.0:8000";
     if *NARRATION_LLM_URL == *THINK_LLM_URL && *NARRATION_LLM_MODEL == *THINK_LLM_MODEL {
-        println!("simulation-rs listening on {}  tick={}ms  llm={} ({})",
+        tracing::info!("simulation-rs listening on {}  tick={}ms  llm={} ({})",
             addr, *TICK_MS, *NARRATION_LLM_MODEL, *NARRATION_LLM_URL);
     } else {
-        println!("simulation-rs listening on {}  tick={}ms", addr, *TICK_MS);
-        println!("    narration: {} ({})", *NARRATION_LLM_MODEL, *NARRATION_LLM_URL);
-        println!("    think:     {} ({})", *THINK_LLM_MODEL, *THINK_LLM_URL);
+        tracing::info!("simulation-rs listening on {}  tick={}ms", addr, *TICK_MS);
+        tracing::info!("    narration: {} ({})", *NARRATION_LLM_MODEL, *NARRATION_LLM_URL);
+        tracing::info!("    think:     {} ({})", *THINK_LLM_MODEL, *THINK_LLM_URL);
     }
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
