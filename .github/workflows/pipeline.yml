@@ -53,6 +53,10 @@ jobs:
       - id: ts
         run: echo "build_ts=$(date -u +%s)" >> "$GITHUB_OUTPUT"
 
+      - name: pnpm test
+        working-directory: client
+        run: pnpm test
+
       - name: pnpm run build
         working-directory: client
         run: pnpm run build
