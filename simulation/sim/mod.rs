@@ -31,3 +31,4 @@ pub mod spatial;
 #[allow(dead_code)] pub mod language_tech;
 #[allow(dead_code)] pub mod world_milestones;
 #[allow(dead_code)] pub mod inventions;
+pub mod civ_tick;

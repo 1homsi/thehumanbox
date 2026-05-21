@@ -240,6 +240,20 @@ pub struct Organism {
     pub inv_wood:  u8,
     pub inv_stone: u8,
 
+    pub wealth:      u32,
+    pub literacy:    f32,
+    pub schooling_ticks: u32,
+    pub university_ticks: u32,
+    pub piety:       f32,
+    pub specialty:   Option<String>,
+    pub religion_id: Option<String>,
+    pub degrees:     Vec<String>,
+    pub tools:       HashMap<String, u8>,
+    pub diseases:    Vec<(String, u64)>,
+    pub disease_immunity: HashMap<String, u64>,
+    pub mounted_vehicle: Option<u32>,
+    pub is_leader:   bool,
+
     pub conversations:   VecDeque<ConversationEntry>,
 
     // Named friends: org_id → name. Forms from repeated positive interaction.
@@ -332,10 +346,54 @@ impl Organism {
             inv_food:        0,
             inv_wood:        0,
             inv_stone:       0,
+            wealth:          5,
+            literacy:        0.0,
+            schooling_ticks: 0,
+            university_ticks: 0,
+            piety:           0.0,
+            specialty:       None,
+            religion_id:     None,
+            degrees:         Vec::new(),
+            tools:           HashMap::new(),
+            diseases:        Vec::new(),
+            disease_immunity: HashMap::new(),
+            mounted_vehicle: None,
+            is_leader:       false,
             conversations:   VecDeque::new(),
             friends:         HashMap::new(),
             attributes:      HashSet::new(),
             anchor_events:   Vec::new(),
+        }
+    }
+
+    pub fn age_stage(&self) -> crate::sim::age_stage::AgeStage {
+        crate::sim::age_stage::AgeStage::from_age(self.age, self.max_age)
+    }
+
+    pub fn give_tool(&mut self, tool: &str) {
+        let cur = self.tools.get(tool).copied().unwrap_or(0);
+        if cur < 8 {
+            self.tools.insert(tool.to_string(), cur + 1);
+        }
+    }
+
+    pub fn has_tool(&self, tool: &str) -> bool {
+        self.tools.get(tool).copied().unwrap_or(0) > 0
+    }
+
+    pub fn combat_tool_bonus(&self) -> f32 {
+        if self.has_tool("rifle") { return 4.5; }
+        if self.has_tool("musket") { return 3.0; }
+        if self.has_tool("iron_sword") { return 1.8; }
+        if self.has_tool("bronze_spear") { return 1.4; }
+        if self.has_tool("stone_spear") { return 1.2; }
+        1.0
+    }
+
+    pub fn add_degree(&mut self, degree: &str) {
+        let d = degree.to_string();
+        if !self.degrees.contains(&d) {
+            self.degrees.push(d);
         }
     }
 

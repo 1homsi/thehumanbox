@@ -159,6 +159,17 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     viewport_animals: viewportAnimals,
     animals_complete: parsed.animals_complete,
     buildings: parsed.buildings ?? base?.buildings,
+    religions: parsed.religions ?? base?.religions,
+    books: parsed.books ?? base?.books,
+    headlines: parsed.headlines ?? base?.headlines,
+    battles: parsed.battles ?? base?.battles,
+    treaties: parsed.treaties ?? base?.treaties,
+    farms: parsed.farms ?? base?.farms,
+    vehicles: parsed.vehicles ?? base?.vehicles,
+    festivals: parsed.festivals ?? base?.festivals,
+    lineage_eras: (parsed.lineage_eras as Record<string,string> | undefined) ?? base?.lineage_eras,
+    lineage_currencies: parsed.lineage_currencies ?? base?.lineage_currencies,
+    active_outbreaks: parsed.active_outbreaks ?? base?.active_outbreaks,
   }
 
   return { next, grid }

@@ -216,6 +216,65 @@ impl Simulation {
                     .map(|(lid, era)| json!({ "lineage_id": lid, "era_name": era.name() }))
                     .collect();
                 obj.insert("lineage_eras".to_string(), serde_json::Value::Array(eras_json));
+
+                let buildings_json: Vec<serde_json::Value> = self.buildings.iter().map(|b| {
+                    json!({
+                        "id": b.id, "kind": b.kind.name(), "x": b.x, "y": b.y,
+                        "lineage_id": b.owner_lineage.clone().unwrap_or_default(),
+                        "condition": b.condition,
+                        "fw": b.kind.footprint().0,
+                        "fh": b.kind.footprint().1,
+                        "function": format!("{:?}", b.kind.function()).to_lowercase(),
+                    })
+                }).collect();
+                obj.insert("buildings".to_string(), serde_json::Value::Array(buildings_json));
+
+                let gov_json: Vec<serde_json::Value> = self.governments.values().map(|g| {
+                    json!({
+                        "lineage_id": g.lineage_id,
+                        "kind": g.kind.name(),
+                        "leader_id": g.leader_id,
+                        "treasury": g.treasury,
+                        "tax_rate": g.tax_rate,
+                        "laws": g.laws.iter().map(|l| l.kind.name()).collect::<Vec<_>>(),
+                    })
+                }).collect();
+                obj.insert("governments".to_string(), serde_json::Value::Array(gov_json));
+
+                let religions_json: Vec<serde_json::Value> = self.religions.iter().map(|r| {
+                    json!({
+                        "id": r.id, "kind": r.kind.name(), "name": r.name,
+                        "founder_lineage": r.founder_lineage, "adherents": r.adherents,
+                    })
+                }).collect();
+                obj.insert("religions".to_string(), serde_json::Value::Array(religions_json));
+
+                let books_json: Vec<serde_json::Value> = self.books.iter().rev().take(30).map(|b| {
+                    json!({
+                        "id": b.id, "title": b.title, "author_name": b.author_name,
+                        "lineage_id": b.lineage_id, "topic": b.topic.name(), "copies": b.copies,
+                    })
+                }).collect();
+                obj.insert("books".to_string(), serde_json::Value::Array(books_json));
+
+                let artworks_json: Vec<serde_json::Value> = self.artworks.iter().rev().take(30).map(|a| {
+                    json!({
+                        "id": a.id, "kind": a.kind.name(), "title": a.title,
+                        "creator_name": a.creator_name, "x": a.location[0], "y": a.location[1],
+                    })
+                }).collect();
+                obj.insert("artworks".to_string(), serde_json::Value::Array(artworks_json));
+
+                let headlines_json: Vec<serde_json::Value> = self.headlines.iter().rev().take(20).map(|(t, s)| {
+                    json!({"tick": t, "text": s})
+                }).collect();
+                obj.insert("headlines".to_string(), serde_json::Value::Array(headlines_json));
+
+                let currencies: std::collections::HashMap<String, &str> = self.lineage_eras.iter()
+                    .map(|(lid, era)| (lid.clone(), crate::sim::economy::currency_unit_for_era(*era)))
+                    .collect();
+                obj.insert("lineage_currencies".to_string(), serde_json::to_value(&currencies).unwrap());
+
                 obj.insert("sex_words".to_string(), serde_json::to_value(&self.sex_words).unwrap());
             }
         }

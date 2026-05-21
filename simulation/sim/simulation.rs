@@ -154,6 +154,27 @@ pub struct Simulation {
     /// spread of centroids.
     pub lineage_homes: HashMap<String, [i32; 3]>,
     pub lineage_eras: HashMap<String, super::era::Era>,
+    pub buildings:    Vec<super::buildings::Building>,
+    pub next_building_id: u32,
+    pub governments:  HashMap<String, super::government::Government>,
+    pub religions:    Vec<super::culture::Religion>,
+    pub next_religion_id: u32,
+    pub artworks:     Vec<super::culture::Artwork>,
+    pub next_artwork_id: u32,
+    pub festivals:    Vec<super::culture::Festival>,
+    pub next_festival_id: u32,
+    pub books:        Vec<super::language_tech::Book>,
+    pub next_book_id: u32,
+    pub farms:        Vec<super::agriculture::Farm>,
+    pub next_farm_id: u32,
+    pub vehicles:     Vec<super::transportation::Vehicle>,
+    pub next_vehicle_id: u32,
+    pub battles:      Vec<super::warfare::Battle>,
+    pub next_battle_id: u32,
+    pub treaties:     Vec<super::warfare::Treaty>,
+    pub outbreaks:    Vec<super::medicine::Outbreak>,
+    pub milestones_achieved: HashSet<String>,
+    pub headlines:    VecDeque<(u64, String)>,
     pub current_era:           String,
     pub sex_words:             [String; 2],
     pub world_seed:            u64,
@@ -174,8 +195,6 @@ pub struct Simulation {
     // decay use - we just need *a* rival, not the full conflict set.
     pub(crate) tile_owner: HashMap<(i32, i32), String>,
     pub(crate) cached_territory: serde_json::Value,
-    pub battles: Vec<super::warfare::Battle>,
-    pub treaties: Vec<super::warfare::Treaty>,
 }
 
 fn invention_candidates(discoveries: &HashSet<String>) -> Vec<&'static str> {
@@ -236,6 +255,27 @@ impl Simulation {
             lineage_centroid_history: HashMap::new(),
             lineage_homes:           HashMap::new(),
             lineage_eras:            HashMap::new(),
+            buildings:               Vec::new(),
+            next_building_id:        1,
+            governments:             HashMap::new(),
+            religions:               Vec::new(),
+            next_religion_id:        1,
+            artworks:                Vec::new(),
+            next_artwork_id:         1,
+            festivals:               Vec::new(),
+            next_festival_id:        1,
+            books:                   Vec::new(),
+            next_book_id:            1,
+            farms:                   Vec::new(),
+            next_farm_id:            1,
+            vehicles:                Vec::new(),
+            next_vehicle_id:         1,
+            battles:                 Vec::new(),
+            next_battle_id:          1,
+            treaties:                Vec::new(),
+            outbreaks:               Vec::new(),
+            milestones_achieved:     HashSet::new(),
+            headlines:               VecDeque::new(),
             current_era: "genesis".to_string(),
             sex_words,
             world_seed: seed,
@@ -250,8 +290,6 @@ impl Simulation {
             territory:               HashMap::new(),
             tile_owner:              HashMap::new(),
             cached_territory:        serde_json::Value::Null,
-            battles:                 Vec::new(),
-            treaties:                Vec::new(),
         };
         sim.spawn_founders();
         sim.spawn_animals(14);
@@ -316,6 +354,8 @@ impl Simulation {
 
     pub fn tick(&mut self) {
         self.tick_count += 1;
+
+        super::civ_tick::tick_civ(self);
 
         if self.tick_count % 6000 == 0 {
             let alive = self.organisms.iter().filter(|o| o.alive).count();

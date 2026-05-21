@@ -71,6 +71,19 @@ export type IncomingWorldFrame =
     current_era?: WorldState['current_era']
     sex_words?: WorldState['sex_words']
     buildings?: WorldState['buildings']
+    religions?: WorldState['religions']
+    books?: WorldState['books']
+    headlines?: WorldState['headlines']
+    battles?: WorldState['battles']
+    treaties?: WorldState['treaties']
+    farms?: WorldState['farms']
+    vehicles?: WorldState['vehicles']
+    festivals?: WorldState['festivals']
+    governments?: unknown
+    artworks?: unknown
+    lineage_eras?: unknown
+    lineage_currencies?: WorldState['lineage_currencies']
+    active_outbreaks?: WorldState['active_outbreaks']
   }
 
 export async function fetchSnapshotWithProgress(url: string, signal?: AbortSignal): Promise<ArrayBuffer | null> {
