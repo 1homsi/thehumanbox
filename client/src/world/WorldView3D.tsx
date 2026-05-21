@@ -387,6 +387,7 @@ export default function WorldView3D({ world }: Props) {
                   organisms={world.viewport_organisms ?? world.organisms ?? []}
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}
+                  lineageEras={world.lineage_eras as Record<string,string> | undefined}
                 />
                 <Buildings3D
                   buildings={world.buildings ?? []}

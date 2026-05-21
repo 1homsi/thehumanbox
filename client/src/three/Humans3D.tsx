@@ -17,6 +17,7 @@ interface Props {
   organisms: OrganismState[]
   depthMap:  number[][]
   biomes:    number[][]
+  lineageEras?: Record<string, string>
 }
 
 // Cull radius for full skinned-mesh AnimatedFigure rendering. Past
@@ -106,10 +107,34 @@ const _col   = new Color()
  * function so distant organisms still telegraph their lineage / fear
  * / grief state without the cost of a skeletal mesh + mixer per org.
  */
-function FarHumans({ organisms, depthMap, biomes }: {
+const ERA_TINT: Record<string, [number, number, number, number]> = {
+  'pre-stone':  [0.42, 0.32, 0.22, 0.18],
+  stone:        [0.48, 0.42, 0.34, 0.20],
+  bronze:       [0.62, 0.42, 0.24, 0.22],
+  iron:         [0.37, 0.43, 0.46, 0.22],
+  classical:    [0.78, 0.66, 0.40, 0.22],
+  medieval:     [0.42, 0.25, 0.19, 0.26],
+  renaissance:  [0.54, 0.22, 0.28, 0.26],
+  industrial:   [0.23, 0.18, 0.14, 0.30],
+  modern:       [0.23, 0.29, 0.42, 0.30],
+  information:  [0.22, 0.47, 0.72, 0.34],
+}
+
+const _tintCol = new Color()
+
+function applyEraTint(out: Color, eraName: string | undefined): void {
+  if (!eraName) return
+  const t = ERA_TINT[eraName]
+  if (!t) return
+  _tintCol.setRGB(t[0], t[1], t[2])
+  out.lerp(_tintCol, t[3])
+}
+
+function FarHumans({ organisms, depthMap, biomes, lineageEras }: {
   organisms: OrganismState[]
   depthMap: number[][]
   biomes:   number[][]
+  lineageEras?: Record<string, string>
 }) {
   const meshRef = useRef<InstancedMesh | null>(null)
   const geometry = useMemo(() => new CapsuleGeometry(0.18, 0.55, 4, 6), [])
@@ -149,6 +174,7 @@ function FarHumans({ organisms, depthMap, biomes }: {
       _mat.compose(_pos, _quat, _scale)
       mesh.setMatrixAt(i, _mat)
       _col.set(orgColor(o))
+      applyEraTint(_col, lineageEras?.[o.lineage_id])
       mesh.setColorAt(i, _col)
     }
     mesh.instanceMatrix.needsUpdate = true
@@ -168,7 +194,7 @@ function FarHumans({ organisms, depthMap, biomes }: {
   )
 }
 
-export function Humans3D({ organisms, depthMap, biomes }: Props) {
+export function Humans3D({ organisms, depthMap, biomes, lineageEras }: Props) {
   const { camera } = useThree()
   const selectOrg     = useUIStore(s => s.selectOrg)
   const selectedOrgId = useUIStore(s => s.selectedOrgId)
@@ -255,7 +281,7 @@ export function Humans3D({ organisms, depthMap, biomes }: Props) {
           </group>
         )
       })}
-      <FarHumans organisms={far} depthMap={depthMap} biomes={biomes} />
+      <FarHumans organisms={far} depthMap={depthMap} biomes={biomes} lineageEras={lineageEras} />
     </>
   )
 }
