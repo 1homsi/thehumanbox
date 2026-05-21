@@ -100,12 +100,22 @@ jobs:
           # Public URL of the dynamic OG endpoint exposed by the
           # simulation server. Defaults to the public production URL
           # if the repo secret isn't set yet.
-          VITE_OG_IMAGE_URL: ${{ secrets.VITE_OG_IMAGE_URL || 'https://api.thehumanbox.com/og.png' }}
+          # Point at the same-origin proxy (client/functions/og.png.ts)
+          # rather than the cross-origin API URL — SEO validators
+          # flag cross-host og:image as "invalid/unreachable" even
+          # when it loads fine on real social crawlers.
+          VITE_OG_IMAGE_URL: ${{ secrets.VITE_OG_IMAGE_URL || 'https://thehumanbox.com/og.png' }}
 
       - uses: actions/upload-artifact@v4
         with:
           name: client-dist
-          path: client/dist
+          # Include both the static build and the Pages Functions
+          # directory so the deploy job can hand both to wrangler.
+          # Cloudflare Pages picks up `functions/` next to the
+          # deploy directory and bundles each route automatically.
+          path: |
+            client/dist
+            client/functions
           retention-days: 7
 
   bump-version:
@@ -301,15 +311,23 @@ jobs:
       contents:    read
       deployments: write
     steps:
-      - name: Download dist/ from test-frontend
+      - name: Download dist/ + functions/ from test-frontend
         uses: actions/download-artifact@v4
         with:
           name: client-dist
-          path: client/dist
+          # Multi-path upload's common-ancestor strips the `client/`
+          # prefix, so the artifact contains `dist/` and `functions/`
+          # at its root. Restore them under `client/` so the layout
+          # mirrors the source tree.
+          path: client
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy client/dist --project-name=thehumanbox --branch=main
+          # Run from client/ so wrangler discovers ./functions next
+          # to the deploy target. Without the workingDirectory wrangler
+          # would look for functions/ at the repo root and miss them.
+          workingDirectory: client
+          command: pages deploy dist --project-name=thehumanbox --branch=main
