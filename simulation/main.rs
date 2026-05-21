@@ -239,7 +239,17 @@ async fn main() {
                 let tick_started = std::time::Instant::now();
                 let tick_outputs = {
                     let mut s: tokio::sync::MutexGuard<'_, _> = sim_clone.lock().await;
-                    s.tick();
+                    // The sim tick is a heavy CPU-bound chunk (movement
+                    // decisions, action evaluation, world-event ticks,
+                    // spatial-index rebuilds — 10-100ms at this pop).
+                    // Without `block_in_place` it occupies a tokio worker
+                    // synchronously and starves async tasks like the
+                    // HTTP handlers (we saw /version taking 4-37s under
+                    // load, and /snapshot trickling at ~8KB/s through
+                    // Cloudflare). block_in_place tells the multi-thread
+                    // runtime to spin up a replacement worker so siblings
+                    // keep getting scheduled while this one churns.
+                    tokio::task::block_in_place(|| s.tick());
 
                     if s.tick_count % 30 == 0 {
                         let p = memory_watch_cl.pressure();
