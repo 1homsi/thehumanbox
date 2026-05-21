@@ -67,6 +67,20 @@ fn main() {
         .and_then(|i| args.get(i + 1))
         .and_then(|s| s.parse().ok())
         .unwrap_or(0);
+    // --profile <path>: write a CSV of per-100-tick sim performance
+    // (tick, alive, ms_tick, rss_kb). Lets us A/B perf work by
+    // diffing CSVs between two runs at the same seed.
+    let profile_out: Option<String> = args
+        .iter()
+        .position(|a| a == "--profile")
+        .and_then(|i| args.get(i + 1))
+        .cloned();
+    let profile_every: u64 = args
+        .iter()
+        .position(|a| a == "--profile-every")
+        .and_then(|i| args.get(i + 1))
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(100);
 
     if world_report {
         if sweep_seeds > 0 {
@@ -121,16 +135,40 @@ fn main() {
 
     let mut tick_times_us: Vec<u64> = Vec::new();
     let mut json_sizes_bytes: Vec<usize> = Vec::new();
+    let mut profile_writer = profile_out.as_ref().map(|path| {
+        let mut w = BufWriter::new(File::create(path).unwrap_or_else(|err| {
+            panic!("failed to create profile file {}: {}", path, err);
+        }));
+        use std::io::Write as _;
+        writeln!(w, "tick,alive,ms_tick,rss_kb").ok();
+        w
+    });
 
     while sim.tick_count < max_ticks {
         let t0 = std::time::Instant::now();
         sim.tick();
-        tick_times_us.push(t0.elapsed().as_micros() as u64);
+        let tick_us = t0.elapsed().as_micros() as u64;
+        tick_times_us.push(tick_us);
         let t = sim.tick_count;
 
         let alive = sim.organisms.iter().filter(|o| o.alive).count();
         if alive > peak_pop {
             peak_pop = alive;
+        }
+
+        // Profile CSV: every `profile_every` ticks. Reads RSS via
+        // /proc/self/status on Linux; falls back to 0 elsewhere.
+        if let Some(w) = profile_writer.as_mut() {
+            if profile_every > 0 && t % profile_every == 0 {
+                use std::io::Write as _;
+                let rss_kb = read_self_rss_kb();
+                let _ = writeln!(w, "{},{},{},{}",
+                    t,
+                    alive,
+                    tick_us as f64 / 1000.0,
+                    rss_kb,
+                );
+            }
         }
 
         if let Some(writer) = trace_writer.as_mut() {
@@ -308,6 +346,24 @@ fn main() {
         writer.flush().ok();
     }
 }
+
+/// Read process RSS in KB on Linux (returns 0 on other platforms or
+/// if /proc isn't readable). Cheap — single fs read per call.
+#[cfg(target_os = "linux")]
+fn read_self_rss_kb() -> u64 {
+    let Ok(s) = std::fs::read_to_string("/proc/self/status") else { return 0 };
+    for line in s.lines() {
+        if let Some(rest) = line.strip_prefix("VmRSS:") {
+            return rest.split_whitespace()
+                .next()
+                .and_then(|n| n.parse().ok())
+                .unwrap_or(0);
+        }
+    }
+    0
+}
+#[cfg(not(target_os = "linux"))]
+fn read_self_rss_kb() -> u64 { 0 }
 
 fn infer_event_type(org: &organism::organism::Organism) -> &'static str {
     let thought = org.thought.to_lowercase();

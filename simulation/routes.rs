@@ -195,6 +195,101 @@ pub async fn llm_handler(
     )
 }
 
+/// Prometheus text-format metrics. Exposes the existing AtomicU64
+/// counters and gauge values in the canonical `name value` form so
+/// any Prometheus-compatible scraper can ingest. No external deps —
+/// we hand-assemble the body.
+///
+/// Naming follows the convention `thb_<subsystem>_<metric>_<unit>`.
+/// Counters end in `_total`. Gauges have no `_total` suffix.
+pub async fn metrics_handler(
+    State(s): State<AppState>,
+) -> impl IntoResponse {
+    let llm = s.llm_stats.snapshot();
+    let transport = s.transport_stats.snapshot();
+    let pressure = s.memory_watch.pressure();
+    let groq_available = s.groq_limiter.available();
+    let last_full = s.latest_full_at.load(std::sync::atomic::Ordering::Relaxed);
+    let last_full_age_ms = crate::transport::now_ms().saturating_sub(last_full);
+    let uptime_ms = crate::transport::now_ms().saturating_sub(s.start_ms);
+
+    // Snapshot the sim under the lock briefly for pop / lineage counts.
+    let (alive, lineage_count) = {
+        let sim = s.sim.lock().await;
+        let alive = sim.organisms.iter().filter(|o| o.alive).count();
+        let lineages: std::collections::HashSet<&str> = sim
+            .organisms
+            .iter()
+            .filter(|o| o.alive)
+            .map(|o| o.lineage_id.as_str())
+            .collect();
+        (alive, lineages.len())
+    };
+
+    let pressure_n: u8 = match pressure {
+        crate::sim::memory_pressure::MemoryPressure::Normal   => 0,
+        crate::sim::memory_pressure::MemoryPressure::Elevated => 1,
+        crate::sim::memory_pressure::MemoryPressure::Critical => 2,
+    };
+
+    let mut body = String::with_capacity(2048);
+    use std::fmt::Write as _;
+    let _ = writeln!(body, "# HELP thb_uptime_ms Server uptime in milliseconds");
+    let _ = writeln!(body, "# TYPE thb_uptime_ms gauge");
+    let _ = writeln!(body, "thb_uptime_ms {}", uptime_ms);
+    let _ = writeln!(body, "# HELP thb_pop_alive Currently-alive organism count");
+    let _ = writeln!(body, "# TYPE thb_pop_alive gauge");
+    let _ = writeln!(body, "thb_pop_alive {}", alive);
+    let _ = writeln!(body, "# HELP thb_lineages_alive Distinct alive-lineage count");
+    let _ = writeln!(body, "# TYPE thb_lineages_alive gauge");
+    let _ = writeln!(body, "thb_lineages_alive {}", lineage_count);
+    let _ = writeln!(body, "# HELP thb_memory_pressure 0=normal 1=elevated 2=critical");
+    let _ = writeln!(body, "# TYPE thb_memory_pressure gauge");
+    let _ = writeln!(body, "thb_memory_pressure {}", pressure_n);
+    let _ = writeln!(body, "# HELP thb_groq_rate_available Permits remaining in the Groq per-minute bucket");
+    let _ = writeln!(body, "# TYPE thb_groq_rate_available gauge");
+    let _ = writeln!(body, "thb_groq_rate_available {}", groq_available);
+    let _ = writeln!(body, "# HELP thb_last_full_frame_age_ms Milliseconds since last full frame was generated");
+    let _ = writeln!(body, "# TYPE thb_last_full_frame_age_ms gauge");
+    let _ = writeln!(body, "thb_last_full_frame_age_ms {}", last_full_age_ms);
+
+    // Transport counters (cumulative since startup).
+    let _ = writeln!(body, "# HELP thb_transport_frames_total Cumulative frame counts by type");
+    let _ = writeln!(body, "# TYPE thb_transport_frames_total counter");
+    let _ = writeln!(body, "thb_transport_frames_total{{kind=\"generated\"}} {}", transport.generated_frames);
+    let _ = writeln!(body, "thb_transport_frames_total{{kind=\"sent\"}} {}", transport.sent_frames);
+    let _ = writeln!(body, "thb_transport_frames_total{{kind=\"lagged\"}} {}", transport.lagged_frames);
+    let _ = writeln!(body, "thb_transport_frames_total{{kind=\"dropped\"}} {}", transport.dropped_frames);
+    let _ = writeln!(body, "thb_transport_frames_total{{kind=\"resync\"}} {}", transport.resync_frames);
+
+    // LLM per-lane.
+    for (lane_name, lane) in [
+        ("narration", &llm.narration),
+        ("think", &llm.think),
+        ("conversation", &llm.conversation),
+    ] {
+        let _ = writeln!(body, "thb_llm_calls_total{{lane=\"{}\"}} {}", lane_name, lane.calls);
+        let _ = writeln!(body, "thb_llm_errors_total{{lane=\"{}\"}} {}", lane_name, lane.errors);
+        let _ = writeln!(body, "thb_llm_avg_ms{{lane=\"{}\"}} {}", lane_name, lane.avg_ms);
+        let _ = writeln!(body, "thb_llm_p95_ms{{lane=\"{}\"}} {}", lane_name, lane.p95_ms);
+    }
+    let _ = writeln!(body, "thb_llm_429_total{{lane=\"think\"}} {}", llm.think_429);
+    let _ = writeln!(body, "thb_llm_429_total{{lane=\"narration\"}} {}", llm.narration_429);
+    let _ = writeln!(body, "thb_llm_429_total{{lane=\"conversation\"}} {}", llm.conversation_429);
+    let _ = writeln!(body, "thb_llm_5xx_total{{lane=\"think\"}} {}", llm.think_5xx);
+    let _ = writeln!(body, "thb_llm_5xx_total{{lane=\"narration\"}} {}", llm.narration_5xx);
+    let _ = writeln!(body, "thb_llm_5xx_total{{lane=\"conversation\"}} {}", llm.conversation_5xx);
+    let _ = writeln!(body, "thb_llm_local_fallback_total{{lane=\"think\"}} {}", llm.think_local_fallback);
+
+    (
+        [
+            (axum::http::header::CONTENT_TYPE,  "text/plain; version=0.0.4".to_string()),
+            (axum::http::header::CACHE_CONTROL, "no-store".to_string()),
+        ],
+        body,
+    )
+}
+
 pub async fn memory_handler(
     State(s): State<AppState>,
 ) -> impl IntoResponse {

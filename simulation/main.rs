@@ -614,6 +614,7 @@ async fn main() {
         .route("/llm", get(routes::llm_handler))
         .route("/memory", get(routes::memory_handler))
         .route("/health", get(routes::health_handler))
+        .route("/metrics", get(routes::metrics_handler))
         .route("/og.png", get(routes::og_handler))
         .layer(compression)
         .layer(cors)
