@@ -398,15 +398,15 @@ function drawWorldOnCanvas(
       }
 
       if (t === 8) {
-        // Draw hut 2x larger than a tile, centered over the tile
         const BW = TILE * 2
         const BH = TILE * 2
         const bx = px - TILE / 2
         const by = py - TILE / 2
-        // Ambient glow (settlement warmth)
-        ctx.fillStyle = 'rgba(255,215,110,0.18)'
+        const dp = world.day_progress ?? 0.5
+        const nightFactor = world.is_day ? 0 : 1 - Math.abs(dp - 0.5) * 2
+        const glowAlpha = 0.10 + (0.42 - 0.10) * nightFactor
+        ctx.fillStyle = `rgba(255,215,110,${glowAlpha})`
         ctx.fillRect(bx - TILE, by - TILE, BW + TILE * 2, BH + TILE * 2)
-        // Roof
         ctx.fillStyle = '#5a2e08'
         ctx.beginPath()
         ctx.moveTo(bx + BW / 2, by)
@@ -414,14 +414,13 @@ function drawWorldOnCanvas(
         ctx.lineTo(bx,          by + BH * 0.44)
         ctx.closePath()
         ctx.fill()
-        // Walls
         ctx.fillStyle = '#b89060'
         ctx.fillRect(bx + 1, by + BH * 0.44, BW - 2, BH * 0.56 - 1)
-        // Door
         ctx.fillStyle = '#2a1000'
         ctx.fillRect(bx + BW / 2 - 2, by + BH * 0.60, 4, BH * 0.36 - 1)
-        // Windows
-        ctx.fillStyle = 'rgba(255,230,140,0.60)'
+        const now = Date.now()
+        const windowAlpha = world.is_day ? 0.60 : Math.sin(now * 0.002) * 0.1 + 0.7
+        ctx.fillStyle = `rgba(255,230,140,${windowAlpha})`
         ctx.fillRect(bx + 3,       by + BH * 0.50, 3, 3)
         ctx.fillRect(bx + BW - 6,  by + BH * 0.50, 3, 3)
       }

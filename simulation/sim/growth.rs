@@ -298,6 +298,13 @@ pub fn deliver_births(
 
         organisms[ci].alive = true;
         organisms[mi].pregnant = false;
+        if organisms[mi].children_count == 0 {
+            organisms[mi].add_anchor(
+                tick,
+                format!("first child {}", child_name),
+                0.8,
+            );
+        }
         organisms[mi].children_count += 1;
         organisms[mi].think(&format!("gave birth: {}", child_name), tick);
         let ci_id = organisms[ci].id.clone();

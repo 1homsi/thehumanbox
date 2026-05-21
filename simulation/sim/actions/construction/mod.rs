@@ -27,6 +27,8 @@ pub mod build_irrigation_canal;
 pub mod build_quay;
 pub mod build_signal_fire;
 pub mod build_drying_rack;
+pub mod build_pasture;
+pub mod build_lookout;
 
 use super::ctx::ActionCtx;
 
@@ -59,6 +61,8 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         178 => build_quay::apply(ctx),
         179 => build_signal_fire::apply(ctx),
         180 => build_drying_rack::apply(ctx),
+        536 => build_pasture::apply(ctx),
+        537 => build_lookout::apply(ctx),
         _   => 0.0,
     }
 }

@@ -2242,6 +2242,11 @@ impl Simulation {
                 let grief_base = if is_child { 200 } else { 80 };
                 if is_child {
                     self.organisms[*gi].orphaned_tick = self.tick_count;
+                    self.organisms[*gi].add_anchor(
+                        self.tick_count,
+                        format!("lost parent {}", dead_name),
+                        0.95,
+                    );
                 }
                 self.organisms[*gi].grief_ticks   = grief_base + self.rng.gen_range(0u32..40);
                 self.organisms[*gi].think("mourning kin", self.tick_count);

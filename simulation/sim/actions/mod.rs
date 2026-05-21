@@ -142,6 +142,8 @@ pub fn available_actions(sim: &Simulation, idx: usize, ix: i32, iy: i32) -> Vec<
 
     if kin_near { a.extend(521..=535); }
 
+    a.extend(536..=537);
+
     a
 }
 
@@ -184,6 +186,7 @@ pub fn try_apply(sim: &mut Simulation, idx: usize, action: usize, ix: i32, iy: i
         486..=500   => legacy_death::apply(action, &mut ctx),
         501..=520   => education::apply(action, &mut ctx),
         521..=535   => ceremony::apply(action, &mut ctx),
+        536..=537   => construction::apply(action, &mut ctx),
         _           => return None,
     };
     Some(r)

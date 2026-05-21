@@ -5,7 +5,7 @@ use super::traits::Traits;
 use super::vocabulary::Vocabulary;
 use crate::world::{grid::{WorldGrid, TrailKind}, tiles::Tile};
 
-pub const N_ACTIONS: usize = 536;
+pub const N_ACTIONS: usize = 538;
 
 pub type QRow = Vec<(u16, f32)>;
 
@@ -248,6 +248,8 @@ pub struct Organism {
 
     // Accumulated descriptors: birth traits (handsome, curious) + earned ones (builder, sage).
     pub attributes: HashSet<String>,
+
+    pub anchor_events: Vec<(u64, String, f32)>,
 }
 
 impl Organism {
@@ -333,6 +335,22 @@ impl Organism {
             conversations:   VecDeque::new(),
             friends:         HashMap::new(),
             attributes:      HashSet::new(),
+            anchor_events:   Vec::new(),
+        }
+    }
+
+    pub fn add_anchor(&mut self, tick: u64, desc: String, strength: f32) {
+        self.anchor_events.push((tick, desc, strength.clamp(0.0, 1.0)));
+        if self.anchor_events.len() > 12 {
+            let mut weakest_idx = 0usize;
+            let mut weakest_val = f32::INFINITY;
+            for (i, e) in self.anchor_events.iter().enumerate() {
+                if e.2 < weakest_val {
+                    weakest_val = e.2;
+                    weakest_idx = i;
+                }
+            }
+            self.anchor_events.remove(weakest_idx);
         }
     }
 
@@ -977,6 +995,9 @@ impl Organism {
                 v.sort();
                 Some(v)
             } else { None },
+            anchor_events: if include_cold && !self.anchor_events.is_empty() {
+                Some(self.anchor_events.clone())
+            } else { None },
         }
     }
 
@@ -1255,6 +1276,7 @@ pub struct OrgJson {
     #[serde(default, skip_serializing_if = "Option::is_none")] pub is_elder:    Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub friends:     Option<HashMap<String, String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub attributes:  Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub anchor_events: Option<Vec<(u64, String, f32)>>,
 }
 
 #[derive(Serialize)]
