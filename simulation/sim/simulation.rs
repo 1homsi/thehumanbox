@@ -1732,6 +1732,66 @@ impl Simulation {
             }
 
             let last_think = self.organisms[idx].last_think_tick;
+            if self.tick_count - last_think >= 3000 && self.organisms[idx].energy < 0.18 {
+                let (ox2, oy2) = (self.organisms[idx].x, self.organisms[idx].y);
+                let my_partner = self.organisms[idx].partner_id.clone();
+                let tempting = self.organisms.iter()
+                    .find(|o| o.alive
+                        && o.id != self.organisms[idx].id
+                        && o.inv_food > 0
+                        && o.lineage_id != my_lid
+                        && Some(&o.id) != my_partner.as_ref()
+                        && (o.x - ox2).abs() + (o.y - oy2).abs() <= 4.0)
+                    .map(|o| o.name.clone());
+                if let Some(other_name) = tempting {
+                    self.organisms[idx].last_think_tick = self.tick_count;
+                    self.push_think_for(idx, ThinkTrigger {
+                        org_id:     self.organisms[idx].id.clone(),
+                        org_name:   self.organisms[idx].name.clone(),
+                        lineage_id: my_lid.clone(),
+                        scenario:   "moral_dilemma".to_string(),
+                        energy_avg: self.organisms[idx].energy,
+                        context:    format!("starving, nearby {} carries food", other_name),
+                        ..Default::default()
+                    });
+                }
+            }
+
+            let last_think = self.organisms[idx].last_think_tick;
+            if self.tick_count - last_think >= 4000 {
+                if let Some(partner_id) = self.organisms[idx].partner_id.clone() {
+                    let (ox2, oy2) = (self.organisms[idx].x, self.organisms[idx].y);
+                    let my_id   = self.organisms[idx].id.clone();
+                    let my_sex  = self.organisms[idx].sex;
+                    let partner = self.organisms.iter()
+                        .find(|o| o.alive && o.id == partner_id
+                            && (o.x - ox2).abs() + (o.y - oy2).abs() <= 5.0)
+                        .map(|o| (o.name.clone(), o.x, o.y));
+                    if let Some((partner_name, px, py)) = partner {
+                        let third = self.organisms.iter()
+                            .find(|o| o.alive
+                                && o.id != my_id
+                                && o.id != partner_id
+                                && o.sex != my_sex
+                                && (o.x - px).abs() + (o.y - py).abs() <= 5.0)
+                            .map(|o| o.name.clone());
+                        if let Some(third_name) = third {
+                            self.organisms[idx].last_think_tick = self.tick_count;
+                            self.push_think_for(idx, ThinkTrigger {
+                                org_id:     self.organisms[idx].id.clone(),
+                                org_name:   self.organisms[idx].name.clone(),
+                                lineage_id: my_lid.clone(),
+                                scenario:   "jealousy".to_string(),
+                                energy_avg: self.organisms[idx].energy,
+                                context:    format!("{} lingers near {}", third_name, partner_name),
+                                ..Default::default()
+                            });
+                        }
+                    }
+                }
+            }
+
+            let last_think = self.organisms[idx].last_think_tick;
             if self.tick_count - last_think >= 6000 {
                 let loneliness = self.organisms[idx].loneliness;
                 let boredom    = self.organisms[idx].boredom;

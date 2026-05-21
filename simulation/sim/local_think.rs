@@ -257,6 +257,36 @@ pub fn resolve(trigger: &ThinkTrigger, rng: &mut impl Rng) -> Option<LocalResult
 
         "elder_teaching" => None,
 
+        "moral_dilemma" => {
+            let word = weighted_pick(rng, &[
+                ("steal",  ag * 1.3 + (1.0 - so) * 0.4),
+                ("honor",  so * 1.2 + (1.0 - ag) * 0.6 + re * 0.3),
+            ]);
+            let (thought, directive) = match word {
+                "steal" => ("tempted to steal", "seek_food"),
+                _       => ("honoring stranger", "wander"),
+            };
+            Some(LocalResult {
+                word, thought,
+                directive: Some(directive), directive_ticks: 200, ..Default::default()
+            })
+        }
+
+        "jealousy" => {
+            let word = weighted_pick(rng, &[
+                ("watch",  (1.0 - so) * 1.1 + fe * 0.5 + ag * 0.4),
+                ("trust",  so * 1.3 + re * 0.4),
+            ]);
+            let (thought, delta) = match word {
+                "watch" => ("watching warily", -0.1f32),
+                _       => ("trusting still",   0.05f32),
+            };
+            Some(LocalResult {
+                word, thought,
+                attitude_delta: Some(delta), ..Default::default()
+            })
+        }
+
         _ => None,
     }
 }

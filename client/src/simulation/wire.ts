@@ -67,6 +67,7 @@ export type IncomingWorldFrame =
     lineage_sizes?: WorldState['lineage_sizes']
     lineage_names?: WorldState['lineage_names']
     lineage_centroid_history?: WorldState['lineage_centroid_history']
+    lineage_homes?: WorldState['lineage_homes']
     current_era?: WorldState['current_era']
     sex_words?: WorldState['sex_words']
   }

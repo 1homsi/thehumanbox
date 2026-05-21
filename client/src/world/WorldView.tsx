@@ -261,6 +261,12 @@ function drawWorldOnCanvas(
     }
   }
 
+  if (world.drought === true) {
+    const shimmer = (Math.sin(t * 0.001) * 0.5 + 0.5) * 0.04
+    ctx.fillStyle = `rgba(255,180,80,${shimmer})`
+    ctx.fillRect(0, 0, W, H)
+  }
+
   if (!world.is_day || (world.day_progress ?? 0) > 0.05) {
     const tt = t * 0.001
     ctx.fillStyle = world.is_day
@@ -423,6 +429,16 @@ function drawWorldOnCanvas(
         ctx.fillStyle = `rgba(255,230,140,${windowAlpha})`
         ctx.fillRect(bx + 3,       by + BH * 0.50, 3, 3)
         ctx.fillRect(bx + BW - 6,  by + BH * 0.50, 3, 3)
+        const smokeAlpha = !world.is_day ? 0.25 : 0
+        if (smokeAlpha > 0) {
+          for (let s = 0; s < 3; s++) {
+            const phase = (now * 0.0008 + s * 0.4) % 1
+            ctx.fillStyle = `rgba(180,180,185,${smokeAlpha * (1 - phase)})`
+            ctx.beginPath()
+            ctx.ellipse(bx + BW / 2 + Math.sin(phase * Math.PI) * 2, by - phase * 12, 3 + phase * 4, 2 + phase * 2, 0, 0, Math.PI * 2)
+            ctx.fill()
+          }
+        }
       }
     }
   }

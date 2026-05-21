@@ -138,6 +138,7 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     lineage_sizes: parsed.lineage_sizes ?? base?.lineage_sizes ?? [],
     lineage_names: reuseIfEqual(incomingLineageNames, base?.lineage_names),
     lineage_centroid_history: parsed.lineage_centroid_history ?? base?.lineage_centroid_history,
+    lineage_homes: parsed.lineage_homes ?? base?.lineage_homes,
     current_era: parsed.current_era ?? base?.current_era,
     sex_words: (reuseArrayIfShallowEqual(incomingSexWords as string[] | undefined, base?.sex_words as string[] | undefined) as [string, string] | undefined),
     // Materialise the org / animal arrays from the cache, then reuse
