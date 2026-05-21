@@ -134,6 +134,136 @@ export function drawTrees(
   }
 }
 
+export function drawNaturalDecor(
+  ctx: CanvasRenderingContext2D,
+  width: number, height: number,
+  tiles: number[][], biomes?: number[][],
+) {
+  if (!biomes) return
+  const TILE_GRASS = 1
+  const TILE_FOOD  = 3
+  const TILE_WATER = 0
+  const TILE_SAND  = 13
+  const TILE_SNOW  = 12
+  const TILE_ROCK  = 5
+  const BIOME_GRASS    = 0
+  const BIOME_FOREST   = 1
+  const BIOME_DESERT   = 2
+  const BIOME_TUNDRA   = 3
+  const BIOME_WETLAND  = 4
+
+  ctx.save()
+  for (let y = 1; y < height - 1; y++) {
+    const tRow = tiles[y]
+    const bRow = biomes[y]
+    if (!tRow || !bRow) continue
+    for (let x = 1; x < width - 1; x++) {
+      const t = tRow[x]
+      const biome = bRow[x] ?? 0
+      let hash = ((x * 374761393) ^ (y * 668265263)) >>> 0
+      hash = ((hash ^ (hash >>> 13)) * 1274126177) >>> 0
+      const r0 = (hash & 0xff) / 255
+      const r1 = ((hash >>> 8) & 0xff) / 255
+      const r2 = ((hash >>> 16) & 0xff) / 255
+      const px = x * TILE
+      const py = y * TILE
+
+      if (t === TILE_ROCK || (t === TILE_SAND && biome === BIOME_DESERT && r0 < 0.04)) {
+        const sz = 2 + Math.floor(r1 * 3)
+        ctx.fillStyle = t === TILE_ROCK ? '#5e5650' : '#8a7654'
+        ctx.beginPath()
+        ctx.ellipse(px + TILE / 2 + (r2 - 0.5) * TILE * 0.4,
+                    py + TILE / 2 + (r0 - 0.5) * TILE * 0.4,
+                    sz, sz * 0.7, 0, 0, Math.PI * 2)
+        ctx.fill()
+        continue
+      }
+      if (t === TILE_SNOW && r0 < 0.18) {
+        ctx.fillStyle = 'rgba(245,250,255,0.7)'
+        ctx.beginPath()
+        ctx.ellipse(px + TILE / 2 + (r2 - 0.5) * TILE * 0.3,
+                    py + TILE / 2 + (r1 - 0.5) * TILE * 0.3,
+                    2 + r2 * 2, 1 + r1, 0, 0, Math.PI * 2)
+        ctx.fill()
+        continue
+      }
+      if (t !== TILE_GRASS && t !== TILE_FOOD) continue
+
+      if (biome === BIOME_GRASS && r0 < 0.08) {
+        const colors = ['#d65a78', '#e8c044', '#a87fd6', '#e58a3a']
+        ctx.fillStyle = colors[Math.floor(r2 * colors.length)]
+        const fx = px + TILE / 2 + (r1 - 0.5) * TILE * 0.4
+        const fy = py + TILE / 2 + (r2 - 0.5) * TILE * 0.4
+        ctx.fillRect(fx - 1, fy - 1, 3, 3)
+        ctx.fillStyle = '#3a6b32'
+        ctx.fillRect(fx, fy + 1, 1, 2)
+      } else if (biome === BIOME_FOREST && r0 < 0.06) {
+        const mx = px + TILE / 2 + (r2 - 0.5) * TILE * 0.4
+        const my = py + TILE / 2 + (r1 - 0.5) * TILE * 0.4
+        ctx.fillStyle = r1 < 0.5 ? '#c54a4a' : '#ddd5b8'
+        ctx.beginPath()
+        ctx.arc(mx, my, 2, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.fillStyle = '#f0e8d8'
+        ctx.fillRect(mx - 1, my + 1, 2, 2)
+      } else if ((biome === BIOME_GRASS || biome === BIOME_WETLAND) && r1 < 0.12) {
+        ctx.strokeStyle = biome === BIOME_WETLAND ? '#5a8848' : '#7ea860'
+        ctx.lineWidth = 1
+        const gx = px + TILE / 2 + (r0 - 0.5) * TILE * 0.5
+        const gy = py + TILE - 1
+        ctx.beginPath()
+        ctx.moveTo(gx, gy)
+        ctx.lineTo(gx + (r2 - 0.5) * 2, gy - 3)
+        ctx.moveTo(gx + 1, gy)
+        ctx.lineTo(gx + 1 + (r2 - 0.5) * 2, gy - 2)
+        ctx.stroke()
+      } else if (biome === BIOME_TUNDRA && r0 < 0.08) {
+        ctx.fillStyle = 'rgba(220,225,235,0.55)'
+        ctx.beginPath()
+        ctx.ellipse(px + TILE / 2 + (r2 - 0.5) * TILE * 0.4,
+                    py + TILE / 2 + (r1 - 0.5) * TILE * 0.4,
+                    2.5, 1.4, 0, 0, Math.PI * 2)
+        ctx.fill()
+      }
+
+      if (r2 < 0.003) {
+        ctx.fillStyle = 'rgba(220,210,190,0.55)'
+        ctx.fillRect(px + TILE / 2 - 1, py + TILE / 2, 3, 1)
+        ctx.fillRect(px + TILE / 2 - 1, py + TILE / 2 + 1, 2, 1)
+      }
+    }
+  }
+
+  for (let y = 1; y < height - 1; y++) {
+    const tRow = tiles[y]; if (!tRow) continue
+    for (let x = 1; x < width - 1; x++) {
+      if (tRow[x] !== TILE_WATER) continue
+      const above = tiles[y - 1]?.[x]
+      const below = tiles[y + 1]?.[x]
+      const left  = tRow[x - 1]
+      const right = tRow[x + 1]
+      const landGrass = (n: number | undefined) => n === TILE_GRASS || n === TILE_FOOD
+      if (!landGrass(above) && !landGrass(below) && !landGrass(left) && !landGrass(right)) continue
+      let hash = ((x * 374761393) ^ (y * 668265263)) >>> 0
+      hash = ((hash ^ (hash >>> 13)) * 1274126177) >>> 0
+      if ((hash & 0xff) > 110) continue
+      const r1 = ((hash >>> 8) & 0xff) / 255
+      const r2 = ((hash >>> 16) & 0xff) / 255
+      ctx.strokeStyle = '#3e6b3a'
+      ctx.lineWidth = 1
+      const px = x * TILE + TILE / 2 + (r2 - 0.5) * TILE * 0.5
+      const py = y * TILE + TILE
+      ctx.beginPath()
+      ctx.moveTo(px, py)
+      ctx.lineTo(px + (r1 - 0.5) * 2, py - 4)
+      ctx.moveTo(px + 1, py)
+      ctx.lineTo(px + 1 + (r1 - 0.5) * 2, py - 3)
+      ctx.stroke()
+    }
+  }
+  ctx.restore()
+}
+
 export function drawClouds(
   ctx: CanvasRenderingContext2D,
   W: number, H: number,

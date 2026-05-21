@@ -7,7 +7,7 @@ import { lineageColor } from '../utils/constants'
 import { ATLAS_TOWN, onAnyAtlasLoaded } from '../utils/sprites'
 import { TILE, TILE_RGB, BIOME_RGBA, THOUGHT_COLORS } from './palette'
 import { orgVariant } from './org-variant'
-import { drawTrees, drawClouds, scratchA, scratchB } from './decorations'
+import { drawTrees, drawClouds, drawNaturalDecor, scratchA, scratchB } from './decorations'
 
 onAnyAtlasLoaded(() => { _baseKey = null })
 
@@ -152,6 +152,9 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
   baseCtx.putImageData(imgData, 0, 0)
   if (biomes && ATLAS_TOWN.complete) {
     drawTrees(baseCtx, width, height, tiles, biomes)
+  }
+  if (biomes) {
+    drawNaturalDecor(baseCtx, width, height, tiles, biomes)
   }
   _baseCanvas = canvas
   _baseKey = { width, height, origin_x, origin_y, tiles, biomes, depth_map }
