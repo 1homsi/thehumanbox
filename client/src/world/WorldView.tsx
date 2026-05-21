@@ -5,6 +5,7 @@ import type { InterpRefs } from '../simulation/useSimulation'
 import { useUIStore, type ViewFlags } from '../stores/store'
 import { lineageColor, cbFireRgba } from '../utils/constants'
 import { ATLAS_TOWN, onAnyAtlasLoaded, drawPeopleTile, pickHumanSprite, type AgeStage } from '../utils/sprites'
+import { drawBuilding } from './buildings2d'
 
 function deriveAgeStage(age: number, isElder: boolean, declared?: string): AgeStage {
   if (declared === 'infant' || declared === 'child' || declared === 'teen' || declared === 'adult') return declared
@@ -1044,6 +1045,13 @@ function drawWorldOnCanvas(
       // change overhead when there are many partnered pairs.
       ctx.stroke()
       ctx.restore()
+    }
+  }
+
+  if (world.buildings && world.buildings.length > 0) {
+    for (const b of world.buildings) {
+      if (typeof b.x !== 'number' || typeof b.y !== 'number') continue
+      drawBuilding(ctx, { id: b.id, kind: b.kind, x: b.x, y: b.y, condition: b.condition }, ox, oy, TILE)
     }
   }
 

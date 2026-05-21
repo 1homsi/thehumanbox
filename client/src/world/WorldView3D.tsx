@@ -9,6 +9,7 @@ import { Water } from '../three/Water'
 import { Sun } from '../three/Sun'
 import { Humans3D } from '../three/Humans3D'
 import { Animals3D } from '../three/Animals3D'
+import { Buildings3D } from '../three/Buildings3D'
 import { OrgLabels } from '../three/OrgLabels'
 import { TileFeatures } from '../three/TileFeatures'
 import { Buildings3D } from '../three/Buildings3D'
@@ -398,6 +399,13 @@ export default function WorldView3D({ world }: Props) {
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}
                 />
+                {world.buildings && world.buildings.length > 0 && (
+                  <Buildings3D
+                    buildings={world.buildings}
+                    depthMap={grid.depth_map!}
+                    biomes={grid.biomes!}
+                  />
+                )}
                 <OrgLabels
                   organisms={world.viewport_organisms ?? world.organisms ?? []}
                   depthMap={grid.depth_map!}

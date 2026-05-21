@@ -62,8 +62,20 @@ const FOOTPRINTS: Record<string, [number, number]> = {
   Statue: [1, 1],
 }
 
+function normKind(kind: string): string {
+  return kind
+    .toLowerCase()
+    .replace(/_([a-z])/g, (_, c) => c.toUpperCase())
+    .replace(/^([a-z])/, (_, c) => c.toUpperCase())
+}
+
 export function buildingFootprint(kind: string): [number, number] {
-  return FOOTPRINTS[kind] ?? [1, 1]
+  const k = FOOTPRINTS[kind] ?? FOOTPRINTS[normKind(kind)]
+  return k ?? [1, 1]
+}
+
+export function buildingEmoji(kind: string): string {
+  return BUILDING_EMOJI[kind] ?? BUILDING_EMOJI[normKind(kind)] ?? '\u{1F3DA}\u{FE0F}'
 }
 
 export interface BuildingLike {
@@ -110,7 +122,7 @@ export function drawBuilding(
   ctx.strokeStyle = `rgba(255,220,160,${0.18 + cond * 0.20})`
   ctx.lineWidth = 1
   ctx.strokeRect(px + 0.5, py + 0.5, w - 1, h - 1)
-  const emoji = BUILDING_EMOJI[building.kind] ?? '\u{1F3DA}\u{FE0F}'
+  const emoji = buildingEmoji(building.kind)
   const fontPx = Math.max(10, Math.min(w, h) * 0.78)
   ctx.save()
   ctx.font = `${fontPx}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`

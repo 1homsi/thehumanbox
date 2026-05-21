@@ -4,6 +4,7 @@ import type { OrganismState, WorldState } from '../types'
 import { useUIStore, useViewFlag } from '../stores/store'
 import { OrgCard } from './OrgCard'
 import { OrgDetail } from './OrgDetail'
+import { CivSummary } from './CivSummary'
 
 interface Props {
   world: WorldState

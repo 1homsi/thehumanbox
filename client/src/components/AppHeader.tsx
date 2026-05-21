@@ -42,6 +42,7 @@ export function AppHeader({ world, connected, fireTiles, sickOrgs }: Props) {
   const openStats      = useUIStore(s => s.openStats)
   const openOrgSearch  = useUIStore(s => s.openOrgSearch)
   const openChronicles = useUIStore(s => s.openChronicles)
+  const openCiv        = useUIStore(s => s.openCiv)
   const setFullscreen  = useUIStore(s => s.setFullscreen)
   const focus         = useUIStore(s => s.focus)
   const setFocus      = useUIStore(s => s.setFocus)
@@ -188,6 +189,11 @@ export function AppHeader({ world, connected, fireTiles, sickOrgs }: Props) {
           <Tooltip tip="Population graphs, birth and death rates, lineage growth over time">
             <button className="lang-btn" onClick={openStats}>
               <span className="btn-icon">▦</span><span className="btn-label">stats</span>
+            </button>
+          </Tooltip>
+          <Tooltip tip="Civilization: eras, governments, religions, buildings, books, art, and recent headlines">
+            <button className="lang-btn" onClick={openCiv}>
+              <span className="btn-icon">{'\u{1F30D}'}</span><span className="btn-label">civ</span>
             </button>
           </Tooltip>
           <Tooltip tip="Search and filter all organisms - alive or dead - by name, thought, lineage, or discovery">
