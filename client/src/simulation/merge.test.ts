@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mergeFrame, type MergeCaches } from './merge'
 import type { IncomingWorldFrame } from './wire'
-import type { OrganismState, AnimalState, GridState } from '../types'
+import type { OrganismState, AnimalState } from '../types'
 
 function emptyCaches(): MergeCaches {
   return {

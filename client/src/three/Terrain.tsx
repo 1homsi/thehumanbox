@@ -197,8 +197,10 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
   // Dispose GPU-side buffers when the memoised geometry/material is
   // replaced (depthMap or biomes ref changes — happens on every full
   // frame). Without this, three.js leaks the previous BufferGeometry
-  // and MeshStandardMaterial on every snapshot.
-  useEffect(() => () => { geometry.dispose() }, [geometry])
+  // and MeshStandardMaterial on every snapshot. The useMemo for
+  // geometry returns null on the bootstrap render (before depthMap
+  // arrives), so the cleanup guards against that.
+  useEffect(() => () => { geometry?.dispose() }, [geometry])
   useEffect(() => () => { material.dispose() }, [material])
 
   if (!geometry) return null

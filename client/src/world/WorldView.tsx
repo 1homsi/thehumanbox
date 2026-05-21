@@ -11,6 +11,12 @@ import { drawTrees, drawClouds, scratchA, scratchB } from './decorations'
 
 onAnyAtlasLoaded(() => { _baseKey = null })
 
+// Rolling FPS samples — module-scoped so the rolling window survives
+// React renders. Lost during the recent WorldView split refactor;
+// restoring here so the `viewFlags.fps` HUD inside drawWorldOnCanvas
+// can push timestamps without crashing the render.
+const fpsSamples: number[] = []
+
 let _imgBuf: ImageData | null = null
 let _baseCanvas: HTMLCanvasElement | null = null
 let _baseKey: {

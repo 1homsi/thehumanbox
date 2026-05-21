@@ -3,7 +3,7 @@ import { useGLTF } from '@react-three/drei'
 import { useThree, useFrame } from '@react-three/fiber'
 import {
   CapsuleGeometry, Color, Euler, InstancedMesh, Matrix4,
-  MeshStandardMaterial, Object3D, Quaternion, Vector3,
+  MeshStandardMaterial, Quaternion, Vector3,
 } from 'three'
 import type { OrganismState } from '../types'
 import { lineageColor } from '../utils/constants'
