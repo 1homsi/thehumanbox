@@ -141,7 +141,15 @@ export function expandOrgsSoa(soa: OrgsHotSoa): ExpandedOrgDelta[] {
   const hasAlives = Array.isArray(soa.alives)
 
   // Pre-explode sparse-or-dense string-ish fields into per-index
-  // lookup tables (sparse = [] for unset; dense = the array itself).
+  // lookup tables. Three legal shapes per field:
+  //   - sparse  `Array<[idx, value]>` (default — only changed entries)
+  //   - dense   `(string | null)[]` of length n (legacy server)
+  //   - missing `undefined`           (no changes this frame at all)
+  // The missing case was crashing the decoder because the dense
+  // fallback did `(undefined as string[])[i]` which throws on the
+  // very first iteration. Every WS delta then dropped, the animal
+  // cache never advanced, and 2D animals appeared frozen / invisible
+  // while orgs (already seeded from the snapshot) kept rendering.
   const sparseThoughts = isSparseStringArray(soa.thoughts) ? soa.thoughts : null
   const sparsePartners = isSparseStringArray(soa.partner_ids) ? soa.partner_ids : null
   const sparseAttracted = isSparseStringArray(soa.attracted_tos) ? soa.attracted_tos : null
@@ -150,43 +158,65 @@ export function expandOrgsSoa(soa: OrgsHotSoa): ExpandedOrgDelta[] {
   const attractedAt: (string | undefined)[] = new Array(n)
   if (sparseThoughts) {
     for (const [i, s] of sparseThoughts) thoughtAt[i] = s
-  } else {
+  } else if (Array.isArray(soa.thoughts)) {
     const dense = soa.thoughts as string[]
     for (let i = 0; i < n; i++) thoughtAt[i] = dense[i]
   }
   if (sparsePartners) {
     for (const [i, s] of sparsePartners) partnerAt[i] = s
-  } else {
+  } else if (Array.isArray(soa.partner_ids)) {
     const dense = soa.partner_ids as (string | null)[]
     for (let i = 0; i < n; i++) partnerAt[i] = dense[i] ?? undefined
   }
   if (sparseAttracted) {
     for (const [i, s] of sparseAttracted) attractedAt[i] = s
-  } else {
+  } else if (Array.isArray(soa.attracted_tos)) {
     const dense = soa.attracted_tos as (string | null)[]
     for (let i = 0; i < n; i++) attractedAt[i] = dense[i] ?? undefined
   }
 
+  // Each numeric SoA field is also optional now — the server omits
+  // any array whose values didn't change this frame. Capture
+  // presence flags up front so the hot loop can branch cheaply on
+  // local booleans instead of doing `Array.isArray` n times.
+  const hasXs        = Array.isArray(soa.xs)
+  const hasYs        = Array.isArray(soa.ys)
+  const hasVxs       = Array.isArray(soa.vxs)
+  const hasVys       = Array.isArray(soa.vys)
+  const hasTargetXs  = Array.isArray(soa.target_xs)
+  const hasTargetYs  = Array.isArray(soa.target_ys)
+  const hasEnergies  = Array.isArray(soa.energies)
+  const hasHydrs     = Array.isArray(soa.hydrations)
+  const hasHealths   = Array.isArray(soa.healths)
+  const hasInf       = Array.isArray(soa.infections)
+  const hasFear      = Array.isArray(soa.fear_levels)
+  const hasCarrying  = Array.isArray(soa.carryings)
+  const hasCarryT    = Array.isArray(soa.carrying_types)
+  const hasPreg      = Array.isArray(soa.pregnants)
+
   for (let i = 0; i < n; i++) {
-    const entry: ExpandedOrgDelta = {
-      id:            soa.ids[i],
-      x:             soa.xs[i] / 10,
-      y:             soa.ys[i] / 10,
-      vx:            soa.vxs[i] / 10,
-      vy:            soa.vys[i] / 10,
-      target_x:      (soa.target_xs && soa.target_xs[i] !== -32768) ? soa.target_xs[i] : undefined,
-      target_y:      (soa.target_ys && soa.target_ys[i] !== -32768) ? soa.target_ys[i] : undefined,
-      energy:        soa.energies[i] / 100,
-      hydration:     soa.hydrations[i] / 100,
-      health:        soa.healths[i] / 100,
-      infection:     soa.infections[i] / 100,
-      fear_level:    soa.fear_levels[i] / 100,
-      carrying:      soa.carryings[i],
-      carrying_type: soa.carrying_types[i],
-      pregnant:      soa.pregnants[i],
-      partner_id:    partnerAt[i],
-      attracted_to:  attractedAt[i],
-    }
+    // Partial<OrganismState> means every field is optional, so we
+    // can build the entry incrementally and skip any SoA column the
+    // server dropped this frame. The cache merge in mergeFrame
+    // preserves the prior value for omitted fields, which is exactly
+    // the no-change semantic the wire intends.
+    const entry: ExpandedOrgDelta = { id: soa.ids[i] }
+    if (hasXs)       entry.x         = soa.xs![i] / 10
+    if (hasYs)       entry.y         = soa.ys![i] / 10
+    if (hasVxs)      entry.vx        = soa.vxs![i] / 10
+    if (hasVys)      entry.vy        = soa.vys![i] / 10
+    if (hasTargetXs) entry.target_x  = soa.target_xs![i] !== -32768 ? soa.target_xs![i] : undefined
+    if (hasTargetYs) entry.target_y  = soa.target_ys![i] !== -32768 ? soa.target_ys![i] : undefined
+    if (hasEnergies) entry.energy    = soa.energies![i] / 100
+    if (hasHydrs)    entry.hydration = soa.hydrations![i] / 100
+    if (hasHealths)  entry.health    = soa.healths![i] / 100
+    if (hasInf)      entry.infection = soa.infections![i] / 100
+    if (hasFear)     entry.fear_level = soa.fear_levels![i] / 100
+    if (hasCarrying) entry.carrying  = soa.carryings![i]
+    if (hasCarryT)   entry.carrying_type = soa.carrying_types![i]
+    if (hasPreg)     entry.pregnant  = soa.pregnants![i]
+    if (partnerAt[i]   !== undefined) entry.partner_id   = partnerAt[i]
+    if (attractedAt[i] !== undefined) entry.attracted_to = attractedAt[i]
     // `alive` dropped from deltas (server filters to alive on push);
     // when present (legacy server) honour it. Cached value persists
     // otherwise — see merge.ts.
