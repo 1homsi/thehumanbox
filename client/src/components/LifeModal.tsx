@@ -87,7 +87,18 @@ export function LifeModal({ orgId, orgName, onClose }: Props) {
         <button aria-label="Close" className="close-btn" onClick={onClose}>✕</button>
       </div>
       <div className="lang-modal-body">
-        {loading && <div style={{ color: '#888', textAlign: 'center', padding: 20 }}>loading biography…</div>}
+        {loading && (
+          <div className="life-skeleton">
+            <div className="life-skel-meta" />
+            <div className="life-skel-row" />
+            <div className="life-skel-row short" />
+            <div className="life-skel-section" />
+            <div className="life-skel-event" />
+            <div className="life-skel-event" />
+            <div className="life-skel-event" />
+            <div className="life-skel-event" />
+          </div>
+        )}
         {error && <div style={{ color: '#ff6644', textAlign: 'center', padding: 20 }}>failed to load</div>}
         {life && (
           <>

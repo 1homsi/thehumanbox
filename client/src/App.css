@@ -2200,3 +2200,22 @@ body.thb-photo-mode .header:hover {
   .try-3d-toast__cta { padding: 7px 12px; font-size: 12px; }
 }
 
+
+
+.life-skeleton { padding: 12px 4px; display: flex; flex-direction: column; gap: 10px; }
+.life-skel-meta, .life-skel-row, .life-skel-section, .life-skel-event {
+  background: linear-gradient(90deg, rgba(80,72,60,0.18) 0%, rgba(140,128,108,0.22) 50%, rgba(80,72,60,0.18) 100%);
+  background-size: 200% 100%;
+  border-radius: 4px;
+  animation: life-shimmer 1.4s ease-in-out infinite;
+}
+.life-skel-meta    { height: 10px; width: 60%; }
+.life-skel-row     { height: 8px;  width: 90%; }
+.life-skel-row.short { width: 55%; }
+.life-skel-section { height: 28px; width: 100%; margin-top: 6px; }
+.life-skel-event   { height: 22px; width: 100%; }
+@keyframes life-shimmer {
+  0%   { background-position: 200% 50%; }
+  100% { background-position: -100% 50%; }
+}
+
