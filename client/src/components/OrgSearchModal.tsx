@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import clsx from 'clsx'
 import type { OrganismState } from '../types'
-import { lineageColor } from '../utils/constants'
+import { lineageColor, cbColor } from '../utils/constants'
 import { OrgDetail } from './OrgDetail'
 import { Modal } from './Modal'
 
@@ -184,9 +184,9 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
                     <>
                       <div className="org-search-thought">{org.thought}</div>
                       <div className="org-search-bars">
-                        <div className="org-mini-bar" style={{ width: `${org.energy    * 100}%`, background: '#55dd55' }} />
+                        <div className="org-mini-bar" style={{ width: `${org.energy    * 100}%`, background: cbColor('#55dd55') }} />
                         <div className="org-mini-bar" style={{ width: `${org.hydration * 100}%`, background: '#4499ff' }} />
-                        <div className="org-mini-bar" style={{ width: `${org.health    * 100}%`, background: '#ff6644' }} />
+                        <div className="org-mini-bar" style={{ width: `${org.health    * 100}%`, background: cbColor('#ff6644') }} />
                       </div>
                     </>
                   ) : (

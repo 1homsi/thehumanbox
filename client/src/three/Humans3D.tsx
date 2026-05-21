@@ -138,14 +138,16 @@ function FarHumans({ organisms, depthMap, biomes }: {
       _quat.setFromEuler(_euler)
       // Inherit the same per-org scale we'd use for skinned figures
       // so figures don't visibly snap on the LOD boundary.
-      let s = 0.45
-      if      (o.age < 500)  s = 0.30
-      else if (o.age < 900)  s = 0.36
-      else if (o.age > 3000) s = 0.42
+      const baseS = o.sex === 'female' ? 0.42 : 0.45
+      let s = baseS
+      if      (o.age < 500)  s = baseS * 0.67
+      else if (o.age < 900)  s = baseS * 0.80
+      else if (o.age > 3000) s = baseS * 0.93
       if (o.pregnant) s *= 1.10
       s *= 0.88 + (o.traits?.resilience ?? 0.5) * 0.24
       s *= 0.85 + Math.min(1, o.health) * 0.15
-      _scale.set(s, s, s)
+      const sx = o.sex === 'female' ? s * 0.92 : s
+      _scale.set(sx, s, sx)
       _mat.compose(_pos, _quat, _scale)
       mesh.setMatrixAt(i, _mat)
       _col.set(orgColor(o))
@@ -168,11 +170,30 @@ function FarHumans({ organisms, depthMap, biomes }: {
   )
 }
 
+const MALE_CLIP_MAP: Record<string, string> = {
+  Walking: 'walk', Running: 'run', Idle: 'idle',
+  Sitting: 'sad_pose', Death: 'sad_pose',
+  Yes: 'agree', No: 'headShake',
+  Wave: 'agree', ThumbsUp: 'agree',
+  Dance: 'run', Punch: 'run', Jump: 'run',
+  WalkJump: 'walk', Standing: 'idle',
+}
+
+const FEMALE_CLIP_MAP: Record<string, string> = {
+  Walking: 'Walk', Running: 'Run', Idle: 'Idle',
+  Sitting: 'Idle', Death: 'Idle',
+  Yes: 'Idle', No: 'Idle',
+  Wave: 'Idle', ThumbsUp: 'Idle',
+  Dance: 'Run', Punch: 'Run', Jump: 'Run',
+  WalkJump: 'Walk', Standing: 'Idle',
+}
+
 export function Humans3D({ organisms, depthMap, biomes }: Props) {
   const { camera } = useThree()
   const selectOrg     = useUIStore(s => s.selectOrg)
   const selectedOrgId = useUIStore(s => s.selectedOrgId)
-  const { scene, animations } = useGLTF('/models/robot-expressive.glb')
+  const male   = useGLTF('/models/human_male.glb')
+  const female = useGLTF('/models/human_female.glb')
 
   // Partition organisms by distance every render. Far cohort becomes
   // one InstancedMesh; near cohort renders full skinned figures with
@@ -215,10 +236,13 @@ export function Humans3D({ organisms, depthMap, biomes }: Props) {
         const speed  = Math.hypot(vx, vy)
         const moving = speed > 0.05
 
-        let scale = 0.45
-        if      (o.age < 500)  scale = 0.30
-        else if (o.age < 900)  scale = 0.36
-        else if (o.age > 3000) scale = 0.42
+        const isFemale = o.sex === 'female'
+        const baseScale = isFemale ? 0.42 : 0.45
+
+        let scale = baseScale
+        if      (o.age < 500)  scale = baseScale * 0.67
+        else if (o.age < 900)  scale = baseScale * 0.80
+        else if (o.age > 3000) scale = baseScale * 0.93
         if (o.pregnant) scale *= 1.10
         scale *= 0.88 + (o.traits?.resilience ?? 0.5) * 0.24
         scale *= 0.85 + Math.min(1, o.health) * 0.15
@@ -229,6 +253,12 @@ export function Humans3D({ organisms, depthMap, biomes }: Props) {
         const isSelected = o.id === selectedOrgId
         const animate = isSelected || dx * dx + dz * dz <= ANIMATE_RADIUS_SQ
 
+        const requested = pickAnim(o, moving)
+        const map = isFemale ? FEMALE_CLIP_MAP : MALE_CLIP_MAP
+        const clipName = map[requested] ?? (isFemale ? 'Idle' : 'idle')
+        const modelScene      = isFemale ? female.scene      : male.scene
+        const modelAnimations = isFemale ? female.animations : male.animations
+
         return (
           <group
             key={o.id}
@@ -238,8 +268,8 @@ export function Humans3D({ organisms, depthMap, biomes }: Props) {
             }}
           >
             <AnimatedFigure
-              scene={scene}
-              animations={animations}
+              scene={modelScene}
+              animations={modelAnimations}
               getPosition={() => {
                 const [x, y] = getOrgXY(o.id)
                 const groundY = heightAt(x, y, depthMap, biomes)
@@ -247,7 +277,7 @@ export function Humans3D({ organisms, depthMap, biomes }: Props) {
               }}
               getHeading={() => getOrgHeading(o.id)}
               scale={scale}
-              animation={pickAnim(o, moving)}
+              animation={clipName}
               color={orgColor(o)}
               animate={animate}
               timeScale={timeScale}
@@ -260,4 +290,5 @@ export function Humans3D({ organisms, depthMap, biomes }: Props) {
   )
 }
 
-useGLTF.preload('/models/robot-expressive.glb')
+useGLTF.preload('/models/human_male.glb')
+useGLTF.preload('/models/human_female.glb')

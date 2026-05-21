@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
+import { useThree } from '@react-three/fiber'
 import { BufferAttribute, BufferGeometry, Mesh, MeshStandardMaterial } from 'three'
 import { TILE_SCALE, MAX_DEPTH, BIOME_COLORS, BIOME_ELEVATION, BIOME_ROUGHNESS, terrainNoise } from './constants'
 import { getTerrainTextures, biomeQuadrant } from './terrain-textures'
@@ -14,8 +15,21 @@ const TEX_TILES_PER_WORLD = 16
 
 export function Terrain({ depthMap, biomes, width, height }: Props) {
   const meshRef = useRef<Mesh>(null)
+  const gl = useThree(s => s.gl)
 
-  const { color: colorTex, bump: bumpTex } = useMemo(() => getTerrainTextures(), [])
+  const { color: colorTex, bump: bumpTex } = useMemo(() => {
+    const tex = getTerrainTextures()
+    const maxAniso = gl.capabilities.getMaxAnisotropy()
+    if (tex.color.anisotropy !== maxAniso) {
+      tex.color.anisotropy = maxAniso
+      tex.color.needsUpdate = true
+    }
+    if (tex.bump.anisotropy !== maxAniso) {
+      tex.bump.anisotropy = maxAniso
+      tex.bump.needsUpdate = true
+    }
+    return tex
+  }, [gl])
 
   const geometry = useMemo(() => {
     if (!depthMap || !biomes) return null

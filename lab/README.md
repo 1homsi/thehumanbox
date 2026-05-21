@@ -2,11 +2,6 @@
 
 `lab/` is the Python workspace for intelligence tooling around The Human Box.
 
-**Quickstart:** [docs/tutorials/01-quickstart.md](docs/tutorials/01-quickstart.md) walks through capture → dataset → eval in 10 minutes.
-
-See [docs/README.md](docs/README.md) for the documentation index and the per-package summary.
-
-
 The simulation engine lives in Rust and remains the source of truth for world state, causality, and organism behavior. This workspace exists to support that engine with offline tooling: dataset preparation, evaluation, local model experiments, and packaging for small on-device or self-hosted models.
 
 ## Why this exists

@@ -1266,9 +1266,32 @@ body.thb-photo-mode .header:hover {
 .chronicles-modal { max-width: 720px; }
 
 /* Life modal */
-.life-modal { max-width: 560px; background: #111318; border-color: #2a2a3a; }
+.life-modal {
+  width: min(900px, calc(100vw - 80px));
+  max-width: min(900px, calc(100vw - 80px));
+  background: #111318;
+  border-color: #2a2a3a;
+}
 .life-event-row { padding: 4px 0; }
 .life-event-row:last-child { margin-bottom: 0 !important; }
+.life-events-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 14px;
+}
+@media (max-width: 700px) {
+  .life-events-grid { grid-template-columns: 1fr; }
+}
+.life-stuck-banner {
+  background: #2a2200;
+  border: 1px solid #ffcc44;
+  color: #ffcc44;
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
 .chronicle-list {
   display: flex;
   flex-direction: column;
@@ -2247,6 +2270,12 @@ body.thb-photo-mode .header:hover {
   .try-3d-toast__cta { padding: 7px 12px; font-size: 12px; }
 }
 
+body.thb-colorblind .season-badge.season-abundance { background: #001a33; color: #3a86ff; }
+body.thb-colorblind .season-badge.season-decline   { background: #1a1400; color: #ffd166; }
+body.thb-colorblind .season-badge.season-scarcity  { background: #2a1500; color: #fb8500; }
+body.thb-colorblind .season-badge.season-recovery  { background: #001a1a; color: #55ccdd; }
+body.thb-colorblind .org-sick-badge { background: #fb8500; color: #1a0a00; }
+
 
 
 .life-skeleton { padding: 12px 4px; display: flex; flex-direction: column; gap: 10px; }
@@ -2266,3 +2295,60 @@ body.thb-photo-mode .header:hover {
   100% { background-position: -100% 50%; }
 }
 
+
+.org-detail-actions {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.icon-btn {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
+  border-radius: 4px;
+  border: 1px solid #443329;
+  background: #24201a;
+  color: #aaa;
+  cursor: pointer;
+  font-family: inherit;
+}
+.icon-btn:hover { color: #fff; border-color: #6a5240; background: #2c2620; }
+.icon-btn.active { background: #001a10; color: #44ffaa; border-color: #1a4a2a; }
+.icon-btn.active-star { color: #ffcc44; border-color: #5a4422; }
+.icon-btn.icon-close:hover { color: #cc4444; border-color: #4a1a1a; }
+.icon-btn:focus-visible { outline: 2px solid #cfe6ff; outline-offset: 1px; }
+
+.org-detail-header {
+  flex-wrap: nowrap;
+}
+
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 6px 0 2px;
+}
+.starred-toggle {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid #443329;
+  background: transparent;
+  color: #aaa;
+  cursor: pointer;
+  font-family: monospace;
+}
+.starred-toggle:hover { color: #ffcc44; border-color: #5a4422; }
+.starred-toggle.active {
+  background: #2a1f0d;
+  color: #ffcc44;
+  border-color: #5a4422;
+}

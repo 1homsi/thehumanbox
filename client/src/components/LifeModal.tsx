@@ -80,6 +80,11 @@ export function LifeModal({ orgId, orgName, onClose }: Props) {
     ? [...new Set(life.events.map(e => e.category))].filter(c => c !== 'event')
     : []
 
+  const recent = life ? life.events.slice(-10) : []
+  const stuckCount = recent.length >= 6 && recent.every(e => e.text === recent[0].text)
+    ? recent.length
+    : 0
+
   return (
     <Modal open onClose={onClose} className="lang-modal life-modal" title={`${orgName}'s Life`} hideTitle>
       <div className="lang-modal-header">
@@ -166,12 +171,18 @@ export function LifeModal({ orgId, orgName, onClose }: Props) {
               life events ({life.events.length})
             </div>
 
+            {stuckCount > 0 && (
+              <div className="life-stuck-banner">
+                ⚠ this organism is stuck: same action {stuckCount} times in a row
+              </div>
+            )}
+
             {life.events.length === 0 ? (
               <div style={{ color: '#555', fontSize: 10, textAlign: 'center', padding: 12 }}>
                 no recorded events yet
               </div>
             ) : (
-              <div>
+              <div className={life.events.length > 8 ? 'life-events-grid' : ''}>
                 {[...life.events].reverse().map((ev, i) => (
                   <EventRow key={i} ev={ev} />
                 ))}

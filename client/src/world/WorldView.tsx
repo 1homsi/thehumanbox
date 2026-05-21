@@ -3,7 +3,7 @@ import { Game, World, Entity, Transform, Sprite, Camera2D, useCamera, useEntity,
 import type { WorldState } from '../types'
 import type { InterpRefs } from '../simulation/useSimulation'
 import { useUIStore, type ViewFlags } from '../stores/store'
-import { lineageColor } from '../utils/constants'
+import { lineageColor, cbFireRgba } from '../utils/constants'
 import { ATLAS_TOWN, onAnyAtlasLoaded } from '../utils/sprites'
 import { TILE, TILE_RGB, BIOME_RGBA, THOUGHT_COLORS } from './palette'
 import { orgVariant } from './org-variant'
@@ -376,19 +376,19 @@ function drawWorldOnCanvas(
 
       if (t === 4 && fire_intensity) {
         const fi = fire_intensity[row][col]
-        ctx.fillStyle = `rgba(255,120,0,${fi * 0.55})`
+        ctx.fillStyle = cbFireRgba(255, 120, 0, fi * 0.55)
         ctx.fillRect(px, py, TILE, TILE)
       }
 
       if (t === 7 && fire_intensity) {
         const fi = fire_intensity[row][col]
-        ctx.fillStyle = `rgba(255,200,80,${fi * 0.7})`
+        ctx.fillStyle = cbFireRgba(255, 200, 80, fi * 0.7)
         ctx.fillRect(px, py, TILE, TILE)
-        ctx.fillStyle = `rgba(255,160,40,${fi * 0.12})`
+        ctx.fillStyle = cbFireRgba(255, 160, 40, fi * 0.12)
         ctx.fillRect(px - TILE * 2, py - TILE * 2, TILE * 5, TILE * 5)
         if (TILE >= 8) {
           const cx2 = px + TILE / 2
-          ctx.fillStyle = `rgba(255,80,0,${fi * 0.6})`
+          ctx.fillStyle = cbFireRgba(255, 80, 0, fi * 0.6)
           ctx.beginPath(); ctx.arc(cx2, py + TILE * 0.4, TILE * 0.18, 0, Math.PI * 2); ctx.fill()
           // Market stall awning adjacent to campfire
           const stallAngle = (((col + row) * 137) % 360) * (Math.PI / 180)

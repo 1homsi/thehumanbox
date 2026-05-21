@@ -100,7 +100,7 @@ export function Water({ width, height, depthMap }: Props) {
     <>
       <mesh
         rotation-x={-Math.PI / 2}
-        position={[cx, -0.6, cz]}
+        position={[cx, -0.8, cz]}
         receiveShadow
         frustumCulled={false}
       >
@@ -112,12 +112,16 @@ export function Water({ width, height, depthMap }: Props) {
           opacity={0.95}
           roughness={0.35}
           metalness={0.1}
+          depthWrite={false}
+          polygonOffset
+          polygonOffsetFactor={1}
+          polygonOffsetUnits={1}
         />
       </mesh>
 
       <mesh
         rotation-x={-Math.PI / 2}
-        position={[cx, -0.05, cz]}
+        position={[cx, -0.25, cz]}
         receiveShadow
         geometry={innerGeo}
         frustumCulled={false}
@@ -129,6 +133,10 @@ export function Water({ width, height, depthMap }: Props) {
           opacity={0.82}
           roughness={0.18}
           metalness={0.15}
+          depthWrite={false}
+          polygonOffset
+          polygonOffsetFactor={1}
+          polygonOffsetUnits={1}
           onBeforeCompile={onBeforeCompileInner}
         />
       </mesh>

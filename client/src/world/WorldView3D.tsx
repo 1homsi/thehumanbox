@@ -1,7 +1,7 @@
 import { Suspense, useRef, useEffect, useState, useMemo } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { KeyboardControls, useKeyboardControls, PointerLockControls, OrbitControls } from '@react-three/drei'
-import { Vector3, TOUCH } from 'three'
+import { Vector3, TOUCH, PCFShadowMap } from 'three'
 import type { WorldState } from '../types'
 import { useUIStore } from '../stores/store'
 import { Terrain } from '../three/Terrain'
@@ -329,8 +329,29 @@ export default function WorldView3D({ world }: Props) {
       <KeyboardControls map={KEY_MAP}>
         <Canvas
           camera={{ position: [cx, 120, cz + 200], fov: 70, near: 0.5, far: 4000 }}
-          shadows
+          shadows={{ type: PCFShadowMap }}
           gl={{ antialias: true, powerPreference: 'high-performance' }}
+          onCreated={({ gl }) => {
+            const dom = gl.domElement
+            dom.addEventListener('webglcontextlost', e => e.preventDefault())
+            const orig = dom.requestPointerLock?.bind(dom)
+            if (orig) {
+              dom.requestPointerLock = (opts?: PointerLockOptions) => {
+                try {
+                  if (dom.ownerDocument.pointerLockElement === dom) {
+                    return Promise.resolve()
+                  }
+                  const r = orig(opts) as unknown
+                  if (r && typeof (r as Promise<void>).catch === 'function') {
+                    return (r as Promise<void>).catch(() => {})
+                  }
+                  return Promise.resolve()
+                } catch {
+                  return Promise.resolve()
+                }
+              }
+            }
+          }}
         >
           <Suspense fallback={null}>
             {ready && grid && (
@@ -427,6 +448,9 @@ export default function WorldView3D({ world }: Props) {
                   isNight={isNight}
                   weatherKind={world.weather?.kind ?? 'clear'}
                   intensity={world.weather?.intensity ?? 0}
+                  dayProgress={dayProgress}
+                  windX={world.weather?.wind_x ?? 0}
+                  windY={world.weather?.wind_y ?? 0}
                 />
                 <Snow
                   active={world.season === 'scarcity'}

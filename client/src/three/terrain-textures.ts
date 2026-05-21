@@ -1,5 +1,5 @@
 import { ClampToEdgeWrapping, DataTexture, LinearFilter, LinearMipMapLinearFilter, RGBAFormat } from 'three'
-const TILE   = 256
+const TILE   = 512
 const ATLAS  = TILE * 2
 
 let _cache: { color: DataTexture; bump: DataTexture } | null = null

@@ -36,6 +36,8 @@ export interface ViewFlags {
 interface UIState {
   selectedOrgId: string | null
   followOrgId:   string | null
+  starredOrgIds: string[]
+  showStarredOnly: boolean
 
   showLanguages:   boolean
   showChronicles:  boolean
@@ -58,6 +60,8 @@ interface UIState {
 
   selectOrg: (id: string | null) => void
   followOrg: (id: string | null) => void
+  toggleStar: (id: string) => void
+  toggleShowStarredOnly: () => void
 
   openLanguages:    () => void
   closeLanguages:   () => void
@@ -87,9 +91,25 @@ interface UIState {
   setViewFlag:  (k: keyof ViewFlags, v: boolean) => void
 }
 
+const STARRED_KEY = 'thb-starred-orgs'
+const loadStarred = (): string[] => {
+  try {
+    const raw = window.localStorage.getItem(STARRED_KEY)
+    if (!raw) return []
+    const arr = JSON.parse(raw)
+    return Array.isArray(arr) ? arr.filter((x): x is string => typeof x === 'string') : []
+  } catch { return [] }
+}
+const saveStarred = (ids: string[]): void => {
+  try { window.localStorage.setItem(STARRED_KEY, JSON.stringify(ids)) }
+  catch { /* ignore */ }
+}
+
 export const useUIStore = create<UIState>((set) => ({
   selectedOrgId: null,
   followOrgId:   null,
+  starredOrgIds: loadStarred(),
+  showStarredOnly: false,
 
   showLanguages:   false,
   showChronicles:  false,
@@ -121,6 +141,13 @@ export const useUIStore = create<UIState>((set) => ({
 
   selectOrg: (id) => set(id == null ? { selectedOrgId: null, followOrgId: null } : { selectedOrgId: id }),
   followOrg: (id) => set({ followOrgId: id }),
+  toggleStar: (id) => set((s) => {
+    const has = s.starredOrgIds.includes(id)
+    const next = has ? s.starredOrgIds.filter((x) => x !== id) : [...s.starredOrgIds, id]
+    saveStarred(next)
+    return { starredOrgIds: next }
+  }),
+  toggleShowStarredOnly: () => set((s) => ({ showStarredOnly: !s.showStarredOnly })),
 
   openLanguages:    () => set({ showLanguages:   true }),
   closeLanguages:   () => set({ showLanguages:   false }),

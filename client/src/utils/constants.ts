@@ -1,20 +1,47 @@
 import type { OrganismState } from '../types'
 
+export function isColorBlind(): boolean {
+  return typeof document !== 'undefined'
+    && !!document.body?.classList?.contains('thb-colorblind')
+}
+
+const CB_SAFE_BLUE   = '#3a86ff'
+const CB_SAFE_ORANGE = '#fb8500'
+const CB_SAFE_YELLOW = '#ffd166'
+const CB_SAFE_FIRE_R = 255
+const CB_SAFE_FIRE_G = 215
+const CB_SAFE_FIRE_B = 0
+
+export function cbColor(color: string): string {
+  if (!isColorBlind()) return color
+  const c = color.toLowerCase()
+  if (c === '#55dd55' || c === '#88ee55' || c === '#bbff44' || c === '#55ff88' || c === '#aaffcc' || c === '#99ff44') return CB_SAFE_BLUE
+  if (c === '#ff6644' || c === '#ff4488' || c === '#ff2200' || c === '#ee7733' || c === '#ffaa44' || c === '#cc8833') return CB_SAFE_ORANGE
+  if (c === '#f6a64a') return CB_SAFE_ORANGE
+  if (c === '#ddbb55') return CB_SAFE_YELLOW
+  return color
+}
+
+export function cbFireRgba(r: number, g: number, b: number, a: number): string {
+  if (isColorBlind()) {
+    return `rgba(${CB_SAFE_FIRE_R},${CB_SAFE_FIRE_G},${CB_SAFE_FIRE_B},${a})`
+  }
+  return `rgba(${r},${g},${b},${a})`
+}
+
 export function lineageColor(lineageId: string | null | undefined): string {
   if (!lineageId || typeof lineageId !== 'string') return 'hsl(0, 0%, 55%)'
 
   let h = 0
   for (const c of lineageId) h = Math.imul(h * 31 + c.charCodeAt(0), 1) >>> 0
 
-  const colorBlind = typeof document !== 'undefined'
-    && document.body?.classList?.contains('thb-colorblind')
+  const colorBlind = isColorBlind()
 
   let hue: number
   if (colorBlind) {
-    const raw = (h * 137.508) % 220
-    hue = raw < 50 ? raw + 40
-        : raw < 110 ? raw + 110
-        :             raw + 130
+    const bin = h % 2
+    const jitter = ((h >>> 4) % 30) - 15
+    hue = bin === 0 ? 210 + jitter : 30 + jitter
   } else {
     hue = (h * 137.508) % 360
   }

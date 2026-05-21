@@ -44,7 +44,7 @@ export function OrgLabels({ organisms, depthMap, biomes }: Props) {
       scored.push({
         id: o.id,
         name: o.name,
-        pos: [px, groundY + 3.2, pz],
+        pos: [px, groundY + 4.2, pz],
         d,
         selected: isSel,
       })
@@ -57,7 +57,7 @@ export function OrgLabels({ organisms, depthMap, biomes }: Props) {
   return (
     <>
       {labels.map(l => (
-        <Billboard key={l.id} position={l.pos} frustumCulled={false}>
+        <Billboard key={l.id} position={l.pos} frustumCulled={false} follow={true}>
           <Text
             fontSize={l.selected ? 0.9 : 0.7}
             color={l.selected ? '#ffcf6a' : '#ffffff'}
@@ -68,6 +68,9 @@ export function OrgLabels({ organisms, depthMap, biomes }: Props) {
             frustumCulled={false}
             renderOrder={999}
             material-toneMapped={false}
+            material-depthTest={false}
+            material-depthWrite={false}
+            material-transparent={true}
           >
             {l.name}
           </Text>
@@ -82,6 +85,9 @@ export function OrgLabels({ organisms, depthMap, biomes }: Props) {
             frustumCulled={false}
             renderOrder={999}
             material-toneMapped={false}
+            material-depthTest={false}
+            material-depthWrite={false}
+            material-transparent={true}
           >
             ◆
           </Text>

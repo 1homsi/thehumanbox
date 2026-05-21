@@ -33,6 +33,12 @@ export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
   const selectOrg   = useUIStore(s => s.selectOrg)
   const followOrg   = useUIStore(s => s.followOrg)
   const togglePanel = useUIStore(s => s.togglePanel)
+  const starredOrgIds       = useUIStore(s => s.starredOrgIds)
+  const showStarredOnly     = useUIStore(s => s.showStarredOnly)
+  const toggleShowStarred   = useUIStore(s => s.toggleShowStarredOnly)
+  const starredSet = new Set(starredOrgIds)
+  const visibleLive = showStarredOnly ? throttledLive.filter(o => starredSet.has(o.id)) : throttledLive
+  const visibleDead = showStarredOnly ? throttledDead.filter(o => starredSet.has(o.id)) : throttledDead
 
   return (
     <>
@@ -54,15 +60,25 @@ export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
           />
         )}
 
-        <div className="section-title">ALIVE ({throttledLive.length})</div>
-        {throttledLive.map((org) => (
+        <div className="section-title-row">
+          <span className="section-title">ALIVE ({visibleLive.length})</span>
+          <button
+            type="button"
+            className={clsx('starred-toggle', showStarredOnly && 'active')}
+            onClick={toggleShowStarred}
+            title={showStarredOnly ? 'Show all organisms' : `Show only starred (${starredOrgIds.length})`}
+          >
+            {showStarredOnly ? '★ starred' : `☆ ${starredOrgIds.length}`}
+          </button>
+        </div>
+        {visibleLive.map((org) => (
           <OrgCard key={org.id} orgId={org.id} />
         ))}
 
-        {throttledDead.length > 0 && (
+        {visibleDead.length > 0 && (
           <>
-            <div className="section-title">DEAD ({throttledDead.length})</div>
-            {throttledDead.slice(-5).map(org => (
+            <div className="section-title">DEAD ({visibleDead.length})</div>
+            {visibleDead.slice(-5).map(org => (
               <div key={org.id} className="org-card dead">
                 <div className="org-header">
                   <span className="org-name">{org.name}</span>

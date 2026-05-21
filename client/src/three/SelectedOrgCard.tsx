@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import type { OrganismState } from '../types'
-import { lineageColor } from '../utils/constants'
+import { lineageColor, cbColor } from '../utils/constants'
 import { useUIStore } from '../stores/store'
 import { TILE_SCALE } from './constants'
 import { cameraCommand, cameraSnapshot } from './camera-state'
@@ -66,7 +66,7 @@ function Bar({ label, value, color }: { label: string; value: number; color: str
     <div style={barRow}>
       <span style={barLabel}>{label}</span>
       <div style={barTrack}>
-        <div style={{ ...barFill, width: pct + '%', background: color }} />
+        <div style={{ ...barFill, width: pct + '%', background: cbColor(color) }} />
       </div>
     </div>
   )

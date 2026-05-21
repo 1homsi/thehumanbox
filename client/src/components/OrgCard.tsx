@@ -1,6 +1,6 @@
 import { memo, useCallback } from 'react'
 import clsx from 'clsx'
-import { lineageColor } from '../utils/constants'
+import { lineageColor, cbColor } from '../utils/constants'
 import { useUIStore } from '../stores/store'
 import { useOrganism, useWorldStore } from '../stores/worldStore'
 import { Tooltip } from './Tooltip'
@@ -11,7 +11,7 @@ function Bar({ label, value, color, tip }: { label: string; value: number; color
     <div className="bar-row">
       {tip ? <Tooltip tip={tip}>{labelEl}</Tooltip> : labelEl}
       <div className="bar-track">
-        <div className="bar-fill" style={{ width: `${value * 100}%`, background: color }} />
+        <div className="bar-fill" style={{ width: `${value * 100}%`, background: cbColor(color) }} />
       </div>
       <span className="bar-pct">{(value * 100).toFixed(0)}%</span>
     </div>
@@ -21,7 +21,7 @@ function Bar({ label, value, color, tip }: { label: string; value: number; color
 function TraitBar({ value, color }: { value: number; color: string }) {
   return (
     <div className="trait-bar-track">
-      <div className="trait-bar-fill" style={{ width: `${value * 100}%`, background: color }} />
+      <div className="trait-bar-fill" style={{ width: `${value * 100}%`, background: cbColor(color) }} />
     </div>
   )
 }

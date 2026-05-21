@@ -1,9 +1,10 @@
 import clsx from 'clsx'
 import { useState } from 'react'
 import type { OrganismState } from '../types'
-import { lineageColor } from '../utils/constants'
+import { lineageColor, cbColor } from '../utils/constants'
 import { Tooltip } from './Tooltip'
 import { useOrgDetail } from '../hooks/useOrgDetail'
+import { useUIStore } from '../stores/store'
 import { LifeModal } from './LifeModal'
 
 const DAY_LENGTH = 600
@@ -18,7 +19,7 @@ function Bar({ label, value, color }: { label: string; value: number; color: str
     <div className="bar-row">
       <span className="bar-label">{label}</span>
       <div className="bar-track">
-        <div className="bar-fill" style={{ width: `${Math.min(value, 1) * 100}%`, background: color }} />
+        <div className="bar-fill" style={{ width: `${Math.min(value, 1) * 100}%`, background: cbColor(color) }} />
       </div>
       <span className="bar-pct">{(value * 100).toFixed(0)}%</span>
     </div>
@@ -32,7 +33,7 @@ function MiniBar({ label, value, color, invert, tip }: { label: string; value: n
     <div className="trait-full-row">
       {tip ? <Tooltip tip={tip}>{labelEl}</Tooltip> : labelEl}
       <div className="bar-track">
-        <div className="bar-fill" style={{ width: `${w}%`, background: color, opacity: invert ? 0.7 + value * 0.3 : 0.6 + value * 0.4 }} />
+        <div className="bar-fill" style={{ width: `${w}%`, background: cbColor(color), opacity: invert ? 0.7 + value * 0.3 : 0.6 + value * 0.4 }} />
       </div>
       <span className="bar-pct">{(value * 100).toFixed(0)}</span>
     </div>
@@ -51,6 +52,9 @@ interface Props {
 export function OrgDetail({ org, onClose, onFollow, following, lineageNames, organisms }: Props) {
   const { data: detail } = useOrgDetail(org.id)
   const [showLife, setShowLife] = useState(false)
+  const starredOrgIds = useUIStore((s) => s.starredOrgIds)
+  const toggleStar    = useUIStore((s) => s.toggleStar)
+  const isStarred     = starredOrgIds.includes(org.id)
   const tn = (lid: string) => lineageNames?.[lid] ?? (lid ?? '').slice(0, 6)
   const on = (oid: string) => organisms?.find(o => o.id === oid)?.name ?? (oid ?? '').slice(0, 5)
   const ageInDays = Math.floor(org.age / DAY_LENGTH)
@@ -77,19 +81,27 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
         <span className="org-detail-dot" style={{ background: color }} />
         <span className="org-detail-name">{org.name}</span>
         {isSick && <span className="org-sick-badge">sick</span>}
-        {carrying && <Tooltip tip="Carrying wood - organism is transporting material that slowly builds shelter structures wherever they rest"><span className="org-carrying-badge" style={{ cursor: 'default' }}>🪵 wood</span></Tooltip>}
-        <button
-          className="follow-btn"
-          onClick={() => setShowLife(true)}
-          title="View full life history"
-          style={{ marginRight: 2 }}
-        >📖 life</button>
-        <button
-          className={clsx('follow-btn', following && 'active')}
-          onClick={() => onFollow(following ? null : org.id)}
-          title="Follow this organism"
-        >{following ? '⊙ following' : '⊙ follow'}</button>
-        <button aria-label="Close" className="close-btn" onClick={onClose}>✕</button>
+        {carrying && <Tooltip tip="Carrying wood"><span className="org-carrying-badge" style={{ cursor: 'default' }}>🪵</span></Tooltip>}
+        <span className="org-detail-actions">
+          <Tooltip tip={isStarred ? 'Unstar' : 'Star this organism (saved across reloads)'}>
+            <button
+              className={clsx('icon-btn', isStarred && 'active-star')}
+              aria-label={isStarred ? 'Unstar' : 'Star'}
+              onClick={() => toggleStar(org.id)}
+            >{isStarred ? '★' : '☆'}</button>
+          </Tooltip>
+          <Tooltip tip="View full life history">
+            <button className="icon-btn" aria-label="Life" onClick={() => setShowLife(true)}>📖</button>
+          </Tooltip>
+          <Tooltip tip={following ? 'Following' : 'Follow this organism'}>
+            <button
+              className={clsx('icon-btn', following && 'active')}
+              aria-label={following ? 'Unfollow' : 'Follow'}
+              onClick={() => onFollow(following ? null : org.id)}
+            >⊙</button>
+          </Tooltip>
+          <button aria-label="Close" className="icon-btn icon-close" onClick={onClose}>✕</button>
+        </span>
       </div>
 
       <div className="org-detail-sub">
@@ -139,7 +151,7 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
               <span className="trait-full-label" style={{ cursor: 'default' }}>{label}</span>
             </Tooltip>
             <div className="bar-track">
-              <div className="bar-fill" style={{ width: `${val * 100}%`, background: col }} />
+              <div className="bar-fill" style={{ width: `${val * 100}%`, background: cbColor(col) }} />
             </div>
             <span className="bar-pct">{(val * 100).toFixed(0)}</span>
           </div>
