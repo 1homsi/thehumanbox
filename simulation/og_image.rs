@@ -18,6 +18,11 @@ pub struct OgSnapshot {
     pub orgs:    Vec<OgOrg>,
     pub tick:    u64,
     pub day_t:   f32,   // 0..1, position in day cycle
+    /// Current era label (e.g. "stone age", "iron age") for the
+    /// header overlay. Short — typically ≤16 chars.
+    pub era:     String,
+    /// Active alive population — used in the bottom-right stat ribbon.
+    pub alive:   u32,
 }
 
 #[derive(Clone, Copy)]
@@ -82,16 +87,43 @@ fn tile_color(t: Tile, biome: u8, day_t: f32) -> [u8; 3] {
 /// `col`-th leftmost pixel.
 fn glyph(c: char) -> Option<[u8; 7]> {
     Some(match c {
-        'T' => [0b11111, 0b00100, 0b00100, 0b00100, 0b00100, 0b00100, 0b00100],
-        'H' => [0b10001, 0b10001, 0b10001, 0b11111, 0b10001, 0b10001, 0b10001],
-        'E' => [0b11111, 0b10000, 0b10000, 0b11110, 0b10000, 0b10000, 0b11111],
-        'U' => [0b10001, 0b10001, 0b10001, 0b10001, 0b10001, 0b10001, 0b01110],
-        'M' => [0b10001, 0b11011, 0b10101, 0b10001, 0b10001, 0b10001, 0b10001],
         'A' => [0b01110, 0b10001, 0b10001, 0b11111, 0b10001, 0b10001, 0b10001],
-        'N' => [0b10001, 0b11001, 0b10101, 0b10011, 0b10001, 0b10001, 0b10001],
         'B' => [0b11110, 0b10001, 0b10001, 0b11110, 0b10001, 0b10001, 0b11110],
+        'C' => [0b01110, 0b10001, 0b10000, 0b10000, 0b10000, 0b10001, 0b01110],
+        'D' => [0b11110, 0b10001, 0b10001, 0b10001, 0b10001, 0b10001, 0b11110],
+        'E' => [0b11111, 0b10000, 0b10000, 0b11110, 0b10000, 0b10000, 0b11111],
+        'F' => [0b11111, 0b10000, 0b10000, 0b11110, 0b10000, 0b10000, 0b10000],
+        'G' => [0b01110, 0b10001, 0b10000, 0b10011, 0b10001, 0b10001, 0b01110],
+        'H' => [0b10001, 0b10001, 0b10001, 0b11111, 0b10001, 0b10001, 0b10001],
+        'I' => [0b01110, 0b00100, 0b00100, 0b00100, 0b00100, 0b00100, 0b01110],
+        'J' => [0b00111, 0b00010, 0b00010, 0b00010, 0b00010, 0b10010, 0b01100],
+        'K' => [0b10001, 0b10010, 0b10100, 0b11000, 0b10100, 0b10010, 0b10001],
+        'L' => [0b10000, 0b10000, 0b10000, 0b10000, 0b10000, 0b10000, 0b11111],
+        'M' => [0b10001, 0b11011, 0b10101, 0b10001, 0b10001, 0b10001, 0b10001],
+        'N' => [0b10001, 0b11001, 0b10101, 0b10011, 0b10001, 0b10001, 0b10001],
         'O' => [0b01110, 0b10001, 0b10001, 0b10001, 0b10001, 0b10001, 0b01110],
+        'P' => [0b11110, 0b10001, 0b10001, 0b11110, 0b10000, 0b10000, 0b10000],
+        'Q' => [0b01110, 0b10001, 0b10001, 0b10001, 0b10101, 0b10010, 0b01101],
+        'R' => [0b11110, 0b10001, 0b10001, 0b11110, 0b10100, 0b10010, 0b10001],
+        'S' => [0b01111, 0b10000, 0b10000, 0b01110, 0b00001, 0b00001, 0b11110],
+        'T' => [0b11111, 0b00100, 0b00100, 0b00100, 0b00100, 0b00100, 0b00100],
+        'U' => [0b10001, 0b10001, 0b10001, 0b10001, 0b10001, 0b10001, 0b01110],
+        'V' => [0b10001, 0b10001, 0b10001, 0b10001, 0b10001, 0b01010, 0b00100],
+        'W' => [0b10001, 0b10001, 0b10001, 0b10001, 0b10101, 0b11011, 0b10001],
         'X' => [0b10001, 0b10001, 0b01010, 0b00100, 0b01010, 0b10001, 0b10001],
+        'Y' => [0b10001, 0b10001, 0b01010, 0b00100, 0b00100, 0b00100, 0b00100],
+        'Z' => [0b11111, 0b00001, 0b00010, 0b00100, 0b01000, 0b10000, 0b11111],
+        '0' => [0b01110, 0b10001, 0b10011, 0b10101, 0b11001, 0b10001, 0b01110],
+        '1' => [0b00100, 0b01100, 0b00100, 0b00100, 0b00100, 0b00100, 0b01110],
+        '2' => [0b01110, 0b10001, 0b00001, 0b00010, 0b00100, 0b01000, 0b11111],
+        '3' => [0b11110, 0b00001, 0b00001, 0b01110, 0b00001, 0b00001, 0b11110],
+        '4' => [0b00010, 0b00110, 0b01010, 0b10010, 0b11111, 0b00010, 0b00010],
+        '5' => [0b11111, 0b10000, 0b10000, 0b11110, 0b00001, 0b00001, 0b11110],
+        '6' => [0b00110, 0b01000, 0b10000, 0b11110, 0b10001, 0b10001, 0b01110],
+        '7' => [0b11111, 0b00001, 0b00010, 0b00100, 0b01000, 0b10000, 0b10000],
+        '8' => [0b01110, 0b10001, 0b10001, 0b01110, 0b10001, 0b10001, 0b01110],
+        '9' => [0b01110, 0b10001, 0b10001, 0b01111, 0b00001, 0b00010, 0b01100],
+        '-' => [0b00000, 0b00000, 0b00000, 0b01110, 0b00000, 0b00000, 0b00000],
         '·' | ' ' => [0,0,0,0,0,0,0],
         _   => return None,
     })
@@ -173,6 +205,40 @@ pub fn render(snap: &OgSnapshot) -> Vec<u8> {
         }
     }
     draw_text(&mut img, "THE HUMAN BOX", 16, 6, 2, [220, 215, 200]);
+
+    // Status ribbon along the bottom: alive pop · era · tick. Drawn
+    // over a translucent dark strip so it stays legible against any
+    // terrain background. Centered horizontally, plus a small left
+    // and right anchor for the labels.
+    const STAT_H: u32 = 28;
+    let stat_y0 = OG_H - STAT_H;
+    for py in stat_y0..OG_H {
+        for px in 0..OG_W {
+            let p = img.get_pixel(px, py);
+            // Mix existing pixel with dark band at 80% strength.
+            let r = (p[0] as u32 * 20 + 10 * 80) / 100;
+            let g = (p[1] as u32 * 20 + 10 * 80) / 100;
+            let b = (p[2] as u32 * 20 + 16 * 80) / 100;
+            img.put_pixel(px, py, Rgba([r as u8, g as u8, b as u8, 255]));
+        }
+    }
+    // Left: alive count.
+    let alive_text = format!("ALIVE {}", snap.alive);
+    draw_text(&mut img, &alive_text, 16, stat_y0 + 6, 2, [220, 215, 200]);
+    // Center: era (ASCII-fold; bitmap font only knows uppercase + digits).
+    let era_safe: String = snap.era.chars()
+        .map(|c| if c.is_ascii_alphanumeric() || c == ' ' || c == '-' { c } else { '-' })
+        .collect();
+    let era_text = format!("ERA {}", era_safe.trim());
+    // Crude horizontal centering: each glyph is 6 px wide at scale=2 → 12 px,
+    // so center pixel = OG_W/2 - len*12/2.
+    let era_x = (OG_W as i32 / 2 - (era_text.len() as i32) * 6).max(0) as u32;
+    draw_text(&mut img, &era_text, era_x, stat_y0 + 6, 2, [220, 215, 200]);
+    // Right: tick counter.
+    let tick_text = format!("TICK {}", snap.tick);
+    let tick_w = (tick_text.len() as u32) * 12;
+    let tick_x = OG_W.saturating_sub(tick_w + 16);
+    draw_text(&mut img, &tick_text, tick_x, stat_y0 + 6, 2, [220, 215, 200]);
 
     let mut buf = Vec::with_capacity(64 * 1024);
     // PNG encode can fail (extremely rare — the image is well-formed

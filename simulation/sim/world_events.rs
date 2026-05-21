@@ -793,6 +793,12 @@ pub fn tick_world_evolution(
     if tick % 900 == 0 && tick >= 900 {
         grid.tick_forest_spread(rng);
     }
+    // Forest die-back: paired with the spread loop. Only fires under
+    // active drought + low-fertility tiles, so the world's forests
+    // shrink during sustained dry spells.
+    if tick % 600 == 0 && tick >= 600 {
+        grid.tick_forest_dieback(drought_active, rng);
+    }
     // Rare tectonic event: every 30k ticks, flip a coin. On average one
     // earthquake per ~60k ticks — uncommon enough that organisms can't
     // build a routine around it, frequent enough that long-running worlds

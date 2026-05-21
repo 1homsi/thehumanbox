@@ -637,6 +637,12 @@ impl Simulation {
             lineage_centroid_history: state.lineage_centroid_history.into_iter()
                 .map(|(k, v)| (k, v.into_iter().collect()))
                 .collect(),
+            // Ancestral homes aren't persisted yet (added in v3); they
+            // re-stamp on the next centroid sweep after load, so the
+            // anchor jumps to wherever surviving members currently are.
+            // Acceptable for now — the historical signal is preserved
+            // by lineage_centroid_history which IS persisted.
+            lineage_homes: std::collections::HashMap::new(),
             current_era:            if state.current_era.is_empty() { "genesis".to_string() } else { state.current_era },
             sex_words: {
                 if state.sex_words.len() >= 2 {

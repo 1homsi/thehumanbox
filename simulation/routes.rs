@@ -75,7 +75,9 @@ pub async fn og_handler(
         use crate::og_image::{OgSnapshot, OgOrg, lineage_color};
         let g = &sim.grid;
         let mut orgs: Vec<OgOrg> = Vec::with_capacity(sim.organisms.len());
+        let mut alive = 0u32;
         for o in sim.organisms.iter().filter(|o| o.alive) {
+            alive += 1;
             orgs.push(OgOrg {
                 x: o.x,
                 y: o.y,
@@ -84,6 +86,7 @@ pub async fn og_handler(
         }
         let phase = sim.tick_count % DAY_LENGTH;
         let day_t = phase as f32 / DAY_LENGTH as f32;
+        let era = sim.current_era.clone();
         OgSnapshot {
             width:  crate::world::grid::WIDTH,
             height: crate::world::grid::HEIGHT,
@@ -92,6 +95,8 @@ pub async fn og_handler(
             orgs,
             tick:   sim.tick_count,
             day_t,
+            era,
+            alive,
         }
     };
 

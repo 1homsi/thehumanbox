@@ -1044,6 +1044,26 @@ impl WorldGrid {
         }
     }
 
+    /// Forest die-back: under active drought, forest tiles with low
+    /// fertility revert to grassland. Pairs with `tick_forest_spread`
+    /// to close the "forests spread or die" loop. Caller passes the
+    /// drought flag so we only burn the budget when relevant.
+    pub fn tick_forest_dieback(&mut self, drought_active: bool, rng: &mut impl Rng) {
+        if !drought_active { return; }
+        let mut died = 0usize;
+        for _ in 0..120 {
+            if died >= 8 { break; }
+            let x = rng.gen_range(1..WIDTH  as i32 - 1);
+            let y = rng.gen_range(1..HEIGHT as i32 - 1);
+            if self.biome_at(x, y) != Biome::Forest { continue; }
+            let i = Self::idx(x, y);
+            if self.fertility[i] >= 0.30 { continue; }
+            // Demote to grassland; the underlying tile stays grass.
+            self.biome[i] = Biome::Grassland as u8;
+            died += 1;
+        }
+    }
+
     pub fn tick_geology(&mut self, rng: &mut impl Rng) {
         // Per audit: previous counts (2-6 flood, 1-3 emerge) fired every
         // 18000 ticks; at 4 changes per ~30 min real that's invisible

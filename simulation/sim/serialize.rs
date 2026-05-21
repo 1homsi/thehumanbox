@@ -209,6 +209,8 @@ impl Simulation {
                 obj.insert("lineage_names".to_string(), serde_json::to_value(&self.lineage_names).unwrap());
                 obj.insert("lineage_centroid_history".to_string(),
                     serde_json::to_value(&self.lineage_centroid_history).unwrap());
+                obj.insert("lineage_homes".to_string(),
+                    serde_json::to_value(&self.lineage_homes).unwrap());
                 obj.insert("current_era".to_string(), serde_json::to_value(&self.current_era).unwrap());
                 obj.insert("sex_words".to_string(), serde_json::to_value(&self.sex_words).unwrap());
             }

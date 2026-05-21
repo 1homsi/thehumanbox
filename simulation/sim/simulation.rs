@@ -145,6 +145,14 @@ pub struct Simulation {
     pub(crate) lineage_negotiations: HashMap<(String,String), u64>,
     pub pop_history:           VecDeque<[u64; 2]>,
     pub lineage_centroid_history: HashMap<String, VecDeque<[i32; 3]>>,
+    /// Ancestral home per lineage — stamped the first time the
+    /// lineage shows up in tick_lineage_centroids and never overwritten.
+    /// Lets the client render an "where this lineage came from"
+    /// overlay even after living members have wandered far away.
+    /// Format: [home_x, home_y, radius_tiles]. Radius is fixed at 30
+    /// tiles today; future work can derive it from the historical
+    /// spread of centroids.
+    pub lineage_homes: HashMap<String, [i32; 3]>,
     pub current_era:           String,
     pub sex_words:             [String; 2],
     pub world_seed:            u64,
@@ -223,6 +231,7 @@ impl Simulation {
             lineage_negotiations: HashMap::new(),
             pop_history: VecDeque::new(),
             lineage_centroid_history: HashMap::new(),
+            lineage_homes:           HashMap::new(),
             current_era: "genesis".to_string(),
             sex_words,
             world_seed: seed,
@@ -2163,9 +2172,23 @@ impl Simulation {
             } else {
                 self.history.deaths_combat += 1; "combat"
             };
+            // Migration-pressure signal: an organism dying far from
+            // where it was born is the simulation's emergent answer
+            // to "the elders left home and never came back." Fires
+            // sparingly (only at death, only past a sizeable
+            // threshold) so the event log doesn't drown.
+            let dx = org.x - org.home_x;
+            let dy = org.y - org.home_y;
+            let home_dist_sq = dx * dx + dy * dy;
+            let migrated = home_dist_sq > 40.0 * 40.0;
             let msg = format!("gen{} age {} - {}", org.generation, org.age, cause);
             let name = org.name.clone();
             push_event(&mut self.events, self.tick_count, "died", &name, &msg);
+            if migrated {
+                let dist = home_dist_sq.sqrt() as i32;
+                push_event(&mut self.events, self.tick_count, "migration", &name,
+                           &format!("died {} tiles from home, far from where they were born", dist));
+            }
         } else if org.max_age > 0 && org.age >= org.max_age {
             org.alive = false;
             org.think("died of old age", self.tick_count);
@@ -2710,11 +2733,19 @@ impl Simulation {
         let alive_lineages: HashSet<String> = sums.keys().map(|s| s.to_string()).collect();
         for (lid_str, (sx, sy, n)) in sums {
             if n == 0 { continue; }
+            let cx = (sx / n as f32) as i32;
+            let cy = (sy / n as f32) as i32;
             let entry = self.lineage_centroid_history
                 .entry(lid_str.to_string())
                 .or_default();
-            entry.push_back([tick, (sx / n as f32) as i32, (sy / n as f32) as i32]);
+            entry.push_back([tick, cx, cy]);
             if entry.len() > 60 { entry.pop_front(); }
+            // Stamp the ancestral home the first time we ever see
+            // this lineage. Never overwritten — even when the last
+            // living member is 200 tiles away, the home stays
+            // anchored to where the lineage was born.
+            self.lineage_homes.entry(lid_str.to_string())
+                .or_insert([cx, cy, 30]);
         }
         let cutoff = tick - 30 * DAY_LENGTH as i32;
         self.lineage_centroid_history.retain(|lid, samples| {
