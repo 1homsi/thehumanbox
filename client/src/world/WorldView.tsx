@@ -34,6 +34,19 @@ const ERA_STRIPE_COLOR: Record<string, string> = {
   information: '#7cc6ff',
 }
 
+function pickToolEmoji(tools: Record<string, number> | undefined): string {
+  if (!tools) return ''
+  if (tools.rifle || tools.musket) return '\u{1F52B}'
+  if (tools.iron_sword) return '\u{2694}\u{FE0F}'
+  if (tools.bronze_spear || tools.stone_spear) return '\u{1F3F9}'
+  if (tools.bow || tools.crossbow) return '\u{1F3F9}'
+  if (tools.computer) return '\u{1F4BB}'
+  if (tools.book) return '\u{1F4D6}'
+  if (tools.hammer || tools.saw) return '\u{1F528}'
+  if (tools.plow) return '\u{1F69C}'
+  return ''
+}
+
 const SPECIALTY_EMOJI: Record<string, string> = {
   farmer: '\u{1F33E}', smith: '\u{1F528}', hunter: '\u{1F3F9}', healer: '\u{2695}\u{FE0F}',
   scholar: '\u{1F4DC}', merchant: '\u{1F4B0}', soldier: '\u{2694}\u{FE0F}', builder: '\u{1F3D7}\u{FE0F}',
@@ -1075,6 +1088,42 @@ function drawWorldOnCanvas(
       if (typeof b.x !== 'number' || typeof b.y !== 'number') continue
       drawBuilding(ctx, { id: b.id, kind: b.kind, x: b.x, y: b.y, condition: b.condition }, ox, oy, TILE)
     }
+    type Cluster = { cx: number; cy: number; count: number; lineage: string }
+    const clusters: Cluster[] = []
+    const CITY_RADIUS_SQ = 14 * 14
+    for (const b of world.buildings) {
+      const lid = (b as { lineage_id?: string }).lineage_id ?? ''
+      if (!lid) continue
+      const bx = b.x; const by = b.y
+      const existing = clusters.find(c => c.lineage === lid && ((c.cx - bx) ** 2 + (c.cy - by) ** 2) < CITY_RADIUS_SQ)
+      if (existing) {
+        existing.cx = (existing.cx * existing.count + bx) / (existing.count + 1)
+        existing.cy = (existing.cy * existing.count + by) / (existing.count + 1)
+        existing.count++
+      } else {
+        clusters.push({ cx: bx, cy: by, count: 1, lineage: lid })
+      }
+    }
+    const lineageNames = world.lineage_names ?? {}
+    ctx.save()
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    for (const c of clusters) {
+      if (c.count < 4) continue
+      const name = lineageNames[c.lineage] ?? c.lineage.slice(0, 6)
+      const label = c.count >= 12 ? `${name.toUpperCase()} CITY` : c.count >= 8 ? `${name} town` : `${name} village`
+      const lx = (c.cx - ox) * TILE
+      const ly = (c.cy - oy) * TILE - TILE * 2
+      ctx.font = c.count >= 12 ? 'bold 12px monospace' : '10px monospace'
+      ctx.fillStyle = 'rgba(0,0,0,0.65)'
+      ctx.fillText(label, lx + 1, ly + 1)
+      ctx.fillStyle = c.count >= 12 ? '#ffd28a' : c.count >= 8 ? '#e5c89a' : '#c8b890'
+      ctx.fillText(label, lx, ly)
+      ctx.font = '8px monospace'
+      ctx.fillStyle = '#8a8170'
+      ctx.fillText(`${c.count} bldgs`, lx, ly + 10)
+    }
+    ctx.restore()
   }
 
   const ANIMAL_EMOJI: Record<string, string> = {
@@ -1283,6 +1332,25 @@ function drawWorldOnCanvas(
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       ctx.fillText('\u{1F912}', px - bodyR - 1, py - bodyR * 0.4)
+      ctx.restore()
+    }
+    if (org.tools) {
+      const toolEmoji = pickToolEmoji(org.tools)
+      if (toolEmoji) {
+        ctx.save()
+        ctx.font = '8px serif'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(toolEmoji, px + bodyR + 4, py + bodyR * 0.6)
+        ctx.restore()
+      }
+    }
+    if (org.degrees && org.degrees.length > 0) {
+      ctx.save()
+      ctx.font = '7px serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('\u{1F393}', px - bodyR - 4, py + bodyR * 0.6)
       ctx.restore()
     }
 

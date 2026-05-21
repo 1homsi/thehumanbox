@@ -64,7 +64,7 @@ export function CivStatsModal({ world, onClose }: Props) {
   const buildingRows = Object.entries(buildingCounts).sort((a, b) => b[1] - a[1])
 
   return (
-    <Modal title="\u{1F30D} Civilization" onClose={onClose}>
+    <Modal title={'\u{1F30D} Civilization'} onClose={onClose}>
       <div className="civ-modal-grid">
         <section className="civ-section">
           <h3>Lineages</h3>
@@ -109,7 +109,7 @@ export function CivStatsModal({ world, onClose }: Props) {
           {religions.length === 0 && <div className="civ-empty">No religions founded yet</div>}
           {religions.map(r => (
             <div key={r.id} className="civ-row">
-              <span className="civ-row-head">\u{271D}\u{FE0F} {r.name}</span>
+              <span className="civ-row-head">{'\u{271D}\u{FE0F}'} {r.name}</span>
               <span className="civ-row-sub">{r.kind}</span>
               <span className="civ-row-tag">{r.adherents} adherents</span>
               <span className="civ-row-tag">founded by {lineageById(r.founder_lineage)}</span>
@@ -132,7 +132,7 @@ export function CivStatsModal({ world, onClose }: Props) {
           {books.length === 0 && <div className="civ-empty">No books written yet</div>}
           {books.slice(0, 10).map(b => (
             <div key={b.id} className="civ-row">
-              <span className="civ-row-head">\u{1F4D6} {b.title}</span>
+              <span className="civ-row-head">{'\u{1F4D6}'} {b.title}</span>
               <span className="civ-row-sub">{b.author_name} on {b.topic}</span>
               <span className="civ-row-tag">{b.copies} copies</span>
             </div>
