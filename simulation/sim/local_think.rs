@@ -272,6 +272,25 @@ pub fn resolve(trigger: &ThinkTrigger, rng: &mut impl Rng) -> Option<LocalResult
             })
         }
 
+        "rivalry" => {
+            let word = weighted_pick(rng, &[
+                ("challenge", ag * 1.4 + (1.0 - fe) * 0.5),
+                ("yield",     (1.0 - ag) * 1.2 + fe * 0.6 + so * 0.3),
+            ]);
+            let thought = match word {
+                "challenge" => "challenging rival",
+                _           => "yielding ground",
+            };
+            Some(LocalResult { word, thought, ..Default::default() })
+        }
+
+        "migration_urge" => {
+            Some(LocalResult {
+                word: "wander", thought: "must wander far",
+                directive: Some("wander"), directive_ticks: 400, ..Default::default()
+            })
+        }
+
         "jealousy" => {
             let word = weighted_pick(rng, &[
                 ("watch",  (1.0 - so) * 1.1 + fe * 0.5 + ag * 0.4),

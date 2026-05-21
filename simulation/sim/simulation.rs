@@ -1454,7 +1454,7 @@ impl Simulation {
 
         self.organisms[idx].age += 1;
         if self.organisms[idx].age % 100 == 0 {
-            self.organisms[idx].decay_memory();
+            self.organisms[idx].decay_memory(self.tick_count);
         }
 
         let mut reward = (self.organisms[idx].energy    - prev_energy)    * 2.0
@@ -1789,6 +1789,57 @@ impl Simulation {
                         }
                     }
                 }
+            }
+
+            let last_think = self.organisms[idx].last_think_tick;
+            if self.tick_count - last_think >= 6000 {
+                use crate::organism::organism::Sex;
+                let (ox2, oy2) = (self.organisms[idx].x, self.organisms[idx].y);
+                let my_id   = self.organisms[idx].id.clone();
+                let my_sex  = self.organisms[idx].sex;
+                let my_age  = self.organisms[idx].age;
+                let my_eng  = self.organisms[idx].energy;
+                if my_sex == Sex::Male && my_age > 1200 && my_eng > 0.4 {
+                    let rival = self.organisms.iter()
+                        .find(|o| o.alive
+                            && o.id != my_id
+                            && o.sex == Sex::Male
+                            && o.lineage_id == my_lid
+                            && o.age > 1200
+                            && o.energy > 0.4
+                            && (o.x - ox2).abs() + (o.y - oy2).abs() <= 6.0)
+                        .map(|o| o.name.clone());
+                    if let Some(other_name) = rival {
+                        self.organisms[idx].last_think_tick = self.tick_count;
+                        self.push_think_for(idx, ThinkTrigger {
+                            org_id:     self.organisms[idx].id.clone(),
+                            org_name:   self.organisms[idx].name.clone(),
+                            lineage_id: my_lid.clone(),
+                            scenario:   "rivalry".to_string(),
+                            energy_avg: my_eng,
+                            context:    format!("brother {} threatens", other_name),
+                            ..Default::default()
+                        });
+                    }
+                }
+            }
+
+            let last_think = self.organisms[idx].last_think_tick;
+            if self.tick_count - last_think >= 8000
+               && self.organisms[idx].age > 2000
+               && self.organisms[idx].energy < 0.30
+               && self.drought.active
+            {
+                self.organisms[idx].last_think_tick = self.tick_count;
+                self.push_think_for(idx, ThinkTrigger {
+                    org_id:     self.organisms[idx].id.clone(),
+                    org_name:   self.organisms[idx].name.clone(),
+                    lineage_id: my_lid.clone(),
+                    scenario:   "migration_urge".to_string(),
+                    energy_avg: self.organisms[idx].energy,
+                    context:    "land starves; old paths fail".to_string(),
+                    ..Default::default()
+                });
             }
 
             let last_think = self.organisms[idx].last_think_tick;

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import type { OrganismState, WorldState } from '../types'
 import { useUIStore, useViewFlag } from '../stores/store'
@@ -11,7 +12,20 @@ interface Props {
   selectedOrg: OrganismState | null
 }
 
+function useThrottledValue<T>(value: T, intervalMs = 200): T {
+  const [throttled, setThrottled] = useState(value)
+  const latest = useRef(value)
+  useEffect(() => { latest.current = value }, [value])
+  useEffect(() => {
+    const id = setInterval(() => setThrottled(latest.current), intervalMs)
+    return () => clearInterval(id)
+  }, [intervalMs])
+  return throttled
+}
+
 export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
+  const throttledLive = useThrottledValue(liveOrgs)
+  const throttledDead = useThrottledValue(deadOrgs)
   const panelOpen   = useUIStore(s => s.panelOpen)
   const followOrgId = useUIStore(s => s.followOrgId)
   const threeD      = useViewFlag('threeD')
@@ -40,15 +54,15 @@ export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
           />
         )}
 
-        <div className="section-title">ALIVE ({liveOrgs.length})</div>
-        {liveOrgs.map((org) => (
+        <div className="section-title">ALIVE ({throttledLive.length})</div>
+        {throttledLive.map((org) => (
           <OrgCard key={org.id} orgId={org.id} />
         ))}
 
-        {deadOrgs.length > 0 && (
+        {throttledDead.length > 0 && (
           <>
-            <div className="section-title">DEAD ({deadOrgs.length})</div>
-            {deadOrgs.slice(-5).map(org => (
+            <div className="section-title">DEAD ({throttledDead.length})</div>
+            {throttledDead.slice(-5).map(org => (
               <div key={org.id} className="org-card dead">
                 <div className="org-header">
                   <span className="org-name">{org.name}</span>

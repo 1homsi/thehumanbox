@@ -579,7 +579,8 @@ impl Organism {
         self.attributes.clear();
     }
 
-    pub fn decay_memory(&mut self) {
+    pub fn decay_memory(&mut self, tick: u64) {
+        self.vocabulary.decay(tick, 5000);
         for mem in [&mut self.food_memory, &mut self.water_memory, &mut self.danger_memory] {
             mem.retain(|_, v| { *v *= 0.995; *v >= 0.04 });
         }

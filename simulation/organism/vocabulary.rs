@@ -143,13 +143,15 @@ pub struct Vocabulary {
     /// Empty string = the organism doesn't have a word for the
     /// concept yet.
     slots: Vec<String>,
+    last_used: Vec<u64>,
 }
 
 impl Vocabulary {
     pub fn generate(rng: &mut impl Rng) -> Self {
         let mut slots = Vec::with_capacity(CONCEPTS.len());
         for _ in CONCEPTS { slots.push(gen_word(rng)); }
-        Vocabulary { slots }
+        let last_used = vec![0u64; slots.len()];
+        Vocabulary { slots, last_used }
     }
 
     pub fn inherit_from(parent: &Vocabulary, rng: &mut impl Rng) -> Self {
@@ -168,13 +170,12 @@ impl Vocabulary {
                 *word = String::from_utf8_lossy(&mutated).to_string();
             }
         }
-        Vocabulary { slots }
+        let last_used = vec![0u64; slots.len()];
+        Vocabulary { slots, last_used }
     }
 
     pub fn absorb_from(&mut self, other: &Vocabulary, rng: &mut impl Rng) {
         let idx = concept_index();
-        // Build a candidate list of concept indices where both sides
-        // have a word and they disagree.
         let mut candidates: Vec<usize> = Vec::new();
         for (&_concept, &i) in idx.iter() {
             let mine   = self.slots.get(i).map(|s| s.as_str()).unwrap_or("");
@@ -217,6 +218,30 @@ impl Vocabulary {
         }
     }
 
+    pub fn touch(&mut self, idx: usize, tick: u64) {
+        if idx >= self.slots.len() { return; }
+        if self.last_used.len() < self.slots.len() {
+            self.last_used.resize(self.slots.len(), 0);
+        }
+        if idx >= self.last_used.len() {
+            self.last_used.resize(idx + 1, 0);
+        }
+        self.last_used[idx] = tick;
+    }
+
+    pub fn decay(&mut self, tick: u64, threshold_ticks: u64) {
+        if self.last_used.len() < self.slots.len() {
+            self.last_used.resize(self.slots.len(), 0);
+        }
+        for i in 0..self.slots.len() {
+            if self.slots[i].is_empty() { continue; }
+            let last = self.last_used[i];
+            if tick.saturating_sub(last) > threshold_ticks {
+                self.slots[i] = String::new();
+            }
+        }
+    }
+
     pub fn word_for<'a>(&'a self, concept: &'a str) -> &'a str {
         let idx = concept_index();
         if let Some(&i) = idx.get(concept) {
@@ -251,7 +276,8 @@ impl Vocabulary {
                 slots[i] = v.clone();
             }
         }
-        Vocabulary { slots }
+        let last_used = vec![0u64; slots.len()];
+        Vocabulary { slots, last_used }
     }
 
     /// Length accessor for callers that previously did `.words.len()`.
@@ -266,6 +292,9 @@ impl Vocabulary {
     fn ensure_capacity(&mut self) {
         if self.slots.len() < CONCEPTS.len() {
             self.slots.resize(CONCEPTS.len(), String::new());
+        }
+        if self.last_used.len() < self.slots.len() {
+            self.last_used.resize(self.slots.len(), 0);
         }
     }
 
