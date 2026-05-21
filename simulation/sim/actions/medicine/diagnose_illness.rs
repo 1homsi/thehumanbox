@@ -11,9 +11,9 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let diagnosis = if infection > 0.3 {
         "severe infection detected"
     } else if health < 0.3 {
-        "critical condition — needs urgent care"
+        "critical condition - needs urgent care"
     } else if health < 0.6 {
-        "mild illness — needs rest"
+        "mild illness - needs rest"
     } else {
         "patient appears stable"
     };

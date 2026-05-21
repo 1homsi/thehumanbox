@@ -129,11 +129,11 @@ async fn main() {
     let think_key     = (*THINK_LLM_KEY).clone();
     let is_local = |u: &str| u.contains("localhost") || u.contains("127.0.0.1");
     if narration_key.is_empty() && !is_local(&NARRATION_LLM_URL) {
-        tracing::warn!("no NARRATION_LLM_KEY / LLM_KEY / GROQ_API_KEY set — \
+        tracing::warn!("no NARRATION_LLM_KEY / LLM_KEY / GROQ_API_KEY set - \
                         remote narration calls will fail");
     }
     if think_key.is_empty() && !is_local(&THINK_LLM_URL) {
-        tracing::warn!("no THINK_LLM_KEY / LLM_KEY / GROQ_API_KEY set — \
+        tracing::warn!("no THINK_LLM_KEY / LLM_KEY / GROQ_API_KEY set - \
                         remote think calls will fail");
     }
 
@@ -210,7 +210,7 @@ async fn main() {
         let key = think_key.clone();
         let stats = llm_stats.clone();
         let think_limiter = if llm_rate::url_needs_groq_quota(&THINK_LLM_URL) {
-            tracing::info!(target: "groq", "think lane points at Groq — applying shared rate limit");
+            tracing::info!(target: "groq", "think lane points at Groq - applying shared rate limit");
             Some(groq_limiter.clone())
         } else {
             Some(local_think_limiter.clone())
@@ -241,7 +241,7 @@ async fn main() {
                     let mut s: tokio::sync::MutexGuard<'_, _> = sim_clone.lock().await;
                     // The sim tick is a heavy CPU-bound chunk (movement
                     // decisions, action evaluation, world-event ticks,
-                    // spatial-index rebuilds — 10-100ms at this pop).
+                    // spatial-index rebuilds - 10-100ms at this pop).
                     // Without `block_in_place` it occupies a tokio worker
                     // synchronously and starves async tasks like the
                     // HTTP handlers (we saw /version taking 4-37s under
@@ -640,13 +640,13 @@ async fn main() {
         tracing::info!("    think:     {} ({})", *THINK_LLM_MODEL, *THINK_LLM_URL);
     }
     // Bind / serve with clear error messages instead of `.unwrap()`
-    // panics — the most common failure here is "port already in use"
+    // panics - the most common failure here is "port already in use"
     // during a deploy bounce, and the bare-bones panic message left
     // operators chasing red herrings.
     let listener = match tokio::net::TcpListener::bind(addr).await {
         Ok(l) => l,
         Err(e) => {
-            tracing::error!("failed to bind {}: {} — is another simulation-rs process holding the port?", addr, e);
+            tracing::error!("failed to bind {}: {} - is another simulation-rs process holding the port?", addr, e);
             std::process::exit(1);
         }
     };

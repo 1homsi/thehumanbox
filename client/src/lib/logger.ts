@@ -7,7 +7,7 @@
  * - debug / info: only emitted when `import.meta.env.DEV` is true.
  * - warn / error: always emitted (these signal real problems).
  *
- * The first argument is a short "tag" (subsystem name) — keeps the
+ * The first argument is a short "tag" (subsystem name) - keeps the
  * output greppable without making every call site assemble its own
  * prefix.
  */

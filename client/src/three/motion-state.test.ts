@@ -35,7 +35,7 @@ describe('motion-state extrapolation', () => {
   it('clamps extrapolation past MAX_EXTRAP_MS so positions cannot run away', () => {
     // First snapshot seeds the cache with no velocity (fresh()).
     updateOrgMotion([org('a', 10, 10, { vx: 5, vy: 0 })])
-    // Second snapshot 100ms later — ingestSnapshot picks up the
+    // Second snapshot 100ms later - ingestSnapshot picks up the
     // vx=5, vy=0 velocity from the wire fields and records it.
     nowMs = 1100
     updateOrgMotion([org('a', 10.5, 10, { vx: 5, vy: 0 })])

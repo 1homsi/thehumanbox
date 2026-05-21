@@ -999,7 +999,7 @@ body.thb-photo-mode .header:hover {
   background: linear-gradient(180deg, rgba(20, 16, 12, 0.78), rgba(20, 16, 12, 0.92));
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   overflow: hidden;
-  z-index: 50;
+  z-index: 1;
   pointer-events: auto;
   font-family: monospace;
   font-size: 11px;
@@ -1032,7 +1032,7 @@ body.thb-photo-mode .header:hover {
   color: #9aa1a8;
 }
 .thb-action-ticker-thought::before {
-  content: '— ';
+  content: '- ';
   color: #6a7077;
 }
 @keyframes thb-action-ticker-scroll {
@@ -1658,7 +1658,7 @@ body.thb-photo-mode .header:hover {
 }
 .stats-num { font-size: 20px; font-weight: 600; color: #ddd; }
 .stats-num-label { font-size: 9px; color: #444; margin-top: 2px; }
-/* Population chart — explicit min-height so the responsive viewBox SVG
+/* Population chart - explicit min-height so the responsive viewBox SVG
    actually paints. With just `width: 100%; height: auto` flex children
    sometimes resolve height to 0 and the chart disappears. */
 .stats-chart-wrap {
@@ -1901,7 +1901,7 @@ body.thb-photo-mode .header:hover {
     margin-left: auto;
   }
 
-  /* Icon-only buttons in the mobile header — hide the label spans,
+  /* Icon-only buttons in the mobile header - hide the label spans,
      keep the icon spans, keep any count. */
   .header-actions .lang-btn,
   .panel-toggle-btn {

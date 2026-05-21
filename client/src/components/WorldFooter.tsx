@@ -28,7 +28,7 @@ export function WorldFooter({ world }: Props) {
     return { ally, rivals, neutral }
   }, [world.tribal_relations])
 
-  const era = world.current_era ? (ERA_LABEL[world.current_era] ?? world.current_era.toUpperCase()) : '—'
+  const era = world.current_era ? (ERA_LABEL[world.current_era] ?? world.current_era.toUpperCase()) : '-'
   const dayPct = Math.round((world.day_progress ?? 0) * 100)
   const phase = world.is_day ? 'day' : 'night'
   const weatherKind = world.weather?.kind ?? 'clear'

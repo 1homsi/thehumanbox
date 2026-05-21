@@ -164,7 +164,7 @@ impl Simulation {
             let lookahead = *LOOKAHEAD_TICKS;
             // `soa.push` takes `&mut Organism` because it clears
             // `thought_dirty` after emitting the change. That's fine
-            // — `state_json_inner` already holds `&mut self`.
+            // - `state_json_inner` already holds `&mut self`.
             for o in self.organisms.iter_mut() {
                 if o.alive && in_view(o.x, o.y) { soa.push(o, lookahead); }
             }
@@ -255,7 +255,7 @@ mod schema_tests {
         }
     }
 
-    /// Verify that ages was actually dropped from the SoA payload —
+    /// Verify that ages was actually dropped from the SoA payload -
     /// the wire-slim-down work is only worth committing if the
     /// serialised payload actually omits the field.
     #[test]
@@ -269,7 +269,7 @@ mod schema_tests {
             .expect("organisms_hot present");
         let obj = hot.as_object().expect("organisms_hot is an object");
         assert!(!obj.contains_key("ages"),
-            "ages must NOT be serialized in delta SoA — saves 4 bytes/org/tick");
+            "ages must NOT be serialized in delta SoA - saves 4 bytes/org/tick");
         // Spot-check that we still have the fields the client expects.
         for key in &["ids", "xs", "ys", "vxs", "vys", "energies", "thoughts"] {
             assert!(obj.contains_key(*key),

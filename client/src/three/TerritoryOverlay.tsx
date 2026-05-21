@@ -73,7 +73,7 @@ function buildTileGeometry(
   return geo
 }
 
-// Claimed territory mesh — one mesh per lineage colour, but we union all tiles
+// Claimed territory mesh - one mesh per lineage colour, but we union all tiles
 // into a single geometry with per-vertex colours for efficiency.
 function ClaimedMesh({ territory, depthMap, biomes }: Props) {
   const geo = useMemo(() => {
@@ -99,7 +99,7 @@ function ClaimedMesh({ territory, depthMap, biomes }: Props) {
     )
   }, [territory.claimed, depthMap, biomes])
 
-  // Dispose the buffer geometry when the memo replaces it — territory
+  // Dispose the buffer geometry when the memo replaces it - territory
   // updates land every cold frame and three.js never auto-frees these.
   useEffect(() => () => { geo.dispose() }, [geo])
 
@@ -116,7 +116,7 @@ function ClaimedMesh({ territory, depthMap, biomes }: Props) {
   )
 }
 
-// Contested tile mesh — white with pulsing opacity
+// Contested tile mesh - white with pulsing opacity
 function ContestedMesh({
   territory, depthMap, biomes,
 }: Props) {

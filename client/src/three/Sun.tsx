@@ -81,7 +81,7 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
         the entire star buffer (~5000 points × position+random attrs)
         on every transition. The Sky component naturally occludes the
         stars during daylight, so we don't need to swap counts to hide
-        them — the day-time render cost is the same as a 5000-point
+        them - the day-time render cost is the same as a 5000-point
         Points draw, which is one cheap GL call.
       */}
       <Stars

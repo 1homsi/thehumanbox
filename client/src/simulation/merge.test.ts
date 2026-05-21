@@ -91,7 +91,7 @@ describe('mergeFrame organism handling', () => {
     mergeFrame(fullFrame, caches)
     expect(caches.organisms.get('a')?.name).toBe('Alia')
 
-    // Delta updates a hot field — cold fields preserved.
+    // Delta updates a hot field - cold fields preserved.
     const deltaFrame = baseFrame({
       frame_id: 2,
       organisms_hot: {

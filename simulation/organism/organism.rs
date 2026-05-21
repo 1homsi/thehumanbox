@@ -355,7 +355,7 @@ impl Organism {
     }
 
     // Promote an organism to named friend status.
-    // Idempotent — safe to call repeatedly; only logs + mutates loneliness on first promotion.
+    // Idempotent - safe to call repeatedly; only logs + mutates loneliness on first promotion.
     pub fn add_friend(&mut self, id: &str, name: &str, tick: u64) {
         if !self.friends.contains_key(id) {
             const MAX_FRIENDS: usize = 12;
@@ -405,7 +405,7 @@ impl Organism {
         // verb-noun pair) can't grow the set unboundedly. 64 is well
         // above the current ~25 hand-written discoveries and the
         // pathological worst case at high LLM density. Eviction is
-        // arbitrary because HashSet has no insertion-order — we drop
+        // arbitrary because HashSet has no insertion-order - we drop
         // a random element which, on a stable interner-style set, is
         // fine: the dropped knowledge is rare or stale.
         if inserted && self.discoveries.len() > 64 {
@@ -698,7 +698,7 @@ impl Organism {
         let att_char = {
             let mut nearest_lid: Option<&str> = None;
             let mut nearest_d = 999.0f32;
-            // Same spatial bucket reuse — nearest non-kin within `scan`.
+            // Same spatial bucket reuse - nearest non-kin within `scan`.
             buf.clear();
             spatial.query_into(self.x as i32, self.y as i32, scan as i32, &mut buf);
             for &i in &buf {
@@ -1106,7 +1106,7 @@ pub struct OrgLifeJson {
 
 /// Hot Structure-of-Arrays payload for delta (viewport) frames.
 ///
-/// Ages and other slow-moving cold fields are *not* included here —
+/// Ages and other slow-moving cold fields are *not* included here -
 /// full frames carry ground truth for those and the client preserves
 /// them across deltas. Sending 4 bytes per org per tick for a counter
 /// that increments by 1 was pure waste.
@@ -1114,14 +1114,14 @@ pub struct OrgLifeJson {
 ///
 /// Several historically per-org fields are now sparse or dropped to
 /// cut bandwidth. Specifically:
-/// - `alives` is gone — delta orgs are filtered to alive on the server
+/// - `alives` is gone - delta orgs are filtered to alive on the server
 ///   already, so every entry was `true`. Client merge keeps the
 ///   cached alive flag.
-/// - `thoughts` is now sparse `Vec<(u32 index, String)>` — most ticks
+/// - `thoughts` is now sparse `Vec<(u32 index, String)>` - most ticks
 ///   the same thought repeats verbatim, so we only ship entries
 ///   whose `thought_dirty` flag was set since the last delta.
 /// - `partner_ids` / `attracted_tos` are sparse `Vec<(u32, String)>`
-///   too — only a small minority of orgs have either at any tick.
+///   too - only a small minority of orgs have either at any tick.
 #[derive(Serialize)]
 pub struct OrgsHotSoa {
     pub ids:            Vec<String>,
@@ -1172,7 +1172,7 @@ impl OrgsHotSoa {
             energies:       Vec::with_capacity(n),
             hydrations:     Vec::with_capacity(n),
             healths:        Vec::with_capacity(n),
-            // Sparse fields start empty — only allocate slots actually used.
+            // Sparse fields start empty - only allocate slots actually used.
             thoughts:       Vec::with_capacity(n / 4),
             infections:     Vec::with_capacity(n),
             fear_levels:    Vec::with_capacity(n),

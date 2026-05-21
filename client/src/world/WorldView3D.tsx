@@ -174,7 +174,7 @@ interface Props {
   world: WorldState | null
   // hideUI is passed by the parent for symmetry with the 2D view's
   // chrome control, but the 3D view doesn't have a separate HUD to
-  // hide — its in-canvas chrome is governed by viewFlags below.
+  // hide - its in-canvas chrome is governed by viewFlags below.
   // Kept on the prop interface for API stability; intentionally
   // ignored here.
   hideUI?: boolean
@@ -192,7 +192,7 @@ export default function WorldView3D({ world }: Props) {
   const showTerritoryMap = useUIStore(s => s.viewFlags.territoryMap)
   const [follow, setFollow] = useState(false)
 
-  // Touch detection — PointerLockControls requires a mouse, so on touch
+  // Touch detection - PointerLockControls requires a mouse, so on touch
   // devices fall back to OrbitControls (drag to orbit, pinch to zoom).
   const isTouch = useMemo(() => {
     if (typeof window === 'undefined') return false

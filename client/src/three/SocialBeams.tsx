@@ -13,7 +13,7 @@ interface Props {
 }
 
 // Beam fires when organisms are genuinely connected by actual relational data.
-// No text matching — pure field-based relationships.
+// No text matching - pure field-based relationships.
 function connectionStrength(a: OrganismState, b: OrganismState): number {
   let s = 0
   if (a.partner_id === b.id || b.partner_id === a.id) s += 1.0   // partners
@@ -26,7 +26,7 @@ function connectionStrength(a: OrganismState, b: OrganismState): number {
   return s
 }
 
-// RGB triplet per beam type — vertex colors so each segment can differ
+// RGB triplet per beam type - vertex colors so each segment can differ
 function beamRGB(a: OrganismState, b: OrganismState): [number, number, number] {
   if (a.partner_id === b.id || b.partner_id === a.id) return [1.0, 0.69, 0.82]  // partners: pink
   if (a.friends?.[b.id] || b.friends?.[a.id])         return [1.0, 0.82, 0.44]  // friends: amber

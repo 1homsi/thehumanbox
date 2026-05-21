@@ -50,7 +50,7 @@ pub async fn og_handler(
     let now = crate::transport::now_ms();
     // Hold the cache mutex across the entire critical section so a
     // burst of N concurrent cold-cache requests serialises through
-    // one render — not N independent sim-locks + PNG encodes. The
+    // one render - not N independent sim-locks + PNG encodes. The
     // second request will find the cache populated by the first.
     let mut guard = s.og_cache.lock().await;
     if let Some((generated_at, bytes)) = guard.as_ref() {
@@ -67,7 +67,7 @@ pub async fn og_handler(
 
     // Snapshot the world under the sim lock and release before the
     // CPU-heavy PNG encode. We deliberately clone the few small
-    // vectors we need — the snapshot is far smaller than a full
+    // vectors we need - the snapshot is far smaller than a full
     // wire frame and is dropped after render.
     let snapshot = {
         use crate::sim::config::DAY_LENGTH;
@@ -207,7 +207,7 @@ pub async fn llm_handler(
 
 /// Prometheus text-format metrics. Exposes the existing AtomicU64
 /// counters and gauge values in the canonical `name value` form so
-/// any Prometheus-compatible scraper can ingest. No external deps —
+/// any Prometheus-compatible scraper can ingest. No external deps -
 /// we hand-assemble the body.
 ///
 /// Naming follows the convention `thb_<subsystem>_<metric>_<unit>`.
@@ -354,7 +354,7 @@ pub async fn memory_handler(
     )
 }
 
-/// Aggregated health endpoint — single source of truth for "is the
+/// Aggregated health endpoint - single source of truth for "is the
 /// box working." Returns 200 OK with degraded:false when all green,
 /// 200 OK with degraded:true when any subsystem is in a warning state,
 /// 503 when the sim hasn't ticked in a while (we're dying).
@@ -468,7 +468,7 @@ async fn handle_socket(
                             // minutes.
                             // Snapshot the Arc<Vec<u8>> while we hold the
                             // RwLockReadGuard, then drop the guard before
-                            // .await — guards aren't Send across awaits.
+                            // .await - guards aren't Send across awaits.
                             let payload: Option<Arc<Vec<u8>>> = latest_full.read().ok()
                                 .and_then(|slot| slot.clone());
                             if let Some(full) = payload {

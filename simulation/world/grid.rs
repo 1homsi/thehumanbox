@@ -978,7 +978,7 @@ impl WorldGrid {
     /// on at least one axis (i.e. sits in a linear stretch of river/lake
     /// shore) and erode one bank tile to water while silting the
     /// opposite bank to grass. Cheap (handful of tries per call), but
-    /// gives the world a "the river shifted" feel over long sessions —
+    /// gives the world a "the river shifted" feel over long sessions -
     /// the world-evolution spec calls this out specifically.
     pub fn tick_river_meander(&mut self, rng: &mut impl Rng) {
         for _ in 0..40 {
@@ -1004,7 +1004,7 @@ impl WorldGrid {
             // Coin flip which side erodes.
             let (erode, silt) = if rng.gen::<bool>() { (bank_a, bank_b) } else { (bank_b, bank_a) };
             self.tiles[Self::idx(erode.0, erode.1)] = Tile::Water as i8;
-            // Silt opposite shore — only if it's currently water (rare
+            // Silt opposite shore - only if it's currently water (rare
             // mid-river drift case). Most of the time silt-side is
             // already land, so the call is a no-op.
             if self.get(silt.0, silt.1) == Tile::Water {
@@ -1016,7 +1016,7 @@ impl WorldGrid {
 
     /// Forest spread: a grass tile adjacent to ≥2 forest-biome
     /// neighbours and with fert ≥ 0.55 can flip its own biome to
-    /// Forest. Closes the spec's "forests spread or die" loop — the
+    /// Forest. Closes the spec's "forests spread or die" loop - the
     /// existing biome drift only ever *shrinks* forests, never grows
     /// them. Capped to a small per-call budget so we don't fill the
     /// map.

@@ -22,9 +22,9 @@ pub struct OgSnapshot {
     pub tick:    u64,
     pub day_t:   f32,   // 0..1, position in day cycle
     /// Current era label (e.g. "stone age", "iron age") for the
-    /// header overlay. Short — typically ≤16 chars.
+    /// header overlay. Short - typically ≤16 chars.
     pub era:     String,
-    /// Active alive population — used in the bottom-right stat ribbon.
+    /// Active alive population - used in the bottom-right stat ribbon.
     pub alive:   u32,
 }
 
@@ -60,7 +60,7 @@ pub fn animal_color(kind: &str) -> [u8; 3] {
     }
 }
 
-// Target output dimensions — standard OG card aspect.
+// Target output dimensions - standard OG card aspect.
 pub const OG_W: u32 = 1200;
 pub const OG_H: u32 = 630;
 // Header strip height where we draw the title text.
@@ -207,7 +207,7 @@ pub fn render(snap: &OgSnapshot) -> Vec<u8> {
         }
     }
 
-    // Animals first (smaller than organisms — 2-pixel radius) so
+    // Animals first (smaller than organisms - 2-pixel radius) so
     // they sit under the organism dots when colocated. Without this
     // the OG card showed an empty world from the wildlife
     // perspective.
@@ -288,7 +288,7 @@ pub fn render(snap: &OgSnapshot) -> Vec<u8> {
     draw_text(&mut img, &tick_text, tick_x, stat_y0 + 6, 2, [220, 215, 200]);
 
     let mut buf = Vec::with_capacity(64 * 1024);
-    // PNG encode can fail (extremely rare — the image is well-formed
+    // PNG encode can fail (extremely rare - the image is well-formed
     // here) but it's not worth panicking the request thread for. Log
     // and return an empty buffer; the route will surface it to the
     // client as a 0-byte response, which any real social crawler
@@ -302,7 +302,7 @@ pub fn render(snap: &OgSnapshot) -> Vec<u8> {
     buf
 }
 
-/// Hash a lineage_id to an RGB colour. Deterministic — same lineage
+/// Hash a lineage_id to an RGB colour. Deterministic - same lineage
 /// renders the same dot every time.
 pub fn lineage_color(lid: &str) -> [u8; 3] {
     use std::hash::{Hash, Hasher};

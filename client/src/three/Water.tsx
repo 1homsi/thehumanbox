@@ -18,7 +18,7 @@ export function Water({ width, height, depthMap }: Props) {
   const innerMatRef = useRef<MeshStandardMaterial>(null)
   // Drives the time uniform that the patched vertex shader reads
   // from. Frame-by-frame buffer uploads from CPU sine-wave displacement
-  // gone — the GPU now computes the wave per vertex per draw.
+  // gone - the GPU now computes the wave per vertex per draw.
   const waveTimeRef = useRef({ value: 0 })
 
   const cx = width  * TILE_SCALE * 0.5

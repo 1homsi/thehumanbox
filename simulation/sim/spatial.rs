@@ -34,7 +34,7 @@ impl SpatialIndex {
         out
     }
 
-    /// Allocation-free query — caller owns the Vec, we just clear + extend.
+    /// Allocation-free query - caller owns the Vec, we just clear + extend.
     /// Cuts ~7 fresh Vec<usize> allocations per organism per tick at
     /// 10 Hz × 200 orgs, which adds up.
     pub fn query_into(&self, x: i32, y: i32, radius: i32, out: &mut Vec<usize>) {

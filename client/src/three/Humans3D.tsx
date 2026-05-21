@@ -20,7 +20,7 @@ interface Props {
 }
 
 // Cull radius for full skinned-mesh AnimatedFigure rendering. Past
-// this distance we drop to an InstancedMesh capsule LOD — one draw
+// this distance we drop to an InstancedMesh capsule LOD - one draw
 // call total for the entire far cohort.
 const NEAR_RADIUS_SQ = 280 * 280
 // Distance at which the AnimationMixer keeps ticking. Slightly tighter
@@ -31,7 +31,7 @@ const ANIMATE_RADIUS_SQ = 220 * 220
 const MAX_SKINNED = 80
 
 // Data-driven: organism is inside their home when they're genuinely at rest
-// Uses actual numeric fields — sleep_debt, energy — not thought text
+// Uses actual numeric fields - sleep_debt, energy - not thought text
 function isInsideHouse(o: OrganismState): boolean {
   if (!o.home_x || !o.home_y) return false
   const dx = o.x - o.home_x; const dy = o.y - o.home_y
@@ -42,7 +42,7 @@ function isInsideHouse(o: OrganismState): boolean {
     || o.health < 0.15 // too hurt to be outside
 }
 
-// Animation selected from actual organism state — fields first, thought text as weak fallback
+// Animation selected from actual organism state - fields first, thought text as weak fallback
 function pickAnim(o: OrganismState, isMoving: boolean): string {
   if (!o.alive) return 'Death'
 
@@ -50,7 +50,7 @@ function pickAnim(o: OrganismState, isMoving: boolean): string {
   if ((o.sleep_debt ?? 0) > 0.55 || o.energy < 0.08 || o.health < 0.12)
     return 'Sitting' // exhausted / incapacitated
   if (o.grief_ticks && o.grief_ticks > 10)
-    return 'Sitting' // grief — subdued posture
+    return 'Sitting' // grief - subdued posture
   if ((o.fear_level ?? 0) > 0.80 && isMoving)
     return 'Running' // flight response from actual fear field
   if (o.infection > 0.55)
@@ -80,7 +80,7 @@ function pickAnim(o: OrganismState, isMoving: boolean): string {
   return isMoving ? 'Walking' : 'Idle'
 }
 
-// Color driven entirely by actual emotional/health state — no text matching
+// Color driven entirely by actual emotional/health state - no text matching
 function orgColor(o: OrganismState): string {
   if (o.infection > 0.38)                      return 'hsl(85,  62%, 42%)'  // sick: sickly green
   if ((o.fear_level ?? 0) > 0.72)              return 'hsl(10,  72%, 38%)'  // fear: deep red-orange
@@ -91,7 +91,7 @@ function orgColor(o: OrganismState): string {
   return lineageColor(o.lineage_id)                                           // default: lineage hue
 }
 
-// Reused scratch — keeps the per-frame inner loop alloc-free.
+// Reused scratch - keeps the per-frame inner loop alloc-free.
 const _mat   = new Matrix4()
 const _quat  = new Quaternion()
 const _euler = new Euler()
@@ -117,7 +117,7 @@ function FarHumans({ organisms, depthMap, biomes }: {
   const count = organisms.length
 
   useEffect(() => {
-    // Re-create the InstancedMesh when capacity changes — three.js
+    // Re-create the InstancedMesh when capacity changes - three.js
     // bakes the instance count into the GPU buffer at construction.
     const mesh = meshRef.current
     if (!mesh) return

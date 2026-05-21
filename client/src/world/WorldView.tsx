@@ -11,7 +11,7 @@ import { drawTrees, drawClouds, drawNaturalDecor, scratchA, scratchB } from './d
 
 onAnyAtlasLoaded(() => { _baseKey = null })
 
-// Rolling FPS samples — module-scoped so the rolling window survives
+// Rolling FPS samples - module-scoped so the rolling window survives
 // React renders. Lost during the recent WorldView split refactor;
 // restoring here so the `viewFlags.fps` HUD inside drawWorldOnCanvas
 // can push timestamps without crashing the render.
@@ -317,7 +317,7 @@ function drawWorldOnCanvas(
     }
   }
 
-  // Lake shimmer — animated sparkle on shallow water tiles (depth 180-253)
+  // Lake shimmer - animated sparkle on shallow water tiles (depth 180-253)
   {
     const dm = world.grid.depth_map
     if (dm) {
@@ -735,7 +735,7 @@ function drawWorldOnCanvas(
     type Lin = { fill: string; border: string; lid: string }
     const linByLid = new Map<string, number>()
     const lineages: Lin[] = []
-    // Parallel SoA arrays for the nearest-org search — cache friendlier
+    // Parallel SoA arrays for the nearest-org search - cache friendlier
     // than walking an array of records, and lets us skip object lookups
     // inside the hot inner loop.
     const orgTx = new Float32Array(liveOrgs.length)
@@ -1024,7 +1024,7 @@ function drawWorldOnCanvas(
         ctx.moveTo(ax, ay)
         ctx.lineTo(bx, by)
       }
-      // Single stroke() at the end instead of per-edge — cuts state-
+      // Single stroke() at the end instead of per-edge - cuts state-
       // change overhead when there are many partnered pairs.
       ctx.stroke()
       ctx.restore()
@@ -1083,7 +1083,7 @@ function drawWorldOnCanvas(
 
   for (const org of organisms) {
     if (!org.alive) continue
-    // Data-driven house entry: use actual sleep_debt, energy, health fields — no text matching
+    // Data-driven house entry: use actual sleep_debt, energy, health fields - no text matching
     if (org.home_x && org.home_y) {
       const ddx = org.x - org.home_x; const ddy = org.y - org.home_y
       if (ddx * ddx + ddy * ddy < 2.0) {
@@ -1616,7 +1616,7 @@ export function WorldView({ world, interp }: Props) {
 
   // Track pointer-down position so we can distinguish a tap (select)
   // from a drag-then-release (pan). Without this every pan ends with
-  // an accidental org-select on the tile under the release point —
+  // an accidental org-select on the tile under the release point -
   // especially painful on touch where finger jitter is large.
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null)
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {

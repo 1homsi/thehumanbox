@@ -454,7 +454,7 @@ fn utterance_with_meaning(
     mood: u8,
     rng: &mut impl Rng,
 ) -> (String, String) {
-    // `pick_concept_and_word` takes a `&HashMap<String, String>` — go
+    // `pick_concept_and_word` takes a `&HashMap<String, String>` - go
     // through the as_hashmap view rather than reaching into the
     // (now-positional) slots directly.
     let v  = speaker.vocabulary.as_hashmap();

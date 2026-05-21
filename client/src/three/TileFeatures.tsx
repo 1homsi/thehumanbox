@@ -342,7 +342,7 @@ const STALL_POST       = new CylinderGeometry(0.09, 0.11, 1.9, 4)
 const tmp = new Object3D()
 
 // Pooled, shared MeshStandardMaterials keyed by their visual config.
-// Previously each InstanceLayer instance allocated its own material — with ~28
+// Previously each InstanceLayer instance allocated its own material - with ~28
 // layers in the scene that meant ~28 distinct GPU programs/uniform blocks for
 // what is effectively a small palette of colors. These are intentionally never
 // disposed: their lifetime matches the module (process lifetime), and they are

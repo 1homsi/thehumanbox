@@ -39,8 +39,8 @@ impl WeatherState {
     /// `season` biases both magnitude (stronger in scarcity / decline,
     /// gentle in abundance / recovery) and the target heading
     /// (continental dry winds in scarcity, onshore moisture in
-    /// recovery). The bias is weak — random walk still dominates
-    /// hour-to-hour — but over a session you can feel the prevailing
+    /// recovery). The bias is weak - random walk still dominates
+    /// hour-to-hour - but over a session you can feel the prevailing
     /// "monsoon" / "dry" wind shift.
     pub fn tick_wind(&mut self, tick: u64, season: &str, rng: &mut impl Rng) {
         let (target_m, bias_theta, bias_strength) = match season {
@@ -235,7 +235,7 @@ fn apply_weather(
                 let x = rng.gen_range(5..WIDTH as i32 - 5);
                 let y = rng.gen_range(5..HEIGHT as i32 - 5);
                 if !grid.get(x, y).flammable() { continue; }
-                // Don't ignite within 2 tiles of water — wet ground.
+                // Don't ignite within 2 tiles of water - wet ground.
                 let mut near_water = false;
                 'wcheck: for dy in -2i32..=2 {
                     for dx in -2i32..=2 {
@@ -304,7 +304,7 @@ fn start_drought(
     drought.active       = true;
     drought.start_tick   = tick;
     drought.rain_relief  = 0;
-    // Find every water tile that touches non-water — i.e. the
+    // Find every water tile that touches non-water - i.e. the
     // shoreline. We dry a fraction of that, which gives a natural
     // "lake retreated" look instead of the prior Manhattan-3 dotted
     // ring pattern. Shrink-from-edge is what real droughts do.
@@ -351,7 +351,7 @@ fn end_drought(
     // Only restore tiles proportionally to rain_relief. A drought that
     // ended via the rng cutoff (rain_relief == 0) doesn't fully refill;
     // some tiles stay dry permanently. This is the geographic memory
-    // the world-evolution spec wants — past droughts leave shoreline
+    // the world-evolution spec wants - past droughts leave shoreline
     // scars instead of fully reverting to pre-drought.
     let total = drought.dried_tiles.len();
     // 0 relief → restore 50% of tiles; >= 200 ticks of rain → 100%.
@@ -782,7 +782,7 @@ pub fn tick_world_evolution(
         grid.tick_geology(rng);
     }
     // River meander: a single bank-flip per call, much faster cadence
-    // than geology — gives mid-session lakes a visible "shifted" feel
+    // than geology - gives mid-session lakes a visible "shifted" feel
     // without bulldozing them.
     if tick % 1800 == 0 && tick >= 1800 {
         grid.tick_river_meander(rng);
@@ -800,7 +800,7 @@ pub fn tick_world_evolution(
         grid.tick_forest_dieback(drought_active, rng);
     }
     // Rare tectonic event: every 30k ticks, flip a coin. On average one
-    // earthquake per ~60k ticks — uncommon enough that organisms can't
+    // earthquake per ~60k ticks - uncommon enough that organisms can't
     // build a routine around it, frequent enough that long-running worlds
     // accumulate a few visible fault scars.
     if tick % 30000 == 0 && tick >= 30000 && rng.gen_bool(0.5) {

@@ -9,7 +9,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     } else if disc.contains("stone_tools") || disc.contains("trap") {
         0.28
     } else {
-        0.12  // bare hands — hard without tools
+        0.12  // bare hands - hard without tools
     };
 
     if ctx.chance(success_p) {

@@ -95,7 +95,7 @@ export function MoreDropdown() {
         <button className={clsx('lang-btn', hazard && 'active')} aria-pressed={!!( hazard )} onClick={() => setViewFlag('hazard',     !hazard)} title="Hazard scars - violence and death">✶ hazard</button>
         <button className={clsx('lang-btn', history && 'active')} aria-pressed={!!( history )} onClick={() => setViewFlag('history',      !history)} title="Per-lineage drift over the last ~60 sim-days">↝ history</button>
         <button className={clsx('lang-btn', fps && 'active')} aria-pressed={!!( fps )} onClick={() => setViewFlag('fps',          !fps)} title="Frames-per-second + frame timing">⏱ perf</button>
-        <button className={clsx('lang-btn', territoryMap && 'active')} aria-pressed={!!( territoryMap )} onClick={() => setViewFlag('territoryMap', !territoryMap)} title="3D territory overlay — lineage claims and contested zones">⬡ territory 3d</button>
+        <button className={clsx('lang-btn', territoryMap && 'active')} aria-pressed={!!( territoryMap )} onClick={() => setViewFlag('territoryMap', !territoryMap)} title="3D territory overlay - lineage claims and contested zones">⬡ territory 3d</button>
       </div>
 
       <div className="more-dropdown-divider" />

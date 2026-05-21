@@ -145,7 +145,7 @@ pub struct Simulation {
     pub(crate) lineage_negotiations: HashMap<(String,String), u64>,
     pub pop_history:           VecDeque<[u64; 2]>,
     pub lineage_centroid_history: HashMap<String, VecDeque<[i32; 3]>>,
-    /// Ancestral home per lineage — stamped the first time the
+    /// Ancestral home per lineage - stamped the first time the
     /// lineage shows up in tick_lineage_centroids and never overwritten.
     /// Lets the client render an "where this lineage came from"
     /// overlay even after living members have wandered far away.
@@ -170,7 +170,7 @@ pub struct Simulation {
     // Inverse of `territory`: tile → most-recent-claimer lineage_id.
     // Avoids the O(L × T) scan of the forward map for per-org rival
     // lookups every tick. "Most recent wins" is fine for our attitude-
-    // decay use — we just need *a* rival, not the full conflict set.
+    // decay use - we just need *a* rival, not the full conflict set.
     pub(crate) tile_owner: HashMap<(i32, i32), String>,
     pub(crate) cached_territory: serde_json::Value,
 }
@@ -713,7 +713,7 @@ impl Simulation {
         let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
         let fear_trait = self.organisms[idx].traits.fear;
 
-        // Wolf flee: instinctive — higher fear trait = larger detection radius
+        // Wolf flee: instinctive - higher fear trait = larger detection radius
         let wolf_flee_radius = 6.0 + fear_trait * 8.0;
         let wolf_threat = self.animals.iter()
             .filter(|a| a.alive && matches!(a.kind, AnimalKind::Wolf))
@@ -1521,7 +1521,7 @@ impl Simulation {
             }
         }
 
-        // Inline fold — no Vec allocation per organism per tick.
+        // Inline fold - no Vec allocation per organism per tick.
         let (kin_sum, kin_count) = self.organisms.iter()
             .filter(|o| o.alive && o.lineage_id == lineage)
             .fold((0.0f32, 0u32), |(s, n), o| (s + o.energy, n + 1));
@@ -1945,7 +1945,7 @@ impl Simulation {
             social::share_food(idx, &mut self.organisms, self.tick_count, &mut self.events);
         }
 
-        // Any organism with knowledge can teach nearby kin — not just elders.
+        // Any organism with knowledge can teach nearby kin - not just elders.
         // Stagger by idx so not all organisms try to teach on the same tick.
         let can_teach = !self.organisms[idx].discoveries.is_empty() || self.organisms[idx].is_elder;
         if can_teach && self.tick_count % 120 == (idx as u64 % 120) {
@@ -2053,7 +2053,7 @@ impl Simulation {
             // proximity. Distance still matters (you have to walk there),
             // but two villagers who hate each other's lineages no longer
             // pair just because they happen to be the closest neighbour.
-            // Hard distance cap on mate search — same reasoning as the
+            // Hard distance cap on mate search - same reasoning as the
             // friend-seek cap. Without it, attraction can pull orgs
             // across the entire map, defeating the cluster-breaking
             // work in spawn.rs / friend-seek.
@@ -2530,7 +2530,7 @@ impl Simulation {
             self.organisms[oi].think("befriended a wolf", self.tick_count);
             self.organisms[oi].log_event("tamed a wolf into a dog".to_string());
             push_event(&mut self.events, self.tick_count, "build", &oname,
-                "befriended a wolf — it follows them now");
+                "befriended a wolf - it follows them now");
         }
 
         for ai in 0..self.animals.len() {
@@ -2886,7 +2886,7 @@ impl Simulation {
             entry.push_back([tick, cx, cy]);
             if entry.len() > 60 { entry.pop_front(); }
             // Stamp the ancestral home the first time we ever see
-            // this lineage. Never overwritten — even when the last
+            // this lineage. Never overwritten - even when the last
             // living member is 200 tiles away, the home stays
             // anchored to where the lineage was born.
             self.lineage_homes.entry(lid_str.to_string())
@@ -2950,7 +2950,7 @@ impl Simulation {
     }
 
     /// Claim all non-water tiles within `radius` of `(cx, cy)` for lineage `lid`.
-    /// Caps each lineage at 400 tiles — evicts tiles farthest from the claimed center.
+    /// Caps each lineage at 400 tiles - evicts tiles farthest from the claimed center.
     pub(crate) fn claim_territory(&mut self, lid: &str, cx: i32, cy: i32, radius: i32) {
         const MAX_TERRITORY: usize = 400;
         // Pre-compute the tile list so we can update both maps without
@@ -2981,7 +2981,7 @@ impl Simulation {
         }
         // Update the inverse map. New claims overwrite (most-recent
         // wins). Evictions only clear the inverse entry if it was
-        // owned by *this* lineage — another lineage may have a more
+        // owned by *this* lineage - another lineage may have a more
         // recent claim on the same tile.
         for p in to_claim {
             self.tile_owner.insert(p, lid.to_string());
@@ -3516,7 +3516,7 @@ mod tests {
         me.age = 1500;
         me.energy = 0.8;
         me.loneliness = 0.85;
-        // Single named friend at (500, 250) — way past the 60-tile cap.
+        // Single named friend at (500, 250) - way past the 60-tile cap.
         me.friends.insert("far-id".into(), "FarFriend".into());
         sim.organisms.push(me);
 
@@ -3541,7 +3541,7 @@ mod tests {
 
         assert!(sim.organisms[0].wander_target.is_none(),
             "lonely org with no in-range friends should NOT walk \
-             toward a friend 600 tiles away — wander_target was {:?}",
+             toward a friend 600 tiles away - wander_target was {:?}",
             sim.organisms[0].wander_target);
     }
 

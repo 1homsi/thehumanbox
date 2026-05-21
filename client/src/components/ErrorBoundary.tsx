@@ -56,7 +56,7 @@ export class ErrorBoundary extends Component<Props, State> {
           </h1>
           <p style={{ fontSize: 13, color: '#7e7568', maxWidth: 480, textAlign: 'center', margin: 0 }}>
             Something unexpected happened in the renderer. The simulation
-            is still running on the server — reload to reconnect.
+            is still running on the server - reload to reconnect.
           </p>
           <button
             onClick={() => window.location.reload()}

@@ -17,11 +17,11 @@ export interface OrgsHotSoa {
   energies:       number[]
   hydrations:     number[]
   healths:        number[]
-  // ages was dropped from delta payloads — increments by 1 per tick
+  // ages was dropped from delta payloads - increments by 1 per tick
   // are pure waste over the wire. Client preserves the value from the
   // last full frame in the merge layer.
   ages?:          number[]
-  // alives is gone from deltas — server already filters to alive
+  // alives is gone from deltas - server already filters to alive
   // before push, so every entry was true. Client merge keeps the
   // cached alive flag.
   alives?:        boolean[]
@@ -143,7 +143,7 @@ export function expandOrgsSoa(soa: OrgsHotSoa): ExpandedOrgDelta[] {
 
   // Pre-explode sparse-or-dense string-ish fields into per-index
   // lookup tables. Three legal shapes per field:
-  //   - sparse  `Array<[idx, value]>` (default — only changed entries)
+  //   - sparse  `Array<[idx, value]>` (default - only changed entries)
   //   - dense   `(string | null)[]` of length n (legacy server)
   //   - missing `undefined`           (no changes this frame at all)
   // The missing case was crashing the decoder because the dense
@@ -176,7 +176,7 @@ export function expandOrgsSoa(soa: OrgsHotSoa): ExpandedOrgDelta[] {
     for (let i = 0; i < n; i++) attractedAt[i] = dense[i] ?? undefined
   }
 
-  // Each numeric SoA field is also optional now — the server omits
+  // Each numeric SoA field is also optional now - the server omits
   // any array whose values didn't change this frame. Capture
   // presence flags up front so the hot loop can branch cheaply on
   // local booleans instead of doing `Array.isArray` n times.
@@ -220,11 +220,11 @@ export function expandOrgsSoa(soa: OrgsHotSoa): ExpandedOrgDelta[] {
     if (attractedAt[i] !== undefined) entry.attracted_to = attractedAt[i]
     // `alive` dropped from deltas (server filters to alive on push);
     // when present (legacy server) honour it. Cached value persists
-    // otherwise — see merge.ts.
+    // otherwise - see merge.ts.
     if (hasAlives) entry.alive = soa.alives![i]
     // `age` dropped from deltas; same legacy-honor pattern.
     if (hasAges) entry.age = soa.ages![i]
-    // `thought` is sparse — only assign when this org had a change.
+    // `thought` is sparse - only assign when this org had a change.
     if (thoughtAt[i] !== undefined) entry.thought = thoughtAt[i]
     out[i] = entry
   }

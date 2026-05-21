@@ -101,7 +101,7 @@ describe('wire round-trip', () => {
     expect(result.isOk()).toBe(true)
     if (result.isErr()) return
     expect(result.value.frame_id).toBe(42)
-    // thoughts is sparse `[[idx, text], …]` now — first entry tuple
+    // thoughts is sparse `[[idx, text], …]` now - first entry tuple
     // is the (index, text) pair for the only modified org.
     const t = result.value.organisms_hot?.thoughts
     expect(Array.isArray(t)).toBe(true)

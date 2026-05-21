@@ -424,7 +424,7 @@ pub fn teach(
     let teacher_vocab = organisms[org_idx].vocabulary.clone();
     organisms[ti].vocabulary.absorb_from(&teacher_vocab, rng);
 
-    // Transfer discoveries — elders have higher transmission rate
+    // Transfer discoveries - elders have higher transmission rate
     let transfer_chance = if is_elder { 0.06 } else { 0.025 };
     let teacher_disc: Vec<String> = organisms[org_idx].discoveries.iter().cloned().collect();
     let mut learned = Vec::new();

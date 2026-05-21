@@ -302,7 +302,7 @@ export function drawClouds(
   ctx.restore()
 }
 
-// Module-scoped scratch buffers — reused across frames so the
+// Module-scoped scratch buffers - reused across frames so the
 // per-tick allocations don't churn GC. Each accessor zeroes the
 // requested length before handing back, so the caller can treat
 // it as a freshly-zeroed array.

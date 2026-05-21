@@ -29,7 +29,7 @@ function seededYaw(id: number): number {
   return (x / 233280) * Math.PI * 2
 }
 
-// A "part" is one InstancedMesh — geometry + material color + a local
+// A "part" is one InstancedMesh - geometry + material color + a local
 // transform applied after the root translation/rotation/scale. We keep
 // these declarative so a species is just an array of parts.
 interface PartDef {
@@ -71,7 +71,7 @@ function buildPartsByKind(kind: AnimalState['kind']): PartDef[] {
     case 'deer': return [
       // body
       { geom: () => makeCapsule(0.28, 0.6, 4, 6), color: tint, offset: [0, 0.8, 0], rot: [0, 0, 0] },
-      // legs (dark) — 4
+      // legs (dark) - 4
       { geom: () => makeCylinder(0.06, 0.05, 0.8, 4), color: '#3a2a1a', offset: [-0.18, 0.4,  0.35], rot: [0,0,0] },
       { geom: () => makeCylinder(0.06, 0.05, 0.8, 4), color: '#3a2a1a', offset: [ 0.18, 0.4,  0.35], rot: [0,0,0] },
       { geom: () => makeCylinder(0.06, 0.05, 0.8, 4), color: '#3a2a1a', offset: [-0.18, 0.4, -0.35], rot: [0,0,0] },
@@ -121,7 +121,7 @@ interface InstancedSpeciesProps {
   biomes: number[][]
 }
 
-// Reused scratch — avoids per-frame allocation in useFrame.
+// Reused scratch - avoids per-frame allocation in useFrame.
 const rootMat   = new Matrix4()
 const partMat   = new Matrix4()
 const finalMat  = new Matrix4()
@@ -133,7 +133,7 @@ const scratchScale = new Vector3(1, 1, 1)
 function InstancedSpecies({ kind, ids, depthMap, biomes }: InstancedSpeciesProps) {
   const parts = useMemo(() => buildPartsByKind(kind), [kind])
   // One mesh per part. We size capacity to ids.length and let React
-  // re-create instances when capacity changes (rare — populations move
+  // re-create instances when capacity changes (rare - populations move
   // slowly relative to render rate).
   const meshes = useRef<(InstancedMesh | null)[]>([])
   const count = ids.length
@@ -240,7 +240,7 @@ export function Animals3D({ animals, depthMap, biomes }: Props) {
   const { scene, animations } = useGLTF('/models/fox.glb')
 
   // Group ids by kind. Stable order: source array order. We memoise
-  // shallowly via animals identity — the wire merge layer keeps the
+  // shallowly via animals identity - the wire merge layer keeps the
   // animals array stable across ticks when nothing changes.
   const byKind = useMemo(() => {
     const m = new Map<AnimalState['kind'], number[]>()
@@ -258,7 +258,7 @@ export function Animals3D({ animals, depthMap, biomes }: Props) {
     <>
       {Array.from(byKind.entries()).map(([kind, ids]) => {
         if (kind === 'dog') {
-          // Skinned-mesh GLB — keep the per-instance AnimatedFigure
+          // Skinned-mesh GLB - keep the per-instance AnimatedFigure
           // path (skinned-mesh instancing is a much bigger lift).
           return ids.map(id => {
             const yaw = seededYaw(id)

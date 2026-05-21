@@ -127,7 +127,7 @@ pub fn gen_phoneme_word(rng: &mut impl Rng) -> String {
 }
 
 /// Per-organism vocabulary. Internally a positional `Vec<String>`
-/// indexed by `CONCEPTS` position — no per-organism `HashMap`
+/// indexed by `CONCEPTS` position - no per-organism `HashMap`
 /// allocations, no key Strings, and slot lookups are an O(1) hash
 /// against a single shared concept-index map. With ~280 concepts ×
 /// hundreds of organisms this trims ~3+ MB of HashMap bucket
@@ -271,7 +271,7 @@ impl Vocabulary {
 
     /// Compatibility view exposing the per-concept word map for
     /// callers (serialisation, snapshots) that still want a
-    /// HashMap. Allocates — use sparingly; for hot reads prefer
+    /// HashMap. Allocates - use sparingly; for hot reads prefer
     /// `word_for`.
     pub fn as_hashmap(&self) -> HashMap<String, String> {
         let mut out = HashMap::with_capacity(self.slots.len());
@@ -325,7 +325,7 @@ impl Vocabulary {
 }
 
 // Custom serde impls so the on-disk / on-wire format remains
-// HashMap<String, String> — existing saves and the client wire
+// HashMap<String, String> - existing saves and the client wire
 // decoder don't need to change.
 impl Serialize for Vocabulary {
     fn serialize<S: Serializer>(&self, ser: S) -> Result<S::Ok, S::Error> {

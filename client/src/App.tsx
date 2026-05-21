@@ -163,9 +163,9 @@ function App() {
             </div>
             <div className="waiting-sub">
               {status === 'unreachable'
-                ? `tried ${failedAttempts} times. waiting for ${WS_HOST} to come back online — retries continue automatically.`
+                ? `tried ${failedAttempts} times. waiting for ${WS_HOST} to come back online - retries continue automatically.`
                 : status === 'reconnecting'
-                ? `attempt ${failedAttempts + 1} — backing off and retrying`
+                ? `attempt ${failedAttempts + 1} - backing off and retrying`
                 : 'opening websocket and fetching the world snapshot'}
             </div>
           </div>

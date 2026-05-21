@@ -195,7 +195,7 @@ export function useSimulation(): {
           }
           latest = next
         } catch (e) {
-          // Don't swallow merge failures silently — a malformed
+          // Don't swallow merge failures silently - a malformed
           // organism record was previously taking down the whole
           // frame with zero signal. Logging surfaces real bugs;
           // the loop continues so a single bad frame doesn't kill

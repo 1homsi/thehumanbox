@@ -165,7 +165,7 @@ export const useUIStore = create<UIState>((set) => ({
 /**
  * Subscribe to a single ViewFlag. Use this instead of reading the
  * whole `viewFlags` object when a component only cares about one
- * key — toggling one flag won't re-render components that pulled
+ * key - toggling one flag won't re-render components that pulled
  * the whole object just for one boolean.
  */
 export function useViewFlag<K extends keyof ViewFlags>(key: K): ViewFlags[K] {

@@ -491,7 +491,7 @@ impl Simulation {
             Ok(data) => match serde_json::from_str::<SaveState>(&data) {
                 Ok(state) => {
                     if state.version != 0 && state.version > SAVE_SCHEMA_VERSION {
-                        // Newer schema than this binary supports — back up and
+                        // Newer schema than this binary supports - back up and
                         // start fresh rather than silently filling with defaults.
                         let backup = format!("{}.future-v{}", path, state.version);
                         let _ = std::fs::rename(path, &backup);
@@ -621,7 +621,7 @@ impl Simulation {
                 duration:   state.weather.duration,
                 intensity:  state.weather.intensity,
                 wet_until:  state.weather.wet_until,
-                // Wind state isn't persisted across restarts — the
+                // Wind state isn't persisted across restarts - the
                 // drift converges back within a few ticks anyway.
                 wind_x:          0.4,
                 wind_y:          0.0,
@@ -677,7 +677,7 @@ impl Simulation {
         // The save format only stores the forward map; rebuild the
         // inverse map after the struct exists. Last claim in the
         // iteration order wins (matches runtime "most recent wins"
-        // semantics — order is unstable but the next claim_territory
+        // semantics - order is unstable but the next claim_territory
         // call refreshes it deterministically).
         {
             let mut owner = std::collections::HashMap::new();

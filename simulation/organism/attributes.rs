@@ -52,7 +52,7 @@ pub const BIRTH_ATTRS_COMMON: &[(&str, f32)] = &[
     ("hollow-cheeked",    0.10),
     ("broad-browed",      0.11),
     ("sharp-featured",    0.10),
-    ("marked",            0.05),  // rare — distinctive birthmark or feature
+    ("marked",            0.05),  // rare - distinctive birthmark or feature
     ("pale",              0.10),
     ("sun-dark",          0.12),
     ("ruddy",             0.12),
@@ -63,7 +63,7 @@ pub const BIRTH_ATTRS_COMMON: &[(&str, f32)] = &[
     ("auburn-haired",     0.08),
     ("curly-haired",      0.12),
     ("raven-haired",      0.07),
-    ("silver-streaked",   0.04),  // born with grey streaks — rare
+    ("silver-streaked",   0.04),  // born with grey streaks - rare
     ("amber-eyed",        0.08),
     ("pale-eyed",         0.07),
     ("keen-eyed",         0.16),
@@ -434,7 +434,7 @@ pub fn check_earned_attributes(org: &mut Organism) -> bool {
     if org.friends.len() >= 7 {
         attrs.insert("heart-of-the-tribe".into());
     }
-    // Held a partner but they're gone now — widowed
+    // Held a partner but they're gone now - widowed
     if org.partner_id.is_none()
        && org.life_log.iter().any(|e| e.category == "partnership" || e.text.contains("partner"))
        && org.age > 600
@@ -442,7 +442,7 @@ pub fn check_earned_attributes(org: &mut Organism) -> bool {
         attrs.insert("widowed".into());
     }
 
-    // ── Survival / hardship (dynamic — can appear and leave) ─
+    // ── Survival / hardship (dynamic - can appear and leave) ─
     // Grief
     if org.grief_ticks > 0 {
         attrs.insert("grieving".into());
@@ -527,7 +527,7 @@ pub fn check_earned_attributes(org: &mut Organism) -> bool {
         attrs.remove("shattered");
         attrs.insert("mended".into());
     }
-    // Hollow: had a partner who is now gone (different from widowed — more raw)
+    // Hollow: had a partner who is now gone (different from widowed - more raw)
     if org.partner_id.is_none()
        && org.life_log.iter().any(|e| e.text.contains("partner") || e.category == "partnership")
        && org.grief_ticks > 100
@@ -543,17 +543,17 @@ pub fn check_earned_attributes(org: &mut Organism) -> bool {
     if hostile_count >= 5 && org.traits.aggression > 0.70 {
         attrs.insert("bloodthirsty".into());
     }
-    // Iron grief — had grief but fully recovered, now calloused
+    // Iron grief - had grief but fully recovered, now calloused
     if attrs.contains("grief-hardened") && org.grief_ticks == 0 && org.health > 0.70 {
         attrs.insert("iron-grief".into());
     }
-    // Cursed — multiple tragedy markers at once
+    // Cursed - multiple tragedy markers at once
     let tragedy_count = ["desolate", "shattered", "hollow", "forsaken", "bloodied", "plague-stricken"]
         .iter().filter(|&&t| attrs.contains(t)).count();
     if tragedy_count >= 3 {
         attrs.insert("cursed".into());
     }
-    // Memory count — lore-keeper potential
+    // Memory count - lore-keeper potential
     let total_mem = org.food_memory.len() + org.water_memory.len() + org.danger_memory.len();
     if total_mem >= 60 {
         attrs.insert("memory-keeper".into());
@@ -566,12 +566,12 @@ pub fn check_earned_attributes(org: &mut Organism) -> bool {
     if trusted_by >= 10 {
         attrs.insert("silver-tongued".into());
     }
-    // Positive attitudes — friend-of-many-tribes
+    // Positive attitudes - friend-of-many-tribes
     let ally_count = org.lineage_attitudes.values().filter(|&&v| v >= 0.30).count();
     if ally_count >= 3 {
         attrs.insert("bridge-builder".into());
     }
-    // High danger memory — seen a lot of death and violence
+    // High danger memory - seen a lot of death and violence
     if org.danger_memory.len() >= 15 {
         attrs.insert("war-scarred".into());
     }

@@ -9,7 +9,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  * The producer is held in a ref so `reload` always sees the latest
  * closure without re-rendering when the parent's closure identity
  * changes. The ref is updated inside `useEffect` (post-render) so
- * we don't write a ref during render — that's a real React anti-
+ * we don't write a ref during render - that's a real React anti-
  * pattern that the new react-hooks/refs lint catches.
  */
 export function useFrozenSnapshot<T>(producer: () => T): { frozen: T; reload: () => void } {

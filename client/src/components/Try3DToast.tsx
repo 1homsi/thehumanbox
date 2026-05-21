@@ -11,7 +11,7 @@ export function Try3DToast() {
   const [animateOut, setAnimateOut] = useState(false)
 
   useEffect(() => {
-    // localStorage may throw in private mode / iframes — fail safe.
+    // localStorage may throw in private mode / iframes - fail safe.
     let dismissed = false
     try { dismissed = window.localStorage.getItem(STORAGE_KEY) === '1' }
     catch { /* ignore */ }
@@ -67,7 +67,7 @@ export function Try3DToast() {
           <span className="try-3d-toast__beta">BETA</span>
         </div>
         <div className="try-3d-toast__sub">
-          See organisms wander a real terrain — same simulation, new view.
+          See organisms wander a real terrain - same simulation, new view.
         </div>
       </div>
       <button

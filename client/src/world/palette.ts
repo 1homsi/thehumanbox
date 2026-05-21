@@ -1,7 +1,7 @@
 /**
  * Static palette tables for the 2D WorldView renderer. Extracted from
  * WorldView.tsx so the renderer file stays focused on draw orchestration.
- * These are pure-data modules — no side effects, no React, safe to
+ * These are pure-data modules - no side effects, no React, safe to
  * import from anywhere.
  */
 

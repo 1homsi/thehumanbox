@@ -56,7 +56,7 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
   const grid = applyGridWire(parsed.grid, caches.grid)
 
   // parsed.organisms is the full AoS (cold + hot fields). When absent,
-  // parsed.organisms_hot is the SoA delta — only hot fields. The SoA
+  // parsed.organisms_hot is the SoA delta - only hot fields. The SoA
   // type tracks this honestly via ExpandedOrgDelta = Partial<OrganismState>
   // so downstream code can't accidentally read a cold field off a
   // SoA-only record.
@@ -72,7 +72,7 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     }
     caches.organisms = next
   } else {
-    // Deltas (SoA) only merge onto an existing cache entry — a brand-
+    // Deltas (SoA) only merge onto an existing cache entry - a brand-
     // new id appearing in a delta would be missing cold fields (name,
     // lineage_id, traits) so we drop it; the next full frame will
     // include it as AoS and seed the cache properly.
@@ -144,7 +144,7 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     // Materialise the org / animal arrays from the cache, then reuse
     // the previous frame's array reference when membership *and*
     // identities are unchanged. This is the key to keeping selectors
-    // like `s.world?.organisms` from re-firing every tick — zustand
+    // like `s.world?.organisms` from re-firing every tick - zustand
     // selectors short-circuit on Object.is(prev, next).
     organisms: reuseArrayIfShallowEqual(
       Array.from(caches.organisms.values()),

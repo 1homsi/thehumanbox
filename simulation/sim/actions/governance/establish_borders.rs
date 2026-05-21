@@ -9,7 +9,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     ctx.think("marking tribal borders");
     ctx.discover("borders", "established formal territorial borders using natural landmarks");
     ctx.event("governance", "demarcated tribal territory along rocky boundaries");
-    // Use rock outcrop as anchor — claim a wide area around this position
+    // Use rock outcrop as anchor - claim a wide area around this position
     let lid = ctx.lid.clone();
     ctx.sim.claim_territory(&lid, ctx.ix, ctx.iy, 6);
     0.040

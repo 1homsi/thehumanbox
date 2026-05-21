@@ -16,7 +16,7 @@ interface Props {
 const BADGE_RADIUS_SQ = 180 * 180
 
 // Entirely data-driven: every badge comes from a real numeric field on OrganismState.
-// No thought-text matching here — the server's AI drives the numbers, we visualize them.
+// No thought-text matching here - the server's AI drives the numbers, we visualize them.
 function badgesFor(o: OrganismState): { text: string; color: string }[] {
   const out: { text: string; color: string }[] = []
 

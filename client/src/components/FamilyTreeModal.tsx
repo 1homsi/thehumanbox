@@ -110,7 +110,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
   // Stash the d3 zoom behavior in a ref instead of monkey-patching
   // the DOM node via (canvas as any).__d3zoom__. The DOM hack broke
   // if two FamilyTreeModal instances ever mounted, or if React
-  // reused the canvas node — both rare but real failure modes.
+  // reused the canvas node - both rare but real failure modes.
   const zoomRef = useRef<d3ZoomBehavior<HTMLCanvasElement, unknown> | null>(null)
   const wrapRef   = useRef<HTMLDivElement>(null)
   const [hoverId, setHoverId] = useState<string | null>(null)

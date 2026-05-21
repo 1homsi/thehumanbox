@@ -31,3 +31,5 @@ lab/models/exports/
 lab/datasets/generated/*
 !lab/datasets/generated/.gitkeep
 lab/experiments/*.json
+
+.vscode/

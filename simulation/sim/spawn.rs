@@ -164,7 +164,7 @@ impl Simulation {
                 .map(|o| (o.x - x as f32).powi(2) + (o.y - y as f32).powi(2))
                 .fold(f32::INFINITY, f32::min);
             let dist = if nearest_org_d2.is_finite() { nearest_org_d2.sqrt() } else { 9999.0 };
-            // Saturate the distance term at 80 tiles — beyond that, more
+            // Saturate the distance term at 80 tiles - beyond that, more
             // distance doesn't matter; we already have isolation.
             let dist_score = (dist / 80.0).min(1.0);
             let score = dist_score * 0.7 + (fert.min(1.0)) * 0.3;

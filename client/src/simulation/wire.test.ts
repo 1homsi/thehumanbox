@@ -58,7 +58,7 @@ describe('applyGridWire', () => {
     const w2 = emptyWire(2, 2) // no trails field
     const second = applyGridWire(w2, first)
     // Without a trails record we hold onto the previous frame's
-    // arrays — same reference, value unchanged.
+    // arrays - same reference, value unchanged.
     expect(second.food_trail).toBe(first.food_trail)
     expect(second.food_trail?.[0][0]).toBeCloseTo(0.8, 5)
   })
