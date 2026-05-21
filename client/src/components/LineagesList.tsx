@@ -1,4 +1,5 @@
 import { memo, useMemo } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { lineageColor } from '../utils/constants'
 import { useUIStore } from '../stores/store'
 import { useWorldStore } from '../stores/worldStore'
@@ -11,33 +12,52 @@ interface LineageRow {
   maxGen: number
 }
 
+/**
+ * The naive `useWorldStore(s => s.world?.organisms)` subscription
+ * re-renders every tick because each organism gets a fresh reference
+ * via the merge layer. Instead, derive a flat `Record<lineage_id, stamp>`
+ * where `stamp` encodes (count, minGen, maxGen) as a comma-separated
+ * string. `useShallow` then catches the common case where no lineage
+ * count or generation envelope changed and short-circuits the
+ * re-render entirely.
+ */
 function LineagesListImpl() {
   const openAllLineages = useUIStore((s) => s.openAllLineages)
-  const organisms    = useWorldStore((s) => s.world?.organisms)
+  const stamps = useWorldStore(
+    useShallow((s) => {
+      const out: Record<string, string> = {}
+      if (!s.world) return out
+      for (const o of s.world.organisms) {
+        if (!o.alive || !o.lineage_id) continue
+        const cur = out[o.lineage_id]
+        if (!cur) {
+          out[o.lineage_id] = `1,${o.generation},${o.generation}`
+        } else {
+          const [c, mn, mx] = cur.split(',').map(Number)
+          const newMn = o.generation < mn ? o.generation : mn
+          const newMx = o.generation > mx ? o.generation : mx
+          out[o.lineage_id] = `${c + 1},${newMn},${newMx}`
+        }
+      }
+      return out
+    }),
+  )
   const lineageNames = useWorldStore((s) => s.world?.lineage_names)
 
   const rows = useMemo((): LineageRow[] => {
-    if (!organisms) return []
-    const buckets: Record<string, LineageRow> = {}
-    for (const o of organisms) {
-      if (!o.alive || !o.lineage_id) continue
-      const r = buckets[o.lineage_id]
-      if (!r) {
-        buckets[o.lineage_id] = {
-          id:     o.lineage_id,
-          name:   lineageNames?.[o.lineage_id] ?? o.lineage_id.slice(0, 6),
-          count:  1,
-          minGen: o.generation,
-          maxGen: o.generation,
-        }
-      } else {
-        r.count++
-        if (o.generation < r.minGen) r.minGen = o.generation
-        if (o.generation > r.maxGen) r.maxGen = o.generation
-      }
+    const out: LineageRow[] = []
+    for (const lid in stamps) {
+      const [count, minGen, maxGen] = stamps[lid].split(',').map(Number)
+      out.push({
+        id:     lid,
+        name:   lineageNames?.[lid] ?? lid.slice(0, 6),
+        count,
+        minGen,
+        maxGen,
+      })
     }
-    return Object.values(buckets).sort((a, b) => b.count - a.count)
-  }, [organisms, lineageNames])
+    return out.sort((a, b) => b.count - a.count)
+  }, [stamps, lineageNames])
 
   return (
     <>

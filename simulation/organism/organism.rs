@@ -382,7 +382,20 @@ impl Organism {
     }
 
     pub fn discover(&mut self, what: &str) -> bool {
-        self.discoveries.insert(what.to_string())
+        let inserted = self.discoveries.insert(what.to_string());
+        // Cap so a future free-form discovery string (e.g. LLM-suggested
+        // verb-noun pair) can't grow the set unboundedly. 64 is well
+        // above the current ~25 hand-written discoveries and the
+        // pathological worst case at high LLM density. Eviction is
+        // arbitrary because HashSet has no insertion-order — we drop
+        // a random element which, on a stable interner-style set, is
+        // fine: the dropped knowledge is rare or stale.
+        if inserted && self.discoveries.len() > 64 {
+            if let Some(victim) = self.discoveries.iter().next().cloned() {
+                self.discoveries.remove(&victim);
+            }
+        }
+        inserted
     }
 
     pub fn log_event(&mut self, text: String) {
