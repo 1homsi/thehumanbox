@@ -16,6 +16,9 @@ pub struct OgSnapshot {
     pub tiles:   Vec<i8>,
     pub biome:   Vec<u8>,
     pub orgs:    Vec<OgOrg>,
+    /// Alive animals as small species-tinted dots. Rendered smaller
+    /// than organisms so the social card stays legible.
+    pub animals: Vec<OgAnimal>,
     pub tick:    u64,
     pub day_t:   f32,   // 0..1, position in day cycle
     /// Current era label (e.g. "stone age", "iron age") for the
@@ -31,6 +34,30 @@ pub struct OgOrg {
     pub y: f32,
     /// First 3 bytes of a hash of lineage_id, mapped to a dot color.
     pub color: [u8; 3],
+}
+
+#[derive(Clone, Copy)]
+pub struct OgAnimal {
+    pub x: f32,
+    pub y: f32,
+    /// Species-tinted color (fish blue, deer brown, wolf grey, etc.).
+    pub color: [u8; 3],
+}
+
+/// Species → tint mapping. Kept here next to the OG renderer so the
+/// social card colors stay in lock-step with the 2D map emoji
+/// rendering on the live page.
+pub fn animal_color(kind: &str) -> [u8; 3] {
+    match kind {
+        "fish"   => [140, 175, 230],
+        "bird"   => [212, 160,  64],
+        "deer"   => [168, 130,  90],
+        "boar"   => [106,  82,  64],
+        "rabbit" => [204, 204, 204],
+        "wolf"   => [ 92,  92,  92],
+        "dog"    => [176, 136,  80],
+        _        => [180, 160, 110],
+    }
 }
 
 // Target output dimensions — standard OG card aspect.
@@ -180,8 +207,28 @@ pub fn render(snap: &OgSnapshot) -> Vec<u8> {
         }
     }
 
+    // Animals first (smaller than organisms — 2-pixel radius) so
+    // they sit under the organism dots when colocated. Without this
+    // the OG card showed an empty world from the wildlife
+    // perspective.
+    for a in &snap.animals {
+        let cx = (a.x * tile_w) as i32;
+        let cy = (a.y * tile_h) as i32 + HEADER_H as i32;
+        for dy in -2i32..=2 {
+            for dx in -2i32..=2 {
+                if dx*dx + dy*dy > 4 { continue; }
+                let px = cx + dx;
+                let py = cy + dy;
+                if px < 0 || py < (HEADER_H as i32) || px >= OG_W as i32 || py >= OG_H as i32 {
+                    continue;
+                }
+                img.put_pixel(px as u32, py as u32, Rgba([a.color[0], a.color[1], a.color[2], 255]));
+            }
+        }
+    }
+
     // Organisms as small filled circles (3-pixel radius) coloured by
-    // lineage. Drawn last so they sit on top of the map.
+    // lineage. Drawn last so they sit on top of the map + animals.
     for o in &snap.orgs {
         let cx = (o.x * tile_w) as i32;
         let cy = (o.y * tile_h) as i32 + HEADER_H as i32;

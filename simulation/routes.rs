@@ -73,6 +73,7 @@ pub async fn og_handler(
         use crate::sim::config::DAY_LENGTH;
         let sim = s.sim.lock().await;
         use crate::og_image::{OgSnapshot, OgOrg, lineage_color};
+        use crate::og_image::{OgAnimal, animal_color};
         let g = &sim.grid;
         let mut orgs: Vec<OgOrg> = Vec::with_capacity(sim.organisms.len());
         let mut alive = 0u32;
@@ -84,6 +85,14 @@ pub async fn og_handler(
                 color: lineage_color(&o.lineage_id),
             });
         }
+        let animals: Vec<OgAnimal> = sim.animals.iter()
+            .filter(|a| a.alive)
+            .map(|a| OgAnimal {
+                x: a.x,
+                y: a.y,
+                color: animal_color(a.kind.name()),
+            })
+            .collect();
         let phase = sim.tick_count % DAY_LENGTH;
         let day_t = phase as f32 / DAY_LENGTH as f32;
         let era = sim.current_era.clone();
@@ -93,6 +102,7 @@ pub async fn og_handler(
             tiles:  g.tiles.clone(),
             biome:  g.biome.clone(),
             orgs,
+            animals,
             tick:   sim.tick_count,
             day_t,
             era,
