@@ -5,6 +5,21 @@ import { useUIStore } from '../stores/store'
 import { Tooltip } from './Tooltip'
 import { MoreDropdown } from './MoreDropdown'
 
+function DayNightDial({ isDay, progress }: { isDay: boolean; progress: number }) {
+  const angle = progress * 360 - 90
+  const a = (angle * Math.PI) / 180
+  const cx = 8, cy = 8, r = 6
+  const tx = cx + Math.cos(a) * r
+  const ty = cy + Math.sin(a) * r
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" style={{ verticalAlign: 'middle', marginRight: 4 }} aria-hidden="true">
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#5e5648" strokeWidth="1" />
+      <line x1={cx} y1={cy} x2={tx} y2={ty} stroke={isDay ? '#e8c044' : '#7aaadf'} strokeWidth="1.3" strokeLinecap="round" />
+      <circle cx={tx} cy={ty} r="1.3" fill={isDay ? '#e8c044' : '#7aaadf'} />
+    </svg>
+  )
+}
+
 interface Props {
   world: WorldState | null
   connected: boolean
@@ -71,8 +86,14 @@ export function AppHeader({ world, connected, fireTiles, sickOrgs }: Props) {
       </div>
       <div className="header-badges">
         {world && (
-          <Tooltip tip={world.is_day ? 'Daytime - organisms are active and foraging' : 'Nighttime - energy drain slows, less activity'}>
-            <span className="daynight">{world.is_day ? '☀️ day' : '🌙 night'}</span>
+          <Tooltip tip={`${world.is_day ? 'Daytime' : 'Nighttime'} - day progress ${Math.round((world.day_progress ?? 0) * 100)}%`}>
+            <span className="daynight">
+              <DayNightDial
+                isDay={!!world.is_day}
+                progress={world.day_progress ?? 0}
+              />
+              {world.is_day ? 'day' : 'night'}
+            </span>
           </Tooltip>
         )}
         {world && (
