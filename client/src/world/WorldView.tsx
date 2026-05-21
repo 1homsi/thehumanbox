@@ -23,6 +23,19 @@ function orgFrame(id: string): number {
   return Math.floor(((Date.now() + phase) % 800) / 200)
 }
 
+const ERA_CLOTHING_COLOR: Record<string, string> = {
+  'pre-stone':  '#6b5239',
+  stone:        '#7a6b55',
+  bronze:       '#a06a3c',
+  iron:         '#5e6e75',
+  classical:    '#c8a868',
+  medieval:     '#6a4030',
+  renaissance:  '#8a3848',
+  industrial:   '#3a2e22',
+  modern:       '#3a4a6a',
+  information:  '#3878b8',
+}
+
 const ERA_STRIPE_COLOR: Record<string, string> = {
   bronze:      '#b07a2a',
   iron:        '#7a7a7a',
@@ -1291,14 +1304,39 @@ function drawWorldOnCanvas(
 
     const orgSex: 'male' | 'female' = org.sex === 'female' ? 'female' : 'male'
     const stage = deriveAgeStage(org.age ?? 0, !!org.is_elder, org.age_stage)
-    const spriteSize = Math.max(12, bodyR * 3.2)
+    const ageScale = stage === 'infant' ? 0.55 : stage === 'child' ? 0.78 : stage === 'adult' ? 1.1 : 1.0
+    const spriteSize = Math.max(12, bodyR * 3.2 * ageScale)
     const frame = orgFrame(org.id)
+    const drewLid = (world.lineage_eras && world.lineage_eras[org.lineage_id]) || ''
     const drew = drawPeopleTile(ctx, pickHumanSprite(orgSex, stage, frame), px - spriteSize / 2, py - spriteSize * 0.78, spriteSize)
     if (!drew) {
       ctx.fillStyle = variant.hairColor
-      ctx.beginPath(); ctx.arc(px, py - bodyR * 0.7, bodyR * 0.55, 0, Math.PI * 2); ctx.fill()
+      ctx.beginPath(); ctx.arc(px, py - bodyR * 0.7, bodyR * 0.55 * ageScale, 0, Math.PI * 2); ctx.fill()
       ctx.fillStyle = variant.accent
-      ctx.fillRect(px - bodyR * 0.7, py + bodyR * 0.15, bodyR * 1.4, 1.4)
+      ctx.fillRect(px - bodyR * 0.7 * ageScale, py + bodyR * 0.15, bodyR * 1.4 * ageScale, 1.4)
+    }
+    const eraClothingColor = ERA_CLOTHING_COLOR[drewLid] ?? null
+    if (eraClothingColor) {
+      ctx.save()
+      ctx.fillStyle = eraClothingColor
+      ctx.globalAlpha = 0.55
+      ctx.fillRect(
+        px - bodyR * 0.85 * ageScale,
+        py - bodyR * 0.1,
+        bodyR * 1.7 * ageScale,
+        bodyR * 0.85 * ageScale,
+      )
+      ctx.restore()
+    }
+    if (stage === 'elder') {
+      ctx.save()
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.moveTo(px + bodyR * 0.7, py + bodyR * 0.2)
+      ctx.lineTo(px + bodyR * 1.1, py + bodyR * 1.2)
+      ctx.stroke()
+      ctx.restore()
     }
 
     const era = (world.lineage_eras && world.lineage_eras[org.lineage_id]) || ''
