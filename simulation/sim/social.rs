@@ -491,6 +491,8 @@ pub fn share_food(
     // Recently-orphaned minors get prioritised by sorting them ahead
     // of all other candidates (they need adoption-tier care, not just
     // food).
+    let my_parent_id = organisms[org_idx].parent_id.clone();
+    let my_id        = organisms[org_idx].id.clone();
     let target_idx = organisms.iter().enumerate()
         .filter(|(i, o)| *i != org_idx && o.alive && o.energy < 0.30)
         .filter(|(_, o)| o.lineage_id == org_lineage
@@ -499,11 +501,16 @@ pub fn share_food(
         .min_by(|(_, a), (_, b)| {
             let a_recent_orphan = a.orphaned_tick > 0 && tick.saturating_sub(a.orphaned_tick) < 600;
             let b_recent_orphan = b.orphaned_tick > 0 && tick.saturating_sub(b.orphaned_tick) < 600;
-            // Orphans first, then lowest-energy first.
+            let a_kin = a.parent_id == my_parent_id || a.parent_id == my_id || a.father_id.as_deref() == Some(my_id.as_str());
+            let b_kin = b.parent_id == my_parent_id || b.parent_id == my_id || b.father_id.as_deref() == Some(my_id.as_str());
             match (a_recent_orphan, b_recent_orphan) {
                 (true, false) => std::cmp::Ordering::Less,
                 (false, true) => std::cmp::Ordering::Greater,
-                _ => a.energy.partial_cmp(&b.energy).unwrap_or(std::cmp::Ordering::Equal),
+                _ => match (a_kin, b_kin) {
+                    (true, false) => std::cmp::Ordering::Less,
+                    (false, true) => std::cmp::Ordering::Greater,
+                    _ => a.energy.partial_cmp(&b.energy).unwrap_or(std::cmp::Ordering::Equal),
+                },
             }
         })
         .map(|(i, _)| i);

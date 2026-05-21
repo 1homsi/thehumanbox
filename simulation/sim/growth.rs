@@ -183,14 +183,20 @@ pub fn try_reproduce(
     }
 
     let mem_trait = child.traits.memory_strength;
-    for (&k, &v) in &organisms[org_idx].food_memory {
-        if rng.gen::<f32>() < 0.12 {
-            Organism::remember(&mut child.food_memory, k.0, k.1, v * 0.2, mem_trait);
+    let mut food_sorted: Vec<((i32, i32), f32)> = organisms[org_idx].food_memory
+        .iter().map(|(&k, &v)| (k, v)).collect();
+    food_sorted.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+    for (k, v) in food_sorted.into_iter().take(20) {
+        if rng.gen::<f32>() < 0.45 {
+            Organism::remember(&mut child.food_memory, k.0, k.1, v * 0.5, mem_trait);
         }
     }
-    for (&k, &v) in &organisms[org_idx].water_memory {
-        if rng.gen::<f32>() < 0.18 {
-            Organism::remember(&mut child.water_memory, k.0, k.1, v * 0.2, mem_trait);
+    let mut water_sorted: Vec<((i32, i32), f32)> = organisms[org_idx].water_memory
+        .iter().map(|(&k, &v)| (k, v)).collect();
+    water_sorted.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+    for (k, v) in water_sorted.into_iter().take(10) {
+        if rng.gen::<f32>() < 0.55 {
+            Organism::remember(&mut child.water_memory, k.0, k.1, v * 0.5, mem_trait);
         }
     }
     for (&k, &v) in &organisms[org_idx].danger_memory {
