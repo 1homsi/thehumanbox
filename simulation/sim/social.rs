@@ -16,6 +16,7 @@ pub fn signal_food(
     let org_lineage = organisms[org_idx].lineage_id.clone();
     let org_id      = organisms[org_idx].id.clone();
     let signal_word = organisms[org_idx].vocabulary.word_for("food").to_string();
+    organisms[org_idx].vocabulary.touch_concept("food", tick);
 
     let best = Organism::best_remembered(&organisms[org_idx].food_memory,
                                          organisms[org_idx].x, organisms[org_idx].y);
@@ -46,6 +47,7 @@ pub fn signal_food(
 
     for &ni in &nearby_indices {
         let their_word = organisms[ni].vocabulary.word_for("food").to_string();
+        organisms[ni].vocabulary.touch_concept("food", tick);
         let recognizes = their_word == signal_word;
         let is_kin     = organisms[ni].lineage_id == org_lineage;
         let trust      = *organisms[ni].org_trust.get(&org_id).unwrap_or(&0.0);
@@ -79,6 +81,7 @@ pub fn sound_alarm(
     let on_fire = grid.get(ix, iy) == Tile::Fire;
     let concept = if on_fire { "fire" } else { "danger" };
     let signal_word = organisms[org_idx].vocabulary.word_for(concept).to_string();
+    organisms[org_idx].vocabulary.touch_concept(concept, tick);
 
     let danger_loc = if on_fire {
         Some((ix, iy))
@@ -110,6 +113,7 @@ pub fn sound_alarm(
 
     for &ni in &nearby_indices {
         let their_word = organisms[ni].vocabulary.word_for(concept).to_string();
+        organisms[ni].vocabulary.touch_concept(concept, tick);
         let recognizes = their_word == signal_word;
         let is_kin     = organisms[ni].lineage_id == org_lineage;
 

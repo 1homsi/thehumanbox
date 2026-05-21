@@ -229,6 +229,23 @@ impl Vocabulary {
         self.last_used[idx] = tick;
     }
 
+    pub fn touch_concept(&mut self, concept: &str, tick: u64) {
+        if let Some(&i) = concept_index().get(concept) {
+            self.touch(i, tick);
+        }
+    }
+
+    pub fn touch_all_known(&mut self, tick: u64) {
+        if self.last_used.len() < self.slots.len() {
+            self.last_used.resize(self.slots.len(), 0);
+        }
+        for i in 0..self.slots.len() {
+            if !self.slots[i].is_empty() {
+                self.last_used[i] = tick;
+            }
+        }
+    }
+
     pub fn decay(&mut self, tick: u64, threshold_ticks: u64) {
         if self.last_used.len() < self.slots.len() {
             self.last_used.resize(self.slots.len(), 0);

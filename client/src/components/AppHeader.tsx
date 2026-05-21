@@ -1,7 +1,10 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import clsx from 'clsx'
+import { useShallow } from 'zustand/react/shallow'
 import type { WorldState } from '../types'
 import { useUIStore } from '../stores/store'
+import { useWorldStore } from '../stores/worldStore'
+import { lineageColor } from '../utils/constants'
 import { Tooltip } from './Tooltip'
 import { MoreDropdown } from './MoreDropdown'
 
@@ -40,6 +43,34 @@ export function AppHeader({ world, connected, fireTiles, sickOrgs }: Props) {
   const openOrgSearch  = useUIStore(s => s.openOrgSearch)
   const openChronicles = useUIStore(s => s.openChronicles)
   const setFullscreen  = useUIStore(s => s.setFullscreen)
+  const focus         = useUIStore(s => s.focus)
+  const setFocus      = useUIStore(s => s.setFocus)
+
+  const lineageCounts = useWorldStore(
+    useShallow((s) => {
+      const out: Record<string, number> = {}
+      if (!s.world) return out
+      for (const o of s.world.organisms) {
+        if (!o.alive || !o.lineage_id) continue
+        out[o.lineage_id] = (out[o.lineage_id] ?? 0) + 1
+      }
+      return out
+    }),
+  )
+  const lineageNames = useWorldStore(s => s.world?.lineage_names)
+
+  const topLineages = useMemo(() => {
+    const arr: { id: string; count: number; label: string }[] = []
+    for (const id in lineageCounts) {
+      arr.push({
+        id,
+        count: lineageCounts[id],
+        label: lineageNames?.[id] ?? id.slice(0, 6),
+      })
+    }
+    arr.sort((a, b) => b.count - a.count)
+    return arr.slice(0, 4)
+  }, [lineageCounts, lineageNames])
 
   const moreRef = useRef<HTMLDivElement>(null)
 
@@ -132,6 +163,26 @@ export function AppHeader({ world, connected, fireTiles, sickOrgs }: Props) {
           </Tooltip>
         )}
       </div>
+      {world && topLineages.length > 0 && (
+        <div className="lineage-chips">
+          {topLineages.map((l) => {
+            const active = focus === `lineage:${l.id}`
+            return (
+              <button
+                key={l.id}
+                type="button"
+                className={clsx('lineage-chip', active && 'active')}
+                onClick={() => setFocus(active ? 'all' : `lineage:${l.id}`)}
+                aria-pressed={active}
+              >
+                <span className="lineage-chip-dot" style={{ background: lineageColor(l.id) }} />
+                <span className="lineage-chip-label">{l.label}</span>
+                <span className="lineage-chip-count">{l.count}</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
       {world && (
         <div className="header-actions">
           <Tooltip tip="Population graphs, birth and death rates, lineage growth over time">

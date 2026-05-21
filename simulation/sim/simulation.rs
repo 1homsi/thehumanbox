@@ -2167,6 +2167,8 @@ impl Simulation {
                             a_recent, b_recent, a_tribe, b_tribe, a_mood, b_mood,
                             tc, "courtship", &mut self.rng,
                         );
+                        self.organisms[idx].vocabulary.touch_all_known(tc);
+                        self.organisms[pi].vocabulary.touch_all_known(tc);
                         self.organisms[idx].store_conversation(conv_a);
                         self.organisms[pi].store_conversation(conv_b);
                         self.pending_convos.push(req);
@@ -2203,6 +2205,8 @@ impl Simulation {
                             a_recent, b_recent, a_tribe, b_tribe, a_mood, b_mood,
                             tc, "bonded", &mut self.rng,
                         );
+                        self.organisms[idx].vocabulary.touch_all_known(tc);
+                        self.organisms[pi].vocabulary.touch_all_known(tc);
                         self.organisms[idx].store_conversation(conv_a);
                         self.organisms[pi].store_conversation(conv_b);
                         self.pending_convos.push(req);
@@ -2251,6 +2255,8 @@ impl Simulation {
                             a_recent, b_recent, a_tribe, b_tribe, a_mood, b_mood,
                             tc, kind, &mut self.rng,
                         );
+                        self.organisms[idx].vocabulary.touch_all_known(tc);
+                        self.organisms[ci].vocabulary.touch_all_known(tc);
                         self.organisms[idx].store_conversation(conv_a);
                         self.organisms[ci].store_conversation(conv_b);
                         self.pending_convos.push(req);
@@ -2391,6 +2397,25 @@ impl Simulation {
             if griever_count >= 2 {
                 push_event(&mut self.events, self.tick_count, "mourn", &dead_name,
                            &format!("{} kin gather to mourn", griever_count));
+            }
+
+            let ritual_participants: Vec<usize> = self.organisms.iter().enumerate()
+                .filter(|(i, o)| *i != idx && o.alive && o.lineage_id == dlid
+                    && (((o.x as i32 - dx).pow(2) + (o.y as i32 - dy).pow(2)) as f32).sqrt() <= 6.0)
+                .map(|(i, _)| i)
+                .collect();
+            if !ritual_participants.is_empty() {
+                let participant_ids: Vec<String> = ritual_participants.iter()
+                    .map(|&pi| self.organisms[pi].id.clone()).collect();
+                for (slot, &pi) in ritual_participants.iter().enumerate() {
+                    self.organisms[pi].grief_ticks = self.organisms[pi].grief_ticks.saturating_sub(20);
+                    self.organisms[pi].log_event("mourned together".to_string());
+                    for (other_slot, other_id) in participant_ids.iter().enumerate() {
+                        if other_slot == slot { continue }
+                        let cur = self.organisms[pi].org_trust.get(other_id).copied().unwrap_or(0.0);
+                        self.organisms[pi].org_trust.insert(other_id.clone(), (cur + 0.12).min(1.0));
+                    }
+                }
             }
 
             if let Some(&gi) = grievers.first() {

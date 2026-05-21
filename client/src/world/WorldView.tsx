@@ -1072,6 +1072,7 @@ function drawWorldOnCanvas(
 
   const isFocused = (org: WorldState['organisms'][0]) => {
     if (focus === 'all') return true
+    if (focus.startsWith('lineage:')) return org.lineage_id === focus.slice(8)
     if (focus === 'sick')     return org.infection > 0.15
     if (focus === 'hungry')   return org.energy < 0.3
     if (focus === 'elders')   return !!org.is_elder
