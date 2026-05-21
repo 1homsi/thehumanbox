@@ -212,6 +212,10 @@ impl Simulation {
                 obj.insert("lineage_homes".to_string(),
                     serde_json::to_value(&self.lineage_homes).unwrap());
                 obj.insert("current_era".to_string(), serde_json::to_value(&self.current_era).unwrap());
+                let eras_json: Vec<serde_json::Value> = self.lineage_eras.iter()
+                    .map(|(lid, era)| json!({ "lineage_id": lid, "era_name": era.name() }))
+                    .collect();
+                obj.insert("lineage_eras".to_string(), serde_json::Value::Array(eras_json));
                 obj.insert("sex_words".to_string(), serde_json::to_value(&self.sex_words).unwrap());
             }
         }

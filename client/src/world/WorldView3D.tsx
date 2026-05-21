@@ -11,6 +11,7 @@ import { Humans3D } from '../three/Humans3D'
 import { Animals3D } from '../three/Animals3D'
 import { OrgLabels } from '../three/OrgLabels'
 import { TileFeatures } from '../three/TileFeatures'
+import { Buildings3D } from '../three/Buildings3D'
 import { Weather } from '../three/Weather'
 import { Birds } from '../three/Birds'
 import { Clouds3D } from '../three/Clouds3D'
@@ -384,6 +385,11 @@ export default function WorldView3D({ world }: Props) {
                 />
                 <Humans3D
                   organisms={world.viewport_organisms ?? world.organisms ?? []}
+                  depthMap={grid.depth_map!}
+                  biomes={grid.biomes!}
+                />
+                <Buildings3D
+                  buildings={world.buildings ?? []}
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}
                 />

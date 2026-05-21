@@ -158,6 +158,7 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     ) ?? [],
     viewport_animals: viewportAnimals,
     animals_complete: parsed.animals_complete,
+    buildings: parsed.buildings ?? base?.buildings,
   }
 
   return { next, grid }

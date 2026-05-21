@@ -70,7 +70,7 @@ const onLoad: Array<() => void> = []
 
 export function onAnyAtlasLoaded(fn: () => void) {
   onLoad.push(fn)
-  if (ATLAS_TOWN.complete && ATLAS_CREATURE.complete) fn()
+  if (ATLAS_TOWN.complete && ATLAS_CREATURE.complete && ATLAS_PEOPLE.complete) fn()
 }
 
 export function loadAtlas(url: string): HTMLImageElement {
@@ -84,6 +84,36 @@ export function loadAtlas(url: string): HTMLImageElement {
 
 export const ATLAS_TOWN     = loadAtlas('/sprites/tiny-town.png')
 export const ATLAS_CREATURE = loadAtlas('/sprites/tiny-creatures.png')
+export const ATLAS_PEOPLE   = loadAtlas('/sprites/people/people.svg')
+
+export const PEOPLE_CELL = 32
+export const PEOPLE_COLS = 4
+export type AgeStage = 'infant' | 'child' | 'teen' | 'adult'
+const STAGE_ROW: Record<AgeStage, number> = { infant: 0, child: 1, teen: 2, adult: 3 }
+
+export function pickHumanSprite(sex: 'male' | 'female', stage: AgeStage, frame: number): Tile {
+  const sexOffset = sex === 'female' ? 4 : 0
+  const row = sexOffset + STAGE_ROW[stage]
+  const col = ((frame % PEOPLE_COLS) + PEOPLE_COLS) % PEOPLE_COLS
+  return [col, row] as Tile
+}
+
+export function drawPeopleTile(
+  ctx: CanvasRenderingContext2D,
+  tile: Tile,
+  dx: number, dy: number,
+  size: number,
+) {
+  const img = ATLAS_PEOPLE
+  if (!img.complete || img.naturalWidth === 0) return false
+  const [col, row] = tile
+  ctx.drawImage(
+    img,
+    col * PEOPLE_CELL, row * PEOPLE_CELL, PEOPLE_CELL, PEOPLE_CELL,
+    dx, dy, size, size,
+  )
+  return true
+}
 
 export function drawTile(
   ctx: CanvasRenderingContext2D,

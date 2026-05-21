@@ -40,6 +40,41 @@ function MiniBar({ label, value, color, invert, tip }: { label: string; value: n
   )
 }
 
+const AGE_STAGE_ICON: Record<string, string> = {
+  infant: '👶',
+  child:  '🧒',
+  teen:   '🧑',
+  adult:  '🧔',
+  elder:  '🧓',
+}
+
+const ERA_ICON: Record<string, string> = {
+  PreStone:    '🪨',
+  Stone:       '🛖',
+  Bronze:      '⚒️',
+  Iron:        '⚔️',
+  Classical:   '🏛️',
+  Medieval:    '🏰',
+  Renaissance: '🎨',
+  Industrial:  '🏭',
+  Modern:      '⚙️',
+  Information: '💻',
+}
+
+const TOOL_ICON: Record<string, string> = {
+  StoneAxe:    '🪓',
+  BronzeSpear: '🔱',
+  IronSword:   '⚔️',
+  Plow:        '🚜',
+  Musket:      '🔫',
+  Rifle:       '🎯',
+  Book:        '📕',
+  Computer:    '💻',
+  Bow:         '🏹',
+  Hammer:      '🔨',
+  Wheel:       '☸️',
+}
+
 interface Props {
   org: OrganismState
   onClose: () => void
@@ -47,9 +82,10 @@ interface Props {
   following: boolean
   lineageNames?: Record<string, string>
   organisms?: OrganismState[]
+  religions?: import('../types').ReligionInfo[]
 }
 
-export function OrgDetail({ org, onClose, onFollow, following, lineageNames, organisms }: Props) {
+export function OrgDetail({ org, onClose, onFollow, following, lineageNames, organisms, religions }: Props) {
   const { data: detail } = useOrgDetail(org.id)
   const [showLife, setShowLife] = useState(false)
   const starredOrgIds = useUIStore((s) => s.starredOrgIds)
@@ -108,6 +144,29 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
         gen {org.generation} · {ageInDays > 0 ? `${ageInDays} day${ageInDays !== 1 ? 's' : ''} old` : 'newborn'}
         {' · '}{tn(org.lineage_id)}
         {org.max_age > 0 && ` · max ${fmt(org.max_age)}`}
+      </div>
+
+      <div className="org-detail-chips">
+        {(org.age_stage ?? null) && (
+          <span className="relation-tag" style={{ background: '#1a1a2a', color: '#bbcce6', cursor: 'default' }}>
+            {AGE_STAGE_ICON[org.age_stage as string] ?? '•'} {org.age_stage}
+          </span>
+        )}
+        {((org.era ?? org.lineage_era) ?? null) && (
+          <span className="relation-tag" style={{ background: '#2a1a0a', color: '#e6c488', cursor: 'default' }}>
+            {ERA_ICON[(org.era ?? org.lineage_era) as string] ?? '◷'} {org.era ?? org.lineage_era}
+          </span>
+        )}
+        {(org.specialty ?? null) && (
+          <span className="relation-tag" style={{ background: '#0a1a2a', color: '#88c6e6', cursor: 'default' }}>
+            ★ {org.specialty}
+          </span>
+        )}
+        {(org.mounted_vehicle ?? null) !== null && org.mounted_vehicle !== undefined && (
+          <span className="relation-tag" style={{ background: '#1a2a0a', color: '#c4e688', cursor: 'default' }}>
+            🛞 mounted
+          </span>
+        )}
       </div>
 
       <div className="org-detail-thought">{org.thought}</div>
@@ -188,6 +247,71 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
             {fearedOrgs.slice(0, 4).map(([oid, v]) => (
               <Tooltip key={oid} tip={`Fears ${on(oid)} - negative bond at ${(Math.abs(v) * 100).toFixed(0)}%. Result of past conflict or aggression.`}>
                 <span className="relation-tag enemy" style={{ fontSize: '9px', cursor: 'default' }}>◇ {on(oid)} {(v * 100).toFixed(0)}</span>
+              </Tooltip>
+            ))}
+          </div>
+        </>
+      )}
+
+      {((org.literacy ?? null) !== null || ((org.degrees ?? []).length > 0)) && (
+        <>
+          <div className="org-detail-section">EDUCATION</div>
+          {(org.literacy ?? null) !== null && (
+            <Bar label="literacy" value={org.literacy ?? 0} color="#c4a8ff" />
+          )}
+          {(org.degrees ?? []).length > 0 && (
+            <div className="relation-list">
+              {(org.degrees ?? []).map((d) => (
+                <span key={d} className="relation-tag" style={{ background: '#1a0a2a', color: '#d8b8ff', cursor: 'default' }}>🎓 {d}</span>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {(org.wealth ?? null) !== null && (org.wealth ?? 0) > 0 && (
+        <>
+          <div className="org-detail-section">WEALTH</div>
+          <div className="org-memory" style={{ marginBottom: 6 }}>
+            <span style={{ cursor: 'default' }}>💰 {org.wealth}</span>
+          </div>
+        </>
+      )}
+
+      {Object.keys(org.inventory ?? {}).length > 0 && (
+        <>
+          <div className="org-detail-section">INVENTORY</div>
+          <div className="relation-list">
+            {Object.entries(org.inventory ?? {}).map(([kind, count]) => (
+              <Tooltip key={kind} tip={`${kind} ×${count}`}>
+                <span className="relation-tag" style={{ background: '#0a1a1a', color: '#88e6d4', cursor: 'default' }}>
+                  {TOOL_ICON[kind] ?? '🧰'} {kind} ×{count}
+                </span>
+              </Tooltip>
+            ))}
+          </div>
+        </>
+      )}
+
+      {(org.religion_id ?? null) !== null && (
+        <>
+          <div className="org-detail-section">RELIGION</div>
+          <div style={{ marginBottom: 4, fontSize: 11, color: '#bbb' }}>
+            ✦ {religions?.find(r => r.id === org.religion_id)?.name ?? org.religion_id}
+          </div>
+          {(org.piety ?? null) !== null && (
+            <Bar label="piety" value={org.piety ?? 0} color="#e6c488" />
+          )}
+        </>
+      )}
+
+      {(org.diseases ?? []).length > 0 && (
+        <>
+          <div className="org-detail-section">DISEASES</div>
+          <div className="relation-list">
+            {(org.diseases ?? []).map((d, i) => (
+              <Tooltip key={`${d.kind}-${i}`} tip={`Sick with ${d.kind} since t${d.started_tick}`}>
+                <span className="relation-tag enemy" style={{ cursor: 'default' }}>🦠 {d.kind}</span>
               </Tooltip>
             ))}
           </div>

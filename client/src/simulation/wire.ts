@@ -70,6 +70,7 @@ export type IncomingWorldFrame =
     lineage_homes?: WorldState['lineage_homes']
     current_era?: WorldState['current_era']
     sex_words?: WorldState['sex_words']
+    buildings?: WorldState['buildings']
   }
 
 export async function fetchSnapshotWithProgress(url: string, signal?: AbortSignal): Promise<ArrayBuffer | null> {

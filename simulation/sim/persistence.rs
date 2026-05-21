@@ -151,6 +151,8 @@ pub(crate) struct SaveState {
     lineage_centroid_history: HashMap<String, Vec<[i32; 3]>>,
     #[serde(default)]
     lineage_homes:  HashMap<String, [i32; 3]>,
+    #[serde(default)]
+    lineage_eras:   HashMap<String, super::era::Era>,
     current_era:    String,
     sex_words:      Vec<String>,
     pub(crate) world_seed:     u64,
@@ -417,6 +419,7 @@ impl Simulation {
                 .map(|(k, v)| (k.clone(), v.iter().rev().take(60).rev().cloned().collect()))
                 .collect(),
             lineage_homes: self.lineage_homes.clone(),
+            lineage_eras: self.lineage_eras.clone(),
             events: self.events.iter().rev().take(200).rev().cloned().collect(),
             organisms:     self.organisms.iter().map(org_to_save).collect(),
             animals:       self.animals.iter().map(animal_to_save).collect(),
@@ -645,6 +648,7 @@ impl Simulation {
                 .map(|(k, v)| (k, v.into_iter().collect()))
                 .collect(),
             lineage_homes: state.lineage_homes,
+            lineage_eras: state.lineage_eras,
             current_era:            if state.current_era.is_empty() { "genesis".to_string() } else { state.current_era },
             sex_words: {
                 if state.sex_words.len() >= 2 {
@@ -673,6 +677,8 @@ impl Simulation {
                 .collect(),
             tile_owner: std::collections::HashMap::new(),
             cached_territory: serde_json::Value::Null,
+            battles: Vec::new(),
+            treaties: Vec::new(),
         };
         // The save format only stores the forward map; rebuild the
         // inverse map after the struct exists. Last claim in the

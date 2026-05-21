@@ -153,6 +153,7 @@ pub struct Simulation {
     /// tiles today; future work can derive it from the historical
     /// spread of centroids.
     pub lineage_homes: HashMap<String, [i32; 3]>,
+    pub lineage_eras: HashMap<String, super::era::Era>,
     pub current_era:           String,
     pub sex_words:             [String; 2],
     pub world_seed:            u64,
@@ -173,6 +174,8 @@ pub struct Simulation {
     // decay use - we just need *a* rival, not the full conflict set.
     pub(crate) tile_owner: HashMap<(i32, i32), String>,
     pub(crate) cached_territory: serde_json::Value,
+    pub battles: Vec<super::warfare::Battle>,
+    pub treaties: Vec<super::warfare::Treaty>,
 }
 
 fn invention_candidates(discoveries: &HashSet<String>) -> Vec<&'static str> {
@@ -232,6 +235,7 @@ impl Simulation {
             pop_history: VecDeque::new(),
             lineage_centroid_history: HashMap::new(),
             lineage_homes:           HashMap::new(),
+            lineage_eras:            HashMap::new(),
             current_era: "genesis".to_string(),
             sex_words,
             world_seed: seed,
@@ -246,6 +250,8 @@ impl Simulation {
             territory:               HashMap::new(),
             tile_owner:              HashMap::new(),
             cached_territory:        serde_json::Value::Null,
+            battles:                 Vec::new(),
+            treaties:                Vec::new(),
         };
         sim.spawn_founders();
         sim.spawn_animals(14);
@@ -410,6 +416,34 @@ impl Simulation {
 
         if self.tick_count % 1200 == 600 {
             self.tick_settlements();
+        }
+
+        if self.tick_count % 600 == 0 {
+            self.update_lineage_eras();
+        }
+
+        {
+            let new_battles = super::warfare::try_spawn_raids(
+                self.tick_count,
+                &mut self.rng,
+                &self.organisms,
+                &self.territory,
+                &self.treaties,
+                &self.battles,
+                &mut self.events,
+            );
+            self.battles.extend(new_battles);
+            super::warfare::tick_battles(
+                self.tick_count,
+                &mut self.rng,
+                &mut self.battles,
+                &mut self.treaties,
+                &mut self.organisms,
+                &self.active_structure_tiles,
+                &mut self.events,
+                &mut self.history.deaths_combat,
+                &self.lineage_eras,
+            );
         }
 
         growth::deliver_births(&mut self.organisms, self.tick_count,
@@ -3005,6 +3039,54 @@ impl Simulation {
 
     pub fn season_progress(&self) -> f32 {
         (self.tick_count % SEASON_LENGTH) as f32 / SEASON_LENGTH as f32
+    }
+
+    pub fn era(&self, lineage_id: &str) -> super::era::Era {
+        self.lineage_eras.get(lineage_id).copied().unwrap_or(super::era::Era::PreStone)
+    }
+
+    fn update_lineage_eras(&mut self) {
+        use super::era::{Era, determine_era_for_lineage};
+        let mut agg: HashMap<String, (HashSet<String>, usize)> = HashMap::new();
+        for org in self.organisms.iter().filter(|o| o.alive) {
+            let entry = agg.entry(org.lineage_id.clone()).or_insert_with(|| (HashSet::new(), 0));
+            entry.1 += 1;
+            for d in org.discoveries.iter() {
+                entry.0.insert(d.clone());
+            }
+        }
+        let mut max_era: Option<Era> = None;
+        let alive_lineages: HashSet<String> = agg.keys().cloned().collect();
+        for (lid, (discoveries, pop)) in agg.iter() {
+            let new_era = determine_era_for_lineage(discoveries, *pop);
+            let prev = self.lineage_eras.get(lid).copied().unwrap_or(Era::PreStone);
+            if new_era > prev {
+                let lname = self.lineage_names.get(lid).cloned().unwrap_or_else(|| lid.clone());
+                let detail = format!("{} entered the {} era", lname, new_era.name());
+                push_event(&mut self.events, self.tick_count, "era_advance", &lname, &detail);
+            }
+            self.lineage_eras.insert(lid.clone(), new_era);
+            max_era = Some(match max_era {
+                Some(m) => if new_era > m { new_era } else { m },
+                None => new_era,
+            });
+        }
+        self.lineage_eras.retain(|k, _| alive_lineages.contains(k));
+        if let Some(m) = max_era {
+            let mname = m.name().to_string();
+            if mname != self.current_era {
+                self.history.era_history.push_back(EraEntry {
+                    tick: self.tick_count,
+                    era: mname.clone(),
+                });
+                if self.history.era_history.len() > 60 {
+                    self.history.era_history.pop_front();
+                }
+                push_event(&mut self.events, self.tick_count, "era", "world",
+                    &format!("the {} era begins", mname));
+                self.current_era = mname;
+            }
+        }
     }
 
     fn compute_era(&self) -> String {

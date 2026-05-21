@@ -57,8 +57,11 @@ export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
             following={followOrgId === selectedOrg.id}
             lineageNames={world?.lineage_names}
             organisms={world?.organisms}
+            religions={world?.religions}
           />
         )}
+
+        <CivSummary world={world} />
 
         <div className="section-title-row">
           <span className="section-title">ALIVE ({visibleLive.length})</span>

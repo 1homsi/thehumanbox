@@ -1,4 +1,5 @@
 pub mod config;
+pub mod era;
 pub mod world_events;
 pub mod social;
 pub mod growth;
@@ -14,3 +15,7 @@ pub mod serialize;
 pub mod persistence;
 pub mod local_think;
 pub mod spatial;
+
+#[allow(dead_code)]
+pub mod warfare;
+

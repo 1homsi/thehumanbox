@@ -63,11 +63,90 @@ export interface OrganismState {
   children_count?: number
   sex?:            'male' | 'female'
   pregnant?:       boolean
+  age_stage?:      'infant' | 'child' | 'teen' | 'adult' | 'elder'
+  era?:            string
+  lineage_era?:    string
   attracted_to?:   string | null
   vocabulary?:         Record<string, string>
   conversation_count?: number
   friends?:            Record<string, string>
   attributes?:         string[]
+  inventory?:          Record<string, number>
+  literacy?:           number
+  degrees?:            string[]
+  wealth?:             number
+  specialty?:          string
+  religion_id?:        string | null
+  piety?:              number
+  diseases?:           Array<{ kind: string; started_tick: number }>
+  mounted_vehicle?:    number | null
+}
+
+export interface ReligionInfo {
+  id:         string
+  name:       string
+  adherents?: number
+  deity?:     string
+  lineage_id?: string
+}
+
+export interface BookInfo {
+  id?:        string
+  title:      string
+  author_id?: string
+  topic?:     string
+  tick?:      number
+  lineage_id?: string
+}
+
+export interface HeadlineInfo {
+  tick: number
+  text: string
+}
+
+export interface BattleInfo {
+  tick:        number
+  a_lineage:   string
+  b_lineage:   string
+  casualties?: number
+  active?:     boolean
+}
+
+export interface TreatyInfo {
+  tick:       number
+  a_lineage:  string
+  b_lineage:  string
+  kind?:      string
+}
+
+export interface OutbreakInfo {
+  kind:        string
+  started?:    number
+  infected?:   number
+  lineage_id?: string
+}
+
+export interface FarmInfo {
+  x:           number
+  y:           number
+  crop?:       string
+  yield?:      number
+  lineage_id?: string
+}
+
+export interface VehicleInfo {
+  id:        number
+  kind:      string
+  x:         number
+  y:         number
+  rider_id?: string | null
+}
+
+export interface FestivalInfo {
+  name:        string
+  lineage_id?: string
+  started?:    number
+  ends?:       number
 }
 
 export interface LifeEvent {
@@ -221,4 +300,39 @@ export interface WorldState {
     claimed: { lid: string; tiles: [number, number][] }[]
     contested: [number, number][]
   }
+  buildings?: Building[]
+  religions?:           ReligionInfo[]
+  books?:               BookInfo[]
+  headlines?:           HeadlineInfo[]
+  battles?:             BattleInfo[]
+  treaties?:            TreatyInfo[]
+  farms?:               FarmInfo[]
+  vehicles?:            VehicleInfo[]
+  festivals?:           FestivalInfo[]
+  lineage_eras?:        Record<string, string>
+  lineage_currencies?:  Record<string, string>
+  active_outbreaks?:    OutbreakInfo[]
+}
+
+export type BuildingKind =
+  | 'Hut' | 'House' | 'Manor' | 'TownHouse' | 'Apartment'
+  | 'School' | 'University' | 'Library' | 'Market' | 'Temple'
+  | 'Factory' | 'Hospital' | 'Forge'
+  | 'Mill' | 'Windmill' | 'Watermill'
+  | 'Lighthouse' | 'Tower'
+  | 'Bridge' | 'Wall' | 'Aqueduct'
+
+export type BuildingFunction =
+  | 'Housing' | 'Education' | 'Industry' | 'Healthcare'
+  | 'Worship' | 'Military' | 'Civic' | 'Commerce' | 'Infrastructure'
+
+export interface Building {
+  id:         number
+  kind:       string
+  function?:  BuildingFunction
+  x:          number
+  y:          number
+  footprint?: [number, number]
+  condition?: number
+  occupants?: string[]
 }

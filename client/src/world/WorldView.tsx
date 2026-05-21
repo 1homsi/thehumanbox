@@ -4,7 +4,23 @@ import type { WorldState } from '../types'
 import type { InterpRefs } from '../simulation/useSimulation'
 import { useUIStore, type ViewFlags } from '../stores/store'
 import { lineageColor, cbFireRgba } from '../utils/constants'
-import { ATLAS_TOWN, onAnyAtlasLoaded } from '../utils/sprites'
+import { ATLAS_TOWN, onAnyAtlasLoaded, drawPeopleTile, pickHumanSprite, type AgeStage } from '../utils/sprites'
+
+function deriveAgeStage(age: number, isElder: boolean, declared?: string): AgeStage {
+  if (declared === 'infant' || declared === 'child' || declared === 'teen' || declared === 'adult') return declared
+  if (declared === 'elder') return 'adult'
+  if (isElder) return 'adult'
+  if (age < 220) return 'infant'
+  if (age < 700) return 'child'
+  if (age < 1400) return 'teen'
+  return 'adult'
+}
+function orgFrame(id: string): number {
+  let h = 2166136261 >>> 0
+  for (let i = 0; i < id.length; i++) { h ^= id.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0 }
+  const phase = (h % 800)
+  return Math.floor(((Date.now() + phase) % 800) / 200)
+}
 import { TILE, TILE_RGB, BIOME_RGBA, THOUGHT_COLORS } from './palette'
 import { orgVariant } from './org-variant'
 import { drawTrees, drawClouds, drawNaturalDecor, scratchA, scratchB } from './decorations'
@@ -1194,11 +1210,17 @@ function drawWorldOnCanvas(
       ctx.setLineDash([])
     }
 
-    ctx.fillStyle = variant.hairColor
-    ctx.beginPath(); ctx.arc(px, py - bodyR * 0.7, bodyR * 0.55, 0, Math.PI * 2); ctx.fill()
-
-    ctx.fillStyle = variant.accent
-    ctx.fillRect(px - bodyR * 0.7, py + bodyR * 0.15, bodyR * 1.4, 1.4)
+    const orgSex: 'male' | 'female' = org.sex === 'female' ? 'female' : 'male'
+    const stage = deriveAgeStage(org.age ?? 0, !!org.is_elder, org.age_stage)
+    const spriteSize = Math.max(12, bodyR * 3.2)
+    const frame = orgFrame(org.id)
+    const drew = drawPeopleTile(ctx, pickHumanSprite(orgSex, stage, frame), px - spriteSize / 2, py - spriteSize * 0.78, spriteSize)
+    if (!drew) {
+      ctx.fillStyle = variant.hairColor
+      ctx.beginPath(); ctx.arc(px, py - bodyR * 0.7, bodyR * 0.55, 0, Math.PI * 2); ctx.fill()
+      ctx.fillStyle = variant.accent
+      ctx.fillRect(px - bodyR * 0.7, py + bodyR * 0.15, bodyR * 1.4, 1.4)
+    }
 
     const barW = TILE - 2
     const bx = (org.x - ox) * TILE + 1
