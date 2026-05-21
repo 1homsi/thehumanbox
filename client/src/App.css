@@ -1,7 +1,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  background: #241e18;
+  background: #28201a;
   color: #ccc;
   font-family: monospace;
   height: 100vh;
@@ -1379,7 +1379,7 @@ body.thb-photo-mode .header:hover {
   flex-shrink: 0;
 }
 .org-search-input {
-  background: #241e18;
+  background: #28201a;
   border: 1px solid #443329;
   border-radius: 4px;
   padding: 7px 10px;
@@ -1672,7 +1672,7 @@ body.thb-photo-mode .header:hover {
   gap: 8px;
 }
 .stats-num-card {
-  background: #241e18;
+  background: #28201a;
   border: 1px solid #372a21;
   border-radius: 4px;
   padding: 8px 14px;
