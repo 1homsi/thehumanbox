@@ -1,5 +1,6 @@
 pub mod config;
 pub mod era;
+pub mod age_stage;
 pub mod world_events;
 pub mod social;
 pub mod growth;
@@ -16,6 +17,17 @@ pub mod persistence;
 pub mod local_think;
 pub mod spatial;
 
-#[allow(dead_code)]
-pub mod warfare;
-
+#[allow(dead_code)] pub mod warfare;
+#[allow(dead_code)] pub mod tools;
+#[allow(dead_code)] pub mod tech_tree;
+#[allow(dead_code)] pub mod education;
+#[allow(dead_code)] pub mod buildings;
+#[allow(dead_code)] pub mod economy;
+#[allow(dead_code)] pub mod medicine;
+#[allow(dead_code)] pub mod culture;
+#[allow(dead_code)] pub mod government;
+#[allow(dead_code)] pub mod agriculture;
+#[allow(dead_code)] pub mod transportation;
+#[allow(dead_code)] pub mod language_tech;
+#[allow(dead_code)] pub mod world_milestones;
+#[allow(dead_code)] pub mod inventions;
