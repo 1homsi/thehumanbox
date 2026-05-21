@@ -15,6 +15,7 @@ import { RightPanel } from './components/RightPanel'
 import { ModalRouter } from './components/ModalRouter'
 import { ActionTicker } from './components/ActionTicker'
 import { ThreeDLoading } from './components/ThreeDLoading'
+import { Try3DToast } from './components/Try3DToast'
 import type { OrganismState } from './types'
 import clsx from 'clsx'
 import './App.css'
@@ -174,6 +175,8 @@ function App() {
       {world && viewFlags.actionTicker && <ActionTicker world={world} />}
 
       {world && <ModalRouter world={world} lineages={lineages} />}
+
+      {world && <Try3DToast />}
     </div>
   )
 }
