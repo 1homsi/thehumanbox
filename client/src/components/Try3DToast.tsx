@@ -62,14 +62,14 @@ export function Try3DToast() {
         <svg viewBox="0 0 24 24" width="22" height="22">
           <defs>
             <linearGradient id="t3d-g" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%"  stopColor="#7cc6ff" />
-              <stop offset="100%" stopColor="#3d7fcf" />
+              <stop offset="0%"  stopColor="#d8b270" />
+              <stop offset="100%" stopColor="#8a6432" />
             </linearGradient>
           </defs>
           <path d="M12 2 L21 7 L21 17 L12 22 L3 17 L3 7 Z"
-                fill="url(#t3d-g)" stroke="#cfe6ff" strokeWidth="0.8" />
-          <path d="M12 2 L21 7 L12 12 L3 7 Z"     fill="#9fd3ff" opacity="0.85" />
-          <path d="M12 12 L21 7  L21 17 L12 22 Z" fill="#5d9adf" opacity="0.85" />
+                fill="url(#t3d-g)" stroke="#e5ddc7" strokeWidth="0.8" />
+          <path d="M12 2 L21 7 L12 12 L3 7 Z"     fill="#e2c08a" opacity="0.9" />
+          <path d="M12 12 L21 7  L21 17 L12 22 Z" fill="#a07a3a" opacity="0.9" />
         </svg>
       </div>
       <div className="try-3d-toast__body">

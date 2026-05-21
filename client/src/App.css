@@ -2104,8 +2104,8 @@ body.thb-photo-mode .header:hover {
   gap: 14px;
   max-width: min(560px, calc(100vw - 32px));
   padding: 12px 14px 12px 14px;
-  background: linear-gradient(180deg, rgba(28,30,42,0.96), rgba(20,22,32,0.96));
-  border: 1px solid rgba(120,160,220,0.32);
+  background: linear-gradient(180deg, rgba(36,30,24,0.96), rgba(20,17,13,0.96));
+  border: 1px solid rgba(160,130,90,0.30);
   border-radius: 14px;
   color: #e5ddc7;
   font-family: ui-sans-serif, system-ui, sans-serif;
@@ -2132,8 +2132,8 @@ body.thb-photo-mode .header:hover {
   flex: 0 0 auto;
   width: 30px; height: 30px;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(72,118,180,0.18);
-  border: 1px solid rgba(120,160,220,0.32);
+  background: rgba(120,90,55,0.18);
+  border: 1px solid rgba(160,130,90,0.30);
   border-radius: 9px;
 }
 .try-3d-toast__body { flex: 1 1 auto; min-width: 0; }
@@ -2145,9 +2145,9 @@ body.thb-photo-mode .header:hover {
 .try-3d-toast__beta {
   font-size: 9px; font-weight: 700; letter-spacing: 0.12em;
   padding: 2px 6px; border-radius: 4px;
-  background: linear-gradient(180deg, #7cc6ff, #4d8dd2);
-  color: #0a1422;
-  box-shadow: 0 0 0 1px rgba(120,180,255,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  background: linear-gradient(180deg, #d8b270, #8a6432);
+  color: #1a1208;
+  box-shadow: 0 0 0 1px rgba(200,160,100,0.4), 0 1px 2px rgba(0,0,0,0.3);
 }
 .try-3d-toast__sub {
   margin-top: 3px;
@@ -2159,17 +2159,17 @@ body.thb-photo-mode .header:hover {
   flex: 0 0 auto;
   padding: 8px 14px;
   font-size: 12.5px; font-weight: 600; letter-spacing: 0.02em;
-  background: linear-gradient(180deg, #7cc6ff, #4d8dd2);
-  color: #0a1422;
+  background: linear-gradient(180deg, #d8b270, #9a6f3a);
+  color: #1a1208;
   border: none; border-radius: 8px;
   cursor: pointer;
   transition: transform 80ms ease, box-shadow 120ms ease, filter 120ms ease;
-  box-shadow: 0 1px 0 rgba(255,255,255,0.25) inset, 0 2px 8px rgba(80,130,200,0.35);
+  box-shadow: 0 1px 0 rgba(255,235,200,0.25) inset, 0 2px 8px rgba(120,80,40,0.45);
 }
 .try-3d-toast__cta:hover  { filter: brightness(1.08); transform: translateY(-1px); }
 .try-3d-toast__cta:active { transform: translateY(0);   filter: brightness(0.95); }
 .try-3d-toast__cta:focus-visible {
-  outline: 2px solid #cfe6ff;
+  outline: 2px solid #e5ddc7;
   outline-offset: 2px;
 }
 .try-3d-toast__close {
@@ -2190,7 +2190,7 @@ body.thb-photo-mode .header:hover {
   border-color: rgba(255,255,255,0.08);
 }
 .try-3d-toast__close:focus-visible {
-  outline: 2px solid #cfe6ff;
+  outline: 2px solid #e5ddc7;
   outline-offset: 2px;
 }
 
