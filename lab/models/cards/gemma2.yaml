@@ -1,0 +1,8 @@
+model_id: google/gemma-2-2b-it
+license: gemma
+intended_use: lightweight instruction following and short reasoning on commodity GPUs
+training_data_notes: trained on a curated mixture of web text, code, and math by Google DeepMind
+known_limits: weaker multilingual coverage than larger open models and conservative refusal behavior
+recommended_quant: Q4_K_M
+smoke_test_prompt: Reply with the single word OK and nothing else.
+smoke_test_expected_fragment: OK

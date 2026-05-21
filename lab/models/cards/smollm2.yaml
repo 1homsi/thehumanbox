@@ -1,0 +1,8 @@
+model_id: HuggingFaceTB/SmolLM2-360M-Instruct
+license: apache-2.0
+intended_use: very small instruction model for on-device and embedded experimentation
+training_data_notes: trained by Hugging Face on a curated small-scale text mixture
+known_limits: limited world knowledge and weak at multi-step reasoning
+recommended_quant: bf16
+smoke_test_prompt: Reply with the single word OK and nothing else.
+smoke_test_expected_fragment: OK

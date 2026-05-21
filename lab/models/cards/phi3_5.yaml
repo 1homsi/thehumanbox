@@ -1,0 +1,8 @@
+model_id: microsoft/Phi-3.5-mini-instruct
+license: mit
+intended_use: compact reasoning model targeting strong performance per parameter
+training_data_notes: trained by Microsoft on filtered web data and synthetic textbook-style content
+known_limits: tuned for English and may underperform on non-English and very long contexts
+recommended_quant: Q4_K_M
+smoke_test_prompt: Reply with the single word OK and nothing else.
+smoke_test_expected_fragment: OK

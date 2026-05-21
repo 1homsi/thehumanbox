@@ -1,0 +1,8 @@
+model_id: meta-llama/Llama-3.2-3B-Instruct
+license: llama-3.2
+intended_use: small edge-friendly instruction model for chat and summarization
+training_data_notes: trained by Meta on a curated multilingual text mixture with instruction tuning
+known_limits: license has acceptable use restrictions and small variants are weak at math
+recommended_quant: Q4_K_M
+smoke_test_prompt: Reply with the single word OK and nothing else.
+smoke_test_expected_fragment: OK

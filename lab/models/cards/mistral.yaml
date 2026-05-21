@@ -1,0 +1,8 @@
+model_id: mistralai/Mistral-7B-Instruct-v0.3
+license: apache-2.0
+intended_use: general purpose 7B instruction model with strong English performance
+training_data_notes: trained by Mistral AI on web text with instruction tuning
+known_limits: weaker on non-English tasks and tends to be verbose
+recommended_quant: Q4_K_M
+smoke_test_prompt: Reply with the single word OK and nothing else.
+smoke_test_expected_fragment: OK

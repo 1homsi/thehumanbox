@@ -1,0 +1,8 @@
+model_id: TinyLlama/TinyLlama-1.1B-Chat-v1.0
+license: apache-2.0
+intended_use: tiny chat model for low-resource fine-tuning and distillation experiments
+training_data_notes: pretrained on SlimPajama and StarCoder data by the TinyLlama project
+known_limits: limited reasoning ability and dated knowledge cutoff
+recommended_quant: Q4_K_M
+smoke_test_prompt: Reply with the single word OK and nothing else.
+smoke_test_expected_fragment: OK

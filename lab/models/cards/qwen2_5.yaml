@@ -1,0 +1,8 @@
+model_id: Qwen/Qwen2.5-1.5B-Instruct
+license: apache-2.0
+intended_use: small instruction model with strong multilingual and code abilities for its size
+training_data_notes: trained by Alibaba Qwen team on multilingual web text and code corpora
+known_limits: small variants hallucinate on long-context retrieval and complex math
+recommended_quant: Q4_K_M
+smoke_test_prompt: Reply with the single word OK and nothing else.
+smoke_test_expected_fragment: OK
