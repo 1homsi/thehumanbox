@@ -560,7 +560,8 @@ impl Organism {
             }
         }
 
-        let eff_eps = (epsilon * (0.5 + self.traits.curiosity)).max(0.05).min(0.80);
+        let age_decay = 1.0 / (1.0 + self.age as f32 / 2000.0);
+        let eff_eps = (epsilon * (0.5 + self.traits.curiosity) * age_decay).max(0.02).min(0.80);
         if rng.gen::<f32>() < eff_eps {
             if rng.gen::<f32>() < 0.10 {
                 if let Some(p) = self.find_trail_target(grid, TrailKind::Path, 5) {

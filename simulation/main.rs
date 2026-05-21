@@ -52,7 +52,7 @@ pub type Tx = broadcast::Sender<Arc<Vec<u8>>>;
 
 const SAVE_PATH:  &str = "world.save";
 const DAY_LENGTH: u64  = 600;
-const WS_BROADCAST_BUFFER: usize = 60;
+const WS_BROADCAST_BUFFER: usize = 40;
 pub const WS_RESYNC_LAG_THRESHOLD: u64 = 3;
 
 fn tick_ms() -> u64 {

@@ -376,7 +376,7 @@ impl Organism {
 
     pub fn store_conversation(&mut self, entry: ConversationEntry) {
         self.conversations.push_back(entry);
-        if self.conversations.len() > 40 {
+        if self.conversations.len() > 20 {
             self.conversations.pop_front();
         }
     }

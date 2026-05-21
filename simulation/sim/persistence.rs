@@ -147,6 +147,8 @@ pub(crate) struct SaveState {
     story_history:  Vec<StoryEntry>,
     pop_history:    Vec<[u64; 2]>,
     lineage_centroid_history: HashMap<String, Vec<[i32; 3]>>,
+    #[serde(default)]
+    lineage_homes:  HashMap<String, [i32; 3]>,
     current_era:    String,
     sex_words:      Vec<String>,
     pub(crate) world_seed:     u64,
@@ -410,6 +412,7 @@ impl Simulation {
             lineage_centroid_history: self.lineage_centroid_history.iter()
                 .map(|(k, v)| (k.clone(), v.iter().rev().take(60).rev().cloned().collect()))
                 .collect(),
+            lineage_homes: self.lineage_homes.clone(),
             events: self.events.iter().rev().take(200).rev().cloned().collect(),
             organisms:     self.organisms.iter().map(org_to_save).collect(),
             animals:       self.animals.iter().map(animal_to_save).collect(),
@@ -637,12 +640,7 @@ impl Simulation {
             lineage_centroid_history: state.lineage_centroid_history.into_iter()
                 .map(|(k, v)| (k, v.into_iter().collect()))
                 .collect(),
-            // Ancestral homes aren't persisted yet (added in v3); they
-            // re-stamp on the next centroid sweep after load, so the
-            // anchor jumps to wherever surviving members currently are.
-            // Acceptable for now — the historical signal is preserved
-            // by lineage_centroid_history which IS persisted.
-            lineage_homes: std::collections::HashMap::new(),
+            lineage_homes: state.lineage_homes,
             current_era:            if state.current_era.is_empty() { "genesis".to_string() } else { state.current_era },
             sex_words: {
                 if state.sex_words.len() >= 2 {

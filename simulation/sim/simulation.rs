@@ -2516,10 +2516,14 @@ impl Simulation {
     fn check_animal_catches(&mut self) {
         let mut to_catch: Vec<(usize, usize)> = Vec::new();
         let organism_spatial = SpatialIndex::build(&self.organisms, 10);
+        let animal_spatial = SpatialIndex::build_animals(&self.animals, 10);
+        let mut nearby_animals: Vec<usize> = Vec::with_capacity(16);
         for (oi, org) in self.organisms.iter().enumerate() {
             if !org.alive { continue; }
             let (ox, oy) = (org.x as i32, org.y as i32);
-            for (ai, animal) in self.animals.iter().enumerate() {
+            animal_spatial.query_into(ox, oy, 3, &mut nearby_animals);
+            for &ai in &nearby_animals {
+                let animal = &self.animals[ai];
                 if !animal.alive { continue; }
                 let (ax, ay) = (animal.x as i32, animal.y as i32);
                 let manh = (ox - ax).abs() + (oy - ay).abs();
