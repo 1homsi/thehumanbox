@@ -1,18 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useUIStore } from '../stores/store'
 
-/**
- * Bottom-center notification-style toast that invites the user to
- * try the 3D view. Appears once per browser (localStorage flag),
- * dismissable, and never returns after either dismissal or first
- * successful 3D toggle from the toast itself.
- *
- * Mount once at the App root; it renders nothing when there's no
- * reason to show (already in 3D, already dismissed, world not
- * loaded yet, or still warming up after splash).
- */
 const STORAGE_KEY = 'thb-try-3d-dismissed'
-const SHOW_DELAY_MS = 1500   // wait for splash + first paint to settle
+const SHOW_DELAY_MS = 1500
 
 export function Try3DToast() {
   const threeD = useUIStore((s) => s.viewFlags.threeD)
@@ -58,7 +48,6 @@ export function Try3DToast() {
       aria-live="polite"
     >
       <div className="try-3d-toast__icon" aria-hidden="true">
-        {/* Tiny isometric cube — pure SVG so no font dependency. */}
         <svg viewBox="0 0 24 24" width="22" height="22">
           <defs>
             <linearGradient id="t3d-g" x1="0" y1="0" x2="0" y2="1">
