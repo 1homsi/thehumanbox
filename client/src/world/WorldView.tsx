@@ -22,6 +22,28 @@ function orgFrame(id: string): number {
   const phase = (h % 800)
   return Math.floor(((Date.now() + phase) % 800) / 200)
 }
+
+const ERA_STRIPE_COLOR: Record<string, string> = {
+  bronze:      '#b07a2a',
+  iron:        '#7a7a7a',
+  classical:   '#d4a04a',
+  medieval:    '#5a4030',
+  renaissance: '#c08850',
+  industrial:  '#3e2e22',
+  modern:      '#9aa0a8',
+  information: '#7cc6ff',
+}
+
+const SPECIALTY_EMOJI: Record<string, string> = {
+  farmer: '\u{1F33E}', smith: '\u{1F528}', hunter: '\u{1F3F9}', healer: '\u{2695}\u{FE0F}',
+  scholar: '\u{1F4DC}', merchant: '\u{1F4B0}', soldier: '\u{2694}\u{FE0F}', builder: '\u{1F3D7}\u{FE0F}',
+  priest: '\u{1F4FF}', artist: '\u{1F3A8}', engineer: '\u{2699}\u{FE0F}', sailor: '\u{26F5}',
+  miner: '\u{26CF}\u{FE0F}', weaver: '\u{1F9F5}', baker: '\u{1F35E}', brewer: '\u{1F37A}',
+  carpenter: '\u{1FA9C}', mason: '\u{1F9F1}', scribe: '\u{270D}\u{FE0F}', banker: '\u{1F3E6}',
+  doctor: '\u{1F489}', teacher: '\u{1F4DA}', lawyer: '\u{2696}\u{FE0F}', officer: '\u{1F46E}',
+  pilot: '\u{2708}\u{FE0F}', programmer: '\u{1F4BB}', journalist: '\u{1F4F0}',
+  actor: '\u{1F3AD}', athlete: '\u{1F3C5}', politician: '\u{1F3DB}\u{FE0F}',
+}
 import { TILE, TILE_RGB, BIOME_RGBA, THOUGHT_COLORS } from './palette'
 import { orgVariant } from './org-variant'
 import { drawTrees, drawClouds, drawNaturalDecor, scratchA, scratchB } from './decorations'
@@ -1228,6 +1250,40 @@ function drawWorldOnCanvas(
       ctx.beginPath(); ctx.arc(px, py - bodyR * 0.7, bodyR * 0.55, 0, Math.PI * 2); ctx.fill()
       ctx.fillStyle = variant.accent
       ctx.fillRect(px - bodyR * 0.7, py + bodyR * 0.15, bodyR * 1.4, 1.4)
+    }
+
+    const era = (world.lineage_eras && world.lineage_eras[org.lineage_id]) || ''
+    if (era && era !== 'pre-stone' && era !== 'stone') {
+      ctx.save()
+      ctx.fillStyle = ERA_STRIPE_COLOR[era] ?? 'rgba(255,255,255,0.0)'
+      ctx.globalAlpha = 0.65
+      ctx.fillRect(px - bodyR, py + bodyR + 0.8, bodyR * 2, 1.4)
+      ctx.restore()
+    }
+    if (org.is_leader) {
+      ctx.save()
+      ctx.font = '8px serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('\u{1F451}', px, py - spriteSize * 0.92)
+      ctx.restore()
+    }
+    const specEmoji = SPECIALTY_EMOJI[org.specialty ?? ''] ?? ''
+    if (specEmoji) {
+      ctx.save()
+      ctx.font = '7px serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(specEmoji, px + bodyR + 1, py - bodyR * 0.4)
+      ctx.restore()
+    }
+    if (org.diseases && org.diseases.length > 0) {
+      ctx.save()
+      ctx.font = '7px serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('\u{1F912}', px - bodyR - 1, py - bodyR * 0.4)
+      ctx.restore()
     }
 
     const barW = TILE - 2
