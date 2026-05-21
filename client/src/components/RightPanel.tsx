@@ -40,6 +40,12 @@ export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
   const starredSet = new Set(starredOrgIds)
   const visibleLive = showStarredOnly ? throttledLive.filter(o => starredSet.has(o.id)) : throttledLive
   const visibleDead = showStarredOnly ? throttledDead.filter(o => starredSet.has(o.id)) : throttledDead
+  const knownIds = new Set<string>()
+  for (const o of throttledLive) knownIds.add(o.id)
+  for (const o of throttledDead) knownIds.add(o.id)
+  const starredGone = showStarredOnly
+    ? starredOrgIds.filter(id => !knownIds.has(id))
+    : []
 
   return (
     <>
@@ -82,14 +88,41 @@ export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
         {visibleDead.length > 0 && (
           <>
             <div className="section-title">DEAD ({visibleDead.length})</div>
-            {visibleDead.slice(-5).map(org => (
+            {(showStarredOnly ? visibleDead : visibleDead.slice(-5)).map(org => (
               <div key={org.id} className="org-card dead">
                 <div className="org-header">
                   <span className="org-name">{org.name}</span>
                   <span className="org-meta">g{org.generation} · {org.age}</span>
+                  {starredSet.has(org.id) && (
+                    <button
+                      type="button"
+                      className="unstar-dead-btn"
+                      onClick={() => useUIStore.getState().toggleStar(org.id)}
+                      title="Unstar"
+                    >★</button>
+                  )}
                 </div>
                 <div className="org-thought">
                   {org.thought ?? '-'}
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+        {starredGone.length > 0 && (
+          <>
+            <div className="section-title">GONE ({starredGone.length})</div>
+            {starredGone.map(id => (
+              <div key={id} className="org-card dead">
+                <div className="org-header">
+                  <span className="org-name">{id.slice(0, 8)}</span>
+                  <span className="org-meta">vanished from world</span>
+                  <button
+                    type="button"
+                    className="unstar-dead-btn"
+                    onClick={() => useUIStore.getState().toggleStar(id)}
+                    title="Unstar"
+                  >★</button>
                 </div>
               </div>
             ))}

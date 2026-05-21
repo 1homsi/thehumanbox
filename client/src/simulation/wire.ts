@@ -292,10 +292,10 @@ export function parseWorldFrame(raw: ArrayBuffer | Uint8Array | string): Result<
     if (!isStr(w.kind)) issues.push('weather.kind is not a string')
     if (!isNum(w.intensity)) issues.push('weather.intensity is not a number')
   }
-  if (!isStr(d.season))                issues.push('season is not a string')
-  if (!isBool(d.is_day))               issues.push('is_day is not a boolean')
-  if (!isNum (d.day_progress))         issues.push('day_progress is not a number')
-  if (!isNum (d.season_progress))      issues.push('season_progress is not a number')
+  if (d.season !== undefined          && !isStr(d.season))         issues.push('season is not a string')
+  if (d.is_day !== undefined          && !isBool(d.is_day))        issues.push('is_day is not a boolean')
+  if (d.day_progress !== undefined    && !isNum(d.day_progress))   issues.push('day_progress is not a number')
+  if (d.season_progress !== undefined && !isNum(d.season_progress)) issues.push('season_progress is not a number')
 
   if (issues.length > 0) {
     return err({ kind: 'schema', issues })

@@ -164,26 +164,6 @@ export function AppHeader({ world, connected, fireTiles, sickOrgs }: Props) {
           </Tooltip>
         )}
       </div>
-      {world && topLineages.length > 0 && (
-        <div className="lineage-chips">
-          {topLineages.map((l) => {
-            const active = focus === `lineage:${l.id}`
-            return (
-              <button
-                key={l.id}
-                type="button"
-                className={clsx('lineage-chip', active && 'active')}
-                onClick={() => setFocus(active ? 'all' : `lineage:${l.id}`)}
-                aria-pressed={active}
-              >
-                <span className="lineage-chip-dot" style={{ background: lineageColor(l.id) }} />
-                <span className="lineage-chip-label">{l.label}</span>
-                <span className="lineage-chip-count">{l.count}</span>
-              </button>
-            )
-          })}
-        </div>
-      )}
       {world && (
         <div className="header-actions">
           <Tooltip tip="Population graphs, birth and death rates, lineage growth over time">

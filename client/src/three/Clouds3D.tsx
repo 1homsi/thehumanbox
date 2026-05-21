@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Color, InstancedMesh, MeshStandardMaterial, Object3D, SphereGeometry } from 'three'
+import * as THREE from 'three'
 import { TILE_SCALE } from './constants'
 
 interface Props {
@@ -8,43 +8,31 @@ interface Props {
   height:       number
   isNight?:     boolean
   weatherKind?: 'clear' | 'rain' | 'storm' | 'wet'
-  intensity?:   number
-  dayProgress?: number
-  windX?:       number
-  windY?:       number
+  intensity?:   number    // weather intensity 0..1, affects coverage
 }
 
-const MAX_BLOBS     = 26
-const PUFFS_PER     = 7
-const MAX_INSTANCES = MAX_BLOBS * PUFFS_PER
-const CLOUD_GEO     = new SphereGeometry(8, 10, 8)
-
-interface PuffParams {
-  ox:     number
-  oy:     number
-  oz:     number
-  scl:    number
-  bobAmp: number
-}
+// Drifting cloud layer overhead. ~40 fluffy "cloud" blobs built
+// from N sphere instances each, rendered with a soft alpha so they
+// read as cumulus from below. The whole layer drifts west to east
+// with light wind; storm/rain conditions thicken and darken them.
+//
+// Cheap: one instanced mesh, per-frame matrix updates for the active
+// blob count only. No texture sampling.
+const BLOBS         = 48
+const SPHERES_PER   = 7
+const CLOUD_GEO     = new THREE.SphereGeometry(8, 8, 6)
 
 interface BlobParams {
-  baseX:    number
-  baseZ:    number
-  yJitter:  number
-  size:     number
-  drift:    number
-  phase:    number
-  bobPhase: number
-  puffs:    PuffParams[]
+  baseX:  number
+  baseZ:  number
+  yJitter: number
+  size:   number
+  drift:  number
+  phase:  number
+  spread: number
 }
 
-const tmp = new Object3D()
-const tmpColor = new Color()
-const warmColor = new Color('#ffd6a8')
-const coolColor = new Color('#ffffff')
-const stormColor = new Color('#5e6878')
-const rainColor = new Color('#9eaab8')
-const nightColor = new Color('#2a3148')
+const tmp = new THREE.Object3D()
 
 function hash(i: number, salt: number): number {
   let h = ((i + 1) * 9301 + (salt + 17) * 49297) | 0
@@ -52,120 +40,80 @@ function hash(i: number, salt: number): number {
   return (h & 0xfffff) / 0xfffff
 }
 
-export function Clouds3D({
-  width,
-  height,
-  isNight = false,
-  weatherKind = 'clear',
-  intensity = 0,
-  dayProgress = 0.5,
-  windX = 0,
-  windY = 0,
-}: Props) {
-  const meshRef = useRef<InstancedMesh>(null)
-  const matRef  = useRef<MeshStandardMaterial>(null)
+export function Clouds3D({ width, height, isNight = false, weatherKind = 'clear', intensity = 0 }: Props) {
+  const meshRef = useRef<THREE.InstancedMesh>(null)
+  const matRef  = useRef<THREE.MeshStandardMaterial>(null)
 
   const cx = width  * TILE_SCALE * 0.5
   const cz = height * TILE_SCALE * 0.5
-  const radius = Math.max(width, height) * TILE_SCALE * 0.9
+  const radius = Math.max(width, height) * TILE_SCALE * 0.85
 
   const blobs = useMemo<BlobParams[]>(() => {
     const out: BlobParams[] = []
-    for (let i = 0; i < MAX_BLOBS; i++) {
-      const sizeRoll = hash(i, 4)
-      const size = sizeRoll < 0.15
-        ? 1.4 + sizeRoll * 0.8
-        : 0.7 + sizeRoll * 0.7
-      const puffs: PuffParams[] = []
-      for (let s = 0; s < PUFFS_PER; s++) {
-        const a = hash(i * PUFFS_PER + s, 21) * Math.PI * 2
-        const r = s === 0 ? 0 : (3 + hash(i * PUFFS_PER + s, 22) * 7)
-        const ox = Math.cos(a) * r
-        const oz = Math.sin(a) * r * 0.65
-        const oy = (hash(i * PUFFS_PER + s, 23) - 0.5) * 4
-        const scl = (s === 0 ? 1.25 : 0.55 + hash(i * PUFFS_PER + s, 24) * 0.6)
-        const bobAmp = 0.5 + hash(i * PUFFS_PER + s, 25) * 1.5
-        puffs.push({ ox, oy, oz, scl, bobAmp })
-      }
+    for (let i = 0; i < BLOBS; i++) {
       out.push({
-        baseX:    cx + (hash(i, 1) - 0.5) * radius * 2,
-        baseZ:    cz + (hash(i, 2) - 0.5) * radius * 2,
-        yJitter:  hash(i, 3) * 50,
-        size,
-        drift:    0.35 + hash(i, 5) * 0.7,
-        phase:    hash(i, 6) * Math.PI * 2,
-        bobPhase: hash(i, 7) * Math.PI * 2,
-        puffs,
+        baseX:   cx + (hash(i, 1) - 0.5) * radius * 2,
+        baseZ:   cz + (hash(i, 2) - 0.5) * radius * 2,
+        yJitter: hash(i, 3) * 40,
+        size:    0.9 + hash(i, 4) * 1.1,
+        drift:   0.6 + hash(i, 5) * 0.8,
+        phase:   hash(i, 6) * Math.PI * 2,
+        spread:  4 + hash(i, 7) * 6,
       })
     }
     return out
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cx, cz, radius])
 
+  // Storm thickens + darkens; clear day = whisper-light.
   const coverage = weatherKind === 'storm' ? 1.0
-                : weatherKind === 'rain'  ? 0.85 + intensity * 0.15
+                : weatherKind === 'rain'  ? 0.8 + intensity * 0.2
                 : weatherKind === 'wet'   ? 0.55
-                :                            0.45
-  const activeBlobs = Math.floor(MAX_BLOBS * coverage)
-  const totalInstances = activeBlobs * PUFFS_PER
+                :                            0.35
+  const activeBlobs = Math.floor(BLOBS * coverage)
+  const totalInstances = activeBlobs * SPHERES_PER
 
   useFrame(({ clock }) => {
     const mesh = meshRef.current
     if (!mesh) return
     const t = clock.getElapsedTime()
-
     if (matRef.current) {
-      const dpAngle = (dayProgress - 0.25) * 2 * Math.PI
-      const sunAlt = Math.sin(dpAngle)
-      const twilight = Math.max(0, 1 - Math.abs(sunAlt) * 3.5)
-      if (isNight) {
-        tmpColor.copy(nightColor)
-      } else if (weatherKind === 'storm') {
-        tmpColor.copy(stormColor)
-      } else if (weatherKind === 'rain') {
-        tmpColor.copy(rainColor)
-      } else {
-        tmpColor.copy(coolColor).lerp(warmColor, twilight * 0.8)
-      }
-      matRef.current.color.copy(tmpColor)
-      matRef.current.opacity = isNight ? 0.4
-        : weatherKind === 'storm' ? 0.88
-        : weatherKind === 'rain'  ? 0.78
-        : 0.62
-      matRef.current.emissive.copy(tmpColor)
-      matRef.current.emissiveIntensity = isNight ? 0.08 : weatherKind === 'storm' ? 0.05 : 0.18
+      matRef.current.color.setHex(
+        isNight ? 0x202840
+        : weatherKind === 'storm' ? 0x5e6878
+        : weatherKind === 'rain'  ? 0x9eaab8
+        : 0xffffff
+      )
+      matRef.current.opacity = isNight ? 0.45
+        : weatherKind === 'storm' ? 0.85
+        : 0.55
     }
-
-    const driftSpeedX = (3 + windX * 12)
-    const driftSpeedZ = (windY * 12)
-
     let inst = 0
     for (let b = 0; b < activeBlobs; b++) {
       const p = blobs[b]
-      const span = radius * 2
-      const xRaw = p.baseX + t * (p.drift * driftSpeedX)
-      const zRaw = p.baseZ + t * (p.drift * driftSpeedZ)
-      const cxBlob = ((xRaw - cx + radius) % span + span) % span - radius + cx
-      const czBlob = ((zRaw - cz + radius) % span + span) % span - radius + cz
-      const bobBase = Math.sin(t * 0.3 + p.bobPhase) * 4
-      const cyBlob = 220 + p.yJitter + bobBase
-
-      for (let s = 0; s < PUFFS_PER; s++) {
-        const pf = p.puffs[s]
-        const bob = Math.sin(t * 0.0003 * 1000 + b + s * 0.7) * pf.bobAmp
-        const scl = p.size * pf.scl
-        tmp.position.set(
-          cxBlob + pf.ox * p.size,
-          cyBlob + pf.oy + bob,
-          czBlob + pf.oz * p.size,
-        )
+      // Wind drift in +x direction, wrapping every ~2*radius.
+      const driftX = ((p.baseX + t * p.drift * 3) % (radius * 2)) - radius
+      const cxBlob = cx + driftX * 0.5
+      const cyBlob = 220 + p.yJitter
+      const czBlob = p.baseZ + Math.sin(t * 0.05 + p.phase) * 6
+      for (let s = 0; s < SPHERES_PER; s++) {
+        // Each sphere offsets from the blob centre in a stable cluster.
+        const a = (s / SPHERES_PER) * Math.PI * 2 + p.phase
+        const r = (s === 0 ? 0 : p.spread + hash(b * SPHERES_PER + s, 11) * 2)
+        const dx = Math.cos(a) * r
+        const dz = Math.sin(a) * r * 0.6
+        const dy = (hash(b * SPHERES_PER + s, 13) - 0.5) * 3
+        const scl = p.size * (0.65 + (s === 0 ? 0.6 : 0.0) + hash(b * SPHERES_PER + s, 17) * 0.3)
+        tmp.position.set(cxBlob + dx, cyBlob + dy, czBlob + dz)
         tmp.rotation.set(0, 0, 0)
-        tmp.scale.set(scl, scl * 0.72, scl)
+        tmp.scale.set(scl, scl * 0.7, scl)
         tmp.updateMatrix()
         mesh.setMatrixAt(inst++, tmp.matrix)
       }
     }
-    for (; inst < MAX_INSTANCES; inst++) {
-      tmp.position.set(0, -10000, 0)
+    // Park unused instances off-screen.
+    for (; inst < BLOBS * SPHERES_PER; inst++) {
+      tmp.position.set(0, -1000, 0)
       tmp.scale.set(0, 0, 0)
       tmp.updateMatrix()
       mesh.setMatrixAt(inst, tmp.matrix)
@@ -177,21 +125,17 @@ export function Clouds3D({
   return (
     <instancedMesh
       ref={meshRef}
-      args={[CLOUD_GEO, undefined, MAX_INSTANCES]}
+      args={[CLOUD_GEO, undefined, BLOBS * SPHERES_PER]}
       count={totalInstances}
       frustumCulled={false}
-      castShadow={false}
-      receiveShadow={false}
     >
       <meshStandardMaterial
         ref={matRef}
         color="#ffffff"
         transparent
-        opacity={0.62}
+        opacity={0.55}
         roughness={1.0}
-        metalness={0}
         depthWrite={false}
-        flatShading={false}
       />
     </instancedMesh>
   )

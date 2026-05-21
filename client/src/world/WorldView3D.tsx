@@ -462,9 +462,6 @@ export default function WorldView3D({ world }: Props) {
                   isNight={isNight}
                   weatherKind={world.weather?.kind ?? 'clear'}
                   intensity={world.weather?.intensity ?? 0}
-                  dayProgress={dayProgress}
-                  windX={world.weather?.wind_x ?? 0}
-                  windY={world.weather?.wind_y ?? 0}
                 />
                 <Snow
                   active={world.season === 'scarcity'}

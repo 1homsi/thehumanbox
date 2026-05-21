@@ -23,6 +23,8 @@ interface LineageRow {
  */
 function LineagesListImpl() {
   const openAllLineages = useUIStore((s) => s.openAllLineages)
+  const focus    = useUIStore((s) => s.focus)
+  const setFocus = useUIStore((s) => s.setFocus)
   const stamps = useWorldStore(
     useShallow((s) => {
       const out: Record<string, string> = {}
@@ -63,16 +65,26 @@ function LineagesListImpl() {
     <>
       <div className="section-title">LINEAGES ({rows.length})</div>
       <div className="lineage-list">
-        {rows.slice(0, 5).map((r) => (
-          <div key={r.id} className="lineage-row">
-            <span className="lineage-dot" style={{ background: lineageColor(r.id) }} />
-            <span className="lineage-id">{r.name}</span>
-            <span className="lineage-count">{r.count}</span>
-            <span className="lineage-gen">
-              g{r.minGen}{r.maxGen > r.minGen ? `-${r.maxGen}` : ''}
-            </span>
-          </div>
-        ))}
+        {rows.slice(0, 5).map((r) => {
+          const active = focus === `lineage:${r.id}`
+          return (
+            <button
+              key={r.id}
+              type="button"
+              className={'lineage-row' + (active ? ' active' : '')}
+              onClick={() => setFocus(active ? 'all' : `lineage:${r.id}`)}
+              aria-pressed={active}
+              title={active ? 'Show all lineages' : `Focus ${r.name}`}
+            >
+              <span className="lineage-dot" style={{ background: lineageColor(r.id) }} />
+              <span className="lineage-id">{r.name}</span>
+              <span className="lineage-count">{r.count}</span>
+              <span className="lineage-gen">
+                g{r.minGen}{r.maxGen > r.minGen ? `-${r.maxGen}` : ''}
+              </span>
+            </button>
+          )
+        })}
         {rows.length > 5 && (
           <button className="view-all-btn" onClick={openAllLineages}>
             view all ({rows.length})

@@ -339,7 +339,22 @@ body {
   align-items: center;
   gap: 6px;
   font-size: 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  width: 100%;
+  padding: 3px 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
 }
+.lineage-row:hover { background: rgba(255,255,255,0.04); }
+.lineage-row.active {
+  background: #1d1612;
+  border-color: #6a5340;
+}
+.lineage-row.active .lineage-id { color: #ffe0a0; }
 .lineage-dot {
   width: 8px;
   height: 8px;
@@ -2428,3 +2443,14 @@ body.thb-colorblind .org-sick-badge { background: #fb8500; color: #1a0a00; }
   font-family: monospace;
 }
 .civ-summary-btn:hover { color: #f0eada; border-color: #6a5340; }
+
+.unstar-dead-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #ffcc44;
+  font-size: 13px;
+  padding: 0 4px;
+}
+.unstar-dead-btn:hover { color: #fff; }
