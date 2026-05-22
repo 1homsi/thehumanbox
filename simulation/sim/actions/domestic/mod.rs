@@ -1,0 +1,108 @@
+pub mod sweep_floor;
+pub mod mop_floor;
+pub mod make_bed;
+pub mod wash_dishes;
+pub mod do_laundry;
+pub mod hang_clothes;
+pub mod fold_clothes;
+pub mod iron_clothes;
+pub mod dust_shelves;
+pub mod polish_silver;
+pub mod clean_window;
+pub mod clean_mirror;
+pub mod wash_car;
+pub mod beat_rug;
+pub mod change_sheets;
+pub mod organize_pantry;
+pub mod stock_pantry;
+pub mod restock_firewood;
+pub mod oil_hinges;
+pub mod patch_roof;
+pub mod patch_wall;
+pub mod sharpen_knife;
+pub mod refill_lamp;
+pub mod empty_chamber_pot;
+pub mod air_out_room;
+pub mod shake_blankets;
+pub mod boil_water_pot;
+pub mod rinse_cloth;
+pub mod scrub_pot;
+pub mod scrub_pan;
+pub mod brew_tea_at_home;
+pub mod brew_coffee_at_home;
+pub mod knead_dough;
+pub mod bake_loaf;
+pub mod set_table;
+pub mod clear_table;
+pub mod light_hearth;
+pub mod bank_fire;
+pub mod stoke_fire;
+pub mod close_shutters;
+pub mod open_shutters;
+pub mod beat_pillows;
+pub mod arrange_flowers;
+pub mod water_houseplants;
+pub mod prune_houseplant;
+pub mod feed_cat;
+pub mod feed_dog;
+pub mod brush_dog;
+pub mod brush_cat;
+pub mod sweep_step;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        540 => sweep_floor::apply(ctx),
+        541 => mop_floor::apply(ctx),
+        542 => make_bed::apply(ctx),
+        543 => wash_dishes::apply(ctx),
+        544 => do_laundry::apply(ctx),
+        545 => hang_clothes::apply(ctx),
+        546 => fold_clothes::apply(ctx),
+        547 => iron_clothes::apply(ctx),
+        548 => dust_shelves::apply(ctx),
+        549 => polish_silver::apply(ctx),
+        550 => clean_window::apply(ctx),
+        551 => clean_mirror::apply(ctx),
+        552 => wash_car::apply(ctx),
+        553 => beat_rug::apply(ctx),
+        554 => change_sheets::apply(ctx),
+        555 => organize_pantry::apply(ctx),
+        556 => stock_pantry::apply(ctx),
+        557 => restock_firewood::apply(ctx),
+        558 => oil_hinges::apply(ctx),
+        559 => patch_roof::apply(ctx),
+        560 => patch_wall::apply(ctx),
+        561 => sharpen_knife::apply(ctx),
+        562 => refill_lamp::apply(ctx),
+        563 => empty_chamber_pot::apply(ctx),
+        564 => air_out_room::apply(ctx),
+        565 => shake_blankets::apply(ctx),
+        566 => boil_water_pot::apply(ctx),
+        567 => rinse_cloth::apply(ctx),
+        568 => scrub_pot::apply(ctx),
+        569 => scrub_pan::apply(ctx),
+        570 => brew_tea_at_home::apply(ctx),
+        571 => brew_coffee_at_home::apply(ctx),
+        572 => knead_dough::apply(ctx),
+        573 => bake_loaf::apply(ctx),
+        574 => set_table::apply(ctx),
+        575 => clear_table::apply(ctx),
+        576 => light_hearth::apply(ctx),
+        577 => bank_fire::apply(ctx),
+        578 => stoke_fire::apply(ctx),
+        579 => close_shutters::apply(ctx),
+        580 => open_shutters::apply(ctx),
+        581 => beat_pillows::apply(ctx),
+        582 => arrange_flowers::apply(ctx),
+        583 => water_houseplants::apply(ctx),
+        584 => prune_houseplant::apply(ctx),
+        585 => feed_cat::apply(ctx),
+        586 => feed_dog::apply(ctx),
+        587 => brush_dog::apply(ctx),
+        588 => brush_cat::apply(ctx),
+        589 => sweep_step::apply(ctx),
+        _   => 0.0,
+    }
+}
