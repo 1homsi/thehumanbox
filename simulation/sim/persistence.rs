@@ -514,7 +514,10 @@ impl Simulation {
                         tracing::info!("Loaded world from {} (tick {})", path, state.tick_count);
                     }
                     let terrain_seed = if state.world_seed > 0 { state.world_seed } else { seed };
-                    Self::from_save(terrain_seed, state)
+                    let mut sim = Self::from_save(terrain_seed, state);
+                    sim.grid.enforce_ocean_border();
+                    sim.relocate_edge_squatters();
+                    sim
                 }
                 Err(e) => {
                     // Don't overwrite a possibly-recoverable save on the next
@@ -715,6 +718,37 @@ impl Simulation {
             sim.tile_owner = owner;
         }
         sim
+    }
+
+    pub fn relocate_edge_squatters(&mut self) {
+        use crate::world::grid::{WorldGrid, WIDTH, HEIGHT};
+        let interior_w_min = (WIDTH  as f32 * 0.05).ceil()  + 1.0;
+        let interior_w_max = WIDTH  as f32 - interior_w_min - 1.0;
+        let interior_h_min = (HEIGHT as f32 * 0.05).ceil()  + 1.0;
+        let interior_h_max = HEIGHT as f32 - interior_h_min - 1.0;
+
+        for org in self.organisms.iter_mut() {
+            let mut moved = false;
+            if WorldGrid::is_edge_border(org.x as i32, org.y as i32) {
+                org.x = org.x.clamp(interior_w_min, interior_w_max);
+                org.y = org.y.clamp(interior_h_min, interior_h_max);
+                moved = true;
+            }
+            if WorldGrid::is_edge_border(org.home_x as i32, org.home_y as i32) {
+                org.home_x = org.home_x.clamp(interior_w_min, interior_w_max);
+                org.home_y = org.home_y.clamp(interior_h_min, interior_h_max);
+                moved = true;
+            }
+            if moved {
+                org.wander_target = None;
+            }
+        }
+        for animal in self.animals.iter_mut() {
+            if WorldGrid::is_edge_border(animal.x as i32, animal.y as i32) {
+                animal.x = animal.x.clamp(interior_w_min, interior_w_max);
+                animal.y = animal.y.clamp(interior_h_min, interior_h_max);
+            }
+        }
     }
 }
 

@@ -57,18 +57,32 @@ impl WorldGrid {
         g
     }
 
-    fn enforce_ocean_border(&mut self) {
-        const KILL_X: i32 = (WIDTH  as f32 * 0.04) as i32;
-        const KILL_Y: i32 = (HEIGHT as f32 * 0.04) as i32;
+    pub fn enforce_ocean_border(&mut self) {
+        const KILL_X: i32 = (WIDTH  as f32 * 0.05) as i32;
+        const KILL_Y: i32 = (HEIGHT as f32 * 0.05) as i32;
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
                 if x < KILL_X || x >= WIDTH as i32 - KILL_X
                    || y < KILL_Y || y >= HEIGHT as i32 - KILL_Y {
                     let i = Self::idx(x, y);
                     self.tiles[i] = Tile::Water as i8;
+                    self.fire_intensity[i] = 0.0;
+                    self.structure[i] = 0.0;
+                    self.food_trail[i] = 0.0;
+                    self.water_trail[i] = 0.0;
+                    self.path_trail[i] = 0.0;
+                    self.hazard[i] = 0.0;
+                    self.fertility[i] = 0.0;
                 }
             }
         }
+    }
+
+    pub fn is_edge_border(x: i32, y: i32) -> bool {
+        const KILL_X: i32 = (WIDTH  as f32 * 0.05) as i32;
+        const KILL_Y: i32 = (HEIGHT as f32 * 0.05) as i32;
+        x < KILL_X || x >= WIDTH as i32 - KILL_X
+        || y < KILL_Y || y >= HEIGHT as i32 - KILL_Y
     }
 
     pub fn idx(x: i32, y: i32) -> usize {
