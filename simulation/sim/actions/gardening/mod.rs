@@ -1,0 +1,108 @@
+pub mod plant_perennial;
+pub mod plant_annual;
+pub mod plant_biennial;
+pub mod plant_bulb;
+pub mod plant_corm;
+pub mod plant_tuber;
+pub mod plant_rhizome;
+pub mod plant_seedling;
+pub mod plant_cutting;
+pub mod plant_layered;
+pub mod divide_root;
+pub mod divide_crown;
+pub mod divide_offset;
+pub mod divide_clump;
+pub mod divide_runner;
+pub mod thin_seedling;
+pub mod pinch_seedling;
+pub mod pinch_growth_tip;
+pub mod stake_plant;
+pub mod tie_plant;
+pub mod trellis_climber;
+pub mod arbor_grape;
+pub mod arbor_rose;
+pub mod arbor_jasmine;
+pub mod arbor_wisteria;
+pub mod topiary_box;
+pub mod topiary_yew;
+pub mod topiary_holly;
+pub mod topiary_privet;
+pub mod topiary_lavender;
+pub mod espalier_fig;
+pub mod espalier_cherry;
+pub mod espalier_apricot;
+pub mod espalier_lemon;
+pub mod espalier_orange;
+pub mod cordon_grape;
+pub mod cordon_apple;
+pub mod cordon_pear;
+pub mod cordon_currant;
+pub mod cordon_gooseberry;
+pub mod pinch_tomato;
+pub mod pinch_basil;
+pub mod pinch_mint;
+pub mod pinch_oregano;
+pub mod pinch_sage;
+pub mod mulch_woodchip;
+pub mod mulch_compost;
+pub mod mulch_pebble;
+pub mod mulch_pinestraw;
+pub mod mulch_cocoa;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        3540 => plant_perennial::apply(ctx),
+        3541 => plant_annual::apply(ctx),
+        3542 => plant_biennial::apply(ctx),
+        3543 => plant_bulb::apply(ctx),
+        3544 => plant_corm::apply(ctx),
+        3545 => plant_tuber::apply(ctx),
+        3546 => plant_rhizome::apply(ctx),
+        3547 => plant_seedling::apply(ctx),
+        3548 => plant_cutting::apply(ctx),
+        3549 => plant_layered::apply(ctx),
+        3550 => divide_root::apply(ctx),
+        3551 => divide_crown::apply(ctx),
+        3552 => divide_offset::apply(ctx),
+        3553 => divide_clump::apply(ctx),
+        3554 => divide_runner::apply(ctx),
+        3555 => thin_seedling::apply(ctx),
+        3556 => pinch_seedling::apply(ctx),
+        3557 => pinch_growth_tip::apply(ctx),
+        3558 => stake_plant::apply(ctx),
+        3559 => tie_plant::apply(ctx),
+        3560 => trellis_climber::apply(ctx),
+        3561 => arbor_grape::apply(ctx),
+        3562 => arbor_rose::apply(ctx),
+        3563 => arbor_jasmine::apply(ctx),
+        3564 => arbor_wisteria::apply(ctx),
+        3565 => topiary_box::apply(ctx),
+        3566 => topiary_yew::apply(ctx),
+        3567 => topiary_holly::apply(ctx),
+        3568 => topiary_privet::apply(ctx),
+        3569 => topiary_lavender::apply(ctx),
+        3570 => espalier_fig::apply(ctx),
+        3571 => espalier_cherry::apply(ctx),
+        3572 => espalier_apricot::apply(ctx),
+        3573 => espalier_lemon::apply(ctx),
+        3574 => espalier_orange::apply(ctx),
+        3575 => cordon_grape::apply(ctx),
+        3576 => cordon_apple::apply(ctx),
+        3577 => cordon_pear::apply(ctx),
+        3578 => cordon_currant::apply(ctx),
+        3579 => cordon_gooseberry::apply(ctx),
+        3580 => pinch_tomato::apply(ctx),
+        3581 => pinch_basil::apply(ctx),
+        3582 => pinch_mint::apply(ctx),
+        3583 => pinch_oregano::apply(ctx),
+        3584 => pinch_sage::apply(ctx),
+        3585 => mulch_woodchip::apply(ctx),
+        3586 => mulch_compost::apply(ctx),
+        3587 => mulch_pebble::apply(ctx),
+        3588 => mulch_pinestraw::apply(ctx),
+        3589 => mulch_cocoa::apply(ctx),
+        _   => 0.0,
+    }
+}
