@@ -1,53 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import clsx from 'clsx'
-import { useShallow } from 'zustand/react/shallow'
 import type { WorldState } from '../types'
 import { useUIStore } from '../stores/store'
-import { useWorldStore } from '../stores/worldStore'
-import { lineageColor } from '../utils/constants'
 import { Tooltip } from './Tooltip'
 import { MoreDropdown } from './MoreDropdown'
-
-const ERA_ORDER = [
-  'pre-stone', 'stone', 'bronze', 'iron', 'classical',
-  'medieval', 'renaissance', 'industrial', 'modern', 'information',
-] as const
-
-function EraStrip({
-  lineages, lineageEras,
-}: {
-  lineages: { id: string; count: number; label: string }[]
-  lineageEras: Record<string, string>
-}) {
-  if (lineages.length === 0) return null
-  return (
-    <div className="era-strip">
-      {lineages.map(l => {
-        const era = lineageEras[l.id] ?? 'pre-stone'
-        const idx = ERA_ORDER.indexOf(era as typeof ERA_ORDER[number])
-        const pos = idx < 0 ? 0 : idx
-        return (
-          <Tooltip key={l.id} tip={`${l.label} - ${era} (${pos + 1}/10)`}>
-            <span className="era-strip-row">
-              <span className="era-strip-label" style={{ color: lineageColor(l.id) }}>
-                {l.label.slice(0, 5)}
-              </span>
-              <span className="era-strip-bar" aria-hidden="true">
-                {ERA_ORDER.map((_, i) => (
-                  <span
-                    key={i}
-                    className={clsx('era-strip-dot', i <= pos && 'on')}
-                    style={i <= pos ? { background: lineageColor(l.id) } : undefined}
-                  />
-                ))}
-              </span>
-            </span>
-          </Tooltip>
-        )
-      })}
-    </div>
-  )
-}
 
 function DayNightDial({ isDay, progress }: { isDay: boolean; progress: number }) {
   const angle = progress * 360 - 90
@@ -85,32 +41,6 @@ export function AppHeader({ world, connected, fireTiles, sickOrgs }: Props) {
   const openChronicles = useUIStore(s => s.openChronicles)
   const openCiv        = useUIStore(s => s.openCiv)
   const setFullscreen  = useUIStore(s => s.setFullscreen)
-  const lineageCounts = useWorldStore(
-    useShallow((s) => {
-      const out: Record<string, number> = {}
-      if (!s.world) return out
-      for (const o of s.world.organisms) {
-        if (!o.alive || !o.lineage_id) continue
-        out[o.lineage_id] = (out[o.lineage_id] ?? 0) + 1
-      }
-      return out
-    }),
-  )
-  const lineageNames = useWorldStore(s => s.world?.lineage_names)
-  const lineageEras  = useWorldStore(s => s.world?.lineage_eras) as Record<string, string> | undefined
-
-  const topLineages = useMemo(() => {
-    const arr: { id: string; count: number; label: string }[] = []
-    for (const id in lineageCounts) {
-      arr.push({
-        id,
-        count: lineageCounts[id],
-        label: lineageNames?.[id] ?? id.slice(0, 6),
-      })
-    }
-    arr.sort((a, b) => b.count - a.count)
-    return arr.slice(0, 4)
-  }, [lineageCounts, lineageNames])
 
   const moreRef = useRef<HTMLDivElement>(null)
 
@@ -201,9 +131,6 @@ export function AppHeader({ world, connected, fireTiles, sickOrgs }: Props) {
           <Tooltip tip={`${sickOrgs} organism${sickOrgs > 1 ? 's' : ''} infected - sickness spreads through close contact`}>
             <span className="sick-badge">🤒 {sickOrgs}</span>
           </Tooltip>
-        )}
-        {topLineages.length > 0 && (
-          <EraStrip lineages={topLineages} lineageEras={lineageEras ?? {}} />
         )}
       </div>
       {world && (

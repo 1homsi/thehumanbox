@@ -234,46 +234,6 @@ body {
 .era-badge.era-drought    { background: #2a1400; color: #dd7722; animation: pulse-drought 1.5s ease-in-out infinite; }
 .era-badge.era-extinction { background: #1a0000; color: #ff2200; animation: pulse-drought 0.8s ease-in-out infinite; }
 
-.era-strip {
-  display: inline-flex;
-  flex-direction: column;
-  gap: 1px;
-  margin-left: 8px;
-  padding: 3px 6px;
-  background: rgba(0,0,0,0.22);
-  border-radius: 4px;
-}
-.era-strip-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 9px;
-  font-family: 'JetBrains Mono', monospace;
-}
-.era-strip-label {
-  min-width: 32px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  opacity: 0.9;
-}
-.era-strip-bar {
-  display: inline-flex;
-  gap: 2px;
-  align-items: center;
-}
-.era-strip-dot {
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.10);
-  border: 1px solid rgba(255,255,255,0.08);
-}
-.era-strip-dot.on {
-  border-color: rgba(0,0,0,0.30);
-  box-shadow: 0 0 3px rgba(255,220,160,0.25);
-}
-
 .main {
   flex: 1;
   overflow: hidden;
