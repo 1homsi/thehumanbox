@@ -1,0 +1,108 @@
+pub mod inspect_hive;
+pub mod smoke_hive;
+pub mod scrape_propolis;
+pub mod scrape_burr_comb;
+pub mod add_super;
+pub mod add_brood_box;
+pub mod reduce_super;
+pub mod reduce_brood_box;
+pub mod install_queen_excluder;
+pub mod remove_queen_excluder;
+pub mod find_queen;
+pub mod mark_queen;
+pub mod clip_queen;
+pub mod wing_queen;
+pub mod replace_queen;
+pub mod catch_swarm;
+pub mod shake_swarm;
+pub mod hive_swarm;
+pub mod split_hive;
+pub mod merge_hive;
+pub mod feed_syrup;
+pub mod feed_pollen_patty;
+pub mod feed_water;
+pub mod medicate_for_mite;
+pub mod medicate_for_foulbrood;
+pub mod harvest_super;
+pub mod uncap_frame;
+pub mod extract_honey;
+pub mod filter_honey;
+pub mod jar_honey;
+pub mod reuse_wax;
+pub mod render_wax;
+pub mod filter_wax;
+pub mod shape_wax;
+pub mod mold_wax;
+pub mod store_pollen;
+pub mod store_propolis;
+pub mod store_royal_jelly;
+pub mod process_royal_jelly;
+pub mod bottle_propolis;
+pub mod winterize_hive;
+pub mod insulate_hive;
+pub mod ventilate_hive;
+pub mod moisture_check;
+pub mod feed_winter_patty;
+pub mod inspect_landing_board;
+pub mod count_dead_bees;
+pub mod scrape_floor_board;
+pub mod replace_bottom_board;
+pub mod reposition_hive;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        5280 => inspect_hive::apply(ctx),
+        5281 => smoke_hive::apply(ctx),
+        5282 => scrape_propolis::apply(ctx),
+        5283 => scrape_burr_comb::apply(ctx),
+        5284 => add_super::apply(ctx),
+        5285 => add_brood_box::apply(ctx),
+        5286 => reduce_super::apply(ctx),
+        5287 => reduce_brood_box::apply(ctx),
+        5288 => install_queen_excluder::apply(ctx),
+        5289 => remove_queen_excluder::apply(ctx),
+        5290 => find_queen::apply(ctx),
+        5291 => mark_queen::apply(ctx),
+        5292 => clip_queen::apply(ctx),
+        5293 => wing_queen::apply(ctx),
+        5294 => replace_queen::apply(ctx),
+        5295 => catch_swarm::apply(ctx),
+        5296 => shake_swarm::apply(ctx),
+        5297 => hive_swarm::apply(ctx),
+        5298 => split_hive::apply(ctx),
+        5299 => merge_hive::apply(ctx),
+        5300 => feed_syrup::apply(ctx),
+        5301 => feed_pollen_patty::apply(ctx),
+        5302 => feed_water::apply(ctx),
+        5303 => medicate_for_mite::apply(ctx),
+        5304 => medicate_for_foulbrood::apply(ctx),
+        5305 => harvest_super::apply(ctx),
+        5306 => uncap_frame::apply(ctx),
+        5307 => extract_honey::apply(ctx),
+        5308 => filter_honey::apply(ctx),
+        5309 => jar_honey::apply(ctx),
+        5310 => reuse_wax::apply(ctx),
+        5311 => render_wax::apply(ctx),
+        5312 => filter_wax::apply(ctx),
+        5313 => shape_wax::apply(ctx),
+        5314 => mold_wax::apply(ctx),
+        5315 => store_pollen::apply(ctx),
+        5316 => store_propolis::apply(ctx),
+        5317 => store_royal_jelly::apply(ctx),
+        5318 => process_royal_jelly::apply(ctx),
+        5319 => bottle_propolis::apply(ctx),
+        5320 => winterize_hive::apply(ctx),
+        5321 => insulate_hive::apply(ctx),
+        5322 => ventilate_hive::apply(ctx),
+        5323 => moisture_check::apply(ctx),
+        5324 => feed_winter_patty::apply(ctx),
+        5325 => inspect_landing_board::apply(ctx),
+        5326 => count_dead_bees::apply(ctx),
+        5327 => scrape_floor_board::apply(ctx),
+        5328 => replace_bottom_board::apply(ctx),
+        5329 => reposition_hive::apply(ctx),
+        _   => 0.0,
+    }
+}
