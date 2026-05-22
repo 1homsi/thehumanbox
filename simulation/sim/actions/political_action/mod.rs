@@ -1,0 +1,108 @@
+pub mod canvass_neighbor;
+pub mod canvass_block;
+pub mod canvass_district;
+pub mod phonebank_call;
+pub mod phonebank_text;
+pub mod rally_supporters;
+pub mod host_rally;
+pub mod march_in_rally;
+pub mod chant_in_rally;
+pub mod hold_sign;
+pub mod hand_out_flyer;
+pub mod post_yard_sign;
+pub mod register_voter;
+pub mod educate_voter;
+pub mod ride_to_polls;
+pub mod write_op_ed;
+pub mod write_letter_to_editor;
+pub mod write_blog_post;
+pub mod write_zine;
+pub mod write_pamphlet;
+pub mod draft_petition;
+pub mod collect_signature;
+pub mod verify_signature;
+pub mod submit_petition;
+pub mod deliver_petition;
+pub mod attend_council;
+pub mod attend_school_board;
+pub mod attend_zoning;
+pub mod attend_township;
+pub mod attend_court_session;
+pub mod testify_public_hearing;
+pub mod testify_council;
+pub mod testify_legislature;
+pub mod testify_committee;
+pub mod testify_oversight;
+pub mod organize_committee;
+pub mod chair_committee;
+pub mod minute_committee;
+pub mod report_committee;
+pub mod dissolve_committee;
+pub mod draft_resolution;
+pub mod draft_bylaw;
+pub mod draft_amendment;
+pub mod draft_constitution_2;
+pub mod draft_charter_2;
+pub mod caucus_with_allies;
+pub mod caucus_with_party;
+pub mod caucus_with_independents;
+pub mod caucus_with_dissidents;
+pub mod caucus_with_swing;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        4680 => canvass_neighbor::apply(ctx),
+        4681 => canvass_block::apply(ctx),
+        4682 => canvass_district::apply(ctx),
+        4683 => phonebank_call::apply(ctx),
+        4684 => phonebank_text::apply(ctx),
+        4685 => rally_supporters::apply(ctx),
+        4686 => host_rally::apply(ctx),
+        4687 => march_in_rally::apply(ctx),
+        4688 => chant_in_rally::apply(ctx),
+        4689 => hold_sign::apply(ctx),
+        4690 => hand_out_flyer::apply(ctx),
+        4691 => post_yard_sign::apply(ctx),
+        4692 => register_voter::apply(ctx),
+        4693 => educate_voter::apply(ctx),
+        4694 => ride_to_polls::apply(ctx),
+        4695 => write_op_ed::apply(ctx),
+        4696 => write_letter_to_editor::apply(ctx),
+        4697 => write_blog_post::apply(ctx),
+        4698 => write_zine::apply(ctx),
+        4699 => write_pamphlet::apply(ctx),
+        4700 => draft_petition::apply(ctx),
+        4701 => collect_signature::apply(ctx),
+        4702 => verify_signature::apply(ctx),
+        4703 => submit_petition::apply(ctx),
+        4704 => deliver_petition::apply(ctx),
+        4705 => attend_council::apply(ctx),
+        4706 => attend_school_board::apply(ctx),
+        4707 => attend_zoning::apply(ctx),
+        4708 => attend_township::apply(ctx),
+        4709 => attend_court_session::apply(ctx),
+        4710 => testify_public_hearing::apply(ctx),
+        4711 => testify_council::apply(ctx),
+        4712 => testify_legislature::apply(ctx),
+        4713 => testify_committee::apply(ctx),
+        4714 => testify_oversight::apply(ctx),
+        4715 => organize_committee::apply(ctx),
+        4716 => chair_committee::apply(ctx),
+        4717 => minute_committee::apply(ctx),
+        4718 => report_committee::apply(ctx),
+        4719 => dissolve_committee::apply(ctx),
+        4720 => draft_resolution::apply(ctx),
+        4721 => draft_bylaw::apply(ctx),
+        4722 => draft_amendment::apply(ctx),
+        4723 => draft_constitution_2::apply(ctx),
+        4724 => draft_charter_2::apply(ctx),
+        4725 => caucus_with_allies::apply(ctx),
+        4726 => caucus_with_party::apply(ctx),
+        4727 => caucus_with_independents::apply(ctx),
+        4728 => caucus_with_dissidents::apply(ctx),
+        4729 => caucus_with_swing::apply(ctx),
+        _   => 0.0,
+    }
+}
