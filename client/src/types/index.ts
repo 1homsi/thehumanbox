@@ -125,6 +125,15 @@ export interface TreatyInfo {
   kind?: string
 }
 
+export interface TradeInfo {
+  tick: number
+  buyer_id: string
+  seller_id: string
+  good: string
+  amount: number
+  price: number
+}
+
 export interface OutbreakInfo {
   kind: string
   started?: number
@@ -327,6 +336,7 @@ export interface WorldState {
   headlines?: HeadlineInfo[]
   battles?: BattleInfo[]
   treaties?: TreatyInfo[]
+  trades?: TradeInfo[]
   farms?: FarmInfo[]
   vehicles?: VehicleInfo[]
   festivals?: FestivalInfo[]

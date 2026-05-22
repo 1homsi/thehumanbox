@@ -220,6 +220,24 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
         </div>
 
         <div className="org-detail-chips">
+          {org.discoveries?.includes('rich') && (
+            <span
+              className="relation-tag"
+              style={{ background: '#2a1f08', color: '#ffd966', cursor: 'default' }}
+              title={`Wealth: ${org.wealth ?? 0}`}
+            >
+              {'\u{1F4B0}'} rich · {org.wealth ?? 0}
+            </span>
+          )}
+          {org.discoveries?.includes('poor') && (
+            <span
+              className="relation-tag"
+              style={{ background: '#1a1a2a', color: '#7a8898', cursor: 'default' }}
+              title={`Wealth: ${org.wealth ?? 0}`}
+            >
+              {'\u{1FAA8}'} poor · {org.wealth ?? 0}
+            </span>
+          )}
           {(org.age_stage ?? null) && (
             <span
               className="relation-tag"

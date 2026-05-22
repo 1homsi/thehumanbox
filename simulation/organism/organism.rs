@@ -205,6 +205,7 @@ pub struct Organism {
     pub directive:       String,
     pub directive_until: u64,
     pub last_think_tick: u64,
+    pub last_think_by_kind: HashMap<String, u64>,
 
     pub loneliness:  f32,
     pub boredom:     f32,
@@ -269,6 +270,16 @@ pub struct Organism {
 }
 
 impl Organism {
+    pub fn think_ready(&self, scenario: &str, tick: u64, cooldown: u64) -> bool {
+        let last = self.last_think_by_kind.get(scenario).copied().unwrap_or(0);
+        tick.saturating_sub(last) >= cooldown
+    }
+
+    pub fn mark_thought(&mut self, scenario: &str, tick: u64) {
+        self.last_think_by_kind.insert(scenario.to_string(), tick);
+        self.last_think_tick = tick;
+    }
+
     pub fn carry_load(&self) -> u32 {
         self.inv_water as u32 + self.inv_food as u32
             + self.inv_wood as u32 + self.inv_stone as u32
@@ -323,6 +334,7 @@ impl Organism {
             directive: String::new(),
             directive_until: 0,
             last_think_tick: 0,
+            last_think_by_kind: HashMap::new(),
             loneliness:  0.0,
             boredom:     0.0,
             fear_level:  0.0,

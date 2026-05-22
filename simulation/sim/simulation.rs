@@ -1789,14 +1789,15 @@ impl Simulation {
                 }
             }
 
-            let last_think = self.organisms[idx].last_think_tick;
-            if self.tick_count - last_think >= 1500 {
+            {
                 let (ox2, oy2) = (self.organisms[idx].x, self.organisms[idx].y);
                 let energy     = self.organisms[idx].energy;
                 let hydration  = self.organisms[idx].hydration;
+                let tick = self.tick_count;
 
-                if energy < 0.25 && hydration < 0.25 {
-                    self.organisms[idx].last_think_tick = self.tick_count;
+                if energy < 0.25 && hydration < 0.25
+                    && self.organisms[idx].think_ready("survival_crisis", tick, 600) {
+                    self.organisms[idx].mark_thought("survival_crisis", tick);
                     self.push_think_for(idx, ThinkTrigger {
                         org_id:     self.organisms[idx].id.clone(),
                         org_name:   self.organisms[idx].name.clone(),
@@ -1807,11 +1808,12 @@ impl Simulation {
                             energy * 100.0, hydration * 100.0),
                         ..Default::default()
                     });
-                } else if energy > 0.85 && hydration > 0.85 {
+                } else if energy > 0.85 && hydration > 0.85
+                    && self.organisms[idx].think_ready("abundance", tick, 2400) {
                     let kin_count = self.organisms.iter()
                         .filter(|o| o.alive && o.lineage_id == my_lid)
                         .count();
-                    self.organisms[idx].last_think_tick = self.tick_count;
+                    self.organisms[idx].mark_thought("abundance", tick);
                     self.push_think_for(idx, ThinkTrigger {
                         org_id:     self.organisms[idx].id.clone(),
                         org_name:   self.organisms[idx].name.clone(),
@@ -1821,7 +1823,9 @@ impl Simulation {
                         energy_avg: energy,
                         ..Default::default()
                     });
-                } else {
+                }
+
+                if self.organisms[idx].think_ready("threat", tick, 800) {
                     let (hostile_near, kin_near) = {
                         let org = &self.organisms[idx];
                         let hostile = self.organisms.iter()
@@ -1835,7 +1839,7 @@ impl Simulation {
                         (hostile, kin)
                     };
                     if hostile_near {
-                        self.organisms[idx].last_think_tick = self.tick_count;
+                        self.organisms[idx].mark_thought("threat", tick);
                         self.push_think_for(idx, ThinkTrigger {
                             org_id:     self.organisms[idx].id.clone(),
                             org_name:   self.organisms[idx].name.clone(),
@@ -1850,7 +1854,9 @@ impl Simulation {
             }
 
             let last_think = self.organisms[idx].last_think_tick;
-            if self.tick_count - last_think >= 1200 && self.organisms[idx].energy < 0.18 {
+            if self.organisms[idx].think_ready("moral_dilemma", self.tick_count, 1500)
+                && self.organisms[idx].energy < 0.18 {
+                let _ = last_think;
                 let (ox2, oy2) = (self.organisms[idx].x, self.organisms[idx].y);
                 let my_partner = self.organisms[idx].partner_id.clone();
                 let tempting = self.organisms.iter()
@@ -2431,6 +2437,52 @@ impl Simulation {
             let msg = format!("gen{} age {} - old age", org.generation, org.age);
             let name = org.name.clone();
             push_event(&mut self.events, self.tick_count, "died", &name, &msg);
+        }
+
+        if !self.organisms[idx].alive {
+            let dead = &self.organisms[idx];
+            let bequest = dead.wealth;
+            if bequest > 0 {
+                let dead_id = dead.id.clone();
+                let dead_name = dead.name.clone();
+                let dead_lid = dead.lineage_id.clone();
+                let partner_id = dead.partner_id.clone();
+                let heir_idx: Option<usize> = {
+                    let mut found: Option<usize> = None;
+                    if let Some(pid) = partner_id.as_ref() {
+                        found = self.organisms.iter().position(|o| o.alive && &o.id == pid);
+                    }
+                    if found.is_none() {
+                        let mut best: Option<(usize, u32)> = None;
+                        for (i, o) in self.organisms.iter().enumerate() {
+                            if !o.alive { continue }
+                            if o.parent_id != dead_id && o.father_id.as_deref() != Some(&dead_id) { continue }
+                            if let Some((_, a)) = best { if o.age <= a { continue } }
+                            best = Some((i, o.age));
+                        }
+                        found = best.map(|(i, _)| i);
+                    }
+                    if found.is_none() {
+                        let mut best: Option<(usize, i32)> = None;
+                        for (i, o) in self.organisms.iter().enumerate() {
+                            if !o.alive || o.lineage_id != dead_lid { continue }
+                            let d = (o.x - self.organisms[idx].x).abs() as i32
+                                  + (o.y - self.organisms[idx].y).abs() as i32;
+                            if let Some((_, bd)) = best { if d >= bd { continue } }
+                            best = Some((i, d));
+                        }
+                        found = best.map(|(i, _)| i);
+                    }
+                    found
+                };
+                if let Some(hi) = heir_idx {
+                    self.organisms[hi].wealth = self.organisms[hi].wealth.saturating_add(bequest);
+                    let heir_name = self.organisms[hi].name.clone();
+                    push_event(&mut self.events, self.tick_count, "trade", &dead_name,
+                        &format!("{} inherited {} from {}", heir_name, bequest, dead_name));
+                }
+                self.organisms[idx].wealth = 0;
+            }
         }
 
         if let Some((dx, dy, dlid)) = death_grief {

@@ -270,6 +270,18 @@ impl Simulation {
                 }).collect();
                 obj.insert("headlines".to_string(), serde_json::Value::Array(headlines_json));
 
+                let trades_json: Vec<serde_json::Value> = self.trades.iter().rev().take(30).map(|tr| {
+                    json!({
+                        "tick": tr.tick,
+                        "buyer_id": tr.buyer_id,
+                        "seller_id": tr.seller_id,
+                        "good": tr.good,
+                        "amount": tr.amount,
+                        "price": tr.price,
+                    })
+                }).collect();
+                obj.insert("trades".to_string(), serde_json::Value::Array(trades_json));
+
                 let currencies: std::collections::HashMap<String, &str> = self.lineage_eras.iter()
                     .map(|(lid, era)| (lid.clone(), crate::sim::economy::currency_unit_for_era(*era)))
                     .collect();

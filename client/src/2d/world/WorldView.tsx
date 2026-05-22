@@ -2055,9 +2055,15 @@ export function WorldView({ world, interp }: Props) {
     const ty = Math.floor(worldY)
     const localCol = tx - ox
     const localRow = ty - oy
+    const TILE_WATER = 2
     const TILE_HUT = 8
     const tileRow = world.grid?.tiles?.[localRow]
-    const isHut = tileRow && tileRow[localCol] === TILE_HUT
+    const tileVal = tileRow ? tileRow[localCol] : undefined
+    if (tileVal === TILE_WATER && (!nearestOrg || nearestOrg.dist >= 2.5)) {
+      onOrgSelect(null)
+      return
+    }
+    const isHut = tileVal === TILE_HUT
     const structRow = world.grid?.structure?.[localRow]
     const structVal = (structRow && structRow[localCol]) || 0
     if (isHut || structVal >= 0.35) {

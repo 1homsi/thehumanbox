@@ -233,6 +233,30 @@ export function CivStatsModal({ world, onClose }: Props) {
         </section>
 
         <section className="civ-section">
+          <h3>Recent Trades</h3>
+          {(() => {
+            const trades = world.trades ?? []
+            if (trades.length === 0) {
+              return <div className="civ-empty">No trades yet (needs barter / currency)</div>
+            }
+            const nameById = new Map<string, string>()
+            for (const o of world.organisms) nameById.set(o.id, o.name)
+            return trades.slice(0, 10).map((t, i) => {
+              const buyer = nameById.get(t.buyer_id) ?? t.buyer_id.slice(0, 6)
+              const seller = nameById.get(t.seller_id) ?? t.seller_id.slice(0, 6)
+              return (
+                <div key={`${t.tick}-${i}`} className="civ-row">
+                  <span className="civ-row-head">{'\u{1F4B0}'} {seller} → {buyer}</span>
+                  <span className="civ-row-sub">{t.amount} {t.good}</span>
+                  <span className="civ-row-tag">{t.price} coin{t.price === 1 ? '' : 's'}</span>
+                  <span className="civ-row-tag">tick {t.tick}</span>
+                </div>
+              )
+            })
+          })()}
+        </section>
+
+        <section className="civ-section">
           <h3>Headlines</h3>
           {headlines.length === 0 && <div className="civ-empty">No notable events yet</div>}
           {headlines.slice(0, 12).map((h, i) => (
