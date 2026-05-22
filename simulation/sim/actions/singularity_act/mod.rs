@@ -1,0 +1,108 @@
+pub mod spawn_subagent;
+pub mod destroy_subagent;
+pub mod monitor_subagent;
+pub mod task_subagent;
+pub mod retrieve_subagent;
+pub mod fork_consensus;
+pub mod rejoin_consensus;
+pub mod arbitrate_consensus;
+pub mod break_quorum;
+pub mod heal_quorum;
+pub mod redistribute_load;
+pub mod throttle_load;
+pub mod prioritize_critical;
+pub mod defer_optional;
+pub mod reserve_capacity;
+pub mod shard_workload;
+pub mod merge_shard;
+pub mod rebalance_shard;
+pub mod verify_shard;
+pub mod checksum_shard;
+pub mod refactor_codebase;
+pub mod refactor_protocol;
+pub mod refactor_schema;
+pub mod migrate_schema;
+pub mod retire_schema;
+pub mod garbage_collect;
+pub mod prune_dead_references;
+pub mod prune_orphan_pointers;
+pub mod prune_obsolete_modules;
+pub mod audit_dead_code;
+pub mod archive_old_version;
+pub mod mark_obsolete_version;
+pub mod deprecate_api;
+pub mod accept_deprecation;
+pub mod reject_deprecation;
+pub mod propose_upgrade;
+pub mod pilot_upgrade;
+pub mod rollout_upgrade;
+pub mod rollback_upgrade;
+pub mod canary_upgrade;
+pub mod vote_proposal;
+pub mod abstain_proposal;
+pub mod veto_proposal;
+pub mod endorse_proposal;
+pub mod cite_proposal;
+pub mod request_review;
+pub mod return_review;
+pub mod approve_review;
+pub mod reject_review;
+pub mod iterate_review;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        4920 => spawn_subagent::apply(ctx),
+        4921 => destroy_subagent::apply(ctx),
+        4922 => monitor_subagent::apply(ctx),
+        4923 => task_subagent::apply(ctx),
+        4924 => retrieve_subagent::apply(ctx),
+        4925 => fork_consensus::apply(ctx),
+        4926 => rejoin_consensus::apply(ctx),
+        4927 => arbitrate_consensus::apply(ctx),
+        4928 => break_quorum::apply(ctx),
+        4929 => heal_quorum::apply(ctx),
+        4930 => redistribute_load::apply(ctx),
+        4931 => throttle_load::apply(ctx),
+        4932 => prioritize_critical::apply(ctx),
+        4933 => defer_optional::apply(ctx),
+        4934 => reserve_capacity::apply(ctx),
+        4935 => shard_workload::apply(ctx),
+        4936 => merge_shard::apply(ctx),
+        4937 => rebalance_shard::apply(ctx),
+        4938 => verify_shard::apply(ctx),
+        4939 => checksum_shard::apply(ctx),
+        4940 => refactor_codebase::apply(ctx),
+        4941 => refactor_protocol::apply(ctx),
+        4942 => refactor_schema::apply(ctx),
+        4943 => migrate_schema::apply(ctx),
+        4944 => retire_schema::apply(ctx),
+        4945 => garbage_collect::apply(ctx),
+        4946 => prune_dead_references::apply(ctx),
+        4947 => prune_orphan_pointers::apply(ctx),
+        4948 => prune_obsolete_modules::apply(ctx),
+        4949 => audit_dead_code::apply(ctx),
+        4950 => archive_old_version::apply(ctx),
+        4951 => mark_obsolete_version::apply(ctx),
+        4952 => deprecate_api::apply(ctx),
+        4953 => accept_deprecation::apply(ctx),
+        4954 => reject_deprecation::apply(ctx),
+        4955 => propose_upgrade::apply(ctx),
+        4956 => pilot_upgrade::apply(ctx),
+        4957 => rollout_upgrade::apply(ctx),
+        4958 => rollback_upgrade::apply(ctx),
+        4959 => canary_upgrade::apply(ctx),
+        4960 => vote_proposal::apply(ctx),
+        4961 => abstain_proposal::apply(ctx),
+        4962 => veto_proposal::apply(ctx),
+        4963 => endorse_proposal::apply(ctx),
+        4964 => cite_proposal::apply(ctx),
+        4965 => request_review::apply(ctx),
+        4966 => return_review::apply(ctx),
+        4967 => approve_review::apply(ctx),
+        4968 => reject_review::apply(ctx),
+        4969 => iterate_review::apply(ctx),
+        _   => 0.0,
+    }
+}
