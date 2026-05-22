@@ -1,0 +1,108 @@
+pub mod skin_animal;
+pub mod flesh_hide;
+pub mod salt_hide;
+pub mod wash_hide;
+pub mod bate_hide;
+pub mod lime_hide;
+pub mod deliming_hide;
+pub mod bate_with_dung;
+pub mod bate_with_yeast;
+pub mod bate_with_pulp;
+pub mod tan_with_oak;
+pub mod tan_with_hemlock;
+pub mod tan_with_mimosa;
+pub mod tan_with_chrome;
+pub mod tan_with_alum;
+pub mod drum_tan;
+pub mod pit_tan;
+pub mod slow_tan;
+pub mod retan_finish;
+pub mod dye_leather;
+pub mod fatliquor_leather;
+pub mod glaze_leather;
+pub mod emboss_leather;
+pub mod impress_pattern;
+pub mod stamp_pattern;
+pub mod punch_hole;
+pub mod bevel_edge_leather;
+pub mod burnish_edge;
+pub mod slick_edge;
+pub mod skive_edge;
+pub mod awl_stitch;
+pub mod saddle_stitch;
+pub mod box_stitch;
+pub mod back_stitch;
+pub mod lock_stitch;
+pub mod rivet_leather;
+pub mod snap_leather;
+pub mod buckle_leather;
+pub mod chape_leather;
+pub mod strap_leather;
+pub mod carve_leather;
+pub mod sketch_pattern;
+pub mod transfer_pattern;
+pub mod wet_form;
+pub mod mold_form;
+pub mod cuir_bouilli;
+pub mod bake_leather;
+pub mod mask_leather;
+pub mod seat_leather;
+pub mod harness_leather;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        4020 => skin_animal::apply(ctx),
+        4021 => flesh_hide::apply(ctx),
+        4022 => salt_hide::apply(ctx),
+        4023 => wash_hide::apply(ctx),
+        4024 => bate_hide::apply(ctx),
+        4025 => lime_hide::apply(ctx),
+        4026 => deliming_hide::apply(ctx),
+        4027 => bate_with_dung::apply(ctx),
+        4028 => bate_with_yeast::apply(ctx),
+        4029 => bate_with_pulp::apply(ctx),
+        4030 => tan_with_oak::apply(ctx),
+        4031 => tan_with_hemlock::apply(ctx),
+        4032 => tan_with_mimosa::apply(ctx),
+        4033 => tan_with_chrome::apply(ctx),
+        4034 => tan_with_alum::apply(ctx),
+        4035 => drum_tan::apply(ctx),
+        4036 => pit_tan::apply(ctx),
+        4037 => slow_tan::apply(ctx),
+        4038 => retan_finish::apply(ctx),
+        4039 => dye_leather::apply(ctx),
+        4040 => fatliquor_leather::apply(ctx),
+        4041 => glaze_leather::apply(ctx),
+        4042 => emboss_leather::apply(ctx),
+        4043 => impress_pattern::apply(ctx),
+        4044 => stamp_pattern::apply(ctx),
+        4045 => punch_hole::apply(ctx),
+        4046 => bevel_edge_leather::apply(ctx),
+        4047 => burnish_edge::apply(ctx),
+        4048 => slick_edge::apply(ctx),
+        4049 => skive_edge::apply(ctx),
+        4050 => awl_stitch::apply(ctx),
+        4051 => saddle_stitch::apply(ctx),
+        4052 => box_stitch::apply(ctx),
+        4053 => back_stitch::apply(ctx),
+        4054 => lock_stitch::apply(ctx),
+        4055 => rivet_leather::apply(ctx),
+        4056 => snap_leather::apply(ctx),
+        4057 => buckle_leather::apply(ctx),
+        4058 => chape_leather::apply(ctx),
+        4059 => strap_leather::apply(ctx),
+        4060 => carve_leather::apply(ctx),
+        4061 => sketch_pattern::apply(ctx),
+        4062 => transfer_pattern::apply(ctx),
+        4063 => wet_form::apply(ctx),
+        4064 => mold_form::apply(ctx),
+        4065 => cuir_bouilli::apply(ctx),
+        4066 => bake_leather::apply(ctx),
+        4067 => mask_leather::apply(ctx),
+        4068 => seat_leather::apply(ctx),
+        4069 => harness_leather::apply(ctx),
+        _   => 0.0,
+    }
+}
