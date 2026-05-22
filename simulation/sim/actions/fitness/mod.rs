@@ -1,0 +1,110 @@
+pub mod run_sprint;
+pub mod run_long_dist;
+pub mod swim_lap;
+pub mod swim_dive;
+pub mod wrestle_friend;
+pub mod spar_friend;
+pub mod lift_stones;
+pub mod throw_stones;
+pub mod throw_spear;
+pub mod throw_disc;
+pub mod shoot_arrow;
+pub mod draw_bow;
+pub mod practice_archery;
+pub mod practice_swordplay;
+pub mod practice_grapple;
+pub mod practice_dodging;
+pub mod practice_balance;
+pub mod walk_on_log;
+pub mod walk_on_rope;
+pub mod hop_on_one_leg;
+pub mod leap_over_log;
+pub mod climb_tree;
+pub mod climb_cliff;
+pub mod climb_rope;
+pub mod hang_from_branch;
+pub mod chin_up_branch;
+pub mod carry_heavy;
+pub mod stack_logs;
+pub mod stretch_back;
+pub mod stretch_legs;
+pub mod roll_shoulders;
+pub mod breathe_deeply;
+pub mod yoga_pose;
+pub mod tai_chi_form;
+pub mod silat_form;
+pub mod qigong_form;
+pub mod shadow_box;
+pub mod drill_kicks;
+pub mod drill_punches;
+pub mod kick_target;
+pub mod punch_target;
+pub mod push_against_post;
+pub mod lift_log;
+pub mod lift_pail;
+pub mod farmers_walk;
+pub mod box_jump_log;
+pub mod hop_in_circle;
+pub mod leap_in_air;
+pub mod bounce_on_log;
+pub mod play_tag;
+pub mod chase_kids;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        1020 => run_sprint::apply(ctx),
+        1021 => run_long_dist::apply(ctx),
+        1022 => swim_lap::apply(ctx),
+        1023 => swim_dive::apply(ctx),
+        1024 => wrestle_friend::apply(ctx),
+        1025 => spar_friend::apply(ctx),
+        1026 => lift_stones::apply(ctx),
+        1027 => throw_stones::apply(ctx),
+        1028 => throw_spear::apply(ctx),
+        1029 => throw_disc::apply(ctx),
+        1030 => shoot_arrow::apply(ctx),
+        1031 => draw_bow::apply(ctx),
+        1032 => practice_archery::apply(ctx),
+        1033 => practice_swordplay::apply(ctx),
+        1034 => practice_grapple::apply(ctx),
+        1035 => practice_dodging::apply(ctx),
+        1036 => practice_balance::apply(ctx),
+        1037 => walk_on_log::apply(ctx),
+        1038 => walk_on_rope::apply(ctx),
+        1039 => hop_on_one_leg::apply(ctx),
+        1040 => leap_over_log::apply(ctx),
+        1041 => climb_tree::apply(ctx),
+        1042 => climb_cliff::apply(ctx),
+        1043 => climb_rope::apply(ctx),
+        1044 => hang_from_branch::apply(ctx),
+        1045 => chin_up_branch::apply(ctx),
+        1046 => carry_heavy::apply(ctx),
+        1047 => stack_logs::apply(ctx),
+        1048 => stretch_back::apply(ctx),
+        1049 => stretch_legs::apply(ctx),
+        1050 => roll_shoulders::apply(ctx),
+        1051 => breathe_deeply::apply(ctx),
+        1052 => yoga_pose::apply(ctx),
+        1053 => tai_chi_form::apply(ctx),
+        1054 => silat_form::apply(ctx),
+        1055 => qigong_form::apply(ctx),
+        1056 => shadow_box::apply(ctx),
+        1057 => drill_kicks::apply(ctx),
+        1058 => drill_punches::apply(ctx),
+        1059 => kick_target::apply(ctx),
+        1060 => punch_target::apply(ctx),
+        1061 => push_against_post::apply(ctx),
+        1062 => lift_log::apply(ctx),
+        1063 => lift_pail::apply(ctx),
+        1064 => farmers_walk::apply(ctx),
+        1065 => box_jump_log::apply(ctx),
+        1066 => hop_in_circle::apply(ctx),
+        1067 => leap_in_air::apply(ctx),
+        1068 => bounce_on_log::apply(ctx),
+        1069 => play_tag::apply(ctx),
+        1070 => chase_kids::apply(ctx),
+        _   => 0.0,
+    }
+}
