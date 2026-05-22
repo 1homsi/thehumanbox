@@ -1,0 +1,108 @@
+pub mod walk_unseen;
+pub mod step_through_shadow;
+pub mod whisper_to_dark;
+pub mod fold_into_fog;
+pub mod cloak_in_mist;
+pub mod bind_silence;
+pub mod weave_quiet;
+pub mod hush_a_room;
+pub mod dampen_a_door;
+pub mod silence_a_footfall;
+pub mod read_lips_at_distance;
+pub mod read_aura;
+pub mod read_intent;
+pub mod read_truth;
+pub mod read_lie;
+pub mod unmask_deception;
+pub mod unmask_pretender;
+pub mod unmask_imposter;
+pub mod sense_watcher;
+pub mod sense_listener;
+pub mod ward_against_ear;
+pub mod ward_against_eye;
+pub mod ward_against_step;
+pub mod ward_against_word;
+pub mod ward_against_thought;
+pub mod hide_a_thought;
+pub mod hide_a_feeling;
+pub mod hide_a_secret;
+pub mod hide_a_wound;
+pub mod hide_a_treasure;
+pub mod conceal_in_seam;
+pub mod conceal_in_lining;
+pub mod conceal_in_hem;
+pub mod conceal_in_sole;
+pub mod conceal_in_collar;
+pub mod bury_under_floor;
+pub mod bury_in_wall;
+pub mod bury_in_garden;
+pub mod bury_under_stone;
+pub mod bury_under_root;
+pub mod encode_in_song;
+pub mod encode_in_dance;
+pub mod encode_in_recipe;
+pub mod encode_in_pattern;
+pub mod encode_in_path;
+pub mod signal_with_eye;
+pub mod signal_with_finger;
+pub mod signal_with_breath;
+pub mod signal_with_pause;
+pub mod signal_with_glance;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        2460 => walk_unseen::apply(ctx),
+        2461 => step_through_shadow::apply(ctx),
+        2462 => whisper_to_dark::apply(ctx),
+        2463 => fold_into_fog::apply(ctx),
+        2464 => cloak_in_mist::apply(ctx),
+        2465 => bind_silence::apply(ctx),
+        2466 => weave_quiet::apply(ctx),
+        2467 => hush_a_room::apply(ctx),
+        2468 => dampen_a_door::apply(ctx),
+        2469 => silence_a_footfall::apply(ctx),
+        2470 => read_lips_at_distance::apply(ctx),
+        2471 => read_aura::apply(ctx),
+        2472 => read_intent::apply(ctx),
+        2473 => read_truth::apply(ctx),
+        2474 => read_lie::apply(ctx),
+        2475 => unmask_deception::apply(ctx),
+        2476 => unmask_pretender::apply(ctx),
+        2477 => unmask_imposter::apply(ctx),
+        2478 => sense_watcher::apply(ctx),
+        2479 => sense_listener::apply(ctx),
+        2480 => ward_against_ear::apply(ctx),
+        2481 => ward_against_eye::apply(ctx),
+        2482 => ward_against_step::apply(ctx),
+        2483 => ward_against_word::apply(ctx),
+        2484 => ward_against_thought::apply(ctx),
+        2485 => hide_a_thought::apply(ctx),
+        2486 => hide_a_feeling::apply(ctx),
+        2487 => hide_a_secret::apply(ctx),
+        2488 => hide_a_wound::apply(ctx),
+        2489 => hide_a_treasure::apply(ctx),
+        2490 => conceal_in_seam::apply(ctx),
+        2491 => conceal_in_lining::apply(ctx),
+        2492 => conceal_in_hem::apply(ctx),
+        2493 => conceal_in_sole::apply(ctx),
+        2494 => conceal_in_collar::apply(ctx),
+        2495 => bury_under_floor::apply(ctx),
+        2496 => bury_in_wall::apply(ctx),
+        2497 => bury_in_garden::apply(ctx),
+        2498 => bury_under_stone::apply(ctx),
+        2499 => bury_under_root::apply(ctx),
+        2500 => encode_in_song::apply(ctx),
+        2501 => encode_in_dance::apply(ctx),
+        2502 => encode_in_recipe::apply(ctx),
+        2503 => encode_in_pattern::apply(ctx),
+        2504 => encode_in_path::apply(ctx),
+        2505 => signal_with_eye::apply(ctx),
+        2506 => signal_with_finger::apply(ctx),
+        2507 => signal_with_breath::apply(ctx),
+        2508 => signal_with_pause::apply(ctx),
+        2509 => signal_with_glance::apply(ctx),
+        _   => 0.0,
+    }
+}
