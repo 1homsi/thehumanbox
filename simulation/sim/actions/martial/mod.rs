@@ -1,0 +1,108 @@
+pub mod drill_with_spear;
+pub mod drill_with_axe;
+pub mod drill_with_sword;
+pub mod drill_with_mace;
+pub mod drill_with_flail;
+pub mod drill_with_polearm;
+pub mod drill_with_dagger;
+pub mod drill_with_buckler;
+pub mod drill_with_shield;
+pub mod drill_with_pike;
+pub mod drill_archer;
+pub mod drill_bow;
+pub mod drill_crossbow;
+pub mod drill_javelin;
+pub mod drill_sling;
+pub mod drill_horseman;
+pub mod drill_charge;
+pub mod drill_caracole;
+pub mod drill_caracole_b;
+pub mod drill_caracole_c;
+pub mod drill_phalanx;
+pub mod drill_testudo;
+pub mod drill_shield_wall;
+pub mod drill_skirmish;
+pub mod drill_feigned_retreat;
+pub mod drill_ambush;
+pub mod drill_flanking;
+pub mod drill_pincer;
+pub mod drill_envelopment;
+pub mod drill_breakthrough;
+pub mod drill_holding;
+pub mod drill_screening;
+pub mod drill_pursuit;
+pub mod drill_rearguard;
+pub mod drill_vanguard;
+pub mod drill_signal;
+pub mod drill_signal_horn;
+pub mod drill_signal_drum;
+pub mod drill_signal_flag;
+pub mod drill_signal_smoke;
+pub mod drill_camp;
+pub mod drill_pickets;
+pub mod drill_sentries;
+pub mod drill_outposts;
+pub mod drill_patrols;
+pub mod drill_logistics;
+pub mod drill_baggage;
+pub mod drill_quartermaster;
+pub mod drill_munitions;
+pub mod drill_field_kitchen;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        3660 => drill_with_spear::apply(ctx),
+        3661 => drill_with_axe::apply(ctx),
+        3662 => drill_with_sword::apply(ctx),
+        3663 => drill_with_mace::apply(ctx),
+        3664 => drill_with_flail::apply(ctx),
+        3665 => drill_with_polearm::apply(ctx),
+        3666 => drill_with_dagger::apply(ctx),
+        3667 => drill_with_buckler::apply(ctx),
+        3668 => drill_with_shield::apply(ctx),
+        3669 => drill_with_pike::apply(ctx),
+        3670 => drill_archer::apply(ctx),
+        3671 => drill_bow::apply(ctx),
+        3672 => drill_crossbow::apply(ctx),
+        3673 => drill_javelin::apply(ctx),
+        3674 => drill_sling::apply(ctx),
+        3675 => drill_horseman::apply(ctx),
+        3676 => drill_charge::apply(ctx),
+        3677 => drill_caracole::apply(ctx),
+        3678 => drill_caracole_b::apply(ctx),
+        3679 => drill_caracole_c::apply(ctx),
+        3680 => drill_phalanx::apply(ctx),
+        3681 => drill_testudo::apply(ctx),
+        3682 => drill_shield_wall::apply(ctx),
+        3683 => drill_skirmish::apply(ctx),
+        3684 => drill_feigned_retreat::apply(ctx),
+        3685 => drill_ambush::apply(ctx),
+        3686 => drill_flanking::apply(ctx),
+        3687 => drill_pincer::apply(ctx),
+        3688 => drill_envelopment::apply(ctx),
+        3689 => drill_breakthrough::apply(ctx),
+        3690 => drill_holding::apply(ctx),
+        3691 => drill_screening::apply(ctx),
+        3692 => drill_pursuit::apply(ctx),
+        3693 => drill_rearguard::apply(ctx),
+        3694 => drill_vanguard::apply(ctx),
+        3695 => drill_signal::apply(ctx),
+        3696 => drill_signal_horn::apply(ctx),
+        3697 => drill_signal_drum::apply(ctx),
+        3698 => drill_signal_flag::apply(ctx),
+        3699 => drill_signal_smoke::apply(ctx),
+        3700 => drill_camp::apply(ctx),
+        3701 => drill_pickets::apply(ctx),
+        3702 => drill_sentries::apply(ctx),
+        3703 => drill_outposts::apply(ctx),
+        3704 => drill_patrols::apply(ctx),
+        3705 => drill_logistics::apply(ctx),
+        3706 => drill_baggage::apply(ctx),
+        3707 => drill_quartermaster::apply(ctx),
+        3708 => drill_munitions::apply(ctx),
+        3709 => drill_field_kitchen::apply(ctx),
+        _   => 0.0,
+    }
+}
