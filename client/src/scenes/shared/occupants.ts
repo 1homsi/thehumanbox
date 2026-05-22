@@ -1,5 +1,5 @@
-import type { OrganismState, WorldState } from '../types'
-import type { OccupantRole, SceneOccupant } from './types'
+import type { OrganismState, WorldState } from '../../types'
+import type { OccupantRole, SceneOccupant } from '../core/types'
 
 const HOUSEHOLD_RADIUS = 6
 const HOST_RADIUS      = 4

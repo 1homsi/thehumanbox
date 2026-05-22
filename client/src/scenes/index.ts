@@ -1,4 +1,4 @@
-export * from './types'
-export { registerScene, getSceneRenderer, listRegisteredScenes } from './registry'
-export { isAtHome, householdAround } from './occupants'
-export { SceneView } from './SceneView'
+export * from './core/types'
+export { registerScene, getSceneRenderer, listRegisteredScenes } from './core/registry'
+export { isAtHome, householdAround } from './shared/occupants'
+export { SceneView } from './components/SceneView'

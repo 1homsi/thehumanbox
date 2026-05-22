@@ -1,4 +1,4 @@
-import type { SceneFixture } from '../types'
+import type { SceneFixture } from '../../../core/types'
 
 interface Props {
   fixture: SceneFixture

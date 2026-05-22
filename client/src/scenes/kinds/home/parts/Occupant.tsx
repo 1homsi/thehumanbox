@@ -1,5 +1,5 @@
-import type { SceneOccupant } from '../types'
-import { lineageColor } from '../../utils/constants'
+import type { SceneOccupant } from '../../../core/types'
+import { lineageColor } from '../../../../utils/constants'
 
 interface Props {
   occupant: SceneOccupant

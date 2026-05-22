@@ -1,9 +1,9 @@
 import { useMemo } from 'react'
-import type { WorldState } from '../types'
-import { useSceneStore, useCurrentScene } from '../stores/scene'
-import { useUIStore } from '../stores/store'
-import { getSceneRenderer } from './registry'
-import './home'
+import type { WorldState } from '../../types'
+import { useSceneStore, useCurrentScene } from '../../stores/scene'
+import { useUIStore } from '../../stores/store'
+import { getSceneRenderer } from '../core/registry'
+import '../kinds/home'
 
 interface Props {
   world: WorldState

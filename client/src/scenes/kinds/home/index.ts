@@ -1,4 +1,4 @@
-import { registerScene } from '../registry'
+import { registerScene } from '../../core/registry'
 import { HomeInterior } from './HomeInterior'
 import { resolveHomeScene } from './resolve'
 

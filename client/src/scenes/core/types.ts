@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import type { OrganismState, WorldState } from '../types'
+import type { OrganismState, WorldState } from '../../types'
 
 export type SceneId =
   | { kind: 'home',     orgId: string }

@@ -1,7 +1,7 @@
-import type { SceneContext } from '../types'
-import { Furniture } from './Furniture'
-import { Occupant } from './Occupant'
-import { useUIStore } from '../../stores/store'
+import type { SceneContext } from '../../core/types'
+import { Furniture } from './parts/Furniture'
+import { Occupant } from './parts/Occupant'
+import { useUIStore } from '../../../stores/store'
 
 interface Props {
   ctx:        SceneContext
