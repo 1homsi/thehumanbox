@@ -1,0 +1,106 @@
+pub mod study_at_window;
+pub mod study_by_candle;
+pub mod study_with_partner;
+pub mod study_with_tutor;
+pub mod copy_passage;
+pub mod memorize_verse;
+pub mod recite_passage;
+pub mod write_summary;
+pub mod draft_outline;
+pub mod consult_oracle;
+pub mod consult_almanac;
+pub mod consult_elder;
+pub mod consult_master;
+pub mod query_scribe;
+pub mod cross_examine_text;
+pub mod annotate_margin;
+pub mod index_text;
+pub mod bind_notes;
+pub mod catalog_index;
+pub mod observe_planet;
+pub mod observe_eclipse;
+pub mod track_constellation;
+pub mod log_seasons;
+pub mod log_weather;
+pub mod log_tides;
+pub mod chart_river;
+pub mod chart_coast;
+pub mod chart_road;
+pub mod draft_map;
+pub mod sketch_creature;
+pub mod sketch_plant;
+pub mod sketch_terrain;
+pub mod measure_shadow;
+pub mod measure_angle;
+pub mod measure_volume;
+pub mod calibrate_scale;
+pub mod test_solution;
+pub mod test_alloy;
+pub mod assay_metal;
+pub mod ferment_test;
+pub mod temper_test;
+pub mod forge_test;
+pub mod breeding_test;
+pub mod grafting_test;
+pub mod germination_test;
+pub mod irrigation_test;
+pub mod crop_trial;
+pub mod herd_trial;
+pub mod mortality_log;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        1380 => study_at_window::apply(ctx),
+        1381 => study_by_candle::apply(ctx),
+        1382 => study_with_partner::apply(ctx),
+        1383 => study_with_tutor::apply(ctx),
+        1384 => copy_passage::apply(ctx),
+        1385 => memorize_verse::apply(ctx),
+        1386 => recite_passage::apply(ctx),
+        1387 => write_summary::apply(ctx),
+        1388 => draft_outline::apply(ctx),
+        1389 => consult_oracle::apply(ctx),
+        1390 => consult_almanac::apply(ctx),
+        1391 => consult_elder::apply(ctx),
+        1392 => consult_master::apply(ctx),
+        1393 => query_scribe::apply(ctx),
+        1394 => cross_examine_text::apply(ctx),
+        1395 => annotate_margin::apply(ctx),
+        1396 => index_text::apply(ctx),
+        1397 => bind_notes::apply(ctx),
+        1398 => catalog_index::apply(ctx),
+        1399 => observe_planet::apply(ctx),
+        1400 => observe_eclipse::apply(ctx),
+        1401 => track_constellation::apply(ctx),
+        1402 => log_seasons::apply(ctx),
+        1403 => log_weather::apply(ctx),
+        1404 => log_tides::apply(ctx),
+        1405 => chart_river::apply(ctx),
+        1406 => chart_coast::apply(ctx),
+        1407 => chart_road::apply(ctx),
+        1408 => draft_map::apply(ctx),
+        1409 => sketch_creature::apply(ctx),
+        1410 => sketch_plant::apply(ctx),
+        1411 => sketch_terrain::apply(ctx),
+        1412 => measure_shadow::apply(ctx),
+        1413 => measure_angle::apply(ctx),
+        1414 => measure_volume::apply(ctx),
+        1415 => calibrate_scale::apply(ctx),
+        1416 => test_solution::apply(ctx),
+        1417 => test_alloy::apply(ctx),
+        1418 => assay_metal::apply(ctx),
+        1419 => ferment_test::apply(ctx),
+        1420 => temper_test::apply(ctx),
+        1421 => forge_test::apply(ctx),
+        1422 => breeding_test::apply(ctx),
+        1423 => grafting_test::apply(ctx),
+        1424 => germination_test::apply(ctx),
+        1425 => irrigation_test::apply(ctx),
+        1426 => crop_trial::apply(ctx),
+        1427 => herd_trial::apply(ctx),
+        1428 => mortality_log::apply(ctx),
+        _   => 0.0,
+    }
+}
