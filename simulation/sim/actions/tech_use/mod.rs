@@ -1,0 +1,108 @@
+pub mod boot_terminal;
+pub mod type_command;
+pub mod run_program;
+pub mod save_file;
+pub mod print_document;
+pub mod scan_document;
+pub mod send_email;
+pub mod read_email;
+pub mod reply_email;
+pub mod forward_email;
+pub mod upload_photo;
+pub mod download_file;
+pub mod copy_file;
+pub mod move_file;
+pub mod delete_file;
+pub mod rename_file;
+pub mod compress_archive;
+pub mod extract_archive;
+pub mod sync_device;
+pub mod pair_device;
+pub mod call_via_voip;
+pub mod video_call;
+pub mod screen_share;
+pub mod present_slides;
+pub mod open_browser;
+pub mod search_web;
+pub mod bookmark_link;
+pub mod refresh_feed;
+pub mod scroll_timeline;
+pub mod post_status;
+pub mod comment_post;
+pub mod like_post;
+pub mod share_post;
+pub mod stream_video;
+pub mod pause_video;
+pub mod buffer_video;
+pub mod subscribe_channel;
+pub mod ride_share;
+pub mod order_delivery;
+pub mod scan_qr;
+pub mod pay_contactless;
+pub mod transfer_funds;
+pub mod online_bank;
+pub mod login_account;
+pub mod log_out;
+pub mod reset_password;
+pub mod update_software;
+pub mod install_app;
+pub mod uninstall_app;
+pub mod set_alarm;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        2100 => boot_terminal::apply(ctx),
+        2101 => type_command::apply(ctx),
+        2102 => run_program::apply(ctx),
+        2103 => save_file::apply(ctx),
+        2104 => print_document::apply(ctx),
+        2105 => scan_document::apply(ctx),
+        2106 => send_email::apply(ctx),
+        2107 => read_email::apply(ctx),
+        2108 => reply_email::apply(ctx),
+        2109 => forward_email::apply(ctx),
+        2110 => upload_photo::apply(ctx),
+        2111 => download_file::apply(ctx),
+        2112 => copy_file::apply(ctx),
+        2113 => move_file::apply(ctx),
+        2114 => delete_file::apply(ctx),
+        2115 => rename_file::apply(ctx),
+        2116 => compress_archive::apply(ctx),
+        2117 => extract_archive::apply(ctx),
+        2118 => sync_device::apply(ctx),
+        2119 => pair_device::apply(ctx),
+        2120 => call_via_voip::apply(ctx),
+        2121 => video_call::apply(ctx),
+        2122 => screen_share::apply(ctx),
+        2123 => present_slides::apply(ctx),
+        2124 => open_browser::apply(ctx),
+        2125 => search_web::apply(ctx),
+        2126 => bookmark_link::apply(ctx),
+        2127 => refresh_feed::apply(ctx),
+        2128 => scroll_timeline::apply(ctx),
+        2129 => post_status::apply(ctx),
+        2130 => comment_post::apply(ctx),
+        2131 => like_post::apply(ctx),
+        2132 => share_post::apply(ctx),
+        2133 => stream_video::apply(ctx),
+        2134 => pause_video::apply(ctx),
+        2135 => buffer_video::apply(ctx),
+        2136 => subscribe_channel::apply(ctx),
+        2137 => ride_share::apply(ctx),
+        2138 => order_delivery::apply(ctx),
+        2139 => scan_qr::apply(ctx),
+        2140 => pay_contactless::apply(ctx),
+        2141 => transfer_funds::apply(ctx),
+        2142 => online_bank::apply(ctx),
+        2143 => login_account::apply(ctx),
+        2144 => log_out::apply(ctx),
+        2145 => reset_password::apply(ctx),
+        2146 => update_software::apply(ctx),
+        2147 => install_app::apply(ctx),
+        2148 => uninstall_app::apply(ctx),
+        2149 => set_alarm::apply(ctx),
+        _   => 0.0,
+    }
+}
