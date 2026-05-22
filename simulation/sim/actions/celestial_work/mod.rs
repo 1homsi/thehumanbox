@@ -1,0 +1,108 @@
+pub mod observe_zenith;
+pub mod observe_horizon;
+pub mod observe_meridian;
+pub mod observe_pole;
+pub mod observe_ecliptic;
+pub mod measure_solstice;
+pub mod measure_equinox;
+pub mod measure_lunation;
+pub mod measure_eclipse;
+pub mod measure_transit;
+pub mod measure_occultation;
+pub mod measure_conjunction;
+pub mod measure_opposition;
+pub mod measure_quadrature;
+pub mod measure_elongation;
+pub mod measure_phase_angle;
+pub mod measure_libration;
+pub mod measure_parallax;
+pub mod measure_aberration;
+pub mod measure_precession;
+pub mod measure_nutation;
+pub mod measure_inclination;
+pub mod measure_eccentricity;
+pub mod measure_perihelion;
+pub mod measure_aphelion;
+pub mod measure_apogee;
+pub mod measure_perigee;
+pub mod measure_ascending_node;
+pub mod measure_descending_node;
+pub mod measure_inclination_orbit;
+pub mod derive_period;
+pub mod derive_distance;
+pub mod derive_size;
+pub mod derive_mass;
+pub mod derive_orbit;
+pub mod compute_ephemeris;
+pub mod compute_almanac;
+pub mod compute_calendar;
+pub mod compute_year;
+pub mod compute_month;
+pub mod forecast_eclipse;
+pub mod forecast_transit;
+pub mod forecast_occultation;
+pub mod forecast_conjunction;
+pub mod forecast_opposition;
+pub mod predict_seasons;
+pub mod predict_floods;
+pub mod predict_droughts;
+pub mod predict_monsoons;
+pub mod predict_currents;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        3060 => observe_zenith::apply(ctx),
+        3061 => observe_horizon::apply(ctx),
+        3062 => observe_meridian::apply(ctx),
+        3063 => observe_pole::apply(ctx),
+        3064 => observe_ecliptic::apply(ctx),
+        3065 => measure_solstice::apply(ctx),
+        3066 => measure_equinox::apply(ctx),
+        3067 => measure_lunation::apply(ctx),
+        3068 => measure_eclipse::apply(ctx),
+        3069 => measure_transit::apply(ctx),
+        3070 => measure_occultation::apply(ctx),
+        3071 => measure_conjunction::apply(ctx),
+        3072 => measure_opposition::apply(ctx),
+        3073 => measure_quadrature::apply(ctx),
+        3074 => measure_elongation::apply(ctx),
+        3075 => measure_phase_angle::apply(ctx),
+        3076 => measure_libration::apply(ctx),
+        3077 => measure_parallax::apply(ctx),
+        3078 => measure_aberration::apply(ctx),
+        3079 => measure_precession::apply(ctx),
+        3080 => measure_nutation::apply(ctx),
+        3081 => measure_inclination::apply(ctx),
+        3082 => measure_eccentricity::apply(ctx),
+        3083 => measure_perihelion::apply(ctx),
+        3084 => measure_aphelion::apply(ctx),
+        3085 => measure_apogee::apply(ctx),
+        3086 => measure_perigee::apply(ctx),
+        3087 => measure_ascending_node::apply(ctx),
+        3088 => measure_descending_node::apply(ctx),
+        3089 => measure_inclination_orbit::apply(ctx),
+        3090 => derive_period::apply(ctx),
+        3091 => derive_distance::apply(ctx),
+        3092 => derive_size::apply(ctx),
+        3093 => derive_mass::apply(ctx),
+        3094 => derive_orbit::apply(ctx),
+        3095 => compute_ephemeris::apply(ctx),
+        3096 => compute_almanac::apply(ctx),
+        3097 => compute_calendar::apply(ctx),
+        3098 => compute_year::apply(ctx),
+        3099 => compute_month::apply(ctx),
+        3100 => forecast_eclipse::apply(ctx),
+        3101 => forecast_transit::apply(ctx),
+        3102 => forecast_occultation::apply(ctx),
+        3103 => forecast_conjunction::apply(ctx),
+        3104 => forecast_opposition::apply(ctx),
+        3105 => predict_seasons::apply(ctx),
+        3106 => predict_floods::apply(ctx),
+        3107 => predict_droughts::apply(ctx),
+        3108 => predict_monsoons::apply(ctx),
+        3109 => predict_currents::apply(ctx),
+        _   => 0.0,
+    }
+}
