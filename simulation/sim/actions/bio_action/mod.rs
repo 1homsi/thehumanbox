@@ -1,0 +1,108 @@
+pub mod culture_cells;
+pub mod passage_cells;
+pub mod freeze_cells;
+pub mod thaw_cells;
+pub mod count_cells;
+pub mod view_cells;
+pub mod trypsinize_cells;
+pub mod fix_cells;
+pub mod stain_cells;
+pub mod image_cells;
+pub mod pick_clone;
+pub mod screen_clones;
+pub mod expand_clones;
+pub mod bank_cells;
+pub mod qc_cells;
+pub mod extract_dna;
+pub mod extract_rna;
+pub mod extract_protein;
+pub mod pcr_amplify;
+pub mod electrophoresis_gel;
+pub mod sequence_dna;
+pub mod sequence_rna;
+pub mod sequence_protein;
+pub mod clone_gene;
+pub mod transform_cells;
+pub mod express_protein;
+pub mod purify_protein;
+pub mod crystallize_protein;
+pub mod x_ray_diffract;
+pub mod solve_structure;
+pub mod align_sequence;
+pub mod build_phylogeny;
+pub mod compare_genome;
+pub mod annotate_genome;
+pub mod assemble_genome;
+pub mod search_database;
+pub mod submit_database;
+pub mod curate_database;
+pub mod mine_database;
+pub mod visualize_data;
+pub mod knockdown_gene;
+pub mod knockout_gene;
+pub mod overexpress_gene;
+pub mod rescue_phenotype;
+pub mod assay_phenotype;
+pub mod flow_cytometry;
+pub mod sort_cells;
+pub mod analyze_fcs;
+pub mod analyze_gate;
+pub mod analyze_population;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        4320 => culture_cells::apply(ctx),
+        4321 => passage_cells::apply(ctx),
+        4322 => freeze_cells::apply(ctx),
+        4323 => thaw_cells::apply(ctx),
+        4324 => count_cells::apply(ctx),
+        4325 => view_cells::apply(ctx),
+        4326 => trypsinize_cells::apply(ctx),
+        4327 => fix_cells::apply(ctx),
+        4328 => stain_cells::apply(ctx),
+        4329 => image_cells::apply(ctx),
+        4330 => pick_clone::apply(ctx),
+        4331 => screen_clones::apply(ctx),
+        4332 => expand_clones::apply(ctx),
+        4333 => bank_cells::apply(ctx),
+        4334 => qc_cells::apply(ctx),
+        4335 => extract_dna::apply(ctx),
+        4336 => extract_rna::apply(ctx),
+        4337 => extract_protein::apply(ctx),
+        4338 => pcr_amplify::apply(ctx),
+        4339 => electrophoresis_gel::apply(ctx),
+        4340 => sequence_dna::apply(ctx),
+        4341 => sequence_rna::apply(ctx),
+        4342 => sequence_protein::apply(ctx),
+        4343 => clone_gene::apply(ctx),
+        4344 => transform_cells::apply(ctx),
+        4345 => express_protein::apply(ctx),
+        4346 => purify_protein::apply(ctx),
+        4347 => crystallize_protein::apply(ctx),
+        4348 => x_ray_diffract::apply(ctx),
+        4349 => solve_structure::apply(ctx),
+        4350 => align_sequence::apply(ctx),
+        4351 => build_phylogeny::apply(ctx),
+        4352 => compare_genome::apply(ctx),
+        4353 => annotate_genome::apply(ctx),
+        4354 => assemble_genome::apply(ctx),
+        4355 => search_database::apply(ctx),
+        4356 => submit_database::apply(ctx),
+        4357 => curate_database::apply(ctx),
+        4358 => mine_database::apply(ctx),
+        4359 => visualize_data::apply(ctx),
+        4360 => knockdown_gene::apply(ctx),
+        4361 => knockout_gene::apply(ctx),
+        4362 => overexpress_gene::apply(ctx),
+        4363 => rescue_phenotype::apply(ctx),
+        4364 => assay_phenotype::apply(ctx),
+        4365 => flow_cytometry::apply(ctx),
+        4366 => sort_cells::apply(ctx),
+        4367 => analyze_fcs::apply(ctx),
+        4368 => analyze_gate::apply(ctx),
+        4369 => analyze_population::apply(ctx),
+        _   => 0.0,
+    }
+}
