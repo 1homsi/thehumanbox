@@ -1,0 +1,108 @@
+pub mod receive_dispatch;
+pub mod sort_dispatch;
+pub mod route_dispatch;
+pub mod carry_dispatch;
+pub mod transfer_dispatch;
+pub mod ride_with_dispatch;
+pub mod swim_with_dispatch;
+pub mod portage_with_dispatch;
+pub mod raft_with_dispatch;
+pub mod row_with_dispatch;
+pub mod use_relay_horse;
+pub mod change_horses;
+pub mod water_horses;
+pub mod feed_horses;
+pub mod rest_horses;
+pub mod pass_to_next_courier;
+pub mod sign_for_dispatch;
+pub mod witness_signature;
+pub mod stamp_dispatch;
+pub mod verify_dispatch;
+pub mod deliver_to_addressee;
+pub mod read_aloud_dispatch;
+pub mod interpret_dispatch;
+pub mod translate_dispatch;
+pub mod sealed_to_handler;
+pub mod wait_for_acknowledgement;
+pub mod file_acknowledgement;
+pub mod receipt_back;
+pub mod reply_back;
+pub mod ride_back;
+pub mod fold_dispatch;
+pub mod wrap_dispatch;
+pub mod waterproof_dispatch;
+pub mod hide_dispatch;
+pub mod swallow_dispatch;
+pub mod destroy_in_pursuit;
+pub mod decoy_in_pursuit;
+pub mod feign_route;
+pub mod double_back;
+pub mod loop_back;
+pub mod carry_signet;
+pub mod seal_with_signet;
+pub mod verify_signet;
+pub mod authenticate_signet;
+pub mod hand_back_signet;
+pub mod swim_river_dispatch;
+pub mod ford_river_dispatch;
+pub mod swim_lake_dispatch;
+pub mod raft_lake_dispatch;
+pub mod swim_strait_dispatch;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        5220 => receive_dispatch::apply(ctx),
+        5221 => sort_dispatch::apply(ctx),
+        5222 => route_dispatch::apply(ctx),
+        5223 => carry_dispatch::apply(ctx),
+        5224 => transfer_dispatch::apply(ctx),
+        5225 => ride_with_dispatch::apply(ctx),
+        5226 => swim_with_dispatch::apply(ctx),
+        5227 => portage_with_dispatch::apply(ctx),
+        5228 => raft_with_dispatch::apply(ctx),
+        5229 => row_with_dispatch::apply(ctx),
+        5230 => use_relay_horse::apply(ctx),
+        5231 => change_horses::apply(ctx),
+        5232 => water_horses::apply(ctx),
+        5233 => feed_horses::apply(ctx),
+        5234 => rest_horses::apply(ctx),
+        5235 => pass_to_next_courier::apply(ctx),
+        5236 => sign_for_dispatch::apply(ctx),
+        5237 => witness_signature::apply(ctx),
+        5238 => stamp_dispatch::apply(ctx),
+        5239 => verify_dispatch::apply(ctx),
+        5240 => deliver_to_addressee::apply(ctx),
+        5241 => read_aloud_dispatch::apply(ctx),
+        5242 => interpret_dispatch::apply(ctx),
+        5243 => translate_dispatch::apply(ctx),
+        5244 => sealed_to_handler::apply(ctx),
+        5245 => wait_for_acknowledgement::apply(ctx),
+        5246 => file_acknowledgement::apply(ctx),
+        5247 => receipt_back::apply(ctx),
+        5248 => reply_back::apply(ctx),
+        5249 => ride_back::apply(ctx),
+        5250 => fold_dispatch::apply(ctx),
+        5251 => wrap_dispatch::apply(ctx),
+        5252 => waterproof_dispatch::apply(ctx),
+        5253 => hide_dispatch::apply(ctx),
+        5254 => swallow_dispatch::apply(ctx),
+        5255 => destroy_in_pursuit::apply(ctx),
+        5256 => decoy_in_pursuit::apply(ctx),
+        5257 => feign_route::apply(ctx),
+        5258 => double_back::apply(ctx),
+        5259 => loop_back::apply(ctx),
+        5260 => carry_signet::apply(ctx),
+        5261 => seal_with_signet::apply(ctx),
+        5262 => verify_signet::apply(ctx),
+        5263 => authenticate_signet::apply(ctx),
+        5264 => hand_back_signet::apply(ctx),
+        5265 => swim_river_dispatch::apply(ctx),
+        5266 => ford_river_dispatch::apply(ctx),
+        5267 => swim_lake_dispatch::apply(ctx),
+        5268 => raft_lake_dispatch::apply(ctx),
+        5269 => swim_strait_dispatch::apply(ctx),
+        _   => 0.0,
+    }
+}
