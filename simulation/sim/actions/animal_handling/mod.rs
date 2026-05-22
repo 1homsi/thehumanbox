@@ -1,0 +1,108 @@
+pub mod halter_horse;
+pub mod lead_horse;
+pub mod longe_horse;
+pub mod train_horse_walk;
+pub mod train_horse_trot;
+pub mod train_horse_canter;
+pub mod saddle_break_horse;
+pub mod mouth_horse;
+pub mod bit_horse;
+pub mod jump_horse;
+pub mod show_horse;
+pub mod race_horse;
+pub mod shoe_horse_for_shoe;
+pub mod trim_hoof;
+pub mod file_hoof;
+pub mod worm_horse;
+pub mod vaccinate_horse;
+pub mod brand_cattle;
+pub mod dehorn_cattle;
+pub mod castrate_steer;
+pub mod milk_cow;
+pub mod milk_goat;
+pub mod milk_sheep;
+pub mod milk_buffalo;
+pub mod milk_camel;
+pub mod shear_sheep_dexter;
+pub mod shear_alpaca;
+pub mod dock_lamb_tail;
+pub mod castrate_lamb;
+pub mod mark_lamb;
+pub mod card_fleece;
+pub mod bag_fleece;
+pub mod skirt_fleece;
+pub mod pluck_chicken;
+pub mod pluck_goose;
+pub mod collect_eggs;
+pub mod candle_eggs;
+pub mod hatch_chicks;
+pub mod raise_ducklings;
+pub mod raise_goslings;
+pub mod feed_swine;
+pub mod slop_pigs;
+pub mod muck_stable;
+pub mod muck_barn;
+pub mod brush_horse;
+pub mod cool_down_horse;
+pub mod warm_up_horse;
+pub mod blanket_horse;
+pub mod pick_hoof;
+pub mod clean_tack;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        1980 => halter_horse::apply(ctx),
+        1981 => lead_horse::apply(ctx),
+        1982 => longe_horse::apply(ctx),
+        1983 => train_horse_walk::apply(ctx),
+        1984 => train_horse_trot::apply(ctx),
+        1985 => train_horse_canter::apply(ctx),
+        1986 => saddle_break_horse::apply(ctx),
+        1987 => mouth_horse::apply(ctx),
+        1988 => bit_horse::apply(ctx),
+        1989 => jump_horse::apply(ctx),
+        1990 => show_horse::apply(ctx),
+        1991 => race_horse::apply(ctx),
+        1992 => shoe_horse_for_shoe::apply(ctx),
+        1993 => trim_hoof::apply(ctx),
+        1994 => file_hoof::apply(ctx),
+        1995 => worm_horse::apply(ctx),
+        1996 => vaccinate_horse::apply(ctx),
+        1997 => brand_cattle::apply(ctx),
+        1998 => dehorn_cattle::apply(ctx),
+        1999 => castrate_steer::apply(ctx),
+        2000 => milk_cow::apply(ctx),
+        2001 => milk_goat::apply(ctx),
+        2002 => milk_sheep::apply(ctx),
+        2003 => milk_buffalo::apply(ctx),
+        2004 => milk_camel::apply(ctx),
+        2005 => shear_sheep_dexter::apply(ctx),
+        2006 => shear_alpaca::apply(ctx),
+        2007 => dock_lamb_tail::apply(ctx),
+        2008 => castrate_lamb::apply(ctx),
+        2009 => mark_lamb::apply(ctx),
+        2010 => card_fleece::apply(ctx),
+        2011 => bag_fleece::apply(ctx),
+        2012 => skirt_fleece::apply(ctx),
+        2013 => pluck_chicken::apply(ctx),
+        2014 => pluck_goose::apply(ctx),
+        2015 => collect_eggs::apply(ctx),
+        2016 => candle_eggs::apply(ctx),
+        2017 => hatch_chicks::apply(ctx),
+        2018 => raise_ducklings::apply(ctx),
+        2019 => raise_goslings::apply(ctx),
+        2020 => feed_swine::apply(ctx),
+        2021 => slop_pigs::apply(ctx),
+        2022 => muck_stable::apply(ctx),
+        2023 => muck_barn::apply(ctx),
+        2024 => brush_horse::apply(ctx),
+        2025 => cool_down_horse::apply(ctx),
+        2026 => warm_up_horse::apply(ctx),
+        2027 => blanket_horse::apply(ctx),
+        2028 => pick_hoof::apply(ctx),
+        2029 => clean_tack::apply(ctx),
+        _   => 0.0,
+    }
+}
