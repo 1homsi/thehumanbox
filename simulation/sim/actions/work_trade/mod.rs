@@ -1,0 +1,108 @@
+pub mod haul_cargo;
+pub mod unload_cargo;
+pub mod load_cargo;
+pub mod stack_crates;
+pub mod stack_barrels;
+pub mod roll_barrel;
+pub mod coopering_barrel;
+pub mod mend_barrel;
+pub mod pitch_barrel;
+pub mod cooper_hoop;
+pub mod carry_pail;
+pub mod draw_water_for_pay;
+pub mod churn_for_pay;
+pub mod wash_dishes_for_pay;
+pub mod sweep_yard_for_pay;
+pub mod thresh_for_pay;
+pub mod reap_for_pay;
+pub mod sow_for_pay;
+pub mod weed_for_pay;
+pub mod water_for_pay;
+pub mod cut_hay_for_pay;
+pub mod rake_hay_for_pay;
+pub mod stack_hay_for_pay;
+pub mod bale_hay_for_pay;
+pub mod bring_in_hay;
+pub mod pick_apples_for_pay;
+pub mod pick_grapes_for_pay;
+pub mod pick_olives_for_pay;
+pub mod press_grapes;
+pub mod press_olives;
+pub mod shear_sheep;
+pub mod card_for_pay;
+pub mod spin_for_pay;
+pub mod weave_for_pay;
+pub mod full_for_pay;
+pub mod shovel_coal;
+pub mod stoke_furnace;
+pub mod operate_bellows;
+pub mod pump_billows;
+pub mod quench_steel_for_pay;
+pub mod carry_charcoal;
+pub mod split_logs_for_pay;
+pub mod stack_wood_for_pay;
+pub mod chop_wood_for_pay;
+pub mod haul_logs;
+pub mod drive_oxen;
+pub mod drive_mule_team;
+pub mod load_mule;
+pub mod load_oxen;
+pub mod carry_load_to_market;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        1680 => haul_cargo::apply(ctx),
+        1681 => unload_cargo::apply(ctx),
+        1682 => load_cargo::apply(ctx),
+        1683 => stack_crates::apply(ctx),
+        1684 => stack_barrels::apply(ctx),
+        1685 => roll_barrel::apply(ctx),
+        1686 => coopering_barrel::apply(ctx),
+        1687 => mend_barrel::apply(ctx),
+        1688 => pitch_barrel::apply(ctx),
+        1689 => cooper_hoop::apply(ctx),
+        1690 => carry_pail::apply(ctx),
+        1691 => draw_water_for_pay::apply(ctx),
+        1692 => churn_for_pay::apply(ctx),
+        1693 => wash_dishes_for_pay::apply(ctx),
+        1694 => sweep_yard_for_pay::apply(ctx),
+        1695 => thresh_for_pay::apply(ctx),
+        1696 => reap_for_pay::apply(ctx),
+        1697 => sow_for_pay::apply(ctx),
+        1698 => weed_for_pay::apply(ctx),
+        1699 => water_for_pay::apply(ctx),
+        1700 => cut_hay_for_pay::apply(ctx),
+        1701 => rake_hay_for_pay::apply(ctx),
+        1702 => stack_hay_for_pay::apply(ctx),
+        1703 => bale_hay_for_pay::apply(ctx),
+        1704 => bring_in_hay::apply(ctx),
+        1705 => pick_apples_for_pay::apply(ctx),
+        1706 => pick_grapes_for_pay::apply(ctx),
+        1707 => pick_olives_for_pay::apply(ctx),
+        1708 => press_grapes::apply(ctx),
+        1709 => press_olives::apply(ctx),
+        1710 => shear_sheep::apply(ctx),
+        1711 => card_for_pay::apply(ctx),
+        1712 => spin_for_pay::apply(ctx),
+        1713 => weave_for_pay::apply(ctx),
+        1714 => full_for_pay::apply(ctx),
+        1715 => shovel_coal::apply(ctx),
+        1716 => stoke_furnace::apply(ctx),
+        1717 => operate_bellows::apply(ctx),
+        1718 => pump_billows::apply(ctx),
+        1719 => quench_steel_for_pay::apply(ctx),
+        1720 => carry_charcoal::apply(ctx),
+        1721 => split_logs_for_pay::apply(ctx),
+        1722 => stack_wood_for_pay::apply(ctx),
+        1723 => chop_wood_for_pay::apply(ctx),
+        1724 => haul_logs::apply(ctx),
+        1725 => drive_oxen::apply(ctx),
+        1726 => drive_mule_team::apply(ctx),
+        1727 => load_mule::apply(ctx),
+        1728 => load_oxen::apply(ctx),
+        1729 => carry_load_to_market::apply(ctx),
+        _   => 0.0,
+    }
+}
