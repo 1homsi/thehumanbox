@@ -90,6 +90,16 @@ pub mod glasswork;
 pub mod textiles;
 pub mod leatherwork;
 pub mod ceramics_pottery;
+pub mod science_lab;
+pub mod field_research;
+pub mod cyber_action;
+pub mod bio_action;
+pub mod ecological;
+pub mod mountaineering;
+pub mod water_sports;
+pub mod stargazing;
+pub mod emergency_response;
+pub mod political_action;
 
 use ctx::ActionCtx;
 use super::simulation::Simulation;
@@ -264,6 +274,16 @@ pub fn available_actions(sim: &Simulation, idx: usize, ix: i32, iy: i32) -> Vec<
     a.extend(3960..=4009);
     a.extend(4020..=4069);
     a.extend(4080..=4124);
+    a.extend(4140..=4189);
+    a.extend(4200..=4249);
+    a.extend(4260..=4309);
+    a.extend(4320..=4369);
+    a.extend(4380..=4429);
+    a.extend(4440..=4489);
+    a.extend(4500..=4549);
+    a.extend(4560..=4609);
+    a.extend(4620..=4669);
+    a.extend(4680..=4729);
 
     a
 }
@@ -368,6 +388,16 @@ pub fn try_apply(sim: &mut Simulation, idx: usize, action: usize, ix: i32, iy: i
         3960..=4009 => textiles::apply(action, &mut ctx),
         4020..=4069 => leatherwork::apply(action, &mut ctx),
         4080..=4124 => ceramics_pottery::apply(action, &mut ctx),
+        4140..=4189 => science_lab::apply(action, &mut ctx),
+        4200..=4249 => field_research::apply(action, &mut ctx),
+        4260..=4309 => cyber_action::apply(action, &mut ctx),
+        4320..=4369 => bio_action::apply(action, &mut ctx),
+        4380..=4429 => ecological::apply(action, &mut ctx),
+        4440..=4489 => mountaineering::apply(action, &mut ctx),
+        4500..=4549 => water_sports::apply(action, &mut ctx),
+        4560..=4609 => stargazing::apply(action, &mut ctx),
+        4620..=4669 => emergency_response::apply(action, &mut ctx),
+        4680..=4729 => political_action::apply(action, &mut ctx),
         _           => return None,
     };
     Some(r)
