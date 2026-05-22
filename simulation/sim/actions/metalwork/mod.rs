@@ -1,0 +1,108 @@
+pub mod draw_wire;
+pub mod roll_sheet;
+pub mod stamp_blank;
+pub mod punch_disc;
+pub mod cut_strap;
+pub mod hammer_planish;
+pub mod hammer_raise;
+pub mod hammer_sink;
+pub mod hammer_chase;
+pub mod hammer_repousse;
+pub mod scrape_seam;
+pub mod file_seam;
+pub mod burnish_seam;
+pub mod buff_seam;
+pub mod polish_seam;
+pub mod rivet_cold;
+pub mod rivet_hot;
+pub mod rivet_pop;
+pub mod rivet_blind;
+pub mod rivet_button;
+pub mod solder_silver;
+pub mod solder_gold;
+pub mod solder_tin;
+pub mod solder_lead;
+pub mod solder_brass;
+pub mod braze_silver;
+pub mod braze_copper;
+pub mod braze_steel;
+pub mod braze_iron;
+pub mod braze_alloy;
+pub mod inlay_silver;
+pub mod inlay_gold;
+pub mod inlay_niello;
+pub mod inlay_mother_of_pearl;
+pub mod inlay_amber;
+pub mod engrave_line;
+pub mod engrave_dot;
+pub mod engrave_scribe;
+pub mod engrave_cross_hatch;
+pub mod engrave_florid;
+pub mod patina_acid;
+pub mod patina_heat;
+pub mod patina_smoke;
+pub mod patina_burial;
+pub mod patina_brine;
+pub mod electroplate_silver;
+pub mod electroplate_gold;
+pub mod electroplate_nickel;
+pub mod electroplate_chrome;
+pub mod electroplate_copper;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        3840 => draw_wire::apply(ctx),
+        3841 => roll_sheet::apply(ctx),
+        3842 => stamp_blank::apply(ctx),
+        3843 => punch_disc::apply(ctx),
+        3844 => cut_strap::apply(ctx),
+        3845 => hammer_planish::apply(ctx),
+        3846 => hammer_raise::apply(ctx),
+        3847 => hammer_sink::apply(ctx),
+        3848 => hammer_chase::apply(ctx),
+        3849 => hammer_repousse::apply(ctx),
+        3850 => scrape_seam::apply(ctx),
+        3851 => file_seam::apply(ctx),
+        3852 => burnish_seam::apply(ctx),
+        3853 => buff_seam::apply(ctx),
+        3854 => polish_seam::apply(ctx),
+        3855 => rivet_cold::apply(ctx),
+        3856 => rivet_hot::apply(ctx),
+        3857 => rivet_pop::apply(ctx),
+        3858 => rivet_blind::apply(ctx),
+        3859 => rivet_button::apply(ctx),
+        3860 => solder_silver::apply(ctx),
+        3861 => solder_gold::apply(ctx),
+        3862 => solder_tin::apply(ctx),
+        3863 => solder_lead::apply(ctx),
+        3864 => solder_brass::apply(ctx),
+        3865 => braze_silver::apply(ctx),
+        3866 => braze_copper::apply(ctx),
+        3867 => braze_steel::apply(ctx),
+        3868 => braze_iron::apply(ctx),
+        3869 => braze_alloy::apply(ctx),
+        3870 => inlay_silver::apply(ctx),
+        3871 => inlay_gold::apply(ctx),
+        3872 => inlay_niello::apply(ctx),
+        3873 => inlay_mother_of_pearl::apply(ctx),
+        3874 => inlay_amber::apply(ctx),
+        3875 => engrave_line::apply(ctx),
+        3876 => engrave_dot::apply(ctx),
+        3877 => engrave_scribe::apply(ctx),
+        3878 => engrave_cross_hatch::apply(ctx),
+        3879 => engrave_florid::apply(ctx),
+        3880 => patina_acid::apply(ctx),
+        3881 => patina_heat::apply(ctx),
+        3882 => patina_smoke::apply(ctx),
+        3883 => patina_burial::apply(ctx),
+        3884 => patina_brine::apply(ctx),
+        3885 => electroplate_silver::apply(ctx),
+        3886 => electroplate_gold::apply(ctx),
+        3887 => electroplate_nickel::apply(ctx),
+        3888 => electroplate_chrome::apply(ctx),
+        3889 => electroplate_copper::apply(ctx),
+        _   => 0.0,
+    }
+}
