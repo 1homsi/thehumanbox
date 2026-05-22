@@ -44,6 +44,7 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick % 600 == 0 {
         tick_leader_influence(sim);
     }
+    super::economy_tick::tick_economy(sim, tick);
     if tick % 1200 == 0 {
         tick_disease_introduce(sim);
     }

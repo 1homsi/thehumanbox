@@ -182,6 +182,30 @@ impl Organism {
                     }
                 }
             }
+            let has_blade = self.discoveries.contains("stone_tools")
+                || self.discoveries.contains("axe")
+                || self.discoveries.contains("tool_making");
+            if has_blade && self.inv_wood < 3 && self.energy > 0.55
+                && rng.gen::<f32>() < 0.30 {
+                if tile == Tile::Grass {
+                    set_thought!("chopping wood");
+                    return (27, thought);
+                }
+                if let Some(t) = self.nearest_visible(grid, Tile::Grass, 8) {
+                    set_thought!("heading to the trees");
+                    return (self.toward(t, grid), thought);
+                }
+            }
+            if self.discoveries.contains("forestry")
+                && self.inv_wood == 0
+                && dist_home < 8.0
+                && self.energy > 0.50
+                && rng.gen::<f32>() < 0.08 {
+                if tile == Tile::Grass {
+                    set_thought!("planting a sapling");
+                    return (30, thought);
+                }
+            }
         }
 
         if !self.danger_memory.is_empty() {

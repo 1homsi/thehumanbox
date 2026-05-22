@@ -273,10 +273,17 @@ fn main() {
         .iter()
         .filter(|o| o.discoveries.contains(&"medicine".to_string()))
         .count();
+    let barter_disc = sim.organisms.iter().filter(|o| o.discoveries.contains(&"barter".to_string())).count();
+    let currency_disc = sim.organisms.iter().filter(|o| o.discoveries.contains(&"currency".to_string())).count();
+    let wood_disc = sim.organisms.iter().filter(|o| o.discoveries.contains(&"woodcutting".to_string())).count();
+    let forestry_disc = sim.organisms.iter().filter(|o| o.discoveries.contains(&"forestry".to_string())).count();
+    let rich_n = sim.organisms.iter().filter(|o| o.alive && o.discoveries.contains(&"rich".to_string())).count();
+    let poor_n = sim.organisms.iter().filter(|o| o.alive && o.discoveries.contains(&"poor".to_string())).count();
     println!(
-        "\nDiscoveries (ever, alive+dead):  fire={}  shelter={}  hunt={}  medicine={}",
-        fire_disc, shelter_disc, hunt_disc, medicine_disc
+        "\nDiscoveries (ever, alive+dead):  fire={}  shelter={}  hunt={}  medicine={}  woodcutting={}  forestry={}  barter={}  currency={}",
+        fire_disc, shelter_disc, hunt_disc, medicine_disc, wood_disc, forestry_disc, barter_disc, currency_disc
     );
+    println!("Wealth split (alive):  rich={}  poor={}  trades_log={}", rich_n, poor_n, sim.trades.len());
     let mut era_counts: HashMap<String, usize> = HashMap::new();
     for (_, era) in sim.lineage_eras.iter() {
         *era_counts.entry(era.name().to_string()).or_insert(0) += 1;

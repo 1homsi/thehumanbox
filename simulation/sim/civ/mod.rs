@@ -1,6 +1,7 @@
 pub mod civ_tick;
 pub mod culture;
 pub mod economy;
+pub mod economy_tick;
 pub mod education;
 pub mod era;
 pub mod government;

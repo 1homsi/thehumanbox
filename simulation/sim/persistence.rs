@@ -698,6 +698,7 @@ impl Simulation {
             outbreaks: Vec::new(),
             milestones_achieved: HashSet::new(),
             headlines: std::collections::VecDeque::new(),
+            trades: std::collections::VecDeque::new(),
         };
         // The save format only stores the forward map; rebuild the
         // inverse map after the struct exists. Last claim in the
