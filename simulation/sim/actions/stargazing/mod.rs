@@ -1,0 +1,108 @@
+pub mod set_up_telescope;
+pub mod align_finder;
+pub mod polar_align;
+pub mod balance_mount;
+pub mod focus_eyepiece;
+pub mod swap_eyepiece;
+pub mod insert_barlow;
+pub mod insert_filter;
+pub mod use_color_filter;
+pub mod use_planetary_filter;
+pub mod use_solar_filter;
+pub mod observe_sun;
+pub mod observe_sunspot;
+pub mod observe_prominence;
+pub mod observe_corona;
+pub mod observe_moon_terminator;
+pub mod observe_lunar_crater;
+pub mod observe_lunar_sea;
+pub mod observe_lunar_libration;
+pub mod sketch_moon;
+pub mod observe_mercury;
+pub mod observe_venus_phase;
+pub mod observe_mars_polar_cap;
+pub mod observe_jupiter_belt;
+pub mod observe_io;
+pub mod observe_europa;
+pub mod observe_ganymede;
+pub mod observe_callisto;
+pub mod observe_saturn_ring;
+pub mod observe_titan;
+pub mod observe_uranus;
+pub mod observe_neptune;
+pub mod observe_pluto;
+pub mod observe_asteroid;
+pub mod observe_comet;
+pub mod observe_double_star;
+pub mod observe_open_cluster;
+pub mod observe_globular_cluster;
+pub mod observe_nebula;
+pub mod observe_galaxy;
+pub mod sketch_planet;
+pub mod sketch_cluster;
+pub mod sketch_nebula;
+pub mod sketch_galaxy_obs;
+pub mod astrophotograph;
+pub mod guide_long_exposure;
+pub mod stack_frames;
+pub mod calibrate_dark;
+pub mod flat_field;
+pub mod bias_frame;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        4560 => set_up_telescope::apply(ctx),
+        4561 => align_finder::apply(ctx),
+        4562 => polar_align::apply(ctx),
+        4563 => balance_mount::apply(ctx),
+        4564 => focus_eyepiece::apply(ctx),
+        4565 => swap_eyepiece::apply(ctx),
+        4566 => insert_barlow::apply(ctx),
+        4567 => insert_filter::apply(ctx),
+        4568 => use_color_filter::apply(ctx),
+        4569 => use_planetary_filter::apply(ctx),
+        4570 => use_solar_filter::apply(ctx),
+        4571 => observe_sun::apply(ctx),
+        4572 => observe_sunspot::apply(ctx),
+        4573 => observe_prominence::apply(ctx),
+        4574 => observe_corona::apply(ctx),
+        4575 => observe_moon_terminator::apply(ctx),
+        4576 => observe_lunar_crater::apply(ctx),
+        4577 => observe_lunar_sea::apply(ctx),
+        4578 => observe_lunar_libration::apply(ctx),
+        4579 => sketch_moon::apply(ctx),
+        4580 => observe_mercury::apply(ctx),
+        4581 => observe_venus_phase::apply(ctx),
+        4582 => observe_mars_polar_cap::apply(ctx),
+        4583 => observe_jupiter_belt::apply(ctx),
+        4584 => observe_io::apply(ctx),
+        4585 => observe_europa::apply(ctx),
+        4586 => observe_ganymede::apply(ctx),
+        4587 => observe_callisto::apply(ctx),
+        4588 => observe_saturn_ring::apply(ctx),
+        4589 => observe_titan::apply(ctx),
+        4590 => observe_uranus::apply(ctx),
+        4591 => observe_neptune::apply(ctx),
+        4592 => observe_pluto::apply(ctx),
+        4593 => observe_asteroid::apply(ctx),
+        4594 => observe_comet::apply(ctx),
+        4595 => observe_double_star::apply(ctx),
+        4596 => observe_open_cluster::apply(ctx),
+        4597 => observe_globular_cluster::apply(ctx),
+        4598 => observe_nebula::apply(ctx),
+        4599 => observe_galaxy::apply(ctx),
+        4600 => sketch_planet::apply(ctx),
+        4601 => sketch_cluster::apply(ctx),
+        4602 => sketch_nebula::apply(ctx),
+        4603 => sketch_galaxy_obs::apply(ctx),
+        4604 => astrophotograph::apply(ctx),
+        4605 => guide_long_exposure::apply(ctx),
+        4606 => stack_frames::apply(ctx),
+        4607 => calibrate_dark::apply(ctx),
+        4608 => flat_field::apply(ctx),
+        4609 => bias_frame::apply(ctx),
+        _   => 0.0,
+    }
+}
