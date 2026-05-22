@@ -1,0 +1,108 @@
+pub mod rock_on_porch;
+pub mod knit_on_porch;
+pub mod carve_on_porch;
+pub mod read_on_porch;
+pub mod nap_on_porch;
+pub mod pass_down_recipe_2;
+pub mod pass_down_story_2;
+pub mod pass_down_song_2;
+pub mod pass_down_blessing_2;
+pub mod pass_down_grudge;
+pub mod tell_great_grandkid_story;
+pub mod sing_great_grandkid_lullaby;
+pub mod teach_great_grandkid_song;
+pub mod teach_great_grandkid_chant;
+pub mod teach_great_grandkid_chore;
+pub mod walk_to_well;
+pub mod walk_to_garden;
+pub mod walk_to_grave;
+pub mod walk_to_temple;
+pub mod walk_to_hearth;
+pub mod watch_river_pass;
+pub mod watch_clouds_pass;
+pub mod watch_birds_pass;
+pub mod watch_kids_pass;
+pub mod watch_seasons_pass;
+pub mod recall_youth_to_kin;
+pub mod recall_courting_to_kin;
+pub mod recall_first_kin_to_kin;
+pub mod recall_first_winter_to_kin;
+pub mod recall_first_loss_to_kin;
+pub mod hum_old_song;
+pub mod hum_old_chant;
+pub mod hum_old_dance;
+pub mod hum_old_lullaby;
+pub mod hum_old_lament;
+pub mod sleep_in_afternoon;
+pub mod sleep_through_dawn;
+pub mod sleep_through_dusk;
+pub mod sleep_after_meal;
+pub mod sleep_after_grief;
+pub mod pray_at_window;
+pub mod pray_at_threshold;
+pub mod pray_at_river;
+pub mod pray_at_grave;
+pub mod pray_at_hearth;
+pub mod bless_first_grandchild;
+pub mod bless_first_great_grandchild;
+pub mod bless_first_marriage_grandkid;
+pub mod bless_first_kin_to_leave;
+pub mod bless_first_kin_to_return;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        5640 => rock_on_porch::apply(ctx),
+        5641 => knit_on_porch::apply(ctx),
+        5642 => carve_on_porch::apply(ctx),
+        5643 => read_on_porch::apply(ctx),
+        5644 => nap_on_porch::apply(ctx),
+        5645 => pass_down_recipe_2::apply(ctx),
+        5646 => pass_down_story_2::apply(ctx),
+        5647 => pass_down_song_2::apply(ctx),
+        5648 => pass_down_blessing_2::apply(ctx),
+        5649 => pass_down_grudge::apply(ctx),
+        5650 => tell_great_grandkid_story::apply(ctx),
+        5651 => sing_great_grandkid_lullaby::apply(ctx),
+        5652 => teach_great_grandkid_song::apply(ctx),
+        5653 => teach_great_grandkid_chant::apply(ctx),
+        5654 => teach_great_grandkid_chore::apply(ctx),
+        5655 => walk_to_well::apply(ctx),
+        5656 => walk_to_garden::apply(ctx),
+        5657 => walk_to_grave::apply(ctx),
+        5658 => walk_to_temple::apply(ctx),
+        5659 => walk_to_hearth::apply(ctx),
+        5660 => watch_river_pass::apply(ctx),
+        5661 => watch_clouds_pass::apply(ctx),
+        5662 => watch_birds_pass::apply(ctx),
+        5663 => watch_kids_pass::apply(ctx),
+        5664 => watch_seasons_pass::apply(ctx),
+        5665 => recall_youth_to_kin::apply(ctx),
+        5666 => recall_courting_to_kin::apply(ctx),
+        5667 => recall_first_kin_to_kin::apply(ctx),
+        5668 => recall_first_winter_to_kin::apply(ctx),
+        5669 => recall_first_loss_to_kin::apply(ctx),
+        5670 => hum_old_song::apply(ctx),
+        5671 => hum_old_chant::apply(ctx),
+        5672 => hum_old_dance::apply(ctx),
+        5673 => hum_old_lullaby::apply(ctx),
+        5674 => hum_old_lament::apply(ctx),
+        5675 => sleep_in_afternoon::apply(ctx),
+        5676 => sleep_through_dawn::apply(ctx),
+        5677 => sleep_through_dusk::apply(ctx),
+        5678 => sleep_after_meal::apply(ctx),
+        5679 => sleep_after_grief::apply(ctx),
+        5680 => pray_at_window::apply(ctx),
+        5681 => pray_at_threshold::apply(ctx),
+        5682 => pray_at_river::apply(ctx),
+        5683 => pray_at_grave::apply(ctx),
+        5684 => pray_at_hearth::apply(ctx),
+        5685 => bless_first_grandchild::apply(ctx),
+        5686 => bless_first_great_grandchild::apply(ctx),
+        5687 => bless_first_marriage_grandkid::apply(ctx),
+        5688 => bless_first_kin_to_leave::apply(ctx),
+        5689 => bless_first_kin_to_return::apply(ctx),
+        _   => 0.0,
+    }
+}
