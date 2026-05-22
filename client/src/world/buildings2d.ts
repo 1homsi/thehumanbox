@@ -178,15 +178,20 @@ export function drawBuilding(
   const k = normKind(building.kind)
 
   ctx.save()
-  ctx.fillStyle = 'rgba(0,0,0,0.32)'
-  ctx.beginPath()
-  ctx.ellipse(
-    px + w / 2,
-    py + h + tileSize * 0.18,
-    w * 0.48,
-    tileSize * 0.34,
-    0, 0, Math.PI * 2,
+  const shadowCx = px + w / 2
+  const shadowCy = py + h + tileSize * 0.05
+  const shadowRx = w * 0.62
+  const shadowRy = tileSize * 0.42
+  const grad = ctx.createRadialGradient(
+    shadowCx, shadowCy, 0,
+    shadowCx, shadowCy, Math.max(shadowRx, shadowRy),
   )
+  grad.addColorStop(0,    'rgba(0,0,0,0.55)')
+  grad.addColorStop(0.55, 'rgba(0,0,0,0.30)')
+  grad.addColorStop(1,    'rgba(0,0,0,0)')
+  ctx.fillStyle = grad
+  ctx.beginPath()
+  ctx.ellipse(shadowCx, shadowCy, shadowRx, shadowRy, 0, 0, Math.PI * 2)
   ctx.fill()
   ctx.restore()
 
@@ -197,12 +202,19 @@ export function drawBuilding(
     const wall = wallColor(k)
     const roof = roofColor(k) ?? '#5a2818'
 
+    const foundH = Math.max(2, tileSize * 0.18)
+    const foundOver = Math.max(1, tileSize * 0.10)
+    ctx.fillStyle = 'rgba(28,22,16,0.85)'
+    ctx.fillRect(px - foundOver, py + h - foundH, w + foundOver * 2, foundH + foundOver)
+    ctx.fillStyle = 'rgba(0,0,0,0.45)'
+    ctx.fillRect(px - foundOver, py + h + foundOver - 1, w + foundOver * 2, 1)
+
     ctx.fillStyle = wall
     ctx.fillRect(px, wallY, w, wallH)
     ctx.fillStyle = 'rgba(0,0,0,0.18)'
     ctx.fillRect(px, wallY, w, Math.max(2, wallH * 0.10))
-    ctx.fillStyle = 'rgba(0,0,0,0.10)'
-    ctx.fillRect(px, py + h - Math.max(2, wallH * 0.10), w, Math.max(2, wallH * 0.10))
+    ctx.fillStyle = 'rgba(0,0,0,0.22)'
+    ctx.fillRect(px, py + h - Math.max(2, wallH * 0.14), w, Math.max(2, wallH * 0.14))
 
     ctx.fillStyle = roof
     ctx.beginPath()
