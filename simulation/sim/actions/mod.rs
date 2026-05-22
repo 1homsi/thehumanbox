@@ -50,6 +50,16 @@ pub mod spiritual_practice;
 pub mod court_politics;
 pub mod childcare;
 pub mod work_trade;
+pub mod crime_law;
+pub mod seafaring;
+pub mod arts_performance;
+pub mod agriculture_advanced;
+pub mod animal_handling;
+pub mod industry;
+pub mod tech_use;
+pub mod survival;
+pub mod relationships_deep;
+pub mod self_improvement;
 
 use ctx::ActionCtx;
 use super::simulation::Simulation;
@@ -184,6 +194,16 @@ pub fn available_actions(sim: &Simulation, idx: usize, ix: i32, iy: i32) -> Vec<
     a.extend(1560..=1608);
     a.extend(1620..=1668);
     a.extend(1680..=1729);
+    a.extend(1740..=1790);
+    a.extend(1800..=1849);
+    a.extend(1860..=1909);
+    a.extend(1920..=1969);
+    a.extend(1980..=2029);
+    a.extend(2040..=2089);
+    a.extend(2100..=2149);
+    a.extend(2160..=2212);
+    a.extend(2220..=2269);
+    a.extend(2280..=2329);
 
     a
 }
@@ -248,6 +268,16 @@ pub fn try_apply(sim: &mut Simulation, idx: usize, action: usize, ix: i32, iy: i
         1560..=1608 => court_politics::apply(action, &mut ctx),
         1620..=1668 => childcare::apply(action, &mut ctx),
         1680..=1729 => work_trade::apply(action, &mut ctx),
+        1740..=1790 => crime_law::apply(action, &mut ctx),
+        1800..=1849 => seafaring::apply(action, &mut ctx),
+        1860..=1909 => arts_performance::apply(action, &mut ctx),
+        1920..=1969 => agriculture_advanced::apply(action, &mut ctx),
+        1980..=2029 => animal_handling::apply(action, &mut ctx),
+        2040..=2089 => industry::apply(action, &mut ctx),
+        2100..=2149 => tech_use::apply(action, &mut ctx),
+        2160..=2212 => survival::apply(action, &mut ctx),
+        2220..=2269 => relationships_deep::apply(action, &mut ctx),
+        2280..=2329 => self_improvement::apply(action, &mut ctx),
         _           => return None,
     };
     Some(r)
