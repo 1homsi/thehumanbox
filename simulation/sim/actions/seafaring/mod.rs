@@ -1,0 +1,108 @@
+pub mod splice_rope;
+pub mod coil_rope;
+pub mod tie_bowline;
+pub mod tie_clove_hitch;
+pub mod tie_reef_knot;
+pub mod pump_bilge;
+pub mod swab_deck;
+pub mod holystone_deck;
+pub mod careen_hull;
+pub mod caulk_seams;
+pub mod tar_rope;
+pub mod tar_seam;
+pub mod pitch_hull;
+pub mod rivet_plate;
+pub mod reef_topsail;
+pub mod haul_yard;
+pub mod brace_yard;
+pub mod handle_tiller;
+pub mod bear_away;
+pub mod come_about;
+pub mod tack_into_wind;
+pub mod run_before_wind;
+pub mod sound_depth;
+pub mod heave_lead;
+pub mod heave_to;
+pub mod cast_lead;
+pub mod read_chart;
+pub mod take_bearing;
+pub mod fix_position;
+pub mod record_log;
+pub mod hoist_signal_flag;
+pub mod fly_pennant;
+pub mod strike_colors;
+pub mod load_cannon;
+pub mod swab_cannon;
+pub mod prime_cannon;
+pub mod aim_cannon;
+pub mod fire_cannon;
+pub mod clean_cannon;
+pub mod stow_powder;
+pub mod inspect_rigging;
+pub mod mend_sail;
+pub mod patch_sail;
+pub mod furl_jib;
+pub mod hoist_jib;
+pub mod flake_anchor;
+pub mod catfish_anchor;
+pub mod weigh_kedge;
+pub mod ride_swell;
+pub mod ride_chop;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        1800 => splice_rope::apply(ctx),
+        1801 => coil_rope::apply(ctx),
+        1802 => tie_bowline::apply(ctx),
+        1803 => tie_clove_hitch::apply(ctx),
+        1804 => tie_reef_knot::apply(ctx),
+        1805 => pump_bilge::apply(ctx),
+        1806 => swab_deck::apply(ctx),
+        1807 => holystone_deck::apply(ctx),
+        1808 => careen_hull::apply(ctx),
+        1809 => caulk_seams::apply(ctx),
+        1810 => tar_rope::apply(ctx),
+        1811 => tar_seam::apply(ctx),
+        1812 => pitch_hull::apply(ctx),
+        1813 => rivet_plate::apply(ctx),
+        1814 => reef_topsail::apply(ctx),
+        1815 => haul_yard::apply(ctx),
+        1816 => brace_yard::apply(ctx),
+        1817 => handle_tiller::apply(ctx),
+        1818 => bear_away::apply(ctx),
+        1819 => come_about::apply(ctx),
+        1820 => tack_into_wind::apply(ctx),
+        1821 => run_before_wind::apply(ctx),
+        1822 => sound_depth::apply(ctx),
+        1823 => heave_lead::apply(ctx),
+        1824 => heave_to::apply(ctx),
+        1825 => cast_lead::apply(ctx),
+        1826 => read_chart::apply(ctx),
+        1827 => take_bearing::apply(ctx),
+        1828 => fix_position::apply(ctx),
+        1829 => record_log::apply(ctx),
+        1830 => hoist_signal_flag::apply(ctx),
+        1831 => fly_pennant::apply(ctx),
+        1832 => strike_colors::apply(ctx),
+        1833 => load_cannon::apply(ctx),
+        1834 => swab_cannon::apply(ctx),
+        1835 => prime_cannon::apply(ctx),
+        1836 => aim_cannon::apply(ctx),
+        1837 => fire_cannon::apply(ctx),
+        1838 => clean_cannon::apply(ctx),
+        1839 => stow_powder::apply(ctx),
+        1840 => inspect_rigging::apply(ctx),
+        1841 => mend_sail::apply(ctx),
+        1842 => patch_sail::apply(ctx),
+        1843 => furl_jib::apply(ctx),
+        1844 => hoist_jib::apply(ctx),
+        1845 => flake_anchor::apply(ctx),
+        1846 => catfish_anchor::apply(ctx),
+        1847 => weigh_kedge::apply(ctx),
+        1848 => ride_swell::apply(ctx),
+        1849 => ride_chop::apply(ctx),
+        _   => 0.0,
+    }
+}
