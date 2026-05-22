@@ -53,7 +53,22 @@ impl WorldGrid {
             trail_dirty: std::collections::HashSet::new(),
         };
         g.generate(seed);
+        g.enforce_ocean_border();
         g
+    }
+
+    fn enforce_ocean_border(&mut self) {
+        const KILL_X: i32 = (WIDTH  as f32 * 0.04) as i32;
+        const KILL_Y: i32 = (HEIGHT as f32 * 0.04) as i32;
+        for y in 0..HEIGHT as i32 {
+            for x in 0..WIDTH as i32 {
+                if x < KILL_X || x >= WIDTH as i32 - KILL_X
+                   || y < KILL_Y || y >= HEIGHT as i32 - KILL_Y {
+                    let i = Self::idx(x, y);
+                    self.tiles[i] = Tile::Water as i8;
+                }
+            }
+        }
     }
 
     pub fn idx(x: i32, y: i32) -> usize {
@@ -437,7 +452,29 @@ impl WorldGrid {
                     1.0
                 };
 
-                raw_elev[Self::idx(x as i32, y as i32)] = (noise + cont_lift) * polar_fade;
+                // Hard ocean border: pin elevation below sea level
+                // within EDGE_KILL of any side, soft-fade through
+                // EDGE_FADE_END. Continents may approach the coast
+                // but never touch the map boundary, so every world
+                // is wrapped in real ocean instead of cliff-cut
+                // landmass.
+                const EDGE_KILL:     f32 = 0.04;
+                const EDGE_FADE_END: f32 = 0.12;
+                let dx_edge = nx.min(1.0 - nx);
+                let dy_edge = ny.min(1.0 - ny);
+                let d_edge  = dx_edge.min(dy_edge);
+                let edge_fade = if d_edge < EDGE_KILL {
+                    -0.5
+                } else if d_edge < EDGE_FADE_END {
+                    let t = (d_edge - EDGE_KILL) / (EDGE_FADE_END - EDGE_KILL);
+                    t * t * (3.0 - 2.0 * t)
+                } else {
+                    1.0
+                };
+
+                raw_elev[Self::idx(x as i32, y as i32)] =
+                    ((noise + cont_lift) * polar_fade) * edge_fade.max(0.0)
+                    + edge_fade.min(0.0);
             }
         }
 
