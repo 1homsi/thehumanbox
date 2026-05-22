@@ -1,0 +1,108 @@
+pub mod walk_to_next_village;
+pub mod walk_to_neighbor_camp;
+pub mod seek_pilgrimage;
+pub mod visit_ancestor_grave;
+pub mod visit_holy_site;
+pub mod visit_hot_spring;
+pub mod visit_oasis;
+pub mod cross_desert;
+pub mod cross_steppe;
+pub mod cross_tundra;
+pub mod cross_mountain;
+pub mod cross_jungle;
+pub mod cross_swamp;
+pub mod ford_river;
+pub mod portage_canoe;
+pub mod trek_with_pack;
+pub mod camp_overnight;
+pub mod camp_two_nights;
+pub mod build_temporary_shelter;
+pub mod scout_ridge;
+pub mod scout_valley;
+pub mod scout_river_bend;
+pub mod scout_coast;
+pub mod scout_island;
+pub mod scout_ruins;
+pub mod scout_cave;
+pub mod follow_animal_trail;
+pub mod tag_along_caravan;
+pub mod join_pilgrimage;
+pub mod join_traders;
+pub mod map_canyon;
+pub mod map_island;
+pub mod map_shoreline;
+pub mod map_cavern;
+pub mod photograph_overlook;
+pub mod paint_overlook;
+pub mod chart_constellations;
+pub mod stargaze_alone;
+pub mod sunbathe;
+pub mod lie_in_grass;
+pub mod identify_landmark;
+pub mod name_creek;
+pub mod name_hill;
+pub mod name_bay;
+pub mod drop_marker;
+pub mod blaze_trail;
+pub mod leave_cairn;
+pub mod leave_marker;
+pub mod leave_token;
+pub mod return_home;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        1440 => walk_to_next_village::apply(ctx),
+        1441 => walk_to_neighbor_camp::apply(ctx),
+        1442 => seek_pilgrimage::apply(ctx),
+        1443 => visit_ancestor_grave::apply(ctx),
+        1444 => visit_holy_site::apply(ctx),
+        1445 => visit_hot_spring::apply(ctx),
+        1446 => visit_oasis::apply(ctx),
+        1447 => cross_desert::apply(ctx),
+        1448 => cross_steppe::apply(ctx),
+        1449 => cross_tundra::apply(ctx),
+        1450 => cross_mountain::apply(ctx),
+        1451 => cross_jungle::apply(ctx),
+        1452 => cross_swamp::apply(ctx),
+        1453 => ford_river::apply(ctx),
+        1454 => portage_canoe::apply(ctx),
+        1455 => trek_with_pack::apply(ctx),
+        1456 => camp_overnight::apply(ctx),
+        1457 => camp_two_nights::apply(ctx),
+        1458 => build_temporary_shelter::apply(ctx),
+        1459 => scout_ridge::apply(ctx),
+        1460 => scout_valley::apply(ctx),
+        1461 => scout_river_bend::apply(ctx),
+        1462 => scout_coast::apply(ctx),
+        1463 => scout_island::apply(ctx),
+        1464 => scout_ruins::apply(ctx),
+        1465 => scout_cave::apply(ctx),
+        1466 => follow_animal_trail::apply(ctx),
+        1467 => tag_along_caravan::apply(ctx),
+        1468 => join_pilgrimage::apply(ctx),
+        1469 => join_traders::apply(ctx),
+        1470 => map_canyon::apply(ctx),
+        1471 => map_island::apply(ctx),
+        1472 => map_shoreline::apply(ctx),
+        1473 => map_cavern::apply(ctx),
+        1474 => photograph_overlook::apply(ctx),
+        1475 => paint_overlook::apply(ctx),
+        1476 => chart_constellations::apply(ctx),
+        1477 => stargaze_alone::apply(ctx),
+        1478 => sunbathe::apply(ctx),
+        1479 => lie_in_grass::apply(ctx),
+        1480 => identify_landmark::apply(ctx),
+        1481 => name_creek::apply(ctx),
+        1482 => name_hill::apply(ctx),
+        1483 => name_bay::apply(ctx),
+        1484 => drop_marker::apply(ctx),
+        1485 => blaze_trail::apply(ctx),
+        1486 => leave_cairn::apply(ctx),
+        1487 => leave_marker::apply(ctx),
+        1488 => leave_token::apply(ctx),
+        1489 => return_home::apply(ctx),
+        _   => 0.0,
+    }
+}
