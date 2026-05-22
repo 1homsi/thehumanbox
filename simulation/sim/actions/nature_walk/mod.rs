@@ -1,0 +1,108 @@
+pub mod walk_in_woods;
+pub mod walk_along_shore;
+pub mod walk_through_field;
+pub mod walk_to_overlook;
+pub mod hike_trail;
+pub mod forage_acorns;
+pub mod forage_mushrooms;
+pub mod forage_berries;
+pub mod forage_nuts;
+pub mod forage_greens;
+pub mod spot_deer;
+pub mod spot_rabbit;
+pub mod spot_bird;
+pub mod identify_bird;
+pub mod trail_animal;
+pub mod follow_stream;
+pub mod cross_brook;
+pub mod climb_low_hill;
+pub mod rest_on_log;
+pub mod rest_under_tree;
+pub mod meditate_outdoors;
+pub mod stretch_outdoors;
+pub mod sun_on_face;
+pub mod skip_stones;
+pub mod float_leaf;
+pub mod watch_river;
+pub mod watch_waves;
+pub mod listen_to_wind;
+pub mod listen_to_rain;
+pub mod listen_to_birds;
+pub mod smell_pines;
+pub mod pick_wildflowers;
+pub mod braid_grass;
+pub mod weave_crown;
+pub mod chew_grass_blade;
+pub mod taste_sap;
+pub mod drink_from_stream;
+pub mod wade_in_creek;
+pub mod bathe_in_river;
+pub mod collect_driftwood;
+pub mod collect_acorn;
+pub mod collect_pinecone;
+pub mod gather_kindling;
+pub mod spot_fox;
+pub mod spot_squirrel;
+pub mod spot_owl;
+pub mod note_track;
+pub mod read_weather;
+pub mod watch_sunset;
+pub mod watch_sunrise;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        900 => walk_in_woods::apply(ctx),
+        901 => walk_along_shore::apply(ctx),
+        902 => walk_through_field::apply(ctx),
+        903 => walk_to_overlook::apply(ctx),
+        904 => hike_trail::apply(ctx),
+        905 => forage_acorns::apply(ctx),
+        906 => forage_mushrooms::apply(ctx),
+        907 => forage_berries::apply(ctx),
+        908 => forage_nuts::apply(ctx),
+        909 => forage_greens::apply(ctx),
+        910 => spot_deer::apply(ctx),
+        911 => spot_rabbit::apply(ctx),
+        912 => spot_bird::apply(ctx),
+        913 => identify_bird::apply(ctx),
+        914 => trail_animal::apply(ctx),
+        915 => follow_stream::apply(ctx),
+        916 => cross_brook::apply(ctx),
+        917 => climb_low_hill::apply(ctx),
+        918 => rest_on_log::apply(ctx),
+        919 => rest_under_tree::apply(ctx),
+        920 => meditate_outdoors::apply(ctx),
+        921 => stretch_outdoors::apply(ctx),
+        922 => sun_on_face::apply(ctx),
+        923 => skip_stones::apply(ctx),
+        924 => float_leaf::apply(ctx),
+        925 => watch_river::apply(ctx),
+        926 => watch_waves::apply(ctx),
+        927 => listen_to_wind::apply(ctx),
+        928 => listen_to_rain::apply(ctx),
+        929 => listen_to_birds::apply(ctx),
+        930 => smell_pines::apply(ctx),
+        931 => pick_wildflowers::apply(ctx),
+        932 => braid_grass::apply(ctx),
+        933 => weave_crown::apply(ctx),
+        934 => chew_grass_blade::apply(ctx),
+        935 => taste_sap::apply(ctx),
+        936 => drink_from_stream::apply(ctx),
+        937 => wade_in_creek::apply(ctx),
+        938 => bathe_in_river::apply(ctx),
+        939 => collect_driftwood::apply(ctx),
+        940 => collect_acorn::apply(ctx),
+        941 => collect_pinecone::apply(ctx),
+        942 => gather_kindling::apply(ctx),
+        943 => spot_fox::apply(ctx),
+        944 => spot_squirrel::apply(ctx),
+        945 => spot_owl::apply(ctx),
+        946 => note_track::apply(ctx),
+        947 => read_weather::apply(ctx),
+        948 => watch_sunset::apply(ctx),
+        949 => watch_sunrise::apply(ctx),
+        _   => 0.0,
+    }
+}
