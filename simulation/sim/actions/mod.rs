@@ -40,6 +40,16 @@ pub mod nature_walk;
 pub mod transport;
 pub mod fitness;
 pub mod creative_make;
+pub mod food_drink;
+pub mod crafts_advanced;
+pub mod social_play;
+pub mod medicine_care;
+pub mod learning;
+pub mod travel_explore;
+pub mod spiritual_practice;
+pub mod court_politics;
+pub mod childcare;
+pub mod work_trade;
 
 use ctx::ActionCtx;
 use super::simulation::Simulation;
@@ -164,6 +174,16 @@ pub fn available_actions(sim: &Simulation, idx: usize, ix: i32, iy: i32) -> Vec<
     a.extend(960..=1011);
     a.extend(1020..=1070);
     a.extend(1080..=1131);
+    a.extend(1140..=1189);
+    a.extend(1200..=1249);
+    a.extend(1260..=1310);
+    a.extend(1320..=1369);
+    a.extend(1380..=1428);
+    a.extend(1440..=1489);
+    a.extend(1500..=1548);
+    a.extend(1560..=1608);
+    a.extend(1620..=1668);
+    a.extend(1680..=1729);
 
     a
 }
@@ -218,6 +238,16 @@ pub fn try_apply(sim: &mut Simulation, idx: usize, action: usize, ix: i32, iy: i
         960..=1011  => transport::apply(action, &mut ctx),
         1020..=1070 => fitness::apply(action, &mut ctx),
         1080..=1131 => creative_make::apply(action, &mut ctx),
+        1140..=1189 => food_drink::apply(action, &mut ctx),
+        1200..=1249 => crafts_advanced::apply(action, &mut ctx),
+        1260..=1310 => social_play::apply(action, &mut ctx),
+        1320..=1369 => medicine_care::apply(action, &mut ctx),
+        1380..=1428 => learning::apply(action, &mut ctx),
+        1440..=1489 => travel_explore::apply(action, &mut ctx),
+        1500..=1548 => spiritual_practice::apply(action, &mut ctx),
+        1560..=1608 => court_politics::apply(action, &mut ctx),
+        1620..=1668 => childcare::apply(action, &mut ctx),
+        1680..=1729 => work_trade::apply(action, &mut ctx),
         _           => return None,
     };
     Some(r)
