@@ -1,8 +1,8 @@
 use rand::Rng;
 use crate::organism::organism::Organism;
 use crate::world::tiles::Tile;
-use super::simulation::{Event, History};
-use super::world_events::push_event;
+use crate::sim::simulation::{Event, History};
+use crate::sim::world_events::push_event;
 
 pub fn signal_food(
     org_idx: usize,

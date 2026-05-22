@@ -3,8 +3,8 @@ use rand::Rng;
 use rand_chacha::ChaCha8Rng;
 
 use super::tech_tree::all_tech;
-use super::simulation::Event;
-use super::world_events::push_event;
+use crate::sim::simulation::Event;
+use crate::sim::world_events::push_event;
 use crate::organism::organism::Organism;
 
 const TICK_INTERVAL: u64 = 60;

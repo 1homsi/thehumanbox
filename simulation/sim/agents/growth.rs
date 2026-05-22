@@ -5,9 +5,9 @@ use crate::organism::traits::Traits;
 use crate::organism::vocabulary::Vocabulary;
 use crate::organism::attributes::{assign_birth_attributes, check_earned_attributes, inherit_attributes_from_parents};
 use crate::world::{grid::WorldGrid, tiles::{Tile, Biome}};
-use super::config::MAX_POPULATION;
-use super::simulation::{Event, History};
-use super::world_events::push_event;
+use crate::sim::config::MAX_POPULATION;
+use crate::sim::simulation::{Event, History};
+use crate::sim::world_events::push_event;
 
 pub fn spawn_organism_with_home(
     grid: &WorldGrid,

@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use super::era::Era;
+use crate::sim::era::Era;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Serialize, Deserialize, PartialEq, PartialOrd, Ord)]
 pub enum ToolKind {

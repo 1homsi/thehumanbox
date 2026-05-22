@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
 use super::era::Era;
-use super::world_events::push_event;
+use crate::sim::world_events::push_event;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum CombatStyle {
@@ -208,7 +208,7 @@ pub fn try_spawn_raids(
     territory: &HashMap<String, HashSet<(i32, i32)>>,
     treaties: &[Treaty],
     active_battles: &[Battle],
-    events: &mut std::collections::VecDeque<super::simulation::Event>,
+    events: &mut std::collections::VecDeque<crate::sim::simulation::Event>,
 ) -> Vec<Battle> {
     use rand::Rng;
     let mut out = Vec::new();
@@ -342,7 +342,7 @@ pub fn tick_battles(
     treaties: &mut Vec<Treaty>,
     organisms: &mut [crate::organism::organism::Organism],
     structure_tiles: &HashSet<(i32, i32)>,
-    events: &mut std::collections::VecDeque<super::simulation::Event>,
+    events: &mut std::collections::VecDeque<crate::sim::simulation::Event>,
     history_combat_deaths: &mut u64,
     lineage_eras: &HashMap<String, Era>,
 ) {

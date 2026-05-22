@@ -611,7 +611,7 @@ pub fn generate_conversation_with_req(
     conv_b.id = id.clone();
 
     let n_lines = conv_a.lines.len();
-    let day_len = super::config::DAY_LENGTH as u32;
+    let day_len = crate::sim::config::DAY_LENGTH as u32;
 
     use super::convo_req::{ConversationReq, ConvoSpeaker};
 

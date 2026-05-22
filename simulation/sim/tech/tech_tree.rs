@@ -1,4 +1,4 @@
-use super::era::Era;
+use crate::sim::era::Era;
 
 pub struct TechNode {
     pub name: &'static str,
