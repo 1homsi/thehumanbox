@@ -80,6 +80,16 @@ pub mod infrastructure_work;
 pub mod teaching_advanced;
 pub mod caretaking_advanced;
 pub mod deep_craft;
+pub mod gardening;
+pub mod festival_prep;
+pub mod martial;
+pub mod masonry_work;
+pub mod woodwork;
+pub mod metalwork;
+pub mod glasswork;
+pub mod textiles;
+pub mod leatherwork;
+pub mod ceramics_pottery;
 
 use ctx::ActionCtx;
 use super::simulation::Simulation;
@@ -244,6 +254,16 @@ pub fn available_actions(sim: &Simulation, idx: usize, ix: i32, iy: i32) -> Vec<
     a.extend(3360..=3409);
     a.extend(3420..=3469);
     a.extend(3480..=3525);
+    a.extend(3540..=3589);
+    a.extend(3600..=3649);
+    a.extend(3660..=3709);
+    a.extend(3720..=3769);
+    a.extend(3780..=3829);
+    a.extend(3840..=3889);
+    a.extend(3900..=3949);
+    a.extend(3960..=4009);
+    a.extend(4020..=4069);
+    a.extend(4080..=4124);
 
     a
 }
@@ -338,6 +358,16 @@ pub fn try_apply(sim: &mut Simulation, idx: usize, action: usize, ix: i32, iy: i
         3360..=3409 => teaching_advanced::apply(action, &mut ctx),
         3420..=3469 => caretaking_advanced::apply(action, &mut ctx),
         3480..=3525 => deep_craft::apply(action, &mut ctx),
+        3540..=3589 => gardening::apply(action, &mut ctx),
+        3600..=3649 => festival_prep::apply(action, &mut ctx),
+        3660..=3709 => martial::apply(action, &mut ctx),
+        3720..=3769 => masonry_work::apply(action, &mut ctx),
+        3780..=3829 => woodwork::apply(action, &mut ctx),
+        3840..=3889 => metalwork::apply(action, &mut ctx),
+        3900..=3949 => glasswork::apply(action, &mut ctx),
+        3960..=4009 => textiles::apply(action, &mut ctx),
+        4020..=4069 => leatherwork::apply(action, &mut ctx),
+        4080..=4124 => ceramics_pottery::apply(action, &mut ctx),
         _           => return None,
     };
     Some(r)
