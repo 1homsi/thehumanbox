@@ -1,0 +1,108 @@
+pub mod write_resolution;
+pub mod set_yearly_goal;
+pub mod review_yearly_goal;
+pub mod track_habit_daily;
+pub mod review_habit_weekly;
+pub mod start_morning_routine;
+pub mod end_evening_routine;
+pub mod reflect_on_day;
+pub mod reflect_on_week;
+pub mod reflect_on_year;
+pub mod list_blessings;
+pub mod list_lessons;
+pub mod list_failures;
+pub mod forgive_self;
+pub mod thank_mentor;
+pub mod practice_skill_daily;
+pub mod drill_basics;
+pub mod review_fundamentals;
+pub mod study_master;
+pub mod practice_under_master;
+pub mod ask_for_feedback;
+pub mod accept_critique;
+pub mod apply_critique;
+pub mod iterate_improvement;
+pub mod document_progress;
+pub mod measure_baseline;
+pub mod measure_progress;
+pub mod benchmark_against_master;
+pub mod compare_to_self;
+pub mod compare_to_peer;
+pub mod read_biography;
+pub mod read_autobiography;
+pub mod model_role_model;
+pub mod emulate_master;
+pub mod shadow_practitioner;
+pub mod apprentice_to_skill;
+pub mod journal_skill_attempt;
+pub mod note_breakthrough;
+pub mod celebrate_small_win;
+pub mod acknowledge_setback;
+pub mod pick_self_up;
+pub mod reset_after_failure;
+pub mod forgive_failure;
+pub mod analyze_mistake;
+pub mod plan_next_attempt;
+pub mod rest_to_recover;
+pub mod sleep_to_consolidate;
+pub mod breathe_to_center;
+pub mod stretch_to_loosen;
+pub mod warm_up_to_practice;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        2280 => write_resolution::apply(ctx),
+        2281 => set_yearly_goal::apply(ctx),
+        2282 => review_yearly_goal::apply(ctx),
+        2283 => track_habit_daily::apply(ctx),
+        2284 => review_habit_weekly::apply(ctx),
+        2285 => start_morning_routine::apply(ctx),
+        2286 => end_evening_routine::apply(ctx),
+        2287 => reflect_on_day::apply(ctx),
+        2288 => reflect_on_week::apply(ctx),
+        2289 => reflect_on_year::apply(ctx),
+        2290 => list_blessings::apply(ctx),
+        2291 => list_lessons::apply(ctx),
+        2292 => list_failures::apply(ctx),
+        2293 => forgive_self::apply(ctx),
+        2294 => thank_mentor::apply(ctx),
+        2295 => practice_skill_daily::apply(ctx),
+        2296 => drill_basics::apply(ctx),
+        2297 => review_fundamentals::apply(ctx),
+        2298 => study_master::apply(ctx),
+        2299 => practice_under_master::apply(ctx),
+        2300 => ask_for_feedback::apply(ctx),
+        2301 => accept_critique::apply(ctx),
+        2302 => apply_critique::apply(ctx),
+        2303 => iterate_improvement::apply(ctx),
+        2304 => document_progress::apply(ctx),
+        2305 => measure_baseline::apply(ctx),
+        2306 => measure_progress::apply(ctx),
+        2307 => benchmark_against_master::apply(ctx),
+        2308 => compare_to_self::apply(ctx),
+        2309 => compare_to_peer::apply(ctx),
+        2310 => read_biography::apply(ctx),
+        2311 => read_autobiography::apply(ctx),
+        2312 => model_role_model::apply(ctx),
+        2313 => emulate_master::apply(ctx),
+        2314 => shadow_practitioner::apply(ctx),
+        2315 => apprentice_to_skill::apply(ctx),
+        2316 => journal_skill_attempt::apply(ctx),
+        2317 => note_breakthrough::apply(ctx),
+        2318 => celebrate_small_win::apply(ctx),
+        2319 => acknowledge_setback::apply(ctx),
+        2320 => pick_self_up::apply(ctx),
+        2321 => reset_after_failure::apply(ctx),
+        2322 => forgive_failure::apply(ctx),
+        2323 => analyze_mistake::apply(ctx),
+        2324 => plan_next_attempt::apply(ctx),
+        2325 => rest_to_recover::apply(ctx),
+        2326 => sleep_to_consolidate::apply(ctx),
+        2327 => breathe_to_center::apply(ctx),
+        2328 => stretch_to_loosen::apply(ctx),
+        2329 => warm_up_to_practice::apply(ctx),
+        _   => 0.0,
+    }
+}
