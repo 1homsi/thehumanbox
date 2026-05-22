@@ -1,0 +1,110 @@
+pub mod window_shop;
+pub mod browse_market;
+pub mod haggle_quietly;
+pub mod try_on_garment;
+pub mod compare_prices;
+pub mod count_change;
+pub mod sit_at_cafe;
+pub mod people_watch;
+pub mod loiter_in_plaza;
+pub mod loiter_at_corner;
+pub mod visit_market;
+pub mod visit_fair;
+pub mod attend_auction;
+pub mod post_letter;
+pub mod send_parcel;
+pub mod mail_invitation;
+pub mod visit_post_office;
+pub mod wait_in_queue;
+pub mod visit_bank;
+pub mod deposit_coin;
+pub mod withdraw_coin;
+pub mod visit_courthouse;
+pub mod pay_tax_at_office;
+pub mod submit_petition;
+pub mod obtain_license;
+pub mod register_birth;
+pub mod visit_clerk;
+pub mod visit_library_quick;
+pub mod borrow_scroll;
+pub mod return_scroll;
+pub mod attend_lecture;
+pub mod attend_recital;
+pub mod visit_gallery;
+pub mod visit_museum;
+pub mod tip_busker;
+pub mod buy_treat;
+pub mod buy_flower;
+pub mod buy_fish;
+pub mod buy_bread_loaf;
+pub mod buy_meat_cut;
+pub mod buy_cheese;
+pub mod buy_milk_jug;
+pub mod buy_eggs;
+pub mod ride_carriage;
+pub mod hail_cart;
+pub mod visit_inn;
+pub mod drop_by_friend;
+pub mod cross_bridge;
+pub mod climb_steps;
+pub mod greet_neighbor;
+pub mod wait_at_dock;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        660 => window_shop::apply(ctx),
+        661 => browse_market::apply(ctx),
+        662 => haggle_quietly::apply(ctx),
+        663 => try_on_garment::apply(ctx),
+        664 => compare_prices::apply(ctx),
+        665 => count_change::apply(ctx),
+        666 => sit_at_cafe::apply(ctx),
+        667 => people_watch::apply(ctx),
+        668 => loiter_in_plaza::apply(ctx),
+        669 => loiter_at_corner::apply(ctx),
+        670 => visit_market::apply(ctx),
+        671 => visit_fair::apply(ctx),
+        672 => attend_auction::apply(ctx),
+        673 => post_letter::apply(ctx),
+        674 => send_parcel::apply(ctx),
+        675 => mail_invitation::apply(ctx),
+        676 => visit_post_office::apply(ctx),
+        677 => wait_in_queue::apply(ctx),
+        678 => visit_bank::apply(ctx),
+        679 => deposit_coin::apply(ctx),
+        680 => withdraw_coin::apply(ctx),
+        681 => visit_courthouse::apply(ctx),
+        682 => pay_tax_at_office::apply(ctx),
+        683 => submit_petition::apply(ctx),
+        684 => obtain_license::apply(ctx),
+        685 => register_birth::apply(ctx),
+        686 => visit_clerk::apply(ctx),
+        687 => visit_library_quick::apply(ctx),
+        688 => borrow_scroll::apply(ctx),
+        689 => return_scroll::apply(ctx),
+        690 => attend_lecture::apply(ctx),
+        691 => attend_recital::apply(ctx),
+        692 => visit_gallery::apply(ctx),
+        693 => visit_museum::apply(ctx),
+        694 => tip_busker::apply(ctx),
+        695 => buy_treat::apply(ctx),
+        696 => buy_flower::apply(ctx),
+        697 => buy_fish::apply(ctx),
+        698 => buy_bread_loaf::apply(ctx),
+        699 => buy_meat_cut::apply(ctx),
+        700 => buy_cheese::apply(ctx),
+        701 => buy_milk_jug::apply(ctx),
+        702 => buy_eggs::apply(ctx),
+        703 => ride_carriage::apply(ctx),
+        704 => hail_cart::apply(ctx),
+        705 => visit_inn::apply(ctx),
+        706 => drop_by_friend::apply(ctx),
+        707 => cross_bridge::apply(ctx),
+        708 => climb_steps::apply(ctx),
+        709 => greet_neighbor::apply(ctx),
+        710 => wait_at_dock::apply(ctx),
+        _   => 0.0,
+    }
+}
