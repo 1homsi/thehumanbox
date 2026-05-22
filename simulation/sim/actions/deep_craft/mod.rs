@@ -1,0 +1,100 @@
+pub mod carve_lithograph;
+pub mod etch_intaglio;
+pub mod engrave_woodblock;
+pub mod dry_etch;
+pub mod wet_etch;
+pub mod acid_etch;
+pub mod electrochemical_etch;
+pub mod laser_etch;
+pub mod sandblast_etch;
+pub mod chemical_etch;
+pub mod set_type;
+pub mod for_print;
+pub mod sort_type;
+pub mod ink_type;
+pub mod roller_ink;
+pub mod wipe_plate;
+pub mod pull_proof;
+pub mod register_color;
+pub mod overprint;
+pub mod color_overlay;
+pub mod align_screen;
+pub mod squeegee_pull;
+pub mod stretch_screen;
+pub mod prep_screen;
+pub mod coat_screen;
+pub mod expose_screen;
+pub mod wash_screen;
+pub mod reclaim_screen;
+pub mod tape_edges;
+pub mod block_pinholes;
+pub mod degrease_screen;
+pub mod mix_emulsion;
+pub mod mix_solvent;
+pub mod mix_thinner;
+pub mod mix_retarder;
+pub mod mix_extender;
+pub mod match_paint;
+pub mod match_dye;
+pub mod match_glaze;
+pub mod match_fabric;
+pub mod match_thread;
+pub mod cure_print;
+pub mod cure_ceramic;
+pub mod cure_lacquer;
+pub mod cure_enamel;
+pub mod cure_resin;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        3480 => carve_lithograph::apply(ctx),
+        3481 => etch_intaglio::apply(ctx),
+        3482 => engrave_woodblock::apply(ctx),
+        3483 => dry_etch::apply(ctx),
+        3484 => wet_etch::apply(ctx),
+        3485 => acid_etch::apply(ctx),
+        3486 => electrochemical_etch::apply(ctx),
+        3487 => laser_etch::apply(ctx),
+        3488 => sandblast_etch::apply(ctx),
+        3489 => chemical_etch::apply(ctx),
+        3490 => set_type::apply(ctx),
+        3491 => for_print::apply(ctx),
+        3492 => sort_type::apply(ctx),
+        3493 => ink_type::apply(ctx),
+        3494 => roller_ink::apply(ctx),
+        3495 => wipe_plate::apply(ctx),
+        3496 => pull_proof::apply(ctx),
+        3497 => register_color::apply(ctx),
+        3498 => overprint::apply(ctx),
+        3499 => color_overlay::apply(ctx),
+        3500 => align_screen::apply(ctx),
+        3501 => squeegee_pull::apply(ctx),
+        3502 => stretch_screen::apply(ctx),
+        3503 => prep_screen::apply(ctx),
+        3504 => coat_screen::apply(ctx),
+        3505 => expose_screen::apply(ctx),
+        3506 => wash_screen::apply(ctx),
+        3507 => reclaim_screen::apply(ctx),
+        3508 => tape_edges::apply(ctx),
+        3509 => block_pinholes::apply(ctx),
+        3510 => degrease_screen::apply(ctx),
+        3511 => mix_emulsion::apply(ctx),
+        3512 => mix_solvent::apply(ctx),
+        3513 => mix_thinner::apply(ctx),
+        3514 => mix_retarder::apply(ctx),
+        3515 => mix_extender::apply(ctx),
+        3516 => match_paint::apply(ctx),
+        3517 => match_dye::apply(ctx),
+        3518 => match_glaze::apply(ctx),
+        3519 => match_fabric::apply(ctx),
+        3520 => match_thread::apply(ctx),
+        3521 => cure_print::apply(ctx),
+        3522 => cure_ceramic::apply(ctx),
+        3523 => cure_lacquer::apply(ctx),
+        3524 => cure_enamel::apply(ctx),
+        3525 => cure_resin::apply(ctx),
+        _   => 0.0,
+    }
+}
