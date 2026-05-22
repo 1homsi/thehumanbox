@@ -58,31 +58,77 @@ impl WorldGrid {
     }
 
     pub fn enforce_ocean_border(&mut self) {
-        const KILL_X: i32 = (WIDTH  as f32 * 0.05) as i32;
-        const KILL_Y: i32 = (HEIGHT as f32 * 0.05) as i32;
+        const HARD_X: i32 = (WIDTH  as f32 * 0.025) as i32;
+        const HARD_Y: i32 = (HEIGHT as f32 * 0.025) as i32;
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
-                if x < KILL_X || x >= WIDTH as i32 - KILL_X
-                   || y < KILL_Y || y >= HEIGHT as i32 - KILL_Y {
+                if x < HARD_X || x >= WIDTH as i32 - HARD_X
+                   || y < HARD_Y || y >= HEIGHT as i32 - HARD_Y {
                     let i = Self::idx(x, y);
-                    self.tiles[i] = Tile::Water as i8;
-                    self.fire_intensity[i] = 0.0;
-                    self.structure[i] = 0.0;
-                    self.food_trail[i] = 0.0;
-                    self.water_trail[i] = 0.0;
-                    self.path_trail[i] = 0.0;
-                    self.hazard[i] = 0.0;
-                    self.fertility[i] = 0.0;
+                    self.water_out(i);
+                }
+            }
+        }
+        self.soften_ocean_coast();
+    }
+
+    fn water_out(&mut self, i: usize) {
+        self.tiles[i] = Tile::Water as i8;
+        self.fire_intensity[i] = 0.0;
+        self.structure[i] = 0.0;
+        self.food_trail[i] = 0.0;
+        self.water_trail[i] = 0.0;
+        self.path_trail[i] = 0.0;
+        self.hazard[i] = 0.0;
+        self.fertility[i] = 0.0;
+    }
+
+    fn soften_ocean_coast(&mut self) {
+        const HARD_X:  i32 = (WIDTH  as f32 * 0.025) as i32;
+        const HARD_Y:  i32 = (HEIGHT as f32 * 0.025) as i32;
+        const TRANS_X: i32 = (WIDTH  as f32 * 0.10) as i32;
+        const TRANS_Y: i32 = (HEIGHT as f32 * 0.10) as i32;
+        let w = WIDTH  as i32;
+        let h = HEIGHT as i32;
+        let band_x = (TRANS_X - HARD_X).max(1) as f32;
+        let band_y = (TRANS_Y - HARD_Y).max(1) as f32;
+
+        for y in HARD_Y..(h - HARD_Y) {
+            for x in HARD_X..(w - HARD_X) {
+                let i = Self::idx(x, y);
+                if self.tiles[i] == Tile::Water as i8 {
+                    continue
+                }
+                let dx_in = (x - HARD_X).min(w - 1 - HARD_X - x);
+                let dy_in = (y - HARD_Y).min(h - 1 - HARD_Y - y);
+                let in_x = dx_in < (TRANS_X - HARD_X);
+                let in_y = dy_in < (TRANS_Y - HARD_Y);
+                if !in_x && !in_y {
+                    continue
+                }
+                let prog_x = if in_x { (dx_in as f32 / band_x).clamp(0.0, 1.0) } else { 1.0 };
+                let prog_y = if in_y { (dy_in as f32 / band_y).clamp(0.0, 1.0) } else { 1.0 };
+                let prog = prog_x.min(prog_y);
+
+                let nx = x as f32 / w as f32;
+                let ny = y as f32 / h as f32;
+                let noise_a = Self::fbm(nx * 6.0, ny * 6.0, 0xC0A57_1234_5678);
+                let noise_b = Self::fbm(nx * 14.0, ny * 14.0, 0xC0A57_8765_4321);
+                let noise = noise_a * 0.65 + noise_b * 0.35;
+
+                let waterness = (1.0 - prog).powf(1.6) + noise * 0.45 - 0.10;
+                if waterness > 0.55 {
+                    self.water_out(i);
                 }
             }
         }
     }
 
     pub fn is_edge_border(x: i32, y: i32) -> bool {
-        const KILL_X: i32 = (WIDTH  as f32 * 0.05) as i32;
-        const KILL_Y: i32 = (HEIGHT as f32 * 0.05) as i32;
-        x < KILL_X || x >= WIDTH as i32 - KILL_X
-        || y < KILL_Y || y >= HEIGHT as i32 - KILL_Y
+        const HARD_X: i32 = (WIDTH  as f32 * 0.025) as i32;
+        const HARD_Y: i32 = (HEIGHT as f32 * 0.025) as i32;
+        x < HARD_X || x >= WIDTH as i32 - HARD_X
+        || y < HARD_Y || y >= HEIGHT as i32 - HARD_Y
     }
 
     pub fn idx(x: i32, y: i32) -> usize {
