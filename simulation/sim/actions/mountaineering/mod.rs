@@ -1,0 +1,108 @@
+pub mod rope_up;
+pub mod lead_climb;
+pub mod second_climb;
+pub mod belay_lead;
+pub mod belay_second;
+pub mod rappel_descend;
+pub mod ascend_rope;
+pub mod simul_climb;
+pub mod short_pitch;
+pub mod long_pitch;
+pub mod place_cam;
+pub mod place_nut;
+pub mod place_piton;
+pub mod place_screw;
+pub mod place_pecker;
+pub mod clean_pitch;
+pub mod rack_gear;
+pub mod sling_horn;
+pub mod sling_chock;
+pub mod build_anchor;
+pub mod equalize_anchor;
+pub mod extend_anchor;
+pub mod back_up_anchor;
+pub mod test_anchor;
+pub mod break_anchor;
+pub mod cross_glacier;
+pub mod rope_team_glacier;
+pub mod crampon_step;
+pub mod front_point_climb;
+pub mod ice_axe_arrest;
+pub mod self_arrest_practice;
+pub mod plunge_step;
+pub mod kick_step;
+pub mod pressure_breathe;
+pub mod rest_step;
+pub mod navigate_whiteout;
+pub mod navigate_storm;
+pub mod wand_route;
+pub mod mark_cache;
+pub mod cache_food;
+pub mod pitch_tent_high;
+pub mod snow_anchor;
+pub mod snow_wall;
+pub mod pee_bottle;
+pub mod blue_bag;
+pub mod bivouac_emergency;
+pub mod emergency_signal;
+pub mod flare_signal;
+pub mod whistle_three;
+pub mod radio_check;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        4440 => rope_up::apply(ctx),
+        4441 => lead_climb::apply(ctx),
+        4442 => second_climb::apply(ctx),
+        4443 => belay_lead::apply(ctx),
+        4444 => belay_second::apply(ctx),
+        4445 => rappel_descend::apply(ctx),
+        4446 => ascend_rope::apply(ctx),
+        4447 => simul_climb::apply(ctx),
+        4448 => short_pitch::apply(ctx),
+        4449 => long_pitch::apply(ctx),
+        4450 => place_cam::apply(ctx),
+        4451 => place_nut::apply(ctx),
+        4452 => place_piton::apply(ctx),
+        4453 => place_screw::apply(ctx),
+        4454 => place_pecker::apply(ctx),
+        4455 => clean_pitch::apply(ctx),
+        4456 => rack_gear::apply(ctx),
+        4457 => sling_horn::apply(ctx),
+        4458 => sling_chock::apply(ctx),
+        4459 => build_anchor::apply(ctx),
+        4460 => equalize_anchor::apply(ctx),
+        4461 => extend_anchor::apply(ctx),
+        4462 => back_up_anchor::apply(ctx),
+        4463 => test_anchor::apply(ctx),
+        4464 => break_anchor::apply(ctx),
+        4465 => cross_glacier::apply(ctx),
+        4466 => rope_team_glacier::apply(ctx),
+        4467 => crampon_step::apply(ctx),
+        4468 => front_point_climb::apply(ctx),
+        4469 => ice_axe_arrest::apply(ctx),
+        4470 => self_arrest_practice::apply(ctx),
+        4471 => plunge_step::apply(ctx),
+        4472 => kick_step::apply(ctx),
+        4473 => pressure_breathe::apply(ctx),
+        4474 => rest_step::apply(ctx),
+        4475 => navigate_whiteout::apply(ctx),
+        4476 => navigate_storm::apply(ctx),
+        4477 => wand_route::apply(ctx),
+        4478 => mark_cache::apply(ctx),
+        4479 => cache_food::apply(ctx),
+        4480 => pitch_tent_high::apply(ctx),
+        4481 => snow_anchor::apply(ctx),
+        4482 => snow_wall::apply(ctx),
+        4483 => pee_bottle::apply(ctx),
+        4484 => blue_bag::apply(ctx),
+        4485 => bivouac_emergency::apply(ctx),
+        4486 => emergency_signal::apply(ctx),
+        4487 => flare_signal::apply(ctx),
+        4488 => whistle_three::apply(ctx),
+        4489 => radio_check::apply(ctx),
+        _   => 0.0,
+    }
+}
