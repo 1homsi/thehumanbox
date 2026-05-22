@@ -1,0 +1,108 @@
+pub mod record_dream;
+pub mod sketch_dream;
+pub mod paint_dream;
+pub mod interpret_dream;
+pub mod share_dream_with_kin;
+pub mod re_enter_dream;
+pub mod lucid_dream;
+pub mod nightmare_quell;
+pub mod dream_journal_review;
+pub mod meditate_on_dream;
+pub mod call_lost_dream;
+pub mod call_ancestor_dream;
+pub mod call_kin_dream;
+pub mod gift_a_dream;
+pub mod receive_a_dream;
+pub mod spin_dream_thread;
+pub mod weave_dream_blanket;
+pub mod sew_dream_pillow;
+pub mod stuff_dream_pillow;
+pub mod embroider_dream_pillow;
+pub mod hang_dreamcatcher;
+pub mod craft_dreamcatcher;
+pub mod gift_dreamcatcher;
+pub mod bless_dreamcatcher;
+pub mod mend_dreamcatcher;
+pub mod guide_kin_dream;
+pub mod sit_with_dreamer;
+pub mod hum_to_dreamer;
+pub mod rock_dreamer;
+pub mod wake_dreamer_gently;
+pub mod practice_lucidity;
+pub mod practice_anchor;
+pub mod practice_reality_check;
+pub mod practice_dream_speech;
+pub mod practice_dream_act;
+pub mod share_dream_song;
+pub mod share_dream_dance;
+pub mod share_dream_play;
+pub mod share_dream_recipe;
+pub mod share_dream_path;
+pub mod log_dream_sign;
+pub mod log_dream_pattern;
+pub mod log_dream_archetype;
+pub mod log_dream_metaphor;
+pub mod log_dream_motif;
+pub mod trade_dream_sign;
+pub mod read_dream_book;
+pub mod write_dream_book;
+pub mod teach_dream_book;
+pub mod preserve_dream_book;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        5040 => record_dream::apply(ctx),
+        5041 => sketch_dream::apply(ctx),
+        5042 => paint_dream::apply(ctx),
+        5043 => interpret_dream::apply(ctx),
+        5044 => share_dream_with_kin::apply(ctx),
+        5045 => re_enter_dream::apply(ctx),
+        5046 => lucid_dream::apply(ctx),
+        5047 => nightmare_quell::apply(ctx),
+        5048 => dream_journal_review::apply(ctx),
+        5049 => meditate_on_dream::apply(ctx),
+        5050 => call_lost_dream::apply(ctx),
+        5051 => call_ancestor_dream::apply(ctx),
+        5052 => call_kin_dream::apply(ctx),
+        5053 => gift_a_dream::apply(ctx),
+        5054 => receive_a_dream::apply(ctx),
+        5055 => spin_dream_thread::apply(ctx),
+        5056 => weave_dream_blanket::apply(ctx),
+        5057 => sew_dream_pillow::apply(ctx),
+        5058 => stuff_dream_pillow::apply(ctx),
+        5059 => embroider_dream_pillow::apply(ctx),
+        5060 => hang_dreamcatcher::apply(ctx),
+        5061 => craft_dreamcatcher::apply(ctx),
+        5062 => gift_dreamcatcher::apply(ctx),
+        5063 => bless_dreamcatcher::apply(ctx),
+        5064 => mend_dreamcatcher::apply(ctx),
+        5065 => guide_kin_dream::apply(ctx),
+        5066 => sit_with_dreamer::apply(ctx),
+        5067 => hum_to_dreamer::apply(ctx),
+        5068 => rock_dreamer::apply(ctx),
+        5069 => wake_dreamer_gently::apply(ctx),
+        5070 => practice_lucidity::apply(ctx),
+        5071 => practice_anchor::apply(ctx),
+        5072 => practice_reality_check::apply(ctx),
+        5073 => practice_dream_speech::apply(ctx),
+        5074 => practice_dream_act::apply(ctx),
+        5075 => share_dream_song::apply(ctx),
+        5076 => share_dream_dance::apply(ctx),
+        5077 => share_dream_play::apply(ctx),
+        5078 => share_dream_recipe::apply(ctx),
+        5079 => share_dream_path::apply(ctx),
+        5080 => log_dream_sign::apply(ctx),
+        5081 => log_dream_pattern::apply(ctx),
+        5082 => log_dream_archetype::apply(ctx),
+        5083 => log_dream_metaphor::apply(ctx),
+        5084 => log_dream_motif::apply(ctx),
+        5085 => trade_dream_sign::apply(ctx),
+        5086 => read_dream_book::apply(ctx),
+        5087 => write_dream_book::apply(ctx),
+        5088 => teach_dream_book::apply(ctx),
+        5089 => preserve_dream_book::apply(ctx),
+        _   => 0.0,
+    }
+}
