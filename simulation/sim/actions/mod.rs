@@ -60,6 +60,16 @@ pub mod tech_use;
 pub mod survival;
 pub mod relationships_deep;
 pub mod self_improvement;
+pub mod emotion_deep;
+pub mod cosmic_arts;
+pub mod shadow_arts;
+pub mod ritual_advanced;
+pub mod architecture_design;
+pub mod leadership;
+pub mod trade_advanced;
+pub mod theology;
+pub mod cooking_world;
+pub mod community;
 
 use ctx::ActionCtx;
 use super::simulation::Simulation;
@@ -204,6 +214,16 @@ pub fn available_actions(sim: &Simulation, idx: usize, ix: i32, iy: i32) -> Vec<
     a.extend(2160..=2212);
     a.extend(2220..=2269);
     a.extend(2280..=2329);
+    a.extend(2340..=2389);
+    a.extend(2400..=2449);
+    a.extend(2460..=2509);
+    a.extend(2520..=2568);
+    a.extend(2580..=2629);
+    a.extend(2640..=2689);
+    a.extend(2700..=2749);
+    a.extend(2760..=2809);
+    a.extend(2820..=2869);
+    a.extend(2880..=2929);
 
     a
 }
@@ -278,6 +298,16 @@ pub fn try_apply(sim: &mut Simulation, idx: usize, action: usize, ix: i32, iy: i
         2160..=2212 => survival::apply(action, &mut ctx),
         2220..=2269 => relationships_deep::apply(action, &mut ctx),
         2280..=2329 => self_improvement::apply(action, &mut ctx),
+        2340..=2389 => emotion_deep::apply(action, &mut ctx),
+        2400..=2449 => cosmic_arts::apply(action, &mut ctx),
+        2460..=2509 => shadow_arts::apply(action, &mut ctx),
+        2520..=2568 => ritual_advanced::apply(action, &mut ctx),
+        2580..=2629 => architecture_design::apply(action, &mut ctx),
+        2640..=2689 => leadership::apply(action, &mut ctx),
+        2700..=2749 => trade_advanced::apply(action, &mut ctx),
+        2760..=2809 => theology::apply(action, &mut ctx),
+        2820..=2869 => cooking_world::apply(action, &mut ctx),
+        2880..=2929 => community::apply(action, &mut ctx),
         _           => return None,
     };
     Some(r)
