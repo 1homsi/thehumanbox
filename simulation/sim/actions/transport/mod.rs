@@ -1,0 +1,112 @@
+pub mod walk_to_market;
+pub mod jog_through_street;
+pub mod saunter_promenade;
+pub mod march_in_line;
+pub mod carry_yoke;
+pub mod push_wheelbarrow;
+pub mod pull_handcart;
+pub mod ride_donkey;
+pub mod ride_horse;
+pub mod ride_camel;
+pub mod drive_wagon;
+pub mod mount_horse;
+pub mod dismount_horse;
+pub mod hitch_horse;
+pub mod unhitch_horse;
+pub mod saddle_horse;
+pub mod groom_horse;
+pub mod paddle_canoe;
+pub mod row_boat;
+pub mod sail_skiff;
+pub mod hoist_sail;
+pub mod trim_sail;
+pub mod furl_sail;
+pub mod drop_anchor;
+pub mod lower_anchor;
+pub mod weigh_anchor;
+pub mod man_oars;
+pub mod board_ship;
+pub mod disembark_ship;
+pub mod climb_rigging;
+pub mod hoist_flag;
+pub mod light_lantern_ship;
+pub mod steer_ship;
+pub mod row_ferry;
+pub mod pole_raft;
+pub mod portage_boat;
+pub mod carry_litter;
+pub mod ride_palanquin;
+pub mod signal_galley;
+pub mod signal_ship;
+pub mod climb_aboard;
+pub mod balance_in_punt;
+pub mod navigate_by_star;
+pub mod navigate_by_compass;
+pub mod plot_course;
+pub mod chart_river;
+pub mod hail_carriage;
+pub mod hail_river_boat;
+pub mod load_pack_animal;
+pub mod unload_pack_animal;
+pub mod carry_pack;
+pub mod tighten_strap;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        960 => walk_to_market::apply(ctx),
+        961 => jog_through_street::apply(ctx),
+        962 => saunter_promenade::apply(ctx),
+        963 => march_in_line::apply(ctx),
+        964 => carry_yoke::apply(ctx),
+        965 => push_wheelbarrow::apply(ctx),
+        966 => pull_handcart::apply(ctx),
+        967 => ride_donkey::apply(ctx),
+        968 => ride_horse::apply(ctx),
+        969 => ride_camel::apply(ctx),
+        970 => drive_wagon::apply(ctx),
+        971 => mount_horse::apply(ctx),
+        972 => dismount_horse::apply(ctx),
+        973 => hitch_horse::apply(ctx),
+        974 => unhitch_horse::apply(ctx),
+        975 => saddle_horse::apply(ctx),
+        976 => groom_horse::apply(ctx),
+        977 => paddle_canoe::apply(ctx),
+        978 => row_boat::apply(ctx),
+        979 => sail_skiff::apply(ctx),
+        980 => hoist_sail::apply(ctx),
+        981 => trim_sail::apply(ctx),
+        982 => furl_sail::apply(ctx),
+        983 => drop_anchor::apply(ctx),
+        984 => lower_anchor::apply(ctx),
+        985 => weigh_anchor::apply(ctx),
+        986 => man_oars::apply(ctx),
+        987 => board_ship::apply(ctx),
+        988 => disembark_ship::apply(ctx),
+        989 => climb_rigging::apply(ctx),
+        990 => hoist_flag::apply(ctx),
+        991 => light_lantern_ship::apply(ctx),
+        992 => steer_ship::apply(ctx),
+        993 => row_ferry::apply(ctx),
+        994 => pole_raft::apply(ctx),
+        995 => portage_boat::apply(ctx),
+        996 => carry_litter::apply(ctx),
+        997 => ride_palanquin::apply(ctx),
+        998 => signal_galley::apply(ctx),
+        999 => signal_ship::apply(ctx),
+        1000 => climb_aboard::apply(ctx),
+        1001 => balance_in_punt::apply(ctx),
+        1002 => navigate_by_star::apply(ctx),
+        1003 => navigate_by_compass::apply(ctx),
+        1004 => plot_course::apply(ctx),
+        1005 => chart_river::apply(ctx),
+        1006 => hail_carriage::apply(ctx),
+        1007 => hail_river_boat::apply(ctx),
+        1008 => load_pack_animal::apply(ctx),
+        1009 => unload_pack_animal::apply(ctx),
+        1010 => carry_pack::apply(ctx),
+        1011 => tighten_strap::apply(ctx),
+        _   => 0.0,
+    }
+}
