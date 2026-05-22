@@ -459,7 +459,7 @@ impl Simulation {
         }
 
         if self.tick_count % 600 == 0 {
-            super::tech_progress::seed_baseline_discoveries(&mut self.organisms);
+            super::tech_progress::seed_baseline_discoveries(&mut self.organisms, self.tick_count);
             self.update_lineage_eras();
         }
 

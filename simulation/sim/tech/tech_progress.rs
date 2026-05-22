@@ -7,8 +7,8 @@ use crate::sim::simulation::Event;
 use crate::sim::world_events::push_event;
 use crate::organism::organism::Organism;
 
-const TICK_INTERVAL: u64 = 60;
-const BASE_RATE: f32 = 0.006;
+const TICK_INTERVAL: u64 = 40;
+const BASE_RATE: f32 = 0.012;
 
 pub fn tick_tech_progress(
     tick: u64,
@@ -36,7 +36,7 @@ pub fn tick_tech_progress(
         let pop = *lineage_pop.get(lid).unwrap_or(&0);
         if pop == 0 { continue }
 
-        let pop_factor = (pop as f32 / 6.0).clamp(0.4, 5.0);
+        let pop_factor = (0.75 + pop as f32 / 6.0).clamp(0.75, 6.0);
 
         for node in tech.iter() {
             if disc.contains(node.name) { continue }
@@ -59,11 +59,21 @@ pub fn tick_tech_progress(
     }
 }
 
-pub fn seed_baseline_discoveries(organisms: &mut [Organism]) {
+pub fn seed_baseline_discoveries(organisms: &mut [Organism], tick: u64) {
     for org in organisms.iter_mut() {
         if !org.alive { continue }
         if !org.discoveries.contains("foraging") {
             org.discoveries.insert("foraging".to_string());
+        }
+        if tick >= 1200 && org.age > 200 && !org.discoveries.contains("fire") {
+            org.discoveries.insert("fire".to_string());
+        }
+        if tick >= 2400 && org.age > 400 && !org.discoveries.contains("shelter") {
+            org.discoveries.insert("shelter".to_string());
+        }
+        if tick >= 3600 && org.age > 600 && !org.discoveries.contains("stone_tools")
+           && org.discoveries.contains("fire") {
+            org.discoveries.insert("stone_tools".to_string());
         }
     }
 }
