@@ -1,0 +1,108 @@
+pub mod weigh_specimen;
+pub mod measure_specimen;
+pub mod photograph_specimen;
+pub mod catalog_specimen;
+pub mod label_specimen;
+pub mod prepare_slide;
+pub mod stain_slide;
+pub mod mount_slide;
+pub mod focus_microscope;
+pub mod examine_slide;
+pub mod centrifuge_sample;
+pub mod pipette_drop;
+pub mod pipette_titrate;
+pub mod pipette_aliquot;
+pub mod pipette_serial;
+pub mod vortex_tube;
+pub mod mix_solution;
+pub mod titrate_acid;
+pub mod titrate_base;
+pub mod test_litmus;
+pub mod test_universal_ph;
+pub mod distill_solvent;
+pub mod recrystallize_compound;
+pub mod filter_solution;
+pub mod evaporate_solvent;
+pub mod chromatograph_column;
+pub mod chromatograph_paper;
+pub mod chromatograph_thin_layer;
+pub mod dialysis_set_up;
+pub mod dialysis_sample;
+pub mod spectrophotometer_blank;
+pub mod spectrophotometer_read;
+pub mod fluorescence_measure;
+pub mod absorbance_measure;
+pub mod read_gauge;
+pub mod calibrate_instrument;
+pub mod calibrate_meter;
+pub mod calibrate_balance;
+pub mod calibrate_stop_watch;
+pub mod calibrate_thermometer;
+pub mod prepare_buffer;
+pub mod prepare_media;
+pub mod prepare_culture;
+pub mod inoculate_culture;
+pub mod incubate_culture;
+pub mod streak_plate;
+pub mod count_colony;
+pub mod examine_colony;
+pub mod pick_colony;
+pub mod harvest_colony;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        4140 => weigh_specimen::apply(ctx),
+        4141 => measure_specimen::apply(ctx),
+        4142 => photograph_specimen::apply(ctx),
+        4143 => catalog_specimen::apply(ctx),
+        4144 => label_specimen::apply(ctx),
+        4145 => prepare_slide::apply(ctx),
+        4146 => stain_slide::apply(ctx),
+        4147 => mount_slide::apply(ctx),
+        4148 => focus_microscope::apply(ctx),
+        4149 => examine_slide::apply(ctx),
+        4150 => centrifuge_sample::apply(ctx),
+        4151 => pipette_drop::apply(ctx),
+        4152 => pipette_titrate::apply(ctx),
+        4153 => pipette_aliquot::apply(ctx),
+        4154 => pipette_serial::apply(ctx),
+        4155 => vortex_tube::apply(ctx),
+        4156 => mix_solution::apply(ctx),
+        4157 => titrate_acid::apply(ctx),
+        4158 => titrate_base::apply(ctx),
+        4159 => test_litmus::apply(ctx),
+        4160 => test_universal_ph::apply(ctx),
+        4161 => distill_solvent::apply(ctx),
+        4162 => recrystallize_compound::apply(ctx),
+        4163 => filter_solution::apply(ctx),
+        4164 => evaporate_solvent::apply(ctx),
+        4165 => chromatograph_column::apply(ctx),
+        4166 => chromatograph_paper::apply(ctx),
+        4167 => chromatograph_thin_layer::apply(ctx),
+        4168 => dialysis_set_up::apply(ctx),
+        4169 => dialysis_sample::apply(ctx),
+        4170 => spectrophotometer_blank::apply(ctx),
+        4171 => spectrophotometer_read::apply(ctx),
+        4172 => fluorescence_measure::apply(ctx),
+        4173 => absorbance_measure::apply(ctx),
+        4174 => read_gauge::apply(ctx),
+        4175 => calibrate_instrument::apply(ctx),
+        4176 => calibrate_meter::apply(ctx),
+        4177 => calibrate_balance::apply(ctx),
+        4178 => calibrate_stop_watch::apply(ctx),
+        4179 => calibrate_thermometer::apply(ctx),
+        4180 => prepare_buffer::apply(ctx),
+        4181 => prepare_media::apply(ctx),
+        4182 => prepare_culture::apply(ctx),
+        4183 => inoculate_culture::apply(ctx),
+        4184 => incubate_culture::apply(ctx),
+        4185 => streak_plate::apply(ctx),
+        4186 => count_colony::apply(ctx),
+        4187 => examine_colony::apply(ctx),
+        4188 => pick_colony::apply(ctx),
+        4189 => harvest_colony::apply(ctx),
+        _   => 0.0,
+    }
+}
