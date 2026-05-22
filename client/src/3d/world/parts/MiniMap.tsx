@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react'
-import type { OrganismState, AnimalState } from '../types'
-import { lineageColor } from '../utils/constants'
+import type { OrganismState, AnimalState } from '../../../types'
+import { lineageColor } from '../../../utils/constants'
 import { TILE_SCALE } from './constants'
 import { cameraSnapshot, cameraCommand } from './camera-state'
-import { useUIStore } from '../stores/store'
+import { useUIStore } from '../../../stores/store'
 
 interface Props {
   organisms: OrganismState[]

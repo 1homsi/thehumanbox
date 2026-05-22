@@ -1,4 +1,4 @@
-import type { OrganismState, AnimalState } from '../types'
+import type { OrganismState, AnimalState } from '../../../types'
 
 interface OrgPrediction {
   serverX: number

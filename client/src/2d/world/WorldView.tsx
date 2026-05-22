@@ -1,12 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Game, World, Entity, Transform, Sprite, Camera2D, useCamera, useEntity, useDynamicCanvas, useGestures } from 'cubeforge'
-import type { WorldState } from '../types'
-import type { InterpRefs } from '../simulation/useSimulation'
-import { useUIStore, type ViewFlags } from '../stores/store'
-import { lineageColor, cbFireRgba } from '../utils/constants'
-import { ATLAS_TOWN, onAnyAtlasLoaded, drawPeopleTile, pickHumanSprite, type AgeStage } from '../utils/sprites'
+import type { WorldState } from '../../types'
+import type { InterpRefs } from '../../simulation/useSimulation'
+import { useUIStore, type ViewFlags } from '../../stores/store'
+import { lineageColor, cbFireRgba } from '../../utils/constants'
+import { ATLAS_TOWN, onAnyAtlasLoaded, drawPeopleTile, pickHumanSprite, type AgeStage } from '../../utils/sprites'
 import { drawBuilding } from './buildings2d'
-import { normalizeLineageEras } from '../utils/lineageEras'
+import { normalizeLineageEras } from '../../utils/lineageEras'
 
 function deriveAgeStage(age: number, isElder: boolean, declared?: string): AgeStage {
   if (declared === 'infant' || declared === 'child' || declared === 'teen' || declared === 'adult') return declared
@@ -80,8 +80,8 @@ const SPECIALTY_EMOJI: Record<string, string> = {
   pilot: '\u{2708}\u{FE0F}', programmer: '\u{1F4BB}', journalist: '\u{1F4F0}',
   actor: '\u{1F3AD}', athlete: '\u{1F3C5}', politician: '\u{1F3DB}\u{FE0F}',
 }
-import { TILE, TILE_RGB, BIOME_RGBA, THOUGHT_COLORS } from './palette'
-import { orgVariant } from './org-variant'
+import { TILE, TILE_RGB, BIOME_RGBA, THOUGHT_COLORS } from '../../world/palette'
+import { orgVariant } from '../../world/org-variant'
 import { drawTrees, drawClouds, drawNaturalDecor, scratchA, scratchB } from './decorations'
 
 const fpsSamples: number[] = []

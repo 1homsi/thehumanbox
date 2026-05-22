@@ -1,7 +1,7 @@
 import { useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { InstancedMesh, Object3D, SphereGeometry } from 'three'
-import type { OrganismState } from '../types'
+import type { OrganismState } from '../../../types'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
 import { getOrgXY, getOrgVelocityXY } from './motion-state'

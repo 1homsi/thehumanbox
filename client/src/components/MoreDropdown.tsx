@@ -127,8 +127,8 @@ export function MoreDropdown() {
           onClick={() => setViewFlag('threeD', !threeD)}
           // Warm the lazy chunk before click so users don't stare at the
           // loading spinner for a second after pressing the button.
-          onMouseEnter={() => { void import('../world/WorldView3D') }}
-          onFocus={() => { void import('../world/WorldView3D') }}
+          onMouseEnter={() => { void import('../3d/world/WorldView3D') }}
+          onFocus={() => { void import('../3d/world/WorldView3D') }}
           title="Free-fly 3D world. WASD + mouse. Desktop only.">
           ◈ 3d world
         </button>

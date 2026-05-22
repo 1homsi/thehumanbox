@@ -5,7 +5,7 @@ import { useUIStore } from './stores/store'
 import { WS_BASE } from './lib/config'
 
 const WS_HOST = WS_BASE.replace(/^wss?:\/\//, '')
-import { WorldView } from './world/WorldView'
+import { WorldView } from './2d/world/WorldView'
 import { EventLog } from './components/EventLog'
 import { HistoryGrid } from './components/HistoryGrid'
 import { LineagesList } from './components/LineagesList'
@@ -26,7 +26,7 @@ import type { OrganismState } from './types'
 import clsx from 'clsx'
 import './App.css'
 
-const WorldView3D = lazyWithRetry(() => import('./world/WorldView3D'))
+const WorldView3D = lazyWithRetry(() => import('./3d/world/WorldView3D'))
 
 const TILE_FIRE = 4
 

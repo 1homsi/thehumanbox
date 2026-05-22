@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { updateOrgMotion, getOrgXY } from './motion-state'
-import type { OrganismState } from '../types'
+import type { OrganismState } from '../../../types'
 
 function org(id: string, x: number, y: number, extra: Partial<OrganismState> = {}): OrganismState {
   return {

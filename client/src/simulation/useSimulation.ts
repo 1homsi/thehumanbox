@@ -4,7 +4,7 @@ import { WS_BASE, API_BASE } from '../lib/config'
 import { useWorldStore } from '../stores/worldStore'
 import { fetchSnapshotWithProgress, parseWorldFrame } from './wire'
 import { mergeFrame, type MergeCaches } from './merge'
-import { updateOrgMotion, updateAnimalMotion } from '../three/motion-state'
+import { updateOrgMotion, updateAnimalMotion } from '../3d/world/parts/motion-state'
 import { logger } from '../lib/logger'
 
 const WS_URL       = `${WS_BASE}/ws`

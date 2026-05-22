@@ -4,7 +4,7 @@ import {
   BoxGeometry, BufferGeometry, ConeGeometry, CylinderGeometry,
   InstancedMesh, MeshStandardMaterial, Object3D, PlaneGeometry, SpotLight,
 } from 'three'
-import type { Building, BuildingFunction, BuildingKind } from '../types'
+import type { Building, BuildingFunction, BuildingKind } from '../../../types'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
 

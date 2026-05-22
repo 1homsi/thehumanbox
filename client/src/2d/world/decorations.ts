@@ -5,9 +5,9 @@
  * orchestrator file can stay focused on the per-frame pipeline.
  */
 
-import { SPRITE, ATLAS_TOWN, drawTile } from '../utils/sprites'
-import type { WorldState } from '../types'
-import { TILE } from './palette'
+import { SPRITE, ATLAS_TOWN, drawTile } from '../../utils/sprites'
+import type { WorldState } from '../../types'
+import { TILE } from '../../world/palette'
 
 export function drawCloudShape(
   ctx: CanvasRenderingContext2D,

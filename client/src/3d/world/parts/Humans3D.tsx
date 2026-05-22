@@ -5,9 +5,9 @@ import {
   CapsuleGeometry, Color, Euler, InstancedMesh, Matrix4,
   MeshStandardMaterial, Quaternion, Vector3,
 } from 'three'
-import type { OrganismState } from '../types'
-import { lineageColor } from '../utils/constants'
-import { useUIStore } from '../stores/store'
+import type { OrganismState } from '../../../types'
+import { lineageColor } from '../../../utils/constants'
+import { useUIStore } from '../../../stores/store'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
 import { AnimatedFigure } from './AnimatedFigure'

@@ -1,6 +1,6 @@
-import type { SceneContext, SceneFixture, SceneId } from '../../core/types'
+import type { SceneContext, SceneFixture, SceneId } from '../../../scenes/core/types'
 import type { WorldState } from '../../../types'
-import { householdAround } from '../../shared/occupants'
+import { householdAround } from '../../../scenes/shared/occupants'
 
 const ERA_LABEL: Record<string, string> = {
   'pre-stone':   'A bare windbreak',

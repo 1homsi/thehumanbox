@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Billboard, Text } from '@react-three/drei'
-import type { OrganismState } from '../types'
-import { lineageColor } from '../utils/constants'
+import type { OrganismState } from '../../../types'
+import { lineageColor } from '../../../utils/constants'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
 

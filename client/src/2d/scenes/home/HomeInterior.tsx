@@ -1,4 +1,4 @@
-import type { SceneContext } from '../../core/types'
+import type { SceneContext } from '../../../scenes/core/types'
 import { Furniture } from './parts/Furniture'
 import { Occupant } from './parts/Occupant'
 import { useUIStore } from '../../../stores/store'

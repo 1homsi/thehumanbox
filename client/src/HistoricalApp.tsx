@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useHistoricalWorld } from './simulation/useHistoricalWorld'
 import { useUIStore } from './stores/store'
-import { WorldView } from './world/WorldView'
+import { WorldView } from './2d/world/WorldView'
 import { RightPanel } from './components/RightPanel'
 import { HistoryGrid } from './components/HistoryGrid'
 import { LineagesList } from './components/LineagesList'

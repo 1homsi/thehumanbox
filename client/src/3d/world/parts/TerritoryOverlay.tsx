@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { BufferAttribute, BufferGeometry, Color, DoubleSide, MeshBasicMaterial } from 'three'
-import type { WorldState } from '../types'
-import { lineageColor } from '../utils/constants'
+import type { WorldState } from '../../../types'
+import { lineageColor } from '../../../utils/constants'
 import { heightAt } from './terrain-utils'
 import { TILE_SCALE } from './constants'
 

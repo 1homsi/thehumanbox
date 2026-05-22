@@ -3,7 +3,7 @@ import type { WorldState } from '../../types'
 import { useSceneStore, useCurrentScene } from '../../stores/scene'
 import { useUIStore } from '../../stores/store'
 import { getSceneRenderer } from '../core/registry'
-import '../kinds/home'
+import '../../2d/scenes/home'
 
 interface Props {
   world: WorldState

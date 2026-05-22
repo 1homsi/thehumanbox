@@ -1,9 +1,9 @@
 import { useMemo } from 'react'
 import { useThree } from '@react-three/fiber'
 import { Billboard, Text } from '@react-three/drei'
-import type { OrganismState } from '../types'
-import { lineageColor } from '../utils/constants'
-import { useUIStore } from '../stores/store'
+import type { OrganismState } from '../../../types'
+import { lineageColor } from '../../../utils/constants'
+import { useUIStore } from '../../../stores/store'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
 
