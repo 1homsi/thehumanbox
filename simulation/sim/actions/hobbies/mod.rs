@@ -1,0 +1,108 @@
+pub mod read_book_for_fun;
+pub mod write_journal;
+pub mod sketch_subject;
+pub mod doodle;
+pub mod whittle_wood;
+pub mod collect_pebbles;
+pub mod collect_feathers;
+pub mod press_flowers;
+pub mod paint_watercolor;
+pub mod practice_lute;
+pub mod practice_drums;
+pub mod sing_for_self;
+pub mod hum_tune;
+pub mod knit_scarf;
+pub mod crochet_blanket;
+pub mod sew_patches;
+pub mod embroider_cloth;
+pub mod carve_chess_piece;
+pub mod play_chess_at_home;
+pub mod solve_riddle;
+pub mod do_puzzle;
+pub mod fold_paper_bird;
+pub mod build_model;
+pub mod build_diorama;
+pub mod paint_figurine;
+pub mod collect_coins;
+pub mod collect_stamps;
+pub mod practice_calligraphy;
+pub mod keep_diary;
+pub mod read_poetry_alone;
+pub mod reread_favorite;
+pub mod collect_seashells;
+pub mod dry_herbs_hobby;
+pub mod press_leaves;
+pub mod shadow_box;
+pub mod arrange_pebbles;
+pub mod daydream;
+pub mod play_marbles;
+pub mod spin_top;
+pub mod juggle_pebbles;
+pub mod whistle_song;
+pub mod polish_keepsake;
+pub mod catalogue_finds;
+pub mod organize_collection;
+pub mod trade_trinket;
+pub mod teach_self;
+pub mod practice_recitation;
+pub mod practice_writing;
+pub mod watch_clouds;
+pub mod watch_stars_alone;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        600 => read_book_for_fun::apply(ctx),
+        601 => write_journal::apply(ctx),
+        602 => sketch_subject::apply(ctx),
+        603 => doodle::apply(ctx),
+        604 => whittle_wood::apply(ctx),
+        605 => collect_pebbles::apply(ctx),
+        606 => collect_feathers::apply(ctx),
+        607 => press_flowers::apply(ctx),
+        608 => paint_watercolor::apply(ctx),
+        609 => practice_lute::apply(ctx),
+        610 => practice_drums::apply(ctx),
+        611 => sing_for_self::apply(ctx),
+        612 => hum_tune::apply(ctx),
+        613 => knit_scarf::apply(ctx),
+        614 => crochet_blanket::apply(ctx),
+        615 => sew_patches::apply(ctx),
+        616 => embroider_cloth::apply(ctx),
+        617 => carve_chess_piece::apply(ctx),
+        618 => play_chess_at_home::apply(ctx),
+        619 => solve_riddle::apply(ctx),
+        620 => do_puzzle::apply(ctx),
+        621 => fold_paper_bird::apply(ctx),
+        622 => build_model::apply(ctx),
+        623 => build_diorama::apply(ctx),
+        624 => paint_figurine::apply(ctx),
+        625 => collect_coins::apply(ctx),
+        626 => collect_stamps::apply(ctx),
+        627 => practice_calligraphy::apply(ctx),
+        628 => keep_diary::apply(ctx),
+        629 => read_poetry_alone::apply(ctx),
+        630 => reread_favorite::apply(ctx),
+        631 => collect_seashells::apply(ctx),
+        632 => dry_herbs_hobby::apply(ctx),
+        633 => press_leaves::apply(ctx),
+        634 => shadow_box::apply(ctx),
+        635 => arrange_pebbles::apply(ctx),
+        636 => daydream::apply(ctx),
+        637 => play_marbles::apply(ctx),
+        638 => spin_top::apply(ctx),
+        639 => juggle_pebbles::apply(ctx),
+        640 => whistle_song::apply(ctx),
+        641 => polish_keepsake::apply(ctx),
+        642 => catalogue_finds::apply(ctx),
+        643 => organize_collection::apply(ctx),
+        644 => trade_trinket::apply(ctx),
+        645 => teach_self::apply(ctx),
+        646 => practice_recitation::apply(ctx),
+        647 => practice_writing::apply(ctx),
+        648 => watch_clouds::apply(ctx),
+        649 => watch_stars_alone::apply(ctx),
+        _   => 0.0,
+    }
+}
