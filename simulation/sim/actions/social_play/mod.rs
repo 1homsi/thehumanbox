@@ -1,0 +1,110 @@
+pub mod host_dinner;
+pub mod host_picnic;
+pub mod host_potluck;
+pub mod host_tea;
+pub mod host_supper;
+pub mod share_meal;
+pub mod break_bread;
+pub mod toast_health;
+pub mod toast_kin;
+pub mod toast_ancestor;
+pub mod trade_gift_circle;
+pub mod pass_calumet;
+pub mod braid_rope_circle;
+pub mod plant_circle;
+pub mod harvest_circle;
+pub mod ride_along;
+pub mod stroll_arm_in_arm;
+pub mod chat_under_tree;
+pub mod gossip_in_alley;
+pub mod joke_at_well;
+pub mod tease_friend;
+pub mod roughhouse_kid;
+pub mod carry_kid;
+pub mod piggyback_kid;
+pub mod play_horsey;
+pub mod read_to_child;
+pub mod sing_lullaby;
+pub mod tell_bedtime_story;
+pub mod braid_kid_hair;
+pub mod tuck_in_kid;
+pub mod share_dream;
+pub mod share_secret;
+pub mod confide_in_kin;
+pub mod admit_mistake;
+pub mod offer_apology;
+pub mod ask_forgiveness;
+pub mod mediate_quarrel;
+pub mod referee_fight;
+pub mod defuse_tension;
+pub mod hush_anger;
+pub mod cool_temper;
+pub mod share_blanket;
+pub mod warm_by_fire;
+pub mod share_water_jug;
+pub mod pass_torch;
+pub mod share_lamp;
+pub mod link_arms;
+pub mod hold_hands;
+pub mod clasp_shoulders;
+pub mod bow_to_elder;
+pub mod kneel_for_blessing;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        1260 => host_dinner::apply(ctx),
+        1261 => host_picnic::apply(ctx),
+        1262 => host_potluck::apply(ctx),
+        1263 => host_tea::apply(ctx),
+        1264 => host_supper::apply(ctx),
+        1265 => share_meal::apply(ctx),
+        1266 => break_bread::apply(ctx),
+        1267 => toast_health::apply(ctx),
+        1268 => toast_kin::apply(ctx),
+        1269 => toast_ancestor::apply(ctx),
+        1270 => trade_gift_circle::apply(ctx),
+        1271 => pass_calumet::apply(ctx),
+        1272 => braid_rope_circle::apply(ctx),
+        1273 => plant_circle::apply(ctx),
+        1274 => harvest_circle::apply(ctx),
+        1275 => ride_along::apply(ctx),
+        1276 => stroll_arm_in_arm::apply(ctx),
+        1277 => chat_under_tree::apply(ctx),
+        1278 => gossip_in_alley::apply(ctx),
+        1279 => joke_at_well::apply(ctx),
+        1280 => tease_friend::apply(ctx),
+        1281 => roughhouse_kid::apply(ctx),
+        1282 => carry_kid::apply(ctx),
+        1283 => piggyback_kid::apply(ctx),
+        1284 => play_horsey::apply(ctx),
+        1285 => read_to_child::apply(ctx),
+        1286 => sing_lullaby::apply(ctx),
+        1287 => tell_bedtime_story::apply(ctx),
+        1288 => braid_kid_hair::apply(ctx),
+        1289 => tuck_in_kid::apply(ctx),
+        1290 => share_dream::apply(ctx),
+        1291 => share_secret::apply(ctx),
+        1292 => confide_in_kin::apply(ctx),
+        1293 => admit_mistake::apply(ctx),
+        1294 => offer_apology::apply(ctx),
+        1295 => ask_forgiveness::apply(ctx),
+        1296 => mediate_quarrel::apply(ctx),
+        1297 => referee_fight::apply(ctx),
+        1298 => defuse_tension::apply(ctx),
+        1299 => hush_anger::apply(ctx),
+        1300 => cool_temper::apply(ctx),
+        1301 => share_blanket::apply(ctx),
+        1302 => warm_by_fire::apply(ctx),
+        1303 => share_water_jug::apply(ctx),
+        1304 => pass_torch::apply(ctx),
+        1305 => share_lamp::apply(ctx),
+        1306 => link_arms::apply(ctx),
+        1307 => hold_hands::apply(ctx),
+        1308 => clasp_shoulders::apply(ctx),
+        1309 => bow_to_elder::apply(ctx),
+        1310 => kneel_for_blessing::apply(ctx),
+        _   => 0.0,
+    }
+}
