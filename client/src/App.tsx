@@ -16,6 +16,8 @@ import { ModalRouter } from './components/ModalRouter'
 import { ActionTicker } from './components/ActionTicker'
 import { ThreeDLoading } from './components/ThreeDLoading'
 import { Try3DToast } from './components/Try3DToast'
+import { MobileBanner } from './components/MobileBanner'
+import { WelcomeModal } from './components/WelcomeModal'
 import type { OrganismState } from './types'
 import clsx from 'clsx'
 import './App.css'
@@ -177,6 +179,8 @@ function App() {
       {world && <ModalRouter world={world} lineages={lineages} />}
 
       {world && <Try3DToast />}
+      <MobileBanner />
+      <WelcomeModal />
     </div>
   )
 }
