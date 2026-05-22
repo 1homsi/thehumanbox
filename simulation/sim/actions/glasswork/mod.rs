@@ -1,0 +1,108 @@
+pub mod charge_pot;
+pub mod ladle_glass;
+pub mod gather_glass;
+pub mod blow_pipe;
+pub mod blow_bubble;
+pub mod marver_glass;
+pub mod jacks_form;
+pub mod punty_attach;
+pub mod detach_pipe;
+pub mod anneal_glass;
+pub mod cane_pull;
+pub mod twist_cane;
+pub mod cut_cane;
+pub mod lay_murrini;
+pub mod fuse_murrini;
+pub mod flatten_disc;
+pub mod slump_slag;
+pub mod press_pattern;
+pub mod mold_blow;
+pub mod paste_mold;
+pub mod optic_mold;
+pub mod spot_mold;
+pub mod rib_mold;
+pub mod cut_blank;
+pub mod polish_blank;
+pub mod etch_blank;
+pub mod acid_dip;
+pub mod frost_blank;
+pub mod flash_color;
+pub mod reduce_color;
+pub mod silver_back;
+pub mod gild_back;
+pub mod paint_reverse;
+pub mod paint_front;
+pub mod fuse_paint;
+pub mod bevel_blank;
+pub mod wheel_engrave;
+pub mod diamond_engrave;
+pub mod stipple_engrave;
+pub mod drill_glass;
+pub mod copper_wrap;
+pub mod solder_camp;
+pub mod leadlight_came;
+pub mod soldered_seam;
+pub mod reinforce_came;
+pub mod glaze_panel;
+pub mod cement_putty;
+pub mod bed_putty;
+pub mod rod_putty;
+pub mod glaze_in_frame;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        3900 => charge_pot::apply(ctx),
+        3901 => ladle_glass::apply(ctx),
+        3902 => gather_glass::apply(ctx),
+        3903 => blow_pipe::apply(ctx),
+        3904 => blow_bubble::apply(ctx),
+        3905 => marver_glass::apply(ctx),
+        3906 => jacks_form::apply(ctx),
+        3907 => punty_attach::apply(ctx),
+        3908 => detach_pipe::apply(ctx),
+        3909 => anneal_glass::apply(ctx),
+        3910 => cane_pull::apply(ctx),
+        3911 => twist_cane::apply(ctx),
+        3912 => cut_cane::apply(ctx),
+        3913 => lay_murrini::apply(ctx),
+        3914 => fuse_murrini::apply(ctx),
+        3915 => flatten_disc::apply(ctx),
+        3916 => slump_slag::apply(ctx),
+        3917 => press_pattern::apply(ctx),
+        3918 => mold_blow::apply(ctx),
+        3919 => paste_mold::apply(ctx),
+        3920 => optic_mold::apply(ctx),
+        3921 => spot_mold::apply(ctx),
+        3922 => rib_mold::apply(ctx),
+        3923 => cut_blank::apply(ctx),
+        3924 => polish_blank::apply(ctx),
+        3925 => etch_blank::apply(ctx),
+        3926 => acid_dip::apply(ctx),
+        3927 => frost_blank::apply(ctx),
+        3928 => flash_color::apply(ctx),
+        3929 => reduce_color::apply(ctx),
+        3930 => silver_back::apply(ctx),
+        3931 => gild_back::apply(ctx),
+        3932 => paint_reverse::apply(ctx),
+        3933 => paint_front::apply(ctx),
+        3934 => fuse_paint::apply(ctx),
+        3935 => bevel_blank::apply(ctx),
+        3936 => wheel_engrave::apply(ctx),
+        3937 => diamond_engrave::apply(ctx),
+        3938 => stipple_engrave::apply(ctx),
+        3939 => drill_glass::apply(ctx),
+        3940 => copper_wrap::apply(ctx),
+        3941 => solder_camp::apply(ctx),
+        3942 => leadlight_came::apply(ctx),
+        3943 => soldered_seam::apply(ctx),
+        3944 => reinforce_came::apply(ctx),
+        3945 => glaze_panel::apply(ctx),
+        3946 => cement_putty::apply(ctx),
+        3947 => bed_putty::apply(ctx),
+        3948 => rod_putty::apply(ctx),
+        3949 => glaze_in_frame::apply(ctx),
+        _   => 0.0,
+    }
+}
