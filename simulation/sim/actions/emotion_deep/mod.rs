@@ -1,0 +1,108 @@
+pub mod weep_in_private;
+pub mod weep_with_friend;
+pub mod weep_of_joy;
+pub mod weep_of_grief;
+pub mod weep_of_relief;
+pub mod laugh_belly;
+pub mod laugh_quietly;
+pub mod laugh_til_tears;
+pub mod giggle_uncontrolled;
+pub mod snicker_secretly;
+pub mod smile_warmly;
+pub mod grin_widely;
+pub mod smirk_quietly;
+pub mod beam_with_pride;
+pub mod glow_with_love;
+pub mod sigh_softly;
+pub mod sigh_heavily;
+pub mod sigh_relief;
+pub mod sigh_resignation;
+pub mod sob_shoulders;
+pub mod scream_into_pillow;
+pub mod scream_at_sky;
+pub mod scream_at_storm;
+pub mod gasp_in_awe;
+pub mod gasp_in_fear;
+pub mod blink_back_tears;
+pub mod wipe_tears_away;
+pub mod choke_back_sob;
+pub mod hold_breath_calm;
+pub mod tremble_with_rage;
+pub mod shake_with_cold;
+pub mod shiver_with_anticipation;
+pub mod flush_with_embarrassment;
+pub mod blush_at_compliment;
+pub mod freeze_in_terror;
+pub mod thaw_in_warmth;
+pub mod melt_in_relief;
+pub mod soften_at_kindness;
+pub mod harden_in_resolve;
+pub mod steel_for_battle;
+pub mod brace_for_impact;
+pub mod center_in_storm;
+pub mod ground_in_present;
+pub mod anchor_to_breath;
+pub mod rest_in_silence;
+pub mod bask_in_sun;
+pub mod lounge_by_river;
+pub mod roll_in_grass;
+pub mod dance_in_rain;
+pub mod spin_in_circle;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        2340 => weep_in_private::apply(ctx),
+        2341 => weep_with_friend::apply(ctx),
+        2342 => weep_of_joy::apply(ctx),
+        2343 => weep_of_grief::apply(ctx),
+        2344 => weep_of_relief::apply(ctx),
+        2345 => laugh_belly::apply(ctx),
+        2346 => laugh_quietly::apply(ctx),
+        2347 => laugh_til_tears::apply(ctx),
+        2348 => giggle_uncontrolled::apply(ctx),
+        2349 => snicker_secretly::apply(ctx),
+        2350 => smile_warmly::apply(ctx),
+        2351 => grin_widely::apply(ctx),
+        2352 => smirk_quietly::apply(ctx),
+        2353 => beam_with_pride::apply(ctx),
+        2354 => glow_with_love::apply(ctx),
+        2355 => sigh_softly::apply(ctx),
+        2356 => sigh_heavily::apply(ctx),
+        2357 => sigh_relief::apply(ctx),
+        2358 => sigh_resignation::apply(ctx),
+        2359 => sob_shoulders::apply(ctx),
+        2360 => scream_into_pillow::apply(ctx),
+        2361 => scream_at_sky::apply(ctx),
+        2362 => scream_at_storm::apply(ctx),
+        2363 => gasp_in_awe::apply(ctx),
+        2364 => gasp_in_fear::apply(ctx),
+        2365 => blink_back_tears::apply(ctx),
+        2366 => wipe_tears_away::apply(ctx),
+        2367 => choke_back_sob::apply(ctx),
+        2368 => hold_breath_calm::apply(ctx),
+        2369 => tremble_with_rage::apply(ctx),
+        2370 => shake_with_cold::apply(ctx),
+        2371 => shiver_with_anticipation::apply(ctx),
+        2372 => flush_with_embarrassment::apply(ctx),
+        2373 => blush_at_compliment::apply(ctx),
+        2374 => freeze_in_terror::apply(ctx),
+        2375 => thaw_in_warmth::apply(ctx),
+        2376 => melt_in_relief::apply(ctx),
+        2377 => soften_at_kindness::apply(ctx),
+        2378 => harden_in_resolve::apply(ctx),
+        2379 => steel_for_battle::apply(ctx),
+        2380 => brace_for_impact::apply(ctx),
+        2381 => center_in_storm::apply(ctx),
+        2382 => ground_in_present::apply(ctx),
+        2383 => anchor_to_breath::apply(ctx),
+        2384 => rest_in_silence::apply(ctx),
+        2385 => bask_in_sun::apply(ctx),
+        2386 => lounge_by_river::apply(ctx),
+        2387 => roll_in_grass::apply(ctx),
+        2388 => dance_in_rain::apply(ctx),
+        2389 => spin_in_circle::apply(ctx),
+        _   => 0.0,
+    }
+}
