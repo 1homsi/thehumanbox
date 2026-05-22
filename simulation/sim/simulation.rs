@@ -176,6 +176,7 @@ pub struct Simulation {
     pub milestones_achieved: HashSet<String>,
     pub headlines:    VecDeque<(u64, String)>,
     pub trades:       VecDeque<super::civ::economy::Trade>,
+    pub water_use:    HashMap<(i32, i32), u32>,
     pub current_era:           String,
     pub sex_words:             [String; 2],
     pub world_seed:            u64,
@@ -278,6 +279,7 @@ impl Simulation {
             milestones_achieved:     HashSet::new(),
             headlines:               VecDeque::new(),
             trades:                  VecDeque::new(),
+            water_use:               HashMap::new(),
             current_era: "genesis".to_string(),
             sex_words,
             world_seed: seed,
@@ -463,6 +465,7 @@ impl Simulation {
         if self.tick_count % 600 == 0 {
             super::tech_progress::seed_baseline_discoveries(&mut self.organisms, self.tick_count);
             self.update_lineage_eras();
+            self.tick_water_depletion();
         }
 
         super::tech_progress::tick_tech_progress(
@@ -929,6 +932,7 @@ impl Simulation {
         } else if action == 9 {
             let (cx, cy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
             if self.grid.get(cx, cy) == Tile::Water {
+                *self.water_use.entry((cx, cy)).or_insert(0) += 1;
                 self.organisms[idx].hydration = 1.0;
                 let room = self.organisms[idx].carry_room();
                 let fill = room.min(4) as u8;
@@ -3211,6 +3215,33 @@ impl Simulation {
 
     pub fn era(&self, lineage_id: &str) -> super::era::Era {
         self.lineage_eras.get(lineage_id).copied().unwrap_or(super::era::Era::PreStone)
+    }
+
+    fn tick_water_depletion(&mut self) {
+        const OVERDRINK_THRESHOLD: u32 = 200;
+        const KEEP_FRACTION: f32 = 0.6;
+        if self.water_use.is_empty() { return }
+        let snapshot: Vec<((i32, i32), u32)> = self.water_use.iter()
+            .filter(|(_, n)| **n >= OVERDRINK_THRESHOLD)
+            .map(|(k, v)| (*k, *v))
+            .collect();
+        for ((cx, cy), _n) in snapshot {
+            if self.grid.get(cx, cy) != Tile::Water { continue }
+            let mut water_neighbours = 0;
+            for &(dx, dy) in &[(-1, 0), (1, 0), (0, -1), (0, 1)] {
+                if self.grid.get(cx + dx, cy + dy) == Tile::Water { water_neighbours += 1 }
+            }
+            if water_neighbours <= 1 {
+                self.grid.set(cx, cy, Tile::Sand);
+                self.water_use.remove(&(cx, cy));
+                push_event(&mut self.events, self.tick_count, "drought", "world",
+                    &format!("a pond at ({},{}) dried out from overuse", cx, cy));
+            }
+        }
+        for (_, n) in self.water_use.iter_mut() {
+            *n = ((*n as f32) * KEEP_FRACTION) as u32;
+        }
+        self.water_use.retain(|_, n| *n > 0);
     }
 
     fn update_lineage_eras(&mut self) {

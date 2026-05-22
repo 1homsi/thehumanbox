@@ -702,6 +702,7 @@ impl Simulation {
             milestones_achieved: HashSet::new(),
             headlines: std::collections::VecDeque::new(),
             trades: std::collections::VecDeque::new(),
+            water_use: std::collections::HashMap::new(),
         };
         // The save format only stores the forward map; rebuild the
         // inverse map after the struct exists. Last claim in the
