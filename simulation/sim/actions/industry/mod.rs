@@ -1,0 +1,108 @@
+pub mod operate_kiln;
+pub mod operate_blast_furnace;
+pub mod operate_bessemer;
+pub mod operate_open_hearth;
+pub mod cast_pig_iron;
+pub mod pour_ingot;
+pub mod pour_billet;
+pub mod roll_steel;
+pub mod draw_wire;
+pub mod stamp_metal;
+pub mod punch_metal;
+pub mod lathe_turn;
+pub mod mill_workpiece;
+pub mod drill_workpiece;
+pub mod grind_workpiece;
+pub mod polish_workpiece;
+pub mod bluish_steel;
+pub mod anneal_steel;
+pub mod temper_blade_indust;
+pub mod hot_forge;
+pub mod cold_forge;
+pub mod hammer_weld;
+pub mod arc_weld;
+pub mod gas_weld;
+pub mod solder_joint;
+pub mod braze_joint;
+pub mod rivet_two_plates;
+pub mod tinker_clockwork;
+pub mod wind_clock_spring;
+pub mod assemble_watch;
+pub mod service_engine;
+pub mod repair_pump;
+pub mod replace_belt;
+pub mod replace_chain;
+pub mod align_shaft;
+pub mod balance_wheel;
+pub mod sharpen_blade_industrial;
+pub mod machine_setup;
+pub mod calibrate_press;
+pub mod feed_rolls;
+pub mod monitor_temp;
+pub mod monitor_pressure;
+pub mod record_gauge;
+pub mod log_yield;
+pub mod log_defect;
+pub mod inspect_finish;
+pub mod reject_part;
+pub mod rework_part;
+pub mod scrap_part;
+pub mod box_finished;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        2040 => operate_kiln::apply(ctx),
+        2041 => operate_blast_furnace::apply(ctx),
+        2042 => operate_bessemer::apply(ctx),
+        2043 => operate_open_hearth::apply(ctx),
+        2044 => cast_pig_iron::apply(ctx),
+        2045 => pour_ingot::apply(ctx),
+        2046 => pour_billet::apply(ctx),
+        2047 => roll_steel::apply(ctx),
+        2048 => draw_wire::apply(ctx),
+        2049 => stamp_metal::apply(ctx),
+        2050 => punch_metal::apply(ctx),
+        2051 => lathe_turn::apply(ctx),
+        2052 => mill_workpiece::apply(ctx),
+        2053 => drill_workpiece::apply(ctx),
+        2054 => grind_workpiece::apply(ctx),
+        2055 => polish_workpiece::apply(ctx),
+        2056 => bluish_steel::apply(ctx),
+        2057 => anneal_steel::apply(ctx),
+        2058 => temper_blade_indust::apply(ctx),
+        2059 => hot_forge::apply(ctx),
+        2060 => cold_forge::apply(ctx),
+        2061 => hammer_weld::apply(ctx),
+        2062 => arc_weld::apply(ctx),
+        2063 => gas_weld::apply(ctx),
+        2064 => solder_joint::apply(ctx),
+        2065 => braze_joint::apply(ctx),
+        2066 => rivet_two_plates::apply(ctx),
+        2067 => tinker_clockwork::apply(ctx),
+        2068 => wind_clock_spring::apply(ctx),
+        2069 => assemble_watch::apply(ctx),
+        2070 => service_engine::apply(ctx),
+        2071 => repair_pump::apply(ctx),
+        2072 => replace_belt::apply(ctx),
+        2073 => replace_chain::apply(ctx),
+        2074 => align_shaft::apply(ctx),
+        2075 => balance_wheel::apply(ctx),
+        2076 => sharpen_blade_industrial::apply(ctx),
+        2077 => machine_setup::apply(ctx),
+        2078 => calibrate_press::apply(ctx),
+        2079 => feed_rolls::apply(ctx),
+        2080 => monitor_temp::apply(ctx),
+        2081 => monitor_pressure::apply(ctx),
+        2082 => record_gauge::apply(ctx),
+        2083 => log_yield::apply(ctx),
+        2084 => log_defect::apply(ctx),
+        2085 => inspect_finish::apply(ctx),
+        2086 => reject_part::apply(ctx),
+        2087 => rework_part::apply(ctx),
+        2088 => scrap_part::apply(ctx),
+        2089 => box_finished::apply(ctx),
+        _   => 0.0,
+    }
+}
