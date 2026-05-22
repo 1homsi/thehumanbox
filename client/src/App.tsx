@@ -18,6 +18,7 @@ import { ThreeDLoading } from './components/ThreeDLoading'
 import { Try3DToast } from './components/Try3DToast'
 import { MobileBanner } from './components/MobileBanner'
 import { WelcomeModal } from './components/WelcomeModal'
+import { UpdateToast } from './components/UpdateToast'
 import { HistoricalApp } from './HistoricalApp'
 import type { OrganismState } from './types'
 import clsx from 'clsx'
@@ -194,6 +195,7 @@ function LiveApp() {
       {world && <Try3DToast />}
       <MobileBanner />
       {world && <WelcomeModal />}
+      <UpdateToast />
     </div>
   )
 }

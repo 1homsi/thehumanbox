@@ -1,8 +1,24 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
+import { writeFile } from 'node:fs/promises'
+import path from 'node:path'
+
+function emitVersionJson(): Plugin {
+  return {
+    name: 'thb-emit-version-json',
+    apply: 'build',
+    async closeBundle() {
+      const sha = process.env.VITE_GIT_SHA  ?? 'dev'
+      const ts  = process.env.VITE_BUILD_TS ?? String(Math.floor(Date.now() / 1000))
+      const payload = JSON.stringify({ sha, built_at: Number(ts) })
+      const out = path.resolve(__dirname, 'dist', 'version.json')
+      await writeFile(out, payload, 'utf8')
+    },
+  }
+}
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), emitVersionJson()],
 
   build: {
     chunkSizeWarningLimit: 400,

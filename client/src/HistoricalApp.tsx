@@ -10,6 +10,7 @@ import { WorldFooter } from './components/WorldFooter'
 import { AppHeader } from './components/AppHeader'
 import { ModalRouter } from './components/ModalRouter'
 import { HistoricalBanner } from './components/HistoricalBanner'
+import { UpdateToast } from './components/UpdateToast'
 import type { OrganismState } from './types'
 import clsx from 'clsx'
 
@@ -86,6 +87,7 @@ export function HistoricalApp({ hash }: Props) {
       </main>
 
       {world && <ModalRouter world={world} lineages={lineages} />}
+      <UpdateToast />
     </div>
   )
 }
