@@ -1,0 +1,108 @@
+pub mod arrange_furniture;
+pub mod move_chair;
+pub mod stack_pillow;
+pub mod drape_throw;
+pub mod plump_cushion;
+pub mod light_taper;
+pub mod light_oil_lamp_evening;
+pub mod light_brazier;
+pub mod light_hearth_evening;
+pub mod light_hanging_lantern;
+pub mod hang_painting;
+pub mod hang_tapestry;
+pub mod frame_portrait;
+pub mod hang_charm;
+pub mod hang_mirror;
+pub mod set_centerpiece;
+pub mod set_table_runner;
+pub mod set_napkin_ring;
+pub mod set_candle_holder;
+pub mod set_candleabra;
+pub mod freshen_lavender;
+pub mod freshen_pine;
+pub mod freshen_cedar;
+pub mod freshen_rose;
+pub mod freshen_mint;
+pub mod sweep_threshold;
+pub mod sweep_under_table;
+pub mod sweep_under_bed;
+pub mod sweep_under_loom;
+pub mod sweep_under_chest;
+pub mod wax_floor;
+pub mod wax_table;
+pub mod wax_chest;
+pub mod wax_threshold;
+pub mod wax_railing;
+pub mod oil_door_hinge;
+pub mod oil_chest_hinge;
+pub mod oil_box_hinge;
+pub mod oil_shutter_hinge;
+pub mod oil_clock_works;
+pub mod air_blankets;
+pub mod air_mattress;
+pub mod air_clothes;
+pub mod air_curtains;
+pub mod air_cushions;
+pub mod beat_carpet;
+pub mod beat_blanket;
+pub mod beat_rug2;
+pub mod wash_curtain;
+pub mod wash_quilt;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        2940 => arrange_furniture::apply(ctx),
+        2941 => move_chair::apply(ctx),
+        2942 => stack_pillow::apply(ctx),
+        2943 => drape_throw::apply(ctx),
+        2944 => plump_cushion::apply(ctx),
+        2945 => light_taper::apply(ctx),
+        2946 => light_oil_lamp_evening::apply(ctx),
+        2947 => light_brazier::apply(ctx),
+        2948 => light_hearth_evening::apply(ctx),
+        2949 => light_hanging_lantern::apply(ctx),
+        2950 => hang_painting::apply(ctx),
+        2951 => hang_tapestry::apply(ctx),
+        2952 => frame_portrait::apply(ctx),
+        2953 => hang_charm::apply(ctx),
+        2954 => hang_mirror::apply(ctx),
+        2955 => set_centerpiece::apply(ctx),
+        2956 => set_table_runner::apply(ctx),
+        2957 => set_napkin_ring::apply(ctx),
+        2958 => set_candle_holder::apply(ctx),
+        2959 => set_candleabra::apply(ctx),
+        2960 => freshen_lavender::apply(ctx),
+        2961 => freshen_pine::apply(ctx),
+        2962 => freshen_cedar::apply(ctx),
+        2963 => freshen_rose::apply(ctx),
+        2964 => freshen_mint::apply(ctx),
+        2965 => sweep_threshold::apply(ctx),
+        2966 => sweep_under_table::apply(ctx),
+        2967 => sweep_under_bed::apply(ctx),
+        2968 => sweep_under_loom::apply(ctx),
+        2969 => sweep_under_chest::apply(ctx),
+        2970 => wax_floor::apply(ctx),
+        2971 => wax_table::apply(ctx),
+        2972 => wax_chest::apply(ctx),
+        2973 => wax_threshold::apply(ctx),
+        2974 => wax_railing::apply(ctx),
+        2975 => oil_door_hinge::apply(ctx),
+        2976 => oil_chest_hinge::apply(ctx),
+        2977 => oil_box_hinge::apply(ctx),
+        2978 => oil_shutter_hinge::apply(ctx),
+        2979 => oil_clock_works::apply(ctx),
+        2980 => air_blankets::apply(ctx),
+        2981 => air_mattress::apply(ctx),
+        2982 => air_clothes::apply(ctx),
+        2983 => air_curtains::apply(ctx),
+        2984 => air_cushions::apply(ctx),
+        2985 => beat_carpet::apply(ctx),
+        2986 => beat_blanket::apply(ctx),
+        2987 => beat_rug2::apply(ctx),
+        2988 => wash_curtain::apply(ctx),
+        2989 => wash_quilt::apply(ctx),
+        _   => 0.0,
+    }
+}
