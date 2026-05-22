@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use tokio::sync::{Mutex, mpsc};
 
-use crate::llm::{GroqResponse, NARRATION_LLM_MODEL, NARRATION_LLM_URL, llm_body, llm_extract, strip_thinking};
-use crate::llm_stats::SharedLlmStats;
-use crate::llm_rate::SharedGroqLimiter;
+use crate::server::llm::{GroqResponse, NARRATION_LLM_MODEL, NARRATION_LLM_URL, llm_body, llm_extract, strip_thinking};
+use crate::server::llm_stats::SharedLlmStats;
+use crate::server::llm_rate::SharedGroqLimiter;
 use crate::sim::convo_req::{ConvoSpeaker, ConversationReq};
 
 pub type ConvoLines = Vec<[String; 2]>;

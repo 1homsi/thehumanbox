@@ -2,18 +2,14 @@ mod world;
 mod organism;
 mod physics;
 mod sim;
-mod transport;
-mod routes;
-mod llm;
-mod llm_stats;
-mod llm_rate;
-mod memory_watch;
-mod narration_worker;
-mod conversation_worker;
-mod think_worker;
-mod og_image;
+mod server;
+
+use crate::server::{
+    transport, routes, llm, llm_stats, llm_rate, memory_watch,
+    narration_worker, conversation_worker, think_worker, og_image,
+};
 #[cfg(feature = "webtransport")]
-mod webtransport;
+use crate::server::webtransport;
 
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
@@ -101,9 +97,9 @@ pub struct AppState {
     pub latest_full:     LatestFull,
     pub latest_full_at:  Arc<std::sync::atomic::AtomicU64>,
     pub transport_stats: SharedTransportStats,
-    pub llm_stats:       crate::llm_stats::SharedLlmStats,
-    pub memory_watch:    crate::memory_watch::SharedMemoryWatch,
-    pub groq_limiter:    crate::llm_rate::SharedGroqLimiter,
+    pub llm_stats:       crate::server::llm_stats::SharedLlmStats,
+    pub memory_watch:    crate::server::memory_watch::SharedMemoryWatch,
+    pub groq_limiter:    crate::server::llm_rate::SharedGroqLimiter,
     pub og_cache:        OgCache,
     pub start_ms:        u64,
 }

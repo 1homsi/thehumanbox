@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde::Serialize;
 
-use crate::transport::TransportWindow;
+use crate::server::transport::TransportWindow;
 
 pub type SharedLlmStats = Arc<LlmStats>;
 

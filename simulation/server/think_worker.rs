@@ -5,9 +5,9 @@ use std::sync::Arc;
 use rand::SeedableRng;
 use tokio::sync::{Mutex, mpsc};
 
-use crate::llm::{GroqResponse, THINK_LLM_MODEL, THINK_LLM_URL, llm_body_with_temp_stop, llm_extract, strip_thinking};
-use crate::llm_stats::SharedLlmStats;
-use crate::llm_rate::SharedGroqLimiter;
+use crate::server::llm::{GroqResponse, THINK_LLM_MODEL, THINK_LLM_URL, llm_body_with_temp_stop, llm_extract, strip_thinking};
+use crate::server::llm_stats::SharedLlmStats;
+use crate::server::llm_rate::SharedGroqLimiter;
 use crate::sim::local_think;
 use crate::sim::simulation::ThinkTrigger;
 

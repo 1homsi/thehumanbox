@@ -11,10 +11,10 @@ use axum::{
 };
 use tokio::sync::broadcast;
 
-use super::{
+use crate::{
     AppState, LatestFull, SharedSim, WS_RESYNC_LAG_THRESHOLD,
 };
-use crate::transport::{
+use crate::server::transport::{
     SharedTransportStats, encode_frame, now_ms,
 };
 
@@ -47,7 +47,7 @@ pub async fn og_handler(
     State(s): State<AppState>,
 ) -> Result<impl IntoResponse, StatusCode> {
     const TTL_MS: u64 = 5 * 60 * 1000;
-    let now = crate::transport::now_ms();
+    let now = crate::server::transport::now_ms();
     // Hold the cache mutex across the entire critical section so a
     // burst of N concurrent cold-cache requests serialises through
     // one render - not N independent sim-locks + PNG encodes. The
@@ -72,8 +72,8 @@ pub async fn og_handler(
     let snapshot = {
         use crate::sim::config::DAY_LENGTH;
         let sim = s.sim.lock().await;
-        use crate::og_image::{OgSnapshot, OgOrg, lineage_color};
-        use crate::og_image::{OgAnimal, animal_color};
+        use crate::server::og_image::{OgSnapshot, OgOrg, lineage_color};
+        use crate::server::og_image::{OgAnimal, animal_color};
         let g = &sim.grid;
         let mut orgs: Vec<OgOrg> = Vec::with_capacity(sim.organisms.len());
         let mut alive = 0u32;
@@ -111,7 +111,7 @@ pub async fn og_handler(
     };
 
     // PNG encode off the reactor. spawn_blocking failure → 500.
-    let bytes_arc: Arc<Vec<u8>> = match tokio::task::spawn_blocking(move || crate::og_image::render(&snapshot)).await {
+    let bytes_arc: Arc<Vec<u8>> = match tokio::task::spawn_blocking(move || crate::server::og_image::render(&snapshot)).await {
         Ok(b) => Arc::new(b),
         Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
     };
@@ -220,8 +220,8 @@ pub async fn metrics_handler(
     let pressure = s.memory_watch.pressure();
     let groq_available = s.groq_limiter.available();
     let last_full = s.latest_full_at.load(std::sync::atomic::Ordering::Relaxed);
-    let last_full_age_ms = crate::transport::now_ms().saturating_sub(last_full);
-    let uptime_ms = crate::transport::now_ms().saturating_sub(s.start_ms);
+    let last_full_age_ms = crate::server::transport::now_ms().saturating_sub(last_full);
+    let uptime_ms = crate::server::transport::now_ms().saturating_sub(s.start_ms);
 
     // Snapshot the sim under the lock briefly for pop / lineage counts.
     let (alive, lineage_count) = {
@@ -361,7 +361,7 @@ pub async fn memory_handler(
 pub async fn health_handler(
     State(s): State<AppState>,
 ) -> impl IntoResponse {
-    let now = crate::transport::now_ms();
+    let now = crate::server::transport::now_ms();
     let last_full = s.latest_full_at.load(std::sync::atomic::Ordering::Relaxed);
     let last_full_age_ms = now.saturating_sub(last_full);
 
