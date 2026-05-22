@@ -1,0 +1,108 @@
+pub mod latte_rosetta;
+pub mod latte_heart;
+pub mod latte_tulip;
+pub mod latte_swan;
+pub mod latte_phoenix;
+pub mod pour_etched_design;
+pub mod pour_layered_design;
+pub mod pour_tiered_design;
+pub mod pour_freepour;
+pub mod pour_with_sauce;
+pub mod serve_affogato;
+pub mod serve_dessert_coffee;
+pub mod serve_cortado;
+pub mod serve_gibraltar;
+pub mod serve_ristretto;
+pub mod serve_lungo;
+pub mod serve_breve;
+pub mod serve_doppio;
+pub mod serve_cubano;
+pub mod serve_corretto;
+pub mod cup_taste;
+pub mod cup_score;
+pub mod cup_calibrate;
+pub mod cup_dial_in;
+pub mod cup_compare;
+pub mod audit_extraction;
+pub mod audit_yield;
+pub mod audit_taste;
+pub mod audit_temp;
+pub mod audit_grind;
+pub mod pair_beans_with_pastry;
+pub mod recommend_bean;
+pub mod recommend_brew;
+pub mod recommend_pastry;
+pub mod recommend_milk;
+pub mod describe_origin;
+pub mod describe_process;
+pub mod describe_roast;
+pub mod describe_acidity;
+pub mod describe_body;
+pub mod teach_customer_pour;
+pub mod teach_customer_taste;
+pub mod teach_customer_grind;
+pub mod teach_customer_brew;
+pub mod teach_customer_milk;
+pub mod host_cupping;
+pub mod host_brew_class;
+pub mod host_latte_art_class;
+pub mod host_tasting_event;
+pub mod close_cafe_books;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        5400 => latte_rosetta::apply(ctx),
+        5401 => latte_heart::apply(ctx),
+        5402 => latte_tulip::apply(ctx),
+        5403 => latte_swan::apply(ctx),
+        5404 => latte_phoenix::apply(ctx),
+        5405 => pour_etched_design::apply(ctx),
+        5406 => pour_layered_design::apply(ctx),
+        5407 => pour_tiered_design::apply(ctx),
+        5408 => pour_freepour::apply(ctx),
+        5409 => pour_with_sauce::apply(ctx),
+        5410 => serve_affogato::apply(ctx),
+        5411 => serve_dessert_coffee::apply(ctx),
+        5412 => serve_cortado::apply(ctx),
+        5413 => serve_gibraltar::apply(ctx),
+        5414 => serve_ristretto::apply(ctx),
+        5415 => serve_lungo::apply(ctx),
+        5416 => serve_breve::apply(ctx),
+        5417 => serve_doppio::apply(ctx),
+        5418 => serve_cubano::apply(ctx),
+        5419 => serve_corretto::apply(ctx),
+        5420 => cup_taste::apply(ctx),
+        5421 => cup_score::apply(ctx),
+        5422 => cup_calibrate::apply(ctx),
+        5423 => cup_dial_in::apply(ctx),
+        5424 => cup_compare::apply(ctx),
+        5425 => audit_extraction::apply(ctx),
+        5426 => audit_yield::apply(ctx),
+        5427 => audit_taste::apply(ctx),
+        5428 => audit_temp::apply(ctx),
+        5429 => audit_grind::apply(ctx),
+        5430 => pair_beans_with_pastry::apply(ctx),
+        5431 => recommend_bean::apply(ctx),
+        5432 => recommend_brew::apply(ctx),
+        5433 => recommend_pastry::apply(ctx),
+        5434 => recommend_milk::apply(ctx),
+        5435 => describe_origin::apply(ctx),
+        5436 => describe_process::apply(ctx),
+        5437 => describe_roast::apply(ctx),
+        5438 => describe_acidity::apply(ctx),
+        5439 => describe_body::apply(ctx),
+        5440 => teach_customer_pour::apply(ctx),
+        5441 => teach_customer_taste::apply(ctx),
+        5442 => teach_customer_grind::apply(ctx),
+        5443 => teach_customer_brew::apply(ctx),
+        5444 => teach_customer_milk::apply(ctx),
+        5445 => host_cupping::apply(ctx),
+        5446 => host_brew_class::apply(ctx),
+        5447 => host_latte_art_class::apply(ctx),
+        5448 => host_tasting_event::apply(ctx),
+        5449 => close_cafe_books::apply(ctx),
+        _   => 0.0,
+    }
+}
