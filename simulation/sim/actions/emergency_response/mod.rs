@@ -1,0 +1,108 @@
+pub mod call_emergency;
+pub mod report_fire;
+pub mod report_flood;
+pub mod report_injury;
+pub mod report_crime;
+pub mod arrive_scene;
+pub mod secure_scene;
+pub mod mark_perimeter;
+pub mod establish_command;
+pub mod brief_team;
+pub mod triage_patient;
+pub mod triage_priority;
+pub mod triage_assign;
+pub mod triage_record;
+pub mod triage_recheck;
+pub mod start_iv;
+pub mod splint_fracture;
+pub mod wrap_burn;
+pub mod airway_open;
+pub mod chest_compression;
+pub mod rescue_breath;
+pub mod defibrillate_aed;
+pub mod apply_tourniquet;
+pub mod pressure_dressing;
+pub mod recovery_position;
+pub mod evacuate_patient;
+pub mod stretcher_carry;
+pub mod chair_carry;
+pub mod firefighter_carry;
+pub mod backboard_carry;
+pub mod primary_search;
+pub mod secondary_search;
+pub mod room_clear;
+pub mod rapid_intervention;
+pub mod extinguish_small_fire;
+pub mod vent_smoke;
+pub mod breach_door;
+pub mod breach_window;
+pub mod breach_wall;
+pub mod lay_ladder;
+pub mod climb_ladder;
+pub mod rescue_window;
+pub mod roof_op;
+pub mod interior_attack;
+pub mod exterior_attack;
+pub mod overhaul_post_fire;
+pub mod ventilate_after_fire;
+pub mod investigate_origin;
+pub mod debrief_team;
+pub mod document_call;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        4620 => call_emergency::apply(ctx),
+        4621 => report_fire::apply(ctx),
+        4622 => report_flood::apply(ctx),
+        4623 => report_injury::apply(ctx),
+        4624 => report_crime::apply(ctx),
+        4625 => arrive_scene::apply(ctx),
+        4626 => secure_scene::apply(ctx),
+        4627 => mark_perimeter::apply(ctx),
+        4628 => establish_command::apply(ctx),
+        4629 => brief_team::apply(ctx),
+        4630 => triage_patient::apply(ctx),
+        4631 => triage_priority::apply(ctx),
+        4632 => triage_assign::apply(ctx),
+        4633 => triage_record::apply(ctx),
+        4634 => triage_recheck::apply(ctx),
+        4635 => start_iv::apply(ctx),
+        4636 => splint_fracture::apply(ctx),
+        4637 => wrap_burn::apply(ctx),
+        4638 => airway_open::apply(ctx),
+        4639 => chest_compression::apply(ctx),
+        4640 => rescue_breath::apply(ctx),
+        4641 => defibrillate_aed::apply(ctx),
+        4642 => apply_tourniquet::apply(ctx),
+        4643 => pressure_dressing::apply(ctx),
+        4644 => recovery_position::apply(ctx),
+        4645 => evacuate_patient::apply(ctx),
+        4646 => stretcher_carry::apply(ctx),
+        4647 => chair_carry::apply(ctx),
+        4648 => firefighter_carry::apply(ctx),
+        4649 => backboard_carry::apply(ctx),
+        4650 => primary_search::apply(ctx),
+        4651 => secondary_search::apply(ctx),
+        4652 => room_clear::apply(ctx),
+        4653 => rapid_intervention::apply(ctx),
+        4654 => extinguish_small_fire::apply(ctx),
+        4655 => vent_smoke::apply(ctx),
+        4656 => breach_door::apply(ctx),
+        4657 => breach_window::apply(ctx),
+        4658 => breach_wall::apply(ctx),
+        4659 => lay_ladder::apply(ctx),
+        4660 => climb_ladder::apply(ctx),
+        4661 => rescue_window::apply(ctx),
+        4662 => roof_op::apply(ctx),
+        4663 => interior_attack::apply(ctx),
+        4664 => exterior_attack::apply(ctx),
+        4665 => overhaul_post_fire::apply(ctx),
+        4666 => ventilate_after_fire::apply(ctx),
+        4667 => investigate_origin::apply(ctx),
+        4668 => debrief_team::apply(ctx),
+        4669 => document_call::apply(ctx),
+        _   => 0.0,
+    }
+}
