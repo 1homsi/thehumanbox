@@ -1,0 +1,108 @@
+pub mod name_a_hero;
+pub mod name_a_villain;
+pub mod name_a_god;
+pub mod name_a_demon;
+pub mod name_a_titan;
+pub mod recount_creation;
+pub mod recount_first_war;
+pub mod recount_first_flood;
+pub mod recount_first_fire;
+pub mod recount_first_word;
+pub mod shape_an_epic;
+pub mod shape_a_saga;
+pub mod shape_a_chronicle;
+pub mod shape_a_lay;
+pub mod shape_a_cycle;
+pub mod invent_ancestor;
+pub mod invent_founder;
+pub mod invent_protector;
+pub mod invent_trickster;
+pub mod invent_oracle;
+pub mod invent_judge;
+pub mod invent_sage;
+pub mod invent_thief;
+pub mod invent_lover;
+pub mod invent_warrior;
+pub mod cast_destiny;
+pub mod cast_doom;
+pub mod cast_blessing;
+pub mod cast_omen;
+pub mod cast_prophecy;
+pub mod inscribe_destiny;
+pub mod inscribe_doom;
+pub mod inscribe_blessing;
+pub mod inscribe_omen;
+pub mod inscribe_prophecy;
+pub mod pass_down_legend;
+pub mod pass_down_myth;
+pub mod pass_down_song_of_origin;
+pub mod pass_down_tale_of_origin;
+pub mod pass_down_riddle_of_origin;
+pub mod retell_legend;
+pub mod retell_myth;
+pub mod retell_tale;
+pub mod retell_song;
+pub mod retell_riddle;
+pub mod embellish_story;
+pub mod embellish_song;
+pub mod embellish_tale;
+pub mod embellish_legend;
+pub mod embellish_myth;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        3120 => name_a_hero::apply(ctx),
+        3121 => name_a_villain::apply(ctx),
+        3122 => name_a_god::apply(ctx),
+        3123 => name_a_demon::apply(ctx),
+        3124 => name_a_titan::apply(ctx),
+        3125 => recount_creation::apply(ctx),
+        3126 => recount_first_war::apply(ctx),
+        3127 => recount_first_flood::apply(ctx),
+        3128 => recount_first_fire::apply(ctx),
+        3129 => recount_first_word::apply(ctx),
+        3130 => shape_an_epic::apply(ctx),
+        3131 => shape_a_saga::apply(ctx),
+        3132 => shape_a_chronicle::apply(ctx),
+        3133 => shape_a_lay::apply(ctx),
+        3134 => shape_a_cycle::apply(ctx),
+        3135 => invent_ancestor::apply(ctx),
+        3136 => invent_founder::apply(ctx),
+        3137 => invent_protector::apply(ctx),
+        3138 => invent_trickster::apply(ctx),
+        3139 => invent_oracle::apply(ctx),
+        3140 => invent_judge::apply(ctx),
+        3141 => invent_sage::apply(ctx),
+        3142 => invent_thief::apply(ctx),
+        3143 => invent_lover::apply(ctx),
+        3144 => invent_warrior::apply(ctx),
+        3145 => cast_destiny::apply(ctx),
+        3146 => cast_doom::apply(ctx),
+        3147 => cast_blessing::apply(ctx),
+        3148 => cast_omen::apply(ctx),
+        3149 => cast_prophecy::apply(ctx),
+        3150 => inscribe_destiny::apply(ctx),
+        3151 => inscribe_doom::apply(ctx),
+        3152 => inscribe_blessing::apply(ctx),
+        3153 => inscribe_omen::apply(ctx),
+        3154 => inscribe_prophecy::apply(ctx),
+        3155 => pass_down_legend::apply(ctx),
+        3156 => pass_down_myth::apply(ctx),
+        3157 => pass_down_song_of_origin::apply(ctx),
+        3158 => pass_down_tale_of_origin::apply(ctx),
+        3159 => pass_down_riddle_of_origin::apply(ctx),
+        3160 => retell_legend::apply(ctx),
+        3161 => retell_myth::apply(ctx),
+        3162 => retell_tale::apply(ctx),
+        3163 => retell_song::apply(ctx),
+        3164 => retell_riddle::apply(ctx),
+        3165 => embellish_story::apply(ctx),
+        3166 => embellish_song::apply(ctx),
+        3167 => embellish_tale::apply(ctx),
+        3168 => embellish_legend::apply(ctx),
+        3169 => embellish_myth::apply(ctx),
+        _   => 0.0,
+    }
+}
