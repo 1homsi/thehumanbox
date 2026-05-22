@@ -100,6 +100,16 @@ pub mod water_sports;
 pub mod stargazing;
 pub mod emergency_response;
 pub mod political_action;
+pub mod orbital_act;
+pub mod martian_act;
+pub mod xenobiology;
+pub mod singularity_act;
+pub mod cosmic_engineer;
+pub mod dreamwork;
+pub mod negotiation;
+pub mod historical_record;
+pub mod courier;
+pub mod beekeeping;
 
 use ctx::ActionCtx;
 use super::simulation::Simulation;
@@ -284,6 +294,16 @@ pub fn available_actions(sim: &Simulation, idx: usize, ix: i32, iy: i32) -> Vec<
     a.extend(4560..=4609);
     a.extend(4620..=4669);
     a.extend(4680..=4729);
+    a.extend(4740..=4789);
+    a.extend(4800..=4849);
+    a.extend(4860..=4910);
+    a.extend(4920..=4969);
+    a.extend(4980..=5029);
+    a.extend(5040..=5089);
+    a.extend(5100..=5149);
+    a.extend(5160..=5209);
+    a.extend(5220..=5269);
+    a.extend(5280..=5329);
 
     a
 }
@@ -398,6 +418,16 @@ pub fn try_apply(sim: &mut Simulation, idx: usize, action: usize, ix: i32, iy: i
         4560..=4609 => stargazing::apply(action, &mut ctx),
         4620..=4669 => emergency_response::apply(action, &mut ctx),
         4680..=4729 => political_action::apply(action, &mut ctx),
+        4740..=4789 => orbital_act::apply(action, &mut ctx),
+        4800..=4849 => martian_act::apply(action, &mut ctx),
+        4860..=4910 => xenobiology::apply(action, &mut ctx),
+        4920..=4969 => singularity_act::apply(action, &mut ctx),
+        4980..=5029 => cosmic_engineer::apply(action, &mut ctx),
+        5040..=5089 => dreamwork::apply(action, &mut ctx),
+        5100..=5149 => negotiation::apply(action, &mut ctx),
+        5160..=5209 => historical_record::apply(action, &mut ctx),
+        5220..=5269 => courier::apply(action, &mut ctx),
+        5280..=5329 => beekeeping::apply(action, &mut ctx),
         _           => return None,
     };
     Some(r)
