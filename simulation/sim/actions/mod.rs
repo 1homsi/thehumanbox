@@ -30,6 +30,16 @@ pub mod seasonal;
 pub mod legacy_death;
 pub mod education;
 pub mod ceremony;
+pub mod domestic;
+pub mod hobbies;
+pub mod urban;
+pub mod entertainment;
+pub mod profession;
+pub mod modern_tech;
+pub mod nature_walk;
+pub mod transport;
+pub mod fitness;
+pub mod creative_make;
 
 use ctx::ActionCtx;
 use super::simulation::Simulation;
@@ -144,6 +154,17 @@ pub fn available_actions(sim: &Simulation, idx: usize, ix: i32, iy: i32) -> Vec<
 
     a.extend(536..=537);
 
+    a.extend(540..=589);
+    a.extend(600..=649);
+    a.extend(660..=710);
+    a.extend(720..=770);
+    a.extend(780..=830);
+    a.extend(840..=889);
+    a.extend(900..=949);
+    a.extend(960..=1011);
+    a.extend(1020..=1070);
+    a.extend(1080..=1131);
+
     a
 }
 
@@ -187,6 +208,16 @@ pub fn try_apply(sim: &mut Simulation, idx: usize, action: usize, ix: i32, iy: i
         501..=520   => education::apply(action, &mut ctx),
         521..=535   => ceremony::apply(action, &mut ctx),
         536..=537   => construction::apply(action, &mut ctx),
+        540..=589   => domestic::apply(action, &mut ctx),
+        600..=649   => hobbies::apply(action, &mut ctx),
+        660..=710   => urban::apply(action, &mut ctx),
+        720..=770   => entertainment::apply(action, &mut ctx),
+        780..=830   => profession::apply(action, &mut ctx),
+        840..=889   => modern_tech::apply(action, &mut ctx),
+        900..=949   => nature_walk::apply(action, &mut ctx),
+        960..=1011  => transport::apply(action, &mut ctx),
+        1020..=1070 => fitness::apply(action, &mut ctx),
+        1080..=1131 => creative_make::apply(action, &mut ctx),
         _           => return None,
     };
     Some(r)
