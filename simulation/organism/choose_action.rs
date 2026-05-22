@@ -507,6 +507,25 @@ impl Organism {
             }
         }
 
+        if !self.friends.is_empty() && needs_ok && self.fear_level < 0.4
+            && self.loneliness > 0.40 && rng.gen::<f32>() < 0.20
+        {
+            let friend_pos: Option<(i32, i32)> = organisms.iter()
+                .filter(|o| !std::ptr::eq(*o, self) && o.alive
+                            && self.friends.contains_key(&o.id))
+                .map(|o| {
+                    let d = ((o.x - self.x).abs() + (o.y - self.y).abs()) as i32;
+                    (o.x as i32, o.y as i32, d)
+                })
+                .filter(|&(_, _, d)| d > 4 && d < 60)
+                .min_by_key(|&(_, _, d)| d)
+                .map(|(x, y, _)| (x, y));
+            if let Some(tp) = friend_pos {
+                set_thought!("visiting a friend");
+                return (self.toward(tp, grid), thought);
+            }
+        }
+
         if self.loneliness > 0.60 && needs_ok && self.fear_level < 0.5
             && self.wander_target.is_none()
             && rng.gen::<f32>() < 0.35

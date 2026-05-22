@@ -1025,7 +1025,7 @@ impl Simulation {
                 if rock_near {
                     self.organisms[idx].carrying      = 200;
                     self.organisms[idx].carrying_type = 2;
-                    signal_reward += 0.004;
+                    signal_reward += 0.015;
                     self.organisms[idx].think("gathering stone", self.tick_count);
                     let name = self.organisms[idx].name.clone();
                     if self.organisms[idx].discover("stone") {
@@ -1034,7 +1034,7 @@ impl Simulation {
                 } else if matches!(tile, Tile::Grass | Tile::Food) {
                     self.organisms[idx].carrying      = 250;
                     self.organisms[idx].carrying_type = 1;
-                    signal_reward += 0.004;
+                    signal_reward += 0.015;
                     self.organisms[idx].think("gathering wood", self.tick_count);
                     self.organisms[idx].discover("wood");
                 }
@@ -1089,14 +1089,14 @@ impl Simulation {
                         }
                     } else {
                         self.organisms[idx].think("digging in the sand", self.tick_count);
-                        signal_reward += 0.001;
+                        signal_reward += 0.005;
                     }
                 }
                 Tile::Grass | Tile::Ash => {
                     let fi = WorldGrid::idx(ix, iy);
                     if self.grid.fertility[fi] < 0.85 {
                         self.grid.fertility[fi] = (self.grid.fertility[fi] + 0.03).min(0.9);
-                        signal_reward += 0.004;
+                        signal_reward += 0.015;
                         self.organisms[idx].think("tilling the soil", self.tick_count);
                     }
                 }
@@ -1176,7 +1176,7 @@ impl Simulation {
             o.comfort    = (o.comfort + 0.04).min(1.0);
             if o.grief_ticks > 0 { o.grief_ticks = o.grief_ticks.saturating_sub(2); }
             o.think("reflecting quietly", self.tick_count);
-            signal_reward += 0.002;
+            signal_reward += 0.008;
         } else if action == 23 {
             if self.grid.get(ix, iy) == Tile::Food && self.organisms[idx].carry_room() > 0 {
                 self.organisms[idx].inv_food = self.organisms[idx].inv_food.saturating_add(1);
@@ -1215,7 +1215,7 @@ impl Simulation {
             self.grid.add_structure(ix, iy, 0.02);
             self.active_structure_tiles.insert((ix, iy));
             self.organisms[idx].think("marking territory", self.tick_count);
-            signal_reward += 0.002;
+            signal_reward += 0.008;
         } else if action >= 26 {
             if let Some(r) = super::actions::try_apply(self, idx, action, ix, iy, spatial) {
                 signal_reward += r;
@@ -1662,7 +1662,12 @@ impl Simulation {
                 if *expiry > self.tick_count {
                     let bonus: f32 = match strategy.as_str() {
                         "hunt"   if action < 8 => 0.008,
-                        "explore" => 0.004,
+                        "explore" if action < 8 => 0.004,
+                        "settle" if action == 17 => 0.006,
+                        "settle" if action == 14 || action == 15 => 0.005,
+                        "settle" if action == 146 || action == 147 => 0.004,
+                        "trade" if action == 13 => 0.008,
+                        "defend" if action == 12 => 0.006,
                         _ => 0.0,
                     };
                     reward += bonus;
