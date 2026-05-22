@@ -1,0 +1,110 @@
+pub mod play_dice;
+pub mod play_cards;
+pub mod play_tafl;
+pub mod play_backgammon;
+pub mod play_jacks;
+pub mod play_hopscotch;
+pub mod race_friends;
+pub mod arm_wrestle;
+pub mod thumb_wrestle;
+pub mod stage_skit;
+pub mod watch_dance;
+pub mod watch_play;
+pub mod watch_juggler;
+pub mod watch_fire_eater;
+pub mod bet_on_race;
+pub mod bet_on_dice;
+pub mod attend_circus;
+pub mod attend_fight;
+pub mod attend_match;
+pub mod cheer_team;
+pub mod applaud_performer;
+pub mod attend_festival_show;
+pub mod eat_competitively;
+pub mod drink_competitively;
+pub mod yell_at_dice;
+pub mod mime_for_kids;
+pub mod tell_ghost_story;
+pub mod trade_jokes;
+pub mod share_riddle;
+pub mod play_charades;
+pub mod sing_round;
+pub mod drum_circle;
+pub mod clap_circle;
+pub mod line_dance;
+pub mod circle_dance;
+pub mod burst_in_laughter;
+pub mod pull_prank;
+pub mod stage_chase;
+pub mod moonlit_picnic;
+pub mod torchlit_party;
+pub mod glow_lantern_walk;
+pub mod roll_barrel_race;
+pub mod kite_fly;
+pub mod hoop_roll;
+pub mod seesaw_play;
+pub mod swing_high;
+pub mod carve_pumpkin;
+pub mod paint_face;
+pub mod wear_mask;
+pub mod masquerade;
+pub mod carouse;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        720 => play_dice::apply(ctx),
+        721 => play_cards::apply(ctx),
+        722 => play_tafl::apply(ctx),
+        723 => play_backgammon::apply(ctx),
+        724 => play_jacks::apply(ctx),
+        725 => play_hopscotch::apply(ctx),
+        726 => race_friends::apply(ctx),
+        727 => arm_wrestle::apply(ctx),
+        728 => thumb_wrestle::apply(ctx),
+        729 => stage_skit::apply(ctx),
+        730 => watch_dance::apply(ctx),
+        731 => watch_play::apply(ctx),
+        732 => watch_juggler::apply(ctx),
+        733 => watch_fire_eater::apply(ctx),
+        734 => bet_on_race::apply(ctx),
+        735 => bet_on_dice::apply(ctx),
+        736 => attend_circus::apply(ctx),
+        737 => attend_fight::apply(ctx),
+        738 => attend_match::apply(ctx),
+        739 => cheer_team::apply(ctx),
+        740 => applaud_performer::apply(ctx),
+        741 => attend_festival_show::apply(ctx),
+        742 => eat_competitively::apply(ctx),
+        743 => drink_competitively::apply(ctx),
+        744 => yell_at_dice::apply(ctx),
+        745 => mime_for_kids::apply(ctx),
+        746 => tell_ghost_story::apply(ctx),
+        747 => trade_jokes::apply(ctx),
+        748 => share_riddle::apply(ctx),
+        749 => play_charades::apply(ctx),
+        750 => sing_round::apply(ctx),
+        751 => drum_circle::apply(ctx),
+        752 => clap_circle::apply(ctx),
+        753 => line_dance::apply(ctx),
+        754 => circle_dance::apply(ctx),
+        755 => burst_in_laughter::apply(ctx),
+        756 => pull_prank::apply(ctx),
+        757 => stage_chase::apply(ctx),
+        758 => moonlit_picnic::apply(ctx),
+        759 => torchlit_party::apply(ctx),
+        760 => glow_lantern_walk::apply(ctx),
+        761 => roll_barrel_race::apply(ctx),
+        762 => kite_fly::apply(ctx),
+        763 => hoop_roll::apply(ctx),
+        764 => seesaw_play::apply(ctx),
+        765 => swing_high::apply(ctx),
+        766 => carve_pumpkin::apply(ctx),
+        767 => paint_face::apply(ctx),
+        768 => wear_mask::apply(ctx),
+        769 => masquerade::apply(ctx),
+        770 => carouse::apply(ctx),
+        _   => 0.0,
+    }
+}
