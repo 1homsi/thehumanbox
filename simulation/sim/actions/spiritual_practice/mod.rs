@@ -1,0 +1,106 @@
+pub mod pray_at_dawn;
+pub mod pray_at_dusk;
+pub mod pray_at_midnight;
+pub mod chant_mantra;
+pub mod recite_sutra;
+pub mod meditate_walking;
+pub mod meditate_sitting;
+pub mod meditate_lying;
+pub mod meditate_eyes_open;
+pub mod fast_dawn_to_dusk;
+pub mod fast_three_days;
+pub mod fast_silent;
+pub mod vow_silence;
+pub mod vow_simplicity;
+pub mod pilgrim_walk;
+pub mod circumambulate_shrine;
+pub mod offer_incense;
+pub mod offer_flowers;
+pub mod offer_grain;
+pub mod offer_water;
+pub mod libation_to_ancestor;
+pub mod light_votive_candle;
+pub mod light_oil_lamp;
+pub mod light_hearth_lamp;
+pub mod ring_bell;
+pub mod strike_gong;
+pub mod sound_horn;
+pub mod blow_conch;
+pub mod beat_drum;
+pub mod shamanic_dance;
+pub mod trance_dance;
+pub mod fire_walk;
+pub mod leaf_reading;
+pub mod bone_reading;
+pub mod dream_interpret;
+pub mod divination_throw;
+pub mod read_omens;
+pub mod augur_birds;
+pub mod read_clouds;
+pub mod bless_house;
+pub mod bless_field;
+pub mod bless_traveler;
+pub mod bless_child;
+pub mod bless_meal;
+pub mod bless_seed;
+pub mod exorcise_spirit;
+pub mod ask_dream_guidance;
+pub mod call_ancestor;
+pub mod seek_vision;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        1500 => pray_at_dawn::apply(ctx),
+        1501 => pray_at_dusk::apply(ctx),
+        1502 => pray_at_midnight::apply(ctx),
+        1503 => chant_mantra::apply(ctx),
+        1504 => recite_sutra::apply(ctx),
+        1505 => meditate_walking::apply(ctx),
+        1506 => meditate_sitting::apply(ctx),
+        1507 => meditate_lying::apply(ctx),
+        1508 => meditate_eyes_open::apply(ctx),
+        1509 => fast_dawn_to_dusk::apply(ctx),
+        1510 => fast_three_days::apply(ctx),
+        1511 => fast_silent::apply(ctx),
+        1512 => vow_silence::apply(ctx),
+        1513 => vow_simplicity::apply(ctx),
+        1514 => pilgrim_walk::apply(ctx),
+        1515 => circumambulate_shrine::apply(ctx),
+        1516 => offer_incense::apply(ctx),
+        1517 => offer_flowers::apply(ctx),
+        1518 => offer_grain::apply(ctx),
+        1519 => offer_water::apply(ctx),
+        1520 => libation_to_ancestor::apply(ctx),
+        1521 => light_votive_candle::apply(ctx),
+        1522 => light_oil_lamp::apply(ctx),
+        1523 => light_hearth_lamp::apply(ctx),
+        1524 => ring_bell::apply(ctx),
+        1525 => strike_gong::apply(ctx),
+        1526 => sound_horn::apply(ctx),
+        1527 => blow_conch::apply(ctx),
+        1528 => beat_drum::apply(ctx),
+        1529 => shamanic_dance::apply(ctx),
+        1530 => trance_dance::apply(ctx),
+        1531 => fire_walk::apply(ctx),
+        1532 => leaf_reading::apply(ctx),
+        1533 => bone_reading::apply(ctx),
+        1534 => dream_interpret::apply(ctx),
+        1535 => divination_throw::apply(ctx),
+        1536 => read_omens::apply(ctx),
+        1537 => augur_birds::apply(ctx),
+        1538 => read_clouds::apply(ctx),
+        1539 => bless_house::apply(ctx),
+        1540 => bless_field::apply(ctx),
+        1541 => bless_traveler::apply(ctx),
+        1542 => bless_child::apply(ctx),
+        1543 => bless_meal::apply(ctx),
+        1544 => bless_seed::apply(ctx),
+        1545 => exorcise_spirit::apply(ctx),
+        1546 => ask_dream_guidance::apply(ctx),
+        1547 => call_ancestor::apply(ctx),
+        1548 => seek_vision::apply(ctx),
+        _   => 0.0,
+    }
+}
