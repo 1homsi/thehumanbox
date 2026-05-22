@@ -1,0 +1,108 @@
+pub mod juggle_balls;
+pub mod juggle_torches;
+pub mod juggle_knives;
+pub mod tightrope_walk;
+pub mod somersault_act;
+pub mod backflip_act;
+pub mod handstand_act;
+pub mod stilt_walk;
+pub mod fire_dance;
+pub mod fire_breathe;
+pub mod sword_swallow;
+pub mod magic_trick;
+pub mod card_trick;
+pub mod coin_trick;
+pub mod disappear_trick;
+pub mod ventriloquist;
+pub mod puppet_show;
+pub mod shadow_puppet;
+pub mod marionette;
+pub mod mime_act;
+pub mod clown_routine;
+pub mod sing_aria;
+pub mod sing_ballad;
+pub mod sing_madrigal;
+pub mod sing_lullaby_stage;
+pub mod play_harpsichord;
+pub mod play_clavichord;
+pub mod play_lute;
+pub mod play_lyre;
+pub mod play_harp;
+pub mod play_pipe_organ;
+pub mod play_violin;
+pub mod play_viol;
+pub mod play_cello;
+pub mod play_double_bass;
+pub mod play_flute;
+pub mod play_oboe;
+pub mod play_clarinet;
+pub mod play_bassoon;
+pub mod play_trumpet;
+pub mod play_horn;
+pub mod play_drum_set;
+pub mod conduct_ensemble;
+pub mod lead_choir;
+pub mod compose_symphony;
+pub mod compose_concerto;
+pub mod orchestrate;
+pub mod dance_ballet;
+pub mod dance_waltz;
+pub mod dance_minuet;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        1860 => juggle_balls::apply(ctx),
+        1861 => juggle_torches::apply(ctx),
+        1862 => juggle_knives::apply(ctx),
+        1863 => tightrope_walk::apply(ctx),
+        1864 => somersault_act::apply(ctx),
+        1865 => backflip_act::apply(ctx),
+        1866 => handstand_act::apply(ctx),
+        1867 => stilt_walk::apply(ctx),
+        1868 => fire_dance::apply(ctx),
+        1869 => fire_breathe::apply(ctx),
+        1870 => sword_swallow::apply(ctx),
+        1871 => magic_trick::apply(ctx),
+        1872 => card_trick::apply(ctx),
+        1873 => coin_trick::apply(ctx),
+        1874 => disappear_trick::apply(ctx),
+        1875 => ventriloquist::apply(ctx),
+        1876 => puppet_show::apply(ctx),
+        1877 => shadow_puppet::apply(ctx),
+        1878 => marionette::apply(ctx),
+        1879 => mime_act::apply(ctx),
+        1880 => clown_routine::apply(ctx),
+        1881 => sing_aria::apply(ctx),
+        1882 => sing_ballad::apply(ctx),
+        1883 => sing_madrigal::apply(ctx),
+        1884 => sing_lullaby_stage::apply(ctx),
+        1885 => play_harpsichord::apply(ctx),
+        1886 => play_clavichord::apply(ctx),
+        1887 => play_lute::apply(ctx),
+        1888 => play_lyre::apply(ctx),
+        1889 => play_harp::apply(ctx),
+        1890 => play_pipe_organ::apply(ctx),
+        1891 => play_violin::apply(ctx),
+        1892 => play_viol::apply(ctx),
+        1893 => play_cello::apply(ctx),
+        1894 => play_double_bass::apply(ctx),
+        1895 => play_flute::apply(ctx),
+        1896 => play_oboe::apply(ctx),
+        1897 => play_clarinet::apply(ctx),
+        1898 => play_bassoon::apply(ctx),
+        1899 => play_trumpet::apply(ctx),
+        1900 => play_horn::apply(ctx),
+        1901 => play_drum_set::apply(ctx),
+        1902 => conduct_ensemble::apply(ctx),
+        1903 => lead_choir::apply(ctx),
+        1904 => compose_symphony::apply(ctx),
+        1905 => compose_concerto::apply(ctx),
+        1906 => orchestrate::apply(ctx),
+        1907 => dance_ballet::apply(ctx),
+        1908 => dance_waltz::apply(ctx),
+        1909 => dance_minuet::apply(ctx),
+        _   => 0.0,
+    }
+}
