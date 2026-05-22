@@ -1,0 +1,106 @@
+pub mod rock_cradle;
+pub mod rock_baby;
+pub mod pat_baby_back;
+pub mod burp_baby;
+pub mod change_diaper;
+pub mod swaddle_for_sleep;
+pub mod wash_baby;
+pub mod bathe_baby;
+pub mod oil_baby_skin;
+pub mod powder_baby;
+pub mod trim_baby_hair;
+pub mod file_baby_nails;
+pub mod brush_baby_teeth;
+pub mod feed_baby_porridge;
+pub mod feed_baby_mash;
+pub mod spoon_feed_baby;
+pub mod teach_baby_sign;
+pub mod teach_baby_word;
+pub mod read_picture_book;
+pub mod sing_naming_song;
+pub mod carry_toddler;
+pub mod chase_toddler;
+pub mod catch_toddler;
+pub mod kiss_scraped_knee;
+pub mod comfort_crying_child;
+pub mod distract_grumpy_kid;
+pub mod tell_silly_joke;
+pub mod pretend_dragon;
+pub mod play_peekaboo;
+pub mod play_pat_a_cake;
+pub mod pretend_horse;
+pub mod pretend_market;
+pub mod lift_kid_to_window;
+pub mod show_kid_birds;
+pub mod show_kid_stars;
+pub mod feed_kid_treat;
+pub mod pack_kid_lunch;
+pub mod teach_kid_chore;
+pub mod teach_kid_count;
+pub mod teach_kid_letters;
+pub mod pick_kid_up_from_play;
+pub mod hand_off_kid_to_grand;
+pub mod braid_daughter_hair;
+pub mod tie_son_belt;
+pub mod teach_kid_wash;
+pub mod teach_kid_dress;
+pub mod show_kid_garden;
+pub mod teach_kid_garden;
+pub mod walk_kid_home;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        1620 => rock_cradle::apply(ctx),
+        1621 => rock_baby::apply(ctx),
+        1622 => pat_baby_back::apply(ctx),
+        1623 => burp_baby::apply(ctx),
+        1624 => change_diaper::apply(ctx),
+        1625 => swaddle_for_sleep::apply(ctx),
+        1626 => wash_baby::apply(ctx),
+        1627 => bathe_baby::apply(ctx),
+        1628 => oil_baby_skin::apply(ctx),
+        1629 => powder_baby::apply(ctx),
+        1630 => trim_baby_hair::apply(ctx),
+        1631 => file_baby_nails::apply(ctx),
+        1632 => brush_baby_teeth::apply(ctx),
+        1633 => feed_baby_porridge::apply(ctx),
+        1634 => feed_baby_mash::apply(ctx),
+        1635 => spoon_feed_baby::apply(ctx),
+        1636 => teach_baby_sign::apply(ctx),
+        1637 => teach_baby_word::apply(ctx),
+        1638 => read_picture_book::apply(ctx),
+        1639 => sing_naming_song::apply(ctx),
+        1640 => carry_toddler::apply(ctx),
+        1641 => chase_toddler::apply(ctx),
+        1642 => catch_toddler::apply(ctx),
+        1643 => kiss_scraped_knee::apply(ctx),
+        1644 => comfort_crying_child::apply(ctx),
+        1645 => distract_grumpy_kid::apply(ctx),
+        1646 => tell_silly_joke::apply(ctx),
+        1647 => pretend_dragon::apply(ctx),
+        1648 => play_peekaboo::apply(ctx),
+        1649 => play_pat_a_cake::apply(ctx),
+        1650 => pretend_horse::apply(ctx),
+        1651 => pretend_market::apply(ctx),
+        1652 => lift_kid_to_window::apply(ctx),
+        1653 => show_kid_birds::apply(ctx),
+        1654 => show_kid_stars::apply(ctx),
+        1655 => feed_kid_treat::apply(ctx),
+        1656 => pack_kid_lunch::apply(ctx),
+        1657 => teach_kid_chore::apply(ctx),
+        1658 => teach_kid_count::apply(ctx),
+        1659 => teach_kid_letters::apply(ctx),
+        1660 => pick_kid_up_from_play::apply(ctx),
+        1661 => hand_off_kid_to_grand::apply(ctx),
+        1662 => braid_daughter_hair::apply(ctx),
+        1663 => tie_son_belt::apply(ctx),
+        1664 => teach_kid_wash::apply(ctx),
+        1665 => teach_kid_dress::apply(ctx),
+        1666 => show_kid_garden::apply(ctx),
+        1667 => teach_kid_garden::apply(ctx),
+        1668 => walk_kid_home::apply(ctx),
+        _   => 0.0,
+    }
+}
