@@ -1,0 +1,106 @@
+pub mod draft_decree;
+pub mod sign_decree;
+pub mod witness_oath;
+pub mod swear_fealty;
+pub mod receive_petition;
+pub mod give_audience;
+pub mod grant_pardon;
+pub mod impose_fine;
+pub mod sentence_to_labor;
+pub mod appoint_marshal;
+pub mod appoint_chamberlain;
+pub mod appoint_steward;
+pub mod appoint_envoy;
+pub mod appoint_ambassador;
+pub mod send_messenger;
+pub mod receive_messenger;
+pub mod deliver_dispatch;
+pub mod sealed_letter;
+pub mod address_council;
+pub mod convene_council;
+pub mod adjourn_council;
+pub mod whisper_at_court;
+pub mod intrigue_at_court;
+pub mod eavesdrop;
+pub mod spread_rumor;
+pub mod counter_rumor;
+pub mod leak_secret;
+pub mod reveal_plot;
+pub mod conceal_plot;
+pub mod hatch_plot;
+pub mod bribe_guard;
+pub mod bribe_official;
+pub mod accept_bribe;
+pub mod refuse_bribe;
+pub mod audit_books;
+pub mod inspect_treasury;
+pub mod inspect_armory;
+pub mod inspect_granary;
+pub mod inspect_garrison;
+pub mod parade_troops;
+pub mod review_militia;
+pub mod award_medal;
+pub mod award_title;
+pub mod strip_title;
+pub mod exile_offender;
+pub mod pardon_offender;
+pub mod summon_witness;
+pub mod depose_witness;
+pub mod host_envoy;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        1560 => draft_decree::apply(ctx),
+        1561 => sign_decree::apply(ctx),
+        1562 => witness_oath::apply(ctx),
+        1563 => swear_fealty::apply(ctx),
+        1564 => receive_petition::apply(ctx),
+        1565 => give_audience::apply(ctx),
+        1566 => grant_pardon::apply(ctx),
+        1567 => impose_fine::apply(ctx),
+        1568 => sentence_to_labor::apply(ctx),
+        1569 => appoint_marshal::apply(ctx),
+        1570 => appoint_chamberlain::apply(ctx),
+        1571 => appoint_steward::apply(ctx),
+        1572 => appoint_envoy::apply(ctx),
+        1573 => appoint_ambassador::apply(ctx),
+        1574 => send_messenger::apply(ctx),
+        1575 => receive_messenger::apply(ctx),
+        1576 => deliver_dispatch::apply(ctx),
+        1577 => sealed_letter::apply(ctx),
+        1578 => address_council::apply(ctx),
+        1579 => convene_council::apply(ctx),
+        1580 => adjourn_council::apply(ctx),
+        1581 => whisper_at_court::apply(ctx),
+        1582 => intrigue_at_court::apply(ctx),
+        1583 => eavesdrop::apply(ctx),
+        1584 => spread_rumor::apply(ctx),
+        1585 => counter_rumor::apply(ctx),
+        1586 => leak_secret::apply(ctx),
+        1587 => reveal_plot::apply(ctx),
+        1588 => conceal_plot::apply(ctx),
+        1589 => hatch_plot::apply(ctx),
+        1590 => bribe_guard::apply(ctx),
+        1591 => bribe_official::apply(ctx),
+        1592 => accept_bribe::apply(ctx),
+        1593 => refuse_bribe::apply(ctx),
+        1594 => audit_books::apply(ctx),
+        1595 => inspect_treasury::apply(ctx),
+        1596 => inspect_armory::apply(ctx),
+        1597 => inspect_granary::apply(ctx),
+        1598 => inspect_garrison::apply(ctx),
+        1599 => parade_troops::apply(ctx),
+        1600 => review_militia::apply(ctx),
+        1601 => award_medal::apply(ctx),
+        1602 => award_title::apply(ctx),
+        1603 => strip_title::apply(ctx),
+        1604 => exile_offender::apply(ctx),
+        1605 => pardon_offender::apply(ctx),
+        1606 => summon_witness::apply(ctx),
+        1607 => depose_witness::apply(ctx),
+        1608 => host_envoy::apply(ctx),
+        _   => 0.0,
+    }
+}
