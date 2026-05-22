@@ -1,0 +1,108 @@
+pub mod sketch_plan;
+pub mod draft_blueprint_arch;
+pub mod elevate_drawing;
+pub mod section_drawing;
+pub mod detail_drawing;
+pub mod model_in_clay;
+pub mod model_in_wax;
+pub mod model_in_paper;
+pub mod model_in_wood;
+pub mod model_in_stone;
+pub mod survey_site;
+pub mod sound_foundation;
+pub mod drive_stake;
+pub mod stretch_line;
+pub mod lay_cornerstone;
+pub mod level_floor;
+pub mod plumb_wall;
+pub mod true_corner;
+pub mod align_arch;
+pub mod ring_dome;
+pub mod vault_ceiling;
+pub mod key_arch;
+pub mod wedge_keystone;
+pub mod bond_brick;
+pub mod lay_course;
+pub mod rake_joint;
+pub mod point_mortar;
+pub mod grout_joint;
+pub mod dress_stone;
+pub mod polish_stone;
+pub mod carve_ornament;
+pub mod fillet_molding;
+pub mod flute_column;
+pub mod scroll_capital;
+pub mod weave_grille;
+pub mod pierce_screen;
+pub mod lattice_window;
+pub mod glaze_mullion;
+pub mod frame_door;
+pub mod hang_door;
+pub mod fit_lintel;
+pub mod sill_window;
+pub mod strike_door;
+pub mod panel_wall;
+pub mod wainscot_room;
+pub mod ceil_with_beams;
+pub mod beam_with_oak;
+pub mod truss_roof;
+pub mod shingle_roof;
+pub mod slate_roof;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        2580 => sketch_plan::apply(ctx),
+        2581 => draft_blueprint_arch::apply(ctx),
+        2582 => elevate_drawing::apply(ctx),
+        2583 => section_drawing::apply(ctx),
+        2584 => detail_drawing::apply(ctx),
+        2585 => model_in_clay::apply(ctx),
+        2586 => model_in_wax::apply(ctx),
+        2587 => model_in_paper::apply(ctx),
+        2588 => model_in_wood::apply(ctx),
+        2589 => model_in_stone::apply(ctx),
+        2590 => survey_site::apply(ctx),
+        2591 => sound_foundation::apply(ctx),
+        2592 => drive_stake::apply(ctx),
+        2593 => stretch_line::apply(ctx),
+        2594 => lay_cornerstone::apply(ctx),
+        2595 => level_floor::apply(ctx),
+        2596 => plumb_wall::apply(ctx),
+        2597 => true_corner::apply(ctx),
+        2598 => align_arch::apply(ctx),
+        2599 => ring_dome::apply(ctx),
+        2600 => vault_ceiling::apply(ctx),
+        2601 => key_arch::apply(ctx),
+        2602 => wedge_keystone::apply(ctx),
+        2603 => bond_brick::apply(ctx),
+        2604 => lay_course::apply(ctx),
+        2605 => rake_joint::apply(ctx),
+        2606 => point_mortar::apply(ctx),
+        2607 => grout_joint::apply(ctx),
+        2608 => dress_stone::apply(ctx),
+        2609 => polish_stone::apply(ctx),
+        2610 => carve_ornament::apply(ctx),
+        2611 => fillet_molding::apply(ctx),
+        2612 => flute_column::apply(ctx),
+        2613 => scroll_capital::apply(ctx),
+        2614 => weave_grille::apply(ctx),
+        2615 => pierce_screen::apply(ctx),
+        2616 => lattice_window::apply(ctx),
+        2617 => glaze_mullion::apply(ctx),
+        2618 => frame_door::apply(ctx),
+        2619 => hang_door::apply(ctx),
+        2620 => fit_lintel::apply(ctx),
+        2621 => sill_window::apply(ctx),
+        2622 => strike_door::apply(ctx),
+        2623 => panel_wall::apply(ctx),
+        2624 => wainscot_room::apply(ctx),
+        2625 => ceil_with_beams::apply(ctx),
+        2626 => beam_with_oak::apply(ctx),
+        2627 => truss_roof::apply(ctx),
+        2628 => shingle_roof::apply(ctx),
+        2629 => slate_roof::apply(ctx),
+        _   => 0.0,
+    }
+}
