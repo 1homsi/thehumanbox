@@ -1,0 +1,108 @@
+pub mod stock_shelf;
+pub mod face_shelf;
+pub mod rotate_stock;
+pub mod pull_expired;
+pub mod return_overstock;
+pub mod receive_shipment;
+pub mod open_carton;
+pub mod break_carton;
+pub mod stage_pallet;
+pub mod wheel_pallet;
+pub mod price_item;
+pub mod label_item;
+pub mod barcode_item;
+pub mod tag_item;
+pub mod display_item;
+pub mod build_endcap;
+pub mod dress_endcap;
+pub mod restock_endcap;
+pub mod restock_checkout;
+pub mod restock_impulse;
+pub mod greet_at_door;
+pub mod direct_customer;
+pub mod answer_question;
+pub mod recommend_product;
+pub mod cross_sell;
+pub mod ring_sale;
+pub mod scan_item;
+pub mod bag_purchase;
+pub mod tape_receipt;
+pub mod hand_back_receipt;
+pub mod count_drawer;
+pub mod reconcile_drawer;
+pub mod audit_drawer;
+pub mod report_short;
+pub mod report_over;
+pub mod close_out_drawer;
+pub mod deposit_cash;
+pub mod count_safe;
+pub mod split_safe;
+pub mod stage_change;
+pub mod open_store;
+pub mod close_store;
+pub mod walkthrough_open;
+pub mod walkthrough_close;
+pub mod pull_keys;
+pub mod arm_alarm;
+pub mod disarm_alarm;
+pub mod sweep_store;
+pub mod mop_store;
+pub mod empty_trash_store;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        5460 => stock_shelf::apply(ctx),
+        5461 => face_shelf::apply(ctx),
+        5462 => rotate_stock::apply(ctx),
+        5463 => pull_expired::apply(ctx),
+        5464 => return_overstock::apply(ctx),
+        5465 => receive_shipment::apply(ctx),
+        5466 => open_carton::apply(ctx),
+        5467 => break_carton::apply(ctx),
+        5468 => stage_pallet::apply(ctx),
+        5469 => wheel_pallet::apply(ctx),
+        5470 => price_item::apply(ctx),
+        5471 => label_item::apply(ctx),
+        5472 => barcode_item::apply(ctx),
+        5473 => tag_item::apply(ctx),
+        5474 => display_item::apply(ctx),
+        5475 => build_endcap::apply(ctx),
+        5476 => dress_endcap::apply(ctx),
+        5477 => restock_endcap::apply(ctx),
+        5478 => restock_checkout::apply(ctx),
+        5479 => restock_impulse::apply(ctx),
+        5480 => greet_at_door::apply(ctx),
+        5481 => direct_customer::apply(ctx),
+        5482 => answer_question::apply(ctx),
+        5483 => recommend_product::apply(ctx),
+        5484 => cross_sell::apply(ctx),
+        5485 => ring_sale::apply(ctx),
+        5486 => scan_item::apply(ctx),
+        5487 => bag_purchase::apply(ctx),
+        5488 => tape_receipt::apply(ctx),
+        5489 => hand_back_receipt::apply(ctx),
+        5490 => count_drawer::apply(ctx),
+        5491 => reconcile_drawer::apply(ctx),
+        5492 => audit_drawer::apply(ctx),
+        5493 => report_short::apply(ctx),
+        5494 => report_over::apply(ctx),
+        5495 => close_out_drawer::apply(ctx),
+        5496 => deposit_cash::apply(ctx),
+        5497 => count_safe::apply(ctx),
+        5498 => split_safe::apply(ctx),
+        5499 => stage_change::apply(ctx),
+        5500 => open_store::apply(ctx),
+        5501 => close_store::apply(ctx),
+        5502 => walkthrough_open::apply(ctx),
+        5503 => walkthrough_close::apply(ctx),
+        5504 => pull_keys::apply(ctx),
+        5505 => arm_alarm::apply(ctx),
+        5506 => disarm_alarm::apply(ctx),
+        5507 => sweep_store::apply(ctx),
+        5508 => mop_store::apply(ctx),
+        5509 => empty_trash_store::apply(ctx),
+        _   => 0.0,
+    }
+}
