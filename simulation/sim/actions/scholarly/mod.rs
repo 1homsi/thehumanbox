@@ -1,0 +1,108 @@
+pub mod transcribe_passage;
+pub mod gloss_text;
+pub mod annotate_text;
+pub mod translate_passage;
+pub mod interpret_passage;
+pub mod index_codex;
+pub mod catalog_codex;
+pub mod shelve_codex;
+pub mod bind_pamphlet;
+pub mod bind_volume;
+pub mod emboss_cover;
+pub mod gild_cover;
+pub mod tool_leather_cover;
+pub mod stamp_spine;
+pub mod letter_spine;
+pub mod rule_margins;
+pub mod rule_columns;
+pub mod prick_page;
+pub mod pounce_page;
+pub mod foliate_page;
+pub mod fold_quire;
+pub mod stitch_quire;
+pub mod kettle_stitch;
+pub mod chainmail_stitch;
+pub mod headband_stitch;
+pub mod guard_bookblock;
+pub mod back_bookblock;
+pub mod cover_bookblock;
+pub mod case_bookblock;
+pub mod label_bookblock;
+pub mod paste_endpaper;
+pub mod marble_endpaper;
+pub mod sew_bookmark;
+pub mod attach_ribbon;
+pub mod attach_clasp;
+pub mod punch_signature;
+pub mod punch_text_block;
+pub mod trim_edges;
+pub mod polish_edges;
+pub mod gild_edges;
+pub mod spray_edges;
+pub mod sprinkle_edges;
+pub mod stain_edges;
+pub mod gauffer_edges;
+pub mod color_edges;
+pub mod proof_pull;
+pub mod press_pull;
+pub mod lock_form;
+pub mod unlock_form;
+pub mod spread_ink;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        3000 => transcribe_passage::apply(ctx),
+        3001 => gloss_text::apply(ctx),
+        3002 => annotate_text::apply(ctx),
+        3003 => translate_passage::apply(ctx),
+        3004 => interpret_passage::apply(ctx),
+        3005 => index_codex::apply(ctx),
+        3006 => catalog_codex::apply(ctx),
+        3007 => shelve_codex::apply(ctx),
+        3008 => bind_pamphlet::apply(ctx),
+        3009 => bind_volume::apply(ctx),
+        3010 => emboss_cover::apply(ctx),
+        3011 => gild_cover::apply(ctx),
+        3012 => tool_leather_cover::apply(ctx),
+        3013 => stamp_spine::apply(ctx),
+        3014 => letter_spine::apply(ctx),
+        3015 => rule_margins::apply(ctx),
+        3016 => rule_columns::apply(ctx),
+        3017 => prick_page::apply(ctx),
+        3018 => pounce_page::apply(ctx),
+        3019 => foliate_page::apply(ctx),
+        3020 => fold_quire::apply(ctx),
+        3021 => stitch_quire::apply(ctx),
+        3022 => kettle_stitch::apply(ctx),
+        3023 => chainmail_stitch::apply(ctx),
+        3024 => headband_stitch::apply(ctx),
+        3025 => guard_bookblock::apply(ctx),
+        3026 => back_bookblock::apply(ctx),
+        3027 => cover_bookblock::apply(ctx),
+        3028 => case_bookblock::apply(ctx),
+        3029 => label_bookblock::apply(ctx),
+        3030 => paste_endpaper::apply(ctx),
+        3031 => marble_endpaper::apply(ctx),
+        3032 => sew_bookmark::apply(ctx),
+        3033 => attach_ribbon::apply(ctx),
+        3034 => attach_clasp::apply(ctx),
+        3035 => punch_signature::apply(ctx),
+        3036 => punch_text_block::apply(ctx),
+        3037 => trim_edges::apply(ctx),
+        3038 => polish_edges::apply(ctx),
+        3039 => gild_edges::apply(ctx),
+        3040 => spray_edges::apply(ctx),
+        3041 => sprinkle_edges::apply(ctx),
+        3042 => stain_edges::apply(ctx),
+        3043 => gauffer_edges::apply(ctx),
+        3044 => color_edges::apply(ctx),
+        3045 => proof_pull::apply(ctx),
+        3046 => press_pull::apply(ctx),
+        3047 => lock_form::apply(ctx),
+        3048 => unlock_form::apply(ctx),
+        3049 => spread_ink::apply(ctx),
+        _   => 0.0,
+    }
+}
