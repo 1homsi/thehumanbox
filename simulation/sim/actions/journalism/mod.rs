@@ -1,0 +1,108 @@
+pub mod scout_lead;
+pub mod chase_lead;
+pub mod verify_lead;
+pub mod corroborate_lead;
+pub mod question_lead;
+pub mod interview_official;
+pub mod interview_witness;
+pub mod interview_victim;
+pub mod interview_protester;
+pub mod interview_official_2;
+pub mod request_records;
+pub mod request_minutes;
+pub mod request_emails;
+pub mod request_logs;
+pub mod request_court_records;
+pub mod file_foia;
+pub mod track_foia;
+pub mod escalate_foia;
+pub mod appeal_foia;
+pub mod litigate_foia;
+pub mod draft_lead_paragraph;
+pub mod draft_nut_graf;
+pub mod draft_body;
+pub mod draft_quotes;
+pub mod draft_kicker;
+pub mod fact_check_paragraph;
+pub mod cite_source;
+pub mod double_cite;
+pub mod triple_cite;
+pub mod trace_attribution;
+pub mod copy_edit;
+pub mod polish_copy;
+pub mod line_edit;
+pub mod cut_word;
+pub mod reorder_paragraph;
+pub mod pitch_editor;
+pub mod revise_to_editor;
+pub mod incorporate_edit;
+pub mod defend_edit;
+pub mod accept_edit;
+pub mod shoot_photo;
+pub mod caption_photo;
+pub mod crop_photo;
+pub mod color_photo;
+pub mod run_photo;
+pub mod publish_to_web;
+pub mod publish_to_print;
+pub mod publish_to_radio;
+pub mod publish_to_podcast;
+pub mod publish_to_video;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        5700 => scout_lead::apply(ctx),
+        5701 => chase_lead::apply(ctx),
+        5702 => verify_lead::apply(ctx),
+        5703 => corroborate_lead::apply(ctx),
+        5704 => question_lead::apply(ctx),
+        5705 => interview_official::apply(ctx),
+        5706 => interview_witness::apply(ctx),
+        5707 => interview_victim::apply(ctx),
+        5708 => interview_protester::apply(ctx),
+        5709 => interview_official_2::apply(ctx),
+        5710 => request_records::apply(ctx),
+        5711 => request_minutes::apply(ctx),
+        5712 => request_emails::apply(ctx),
+        5713 => request_logs::apply(ctx),
+        5714 => request_court_records::apply(ctx),
+        5715 => file_foia::apply(ctx),
+        5716 => track_foia::apply(ctx),
+        5717 => escalate_foia::apply(ctx),
+        5718 => appeal_foia::apply(ctx),
+        5719 => litigate_foia::apply(ctx),
+        5720 => draft_lead_paragraph::apply(ctx),
+        5721 => draft_nut_graf::apply(ctx),
+        5722 => draft_body::apply(ctx),
+        5723 => draft_quotes::apply(ctx),
+        5724 => draft_kicker::apply(ctx),
+        5725 => fact_check_paragraph::apply(ctx),
+        5726 => cite_source::apply(ctx),
+        5727 => double_cite::apply(ctx),
+        5728 => triple_cite::apply(ctx),
+        5729 => trace_attribution::apply(ctx),
+        5730 => copy_edit::apply(ctx),
+        5731 => polish_copy::apply(ctx),
+        5732 => line_edit::apply(ctx),
+        5733 => cut_word::apply(ctx),
+        5734 => reorder_paragraph::apply(ctx),
+        5735 => pitch_editor::apply(ctx),
+        5736 => revise_to_editor::apply(ctx),
+        5737 => incorporate_edit::apply(ctx),
+        5738 => defend_edit::apply(ctx),
+        5739 => accept_edit::apply(ctx),
+        5740 => shoot_photo::apply(ctx),
+        5741 => caption_photo::apply(ctx),
+        5742 => crop_photo::apply(ctx),
+        5743 => color_photo::apply(ctx),
+        5744 => run_photo::apply(ctx),
+        5745 => publish_to_web::apply(ctx),
+        5746 => publish_to_print::apply(ctx),
+        5747 => publish_to_radio::apply(ctx),
+        5748 => publish_to_podcast::apply(ctx),
+        5749 => publish_to_video::apply(ctx),
+        _   => 0.0,
+    }
+}
