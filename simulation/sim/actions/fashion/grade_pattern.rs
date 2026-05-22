@@ -1,0 +1,8 @@
+use super::super::ctx::ActionCtx;
+
+pub fn apply(ctx: &mut ActionCtx) -> f32 {
+    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
+    ctx.think("grade pattern");
+    ctx.event("life", "grade pattern");
+    0.005
+}
