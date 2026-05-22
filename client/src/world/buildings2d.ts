@@ -31,34 +31,34 @@ export const BUILDING_EMOJI: Record<string, string> = {
 }
 
 const FOOTPRINTS: Record<string, [number, number]> = {
-  Hut: [1, 1],
-  House: [2, 2],
-  Manor: [3, 3],
-  TownHouse: [2, 3],
-  Apartment: [4, 4],
-  School: [3, 3],
-  University: [4, 4],
-  Library: [3, 2],
-  Market: [2, 2],
-  Temple: [3, 3],
-  Factory: [4, 3],
-  Hospital: [3, 3],
-  Forge: [2, 2],
-  Mill: [2, 2],
-  Bakery: [2, 2],
-  Inn: [2, 2],
-  Bank: [3, 2],
-  Workshop: [2, 2],
-  Granary: [2, 2],
-  Barracks: [3, 2],
-  Lighthouse: [1, 3],
-  Windmill: [2, 2],
-  Watermill: [2, 2],
-  Aqueduct: [4, 1],
-  Bridge: [3, 1],
+  Hut: [2, 2],
+  House: [3, 3],
+  Manor: [5, 5],
+  TownHouse: [3, 4],
+  Apartment: [5, 5],
+  School: [5, 4],
+  University: [6, 5],
+  Library: [4, 3],
+  Market: [4, 3],
+  Temple: [5, 5],
+  Factory: [6, 4],
+  Hospital: [5, 4],
+  Forge: [3, 3],
+  Mill: [3, 3],
+  Bakery: [3, 2],
+  Inn: [3, 3],
+  Bank: [4, 3],
+  Workshop: [3, 2],
+  Granary: [3, 3],
+  Barracks: [4, 3],
+  Lighthouse: [2, 3],
+  Windmill: [3, 3],
+  Watermill: [3, 3],
+  Aqueduct: [5, 1],
+  Bridge: [4, 1],
   Wall: [1, 1],
-  Tower: [1, 2],
-  Plaza: [3, 3],
+  Tower: [2, 2],
+  Plaza: [4, 4],
   Statue: [1, 1],
 }
 
@@ -86,6 +86,82 @@ export interface BuildingLike {
   condition?: number
 }
 
+const WALL_COLORS: Record<string, string> = {
+  Hut:        '#8a6a44',
+  House:      '#a6845a',
+  Manor:      '#c4a070',
+  TownHouse:  '#b08868',
+  Apartment:  '#8c8c92',
+  School:     '#d6c39a',
+  University: '#e0cca0',
+  Library:    '#b89868',
+  Market:     '#c88030',
+  Temple:     '#d8b860',
+  Factory:    '#6a6a6a',
+  Hospital:   '#e8e8e8',
+  Forge:      '#5a4030',
+  Mill:       '#a07854',
+  Bakery:     '#c89060',
+  Inn:        '#9a7048',
+  Bank:       '#b8a878',
+  Workshop:   '#8a6a48',
+  Granary:    '#b88848',
+  Barracks:   '#5a5a5a',
+  Lighthouse: '#e8e0d0',
+  Windmill:   '#a07854',
+  Watermill:  '#a07854',
+  Aqueduct:   '#8a8a8a',
+  Bridge:     '#8a8a8a',
+  Wall:       '#7a7268',
+  Tower:      '#4a4a4a',
+  Plaza:      '#a89880',
+  Statue:     '#b0b0b0',
+}
+
+const ROOF_COLORS: Record<string, string> = {
+  Hut:        '#4a3018',
+  House:      '#7a3a20',
+  Manor:      '#4a2018',
+  TownHouse:  '#5a2818',
+  Apartment:  '#3a3a3e',
+  School:     '#a83020',
+  University: '#5a2818',
+  Library:    '#3a2818',
+  Market:     '#a06030',
+  Temple:     '#b88020',
+  Factory:    '#2a2a2a',
+  Hospital:   '#c83030',
+  Forge:      '#2a1a10',
+  Mill:       '#4a2818',
+  Bakery:     '#5a3018',
+  Inn:        '#5a2818',
+  Bank:       '#3a2a18',
+  Workshop:   '#4a3020',
+  Granary:    '#5a3818',
+  Barracks:   '#2a2a2a',
+  Windmill:   '#4a2818',
+  Watermill:  '#4a2818',
+}
+
+function wallColor(kind: string): string {
+  return WALL_COLORS[kind] ?? WALL_COLORS[normKind(kind)] ?? '#8a7a5a'
+}
+
+function roofColor(kind: string): string | null {
+  const c = ROOF_COLORS[kind] ?? ROOF_COLORS[normKind(kind)]
+  return c ?? null
+}
+
+const HOUSE_LIKE = new Set([
+  'Hut', 'House', 'Manor', 'TownHouse', 'School', 'University', 'Library',
+  'Market', 'Forge', 'Mill', 'Bakery', 'Inn', 'Bank', 'Workshop', 'Granary',
+  'Barracks', 'Hospital', 'Windmill', 'Watermill',
+])
+
+function isHouseLike(kind: string): boolean {
+  return HOUSE_LIKE.has(kind) || HOUSE_LIKE.has(normKind(kind))
+}
+
 export function drawBuilding(
   ctx: CanvasRenderingContext2D,
   building: BuildingLike,
@@ -98,37 +174,92 @@ export function drawBuilding(
   const py = (building.y - oy) * tileSize
   const w = fw * tileSize
   const h = fh * tileSize
-  const isBig = fw >= 2 || fh >= 2
-  if (isBig) {
-    ctx.save()
-    ctx.fillStyle = 'rgba(0,0,0,0.28)'
-    ctx.beginPath()
-    ctx.ellipse(
-      px + w / 2,
-      py + h + tileSize * 0.15,
-      w * 0.45,
-      tileSize * 0.32,
-      0,
-      0,
-      Math.PI * 2,
-    )
-    ctx.fill()
-    ctx.restore()
-  }
   const cond = building.condition ?? 1
-  const bgAlpha = 0.32 + (1 - cond) * 0.18
-  ctx.fillStyle = `rgba(20,18,28,${bgAlpha})`
-  ctx.fillRect(px, py, w, h)
-  ctx.strokeStyle = `rgba(255,220,160,${0.18 + cond * 0.20})`
-  ctx.lineWidth = 1
-  ctx.strokeRect(px + 0.5, py + 0.5, w - 1, h - 1)
+  const k = normKind(building.kind)
+
+  ctx.save()
+  ctx.fillStyle = 'rgba(0,0,0,0.32)'
+  ctx.beginPath()
+  ctx.ellipse(
+    px + w / 2,
+    py + h + tileSize * 0.18,
+    w * 0.48,
+    tileSize * 0.34,
+    0, 0, Math.PI * 2,
+  )
+  ctx.fill()
+  ctx.restore()
+
+  if (isHouseLike(k)) {
+    const wallH = h * 0.62
+    const roofH = h * 0.42
+    const wallY = py + h - wallH
+    const wall = wallColor(k)
+    const roof = roofColor(k) ?? '#5a2818'
+
+    ctx.fillStyle = wall
+    ctx.fillRect(px, wallY, w, wallH)
+    ctx.fillStyle = 'rgba(0,0,0,0.18)'
+    ctx.fillRect(px, wallY, w, Math.max(2, wallH * 0.10))
+    ctx.fillStyle = 'rgba(0,0,0,0.10)'
+    ctx.fillRect(px, py + h - Math.max(2, wallH * 0.10), w, Math.max(2, wallH * 0.10))
+
+    ctx.fillStyle = roof
+    ctx.beginPath()
+    ctx.moveTo(px - tileSize * 0.18, wallY)
+    ctx.lineTo(px + w + tileSize * 0.18, wallY)
+    ctx.lineTo(px + w / 2, wallY - roofH)
+    ctx.closePath()
+    ctx.fill()
+    ctx.fillStyle = 'rgba(255,255,255,0.10)'
+    ctx.beginPath()
+    ctx.moveTo(px + w / 2, wallY - roofH)
+    ctx.lineTo(px + w + tileSize * 0.18, wallY)
+    ctx.lineTo(px + w * 0.62, wallY)
+    ctx.closePath()
+    ctx.fill()
+
+    const doorW = Math.max(3, tileSize * 0.5)
+    const doorH = Math.max(4, wallH * 0.55)
+    ctx.fillStyle = '#2a1a10'
+    ctx.fillRect(px + w / 2 - doorW / 2, py + h - doorH, doorW, doorH)
+    ctx.fillStyle = '#d8c060'
+    ctx.fillRect(px + w / 2 + doorW / 2 - 2, py + h - doorH / 2 - 1, 1.5, 1.5)
+
+    const cols = Math.max(1, fw)
+    const rows = Math.max(1, Math.floor(wallH / Math.max(6, tileSize * 0.5)))
+    const winSize = Math.max(2, tileSize * 0.28)
+    const winGapX = w / (cols + 1)
+    const winGapY = wallH / (rows + 1)
+    ctx.fillStyle = `rgba(220,230,255,${0.55 + cond * 0.30})`
+    for (let r = 1; r <= rows; r++) {
+      for (let c = 1; c <= cols; c++) {
+        const wx = px + c * winGapX - winSize / 2
+        const wy = wallY + r * winGapY - winSize / 2
+        if (Math.abs(wx + winSize / 2 - (px + w / 2)) < doorW / 2 + 2 && wy + winSize > py + h - doorH) continue
+        ctx.fillRect(wx, wy, winSize, winSize)
+      }
+    }
+    ctx.strokeStyle = `rgba(0,0,0,${0.30})`
+    ctx.lineWidth = 1
+    ctx.strokeRect(px + 0.5, wallY + 0.5, w - 1, wallH - 1)
+  } else {
+    const bgAlpha = 0.45 + (1 - cond) * 0.18
+    ctx.fillStyle = `rgba(20,18,28,${bgAlpha})`
+    ctx.fillRect(px, py, w, h)
+    ctx.strokeStyle = `rgba(255,220,160,${0.22 + cond * 0.22})`
+    ctx.lineWidth = 1
+    ctx.strokeRect(px + 0.5, py + 0.5, w - 1, h - 1)
+  }
+
   const emoji = buildingEmoji(building.kind)
-  const fontPx = Math.max(10, Math.min(w, h) * 0.78)
+  const fontPx = Math.max(8, Math.min(w, h) * 0.32)
   ctx.save()
   ctx.font = `${fontPx}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.globalAlpha = 0.55 + cond * 0.45
-  ctx.fillText(emoji, px + w / 2, py + h / 2)
+  ctx.globalAlpha = 0.85
+  const ey = isHouseLike(k) ? py + h * 0.18 : py + h / 2
+  ctx.fillText(emoji, px + w / 2, ey)
   ctx.restore()
 }

@@ -315,7 +315,7 @@ export interface WorldState {
   farms?:               FarmInfo[]
   vehicles?:            VehicleInfo[]
   festivals?:           FestivalInfo[]
-  lineage_eras?:        Record<string, string>
+  lineage_eras?:        Array<{ lineage_id: string; era_name: string }> | Record<string, string>
   lineage_currencies?:  Record<string, string>
   active_outbreaks?:    OutbreakInfo[]
 }

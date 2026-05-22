@@ -1,5 +1,6 @@
 import type { WorldState } from '../types'
 import { useUIStore } from '../stores/store'
+import { normalizeLineageEras } from '../utils/lineageEras'
 
 interface Props {
   world: WorldState
@@ -7,7 +8,7 @@ interface Props {
 
 export function CivSummary({ world }: Props) {
   const openCiv = useUIStore(s => s.openCiv)
-  const lineageEras = (world.lineage_eras ?? {}) as Record<string, string>
+  const lineageEras = normalizeLineageEras(world.lineage_eras)
   const lineageNames = world.lineage_names ?? {}
   const buildings = world.buildings ?? []
   const religions = world.religions ?? []

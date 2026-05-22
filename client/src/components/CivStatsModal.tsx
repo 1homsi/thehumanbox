@@ -1,5 +1,6 @@
 import type { WorldState } from '../types'
 import { Modal } from './Modal'
+import { normalizeLineageEras } from '../utils/lineageEras'
 
 interface Props {
   world: WorldState
@@ -35,7 +36,7 @@ const ART_EMOJI: Record<string, string> = {
 export function CivStatsModal({ world, onClose }: Props) {
   const lineages = world.lineage_sizes ?? []
   const lineageNames = world.lineage_names ?? {}
-  const lineageEras = (world.lineage_eras ?? {}) as Record<string, string>
+  const lineageEras = normalizeLineageEras(world.lineage_eras)
   const currencies = (world.lineage_currencies ?? {}) as Record<string, string>
   const governments = (world as unknown as { governments?: Array<{
     lineage_id: string

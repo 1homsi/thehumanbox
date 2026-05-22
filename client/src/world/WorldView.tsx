@@ -6,6 +6,7 @@ import { useUIStore, type ViewFlags } from '../stores/store'
 import { lineageColor, cbFireRgba } from '../utils/constants'
 import { ATLAS_TOWN, onAnyAtlasLoaded, drawPeopleTile, pickHumanSprite, type AgeStage } from '../utils/sprites'
 import { drawBuilding } from './buildings2d'
+import { normalizeLineageEras } from '../utils/lineageEras'
 
 function deriveAgeStage(age: number, isElder: boolean, declared?: string): AgeStage {
   if (declared === 'infant' || declared === 'child' || declared === 'teen' || declared === 'adult') return declared
@@ -16,11 +17,20 @@ function deriveAgeStage(age: number, isElder: boolean, declared?: string): AgeSt
   if (age < 1400) return 'teen'
   return 'adult'
 }
-function orgFrame(id: string): number {
+const _orgLastPos = new Map<string, { x: number; y: number; movedAt: number }>()
+function orgFrame(id: string, x: number, y: number): number {
   let h = 2166136261 >>> 0
   for (let i = 0; i < id.length; i++) { h ^= id.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0 }
+  const now = Date.now()
+  const last = _orgLastPos.get(id)
+  let movedAt = last?.movedAt ?? 0
+  if (!last || Math.abs(last.x - x) > 0.02 || Math.abs(last.y - y) > 0.02) {
+    movedAt = now
+    _orgLastPos.set(id, { x, y, movedAt })
+  }
+  if (now - movedAt > 350) return 0
   const phase = (h % 800)
-  return Math.floor(((Date.now() + phase) % 800) / 200)
+  return Math.floor(((now + phase) % 800) / 200)
 }
 
 const ERA_CLOTHING_COLOR: Record<string, string> = {
@@ -74,12 +84,6 @@ import { TILE, TILE_RGB, BIOME_RGBA, THOUGHT_COLORS } from './palette'
 import { orgVariant } from './org-variant'
 import { drawTrees, drawClouds, drawNaturalDecor, scratchA, scratchB } from './decorations'
 
-onAnyAtlasLoaded(() => { _baseKey = null })
-
-// Rolling FPS samples - module-scoped so the rolling window survives
-// React renders. Lost during the recent WorldView split refactor;
-// restoring here so the `viewFlags.fps` HUD inside drawWorldOnCanvas
-// can push timestamps without crashing the render.
 const fpsSamples: number[] = []
 
 let _imgBuf: ImageData | null = null
@@ -93,6 +97,8 @@ let _baseKey: {
   biomes?: number[][]
   depth_map?: number[][]
 } | null = null
+
+onAnyAtlasLoaded(() => { _baseKey = null })
 function getReuseImgData(w: number, h: number): ImageData {
   if (!_imgBuf || _imgBuf.width !== w || _imgBuf.height !== h) {
     _imgBuf = new ImageData(w, h)
@@ -1178,6 +1184,8 @@ function drawWorldOnCanvas(
     ctx.restore()
   }
 
+  const lineageErasMap = normalizeLineageEras(world.lineage_eras)
+
   const isFocused = (org: WorldState['organisms'][0]) => {
     if (focus === 'all') return true
     if (focus.startsWith('lineage:')) return org.lineage_id === focus.slice(8)
@@ -1306,8 +1314,8 @@ function drawWorldOnCanvas(
     const stage = deriveAgeStage(org.age ?? 0, !!org.is_elder, org.age_stage)
     const ageScale = stage === 'infant' ? 0.55 : stage === 'child' ? 0.78 : stage === 'adult' ? 1.1 : 1.0
     const spriteSize = Math.max(12, bodyR * 3.2 * ageScale)
-    const frame = orgFrame(org.id)
-    const drewLid = (world.lineage_eras && world.lineage_eras[org.lineage_id]) || ''
+    const frame = orgFrame(org.id, org.x, org.y)
+    const drewLid = lineageErasMap[org.lineage_id] ?? ''
     const drew = drawPeopleTile(ctx, pickHumanSprite(orgSex, stage, frame), px - spriteSize / 2, py - spriteSize * 0.78, spriteSize)
     if (!drew) {
       ctx.fillStyle = variant.hairColor
@@ -1339,7 +1347,7 @@ function drawWorldOnCanvas(
       ctx.restore()
     }
 
-    const era = (world.lineage_eras && world.lineage_eras[org.lineage_id]) || ''
+    const era = lineageErasMap[org.lineage_id] ?? ''
     if (era && era !== 'pre-stone' && era !== 'stone') {
       ctx.save()
       ctx.fillStyle = ERA_STRIPE_COLOR[era] ?? 'rgba(255,255,255,0.0)'

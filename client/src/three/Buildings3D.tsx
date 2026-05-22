@@ -53,15 +53,16 @@ const FN_COLOR: Record<BuildingFunction, string> = {
 const ROOF_DARK = '#4a2a18'
 const ROOF_TILE = '#7a4628'
 
-const HUT_GEO        = (() => { const g = new ConeGeometry(2.6, 3.8, 5); return g })()
-const HOUSE_WALL     = new BoxGeometry(4.0, 2.8, 5.0)
-const HOUSE_ROOF     = (() => { const g = new ConeGeometry(3.2, 2.0, 4); g.rotateY(Math.PI / 4); return g })()
-const MANOR_WALL_A   = new BoxGeometry(5.0, 5.2, 6.0)
-const MANOR_WALL_B   = new BoxGeometry(3.4, 3.6, 4.0)
-const MANOR_ROOF_A   = (() => { const g = new ConeGeometry(4.4, 2.8, 4); g.rotateY(Math.PI / 4); return g })()
-const MANOR_ROOF_B   = (() => { const g = new ConeGeometry(2.8, 2.0, 4); g.rotateY(Math.PI / 4); return g })()
-const TOWNHOUSE_GEO  = new BoxGeometry(3.2, 8.4, 4.0)
-const TOWNHOUSE_ROOF = (() => { const g = new ConeGeometry(2.6, 1.5, 4); g.rotateY(Math.PI / 4); return g })()
+const HUT_GEO        = (() => { const g = new ConeGeometry(3.6, 5.2, 5); return g })()
+const HOUSE_WALL     = new BoxGeometry(6.0, 4.2, 7.0)
+const HOUSE_ROOF     = (() => { const g = new ConeGeometry(4.8, 3.0, 4); g.rotateY(Math.PI / 4); return g })()
+const HOUSE_CHIMNEY  = new BoxGeometry(0.7, 1.4, 0.7)
+const MANOR_WALL_A   = new BoxGeometry(7.6, 7.4, 8.4)
+const MANOR_WALL_B   = new BoxGeometry(4.8, 5.0, 5.6)
+const MANOR_ROOF_A   = (() => { const g = new ConeGeometry(6.2, 4.0, 4); g.rotateY(Math.PI / 4); return g })()
+const MANOR_ROOF_B   = (() => { const g = new ConeGeometry(4.0, 2.8, 4); g.rotateY(Math.PI / 4); return g })()
+const TOWNHOUSE_GEO  = new BoxGeometry(4.6, 11.2, 5.4)
+const TOWNHOUSE_ROOF = (() => { const g = new ConeGeometry(3.6, 2.2, 4); g.rotateY(Math.PI / 4); return g })()
 const APARTMENT_GEO  = new BoxGeometry(5.6, 14.0, 5.6)
 const SCHOOL_MID     = new BoxGeometry(2.0, 3.6, 5.0)
 const SCHOOL_WING    = new BoxGeometry(2.0, 3.6, 2.0)
@@ -301,52 +302,58 @@ export function Buildings3D({ buildings, depthMap, biomes }: Props) {
   return (
     <>
       <Layer
-        positions={huts} yOffset={1.9}
+        positions={huts} yOffset={2.6}
         geometry={HUT_GEO} color={FN_COLOR[FN_DEFAULT.Hut]}
         maxCount={cap(huts.length)}
       />
 
       <Layer
-        positions={houses} yOffset={1.4}
+        positions={houses} yOffset={2.1}
         geometry={HOUSE_WALL} color={FN_COLOR[FN_DEFAULT.House]}
         maxCount={cap(houses.length)}
       />
       <Layer
-        positions={houses} yOffset={3.8}
+        positions={houses} yOffset={5.7}
         geometry={HOUSE_ROOF} color={ROOF_TILE}
+        maxCount={cap(houses.length)}
+      />
+      <Layer
+        positions={houses.map(([x, y, z]) => [x + 1.8, y, z + 1.6] as [number, number, number])}
+        yOffset={5.0}
+        geometry={HOUSE_CHIMNEY} color="#4a3020"
         maxCount={cap(houses.length)}
       />
 
       <Layer
-        positions={manors} yOffset={2.6}
+        positions={manors} yOffset={3.7}
         geometry={MANOR_WALL_A} color={FN_COLOR[FN_DEFAULT.Manor]}
         maxCount={cap(manors.length)}
       />
       <Layer
-        positions={manors.map(([x, y, z]) => [x + 3.8, y, z] as [number, number, number])}
-        yOffset={1.8}
+        positions={manors.map(([x, y, z]) => [x + 5.4, y, z] as [number, number, number])}
+        yOffset={2.5}
         geometry={MANOR_WALL_B} color={FN_COLOR[FN_DEFAULT.Manor]}
         maxCount={cap(manors.length)}
       />
       <Layer
-        positions={manors} yOffset={6.6}
+        positions={manors} yOffset={9.4}
         geometry={MANOR_ROOF_A} color={ROOF_DARK}
         maxCount={cap(manors.length)}
       />
       <Layer
-        positions={manors.map(([x, y, z]) => [x + 3.8, y, z] as [number, number, number])}
-        yOffset={4.6}
+        positions={manors.map(([x, y, z]) => [x + 5.4, y, z] as [number, number, number])}
+        yOffset={6.4}
         geometry={MANOR_ROOF_B} color={ROOF_DARK}
         maxCount={cap(manors.length)}
       />
 
       <Layer
-        positions={townhouses} yOffset={4.2}
+        positions={townhouses} yOffset={5.6}
         geometry={TOWNHOUSE_GEO} color="#b89070"
         maxCount={cap(townhouses.length)}
       />
       <Layer
-        positions={townhouses} yOffset={9.1}
+        positions={townhouses} yOffset={12.3}
         geometry={TOWNHOUSE_ROOF} color={ROOF_DARK}
         maxCount={cap(townhouses.length)}
       />
