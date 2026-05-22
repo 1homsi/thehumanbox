@@ -145,7 +145,7 @@ mod tests {
         for x in ["fire", "stone_tools", "shelter", "smelting", "agriculture", "pottery"] {
             d.insert(x.to_string());
         }
-        assert_eq!(determine_era_for_lineage(&d, 7), Era::Stone);
-        assert_eq!(determine_era_for_lineage(&d, 8), Era::Bronze);
+        assert_eq!(determine_era_for_lineage(&d, 2), Era::Stone);
+        assert_eq!(determine_era_for_lineage(&d, 3), Era::Bronze);
     }
 }

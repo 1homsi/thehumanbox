@@ -773,7 +773,18 @@ impl Organism {
                 let target = (ix + last_dx * 5, iy + last_dy * 5);
                 return (self.toward(target, grid), thought);
             }
-            let pool = if available.is_empty() { &[][..] } else { available };
+            let on_food  = tile == Tile::Food;
+            let on_water = tile == Tile::Water;
+            let filtered: Vec<usize> = available.iter().copied()
+                .filter(|&a| match a {
+                    8 => on_food,
+                    9 => on_water,
+                    15 => self.carrying > 0 && self.carrying_type != 2,
+                    14 => self.carrying == 0,
+                    _ => true,
+                })
+                .collect();
+            let pool: &[usize] = if filtered.is_empty() { available } else { &filtered };
             let pick = if pool.is_empty() {
                 rng.gen_range(0..N_ACTIONS)
             } else {

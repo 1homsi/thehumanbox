@@ -72,7 +72,8 @@ impl Animal {
         Animal { id, x, y, alive: true, energy: 0.8, kind, last_reproduced: 0, bonded_org: None }
     }
 
-    pub fn tick(&mut self, grid: &WorldGrid, org_positions: &[(f32, f32)], rng: &mut impl Rng) {
+    pub fn tick(&mut self, grid: &WorldGrid, org_positions: &[(f32, f32)],
+                prey_positions: &[(f32, f32)], rng: &mut impl Rng) {
         if !self.alive { return; }
         let (ix, iy) = (self.x as i32, self.y as i32);
 
@@ -90,12 +91,12 @@ impl Animal {
 
         let step = self.kind.step_size();
 
-        if self.kind.predator() && !org_positions.is_empty() {
-            let prey = org_positions.iter()
+        if self.kind.predator() {
+            let target = prey_positions.iter().chain(org_positions.iter())
                 .map(|&(ox, oy)| ((ox - self.x).abs() + (oy - self.y).abs(), ox, oy))
-                .filter(|&(d, _, _)| d < 12.0)
+                .filter(|&(d, _, _)| d < 14.0)
                 .min_by(|(a,_,_),(b,_,_)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-            if let Some((_, px, py)) = prey {
+            if let Some((_, px, py)) = target {
                 let tx = ix + ((px - self.x).signum() * step as f32) as i32;
                 let ty = iy + ((py - self.y).signum() * step as f32) as i32;
                 self.move_toward(grid, ix, iy, tx, ty);
@@ -213,7 +214,7 @@ mod tests {
         animal.energy = 0.3;
         let mut rng = rand::rngs::SmallRng::seed_from_u64(3);
 
-        animal.tick(&grid, &[], &mut rng);
+        animal.tick(&grid, &[], &[], &mut rng);
 
         assert_ne!((animal.x as i32, animal.y as i32), (120, 120));
     }

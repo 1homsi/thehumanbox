@@ -915,9 +915,13 @@ impl Simulation {
                     self.organisms[idx].infection *= 0.88;
                 }
             } else {
-                let key = (cx, cy);
-                if let Some(v) = self.organisms[idx].food_memory.get_mut(&key) {
-                    *v *= 0.15;
+                for dx in -1i32..=1 {
+                    for dy in -1i32..=1 {
+                        let key = (cx + dx, cy + dy);
+                        if let Some(v) = self.organisms[idx].food_memory.get_mut(&key) {
+                            *v *= 0.15;
+                        }
+                    }
                 }
             }
         } else if action == 9 {
@@ -936,6 +940,15 @@ impl Simulation {
                 self.organisms[idx].discover("water");
                 if self.organisms[idx].infection > 0.01 {
                     self.organisms[idx].infection *= 0.94;
+                }
+            } else {
+                for dx in -1i32..=1 {
+                    for dy in -1i32..=1 {
+                        let key = (cx + dx, cy + dy);
+                        if let Some(v) = self.organisms[idx].water_memory.get_mut(&key) {
+                            *v *= 0.15;
+                        }
+                    }
                 }
             }
         } else if action == 10 {
@@ -1233,10 +1246,16 @@ impl Simulation {
         if current_tile == Tile::Water {
             let ms = self.organisms[idx].traits.memory_strength;
             Organism::remember(&mut self.organisms[idx].water_memory, cx, cy, 0.2, ms);
+        } else if let Some(v) = self.organisms[idx].water_memory.get_mut(&(cx, cy)) {
+            *v *= 0.55;
         }
         if current_tile == Tile::Food {
             let ms = self.organisms[idx].traits.memory_strength;
             Organism::remember(&mut self.organisms[idx].food_memory, cx, cy, 0.2, ms);
+        } else if matches!(current_tile, Tile::Grass | Tile::Sand | Tile::Ash) {
+            if let Some(v) = self.organisms[idx].food_memory.get_mut(&(cx, cy)) {
+                *v *= 0.85;
+            }
         }
 
         if self.organisms[idx].carrying > 0 {
@@ -2594,8 +2613,40 @@ impl Simulation {
             .map(|o| (o.x, o.y))
             .collect();
 
+        let prey_pos_for_chase: Vec<(f32, f32)> = self.animals.iter()
+            .filter(|a| a.alive && matches!(a.kind, AnimalKind::Rabbit | AnimalKind::Deer))
+            .map(|a| (a.x, a.y))
+            .collect();
         for animal in &mut self.animals {
-            animal.tick(&self.grid, &org_pos, &mut self.rng);
+            animal.tick(&self.grid, &org_pos, &prey_pos_for_chase, &mut self.rng);
+        }
+
+        let prey_positions: Vec<(usize, f32, f32, AnimalKind)> = self.animals.iter().enumerate()
+            .filter(|(_, a)| a.alive && matches!(a.kind, AnimalKind::Rabbit | AnimalKind::Deer))
+            .map(|(i, a)| (i, a.x, a.y, a.kind))
+            .collect();
+        let mut kills: Vec<(usize, usize)> = Vec::new();
+        for (pi, pred) in self.animals.iter().enumerate() {
+            if !pred.alive || !matches!(pred.kind, AnimalKind::Wolf) { continue }
+            if pred.energy > 0.85 { continue }
+            for (vi, vx, vy, _) in prey_positions.iter().copied() {
+                if vi == pi { continue }
+                let d = (vx - pred.x).abs() + (vy - pred.y).abs();
+                if d <= 1.5 {
+                    kills.push((pi, vi));
+                    break;
+                }
+            }
+        }
+        for (pi, vi) in kills {
+            if !self.animals[pi].alive || !self.animals[vi].alive { continue }
+            let gain = match self.animals[vi].kind {
+                AnimalKind::Rabbit => 0.40,
+                AnimalKind::Deer   => 0.65,
+                _                  => 0.20,
+            };
+            self.animals[vi].alive = false;
+            self.animals[pi].energy = (self.animals[pi].energy + gain).min(1.0);
         }
 
         let mut tames: Vec<(usize, usize)> = Vec::new();

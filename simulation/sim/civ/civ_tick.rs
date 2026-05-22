@@ -41,6 +41,9 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick % 240 == 0 {
         tick_religion_adherents(sim);
     }
+    if tick % 600 == 0 {
+        tick_leader_influence(sim);
+    }
     if tick % 1200 == 0 {
         tick_disease_introduce(sim);
     }
@@ -287,6 +290,12 @@ fn tick_governments(sim: &mut Simulation) {
             sim.governments.insert(lid.clone(), g);
             push_event(&mut sim.events, sim.tick_count, "government_changed", lid,
                        &format!("formed a {}", target_kind.name()));
+            let tick = sim.tick_count;
+            let entry_msg = format!("our tribe became a {}", target_kind.name());
+            for o in sim.organisms.iter_mut() {
+                if !o.alive || &o.lineage_id != lid { continue }
+                o.log_life(tick, "civ", entry_msg.clone());
+            }
         }
     }
     for lid in &lineages {
@@ -316,6 +325,37 @@ fn try_enact_law(g: &mut Government, era: Era, tick: u64) {
         if k.era_appearance() <= era && !g.laws.iter().any(|l| l.kind == k) {
             g.laws.push(Law { kind: k, enacted_tick: tick });
             return;
+        }
+    }
+}
+
+fn tick_leader_influence(sim: &mut Simulation) {
+    let leader_attitudes: std::collections::HashMap<String, Vec<(String, f32)>> = {
+        let mut out: std::collections::HashMap<String, Vec<(String, f32)>> =
+            std::collections::HashMap::new();
+        for o in sim.organisms.iter() {
+            if !o.alive || !o.is_leader { continue }
+            let mut entries: Vec<(String, f32)> = Vec::new();
+            for (lid, &att) in o.lineage_attitudes.iter() {
+                if att.abs() > 0.05 {
+                    entries.push((lid.clone(), att));
+                }
+            }
+            if !entries.is_empty() {
+                out.insert(o.lineage_id.clone(), entries);
+            }
+        }
+        out
+    };
+    if leader_attitudes.is_empty() { return; }
+    for o in sim.organisms.iter_mut() {
+        if !o.alive || o.is_leader { continue }
+        let Some(entries) = leader_attitudes.get(&o.lineage_id) else { continue };
+        for (target_lid, leader_att) in entries.iter() {
+            let cur = o.lineage_attitudes.get(target_lid).copied().unwrap_or(0.0);
+            let diff = leader_att - cur;
+            let new_val = cur + diff * 0.10;
+            o.lineage_attitudes.insert(target_lid.clone(), new_val.clamp(-1.0, 1.0));
         }
     }
 }
@@ -360,7 +400,7 @@ fn tick_religion_founding(sim: &mut Simulation) {
         let candidates = [ReligionKind::Animism, ReligionKind::Polytheism, ReligionKind::Monotheism, ReligionKind::Philosophical, ReligionKind::Secular];
         for k in candidates {
             if k.era_unlock() <= era && !existing_kinds.contains(&k) {
-                if sim.rng.gen::<f32>() < 0.18 {
+                if sim.rng.gen::<f32>() < 0.30 {
                     let id = format!("rel{}", sim.next_religion_id);
                     sim.next_religion_id += 1;
                     let name = pick_religion_name(sim.tick_count + (lid.len() as u64)).to_string();
@@ -370,6 +410,12 @@ fn tick_religion_founding(sim: &mut Simulation) {
                     });
                     push_event(&mut sim.events, sim.tick_count, "religion_founded", &lid,
                                &format!("founded {} ({})", name, k.name()));
+                    let tick = sim.tick_count;
+                    let entry_msg = format!("our people founded {}", name);
+                    for o in sim.organisms.iter_mut() {
+                        if !o.alive || o.lineage_id != lid { continue }
+                        o.log_life(tick, "civ", entry_msg.clone());
+                    }
                     break;
                 }
             }
