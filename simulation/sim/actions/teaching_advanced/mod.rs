@@ -1,0 +1,108 @@
+pub mod lecture_class;
+pub mod lead_seminar;
+pub mod lead_workshop;
+pub mod coach_one_on_one;
+pub mod tutor_struggling_student;
+pub mod drill_basics_class;
+pub mod drill_skill_repeat;
+pub mod assign_homework;
+pub mod grade_paper;
+pub mod grade_quiz;
+pub mod give_test;
+pub mod give_oral_exam;
+pub mod give_practical;
+pub mod proctor_exam;
+pub mod supervise_lab;
+pub mod demo_experiment;
+pub mod demo_technique;
+pub mod demo_procedure;
+pub mod model_thinking;
+pub mod model_solving;
+pub mod facilitate_discussion;
+pub mod facilitate_debate;
+pub mod facilitate_circle;
+pub mod facilitate_critique;
+pub mod facilitate_review;
+pub mod plan_lesson;
+pub mod plan_unit;
+pub mod plan_term;
+pub mod plan_year;
+pub mod plan_curriculum;
+pub mod scout_student_strength;
+pub mod scout_student_weakness;
+pub mod scout_student_interest;
+pub mod scout_student_pace;
+pub mod scout_student_style;
+pub mod meet_with_parent;
+pub mod meet_with_apprentice_parent;
+pub mod meet_with_kin;
+pub mod meet_with_ward;
+pub mod meet_with_guardian;
+pub mod write_recommendation;
+pub mod write_evaluation;
+pub mod write_progress_report;
+pub mod write_diploma;
+pub mod award_certificate;
+pub mod publish_class_journal;
+pub mod publish_class_paper;
+pub mod publish_class_anthology;
+pub mod publish_class_book;
+pub mod publish_class_play;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        3360 => lecture_class::apply(ctx),
+        3361 => lead_seminar::apply(ctx),
+        3362 => lead_workshop::apply(ctx),
+        3363 => coach_one_on_one::apply(ctx),
+        3364 => tutor_struggling_student::apply(ctx),
+        3365 => drill_basics_class::apply(ctx),
+        3366 => drill_skill_repeat::apply(ctx),
+        3367 => assign_homework::apply(ctx),
+        3368 => grade_paper::apply(ctx),
+        3369 => grade_quiz::apply(ctx),
+        3370 => give_test::apply(ctx),
+        3371 => give_oral_exam::apply(ctx),
+        3372 => give_practical::apply(ctx),
+        3373 => proctor_exam::apply(ctx),
+        3374 => supervise_lab::apply(ctx),
+        3375 => demo_experiment::apply(ctx),
+        3376 => demo_technique::apply(ctx),
+        3377 => demo_procedure::apply(ctx),
+        3378 => model_thinking::apply(ctx),
+        3379 => model_solving::apply(ctx),
+        3380 => facilitate_discussion::apply(ctx),
+        3381 => facilitate_debate::apply(ctx),
+        3382 => facilitate_circle::apply(ctx),
+        3383 => facilitate_critique::apply(ctx),
+        3384 => facilitate_review::apply(ctx),
+        3385 => plan_lesson::apply(ctx),
+        3386 => plan_unit::apply(ctx),
+        3387 => plan_term::apply(ctx),
+        3388 => plan_year::apply(ctx),
+        3389 => plan_curriculum::apply(ctx),
+        3390 => scout_student_strength::apply(ctx),
+        3391 => scout_student_weakness::apply(ctx),
+        3392 => scout_student_interest::apply(ctx),
+        3393 => scout_student_pace::apply(ctx),
+        3394 => scout_student_style::apply(ctx),
+        3395 => meet_with_parent::apply(ctx),
+        3396 => meet_with_apprentice_parent::apply(ctx),
+        3397 => meet_with_kin::apply(ctx),
+        3398 => meet_with_ward::apply(ctx),
+        3399 => meet_with_guardian::apply(ctx),
+        3400 => write_recommendation::apply(ctx),
+        3401 => write_evaluation::apply(ctx),
+        3402 => write_progress_report::apply(ctx),
+        3403 => write_diploma::apply(ctx),
+        3404 => award_certificate::apply(ctx),
+        3405 => publish_class_journal::apply(ctx),
+        3406 => publish_class_paper::apply(ctx),
+        3407 => publish_class_anthology::apply(ctx),
+        3408 => publish_class_book::apply(ctx),
+        3409 => publish_class_play::apply(ctx),
+        _   => 0.0,
+    }
+}
