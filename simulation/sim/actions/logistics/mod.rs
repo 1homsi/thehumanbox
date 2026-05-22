@@ -1,0 +1,108 @@
+pub mod plan_supply_chain;
+pub mod plan_caravan_route;
+pub mod plan_ship_route;
+pub mod plan_train_route;
+pub mod plan_air_route;
+pub mod forecast_demand;
+pub mod forecast_supply;
+pub mod forecast_weather_route;
+pub mod forecast_traffic;
+pub mod forecast_volume;
+pub mod schedule_shipment;
+pub mod schedule_pickup;
+pub mod schedule_delivery;
+pub mod schedule_loading;
+pub mod schedule_unloading;
+pub mod reroute_caravan;
+pub mod reroute_ship;
+pub mod reroute_train;
+pub mod reroute_air;
+pub mod reroute_cart;
+pub mod reroute_delivery;
+pub mod delay_shipment;
+pub mod expedite_shipment;
+pub mod defer_shipment;
+pub mod cancel_shipment;
+pub mod consolidate_load;
+pub mod split_load;
+pub mod tracked_load;
+pub mod untrack_load;
+pub mod mark_fragile;
+pub mod mark_perishable;
+pub mod mark_hazardous;
+pub mod mark_high_value;
+pub mod mark_secure;
+pub mod mark_express;
+pub mod log_arrival;
+pub mod log_departure;
+pub mod log_transfer;
+pub mod log_inspection;
+pub mod log_clearance;
+pub mod cross_border;
+pub mod cross_checkpoint;
+pub mod clear_customs;
+pub mod clear_duty;
+pub mod pay_toll;
+pub mod pay_dues;
+pub mod pay_fee;
+pub mod pay_levy;
+pub mod pay_excise;
+pub mod pay_octroi;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        3180 => plan_supply_chain::apply(ctx),
+        3181 => plan_caravan_route::apply(ctx),
+        3182 => plan_ship_route::apply(ctx),
+        3183 => plan_train_route::apply(ctx),
+        3184 => plan_air_route::apply(ctx),
+        3185 => forecast_demand::apply(ctx),
+        3186 => forecast_supply::apply(ctx),
+        3187 => forecast_weather_route::apply(ctx),
+        3188 => forecast_traffic::apply(ctx),
+        3189 => forecast_volume::apply(ctx),
+        3190 => schedule_shipment::apply(ctx),
+        3191 => schedule_pickup::apply(ctx),
+        3192 => schedule_delivery::apply(ctx),
+        3193 => schedule_loading::apply(ctx),
+        3194 => schedule_unloading::apply(ctx),
+        3195 => reroute_caravan::apply(ctx),
+        3196 => reroute_ship::apply(ctx),
+        3197 => reroute_train::apply(ctx),
+        3198 => reroute_air::apply(ctx),
+        3199 => reroute_cart::apply(ctx),
+        3200 => reroute_delivery::apply(ctx),
+        3201 => delay_shipment::apply(ctx),
+        3202 => expedite_shipment::apply(ctx),
+        3203 => defer_shipment::apply(ctx),
+        3204 => cancel_shipment::apply(ctx),
+        3205 => consolidate_load::apply(ctx),
+        3206 => split_load::apply(ctx),
+        3207 => tracked_load::apply(ctx),
+        3208 => untrack_load::apply(ctx),
+        3209 => mark_fragile::apply(ctx),
+        3210 => mark_perishable::apply(ctx),
+        3211 => mark_hazardous::apply(ctx),
+        3212 => mark_high_value::apply(ctx),
+        3213 => mark_secure::apply(ctx),
+        3214 => mark_express::apply(ctx),
+        3215 => log_arrival::apply(ctx),
+        3216 => log_departure::apply(ctx),
+        3217 => log_transfer::apply(ctx),
+        3218 => log_inspection::apply(ctx),
+        3219 => log_clearance::apply(ctx),
+        3220 => cross_border::apply(ctx),
+        3221 => cross_checkpoint::apply(ctx),
+        3222 => clear_customs::apply(ctx),
+        3223 => clear_duty::apply(ctx),
+        3224 => pay_toll::apply(ctx),
+        3225 => pay_dues::apply(ctx),
+        3226 => pay_fee::apply(ctx),
+        3227 => pay_levy::apply(ctx),
+        3228 => pay_excise::apply(ctx),
+        3229 => pay_octroi::apply(ctx),
+        _   => 0.0,
+    }
+}
