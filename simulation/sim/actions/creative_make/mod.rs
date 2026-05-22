@@ -1,0 +1,112 @@
+pub mod throw_pottery;
+pub mod glaze_pot;
+pub mod fire_kiln;
+pub mod carve_bowl;
+pub mod carve_spoon;
+pub mod carve_flute;
+pub mod carve_pipe;
+pub mod craft_doll;
+pub mod craft_toy_horse;
+pub mod craft_kite;
+pub mod craft_lantern;
+pub mod weave_basket_creative;
+pub mod dye_yarn;
+pub mod dye_silk;
+pub mod braid_hair;
+pub mod plait_cord;
+pub mod knot_macrame;
+pub mod bead_jewelry;
+pub mod string_necklace;
+pub mod string_bracelet;
+pub mod polish_gem;
+pub mod set_stone;
+pub mod forge_ring;
+pub mod forge_buckle;
+pub mod inlay_wood;
+pub mod engrave_metal;
+pub mod etch_glass;
+pub mod blow_glass;
+pub mod shape_candle;
+pub mod dip_candle;
+pub mod pour_soap;
+pub mod perfume_oil;
+pub mod distill_oil;
+pub mod press_paper;
+pub mod bind_book;
+pub mod stamp_paper;
+pub mod illuminate_letter;
+pub mod copy_manuscript;
+pub mod map_neighborhood;
+pub mod draft_blueprint;
+pub mod draft_plan;
+pub mod draft_pattern;
+pub mod sketch_portrait;
+pub mod sculpt_clay;
+pub mod sculpt_wax;
+pub mod model_figure;
+pub mod cast_pewter;
+pub mod cast_bronze;
+pub mod cast_iron;
+pub mod temper_blade_make;
+pub mod paint_sign;
+pub mod paint_banner;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        1080 => throw_pottery::apply(ctx),
+        1081 => glaze_pot::apply(ctx),
+        1082 => fire_kiln::apply(ctx),
+        1083 => carve_bowl::apply(ctx),
+        1084 => carve_spoon::apply(ctx),
+        1085 => carve_flute::apply(ctx),
+        1086 => carve_pipe::apply(ctx),
+        1087 => craft_doll::apply(ctx),
+        1088 => craft_toy_horse::apply(ctx),
+        1089 => craft_kite::apply(ctx),
+        1090 => craft_lantern::apply(ctx),
+        1091 => weave_basket_creative::apply(ctx),
+        1092 => dye_yarn::apply(ctx),
+        1093 => dye_silk::apply(ctx),
+        1094 => braid_hair::apply(ctx),
+        1095 => plait_cord::apply(ctx),
+        1096 => knot_macrame::apply(ctx),
+        1097 => bead_jewelry::apply(ctx),
+        1098 => string_necklace::apply(ctx),
+        1099 => string_bracelet::apply(ctx),
+        1100 => polish_gem::apply(ctx),
+        1101 => set_stone::apply(ctx),
+        1102 => forge_ring::apply(ctx),
+        1103 => forge_buckle::apply(ctx),
+        1104 => inlay_wood::apply(ctx),
+        1105 => engrave_metal::apply(ctx),
+        1106 => etch_glass::apply(ctx),
+        1107 => blow_glass::apply(ctx),
+        1108 => shape_candle::apply(ctx),
+        1109 => dip_candle::apply(ctx),
+        1110 => pour_soap::apply(ctx),
+        1111 => perfume_oil::apply(ctx),
+        1112 => distill_oil::apply(ctx),
+        1113 => press_paper::apply(ctx),
+        1114 => bind_book::apply(ctx),
+        1115 => stamp_paper::apply(ctx),
+        1116 => illuminate_letter::apply(ctx),
+        1117 => copy_manuscript::apply(ctx),
+        1118 => map_neighborhood::apply(ctx),
+        1119 => draft_blueprint::apply(ctx),
+        1120 => draft_plan::apply(ctx),
+        1121 => draft_pattern::apply(ctx),
+        1122 => sketch_portrait::apply(ctx),
+        1123 => sculpt_clay::apply(ctx),
+        1124 => sculpt_wax::apply(ctx),
+        1125 => model_figure::apply(ctx),
+        1126 => cast_pewter::apply(ctx),
+        1127 => cast_bronze::apply(ctx),
+        1128 => cast_iron::apply(ctx),
+        1129 => temper_blade_make::apply(ctx),
+        1130 => paint_sign::apply(ctx),
+        1131 => paint_banner::apply(ctx),
+        _   => 0.0,
+    }
+}
