@@ -1,0 +1,108 @@
+pub mod chart_star;
+pub mod paint_nebula;
+pub mod sketch_galaxy;
+pub mod compose_celestial_hymn;
+pub mod write_cosmic_verse;
+pub mod arrange_celestial_dance;
+pub mod perform_lunar_rite;
+pub mod perform_solar_rite;
+pub mod perform_eclipse_rite;
+pub mod perform_solstice_rite;
+pub mod perform_equinox_rite;
+pub mod enact_zodiac_play;
+pub mod stage_orbital_ballet;
+pub mod stage_cosmic_chorus;
+pub mod stage_supernova_pageant;
+pub mod craft_starshell_charm;
+pub mod forge_meteorite_blade;
+pub mod carve_aerolite_mask;
+pub mod weave_aurora_silk;
+pub mod dye_with_starlight;
+pub mod hang_chime_orbital;
+pub mod pluck_string_universal;
+pub mod blow_conch_solar;
+pub mod drum_pulsar;
+pub mod pluck_lyre_of_winds;
+pub mod read_quasar;
+pub mod paint_comet_trail;
+pub mod catalog_constellation;
+pub mod name_new_star;
+pub mod name_new_world;
+pub mod bless_starborn;
+pub mod bless_planetborn;
+pub mod rite_of_first_orbit;
+pub mod rite_of_first_lift;
+pub mod rite_of_first_walk;
+pub mod archive_stellar_song;
+pub mod archive_celestial_chant;
+pub mod archive_lunar_lament;
+pub mod archive_solar_litany;
+pub mod archive_eclipse_dirge;
+pub mod scribe_zodiac_book;
+pub mod bind_stellar_codex;
+pub mod illuminate_celestial_letter;
+pub mod map_nebular_dance;
+pub mod map_pulsar_clock;
+pub mod sing_to_void;
+pub mod hum_to_dark;
+pub mod gaze_into_vacuum;
+pub mod touch_event_horizon;
+pub mod listen_to_singularity;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        2400 => chart_star::apply(ctx),
+        2401 => paint_nebula::apply(ctx),
+        2402 => sketch_galaxy::apply(ctx),
+        2403 => compose_celestial_hymn::apply(ctx),
+        2404 => write_cosmic_verse::apply(ctx),
+        2405 => arrange_celestial_dance::apply(ctx),
+        2406 => perform_lunar_rite::apply(ctx),
+        2407 => perform_solar_rite::apply(ctx),
+        2408 => perform_eclipse_rite::apply(ctx),
+        2409 => perform_solstice_rite::apply(ctx),
+        2410 => perform_equinox_rite::apply(ctx),
+        2411 => enact_zodiac_play::apply(ctx),
+        2412 => stage_orbital_ballet::apply(ctx),
+        2413 => stage_cosmic_chorus::apply(ctx),
+        2414 => stage_supernova_pageant::apply(ctx),
+        2415 => craft_starshell_charm::apply(ctx),
+        2416 => forge_meteorite_blade::apply(ctx),
+        2417 => carve_aerolite_mask::apply(ctx),
+        2418 => weave_aurora_silk::apply(ctx),
+        2419 => dye_with_starlight::apply(ctx),
+        2420 => hang_chime_orbital::apply(ctx),
+        2421 => pluck_string_universal::apply(ctx),
+        2422 => blow_conch_solar::apply(ctx),
+        2423 => drum_pulsar::apply(ctx),
+        2424 => pluck_lyre_of_winds::apply(ctx),
+        2425 => read_quasar::apply(ctx),
+        2426 => paint_comet_trail::apply(ctx),
+        2427 => catalog_constellation::apply(ctx),
+        2428 => name_new_star::apply(ctx),
+        2429 => name_new_world::apply(ctx),
+        2430 => bless_starborn::apply(ctx),
+        2431 => bless_planetborn::apply(ctx),
+        2432 => rite_of_first_orbit::apply(ctx),
+        2433 => rite_of_first_lift::apply(ctx),
+        2434 => rite_of_first_walk::apply(ctx),
+        2435 => archive_stellar_song::apply(ctx),
+        2436 => archive_celestial_chant::apply(ctx),
+        2437 => archive_lunar_lament::apply(ctx),
+        2438 => archive_solar_litany::apply(ctx),
+        2439 => archive_eclipse_dirge::apply(ctx),
+        2440 => scribe_zodiac_book::apply(ctx),
+        2441 => bind_stellar_codex::apply(ctx),
+        2442 => illuminate_celestial_letter::apply(ctx),
+        2443 => map_nebular_dance::apply(ctx),
+        2444 => map_pulsar_clock::apply(ctx),
+        2445 => sing_to_void::apply(ctx),
+        2446 => hum_to_dark::apply(ctx),
+        2447 => gaze_into_vacuum::apply(ctx),
+        2448 => touch_event_horizon::apply(ctx),
+        2449 => listen_to_singularity::apply(ctx),
+        _   => 0.0,
+    }
+}
