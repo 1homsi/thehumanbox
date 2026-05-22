@@ -1,0 +1,108 @@
+pub mod scan_network;
+pub mod ping_host;
+pub mod trace_route;
+pub mod enumerate_port;
+pub mod enumerate_service;
+pub mod fingerprint_os;
+pub mod fingerprint_service;
+pub mod fingerprint_protocol;
+pub mod probe_vulnerability;
+pub mod exploit_test;
+pub mod patch_vulnerability;
+pub mod harden_service;
+pub mod rotate_secret;
+pub mod rotate_token;
+pub mod rotate_password;
+pub mod audit_log;
+pub mod review_log;
+pub mod archive_log;
+pub mod compress_log;
+pub mod forward_log;
+pub mod monitor_traffic;
+pub mod monitor_threshold;
+pub mod monitor_anomaly;
+pub mod monitor_pattern;
+pub mod monitor_signal;
+pub mod alert_team;
+pub mod alert_oncall;
+pub mod alert_security;
+pub mod alert_compliance;
+pub mod alert_ops;
+pub mod page_oncall;
+pub mod page_team;
+pub mod escalate_incident;
+pub mod escalate_priority;
+pub mod escalate_severity;
+pub mod triage_alert;
+pub mod triage_ticket;
+pub mod triage_request;
+pub mod triage_incident;
+pub mod triage_change;
+pub mod rollout_change;
+pub mod rollback_change;
+pub mod verify_change;
+pub mod validate_change;
+pub mod document_change;
+pub mod dry_run_change;
+pub mod shadow_test_change;
+pub mod pilot_change;
+pub mod canary_change;
+pub mod full_rollout;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        4260 => scan_network::apply(ctx),
+        4261 => ping_host::apply(ctx),
+        4262 => trace_route::apply(ctx),
+        4263 => enumerate_port::apply(ctx),
+        4264 => enumerate_service::apply(ctx),
+        4265 => fingerprint_os::apply(ctx),
+        4266 => fingerprint_service::apply(ctx),
+        4267 => fingerprint_protocol::apply(ctx),
+        4268 => probe_vulnerability::apply(ctx),
+        4269 => exploit_test::apply(ctx),
+        4270 => patch_vulnerability::apply(ctx),
+        4271 => harden_service::apply(ctx),
+        4272 => rotate_secret::apply(ctx),
+        4273 => rotate_token::apply(ctx),
+        4274 => rotate_password::apply(ctx),
+        4275 => audit_log::apply(ctx),
+        4276 => review_log::apply(ctx),
+        4277 => archive_log::apply(ctx),
+        4278 => compress_log::apply(ctx),
+        4279 => forward_log::apply(ctx),
+        4280 => monitor_traffic::apply(ctx),
+        4281 => monitor_threshold::apply(ctx),
+        4282 => monitor_anomaly::apply(ctx),
+        4283 => monitor_pattern::apply(ctx),
+        4284 => monitor_signal::apply(ctx),
+        4285 => alert_team::apply(ctx),
+        4286 => alert_oncall::apply(ctx),
+        4287 => alert_security::apply(ctx),
+        4288 => alert_compliance::apply(ctx),
+        4289 => alert_ops::apply(ctx),
+        4290 => page_oncall::apply(ctx),
+        4291 => page_team::apply(ctx),
+        4292 => escalate_incident::apply(ctx),
+        4293 => escalate_priority::apply(ctx),
+        4294 => escalate_severity::apply(ctx),
+        4295 => triage_alert::apply(ctx),
+        4296 => triage_ticket::apply(ctx),
+        4297 => triage_request::apply(ctx),
+        4298 => triage_incident::apply(ctx),
+        4299 => triage_change::apply(ctx),
+        4300 => rollout_change::apply(ctx),
+        4301 => rollback_change::apply(ctx),
+        4302 => verify_change::apply(ctx),
+        4303 => validate_change::apply(ctx),
+        4304 => document_change::apply(ctx),
+        4305 => dry_run_change::apply(ctx),
+        4306 => shadow_test_change::apply(ctx),
+        4307 => pilot_change::apply(ctx),
+        4308 => canary_change::apply(ctx),
+        4309 => full_rollout::apply(ctx),
+        _   => 0.0,
+    }
+}
