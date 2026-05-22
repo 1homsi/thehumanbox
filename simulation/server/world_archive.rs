@@ -135,7 +135,7 @@ fn compute_summary(sim: &mut Simulation, peak_pop: u64) -> (String, usize, Strin
 
 pub async fn archive_and_reset(
     shared_sim: Arc<Mutex<Simulation>>,
-    started_at_ms: u64,
+    process_started_at_ms: u64,
     peak_pop: u64,
     save_path: &str,
 ) -> Option<String> {
@@ -151,6 +151,23 @@ pub async fn archive_and_reset(
     let (hash, snapshot_bytes, meta) = {
         let mut sim = shared_sim.lock().await;
         let final_tick = sim.tick_count;
+        if final_tick < 600 {
+            tracing::warn!(target: "archive",
+                "skipping archive: world only ran {} ticks since boot - not worth saving",
+                final_tick);
+            return None;
+        }
+        // Tick-derived start beats process start: the world may have been
+        // restored from world.save after weeks of real-time accumulation
+        // on a previous binary. Fall back to process start only if the
+        // derived value is wonky (e.g. clock skew).
+        let tick_ms_total: u64 = final_tick.saturating_mul(100);
+        let derived_start = ended_at_ms.saturating_sub(tick_ms_total);
+        let started_at_ms = if derived_start > 0 && derived_start < process_started_at_ms {
+            derived_start
+        } else {
+            process_started_at_ms
+        };
         let payload = sim.state_json();
         let frame = encode_frame(payload, 0, ended_at_ms, "full");
         let hash_input = format!("{}|{}|{}", started_at_ms, ended_at_ms, final_tick);
@@ -181,10 +198,15 @@ pub async fn archive_and_reset(
     }
     let meta_bytes = match serde_json::to_vec_pretty(&meta) {
         Ok(b) => b,
-        Err(e) => { tracing::error!(target: "archive", "meta encode: {}", e); return None }
+        Err(e) => {
+            tracing::error!(target: "archive", "meta encode: {}", e);
+            let _ = std::fs::remove_file(&snap_path);
+            return None
+        }
     };
     if let Err(e) = write_file_atomic(&meta_path, &meta_bytes) {
         tracing::error!(target: "archive", "failed to write meta: {}", e);
+        let _ = std::fs::remove_file(&snap_path);
         return None;
     }
 
