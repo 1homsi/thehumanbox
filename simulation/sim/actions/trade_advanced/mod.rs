@@ -1,0 +1,108 @@
+pub mod visit_caravan;
+pub mod join_caravan;
+pub mod host_caravan;
+pub mod lead_caravan;
+pub mod dispatch_caravan;
+pub mod load_pack;
+pub mod open_market;
+pub mod open_fair;
+pub mod close_market;
+pub mod close_fair;
+pub mod set_price;
+pub mod barter_for_grain;
+pub mod barter_for_cloth;
+pub mod barter_for_iron;
+pub mod barter_for_salt;
+pub mod contract_purchase;
+pub mod contract_sale;
+pub mod contract_loan;
+pub mod contract_lease;
+pub mod contract_apprentice;
+pub mod draft_letter_of_credit;
+pub mod honor_letter_of_credit;
+pub mod cash_bill_of_exchange;
+pub mod issue_promissory;
+pub mod pay_promissory;
+pub mod audit_partner;
+pub mod audit_partnership;
+pub mod audit_estate;
+pub mod audit_holdings;
+pub mod audit_warehouse;
+pub mod inventory_warehouse;
+pub mod inventory_granary;
+pub mod inventory_stall;
+pub mod inventory_caravan;
+pub mod inventory_armory;
+pub mod weigh_goods;
+pub mod measure_goods;
+pub mod stamp_goods;
+pub mod seal_goods;
+pub mod bag_goods;
+pub mod cart_to_market;
+pub mod cart_to_port;
+pub mod cart_to_caravan;
+pub mod cart_to_warehouse;
+pub mod cart_to_market_b;
+pub mod buy_low_sell_high;
+pub mod arbitrage_market;
+pub mod corner_market;
+pub mod hold_grain;
+pub mod release_grain;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        2700 => visit_caravan::apply(ctx),
+        2701 => join_caravan::apply(ctx),
+        2702 => host_caravan::apply(ctx),
+        2703 => lead_caravan::apply(ctx),
+        2704 => dispatch_caravan::apply(ctx),
+        2705 => load_pack::apply(ctx),
+        2706 => open_market::apply(ctx),
+        2707 => open_fair::apply(ctx),
+        2708 => close_market::apply(ctx),
+        2709 => close_fair::apply(ctx),
+        2710 => set_price::apply(ctx),
+        2711 => barter_for_grain::apply(ctx),
+        2712 => barter_for_cloth::apply(ctx),
+        2713 => barter_for_iron::apply(ctx),
+        2714 => barter_for_salt::apply(ctx),
+        2715 => contract_purchase::apply(ctx),
+        2716 => contract_sale::apply(ctx),
+        2717 => contract_loan::apply(ctx),
+        2718 => contract_lease::apply(ctx),
+        2719 => contract_apprentice::apply(ctx),
+        2720 => draft_letter_of_credit::apply(ctx),
+        2721 => honor_letter_of_credit::apply(ctx),
+        2722 => cash_bill_of_exchange::apply(ctx),
+        2723 => issue_promissory::apply(ctx),
+        2724 => pay_promissory::apply(ctx),
+        2725 => audit_partner::apply(ctx),
+        2726 => audit_partnership::apply(ctx),
+        2727 => audit_estate::apply(ctx),
+        2728 => audit_holdings::apply(ctx),
+        2729 => audit_warehouse::apply(ctx),
+        2730 => inventory_warehouse::apply(ctx),
+        2731 => inventory_granary::apply(ctx),
+        2732 => inventory_stall::apply(ctx),
+        2733 => inventory_caravan::apply(ctx),
+        2734 => inventory_armory::apply(ctx),
+        2735 => weigh_goods::apply(ctx),
+        2736 => measure_goods::apply(ctx),
+        2737 => stamp_goods::apply(ctx),
+        2738 => seal_goods::apply(ctx),
+        2739 => bag_goods::apply(ctx),
+        2740 => cart_to_market::apply(ctx),
+        2741 => cart_to_port::apply(ctx),
+        2742 => cart_to_caravan::apply(ctx),
+        2743 => cart_to_warehouse::apply(ctx),
+        2744 => cart_to_market_b::apply(ctx),
+        2745 => buy_low_sell_high::apply(ctx),
+        2746 => arbitrage_market::apply(ctx),
+        2747 => corner_market::apply(ctx),
+        2748 => hold_grain::apply(ctx),
+        2749 => release_grain::apply(ctx),
+        _   => 0.0,
+    }
+}
