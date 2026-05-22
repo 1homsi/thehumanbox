@@ -1,0 +1,108 @@
+pub mod host_blockwatch;
+pub mod host_safety_meeting;
+pub mod host_neighbor_potluck;
+pub mod host_streetfair;
+pub mod host_block_party;
+pub mod organize_clean_up;
+pub mod organize_garden_day;
+pub mod organize_volunteer;
+pub mod organize_food_drive;
+pub mod organize_clothing_drive;
+pub mod start_neighborhood_band;
+pub mod start_neighborhood_choir;
+pub mod start_neighborhood_chess;
+pub mod start_neighborhood_garden;
+pub mod start_neighborhood_book;
+pub mod recruit_volunteer;
+pub mod recruit_helpers;
+pub mod recruit_friend;
+pub mod invite_to_circle;
+pub mod invite_to_meal;
+pub mod bake_for_neighbor;
+pub mod cook_for_widow;
+pub mod cook_for_sick;
+pub mod mow_for_elder;
+pub mod shovel_for_elder;
+pub mod fix_for_neighbor;
+pub mod fix_porch_for_kin;
+pub mod paint_porch_for_kin;
+pub mod clear_walk_for_kin;
+pub mod clear_drive_for_kin;
+pub mod drive_kin_to_doctor;
+pub mod drive_kin_to_market;
+pub mod drive_kin_to_temple;
+pub mod drive_kin_to_meeting;
+pub mod drive_kin_to_train;
+pub mod walk_kin_pet;
+pub mod sit_kin_kid;
+pub mod babysit_neighbor_kid;
+pub mod tutor_neighbor_kid;
+pub mod read_to_neighbor_kid;
+pub mod gift_to_newcomer;
+pub mod welcome_newcomer;
+pub mod introduce_newcomer;
+pub mod help_unload_newcomer;
+pub mod host_newcomer_dinner;
+pub mod greet_passerby;
+pub mod smile_at_stranger;
+pub mod lend_a_hand;
+pub mod offer_ride;
+pub mod offer_seat;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        2880 => host_blockwatch::apply(ctx),
+        2881 => host_safety_meeting::apply(ctx),
+        2882 => host_neighbor_potluck::apply(ctx),
+        2883 => host_streetfair::apply(ctx),
+        2884 => host_block_party::apply(ctx),
+        2885 => organize_clean_up::apply(ctx),
+        2886 => organize_garden_day::apply(ctx),
+        2887 => organize_volunteer::apply(ctx),
+        2888 => organize_food_drive::apply(ctx),
+        2889 => organize_clothing_drive::apply(ctx),
+        2890 => start_neighborhood_band::apply(ctx),
+        2891 => start_neighborhood_choir::apply(ctx),
+        2892 => start_neighborhood_chess::apply(ctx),
+        2893 => start_neighborhood_garden::apply(ctx),
+        2894 => start_neighborhood_book::apply(ctx),
+        2895 => recruit_volunteer::apply(ctx),
+        2896 => recruit_helpers::apply(ctx),
+        2897 => recruit_friend::apply(ctx),
+        2898 => invite_to_circle::apply(ctx),
+        2899 => invite_to_meal::apply(ctx),
+        2900 => bake_for_neighbor::apply(ctx),
+        2901 => cook_for_widow::apply(ctx),
+        2902 => cook_for_sick::apply(ctx),
+        2903 => mow_for_elder::apply(ctx),
+        2904 => shovel_for_elder::apply(ctx),
+        2905 => fix_for_neighbor::apply(ctx),
+        2906 => fix_porch_for_kin::apply(ctx),
+        2907 => paint_porch_for_kin::apply(ctx),
+        2908 => clear_walk_for_kin::apply(ctx),
+        2909 => clear_drive_for_kin::apply(ctx),
+        2910 => drive_kin_to_doctor::apply(ctx),
+        2911 => drive_kin_to_market::apply(ctx),
+        2912 => drive_kin_to_temple::apply(ctx),
+        2913 => drive_kin_to_meeting::apply(ctx),
+        2914 => drive_kin_to_train::apply(ctx),
+        2915 => walk_kin_pet::apply(ctx),
+        2916 => sit_kin_kid::apply(ctx),
+        2917 => babysit_neighbor_kid::apply(ctx),
+        2918 => tutor_neighbor_kid::apply(ctx),
+        2919 => read_to_neighbor_kid::apply(ctx),
+        2920 => gift_to_newcomer::apply(ctx),
+        2921 => welcome_newcomer::apply(ctx),
+        2922 => introduce_newcomer::apply(ctx),
+        2923 => help_unload_newcomer::apply(ctx),
+        2924 => host_newcomer_dinner::apply(ctx),
+        2925 => greet_passerby::apply(ctx),
+        2926 => smile_at_stranger::apply(ctx),
+        2927 => lend_a_hand::apply(ctx),
+        2928 => offer_ride::apply(ctx),
+        2929 => offer_seat::apply(ctx),
+        _   => 0.0,
+    }
+}
