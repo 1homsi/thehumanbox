@@ -1,7 +1,7 @@
+import { useState } from 'react'
 import type { SceneContext } from '../../../scenes/core/types'
-import { Furniture } from './parts/Furniture'
-import { Occupant } from './parts/Occupant'
 import { useUIStore } from '../../../stores/store'
+import { HomeCanvas } from './HomeCanvas'
 
 interface Props {
   ctx:        SceneContext
@@ -9,32 +9,10 @@ interface Props {
   onFocusOrg: (id: string) => void
 }
 
-const VB_W = 100
-const VB_H = 100
-
-function occupantSlotsFor(n: number): Array<[number, number]> {
-  if (n <= 1) return [[50, 55]]
-  if (n === 2) return [[35, 55], [65, 55]]
-  if (n === 3) return [[30, 55], [50, 60], [70, 55]]
-  if (n === 4) return [[28, 50], [44, 58], [60, 50], [76, 58]]
-  const out: Array<[number, number]> = []
-  for (let i = 0; i < n; i++) {
-    const col = i % 4
-    const row = Math.floor(i / 4)
-    out.push([22 + col * 18, 50 + row * 14])
-  }
-  return out
-}
-
 export function HomeInterior({ ctx, onExit, onFocusOrg }: Props) {
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
-  const { title, subtitle, occupants, away, fixtures, isDay } = ctx
-
-  const wallTone  = isDay ? '#3a2c1f' : '#241a13'
-  const floorTone = isDay ? '#5b3f29' : '#3a2818'
-  const lightTone = isDay ? 'rgba(255, 220, 160, 0.10)' : 'rgba(255, 160, 70, 0.12)'
-
-  const slots = occupantSlotsFor(occupants.length)
+  const { title, subtitle, occupants, away, isDay } = ctx
+  const [hover, setHover] = useState(0)
 
   return (
     <div className="scene-shell">
@@ -46,46 +24,20 @@ export function HomeInterior({ ctx, onExit, onFocusOrg }: Props) {
           <div className="scene-title">{title}</div>
           <div className="scene-subtitle">{subtitle}</div>
         </div>
-        <div className="scene-meta">{isDay ? '☀ day' : '☾ night'}</div>
+        <div className="scene-meta">
+          {occupants.length === 0 ? 'no one home' : occupants.length === 1 ? 'alone' : `${occupants.length} inside`}
+          {' · '}
+          {isDay ? '☀ day' : '☾ night'}
+        </div>
       </div>
 
-      <div className="scene-stage">
-        <svg viewBox={`0 0 ${VB_W} ${VB_H}`} preserveAspectRatio="xMidYMid meet" className="scene-svg">
-          <defs>
-            <radialGradient id="hearth-glow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%"   stopColor="rgba(255, 200, 120, 0.35)" />
-              <stop offset="100%" stopColor="rgba(255, 200, 120, 0)" />
-            </radialGradient>
-          </defs>
-
-          <rect x="0" y="0" width={VB_W} height={VB_H} fill={wallTone} />
-          <rect x="6" y="14" width={VB_W - 12} height={VB_H - 22} fill={floorTone} stroke="#1a0e08" strokeWidth="0.6" rx="2" />
-
-          <rect x="6" y="14" width={VB_W - 12} height={VB_H - 22} fill={lightTone} />
-
-          <circle cx="18" cy="70" r="22" fill="url(#hearth-glow)" />
-
-          {fixtures.map((f) => <Furniture key={f.id} fixture={f} />)}
-
-          {occupants.map((o, i) => {
-            const [x, y] = slots[i] ?? [50, 55]
-            return (
-              <Occupant
-                key={o.org.id}
-                occupant={o}
-                x={x}
-                y={y}
-                selected={o.org.id === selectedOrgId}
-                onClick={() => onFocusOrg(o.org.id)}
-              />
-            )
-          })}
-
-          <text x="50" y="11" textAnchor="middle" fontSize="3.5" fill="#8b8270"
-                style={{ fontFamily: 'monospace', letterSpacing: 0.5 }}>
-            {occupants.length === 0 ? 'no one home' : occupants.length === 1 ? 'alone' : `${occupants.length} inside`}
-          </text>
-        </svg>
+      <div className="scene-stage scene-stage--pixel" onMouseMove={() => setHover((n) => n + 1)}>
+        <HomeCanvas
+          ctx={ctx}
+          selectedOrgId={selectedOrgId}
+          onSelectOrg={onFocusOrg}
+          hover={hover}
+        />
       </div>
 
       {(occupants.length > 0 || away.length > 0) && (
