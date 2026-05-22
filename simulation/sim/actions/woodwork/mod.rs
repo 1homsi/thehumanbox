@@ -1,0 +1,108 @@
+pub mod rip_plank;
+pub mod crosscut_plank;
+pub mod mitre_corner;
+pub mod half_lap;
+pub mod dovetail_joint;
+pub mod through_dovetail;
+pub mod half_blind_dovetail;
+pub mod secret_dovetail;
+pub mod housing_joint;
+pub mod dado_joint;
+pub mod rabbet_joint;
+pub mod shoulder_joint;
+pub mod stub_tenon;
+pub mod through_tenon;
+pub mod haunched_tenon;
+pub mod bridle_joint;
+pub mod scarf_joint;
+pub mod stop_scarf;
+pub mod finger_joint;
+pub mod box_joint;
+pub mod bevel_edge;
+pub mod chamfer_edge;
+pub mod ogee_edge;
+pub mod bullnose_edge;
+pub mod cove_edge;
+pub mod plough_groove;
+pub mod rebate_edge;
+pub mod fillet_edge;
+pub mod round_edge;
+pub mod bead_edge;
+pub mod glue_with_hide_glue;
+pub mod glue_with_fish_glue;
+pub mod glue_with_resin;
+pub mod glue_with_pitch;
+pub mod glue_with_tallow;
+pub mod press_panel;
+pub mod clamp_panel;
+pub mod screw_panel;
+pub mod nail_panel;
+pub mod peg_panel;
+pub mod stain_oak;
+pub mod stain_walnut;
+pub mod stain_cherry;
+pub mod stain_mahogany;
+pub mod stain_pine;
+pub mod shellac_finish;
+pub mod lacquer_finish;
+pub mod oil_finish;
+pub mod wax_finish;
+pub mod varnish_finish;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        3780 => rip_plank::apply(ctx),
+        3781 => crosscut_plank::apply(ctx),
+        3782 => mitre_corner::apply(ctx),
+        3783 => half_lap::apply(ctx),
+        3784 => dovetail_joint::apply(ctx),
+        3785 => through_dovetail::apply(ctx),
+        3786 => half_blind_dovetail::apply(ctx),
+        3787 => secret_dovetail::apply(ctx),
+        3788 => housing_joint::apply(ctx),
+        3789 => dado_joint::apply(ctx),
+        3790 => rabbet_joint::apply(ctx),
+        3791 => shoulder_joint::apply(ctx),
+        3792 => stub_tenon::apply(ctx),
+        3793 => through_tenon::apply(ctx),
+        3794 => haunched_tenon::apply(ctx),
+        3795 => bridle_joint::apply(ctx),
+        3796 => scarf_joint::apply(ctx),
+        3797 => stop_scarf::apply(ctx),
+        3798 => finger_joint::apply(ctx),
+        3799 => box_joint::apply(ctx),
+        3800 => bevel_edge::apply(ctx),
+        3801 => chamfer_edge::apply(ctx),
+        3802 => ogee_edge::apply(ctx),
+        3803 => bullnose_edge::apply(ctx),
+        3804 => cove_edge::apply(ctx),
+        3805 => plough_groove::apply(ctx),
+        3806 => rebate_edge::apply(ctx),
+        3807 => fillet_edge::apply(ctx),
+        3808 => round_edge::apply(ctx),
+        3809 => bead_edge::apply(ctx),
+        3810 => glue_with_hide_glue::apply(ctx),
+        3811 => glue_with_fish_glue::apply(ctx),
+        3812 => glue_with_resin::apply(ctx),
+        3813 => glue_with_pitch::apply(ctx),
+        3814 => glue_with_tallow::apply(ctx),
+        3815 => press_panel::apply(ctx),
+        3816 => clamp_panel::apply(ctx),
+        3817 => screw_panel::apply(ctx),
+        3818 => nail_panel::apply(ctx),
+        3819 => peg_panel::apply(ctx),
+        3820 => stain_oak::apply(ctx),
+        3821 => stain_walnut::apply(ctx),
+        3822 => stain_cherry::apply(ctx),
+        3823 => stain_mahogany::apply(ctx),
+        3824 => stain_pine::apply(ctx),
+        3825 => shellac_finish::apply(ctx),
+        3826 => lacquer_finish::apply(ctx),
+        3827 => oil_finish::apply(ctx),
+        3828 => wax_finish::apply(ctx),
+        3829 => varnish_finish::apply(ctx),
+        _   => 0.0,
+    }
+}
