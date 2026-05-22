@@ -34,6 +34,7 @@ pub fn spawn_organism_with_home(
     org.home_y = home_y;
     org.sex = sex;
     org.vocabulary = Vocabulary::generate(rng);
+    org.discoveries.insert("foraging".to_string());
     assign_birth_attributes(&mut org, rng);
     check_earned_attributes(&mut org);
 
@@ -211,6 +212,8 @@ pub fn try_reproduce(
     for (oid, &trust) in &organisms[org_idx].org_trust {
         child.org_trust.insert(oid.clone(), trust * 0.4);
     }
+
+    child.discoveries.insert("foraging".to_string());
 
     let always_inherit = ["fire", "shelter", "water", "wood", "stone", "hunt"];
     let sometimes_inherit = ["cooking", "masonry", "stone_tools", "torch", "medicine", "ritual", "farm", "spear"];

@@ -19,7 +19,8 @@ pub mod spatial;
 
 #[allow(dead_code)] pub mod warfare;
 #[allow(dead_code)] pub mod tools;
-#[allow(dead_code)] pub mod tech_tree;
+pub mod tech_tree;
+pub mod tech_progress;
 #[allow(dead_code)] pub mod education;
 #[allow(dead_code)] pub mod buildings;
 #[allow(dead_code)] pub mod economy;

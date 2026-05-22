@@ -459,8 +459,17 @@ impl Simulation {
         }
 
         if self.tick_count % 600 == 0 {
+            super::tech_progress::seed_baseline_discoveries(&mut self.organisms);
             self.update_lineage_eras();
         }
+
+        super::tech_progress::tick_tech_progress(
+            self.tick_count,
+            &mut self.rng,
+            &mut self.organisms,
+            &mut self.events,
+            &self.lineage_names,
+        );
 
         {
             let new_battles = super::warfare::try_spawn_raids(

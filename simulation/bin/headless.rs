@@ -277,6 +277,15 @@ fn main() {
         "\nDiscoveries (ever, alive+dead):  fire={}  shelter={}  hunt={}  medicine={}",
         fire_disc, shelter_disc, hunt_disc, medicine_disc
     );
+    let mut era_counts: HashMap<String, usize> = HashMap::new();
+    for (_, era) in sim.lineage_eras.iter() {
+        *era_counts.entry(era.name().to_string()).or_insert(0) += 1;
+    }
+    let mut era_pairs: Vec<(String, usize)> = era_counts.into_iter().collect();
+    era_pairs.sort_by(|a, b| b.1.cmp(&a.1));
+    print!("Lineage eras:");
+    for (e, c) in era_pairs.iter() { print!(" {}={}", e, c) }
+    println!();
     println!(
         "Animals alive at end: {}",
         sim.animals.iter().filter(|a| a.alive).count()
