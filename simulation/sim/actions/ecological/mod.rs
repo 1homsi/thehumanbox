@@ -1,0 +1,108 @@
+pub mod plant_native;
+pub mod restore_riparian;
+pub mod restore_meadow;
+pub mod restore_prairie;
+pub mod restore_wetland;
+pub mod remove_invasive;
+pub mod remove_kudzu;
+pub mod remove_hogweed;
+pub mod remove_garlic_mustard;
+pub mod remove_buckthorn;
+pub mod build_brush_pile;
+pub mod leave_snag;
+pub mod plant_pollinator_strip;
+pub mod plant_hedgerow;
+pub mod plant_windbreak;
+pub mod install_bat_box;
+pub mod install_owl_box;
+pub mod install_bee_hotel;
+pub mod install_purple_martin_house;
+pub mod install_bluebird_box;
+pub mod install_chimney_swift;
+pub mod install_woodduck_box;
+pub mod install_kestrel_box;
+pub mod install_swallow_cup;
+pub mod install_swift_brick;
+pub mod monitor_pollinator;
+pub mod monitor_butterfly;
+pub mod monitor_bee;
+pub mod monitor_amphibian;
+pub mod monitor_reptile;
+pub mod monitor_water_quality;
+pub mod monitor_air_quality;
+pub mod monitor_soil_health;
+pub mod monitor_canopy_cover;
+pub mod monitor_understory;
+pub mod count_oak;
+pub mod count_maple;
+pub mod count_birch;
+pub mod count_pine;
+pub mod count_fern;
+pub mod pull_invasive;
+pub mod cut_invasive;
+pub mod solarize_invasive;
+pub mod mow_invasive;
+pub mod mulch_invasive;
+pub mod prescribed_burn;
+pub mod manage_fuel_load;
+pub mod girdle_tree;
+pub mod fell_invasive_tree;
+pub mod saw_invasive_brush;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        4380 => plant_native::apply(ctx),
+        4381 => restore_riparian::apply(ctx),
+        4382 => restore_meadow::apply(ctx),
+        4383 => restore_prairie::apply(ctx),
+        4384 => restore_wetland::apply(ctx),
+        4385 => remove_invasive::apply(ctx),
+        4386 => remove_kudzu::apply(ctx),
+        4387 => remove_hogweed::apply(ctx),
+        4388 => remove_garlic_mustard::apply(ctx),
+        4389 => remove_buckthorn::apply(ctx),
+        4390 => build_brush_pile::apply(ctx),
+        4391 => leave_snag::apply(ctx),
+        4392 => plant_pollinator_strip::apply(ctx),
+        4393 => plant_hedgerow::apply(ctx),
+        4394 => plant_windbreak::apply(ctx),
+        4395 => install_bat_box::apply(ctx),
+        4396 => install_owl_box::apply(ctx),
+        4397 => install_bee_hotel::apply(ctx),
+        4398 => install_purple_martin_house::apply(ctx),
+        4399 => install_bluebird_box::apply(ctx),
+        4400 => install_chimney_swift::apply(ctx),
+        4401 => install_woodduck_box::apply(ctx),
+        4402 => install_kestrel_box::apply(ctx),
+        4403 => install_swallow_cup::apply(ctx),
+        4404 => install_swift_brick::apply(ctx),
+        4405 => monitor_pollinator::apply(ctx),
+        4406 => monitor_butterfly::apply(ctx),
+        4407 => monitor_bee::apply(ctx),
+        4408 => monitor_amphibian::apply(ctx),
+        4409 => monitor_reptile::apply(ctx),
+        4410 => monitor_water_quality::apply(ctx),
+        4411 => monitor_air_quality::apply(ctx),
+        4412 => monitor_soil_health::apply(ctx),
+        4413 => monitor_canopy_cover::apply(ctx),
+        4414 => monitor_understory::apply(ctx),
+        4415 => count_oak::apply(ctx),
+        4416 => count_maple::apply(ctx),
+        4417 => count_birch::apply(ctx),
+        4418 => count_pine::apply(ctx),
+        4419 => count_fern::apply(ctx),
+        4420 => pull_invasive::apply(ctx),
+        4421 => cut_invasive::apply(ctx),
+        4422 => solarize_invasive::apply(ctx),
+        4423 => mow_invasive::apply(ctx),
+        4424 => mulch_invasive::apply(ctx),
+        4425 => prescribed_burn::apply(ctx),
+        4426 => manage_fuel_load::apply(ctx),
+        4427 => girdle_tree::apply(ctx),
+        4428 => fell_invasive_tree::apply(ctx),
+        4429 => saw_invasive_brush::apply(ctx),
+        _   => 0.0,
+    }
+}
