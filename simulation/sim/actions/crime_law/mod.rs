@@ -1,0 +1,110 @@
+pub mod steal_purse;
+pub mod pick_pocket;
+pub mod cut_purse;
+pub mod run_with_loot;
+pub mod stash_loot;
+pub mod bury_loot;
+pub mod fence_goods;
+pub mod sell_stolen;
+pub mod smuggle_goods;
+pub mod break_lock;
+pub mod pick_lock;
+pub mod silent_step;
+pub mod climb_window;
+pub mod distract_guard;
+pub mod tail_suspect;
+pub mod ambush_target;
+pub mod blackmail;
+pub mod extort;
+pub mod intimidate;
+pub mod threaten;
+pub mod witness_report;
+pub mod file_complaint;
+pub mod pursue_thief;
+pub mod raise_hue;
+pub mod raise_alarm;
+pub mod subdue_criminal;
+pub mod arrest_suspect;
+pub mod detain_suspect;
+pub mod interrogate;
+pub mod testify;
+pub mod swear_in_witness;
+pub mod investigate_scene;
+pub mod collect_evidence;
+pub mod draft_indictment;
+pub mod present_case;
+pub mod argue_defense;
+pub mod argue_prosecution;
+pub mod deliberate_verdict;
+pub mod pronounce_verdict;
+pub mod commute_sentence;
+pub mod appeal_verdict;
+pub mod pardon_petition;
+pub mod serve_warrant;
+pub mod evict_squatter;
+pub mod recover_debt;
+pub mod seize_property;
+pub mod notarize_deed;
+pub mod copy_deed;
+pub mod witness_signature;
+pub mod seal_document;
+pub mod register_oath;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        1740 => steal_purse::apply(ctx),
+        1741 => pick_pocket::apply(ctx),
+        1742 => cut_purse::apply(ctx),
+        1743 => run_with_loot::apply(ctx),
+        1744 => stash_loot::apply(ctx),
+        1745 => bury_loot::apply(ctx),
+        1746 => fence_goods::apply(ctx),
+        1747 => sell_stolen::apply(ctx),
+        1748 => smuggle_goods::apply(ctx),
+        1749 => break_lock::apply(ctx),
+        1750 => pick_lock::apply(ctx),
+        1751 => silent_step::apply(ctx),
+        1752 => climb_window::apply(ctx),
+        1753 => distract_guard::apply(ctx),
+        1754 => tail_suspect::apply(ctx),
+        1755 => ambush_target::apply(ctx),
+        1756 => blackmail::apply(ctx),
+        1757 => extort::apply(ctx),
+        1758 => intimidate::apply(ctx),
+        1759 => threaten::apply(ctx),
+        1760 => witness_report::apply(ctx),
+        1761 => file_complaint::apply(ctx),
+        1762 => pursue_thief::apply(ctx),
+        1763 => raise_hue::apply(ctx),
+        1764 => raise_alarm::apply(ctx),
+        1765 => subdue_criminal::apply(ctx),
+        1766 => arrest_suspect::apply(ctx),
+        1767 => detain_suspect::apply(ctx),
+        1768 => interrogate::apply(ctx),
+        1769 => testify::apply(ctx),
+        1770 => swear_in_witness::apply(ctx),
+        1771 => investigate_scene::apply(ctx),
+        1772 => collect_evidence::apply(ctx),
+        1773 => draft_indictment::apply(ctx),
+        1774 => present_case::apply(ctx),
+        1775 => argue_defense::apply(ctx),
+        1776 => argue_prosecution::apply(ctx),
+        1777 => deliberate_verdict::apply(ctx),
+        1778 => pronounce_verdict::apply(ctx),
+        1779 => commute_sentence::apply(ctx),
+        1780 => appeal_verdict::apply(ctx),
+        1781 => pardon_petition::apply(ctx),
+        1782 => serve_warrant::apply(ctx),
+        1783 => evict_squatter::apply(ctx),
+        1784 => recover_debt::apply(ctx),
+        1785 => seize_property::apply(ctx),
+        1786 => notarize_deed::apply(ctx),
+        1787 => copy_deed::apply(ctx),
+        1788 => witness_signature::apply(ctx),
+        1789 => seal_document::apply(ctx),
+        1790 => register_oath::apply(ctx),
+        _   => 0.0,
+    }
+}
