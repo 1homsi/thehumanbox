@@ -19,6 +19,8 @@ import { Try3DToast } from './components/Try3DToast'
 import { MobileBanner } from './components/MobileBanner'
 import { WelcomeModal } from './components/WelcomeModal'
 import { UpdateToast } from './components/UpdateToast'
+import { SceneView } from './scenes/SceneView'
+import { useCurrentScene } from './stores/scene'
 import { HistoricalApp } from './HistoricalApp'
 import type { OrganismState } from './types'
 import clsx from 'clsx'
@@ -42,6 +44,7 @@ function App() {
 
 function LiveApp() {
   const { world, connected, status, failedAttempts, interp } = useSimulation()
+  const currentScene = useCurrentScene()
 
   const selectedOrgId = useUIStore(s => s.selectedOrgId)
   const leftOpen      = useUIStore(s => s.leftOpen)
@@ -150,7 +153,9 @@ function LiveApp() {
               </>
             )}
 
-            {viewFlags.threeD ? (
+            {currentScene ? (
+              <SceneView world={world} />
+            ) : viewFlags.threeD ? (
               <Suspense fallback={<ThreeDLoading />}>
                 <WorldView3D world={world} hideUI={viewFlags.hideUI} />
               </Suspense>

@@ -5,6 +5,8 @@ import { lineageColor, cbColor } from '../utils/constants'
 import { Tooltip } from './Tooltip'
 import { useOrgDetail } from '../hooks/useOrgDetail'
 import { useUIStore } from '../stores/store'
+import { useSceneStore } from '../stores/scene'
+import { isAtHome } from '../scenes'
 import { LifeModal } from './LifeModal'
 
 const DAY_LENGTH = 600
@@ -129,6 +131,14 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
           <Tooltip tip="View full life history">
             <button className="icon-btn" aria-label="Life" onClick={() => setShowLife(true)}>📖</button>
           </Tooltip>
+          {isAtHome(org) && (
+            <Tooltip tip="Step inside their home">
+              <button className="icon-btn" aria-label="Look inside"
+                      onClick={() => useSceneStore.getState().enter({ kind: 'home', orgId: org.id })}>
+                ⌂
+              </button>
+            </Tooltip>
+          )}
           <Tooltip tip={following ? 'Following' : 'Follow this organism'}>
             <button
               className={clsx('icon-btn', following && 'active')}
