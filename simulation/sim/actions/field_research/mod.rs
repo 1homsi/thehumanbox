@@ -1,0 +1,108 @@
+pub mod set_camera_trap;
+pub mod retrieve_camera_trap;
+pub mod field_notebook;
+pub mod sketch_field;
+pub mod collect_sample;
+pub mod press_specimen;
+pub mod ink_label;
+pub mod voucher_specimen;
+pub mod mount_specimen;
+pub mod tag_specimen;
+pub mod band_bird;
+pub mod tag_fish;
+pub mod tag_reptile;
+pub mod tag_mammal;
+pub mod microchip_animal;
+pub mod radio_collar_animal;
+pub mod radio_track_signal;
+pub mod trap_small_mammal;
+pub mod trap_passerine;
+pub mod net_butterfly;
+pub mod net_beetle;
+pub mod pitfall_trap;
+pub mod dropper_aspirator;
+pub mod beating_sheet;
+pub mod seine_net;
+pub mod trawl_fish;
+pub mod gill_net;
+pub mod dip_net;
+pub mod hand_seine;
+pub mod cast_net;
+pub mod set_minnow_trap;
+pub mod set_crayfish_trap;
+pub mod pull_trap;
+pub mod pull_net;
+pub mod mark_release;
+pub mod recapture_mark;
+pub mod observe_count;
+pub mod line_transect;
+pub mod point_count;
+pub mod vegetation_plot;
+pub mod permanent_plot;
+pub mod leaf_litter_sample;
+pub mod soil_core_sample;
+pub mod water_sample;
+pub mod air_sample;
+pub mod weather_log;
+pub mod stream_flow_log;
+pub mod tide_log;
+pub mod moon_log;
+pub mod sun_log;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        4200 => set_camera_trap::apply(ctx),
+        4201 => retrieve_camera_trap::apply(ctx),
+        4202 => field_notebook::apply(ctx),
+        4203 => sketch_field::apply(ctx),
+        4204 => collect_sample::apply(ctx),
+        4205 => press_specimen::apply(ctx),
+        4206 => ink_label::apply(ctx),
+        4207 => voucher_specimen::apply(ctx),
+        4208 => mount_specimen::apply(ctx),
+        4209 => tag_specimen::apply(ctx),
+        4210 => band_bird::apply(ctx),
+        4211 => tag_fish::apply(ctx),
+        4212 => tag_reptile::apply(ctx),
+        4213 => tag_mammal::apply(ctx),
+        4214 => microchip_animal::apply(ctx),
+        4215 => radio_collar_animal::apply(ctx),
+        4216 => radio_track_signal::apply(ctx),
+        4217 => trap_small_mammal::apply(ctx),
+        4218 => trap_passerine::apply(ctx),
+        4219 => net_butterfly::apply(ctx),
+        4220 => net_beetle::apply(ctx),
+        4221 => pitfall_trap::apply(ctx),
+        4222 => dropper_aspirator::apply(ctx),
+        4223 => beating_sheet::apply(ctx),
+        4224 => seine_net::apply(ctx),
+        4225 => trawl_fish::apply(ctx),
+        4226 => gill_net::apply(ctx),
+        4227 => dip_net::apply(ctx),
+        4228 => hand_seine::apply(ctx),
+        4229 => cast_net::apply(ctx),
+        4230 => set_minnow_trap::apply(ctx),
+        4231 => set_crayfish_trap::apply(ctx),
+        4232 => pull_trap::apply(ctx),
+        4233 => pull_net::apply(ctx),
+        4234 => mark_release::apply(ctx),
+        4235 => recapture_mark::apply(ctx),
+        4236 => observe_count::apply(ctx),
+        4237 => line_transect::apply(ctx),
+        4238 => point_count::apply(ctx),
+        4239 => vegetation_plot::apply(ctx),
+        4240 => permanent_plot::apply(ctx),
+        4241 => leaf_litter_sample::apply(ctx),
+        4242 => soil_core_sample::apply(ctx),
+        4243 => water_sample::apply(ctx),
+        4244 => air_sample::apply(ctx),
+        4245 => weather_log::apply(ctx),
+        4246 => stream_flow_log::apply(ctx),
+        4247 => tide_log::apply(ctx),
+        4248 => moon_log::apply(ctx),
+        4249 => sun_log::apply(ctx),
+        _   => 0.0,
+    }
+}
