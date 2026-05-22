@@ -1,0 +1,108 @@
+pub mod grind_beans;
+pub mod steam_milk;
+pub mod pull_espresso;
+pub mod pour_latte_art;
+pub mod froth_milk;
+pub mod draw_americano;
+pub mod draw_cappuccino;
+pub mod draw_macchiato;
+pub mod draw_mocha;
+pub mod draw_flat_white;
+pub mod brew_pour_over;
+pub mod brew_french_press;
+pub mod brew_aeropress;
+pub mod brew_cold_brew;
+pub mod brew_chemex;
+pub mod weigh_beans;
+pub mod grind_for_filter;
+pub mod calibrate_grind;
+pub mod temp_water_brew;
+pub mod time_brew;
+pub mod wipe_counter;
+pub mod restock_milk;
+pub mod restock_pastry;
+pub mod restock_lids;
+pub mod restock_cups;
+pub mod greet_customer;
+pub mod take_order;
+pub mod ring_register;
+pub mod call_drink;
+pub mod hand_off_drink;
+pub mod refill_water;
+pub mod clean_steam_wand;
+pub mod purge_steam_wand;
+pub mod backflush_machine;
+pub mod descale_machine;
+pub mod empty_knockbox;
+pub mod empty_trash;
+pub mod sweep_cafe;
+pub mod mop_cafe;
+pub mod restock_napkin;
+pub mod bake_muffin;
+pub mod bake_scone;
+pub mod bake_croissant;
+pub mod bake_danish;
+pub mod bake_cookies;
+pub mod glaze_pastry;
+pub mod plate_pastry;
+pub mod slice_quiche;
+pub mod slice_pie;
+pub mod warm_quiche;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        5340 => grind_beans::apply(ctx),
+        5341 => steam_milk::apply(ctx),
+        5342 => pull_espresso::apply(ctx),
+        5343 => pour_latte_art::apply(ctx),
+        5344 => froth_milk::apply(ctx),
+        5345 => draw_americano::apply(ctx),
+        5346 => draw_cappuccino::apply(ctx),
+        5347 => draw_macchiato::apply(ctx),
+        5348 => draw_mocha::apply(ctx),
+        5349 => draw_flat_white::apply(ctx),
+        5350 => brew_pour_over::apply(ctx),
+        5351 => brew_french_press::apply(ctx),
+        5352 => brew_aeropress::apply(ctx),
+        5353 => brew_cold_brew::apply(ctx),
+        5354 => brew_chemex::apply(ctx),
+        5355 => weigh_beans::apply(ctx),
+        5356 => grind_for_filter::apply(ctx),
+        5357 => calibrate_grind::apply(ctx),
+        5358 => temp_water_brew::apply(ctx),
+        5359 => time_brew::apply(ctx),
+        5360 => wipe_counter::apply(ctx),
+        5361 => restock_milk::apply(ctx),
+        5362 => restock_pastry::apply(ctx),
+        5363 => restock_lids::apply(ctx),
+        5364 => restock_cups::apply(ctx),
+        5365 => greet_customer::apply(ctx),
+        5366 => take_order::apply(ctx),
+        5367 => ring_register::apply(ctx),
+        5368 => call_drink::apply(ctx),
+        5369 => hand_off_drink::apply(ctx),
+        5370 => refill_water::apply(ctx),
+        5371 => clean_steam_wand::apply(ctx),
+        5372 => purge_steam_wand::apply(ctx),
+        5373 => backflush_machine::apply(ctx),
+        5374 => descale_machine::apply(ctx),
+        5375 => empty_knockbox::apply(ctx),
+        5376 => empty_trash::apply(ctx),
+        5377 => sweep_cafe::apply(ctx),
+        5378 => mop_cafe::apply(ctx),
+        5379 => restock_napkin::apply(ctx),
+        5380 => bake_muffin::apply(ctx),
+        5381 => bake_scone::apply(ctx),
+        5382 => bake_croissant::apply(ctx),
+        5383 => bake_danish::apply(ctx),
+        5384 => bake_cookies::apply(ctx),
+        5385 => glaze_pastry::apply(ctx),
+        5386 => plate_pastry::apply(ctx),
+        5387 => slice_quiche::apply(ctx),
+        5388 => slice_pie::apply(ctx),
+        5389 => warm_quiche::apply(ctx),
+        _   => 0.0,
+    }
+}
