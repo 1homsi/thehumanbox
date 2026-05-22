@@ -1,0 +1,108 @@
+pub mod survey_star_neighborhood;
+pub mod plot_star_lane;
+pub mod chart_star_lane;
+pub mod chart_void_lane;
+pub mod chart_nebula_lane;
+pub mod survey_planet_neighborhood;
+pub mod plot_planet_orbit;
+pub mod chart_planet_orbit;
+pub mod chart_moon_orbit;
+pub mod chart_belt_orbit;
+pub mod schedule_starlift;
+pub mod schedule_starcraft;
+pub mod schedule_orbit_lift;
+pub mod schedule_lunar_lift;
+pub mod schedule_planet_lift;
+pub mod deploy_ring_segment;
+pub mod connect_ring_segment;
+pub mod seal_ring_segment;
+pub mod power_ring_segment;
+pub mod cool_ring_segment;
+pub mod spin_up_ring;
+pub mod spin_down_ring;
+pub mod re_align_ring;
+pub mod inspect_ring_seal;
+pub mod repair_ring_seal;
+pub mod deploy_swarm_unit;
+pub mod form_swarm_pattern;
+pub mod align_swarm_pattern;
+pub mod coordinate_swarm_pattern;
+pub mod dissolve_swarm_pattern;
+pub mod retract_swarm_unit;
+pub mod recycle_swarm_unit;
+pub mod upgrade_swarm_unit;
+pub mod power_swarm_unit;
+pub mod cool_swarm_unit;
+pub mod redirect_solar_beam;
+pub mod focus_solar_beam;
+pub mod diffuse_solar_beam;
+pub mod pulse_solar_beam;
+pub mod shut_solar_beam;
+pub mod steer_star_lift;
+pub mod stabilize_star_lift;
+pub mod cool_star_lift;
+pub mod heat_star_lift;
+pub mod dampen_star_lift;
+pub mod archive_galactic_data;
+pub mod broadcast_galactic_data;
+pub mod parse_galactic_data;
+pub mod filter_galactic_data;
+pub mod correlate_galactic_data;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        4980 => survey_star_neighborhood::apply(ctx),
+        4981 => plot_star_lane::apply(ctx),
+        4982 => chart_star_lane::apply(ctx),
+        4983 => chart_void_lane::apply(ctx),
+        4984 => chart_nebula_lane::apply(ctx),
+        4985 => survey_planet_neighborhood::apply(ctx),
+        4986 => plot_planet_orbit::apply(ctx),
+        4987 => chart_planet_orbit::apply(ctx),
+        4988 => chart_moon_orbit::apply(ctx),
+        4989 => chart_belt_orbit::apply(ctx),
+        4990 => schedule_starlift::apply(ctx),
+        4991 => schedule_starcraft::apply(ctx),
+        4992 => schedule_orbit_lift::apply(ctx),
+        4993 => schedule_lunar_lift::apply(ctx),
+        4994 => schedule_planet_lift::apply(ctx),
+        4995 => deploy_ring_segment::apply(ctx),
+        4996 => connect_ring_segment::apply(ctx),
+        4997 => seal_ring_segment::apply(ctx),
+        4998 => power_ring_segment::apply(ctx),
+        4999 => cool_ring_segment::apply(ctx),
+        5000 => spin_up_ring::apply(ctx),
+        5001 => spin_down_ring::apply(ctx),
+        5002 => re_align_ring::apply(ctx),
+        5003 => inspect_ring_seal::apply(ctx),
+        5004 => repair_ring_seal::apply(ctx),
+        5005 => deploy_swarm_unit::apply(ctx),
+        5006 => form_swarm_pattern::apply(ctx),
+        5007 => align_swarm_pattern::apply(ctx),
+        5008 => coordinate_swarm_pattern::apply(ctx),
+        5009 => dissolve_swarm_pattern::apply(ctx),
+        5010 => retract_swarm_unit::apply(ctx),
+        5011 => recycle_swarm_unit::apply(ctx),
+        5012 => upgrade_swarm_unit::apply(ctx),
+        5013 => power_swarm_unit::apply(ctx),
+        5014 => cool_swarm_unit::apply(ctx),
+        5015 => redirect_solar_beam::apply(ctx),
+        5016 => focus_solar_beam::apply(ctx),
+        5017 => diffuse_solar_beam::apply(ctx),
+        5018 => pulse_solar_beam::apply(ctx),
+        5019 => shut_solar_beam::apply(ctx),
+        5020 => steer_star_lift::apply(ctx),
+        5021 => stabilize_star_lift::apply(ctx),
+        5022 => cool_star_lift::apply(ctx),
+        5023 => heat_star_lift::apply(ctx),
+        5024 => dampen_star_lift::apply(ctx),
+        5025 => archive_galactic_data::apply(ctx),
+        5026 => broadcast_galactic_data::apply(ctx),
+        5027 => parse_galactic_data::apply(ctx),
+        5028 => filter_galactic_data::apply(ctx),
+        5029 => correlate_galactic_data::apply(ctx),
+        _   => 0.0,
+    }
+}
