@@ -1,0 +1,108 @@
+pub mod grill_kebab;
+pub mod roast_lamb_spit;
+pub mod roast_pig_spit;
+pub mod roast_goat_spit;
+pub mod roast_fish_skewer;
+pub mod bake_flatbread;
+pub mod bake_pita;
+pub mod bake_naan;
+pub mod bake_tortilla;
+pub mod bake_chapati;
+pub mod steam_dumpling;
+pub mod steam_bao;
+pub mod steam_momo;
+pub mod steam_idli;
+pub mod boil_dumpling;
+pub mod braise_short_rib;
+pub mod braise_brisket;
+pub mod braise_lamb_shank;
+pub mod braise_oxtail;
+pub mod braise_pork_belly;
+pub mod stew_lentil;
+pub mod stew_chickpea;
+pub mod stew_bean;
+pub mod stew_split_pea;
+pub mod stew_meat_vegetable;
+pub mod simmer_curry;
+pub mod simmer_tagine;
+pub mod simmer_stroganoff;
+pub mod simmer_paprikash;
+pub mod simmer_goulash;
+pub mod fry_falafel;
+pub mod fry_tempura;
+pub mod fry_spring_roll;
+pub mod fry_dumpling;
+pub mod fry_samosa;
+pub mod saute_aromatics;
+pub mod saute_onion;
+pub mod saute_garlic;
+pub mod saute_ginger;
+pub mod saute_spice;
+pub mod reduce_sauce;
+pub mod reduce_glaze;
+pub mod reduce_stock;
+pub mod reduce_jus;
+pub mod reduce_consomme;
+pub mod emulsify_aioli;
+pub mod emulsify_mayo;
+pub mod emulsify_hollandaise;
+pub mod emulsify_vinaigrette;
+pub mod emulsify_butter;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        2820 => grill_kebab::apply(ctx),
+        2821 => roast_lamb_spit::apply(ctx),
+        2822 => roast_pig_spit::apply(ctx),
+        2823 => roast_goat_spit::apply(ctx),
+        2824 => roast_fish_skewer::apply(ctx),
+        2825 => bake_flatbread::apply(ctx),
+        2826 => bake_pita::apply(ctx),
+        2827 => bake_naan::apply(ctx),
+        2828 => bake_tortilla::apply(ctx),
+        2829 => bake_chapati::apply(ctx),
+        2830 => steam_dumpling::apply(ctx),
+        2831 => steam_bao::apply(ctx),
+        2832 => steam_momo::apply(ctx),
+        2833 => steam_idli::apply(ctx),
+        2834 => boil_dumpling::apply(ctx),
+        2835 => braise_short_rib::apply(ctx),
+        2836 => braise_brisket::apply(ctx),
+        2837 => braise_lamb_shank::apply(ctx),
+        2838 => braise_oxtail::apply(ctx),
+        2839 => braise_pork_belly::apply(ctx),
+        2840 => stew_lentil::apply(ctx),
+        2841 => stew_chickpea::apply(ctx),
+        2842 => stew_bean::apply(ctx),
+        2843 => stew_split_pea::apply(ctx),
+        2844 => stew_meat_vegetable::apply(ctx),
+        2845 => simmer_curry::apply(ctx),
+        2846 => simmer_tagine::apply(ctx),
+        2847 => simmer_stroganoff::apply(ctx),
+        2848 => simmer_paprikash::apply(ctx),
+        2849 => simmer_goulash::apply(ctx),
+        2850 => fry_falafel::apply(ctx),
+        2851 => fry_tempura::apply(ctx),
+        2852 => fry_spring_roll::apply(ctx),
+        2853 => fry_dumpling::apply(ctx),
+        2854 => fry_samosa::apply(ctx),
+        2855 => saute_aromatics::apply(ctx),
+        2856 => saute_onion::apply(ctx),
+        2857 => saute_garlic::apply(ctx),
+        2858 => saute_ginger::apply(ctx),
+        2859 => saute_spice::apply(ctx),
+        2860 => reduce_sauce::apply(ctx),
+        2861 => reduce_glaze::apply(ctx),
+        2862 => reduce_stock::apply(ctx),
+        2863 => reduce_jus::apply(ctx),
+        2864 => reduce_consomme::apply(ctx),
+        2865 => emulsify_aioli::apply(ctx),
+        2866 => emulsify_mayo::apply(ctx),
+        2867 => emulsify_hollandaise::apply(ctx),
+        2868 => emulsify_vinaigrette::apply(ctx),
+        2869 => emulsify_butter::apply(ctx),
+        _   => 0.0,
+    }
+}
