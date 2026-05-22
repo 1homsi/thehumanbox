@@ -1,0 +1,108 @@
+pub mod swim_freestyle;
+pub mod swim_breaststroke;
+pub mod swim_backstroke;
+pub mod swim_butterfly;
+pub mod tread_water;
+pub mod surface_dive;
+pub mod duck_dive;
+pub mod flutter_kick;
+pub mod scissor_kick;
+pub mod frog_kick;
+pub mod catch_pull;
+pub mod push_through;
+pub mod recovery_stroke;
+pub mod bilateral_breathe;
+pub mod sighting_open_water;
+pub mod start_dive_block;
+pub mod flip_turn;
+pub mod open_turn;
+pub mod streamline_kick;
+pub mod streamline_glide;
+pub mod paddle_canoe_correctly;
+pub mod draw_stroke;
+pub mod pry_stroke;
+pub mod j_stroke;
+pub mod sweep_stroke;
+pub mod brace_low;
+pub mod brace_high;
+pub mod roll_kayak;
+pub mod wet_exit;
+pub mod reentry_kayak;
+pub mod rig_sail;
+pub mod trim_sail;
+pub mod reef_sail;
+pub mod tack_again;
+pub mod jibe;
+pub mod ride_swell;
+pub mod ride_chop;
+pub mod ride_wake;
+pub mod surf_paddle;
+pub mod pop_up_surf;
+pub mod duck_dive_surf;
+pub mod turtle_roll_surf;
+pub mod bottom_turn;
+pub mod surf_top_turn;
+pub mod cutback_surf;
+pub mod snorkel_clear;
+pub mod snorkel_breathe;
+pub mod equalize_ears;
+pub mod dive_descent;
+pub mod dive_ascent;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        4500 => swim_freestyle::apply(ctx),
+        4501 => swim_breaststroke::apply(ctx),
+        4502 => swim_backstroke::apply(ctx),
+        4503 => swim_butterfly::apply(ctx),
+        4504 => tread_water::apply(ctx),
+        4505 => surface_dive::apply(ctx),
+        4506 => duck_dive::apply(ctx),
+        4507 => flutter_kick::apply(ctx),
+        4508 => scissor_kick::apply(ctx),
+        4509 => frog_kick::apply(ctx),
+        4510 => catch_pull::apply(ctx),
+        4511 => push_through::apply(ctx),
+        4512 => recovery_stroke::apply(ctx),
+        4513 => bilateral_breathe::apply(ctx),
+        4514 => sighting_open_water::apply(ctx),
+        4515 => start_dive_block::apply(ctx),
+        4516 => flip_turn::apply(ctx),
+        4517 => open_turn::apply(ctx),
+        4518 => streamline_kick::apply(ctx),
+        4519 => streamline_glide::apply(ctx),
+        4520 => paddle_canoe_correctly::apply(ctx),
+        4521 => draw_stroke::apply(ctx),
+        4522 => pry_stroke::apply(ctx),
+        4523 => j_stroke::apply(ctx),
+        4524 => sweep_stroke::apply(ctx),
+        4525 => brace_low::apply(ctx),
+        4526 => brace_high::apply(ctx),
+        4527 => roll_kayak::apply(ctx),
+        4528 => wet_exit::apply(ctx),
+        4529 => reentry_kayak::apply(ctx),
+        4530 => rig_sail::apply(ctx),
+        4531 => trim_sail::apply(ctx),
+        4532 => reef_sail::apply(ctx),
+        4533 => tack_again::apply(ctx),
+        4534 => jibe::apply(ctx),
+        4535 => ride_swell::apply(ctx),
+        4536 => ride_chop::apply(ctx),
+        4537 => ride_wake::apply(ctx),
+        4538 => surf_paddle::apply(ctx),
+        4539 => pop_up_surf::apply(ctx),
+        4540 => duck_dive_surf::apply(ctx),
+        4541 => turtle_roll_surf::apply(ctx),
+        4542 => bottom_turn::apply(ctx),
+        4543 => surf_top_turn::apply(ctx),
+        4544 => cutback_surf::apply(ctx),
+        4545 => snorkel_clear::apply(ctx),
+        4546 => snorkel_breathe::apply(ctx),
+        4547 => equalize_ears::apply(ctx),
+        4548 => dive_descent::apply(ctx),
+        4549 => dive_ascent::apply(ctx),
+        _   => 0.0,
+    }
+}
