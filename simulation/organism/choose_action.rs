@@ -296,6 +296,94 @@ impl Organism {
                     set_thought!("offering peace");
                     return (13, thought);
                 }
+                "rest" => {
+                    if let Some(s) = self.find_shelter_tile(grid, 18) {
+                        if (s.0 - ix).abs() + (s.1 - iy).abs() > 1 {
+                            set_thought!("retreating to rest");
+                            return (self.toward(s, grid), thought);
+                        }
+                    }
+                    set_thought!("resting");
+                    return (17, thought);
+                }
+                "isolate" => {
+                    let kin_cx_opt: Option<(f32, f32)> = {
+                        let mut sum_x = 0.0f32;
+                        let mut sum_y = 0.0f32;
+                        let mut n = 0usize;
+                        for o in organisms.iter() {
+                            if std::ptr::eq(o, self) || !o.alive { continue }
+                            if o.lineage_id != self.lineage_id { continue }
+                            if (o.x - self.x).abs() + (o.y - self.y).abs() > 12.0 { continue }
+                            sum_x += o.x; sum_y += o.y; n += 1;
+                        }
+                        if n > 0 { Some((sum_x / n as f32, sum_y / n as f32)) } else { None }
+                    };
+                    if let Some((kx, ky)) = kin_cx_opt {
+                        let dx = self.x - kx;
+                        let dy = self.y - ky;
+                        let target = (ix + (dx * 4.0).round() as i32, iy + (dy * 4.0).round() as i32);
+                        set_thought!("isolating");
+                        return (self.toward(target, grid), thought);
+                    }
+                    set_thought!("isolating");
+                    return (rng.gen_range(0..8), thought);
+                }
+                "wander" => {
+                    set_thought!("wandering on impulse");
+                    return (rng.gen_range(0..8), thought);
+                }
+                "seek_help" => {
+                    let elder_pos: Option<(i32, i32)> = organisms.iter()
+                        .filter(|o| !std::ptr::eq(*o, self) && o.alive
+                                && o.lineage_id == self.lineage_id && o.is_elder)
+                        .min_by(|a, b| {
+                            let da = (a.x - self.x).abs() + (a.y - self.y).abs();
+                            let db = (b.x - self.x).abs() + (b.y - self.y).abs();
+                            da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
+                        })
+                        .map(|o| (o.x as i32, o.y as i32));
+                    if let Some(ep) = elder_pos {
+                        set_thought!("seeking the elder");
+                        return (self.toward(ep, grid), thought);
+                    }
+                    set_thought!("calling for help");
+                    return (11, thought);
+                }
+                "settle" => {
+                    let (hx, hy) = (self.home_x as i32, self.home_y as i32);
+                    if (hx - ix).abs() + (hy - iy).abs() > 4 {
+                        set_thought!("settling near home");
+                        return (self.toward((hx, hy), grid), thought);
+                    }
+                    set_thought!("settling in");
+                    return (17, thought);
+                }
+                "hunt" => {
+                    set_thought!("hunting");
+                    return (12, thought);
+                }
+                "forage" => {
+                    if let Some(v) = self.nearest_visible(grid, Tile::Food, 16) {
+                        set_thought!("foraging");
+                        return (self.toward(v, grid), thought);
+                    }
+                    set_thought!("foraging the brush");
+                    return (19, thought);
+                }
+                "defend" => {
+                    set_thought!("defending");
+                    return (12, thought);
+                }
+                "migrate" => {
+                    let hash = self.id.bytes().fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
+                    let angle = ((hash ^ tick) as f32) * 0.0000019;
+                    let dist  = 80.0 + 220.0 * self.traits.curiosity;
+                    let tx = (self.x + angle.sin() * dist).round() as i32;
+                    let ty = (self.y + angle.cos() * dist).round() as i32;
+                    set_thought!("migrating");
+                    return (self.toward((tx, ty), grid), thought);
+                }
                 _ => {}
             }
         }

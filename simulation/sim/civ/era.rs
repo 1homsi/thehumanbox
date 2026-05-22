@@ -81,14 +81,14 @@ impl Era {
         match self {
             Era::PreStone => 0,
             Era::Stone => 0,
-            Era::Bronze => 8,
-            Era::Iron => 15,
-            Era::Classical => 25,
-            Era::Medieval => 40,
-            Era::Renaissance => 60,
-            Era::Industrial => 100,
-            Era::Modern => 150,
-            Era::Information => 200,
+            Era::Bronze => 3,
+            Era::Iron => 6,
+            Era::Classical => 10,
+            Era::Medieval => 16,
+            Era::Renaissance => 25,
+            Era::Industrial => 40,
+            Era::Modern => 60,
+            Era::Information => 90,
         }
     }
 }

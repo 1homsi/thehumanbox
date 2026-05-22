@@ -33,11 +33,16 @@ pub fn tick_civ(sim: &mut Simulation) {
         tick_buildings_construct(sim);
         tick_disease_spread(sim);
     }
-    if tick % 1200 == 0 {
-        tick_disease_introduce(sim);
+    if tick % 400 == 0 {
         tick_religion_founding(sim);
         tick_artwork(sim);
         tick_books(sim);
+    }
+    if tick % 240 == 0 {
+        tick_religion_adherents(sim);
+    }
+    if tick % 1200 == 0 {
+        tick_disease_introduce(sim);
     }
 }
 
@@ -177,6 +182,11 @@ fn tick_education(sim: &mut Simulation) {
         if near_school && org.age_stage() != AgeStage::Infant {
             org.schooling_ticks = org.schooling_ticks.saturating_add(300);
             org.literacy = (org.literacy + 0.05).min(1.0);
+        } else if org.discoveries.contains("language") || org.discoveries.contains("writing") {
+            let cap = if org.discoveries.contains("writing") { 0.6 } else { 0.35 };
+            if org.literacy < cap {
+                org.literacy = (org.literacy + 0.0008).min(cap);
+            }
         }
         if near_uni && org.literacy >= 0.7 && org.age_stage() == AgeStage::Adult {
             org.university_ticks = org.university_ticks.saturating_add(300);
@@ -267,7 +277,7 @@ fn tick_governments(sim: &mut Simulation) {
     let lineages: Vec<String> = sim.organisms.iter().filter(|o| o.alive).map(|o| o.lineage_id.clone()).collect::<HashSet<_>>().into_iter().collect();
     for lid in &lineages {
         let pop = lineage_pop(sim, lid);
-        if pop < 8 { continue; }
+        if pop < 3 { continue; }
         let era = lineage_era(sim, lid);
         let literacy_avg = lineage_literacy(sim, lid);
         let target_kind = Government::pick_kind_for(era, pop, literacy_avg);
@@ -344,7 +354,7 @@ fn tick_religion_founding(sim: &mut Simulation) {
     let lineages: Vec<String> = sim.organisms.iter().filter(|o| o.alive).map(|o| o.lineage_id.clone()).collect::<HashSet<_>>().into_iter().collect();
     for lid in lineages {
         let pop = lineage_pop(sim, &lid);
-        if pop < 12 { continue; }
+        if pop < 5 { continue; }
         let era = lineage_era(sim, &lid);
         let existing_kinds: HashSet<ReligionKind> = sim.religions.iter().filter(|r| r.founder_lineage == lid).map(|r| r.kind).collect();
         let candidates = [ReligionKind::Animism, ReligionKind::Polytheism, ReligionKind::Monotheism, ReligionKind::Philosophical, ReligionKind::Secular];
@@ -363,6 +373,39 @@ fn tick_religion_founding(sim: &mut Simulation) {
                     break;
                 }
             }
+        }
+    }
+}
+
+fn tick_religion_adherents(sim: &mut Simulation) {
+    if sim.religions.is_empty() { return; }
+    let mut adherents_by_id: std::collections::HashMap<String, u32> =
+        std::collections::HashMap::new();
+    for o in sim.organisms.iter().filter(|o| o.alive) {
+        if let Some(rid) = o.religion_id.as_ref() {
+            *adherents_by_id.entry(rid.clone()).or_insert(0) += 1;
+        }
+    }
+    let mut religion_by_lineage: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
+    for r in sim.religions.iter() {
+        religion_by_lineage.entry(r.founder_lineage.clone()).or_insert(r.id.clone());
+    }
+    let convert_chance = 0.005f32;
+    for org in sim.organisms.iter_mut() {
+        if !org.alive { continue; }
+        if org.religion_id.is_some() { continue; }
+        if let Some(rid) = religion_by_lineage.get(&org.lineage_id) {
+            if sim.rng.gen::<f32>() < convert_chance * (0.4 + org.traits.social_tendency) {
+                org.religion_id = Some(rid.clone());
+                org.piety = 0.20 + org.traits.social_tendency * 0.20;
+                *adherents_by_id.entry(rid.clone()).or_insert(0) += 1;
+            }
+        }
+    }
+    for r in sim.religions.iter_mut() {
+        if let Some(n) = adherents_by_id.get(&r.id) {
+            r.adherents = (*n).max(1);
         }
     }
 }
@@ -409,11 +452,11 @@ fn tick_books(sim: &mut Simulation) {
     let era_map = sim.lineage_eras.clone();
     let mut new_books: Vec<Book> = Vec::new();
     for o in &sim.organisms {
-        if !o.alive || o.literacy < 0.7 { continue; }
+        if !o.alive || o.literacy < 0.4 { continue; }
         if o.age_stage() != AgeStage::Adult && o.age_stage() != AgeStage::Elder { continue; }
         if sim.rng.gen::<f32>() > 0.05 { continue; }
         let era = era_map.get(&o.lineage_id).copied().unwrap_or(Era::Iron);
-        if era < Era::Iron { continue; }
+        if era < Era::Bronze { continue; }
         let id = sim.next_book_id;
         sim.next_book_id += 1;
         let title = pick_book_title(sim.tick_count + id as u64);

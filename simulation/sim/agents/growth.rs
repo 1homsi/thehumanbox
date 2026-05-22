@@ -173,10 +173,10 @@ pub fn try_reproduce(
     for (state, actions) in &organisms[org_idx].q_table {
         let mut row: crate::organism::organism::QRow = Vec::with_capacity(actions.len());
         for &(a, v) in actions {
-            let new_v = if rng.gen::<f32>() > 0.08 {
-                v + rng.gen_range(-0.15f32..0.15)
+            let new_v = if rng.gen::<f32>() < 0.20 {
+                v + rng.gen_range(-0.03f32..0.03)
             } else {
-                rng.gen_range(-0.4f32..0.4)
+                v
             };
             row.push((a, new_v));
         }
@@ -215,14 +215,21 @@ pub fn try_reproduce(
 
     child.discoveries.insert("foraging".to_string());
 
-    let always_inherit = ["fire", "shelter", "water", "wood", "stone", "hunt"];
-    let sometimes_inherit = ["cooking", "masonry", "stone_tools", "torch", "medicine", "ritual", "farm", "spear"];
+    let always_inherit = [
+        "fire", "shelter", "water", "wood", "stone", "hunt",
+        "cooking", "stone_tools", "spear", "foraging", "language",
+    ];
+    let sometimes_inherit = [
+        "masonry", "torch", "medicine", "ritual", "farm", "smelting", "pottery",
+        "agriculture", "tool_making", "fishing", "hunting", "writing",
+        "basket_weaving", "leather", "weaving",
+    ];
     for d in &organisms[org_idx].discoveries {
         if always_inherit.contains(&d.as_str()) {
             child.discoveries.insert(d.clone());
-        } else if sometimes_inherit.contains(&d.as_str()) && rng.gen::<f32>() < 0.55 {
+        } else if sometimes_inherit.contains(&d.as_str()) && rng.gen::<f32>() < 0.85 {
             child.discoveries.insert(d.clone());
-        } else if rng.gen::<f32>() < 0.20 {
+        } else if rng.gen::<f32>() < 0.40 {
             child.discoveries.insert(d.clone());
         }
     }
@@ -299,6 +306,17 @@ pub fn deliver_births(
         let generation = organisms[ci].generation;
         let parent_name = organisms[mi].name.clone();
 
+        let dowry_food  = organisms[mi].inv_food.saturating_sub(1) / 2;
+        let dowry_water = organisms[mi].inv_water.saturating_sub(1) / 2;
+        let dowry_wood  = organisms[mi].inv_wood / 3;
+        organisms[mi].inv_food  = organisms[mi].inv_food.saturating_sub(dowry_food);
+        organisms[mi].inv_water = organisms[mi].inv_water.saturating_sub(dowry_water);
+        organisms[mi].inv_wood  = organisms[mi].inv_wood.saturating_sub(dowry_wood);
+        organisms[ci].inv_food  = dowry_food.saturating_add(1);
+        organisms[ci].inv_water = dowry_water.saturating_add(1);
+        organisms[ci].inv_wood  = dowry_wood;
+        organisms[ci].nursing_until = tick + 1200;
+
         organisms[ci].alive = true;
         organisms[mi].pregnant = false;
         if organisms[mi].children_count == 0 {
@@ -325,11 +343,20 @@ pub fn deliver_births(
 fn find_spawn_near(grid: &WorldGrid, x: i32, y: i32, rng: &mut impl Rng)
     -> Option<(i32, i32)>
 {
-    for _ in 0..20 {
+    for _ in 0..30 {
         let nx = x + rng.gen_range(-3i32..=3);
         let ny = y + rng.gen_range(-3i32..=3);
         if WorldGrid::in_bounds(nx, ny) &&
-           !matches!(grid.get(nx, ny), Tile::Rock | Tile::Void | Tile::Fire)
+           matches!(grid.get(nx, ny), Tile::Grass | Tile::Food | Tile::Hut | Tile::Ash)
+        {
+            return Some((nx, ny));
+        }
+    }
+    for _ in 0..20 {
+        let nx = x + rng.gen_range(-5i32..=5);
+        let ny = y + rng.gen_range(-5i32..=5);
+        if WorldGrid::in_bounds(nx, ny) &&
+           !matches!(grid.get(nx, ny), Tile::Rock | Tile::Void | Tile::Fire | Tile::Water)
         {
             return Some((nx, ny));
         }

@@ -176,6 +176,43 @@ pub fn build_result_from_local(trigger: &ThinkTrigger, local: local_think::Local
             thought: Some(local.thought.to_string()),
             ..Default::default()
         },
+        "moral_dilemma" => ThinkResult {
+            org_id:          trigger.org_id.clone(),
+            thought:         Some(local.thought.to_string()),
+            directive:       local.directive.map(|s| s.to_string()),
+            directive_ticks: local.directive_ticks,
+            ..Default::default()
+        },
+        "rivalry" => ThinkResult {
+            org_id:         trigger.org_id.clone(),
+            target_org_id:  trigger.target_org_id.clone(),
+            target_lineage: trigger.target_lineage.clone(),
+            attitude_delta: Some(-0.15),
+            thought:        Some(local.thought.to_string()),
+            ..Default::default()
+        },
+        "jealousy" => ThinkResult {
+            org_id:         trigger.org_id.clone(),
+            target_org_id:  trigger.target_org_id.clone(),
+            target_lineage: trigger.target_lineage.clone(),
+            attitude_delta: Some(-0.08),
+            thought:        Some(local.thought.to_string()),
+            ..Default::default()
+        },
+        "migration_urge" => ThinkResult {
+            org_id:          trigger.org_id.clone(),
+            thought:         Some(local.thought.to_string()),
+            directive:       Some("migrate".to_string()),
+            directive_ticks: 500,
+            ..Default::default()
+        },
+        "civ_shock" => ThinkResult {
+            org_id:          trigger.org_id.clone(),
+            thought:         Some(local.thought.to_string()),
+            directive:       local.directive.map(|s| s.to_string()),
+            directive_ticks: 400,
+            ..Default::default()
+        },
         _ => return None,
     };
     Some(result)
@@ -384,6 +421,46 @@ fn build_prompt(trigger: &ThinkTrigger) -> (String, u32) {
             format!("You just discovered: {}.", trigger.context),
             "excited, grateful, cautious",
             0,
+        ),
+        "moral_dilemma" => (
+            format!(
+                "You face a hard choice. {}. Your conscience pulls one way, hunger another.",
+                trigger.context
+            ),
+            "help, ignore, take",
+            0,
+        ),
+        "rivalry" => (
+            format!(
+                "You despise {}. They threaten your standing in the tribe.",
+                trigger.other_name.as_deref().unwrap_or("a rival")
+            ),
+            "confront, undermine, ignore",
+            300,
+        ),
+        "jealousy" => (
+            format!(
+                "{} has what you want. You ache with envy.",
+                trigger.other_name.as_deref().unwrap_or("someone close")
+            ),
+            "pursue, mourn, work_harder",
+            300,
+        ),
+        "migration_urge" => (
+            format!(
+                "You feel pulled to leave. {}.",
+                if trigger.context.is_empty() { "The land here is exhausted" } else { &trigger.context }
+            ),
+            "migrate, wait, settle",
+            500,
+        ),
+        "civ_shock" => (
+            format!(
+                "Something has changed in your tribe: {}. You must reckon with it.",
+                trigger.context
+            ),
+            "embrace, resist, observe",
+            400,
         ),
         _ => return (String::new(), 0),
     };

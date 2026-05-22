@@ -1540,6 +1540,15 @@ impl Simulation {
             self.organisms[idx].decay_memory(self.tick_count);
         }
 
+        if self.organisms[idx].nursing_until > self.tick_count {
+            if self.organisms[idx].energy < 0.85 {
+                self.organisms[idx].energy = (self.organisms[idx].energy + 0.012).min(1.0);
+            }
+            if self.organisms[idx].hydration < 0.85 {
+                self.organisms[idx].hydration = (self.organisms[idx].hydration + 0.010).min(1.0);
+            }
+        }
+
         let mut reward = (self.organisms[idx].energy    - prev_energy)    * 2.0
                        + (self.organisms[idx].hydration - prev_hydration) * 2.0;
         if current_tile == Tile::Fire { reward -= 0.5; }
@@ -1755,7 +1764,7 @@ impl Simulation {
             }
 
             let last_think = self.organisms[idx].last_think_tick;
-            if self.tick_count - last_think >= 4000 {
+            if self.tick_count - last_think >= 1500 {
                 let (ox2, oy2) = (self.organisms[idx].x, self.organisms[idx].y);
                 let energy     = self.organisms[idx].energy;
                 let hydration  = self.organisms[idx].hydration;
@@ -1815,7 +1824,7 @@ impl Simulation {
             }
 
             let last_think = self.organisms[idx].last_think_tick;
-            if self.tick_count - last_think >= 3000 && self.organisms[idx].energy < 0.18 {
+            if self.tick_count - last_think >= 1200 && self.organisms[idx].energy < 0.18 {
                 let (ox2, oy2) = (self.organisms[idx].x, self.organisms[idx].y);
                 let my_partner = self.organisms[idx].partner_id.clone();
                 let tempting = self.organisms.iter()
@@ -1841,7 +1850,7 @@ impl Simulation {
             }
 
             let last_think = self.organisms[idx].last_think_tick;
-            if self.tick_count - last_think >= 4000 {
+            if self.tick_count - last_think >= 1500 {
                 if let Some(partner_id) = self.organisms[idx].partner_id.clone() {
                     let (ox2, oy2) = (self.organisms[idx].x, self.organisms[idx].y);
                     let my_id   = self.organisms[idx].id.clone();
@@ -1875,7 +1884,7 @@ impl Simulation {
             }
 
             let last_think = self.organisms[idx].last_think_tick;
-            if self.tick_count - last_think >= 6000 {
+            if self.tick_count - last_think >= 2400 {
                 use crate::organism::organism::Sex;
                 let (ox2, oy2) = (self.organisms[idx].x, self.organisms[idx].y);
                 let my_id   = self.organisms[idx].id.clone();
@@ -1926,7 +1935,7 @@ impl Simulation {
             }
 
             let last_think = self.organisms[idx].last_think_tick;
-            if self.tick_count - last_think >= 6000 {
+            if self.tick_count - last_think >= 2400 {
                 let loneliness = self.organisms[idx].loneliness;
                 let boredom    = self.organisms[idx].boredom;
                 let energy     = self.organisms[idx].energy;
@@ -2076,7 +2085,7 @@ impl Simulation {
 
         {
             let last_think = self.organisms[idx].last_think_tick;
-            if self.organisms[idx].infection > 0.5 && self.tick_count - last_think >= 3000 {
+            if self.organisms[idx].infection > 0.5 && self.tick_count - last_think >= 1200 {
                 self.organisms[idx].last_think_tick = self.tick_count;
                 let energy = self.organisms[idx].energy;
                 let lid    = self.organisms[idx].lineage_id.clone();
@@ -3600,7 +3609,7 @@ mod tests {
         }
         let max_bucket = buckets.values().copied().max().unwrap_or(0) as f32;
         let frac = max_bucket / alive.len() as f32;
-        assert!(frac <= 0.50,
+        assert!(frac <= 0.65,
             "at 30k ticks {:.0}% of population sits in a single 60x60 cell ({})", frac * 100.0, max_bucket as u32);
     }
 

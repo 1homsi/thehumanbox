@@ -240,6 +240,8 @@ pub struct Organism {
     pub inv_wood:  u8,
     pub inv_stone: u8,
 
+    pub nursing_until: u64,
+
     pub wealth:      u32,
     pub literacy:    f32,
     pub schooling_ticks: u32,
@@ -346,6 +348,7 @@ impl Organism {
             inv_food:        0,
             inv_wood:        0,
             inv_stone:       0,
+            nursing_until:   0,
             wealth:          5,
             literacy:        0.0,
             schooling_ticks: 0,
