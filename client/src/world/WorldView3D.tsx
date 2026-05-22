@@ -1,7 +1,7 @@
 import { Suspense, useRef, useEffect, useState, useMemo } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { KeyboardControls, useKeyboardControls, PointerLockControls, OrbitControls } from '@react-three/drei'
-import { Vector3, TOUCH, PCFShadowMap } from 'three'
+import { Vector3, TOUCH, PCFSoftShadowMap, ACESFilmicToneMapping, SRGBColorSpace } from 'three'
 import type { WorldState } from '../types'
 import { useUIStore } from '../stores/store'
 import { Terrain } from '../three/Terrain'
@@ -29,6 +29,8 @@ import { FootstepDust } from '../three/FootstepDust'
 import { TribeLabels } from '../three/TribeLabels'
 import { FireLights } from '../three/FireLights'
 import { TimeOfDayTint } from '../three/TimeOfDayTint'
+import { CinematicGrade } from '../three/CinematicGrade'
+import { CameraBreath } from '../three/CameraBreath'
 import { Fireflies } from '../three/Fireflies'
 import { SocialBeams } from '../three/SocialBeams'
 import { TerritoryOverlay } from '../three/TerritoryOverlay'
@@ -329,10 +331,13 @@ export default function WorldView3D({ world }: Props) {
     >
       <KeyboardControls map={KEY_MAP}>
         <Canvas
-          camera={{ position: [cx, 120, cz + 200], fov: 70, near: 0.5, far: 4000 }}
-          shadows={{ type: PCFShadowMap }}
+          camera={{ position: [cx - 80, 95, cz + 220], fov: 58, near: 0.5, far: 4000 }}
+          shadows={{ type: PCFSoftShadowMap }}
           gl={{ antialias: true, powerPreference: 'high-performance' }}
           onCreated={({ gl }) => {
+            gl.toneMapping = ACESFilmicToneMapping
+            gl.toneMappingExposure = 1.05
+            gl.outputColorSpace = SRGBColorSpace
             const dom = gl.domElement
             dom.addEventListener('webglcontextlost', e => e.preventDefault())
             const orig = dom.requestPointerLock?.bind(dom)
@@ -482,7 +487,9 @@ export default function WorldView3D({ world }: Props) {
                 )}
               </>
             )}
+            <CinematicGrade dayProgress={dayProgress} weatherKind={world?.weather?.kind ?? 'clear'} />
             <FlyCamera depthMap={grid?.depth_map} biomes={grid?.biomes} />
+            <CameraBreath enabled={!isTouch} />
             <CameraSync />
             {isTouch ? (
               <OrbitControls
@@ -561,7 +568,9 @@ const vignetteStyle: React.CSSProperties = {
   position: 'absolute',
   inset: 0,
   pointerEvents: 'none',
-  background: 'radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.42) 100%)',
+  background:
+    'radial-gradient(ellipse 80% 70% at 50% 45%, rgba(0,0,0,0) 45%, rgba(0,0,0,0.30) 80%, rgba(0,0,0,0.62) 100%)',
+  mixBlendMode: 'multiply',
   zIndex: 4,
 }
 

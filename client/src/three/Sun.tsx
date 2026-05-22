@@ -1,7 +1,7 @@
 import { useMemo, useRef } from 'react'
 import { Sky, Stars } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import { Color, Mesh } from 'three'
+import { Color, Mesh, AdditiveBlending, FogExp2 } from 'three'
 import { TILE_SCALE } from './constants'
 
 interface Props {
@@ -50,14 +50,19 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
 
   return (
     <>
-      {}
       <color
         attach="background"
         args={[
           new Color().setRGB(
-            isNight ? 0.04 : dayStrength * 0.45 + 0.18,
-            isNight ? 0.06 : dayStrength * 0.55 + 0.22,
-            isNight ? 0.12 : dayStrength * 0.55 + 0.42,
+            isNight     ? 0.03 :
+            isTwilight  ? 0.55 + dayStrength * 0.40 :
+                          dayStrength * 0.45 + 0.18,
+            isNight     ? 0.05 :
+            isTwilight  ? 0.38 + dayStrength * 0.45 :
+                          dayStrength * 0.55 + 0.22,
+            isNight     ? 0.10 :
+            isTwilight  ? 0.30 + dayStrength * 0.55 :
+                          dayStrength * 0.55 + 0.42,
           ).getHex(),
         ]}
       />
@@ -104,26 +109,71 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
         />
       </mesh>
 
-      {}
-      {isTwilight && (
-        <mesh position={sunPos} frustumCulled={false}>
-          <sphereGeometry args={[80, 12, 10]} />
-          <meshBasicMaterial color="#ffd095" transparent opacity={0.5} />
+      {!isNight && (
+        <mesh position={sunPos} frustumCulled={false} renderOrder={-1}>
+          <sphereGeometry args={[isTwilight ? 75 : 55, 24, 18]} />
+          <meshBasicMaterial
+            color={
+              dayStrength < 0.18 ? '#ff8c4a' :
+              dayStrength < 0.40 ? '#ffc580' :
+                                   '#fff6d8'
+            }
+            transparent
+            opacity={1.0}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+      )}
+      {!isNight && (
+        <mesh position={sunPos} frustumCulled={false} renderOrder={-2}>
+          <sphereGeometry args={[isTwilight ? 220 : 150, 24, 16]} />
+          <meshBasicMaterial
+            color={
+              dayStrength < 0.18 ? '#ff6a30' :
+              dayStrength < 0.40 ? '#ffb068' :
+                                   '#fff0c0'
+            }
+            transparent
+            opacity={isTwilight ? 0.55 : 0.28}
+            blending={AdditiveBlending}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+      )}
+      {!isNight && (
+        <mesh position={sunPos} frustumCulled={false} renderOrder={-3}>
+          <sphereGeometry args={[isTwilight ? 520 : 320, 16, 12]} />
+          <meshBasicMaterial
+            color={
+              dayStrength < 0.18 ? '#ff5020' :
+              dayStrength < 0.40 ? '#ff9050' :
+                                   '#ffe8a0'
+            }
+            transparent
+            opacity={isTwilight ? 0.22 : 0.10}
+            blending={AdditiveBlending}
+            depthWrite={false}
+            toneMapped={false}
+          />
         </mesh>
       )}
 
-      {}
       {!isNight && (
         <directionalLight
           position={sunPos}
-          intensity={(0.4 + dayStrength * 1.0) * stormFactor}
+          intensity={(0.45 + dayStrength * 1.10) * stormFactor}
           color={
             weatherKind === 'storm' ? '#8a98b8' :
-            dayStrength < 0.2       ? '#ffb070' :
-                                      '#fff6e0'
+            dayStrength < 0.15      ? '#ff8c4a' :
+            dayStrength < 0.35      ? '#ffb878' :
+                                      '#fff4dc'
           }
           castShadow
           shadow-mapSize={[2048, 2048]}
+          shadow-bias={-0.00025}
+          shadow-normalBias={0.04}
           shadow-camera-left={-300}
           shadow-camera-right={300}
           shadow-camera-top={300}
@@ -155,17 +205,19 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
         ]}
       />
 
-      {}
-      <fog
+      <primitive
         attach="fog"
-        args={[
+        object={new FogExp2(
           weatherKind === 'storm' ? '#525d70' :
           weatherKind === 'rain'  ? '#7e8a9a' :
           isNight                 ? '#0a0e1c' :
-                                    '#9bb8e0',
-          weatherKind === 'storm' ? 80  : 250,
-          weatherKind === 'storm' ? 800 : weatherKind === 'rain' ? 1400 : 2400,
-        ]}
+          isTwilight              ? '#d8a070' :
+                                    '#a8c4e0',
+          weatherKind === 'storm' ? 0.0024 :
+          weatherKind === 'rain'  ? 0.0014 :
+          isNight                 ? 0.0009 :
+                                    0.0006,
+        )}
       />
     </>
   )
