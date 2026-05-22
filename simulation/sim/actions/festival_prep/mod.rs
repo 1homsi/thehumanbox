@@ -1,0 +1,108 @@
+pub mod weave_crown_for_fest;
+pub mod carve_torch_for_fest;
+pub mod bake_for_fest;
+pub mod cook_for_fest;
+pub mod brew_for_fest;
+pub mod hang_lanterns;
+pub mod hang_banners;
+pub mod hang_flags;
+pub mod hang_ribbons;
+pub mod hang_garlands;
+pub mod build_bonfire_pile;
+pub mod gather_kindling_fest;
+pub mod stack_logs_fest;
+pub mod light_bonfire;
+pub mod feed_bonfire;
+pub mod set_long_table;
+pub mod set_market_stalls;
+pub mod set_dance_floor;
+pub mod set_judges_table;
+pub mod set_announcers_stand;
+pub mod paint_face_for_fest;
+pub mod dress_for_fest;
+pub mod don_costume;
+pub mod don_mask;
+pub mod don_robe;
+pub mod practice_dance_for_fest;
+pub mod practice_song_for_fest;
+pub mod practice_speech_for_fest;
+pub mod practice_play_for_fest;
+pub mod practice_skit_for_fest;
+pub mod rehearse_band;
+pub mod rehearse_chorus;
+pub mod rehearse_drummers;
+pub mod rehearse_singers;
+pub mod rehearse_actors;
+pub mod gather_props;
+pub mod gather_costumes;
+pub mod gather_instruments;
+pub mod gather_prizes;
+pub mod gather_offerings;
+pub mod recite_blessings_for_fest;
+pub mod recite_prayers_for_fest;
+pub mod invoke_ancestors_for_fest;
+pub mod invoke_gods_for_fest;
+pub mod invoke_spirits_for_fest;
+pub mod drum_call_to_fest;
+pub mod horn_call_to_fest;
+pub mod bell_call_to_fest;
+pub mod gong_call_to_fest;
+pub mod conch_call_to_fest;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        3600 => weave_crown_for_fest::apply(ctx),
+        3601 => carve_torch_for_fest::apply(ctx),
+        3602 => bake_for_fest::apply(ctx),
+        3603 => cook_for_fest::apply(ctx),
+        3604 => brew_for_fest::apply(ctx),
+        3605 => hang_lanterns::apply(ctx),
+        3606 => hang_banners::apply(ctx),
+        3607 => hang_flags::apply(ctx),
+        3608 => hang_ribbons::apply(ctx),
+        3609 => hang_garlands::apply(ctx),
+        3610 => build_bonfire_pile::apply(ctx),
+        3611 => gather_kindling_fest::apply(ctx),
+        3612 => stack_logs_fest::apply(ctx),
+        3613 => light_bonfire::apply(ctx),
+        3614 => feed_bonfire::apply(ctx),
+        3615 => set_long_table::apply(ctx),
+        3616 => set_market_stalls::apply(ctx),
+        3617 => set_dance_floor::apply(ctx),
+        3618 => set_judges_table::apply(ctx),
+        3619 => set_announcers_stand::apply(ctx),
+        3620 => paint_face_for_fest::apply(ctx),
+        3621 => dress_for_fest::apply(ctx),
+        3622 => don_costume::apply(ctx),
+        3623 => don_mask::apply(ctx),
+        3624 => don_robe::apply(ctx),
+        3625 => practice_dance_for_fest::apply(ctx),
+        3626 => practice_song_for_fest::apply(ctx),
+        3627 => practice_speech_for_fest::apply(ctx),
+        3628 => practice_play_for_fest::apply(ctx),
+        3629 => practice_skit_for_fest::apply(ctx),
+        3630 => rehearse_band::apply(ctx),
+        3631 => rehearse_chorus::apply(ctx),
+        3632 => rehearse_drummers::apply(ctx),
+        3633 => rehearse_singers::apply(ctx),
+        3634 => rehearse_actors::apply(ctx),
+        3635 => gather_props::apply(ctx),
+        3636 => gather_costumes::apply(ctx),
+        3637 => gather_instruments::apply(ctx),
+        3638 => gather_prizes::apply(ctx),
+        3639 => gather_offerings::apply(ctx),
+        3640 => recite_blessings_for_fest::apply(ctx),
+        3641 => recite_prayers_for_fest::apply(ctx),
+        3642 => invoke_ancestors_for_fest::apply(ctx),
+        3643 => invoke_gods_for_fest::apply(ctx),
+        3644 => invoke_spirits_for_fest::apply(ctx),
+        3645 => drum_call_to_fest::apply(ctx),
+        3646 => horn_call_to_fest::apply(ctx),
+        3647 => bell_call_to_fest::apply(ctx),
+        3648 => gong_call_to_fest::apply(ctx),
+        3649 => conch_call_to_fest::apply(ctx),
+        _   => 0.0,
+    }
+}
