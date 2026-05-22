@@ -33,6 +33,9 @@ pub fn tick_civ(sim: &mut Simulation) {
         tick_buildings_construct(sim);
         tick_disease_spread(sim);
     }
+    if tick % 150 == 0 {
+        tick_scatter_props(sim);
+    }
     if tick % 400 == 0 {
         tick_religion_founding(sim);
         tick_artwork(sim);
@@ -241,6 +244,59 @@ fn tick_buildings_construct(sim: &mut Simulation) {
         new_buildings.push(Building::new(id, kind, cx + offset_x, cy + offset_y, Some(lid.clone()), sim.tick_count));
         let kn = kind.name().to_string();
         push_event(&mut sim.events, sim.tick_count, "built", &lid, &format!("built a {}", kn));
+    }
+    sim.buildings.extend(new_buildings);
+}
+
+fn tick_scatter_props(sim: &mut Simulation) {
+    use BuildingKind::*;
+    let alive_lineages: HashSet<String> = sim.organisms.iter()
+        .filter(|o| o.alive).map(|o| o.lineage_id.clone()).collect();
+    let mut new_buildings: Vec<Building> = Vec::new();
+    for lid in alive_lineages {
+        let pop = lineage_pop(sim, &lid);
+        if pop < 3 { continue; }
+        let era = lineage_era(sim, &lid);
+        let (cx, cy) = lineage_center(sim, &lid);
+        if cx == 0 && cy == 0 { continue; }
+
+        // Pick a deterministic-ish prop kind based on era+id, biased toward
+        // small decorative items so a settlement looks lived-in.
+        let palette: &[BuildingKind] = if era >= Era::Modern {
+            &[Lamppost, StreetLight, Bench, Signpost, TelephonePole, BillBoard,
+              BusStop, Crosswalk, Cart, Well, FlagPole, Kiosk, FoodTruck,
+              Fence, Gate, NeonSign, Drone, ChargingStation, SolarPanel]
+        } else if era >= Era::Industrial {
+            &[Lamppost, StreetLight, Bench, Signpost, TelephonePole, BillBoard,
+              BusStop, Cart, Well, FlagPole, Kiosk, MarketStall, FoodCart,
+              Fence, Gate, Crosswalk]
+        } else if era >= Era::Medieval {
+            &[Lamppost, Bench, Signpost, Cart, Well, FlagPole, Kiosk,
+              MarketStall, FoodCart, Fence, Gate, Pavilion, Gazebo, Bandstand,
+              Tent, Watchtower, Shrine, Monument, Obelisk, GraveStone]
+        } else if era >= Era::Bronze {
+            &[Bench, Signpost, Cart, Well, MarketStall, FoodCart, Fence, Gate,
+              Tent, Watchtower, Shrine, Monument, Obelisk, GraveStone, Pond,
+              Garden]
+        } else {
+            &[Tent, Cart, Well, Signpost, Shrine, GraveStone]
+        };
+
+        let seed = sim.next_building_id as usize;
+        let kind = palette[seed % palette.len()];
+
+        // Scatter within a 16-tile radius around the lineage center using
+        // a small deterministic offset table for spread.
+        let offsets = [
+            (-7, -3), (5, -6), (-4, 6), (8, 2), (-9, 1), (3, 7), (6, -5),
+            (-2, -8), (1, 5), (-6, -1), (4, -2), (-8, 4), (2, -7), (7, 6),
+            (-3, 8), (9, -3), (-5, 5), (0, 9),
+        ];
+        let (dx, dy) = offsets[seed % offsets.len()];
+
+        let id = sim.next_building_id;
+        sim.next_building_id += 1;
+        new_buildings.push(Building::new(id, kind, cx + dx, cy + dy, Some(lid.clone()), sim.tick_count));
     }
     sim.buildings.extend(new_buildings);
 }
