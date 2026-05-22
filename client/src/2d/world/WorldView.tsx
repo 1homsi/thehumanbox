@@ -24,6 +24,7 @@ import {
 } from '../../utils/sprites'
 import { drawBuilding } from './buildings2d'
 import { normalizeLineageEras } from '../../utils/lineageEras'
+import { useSceneStore } from '../../stores/scene'
 
 function deriveAgeStage(age: number, isElder: boolean, declared?: string): AgeStage {
   if (declared === 'infant' || declared === 'child' || declared === 'teen' || declared === 'adult')
@@ -2022,7 +2023,7 @@ export function WorldView({ world, interp }: Props) {
     if (down) {
       const dx = e.clientX - down.x
       const dy = e.clientY - down.y
-      if (dx * dx + dy * dy > 36) return // > 6px movement → treat as drag
+      if (dx * dx + dy * dy > 36) return
     }
     const rect = containerRef.current!.getBoundingClientRect()
     const sx = e.clientX - rect.left
@@ -2033,20 +2034,51 @@ export function WorldView({ world, interp }: Props) {
     const worldX = canvasTileX + ox
     const worldY = canvasTileY + oy
 
-    let nearest: string | null = null
-    // Wider tolerance for touch where finger occlusion makes precise
-    // taps hard.
     const isCoarse = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
-    let nearestDist = isCoarse ? 5.0 : 3.0
+
+    let nearestOrg: { id: string; dist: number } | null = null
+    let nearestOrgDist = isCoarse ? 5.0 : 3.0
     for (const org of world.viewport_organisms ?? world.organisms) {
       if (!org.alive) continue
       const d = Math.abs(org.x - worldX) + Math.abs(org.y - worldY)
-      if (d < nearestDist) {
-        nearestDist = d
-        nearest = org.id
+      if (d < nearestOrgDist) {
+        nearestOrgDist = d
+        nearestOrg = { id: org.id, dist: d }
       }
     }
-    onOrgSelect(nearest)
+    if (nearestOrg && nearestOrg.dist < 1.2) {
+      onOrgSelect(nearestOrg.id)
+      return
+    }
+
+    const tx = Math.floor(worldX)
+    const ty = Math.floor(worldY)
+    const localCol = tx - ox
+    const localRow = ty - oy
+    const TILE_HUT = 8
+    const tileRow = world.grid?.tiles?.[localRow]
+    const isHut = tileRow && tileRow[localCol] === TILE_HUT
+    const structRow = world.grid?.structure?.[localRow]
+    const structVal = (structRow && structRow[localCol]) || 0
+    if (isHut || structVal >= 0.35) {
+      let bestHost: { id: string; age: number } | null = null
+      for (const org of world.organisms) {
+        if (!org.alive) continue
+        const hx = Math.floor(org.home_x)
+        const hy = Math.floor(org.home_y)
+        if (hx === tx && hy === ty) {
+          if (!bestHost || org.age > bestHost.age) {
+            bestHost = { id: org.id, age: org.age }
+          }
+        }
+      }
+      if (bestHost) {
+        useSceneStore.getState().enter({ kind: 'home', orgId: bestHost.id })
+        return
+      }
+    }
+
+    onOrgSelect(nearestOrg ? nearestOrg.id : null)
   }
 
   useLayoutEffect(() => {

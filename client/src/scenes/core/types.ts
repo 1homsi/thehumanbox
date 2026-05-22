@@ -1,11 +1,25 @@
 import type { ComponentType } from 'react'
 import type { OrganismState, WorldState } from '../../types'
 
-export type SceneId = { kind: 'home'; orgId: string } | { kind: 'building'; buildingId: number }
+export type SceneId =
+  | { kind: 'home'; orgId: string }
+  | { kind: 'tavern'; lineageId: string }
+  | { kind: 'temple'; religionId: string }
+  | { kind: 'building'; buildingId: number }
 
 export type SceneKind = SceneId['kind']
 
-export type OccupantRole = 'host' | 'partner' | 'child' | 'kin' | 'guest' | 'stranger'
+export type RenderMode = '2d' | '3d'
+
+export type OccupantRole =
+  | 'host'
+  | 'partner'
+  | 'child'
+  | 'kin'
+  | 'guest'
+  | 'stranger'
+  | 'patron'
+  | 'worshipper'
 
 export interface SceneOccupant {
   org: OrganismState
@@ -34,7 +48,11 @@ export interface SceneContext {
 
 export interface SceneRenderer {
   resolve: (world: WorldState, scene: SceneId) => SceneContext | null
-  Render: ComponentType<{ ctx: SceneContext; onExit: () => void; onFocusOrg: (id: string) => void }>
+  Render: ComponentType<{
+    ctx: SceneContext
+    onExit: () => void
+    onFocusOrg: (id: string) => void
+  }>
 }
 
-export type SceneRegistry = Partial<Record<SceneKind, SceneRenderer>>
+export type SceneRegistry = Partial<Record<SceneKind, Partial<Record<RenderMode, SceneRenderer>>>>

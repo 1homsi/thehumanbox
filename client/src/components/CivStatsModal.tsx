@@ -1,6 +1,7 @@
 import type { WorldState } from '../types'
 import { Modal } from './Modal'
 import { normalizeLineageEras } from '../utils/lineageEras'
+import { useSceneStore } from '../stores/scene'
 
 interface Props {
   world: WorldState
@@ -99,12 +100,16 @@ export function CivStatsModal({ world, onClose }: Props) {
                 <th>Pop</th>
                 <th>Gov</th>
                 <th>Currency</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {lineages.slice(0, 12).map((l) => {
                 const era = lineageEras[l.id] ?? 'pre-stone'
                 const gov = governments.find((g) => g.lineage_id === l.id)
+                const hasBrewing = world.organisms.some(
+                  (o) => o.alive && o.lineage_id === l.id && o.discoveries.includes('brewing'),
+                )
                 return (
                   <tr key={l.id}>
                     <td>{lineageById(l.id)}</td>
@@ -114,6 +119,21 @@ export function CivStatsModal({ world, onClose }: Props) {
                     <td>{l.count}</td>
                     <td>{gov ? `${GOV_EMOJI[gov.kind] ?? ''} ${gov.kind}` : '-'}</td>
                     <td>{currencies[l.id] ?? '-'}</td>
+                    <td>
+                      {hasBrewing && (
+                        <button
+                          className="civ-row-link"
+                          onClick={() => {
+                            useSceneStore
+                              .getState()
+                              .enter({ kind: 'tavern', lineageId: l.id })
+                            onClose()
+                          }}
+                        >
+                          🍻 tavern
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 )
               })}
@@ -158,6 +178,15 @@ export function CivStatsModal({ world, onClose }: Props) {
               <span className="civ-row-tag">
                 founded by {lineageById(r.founder_lineage ?? r.lineage_id ?? '')}
               </span>
+              <button
+                className="civ-row-link"
+                onClick={() => {
+                  useSceneStore.getState().enter({ kind: 'temple', religionId: r.id })
+                  onClose()
+                }}
+              >
+                enter temple →
+              </button>
             </div>
           ))}
         </section>

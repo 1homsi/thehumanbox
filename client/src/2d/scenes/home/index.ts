@@ -4,7 +4,7 @@ import { resolveHomeScene } from './resolve'
 
 export { HomeInterior, resolveHomeScene }
 
-registerScene('home', {
+registerScene('home', '2d', {
   resolve: resolveHomeScene,
   Render: HomeInterior,
 })
