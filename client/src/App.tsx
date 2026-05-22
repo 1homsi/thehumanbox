@@ -180,7 +180,7 @@ function App() {
 
       {world && <Try3DToast />}
       <MobileBanner />
-      <WelcomeModal />
+      {world && <WelcomeModal />}
     </div>
   )
 }
