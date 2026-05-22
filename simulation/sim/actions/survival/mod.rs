@@ -1,0 +1,114 @@
+pub mod rub_two_sticks;
+pub mod bow_drill_fire;
+pub mod flint_strike_fire;
+pub mod build_lean_to;
+pub mod build_debris_shelter;
+pub mod purify_water_boil;
+pub mod purify_water_filter;
+pub mod purify_water_sun;
+pub mod find_water_signs;
+pub mod follow_birds;
+pub mod find_edible_root;
+pub mod find_edible_berry;
+pub mod find_edible_leaf;
+pub mod test_plant_edible;
+pub mod build_smoke_signal;
+pub mod use_signal_mirror;
+pub mod whistle_for_rescue;
+pub mod cache_food;
+pub mod stash_water;
+pub mod make_snare_loop;
+pub mod set_deadfall;
+pub mod set_pit_trap;
+pub mod set_funnel_trap;
+pub mod set_fishing_weir;
+pub mod spear_fish;
+pub mod gather_clams;
+pub mod gather_oysters;
+pub mod skin_small_game;
+pub mod gut_small_game;
+pub mod smoke_jerky;
+pub mod carry_ember_pot;
+pub mod keep_coal_alive;
+pub mod mend_torch;
+pub mod wrap_blister;
+pub mod chew_pine_resin;
+pub mod chew_willow;
+pub mod drink_warm_root;
+pub mod sleep_in_pine_boughs;
+pub mod break_trail;
+pub mod snowshoe_make;
+pub mod navigate_by_sun;
+pub mod read_moss_growth;
+pub mod read_tree_sway;
+pub mod trap_rabbit;
+pub mod trap_squirrel;
+pub mod trap_marten;
+pub mod weave_fish_basket;
+pub mod mend_net;
+pub mod smoke_out_bees;
+pub mod winnow_pollen;
+pub mod gather_honeycomb;
+pub mod tap_birch;
+pub mod tap_maple;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        2160 => rub_two_sticks::apply(ctx),
+        2161 => bow_drill_fire::apply(ctx),
+        2162 => flint_strike_fire::apply(ctx),
+        2163 => build_lean_to::apply(ctx),
+        2164 => build_debris_shelter::apply(ctx),
+        2165 => purify_water_boil::apply(ctx),
+        2166 => purify_water_filter::apply(ctx),
+        2167 => purify_water_sun::apply(ctx),
+        2168 => find_water_signs::apply(ctx),
+        2169 => follow_birds::apply(ctx),
+        2170 => find_edible_root::apply(ctx),
+        2171 => find_edible_berry::apply(ctx),
+        2172 => find_edible_leaf::apply(ctx),
+        2173 => test_plant_edible::apply(ctx),
+        2174 => build_smoke_signal::apply(ctx),
+        2175 => use_signal_mirror::apply(ctx),
+        2176 => whistle_for_rescue::apply(ctx),
+        2177 => cache_food::apply(ctx),
+        2178 => stash_water::apply(ctx),
+        2179 => make_snare_loop::apply(ctx),
+        2180 => set_deadfall::apply(ctx),
+        2181 => set_pit_trap::apply(ctx),
+        2182 => set_funnel_trap::apply(ctx),
+        2183 => set_fishing_weir::apply(ctx),
+        2184 => spear_fish::apply(ctx),
+        2185 => gather_clams::apply(ctx),
+        2186 => gather_oysters::apply(ctx),
+        2187 => skin_small_game::apply(ctx),
+        2188 => gut_small_game::apply(ctx),
+        2189 => smoke_jerky::apply(ctx),
+        2190 => carry_ember_pot::apply(ctx),
+        2191 => keep_coal_alive::apply(ctx),
+        2192 => mend_torch::apply(ctx),
+        2193 => wrap_blister::apply(ctx),
+        2194 => chew_pine_resin::apply(ctx),
+        2195 => chew_willow::apply(ctx),
+        2196 => drink_warm_root::apply(ctx),
+        2197 => sleep_in_pine_boughs::apply(ctx),
+        2198 => break_trail::apply(ctx),
+        2199 => snowshoe_make::apply(ctx),
+        2200 => navigate_by_sun::apply(ctx),
+        2201 => read_moss_growth::apply(ctx),
+        2202 => read_tree_sway::apply(ctx),
+        2203 => trap_rabbit::apply(ctx),
+        2204 => trap_squirrel::apply(ctx),
+        2205 => trap_marten::apply(ctx),
+        2206 => weave_fish_basket::apply(ctx),
+        2207 => mend_net::apply(ctx),
+        2208 => smoke_out_bees::apply(ctx),
+        2209 => winnow_pollen::apply(ctx),
+        2210 => gather_honeycomb::apply(ctx),
+        2211 => tap_birch::apply(ctx),
+        2212 => tap_maple::apply(ctx),
+        _   => 0.0,
+    }
+}
