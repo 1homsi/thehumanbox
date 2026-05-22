@@ -1,0 +1,108 @@
+pub mod rally_lineage;
+pub mod rally_kin;
+pub mod rally_camp;
+pub mod announce_assembly;
+pub mod call_council;
+pub mod call_militia;
+pub mod call_levy;
+pub mod summon_elders;
+pub mod summon_chieftains;
+pub mod assemble_warriors;
+pub mod parade_lineage;
+pub mod parade_strength;
+pub mod parade_banner;
+pub mod crown_chief;
+pub mod crown_elder;
+pub mod install_steward;
+pub mod install_marshal;
+pub mod install_priest;
+pub mod install_judge;
+pub mod install_scribe;
+pub mod swear_in_chieftain;
+pub mod swear_in_envoy;
+pub mod swear_in_warrior;
+pub mod decree_law;
+pub mod decree_peace;
+pub mod decree_war;
+pub mod decree_truce;
+pub mod decree_tribute;
+pub mod decree_alliance;
+pub mod decree_pardon;
+pub mod draft_treaty;
+pub mod draft_pact;
+pub mod draft_compact;
+pub mod draft_charter;
+pub mod draft_constitution;
+pub mod promote_warrior;
+pub mod demote_warrior;
+pub mod knight_warrior;
+pub mod dub_knight;
+pub mod commend_service;
+pub mod award_estate;
+pub mod grant_fief;
+pub mod grant_title;
+pub mod grant_right;
+pub mod strip_right;
+pub mod honor_at_feast;
+pub mod toast_in_hall;
+pub mod feast_envoys;
+pub mod offer_sanctuary;
+pub mod grant_safe_passage;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        2640 => rally_lineage::apply(ctx),
+        2641 => rally_kin::apply(ctx),
+        2642 => rally_camp::apply(ctx),
+        2643 => announce_assembly::apply(ctx),
+        2644 => call_council::apply(ctx),
+        2645 => call_militia::apply(ctx),
+        2646 => call_levy::apply(ctx),
+        2647 => summon_elders::apply(ctx),
+        2648 => summon_chieftains::apply(ctx),
+        2649 => assemble_warriors::apply(ctx),
+        2650 => parade_lineage::apply(ctx),
+        2651 => parade_strength::apply(ctx),
+        2652 => parade_banner::apply(ctx),
+        2653 => crown_chief::apply(ctx),
+        2654 => crown_elder::apply(ctx),
+        2655 => install_steward::apply(ctx),
+        2656 => install_marshal::apply(ctx),
+        2657 => install_priest::apply(ctx),
+        2658 => install_judge::apply(ctx),
+        2659 => install_scribe::apply(ctx),
+        2660 => swear_in_chieftain::apply(ctx),
+        2661 => swear_in_envoy::apply(ctx),
+        2662 => swear_in_warrior::apply(ctx),
+        2663 => decree_law::apply(ctx),
+        2664 => decree_peace::apply(ctx),
+        2665 => decree_war::apply(ctx),
+        2666 => decree_truce::apply(ctx),
+        2667 => decree_tribute::apply(ctx),
+        2668 => decree_alliance::apply(ctx),
+        2669 => decree_pardon::apply(ctx),
+        2670 => draft_treaty::apply(ctx),
+        2671 => draft_pact::apply(ctx),
+        2672 => draft_compact::apply(ctx),
+        2673 => draft_charter::apply(ctx),
+        2674 => draft_constitution::apply(ctx),
+        2675 => promote_warrior::apply(ctx),
+        2676 => demote_warrior::apply(ctx),
+        2677 => knight_warrior::apply(ctx),
+        2678 => dub_knight::apply(ctx),
+        2679 => commend_service::apply(ctx),
+        2680 => award_estate::apply(ctx),
+        2681 => grant_fief::apply(ctx),
+        2682 => grant_title::apply(ctx),
+        2683 => grant_right::apply(ctx),
+        2684 => strip_right::apply(ctx),
+        2685 => honor_at_feast::apply(ctx),
+        2686 => toast_in_hall::apply(ctx),
+        2687 => feast_envoys::apply(ctx),
+        2688 => offer_sanctuary::apply(ctx),
+        2689 => grant_safe_passage::apply(ctx),
+        _   => 0.0,
+    }
+}
