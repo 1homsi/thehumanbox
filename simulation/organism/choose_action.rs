@@ -83,6 +83,15 @@ impl Organism {
                 set_thought!("moving to known water");
                 return (self.toward(t, grid), thought);
             }
+            let kin_at_water = organisms.iter()
+                .filter(|o| !std::ptr::eq(*o, self) && o.alive
+                            && o.lineage_id == self.lineage_id
+                            && (o.x - self.x).abs() + (o.y - self.y).abs() <= 14.0)
+                .find(|o| matches!(grid.get(o.x as i32, o.y as i32), Tile::Water));
+            if let Some(k) = kin_at_water {
+                set_thought!("following kin to water");
+                return (self.toward((k.x as i32, k.y as i32), grid), thought);
+            }
             if let Some(t) = self.find_trail_target(grid, TrailKind::Water, 12) {
                 set_thought!("following water trail");
                 return (self.toward(t, grid), thought);
@@ -98,6 +107,15 @@ impl Organism {
                 set_thought!("moving to known food");
                 return (self.toward(t, grid), thought);
             }
+            let kin_eating = organisms.iter()
+                .filter(|o| !std::ptr::eq(*o, self) && o.alive
+                            && o.lineage_id == self.lineage_id
+                            && (o.x - self.x).abs() + (o.y - self.y).abs() <= 14.0)
+                .find(|o| matches!(grid.get(o.x as i32, o.y as i32), Tile::Food));
+            if let Some(k) = kin_eating {
+                set_thought!("following kin to food");
+                return (self.toward((k.x as i32, k.y as i32), grid), thought);
+            }
             if let Some(t) = self.find_trail_target(grid, TrailKind::Food, 12) {
                 set_thought!("following food trail");
                 return (self.toward(t, grid), thought);
@@ -110,14 +128,6 @@ impl Organism {
         let at_home_zone = dist_home < 6.0;
         let in_shelter = self.near_shelter(grid);
 
-        // Smart shelter-building loop. The passive structure-deposit
-        // in simulation.rs only fires while an org happens to be
-        // carrying wood; without an explicit "I should build shelter
-        // now" drive, lineages spend hundreds of in-world days with
-        // exactly one hut. This block forces the loop: when needs
-        // are met and we're near home, either (a) walk to the home
-        // tile to deposit what we're carrying, or (b) go gather more
-        // wood from the nearest grass/forest patch.
         if needs_easy && !night && !fire_dangerous {
             if self.carrying > 0 && self.carrying_type != 2 {
                 if at_home_zone {
@@ -154,10 +164,6 @@ impl Organism {
                     return (self.toward(t, grid), thought);
                 }
             }
-            // Proactive food top-up: orgs with comfortable energy
-            // but a visible food tile pick it up rather than wandering
-            // into starvation on the next dip. Smarter foraging =
-            // smaller boom/bust population swings.
             if self.energy < 0.78 && self.energy > 0.42 {
                 if let Some(v) = self.nearest_visible(grid, Tile::Food, 8) {
                     let dist = (v.0 - ix).abs() + (v.1 - iy).abs();
@@ -167,9 +173,6 @@ impl Organism {
                     }
                 }
             }
-            // Same for water: a fully-hydrated org that walks past a
-            // pond should drink rather than waste the opportunity and
-            // dehydrate later.
             if self.hydration < 0.82 && self.hydration > 0.45 {
                 if let Some(v) = self.nearest_visible(grid, Tile::Water, 6) {
                     let dist = (v.0 - ix).abs() + (v.1 - iy).abs();
@@ -351,7 +354,7 @@ impl Organism {
             }
         }
 
-        if self.age < 150 {
+        if self.age < 350 {
             let elder_pos: Option<(i32, i32)> = organisms.iter()
                 .filter(|o| !std::ptr::eq(*o, self) && o.alive
                         && o.lineage_id == self.lineage_id && o.is_elder)
@@ -363,10 +366,28 @@ impl Organism {
                 .map(|o| (o.x as i32, o.y as i32));
             if let Some(ep) = elder_pos {
                 let dist = (ep.0 - ix).abs() + (ep.1 - iy).abs();
-                if dist > 4 && dist < 22 {
+                if dist > 4 && dist < 30 {
                     set_thought!("following elder");
                     return (self.toward(ep, grid), thought);
                 }
+            }
+        }
+        if needs_easy && self.age > 600 && rng.gen::<f32>() < 0.025 {
+            let mut sum_x = 0.0f32;
+            let mut sum_y = 0.0f32;
+            let mut n = 0usize;
+            let mut nearest = f32::INFINITY;
+            for o in organisms.iter() {
+                if std::ptr::eq(o, self) || !o.alive || o.lineage_id != self.lineage_id { continue }
+                let d = (o.x - self.x).abs() + (o.y - self.y).abs();
+                if d < nearest { nearest = d }
+                sum_x += o.x; sum_y += o.y; n += 1;
+            }
+            if n > 0 && nearest > 45.0 && nearest.is_finite() {
+                let cx_kin = (sum_x / n as f32) as i32;
+                let cy_kin = (sum_y / n as f32) as i32;
+                set_thought!("rejoining the tribe");
+                return (self.toward((cx_kin, cy_kin), grid), thought);
             }
         }
 

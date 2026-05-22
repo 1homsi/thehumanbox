@@ -157,10 +157,6 @@ pub async fn archive_and_reset(
                 final_tick);
             return None;
         }
-        // Tick-derived start beats process start: the world may have been
-        // restored from world.save after weeks of real-time accumulation
-        // on a previous binary. Fall back to process start only if the
-        // derived value is wonky (e.g. clock skew).
         let tick_ms_total: u64 = final_tick.saturating_mul(100);
         let derived_start = ended_at_ms.saturating_sub(tick_ms_total);
         let started_at_ms = if derived_start > 0 && derived_start < process_started_at_ms {

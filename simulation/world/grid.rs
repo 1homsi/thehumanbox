@@ -452,12 +452,6 @@ impl WorldGrid {
                     1.0
                 };
 
-                // Hard ocean border: pin elevation below sea level
-                // within EDGE_KILL of any side, soft-fade through
-                // EDGE_FADE_END. Continents may approach the coast
-                // but never touch the map boundary, so every world
-                // is wrapped in real ocean instead of cliff-cut
-                // landmass.
                 const EDGE_KILL:     f32 = 0.04;
                 const EDGE_FADE_END: f32 = 0.12;
                 let dx_edge = nx.min(1.0 - nx);
