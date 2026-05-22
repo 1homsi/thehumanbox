@@ -1,0 +1,108 @@
+pub mod quarry_stone;
+pub mod split_block;
+pub mod dress_block;
+pub mod square_block;
+pub mod plumb_block;
+pub mod haul_stone;
+pub mod load_stone;
+pub mod lift_stone;
+pub mod winch_stone;
+pub mod derrick_stone;
+pub mod set_foundation_stone;
+pub mod set_corner_stone;
+pub mod set_capstone;
+pub mod set_keystone;
+pub mod set_threshold_stone;
+pub mod bond_english;
+pub mod bond_flemish;
+pub mod bond_stretcher;
+pub mod bond_header;
+pub mod bond_rat_trap;
+pub mod mortar_lime;
+pub mod mortar_clay;
+pub mod mortar_gypsum;
+pub mod mortar_pozzolana;
+pub mod mortar_cement;
+pub mod point_joint;
+pub mod repoint_joint;
+pub mod tuck_joint;
+pub mod flush_joint;
+pub mod weather_joint;
+pub mod trowel_set;
+pub mod trowel_apply;
+pub mod trowel_strike;
+pub mod trowel_finish;
+pub mod trowel_clean;
+pub mod level_course;
+pub mod plumb_course;
+pub mod align_course;
+pub mod true_course;
+pub mod string_course;
+pub mod arch_lay;
+pub mod key_arch;
+pub mod unkey_arch;
+pub mod shore_arch;
+pub mod decentre_arch;
+pub mod vault_lay;
+pub mod vault_keystone;
+pub mod shore_vault;
+pub mod decentre_vault;
+pub mod polish_keystone;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        3720 => quarry_stone::apply(ctx),
+        3721 => split_block::apply(ctx),
+        3722 => dress_block::apply(ctx),
+        3723 => square_block::apply(ctx),
+        3724 => plumb_block::apply(ctx),
+        3725 => haul_stone::apply(ctx),
+        3726 => load_stone::apply(ctx),
+        3727 => lift_stone::apply(ctx),
+        3728 => winch_stone::apply(ctx),
+        3729 => derrick_stone::apply(ctx),
+        3730 => set_foundation_stone::apply(ctx),
+        3731 => set_corner_stone::apply(ctx),
+        3732 => set_capstone::apply(ctx),
+        3733 => set_keystone::apply(ctx),
+        3734 => set_threshold_stone::apply(ctx),
+        3735 => bond_english::apply(ctx),
+        3736 => bond_flemish::apply(ctx),
+        3737 => bond_stretcher::apply(ctx),
+        3738 => bond_header::apply(ctx),
+        3739 => bond_rat_trap::apply(ctx),
+        3740 => mortar_lime::apply(ctx),
+        3741 => mortar_clay::apply(ctx),
+        3742 => mortar_gypsum::apply(ctx),
+        3743 => mortar_pozzolana::apply(ctx),
+        3744 => mortar_cement::apply(ctx),
+        3745 => point_joint::apply(ctx),
+        3746 => repoint_joint::apply(ctx),
+        3747 => tuck_joint::apply(ctx),
+        3748 => flush_joint::apply(ctx),
+        3749 => weather_joint::apply(ctx),
+        3750 => trowel_set::apply(ctx),
+        3751 => trowel_apply::apply(ctx),
+        3752 => trowel_strike::apply(ctx),
+        3753 => trowel_finish::apply(ctx),
+        3754 => trowel_clean::apply(ctx),
+        3755 => level_course::apply(ctx),
+        3756 => plumb_course::apply(ctx),
+        3757 => align_course::apply(ctx),
+        3758 => true_course::apply(ctx),
+        3759 => string_course::apply(ctx),
+        3760 => arch_lay::apply(ctx),
+        3761 => key_arch::apply(ctx),
+        3762 => unkey_arch::apply(ctx),
+        3763 => shore_arch::apply(ctx),
+        3764 => decentre_arch::apply(ctx),
+        3765 => vault_lay::apply(ctx),
+        3766 => vault_keystone::apply(ctx),
+        3767 => shore_vault::apply(ctx),
+        3768 => decentre_vault::apply(ctx),
+        3769 => polish_keystone::apply(ctx),
+        _   => 0.0,
+    }
+}
