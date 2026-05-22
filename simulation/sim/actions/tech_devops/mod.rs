@@ -1,0 +1,108 @@
+pub mod triage_pager;
+pub mod pull_logs;
+pub mod grep_logs;
+pub mod filter_logs;
+pub mod annotate_logs;
+pub mod draft_postmortem;
+pub mod write_runbook;
+pub mod update_runbook;
+pub mod share_runbook;
+pub mod tag_release;
+pub mod cut_release;
+pub mod roll_release;
+pub mod roll_back;
+pub mod hotfix_emergency;
+pub mod patch_lib;
+pub mod bump_dependency;
+pub mod vendor_dependency;
+pub mod lock_dependency;
+pub mod audit_dependency;
+pub mod scan_dependency;
+pub mod scan_secrets;
+pub mod rotate_secret_devops;
+pub mod revoke_token;
+pub mod grant_token;
+pub mod audit_iam;
+pub mod audit_role;
+pub mod audit_perm;
+pub mod audit_policy;
+pub mod author_policy;
+pub mod review_policy;
+pub mod open_pull_request;
+pub mod review_pull_request;
+pub mod approve_pull_request;
+pub mod merge_pull_request;
+pub mod close_pull_request;
+pub mod rebase_branch;
+pub mod squash_commits;
+pub mod cherry_pick_commit;
+pub mod revert_commit;
+pub mod bisect_bug;
+pub mod create_index;
+pub mod drop_index;
+pub mod repartition_table;
+pub mod backfill_data;
+pub mod dual_write_data;
+pub mod shadow_traffic;
+pub mod warm_cache;
+pub mod prime_cache;
+pub mod flush_cache;
+pub mod stamp_etag;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        5520 => triage_pager::apply(ctx),
+        5521 => pull_logs::apply(ctx),
+        5522 => grep_logs::apply(ctx),
+        5523 => filter_logs::apply(ctx),
+        5524 => annotate_logs::apply(ctx),
+        5525 => draft_postmortem::apply(ctx),
+        5526 => write_runbook::apply(ctx),
+        5527 => update_runbook::apply(ctx),
+        5528 => share_runbook::apply(ctx),
+        5529 => tag_release::apply(ctx),
+        5530 => cut_release::apply(ctx),
+        5531 => roll_release::apply(ctx),
+        5532 => roll_back::apply(ctx),
+        5533 => hotfix_emergency::apply(ctx),
+        5534 => patch_lib::apply(ctx),
+        5535 => bump_dependency::apply(ctx),
+        5536 => vendor_dependency::apply(ctx),
+        5537 => lock_dependency::apply(ctx),
+        5538 => audit_dependency::apply(ctx),
+        5539 => scan_dependency::apply(ctx),
+        5540 => scan_secrets::apply(ctx),
+        5541 => rotate_secret_devops::apply(ctx),
+        5542 => revoke_token::apply(ctx),
+        5543 => grant_token::apply(ctx),
+        5544 => audit_iam::apply(ctx),
+        5545 => audit_role::apply(ctx),
+        5546 => audit_perm::apply(ctx),
+        5547 => audit_policy::apply(ctx),
+        5548 => author_policy::apply(ctx),
+        5549 => review_policy::apply(ctx),
+        5550 => open_pull_request::apply(ctx),
+        5551 => review_pull_request::apply(ctx),
+        5552 => approve_pull_request::apply(ctx),
+        5553 => merge_pull_request::apply(ctx),
+        5554 => close_pull_request::apply(ctx),
+        5555 => rebase_branch::apply(ctx),
+        5556 => squash_commits::apply(ctx),
+        5557 => cherry_pick_commit::apply(ctx),
+        5558 => revert_commit::apply(ctx),
+        5559 => bisect_bug::apply(ctx),
+        5560 => create_index::apply(ctx),
+        5561 => drop_index::apply(ctx),
+        5562 => repartition_table::apply(ctx),
+        5563 => backfill_data::apply(ctx),
+        5564 => dual_write_data::apply(ctx),
+        5565 => shadow_traffic::apply(ctx),
+        5566 => warm_cache::apply(ctx),
+        5567 => prime_cache::apply(ctx),
+        5568 => flush_cache::apply(ctx),
+        5569 => stamp_etag::apply(ctx),
+        _   => 0.0,
+    }
+}
