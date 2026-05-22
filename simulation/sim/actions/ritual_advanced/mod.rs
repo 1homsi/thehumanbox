@@ -1,0 +1,106 @@
+pub mod prepare_temple_altar;
+pub mod light_temple_incense;
+pub mod ring_temple_bell;
+pub mod intone_temple_chant;
+pub mod process_with_relic;
+pub mod process_with_icon;
+pub mod process_with_banner;
+pub mod process_with_canopy;
+pub mod process_with_torch;
+pub mod anoint_initiate;
+pub mod baptize_initiate;
+pub mod veil_initiate;
+pub mod name_initiate;
+pub mod gift_initiate;
+pub mod vow_initiation;
+pub mod vow_renunciation;
+pub mod vow_consecration;
+pub mod vow_dedication;
+pub mod vow_seclusion;
+pub mod walk_seven_steps;
+pub mod walk_three_circles;
+pub mod bow_three_times;
+pub mod kneel_seven_times;
+pub mod prostrate_full;
+pub mod intone_seven_names;
+pub mod intone_three_names;
+pub mod intone_secret_name;
+pub mod intone_old_name;
+pub mod intone_new_name;
+pub mod pour_first_oil;
+pub mod pour_first_wine;
+pub mod pour_first_water;
+pub mod pour_first_milk;
+pub mod pour_first_honey;
+pub mod scatter_first_grain;
+pub mod scatter_first_petal;
+pub mod scatter_first_ash;
+pub mod scatter_first_seed;
+pub mod scatter_first_dust;
+pub mod cast_first_die;
+pub mod cast_first_lot;
+pub mod cast_first_runes;
+pub mod cast_first_stones;
+pub mod cast_first_bones;
+pub mod inscribe_first_rune;
+pub mod inscribe_first_glyph;
+pub mod inscribe_first_seal;
+pub mod inscribe_first_sigil;
+pub mod inscribe_first_mark;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        2520 => prepare_temple_altar::apply(ctx),
+        2521 => light_temple_incense::apply(ctx),
+        2522 => ring_temple_bell::apply(ctx),
+        2523 => intone_temple_chant::apply(ctx),
+        2524 => process_with_relic::apply(ctx),
+        2525 => process_with_icon::apply(ctx),
+        2526 => process_with_banner::apply(ctx),
+        2527 => process_with_canopy::apply(ctx),
+        2528 => process_with_torch::apply(ctx),
+        2529 => anoint_initiate::apply(ctx),
+        2530 => baptize_initiate::apply(ctx),
+        2531 => veil_initiate::apply(ctx),
+        2532 => name_initiate::apply(ctx),
+        2533 => gift_initiate::apply(ctx),
+        2534 => vow_initiation::apply(ctx),
+        2535 => vow_renunciation::apply(ctx),
+        2536 => vow_consecration::apply(ctx),
+        2537 => vow_dedication::apply(ctx),
+        2538 => vow_seclusion::apply(ctx),
+        2539 => walk_seven_steps::apply(ctx),
+        2540 => walk_three_circles::apply(ctx),
+        2541 => bow_three_times::apply(ctx),
+        2542 => kneel_seven_times::apply(ctx),
+        2543 => prostrate_full::apply(ctx),
+        2544 => intone_seven_names::apply(ctx),
+        2545 => intone_three_names::apply(ctx),
+        2546 => intone_secret_name::apply(ctx),
+        2547 => intone_old_name::apply(ctx),
+        2548 => intone_new_name::apply(ctx),
+        2549 => pour_first_oil::apply(ctx),
+        2550 => pour_first_wine::apply(ctx),
+        2551 => pour_first_water::apply(ctx),
+        2552 => pour_first_milk::apply(ctx),
+        2553 => pour_first_honey::apply(ctx),
+        2554 => scatter_first_grain::apply(ctx),
+        2555 => scatter_first_petal::apply(ctx),
+        2556 => scatter_first_ash::apply(ctx),
+        2557 => scatter_first_seed::apply(ctx),
+        2558 => scatter_first_dust::apply(ctx),
+        2559 => cast_first_die::apply(ctx),
+        2560 => cast_first_lot::apply(ctx),
+        2561 => cast_first_runes::apply(ctx),
+        2562 => cast_first_stones::apply(ctx),
+        2563 => cast_first_bones::apply(ctx),
+        2564 => inscribe_first_rune::apply(ctx),
+        2565 => inscribe_first_glyph::apply(ctx),
+        2566 => inscribe_first_seal::apply(ctx),
+        2567 => inscribe_first_sigil::apply(ctx),
+        2568 => inscribe_first_mark::apply(ctx),
+        _   => 0.0,
+    }
+}
