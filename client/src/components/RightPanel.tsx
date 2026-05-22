@@ -52,7 +52,7 @@ export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
       {panelOpen && (
         <div className="panel-overlay" onClick={togglePanel} />
       )}
-      <aside className={clsx(
+      <aside data-tour="right-panel" className={clsx(
         'panel', 'panel-right', panelOpen && 'open',
         threeD && hideUI && 'hidden-by-3d'
       )}>

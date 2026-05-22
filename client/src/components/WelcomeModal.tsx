@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { startTour } from '../tour/tour'
 
 const STORAGE_KEY = 'thb-welcome-seen-v1'
 
@@ -51,13 +52,16 @@ export function WelcomeModal() {
   const isLast = step >= STEPS.length - 1
   const current = STEPS[step]
 
-  const finish = () => {
+  const finish = (withTour: boolean) => {
     try { window.localStorage.setItem(STORAGE_KEY, '1') } catch { /* ignore */ }
     setOpen(false)
+    if (withTour) {
+      window.setTimeout(() => startTour(), 350)
+    }
   }
 
   const next = () => {
-    if (isLast) finish()
+    if (isLast) finish(true)
     else setStep(s => s + 1)
   }
 
@@ -82,7 +86,7 @@ export function WelcomeModal() {
           <button
             type="button"
             className="welcome-btn welcome-btn--ghost"
-            onClick={step === 0 ? finish : back}
+            onClick={step === 0 ? () => finish(false) : back}
           >
             {step === 0 ? 'Skip' : 'Back'}
           </button>
@@ -92,7 +96,7 @@ export function WelcomeModal() {
             onClick={next}
             autoFocus
           >
-            {isLast ? 'Enter the world' : 'Next'}
+            {isLast ? 'Take the tour' : 'Next'}
           </button>
         </div>
       </div>

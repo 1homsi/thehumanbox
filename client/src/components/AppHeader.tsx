@@ -145,28 +145,28 @@ export function AppHeader({ world, connected, fireTiles, sickOrgs }: Props) {
       {world && (
         <div className="header-actions">
           <Tooltip tip="Population graphs, birth and death rates, lineage growth over time">
-            <button className="lang-btn" onClick={openStats}>
+            <button className="lang-btn" data-tour="stats-btn" onClick={openStats}>
               <span className="btn-icon">▦</span><span className="btn-label">stats</span>
             </button>
           </Tooltip>
           <Tooltip tip="Civilization: eras, governments, religions, buildings, books, art, and recent headlines">
-            <button className="lang-btn" onClick={openCiv}>
+            <button className="lang-btn" data-tour="civ-btn" onClick={openCiv}>
               <span className="btn-icon">{'\u{1F30D}'}</span><span className="btn-label">civ</span>
             </button>
           </Tooltip>
           <Tooltip tip="Search and filter all organisms - alive or dead - by name, thought, lineage, or discovery">
-            <button className="lang-btn" onClick={openOrgSearch}>
+            <button className="lang-btn" data-tour="search-btn" onClick={openOrgSearch}>
               <span className="btn-icon">⌕</span><span className="btn-label">search</span>
             </button>
           </Tooltip>
           <Tooltip tip="Stories generated from world events - the history of this civilisation as it unfolds">
-            <button className="lang-btn" onClick={openChronicles}>
+            <button className="lang-btn" data-tour="chronicles-btn" onClick={openChronicles}>
               <span className="btn-icon">✦</span><span className="btn-label">chronicles</span>
               {world.story_history?.length > 0 && <span className="btn-count"> ({world.story_history.length})</span>}
             </button>
           </Tooltip>
           <div className="more-menu" ref={moreRef}>
-            <button className={clsx('lang-btn', showMore && 'active')} onClick={toggleMore}>
+            <button className={clsx('lang-btn', showMore && 'active')} data-tour="more-btn" onClick={toggleMore}>
               <span className="btn-icon">···</span><span className="btn-label">more</span>
             </button>
             {showMore && <MoreDropdown />}

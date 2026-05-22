@@ -29,6 +29,7 @@
     "neverthrow": "^8.2.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "shepherd.js": "^15.2.2",
     "three": "^0.184.0",
     "zustand": "^5.0.13"
   },

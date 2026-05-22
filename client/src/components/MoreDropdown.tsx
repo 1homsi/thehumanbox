@@ -1,5 +1,6 @@
 import clsx from 'clsx'
 import { useUIStore, useViewFlag } from '../stores/store'
+import { startTour } from '../tour/tour'
 
 export function MoreDropdown() {
   const overlay     = useUIStore(s => s.overlay)
@@ -106,6 +107,7 @@ export function MoreDropdown() {
         <button className="lang-btn" onClick={() => { openFamilyTree(); closeMore() }}>⬡ tree</button>
         <button className={clsx('lang-btn', leftOpen && 'active')} aria-pressed={!!( leftOpen )} onClick={() => { toggleLeft(); closeMore() }}>⊞ world</button>
         <button className="lang-btn" onClick={() => { openAbout(); closeMore() }} title="Build info, versions, and links">ⓘ about</button>
+        <button className="lang-btn" onClick={() => { closeMore(); startTour() }} title="Guided walkthrough of the app">🎓 tour</button>
         <button
           className={clsx('lang-btn', nerdStats && 'active')}
           aria-pressed={!!nerdStats}

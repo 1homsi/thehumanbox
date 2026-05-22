@@ -118,7 +118,7 @@ function App() {
         sickOrgs={sickOrgs}
       />
 
-      <main className="main">
+      <main className="main" data-tour="world-canvas">
         {world ? (
           <div className="layout">
 
