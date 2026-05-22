@@ -79,6 +79,13 @@ pub fn currency_unit_for_era(era: Era) -> &'static str {
         Era::Renaissance => "florins",
         Era::Industrial => "pounds",
         Era::Modern | Era::Information => "dollars",
+        Era::Atomic | Era::Space => "credits",
+        Era::Digital | Era::Quantum => "tokens",
+        Era::Solar | Era::Fusion => "ergs",
+        Era::Genetic | Era::Orbital | Era::Lunar | Era::Martian => "creds",
+        Era::Cyber | Era::Neural | Era::Posthuman => "synth",
+        Era::Interstellar | Era::Singularity | Era::Galactic => "stars",
+        _ => "essence",
     }
 }
 
@@ -105,6 +112,7 @@ impl PriceTable {
             Era::Industrial => PriceTable { food: 5, water: 1, wood: 4, stone: 5, iron: 8, cloth: 4, bread: 4 },
             Era::Modern => PriceTable { food: 6, water: 2, wood: 5, stone: 6, iron: 9, cloth: 5, bread: 5 },
             Era::Information => PriceTable { food: 8, water: 3, wood: 6, stone: 7, iron: 10, cloth: 7, bread: 6 },
+            _ => PriceTable { food: 10, water: 4, wood: 8, stone: 9, iron: 12, cloth: 9, bread: 8 },
         }
     }
 }

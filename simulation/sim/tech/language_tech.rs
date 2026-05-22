@@ -29,6 +29,7 @@ impl WritingSystem {
             Era::Renaissance => WritingSystem::Print,
             Era::Industrial => WritingSystem::Typewriter,
             Era::Modern | Era::Information => WritingSystem::Digital,
+            _ => WritingSystem::Digital,
         }
     }
 }

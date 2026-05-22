@@ -27,6 +27,7 @@ impl AgriEra {
             Era::Medieval | Era::Renaissance => AgriEra::CropRotation,
             Era::Industrial | Era::Modern => AgriEra::Industrial,
             Era::Information => AgriEra::Genetic,
+            _ => AgriEra::Genetic,
         }
     }
     pub fn yield_multiplier(self) -> f32 {
