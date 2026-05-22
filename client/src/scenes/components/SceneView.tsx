@@ -6,7 +6,11 @@ import { getSceneRenderer } from '../core/registry'
 import '../../2d/scenes/home'
 import '../../2d/scenes/tavern'
 import '../../2d/scenes/temple'
+import '../../2d/scenes/forge'
+import '../../2d/scenes/settlement'
 import '../../3d/scenes/home'
+import '../../3d/scenes/tavern'
+import '../../3d/scenes/temple'
 
 interface Props {
   world: WorldState

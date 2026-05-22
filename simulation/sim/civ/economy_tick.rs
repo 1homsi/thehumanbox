@@ -27,6 +27,25 @@ pub fn tick_economy(sim: &mut Simulation, tick: u64) {
 }
 
 fn pay_wages(sim: &mut Simulation, _tick: u64) {
+    let shop_anchors: Vec<(f32, f32, &'static str, Option<String>)> = sim
+        .buildings
+        .iter()
+        .filter_map(|b| {
+            let kind = match b.kind {
+                crate::sim::tech::buildings::BuildingKind::Forge => "forge",
+                crate::sim::tech::buildings::BuildingKind::Workshop => "workshop",
+                crate::sim::tech::buildings::BuildingKind::Bakery => "bakery",
+                crate::sim::tech::buildings::BuildingKind::Mill => "mill",
+                crate::sim::tech::buildings::BuildingKind::Windmill => "mill",
+                crate::sim::tech::buildings::BuildingKind::Watermill => "mill",
+                crate::sim::tech::buildings::BuildingKind::Inn => "inn",
+                crate::sim::tech::buildings::BuildingKind::Bank => "bank",
+                _ => return None,
+            };
+            Some((b.x as f32 + 0.5, b.y as f32 + 0.5, kind, b.owner_lineage.clone()))
+        })
+        .collect();
+
     for org in sim.organisms.iter_mut() {
         if !org.alive {
             continue;
@@ -34,12 +53,48 @@ fn pay_wages(sim: &mut Simulation, _tick: u64) {
         let Some(name) = org.specialty.as_deref() else {
             continue;
         };
-        let w = wage_for(name);
-        if w == 0 {
+        let base = wage_for(name);
+        if base == 0 {
             continue;
         }
-        org.wealth = org.wealth.saturating_add(w);
+        let bonus = shop_bonus_for(name, org, &shop_anchors);
+        org.wealth = org.wealth.saturating_add(base + bonus);
     }
+}
+
+fn shop_bonus_for(
+    specialty: &str,
+    org: &crate::organism::organism::Organism,
+    anchors: &[(f32, f32, &'static str, Option<String>)],
+) -> u32 {
+    let wanted: &[&str] = match specialty {
+        "smith" => &["forge", "workshop"],
+        "baker" => &["bakery"],
+        "brewer" => &["inn"],
+        "carpenter" | "builder" | "mason" => &["workshop", "mill"],
+        "merchant" => &["inn", "bank"],
+        "banker" => &["bank"],
+        "miller" => &["mill"],
+        _ => &[],
+    };
+    if wanted.is_empty() {
+        return 0;
+    }
+    for (sx, sy, kind, lid) in anchors {
+        if !wanted.contains(kind) {
+            continue;
+        }
+        if let Some(lid) = lid {
+            if lid != &org.lineage_id {
+                continue;
+            }
+        }
+        let d = (org.x - sx).abs() + (org.y - sy).abs();
+        if d <= 8.0 {
+            return wage_for(specialty);
+        }
+    }
+    0
 }
 
 fn wage_for(name: &str) -> u32 {

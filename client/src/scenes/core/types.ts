@@ -5,6 +5,10 @@ export type SceneId =
   | { kind: 'home'; orgId: string }
   | { kind: 'tavern'; lineageId: string }
   | { kind: 'temple'; religionId: string }
+  | { kind: 'forge'; buildingId: number }
+  | { kind: 'bakery'; buildingId: number }
+  | { kind: 'mill'; buildingId: number }
+  | { kind: 'settlement'; centerX: number; centerY: number; lineageId: string }
   | { kind: 'building'; buildingId: number }
 
 export type SceneKind = SceneId['kind']
