@@ -1,0 +1,108 @@
+pub mod open_offer;
+pub mod counter_offer;
+pub mod accept_offer;
+pub mod reject_offer;
+pub mod table_offer;
+pub mod caucus_with_partner;
+pub mod caucus_with_other_side;
+pub mod draft_clause;
+pub mod amend_clause;
+pub mod strike_clause;
+pub mod insist_clause;
+pub mod concede_clause;
+pub mod compromise_clause;
+pub mod exchange_clause;
+pub mod swap_clause;
+pub mod invoke_precedent;
+pub mod invoke_principle;
+pub mod invoke_authority;
+pub mod invoke_witness;
+pub mod invoke_arbiter;
+pub mod appeal_to_fairness;
+pub mod appeal_to_law;
+pub mod appeal_to_custom;
+pub mod appeal_to_pity;
+pub mod appeal_to_pride;
+pub mod build_rapport;
+pub mod mirror_partner;
+pub mod pace_partner;
+pub mod reframe_position;
+pub mod validate_concern;
+pub mod acknowledge_pain;
+pub mod bracket_pain;
+pub mod release_pain;
+pub mod absorb_pain;
+pub mod transfer_pain;
+pub mod pause_negotiation;
+pub mod cool_negotiation;
+pub mod extend_negotiation;
+pub mod accelerate_negotiation;
+pub mod conclude_negotiation;
+pub mod draft_settlement;
+pub mod read_settlement;
+pub mod sign_settlement;
+pub mod seal_settlement;
+pub mod deposit_settlement;
+pub mod follow_up;
+pub mod commit_to_follow;
+pub mod review_progress;
+pub mod address_breach;
+pub mod mediate_breach;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        5100 => open_offer::apply(ctx),
+        5101 => counter_offer::apply(ctx),
+        5102 => accept_offer::apply(ctx),
+        5103 => reject_offer::apply(ctx),
+        5104 => table_offer::apply(ctx),
+        5105 => caucus_with_partner::apply(ctx),
+        5106 => caucus_with_other_side::apply(ctx),
+        5107 => draft_clause::apply(ctx),
+        5108 => amend_clause::apply(ctx),
+        5109 => strike_clause::apply(ctx),
+        5110 => insist_clause::apply(ctx),
+        5111 => concede_clause::apply(ctx),
+        5112 => compromise_clause::apply(ctx),
+        5113 => exchange_clause::apply(ctx),
+        5114 => swap_clause::apply(ctx),
+        5115 => invoke_precedent::apply(ctx),
+        5116 => invoke_principle::apply(ctx),
+        5117 => invoke_authority::apply(ctx),
+        5118 => invoke_witness::apply(ctx),
+        5119 => invoke_arbiter::apply(ctx),
+        5120 => appeal_to_fairness::apply(ctx),
+        5121 => appeal_to_law::apply(ctx),
+        5122 => appeal_to_custom::apply(ctx),
+        5123 => appeal_to_pity::apply(ctx),
+        5124 => appeal_to_pride::apply(ctx),
+        5125 => build_rapport::apply(ctx),
+        5126 => mirror_partner::apply(ctx),
+        5127 => pace_partner::apply(ctx),
+        5128 => reframe_position::apply(ctx),
+        5129 => validate_concern::apply(ctx),
+        5130 => acknowledge_pain::apply(ctx),
+        5131 => bracket_pain::apply(ctx),
+        5132 => release_pain::apply(ctx),
+        5133 => absorb_pain::apply(ctx),
+        5134 => transfer_pain::apply(ctx),
+        5135 => pause_negotiation::apply(ctx),
+        5136 => cool_negotiation::apply(ctx),
+        5137 => extend_negotiation::apply(ctx),
+        5138 => accelerate_negotiation::apply(ctx),
+        5139 => conclude_negotiation::apply(ctx),
+        5140 => draft_settlement::apply(ctx),
+        5141 => read_settlement::apply(ctx),
+        5142 => sign_settlement::apply(ctx),
+        5143 => seal_settlement::apply(ctx),
+        5144 => deposit_settlement::apply(ctx),
+        5145 => follow_up::apply(ctx),
+        5146 => commit_to_follow::apply(ctx),
+        5147 => review_progress::apply(ctx),
+        5148 => address_breach::apply(ctx),
+        5149 => mediate_breach::apply(ctx),
+        _   => 0.0,
+    }
+}
