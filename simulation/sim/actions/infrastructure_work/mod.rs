@@ -1,0 +1,108 @@
+pub mod grade_road;
+pub mod pave_road;
+pub mod repair_pothole;
+pub mod patch_road;
+pub mod sand_road;
+pub mod ditch_road;
+pub mod culvert_road;
+pub mod bank_road;
+pub mod crown_road;
+pub mod stripe_road;
+pub mod bridge_inspect;
+pub mod bridge_paint;
+pub mod bridge_repair;
+pub mod bridge_reinforce;
+pub mod bridge_reopen;
+pub mod tunnel_dig;
+pub mod tunnel_shore;
+pub mod tunnel_brace;
+pub mod tunnel_light;
+pub mod tunnel_drain;
+pub mod cable_lay;
+pub mod cable_repair;
+pub mod cable_splice;
+pub mod cable_bury;
+pub mod cable_tag;
+pub mod pipe_lay;
+pub mod pipe_solder;
+pub mod pipe_thread;
+pub mod pipe_clean;
+pub mod pipe_flush;
+pub mod rail_lay;
+pub mod rail_align;
+pub mod rail_spike;
+pub mod rail_grade;
+pub mod rail_ballast;
+pub mod switch_set;
+pub mod switch_lock;
+pub mod switch_test;
+pub mod switch_oil;
+pub mod switch_inspect;
+pub mod station_paint;
+pub mod station_sweep;
+pub mod station_post_schedule;
+pub mod station_open;
+pub mod station_close;
+pub mod signal_check;
+pub mod signal_align;
+pub mod signal_test;
+pub mod signal_paint;
+pub mod signal_replace;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        3300 => grade_road::apply(ctx),
+        3301 => pave_road::apply(ctx),
+        3302 => repair_pothole::apply(ctx),
+        3303 => patch_road::apply(ctx),
+        3304 => sand_road::apply(ctx),
+        3305 => ditch_road::apply(ctx),
+        3306 => culvert_road::apply(ctx),
+        3307 => bank_road::apply(ctx),
+        3308 => crown_road::apply(ctx),
+        3309 => stripe_road::apply(ctx),
+        3310 => bridge_inspect::apply(ctx),
+        3311 => bridge_paint::apply(ctx),
+        3312 => bridge_repair::apply(ctx),
+        3313 => bridge_reinforce::apply(ctx),
+        3314 => bridge_reopen::apply(ctx),
+        3315 => tunnel_dig::apply(ctx),
+        3316 => tunnel_shore::apply(ctx),
+        3317 => tunnel_brace::apply(ctx),
+        3318 => tunnel_light::apply(ctx),
+        3319 => tunnel_drain::apply(ctx),
+        3320 => cable_lay::apply(ctx),
+        3321 => cable_repair::apply(ctx),
+        3322 => cable_splice::apply(ctx),
+        3323 => cable_bury::apply(ctx),
+        3324 => cable_tag::apply(ctx),
+        3325 => pipe_lay::apply(ctx),
+        3326 => pipe_solder::apply(ctx),
+        3327 => pipe_thread::apply(ctx),
+        3328 => pipe_clean::apply(ctx),
+        3329 => pipe_flush::apply(ctx),
+        3330 => rail_lay::apply(ctx),
+        3331 => rail_align::apply(ctx),
+        3332 => rail_spike::apply(ctx),
+        3333 => rail_grade::apply(ctx),
+        3334 => rail_ballast::apply(ctx),
+        3335 => switch_set::apply(ctx),
+        3336 => switch_lock::apply(ctx),
+        3337 => switch_test::apply(ctx),
+        3338 => switch_oil::apply(ctx),
+        3339 => switch_inspect::apply(ctx),
+        3340 => station_paint::apply(ctx),
+        3341 => station_sweep::apply(ctx),
+        3342 => station_post_schedule::apply(ctx),
+        3343 => station_open::apply(ctx),
+        3344 => station_close::apply(ctx),
+        3345 => signal_check::apply(ctx),
+        3346 => signal_align::apply(ctx),
+        3347 => signal_test::apply(ctx),
+        3348 => signal_paint::apply(ctx),
+        3349 => signal_replace::apply(ctx),
+        _   => 0.0,
+    }
+}
