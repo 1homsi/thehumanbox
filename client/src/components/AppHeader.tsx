@@ -31,6 +31,7 @@ export function AppHeader({ world, connected, fireTiles, sickOrgs }: Props) {
   const showMore     = useUIStore(s => s.showMore)
   const panelOpen    = useUIStore(s => s.panelOpen)
   const isFullscreen = useUIStore(s => s.isFullscreen)
+  const nerdStats    = useUIStore(s => s.nerdStats)
 
   const togglePanel    = useUIStore(s => s.togglePanel)
   const toggleLeft     = useUIStore(s => s.toggleLeft)
@@ -79,11 +80,19 @@ export function AppHeader({ world, connected, fireTiles, sickOrgs }: Props) {
           </svg>
           GitHub
         </a>
-        <span className={clsx('status', connected && world ? 'online' : 'offline')}>
-          <span className="status-dot" />
-          {connected && world ? 'LIVE' : 'connecting...'}
-        </span>
-        {world && <Tooltip tip={`Simulation tick ${world.tick.toLocaleString()} - 600 ticks = 1 in-world day · ${Math.floor(world.tick / 600)} days elapsed`}><span className="tick" style={{ cursor: 'default' }}>tick {world.tick.toLocaleString()}</span></Tooltip>}
+        {nerdStats && (
+          <span className={clsx('status', connected && world ? 'online' : 'offline')}>
+            <span className="status-dot" />
+            {connected && world ? 'LIVE' : 'connecting...'}
+          </span>
+        )}
+        {!nerdStats && (!connected || !world) && (
+          <span className="status offline">
+            <span className="status-dot" />
+            connecting...
+          </span>
+        )}
+        {nerdStats && world && <Tooltip tip={`Simulation tick ${world.tick.toLocaleString()} - 600 ticks = 1 in-world day · ${Math.floor(world.tick / 600)} days elapsed`}><span className="tick" style={{ cursor: 'default' }}>tick {world.tick.toLocaleString()}</span></Tooltip>}
       </div>
       <div className="header-badges">
         {world && (

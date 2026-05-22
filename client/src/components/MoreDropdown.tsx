@@ -12,6 +12,8 @@ export function MoreDropdown() {
   const openLanguages  = useUIStore(s => s.openLanguages)
   const openFamilyTree = useUIStore(s => s.openFamilyTree)
   const openAbout      = useUIStore(s => s.openAbout)
+  const nerdStats      = useUIStore(s => s.nerdStats)
+  const setNerdStats   = useUIStore(s => s.setNerdStats)
 
   // Per-flag scalar subscriptions so toggling one flag doesn't re-render
   // every component that read `viewFlags` as a whole object.
@@ -104,6 +106,13 @@ export function MoreDropdown() {
         <button className="lang-btn" onClick={() => { openFamilyTree(); closeMore() }}>⬡ tree</button>
         <button className={clsx('lang-btn', leftOpen && 'active')} aria-pressed={!!( leftOpen )} onClick={() => { toggleLeft(); closeMore() }}>⊞ world</button>
         <button className="lang-btn" onClick={() => { openAbout(); closeMore() }} title="Build info, versions, and links">ⓘ about</button>
+        <button
+          className={clsx('lang-btn', nerdStats && 'active')}
+          aria-pressed={!!nerdStats}
+          onClick={() => setNerdStats(!nerdStats)}
+          title="Show technical readouts: tick counter, connection status, version commits, build timestamps">
+          🔧 stats for nerds
+        </button>
       </div>
 
       <div className="more-dropdown-divider" />

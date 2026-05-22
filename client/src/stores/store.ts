@@ -59,6 +59,9 @@ interface UIState {
 
   isFullscreen: boolean
 
+  nerdStats: boolean
+  setNerdStats: (b: boolean) => void
+
   selectOrg: (id: string | null) => void
   followOrg: (id: string | null) => void
   toggleStar: (id: string) => void
@@ -92,6 +95,16 @@ interface UIState {
   setOverlay:   (o: string | null) => void
   setFocus:     (f: string) => void
   setViewFlag:  (k: keyof ViewFlags, v: boolean) => void
+}
+
+const NERD_KEY = 'thb-nerd-stats'
+const loadNerd = (): boolean => {
+  try { return window.localStorage.getItem(NERD_KEY) === '1' }
+  catch { return false }
+}
+const saveNerd = (v: boolean): void => {
+  try { window.localStorage.setItem(NERD_KEY, v ? '1' : '0') }
+  catch { /* ignore */ }
 }
 
 const STARRED_KEY = 'thb-starred-orgs'
@@ -142,6 +155,9 @@ export const useUIStore = create<UIState>((set) => ({
   },
 
   isFullscreen: false,
+
+  nerdStats: loadNerd(),
+  setNerdStats: (b) => { saveNerd(b); set({ nerdStats: b }) },
 
   selectOrg: (id) => set(id == null ? { selectedOrgId: null, followOrgId: null } : { selectedOrgId: id }),
   followOrg: (id) => set({ followOrgId: id }),
