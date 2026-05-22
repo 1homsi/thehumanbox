@@ -28,7 +28,7 @@ function occupantSlotsFor(n: number): Array<[number, number]> {
 
 export function HomeInterior({ ctx, onExit, onFocusOrg }: Props) {
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
-  const { title, subtitle, occupants, fixtures, isDay } = ctx
+  const { title, subtitle, occupants, away, fixtures, isDay } = ctx
 
   const wallTone  = isDay ? '#3a2c1f' : '#241a13'
   const floorTone = isDay ? '#5b3f29' : '#3a2818'
@@ -83,24 +83,38 @@ export function HomeInterior({ ctx, onExit, onFocusOrg }: Props) {
 
           <text x="50" y="11" textAnchor="middle" fontSize="3.5" fill="#8b8270"
                 style={{ fontFamily: 'monospace', letterSpacing: 0.5 }}>
-            {occupants.length === 1 ? 'alone' : `${occupants.length} inside`}
+            {occupants.length === 0 ? 'no one home' : occupants.length === 1 ? 'alone' : `${occupants.length} inside`}
           </text>
         </svg>
       </div>
 
-      <div className="scene-occupants">
-        {occupants.map((o) => (
-          <button
-            key={o.org.id}
-            className={'scene-occupant-chip' + (o.org.id === selectedOrgId ? ' active' : '')}
-            onClick={() => onFocusOrg(o.org.id)}
-          >
-            <span className="scene-occupant-role">{o.role}</span>
-            <span className="scene-occupant-name">{o.org.name}</span>
-            <span className="scene-occupant-act">{o.activity}</span>
-          </button>
-        ))}
-      </div>
+      {(occupants.length > 0 || away.length > 0) && (
+        <div className="scene-occupants">
+          {occupants.map((o) => (
+            <button
+              key={`in-${o.org.id}`}
+              className={'scene-occupant-chip' + (o.org.id === selectedOrgId ? ' active' : '')}
+              onClick={() => onFocusOrg(o.org.id)}
+            >
+              <span className="scene-occupant-role">{o.role}</span>
+              <span className="scene-occupant-name">{o.org.name}</span>
+              <span className="scene-occupant-act">{o.activity}</span>
+            </button>
+          ))}
+          {away.map((o) => (
+            <button
+              key={`out-${o.org.id}`}
+              className={'scene-occupant-chip scene-occupant-chip--away' + (o.org.id === selectedOrgId ? ' active' : '')}
+              onClick={() => onFocusOrg(o.org.id)}
+              title="Currently out"
+            >
+              <span className="scene-occupant-role">{o.role} · out</span>
+              <span className="scene-occupant-name">{o.org.name}</span>
+              <span className="scene-occupant-act">{o.activity}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

@@ -40,7 +40,7 @@ export function resolveHomeScene(world: WorldState, scene: SceneId): SceneContex
     : (world.lineage_eras as Record<string, string> | undefined)?.[host.lineage_id]
   ) ?? 'pre-stone'
 
-  const occupants = householdAround(world, host)
+  const { inside, away } = householdAround(world, host)
 
   const lineageName = world.lineage_names?.[host.lineage_id] ?? host.lineage_id.slice(0, 6)
   const isDay = !!world.is_day
@@ -51,7 +51,8 @@ export function resolveHomeScene(world: WorldState, scene: SceneId): SceneContex
     title:    `${host.name}'s home`,
     subtitle: `${ERA_LABEL[era] ?? 'A home'} · ${lineageName} · ${era}`,
     isDay,
-    occupants,
+    occupants: inside,
+    away,
     fixtures: fixturesForEra(era),
   }
 }

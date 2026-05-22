@@ -2698,6 +2698,9 @@ body.thb-colorblind .org-sick-badge { background: #fb8500; color: #1a0a00; }
 }
 .scene-occupant-chip:hover { border-color: rgba(216, 178, 112, 0.40); }
 .scene-occupant-chip.active { border-color: #d8b270; background: #2a1f14; }
+.scene-occupant-chip--away { opacity: 0.55; }
+.scene-occupant-chip--away:hover { opacity: 0.85; }
+.scene-occupant-chip--away .scene-occupant-role { color: #c08866; }
 .scene-occupant-role {
   font-size: 8px;
   letter-spacing: 0.18em;

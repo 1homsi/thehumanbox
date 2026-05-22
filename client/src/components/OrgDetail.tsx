@@ -6,7 +6,8 @@ import { Tooltip } from './Tooltip'
 import { useOrgDetail } from '../hooks/useOrgDetail'
 import { useUIStore } from '../stores/store'
 import { useSceneStore } from '../stores/scene'
-import { isAtHome } from '../scenes'
+import { hasBuiltHome, isAtHome } from '../scenes'
+import { useWorldStore } from '../stores/worldStore'
 import { LifeModal } from './LifeModal'
 
 const DAY_LENGTH = 600
@@ -87,6 +88,22 @@ interface Props {
   religions?: import('../types').ReligionInfo[]
 }
 
+function HomeButton({ org }: { org: OrganismState }) {
+  const world = useWorldStore((s) => s.world)
+  if (!world) return null
+  const built = hasBuiltHome(org, world)
+  if (!built) return null
+  const inside = isAtHome(org, world)
+  return (
+    <Tooltip tip={inside ? 'Step inside their home' : 'Visit their home (they are out)'}>
+      <button className="icon-btn" aria-label="Look inside"
+              onClick={() => useSceneStore.getState().enter({ kind: 'home', orgId: org.id })}>
+        ⌂
+      </button>
+    </Tooltip>
+  )
+}
+
 export function OrgDetail({ org, onClose, onFollow, following, lineageNames, organisms, religions }: Props) {
   const { data: detail } = useOrgDetail(org.id)
   const [showLife, setShowLife] = useState(false)
@@ -131,14 +148,7 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
           <Tooltip tip="View full life history">
             <button className="icon-btn" aria-label="Life" onClick={() => setShowLife(true)}>📖</button>
           </Tooltip>
-          {isAtHome(org) && (
-            <Tooltip tip="Step inside their home">
-              <button className="icon-btn" aria-label="Look inside"
-                      onClick={() => useSceneStore.getState().enter({ kind: 'home', orgId: org.id })}>
-                ⌂
-              </button>
-            </Tooltip>
-          )}
+          <HomeButton org={org} />
           <Tooltip tip={following ? 'Following' : 'Follow this organism'}>
             <button
               className={clsx('icon-btn', following && 'active')}

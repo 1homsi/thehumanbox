@@ -30,6 +30,7 @@ export interface SceneContext {
   subtitle:  string
   isDay:     boolean
   occupants: SceneOccupant[]
+  away:      SceneOccupant[]
   fixtures:  SceneFixture[]
 }
 
