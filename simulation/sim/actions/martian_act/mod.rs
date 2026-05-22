@@ -1,0 +1,108 @@
+pub mod seal_pressure_dome;
+pub mod check_dome_seal;
+pub mod repressurize_dome;
+pub mod check_dust_filter;
+pub mod clean_dust_filter;
+pub mod shovel_dust_drift;
+pub mod sweep_solar_array;
+pub mod deploy_rover;
+pub mod charge_rover;
+pub mod charge_drone;
+pub mod drill_ice_core;
+pub mod drill_core_sample;
+pub mod analyze_core_sample;
+pub mod melt_ice;
+pub mod harvest_ice;
+pub mod greenhouse_irrigate;
+pub mod greenhouse_pollinate;
+pub mod greenhouse_harvest;
+pub mod seed_terraform_lichen;
+pub mod seed_terraform_grass;
+pub mod release_engineered_microbe;
+pub mod monitor_atmospheric_pressure;
+pub mod monitor_atmospheric_co2;
+pub mod monitor_atmospheric_o2;
+pub mod monitor_atmospheric_n2;
+pub mod install_radiator;
+pub mod install_heater;
+pub mod install_solar_array;
+pub mod install_nuclear_pile;
+pub mod install_battery_bank;
+pub mod bury_dome_in_regolith;
+pub mod reinforce_dome;
+pub mod inflate_module;
+pub mod deflate_module;
+pub mod mothball_module;
+pub mod scout_lava_tube;
+pub mod explore_lava_tube;
+pub mod map_lava_tube;
+pub mod establish_lava_tube_camp;
+pub mod connect_lava_tube_tunnel;
+pub mod haul_regolith;
+pub mod bake_regolith;
+pub mod print_regolith_brick;
+pub mod print_regolith_panel;
+pub mod print_regolith_dome;
+pub mod fix_rover;
+pub mod patch_suit;
+pub mod charge_suit;
+pub mod recycle_air;
+pub mod recycle_water;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        4800 => seal_pressure_dome::apply(ctx),
+        4801 => check_dome_seal::apply(ctx),
+        4802 => repressurize_dome::apply(ctx),
+        4803 => check_dust_filter::apply(ctx),
+        4804 => clean_dust_filter::apply(ctx),
+        4805 => shovel_dust_drift::apply(ctx),
+        4806 => sweep_solar_array::apply(ctx),
+        4807 => deploy_rover::apply(ctx),
+        4808 => charge_rover::apply(ctx),
+        4809 => charge_drone::apply(ctx),
+        4810 => drill_ice_core::apply(ctx),
+        4811 => drill_core_sample::apply(ctx),
+        4812 => analyze_core_sample::apply(ctx),
+        4813 => melt_ice::apply(ctx),
+        4814 => harvest_ice::apply(ctx),
+        4815 => greenhouse_irrigate::apply(ctx),
+        4816 => greenhouse_pollinate::apply(ctx),
+        4817 => greenhouse_harvest::apply(ctx),
+        4818 => seed_terraform_lichen::apply(ctx),
+        4819 => seed_terraform_grass::apply(ctx),
+        4820 => release_engineered_microbe::apply(ctx),
+        4821 => monitor_atmospheric_pressure::apply(ctx),
+        4822 => monitor_atmospheric_co2::apply(ctx),
+        4823 => monitor_atmospheric_o2::apply(ctx),
+        4824 => monitor_atmospheric_n2::apply(ctx),
+        4825 => install_radiator::apply(ctx),
+        4826 => install_heater::apply(ctx),
+        4827 => install_solar_array::apply(ctx),
+        4828 => install_nuclear_pile::apply(ctx),
+        4829 => install_battery_bank::apply(ctx),
+        4830 => bury_dome_in_regolith::apply(ctx),
+        4831 => reinforce_dome::apply(ctx),
+        4832 => inflate_module::apply(ctx),
+        4833 => deflate_module::apply(ctx),
+        4834 => mothball_module::apply(ctx),
+        4835 => scout_lava_tube::apply(ctx),
+        4836 => explore_lava_tube::apply(ctx),
+        4837 => map_lava_tube::apply(ctx),
+        4838 => establish_lava_tube_camp::apply(ctx),
+        4839 => connect_lava_tube_tunnel::apply(ctx),
+        4840 => haul_regolith::apply(ctx),
+        4841 => bake_regolith::apply(ctx),
+        4842 => print_regolith_brick::apply(ctx),
+        4843 => print_regolith_panel::apply(ctx),
+        4844 => print_regolith_dome::apply(ctx),
+        4845 => fix_rover::apply(ctx),
+        4846 => patch_suit::apply(ctx),
+        4847 => charge_suit::apply(ctx),
+        4848 => recycle_air::apply(ctx),
+        4849 => recycle_water::apply(ctx),
+        _   => 0.0,
+    }
+}
