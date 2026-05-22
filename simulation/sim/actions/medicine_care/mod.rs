@@ -1,0 +1,108 @@
+pub mod set_bone;
+pub mod splint_limb;
+pub mod sling_arm;
+pub mod bind_wound;
+pub mod cleanse_cut;
+pub mod cauterize_wound;
+pub mod stitch_wound;
+pub mod bandage_head;
+pub mod bandage_torso;
+pub mod apply_poultice;
+pub mod draw_pus;
+pub mod bleed_patient;
+pub mod apply_leech;
+pub mod apply_cupping;
+pub mod rub_balm;
+pub mod rub_oil;
+pub mod massage_back;
+pub mod massage_feet;
+pub mod massage_shoulders;
+pub mod steam_breath;
+pub mod honey_throat;
+pub mod ginger_tea;
+pub mod willow_bark;
+pub mod fever_compress;
+pub mod cold_compress;
+pub mod warm_compress;
+pub mod mustard_plaster;
+pub mod sage_smoke;
+pub mod incense_bedside;
+pub mod chamomile_tea;
+pub mod feverfew_chew;
+pub mod elderberry_syrup;
+pub mod garlic_press;
+pub mod echinacea_tea;
+pub mod calendula_balm;
+pub mod comfrey_paste;
+pub mod arnica_rub;
+pub mod clay_pack;
+pub mod mud_wrap;
+pub mod salt_bath;
+pub mod herbal_bath;
+pub mod aromatic_steam;
+pub mod guided_breath;
+pub mod calming_chant;
+pub mod rocking_chair_kid;
+pub mod swaddle_baby;
+pub mod teach_to_walk;
+pub mod feed_invalid;
+pub mod spoon_broth;
+pub mod wipe_brow;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        1320 => set_bone::apply(ctx),
+        1321 => splint_limb::apply(ctx),
+        1322 => sling_arm::apply(ctx),
+        1323 => bind_wound::apply(ctx),
+        1324 => cleanse_cut::apply(ctx),
+        1325 => cauterize_wound::apply(ctx),
+        1326 => stitch_wound::apply(ctx),
+        1327 => bandage_head::apply(ctx),
+        1328 => bandage_torso::apply(ctx),
+        1329 => apply_poultice::apply(ctx),
+        1330 => draw_pus::apply(ctx),
+        1331 => bleed_patient::apply(ctx),
+        1332 => apply_leech::apply(ctx),
+        1333 => apply_cupping::apply(ctx),
+        1334 => rub_balm::apply(ctx),
+        1335 => rub_oil::apply(ctx),
+        1336 => massage_back::apply(ctx),
+        1337 => massage_feet::apply(ctx),
+        1338 => massage_shoulders::apply(ctx),
+        1339 => steam_breath::apply(ctx),
+        1340 => honey_throat::apply(ctx),
+        1341 => ginger_tea::apply(ctx),
+        1342 => willow_bark::apply(ctx),
+        1343 => fever_compress::apply(ctx),
+        1344 => cold_compress::apply(ctx),
+        1345 => warm_compress::apply(ctx),
+        1346 => mustard_plaster::apply(ctx),
+        1347 => sage_smoke::apply(ctx),
+        1348 => incense_bedside::apply(ctx),
+        1349 => chamomile_tea::apply(ctx),
+        1350 => feverfew_chew::apply(ctx),
+        1351 => elderberry_syrup::apply(ctx),
+        1352 => garlic_press::apply(ctx),
+        1353 => echinacea_tea::apply(ctx),
+        1354 => calendula_balm::apply(ctx),
+        1355 => comfrey_paste::apply(ctx),
+        1356 => arnica_rub::apply(ctx),
+        1357 => clay_pack::apply(ctx),
+        1358 => mud_wrap::apply(ctx),
+        1359 => salt_bath::apply(ctx),
+        1360 => herbal_bath::apply(ctx),
+        1361 => aromatic_steam::apply(ctx),
+        1362 => guided_breath::apply(ctx),
+        1363 => calming_chant::apply(ctx),
+        1364 => rocking_chair_kid::apply(ctx),
+        1365 => swaddle_baby::apply(ctx),
+        1366 => teach_to_walk::apply(ctx),
+        1367 => feed_invalid::apply(ctx),
+        1368 => spoon_broth::apply(ctx),
+        1369 => wipe_brow::apply(ctx),
+        _   => 0.0,
+    }
+}
