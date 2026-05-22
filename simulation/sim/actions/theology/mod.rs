@@ -1,0 +1,108 @@
+pub mod meditate_on_creation;
+pub mod meditate_on_void;
+pub mod meditate_on_unity;
+pub mod meditate_on_duality;
+pub mod meditate_on_trinity;
+pub mod contemplate_first_cause;
+pub mod contemplate_final_end;
+pub mod contemplate_eternal_return;
+pub mod contemplate_judgment;
+pub mod contemplate_mercy;
+pub mod pray_for_lineage;
+pub mod pray_for_enemy;
+pub mod pray_for_traveler;
+pub mod pray_for_dying;
+pub mod pray_for_unborn;
+pub mod pray_for_harvest;
+pub mod pray_for_rain;
+pub mod pray_for_sun;
+pub mod pray_for_safety;
+pub mod pray_for_peace;
+pub mod confess_sin;
+pub mod confess_to_priest;
+pub mod confess_to_kin;
+pub mod confess_to_elder;
+pub mod confess_silent;
+pub mod do_penance;
+pub mod do_pilgrimage;
+pub mod do_almsgiving;
+pub mod do_vigil;
+pub mod do_fast;
+pub mod bless_first_grain;
+pub mod bless_first_loaf;
+pub mod bless_first_wine;
+pub mod bless_first_brick;
+pub mod bless_first_blade;
+pub mod consecrate_altar;
+pub mod consecrate_temple;
+pub mod consecrate_idol;
+pub mod consecrate_relic;
+pub mod consecrate_water;
+pub mod invoke_protector;
+pub mod invoke_giver;
+pub mod invoke_judge;
+pub mod invoke_witness;
+pub mod invoke_ancestor;
+pub mod recite_sacred_name;
+pub mod recite_creed;
+pub mod recite_litany;
+pub mod recite_psalm;
+pub mod recite_canticle;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        2760 => meditate_on_creation::apply(ctx),
+        2761 => meditate_on_void::apply(ctx),
+        2762 => meditate_on_unity::apply(ctx),
+        2763 => meditate_on_duality::apply(ctx),
+        2764 => meditate_on_trinity::apply(ctx),
+        2765 => contemplate_first_cause::apply(ctx),
+        2766 => contemplate_final_end::apply(ctx),
+        2767 => contemplate_eternal_return::apply(ctx),
+        2768 => contemplate_judgment::apply(ctx),
+        2769 => contemplate_mercy::apply(ctx),
+        2770 => pray_for_lineage::apply(ctx),
+        2771 => pray_for_enemy::apply(ctx),
+        2772 => pray_for_traveler::apply(ctx),
+        2773 => pray_for_dying::apply(ctx),
+        2774 => pray_for_unborn::apply(ctx),
+        2775 => pray_for_harvest::apply(ctx),
+        2776 => pray_for_rain::apply(ctx),
+        2777 => pray_for_sun::apply(ctx),
+        2778 => pray_for_safety::apply(ctx),
+        2779 => pray_for_peace::apply(ctx),
+        2780 => confess_sin::apply(ctx),
+        2781 => confess_to_priest::apply(ctx),
+        2782 => confess_to_kin::apply(ctx),
+        2783 => confess_to_elder::apply(ctx),
+        2784 => confess_silent::apply(ctx),
+        2785 => do_penance::apply(ctx),
+        2786 => do_pilgrimage::apply(ctx),
+        2787 => do_almsgiving::apply(ctx),
+        2788 => do_vigil::apply(ctx),
+        2789 => do_fast::apply(ctx),
+        2790 => bless_first_grain::apply(ctx),
+        2791 => bless_first_loaf::apply(ctx),
+        2792 => bless_first_wine::apply(ctx),
+        2793 => bless_first_brick::apply(ctx),
+        2794 => bless_first_blade::apply(ctx),
+        2795 => consecrate_altar::apply(ctx),
+        2796 => consecrate_temple::apply(ctx),
+        2797 => consecrate_idol::apply(ctx),
+        2798 => consecrate_relic::apply(ctx),
+        2799 => consecrate_water::apply(ctx),
+        2800 => invoke_protector::apply(ctx),
+        2801 => invoke_giver::apply(ctx),
+        2802 => invoke_judge::apply(ctx),
+        2803 => invoke_witness::apply(ctx),
+        2804 => invoke_ancestor::apply(ctx),
+        2805 => recite_sacred_name::apply(ctx),
+        2806 => recite_creed::apply(ctx),
+        2807 => recite_litany::apply(ctx),
+        2808 => recite_psalm::apply(ctx),
+        2809 => recite_canticle::apply(ctx),
+        _   => 0.0,
+    }
+}
