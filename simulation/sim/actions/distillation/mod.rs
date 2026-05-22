@@ -1,0 +1,108 @@
+pub mod mash_grain;
+pub mod ferment_mash;
+pub mod distill_wash;
+pub mod distill_strip;
+pub mod distill_spirit;
+pub mod cut_heads;
+pub mod cut_hearts;
+pub mod cut_tails;
+pub mod dilute_to_proof;
+pub mod barrel_age;
+pub mod rack_barrel;
+pub mod finish_barrel;
+pub mod blend_barrels;
+pub mod filter_carbon_chill;
+pub mod bottle_proof;
+pub mod cork_bottle;
+pub mod wax_bottle;
+pub mod label_bottle;
+pub mod stamp_bottle;
+pub mod pack_case;
+pub mod monitor_mash_temp;
+pub mod monitor_fermentation;
+pub mod monitor_wash_specific;
+pub mod monitor_distillate_temperature;
+pub mod monitor_proof;
+pub mod calibrate_hydrometer;
+pub mod calibrate_thermometer_distill;
+pub mod clean_still;
+pub mod pickle_still;
+pub mod polish_still;
+pub mod weigh_grain;
+pub mod weigh_yeast;
+pub mod pitch_yeast;
+pub mod aerate_wort;
+pub mod dose_nutrient;
+pub mod recirculate_mash;
+pub mod sparge_mash;
+pub mod drain_wort;
+pub mod top_off_wash;
+pub mod rest_mash;
+pub mod rake_mash;
+pub mod stir_mash;
+pub mod test_iodine;
+pub mod test_starch;
+pub mod taste_wort;
+pub mod schedule_run;
+pub mod start_run;
+pub mod stop_run;
+pub mod vent_run;
+pub mod condense_run;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        5880 => mash_grain::apply(ctx),
+        5881 => ferment_mash::apply(ctx),
+        5882 => distill_wash::apply(ctx),
+        5883 => distill_strip::apply(ctx),
+        5884 => distill_spirit::apply(ctx),
+        5885 => cut_heads::apply(ctx),
+        5886 => cut_hearts::apply(ctx),
+        5887 => cut_tails::apply(ctx),
+        5888 => dilute_to_proof::apply(ctx),
+        5889 => barrel_age::apply(ctx),
+        5890 => rack_barrel::apply(ctx),
+        5891 => finish_barrel::apply(ctx),
+        5892 => blend_barrels::apply(ctx),
+        5893 => filter_carbon_chill::apply(ctx),
+        5894 => bottle_proof::apply(ctx),
+        5895 => cork_bottle::apply(ctx),
+        5896 => wax_bottle::apply(ctx),
+        5897 => label_bottle::apply(ctx),
+        5898 => stamp_bottle::apply(ctx),
+        5899 => pack_case::apply(ctx),
+        5900 => monitor_mash_temp::apply(ctx),
+        5901 => monitor_fermentation::apply(ctx),
+        5902 => monitor_wash_specific::apply(ctx),
+        5903 => monitor_distillate_temperature::apply(ctx),
+        5904 => monitor_proof::apply(ctx),
+        5905 => calibrate_hydrometer::apply(ctx),
+        5906 => calibrate_thermometer_distill::apply(ctx),
+        5907 => clean_still::apply(ctx),
+        5908 => pickle_still::apply(ctx),
+        5909 => polish_still::apply(ctx),
+        5910 => weigh_grain::apply(ctx),
+        5911 => weigh_yeast::apply(ctx),
+        5912 => pitch_yeast::apply(ctx),
+        5913 => aerate_wort::apply(ctx),
+        5914 => dose_nutrient::apply(ctx),
+        5915 => recirculate_mash::apply(ctx),
+        5916 => sparge_mash::apply(ctx),
+        5917 => drain_wort::apply(ctx),
+        5918 => top_off_wash::apply(ctx),
+        5919 => rest_mash::apply(ctx),
+        5920 => rake_mash::apply(ctx),
+        5921 => stir_mash::apply(ctx),
+        5922 => test_iodine::apply(ctx),
+        5923 => test_starch::apply(ctx),
+        5924 => taste_wort::apply(ctx),
+        5925 => schedule_run::apply(ctx),
+        5926 => start_run::apply(ctx),
+        5927 => stop_run::apply(ctx),
+        5928 => vent_run::apply(ctx),
+        5929 => condense_run::apply(ctx),
+        _   => 0.0,
+    }
+}
