@@ -1,0 +1,108 @@
+pub mod check_seal;
+pub mod check_oxygen;
+pub mod check_hull;
+pub mod check_pressure;
+pub mod check_radiation;
+pub mod vent_atmosphere;
+pub mod repressurize_module;
+pub mod eva_walk;
+pub mod eva_anchor;
+pub mod eva_tether;
+pub mod rebound_jet;
+pub mod attitude_burn;
+pub mod orbital_burn;
+pub mod rendezvous_burn;
+pub mod docking_burn;
+pub mod station_dock;
+pub mod undock_module;
+pub mod rotate_module;
+pub mod power_down_module;
+pub mod power_up_module;
+pub mod reboot_subsystem;
+pub mod service_lifesupport;
+pub mod service_water;
+pub mod service_air;
+pub mod service_thermal;
+pub mod inventory_supply;
+pub mod rotate_crew;
+pub mod sleep_in_orbit;
+pub mod eat_in_orbit;
+pub mod drink_in_orbit;
+pub mod exercise_in_orbit;
+pub mod centrifuge_in_orbit;
+pub mod photograph_earth;
+pub mod photograph_aurora;
+pub mod photograph_storm;
+pub mod observe_crop_growth;
+pub mod observe_ice_flow;
+pub mod observe_dust_storm;
+pub mod observe_fire;
+pub mod observe_eruption;
+pub mod monitor_solar_wind;
+pub mod monitor_magnetosphere;
+pub mod monitor_radiation;
+pub mod monitor_micrometeoroid;
+pub mod monitor_traffic_space;
+pub mod patch_meteor_strike;
+pub mod patch_heat_shield;
+pub mod patch_radiator;
+pub mod patch_solar_panel;
+pub mod patch_coolant_leak;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        4740 => check_seal::apply(ctx),
+        4741 => check_oxygen::apply(ctx),
+        4742 => check_hull::apply(ctx),
+        4743 => check_pressure::apply(ctx),
+        4744 => check_radiation::apply(ctx),
+        4745 => vent_atmosphere::apply(ctx),
+        4746 => repressurize_module::apply(ctx),
+        4747 => eva_walk::apply(ctx),
+        4748 => eva_anchor::apply(ctx),
+        4749 => eva_tether::apply(ctx),
+        4750 => rebound_jet::apply(ctx),
+        4751 => attitude_burn::apply(ctx),
+        4752 => orbital_burn::apply(ctx),
+        4753 => rendezvous_burn::apply(ctx),
+        4754 => docking_burn::apply(ctx),
+        4755 => station_dock::apply(ctx),
+        4756 => undock_module::apply(ctx),
+        4757 => rotate_module::apply(ctx),
+        4758 => power_down_module::apply(ctx),
+        4759 => power_up_module::apply(ctx),
+        4760 => reboot_subsystem::apply(ctx),
+        4761 => service_lifesupport::apply(ctx),
+        4762 => service_water::apply(ctx),
+        4763 => service_air::apply(ctx),
+        4764 => service_thermal::apply(ctx),
+        4765 => inventory_supply::apply(ctx),
+        4766 => rotate_crew::apply(ctx),
+        4767 => sleep_in_orbit::apply(ctx),
+        4768 => eat_in_orbit::apply(ctx),
+        4769 => drink_in_orbit::apply(ctx),
+        4770 => exercise_in_orbit::apply(ctx),
+        4771 => centrifuge_in_orbit::apply(ctx),
+        4772 => photograph_earth::apply(ctx),
+        4773 => photograph_aurora::apply(ctx),
+        4774 => photograph_storm::apply(ctx),
+        4775 => observe_crop_growth::apply(ctx),
+        4776 => observe_ice_flow::apply(ctx),
+        4777 => observe_dust_storm::apply(ctx),
+        4778 => observe_fire::apply(ctx),
+        4779 => observe_eruption::apply(ctx),
+        4780 => monitor_solar_wind::apply(ctx),
+        4781 => monitor_magnetosphere::apply(ctx),
+        4782 => monitor_radiation::apply(ctx),
+        4783 => monitor_micrometeoroid::apply(ctx),
+        4784 => monitor_traffic_space::apply(ctx),
+        4785 => patch_meteor_strike::apply(ctx),
+        4786 => patch_heat_shield::apply(ctx),
+        4787 => patch_radiator::apply(ctx),
+        4788 => patch_solar_panel::apply(ctx),
+        4789 => patch_coolant_leak::apply(ctx),
+        _   => 0.0,
+    }
+}
