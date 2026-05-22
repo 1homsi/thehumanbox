@@ -1,0 +1,108 @@
+pub mod retted_flax2;
+pub mod brake_flax2;
+pub mod swingle_flax;
+pub mod hackle_flax;
+pub mod bleach_linen2;
+pub mod card_wool2;
+pub mod comb_wool2;
+pub mod sliver_wool;
+pub mod draw_wool;
+pub mod spin_wool_z;
+pub mod spin_wool_s;
+pub mod ply_wool;
+pub mod warp_loom;
+pub mod dress_loom;
+pub mod heddle_loom;
+pub mod shuttle_throw;
+pub mod beater_press;
+pub mod selvedge_secure;
+pub mod fringe_finish;
+pub mod hem_finish;
+pub mod shrink_full;
+pub mod waulk_full;
+pub mod beat_full;
+pub mod press_full;
+pub mod nap_full;
+pub mod shear_pile;
+pub mod crop_pile;
+pub mod back_brush;
+pub mod teaze_pile;
+pub mod gig_pile;
+pub mod natural_dye_alum;
+pub mod natural_dye_iron;
+pub mod natural_dye_copper;
+pub mod natural_dye_tin;
+pub mod natural_dye_chrome;
+pub mod fix_dye;
+pub mod fast_dye;
+pub mod scour_cloth;
+pub mod desize_cloth;
+pub mod degum_cloth;
+pub mod bleach_with_buttermilk;
+pub mod bleach_with_sun;
+pub mod bleach_with_dew;
+pub mod bleach_with_ash;
+pub mod bleach_with_chalk;
+pub mod starch_collar;
+pub mod starch_cuff;
+pub mod starch_lace;
+pub mod press_lace;
+pub mod iron_lace;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        3960 => retted_flax2::apply(ctx),
+        3961 => brake_flax2::apply(ctx),
+        3962 => swingle_flax::apply(ctx),
+        3963 => hackle_flax::apply(ctx),
+        3964 => bleach_linen2::apply(ctx),
+        3965 => card_wool2::apply(ctx),
+        3966 => comb_wool2::apply(ctx),
+        3967 => sliver_wool::apply(ctx),
+        3968 => draw_wool::apply(ctx),
+        3969 => spin_wool_z::apply(ctx),
+        3970 => spin_wool_s::apply(ctx),
+        3971 => ply_wool::apply(ctx),
+        3972 => warp_loom::apply(ctx),
+        3973 => dress_loom::apply(ctx),
+        3974 => heddle_loom::apply(ctx),
+        3975 => shuttle_throw::apply(ctx),
+        3976 => beater_press::apply(ctx),
+        3977 => selvedge_secure::apply(ctx),
+        3978 => fringe_finish::apply(ctx),
+        3979 => hem_finish::apply(ctx),
+        3980 => shrink_full::apply(ctx),
+        3981 => waulk_full::apply(ctx),
+        3982 => beat_full::apply(ctx),
+        3983 => press_full::apply(ctx),
+        3984 => nap_full::apply(ctx),
+        3985 => shear_pile::apply(ctx),
+        3986 => crop_pile::apply(ctx),
+        3987 => back_brush::apply(ctx),
+        3988 => teaze_pile::apply(ctx),
+        3989 => gig_pile::apply(ctx),
+        3990 => natural_dye_alum::apply(ctx),
+        3991 => natural_dye_iron::apply(ctx),
+        3992 => natural_dye_copper::apply(ctx),
+        3993 => natural_dye_tin::apply(ctx),
+        3994 => natural_dye_chrome::apply(ctx),
+        3995 => fix_dye::apply(ctx),
+        3996 => fast_dye::apply(ctx),
+        3997 => scour_cloth::apply(ctx),
+        3998 => desize_cloth::apply(ctx),
+        3999 => degum_cloth::apply(ctx),
+        4000 => bleach_with_buttermilk::apply(ctx),
+        4001 => bleach_with_sun::apply(ctx),
+        4002 => bleach_with_dew::apply(ctx),
+        4003 => bleach_with_ash::apply(ctx),
+        4004 => bleach_with_chalk::apply(ctx),
+        4005 => starch_collar::apply(ctx),
+        4006 => starch_cuff::apply(ctx),
+        4007 => starch_lace::apply(ctx),
+        4008 => press_lace::apply(ctx),
+        4009 => iron_lace::apply(ctx),
+        _   => 0.0,
+    }
+}
