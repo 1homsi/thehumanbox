@@ -1,0 +1,108 @@
+pub mod share_grief;
+pub mod share_joy;
+pub mod hold_silent_company;
+pub mod sit_with_dying;
+pub mod brush_hair_of_loved;
+pub mod read_to_partner;
+pub mod help_partner_dress;
+pub mod hold_hand_at_sickbed;
+pub mod hum_at_sickbed;
+pub mod wipe_brow_of_loved;
+pub mod rub_partner_back;
+pub mod wash_partner_feet;
+pub mod sing_to_baby;
+pub mod cradle_partner;
+pub mod kiss_forehead;
+pub mod hold_close_at_night;
+pub mod sleep_intertwined;
+pub mod hold_through_storm;
+pub mod steady_through_fight;
+pub mod stand_back_to_back;
+pub mod promise_at_dawn;
+pub mod renew_vows;
+pub mod reaffirm_oath;
+pub mod share_grandparent_story;
+pub mod share_childhood_memory;
+pub mod pass_down_pendant;
+pub mod pass_down_blade;
+pub mod pass_down_recipe;
+pub mod pass_down_song;
+pub mod pass_down_garden;
+pub mod pass_down_blessing;
+pub mod teach_kid_to_swim;
+pub mod teach_kid_to_ride;
+pub mod teach_kid_to_climb;
+pub mod teach_kid_to_fish;
+pub mod forgive_old_grudge;
+pub mod bury_old_quarrel;
+pub mod make_peace_with_kin;
+pub mod write_letter_to_lost_love;
+pub mod write_letter_to_estranged;
+pub mod mail_apology;
+pub mod accept_apology;
+pub mod rebuild_trust;
+pub mod rebuild_friendship;
+pub mod visit_old_friend;
+pub mod meet_for_first_time;
+pub mod exchange_tokens;
+pub mod trade_charms;
+pub mod tie_friendship_cord;
+pub mod knot_promise;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        2220 => share_grief::apply(ctx),
+        2221 => share_joy::apply(ctx),
+        2222 => hold_silent_company::apply(ctx),
+        2223 => sit_with_dying::apply(ctx),
+        2224 => brush_hair_of_loved::apply(ctx),
+        2225 => read_to_partner::apply(ctx),
+        2226 => help_partner_dress::apply(ctx),
+        2227 => hold_hand_at_sickbed::apply(ctx),
+        2228 => hum_at_sickbed::apply(ctx),
+        2229 => wipe_brow_of_loved::apply(ctx),
+        2230 => rub_partner_back::apply(ctx),
+        2231 => wash_partner_feet::apply(ctx),
+        2232 => sing_to_baby::apply(ctx),
+        2233 => cradle_partner::apply(ctx),
+        2234 => kiss_forehead::apply(ctx),
+        2235 => hold_close_at_night::apply(ctx),
+        2236 => sleep_intertwined::apply(ctx),
+        2237 => hold_through_storm::apply(ctx),
+        2238 => steady_through_fight::apply(ctx),
+        2239 => stand_back_to_back::apply(ctx),
+        2240 => promise_at_dawn::apply(ctx),
+        2241 => renew_vows::apply(ctx),
+        2242 => reaffirm_oath::apply(ctx),
+        2243 => share_grandparent_story::apply(ctx),
+        2244 => share_childhood_memory::apply(ctx),
+        2245 => pass_down_pendant::apply(ctx),
+        2246 => pass_down_blade::apply(ctx),
+        2247 => pass_down_recipe::apply(ctx),
+        2248 => pass_down_song::apply(ctx),
+        2249 => pass_down_garden::apply(ctx),
+        2250 => pass_down_blessing::apply(ctx),
+        2251 => teach_kid_to_swim::apply(ctx),
+        2252 => teach_kid_to_ride::apply(ctx),
+        2253 => teach_kid_to_climb::apply(ctx),
+        2254 => teach_kid_to_fish::apply(ctx),
+        2255 => forgive_old_grudge::apply(ctx),
+        2256 => bury_old_quarrel::apply(ctx),
+        2257 => make_peace_with_kin::apply(ctx),
+        2258 => write_letter_to_lost_love::apply(ctx),
+        2259 => write_letter_to_estranged::apply(ctx),
+        2260 => mail_apology::apply(ctx),
+        2261 => accept_apology::apply(ctx),
+        2262 => rebuild_trust::apply(ctx),
+        2263 => rebuild_friendship::apply(ctx),
+        2264 => visit_old_friend::apply(ctx),
+        2265 => meet_for_first_time::apply(ctx),
+        2266 => exchange_tokens::apply(ctx),
+        2267 => trade_charms::apply(ctx),
+        2268 => tie_friendship_cord::apply(ctx),
+        2269 => knot_promise::apply(ctx),
+        _   => 0.0,
+    }
+}
