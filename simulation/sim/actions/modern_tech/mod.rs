@@ -1,0 +1,108 @@
+pub mod check_clock_tower;
+pub mod wind_clock;
+pub mod set_clock;
+pub mod check_almanac;
+pub mod consult_calendar;
+pub mod use_abacus;
+pub mod operate_press;
+pub mod operate_loom;
+pub mod operate_wheel;
+pub mod spin_yarn;
+pub mod weave_basket;
+pub mod weave_mat;
+pub mod thresh_wheat_modern;
+pub mod operate_pulley;
+pub mod operate_crane;
+pub mod operate_telegraph;
+pub mod operate_telephone;
+pub mod operate_radio;
+pub mod operate_camera;
+pub mod operate_typewriter;
+pub mod drive_cart;
+pub mod drive_carriage;
+pub mod drive_auto;
+pub mod refuel_vehicle;
+pub mod clean_vehicle;
+pub mod charge_battery;
+pub mod start_engine;
+pub mod load_film;
+pub mod develop_film;
+pub mod print_photograph;
+pub mod listen_radio_news;
+pub mod read_newspaper;
+pub mod send_telegram;
+pub mod place_phone_call;
+pub mod snap_photograph;
+pub mod watch_show;
+pub mod watch_film;
+pub mod attend_screening;
+pub mod operate_projector;
+pub mod film_a_scene;
+pub mod rewind_reel;
+pub mod splice_film;
+pub mod calibrate_clock;
+pub mod calibrate_scale;
+pub mod tune_instrument;
+pub mod test_circuit;
+pub mod replace_bulb;
+pub mod replace_fuse;
+pub mod check_meter;
+pub mod solder_wire;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        840 => check_clock_tower::apply(ctx),
+        841 => wind_clock::apply(ctx),
+        842 => set_clock::apply(ctx),
+        843 => check_almanac::apply(ctx),
+        844 => consult_calendar::apply(ctx),
+        845 => use_abacus::apply(ctx),
+        846 => operate_press::apply(ctx),
+        847 => operate_loom::apply(ctx),
+        848 => operate_wheel::apply(ctx),
+        849 => spin_yarn::apply(ctx),
+        850 => weave_basket::apply(ctx),
+        851 => weave_mat::apply(ctx),
+        852 => thresh_wheat_modern::apply(ctx),
+        853 => operate_pulley::apply(ctx),
+        854 => operate_crane::apply(ctx),
+        855 => operate_telegraph::apply(ctx),
+        856 => operate_telephone::apply(ctx),
+        857 => operate_radio::apply(ctx),
+        858 => operate_camera::apply(ctx),
+        859 => operate_typewriter::apply(ctx),
+        860 => drive_cart::apply(ctx),
+        861 => drive_carriage::apply(ctx),
+        862 => drive_auto::apply(ctx),
+        863 => refuel_vehicle::apply(ctx),
+        864 => clean_vehicle::apply(ctx),
+        865 => charge_battery::apply(ctx),
+        866 => start_engine::apply(ctx),
+        867 => load_film::apply(ctx),
+        868 => develop_film::apply(ctx),
+        869 => print_photograph::apply(ctx),
+        870 => listen_radio_news::apply(ctx),
+        871 => read_newspaper::apply(ctx),
+        872 => send_telegram::apply(ctx),
+        873 => place_phone_call::apply(ctx),
+        874 => snap_photograph::apply(ctx),
+        875 => watch_show::apply(ctx),
+        876 => watch_film::apply(ctx),
+        877 => attend_screening::apply(ctx),
+        878 => operate_projector::apply(ctx),
+        879 => film_a_scene::apply(ctx),
+        880 => rewind_reel::apply(ctx),
+        881 => splice_film::apply(ctx),
+        882 => calibrate_clock::apply(ctx),
+        883 => calibrate_scale::apply(ctx),
+        884 => tune_instrument::apply(ctx),
+        885 => test_circuit::apply(ctx),
+        886 => replace_bulb::apply(ctx),
+        887 => replace_fuse::apply(ctx),
+        888 => check_meter::apply(ctx),
+        889 => solder_wire::apply(ctx),
+        _   => 0.0,
+    }
+}
