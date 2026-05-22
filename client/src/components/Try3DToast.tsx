@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useUIStore } from '../stores/store'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 const STORAGE_KEY = 'thb-try-3d-dismissed'
 const SHOW_DELAY_MS = 1500
@@ -7,11 +8,12 @@ const SHOW_DELAY_MS = 1500
 export function Try3DToast() {
   const threeD = useUIStore((s) => s.viewFlags.threeD)
   const setViewFlag = useUIStore((s) => s.setViewFlag)
+  const isMobile = useIsMobile()
   const [visible, setVisible] = useState(false)
   const [animateOut, setAnimateOut] = useState(false)
 
   useEffect(() => {
-    // localStorage may throw in private mode / iframes - fail safe.
+    if (isMobile) return
     let dismissed = false
     try { dismissed = window.localStorage.getItem(STORAGE_KEY) === '1' }
     catch { /* ignore */ }
@@ -19,9 +21,9 @@ export function Try3DToast() {
 
     const id = window.setTimeout(() => setVisible(true), SHOW_DELAY_MS)
     return () => window.clearTimeout(id)
-  }, [threeD])
+  }, [threeD, isMobile])
 
-  if (!visible) return null
+  if (isMobile || !visible) return null
 
   const persist = () => {
     try { window.localStorage.setItem(STORAGE_KEY, '1') }
