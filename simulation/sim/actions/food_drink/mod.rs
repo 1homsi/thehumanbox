@@ -1,0 +1,108 @@
+pub mod slow_roast_meat;
+pub mod smoke_fish;
+pub mod smoke_meat;
+pub mod cure_bacon;
+pub mod salt_fish;
+pub mod pickle_cucumber;
+pub mod pickle_egg;
+pub mod ferment_cabbage;
+pub mod ferment_kimchi;
+pub mod ferment_kvass;
+pub mod brew_cider;
+pub mod brew_mead;
+pub mod brew_wine_home;
+pub mod brew_ale;
+pub mod brew_porter;
+pub mod distill_brandy;
+pub mod distill_whiskey;
+pub mod blend_spice;
+pub mod grind_pepper;
+pub mod roast_coffee_beans;
+pub mod steep_tisane;
+pub mod infuse_oil;
+pub mod whip_cream;
+pub mod churn_butter;
+pub mod clot_cream;
+pub mod press_cheese;
+pub mod mold_cheese;
+pub mod age_cheese;
+pub mod boil_jam;
+pub mod roast_chestnuts;
+pub mod candy_fruit;
+pub mod dry_apricot;
+pub mod bake_pie;
+pub mod bake_tart;
+pub mod bake_pastry;
+pub mod fry_donut;
+pub mod fry_fritter;
+pub mod knead_pretzel;
+pub mod braid_challah;
+pub mod shape_baguette;
+pub mod glaze_pastry;
+pub mod pour_syrup;
+pub mod spin_sugar;
+pub mod boil_caramel;
+pub mod pull_taffy;
+pub mod toast_seed;
+pub mod crush_garlic;
+pub mod mince_herb;
+pub mod julienne_carrot;
+pub mod deglaze_pan;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        1140 => slow_roast_meat::apply(ctx),
+        1141 => smoke_fish::apply(ctx),
+        1142 => smoke_meat::apply(ctx),
+        1143 => cure_bacon::apply(ctx),
+        1144 => salt_fish::apply(ctx),
+        1145 => pickle_cucumber::apply(ctx),
+        1146 => pickle_egg::apply(ctx),
+        1147 => ferment_cabbage::apply(ctx),
+        1148 => ferment_kimchi::apply(ctx),
+        1149 => ferment_kvass::apply(ctx),
+        1150 => brew_cider::apply(ctx),
+        1151 => brew_mead::apply(ctx),
+        1152 => brew_wine_home::apply(ctx),
+        1153 => brew_ale::apply(ctx),
+        1154 => brew_porter::apply(ctx),
+        1155 => distill_brandy::apply(ctx),
+        1156 => distill_whiskey::apply(ctx),
+        1157 => blend_spice::apply(ctx),
+        1158 => grind_pepper::apply(ctx),
+        1159 => roast_coffee_beans::apply(ctx),
+        1160 => steep_tisane::apply(ctx),
+        1161 => infuse_oil::apply(ctx),
+        1162 => whip_cream::apply(ctx),
+        1163 => churn_butter::apply(ctx),
+        1164 => clot_cream::apply(ctx),
+        1165 => press_cheese::apply(ctx),
+        1166 => mold_cheese::apply(ctx),
+        1167 => age_cheese::apply(ctx),
+        1168 => boil_jam::apply(ctx),
+        1169 => roast_chestnuts::apply(ctx),
+        1170 => candy_fruit::apply(ctx),
+        1171 => dry_apricot::apply(ctx),
+        1172 => bake_pie::apply(ctx),
+        1173 => bake_tart::apply(ctx),
+        1174 => bake_pastry::apply(ctx),
+        1175 => fry_donut::apply(ctx),
+        1176 => fry_fritter::apply(ctx),
+        1177 => knead_pretzel::apply(ctx),
+        1178 => braid_challah::apply(ctx),
+        1179 => shape_baguette::apply(ctx),
+        1180 => glaze_pastry::apply(ctx),
+        1181 => pour_syrup::apply(ctx),
+        1182 => spin_sugar::apply(ctx),
+        1183 => boil_caramel::apply(ctx),
+        1184 => pull_taffy::apply(ctx),
+        1185 => toast_seed::apply(ctx),
+        1186 => crush_garlic::apply(ctx),
+        1187 => mince_herb::apply(ctx),
+        1188 => julienne_carrot::apply(ctx),
+        1189 => deglaze_pan::apply(ctx),
+        _   => 0.0,
+    }
+}
