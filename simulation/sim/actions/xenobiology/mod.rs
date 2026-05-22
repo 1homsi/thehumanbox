@@ -1,0 +1,110 @@
+pub mod observe_extremophile;
+pub mod culture_extremophile;
+pub mod sequence_extremophile;
+pub mod feed_extremophile;
+pub mod breed_extremophile;
+pub mod catalog_alien_morphotype;
+pub mod sketch_alien_morphotype;
+pub mod photograph_alien_morphotype;
+pub mod dissect_specimen;
+pub mod mount_specimen_xeno;
+pub mod test_alien_metabolism;
+pub mod test_alien_genome;
+pub mod test_alien_protein;
+pub mod test_alien_membrane;
+pub mod test_alien_solvent;
+pub mod inoculate_alien_culture;
+pub mod passage_alien_culture;
+pub mod freeze_alien_culture;
+pub mod quarantine_specimen;
+pub mod decontaminate_specimen;
+pub mod isolate_pathogen;
+pub mod identify_pathogen;
+pub mod sequence_pathogen;
+pub mod treat_with_antibiotic;
+pub mod test_drug_combination;
+pub mod monitor_alien_microbiome;
+pub mod track_signal_pulse;
+pub mod decode_pulse;
+pub mod pattern;
+pub mod parse_pulse_pattern;
+pub mod correlate_pulse_pattern;
+pub mod attempt_communication;
+pub mod broadcast_simple_signal;
+pub mod listen_for_response;
+pub mod transcribe_alien_signal;
+pub mod analyze_alien_signal;
+pub mod build_morphology_atlas;
+pub mod build_biochem_atlas;
+pub mod build_metabolism_atlas;
+pub mod build_genome_atlas;
+pub mod build_signal_atlas;
+pub mod share_findings;
+pub mod publish_findings;
+pub mod teach_findings;
+pub mod archive_findings;
+pub mod cite_findings;
+pub mod collaborate_remote;
+pub mod collaborate_lab;
+pub mod collaborate_field;
+pub mod collaborate_orbital;
+pub mod collaborate_planet;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        4860 => observe_extremophile::apply(ctx),
+        4861 => culture_extremophile::apply(ctx),
+        4862 => sequence_extremophile::apply(ctx),
+        4863 => feed_extremophile::apply(ctx),
+        4864 => breed_extremophile::apply(ctx),
+        4865 => catalog_alien_morphotype::apply(ctx),
+        4866 => sketch_alien_morphotype::apply(ctx),
+        4867 => photograph_alien_morphotype::apply(ctx),
+        4868 => dissect_specimen::apply(ctx),
+        4869 => mount_specimen_xeno::apply(ctx),
+        4870 => test_alien_metabolism::apply(ctx),
+        4871 => test_alien_genome::apply(ctx),
+        4872 => test_alien_protein::apply(ctx),
+        4873 => test_alien_membrane::apply(ctx),
+        4874 => test_alien_solvent::apply(ctx),
+        4875 => inoculate_alien_culture::apply(ctx),
+        4876 => passage_alien_culture::apply(ctx),
+        4877 => freeze_alien_culture::apply(ctx),
+        4878 => quarantine_specimen::apply(ctx),
+        4879 => decontaminate_specimen::apply(ctx),
+        4880 => isolate_pathogen::apply(ctx),
+        4881 => identify_pathogen::apply(ctx),
+        4882 => sequence_pathogen::apply(ctx),
+        4883 => treat_with_antibiotic::apply(ctx),
+        4884 => test_drug_combination::apply(ctx),
+        4885 => monitor_alien_microbiome::apply(ctx),
+        4886 => track_signal_pulse::apply(ctx),
+        4887 => decode_pulse::apply(ctx),
+        4888 => pattern::apply(ctx),
+        4889 => parse_pulse_pattern::apply(ctx),
+        4890 => correlate_pulse_pattern::apply(ctx),
+        4891 => attempt_communication::apply(ctx),
+        4892 => broadcast_simple_signal::apply(ctx),
+        4893 => listen_for_response::apply(ctx),
+        4894 => transcribe_alien_signal::apply(ctx),
+        4895 => analyze_alien_signal::apply(ctx),
+        4896 => build_morphology_atlas::apply(ctx),
+        4897 => build_biochem_atlas::apply(ctx),
+        4898 => build_metabolism_atlas::apply(ctx),
+        4899 => build_genome_atlas::apply(ctx),
+        4900 => build_signal_atlas::apply(ctx),
+        4901 => share_findings::apply(ctx),
+        4902 => publish_findings::apply(ctx),
+        4903 => teach_findings::apply(ctx),
+        4904 => archive_findings::apply(ctx),
+        4905 => cite_findings::apply(ctx),
+        4906 => collaborate_remote::apply(ctx),
+        4907 => collaborate_lab::apply(ctx),
+        4908 => collaborate_field::apply(ctx),
+        4909 => collaborate_orbital::apply(ctx),
+        4910 => collaborate_planet::apply(ctx),
+        _   => 0.0,
+    }
+}
