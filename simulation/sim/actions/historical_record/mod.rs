@@ -1,0 +1,108 @@
+pub mod scribe_event;
+pub mod scribe_date;
+pub mod scribe_witnesses;
+pub mod scribe_outcome;
+pub mod scribe_consequence;
+pub mod cross_reference_event;
+pub mod cross_reference_actor;
+pub mod cross_reference_place;
+pub mod cross_reference_treaty;
+pub mod cross_reference_law;
+pub mod copy_codex_history;
+pub mod copy_chronicle;
+pub mod copy_journal;
+pub mod copy_letter;
+pub mod copy_archive;
+pub mod bind_record_volume;
+pub mod index_record_volume;
+pub mod tag_record_volume;
+pub mod shelf_record_volume;
+pub mod vault_record_volume;
+pub mod date_record;
+pub mod fingerprint_record;
+pub mod provenance_record;
+pub mod authenticate_record;
+pub mod corroborate_record;
+pub mod interview_eyewitness;
+pub mod transcribe_eyewitness;
+pub mod translate_eyewitness;
+pub mod annotate_eyewitness;
+pub mod preserve_eyewitness;
+pub mod rescue_burnt_record;
+pub mod rescue_water_damaged;
+pub mod rescue_mildewed;
+pub mod restore_paper;
+pub mod restore_parchment;
+pub mod copy_inscription;
+pub mod rub_inscription;
+pub mod photograph_inscription;
+pub mod cast_inscription;
+pub mod preserve_inscription;
+pub mod reconcile_records;
+pub mod reconcile_dates;
+pub mod reconcile_actors;
+pub mod reconcile_places;
+pub mod reconcile_outcomes;
+pub mod publish_chronicle;
+pub mod publish_compendium;
+pub mod publish_anthology;
+pub mod publish_index;
+pub mod publish_history;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        5160 => scribe_event::apply(ctx),
+        5161 => scribe_date::apply(ctx),
+        5162 => scribe_witnesses::apply(ctx),
+        5163 => scribe_outcome::apply(ctx),
+        5164 => scribe_consequence::apply(ctx),
+        5165 => cross_reference_event::apply(ctx),
+        5166 => cross_reference_actor::apply(ctx),
+        5167 => cross_reference_place::apply(ctx),
+        5168 => cross_reference_treaty::apply(ctx),
+        5169 => cross_reference_law::apply(ctx),
+        5170 => copy_codex_history::apply(ctx),
+        5171 => copy_chronicle::apply(ctx),
+        5172 => copy_journal::apply(ctx),
+        5173 => copy_letter::apply(ctx),
+        5174 => copy_archive::apply(ctx),
+        5175 => bind_record_volume::apply(ctx),
+        5176 => index_record_volume::apply(ctx),
+        5177 => tag_record_volume::apply(ctx),
+        5178 => shelf_record_volume::apply(ctx),
+        5179 => vault_record_volume::apply(ctx),
+        5180 => date_record::apply(ctx),
+        5181 => fingerprint_record::apply(ctx),
+        5182 => provenance_record::apply(ctx),
+        5183 => authenticate_record::apply(ctx),
+        5184 => corroborate_record::apply(ctx),
+        5185 => interview_eyewitness::apply(ctx),
+        5186 => transcribe_eyewitness::apply(ctx),
+        5187 => translate_eyewitness::apply(ctx),
+        5188 => annotate_eyewitness::apply(ctx),
+        5189 => preserve_eyewitness::apply(ctx),
+        5190 => rescue_burnt_record::apply(ctx),
+        5191 => rescue_water_damaged::apply(ctx),
+        5192 => rescue_mildewed::apply(ctx),
+        5193 => restore_paper::apply(ctx),
+        5194 => restore_parchment::apply(ctx),
+        5195 => copy_inscription::apply(ctx),
+        5196 => rub_inscription::apply(ctx),
+        5197 => photograph_inscription::apply(ctx),
+        5198 => cast_inscription::apply(ctx),
+        5199 => preserve_inscription::apply(ctx),
+        5200 => reconcile_records::apply(ctx),
+        5201 => reconcile_dates::apply(ctx),
+        5202 => reconcile_actors::apply(ctx),
+        5203 => reconcile_places::apply(ctx),
+        5204 => reconcile_outcomes::apply(ctx),
+        5205 => publish_chronicle::apply(ctx),
+        5206 => publish_compendium::apply(ctx),
+        5207 => publish_anthology::apply(ctx),
+        5208 => publish_index::apply(ctx),
+        5209 => publish_history::apply(ctx),
+        _   => 0.0,
+    }
+}
