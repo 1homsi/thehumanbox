@@ -48,6 +48,8 @@ export interface OrganismState {
   home_y:      number
   discoveries: string[]
   is_elder:    boolean
+  is_leader?:  boolean
+  tools?:      Record<string, number>
   loneliness?:  number
   boredom?:     number
   fear_level?:  number
@@ -83,20 +85,24 @@ export interface OrganismState {
 }
 
 export interface ReligionInfo {
-  id:         string
-  name:       string
-  adherents?: number
-  deity?:     string
-  lineage_id?: string
+  id:               string
+  name:             string
+  adherents?:       number
+  deity?:           string
+  lineage_id?:      string
+  kind?:            string
+  founder_lineage?: string
 }
 
 export interface BookInfo {
-  id?:        string
-  title:      string
-  author_id?: string
-  topic?:     string
-  tick?:      number
-  lineage_id?: string
+  id?:          string
+  title:        string
+  author_id?:   string
+  author_name?: string
+  topic?:       string
+  tick?:        number
+  lineage_id?:  string
+  copies?:      number
 }
 
 export interface HeadlineInfo {

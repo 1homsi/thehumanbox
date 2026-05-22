@@ -21,7 +21,7 @@ interface OrgPrediction {
   targetY: number | undefined
 }
 
-interface AnimalPrediction extends OrgPrediction {}
+type AnimalPrediction = OrgPrediction
 
 const orgState    = new Map<string, OrgPrediction>()
 const animalState = new Map<number, AnimalPrediction>()

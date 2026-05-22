@@ -88,8 +88,8 @@ export const ATLAS_PEOPLE   = loadAtlas('/sprites/people/people.svg')
 
 export const PEOPLE_CELL = 32
 export const PEOPLE_COLS = 4
-export type AgeStage = 'infant' | 'child' | 'teen' | 'adult'
-const STAGE_ROW: Record<AgeStage, number> = { infant: 0, child: 1, teen: 2, adult: 3 }
+export type AgeStage = 'infant' | 'child' | 'teen' | 'adult' | 'elder'
+const STAGE_ROW: Record<AgeStage, number> = { infant: 0, child: 1, teen: 2, adult: 3, elder: 3 }
 
 export function pickHumanSprite(sex: 'male' | 'female', stage: AgeStage, frame: number): Tile {
   const sexOffset = sex === 'female' ? 4 : 0

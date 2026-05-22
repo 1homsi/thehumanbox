@@ -1,13 +1,11 @@
 import { useEffect, useRef } from 'react'
 import { cameraSnapshot } from './camera-state'
 
-interface Props {}
-
 const COMPASS_W = 220
 const COMPASS_H = 22
 const TWO_PI = Math.PI * 2
 
-export function WorldHud({}: Props) {
+export function WorldHud() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rafRef    = useRef<number>(0)
 

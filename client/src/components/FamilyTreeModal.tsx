@@ -70,16 +70,14 @@ function layoutTree(orgs: OrganismState[]): { nodes: NodePos[]; w: number; h: nu
   let root: d3HierarchyNode<OrganismState>
   try {
     root = stratify(allNodes)
-  } catch (_e) {
+  } catch {
     root = d3.hierarchy<OrganismState>(synthetic, n => {
       if (n.id === SYNTHETIC_ROOT) return orgs
       return []
     })
   }
 
-  d3.tree<OrganismState>()
-    .nodeSize([NODE_SEP, ROW_H])
-    (root)
+  d3.tree<OrganismState>().nodeSize([NODE_SEP, ROW_H])(root)
 
   const nodes: NodePos[] = []
   let minX = Infinity, maxX = -Infinity, maxGen = 0

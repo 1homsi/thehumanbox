@@ -35,7 +35,6 @@ function paintTile(
     for (let px = 0; px < TILE; px++) {
       const x = px, y = py
       let r = 1.0, g = 1.0, b = 1.0
-      let bumpStr = 0.5
 
       const lo  = noise(x / 32, y / 32, variant) * 0.55
       const mid = noise(x / 12, y / 12, variant + 7) * 0.30
@@ -43,7 +42,7 @@ function paintTile(
       const n = lo + mid + hi
       const grit = noise(x / 2.5, y / 2.5, variant + 23) * 0.7
                  + noise(x / 6,   y / 6,   variant + 29) * 0.3
-      bumpStr = grit
+      let bumpStr = grit
 
       switch (variant) {
         case 0: {

@@ -165,7 +165,7 @@ function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
           x: camera.position.x, y: camera.position.y, z: camera.position.z,
           rx: camera.rotation.x, ry: camera.rotation.y,
         }))
-      } catch { }
+      } catch { /* ignore */ }
     }
   })
   return null
@@ -211,7 +211,7 @@ export default function WorldView3D({ world }: Props) {
       const live = (world.viewport_organisms ?? world.organisms ?? [])
         .some(o => o.id === id && o.alive)
       if (live) selectOrgStore(id)
-    } catch { }
+    } catch { /* ignore */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [!!world])
 
@@ -219,7 +219,7 @@ export default function WorldView3D({ world }: Props) {
     try {
       if (selectedOrgId) localStorage.setItem(SEL_LS_KEY, selectedOrgId)
       else               localStorage.removeItem(SEL_LS_KEY)
-    } catch { }
+    } catch { /* ignore */ }
   }, [selectedOrgId])
 
   const didInitialAimRef = useRef(false)
@@ -231,7 +231,7 @@ export default function WorldView3D({ world }: Props) {
     let hasSaved = false
     try {
       hasSaved = !!localStorage.getItem('thb-3d-cam-v1')
-    } catch { }
+    } catch { /* ignore */ }
     if (hasSaved) { didInitialAimRef.current = true; return }
     const cx = live.reduce((s, o) => s + o.x, 0) / live.length
     const cy = live.reduce((s, o) => s + o.y, 0) / live.length
