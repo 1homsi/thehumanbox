@@ -105,6 +105,82 @@ impl Organism {
             set_thought!("hungry - searching");
         }
 
+        let needs_easy = self.hydration > 0.55 && self.energy > 0.50 && self.health > 0.55;
+        let dist_home  = (self.x - self.home_x).abs() + (self.y - self.home_y).abs();
+        let at_home_zone = dist_home < 6.0;
+        let in_shelter = self.near_shelter(grid);
+
+        // Smart shelter-building loop. The passive structure-deposit
+        // in simulation.rs only fires while an org happens to be
+        // carrying wood; without an explicit "I should build shelter
+        // now" drive, lineages spend hundreds of in-world days with
+        // exactly one hut. This block forces the loop: when needs
+        // are met and we're near home, either (a) walk to the home
+        // tile to deposit what we're carrying, or (b) go gather more
+        // wood from the nearest grass/forest patch.
+        if needs_easy && !night && !fire_dangerous {
+            if self.carrying > 0 && self.carrying_type != 2 {
+                if at_home_zone {
+                    let hx = self.home_x as i32;
+                    let hy = self.home_y as i32;
+                    let on_home = ix == hx && iy == hy;
+                    if !on_home {
+                        set_thought!("building shelter");
+                        return (self.toward((hx, hy), grid), thought);
+                    }
+                    set_thought!("packing shelter");
+                    return (17, thought);
+                }
+                if dist_home < 60.0 {
+                    set_thought!("carrying wood home");
+                    return (self.toward((self.home_x as i32, self.home_y as i32), grid), thought);
+                }
+            }
+            if self.carrying == 0
+               && !in_shelter
+               && self.energy > 0.55
+               && self.hydration > 0.55
+               && rng.gen::<f32>() < 0.25 + 0.20 * self.traits.curiosity
+            {
+                let gather_target = self.nearest_visible(grid, Tile::Grass, 10)
+                    .or_else(|| self.nearest_visible(grid, Tile::Food, 10));
+                if let Some(t) = gather_target {
+                    let on_it = t == (ix, iy);
+                    if on_it {
+                        set_thought!("gathering wood");
+                        return (14, thought);
+                    }
+                    set_thought!("seeking wood");
+                    return (self.toward(t, grid), thought);
+                }
+            }
+            // Proactive food top-up: orgs with comfortable energy
+            // but a visible food tile pick it up rather than wandering
+            // into starvation on the next dip. Smarter foraging =
+            // smaller boom/bust population swings.
+            if self.energy < 0.78 && self.energy > 0.42 {
+                if let Some(v) = self.nearest_visible(grid, Tile::Food, 8) {
+                    let dist = (v.0 - ix).abs() + (v.1 - iy).abs();
+                    if dist <= 6 {
+                        set_thought!("topping up food");
+                        return (self.toward(v, grid), thought);
+                    }
+                }
+            }
+            // Same for water: a fully-hydrated org that walks past a
+            // pond should drink rather than waste the opportunity and
+            // dehydrate later.
+            if self.hydration < 0.82 && self.hydration > 0.45 {
+                if let Some(v) = self.nearest_visible(grid, Tile::Water, 6) {
+                    let dist = (v.0 - ix).abs() + (v.1 - iy).abs();
+                    if dist <= 4 {
+                        set_thought!("topping up water");
+                        return (self.toward(v, grid), thought);
+                    }
+                }
+            }
+        }
+
         if !self.danger_memory.is_empty() {
             let danger_thresh = (3.0 + 2.0 * self.traits.fear) as i32;
             if let Some((&(cx, cy), _)) = self.danger_memory.iter()
