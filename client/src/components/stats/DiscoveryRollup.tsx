@@ -6,7 +6,7 @@ export function DiscoveryRollup({ organisms }: { organisms: WorldState['organism
   const TOP_N = 18
   const { rows, totalDistinct } = useMemo(() => {
     const counts: Record<string, number> = {}
-    for (const o of organisms) for (const d of (o.discoveries ?? [])) counts[d] = (counts[d] ?? 0) + 1
+    for (const o of organisms) for (const d of o.discoveries ?? []) counts[d] = (counts[d] ?? 0) + 1
     const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1])
     return { rows: sorted, totalDistinct: sorted.length }
   }, [organisms])
@@ -18,9 +18,11 @@ export function DiscoveryRollup({ organisms }: { organisms: WorldState['organism
   return (
     <div className="disc-rollup">
       <div className="disc-summary">
-        <span>{totalDistinct} distinct · top {Math.min(TOP_N, totalDistinct)} shown</span>
+        <span>
+          {totalDistinct} distinct · top {Math.min(TOP_N, totalDistinct)} shown
+        </span>
         {totalDistinct > TOP_N && (
-          <button className="disc-toggle" onClick={() => setShowAll(s => !s)}>
+          <button className="disc-toggle" onClick={() => setShowAll((s) => !s)}>
             {showAll ? 'collapse' : `show all (${totalDistinct})`}
           </button>
         )}

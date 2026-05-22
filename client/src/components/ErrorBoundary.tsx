@@ -37,26 +37,28 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.err) {
       if (this.props.fallback) return this.props.fallback
       return (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 16,
-          padding: 24,
-          background: '#0c0a08',
-          color: '#c8c0b0',
-          fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-          zIndex: 99999,
-        }}>
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 16,
+            padding: 24,
+            background: '#0c0a08',
+            color: '#c8c0b0',
+            fontFamily: 'ui-sans-serif, system-ui, sans-serif',
+            zIndex: 99999,
+          }}
+        >
           <h1 style={{ fontSize: 22, margin: 0, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
             The world stuttered
           </h1>
           <p style={{ fontSize: 13, color: '#7e7568', maxWidth: 480, textAlign: 'center', margin: 0 }}>
-            Something unexpected happened in the renderer. The simulation
-            is still running on the server - reload to reconnect.
+            Something unexpected happened in the renderer. The simulation is still running on the server -
+            reload to reconnect.
           </p>
           <button
             onClick={() => window.location.reload()}

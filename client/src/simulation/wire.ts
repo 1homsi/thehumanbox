@@ -2,91 +2,92 @@ import { Result, ok, err } from 'neverthrow'
 import { decode as msgpackDecode } from '@msgpack/msgpack'
 import type { WorldState, GridState, GridWire, OrganismState, AnimalState } from '../types'
 
-export type ParseError =
-  | { kind: 'json';     message: string }
-  | { kind: 'schema';   issues: string[] }
+export type ParseError = { kind: 'json'; message: string } | { kind: 'schema'; issues: string[] }
 
 export interface OrgsHotSoa {
-  ids:            string[]
-  xs:             number[]
-  ys:             number[]
-  vxs:            number[]
-  vys:            number[]
-  target_xs?:     number[]
-  target_ys?:     number[]
-  energies:       number[]
-  hydrations:     number[]
-  healths:        number[]
+  ids: string[]
+  xs: number[]
+  ys: number[]
+  vxs: number[]
+  vys: number[]
+  target_xs?: number[]
+  target_ys?: number[]
+  energies: number[]
+  hydrations: number[]
+  healths: number[]
   // ages was dropped from delta payloads - increments by 1 per tick
   // are pure waste over the wire. Client preserves the value from the
   // last full frame in the merge layer.
-  ages?:          number[]
+  ages?: number[]
   // alives is gone from deltas - server already filters to alive
   // before push, so every entry was true. Client merge keeps the
   // cached alive flag.
-  alives?:        boolean[]
+  alives?: boolean[]
   // Sparse: [index into ids, thought string]. Only orgs whose
   // thought changed since the last delta. Legacy server can still
   // send a dense `string[]`; we accept both.
-  thoughts:       Array<[number, string]> | string[]
-  infections:     number[]
-  fear_levels:    number[]
-  carryings:      number[]
+  thoughts: Array<[number, string]> | string[]
+  infections: number[]
+  fear_levels: number[]
+  carryings: number[]
   carrying_types: number[]
-  pregnants:      boolean[]
+  pregnants: boolean[]
   // Sparse: [index, partner_id / attracted_to]. Absent → unset.
   // Legacy server can still send dense `(string | null)[]`.
-  partner_ids:    Array<[number, string]> | (string | null)[]
-  attracted_tos:  Array<[number, string]> | (string | null)[]
+  partner_ids: Array<[number, string]> | (string | null)[]
+  attracted_tos: Array<[number, string]> | (string | null)[]
 }
 
-export type IncomingWorldFrame =
-  Pick<WorldState,
-    'frame_id' |
-    'server_sent_at_ms' |
-    'frame_kind' |
-    'tick' |
-    'is_day' |
-    'day_progress' |
-    'season' |
-    'season_progress' |
-    'drought' |
-    'weather'
-  > & {
-    grid: GridWire
-    organisms?: OrganismState[]
-    organisms_hot?: OrgsHotSoa
-    organisms_complete: boolean
-    animals: AnimalState[]
-    animals_complete: boolean
-    events?: WorldState['events']
-    history?: WorldState['history']
-    story_history?: WorldState['story_history']
-    pop_history?: WorldState['pop_history']
-    tribal_relations?: WorldState['tribal_relations']
-    lineage_sizes?: WorldState['lineage_sizes']
-    lineage_names?: WorldState['lineage_names']
-    lineage_centroid_history?: WorldState['lineage_centroid_history']
-    lineage_homes?: WorldState['lineage_homes']
-    current_era?: WorldState['current_era']
-    sex_words?: WorldState['sex_words']
-    buildings?: WorldState['buildings']
-    religions?: WorldState['religions']
-    books?: WorldState['books']
-    headlines?: WorldState['headlines']
-    battles?: WorldState['battles']
-    treaties?: WorldState['treaties']
-    farms?: WorldState['farms']
-    vehicles?: WorldState['vehicles']
-    festivals?: WorldState['festivals']
-    governments?: unknown
-    artworks?: unknown
-    lineage_eras?: unknown
-    lineage_currencies?: WorldState['lineage_currencies']
-    active_outbreaks?: WorldState['active_outbreaks']
-  }
+export type IncomingWorldFrame = Pick<
+  WorldState,
+  | 'frame_id'
+  | 'server_sent_at_ms'
+  | 'frame_kind'
+  | 'tick'
+  | 'is_day'
+  | 'day_progress'
+  | 'season'
+  | 'season_progress'
+  | 'drought'
+  | 'weather'
+> & {
+  grid: GridWire
+  organisms?: OrganismState[]
+  organisms_hot?: OrgsHotSoa
+  organisms_complete: boolean
+  animals: AnimalState[]
+  animals_complete: boolean
+  events?: WorldState['events']
+  history?: WorldState['history']
+  story_history?: WorldState['story_history']
+  pop_history?: WorldState['pop_history']
+  tribal_relations?: WorldState['tribal_relations']
+  lineage_sizes?: WorldState['lineage_sizes']
+  lineage_names?: WorldState['lineage_names']
+  lineage_centroid_history?: WorldState['lineage_centroid_history']
+  lineage_homes?: WorldState['lineage_homes']
+  current_era?: WorldState['current_era']
+  sex_words?: WorldState['sex_words']
+  buildings?: WorldState['buildings']
+  religions?: WorldState['religions']
+  books?: WorldState['books']
+  headlines?: WorldState['headlines']
+  battles?: WorldState['battles']
+  treaties?: WorldState['treaties']
+  farms?: WorldState['farms']
+  vehicles?: WorldState['vehicles']
+  festivals?: WorldState['festivals']
+  governments?: unknown
+  artworks?: unknown
+  lineage_eras?: unknown
+  lineage_currencies?: WorldState['lineage_currencies']
+  active_outbreaks?: WorldState['active_outbreaks']
+}
 
-export async function fetchSnapshotWithProgress(url: string, signal?: AbortSignal): Promise<ArrayBuffer | null> {
+export async function fetchSnapshotWithProgress(
+  url: string,
+  signal?: AbortSignal,
+): Promise<ArrayBuffer | null> {
   let resp: Response
   try {
     resp = await fetch(url, { cache: 'no-store', signal })
@@ -100,9 +101,8 @@ export async function fetchSnapshotWithProgress(url: string, signal?: AbortSigna
   const reader = resp.body.getReader()
   const chunks: Uint8Array[] = []
   let loaded = 0
-  const emit = () => window.dispatchEvent(
-    new CustomEvent('thb-snapshot-progress', { detail: { loaded, total } })
-  )
+  const emit = () =>
+    window.dispatchEvent(new CustomEvent('thb-snapshot-progress', { detail: { loaded, total } }))
   emit()
   try {
     while (true) {
@@ -119,7 +119,10 @@ export async function fetchSnapshotWithProgress(url: string, signal?: AbortSigna
   }
   const out = new Uint8Array(loaded)
   let pos = 0
-  for (const c of chunks) { out.set(c, pos); pos += c.byteLength }
+  for (const c of chunks) {
+    out.set(c, pos)
+    pos += c.byteLength
+  }
   return out.buffer
 }
 
@@ -194,20 +197,20 @@ export function expandOrgsSoa(soa: OrgsHotSoa): ExpandedOrgDelta[] {
   // any array whose values didn't change this frame. Capture
   // presence flags up front so the hot loop can branch cheaply on
   // local booleans instead of doing `Array.isArray` n times.
-  const hasXs        = Array.isArray(soa.xs)
-  const hasYs        = Array.isArray(soa.ys)
-  const hasVxs       = Array.isArray(soa.vxs)
-  const hasVys       = Array.isArray(soa.vys)
-  const hasTargetXs  = Array.isArray(soa.target_xs)
-  const hasTargetYs  = Array.isArray(soa.target_ys)
-  const hasEnergies  = Array.isArray(soa.energies)
-  const hasHydrs     = Array.isArray(soa.hydrations)
-  const hasHealths   = Array.isArray(soa.healths)
-  const hasInf       = Array.isArray(soa.infections)
-  const hasFear      = Array.isArray(soa.fear_levels)
-  const hasCarrying  = Array.isArray(soa.carryings)
-  const hasCarryT    = Array.isArray(soa.carrying_types)
-  const hasPreg      = Array.isArray(soa.pregnants)
+  const hasXs = Array.isArray(soa.xs)
+  const hasYs = Array.isArray(soa.ys)
+  const hasVxs = Array.isArray(soa.vxs)
+  const hasVys = Array.isArray(soa.vys)
+  const hasTargetXs = Array.isArray(soa.target_xs)
+  const hasTargetYs = Array.isArray(soa.target_ys)
+  const hasEnergies = Array.isArray(soa.energies)
+  const hasHydrs = Array.isArray(soa.hydrations)
+  const hasHealths = Array.isArray(soa.healths)
+  const hasInf = Array.isArray(soa.infections)
+  const hasFear = Array.isArray(soa.fear_levels)
+  const hasCarrying = Array.isArray(soa.carryings)
+  const hasCarryT = Array.isArray(soa.carrying_types)
+  const hasPreg = Array.isArray(soa.pregnants)
 
   for (let i = 0; i < n; i++) {
     // Partial<OrganismState> means every field is optional, so we
@@ -216,21 +219,21 @@ export function expandOrgsSoa(soa: OrgsHotSoa): ExpandedOrgDelta[] {
     // preserves the prior value for omitted fields, which is exactly
     // the no-change semantic the wire intends.
     const entry: ExpandedOrgDelta = { id: soa.ids[i] }
-    if (hasXs)       entry.x         = soa.xs![i] / 10
-    if (hasYs)       entry.y         = soa.ys![i] / 10
-    if (hasVxs)      entry.vx        = soa.vxs![i] / 10
-    if (hasVys)      entry.vy        = soa.vys![i] / 10
-    if (hasTargetXs) entry.target_x  = soa.target_xs![i] !== -32768 ? soa.target_xs![i] : undefined
-    if (hasTargetYs) entry.target_y  = soa.target_ys![i] !== -32768 ? soa.target_ys![i] : undefined
-    if (hasEnergies) entry.energy    = soa.energies![i] / 100
-    if (hasHydrs)    entry.hydration = soa.hydrations![i] / 100
-    if (hasHealths)  entry.health    = soa.healths![i] / 100
-    if (hasInf)      entry.infection = soa.infections![i] / 100
-    if (hasFear)     entry.fear_level = soa.fear_levels![i] / 100
-    if (hasCarrying) entry.carrying  = soa.carryings![i]
-    if (hasCarryT)   entry.carrying_type = soa.carrying_types![i]
-    if (hasPreg)     entry.pregnant  = soa.pregnants![i]
-    if (partnerAt[i]   !== undefined) entry.partner_id   = partnerAt[i]
+    if (hasXs) entry.x = soa.xs![i] / 10
+    if (hasYs) entry.y = soa.ys![i] / 10
+    if (hasVxs) entry.vx = soa.vxs![i] / 10
+    if (hasVys) entry.vy = soa.vys![i] / 10
+    if (hasTargetXs) entry.target_x = soa.target_xs![i] !== -32768 ? soa.target_xs![i] : undefined
+    if (hasTargetYs) entry.target_y = soa.target_ys![i] !== -32768 ? soa.target_ys![i] : undefined
+    if (hasEnergies) entry.energy = soa.energies![i] / 100
+    if (hasHydrs) entry.hydration = soa.hydrations![i] / 100
+    if (hasHealths) entry.health = soa.healths![i] / 100
+    if (hasInf) entry.infection = soa.infections![i] / 100
+    if (hasFear) entry.fear_level = soa.fear_levels![i] / 100
+    if (hasCarrying) entry.carrying = soa.carryings![i]
+    if (hasCarryT) entry.carrying_type = soa.carrying_types![i]
+    if (hasPreg) entry.pregnant = soa.pregnants![i]
+    if (partnerAt[i] !== undefined) entry.partner_id = partnerAt[i]
     if (attractedAt[i] !== undefined) entry.attracted_to = attractedAt[i]
     // `alive` dropped from deltas (server filters to alive on push);
     // when present (legacy server) honour it. Cached value persists
@@ -245,7 +248,9 @@ export function expandOrgsSoa(soa: OrgsHotSoa): ExpandedOrgDelta[] {
   return out
 }
 
-export function parseWorldFrame(raw: ArrayBuffer | Uint8Array | string): Result<IncomingWorldFrame, ParseError> {
+export function parseWorldFrame(
+  raw: ArrayBuffer | Uint8Array | string,
+): Result<IncomingWorldFrame, ParseError> {
   let decoded: unknown
   try {
     if (typeof raw === 'string') {
@@ -267,22 +272,22 @@ export function parseWorldFrame(raw: ArrayBuffer | Uint8Array | string): Result<
   // expandOrgsSoa. Each issue is collected so a single bad frame
   // tells us everything wrong with it.
   const issues: string[] = []
-  const isNum  = (v: unknown): v is number  => typeof v === 'number'  && Number.isFinite(v)
-  const isStr  = (v: unknown): v is string  => typeof v === 'string'
+  const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)
+  const isStr = (v: unknown): v is string => typeof v === 'string'
   const isBool = (v: unknown): v is boolean => typeof v === 'boolean'
 
-  if (!isNum (d.frame_id))          issues.push('frame_id is not a finite number')
-  if (!isNum (d.tick))              issues.push('tick is not a finite number')
+  if (!isNum(d.frame_id)) issues.push('frame_id is not a finite number')
+  if (!isNum(d.tick)) issues.push('tick is not a finite number')
   if (!isBool(d.organisms_complete)) issues.push('organisms_complete is not a boolean')
-  if (!isBool(d.animals_complete))   issues.push('animals_complete is not a boolean')
-  if (!Array.isArray(d.animals))    issues.push('animals is not an array')
+  if (!isBool(d.animals_complete)) issues.push('animals_complete is not a boolean')
+  if (!Array.isArray(d.animals)) issues.push('animals is not an array')
   if (d.grid == null || typeof d.grid !== 'object') {
     issues.push('grid is not an object')
   } else {
     const g = d.grid as Record<string, unknown>
-    if (!isNum(g.width))  issues.push('grid.width is not a number')
+    if (!isNum(g.width)) issues.push('grid.width is not a number')
     if (!isNum(g.height)) issues.push('grid.height is not a number')
-    if (!Array.isArray(g.fire))      issues.push('grid.fire is not an array')
+    if (!Array.isArray(g.fire)) issues.push('grid.fire is not an array')
     if (!Array.isArray(g.structure)) issues.push('grid.structure is not an array')
   }
   if (d.weather == null || typeof d.weather !== 'object') {
@@ -292,10 +297,11 @@ export function parseWorldFrame(raw: ArrayBuffer | Uint8Array | string): Result<
     if (!isStr(w.kind)) issues.push('weather.kind is not a string')
     if (!isNum(w.intensity)) issues.push('weather.intensity is not a number')
   }
-  if (d.season !== undefined          && !isStr(d.season))         issues.push('season is not a string')
-  if (d.is_day !== undefined          && !isBool(d.is_day))        issues.push('is_day is not a boolean')
-  if (d.day_progress !== undefined    && !isNum(d.day_progress))   issues.push('day_progress is not a number')
-  if (d.season_progress !== undefined && !isNum(d.season_progress)) issues.push('season_progress is not a number')
+  if (d.season !== undefined && !isStr(d.season)) issues.push('season is not a string')
+  if (d.is_day !== undefined && !isBool(d.is_day)) issues.push('is_day is not a boolean')
+  if (d.day_progress !== undefined && !isNum(d.day_progress)) issues.push('day_progress is not a number')
+  if (d.season_progress !== undefined && !isNum(d.season_progress))
+    issues.push('season_progress is not a number')
 
   if (issues.length > 0) {
     return err({ kind: 'schema', issues })
@@ -334,14 +340,14 @@ export function applyGridWire(wire: GridWire, cache: GridState | null): GridStat
   let water_trail = cache?.water_trail
   let path_trail = cache?.path_trail
   if (wire.trails) {
-    food_trail  = take2D(food_trail,  h, w, 0)
+    food_trail = take2D(food_trail, h, w, 0)
     water_trail = take2D(water_trail, h, w, 0)
-    path_trail  = take2D(path_trail,  h, w, 0)
+    path_trail = take2D(path_trail, h, w, 0)
     for (const [row, col, f, wv, p] of wire.trails) {
       if (row < h && col < w) {
-        food_trail[row][col]  = f / 100
+        food_trail[row][col] = f / 100
         water_trail[row][col] = wv / 100
-        path_trail[row][col]  = p / 100
+        path_trail[row][col] = p / 100
       }
     }
   }
@@ -363,12 +369,12 @@ export function applyGridWire(wire: GridWire, cache: GridState | null): GridStat
   }
 
   return {
-    width:    wire.width,
-    height:   wire.height,
+    width: wire.width,
+    height: wire.height,
     origin_x: wire.origin_x,
     origin_y: wire.origin_y,
-    tiles:     wire.tiles     ?? cache?.tiles     ?? [],
-    biomes:    wire.biomes    ?? cache?.biomes,
+    tiles: wire.tiles ?? cache?.tiles ?? [],
+    biomes: wire.biomes ?? cache?.biomes,
     depth_map: wire.depth_map ?? cache?.depth_map,
     fire_intensity: fire,
     structure,

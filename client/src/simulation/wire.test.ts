@@ -3,11 +3,11 @@ import { applyGridWire, expandOrgsSoa } from './wire'
 import type { GridWire } from '../types'
 
 const emptyWire = (w = 4, h = 3): GridWire => ({
-  width:  w,
+  width: w,
   height: h,
   origin_x: 0,
   origin_y: 0,
-  fire:      [],
+  fire: [],
   structure: [],
 })
 
@@ -30,14 +30,14 @@ describe('applyGridWire', () => {
   })
 
   it('allocates fresh arrays when the grid resizes', () => {
-    const first  = applyGridWire(emptyWire(4, 3), null)
+    const first = applyGridWire(emptyWire(4, 3), null)
     const second = applyGridWire(emptyWire(5, 3), first)
     expect(second.fire_intensity).not.toBe(first.fire_intensity)
   })
 
   it('clears stale values before applying the new wire', () => {
     const w1 = emptyWire(2, 2)
-    w1.fire = [[0, 0, 250]]      // value/1000 → 0.25 at (0,0)
+    w1.fire = [[0, 0, 250]] // value/1000 → 0.25 at (0,0)
     const first = applyGridWire(w1, null)
     expect(first.fire_intensity[0][0]).toBeCloseTo(0.25, 5)
 
@@ -67,22 +67,22 @@ describe('applyGridWire', () => {
 describe('expandOrgsSoa', () => {
   it('omits `age` and `alive` from the expanded delta when those SoA fields are absent', () => {
     const expanded = expandOrgsSoa({
-      ids:        ['a'],
-      xs:         [100],
-      ys:         [200],
-      vxs:        [0],
-      vys:        [0],
-      energies:   [80],
+      ids: ['a'],
+      xs: [100],
+      ys: [200],
+      vxs: [0],
+      vys: [0],
+      energies: [80],
       hydrations: [80],
-      healths:    [90],
+      healths: [90],
       // alives intentionally omitted (new sparse delta path).
-      thoughts:   [], // sparse-empty form
+      thoughts: [], // sparse-empty form
       infections: [0],
-      fear_levels:[0],
-      carryings:  [0],
+      fear_levels: [0],
+      carryings: [0],
       carrying_types: [0],
-      pregnants:  [false],
-      partner_ids: [],   // sparse-empty
+      pregnants: [false],
+      partner_ids: [], // sparse-empty
       attracted_tos: [], // sparse-empty
     })
     expect(expanded[0].id).toBe('a')
@@ -100,15 +100,23 @@ describe('expandOrgsSoa', () => {
   it('honours ages and alives when the SoA carries them (legacy)', () => {
     const expanded = expandOrgsSoa({
       ids: ['b'],
-      xs: [0], ys: [0], vxs: [0], vys: [0],
-      energies: [0], hydrations: [0], healths: [0],
+      xs: [0],
+      ys: [0],
+      vxs: [0],
+      vys: [0],
+      energies: [0],
+      hydrations: [0],
+      healths: [0],
       ages: [1234],
       alives: [true],
       thoughts: ['exploring'], // dense form (legacy)
-      infections: [0], fear_levels: [0],
-      carryings: [0], carrying_types: [0],
+      infections: [0],
+      fear_levels: [0],
+      carryings: [0],
+      carrying_types: [0],
       pregnants: [false],
-      partner_ids: [null], attracted_tos: [null],
+      partner_ids: [null],
+      attracted_tos: [null],
     })
     expect(expanded[0].age).toBe(1234)
     expect(expanded[0].alive).toBe(true)
@@ -118,16 +126,20 @@ describe('expandOrgsSoa', () => {
   it('reads sparse thought / partner / attracted entries', () => {
     const expanded = expandOrgsSoa({
       ids: ['a', 'b', 'c'],
-      xs:  [0, 10, 20], ys: [0, 0, 0],
-      vxs: [0, 0, 0], vys: [0, 0, 0],
-      energies:   [50, 50, 50],
+      xs: [0, 10, 20],
+      ys: [0, 0, 0],
+      vxs: [0, 0, 0],
+      vys: [0, 0, 0],
+      energies: [50, 50, 50],
       hydrations: [50, 50, 50],
-      healths:    [50, 50, 50],
-      thoughts:    [[1, 'wandering']],
-      infections: [0, 0, 0], fear_levels: [0, 0, 0],
-      carryings:  [0, 0, 0], carrying_types: [0, 0, 0],
-      pregnants:  [false, false, false],
-      partner_ids:   [[0, 'b']],
+      healths: [50, 50, 50],
+      thoughts: [[1, 'wandering']],
+      infections: [0, 0, 0],
+      fear_levels: [0, 0, 0],
+      carryings: [0, 0, 0],
+      carrying_types: [0, 0, 0],
+      pregnants: [false, false, false],
+      partner_ids: [[0, 'b']],
       attracted_tos: [[2, 'a']],
     })
     expect(expanded[0].partner_id).toBe('b')

@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { InstancedMesh, Object3D, SphereGeometry } from 'three'
 interface Props {
-  active:   boolean
+  active: boolean
   intensity?: number
 }
 
@@ -26,7 +26,7 @@ export function Snow({ active, intensity = 0.6 }: Props) {
 
   useFrame((_, delta) => {
     if (typeof document !== 'undefined' && document.hidden) return
-    if (delta > 0.1) return  // catch-up burst when returning from background
+    if (delta > 0.1) return // catch-up burst when returning from background
     const mesh = meshRef.current
     if (!mesh || maxFlakes === 0) return
     const cx = camera.position.x
@@ -38,8 +38,8 @@ export function Snow({ active, intensity = 0.6 }: Props) {
       if (offsets[i] < 0) offsets[i] += SNOW_HEIGHT
 
       const a = (i * 12.9898) % 1
-      const b = (i * 78.233)  % 1
-      const swayPhase = (i * 0.071) + offsets[i] * 0.13
+      const b = (i * 78.233) % 1
+      const swayPhase = i * 0.071 + offsets[i] * 0.13
       const sway = Math.sin(swayPhase) * 1.6
       const dx = (a - 0.5) * SNOW_VOLUME * 2 + sway
       const dz = (b - 0.5) * SNOW_VOLUME * 2 + Math.cos(swayPhase) * 1.6
@@ -47,7 +47,7 @@ export function Snow({ active, intensity = 0.6 }: Props) {
 
       tmp.position.set(cx + dx, cy + dy, cz + dz)
       tmp.rotation.set(0, 0, 0)
-      tmp.scale.setScalar(1 + (i * 0.011 % 0.6))
+      tmp.scale.setScalar(1 + ((i * 0.011) % 0.6))
       tmp.updateMatrix()
       mesh.setMatrixAt(i, tmp.matrix)
     }

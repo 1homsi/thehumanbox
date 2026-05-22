@@ -12,9 +12,7 @@ function fmtDate(ms: number): string {
 }
 
 export function HistoricalBanner({ meta, hash }: Props) {
-  const label = meta
-    ? `${fmtDate(meta.started_at_ms)} → ${fmtDate(meta.ended_at_ms)}`
-    : 'historical world'
+  const label = meta ? `${fmtDate(meta.started_at_ms)} → ${fmtDate(meta.ended_at_ms)}` : 'historical world'
   const era = meta?.top_era ?? '—'
   return (
     <div className="historical-banner" role="note">

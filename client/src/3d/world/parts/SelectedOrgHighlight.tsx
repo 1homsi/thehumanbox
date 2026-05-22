@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { BufferAttribute, BufferGeometry, CylinderGeometry, DoubleSide, Line, Mesh, TorusGeometry } from 'three'
+import {
+  BufferAttribute,
+  BufferGeometry,
+  CylinderGeometry,
+  DoubleSide,
+  Line,
+  Mesh,
+  TorusGeometry,
+} from 'three'
 import type { OrganismState } from '../../../types'
 import { useUIStore } from '../../../stores/store'
 import { TILE_SCALE } from './constants'
@@ -9,19 +17,19 @@ import { getOrgXY } from './motion-state'
 
 interface Props {
   organisms: OrganismState[]
-  depthMap:  number[][]
-  biomes:    number[][]
+  depthMap: number[][]
+  biomes: number[][]
 }
 
-const RING_GEO   = new TorusGeometry(1.1, 0.09, 5, 16)
+const RING_GEO = new TorusGeometry(1.1, 0.09, 5, 16)
 const COLUMN_GEO = new CylinderGeometry(0.18, 0.18, 60, 8, 1, true)
 
 const TRAIL_LEN = 48
 const TRAIL_SAMPLE_MS = 90
 
 export function SelectedOrgHighlight({ organisms, depthMap, biomes }: Props) {
-  const selectedOrgId = useUIStore(s => s.selectedOrgId)
-  const ringRef   = useRef<Mesh>(null)
+  const selectedOrgId = useUIStore((s) => s.selectedOrgId)
+  const ringRef = useRef<Mesh>(null)
   const columnRef = useRef<Mesh>(null)
   // R3F's lowercase `<line>` JSX collides with SVGLineElement in
   // @types/react, so the JSX-element type resolves to SVG and rejects
@@ -29,12 +37,12 @@ export function SelectedOrgHighlight({ organisms, depthMap, biomes }: Props) {
   // (@react-three/fiber) intercepts the element and creates a
   // three.Line. We type the ref as three.Line and suppress the
   // attribute-mismatch at the call site.
-  const trailRef  = useRef<Line | null>(null)
-  const trailBuf  = useRef<{ x: number; y: number; z: number }[]>([])
+  const trailRef = useRef<Line | null>(null)
+  const trailBuf = useRef<{ x: number; y: number; z: number }[]>([])
   const lastSample = useRef(0)
 
   const target = useMemo(
-    () => organisms.find(o => o.id === selectedOrgId && o.alive),
+    () => organisms.find((o) => o.id === selectedOrgId && o.alive),
     [organisms, selectedOrgId],
   )
 
@@ -89,13 +97,7 @@ export function SelectedOrgHighlight({ organisms, depthMap, biomes }: Props) {
     <group>
       <mesh ref={ringRef} renderOrder={998} frustumCulled={false}>
         <primitive object={RING_GEO} attach="geometry" />
-        <meshBasicMaterial
-          color="#ffb455"
-          transparent
-          opacity={0.92}
-          toneMapped={false}
-          depthWrite={false}
-        />
+        <meshBasicMaterial color="#ffb455" transparent opacity={0.92} toneMapped={false} depthWrite={false} />
       </mesh>
       <mesh ref={columnRef} renderOrder={997} frustumCulled={false}>
         <primitive object={COLUMN_GEO} attach="geometry" />
@@ -115,13 +117,7 @@ export function SelectedOrgHighlight({ organisms, depthMap, biomes }: Props) {
         renderOrder={996}
         frustumCulled={false}
       >
-        <lineBasicMaterial
-          color="#ffcf6a"
-          transparent
-          opacity={0.65}
-          depthWrite={false}
-          toneMapped={false}
-        />
+        <lineBasicMaterial color="#ffcf6a" transparent opacity={0.65} depthWrite={false} toneMapped={false} />
       </line>
     </group>
   )

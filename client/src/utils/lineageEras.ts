@@ -1,8 +1,6 @@
 import type { WorldState } from '../types'
 
-export function normalizeLineageEras(
-  raw: WorldState['lineage_eras'],
-): Record<string, string> {
+export function normalizeLineageEras(raw: WorldState['lineage_eras']): Record<string, string> {
   if (!raw) return {}
   if (Array.isArray(raw)) {
     const out: Record<string, string> = {}

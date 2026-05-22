@@ -7,11 +7,11 @@ import { mergeFrame, type MergeCaches } from './merge'
 import { updateOrgMotion, updateAnimalMotion } from '../3d/world/parts/motion-state'
 import { logger } from '../lib/logger'
 
-const WS_URL       = `${WS_BASE}/ws`
+const WS_URL = `${WS_BASE}/ws`
 const SNAPSHOT_URL = `${API_BASE}/snapshot`
 
 export interface InterpRefs {
-  prev:    React.MutableRefObject<WorldState | null>
+  prev: React.MutableRefObject<WorldState | null>
   current: React.MutableRefObject<WorldState | null>
   prevServerAt: React.MutableRefObject<number>
   currentServerAt: React.MutableRefObject<number>
@@ -27,18 +27,18 @@ export function useSimulation(): {
   failedAttempts: number
   interp: InterpRefs
 } {
-  const [world, setWorld]     = useState<WorldState | null>(null)
+  const [world, setWorld] = useState<WorldState | null>(null)
   const [connected, setConnected] = useState(false)
   const [failedAttempts, setFailedAttempts] = useState(0)
-  const wsRef      = useRef<WebSocket | null>(null)
+  const wsRef = useRef<WebSocket | null>(null)
   const organismCache = useRef<Map<string, OrganismState>>(new Map())
-  const animalCache   = useRef<Map<number, AnimalState>>(new Map())
-  const queuedMsgs  = useRef<Array<ArrayBuffer | Uint8Array | string>>([])
+  const animalCache = useRef<Map<number, AnimalState>>(new Map())
+  const queuedMsgs = useRef<Array<ArrayBuffer | Uint8Array | string>>([])
   const rafPending = useRef<number | null>(null)
-  const gridCache  = useRef<GridState | null>(null)
-  const prevWorldRef    = useRef<WorldState | null>(null)
+  const gridCache = useRef<GridState | null>(null)
+  const prevWorldRef = useRef<WorldState | null>(null)
   const currentWorldRef = useRef<WorldState | null>(null)
-  const prevServerAtRef    = useRef<number>(0)
+  const prevServerAtRef = useRef<number>(0)
   const currentServerAtRef = useRef<number>(0)
   const currentReceivedAtRef = useRef<number>(0)
   const lastFrameIdRef = useRef<number>(0)
@@ -46,10 +46,10 @@ export function useSimulation(): {
   const snapshotPendingRef = useRef(false)
   const bootstrapPendingRef = useRef(true)
 
-  const REACT_THROTTLE_MS  = 500
-  const lastSetWorldAtRef  = useRef<number>(0)
+  const REACT_THROTTLE_MS = 500
+  const lastSetWorldAtRef = useRef<number>(0)
   const pendingSetWorldRef = useRef<WorldState | null>(null)
-  const setWorldTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const setWorldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const snapshotFetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -107,7 +107,7 @@ export function useSimulation(): {
       const savedLastFrameId = lastFrameIdRef.current
       lastFrameIdRef.current = 0
       fetchSnapshotWithProgress(SNAPSHOT_URL, ctl.signal)
-        .then(buf => {
+        .then((buf) => {
           if (destroyed || ctl.signal.aborted) return
           if (buf == null) {
             lastFrameIdRef.current = savedLastFrameId
@@ -154,7 +154,7 @@ export function useSimulation(): {
         if (parseResult.isErr()) {
           const e = parseResult.error
           if (e.kind === 'json') logger.warn('ws', 'bad json:', e.message)
-          else                    logger.warn('ws', 'schema mismatch:', e.issues)
+          else logger.warn('ws', 'schema mismatch:', e.issues)
           continue
         }
         try {
@@ -171,19 +171,19 @@ export function useSimulation(): {
 
           const caches: MergeCaches = {
             organisms: organismCache.current,
-            animals:   animalCache.current,
-            grid:      gridCache.current,
+            animals: animalCache.current,
+            grid: gridCache.current,
             prevWorld: currentWorldRef.current,
           }
           const { next, grid } = mergeFrame(parsed, caches)
           organismCache.current = caches.organisms
-          animalCache.current   = caches.animals
-          gridCache.current     = grid
+          animalCache.current = caches.animals
+          gridCache.current = grid
 
           updateOrgMotion(next.viewport_organisms ?? next.organisms ?? [])
           updateAnimalMotion(next.viewport_animals ?? next.animals ?? [])
 
-          prevWorldRef.current    = currentWorldRef.current
+          prevWorldRef.current = currentWorldRef.current
           prevServerAtRef.current = currentServerAtRef.current
           currentWorldRef.current = next
           currentServerAtRef.current = parsed.server_sent_at_ms
@@ -242,17 +242,23 @@ export function useSimulation(): {
       // recovering server. Multiply by [0.5, 1.0] randomly so the
       // herd disperses.
       const jitter = 0.5 + Math.random() * 0.5
-      reconnectTimer = setTimeout(() => {
-        reconnectTimer = null
-        connect()
-      }, Math.round(reconnectDelayMs * jitter))
+      reconnectTimer = setTimeout(
+        () => {
+          reconnectTimer = null
+          connect()
+        },
+        Math.round(reconnectDelayMs * jitter),
+      )
       reconnectDelayMs = Math.min(reconnectDelayMs * 2, 15000)
     }
 
     function connect() {
       if (destroyed) return
       const existing = wsRef.current
-      if (existing && (existing.readyState === WebSocket.OPEN || existing.readyState === WebSocket.CONNECTING)) {
+      if (
+        existing &&
+        (existing.readyState === WebSocket.OPEN || existing.readyState === WebSocket.CONNECTING)
+      ) {
         return
       }
       const ws = new WebSocket(WS_URL)
@@ -269,7 +275,7 @@ export function useSimulation(): {
       ws.onclose = () => {
         if (destroyed) return
         setConnected(false)
-        setFailedAttempts(n => n + 1)
+        setFailedAttempts((n) => n + 1)
         if (rafPending.current !== null) {
           cancelAnimationFrame(rafPending.current)
           rafPending.current = null
@@ -279,7 +285,11 @@ export function useSimulation(): {
         scheduleReconnect()
       }
       ws.onerror = () => {
-        try { ws.close() } catch { /* noop */ }
+        try {
+          ws.close()
+        } catch {
+          /* noop */
+        }
       }
       ws.onmessage = (e) => {
         if (destroyed) return
@@ -300,7 +310,10 @@ export function useSimulation(): {
       const ws = wsRef.current
       const dead = !ws || ws.readyState === WebSocket.CLOSING || ws.readyState === WebSocket.CLOSED
       if (dead) {
-        if (reconnectTimer !== null) { clearTimeout(reconnectTimer); reconnectTimer = null }
+        if (reconnectTimer !== null) {
+          clearTimeout(reconnectTimer)
+          reconnectTimer = null
+        }
         reconnectDelayMs = 1000
         connect()
       } else if (ws && ws.readyState === WebSocket.OPEN) {
@@ -314,8 +327,14 @@ export function useSimulation(): {
       destroyed = true
       document.removeEventListener('visibilitychange', onVisibilityChange)
       window.removeEventListener('online', onVisibilityChange)
-      if (reconnectTimer !== null) { clearTimeout(reconnectTimer); reconnectTimer = null }
-      if (snapshotAbort) { snapshotAbort.abort(); snapshotAbort = null }
+      if (reconnectTimer !== null) {
+        clearTimeout(reconnectTimer)
+        reconnectTimer = null
+      }
+      if (snapshotAbort) {
+        snapshotAbort.abort()
+        snapshotAbort = null
+      }
       if (rafPending.current !== null) {
         cancelAnimationFrame(rafPending.current)
         rafPending.current = null
@@ -339,11 +358,13 @@ export function useSimulation(): {
     }
   }, [])
 
-  const status: ConnectionStatus =
-    connected ? 'connected'
-    : failedAttempts >= 3 ? 'unreachable'
-    : failedAttempts > 0 ? 'reconnecting'
-    : 'connecting'
+  const status: ConnectionStatus = connected
+    ? 'connected'
+    : failedAttempts >= 3
+      ? 'unreachable'
+      : failedAttempts > 0
+        ? 'reconnecting'
+        : 'connecting'
 
   return {
     world,
@@ -351,8 +372,8 @@ export function useSimulation(): {
     status,
     failedAttempts,
     interp: {
-      prev:      prevWorldRef,
-      current:   currentWorldRef,
+      prev: prevWorldRef,
+      current: currentWorldRef,
       prevServerAt: prevServerAtRef,
       currentServerAt: currentServerAtRef,
       currentReceivedAt: currentReceivedAtRef,

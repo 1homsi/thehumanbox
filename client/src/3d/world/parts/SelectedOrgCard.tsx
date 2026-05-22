@@ -11,11 +11,11 @@ interface Props {
 }
 
 export function SelectedOrgCard({ organisms }: Props) {
-  const selectedOrgId = useUIStore(s => s.selectedOrgId)
-  const selectOrg     = useUIStore(s => s.selectOrg)
+  const selectedOrgId = useUIStore((s) => s.selectedOrgId)
+  const selectOrg = useUIStore((s) => s.selectOrg)
 
   const org = useMemo(
-    () => organisms.find(o => o.id === selectedOrgId && o.alive),
+    () => organisms.find((o) => o.id === selectedOrgId && o.alive),
     [organisms, selectedOrgId],
   )
   if (!org) return null
@@ -33,17 +33,21 @@ export function SelectedOrgCard({ organisms }: Props) {
   return (
     <div className="thb-3d-orgcard" style={wrap}>
       <div style={header}>
-        <span style={{
-          ...lineageDot,
-          background: lineageColor(org.lineage_id),
-        }} />
+        <span
+          style={{
+            ...lineageDot,
+            background: lineageColor(org.lineage_id),
+          }}
+        />
         <span style={name}>{org.name}</span>
-        <button style={goBtn} onClick={onGo} title="jump camera here">go</button>
-        <button style={dismiss} onClick={() => selectOrg(null)} title="release">×</button>
+        <button style={goBtn} onClick={onGo} title="jump camera here">
+          go
+        </button>
+        <button style={dismiss} onClick={() => selectOrg(null)} title="release">
+          ×
+        </button>
       </div>
-      {org.thought && (
-        <div style={thought}>“{org.thought}”</div>
-      )}
+      {org.thought && <div style={thought}>“{org.thought}”</div>}
       <div style={metaRow}>
         <span>age {Math.floor(org.age / 100) / 10}k</span>
         <span>gen {org.generation}</span>
@@ -51,8 +55,8 @@ export function SelectedOrgCard({ organisms }: Props) {
         {org.sex && <span style={{ opacity: 0.65 }}>{org.sex}</span>}
       </div>
       <div style={vitals}>
-        <Bar label="energy"    value={org.energy}    color="#7ed957" />
-        <Bar label="health"    value={org.health}    color="#f6a64a" />
+        <Bar label="energy" value={org.energy} color="#7ed957" />
+        <Bar label="health" value={org.health} color="#f6a64a" />
         <Bar label="hydration" value={org.hydration} color="#4fa9d8" />
       </div>
       <div style={hint}>press F to follow · ESC to release</div>

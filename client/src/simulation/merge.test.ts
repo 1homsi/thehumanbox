@@ -6,8 +6,8 @@ import type { OrganismState, AnimalState } from '../types'
 function emptyCaches(): MergeCaches {
   return {
     organisms: new Map<string, OrganismState>(),
-    animals:   new Map<number, AnimalState>(),
-    grid:      null,
+    animals: new Map<number, AnimalState>(),
+    grid: null,
     prevWorld: null,
   }
 }
@@ -44,11 +44,18 @@ describe('mergeFrame organism handling', () => {
     const frame = baseFrame({
       organisms_hot: {
         ids: ['ghost-1'],
-        xs: [100], ys: [100], vxs: [0], vys: [0],
-        energies: [50], hydrations: [50], healths: [50],
+        xs: [100],
+        ys: [100],
+        vxs: [0],
+        vys: [0],
+        energies: [50],
+        hydrations: [50],
+        healths: [50],
         thoughts: [],
-        infections: [0], fear_levels: [0],
-        carryings: [0], carrying_types: [0],
+        infections: [0],
+        fear_levels: [0],
+        carryings: [0],
+        carrying_types: [0],
         pregnants: [false],
         partner_ids: [],
         attracted_tos: [],
@@ -66,8 +73,10 @@ describe('mergeFrame organism handling', () => {
       id: 'a',
       name: 'Alia',
       lineage_id: 'lin-x',
-      x: 50, y: 50,
-      vx: 0, vy: 0,
+      x: 50,
+      y: 50,
+      vx: 0,
+      vy: 0,
       energy: 0.8,
       hydration: 0.8,
       health: 0.9,
@@ -81,7 +90,13 @@ describe('mergeFrame organism handling', () => {
       pregnant: false,
       generation: 1,
       max_age: 5000,
-      traits: { aggression: 0.5, curiosity: 0.5, social_tendency: 0.5, memory_strength: 0.5, resilience: 0.5 },
+      traits: {
+        aggression: 0.5,
+        curiosity: 0.5,
+        social_tendency: 0.5,
+        memory_strength: 0.5,
+        resilience: 0.5,
+      },
     } as unknown as OrganismState
     const fullFrame = baseFrame({
       frame_kind: 'full',
@@ -96,11 +111,18 @@ describe('mergeFrame organism handling', () => {
       frame_id: 2,
       organisms_hot: {
         ids: ['a'],
-        xs: [600], ys: [500], vxs: [3], vys: [-1],
-        energies: [70], hydrations: [70], healths: [85],
+        xs: [600],
+        ys: [500],
+        vxs: [3],
+        vys: [-1],
+        energies: [70],
+        hydrations: [70],
+        healths: [85],
         thoughts: [[0, 'wandering']],
-        infections: [0], fear_levels: [0],
-        carryings: [0], carrying_types: [0],
+        infections: [0],
+        fear_levels: [0],
+        carryings: [0],
+        carrying_types: [0],
         pregnants: [false],
         partner_ids: [],
         attracted_tos: [],
@@ -108,11 +130,11 @@ describe('mergeFrame organism handling', () => {
     })
     mergeFrame(deltaFrame, caches)
     const merged = caches.organisms.get('a')!
-    expect(merged.name).toBe('Alia')               // cold preserved
-    expect(merged.lineage_id).toBe('lin-x')        // cold preserved
-    expect(merged.x).toBeCloseTo(60, 5)            // 600 / 10
-    expect(merged.thought).toBe('wandering')        // sparse thought applied
-    expect(merged.energy).toBeCloseTo(0.70, 5)
+    expect(merged.name).toBe('Alia') // cold preserved
+    expect(merged.lineage_id).toBe('lin-x') // cold preserved
+    expect(merged.x).toBeCloseTo(60, 5) // 600 / 10
+    expect(merged.thought).toBe('wandering') // sparse thought applied
+    expect(merged.energy).toBeCloseTo(0.7, 5)
   })
 
   it('reuses an unchanged GridState across identical frames (allocator stability)', () => {

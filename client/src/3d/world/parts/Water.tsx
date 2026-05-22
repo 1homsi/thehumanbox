@@ -5,8 +5,8 @@ import type { WebGLProgramParametersWithUniforms } from 'three'
 import { TILE_SCALE, OCEAN_EXTENT } from './constants'
 
 interface Props {
-  width:    number
-  height:   number
+  width: number
+  height: number
   depthMap?: number[][]
 }
 
@@ -21,10 +21,10 @@ export function Water({ width, height, depthMap }: Props) {
   // gone - the GPU now computes the wave per vertex per draw.
   const waveTimeRef = useRef({ value: 0 })
 
-  const cx = width  * TILE_SCALE * 0.5
+  const cx = width * TILE_SCALE * 0.5
   const cz = height * TILE_SCALE * 0.5
 
-  const PLANE_W = width  * TILE_SCALE
+  const PLANE_W = width * TILE_SCALE
   const PLANE_H = height * TILE_SCALE
 
   // Build the inner plane geometry once. Land mask becomes a vertex
@@ -39,9 +39,8 @@ export function Water({ width, height, depthMap }: Props) {
         const ly = pos.getY(i)
         const col = Math.floor((lx + PLANE_W / 2) / TILE_SCALE)
         const row = Math.floor((ly + PLANE_H / 2) / TILE_SCALE)
-        const d = depthMap[Math.max(0, Math.min(height - 1, row))]
-                          ?.[Math.max(0, Math.min(width - 1, col))]
-                  ?? 255
+        const d =
+          depthMap[Math.max(0, Math.min(height - 1, row))]?.[Math.max(0, Math.min(width - 1, col))] ?? 255
         const isLand = d >= 254
         mask[i] = isLand ? 1 : 0
         if (isLand) {
@@ -55,7 +54,7 @@ export function Water({ width, height, depthMap }: Props) {
     geo.setAttribute('aLand', new BufferAttribute(mask, 1))
     const normals = new Float32Array(pos.count * 3)
     for (let i = 0; i < pos.count; i++) {
-      normals[i * 3]     = 0
+      normals[i * 3] = 0
       normals[i * 3 + 1] = 0
       normals[i * 3 + 2] = 1
     }
@@ -98,12 +97,7 @@ export function Water({ width, height, depthMap }: Props) {
 
   return (
     <>
-      <mesh
-        rotation-x={-Math.PI / 2}
-        position={[cx, -1.6, cz]}
-        receiveShadow
-        frustumCulled={false}
-      >
+      <mesh rotation-x={-Math.PI / 2} position={[cx, -1.6, cz]} receiveShadow frustumCulled={false}>
         <planeGeometry args={[OCEAN_EXTENT * 2, OCEAN_EXTENT * 2, 1, 1]} />
         <meshStandardMaterial
           ref={outerMatRef}

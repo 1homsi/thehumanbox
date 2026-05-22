@@ -19,10 +19,10 @@ export function CameraBreath({ enabled = true }: Props) {
     if (!enabled) return
     if (cameraCommand.followOrgId) return
     phase.current += delta
-    const yBob  = Math.sin(phase.current * 0.55) * 0.06
+    const yBob = Math.sin(phase.current * 0.55) * 0.06
     const xSway = Math.sin(phase.current * 0.32 + 1.3) * 0.04
     camera.position.x += xSway - lastApplied.current.x
-    camera.position.y += yBob  - lastApplied.current.y
+    camera.position.y += yBob - lastApplied.current.y
     lastApplied.current = { x: xSway, y: yBob }
   })
 

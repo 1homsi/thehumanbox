@@ -1,11 +1,10 @@
 import type { OrganismState } from '../types'
 
 export function isColorBlind(): boolean {
-  return typeof document !== 'undefined'
-    && !!document.body?.classList?.contains('thb-colorblind')
+  return typeof document !== 'undefined' && !!document.body?.classList?.contains('thb-colorblind')
 }
 
-const CB_SAFE_BLUE   = '#3a86ff'
+const CB_SAFE_BLUE = '#3a86ff'
 const CB_SAFE_ORANGE = '#fb8500'
 const CB_SAFE_YELLOW = '#ffd166'
 const CB_SAFE_FIRE_R = 255
@@ -15,8 +14,24 @@ const CB_SAFE_FIRE_B = 0
 export function cbColor(color: string): string {
   if (!isColorBlind()) return color
   const c = color.toLowerCase()
-  if (c === '#55dd55' || c === '#88ee55' || c === '#bbff44' || c === '#55ff88' || c === '#aaffcc' || c === '#99ff44') return CB_SAFE_BLUE
-  if (c === '#ff6644' || c === '#ff4488' || c === '#ff2200' || c === '#ee7733' || c === '#ffaa44' || c === '#cc8833') return CB_SAFE_ORANGE
+  if (
+    c === '#55dd55' ||
+    c === '#88ee55' ||
+    c === '#bbff44' ||
+    c === '#55ff88' ||
+    c === '#aaffcc' ||
+    c === '#99ff44'
+  )
+    return CB_SAFE_BLUE
+  if (
+    c === '#ff6644' ||
+    c === '#ff4488' ||
+    c === '#ff2200' ||
+    c === '#ee7733' ||
+    c === '#ffaa44' ||
+    c === '#cc8833'
+  )
+    return CB_SAFE_ORANGE
   if (c === '#f6a64a') return CB_SAFE_ORANGE
   if (c === '#ddbb55') return CB_SAFE_YELLOW
   return color
@@ -64,19 +79,45 @@ export function lineageWord(orgs: OrganismState[], concept: string): string {
 }
 
 export const EVENT_ICONS: Record<string, string> = {
-  born: '+', died: '×', signal: '→', alarm: '!',
-  challenge: '⚔', gift: '♥', treaty: '=',
-  dawn: '☀', dusk: '☽', season: '~',
-  drought: '▽', outbreak: '☣', build: '⌂',
-  mourn: '☾', teach: '✦', social: '~', hunt: '✦', era: '◈',
+  born: '+',
+  died: '×',
+  signal: '→',
+  alarm: '!',
+  challenge: '⚔',
+  gift: '♥',
+  treaty: '=',
+  dawn: '☀',
+  dusk: '☽',
+  season: '~',
+  drought: '▽',
+  outbreak: '☣',
+  build: '⌂',
+  mourn: '☾',
+  teach: '✦',
+  social: '~',
+  hunt: '✦',
+  era: '◈',
 }
 
 export const EVENT_COLORS: Record<string, string> = {
-  born: '#55dd55', died: '#888', signal: '#ffdd88', alarm: '#ff4488',
-  challenge: '#ff2200', gift: '#55ff88', treaty: '#88aaff',
-  dawn: '#ffeeaa', dusk: '#8888cc', season: '#aaddff',
-  drought: '#cc8833', outbreak: '#99ff44', build: '#c8a050',
-  mourn: '#9988bb', teach: '#88ddff', social: '#aaffcc', hunt: '#ffaa44', era: '#ccaaff',
+  born: '#55dd55',
+  died: '#888',
+  signal: '#ffdd88',
+  alarm: '#ff4488',
+  challenge: '#ff2200',
+  gift: '#55ff88',
+  treaty: '#88aaff',
+  dawn: '#ffeeaa',
+  dusk: '#8888cc',
+  season: '#aaddff',
+  drought: '#cc8833',
+  outbreak: '#99ff44',
+  build: '#c8a050',
+  mourn: '#9988bb',
+  teach: '#88ddff',
+  social: '#aaffcc',
+  hunt: '#ffaa44',
+  era: '#ccaaff',
 }
 
 export const HIDDEN_EVENT_TYPES = new Set(['dawn', 'dusk', 'season'])

@@ -7,7 +7,7 @@ export function HelpOverlay() {
     const onKey = (e: KeyboardEvent) => {
       if (e.repeat) return
       if (e.code === 'KeyH' || e.key === '?') {
-        setOpen(v => !v)
+        setOpen((v) => !v)
       } else if (e.code === 'Escape' && open) {
         setOpen(false)
       }
@@ -18,12 +18,7 @@ export function HelpOverlay() {
 
   if (!open) {
     return (
-      <button
-        className="thb-3d-helpbtn"
-        style={btnStyle}
-        onClick={() => setOpen(true)}
-        title="help (?)"
-      >
+      <button className="thb-3d-helpbtn" style={btnStyle} onClick={() => setOpen(true)} title="help (?)">
         ?
       </button>
     )
@@ -31,22 +26,22 @@ export function HelpOverlay() {
 
   return (
     <div className="thb-3d-help" style={wrap} onClick={() => setOpen(false)}>
-      <div style={card} onClick={e => e.stopPropagation()}>
+      <div style={card} onClick={(e) => e.stopPropagation()}>
         <div style={title}>controls</div>
-        <Row k="click"    v="capture mouse for look" />
-        <Row k="esc"      v="release mouse / exit follow" />
-        <Row k="WASD"     v="fly horizontally" />
-        <Row k="space"    v="rise" />
-        <Row k="shift"    v="descend" />
-        <Row k="ctrl"     v="boost (4× speed)" />
+        <Row k="click" v="capture mouse for look" />
+        <Row k="esc" v="release mouse / exit follow" />
+        <Row k="WASD" v="fly horizontally" />
+        <Row k="space" v="rise" />
+        <Row k="shift" v="descend" />
+        <Row k="ctrl" v="boost (4× speed)" />
         <div style={spacer} />
-        <Row k="click org"   v="select an organism" />
-        <Row k="F"           v="toggle follow selected" />
-        <Row k="J"           v="jump camera to selected" />
-        <Row k="R"           v="random org + follow them" />
-        <Row k="click map"   v="teleport camera anywhere" />
+        <Row k="click org" v="select an organism" />
+        <Row k="F" v="toggle follow selected" />
+        <Row k="J" v="jump camera to selected" />
+        <Row k="R" v="random org + follow them" />
+        <Row k="click map" v="teleport camera anywhere" />
         <div style={spacer} />
-        <Row k="?"   v="toggle this help" />
+        <Row k="?" v="toggle this help" />
         <div style={hint}>press ? or click outside to close</div>
       </div>
     </div>

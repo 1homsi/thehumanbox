@@ -1,83 +1,142 @@
 import { useEffect, useRef } from 'react'
-import { ATLAS_TOWN, onAnyAtlasLoaded, drawPeopleTile, pickHumanSprite, type AgeStage } from '../../../utils/sprites'
+import {
+  ATLAS_TOWN,
+  onAnyAtlasLoaded,
+  drawPeopleTile,
+  pickHumanSprite,
+  type AgeStage,
+} from '../../../utils/sprites'
 import type { SceneContext, SceneOccupant } from '../../../scenes/core/types'
 
-const TILE_PX     = 16
-const SCALE       = 3
-const ROOM_COLS   = 14
-const ROOM_ROWS   = 10
-const CANVAS_W    = ROOM_COLS * TILE_PX
-const CANVAS_H    = ROOM_ROWS * TILE_PX
+const TILE_PX = 16
+const SCALE = 3
+const ROOM_COLS = 14
+const ROOM_ROWS = 10
+const CANVAS_W = ROOM_COLS * TILE_PX
+const CANVAS_H = ROOM_ROWS * TILE_PX
 
-const ERA_PALETTE: Record<string, {
-  wall: string; wallShade: string; wallHighlight: string;
-  floor: string; floorPlank: string; floorShade: string;
-  outside: string;
-}> = {
+const ERA_PALETTE: Record<
+  string,
+  {
+    wall: string
+    wallShade: string
+    wallHighlight: string
+    floor: string
+    floorPlank: string
+    floorShade: string
+    outside: string
+  }
+> = {
   'pre-stone': {
-    wall: '#5a4a2c', wallShade: '#3a2e18', wallHighlight: '#7a6244',
-    floor: '#6b5028', floorPlank: '#574020', floorShade: '#3e2e16',
+    wall: '#5a4a2c',
+    wallShade: '#3a2e18',
+    wallHighlight: '#7a6244',
+    floor: '#6b5028',
+    floorPlank: '#574020',
+    floorShade: '#3e2e16',
     outside: '#2d2014',
   },
   stone: {
-    wall: '#7a7068', wallShade: '#54493e', wallHighlight: '#9a8e83',
-    floor: '#76553a', floorPlank: '#5e4128', floorShade: '#3e2c18',
+    wall: '#7a7068',
+    wallShade: '#54493e',
+    wallHighlight: '#9a8e83',
+    floor: '#76553a',
+    floorPlank: '#5e4128',
+    floorShade: '#3e2c18',
     outside: '#2a2218',
   },
   bronze: {
-    wall: '#8e6a3a', wallShade: '#5e4520', wallHighlight: '#b58850',
-    floor: '#8c6332', floorPlank: '#704c20', floorShade: '#4a3214',
+    wall: '#8e6a3a',
+    wallShade: '#5e4520',
+    wallHighlight: '#b58850',
+    floor: '#8c6332',
+    floorPlank: '#704c20',
+    floorShade: '#4a3214',
     outside: '#1f1812',
   },
   iron: {
-    wall: '#937048', wallShade: '#5e4626', wallHighlight: '#b68b5e',
-    floor: '#956a3a', floorPlank: '#74522c', floorShade: '#4a3018',
+    wall: '#937048',
+    wallShade: '#5e4626',
+    wallHighlight: '#b68b5e',
+    floor: '#956a3a',
+    floorPlank: '#74522c',
+    floorShade: '#4a3018',
     outside: '#1c1610',
   },
   classical: {
-    wall: '#b89870', wallShade: '#806340', wallHighlight: '#d6b88b',
-    floor: '#a87844', floorPlank: '#825a2e', floorShade: '#523618',
+    wall: '#b89870',
+    wallShade: '#806340',
+    wallHighlight: '#d6b88b',
+    floor: '#a87844',
+    floorPlank: '#825a2e',
+    floorShade: '#523618',
     outside: '#1a1410',
   },
   medieval: {
-    wall: '#7c5a36', wallShade: '#523a20', wallHighlight: '#a07a4e',
-    floor: '#8e6238', floorPlank: '#6e4a25', floorShade: '#46301a',
+    wall: '#7c5a36',
+    wallShade: '#523a20',
+    wallHighlight: '#a07a4e',
+    floor: '#8e6238',
+    floorPlank: '#6e4a25',
+    floorShade: '#46301a',
     outside: '#181210',
   },
   renaissance: {
-    wall: '#a88f6e', wallShade: '#705c43', wallHighlight: '#c8ad88',
-    floor: '#a07254', floorPlank: '#7d5638', floorShade: '#4f3220',
+    wall: '#a88f6e',
+    wallShade: '#705c43',
+    wallHighlight: '#c8ad88',
+    floor: '#a07254',
+    floorPlank: '#7d5638',
+    floorShade: '#4f3220',
     outside: '#15110d',
   },
   industrial: {
-    wall: '#7a5c44', wallShade: '#503a26', wallHighlight: '#9a7858',
-    floor: '#5a4434', floorPlank: '#3e2e22', floorShade: '#251a14',
+    wall: '#7a5c44',
+    wallShade: '#503a26',
+    wallHighlight: '#9a7858',
+    floor: '#5a4434',
+    floorPlank: '#3e2e22',
+    floorShade: '#251a14',
     outside: '#12100d',
   },
   modern: {
-    wall: '#b6a08a', wallShade: '#7a6857', wallHighlight: '#cdbaa3',
-    floor: '#7e6c5a', floorPlank: '#5c4d3e', floorShade: '#3a3127',
+    wall: '#b6a08a',
+    wallShade: '#7a6857',
+    wallHighlight: '#cdbaa3',
+    floor: '#7e6c5a',
+    floorPlank: '#5c4d3e',
+    floorShade: '#3a3127',
     outside: '#0f0d0a',
   },
   information: {
-    wall: '#bdb6aa', wallShade: '#80796d', wallHighlight: '#d4cdc0',
-    floor: '#8a8275', floorPlank: '#5c574d', floorShade: '#3a352d',
+    wall: '#bdb6aa',
+    wallShade: '#80796d',
+    wallHighlight: '#d4cdc0',
+    floor: '#8a8275',
+    floorPlank: '#5c574d',
+    floorShade: '#3a352d',
     outside: '#0d0c0a',
   },
 }
 
-interface FurnSlot { x: number; y: number; w: number; h: number; kind: string }
+interface FurnSlot {
+  x: number
+  y: number
+  w: number
+  h: number
+  kind: string
+}
 
 function fixturesLayout(era: string): FurnSlot[] {
   const list: FurnSlot[] = []
   list.push({ x: 2, y: ROOM_ROWS - 3, w: 2, h: 2, kind: 'hearth' })
-  list.push({ x: 5,  y: 2, w: 3, h: 1, kind: 'mat' })
+  list.push({ x: 5, y: 2, w: 3, h: 1, kind: 'mat' })
   list.push({ x: ROOM_COLS - 4, y: 2, w: 2, h: 2, kind: 'storage' })
   if (era !== 'pre-stone' && era !== 'stone') {
     list.push({ x: 9, y: ROOM_ROWS - 3, w: 3, h: 1, kind: 'bench' })
   }
   if (era !== 'pre-stone' && era !== 'stone' && era !== 'bronze' && era !== 'iron') {
-    list.push({ x: 5,  y: ROOM_ROWS - 4, w: 3, h: 2, kind: 'table' })
+    list.push({ x: 5, y: ROOM_ROWS - 4, w: 3, h: 2, kind: 'table' })
   }
   if (era === 'renaissance' || era === 'industrial' || era === 'modern' || era === 'information') {
     list.push({ x: 2, y: 2, w: 2, h: 2, kind: 'shelf' })
@@ -100,11 +159,12 @@ function eraOf(world: SceneContext['world'], lid: string): string {
 
 function deriveStage(o: SceneOccupant['org']): AgeStage {
   const declared = o.age_stage as AgeStage | undefined
-  if (declared === 'infant' || declared === 'child' || declared === 'teen' || declared === 'adult') return declared
+  if (declared === 'infant' || declared === 'child' || declared === 'teen' || declared === 'adult')
+    return declared
   if (declared === 'elder') return 'adult'
   if (o.is_elder) return 'adult'
-  if (o.age < 220)  return 'infant'
-  if (o.age < 900)  return 'child'
+  if (o.age < 220) return 'infant'
+  if (o.age < 900) return 'child'
   if (o.age < 1800) return 'teen'
   return 'adult'
 }
@@ -112,9 +172,24 @@ function deriveStage(o: SceneOccupant['org']): AgeStage {
 function occupantSlots(n: number): Array<[number, number]> {
   if (n === 0) return []
   if (n === 1) return [[7, 5]]
-  if (n === 2) return [[5, 5], [9, 5]]
-  if (n === 3) return [[4, 5], [7, 6], [10, 5]]
-  if (n === 4) return [[4, 5], [6, 6], [9, 6], [11, 5]]
+  if (n === 2)
+    return [
+      [5, 5],
+      [9, 5],
+    ]
+  if (n === 3)
+    return [
+      [4, 5],
+      [7, 6],
+      [10, 5],
+    ]
+  if (n === 4)
+    return [
+      [4, 5],
+      [6, 6],
+      [9, 6],
+      [11, 5],
+    ]
   const out: Array<[number, number]> = []
   for (let i = 0; i < n; i++) {
     const col = i % 5
@@ -124,7 +199,7 @@ function occupantSlots(n: number): Array<[number, number]> {
   return out
 }
 
-function drawFloor(ctx: CanvasRenderingContext2D, p: typeof ERA_PALETTE[string]) {
+function drawFloor(ctx: CanvasRenderingContext2D, p: (typeof ERA_PALETTE)[string]) {
   for (let r = 1; r < ROOM_ROWS - 1; r++) {
     for (let c = 1; c < ROOM_COLS - 1; c++) {
       const x = c * TILE_PX
@@ -137,7 +212,7 @@ function drawFloor(ctx: CanvasRenderingContext2D, p: typeof ERA_PALETTE[string])
   }
 }
 
-function drawWalls(ctx: CanvasRenderingContext2D, p: typeof ERA_PALETTE[string]) {
+function drawWalls(ctx: CanvasRenderingContext2D, p: (typeof ERA_PALETTE)[string]) {
   ctx.fillStyle = p.wall
   ctx.fillRect(0, 0, CANVAS_W, TILE_PX)
   ctx.fillRect(0, CANVAS_H - TILE_PX, CANVAS_W, TILE_PX)
@@ -186,9 +261,9 @@ function drawHearth(ctx: CanvasRenderingContext2D, x: number, y: number, t: numb
 
   ctx.globalCompositeOperation = 'lighter'
   const glow = ctx.createRadialGradient(x + 16, y + 18, 0, x + 16, y + 18, 48)
-  glow.addColorStop(0,    'rgba(255, 180, 80, 0.45)')
-  glow.addColorStop(0.5,  'rgba(255, 140, 50, 0.20)')
-  glow.addColorStop(1,    'rgba(255, 140, 50, 0)')
+  glow.addColorStop(0, 'rgba(255, 180, 80, 0.45)')
+  glow.addColorStop(0.5, 'rgba(255, 140, 50, 0.20)')
+  glow.addColorStop(1, 'rgba(255, 140, 50, 0)')
   ctx.fillStyle = glow
   ctx.fillRect(x - 32, y - 32, 96, 96)
   ctx.globalCompositeOperation = 'source-over'
@@ -252,7 +327,7 @@ function drawShelf(ctx: CanvasRenderingContext2D, x: number, y: number) {
   ctx.fillRect(x + 3, y + 12, 26, 2)
   ctx.fillRect(x + 3, y + 22, 26, 2)
   ctx.fillStyle = '#d8b270'
-  ctx.fillRect(x + 5, y + 7,  4, 4)
+  ctx.fillRect(x + 5, y + 7, 4, 4)
   ctx.fillStyle = '#9a6a3a'
   ctx.fillRect(x + 11, y + 8, 3, 3)
   ctx.fillStyle = '#d8b270'
@@ -273,12 +348,24 @@ function drawFixtures(ctx: CanvasRenderingContext2D, fixtures: FurnSlot[], t: nu
     const y = f.y * TILE_PX
     const w = f.w * TILE_PX
     switch (f.kind) {
-      case 'hearth':  drawHearth(ctx,  x, y, t); break
-      case 'mat':     drawMat(ctx,     x, y, w); break
-      case 'storage': drawStorage(ctx, x, y);    break
-      case 'bench':   drawBench(ctx,   x, y, w); break
-      case 'table':   drawTable(ctx,   x, y, w, f.h); break
-      case 'shelf':   drawShelf(ctx,   x, y);    break
+      case 'hearth':
+        drawHearth(ctx, x, y, t)
+        break
+      case 'mat':
+        drawMat(ctx, x, y, w)
+        break
+      case 'storage':
+        drawStorage(ctx, x, y)
+        break
+      case 'bench':
+        drawBench(ctx, x, y, w)
+        break
+      case 'table':
+        drawTable(ctx, x, y, w, f.h)
+        break
+      case 'shelf':
+        drawShelf(ctx, x, y)
+        break
     }
   }
 }
@@ -316,8 +403,9 @@ export function HomeCanvas({ ctx: sceneCtx, selectedOrgId, onSelectOrg, hover }:
     if (!c) return
     c.imageSmoothingEnabled = false
 
-    const host = sceneCtx.world.organisms.find((o) => o.id ===
-      (sceneCtx.scene.kind === 'home' ? sceneCtx.scene.orgId : ''))
+    const host = sceneCtx.world.organisms.find(
+      (o) => o.id === (sceneCtx.scene.kind === 'home' ? sceneCtx.scene.orgId : ''),
+    )
     const era = host ? eraOf(sceneCtx.world, host.lineage_id) : 'pre-stone'
     const palette = ERA_PALETTE[era] ?? ERA_PALETTE['stone']
     const fixtures = fixturesLayout(era)
@@ -379,8 +467,8 @@ export function HomeCanvas({ ctx: sceneCtx, selectedOrgId, onSelectOrg, hover }:
     const canvas = canvasRef.current
     if (!canvas) return
     const rect = canvas.getBoundingClientRect()
-    const sx = (e.clientX - rect.left) / rect.width * CANVAS_W
-    const sy = (e.clientY - rect.top)  / rect.height * CANVAS_H
+    const sx = ((e.clientX - rect.left) / rect.width) * CANVAS_W
+    const sy = ((e.clientY - rect.top) / rect.height) * CANVAS_H
     for (const h of hitRef.current) {
       if ((sx - h.x) ** 2 + (sy - h.y) ** 2 < h.r * h.r) {
         onSelectOrg(h.id)
@@ -390,7 +478,9 @@ export function HomeCanvas({ ctx: sceneCtx, selectedOrgId, onSelectOrg, hover }:
   }
 
   useEffect(() => {
-    onAnyAtlasLoaded(() => { /* trigger re-paint via raf */ })
+    onAnyAtlasLoaded(() => {
+      /* trigger re-paint via raf */
+    })
   }, [])
   void ATLAS_TOWN
 
@@ -402,7 +492,7 @@ export function HomeCanvas({ ctx: sceneCtx, selectedOrgId, onSelectOrg, hover }:
       onClick={onClick}
       style={{
         imageRendering: 'pixelated',
-        width:  `${CANVAS_W * SCALE}px`,
+        width: `${CANVAS_W * SCALE}px`,
         height: `${CANVAS_H * SCALE}px`,
         cursor: 'pointer',
         display: 'block',

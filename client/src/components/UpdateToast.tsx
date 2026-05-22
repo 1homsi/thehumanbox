@@ -15,18 +15,14 @@ export function UpdateToast() {
 
   return (
     <div className="update-toast" role="status" aria-live="polite">
-      <div className="update-toast__icon" aria-hidden="true">⤴</div>
+      <div className="update-toast__icon" aria-hidden="true">
+        ⤴
+      </div>
       <div className="update-toast__body">
         <div className="update-toast__title">New version available</div>
         <div className="update-toast__sub">refresh to load the latest world</div>
       </div>
-      <button
-        type="button"
-        className="update-toast__cta"
-        onClick={reload}
-        disabled={reloading}
-        autoFocus
-      >
+      <button type="button" className="update-toast__cta" onClick={reload} disabled={reloading} autoFocus>
         {reloading ? 'refreshing…' : 'Refresh'}
       </button>
       <button

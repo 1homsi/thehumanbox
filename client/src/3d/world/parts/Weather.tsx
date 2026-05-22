@@ -2,14 +2,14 @@ import { useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { AmbientLight, CylinderGeometry, InstancedMesh, Object3D } from 'three'
 interface Props {
-  kind:      'clear' | 'rain' | 'storm' | 'wet'
+  kind: 'clear' | 'rain' | 'storm' | 'wet'
   intensity: number
 }
 
 function Lightning({ active }: { active: boolean }) {
   const lightRef = useRef<AmbientLight>(null)
   const nextStrike = useRef(performance.now() + 4000 + Math.random() * 6000)
-  const strikeEnd  = useRef(0)
+  const strikeEnd = useRef(0)
 
   useFrame(() => {
     if (!lightRef.current) return
@@ -34,7 +34,7 @@ const tmp = new Object3D()
 
 const RAIN_VOLUME = 80
 const RAIN_HEIGHT = 60
-const RAIN_GEO    = new CylinderGeometry(0.015, 0.015, 1.4, 4)
+const RAIN_GEO = new CylinderGeometry(0.015, 0.015, 1.4, 4)
 
 export function Weather({ kind, intensity }: Props) {
   const meshRef = useRef<InstancedMesh>(null)
@@ -51,7 +51,7 @@ export function Weather({ kind, intensity }: Props) {
 
   useFrame((_, delta) => {
     if (typeof document !== 'undefined' && document.hidden) return
-    if (delta > 0.1) return  // catch-up burst when returning from background
+    if (delta > 0.1) return // catch-up burst when returning from background
     const mesh = meshRef.current
     if (!mesh || maxDrops === 0) return
     const cx = camera.position.x
@@ -63,7 +63,7 @@ export function Weather({ kind, intensity }: Props) {
       if (offsets[i] < 0) offsets[i] += RAIN_HEIGHT
 
       const a = (i * 12.9898) % 1
-      const b = (i * 78.233)  % 1
+      const b = (i * 78.233) % 1
       const dx = (a - 0.5) * RAIN_VOLUME * 2
       const dz = (b - 0.5) * RAIN_VOLUME * 2
       const dy = offsets[i] - RAIN_HEIGHT * 0.5

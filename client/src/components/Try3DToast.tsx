@@ -15,8 +15,11 @@ export function Try3DToast() {
   useEffect(() => {
     if (isMobile) return
     let dismissed = false
-    try { dismissed = window.localStorage.getItem(STORAGE_KEY) === '1' }
-    catch { /* ignore */ }
+    try {
+      dismissed = window.localStorage.getItem(STORAGE_KEY) === '1'
+    } catch {
+      /* ignore */
+    }
     if (dismissed || threeD) return
 
     const id = window.setTimeout(() => setVisible(true), SHOW_DELAY_MS)
@@ -26,8 +29,11 @@ export function Try3DToast() {
   if (isMobile || !visible) return null
 
   const persist = () => {
-    try { window.localStorage.setItem(STORAGE_KEY, '1') }
-    catch { /* ignore */ }
+    try {
+      window.localStorage.setItem(STORAGE_KEY, '1')
+    } catch {
+      /* ignore */
+    }
   }
 
   const close = () => {
@@ -44,22 +50,22 @@ export function Try3DToast() {
   }
 
   return (
-    <div
-      className={`try-3d-toast${animateOut ? ' leaving' : ''}`}
-      role="status"
-      aria-live="polite"
-    >
+    <div className={`try-3d-toast${animateOut ? ' leaving' : ''}`} role="status" aria-live="polite">
       <div className="try-3d-toast__icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" width="22" height="22">
           <defs>
             <linearGradient id="t3d-g" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%"  stopColor="#d8b270" />
+              <stop offset="0%" stopColor="#d8b270" />
               <stop offset="100%" stopColor="#8a6432" />
             </linearGradient>
           </defs>
-          <path d="M12 2 L21 7 L21 17 L12 22 L3 17 L3 7 Z"
-                fill="url(#t3d-g)" stroke="#e5ddc7" strokeWidth="0.8" />
-          <path d="M12 2 L21 7 L12 12 L3 7 Z"     fill="#e2c08a" opacity="0.9" />
+          <path
+            d="M12 2 L21 7 L21 17 L12 22 L3 17 L3 7 Z"
+            fill="url(#t3d-g)"
+            stroke="#e5ddc7"
+            strokeWidth="0.8"
+          />
+          <path d="M12 2 L21 7 L12 12 L3 7 Z" fill="#e2c08a" opacity="0.9" />
           <path d="M12 12 L21 7  L21 17 L12 22 Z" fill="#a07a3a" opacity="0.9" />
         </svg>
       </div>
@@ -72,20 +78,10 @@ export function Try3DToast() {
           See organisms wander a real terrain - same simulation, new view.
         </div>
       </div>
-      <button
-        type="button"
-        className="try-3d-toast__cta"
-        onClick={tryIt}
-        autoFocus
-      >
+      <button type="button" className="try-3d-toast__cta" onClick={tryIt} autoFocus>
         Try it
       </button>
-      <button
-        type="button"
-        className="try-3d-toast__close"
-        onClick={close}
-        aria-label="Dismiss"
-      >
+      <button type="button" className="try-3d-toast__close" onClick={close} aria-label="Dismiss">
         ×
       </button>
     </div>

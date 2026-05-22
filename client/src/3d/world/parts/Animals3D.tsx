@@ -1,7 +1,19 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useGLTF } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import { BoxGeometry, BufferGeometry, CapsuleGeometry, ConeGeometry, CylinderGeometry, Euler, InstancedMesh, Matrix4, Quaternion, SphereGeometry, Vector3 } from 'three'
+import {
+  BoxGeometry,
+  BufferGeometry,
+  CapsuleGeometry,
+  ConeGeometry,
+  CylinderGeometry,
+  Euler,
+  InstancedMesh,
+  Matrix4,
+  Quaternion,
+  SphereGeometry,
+  Vector3,
+} from 'three'
 import type { AnimalState } from '../../../types'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
@@ -9,19 +21,19 @@ import { AnimatedFigure } from './AnimatedFigure'
 import { getAnimalXY, getAnimalHeading } from './motion-state'
 
 interface Props {
-  animals:  AnimalState[]
+  animals: AnimalState[]
   depthMap: number[][]
-  biomes:   number[][]
+  biomes: number[][]
 }
 
 const KIND_TINT: Record<string, string> = {
   rabbit: '#cccccc',
-  deer:   '#a8825a',
-  boar:   '#6a5240',
-  bird:   '#d4a040',
-  fish:   '#88aaff',
-  wolf:   '#555555',
-  dog:    '#b08850',
+  deer: '#a8825a',
+  boar: '#6a5240',
+  bird: '#d4a040',
+  fish: '#88aaff',
+  wolf: '#555555',
+  dog: '#b08850',
 }
 
 function seededYaw(id: number): number {
@@ -36,7 +48,7 @@ interface PartDef {
   geom: () => BufferGeometry
   color: string
   offset: [number, number, number]
-  rot:    [number, number, number]
+  rot: [number, number, number]
   // Most parts have unit scale baked into the geometry; if not, override.
   scale?: [number, number, number]
 }
@@ -62,55 +74,147 @@ function makeCone(r: number, h: number, seg: number) {
 function buildPartsByKind(kind: AnimalState['kind']): PartDef[] {
   const tint = TINT(kind)
   switch (kind) {
-    case 'rabbit': return [
-      { geom: () => makeSphere(0.25, 6, 5), color: tint, offset: [0, 0.25, 0],     rot: [0,    0, 0] },
-      { geom: () => makeSphere(0.16, 5, 5), color: tint, offset: [0, 0.55, 0.05],  rot: [0,    0, 0] },
-      { geom: () => makeCylinder(0.025, 0.035, 0.28, 4), color: tint, offset: [-0.06, 0.78, 0.04], rot: [0.1, 0, -0.15] },
-      { geom: () => makeCylinder(0.025, 0.035, 0.28, 4), color: tint, offset: [ 0.06, 0.78, 0.04], rot: [0.1, 0,  0.15] },
-    ]
-    case 'deer': return [
-      // body
-      { geom: () => makeCapsule(0.28, 0.6, 4, 6), color: tint, offset: [0, 0.8, 0], rot: [0, 0, 0] },
-      // legs (dark) - 4
-      { geom: () => makeCylinder(0.06, 0.05, 0.8, 4), color: '#3a2a1a', offset: [-0.18, 0.4,  0.35], rot: [0,0,0] },
-      { geom: () => makeCylinder(0.06, 0.05, 0.8, 4), color: '#3a2a1a', offset: [ 0.18, 0.4,  0.35], rot: [0,0,0] },
-      { geom: () => makeCylinder(0.06, 0.05, 0.8, 4), color: '#3a2a1a', offset: [-0.18, 0.4, -0.35], rot: [0,0,0] },
-      { geom: () => makeCylinder(0.06, 0.05, 0.8, 4), color: '#3a2a1a', offset: [ 0.18, 0.4, -0.35], rot: [0,0,0] },
-      // head
-      { geom: () => makeSphere(0.22, 6, 5), color: tint, offset: [0, 1.2, 0.4], rot: [0,0,0] },
-      // antlers
-      { geom: () => makeCylinder(0.02, 0.04, 0.35, 3), color: '#6b4a2a', offset: [-0.1, 1.5, 0.4], rot: [0.4, 0, -0.4] },
-      { geom: () => makeCylinder(0.02, 0.04, 0.35, 3), color: '#6b4a2a', offset: [ 0.1, 1.5, 0.4], rot: [0.4, 0,  0.4] },
-    ]
-    case 'boar': return [
-      { geom: () => makeCapsule(0.32, 0.55, 4, 6), color: tint, offset: [0, 0.45, 0], rot: [0,0,0] },
-      { geom: () => makeCylinder(0.06, 0.05, 0.35, 4), color: '#2a1a10', offset: [-0.16, 0.18,  0.28], rot: [0,0,0] },
-      { geom: () => makeCylinder(0.06, 0.05, 0.35, 4), color: '#2a1a10', offset: [ 0.16, 0.18,  0.28], rot: [0,0,0] },
-      { geom: () => makeCylinder(0.06, 0.05, 0.35, 4), color: '#2a1a10', offset: [-0.16, 0.18, -0.28], rot: [0,0,0] },
-      { geom: () => makeCylinder(0.06, 0.05, 0.35, 4), color: '#2a1a10', offset: [ 0.16, 0.18, -0.28], rot: [0,0,0] },
-      { geom: () => makeCone(0.18, 0.4, 5), color: tint, offset: [0, 0.55, 0.5], rot: [0,0,0] },
-    ]
-    case 'bird': return [
-      { geom: () => makeSphere(0.16, 6, 5), color: tint, offset: [0, 1.3, 0], rot: [0,0,0] },
-      { geom: () => makeBox(0.3, 0.04, 0.18), color: tint, offset: [-0.18, 1.32, 0], rot: [0, 0,  0.3] },
-      { geom: () => makeBox(0.3, 0.04, 0.18), color: tint, offset: [ 0.18, 1.32, 0], rot: [0, 0, -0.3] },
-      { geom: () => makeCone(0.04, 0.1, 4), color: '#d8a040', offset: [0, 1.32, 0.16], rot: [Math.PI / 2, 0, 0] },
-    ]
-    case 'wolf': return [
-      { geom: () => makeCapsule(0.22, 0.7, 4, 6), color: tint, offset: [0, 0.55, 0], rot: [0,0,0] },
-      { geom: () => makeCylinder(0.05, 0.04, 0.5, 4), color: tint, offset: [-0.14, 0.25,  0.32], rot: [0,0,0] },
-      { geom: () => makeCylinder(0.05, 0.04, 0.5, 4), color: tint, offset: [ 0.14, 0.25,  0.32], rot: [0,0,0] },
-      { geom: () => makeCylinder(0.05, 0.04, 0.5, 4), color: tint, offset: [-0.14, 0.25, -0.32], rot: [0,0,0] },
-      { geom: () => makeCylinder(0.05, 0.04, 0.5, 4), color: tint, offset: [ 0.14, 0.25, -0.32], rot: [0,0,0] },
-      { geom: () => makeSphere(0.17, 6, 5), color: tint, offset: [0, 0.75, 0.42], rot: [0,0,0] },
-      { geom: () => makeCone(0.05, 0.12, 3), color: tint, offset: [-0.08, 0.92, 0.42], rot: [0, 0, -0.3] },
-      { geom: () => makeCone(0.05, 0.12, 3), color: tint, offset: [ 0.08, 0.92, 0.42], rot: [0, 0,  0.3] },
-    ]
-    case 'fish': return [
-      { geom: () => makeCone(0.18, 0.55, 5), color: tint, offset: [0, 0,  0],    rot: [Math.PI / 2, 0, 0] },
-      { geom: () => makeCone(0.12, 0.2,  4), color: tint, offset: [0, 0, -0.28], rot: [Math.PI / 2, 0, 0] },
-    ]
-    default: return buildPartsByKind('rabbit')
+    case 'rabbit':
+      return [
+        { geom: () => makeSphere(0.25, 6, 5), color: tint, offset: [0, 0.25, 0], rot: [0, 0, 0] },
+        { geom: () => makeSphere(0.16, 5, 5), color: tint, offset: [0, 0.55, 0.05], rot: [0, 0, 0] },
+        {
+          geom: () => makeCylinder(0.025, 0.035, 0.28, 4),
+          color: tint,
+          offset: [-0.06, 0.78, 0.04],
+          rot: [0.1, 0, -0.15],
+        },
+        {
+          geom: () => makeCylinder(0.025, 0.035, 0.28, 4),
+          color: tint,
+          offset: [0.06, 0.78, 0.04],
+          rot: [0.1, 0, 0.15],
+        },
+      ]
+    case 'deer':
+      return [
+        // body
+        { geom: () => makeCapsule(0.28, 0.6, 4, 6), color: tint, offset: [0, 0.8, 0], rot: [0, 0, 0] },
+        // legs (dark) - 4
+        {
+          geom: () => makeCylinder(0.06, 0.05, 0.8, 4),
+          color: '#3a2a1a',
+          offset: [-0.18, 0.4, 0.35],
+          rot: [0, 0, 0],
+        },
+        {
+          geom: () => makeCylinder(0.06, 0.05, 0.8, 4),
+          color: '#3a2a1a',
+          offset: [0.18, 0.4, 0.35],
+          rot: [0, 0, 0],
+        },
+        {
+          geom: () => makeCylinder(0.06, 0.05, 0.8, 4),
+          color: '#3a2a1a',
+          offset: [-0.18, 0.4, -0.35],
+          rot: [0, 0, 0],
+        },
+        {
+          geom: () => makeCylinder(0.06, 0.05, 0.8, 4),
+          color: '#3a2a1a',
+          offset: [0.18, 0.4, -0.35],
+          rot: [0, 0, 0],
+        },
+        // head
+        { geom: () => makeSphere(0.22, 6, 5), color: tint, offset: [0, 1.2, 0.4], rot: [0, 0, 0] },
+        // antlers
+        {
+          geom: () => makeCylinder(0.02, 0.04, 0.35, 3),
+          color: '#6b4a2a',
+          offset: [-0.1, 1.5, 0.4],
+          rot: [0.4, 0, -0.4],
+        },
+        {
+          geom: () => makeCylinder(0.02, 0.04, 0.35, 3),
+          color: '#6b4a2a',
+          offset: [0.1, 1.5, 0.4],
+          rot: [0.4, 0, 0.4],
+        },
+      ]
+    case 'boar':
+      return [
+        { geom: () => makeCapsule(0.32, 0.55, 4, 6), color: tint, offset: [0, 0.45, 0], rot: [0, 0, 0] },
+        {
+          geom: () => makeCylinder(0.06, 0.05, 0.35, 4),
+          color: '#2a1a10',
+          offset: [-0.16, 0.18, 0.28],
+          rot: [0, 0, 0],
+        },
+        {
+          geom: () => makeCylinder(0.06, 0.05, 0.35, 4),
+          color: '#2a1a10',
+          offset: [0.16, 0.18, 0.28],
+          rot: [0, 0, 0],
+        },
+        {
+          geom: () => makeCylinder(0.06, 0.05, 0.35, 4),
+          color: '#2a1a10',
+          offset: [-0.16, 0.18, -0.28],
+          rot: [0, 0, 0],
+        },
+        {
+          geom: () => makeCylinder(0.06, 0.05, 0.35, 4),
+          color: '#2a1a10',
+          offset: [0.16, 0.18, -0.28],
+          rot: [0, 0, 0],
+        },
+        { geom: () => makeCone(0.18, 0.4, 5), color: tint, offset: [0, 0.55, 0.5], rot: [0, 0, 0] },
+      ]
+    case 'bird':
+      return [
+        { geom: () => makeSphere(0.16, 6, 5), color: tint, offset: [0, 1.3, 0], rot: [0, 0, 0] },
+        { geom: () => makeBox(0.3, 0.04, 0.18), color: tint, offset: [-0.18, 1.32, 0], rot: [0, 0, 0.3] },
+        { geom: () => makeBox(0.3, 0.04, 0.18), color: tint, offset: [0.18, 1.32, 0], rot: [0, 0, -0.3] },
+        {
+          geom: () => makeCone(0.04, 0.1, 4),
+          color: '#d8a040',
+          offset: [0, 1.32, 0.16],
+          rot: [Math.PI / 2, 0, 0],
+        },
+      ]
+    case 'wolf':
+      return [
+        { geom: () => makeCapsule(0.22, 0.7, 4, 6), color: tint, offset: [0, 0.55, 0], rot: [0, 0, 0] },
+        {
+          geom: () => makeCylinder(0.05, 0.04, 0.5, 4),
+          color: tint,
+          offset: [-0.14, 0.25, 0.32],
+          rot: [0, 0, 0],
+        },
+        {
+          geom: () => makeCylinder(0.05, 0.04, 0.5, 4),
+          color: tint,
+          offset: [0.14, 0.25, 0.32],
+          rot: [0, 0, 0],
+        },
+        {
+          geom: () => makeCylinder(0.05, 0.04, 0.5, 4),
+          color: tint,
+          offset: [-0.14, 0.25, -0.32],
+          rot: [0, 0, 0],
+        },
+        {
+          geom: () => makeCylinder(0.05, 0.04, 0.5, 4),
+          color: tint,
+          offset: [0.14, 0.25, -0.32],
+          rot: [0, 0, 0],
+        },
+        { geom: () => makeSphere(0.17, 6, 5), color: tint, offset: [0, 0.75, 0.42], rot: [0, 0, 0] },
+        { geom: () => makeCone(0.05, 0.12, 3), color: tint, offset: [-0.08, 0.92, 0.42], rot: [0, 0, -0.3] },
+        { geom: () => makeCone(0.05, 0.12, 3), color: tint, offset: [0.08, 0.92, 0.42], rot: [0, 0, 0.3] },
+      ]
+    case 'fish':
+      return [
+        { geom: () => makeCone(0.18, 0.55, 5), color: tint, offset: [0, 0, 0], rot: [Math.PI / 2, 0, 0] },
+        { geom: () => makeCone(0.12, 0.2, 4), color: tint, offset: [0, 0, -0.28], rot: [Math.PI / 2, 0, 0] },
+      ]
+    default:
+      return buildPartsByKind('rabbit')
   }
 }
 
@@ -122,12 +226,12 @@ interface InstancedSpeciesProps {
 }
 
 // Reused scratch - avoids per-frame allocation in useFrame.
-const rootMat   = new Matrix4()
-const partMat   = new Matrix4()
-const finalMat  = new Matrix4()
+const rootMat = new Matrix4()
+const partMat = new Matrix4()
+const finalMat = new Matrix4()
 const scratchEuler = new Euler()
-const scratchQuat  = new Quaternion()
-const scratchVec   = new Vector3()
+const scratchQuat = new Quaternion()
+const scratchVec = new Vector3()
 const scratchScale = new Vector3(1, 1, 1)
 
 function InstancedSpecies({ kind, ids, depthMap, biomes }: InstancedSpeciesProps) {
@@ -141,7 +245,7 @@ function InstancedSpecies({ kind, ids, depthMap, biomes }: InstancedSpeciesProps
   // Per-part baked local matrix (offset · rotation · scale). Computed
   // once per parts change, reused every frame.
   const partLocalMats = useMemo(() => {
-    return parts.map(p => {
+    return parts.map((p) => {
       const m = new Matrix4()
       scratchEuler.set(p.rot[0], p.rot[1], p.rot[2])
       scratchQuat.setFromEuler(scratchEuler)
@@ -158,7 +262,7 @@ function InstancedSpecies({ kind, ids, depthMap, biomes }: InstancedSpeciesProps
   const breathPhases = useMemo(() => {
     const arr = new Float32Array(count)
     for (let i = 0; i < count; i++) {
-      arr[i] = ((ids[i] * 9301 + 49297) % 1000) / 1000 * Math.PI * 2
+      arr[i] = (((ids[i] * 9301 + 49297) % 1000) / 1000) * Math.PI * 2
     }
     return arr
   }, [ids, count])
@@ -181,15 +285,17 @@ function InstancedSpecies({ kind, ids, depthMap, biomes }: InstancedSpeciesProps
       if (predicted !== 0) {
         yaw = predicted
       } else {
-        const lx = lp[i * 2], lz = lp[i * 2 + 1]
-        const dx = tx - lx, dz = ty - lz
+        const lx = lp[i * 2],
+          lz = lp[i * 2 + 1]
+        const dx = tx - lx,
+          dz = ty - lz
         if (dx * dx + dz * dz > 0.0005) {
           yaw = Math.atan2(dx, dz)
         } else {
           yaw = seededYaw(id)
         }
       }
-      lp[i * 2]     = tx
+      lp[i * 2] = tx
       lp[i * 2 + 1] = ty
 
       const breath = 1 + Math.sin(t * 2.4 + breathPhases[i]) * 0.035
@@ -224,7 +330,9 @@ function InstancedSpecies({ kind, ids, depthMap, biomes }: InstancedSpeciesProps
           // Key includes count so React recreates when capacity changes
           // (InstancedMesh capacity is fixed after construction).
           key={`${kind}-${p}-${count}`}
-          ref={(m) => { meshes.current[p] = m }}
+          ref={(m) => {
+            meshes.current[p] = m
+          }}
           args={[part.geom(), undefined, count]}
           castShadow
           frustumCulled={false}
@@ -260,7 +368,7 @@ export function Animals3D({ animals, depthMap, biomes }: Props) {
         if (kind === 'dog') {
           // Skinned-mesh GLB - keep the per-instance AnimatedFigure
           // path (skinned-mesh instancing is a much bigger lift).
-          return ids.map(id => {
+          return ids.map((id) => {
             const yaw = seededYaw(id)
             const tint = TINT(kind)
             return (

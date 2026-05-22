@@ -6,5 +6,5 @@ export { HomeInterior, resolveHomeScene }
 
 registerScene('home', {
   resolve: resolveHomeScene,
-  Render:  HomeInterior,
+  Render: HomeInterior,
 })

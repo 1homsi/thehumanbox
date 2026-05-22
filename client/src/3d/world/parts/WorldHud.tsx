@@ -7,7 +7,7 @@ const TWO_PI = Math.PI * 2
 
 export function WorldHud() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const rafRef    = useRef<number>(0)
+  const rafRef = useRef<number>(0)
 
   useEffect(() => {
     const c = canvasRef.current
@@ -18,14 +18,14 @@ export function WorldHud() {
       ctx.clearRect(0, 0, COMPASS_W, COMPASS_H)
       const yaw = Math.atan2(cameraSnapshot.dirX, cameraSnapshot.dirZ)
       const labels: { angle: number; text: string; major: boolean }[] = [
-        { angle: 0,             text: 'N', major: true },
-        { angle: Math.PI / 4,   text: 'NE', major: false },
-        { angle: Math.PI / 2,   text: 'E', major: true },
-        { angle: 3 * Math.PI / 4, text: 'SE', major: false },
-        { angle: Math.PI,       text: 'S', major: true },
-        { angle: -Math.PI / 4,  text: 'NW', major: false },
-        { angle: -Math.PI / 2,  text: 'W', major: true },
-        { angle: -3 * Math.PI / 4, text: 'SW', major: false },
+        { angle: 0, text: 'N', major: true },
+        { angle: Math.PI / 4, text: 'NE', major: false },
+        { angle: Math.PI / 2, text: 'E', major: true },
+        { angle: (3 * Math.PI) / 4, text: 'SE', major: false },
+        { angle: Math.PI, text: 'S', major: true },
+        { angle: -Math.PI / 4, text: 'NW', major: false },
+        { angle: -Math.PI / 2, text: 'W', major: true },
+        { angle: (-3 * Math.PI) / 4, text: 'SW', major: false },
       ]
       ctx.font = '11px monospace'
       ctx.textAlign = 'center'
@@ -34,7 +34,7 @@ export function WorldHud() {
       const cy = 14
       for (const lbl of labels) {
         let diff = lbl.angle - yaw
-        while (diff >  Math.PI) diff -= TWO_PI
+        while (diff > Math.PI) diff -= TWO_PI
         while (diff < -Math.PI) diff += TWO_PI
         const x = cx + (diff / (Math.PI / 2)) * 80
         if (x < -20 || x > COMPASS_W + 20) continue

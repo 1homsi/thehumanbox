@@ -7,42 +7,42 @@ import { heightAt } from './terrain-utils'
 import { getOrgXY } from './motion-state'
 
 interface Props {
-  events:    SimEvent[]
+  events: SimEvent[]
   organisms: OrganismState[]
-  depthMap:  number[][]
-  biomes:    number[][]
+  depthMap: number[][]
+  biomes: number[][]
 }
 
 const FLOATER_LIFE_MS = 4200
-const MAX_FLOATERS    = 24
+const MAX_FLOATERS = 24
 
 interface Floater {
-  key:    string
-  text:   string
-  color:  string
+  key: string
+  text: string
+  color: string
   worldX: number
   worldY: number
   worldZ: number
-  born:   number
+  born: number
 }
 
 const EVENT_COLOR: Record<string, string> = {
-  born:      '#88e0a0',
-  died:      '#e87878',
-  signal:    '#ffdd66',
-  alarm:     '#ff7748',
+  born: '#88e0a0',
+  died: '#e87878',
+  signal: '#ffdd66',
+  alarm: '#ff7748',
   challenge: '#ff5050',
-  gift:      '#a8c8ff',
-  treaty:    '#d0a8ff',
-  build:     '#c8b070',
-  social:    '#ffc870',
-  weather:   '#9bb8e0',
-  era:       '#f0d878',
-  drought:   '#d8a060',
-  outbreak:  '#cc5cb0',
-  season:    '#a0d8c8',
-  dawn:      '#ffd498',
-  dusk:      '#cc8a78',
+  gift: '#a8c8ff',
+  treaty: '#d0a8ff',
+  build: '#c8b070',
+  social: '#ffc870',
+  weather: '#9bb8e0',
+  era: '#f0d878',
+  drought: '#d8a060',
+  outbreak: '#cc5cb0',
+  season: '#a0d8c8',
+  dawn: '#ffd498',
+  dusk: '#cc8a78',
 }
 
 function shortDetail(e: SimEvent): string {
@@ -52,10 +52,10 @@ function shortDetail(e: SimEvent): string {
 }
 
 export function EventFloaters({ events, organisms, depthMap, biomes }: Props) {
-  const seenRef     = useRef<Set<string>>(new Set())
+  const seenRef = useRef<Set<string>>(new Set())
   const floatersRef = useRef<Floater[]>([])
   const [, setVersion] = useState(0)
-  const bump = () => setVersion(v => (v + 1) & 0x7fffffff)
+  const bump = () => setVersion((v) => (v + 1) & 0x7fffffff)
 
   const orgByName = useMemo(() => {
     const m = new Map<string, OrganismState>()
@@ -74,12 +74,12 @@ export function EventFloaters({ events, organisms, depthMap, biomes }: Props) {
     const groundY = heightAt(tx, ty, depthMap, biomes)
     floatersRef.current.push({
       key,
-      text:   shortDetail(e),
-      color:  EVENT_COLOR[e.type] ?? '#ffffff',
+      text: shortDetail(e),
+      color: EVENT_COLOR[e.type] ?? '#ffffff',
       worldX: tx * TILE_SCALE,
       worldY: groundY + 3.2,
       worldZ: ty * TILE_SCALE,
-      born:   performance.now(),
+      born: performance.now(),
     })
     spawned++
   }
@@ -94,23 +94,19 @@ export function EventFloaters({ events, organisms, depthMap, biomes }: Props) {
   useFrame(() => {
     const now = performance.now()
     const before = floatersRef.current.length
-    floatersRef.current = floatersRef.current.filter(f => now - f.born < FLOATER_LIFE_MS)
+    floatersRef.current = floatersRef.current.filter((f) => now - f.born < FLOATER_LIFE_MS)
     if (floatersRef.current.length !== before) bump()
   })
 
   const now = performance.now()
   return (
     <>
-      {floatersRef.current.map(f => {
+      {floatersRef.current.map((f) => {
         const age = (now - f.born) / FLOATER_LIFE_MS
         const rise = age * 6
         const fade = Math.max(0, 1 - age)
         return (
-          <Billboard
-            key={f.key}
-            position={[f.worldX, f.worldY + rise, f.worldZ]}
-            frustumCulled={false}
-          >
+          <Billboard key={f.key} position={[f.worldX, f.worldY + rise, f.worldZ]} frustumCulled={false}>
             <Text
               fontSize={0.6}
               color={f.color}

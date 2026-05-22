@@ -4,9 +4,9 @@ import { ConeGeometry, InstancedMesh, Object3D } from 'three'
 import { TILE_SCALE } from './constants'
 
 interface Props {
-  width:  number
+  width: number
   height: number
-  isNight?:    boolean
+  isNight?: boolean
   weatherKind?: 'clear' | 'rain' | 'storm' | 'wet'
 }
 
@@ -26,7 +26,7 @@ export function Birds({ width, height, isNight = false, weatherKind = 'clear' }:
   const meshRef = useRef<InstancedMesh>(null)
   const { camera } = useThree()
 
-  const cx = width  * TILE_SCALE * 0.5
+  const cx = width * TILE_SCALE * 0.5
   const cz = height * TILE_SCALE * 0.5
   const radius = Math.max(width, height) * TILE_SCALE * 0.55
 
@@ -36,10 +36,10 @@ export function Birds({ width, height, isNight = false, weatherKind = 'clear' }:
       arr.push({
         baseX: cx + (hash(i, 1) - 0.5) * radius * 2,
         baseZ: cz + (hash(i, 2) - 0.5) * radius * 2,
-        alt:   60 + hash(i, 3) * 80,
-        freq:  0.06 + hash(i, 4) * 0.10,
+        alt: 60 + hash(i, 3) * 80,
+        freq: 0.06 + hash(i, 4) * 0.1,
         phase: hash(i, 5) * Math.PI * 2,
-        size:  0.6 + hash(i, 6) * 0.7,
+        size: 0.6 + hash(i, 6) * 0.7,
       })
     }
     return arr
@@ -83,7 +83,7 @@ export function Birds({ width, height, isNight = false, weatherKind = 'clear' }:
       }
 
       const dxOrb = -Math.sin(t * p.freq + p.phase) * 18 * p.freq
-      const dzOrb =  Math.cos(t * p.freq * 0.7 + p.phase) * 18 * p.freq * 0.7
+      const dzOrb = Math.cos(t * p.freq * 0.7 + p.phase) * 18 * p.freq * 0.7
       const yaw = Math.atan2(dxOrb, dzOrb)
 
       tmp.position.set(x, y, z)
@@ -97,12 +97,7 @@ export function Birds({ width, height, isNight = false, weatherKind = 'clear' }:
   })
 
   return (
-    <instancedMesh
-      ref={meshRef}
-      args={[BIRD_BODY, undefined, N_BIRDS]}
-      count={N_BIRDS}
-      frustumCulled={false}
-    >
+    <instancedMesh ref={meshRef} args={[BIRD_BODY, undefined, N_BIRDS]} count={N_BIRDS} frustumCulled={false}>
       <meshStandardMaterial color="#2a2a2e" roughness={0.7} />
     </instancedMesh>
   )

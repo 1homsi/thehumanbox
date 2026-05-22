@@ -3,14 +3,14 @@ import type { SceneId } from '../../scenes'
 
 interface SceneState {
   current: SceneId | null
-  enter:   (scene: SceneId) => void
-  exit:    () => void
+  enter: (scene: SceneId) => void
+  exit: () => void
 }
 
 export const useSceneStore = create<SceneState>((set) => ({
   current: null,
-  enter:   (scene) => set({ current: scene }),
-  exit:    () => set({ current: null }),
+  enter: (scene) => set({ current: scene }),
+  exit: () => set({ current: null }),
 }))
 
 export function useCurrentScene(): SceneId | null {

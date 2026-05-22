@@ -10,7 +10,7 @@ interface WorldStore {
 
 export const useWorldStore = create<WorldStore>((set, get) => ({
   world: null,
-  byId:  new Map(),
+  byId: new Map(),
   setWorld: (world) => {
     // Diff against the previous map: reuse the entries whose
     // reference equals the incoming one, only allocate a new Map
@@ -22,7 +22,10 @@ export const useWorldStore = create<WorldStore>((set, get) => ({
     let identical = prev.size === world.organisms.length
     if (identical) {
       for (const o of world.organisms) {
-        if (prev.get(o.id) !== o) { identical = false; break }
+        if (prev.get(o.id) !== o) {
+          identical = false
+          break
+        }
       }
     }
     if (identical) {

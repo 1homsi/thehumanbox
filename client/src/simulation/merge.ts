@@ -1,5 +1,11 @@
 import type { WorldState, GridState, OrganismState, AnimalState } from '../types'
-import { type IncomingWorldFrame, type ExpandedOrgDelta, applyGridWire, expandOrgsSoa, EMPTY_HISTORY } from './wire'
+import {
+  type IncomingWorldFrame,
+  type ExpandedOrgDelta,
+  applyGridWire,
+  expandOrgsSoa,
+  EMPTY_HISTORY,
+} from './wire'
 
 function mergeDefined<T extends object>(target: T, src: Partial<T>): T {
   let changed = false
@@ -7,7 +13,10 @@ function mergeDefined<T extends object>(target: T, src: Partial<T>): T {
   for (const k in src) {
     const v = (src as Record<string, unknown>)[k]
     if (v === null || v === undefined) continue
-    if (tgt[k] !== v) { changed = true; break }
+    if (tgt[k] !== v) {
+      changed = true
+      break
+    }
   }
   if (!changed) return target
   const out = { ...target } as Record<string, unknown>
@@ -21,7 +30,8 @@ function mergeDefined<T extends object>(target: T, src: Partial<T>): T {
 function shallowEqRecord<V>(a: Record<string, V> | undefined, b: Record<string, V> | undefined): boolean {
   if (a === b) return true
   if (!a || !b) return false
-  const ka = Object.keys(a), kb = Object.keys(b)
+  const ka = Object.keys(a),
+    kb = Object.keys(b)
   if (ka.length !== kb.length) return false
   for (const k of ka) if (a[k] !== b[k]) return false
   return true
@@ -29,7 +39,8 @@ function shallowEqRecord<V>(a: Record<string, V> | undefined, b: Record<string, 
 
 function reuseIfEqual<T extends Record<string, V> | undefined, V>(incoming: T, cached: T): T {
   return shallowEqRecord(incoming as Record<string, V> | undefined, cached as Record<string, V> | undefined)
-    ? cached : incoming
+    ? cached
+    : incoming
 }
 
 function reuseArrayIfShallowEqual<T>(incoming: T[] | undefined, cached: T[] | undefined): T[] | undefined {
@@ -42,8 +53,8 @@ function reuseArrayIfShallowEqual<T>(incoming: T[] | undefined, cached: T[] | un
 
 export interface MergeCaches {
   organisms: Map<string, OrganismState>
-  animals:   Map<number, AnimalState>
-  grid:      GridState | null
+  animals: Map<number, AnimalState>
+  grid: GridState | null
   prevWorld: WorldState | null
 }
 
@@ -60,9 +71,8 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
   // type tracks this honestly via ExpandedOrgDelta = Partial<OrganismState>
   // so downstream code can't accidentally read a cold field off a
   // SoA-only record.
-  const fullFrameOrgs: OrganismState[]   = parsed.organisms ?? []
-  const deltaFrameOrgs: ExpandedOrgDelta[] = parsed.organisms_hot
-    ? expandOrgsSoa(parsed.organisms_hot) : []
+  const fullFrameOrgs: OrganismState[] = parsed.organisms ?? []
+  const deltaFrameOrgs: ExpandedOrgDelta[] = parsed.organisms_hot ? expandOrgsSoa(parsed.organisms_hot) : []
 
   if (parsed.organisms_complete && fullFrameOrgs.length > 0) {
     const next = new Map<string, OrganismState>()
@@ -91,7 +101,7 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
   }
 
   if (parsed.animals_complete) {
-    caches.animals = new Map(parsed.animals.map(a => [a.id, a]))
+    caches.animals = new Map(parsed.animals.map((a) => [a.id, a]))
   } else {
     for (const animal of parsed.animals) {
       const existing = caches.animals.get(animal.id)
@@ -102,17 +112,14 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
   // Build the viewport list from whichever stream populated this frame.
   // Always resolve through the cache so cold fields (name, lineage_id,
   // traits) are present.
-  const viewportSource: { id: string }[] = fullFrameOrgs.length > 0
-    ? (fullFrameOrgs as { id: string }[])
-    : (deltaFrameOrgs as { id: string }[])
+  const viewportSource: { id: string }[] =
+    fullFrameOrgs.length > 0 ? (fullFrameOrgs as { id: string }[]) : (deltaFrameOrgs as { id: string }[])
   const viewportOrgs: OrganismState[] = []
   for (const o of viewportSource) {
     const cached = caches.organisms.get(o.id)
     if (cached) viewportOrgs.push(cached)
   }
-  const viewportAnimals = parsed.animals.map(a =>
-    caches.animals.get(a.id) ?? a
-  )
+  const viewportAnimals = parsed.animals.map((a) => caches.animals.get(a.id) ?? a)
   const base = caches.prevWorld
 
   const incomingLineageNames = parsed.lineage_names ?? base?.lineage_names
@@ -140,22 +147,19 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     lineage_centroid_history: parsed.lineage_centroid_history ?? base?.lineage_centroid_history,
     lineage_homes: parsed.lineage_homes ?? base?.lineage_homes,
     current_era: parsed.current_era ?? base?.current_era,
-    sex_words: (reuseArrayIfShallowEqual(incomingSexWords as string[] | undefined, base?.sex_words as string[] | undefined) as [string, string] | undefined),
+    sex_words: reuseArrayIfShallowEqual(
+      incomingSexWords as string[] | undefined,
+      base?.sex_words as string[] | undefined,
+    ) as [string, string] | undefined,
     // Materialise the org / animal arrays from the cache, then reuse
     // the previous frame's array reference when membership *and*
     // identities are unchanged. This is the key to keeping selectors
     // like `s.world?.organisms` from re-firing every tick - zustand
     // selectors short-circuit on Object.is(prev, next).
-    organisms: reuseArrayIfShallowEqual(
-      Array.from(caches.organisms.values()),
-      base?.organisms,
-    ) ?? [],
+    organisms: reuseArrayIfShallowEqual(Array.from(caches.organisms.values()), base?.organisms) ?? [],
     viewport_organisms: viewportOrgs,
     organisms_complete: parsed.organisms_complete,
-    animals: reuseArrayIfShallowEqual(
-      Array.from(caches.animals.values()),
-      base?.animals,
-    ) ?? [],
+    animals: reuseArrayIfShallowEqual(Array.from(caches.animals.values()), base?.animals) ?? [],
     viewport_animals: viewportAnimals,
     animals_complete: parsed.animals_complete,
     buildings: parsed.buildings ?? base?.buildings,
@@ -167,7 +171,7 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     farms: parsed.farms ?? base?.farms,
     vehicles: parsed.vehicles ?? base?.vehicles,
     festivals: parsed.festivals ?? base?.festivals,
-    lineage_eras: (parsed.lineage_eras as Record<string,string> | undefined) ?? base?.lineage_eras,
+    lineage_eras: (parsed.lineage_eras as Record<string, string> | undefined) ?? base?.lineage_eras,
     lineage_currencies: parsed.lineage_currencies ?? base?.lineage_currencies,
     active_outbreaks: parsed.active_outbreaks ?? base?.active_outbreaks,
   }

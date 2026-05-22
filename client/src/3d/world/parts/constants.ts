@@ -1,32 +1,18 @@
 export const TILE_SCALE = 4
-export const MAX_DEPTH  = 6
+export const MAX_DEPTH = 6
 
 export const BIOME_COLORS: [number, number, number][] = [
   [0.42, 0.65, 0.33],
-  [0.20, 0.45, 0.22],
+  [0.2, 0.45, 0.22],
   [0.82, 0.71, 0.45],
   [0.32, 0.54, 0.42],
   [0.86, 0.88, 0.92],
   [0.32, 0.26, 0.24],
 ]
 
-export const BIOME_ELEVATION: number[] = [
-  0.0,
-  1.5,
-  -0.2,
-  -0.4,
-  4.0,
-  9.0,
-]
+export const BIOME_ELEVATION: number[] = [0.0, 1.5, -0.2, -0.4, 4.0, 9.0]
 
-export const BIOME_ROUGHNESS: number[] = [
-  0.6,
-  1.2,
-  0.4,
-  0.3,
-  2.2,
-  3.2,
-]
+export const BIOME_ROUGHNESS: number[] = [0.6, 1.2, 0.4, 0.3, 2.2, 3.2]
 
 export const OCEAN_EXTENT = 40000
 
@@ -47,15 +33,15 @@ export function terrainNoise(x: number, y: number): number {
       const n = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453
       return (n - Math.floor(n)) * 2 - 1
     }
-    const a = h(ix,     iy    )
-    const b = h(ix + 1, iy    )
-    const c = h(ix,     iy + 1)
+    const a = h(ix, iy)
+    const b = h(ix + 1, iy)
+    const c = h(ix, iy + 1)
     const d = h(ix + 1, iy + 1)
     const ab = a + (b - a) * sx
     const cd = c + (d - c) * sx
     v += (ab + (cd - ab) * sy) * amp
     freq *= 2.07
-    amp  *= 0.5
+    amp *= 0.5
   }
   return v
 }

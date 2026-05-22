@@ -7,16 +7,23 @@ function org(id: string, x: number, y: number, extra: Partial<OrganismState> = {
     id,
     name: id,
     lineage_id: 'lin-' + id,
-    x, y,
-    vx: 0, vy: 0,
-    energy: 1, hydration: 1, health: 1,
+    x,
+    y,
+    vx: 0,
+    vy: 0,
+    energy: 1,
+    hydration: 1,
+    health: 1,
     age: 100,
     alive: true,
     thought: '',
-    infection: 0, fear_level: 0,
-    carrying: 0, carrying_type: 0,
+    infection: 0,
+    fear_level: 0,
+    carrying: 0,
+    carrying_type: 0,
     pregnant: false,
-    generation: 1, max_age: 5000,
+    generation: 1,
+    max_age: 5000,
     traits: { aggression: 0.5, curiosity: 0.5, social_tendency: 0.5, memory_strength: 0.5, resilience: 0.5 },
     ...extra,
   } as unknown as OrganismState
@@ -46,7 +53,7 @@ describe('motion-state extrapolation', () => {
     nowMs = 2100
     const [x1000] = getOrgXY('a')
     expect(x1000).toBeLessThanOrEqual(10.5 + 0.81) // ≤ clamp + target-blend slop
-    expect(x1000).toBeGreaterThan(10.5)            // we did extrapolate at all
+    expect(x1000).toBeGreaterThan(10.5) // we did extrapolate at all
   })
 
   it('preserves identity across renders with no new snapshot', () => {

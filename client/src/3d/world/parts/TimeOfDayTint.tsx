@@ -9,11 +9,11 @@ export function TimeOfDayTint({ dayProgress, weatherKind = 'clear' }: Props) {
   const { color, opacity } = useMemo(() => {
     let color: string
     let opacity: number
-    if (dayProgress < 0.20 || dayProgress > 0.80) {
+    if (dayProgress < 0.2 || dayProgress > 0.8) {
       color = '#1a2050'
       opacity = 0.32
     } else if (dayProgress < 0.32) {
-      const t = (dayProgress - 0.20) / 0.12
+      const t = (dayProgress - 0.2) / 0.12
       const fade = 1 - t
       color = '#ff8a3a'
       opacity = 0.05 + fade * 0.18

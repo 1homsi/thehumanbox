@@ -4,35 +4,44 @@ import { AnimationClip, AnimationMixer, Color, Group, Mesh, MeshStandardMaterial
 import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js'
 
 interface Props {
-  scene:       Object3D
-  animations:  AnimationClip[]
-  position?:   [number, number, number]
+  scene: Object3D
+  animations: AnimationClip[]
+  position?: [number, number, number]
   getPosition?: () => [number, number, number]
   getHeading?: () => number
-  rotationY?:  number
-  scale?:      number
-  animation:   string
-  fadeMs?:     number
-  color?:      string
-  animate?:    boolean
-  timeScale?:  number
+  rotationY?: number
+  scale?: number
+  animation: string
+  fadeMs?: number
+  color?: string
+  animate?: boolean
+  timeScale?: number
 }
 
 export function AnimatedFigure({
-  scene, animations, position, getPosition, getHeading,
-  rotationY = 0, scale = 1, animation, fadeMs = 200, color, animate = true,
+  scene,
+  animations,
+  position,
+  getPosition,
+  getHeading,
+  rotationY = 0,
+  scale = 1,
+  animation,
+  fadeMs = 200,
+  color,
+  animate = true,
   timeScale = 1,
 }: Props) {
   const ref = useRef<Group>(null)
 
   const clonedScene = useMemo(() => {
     const c = cloneSkeleton(scene)
-    c.traverse(o => {
+    c.traverse((o) => {
       o.frustumCulled = false
     })
     if (color) {
       const col = new Color(color)
-      c.traverse(o => {
+      c.traverse((o) => {
         const m = (o as Mesh).material as MeshStandardMaterial | undefined
         if (m && 'color' in m && m.color) {
           const cloned = m.clone()
@@ -47,11 +56,17 @@ export function AnimatedFigure({
   const mixer = useMemo(() => new AnimationMixer(clonedScene), [clonedScene])
 
   useEffect(() => {
-    const clip = animations.find(a => a.name === animation)
+    const clip = animations.find((a) => a.name === animation)
     if (!clip) return
     const action = mixer.clipAction(clip)
-    action.reset().fadeIn(fadeMs / 1000).play()
-    return () => { action.fadeOut(fadeMs / 1000); action.stop() }
+    action
+      .reset()
+      .fadeIn(fadeMs / 1000)
+      .play()
+    return () => {
+      action.fadeOut(fadeMs / 1000)
+      action.stop()
+    }
   }, [mixer, animations, animation, fadeMs])
 
   useFrame((_, dt) => {

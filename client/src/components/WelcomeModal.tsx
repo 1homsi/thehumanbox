@@ -42,8 +42,11 @@ export function WelcomeModal() {
 
   useEffect(() => {
     let seen = true
-    try { seen = window.localStorage.getItem(STORAGE_KEY) === '1' }
-    catch { /* ignore */ }
+    try {
+      seen = window.localStorage.getItem(STORAGE_KEY) === '1'
+    } catch {
+      /* ignore */
+    }
     if (!seen) setOpen(true)
   }, [])
 
@@ -53,7 +56,11 @@ export function WelcomeModal() {
   const current = STEPS[step]
 
   const finish = (withTour: boolean) => {
-    try { window.localStorage.setItem(STORAGE_KEY, '1') } catch { /* ignore */ }
+    try {
+      window.localStorage.setItem(STORAGE_KEY, '1')
+    } catch {
+      /* ignore */
+    }
     setOpen(false)
     if (withTour) {
       window.setTimeout(() => startTour(), 350)
@@ -62,11 +69,11 @@ export function WelcomeModal() {
 
   const next = () => {
     if (isLast) finish(true)
-    else setStep(s => s + 1)
+    else setStep((s) => s + 1)
   }
 
   const back = () => {
-    if (step > 0) setStep(s => s - 1)
+    if (step > 0) setStep((s) => s - 1)
   }
 
   return (
@@ -74,13 +81,12 @@ export function WelcomeModal() {
       <div className="welcome-modal">
         <div className="welcome-step-indicator">
           {STEPS.map((_, i) => (
-            <span
-              key={i}
-              className={'welcome-dot' + (i === step ? ' active' : i < step ? ' done' : '')}
-            />
+            <span key={i} className={'welcome-dot' + (i === step ? ' active' : i < step ? ' done' : '')} />
           ))}
         </div>
-        <h2 id="welcome-title" className="welcome-title">{current.title}</h2>
+        <h2 id="welcome-title" className="welcome-title">
+          {current.title}
+        </h2>
         <p className="welcome-body">{current.body}</p>
         <div className="welcome-actions">
           <button
@@ -90,12 +96,7 @@ export function WelcomeModal() {
           >
             {step === 0 ? 'Skip' : 'Back'}
           </button>
-          <button
-            type="button"
-            className="welcome-btn welcome-btn--primary"
-            onClick={next}
-            autoFocus
-          >
+          <button type="button" className="welcome-btn welcome-btn--primary" onClick={next} autoFocus>
             {isLast ? 'Take the tour' : 'Next'}
           </button>
         </div>

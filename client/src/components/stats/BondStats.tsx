@@ -1,7 +1,12 @@
 import type { WorldState } from '../../types'
 
 export function BondStats({ organisms }: { organisms: WorldState['organisms'] }) {
-  let partnered = 0, pregnant = 0, withKids = 0, sick = 0, hungry = 0, thirsty = 0
+  let partnered = 0,
+    pregnant = 0,
+    withKids = 0,
+    sick = 0,
+    hungry = 0,
+    thirsty = 0
   for (const o of organisms) {
     if (o.partner_id) partnered++
     if (o.pregnant) pregnant++
@@ -14,12 +19,15 @@ export function BondStats({ organisms }: { organisms: WorldState['organisms'] })
   const pct = (x: number) => `${Math.round((x / n) * 100)}%`
   return (
     <div className="stats-death-grid">
-      <span className="hist-label">partnered</span>   <span className="hist-val">{partnered} ({pct(partnered)})</span>
-      <span className="hist-label">pregnant</span>    <span className="hist-val">{pregnant}</span>
-      <span className="hist-label">with kids</span>   <span className="hist-val">{withKids}</span>
-      <span className="hist-label">sick</span>        <span className="hist-val">{sick}</span>
-      <span className="hist-label">hungry</span>      <span className="hist-val">{hungry}</span>
-      <span className="hist-label">thirsty</span>     <span className="hist-val">{thirsty}</span>
+      <span className="hist-label">partnered</span>{' '}
+      <span className="hist-val">
+        {partnered} ({pct(partnered)})
+      </span>
+      <span className="hist-label">pregnant</span> <span className="hist-val">{pregnant}</span>
+      <span className="hist-label">with kids</span> <span className="hist-val">{withKids}</span>
+      <span className="hist-label">sick</span> <span className="hist-val">{sick}</span>
+      <span className="hist-label">hungry</span> <span className="hist-val">{hungry}</span>
+      <span className="hist-label">thirsty</span> <span className="hist-val">{thirsty}</span>
     </div>
   )
 }

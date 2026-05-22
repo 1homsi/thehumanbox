@@ -8,18 +8,18 @@ import { heightAt } from './terrain-utils'
 interface Props {
   organisms: OrganismState[]
   lineageNames?: Record<string, string>
-  depthMap:  number[][]
-  biomes:    number[][]
+  depthMap: number[][]
+  biomes: number[][]
 }
 
 const MIN_LINEAGE_ORGS = 2
 
 interface TribeInfo {
-  lineageId:  string
-  name:       string
-  cx:         number
-  cy:         number
-  count:      number
+  lineageId: string
+  name: string
+  cx: number
+  cy: number
+  count: number
 }
 
 export function TribeLabels({ organisms, lineageNames, depthMap, biomes }: Props) {
@@ -31,17 +31,17 @@ export function TribeLabels({ organisms, lineageNames, depthMap, biomes }: Props
       const a = acc[o.lineage_id] ?? (acc[o.lineage_id] = { sx: 0, sy: 0, n: 0 })
       a.sx += o.x
       a.sy += o.y
-      a.n  += 1
+      a.n += 1
     }
     const out: TribeInfo[] = []
     for (const [lid, a] of Object.entries(acc)) {
       if (a.n < MIN_LINEAGE_ORGS) continue
       out.push({
         lineageId: lid,
-        name:      lineageNames[lid] ?? lid.slice(0, 6),
-        cx:        a.sx / a.n,
-        cy:        a.sy / a.n,
-        count:     a.n,
+        name: lineageNames[lid] ?? lid.slice(0, 6),
+        cx: a.sx / a.n,
+        cy: a.sy / a.n,
+        count: a.n,
       })
     }
     return out
@@ -49,7 +49,7 @@ export function TribeLabels({ organisms, lineageNames, depthMap, biomes }: Props
 
   return (
     <>
-      {tribes.map(t => {
+      {tribes.map((t) => {
         const groundY = heightAt(t.cx, t.cy, depthMap, biomes)
         return (
           <Billboard
@@ -60,7 +60,7 @@ export function TribeLabels({ organisms, lineageNames, depthMap, biomes }: Props
             <Text
               fontSize={3.6}
               color={lineageColor(t.lineageId)}
-              outlineWidth={0.20}
+              outlineWidth={0.2}
               outlineColor="#000000"
               outlineOpacity={0.85}
               anchorX="center"

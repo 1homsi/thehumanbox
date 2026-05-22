@@ -9,8 +9,8 @@ import { getOrgXY } from './motion-state'
 
 interface Props {
   organisms: OrganismState[]
-  depthMap:  number[][]
-  biomes:    number[][]
+  depthMap: number[][]
+  biomes: number[][]
 }
 
 const BADGE_RADIUS_SQ = 180 * 180
@@ -21,27 +21,27 @@ function badgesFor(o: OrganismState): { text: string; color: string }[] {
   const out: { text: string; color: string }[] = []
 
   // Survival needs (actual thresholds, not text)
-  if (o.energy < 0.22)                         out.push({ text: '▽', color: '#ff9040' }) // hungry
-  if (o.hydration < 0.22)                      out.push({ text: '≈', color: '#40b0ff' }) // thirsty
-  if (o.infection > 0.22)                      out.push({ text: '+', color: '#80ff44' }) // infected
-  if ((o.sleep_debt ?? 0) > 0.50)              out.push({ text: 'z', color: '#a8c0e0' }) // sleep-deprived
+  if (o.energy < 0.22) out.push({ text: '▽', color: '#ff9040' }) // hungry
+  if (o.hydration < 0.22) out.push({ text: '≈', color: '#40b0ff' }) // thirsty
+  if (o.infection > 0.22) out.push({ text: '+', color: '#80ff44' }) // infected
+  if ((o.sleep_debt ?? 0) > 0.5) out.push({ text: 'z', color: '#a8c0e0' }) // sleep-deprived
 
   // Emotional state (actual fields)
-  if ((o.fear_level ?? 0) > 0.58)              out.push({ text: '!', color: '#ff7050' }) // afraid
-  if ((o.grief_ticks ?? 0) > 12)               out.push({ text: '◌', color: '#6090c0' }) // grieving
-  if ((o.loneliness ?? 0) > 0.65)              out.push({ text: '○', color: '#8080c0' }) // isolated
-  if ((o.boredom ?? 0) > 0.70)                 out.push({ text: '·', color: '#909090' }) // bored
+  if ((o.fear_level ?? 0) > 0.58) out.push({ text: '!', color: '#ff7050' }) // afraid
+  if ((o.grief_ticks ?? 0) > 12) out.push({ text: '◌', color: '#6090c0' }) // grieving
+  if ((o.loneliness ?? 0) > 0.65) out.push({ text: '○', color: '#8080c0' }) // isolated
+  if ((o.boredom ?? 0) > 0.7) out.push({ text: '·', color: '#909090' }) // bored
 
   // Relational / life events
-  if (o.pregnant)                              out.push({ text: '♥', color: '#ff8aa8' }) // pregnant
-  if (o.attracted_to)                          out.push({ text: '♡', color: '#ffa0c0' }) // attracted
-  if (o.carrying > 0)                          out.push({ text: '▣', color: '#c09060' }) // carrying something
-  if ((o.comfort ?? 0) > 0.80)                 out.push({ text: '✦', color: '#ffe080' }) // comfortable
+  if (o.pregnant) out.push({ text: '♥', color: '#ff8aa8' }) // pregnant
+  if (o.attracted_to) out.push({ text: '♡', color: '#ffa0c0' }) // attracted
+  if (o.carrying > 0) out.push({ text: '▣', color: '#c09060' }) // carrying something
+  if ((o.comfort ?? 0) > 0.8) out.push({ text: '✦', color: '#ffe080' }) // comfortable
 
   // Status markers
-  if (o.is_elder)                              out.push({ text: '◈', color: '#ffcf6a' }) // elder
-  if ((o.traits?.aggression ?? 0) > 0.80)      out.push({ text: '⚡', color: '#ff5020' }) // aggressive trait
-  if ((o.traits?.social_tendency ?? 0) > 0.80) out.push({ text: '◉', color: '#60c8f0' }) // highly social
+  if (o.is_elder) out.push({ text: '◈', color: '#ffcf6a' }) // elder
+  if ((o.traits?.aggression ?? 0) > 0.8) out.push({ text: '⚡', color: '#ff5020' }) // aggressive trait
+  if ((o.traits?.social_tendency ?? 0) > 0.8) out.push({ text: '◉', color: '#60c8f0' }) // highly social
 
   // Cap at 3 to avoid clutter
   return out.slice(0, 3)
@@ -70,19 +70,18 @@ export function OrgStateBadges({ organisms, depthMap, biomes }: Props) {
   return (
     <>
       {near.map(({ o, badges }) => (
-        <BadgeRow
-          key={o.id}
-          orgId={o.id}
-          badges={badges}
-          depthMap={depthMap}
-          biomes={biomes}
-        />
+        <BadgeRow key={o.id} orgId={o.id} badges={badges} depthMap={depthMap} biomes={biomes} />
       ))}
     </>
   )
 }
 
-function BadgeRow({ orgId, badges, depthMap, biomes }: {
+function BadgeRow({
+  orgId,
+  badges,
+  depthMap,
+  biomes,
+}: {
   orgId: string
   badges: { text: string; color: string }[]
   depthMap: number[][]
@@ -92,7 +91,7 @@ function BadgeRow({ orgId, badges, depthMap, biomes }: {
   const phase = useMemo(() => {
     let h = 0
     for (let i = 0; i < orgId.length; i++) h = (h * 31 + orgId.charCodeAt(i)) | 0
-    return (h & 0xffff) / 0xffff * Math.PI * 2
+    return ((h & 0xffff) / 0xffff) * Math.PI * 2
   }, [orgId])
 
   useFrame(({ clock }) => {
@@ -107,8 +106,7 @@ function BadgeRow({ orgId, badges, depthMap, biomes }: {
         const s = 1 + Math.sin(t * 3) * 0.18
         child.scale.set(s, s, s)
       } else if (b.text === '!') {
-        child.position.x = (i - (badges.length - 1) / 2) * 0.7
-                          + Math.sin(t * 18) * 0.06
+        child.position.x = (i - (badges.length - 1) / 2) * 0.7 + Math.sin(t * 18) * 0.06
       }
     })
   })
@@ -116,10 +114,7 @@ function BadgeRow({ orgId, badges, depthMap, biomes }: {
   const [tx, ty] = getOrgXY(orgId)
   const groundY = heightAt(tx, ty, depthMap, biomes)
   return (
-    <Billboard
-      position={[tx * TILE_SCALE, groundY + 3.4, ty * TILE_SCALE]}
-      frustumCulled={false}
-    >
+    <Billboard position={[tx * TILE_SCALE, groundY + 3.4, ty * TILE_SCALE]} frustumCulled={false}>
       <group ref={groupRef}>
         {badges.map((b, i) => (
           <Text

@@ -4,13 +4,13 @@ export interface ThoughtEntry {
 }
 
 export interface ConversationEntry {
-  tick:      number
+  tick: number
   with_name: string
-  with_id:   string
-  kind:      'courtship' | 'bonded' | 'farewell' | 'chat' | 'argue' | 'excited'
-  lines:     [string, string][]
+  with_id: string
+  kind: 'courtship' | 'bonded' | 'farewell' | 'chat' | 'argue' | 'excited'
+  lines: [string, string][]
   meanings?: string[]
-  id?:       string
+  id?: string
 }
 
 export interface Traits {
@@ -41,68 +41,68 @@ export interface OrganismState {
   attitudes?: Record<string, number>
   org_trust?: Record<string, number>
   traits: Traits
-  infection:     number
-  carrying:      number
+  infection: number
+  carrying: number
   carrying_type: number
-  home_x:      number
-  home_y:      number
+  home_x: number
+  home_y: number
   discoveries: string[]
-  is_elder:    boolean
-  is_leader?:  boolean
-  tools?:      Record<string, number>
-  loneliness?:  number
-  boredom?:     number
-  fear_level?:  number
-  comfort?:     number
+  is_elder: boolean
+  is_leader?: boolean
+  tools?: Record<string, number>
+  loneliness?: number
+  boredom?: number
+  fear_level?: number
+  comfort?: number
   grief_ticks?: number
-  sleep_debt?:  number
+  sleep_debt?: number
   vx?: number
   vy?: number
   target_x?: number
   target_y?: number
-  partner_id?:     string | null
-  father_id?:      string | null
+  partner_id?: string | null
+  father_id?: string | null
   children_count?: number
-  sex?:            'male' | 'female'
-  pregnant?:       boolean
-  age_stage?:      'infant' | 'child' | 'teen' | 'adult' | 'elder'
-  era?:            string
-  lineage_era?:    string
-  attracted_to?:   string | null
-  vocabulary?:         Record<string, string>
+  sex?: 'male' | 'female'
+  pregnant?: boolean
+  age_stage?: 'infant' | 'child' | 'teen' | 'adult' | 'elder'
+  era?: string
+  lineage_era?: string
+  attracted_to?: string | null
+  vocabulary?: Record<string, string>
   conversation_count?: number
-  friends?:            Record<string, string>
-  attributes?:         string[]
-  inventory?:          Record<string, number>
-  literacy?:           number
-  degrees?:            string[]
-  wealth?:             number
-  specialty?:          string
-  religion_id?:        string | null
-  piety?:              number
-  diseases?:           Array<{ kind: string; started_tick: number }>
-  mounted_vehicle?:    number | null
+  friends?: Record<string, string>
+  attributes?: string[]
+  inventory?: Record<string, number>
+  literacy?: number
+  degrees?: string[]
+  wealth?: number
+  specialty?: string
+  religion_id?: string | null
+  piety?: number
+  diseases?: Array<{ kind: string; started_tick: number }>
+  mounted_vehicle?: number | null
 }
 
 export interface ReligionInfo {
-  id:               string
-  name:             string
-  adherents?:       number
-  deity?:           string
-  lineage_id?:      string
-  kind?:            string
+  id: string
+  name: string
+  adherents?: number
+  deity?: string
+  lineage_id?: string
+  kind?: string
   founder_lineage?: string
 }
 
 export interface BookInfo {
-  id?:          string
-  title:        string
-  author_id?:   string
+  id?: string
+  title: string
+  author_id?: string
   author_name?: string
-  topic?:       string
-  tick?:        number
-  lineage_id?:  string
-  copies?:      number
+  topic?: string
+  tick?: number
+  lineage_id?: string
+  copies?: number
 }
 
 export interface HeadlineInfo {
@@ -111,81 +111,81 @@ export interface HeadlineInfo {
 }
 
 export interface BattleInfo {
-  tick:        number
-  a_lineage:   string
-  b_lineage:   string
+  tick: number
+  a_lineage: string
+  b_lineage: string
   casualties?: number
-  active?:     boolean
+  active?: boolean
 }
 
 export interface TreatyInfo {
-  tick:       number
-  a_lineage:  string
-  b_lineage:  string
-  kind?:      string
+  tick: number
+  a_lineage: string
+  b_lineage: string
+  kind?: string
 }
 
 export interface OutbreakInfo {
-  kind:        string
-  started?:    number
-  infected?:   number
+  kind: string
+  started?: number
+  infected?: number
   lineage_id?: string
 }
 
 export interface FarmInfo {
-  x:           number
-  y:           number
-  crop?:       string
-  yield?:      number
+  x: number
+  y: number
+  crop?: string
+  yield?: number
   lineage_id?: string
 }
 
 export interface VehicleInfo {
-  id:        number
-  kind:      string
-  x:         number
-  y:         number
+  id: number
+  kind: string
+  x: number
+  y: number
   rider_id?: string | null
 }
 
 export interface FestivalInfo {
-  name:        string
+  name: string
   lineage_id?: string
-  started?:    number
-  ends?:       number
+  started?: number
+  ends?: number
 }
 
 export interface LifeEvent {
-  tick:         number
-  category:     string
-  text:         string
-  related_id?:  string
+  tick: number
+  category: string
+  text: string
+  related_id?: string
   related_name?: string
 }
 
 export interface OrgDetail extends OrganismState {
   thought_history: ThoughtEntry[]
-  vocabulary:    Record<string, string>
-  daily_story:   string
-  life_log:      LifeEvent[]
+  vocabulary: Record<string, string>
+  daily_story: string
+  life_log: LifeEvent[]
   conversations: ConversationEntry[]
 }
 
 export interface OrgLife {
-  id:              string
-  name:            string
-  age_ticks:       number
-  generation:      number
-  lineage_id:      string
-  sex:             string
-  alive:           boolean
-  is_elder:        boolean
-  partner_id?:     string | null
-  children_count:  number
-  friends:         string[]
-  discoveries:     string[]
+  id: string
+  name: string
+  age_ticks: number
+  generation: number
+  lineage_id: string
+  sex: string
+  alive: boolean
+  is_elder: boolean
+  partner_id?: string | null
+  children_count: number
+  friends: string[]
+  discoveries: string[]
   emotional_state: string
-  events:          LifeEvent[]
+  events: LifeEvent[]
   thought_history: ThoughtEntry[]
 }
 
@@ -198,7 +198,22 @@ export interface AnimalState {
 
 export interface SimEvent {
   tick: number
-  type: 'born' | 'died' | 'signal' | 'alarm' | 'challenge' | 'gift' | 'treaty' | 'dawn' | 'dusk' | 'season' | 'drought' | 'outbreak' | 'build' | 'weather' | 'era'
+  type:
+    | 'born'
+    | 'died'
+    | 'signal'
+    | 'alarm'
+    | 'challenge'
+    | 'gift'
+    | 'treaty'
+    | 'dawn'
+    | 'dusk'
+    | 'season'
+    | 'drought'
+    | 'outbreak'
+    | 'build'
+    | 'weather'
+    | 'era'
   actor: string
   detail: string
 }
@@ -301,43 +316,65 @@ export interface WorldState {
   lineage_centroid_history?: Record<string, [number, number, number][]>
   lineage_homes?: Record<string, [number, number, number]>
   current_era?: string
-  sex_words?:   [string, string]
+  sex_words?: [string, string]
   territory?: {
     claimed: { lid: string; tiles: [number, number][] }[]
     contested: [number, number][]
   }
   buildings?: Building[]
-  religions?:           ReligionInfo[]
-  books?:               BookInfo[]
-  headlines?:           HeadlineInfo[]
-  battles?:             BattleInfo[]
-  treaties?:            TreatyInfo[]
-  farms?:               FarmInfo[]
-  vehicles?:            VehicleInfo[]
-  festivals?:           FestivalInfo[]
-  lineage_eras?:        Array<{ lineage_id: string; era_name: string }> | Record<string, string>
-  lineage_currencies?:  Record<string, string>
-  active_outbreaks?:    OutbreakInfo[]
+  religions?: ReligionInfo[]
+  books?: BookInfo[]
+  headlines?: HeadlineInfo[]
+  battles?: BattleInfo[]
+  treaties?: TreatyInfo[]
+  farms?: FarmInfo[]
+  vehicles?: VehicleInfo[]
+  festivals?: FestivalInfo[]
+  lineage_eras?: Array<{ lineage_id: string; era_name: string }> | Record<string, string>
+  lineage_currencies?: Record<string, string>
+  active_outbreaks?: OutbreakInfo[]
 }
 
 export type BuildingKind =
-  | 'Hut' | 'House' | 'Manor' | 'TownHouse' | 'Apartment'
-  | 'School' | 'University' | 'Library' | 'Market' | 'Temple'
-  | 'Factory' | 'Hospital' | 'Forge'
-  | 'Mill' | 'Windmill' | 'Watermill'
-  | 'Lighthouse' | 'Tower'
-  | 'Bridge' | 'Wall' | 'Aqueduct'
+  | 'Hut'
+  | 'House'
+  | 'Manor'
+  | 'TownHouse'
+  | 'Apartment'
+  | 'School'
+  | 'University'
+  | 'Library'
+  | 'Market'
+  | 'Temple'
+  | 'Factory'
+  | 'Hospital'
+  | 'Forge'
+  | 'Mill'
+  | 'Windmill'
+  | 'Watermill'
+  | 'Lighthouse'
+  | 'Tower'
+  | 'Bridge'
+  | 'Wall'
+  | 'Aqueduct'
 
 export type BuildingFunction =
-  | 'Housing' | 'Education' | 'Industry' | 'Healthcare'
-  | 'Worship' | 'Military' | 'Civic' | 'Commerce' | 'Infrastructure'
+  | 'Housing'
+  | 'Education'
+  | 'Industry'
+  | 'Healthcare'
+  | 'Worship'
+  | 'Military'
+  | 'Civic'
+  | 'Commerce'
+  | 'Infrastructure'
 
 export interface Building {
-  id:         number
-  kind:       string
-  function?:  BuildingFunction
-  x:          number
-  y:          number
+  id: number
+  kind: string
+  function?: BuildingFunction
+  x: number
+  y: number
   footprint?: [number, number]
   condition?: number
   occupants?: string[]

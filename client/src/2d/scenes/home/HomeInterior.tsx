@@ -4,8 +4,8 @@ import { useUIStore } from '../../../stores/store'
 import { HomeCanvas } from './HomeCanvas'
 
 interface Props {
-  ctx:        SceneContext
-  onExit:     () => void
+  ctx: SceneContext
+  onExit: () => void
   onFocusOrg: (id: string) => void
 }
 
@@ -25,19 +25,18 @@ export function HomeInterior({ ctx, onExit, onFocusOrg }: Props) {
           <div className="scene-subtitle">{subtitle}</div>
         </div>
         <div className="scene-meta">
-          {occupants.length === 0 ? 'no one home' : occupants.length === 1 ? 'alone' : `${occupants.length} inside`}
+          {occupants.length === 0
+            ? 'no one home'
+            : occupants.length === 1
+              ? 'alone'
+              : `${occupants.length} inside`}
           {' · '}
           {isDay ? '☀ day' : '☾ night'}
         </div>
       </div>
 
       <div className="scene-stage scene-stage--pixel" onMouseMove={() => setHover((n) => n + 1)}>
-        <HomeCanvas
-          ctx={ctx}
-          selectedOrgId={selectedOrgId}
-          onSelectOrg={onFocusOrg}
-          hover={hover}
-        />
+        <HomeCanvas ctx={ctx} selectedOrgId={selectedOrgId} onSelectOrg={onFocusOrg} hover={hover} />
       </div>
 
       {(occupants.length > 0 || away.length > 0) && (
@@ -56,7 +55,10 @@ export function HomeInterior({ ctx, onExit, onFocusOrg }: Props) {
           {away.map((o) => (
             <button
               key={`out-${o.org.id}`}
-              className={'scene-occupant-chip scene-occupant-chip--away' + (o.org.id === selectedOrgId ? ' active' : '')}
+              className={
+                'scene-occupant-chip scene-occupant-chip--away' +
+                (o.org.id === selectedOrgId ? ' active' : '')
+              }
               onClick={() => onFocusOrg(o.org.id)}
               title="Currently out"
             >

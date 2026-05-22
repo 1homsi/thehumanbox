@@ -2,7 +2,14 @@ import type { WorldState } from '../../types'
 
 export function TraitAverages({ organisms }: { organisms: WorldState['organisms'] }) {
   if (organisms.length === 0) return null
-  const keys = ['curiosity', 'fear', 'social_tendency', 'resilience', 'aggression', 'memory_strength'] as const
+  const keys = [
+    'curiosity',
+    'fear',
+    'social_tendency',
+    'resilience',
+    'aggression',
+    'memory_strength',
+  ] as const
   const sums: Record<string, number> = {}
   let n = 0
   for (const o of organisms) {
@@ -13,7 +20,7 @@ export function TraitAverages({ organisms }: { organisms: WorldState['organisms'
   if (n === 0) return null
   return (
     <div className="trait-avgs">
-      {keys.map(k => {
+      {keys.map((k) => {
         const v = (sums[k] ?? 0) / n
         return (
           <div key={k} className="trait-row">

@@ -23,7 +23,7 @@ interface OrgPrediction {
 
 type AnimalPrediction = OrgPrediction
 
-const orgState    = new Map<string, OrgPrediction>()
+const orgState = new Map<string, OrgPrediction>()
 const animalState = new Map<number, AnimalPrediction>()
 
 const TICK_MS = 100
@@ -96,11 +96,17 @@ export function getAnimalHeading(id: number): number {
 
 function fresh(x: number, y: number, now: number): OrgPrediction {
   return {
-    serverX: x, serverY: y, serverTime: now,
-    velX: 0, velY: 0, velDt: TICK_MS,
-    errorX: 0, errorY: 0,
+    serverX: x,
+    serverY: y,
+    serverTime: now,
+    velX: 0,
+    velY: 0,
+    velDt: TICK_MS,
+    errorX: 0,
+    errorY: 0,
     heading: 0,
-    lastPredX: x, lastPredY: y,
+    lastPredX: x,
+    lastPredY: y,
     lastReadTime: now,
     targetX: undefined,
     targetY: undefined,
@@ -109,9 +115,13 @@ function fresh(x: number, y: number, now: number): OrgPrediction {
 
 function ingestSnapshot(
   e: OrgPrediction,
-  x: number, y: number, now: number,
-  vx?: number, vy?: number,
-  targetX?: number, targetY?: number,
+  x: number,
+  y: number,
+  now: number,
+  vx?: number,
+  vy?: number,
+  targetX?: number,
+  targetY?: number,
 ) {
   if (e.serverX === x && e.serverY === y && now - e.serverTime < TICK_MS * 0.5) {
     // still update target even if position hasn't changed
@@ -187,11 +197,11 @@ function advanceAndRead(e: OrgPrediction): [number, number] {
   if (speed2 > 0.01) {
     const target = Math.atan2(e.velX, e.velY)
     let diff = target - e.heading
-    while (diff >  Math.PI) diff -= Math.PI * 2
+    while (diff > Math.PI) diff -= Math.PI * 2
     while (diff < -Math.PI) diff += Math.PI * 2
     const maxStep = HEADING_TURN_RATE * frameDt
     if (Math.abs(diff) <= maxStep) e.heading = target
-    else                            e.heading += Math.sign(diff) * maxStep
+    else e.heading += Math.sign(diff) * maxStep
   }
 
   e.lastPredX = outX

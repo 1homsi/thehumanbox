@@ -15,35 +15,41 @@ interface Props {
 }
 
 const KIND_META: Record<string, { icon: string; label: string; color: string }> = {
-  courtship: { icon: '💛', label: 'First meeting',       color: '#d4a843' },
-  bonded:    { icon: '♥',  label: 'Partners talking',    color: '#c07090' },
-  farewell:  { icon: '✦',  label: 'Farewell',            color: '#778' },
-  chat:      { icon: '💬', label: 'Casual chat',         color: '#5b9' },
-  excited:   { icon: '✨', label: 'Sharing excitement',  color: '#7bbbff' },
-  argue:     { icon: '⚡', label: 'Argument',            color: '#e06030' },
+  courtship: { icon: '💛', label: 'First meeting', color: '#d4a843' },
+  bonded: { icon: '♥', label: 'Partners talking', color: '#c07090' },
+  farewell: { icon: '✦', label: 'Farewell', color: '#778' },
+  chat: { icon: '💬', label: 'Casual chat', color: '#5b9' },
+  excited: { icon: '✨', label: 'Sharing excitement', color: '#7bbbff' },
+  argue: { icon: '⚡', label: 'Argument', color: '#e06030' },
 }
 
 function kindMeta(kind: string) {
   return KIND_META[kind] ?? { icon: '💬', label: kind, color: '#666' }
 }
 
-const ConvoBlock = memo(function ConvoBlock({ entry, selfOrg, allOrgs }: {
+const ConvoBlock = memo(function ConvoBlock({
+  entry,
+  selfOrg,
+  allOrgs,
+}: {
   entry: ConversationEntry
   selfOrg: OrganismState
   allOrgs: OrganismState[]
 }) {
-  const partner   = allOrgs.find(o => o.id === entry.with_id)
-  const pColor    = partner ? lineageColor(partner.lineage_id) : '#aaa'
+  const partner = allOrgs.find((o) => o.id === entry.with_id)
+  const pColor = partner ? lineageColor(partner.lineage_id) : '#aaa'
   const selfColor = lineageColor(selfOrg.lineage_id)
-  const meta      = kindMeta(entry.kind)
-  const day       = Math.floor(entry.tick / DAY_LENGTH)
+  const meta = kindMeta(entry.kind)
+  const day = Math.floor(entry.tick / DAY_LENGTH)
 
   return (
     <div className="cv-block">
       {}
       <div className="cv-block-head">
         <span className="cv-kind-icon">{meta.icon}</span>
-        <span className="cv-kind-label" style={{ color: meta.color }}>{meta.label}</span>
+        <span className="cv-kind-label" style={{ color: meta.color }}>
+          {meta.label}
+        </span>
         <span className="cv-participants">
           <span style={{ color: selfColor, fontWeight: 600 }}>{selfOrg.name}</span>
           <span className="cv-sep">&amp;</span>
@@ -61,7 +67,9 @@ const ConvoBlock = memo(function ConvoBlock({ entry, selfOrg, allOrgs }: {
           return (
             <div key={i} className={clsx('cv-line', isSelf ? 'cv-line-self' : 'cv-line-other')}>
               <div className="cv-bubble-wrap">
-                <span className="cv-speaker" style={{ color: spColor }}>{speaker}</span>
+                <span className="cv-speaker" style={{ color: spColor }}>
+                  {speaker}
+                </span>
                 <div className="cv-bubble" style={{ borderColor: spColor + '55' }}>
                   <span className="cv-text">"{text}"</span>
                   {meaning && <span className="cv-meaning">{meaning}</span>}
@@ -77,20 +85,12 @@ const ConvoBlock = memo(function ConvoBlock({ entry, selfOrg, allOrgs }: {
 
 export function ConversationsModal({ org, allOrgs, sexWords, onClose }: Props) {
   const { data: detail, isLoading } = useOrgDetail(org.id)
-  const convos    = detail?.conversations ?? []
-  const partnerOrg = org.partner_id ? allOrgs.find(o => o.id === org.partner_id) : null
-  const sexLabel   = sexWords
-    ? (org.sex === 'female' ? sexWords[1] : sexWords[0])
-    : org.sex
+  const convos = detail?.conversations ?? []
+  const partnerOrg = org.partner_id ? allOrgs.find((o) => o.id === org.partner_id) : null
+  const sexLabel = sexWords ? (org.sex === 'female' ? sexWords[1] : sexWords[0]) : org.sex
 
   return (
-    <Modal
-      open
-      onClose={onClose}
-      className="cv-modal"
-      title={`Conversations of ${org.name}`}
-      hideTitle
-    >
+    <Modal open onClose={onClose} className="cv-modal" title={`Conversations of ${org.name}`} hideTitle>
       {}
       <div className="cv-modal-head">
         <span className="cv-modal-title">CONVERSATIONS</span>
@@ -107,14 +107,18 @@ export function ConversationsModal({ org, allOrgs, sexWords, onClose }: Props) {
             </span>
           )}
         </div>
-        <button aria-label="Close" className="close-btn" onClick={onClose}>✕</button>
+        <button aria-label="Close" className="close-btn" onClick={onClose}>
+          ✕
+        </button>
       </div>
 
       {}
       <div className="cv-modal-body">
         {isLoading && !detail ? (
           <div className="cv-empty">
-            <div className="cv-loading-dot" aria-hidden>•••</div>
+            <div className="cv-loading-dot" aria-hidden>
+              •••
+            </div>
             <div style={{ fontSize: 11, fontStyle: 'italic', color: '#555', textAlign: 'center' }}>
               loading {org.name}'s conversations…
             </div>
@@ -131,7 +135,12 @@ export function ConversationsModal({ org, allOrgs, sexWords, onClose }: Props) {
         ) : (
           <div className="cv-list">
             {[...convos].reverse().map((entry, i) => (
-              <ConvoBlock key={`${entry.tick}-${entry.with_id}-${i}`} entry={entry} selfOrg={org} allOrgs={allOrgs} />
+              <ConvoBlock
+                key={`${entry.tick}-${entry.with_id}-${i}`}
+                entry={entry}
+                selfOrg={org}
+                allOrgs={allOrgs}
+              />
             ))}
           </div>
         )}

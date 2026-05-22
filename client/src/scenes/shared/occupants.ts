@@ -1,9 +1,9 @@
 import type { OrganismState, WorldState } from '../../types'
 import type { OccupantRole, SceneOccupant } from '../core/types'
 
-const INSIDE_RADIUS    = 1
+const INSIDE_RADIUS = 1
 const HOUSEHOLD_RADIUS = 6
-const STRUCTURE_MIN    = 0.35
+const STRUCTURE_MIN = 0.35
 
 function structureAt(world: WorldState, x: number, y: number): number {
   const ix = Math.floor(x)
@@ -21,41 +21,47 @@ function isInsideHome(org: OrganismState, world: WorldState): boolean {
   return structureAt(world, org.home_x, org.home_y) >= STRUCTURE_MIN
 }
 
-export function isAtHome(org: OrganismState | undefined | null, world: WorldState | undefined | null): boolean {
+export function isAtHome(
+  org: OrganismState | undefined | null,
+  world: WorldState | undefined | null,
+): boolean {
   if (!org || !org.alive || !world) return false
   return isInsideHome(org, world)
 }
 
-export function hasBuiltHome(org: OrganismState | undefined | null, world: WorldState | undefined | null): boolean {
+export function hasBuiltHome(
+  org: OrganismState | undefined | null,
+  world: WorldState | undefined | null,
+): boolean {
   if (!org || !world) return false
   return structureAt(world, org.home_x, org.home_y) >= STRUCTURE_MIN
 }
 
 function roleFor(host: OrganismState, other: OrganismState): OccupantRole {
-  if (other.id === host.id)                                       return 'host'
-  if (host.partner_id && host.partner_id === other.id)            return 'partner'
+  if (other.id === host.id) return 'host'
+  if (host.partner_id && host.partner_id === other.id) return 'partner'
   if (other.parent_id === host.id || other.father_id === host.id) return 'child'
-  if (other.lineage_id === host.lineage_id)                       return 'kin'
+  if (other.lineage_id === host.lineage_id) return 'kin'
   return 'guest'
 }
 
 export interface HouseholdResolved {
   inside: SceneOccupant[]
-  away:   SceneOccupant[]
+  away: SceneOccupant[]
 }
 
 export function householdAround(world: WorldState, host: OrganismState): HouseholdResolved {
   const inside: SceneOccupant[] = []
-  const away:   SceneOccupant[] = []
+  const away: SceneOccupant[] = []
 
   const hostInside = isInsideHome(host, world)
   const hostEntry: SceneOccupant = {
-    org:      host,
-    role:     'host',
+    org: host,
+    role: 'host',
     activity: host.thought || (hostInside ? 'at home' : 'out'),
   }
   if (hostInside) inside.push(hostEntry)
-  else            away.push(hostEntry)
+  else away.push(hostEntry)
 
   for (const o of world.organisms) {
     if (!o.alive || o.id === host.id) continue

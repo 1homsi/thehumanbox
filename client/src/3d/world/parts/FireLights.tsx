@@ -5,22 +5,24 @@ import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
 
 interface Props {
-  tiles:    number[][]
+  tiles: number[][]
   depthMap: number[][]
-  biomes:   number[][]
-  width:    number
-  height:   number
+  biomes: number[][]
+  width: number
+  height: number
   isNight?: boolean
 }
 
-const T_FIRE     = 4
+const T_FIRE = 4
 const T_CAMPFIRE = 7
 const MAX_LIGHTS = 4
 
 interface FirePos {
-  x: number; y: number; z: number
+  x: number
+  y: number
+  z: number
   kind: 'fire' | 'camp'
-  d:    number
+  d: number
 }
 
 export function FireLights({ tiles, depthMap, biomes, width, height, isNight = false }: Props) {
@@ -75,10 +77,8 @@ export function FireLights({ tiles, depthMap, biomes, width, height, isNight = f
         continue
       }
       light.position.set(fp.x, fp.y, fp.z)
-      const baseIntensity = fp.kind === 'fire'
-        ? (isNight ? 4.5 : 1.4)
-        : (isNight ? 2.4 : 0.7)
-      const phase = (fp.x * 0.013 + fp.z * 0.017)
+      const baseIntensity = fp.kind === 'fire' ? (isNight ? 4.5 : 1.4) : isNight ? 2.4 : 0.7
+      const phase = fp.x * 0.013 + fp.z * 0.017
       const flick = 0.85 + Math.sin(t * 9 + phase) * 0.12 + Math.sin(t * 21 + phase) * 0.05
       light.intensity = baseIntensity * flick
       light.color.setHex(fp.kind === 'fire' ? 0xff7820 : 0xffa040)
@@ -92,7 +92,9 @@ export function FireLights({ tiles, depthMap, biomes, width, height, isNight = f
       {Array.from({ length: MAX_LIGHTS }, (_, i) => (
         <pointLight
           key={i}
-          ref={el => { lightRefs.current[i] = el }}
+          ref={(el) => {
+            lightRefs.current[i] = el
+          }}
           color="#ffa040"
           intensity={0}
           distance={20}

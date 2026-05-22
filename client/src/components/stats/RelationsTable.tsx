@@ -2,7 +2,10 @@ import { useMemo } from 'react'
 import type { TribalRelation } from '../../types'
 import { lineageColor } from '../../utils/constants'
 
-export function RelationsTable({ relations, lineageSizes }: {
+export function RelationsTable({
+  relations,
+  lineageSizes,
+}: {
   relations: TribalRelation[]
   lineageSizes: { id: string; count: number }[]
 }) {
@@ -15,9 +18,7 @@ export function RelationsTable({ relations, lineageSizes }: {
   const sorted = [...relations].sort((a, b) => Math.abs(b.attitude) - Math.abs(a.attitude))
 
   if (sorted.length === 0) {
-    return <div style={{ color: '#333', fontSize: 11, padding: '8px 0' }}>
-      no inter-tribe contacts yet
-    </div>
+    return <div style={{ color: '#333', fontSize: 11, padding: '8px 0' }}>no inter-tribe contacts yet</div>
   }
 
   return (
@@ -31,8 +32,7 @@ export function RelationsTable({ relations, lineageSizes }: {
             <span style={{ color: '#333', fontSize: 9, margin: '0 4px' }}>↔</span>
             <span style={{ color: lineageColor(r.b), fontFamily: 'monospace', fontSize: 10 }}>{r.b}</span>
             <div className="stats-rel-bar-wrap">
-              <div className="stats-rel-bar"
-                style={{ width: barW, background: barColor, opacity: 0.8 }} />
+              <div className="stats-rel-bar" style={{ width: barW, background: barColor, opacity: 0.8 }} />
             </div>
             <span className={`stats-rel-status status-${r.status}`}>{r.status}</span>
             <span style={{ color: '#333', fontSize: 9, marginLeft: 6 }}>

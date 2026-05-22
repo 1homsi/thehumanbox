@@ -91,28 +91,29 @@ export function Tooltip({ tip, children }: Props) {
   let clampedLeft = 0
   if (rect) {
     const ideal = rect.left + rect.width / 2
-    const half  = MAX_TOOLTIP_W / 2
-    const minL  = half + EDGE_PAD
-    const maxL  = window.innerWidth - half - EDGE_PAD
+    const half = MAX_TOOLTIP_W / 2
+    const minL = half + EDGE_PAD
+    const maxL = window.innerWidth - half - EDGE_PAD
     clampedLeft = Math.min(Math.max(ideal, minL), maxL)
   }
 
   return (
     <>
       {child}
-      {rect && createPortal(
-        <div
-          className={clsx('ui-tooltip', above ? 'ui-tooltip--above' : 'ui-tooltip--below')}
-          style={{
-            left: clampedLeft,
-            top: above ? rect.top - OFFSET : rect.bottom + OFFSET,
-          }}
-        >
-          {tip}
-          <div className="ui-tooltip-arrow" />
-        </div>,
-        document.body,
-      )}
+      {rect &&
+        createPortal(
+          <div
+            className={clsx('ui-tooltip', above ? 'ui-tooltip--above' : 'ui-tooltip--below')}
+            style={{
+              left: clampedLeft,
+              top: above ? rect.top - OFFSET : rect.bottom + OFFSET,
+            }}
+          >
+            {tip}
+            <div className="ui-tooltip-arrow" />
+          </div>,
+          document.body,
+        )}
     </>
   )
 }

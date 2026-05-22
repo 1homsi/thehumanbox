@@ -4,13 +4,13 @@ import { lineageColor } from '../utils/constants'
 import { useUIStore } from '../stores/store'
 
 export function ActionTicker({ world }: { world: WorldState }) {
-  const selectOrg = useUIStore(s => s.selectOrg)
+  const selectOrg = useUIStore((s) => s.selectOrg)
 
   const items = useMemo(() => {
     return world.organisms
-      .filter(o => o.alive && o.thought && o.thought.length > 0)
+      .filter((o) => o.alive && o.thought && o.thought.length > 0)
       .slice(0, 60)
-      .map(o => ({
+      .map((o) => ({
         id: o.id,
         name: o.name,
         thought: o.thought,

@@ -6,22 +6,24 @@ interface Props {
 }
 
 const ERA_LABEL: Record<string, string> = {
-  genesis:    'GENESIS',
-  forager:    'FORAGER',
-  fire:       'FIRE',
-  shelter:    'SHELTER',
-  tribal:     'TRIBAL',
-  invention:  'INVENTION',
-  cooking:    'COOKING',
-  masonry:    'MASONRY',
-  equilibrium:'EQUILIBRIUM',
+  genesis: 'GENESIS',
+  forager: 'FORAGER',
+  fire: 'FIRE',
+  shelter: 'SHELTER',
+  tribal: 'TRIBAL',
+  invention: 'INVENTION',
+  cooking: 'COOKING',
+  masonry: 'MASONRY',
+  equilibrium: 'EQUILIBRIUM',
 }
 
 export function WorldFooter({ world }: Props) {
   const moodCounts = useMemo(() => {
-    let ally = 0, rivals = 0, neutral = 0
+    let ally = 0,
+      rivals = 0,
+      neutral = 0
     for (const r of world.tribal_relations ?? []) {
-      if (r.status === 'ally')   ally++
+      if (r.status === 'ally') ally++
       else if (r.status === 'rivals') rivals++
       else neutral++
     }
@@ -48,7 +50,10 @@ export function WorldFooter({ world }: Props) {
       </div>
       <div className="footer-row">
         <span className="footer-label">weather</span>
-        <span className="footer-value">{weatherKind}{droughtTag}</span>
+        <span className="footer-value">
+          {weatherKind}
+          {droughtTag}
+        </span>
       </div>
       <div className="footer-row">
         <span className="footer-label">tribes</span>

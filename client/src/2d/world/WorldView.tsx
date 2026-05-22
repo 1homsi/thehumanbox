@@ -1,15 +1,33 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Game, World, Entity, Transform, Sprite, Camera2D, useCamera, useEntity, useDynamicCanvas, useGestures } from 'cubeforge'
+import {
+  Game,
+  World,
+  Entity,
+  Transform,
+  Sprite,
+  Camera2D,
+  useCamera,
+  useEntity,
+  useDynamicCanvas,
+  useGestures,
+} from 'cubeforge'
 import type { WorldState } from '../../types'
 import type { InterpRefs } from '../../simulation/useSimulation'
 import { useUIStore, type ViewFlags } from '../../stores/store'
 import { lineageColor, cbFireRgba } from '../../utils/constants'
-import { ATLAS_TOWN, onAnyAtlasLoaded, drawPeopleTile, pickHumanSprite, type AgeStage } from '../../utils/sprites'
+import {
+  ATLAS_TOWN,
+  onAnyAtlasLoaded,
+  drawPeopleTile,
+  pickHumanSprite,
+  type AgeStage,
+} from '../../utils/sprites'
 import { drawBuilding } from './buildings2d'
 import { normalizeLineageEras } from '../../utils/lineageEras'
 
 function deriveAgeStage(age: number, isElder: boolean, declared?: string): AgeStage {
-  if (declared === 'infant' || declared === 'child' || declared === 'teen' || declared === 'adult') return declared
+  if (declared === 'infant' || declared === 'child' || declared === 'teen' || declared === 'adult')
+    return declared
   if (declared === 'elder') return 'adult'
   if (isElder) return 'adult'
   if (age < 220) return 'infant'
@@ -20,7 +38,10 @@ function deriveAgeStage(age: number, isElder: boolean, declared?: string): AgeSt
 const _orgLastPos = new Map<string, { x: number; y: number; movedAt: number }>()
 function orgFrame(id: string, x: number, y: number): number {
   let h = 2166136261 >>> 0
-  for (let i = 0; i < id.length; i++) { h ^= id.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0 }
+  for (let i = 0; i < id.length; i++) {
+    h ^= id.charCodeAt(i)
+    h = Math.imul(h, 16777619) >>> 0
+  }
   const now = Date.now()
   const last = _orgLastPos.get(id)
   let movedAt = last?.movedAt ?? 0
@@ -29,31 +50,31 @@ function orgFrame(id: string, x: number, y: number): number {
     _orgLastPos.set(id, { x, y, movedAt })
   }
   if (now - movedAt > 350) return 0
-  const phase = (h % 800)
+  const phase = h % 800
   return Math.floor(((now + phase) % 800) / 200)
 }
 
 const ERA_CLOTHING_COLOR: Record<string, string> = {
-  'pre-stone':  '#6b5239',
-  stone:        '#7a6b55',
-  bronze:       '#a06a3c',
-  iron:         '#5e6e75',
-  classical:    '#c8a868',
-  medieval:     '#6a4030',
-  renaissance:  '#8a3848',
-  industrial:   '#3a2e22',
-  modern:       '#3a4a6a',
-  information:  '#3878b8',
+  'pre-stone': '#6b5239',
+  stone: '#7a6b55',
+  bronze: '#a06a3c',
+  iron: '#5e6e75',
+  classical: '#c8a868',
+  medieval: '#6a4030',
+  renaissance: '#8a3848',
+  industrial: '#3a2e22',
+  modern: '#3a4a6a',
+  information: '#3878b8',
 }
 
 const ERA_STRIPE_COLOR: Record<string, string> = {
-  bronze:      '#b07a2a',
-  iron:        '#7a7a7a',
-  classical:   '#d4a04a',
-  medieval:    '#5a4030',
+  bronze: '#b07a2a',
+  iron: '#7a7a7a',
+  classical: '#d4a04a',
+  medieval: '#5a4030',
   renaissance: '#c08850',
-  industrial:  '#3e2e22',
-  modern:      '#9aa0a8',
+  industrial: '#3e2e22',
+  modern: '#9aa0a8',
   information: '#7cc6ff',
 }
 
@@ -71,14 +92,36 @@ function pickToolEmoji(tools: Record<string, number> | undefined): string {
 }
 
 const SPECIALTY_EMOJI: Record<string, string> = {
-  farmer: '\u{1F33E}', smith: '\u{1F528}', hunter: '\u{1F3F9}', healer: '\u{2695}\u{FE0F}',
-  scholar: '\u{1F4DC}', merchant: '\u{1F4B0}', soldier: '\u{2694}\u{FE0F}', builder: '\u{1F3D7}\u{FE0F}',
-  priest: '\u{1F4FF}', artist: '\u{1F3A8}', engineer: '\u{2699}\u{FE0F}', sailor: '\u{26F5}',
-  miner: '\u{26CF}\u{FE0F}', weaver: '\u{1F9F5}', baker: '\u{1F35E}', brewer: '\u{1F37A}',
-  carpenter: '\u{1FA9C}', mason: '\u{1F9F1}', scribe: '\u{270D}\u{FE0F}', banker: '\u{1F3E6}',
-  doctor: '\u{1F489}', teacher: '\u{1F4DA}', lawyer: '\u{2696}\u{FE0F}', officer: '\u{1F46E}',
-  pilot: '\u{2708}\u{FE0F}', programmer: '\u{1F4BB}', journalist: '\u{1F4F0}',
-  actor: '\u{1F3AD}', athlete: '\u{1F3C5}', politician: '\u{1F3DB}\u{FE0F}',
+  farmer: '\u{1F33E}',
+  smith: '\u{1F528}',
+  hunter: '\u{1F3F9}',
+  healer: '\u{2695}\u{FE0F}',
+  scholar: '\u{1F4DC}',
+  merchant: '\u{1F4B0}',
+  soldier: '\u{2694}\u{FE0F}',
+  builder: '\u{1F3D7}\u{FE0F}',
+  priest: '\u{1F4FF}',
+  artist: '\u{1F3A8}',
+  engineer: '\u{2699}\u{FE0F}',
+  sailor: '\u{26F5}',
+  miner: '\u{26CF}\u{FE0F}',
+  weaver: '\u{1F9F5}',
+  baker: '\u{1F35E}',
+  brewer: '\u{1F37A}',
+  carpenter: '\u{1FA9C}',
+  mason: '\u{1F9F1}',
+  scribe: '\u{270D}\u{FE0F}',
+  banker: '\u{1F3E6}',
+  doctor: '\u{1F489}',
+  teacher: '\u{1F4DA}',
+  lawyer: '\u{2696}\u{FE0F}',
+  officer: '\u{1F46E}',
+  pilot: '\u{2708}\u{FE0F}',
+  programmer: '\u{1F4BB}',
+  journalist: '\u{1F4F0}',
+  actor: '\u{1F3AD}',
+  athlete: '\u{1F3C5}',
+  politician: '\u{1F3DB}\u{FE0F}',
 }
 import { TILE, TILE_RGB, BIOME_RGBA, THOUGHT_COLORS } from '../../world/palette'
 import { orgVariant } from '../../world/org-variant'
@@ -98,7 +141,9 @@ let _baseKey: {
   depth_map?: number[][]
 } | null = null
 
-onAnyAtlasLoaded(() => { _baseKey = null })
+onAnyAtlasLoaded(() => {
+  _baseKey = null
+})
 function getReuseImgData(w: number, h: number): ImageData {
   if (!_imgBuf || _imgBuf.width !== w || _imgBuf.height !== h) {
     _imgBuf = new ImageData(w, h)
@@ -116,14 +161,16 @@ function baseLayerMatches(
   biomes?: number[][],
   depth_map?: number[][],
 ) {
-  return !!key
-    && key.width === width
-    && key.height === height
-    && key.origin_x === origin_x
-    && key.origin_y === origin_y
-    && key.tiles === tiles
-    && key.biomes === biomes
-    && key.depth_map === depth_map
+  return (
+    !!key &&
+    key.width === width &&
+    key.height === height &&
+    key.origin_x === origin_x &&
+    key.origin_y === origin_y &&
+    key.tiles === tiles &&
+    key.biomes === biomes &&
+    key.depth_map === depth_map
+  )
 }
 
 function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
@@ -135,13 +182,17 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
   const W = width * TILE
   const H = height * TILE
 
-  if (_baseCanvas && baseLayerMatches(_baseKey, width, height, origin_x, origin_y, tiles, biomes, depth_map)) {
+  if (
+    _baseCanvas &&
+    baseLayerMatches(_baseKey, width, height, origin_x, origin_y, tiles, biomes, depth_map)
+  ) {
     return _baseCanvas
   }
 
-  const canvas = _baseCanvas && _baseCanvas.width === W && _baseCanvas.height === H
-    ? _baseCanvas
-    : document.createElement('canvas')
+  const canvas =
+    _baseCanvas && _baseCanvas.width === W && _baseCanvas.height === H
+      ? _baseCanvas
+      : document.createElement('canvas')
   canvas.width = W
   canvas.height = H
 
@@ -157,7 +208,7 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
     return 9
   }
   for (let row = 0; row < height; row++) {
-    const tileRow  = tiles[row]
+    const tileRow = tiles[row]
     const biomeRow = biomes?.[row]
     const depthRow = depth_map?.[row]
     const tileRowPrev = row > 0 ? tiles[row - 1] : undefined
@@ -198,7 +249,8 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
       }
 
       const varAmt = varAmtFor(tid)
-      const bx = col * TILE, by = row * TILE
+      const bx = col * TILE,
+        by = row * TILE
       for (let ty = 0; ty < TILE; ty++) {
         const gy = by + ty
         let pi = (gy * W + bx) * 4
@@ -210,10 +262,16 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
           let rr = r + k + shading
           let gg = g + k + shading
           let bb = b + k + shading
-          if (rr < 0) rr = 0; else if (rr > 255) rr = 255
-          if (gg < 0) gg = 0; else if (gg > 255) gg = 255
-          if (bb < 0) bb = 0; else if (bb > 255) bb = 255
-          d[pi] = rr; d[pi+1] = gg; d[pi+2] = bb; d[pi+3] = 255
+          if (rr < 0) rr = 0
+          else if (rr > 255) rr = 255
+          if (gg < 0) gg = 0
+          else if (gg > 255) gg = 255
+          if (bb < 0) bb = 0
+          else if (bb > 255) bb = 255
+          d[pi] = rr
+          d[pi + 1] = gg
+          d[pi + 2] = bb
+          d[pi + 3] = 255
         }
       }
     }
@@ -258,10 +316,14 @@ function drawWorldOnCanvas(
   // full cache when it's empty. `??` alone returns [] when viewport is
   // an empty array, which silently hid all animals if the wire ever
   // shipped a frame with `animals: []` even though the cache held many.
-  const orgPick = world.viewport_organisms && world.viewport_organisms.length > 0
-    ? world.viewport_organisms : (world.organisms ?? [])
-  const animalPick = world.viewport_animals && world.viewport_animals.length > 0
-    ? world.viewport_animals : (world.animals ?? [])
+  const orgPick =
+    world.viewport_organisms && world.viewport_organisms.length > 0
+      ? world.viewport_organisms
+      : (world.organisms ?? [])
+  const animalPick =
+    world.viewport_animals && world.viewport_animals.length > 0
+      ? world.viewport_animals
+      : (world.animals ?? [])
   const organisms = orgPick
   const animals = animalPick
   const W = width * TILE
@@ -273,24 +335,27 @@ function drawWorldOnCanvas(
   ctx.drawImage(base, 0, 0)
 
   const seasonTints: Record<string, string> = {
-    decline:  'rgba(180,110,30,0.07)',
+    decline: 'rgba(180,110,30,0.07)',
     scarcity: 'rgba(90,60,30,0.11)',
     recovery: 'rgba(30,120,150,0.07)',
   }
   const skyTint = seasonTints[world.season]
-  if (skyTint) { ctx.fillStyle = skyTint; ctx.fillRect(0, 0, W, H) }
+  if (skyTint) {
+    ctx.fillStyle = skyTint
+    ctx.fillRect(0, 0, W, H)
+  }
 
   {
     const dp = world.day_progress ?? 0.5
     if (!world.is_day) {
       const mid = 1 - Math.abs(dp - 0.85) * 4
-      ctx.fillStyle = `rgba(20,28,70,${0.10 + Math.max(0, mid) * 0.06})`
+      ctx.fillStyle = `rgba(20,28,70,${0.1 + Math.max(0, mid) * 0.06})`
       ctx.fillRect(0, 0, W, H)
-    } else if (dp < 0.10) {
-      ctx.fillStyle = `rgba(255,170,90,${(0.10 - dp) / 0.10 * 0.06})`
+    } else if (dp < 0.1) {
+      ctx.fillStyle = `rgba(255,170,90,${((0.1 - dp) / 0.1) * 0.06})`
       ctx.fillRect(0, 0, W, H)
-    } else if (dp > 0.60) {
-      ctx.fillStyle = `rgba(230,130,70,${(dp - 0.60) / 0.10 * 0.07})`
+    } else if (dp > 0.6) {
+      ctx.fillStyle = `rgba(230,130,70,${((dp - 0.6) / 0.1) * 0.07})`
       ctx.fillRect(0, 0, W, H)
     }
   }
@@ -299,7 +364,7 @@ function drawWorldOnCanvas(
     const wi = Math.max(0, Math.min(1, world.weather.intensity ?? 0))
     const kind = world.weather.kind
     if (kind === 'storm') {
-      ctx.fillStyle = `rgba(40,55,90,${0.06 + wi * 0.10})`
+      ctx.fillStyle = `rgba(40,55,90,${0.06 + wi * 0.1})`
       ctx.fillRect(0, 0, W, H)
     } else if (kind === 'rain') {
       ctx.fillStyle = `rgba(70,90,130,${0.04 + wi * 0.06})`
@@ -310,8 +375,9 @@ function drawWorldOnCanvas(
     }
     if (kind === 'rain' || kind === 'storm') {
       const isStorm = kind === 'storm'
-      ctx.strokeStyle = isStorm ? `rgba(180,195,230,${0.10 + wi * 0.10})`
-                                : `rgba(170,190,225,${0.08 + wi * 0.08})`
+      ctx.strokeStyle = isStorm
+        ? `rgba(180,195,230,${0.1 + wi * 0.1})`
+        : `rgba(170,190,225,${0.08 + wi * 0.08})`
       ctx.lineWidth = 1
       const streaks = Math.round((isStorm ? 80 : 50) * (0.4 + wi * 0.6))
       // Wind drives the streak angle. Magnitude controls slant
@@ -323,8 +389,8 @@ function drawWorldOnCanvas(
       const slantY = (1 + wy * 0.5) * 8 // mostly downward, biased by wind_y
       ctx.beginPath()
       for (let i = 0; i < streaks; i++) {
-        const sxp = (i * 137 + (t * 0.7)) % W
-        const syp = ((i * 251) + (t * (isStorm ? 1.4 : 1.0))) % H
+        const sxp = (i * 137 + t * 0.7) % W
+        const syp = (i * 251 + t * (isStorm ? 1.4 : 1.0)) % H
         ctx.moveTo(sxp, syp)
         ctx.lineTo(sxp + slantX, syp + slantY)
       }
@@ -340,9 +406,7 @@ function drawWorldOnCanvas(
 
   if (!world.is_day || (world.day_progress ?? 0) > 0.05) {
     const tt = t * 0.001
-    ctx.fillStyle = world.is_day
-      ? 'rgba(255,255,255,0.55)'
-      : 'rgba(180,200,240,0.30)'
+    ctx.fillStyle = world.is_day ? 'rgba(255,255,255,0.55)' : 'rgba(180,200,240,0.30)'
     // Align to even boundaries so the star-on-water pattern stays
     // stable as the camera pans (stride-2 sampling must visit the
     // same cells from frame to frame).
@@ -353,7 +417,7 @@ function drawWorldOnCanvas(
         if ((drow[col] ?? 255) >= 254) continue
         let h = (col * 374761393 + row * 668265263) | 0
         h = ((h ^ (h >>> 13)) * 1274126177) >>> 0
-        const phase = (h & 0xff) / 255 * Math.PI * 2
+        const phase = ((h & 0xff) / 255) * Math.PI * 2
         const blink = Math.sin(tt * 1.7 + phase) + Math.sin(tt * 0.9 + phase * 1.3)
         if (blink < 1.3) continue
         const px = col * TILE + ((h >>> 8) & 3)
@@ -372,17 +436,17 @@ function drawWorldOnCanvas(
         if (!drow) continue
         for (let col = 1; col < width - 1; col++) {
           if ((drow[col] ?? 255) >= 254) continue
-          const n  = dm[row - 1]?.[col]     ?? 255
-          const s  = dm[row + 1]?.[col]     ?? 255
-          const e  = drow[col + 1]          ?? 255
-          const w  = drow[col - 1]          ?? 255
+          const n = dm[row - 1]?.[col] ?? 255
+          const s = dm[row + 1]?.[col] ?? 255
+          const e = drow[col + 1] ?? 255
+          const w = drow[col - 1] ?? 255
           if (n < 254 && s < 254 && e < 254 && w < 254) continue
           const px = col * TILE
           const py = row * TILE
-          if (n >= 254) ctx.fillRect(px, py,           TILE, 1)
+          if (n >= 254) ctx.fillRect(px, py, TILE, 1)
           if (s >= 254) ctx.fillRect(px, py + TILE - 1, TILE, 1)
           if (e >= 254) ctx.fillRect(px + TILE - 1, py, 1, TILE)
-          if (w >= 254) ctx.fillRect(px, py,           1, TILE)
+          if (w >= 254) ctx.fillRect(px, py, 1, TILE)
         }
       }
     }
@@ -400,9 +464,9 @@ function drawWorldOnCanvas(
         for (let col = c0; col < c1; col++) {
           const d = dr[col] ?? 255
           if (d < 180 || d >= 254) continue
-          let h = (col * 374761393 + row * 668265263 + (shimmerT * 100 | 0)) | 0
+          let h = (col * 374761393 + row * 668265263 + ((shimmerT * 100) | 0)) | 0
           h = ((h ^ (h >>> 13)) * 1274126177) >>> 0
-          const pulse = Math.sin(shimmerT * 2.1 + (h & 0xff) / 255 * Math.PI * 2)
+          const pulse = Math.sin(shimmerT * 2.1 + ((h & 0xff) / 255) * Math.PI * 2)
           if (pulse < 0.6) continue
           ctx.fillRect(col * TILE + ((h >>> 8) & 3), row * TILE + ((h >>> 10) & 3), 2, 1)
         }
@@ -460,7 +524,9 @@ function drawWorldOnCanvas(
         if (TILE >= 8) {
           const cx2 = px + TILE / 2
           ctx.fillStyle = cbFireRgba(255, 80, 0, fi * 0.6)
-          ctx.beginPath(); ctx.arc(cx2, py + TILE * 0.4, TILE * 0.18, 0, Math.PI * 2); ctx.fill()
+          ctx.beginPath()
+          ctx.arc(cx2, py + TILE * 0.4, TILE * 0.18, 0, Math.PI * 2)
+          ctx.fill()
           // Market stall awning adjacent to campfire
           const stallAngle = (((col + row) * 137) % 360) * (Math.PI / 180)
           const sd = TILE * 1.6
@@ -481,32 +547,40 @@ function drawWorldOnCanvas(
         const by = py - TILE / 2
         const dp = world.day_progress ?? 0.5
         const nightFactor = world.is_day ? 0 : 1 - Math.abs(dp - 0.5) * 2
-        const glowAlpha = 0.10 + (0.42 - 0.10) * nightFactor
+        const glowAlpha = 0.1 + (0.42 - 0.1) * nightFactor
         ctx.fillStyle = `rgba(255,215,110,${glowAlpha})`
         ctx.fillRect(bx - TILE, by - TILE, BW + TILE * 2, BH + TILE * 2)
         ctx.fillStyle = '#5a2e08'
         ctx.beginPath()
         ctx.moveTo(bx + BW / 2, by)
-        ctx.lineTo(bx + BW,     by + BH * 0.44)
-        ctx.lineTo(bx,          by + BH * 0.44)
+        ctx.lineTo(bx + BW, by + BH * 0.44)
+        ctx.lineTo(bx, by + BH * 0.44)
         ctx.closePath()
         ctx.fill()
         ctx.fillStyle = '#b89060'
         ctx.fillRect(bx + 1, by + BH * 0.44, BW - 2, BH * 0.56 - 1)
         ctx.fillStyle = '#2a1000'
-        ctx.fillRect(bx + BW / 2 - 2, by + BH * 0.60, 4, BH * 0.36 - 1)
+        ctx.fillRect(bx + BW / 2 - 2, by + BH * 0.6, 4, BH * 0.36 - 1)
         const now = Date.now()
-        const windowAlpha = world.is_day ? 0.60 : Math.sin(now * 0.002) * 0.1 + 0.7
+        const windowAlpha = world.is_day ? 0.6 : Math.sin(now * 0.002) * 0.1 + 0.7
         ctx.fillStyle = `rgba(255,230,140,${windowAlpha})`
-        ctx.fillRect(bx + 3,       by + BH * 0.50, 3, 3)
-        ctx.fillRect(bx + BW - 6,  by + BH * 0.50, 3, 3)
+        ctx.fillRect(bx + 3, by + BH * 0.5, 3, 3)
+        ctx.fillRect(bx + BW - 6, by + BH * 0.5, 3, 3)
         const smokeAlpha = !world.is_day ? 0.25 : 0
         if (smokeAlpha > 0) {
           for (let s = 0; s < 3; s++) {
             const phase = (now * 0.0008 + s * 0.4) % 1
             ctx.fillStyle = `rgba(180,180,185,${smokeAlpha * (1 - phase)})`
             ctx.beginPath()
-            ctx.ellipse(bx + BW / 2 + Math.sin(phase * Math.PI) * 2, by - phase * 12, 3 + phase * 4, 2 + phase * 2, 0, 0, Math.PI * 2)
+            ctx.ellipse(
+              bx + BW / 2 + Math.sin(phase * Math.PI) * 2,
+              by - phase * 12,
+              3 + phase * 4,
+              2 + phase * 2,
+              0,
+              0,
+              Math.PI * 2,
+            )
             ctx.fill()
           }
         }
@@ -533,7 +607,10 @@ function drawWorldOnCanvas(
         for (let j = i + 1; j < hutPositions.length; j++) {
           const [jx, jy] = hutPositions[j]
           const d2 = (hx - jx) ** 2 + (hy - jy) ** 2
-          if (d2 < 64) { cluster.push(j); usedInCluster.add(j) }
+          if (d2 < 64) {
+            cluster.push(j)
+            usedInCluster.add(j)
+          }
         }
         usedInCluster.add(i)
         if (cluster.length < 3) continue
@@ -544,15 +621,18 @@ function drawWorldOnCanvas(
         const py2 = cy2 * TILE + TILE / 2
         ctx.save()
         // Settlement ring
-        ctx.strokeStyle = `rgba(200,170,80,${Math.min(0.45, 0.20 + cluster.length * 0.04)})`
+        ctx.strokeStyle = `rgba(200,170,80,${Math.min(0.45, 0.2 + cluster.length * 0.04)})`
         ctx.lineWidth = 1.2
         ctx.setLineDash([4, 3])
-        ctx.beginPath(); ctx.arc(px2, py2, r2, 0, Math.PI * 2); ctx.stroke()
+        ctx.beginPath()
+        ctx.arc(px2, py2, r2, 0, Math.PI * 2)
+        ctx.stroke()
         ctx.setLineDash([])
         // Town hall icon for large settlements (5+ huts)
         if (cluster.length >= 5) {
           const TH = TILE * 3.5 // town hall icon size
-          const tx = px2 - TH / 2; const ty = py2 - TH / 2
+          const tx = px2 - TH / 2
+          const ty = py2 - TH / 2
           // Glow
           ctx.fillStyle = 'rgba(255,220,130,0.22)'
           ctx.fillRect(tx - TILE, ty - TILE, TH + TILE * 2, TH + TILE * 2)
@@ -565,17 +645,20 @@ function drawWorldOnCanvas(
           ctx.moveTo(px2, ty)
           ctx.lineTo(tx + TH, ty + TH * 0.38)
           ctx.lineTo(tx, ty + TH * 0.38)
-          ctx.closePath(); ctx.fill()
+          ctx.closePath()
+          ctx.fill()
           // Central tower
-          const tw = TH * 0.22; const th2 = TH * 0.85
+          const tw = TH * 0.22
+          const th2 = TH * 0.85
           ctx.fillStyle = '#c0a870'
-          ctx.fillRect(px2 - tw / 2, ty - th2 * 0.20, tw, th2 * 0.65)
+          ctx.fillRect(px2 - tw / 2, ty - th2 * 0.2, tw, th2 * 0.65)
           ctx.fillStyle = '#6a3820'
           ctx.beginPath()
           ctx.moveTo(px2, ty - th2 * 0.28)
-          ctx.lineTo(px2 + tw / 2 + 1, ty - th2 * 0.20)
-          ctx.lineTo(px2 - tw / 2 - 1, ty - th2 * 0.20)
-          ctx.closePath(); ctx.fill()
+          ctx.lineTo(px2 + tw / 2 + 1, ty - th2 * 0.2)
+          ctx.lineTo(px2 - tw / 2 - 1, ty - th2 * 0.2)
+          ctx.closePath()
+          ctx.fill()
           // Door
           ctx.fillStyle = '#2a1000'
           ctx.fillRect(px2 - TH * 0.06, ty + TH * 0.55, TH * 0.12, TH * 0.45 - 1)
@@ -601,13 +684,16 @@ function drawWorldOnCanvas(
         const alpha = Math.min(0.95, 0.4 + s * 0.55)
         if (TILE >= 8) {
           const cx2 = px + TILE / 2
-          if (s >= 0.70) {
+          if (s >= 0.7) {
             ctx.fillStyle = `rgba(120,90,60,${0.6 + s * 0.3})`
             ctx.fillRect(px + 1, py + TILE * 0.5, TILE - 2, TILE * 0.5 - 1)
             ctx.fillStyle = `rgba(90,70,50,${0.7 + s * 0.25})`
             ctx.beginPath()
-            ctx.moveTo(cx2, py + 2); ctx.lineTo(px + TILE - 2, py + TILE * 0.52); ctx.lineTo(px + 2, py + TILE * 0.52)
-            ctx.closePath(); ctx.fill()
+            ctx.moveTo(cx2, py + 2)
+            ctx.lineTo(px + TILE - 2, py + TILE * 0.52)
+            ctx.lineTo(px + 2, py + TILE * 0.52)
+            ctx.closePath()
+            ctx.fill()
             ctx.fillStyle = 'rgba(160,140,110,0.5)'
             ctx.fillRect(px + 2, py + TILE * 0.55, 3, 3)
             ctx.fillRect(px + TILE - 5, py + TILE * 0.65, 3, 3)
@@ -616,16 +702,19 @@ function drawWorldOnCanvas(
             ctx.fillRect(px + 2, py + TILE * 0.45, TILE - 4, TILE * 0.55 - 1)
             ctx.fillStyle = `rgba(80,50,20,${0.5 + s * 0.35})`
             ctx.beginPath()
-            ctx.moveTo(cx2 - 1, py + 3); ctx.lineTo(px + TILE - 2, py + TILE * 0.47); ctx.lineTo(px + 2, py + TILE * 0.47)
-            ctx.closePath(); ctx.fill()
+            ctx.moveTo(cx2 - 1, py + 3)
+            ctx.lineTo(px + TILE - 2, py + TILE * 0.47)
+            ctx.lineTo(px + 2, py + TILE * 0.47)
+            ctx.closePath()
+            ctx.fill()
           } else {
             ctx.fillStyle = `rgba(130,95,45,${s * 2.5})`
             ctx.fillRect(px + 1, py + TILE * 0.6, TILE - 2, TILE * 0.35)
           }
         } else {
-          const r = s >= 0.70 ? 120 : s >= 0.35 ? 100 : 130
-          const g = s >= 0.70 ? 90  : s >= 0.35 ? 65  : 95
-          const b = s >= 0.70 ? 60  : s >= 0.35 ? 30  : 45
+          const r = s >= 0.7 ? 120 : s >= 0.35 ? 100 : 130
+          const g = s >= 0.7 ? 90 : s >= 0.35 ? 65 : 95
+          const b = s >= 0.7 ? 60 : s >= 0.35 ? 30 : 45
           ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`
           ctx.fillRect(px, py, TILE, TILE)
         }
@@ -654,7 +743,7 @@ function drawWorldOnCanvas(
       if (!r) continue
       for (let col = c0; col < c1; col++) {
         const v = r[col] ?? 0
-        if (v < 0.10) continue
+        if (v < 0.1) continue
         ctx.fillStyle = `rgba(80,200,80,${Math.min(0.55, v * 0.6)})`
         ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
       }
@@ -704,11 +793,13 @@ function drawWorldOnCanvas(
     const cnt = scratchB(n)
     for (const org of organisms) {
       if (!org.alive) continue
-      const tx = Math.round(org.x - ox), ty = Math.round(org.y - oy)
+      const tx = Math.round(org.x - ox),
+        ty = Math.round(org.y - oy)
       if (tx < 0 || ty < 0 || tx >= width || ty >= height) continue
       for (let dy = -1; dy <= 1; dy++) {
         for (let dx = -1; dx <= 1; dx++) {
-          const nx = tx + dx, ny = ty + dy
+          const nx = tx + dx,
+            ny = ty + dy
           if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue
           const idx = ny * width + nx
           sum[idx] += org.age
@@ -722,7 +813,7 @@ function drawWorldOnCanvas(
         const idx = rowBase + col
         const c = cnt[idx]
         if (c === 0) continue
-        const t = Math.min(1, (sum[idx] / c) / 3000)
+        const t = Math.min(1, sum[idx] / c / 3000)
         const r = Math.round(80 + t * 175)
         const g = Math.round(220 - t * 140)
         const b = Math.round(180 - t * 160)
@@ -736,17 +827,19 @@ function drawWorldOnCanvas(
     const n = height * width
     const heat = scratchA(n)
     for (const org of organisms) {
-      if (!org.alive || (org.fear_level ?? 0) < 0.30) continue
-      const tx = Math.round(org.x - ox), ty = Math.round(org.y - oy)
+      if (!org.alive || (org.fear_level ?? 0) < 0.3) continue
+      const tx = Math.round(org.x - ox),
+        ty = Math.round(org.y - oy)
       const R = 3
       const f = org.fear_level ?? 0
       for (let dy = -R; dy <= R; dy++) {
         for (let dx = -R; dx <= R; dx++) {
           const d = Math.abs(dx) + Math.abs(dy)
           if (d > R) continue
-          const nx = tx + dx, ny = ty + dy
+          const nx = tx + dx,
+            ny = ty + dy
           if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue
-          heat[ny * width + nx] += f * (R - d + 1) / (R + 1)
+          heat[ny * width + nx] += (f * (R - d + 1)) / (R + 1)
         }
       }
     }
@@ -756,7 +849,7 @@ function drawWorldOnCanvas(
         const v = heat[rowBase + col]
         if (v < 0.15) continue
         const t = Math.min(1, v / 2)
-        ctx.fillStyle = `rgba(255,${Math.round(140 - t * 100)},${Math.round(60 - t * 40)},${(0.30 + t * 0.40).toFixed(2)})`
+        ctx.fillStyle = `rgba(255,${Math.round(140 - t * 100)},${Math.round(60 - t * 40)},${(0.3 + t * 0.4).toFixed(2)})`
         ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
       }
     }
@@ -767,15 +860,17 @@ function drawWorldOnCanvas(
     const grid2d = scratchA(n)
     for (const org of organisms) {
       if (!org.alive) continue
-      const tx2 = Math.round(org.x - ox), ty2 = Math.round(org.y - oy)
+      const tx2 = Math.round(org.x - ox),
+        ty2 = Math.round(org.y - oy)
       const R = 4
       for (let dy = -R; dy <= R; dy++) {
         for (let dx = -R; dx <= R; dx++) {
           const d = Math.abs(dx) + Math.abs(dy)
           if (d > R) continue
-          const nx = tx2 + dx, ny = ty2 + dy
+          const nx = tx2 + dx,
+            ny = ty2 + dy
           if (nx >= 0 && ny >= 0 && ny < height && nx < width) {
-            grid2d[ny * width + nx] += (R - d + 1)
+            grid2d[ny * width + nx] += R - d + 1
           }
         }
       }
@@ -794,11 +889,11 @@ function drawWorldOnCanvas(
     }
   }
 
-  const liveOrgs = organisms.filter(o => o.alive && o.lineage_id)
+  const liveOrgs = organisms.filter((o) => o.alive && o.lineage_id)
   if (viewFlags.territory && liveOrgs.length > 0) {
     const BLOCK = 4
     const MAX_DIST_SQ = 40 * 40
-    const bw = Math.ceil(width  / BLOCK)
+    const bw = Math.ceil(width / BLOCK)
     const bh = Math.ceil(height / BLOCK)
 
     // Dedupe by lineage so two orgs of the same lineage share one
@@ -819,7 +914,8 @@ function drawWorldOnCanvas(
       let idx = linByLid.get(o.lineage_id)
       if (idx === undefined) {
         const hsl = lineageColor(o.lineage_id)
-        const dark = hsl.replace(/(\d+)%\)$/, (_, l) => `${Math.max(15, Number(l) - 30)}%, 0.85)`)
+        const dark = hsl
+          .replace(/(\d+)%\)$/, (_, l) => `${Math.max(15, Number(l) - 30)}%, 0.85)`)
           .replace('hsl(', 'hsla(')
         const fill = hsl.replace('hsl(', 'hsla(').replace(')', ', 0.25)')
         idx = lineages.length
@@ -842,12 +938,16 @@ function drawWorldOnCanvas(
       for (let bx = 0; bx < bw; bx++) {
         const cx2 = bx * BLOCK + BLOCK * 0.5
         if (tilesRow?.[Math.floor(cx2)] === 2) continue
-        let bestIdx = -1, bestDist = MAX_DIST_SQ
+        let bestIdx = -1,
+          bestDist = MAX_DIST_SQ
         for (let i = 0; i < orgN; i++) {
           const dx = orgTx[i] - cx2
           const dy = orgTy[i] - cy2
-          const d  = dx * dx + dy * dy
-          if (d < bestDist) { bestDist = d; bestIdx = orgLin[i] }
+          const d = dx * dx + dy * dy
+          if (d < bestDist) {
+            bestDist = d
+            bestIdx = orgLin[i]
+          }
         }
         if (bestIdx >= 0) owner[rowOffset + bx] = bestIdx
       }
@@ -860,7 +960,10 @@ function drawWorldOnCanvas(
       let bx = 0
       while (bx < bw) {
         const idx = owner[rowOffset + bx]
-        if (idx < 0) { bx++; continue }
+        if (idx < 0) {
+          bx++
+          continue
+        }
         let ex = bx + 1
         while (ex < bw && owner[rowOffset + ex] === idx) ex++
         ctx.fillStyle = lineages[idx].fill
@@ -872,23 +975,24 @@ function drawWorldOnCanvas(
     const BW = 2
     for (let by = 0; by < bh; by++) {
       const rowOffset = by * bw
-      const topOffset    = by > 0      ? rowOffset - bw : -1
+      const topOffset = by > 0 ? rowOffset - bw : -1
       const bottomOffset = by < bh - 1 ? rowOffset + bw : -1
       for (let bx = 0; bx < bw; bx++) {
         const idx = owner[rowOffset + bx]
         if (idx < 0) continue
-        const top    = topOffset    >= 0 ? owner[topOffset + bx]    : -1
+        const top = topOffset >= 0 ? owner[topOffset + bx] : -1
         const bottom = bottomOffset >= 0 ? owner[bottomOffset + bx] : -1
-        const left   = bx > 0           ? owner[rowOffset + bx - 1] : -1
-        const right  = bx < bw - 1      ? owner[rowOffset + bx + 1] : -1
+        const left = bx > 0 ? owner[rowOffset + bx - 1] : -1
+        const right = bx < bw - 1 ? owner[rowOffset + bx + 1] : -1
         if (top !== idx || bottom !== idx || left !== idx || right !== idx) {
           ctx.fillStyle = lineages[idx].border
-          const px = bx * BLOCK * TILE, py = by * BLOCK * TILE
+          const px = bx * BLOCK * TILE,
+            py = by * BLOCK * TILE
           const sz = BLOCK * TILE
-          if (top    !== idx) ctx.fillRect(px,           py,           sz, BW)
-          if (bottom !== idx) ctx.fillRect(px,           py + sz - BW, sz, BW)
-          if (left   !== idx) ctx.fillRect(px,           py,           BW, sz)
-          if (right  !== idx) ctx.fillRect(px + sz - BW, py,           BW, sz)
+          if (top !== idx) ctx.fillRect(px, py, sz, BW)
+          if (bottom !== idx) ctx.fillRect(px, py + sz - BW, sz, BW)
+          if (left !== idx) ctx.fillRect(px, py, BW, sz)
+          if (right !== idx) ctx.fillRect(px + sz - BW, py, BW, sz)
         }
       }
     }
@@ -899,26 +1003,25 @@ function drawWorldOnCanvas(
     const smoothstep = (t: number) => t * t * (3 - 2 * t)
 
     let darkness = 0
-    if (phase >= 0.55 && phase < 0.80) {
+    if (phase >= 0.55 && phase < 0.8) {
       darkness = 0.85 * smoothstep((phase - 0.55) / 0.25)
-    } else if (phase >= 0.80 && phase < 0.95) {
+    } else if (phase >= 0.8 && phase < 0.95) {
       darkness = 0.85
     } else if (phase >= 0.95) {
-      darkness = 0.85 * (1 - smoothstep((phase - 0.95) / 0.10))
+      darkness = 0.85 * (1 - smoothstep((phase - 0.95) / 0.1))
     } else if (phase < 0.05) {
-      darkness = 0.85 * (1 - smoothstep((phase + 0.05) / 0.10))
+      darkness = 0.85 * (1 - smoothstep((phase + 0.05) / 0.1))
     }
 
-    const gauss = (d: number, sigma: number) =>
-      Math.exp(-(d * d) / (2 * sigma * sigma))
+    const gauss = (d: number, sigma: number) => Math.exp(-(d * d) / (2 * sigma * sigma))
 
     const sunsetDist = Math.abs(phase - 0.67)
-    let dawnDist     = Math.abs(phase - 0.0)
-    dawnDist         = Math.min(dawnDist, 1 - dawnDist)
+    let dawnDist = Math.abs(phase - 0.0)
+    dawnDist = Math.min(dawnDist, 1 - dawnDist)
     const warm = Math.max(gauss(sunsetDist, 0.06), gauss(dawnDist, 0.04))
 
     if (warm > 0.01) {
-      ctx.fillStyle = `rgba(255, 100, 40, ${warm * 0.20})`
+      ctx.fillStyle = `rgba(255, 100, 40, ${warm * 0.2})`
       ctx.fillRect(0, 0, W, H)
     }
     if (darkness > 0) {
@@ -935,11 +1038,11 @@ function drawWorldOnCanvas(
     ctx.fillStyle = isStorm ? `rgba(18,28,60,${tintAlpha})` : `rgba(45,90,170,${tintAlpha})`
     ctx.fillRect(0, 0, W, H)
     const streakSpacing = isStorm ? 5 : 9
-    const streakOpacity = weather.intensity * (isStorm ? 0.75 : 0.50)
-    const animOffset    = (t / (isStorm ? 40 : 65)) % streakSpacing
+    const streakOpacity = weather.intensity * (isStorm ? 0.75 : 0.5)
+    const animOffset = (t / (isStorm ? 40 : 65)) % streakSpacing
     ctx.save()
     ctx.strokeStyle = `rgba(170,210,255,${streakOpacity})`
-    ctx.lineWidth   = isStorm ? 1.2 : 0.7
+    ctx.lineWidth = isStorm ? 1.2 : 0.7
     for (let sx = -H * 0.5 - streakSpacing + animOffset; sx < W + H * 0.5; sx += streakSpacing) {
       ctx.beginPath()
       ctx.moveTo(sx, 0)
@@ -960,7 +1063,7 @@ function drawWorldOnCanvas(
       for (let i = 1; i < samples.length; i++) {
         const [, x0, y0] = samples[i - 1]
         const [, x1, y1] = samples[i]
-        const a = 0.15 + 0.70 * (i / samples.length)
+        const a = 0.15 + 0.7 * (i / samples.length)
         ctx.strokeStyle = hsl.replace('hsl(', 'hsla(').replace(')', `, ${a.toFixed(2)})`)
         ctx.beginPath()
         ctx.moveTo((x0 - ox) * TILE + TILE / 2, (y0 - oy) * TILE + TILE / 2)
@@ -1020,7 +1123,7 @@ function drawWorldOnCanvas(
       for (let col = c0; col < c1; col++) {
         const p = pr[col] ?? 0
         if (p < 0.55) continue
-        ctx.fillStyle = `rgba(160,130,80,${Math.min(0.28, p * 0.30)})`
+        ctx.fillStyle = `rgba(160,130,80,${Math.min(0.28, p * 0.3)})`
         ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
       }
     }
@@ -1040,11 +1143,11 @@ function drawWorldOnCanvas(
           ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
         }
         if (f >= 0.1) {
-          ctx.fillStyle = `rgba(240,220,80,${Math.min(0.40, f * 0.5)})`
+          ctx.fillStyle = `rgba(240,220,80,${Math.min(0.4, f * 0.5)})`
           ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
         }
         if (w >= 0.1) {
-          ctx.fillStyle = `rgba(100,170,240,${Math.min(0.40, w * 0.5)})`
+          ctx.fillStyle = `rgba(100,170,240,${Math.min(0.4, w * 0.5)})`
           ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
         }
       }
@@ -1077,7 +1180,7 @@ function drawWorldOnCanvas(
       if (o.alive && o.partner_id) partnered.push(o)
     }
     if (partnered.length >= 2) {
-      const byId = new Map<string, typeof partnered[number]>()
+      const byId = new Map<string, (typeof partnered)[number]>()
       for (const o of partnered) byId.set(o.id, o)
       ctx.save()
       ctx.strokeStyle = 'rgba(255,170,200,0.55)'
@@ -1113,8 +1216,11 @@ function drawWorldOnCanvas(
     for (const b of world.buildings) {
       const lid = (b as { lineage_id?: string }).lineage_id ?? ''
       if (!lid) continue
-      const bx = b.x; const by = b.y
-      const existing = clusters.find(c => c.lineage === lid && ((c.cx - bx) ** 2 + (c.cy - by) ** 2) < CITY_RADIUS_SQ)
+      const bx = b.x
+      const by = b.y
+      const existing = clusters.find(
+        (c) => c.lineage === lid && (c.cx - bx) ** 2 + (c.cy - by) ** 2 < CITY_RADIUS_SQ,
+      )
       if (existing) {
         existing.cx = (existing.cx * existing.count + bx) / (existing.count + 1)
         existing.cy = (existing.cy * existing.count + by) / (existing.count + 1)
@@ -1130,7 +1236,8 @@ function drawWorldOnCanvas(
     for (const c of clusters) {
       if (c.count < 4) continue
       const name = lineageNames[c.lineage] ?? c.lineage.slice(0, 6)
-      const label = c.count >= 12 ? `${name.toUpperCase()} CITY` : c.count >= 8 ? `${name} town` : `${name} village`
+      const label =
+        c.count >= 12 ? `${name.toUpperCase()} CITY` : c.count >= 8 ? `${name} town` : `${name} village`
       const lx = (c.cx - ox) * TILE
       const ly = (c.cy - oy) * TILE - TILE * 2
       ctx.font = c.count >= 12 ? 'bold 12px monospace' : '10px monospace'
@@ -1146,8 +1253,13 @@ function drawWorldOnCanvas(
   }
 
   const ANIMAL_EMOJI: Record<string, string> = {
-    wolf: '🐺', deer: '🦌', boar: '🐗', rabbit: '🐇',
-    fish: '🐟', bird: '🐦', dog: '🐕',
+    wolf: '🐺',
+    deer: '🦌',
+    boar: '🐗',
+    rabbit: '🐇',
+    fish: '🐟',
+    bird: '🐦',
+    dog: '🐕',
   }
   if (viewFlags.animals && animals.length > 0) {
     // Setting ctx.font invalidates Chrome's text-shaper cache. Group
@@ -1167,13 +1279,17 @@ function drawWorldOnCanvas(
       ctx.font = font
       for (const animal of list) {
         const emoji = ANIMAL_EMOJI[animal.kind] ?? '🐾'
-        const speed = animal.kind === 'fish' ? 0.0028
-                    : animal.kind === 'bird' ? 0.0050
-                    : animal.kind === 'wolf' || animal.kind === 'dog' ? 0.0042
-                    : 0.0036
-        const amp   = animal.kind === 'fish' ? 1.4 : 0.8
-        const phase = (t * speed) + (animal.id * 0.7)
-        const yOff  = Math.sin(phase) * amp
+        const speed =
+          animal.kind === 'fish'
+            ? 0.0028
+            : animal.kind === 'bird'
+              ? 0.005
+              : animal.kind === 'wolf' || animal.kind === 'dog'
+                ? 0.0042
+                : 0.0036
+        const amp = animal.kind === 'fish' ? 1.4 : 0.8
+        const phase = t * speed + animal.id * 0.7
+        const yOff = Math.sin(phase) * amp
         const cx = (animal.x - ox) * TILE + TILE / 2
         const cy = (animal.y - oy) * TILE + TILE / 2 + yOff
         ctx.fillText(emoji, cx, cy)
@@ -1189,10 +1305,13 @@ function drawWorldOnCanvas(
   const isFocused = (org: WorldState['organisms'][0]) => {
     if (focus === 'all') return true
     if (focus.startsWith('lineage:')) return org.lineage_id === focus.slice(8)
-    if (focus === 'sick')     return org.infection > 0.15
-    if (focus === 'hungry')   return org.energy < 0.3
-    if (focus === 'elders')   return !!org.is_elder
-    if (focus === 'builders') return !!(org.discoveries ?? []).some(d => ['shelter','fire','masonry','stone_tools','spear'].includes(d))
+    if (focus === 'sick') return org.infection > 0.15
+    if (focus === 'hungry') return org.energy < 0.3
+    if (focus === 'elders') return !!org.is_elder
+    if (focus === 'builders')
+      return !!(org.discoveries ?? []).some((d) =>
+        ['shelter', 'fire', 'masonry', 'stone_tools', 'spear'].includes(d),
+      )
     if (focus === 'thriving') return org.energy > 0.8 && org.hydration > 0.8
     return true
   }
@@ -1201,10 +1320,10 @@ function drawWorldOnCanvas(
     if (!org.alive) continue
     // Data-driven house entry: use actual sleep_debt, energy, health fields - no text matching
     if (org.home_x && org.home_y) {
-      const ddx = org.x - org.home_x; const ddy = org.y - org.home_y
+      const ddx = org.x - org.home_x
+      const ddy = org.y - org.home_y
       if (ddx * ddx + ddy * ddy < 2.0) {
-        if ((org.sleep_debt ?? 0) > 0.40 || org.energy < 0.10 || org.health < 0.15)
-          continue
+        if ((org.sleep_debt ?? 0) > 0.4 || org.energy < 0.1 || org.health < 0.15) continue
       }
     }
     const px = (org.x - ox) * TILE + TILE / 2
@@ -1219,21 +1338,29 @@ function drawWorldOnCanvas(
 
     const isSignaling = org.thought.startsWith('"') || org.thought.startsWith("'")
     if (isSignaling || org.thought === 'sounding alarm') {
-      ctx.strokeStyle = (org.thought.includes('!') || org.thought === 'sounding alarm')
-        ? 'rgba(255,68,136,0.6)' : 'rgba(255,255,68,0.6)'
+      ctx.strokeStyle =
+        org.thought.includes('!') || org.thought === 'sounding alarm'
+          ? 'rgba(255,68,136,0.6)'
+          : 'rgba(255,255,68,0.6)'
       ctx.lineWidth = 1.5
-      ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI * 2); ctx.stroke()
+      ctx.beginPath()
+      ctx.arc(px, py, 10, 0, Math.PI * 2)
+      ctx.stroke()
     } else if (org.thought === 'challenging' || org.thought === 'challenging alone') {
       ctx.strokeStyle = org.thought === 'challenging' ? 'rgba(255,34,0,0.85)' : 'rgba(204,68,34,0.7)'
       ctx.lineWidth = 2
       ctx.beginPath()
-      ctx.moveTo(px, py - 11); ctx.lineTo(px + 11, py)
-      ctx.lineTo(px, py + 11); ctx.lineTo(px - 11, py)
-      ctx.closePath(); ctx.stroke()
+      ctx.moveTo(px, py - 11)
+      ctx.lineTo(px + 11, py)
+      ctx.lineTo(px, py + 11)
+      ctx.lineTo(px - 11, py)
+      ctx.closePath()
+      ctx.stroke()
     }
 
     if (org.infection > 0.15) {
-      ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI * 2)
+      ctx.beginPath()
+      ctx.arc(px, py, 8, 0, Math.PI * 2)
       ctx.fillStyle = `rgba(187,255,68,${org.infection * 0.3})`
       ctx.fill()
     }
@@ -1242,7 +1369,9 @@ function drawWorldOnCanvas(
       ctx.strokeStyle = 'rgba(255,220,80,0.85)'
       ctx.lineWidth = 1.5
       ctx.setLineDash([3, 2])
-      ctx.beginPath(); ctx.arc(px, py, 9, 0, Math.PI * 2); ctx.stroke()
+      ctx.beginPath()
+      ctx.arc(px, py, 9, 0, Math.PI * 2)
+      ctx.stroke()
       ctx.setLineDash([])
     }
 
@@ -1250,14 +1379,18 @@ function drawWorldOnCanvas(
       ctx.strokeStyle = 'rgba(255,255,255,0.9)'
       ctx.lineWidth = 1.5
       ctx.setLineDash([3, 2])
-      ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI * 2); ctx.stroke()
+      ctx.beginPath()
+      ctx.arc(px, py, 10, 0, Math.PI * 2)
+      ctx.stroke()
       ctx.setLineDash([])
     }
 
     if (org.lineage_id) {
       ctx.strokeStyle = lineageColor(org.lineage_id)
       ctx.lineWidth = org.traits ? 1 + org.traits.resilience * 2 : 2
-      ctx.beginPath(); ctx.arc(px, py, 7, 0, Math.PI * 2); ctx.stroke()
+      ctx.beginPath()
+      ctx.arc(px, py, 7, 0, Math.PI * 2)
+      ctx.stroke()
     }
 
     if (org.carrying > 0) {
@@ -1270,17 +1403,17 @@ function drawWorldOnCanvas(
 
     // Body fill: data-driven emotional state overrides thought colors when strong
     let bodyFill: string
-    if (org.infection > 0.38)             bodyFill = 'hsl(85,60%,48%)'
+    if (org.infection > 0.38) bodyFill = 'hsl(85,60%,48%)'
     else if ((org.fear_level ?? 0) > 0.72) bodyFill = 'hsl(10,70%,48%)'
     else if ((org.grief_ticks ?? 0) > 12) bodyFill = 'hsl(220,50%,50%)'
-    else if (org.energy < 0.12)           bodyFill = 'hsl(38,55%,38%)'
-    else                                  bodyFill = THOUGHT_COLORS[org.thought] ?? '#cccccc'
+    else if (org.energy < 0.12) bodyFill = 'hsl(38,55%,38%)'
+    else bodyFill = THOUGHT_COLORS[org.thought] ?? '#cccccc'
 
     if (viewFlags.health) {
       const h = Math.max(0, Math.min(1, org.health))
       const r = Math.round(220 * (1 - h) + 80 * h)
-      const g = Math.round( 80 * (1 - h) + 200 * h)
-      const b = Math.round( 80 * (1 - h) + 100 * h)
+      const g = Math.round(80 * (1 - h) + 200 * h)
+      const b = Math.round(80 * (1 - h) + 100 * h)
       bodyFill = `rgb(${r},${g},${b})`
     } else if (viewFlags.age) {
       if (org.is_elder) bodyFill = '#e9c87a'
@@ -1288,25 +1421,32 @@ function drawWorldOnCanvas(
       else bodyFill = '#b8b8a8'
     }
     ctx.fillStyle = bodyFill
-    ctx.beginPath(); ctx.arc(px, py, bodyR, 0, Math.PI * 2); ctx.fill()
+    ctx.beginPath()
+    ctx.arc(px, py, bodyR, 0, Math.PI * 2)
+    ctx.fill()
 
     if (viewFlags.fear && (org.fear_level ?? 0) > 0.25) {
       const fa = Math.min(0.55, (org.fear_level ?? 0) * 0.8)
-      ctx.beginPath(); ctx.arc(px, py, bodyR + 4, 0, Math.PI * 2)
+      ctx.beginPath()
+      ctx.arc(px, py, bodyR + 4, 0, Math.PI * 2)
       ctx.fillStyle = `rgba(220,70,70,${fa})`
       ctx.fill()
     }
 
     if (viewFlags.lineageDot && org.lineage_id) {
       ctx.fillStyle = lineageColor(org.lineage_id)
-      ctx.beginPath(); ctx.arc(px, py + bodyR * 0.4, 1.6, 0, Math.PI * 2); ctx.fill()
+      ctx.beginPath()
+      ctx.arc(px, py + bodyR * 0.4, 1.6, 0, Math.PI * 2)
+      ctx.fill()
     }
 
     if (viewFlags.pregnancy && org.pregnant) {
       ctx.strokeStyle = 'rgba(255,220,120,0.9)'
       ctx.lineWidth = 1.3
       ctx.setLineDash([2, 2])
-      ctx.beginPath(); ctx.arc(px, py, bodyR + 2.5, 0, Math.PI * 2); ctx.stroke()
+      ctx.beginPath()
+      ctx.arc(px, py, bodyR + 2.5, 0, Math.PI * 2)
+      ctx.stroke()
       ctx.setLineDash([])
     }
 
@@ -1316,10 +1456,18 @@ function drawWorldOnCanvas(
     const spriteSize = Math.max(12, bodyR * 3.2 * ageScale)
     const frame = orgFrame(org.id, org.x, org.y)
     const drewLid = lineageErasMap[org.lineage_id] ?? ''
-    const drew = drawPeopleTile(ctx, pickHumanSprite(orgSex, stage, frame), px - spriteSize / 2, py - spriteSize * 0.78, spriteSize)
+    const drew = drawPeopleTile(
+      ctx,
+      pickHumanSprite(orgSex, stage, frame),
+      px - spriteSize / 2,
+      py - spriteSize * 0.78,
+      spriteSize,
+    )
     if (!drew) {
       ctx.fillStyle = variant.hairColor
-      ctx.beginPath(); ctx.arc(px, py - bodyR * 0.7, bodyR * 0.55 * ageScale, 0, Math.PI * 2); ctx.fill()
+      ctx.beginPath()
+      ctx.arc(px, py - bodyR * 0.7, bodyR * 0.55 * ageScale, 0, Math.PI * 2)
+      ctx.fill()
       ctx.fillStyle = variant.accent
       ctx.fillRect(px - bodyR * 0.7 * ageScale, py + bodyR * 0.15, bodyR * 1.4 * ageScale, 1.4)
     }
@@ -1403,13 +1551,17 @@ function drawWorldOnCanvas(
     const barW = TILE - 2
     const bx = (org.x - ox) * TILE + 1
     const by = (org.y - oy) * TILE
-    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(bx, by - 5, barW, 2)
-    ctx.fillStyle = '#55dd55';          ctx.fillRect(bx, by - 5, barW * org.energy, 2)
-    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(bx, by - 2, barW, 2)
-    ctx.fillStyle = '#4499ff';          ctx.fillRect(bx, by - 2, barW * org.hydration, 2)
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'
+    ctx.fillRect(bx, by - 5, barW, 2)
+    ctx.fillStyle = '#55dd55'
+    ctx.fillRect(bx, by - 5, barW * org.energy, 2)
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'
+    ctx.fillRect(bx, by - 2, barW, 2)
+    ctx.fillStyle = '#4499ff'
+    ctx.fillRect(bx, by - 2, barW * org.hydration, 2)
 
     const isSelected = org.id === selectedOrgId
-    const showName    = isSelected || viewFlags.names
+    const showName = isSelected || viewFlags.names
     const showThought = (isSelected || viewFlags.thoughts) && org.thought && org.thought !== 'observing'
 
     if (showName) {
@@ -1442,7 +1594,7 @@ function drawWorldOnCanvas(
       const span = fpsSamples[fpsSamples.length - 1] - fpsSamples[0]
       if (span > 0) fps = ((fpsSamples.length - 1) * 1000) / span
     }
-    const text = `${fps.toFixed(0)} fps · ${organisms.filter(o => o.alive).length} org`
+    const text = `${fps.toFixed(0)} fps · ${organisms.filter((o) => o.alive).length} org`
     ctx.save()
     ctx.font = 'bold 10px monospace'
     ctx.textAlign = 'right'
@@ -1459,25 +1611,55 @@ function drawWorldOnCanvas(
     ctx.strokeStyle = 'rgba(255,255,255,0.06)'
     ctx.lineWidth = 0.5
     for (let x = 0; x <= width; x++) {
-      ctx.beginPath(); ctx.moveTo(x * TILE, 0); ctx.lineTo(x * TILE, H); ctx.stroke()
+      ctx.beginPath()
+      ctx.moveTo(x * TILE, 0)
+      ctx.lineTo(x * TILE, H)
+      ctx.stroke()
     }
     for (let y = 0; y <= height; y++) {
-      ctx.beginPath(); ctx.moveTo(0, y * TILE); ctx.lineTo(W, y * TILE); ctx.stroke()
+      ctx.beginPath()
+      ctx.moveTo(0, y * TILE)
+      ctx.lineTo(W, y * TILE)
+      ctx.stroke()
     }
   }
 }
 
-function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, onFirstDraw, atX, atY, cameraStateRef, viewportDims }: { world: WorldState; interp?: InterpRefs; selectedOrgId: string | null; overlay: string | null; focus: string; viewFlags: ViewFlags; onFirstDraw: () => void; atX: number; atY: number; cameraStateRef?: React.MutableRefObject<{ x: number; y: number; zoom: number }>; viewportDims?: { w: number; h: number } }) {
+function WorldSprite({
+  world,
+  interp,
+  selectedOrgId,
+  overlay,
+  focus,
+  viewFlags,
+  onFirstDraw,
+  atX,
+  atY,
+  cameraStateRef,
+  viewportDims,
+}: {
+  world: WorldState
+  interp?: InterpRefs
+  selectedOrgId: string | null
+  overlay: string | null
+  focus: string
+  viewFlags: ViewFlags
+  onFirstDraw: () => void
+  atX: number
+  atY: number
+  cameraStateRef?: React.MutableRefObject<{ x: number; y: number; zoom: number }>
+  viewportDims?: { w: number; h: number }
+}) {
   useEntity()
 
-  const W = world.grid.width  * TILE
+  const W = world.grid.width * TILE
   const H = world.grid.height * TILE
   const dyn = useDynamicCanvas(W, H)
 
-  const hasDrawn   = useRef(false)
-  const cachedDepth  = useRef<number[][] | null>(null)
+  const hasDrawn = useRef(false)
+  const cachedDepth = useRef<number[][] | null>(null)
   const cachedBiomes = useRef<number[][] | null>(null)
-  const filledOnce   = useRef(false)
+  const filledOnce = useRef(false)
 
   useLayoutEffect(() => {
     if (filledOnce.current) return
@@ -1487,23 +1669,23 @@ function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, 
     filledOnce.current = true
   }, [dyn, W, H])
 
-  const worldRef         = useRef<WorldState | null>(world)
+  const worldRef = useRef<WorldState | null>(world)
   const selectedOrgIdRef = useRef<string | null>(selectedOrgId)
-  const overlayRef       = useRef<string | null>(overlay)
-  const focusRef         = useRef<string>(focus)
-  const viewFlagsRef     = useRef<ViewFlags>(viewFlags)
-  worldRef.current         = world
+  const overlayRef = useRef<string | null>(overlay)
+  const focusRef = useRef<string>(focus)
+  const viewFlagsRef = useRef<ViewFlags>(viewFlags)
+  worldRef.current = world
   selectedOrgIdRef.current = selectedOrgId
-  overlayRef.current       = overlay
-  focusRef.current         = focus
-  viewFlagsRef.current     = viewFlags
+  overlayRef.current = overlay
+  focusRef.current = focus
+  viewFlagsRef.current = viewFlags
 
   useEffect(() => {
     if (!interp) return
     let raf = 0
     let stopped = false
     let lastDrawnAt: number = 0
-    let lastDrawnT:  number = -1
+    let lastDrawnT: number = -1
     let lastDrawnUI: string = ''
 
     const tick = () => {
@@ -1513,13 +1695,13 @@ function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, 
       const w = worldRef.current
       if (!w) return
 
-      if (w.grid.depth_map) cachedDepth.current  = w.grid.depth_map  as number[][]
-      if (w.grid.biomes)    cachedBiomes.current = w.grid.biomes     as number[][]
+      if (w.grid.depth_map) cachedDepth.current = w.grid.depth_map as number[][]
+      if (w.grid.biomes) cachedBiomes.current = w.grid.biomes as number[][]
 
-      const cur     = interp.current.current
-      const prev    = interp.prev.current
-      const curServerAt   = interp.currentServerAt.current
-      const prevServerAt  = interp.prevServerAt.current
+      const cur = interp.current.current
+      const prev = interp.prev.current
+      const curServerAt = interp.currentServerAt.current
+      const prevServerAt = interp.prevServerAt.current
       const currentReceivedAt = interp.currentReceivedAt.current
       const slowMo = viewFlagsRef.current.slowMo
       const fastMo = viewFlagsRef.current.fastMo
@@ -1527,20 +1709,25 @@ function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, 
       const interval = Math.max(50, curServerAt - prevServerAt) / speedDiv
       const RENDER_LAG_MS = Math.min(120, interval * 0.5)
       const PREDICT_CAP = 2.0
-      const t = (cur && prev && interval > 0)
-        ? Math.max(0, Math.min(PREDICT_CAP, (performance.now() - currentReceivedAt - RENDER_LAG_MS) / interval))
-        : 1
+      const t =
+        cur && prev && interval > 0
+          ? Math.max(
+              0,
+              Math.min(PREDICT_CAP, (performance.now() - currentReceivedAt - RENDER_LAG_MS) / interval),
+            )
+          : 1
 
-      const uiKey = `${selectedOrgIdRef.current ?? ''}|${overlayRef.current ?? ''}|${focusRef.current}|${viewFlagsRef.current.territory ? 't':''}${viewFlagsRef.current.names ? 'n':''}${viewFlagsRef.current.thoughts ? 'h':''}${viewFlagsRef.current.animals ? 'a':''}${viewFlagsRef.current.grid ? 'g':''}`
-      const settled = t >= PREDICT_CAP && lastDrawnT >= PREDICT_CAP && curServerAt === lastDrawnAt && uiKey === lastDrawnUI
+      const uiKey = `${selectedOrgIdRef.current ?? ''}|${overlayRef.current ?? ''}|${focusRef.current}|${viewFlagsRef.current.territory ? 't' : ''}${viewFlagsRef.current.names ? 'n' : ''}${viewFlagsRef.current.thoughts ? 'h' : ''}${viewFlagsRef.current.animals ? 'a' : ''}${viewFlagsRef.current.grid ? 'g' : ''}`
+      const settled =
+        t >= PREDICT_CAP && lastDrawnT >= PREDICT_CAP && curServerAt === lastDrawnAt && uiKey === lastDrawnUI
       if (settled) return
 
       let renderOrgs = w.viewport_organisms ?? w.organisms
       if (prev && cur === w) {
         const prevOrgs = prev.viewport_organisms ?? prev.organisms
-        const prevById = new Map<string, typeof prevOrgs[number]>()
+        const prevById = new Map<string, (typeof prevOrgs)[number]>()
         for (const o of prevOrgs) prevById.set(o.id, o)
-        renderOrgs = renderOrgs.map(o => {
+        renderOrgs = renderOrgs.map((o) => {
           const p = prevById.get(o.id)
           if (!p || !p.alive || !o.alive) return o
           return { ...o, x: p.x + (o.x - p.x) * t, y: p.y + (o.y - p.y) * t }
@@ -1549,9 +1736,9 @@ function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, 
       let renderAnimals = w.viewport_animals ?? w.animals
       if (prev && cur === w) {
         const prevAnimals = prev.viewport_animals ?? prev.animals
-        const prevById = new Map<number, typeof prevAnimals[number]>()
+        const prevById = new Map<number, (typeof prevAnimals)[number]>()
         for (const a of prevAnimals) prevById.set(a.id, a)
-        renderAnimals = renderAnimals.map(a => {
+        renderAnimals = renderAnimals.map((a) => {
           const p = prevById.get(a.id)
           if (!p) return a
           return { ...a, x: p.x + (a.x - p.x) * t, y: p.y + (a.y - p.y) * t }
@@ -1560,30 +1747,26 @@ function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, 
 
       const lerpCycle = (a: number, b: number, k: number) => {
         let diff = b - a
-        if (diff >  0.5) diff -= 1
+        if (diff > 0.5) diff -= 1
         if (diff < -0.5) diff += 1
         const out = a + diff * k
-        return (out % 1 + 1) % 1
+        return ((out % 1) + 1) % 1
       }
-      const lerpedDay    = prev
-        ? lerpCycle(prev.day_progress, w.day_progress, t)
-        : w.day_progress
-      const lerpedSeason = prev
-        ? lerpCycle(prev.season_progress, w.season_progress, t)
-        : w.season_progress
+      const lerpedDay = prev ? lerpCycle(prev.day_progress, w.day_progress, t) : w.day_progress
+      const lerpedSeason = prev ? lerpCycle(prev.season_progress, w.season_progress, t) : w.season_progress
 
       const enrichedGrid = {
         ...w.grid,
-        depth_map: cachedDepth.current  ?? w.grid.depth_map,
-        biomes:    cachedBiomes.current ?? w.grid.biomes,
+        depth_map: cachedDepth.current ?? w.grid.depth_map,
+        biomes: cachedBiomes.current ?? w.grid.biomes,
       }
       const enrichedWorld: WorldState = {
         ...w,
-        grid:               enrichedGrid,
+        grid: enrichedGrid,
         viewport_organisms: renderOrgs,
-        viewport_animals:   renderAnimals,
-        day_progress:       lerpedDay,
-        season_progress:    lerpedSeason,
+        viewport_animals: renderAnimals,
+        day_progress: lerpedDay,
+        season_progress: lerpedSeason,
       }
 
       // Compute the visible-tile window so per-tile overlay loops can
@@ -1598,18 +1781,26 @@ function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, 
         const MARGIN = 4
         const wG = w.grid.width
         const hG = w.grid.height
-        const c0 = Math.max(0,  Math.floor((cam.x - halfW) / TILE) - MARGIN)
-        const c1 = Math.min(wG, Math.ceil ((cam.x + halfW) / TILE) + MARGIN)
-        const r0 = Math.max(0,  Math.floor((cam.y - halfH) / TILE) - MARGIN)
-        const r1 = Math.min(hG, Math.ceil ((cam.y + halfH) / TILE) + MARGIN)
+        const c0 = Math.max(0, Math.floor((cam.x - halfW) / TILE) - MARGIN)
+        const c1 = Math.min(wG, Math.ceil((cam.x + halfW) / TILE) + MARGIN)
+        const r0 = Math.max(0, Math.floor((cam.y - halfH) / TILE) - MARGIN)
+        const r1 = Math.min(hG, Math.ceil((cam.y + halfH) / TILE) + MARGIN)
         if (c1 > c0 && r1 > r0) bounds = { c0, c1, r0, r1 }
       }
 
-      drawWorldOnCanvas(dyn.ctx, enrichedWorld, selectedOrgIdRef.current, overlayRef.current, focusRef.current, viewFlagsRef.current, bounds)
+      drawWorldOnCanvas(
+        dyn.ctx,
+        enrichedWorld,
+        selectedOrgIdRef.current,
+        overlayRef.current,
+        focusRef.current,
+        viewFlagsRef.current,
+        bounds,
+      )
       dyn.markDirty()
 
       lastDrawnAt = curServerAt
-      lastDrawnT  = t
+      lastDrawnT = t
       lastDrawnUI = uiKey
 
       if (!hasDrawn.current) {
@@ -1631,20 +1822,19 @@ function WorldSprite({ world, interp, selectedOrgId, overlay, focus, viewFlags, 
   return (
     <>
       <Transform x={atX} y={atY} />
-      <Sprite
-        width={W}
-        height={H}
-        dynamicSrc={dyn.id}
-        color="#ffffff"
-        zIndex={0}
-      />
+      <Sprite width={W} height={H} dynamicSrc={dyn.id} color="#ffffff" zIndex={0} />
     </>
   )
 }
 
 function CameraController({
-  worldW, worldH, containerW, containerH,
-  containerEl, cameraStateRef, followTarget,
+  worldW,
+  worldH,
+  containerW,
+  containerH,
+  containerEl,
+  cameraStateRef,
+  followTarget,
 }: {
   worldW: number
   worldH: number
@@ -1678,16 +1868,15 @@ function CameraController({
     }
     raf = requestAnimationFrame(trySet)
     return () => cancelAnimationFrame(raf)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const prevFollowRef = useRef<{ x: number; y: number } | null>(null)
   useEffect(() => {
     if (!followTarget) return
     const prev = prevFollowRef.current
-    const isNewTarget = !prev
-      || Math.abs(prev.x - followTarget.x) > 30
-      || Math.abs(prev.y - followTarget.y) > 30
+    const isNewTarget =
+      !prev || Math.abs(prev.x - followTarget.x) > 30 || Math.abs(prev.y - followTarget.y) > 30
     camera.setPosition(followTarget.x, followTarget.y)
     cameraStateRef.current.x = followTarget.x
     cameraStateRef.current.y = followTarget.y
@@ -1730,7 +1919,9 @@ function CameraController({
       cameraStateRef.current.x = nx
       cameraStateRef.current.y = ny
     }
-    const onUp = () => { drag.current.active = false }
+    const onUp = () => {
+      drag.current.active = false
+    }
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
       const factor = e.deltaY < 0 ? 1.1 : 0.9
@@ -1765,19 +1956,22 @@ function CameraController({
     return { x: cx, y: cy }
   }
 
-  useGestures({
-    onPinch: ({ delta }) => {
-      const factor = 1 + delta
-      const nz = Math.max(minZoom, Math.min(8, camera.getZoom() * factor))
-      camera.setZoom(nz)
-      cameraStateRef.current.zoom = nz
-      const pos = camera.getPosition()
-      const { x, y } = clampCam.current!(pos.x, pos.y, nz)
-      camera.setPosition(x, y)
-      cameraStateRef.current.x = x
-      cameraStateRef.current.y = y
+  useGestures(
+    {
+      onPinch: ({ delta }) => {
+        const factor = 1 + delta
+        const nz = Math.max(minZoom, Math.min(8, camera.getZoom() * factor))
+        camera.setZoom(nz)
+        cameraStateRef.current.zoom = nz
+        const pos = camera.getPosition()
+        const { x, y } = clampCam.current!(pos.x, pos.y, nz)
+        camera.setPosition(x, y)
+        cameraStateRef.current.x = x
+        cameraStateRef.current.y = y
+      },
     },
-  }, { target: containerEl })
+    { target: containerEl },
+  )
 
   return null
 }
@@ -1788,12 +1982,12 @@ interface Props {
 }
 
 export function WorldView({ world, interp }: Props) {
-  const selectedOrgId = useUIStore(s => s.selectedOrgId)
-  const followOrgId   = useUIStore(s => s.followOrgId)
-  const overlay       = useUIStore(s => s.overlay)
-  const focus         = useUIStore(s => s.focus)
-  const viewFlags     = useUIStore(s => s.viewFlags)
-  const onOrgSelect   = useUIStore(s => s.selectOrg)
+  const selectedOrgId = useUIStore((s) => s.selectedOrgId)
+  const followOrgId = useUIStore((s) => s.followOrgId)
+  const overlay = useUIStore((s) => s.overlay)
+  const focus = useUIStore((s) => s.focus)
+  const viewFlags = useUIStore((s) => s.viewFlags)
+  const onOrgSelect = useUIStore((s) => s.selectOrg)
   const W = world.grid.width * TILE
   const H = world.grid.height * TILE
   const cx = W / 2
@@ -1802,14 +1996,14 @@ export function WorldView({ world, interp }: Props) {
   const ox = world.grid.origin_x ?? 0
   const oy = world.grid.origin_y ?? 0
 
-  const containerRef   = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const cameraStateRef = useRef({ x: cx, y: cy, zoom: 1.5 })
   const [dims, setDims] = useState({ w: 0, h: 0 })
   const [mapReady, setMapReady] = useState(false)
 
   const followTarget = followOrgId
     ? (() => {
-        const org = world.organisms.find(o => o.id === followOrgId && o.alive)
+        const org = world.organisms.find((o) => o.id === followOrgId && o.alive)
         return org ? { x: (org.x - ox) * TILE, y: (org.y - oy) * TILE } : null
       })()
     : null
@@ -1842,13 +2036,15 @@ export function WorldView({ world, interp }: Props) {
     let nearest: string | null = null
     // Wider tolerance for touch where finger occlusion makes precise
     // taps hard.
-    const isCoarse = typeof window !== 'undefined'
-      && window.matchMedia?.('(pointer: coarse)').matches
+    const isCoarse = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
     let nearestDist = isCoarse ? 5.0 : 3.0
-    for (const org of (world.viewport_organisms ?? world.organisms)) {
+    for (const org of world.viewport_organisms ?? world.organisms) {
       if (!org.alive) continue
       const d = Math.abs(org.x - worldX) + Math.abs(org.y - worldY)
-      if (d < nearestDist) { nearestDist = d; nearest = org.id }
+      if (d < nearestDist) {
+        nearestDist = d
+        nearest = org.id
+      }
     }
     onOrgSelect(nearest)
   }
@@ -1872,8 +2068,11 @@ export function WorldView({ world, interp }: Props) {
     <div
       ref={containerRef}
       style={{
-        flex: 1, minWidth: 0, overflow: 'hidden',
-        cursor: 'grab', position: 'relative',
+        flex: 1,
+        minWidth: 0,
+        overflow: 'hidden',
+        cursor: 'grab',
+        position: 'relative',
         // touch-action: none stops the browser from claiming
         // two-finger pinch as page-zoom; the gesture handler
         // gets the events instead.
@@ -1882,19 +2081,19 @@ export function WorldView({ world, interp }: Props) {
       onPointerDown={handlePointerDown}
       onClick={handleClick}
     >
-      <div style={{
-        position: 'absolute', inset: 0, background: '#1a4a80', zIndex: 10,
-        pointerEvents: 'none',
-        opacity: mapReady ? 0 : 1,
-        transition: 'opacity 280ms ease-out',
-      }} />
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: '#1a4a80',
+          zIndex: 10,
+          pointerEvents: 'none',
+          opacity: mapReady ? 0 : 1,
+          transition: 'opacity 280ms ease-out',
+        }}
+      />
       {dims.w > 0 && (
-        <Game
-          gravity={0}
-          width={dims.w}
-          height={dims.h}
-          style={{ display: 'block' }}
-        >
+        <Game gravity={0} width={dims.w} height={dims.h} style={{ display: 'block' }}>
           <World background="#1a4a80">
             <Camera2D />
 

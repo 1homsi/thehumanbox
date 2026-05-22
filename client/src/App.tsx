@@ -33,9 +33,7 @@ const TILE_FIRE = 4
 const HISTORICAL_ROUTE = /^\/world\/([a-f0-9]{6,16})\/?$/
 
 function App() {
-  const match = typeof window !== 'undefined'
-    ? HISTORICAL_ROUTE.exec(window.location.pathname)
-    : null
+  const match = typeof window !== 'undefined' ? HISTORICAL_ROUTE.exec(window.location.pathname) : null
   if (match) {
     return <HistoricalApp hash={match[1]} />
   }
@@ -46,10 +44,10 @@ function LiveApp() {
   const { world, connected, status, failedAttempts, interp } = useSimulation()
   const currentScene = useCurrentScene()
 
-  const selectedOrgId = useUIStore(s => s.selectedOrgId)
-  const leftOpen      = useUIStore(s => s.leftOpen)
-  const toggleLeft    = useUIStore(s => s.toggleLeft)
-  const viewFlags     = useUIStore(s => s.viewFlags)
+  const selectedOrgId = useUIStore((s) => s.selectedOrgId)
+  const leftOpen = useUIStore((s) => s.leftOpen)
+  const toggleLeft = useUIStore((s) => s.toggleLeft)
+  const viewFlags = useUIStore((s) => s.viewFlags)
 
   const splashHiddenRef = useRef(false)
   useEffect(() => {
@@ -65,38 +63,46 @@ function LiveApp() {
     } else {
       document.body.classList.remove('thb-3d-immersive')
     }
-    return () => { document.body.classList.remove('thb-3d-immersive') }
+    return () => {
+      document.body.classList.remove('thb-3d-immersive')
+    }
   }, [viewFlags.threeD, viewFlags.hideUI])
 
   useEffect(() => {
     if (viewFlags.photoMode) document.body.classList.add('thb-photo-mode')
     else document.body.classList.remove('thb-photo-mode')
-    return () => { document.body.classList.remove('thb-photo-mode') }
+    return () => {
+      document.body.classList.remove('thb-photo-mode')
+    }
   }, [viewFlags.photoMode])
 
   useEffect(() => {
     if (viewFlags.colorBlind) document.body.classList.add('thb-colorblind')
     else document.body.classList.remove('thb-colorblind')
-    return () => { document.body.classList.remove('thb-colorblind') }
+    return () => {
+      document.body.classList.remove('thb-colorblind')
+    }
   }, [viewFlags.colorBlind])
 
-  const selectedOrg = selectedOrgId
-    ? world?.organisms.find(o => o.id === selectedOrgId) ?? null
-    : null
+  const selectedOrg = selectedOrgId ? (world?.organisms.find((o) => o.id === selectedOrgId) ?? null) : null
 
-  const fireTiles = useMemo(() =>
-    world ? world.grid.tiles.reduce((n, row) => n + row.filter(t => t === TILE_FIRE).length, 0) : 0
-  , [world])
+  const fireTiles = useMemo(
+    () => (world ? world.grid.tiles.reduce((n, row) => n + row.filter((t) => t === TILE_FIRE).length, 0) : 0),
+    [world],
+  )
 
-  const sickOrgs = useMemo(() =>
-    world ? world.organisms.filter(o => o.alive && o.infection > 0.15).length : 0
-  , [world])
+  const sickOrgs = useMemo(
+    () => (world ? world.organisms.filter((o) => o.alive && o.infection > 0.15).length : 0),
+    [world],
+  )
 
-  const liveOrgs = useMemo(() => world ? world.organisms.filter(o =>  o.alive) : [], [world])
-  const deadOrgs = useMemo(() => world ? world.organisms.filter(o => !o.alive) : [], [world])
+  const liveOrgs = useMemo(() => (world ? world.organisms.filter((o) => o.alive) : []), [world])
+  const deadOrgs = useMemo(() => (world ? world.organisms.filter((o) => !o.alive) : []), [world])
 
   const liveOrgsRef = useRef<OrganismState[]>([])
-  useEffect(() => { liveOrgsRef.current = liveOrgs }, [liveOrgs])
+  useEffect(() => {
+    liveOrgsRef.current = liveOrgs
+  }, [liveOrgs])
   useEffect(() => {
     if (!viewFlags.randomTour) return
     const tick = () => {
@@ -112,7 +118,8 @@ function LiveApp() {
   }, [viewFlags.randomTour])
 
   const lineages = useMemo(() => {
-    const result: Record<string, { count: number; minGen: number; maxGen: number; orgs: OrganismState[] }> = {}
+    const result: Record<string, { count: number; minGen: number; maxGen: number; orgs: OrganismState[] }> =
+      {}
     if (!world) return result
     for (const org of liveOrgs) {
       if (!result[org.lineage_id]) {
@@ -128,22 +135,14 @@ function LiveApp() {
 
   return (
     <div className="app">
-      <AppHeader
-        world={world ?? null}
-        connected={connected}
-        fireTiles={fireTiles}
-        sickOrgs={sickOrgs}
-      />
+      <AppHeader world={world ?? null} connected={connected} fireTiles={fireTiles} sickOrgs={sickOrgs} />
 
       <main className="main" data-tour="world-canvas">
         {world ? (
           <div className="layout">
-
             {(!viewFlags.threeD || !viewFlags.hideUI) && (
               <>
-                {leftOpen && (
-                  <div className="panel-overlay panel-overlay-left" onClick={toggleLeft} />
-                )}
+                {leftOpen && <div className="panel-overlay panel-overlay-left" onClick={toggleLeft} />}
                 <aside className={clsx('panel', 'panel-left', leftOpen && 'open')}>
                   <HistoryGrid />
                   <LineagesList />
@@ -160,34 +159,27 @@ function LiveApp() {
                 <WorldView3D world={world} hideUI={viewFlags.hideUI} />
               </Suspense>
             ) : (
-              <WorldView
-                world={world}
-                interp={interp}
-              />
+              <WorldView world={world} interp={interp} />
             )}
 
-            <RightPanel
-              world={world}
-              liveOrgs={liveOrgs}
-              deadOrgs={deadOrgs}
-              selectedOrg={selectedOrg}
-            />
-
+            <RightPanel world={world} liveOrgs={liveOrgs} deadOrgs={deadOrgs} selectedOrg={selectedOrg} />
           </div>
         ) : (
           <div className="waiting">
             <div className="waiting-spinner" aria-hidden="true" />
             <div className="waiting-title">
-              {status === 'unreachable' ? 'simulation server unreachable'
-                : status === 'reconnecting' ? 'reconnecting…'
-                : 'connecting…'}
+              {status === 'unreachable'
+                ? 'simulation server unreachable'
+                : status === 'reconnecting'
+                  ? 'reconnecting…'
+                  : 'connecting…'}
             </div>
             <div className="waiting-sub">
               {status === 'unreachable'
                 ? `tried ${failedAttempts} times. waiting for ${WS_HOST} to come back online - retries continue automatically.`
                 : status === 'reconnecting'
-                ? `attempt ${failedAttempts + 1} - backing off and retrying`
-                : 'opening websocket and fetching the world snapshot'}
+                  ? `attempt ${failedAttempts + 1} - backing off and retrying`
+                  : 'opening websocket and fetching the world snapshot'}
             </div>
           </div>
         )}

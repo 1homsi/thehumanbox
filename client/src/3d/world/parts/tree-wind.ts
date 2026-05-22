@@ -1,18 +1,14 @@
 import { Material } from 'three'
 export const windUniforms = {
-  uTime:     { value: 0 },
+  uTime: { value: 0 },
   uStrength: { value: 0.22 },
 }
 
-export function applyWindSway(
-  mat: Material,
-  heightRef = 2.5,
-  strength  = 1.0,
-) {
+export function applyWindSway(mat: Material, heightRef = 2.5, strength = 1.0) {
   const origCompile = mat.onBeforeCompile?.bind(mat)
   mat.onBeforeCompile = (shader, renderer) => {
     if (origCompile) origCompile(shader, renderer)
-    shader.uniforms.uTime     = windUniforms.uTime
+    shader.uniforms.uTime = windUniforms.uTime
     shader.uniforms.uStrength = windUniforms.uStrength
     shader.vertexShader = shader.vertexShader
       .replace(

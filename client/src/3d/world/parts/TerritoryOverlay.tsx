@@ -8,8 +8,8 @@ import { TILE_SCALE } from './constants'
 
 interface Props {
   territory: NonNullable<WorldState['territory']>
-  depthMap:  number[][]
-  biomes:    number[][]
+  depthMap: number[][]
+  biomes: number[][]
 }
 
 const HOVER_Y = 0.25
@@ -27,28 +27,36 @@ function buildTileGeometry(
   tiles: [number, number][],
   colorFn: (ix: number, iy: number) => [number, number, number],
   depthMap: number[][],
-  biomes:   number[][],
+  biomes: number[][],
 ): BufferGeometry {
   const n = tiles.length
   if (n === 0) return new BufferGeometry()
 
   const positions = new Float32Array(n * 4 * 3) // 4 verts per quad, 3 floats each
-  const colors    = new Float32Array(n * 4 * 3)
-  const indices   = new Uint32Array(n * 6)       // 2 tris per quad
+  const colors = new Float32Array(n * 4 * 3)
+  const indices = new Uint32Array(n * 6) // 2 tris per quad
 
   for (let i = 0; i < n; i++) {
     const [ix, iy] = tiles[i]
     const wx = ix * TILE_SCALE
     const wz = iy * TILE_SCALE
     const wy = heightAt(ix, iy, depthMap, biomes) + HOVER_Y
-    const s  = TILE_SCALE
+    const s = TILE_SCALE
 
     // four corners: TL, TR, BL, BR
     const base = i * 4 * 3
-    positions[base + 0]  = wx;     positions[base + 1]  = wy; positions[base + 2]  = wz
-    positions[base + 3]  = wx + s; positions[base + 4]  = wy; positions[base + 5]  = wz
-    positions[base + 6]  = wx;     positions[base + 7]  = wy; positions[base + 8]  = wz + s
-    positions[base + 9]  = wx + s; positions[base + 10] = wy; positions[base + 11] = wz + s
+    positions[base + 0] = wx
+    positions[base + 1] = wy
+    positions[base + 2] = wz
+    positions[base + 3] = wx + s
+    positions[base + 4] = wy
+    positions[base + 5] = wz
+    positions[base + 6] = wx
+    positions[base + 7] = wy
+    positions[base + 8] = wz + s
+    positions[base + 9] = wx + s
+    positions[base + 10] = wy
+    positions[base + 11] = wz + s
 
     const [r, g, b] = colorFn(ix, iy)
     for (let v = 0; v < 4; v++) {
@@ -60,14 +68,18 @@ function buildTileGeometry(
     const vi = i * 4
     const ii = i * 6
     // tri 0: TL, BL, TR
-    indices[ii + 0] = vi;     indices[ii + 1] = vi + 2; indices[ii + 2] = vi + 1
+    indices[ii + 0] = vi
+    indices[ii + 1] = vi + 2
+    indices[ii + 2] = vi + 1
     // tri 1: TR, BL, BR
-    indices[ii + 3] = vi + 1; indices[ii + 4] = vi + 2; indices[ii + 5] = vi + 3
+    indices[ii + 3] = vi + 1
+    indices[ii + 4] = vi + 2
+    indices[ii + 5] = vi + 3
   }
 
   const geo = new BufferGeometry()
   geo.setAttribute('position', new BufferAttribute(positions, 3))
-  geo.setAttribute('color',    new BufferAttribute(colors,    3))
+  geo.setAttribute('color', new BufferAttribute(colors, 3))
   geo.setIndex(new BufferAttribute(indices, 1))
   geo.computeVertexNormals()
   return geo
@@ -101,40 +113,37 @@ function ClaimedMesh({ territory, depthMap, biomes }: Props) {
 
   // Dispose the buffer geometry when the memo replaces it - territory
   // updates land every cold frame and three.js never auto-frees these.
-  useEffect(() => () => { geo.dispose() }, [geo])
+  useEffect(
+    () => () => {
+      geo.dispose()
+    },
+    [geo],
+  )
 
   return (
     <mesh geometry={geo} renderOrder={1}>
-      <meshBasicMaterial
-        vertexColors
-        transparent
-        opacity={0.36}
-        depthWrite={false}
-        side={DoubleSide}
-      />
+      <meshBasicMaterial vertexColors transparent opacity={0.36} depthWrite={false} side={DoubleSide} />
     </mesh>
   )
 }
 
 // Contested tile mesh - white with pulsing opacity
-function ContestedMesh({
-  territory, depthMap, biomes,
-}: Props) {
+function ContestedMesh({ territory, depthMap, biomes }: Props) {
   const matRef = useRef<MeshBasicMaterial>(null)
 
   const geo = useMemo(() => {
     const tiles = territory.contested
     if (!tiles || tiles.length === 0) return new BufferGeometry()
-    return buildTileGeometry(
-      tiles,
-      () => [1, 1, 1],
-      depthMap,
-      biomes,
-    )
+    return buildTileGeometry(tiles, () => [1, 1, 1], depthMap, biomes)
   }, [territory.contested, depthMap, biomes])
 
   // Dispose the contested-tile geometry on each refresh.
-  useEffect(() => () => { geo.dispose() }, [geo])
+  useEffect(
+    () => () => {
+      geo.dispose()
+    },
+    [geo],
+  )
 
   useFrame(({ clock }) => {
     if (matRef.current) {
@@ -163,7 +172,7 @@ export function TerritoryOverlay({ territory, depthMap, biomes }: Props) {
 
   return (
     <group>
-      <ClaimedMesh   territory={territory} depthMap={depthMap} biomes={biomes} />
+      <ClaimedMesh territory={territory} depthMap={depthMap} biomes={biomes} />
       <ContestedMesh territory={territory} depthMap={depthMap} biomes={biomes} />
     </group>
   )

@@ -1,13 +1,10 @@
 import { MAX_DEPTH, BIOME_ELEVATION, BIOME_ROUGHNESS, TILE_SCALE, terrainNoise } from './constants'
 
-function cornerHeight(
-  ix: number, iy: number,
-  depthMap: number[][], biomes: number[][],
-): number {
+function cornerHeight(ix: number, iy: number, depthMap: number[][], biomes: number[][]): number {
   const d = depthMap[iy]?.[ix] ?? 255
   if (d >= 254) {
-    const b     = biomes[iy]?.[ix] ?? 0
-    const base  = BIOME_ELEVATION[b] ?? 0
+    const b = biomes[iy]?.[ix] ?? 0
+    const base = BIOME_ELEVATION[b] ?? 0
     const rough = BIOME_ROUGHNESS[b] ?? 0.5
     return base + terrainNoise(ix, iy) * rough
   }
@@ -15,12 +12,7 @@ function cornerHeight(
   return -depthFrac * MAX_DEPTH
 }
 
-export function heightAt(
-  tileX: number,
-  tileY: number,
-  depthMap: number[][],
-  biomes: number[][],
-): number {
+export function heightAt(tileX: number, tileY: number, depthMap: number[][], biomes: number[][]): number {
   const w = depthMap[0]?.length ?? 0
   const h = depthMap.length
   if (w === 0 || h === 0) return 0

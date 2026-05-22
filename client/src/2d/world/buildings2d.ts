@@ -87,60 +87,60 @@ export interface BuildingLike {
 }
 
 const WALL_COLORS: Record<string, string> = {
-  Hut:        '#8a6a44',
-  House:      '#a6845a',
-  Manor:      '#c4a070',
-  TownHouse:  '#b08868',
-  Apartment:  '#8c8c92',
-  School:     '#d6c39a',
+  Hut: '#8a6a44',
+  House: '#a6845a',
+  Manor: '#c4a070',
+  TownHouse: '#b08868',
+  Apartment: '#8c8c92',
+  School: '#d6c39a',
   University: '#e0cca0',
-  Library:    '#b89868',
-  Market:     '#c88030',
-  Temple:     '#d8b860',
-  Factory:    '#6a6a6a',
-  Hospital:   '#e8e8e8',
-  Forge:      '#5a4030',
-  Mill:       '#a07854',
-  Bakery:     '#c89060',
-  Inn:        '#9a7048',
-  Bank:       '#b8a878',
-  Workshop:   '#8a6a48',
-  Granary:    '#b88848',
-  Barracks:   '#5a5a5a',
+  Library: '#b89868',
+  Market: '#c88030',
+  Temple: '#d8b860',
+  Factory: '#6a6a6a',
+  Hospital: '#e8e8e8',
+  Forge: '#5a4030',
+  Mill: '#a07854',
+  Bakery: '#c89060',
+  Inn: '#9a7048',
+  Bank: '#b8a878',
+  Workshop: '#8a6a48',
+  Granary: '#b88848',
+  Barracks: '#5a5a5a',
   Lighthouse: '#e8e0d0',
-  Windmill:   '#a07854',
-  Watermill:  '#a07854',
-  Aqueduct:   '#8a8a8a',
-  Bridge:     '#8a8a8a',
-  Wall:       '#7a7268',
-  Tower:      '#4a4a4a',
-  Plaza:      '#a89880',
-  Statue:     '#b0b0b0',
+  Windmill: '#a07854',
+  Watermill: '#a07854',
+  Aqueduct: '#8a8a8a',
+  Bridge: '#8a8a8a',
+  Wall: '#7a7268',
+  Tower: '#4a4a4a',
+  Plaza: '#a89880',
+  Statue: '#b0b0b0',
 }
 
 const ROOF_COLORS: Record<string, string> = {
-  Hut:        '#4a3018',
-  House:      '#7a3a20',
-  Manor:      '#4a2018',
-  TownHouse:  '#5a2818',
-  Apartment:  '#3a3a3e',
-  School:     '#a83020',
+  Hut: '#4a3018',
+  House: '#7a3a20',
+  Manor: '#4a2018',
+  TownHouse: '#5a2818',
+  Apartment: '#3a3a3e',
+  School: '#a83020',
   University: '#5a2818',
-  Library:    '#3a2818',
-  Market:     '#a06030',
-  Temple:     '#b88020',
-  Factory:    '#2a2a2a',
-  Hospital:   '#c83030',
-  Forge:      '#2a1a10',
-  Mill:       '#4a2818',
-  Bakery:     '#5a3018',
-  Inn:        '#5a2818',
-  Bank:       '#3a2a18',
-  Workshop:   '#4a3020',
-  Granary:    '#5a3818',
-  Barracks:   '#2a2a2a',
-  Windmill:   '#4a2818',
-  Watermill:  '#4a2818',
+  Library: '#3a2818',
+  Market: '#a06030',
+  Temple: '#b88020',
+  Factory: '#2a2a2a',
+  Hospital: '#c83030',
+  Forge: '#2a1a10',
+  Mill: '#4a2818',
+  Bakery: '#5a3018',
+  Inn: '#5a2818',
+  Bank: '#3a2a18',
+  Workshop: '#4a3020',
+  Granary: '#5a3818',
+  Barracks: '#2a2a2a',
+  Windmill: '#4a2818',
+  Watermill: '#4a2818',
 }
 
 function wallColor(kind: string): string {
@@ -153,9 +153,25 @@ function roofColor(kind: string): string | null {
 }
 
 const HOUSE_LIKE = new Set([
-  'Hut', 'House', 'Manor', 'TownHouse', 'School', 'University', 'Library',
-  'Market', 'Forge', 'Mill', 'Bakery', 'Inn', 'Bank', 'Workshop', 'Granary',
-  'Barracks', 'Hospital', 'Windmill', 'Watermill',
+  'Hut',
+  'House',
+  'Manor',
+  'TownHouse',
+  'School',
+  'University',
+  'Library',
+  'Market',
+  'Forge',
+  'Mill',
+  'Bakery',
+  'Inn',
+  'Bank',
+  'Workshop',
+  'Granary',
+  'Barracks',
+  'Hospital',
+  'Windmill',
+  'Watermill',
 ])
 
 function isHouseLike(kind: string): boolean {
@@ -183,12 +199,16 @@ export function drawBuilding(
   const shadowRx = w * 0.62
   const shadowRy = tileSize * 0.42
   const grad = ctx.createRadialGradient(
-    shadowCx, shadowCy, 0,
-    shadowCx, shadowCy, Math.max(shadowRx, shadowRy),
+    shadowCx,
+    shadowCy,
+    0,
+    shadowCx,
+    shadowCy,
+    Math.max(shadowRx, shadowRy),
   )
-  grad.addColorStop(0,    'rgba(0,0,0,0.55)')
+  grad.addColorStop(0, 'rgba(0,0,0,0.55)')
   grad.addColorStop(0.55, 'rgba(0,0,0,0.30)')
-  grad.addColorStop(1,    'rgba(0,0,0,0)')
+  grad.addColorStop(1, 'rgba(0,0,0,0)')
   ctx.fillStyle = grad
   ctx.beginPath()
   ctx.ellipse(shadowCx, shadowCy, shadowRx, shadowRy, 0, 0, Math.PI * 2)
@@ -203,7 +223,7 @@ export function drawBuilding(
     const roof = roofColor(k) ?? '#5a2818'
 
     const foundH = Math.max(2, tileSize * 0.18)
-    const foundOver = Math.max(1, tileSize * 0.10)
+    const foundOver = Math.max(1, tileSize * 0.1)
     ctx.fillStyle = 'rgba(28,22,16,0.85)'
     ctx.fillRect(px - foundOver, py + h - foundH, w + foundOver * 2, foundH + foundOver)
     ctx.fillStyle = 'rgba(0,0,0,0.45)'
@@ -212,7 +232,7 @@ export function drawBuilding(
     ctx.fillStyle = wall
     ctx.fillRect(px, wallY, w, wallH)
     ctx.fillStyle = 'rgba(0,0,0,0.18)'
-    ctx.fillRect(px, wallY, w, Math.max(2, wallH * 0.10))
+    ctx.fillRect(px, wallY, w, Math.max(2, wallH * 0.1))
     ctx.fillStyle = 'rgba(0,0,0,0.22)'
     ctx.fillRect(px, py + h - Math.max(2, wallH * 0.14), w, Math.max(2, wallH * 0.14))
 
@@ -243,16 +263,17 @@ export function drawBuilding(
     const winSize = Math.max(2, tileSize * 0.28)
     const winGapX = w / (cols + 1)
     const winGapY = wallH / (rows + 1)
-    ctx.fillStyle = `rgba(220,230,255,${0.55 + cond * 0.30})`
+    ctx.fillStyle = `rgba(220,230,255,${0.55 + cond * 0.3})`
     for (let r = 1; r <= rows; r++) {
       for (let c = 1; c <= cols; c++) {
         const wx = px + c * winGapX - winSize / 2
         const wy = wallY + r * winGapY - winSize / 2
-        if (Math.abs(wx + winSize / 2 - (px + w / 2)) < doorW / 2 + 2 && wy + winSize > py + h - doorH) continue
+        if (Math.abs(wx + winSize / 2 - (px + w / 2)) < doorW / 2 + 2 && wy + winSize > py + h - doorH)
+          continue
         ctx.fillRect(wx, wy, winSize, winSize)
       }
     }
-    ctx.strokeStyle = `rgba(0,0,0,${0.30})`
+    ctx.strokeStyle = `rgba(0,0,0,${0.3})`
     ctx.lineWidth = 1
     ctx.strokeRect(px + 0.5, wallY + 0.5, w - 1, wallH - 1)
   } else {

@@ -1,12 +1,10 @@
-
 export function ThreeDLoading() {
   return (
     <div
       style={{
         position: 'fixed',
         inset: 0,
-        background:
-          'radial-gradient(ellipse at center, #1a1810 0%, #0a0806 70%)',
+        background: 'radial-gradient(ellipse at center, #1a1810 0%, #0a0806 70%)',
         display: 'grid',
         placeItems: 'center',
         zIndex: 200,
@@ -78,16 +76,14 @@ export function ThreeDLoading() {
             animation: 'thb-3d-pulse 2s ease-in-out infinite',
           }}
         >
-          loading terrain meshes, biome textures, organism
-          sprites… ~1 MB on first visit, cached thereafter.
+          loading terrain meshes, biome textures, organism sprites… ~1 MB on first visit, cached thereafter.
         </div>
         <div
           style={{
             width: 220,
             height: 3,
             borderRadius: 2,
-            background:
-              'linear-gradient(90deg, transparent 0%, #d8c89a 50%, transparent 100%)',
+            background: 'linear-gradient(90deg, transparent 0%, #d8c89a 50%, transparent 100%)',
             backgroundSize: '200px 100%',
             animation: 'thb-3d-shimmer 1.6s linear infinite',
           }}

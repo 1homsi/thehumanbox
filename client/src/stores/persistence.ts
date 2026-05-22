@@ -1,11 +1,17 @@
 export function loadString(key: string): string | null {
-  try { return window.localStorage.getItem(key) }
-  catch { return null }
+  try {
+    return window.localStorage.getItem(key)
+  } catch {
+    return null
+  }
 }
 
 export function saveString(key: string, value: string): void {
-  try { window.localStorage.setItem(key, value) }
-  catch { /* ignore */ }
+  try {
+    window.localStorage.setItem(key, value)
+  } catch {
+    /* ignore */
+  }
 }
 
 export function loadBool(key: string, fallback = false): boolean {
@@ -22,11 +28,17 @@ export function saveBool(key: string, value: boolean): void {
 export function loadJson<T>(key: string, fallback: T): T {
   const raw = loadString(key)
   if (raw == null) return fallback
-  try { return JSON.parse(raw) as T }
-  catch { return fallback }
+  try {
+    return JSON.parse(raw) as T
+  } catch {
+    return fallback
+  }
 }
 
 export function saveJson<T>(key: string, value: T): void {
-  try { saveString(key, JSON.stringify(value)) }
-  catch { /* ignore */ }
+  try {
+    saveString(key, JSON.stringify(value))
+  } catch {
+    /* ignore */
+  }
 }

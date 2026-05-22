@@ -23,7 +23,7 @@ interface LineageRow {
  */
 function LineagesListImpl() {
   const openAllLineages = useUIStore((s) => s.openAllLineages)
-  const focus    = useUIStore((s) => s.focus)
+  const focus = useUIStore((s) => s.focus)
   const setFocus = useUIStore((s) => s.setFocus)
   const stamps = useWorldStore(
     useShallow((s) => {
@@ -51,8 +51,8 @@ function LineagesListImpl() {
     for (const lid in stamps) {
       const [count, minGen, maxGen] = stamps[lid].split(',').map(Number)
       out.push({
-        id:     lid,
-        name:   lineageNames?.[lid] ?? lid.slice(0, 6),
+        id: lid,
+        name: lineageNames?.[lid] ?? lid.slice(0, 6),
         count,
         minGen,
         maxGen,
@@ -80,7 +80,8 @@ function LineagesListImpl() {
               <span className="lineage-id">{r.name}</span>
               <span className="lineage-count">{r.count}</span>
               <span className="lineage-gen">
-                g{r.minGen}{r.maxGen > r.minGen ? `-${r.maxGen}` : ''}
+                g{r.minGen}
+                {r.maxGen > r.minGen ? `-${r.maxGen}` : ''}
               </span>
             </button>
           )

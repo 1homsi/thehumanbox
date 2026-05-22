@@ -9,16 +9,16 @@ import { heightAt } from './terrain-utils'
 
 interface Props {
   organisms: OrganismState[]
-  depthMap:  number[][]
-  biomes:    number[][]
+  depthMap: number[][]
+  biomes: number[][]
 }
 
 const LABEL_RADIUS_SQ = 140 * 140
-const MAX_LABELS      = 60
+const MAX_LABELS = 60
 
 export function OrgLabels({ organisms, depthMap, biomes }: Props) {
   const { camera } = useThree()
-  const selectedOrgId = useUIStore(s => s.selectedOrgId)
+  const selectedOrgId = useUIStore((s) => s.selectedOrgId)
 
   const camX5 = Math.round(camera.position.x / 5) * 5
   const camZ5 = Math.round(camera.position.z / 5) * 5
@@ -28,8 +28,11 @@ export function OrgLabels({ organisms, depthMap, biomes }: Props) {
     const cx = camera.position.x
     const cz = camera.position.z
     const scored: {
-      id: string; name: string; pos: [number, number, number];
-      d: number; selected: boolean
+      id: string
+      name: string
+      pos: [number, number, number]
+      d: number
+      selected: boolean
       lineage_id: string
       isLeader: boolean
       hasDegree: boolean
@@ -42,7 +45,7 @@ export function OrgLabels({ organisms, depthMap, biomes }: Props) {
       const pz = o.y * TILE_SCALE
       const dx = px - cx
       const dz = pz - cz
-      const d  = dx * dx + dz * dz
+      const d = dx * dx + dz * dz
       const isSel = o.id === selectedOrgId
       if (!isSel && d > LABEL_RADIUS_SQ) continue
       const groundY = heightAt(o.x, o.y, depthMap, biomes)
@@ -66,19 +69,36 @@ export function OrgLabels({ organisms, depthMap, biomes }: Props) {
 
   return (
     <>
-      {labels.map(l => {
+      {labels.map((l) => {
         const badge = badgeForOrg(l)
         return (
-        <Billboard key={l.id} position={l.pos} frustumCulled={false} follow={true}>
-          {badge && (
+          <Billboard key={l.id} position={l.pos} frustumCulled={false} follow={true}>
+            {badge && (
+              <Text
+                fontSize={0.55}
+                color="#ffe0a0"
+                outlineWidth={0.05}
+                outlineColor="#000000"
+                anchorX="center"
+                anchorY="middle"
+                position={[0, 0.85, 0]}
+                frustumCulled={false}
+                renderOrder={999}
+                material-toneMapped={false}
+                material-depthTest={false}
+                material-depthWrite={false}
+                material-transparent={true}
+              >
+                {badge}
+              </Text>
+            )}
             <Text
-              fontSize={0.55}
-              color="#ffe0a0"
+              fontSize={l.selected ? 0.9 : 0.7}
+              color={l.selected ? '#ffcf6a' : '#ffffff'}
               outlineWidth={0.05}
               outlineColor="#000000"
               anchorX="center"
               anchorY="middle"
-              position={[0, 0.85, 0]}
               frustumCulled={false}
               renderOrder={999}
               material-toneMapped={false}
@@ -86,43 +106,26 @@ export function OrgLabels({ organisms, depthMap, biomes }: Props) {
               material-depthWrite={false}
               material-transparent={true}
             >
-              {badge}
+              {l.name}
             </Text>
-          )}
-          <Text
-            fontSize={l.selected ? 0.9 : 0.7}
-            color={l.selected ? '#ffcf6a' : '#ffffff'}
-            outlineWidth={0.05}
-            outlineColor="#000000"
-            anchorX="center"
-            anchorY="middle"
-            frustumCulled={false}
-            renderOrder={999}
-            material-toneMapped={false}
-            material-depthTest={false}
-            material-depthWrite={false}
-            material-transparent={true}
-          >
-            {l.name}
-          </Text>
-          <Text
-            fontSize={0.35}
-            color={lineageColor(getLineage(l.id, organisms))}
-            outlineWidth={0.04}
-            outlineColor="#000000"
-            anchorX="center"
-            anchorY="middle"
-            position={[0, -0.55, 0]}
-            frustumCulled={false}
-            renderOrder={999}
-            material-toneMapped={false}
-            material-depthTest={false}
-            material-depthWrite={false}
-            material-transparent={true}
-          >
-            ◆
-          </Text>
-        </Billboard>
+            <Text
+              fontSize={0.35}
+              color={lineageColor(getLineage(l.id, organisms))}
+              outlineWidth={0.04}
+              outlineColor="#000000"
+              anchorX="center"
+              anchorY="middle"
+              position={[0, -0.55, 0]}
+              frustumCulled={false}
+              renderOrder={999}
+              material-toneMapped={false}
+              material-depthTest={false}
+              material-depthWrite={false}
+              material-transparent={true}
+            >
+              ◆
+            </Text>
+          </Billboard>
         )
       })}
     </>
@@ -130,13 +133,29 @@ export function OrgLabels({ organisms, depthMap, biomes }: Props) {
 }
 
 const SPECIALTY_GLYPH: Record<string, string> = {
-  farmer: '\u{1F33E}', smith: '\u{1F528}', hunter: '\u{1F3F9}', healer: '\u{2695}\u{FE0F}',
-  scholar: '\u{1F4DC}', merchant: '\u{1F4B0}', soldier: '\u{2694}\u{FE0F}', builder: '\u{1F3D7}\u{FE0F}',
-  priest: '\u{1F4FF}', artist: '\u{1F3A8}', engineer: '\u{2699}\u{FE0F}', sailor: '\u{26F5}',
-  doctor: '\u{1F489}', teacher: '\u{1F4DA}', programmer: '\u{1F4BB}',
+  farmer: '\u{1F33E}',
+  smith: '\u{1F528}',
+  hunter: '\u{1F3F9}',
+  healer: '\u{2695}\u{FE0F}',
+  scholar: '\u{1F4DC}',
+  merchant: '\u{1F4B0}',
+  soldier: '\u{2694}\u{FE0F}',
+  builder: '\u{1F3D7}\u{FE0F}',
+  priest: '\u{1F4FF}',
+  artist: '\u{1F3A8}',
+  engineer: '\u{2699}\u{FE0F}',
+  sailor: '\u{26F5}',
+  doctor: '\u{1F489}',
+  teacher: '\u{1F4DA}',
+  programmer: '\u{1F4BB}',
 }
 
-function badgeForOrg(l: { isLeader: boolean; hasDegree: boolean; isSick: boolean; specialty: string | null }): string {
+function badgeForOrg(l: {
+  isLeader: boolean
+  hasDegree: boolean
+  isSick: boolean
+  specialty: string | null
+}): string {
   const parts: string[] = []
   if (l.isLeader) parts.push('\u{1F451}')
   if (l.isSick) parts.push('\u{1F912}')

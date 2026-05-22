@@ -8,8 +8,8 @@ import { getOrgXY, getOrgVelocityXY } from './motion-state'
 
 interface Props {
   organisms: OrganismState[]
-  depthMap:  number[][]
-  biomes:    number[][]
+  depthMap: number[][]
+  biomes: number[][]
 }
 
 const N_PARTICLES = 200
@@ -18,8 +18,11 @@ const NEAR_RADIUS_SQ = 180 * 180
 const PARTICLE_GEO = new SphereGeometry(0.08, 4, 3)
 
 interface Particle {
-  x: number; y: number; z: number
-  vx: number; vz: number
+  x: number
+  y: number
+  z: number
+  vx: number
+  vz: number
   born: number
 }
 
@@ -27,7 +30,7 @@ const tmp = new Object3D()
 
 export function FootstepDust({ organisms, depthMap, biomes }: Props) {
   const meshRef = useRef<InstancedMesh>(null)
-  const pool    = useRef<Particle[]>([])
+  const pool = useRef<Particle[]>([])
   const lastSpawn = useRef<Map<string, [number, number]>>(new Map())
   const { camera } = useThree()
 
@@ -42,7 +45,7 @@ export function FootstepDust({ organisms, depthMap, biomes }: Props) {
     const mesh = meshRef.current
     if (!mesh) return
     const now = performance.now()
-    const t   = clock.getElapsedTime()
+    const t = clock.getElapsedTime()
     void t
 
     for (const o of organisms) {
@@ -57,23 +60,26 @@ export function FootstepDust({ organisms, depthMap, biomes }: Props) {
       const speed = Math.hypot(vx, vy)
       if (speed < 0.04) continue
       const last = lastSpawn.current.get(o.id)
-      const movedSq = last
-        ? (tx - last[0]) ** 2 + (ty - last[1]) ** 2
-        : Infinity
-      if (movedSq < 0.20) continue
+      const movedSq = last ? (tx - last[0]) ** 2 + (ty - last[1]) ** 2 : Infinity
+      if (movedSq < 0.2) continue
       lastSpawn.current.set(o.id, [tx, ty])
 
       let slot = 0
       let oldestAge = -1
       for (let i = 0; i < pool.current.length; i++) {
         const age = now - pool.current[i].born
-        if (age > oldestAge) { oldestAge = age; slot = i }
+        if (age > oldestAge) {
+          oldestAge = age
+          slot = i
+        }
       }
       const groundY = heightAt(tx, ty, depthMap, biomes)
       const offX = -vx * 0.4 + (Math.random() - 0.5) * 0.3
       const offZ = -vy * 0.4 + (Math.random() - 0.5) * 0.3
       pool.current[slot] = {
-        x: wx + offX, y: groundY + 0.12, z: wz + offZ,
+        x: wx + offX,
+        y: groundY + 0.12,
+        z: wz + offZ,
         vx: -vx * 0.8 + (Math.random() - 0.5) * 0.6,
         vz: -vy * 0.8 + (Math.random() - 0.5) * 0.6,
         born: now,
@@ -112,12 +118,7 @@ export function FootstepDust({ organisms, depthMap, biomes }: Props) {
       count={N_PARTICLES}
       frustumCulled={false}
     >
-      <meshBasicMaterial
-        color="#b0a48a"
-        transparent
-        opacity={0.42}
-        depthWrite={false}
-      />
+      <meshBasicMaterial color="#b0a48a" transparent opacity={0.42} depthWrite={false} />
     </instancedMesh>
   )
 }

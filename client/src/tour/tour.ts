@@ -4,13 +4,19 @@ import 'shepherd.js/dist/css/shepherd.css'
 const TOUR_KEY = 'thb-tour-completed-v1'
 
 export function hasSeenTour(): boolean {
-  try { return window.localStorage.getItem(TOUR_KEY) === '1' }
-  catch { return false }
+  try {
+    return window.localStorage.getItem(TOUR_KEY) === '1'
+  } catch {
+    return false
+  }
 }
 
 function markSeen() {
-  try { window.localStorage.setItem(TOUR_KEY, '1') }
-  catch { /* ignore */ }
+  try {
+    window.localStorage.setItem(TOUR_KEY, '1')
+  } catch {
+    /* ignore */
+  }
 }
 
 interface StepDef {
@@ -78,8 +84,7 @@ const STEPS: StepDef[] = [
   {
     selector: '[data-tour="search-btn"]',
     title: 'Search',
-    text:
-      'Find any organism by name, lineage, thought, or discovery. Works on both living and dead.',
+    text: 'Find any organism by name, lineage, thought, or discovery. Works on both living and dead.',
     on: 'bottom',
   },
   {
@@ -125,7 +130,10 @@ function createTour() {
 }
 
 export function startTour() {
-  if (activeTour) { activeTour.complete(); activeTour = null }
+  if (activeTour) {
+    activeTour.complete()
+    activeTour = null
+  }
   const tour = createTour()
 
   STEPS.forEach((step, i) => {
@@ -135,18 +143,20 @@ export function startTour() {
       id: `step-${i}`,
       title: step.title,
       text: step.text,
-      attachTo: step.selector
-        ? { element: step.selector, on: step.on ?? 'auto' }
-        : undefined,
+      attachTo: step.selector ? { element: step.selector, on: step.on ?? 'auto' } : undefined,
       buttons: [
-        ...(isFirst ? [] : [{
-          text: 'Back',
-          classes: 'shepherd-button-secondary',
-          action: () => tour.back(),
-        }]),
+        ...(isFirst
+          ? []
+          : [
+              {
+                text: 'Back',
+                classes: 'shepherd-button-secondary',
+                action: () => tour.back(),
+              },
+            ]),
         {
           text: isLast ? 'Finish' : 'Next',
-          action: () => isLast ? tour.complete() : tour.next(),
+          action: () => (isLast ? tour.complete() : tour.next()),
         },
       ],
     })
@@ -157,7 +167,7 @@ export function startTour() {
     activeTour = null
   }
   tour.on('complete', cleanup)
-  tour.on('cancel',   cleanup)
+  tour.on('cancel', cleanup)
 
   activeTour = tour
   tour.start()

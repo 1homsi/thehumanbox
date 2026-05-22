@@ -6,28 +6,31 @@ import { parseWorldFrame, fetchSnapshotWithProgress } from './wire'
 import { mergeFrame, type MergeCaches } from './merge'
 
 export interface WorldMeta {
-  hash:             string
-  started_at_ms:    number
-  ended_at_ms:      number
-  final_tick:       number
+  hash: string
+  started_at_ms: number
+  ended_at_ms: number
+  final_tick: number
   final_population: number
-  peak_population:  number
-  top_era:          string
-  lineage_count:    number
-  top_lineage?:     string | null
-  top_lineage_pop:  number
+  peak_population: number
+  top_era: string
+  lineage_count: number
+  top_lineage?: string | null
+  top_lineage_pop: number
 }
 
 interface HistoricalWorldState {
   loading: boolean
-  error:   string | null
-  world:   WorldState | null
-  meta:    WorldMeta | null
+  error: string | null
+  world: WorldState | null
+  meta: WorldMeta | null
 }
 
 export function useHistoricalWorld(hash: string): HistoricalWorldState {
   const [state, setState] = useState<HistoricalWorldState>({
-    loading: true, error: null, world: null, meta: null,
+    loading: true,
+    error: null,
+    world: null,
+    meta: null,
   })
 
   useEffect(() => {
@@ -38,7 +41,7 @@ export function useHistoricalWorld(hash: string): HistoricalWorldState {
       try {
         const [snapBuf, metaRes] = await Promise.all([
           fetchSnapshotWithProgress(`${API_BASE}/worlds/${hash}/snapshot`, ctl.signal),
-          fetch(`${API_BASE}/worlds/${hash}/meta`, { signal: ctl.signal }).then(r => {
+          fetch(`${API_BASE}/worlds/${hash}/meta`, { signal: ctl.signal }).then((r) => {
             if (!r.ok) throw new Error(`HTTP ${r.status}`)
             return r.json() as Promise<WorldMeta>
           }),
@@ -53,8 +56,8 @@ export function useHistoricalWorld(hash: string): HistoricalWorldState {
         }
         const caches: MergeCaches = {
           organisms: new Map(),
-          animals:   new Map(),
-          grid:      null,
+          animals: new Map(),
+          grid: null,
           prevWorld: null,
         }
         const { next } = mergeFrame(parsed.value, caches)
@@ -68,7 +71,10 @@ export function useHistoricalWorld(hash: string): HistoricalWorldState {
     }
 
     load()
-    return () => { destroyed = true; ctl.abort() }
+    return () => {
+      destroyed = true
+      ctl.abort()
+    }
   }, [hash])
 
   return state
@@ -77,6 +83,6 @@ export function useHistoricalWorld(hash: string): HistoricalWorldState {
 export async function fetchWorldsList(signal?: AbortSignal): Promise<WorldMeta[]> {
   const r = await fetch(`${API_BASE}/worlds`, { signal })
   if (!r.ok) throw new Error(`HTTP ${r.status}`)
-  const data = await r.json() as { worlds?: WorldMeta[] }
+  const data = (await r.json()) as { worlds?: WorldMeta[] }
   return data.worlds ?? []
 }

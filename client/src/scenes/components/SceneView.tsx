@@ -10,8 +10,8 @@ interface Props {
 }
 
 export function SceneView({ world }: Props) {
-  const scene  = useCurrentScene()
-  const exit   = useSceneStore((s) => s.exit)
+  const scene = useCurrentScene()
+  const exit = useSceneStore((s) => s.exit)
   const select = useUIStore((s) => s.selectOrg)
 
   const resolved = useMemo(() => {
@@ -27,11 +27,5 @@ export function SceneView({ world }: Props) {
 
   const { renderer, ctx } = resolved
   const Renderer = renderer.Render
-  return (
-    <Renderer
-      ctx={ctx}
-      onExit={exit}
-      onFocusOrg={(id) => select(id)}
-    />
-  )
+  return <Renderer ctx={ctx} onExit={exit} onFocusOrg={(id) => select(id)} />
 }

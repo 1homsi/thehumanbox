@@ -20,19 +20,19 @@ interface Props {
 
 export function HistoricalApp({ hash }: Props) {
   const { loading, error, world, meta } = useHistoricalWorld(hash)
-  const selectedOrgId = useUIStore(s => s.selectedOrgId)
-  const leftOpen      = useUIStore(s => s.leftOpen)
-  const toggleLeft    = useUIStore(s => s.toggleLeft)
+  const selectedOrgId = useUIStore((s) => s.selectedOrgId)
+  const leftOpen = useUIStore((s) => s.leftOpen)
+  const toggleLeft = useUIStore((s) => s.toggleLeft)
 
-  const selectedOrg = selectedOrgId && world
-    ? world.organisms.find(o => o.id === selectedOrgId) ?? null
-    : null
+  const selectedOrg =
+    selectedOrgId && world ? (world.organisms.find((o) => o.id === selectedOrgId) ?? null) : null
 
-  const liveOrgs = useMemo(() => world ? world.organisms.filter(o => o.alive) : [], [world])
-  const deadOrgs = useMemo(() => world ? world.organisms.filter(o => !o.alive) : [], [world])
+  const liveOrgs = useMemo(() => (world ? world.organisms.filter((o) => o.alive) : []), [world])
+  const deadOrgs = useMemo(() => (world ? world.organisms.filter((o) => !o.alive) : []), [world])
 
   const lineages = useMemo(() => {
-    const result: Record<string, { count: number; minGen: number; maxGen: number; orgs: OrganismState[] }> = {}
+    const result: Record<string, { count: number; minGen: number; maxGen: number; orgs: OrganismState[] }> =
+      {}
     if (!world) return result
     for (const org of liveOrgs) {
       if (!result[org.lineage_id]) {
@@ -54,9 +54,7 @@ export function HistoricalApp({ hash }: Props) {
       <main className="main">
         {world ? (
           <div className="layout">
-            {leftOpen && (
-              <div className="panel-overlay panel-overlay-left" onClick={toggleLeft} />
-            )}
+            {leftOpen && <div className="panel-overlay panel-overlay-left" onClick={toggleLeft} />}
             <aside className={clsx('panel', 'panel-left', leftOpen && 'open')}>
               <HistoryGrid />
               <LineagesList />
@@ -64,12 +62,7 @@ export function HistoricalApp({ hash }: Props) {
               <WorldFooter world={world} />
             </aside>
             <WorldView world={world} interp={undefined} />
-            <RightPanel
-              world={world}
-              liveOrgs={liveOrgs}
-              deadOrgs={deadOrgs}
-              selectedOrg={selectedOrg}
-            />
+            <RightPanel world={world} liveOrgs={liveOrgs} deadOrgs={deadOrgs} selectedOrg={selectedOrg} />
           </div>
         ) : (
           <div className="waiting">
@@ -77,11 +70,7 @@ export function HistoricalApp({ hash }: Props) {
             <div className="waiting-title">
               {error ? 'could not load this world' : 'loading historical world…'}
             </div>
-            <div className="waiting-sub">
-              {error
-                ? error
-                : `fetching ${hash} from the archive`}
-            </div>
+            <div className="waiting-sub">{error ? error : `fetching ${hash} from the archive`}</div>
           </div>
         )}
       </main>

@@ -1,21 +1,28 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useThree } from '@react-three/fiber'
 import { BufferAttribute, BufferGeometry, Mesh, MeshStandardMaterial } from 'three'
-import { TILE_SCALE, MAX_DEPTH, BIOME_COLORS, BIOME_ELEVATION, BIOME_ROUGHNESS, terrainNoise } from './constants'
+import {
+  TILE_SCALE,
+  MAX_DEPTH,
+  BIOME_COLORS,
+  BIOME_ELEVATION,
+  BIOME_ROUGHNESS,
+  terrainNoise,
+} from './constants'
 import { getTerrainTextures, biomeQuadrant } from './terrain-textures'
 
 interface Props {
   depthMap: number[][]
-  biomes:   number[][]
-  width:    number
-  height:   number
+  biomes: number[][]
+  width: number
+  height: number
 }
 
 const TEX_TILES_PER_WORLD = 16
 
 export function Terrain({ depthMap, biomes, width, height }: Props) {
   const meshRef = useRef<Mesh>(null)
-  const gl = useThree(s => s.gl)
+  const gl = useThree((s) => s.gl)
 
   const { color: colorTex, bump: bumpTex } = useMemo(() => {
     const tex = getTerrainTextures()
@@ -36,9 +43,9 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
     const geo = new BufferGeometry()
 
     const positions = new Float32Array(width * height * 3)
-    const colors    = new Float32Array(width * height * 3)
-    const uvs       = new Float32Array(width * height * 2)
-    const quads     = new Float32Array(width * height)
+    const colors = new Float32Array(width * height * 3)
+    const uvs = new Float32Array(width * height * 2)
+    const quads = new Float32Array(width * height)
     const indices: number[] = []
 
     for (let y = 0; y < height; y++) {
@@ -50,19 +57,19 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
         const b = bRow?.[x] ?? 0
         let elev: number
         if (d >= 254) {
-          const base   = BIOME_ELEVATION[b] ?? 0
-          const rough  = BIOME_ROUGHNESS[b] ?? 0.5
+          const base = BIOME_ELEVATION[b] ?? 0
+          const rough = BIOME_ROUGHNESS[b] ?? 0.5
           elev = base + terrainNoise(x, y) * rough
         } else {
           const depthFrac = Math.max(0, Math.min(1, 1 - d / 200))
           elev = -depthFrac * MAX_DEPTH
         }
 
-        positions[i * 3]     = x * TILE_SCALE
+        positions[i * 3] = x * TILE_SCALE
         positions[i * 3 + 1] = elev
         positions[i * 3 + 2] = y * TILE_SCALE
 
-        uvs[i * 2]     = (x / width)  * TEX_TILES_PER_WORLD
+        uvs[i * 2] = (x / width) * TEX_TILES_PER_WORLD
         uvs[i * 2 + 1] = (y / height) * TEX_TILES_PER_WORLD
 
         quads[i] = biomeQuadrant(b)
@@ -76,7 +83,7 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
         const baseR = r + jitter
         const baseG = g + jitter
         const baseB = bl + jitter
-        colors[i * 3]     = (baseR + (1.0 - baseR) * snow) * darken
+        colors[i * 3] = (baseR + (1.0 - baseR) * snow) * darken
         colors[i * 3 + 1] = (baseG + (1.0 - baseG) * snow) * darken
         colors[i * 3 + 2] = (baseB + (1.0 - baseB) * snow) * darken
       }
@@ -93,9 +100,9 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
     }
 
     geo.setAttribute('position', new BufferAttribute(positions, 3))
-    geo.setAttribute('color',    new BufferAttribute(colors, 3))
-    geo.setAttribute('uv',       new BufferAttribute(uvs, 2))
-    geo.setAttribute('aQuad',    new BufferAttribute(quads, 1))
+    geo.setAttribute('color', new BufferAttribute(colors, 3))
+    geo.setAttribute('uv', new BufferAttribute(uvs, 2))
+    geo.setAttribute('aQuad', new BufferAttribute(quads, 1))
     geo.setIndex(indices)
     geo.computeVertexNormals()
     return geo
@@ -104,11 +111,11 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
   const material = useMemo(() => {
     const m = new MeshStandardMaterial({
       vertexColors: true,
-      map:        colorTex,
-      bumpMap:    bumpTex,
-      bumpScale:  0.45,
-      roughness:  0.95,
-      metalness:  0.0,
+      map: colorTex,
+      bumpMap: bumpTex,
+      bumpScale: 0.45,
+      roughness: 0.95,
+      metalness: 0.0,
     })
     m.onBeforeCompile = (shader) => {
       shader.vertexShader = shader.vertexShader
@@ -214,11 +221,19 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
   // and MeshStandardMaterial on every snapshot. The useMemo for
   // geometry returns null on the bootstrap render (before depthMap
   // arrives), so the cleanup guards against that.
-  useEffect(() => () => { geometry?.dispose() }, [geometry])
-  useEffect(() => () => { material.dispose() }, [material])
+  useEffect(
+    () => () => {
+      geometry?.dispose()
+    },
+    [geometry],
+  )
+  useEffect(
+    () => () => {
+      material.dispose()
+    },
+    [material],
+  )
 
   if (!geometry) return null
-  return (
-    <mesh ref={meshRef} geometry={geometry} material={material} receiveShadow castShadow />
-  )
+  return <mesh ref={meshRef} geometry={geometry} material={material} receiveShadow castShadow />
 }

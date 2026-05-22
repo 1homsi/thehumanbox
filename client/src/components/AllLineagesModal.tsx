@@ -16,14 +16,15 @@ interface Props {
 }
 
 export function AllLineagesModal({ lineages, lineageNames, onClose }: Props) {
-  const tribeName = (lid: string) =>
-    lineageNames?.[lid] ?? (lid ?? '').slice(0, 6)
+  const tribeName = (lid: string) => lineageNames?.[lid] ?? (lid ?? '').slice(0, 6)
 
   return (
     <Modal open onClose={onClose} className="lang-modal" title="All lineages" hideTitle>
       <div className="lang-modal-header">
         <span className="lang-modal-title">ALL LINEAGES ({Object.keys(lineages).length})</span>
-        <button aria-label="Close" className="close-btn" onClick={onClose}>✕</button>
+        <button aria-label="Close" className="close-btn" onClick={onClose}>
+          ✕
+        </button>
       </div>
       <div className="lang-modal-body">
         <div className="lineage-list">
@@ -35,7 +36,8 @@ export function AllLineagesModal({ lineages, lineageNames, onClose }: Props) {
                 <span className="lineage-id">{tribeName(lid)}</span>
                 <span className="lineage-count">{info.count}</span>
                 <span className="lineage-gen">
-                  g{info.minGen}{info.maxGen > info.minGen ? `–${info.maxGen}` : ''}
+                  g{info.minGen}
+                  {info.maxGen > info.minGen ? `–${info.maxGen}` : ''}
                 </span>
                 <span className="lineage-strat">
                   {lineageWord(info.orgs, 'home') || lineageWord(info.orgs, 'food') || ''}

@@ -7,7 +7,7 @@ interface Props {
 }
 
 export function CivSummary({ world }: Props) {
-  const openCiv = useUIStore(s => s.openCiv)
+  const openCiv = useUIStore((s) => s.openCiv)
   const lineageEras = normalizeLineageEras(world.lineage_eras)
   const lineageNames = world.lineage_names ?? {}
   const buildings = world.buildings ?? []
@@ -19,7 +19,9 @@ export function CivSummary({ world }: Props) {
   for (const era of Object.values(lineageEras)) {
     eraSummary[era] = (eraSummary[era] ?? 0) + 1
   }
-  const topEras = Object.entries(eraSummary).sort((a, b) => b[1] - a[1]).slice(0, 3)
+  const topEras = Object.entries(eraSummary)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
   const buildingTotal = buildings.length
 
   const recentLines = headlines.slice(0, 3)
@@ -34,14 +36,28 @@ export function CivSummary({ world }: Props) {
       {topEras.length > 0 && (
         <div className="civ-summary-row">
           {topEras.map(([era, n]) => (
-            <span key={era} className="civ-summary-chip">{era} · {n}</span>
+            <span key={era} className="civ-summary-chip">
+              {era} · {n}
+            </span>
           ))}
         </div>
       )}
       <div className="civ-summary-stats">
-        {buildingTotal > 0   && <span><strong>{buildingTotal}</strong> bldgs</span>}
-        {religions.length > 0 && <span><strong>{religions.length}</strong> faiths</span>}
-        {books.length > 0     && <span><strong>{books.length}</strong> books</span>}
+        {buildingTotal > 0 && (
+          <span>
+            <strong>{buildingTotal}</strong> bldgs
+          </span>
+        )}
+        {religions.length > 0 && (
+          <span>
+            <strong>{religions.length}</strong> faiths
+          </span>
+        )}
+        {books.length > 0 && (
+          <span>
+            <strong>{books.length}</strong> books
+          </span>
+        )}
       </div>
       {recentLines.length > 0 && (
         <div className="civ-summary-headlines">
@@ -55,7 +71,9 @@ export function CivSummary({ world }: Props) {
           })}
         </div>
       )}
-      <button className="civ-summary-btn" onClick={openCiv}>view all</button>
+      <button className="civ-summary-btn" onClick={openCiv}>
+        view all
+      </button>
       {/* lineageNames intentionally read so an unused-import isn't created when the field is absent. */}
       <span hidden>{Object.keys(lineageNames).length}</span>
     </div>

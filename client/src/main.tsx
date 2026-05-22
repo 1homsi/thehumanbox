@@ -7,8 +7,8 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry:                1,
-      staleTime:            5_000,
+      retry: 1,
+      staleTime: 5_000,
       refetchOnWindowFocus: false,
     },
   },
@@ -19,7 +19,7 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <App />
     </QueryClientProvider>
-  </ErrorBoundary>
+  </ErrorBoundary>,
 )
 
 function hideSplash() {
@@ -34,7 +34,7 @@ setTimeout(hideSplash, 30_000)
 type SnapshotProgress = { loaded: number; total: number | null }
 window.addEventListener('thb-snapshot-progress', (e: Event) => {
   const detail = (e as CustomEvent<SnapshotProgress>).detail
-  const bar  = document.getElementById('thb-progress-bar')
+  const bar = document.getElementById('thb-progress-bar')
   const text = document.getElementById('thb-progress-text')
   const wrap = bar?.parentElement
   if (!bar || !text || !wrap) return

@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { InstancedMesh, Object3D, SphereGeometry } from 'three'
 interface Props {
-  isNight?:    boolean
+  isNight?: boolean
   weatherKind?: 'clear' | 'rain' | 'storm' | 'wet'
 }
 
@@ -22,10 +22,10 @@ export function AmbientMotes({ isNight = false, weatherKind = 'clear' }: Props) 
     const arr: { ox: number; oy: number; oz: number; freq: number; phase: number }[] = []
     for (let i = 0; i < MOTE_COUNT; i++) {
       arr.push({
-        ox: (i * 0.6173) % 1 - 0.5,
-        oy: (i * 0.3491) % 1 - 0.5,
-        oz: (i * 0.8527) % 1 - 0.5,
-        freq:  0.10 + ((i * 13) % 100) / 100 * 0.20,
+        ox: ((i * 0.6173) % 1) - 0.5,
+        oy: ((i * 0.3491) % 1) - 0.5,
+        oz: ((i * 0.8527) % 1) - 0.5,
+        freq: 0.1 + (((i * 13) % 100) / 100) * 0.2,
         phase: (i * 1.1) % (Math.PI * 2),
       })
     }
@@ -69,13 +69,7 @@ export function AmbientMotes({ isNight = false, weatherKind = 'clear' }: Props) 
       count={MOTE_COUNT}
       frustumCulled={false}
     >
-      <meshBasicMaterial
-        color="#fff8d8"
-        transparent
-        opacity={0.35}
-        depthWrite={false}
-        toneMapped={false}
-      />
+      <meshBasicMaterial color="#fff8d8" transparent opacity={0.35} depthWrite={false} toneMapped={false} />
     </instancedMesh>
   )
 }

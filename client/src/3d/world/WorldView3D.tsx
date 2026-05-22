@@ -43,22 +43,22 @@ type MoveKeys = 'forward' | 'back' | 'left' | 'right' | 'up' | 'down' | 'boost'
 
 const KEY_MAP = [
   { name: 'forward', keys: ['KeyW', 'ArrowUp'] },
-  { name: 'back',    keys: ['KeyS', 'ArrowDown'] },
-  { name: 'left',    keys: ['KeyA', 'ArrowLeft'] },
-  { name: 'right',   keys: ['KeyD', 'ArrowRight'] },
-  { name: 'up',      keys: ['Space'] },
-  { name: 'down',    keys: ['ShiftLeft', 'ShiftRight'] },
-  { name: 'boost',   keys: ['ControlLeft', 'ControlRight'] },
+  { name: 'back', keys: ['KeyS', 'ArrowDown'] },
+  { name: 'left', keys: ['KeyA', 'ArrowLeft'] },
+  { name: 'right', keys: ['KeyD', 'ArrowRight'] },
+  { name: 'up', keys: ['Space'] },
+  { name: 'down', keys: ['ShiftLeft', 'ShiftRight'] },
+  { name: 'boost', keys: ['ControlLeft', 'ControlRight'] },
 ]
 
 interface FlyCameraProps {
   depthMap?: number[][]
-  biomes?:   number[][]
+  biomes?: number[][]
 }
 
 const FLOOR_CLEARANCE = 0.8
-const MIN_SEA_LEVEL   = 0.6
-const MAX_ALTITUDE    = 900
+const MIN_SEA_LEVEL = 0.6
+const MAX_ALTITUDE = 900
 
 const CAM_LS_KEY = 'thb-3d-cam-v1'
 
@@ -71,7 +71,9 @@ function loadSavedCam(): { x: number; y: number; z: number; rx: number; ry: numb
     const num = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n)
     if (!num(v.x) || !num(v.y) || !num(v.z) || !num(v.rx) || !num(v.ry)) return null
     return { x: v.x, y: v.y, z: v.z, rx: v.rx, ry: v.ry }
-  } catch { return null }
+  } catch {
+    return null
+  }
 }
 
 function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
@@ -81,9 +83,9 @@ function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
   const saveTimerRef = useRef(0)
   // Reuse these across every useFrame call instead of `new`-ing three
   // Vector3s per frame at 60 Hz.
-  const fwdScratch     = useRef(new Vector3())
+  const fwdScratch = useRef(new Vector3())
   const forwardScratch = useRef(new Vector3())
-  const rightScratch   = useRef(new Vector3())
+  const rightScratch = useRef(new Vector3())
 
   useEffect(() => {
     const saved = loadSavedCam()
@@ -116,9 +118,7 @@ function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
         if (fwd.lengthSq() > 0) fwd.normalize()
         const targetX = wx - fwd.x * 35
         const targetZ = wz - fwd.z * 35
-        const groundY = (depthMap && biomes)
-          ? heightAt(tx, ty, depthMap, biomes)
-          : 0
+        const groundY = depthMap && biomes ? heightAt(tx, ty, depthMap, biomes) : 0
         const targetY = groundY + 12
         const lerp = 1 - Math.exp(-5.0 * delta)
         camera.position.x += (targetX - camera.position.x) * lerp
@@ -138,11 +138,11 @@ function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
 
     velocity.current.set(0, 0, 0)
     if (k.forward) velocity.current.add(forward)
-    if (k.back)    velocity.current.sub(forward)
-    if (k.right)   velocity.current.add(right)
-    if (k.left)    velocity.current.sub(right)
-    if (k.up)      velocity.current.y += 1
-    if (k.down)    velocity.current.y -= 1
+    if (k.back) velocity.current.sub(forward)
+    if (k.right) velocity.current.add(right)
+    if (k.left) velocity.current.sub(right)
+    if (k.up) velocity.current.y += 1
+    if (k.down) velocity.current.y -= 1
 
     if (velocity.current.lengthSq() > 0) {
       velocity.current.normalize().multiplyScalar(speed * delta)
@@ -163,11 +163,19 @@ function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
     if (saveTimerRef.current > 1.0) {
       saveTimerRef.current = 0
       try {
-        localStorage.setItem(CAM_LS_KEY, JSON.stringify({
-          x: camera.position.x, y: camera.position.y, z: camera.position.z,
-          rx: camera.rotation.x, ry: camera.rotation.y,
-        }))
-      } catch { /* ignore */ }
+        localStorage.setItem(
+          CAM_LS_KEY,
+          JSON.stringify({
+            x: camera.position.x,
+            y: camera.position.y,
+            z: camera.position.z,
+            rx: camera.rotation.x,
+            ry: camera.rotation.y,
+          }),
+        )
+      } catch {
+        /* ignore */
+      }
     }
   })
   return null
@@ -187,12 +195,12 @@ const SEL_LS_KEY = 'thb-3d-sel-v1'
 
 export default function WorldView3D({ world }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const selectedOrgId  = useUIStore(s => s.selectedOrgId)
-  const selectOrgStore = useUIStore(s => s.selectOrg)
+  const selectedOrgId = useUIStore((s) => s.selectedOrgId)
+  const selectOrgStore = useUIStore((s) => s.selectOrg)
   // WorldView3D only reads one flag (territoryMap). Subscribing to
   // the whole viewFlags object re-renders the entire 3D tree on
   // every flag toggle; a scalar selector is virtually free.
-  const showTerritoryMap = useUIStore(s => s.viewFlags.territoryMap)
+  const showTerritoryMap = useUIStore((s) => s.viewFlags.territoryMap)
   const [follow, setFollow] = useState(false)
 
   // Touch detection - PointerLockControls requires a mouse, so on touch
@@ -210,31 +218,39 @@ export default function WorldView3D({ world }: Props) {
     try {
       const id = localStorage.getItem(SEL_LS_KEY)
       if (!id) return
-      const live = (world.viewport_organisms ?? world.organisms ?? [])
-        .some(o => o.id === id && o.alive)
+      const live = (world.viewport_organisms ?? world.organisms ?? []).some((o) => o.id === id && o.alive)
       if (live) selectOrgStore(id)
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [!!world])
 
   useEffect(() => {
     try {
       if (selectedOrgId) localStorage.setItem(SEL_LS_KEY, selectedOrgId)
-      else               localStorage.removeItem(SEL_LS_KEY)
-    } catch { /* ignore */ }
+      else localStorage.removeItem(SEL_LS_KEY)
+    } catch {
+      /* ignore */
+    }
   }, [selectedOrgId])
 
   const didInitialAimRef = useRef(false)
   useEffect(() => {
     if (didInitialAimRef.current) return
     if (!world) return
-    const live = (world.viewport_organisms ?? world.organisms ?? []).filter(o => o.alive)
+    const live = (world.viewport_organisms ?? world.organisms ?? []).filter((o) => o.alive)
     if (live.length < 5) return
     let hasSaved = false
     try {
       hasSaved = !!localStorage.getItem('thb-3d-cam-v1')
-    } catch { /* ignore */ }
-    if (hasSaved) { didInitialAimRef.current = true; return }
+    } catch {
+      /* ignore */
+    }
+    if (hasSaved) {
+      didInitialAimRef.current = true
+      return
+    }
     const cx = live.reduce((s, o) => s + o.x, 0) / live.length
     const cy = live.reduce((s, o) => s + o.y, 0) / live.length
     cameraCommand.teleport = {
@@ -248,15 +264,17 @@ export default function WorldView3D({ world }: Props) {
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = prev }
+    return () => {
+      document.body.style.overflow = prev
+    }
   }, [])
 
-  const selectOrg = useUIStore(s => s.selectOrg)
+  const selectOrg = useUIStore((s) => s.selectOrg)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code === 'KeyF' && !e.repeat) {
-        if (selectedOrgId) setFollow(prev => !prev)
+        if (selectedOrgId) setFollow((prev) => !prev)
       } else if (e.code === 'KeyJ' && !e.repeat) {
         if (selectedOrgId) {
           const [tx, ty] = getOrgXY(selectedOrgId)
@@ -269,7 +287,7 @@ export default function WorldView3D({ world }: Props) {
           }
         }
       } else if (e.code === 'KeyR' && !e.repeat) {
-        const live = (world?.viewport_organisms ?? world?.organisms ?? []).filter(o => o.alive)
+        const live = (world?.viewport_organisms ?? world?.organisms ?? []).filter((o) => o.alive)
         if (live.length) {
           const pick = live[Math.floor(Math.random() * live.length)]
           selectOrg(pick.id)
@@ -292,21 +310,22 @@ export default function WorldView3D({ world }: Props) {
   }, [selectedOrgId, follow, selectOrg, world])
 
   useEffect(() => {
-    cameraCommand.followOrgId = (follow && selectedOrgId) ? selectedOrgId : null
+    cameraCommand.followOrgId = follow && selectedOrgId ? selectedOrgId : null
   }, [follow, selectedOrgId])
 
   const grid = world?.grid
   const ready = !!(grid?.depth_map && grid?.biomes && grid?.tiles && grid?.width && grid?.height)
   const dayProgress = world?.day_progress ?? 0.3
-  const sunAlt   = Math.sin((dayProgress - 0.25) * 2 * Math.PI)
-  const isNight  = sunAlt < 0
+  const sunAlt = Math.sin((dayProgress - 0.25) * 2 * Math.PI)
+  const isNight = sunAlt < 0
 
   // Hut world positions for Fireflies (computed once per grid change)
   const hutWorldPositions = useMemo<[number, number, number][]>(() => {
     if (!grid?.tiles || !grid?.depth_map || !grid?.biomes) return []
     const out: [number, number, number][] = []
     for (let row = 0; row < grid.height; row++) {
-      const tRow = grid.tiles[row]; if (!tRow) continue
+      const tRow = grid.tiles[row]
+      if (!tRow) continue
       for (let col = 0; col < grid.width; col++) {
         if (tRow[col] !== 8) continue
         const ground = heightAt(col, row, grid.depth_map, grid.biomes)
@@ -339,7 +358,7 @@ export default function WorldView3D({ world }: Props) {
             gl.toneMappingExposure = 1.05
             gl.outputColorSpace = SRGBColorSpace
             const dom = gl.domElement
-            dom.addEventListener('webglcontextlost', e => e.preventDefault())
+            dom.addEventListener('webglcontextlost', (e) => e.preventDefault())
             const orig = dom.requestPointerLock?.bind(dom)
             if (orig) {
               dom.requestPointerLock = (opts?: PointerLockOptions) => {
@@ -375,11 +394,7 @@ export default function WorldView3D({ world }: Props) {
                   width={grid.width}
                   height={grid.height}
                 />
-                <Water
-                  width={grid.width}
-                  height={grid.height}
-                  depthMap={grid.depth_map!}
-                />
+                <Water width={grid.width} height={grid.height} depthMap={grid.depth_map!} />
                 <TileFeatures
                   tiles={grid.tiles!}
                   biomes={grid.biomes!}
@@ -392,7 +407,7 @@ export default function WorldView3D({ world }: Props) {
                   organisms={world.viewport_organisms ?? world.organisms ?? []}
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}
-                  lineageEras={world.lineage_eras as Record<string,string> | undefined}
+                  lineageEras={world.lineage_eras as Record<string, string> | undefined}
                 />
                 <Buildings3D
                   buildings={world.buildings ?? []}
@@ -444,10 +459,7 @@ export default function WorldView3D({ world }: Props) {
                   height={grid.height}
                   isNight={isNight}
                 />
-                <Weather
-                  kind={world.weather?.kind ?? 'clear'}
-                  intensity={world.weather?.intensity ?? 0}
-                />
+                <Weather kind={world.weather?.kind ?? 'clear'} intensity={world.weather?.intensity ?? 0} />
                 <Birds
                   width={grid.width}
                   height={grid.height}
@@ -465,14 +477,8 @@ export default function WorldView3D({ world }: Props) {
                   active={world.season === 'scarcity'}
                   intensity={0.55 + (world.weather?.intensity ?? 0) * 0.4}
                 />
-                <AmbientMotes
-                  isNight={isNight}
-                  weatherKind={world.weather?.kind ?? 'clear'}
-                />
-                <Fireflies
-                  hutPositions={hutWorldPositions}
-                  isNight={isNight}
-                />
+                <AmbientMotes isNight={isNight} weatherKind={world.weather?.kind ?? 'clear'} />
+                <Fireflies hutPositions={hutWorldPositions} isNight={isNight} />
                 <SocialBeams
                   organisms={world.viewport_organisms ?? world.organisms ?? []}
                   depthMap={grid.depth_map!}
@@ -492,10 +498,7 @@ export default function WorldView3D({ world }: Props) {
             <CameraBreath enabled={!isTouch} />
             <CameraSync />
             {isTouch ? (
-              <OrbitControls
-                enableDamping
-                touches={{ ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_PAN }}
-              />
+              <OrbitControls enableDamping touches={{ ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_PAN }} />
             ) : (
               <PointerLockControls />
             )}
@@ -503,11 +506,7 @@ export default function WorldView3D({ world }: Props) {
         </Canvas>
       </KeyboardControls>
 
-      {ready && grid && (
-        <SelectedOrgCard
-          organisms={world.viewport_organisms ?? world.organisms ?? []}
-        />
-      )}
+      {ready && grid && <SelectedOrgCard organisms={world.viewport_organisms ?? world.organisms ?? []} />}
 
       {ready && <WorldHud />}
 
@@ -523,15 +522,10 @@ export default function WorldView3D({ world }: Props) {
         />
       )}
 
-      {!ready && (
-        <div style={loadingStyle}>loading terrain…</div>
-      )}
+      {!ready && <div style={loadingStyle}>loading terrain…</div>}
 
       {}
-      <TimeOfDayTint
-        dayProgress={dayProgress}
-        weatherKind={world?.weather?.kind ?? 'clear'}
-      />
+      <TimeOfDayTint dayProgress={dayProgress} weatherKind={world?.weather?.kind ?? 'clear'} />
 
       {}
       <div className="thb-3d-vignette" style={vignetteStyle} />
@@ -542,9 +536,7 @@ export default function WorldView3D({ world }: Props) {
         {isTouch
           ? 'drag to orbit · pinch to zoom'
           : 'click to look · WASD move · space/shift up/down · ctrl boost · F follow · J jump · R random · click map · esc release'}
-        {follow && selectedOrgId && (
-          <span style={{ color: '#ff8a3a', marginLeft: 10 }}>· following</span>
-        )}
+        {follow && selectedOrgId && <span style={{ color: '#ff8a3a', marginLeft: 10 }}>· following</span>}
       </div>
     </div>
   )
