@@ -110,6 +110,16 @@ pub mod negotiation;
 pub mod historical_record;
 pub mod courier;
 pub mod beekeeping;
+pub mod cafe_work;
+pub mod barista_advanced;
+pub mod retail;
+pub mod tech_devops;
+pub mod childhood;
+pub mod elder_life;
+pub mod journalism;
+pub mod fashion;
+pub mod butchery;
+pub mod distillation;
 
 use ctx::ActionCtx;
 use super::simulation::Simulation;
@@ -304,6 +314,16 @@ pub fn available_actions(sim: &Simulation, idx: usize, ix: i32, iy: i32) -> Vec<
     a.extend(5160..=5209);
     a.extend(5220..=5269);
     a.extend(5280..=5329);
+    a.extend(5340..=5389);
+    a.extend(5400..=5449);
+    a.extend(5460..=5509);
+    a.extend(5520..=5569);
+    a.extend(5580..=5629);
+    a.extend(5640..=5689);
+    a.extend(5700..=5749);
+    a.extend(5760..=5809);
+    a.extend(5820..=5869);
+    a.extend(5880..=5929);
 
     a
 }
@@ -428,6 +448,16 @@ pub fn try_apply(sim: &mut Simulation, idx: usize, action: usize, ix: i32, iy: i
         5160..=5209 => historical_record::apply(action, &mut ctx),
         5220..=5269 => courier::apply(action, &mut ctx),
         5280..=5329 => beekeeping::apply(action, &mut ctx),
+        5340..=5389 => cafe_work::apply(action, &mut ctx),
+        5400..=5449 => barista_advanced::apply(action, &mut ctx),
+        5460..=5509 => retail::apply(action, &mut ctx),
+        5520..=5569 => tech_devops::apply(action, &mut ctx),
+        5580..=5629 => childhood::apply(action, &mut ctx),
+        5640..=5689 => elder_life::apply(action, &mut ctx),
+        5700..=5749 => journalism::apply(action, &mut ctx),
+        5760..=5809 => fashion::apply(action, &mut ctx),
+        5820..=5869 => butchery::apply(action, &mut ctx),
+        5880..=5929 => distillation::apply(action, &mut ctx),
         _           => return None,
     };
     Some(r)
