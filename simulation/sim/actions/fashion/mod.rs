@@ -1,0 +1,108 @@
+pub mod measure_customer;
+pub mod pattern_block;
+pub mod draft_pattern_garment;
+pub mod cut_pattern_fabric;
+pub mod pin_pattern_fabric;
+pub mod baste_seam;
+pub mod stitch_seam_garment;
+pub mod serge_edge;
+pub mod bind_seam;
+pub mod press_seam;
+pub mod set_zipper;
+pub mod set_button;
+pub mod set_buttonhole;
+pub mod set_hook_and_eye;
+pub mod set_snap;
+pub mod fit_garment;
+pub mod alter_garment;
+pub mod shorten_hem;
+pub mod lengthen_hem;
+pub mod widen_seam;
+pub mod taper_seam;
+pub mod ease_seam;
+pub mod gather_fabric;
+pub mod pleat_fabric;
+pub mod ruffle_fabric;
+pub mod drape_form;
+pub mod drape_torso;
+pub mod drape_skirt;
+pub mod drape_sleeve;
+pub mod drape_collar;
+pub mod pin_drape;
+pub mod adjust_drape;
+pub mod evaluate_drape;
+pub mod photograph_drape;
+pub mod sketch_drape;
+pub mod block_pattern_garment;
+pub mod grade_pattern;
+pub mod grade_size;
+pub mod copy_pattern;
+pub mod label_pattern;
+pub mod cut_lining;
+pub mod stitch_lining;
+pub mod hem_lining;
+pub mod attach_lining;
+pub mod slip_stitch_lining;
+pub mod bag_garment;
+pub mod bag_lining;
+pub mod steam_garment;
+pub mod press_garment;
+pub mod package_garment;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        5760 => measure_customer::apply(ctx),
+        5761 => pattern_block::apply(ctx),
+        5762 => draft_pattern_garment::apply(ctx),
+        5763 => cut_pattern_fabric::apply(ctx),
+        5764 => pin_pattern_fabric::apply(ctx),
+        5765 => baste_seam::apply(ctx),
+        5766 => stitch_seam_garment::apply(ctx),
+        5767 => serge_edge::apply(ctx),
+        5768 => bind_seam::apply(ctx),
+        5769 => press_seam::apply(ctx),
+        5770 => set_zipper::apply(ctx),
+        5771 => set_button::apply(ctx),
+        5772 => set_buttonhole::apply(ctx),
+        5773 => set_hook_and_eye::apply(ctx),
+        5774 => set_snap::apply(ctx),
+        5775 => fit_garment::apply(ctx),
+        5776 => alter_garment::apply(ctx),
+        5777 => shorten_hem::apply(ctx),
+        5778 => lengthen_hem::apply(ctx),
+        5779 => widen_seam::apply(ctx),
+        5780 => taper_seam::apply(ctx),
+        5781 => ease_seam::apply(ctx),
+        5782 => gather_fabric::apply(ctx),
+        5783 => pleat_fabric::apply(ctx),
+        5784 => ruffle_fabric::apply(ctx),
+        5785 => drape_form::apply(ctx),
+        5786 => drape_torso::apply(ctx),
+        5787 => drape_skirt::apply(ctx),
+        5788 => drape_sleeve::apply(ctx),
+        5789 => drape_collar::apply(ctx),
+        5790 => pin_drape::apply(ctx),
+        5791 => adjust_drape::apply(ctx),
+        5792 => evaluate_drape::apply(ctx),
+        5793 => photograph_drape::apply(ctx),
+        5794 => sketch_drape::apply(ctx),
+        5795 => block_pattern_garment::apply(ctx),
+        5796 => grade_pattern::apply(ctx),
+        5797 => grade_size::apply(ctx),
+        5798 => copy_pattern::apply(ctx),
+        5799 => label_pattern::apply(ctx),
+        5800 => cut_lining::apply(ctx),
+        5801 => stitch_lining::apply(ctx),
+        5802 => hem_lining::apply(ctx),
+        5803 => attach_lining::apply(ctx),
+        5804 => slip_stitch_lining::apply(ctx),
+        5805 => bag_garment::apply(ctx),
+        5806 => bag_lining::apply(ctx),
+        5807 => steam_garment::apply(ctx),
+        5808 => press_garment::apply(ctx),
+        5809 => package_garment::apply(ctx),
+        _   => 0.0,
+    }
+}
