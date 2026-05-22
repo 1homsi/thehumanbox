@@ -1,0 +1,108 @@
+pub mod hand_feed_elder;
+pub mod turn_bedridden;
+pub mod read_to_bedridden;
+pub mod brush_bedridden;
+pub mod bathe_bedridden;
+pub mod shave_elder;
+pub mod trim_hair_elder;
+pub mod trim_nails_elder;
+pub mod warm_elder;
+pub mod cool_elder;
+pub mod help_dress_elder;
+pub mod help_undress_elder;
+pub mod help_walk_elder;
+pub mod help_climb_elder;
+pub mod help_descend_elder;
+pub mod spoon_feed_baby_2;
+pub mod bottle_feed_baby;
+pub mod change_baby_2;
+pub mod burp_baby_2;
+pub mod swaddle_baby_2;
+pub mod bathe_baby_2;
+pub mod oil_baby_2;
+pub mod powder_baby_2;
+pub mod brush_baby_hair;
+pub mod brush_baby_teeth_2;
+pub mod comfort_sick_child;
+pub mod read_to_sick_child;
+pub mod sing_to_sick_child;
+pub mod rock_sick_child;
+pub mod wipe_sick_child_brow;
+pub mod feed_sick_kin;
+pub mod watch_sick_kin;
+pub mod sit_with_sick_kin;
+pub mod nurse_sick_kin;
+pub mod pray_for_sick_kin;
+pub mod carry_invalid;
+pub mod lift_invalid;
+pub mod turn_invalid;
+pub mod wash_invalid;
+pub mod feed_invalid_2;
+pub mod walk_with_blind;
+pub mod walk_with_lame;
+pub mod walk_with_dizzy;
+pub mod steady_arm_of_lame;
+pub mod help_lame_step;
+pub mod comfort_grieving;
+pub mod sit_with_grieving;
+pub mod feed_grieving;
+pub mod listen_to_grieving;
+pub mod witness_grieving;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        3420 => hand_feed_elder::apply(ctx),
+        3421 => turn_bedridden::apply(ctx),
+        3422 => read_to_bedridden::apply(ctx),
+        3423 => brush_bedridden::apply(ctx),
+        3424 => bathe_bedridden::apply(ctx),
+        3425 => shave_elder::apply(ctx),
+        3426 => trim_hair_elder::apply(ctx),
+        3427 => trim_nails_elder::apply(ctx),
+        3428 => warm_elder::apply(ctx),
+        3429 => cool_elder::apply(ctx),
+        3430 => help_dress_elder::apply(ctx),
+        3431 => help_undress_elder::apply(ctx),
+        3432 => help_walk_elder::apply(ctx),
+        3433 => help_climb_elder::apply(ctx),
+        3434 => help_descend_elder::apply(ctx),
+        3435 => spoon_feed_baby_2::apply(ctx),
+        3436 => bottle_feed_baby::apply(ctx),
+        3437 => change_baby_2::apply(ctx),
+        3438 => burp_baby_2::apply(ctx),
+        3439 => swaddle_baby_2::apply(ctx),
+        3440 => bathe_baby_2::apply(ctx),
+        3441 => oil_baby_2::apply(ctx),
+        3442 => powder_baby_2::apply(ctx),
+        3443 => brush_baby_hair::apply(ctx),
+        3444 => brush_baby_teeth_2::apply(ctx),
+        3445 => comfort_sick_child::apply(ctx),
+        3446 => read_to_sick_child::apply(ctx),
+        3447 => sing_to_sick_child::apply(ctx),
+        3448 => rock_sick_child::apply(ctx),
+        3449 => wipe_sick_child_brow::apply(ctx),
+        3450 => feed_sick_kin::apply(ctx),
+        3451 => watch_sick_kin::apply(ctx),
+        3452 => sit_with_sick_kin::apply(ctx),
+        3453 => nurse_sick_kin::apply(ctx),
+        3454 => pray_for_sick_kin::apply(ctx),
+        3455 => carry_invalid::apply(ctx),
+        3456 => lift_invalid::apply(ctx),
+        3457 => turn_invalid::apply(ctx),
+        3458 => wash_invalid::apply(ctx),
+        3459 => feed_invalid_2::apply(ctx),
+        3460 => walk_with_blind::apply(ctx),
+        3461 => walk_with_lame::apply(ctx),
+        3462 => walk_with_dizzy::apply(ctx),
+        3463 => steady_arm_of_lame::apply(ctx),
+        3464 => help_lame_step::apply(ctx),
+        3465 => comfort_grieving::apply(ctx),
+        3466 => sit_with_grieving::apply(ctx),
+        3467 => feed_grieving::apply(ctx),
+        3468 => listen_to_grieving::apply(ctx),
+        3469 => witness_grieving::apply(ctx),
+        _   => 0.0,
+    }
+}
