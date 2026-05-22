@@ -70,6 +70,16 @@ pub mod trade_advanced;
 pub mod theology;
 pub mod cooking_world;
 pub mod community;
+pub mod home_decor;
+pub mod scholarly;
+pub mod celestial_work;
+pub mod mythmaking;
+pub mod logistics;
+pub mod oral_history;
+pub mod infrastructure_work;
+pub mod teaching_advanced;
+pub mod caretaking_advanced;
+pub mod deep_craft;
 
 use ctx::ActionCtx;
 use super::simulation::Simulation;
@@ -224,6 +234,16 @@ pub fn available_actions(sim: &Simulation, idx: usize, ix: i32, iy: i32) -> Vec<
     a.extend(2760..=2809);
     a.extend(2820..=2869);
     a.extend(2880..=2929);
+    a.extend(2940..=2989);
+    a.extend(3000..=3049);
+    a.extend(3060..=3109);
+    a.extend(3120..=3169);
+    a.extend(3180..=3229);
+    a.extend(3240..=3289);
+    a.extend(3300..=3349);
+    a.extend(3360..=3409);
+    a.extend(3420..=3469);
+    a.extend(3480..=3525);
 
     a
 }
@@ -308,6 +328,16 @@ pub fn try_apply(sim: &mut Simulation, idx: usize, action: usize, ix: i32, iy: i
         2760..=2809 => theology::apply(action, &mut ctx),
         2820..=2869 => cooking_world::apply(action, &mut ctx),
         2880..=2929 => community::apply(action, &mut ctx),
+        2940..=2989 => home_decor::apply(action, &mut ctx),
+        3000..=3049 => scholarly::apply(action, &mut ctx),
+        3060..=3109 => celestial_work::apply(action, &mut ctx),
+        3120..=3169 => mythmaking::apply(action, &mut ctx),
+        3180..=3229 => logistics::apply(action, &mut ctx),
+        3240..=3289 => oral_history::apply(action, &mut ctx),
+        3300..=3349 => infrastructure_work::apply(action, &mut ctx),
+        3360..=3409 => teaching_advanced::apply(action, &mut ctx),
+        3420..=3469 => caretaking_advanced::apply(action, &mut ctx),
+        3480..=3525 => deep_craft::apply(action, &mut ctx),
         _           => return None,
     };
     Some(r)
