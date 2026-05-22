@@ -18,6 +18,7 @@ import { ThreeDLoading } from './components/ThreeDLoading'
 import { Try3DToast } from './components/Try3DToast'
 import { MobileBanner } from './components/MobileBanner'
 import { WelcomeModal } from './components/WelcomeModal'
+import { HistoricalApp } from './HistoricalApp'
 import type { OrganismState } from './types'
 import clsx from 'clsx'
 import './App.css'
@@ -26,7 +27,19 @@ const WorldView3D = lazyWithRetry(() => import('./world/WorldView3D'))
 
 const TILE_FIRE = 4
 
+const HISTORICAL_ROUTE = /^\/world\/([a-f0-9]{6,16})\/?$/
+
 function App() {
+  const match = typeof window !== 'undefined'
+    ? HISTORICAL_ROUTE.exec(window.location.pathname)
+    : null
+  if (match) {
+    return <HistoricalApp hash={match[1]} />
+  }
+  return <LiveApp />
+}
+
+function LiveApp() {
   const { world, connected, status, failedAttempts, interp } = useSimulation()
 
   const selectedOrgId = useUIStore(s => s.selectedOrgId)

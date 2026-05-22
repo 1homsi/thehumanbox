@@ -13,6 +13,7 @@ export function MoreDropdown() {
   const openLanguages  = useUIStore(s => s.openLanguages)
   const openFamilyTree = useUIStore(s => s.openFamilyTree)
   const openAbout      = useUIStore(s => s.openAbout)
+  const openWorlds     = useUIStore(s => s.openWorlds)
   const nerdStats      = useUIStore(s => s.nerdStats)
   const setNerdStats   = useUIStore(s => s.setNerdStats)
 
@@ -106,6 +107,7 @@ export function MoreDropdown() {
         <button className="lang-btn" onClick={() => { openLanguages();  closeMore() }}>⌖ lang</button>
         <button className="lang-btn" onClick={() => { openFamilyTree(); closeMore() }}>⬡ tree</button>
         <button className={clsx('lang-btn', leftOpen && 'active')} aria-pressed={!!( leftOpen )} onClick={() => { toggleLeft(); closeMore() }}>⊞ world</button>
+        <button className="lang-btn" onClick={() => { openWorlds(); closeMore() }} title="Browse archived worlds from past months">🌍 worlds</button>
         <button className="lang-btn" onClick={() => { openAbout(); closeMore() }} title="Build info, versions, and links">ⓘ about</button>
         <button className="lang-btn" onClick={() => { closeMore(); startTour() }} title="Guided walkthrough of the app">🎓 tour</button>
         <button

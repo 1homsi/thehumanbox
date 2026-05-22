@@ -600,6 +600,41 @@ async fn main() {
     latest_full_at.store(transport::now_ms(), std::sync::atomic::Ordering::Relaxed);
     let start_ms = transport::now_ms();
     let og_cache: OgCache = Arc::new(tokio::sync::Mutex::new(None));
+
+    server::world_archive::ensure_worlds_dir();
+    let world_started_at = Arc::new(std::sync::atomic::AtomicU64::new(start_ms));
+    let peak_pop = Arc::new(std::sync::atomic::AtomicU64::new(0));
+    {
+        let sim_arch = sim.clone();
+        let started_at_arch = world_started_at.clone();
+        let peak_arch = peak_pop.clone();
+        tokio::spawn(async move {
+            let (mut cur_y, mut cur_m) = server::world_archive::current_year_month_utc();
+            loop {
+                tokio::time::sleep(tokio::time::Duration::from_secs(600)).await;
+                {
+                    let s = sim_arch.lock().await;
+                    let pop = s.organisms.iter().filter(|o| o.alive).count() as u64;
+                    let prev = peak_arch.load(std::sync::atomic::Ordering::Relaxed);
+                    if pop > prev { peak_arch.store(pop, std::sync::atomic::Ordering::Relaxed); }
+                }
+                let (y, m) = server::world_archive::current_year_month_utc();
+                if (y, m) != (cur_y, cur_m) {
+                    let started = started_at_arch.load(std::sync::atomic::Ordering::Relaxed);
+                    let peak = peak_arch.load(std::sync::atomic::Ordering::Relaxed);
+                    if let Some(hash) = server::world_archive::archive_and_reset(
+                        sim_arch.clone(), started, peak, SAVE_PATH,
+                    ).await {
+                        tracing::warn!(target: "archive", "month rollover -> archived as {}", hash);
+                    }
+                    started_at_arch.store(transport::now_ms(), std::sync::atomic::Ordering::Relaxed);
+                    peak_arch.store(0, std::sync::atomic::Ordering::Relaxed);
+                    cur_y = y; cur_m = m;
+                }
+            }
+        });
+    }
+
     let state = AppState {
         sim, tx, latest_full,
         latest_full_at: latest_full_at.clone(),
@@ -622,6 +657,9 @@ async fn main() {
         .route("/health", get(routes::health_handler))
         .route("/metrics", get(routes::metrics_handler))
         .route("/og.png", get(routes::og_handler))
+        .route("/worlds", get(routes::list_worlds_handler))
+        .route("/worlds/:hash/meta", get(routes::world_meta_handler))
+        .route("/worlds/:hash/snapshot", get(routes::world_snapshot_handler))
         .layer(compression)
         .layer(cors)
         .with_state(state);

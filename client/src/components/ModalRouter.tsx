@@ -12,6 +12,7 @@ const ConversationsModal = lazy(() => import('./ConversationsModal').then(m => (
 const AboutModal         = lazy(() => import('./AboutModal').then(m => ({ default: m.AboutModal })))
 const CivStatsModal      = lazy(() => import('./CivStatsModal').then(m => ({ default: m.CivStatsModal })))
 const AllLineagesModal   = lazy(() => import('./AllLineagesModal').then(m => ({ default: m.AllLineagesModal })))
+const WorldsModal        = lazy(() => import('./WorldsModal').then(m => ({ default: m.WorldsModal })))
 
 interface LineageInfo {
   count: number
@@ -34,6 +35,7 @@ export function ModalRouter({ world, lineages }: Props) {
   const showAllLineages = useUIStore(s => s.showAllLineages)
   const showAbout       = useUIStore(s => s.showAbout)
   const showCiv         = useUIStore(s => s.showCiv)
+  const showWorlds      = useUIStore(s => s.showWorlds)
   const convoOrgId      = useUIStore(s => s.convoOrgId)
 
   const closeLanguages   = useUIStore(s => s.closeLanguages)
@@ -44,6 +46,7 @@ export function ModalRouter({ world, lineages }: Props) {
   const closeAllLineages = useUIStore(s => s.closeAllLineages)
   const closeAbout       = useUIStore(s => s.closeAbout)
   const closeCiv         = useUIStore(s => s.closeCiv)
+  const closeWorlds      = useUIStore(s => s.closeWorlds)
   const closeConvo       = useUIStore(s => s.closeConvo)
   const followOrg        = useUIStore(s => s.followOrg)
 
@@ -102,6 +105,9 @@ export function ModalRouter({ world, lineages }: Props) {
         )}
         {showCiv && (
           <CivStatsModal world={world} onClose={closeCiv} />
+        )}
+        {showWorlds && (
+          <WorldsModal onClose={closeWorlds} />
         )}
       </Suspense>
 

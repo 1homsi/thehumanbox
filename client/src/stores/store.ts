@@ -47,6 +47,7 @@ interface UIState {
   showAllLineages: boolean
   showAbout:       boolean
   showCiv:         boolean
+  showWorlds:      boolean
   convoOrgId:      string | null
 
   panelOpen: boolean
@@ -81,6 +82,8 @@ interface UIState {
   closeAllLineages: () => void
   openAbout:        () => void
   closeAbout:       () => void
+  openWorlds:       () => void
+  closeWorlds:      () => void
   openCiv:          () => void
   closeCiv:         () => void
   openConvo:        (id: string) => void
@@ -135,6 +138,7 @@ export const useUIStore = create<UIState>((set) => ({
   showAllLineages: false,
   showAbout:       false,
   showCiv:         false,
+  showWorlds:      false,
   convoOrgId:      null,
 
   panelOpen: false,
@@ -183,6 +187,8 @@ export const useUIStore = create<UIState>((set) => ({
   closeAllLineages: () => set({ showAllLineages: false }),
   openAbout:        () => set({ showAbout:       true }),
   closeAbout:       () => set({ showAbout:       false }),
+  openWorlds:       () => set({ showWorlds:      true }),
+  closeWorlds:      () => set({ showWorlds:      false }),
   openCiv:          () => set({ showCiv:         true }),
   closeCiv:         () => set({ showCiv:         false }),
   openConvo:        (id) => set({ convoOrgId: id }),
@@ -196,6 +202,7 @@ export const useUIStore = create<UIState>((set) => ({
     showAllLineages: false,
     showAbout:       false,
     showCiv:         false,
+    showWorlds:      false,
     convoOrgId:      null,
   }),
 

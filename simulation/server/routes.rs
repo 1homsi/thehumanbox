@@ -144,6 +144,39 @@ pub async fn snapshot_handler(
     }
 }
 
+pub async fn list_worlds_handler() -> impl IntoResponse {
+    let worlds = crate::server::world_archive::list_archived_worlds();
+    (
+        [(axum::http::header::CACHE_CONTROL, "public, max-age=60".to_string())],
+        Json(serde_json::json!({ "worlds": worlds })),
+    )
+}
+
+pub async fn world_meta_handler(
+    Path(hash): Path<String>,
+) -> Result<impl IntoResponse, StatusCode> {
+    let meta = crate::server::world_archive::read_world_meta(&hash)
+        .ok_or(StatusCode::NOT_FOUND)?;
+    Ok((
+        [(axum::http::header::CACHE_CONTROL, "public, max-age=86400, immutable".to_string())],
+        Json(meta),
+    ))
+}
+
+pub async fn world_snapshot_handler(
+    Path(hash): Path<String>,
+) -> Result<impl IntoResponse, StatusCode> {
+    let bytes = crate::server::world_archive::read_world_snapshot(&hash)
+        .ok_or(StatusCode::NOT_FOUND)?;
+    Ok((
+        [
+            (axum::http::header::CONTENT_TYPE,  "application/msgpack".to_string()),
+            (axum::http::header::CACHE_CONTROL, "public, max-age=86400, immutable".to_string()),
+        ],
+        bytes,
+    ))
+}
+
 pub async fn version_handler() -> impl IntoResponse {
     let built_at: u64 = env!("THB_BUILD_TS").parse().unwrap_or(0);
     (

@@ -8,5 +8,6 @@ pub mod narration_worker;
 pub mod conversation_worker;
 pub mod think_worker;
 pub mod og_image;
+pub mod world_archive;
 #[cfg(feature = "webtransport")]
 pub mod webtransport;
