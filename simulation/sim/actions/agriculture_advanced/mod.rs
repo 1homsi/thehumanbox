@@ -1,0 +1,108 @@
+pub mod graft_apple;
+pub mod graft_pear;
+pub mod graft_plum;
+pub mod graft_olive;
+pub mod bud_rose;
+pub mod layer_strawberry;
+pub mod layer_grape;
+pub mod divide_iris;
+pub mod divide_hosta;
+pub mod divide_rhubarb;
+pub mod espalier_apple;
+pub mod espalier_pear;
+pub mod pollinate_by_hand;
+pub mod cross_pollinate;
+pub mod hybridize_seed;
+pub mod test_germination;
+pub mod winnow_grain;
+pub mod dry_seed;
+pub mod save_heirloom;
+pub mod select_for_yield;
+pub mod select_for_taste;
+pub mod select_for_color;
+pub mod line_breed;
+pub mod clone_cutting;
+pub mod graft_root;
+pub mod build_cold_frame;
+pub mod build_hotbed;
+pub mod build_root_cellar;
+pub mod build_terrace;
+pub mod dig_swale;
+pub mod build_keyline;
+pub mod build_hugelkultur;
+pub mod build_lasagna_bed;
+pub mod prep_seedbed;
+pub mod prep_raised_bed;
+pub mod rotate_brassicas;
+pub mod rotate_legumes;
+pub mod intercrop_three_sisters;
+pub mod cover_crop_clover;
+pub mod green_manure_alfalfa;
+pub mod fallow_field;
+pub mod flood_field;
+pub mod drain_field;
+pub mod check_soil_ph;
+pub mod add_lime;
+pub mod add_compost;
+pub mod add_manure;
+pub mod mulch_straw;
+pub mod mulch_leaf;
+pub mod mulch_grass;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        1920 => graft_apple::apply(ctx),
+        1921 => graft_pear::apply(ctx),
+        1922 => graft_plum::apply(ctx),
+        1923 => graft_olive::apply(ctx),
+        1924 => bud_rose::apply(ctx),
+        1925 => layer_strawberry::apply(ctx),
+        1926 => layer_grape::apply(ctx),
+        1927 => divide_iris::apply(ctx),
+        1928 => divide_hosta::apply(ctx),
+        1929 => divide_rhubarb::apply(ctx),
+        1930 => espalier_apple::apply(ctx),
+        1931 => espalier_pear::apply(ctx),
+        1932 => pollinate_by_hand::apply(ctx),
+        1933 => cross_pollinate::apply(ctx),
+        1934 => hybridize_seed::apply(ctx),
+        1935 => test_germination::apply(ctx),
+        1936 => winnow_grain::apply(ctx),
+        1937 => dry_seed::apply(ctx),
+        1938 => save_heirloom::apply(ctx),
+        1939 => select_for_yield::apply(ctx),
+        1940 => select_for_taste::apply(ctx),
+        1941 => select_for_color::apply(ctx),
+        1942 => line_breed::apply(ctx),
+        1943 => clone_cutting::apply(ctx),
+        1944 => graft_root::apply(ctx),
+        1945 => build_cold_frame::apply(ctx),
+        1946 => build_hotbed::apply(ctx),
+        1947 => build_root_cellar::apply(ctx),
+        1948 => build_terrace::apply(ctx),
+        1949 => dig_swale::apply(ctx),
+        1950 => build_keyline::apply(ctx),
+        1951 => build_hugelkultur::apply(ctx),
+        1952 => build_lasagna_bed::apply(ctx),
+        1953 => prep_seedbed::apply(ctx),
+        1954 => prep_raised_bed::apply(ctx),
+        1955 => rotate_brassicas::apply(ctx),
+        1956 => rotate_legumes::apply(ctx),
+        1957 => intercrop_three_sisters::apply(ctx),
+        1958 => cover_crop_clover::apply(ctx),
+        1959 => green_manure_alfalfa::apply(ctx),
+        1960 => fallow_field::apply(ctx),
+        1961 => flood_field::apply(ctx),
+        1962 => drain_field::apply(ctx),
+        1963 => check_soil_ph::apply(ctx),
+        1964 => add_lime::apply(ctx),
+        1965 => add_compost::apply(ctx),
+        1966 => add_manure::apply(ctx),
+        1967 => mulch_straw::apply(ctx),
+        1968 => mulch_leaf::apply(ctx),
+        1969 => mulch_grass::apply(ctx),
+        _   => 0.0,
+    }
+}
