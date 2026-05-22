@@ -1,0 +1,108 @@
+pub mod crawl_to_toy;
+pub mod giggle_at_face;
+pub mod reach_for_mother;
+pub mod reach_for_father;
+pub mod reach_for_kin;
+pub mod babble_first_sound;
+pub mod babble_first_word;
+pub mod babble_name;
+pub mod imitate_face;
+pub mod imitate_word;
+pub mod take_first_step;
+pub mod take_second_step;
+pub mod take_third_step;
+pub mod climb_first_stair;
+pub mod climb_first_chair;
+pub mod hold_first_cup;
+pub mod hold_first_spoon;
+pub mod hold_first_brush;
+pub mod hold_first_pencil;
+pub mod hold_first_book;
+pub mod scribble_first;
+pub mod scribble_circle;
+pub mod scribble_line;
+pub mod scribble_shape;
+pub mod scribble_name;
+pub mod point_at_object;
+pub mod name_object;
+pub mod point_at_animal;
+pub mod name_animal;
+pub mod name_color;
+pub mod pick_up_pebble;
+pub mod pick_up_leaf;
+pub mod pick_up_flower;
+pub mod pick_up_seed;
+pub mod pick_up_acorn;
+pub mod share_with_sibling;
+pub mod refuse_to_share;
+pub mod refuse_food;
+pub mod eat_with_hands;
+pub mod eat_with_spoon;
+pub mod protest_bath;
+pub mod enjoy_bath;
+pub mod splash_in_tub;
+pub mod float_toy_in_tub;
+pub mod pour_water_in_tub;
+pub mod hide_in_blanket;
+pub mod peek_from_blanket;
+pub mod hug_blanket;
+pub mod name_blanket;
+pub mod dream_with_blanket;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        5580 => crawl_to_toy::apply(ctx),
+        5581 => giggle_at_face::apply(ctx),
+        5582 => reach_for_mother::apply(ctx),
+        5583 => reach_for_father::apply(ctx),
+        5584 => reach_for_kin::apply(ctx),
+        5585 => babble_first_sound::apply(ctx),
+        5586 => babble_first_word::apply(ctx),
+        5587 => babble_name::apply(ctx),
+        5588 => imitate_face::apply(ctx),
+        5589 => imitate_word::apply(ctx),
+        5590 => take_first_step::apply(ctx),
+        5591 => take_second_step::apply(ctx),
+        5592 => take_third_step::apply(ctx),
+        5593 => climb_first_stair::apply(ctx),
+        5594 => climb_first_chair::apply(ctx),
+        5595 => hold_first_cup::apply(ctx),
+        5596 => hold_first_spoon::apply(ctx),
+        5597 => hold_first_brush::apply(ctx),
+        5598 => hold_first_pencil::apply(ctx),
+        5599 => hold_first_book::apply(ctx),
+        5600 => scribble_first::apply(ctx),
+        5601 => scribble_circle::apply(ctx),
+        5602 => scribble_line::apply(ctx),
+        5603 => scribble_shape::apply(ctx),
+        5604 => scribble_name::apply(ctx),
+        5605 => point_at_object::apply(ctx),
+        5606 => name_object::apply(ctx),
+        5607 => point_at_animal::apply(ctx),
+        5608 => name_animal::apply(ctx),
+        5609 => name_color::apply(ctx),
+        5610 => pick_up_pebble::apply(ctx),
+        5611 => pick_up_leaf::apply(ctx),
+        5612 => pick_up_flower::apply(ctx),
+        5613 => pick_up_seed::apply(ctx),
+        5614 => pick_up_acorn::apply(ctx),
+        5615 => share_with_sibling::apply(ctx),
+        5616 => refuse_to_share::apply(ctx),
+        5617 => refuse_food::apply(ctx),
+        5618 => eat_with_hands::apply(ctx),
+        5619 => eat_with_spoon::apply(ctx),
+        5620 => protest_bath::apply(ctx),
+        5621 => enjoy_bath::apply(ctx),
+        5622 => splash_in_tub::apply(ctx),
+        5623 => float_toy_in_tub::apply(ctx),
+        5624 => pour_water_in_tub::apply(ctx),
+        5625 => hide_in_blanket::apply(ctx),
+        5626 => peek_from_blanket::apply(ctx),
+        5627 => hug_blanket::apply(ctx),
+        5628 => name_blanket::apply(ctx),
+        5629 => dream_with_blanket::apply(ctx),
+        _   => 0.0,
+    }
+}
