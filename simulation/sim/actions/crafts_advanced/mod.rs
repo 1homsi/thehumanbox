@@ -1,0 +1,108 @@
+pub mod knap_obsidian;
+pub mod flint_blade;
+pub mod temper_iron;
+pub mod quench_steel;
+pub mod weld_steel;
+pub mod forge_chainmail;
+pub mod forge_helm;
+pub mod forge_blade;
+pub mod forge_axe;
+pub mod forge_polearm;
+pub mod fletch_arrow;
+pub mod string_bow;
+pub mod carve_arrow_shaft;
+pub mod set_arrow_tip;
+pub mod set_quiver;
+pub mod build_loom;
+pub mod thread_loom;
+pub mod weave_linen;
+pub mod weave_wool;
+pub mod weave_silk;
+pub mod dye_indigo;
+pub mod dye_madder;
+pub mod dye_woad;
+pub mod mordant_cloth;
+pub mod print_block_pattern;
+pub mod hand_paint_silk;
+pub mod batik_dye;
+pub mod tie_dye;
+pub mod gild_letter;
+pub mod illuminate_initial;
+pub mod card_wool;
+pub mod spin_wool;
+pub mod spin_flax;
+pub mod retted_flax;
+pub mod brake_flax;
+pub mod bleach_linen;
+pub mod waulk_cloth;
+pub mod full_cloth;
+pub mod nap_cloth;
+pub mod stretch_canvas;
+pub mod prime_canvas;
+pub mod grind_pigment;
+pub mod mix_oil_paint;
+pub mod mix_tempera;
+pub mod mix_fresco;
+pub mod whitewash_wall;
+pub mod lime_wash;
+pub mod plaster_wall;
+pub mod stipple_finish;
+pub mod marble_paper;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        1200 => knap_obsidian::apply(ctx),
+        1201 => flint_blade::apply(ctx),
+        1202 => temper_iron::apply(ctx),
+        1203 => quench_steel::apply(ctx),
+        1204 => weld_steel::apply(ctx),
+        1205 => forge_chainmail::apply(ctx),
+        1206 => forge_helm::apply(ctx),
+        1207 => forge_blade::apply(ctx),
+        1208 => forge_axe::apply(ctx),
+        1209 => forge_polearm::apply(ctx),
+        1210 => fletch_arrow::apply(ctx),
+        1211 => string_bow::apply(ctx),
+        1212 => carve_arrow_shaft::apply(ctx),
+        1213 => set_arrow_tip::apply(ctx),
+        1214 => set_quiver::apply(ctx),
+        1215 => build_loom::apply(ctx),
+        1216 => thread_loom::apply(ctx),
+        1217 => weave_linen::apply(ctx),
+        1218 => weave_wool::apply(ctx),
+        1219 => weave_silk::apply(ctx),
+        1220 => dye_indigo::apply(ctx),
+        1221 => dye_madder::apply(ctx),
+        1222 => dye_woad::apply(ctx),
+        1223 => mordant_cloth::apply(ctx),
+        1224 => print_block_pattern::apply(ctx),
+        1225 => hand_paint_silk::apply(ctx),
+        1226 => batik_dye::apply(ctx),
+        1227 => tie_dye::apply(ctx),
+        1228 => gild_letter::apply(ctx),
+        1229 => illuminate_initial::apply(ctx),
+        1230 => card_wool::apply(ctx),
+        1231 => spin_wool::apply(ctx),
+        1232 => spin_flax::apply(ctx),
+        1233 => retted_flax::apply(ctx),
+        1234 => brake_flax::apply(ctx),
+        1235 => bleach_linen::apply(ctx),
+        1236 => waulk_cloth::apply(ctx),
+        1237 => full_cloth::apply(ctx),
+        1238 => nap_cloth::apply(ctx),
+        1239 => stretch_canvas::apply(ctx),
+        1240 => prime_canvas::apply(ctx),
+        1241 => grind_pigment::apply(ctx),
+        1242 => mix_oil_paint::apply(ctx),
+        1243 => mix_tempera::apply(ctx),
+        1244 => mix_fresco::apply(ctx),
+        1245 => whitewash_wall::apply(ctx),
+        1246 => lime_wash::apply(ctx),
+        1247 => plaster_wall::apply(ctx),
+        1248 => stipple_finish::apply(ctx),
+        1249 => marble_paper::apply(ctx),
+        _   => 0.0,
+    }
+}
