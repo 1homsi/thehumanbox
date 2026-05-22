@@ -1,0 +1,110 @@
+pub mod file_papers;
+pub mod count_inventory;
+pub mod check_ledger;
+pub mod balance_books;
+pub mod draft_memo;
+pub mod seal_letter;
+pub mod dictate_letter;
+pub mod mend_clothes_for_pay;
+pub mod shoe_horse;
+pub mod forge_nail;
+pub mod forge_hinge;
+pub mod sharpen_blade;
+pub mod temper_blade;
+pub mod dye_cloth;
+pub mod cut_garment;
+pub mod measure_customer;
+pub mod stitch_seam;
+pub mod bake_for_sale;
+pub mod roast_for_sale;
+pub mod serve_table;
+pub mod cashier_count;
+pub mod handle_complaint;
+pub mod train_apprentice;
+pub mod apprentice_to_master;
+pub mod inspect_goods;
+pub mod stamp_seal;
+pub mod weigh_grain;
+pub mod measure_cloth;
+pub mod pour_drink;
+pub mod pour_oil;
+pub mod sharpen_tools;
+pub mod mend_pot;
+pub mod mend_shoe;
+pub mod mend_roof_for_pay;
+pub mod haul_load;
+pub mod carry_water_for_pay;
+pub mod deliver_message;
+pub mod run_errand;
+pub mod wash_pots_for_pay;
+pub mod sweep_shop;
+pub mod unload_cart;
+pub mod load_cart;
+pub mod catalog_inventory;
+pub mod price_goods;
+pub mod barter_for_stock;
+pub mod collect_debt;
+pub mod pay_debt;
+pub mod patrol_route;
+pub mod sound_horn;
+pub mod keep_watch;
+pub mod sweep_floor_shop;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        780 => file_papers::apply(ctx),
+        781 => count_inventory::apply(ctx),
+        782 => check_ledger::apply(ctx),
+        783 => balance_books::apply(ctx),
+        784 => draft_memo::apply(ctx),
+        785 => seal_letter::apply(ctx),
+        786 => dictate_letter::apply(ctx),
+        787 => mend_clothes_for_pay::apply(ctx),
+        788 => shoe_horse::apply(ctx),
+        789 => forge_nail::apply(ctx),
+        790 => forge_hinge::apply(ctx),
+        791 => sharpen_blade::apply(ctx),
+        792 => temper_blade::apply(ctx),
+        793 => dye_cloth::apply(ctx),
+        794 => cut_garment::apply(ctx),
+        795 => measure_customer::apply(ctx),
+        796 => stitch_seam::apply(ctx),
+        797 => bake_for_sale::apply(ctx),
+        798 => roast_for_sale::apply(ctx),
+        799 => serve_table::apply(ctx),
+        800 => cashier_count::apply(ctx),
+        801 => handle_complaint::apply(ctx),
+        802 => train_apprentice::apply(ctx),
+        803 => apprentice_to_master::apply(ctx),
+        804 => inspect_goods::apply(ctx),
+        805 => stamp_seal::apply(ctx),
+        806 => weigh_grain::apply(ctx),
+        807 => measure_cloth::apply(ctx),
+        808 => pour_drink::apply(ctx),
+        809 => pour_oil::apply(ctx),
+        810 => sharpen_tools::apply(ctx),
+        811 => mend_pot::apply(ctx),
+        812 => mend_shoe::apply(ctx),
+        813 => mend_roof_for_pay::apply(ctx),
+        814 => haul_load::apply(ctx),
+        815 => carry_water_for_pay::apply(ctx),
+        816 => deliver_message::apply(ctx),
+        817 => run_errand::apply(ctx),
+        818 => wash_pots_for_pay::apply(ctx),
+        819 => sweep_shop::apply(ctx),
+        820 => unload_cart::apply(ctx),
+        821 => load_cart::apply(ctx),
+        822 => catalog_inventory::apply(ctx),
+        823 => price_goods::apply(ctx),
+        824 => barter_for_stock::apply(ctx),
+        825 => collect_debt::apply(ctx),
+        826 => pay_debt::apply(ctx),
+        827 => patrol_route::apply(ctx),
+        828 => sound_horn::apply(ctx),
+        829 => keep_watch::apply(ctx),
+        830 => sweep_floor_shop::apply(ctx),
+        _   => 0.0,
+    }
+}
