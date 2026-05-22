@@ -1,0 +1,98 @@
+pub mod prepare_clay;
+pub mod wedge_clay;
+pub mod knead_clay;
+pub mod pug_clay;
+pub mod sieve_clay;
+pub mod weigh_clay;
+pub mod center_on_wheel;
+pub mod open_form;
+pub mod pull_walls;
+pub mod collar_neck;
+pub mod shape_belly;
+pub mod trim_foot;
+pub mod footring_carved;
+pub mod attach_handle;
+pub mod attach_spout;
+pub mod burnish_leather_hard;
+pub mod etch_design;
+pub mod impress_seal;
+pub mod carve_pattern;
+pub mod slip_inlay;
+pub mod apply_slip;
+pub mod apply_engobe;
+pub mod apply_glaze;
+pub mod double_dip;
+pub mod drip_glaze;
+pub mod brush_glaze;
+pub mod trail_glaze;
+pub mod sponge_glaze;
+pub mod stipple_glaze;
+pub mod sponge_off;
+pub mod load_kiln;
+pub mod stagger_load;
+pub mod brick_door;
+pub mod candling_low_fire;
+pub mod bisque_fire;
+pub mod glaze_fire;
+pub mod reduction_fire;
+pub mod oxidation_fire;
+pub mod wood_fire;
+pub mod salt_fire;
+pub mod raku_fire;
+pub mod pit_fire;
+pub mod bonfire_fire;
+pub mod smoke_fire;
+pub mod burnish_fire;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        4080 => prepare_clay::apply(ctx),
+        4081 => wedge_clay::apply(ctx),
+        4082 => knead_clay::apply(ctx),
+        4083 => pug_clay::apply(ctx),
+        4084 => sieve_clay::apply(ctx),
+        4085 => weigh_clay::apply(ctx),
+        4086 => center_on_wheel::apply(ctx),
+        4087 => open_form::apply(ctx),
+        4088 => pull_walls::apply(ctx),
+        4089 => collar_neck::apply(ctx),
+        4090 => shape_belly::apply(ctx),
+        4091 => trim_foot::apply(ctx),
+        4092 => footring_carved::apply(ctx),
+        4093 => attach_handle::apply(ctx),
+        4094 => attach_spout::apply(ctx),
+        4095 => burnish_leather_hard::apply(ctx),
+        4096 => etch_design::apply(ctx),
+        4097 => impress_seal::apply(ctx),
+        4098 => carve_pattern::apply(ctx),
+        4099 => slip_inlay::apply(ctx),
+        4100 => apply_slip::apply(ctx),
+        4101 => apply_engobe::apply(ctx),
+        4102 => apply_glaze::apply(ctx),
+        4103 => double_dip::apply(ctx),
+        4104 => drip_glaze::apply(ctx),
+        4105 => brush_glaze::apply(ctx),
+        4106 => trail_glaze::apply(ctx),
+        4107 => sponge_glaze::apply(ctx),
+        4108 => stipple_glaze::apply(ctx),
+        4109 => sponge_off::apply(ctx),
+        4110 => load_kiln::apply(ctx),
+        4111 => stagger_load::apply(ctx),
+        4112 => brick_door::apply(ctx),
+        4113 => candling_low_fire::apply(ctx),
+        4114 => bisque_fire::apply(ctx),
+        4115 => glaze_fire::apply(ctx),
+        4116 => reduction_fire::apply(ctx),
+        4117 => oxidation_fire::apply(ctx),
+        4118 => wood_fire::apply(ctx),
+        4119 => salt_fire::apply(ctx),
+        4120 => raku_fire::apply(ctx),
+        4121 => pit_fire::apply(ctx),
+        4122 => bonfire_fire::apply(ctx),
+        4123 => smoke_fire::apply(ctx),
+        4124 => burnish_fire::apply(ctx),
+        _   => 0.0,
+    }
+}
