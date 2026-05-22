@@ -1,0 +1,108 @@
+pub mod recite_genealogy;
+pub mod recite_lineage;
+pub mod recite_succession;
+pub mod recite_pedigree;
+pub mod recite_kinship;
+pub mod recite_birth_dates;
+pub mod recite_death_dates;
+pub mod recite_marriage_dates;
+pub mod recite_battle_dates;
+pub mod recite_treaty_dates;
+pub mod recall_chieftain;
+pub mod recall_priest;
+pub mod recall_artisan;
+pub mod recall_warrior;
+pub mod recall_elder;
+pub mod recall_first_arrival;
+pub mod recall_great_migration;
+pub mod recall_long_winter;
+pub mod recall_great_drought;
+pub mod recall_great_flood;
+pub mod recall_first_fire_of_kin;
+pub mod recall_first_house_of_kin;
+pub mod recall_first_field_of_kin;
+pub mod recall_first_herd_of_kin;
+pub mod recall_first_smith_of_kin;
+pub mod honor_ancestor;
+pub mod honor_first_ancestor;
+pub mod honor_great_ancestor;
+pub mod honor_distant_ancestor;
+pub mod honor_unknown_ancestor;
+pub mod visit_ancestral_field;
+pub mod visit_ancestral_house;
+pub mod visit_ancestral_well;
+pub mod visit_ancestral_grave;
+pub mod visit_ancestral_tree;
+pub mod carry_ancestor_token;
+pub mod carry_ancestor_locket;
+pub mod carry_ancestor_charm;
+pub mod carry_ancestor_ring;
+pub mod carry_ancestor_blade;
+pub mod pass_down_name;
+pub mod pass_down_birthright;
+pub mod pass_down_signet;
+pub mod pass_down_blade_heir;
+pub mod pass_down_field_heir;
+pub mod intone_lineage_song;
+pub mod intone_lineage_lament;
+pub mod intone_lineage_hymn;
+pub mod intone_lineage_litany;
+pub mod intone_lineage_canticle;
+
+use super::ctx::ActionCtx;
+
+pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    match action {
+        3240 => recite_genealogy::apply(ctx),
+        3241 => recite_lineage::apply(ctx),
+        3242 => recite_succession::apply(ctx),
+        3243 => recite_pedigree::apply(ctx),
+        3244 => recite_kinship::apply(ctx),
+        3245 => recite_birth_dates::apply(ctx),
+        3246 => recite_death_dates::apply(ctx),
+        3247 => recite_marriage_dates::apply(ctx),
+        3248 => recite_battle_dates::apply(ctx),
+        3249 => recite_treaty_dates::apply(ctx),
+        3250 => recall_chieftain::apply(ctx),
+        3251 => recall_priest::apply(ctx),
+        3252 => recall_artisan::apply(ctx),
+        3253 => recall_warrior::apply(ctx),
+        3254 => recall_elder::apply(ctx),
+        3255 => recall_first_arrival::apply(ctx),
+        3256 => recall_great_migration::apply(ctx),
+        3257 => recall_long_winter::apply(ctx),
+        3258 => recall_great_drought::apply(ctx),
+        3259 => recall_great_flood::apply(ctx),
+        3260 => recall_first_fire_of_kin::apply(ctx),
+        3261 => recall_first_house_of_kin::apply(ctx),
+        3262 => recall_first_field_of_kin::apply(ctx),
+        3263 => recall_first_herd_of_kin::apply(ctx),
+        3264 => recall_first_smith_of_kin::apply(ctx),
+        3265 => honor_ancestor::apply(ctx),
+        3266 => honor_first_ancestor::apply(ctx),
+        3267 => honor_great_ancestor::apply(ctx),
+        3268 => honor_distant_ancestor::apply(ctx),
+        3269 => honor_unknown_ancestor::apply(ctx),
+        3270 => visit_ancestral_field::apply(ctx),
+        3271 => visit_ancestral_house::apply(ctx),
+        3272 => visit_ancestral_well::apply(ctx),
+        3273 => visit_ancestral_grave::apply(ctx),
+        3274 => visit_ancestral_tree::apply(ctx),
+        3275 => carry_ancestor_token::apply(ctx),
+        3276 => carry_ancestor_locket::apply(ctx),
+        3277 => carry_ancestor_charm::apply(ctx),
+        3278 => carry_ancestor_ring::apply(ctx),
+        3279 => carry_ancestor_blade::apply(ctx),
+        3280 => pass_down_name::apply(ctx),
+        3281 => pass_down_birthright::apply(ctx),
+        3282 => pass_down_signet::apply(ctx),
+        3283 => pass_down_blade_heir::apply(ctx),
+        3284 => pass_down_field_heir::apply(ctx),
+        3285 => intone_lineage_song::apply(ctx),
+        3286 => intone_lineage_lament::apply(ctx),
+        3287 => intone_lineage_hymn::apply(ctx),
+        3288 => intone_lineage_litany::apply(ctx),
+        3289 => intone_lineage_canticle::apply(ctx),
+        _   => 0.0,
+    }
+}
