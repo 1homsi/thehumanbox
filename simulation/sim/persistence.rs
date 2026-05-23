@@ -689,6 +689,7 @@ impl Simulation {
             next_artwork_id: 1,
             festivals: Vec::new(),
             next_festival_id: 1,
+            action_counts: HashMap::new(),
             books: Vec::new(),
             next_book_id: 1,
             farms: Vec::new(),

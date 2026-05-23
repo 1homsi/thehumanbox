@@ -315,6 +315,19 @@ fn main() {
             println!("  {:>4}  {}", n, g);
         }
     }
+
+    if !sim.action_counts.is_empty() {
+        let mut rows: Vec<(&'static str, u64)> = sim
+            .action_counts
+            .iter()
+            .map(|(k, v)| (*k, *v))
+            .collect();
+        rows.sort_by(|a, b| b.1.cmp(&a.1));
+        println!("\nRound-9 category coverage (action firings):");
+        for (cat, n) in rows {
+            println!("  {:>7}  {}", n, cat);
+        }
+    }
     let mut era_counts: HashMap<String, usize> = HashMap::new();
     for (_, era) in sim.lineage_eras.iter() {
         *era_counts.entry(era.name().to_string()).or_insert(0) += 1;

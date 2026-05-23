@@ -375,8 +375,27 @@ fn workshop_bonus(sim: &Simulation, ix: i32, iy: i32, action: usize) -> f32 {
     if near { 1.5 } else { 1.0 }
 }
 
+fn category_for(action: usize) -> Option<&'static str> {
+    Some(match action {
+        5340..=5389 => "cafe_work",
+        5400..=5449 => "barista_advanced",
+        5460..=5509 => "retail",
+        5520..=5569 => "tech_devops",
+        5580..=5629 => "childhood",
+        5640..=5689 => "elder_life",
+        5700..=5749 => "journalism",
+        5760..=5809 => "fashion",
+        5820..=5869 => "butchery",
+        5880..=5929 => "distillation",
+        _ => return None,
+    })
+}
+
 pub fn try_apply(sim: &mut Simulation, idx: usize, action: usize, ix: i32, iy: i32, spatial: &crate::sim::spatial::SpatialIndex) -> Option<f32> {
     let bonus = workshop_bonus(sim, ix, iy, action);
+    if let Some(cat) = category_for(action) {
+        *sim.action_counts.entry(cat).or_insert(0) += 1;
+    }
     let mut ctx = ActionCtx::new(sim, idx, ix, iy, spatial);
     let r = match action {
         26..=38     => resources::apply(action, &mut ctx),
