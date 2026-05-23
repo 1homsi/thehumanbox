@@ -1,8 +1,8 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
-    ctx.think("audit dependency");
-    ctx.event("chore", "audit dependency");
-    0.005
+    ctx.add_literacy(0.004);
+    ctx.think("audit a dependency");
+    ctx.event("chore", "audit a dependency");
+    0.04
 }

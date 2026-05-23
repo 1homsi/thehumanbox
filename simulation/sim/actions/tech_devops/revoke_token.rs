@@ -1,8 +1,9 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
-    ctx.think("revoke token");
-    ctx.event("chore", "revoke token");
-    0.005
+    ctx.add_piety(0.005);
+    ctx.add_literacy(0.005);
+    ctx.think("revoke a token");
+    ctx.event("chore", "revoke a token");
+    0.05
 }

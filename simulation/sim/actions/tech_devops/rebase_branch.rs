@@ -1,8 +1,8 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
-    ctx.think("rebase branch");
-    ctx.event("chore", "rebase branch");
-    0.005
+    ctx.add_literacy(0.004);
+    ctx.think("rebase a branch");
+    ctx.event("chore", "rebase a branch");
+    0.04
 }

@@ -1,8 +1,8 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
-    ctx.think("approve pull request");
-    ctx.event("chore", "approve pull request");
-    0.005
+    ctx.add_literacy(0.005);
+    ctx.think("approve a pull request");
+    ctx.event("chore", "approve a pull request");
+    0.04
 }
