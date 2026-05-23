@@ -91,7 +91,7 @@ impl WeatherState {
 }
 
 const RAIN_BASE_PROB: f32 = 0.0005;
-const MAX_RECENT_EVENTS: usize = 300;
+const MAX_RECENT_EVENTS: usize = 600;
 const WET_AFTERMATH_TICKS: u64 = 1200;
 
 pub fn tick_weather(

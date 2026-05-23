@@ -894,6 +894,6 @@ fn tick_milestones(sim: &mut Simulation) {
     }
     for h in headlines {
         sim.headlines.push_back(h);
-        while sim.headlines.len() > 30 { sim.headlines.pop_front(); }
+        while sim.headlines.len() > 80 { sim.headlines.pop_front(); }
     }
 }

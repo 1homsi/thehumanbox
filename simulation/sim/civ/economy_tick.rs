@@ -6,7 +6,7 @@ use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
 
 const BARTER_RADIUS: f32 = 3.0;
-const TRADE_LOG_CAP: usize = 200;
+const TRADE_LOG_CAP: usize = 500;
 
 pub fn tick_economy(sim: &mut Simulation, tick: u64) {
     if tick == 0 {
