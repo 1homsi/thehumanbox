@@ -1,8 +1,9 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
+    if ctx.chance(0.4) { ctx.add_good("pattern", 1); }
+    ctx.add_literacy(0.004);
     ctx.think("sketch drape");
-    ctx.event("chore", "sketch drape");
-    0.005
+    ctx.event("chore", "sketched a drape");
+    0.04
 }

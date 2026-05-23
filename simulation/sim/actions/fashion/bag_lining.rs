@@ -1,8 +1,8 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
+    ctx.add_literacy(0.003);
     ctx.think("bag lining");
-    ctx.event("chore", "bag lining");
-    0.005
+    ctx.event("chore", "bagged lining");
+    0.03
 }

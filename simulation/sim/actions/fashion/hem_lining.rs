@@ -1,8 +1,12 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
-    ctx.think("hem lining");
-    ctx.event("chore", "hem lining");
-    0.005
+    if ctx.good("garment") == 0 {
+        ctx.think("no garment for lining");
+        return 0.005;
+    }
+    ctx.add_literacy(0.003);
+    ctx.think("hemmed lining");
+    ctx.event("chore", "hemmed lining");
+    0.03
 }
