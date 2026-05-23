@@ -116,6 +116,28 @@ export function CivStatsModal({ world, onClose }: Props) {
   }
   const buildingRows = Object.entries(buildingCounts).sort((a, b) => b[1] - a[1])
 
+  const goodsByLineage = new Map<string, Map<string, number>>()
+  for (const o of world.organisms) {
+    if (!o.alive || !o.tools) continue
+    const lid = o.lineage_id
+    let bag = goodsByLineage.get(lid)
+    if (!bag) {
+      bag = new Map<string, number>()
+      goodsByLineage.set(lid, bag)
+    }
+    for (const [k, v] of Object.entries(o.tools)) {
+      if (!v) continue
+      bag.set(k, (bag.get(k) ?? 0) + v)
+    }
+  }
+  const goodsTotals = new Map<string, number>()
+  for (const bag of goodsByLineage.values()) {
+    for (const [k, v] of bag) {
+      goodsTotals.set(k, (goodsTotals.get(k) ?? 0) + v)
+    }
+  }
+  const goodsTotalRows = [...goodsTotals.entries()].sort((a, b) => b[1] - a[1])
+
   return (
     <Modal open onClose={onClose} className="civ-modal" title={'\u{1F30D} Civilization'}>
       <div className="civ-modal-grid">
@@ -230,6 +252,50 @@ export function CivStatsModal({ world, onClose }: Props) {
               </span>
             ))}
           </div>
+        </section>
+
+        <section className="civ-section">
+          <h3>Goods in Circulation</h3>
+          {goodsTotalRows.length === 0 && (
+            <div className="civ-empty">No crafted goods held yet</div>
+          )}
+          <div className="civ-build-grid">
+            {goodsTotalRows.map(([kind, total]) => (
+              <span key={kind} className="civ-chip" title={kind.replace(/_/g, ' ')}>
+                {GOOD_EMOJI[kind] ?? '🧰'} {kind.replace(/_/g, ' ')}: {total}
+              </span>
+            ))}
+          </div>
+          {goodsTotalRows.length > 0 && (
+            <div style={{ marginTop: 8, fontSize: 11, color: '#888' }}>
+              by lineage:
+              <div style={{ marginTop: 4 }}>
+                {[...goodsByLineage.entries()]
+                  .sort((a, b) => {
+                    const sa = [...a[1].values()].reduce((s, v) => s + v, 0)
+                    const sb = [...b[1].values()].reduce((s, v) => s + v, 0)
+                    return sb - sa
+                  })
+                  .slice(0, 6)
+                  .map(([lid, bag]) => {
+                    const lname = lineageById(lid)
+                    const total = [...bag.values()].reduce((s, v) => s + v, 0)
+                    const top = [...bag.entries()]
+                      .sort((a, b) => b[1] - a[1])
+                      .slice(0, 4)
+                      .map(([k, n]) => `${GOOD_EMOJI[k] ?? ''}${n}`)
+                      .join(' ')
+                    return (
+                      <div key={lid} className="civ-row" style={{ padding: '2px 0' }}>
+                        <span className="civ-row-head">{lname}</span>
+                        <span className="civ-row-tag">{total} held</span>
+                        <span className="civ-row-sub">{top}</span>
+                      </div>
+                    )
+                  })}
+              </div>
+            </div>
+          )}
         </section>
 
         <section className="civ-section">
