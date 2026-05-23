@@ -43,11 +43,24 @@ export function resolveTavernScene(world: WorldState, scene: SceneId): SceneCont
     if (o.age_stage === 'infant' || o.age_stage === 'child') continue
     const d = Math.abs(o.x - anchor.x) + Math.abs(o.y - anchor.y)
     if (d > TAVERN_RADIUS) continue
-    const entry: SceneOccupant = {
-      org: o,
-      role: o.is_leader ? 'host' : 'patron',
-      activity: o.thought || 'drinking',
-    }
+    const drinkerThought = /drink|beer|brew|ale|spirit|toast|tavern/i.test(o.thought ?? '')
+    const knowsBrewing = (o.discoveries ?? []).includes('brewing')
+    const hasSpirit = ((o.tools ?? {}).spirit ?? 0) > 0 || ((o.tools ?? {}).bottle ?? 0) > 0
+    const eligible = knowsBrewing || drinkerThought || hasSpirit || o.is_leader
+    if (!eligible) continue
+    const role: SceneOccupant['role'] = o.is_leader
+      ? 'host'
+      : hasSpirit
+        ? 'brewer'
+        : 'patron'
+    const activity = hasSpirit
+      ? 'serving'
+      : drinkerThought
+        ? o.thought!
+        : knowsBrewing
+          ? 'drinking'
+          : 'looking in'
+    const entry: SceneOccupant = { org: o, role, activity }
     if (d <= 3) inside.push(entry)
     else away.push(entry)
   }

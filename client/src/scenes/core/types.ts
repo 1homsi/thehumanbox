@@ -24,6 +24,8 @@ export type OccupantRole =
   | 'stranger'
   | 'patron'
   | 'worshipper'
+  | 'brewer'
+  | 'priest'
 
 export interface SceneOccupant {
   org: OrganismState

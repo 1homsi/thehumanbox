@@ -16,11 +16,28 @@ const KIND_SUBTITLE: Record<string, string> = {
   secular: 'a civic hall of remembrance',
 }
 
-export function resolveTempleScene(world: WorldState, scene: SceneId): SceneContext | null {
-  if (scene.kind !== 'temple') return null
-  const religion = (world.religions ?? []).find((r) => r.id === scene.religionId)
-  if (!religion) return null
-  const lineageId = religion.founder_lineage ?? religion.lineage_id ?? ''
+const TEMPLE_KINDS = new Set([
+  'temple',
+  'cathedral',
+  'shrine',
+  'mosque',
+  'synagogue',
+  'pagoda',
+])
+
+function findTempleAnchor(world: WorldState, lineageId: string): { x: number; y: number } | null {
+  const buildings = world.buildings ?? []
+  let best: { x: number; y: number; score: number } | null = null
+  for (const b of buildings) {
+    if (!TEMPLE_KINDS.has(b.kind)) continue
+    const owner = (b as { lineage_id?: string }).lineage_id
+    if (owner && owner !== lineageId) continue
+    const rank =
+      b.kind === 'cathedral' ? 4 : b.kind === 'temple' ? 3 : b.kind === 'mosque' || b.kind === 'synagogue' || b.kind === 'pagoda' ? 2 : 1
+    const score = rank + (b.condition ?? 1)
+    if (!best || score > best.score) best = { x: b.x, y: b.y, score }
+  }
+  if (best) return best
 
   let cx = 0
   let cy = 0
@@ -32,8 +49,18 @@ export function resolveTempleScene(world: WorldState, scene: SceneId): SceneCont
     n++
   }
   if (n === 0) return null
-  const ax = cx / n
-  const ay = cy / n
+  return { x: cx / n, y: cy / n }
+}
+
+export function resolveTempleScene(world: WorldState, scene: SceneId): SceneContext | null {
+  if (scene.kind !== 'temple') return null
+  const religion = (world.religions ?? []).find((r) => r.id === scene.religionId)
+  if (!religion) return null
+  const lineageId = religion.founder_lineage ?? religion.lineage_id ?? ''
+
+  const anchor = findTempleAnchor(world, lineageId)
+  if (!anchor) return null
+  const { x: ax, y: ay } = anchor
 
   const inside: SceneOccupant[] = []
   const away: SceneOccupant[] = []
@@ -45,12 +72,15 @@ export function resolveTempleScene(world: WorldState, scene: SceneId): SceneCont
     const d = Math.abs(o.x - ax) + Math.abs(o.y - ay)
     if (d > TEMPLE_RADIUS) continue
     const piety = o.piety ?? 0
-    const entry: SceneOccupant = {
-      org: o,
-      role: o.is_leader ? 'host' : 'worshipper',
-      activity: piety > 0.5 ? 'praying' : sameFaith ? 'reflecting' : 'observing',
-    }
-    if (d <= 4 && (sameFaith || piety > 0.2)) inside.push(entry)
+    if (!sameFaith && piety < 0.2) continue
+    const role: SceneOccupant['role'] = o.is_leader
+      ? 'priest'
+      : piety > 0.6
+        ? 'worshipper'
+        : 'guest'
+    const activity = piety > 0.6 ? 'praying' : piety > 0.3 ? 'reflecting' : 'observing'
+    const entry: SceneOccupant = { org: o, role, activity }
+    if (d <= 4) inside.push(entry)
     else away.push(entry)
   }
 
