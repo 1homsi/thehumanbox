@@ -284,6 +284,37 @@ fn main() {
         fire_disc, shelter_disc, hunt_disc, medicine_disc, wood_disc, forestry_disc, barter_disc, currency_disc
     );
     println!("Wealth split (alive):  rich={}  poor={}  trades_log={}", rich_n, poor_n, sim.trades.len());
+
+    let mut goods_totals: HashMap<String, u64> = HashMap::new();
+    let mut goods_holders: HashMap<String, u64> = HashMap::new();
+    for o in sim.organisms.iter().filter(|o| o.alive) {
+        for (k, n) in &o.tools {
+            if *n == 0 { continue; }
+            *goods_totals.entry(k.clone()).or_insert(0) += *n as u64;
+            *goods_holders.entry(k.clone()).or_insert(0) += 1;
+        }
+    }
+    if !goods_totals.is_empty() {
+        let mut goods_vec: Vec<(String, u64)> = goods_totals.into_iter().collect();
+        goods_vec.sort_by(|a, b| b.1.cmp(&a.1));
+        println!("\nGoods in circulation (alive holders):");
+        for (good, total) in goods_vec.iter().take(20) {
+            let holders = goods_holders.get(good).copied().unwrap_or(0);
+            println!("  {:>4} total  {:>3} holders  {}", total, holders, good);
+        }
+    }
+    let mut trade_goods: HashMap<String, u64> = HashMap::new();
+    for t in &sim.trades {
+        *trade_goods.entry(t.good.clone()).or_insert(0) += t.amount as u64;
+    }
+    if !trade_goods.is_empty() {
+        let mut tg: Vec<(String, u64)> = trade_goods.into_iter().collect();
+        tg.sort_by(|a, b| b.1.cmp(&a.1));
+        println!("Trade volume by good:");
+        for (g, n) in tg.iter().take(15) {
+            println!("  {:>4}  {}", n, g);
+        }
+    }
     let mut era_counts: HashMap<String, usize> = HashMap::new();
     for (_, era) in sim.lineage_eras.iter() {
         *era_counts.entry(era.name().to_string()).or_insert(0) += 1;

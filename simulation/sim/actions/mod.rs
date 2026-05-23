@@ -341,7 +341,7 @@ pub fn available_actions(sim: &Simulation, idx: usize, ix: i32, iy: i32) -> Vec<
     if has("weaving") {
         a.extend(5760..=5809);
     }
-    if has("hunting") {
+    if has("hunting") || has("hunt") {
         a.extend(5820..=5869);
     }
     if has("brewing") && era >= Era::Bronze {
