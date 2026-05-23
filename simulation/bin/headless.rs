@@ -69,6 +69,12 @@ fn main() {
         .and_then(|i| args.get(i + 1))
         .and_then(|s| s.parse().ok())
         .unwrap_or(0);
+    let growth_every: u64 = args
+        .iter()
+        .position(|a| a == "--growth-every")
+        .and_then(|i| args.get(i + 1))
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0);
     // --profile <path>: write a CSV of per-100-tick sim performance
     // (tick, alive, ms_tick, rss_kb). Lets us A/B perf work by
     // diffing CSVs between two runs at the same seed.
@@ -181,6 +187,10 @@ fn main() {
 
         if coverage_every > 0 && t % coverage_every == 0 {
             print_coverage_row(t, &sim);
+        }
+
+        if growth_every > 0 && t % growth_every == 0 {
+            print_growth_row(t, &sim);
         }
 
         for org in sim.organisms.iter().filter(|o| o.alive) {
@@ -559,6 +569,48 @@ fn infer_event_type(org: &organism::organism::Organism) -> &'static str {
     } else {
         "thought"
     }
+}
+
+fn print_growth_row(tick: u64, sim: &Simulation) {
+    let alive = sim.organisms.iter().filter(|o| o.alive).count();
+    let lineages: std::collections::HashSet<&str> = sim
+        .organisms
+        .iter()
+        .filter(|o| o.alive)
+        .map(|o| o.lineage_id.as_str())
+        .collect();
+    let religions = sim.religions.len();
+    let adherents: u32 = sim.religions.iter().map(|r| r.adherents).sum();
+    let governments = sim.governments.len();
+    let buildings = sim.buildings.len();
+    let books = sim.books.len();
+    let artworks = sim.artworks.len();
+    let trades = sim.trades.len();
+    let era_max = sim.lineage_eras.values().map(|e| *e as u32).max().unwrap_or(0);
+    let round9: u64 = sim.action_counts.values().sum();
+    let r9_cats = sim.action_counts.iter().filter(|(_, n)| **n > 0).count();
+    if tick == 0 {
+        println!(
+            "{:<7} {:>5} {:>4} {:>4} {:>4} {:>4} {:>5} {:>5} {:>4} {:>4} {:>4} {:>4} {:>6}",
+            "tick","alive","lin","rel","ad","gov","bldgs","trds","bks","art","era","r9c","r9k"
+        );
+    }
+    println!(
+        "{:<7} {:>5} {:>4} {:>4} {:>4} {:>4} {:>5} {:>5} {:>4} {:>4} {:>4} {:>4} {:>6}",
+        tick,
+        alive,
+        lineages.len(),
+        religions,
+        adherents,
+        governments,
+        buildings,
+        trades,
+        books,
+        artworks,
+        era_max,
+        r9_cats,
+        round9 / 1000,
+    );
 }
 
 fn print_coverage_row(tick: u64, sim: &Simulation) {

@@ -345,6 +345,8 @@ fn lineage_center(sim: &Simulation, lid: &str) -> (i32, i32) {
 
 fn tick_governments(sim: &mut Simulation) {
     let lineages: Vec<String> = sim.organisms.iter().filter(|o| o.alive).map(|o| o.lineage_id.clone()).collect::<HashSet<_>>().into_iter().collect();
+    let alive_set: HashSet<&str> = lineages.iter().map(|s| s.as_str()).collect();
+    sim.governments.retain(|k, _| alive_set.contains(k.as_str()));
     for lid in &lineages {
         let pop = lineage_pop(sim, lid);
         if pop < 3 { continue; }
