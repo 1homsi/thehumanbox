@@ -77,6 +77,9 @@ pub(crate) struct OrgSave {
     discoveries: Vec<String>,
     home_x: f32,
     home_y: f32,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    home_furniture: Vec<String>,
+    #[serde(default)] home_style_seed: u32,
     has_reflected: bool,
     last_invention_tick: u64,
     last_think_tick: u64,
@@ -214,6 +217,8 @@ fn org_to_save(o: &Organism) -> OrgSave {
         discoveries: o.discoveries.iter().cloned().collect(),
         home_x: o.home_x,
         home_y: o.home_y,
+        home_furniture: o.home_furniture.clone(),
+        home_style_seed: o.home_style_seed,
         has_reflected:       o.has_reflected,
         last_invention_tick: o.last_invention_tick,
         last_think_tick:     o.last_think_tick,
@@ -301,6 +306,8 @@ fn org_from_save(s: OrgSave) -> Organism {
         o.home_x = s.home_x;
         o.home_y = s.home_y;
     }
+    o.home_furniture      = s.home_furniture;
+    o.home_style_seed     = s.home_style_seed;
     o.has_reflected       = s.has_reflected;
     o.last_invention_tick = s.last_invention_tick;
     o.last_think_tick     = s.last_think_tick;

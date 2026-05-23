@@ -74,6 +74,8 @@ export interface OrganismState {
   friends?: Record<string, string>
   attributes?: string[]
   inventory?: Record<string, number>
+  home_furniture?: string[]
+  home_style_seed?: number
   literacy?: number
   degrees?: string[]
   wealth?: number

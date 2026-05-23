@@ -197,6 +197,8 @@ pub struct Organism {
 
     pub home_x: f32,
     pub home_y: f32,
+    pub home_furniture: Vec<String>,
+    pub home_style_seed: u32,
 
     pub is_elder:            bool,
     pub has_reflected:       bool,
@@ -328,6 +330,8 @@ impl Organism {
             discoveries: HashSet::new(),
             home_x: x,
             home_y: y,
+            home_furniture: Vec::new(),
+            home_style_seed: 0,
             is_elder: false,
             has_reflected: false,
             last_invention_tick: 0,
@@ -1081,6 +1085,12 @@ impl Organism {
             tools: if include_cold && !self.tools.is_empty() {
                 Some(self.tools.clone())
             } else { None },
+            home_furniture: if include_cold && !self.home_furniture.is_empty() {
+                Some(self.home_furniture.clone())
+            } else { None },
+            home_style_seed: if include_cold && self.home_style_seed > 0 {
+                Some(self.home_style_seed)
+            } else { None },
         }
     }
 
@@ -1361,6 +1371,8 @@ pub struct OrgJson {
     #[serde(default, skip_serializing_if = "Option::is_none")] pub attributes:  Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub anchor_events: Option<Vec<(u64, String, f32)>>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub tools:        Option<HashMap<String, u8>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub home_furniture: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub home_style_seed: Option<u32>,
 }
 
 #[derive(Serialize)]

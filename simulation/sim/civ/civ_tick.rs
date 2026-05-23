@@ -60,6 +60,137 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick % 180 == 0 && tick > 0 {
         tick_building_auras(sim);
     }
+    if tick % 1200 == 0 && tick > 0 {
+        tick_home_furnishing(sim);
+    }
+}
+
+const FURNITURE_POOL: &[(&str, &[&str], &str)] = &[
+    ("hearth",         &[], "stone"),
+    ("mat",            &[], "pre-stone"),
+    ("storage",        &[], "stone"),
+    ("bench",          &[], "bronze"),
+    ("loom",           &["weaving"], "bronze"),
+    ("anvil",          &["smelting"], "bronze"),
+    ("table",          &[], "classical"),
+    ("shelf",          &[], "classical"),
+    ("rug",            &["weaving"], "classical"),
+    ("oil_lamp",       &["fire"], "iron"),
+    ("clay_pot",       &["pottery"], "bronze"),
+    ("wine_jug",       &["brewing"], "bronze"),
+    ("painting",       &[], "renaissance"),
+    ("bookshelf",      &["writing"], "iron"),
+    ("writing_desk",   &["writing"], "iron"),
+    ("wardrobe",       &["weaving"], "medieval"),
+    ("mirror",         &["glass"], "renaissance"),
+    ("vase_flowers",   &[], "classical"),
+    ("potted_plant",   &[], "renaissance"),
+    ("fireplace",      &["fire"], "medieval"),
+    ("four_poster_bed",&[], "medieval"),
+    ("armchair",       &[], "industrial"),
+    ("piano",          &["printing"], "industrial"),
+    ("gramophone",     &["electricity_generation"], "industrial"),
+    ("clock",          &["mathematics"], "renaissance"),
+    ("globe",          &["cartography"], "renaissance"),
+    ("telescope_decor",&["telescope"], "renaissance"),
+    ("radio_set",      &["radio"], "modern"),
+    ("television",     &["television"], "modern"),
+    ("refrigerator",   &["refrigeration"], "modern"),
+    ("sofa",           &[], "modern"),
+    ("coffee_table",   &[], "modern"),
+    ("desk_lamp",      &["electricity"], "modern"),
+    ("computer_desk",  &["computer"], "information"),
+    ("monitor",        &["computer"], "information"),
+    ("smart_speaker",  &["AI"], "information"),
+    ("standing_plant", &[], "modern"),
+    ("art_print",      &["printing"], "industrial"),
+    ("photo_frame",    &["photography"], "industrial"),
+    ("kitchen_stove",  &["electricity"], "modern"),
+];
+
+fn era_index(name: &str) -> u32 {
+    match name {
+        "pre-stone" => 0, "stone" => 1, "bronze" => 2, "iron" => 3,
+        "classical" => 4, "medieval" => 5, "renaissance" => 6, "industrial" => 7,
+        "modern" => 8, "information" => 9, _ => 10,
+    }
+}
+
+fn tick_home_furnishing(sim: &mut Simulation) {
+    let era_map = sim.lineage_eras.clone();
+    for idx in 0..sim.organisms.len() {
+        let o = &sim.organisms[idx];
+        if !o.alive || o.age < 600 {
+            continue;
+        }
+        if o.home_furniture.len() >= 12 {
+            continue;
+        }
+        if o.energy < 0.30 || o.comfort < 0.30 {
+            continue;
+        }
+        let era = era_map.get(&o.lineage_id).copied().unwrap_or(crate::sim::era::Era::PreStone);
+        let era_name = era.name();
+        let era_idx = era_index(era_name);
+
+        let curiosity = o.traits.curiosity;
+        let social = o.traits.social_tendency;
+        let aggression = o.traits.aggression;
+        let resilience = o.traits.resilience;
+        let wealth = o.wealth;
+        let literacy = o.literacy;
+        let piety = o.piety;
+        let specialty = o.specialty.clone();
+
+        let mut candidates: Vec<&'static str> = Vec::new();
+        for (name, reqs, min_era) in FURNITURE_POOL {
+            if o.home_furniture.iter().any(|f| f == name) {
+                continue;
+            }
+            if era_index(min_era) > era_idx {
+                continue;
+            }
+            if !reqs.iter().all(|r| o.discoveries.contains(*r)) {
+                continue;
+            }
+            let trait_match = match *name {
+                "bookshelf" | "writing_desk" | "globe" | "telescope_decor" | "clock"
+                    => literacy > 0.3 || curiosity > 0.55,
+                "rug" | "vase_flowers" | "painting" | "art_print" | "photo_frame" | "potted_plant" | "standing_plant"
+                    => social > 0.5 || curiosity > 0.5,
+                "anvil" => specialty.as_deref() == Some("smith"),
+                "loom" => specialty.as_deref() == Some("weaver") || social > 0.4,
+                "wine_jug" => specialty.as_deref() == Some("brewer") || aggression < 0.4,
+                "four_poster_bed" | "armchair" | "sofa" | "coffee_table" => wealth > 8,
+                "piano" | "gramophone" | "smart_speaker" => social > 0.55 && wealth > 12,
+                "telescope_decor" | "monitor" | "computer_desk" => curiosity > 0.55,
+                "fireplace" | "kitchen_stove" => resilience > 0.4,
+                "mirror" => social > 0.5,
+                _ => true,
+            };
+            if !trait_match {
+                continue;
+            }
+            candidates.push(name);
+        }
+        if candidates.is_empty() {
+            continue;
+        }
+        if sim.rng.gen::<f32>() > 0.45 + curiosity * 0.3 + piety * 0.05 {
+            continue;
+        }
+
+        let pick = candidates[sim.rng.gen_range(0..candidates.len())];
+        let org = &mut sim.organisms[idx];
+        if org.home_style_seed == 0 {
+            org.home_style_seed = (sim.tick_count as u32).wrapping_mul(2654435761).wrapping_add(idx as u32 * 11);
+        }
+        org.home_furniture.push(pick.to_string());
+        let nm = org.name.clone();
+        let tick_now = sim.tick_count;
+        push_event(&mut sim.events, tick_now, "home", &nm,
+                   &format!("brought home a {}", pick.replace('_', " ")));
+    }
 }
 
 fn tick_building_auras(sim: &mut Simulation) {
