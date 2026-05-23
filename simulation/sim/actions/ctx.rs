@@ -83,6 +83,9 @@ impl<'a> ActionCtx<'a> {
         let tick = self.tick;
         let nm = self.sim.organisms[self.idx].name.clone();
         push_event(&mut self.sim.events, tick, kind, &nm, msg);
+        if kind == "life" || kind == "build" {
+            self.sim.organisms[self.idx].log_life(tick, kind, msg.to_string());
+        }
     }
 
     pub fn consume_material(&mut self) {
