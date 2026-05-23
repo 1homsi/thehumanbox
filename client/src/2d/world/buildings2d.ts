@@ -599,23 +599,34 @@ export function drawBuilding(
     ctx.strokeStyle = `rgba(0,0,0,${0.3})`
     ctx.lineWidth = 1
     ctx.strokeRect(px + 0.5, wallY + 0.5, w - 1, wallH - 1)
+    const emoji = buildingEmoji(building.kind)
+    const fontPx = Math.max(8, Math.min(w, h) * 0.32)
+    ctx.save()
+    ctx.font = `${fontPx}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.globalAlpha = 0.85
+    ctx.fillText(emoji, px + w / 2, py + h * 0.18)
+    ctx.restore()
   } else {
-    const bgAlpha = 0.45 + (1 - cond) * 0.18
-    ctx.fillStyle = `rgba(20,18,28,${bgAlpha})`
-    ctx.fillRect(px, py, w, h)
-    ctx.strokeStyle = `rgba(255,220,160,${0.22 + cond * 0.22})`
-    ctx.lineWidth = 1
-    ctx.strokeRect(px + 0.5, py + 0.5, w - 1, h - 1)
-  }
+    const baseH = Math.max(3, tileSize * 0.32)
+    const baseY = py + h - baseH
+    const baseInset = Math.max(1, tileSize * 0.12)
+    ctx.fillStyle = 'rgba(72, 56, 42, 0.85)'
+    ctx.fillRect(px + baseInset, baseY, w - baseInset * 2, baseH)
+    ctx.fillStyle = 'rgba(255,255,255,0.08)'
+    ctx.fillRect(px + baseInset, baseY, w - baseInset * 2, Math.max(1, baseH * 0.18))
+    ctx.fillStyle = 'rgba(0,0,0,0.30)'
+    ctx.fillRect(px + baseInset, baseY + baseH - 1, w - baseInset * 2, 1)
 
-  const emoji = buildingEmoji(building.kind)
-  const fontPx = Math.max(8, Math.min(w, h) * 0.32)
-  ctx.save()
-  ctx.font = `${fontPx}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.globalAlpha = 0.85
-  const ey = isHouseLike(k) ? py + h * 0.18 : py + h / 2
-  ctx.fillText(emoji, px + w / 2, ey)
-  ctx.restore()
+    const emoji = buildingEmoji(building.kind)
+    const fontPx = Math.max(10, Math.min(w, h) * 0.62)
+    ctx.save()
+    ctx.font = `${fontPx}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'alphabetic'
+    ctx.globalAlpha = 0.95
+    ctx.fillText(emoji, px + w / 2, baseY + 1)
+    ctx.restore()
+  }
 }

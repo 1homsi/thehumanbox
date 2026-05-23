@@ -4072,12 +4072,35 @@ body.thb-colorblind .org-sick-badge {
   filter: brightness(0.95);
 }
 .thb-shepherd .shepherd-button-secondary {
-  background: transparent;
-  color: #8a8170;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: none;
+  background: transparent !important;
+  color: #8a8170 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: none !important;
 }
-.thb-shepherd .shepherd-button-secondary:hover {
-  color: #e5ddc7;
-  background: rgba(255, 255, 255, 0.04);
+.thb-shepherd .shepherd-button-secondary:hover,
+.thb-shepherd .shepherd-button-secondary:focus {
+  color: #e5ddc7 !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  filter: none !important;
+}
+
+.shepherd-element.thb-shepherd,
+.shepherd-element.thb-shepherd .shepherd-content,
+.shepherd-element.thb-shepherd .shepherd-header,
+.shepherd-element.thb-shepherd .shepherd-footer,
+.shepherd-element.thb-shepherd .shepherd-text {
+  background: transparent !important;
+}
+.shepherd-element.thb-shepherd {
+  background: linear-gradient(180deg, #1f1812 0%, #15100c 100%) !important;
+}
+.thb-shepherd .shepherd-button {
+  background: linear-gradient(180deg, #d8b270, #9a6f3a) !important;
+  color: #1a1208 !important;
+}
+.thb-shepherd .shepherd-button:hover,
+.thb-shepherd .shepherd-button:focus {
+  background: linear-gradient(180deg, #e6c280, #aa7f4a) !important;
+  color: #1a1208 !important;
+  filter: brightness(1.05) !important;
 }
