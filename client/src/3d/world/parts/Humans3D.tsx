@@ -83,9 +83,23 @@ function orgColor(o: OrganismState): string {
   if ((o.fear_level ?? 0) > 0.72) return 'hsl(10,  72%, 38%)' // fear: deep red-orange
   if ((o.grief_ticks ?? 0) > 14) return 'hsl(220, 52%, 40%)' // grief: washed blue
   if (o.energy < 0.12) return 'hsl(38,  55%, 30%)' // starving: dark earth
+  if ((o.is_elder ?? false)) return 'hsl(0, 0%, 78%)' // elder: silver hair
   if ((o.comfort ?? 0) > 0.82) return 'hsl(50,  80%, 58%)' // content: warm gold
   if ((o.traits?.aggression ?? 0) > 0.8) return 'hsl(0,   60%, 48%)' // aggressive: muted red
-  return lineageColor(o.lineage_id) // default: lineage hue
+  const base = lineageColor(o.lineage_id)
+  if (o.sex === 'female') {
+    return tintHsl(base, 8, 0.95, 1.05) // female: slight warm shift
+  }
+  return base
+}
+
+function tintHsl(hslIn: string, dh: number, ds: number, dl: number): string {
+  const m = /hsl\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)%\s*,\s*(-?\d+(?:\.\d+)?)%\s*\)/.exec(hslIn)
+  if (!m) return hslIn
+  const h = (parseFloat(m[1]) + dh + 360) % 360
+  const s = Math.max(0, Math.min(100, parseFloat(m[2]) * ds))
+  const l = Math.max(0, Math.min(100, parseFloat(m[3]) * dl))
+  return `hsl(${h.toFixed(0)}, ${s.toFixed(0)}%, ${l.toFixed(0)}%)`
 }
 
 // Reused scratch - keeps the per-frame inner loop alloc-free.
@@ -165,10 +179,12 @@ function FarHumans({
       // Inherit the same per-org scale we'd use for skinned figures
       // so figures don't visibly snap on the LOD boundary.
       let s = 0.45
-      if (o.age < 500) s = 0.3
-      else if (o.age < 900) s = 0.36
+      if (o.age < 500) s = 0.26
+      else if (o.age < 900) s = 0.34
       else if (o.age > 3000) s = 0.42
-      if (o.pregnant) s *= 1.1
+      if (o.is_elder) s *= 0.93
+      if (o.pregnant) s *= 1.12
+      if (o.sex === 'female') s *= 0.97
       s *= 0.88 + (o.traits?.resilience ?? 0.5) * 0.24
       s *= 0.85 + Math.min(1, o.health) * 0.15
       _scale.set(s, s, s)
