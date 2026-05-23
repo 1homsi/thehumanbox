@@ -28,8 +28,17 @@ impl Simulation {
         if count >= 2 {
             let curiosity = self.organisms[idx].traits.curiosity;
             let age = self.organisms[idx].age;
+            let lineage_total = self
+                .organisms
+                .iter()
+                .filter(|o| o.alive && o.lineage_id == lid)
+                .count();
+            let overcrowded = lineage_total >= 45;
             let fork_eligible = age >= 700 && curiosity >= 0.40 && count >= 4;
-            if fork_eligible && self.rng.gen::<f32>() < 0.35 {
+            let fork_chance = if overcrowded { 0.7 } else { 0.35 };
+            if (fork_eligible || (overcrowded && age >= 700 && count >= 3))
+                && self.rng.gen::<f32>() < fork_chance
+            {
                 if let Some((fx, fy)) = self.find_far_empty_anchor(mx as i32, my as i32) {
                     self.fork_new_tribe(idx, fx, fy);
                     return;
