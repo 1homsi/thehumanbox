@@ -193,7 +193,7 @@ fn tick_education(sim: &mut Simulation) {
         } else if org.discoveries.contains("language") || org.discoveries.contains("writing") {
             let cap = if org.discoveries.contains("writing") { 0.6 } else { 0.35 };
             if org.literacy < cap {
-                org.literacy = (org.literacy + 0.0008).min(cap);
+                org.literacy = (org.literacy + 0.004).min(cap);
             }
         }
         if near_uni && org.literacy >= 0.7 && org.age_stage() == AgeStage::Adult {
