@@ -68,22 +68,19 @@ pub fn try_reproduce(
     let org = &organisms[org_idx];
     if org.sex != Sex::Female { return; }
 
-    const MAX_LINEAGE_POP: usize = 90;
+    const MAX_LINEAGE_POP: usize = 60;
     if lineage_counts.get(&org.lineage_id).copied().unwrap_or(0) >= MAX_LINEAGE_POP {
         return;
     }
 
     let critical = alive_count < 30;
     let low_pop  = alive_count < 80;
-    let mid_pop  = alive_count < 200;
     let (e_min, h_min, hp_min, cooldown, partner_dist) = if critical {
         (0.18, 0.18, 0.22, 350u64, 200.0f32)
     } else if low_pop {
-        (0.26, 0.26, 0.30, 450u64, 120.0f32)
-    } else if mid_pop {
-        (0.34, 0.34, 0.38, 800u64, 60.0f32)
+        (0.28, 0.28, 0.32, 500u64, 100.0f32)
     } else {
-        (0.42, 0.42, 0.45, 1200u64, 40.0f32)
+        (0.40, 0.40, 0.43, 1300u64, 40.0f32)
     };
 
     if !(org.energy > e_min && org.hydration > h_min && org.health > hp_min && org.age > 1000) { return; }
