@@ -61,31 +61,31 @@ const ROOF_DARK = '#4a2a18'
 const ROOF_TILE = '#7a4628'
 
 const HUT_GEO = (() => {
-  const g = new ConeGeometry(3.6, 5.2, 5)
+  const g = new ConeGeometry(4.6, 6.4, 6)
   return g
 })()
-const HOUSE_WALL = new BoxGeometry(6.0, 4.2, 7.0)
+const HOUSE_WALL = new BoxGeometry(8.0, 5.4, 9.0)
 const HOUSE_ROOF = (() => {
-  const g = new ConeGeometry(4.8, 3.0, 4)
+  const g = new ConeGeometry(6.4, 4.0, 4)
   g.rotateY(Math.PI / 4)
   return g
 })()
-const HOUSE_CHIMNEY = new BoxGeometry(0.7, 1.4, 0.7)
-const MANOR_WALL_A = new BoxGeometry(7.6, 7.4, 8.4)
-const MANOR_WALL_B = new BoxGeometry(4.8, 5.0, 5.6)
+const HOUSE_CHIMNEY = new BoxGeometry(0.9, 2.0, 0.9)
+const MANOR_WALL_A = new BoxGeometry(10.4, 9.4, 11.2)
+const MANOR_WALL_B = new BoxGeometry(6.4, 6.6, 7.2)
 const MANOR_ROOF_A = (() => {
-  const g = new ConeGeometry(6.2, 4.0, 4)
+  const g = new ConeGeometry(8.4, 5.2, 4)
   g.rotateY(Math.PI / 4)
   return g
 })()
 const MANOR_ROOF_B = (() => {
-  const g = new ConeGeometry(4.0, 2.8, 4)
+  const g = new ConeGeometry(5.4, 3.6, 4)
   g.rotateY(Math.PI / 4)
   return g
 })()
-const TOWNHOUSE_GEO = new BoxGeometry(4.6, 11.2, 5.4)
+const TOWNHOUSE_GEO = new BoxGeometry(5.6, 13.4, 6.4)
 const TOWNHOUSE_ROOF = (() => {
-  const g = new ConeGeometry(3.6, 2.2, 4)
+  const g = new ConeGeometry(4.4, 2.8, 4)
   g.rotateY(Math.PI / 4)
   return g
 })()
@@ -290,8 +290,8 @@ const GENERIC_SPECS: Record<string, GenericSpec> = {
   Port: { color: '#5878a0', width: 7, height: 2, depth: 5, yOffset: 1.0 },
   Stadium: { color: '#a8a098', width: 9, height: 5, depth: 9, yOffset: 2.5 },
   Museum: { color: '#a8a088', width: 6, height: 5, depth: 5, yOffset: 2.5 },
-  Cathedral: { color: '#c8b878', width: 7, height: 8, depth: 7, yOffset: 4.0 },
-  Castle: { color: '#807868', width: 8, height: 7, depth: 8, yOffset: 3.5 },
+  Cathedral: { color: '#c8b878', width: 10, height: 14, depth: 10, yOffset: 7.0, emissive: '#e8d8a0', emissiveIntensity: 0.08 },
+  Castle: { color: '#807868', width: 12, height: 12, depth: 12, yOffset: 6.0 },
   Theatre: { color: '#a05870', width: 6, height: 5, depth: 5, yOffset: 2.5 },
   Observatory: { color: '#a0a8b8', width: 4, height: 5, depth: 4, yOffset: 2.5, emissive: '#a0c0e0', emissiveIntensity: 0.2 },
   Plaza: { color: '#a89880', width: 5, height: 0.2, depth: 5, yOffset: 0.1 },
@@ -525,7 +525,7 @@ export function Buildings3D({ buildings, depthMap, biomes }: Props) {
     <>
       <Layer
         positions={huts}
-        yOffset={2.6}
+        yOffset={3.2}
         geometry={HUT_GEO}
         color={FN_COLOR[FN_DEFAULT.Hut ?? 'Housing']}
         maxCount={cap(huts.length)}
@@ -533,21 +533,21 @@ export function Buildings3D({ buildings, depthMap, biomes }: Props) {
 
       <Layer
         positions={houses}
-        yOffset={2.1}
+        yOffset={2.7}
         geometry={HOUSE_WALL}
         color={FN_COLOR[FN_DEFAULT.House ?? 'Housing']}
         maxCount={cap(houses.length)}
       />
       <Layer
         positions={houses}
-        yOffset={5.7}
+        yOffset={7.4}
         geometry={HOUSE_ROOF}
         color={ROOF_TILE}
         maxCount={cap(houses.length)}
       />
       <Layer
-        positions={houses.map(([x, y, z]) => [x + 1.8, y, z + 1.6] as [number, number, number])}
-        yOffset={5.0}
+        positions={houses.map(([x, y, z]) => [x + 2.4, y, z + 2.0] as [number, number, number])}
+        yOffset={6.4}
         geometry={HOUSE_CHIMNEY}
         color="#4a3020"
         maxCount={cap(houses.length)}
@@ -555,28 +555,28 @@ export function Buildings3D({ buildings, depthMap, biomes }: Props) {
 
       <Layer
         positions={manors}
-        yOffset={3.7}
+        yOffset={4.7}
         geometry={MANOR_WALL_A}
         color={FN_COLOR[FN_DEFAULT.Manor ?? 'Housing']}
         maxCount={cap(manors.length)}
       />
       <Layer
-        positions={manors.map(([x, y, z]) => [x + 5.4, y, z] as [number, number, number])}
-        yOffset={2.5}
+        positions={manors.map(([x, y, z]) => [x + 7.2, y, z] as [number, number, number])}
+        yOffset={3.3}
         geometry={MANOR_WALL_B}
         color={FN_COLOR[FN_DEFAULT.Manor ?? 'Housing']}
         maxCount={cap(manors.length)}
       />
       <Layer
         positions={manors}
-        yOffset={9.4}
+        yOffset={12.0}
         geometry={MANOR_ROOF_A}
         color={ROOF_DARK}
         maxCount={cap(manors.length)}
       />
       <Layer
-        positions={manors.map(([x, y, z]) => [x + 5.4, y, z] as [number, number, number])}
-        yOffset={6.4}
+        positions={manors.map(([x, y, z]) => [x + 7.2, y, z] as [number, number, number])}
+        yOffset={8.4}
         geometry={MANOR_ROOF_B}
         color={ROOF_DARK}
         maxCount={cap(manors.length)}
@@ -584,14 +584,14 @@ export function Buildings3D({ buildings, depthMap, biomes }: Props) {
 
       <Layer
         positions={townhouses}
-        yOffset={5.6}
+        yOffset={6.7}
         geometry={TOWNHOUSE_GEO}
         color="#b89070"
         maxCount={cap(townhouses.length)}
       />
       <Layer
         positions={townhouses}
-        yOffset={12.3}
+        yOffset={14.6}
         geometry={TOWNHOUSE_ROOF}
         color={ROOF_DARK}
         maxCount={cap(townhouses.length)}
