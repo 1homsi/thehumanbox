@@ -102,6 +102,43 @@ const TOOL_ICON: Record<string, string> = {
   Bow: '🏹',
   Hammer: '🔨',
   Wheel: '☸️',
+  stone_axe: '🪓',
+  bronze_spear: '🔱',
+  iron_sword: '⚔️',
+  plow: '🚜',
+  musket: '🔫',
+  rifle: '🎯',
+  book: '📕',
+  computer: '💻',
+  bow: '🏹',
+  hammer: '🔨',
+  wheel: '☸️',
+  mash: '🌾',
+  wash: '🫙',
+  spirit: '🥃',
+  aged_spirit: '🛢️',
+  blended_spirit: '🍷',
+  bottled_spirit: '🍾',
+  bottle: '🍶',
+  meat: '🥩',
+  cuts: '🔪',
+  ground: '🍖',
+  sausage: '🌭',
+  preserved: '🧂',
+  preserved_meat: '🧂',
+  pattern: '📐',
+  piece: '🧵',
+  garment: '👕',
+  lead: '🔎',
+  quote: '💬',
+  draft: '📝',
+  article: '📰',
+  coffee: '☕',
+  milk: '🥛',
+  drink: '🍵',
+  pastry: '🥐',
+  stock: '📦',
+  incident: '🚨',
 }
 
 interface Props {
@@ -482,23 +519,32 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
           </>
         )}
 
-        {Object.keys(org.inventory ?? {}).length > 0 && (
-          <>
-            <div className="org-detail-section">INVENTORY</div>
-            <div className="relation-list">
-              {Object.entries(org.inventory ?? {}).map(([kind, count]) => (
-                <Tooltip key={kind} tip={`${kind} ×${count}`}>
-                  <span
-                    className="relation-tag"
-                    style={{ background: '#0a1a1a', color: '#88e6d4', cursor: 'default' }}
-                  >
-                    {TOOL_ICON[kind] ?? '🧰'} {kind} ×{count}
-                  </span>
-                </Tooltip>
-              ))}
-            </div>
-          </>
-        )}
+        {(() => {
+          const bag: Record<string, number> = {
+            ...(org.inventory ?? {}),
+            ...(org.tools ?? {}),
+          }
+          const entries = Object.entries(bag).filter(([, n]) => n > 0)
+          if (entries.length === 0) return null
+          entries.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+          return (
+            <>
+              <div className="org-detail-section">INVENTORY</div>
+              <div className="relation-list">
+                {entries.map(([kind, count]) => (
+                  <Tooltip key={kind} tip={`${kind.replace(/_/g, ' ')} ×${count}`}>
+                    <span
+                      className="relation-tag"
+                      style={{ background: '#0a1a1a', color: '#88e6d4', cursor: 'default' }}
+                    >
+                      {TOOL_ICON[kind] ?? '🧰'} {kind.replace(/_/g, ' ')} ×{count}
+                    </span>
+                  </Tooltip>
+                ))}
+              </div>
+            </>
+          )
+        })()}
 
         {(org.religion_id ?? null) !== null && (
           <>

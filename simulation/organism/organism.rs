@@ -1072,6 +1072,9 @@ impl Organism {
             anchor_events: if include_cold && !self.anchor_events.is_empty() {
                 Some(self.anchor_events.clone())
             } else { None },
+            tools: if include_cold && !self.tools.is_empty() {
+                Some(self.tools.clone())
+            } else { None },
         }
     }
 
@@ -1351,6 +1354,7 @@ pub struct OrgJson {
     #[serde(default, skip_serializing_if = "Option::is_none")] pub friends:     Option<HashMap<String, String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub attributes:  Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub anchor_events: Option<Vec<(u64, String, f32)>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub tools:        Option<HashMap<String, u8>>,
 }
 
 #[derive(Serialize)]
