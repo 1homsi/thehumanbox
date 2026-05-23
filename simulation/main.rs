@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 mod world;
 mod organism;
 mod physics;

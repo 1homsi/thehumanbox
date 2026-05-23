@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 #[path = "../organism/mod.rs"]
 mod organism;
 #[path = "../physics/mod.rs"]
