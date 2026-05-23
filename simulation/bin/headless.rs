@@ -339,6 +339,109 @@ fn main() {
     print!("Lineage eras:");
     for (e, c) in era_pairs.iter() { print!(" {}={}", e, c) }
     println!();
+
+    println!("\n=== CIVILIZATION ===");
+    let total_adherents: u32 = sim.religions.iter().map(|r| r.adherents).sum();
+    let milestones_hit: usize = sim.religions.iter().filter(|r| r.last_milestone.is_some()).count();
+    println!(
+        "Religions: {}   total_adherents={}   milestone_crossings={}",
+        sim.religions.len(), total_adherents, milestones_hit
+    );
+    if !sim.religions.is_empty() {
+        let mut religions_sorted: Vec<_> = sim.religions.iter().collect();
+        religions_sorted.sort_by(|a, b| b.adherents.cmp(&a.adherents));
+        for r in religions_sorted.iter().take(5) {
+            let last = r.last_milestone.map(|m| format!(" peaked@{}", m)).unwrap_or_default();
+            println!("  {:<20} kind={:<14} adherents={}{}", r.name, format!("{:?}", r.kind), r.adherents, last);
+        }
+    }
+
+    let total_treasury: u64 = sim.governments.values().map(|g| g.treasury).sum();
+    let mut gov_kinds: HashMap<String, usize> = HashMap::new();
+    for g in sim.governments.values() {
+        *gov_kinds.entry(g.kind.name().to_string()).or_insert(0) += 1;
+    }
+    println!(
+        "Governments: {}   total_treasury={}",
+        sim.governments.len(), total_treasury
+    );
+    if !gov_kinds.is_empty() {
+        let mut gk: Vec<(String, usize)> = gov_kinds.into_iter().collect();
+        gk.sort_by(|a, b| b.1.cmp(&a.1));
+        print!("  kinds:");
+        for (k, n) in gk.iter() { print!(" {}={}", k, n); }
+        println!();
+    }
+    let leader_count = sim.organisms.iter().filter(|o| o.alive && o.is_leader).count();
+    println!("  leaders alive: {}", leader_count);
+
+    let mut bldg_by_kind: HashMap<String, usize> = HashMap::new();
+    for b in &sim.buildings {
+        *bldg_by_kind.entry(b.kind.name().to_string()).or_insert(0) += 1;
+    }
+    println!("Buildings: {} total", sim.buildings.len());
+    let mut bbk: Vec<(String, usize)> = bldg_by_kind.into_iter().collect();
+    bbk.sort_by(|a, b| b.1.cmp(&a.1));
+    for (k, n) in bbk.iter().take(12) {
+        println!("  {:>4}  {}", n, k);
+    }
+
+    println!("Books: {}   Artworks: {}   Festivals: {}",
+        sim.books.len(), sim.artworks.len(), sim.festivals.len()
+    );
+    if !sim.books.is_empty() {
+        let total_copies: u32 = sim.books.iter().map(|b| b.copies).sum();
+        println!("  total book copies: {}", total_copies);
+    }
+
+    let mut spec_counts: HashMap<String, usize> = HashMap::new();
+    let mut partnered = 0usize;
+    let mut total_children = 0u64;
+    let mut adult_count = 0usize;
+    let mut friendship_total = 0u64;
+    let mut age_at_death_sum = 0u64;
+    let mut age_at_death_n = 0u64;
+    for o in sim.organisms.iter() {
+        if !o.alive {
+            if o.age > 0 {
+                age_at_death_sum += o.age as u64;
+                age_at_death_n += 1;
+            }
+            continue;
+        }
+        if let Some(s) = &o.specialty {
+            *spec_counts.entry(s.clone()).or_insert(0) += 1;
+        }
+        if o.partner_id.is_some() { partnered += 1; }
+        total_children += o.children_count as u64;
+        if o.age > 200 { adult_count += 1; }
+        friendship_total += o.friends.len() as u64;
+    }
+    let mut sc: Vec<(String, usize)> = spec_counts.into_iter().collect();
+    sc.sort_by(|a, b| b.1.cmp(&a.1));
+    println!("\nFamily / society:");
+    println!("  partnerships:   {}", partnered / 2);
+    println!("  total children: {}", total_children);
+    let avg_children = if adult_count > 0 { total_children as f64 / adult_count as f64 } else { 0.0 };
+    println!("  avg children per adult: {:.2}", avg_children);
+    println!("  friendships:    {}", friendship_total);
+    if age_at_death_n > 0 {
+        println!("  mean age at death: {} ticks", age_at_death_sum / age_at_death_n);
+    }
+    if !sc.is_empty() {
+        print!("  specialties:");
+        for (s, n) in sc.iter().take(10) { print!(" {}={}", s, n); }
+        println!();
+    }
+
+    let n_lineages = sim.lineage_eras.len().max(1);
+    let era_idx_sum: u64 = sim.lineage_eras.values().map(|e| *e as u64).sum();
+    let era_idx_max: u64 = sim.lineage_eras.values().map(|e| *e as u64).max().unwrap_or(0);
+    let era_idx_avg = era_idx_sum as f64 / n_lineages as f64;
+    println!(
+        "Civ progression: era_avg={:.2} era_max={} headlines={}",
+        era_idx_avg, era_idx_max, sim.headlines.len()
+    );
     println!(
         "Animals alive at end: {}",
         sim.animals.iter().filter(|a| a.alive).count()
