@@ -672,6 +672,20 @@ struct SweepResult {
     lineage_samples: Vec<usize>,
     ticks_run: u64,
     verdict: Verdict,
+    religions: usize,
+    adherents: u32,
+    governments: usize,
+    leaders: usize,
+    buildings: usize,
+    books: usize,
+    artworks: usize,
+    trades: usize,
+    era_max: u32,
+    era_avg: f32,
+    partnerships: usize,
+    total_children: u64,
+    round9_total: u64,
+    round9_active: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -787,6 +801,16 @@ fn run_one_seed(seed: u64, max_ticks: u64) -> SweepResult {
         surviving_lineages,
     );
 
+    let adherents_total: u32 = sim.religions.iter().map(|r| r.adherents).sum();
+    let era_idx_max = sim.lineage_eras.values().map(|e| *e as u32).max().unwrap_or(0);
+    let era_idx_sum: u32 = sim.lineage_eras.values().map(|e| *e as u32).sum();
+    let n_lin = sim.lineage_eras.len().max(1);
+    let era_idx_avg = era_idx_sum as f32 / n_lin as f32;
+    let partner_pairs = sim.organisms.iter().filter(|o| o.alive && o.partner_id.is_some()).count() / 2;
+    let total_kids: u64 = sim.organisms.iter().filter(|o| o.alive).map(|o| o.children_count as u64).sum();
+    let leaders_n = sim.organisms.iter().filter(|o| o.alive && o.is_leader).count();
+    let round9_total: u64 = sim.action_counts.values().sum();
+    let round9_active = sim.action_counts.iter().filter(|(_, n)| **n > 0).count();
     SweepResult {
         seed,
         final_alive,
@@ -799,6 +823,20 @@ fn run_one_seed(seed: u64, max_ticks: u64) -> SweepResult {
         deaths_sickness: h.deaths_sickness,
         deaths_combat: h.deaths_combat,
         surviving_lineages,
+        religions: sim.religions.len(),
+        adherents: adherents_total,
+        governments: sim.governments.len(),
+        leaders: leaders_n,
+        buildings: sim.buildings.len(),
+        books: sim.books.len(),
+        artworks: sim.artworks.len(),
+        trades: sim.trades.len(),
+        era_max: era_idx_max,
+        era_avg: era_idx_avg,
+        partnerships: partner_pairs,
+        total_children: total_kids,
+        round9_total,
+        round9_active,
         alive_samples,
         lineage_samples,
         ticks_run,
@@ -812,19 +850,8 @@ fn run_seed_sweep(start_seed: u64, sweep_seeds: usize, max_ticks: u64) -> usize 
         start_seed, sweep_seeds, max_ticks
     );
     println!(
-        "{:<8} {:<10} {:>7} {:>7} {:>10} {:>8} {:>7} {:>6} {:>6} {:>6} {:>6} {:>8}",
-        "seed",
-        "verdict",
-        "alive",
-        "peak",
-        "extinct_at",
-        "births",
-        "old",
-        "starv",
-        "dehy",
-        "sick",
-        "combat",
-        "lineages"
+        "{:<6} {:<8} {:>5} {:>5} {:>6} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>6} {:>4} {:>5} {:>5} {:>4}",
+        "seed","verdict","alive","peak","births","lin","rel","gov","bld","bks","art","trd","ad","era","r9k","prtn","kid"
     );
     println!("{}", "-".repeat(108));
 
@@ -833,21 +860,24 @@ fn run_seed_sweep(start_seed: u64, sweep_seeds: usize, max_ticks: u64) -> usize 
         let seed = start_seed + offset as u64;
         let r = run_one_seed(seed, max_ticks);
         println!(
-            "{:<8} {:<10} {:>7} {:>7} {:>10} {:>8} {:>7} {:>6} {:>6} {:>6} {:>6} {:>8}",
+            "{:<6} {:<8} {:>5} {:>5} {:>6} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>4} {:>6} {:>4} {:>5} {:>5} {:>4}",
             r.seed,
             r.verdict.label(),
             r.final_alive,
             r.peak_pop,
-            r.extinction_tick
-                .map(|t| t.to_string())
-                .unwrap_or_else(|| "-".to_string()),
             r.births,
-            r.deaths_old_age,
-            r.deaths_starvation,
-            r.deaths_dehydration,
-            r.deaths_sickness,
-            r.deaths_combat,
             r.surviving_lineages,
+            r.religions,
+            r.governments,
+            r.buildings,
+            r.books,
+            r.artworks,
+            r.trades,
+            r.adherents,
+            r.era_max,
+            r.round9_total / 1000,
+            r.partnerships,
+            r.total_children,
         );
         results.push(r);
     }
@@ -879,6 +909,54 @@ fn run_seed_sweep(start_seed: u64, sweep_seeds: usize, max_ticks: u64) -> usize 
     println!("unhealthy:       {} / {}", unhealthy, results.len());
     println!("avg final alive: {:.1}", avg_final);
     println!("avg peak pop:    {:.1}", avg_peak);
+
+    let n = results.len().max(1) as f64;
+    let avg_rel: f64 = results.iter().map(|r| r.religions as f64).sum::<f64>() / n;
+    let avg_gov: f64 = results.iter().map(|r| r.governments as f64).sum::<f64>() / n;
+    let avg_bld: f64 = results.iter().map(|r| r.buildings as f64).sum::<f64>() / n;
+    let avg_bks: f64 = results.iter().map(|r| r.books as f64).sum::<f64>() / n;
+    let avg_art: f64 = results.iter().map(|r| r.artworks as f64).sum::<f64>() / n;
+    let avg_trd: f64 = results.iter().map(|r| r.trades as f64).sum::<f64>() / n;
+    let avg_ad: f64 = results.iter().map(|r| r.adherents as f64).sum::<f64>() / n;
+    let avg_eramax: f64 = results.iter().map(|r| r.era_max as f64).sum::<f64>() / n;
+    let avg_eravg: f64 = results.iter().map(|r| r.era_avg as f64).sum::<f64>() / n;
+    let avg_r9k: f64 = results.iter().map(|r| r.round9_total as f64).sum::<f64>() / n;
+    let avg_r9active: f64 = results.iter().map(|r| r.round9_active as f64).sum::<f64>() / n;
+    let avg_prtn: f64 = results.iter().map(|r| r.partnerships as f64).sum::<f64>() / n;
+    let avg_kid: f64 = results.iter().map(|r| r.total_children as f64).sum::<f64>() / n;
+    let avg_leaders: f64 = results.iter().map(|r| r.leaders as f64).sum::<f64>() / n;
+    let any_books = results.iter().filter(|r| r.books > 0).count();
+    let any_religions = results.iter().filter(|r| r.religions > 0).count();
+    let any_gov = results.iter().filter(|r| r.governments > 0).count();
+    let any_round9 = results.iter().filter(|r| r.round9_total > 0).count();
+
+    println!("\n=== GROWTH SIGNALS (averages) ===");
+    println!(
+        "  religions: {:.1} ({}/{} seeds had any)  adherents: {:.1}",
+        avg_rel, any_religions, results.len(), avg_ad
+    );
+    println!(
+        "  governments: {:.1} ({}/{} seeds)  leaders alive: {:.1}",
+        avg_gov, any_gov, results.len(), avg_leaders
+    );
+    println!("  buildings: {:.1}", avg_bld);
+    println!(
+        "  books: {:.1} ({}/{} seeds)  artworks: {:.1}",
+        avg_bks, any_books, results.len(), avg_art
+    );
+    println!("  trades log: {:.1}", avg_trd);
+    println!(
+        "  era_max avg: {:.2}   era_avg avg: {:.2}",
+        avg_eramax, avg_eravg
+    );
+    println!(
+        "  round9 firings: {:.0}  ({:.1} of 10 categories used, {}/{} seeds fired any)",
+        avg_r9k, avg_r9active, any_round9, results.len()
+    );
+    println!(
+        "  partnerships: {:.1}  children: {:.1}",
+        avg_prtn, avg_kid
+    );
     unhealthy
 }
 
