@@ -3130,7 +3130,7 @@ body.thb-colorblind .org-sick-badge {
   grid-auto-rows: minmax(0, auto);
   gap: 14px;
   overflow-y: auto;
-  align-items: stretch;
+  align-items: start;
   padding-right: 4px;
 }
 @media (max-width: 1200px) {
@@ -3149,8 +3149,18 @@ body.thb-colorblind .org-sick-badge {
   border-radius: 6px;
   padding: 10px 12px;
   min-width: 0;
+  max-height: 62vh;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+.civ-section::-webkit-scrollbar {
+  width: 6px;
+}
+.civ-section::-webkit-scrollbar-thumb {
+  background: #513d2e;
+  border-radius: 3px;
 }
 .civ-section h3 {
   margin: 0 0 8px 0;
@@ -3158,6 +3168,12 @@ body.thb-colorblind .org-sick-badge {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #d8c89a;
+  position: sticky;
+  top: 0;
+  background: #28201a;
+  padding: 2px 0 4px 0;
+  z-index: 1;
+  flex-shrink: 0;
 }
 .civ-table {
   width: 100%;
@@ -3190,6 +3206,15 @@ body.thb-colorblind .org-sick-badge {
   font-size: 11px;
   color: #f0eada;
   font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 auto;
+}
+.civ-row > .civ-row-link {
+  margin-left: auto;
+  order: 99;
 }
 .civ-row-sub {
   font-size: 9px;
