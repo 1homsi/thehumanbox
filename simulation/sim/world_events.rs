@@ -480,16 +480,16 @@ pub fn tick_world_evolution(
 ) {
     if season != "scarcity" {
         let mut food_tiles: Vec<(i32, i32)> = Vec::new();
-        for _ in 0..800 {
+        for _ in 0..1400 {
             let x = rng.gen_range(0..WIDTH as i32);
             let y = rng.gen_range(0..HEIGHT as i32);
             if grid.get(x, y) == Tile::Food {
                 food_tiles.push((x, y));
-                if food_tiles.len() >= 8 { break; }
+                if food_tiles.len() >= 14 { break; }
             }
         }
         for (fx, fy) in food_tiles {
-            if rng.gen::<f32>() < 0.40 {
+            if rng.gen::<f32>() < 0.55 {
                 let dirs = [(-1i32, 0i32), (1, 0), (0, -1), (0, 1)];
                 let (dx, dy) = dirs[rng.gen_range(0..4)];
                 let (nx, ny) = (fx + dx, fy + dy);
