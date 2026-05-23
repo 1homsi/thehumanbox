@@ -391,8 +391,32 @@ fn category_for(action: usize) -> Option<&'static str> {
     })
 }
 
+fn specialty_bonus(org_specialty: Option<&str>, action: usize) -> f32 {
+    let Some(spec) = org_specialty else { return 1.0 };
+    let matches = match action {
+        5340..=5449 => spec == "baker",
+        5460..=5509 => spec == "merchant" || spec == "banker",
+        5520..=5569 => spec == "programmer" || spec == "engineer",
+        5700..=5749 => spec == "journalist" || spec == "scholar" || spec == "scribe",
+        5760..=5809 => spec == "weaver",
+        5820..=5869 => spec == "hunter" || spec == "farmer",
+        5880..=5929 => spec == "brewer",
+        336..=355   => spec == "farmer",
+        356..=370   => spec == "hunter" || spec == "farmer",
+        66..=79 | 126..=140 | 421..=435 => spec == "scholar" || spec == "scribe" || spec == "teacher",
+        446..=455 | 96..=106 | 191..=200 => spec == "soldier" || spec == "officer",
+        246..=260 => spec == "healer" || spec == "doctor",
+        201..=210 | 456..=470 => spec == "priest",
+        276..=295 => spec == "merchant" || spec == "banker",
+        316..=335 => spec == "artist",
+        _ => false,
+    };
+    if matches { 1.4 } else { 1.0 }
+}
+
 pub fn try_apply(sim: &mut Simulation, idx: usize, action: usize, ix: i32, iy: i32, spatial: &crate::sim::spatial::SpatialIndex) -> Option<f32> {
     let bonus = workshop_bonus(sim, ix, iy, action);
+    let spec_bonus = specialty_bonus(sim.organisms[idx].specialty.as_deref(), action);
     if let Some(cat) = category_for(action) {
         *sim.action_counts.entry(cat).or_insert(0) += 1;
     }
@@ -527,5 +551,5 @@ pub fn try_apply(sim: &mut Simulation, idx: usize, action: usize, ix: i32, iy: i
         5880..=5929 => distillation::apply(action, &mut ctx) * 2.0 * bonus,
         _           => return None,
     };
-    Some(r)
+    Some(r * spec_bonus)
 }
