@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::sim::civ::economy::{PriceTable, Trade, currency_unit_for_era};
+use crate::sim::civ::economy::{PriceTable, Trade, TRADABLE_TOOLS, currency_unit_for_era};
 use crate::sim::civ::era::Era;
 use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
@@ -111,29 +111,48 @@ fn wage_for(name: &str) -> u32 {
     }
 }
 
-fn surplus(food: u8, water: u8, wood: u8, stone: u8) -> Option<(&'static str, u8)> {
+fn surplus(
+    food: u8,
+    water: u8,
+    wood: u8,
+    stone: u8,
+    tools: &HashMap<String, u8>,
+) -> Option<(String, u8)> {
+    for k in TRADABLE_TOOLS {
+        let c = tools.get(*k).copied().unwrap_or(0);
+        if c >= 2 {
+            return Some(((*k).to_string(), c));
+        }
+    }
     if food >= 3 {
-        return Some(("food", food));
+        return Some(("food".into(), food));
     }
     if water >= 3 {
-        return Some(("water", water));
+        return Some(("water".into(), water));
     }
     if wood >= 3 {
-        return Some(("wood", wood));
+        return Some(("wood".into(), wood));
     }
     if stone >= 3 {
-        return Some(("stone", stone));
+        return Some(("stone".into(), stone));
     }
     None
 }
 
-fn lacks(food: u8, water: u8, wood: u8, stone: u8, kind: &str) -> bool {
+fn lacks(
+    food: u8,
+    water: u8,
+    wood: u8,
+    stone: u8,
+    tools: &HashMap<String, u8>,
+    kind: &str,
+) -> bool {
     match kind {
         "food" => food == 0,
         "water" => water == 0,
         "wood" => wood == 0,
         "stone" => stone == 0,
-        _ => false,
+        _ => tools.get(kind).copied().unwrap_or(0) == 0,
     }
 }
 
@@ -144,7 +163,15 @@ fn give(org_idx: usize, kind: &str, n: u8, sim: &mut Simulation) {
         "water" => o.inv_water = o.inv_water.saturating_sub(n),
         "wood" => o.inv_wood = o.inv_wood.saturating_sub(n),
         "stone" => o.inv_stone = o.inv_stone.saturating_sub(n),
-        _ => {}
+        _ => {
+            let cur = o.tools.get(kind).copied().unwrap_or(0);
+            let next = cur.saturating_sub(n);
+            if next == 0 {
+                o.tools.remove(kind);
+            } else {
+                o.tools.insert(kind.into(), next);
+            }
+        }
     }
 }
 
@@ -155,62 +182,76 @@ fn take(org_idx: usize, kind: &str, n: u8, sim: &mut Simulation) {
         "water" => o.inv_water = o.inv_water.saturating_add(n),
         "wood" => o.inv_wood = o.inv_wood.saturating_add(n),
         "stone" => o.inv_stone = o.inv_stone.saturating_add(n),
-        _ => {}
+        _ => {
+            let cur = o.tools.get(kind).copied().unwrap_or(0);
+            let next = (cur as u32 + n as u32).min(8) as u8;
+            o.tools.insert(kind.into(), next);
+        }
     }
 }
 
+struct BarterRow {
+    idx: usize,
+    x: f32,
+    y: f32,
+    lid: String,
+    food: u8,
+    water: u8,
+    wood: u8,
+    stone: u8,
+    tools: HashMap<String, u8>,
+}
+
 fn run_barter(sim: &mut Simulation, tick: u64) {
-    let snapshot: Vec<(usize, f32, f32, String, u8, u8, u8, u8, bool)> = sim
+    let snapshot: Vec<BarterRow> = sim
         .organisms
         .iter()
         .enumerate()
         .filter(|(_, o)| o.alive && o.age > 220)
-        .map(|(i, o)| {
-            (
-                i,
-                o.x,
-                o.y,
-                o.lineage_id.clone(),
-                o.inv_food,
-                o.inv_water,
-                o.inv_wood,
-                o.inv_stone,
-                o.discoveries.contains("barter"),
-            )
+        .map(|(i, o)| BarterRow {
+            idx: i,
+            x: o.x,
+            y: o.y,
+            lid: o.lineage_id.clone(),
+            food: o.inv_food,
+            water: o.inv_water,
+            wood: o.inv_wood,
+            stone: o.inv_stone,
+            tools: o.tools.clone(),
         })
         .collect();
 
     let mut pairs_done: Vec<(usize, usize)> = Vec::new();
     for i in 0..snapshot.len() {
-        let (ai, ax, ay, alid, af, aw, awd, ast, _) = &snapshot[i];
-        let asur = match surplus(*af, *aw, *awd, *ast) {
+        let a = &snapshot[i];
+        let asur = match surplus(a.food, a.water, a.wood, a.stone, &a.tools) {
             Some(s) => s,
             None => continue,
         };
         for j in (i + 1)..snapshot.len() {
-            let (bi, bx, by, blid, bf, bw, bwd, bst, _) = &snapshot[j];
-            if alid != blid {
+            let b = &snapshot[j];
+            if a.lid != b.lid {
                 continue;
             }
-            let d = (ax - bx).abs() + (ay - by).abs();
+            let d = (a.x - b.x).abs() + (a.y - b.y).abs();
             if d > BARTER_RADIUS {
                 continue;
             }
-            if !lacks(*bf, *bw, *bwd, *bst, asur.0) {
+            if !lacks(b.food, b.water, b.wood, b.stone, &b.tools, &asur.0) {
                 continue;
             }
-            let bsur = match surplus(*bf, *bw, *bwd, *bst) {
+            let bsur = match surplus(b.food, b.water, b.wood, b.stone, &b.tools) {
                 Some(s) => s,
                 None => continue,
             };
-            if !lacks(*af, *aw, *awd, *ast, bsur.0) {
+            if !lacks(a.food, a.water, a.wood, a.stone, &a.tools, &bsur.0) {
                 continue;
             }
             if bsur.0 == asur.0 {
                 continue;
             }
-            pairs_done.push((*ai, *bi));
-            pairs_done.push((*bi, *ai));
+            pairs_done.push((a.idx, b.idx));
+            pairs_done.push((b.idx, a.idx));
             break;
         }
     }
@@ -219,21 +260,21 @@ fn run_barter(sim: &mut Simulation, tick: u64) {
         let (ai, bi) = (*ai, *bi);
         let a = &sim.organisms[ai];
         let b = &sim.organisms[bi];
-        let asur = match surplus(a.inv_food, a.inv_water, a.inv_wood, a.inv_stone) {
+        let asur = match surplus(a.inv_food, a.inv_water, a.inv_wood, a.inv_stone, &a.tools) {
             Some(s) => s,
             None => continue,
         };
-        let bsur = match surplus(b.inv_food, b.inv_water, b.inv_wood, b.inv_stone) {
+        let bsur = match surplus(b.inv_food, b.inv_water, b.inv_wood, b.inv_stone, &b.tools) {
             Some(s) => s,
             None => continue,
         };
         let aname = a.name.clone();
         let bname = b.name.clone();
         let lid = a.lineage_id.clone();
-        give(ai, asur.0, 1, sim);
-        take(bi, asur.0, 1, sim);
-        give(bi, bsur.0, 1, sim);
-        take(ai, bsur.0, 1, sim);
+        give(ai, &asur.0, 1, sim);
+        take(bi, &asur.0, 1, sim);
+        give(bi, &bsur.0, 1, sim);
+        take(ai, &bsur.0, 1, sim);
         let mut first_barter = false;
         if !sim.organisms[ai].discoveries.contains("barter") {
             sim.organisms[ai].discoveries.insert("barter".to_string());
@@ -257,85 +298,109 @@ fn run_barter(sim: &mut Simulation, tick: u64) {
     }
 }
 
+struct CurrencyRow {
+    idx: usize,
+    x: f32,
+    y: f32,
+    lid: String,
+    food: u8,
+    water: u8,
+    wood: u8,
+    stone: u8,
+    tools: HashMap<String, u8>,
+    wealth: u32,
+    era: Era,
+    barter: bool,
+}
+
+fn pick_sell_good(row: &CurrencyRow, prices: &PriceTable) -> Option<(String, u32)> {
+    for k in TRADABLE_TOOLS {
+        let c = row.tools.get(*k).copied().unwrap_or(0);
+        if c >= 2 {
+            let p = prices.price_for(row.era, k);
+            if p > 0 {
+                return Some(((*k).to_string(), p));
+            }
+        }
+    }
+    if row.food >= 3 && prices.food > 0 {
+        return Some(("food".into(), prices.food));
+    }
+    if row.wood >= 3 && prices.wood > 0 {
+        return Some(("wood".into(), prices.wood));
+    }
+    if row.stone >= 3 && prices.stone > 0 {
+        return Some(("stone".into(), prices.stone));
+    }
+    if row.water >= 4 && prices.water > 0 {
+        return Some(("water".into(), prices.water));
+    }
+    None
+}
+
 fn run_currency_trade(sim: &mut Simulation, tick: u64) {
     let era_map = sim.lineage_eras.clone();
-    let snapshot: Vec<(usize, f32, f32, String, u8, u8, u8, u8, u32, Era, bool, bool)> = sim
+    let snapshot: Vec<CurrencyRow> = sim
         .organisms
         .iter()
         .enumerate()
         .filter(|(_, o)| o.alive && o.age > 400)
         .map(|(i, o)| {
             let era = era_map.get(&o.lineage_id).copied().unwrap_or(Era::PreStone);
-            (
-                i,
-                o.x,
-                o.y,
-                o.lineage_id.clone(),
-                o.inv_food,
-                o.inv_water,
-                o.inv_wood,
-                o.inv_stone,
-                o.wealth,
+            CurrencyRow {
+                idx: i,
+                x: o.x,
+                y: o.y,
+                lid: o.lineage_id.clone(),
+                food: o.inv_food,
+                water: o.inv_water,
+                wood: o.inv_wood,
+                stone: o.inv_stone,
+                tools: o.tools.clone(),
+                wealth: o.wealth,
                 era,
-                o.discoveries.contains("barter"),
-                o.discoveries.contains("currency"),
-            )
+                barter: o.discoveries.contains("barter"),
+            }
         })
         .collect();
 
-    let mut deals: Vec<(usize, usize, &'static str, u32)> = Vec::new();
+    let mut deals: Vec<(usize, usize, String, u32)> = Vec::new();
     for i in 0..snapshot.len() {
-        let (si, sx, sy, slid, sf, sw, swd, sst, _, sera, sbarter, _) = &snapshot[i];
-        if *sera < Era::Bronze {
+        let s = &snapshot[i];
+        if s.era < Era::Bronze || !s.barter {
             continue;
         }
-        if !sbarter {
-            continue;
-        }
-        let prices = PriceTable::for_era(*sera);
-        let (good, price): (&'static str, u32) = if *sf >= 3 {
-            ("food", prices.food)
-        } else if *swd >= 3 {
-            ("wood", prices.wood)
-        } else if *sst >= 3 {
-            ("stone", prices.stone)
-        } else if *sw >= 4 {
-            ("water", prices.water)
-        } else {
-            continue;
+        let prices = PriceTable::for_era(s.era);
+        let (good, price) = match pick_sell_good(s, &prices) {
+            Some(p) => p,
+            None => continue,
         };
-        if price == 0 {
-            continue;
-        }
         for j in 0..snapshot.len() {
             if i == j {
                 continue;
             }
-            let (bi, bx, by, blid, bf, bw, bwd, bst, bwealth, bera, _, _) = &snapshot[j];
-            if slid != blid {
+            let b = &snapshot[j];
+            if s.lid != b.lid {
                 continue;
             }
-            if *bera < Era::Bronze {
+            if b.era < Era::Bronze || b.wealth < price {
                 continue;
             }
-            if *bwealth < price {
-                continue;
-            }
-            let d = (sx - bx).abs() + (sy - by).abs();
+            let d = (s.x - b.x).abs() + (s.y - b.y).abs();
             if d > BARTER_RADIUS {
                 continue;
             }
-            let wants = match good {
-                "food" => *bf <= 1,
-                "water" => *bw <= 1,
-                "wood" => *bwd <= 1,
-                "stone" => *bst <= 1,
-                _ => false,
+            let wants = match good.as_str() {
+                "food" => b.food <= 1,
+                "water" => b.water <= 1,
+                "wood" => b.wood <= 1,
+                "stone" => b.stone <= 1,
+                k => b.tools.get(k).copied().unwrap_or(0) == 0,
             };
             if !wants {
                 continue;
             }
-            deals.push((*si, *bi, good, price));
+            deals.push((s.idx, b.idx, good.clone(), price));
             break;
         }
     }
@@ -347,8 +412,8 @@ fn run_currency_trade(sim: &mut Simulation, tick: u64) {
         if sim.organisms[bi].wealth < price {
             continue;
         }
-        give(si, good, 1, sim);
-        take(bi, good, 1, sim);
+        give(si, &good, 1, sim);
+        take(bi, &good, 1, sim);
         sim.organisms[bi].wealth = sim.organisms[bi].wealth.saturating_sub(price);
         sim.organisms[si].wealth = sim.organisms[si].wealth.saturating_add(price);
         let seller_name = sim.organisms[si].name.clone();
@@ -369,7 +434,7 @@ fn run_currency_trade(sim: &mut Simulation, tick: u64) {
             tick,
             buyer_id,
             seller_id,
-            good: good.to_string(),
+            good: good.clone(),
             amount: 1,
             price,
         });

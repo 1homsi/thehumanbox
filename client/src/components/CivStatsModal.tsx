@@ -33,6 +33,35 @@ const GOV_EMOJI: Record<string, string> = {
   corporate: '\u{1F3E2}',
 }
 
+const GOOD_EMOJI: Record<string, string> = {
+  food: '\u{1F35E}',
+  water: '\u{1F4A7}',
+  wood: '\u{1FAB5}',
+  stone: '\u{1FAA8}',
+  iron: '\u{1F528}',
+  cloth: '\u{1F9F5}',
+  bread: '\u{1F35E}',
+  spirit: '\u{1F943}',
+  aged_spirit: '\u{1F6E2}\u{FE0F}',
+  bottled_spirit: '\u{1F37E}',
+  blended_spirit: '\u{1F377}',
+  bottle: '\u{1F376}',
+  meat: '\u{1F969}',
+  cuts: '\u{1F52A}',
+  ground: '\u{1F356}',
+  sausage: '\u{1F32D}',
+  preserved: '\u{1F9C2}',
+  preserved_meat: '\u{1F9C2}',
+  pattern: '\u{1F4D0}',
+  piece: '\u{1F9F5}',
+  garment: '\u{1F455}',
+  article: '\u{1F4F0}',
+  drink: '\u{1F375}',
+  pastry: '\u{1F950}',
+  coffee: '\u{2615}',
+  stock: '\u{1F4E6}',
+}
+
 const ART_EMOJI: Record<string, string> = {
   cave_painting: '\u{1F58C}\u{FE0F}',
   sculpture: '\u{1F5FF}',
@@ -247,7 +276,7 @@ export function CivStatsModal({ world, onClose }: Props) {
               return (
                 <div key={`${t.tick}-${i}`} className="civ-row">
                   <span className="civ-row-head">{'\u{1F4B0}'} {seller} → {buyer}</span>
-                  <span className="civ-row-sub">{t.amount} {t.good}</span>
+                  <span className="civ-row-sub">{GOOD_EMOJI[t.good] ?? ''} {t.amount} {t.good.replace(/_/g, ' ')}</span>
                   <span className="civ-row-tag">{t.price} coin{t.price === 1 ? '' : 's'}</span>
                   <span className="civ-row-tag">tick {t.tick}</span>
                 </div>

@@ -115,6 +115,67 @@ impl PriceTable {
             _ => PriceTable { food: 10, water: 4, wood: 8, stone: 9, iron: 12, cloth: 9, bread: 8 },
         }
     }
+
+    pub fn price_for(&self, era: Era, good: &str) -> u32 {
+        match good {
+            "food" => self.food,
+            "water" => self.water,
+            "wood" => self.wood,
+            "stone" => self.stone,
+            "iron" => self.iron,
+            "cloth" => self.cloth,
+            "bread" => self.bread,
+            _ => tools_price(era, good),
+        }
+    }
+}
+
+pub const TRADABLE_TOOLS: &[&str] = &[
+    "blended_spirit",
+    "aged_spirit",
+    "bottled_spirit",
+    "spirit",
+    "bottle",
+    "preserved",
+    "preserved_meat",
+    "sausage",
+    "ground",
+    "cuts",
+    "meat",
+    "garment",
+    "pattern",
+    "article",
+    "drink",
+    "pastry",
+    "coffee",
+    "stock",
+];
+
+pub fn tools_price(era: Era, good: &str) -> u32 {
+    let base: u32 = match good {
+        "blended_spirit" => 14,
+        "aged_spirit" => 11,
+        "bottled_spirit" => 9,
+        "spirit" => 7,
+        "bottle" => 5,
+        "preserved" | "preserved_meat" => 7,
+        "sausage" => 6,
+        "ground" => 4,
+        "cuts" => 4,
+        "meat" => 3,
+        "garment" => 9,
+        "pattern" => 3,
+        "article" => 10,
+        "drink" => 5,
+        "pastry" => 4,
+        "coffee" => 3,
+        "stock" => 3,
+        _ => 0,
+    };
+    if base == 0 {
+        return 0;
+    }
+    base + (era as u32).min(8) / 2
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
