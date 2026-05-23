@@ -314,16 +314,39 @@ pub fn available_actions(sim: &Simulation, idx: usize, ix: i32, iy: i32) -> Vec<
     a.extend(5160..=5209);
     a.extend(5220..=5269);
     a.extend(5280..=5329);
-    a.extend(5340..=5389);
-    a.extend(5400..=5449);
-    a.extend(5460..=5509);
-    a.extend(5520..=5569);
-    a.extend(5580..=5629);
-    a.extend(5640..=5689);
-    a.extend(5700..=5749);
-    a.extend(5760..=5809);
-    a.extend(5820..=5869);
-    a.extend(5880..=5929);
+    use super::civ::era::Era;
+    let era = sim.era(lid);
+    let stage = org.age_stage();
+    let has = |d: &str| org.discoveries.contains(d);
+
+    if era >= Era::Modern {
+        a.extend(5340..=5389);
+        a.extend(5400..=5449);
+    }
+    if has("currency") {
+        a.extend(5460..=5509);
+    }
+    if era >= Era::Information && org.literacy >= 0.5 {
+        a.extend(5520..=5569);
+    }
+    if matches!(stage, crate::sim::age_stage::AgeStage::Infant | crate::sim::age_stage::AgeStage::Child) {
+        a.extend(5580..=5629);
+    }
+    if org.is_elder || matches!(stage, crate::sim::age_stage::AgeStage::Elder) {
+        a.extend(5640..=5689);
+    }
+    if has("writing") && era >= Era::Renaissance {
+        a.extend(5700..=5749);
+    }
+    if has("weaving") {
+        a.extend(5760..=5809);
+    }
+    if has("hunting") {
+        a.extend(5820..=5869);
+    }
+    if has("brewing") && era >= Era::Bronze {
+        a.extend(5880..=5929);
+    }
 
     a
 }
@@ -448,16 +471,16 @@ pub fn try_apply(sim: &mut Simulation, idx: usize, action: usize, ix: i32, iy: i
         5160..=5209 => historical_record::apply(action, &mut ctx),
         5220..=5269 => courier::apply(action, &mut ctx),
         5280..=5329 => beekeeping::apply(action, &mut ctx),
-        5340..=5389 => cafe_work::apply(action, &mut ctx),
-        5400..=5449 => barista_advanced::apply(action, &mut ctx),
-        5460..=5509 => retail::apply(action, &mut ctx),
-        5520..=5569 => tech_devops::apply(action, &mut ctx),
-        5580..=5629 => childhood::apply(action, &mut ctx),
-        5640..=5689 => elder_life::apply(action, &mut ctx),
-        5700..=5749 => journalism::apply(action, &mut ctx),
-        5760..=5809 => fashion::apply(action, &mut ctx),
-        5820..=5869 => butchery::apply(action, &mut ctx),
-        5880..=5929 => distillation::apply(action, &mut ctx),
+        5340..=5389 => cafe_work::apply(action, &mut ctx) * 0.8,
+        5400..=5449 => barista_advanced::apply(action, &mut ctx) * 1.4,
+        5460..=5509 => retail::apply(action, &mut ctx) * 1.2,
+        5520..=5569 => tech_devops::apply(action, &mut ctx) * 1.8,
+        5580..=5629 => childhood::apply(action, &mut ctx) * 1.6,
+        5640..=5689 => elder_life::apply(action, &mut ctx) * 1.5,
+        5700..=5749 => journalism::apply(action, &mut ctx) * 1.3,
+        5760..=5809 => fashion::apply(action, &mut ctx) * 1.1,
+        5820..=5869 => butchery::apply(action, &mut ctx) * 1.7,
+        5880..=5929 => distillation::apply(action, &mut ctx) * 2.0,
         _           => return None,
     };
     Some(r)

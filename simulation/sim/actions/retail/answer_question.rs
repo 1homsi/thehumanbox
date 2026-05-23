@@ -3,6 +3,6 @@ use super::super::ctx::ActionCtx;
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
     ctx.think("answer question");
-    ctx.event("life", "answer question");
+    ctx.event("chore", "answer question");
     0.005
 }
