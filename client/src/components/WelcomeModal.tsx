@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { startTour } from '../tour/tour'
+import { startTour, isTourSupported } from '../tour/tour'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 const STORAGE_KEY = 'thb-welcome-seen-v1'
 
@@ -39,6 +40,8 @@ const STEPS: Step[] = [
 export function WelcomeModal() {
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState(0)
+  const isMobile = useIsMobile()
+  const tourAvailable = !isMobile && isTourSupported()
 
   useEffect(() => {
     let seen = true
@@ -68,7 +71,7 @@ export function WelcomeModal() {
   }
 
   const next = () => {
-    if (isLast) finish(true)
+    if (isLast) finish(tourAvailable)
     else setStep((s) => s + 1)
   }
 
@@ -97,7 +100,7 @@ export function WelcomeModal() {
             {step === 0 ? 'Skip' : 'Back'}
           </button>
           <button type="button" className="welcome-btn welcome-btn--primary" onClick={next} autoFocus>
-            {isLast ? 'Take the tour' : 'Next'}
+            {isLast ? (tourAvailable ? 'Take the tour' : 'Got it') : 'Next'}
           </button>
         </div>
       </div>

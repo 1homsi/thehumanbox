@@ -62,7 +62,7 @@ impl AgeStage {
 
     pub fn energy_decay_mult(self) -> f32 {
         match self {
-            AgeStage::Infant => 1.5,
+            AgeStage::Infant => 1.3,
             AgeStage::Child => 0.9,
             AgeStage::Teen => 1.0,
             AgeStage::Adult => 1.0,

@@ -1,6 +1,7 @@
 import clsx from 'clsx'
 import { useUIStore, useViewFlag } from '../stores/store'
-import { startTour } from '../tour/tour'
+import { startTour, isTourSupported } from '../tour/tour'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 export function MoreDropdown() {
   const overlay = useUIStore((s) => s.overlay)
@@ -16,6 +17,8 @@ export function MoreDropdown() {
   const openWorlds = useUIStore((s) => s.openWorlds)
   const nerdStats = useUIStore((s) => s.nerdStats)
   const setNerdStats = useUIStore((s) => s.setNerdStats)
+  const isMobile = useIsMobile()
+  const tourAvailable = !isMobile && isTourSupported()
 
   // Per-flag scalar subscriptions so toggling one flag doesn't re-render
   // every component that read `viewFlags` as a whole object.
@@ -362,16 +365,18 @@ export function MoreDropdown() {
         >
           ⓘ about
         </button>
-        <button
-          className="lang-btn"
-          onClick={() => {
-            closeMore()
-            startTour()
-          }}
-          title="Guided walkthrough of the app"
-        >
-          🎓 tour
-        </button>
+        {tourAvailable && (
+          <button
+            className="lang-btn"
+            onClick={() => {
+              closeMore()
+              startTour()
+            }}
+            title="Guided walkthrough of the app"
+          >
+            🎓 tour
+          </button>
+        )}
         <button
           className={clsx('lang-btn', nerdStats && 'active')}
           aria-pressed={!!nerdStats}

@@ -11,6 +11,15 @@ export function hasSeenTour(): boolean {
   }
 }
 
+export function isTourSupported(): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    return !window.matchMedia('(max-width: 767px)').matches
+  } catch {
+    return true
+  }
+}
+
 function markSeen() {
   try {
     window.localStorage.setItem(TOUR_KEY, '1')
@@ -129,21 +138,42 @@ function createTour() {
   })
 }
 
+function selectorPresent(sel: string): boolean {
+  try {
+    return !!document.querySelector(sel)
+  } catch {
+    return false
+  }
+}
+
 export function startTour() {
+  if (!isTourSupported()) {
+    markSeen()
+    return null
+  }
   if (activeTour) {
     activeTour.complete()
     activeTour = null
   }
+  const liveSteps = STEPS.filter((s) => !s.selector || selectorPresent(s.selector))
+  if (liveSteps.length === 0) {
+    markSeen()
+    return null
+  }
   const tour = createTour()
 
-  STEPS.forEach((step, i) => {
-    const isLast = i === STEPS.length - 1
+  liveSteps.forEach((step, i) => {
+    const isLast = i === liveSteps.length - 1
     const isFirst = i === 0
+    const attach =
+      step.selector && selectorPresent(step.selector)
+        ? { element: step.selector, on: step.on ?? 'auto' }
+        : undefined
     tour.addStep({
       id: `step-${i}`,
       title: step.title,
       text: step.text,
-      attachTo: step.selector ? { element: step.selector, on: step.on ?? 'auto' } : undefined,
+      attachTo: attach,
       buttons: [
         ...(isFirst
           ? []
