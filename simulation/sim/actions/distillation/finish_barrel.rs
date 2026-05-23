@@ -1,8 +1,12 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
+    if ctx.good("aged_spirit") == 0 {
+        ctx.think("no barrel to finish");
+        return 0.005;
+    }
+    ctx.add_wealth(1);
     ctx.think("finish barrel");
-    ctx.event("chore", "finish barrel");
-    0.005
+    ctx.event("chore", "finished a barrel");
+    0.05
 }

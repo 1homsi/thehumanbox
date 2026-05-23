@@ -111,6 +111,89 @@ impl<'a> ActionCtx<'a> {
     pub fn is_night(&self) -> bool {
         self.sim.is_night()
     }
+
+    pub fn good(&self, key: &str) -> u8 {
+        self.org().tools.get(key).copied().unwrap_or(0)
+    }
+
+    pub fn add_good(&mut self, key: &str, n: u8) {
+        let cur = self.good(key);
+        let next = (cur as u32 + n as u32).min(8) as u8;
+        self.org_mut().tools.insert(key.into(), next);
+    }
+
+    pub fn take_good(&mut self, key: &str, n: u8) -> bool {
+        let cur = self.good(key);
+        if cur < n { return false; }
+        let next = cur - n;
+        if next == 0 {
+            self.org_mut().tools.remove(key);
+        } else {
+            self.org_mut().tools.insert(key.into(), next);
+        }
+        true
+    }
+
+    pub fn comfort_kin(&mut self, amount: f32) -> usize {
+        let kin = self.kin.clone();
+        let mut n = 0;
+        for &i in &kin {
+            let o = &mut self.sim.organisms[i];
+            if !o.alive { continue; }
+            o.comfort = (o.comfort + amount).min(1.0);
+            n += 1;
+        }
+        n
+    }
+
+    pub fn energize_kin(&mut self, amount: f32) -> usize {
+        let kin = self.kin.clone();
+        let mut n = 0;
+        for &i in &kin {
+            let o = &mut self.sim.organisms[i];
+            if !o.alive { continue; }
+            o.energy = (o.energy + amount).min(1.0);
+            n += 1;
+        }
+        n
+    }
+
+    pub fn literacy_kin(&mut self, amount: f32) -> usize {
+        let kin = self.kin.clone();
+        let mut n = 0;
+        for &i in &kin {
+            let o = &mut self.sim.organisms[i];
+            if !o.alive { continue; }
+            o.literacy = (o.literacy + amount).min(1.0);
+            n += 1;
+        }
+        n
+    }
+
+    pub fn add_literacy(&mut self, amount: f32) {
+        let o = self.org_mut();
+        o.literacy = (o.literacy + amount).min(1.0);
+    }
+
+    pub fn add_comfort(&mut self, amount: f32) {
+        let o = self.org_mut();
+        o.comfort = (o.comfort + amount).min(1.0);
+    }
+
+    pub fn add_piety(&mut self, amount: f32) {
+        let o = self.org_mut();
+        o.piety = (o.piety + amount).min(1.0);
+    }
+
+    pub fn add_energy(&mut self, amount: f32) {
+        let o = self.org_mut();
+        o.energy = (o.energy + amount).min(1.0);
+    }
+
+    pub fn add_wealth(&mut self, n: u32) {
+        let o = self.org_mut();
+        o.wealth = o.wealth.saturating_add(n);
+    }
 }
 
 /// Declarative spec for the canonical "build a thing on the current

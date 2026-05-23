@@ -1,8 +1,12 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
-    ctx.think("distill strip");
-    ctx.event("chore", "distill strip");
-    0.005
+    if !ctx.take_good("wash", 1) {
+        ctx.think("no wash for a stripping run");
+        return 0.005;
+    }
+    ctx.add_good("spirit", 1);
+    ctx.think("strip run");
+    ctx.event("chore", "ran a stripping pass");
+    0.07
 }

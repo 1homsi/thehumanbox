@@ -1,8 +1,8 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
-    ctx.think("calibrate thermometer distill");
-    ctx.event("chore", "calibrate thermometer distill");
-    0.005
+    ctx.add_literacy(0.006);
+    ctx.think("calibrate thermometer");
+    ctx.event("chore", "calibrated the thermometer");
+    0.04
 }
