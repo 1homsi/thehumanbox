@@ -1,8 +1,12 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
+    if ctx.good("preserved") == 0 {
+        ctx.think("nothing to label");
+        return 0.005;
+    }
+    ctx.add_literacy(0.003);
     ctx.think("label package");
-    ctx.event("chore", "label package");
-    0.005
+    ctx.event("chore", "labeled a package");
+    0.03
 }

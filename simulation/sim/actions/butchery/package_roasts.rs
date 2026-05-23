@@ -1,8 +1,12 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
+    if !ctx.take_good("preserved", 1) {
+        ctx.think("no preserved cuts to package");
+        return 0.005;
+    }
+    ctx.add_wealth(2);
     ctx.think("package roasts");
-    ctx.event("chore", "package roasts");
-    0.005
+    ctx.event("life", "sold packaged roasts");
+    0.08
 }

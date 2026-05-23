@@ -1,8 +1,12 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
-    ctx.think("cure dry age");
-    ctx.event("chore", "cure dry age");
-    0.005
+    if !ctx.take_good("meat", 1) {
+        ctx.think("nothing to cure");
+        return 0.005;
+    }
+    ctx.add_good("preserved", 1);
+    ctx.think("dry cure");
+    ctx.event("chore", "dry-cured a cut");
+    0.06
 }

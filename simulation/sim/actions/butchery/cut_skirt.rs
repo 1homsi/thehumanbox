@@ -1,8 +1,12 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
-    ctx.think("cut skirt");
+    if !ctx.take_good("cuts", 1) {
+        ctx.think("no primals to cut");
+        return 0.005;
+    }
+    ctx.org_mut().inv_food = ctx.org().inv_food.saturating_add(1);
+    ctx.think("skirt");
     ctx.event("chore", "cut skirt");
-    0.005
+    0.05
 }
