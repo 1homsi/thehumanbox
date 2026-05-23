@@ -974,7 +974,13 @@ impl Organism {
             .map(|r| r.max_q())
             .unwrap_or(0.0);
 
-        let effective_reward = if reward < 0.0 { reward * 1.4 } else { reward };
+        let effective_reward = if reward < 0.0 {
+            reward * 1.4
+        } else if reward < 0.01 {
+            reward - 0.01
+        } else {
+            reward
+        };
 
         if let Some(row) = self.q_table.get_mut(perception) {
             let old = row.get_q(action_u16);
