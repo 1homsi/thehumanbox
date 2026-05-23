@@ -26,6 +26,9 @@ import { drawBuilding } from './buildings2d'
 import { normalizeLineageEras } from '../../utils/lineageEras'
 import { useSceneStore } from '../../stores/scene'
 
+const IS_MOBILE: boolean =
+  typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 767px)').matches
+
 function deriveAgeStage(age: number, isElder: boolean, declared?: string): AgeStage {
   if (declared === 'infant' || declared === 'child' || declared === 'teen' || declared === 'adult')
     return declared
@@ -472,11 +475,12 @@ function drawWorldOnCanvas(
           ctx.fillRect(col * TILE + ((h >>> 8) & 3), row * TILE + ((h >>> 10) & 3), 2, 1)
         }
       }
-      // Subtle wave lines on lakes
+      // Subtle wave lines on lakes - skip on mobile (O(w×h) inner loop)
       ctx.save()
       ctx.strokeStyle = 'rgba(140,200,240,0.18)'
       ctx.lineWidth = 0.8
-      for (let row = 1; row < height - 1; row++) {
+      const skipWaves = IS_MOBILE
+      for (let row = 1; row < height - 1 && !skipWaves; row++) {
         const dr = dm[row]
         if (!dr) continue
         let waveStart = -1
@@ -1688,10 +1692,17 @@ function WorldSprite({
     let lastDrawnAt: number = 0
     let lastDrawnT: number = -1
     let lastDrawnUI: string = ''
+    const isMobileDevice = typeof window !== 'undefined' && window.matchMedia?.('(max-width: 767px)').matches
+    let mobileFrameSkip = 0
 
     const tick = () => {
       if (stopped) return
       raf = requestAnimationFrame(tick)
+
+      if (isMobileDevice) {
+        mobileFrameSkip = (mobileFrameSkip + 1) % 2
+        if (mobileFrameSkip === 1) return
+      }
 
       const w = worldRef.current
       if (!w) return
