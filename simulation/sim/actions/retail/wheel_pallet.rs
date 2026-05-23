@@ -1,8 +1,8 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
-    ctx.think("wheel pallet");
-    ctx.event("chore", "wheel pallet");
-    0.005
+    ctx.add_good("stock", 1);
+    ctx.think("wheel a pallet");
+    ctx.event("chore", "wheel a pallet");
+    0.04
 }

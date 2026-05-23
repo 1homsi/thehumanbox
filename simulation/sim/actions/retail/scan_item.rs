@@ -1,8 +1,12 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
-    ctx.think("scan item");
-    ctx.event("chore", "scan item");
-    0.005
+    if !ctx.take_good("stock", 1) {
+        ctx.think("no stock to scan an item");
+        return 0.005;
+    }
+    ctx.add_wealth(2);
+    ctx.think("scan an item");
+    ctx.event("chore", "scan an item");
+    0.07
 }
