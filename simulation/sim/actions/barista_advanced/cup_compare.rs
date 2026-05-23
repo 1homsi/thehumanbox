@@ -1,8 +1,12 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
-    ctx.think("cup compare");
-    ctx.event("chore", "cup compare");
-    0.005
+    if ctx.good("coffee") == 0 && ctx.good("drink") == 0 {
+        ctx.think("nothing to cup");
+        return 0.005;
+    }
+    ctx.add_literacy(0.005);
+    ctx.think("compare cups");
+    ctx.event("chore", "compare cups");
+    0.04
 }

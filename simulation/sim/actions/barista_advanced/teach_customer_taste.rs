@@ -1,8 +1,12 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
-    ctx.think("teach customer taste");
-    ctx.event("chore", "teach customer taste");
-    0.005
+    if ctx.kin.is_empty() {
+        ctx.think("no one to teach");
+        return 0.02;
+    }
+    let n = ctx.literacy_kin(0.005);
+    ctx.think("teach taste");
+    ctx.event("chore", "taught a customer to taste");
+    0.05 + n as f32 * 0.01
 }

@@ -1,8 +1,14 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
-    ctx.think("serve affogato");
-    ctx.event("chore", "serve affogato");
-    0.005
+    if !ctx.take_good("drink", 1) {
+        ctx.think("no drink to serve");
+        return 0.005;
+    }
+    let n = ctx.energize_kin(0.04);
+    ctx.comfort_kin(0.02);
+    ctx.add_wealth(2);
+    ctx.think("affogato");
+    ctx.event("chore", "served a affogato");
+    0.07 + n as f32 * 0.01
 }
