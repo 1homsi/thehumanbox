@@ -1,8 +1,8 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
-    ctx.think("scribble shape");
-    ctx.event("chore", "scribble shape");
-    0.005
+    ctx.add_literacy(0.005);
+    ctx.think("scribble a shape");
+    ctx.event("chore", "scribble a shape");
+    0.04
 }

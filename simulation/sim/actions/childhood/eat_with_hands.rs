@@ -1,8 +1,8 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
+    ctx.add_energy(0.03);
     ctx.think("eat with hands");
-    ctx.event("chore", "eat with hands");
-    0.005
+    ctx.event("chore", "ate with hands");
+    0.04
 }

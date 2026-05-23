@@ -1,8 +1,11 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
-    ctx.think("pick up leaf");
-    ctx.event("chore", "pick up leaf");
-    0.005
+    if ctx.chance(0.2) {
+        ctx.org_mut().inv_food = ctx.org().inv_food.saturating_add(1);
+    }
+    ctx.add_comfort(0.01);
+    ctx.think("pick up a leaf");
+    ctx.event("chore", "pick up a leaf");
+    0.03
 }
