@@ -88,7 +88,7 @@ export function CivStatsModal({ world, onClose }: Props) {
   const buildingRows = Object.entries(buildingCounts).sort((a, b) => b[1] - a[1])
 
   return (
-    <Modal open onClose={onClose} title={'\u{1F30D} Civilization'}>
+    <Modal open onClose={onClose} className="civ-modal" title={'\u{1F30D} Civilization'}>
       <div className="civ-modal-grid">
         <section className="civ-section">
           <h3>Lineages</h3>

@@ -21,7 +21,7 @@ interface Props {
   biomes: number[][]
 }
 
-const FN_DEFAULT: Record<BuildingKind, BuildingFunction> = {
+const FN_DEFAULT: Partial<Record<BuildingKind, BuildingFunction>> = {
   Hut: 'Housing',
   House: 'Housing',
   Manor: 'Housing',
@@ -527,7 +527,7 @@ export function Buildings3D({ buildings, depthMap, biomes }: Props) {
         positions={huts}
         yOffset={2.6}
         geometry={HUT_GEO}
-        color={FN_COLOR[FN_DEFAULT.Hut]}
+        color={FN_COLOR[FN_DEFAULT.Hut ?? 'Housing']}
         maxCount={cap(huts.length)}
       />
 
@@ -535,7 +535,7 @@ export function Buildings3D({ buildings, depthMap, biomes }: Props) {
         positions={houses}
         yOffset={2.1}
         geometry={HOUSE_WALL}
-        color={FN_COLOR[FN_DEFAULT.House]}
+        color={FN_COLOR[FN_DEFAULT.House ?? 'Housing']}
         maxCount={cap(houses.length)}
       />
       <Layer
@@ -557,14 +557,14 @@ export function Buildings3D({ buildings, depthMap, biomes }: Props) {
         positions={manors}
         yOffset={3.7}
         geometry={MANOR_WALL_A}
-        color={FN_COLOR[FN_DEFAULT.Manor]}
+        color={FN_COLOR[FN_DEFAULT.Manor ?? 'Housing']}
         maxCount={cap(manors.length)}
       />
       <Layer
         positions={manors.map(([x, y, z]) => [x + 5.4, y, z] as [number, number, number])}
         yOffset={2.5}
         geometry={MANOR_WALL_B}
-        color={FN_COLOR[FN_DEFAULT.Manor]}
+        color={FN_COLOR[FN_DEFAULT.Manor ?? 'Housing']}
         maxCount={cap(manors.length)}
       />
       <Layer

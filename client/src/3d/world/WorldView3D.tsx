@@ -51,10 +51,22 @@ const KEY_MAP = [
   { name: 'boost', keys: ['ControlLeft', 'ControlRight'] },
 ]
 
+interface BuildingAABB {
+  minX: number
+  maxX: number
+  minZ: number
+  maxZ: number
+  minY: number
+  maxY: number
+}
+
 interface FlyCameraProps {
   depthMap?: number[][]
   biomes?: number[][]
+  buildingAABBs?: BuildingAABB[]
 }
+
+const CAMERA_RADIUS = 1.6
 
 const FLOOR_CLEARANCE = 0.8
 const MIN_SEA_LEVEL = 0.6
@@ -76,7 +88,25 @@ function loadSavedCam(): { x: number; y: number; z: number; rx: number; ry: numb
   }
 }
 
-function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
+function intersectsAABB(x: number, y: number, z: number, b: BuildingAABB): boolean {
+  return (
+    x > b.minX - CAMERA_RADIUS &&
+    x < b.maxX + CAMERA_RADIUS &&
+    z > b.minZ - CAMERA_RADIUS &&
+    z < b.maxZ + CAMERA_RADIUS &&
+    y < b.maxY + 0.2
+  )
+}
+
+function blockedAt(x: number, y: number, z: number, bs: BuildingAABB[] | undefined): boolean {
+  if (!bs) return false
+  for (const b of bs) {
+    if (intersectsAABB(x, y, z, b)) return true
+  }
+  return false
+}
+
+function FlyCamera({ depthMap, biomes, buildingAABBs }: FlyCameraProps) {
   const [, get] = useKeyboardControls<MoveKeys>()
   const { camera } = useThree()
   const velocity = useRef(new Vector3())
@@ -146,7 +176,23 @@ function FlyCamera({ depthMap, biomes }: FlyCameraProps) {
 
     if (velocity.current.lengthSq() > 0) {
       velocity.current.normalize().multiplyScalar(speed * delta)
-      camera.position.add(velocity.current)
+      if (buildingAABBs && buildingAABBs.length > 0) {
+        const stepX = velocity.current.x
+        const stepZ = velocity.current.z
+        const stepY = velocity.current.y
+        const y0 = camera.position.y + stepY
+        const tryX = camera.position.x + stepX
+        const tryZ = camera.position.z + stepZ
+        if (!blockedAt(tryX, y0, camera.position.z, buildingAABBs)) {
+          camera.position.x = tryX
+        }
+        if (!blockedAt(camera.position.x, y0, tryZ, buildingAABBs)) {
+          camera.position.z = tryZ
+        }
+        camera.position.y += stepY
+      } else {
+        camera.position.add(velocity.current)
+      }
     }
 
     if (depthMap && biomes) {
@@ -335,6 +381,49 @@ export default function WorldView3D({ world }: Props) {
     return out
   }, [grid?.tiles, grid?.depth_map, grid?.biomes])
 
+  const buildingAABBs = useMemo<BuildingAABB[]>(() => {
+    if (!grid?.tiles || !grid?.depth_map || !grid?.biomes) return []
+    const out: BuildingAABB[] = []
+    const tiles = grid.tiles
+    for (let row = 0; row < grid.height; row++) {
+      const tRow = tiles[row]
+      if (!tRow) continue
+      for (let col = 0; col < grid.width; col++) {
+        if (tRow[col] !== 8) continue
+        const ground = heightAt(col, row, grid.depth_map, grid.biomes)
+        const cx = col * TILE_SCALE
+        const cz = row * TILE_SCALE
+        const half = TILE_SCALE * 0.55
+        out.push({
+          minX: cx - half,
+          maxX: cx + half,
+          minZ: cz - half,
+          maxZ: cz + half,
+          minY: ground,
+          maxY: ground + 6.5,
+        })
+      }
+    }
+    for (const b of world?.buildings ?? []) {
+      if (typeof b.x !== 'number' || typeof b.y !== 'number') continue
+      const fp = (b.footprint ?? [2, 2]) as [number, number]
+      const ground = heightAt(b.x, b.y, grid.depth_map, grid.biomes)
+      const cx = b.x * TILE_SCALE
+      const cz = b.y * TILE_SCALE
+      const halfW = fp[0] * TILE_SCALE * 0.55
+      const halfD = fp[1] * TILE_SCALE * 0.55
+      out.push({
+        minX: cx - halfW,
+        maxX: cx + halfW,
+        minZ: cz - halfD,
+        maxZ: cz + halfD,
+        minY: ground,
+        maxY: ground + 8.0,
+      })
+    }
+    return out
+  }, [grid?.tiles, grid?.depth_map, grid?.biomes, grid?.height, grid?.width, world?.buildings])
+
   const cx = (grid?.width ?? 150) * TILE_SCALE * 0.5
   const cz = (grid?.height ?? 75) * TILE_SCALE * 0.5
 
@@ -494,7 +583,11 @@ export default function WorldView3D({ world }: Props) {
               </>
             )}
             <CinematicGrade dayProgress={dayProgress} weatherKind={world?.weather?.kind ?? 'clear'} />
-            <FlyCamera depthMap={grid?.depth_map} biomes={grid?.biomes} />
+            <FlyCamera
+              depthMap={grid?.depth_map}
+              biomes={grid?.biomes}
+              buildingAABBs={buildingAABBs}
+            />
             <CameraBreath enabled={!isTouch} />
             <CameraSync />
             {isTouch ? (
