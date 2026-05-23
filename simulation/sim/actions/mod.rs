@@ -351,7 +351,32 @@ pub fn available_actions(sim: &Simulation, idx: usize, ix: i32, iy: i32) -> Vec<
     a
 }
 
+fn workshop_bonus(sim: &Simulation, ix: i32, iy: i32, action: usize) -> f32 {
+    use crate::sim::tech::buildings::BuildingKind as BK;
+    let kinds: &[BK] = match action {
+        5340..=5449 => &[BK::Cafe, BK::Restaurant],
+        5460..=5509 => &[BK::Market, BK::MallShop, BK::Supermarket, BK::MarketStall],
+        5520..=5569 => &[BK::Datacenter, BK::OfficeTower, BK::ResearchLab],
+        5700..=5749 => &[BK::Library, BK::Scribe, BK::BookStore],
+        5760..=5809 => &[BK::Tailor, BK::ClothingShop, BK::Cobbler],
+        5820..=5869 => &[BK::Butcher, BK::Cheesemonger, BK::Fishmonger],
+        5880..=5929 => &[BK::Brewery, BK::Tavern, BK::Inn],
+        _ => return 1.0,
+    };
+    let near = sim.buildings.iter().any(|b| {
+        if !kinds.contains(&b.kind) {
+            return false;
+        }
+        let (fw, fh) = b.kind.footprint();
+        let bx = b.x + fw as i32 / 2;
+        let by = b.y + fh as i32 / 2;
+        (bx - ix).abs() + (by - iy).abs() <= 4
+    });
+    if near { 1.5 } else { 1.0 }
+}
+
 pub fn try_apply(sim: &mut Simulation, idx: usize, action: usize, ix: i32, iy: i32, spatial: &crate::sim::spatial::SpatialIndex) -> Option<f32> {
+    let bonus = workshop_bonus(sim, ix, iy, action);
     let mut ctx = ActionCtx::new(sim, idx, ix, iy, spatial);
     let r = match action {
         26..=38     => resources::apply(action, &mut ctx),
@@ -471,16 +496,16 @@ pub fn try_apply(sim: &mut Simulation, idx: usize, action: usize, ix: i32, iy: i
         5160..=5209 => historical_record::apply(action, &mut ctx),
         5220..=5269 => courier::apply(action, &mut ctx),
         5280..=5329 => beekeeping::apply(action, &mut ctx),
-        5340..=5389 => cafe_work::apply(action, &mut ctx) * 0.8,
-        5400..=5449 => barista_advanced::apply(action, &mut ctx) * 1.4,
-        5460..=5509 => retail::apply(action, &mut ctx) * 1.2,
-        5520..=5569 => tech_devops::apply(action, &mut ctx) * 1.8,
+        5340..=5389 => cafe_work::apply(action, &mut ctx) * 0.8 * bonus,
+        5400..=5449 => barista_advanced::apply(action, &mut ctx) * 1.4 * bonus,
+        5460..=5509 => retail::apply(action, &mut ctx) * 1.2 * bonus,
+        5520..=5569 => tech_devops::apply(action, &mut ctx) * 1.8 * bonus,
         5580..=5629 => childhood::apply(action, &mut ctx) * 1.6,
         5640..=5689 => elder_life::apply(action, &mut ctx) * 1.5,
-        5700..=5749 => journalism::apply(action, &mut ctx) * 1.3,
-        5760..=5809 => fashion::apply(action, &mut ctx) * 1.1,
-        5820..=5869 => butchery::apply(action, &mut ctx) * 1.7,
-        5880..=5929 => distillation::apply(action, &mut ctx) * 2.0,
+        5700..=5749 => journalism::apply(action, &mut ctx) * 1.3 * bonus,
+        5760..=5809 => fashion::apply(action, &mut ctx) * 1.1 * bonus,
+        5820..=5869 => butchery::apply(action, &mut ctx) * 1.7 * bonus,
+        5880..=5929 => distillation::apply(action, &mut ctx) * 2.0 * bonus,
         _           => return None,
     };
     Some(r)
