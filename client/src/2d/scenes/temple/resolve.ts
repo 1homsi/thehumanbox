@@ -95,11 +95,18 @@ export function resolveTempleScene(world: WorldState, scene: SceneId): SceneCont
     { id: 'brazier-r', kind: 'brazier', x: 12, y: 7 },
   ]
 
+  const adherents = religion.adherents ?? 0
+  const subtitle = [
+    KIND_SUBTITLE[religion.kind ?? ''] ?? 'a place of worship',
+    `${adherents} of the faith`,
+    `${inside.length} at the altar · ${away.length} nearby`,
+  ].join(' · ')
+
   return {
     scene,
     world,
     title: religion.name,
-    subtitle: `${KIND_SUBTITLE[religion.kind ?? ''] ?? 'a place of worship'} · ${inside.length + away.length} of the faith nearby`,
+    subtitle,
     isDay: !!world.is_day,
     occupants: inside.slice(0, 8),
     away: away.slice(0, 12),

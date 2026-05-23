@@ -81,11 +81,34 @@ export function resolveTavernScene(world: WorldState, scene: SceneId): SceneCont
     { id: 'stool-6', kind: 'stool', x: 9, y: 7 },
   ]
 
+  const totalSpirit = world.organisms.reduce(
+    (s, o) => (o.alive && o.lineage_id === scene.lineageId ? s + ((o.tools ?? {}).spirit ?? 0) : s),
+    0,
+  )
+  const brewerCount = world.organisms.filter(
+    (o) => o.alive && o.lineage_id === scene.lineageId && (o.discoveries ?? []).includes('brewing'),
+  ).length
+  const timeOfDay = world.is_day
+    ? inside.length > 3
+      ? 'busy lunch crowd'
+      : 'quiet daytime hours'
+    : inside.length > 3
+      ? 'rowdy evening'
+      : 'late-night regulars'
+  const subtitle = [
+    `${inside.length} drinking · ${away.length} nearby`,
+    timeOfDay,
+    brewerCount > 0 ? `${brewerCount} brewer${brewerCount === 1 ? '' : 's'}` : null,
+    totalSpirit > 0 ? `${totalSpirit} on the shelf` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
   return {
     scene,
     world,
     title: `${lineageName} tavern`,
-    subtitle: `A meeting place for the ${lineageName} tribe`,
+    subtitle,
     isDay: !!world.is_day,
     occupants: inside.slice(0, 8),
     away: away.slice(0, 12),
