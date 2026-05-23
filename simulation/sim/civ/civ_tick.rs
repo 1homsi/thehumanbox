@@ -463,11 +463,25 @@ fn tick_religion_founding(sim: &mut Simulation) {
         let pop = lineage_pop(sim, &lid);
         if pop < 5 { continue; }
         let era = lineage_era(sim, &lid);
-        let existing_kinds: HashSet<ReligionKind> = sim.religions.iter().filter(|r| r.founder_lineage == lid).map(|r| r.kind).collect();
+        let existing_for_lineage: Vec<&Religion> =
+            sim.religions.iter().filter(|r| r.founder_lineage == lid).collect();
+        if existing_for_lineage.len() >= 2 {
+            continue;
+        }
+        let recent = existing_for_lineage
+            .iter()
+            .map(|r| r.founded_tick)
+            .max()
+            .unwrap_or(0);
+        if recent > 0 && sim.tick_count.saturating_sub(recent) < 4_000 {
+            continue;
+        }
+        let existing_kinds: HashSet<ReligionKind> =
+            existing_for_lineage.iter().map(|r| r.kind).collect();
         let candidates = [ReligionKind::Animism, ReligionKind::Polytheism, ReligionKind::Monotheism, ReligionKind::Philosophical, ReligionKind::Secular];
         for k in candidates {
             if k.era_unlock() <= era && !existing_kinds.contains(&k) {
-                if sim.rng.gen::<f32>() < 0.30 {
+                if sim.rng.gen::<f32>() < 0.08 {
                     let id = format!("rel{}", sim.next_religion_id);
                     sim.next_religion_id += 1;
                     let name = pick_religion_name(sim.tick_count + (lid.len() as u64)).to_string();
