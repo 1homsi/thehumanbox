@@ -44,6 +44,8 @@ pub struct Religion {
     pub founded_tick: u64,
     pub founder_lineage: String,
     pub adherents: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_milestone: Option<u32>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]

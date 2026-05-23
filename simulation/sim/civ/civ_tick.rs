@@ -43,6 +43,7 @@ pub fn tick_civ(sim: &mut Simulation) {
     }
     if tick % 240 == 0 {
         tick_religion_adherents(sim);
+        tick_religion_effects(sim);
     }
     if tick % 600 == 0 {
         tick_leader_influence(sim);
@@ -473,6 +474,7 @@ fn tick_religion_founding(sim: &mut Simulation) {
                     sim.religions.push(Religion {
                         id: id.clone(), kind: k, name: name.clone(),
                         founded_tick: sim.tick_count, founder_lineage: lid.clone(), adherents: 1,
+                        last_milestone: None,
                     });
                     push_event(&mut sim.events, sim.tick_count, "religion_founded", &lid,
                                &format!("founded {} ({})", name, k.name()));
@@ -519,6 +521,79 @@ fn tick_religion_adherents(sim: &mut Simulation) {
         if let Some(n) = adherents_by_id.get(&r.id) {
             r.adherents = (*n).max(1);
         }
+    }
+}
+
+fn tick_religion_effects(sim: &mut Simulation) {
+    use crate::sim::tech::buildings::BuildingKind as BK;
+    if sim.religions.is_empty() {
+        return;
+    }
+    let temple_anchors: Vec<(f32, f32, Option<String>)> = sim
+        .buildings
+        .iter()
+        .filter(|b| {
+            matches!(
+                b.kind,
+                BK::Temple | BK::Cathedral | BK::Shrine | BK::Mosque | BK::Synagogue | BK::Pagoda
+            )
+        })
+        .map(|b| {
+            let (fw, fh) = b.kind.footprint();
+            (
+                b.x as f32 + fw as f32 / 2.0,
+                b.y as f32 + fh as f32 / 2.0,
+                b.owner_lineage.clone(),
+            )
+        })
+        .collect();
+
+    for org in sim.organisms.iter_mut() {
+        if !org.alive || org.religion_id.is_none() {
+            continue;
+        }
+        let mut near_temple = false;
+        for (tx, ty, lid) in &temple_anchors {
+            if let Some(lid) = lid {
+                if lid != &org.lineage_id {
+                    continue;
+                }
+            }
+            if (org.x - tx).abs() + (org.y - ty).abs() <= 6.0 {
+                near_temple = true;
+                break;
+            }
+        }
+        let bonus = if near_temple { 0.02 } else { 0.005 };
+        org.piety = (org.piety + 0.003).min(1.0);
+        org.comfort = (org.comfort + bonus).min(1.0);
+        if near_temple {
+            org.loneliness = (org.loneliness - 0.005).max(0.0);
+        }
+    }
+
+    let tick = sim.tick_count;
+    let mut milestone_events: Vec<(String, String)> = Vec::new();
+    for r in sim.religions.iter_mut() {
+        let new = r.adherents;
+        let last = r.last_milestone.unwrap_or(0);
+        let bands: &[u32] = &[10, 25, 50, 100, 250, 500, 1000];
+        let mut crossed: Option<u32> = None;
+        for b in bands {
+            if new >= *b && last < *b {
+                crossed = Some(*b);
+            }
+        }
+        if let Some(b) = crossed {
+            r.last_milestone = Some(b);
+            milestone_events.push((
+                r.name.clone(),
+                format!("the faith of {} reached {} followers", r.name, b),
+            ));
+        }
+    }
+    for (name, detail) in milestone_events {
+        push_event(&mut sim.events, tick, "religion", &name, &detail);
     }
 }
 
