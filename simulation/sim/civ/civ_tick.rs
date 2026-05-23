@@ -29,8 +29,10 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick % 300 == 0 {
         tick_education(sim);
     }
-    if tick % 400 == 0 {
+    if tick % 240 == 0 {
         tick_buildings_construct(sim);
+    }
+    if tick % 400 == 0 {
         tick_disease_spread(sim);
     }
     if tick % 150 == 0 {
@@ -457,21 +459,25 @@ fn tick_buildings_construct(sim: &mut Simulation) {
         let era = lineage_era(sim, &lid);
         let pop = lineage_pop(sim, &lid);
         if pop < 5 { continue; }
-        let existing: HashSet<BuildingKind> = sim.buildings.iter()
+        let builds_this_pass = if pop >= 40 { 3 } else if pop >= 20 { 2 } else { 1 };
+        let mut existing: HashSet<BuildingKind> = sim.buildings.iter()
             .filter(|b| b.owner_lineage.as_deref() == Some(&lid))
             .map(|b| b.kind)
             .collect();
-        let target = next_target_building(era, pop, &existing);
-        let Some(kind) = target else { continue };
-        let (cx, cy) = lineage_center(sim, &lid);
-        if cx == 0 && cy == 0 { continue; }
-        let offset_x = (sim.next_building_id as i32 * 3) % 12 - 6;
-        let offset_y = (sim.next_building_id as i32 * 5) % 10 - 5;
-        let id = sim.next_building_id;
-        sim.next_building_id += 1;
-        new_buildings.push(Building::new(id, kind, cx + offset_x, cy + offset_y, Some(lid.clone()), sim.tick_count));
-        let kn = kind.name().to_string();
-        push_event(&mut sim.events, sim.tick_count, "built", &lid, &format!("built a {}", kn));
+        for _ in 0..builds_this_pass {
+            let target = next_target_building(era, pop, &existing);
+            let Some(kind) = target else { break };
+            existing.insert(kind);
+            let (cx, cy) = lineage_center(sim, &lid);
+            if cx == 0 && cy == 0 { break; }
+            let offset_x = (sim.next_building_id as i32 * 3) % 16 - 8;
+            let offset_y = (sim.next_building_id as i32 * 5) % 14 - 7;
+            let id = sim.next_building_id;
+            sim.next_building_id += 1;
+            new_buildings.push(Building::new(id, kind, cx + offset_x, cy + offset_y, Some(lid.clone()), sim.tick_count));
+            let kn = kind.name().to_string();
+            push_event(&mut sim.events, sim.tick_count, "built", &lid, &format!("built a {}", kn));
+        }
     }
     sim.buildings.extend(new_buildings);
 }
