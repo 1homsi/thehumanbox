@@ -1,8 +1,13 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
-    ctx.think("interview official");
-    ctx.event("chore", "interview official");
-    0.005
+    if ctx.good("lead") == 0 {
+        ctx.think("no lead to follow");
+        return 0.005;
+    }
+    if ctx.chance(0.5) { ctx.add_good("quote", 1); }
+    ctx.add_literacy(0.005);
+    ctx.think("an official");
+    ctx.event("chore", "interviewed an official");
+    0.05
 }

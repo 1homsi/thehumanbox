@@ -1,8 +1,13 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
-    ctx.think("draft lead paragraph");
-    ctx.event("chore", "draft lead paragraph");
-    0.005
+    if !ctx.take_good("lead", 1) {
+        ctx.think("no lead to write up");
+        return 0.005;
+    }
+    ctx.add_good("draft", 1);
+    ctx.add_literacy(0.005);
+    ctx.think("draft a lead paragraph");
+    ctx.event("chore", "draft a lead paragraph");
+    0.06
 }

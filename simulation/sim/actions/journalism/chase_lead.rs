@@ -1,8 +1,9 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
-    ctx.think("chase lead");
-    ctx.event("chore", "chase lead");
-    0.005
+    if ctx.chance(0.4) { ctx.add_good("lead", 1); }
+    ctx.add_literacy(0.004);
+    ctx.think("chase a lead");
+    ctx.event("chore", "chase a lead");
+    0.04
 }
