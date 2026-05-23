@@ -55,6 +55,102 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick % 500 == 0 && tick > 0 {
         tick_cross_lineage_knowledge(sim);
     }
+    if tick % 180 == 0 && tick > 0 {
+        tick_building_auras(sim);
+    }
+}
+
+fn tick_building_auras(sim: &mut Simulation) {
+    use crate::sim::tech::buildings::BuildingKind as BK;
+    let auras: Vec<(f32, f32, Option<String>, BK)> = sim
+        .buildings
+        .iter()
+        .filter_map(|b| {
+            let kind = b.kind;
+            if !matches!(
+                kind,
+                BK::Library | BK::BookStore | BK::Scribe
+                    | BK::Hospital | BK::Hospital2 | BK::Clinic | BK::Pharmacy | BK::Apothecary
+                    | BK::Temple | BK::Cathedral | BK::Shrine | BK::Mosque | BK::Synagogue | BK::Pagoda
+                    | BK::School | BK::University
+                    | BK::Bank
+                    | BK::Bathhouse | BK::Spa
+                    | BK::Stadium | BK::PlayGround
+                    | BK::ArtGallery | BK::MusicHall | BK::Theatre | BK::Museum
+            ) {
+                return None;
+            }
+            let (fw, fh) = b.kind.footprint();
+            let bx = b.x as f32 + fw as f32 / 2.0;
+            let by = b.y as f32 + fh as f32 / 2.0;
+            Some((bx, by, b.owner_lineage.clone(), kind))
+        })
+        .collect();
+
+    if auras.is_empty() {
+        return;
+    }
+
+    for org in sim.organisms.iter_mut() {
+        if !org.alive {
+            continue;
+        }
+        for (bx, by, owner, kind) in &auras {
+            if let Some(o) = owner {
+                if o != &org.lineage_id {
+                    continue;
+                }
+            }
+            let d = (org.x - bx).abs() + (org.y - by).abs();
+            if d > 8.0 {
+                continue;
+            }
+            match *kind {
+                BK::Library | BK::BookStore | BK::Scribe => {
+                    org.literacy = (org.literacy + 0.002).min(1.0);
+                }
+                BK::Hospital | BK::Hospital2 | BK::Clinic | BK::Pharmacy | BK::Apothecary => {
+                    org.infection = (org.infection - 0.01).max(0.0);
+                    org.health = (org.health + 0.004).min(1.0);
+                }
+                BK::Temple | BK::Cathedral | BK::Shrine | BK::Mosque | BK::Synagogue | BK::Pagoda => {
+                    org.piety = (org.piety + 0.003).min(1.0);
+                    org.comfort = (org.comfort + 0.002).min(1.0);
+                }
+                BK::School => {
+                    if org.age < 2000 {
+                        org.literacy = (org.literacy + 0.004).min(1.0);
+                    }
+                }
+                BK::University => {
+                    if org.literacy > 0.4 {
+                        org.literacy = (org.literacy + 0.003).min(1.0);
+                    }
+                }
+                BK::Bank => {
+                    if org.specialty.as_deref() == Some("merchant")
+                        || org.specialty.as_deref() == Some("banker")
+                    {
+                        org.wealth = org.wealth.saturating_add(1);
+                    }
+                }
+                BK::Bathhouse | BK::Spa => {
+                    org.comfort = (org.comfort + 0.005).min(1.0);
+                    org.infection = (org.infection - 0.003).max(0.0);
+                }
+                BK::Stadium | BK::PlayGround => {
+                    org.comfort = (org.comfort + 0.003).min(1.0);
+                    org.energy = (org.energy + 0.002).min(1.0);
+                }
+                BK::ArtGallery | BK::MusicHall | BK::Theatre | BK::Museum => {
+                    org.comfort = (org.comfort + 0.004).min(1.0);
+                    org.literacy = (org.literacy + 0.001).min(1.0);
+                }
+                _ => {}
+            }
+            break;
+        }
+    }
 }
 
 fn tick_cross_lineage_knowledge(sim: &mut Simulation) {
