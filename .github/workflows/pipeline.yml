@@ -25,7 +25,7 @@ jobs:
       CARGO_NET_RETRY: 10
       RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install mold linker
         run: sudo apt-get install -y mold
       - uses: dtolnay/rust-toolchain@stable
@@ -59,11 +59,11 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
         with:
           version: 10
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: pnpm
@@ -106,7 +106,7 @@ jobs:
           # when it loads fine on real social crawlers.
           VITE_OG_IMAGE_URL: ${{ secrets.VITE_OG_IMAGE_URL || 'https://thehumanbox.com/og.png' }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: client-dist
           # Include both the static build and the Pages Functions
@@ -134,7 +134,7 @@ jobs:
     outputs:
       new: ${{ steps.bump.outputs.new }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -199,7 +199,7 @@ jobs:
       CARGO_NET_RETRY: 10
       RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: main
       - name: Install mold linker
@@ -227,7 +227,7 @@ jobs:
         run: |
           strip simulation/target/release/simulation-rs
           ls -lh simulation/target/release/simulation-rs
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: simulation-rs-aarch64
           path: simulation/target/release/simulation-rs
@@ -244,9 +244,9 @@ jobs:
       group: pipeline-deploy-main
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Download binary artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: simulation-rs-aarch64
           path: ./bin
@@ -280,7 +280,7 @@ jobs:
       cancel-in-progress: false
     steps:
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -312,7 +312,7 @@ jobs:
       deployments: write
     steps:
       - name: Download dist/ + functions/ from test-frontend
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: client-dist
           # Multi-path upload's common-ancestor strips the `client/`
@@ -322,7 +322,7 @@ jobs:
           path: client
 
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
