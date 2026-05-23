@@ -7,8 +7,8 @@ function findTavernAnchor(world: WorldState, lineageId: string): { x: number; y:
   const buildings = world.buildings ?? []
   let best: { x: number; y: number; score: number } | null = null
   for (const b of buildings) {
-    if (b.kind !== 'Tavern' && b.kind !== 'tavern') continue
-    const owner = (b as { owner_lineage?: string }).owner_lineage
+    if (b.kind !== 'tavern') continue
+    const owner = (b as { lineage_id?: string }).lineage_id
     if (owner && owner !== lineageId) continue
     const score = b.condition ?? 1
     if (!best || score > best.score) best = { x: b.x, y: b.y, score }
