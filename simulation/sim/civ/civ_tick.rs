@@ -52,6 +52,62 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick % 1200 == 0 {
         tick_disease_introduce(sim);
     }
+    if tick % 500 == 0 && tick > 0 {
+        tick_cross_lineage_knowledge(sim);
+    }
+}
+
+fn tick_cross_lineage_knowledge(sim: &mut Simulation) {
+    let snapshot: Vec<(usize, f32, f32, String, Vec<String>)> = sim
+        .organisms
+        .iter()
+        .enumerate()
+        .filter(|(_, o)| o.alive)
+        .map(|(i, o)| (i, o.x, o.y, o.lineage_id.clone(), o.discoveries.iter().cloned().collect()))
+        .collect();
+
+    let mut to_grant: Vec<(usize, String)> = Vec::new();
+    for i in 0..snapshot.len() {
+        let (_, ax, ay, alid, _) = &snapshot[i];
+        for j in 0..snapshot.len() {
+            if i == j {
+                continue;
+            }
+            let (_, bx, by, blid, bdisc) = &snapshot[j];
+            if alid == blid {
+                continue;
+            }
+            let d = (ax - bx).abs() + (ay - by).abs();
+            if d > 4.0 {
+                continue;
+            }
+            let (_, _, _, _, adisc) = &snapshot[i];
+            let learnable: Vec<&String> = bdisc.iter().filter(|d| !adisc.contains(d)).collect();
+            if learnable.is_empty() {
+                continue;
+            }
+            let pick = learnable[(sim.tick_count as usize + i + j) % learnable.len()];
+            if sim.rng.gen::<f32>() < 0.08 {
+                to_grant.push((snapshot[i].0, pick.clone()));
+            }
+            break;
+        }
+    }
+
+    let tick_now = sim.tick_count;
+    let mut events: Vec<(String, String, String)> = Vec::new();
+    for (i, disc) in to_grant {
+        let o = &mut sim.organisms[i];
+        if !o.alive || o.discoveries.contains(&disc) {
+            continue;
+        }
+        o.discoveries.insert(disc.clone());
+        events.push((o.name.clone(), o.lineage_id.clone(), disc));
+    }
+    for (name, _lid, disc) in events {
+        push_event(&mut sim.events, tick_now, "build", &name,
+                   &format!("learned {} from an outsider", disc.replace('_', " ")));
+    }
 }
 
 fn lineage_era(sim: &Simulation, lid: &str) -> Era {

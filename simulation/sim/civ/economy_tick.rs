@@ -230,11 +230,10 @@ fn run_barter(sim: &mut Simulation, tick: u64) {
         };
         for j in (i + 1)..snapshot.len() {
             let b = &snapshot[j];
-            if a.lid != b.lid {
-                continue;
-            }
+            let cross_lineage = a.lid != b.lid;
+            let cap = if cross_lineage { BARTER_RADIUS * 0.6 } else { BARTER_RADIUS };
             let d = (a.x - b.x).abs() + (a.y - b.y).abs();
-            if d > BARTER_RADIUS {
+            if d > cap {
                 continue;
             }
             if !lacks(b.food, b.water, b.wood, b.stone, &b.tools, &asur.0) {
@@ -380,14 +379,13 @@ fn run_currency_trade(sim: &mut Simulation, tick: u64) {
                 continue;
             }
             let b = &snapshot[j];
-            if s.lid != b.lid {
-                continue;
-            }
+            let cross_lineage = s.lid != b.lid;
             if b.era < Era::Bronze || b.wealth < price {
                 continue;
             }
+            let cap = if cross_lineage { BARTER_RADIUS * 0.6 } else { BARTER_RADIUS };
             let d = (s.x - b.x).abs() + (s.y - b.y).abs();
-            if d > BARTER_RADIUS {
+            if d > cap {
                 continue;
             }
             let wants = match good.as_str() {
