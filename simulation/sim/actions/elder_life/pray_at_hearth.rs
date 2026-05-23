@@ -1,8 +1,9 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
-    ctx.think("pray at hearth");
-    ctx.event("chore", "pray at hearth");
-    0.005
+    ctx.add_piety(0.02);
+    ctx.add_comfort(0.01);
+    ctx.think("pray at the hearth");
+    ctx.event("chore", "prayed at the hearth");
+    0.04
 }

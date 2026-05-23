@@ -1,8 +1,13 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
-    ctx.think("recall first winter to kin");
-    ctx.event("chore", "recall first winter to kin");
-    0.005
+    if ctx.kin.is_empty() {
+        ctx.think("no one to tell");
+        return 0.02;
+    }
+    let n = ctx.comfort_kin(0.02);
+    ctx.literacy_kin(0.003);
+    ctx.think("recall the first winter");
+    ctx.event("chore", "recall the first winter");
+    0.04 + n as f32 * 0.005
 }
