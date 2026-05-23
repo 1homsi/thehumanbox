@@ -98,18 +98,93 @@ fn specialty_earn(name: &str) -> u32 {
     }
 }
 
+fn workshop_pull(kind: BuildingKind) -> Option<Specialty> {
+    use BuildingKind::*;
+    Some(match kind {
+        Forge | Smithy => Specialty::Smith,
+        Bakery => Specialty::Baker,
+        Brewery | Tavern | Inn => Specialty::Brewer,
+        Tailor | ClothingShop => Specialty::Weaver,
+        Cobbler => Specialty::Weaver,
+        Workshop | SawMill => Specialty::Carpenter,
+        Quarry | Mine => Specialty::Miner,
+        Mill | Windmill | Watermill => Specialty::Baker,
+        Cafe | Restaurant => Specialty::Baker,
+        Butcher | Fishmonger | Cheesemonger => Specialty::Hunter,
+        Ranch | Stable | Kennel => Specialty::Farmer,
+        Temple | Cathedral | Shrine | Mosque | Synagogue | Pagoda => Specialty::Priest,
+        Hospital | Clinic | Pharmacy | Apothecary | Herbalist => Specialty::Healer,
+        Hospital2 => Specialty::Doctor,
+        School | University | Library | BookStore | Scribe => Specialty::Scholar,
+        Market | MarketStall | MallShop | Supermarket => Specialty::Merchant,
+        Bank => Specialty::Banker,
+        Courthouse | CityHall => Specialty::Lawyer,
+        Barracks | PoliceStation | Watchtower => Specialty::Soldier,
+        FireStation => Specialty::Officer,
+        Factory | Refinery | PowerPlant => Specialty::Engineer,
+        Datacenter | OfficeTower | ResearchLab => Specialty::Programmer,
+        Studio | Theatre | MusicHall | ArtGallery => Specialty::Artist,
+        Observatory => Specialty::Scholar,
+        Port | Marina | Dock => Specialty::Sailor,
+        Airport | Hangar => Specialty::Pilot,
+        Stadium => Specialty::Athlete,
+        _ => return None,
+    })
+}
+
 fn tick_specialties(sim: &mut Simulation) {
     let era_map = sim.lineage_eras.clone();
-    let traits_clone: Vec<(usize, f32, f32, f32, String, bool, Option<String>)> = sim.organisms.iter().enumerate()
+
+    let workshops: Vec<(f32, f32, Option<String>, Specialty)> = sim
+        .buildings
+        .iter()
+        .filter_map(|b| {
+            let s = workshop_pull(b.kind)?;
+            let (fw, fh) = b.kind.footprint();
+            let bx = b.x as f32 + fw as f32 / 2.0;
+            let by = b.y as f32 + fh as f32 / 2.0;
+            Some((bx, by, b.owner_lineage.clone(), s))
+        })
+        .collect();
+
+    let traits_clone: Vec<(usize, f32, f32, f32, f32, f32, String, bool)> = sim.organisms.iter().enumerate()
         .filter_map(|(i, o)| if o.alive && o.age_stage() == AgeStage::Adult && o.specialty.is_none() {
-            Some((i, o.traits.curiosity, o.traits.aggression, o.traits.social_tendency, o.lineage_id.clone(),
-                  o.discoveries.contains(&"writing".to_string()), o.specialty.clone()))
+            Some((i, o.x, o.y, o.traits.curiosity, o.traits.aggression, o.traits.social_tendency, o.lineage_id.clone(),
+                  o.discoveries.contains(&"writing".to_string())))
         } else { None })
         .collect();
 
-    for (i, curiosity, aggression, social, lid, has_writing, _) in traits_clone {
-        if sim.rng.gen::<f32>() > 0.06 { continue; }
+    for (i, ox, oy, curiosity, aggression, social, lid, has_writing) in traits_clone {
         let era = era_map.get(&lid).copied().unwrap_or(Era::PreStone);
+        let mut nearest_workshop: Option<(f32, Specialty)> = None;
+        for (sx, sy, slid, spec) in &workshops {
+            if let Some(slid) = slid {
+                if slid != &lid {
+                    continue;
+                }
+            }
+            let d = (ox - sx).abs() + (oy - sy).abs();
+            if d > 12.0 {
+                continue;
+            }
+            match nearest_workshop {
+                None => nearest_workshop = Some((d, *spec)),
+                Some((d0, _)) if d < d0 => nearest_workshop = Some((d, *spec)),
+                _ => {}
+            }
+        }
+
+        if let Some((_, near_spec)) = nearest_workshop {
+            if near_spec.era_unlock() <= era && sim.rng.gen::<f32>() < 0.35 {
+                sim.organisms[i].specialty = Some(near_spec.name().to_string());
+                let name = sim.organisms[i].name.clone();
+                push_event(&mut sim.events, sim.tick_count, "specialty", &name,
+                           &format!("became a {} (apprenticed near workshop)", near_spec.name()));
+                continue;
+            }
+        }
+
+        if sim.rng.gen::<f32>() > 0.06 { continue; }
         let candidates = candidate_specialties(era, curiosity, aggression, social, has_writing);
         if candidates.is_empty() { continue; }
         let pick = candidates[sim.rng.gen_range(0..candidates.len())];
