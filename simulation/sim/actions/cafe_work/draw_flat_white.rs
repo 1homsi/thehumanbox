@@ -1,8 +1,12 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
-    ctx.think("draw flat white");
-    ctx.event("chore", "draw flat white");
-    0.005
+    if !ctx.take_good("coffee", 1) {
+        ctx.think("no beans for flat white");
+        return 0.005;
+    }
+    ctx.add_good("drink", 1);
+    ctx.think("flat white");
+    ctx.event("chore", "drew a flat white");
+    0.06
 }

@@ -1,8 +1,11 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
+    if ctx.good("drink") == 0 {
+        ctx.think("no drink to call");
+        return 0.005;
+    }
     ctx.think("call drink");
-    ctx.event("chore", "call drink");
-    0.005
+    ctx.event("chore", "called a drink");
+    0.03
 }

@@ -1,8 +1,8 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
-    ctx.think("bake croissant");
-    ctx.event("chore", "bake croissant");
-    0.005
+    ctx.add_good("pastry", 1);
+    ctx.think("bake croissants");
+    ctx.event("chore", "bake croissants");
+    0.05
 }
