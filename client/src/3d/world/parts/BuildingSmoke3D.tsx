@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { InstancedMesh, Object3D, PlaneGeometry } from 'three'
-import type { Building, BuildingKind } from '../../../types'
+import type { Building } from '../../../types'
 import { heightAt } from './terrain-utils'
 import { TILE_SCALE } from './constants'
 
@@ -51,25 +51,25 @@ const tmp = new Object3D()
 export function BuildingSmoke3D({ buildings, depthMap, biomes }: Props) {
   // Bucket alive buildings by kind so we can build one InstancedMesh per
   // emitter type — keeps draw calls bounded.
-  const grouped: Map<BuildingKind, [number, number, number][]> = new Map()
+  const grouped = new Map<string, { spec: SmokeSourceSpec; positions: [number, number, number][] }>()
   for (const b of buildings) {
     const spec = SMOKE_SOURCES[b.kind]
     if (!spec) continue
     const ground = heightAt(b.x, b.y, depthMap, biomes)
-    const arr = grouped.get(b.kind) ?? []
-    arr.push([b.x * TILE_SCALE, ground, b.y * TILE_SCALE])
-    grouped.set(b.kind, arr)
+    const entry = grouped.get(b.kind) ?? { spec, positions: [] as [number, number, number][] }
+    entry.positions.push([b.x * TILE_SCALE, ground, b.y * TILE_SCALE])
+    grouped.set(b.kind, entry)
   }
 
   if (grouped.size === 0) return null
 
   return (
     <>
-      {Array.from(grouped.entries()).map(([kind, positions]) => (
+      {Array.from(grouped.entries()).map(([kind, entry]) => (
         <SmokeColumns
           key={`smoke-${kind}`}
-          positions={positions}
-          spec={SMOKE_SOURCES[kind as string]!}
+          positions={entry.positions}
+          spec={entry.spec}
         />
       ))}
     </>

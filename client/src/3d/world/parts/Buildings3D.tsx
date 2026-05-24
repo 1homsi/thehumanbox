@@ -1213,6 +1213,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
       })}
 
       {windowsOn && Object.entries(WINDOW_SPECS).map(([kind, spec]) => {
+        if (!spec) return null
         const positions = groups[kind as BuildingKind] ?? []
         if (positions.length === 0) return null
         const intensity = nightFrac * 1.6
@@ -1245,6 +1246,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
       })}
 
       {Object.entries(WORKSHOP_POLISH).map(([kind, polish]) => {
+        if (!polish) return null
         const positions = groups[kind as BuildingKind] ?? []
         if (positions.length === 0) return null
         return (
