@@ -391,6 +391,54 @@ fn category_for(action: usize) -> Option<&'static str> {
     })
 }
 
+fn aspiration_bonus(aspiration: &str, action: usize) -> f32 {
+    if aspiration.is_empty() {
+        return 1.0;
+    }
+    let matches = match aspiration {
+        "seeker" => {
+            // Knowledge / science / exploration
+            matches!(
+                action,
+                66..=79 | 117..=125 | 126..=140 | 211..=220 | 421..=435 | 1380..=1428 | 4140..=4189 | 4200..=4249 | 4560..=4609
+            )
+        }
+        "wanderer" => {
+            // Pure exploration
+            matches!(action, 117..=125 | 211..=220 | 1440..=1489 | 4440..=4489 | 4500..=4549)
+        }
+        "warrior" => {
+            // Combat / military
+            matches!(action, 96..=106 | 191..=200 | 436..=455 | 3660..=3709 | 4620..=4669)
+        }
+        "connector" => {
+            // Social / relationships / family
+            matches!(action, 80..=89 | 226..=245 | 261..=275 | 1260..=1310 | 2220..=2269)
+        }
+        "builder" => {
+            // Construction + craft + masonry
+            matches!(
+                action,
+                39..=50 | 166..=180 | 51..=65 | 151..=165 | 1200..=1249 | 3480..=3525 | 3720..=3769 | 3780..=3829 | 3840..=3889
+            )
+        }
+        "devout" => {
+            // Spiritual + religion + ritual
+            matches!(action, 201..=210 | 456..=470 | 1500..=1548 | 2520..=2568 | 2760..=2809)
+        }
+        "sage" => {
+            // Teaching, education, scholarship
+            matches!(action, 501..=520 | 3000..=3049 | 3240..=3289 | 3360..=3409)
+        }
+        "provider" => {
+            // Resources, agriculture, food, family care
+            matches!(action, 26..=38 | 141..=150 | 336..=355 | 356..=370 | 1140..=1189 | 1620..=1668 | 3420..=3469)
+        }
+        _ => false,
+    };
+    if matches { 1.35 } else { 1.0 }
+}
+
 fn specialty_bonus(org_specialty: Option<&str>, action: usize) -> f32 {
     let Some(spec) = org_specialty else { return 1.0 };
     let matches = match action {
@@ -417,6 +465,7 @@ fn specialty_bonus(org_specialty: Option<&str>, action: usize) -> f32 {
 pub fn try_apply(sim: &mut Simulation, idx: usize, action: usize, ix: i32, iy: i32, spatial: &crate::sim::spatial::SpatialIndex) -> Option<f32> {
     let bonus = workshop_bonus(sim, ix, iy, action);
     let spec_bonus = specialty_bonus(sim.organisms[idx].specialty.as_deref(), action);
+    let asp_bonus = aspiration_bonus(&sim.organisms[idx].aspiration, action);
     if let Some(cat) = category_for(action) {
         *sim.action_counts.entry(cat).or_insert(0) += 1;
     }
@@ -551,5 +600,5 @@ pub fn try_apply(sim: &mut Simulation, idx: usize, action: usize, ix: i32, iy: i
         5880..=5929 => distillation::apply(action, &mut ctx) * 2.0 * bonus,
         _           => return None,
     };
-    Some(r * spec_bonus)
+    Some(r * spec_bonus * asp_bonus)
 }

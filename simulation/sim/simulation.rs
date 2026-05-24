@@ -164,6 +164,7 @@ pub struct Simulation {
     pub festivals:    Vec<super::culture::Festival>,
     pub next_festival_id: u32,
     pub action_counts: HashMap<&'static str, u64>,
+    pub last_witness_tick: u64,
     pub books:        Vec<super::language_tech::Book>,
     pub next_book_id: u32,
     pub farms:        Vec<super::agriculture::Farm>,
@@ -268,6 +269,7 @@ impl Simulation {
             festivals:               Vec::new(),
             next_festival_id:        1,
             action_counts:           HashMap::new(),
+            last_witness_tick:       0,
             books:                   Vec::new(),
             next_book_id:            1,
             farms:                   Vec::new(),
@@ -2316,6 +2318,8 @@ impl Simulation {
                         self.organisms[idx].attracted_to = None;
                         self.organisms[pi].partner_id    = Some(oid.clone());
                         self.organisms[pi].attracted_to  = None;
+                        self.organisms[idx].joy_ticks = (self.organisms[idx].joy_ticks + 500).min(900);
+                        self.organisms[pi].joy_ticks = (self.organisms[pi].joy_ticks + 500).min(900);
                         self.organisms[idx].think(&format!("fell for {}", pname), tc);
                         self.organisms[idx].log_life_rel(tc, "love",
                             format!("fell in love with {}", pname),

@@ -215,6 +215,12 @@ pub struct Organism {
     pub comfort:     f32,
 
     pub grief_ticks:    u32,
+    /// Lingering emotional uplift. Bumped by partner / child / discovery /
+    /// milestone. Decays naturally. Counterpart to grief_ticks.
+    pub joy_ticks:      u32,
+    /// Long-term life aspiration assigned at adulthood. Biases action
+    /// rewards toward the aspiration's category. Persists for life.
+    pub aspiration:     String,
     /// Tick at which this org last lost a parent (parent_id / father_id
     /// matched a death event). Used by kin in the social tick to bias
     /// share_food / groom toward newly-orphaned minors. 0 = never.
@@ -344,6 +350,8 @@ impl Organism {
             fear_level:  0.0,
             comfort:     0.5,
             grief_ticks:    0,
+            joy_ticks:      0,
+            aspiration:     String::new(),
             orphaned_tick:  0,
             sleep_debt:     0.0,
             water_ticks:    0,
@@ -478,6 +486,10 @@ impl Organism {
 
     pub fn discover(&mut self, what: &str) -> bool {
         let inserted = self.discoveries.insert(what.to_string());
+        if inserted {
+            // Learning something new is a genuine high.
+            self.joy_ticks = (self.joy_ticks + 220).min(800);
+        }
         // Cap so a future free-form discovery string (e.g. LLM-suggested
         // verb-noun pair) can't grow the set unboundedly. 64 is well
         // above the current ~25 hand-written discoveries and the
@@ -551,6 +563,12 @@ impl Organism {
         if self.grief_ticks > 0 {
             self.grief_ticks = self.grief_ticks.saturating_sub(1);
             self.fear_level = (self.fear_level + 0.004).min(1.0);
+        }
+        if self.joy_ticks > 0 {
+            self.joy_ticks = self.joy_ticks.saturating_sub(1);
+            self.comfort = (self.comfort + 0.003).min(1.0);
+            self.loneliness = (self.loneliness - 0.002).max(0.0);
+            self.fear_level = (self.fear_level - 0.002).max(0.0);
         }
 
         if night && !near_shelter {
@@ -1045,6 +1063,8 @@ impl Organism {
             boredom:             if include_cold { Some((self.boredom    * 100.0).round() / 100.0) } else { None },
             comfort:             if include_cold { Some((self.comfort    * 100.0).round() / 100.0) } else { None },
             grief_ticks:         if include_cold { Some(self.grief_ticks) }         else { None },
+            joy_ticks:           if include_cold && self.joy_ticks > 0 { Some(self.joy_ticks) } else { None },
+            aspiration:          if include_cold && !self.aspiration.is_empty() { Some(self.aspiration.clone()) } else { None },
             sleep_debt:          if include_cold { Some((self.sleep_debt * 100.0).round() / 100.0) } else { None },
             children_count:      if include_cold { Some(self.children_count) }      else { None },
             conversation_count:  if include_cold { Some(self.conversations.len()) } else { None },
@@ -1350,6 +1370,8 @@ pub struct OrgJson {
     #[serde(default, skip_serializing_if = "Option::is_none")] pub boredom:             Option<f32>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub comfort:             Option<f32>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub grief_ticks:         Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub joy_ticks:           Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub aspiration:          Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub sleep_debt:          Option<f32>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub children_count:      Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub conversation_count:  Option<usize>,

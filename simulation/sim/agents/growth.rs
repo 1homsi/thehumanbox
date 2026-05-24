@@ -328,11 +328,26 @@ pub fn deliver_births(
         }
         organisms[mi].children_count += 1;
         organisms[mi].think(&format!("gave birth: {}", child_name), tick);
+        organisms[mi].joy_ticks = (organisms[mi].joy_ticks + 400).min(800);
         let ci_id = organisms[ci].id.clone();
         let cn = child_name.clone();
         organisms[mi].log_life_rel(tick, "birth",
             format!("gave birth to {}", child_name),
-            Some(ci_id), Some(cn));
+            Some(ci_id.clone()), Some(cn.clone()));
+
+        // The father also gets joy.
+        let mother_partner = organisms[mi].partner_id.clone();
+        if let Some(pid) = mother_partner {
+            for fi in 0..organisms.len() {
+                if organisms[fi].alive && organisms[fi].id == pid {
+                    organisms[fi].joy_ticks = (organisms[fi].joy_ticks + 350).min(800);
+                    organisms[fi].log_life_rel(tick, "birth",
+                        format!("welcomed {} into the world", cn),
+                        Some(ci_id.clone()), Some(cn.clone()));
+                    break;
+                }
+            }
+        }
 
         push_event(events, tick, "born", &child_name,
                    &format!("gen{} born to {}", generation, parent_name));

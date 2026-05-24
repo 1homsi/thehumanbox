@@ -101,6 +101,8 @@ pub(crate) struct OrgSave {
     #[serde(default)] fear_level:          f32,
     #[serde(default)] comfort:             f32,
     #[serde(default)] grief_ticks:         u32,
+    #[serde(default)] joy_ticks:           u32,
+    #[serde(default)] aspiration:          String,
     #[serde(default)] orphaned_tick:       u64,
     #[serde(default)] sleep_debt:          f32,
     #[serde(default)] directive:           String,
@@ -238,6 +240,8 @@ fn org_to_save(o: &Organism) -> OrgSave {
         fear_level:          o.fear_level,
         comfort:             o.comfort,
         grief_ticks:         o.grief_ticks,
+        joy_ticks:           o.joy_ticks,
+        aspiration:          o.aspiration.clone(),
         orphaned_tick:       o.orphaned_tick,
         sleep_debt:          o.sleep_debt,
         directive:           o.directive.clone(),
@@ -327,6 +331,8 @@ fn org_from_save(s: OrgSave) -> Organism {
     o.fear_level          = s.fear_level;
     o.comfort             = s.comfort;
     o.grief_ticks         = s.grief_ticks;
+    o.joy_ticks           = s.joy_ticks;
+    o.aspiration          = s.aspiration;
     o.orphaned_tick       = s.orphaned_tick;
     o.sleep_debt          = s.sleep_debt;
     o.directive           = s.directive;
@@ -697,6 +703,7 @@ impl Simulation {
             festivals: Vec::new(),
             next_festival_id: 1,
             action_counts: HashMap::new(),
+            last_witness_tick: 0,
             books: Vec::new(),
             next_book_id: 1,
             farms: Vec::new(),
