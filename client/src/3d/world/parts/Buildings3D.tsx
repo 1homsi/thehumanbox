@@ -139,6 +139,166 @@ const WALL_GEO = new BoxGeometry(8.0, 2.4, 0.8)
 const AQUE_TOP = new BoxGeometry(8.0, 0.6, 1.6)
 const AQUE_LEG = new BoxGeometry(0.7, 3.0, 1.4)
 
+// Workshop polish — extra geometry layered on top of the GENERIC_SPECS
+// base box so each kind reads as more than a coloured rectangle.
+const ROOF_CAFE = (() => {
+  const g = new ConeGeometry(2.8, 1.4, 4)
+  g.rotateY(Math.PI / 4)
+  return g
+})()
+const ROOF_BREWERY = (() => {
+  const g = new ConeGeometry(3.4, 2.4, 4)
+  g.rotateY(Math.PI / 4)
+  return g
+})()
+const ROOF_TAILOR = (() => {
+  const g = new ConeGeometry(2.9, 1.8, 4)
+  g.rotateY(Math.PI / 4)
+  return g
+})()
+const ROOF_BUTCHER = (() => {
+  const g = new ConeGeometry(2.8, 1.6, 4)
+  g.rotateY(Math.PI / 4)
+  return g
+})()
+const ROOF_BAKERY = (() => {
+  const g = new ConeGeometry(3.0, 1.6, 4)
+  g.rotateY(Math.PI / 4)
+  return g
+})()
+const ROOF_LIBRARY = (() => {
+  const g = new ConeGeometry(3.4, 2.0, 4)
+  g.rotateY(Math.PI / 4)
+  return g
+})()
+const SMOKESTACK = new CylinderGeometry(0.55, 0.7, 4.0, 8)
+const SMOKESTACK_TIP = new CylinderGeometry(0.65, 0.65, 0.4, 8)
+const AWNING = new BoxGeometry(4.6, 0.2, 1.6)
+const SIGN = new BoxGeometry(2.4, 0.8, 0.16)
+const FORGE_CHIMNEY = new CylinderGeometry(0.4, 0.5, 2.6, 6)
+const SPIRE_BASE = new ConeGeometry(1.4, 2.6, 8)
+const SPIRE_TIP = new CylinderGeometry(0.18, 0.18, 0.9, 6)
+const SERVER_RACK = new BoxGeometry(0.7, 3.4, 0.5)
+
+interface PolishLayer {
+  geometry: import('three').BufferGeometry
+  yOffset: number
+  color: string
+  dx?: number
+  dz?: number
+  emissive?: string
+  emissiveIntensity?: number
+}
+
+const WORKSHOP_POLISH: Partial<Record<string, { layers: PolishLayer[] }>> = {
+  Cafe: {
+    layers: [
+      { geometry: ROOF_CAFE, yOffset: 4.0, color: '#3a2418' },
+      { geometry: AWNING, yOffset: 2.6, color: '#c84030', dz: 1.6 },
+      { geometry: SIGN, yOffset: 3.4, color: '#3a1a08', dz: 2.05, emissive: '#ffa44a', emissiveIntensity: 0.12 },
+    ],
+  },
+  Restaurant: {
+    layers: [
+      { geometry: ROOF_CAFE, yOffset: 4.4, color: '#3a2418' },
+      { geometry: AWNING, yOffset: 3.0, color: '#a83a30', dz: 1.6 },
+    ],
+  },
+  Brewery: {
+    layers: [
+      { geometry: ROOF_BREWERY, yOffset: 6.3, color: '#2a1810' },
+      { geometry: SMOKESTACK, yOffset: 6.5, color: '#5a4a38', dx: 1.5, dz: -1.2 },
+      { geometry: SMOKESTACK_TIP, yOffset: 8.6, color: '#3a2a20', dx: 1.5, dz: -1.2 },
+    ],
+  },
+  Tailor: {
+    layers: [
+      { geometry: ROOF_TAILOR, yOffset: 4.9, color: '#3a1830' },
+      { geometry: SIGN, yOffset: 3.8, color: '#3a1830', dz: 2.05, emissive: '#d870e0', emissiveIntensity: 0.1 },
+    ],
+  },
+  ClothingShop: {
+    layers: [
+      { geometry: ROOF_TAILOR, yOffset: 5.0, color: '#3a1828' },
+      { geometry: AWNING, yOffset: 3.3, color: '#a04080', dz: 1.7 },
+    ],
+  },
+  Butcher: {
+    layers: [
+      { geometry: ROOF_BUTCHER, yOffset: 4.3, color: '#4a1a10' },
+      { geometry: SIGN, yOffset: 3.4, color: '#3a1008', dz: 2.05 },
+    ],
+  },
+  Bakery: {
+    layers: [
+      { geometry: ROOF_BAKERY, yOffset: 4.3, color: '#3a2418' },
+      { geometry: AWNING, yOffset: 2.9, color: '#d8a058', dz: 1.6 },
+      { geometry: SMOKESTACK, yOffset: 5.6, color: '#5a4a38', dx: 1.4, dz: -1.0 },
+    ],
+  },
+  Library: {
+    layers: [
+      { geometry: ROOF_LIBRARY, yOffset: 5.4, color: '#2a1408' },
+    ],
+  },
+  Scribe: {
+    layers: [{ geometry: ROOF_LIBRARY, yOffset: 5.4, color: '#2a1408' }],
+  },
+  BookStore: {
+    layers: [
+      { geometry: ROOF_LIBRARY, yOffset: 5.4, color: '#2a1408' },
+      { geometry: SIGN, yOffset: 3.6, color: '#3a2010', dz: 2.05, emissive: '#d8b270', emissiveIntensity: 0.08 },
+    ],
+  },
+  Factory: {
+    layers: [
+      { geometry: SMOKESTACK, yOffset: 7.5, color: '#3a3028', dx: 1.6, dz: -1.4 },
+      { geometry: SMOKESTACK_TIP, yOffset: 9.6, color: '#1a1410', dx: 1.6, dz: -1.4 },
+      { geometry: SMOKESTACK, yOffset: 7.0, color: '#3a3028', dx: -1.6, dz: -1.4 },
+      { geometry: SMOKESTACK_TIP, yOffset: 9.1, color: '#1a1410', dx: -1.6, dz: -1.4 },
+    ],
+  },
+  Forge: {
+    layers: [
+      { geometry: FORGE_CHIMNEY, yOffset: 4.3, color: '#3a1808', dx: 0, dz: -1.2, emissive: '#ff5020', emissiveIntensity: 0.35 },
+    ],
+  },
+  Smithy: {
+    layers: [
+      { geometry: FORGE_CHIMNEY, yOffset: 4.3, color: '#3a1808', dx: 0, dz: -1.2, emissive: '#ff5020', emissiveIntensity: 0.35 },
+    ],
+  },
+  Refinery: {
+    layers: [
+      { geometry: SMOKESTACK, yOffset: 9.5, color: '#5a4838', dx: 2.0, dz: 0 },
+      { geometry: SMOKESTACK_TIP, yOffset: 11.7, color: '#1a1410', dx: 2.0, dz: 0, emissive: '#ff8040', emissiveIntensity: 0.4 },
+    ],
+  },
+  Datacenter: {
+    layers: [
+      { geometry: SERVER_RACK, yOffset: 5.7, color: '#1a2028', dx: -1.6, dz: 0, emissive: '#20a8d0', emissiveIntensity: 0.3 },
+      { geometry: SERVER_RACK, yOffset: 5.7, color: '#1a2028', dx: 1.6, dz: 0, emissive: '#20a8d0', emissiveIntensity: 0.3 },
+    ],
+  },
+  Temple: {
+    layers: [
+      { geometry: SPIRE_BASE, yOffset: 4.3, color: '#3a2418' },
+      { geometry: SPIRE_TIP, yOffset: 6.0, color: '#d8b270', emissive: '#f0d090', emissiveIntensity: 0.15 },
+    ],
+  },
+  Shrine: {
+    layers: [
+      { geometry: SPIRE_BASE, yOffset: 3.0, color: '#3a2418' },
+    ],
+  },
+  Cathedral: {
+    layers: [
+      { geometry: SPIRE_BASE, yOffset: 8.5, color: '#3a2418' },
+      { geometry: SPIRE_TIP, yOffset: 10.5, color: '#d8b270', emissive: '#f0d090', emissiveIntensity: 0.2 },
+    ],
+  },
+}
+
 interface GenericSpec {
   color: string
   width: number
@@ -1011,6 +1171,27 @@ export function Buildings3D({ buildings, depthMap, biomes }: Props) {
             emissiveIntensity={spec.emissiveIntensity}
             maxCount={cap(positions.length)}
           />
+        )
+      })}
+
+      {Object.entries(WORKSHOP_POLISH).map(([kind, polish]) => {
+        const positions = groups[kind as BuildingKind] ?? []
+        if (positions.length === 0) return null
+        return (
+          <group key={`polish-${kind}`}>
+            {polish.layers.map((l, i) => (
+              <Layer
+                key={`${kind}-${i}`}
+                positions={positions.map(([x, y, z]) => [x + (l.dx ?? 0), y, z + (l.dz ?? 0)] as [number, number, number])}
+                yOffset={l.yOffset}
+                geometry={l.geometry}
+                color={l.color}
+                emissive={l.emissive}
+                emissiveIntensity={l.emissiveIntensity}
+                maxCount={cap(positions.length)}
+              />
+            ))}
+          </group>
         )
       })}
     </>
