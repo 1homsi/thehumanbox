@@ -2904,14 +2904,14 @@ impl Simulation {
         for (oi, ai) in to_catch {
             if caught.contains(&ai) { continue; }
             caught.insert(ai);
-            let (kind, boost) = match self.animals[ai].kind {
-                AnimalKind::Rabbit => ("rabbit", 0.30),
-                AnimalKind::Deer   => ("deer",   0.55),
-                AnimalKind::Boar   => ("boar",   0.65),
-                AnimalKind::Bird   => ("bird",   0.18),
-                AnimalKind::Fish   => ("fish",   0.32),
-                AnimalKind::Wolf   => ("wolf",   0.45),
-                AnimalKind::Dog    => ("dog",    0.0),
+            let (kind, boost, meat, leather_chance, food_yield) = match self.animals[ai].kind {
+                AnimalKind::Rabbit => ("rabbit", 0.30, 1u8, 0.40f32, 1u8),
+                AnimalKind::Deer   => ("deer",   0.55, 3u8, 0.85f32, 3u8),
+                AnimalKind::Boar   => ("boar",   0.65, 3u8, 0.75f32, 3u8),
+                AnimalKind::Bird   => ("bird",   0.18, 1u8, 0.05f32, 1u8),
+                AnimalKind::Fish   => ("fish",   0.32, 1u8, 0.00f32, 2u8),
+                AnimalKind::Wolf   => ("wolf",   0.45, 2u8, 0.90f32, 1u8),
+                AnimalKind::Dog    => ("dog",    0.0,  0u8, 0.00f32, 0u8),
             };
             let (ax, ay) = (self.animals[ai].x as i32, self.animals[ai].y as i32);
             self.animals[ai].alive = false;
@@ -2938,9 +2938,21 @@ impl Simulation {
                            &format!("pack hunt: {} kin ({} {})", pack_kin, kind, if pack_kin >= 3 { "coordinated!" } else { "helped" }));
             }
             self.organisms[oi].energy = (self.organisms[oi].energy + boost + tool_bonus + pack_bonus).min(1.0);
+            self.organisms[oi].inv_food = self.organisms[oi].inv_food.saturating_add(food_yield);
+            if meat > 0 {
+                let cur = self.organisms[oi].tools.get("meat").copied().unwrap_or(0);
+                let next = (cur as u16 + meat as u16).min(8) as u8;
+                self.organisms[oi].tools.insert("meat".to_string(), next);
+            }
+            if leather_chance > 0.0 && self.rng.random::<f32>() < leather_chance {
+                let cur = self.organisms[oi].tools.get("leather").copied().unwrap_or(0);
+                let next = (cur as u16 + 1).min(8) as u8;
+                self.organisms[oi].tools.insert("leather".to_string(), next);
+            }
             self.organisms[oi].think("hunting", self.tick_count);
             self.organisms[oi].log_event(format!("hunted a {} at ({},{})", kind, ax, ay));
             self.organisms[oi].discover("hunt");
+            self.organisms[oi].discover("hunting");
             Organism::remember(&mut self.organisms[oi].food_memory, ax, ay, 0.65, ms);
 
             if pack_kin >= 1 {
