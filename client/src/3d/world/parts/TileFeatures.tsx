@@ -53,19 +53,40 @@ interface Props {
 function biomeTreeRule(b: number): { chance: number; spacing: number } {
   switch (b) {
     case B_FOREST:
-      return { chance: 0.32, spacing: 2 }
+      return { chance: 0.38, spacing: 2 }
     case B_WETLAND:
-      return { chance: 0.18, spacing: 3 }
+      return { chance: 0.22, spacing: 3 }
     case B_GRASS:
-      return { chance: 0.06, spacing: 5 }
+      return { chance: 0.12, spacing: 4 }
     case B_TUNDRA:
-      return { chance: 0.1, spacing: 4 }
+      return { chance: 0.14, spacing: 4 }
     case B_DESERT:
-      return { chance: 0.03, spacing: 6 }
+      return { chance: 0.04, spacing: 6 }
     case B_VOLCANIC:
-      return { chance: 0.05, spacing: 4 }
+      return { chance: 0.06, spacing: 4 }
     default:
       return { chance: 0.0, spacing: 0 }
+  }
+}
+
+function biomeUndergrowthRule(
+  b: number,
+): { bush: number; tuft: number; flower: number; bushColor: string; tuftColor: string; flowerColor: string } {
+  switch (b) {
+    case B_FOREST:
+      return { bush: 0.18, tuft: 0.12, flower: 0.03, bushColor: '#3a5e2a', tuftColor: '#4e7a36', flowerColor: '#f6d062' }
+    case B_WETLAND:
+      return { bush: 0.12, tuft: 0.18, flower: 0.05, bushColor: '#3a6028', tuftColor: '#5a8038', flowerColor: '#ffaad8' }
+    case B_GRASS:
+      return { bush: 0.09, tuft: 0.16, flower: 0.04, bushColor: '#456e2c', tuftColor: '#5e8a3c', flowerColor: '#ffd060' }
+    case B_TUNDRA:
+      return { bush: 0.05, tuft: 0.06, flower: 0.015, bushColor: '#566858', tuftColor: '#7a8a6a', flowerColor: '#e8d8f0' }
+    case B_DESERT:
+      return { bush: 0.05, tuft: 0.03, flower: 0.01, bushColor: '#8a7a48', tuftColor: '#a89a5a', flowerColor: '#ff8a3a' }
+    case B_VOLCANIC:
+      return { bush: 0.02, tuft: 0.01, flower: 0.0, bushColor: '#5a4a3a', tuftColor: '#6a5848', flowerColor: '#ff6628' }
+    default:
+      return { bush: 0.0, tuft: 0.0, flower: 0.0, bushColor: '#000', tuftColor: '#000', flowerColor: '#000' }
   }
 }
 
@@ -92,6 +113,10 @@ function collectFeatures(
     1: [],
     2: [],
   }
+  // Undergrowth bucketed by biome so we can give each its own colour.
+  const bushes: Map<number, [number, number, number, number][]> = new Map()
+  const tufts: Map<number, [number, number, number, number][]> = new Map()
+  const flowers: Map<number, [number, number, number, number][]> = new Map()
   const huts: [number, number, number][] = []
   const campfires: [number, number, number][] = []
   const fires: [number, number, number][] = []
@@ -182,6 +207,52 @@ function collectFeatures(
     const pz = y * TILE_SCALE
     const sp = treeSpecies(b, hash)
     trees[sp].push([px, ground, pz, hash])
+  }
+
+  // Second pass: undergrowth on tiles that didn't get a tree. Bushes,
+  // grass tufts, and wildflowers fill space between the canopy so the
+  // ground reads as alive, not bare.
+  for (let y = 0; y < height; y++) {
+    const tRow = tiles[y]
+    const bRow = biomes[y]
+    const dRow = depthMap[y]
+    if (!tRow || !bRow || !dRow) continue
+    for (let x = 0; x < width; x++) {
+      const t = tRow[x]
+      if (t !== T_GRASS && t !== T_FOOD) continue
+      const d = dRow[x] ?? 255
+      if (d < 254) continue
+      const idx = y * width + x
+      if (placed[idx]) continue
+      const b = bRow[x] ?? 0
+      const rule = biomeUndergrowthRule(b)
+      if (rule.bush === 0 && rule.tuft === 0 && rule.flower === 0) continue
+
+      let hash = (x * 1664525) ^ (y * 1013904223)
+      hash = ((hash ^ (hash >>> 15)) * 0x27d4eb2d) >>> 0
+      const r0 = (hash & 0xff) / 255
+      const r1 = ((hash >>> 8) & 0xff) / 255
+      const r2 = ((hash >>> 16) & 0xff) / 255
+      const ground = heightAt(x, y, depthMap, biomes)
+      const jx = (r1 - 0.5) * TILE_SCALE * 0.6
+      const jz = (r2 - 0.5) * TILE_SCALE * 0.6
+      const px = x * TILE_SCALE + jx
+      const pz = y * TILE_SCALE + jz
+
+      if (r0 < rule.bush) {
+        const arr = bushes.get(b) ?? []
+        arr.push([px, ground, pz, hash])
+        bushes.set(b, arr)
+      } else if (r0 < rule.bush + rule.tuft) {
+        const arr = tufts.get(b) ?? []
+        arr.push([px, ground, pz, hash])
+        tufts.set(b, arr)
+      } else if (r0 < rule.bush + rule.tuft + rule.flower) {
+        const arr = flowers.get(b) ?? []
+        arr.push([px, ground, pz, hash])
+        flowers.set(b, arr)
+      }
+    }
   }
 
   // Fence posts around each hut (8 posts per hut)
@@ -319,6 +390,9 @@ function collectFeatures(
 
   return {
     trees,
+    bushes,
+    tufts,
+    flowers,
     huts,
     campfires,
     fires,
@@ -336,6 +410,10 @@ function collectFeatures(
   }
 }
 
+const BUSH_GEO = new SphereGeometry(0.55, 6, 5)
+const GRASS_TUFT_GEO = new ConeGeometry(0.18, 0.5, 4)
+const FLOWER_STEM = new CylinderGeometry(0.025, 0.03, 0.28, 4)
+const FLOWER_HEAD = new SphereGeometry(0.09, 5, 4)
 const PINE_TRUNK = new CylinderGeometry(0.16, 0.22, 1.4, 5)
 const PINE_CANOPY = new ConeGeometry(1.4, 3.2, 6)
 const OAK_TRUNK = new CylinderGeometry(0.2, 0.28, 1.6, 6)
@@ -758,6 +836,60 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height, pathTrail
         randomYaw
         wind={{ heightRef: 0.3, strength: 1.4 }}
       />
+
+      {/* Undergrowth: bushes, grass tufts, wildflowers — biome-coloured */}
+      {Array.from(features.bushes.entries()).map(([b, list]) => {
+        const rule = biomeUndergrowthRule(b)
+        return (
+          <InstanceLayer
+            key={`bush-${b}`}
+            positions={list}
+            yOffset={0.4}
+            geometry={BUSH_GEO}
+            color={rule.bushColor}
+            maxCount={8000}
+            randomYaw
+            wind={{ heightRef: 0.4, strength: 0.6 }}
+          />
+        )
+      })}
+      {Array.from(features.tufts.entries()).map(([b, list]) => {
+        const rule = biomeUndergrowthRule(b)
+        return (
+          <InstanceLayer
+            key={`tuft-${b}`}
+            positions={list}
+            yOffset={0.25}
+            geometry={GRASS_TUFT_GEO}
+            color={rule.tuftColor}
+            maxCount={12000}
+            randomYaw
+            wind={{ heightRef: 0.25, strength: 1.6 }}
+          />
+        )
+      })}
+      {Array.from(features.flowers.entries()).map(([b, list]) => {
+        const rule = biomeUndergrowthRule(b)
+        return (
+          <group key={`flower-${b}`}>
+            <InstanceLayer
+              positions={list}
+              yOffset={0.14}
+              geometry={FLOWER_STEM}
+              color="#4e7a36"
+              maxCount={4000}
+              wind={{ heightRef: 0.14, strength: 1.3 }}
+            />
+            <InstanceLayer
+              positions={list}
+              yOffset={0.32}
+              geometry={FLOWER_HEAD}
+              color={rule.flowerColor}
+              maxCount={4000}
+            />
+          </group>
+        )
+      })}
 
       {/* Worn paths */}
       <InstanceLayer
