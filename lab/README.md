@@ -1,12 +1,19 @@
 # Lab
 
-`lab/` is the Python workspace for intelligence tooling around The Human Box.
+`lab/` is the Python workspace for intelligence tooling around The
+Human Box.
 
-The simulation engine lives in Rust and remains the source of truth for world state, causality, and organism behavior. This workspace exists to support that engine with offline tooling: dataset preparation, evaluation, local model experiments, and packaging for small on-device or self-hosted models.
+The simulation engine lives in Rust and remains the source of truth
+for world state, causality, and organism behaviour. This workspace
+exists to support that engine with offline tooling: dataset
+preparation, evaluation, local model experiments, and packaging for
+small on-device or self-hosted models.
 
 ## Why this exists
 
-The Human Box is trying to grow into a long-running synthetic world, not a scripted toy. That means any model work has to be held to a higher standard than "sounds smart in a demo." The purpose of `lab/` is to make that work measurable.
+The Human Box is a long-running synthetic world, not a scripted toy.
+Any model work has to be held to a higher standard than "sounds smart
+in a demo". The purpose of `lab/` is to make that work measurable.
 
 This workspace is for:
 
@@ -14,7 +21,8 @@ This workspace is for:
 - defining repeatable evaluation cases
 - testing small local models for narrow tasks
 - benchmarking local inference stacks such as Ollama and llama.cpp
-- building tooling that helps study the simulation without quietly taking control of it
+- building tooling that helps study the simulation without quietly
+  taking control of it
 
 ## Principles
 
@@ -25,8 +33,6 @@ This workspace is for:
 - Any model integration should preserve emergence rather than replace it
 
 ## Current capabilities
-
-The first scaffold includes a few practical utilities:
 
 - `build_thought_dataset.py`
   Turns organism trace JSONL into supervised thought examples
@@ -44,6 +50,9 @@ The first scaffold includes a few practical utilities:
   Converts teacher JSONL into train and validation chat-format files
 - `plan_train_run.py`
   Writes a starter LoRA fine-tune manifest for the current dataset
+- `trace_collector.py`
+  Subscribes to a running simulation's WebSocket and streams
+  per-organism thought events to JSONL
 - `show_models.py`
   Shows the current local model registry
 
@@ -53,36 +62,21 @@ The first scaffold includes a few practical utilities:
 cd lab
 python -m venv .venv
 source .venv/bin/activate
-pip install -e ".[dev]"
+pip install -e ".[dev,trace,inference]"
 ```
 
 Run the included checks:
 
 ```bash
-python scripts/probe_local_stack.py
-python scripts/inspect_jsonl.py datasets/eval/sample_trace.jsonl
-python scripts/build_thought_dataset.py \
-  --input datasets/eval/sample_trace.jsonl \
-  --output datasets/generated/sample_thoughts.jsonl
-python scripts/run_thought_eval.py \
-  --input evals/sample_thought_eval.jsonl \
-  --engine baseline
-python scripts/sweep_thought_eval.py \
-  --input evals/sample_thought_eval.jsonl \
-  --include-baseline
-python scripts/prepare_sft_dataset.py \
-  --input datasets/generated/gemma3_teacher_thoughts.jsonl \
-  --train-output datasets/generated/thought_sft_train.jsonl \
-  --valid-output datasets/generated/thought_sft_valid.jsonl
-python scripts/plan_train_run.py \
-  --train-file datasets/generated/thought_sft_train.jsonl \
-  --valid-file datasets/generated/thought_sft_valid.jsonl \
-  --output experiments/thought_gemma3_270m_lora_v1.json
+make smoke    # build a tiny dataset and inspect it
+make eval     # run the thought eval against the dummy backend
+make pipeline # full end-to-end into runs/<timestamp>/
 ```
 
 ## Example workflow
 
-1. Export or collect simulation traces as JSONL
+1. Collect simulation traces as JSONL (live via `trace_collector.py`,
+   or from headless runs)
 2. Build a task-specific dataset
 3. Inspect the result and freeze eval cases
 4. Run a baseline and local model against those evals
@@ -91,13 +85,33 @@ python scripts/plan_train_run.py \
 7. Generate a reproducible training manifest
 8. Only then consider wiring a model back into the sim
 
+## Action vocabulary
+
+The simulation's action space has grown wide — thousands of distinct
+actions across dozens of categories (agriculture, hunting, weaving,
+brewing, distillation, journalism, fashion, retail, cafe work, tech
+devops, religion, warfare, diplomacy, governance, childhood, elder
+life, and more). The dataset tooling treats `event_type` as an opaque
+string, so new categories flow through transparently — but the
+baseline scorer in `baseline.py` and the synthetic templates in
+`synth/template_thoughts.py` only know the older vocabulary and
+fall through to defaults for newer categories. Worth refreshing
+before any serious eval work.
+
+The eval set and capture pipeline currently runs against a small
+sample trace. Re-capturing from a live headless run with the current
+action vocabulary is the recommended starting point before training.
+
 ## Model registry
 
-`models/registry.json` is the first place where we track which local model targets we care about. It is intentionally simple right now, but it gives us a stable place to record candidates, runtimes, and roles before model packaging starts branching out.
+`models/registry.json` is where we track which local model targets we
+care about. Intentionally simple right now — a stable place to record
+candidates, runtimes, and roles before model packaging starts
+branching out.
 
 ## Distillation path
 
-The intended workflow now looks like this:
+The intended workflow is:
 
 1. Build or collect thought examples
 2. Sweep installed local models against the same eval set
@@ -108,7 +122,7 @@ The intended workflow now looks like this:
 
 ## Data shape
 
-The included sample trace uses one JSON object per line with fields like:
+One JSON object per line:
 
 ```json
 {
@@ -128,28 +142,51 @@ The included sample trace uses one JSON object per line with fields like:
 }
 ```
 
-This format is intentionally simple so we can evolve it with the simulation instead of locking ourselves into a premature training pipeline.
+This format is intentionally simple so it can evolve with the
+simulation instead of locking the training pipeline into a premature
+schema.
 
 ## Bridging lab/ back into the simulation
 
-The simulation already exposes a per-org reasoning hook through `ThinkTrigger` / `ThinkResult` (see `simulation/think_worker.rs`). Most scenarios resolve locally via `local_think.rs` without any LLM call; only the `elder_teaching` scenario currently goes to a chat-completions endpoint.
+The simulation exposes a per-org reasoning hook through
+`ThinkTrigger` / `ThinkResult` (see `simulation/think_worker.rs`).
+Most scenarios resolve locally without any LLM call; only specific
+scenarios reach out to a chat-completions endpoint.
 
-When you're ready to wire a distilled model in, the integration point is straightforward:
+When you're ready to wire a distilled model in:
 
-1. Train a small task-specific model on a JSONL captured here.
-2. Serve it through any OpenAI-compatible endpoint (vLLM, llama.cpp's server, Ollama with an `OPENAI_API_BASE`, etc.).
-3. Point the simulation at it by setting `LLM_URL` and optionally `LLM_MODEL`. The existing client primitives in `simulation/llm.rs` already speak that protocol.
-4. Resist the urge to route _everything_ through the model. The local resolver in `local_think.rs` handles weighted-pick scenarios deterministically and is much cheaper. Only push to the model the scenarios that genuinely benefit from generated text.
+1. Train a small task-specific model on JSONL captured here.
+2. Serve it through any OpenAI-compatible endpoint (vLLM, llama.cpp's
+   server, Ollama with an `OPENAI_API_BASE`, etc.).
+3. Point the simulation at it by setting `LLM_URL` and optionally
+   `LLM_MODEL`. The existing client primitives in `simulation/llm.rs`
+   already speak that protocol.
+4. Resist routing _everything_ through the model. The local resolver
+   in `local_think.rs` handles weighted-pick scenarios
+   deterministically and is much cheaper. Only push to the model the
+   scenarios that genuinely benefit from generated text.
 
-The goal is augmentation, not replacement. The Rust simulation owns causality; lab/ ships small models that flavor specific moments. Anything that smells like "let the model decide every action" is the wrong layer.
+The goal is augmentation, not replacement. The Rust simulation owns
+causality; `lab/` ships small models that flavour specific moments.
 
 ## Roadmap
 
 Active threads of work, in rough priority:
 
-- `thought_eval`: scoring how well a small model picks a thought-line consistent with state. Existing eval set is a starting point; needs more cases pulled from real headless traces.
-- `narration_eval`: end-of-day story generation. The simulation already falls back to a stitched-from-life-log story when the LLM is unreachable, so this is a quality bar, not a feature gate.
-- `invention_eval`: given prerequisites, pick the most plausible next invention. Currently the local resolver picks uniformly at random from candidates — a model that biases toward culturally coherent picks (cooking before stone_tools when fire is dominant) is the goal.
-- `trace_collector.py`: helper to subscribe to the running simulation's WS feed and write thought events to disk continuously. Not yet implemented.
+- `thought_eval`: scoring how well a small model picks a thought-line
+  consistent with state. Existing eval set is a starting point; needs
+  more cases pulled from real headless traces covering the new
+  category vocabulary.
+- `narration_eval`: end-of-day story generation. The simulation
+  already falls back to a stitched-from-life-log story when the LLM
+  is unreachable, so this is a quality bar, not a feature gate.
+- `invention_eval`: given prerequisites, pick the most plausible next
+  invention. The local resolver currently picks uniformly at random
+  from candidates — a model that biases toward culturally coherent
+  picks (cooking before stone_tools when fire is dominant, brewing
+  after agriculture, distillation after brewing) is the goal.
+- `baseline` and `synth/template_thoughts.py` need their event_type
+  branches refreshed to cover the wider action vocabulary.
 
-If you add anything here, update this list so future you (or another collaborator) can see what's been tried.
+If you add anything here, update this list so future you (or another
+collaborator) can see what's been tried.
