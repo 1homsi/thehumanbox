@@ -489,6 +489,16 @@ impl Simulation {
                 &mut self.events,
             );
             self.battles.extend(new_battles);
+            let new_wars = super::warfare::try_spawn_border_wars(
+                self.tick_count,
+                &mut self.rng,
+                &self.organisms,
+                &self.territory,
+                &self.treaties,
+                &self.battles,
+                &mut self.events,
+            );
+            self.battles.extend(new_wars);
             super::warfare::tick_battles(
                 self.tick_count,
                 &mut self.rng,
