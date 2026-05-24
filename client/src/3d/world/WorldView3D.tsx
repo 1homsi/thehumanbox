@@ -25,6 +25,7 @@ import { SelectedOrgCard } from './parts/SelectedOrgCard'
 import { WorldHud } from './parts/WorldHud'
 import { EventFloaters } from './parts/EventFloaters'
 import { BigMomentEffects } from './parts/BigMomentEffects'
+import { SceneFog } from './parts/SceneFog'
 import { OrgStateBadges } from './parts/OrgStateBadges'
 import { FootstepDust } from './parts/FootstepDust'
 import { TribeLabels } from './parts/TribeLabels'
@@ -445,7 +446,7 @@ export default function WorldView3D({ world }: Props) {
           gl={{ antialias: true, powerPreference: 'high-performance' }}
           onCreated={({ gl }) => {
             gl.toneMapping = ACESFilmicToneMapping
-            gl.toneMappingExposure = 1.05
+            gl.toneMappingExposure = 0.95
             gl.outputColorSpace = SRGBColorSpace
             const dom = gl.domElement
             dom.addEventListener('webglcontextlost', (e) => e.preventDefault())
@@ -471,6 +472,7 @@ export default function WorldView3D({ world }: Props) {
           <Suspense fallback={null}>
             {ready && grid && (
               <>
+                <SceneFog dayProgress={dayProgress} />
                 <Sun
                   dayProgress={dayProgress}
                   width={grid.width}

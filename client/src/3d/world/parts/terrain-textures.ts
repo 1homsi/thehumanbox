@@ -1,5 +1,5 @@
 import { ClampToEdgeWrapping, DataTexture, LinearFilter, LinearMipMapLinearFilter, RGBAFormat } from 'three'
-const TILE = 512
+const TILE = 1024
 const ATLAS = TILE * 2
 
 let _cache: { color: DataTexture; bump: DataTexture } | null = null
@@ -36,42 +36,64 @@ function paintTile(cbuf: Uint8Array, bbuf: Uint8Array, tx: number, ty: number, v
         g = 1.0,
         b = 1.0
 
-      const lo = noise(x / 32, y / 32, variant) * 0.55
-      const mid = noise(x / 12, y / 12, variant + 7) * 0.3
-      const hi = noise(x / 4, y / 4, variant + 13) * 0.15
-      const n = lo + mid + hi
-      const grit = noise(x / 2.5, y / 2.5, variant + 23) * 0.7 + noise(x / 6, y / 6, variant + 29) * 0.3
+      // 7-octave fractal — bigger structure to grain-level
+      const o0 = noise(x / 256, y / 256, variant) * 0.35
+      const o1 = noise(x / 96, y / 96, variant + 3) * 0.25
+      const o2 = noise(x / 32, y / 32, variant + 7) * 0.18
+      const o3 = noise(x / 14, y / 14, variant + 11) * 0.12
+      const o4 = noise(x / 5, y / 5, variant + 13) * 0.06
+      const o5 = noise(x / 2.2, y / 2.2, variant + 17) * 0.03
+      const o6 = noise(x / 1.0, y / 1.0, variant + 19) * 0.01
+      const n = o0 + o1 + o2 + o3 + o4 + o5 + o6
+      // separate fine-scale grit channel for bump
+      const grit =
+        noise(x / 2.5, y / 2.5, variant + 23) * 0.45 +
+        noise(x / 6, y / 6, variant + 29) * 0.3 +
+        noise(x / 18, y / 18, variant + 31) * 0.15 +
+        noise(x / 1.4, y / 1.4, variant + 37) * 0.1
       let bumpStr = grit
+
+      // Subtle color variation overlay — three-way mix so the same biome
+      // shows patches of slightly different hue rather than one flat tone.
+      const patch =
+        noise(x / 110, y / 110, variant + 41) * 0.6 +
+        noise(x / 40, y / 40, variant + 43) * 0.4
 
       switch (variant) {
         case 0: {
-          const tone = 0.85 + n * 0.35
-          r = tone * 0.95
-          g = tone * 1.05
-          b = tone * 0.92
+          // Grass — mix three greens
+          const tone = 0.78 + n * 0.32
+          const cool = patch
+          const warm = 1 - patch
+          r = tone * (0.78 + 0.15 * warm)
+          g = tone * (1.0 + 0.08 * cool)
+          b = tone * (0.72 + 0.18 * cool)
           break
         }
         case 1: {
-          const tone = 0.88 + n * 0.3
-          r = tone * 1.05
-          g = tone * 1.0
-          b = tone * 0.85
-          bumpStr = grit * 1.15
+          // Sand / dry — soft sand blend
+          const tone = 0.88 + n * 0.26
+          r = tone * (1.0 + 0.08 * patch)
+          g = tone * (0.94 + 0.05 * patch)
+          b = tone * (0.78 + 0.06 * (1 - patch))
+          bumpStr = grit * 1.0
           break
         }
         case 2: {
-          const tone = 0.7 + n * 0.5
-          r = tone * 0.95
-          g = tone * 0.95
-          b = tone * 0.98
-          bumpStr = Math.min(1, grit * 1.3)
+          // Rocky / stone
+          const tone = 0.66 + n * 0.42
+          r = tone * (0.94 + 0.05 * patch)
+          g = tone * (0.94 + 0.04 * patch)
+          b = tone * (0.96 + 0.04 * (1 - patch))
+          bumpStr = Math.min(1, grit * 1.4)
           break
         }
         case 3: {
-          const tone = 0.75 + n * 0.4
-          r = tone * 0.88
-          g = tone * 0.95
-          b = tone * 0.8
+          // Wet / mossy — darker green-brown
+          const tone = 0.7 + n * 0.36
+          r = tone * (0.78 + 0.08 * (1 - patch))
+          g = tone * (0.92 + 0.06 * patch)
+          b = tone * (0.7 + 0.08 * patch)
           break
         }
       }
@@ -110,7 +132,7 @@ export function getTerrainTextures(): { color: DataTexture; bump: DataTexture } 
   color.magFilter = LinearFilter
   color.minFilter = LinearMipMapLinearFilter
   color.generateMipmaps = true
-  color.anisotropy = 4
+  color.anisotropy = 16
   color.needsUpdate = true
 
   const bump = new DataTexture(bumpBuf, ATLAS, ATLAS, RGBAFormat)
@@ -119,7 +141,7 @@ export function getTerrainTextures(): { color: DataTexture; bump: DataTexture } 
   bump.magFilter = LinearFilter
   bump.minFilter = LinearMipMapLinearFilter
   bump.generateMipmaps = true
-  bump.anisotropy = 4
+  bump.anisotropy = 16
   bump.needsUpdate = true
 
   _cache = { color, bump }
