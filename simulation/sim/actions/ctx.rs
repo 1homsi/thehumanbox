@@ -108,7 +108,7 @@ impl<'a> ActionCtx<'a> {
 
     pub fn chance(&mut self, p: f32) -> bool {
         use rand::Rng;
-        self.sim.rng.gen::<f32>() < p
+        self.sim.rng.random::<f32>() < p
     }
 
     pub fn is_night(&self) -> bool {

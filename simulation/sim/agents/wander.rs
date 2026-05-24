@@ -37,7 +37,7 @@ impl Simulation {
             let fork_eligible = age >= 700 && curiosity >= 0.40 && count >= 4;
             let fork_chance = if overcrowded { 0.7 } else { 0.35 };
             if (fork_eligible || (overcrowded && age >= 700 && count >= 3))
-                && self.rng.gen::<f32>() < fork_chance
+                && self.rng.random::<f32>() < fork_chance
             {
                 if let Some((fx, fy)) = self.find_far_empty_anchor(mx as i32, my as i32) {
                     self.fork_new_tribe(idx, fx, fy);
@@ -51,7 +51,7 @@ impl Simulation {
             let mut dy = my - cy;
             let len = (dx * dx + dy * dy).sqrt();
             if len < 0.5 {
-                let a = self.rng.gen::<f32>() * std::f32::consts::TAU;
+                let a = self.rng.random::<f32>() * std::f32::consts::TAU;
                 dx = a.cos(); dy = a.sin();
             } else {
                 dx /= len; dy /= len;
@@ -92,8 +92,8 @@ impl Simulation {
 
     pub(crate) fn find_distant_land_target(&mut self, x: i32, y: i32, min_dist: i32, max_dist: i32) -> Option<(i32, i32)> {
         for _ in 0..80 {
-            let dx = self.rng.gen_range(-max_dist..=max_dist);
-            let dy = self.rng.gen_range(-max_dist..=max_dist);
+            let dx = self.rng.random_range(-max_dist..=max_dist);
+            let dy = self.rng.random_range(-max_dist..=max_dist);
             let dist = dx.abs() + dy.abs();
             if dist < min_dist || dist > max_dist { continue; }
             let tx = (x + dx).clamp(5, WIDTH as i32 - 5);

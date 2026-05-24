@@ -21,7 +21,7 @@ pub fn spawn_organism_with_home(
     let sex    = Sex::random(rng);
     let mut traits = Traits::random(rng);
     apply_sex_traits(&mut traits, sex);
-    let max_age = rng.gen_range(
+    let max_age = rng.random_range(
         (9000.0 + 4000.0 * traits.resilience) as u32
         ..=(14000.0 + 6000.0 * traits.resilience) as u32
     );
@@ -135,7 +135,7 @@ pub fn try_reproduce(
 
     let social = org.traits.social_tendency;
     let fertility_prob = (0.30 + social * 0.50) * biome_mult * land_mult;
-    if rng.gen::<f32>() > fertility_prob.clamp(0.20, 0.95) { return; }
+    if rng.random::<f32>() > fertility_prob.clamp(0.20, 0.95) { return; }
 
     let spawn_pos = find_spawn_near(grid, org.x as i32, org.y as i32, rng);
     let Some((sx, sy)) = spawn_pos else { return; };
@@ -150,7 +150,7 @@ pub fn try_reproduce(
     let mut child_traits_sexed = child_traits;
     apply_sex_traits(&mut child_traits_sexed, child_sex);
 
-    let max_age = rng.gen_range(
+    let max_age = rng.random_range(
         (8000.0 + 4000.0 * child_traits_sexed.resilience) as u32
         ..=(18000.0 + 8000.0 * child_traits_sexed.resilience) as u32
     );
@@ -173,8 +173,8 @@ pub fn try_reproduce(
     for (state, actions) in &organisms[org_idx].q_table {
         let mut row: crate::organism::organism::QRow = Vec::with_capacity(actions.len());
         for &(a, v) in actions {
-            let new_v = if rng.gen::<f32>() < 0.20 {
-                v + rng.gen_range(-0.03f32..0.03)
+            let new_v = if rng.random::<f32>() < 0.20 {
+                v + rng.random_range(-0.03f32..0.03)
             } else {
                 v
             };
@@ -188,7 +188,7 @@ pub fn try_reproduce(
         .iter().map(|(&k, &v)| (k, v)).collect();
     food_sorted.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
     for (k, v) in food_sorted.into_iter().take(20) {
-        if rng.gen::<f32>() < 0.45 {
+        if rng.random::<f32>() < 0.45 {
             Organism::remember(&mut child.food_memory, k.0, k.1, v * 0.5, mem_trait);
         }
     }
@@ -196,12 +196,12 @@ pub fn try_reproduce(
         .iter().map(|(&k, &v)| (k, v)).collect();
     water_sorted.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
     for (k, v) in water_sorted.into_iter().take(10) {
-        if rng.gen::<f32>() < 0.55 {
+        if rng.random::<f32>() < 0.55 {
             Organism::remember(&mut child.water_memory, k.0, k.1, v * 0.5, mem_trait);
         }
     }
     for (&k, &v) in &organisms[org_idx].danger_memory {
-        if rng.gen::<f32>() < 0.6 {
+        if rng.random::<f32>() < 0.6 {
             Organism::remember(&mut child.danger_memory, k.0, k.1, v * 0.5, mem_trait);
         }
     }
@@ -227,16 +227,16 @@ pub fn try_reproduce(
     for d in &organisms[org_idx].discoveries {
         if always_inherit.contains(&d.as_str()) {
             child.discoveries.insert(d.clone());
-        } else if sometimes_inherit.contains(&d.as_str()) && rng.gen::<f32>() < 0.85 {
+        } else if sometimes_inherit.contains(&d.as_str()) && rng.random::<f32>() < 0.85 {
             child.discoveries.insert(d.clone());
-        } else if rng.gen::<f32>() < 0.40 {
+        } else if rng.random::<f32>() < 0.40 {
             child.discoveries.insert(d.clone());
         }
     }
 
     let drift = 70.0;
-    let dx = rng.gen_range(-drift..=drift) * 0.5 + rng.gen_range(-drift..=drift) * 0.5;
-    let dy = rng.gen_range(-drift..=drift) * 0.5 + rng.gen_range(-drift..=drift) * 0.5;
+    let dx = rng.random_range(-drift..=drift) * 0.5 + rng.random_range(-drift..=drift) * 0.5;
+    let dy = rng.random_range(-drift..=drift) * 0.5 + rng.random_range(-drift..=drift) * 0.5;
     let reflect = |mut v: f32, max: f32| {
         if v < 0.0 { v = -v; }
         if v > max { v = 2.0 * max - v; }
@@ -344,8 +344,8 @@ fn find_spawn_near(grid: &WorldGrid, x: i32, y: i32, rng: &mut impl Rng)
     -> Option<(i32, i32)>
 {
     for _ in 0..30 {
-        let nx = x + rng.gen_range(-3i32..=3);
-        let ny = y + rng.gen_range(-3i32..=3);
+        let nx = x + rng.random_range(-3i32..=3);
+        let ny = y + rng.random_range(-3i32..=3);
         if WorldGrid::in_bounds(nx, ny) &&
            matches!(grid.get(nx, ny), Tile::Grass | Tile::Food | Tile::Hut | Tile::Ash)
         {
@@ -353,8 +353,8 @@ fn find_spawn_near(grid: &WorldGrid, x: i32, y: i32, rng: &mut impl Rng)
         }
     }
     for _ in 0..20 {
-        let nx = x + rng.gen_range(-5i32..=5);
-        let ny = y + rng.gen_range(-5i32..=5);
+        let nx = x + rng.random_range(-5i32..=5);
+        let ny = y + rng.random_range(-5i32..=5);
         if WorldGrid::in_bounds(nx, ny) &&
            !matches!(grid.get(nx, ny), Tile::Rock | Tile::Void | Tile::Fire | Tile::Water)
         {

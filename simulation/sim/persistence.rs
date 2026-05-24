@@ -590,10 +590,10 @@ impl Simulation {
             for org in &mut organisms {
                 if is_legacy_save {
                     if tick.saturating_sub(org.last_think_tick) >= 4000 {
-                        org.last_think_tick = tick - rng.gen_range(0..4000);
+                        org.last_think_tick = tick - rng.random_range(0..4000);
                     }
                     if tick.saturating_sub(org.last_invention_tick) >= 5000 {
-                        org.last_invention_tick = tick - rng.gen_range(0..5000);
+                        org.last_invention_tick = tick - rng.random_range(0..5000);
                     }
                 }
                 org.x = org.x.clamp(1.0, WIDTH as f32 - 2.0);

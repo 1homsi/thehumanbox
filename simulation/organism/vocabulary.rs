@@ -112,13 +112,13 @@ fn concept_index() -> &'static HashMap<&'static str, usize> {
 
 fn gen_syllable(rng: &mut impl Rng) -> String {
     let mut s = String::new();
-    s.push(CONSONANTS[rng.gen_range(0..CONSONANTS.len())] as char);
-    s.push(VOWELS[rng.gen_range(0..VOWELS.len())] as char);
+    s.push(CONSONANTS[rng.random_range(0..CONSONANTS.len())] as char);
+    s.push(VOWELS[rng.random_range(0..VOWELS.len())] as char);
     s
 }
 
 fn gen_word(rng: &mut impl Rng) -> String {
-    let syllables = rng.gen_range(1usize..=2);
+    let syllables = rng.random_range(1usize..=2);
     (0..syllables).map(|_| gen_syllable(rng)).collect()
 }
 
@@ -158,14 +158,14 @@ impl Vocabulary {
         let mut slots = parent.slots_padded();
         for word in slots.iter_mut() {
             if word.is_empty() { continue; }
-            if rng.gen::<f32>() < 0.03 {
+            if rng.random::<f32>() < 0.03 {
                 let bytes = word.as_bytes().to_vec();
-                let pos = rng.gen_range(0..bytes.len());
+                let pos = rng.random_range(0..bytes.len());
                 let mut mutated = bytes;
                 if pos % 2 == 0 {
-                    mutated[pos] = CONSONANTS[rng.gen_range(0..CONSONANTS.len())];
+                    mutated[pos] = CONSONANTS[rng.random_range(0..CONSONANTS.len())];
                 } else {
-                    mutated[pos] = VOWELS[rng.gen_range(0..VOWELS.len())];
+                    mutated[pos] = VOWELS[rng.random_range(0..VOWELS.len())];
                 }
                 *word = String::from_utf8_lossy(&mutated).to_string();
             }
@@ -185,8 +185,8 @@ impl Vocabulary {
             }
         }
         if candidates.is_empty() { return; }
-        if rng.gen::<f32>() < 0.06 {
-            let i = candidates[rng.gen_range(0..candidates.len())];
+        if rng.random::<f32>() < 0.06 {
+            let i = candidates[rng.random_range(0..candidates.len())];
             if let Some(theirs) = other.slots.get(i) {
                 self.ensure_capacity();
                 self.slots[i] = theirs.clone();
@@ -202,7 +202,7 @@ impl Vocabulary {
     ) {
         self.ensure_capacity();
         for (i, &concept) in CONCEPTS.iter().enumerate() {
-            if rng.gen::<f32>() >= adopt_rate { continue; }
+            if rng.random::<f32>() >= adopt_rate { continue; }
             let mut counts: HashMap<&str, usize> = HashMap::new();
             for snap in snapshots {
                 if let Some(w) = snap.get(concept) {

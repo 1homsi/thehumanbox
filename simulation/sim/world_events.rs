@@ -53,13 +53,13 @@ impl WeatherState {
         // Small random nudge on direction (≈ ±5° per tick) + a tiny
         // seasonal pull toward `bias_theta`.
         let cur_theta = self.wind_y.atan2(self.wind_x);
-        let mut delta_theta = (rng.gen::<f32>() - 0.5) * 0.08;
+        let mut delta_theta = (rng.random::<f32>() - 0.5) * 0.08;
         let theta_err = (bias_theta - cur_theta + std::f32::consts::PI).rem_euclid(std::f32::consts::TAU) - std::f32::consts::PI;
         delta_theta += theta_err * bias_strength;
         let theta = cur_theta + delta_theta;
         // Magnitude drifts toward the season-specific baseline.
         let m = (self.wind_x * self.wind_x + self.wind_y * self.wind_y).sqrt();
-        let new_m = (m + (target_m - m) * 0.02 + (rng.gen::<f32>() - 0.5) * 0.04)
+        let new_m = (m + (target_m - m) * 0.02 + (rng.random::<f32>() - 0.5) * 0.04)
             .clamp(0.05, 1.0);
         self.wind_x = theta.cos() * new_m;
         self.wind_y = theta.sin() * new_m;
@@ -141,12 +141,12 @@ pub fn tick_weather(
         "scarcity"  => 0.2,
         _ => 1.0,
     };
-    if rng.gen::<f32>() < RAIN_BASE_PROB * mult {
-        let storm = rng.gen::<f32>() < 0.22;
+    if rng.random::<f32>() < RAIN_BASE_PROB * mult {
+        let storm = rng.random::<f32>() < 0.22;
         weather.kind      = if storm { 2 } else { 1 };
         weather.start_tick = tick;
-        weather.duration  = rng.gen_range(300..1000);
-        weather.intensity = 0.4 + rng.gen::<f32>() * 0.6;
+        weather.duration  = rng.random_range(300..1000);
+        weather.intensity = 0.4 + rng.random::<f32>() * 0.6;
         let kind_str = weather.kind_str().to_string();
         push_event(events, tick, "weather", "world", &format!("{} begins", kind_str));
     }
@@ -160,8 +160,8 @@ fn apply_wet_aftermath(
 ) {
     if tick % 30 != 0 { return; }
     for _ in 0..3 {
-        let x = rng.gen_range(1..WIDTH as i32 - 1);
-        let y = rng.gen_range(1..HEIGHT as i32 - 1);
+        let x = rng.random_range(1..WIDTH as i32 - 1);
+        let y = rng.random_range(1..HEIGHT as i32 - 1);
         if grid.get(x, y) == Tile::Fire {
             grid.set(x, y, Tile::Ash);
             *grid.fire_intensity_mut(x, y) = 0.0;
@@ -170,8 +170,8 @@ fn apply_wet_aftermath(
     if tick % 60 == 0 {
         let _ = weather;
         for _ in 0..4 {
-            let x = rng.gen_range(1..WIDTH as i32 - 1);
-            let y = rng.gen_range(1..HEIGHT as i32 - 1);
+            let x = rng.random_range(1..WIDTH as i32 - 1);
+            let y = rng.random_range(1..HEIGHT as i32 - 1);
             let idx = WorldGrid::idx(x, y);
             if grid.fertility[idx] < 0.5 {
                 grid.fertility[idx] = (grid.fertility[idx] + 0.005).min(0.6);
@@ -191,8 +191,8 @@ fn apply_weather(
     if tick % 20 != 0 { return; }
 
     for _ in 0..3 {
-        let x = rng.gen_range(1..WIDTH as i32 - 1);
-        let y = rng.gen_range(1..HEIGHT as i32 - 1);
+        let x = rng.random_range(1..WIDTH as i32 - 1);
+        let y = rng.random_range(1..HEIGHT as i32 - 1);
         if grid.get(x, y) == Tile::Grass {
             let near_water = (-2i32..=2).any(|dx|
                 (-2i32..=2).any(|dy| grid.get(x+dx, y+dy) == Tile::Water));
@@ -203,8 +203,8 @@ fn apply_weather(
     let eff = weather.effective_intensity(tick);
     let snuff_passes = (10.0 + eff * 18.0) as i32;
     for _ in 0..snuff_passes {
-        let x = rng.gen_range(1..WIDTH as i32 - 1);
-        let y = rng.gen_range(1..HEIGHT as i32 - 1);
+        let x = rng.random_range(1..WIDTH as i32 - 1);
+        let y = rng.random_range(1..HEIGHT as i32 - 1);
         if grid.get(x, y) == Tile::Fire {
             grid.set(x, y, Tile::Ash);
             *grid.fire_intensity_mut(x, y) = 0.0;
@@ -212,8 +212,8 @@ fn apply_weather(
     }
 
     for _ in 0..8 {
-        let x = rng.gen_range(1..WIDTH as i32 - 1);
-        let y = rng.gen_range(1..HEIGHT as i32 - 1);
+        let x = rng.random_range(1..WIDTH as i32 - 1);
+        let y = rng.random_range(1..HEIGHT as i32 - 1);
         let idx = WorldGrid::idx(x, y);
         if grid.fertility[idx] < 0.35 {
             grid.fertility[idx] = (grid.fertility[idx] + 0.015 * weather.intensity).min(0.55);
@@ -230,10 +230,10 @@ fn apply_weather(
         // Cap ignitions per storm at 3, and reject tiles adjacent to
         // water (those would be soaked enough to fizzle realistically).
         let ignitions_this_storm = (tick - weather.start_tick) / 20;
-        if ignitions_this_storm < 3 && rng.gen::<f32>() < 0.06 * weather.intensity {
+        if ignitions_this_storm < 3 && rng.random::<f32>() < 0.06 * weather.intensity {
             for _ in 0..30 {
-                let x = rng.gen_range(5..WIDTH as i32 - 5);
-                let y = rng.gen_range(5..HEIGHT as i32 - 5);
+                let x = rng.random_range(5..WIDTH as i32 - 5);
+                let y = rng.random_range(5..HEIGHT as i32 - 5);
                 if !grid.get(x, y).flammable() { continue; }
                 // Don't ignite within 2 tiles of water - wet ground.
                 let mut near_water = false;
@@ -288,7 +288,7 @@ pub fn tick_drought(
         return;
     }
     let prob = DROUGHT_BASE_PROB * if season == "scarcity" { 3.0 } else { 1.0 };
-    if rng.gen::<f32>() < prob {
+    if rng.random::<f32>() < prob {
         start_drought(drought, grid, tick, history, events, rng);
     }
 }
@@ -401,11 +401,11 @@ pub fn tick_outbreak(
     use crate::world::grid::{WIDTH, HEIGHT};
     let prob = OUTBREAK_BASE_PROB
         * if season == "scarcity" || season == "recovery" { 2.0 } else { 1.0 };
-    if rng.gen::<f32>() >= prob { return; }
+    if rng.random::<f32>() >= prob { return; }
 
-    let cx = rng.gen_range(5..WIDTH as i32 - 5) as f32;
-    let cy = rng.gen_range(5..HEIGHT as i32 - 5) as f32;
-    let radius = rng.gen_range(8.0f32..=14.0);
+    let cx = rng.random_range(5..WIDTH as i32 - 5) as f32;
+    let cy = rng.random_range(5..HEIGHT as i32 - 5) as f32;
+    let radius = rng.random_range(8.0f32..=14.0);
 
     let mut names: Vec<String> = Vec::new();
     for org in organisms.iter_mut() {
@@ -481,23 +481,23 @@ pub fn tick_world_evolution(
     if season != "scarcity" {
         let mut food_tiles: Vec<(i32, i32)> = Vec::new();
         for _ in 0..1400 {
-            let x = rng.gen_range(0..WIDTH as i32);
-            let y = rng.gen_range(0..HEIGHT as i32);
+            let x = rng.random_range(0..WIDTH as i32);
+            let y = rng.random_range(0..HEIGHT as i32);
             if grid.get(x, y) == Tile::Food {
                 food_tiles.push((x, y));
                 if food_tiles.len() >= 14 { break; }
             }
         }
         for (fx, fy) in food_tiles {
-            if rng.gen::<f32>() < 0.55 {
+            if rng.random::<f32>() < 0.55 {
                 let dirs = [(-1i32, 0i32), (1, 0), (0, -1), (0, 1)];
-                let (dx, dy) = dirs[rng.gen_range(0..4)];
+                let (dx, dy) = dirs[rng.random_range(0..4)];
                 let (nx, ny) = (fx + dx, fy + dy);
                 if WorldGrid::in_bounds(nx, ny) && grid.get(nx, ny) == Tile::Grass {
                     let near_water = [(-1i32,0i32),(1,0),(0,-1),(0,1)].iter()
                         .any(|&(ox,oy)| WorldGrid::in_bounds(nx+ox, ny+oy)
                             && grid.get(nx+ox, ny+oy) == Tile::Water);
-                    if near_water && rng.gen::<f32>() < 0.75 { continue; }
+                    if near_water && rng.random::<f32>() < 0.75 { continue; }
                     grid.set(nx, ny, Tile::Food);
                 }
             }
@@ -507,8 +507,8 @@ pub fn tick_world_evolution(
     if drought_active || season == "scarcity" {
         let mut lake_candidates: Vec<(i32, i32)> = Vec::new();
         for _ in 0..400 {
-            let x = rng.gen_range(2..(WIDTH as i32 - 2));
-            let y = rng.gen_range(2..(HEIGHT as i32 - 2));
+            let x = rng.random_range(2..(WIDTH as i32 - 2));
+            let y = rng.random_range(2..(HEIGHT as i32 - 2));
             if grid.get(x, y) != Tile::Water { continue; }
             if grid.depth_at(x, y) > 0.35 { continue; }
             let mut land_neighbours = 0;
@@ -528,7 +528,7 @@ pub fn tick_world_evolution(
             }
         }
         for (lx, ly) in lake_candidates {
-            if rng.gen::<f32>() < 0.12 {
+            if rng.random::<f32>() < 0.12 {
                 grid.set(lx, ly, Tile::Sand);
                 let i = WorldGrid::idx(lx, ly);
                 grid.depth[i] = 0.0;
@@ -539,8 +539,8 @@ pub fn tick_world_evolution(
     if !drought_active && (weather.kind >= 1 || season == "abundance" || season == "recovery") {
         let mut refill: Vec<(i32, i32)> = Vec::new();
         for _ in 0..400 {
-            let x = rng.gen_range(2..(WIDTH as i32 - 2));
-            let y = rng.gen_range(2..(HEIGHT as i32 - 2));
+            let x = rng.random_range(2..(WIDTH as i32 - 2));
+            let y = rng.random_range(2..(HEIGHT as i32 - 2));
             if grid.get(x, y) != Tile::Sand { continue; }
             let water_adj = (-1i32..=1).flat_map(|dx| (-1i32..=1).map(move |dy| (dx, dy)))
                 .filter(|&(dx, dy)| (dx != 0 || dy != 0)
@@ -553,7 +553,7 @@ pub fn tick_world_evolution(
             }
         }
         for (rx, ry) in refill {
-            if rng.gen::<f32>() < 0.10 {
+            if rng.random::<f32>() < 0.10 {
                 grid.set(rx, ry, Tile::Water);
                 let i = WorldGrid::idx(rx, ry);
                 grid.depth[i] = 0.20;
@@ -564,15 +564,15 @@ pub fn tick_world_evolution(
     if drought_active || season == "scarcity" {
         let mut desert_grass: Vec<(i32, i32)> = Vec::new();
         for _ in 0..600 {
-            let x = rng.gen_range(0..WIDTH as i32);
-            let y = rng.gen_range(0..HEIGHT as i32);
+            let x = rng.random_range(0..WIDTH as i32);
+            let y = rng.random_range(0..HEIGHT as i32);
             if grid.biome_at(x, y) == Biome::Desert && grid.get(x, y) == Tile::Grass {
                 desert_grass.push((x, y));
                 if desert_grass.len() >= 3 { break; }
             }
         }
         for (dx, dy) in desert_grass {
-            if rng.gen::<f32>() < 0.30 {
+            if rng.random::<f32>() < 0.30 {
                 grid.set(dx, dy, Tile::Ash);
             }
         }
@@ -581,18 +581,18 @@ pub fn tick_world_evolution(
     if weather.kind == 2 {
         let mut water_tiles: Vec<(i32, i32)> = Vec::new();
         for _ in 0..1000 {
-            let x = rng.gen_range(0..WIDTH as i32);
-            let y = rng.gen_range(0..HEIGHT as i32);
+            let x = rng.random_range(0..WIDTH as i32);
+            let y = rng.random_range(0..HEIGHT as i32);
             if grid.get(x, y) == Tile::Water {
                 water_tiles.push((x, y));
                 if water_tiles.len() >= 10 { break; }
             }
         }
-        let expiry = tick + rng.gen_range(600..1800);
+        let expiry = tick + rng.random_range(600..1800);
         for (wx, wy) in water_tiles {
             if flood_tiles.len() >= 200 { break; }
             let dirs = [(-1i32, 0i32), (1, 0), (0, -1), (0, 1)];
-            let (dx, dy) = dirs[rng.gen_range(0..4)];
+            let (dx, dy) = dirs[rng.random_range(0..4)];
             let (nx, ny) = (wx + dx, wy + dy);
             if WorldGrid::in_bounds(nx, ny) && grid.get(nx, ny) == Tile::Grass {
                 grid.set(nx, ny, Tile::Flooded);
@@ -615,14 +615,14 @@ pub fn tick_world_evolution(
     }
 
     {
-        let x = rng.gen_range(0..WIDTH as i32);
-        let y = rng.gen_range(0..HEIGHT as i32);
-        if grid.biome_at(x, y) == Biome::Volcanic && rng.gen::<f32>() < 0.000005 {
+        let x = rng.random_range(0..WIDTH as i32);
+        let y = rng.random_range(0..HEIGHT as i32);
+        if grid.biome_at(x, y) == Biome::Volcanic && rng.random::<f32>() < 0.000005 {
             grid.set(x, y, Tile::Fire);
             *grid.fire_intensity_mut(x, y) = 1.0;
             for _ in 0..4 {
-                let dx = rng.gen_range(-3i32..=3);
-                let dy = rng.gen_range(-3i32..=3);
+                let dx = rng.random_range(-3i32..=3);
+                let dy = rng.random_range(-3i32..=3);
                 let (nx, ny) = (x + dx, y + dy);
                 if WorldGrid::in_bounds(nx, ny) {
                     grid.set(nx, ny, Tile::Fire);
@@ -632,8 +632,8 @@ pub fn tick_world_evolution(
             let mut placed = 0;
             for _ in 0..30 {
                 if placed >= 3 { break; }
-                let dx = rng.gen_range(-8i32..=8);
-                let dy = rng.gen_range(-8i32..=8);
+                let dx = rng.random_range(-8i32..=8);
+                let dy = rng.random_range(-8i32..=8);
                 let (nx, ny) = (x + dx, y + dy);
                 if WorldGrid::in_bounds(nx, ny) && grid.get(nx, ny) == Tile::Grass {
                     grid.set(nx, ny, Tile::Mineral);
@@ -646,44 +646,44 @@ pub fn tick_world_evolution(
     }
 
     for _ in 0..20 {
-        let x = rng.gen_range(0..WIDTH as i32);
-        let y = rng.gen_range(0..HEIGHT as i32);
-        if grid.get(x, y) == Tile::Scorched && rng.gen::<f32>() < 0.002 {
+        let x = rng.random_range(0..WIDTH as i32);
+        let y = rng.random_range(0..HEIGHT as i32);
+        if grid.get(x, y) == Tile::Scorched && rng.random::<f32>() < 0.002 {
             grid.set(x, y, Tile::Grass);
         }
     }
 
     for _ in 0..20 {
-        let x = rng.gen_range(0..WIDTH as i32);
-        let y = rng.gen_range(0..HEIGHT as i32);
+        let x = rng.random_range(0..WIDTH as i32);
+        let y = rng.random_range(0..HEIGHT as i32);
         let i = WorldGrid::idx(x, y);
         let biome    = grid.biome_at(x, y);
         let fert     = grid.fertility[i];
         let pressure = grid.pressure[i];
         let hazard   = grid.hazard[i];
 
-        if biome == Biome::Forest && fert < 0.25 && pressure > 2.0 && rng.gen::<f32>() < 0.003 {
+        if biome == Biome::Forest && fert < 0.25 && pressure > 2.0 && rng.random::<f32>() < 0.003 {
             grid.biome[i] = Biome::Grassland as u8;
             if grid.get(x, y) == Tile::Food { grid.set(x, y, Tile::Grass); }
             for (dx, dy) in [(-1i32, 0i32), (1, 0), (0, -1), (0, 1)] {
                 let (nx, ny) = (x + dx, y + dy);
                 if WorldGrid::in_bounds(nx, ny)
                     && grid.get(nx, ny) == Tile::Food
-                    && rng.gen::<f32>() < 0.35
+                    && rng.random::<f32>() < 0.35
                 {
                     grid.set(nx, ny, Tile::Grass);
                 }
             }
         }
-        if biome == Biome::Wetland && drought_active && fert < 0.35 && rng.gen::<f32>() < 0.002 {
+        if biome == Biome::Wetland && drought_active && fert < 0.35 && rng.random::<f32>() < 0.002 {
             grid.biome[i] = Biome::Grassland as u8;
         }
-        if biome == Biome::Grassland && fert < 0.07 && rng.gen::<f32>() < 0.004 {
+        if biome == Biome::Grassland && fert < 0.07 && rng.random::<f32>() < 0.004 {
             grid.biome[i] = Biome::Desert as u8;
         }
 
         if biome == Biome::Desert && fert > 0.55 && pressure < 0.5
-            && (season == "recovery" || season == "abundance") && rng.gen::<f32>() < 0.001
+            && (season == "recovery" || season == "abundance") && rng.random::<f32>() < 0.001
         {
             grid.biome[i] = Biome::Grassland as u8;
         }
@@ -693,7 +693,7 @@ pub fn tick_world_evolution(
             let near_water = (-6i32..=6).any(|dx| (-6i32..=6).any(|dy| {
                 WorldGrid::in_bounds(x+dx, y+dy) && grid.get(x+dx, y+dy) == Tile::Water
             }));
-            if near_water && rng.gen::<f32>() < 0.0008 {
+            if near_water && rng.random::<f32>() < 0.0008 {
                 grid.biome[i] = Biome::Forest as u8;
                 if grid.get(x, y) == Tile::Grass { grid.set(x, y, Tile::Food); }
             }
@@ -702,27 +702,27 @@ pub fn tick_world_evolution(
             let flood_adj = (-2i32..=2).any(|dx| (-2i32..=2).any(|dy| {
                 WorldGrid::in_bounds(x+dx, y+dy) && matches!(grid.get(x+dx, y+dy), Tile::Water | Tile::Flooded)
             }));
-            if flood_adj && rng.gen::<f32>() < 0.0003 {
+            if flood_adj && rng.random::<f32>() < 0.0003 {
                 grid.biome[i] = Biome::Wetland as u8;
             }
         }
 
-        if biome == Biome::Volcanic && grid.get(x, y) == Tile::Grass && fert < 0.50 && rng.gen::<f32>() < 0.008 {
+        if biome == Biome::Volcanic && grid.get(x, y) == Tile::Grass && fert < 0.50 && rng.random::<f32>() < 0.008 {
             grid.fertility[i] = (grid.fertility[i] + 0.18).min(0.95);
         }
         if biome == Biome::Volcanic && grid.get(x, y) == Tile::Fire {
             grid.add_hazard(x, y, 0.001);
         }
 
-        if grid.get(x, y) == Tile::Ash && hazard > 0.45 && rng.gen::<f32>() < 0.02 {
+        if grid.get(x, y) == Tile::Ash && hazard > 0.45 && rng.random::<f32>() < 0.02 {
             grid.set(x, y, Tile::Scorched);
         }
     }
 
     if tick % 600 == 0 {
         for _ in 0..120 {
-            let x = rng.gen_range(1..WIDTH as i32 - 1);
-            let y = rng.gen_range(1..HEIGHT as i32 - 1);
+            let x = rng.random_range(1..WIDTH as i32 - 1);
+            let y = rng.random_range(1..HEIGHT as i32 - 1);
             if grid.get(x, y) != Tile::Water { continue; }
             for (nx, ny) in WorldGrid::neighbors(x, y) {
                 let tile = grid.get(nx, ny);
@@ -738,8 +738,8 @@ pub fn tick_world_evolution(
     if tick % 6000 == 0 && tick >= 9000 {
         let mut edge_water: Vec<(i32, i32)> = Vec::new();
         for _ in 0..2000 {
-            let x = rng.gen_range(1..WIDTH as i32 - 1);
-            let y = rng.gen_range(1..HEIGHT as i32 - 1);
+            let x = rng.random_range(1..WIDTH as i32 - 1);
+            let y = rng.random_range(1..HEIGHT as i32 - 1);
             if grid.get(x, y) != Tile::Water { continue; }
             let has_land_neighbor = [(-1,0),(1,0),(0,-1),(0,1)].iter()
                 .any(|&(dx,dy)| {
@@ -752,7 +752,7 @@ pub fn tick_world_evolution(
 
         let shifts = 1.min(edge_water.len());
         for _ in 0..shifts {
-            let (wx, wy) = edge_water[rng.gen_range(0..edge_water.len())];
+            let (wx, wy) = edge_water[rng.random_range(0..edge_water.len())];
             let mut candidates: Vec<(i32, i32)> = Vec::new();
             for ddx in -6i32..=6 {
                 for ddy in -6i32..=6 {
@@ -765,7 +765,7 @@ pub fn tick_world_evolution(
                 }
             }
             if candidates.is_empty() { continue; }
-            let (nx, ny) = candidates[rng.gen_range(0..candidates.len())];
+            let (nx, ny) = candidates[rng.random_range(0..candidates.len())];
             let biome = grid.biome_at(wx, wy);
             let dry_tile = if biome == Biome::Desert { Tile::Ash } else { Tile::Grass };
             grid.set(wx, wy, dry_tile);
@@ -803,7 +803,7 @@ pub fn tick_world_evolution(
     // earthquake per ~60k ticks - uncommon enough that organisms can't
     // build a routine around it, frequent enough that long-running worlds
     // accumulate a few visible fault scars.
-    if tick % 30000 == 0 && tick >= 30000 && rng.gen_bool(0.5) {
+    if tick % 30000 == 0 && tick >= 30000 && rng.random_bool(0.5) {
         grid.tick_earthquake(rng);
         push_event(events, tick, "earthquake", "world",
             "the ground shudders; a fault line lifts new rock and dry land");

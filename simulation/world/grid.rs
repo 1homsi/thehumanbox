@@ -437,7 +437,7 @@ impl WorldGrid {
         let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
         let size = WIDTH * HEIGHT;
 
-        let n_continents: usize = rng.gen_range(3usize..=5);
+        let n_continents: usize = rng.random_range(3usize..=5);
         let band_h = 0.76f32 / n_continents as f32;
 
         let x_slots: [(f32, f32); 5] = [
@@ -452,8 +452,8 @@ impl WorldGrid {
                 let y_lo = 0.12 + k as f32 * band_h;
                 let y_hi = y_lo + band_h;
                 let (x_lo, x_hi) = x_slots[k % 5];
-                let cx = rng.gen_range(x_lo..x_hi);
-                let cy = rng.gen_range(y_lo..y_hi);
+                let cx = rng.random_range(x_lo..x_hi);
+                let cy = rng.random_range(y_lo..y_hi);
                 (cx, cy)
             })
             .collect();
@@ -461,10 +461,10 @@ impl WorldGrid {
         let cont_params: Vec<(f32, f32, f32, f32)> = cont_centers
             .iter()
             .map(|_| {
-                let short = rng.gen_range(0.11f32..0.19);
-                let long = short * rng.gen_range(1.8f32..3.2);
-                let angle = rng.gen_range(0.0f32..std::f32::consts::TAU);
-                let str = rng.gen_range(1.05f32..1.50);
+                let short = rng.random_range(0.11f32..0.19);
+                let long = short * rng.random_range(1.8f32..3.2);
+                let angle = rng.random_range(0.0f32..std::f32::consts::TAU);
+                let str = rng.random_range(1.05f32..1.50);
                 (short, long, angle, str)
             })
             .collect();
@@ -729,7 +729,7 @@ impl WorldGrid {
                     } else if moist > 0.24 {
                         Biome::Grassland
                     } else if moist > 0.16 {
-                        if rng.gen::<f32>() < 0.25 {
+                        if rng.random::<f32>() < 0.25 {
                             Biome::Wetland
                         } else {
                             Biome::Grassland
@@ -741,7 +741,7 @@ impl WorldGrid {
                     if moist > 0.58 {
                         Biome::Forest
                     } else if moist > 0.38 {
-                        if rng.gen::<f32>() < 0.40 {
+                        if rng.random::<f32>() < 0.40 {
                             Biome::Wetland
                         } else {
                             Biome::Forest
@@ -753,7 +753,7 @@ impl WorldGrid {
                     }
                 };
 
-                let biome = if rng.gen::<f32>() < 0.004 && norm_elev > 0.42 && norm_elev < 0.72 {
+                let biome = if rng.random::<f32>() < 0.004 && norm_elev > 0.42 && norm_elev < 0.72 {
                     Biome::Volcanic
                 } else {
                     biome
@@ -782,7 +782,7 @@ impl WorldGrid {
                 } else {
                     match biome {
                         Biome::Desert => {
-                            if rng.gen::<f32>() < 0.60 {
+                            if rng.random::<f32>() < 0.60 {
                                 Tile::Sand as i8
                             } else {
                                 Tile::Grass as i8
@@ -791,7 +791,7 @@ impl WorldGrid {
                         Biome::Tundra => {
                             if norm_elev > 0.85 || temp_map[i] < -16.0 {
                                 Tile::Snow as i8
-                            } else if rng.gen::<f32>() < 0.18 {
+                            } else if rng.random::<f32>() < 0.18 {
                                 Tile::Snow as i8
                             } else {
                                 Tile::Grass as i8
@@ -809,7 +809,7 @@ impl WorldGrid {
                     continue;
                 }
                 let chance = Biome::from_u8(self.biome[Self::idx(x, y)]).rock_chance() * 0.18;
-                if rng.gen::<f32>() < chance {
+                if rng.random::<f32>() < chance {
                     self.set(x, y, Tile::Rock);
                 }
             }
@@ -845,13 +845,13 @@ impl WorldGrid {
                     })
                     .collect();
                 if !candidates.is_empty() {
-                    let &(cx, cy) = &candidates[rng.gen_range(0..candidates.len())];
+                    let &(cx, cy) = &candidates[rng.random_range(0..candidates.len())];
                     pool_centers.push((cx, cy));
                 }
             }
         }
         for &(cx, cy) in &pool_centers {
-            let radius = rng.gen_range(3i32..=5);
+            let radius = rng.random_range(3i32..=5);
             for dx in -radius..=radius {
                 for dy in -radius..=radius {
                     if dx.abs() + dy.abs() <= radius {
@@ -895,7 +895,7 @@ impl WorldGrid {
                     break;
                 }
                 connected[best_b] = true;
-                if rng.gen::<f32>() < 0.65 {
+                if rng.random::<f32>() < 0.65 {
                     self.carve_river(
                         pool_centers[best_a],
                         pool_centers[best_b],
@@ -905,7 +905,7 @@ impl WorldGrid {
                 }
             }
             for _ in 0..(n / 3) {
-                let a = rng.gen_range(0..n);
+                let a = rng.random_range(0..n);
                 let mut dists: Vec<(i32, usize)> = (0..n)
                     .filter(|&b| b != a)
                     .map(|b| {
@@ -915,7 +915,7 @@ impl WorldGrid {
                     })
                     .collect();
                 dists.sort_by_key(|&(d, _)| d);
-                if dists.len() >= 2 && rng.gen::<f32>() < 0.45 {
+                if dists.len() >= 2 && rng.random::<f32>() < 0.45 {
                     let b = dists[1].1;
                     self.carve_river(pool_centers[a], pool_centers[b], &mut rng, &land_mask);
                 }
@@ -928,7 +928,7 @@ impl WorldGrid {
                     continue;
                 }
                 let chance = Biome::from_u8(self.biome[Self::idx(x, y)]).initial_food_chance();
-                if rng.gen::<f32>() < chance {
+                if rng.random::<f32>() < chance {
                     self.set(x, y, Tile::Food);
                 }
             }
@@ -939,7 +939,7 @@ impl WorldGrid {
                 let i = Self::idx(x, y);
                 if Biome::from_u8(self.biome[i]) == Biome::Volcanic
                     && self.get(x, y) == Tile::Grass
-                    && rng.gen::<f32>() < 0.04
+                    && rng.random::<f32>() < 0.04
                 {
                     self.set(x, y, Tile::Fire);
                     self.fire_intensity[i] = 1.0;
@@ -1012,9 +1012,9 @@ impl WorldGrid {
     ) {
         let (mut x, mut y) = from;
         let max_steps = ((from.0 - to.0).abs() + (from.1 - to.1).abs()) * 6;
-        let mut perp_bias: f32 = if rng.gen::<bool>() { 1.0 } else { -1.0 };
+        let mut perp_bias: f32 = if rng.random::<bool>() { 1.0 } else { -1.0 };
         let mut steps_since_flip = 0i32;
-        let flip_interval = rng.gen_range(8i32..=20);
+        let flip_interval = rng.random_range(8i32..=20);
         for _ in 0..max_steps {
             if (x - to.0).abs() + (y - to.1).abs() <= 2 {
                 break;
@@ -1028,7 +1028,7 @@ impl WorldGrid {
             let dy = (to.1 - y).signum();
             let (px, py) = (-dy, dx);
             let (mx, my) = {
-                let r = rng.gen::<f32>();
+                let r = rng.random::<f32>();
                 if r < 0.50 {
                     if dx.abs() > dy.abs() {
                         (dx, 0)
@@ -1041,8 +1041,8 @@ impl WorldGrid {
                     let pb = if perp_bias > 0.0 { 1i32 } else { -1i32 };
                     (px * pb, py * pb)
                 } else {
-                    let rx = rng.gen_range(-1i32..=1);
-                    let ry = rng.gen_range(-1i32..=1);
+                    let rx = rng.random_range(-1i32..=1);
+                    let ry = rng.random_range(-1i32..=1);
                     (rx, ry)
                 }
             };
@@ -1073,8 +1073,8 @@ impl WorldGrid {
     /// the world-evolution spec calls this out specifically.
     pub fn tick_river_meander(&mut self, rng: &mut impl Rng) {
         for _ in 0..40 {
-            let x = rng.gen_range(2..WIDTH  as i32 - 2);
-            let y = rng.gen_range(2..HEIGHT as i32 - 2);
+            let x = rng.random_range(2..WIDTH  as i32 - 2);
+            let y = rng.random_range(2..HEIGHT as i32 - 2);
             if self.get(x, y) != Tile::Water { continue; }
             // Detect a linear water stretch on the N/S or E/W axis.
             let (axis_dx, axis_dy) =
@@ -1093,7 +1093,7 @@ impl WorldGrid {
             let b_land = !matches!(self.get(bank_b.0, bank_b.1), Tile::Water | Tile::Void);
             if !(a_land && b_land) { continue; }
             // Coin flip which side erodes.
-            let (erode, silt) = if rng.gen::<bool>() { (bank_a, bank_b) } else { (bank_b, bank_a) };
+            let (erode, silt) = if rng.random::<bool>() { (bank_a, bank_b) } else { (bank_b, bank_a) };
             self.tiles[Self::idx(erode.0, erode.1)] = Tile::Water as i8;
             // Silt opposite shore - only if it's currently water (rare
             // mid-river drift case). Most of the time silt-side is
@@ -1115,8 +1115,8 @@ impl WorldGrid {
         let mut grew = 0usize;
         for _ in 0..120 {
             if grew >= 12 { break; }
-            let x = rng.gen_range(1..WIDTH  as i32 - 1);
-            let y = rng.gen_range(1..HEIGHT as i32 - 1);
+            let x = rng.random_range(1..WIDTH  as i32 - 1);
+            let y = rng.random_range(1..HEIGHT as i32 - 1);
             if self.get(x, y) != Tile::Grass { continue; }
             let i = Self::idx(x, y);
             if self.fertility[i] < 0.55 { continue; }
@@ -1144,8 +1144,8 @@ impl WorldGrid {
         let mut died = 0usize;
         for _ in 0..120 {
             if died >= 8 { break; }
-            let x = rng.gen_range(1..WIDTH  as i32 - 1);
-            let y = rng.gen_range(1..HEIGHT as i32 - 1);
+            let x = rng.random_range(1..WIDTH  as i32 - 1);
+            let y = rng.random_range(1..HEIGHT as i32 - 1);
             if self.biome_at(x, y) != Biome::Forest { continue; }
             let i = Self::idx(x, y);
             if self.fertility[i] >= 0.30 { continue; }
@@ -1160,16 +1160,16 @@ impl WorldGrid {
         // 18000 ticks; at 4 changes per ~30 min real that's invisible
         // against the 180k land grid. Bumped 10× so coastlines actually
         // drift on a session timescale.
-        let flood_count  = rng.gen_range(30..=80usize);
-        let emerge_count = rng.gen_range(20..=50usize);
+        let flood_count  = rng.random_range(30..=80usize);
+        let emerge_count = rng.random_range(20..=50usize);
 
         let mut flooded = 0usize;
         for _ in 0..800 {
             if flooded >= flood_count {
                 break;
             }
-            let x = rng.gen_range(1..WIDTH as i32 - 1);
-            let y = rng.gen_range(1..HEIGHT as i32 - 1);
+            let x = rng.random_range(1..WIDTH as i32 - 1);
+            let y = rng.random_range(1..HEIGHT as i32 - 1);
             if !matches!(
                 self.get(x, y),
                 Tile::Grass | Tile::Snow | Tile::Sand | Tile::Food | Tile::Ash
@@ -1190,8 +1190,8 @@ impl WorldGrid {
             if emerged >= emerge_count {
                 break;
             }
-            let x = rng.gen_range(1..WIDTH as i32 - 1);
-            let y = rng.gen_range(1..HEIGHT as i32 - 1);
+            let x = rng.random_range(1..WIDTH as i32 - 1);
+            let y = rng.random_range(1..HEIGHT as i32 - 1);
             if self.get(x, y) != Tile::Water {
                 continue;
             }
@@ -1226,16 +1226,16 @@ impl WorldGrid {
     /// enough to call from the world-events tick without budget worry.
     pub fn tick_earthquake(&mut self, rng: &mut impl Rng) {
         // Pick a fault: two endpoints on the map, walk the line between.
-        let horizontal = rng.gen_bool(0.5);
+        let horizontal = rng.random_bool(0.5);
         let length: i32 = 30;
         let half = length / 2;
 
         let (cx, cy) = (
-            rng.gen_range(half + 2..WIDTH as i32 - half - 2),
-            rng.gen_range(half + 2..HEIGHT as i32 - half - 2),
+            rng.random_range(half + 2..WIDTH as i32 - half - 2),
+            rng.random_range(half + 2..HEIGHT as i32 - half - 2),
         );
         // Small jitter so the fault isn't perfectly axis-aligned.
-        let drift: i32 = rng.gen_range(-2..=2);
+        let drift: i32 = rng.random_range(-2..=2);
 
         let mut flipped = 0usize;
         for step in -half..=half {

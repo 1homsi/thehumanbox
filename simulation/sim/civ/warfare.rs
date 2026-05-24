@@ -253,7 +253,7 @@ pub fn try_spawn_raids(
         candidates.sort_by(|x, y| x.1.partial_cmp(&y.1).unwrap_or(std::cmp::Ordering::Equal));
         let (b_lid, _) = candidates.remove(0);
 
-        if rng.gen::<f32>() > 0.35 { continue; }
+        if rng.random::<f32>() > 0.35 { continue; }
 
         let a_centroid = lineage_centroid(organisms, a_lid);
         let b_centroid = lineage_centroid(organisms, &b_lid);
@@ -261,7 +261,7 @@ pub fn try_spawn_raids(
         let (bx, by) = b_centroid;
         let loc = ((ax + bx) / 2, (ay + by) / 2);
 
-        let n_per_side = 3 + (rng.gen::<u32>() % 3) as usize;
+        let n_per_side = 3 + (rng.random::<u32>() % 3) as usize;
         let attacker_orgs = pick_combatants(organisms, &pop_per_lineage, a_lid, n_per_side, loc, rng);
         let defender_orgs = pick_combatants(organisms, &pop_per_lineage, &b_lid, n_per_side, loc, rng);
         if attacker_orgs.is_empty() || defender_orgs.is_empty() { continue; }
@@ -381,8 +381,8 @@ pub fn tick_battles(
             let di = def_alive[k % def_alive.len()];
             let a_bonus = soldier_bonus(&organisms[ai]);
             let d_bonus = soldier_bonus(&organisms[di]);
-            let a_dmg = base_dmg * damage_multiplier(att_style) * (1.0 + a_bonus) * (0.7 + rng.gen::<f32>() * 0.6);
-            let d_dmg = base_dmg * damage_multiplier(def_style) * (1.0 + d_bonus) * (0.7 + rng.gen::<f32>() * 0.6) * if defender_wall_bonus { 1.5 } else { 1.0 };
+            let a_dmg = base_dmg * damage_multiplier(att_style) * (1.0 + a_bonus) * (0.7 + rng.random::<f32>() * 0.6);
+            let d_dmg = base_dmg * damage_multiplier(def_style) * (1.0 + d_bonus) * (0.7 + rng.random::<f32>() * 0.6) * if defender_wall_bonus { 1.5 } else { 1.0 };
 
             organisms[di].health = (organisms[di].health - a_dmg).max(0.0);
             if organisms[di].health <= 0.0 && organisms[di].alive {
@@ -434,9 +434,9 @@ pub fn tick_battles(
             };
             if let Some((loser_lid, winner_lid)) = loser {
                 let dominance = if outcome == BattleOutcome::AttackerVictory { a_frac } else { d_frac };
-                let kind = if dominance > 0.75 && rng.gen::<f32>() < 0.35 {
+                let kind = if dominance > 0.75 && rng.random::<f32>() < 0.35 {
                     TreatyKind::Vassalage
-                } else if rng.gen::<f32>() < 0.5 {
+                } else if rng.random::<f32>() < 0.5 {
                     TreatyKind::NonAggression
                 } else {
                     TreatyKind::Trade
@@ -447,7 +447,7 @@ pub fn tick_battles(
     }
 
     for (a, b, kind) in signed {
-        let expires = tick + 2000 + (rng.gen::<u64>() % 4000);
+        let expires = tick + 2000 + (rng.random::<u64>() % 4000);
         let treaty = Treaty {
             lineage_a: a.clone(),
             lineage_b: b.clone(),

@@ -121,7 +121,7 @@ impl Animal {
                     return;
                 }
             }
-            let di = rng.gen_range(0..8usize);
+            let di = rng.random_range(0..8usize);
             self.move_toward(grid, ix, iy, ix + DIRS[di].0 * step, iy + DIRS[di].1 * step);
             return;
         }
@@ -139,7 +139,7 @@ impl Animal {
             let fdy = self.y - oy;
             let len = (fdx * fdx + fdy * fdy).sqrt().max(0.001);
             (ix + (fdx / len * 4.0).round() as i32, iy + (fdy / len * 4.0).round() as i32)
-        } else if self.energy < 0.55 && rng.gen::<f32>() < 0.35 {
+        } else if self.energy < 0.55 && rng.random::<f32>() < 0.35 {
             let mut best_d = 999i32;
             let mut best_t = (ix, iy);
             for ddx in -10i32..=10 {
@@ -152,7 +152,7 @@ impl Animal {
             }
             best_t
         } else {
-            let di = rng.gen_range(0..8usize);
+            let di = rng.random_range(0..8usize);
             (ix + DIRS[di].0 * step, iy + DIRS[di].1 * step)
         };
 

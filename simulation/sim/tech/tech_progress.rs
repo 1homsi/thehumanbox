@@ -43,13 +43,13 @@ pub fn tick_tech_progress(
             if !node.prerequisites.iter().all(|p| disc.contains(*p)) { continue }
 
             let p = BASE_RATE * node.discovery_rate * pop_factor;
-            if rng.gen::<f32>() >= p { continue }
+            if rng.random::<f32>() >= p { continue }
 
             let members = match lineage_members.get(lid) {
                 Some(m) if !m.is_empty() => m,
                 _ => continue,
             };
-            let pick = members[rng.gen_range(0..members.len())];
+            let pick = members[rng.random_range(0..members.len())];
             organisms[pick].discoveries.insert(node.name.to_string());
             let name = organisms[pick].name.clone();
             let lname = lineage_names.get(lid).cloned().unwrap_or_else(|| lid.clone());

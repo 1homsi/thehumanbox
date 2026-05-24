@@ -106,71 +106,71 @@ pub fn assign_birth_attributes(org: &mut Organism, rng: &mut impl Rng) {
         if attr == "beautiful"   && org.sex == super::organism::Sex::Male   { continue; }
         if attr == "deep-voiced" && org.sex == super::organism::Sex::Female { continue; }
         if attr == "high-voiced" && org.sex == super::organism::Sex::Male   { continue; }
-        if rng.gen::<f32>() < prob {
+        if rng.random::<f32>() < prob {
             org.attributes.insert(attr.to_string());
         }
     }
 
     // Trait-gated
     if org.traits.curiosity > 0.62 {
-        if rng.gen::<f32>() < 0.70 { org.attributes.insert("curious".into()); }
+        if rng.random::<f32>() < 0.70 { org.attributes.insert("curious".into()); }
     }
     if org.traits.curiosity > 0.75 {
-        if rng.gen::<f32>() < 0.55 { org.attributes.insert("quick-witted".into()); }
+        if rng.random::<f32>() < 0.55 { org.attributes.insert("quick-witted".into()); }
     }
     if org.traits.aggression > 0.65 {
-        if rng.gen::<f32>() < 0.65 { org.attributes.insert("bold".into()); }
+        if rng.random::<f32>() < 0.65 { org.attributes.insert("bold".into()); }
     }
     if org.traits.aggression > 0.78 {
-        if rng.gen::<f32>() < 0.50 { org.attributes.insert("fierce".into()); }
+        if rng.random::<f32>() < 0.50 { org.attributes.insert("fierce".into()); }
     }
     if org.traits.aggression < 0.30 {
-        if rng.gen::<f32>() < 0.60 { org.attributes.insert("gentle".into()); }
+        if rng.random::<f32>() < 0.60 { org.attributes.insert("gentle".into()); }
     }
     if org.traits.fear > 0.65 {
-        if rng.gen::<f32>() < 0.55 { org.attributes.insert("cautious".into()); }
+        if rng.random::<f32>() < 0.55 { org.attributes.insert("cautious".into()); }
     }
     if org.traits.fear > 0.80 {
-        if rng.gen::<f32>() < 0.40 { org.attributes.insert("anxious".into()); }
+        if rng.random::<f32>() < 0.40 { org.attributes.insert("anxious".into()); }
     }
     if org.traits.fear < 0.28 {
-        if rng.gen::<f32>() < 0.60 { org.attributes.insert("brave".into()); }
+        if rng.random::<f32>() < 0.60 { org.attributes.insert("brave".into()); }
     }
     if org.traits.social_tendency > 0.68 {
-        if rng.gen::<f32>() < 0.60 { org.attributes.insert("talkative".into()); }
+        if rng.random::<f32>() < 0.60 { org.attributes.insert("talkative".into()); }
     }
     if org.traits.social_tendency < 0.28 {
-        if rng.gen::<f32>() < 0.55 { org.attributes.insert("shy".into()); }
+        if rng.random::<f32>() < 0.55 { org.attributes.insert("shy".into()); }
     }
     if org.traits.resilience > 0.72 {
-        if rng.gen::<f32>() < 0.55 { org.attributes.insert("resilient".into()); }
+        if rng.random::<f32>() < 0.55 { org.attributes.insert("resilient".into()); }
     }
     if org.traits.resilience > 0.82 {
-        if rng.gen::<f32>() < 0.45 { org.attributes.insert("iron-willed".into()); }
+        if rng.random::<f32>() < 0.45 { org.attributes.insert("iron-willed".into()); }
     }
     if org.traits.memory_strength > 0.72 {
-        if rng.gen::<f32>() < 0.50 { org.attributes.insert("patient".into()); }
+        if rng.random::<f32>() < 0.50 { org.attributes.insert("patient".into()); }
     }
     if org.traits.curiosity > 0.70 && org.traits.social_tendency < 0.35 {
-        if rng.gen::<f32>() < 0.45 { org.attributes.insert("wandering-heart".into()); }
+        if rng.random::<f32>() < 0.45 { org.attributes.insert("wandering-heart".into()); }
     }
     if org.traits.resilience < 0.30 {
-        if rng.gen::<f32>() < 0.45 { org.attributes.insert("delicate".into()); }
+        if rng.random::<f32>() < 0.45 { org.attributes.insert("delicate".into()); }
     }
     if org.traits.aggression < 0.25 && org.traits.social_tendency > 0.60 {
-        if rng.gen::<f32>() < 0.45 { org.attributes.insert("serene".into()); }
+        if rng.random::<f32>() < 0.45 { org.attributes.insert("serene".into()); }
     }
     if org.traits.aggression > 0.60 && org.traits.fear < 0.35 {
-        if rng.gen::<f32>() < 0.40 { org.attributes.insert("restless".into()); }
+        if rng.random::<f32>() < 0.40 { org.attributes.insert("restless".into()); }
     }
     if org.traits.aggression > 0.55 && org.traits.social_tendency > 0.55 {
-        if rng.gen::<f32>() < 0.35 { org.attributes.insert("fiery".into()); }
+        if rng.random::<f32>() < 0.35 { org.attributes.insert("fiery".into()); }
     }
     if org.traits.fear < 0.20 && org.traits.aggression > 0.70 {
-        if rng.gen::<f32>() < 0.40 { org.attributes.insert("reckless".into()); }
+        if rng.random::<f32>() < 0.40 { org.attributes.insert("reckless".into()); }
     }
     if org.traits.memory_strength > 0.80 && org.traits.curiosity > 0.65 {
-        if rng.gen::<f32>() < 0.40 { org.attributes.insert("deep-minded".into()); }
+        if rng.random::<f32>() < 0.40 { org.attributes.insert("deep-minded".into()); }
     }
 }
 
@@ -195,7 +195,7 @@ pub fn inherit_attributes_from_parents(
             (true, false) | (false, true) => 0.28,
             (false, false) => 0.0,
         };
-        if prob > 0.0 && rng.gen::<f32>() < prob {
+        if prob > 0.0 && rng.random::<f32>() < prob {
             child.attributes.insert(attr.to_string());
         }
     }
@@ -208,7 +208,7 @@ pub fn inherit_attributes_from_parents(
             (true, false) | (false, true) => 0.18,
             (false, false) => 0.0,
         };
-        if prob > 0.0 && rng.gen::<f32>() < prob {
+        if prob > 0.0 && rng.random::<f32>() < prob {
             child.attributes.insert(attr.to_string());
         }
     }

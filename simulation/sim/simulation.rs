@@ -596,12 +596,12 @@ impl Simulation {
                                 let child = &mut self.organisms[child_idx];
                                 let ms = child.traits.memory_strength;
                                 for (k, v) in danger {
-                                    if self.rng.gen::<f32>() < 0.45 {
+                                    if self.rng.random::<f32>() < 0.45 {
                                         Organism::remember(&mut child.danger_memory, k.0, k.1, v * 0.4, ms);
                                     }
                                 }
                                 for (k, v) in food {
-                                    if self.rng.gen::<f32>() < 0.20 {
+                                    if self.rng.random::<f32>() < 0.20 {
                                         Organism::remember(&mut child.food_memory, k.0, k.1, v * 0.2, ms);
                                     }
                                 }
@@ -1085,7 +1085,7 @@ impl Simulation {
             let tile = self.grid.get(ix, iy);
             match tile {
                 Tile::Sand => {
-                    if self.rng.gen::<f32>() < 0.06 {
+                    if self.rng.random::<f32>() < 0.06 {
                         self.grid.set(ix, iy, Tile::Water);
                         signal_reward += 0.08;
                         let name = self.organisms[idx].name.clone();
@@ -1115,7 +1115,7 @@ impl Simulation {
             let fi = WorldGrid::idx(ix, iy);
             let fert = self.grid.fertility[fi];
             if matches!(self.grid.get(ix, iy), Tile::Grass)
-                && self.rng.gen::<f32>() < 0.10 + fert * 0.18
+                && self.rng.random::<f32>() < 0.10 + fert * 0.18
             {
                 self.grid.set(ix, iy, Tile::Food);
                 self.grid.reduce_fertility(ix, iy, 0.03);
@@ -1245,7 +1245,7 @@ impl Simulation {
             Organism::remember(&mut self.organisms[idx].danger_memory, cx, cy, 0.8, ms);
             self.organisms[idx].think("heat dangerous", self.tick_count);
             self.broadcast_discovery(idx, cx, cy, "danger", 12, spatial);
-            if self.rng.gen::<f32>() < 0.15 * (1.0 - self.organisms[idx].traits.resilience) {
+            if self.rng.random::<f32>() < 0.15 * (1.0 - self.organisms[idx].traits.resilience) {
                 self.organisms[idx].infection =
                     (self.organisms[idx].infection + 0.02).min(1.0);
             }
@@ -1338,7 +1338,7 @@ impl Simulation {
                     (self.organisms[idx].fear_level - shelter_strength * 0.008).max(0.0);
             }
 
-            if self.organisms[idx].grief_ticks > 0 && self.rng.gen::<f32>() < shelter_strength * 0.12 {
+            if self.organisms[idx].grief_ticks > 0 && self.rng.random::<f32>() < shelter_strength * 0.12 {
                 self.organisms[idx].grief_ticks =
                     self.organisms[idx].grief_ticks.saturating_sub(3);
             }
@@ -1478,7 +1478,7 @@ impl Simulation {
                 let cur = self.organisms[idx].org_trust.get(&recipient_id).copied().unwrap_or(0.0);
                 self.organisms[idx].org_trust.insert(recipient_id, (cur + 0.04).min(1.0));
                 self.history.gifts_total += 1;
-                if self.rng.gen::<f32>() < 0.10 {
+                if self.rng.random::<f32>() < 0.10 {
                     push_event(&mut self.events, self.tick_count, "gift", &donor_name, "shared food with starving kin");
                 }
             }
@@ -1487,7 +1487,7 @@ impl Simulation {
         if self.organisms[idx].discoveries.contains("trap") {
             let (cx2, cy2) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
             let food_trail = self.grid.detect_trail(cx2, cy2, TrailKind::Food, 3);
-            if food_trail > 0.45 && self.rng.gen::<f32>() < 0.0025 {
+            if food_trail > 0.45 && self.rng.random::<f32>() < 0.0025 {
                 self.organisms[idx].energy = (self.organisms[idx].energy + 0.14).min(1.0);
                 self.organisms[idx].think("trap caught something", self.tick_count);
                 let name = self.organisms[idx].name.clone();
@@ -1515,7 +1515,7 @@ impl Simulation {
                 Biome::Volcanic => 0.00020,
                 _ => 0.00012,
             };
-            if self.organisms[idx].infection < 0.05 && self.rng.gen::<f32>() < pathogen_rate {
+            if self.organisms[idx].infection < 0.05 && self.rng.random::<f32>() < pathogen_rate {
                 self.organisms[idx].infection =
                     0.35 * (1.0 - self.organisms[idx].traits.resilience * 0.4);
             }
@@ -1626,7 +1626,7 @@ impl Simulation {
             if att >= 0.25 {
                 let lid = self.organisms[i].lineage_id.clone();
                 self.organisms[idx].update_attitude(&lid, 0.001);
-                if self.rng.gen::<f32>() < 0.04 {
+                if self.rng.random::<f32>() < 0.04 {
                     let to_share: Vec<((i32,i32), f32)> = self.organisms[i].food_memory.iter()
                         .filter(|(_, &v)| v > 0.4)
                         .take(1)
@@ -2109,7 +2109,7 @@ impl Simulation {
             let food_near = (-8i32..=8).any(|ddx| (-8i32..=8).any(|ddy|
                 self.grid.get(ox2 + ddx, oy2 + ddy) == Tile::Food));
             if !food_near && self.organisms[idx].food_memory.len() < 8
-               && self.rng.gen::<f32>() < 0.0015
+               && self.rng.random::<f32>() < 0.0015
             {
                 if self.organisms[idx].wander_target.is_none() && self.organisms[idx].energy > 0.4 {
                     let hash = self.tick_count ^ idx as u64;
@@ -2249,7 +2249,7 @@ impl Simulation {
 
         if is_unpartnered_adult
             && self.organisms[idx].attracted_to.is_none()
-            && self.rng.gen::<f32>() < 0.012
+            && self.rng.random::<f32>() < 0.012
         {
             let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
             let my_sex = self.organisms[idx].sex;
@@ -2280,7 +2280,7 @@ impl Simulation {
                 let attraction_age = tc.saturating_sub(self.organisms[idx].attraction_tick);
                 let partner_close = self.organisms.iter()
                     .any(|o| o.alive && o.id == aid && (o.x - ox).hypot(o.y - oy) < 8.0);
-                if partner_close && attraction_age >= 150 && self.rng.gen::<f32>() < 0.08 {
+                if partner_close && attraction_age >= 150 && self.rng.random::<f32>() < 0.08 {
                     if let Some(pi) = self.organisms.iter().position(|o| o.alive && o.id == aid) {
                         let pid   = self.organisms[pi].id.clone();
                         let pname = self.organisms[pi].name.clone();
@@ -2320,7 +2320,7 @@ impl Simulation {
 
         if let Some(ref pid) = self.organisms[idx].partner_id.clone() {
             let pid = pid.clone();
-            if tc % 19 == (idx as u64 % 19) && self.rng.gen::<f32>() < 0.0018 {
+            if tc % 19 == (idx as u64 % 19) && self.rng.random::<f32>() < 0.0018 {
                 let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
                 if let Some(pi) = self.organisms.iter().position(|o| o.alive && o.id == pid) {
                     if (self.organisms[pi].x - ox).hypot(self.organisms[pi].y - oy) < 8.0 {
@@ -2373,7 +2373,7 @@ impl Simulation {
                     } else {
                         "chat"
                     };
-                    if self.rng.gen::<f32>() < 0.004 {
+                    if self.rng.random::<f32>() < 0.004 {
                         let a_mood = derive_mood(&self.organisms[idx]);
                         let b_mood = derive_mood(&self.organisms[ci]);
                         let a_recent: Vec<String> = self.organisms[idx].life_log.iter().rev().take(3).map(|e| e.text.clone()).collect();
@@ -2541,7 +2541,7 @@ impl Simulation {
                         0.95,
                     );
                 }
-                self.organisms[*gi].grief_ticks   = grief_base + self.rng.gen_range(0u32..40);
+                self.organisms[*gi].grief_ticks   = grief_base + self.rng.random_range(0u32..40);
                 self.organisms[*gi].think("mourning kin", self.tick_count);
                 let tc = self.tick_count;
                 let dn = dead_name.clone();
@@ -2562,7 +2562,7 @@ impl Simulation {
                 if is_direct_kin {
                     for d in &inherited_disc {
                         if !self.organisms[*gi].discoveries.contains(d.as_str())
-                            && self.rng.gen::<f32>() < 0.45
+                            && self.rng.random::<f32>() < 0.45
                         {
                             self.organisms[*gi].discoveries.insert(d.clone());
                         }
@@ -2620,7 +2620,7 @@ impl Simulation {
                 }
             }}
 
-            if self.rng.gen::<f32>() < 0.25 {
+            if self.rng.random::<f32>() < 0.25 {
                 if matches!(self.grid.get(dx, dy), Tile::Grass | Tile::Ash) {
                     self.grid.set(dx, dy, Tile::Food);
                 }
@@ -2630,7 +2630,7 @@ impl Simulation {
 
     fn spawn_animals(&mut self, count: usize) {
         for _ in 0..count {
-            let r = self.rng.gen::<f32>();
+            let r = self.rng.random::<f32>();
             let kind = if r < 0.32 { AnimalKind::Rabbit }
                        else if r < 0.55 { AnimalKind::Deer }
                        else if r < 0.70 { AnimalKind::Boar }
@@ -2638,8 +2638,8 @@ impl Simulation {
                        else if r < 0.92 { AnimalKind::Fish }
                        else                { AnimalKind::Wolf };
             for _ in 0..60 {
-                let x = self.rng.gen_range(3..(WIDTH as i32 - 3)) as f32;
-                let y = self.rng.gen_range(3..(HEIGHT as i32 - 3)) as f32;
+                let x = self.rng.random_range(3..(WIDTH as i32 - 3)) as f32;
+                let y = self.rng.random_range(3..(HEIGHT as i32 - 3)) as f32;
                 let tile = self.grid.get(x as i32, y as i32);
                 let valid = if kind.aquatic() {
                     tile == Tile::Water
@@ -2723,7 +2723,7 @@ impl Simulation {
                 if o.traits.aggression > 0.5 { continue; }
                 if (o.x - a.x).abs() + (o.y - a.y).abs() > 2.5 { continue; }
                 let tame_p = 0.004 + (1.0 - o.traits.aggression) * 0.006;
-                if self.rng.gen::<f32>() < tame_p {
+                if self.rng.random::<f32>() < tame_p {
                     tames.push((ai, oi));
                     break;
                 }
@@ -2779,14 +2779,14 @@ impl Simulation {
                     let pack_defence = if kin_nearby >= 2 { 0.5 } else { 1.0 };
                     let weak_bonus = if o.health < 0.5 || o.energy < 0.3 { 0.20 } else { 0.0 };
                     let bite_p = (0.18 + a.energy * 0.10 + weak_bonus) * pack_defence;
-                    if self.rng.gen::<f32>() < bite_p {
+                    if self.rng.random::<f32>() < bite_p {
                         bites.push((ai, oi));
                     }
                 }
             }
         }
         for (ai, oi) in bites {
-            let dmg = 0.12 + self.rng.gen::<f32>() * 0.08;
+            let dmg = 0.12 + self.rng.random::<f32>() * 0.08;
             let oname = self.organisms[oi].name.clone();
             self.organisms[oi].health = (self.organisms[oi].health - dmg).max(0.0);
             self.organisms[oi].think("a wolf attacks", self.tick_count);
@@ -2845,11 +2845,11 @@ impl Simulation {
             let global_factor = (1.0 - (total_alive - 600.0).max(0.0) / 400.0).max(0.0);
 
             let p = 0.0005 * biome_mult * density_factor * global_factor;
-            if p > 0.0 && self.rng.gen::<f32>() < p {
+            if p > 0.0 && self.rng.random::<f32>() < p {
                 let nid = self.next_animal_id;
                 self.next_animal_id += 1;
-                let ox = self.rng.gen_range(-3.0..3.0f32);
-                let oy = self.rng.gen_range(-3.0..3.0f32);
+                let ox = self.rng.random_range(-3.0..3.0f32);
+                let oy = self.rng.random_range(-3.0..3.0f32);
                 let nx = (px + ox).max(1.0).min(WIDTH as f32 - 2.0);
                 let ny = (py + oy).max(1.0).min(HEIGHT as f32 - 2.0);
                 self.animals.push(Animal::new(nid, nx, ny, kind));
@@ -2893,7 +2893,7 @@ impl Simulation {
                                        else { 0.0 };
                     let dist_penalty = if manh == 2 { 0.6 } else { 1.0 };
                     let p = (base_p + org.traits.aggression * 0.18 + weapon_bonus) * dist_penalty;
-                    if self.rng.gen::<f32>() < p {
+                    if self.rng.random::<f32>() < p {
                         to_catch.push((oi, ai));
                     }
                 }
@@ -3043,7 +3043,7 @@ impl Simulation {
         if alive_indices.is_empty() { return; }
 
         for _ in 0..ORGS_TO_CHECK {
-            let idx = alive_indices[self.rng.gen_range(0..alive_indices.len())];
+            let idx = alive_indices[self.rng.random_range(0..alive_indices.len())];
             if now.saturating_sub(self.organisms[idx].last_ancestral_thought) < COOLDOWN_TICKS {
                 continue;
             }
@@ -3384,7 +3384,7 @@ mod tests {
         });
 
         let mut expected_rng = sim.rng.clone();
-        let expected_next: u64 = expected_rng.gen();
+        let expected_next: u64 = expected_rng.random();
 
         sim.save_result(&path_s).unwrap();
         let mut loaded = Simulation::load_or_new(999, &path_s);
@@ -3401,7 +3401,7 @@ mod tests {
         );
         assert_eq!(loaded.pending_thinks.len(), 1);
         assert_eq!(loaded.pending_thinks[0].scenario, "migration");
-        assert_eq!(loaded.rng.gen::<u64>(), expected_next);
+        assert_eq!(loaded.rng.random::<u64>(), expected_next);
 
         let _ = std::fs::remove_file(&path_s);
         let _ = std::fs::remove_file(&tmp_s);

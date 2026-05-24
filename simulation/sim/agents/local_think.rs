@@ -5,9 +5,9 @@ use crate::sim::simulation::ThinkTrigger;
 fn weighted_pick<'a>(rng: &mut impl Rng, options: &[(&'a str, f32)]) -> &'a str {
     let total: f32 = options.iter().map(|(_, w)| w.max(0.0)).sum();
     if total <= 0.0 {
-        return options[rng.gen_range(0..options.len())].0;
+        return options[rng.random_range(0..options.len())].0;
     }
-    let mut roll = rng.gen::<f32>() * total;
+    let mut roll = rng.random::<f32>() * total;
     for (val, w) in options {
         roll -= w.max(0.0);
         if roll <= 0.0 { return val; }
@@ -148,7 +148,7 @@ pub fn resolve(trigger: &ThinkTrigger, rng: &mut impl Rng) -> Option<LocalResult
                 .filter(|s| !s.is_empty())
                 .collect();
             if candidates.is_empty() { return None; }
-            let pick = candidates[rng.gen_range(0..candidates.len())].to_string();
+            let pick = candidates[rng.random_range(0..candidates.len())].to_string();
             Some(LocalResult {
                 word: "invention", thought: "a sudden realisation",
                 discovery: Some(pick), ..Default::default()

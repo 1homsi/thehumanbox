@@ -176,11 +176,11 @@ fn tick_home_furnishing(sim: &mut Simulation) {
         if candidates.is_empty() {
             continue;
         }
-        if sim.rng.gen::<f32>() > 0.45 + curiosity * 0.3 + piety * 0.05 {
+        if sim.rng.random::<f32>() > 0.45 + curiosity * 0.3 + piety * 0.05 {
             continue;
         }
 
-        let pick = candidates[sim.rng.gen_range(0..candidates.len())];
+        let pick = candidates[sim.rng.random_range(0..candidates.len())];
         let org = &mut sim.organisms[idx];
         if org.home_style_seed == 0 {
             org.home_style_seed = (sim.tick_count as u32).wrapping_mul(2654435761).wrapping_add(idx as u32 * 11);
@@ -316,7 +316,7 @@ fn tick_cross_lineage_knowledge(sim: &mut Simulation) {
                 continue;
             }
             let pick = learnable[(sim.tick_count as usize + i + j) % learnable.len()];
-            if sim.rng.gen::<f32>() < 0.08 {
+            if sim.rng.random::<f32>() < 0.08 {
                 to_grant.push((snapshot[i].0, pick.clone()));
             }
             break;
@@ -460,7 +460,7 @@ fn tick_specialties(sim: &mut Simulation) {
         }
 
         if let Some((_, near_spec)) = nearest_workshop {
-            if near_spec.era_unlock() <= era && sim.rng.gen::<f32>() < 0.35 {
+            if near_spec.era_unlock() <= era && sim.rng.random::<f32>() < 0.35 {
                 sim.organisms[i].specialty = Some(near_spec.name().to_string());
                 let name = sim.organisms[i].name.clone();
                 push_event(&mut sim.events, sim.tick_count, "specialty", &name,
@@ -469,10 +469,10 @@ fn tick_specialties(sim: &mut Simulation) {
             }
         }
 
-        if sim.rng.gen::<f32>() > 0.06 { continue; }
+        if sim.rng.random::<f32>() > 0.06 { continue; }
         let candidates = candidate_specialties(era, curiosity, aggression, social, has_writing);
         if candidates.is_empty() { continue; }
-        let pick = candidates[sim.rng.gen_range(0..candidates.len())];
+        let pick = candidates[sim.rng.random_range(0..candidates.len())];
         sim.organisms[i].specialty = Some(pick.name().to_string());
         let name = sim.organisms[i].name.clone();
         push_event(&mut sim.events, sim.tick_count, "specialty", &name,
@@ -847,7 +847,7 @@ fn tick_religion_founding(sim: &mut Simulation) {
         let candidates = [ReligionKind::Animism, ReligionKind::Polytheism, ReligionKind::Monotheism, ReligionKind::Philosophical, ReligionKind::Secular];
         for k in candidates {
             if k.era_unlock() <= era && !existing_kinds.contains(&k) {
-                if sim.rng.gen::<f32>() < 0.08 {
+                if sim.rng.random::<f32>() < 0.08 {
                     let id = format!("rel{}", sim.next_religion_id);
                     sim.next_religion_id += 1;
                     let name = pick_religion_name(sim.tick_count + (lid.len() as u64)).to_string();
@@ -890,7 +890,7 @@ fn tick_religion_adherents(sim: &mut Simulation) {
         if !org.alive { continue; }
         if org.religion_id.is_some() { continue; }
         if let Some(rid) = religion_by_lineage.get(&org.lineage_id) {
-            if sim.rng.gen::<f32>() < convert_chance * (0.4 + org.traits.social_tendency) {
+            if sim.rng.random::<f32>() < convert_chance * (0.4 + org.traits.social_tendency) {
                 org.religion_id = Some(rid.clone());
                 org.piety = 0.20 + org.traits.social_tendency * 0.20;
                 *adherents_by_id.entry(rid.clone()).or_insert(0) += 1;
@@ -984,7 +984,7 @@ fn tick_artwork(sim: &mut Simulation) {
         if !o.alive { continue; }
         if o.age_stage() == AgeStage::Infant || o.age_stage() == AgeStage::Child { continue; }
         if o.traits.curiosity < 0.6 { continue; }
-        if sim.rng.gen::<f32>() > 0.04 { continue; }
+        if sim.rng.random::<f32>() > 0.04 { continue; }
         let era = era_map.get(&o.lineage_id).copied().unwrap_or(Era::Stone);
         let kind = pick_art_kind(era);
         let id = sim.next_artwork_id;
@@ -1021,7 +1021,7 @@ fn tick_books(sim: &mut Simulation) {
     for o in &sim.organisms {
         if !o.alive || o.literacy < 0.4 { continue; }
         if o.age_stage() != AgeStage::Adult && o.age_stage() != AgeStage::Elder { continue; }
-        if sim.rng.gen::<f32>() > 0.05 { continue; }
+        if sim.rng.random::<f32>() > 0.05 { continue; }
         let era = era_map.get(&o.lineage_id).copied().unwrap_or(Era::Iron);
         if era < Era::Bronze { continue; }
         let id = sim.next_book_id;
@@ -1057,7 +1057,7 @@ fn tick_disease_introduce(sim: &mut Simulation) {
     let Some(kind) = pick_introduction(era, sim.tick_count) else { return };
     let alive: Vec<usize> = sim.organisms.iter().enumerate().filter_map(|(i, o)| if o.alive { Some(i) } else { None }).collect();
     if alive.is_empty() { return; }
-    let pick = alive[sim.rng.gen_range(0..alive.len())];
+    let pick = alive[sim.rng.random_range(0..alive.len())];
     let name = kind.name().to_string();
     let already = sim.organisms[pick].diseases.iter().any(|(d, _)| d == &name);
     let immune = sim.organisms[pick].disease_immunity.get(&name).copied().unwrap_or(0) > sim.tick_count;
@@ -1092,7 +1092,7 @@ fn tick_disease_spread(sim: &mut Simulation) {
                     "malaria" => DiseaseKind::Malaria,
                     _ => continue,
                 };
-                if sim.rng.gen::<f32>() < kind.contagion() * 0.05 {
+                if sim.rng.random::<f32>() < kind.contagion() * 0.05 {
                     new_infections.push((*j, d.clone()));
                 }
             }

@@ -24,7 +24,7 @@ impl Simulation {
         let mut anchors: Vec<(i32, i32)> = Vec::new();
         let mut sector_order: Vec<(i32, i32)> = (0..cols).flat_map(|c| (0..rows).map(move |r| (c, r))).collect();
         for i in (1..sector_order.len()).rev() {
-            let j = self.rng.gen_range(0..=i);
+            let j = self.rng.random_range(0..=i);
             sector_order.swap(i, j);
         }
 
@@ -44,7 +44,7 @@ impl Simulation {
                 }
             }
             if land.is_empty() { continue; }
-            let pick = land[self.rng.gen_range(0..land.len())];
+            let pick = land[self.rng.random_range(0..land.len())];
             anchors.push(pick);
         }
 
@@ -57,7 +57,7 @@ impl Simulation {
             let mut placed = anchors.len();
             let mut i = 0usize;
             while placed < N_TRIBES && i < n {
-                let j = i + self.rng.gen_range(0..(n - i));
+                let j = i + self.rng.random_range(0..(n - i));
                 all_land.swap(i, j);
                 let (x, y) = all_land[i];
                 let far_enough = anchors.iter().all(|&(ax, ay)| {
@@ -91,7 +91,7 @@ impl Simulation {
             let n = land.len();
             let take = TRIBE_SIZE.min(n);
             for i in 0..take {
-                let j = i + self.rng.gen_range(0..(n - i));
+                let j = i + self.rng.random_range(0..(n - i));
                 land.swap(i, j);
             }
             for k in 0..take {
@@ -119,7 +119,7 @@ impl Simulation {
             let mut spawned = 0;
             let mut i = 0usize;
             while spawned < still_needed && i < n {
-                let j = i + self.rng.gen_range(0..(n - i));
+                let j = i + self.rng.random_range(0..(n - i));
                 all_land.swap(i, j);
                 let (x, y) = all_land[i];
                 let lid = tribe_ids[spawned % n_tribes].clone();
@@ -173,9 +173,9 @@ impl Simulation {
         let mut scored = scored;
         scored.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
         let top = scored.len().min(12).max(1);
-        let (anchor_x, anchor_y, _) = scored[self.rng.gen_range(0..top)];
+        let (anchor_x, anchor_y, _) = scored[self.rng.random_range(0..top)];
 
-        let tribe_size = self.rng.gen_range(8usize..=14);
+        let tribe_size = self.rng.random_range(8usize..=14);
         let lineage_id = Uuid::new_v4().to_string()[..8].to_string();
         let tribe_name = generate_tribe_name(&mut self.rng);
         self.lineage_names.insert(lineage_id.clone(), tribe_name.clone());
@@ -193,7 +193,7 @@ impl Simulation {
 
         let start_idx = self.organisms.len();
         for k in 0..take {
-            let j = k + self.rng.gen_range(0..(land.len() - k));
+            let j = k + self.rng.random_range(0..(land.len() - k));
             land.swap(k, j);
             let (lx, ly) = land[k];
 
@@ -201,7 +201,7 @@ impl Simulation {
             let sex = if k % 2 == 0 { Sex::Male } else { Sex::Female };
             let mut traits = Traits::random(&mut self.rng);
             apply_sex_traits(&mut traits, sex);
-            let max_age = self.rng.gen_range(
+            let max_age = self.rng.random_range(
                 (8000.0 + 4000.0 * traits.resilience) as u32
                 ..=(18000.0 + 8000.0 * traits.resilience) as u32
             );
@@ -213,7 +213,7 @@ impl Simulation {
             org.home_x = anchor_x as f32;
             org.home_y = anchor_y as f32;
             org.sex = sex;
-            org.age = self.rng.gen_range(2000u32..=5000);
+            org.age = self.rng.random_range(2000u32..=5000);
             org.energy    = 0.85;
             org.hydration = 0.85;
             org.health    = 0.95;
@@ -240,8 +240,8 @@ impl Simulation {
         const MIN_DIST_FROM_OTHER_HOMES: i32 = 90;
         const MIN_DIST_FROM_FORKER:      i32 = 120;
         for _ in 0..120 {
-            let tx = self.rng.gen_range(8..(WIDTH as i32 - 8));
-            let ty = self.rng.gen_range(8..(HEIGHT as i32 - 8));
+            let tx = self.rng.random_range(8..(WIDTH as i32 - 8));
+            let ty = self.rng.random_range(8..(HEIGHT as i32 - 8));
             if (tx - fx).abs() + (ty - fy).abs() < MIN_DIST_FROM_FORKER { continue; }
             if !self.is_good_land_target(tx, ty) { continue; }
             let too_close = self.organisms.iter().any(|o| {

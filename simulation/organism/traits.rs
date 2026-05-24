@@ -55,7 +55,7 @@ impl Traits {
     }
 
     pub fn mix(&self, other: &Traits, rng: &mut impl Rng) -> Self {
-        macro_rules! pick { ($a:expr, $b:expr) => { if rng.gen::<bool>() { $a } else { $b } }; }
+        macro_rules! pick { ($a:expr, $b:expr) => { if rng.random::<bool>() { $a } else { $b } }; }
         Traits {
             curiosity:       pick!(self.curiosity,       other.curiosity),
             aggression:      pick!(self.aggression,      other.aggression),

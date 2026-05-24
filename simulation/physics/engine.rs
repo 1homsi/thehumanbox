@@ -79,7 +79,7 @@ impl PhysicsEngine {
                         let spread_chance = base * spread_mult;
                         if spread_chance > 0.0 {
                             for (nx, ny) in WorldGrid::neighbors(x, y) {
-                                if grid.get(nx, ny).flammable() && rng.gen::<f32>() < spread_chance {
+                                if grid.get(nx, ny).flammable() && rng.random::<f32>() < spread_chance {
                                     self.new_fires.push((nx, ny));
                                 }
                             }
@@ -128,8 +128,8 @@ impl PhysicsEngine {
     fn lightning_strike(&mut self, grid: &mut WorldGrid, rng: &mut impl Rng) {
         use crate::world::grid::{WIDTH, HEIGHT};
         for _ in 0..40 {
-            let x = rng.gen_range(5..WIDTH as i32 - 5);
-            let y = rng.gen_range(5..HEIGHT as i32 - 5);
+            let x = rng.random_range(5..WIDTH as i32 - 5);
+            let y = rng.random_range(5..HEIGHT as i32 - 5);
             if grid.get(x, y).flammable() {
                 let min_pool = grid.pool_centers.iter()
                     .map(|(px, py)| (x - px).abs() + (y - py).abs())
@@ -157,9 +157,9 @@ impl PhysicsEngine {
                         let trail_boost = 1.0 + trail * 1.2;
                         let fertility = grid.fertility[WorldGrid::idx(x, y)];
                         let grow_rate = base_grow * grid.biome_growth_mult(x, y) * trail_boost * fertility;
-                        if rng.gen::<f32>() < grow_rate { grid.set(x, y, Tile::Food); }
+                        if rng.random::<f32>() < grow_rate { grid.set(x, y, Tile::Food); }
                     }
-                    Tile::Ash if rng.gen::<f32>() < recover_rate => grid.set(x, y, Tile::Grass),
+                    Tile::Ash if rng.random::<f32>() < recover_rate => grid.set(x, y, Tile::Grass),
                     _ => {}
                 }
             }

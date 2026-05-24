@@ -43,7 +43,7 @@ pub enum Sex { #[default] Male, Female }
 
 impl Sex {
     pub fn random(rng: &mut impl Rng) -> Self {
-        if rng.gen::<bool>() { Sex::Male } else { Sex::Female }
+        if rng.random::<bool>() { Sex::Male } else { Sex::Female }
     }
     pub fn as_str(self) -> &'static str {
         match self { Sex::Male => "male", Sex::Female => "female" }
@@ -54,13 +54,13 @@ impl Sex {
 }
 
 pub fn generate_name(rng: &mut impl Rng, sex: Sex) -> String {
-    let syllables = rng.gen_range(2..=3);
+    let syllables = rng.random_range(2..=3);
     let mut s = String::new();
     for i in 0..syllables {
-        s.push(CONSONANTS[rng.gen_range(0..CONSONANTS.len())] as char);
-        s.push(VOWELS[rng.gen_range(0..VOWELS.len())] as char);
-        if i == syllables - 1 && sex == Sex::Male && rng.gen::<f32>() < 0.65 {
-            s.push(CONSONANTS[rng.gen_range(0..CONSONANTS.len())] as char);
+        s.push(CONSONANTS[rng.random_range(0..CONSONANTS.len())] as char);
+        s.push(VOWELS[rng.random_range(0..VOWELS.len())] as char);
+        if i == syllables - 1 && sex == Sex::Male && rng.random::<f32>() < 0.65 {
+            s.push(CONSONANTS[rng.random_range(0..CONSONANTS.len())] as char);
         }
     }
     let mut c = s.chars();
@@ -73,16 +73,16 @@ pub fn generate_name(rng: &mut impl Rng, sex: Sex) -> String {
 pub fn generate_tribe_name(rng: &mut impl Rng) -> String {
     const TRIBE_CONS: &[u8] = b"bdfghjklmnprstvwz";
     const TRIBE_VOWELS: &[u8] = b"aeiou";
-    let syllables = rng.gen_range(2..=3usize);
+    let syllables = rng.random_range(2..=3usize);
     let mut s = String::new();
     for i in 0..syllables {
-        s.push(TRIBE_CONS[rng.gen_range(0..TRIBE_CONS.len())] as char);
-        s.push(TRIBE_VOWELS[rng.gen_range(0..TRIBE_VOWELS.len())] as char);
-        if i < syllables - 1 && rng.gen::<f32>() < 0.30 {
-            s.push(TRIBE_CONS[rng.gen_range(0..TRIBE_CONS.len())] as char);
+        s.push(TRIBE_CONS[rng.random_range(0..TRIBE_CONS.len())] as char);
+        s.push(TRIBE_VOWELS[rng.random_range(0..TRIBE_VOWELS.len())] as char);
+        if i < syllables - 1 && rng.random::<f32>() < 0.30 {
+            s.push(TRIBE_CONS[rng.random_range(0..TRIBE_CONS.len())] as char);
         }
-        if i == syllables - 1 && rng.gen::<f32>() < 0.60 {
-            s.push(TRIBE_CONS[rng.gen_range(0..TRIBE_CONS.len())] as char);
+        if i == syllables - 1 && rng.random::<f32>() < 0.60 {
+            s.push(TRIBE_CONS[rng.random_range(0..TRIBE_CONS.len())] as char);
         }
     }
     let mut c = s.chars();

@@ -429,7 +429,7 @@ pub fn teach(
     let teacher_disc: Vec<String> = organisms[org_idx].discoveries.iter().cloned().collect();
     let mut learned = Vec::new();
     for disc in &teacher_disc {
-        if !organisms[ti].discoveries.contains(disc.as_str()) && rng.gen::<f32>() < transfer_chance {
+        if !organisms[ti].discoveries.contains(disc.as_str()) && rng.random::<f32>() < transfer_chance {
             organisms[ti].discoveries.insert(disc.clone());
             learned.push(disc.clone());
         }

@@ -430,7 +430,7 @@ fn pick_concept_and_word<'a>(
     rng: &mut impl Rng,
 ) -> (&'a str, &'a str) {
     for _ in 0..8 {
-        let c = concepts[rng.gen_range(0..concepts.len())];
+        let c = concepts[rng.random_range(0..concepts.len())];
         if let Some(w) = vocab.get(c) {
             return (c, w.as_str());
         }
@@ -465,7 +465,7 @@ fn utterance_with_meaning(
     match mood {
         // greeting
         0 => {
-            if rng.gen::<f32>() < 0.55 {
+            if rng.random::<f32>() < 0.55 {
                 (listener.name.clone(), listener.name.clone())
             } else {
                 let (c, w) = pick_concept_and_word(v, &["friend", "home", "day"], rng);
@@ -476,7 +476,7 @@ fn utterance_with_meaning(
         // warmth / closeness
         1 => {
             let (c1, w1) = pick_concept_and_word(v, &["friend", "home", "group", "alone"], rng);
-            if rng.gen::<f32>() < 0.45 {
+            if rng.random::<f32>() < 0.45 {
                 (format!("{} {}", w1, listener.name),
                  format!("{} · {}", gloss_one(c1), listener.name))
             } else {
@@ -493,7 +493,7 @@ fn utterance_with_meaning(
         // reassurance
         3 => {
             let (c, w) = pick_concept_and_word(v, &["shelter", "home", "friend", "group"], rng);
-            if rng.gen::<f32>() < 0.4 {
+            if rng.random::<f32>() < 0.4 {
                 (format!("{} {}", listener.name, w),
                  format!("{} · {}", listener.name, gloss_one(c)))
             } else {
@@ -554,13 +554,13 @@ pub fn generate_conversation(
     rng: &mut impl Rng,
 ) -> (ConversationEntry, ConversationEntry) {
     let n_lines = match kind {
-        "courtship" => rng.gen_range(6..=10),
-        "excited"   => rng.gen_range(5..=8),
-        "bonded"    => rng.gen_range(4..=7),
-        "chat"      => rng.gen_range(3..=6),
-        "argue"     => rng.gen_range(4..=6),
-        "farewell"  => rng.gen_range(2..=3),
-        _           => rng.gen_range(3..=5),
+        "courtship" => rng.random_range(6..=10),
+        "excited"   => rng.random_range(5..=8),
+        "bonded"    => rng.random_range(4..=7),
+        "chat"      => rng.random_range(3..=6),
+        "argue"     => rng.random_range(4..=6),
+        "farewell"  => rng.random_range(2..=3),
+        _           => rng.random_range(3..=5),
     };
     let moods = mood_arc(kind);
 
