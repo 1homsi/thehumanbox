@@ -24,6 +24,7 @@ import { SelectedOrgHighlight } from './parts/SelectedOrgHighlight'
 import { SelectedOrgCard } from './parts/SelectedOrgCard'
 import { WorldHud } from './parts/WorldHud'
 import { EventFloaters } from './parts/EventFloaters'
+import { BigMomentEffects } from './parts/BigMomentEffects'
 import { OrgStateBadges } from './parts/OrgStateBadges'
 import { FootstepDust } from './parts/FootstepDust'
 import { TribeLabels } from './parts/TribeLabels'
@@ -521,6 +522,13 @@ export default function WorldView3D({ world }: Props) {
                 <EventFloaters
                   events={world.events ?? []}
                   organisms={world.viewport_organisms ?? world.organisms ?? []}
+                  depthMap={grid.depth_map!}
+                  biomes={grid.biomes!}
+                />
+                <BigMomentEffects
+                  events={world.events ?? []}
+                  organisms={world.viewport_organisms ?? world.organisms ?? []}
+                  world={world}
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}
                 />
