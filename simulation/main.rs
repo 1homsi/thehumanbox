@@ -649,8 +649,8 @@ async fn main() {
 
     let app = Router::new()
         .route("/ws", get(routes::ws_handler))
-        .route("/org/:id", get(routes::org_detail_handler))
-        .route("/org/:id/life", get(routes::org_life_handler))
+        .route("/org/{id}", get(routes::org_detail_handler))
+        .route("/org/{id}/life", get(routes::org_life_handler))
         .route("/version", get(routes::version_handler))
         .route("/snapshot", get(routes::snapshot_handler))
         .route("/transport", get(routes::transport_handler))
@@ -660,8 +660,8 @@ async fn main() {
         .route("/metrics", get(routes::metrics_handler))
         .route("/og.png", get(routes::og_handler))
         .route("/worlds", get(routes::list_worlds_handler))
-        .route("/worlds/:hash/meta", get(routes::world_meta_handler))
-        .route("/worlds/:hash/snapshot", get(routes::world_snapshot_handler))
+        .route("/worlds/{hash}/meta", get(routes::world_meta_handler))
+        .route("/worlds/{hash}/snapshot", get(routes::world_snapshot_handler))
         .layer(compression)
         .layer(cors)
         .with_state(state);
