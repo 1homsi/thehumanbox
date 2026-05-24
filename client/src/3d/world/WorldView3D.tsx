@@ -26,7 +26,6 @@ import { SelectedOrgCard } from './parts/SelectedOrgCard'
 import { WorldHud } from './parts/WorldHud'
 import { EventFloaters } from './parts/EventFloaters'
 import { BigMomentEffects } from './parts/BigMomentEffects'
-import { SceneFog } from './parts/SceneFog'
 import { OrgStateBadges } from './parts/OrgStateBadges'
 import { FootstepDust } from './parts/FootstepDust'
 import { TribeLabels } from './parts/TribeLabels'
@@ -473,7 +472,6 @@ export default function WorldView3D({ world }: Props) {
           <Suspense fallback={null}>
             {ready && grid && (
               <>
-                <SceneFog dayProgress={dayProgress} />
                 <Sun
                   dayProgress={dayProgress}
                   width={grid.width}

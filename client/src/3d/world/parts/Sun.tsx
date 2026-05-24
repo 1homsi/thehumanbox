@@ -46,8 +46,10 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
     moonRef.current.scale.set(s, s, s)
   })
 
-  const skyTurbidity = isTwilight ? 6 : 4
-  const skyRayleigh = isTwilight ? 3.5 : 2
+  // Smooth turbidity / rayleigh through the day instead of binary switch.
+  // Higher rayleigh = more atmospheric scattering = warmer dusk colours.
+  const skyTurbidity = 4 + (isTwilight ? 4 - dayStrength * 8 : Math.max(0, 1 - dayStrength) * 2)
+  const skyRayleigh = 2 + (isTwilight ? 3 - dayStrength * 6 : Math.max(0, 1 - dayStrength) * 1.5)
 
   return (
     <>
@@ -136,6 +138,21 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
           />
         </mesh>
       )}
+      {/* Outer atmospheric haze around the sun — soft warm tint that
+          gives a believable scattering glow off the horizon. */}
+      {!isNight && (
+        <mesh position={sunPos} frustumCulled={false} renderOrder={-4}>
+          <sphereGeometry args={[isTwilight ? 1100 : 700, 12, 10]} />
+          <meshBasicMaterial
+            color={dayStrength < 0.18 ? '#ff4818' : dayStrength < 0.4 ? '#ff7848' : '#ffd890'}
+            transparent
+            opacity={isTwilight ? 0.12 : 0.045}
+            blending={AdditiveBlending}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+      )}
 
       {!isNight && (
         <directionalLight
@@ -181,20 +198,62 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
 
       <primitive
         attach="fog"
-        object={
-          new FogExp2(
+        object={(() => {
+          // Smooth colour ramp through the day. dayProgress 0..1 maps:
+          // 0   → dawn pink
+          // 0.25 → mid-morning cool blue
+          // 0.5 → noon pale blue
+          // 0.7 → afternoon warm
+          // 0.82 → dusk amber
+          // 0.95 → night navy
+          const stops: Array<[number, [number, number, number]]> = [
+            [0.0, [0.86, 0.7, 0.66]],
+            [0.12, [0.92, 0.82, 0.74]],
+            [0.25, [0.78, 0.84, 0.92]],
+            [0.5, [0.78, 0.88, 0.96]],
+            [0.7, [0.92, 0.82, 0.7]],
+            [0.82, [0.88, 0.62, 0.44]],
+            [0.92, [0.32, 0.3, 0.42]],
+            [1.0, [0.08, 0.08, 0.16]],
+          ]
+          const p = dayProgress
+          let lo = stops[0]
+          let hi = stops[stops.length - 1]
+          for (let i = 0; i < stops.length - 1; i++) {
+            if (p >= stops[i][0] && p <= stops[i + 1][0]) {
+              lo = stops[i]
+              hi = stops[i + 1]
+              break
+            }
+          }
+          const span = hi[0] - lo[0]
+          const t = span === 0 ? 0 : (p - lo[0]) / span
+          let r = lo[1][0] + (hi[1][0] - lo[1][0]) * t
+          let g = lo[1][1] + (hi[1][1] - lo[1][1]) * t
+          let b = lo[1][2] + (hi[1][2] - lo[1][2]) * t
+          // Weather override pushes colour grey-blue.
+          if (weatherKind === 'storm') {
+            r = r * 0.4 + 0.32
+            g = g * 0.4 + 0.36
+            b = b * 0.4 + 0.44
+          } else if (weatherKind === 'rain') {
+            r = r * 0.7 + 0.15
+            g = g * 0.7 + 0.18
+            b = b * 0.7 + 0.22
+          }
+          const c = new Color(r, g, b)
+          const density =
             weatherKind === 'storm'
-              ? '#525d70'
+              ? 0.0024
               : weatherKind === 'rain'
-                ? '#7e8a9a'
+                ? 0.0014
                 : isNight
-                  ? '#0a0e1c'
+                  ? 0.001
                   : isTwilight
-                    ? '#d8a070'
-                    : '#a8c4e0',
-            weatherKind === 'storm' ? 0.0024 : weatherKind === 'rain' ? 0.0014 : isNight ? 0.0009 : 0.0006,
-          )
-        }
+                    ? 0.0009
+                    : 0.0006
+          return new FogExp2(c, density)
+        })()}
       />
     </>
   )
