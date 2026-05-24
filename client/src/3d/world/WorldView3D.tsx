@@ -10,6 +10,7 @@ import { Sun } from './parts/Sun'
 import { Humans3D } from './parts/Humans3D'
 import { Animals3D } from './parts/Animals3D'
 import { Buildings3D } from './parts/Buildings3D'
+import { BuildingSmoke3D } from './parts/BuildingSmoke3D'
 import { OrgLabels } from './parts/OrgLabels'
 import { TileFeatures } from './parts/TileFeatures'
 import { Weather } from './parts/Weather'
@@ -511,6 +512,11 @@ export default function WorldView3D({ world }: Props) {
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}
                   dayProgress={dayProgress}
+                />
+                <BuildingSmoke3D
+                  buildings={world.buildings ?? []}
+                  depthMap={grid.depth_map!}
+                  biomes={grid.biomes!}
                 />
                 <Animals3D
                   animals={world.viewport_animals ?? world.animals ?? []}
