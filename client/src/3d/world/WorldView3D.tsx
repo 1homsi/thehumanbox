@@ -505,6 +505,7 @@ export default function WorldView3D({ world }: Props) {
                   buildings={world.buildings ?? []}
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}
+                  dayProgress={dayProgress}
                 />
                 <Animals3D
                   animals={world.viewport_animals ?? world.animals ?? []}

@@ -19,6 +19,34 @@ interface Props {
   buildings: Building[]
   depthMap: number[][]
   biomes: number[][]
+  dayProgress?: number
+}
+
+const NIGHT_WINDOW = new BoxGeometry(0.8, 0.8, 0.05)
+
+interface WindowSpec {
+  yOffset: number
+  spread: number
+  perSide: number
+  forwardZ: number
+}
+
+const WINDOW_SPECS: Partial<Record<string, WindowSpec>> = {
+  House: { yOffset: 3.5, spread: 6.0, perSide: 2, forwardZ: 4.6 },
+  Manor: { yOffset: 4.5, spread: 8.0, perSide: 2, forwardZ: 5.6 },
+  TownHouse: { yOffset: 6.0, spread: 4.0, perSide: 2, forwardZ: 3.4 },
+  Apartment: { yOffset: 8.0, spread: 4.4, perSide: 3, forwardZ: 3.0 },
+  Cafe: { yOffset: 1.8, spread: 3.2, perSide: 2, forwardZ: 2.1 },
+  Restaurant: { yOffset: 2.1, spread: 4.0, perSide: 2, forwardZ: 2.1 },
+  Tavern: { yOffset: 2.3, spread: 4.0, perSide: 2, forwardZ: 2.5 },
+  Inn: { yOffset: 2.7, spread: 4.0, perSide: 2, forwardZ: 2.7 },
+  Library: { yOffset: 2.6, spread: 4.4, perSide: 2, forwardZ: 2.8 },
+  Brewery: { yOffset: 2.5, spread: 4.0, perSide: 2, forwardZ: 2.6 },
+  Tailor: { yOffset: 2.1, spread: 3.2, perSide: 2, forwardZ: 2.1 },
+  Butcher: { yOffset: 1.7, spread: 3.0, perSide: 2, forwardZ: 2.0 },
+  Bakery: { yOffset: 1.9, spread: 3.4, perSide: 2, forwardZ: 2.1 },
+  OfficeTower: { yOffset: 6.5, spread: 3.6, perSide: 3, forwardZ: 2.6 },
+  Skyscraper: { yOffset: 8.5, spread: 4.4, perSide: 3, forwardZ: 3.1 },
 }
 
 const FN_DEFAULT: Partial<Record<BuildingKind, BuildingFunction>> = {
@@ -651,7 +679,17 @@ function groupBuildings(
   return out as Record<BuildingKind, [number, number, number][]>
 }
 
-export function Buildings3D({ buildings, depthMap, biomes }: Props) {
+export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: Props) {
+  // Lights up windows during night (dayProgress > 0.85 || < 0.05) and the
+  // hour either side of dawn/dusk.
+  const nightFrac = (() => {
+    const p = dayProgress
+    if (p < 0.05 || p > 0.95) return 1
+    if (p < 0.15) return (0.15 - p) / 0.1
+    if (p > 0.78 && p < 0.95) return (p - 0.78) / 0.17
+    return 0
+  })()
+  const windowsOn = nightFrac > 0.02
   const groups = useMemo(
     () => groupBuildings(buildings ?? [], depthMap, biomes),
     [buildings, depthMap, biomes],
@@ -1171,6 +1209,38 @@ export function Buildings3D({ buildings, depthMap, biomes }: Props) {
             emissiveIntensity={spec.emissiveIntensity}
             maxCount={cap(positions.length)}
           />
+        )
+      })}
+
+      {windowsOn && Object.entries(WINDOW_SPECS).map(([kind, spec]) => {
+        const positions = groups[kind as BuildingKind] ?? []
+        if (positions.length === 0) return null
+        const intensity = nightFrac * 1.6
+        // Lay perSide windows along the front face, mirrored on the back.
+        const offsets: [number, number, number][] = []
+        for (let s = -1; s <= 1; s += 2) {
+          for (let i = 0; i < spec.perSide; i++) {
+            const t = (i + 1) / (spec.perSide + 1) - 0.5
+            offsets.push([t * spec.spread, 0, s * spec.forwardZ])
+          }
+        }
+        return (
+          <group key={`window-${kind}`}>
+            {offsets.map((off, idx) => (
+              <Layer
+                key={`${kind}-w-${idx}`}
+                positions={positions.map(
+                  ([x, y, z]) => [x + off[0], y, z + off[2]] as [number, number, number],
+                )}
+                yOffset={spec.yOffset}
+                geometry={NIGHT_WINDOW}
+                color="#3a2a18"
+                emissive="#ffcc78"
+                emissiveIntensity={intensity}
+                maxCount={cap(positions.length)}
+              />
+            ))}
+          </group>
         )
       })}
 
