@@ -254,6 +254,7 @@ pub fn try_reproduce(
     organisms[org_idx].last_reproduced = tick;
     organisms[org_idx].pregnant        = true;
     organisms[org_idx].pregnancy_start = tick;
+    organisms[org_idx].joy_ticks = (organisms[org_idx].joy_ticks + 200).min(1200);
 
     child.alive     = false;
     child.age       = 0;
