@@ -1,10 +1,12 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().energy = (ctx.org().energy + 0.05).min(1.0);
-    ctx.think("riding an animal");
-    ctx.discover("riding", "rode an animal for the first time");
-    ctx.event("build", "rode a tamed animal across the land");
-    0.010
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("ride animal").copied().unwrap_or(0);
+    o.tools.insert("ride animal".to_string(), (cur + 1).min(12));
+    ctx.think("ride animal");
+    ctx.event("life", "ride animal");
+    0.008
 }
