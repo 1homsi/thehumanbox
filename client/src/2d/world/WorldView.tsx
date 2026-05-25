@@ -29,6 +29,32 @@ import { useSceneStore } from '../../stores/scene'
 const IS_MOBILE: boolean =
   typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 767px)').matches
 
+// Low-end-laptop detection. Triggers on:
+// - mobile (already-thin device)
+// - < 6 logical cores (anything older than a mid-2020s laptop)
+// - < 4 GB device memory (Chrome only; cheap Chromebooks, old machines)
+// - explicit ?perf=low or localStorage thb-perf=low override
+//
+// When LOW_PERF is true we run the same cuts mobile gets — 30fps cap,
+// skip the O(w×h) lake wave-line loop, and ratchet down the
+// decoration density.
+const LOW_PERF: boolean = (() => {
+  if (typeof window === 'undefined') return false
+  if (IS_MOBILE) return true
+  try {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('perf') === 'low') return true
+    if (window.localStorage?.getItem('thb-perf') === 'low') return true
+  } catch {
+    /* ignore */
+  }
+  const cores = (navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? 8
+  if (cores < 6) return true
+  const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory
+  if (memory != null && memory < 4) return true
+  return false
+})()
+
 function deriveAgeStage(age: number, isElder: boolean, declared?: string): AgeStage {
   if (declared === 'infant' || declared === 'child' || declared === 'teen' || declared === 'adult')
     return declared
@@ -479,7 +505,7 @@ function drawWorldOnCanvas(
       ctx.save()
       ctx.strokeStyle = 'rgba(140,200,240,0.18)'
       ctx.lineWidth = 0.8
-      const skipWaves = IS_MOBILE
+      const skipWaves = LOW_PERF
       for (let row = 1; row < height - 1 && !skipWaves; row++) {
         const dr = dm[row]
         if (!dr) continue
@@ -1211,18 +1237,33 @@ function drawWorldOnCanvas(
   }
 
   if (world.buildings && world.buildings.length > 0) {
+    // Viewport-clip the building loop. Buildings are world-positioned;
+    // c0/r0/c1/r1 are the tile-aligned visible window already computed
+    // by the camera step. A generous 6-tile margin covers the tallest
+    // building footprints without false-negative culling.
+    const BLDG_MARGIN = 6
+    const cxLo = c0 - BLDG_MARGIN
+    const cxHi = c1 + BLDG_MARGIN
+    const ryLo = r0 - BLDG_MARGIN
+    const ryHi = r1 + BLDG_MARGIN
     for (const b of world.buildings) {
       if (typeof b.x !== 'number' || typeof b.y !== 'number') continue
+      if (b.x < cxLo || b.x > cxHi || b.y < ryLo || b.y > ryHi) continue
       drawBuilding(ctx, { id: b.id, kind: b.kind, x: b.x, y: b.y, condition: b.condition }, ox, oy, TILE)
     }
     type Cluster = { cx: number; cy: number; count: number; lineage: string }
     const clusters: Cluster[] = []
     const CITY_RADIUS_SQ = 14 * 14
+    // Same viewport clip as the building draw loop. The city labels are
+    // only visible if there's a cluster on screen, and the O(N) inner
+    // find() against the growing cluster list was the single most
+    // expensive per-frame call on low-end laptops.
     for (const b of world.buildings) {
       const lid = (b as { lineage_id?: string }).lineage_id ?? ''
       if (!lid) continue
       const bx = b.x
       const by = b.y
+      if (bx < cxLo || bx > cxHi || by < ryLo || by > ryHi) continue
       const existing = clusters.find(
         (c) => c.lineage === lid && (c.cx - bx) ** 2 + (c.cy - by) ** 2 < CITY_RADIUS_SQ,
       )
@@ -1692,16 +1733,15 @@ function WorldSprite({
     let lastDrawnAt: number = 0
     let lastDrawnT: number = -1
     let lastDrawnUI: string = ''
-    const isMobileDevice = typeof window !== 'undefined' && window.matchMedia?.('(max-width: 767px)').matches
-    let mobileFrameSkip = 0
+    let lowPerfFrameSkip = 0
 
     const tick = () => {
       if (stopped) return
       raf = requestAnimationFrame(tick)
 
-      if (isMobileDevice) {
-        mobileFrameSkip = (mobileFrameSkip + 1) % 2
-        if (mobileFrameSkip === 1) return
+      if (LOW_PERF) {
+        lowPerfFrameSkip = (lowPerfFrameSkip + 1) % 2
+        if (lowPerfFrameSkip === 1) return
       }
 
       const w = worldRef.current
