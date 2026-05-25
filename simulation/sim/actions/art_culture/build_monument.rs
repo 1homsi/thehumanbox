@@ -1,11 +1,12 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if ctx.org().inv_stone == 0 { return 0.0; }
-    ctx.org_mut().inv_stone -= 1;
-    ctx.think("raising a monument");
-    ctx.discover("monument", "built the first monument");
-    ctx.event("build", "erected a stone monument");
-    0.015
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("build monument").copied().unwrap_or(0);
+    o.tools.insert("build monument".to_string(), (cur + 1).min(12));
+    ctx.think("build monument");
+    ctx.event("life", "build monument");
+    0.008
 }
