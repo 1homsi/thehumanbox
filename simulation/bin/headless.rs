@@ -350,6 +350,52 @@ fn main() {
     for (e, c) in era_pairs.iter() { print!(" {}={}", e, c) }
     println!();
 
+    let mut aspirations: HashMap<String, usize> = HashMap::new();
+    let mut joy_count = 0usize;
+    let mut grief_count = 0usize;
+    let mut joy_total = 0u64;
+    let mut witnessed_count = 0usize;
+    let mut life_log_total = 0usize;
+    for o in sim.organisms.iter().filter(|o| o.alive) {
+        if !o.aspiration.is_empty() {
+            *aspirations.entry(o.aspiration.clone()).or_insert(0) += 1;
+        }
+        if o.joy_ticks > 0 {
+            joy_count += 1;
+            joy_total += o.joy_ticks as u64;
+        }
+        if o.grief_ticks > 0 {
+            grief_count += 1;
+        }
+        for entry in &o.life_log {
+            life_log_total += 1;
+            if entry.category == "witnessed" {
+                witnessed_count += 1;
+            }
+        }
+    }
+    println!("\n=== ALIVE SYSTEMS ===");
+    println!(
+        "Aspirations assigned: {} (across {} types)",
+        aspirations.values().sum::<usize>(),
+        aspirations.len()
+    );
+    let mut asp_pairs: Vec<(String, usize)> = aspirations.into_iter().collect();
+    asp_pairs.sort_by(|a, b| b.1.cmp(&a.1));
+    for (asp, n) in asp_pairs.iter() {
+        println!("  {:>4}  {}", n, asp);
+    }
+    let joy_avg = if joy_count > 0 { joy_total / joy_count as u64 } else { 0 };
+    println!(
+        "Joy ticks active: {} orgs (avg {} ticks each)",
+        joy_count, joy_avg
+    );
+    println!("Grief ticks active: {} orgs", grief_count);
+    println!(
+        "Witnessed life_log entries: {} (of {} total life-log)",
+        witnessed_count, life_log_total
+    );
+
     println!("\n=== CIVILIZATION ===");
     let total_adherents: u32 = sim.religions.iter().map(|r| r.adherents).sum();
     let milestones_hit: usize = sim.religions.iter().filter(|r| r.last_milestone.is_some()).count();
