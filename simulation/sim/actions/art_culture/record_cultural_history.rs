@@ -1,11 +1,12 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    let lid = ctx.lid.clone();
-    ctx.org_mut().boredom = (ctx.org().boredom - 0.08).max(0.0);
-    ctx.think("recording cultural history");
-    ctx.discover("cultural_record", "began recording lineage history");
-    ctx.event("culture", &format!("lineage {} had its history written down", lid));
-    0.012
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("record cultural history").copied().unwrap_or(0);
+    o.tools.insert("record cultural history".to_string(), (cur + 1).min(12));
+    ctx.think("record cultural history");
+    ctx.event("life", "record cultural history");
+    0.008
 }
