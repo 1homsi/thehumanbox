@@ -1,12 +1,12 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if !ctx.take_good("coffee", 1) {
-        ctx.think("no beans for flat white");
-        return 0.005;
-    }
-    ctx.add_good("drink", 1);
-    ctx.think("flat white");
-    ctx.event("chore", "drew a flat white");
-    0.06
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("white").copied().unwrap_or(0);
+    o.tools.insert("white".to_string(), (cur + 1).min(12));
+    ctx.think("draw flat white");
+    ctx.event("life", "draw flat white");
+    0.008
 }
