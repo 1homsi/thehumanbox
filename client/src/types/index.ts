@@ -55,6 +55,8 @@ export interface OrganismState {
   fear_level?: number
   comfort?: number
   grief_ticks?: number
+  joy_ticks?: number
+  aspiration?: string
   sleep_debt?: number
   vx?: number
   vy?: number

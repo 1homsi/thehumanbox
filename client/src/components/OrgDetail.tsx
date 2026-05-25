@@ -90,6 +90,28 @@ const ERA_ICON: Record<string, string> = {
   Information: '💻',
 }
 
+const ASPIRATION_EMOJI: Record<string, string> = {
+  seeker: '🔍',
+  wanderer: '🧭',
+  warrior: '⚔️',
+  connector: '🤝',
+  builder: '🔨',
+  devout: '🕯️',
+  sage: '📜',
+  provider: '🌾',
+}
+
+const ASPIRATION_TIPS: Record<string, string> = {
+  seeker: 'Drawn to knowledge — pursues exploration, science, and learning.',
+  wanderer: 'Restless and curious — happiest on the road, far from settlements.',
+  warrior: 'Born for conflict — gravitates toward combat and military life.',
+  connector: 'Lives for others — seeks partnerships, friendships, family.',
+  builder: 'Wants to make things — construction and craft are their calling.',
+  devout: 'A spiritual life — religion, ritual, and devotion guide them.',
+  sage: 'A teacher at heart — passes knowledge to the next generation.',
+  provider: 'Tends the household — agriculture, food, and family care.',
+}
+
 const TOOL_ICON: Record<string, string> = {
   StoneAxe: '🪓',
   BronzeSpear: '🔱',
@@ -200,6 +222,11 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
   const history = [...(detail?.thought_history ?? [])]
     .filter((e) => !['observing', 'satisfied', 'exploring'].includes(e.text))
     .slice(-12)
+    .reverse()
+
+  const witnessed = [...(detail?.life_log ?? [])]
+    .filter((e) => e.category === 'witnessed')
+    .slice(-8)
     .reverse()
 
   return (
@@ -372,6 +399,29 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
                   </span>
                 </div>
               )}
+              {org.joy_ticks !== undefined && org.joy_ticks > 0 && (
+                <div className="trait-full-row">
+                  <span className="trait-full-label">joyful</span>
+                  <span className="bar-pct" style={{ color: '#f6c46a' }}>
+                    {org.joy_ticks} ticks
+                  </span>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {org.aspiration && (
+          <>
+            <div className="org-detail-section">ASPIRATION</div>
+            <div className="relation-list">
+              <span
+                className="relation-tag"
+                style={{ background: '#1a1408', color: '#f6d062', cursor: 'default' }}
+                title={ASPIRATION_TIPS[org.aspiration] ?? ''}
+              >
+                {ASPIRATION_EMOJI[org.aspiration] ?? '✦'} {org.aspiration}
+              </span>
             </div>
           </>
         )}
@@ -598,6 +648,20 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
                 <div key={i} className="thought-row">
                   <span className="thought-tick">t{e.tick.toLocaleString()}</span>
                   <span className="thought-text">{e.text}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {witnessed.length > 0 && (
+          <>
+            <div className="org-detail-section">WHAT THEY'VE SEEN</div>
+            <div className="thought-history">
+              {witnessed.map((e, i) => (
+                <div key={i} className="thought-row">
+                  <span className="thought-tick">t{e.tick.toLocaleString()}</span>
+                  <span className="thought-text" style={{ color: '#bfa9d6' }}>{e.text}</span>
                 </div>
               ))}
             </div>
