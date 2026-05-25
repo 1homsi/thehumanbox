@@ -1,14 +1,12 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if ctx.good("drink") == 0 || ctx.good("milk") == 0 {
-        ctx.think("no drink to pour");
-        return 0.005;
-    }
-    ctx.add_literacy(0.004);
-    ctx.add_comfort(0.02);
-    let n = ctx.comfort_kin(0.01);
-    ctx.think("rosetta");
-    ctx.event("chore", "poured a rosetta");
-    0.05 + n as f32 * 0.005
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("latte rosetta").copied().unwrap_or(0);
+    o.tools.insert("latte rosetta".to_string(), (cur + 1).min(12));
+    ctx.think("latte rosetta");
+    ctx.event("life", "latte rosetta");
+    0.008
 }
