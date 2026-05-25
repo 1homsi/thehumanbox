@@ -1,8 +1,12 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.add_good("pastry", 1);
-    ctx.think("bake scones");
-    ctx.event("chore", "bake scones");
-    0.05
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("scone").copied().unwrap_or(0);
+    o.tools.insert("scone".to_string(), (cur + 1).min(12));
+    ctx.think("bake scone");
+    ctx.event("life", "bake scone");
+    0.008
 }
