@@ -1,15 +1,12 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if ctx.kin.len() < 3 { return 0.0; }
-    for i in 0..ctx.kin.len() {
-        let ki = ctx.kin[i];
-        ctx.sim.organisms[ki].comfort = (ctx.sim.organisms[ki].comfort + 0.08).min(1.0);
-    }
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.08).min(1.0);
-    ctx.think("naming a festival");
-    ctx.discover("festival", "declared the first communal festival");
-    ctx.event("culture", "a festival was named and celebrated");
-    0.015
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("name festival").copied().unwrap_or(0);
+    o.tools.insert("name festival".to_string(), (cur + 1).min(12));
+    ctx.think("name festival");
+    ctx.event("life", "name festival");
+    0.008
 }
