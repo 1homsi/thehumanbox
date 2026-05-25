@@ -354,13 +354,13 @@ pub fn available_actions(sim: &Simulation, idx: usize, ix: i32, iy: i32) -> Vec<
 fn workshop_bonus(sim: &Simulation, ix: i32, iy: i32, action: usize) -> f32 {
     use crate::sim::tech::buildings::BuildingKind as BK;
     let kinds: &[BK] = match action {
-        5340..=5449 => &[BK::Cafe, BK::Restaurant],
-        5460..=5509 => &[BK::Market, BK::MallShop, BK::Supermarket, BK::MarketStall],
-        5520..=5569 => &[BK::Datacenter, BK::OfficeTower, BK::ResearchLab],
-        5700..=5749 => &[BK::Library, BK::Scribe, BK::BookStore],
-        5760..=5809 => &[BK::Tailor, BK::ClothingShop, BK::Cobbler],
-        5820..=5869 => &[BK::Butcher, BK::Cheesemonger, BK::Fishmonger],
-        5880..=5929 => &[BK::Brewery, BK::Tavern, BK::Inn],
+        5340..=5449 => &[BK::Cafe, BK::Restaurant, BK::Bakery],
+        5460..=5509 => &[BK::Market, BK::MallShop, BK::Supermarket, BK::MarketStall, BK::Kiosk],
+        5520..=5569 => &[BK::Datacenter, BK::OfficeTower, BK::ResearchLab, BK::Studio],
+        5700..=5749 => &[BK::Library, BK::Scribe, BK::BookStore, BK::University],
+        5760..=5809 => &[BK::Tailor, BK::ClothingShop, BK::Cobbler, BK::Jeweler],
+        5820..=5869 => &[BK::Butcher, BK::Cheesemonger, BK::Fishmonger, BK::Smithy],
+        5880..=5929 => &[BK::Brewery, BK::Tavern, BK::Inn, BK::Vineyard],
         _ => return 1.0,
     };
     let near = sim.buildings.iter().any(|b| {
