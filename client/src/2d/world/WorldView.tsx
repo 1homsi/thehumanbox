@@ -1452,6 +1452,7 @@ function drawWorldOnCanvas(
     if (org.infection > 0.38) bodyFill = 'hsl(85,60%,48%)'
     else if ((org.fear_level ?? 0) > 0.72) bodyFill = 'hsl(10,70%,48%)'
     else if ((org.grief_ticks ?? 0) > 12) bodyFill = 'hsl(220,50%,50%)'
+    else if ((org.joy_ticks ?? 0) > 30) bodyFill = 'hsl(45,80%,62%)'
     else if (org.energy < 0.12) bodyFill = 'hsl(38,55%,38%)'
     else bodyFill = THOUGHT_COLORS[org.thought] ?? '#cccccc'
 
