@@ -455,6 +455,8 @@ impl Organism {
                 format!("became close friends with {}", name),
                 Some(id.to_string()), Some(name.to_string()));
             self.loneliness = (self.loneliness - 0.25).max(0.0);
+            self.joy_ticks = (self.joy_ticks + 120).min(1200);
+            self.comfort = (self.comfort + 0.05).min(1.0);
         }
     }
 
