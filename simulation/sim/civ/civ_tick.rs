@@ -203,7 +203,7 @@ fn tick_witnessed_events(sim: &mut Simulation) {
             // Witnessing big moments stirs mood.
             match etype.as_str() {
                 "born" | "religion_founded" | "build" | "specialty" | "graduated" | "milestone" => {
-                    sim.organisms[ki].joy_ticks = (sim.organisms[ki].joy_ticks + 40).min(800);
+                    sim.organisms[ki].joy_ticks = (sim.organisms[ki].joy_ticks + 40).min(1200);
                 }
                 "death" => {
                     sim.organisms[ki].grief_ticks =

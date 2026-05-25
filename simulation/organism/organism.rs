@@ -494,7 +494,7 @@ impl Organism {
         let inserted = self.discoveries.insert(what.to_string());
         if inserted {
             // Learning something new is a genuine high.
-            self.joy_ticks = (self.joy_ticks + 220).min(800);
+            self.joy_ticks = (self.joy_ticks + 220).min(1200);
         }
         // Cap so a future free-form discovery string (e.g. LLM-suggested
         // verb-noun pair) can't grow the set unboundedly. 64 is well

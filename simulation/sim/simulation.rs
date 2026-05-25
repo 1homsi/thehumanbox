@@ -2320,8 +2320,8 @@ impl Simulation {
                         self.organisms[idx].attracted_to = None;
                         self.organisms[pi].partner_id    = Some(oid.clone());
                         self.organisms[pi].attracted_to  = None;
-                        self.organisms[idx].joy_ticks = (self.organisms[idx].joy_ticks + 500).min(900);
-                        self.organisms[pi].joy_ticks = (self.organisms[pi].joy_ticks + 500).min(900);
+                        self.organisms[idx].joy_ticks = (self.organisms[idx].joy_ticks + 500).min(1200);
+                        self.organisms[pi].joy_ticks = (self.organisms[pi].joy_ticks + 500).min(1200);
                         self.organisms[idx].think(&format!("fell for {}", pname), tc);
                         self.organisms[idx].log_life_rel(tc, "love",
                             format!("fell in love with {}", pname),
