@@ -1,13 +1,12 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if ctx.kin.is_empty() { return 0.0; }
-    for i in 0..ctx.kin.len() {
-        let ki = ctx.kin[i];
-        ctx.sim.organisms[ki].comfort = (ctx.sim.organisms[ki].comfort + 0.03).min(1.0);
-    }
-    ctx.think("reciting a poem");
-    ctx.event("culture", "recited poetry to the group");
-    0.006
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("recite poem").copied().unwrap_or(0);
+    o.tools.insert("recite poem".to_string(), (cur + 1).min(12));
+    ctx.think("recite poem");
+    ctx.event("life", "recite poem");
+    0.008
 }
