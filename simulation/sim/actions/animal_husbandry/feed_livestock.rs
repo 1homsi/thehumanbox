@@ -1,10 +1,12 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if ctx.org().inv_food == 0 { return 0.0; }
-    ctx.org_mut().inv_food -= 1;
-    ctx.org_mut().health = (ctx.org().health + 0.02).min(1.0);
-    ctx.think("caring for animals");
-    0.005
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("feed livestock").copied().unwrap_or(0);
+    o.tools.insert("feed livestock".to_string(), (cur + 1).min(12));
+    ctx.think("feed livestock");
+    ctx.event("life", "feed livestock");
+    0.008
 }
