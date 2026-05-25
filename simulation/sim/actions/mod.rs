@@ -441,7 +441,7 @@ fn aspiration_bonus(aspiration: &str, action: usize) -> f32 {
         }
         _ => false,
     };
-    if matches { 1.35 } else { 1.0 }
+    if matches { 1.4 } else { 1.0 }
 }
 
 fn specialty_bonus(org_specialty: Option<&str>, action: usize) -> f32 {
