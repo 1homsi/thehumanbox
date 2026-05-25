@@ -468,6 +468,14 @@ pub fn try_apply(sim: &mut Simulation, idx: usize, action: usize, ix: i32, iy: i
     let asp_bonus = aspiration_bonus(&sim.organisms[idx].aspiration, action);
     if let Some(cat) = category_for(action) {
         *sim.action_counts.entry(cat).or_insert(0) += 1;
+        if matches!(
+            action,
+            5340..=5449 | 5460..=5509 | 5520..=5569 | 5700..=5749 |
+            5760..=5809 | 5820..=5869 | 5880..=5929
+        ) {
+            let entry = sim.workshop_hits.entry(cat).or_insert((0, 0));
+            if bonus > 1.0 { entry.0 += 1; } else { entry.1 += 1; }
+        }
     }
     let mut ctx = ActionCtx::new(sim, idx, ix, iy, spatial);
     let r = match action {

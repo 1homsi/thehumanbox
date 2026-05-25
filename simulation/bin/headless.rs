@@ -396,6 +396,23 @@ fn main() {
         witnessed_count, life_log_total
     );
 
+    if !sim.workshop_hits.is_empty() {
+        println!("\n=== WORKSHOP BONUS ===");
+        let mut rows: Vec<(&str, (u64, u64))> = sim.workshop_hits.iter().map(|(k, v)| (*k, *v)).collect();
+        rows.sort_by(|a, b| (b.1.0 + b.1.1).cmp(&(a.1.0 + a.1.1)));
+        let (mut h, mut m) = (0u64, 0u64);
+        for (cat, (hit, miss)) in &rows {
+            let total = hit + miss;
+            let pct = if total > 0 { (*hit as f64 * 100.0 / total as f64) } else { 0.0 };
+            println!("  {:<18} {:>6} hit / {:>6} miss  ({:.1}% near workshop)", cat, hit, miss, pct);
+            h += hit;
+            m += miss;
+        }
+        let total = h + m;
+        let pct = if total > 0 { h as f64 * 100.0 / total as f64 } else { 0.0 };
+        println!("  {:<18} {:>6} hit / {:>6} miss  ({:.1}% overall)", "TOTAL", h, m, pct);
+    }
+
     println!("\n=== CIVILIZATION ===");
     let total_adherents: u32 = sim.religions.iter().map(|r| r.adherents).sum();
     let milestones_hit: usize = sim.religions.iter().filter(|r| r.last_milestone.is_some()).count();
