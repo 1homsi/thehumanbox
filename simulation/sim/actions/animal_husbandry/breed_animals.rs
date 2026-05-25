@@ -1,15 +1,12 @@
-
-use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    let ix = ctx.ix;
-    let iy = ctx.iy;
-    let grass_near = [(-1,0),(1,0),(0,-1),(0,1),(-1,-1),(1,-1),(-1,1),(1,1)]
-        .iter().any(|&(dx,dy)| matches!(ctx.sim.grid.get(ix+dx, iy+dy), Tile::Grass));
-    if !grass_near && !matches!(ctx.tile, Tile::Grass) { return 0.0; }
-    ctx.think("breeding animals");
-    ctx.discover("animal_breeding", "began selectively breeding animals");
-    ctx.event("build", "bred animals to strengthen the herd");
-    0.010
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("breed animals").copied().unwrap_or(0);
+    o.tools.insert("breed animals".to_string(), (cur + 1).min(12));
+    ctx.think("breed animals");
+    ctx.event("life", "breed animals");
+    0.008
 }
