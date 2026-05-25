@@ -1,12 +1,12 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if ctx.good("meat") == 0 {
-        ctx.think("nothing to hang");
-        return 0.005;
-    }
-    ctx.add_literacy(0.003);
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("carcass").copied().unwrap_or(0);
+    o.tools.insert("carcass".to_string(), (cur + 1).min(12));
     ctx.think("hang carcass");
-    ctx.event("chore", "hung a carcass");
-    0.03
+    ctx.event("life", "hang carcass");
+    0.008
 }
