@@ -1,9 +1,12 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.add_comfort(0.01);
-    ctx.add_literacy(0.002);
-    ctx.think("empty the knockbox");
-    ctx.event("chore", "empty the knockbox");
-    0.03
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("knockbox").copied().unwrap_or(0);
+    o.tools.insert("knockbox".to_string(), (cur + 1).min(12));
+    ctx.think("empty knockbox");
+    ctx.event("life", "empty knockbox");
+    0.008
 }
