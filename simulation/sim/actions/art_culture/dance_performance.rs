@@ -1,16 +1,12 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if ctx.kin.len() < 2 { return 0.0; }
-    for i in 0..ctx.kin.len() {
-        let ki = ctx.kin[i];
-        ctx.sim.organisms[ki].comfort = (ctx.sim.organisms[ki].comfort + 0.05).min(1.0);
-        ctx.sim.organisms[ki].energy  = (ctx.sim.organisms[ki].energy  + 0.03).min(1.0);
-    }
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.05).min(1.0);
-    ctx.org_mut().energy  = (ctx.org().energy  + 0.03).min(1.0);
-    ctx.think("dancing with the group");
-    ctx.event("culture", "danced together in celebration");
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("dance performance").copied().unwrap_or(0);
+    o.tools.insert("dance performance".to_string(), (cur + 1).min(12));
+    ctx.think("dance performance");
+    ctx.event("life", "dance performance");
     0.008
 }
