@@ -498,10 +498,17 @@ fn main() {
         "Civ progression: era_avg={:.2} era_max={} headlines={}",
         era_idx_avg, era_idx_max, sim.headlines.len()
     );
-    println!(
-        "Animals alive at end: {}",
-        sim.animals.iter().filter(|a| a.alive).count()
-    );
+    {
+        let mut by_kind: HashMap<String, usize> = HashMap::new();
+        for a in sim.animals.iter().filter(|a| a.alive) {
+            *by_kind.entry(a.kind.name().to_string()).or_insert(0) += 1;
+        }
+        let mut row: Vec<(String, usize)> = by_kind.into_iter().collect();
+        row.sort_by(|a, b| b.1.cmp(&a.1));
+        let total: usize = sim.animals.iter().filter(|a| a.alive).count();
+        let parts: Vec<String> = row.iter().map(|(k, n)| format!("{}={}", k, n)).collect();
+        println!("Animals alive at end: {}  ({})", total, parts.join(" "));
+    }
 
     let mut lineage_alive: HashMap<&str, usize> = HashMap::new();
     for org in sim.organisms.iter().filter(|o| o.alive) {

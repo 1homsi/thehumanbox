@@ -94,7 +94,7 @@ impl Animal {
         if self.kind.predator() {
             let target = prey_positions.iter().chain(org_positions.iter())
                 .map(|&(ox, oy)| ((ox - self.x).abs() + (oy - self.y).abs(), ox, oy))
-                .filter(|&(d, _, _)| d < 14.0)
+                .filter(|&(d, _, _)| d < 20.0)
                 .min_by(|(a,_,_),(b,_,_)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
             if let Some((_, px, py)) = target {
                 let tx = ix + ((px - self.x).signum() * step as f32) as i32;

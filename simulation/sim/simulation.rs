@@ -2651,21 +2651,25 @@ impl Simulation {
                        else if r < 0.84 { AnimalKind::Bird }
                        else if r < 0.92 { AnimalKind::Fish }
                        else                { AnimalKind::Wolf };
-            for _ in 0..60 {
-                let x = self.rng.random_range(3..(WIDTH as i32 - 3)) as f32;
-                let y = self.rng.random_range(3..(HEIGHT as i32 - 3)) as f32;
-                let tile = self.grid.get(x as i32, y as i32);
-                let valid = if kind.aquatic() {
-                    tile == Tile::Water
-                } else {
-                    !matches!(tile, Tile::Void | Tile::Rock | Tile::Water | Tile::Fire)
-                };
-                if valid {
-                    let id = self.next_animal_id;
-                    self.next_animal_id += 1;
-                    self.animals.push(Animal::new(id, x, y, kind));
-                    break;
-                }
+            self.spawn_animal_of_kind(kind);
+        }
+    }
+
+    fn spawn_animal_of_kind(&mut self, kind: AnimalKind) {
+        for _ in 0..60 {
+            let x = self.rng.random_range(3..(WIDTH as i32 - 3)) as f32;
+            let y = self.rng.random_range(3..(HEIGHT as i32 - 3)) as f32;
+            let tile = self.grid.get(x as i32, y as i32);
+            let valid = if kind.aquatic() {
+                tile == Tile::Water
+            } else {
+                !matches!(tile, Tile::Void | Tile::Rock | Tile::Water | Tile::Fire)
+            };
+            if valid {
+                let id = self.next_animal_id;
+                self.next_animal_id += 1;
+                self.animals.push(Animal::new(id, x, y, kind));
+                return;
             }
         }
     }
@@ -2682,6 +2686,26 @@ impl Simulation {
             if alive < ANIMAL_FLOOR {
                 let to_add = (ANIMAL_FLOOR - alive).min(10);
                 self.spawn_animals(to_add);
+            }
+
+            const PER_KIND_FLOOR: &[(AnimalKind, usize)] = &[
+                (AnimalKind::Rabbit, 14),
+                (AnimalKind::Deer,   10),
+                (AnimalKind::Boar,    6),
+                (AnimalKind::Bird,    8),
+                (AnimalKind::Fish,    6),
+                (AnimalKind::Wolf,    4),
+            ];
+            for &(kind, floor) in PER_KIND_FLOOR {
+                let count = self.animals.iter()
+                    .filter(|a| a.alive && a.kind == kind)
+                    .count();
+                if count < floor {
+                    let need = (floor - count).min(3);
+                    for _ in 0..need {
+                        self.spawn_animal_of_kind(kind);
+                    }
+                }
             }
         }
 
@@ -2831,22 +2855,22 @@ impl Simulation {
                 (AnimalKind::Deer,   Biome::Tundra)    => 0.6,
                 (AnimalKind::Deer,   Biome::Desert)    => 0.3,
                 (AnimalKind::Deer,   Biome::Volcanic)  => 0.1,
-                (AnimalKind::Boar,   Biome::Forest)    => 1.4,
-                (AnimalKind::Boar,   Biome::Wetland)   => 1.2,
-                (AnimalKind::Boar,   Biome::Grassland) => 0.8,
-                (AnimalKind::Boar,   _)                => 0.2,
+                (AnimalKind::Boar,   Biome::Forest)    => 1.8,
+                (AnimalKind::Boar,   Biome::Wetland)   => 1.5,
+                (AnimalKind::Boar,   Biome::Grassland) => 1.0,
+                (AnimalKind::Boar,   _)                => 0.3,
                 (AnimalKind::Bird,   Biome::Forest)    => 1.4,
                 (AnimalKind::Bird,   Biome::Wetland)   => 1.3,
                 (AnimalKind::Bird,   Biome::Grassland) => 1.1,
                 (AnimalKind::Bird,   Biome::Tundra)    => 0.7,
                 (AnimalKind::Bird,   Biome::Desert)    => 0.4,
                 (AnimalKind::Bird,   Biome::Volcanic)  => 0.1,
-                (AnimalKind::Fish,   Biome::Wetland)   => 0.7,
-                (AnimalKind::Fish,   _)                => 0.5,
-                (AnimalKind::Wolf,   Biome::Forest)    => 0.8,
-                (AnimalKind::Wolf,   Biome::Tundra)    => 1.0,
-                (AnimalKind::Wolf,   Biome::Grassland) => 0.5,
-                (AnimalKind::Wolf,   _)                => 0.2,
+                (AnimalKind::Fish,   Biome::Wetland)   => 1.0,
+                (AnimalKind::Fish,   _)                => 0.7,
+                (AnimalKind::Wolf,   Biome::Forest)    => 1.2,
+                (AnimalKind::Wolf,   Biome::Tundra)    => 1.4,
+                (AnimalKind::Wolf,   Biome::Grassland) => 0.8,
+                (AnimalKind::Wolf,   _)                => 0.3,
                 (AnimalKind::Dog,    _)                => 0.0,
             };
 
