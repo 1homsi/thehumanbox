@@ -1,14 +1,12 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    for i in 0..ctx.kin.len() {
-        let ki = ctx.kin[i];
-        ctx.sim.organisms[ki].boredom = (ctx.sim.organisms[ki].boredom - 0.08).max(0.0);
-    }
-    ctx.org_mut().boredom = (ctx.org().boredom - 0.1).max(0.0);
-    ctx.think("composing a song");
-    ctx.discover("music_composition", "composed the first song");
-    ctx.event("culture", "sang a new song for the lineage");
-    0.010
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("compose song").copied().unwrap_or(0);
+    o.tools.insert("compose song".to_string(), (cur + 1).min(12));
+    ctx.think("compose song");
+    ctx.event("life", "compose song");
+    0.008
 }
