@@ -1,14 +1,12 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if !ctx.take_good("drink", 1) {
-        ctx.think("no drink to serve");
-        return 0.005;
-    }
-    let n = ctx.energize_kin(0.04);
-    ctx.comfort_kin(0.02);
-    ctx.add_wealth(2);
-    ctx.think("cortado");
-    ctx.event("chore", "served a cortado");
-    0.07 + n as f32 * 0.01
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("serve cortado").copied().unwrap_or(0);
+    o.tools.insert("serve cortado".to_string(), (cur + 1).min(12));
+    ctx.think("serve cortado");
+    ctx.event("life", "serve cortado");
+    0.008
 }
