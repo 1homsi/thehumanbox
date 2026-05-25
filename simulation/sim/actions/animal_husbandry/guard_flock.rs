@@ -1,9 +1,12 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.think("guarding the flock");
-    ctx.discover("herding", "took up the role of shepherd");
-    ctx.event("defense", "stood guard over the flock through the night");
-    0.005
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("guard flock").copied().unwrap_or(0);
+    o.tools.insert("guard flock".to_string(), (cur + 1).min(12));
+    ctx.think("guard flock");
+    ctx.event("life", "guard flock");
+    0.008
 }
