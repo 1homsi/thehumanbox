@@ -1,11 +1,12 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if ctx.org().inv_wood == 0 { return 0.0; }
-    ctx.org_mut().inv_wood -= 1;
-    ctx.think("building an animal pen");
-    ctx.discover("animal_pen", "built the first animal pen");
-    ctx.event("build", "constructed a pen to keep animals");
-    0.010
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("pen animal").copied().unwrap_or(0);
+    o.tools.insert("pen animal".to_string(), (cur + 1).min(12));
+    ctx.think("pen animal");
+    ctx.event("life", "pen animal");
+    0.008
 }
