@@ -364,6 +364,10 @@ fn tick_building_auras(sim: &mut Simulation) {
                     | BK::Bathhouse | BK::Spa
                     | BK::Stadium | BK::PlayGround
                     | BK::ArtGallery | BK::MusicHall | BK::Theatre | BK::Museum
+                    | BK::Tavern | BK::Inn | BK::Cafe | BK::Restaurant
+                    | BK::Garden | BK::Pond | BK::Orchard | BK::Fountain | BK::Fountain2
+                    | BK::Cemetery | BK::GraveStone | BK::Mausoleum
+                    | BK::Bandstand | BK::Pavilion | BK::Gazebo
             ) {
                 return None;
             }
@@ -432,6 +436,25 @@ fn tick_building_auras(sim: &mut Simulation) {
                 BK::ArtGallery | BK::MusicHall | BK::Theatre | BK::Museum => {
                     org.comfort = (org.comfort + 0.004).min(1.0);
                     org.literacy = (org.literacy + 0.001).min(1.0);
+                }
+                BK::Tavern | BK::Inn | BK::Cafe | BK::Restaurant => {
+                    org.comfort = (org.comfort + 0.003).min(1.0);
+                    org.boredom = (org.boredom - 0.004).max(0.0);
+                    org.loneliness = (org.loneliness - 0.003).max(0.0);
+                }
+                BK::Garden | BK::Pond | BK::Orchard | BK::Fountain | BK::Fountain2 => {
+                    org.comfort = (org.comfort + 0.003).min(1.0);
+                    org.fear_level = (org.fear_level - 0.002).max(0.0);
+                }
+                BK::Cemetery | BK::GraveStone | BK::Mausoleum => {
+                    if org.grief_ticks > 0 {
+                        org.grief_ticks = org.grief_ticks.saturating_sub(2);
+                        org.comfort = (org.comfort + 0.002).min(1.0);
+                    }
+                }
+                BK::Bandstand | BK::Pavilion | BK::Gazebo => {
+                    org.comfort = (org.comfort + 0.002).min(1.0);
+                    org.boredom = (org.boredom - 0.003).max(0.0);
                 }
                 _ => {}
             }
