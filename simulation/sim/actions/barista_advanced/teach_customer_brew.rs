@@ -1,12 +1,12 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if ctx.kin.is_empty() {
-        ctx.think("no one to teach");
-        return 0.02;
-    }
-    let n = ctx.literacy_kin(0.005);
-    ctx.think("teach brew");
-    ctx.event("chore", "taught a customer to brew");
-    0.05 + n as f32 * 0.01
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("teach customer brew").copied().unwrap_or(0);
+    o.tools.insert("teach customer brew".to_string(), (cur + 1).min(12));
+    ctx.think("teach customer brew");
+    ctx.event("life", "teach customer brew");
+    0.008
 }
