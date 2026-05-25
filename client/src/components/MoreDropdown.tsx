@@ -3,6 +3,25 @@ import { useUIStore, useViewFlag } from '../stores/store'
 import { startTour, isTourSupported } from '../tour/tour'
 import { useIsMobile } from '../hooks/useIsMobile'
 
+function readLowPerf(): boolean {
+  try {
+    return window.localStorage?.getItem('thb-perf') === 'low'
+  } catch {
+    return false
+  }
+}
+
+function toggleLowPerf() {
+  try {
+    const cur = readLowPerf()
+    if (cur) window.localStorage.removeItem('thb-perf')
+    else window.localStorage.setItem('thb-perf', 'low')
+  } catch {
+    return
+  }
+  window.location.reload()
+}
+
 export function MoreDropdown() {
   const overlay = useUIStore((s) => s.overlay)
   const focus = useUIStore((s) => s.focus)
@@ -481,6 +500,14 @@ export function MoreDropdown() {
           title="Deuteranopia-safe lineage palette (red-green swap)"
         >
           ◓ colorblind
+        </button>
+        <button
+          className={clsx('lang-btn', readLowPerf() && 'active')}
+          aria-pressed={readLowPerf()}
+          onClick={toggleLowPerf}
+          title="Low-perf mode: 30fps cap, fewer effects, viewport clipping. Reloads the page."
+        >
+          🐢 low-perf
         </button>
       </div>
     </div>
