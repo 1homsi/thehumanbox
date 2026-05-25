@@ -430,6 +430,7 @@ async fn main() {
                                 else if o.hydration< 0.30 { "thirsty" }
                                 else if o.fear_level > 0.40 { "afraid" }
                                 else if o.grief_ticks > 0 { "mourning" }
+                                else if o.joy_ticks > 0 { "joyful" }
                                 else if o.loneliness > 0.60 { "lonely" }
                                 else if o.is_elder { "weary" }
                                 else { "content" };
@@ -448,6 +449,7 @@ async fn main() {
                                 children:     o.children_count,
                                 era:          era.clone(),
                                 mood:         mood.to_string(),
+                                aspiration:   o.aspiration.clone(),
                             });
                         }
                         candidates.sort_by_key(|c| {

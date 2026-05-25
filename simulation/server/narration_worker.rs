@@ -18,6 +18,7 @@ pub struct NarrationReq {
     pub children:      u32,
     pub era:           String,
     pub mood:          String,
+    pub aspiration:    String,
 }
 
 fn format_events(log: &[String]) -> String {
@@ -32,7 +33,10 @@ fn format_events(log: &[String]) -> String {
 }
 
 fn format_vocab(vocab: &std::collections::HashMap<String, String>) -> String {
-    let mut pairs: Vec<String> = ["food", "water", "fire", "danger", "friend", "shelter", "home", "child", "tribe"]
+    let mut pairs: Vec<String> = [
+        "food", "water", "fire", "danger", "friend", "shelter", "home", "child", "tribe",
+        "death", "joy", "spirit", "stranger", "hunt", "trade",
+    ]
         .iter()
         .filter_map(|&c| vocab.get(c)
             .filter(|w| !w.trim().is_empty())
@@ -43,16 +47,26 @@ fn format_vocab(vocab: &std::collections::HashMap<String, String>) -> String {
 }
 
 fn build_prompt(req: &NarrationReq) -> String {
+    let aspiration_line = if req.aspiration.is_empty() {
+        String::new()
+    } else {
+        format!("\nLIFE AIM: a {} at heart — let this colour their reading of the day, but do not name the aim.\n", req.aspiration)
+    };
     format!("\
-One-sentence vignette of a primitive tribesperson's day, for a tribal-survival sim.
+One-sentence vignette of a person's day in a living tribal-to-civic sim.
 
-ORG: {name} ({sex}, {age} days, mood: {mood}, partner: {partner}, children: {children}, tribe: {tribe}, era: {era})
+ORG: {name} ({sex}, {age} days, mood: {mood}, partner: {partner}, children: {children}, tribe: {tribe}, era: {era}){aspiration}
 
 TRIBE WORDS:
 {vocab}
 
 TODAY, in order:
 {events}
+
+GUIDANCE:
+- Hunts, harvests, births, deaths, weddings, war drums, treaties, new buildings, furniture brought home, books written, festivals, and witnessed kin moments are all valid material.
+- Witnessed events (\"saw\", \"watched\", \"heard\") are second-hand — let them ripple through the line as awe, dread, or grief, not as direct action.
+- A joyful or mourning mood may bleed into tone; do not state the mood as a label.
 
 RULES:
 - One past-tense active sentence, max 30 words, ending in a period.
@@ -69,6 +83,7 @@ Output ONLY the sentence.",
         children = req.children,
         tribe = req.tribe_name.as_deref().unwrap_or("unnamed"),
         era = req.era,
+        aspiration = aspiration_line,
         vocab = format_vocab(&req.vocab),
         events = format_events(&req.life_log),
     )
@@ -85,7 +100,7 @@ TRIBE WORDS (optional flavor): {vocab}
 
 OUTPUT exactly ONE past-tense English sentence under 30 words.
 - Start with a verb, pronoun, or noun (NOT the name {name}).
-- Reference one event above.
+- Reference one event above (witnessed/heard counts; treat second-hand as awe, dread, or grief).
 - End with a period.
 - No preamble, no quotes, no markdown.
 Output ONLY the sentence.",
@@ -153,15 +168,39 @@ fn template_fallback(req: &NarrationReq) -> String {
         let child = ev.split("offspring ").nth(1)
             .and_then(|s| s.split(" at").next()).unwrap_or("a child");
         format!("{} brought {} into the world today.", req.org_name, child)
-    } else if log.iter().any(|e| e.contains("hut")) {
+    } else if log.iter().any(|e| e.contains("war drums")) {
+        format!("{} heard distant war drums and gathered their kin closer.", req.org_name)
+    } else if log.iter().any(|e| e.contains("battle")) {
+        format!("{} braced as word of battle reached the camp.", req.org_name)
+    } else if let Some(ev) = log.iter().find(|e| e.contains("watched") && e.contains("pass")) {
+        let who = ev.split("watched ").nth(1)
+            .and_then(|s| s.split(" pass").next()).unwrap_or("a kinsman");
+        format!("{} watched {} pass and could not speak.", req.org_name, who)
+    } else if log.iter().any(|e| e.contains("first breath")) {
+        format!("{} saw new life take its first breath and felt the camp warm.", req.org_name)
+    } else if let Some(ev) = log.iter().find(|e| e.contains("brought home a")) {
+        let thing = ev.split("brought home a ").nth(1)
+            .and_then(|s| s.split(' ').next()).unwrap_or("trinket");
+        format!("{} brought home a {} and set it by the hearth.", req.org_name, thing)
+    } else if log.iter().any(|e| e.contains("wed") || e.contains("married")) {
+        format!("{} bound their life to another before the tribe.", req.org_name)
+    } else if log.iter().any(|e| e.contains("hut") || e.contains("raised a")) {
         format!("{} raised a shelter from gathered wood.", req.org_name)
-    } else if log.iter().any(|e| e.contains("campfire")) {
+    } else if log.iter().any(|e| e.contains("campfire") || e.contains("lit a fire")) {
         format!("{} lit a fire and kept the dark at bay.", req.org_name)
     } else if log.iter().any(|e| e.contains("hunted")) {
         let prey = log.iter().find(|e| e.contains("hunted"))
             .and_then(|e| e.split("hunted a ").nth(1))
             .and_then(|s| s.split(" at").next()).unwrap_or("prey");
         format!("{} ran down a {} and fed well.", req.org_name, prey)
+    } else if log.iter().any(|e| e.contains("fled") || e.contains("escaped")) {
+        format!("{} fled with a hammering heart and lived to see dusk.", req.org_name)
+    } else if log.iter().any(|e| e.contains("wrote") || e.contains("book")) {
+        format!("{} set words to page and left a thought for kin yet unborn.", req.org_name)
+    } else if log.iter().any(|e| e.contains("learned") && e.contains("religion")) {
+        format!("{} heard a new faith named and turned it over in their mind.", req.org_name)
+    } else if log.iter().any(|e| e.contains("trade") || e.contains("bartered")) {
+        format!("{} bartered at the edge of camp and came away the richer.", req.org_name)
     } else if log.iter().any(|e| e.contains("ate food")) {
         format!("{} found {} and did not go hungry.", req.org_name, food_word)
     } else if log.iter().any(|e| e.contains("drank")) {
@@ -170,6 +209,10 @@ fn template_fallback(req: &NarrationReq) -> String {
         format!("{} faced a stranger and held their ground.", req.org_name)
     } else if log.iter().any(|e| e.contains("knowledge")) {
         format!("{} guided their kin to richer ground.", req.org_name)
+    } else if req.mood == "joyful" {
+        format!("{} walked through the day with a quiet brightness in their chest.", req.org_name)
+    } else if req.mood == "mourning" {
+        format!("{} carried grief through the camp and spoke little.", req.org_name)
     } else {
         format!("{} roamed and watched the world pass by.", req.org_name)
     }
