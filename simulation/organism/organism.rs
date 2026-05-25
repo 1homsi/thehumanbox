@@ -443,8 +443,12 @@ impl Organism {
     // Idempotent - safe to call repeatedly; only logs + mutates loneliness on first promotion.
     pub fn add_friend(&mut self, id: &str, name: &str, tick: u64) {
         if !self.friends.contains_key(id) {
-            const MAX_FRIENDS: usize = 12;
-            if self.friends.len() >= MAX_FRIENDS {
+            let cap_bonus = (self.traits.social_tendency * 8.0) as usize;
+            let max_friends: usize = 12 + cap_bonus;
+            const MAX_FRIENDS: usize = 20;
+            let _ = MAX_FRIENDS;
+            let max_friends = max_friends.min(MAX_FRIENDS);
+            if self.friends.len() >= max_friends {
                 let weakest = self.friends.keys()
                     .min_by_key(|fid| (self.org_trust.get(fid.as_str()).copied().unwrap_or(0.0) * 1000.0) as i32)
                     .cloned();
