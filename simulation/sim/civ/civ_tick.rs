@@ -207,11 +207,17 @@ fn tick_witnessed_events(sim: &mut Simulation) {
                 }
                 "death" => {
                     sim.organisms[ki].grief_ticks =
-                        (sim.organisms[ki].grief_ticks + 25).min(300);
+                        (sim.organisms[ki].grief_ticks + 25).min(400);
+                    sim.organisms[ki].comfort = (sim.organisms[ki].comfort - 0.04).max(0.0);
                 }
                 "war_declared" | "battle_began" => {
                     sim.organisms[ki].fear_level =
                         (sim.organisms[ki].fear_level + 0.06).min(1.0);
+                    sim.organisms[ki].comfort = (sim.organisms[ki].comfort - 0.03).max(0.0);
+                }
+                "treaty" => {
+                    sim.organisms[ki].joy_ticks = (sim.organisms[ki].joy_ticks + 25).min(1200);
+                    sim.organisms[ki].fear_level = (sim.organisms[ki].fear_level - 0.02).max(0.0);
                 }
                 _ => {}
             }
