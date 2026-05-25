@@ -2786,8 +2786,9 @@ impl Simulation {
             if !matches!(self.animals[ai].kind, AnimalKind::Dog) { continue; }
             let bonded = self.animals[ai].bonded_org.clone();
             if let Some(bid) = bonded {
-                if let Some(o) = self.organisms.iter().find(|o| o.alive && o.id == bid) {
-                    let (ax, ay) = (self.animals[ai].x, self.animals[ai].y);
+                let (ax, ay) = (self.animals[ai].x, self.animals[ai].y);
+                let mut owner_idx: Option<usize> = None;
+                if let Some((oi, o)) = self.organisms.iter().enumerate().find(|(_, o)| o.alive && o.id == bid) {
                     let dist = (o.x - ax).abs() + (o.y - ay).abs();
                     if dist > 3.0 {
                         let dx = (o.x - ax).signum();
@@ -2800,6 +2801,13 @@ impl Simulation {
                             self.animals[ai].y = ny;
                         }
                     }
+                    if dist < 5.0 { owner_idx = Some(oi); }
+                }
+                if let Some(oi) = owner_idx {
+                    let o = &mut self.organisms[oi];
+                    o.loneliness = (o.loneliness - 0.004).max(0.0);
+                    o.boredom    = (o.boredom    - 0.002).max(0.0);
+                    o.comfort    = (o.comfort    + 0.001).min(1.0);
                 }
             }
         }
