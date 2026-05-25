@@ -1,16 +1,12 @@
-
-use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    let ix = ctx.ix;
-    let iy = ctx.iy;
-    let hut_near = [(-1,0),(1,0),(0,-1),(0,1),(-1,-1),(1,-1),(-1,1),(1,1)]
-        .iter().any(|&(dx,dy)| matches!(ctx.sim.grid.get(ix+dx, iy+dy), Tile::Hut));
-    if !hut_near && !matches!(ctx.tile, Tile::Hut) { return 0.0; }
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.06).min(1.0);
-    ctx.think("decorating the home");
-    ctx.discover("home_decoration", "adorned a dwelling for the first time");
-    ctx.event("build", "decorated the interior of the home");
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("decorate home").copied().unwrap_or(0);
+    o.tools.insert("decorate home".to_string(), (cur + 1).min(12));
+    ctx.think("decorate home");
+    ctx.event("life", "decorate home");
     0.008
 }
