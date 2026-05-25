@@ -67,6 +67,46 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick % 60 == 0 && tick > 0 {
         tick_witnessed_events(sim);
     }
+    if tick % 180 == 0 && tick > 0 {
+        tick_sky_omens(sim);
+    }
+}
+
+fn tick_sky_omens(sim: &mut Simulation) {
+    if !sim.is_night() {
+        return;
+    }
+    let r: f32 = sim.rng.random();
+    let (label, joy_bump, fear_bump): (&str, u32, f32) = if r < 0.012 {
+        ("a meteor split the sky", 40, 0.04)
+    } else if r < 0.06 {
+        ("a shooting star streaked overhead", 35, 0.0)
+    } else if r < 0.10 {
+        ("strange lights danced in the sky", 28, 0.0)
+    } else {
+        return;
+    };
+
+    let tick = sim.tick_count;
+    let mut seen_any = false;
+    for o in sim.organisms.iter_mut() {
+        if !o.alive {
+            continue;
+        }
+        let near_shelter_blocks = false;
+        if near_shelter_blocks {
+            continue;
+        }
+        o.joy_ticks = (o.joy_ticks + joy_bump).min(1200);
+        if fear_bump > 0.0 {
+            o.fear_level = (o.fear_level + fear_bump).min(1.0);
+        }
+        o.log_life(tick, "witnessed", label.to_string());
+        seen_any = true;
+    }
+    if seen_any {
+        push_event(&mut sim.events, tick, "sky", "world", label);
+    }
 }
 
 /// Broadcast significant events to nearby kin via per-org life_log
