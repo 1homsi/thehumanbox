@@ -621,6 +621,10 @@ fn tick_aspirations(sim: &mut Simulation) {
             "warrior"
         } else if t.social_tendency > 0.68 {
             "connector"
+        } else if t.resilience > 0.65 && o.literacy > 0.30 && t.aggression < 0.35 {
+            "healer"
+        } else if t.curiosity > 0.55 && t.aggression < 0.30 && t.social_tendency < 0.55 {
+            "artist"
         } else if t.resilience > 0.68 {
             "builder"
         } else if o.piety > 0.4 {

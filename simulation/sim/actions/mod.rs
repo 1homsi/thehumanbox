@@ -431,8 +431,13 @@ fn aspiration_bonus(aspiration: &str, action: usize) -> f32 {
             matches!(action, 501..=520 | 3000..=3049 | 3240..=3289 | 3360..=3409)
         }
         "provider" => {
-            // Resources, agriculture, food, family care
             matches!(action, 26..=38 | 141..=150 | 336..=355 | 356..=370 | 1140..=1189 | 1620..=1668 | 3420..=3469)
+        }
+        "artist" => {
+            matches!(action, 316..=335 | 3120..=3169 | 3300..=3349 | 5160..=5209)
+        }
+        "healer" => {
+            matches!(action, 246..=260 | 1320..=1369 | 3060..=3109 | 4920..=4969)
         }
         _ => false,
     };

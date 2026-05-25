@@ -99,6 +99,8 @@ const ASPIRATION_EMOJI: Record<string, string> = {
   devout: '🕯️',
   sage: '📜',
   provider: '🌾',
+  artist: '🎨',
+  healer: '🌿',
 }
 
 const ASPIRATION_TIPS: Record<string, string> = {
@@ -110,6 +112,8 @@ const ASPIRATION_TIPS: Record<string, string> = {
   devout: 'A spiritual life — religion, ritual, and devotion guide them.',
   sage: 'A teacher at heart — passes knowledge to the next generation.',
   provider: 'Tends the household — agriculture, food, and family care.',
+  artist: 'Makes for the sake of making — paintings, song, written words.',
+  healer: 'Tends the sick — medicine, herbs, and the long patience of care.',
 }
 
 const TOOL_ICON: Record<string, string> = {
