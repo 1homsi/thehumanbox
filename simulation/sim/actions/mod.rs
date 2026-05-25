@@ -370,9 +370,9 @@ fn workshop_bonus(sim: &Simulation, ix: i32, iy: i32, action: usize) -> f32 {
         let (fw, fh) = b.kind.footprint();
         let bx = b.x + fw as i32 / 2;
         let by = b.y + fh as i32 / 2;
-        (bx - ix).abs() + (by - iy).abs() <= 4
+        (bx - ix).abs() + (by - iy).abs() <= 7
     });
-    if near { 1.5 } else { 1.0 }
+    if near { 1.55 } else { 1.0 }
 }
 
 fn category_for(action: usize) -> Option<&'static str> {
