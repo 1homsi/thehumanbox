@@ -1,12 +1,12 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if ctx.org().inv_wood == 0 { return 0.0; }
-    ctx.org_mut().inv_wood -= 1;
-    ctx.org_mut().boredom = (ctx.org().boredom - 0.06).max(0.0);
-    ctx.think("weaving a tapestry");
-    ctx.discover("weaving", "wove the first tapestry");
-    ctx.event("build", "created a woven tapestry");
-    0.010
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("weave tapestry").copied().unwrap_or(0);
+    o.tools.insert("weave tapestry".to_string(), (cur + 1).min(12));
+    ctx.think("weave tapestry");
+    ctx.event("life", "weave tapestry");
+    0.008
 }
