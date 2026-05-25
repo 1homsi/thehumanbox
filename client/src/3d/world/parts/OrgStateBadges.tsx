@@ -36,7 +36,8 @@ function badgesFor(o: OrganismState): { text: string; color: string }[] {
   if (o.pregnant) out.push({ text: '♥', color: '#ff8aa8' }) // pregnant
   if (o.attracted_to) out.push({ text: '♡', color: '#ffa0c0' }) // attracted
   if (o.carrying > 0) out.push({ text: '▣', color: '#c09060' }) // carrying something
-  if ((o.comfort ?? 0) > 0.8) out.push({ text: '✦', color: '#ffe080' }) // comfortable
+  if ((o.comfort ?? 0) > 0.8) out.push({ text: '✦', color: '#ffe080' })
+  if ((o.joy_ticks ?? 0) > 0) out.push({ text: '☀', color: '#ffd866' })
 
   // Status markers
   if (o.is_elder) out.push({ text: '◈', color: '#ffcf6a' }) // elder
