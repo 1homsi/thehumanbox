@@ -571,6 +571,24 @@ impl Organism {
             self.fear_level = (self.fear_level - 0.002).max(0.0);
         }
 
+        match weather_kind {
+            1 => {
+                if near_shelter {
+                    self.comfort = (self.comfort + 0.002).min(1.0);
+                } else {
+                    self.fear_level = (self.fear_level + 0.003).min(1.0);
+                    self.comfort = (self.comfort - 0.002).max(0.0);
+                }
+            }
+            2 => {
+                self.fear_level = (self.fear_level + 0.008).min(1.0);
+                if !near_shelter {
+                    self.comfort = (self.comfort - 0.004).max(0.0);
+                }
+            }
+            _ => {}
+        }
+
         if night && !near_shelter {
             self.sleep_debt = (self.sleep_debt + 0.0015).min(1.0);
         } else if near_shelter {
