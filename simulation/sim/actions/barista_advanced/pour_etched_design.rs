@@ -1,12 +1,12 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if ctx.good("drink") == 0 {
-        ctx.think("no drink to pour");
-        return 0.005;
-    }
-    ctx.add_literacy(0.004);
-    ctx.think("etch a design");
-    ctx.event("chore", "etch a design");
-    0.04
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("pour etched design").copied().unwrap_or(0);
+    o.tools.insert("pour etched design".to_string(), (cur + 1).min(12));
+    ctx.think("pour etched design");
+    ctx.event("life", "pour etched design");
+    0.008
 }
