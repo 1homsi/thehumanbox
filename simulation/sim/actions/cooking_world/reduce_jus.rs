@@ -1,8 +1,15 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
+    if !ctx.fire_near || ctx.org().inv_food == 0 || ctx.org().inv_water == 0 { return 0.0; }
+    let o = ctx.org_mut();
+    o.inv_food = o.inv_food.saturating_sub(1);
+    o.inv_water = o.inv_water.saturating_sub(1);
+    o.energy = (o.energy + 0.08).min(1.0);
+    o.comfort = (o.comfort + 0.04).min(1.0);
+    let cur = o.tools.get("jus").copied().unwrap_or(0);
+    o.tools.insert("jus".to_string(), (cur + 1).min(15));
     ctx.think("reduce jus");
-    ctx.event("life", "reduce jus");
-    0.005
+    ctx.event("life", "reduceed jus");
+    0.010
 }
