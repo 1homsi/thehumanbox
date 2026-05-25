@@ -1,9 +1,12 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    let n = ctx.comfort_kin(0.01);
-    ctx.add_literacy(0.003);
-    ctx.think("recommend a pastry");
-    ctx.event("chore", "recommended a pastry");
-    0.04 + n as f32 * 0.005
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("recommend pastry").copied().unwrap_or(0);
+    o.tools.insert("recommend pastry".to_string(), (cur + 1).min(12));
+    ctx.think("recommend pastry");
+    ctx.event("life", "recommend pastry");
+    0.008
 }
