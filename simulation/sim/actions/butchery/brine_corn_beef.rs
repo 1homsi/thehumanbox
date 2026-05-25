@@ -1,12 +1,12 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if !ctx.take_good("meat", 1) {
-        ctx.think("nothing to brine");
-        return 0.005;
-    }
-    ctx.add_good("preserved", 1);
-    ctx.think("brine corned beef");
-    ctx.event("chore", "brined corned beef");
-    0.06
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("beef").copied().unwrap_or(0);
+    o.tools.insert("beef".to_string(), (cur + 1).min(12));
+    ctx.think("brine corn beef");
+    ctx.event("life", "brine corn beef");
+    0.008
 }
