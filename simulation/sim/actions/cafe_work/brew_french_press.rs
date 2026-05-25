@@ -1,12 +1,12 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if !ctx.take_good("coffee", 1) {
-        ctx.think("no beans for french press");
-        return 0.005;
-    }
-    ctx.add_good("drink", 1);
-    ctx.think("french press");
-    ctx.event("chore", "brewed french press");
-    0.05
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("press").copied().unwrap_or(0);
+    o.tools.insert("press".to_string(), (cur + 1).min(12));
+    ctx.think("brew french press");
+    ctx.event("life", "brew french press");
+    0.008
 }
