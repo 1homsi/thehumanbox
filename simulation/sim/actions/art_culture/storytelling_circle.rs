@@ -1,15 +1,12 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if !ctx.is_night() || ctx.kin.len() < 2 { return 0.0; }
-    for i in 0..ctx.kin.len() {
-        let ki = ctx.kin[i];
-        ctx.sim.organisms[ki].boredom = (ctx.sim.organisms[ki].boredom - 0.10).max(0.0);
-    }
-    ctx.org_mut().boredom = (ctx.org().boredom - 0.10).max(0.0);
-    ctx.think("telling stories around the circle");
-    ctx.discover("circle", "held the first storytelling circle");
-    ctx.event("culture", "stories were shared through the night");
-    0.010
+    let o = ctx.org_mut();
+    o.comfort = (o.comfort + 0.03).min(1.0);
+    o.joy_ticks = (o.joy_ticks + 5).min(1200);
+    let cur = o.tools.get("storytelling circle").copied().unwrap_or(0);
+    o.tools.insert("storytelling circle".to_string(), (cur + 1).min(12));
+    ctx.think("storytelling circle");
+    ctx.event("life", "storytelling circle");
+    0.008
 }
