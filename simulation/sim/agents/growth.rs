@@ -209,7 +209,26 @@ pub fn try_reproduce(
     );
 
     let child_id = Uuid::new_v4().to_string()[..8].to_string();
-    let child_name = generate_name(rng, child_sex);
+    let mut child_name = generate_name(rng, child_sex);
+    let mut namesake: Option<String> = None;
+    if rng.random::<f32>() < 0.15 {
+        let dead_kin: Vec<String> = organisms
+            .iter()
+            .filter(|o| {
+                !o.alive
+                    && o.lineage_id == organisms[org_idx].lineage_id
+                    && o.sex == child_sex
+                    && !o.name.is_empty()
+            })
+            .map(|o| o.name.clone())
+            .collect();
+        if !dead_kin.is_empty() {
+            let pick = dead_kin[rng.random_range(0..dead_kin.len())].clone();
+            namesake = Some(pick.clone());
+            child_name = pick;
+        }
+    }
+    let child_name = child_name;
     let parent_id = organisms[org_idx].id.clone();
     let lineage_id = organisms[org_idx].lineage_id.clone();
     let generation = organisms[org_idx].generation + 1;
@@ -266,6 +285,17 @@ pub fn try_reproduce(
                 .with_salience(0.85)
                 .with_emotion(1),
         );
+        if let Some(ref namesake_name) = namesake {
+            child.memories.insert(
+                MemoryEntry::new(
+                    MemoryKind::Fact,
+                    format!("I am named for {}, who came before me", namesake_name),
+                    tick,
+                )
+                .with_salience(0.92)
+                .with_emotion(2),
+            );
+        }
     }
 
     for (state, actions) in &organisms[org_idx].q_table {
