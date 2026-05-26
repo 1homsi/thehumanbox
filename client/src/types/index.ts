@@ -207,6 +207,7 @@ export interface AnimalState {
   x: number
   y: number
   kind: 'rabbit' | 'deer' | 'boar' | 'bird' | 'fish' | 'wolf' | 'dog'
+  name?: string
 }
 
 export interface SimEvent {

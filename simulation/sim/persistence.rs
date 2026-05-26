@@ -128,6 +128,10 @@ pub(crate) struct AnimalSave {
     id: usize, x: f32, y: f32, alive: bool, energy: f32,
     kind: u8,
     last_reproduced: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    bonded_org: Option<String>,
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -365,7 +369,12 @@ fn animal_to_save(a: &Animal) -> AnimalSave {
         AnimalKind::Wolf   => 5,
         AnimalKind::Dog    => 6,
     };
-    AnimalSave { id: a.id, x: a.x, y: a.y, alive: a.alive, energy: a.energy, kind, last_reproduced: a.last_reproduced }
+    AnimalSave {
+        id: a.id, x: a.x, y: a.y, alive: a.alive, energy: a.energy, kind,
+        last_reproduced: a.last_reproduced,
+        name: a.name.clone(),
+        bonded_org: a.bonded_org.clone(),
+    }
 }
 
 fn animal_from_save(s: AnimalSave) -> Animal {
@@ -383,6 +392,8 @@ fn animal_from_save(s: AnimalSave) -> Animal {
     a.alive           = s.alive;
     a.energy          = s.energy;
     a.last_reproduced = s.last_reproduced;
+    a.name            = s.name;
+    a.bonded_org      = s.bonded_org;
     a
 }
 

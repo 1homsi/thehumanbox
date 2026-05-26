@@ -2818,12 +2818,15 @@ impl Simulation {
             self.animals[ai].kind        = AnimalKind::Dog;
             self.animals[ai].bonded_org  = Some(self.organisms[oi].id.clone());
             self.animals[ai].energy      = (self.animals[ai].energy + 0.30).min(1.0);
+            let dog_name = crate::organism::animal::pick_dog_name(&mut self.rng);
+            self.animals[ai].name        = Some(dog_name.clone());
             let oname = self.organisms[oi].name.clone();
             self.organisms[oi].discoveries.insert("dog".to_string());
-            self.organisms[oi].think("befriended a wolf", self.tick_count);
-            self.organisms[oi].log_event("tamed a wolf into a dog".to_string());
+            self.organisms[oi].joy_ticks = (self.organisms[oi].joy_ticks + 300).min(1200);
+            self.organisms[oi].think(&format!("named the wolf {}", dog_name), self.tick_count);
+            self.organisms[oi].log_event(format!("named their dog {}", dog_name));
             push_event(&mut self.events, self.tick_count, "build", &oname,
-                "befriended a wolf - it follows them now");
+                &format!("befriended a wolf and named it {}", dog_name));
         }
 
         for ai in 0..self.animals.len() {

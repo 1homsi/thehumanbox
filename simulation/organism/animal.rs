@@ -65,11 +65,12 @@ pub struct Animal {
     pub kind:            AnimalKind,
     pub last_reproduced: u64,
     pub bonded_org:      Option<String>,
+    pub name:            Option<String>,
 }
 
 impl Animal {
     pub fn new(id: usize, x: f32, y: f32, kind: AnimalKind) -> Self {
-        Animal { id, x, y, alive: true, energy: 0.8, kind, last_reproduced: 0, bonded_org: None }
+        Animal { id, x, y, alive: true, energy: 0.8, kind, last_reproduced: 0, bonded_org: None, name: None }
     }
 
     pub fn tick(&mut self, grid: &WorldGrid, org_positions: &[(f32, f32)],
@@ -188,6 +189,8 @@ pub struct AnimalJson {
     pub x:    f32,
     pub y:    f32,
     pub kind: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
 }
 
 impl Animal {
@@ -197,8 +200,20 @@ impl Animal {
             x:    (self.x * 10.0).round() / 10.0,
             y:    (self.y * 10.0).round() / 10.0,
             kind: self.kind.name(),
+            name: self.name.clone(),
         }
     }
+}
+
+const DOG_NAMES: &[&str] = &[
+    "Argo", "Bo", "Cira", "Doro", "Elka", "Fenn", "Gola", "Huri", "Iva",
+    "Juno", "Kato", "Lupa", "Maro", "Nuli", "Oro", "Pira", "Quo", "Ren",
+    "Sila", "Tova", "Uma", "Vela", "Wira", "Xan", "Yara", "Zola",
+    "Aki", "Bran", "Coro", "Dali", "Erin", "Faro", "Gala", "Hima",
+];
+
+pub fn pick_dog_name<R: rand::Rng>(rng: &mut R) -> String {
+    DOG_NAMES[rng.random_range(0..DOG_NAMES.len())].to_string()
 }
 
 #[cfg(test)]
