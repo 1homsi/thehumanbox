@@ -82,6 +82,47 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick > 0 && tick % 300 == 0 {
         tick_anniversaries(sim);
     }
+    if tick > 0 && tick % 60 == 0 {
+        tick_mood_contagion(sim);
+    }
+}
+
+fn tick_mood_contagion(sim: &mut Simulation) {
+    use crate::sim::spatial::SpatialIndex;
+    let spatial = SpatialIndex::build(&sim.organisms, 10);
+    let snapshot: Vec<(usize, f32, f32, String, u32, u32)> = sim
+        .organisms
+        .iter()
+        .enumerate()
+        .filter(|(_, o)| o.alive)
+        .map(|(i, o)| (i, o.x, o.y, o.lineage_id.clone(), o.joy_ticks, o.grief_ticks))
+        .collect();
+    for (i, x, y, lid, _joy, _grief) in &snapshot {
+        let kin_joy: u32 = spatial.query(*x as i32, *y as i32, 3)
+            .into_iter()
+            .filter(|&j| j != *i)
+            .map(|j| &sim.organisms[j])
+            .filter(|o| o.alive && o.lineage_id == *lid && (o.x - x).abs() + (o.y - y).abs() <= 3.0)
+            .map(|o| o.joy_ticks)
+            .sum();
+        let kin_grief: u32 = spatial.query(*x as i32, *y as i32, 3)
+            .into_iter()
+            .filter(|&j| j != *i)
+            .map(|j| &sim.organisms[j])
+            .filter(|o| o.alive && o.lineage_id == *lid && (o.x - x).abs() + (o.y - y).abs() <= 3.0)
+            .map(|o| o.grief_ticks)
+            .sum();
+        let me = &mut sim.organisms[*i];
+        if kin_joy > 600 {
+            me.grief_ticks = me.grief_ticks.saturating_sub(1);
+            me.joy_ticks = (me.joy_ticks + 4).min(1200);
+            me.comfort = (me.comfort + 0.002).min(1.0);
+        }
+        if kin_grief > 200 {
+            me.joy_ticks = me.joy_ticks.saturating_sub(2);
+            me.comfort = (me.comfort - 0.001).max(0.0);
+        }
+    }
 }
 
 fn tick_anniversaries(sim: &mut Simulation) {
