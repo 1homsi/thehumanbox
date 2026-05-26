@@ -1442,8 +1442,15 @@ impl Simulation {
             if let Some(ri) = recipient {
                 self.organisms[idx].inv_water -= 1;
                 self.organisms[ri].hydration = (self.organisms[ri].hydration + 0.22).min(1.0);
+                let recipient_id = self.organisms[ri].id.clone();
+                let donor_id = self.organisms[idx].id.clone();
                 self.organisms[idx].think("sharing water", self.tick_count);
                 self.organisms[ri].think("watered by kin", self.tick_count);
+                let cur = self.organisms[idx].org_trust.get(&recipient_id).copied().unwrap_or(0.0);
+                self.organisms[idx].org_trust.insert(recipient_id, (cur + 0.03).min(1.0));
+                let r_cur = self.organisms[ri].org_trust.get(&donor_id).copied().unwrap_or(0.0);
+                self.organisms[ri].org_trust.insert(donor_id, (r_cur + 0.10).min(1.0));
+                self.organisms[ri].comfort = (self.organisms[ri].comfort + 0.03).min(1.0);
                 self.history.gifts_total += 1;
             }
         }
@@ -1486,11 +1493,17 @@ impl Simulation {
                 self.organisms[idx].energy = (self.organisms[idx].energy - 0.10).max(0.40);
                 self.organisms[ri].energy = (self.organisms[ri].energy + 0.16).min(1.0);
                 let recipient_id = self.organisms[ri].id.clone();
+                let donor_id = self.organisms[idx].id.clone();
                 let donor_name = self.organisms[idx].name.clone();
                 self.organisms[idx].think("sharing food", self.tick_count);
                 self.organisms[ri].think("fed by kin", self.tick_count);
                 let cur = self.organisms[idx].org_trust.get(&recipient_id).copied().unwrap_or(0.0);
                 self.organisms[idx].org_trust.insert(recipient_id, (cur + 0.04).min(1.0));
+                let r_cur = self.organisms[ri].org_trust.get(&donor_id).copied().unwrap_or(0.0);
+                self.organisms[ri].org_trust.insert(donor_id, (r_cur + 0.12).min(1.0));
+                self.organisms[ri].comfort = (self.organisms[ri].comfort + 0.04).min(1.0);
+                self.organisms[ri].joy_ticks = (self.organisms[ri].joy_ticks + 30).min(1200);
+                self.organisms[idx].joy_ticks = (self.organisms[idx].joy_ticks + 15).min(1200);
                 self.history.gifts_total += 1;
                 if self.rng.random::<f32>() < 0.10 {
                     push_event(&mut self.events, self.tick_count, "gift", &donor_name, "shared food with starving kin");
