@@ -298,6 +298,34 @@ pub fn challenge_stranger(
                    &format!("vs {} ({} kin backing)", target_name, kin_backing));
     }
 
+    {
+        use crate::organism::memory::{MemoryEntry, MemoryKind};
+        let target_name_for_mem = target_name.clone();
+        let attacker_name = org_name.clone();
+        let target_id_for_mem = organisms[ti].id.clone();
+        let attacker_id_for_mem = organisms[org_idx].id.clone();
+        organisms[ti].memories.insert(
+            MemoryEntry::new(
+                MemoryKind::Bond,
+                format!("{} struck me with their kin behind them", attacker_name),
+                tick,
+            )
+            .with_salience(0.78)
+            .with_emotion(-2)
+            .with_related(attacker_id_for_mem),
+        );
+        organisms[org_idx].memories.insert(
+            MemoryEntry::new(
+                MemoryKind::Episode,
+                format!("I challenged {}", target_name_for_mem),
+                tick,
+            )
+            .with_salience(0.55)
+            .with_emotion(0)
+            .with_related(target_id_for_mem),
+        );
+    }
+
     reward * (0.5 + organisms[org_idx].traits.aggression)
 }
 
