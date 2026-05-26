@@ -1736,6 +1736,21 @@ impl Organism {
             "stable"
         };
 
+        let memories: Vec<MemoryJson> = self
+            .memories
+            .top(20)
+            .into_iter()
+            .map(|m| MemoryJson {
+                kind: m.kind.label().to_string(),
+                text: m.text.clone(),
+                salience: (m.salience * 100.0).round() / 100.0,
+                emotion: m.emotion,
+                tick: m.tick_formed,
+                related_id: m.related_id.clone(),
+                recalls: m.recall_count,
+            })
+            .collect();
+
         OrgLifeJson {
             id: self.id.clone(),
             name: self.name.clone(),
@@ -1759,6 +1774,17 @@ impl Organism {
                     text: e.text.clone(),
                 })
                 .collect(),
+            memories,
+            zodiac: if !self.zodiac.is_empty() {
+                Some(self.zodiac.clone())
+            } else {
+                None
+            },
+            aspiration: if !self.aspiration.is_empty() {
+                Some(self.aspiration.clone())
+            } else {
+                None
+            },
         }
     }
 }
@@ -1803,6 +1829,11 @@ pub struct OrgLifeJson {
     pub emotional_state: String,
     pub events: Vec<LifeEventJson>,
     pub thought_history: Vec<ThoughtJson>,
+    pub memories: Vec<MemoryJson>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub zodiac: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub aspiration: Option<String>,
 }
 
 /// Hot Structure-of-Arrays payload for delta (viewport) frames.

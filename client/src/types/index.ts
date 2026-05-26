@@ -228,6 +228,9 @@ export interface OrgLife {
   emotional_state: string
   events: LifeEvent[]
   thought_history: ThoughtEntry[]
+  memories: MemoryEntry[]
+  zodiac?: string
+  aspiration?: string
 }
 
 export interface AnimalState {

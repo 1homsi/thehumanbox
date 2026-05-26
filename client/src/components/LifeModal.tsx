@@ -285,6 +285,58 @@ export function LifeModal({ orgId, orgName, onClose }: Props) {
               </div>
             )}
 
+            {life.memories && life.memories.length > 0 && (
+              <>
+                <div
+                  style={{
+                    fontSize: 8,
+                    color: '#888',
+                    textTransform: 'uppercase',
+                    letterSpacing: 1,
+                    marginBottom: 6,
+                    marginTop: 4,
+                  }}
+                >
+                  what they hold in mind ({life.memories.length})
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 10 }}>
+                  {life.memories.slice(0, 8).map((m, i) => {
+                    const kindColor: Record<string, string> = {
+                      core: '#d8c060',
+                      episode: '#bfa9d6',
+                      fact: '#90c8b0',
+                      bond: '#e09ab0',
+                      place: '#a8c0e0',
+                      dream: '#888',
+                    }
+                    const emoColor = m.emotion >= 2 ? '#f6c46a'
+                      : m.emotion >= 1 ? '#d8c060'
+                      : m.emotion <= -2 ? '#6090c0'
+                      : m.emotion <= -1 ? '#80a8c0'
+                      : '#cccccc'
+                    return (
+                      <div
+                        key={`mem-${i}`}
+                        style={{ display: 'flex', gap: 6, fontSize: 10, alignItems: 'flex-start' }}
+                      >
+                        <span
+                          style={{
+                            color: kindColor[m.kind] ?? '#999',
+                            minWidth: 48,
+                            fontWeight: 600,
+                            fontSize: 9,
+                          }}
+                        >
+                          {m.kind}
+                        </span>
+                        <span style={{ color: emoColor, lineHeight: 1.4 }}>{m.text}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+
             <div
               style={{
                 fontSize: 8,
