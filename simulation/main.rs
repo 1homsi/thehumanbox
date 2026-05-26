@@ -551,6 +551,8 @@ async fn main() {
                                     .filter(|m| m.tick_formed < cur_tick.saturating_sub(1200))
                                     .map(|m| m.text.clone())
                                     .collect(),
+                                zodiac: o.zodiac.clone(),
+                                moon_phase: sim::cosmos::moon_phase_at(cur_tick).label().to_string(),
                             });
                         }
                         candidates.sort_by_key(|c| {

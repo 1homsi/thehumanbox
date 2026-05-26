@@ -22,6 +22,8 @@ pub struct NarrationReq {
     pub mood: String,
     pub aspiration: String,
     pub memories: Vec<String>,
+    pub zodiac: String,
+    pub moon_phase: String,
 }
 
 fn format_events(log: &[String]) -> String {
@@ -77,10 +79,25 @@ fn build_prompt(req: &NarrationReq) -> String {
             lines.join("\n")
         )
     };
+    let cosmic_line = if req.zodiac.is_empty() && req.moon_phase.is_empty() {
+        String::new()
+    } else {
+        let mut parts: Vec<String> = Vec::new();
+        if !req.zodiac.is_empty() {
+            parts.push(format!("born under {}", req.zodiac));
+        }
+        if !req.moon_phase.is_empty() {
+            parts.push(format!(
+                "under the {} moon tonight",
+                req.moon_phase.replace('_', " ")
+            ));
+        }
+        format!("\nCOSMIC NOTE: {}\n", parts.join(", "))
+    };
     format!("\
 One-sentence vignette of a person's day in a living tribal-to-civic sim.
 
-ORG: {name} ({sex}, {age} days, mood: {mood}, partner: {partner}, children: {children}, tribe: {tribe}, era: {era}){aspiration}{memory_block}
+ORG: {name} ({sex}, {age} days, mood: {mood}, partner: {partner}, children: {children}, tribe: {tribe}, era: {era}){aspiration}{cosmic_line}{memory_block}
 
 TRIBE WORDS:
 {vocab}
@@ -109,6 +126,7 @@ Output ONLY the sentence.",
         tribe = req.tribe_name.as_deref().unwrap_or("unnamed"),
         era = req.era,
         aspiration = aspiration_line,
+        cosmic_line = cosmic_line,
         memory_block = memory_block,
         vocab = format_vocab(&req.vocab),
         events = format_events(&req.life_log),
