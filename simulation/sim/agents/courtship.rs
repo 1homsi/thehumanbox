@@ -463,71 +463,105 @@ fn utterance_with_meaning(
     let lv = &lv;
 
     match mood {
-        // greeting
         0 => {
-            if rng.random::<f32>() < 0.55 {
-                (listener.name.clone(), listener.name.clone())
+            if rng.random::<f32>() < 0.45 {
+                (format!("{}.", listener.name), listener.name.clone())
             } else {
                 let (c, w) = pick_concept_and_word(v, &["friend", "home", "day"], rng);
-                (format!("{} {}", listener.name, w),
-                 format!("{} · {}", listener.name, gloss_one(c)))
+                let template = match rng.random_range(0..3) {
+                    0 => format!("{}, {}.", listener.name, w),
+                    1 => format!("{} — {}?", w, listener.name),
+                    _ => format!("{}…", w),
+                };
+                (template, format!("{} · {}", listener.name, gloss_one(c)))
             }
         }
-        // warmth / closeness
         1 => {
             let (c1, w1) = pick_concept_and_word(v, &["friend", "home", "group", "alone"], rng);
-            if rng.random::<f32>() < 0.45 {
-                (format!("{} {}", w1, listener.name),
+            if rng.random::<f32>() < 0.4 {
+                (format!("{}, {}.", listener.name, w1),
                  format!("{} · {}", gloss_one(c1), listener.name))
             } else {
                 let (c2, w2) = pick_concept_and_word(lv, &["home", "night", "day", "shelter"], rng);
-                (format!("{} {}", w1, w2), gloss_two(c1, c2))
+                let line = match rng.random_range(0..3) {
+                    0 => format!("{} and {}.", w1, w2),
+                    1 => format!("{}, {}…", w1, w2),
+                    _ => format!("our {}, our {}.", w1, w2),
+                };
+                (line, gloss_two(c1, c2))
             }
         }
-        // inquiry
         2 => {
             let (c1, w1) = pick_concept_and_word(v, &["food", "hunt", "day", "water"], rng);
             let (c2, w2) = pick_concept_and_word(v, &["home", "shelter", "group"], rng);
-            (format!("{} {}", w1, w2), gloss_two(c1, c2))
+            let line = match rng.random_range(0..3) {
+                0 => format!("{}? {}?", w1, w2),
+                1 => format!("where {}, where {}?", w1, w2),
+                _ => format!("you saw {}? you saw {}?", w1, w2),
+            };
+            (line, gloss_two(c1, c2))
         }
-        // reassurance
         3 => {
             let (c, w) = pick_concept_and_word(v, &["shelter", "home", "friend", "group"], rng);
             if rng.random::<f32>() < 0.4 {
-                (format!("{} {}", listener.name, w),
+                (format!("{}, {}.", listener.name, w),
                  format!("{} · {}", listener.name, gloss_one(c)))
             } else {
-                (w.to_string(), gloss_one(c))
+                let line = match rng.random_range(0..3) {
+                    0 => format!("{}, with me.", w),
+                    1 => format!("here. {}.", w),
+                    _ => format!("safe — {}.", w),
+                };
+                (line, gloss_one(c))
             }
         }
-        // farewell
         4 => {
             let (c, w) = pick_concept_and_word(v, &["alone", "night", "home"], rng);
-            (format!("{} {}", listener.name, w),
-             format!("{} · {}", listener.name, gloss_one(c)))
+            let line = match rng.random_range(0..3) {
+                0 => format!("{}, go.", listener.name),
+                1 => format!("{}… {}.", listener.name, w),
+                _ => format!("until {}, {}.", w, listener.name),
+            };
+            (line, format!("{} · {}", listener.name, gloss_one(c)))
         }
-        // casual talk
         5 => {
             let (c, w) = pick_concept_and_word(v,
                 &["food", "hunt", "water", "day", "fire", "shelter"], rng);
-            (w.to_string(), gloss_one(c))
+            let line = match rng.random_range(0..3) {
+                0 => format!("the {} today.", w),
+                1 => format!("{}, again.", w),
+                _ => format!("{}?", w),
+            };
+            (line, gloss_one(c))
         }
-        // catching up
         6 => {
             let (c, w) = pick_concept_and_word(v, &["friend", "group", "day", "night"], rng);
-            (w.to_string(), gloss_one(c))
+            let line = match rng.random_range(0..3) {
+                0 => format!("about {}.", w),
+                1 => format!("{}, you and me.", w),
+                _ => format!("the {} now.", w),
+            };
+            (line, gloss_one(c))
         }
-        // argument
         7 => {
             let (c1, w1) = pick_concept_and_word(v, &["danger", "fire", "hunt", "alone"], rng);
             let (c2, w2) = pick_concept_and_word(v, &["home", "shelter", "water"], rng);
-            (format!("{} {}", w1, w2), gloss_two(c1, c2))
+            let line = match rng.random_range(0..3) {
+                0 => format!("no! {} — {}!", w1, w2),
+                1 => format!("{}! not the {}.", w1, w2),
+                _ => format!("you, {}. me, {}.", w1, w2),
+            };
+            (line, gloss_two(c1, c2))
         }
-        // excitement
         8 => {
             let (c1, w1) = pick_concept_and_word(v, &["fire", "food", "day", "hunt"], rng);
             let (c2, w2) = pick_concept_and_word(v, &["friend", "group", "shelter"], rng);
-            (format!("{} {}", w1, w2), gloss_two(c1, c2))
+            let line = match rng.random_range(0..3) {
+                0 => format!("look! {} — {}!", w1, w2),
+                1 => format!("{}! {}!", w1, w2),
+                _ => format!("we found {}, and {}!", w1, w2),
+            };
+            (line, gloss_two(c1, c2))
         }
 
         _ => (String::new(), String::new()),
