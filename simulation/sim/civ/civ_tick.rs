@@ -143,39 +143,64 @@ fn tick_maybe_eclipse(sim: &mut Simulation) {
 fn tick_mood_contagion(sim: &mut Simulation) {
     use crate::sim::spatial::SpatialIndex;
     let spatial = SpatialIndex::build(&sim.organisms, 10);
-    let snapshot: Vec<(usize, f32, f32, String, u32, u32)> = sim
+    let snapshot: Vec<(usize, f32, f32, String)> = sim
         .organisms
         .iter()
         .enumerate()
         .filter(|(_, o)| o.alive)
-        .map(|(i, o)| (i, o.x, o.y, o.lineage_id.clone(), o.joy_ticks, o.grief_ticks))
+        .map(|(i, o)| (i, o.x, o.y, o.lineage_id.clone()))
         .collect();
-    for (i, x, y, lid, _joy, _grief) in &snapshot {
-        let kin_joy: u32 = spatial
-            .query(*x as i32, *y as i32, 3)
-            .into_iter()
-            .filter(|&j| j != *i)
-            .map(|j| &sim.organisms[j])
-            .filter(|o| o.alive && o.lineage_id == *lid && (o.x - x).abs() + (o.y - y).abs() <= 3.0)
-            .map(|o| o.joy_ticks)
-            .sum();
-        let kin_grief: u32 = spatial
-            .query(*x as i32, *y as i32, 3)
-            .into_iter()
-            .filter(|&j| j != *i)
-            .map(|j| &sim.organisms[j])
-            .filter(|o| o.alive && o.lineage_id == *lid && (o.x - x).abs() + (o.y - y).abs() <= 3.0)
-            .map(|o| o.grief_ticks)
-            .sum();
-        let me = &mut sim.organisms[*i];
+    let mut deltas: Vec<(usize, i32, i32, f32)> = Vec::with_capacity(snapshot.len());
+    let mut buf: Vec<usize> = Vec::with_capacity(16);
+    for (i, x, y, lid) in &snapshot {
+        buf.clear();
+        spatial.query_into(*x as i32, *y as i32, 3, &mut buf);
+        let mut kin_joy: u32 = 0;
+        let mut kin_grief: u32 = 0;
+        for &j in buf.iter() {
+            if j == *i {
+                continue;
+            }
+            let o = &sim.organisms[j];
+            if !o.alive || o.lineage_id != *lid {
+                continue;
+            }
+            if (o.x - x).abs() + (o.y - y).abs() > 3.0 {
+                continue;
+            }
+            kin_joy = kin_joy.saturating_add(o.joy_ticks);
+            kin_grief = kin_grief.saturating_add(o.grief_ticks);
+        }
+        let mut djoy = 0i32;
+        let mut dgrief = 0i32;
+        let mut dcomf = 0.0f32;
         if kin_joy > 600 {
-            me.grief_ticks = me.grief_ticks.saturating_sub(1);
-            me.joy_ticks = (me.joy_ticks + 4).min(1200);
-            me.comfort = (me.comfort + 0.002).min(1.0);
+            dgrief -= 1;
+            djoy += 4;
+            dcomf += 0.002;
         }
         if kin_grief > 200 {
-            me.joy_ticks = me.joy_ticks.saturating_sub(2);
-            me.comfort = (me.comfort - 0.001).max(0.0);
+            djoy -= 2;
+            dcomf -= 0.001;
+        }
+        if djoy != 0 || dgrief != 0 || dcomf != 0.0 {
+            deltas.push((*i, djoy, dgrief, dcomf));
+        }
+    }
+    for (i, djoy, dgrief, dcomf) in deltas {
+        let me = &mut sim.organisms[i];
+        if djoy < 0 {
+            me.joy_ticks = me.joy_ticks.saturating_sub((-djoy) as u32);
+        } else if djoy > 0 {
+            me.joy_ticks = (me.joy_ticks + djoy as u32).min(1200);
+        }
+        if dgrief < 0 {
+            me.grief_ticks = me.grief_ticks.saturating_sub((-dgrief) as u32);
+        } else if dgrief > 0 {
+            me.grief_ticks = (me.grief_ticks + dgrief as u32).min(400);
+        }
+        if dcomf != 0.0 {
+            me.comfort = (me.comfort + dcomf).clamp(0.0, 1.0);
         }
     }
 }
