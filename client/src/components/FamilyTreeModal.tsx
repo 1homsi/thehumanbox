@@ -133,6 +133,21 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
 
   const { nodes, maxGen } = useMemo(() => layoutTree(organisms), [organisms])
 
+  const generationLabels = useMemo(() => {
+    const seen = new Map<number, number>()
+    let minNodeX = Infinity
+    for (const n of nodes) {
+      if (n.x < minNodeX) minNodeX = n.x
+      if (!seen.has(n.org.generation)) seen.set(n.org.generation, n.y)
+    }
+    const labels: { gen: number; x: number; y: number }[] = []
+    for (const [gen, y] of seen) {
+      labels.push({ gen, x: minNodeX - 40, y })
+    }
+    labels.sort((a, b) => a.gen - b.gen)
+    return labels
+  }, [nodes])
+
   const { motherEdges, paternityEdges, partnerEdges } = useMemo(() => {
     const byId = new Map<string, NodePos>()
     for (const n of nodes) byId.set(n.org.id, n)
@@ -186,7 +201,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
 
     const zoom = d3
       .zoom<HTMLCanvasElement, unknown>()
-      .scaleExtent([0.08, 4])
+      .scaleExtent([0.015, 4])
       .on('zoom', (event) => setTf(event.transform))
 
     sel.call(zoom)
@@ -205,14 +220,23 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
     if (!canvas || !wrap || !zoom || !nodes.length) return
     const vw = wrap.clientWidth
     const vh = wrap.clientHeight
-    const xs = nodes.map((n) => n.x)
-    const ys = nodes.map((n) => n.y)
-    const treeW = Math.max(...xs) - Math.min(...xs) + NODE_R * 2 + 60
-    const treeH = Math.max(...ys) - Math.min(...ys) + NODE_R * 2 + 60
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+    for (const n of nodes) {
+      if (n.x < minX) minX = n.x
+      if (n.x > maxX) maxX = n.x
+      if (n.y < minY) minY = n.y
+      if (n.y > maxY) maxY = n.y
+    }
+    const PAD = 80
+    const treeW = (maxX - minX) + NODE_R * 2 + PAD * 2
+    const treeH = (maxY - minY) + NODE_R * 2 + PAD * 2
     const k = Math.min(vw / treeW, vh / treeH, 1)
-    const tx = (vw - (Math.max(...xs) + Math.min(...xs)) * k) / 2
-    const ty = -Math.min(...ys) * k + 60
-    d3.select(canvas).call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(k))
+    const kClamped = Math.max(k, 0.015)
+    const cx = (minX + maxX) / 2
+    const cy = (minY + maxY) / 2
+    const tx = vw / 2 - cx * kClamped
+    const ty = vh / 2 - cy * kClamped
+    d3.select(canvas).call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(kClamped))
   }, [nodes])
 
   const draw = useCallback(() => {
@@ -240,11 +264,8 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
     ctx.font = '9px monospace'
     ctx.fillStyle = '#3a3028'
     ctx.textAlign = 'left'
-    const genSet = [...new Set(nodes.map((n) => n.org.generation))].sort((a, b) => a - b)
-    const minNodeX = Math.min(...nodes.map((n) => n.x))
-    for (const gen of genSet) {
-      const gy = nodes.find((n) => n.org.generation === gen)?.y ?? gen * ROW_H
-      ctx.fillText(`generation ${gen}`, minNodeX - 40, gy - NODE_R - 6)
+    for (const lbl of generationLabels) {
+      ctx.fillText(`generation ${lbl.gen}`, lbl.x, lbl.y - NODE_R - 6)
     }
 
     ctx.lineWidth = 1.2
@@ -318,12 +339,24 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
       }
     }
 
+    const showText = ts > 0.35
+    const showGlyphs = ts > 0.22
+    const showShape = ts > 0.05
+
     for (const { org, x, y } of nodes) {
       const color = lineageColor(org.lineage_id)
       const isAlive = org.alive
       const isHover = org.id === hoverId
       const isFemale = org.sex === 'female'
       const isPartnered = !!org.partner_id
+
+      if (!showShape) {
+        ctx.globalAlpha = isAlive ? 0.7 : 0.25
+        ctx.fillStyle = color
+        ctx.fillRect(x - 4, y - 4, 8, 8)
+        ctx.globalAlpha = 1
+        continue
+      }
 
       if (isHover) {
         ctx.shadowColor = color
@@ -344,7 +377,7 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
       ctx.shadowBlur = 0
       ctx.globalAlpha = 1
 
-      if (isPartnered && isAlive) {
+      if (isPartnered && isAlive && showGlyphs) {
         ctx.fillStyle = '#c97'
         ctx.globalAlpha = 0.9
         ctx.beginPath()
@@ -353,43 +386,47 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
         ctx.globalAlpha = 1
       }
 
-      ctx.font = `${isHover ? 600 : 500} 9.5px monospace`
-      ctx.fillStyle = isAlive ? (isHover ? '#fff' : '#d0c8c0') : '#555'
-      ctx.textAlign = 'center'
-      ctx.fillText(org.name + (isAlive ? '' : ' †'), x, y + NODE_R + 13)
-
-      ctx.font = '8px monospace'
-      ctx.fillStyle = '#4a3e35'
-      ctx.fillText(`${Math.floor(org.age / DAY_LENGTH)}d · g${org.generation}`, x, y + NODE_R + 24)
-
-      const hasFire = org.discoveries?.includes('fire')
-      const hasHut = org.discoveries?.includes('shelter')
-      if (hasFire || hasHut) {
-        ctx.font = '9px sans-serif'
+      if (showText) {
+        ctx.font = `${isHover ? 600 : 500} 9.5px monospace`
+        ctx.fillStyle = isAlive ? (isHover ? '#fff' : '#d0c8c0') : '#555'
         ctx.textAlign = 'center'
-        ctx.fillText((hasFire ? '🔥' : '') + (hasHut ? '🏠' : ''), x, y - 3)
-      } else {
-        ctx.font = '600 11px monospace'
-        ctx.fillStyle = isAlive ? color : '#444'
-        ctx.globalAlpha = isAlive ? 0.9 : 0.4
-        ctx.textAlign = 'center'
-        ctx.fillText(org.name[0], x, y - 3)
-        ctx.globalAlpha = 1
+        ctx.fillText(org.name + (isAlive ? '' : ' †'), x, y + NODE_R + 13)
+
+        ctx.font = '8px monospace'
+        ctx.fillStyle = '#4a3e35'
+        ctx.fillText(`${Math.floor(org.age / DAY_LENGTH)}d · g${org.generation}`, x, y + NODE_R + 24)
       }
 
-      const sw = sexWords ? (isFemale ? sexWords[1] : sexWords[0]) : null
-      if (sw) {
-        ctx.font = '500 7px monospace'
-        ctx.fillStyle = isFemale ? '#e09ab0' : '#7ab0e0'
-        ctx.globalAlpha = isAlive ? 0.85 : 0.35
-        ctx.textAlign = 'center'
-        ctx.fillText(sw, x, y + 9)
-        ctx.globalAlpha = 1
+      if (showGlyphs) {
+        const hasFire = org.discoveries?.includes('fire')
+        const hasHut = org.discoveries?.includes('shelter')
+        if (hasFire || hasHut) {
+          ctx.font = '9px sans-serif'
+          ctx.textAlign = 'center'
+          ctx.fillText((hasFire ? '🔥' : '') + (hasHut ? '🏠' : ''), x, y - 3)
+        } else {
+          ctx.font = '600 11px monospace'
+          ctx.fillStyle = isAlive ? color : '#444'
+          ctx.globalAlpha = isAlive ? 0.9 : 0.4
+          ctx.textAlign = 'center'
+          ctx.fillText(org.name[0], x, y - 3)
+          ctx.globalAlpha = 1
+        }
+
+        const sw = sexWords ? (isFemale ? sexWords[1] : sexWords[0]) : null
+        if (sw && showText) {
+          ctx.font = '500 7px monospace'
+          ctx.fillStyle = isFemale ? '#e09ab0' : '#7ab0e0'
+          ctx.globalAlpha = isAlive ? 0.85 : 0.35
+          ctx.textAlign = 'center'
+          ctx.fillText(sw, x, y + 9)
+          ctx.globalAlpha = 1
+        }
       }
     }
 
     ctx.restore()
-  }, [nodes, motherEdges, paternityEdges, partnerEdges, hoverId, sexWords, linkPath])
+  }, [nodes, motherEdges, paternityEdges, partnerEdges, hoverId, sexWords, linkPath, generationLabels])
 
   useEffect(() => {
     draw()
@@ -420,25 +457,38 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
     const zoom = zoomRef.current ?? undefined
     if (canvas && zoom) d3.select(canvas).transition().duration(150).call(zoom.scaleBy, factor)
   }
-  const fitAll = () => {
+  const fitTo = (filter: (n: NodePos) => boolean) => {
     const canvas = canvasRef.current
     const wrap = wrapRef.current
     const zoom = zoomRef.current ?? undefined
-    if (!canvas || !wrap || !zoom || !nodes.length) return
+    if (!canvas || !wrap || !zoom) return
+    const targets = nodes.filter(filter)
+    if (targets.length === 0) return
     const vw = wrap.clientWidth
     const vh = wrap.clientHeight
-    const xs = nodes.map((n) => n.x)
-    const ys = nodes.map((n) => n.y)
-    const treeW = Math.max(...xs) - Math.min(...xs) + NODE_R * 2 + 60
-    const treeH = Math.max(...ys) - Math.min(...ys) + NODE_R * 2 + 60
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+    for (const n of targets) {
+      if (n.x < minX) minX = n.x
+      if (n.x > maxX) maxX = n.x
+      if (n.y < minY) minY = n.y
+      if (n.y > maxY) maxY = n.y
+    }
+    const PAD = 80
+    const treeW = (maxX - minX) + NODE_R * 2 + PAD * 2
+    const treeH = (maxY - minY) + NODE_R * 2 + PAD * 2
     const k = Math.min(vw / treeW, vh / treeH, 1)
-    const tx = (vw - (Math.max(...xs) + Math.min(...xs)) * k) / 2
-    const ty = -Math.min(...ys) * k + 60
+    const kClamped = Math.max(k, 0.015)
+    const cx = (minX + maxX) / 2
+    const cy = (minY + maxY) / 2
+    const tx = vw / 2 - cx * kClamped
+    const ty = vh / 2 - cy * kClamped
     d3.select(canvas)
       .transition()
       .duration(200)
-      .call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(k))
+      .call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(kClamped))
   }
+  const fitAll = () => fitTo(() => true)
+  const fitAlive = () => fitTo((n) => n.org.alive)
 
   const hovered = hoverId != null ? (organisms.find((o) => o.id === hoverId) ?? null) : null
 
@@ -525,8 +575,11 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
         <button className="tree-zoom-btn" onClick={() => zoomBy(1.25)}>
           ＋
         </button>
-        <button className="tree-zoom-btn" onClick={fitAll}>
-          fit
+        <button className="tree-zoom-btn" onClick={fitAll} title="Fit all generations">
+          fit all
+        </button>
+        <button className="tree-zoom-btn" onClick={fitAlive} title="Fit only living organisms">
+          fit alive
         </button>
         <button className="tree-zoom-btn" onClick={() => zoomBy(0.8)}>
           －
