@@ -90,6 +90,90 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick > 0 && tick % 60 == 0 {
         tick_mood_contagion(sim);
     }
+    if tick > 0 && tick % 600 == 0 && sim.is_night() {
+        tick_partner_pillow_talk(sim);
+    }
+}
+
+fn tick_partner_pillow_talk(sim: &mut Simulation) {
+    use crate::organism::memory::{MemoryEntry, MemoryKind};
+    let tick = sim.tick_count;
+    let pairs: Vec<(usize, usize)> = {
+        let mut by_id: std::collections::HashMap<&str, usize> = std::collections::HashMap::new();
+        for (i, o) in sim.organisms.iter().enumerate() {
+            if o.alive {
+                by_id.insert(o.id.as_str(), i);
+            }
+        }
+        let mut out: Vec<(usize, usize)> = Vec::new();
+        let mut seen: std::collections::HashSet<(usize, usize)> = std::collections::HashSet::new();
+        for (i, o) in sim.organisms.iter().enumerate() {
+            if !o.alive {
+                continue;
+            }
+            let Some(ref pid) = o.partner_id else { continue };
+            let Some(&j) = by_id.get(pid.as_str()) else {
+                continue;
+            };
+            if i == j {
+                continue;
+            }
+            let p = &sim.organisms[j];
+            if !p.alive {
+                continue;
+            }
+            if (p.x - o.x).abs() + (p.y - o.y).abs() > 2.5 {
+                continue;
+            }
+            let key = if i < j { (i, j) } else { (j, i) };
+            if seen.insert(key) {
+                out.push(key);
+            }
+        }
+        out
+    };
+
+    for (a, b) in pairs {
+        let from_a = sim.organisms[a]
+            .memories
+            .pick_for_reflection(Some(true))
+            .map(|m| (m.text.clone(), m.emotion));
+        let from_b = sim.organisms[b]
+            .memories
+            .pick_for_reflection(Some(true))
+            .map(|m| (m.text.clone(), m.emotion));
+
+        if let Some((text, emotion)) = from_a {
+            let a_name = sim.organisms[a].name.clone();
+            let a_id = sim.organisms[a].id.clone();
+            let lower = text.trim_end_matches('.').to_lowercase();
+            let entry = MemoryEntry::new(
+                MemoryKind::Bond,
+                format!("at night, {} told me — {}", a_name, lower),
+                tick,
+            )
+            .with_salience(0.65)
+            .with_emotion((emotion as i32 / 2).clamp(-2, 2) as i8)
+            .with_related(a_id);
+            sim.organisms[b].memories.insert(entry);
+            sim.organisms[b].comfort = (sim.organisms[b].comfort + 0.01).min(1.0);
+        }
+        if let Some((text, emotion)) = from_b {
+            let b_name = sim.organisms[b].name.clone();
+            let b_id = sim.organisms[b].id.clone();
+            let lower = text.trim_end_matches('.').to_lowercase();
+            let entry = MemoryEntry::new(
+                MemoryKind::Bond,
+                format!("at night, {} told me — {}", b_name, lower),
+                tick,
+            )
+            .with_salience(0.65)
+            .with_emotion((emotion as i32 / 2).clamp(-2, 2) as i8)
+            .with_related(b_id);
+            sim.organisms[a].memories.insert(entry);
+            sim.organisms[a].comfort = (sim.organisms[a].comfort + 0.01).min(1.0);
+        }
+    }
 }
 
 fn tick_maybe_eclipse(sim: &mut Simulation) {
