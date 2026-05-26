@@ -758,13 +758,13 @@ fn lineage_pop(sim: &Simulation, lid: &str) -> usize {
 }
 
 fn tick_age_stages(sim: &mut Simulation) {
+    use crate::organism::memory::{MemoryEntry, MemoryKind};
     let tick = sim.tick_count;
     for org in sim.organisms.iter_mut() {
         if !org.alive { continue; }
         let stage = org.age_stage();
         if stage == AgeStage::Elder && !org.is_elder {
             org.is_elder = true;
-            use crate::organism::memory::{MemoryEntry, MemoryKind};
             org.memories.insert(
                 MemoryEntry::new(
                     MemoryKind::Fact,
@@ -775,6 +775,31 @@ fn tick_age_stages(sim: &mut Simulation) {
                 .with_emotion(2),
             );
             org.joy_ticks = (org.joy_ticks + 80).min(1200);
+        }
+        if stage == AgeStage::Adult && !org.attributes.contains("milestone:adult") {
+            org.attributes.insert("milestone:adult".to_string());
+            org.memories.insert(
+                MemoryEntry::new(
+                    MemoryKind::Fact,
+                    "I am no longer a child — the world is mine to walk now",
+                    tick,
+                )
+                .with_salience(0.90)
+                .with_emotion(2),
+            );
+            org.joy_ticks = (org.joy_ticks + 50).min(1200);
+        }
+        if stage == AgeStage::Teen && !org.attributes.contains("milestone:teen") {
+            org.attributes.insert("milestone:teen".to_string());
+            org.memories.insert(
+                MemoryEntry::new(
+                    MemoryKind::Fact,
+                    "I am growing — my body changes and the elders watch",
+                    tick,
+                )
+                .with_salience(0.75)
+                .with_emotion(1),
+            );
         }
     }
 }
