@@ -1,10 +1,9 @@
-
-
 use crate::sim::simulation::Simulation;
 
 impl Simulation {
     pub(crate) fn nearest_lineage_at(&self, x: i32, y: i32) -> Option<String> {
-        self.organisms.iter()
+        self.organisms
+            .iter()
             .filter(|o| o.alive)
             .min_by(|a, b| {
                 let da = (a.x - x as f32).abs() + (a.y - y as f32).abs();

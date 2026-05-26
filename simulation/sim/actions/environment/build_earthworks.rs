@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 use crate::world::tiles::Tile;
 
@@ -9,7 +8,13 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     }
     ctx.org_mut().inv_stone -= 1;
     ctx.think("raising earth and stone into berms");
-    ctx.discover("earthworks", "constructed earthworks to shape and protect the landscape");
-    ctx.event("build", "raised earthen embankments to control water and define territory");
+    ctx.discover(
+        "earthworks",
+        "constructed earthworks to shape and protect the landscape",
+    );
+    ctx.event(
+        "build",
+        "raised earthen embankments to control water and define territory",
+    );
     0.010
 }

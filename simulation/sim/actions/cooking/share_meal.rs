@@ -1,8 +1,9 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if ctx.org().inv_food == 0 || ctx.kin.is_empty() { return 0.0; }
+    if ctx.org().inv_food == 0 || ctx.kin.is_empty() {
+        return 0.0;
+    }
     ctx.org_mut().inv_food -= 1;
     for i in 0..ctx.kin.len() {
         let ki = ctx.kin[i];

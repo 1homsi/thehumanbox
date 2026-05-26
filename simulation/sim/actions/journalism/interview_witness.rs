@@ -5,7 +5,9 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("no lead to follow");
         return 0.005;
     }
-    if ctx.chance(0.5) { ctx.add_good("quote", 1); }
+    if ctx.chance(0.5) {
+        ctx.add_good("quote", 1);
+    }
     ctx.add_literacy(0.005);
     ctx.think("a witness");
     ctx.event("chore", "interviewed a witness");

@@ -1,8 +1,9 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if ctx.kin.is_empty() { return 0.0; }
+    if ctx.kin.is_empty() {
+        return 0.0;
+    }
     ctx.think("gathering to honor those we have lost");
     for i in 0..ctx.kin.len() {
         let ki = ctx.kin[i];

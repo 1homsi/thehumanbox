@@ -1,25 +1,23 @@
-
-
 pub mod barter;
-pub mod set_price;
-pub mod create_market_stall;
-pub mod haggle;
-pub mod lend_goods;
 pub mod collect_debt;
-pub mod form_guild;
-pub mod weigh_goods;
+pub mod create_market_stall;
 pub mod distribute_wealth;
-pub mod hoard_resources;
 pub mod donate_to_poor;
 pub mod establish_trade_route;
-pub mod send_caravan;
-pub mod receive_caravan;
-pub mod pay_tribute;
-pub mod mint_coin;
-pub mod smuggle;
-pub mod inspect_goods;
+pub mod form_guild;
 pub mod grant_trade_rights;
+pub mod haggle;
+pub mod hoard_resources;
+pub mod inspect_goods;
+pub mod lend_goods;
+pub mod mint_coin;
+pub mod pay_tribute;
+pub mod receive_caravan;
+pub mod send_caravan;
+pub mod set_price;
+pub mod smuggle;
 pub mod tax_collection;
+pub mod weigh_goods;
 
 use super::ctx::ActionCtx;
 
@@ -45,6 +43,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         293 => inspect_goods::apply(ctx),
         294 => grant_trade_rights::apply(ctx),
         295 => tax_collection::apply(ctx),
-        _   => 0.0,
+        _ => 0.0,
     }
 }

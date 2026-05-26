@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -9,6 +8,9 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     ctx.org_mut().comfort = (ctx.org().comfort + 0.06).min(1.0);
     ctx.think("at peace with a long life");
     ctx.discover("wisdom", "made peace with the past and found true wisdom");
-    ctx.event("emotion", "an elder made peace with the past, passing wisdom to the group");
+    ctx.event(
+        "emotion",
+        "an elder made peace with the past, passing wisdom to the group",
+    );
     0.015
 }

@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -18,7 +17,10 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     }
     ctx.sim.organisms[ctx.idx].comfort = (ctx.sim.organisms[ctx.idx].comfort + 0.04).min(1.0);
     ctx.think("passing down tradition");
-    ctx.discover("oral_tradition", "preserved the family history through oral tradition");
+    ctx.discover(
+        "oral_tradition",
+        "preserved the family history through oral tradition",
+    );
     ctx.event("culture", "the elder recounted the lineage's history");
     0.015
 }

@@ -1,12 +1,10 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let lid = ctx.lid.clone();
     let pick = ctx.near.iter().copied().find(|&k| {
         let o = &ctx.sim.organisms[k];
-        o.lineage_id != lid
-            && ctx.sim.organisms[ctx.idx].attitude_toward(&o.lineage_id) < 0.0
+        o.lineage_id != lid && ctx.sim.organisms[ctx.idx].attitude_toward(&o.lineage_id) < 0.0
     });
     let Some(ki) = pick else {
         ctx.think("looking for a quarrel to settle");

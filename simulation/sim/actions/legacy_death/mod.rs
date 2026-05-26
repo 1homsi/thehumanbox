@@ -1,20 +1,18 @@
-
-
-pub mod write_will;
-pub mod prepare_tomb;
-pub mod memorialize;
-pub mod build_grave_marker;
-pub mod pass_down_knowledge;
-pub mod carry_on_tradition;
 pub mod avenge_death;
-pub mod honor_ancestors;
-pub mod erect_memorial;
-pub mod compose_eulogy;
-pub mod divide_estate;
-pub mod continue_unfinished_work;
-pub mod rename_in_honor;
-pub mod establish_dynasty;
 pub mod break_family_curse;
+pub mod build_grave_marker;
+pub mod carry_on_tradition;
+pub mod compose_eulogy;
+pub mod continue_unfinished_work;
+pub mod divide_estate;
+pub mod erect_memorial;
+pub mod establish_dynasty;
+pub mod honor_ancestors;
+pub mod memorialize;
+pub mod pass_down_knowledge;
+pub mod prepare_tomb;
+pub mod rename_in_honor;
+pub mod write_will;
 
 use super::ctx::ActionCtx;
 
@@ -35,6 +33,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         498 => rename_in_honor::apply(ctx),
         499 => establish_dynasty::apply(ctx),
         500 => break_family_curse::apply(ctx),
-        _   => 0.0,
+        _ => 0.0,
     }
 }

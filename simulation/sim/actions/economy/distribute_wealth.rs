@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -22,8 +21,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         let ki = ctx.kin[i];
         ctx.sim.organisms[ki].inv_food += share;
     }
-    ctx.sim.organisms[ctx.idx].inv_food =
-        food.saturating_sub(share * count as u8);
+    ctx.sim.organisms[ctx.idx].inv_food = food.saturating_sub(share * count as u8);
     ctx.think("distributing wealth among kin");
     ctx.event("social", "shared food equally with all kin");
     0.01

@@ -1,9 +1,7 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    let has_elder_kin = ctx.kin.iter().copied()
-        .any(|k| ctx.sim.organisms[k].is_elder);
+    let has_elder_kin = ctx.kin.iter().copied().any(|k| ctx.sim.organisms[k].is_elder);
     if !has_elder_kin {
         ctx.think("no elder kin worthy of anointment");
         return 0.0;

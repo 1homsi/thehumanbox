@@ -1,12 +1,10 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let lid = ctx.lid.clone();
     let pick = ctx.kin.iter().copied().find(|&k| {
         let kin_lid = ctx.sim.organisms[k].lineage_id.clone();
-        ctx.sim.organisms[ctx.idx].attitude_toward(&kin_lid) < -0.1
-            || ctx.sim.organisms[k].comfort < 0.2
+        ctx.sim.organisms[ctx.idx].attitude_toward(&kin_lid) < -0.1 || ctx.sim.organisms[k].comfort < 0.2
     });
     let Some(ki) = pick else {
         ctx.think("no member deserves exile");

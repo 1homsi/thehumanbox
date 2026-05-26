@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -6,8 +5,8 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("bearing burdens alone");
         return 0.0;
     }
-    let my_food  = ctx.sim.organisms[ctx.idx].inv_food;
-    let my_wood  = ctx.sim.organisms[ctx.idx].inv_wood;
+    let my_food = ctx.sim.organisms[ctx.idx].inv_food;
+    let my_wood = ctx.sim.organisms[ctx.idx].inv_wood;
     let my_stone = ctx.sim.organisms[ctx.idx].inv_stone;
 
     if my_food == 0 && my_wood == 0 && my_stone == 0 {

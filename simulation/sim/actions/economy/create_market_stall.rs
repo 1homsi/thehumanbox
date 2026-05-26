@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 use crate::world::tiles::Tile;
 
@@ -7,8 +6,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("needs open ground for a stall");
         return 0.0;
     }
-    let has_mat = ctx.sim.organisms[ctx.idx].inv_wood > 0
-        || ctx.sim.organisms[ctx.idx].inv_stone > 0;
+    let has_mat = ctx.sim.organisms[ctx.idx].inv_wood > 0 || ctx.sim.organisms[ctx.idx].inv_stone > 0;
     if !has_mat {
         ctx.think("needs materials to build a stall");
         return 0.0;

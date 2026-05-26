@@ -1,20 +1,18 @@
-
-
-pub mod test_hypothesis;
-pub mod document_finding;
 pub mod build_measuring_tool;
-pub mod map_stars_precise;
-pub mod predict_eclipse;
-pub mod develop_mathematics;
-pub mod test_material_strength;
-pub mod improve_tool;
-pub mod share_scientific_discovery;
-pub mod refute_theory;
-pub mod conduct_experiment;
-pub mod establish_methodology;
-pub mod create_classification;
-pub mod observe_eclipse;
 pub mod calculate_seasons;
+pub mod conduct_experiment;
+pub mod create_classification;
+pub mod develop_mathematics;
+pub mod document_finding;
+pub mod establish_methodology;
+pub mod improve_tool;
+pub mod map_stars_precise;
+pub mod observe_eclipse;
+pub mod predict_eclipse;
+pub mod refute_theory;
+pub mod share_scientific_discovery;
+pub mod test_hypothesis;
+pub mod test_material_strength;
 
 use super::ctx::ActionCtx;
 
@@ -35,6 +33,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         433 => create_classification::apply(ctx),
         434 => observe_eclipse::apply(ctx),
         435 => calculate_seasons::apply(ctx),
-        _   => 0.0,
+        _ => 0.0,
     }
 }

@@ -1,25 +1,23 @@
-
-
-pub mod start_school;
-pub mod teach_class;
-pub mod graduate_student;
-pub mod write_scroll;
-pub mod copy_scroll;
-pub mod read_scroll;
-pub mod preserve_knowledge;
+pub mod award_mastery;
 pub mod burn_scroll;
+pub mod challenge_belief;
+pub mod compile_knowledge;
+pub mod copy_scroll;
+pub mod create_curriculum;
 pub mod debate_philosophy;
 pub mod form_academy;
 pub mod give_lecture;
+pub mod graduate_student;
 pub mod mentor_apprentice;
-pub mod test_knowledge;
-pub mod award_mastery;
-pub mod challenge_belief;
+pub mod preserve_knowledge;
+pub mod read_scroll;
 pub mod recant_belief;
 pub mod spread_learning;
-pub mod compile_knowledge;
-pub mod create_curriculum;
+pub mod start_school;
+pub mod teach_class;
 pub mod teach_language;
+pub mod test_knowledge;
+pub mod write_scroll;
 
 use super::ctx::ActionCtx;
 
@@ -45,6 +43,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         518 => compile_knowledge::apply(ctx),
         519 => create_curriculum::apply(ctx),
         520 => teach_language::apply(ctx),
-        _   => 0.0,
+        _ => 0.0,
     }
 }

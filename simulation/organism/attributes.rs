@@ -1,6 +1,6 @@
-use std::collections::HashSet;
-use rand::Rng;
 use super::organism::Organism;
+use rand::Rng;
+use std::collections::HashSet;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // INHERITABLE SETS
@@ -9,24 +9,84 @@ use super::organism::Organism;
 // ─────────────────────────────────────────────────────────────────────────────
 
 pub const INHERITABLE_PHYSICAL: &[&str] = &[
-    "handsome", "beautiful", "tall", "short-statured", "stocky", "lithe", "wiry",
-    "broad-shouldered", "long-limbed", "pale", "sun-dark", "ruddy", "freckled",
-    "fair-haired", "dark-haired", "auburn-haired", "curly-haired", "raven-haired",
-    "silver-streaked", "amber-eyed", "pale-eyed", "keen-eyed", "sharp-eared",
-    "keen-nosed", "deep-voiced", "soft-spoken", "high-voiced", "left-handed",
-    "nimble", "swift", "strong", "sturdy", "graceful", "marked",
-    "hollow-cheeked", "broad-browed", "sharp-featured", "heavy-set",
-    "lean", "sun-kissed",
+    "handsome",
+    "beautiful",
+    "tall",
+    "short-statured",
+    "stocky",
+    "lithe",
+    "wiry",
+    "broad-shouldered",
+    "long-limbed",
+    "pale",
+    "sun-dark",
+    "ruddy",
+    "freckled",
+    "fair-haired",
+    "dark-haired",
+    "auburn-haired",
+    "curly-haired",
+    "raven-haired",
+    "silver-streaked",
+    "amber-eyed",
+    "pale-eyed",
+    "keen-eyed",
+    "sharp-eared",
+    "keen-nosed",
+    "deep-voiced",
+    "soft-spoken",
+    "high-voiced",
+    "left-handed",
+    "nimble",
+    "swift",
+    "strong",
+    "sturdy",
+    "graceful",
+    "marked",
+    "hollow-cheeked",
+    "broad-browed",
+    "sharp-featured",
+    "heavy-set",
+    "lean",
+    "sun-kissed",
 ];
 
 pub const INHERITABLE_PERSONALITY: &[&str] = &[
-    "curious", "bold", "cautious", "patient", "restless", "stubborn",
-    "gentle", "fierce", "serene", "anxious", "cheerful", "brooding",
-    "intuitive", "methodical", "dreamful", "watchful", "talkative", "shy",
-    "headstrong", "tender", "brave", "resilient", "quick-witted",
-    "wandering-heart", "delicate", "iron-willed", "warm-hearted",
-    "cold-hearted", "fiery", "even-tempered", "mercurial",
-    "night-walker", "secretive", "open-hearted", "suspicious",
+    "curious",
+    "bold",
+    "cautious",
+    "patient",
+    "restless",
+    "stubborn",
+    "gentle",
+    "fierce",
+    "serene",
+    "anxious",
+    "cheerful",
+    "brooding",
+    "intuitive",
+    "methodical",
+    "dreamful",
+    "watchful",
+    "talkative",
+    "shy",
+    "headstrong",
+    "tender",
+    "brave",
+    "resilient",
+    "quick-witted",
+    "wandering-heart",
+    "delicate",
+    "iron-willed",
+    "warm-hearted",
+    "cold-hearted",
+    "fiery",
+    "even-tempered",
+    "mercurial",
+    "night-walker",
+    "secretive",
+    "open-hearted",
+    "suspicious",
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -35,77 +95,85 @@ pub const INHERITABLE_PERSONALITY: &[&str] = &[
 
 pub const BIRTH_ATTRS_COMMON: &[(&str, f32)] = &[
     // ── physical appearance ──────────────────────────────────
-    ("handsome",          0.14),
-    ("beautiful",         0.14),
-    ("tall",              0.20),
-    ("short-statured",    0.12),
-    ("stocky",            0.15),
-    ("lithe",             0.15),
-    ("wiry",              0.13),
-    ("strong",            0.16),
-    ("sturdy",            0.14),
-    ("graceful",          0.12),
-    ("lean",              0.15),
-    ("heavy-set",         0.10),
-    ("broad-shouldered",  0.14),
-    ("long-limbed",       0.12),
-    ("hollow-cheeked",    0.10),
-    ("broad-browed",      0.11),
-    ("sharp-featured",    0.10),
-    ("marked",            0.05),  // rare - distinctive birthmark or feature
-    ("pale",              0.10),
-    ("sun-dark",          0.12),
-    ("ruddy",             0.12),
-    ("freckled",          0.15),
-    ("sun-kissed",        0.12),
-    ("fair-haired",       0.14),
-    ("dark-haired",       0.18),
-    ("auburn-haired",     0.08),
-    ("curly-haired",      0.12),
-    ("raven-haired",      0.07),
-    ("silver-streaked",   0.04),  // born with grey streaks - rare
-    ("amber-eyed",        0.08),
-    ("pale-eyed",         0.07),
-    ("keen-eyed",         0.16),
-    ("sharp-eared",       0.12),
-    ("keen-nosed",        0.10),
-    ("deep-voiced",       0.12),
-    ("high-voiced",       0.10),
-    ("soft-spoken",       0.10),
-    ("left-handed",       0.10),
-    ("swift",             0.15),
-    ("nimble",            0.14),
+    ("handsome", 0.14),
+    ("beautiful", 0.14),
+    ("tall", 0.20),
+    ("short-statured", 0.12),
+    ("stocky", 0.15),
+    ("lithe", 0.15),
+    ("wiry", 0.13),
+    ("strong", 0.16),
+    ("sturdy", 0.14),
+    ("graceful", 0.12),
+    ("lean", 0.15),
+    ("heavy-set", 0.10),
+    ("broad-shouldered", 0.14),
+    ("long-limbed", 0.12),
+    ("hollow-cheeked", 0.10),
+    ("broad-browed", 0.11),
+    ("sharp-featured", 0.10),
+    ("marked", 0.05), // rare - distinctive birthmark or feature
+    ("pale", 0.10),
+    ("sun-dark", 0.12),
+    ("ruddy", 0.12),
+    ("freckled", 0.15),
+    ("sun-kissed", 0.12),
+    ("fair-haired", 0.14),
+    ("dark-haired", 0.18),
+    ("auburn-haired", 0.08),
+    ("curly-haired", 0.12),
+    ("raven-haired", 0.07),
+    ("silver-streaked", 0.04), // born with grey streaks - rare
+    ("amber-eyed", 0.08),
+    ("pale-eyed", 0.07),
+    ("keen-eyed", 0.16),
+    ("sharp-eared", 0.12),
+    ("keen-nosed", 0.10),
+    ("deep-voiced", 0.12),
+    ("high-voiced", 0.10),
+    ("soft-spoken", 0.10),
+    ("left-handed", 0.10),
+    ("swift", 0.15),
+    ("nimble", 0.14),
     // ── innate personality (unconditional) ───────────────────
-    ("dreamful",          0.12),
-    ("intuitive",         0.15),
-    ("methodical",        0.13),
-    ("stubborn",          0.16),
-    ("cheerful",          0.14),
-    ("brooding",          0.10),
-    ("tender",            0.13),
-    ("headstrong",        0.14),
-    ("secretive",         0.10),
-    ("open-hearted",      0.12),
-    ("suspicious",        0.11),
-    ("warm-hearted",      0.13),
-    ("cold-hearted",      0.07),
-    ("fiery",             0.11),
-    ("even-tempered",     0.12),
-    ("mercurial",         0.09),
-    ("watchful",          0.13),
-    ("night-walker",      0.08),
-    ("frost-born",        0.06),
-    ("twin-born",         0.03),  // very rare
+    ("dreamful", 0.12),
+    ("intuitive", 0.15),
+    ("methodical", 0.13),
+    ("stubborn", 0.16),
+    ("cheerful", 0.14),
+    ("brooding", 0.10),
+    ("tender", 0.13),
+    ("headstrong", 0.14),
+    ("secretive", 0.10),
+    ("open-hearted", 0.12),
+    ("suspicious", 0.11),
+    ("warm-hearted", 0.13),
+    ("cold-hearted", 0.07),
+    ("fiery", 0.11),
+    ("even-tempered", 0.12),
+    ("mercurial", 0.09),
+    ("watchful", 0.13),
+    ("night-walker", 0.08),
+    ("frost-born", 0.06),
+    ("twin-born", 0.03), // very rare
 ];
 
 // Assign birth attributes. Called once on creation (in growth.rs).
 pub fn assign_birth_attributes(org: &mut Organism, rng: &mut impl Rng) {
     for &(attr, prob) in BIRTH_ATTRS_COMMON {
         // sex-specific exclusions
-        if attr == "handsome"    && org.sex == super::organism::Sex::Female { continue; }
-        if attr == "beautiful"   && org.sex == super::organism::Sex::Male   { continue; }
-        if attr == "deep-voiced" && org.sex == super::organism::Sex::Female { continue; }
-        if attr == "high-voiced" && org.sex == super::organism::Sex::Male   { continue; }
+        if attr == "handsome" && org.sex == super::organism::Sex::Female {
+            continue;
+        }
+        if attr == "beautiful" && org.sex == super::organism::Sex::Male {
+            continue;
+        }
+        if attr == "deep-voiced" && org.sex == super::organism::Sex::Female {
+            continue;
+        }
+        if attr == "high-voiced" && org.sex == super::organism::Sex::Male {
+            continue;
+        }
         if rng.random::<f32>() < prob {
             org.attributes.insert(attr.to_string());
         }
@@ -113,64 +181,104 @@ pub fn assign_birth_attributes(org: &mut Organism, rng: &mut impl Rng) {
 
     // Trait-gated
     if org.traits.curiosity > 0.62 {
-        if rng.random::<f32>() < 0.70 { org.attributes.insert("curious".into()); }
+        if rng.random::<f32>() < 0.70 {
+            org.attributes.insert("curious".into());
+        }
     }
     if org.traits.curiosity > 0.75 {
-        if rng.random::<f32>() < 0.55 { org.attributes.insert("quick-witted".into()); }
+        if rng.random::<f32>() < 0.55 {
+            org.attributes.insert("quick-witted".into());
+        }
     }
     if org.traits.aggression > 0.65 {
-        if rng.random::<f32>() < 0.65 { org.attributes.insert("bold".into()); }
+        if rng.random::<f32>() < 0.65 {
+            org.attributes.insert("bold".into());
+        }
     }
     if org.traits.aggression > 0.78 {
-        if rng.random::<f32>() < 0.50 { org.attributes.insert("fierce".into()); }
+        if rng.random::<f32>() < 0.50 {
+            org.attributes.insert("fierce".into());
+        }
     }
     if org.traits.aggression < 0.30 {
-        if rng.random::<f32>() < 0.60 { org.attributes.insert("gentle".into()); }
+        if rng.random::<f32>() < 0.60 {
+            org.attributes.insert("gentle".into());
+        }
     }
     if org.traits.fear > 0.65 {
-        if rng.random::<f32>() < 0.55 { org.attributes.insert("cautious".into()); }
+        if rng.random::<f32>() < 0.55 {
+            org.attributes.insert("cautious".into());
+        }
     }
     if org.traits.fear > 0.80 {
-        if rng.random::<f32>() < 0.40 { org.attributes.insert("anxious".into()); }
+        if rng.random::<f32>() < 0.40 {
+            org.attributes.insert("anxious".into());
+        }
     }
     if org.traits.fear < 0.28 {
-        if rng.random::<f32>() < 0.60 { org.attributes.insert("brave".into()); }
+        if rng.random::<f32>() < 0.60 {
+            org.attributes.insert("brave".into());
+        }
     }
     if org.traits.social_tendency > 0.68 {
-        if rng.random::<f32>() < 0.60 { org.attributes.insert("talkative".into()); }
+        if rng.random::<f32>() < 0.60 {
+            org.attributes.insert("talkative".into());
+        }
     }
     if org.traits.social_tendency < 0.28 {
-        if rng.random::<f32>() < 0.55 { org.attributes.insert("shy".into()); }
+        if rng.random::<f32>() < 0.55 {
+            org.attributes.insert("shy".into());
+        }
     }
     if org.traits.resilience > 0.72 {
-        if rng.random::<f32>() < 0.55 { org.attributes.insert("resilient".into()); }
+        if rng.random::<f32>() < 0.55 {
+            org.attributes.insert("resilient".into());
+        }
     }
     if org.traits.resilience > 0.82 {
-        if rng.random::<f32>() < 0.45 { org.attributes.insert("iron-willed".into()); }
+        if rng.random::<f32>() < 0.45 {
+            org.attributes.insert("iron-willed".into());
+        }
     }
     if org.traits.memory_strength > 0.72 {
-        if rng.random::<f32>() < 0.50 { org.attributes.insert("patient".into()); }
+        if rng.random::<f32>() < 0.50 {
+            org.attributes.insert("patient".into());
+        }
     }
     if org.traits.curiosity > 0.70 && org.traits.social_tendency < 0.35 {
-        if rng.random::<f32>() < 0.45 { org.attributes.insert("wandering-heart".into()); }
+        if rng.random::<f32>() < 0.45 {
+            org.attributes.insert("wandering-heart".into());
+        }
     }
     if org.traits.resilience < 0.30 {
-        if rng.random::<f32>() < 0.45 { org.attributes.insert("delicate".into()); }
+        if rng.random::<f32>() < 0.45 {
+            org.attributes.insert("delicate".into());
+        }
     }
     if org.traits.aggression < 0.25 && org.traits.social_tendency > 0.60 {
-        if rng.random::<f32>() < 0.45 { org.attributes.insert("serene".into()); }
+        if rng.random::<f32>() < 0.45 {
+            org.attributes.insert("serene".into());
+        }
     }
     if org.traits.aggression > 0.60 && org.traits.fear < 0.35 {
-        if rng.random::<f32>() < 0.40 { org.attributes.insert("restless".into()); }
+        if rng.random::<f32>() < 0.40 {
+            org.attributes.insert("restless".into());
+        }
     }
     if org.traits.aggression > 0.55 && org.traits.social_tendency > 0.55 {
-        if rng.random::<f32>() < 0.35 { org.attributes.insert("fiery".into()); }
+        if rng.random::<f32>() < 0.35 {
+            org.attributes.insert("fiery".into());
+        }
     }
     if org.traits.fear < 0.20 && org.traits.aggression > 0.70 {
-        if rng.random::<f32>() < 0.40 { org.attributes.insert("reckless".into()); }
+        if rng.random::<f32>() < 0.40 {
+            org.attributes.insert("reckless".into());
+        }
     }
     if org.traits.memory_strength > 0.80 && org.traits.curiosity > 0.65 {
-        if rng.random::<f32>() < 0.40 { org.attributes.insert("deep-minded".into()); }
+        if rng.random::<f32>() < 0.40 {
+            org.attributes.insert("deep-minded".into());
+        }
     }
 }
 
@@ -191,7 +299,7 @@ pub fn inherit_attributes_from_parents(
         let from_mother = mother_attrs.contains(*attr);
         let from_father = father_attrs.contains(*attr);
         let prob = match (from_mother, from_father) {
-            (true, true)  => 0.55,
+            (true, true) => 0.55,
             (true, false) | (false, true) => 0.28,
             (false, false) => 0.0,
         };
@@ -204,7 +312,7 @@ pub fn inherit_attributes_from_parents(
         let from_mother = mother_attrs.contains(*attr);
         let from_father = father_attrs.contains(*attr);
         let prob = match (from_mother, from_father) {
-            (true, true)  => 0.40,
+            (true, true) => 0.40,
             (true, false) | (false, true) => 0.18,
             (false, false) => 0.0,
         };
@@ -220,18 +328,30 @@ pub fn inherit_attributes_from_parents(
 // ─────────────────────────────────────────────────────────────────────────────
 
 pub fn check_earned_attributes(org: &mut Organism) -> bool {
-    let disc  = &org.discoveries;
+    let disc = &org.discoveries;
     let attrs = &mut org.attributes;
-    let prev  = attrs.len();
+    let prev = attrs.len();
 
     // ── Knowledge / learning ───────────────────────────────
     let disc_count = disc.len();
-    if disc_count >= 1  { attrs.insert("learned".into()); }
-    if disc_count >= 5  { attrs.insert("scholar".into()); }
-    if disc_count >= 10 { attrs.insert("wise".into()); }
-    if disc_count >= 18 { attrs.insert("polymath".into()); }
-    if disc_count >= 25 { attrs.insert("sage".into()); }
-    if disc_count >= 35 { attrs.insert("oracle".into()); }
+    if disc_count >= 1 {
+        attrs.insert("learned".into());
+    }
+    if disc_count >= 5 {
+        attrs.insert("scholar".into());
+    }
+    if disc_count >= 10 {
+        attrs.insert("wise".into());
+    }
+    if disc_count >= 18 {
+        attrs.insert("polymath".into());
+    }
+    if disc_count >= 25 {
+        attrs.insert("sage".into());
+    }
+    if disc_count >= 35 {
+        attrs.insert("oracle".into());
+    }
     if disc.contains("writing") || disc.contains("symbols") || disc.contains("develop_symbol") {
         attrs.insert("literate".into());
     }
@@ -404,19 +524,35 @@ pub fn check_earned_attributes(org: &mut Organism) -> bool {
         attrs.insert("timeless".into());
     }
     if org.children_count >= 1 {
-        let l = if org.sex == super::organism::Sex::Female { "mother" } else { "father" };
+        let l = if org.sex == super::organism::Sex::Female {
+            "mother"
+        } else {
+            "father"
+        };
         attrs.insert(l.into());
     }
     if org.children_count >= 3 {
-        let l = if org.sex == super::organism::Sex::Female { "mother-of-many" } else { "father-of-many" };
+        let l = if org.sex == super::organism::Sex::Female {
+            "mother-of-many"
+        } else {
+            "father-of-many"
+        };
         attrs.insert(l.into());
     }
     if org.children_count >= 5 {
-        let l = if org.sex == super::organism::Sex::Female { "matriarch" } else { "patriarch" };
+        let l = if org.sex == super::organism::Sex::Female {
+            "matriarch"
+        } else {
+            "patriarch"
+        };
         attrs.insert(l.into());
     }
     if org.children_count >= 8 {
-        let l = if org.sex == super::organism::Sex::Female { "great-mother" } else { "great-father" };
+        let l = if org.sex == super::organism::Sex::Female {
+            "great-mother"
+        } else {
+            "great-father"
+        };
         attrs.insert(l.into());
     }
     if org.generation == 0 {
@@ -436,8 +572,11 @@ pub fn check_earned_attributes(org: &mut Organism) -> bool {
     }
     // Held a partner but they're gone now - widowed
     if org.partner_id.is_none()
-       && org.life_log.iter().any(|e| e.category == "partnership" || e.text.contains("partner"))
-       && org.age > 600
+        && org
+            .life_log
+            .iter()
+            .any(|e| e.category == "partnership" || e.text.contains("partner"))
+        && org.age > 600
     {
         attrs.insert("widowed".into());
     }
@@ -514,9 +653,12 @@ pub fn check_earned_attributes(org: &mut Organism) -> bool {
     }
     // Orphaned: logged as child, parent died while young
     if !org.parent_id.is_empty()
-       && org.life_log.iter().any(|e| e.category == "loss" || e.text.contains("lost kin"))
-       && org.age < 2000
-       && !attrs.contains("grief-hardened")
+        && org
+            .life_log
+            .iter()
+            .any(|e| e.category == "loss" || e.text.contains("lost kin"))
+        && org.age < 2000
+        && !attrs.contains("grief-hardened")
     {
         attrs.insert("orphaned".into());
     }
@@ -529,8 +671,11 @@ pub fn check_earned_attributes(org: &mut Organism) -> bool {
     }
     // Hollow: had a partner who is now gone (different from widowed - more raw)
     if org.partner_id.is_none()
-       && org.life_log.iter().any(|e| e.text.contains("partner") || e.category == "partnership")
-       && org.grief_ticks > 100
+        && org
+            .life_log
+            .iter()
+            .any(|e| e.text.contains("partner") || e.category == "partnership")
+        && org.grief_ticks > 100
     {
         attrs.insert("hollow".into());
     }
@@ -548,8 +693,17 @@ pub fn check_earned_attributes(org: &mut Organism) -> bool {
         attrs.insert("iron-grief".into());
     }
     // Cursed - multiple tragedy markers at once
-    let tragedy_count = ["desolate", "shattered", "hollow", "forsaken", "bloodied", "plague-stricken"]
-        .iter().filter(|&&t| attrs.contains(t)).count();
+    let tragedy_count = [
+        "desolate",
+        "shattered",
+        "hollow",
+        "forsaken",
+        "bloodied",
+        "plague-stricken",
+    ]
+    .iter()
+    .filter(|&&t| attrs.contains(t))
+    .count();
     if tragedy_count >= 3 {
         attrs.insert("cursed".into());
     }

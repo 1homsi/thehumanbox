@@ -1,48 +1,48 @@
-pub mod prepare_clay;
-pub mod wedge_clay;
-pub mod knead_clay;
-pub mod pug_clay;
-pub mod sieve_clay;
-pub mod weigh_clay;
-pub mod center_on_wheel;
-pub mod open_form;
-pub mod pull_walls;
-pub mod collar_neck;
-pub mod shape_belly;
-pub mod trim_foot;
-pub mod footring_carved;
-pub mod attach_handle;
-pub mod attach_spout;
-pub mod burnish_leather_hard;
-pub mod etch_design;
-pub mod impress_seal;
-pub mod carve_pattern;
-pub mod slip_inlay;
-pub mod apply_slip;
 pub mod apply_engobe;
 pub mod apply_glaze;
+pub mod apply_slip;
+pub mod attach_handle;
+pub mod attach_spout;
+pub mod bisque_fire;
+pub mod bonfire_fire;
+pub mod brick_door;
+pub mod brush_glaze;
+pub mod burnish_fire;
+pub mod burnish_leather_hard;
+pub mod candling_low_fire;
+pub mod carve_pattern;
+pub mod center_on_wheel;
+pub mod collar_neck;
 pub mod double_dip;
 pub mod drip_glaze;
-pub mod brush_glaze;
-pub mod trail_glaze;
-pub mod sponge_glaze;
-pub mod stipple_glaze;
-pub mod sponge_off;
-pub mod load_kiln;
-pub mod stagger_load;
-pub mod brick_door;
-pub mod candling_low_fire;
-pub mod bisque_fire;
+pub mod etch_design;
+pub mod footring_carved;
 pub mod glaze_fire;
-pub mod reduction_fire;
+pub mod impress_seal;
+pub mod knead_clay;
+pub mod load_kiln;
+pub mod open_form;
 pub mod oxidation_fire;
-pub mod wood_fire;
-pub mod salt_fire;
-pub mod raku_fire;
 pub mod pit_fire;
-pub mod bonfire_fire;
+pub mod prepare_clay;
+pub mod pug_clay;
+pub mod pull_walls;
+pub mod raku_fire;
+pub mod reduction_fire;
+pub mod salt_fire;
+pub mod shape_belly;
+pub mod sieve_clay;
+pub mod slip_inlay;
 pub mod smoke_fire;
-pub mod burnish_fire;
+pub mod sponge_glaze;
+pub mod sponge_off;
+pub mod stagger_load;
+pub mod stipple_glaze;
+pub mod trail_glaze;
+pub mod trim_foot;
+pub mod wedge_clay;
+pub mod weigh_clay;
+pub mod wood_fire;
 
 use super::ctx::ActionCtx;
 
@@ -93,6 +93,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         4122 => bonfire_fire::apply(ctx),
         4123 => smoke_fire::apply(ctx),
         4124 => burnish_fire::apply(ctx),
-        _   => 0.0,
+        _ => 0.0,
     }
 }

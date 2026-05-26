@@ -115,7 +115,7 @@ const CATEGORIES: Array<{
 
 export function NotableOrgsModal({ organisms, onClose }: Props) {
   const [activeCat, setActiveCat] = useState<Category>('oldest')
-  const setSelectedOrgId = useUIStore((s) => s.setSelectedOrgId)
+  const selectOrg = useUIStore((s) => s.selectOrg)
 
   const rows = useMemo(() => {
     const cat = CATEGORIES.find((c) => c.id === activeCat)!
@@ -175,7 +175,7 @@ export function NotableOrgsModal({ organisms, onClose }: Props) {
                 <button
                   key={r.org.id}
                   onClick={() => {
-                    setSelectedOrgId(r.org.id)
+                    selectOrg(r.org.id)
                     onClose()
                   }}
                   style={{

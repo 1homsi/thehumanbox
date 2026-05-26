@@ -1,25 +1,23 @@
-
-
-pub mod plow_field;
-pub mod sow_seeds;
-pub mod weed_crops;
-pub mod water_crops;
-pub mod harvest_grain;
-pub mod thresh_grain;
-pub mod mill_grain;
-pub mod store_grain;
-pub mod rotate_crops;
-pub mod build_barn;
-pub mod tend_orchard;
-pub mod graft_tree;
-pub mod dry_fruit;
-pub mod press_oil;
-pub mod ferment_grain;
 pub mod brew_beer;
-pub mod plant_herb_garden;
+pub mod build_barn;
 pub mod build_greenhouse;
 pub mod compost_heap;
+pub mod dry_fruit;
+pub mod ferment_grain;
+pub mod graft_tree;
+pub mod harvest_grain;
+pub mod mill_grain;
+pub mod plant_herb_garden;
+pub mod plow_field;
+pub mod press_oil;
+pub mod rotate_crops;
 pub mod seed_saving;
+pub mod sow_seeds;
+pub mod store_grain;
+pub mod tend_orchard;
+pub mod thresh_grain;
+pub mod water_crops;
+pub mod weed_crops;
 
 use super::ctx::ActionCtx;
 
@@ -45,6 +43,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         353 => build_greenhouse::apply(ctx),
         354 => compost_heap::apply(ctx),
         355 => seed_saving::apply(ctx),
-        _   => 0.0,
+        _ => 0.0,
     }
 }

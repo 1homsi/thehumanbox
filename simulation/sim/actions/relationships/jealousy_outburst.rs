@@ -1,9 +1,11 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let lid = ctx.lid.clone();
-    let stranger = ctx.near.iter().copied()
+    let stranger = ctx
+        .near
+        .iter()
+        .copied()
         .find(|&k| ctx.sim.organisms[k].lineage_id != lid);
     let Some(_) = stranger else {
         ctx.think("no rival to envy");
@@ -13,11 +15,14 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("jealous but alone");
         return 0.0;
     }
-    let foreign_lids: Vec<String> = ctx.near.iter()
+    let foreign_lids: Vec<String> = ctx
+        .near
+        .iter()
         .map(|&k| ctx.sim.organisms[k].lineage_id.clone())
         .filter(|l| *l != lid)
         .collect::<std::collections::HashSet<_>>()
-        .into_iter().collect();
+        .into_iter()
+        .collect();
     for fl in &foreign_lids {
         ctx.sim.organisms[ctx.idx].update_attitude(fl, -0.04);
     }

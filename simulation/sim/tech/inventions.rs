@@ -1,13 +1,38 @@
-use serde::{Deserialize, Serialize};
 use crate::sim::era::Era;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Invention {
-    Wheel, Sail, Compass, PrintingPress, SteamEngine, Telegraph, Lightbulb,
-    Telephone, Camera, Radio, Television, Computer, Internet, Satellite,
-    Smartphone, Antibiotic, Vaccine, NuclearPower, Penicillin, Plastic,
-    Refrigerator, Automobile, Airplane, GPS, AIModel, Drone, SolarCell,
-    GeneEditing, ElectricCar, VR,
+    Wheel,
+    Sail,
+    Compass,
+    PrintingPress,
+    SteamEngine,
+    Telegraph,
+    Lightbulb,
+    Telephone,
+    Camera,
+    Radio,
+    Television,
+    Computer,
+    Internet,
+    Satellite,
+    Smartphone,
+    Antibiotic,
+    Vaccine,
+    NuclearPower,
+    Penicillin,
+    Plastic,
+    Refrigerator,
+    Automobile,
+    Airplane,
+    GPS,
+    AIModel,
+    Drone,
+    SolarCell,
+    GeneEditing,
+    ElectricCar,
+    VR,
 }
 
 impl Invention {
@@ -50,9 +75,32 @@ impl Invention {
             Invention::Wheel | Invention::Sail => Era::Bronze,
             Invention::Compass => Era::Medieval,
             Invention::PrintingPress => Era::Renaissance,
-            Invention::SteamEngine | Invention::Telegraph | Invention::Lightbulb | Invention::Telephone | Invention::Camera => Era::Industrial,
-            Invention::Radio | Invention::Television | Invention::Antibiotic | Invention::Vaccine | Invention::Penicillin | Invention::Plastic | Invention::Refrigerator | Invention::Automobile | Invention::Airplane | Invention::NuclearPower => Era::Modern,
-            Invention::Computer | Invention::Internet | Invention::Satellite | Invention::Smartphone | Invention::GPS | Invention::AIModel | Invention::Drone | Invention::SolarCell | Invention::GeneEditing | Invention::ElectricCar | Invention::VR => Era::Information,
+            Invention::SteamEngine
+            | Invention::Telegraph
+            | Invention::Lightbulb
+            | Invention::Telephone
+            | Invention::Camera => Era::Industrial,
+            Invention::Radio
+            | Invention::Television
+            | Invention::Antibiotic
+            | Invention::Vaccine
+            | Invention::Penicillin
+            | Invention::Plastic
+            | Invention::Refrigerator
+            | Invention::Automobile
+            | Invention::Airplane
+            | Invention::NuclearPower => Era::Modern,
+            Invention::Computer
+            | Invention::Internet
+            | Invention::Satellite
+            | Invention::Smartphone
+            | Invention::GPS
+            | Invention::AIModel
+            | Invention::Drone
+            | Invention::SolarCell
+            | Invention::GeneEditing
+            | Invention::ElectricCar
+            | Invention::VR => Era::Information,
         }
     }
     pub fn knowledge_mult(self) -> f32 {
@@ -65,11 +113,38 @@ impl Invention {
     }
     pub fn all() -> &'static [Invention] {
         use Invention::*;
-        &[Wheel, Sail, Compass, PrintingPress, SteamEngine, Telegraph, Lightbulb,
-          Telephone, Camera, Radio, Television, Computer, Internet, Satellite,
-          Smartphone, Antibiotic, Vaccine, NuclearPower, Penicillin, Plastic,
-          Refrigerator, Automobile, Airplane, GPS, AIModel, Drone, SolarCell,
-          GeneEditing, ElectricCar, VR]
+        &[
+            Wheel,
+            Sail,
+            Compass,
+            PrintingPress,
+            SteamEngine,
+            Telegraph,
+            Lightbulb,
+            Telephone,
+            Camera,
+            Radio,
+            Television,
+            Computer,
+            Internet,
+            Satellite,
+            Smartphone,
+            Antibiotic,
+            Vaccine,
+            NuclearPower,
+            Penicillin,
+            Plastic,
+            Refrigerator,
+            Automobile,
+            Airplane,
+            GPS,
+            AIModel,
+            Drone,
+            SolarCell,
+            GeneEditing,
+            ElectricCar,
+            VR,
+        ]
     }
 }
 

@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -9,6 +8,9 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     }
     ctx.org_mut().boredom = (ctx.org().boredom - 0.08).max(0.0);
     ctx.discover("solstice_ceremony", "held a formal solstice ceremony");
-    ctx.event("ritual", "the tribe performs the solstice ceremony at the turning of the sun");
+    ctx.event(
+        "ritual",
+        "the tribe performs the solstice ceremony at the turning of the sun",
+    );
     0.010
 }

@@ -1,7 +1,5 @@
-
-
-use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
+use crate::world::tiles::Tile;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     if !matches!(ctx.tile, Tile::Grass) || ctx.org().carry_room() == 0 {
@@ -11,11 +9,11 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let disc = &ctx.sim.organisms[ctx.idx].discoveries;
     // Axe/stone tools improve wood yield and success rate
     let (success_p, yield_bonus): (f32, u8) = if disc.contains("axe") {
-        (0.80, 1)   // axe: high success, 2 wood
+        (0.80, 1) // axe: high success, 2 wood
     } else if disc.contains("stone_tools") || disc.contains("toolmaking") {
-        (0.65, 0)   // stone tools: better success, 1 wood
+        (0.65, 0) // stone tools: better success, 1 wood
     } else {
-        (0.50, 0)   // bare hands: baseline
+        (0.50, 0) // bare hands: baseline
     };
 
     if ctx.chance(success_p) {

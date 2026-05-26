@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -14,6 +13,9 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     }
     ctx.sim.organisms[ctx.idx].comfort = (ctx.sim.organisms[ctx.idx].comfort + 0.05).min(1.0);
     ctx.think("resolving a conflict");
-    ctx.discover("conflict_resolution", "mediated and resolved a conflict between kin");
+    ctx.discover(
+        "conflict_resolution",
+        "mediated and resolved a conflict between kin",
+    );
     0.012
 }

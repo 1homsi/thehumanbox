@@ -1,8 +1,10 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    let mates: Vec<usize> = ctx.kin.iter().copied()
+    let mates: Vec<usize> = ctx
+        .kin
+        .iter()
+        .copied()
         .filter(|&k| {
             let a = ctx.sim.organisms[k].age;
             a >= 800 && a < 4000

@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -7,7 +6,10 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("need food or fire to tend wounds");
         return 0.0;
     }
-    let pick = ctx.kin.iter().copied()
+    let pick = ctx
+        .kin
+        .iter()
+        .copied()
         .find(|&ki| ctx.sim.organisms[ki].health < 0.9);
     let Some(ki) = pick else {
         ctx.think("no wounded kin nearby");

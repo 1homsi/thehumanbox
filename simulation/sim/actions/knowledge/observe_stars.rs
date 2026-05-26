@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     if !ctx.is_night() {

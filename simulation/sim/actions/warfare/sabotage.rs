@@ -1,6 +1,5 @@
-
-use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
+use crate::world::tiles::Tile;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let (ix, iy) = (ctx.ix, ctx.iy);

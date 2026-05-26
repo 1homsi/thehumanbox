@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -11,6 +10,9 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.sim.organisms[ni].comfort = (ctx.sim.organisms[ni].comfort + 0.02).min(1.0);
     }
     ctx.think("laughing freely");
-    ctx.event("emotion", "expressed pure joy, lifting the spirits of those nearby");
+    ctx.event(
+        "emotion",
+        "expressed pure joy, lifting the spirits of those nearby",
+    );
     0.006
 }

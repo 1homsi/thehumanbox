@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -9,7 +8,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     }
     let o = ctx.org_mut();
     o.comfort = (o.comfort - 0.05).max(0.0);
-    o.health  = (o.health  + 0.02).min(1.0);
+    o.health = (o.health + 0.02).min(1.0);
     ctx.think("weeping openly");
     ctx.event("social", "expressed grief over a suffering companion");
     0.005

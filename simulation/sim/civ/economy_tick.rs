@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::sim::civ::economy::{PriceTable, Trade, TRADABLE_TOOLS, currency_unit_for_era};
+use crate::sim::civ::economy::{currency_unit_for_era, PriceTable, Trade, TRADABLE_TOOLS};
 use crate::sim::civ::era::Era;
 use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
@@ -111,13 +111,7 @@ fn wage_for(name: &str) -> u32 {
     }
 }
 
-fn surplus(
-    food: u8,
-    water: u8,
-    wood: u8,
-    stone: u8,
-    tools: &HashMap<String, u8>,
-) -> Option<(String, u8)> {
+fn surplus(food: u8, water: u8, wood: u8, stone: u8, tools: &HashMap<String, u8>) -> Option<(String, u8)> {
     for k in TRADABLE_TOOLS {
         let c = tools.get(*k).copied().unwrap_or(0);
         if c >= 2 {
@@ -139,14 +133,7 @@ fn surplus(
     None
 }
 
-fn lacks(
-    food: u8,
-    water: u8,
-    wood: u8,
-    stone: u8,
-    tools: &HashMap<String, u8>,
-    kind: &str,
-) -> bool {
+fn lacks(food: u8, water: u8, wood: u8, stone: u8, tools: &HashMap<String, u8>, kind: &str) -> bool {
     match kind {
         "food" => food == 0,
         "water" => water == 0,
@@ -231,7 +218,11 @@ fn run_barter(sim: &mut Simulation, tick: u64) {
         for j in (i + 1)..snapshot.len() {
             let b = &snapshot[j];
             let cross_lineage = a.lid != b.lid;
-            let cap = if cross_lineage { BARTER_RADIUS * 0.6 } else { BARTER_RADIUS };
+            let cap = if cross_lineage {
+                BARTER_RADIUS * 0.6
+            } else {
+                BARTER_RADIUS
+            };
             let d = (a.x - b.x).abs() + (a.y - b.y).abs();
             if d > cap {
                 continue;
@@ -383,7 +374,11 @@ fn run_currency_trade(sim: &mut Simulation, tick: u64) {
             if b.era < Era::Bronze || b.wealth < price {
                 continue;
             }
-            let cap = if cross_lineage { BARTER_RADIUS * 0.6 } else { BARTER_RADIUS };
+            let cap = if cross_lineage {
+                BARTER_RADIUS * 0.6
+            } else {
+                BARTER_RADIUS
+            };
             let d = (s.x - b.x).abs() + (s.y - b.y).abs();
             if d > cap {
                 continue;

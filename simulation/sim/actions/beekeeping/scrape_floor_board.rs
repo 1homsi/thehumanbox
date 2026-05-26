@@ -5,7 +5,8 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     o.comfort = (o.comfort + 0.03).min(1.0);
     o.joy_ticks = (o.joy_ticks + 5).min(1200);
     let cur = o.tools.get("scrape floor board").copied().unwrap_or(0);
-    o.tools.insert("scrape floor board".to_string(), (cur + 1).min(12));
+    o.tools
+        .insert("scrape floor board".to_string(), (cur + 1).min(12));
     ctx.think("scrape floor board");
     ctx.event("life", "scrape floor board");
     0.008

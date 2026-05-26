@@ -1,9 +1,13 @@
-use serde::{Deserialize, Serialize};
 use crate::sim::era::Era;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ReligionKind {
-    Animism, Polytheism, Monotheism, Philosophical, Secular,
+    Animism,
+    Polytheism,
+    Monotheism,
+    Philosophical,
+    Secular,
 }
 
 impl ReligionKind {
@@ -50,7 +54,13 @@ pub struct Religion {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ArtKind {
-    CavePainting, Sculpture, Fresco, Painting, Photograph, Film, Digital,
+    CavePainting,
+    Sculpture,
+    Fresco,
+    Painting,
+    Photograph,
+    Film,
+    Digital,
 }
 
 impl ArtKind {
@@ -90,7 +100,13 @@ pub struct Artwork {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum MusicKind {
-    Drumming, Chanting, Folk, Classical, Jazz, Pop, Electronic,
+    Drumming,
+    Chanting,
+    Folk,
+    Classical,
+    Jazz,
+    Pop,
+    Electronic,
 }
 
 impl MusicKind {
@@ -120,7 +136,16 @@ impl MusicKind {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FestivalKind {
-    Harvest, Solstice, Spring, Religious, Wedding, Funeral, Coronation, Independence, NewYear, Carnival,
+    Harvest,
+    Solstice,
+    Spring,
+    Religious,
+    Wedding,
+    Funeral,
+    Coronation,
+    Independence,
+    NewYear,
+    Carnival,
 }
 
 impl FestivalKind {
@@ -152,10 +177,22 @@ pub struct Festival {
 }
 
 pub const RELIGION_NAMES: &[&str] = &[
-    "Sun Path", "Sky Mother", "Hearth Faith", "Stone Pact",
-    "River Way", "Forest Whisper", "Eternal Flame", "Old Song",
-    "First Word", "Long Road", "Bright Star", "Deep Water",
-    "Iron Truth", "Wind Order", "Bone Wisdom", "Moon Vow",
+    "Sun Path",
+    "Sky Mother",
+    "Hearth Faith",
+    "Stone Pact",
+    "River Way",
+    "Forest Whisper",
+    "Eternal Flame",
+    "Old Song",
+    "First Word",
+    "Long Road",
+    "Bright Star",
+    "Deep Water",
+    "Iron Truth",
+    "Wind Order",
+    "Bone Wisdom",
+    "Moon Vow",
 ];
 
 pub fn pick_religion_name(seed: u64) -> &'static str {
@@ -173,6 +210,9 @@ mod tests {
 
     #[test]
     fn religion_name_is_stable() {
-        assert_eq!(pick_religion_name(0), pick_religion_name(RELIGION_NAMES.len() as u64));
+        assert_eq!(
+            pick_religion_name(0),
+            pick_religion_name(RELIGION_NAMES.len() as u64)
+        );
     }
 }

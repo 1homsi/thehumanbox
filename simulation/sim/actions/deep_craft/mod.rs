@@ -1,49 +1,49 @@
-pub mod carve_lithograph;
-pub mod etch_intaglio;
-pub mod engrave_woodblock;
-pub mod dry_etch;
-pub mod wet_etch;
 pub mod acid_etch;
-pub mod electrochemical_etch;
-pub mod laser_etch;
-pub mod sandblast_etch;
-pub mod chemical_etch;
-pub mod set_type;
-pub mod for_print;
-pub mod sort_type;
-pub mod ink_type;
-pub mod roller_ink;
-pub mod wipe_plate;
-pub mod pull_proof;
-pub mod register_color;
-pub mod overprint;
-pub mod color_overlay;
 pub mod align_screen;
-pub mod squeegee_pull;
-pub mod stretch_screen;
-pub mod prep_screen;
-pub mod coat_screen;
-pub mod expose_screen;
-pub mod wash_screen;
-pub mod reclaim_screen;
-pub mod tape_edges;
 pub mod block_pinholes;
+pub mod carve_lithograph;
+pub mod chemical_etch;
+pub mod coat_screen;
+pub mod color_overlay;
+pub mod cure_ceramic;
+pub mod cure_enamel;
+pub mod cure_lacquer;
+pub mod cure_print;
+pub mod cure_resin;
 pub mod degrease_screen;
+pub mod dry_etch;
+pub mod electrochemical_etch;
+pub mod engrave_woodblock;
+pub mod etch_intaglio;
+pub mod expose_screen;
+pub mod for_print;
+pub mod ink_type;
+pub mod laser_etch;
+pub mod match_dye;
+pub mod match_fabric;
+pub mod match_glaze;
+pub mod match_paint;
+pub mod match_thread;
 pub mod mix_emulsion;
+pub mod mix_extender;
+pub mod mix_retarder;
 pub mod mix_solvent;
 pub mod mix_thinner;
-pub mod mix_retarder;
-pub mod mix_extender;
-pub mod match_paint;
-pub mod match_dye;
-pub mod match_glaze;
-pub mod match_fabric;
-pub mod match_thread;
-pub mod cure_print;
-pub mod cure_ceramic;
-pub mod cure_lacquer;
-pub mod cure_enamel;
-pub mod cure_resin;
+pub mod overprint;
+pub mod prep_screen;
+pub mod pull_proof;
+pub mod reclaim_screen;
+pub mod register_color;
+pub mod roller_ink;
+pub mod sandblast_etch;
+pub mod set_type;
+pub mod sort_type;
+pub mod squeegee_pull;
+pub mod stretch_screen;
+pub mod tape_edges;
+pub mod wash_screen;
+pub mod wet_etch;
+pub mod wipe_plate;
 
 use super::ctx::ActionCtx;
 
@@ -95,6 +95,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         3523 => cure_lacquer::apply(ctx),
         3524 => cure_enamel::apply(ctx),
         3525 => cure_resin::apply(ctx),
-        _   => 0.0,
+        _ => 0.0,
     }
 }

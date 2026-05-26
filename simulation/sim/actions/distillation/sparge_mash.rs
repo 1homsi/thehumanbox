@@ -5,7 +5,9 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("no mash to sparge");
         return 0.005;
     }
-    if ctx.chance(0.25) { ctx.add_good("mash", 1); }
+    if ctx.chance(0.25) {
+        ctx.add_good("mash", 1);
+    }
     ctx.add_literacy(0.004);
     ctx.think("sparge mash");
     ctx.event("chore", "sparged the mash");

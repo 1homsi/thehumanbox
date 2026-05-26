@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -9,6 +8,9 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     }
     ctx.org_mut().comfort = (ctx.org().comfort + 0.08).min(1.0);
     ctx.discover("victory_rite", "celebrated victory with a formal ceremony");
-    ctx.event("culture", "the tribe holds a victory ceremony after a great success");
+    ctx.event(
+        "culture",
+        "the tribe holds a victory ceremony after a great success",
+    );
     0.012
 }

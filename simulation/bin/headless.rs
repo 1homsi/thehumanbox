@@ -118,16 +118,7 @@ fn main() {
     );
     println!(
         "{:<10} {:>5} {:>7} {:>7} {:>7} {:>7} {:>7} {:>6} {:>6} {:>6}",
-        "tick",
-        "alive",
-        "births",
-        "animals",
-        "fire",
-        "shelter",
-        "lineages",
-        "starv",
-        "dehy",
-        "sick"
+        "tick", "alive", "births", "animals", "fire", "shelter", "lineages", "starv", "dehy", "sick"
     );
     println!("{}", "-".repeat(80));
 
@@ -170,12 +161,7 @@ fn main() {
             if profile_every > 0 && t % profile_every == 0 {
                 use std::io::Write as _;
                 let rss_kb = read_self_rss_kb();
-                let _ = writeln!(w, "{},{},{},{}",
-                    t,
-                    alive,
-                    tick_us as f64 / 1000.0,
-                    rss_kb,
-                );
+                let _ = writeln!(w, "{},{},{},{}", t, alive, tick_us as f64 / 1000.0, rss_kb,);
             }
         }
 
@@ -285,23 +271,54 @@ fn main() {
         .iter()
         .filter(|o| o.discoveries.contains(&"medicine".to_string()))
         .count();
-    let barter_disc = sim.organisms.iter().filter(|o| o.discoveries.contains(&"barter".to_string())).count();
-    let currency_disc = sim.organisms.iter().filter(|o| o.discoveries.contains(&"currency".to_string())).count();
-    let wood_disc = sim.organisms.iter().filter(|o| o.discoveries.contains(&"woodcutting".to_string())).count();
-    let forestry_disc = sim.organisms.iter().filter(|o| o.discoveries.contains(&"forestry".to_string())).count();
-    let rich_n = sim.organisms.iter().filter(|o| o.alive && o.discoveries.contains(&"rich".to_string())).count();
-    let poor_n = sim.organisms.iter().filter(|o| o.alive && o.discoveries.contains(&"poor".to_string())).count();
+    let barter_disc = sim
+        .organisms
+        .iter()
+        .filter(|o| o.discoveries.contains(&"barter".to_string()))
+        .count();
+    let currency_disc = sim
+        .organisms
+        .iter()
+        .filter(|o| o.discoveries.contains(&"currency".to_string()))
+        .count();
+    let wood_disc = sim
+        .organisms
+        .iter()
+        .filter(|o| o.discoveries.contains(&"woodcutting".to_string()))
+        .count();
+    let forestry_disc = sim
+        .organisms
+        .iter()
+        .filter(|o| o.discoveries.contains(&"forestry".to_string()))
+        .count();
+    let rich_n = sim
+        .organisms
+        .iter()
+        .filter(|o| o.alive && o.discoveries.contains(&"rich".to_string()))
+        .count();
+    let poor_n = sim
+        .organisms
+        .iter()
+        .filter(|o| o.alive && o.discoveries.contains(&"poor".to_string()))
+        .count();
     println!(
         "\nDiscoveries (ever, alive+dead):  fire={}  shelter={}  hunt={}  medicine={}  woodcutting={}  forestry={}  barter={}  currency={}",
         fire_disc, shelter_disc, hunt_disc, medicine_disc, wood_disc, forestry_disc, barter_disc, currency_disc
     );
-    println!("Wealth split (alive):  rich={}  poor={}  trades_log={}", rich_n, poor_n, sim.trades.len());
+    println!(
+        "Wealth split (alive):  rich={}  poor={}  trades_log={}",
+        rich_n,
+        poor_n,
+        sim.trades.len()
+    );
 
     let mut goods_totals: HashMap<String, u64> = HashMap::new();
     let mut goods_holders: HashMap<String, u64> = HashMap::new();
     for o in sim.organisms.iter().filter(|o| o.alive) {
         for (k, n) in &o.tools {
-            if *n == 0 { continue; }
+            if *n == 0 {
+                continue;
+            }
             *goods_totals.entry(k.clone()).or_insert(0) += *n as u64;
             *goods_holders.entry(k.clone()).or_insert(0) += 1;
         }
@@ -329,11 +346,7 @@ fn main() {
     }
 
     if !sim.action_counts.is_empty() {
-        let mut rows: Vec<(&'static str, u64)> = sim
-            .action_counts
-            .iter()
-            .map(|(k, v)| (*k, *v))
-            .collect();
+        let mut rows: Vec<(&'static str, u64)> = sim.action_counts.iter().map(|(k, v)| (*k, *v)).collect();
         rows.sort_by(|a, b| b.1.cmp(&a.1));
         println!("\nRound-9 category coverage (action firings):");
         for (cat, n) in rows {
@@ -347,7 +360,9 @@ fn main() {
     let mut era_pairs: Vec<(String, usize)> = era_counts.into_iter().collect();
     era_pairs.sort_by(|a, b| b.1.cmp(&a.1));
     print!("Lineage eras:");
-    for (e, c) in era_pairs.iter() { print!(" {}={}", e, c) }
+    for (e, c) in era_pairs.iter() {
+        print!(" {}={}", e, c)
+    }
     println!();
 
     let mut aspirations: HashMap<String, usize> = HashMap::new();
@@ -385,7 +400,11 @@ fn main() {
     for (asp, n) in asp_pairs.iter() {
         println!("  {:>4}  {}", n, asp);
     }
-    let joy_avg = if joy_count > 0 { joy_total / joy_count as u64 } else { 0 };
+    let joy_avg = if joy_count > 0 {
+        joy_total / joy_count as u64
+    } else {
+        0
+    };
     println!(
         "Joy ticks active: {} orgs (avg {} ticks each)",
         joy_count, joy_avg
@@ -421,16 +440,26 @@ fn main() {
                 }
             }
         }
-        let avg_sal = if total_mem > 0 { sal_sum / total_mem as f64 } else { 0.0 };
-        println!("\nMemory store: {} entries across {} living orgs (avg salience {:.2})",
-                 total_mem, alive_with_mem, avg_sal);
+        let avg_sal = if total_mem > 0 {
+            sal_sum / total_mem as f64
+        } else {
+            0.0
+        };
+        println!(
+            "\nMemory store: {} entries across {} living orgs (avg salience {:.2})",
+            total_mem, alive_with_mem, avg_sal
+        );
         let mut pairs: Vec<(String, u64)> = by_kind.into_iter().collect();
         pairs.sort_by(|a, b| b.1.cmp(&a.1));
         for (k, n) in pairs.iter() {
             println!("  {:>6} {}", n, k);
         }
         if let Some((name, rc, text)) = most_recalled {
-            let preview = if text.len() > 64 { format!("{}…", &text[..64]) } else { text };
+            let preview = if text.len() > 64 {
+                format!("{}…", &text[..64])
+            } else {
+                text
+            };
             println!("  most-recalled: {} ({}x) — {}", name, rc, preview);
         }
     }
@@ -438,33 +467,62 @@ fn main() {
     if !sim.workshop_hits.is_empty() {
         println!("\n=== WORKSHOP BONUS ===");
         let mut rows: Vec<(&str, (u64, u64))> = sim.workshop_hits.iter().map(|(k, v)| (*k, *v)).collect();
-        rows.sort_by(|a, b| (b.1.0 + b.1.1).cmp(&(a.1.0 + a.1.1)));
+        rows.sort_by(|a, b| (b.1 .0 + b.1 .1).cmp(&(a.1 .0 + a.1 .1)));
         let (mut h, mut m) = (0u64, 0u64);
         for (cat, (hit, miss)) in &rows {
             let total = hit + miss;
-            let pct = if total > 0 { (*hit as f64 * 100.0 / total as f64) } else { 0.0 };
-            println!("  {:<18} {:>6} hit / {:>6} miss  ({:.1}% near workshop)", cat, hit, miss, pct);
+            let pct = if total > 0 {
+                (*hit as f64 * 100.0 / total as f64)
+            } else {
+                0.0
+            };
+            println!(
+                "  {:<18} {:>6} hit / {:>6} miss  ({:.1}% near workshop)",
+                cat, hit, miss, pct
+            );
             h += hit;
             m += miss;
         }
         let total = h + m;
-        let pct = if total > 0 { h as f64 * 100.0 / total as f64 } else { 0.0 };
-        println!("  {:<18} {:>6} hit / {:>6} miss  ({:.1}% overall)", "TOTAL", h, m, pct);
+        let pct = if total > 0 {
+            h as f64 * 100.0 / total as f64
+        } else {
+            0.0
+        };
+        println!(
+            "  {:<18} {:>6} hit / {:>6} miss  ({:.1}% overall)",
+            "TOTAL", h, m, pct
+        );
     }
 
     println!("\n=== CIVILIZATION ===");
     let total_adherents: u32 = sim.religions.iter().map(|r| r.adherents).sum();
-    let milestones_hit: usize = sim.religions.iter().filter(|r| r.last_milestone.is_some()).count();
+    let milestones_hit: usize = sim
+        .religions
+        .iter()
+        .filter(|r| r.last_milestone.is_some())
+        .count();
     println!(
         "Religions: {}   total_adherents={}   milestone_crossings={}",
-        sim.religions.len(), total_adherents, milestones_hit
+        sim.religions.len(),
+        total_adherents,
+        milestones_hit
     );
     if !sim.religions.is_empty() {
         let mut religions_sorted: Vec<_> = sim.religions.iter().collect();
         religions_sorted.sort_by(|a, b| b.adherents.cmp(&a.adherents));
         for r in religions_sorted.iter().take(5) {
-            let last = r.last_milestone.map(|m| format!(" peaked@{}", m)).unwrap_or_default();
-            println!("  {:<20} kind={:<14} adherents={}{}", r.name, format!("{:?}", r.kind), r.adherents, last);
+            let last = r
+                .last_milestone
+                .map(|m| format!(" peaked@{}", m))
+                .unwrap_or_default();
+            println!(
+                "  {:<20} kind={:<14} adherents={}{}",
+                r.name,
+                format!("{:?}", r.kind),
+                r.adherents,
+                last
+            );
         }
     }
 
@@ -475,13 +533,16 @@ fn main() {
     }
     println!(
         "Governments: {}   total_treasury={}",
-        sim.governments.len(), total_treasury
+        sim.governments.len(),
+        total_treasury
     );
     if !gov_kinds.is_empty() {
         let mut gk: Vec<(String, usize)> = gov_kinds.into_iter().collect();
         gk.sort_by(|a, b| b.1.cmp(&a.1));
         print!("  kinds:");
-        for (k, n) in gk.iter() { print!(" {}={}", k, n); }
+        for (k, n) in gk.iter() {
+            print!(" {}={}", k, n);
+        }
         println!();
     }
     let leader_count = sim.organisms.iter().filter(|o| o.alive && o.is_leader).count();
@@ -498,8 +559,11 @@ fn main() {
         println!("  {:>4}  {}", n, k);
     }
 
-    println!("Books: {}   Artworks: {}   Festivals: {}",
-        sim.books.len(), sim.artworks.len(), sim.festivals.len()
+    println!(
+        "Books: {}   Artworks: {}   Festivals: {}",
+        sim.books.len(),
+        sim.artworks.len(),
+        sim.festivals.len()
     );
     if !sim.books.is_empty() {
         let total_copies: u32 = sim.books.iter().map(|b| b.copies).sum();
@@ -524,9 +588,13 @@ fn main() {
         if let Some(s) = &o.specialty {
             *spec_counts.entry(s.clone()).or_insert(0) += 1;
         }
-        if o.partner_id.is_some() { partnered += 1; }
+        if o.partner_id.is_some() {
+            partnered += 1;
+        }
         total_children += o.children_count as u64;
-        if o.age > 200 { adult_count += 1; }
+        if o.age > 200 {
+            adult_count += 1;
+        }
         friendship_total += o.friends.len() as u64;
     }
     let mut sc: Vec<(String, usize)> = spec_counts.into_iter().collect();
@@ -534,7 +602,11 @@ fn main() {
     println!("\nFamily / society:");
     println!("  partnerships:   {}", partnered / 2);
     println!("  total children: {}", total_children);
-    let avg_children = if adult_count > 0 { total_children as f64 / adult_count as f64 } else { 0.0 };
+    let avg_children = if adult_count > 0 {
+        total_children as f64 / adult_count as f64
+    } else {
+        0.0
+    };
     println!("  avg children per adult: {:.2}", avg_children);
     println!("  friendships:    {}", friendship_total);
     if age_at_death_n > 0 {
@@ -542,7 +614,9 @@ fn main() {
     }
     if !sc.is_empty() {
         print!("  specialties:");
-        for (s, n) in sc.iter().take(10) { print!(" {}={}", s, n); }
+        for (s, n) in sc.iter().take(10) {
+            print!(" {}={}", s, n);
+        }
         println!();
     }
 
@@ -552,7 +626,9 @@ fn main() {
     let era_idx_avg = era_idx_sum as f64 / n_lineages as f64;
     println!(
         "Civ progression: era_avg={:.2} era_max={} headlines={}",
-        era_idx_avg, era_idx_max, sim.headlines.len()
+        era_idx_avg,
+        era_idx_max,
+        sim.headlines.len()
     );
     {
         let mut by_kind: HashMap<String, usize> = HashMap::new();
@@ -635,10 +711,13 @@ fn main() {
 /// if /proc isn't readable). Cheap — single fs read per call.
 #[cfg(target_os = "linux")]
 fn read_self_rss_kb() -> u64 {
-    let Ok(s) = std::fs::read_to_string("/proc/self/status") else { return 0 };
+    let Ok(s) = std::fs::read_to_string("/proc/self/status") else {
+        return 0;
+    };
     for line in s.lines() {
         if let Some(rest) = line.strip_prefix("VmRSS:") {
-            return rest.split_whitespace()
+            return rest
+                .split_whitespace()
                 .next()
                 .and_then(|n| n.parse().ok())
                 .unwrap_or(0);
@@ -647,7 +726,9 @@ fn read_self_rss_kb() -> u64 {
     0
 }
 #[cfg(not(target_os = "linux"))]
-fn read_self_rss_kb() -> u64 { 0 }
+fn read_self_rss_kb() -> u64 {
+    0
+}
 
 fn infer_event_type(org: &organism::organism::Organism) -> &'static str {
     let thought = org.thought.to_lowercase();
@@ -664,8 +745,7 @@ fn infer_event_type(org: &organism::organism::Organism) -> &'static str {
 
     if text.contains("danger") || text.contains("fire") || text.contains("struggling") {
         "danger"
-    } else if text.contains("migrat") || text.contains("distant land") || text.contains("wandering")
-    {
+    } else if text.contains("migrat") || text.contains("distant land") || text.contains("wandering") {
         "migration"
     } else if text.contains("teach") || text.contains("bond") || text.contains("fed by kin") {
         "social"
@@ -701,7 +781,7 @@ fn print_growth_row(tick: u64, sim: &Simulation) {
     if tick == 0 {
         println!(
             "{:<7} {:>5} {:>4} {:>4} {:>4} {:>4} {:>5} {:>5} {:>4} {:>4} {:>4} {:>4} {:>6}",
-            "tick","alive","lin","rel","ad","gov","bldgs","trds","bks","art","era","r9c","r9k"
+            "tick", "alive", "lin", "rel", "ad", "gov", "bldgs", "trds", "bks", "art", "era", "r9c", "r9k"
         );
     }
     println!(
@@ -746,12 +826,15 @@ fn print_coverage_row(tick: u64, sim: &Simulation) {
 
     let half_w = WIDTH as f32 / 2.0;
     let half_h = HEIGHT as f32 / 2.0;
-    let mut q_tl = 0; let mut q_tr = 0; let mut q_bl = 0; let mut q_br = 0;
+    let mut q_tl = 0;
+    let mut q_tr = 0;
+    let mut q_bl = 0;
+    let mut q_br = 0;
     for o in &alive {
         match (o.x < half_w, o.y < half_h) {
-            (true, true)   => q_tl += 1,
-            (false, true)  => q_tr += 1,
-            (true, false)  => q_bl += 1,
+            (true, true) => q_tl += 1,
+            (false, true) => q_tr += 1,
+            (true, false) => q_bl += 1,
             (false, false) => q_br += 1,
         }
     }
@@ -810,9 +893,7 @@ fn write_trace_rows(sim: &Simulation, writer: &mut BufWriter<File>, trace_limit:
             "discoveries": org.discoveries.iter().cloned().collect::<Vec<_>>(),
         });
         serde_json::to_writer(&mut *writer, &row).expect("failed to write trace row");
-        writer
-            .write_all(b"\n")
-            .expect("failed to write trace newline");
+        writer.write_all(b"\n").expect("failed to write trace newline");
         written += 1;
     }
 }
@@ -967,8 +1048,18 @@ fn run_one_seed(seed: u64, max_ticks: u64) -> SweepResult {
     let era_idx_sum: u32 = sim.lineage_eras.values().map(|e| *e as u32).sum();
     let n_lin = sim.lineage_eras.len().max(1);
     let era_idx_avg = era_idx_sum as f32 / n_lin as f32;
-    let partner_pairs = sim.organisms.iter().filter(|o| o.alive && o.partner_id.is_some()).count() / 2;
-    let total_kids: u64 = sim.organisms.iter().filter(|o| o.alive).map(|o| o.children_count as u64).sum();
+    let partner_pairs = sim
+        .organisms
+        .iter()
+        .filter(|o| o.alive && o.partner_id.is_some())
+        .count()
+        / 2;
+    let total_kids: u64 = sim
+        .organisms
+        .iter()
+        .filter(|o| o.alive)
+        .map(|o| o.children_count as u64)
+        .sum();
     let leaders_n = sim.organisms.iter().filter(|o| o.alive && o.is_leader).count();
     let round9_total: u64 = sim.action_counts.values().sum();
     let round9_active = sim.action_counts.iter().filter(|(_, n)| **n > 0).count();
@@ -1043,15 +1134,10 @@ fn run_seed_sweep(start_seed: u64, sweep_seeds: usize, max_ticks: u64) -> usize 
         results.push(r);
     }
 
-    let extinct = results
-        .iter()
-        .filter(|r| r.extinction_tick.is_some())
-        .count();
+    let extinct = results.iter().filter(|r| r.extinction_tick.is_some()).count();
     let unhealthy = results.iter().filter(|r| r.verdict.is_unhealthy()).count();
-    let avg_final =
-        results.iter().map(|r| r.final_alive as f64).sum::<f64>() / results.len().max(1) as f64;
-    let avg_peak =
-        results.iter().map(|r| r.peak_pop as f64).sum::<f64>() / results.len().max(1) as f64;
+    let avg_final = results.iter().map(|r| r.final_alive as f64).sum::<f64>() / results.len().max(1) as f64;
+    let avg_peak = results.iter().map(|r| r.peak_pop as f64).sum::<f64>() / results.len().max(1) as f64;
     println!("\n=== SWEEP SUMMARY ===");
     println!("verdict counts:");
     for v in &[
@@ -1094,30 +1180,36 @@ fn run_seed_sweep(start_seed: u64, sweep_seeds: usize, max_ticks: u64) -> usize 
     println!("\n=== GROWTH SIGNALS (averages) ===");
     println!(
         "  religions: {:.1} ({}/{} seeds had any)  adherents: {:.1}",
-        avg_rel, any_religions, results.len(), avg_ad
+        avg_rel,
+        any_religions,
+        results.len(),
+        avg_ad
     );
     println!(
         "  governments: {:.1} ({}/{} seeds)  leaders alive: {:.1}",
-        avg_gov, any_gov, results.len(), avg_leaders
+        avg_gov,
+        any_gov,
+        results.len(),
+        avg_leaders
     );
     println!("  buildings: {:.1}", avg_bld);
     println!(
         "  books: {:.1} ({}/{} seeds)  artworks: {:.1}",
-        avg_bks, any_books, results.len(), avg_art
+        avg_bks,
+        any_books,
+        results.len(),
+        avg_art
     );
     println!("  trades log: {:.1}", avg_trd);
-    println!(
-        "  era_max avg: {:.2}   era_avg avg: {:.2}",
-        avg_eramax, avg_eravg
-    );
+    println!("  era_max avg: {:.2}   era_avg avg: {:.2}", avg_eramax, avg_eravg);
     println!(
         "  round9 firings: {:.0}  ({:.1} of 10 categories used, {}/{} seeds fired any)",
-        avg_r9k, avg_r9active, any_round9, results.len()
+        avg_r9k,
+        avg_r9active,
+        any_round9,
+        results.len()
     );
-    println!(
-        "  partnerships: {:.1}  children: {:.1}",
-        avg_prtn, avg_kid
-    );
+    println!("  partnerships: {:.1}  children: {:.1}", avg_prtn, avg_kid);
     unhealthy
 }
 
@@ -1240,12 +1332,7 @@ fn build_world_report(seed: u64) -> WorldReport {
                     land_tiles += 1;
                     livable_tiles += 1;
                 }
-                Tile::Rock
-                | Tile::Snow
-                | Tile::Sand
-                | Tile::Fire
-                | Tile::Scorched
-                | Tile::Mineral => {
+                Tile::Rock | Tile::Snow | Tile::Sand | Tile::Fire | Tile::Scorched | Tile::Mineral => {
                     land_tiles += 1;
                     harsh_tiles += 1;
                 }
@@ -1255,12 +1342,9 @@ fn build_world_report(seed: u64) -> WorldReport {
             }
 
             if !matches!(tile, Tile::Water | Tile::Void) {
-                let coastal = [(-1i32, 0i32), (1, 0), (0, -1), (0, 1)]
-                    .iter()
-                    .any(|&(dx, dy)| {
-                        WorldGrid::in_bounds(x + dx, y + dy)
-                            && grid.get(x + dx, y + dy) == Tile::Water
-                    });
+                let coastal = [(-1i32, 0i32), (1, 0), (0, -1), (0, 1)].iter().any(|&(dx, dy)| {
+                    WorldGrid::in_bounds(x + dx, y + dy) && grid.get(x + dx, y + dy) == Tile::Water
+                });
                 if coastal {
                     coastline_tiles += 1;
                 }
@@ -1390,12 +1474,8 @@ fn run_world_report_sweep(start_seed: u64, sweep_seeds: usize) -> usize {
 
     let avg_habitability =
         reports.iter().map(|r| r.habitability_ratio()).sum::<f32>() / reports.len().max(1) as f32;
-    let avg_score =
-        reports.iter().map(|r| r.quality_score()).sum::<f32>() / reports.len().max(1) as f32;
-    let unhealthy = reports
-        .iter()
-        .filter(|r| r.verdict().is_unhealthy())
-        .count();
+    let avg_score = reports.iter().map(|r| r.quality_score()).sum::<f32>() / reports.len().max(1) as f32;
+    let unhealthy = reports.iter().filter(|r| r.verdict().is_unhealthy()).count();
     println!("\nworld_report summary");
     println!(" avg_habitability={:.1}%", avg_habitability * 100.0);
     println!(" avg_quality_score={:.3}", avg_score);

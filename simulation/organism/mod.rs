@@ -1,7 +1,7 @@
-pub mod traits;
-pub mod organism;
-pub mod choose_action;
 pub mod animal;
-pub mod vocabulary;
 pub mod attributes;
+pub mod choose_action;
 pub mod memory;
+pub mod organism;
+pub mod traits;
+pub mod vocabulary;

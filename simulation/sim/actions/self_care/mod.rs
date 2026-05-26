@@ -1,20 +1,18 @@
-
-
 pub mod bathe;
+pub mod daydream;
+pub mod groom_self;
+pub mod howl_at_moon;
+pub mod learn_skill;
+pub mod meditate_deep;
+pub mod nap;
+pub mod play_game;
+pub mod play_with_kids;
+pub mod practice;
 pub mod rest_deeply;
+pub mod sit_by_water;
 pub mod stretch;
 pub mod sunbathe;
-pub mod groom_self;
-pub mod meditate_deep;
-pub mod play_game;
 pub mod teach_skill;
-pub mod learn_skill;
-pub mod practice;
-pub mod nap;
-pub mod daydream;
-pub mod howl_at_moon;
-pub mod play_with_kids;
-pub mod sit_by_water;
 
 use super::ctx::ActionCtx;
 
@@ -35,6 +33,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         223 => howl_at_moon::apply(ctx),
         224 => play_with_kids::apply(ctx),
         225 => sit_by_water::apply(ctx),
-        _   => 0.0,
+        _ => 0.0,
     }
 }

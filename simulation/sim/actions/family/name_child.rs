@@ -1,8 +1,10 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    let pick = ctx.kin.iter().copied()
+    let pick = ctx
+        .kin
+        .iter()
+        .copied()
         .find(|&ki| ctx.sim.organisms[ki].age < 300);
     let Some(_ki) = pick else {
         ctx.think("no young kin to name");

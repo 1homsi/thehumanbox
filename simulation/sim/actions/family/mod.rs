@@ -1,20 +1,18 @@
-
-
-pub mod name_child;
-pub mod birth_ceremony;
-pub mod teach_child_to_hunt;
-pub mod tell_bedtime_story;
-pub mod family_meal;
-pub mod discipline_child;
-pub mod praise_child;
 pub mod arrange_adoption;
 pub mod bequeath_tools;
-pub mod mourn_child;
-pub mod reconcile_family;
-pub mod family_council;
-pub mod pass_down_tradition;
+pub mod birth_ceremony;
 pub mod care_for_elder;
+pub mod discipline_child;
+pub mod family_council;
+pub mod family_meal;
+pub mod mourn_child;
+pub mod name_child;
+pub mod pass_down_tradition;
+pub mod praise_child;
 pub mod protect_family;
+pub mod reconcile_family;
+pub mod teach_child_to_hunt;
+pub mod tell_bedtime_story;
 
 use super::ctx::ActionCtx;
 
@@ -35,6 +33,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         273 => pass_down_tradition::apply(ctx),
         274 => care_for_elder::apply(ctx),
         275 => protect_family::apply(ctx),
-        _   => 0.0,
+        _ => 0.0,
     }
 }

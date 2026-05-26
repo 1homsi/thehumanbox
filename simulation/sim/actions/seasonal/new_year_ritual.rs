@@ -1,9 +1,10 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let year_tick = ctx.tick % 12000;
-    if year_tick >= 500 { return 0.0; }
+    if year_tick >= 500 {
+        return 0.0;
+    }
     ctx.think("marking the start of a new year");
     for i in 0..ctx.kin.len() {
         let ki = ctx.kin[i];

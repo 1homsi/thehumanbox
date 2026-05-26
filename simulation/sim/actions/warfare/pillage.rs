@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -9,8 +8,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
             let (px, py) = (ix + dx, iy + dy);
             if ctx.sim.grid.structure_at(px, py) > 0.2 {
                 ctx.sim.grid.add_structure(px, py, -0.10);
-                ctx.sim.organisms[ctx.idx].inv_wood =
-                    ctx.sim.organisms[ctx.idx].inv_wood.saturating_add(1);
+                ctx.sim.organisms[ctx.idx].inv_wood = ctx.sim.organisms[ctx.idx].inv_wood.saturating_add(1);
                 hit = true;
                 break 'pl;
             }

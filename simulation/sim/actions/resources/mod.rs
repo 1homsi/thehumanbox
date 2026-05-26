@@ -1,18 +1,16 @@
-
-
-pub mod mine;
 pub mod chop_wood;
-pub mod fish;
-pub mod quarry;
-pub mod plant_tree;
 pub mod clear_land;
-pub mod dig_roots;
 pub mod collect_water;
+pub mod compost;
+pub mod dig_roots;
+pub mod fish;
 pub mod forage_berries;
 pub mod harvest;
-pub mod compost;
 pub mod irrigate;
+pub mod mine;
 pub mod plant_crops;
+pub mod plant_tree;
+pub mod quarry;
 
 use super::ctx::ActionCtx;
 
@@ -31,6 +29,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         36 => compost::apply(ctx),
         37 => irrigate::apply(ctx),
         38 => plant_crops::apply(ctx),
-        _  => 0.0,
+        _ => 0.0,
     }
 }

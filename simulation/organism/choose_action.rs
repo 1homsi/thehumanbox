@@ -1,22 +1,38 @@
 use rand::Rng;
 
-use crate::world::{grid::{TrailKind, WorldGrid}, tiles::Tile};
+use crate::world::{
+    grid::{TrailKind, WorldGrid},
+    tiles::Tile,
+};
 
-use super::organism::{N_ACTIONS, Organism, QRowExt};
+use super::organism::{Organism, QRowExt, N_ACTIONS};
 
 impl Organism {
-    pub fn choose_action(&self, grid: &WorldGrid, tick: u64,
-                         epsilon: f32, organisms: &[Organism], night: bool,
-                         weather_kind: u8, rng: &mut impl Rng, _animal_near: bool,
-                         cached_perception: &str, available: &[usize]) -> (usize, Option<String>)
-    {
+    pub fn choose_action(
+        &self,
+        grid: &WorldGrid,
+        tick: u64,
+        epsilon: f32,
+        organisms: &[Organism],
+        night: bool,
+        weather_kind: u8,
+        rng: &mut impl Rng,
+        _animal_near: bool,
+        cached_perception: &str,
+        available: &[usize],
+    ) -> (usize, Option<String>) {
         let (ix, iy) = (self.x as i32, self.y as i32);
         let tile = grid.get(ix, iy);
         let mut thought: Option<String> = None;
-        macro_rules! set_thought { ($t:expr) => { thought = Some($t.to_string()); }; }
+        macro_rules! set_thought {
+            ($t:expr) => {
+                thought = Some($t.to_string());
+            };
+        }
 
         if tile == Tile::Water && self.hydration < 0.95 {
-            set_thought!("drinking"); return (9, thought);
+            set_thought!("drinking");
+            return (9, thought);
         }
         if tile == Tile::Water
             && (self.hydration >= 0.75 || self.water_ticks > 5 || self.energy < 0.55 || self.health < 0.90)
@@ -27,7 +43,8 @@ impl Organism {
             }
         }
         if tile == Tile::Food && self.energy < 0.95 {
-            set_thought!("eating"); return (8, thought);
+            set_thought!("eating");
+            return (8, thought);
         }
 
         let flee_r = (2.0 + 2.0 * self.traits.fear) as i32;
@@ -38,24 +55,32 @@ impl Organism {
             set_thought!("heat dangerous");
             if let Some((fx, fy)) = fire_tile {
                 if !night {
-                    let tdx = ix - fx; let tdy = iy - fy;
-                    return (self.toward((ix + tdx*3, iy + tdy*3), grid), thought);
+                    let tdx = ix - fx;
+                    let tdy = iy - fy;
+                    return (self.toward((ix + tdx * 3, iy + tdy * 3), grid), thought);
                 }
             }
             return (rng.random_range(0..8), thought);
         }
 
         if self.infection > 0.30 {
-            let healthy_kin_nearby: Vec<(f32, f32)> = organisms.iter()
-                .filter(|o| !std::ptr::eq(*o, self) && o.alive
-                    && o.lineage_id == self.lineage_id && o.infection < 0.10)
+            let healthy_kin_nearby: Vec<(f32, f32)> = organisms
+                .iter()
+                .filter(|o| {
+                    !std::ptr::eq(*o, self)
+                        && o.alive
+                        && o.lineage_id == self.lineage_id
+                        && o.infection < 0.10
+                })
                 .filter(|o| (o.x - self.x).abs() + (o.y - self.y).abs() <= 4.0)
                 .map(|o| (o.x, o.y))
                 .collect();
             if !healthy_kin_nearby.is_empty() {
                 set_thought!("isolating (sick)");
-                let cx = healthy_kin_nearby.iter().map(|p| p.0).sum::<f32>() / healthy_kin_nearby.len() as f32;
-                let cy = healthy_kin_nearby.iter().map(|p| p.1).sum::<f32>() / healthy_kin_nearby.len() as f32;
+                let cx =
+                    healthy_kin_nearby.iter().map(|p| p.0).sum::<f32>() / healthy_kin_nearby.len() as f32;
+                let cy =
+                    healthy_kin_nearby.iter().map(|p| p.1).sum::<f32>() / healthy_kin_nearby.len() as f32;
                 let dx = self.x - cx;
                 let dy = self.y - cy;
                 let target = (ix + (dx * 4.0).round() as i32, iy + (dy * 4.0).round() as i32);
@@ -74,7 +99,13 @@ impl Organism {
         }
 
         if self.hydration < 0.38 {
-            let scan_r = if self.hydration < 0.20 { 24 } else if night { 8 } else { 14 };
+            let scan_r = if self.hydration < 0.20 {
+                24
+            } else if night {
+                8
+            } else {
+                14
+            };
             if let Some(v) = self.nearest_visible(grid, Tile::Water, scan_r) {
                 set_thought!("moving to water");
                 return (self.toward(v, grid), thought);
@@ -83,10 +114,14 @@ impl Organism {
                 set_thought!("moving to known water");
                 return (self.toward(t, grid), thought);
             }
-            let kin_at_water = organisms.iter()
-                .filter(|o| !std::ptr::eq(*o, self) && o.alive
-                            && o.lineage_id == self.lineage_id
-                            && (o.x - self.x).abs() + (o.y - self.y).abs() <= 14.0)
+            let kin_at_water = organisms
+                .iter()
+                .filter(|o| {
+                    !std::ptr::eq(*o, self)
+                        && o.alive
+                        && o.lineage_id == self.lineage_id
+                        && (o.x - self.x).abs() + (o.y - self.y).abs() <= 14.0
+                })
                 .find(|o| matches!(grid.get(o.x as i32, o.y as i32), Tile::Water));
             if let Some(k) = kin_at_water {
                 set_thought!("following kin to water");
@@ -98,7 +133,13 @@ impl Organism {
             }
             set_thought!("thirsty - searching");
         } else if self.energy < 0.42 {
-            let scan_r = if self.energy < 0.20 { 16 } else if night { 6 } else { 9 };
+            let scan_r = if self.energy < 0.20 {
+                16
+            } else if night {
+                6
+            } else {
+                9
+            };
             if let Some(v) = self.nearest_visible(grid, Tile::Food, scan_r) {
                 set_thought!("moving to food");
                 return (self.toward(v, grid), thought);
@@ -107,10 +148,14 @@ impl Organism {
                 set_thought!("moving to known food");
                 return (self.toward(t, grid), thought);
             }
-            let kin_eating = organisms.iter()
-                .filter(|o| !std::ptr::eq(*o, self) && o.alive
-                            && o.lineage_id == self.lineage_id
-                            && (o.x - self.x).abs() + (o.y - self.y).abs() <= 14.0)
+            let kin_eating = organisms
+                .iter()
+                .filter(|o| {
+                    !std::ptr::eq(*o, self)
+                        && o.alive
+                        && o.lineage_id == self.lineage_id
+                        && (o.x - self.x).abs() + (o.y - self.y).abs() <= 14.0
+                })
                 .find(|o| matches!(grid.get(o.x as i32, o.y as i32), Tile::Food));
             if let Some(k) = kin_eating {
                 set_thought!("following kin to food");
@@ -124,7 +169,7 @@ impl Organism {
         }
 
         let needs_easy = self.hydration > 0.55 && self.energy > 0.50 && self.health > 0.55;
-        let dist_home  = (self.x - self.home_x).abs() + (self.y - self.home_y).abs();
+        let dist_home = (self.x - self.home_x).abs() + (self.y - self.home_y).abs();
         let at_home_zone = dist_home < 6.0;
         let in_shelter = self.near_shelter(grid);
 
@@ -143,16 +188,20 @@ impl Organism {
                 }
                 if dist_home < 60.0 {
                     set_thought!("carrying wood home");
-                    return (self.toward((self.home_x as i32, self.home_y as i32), grid), thought);
+                    return (
+                        self.toward((self.home_x as i32, self.home_y as i32), grid),
+                        thought,
+                    );
                 }
             }
             if self.carrying == 0
-               && !in_shelter
-               && self.energy > 0.55
-               && self.hydration > 0.55
-               && rng.random::<f32>() < 0.25 + 0.20 * self.traits.curiosity
+                && !in_shelter
+                && self.energy > 0.55
+                && self.hydration > 0.55
+                && rng.random::<f32>() < 0.25 + 0.20 * self.traits.curiosity
             {
-                let gather_target = self.nearest_visible(grid, Tile::Grass, 10)
+                let gather_target = self
+                    .nearest_visible(grid, Tile::Grass, 10)
                     .or_else(|| self.nearest_visible(grid, Tile::Food, 10));
                 if let Some(t) = gather_target {
                     let on_it = t == (ix, iy);
@@ -185,8 +234,7 @@ impl Organism {
             let has_blade = self.discoveries.contains("stone_tools")
                 || self.discoveries.contains("axe")
                 || self.discoveries.contains("tool_making");
-            if has_blade && self.inv_wood < 3 && self.energy > 0.55
-                && rng.random::<f32>() < 0.30 {
+            if has_blade && self.inv_wood < 3 && self.energy > 0.55 && rng.random::<f32>() < 0.30 {
                 if tile == Tile::Grass {
                     set_thought!("chopping wood");
                     return (27, thought);
@@ -200,7 +248,8 @@ impl Organism {
                 && self.inv_wood == 0
                 && dist_home < 8.0
                 && self.energy > 0.50
-                && rng.random::<f32>() < 0.08 {
+                && rng.random::<f32>() < 0.08
+            {
                 if tile == Tile::Grass {
                     set_thought!("planting a sapling");
                     return (30, thought);
@@ -210,14 +259,19 @@ impl Organism {
 
         if !self.danger_memory.is_empty() {
             let danger_thresh = (3.0 + 2.0 * self.traits.fear) as i32;
-            if let Some((&(cx, cy), _)) = self.danger_memory.iter()
-                .filter(|(_,v)| **v > 0.4)
-                .min_by_key(|(&(cx,cy),_)| (cx - ix).abs() + (cy - iy).abs())
+            if let Some((&(cx, cy), _)) = self
+                .danger_memory
+                .iter()
+                .filter(|(_, v)| **v > 0.4)
+                .min_by_key(|(&(cx, cy), _)| (cx - ix).abs() + (cy - iy).abs())
             {
                 let dist = (cx - ix).abs() + (cy - iy).abs();
                 if dist < danger_thresh {
                     set_thought!("avoiding danger");
-                    return (self.toward((ix + (ix - cx)*3, iy + (iy - cy)*3), grid), thought);
+                    return (
+                        self.toward((ix + (ix - cx) * 3, iy + (iy - cy) * 3), grid),
+                        thought,
+                    );
                 }
             }
         }
@@ -227,11 +281,13 @@ impl Organism {
             let hz_flee_thresh = 0.60 - self.traits.fear * 0.25;
             if hz > hz_flee_thresh {
                 set_thought!("cursed land");
-                let best = (0..8usize).min_by_key(|&d| {
-                    let (dx, dy) = crate::organism::organism::DIRECTIONS[d];
-                    let (nx, ny) = (ix + dx, iy + dy);
-                    (grid.hazard_at(nx, ny) * 1000.0) as i32
-                }).unwrap_or_else(|| rng.random_range(0..8));
+                let best = (0..8usize)
+                    .min_by_key(|&d| {
+                        let (dx, dy) = crate::organism::organism::DIRECTIONS[d];
+                        let (nx, ny) = (ix + dx, iy + dy);
+                        (grid.hazard_at(nx, ny) * 1000.0) as i32
+                    })
+                    .unwrap_or_else(|| rng.random_range(0..8));
                 return (best, thought);
             }
         }
@@ -263,7 +319,10 @@ impl Organism {
                 let dist_home = (self.x - self.home_x).abs() + (self.y - self.home_y).abs();
                 if dist_home > 25.0 && rng.random::<f32>() < 0.03 {
                     set_thought!("heading home");
-                    return (self.toward((self.home_x as i32, self.home_y as i32), grid), thought);
+                    return (
+                        self.toward((self.home_x as i32, self.home_y as i32), grid),
+                        thought,
+                    );
                 }
             }
         }
@@ -273,9 +332,8 @@ impl Organism {
             return (17, thought);
         }
 
-        let should_rest = self.health < 0.65
-            || self.sleep_debt > 0.30
-            || (self.grief_ticks > 0 && self.near_shelter(grid));
+        let should_rest =
+            self.health < 0.65 || self.sleep_debt > 0.30 || (self.grief_ticks > 0 && self.near_shelter(grid));
         if should_rest && self.near_shelter(grid) && rng.random::<f32>() < 0.52 {
             set_thought!("resting");
             return (17, thought);
@@ -285,18 +343,22 @@ impl Organism {
             match self.directive.as_str() {
                 "seek_food" if self.energy < 0.85 => {
                     if let Some(v) = self.nearest_visible(grid, Tile::Food, 20) {
-                        set_thought!("pursuing food"); return (self.toward(v, grid), thought);
+                        set_thought!("pursuing food");
+                        return (self.toward(v, grid), thought);
                     }
                     if let Some(t) = Self::best_remembered(&self.food_memory, self.x, self.y) {
-                        set_thought!("heading to known food"); return (self.toward(t, grid), thought);
+                        set_thought!("heading to known food");
+                        return (self.toward(t, grid), thought);
                     }
                 }
                 "seek_water" if self.hydration < 0.85 => {
                     if let Some(v) = self.nearest_visible(grid, Tile::Water, 20) {
-                        set_thought!("pursuing water"); return (self.toward(v, grid), thought);
+                        set_thought!("pursuing water");
+                        return (self.toward(v, grid), thought);
                     }
                     if let Some(t) = Self::best_remembered(&self.water_memory, self.x, self.y) {
-                        set_thought!("heading to known water"); return (self.toward(t, grid), thought);
+                        set_thought!("heading to known water");
+                        return (self.toward(t, grid), thought);
                     }
                 }
                 "explore" => {
@@ -336,12 +398,24 @@ impl Organism {
                         let mut sum_y = 0.0f32;
                         let mut n = 0usize;
                         for o in organisms.iter() {
-                            if std::ptr::eq(o, self) || !o.alive { continue }
-                            if o.lineage_id != self.lineage_id { continue }
-                            if (o.x - self.x).abs() + (o.y - self.y).abs() > 12.0 { continue }
-                            sum_x += o.x; sum_y += o.y; n += 1;
+                            if std::ptr::eq(o, self) || !o.alive {
+                                continue;
+                            }
+                            if o.lineage_id != self.lineage_id {
+                                continue;
+                            }
+                            if (o.x - self.x).abs() + (o.y - self.y).abs() > 12.0 {
+                                continue;
+                            }
+                            sum_x += o.x;
+                            sum_y += o.y;
+                            n += 1;
                         }
-                        if n > 0 { Some((sum_x / n as f32, sum_y / n as f32)) } else { None }
+                        if n > 0 {
+                            Some((sum_x / n as f32, sum_y / n as f32))
+                        } else {
+                            None
+                        }
                     };
                     if let Some((kx, ky)) = kin_cx_opt {
                         let dx = self.x - kx;
@@ -358,9 +432,14 @@ impl Organism {
                     return (rng.random_range(0..8), thought);
                 }
                 "seek_help" => {
-                    let elder_pos: Option<(i32, i32)> = organisms.iter()
-                        .filter(|o| !std::ptr::eq(*o, self) && o.alive
-                                && o.lineage_id == self.lineage_id && o.is_elder)
+                    let elder_pos: Option<(i32, i32)> = organisms
+                        .iter()
+                        .filter(|o| {
+                            !std::ptr::eq(*o, self)
+                                && o.alive
+                                && o.lineage_id == self.lineage_id
+                                && o.is_elder
+                        })
                         .min_by(|a, b| {
                             let da = (a.x - self.x).abs() + (a.y - self.y).abs();
                             let db = (b.x - self.x).abs() + (b.y - self.y).abs();
@@ -400,9 +479,12 @@ impl Organism {
                     return (12, thought);
                 }
                 "migrate" => {
-                    let hash = self.id.bytes().fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
+                    let hash = self
+                        .id
+                        .bytes()
+                        .fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
                     let angle = ((hash ^ tick) as f32) * 0.0000019;
-                    let dist  = 80.0 + 220.0 * self.traits.curiosity;
+                    let dist = 80.0 + 220.0 * self.traits.curiosity;
                     let tx = (self.x + angle.sin() * dist).round() as i32;
                     let ty = (self.y + angle.cos() * dist).round() as i32;
                     set_thought!("migrating");
@@ -414,25 +496,36 @@ impl Organism {
 
         if self.age < 900 && self.energy > 0.6 && self.hydration > 0.6 && !night {
             let kin_nearby = organisms.iter().any(|o| {
-                !std::ptr::eq(o, self) && o.alive && o.lineage_id == self.lineage_id
+                !std::ptr::eq(o, self)
+                    && o.alive
+                    && o.lineage_id == self.lineage_id
                     && (o.x - self.x).abs() + (o.y - self.y).abs() <= 8.0
             });
             let play_prob = if kin_nearby { 0.04 } else { 0.015 };
             if rng.random::<f32>() < play_prob * self.traits.curiosity {
-                let play_thoughts = ["playing", "chasing", "exploring with curiosity", "bounding around"];
+                let play_thoughts = [
+                    "playing",
+                    "chasing",
+                    "exploring with curiosity",
+                    "bounding around",
+                ];
                 set_thought!(play_thoughts[rng.random_range(0..play_thoughts.len())]);
                 return (rng.random_range(0..8), thought);
             }
         }
 
         {
-            let near_fire = (-3i32..=3).any(|dx| (-3i32..=3).any(|dy| {
-                matches!(grid.get(ix + dx, iy + dy), Tile::Campfire)
-            }));
-            let kin_nearby = organisms.iter().filter(|o| {
-                !std::ptr::eq(*o, self) && o.alive && o.lineage_id == self.lineage_id
-                    && (o.x - self.x).abs() + (o.y - self.y).abs() <= 6.0
-            }).count();
+            let near_fire = (-3i32..=3)
+                .any(|dx| (-3i32..=3).any(|dy| matches!(grid.get(ix + dx, iy + dy), Tile::Campfire)));
+            let kin_nearby = organisms
+                .iter()
+                .filter(|o| {
+                    !std::ptr::eq(*o, self)
+                        && o.alive
+                        && o.lineage_id == self.lineage_id
+                        && (o.x - self.x).abs() + (o.y - self.y).abs() <= 6.0
+                })
+                .count();
             if near_fire && kin_nearby >= 1 && self.energy > 0.5 && self.hydration > 0.5 {
                 if rng.random::<f32>() < 0.12 * self.traits.social_tendency {
                     let roll = rng.random::<f32>();
@@ -443,9 +536,14 @@ impl Organism {
                         set_thought!("singing by the fire");
                         return (21, thought);
                     }
-                    let s = ["socialising by the fire", "warming by the fire",
-                             "telling stories", "resting with kin",
-                             "tending the fire", "sharing a meal"];
+                    let s = [
+                        "socialising by the fire",
+                        "warming by the fire",
+                        "telling stories",
+                        "resting with kin",
+                        "tending the fire",
+                        "sharing a meal",
+                    ];
                     set_thought!(s[rng.random_range(0..s.len())]);
                     return (17, thought);
                 }
@@ -454,7 +552,9 @@ impl Organism {
 
         if self.energy > 0.82 && needs_ok {
             let hungry_kin_nearby = organisms.iter().any(|o| {
-                !std::ptr::eq(o, self) && o.alive && o.lineage_id == self.lineage_id
+                !std::ptr::eq(o, self)
+                    && o.alive
+                    && o.lineage_id == self.lineage_id
                     && o.energy < 0.30
                     && (o.x - self.x).abs() + (o.y - self.y).abs() <= 14.0
             });
@@ -467,9 +567,11 @@ impl Organism {
         }
 
         if self.age < 350 {
-            let elder_pos: Option<(i32, i32)> = organisms.iter()
-                .filter(|o| !std::ptr::eq(*o, self) && o.alive
-                        && o.lineage_id == self.lineage_id && o.is_elder)
+            let elder_pos: Option<(i32, i32)> = organisms
+                .iter()
+                .filter(|o| {
+                    !std::ptr::eq(*o, self) && o.alive && o.lineage_id == self.lineage_id && o.is_elder
+                })
                 .min_by(|a, b| {
                     let da = (a.x - self.x).abs() + (a.y - self.y).abs();
                     let db = (b.x - self.x).abs() + (b.y - self.y).abs();
@@ -490,10 +592,16 @@ impl Organism {
             let mut n = 0usize;
             let mut nearest = f32::INFINITY;
             for o in organisms.iter() {
-                if std::ptr::eq(o, self) || !o.alive || o.lineage_id != self.lineage_id { continue }
+                if std::ptr::eq(o, self) || !o.alive || o.lineage_id != self.lineage_id {
+                    continue;
+                }
                 let d = (o.x - self.x).abs() + (o.y - self.y).abs();
-                if d < nearest { nearest = d }
-                sum_x += o.x; sum_y += o.y; n += 1;
+                if d < nearest {
+                    nearest = d
+                }
+                sum_x += o.x;
+                sum_y += o.y;
+                n += 1;
             }
             if n > 0 && nearest > 45.0 && nearest.is_finite() {
                 let cx_kin = (sum_x / n as f32) as i32;
@@ -504,7 +612,8 @@ impl Organism {
         }
 
         if let Some(ref aid) = self.attracted_to {
-            let target = organisms.iter()
+            let target = organisms
+                .iter()
                 .find(|o| o.alive && &o.id == aid)
                 .map(|o| (o.x as i32, o.y as i32));
             if let Some(tp) = target {
@@ -518,7 +627,8 @@ impl Organism {
 
         if let Some(ref pid) = self.partner_id {
             if needs_ok && self.fear_level < 0.5 {
-                let partner = organisms.iter()
+                let partner = organisms
+                    .iter()
                     .find(|o| o.alive && &o.id == pid)
                     .map(|o| (o.x as i32, o.y as i32));
                 if let Some(pp) = partner {
@@ -531,12 +641,15 @@ impl Organism {
             }
         }
 
-        if !self.friends.is_empty() && needs_ok && self.fear_level < 0.4
-            && self.loneliness > 0.40 && rng.random::<f32>() < 0.20
+        if !self.friends.is_empty()
+            && needs_ok
+            && self.fear_level < 0.4
+            && self.loneliness > 0.40
+            && rng.random::<f32>() < 0.20
         {
-            let friend_pos: Option<(i32, i32)> = organisms.iter()
-                .filter(|o| !std::ptr::eq(*o, self) && o.alive
-                            && self.friends.contains_key(&o.id))
+            let friend_pos: Option<(i32, i32)> = organisms
+                .iter()
+                .filter(|o| !std::ptr::eq(*o, self) && o.alive && self.friends.contains_key(&o.id))
                 .map(|o| {
                     let d = ((o.x - self.x).abs() + (o.y - self.y).abs()) as i32;
                     (o.x as i32, o.y as i32, d)
@@ -550,13 +663,15 @@ impl Organism {
             }
         }
 
-        if self.loneliness > 0.60 && needs_ok && self.fear_level < 0.5
+        if self.loneliness > 0.60
+            && needs_ok
+            && self.fear_level < 0.5
             && self.wander_target.is_none()
             && rng.random::<f32>() < 0.35
         {
-            let kin_pos: Option<(i32, i32)> = organisms.iter()
-                .filter(|o| !std::ptr::eq(*o, self) && o.alive
-                            && o.lineage_id == self.lineage_id)
+            let kin_pos: Option<(i32, i32)> = organisms
+                .iter()
+                .filter(|o| !std::ptr::eq(*o, self) && o.alive && o.lineage_id == self.lineage_id)
                 .map(|o| {
                     let d = ((o.x - self.x).abs() + (o.y - self.y).abs()) as i32;
                     (o.x as i32, o.y as i32, d)
@@ -569,7 +684,8 @@ impl Organism {
                 return (self.toward(tp, grid), thought);
             }
             if self.traits.social_tendency > 0.4 {
-                let social_pos: Option<(i32, i32)> = organisms.iter()
+                let social_pos: Option<(i32, i32)> = organisms
+                    .iter()
                     .filter(|o| !std::ptr::eq(*o, self) && o.alive)
                     .filter(|o| self.attitude_toward(&o.lineage_id) >= -0.1)
                     .map(|o| {
@@ -616,17 +732,27 @@ impl Organism {
             }
         }
 
-        if tick >= self.directive_until && self.energy > 0.45 && self.hydration > 0.45
+        if tick >= self.directive_until
+            && self.energy > 0.45
+            && self.hydration > 0.45
             && self.wander_target.is_none()
         {
             let dist_home = (self.x - self.home_x).abs() + (self.y - self.home_y).abs();
-            let pull_prob = if dist_home > 200.0 { 0.0015 }
-                           else if dist_home > 100.0 { 0.0006 }
-                           else if dist_home > 50.0 { 0.0002 }
-                           else { 0.0 };
+            let pull_prob = if dist_home > 200.0 {
+                0.0015
+            } else if dist_home > 100.0 {
+                0.0006
+            } else if dist_home > 50.0 {
+                0.0002
+            } else {
+                0.0
+            };
             if pull_prob > 0.0 && rng.random::<f32>() < pull_prob {
                 set_thought!("heading home");
-                return (self.toward((self.home_x as i32, self.home_y as i32), grid), thought);
+                return (
+                    self.toward((self.home_x as i32, self.home_y as i32), grid),
+                    thought,
+                );
             }
         }
 
@@ -635,26 +761,28 @@ impl Organism {
                 set_thought!("digging for water");
                 return (18, thought);
             }
-            if self.energy < 0.50 && tile == Tile::Grass
+            if self.energy < 0.50
+                && tile == Tile::Grass
                 && self.nearest_visible(grid, Tile::Food, 8).is_none()
                 && rng.random::<f32>() < 0.30
             {
                 set_thought!("foraging the brush");
                 return (19, thought);
             }
-            if self.boredom > 0.55 && needs_ok && self.near_shelter(grid)
-                && rng.random::<f32>() < 0.25
-            {
+            if self.boredom > 0.55 && needs_ok && self.near_shelter(grid) && rng.random::<f32>() < 0.25 {
                 set_thought!("taking a quiet moment");
                 return (22, thought);
             }
-            if self.traits.curiosity > 0.6 && needs_ok && !night
+            if self.traits.curiosity > 0.6
+                && needs_ok
+                && !night
                 && rng.random::<f32>() < 0.05 * self.traits.curiosity
             {
                 set_thought!("surveying the land");
                 return (24, thought);
             }
-            if needs_ok && self.comfort > 0.5
+            if needs_ok
+                && self.comfort > 0.5
                 && (self.x - self.home_x).abs() + (self.y - self.home_y).abs() < 10.0
                 && rng.random::<f32>() < 0.04
             {
@@ -662,19 +790,21 @@ impl Organism {
                 return (25, thought);
             }
 
-            let kin_nearby_n = organisms.iter().filter(|o|
-                !std::ptr::eq(*o, self) && o.alive
-                && o.lineage_id == self.lineage_id
-                && (o.x - self.x).abs() + (o.y - self.y).abs() <= 6.0
-            ).count();
+            let kin_nearby_n = organisms
+                .iter()
+                .filter(|o| {
+                    !std::ptr::eq(*o, self)
+                        && o.alive
+                        && o.lineage_id == self.lineage_id
+                        && (o.x - self.x).abs() + (o.y - self.y).abs() <= 6.0
+                })
+                .count();
 
             let fire_adj = matches!(tile, Tile::Campfire | Tile::Fire)
                 || self.nearest_visible(grid, Tile::Campfire, 2).is_some()
                 || self.nearest_visible(grid, Tile::Fire, 2).is_some();
 
-            if self.infection > 0.20 && self.inv_water > 0 && fire_adj
-                && rng.random::<f32>() < 0.18
-            {
+            if self.infection > 0.20 && self.inv_water > 0 && fire_adj && rng.random::<f32>() < 0.18 {
                 set_thought!("boiling water clean");
                 return (141, thought);
             }
@@ -687,43 +817,44 @@ impl Organism {
                 return (146, thought);
             }
 
-            if self.inv_food > 0 && kin_nearby_n >= 2 && self.energy > 0.7
-                && rng.random::<f32>() < 0.08
-            {
+            if self.inv_food > 0 && kin_nearby_n >= 2 && self.energy > 0.7 && rng.random::<f32>() < 0.08 {
                 set_thought!("sharing a meal");
                 return (147, thought);
             }
 
-            if self.inv_water > 0 && fire_adj && self.energy > 0.55
-                && self.boredom > 0.40 && rng.random::<f32>() < 0.05
+            if self.inv_water > 0
+                && fire_adj
+                && self.energy > 0.55
+                && self.boredom > 0.40
+                && rng.random::<f32>() < 0.05
             {
                 set_thought!("brewing tea");
                 return (148, thought);
             }
 
             let has_blade = self.discoveries.contains("knife")
-                         || self.discoveries.contains("axe")
-                         || self.discoveries.contains("spear");
-            if has_blade && self.boredom > 0.50 && self.near_shelter(grid)
-                && rng.random::<f32>() < 0.04
-            {
+                || self.discoveries.contains("axe")
+                || self.discoveries.contains("spear");
+            if has_blade && self.boredom > 0.50 && self.near_shelter(grid) && rng.random::<f32>() < 0.04 {
                 set_thought!("sharpening a blade");
                 return (157, thought);
             }
 
-            if self.hydration < 0.30 && tile == Tile::Sand
-                && rng.random::<f32>() < 0.10
-            {
+            if self.hydration < 0.30 && tile == Tile::Sand && rng.random::<f32>() < 0.10 {
                 set_thought!("digging deeper");
                 return (166, thought);
             }
 
-            let kin_afraid = organisms.iter().filter(|o|
-                !std::ptr::eq(*o, self) && o.alive
-                && o.lineage_id == self.lineage_id
-                && o.fear_level > 0.55
-                && (o.x - self.x).abs() + (o.y - self.y).abs() <= 8.0
-            ).count();
+            let kin_afraid = organisms
+                .iter()
+                .filter(|o| {
+                    !std::ptr::eq(*o, self)
+                        && o.alive
+                        && o.lineage_id == self.lineage_id
+                        && o.fear_level > 0.55
+                        && (o.x - self.x).abs() + (o.y - self.y).abs() <= 8.0
+                })
+                .count();
             if kin_afraid >= 1 && self.inv_wood > 0 && rng.random::<f32>() < 0.10 {
                 set_thought!("lighting a signal fire");
                 return (179, thought);
@@ -748,48 +879,48 @@ impl Organism {
                 return (223, thought);
             }
 
-            let kid_kin = organisms.iter().any(|o|
-                !std::ptr::eq(o, self) && o.alive && o.age < 500
-                && o.lineage_id == self.lineage_id
-                && (o.x - self.x).abs() + (o.y - self.y).abs() <= 4.0
-            );
+            let kid_kin = organisms.iter().any(|o| {
+                !std::ptr::eq(o, self)
+                    && o.alive
+                    && o.age < 500
+                    && o.lineage_id == self.lineage_id
+                    && (o.x - self.x).abs() + (o.y - self.y).abs() <= 4.0
+            });
             if kid_kin && self.energy > 0.5 && rng.random::<f32>() < 0.06 {
                 set_thought!("playing with the kids");
                 return (224, thought);
             }
 
-            if self.is_elder && kin_nearby_n >= 1 && self.comfort > 0.55
-                && rng.random::<f32>() < 0.06
-            {
+            if self.is_elder && kin_nearby_n >= 1 && self.comfort > 0.55 && rng.random::<f32>() < 0.06 {
                 set_thought!("reciting a proverb");
                 return (135, thought);
             }
 
-            if self.is_elder && kin_nearby_n == 0 && self.sleep_debt > 0.20
-                && self.comfort > 0.40 && rng.random::<f32>() < 0.05
+            if self.is_elder
+                && kin_nearby_n == 0
+                && self.sleep_debt > 0.20
+                && self.comfort > 0.40
+                && rng.random::<f32>() < 0.05
             {
                 set_thought!("on a vision quest");
                 return (205, thought);
             }
 
-            if matches!(tile, Tile::Food)
-                && self.comfort > 0.50
-                && rng.random::<f32>() < 0.04
-            {
+            if matches!(tile, Tile::Food) && self.comfort > 0.50 && rng.random::<f32>() < 0.04 {
                 set_thought!("blessing the field");
                 return (210, thought);
             }
 
-            if self.sleep_debt > 0.35 && self.near_shelter(grid)
-                && rng.random::<f32>() < 0.12
-            {
+            if self.sleep_debt > 0.35 && self.near_shelter(grid) && rng.random::<f32>() < 0.12 {
                 set_thought!("taking a nap");
                 return (221, thought);
             }
         }
 
         let age_decay = 1.0 / (1.0 + self.age as f32 / 2000.0);
-        let eff_eps = (epsilon * (0.5 + self.traits.curiosity) * age_decay).max(0.02).min(0.80);
+        let eff_eps = (epsilon * (0.5 + self.traits.curiosity) * age_decay)
+            .max(0.02)
+            .min(0.80);
         if rng.random::<f32>() < eff_eps {
             if rng.random::<f32>() < 0.10 {
                 if let Some(p) = self.find_trail_target(grid, TrailKind::Path, 5) {
@@ -797,16 +928,31 @@ impl Organism {
                 }
             }
             let explore_thought = if night {
-                let opts = ["watching the stars", "listening to the dark",
-                            "patrolling at night", "restless"];
+                let opts = [
+                    "watching the stars",
+                    "listening to the dark",
+                    "patrolling at night",
+                    "restless",
+                ];
                 opts[rng.random_range(0..opts.len())]
             } else if self.traits.curiosity > 0.65 {
-                let opts = ["scouting ahead", "investigating", "searching for something new",
-                            "following a scent", "pushing further out"];
+                let opts = [
+                    "scouting ahead",
+                    "investigating",
+                    "searching for something new",
+                    "following a scent",
+                    "pushing further out",
+                ];
                 opts[rng.random_range(0..opts.len())]
             } else {
-                let opts = ["foraging", "wandering", "looking around",
-                            "exploring", "checking the area", "roaming"];
+                let opts = [
+                    "foraging",
+                    "wandering",
+                    "looking around",
+                    "exploring",
+                    "checking the area",
+                    "roaming",
+                ];
                 opts[rng.random_range(0..opts.len())]
             };
             set_thought!(explore_thought);
@@ -816,9 +962,11 @@ impl Organism {
                 let target = (ix + last_dx * 5, iy + last_dy * 5);
                 return (self.toward(target, grid), thought);
             }
-            let on_food  = tile == Tile::Food;
+            let on_food = tile == Tile::Food;
             let on_water = tile == Tile::Water;
-            let filtered: Vec<usize> = available.iter().copied()
+            let filtered: Vec<usize> = available
+                .iter()
+                .copied()
                 .filter(|&a| match a {
                     8 => on_food,
                     9 => on_water,
@@ -843,18 +991,29 @@ impl Organism {
         // picked by ties early on, breaking the cold-start where they
         // sat at Q=0 and never accumulated reward signal.
         let seed_q = |a: usize| -> f32 {
-            if a >= 140 { 0.02 } else { 0.01 }
+            if a >= 140 {
+                0.02
+            } else {
+                0.01
+            }
         };
         let lookup = |a: usize| -> f32 {
-            q_row.map(|r| {
-                let v = r.get_q(a as u16);
-                if v == 0.0 { seed_q(a) } else { v }
-            }).unwrap_or_else(|| seed_q(a))
+            q_row
+                .map(|r| {
+                    let v = r.get_q(a as u16);
+                    if v == 0.0 {
+                        seed_q(a)
+                    } else {
+                        v
+                    }
+                })
+                .unwrap_or_else(|| seed_q(a))
         };
-        let best_avail = available.iter().copied()
-            .max_by(|&a, &b| {
-                lookup(a).partial_cmp(&lookup(b)).unwrap_or(std::cmp::Ordering::Equal)
-            });
+        let best_avail = available.iter().copied().max_by(|&a, &b| {
+            lookup(a)
+                .partial_cmp(&lookup(b))
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         // Commit to the best available action even when best_val ≤ 0.
         // The previous gate (`if best_val > 0.0`) silently fell through
         // to a uniform-random pick whenever every learned Q was negative,

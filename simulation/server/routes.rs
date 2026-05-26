@@ -1,30 +1,21 @@
-
-
 use std::sync::Arc;
 
 use axum::{
-    Json,
-    extract::{Path, State, WebSocketUpgrade},
     extract::ws::{Message, WebSocket},
+    extract::{Path, State, WebSocketUpgrade},
     http::StatusCode,
     response::IntoResponse,
+    Json,
 };
 use tokio::sync::broadcast;
 
-use crate::{
-    AppState, LatestFull, SharedSim, WS_RESYNC_LAG_THRESHOLD,
-};
-use crate::server::transport::{
-    SharedTransportStats, encode_frame, now_ms,
-};
+use crate::server::transport::{encode_frame, now_ms, SharedTransportStats};
+use crate::{AppState, LatestFull, SharedSim, WS_RESYNC_LAG_THRESHOLD};
 
-pub async fn ws_handler(
-    ws: WebSocketUpgrade,
-    State(s): State<AppState>,
-) -> impl IntoResponse {
-    let rx              = s.tx.subscribe();
-    let sim             = s.sim.clone();
-    let latest_full     = s.latest_full.clone();
+pub async fn ws_handler(ws: WebSocketUpgrade, State(s): State<AppState>) -> impl IntoResponse {
+    let rx = s.tx.subscribe();
+    let sim = s.sim.clone();
+    let latest_full = s.latest_full.clone();
     let transport_stats = s.transport_stats.clone();
     // Clients never legitimately send anything beyond ping/pong/close
     // on this socket, so cap inbound frames hard. Axum's default is
@@ -43,9 +34,7 @@ pub async fn ws_handler(
 ///
 /// `Cache-Control: public, max-age=300` advertises the same TTL to
 /// downstream CDNs / crawlers.
-pub async fn og_handler(
-    State(s): State<AppState>,
-) -> Result<impl IntoResponse, StatusCode> {
+pub async fn og_handler(State(s): State<AppState>) -> Result<impl IntoResponse, StatusCode> {
     const TTL_MS: u64 = 5 * 60 * 1000;
     let now = crate::server::transport::now_ms();
     // Hold the cache mutex across the entire critical section so a
@@ -57,8 +46,11 @@ pub async fn og_handler(
         if now.saturating_sub(*generated_at) < TTL_MS {
             return Ok((
                 [
-                    (axum::http::header::CONTENT_TYPE,  "image/png".to_string()),
-                    (axum::http::header::CACHE_CONTROL, "public, max-age=300".to_string()),
+                    (axum::http::header::CONTENT_TYPE, "image/png".to_string()),
+                    (
+                        axum::http::header::CACHE_CONTROL,
+                        "public, max-age=300".to_string(),
+                    ),
                 ],
                 bytes.as_ref().clone(),
             ));
@@ -72,8 +64,8 @@ pub async fn og_handler(
     let snapshot = {
         use crate::sim::config::DAY_LENGTH;
         let sim = s.sim.lock().await;
-        use crate::server::og_image::{OgSnapshot, OgOrg, lineage_color};
-        use crate::server::og_image::{OgAnimal, animal_color};
+        use crate::server::og_image::{animal_color, OgAnimal};
+        use crate::server::og_image::{lineage_color, OgOrg, OgSnapshot};
         let g = &sim.grid;
         let mut orgs: Vec<OgOrg> = Vec::with_capacity(sim.organisms.len());
         let mut alive = 0u32;
@@ -85,7 +77,9 @@ pub async fn og_handler(
                 color: lineage_color(&o.lineage_id),
             });
         }
-        let animals: Vec<OgAnimal> = sim.animals.iter()
+        let animals: Vec<OgAnimal> = sim
+            .animals
+            .iter()
             .filter(|a| a.alive)
             .map(|a| OgAnimal {
                 x: a.x,
@@ -97,13 +91,13 @@ pub async fn og_handler(
         let day_t = phase as f32 / DAY_LENGTH as f32;
         let era = sim.current_era.clone();
         OgSnapshot {
-            width:  crate::world::grid::WIDTH,
+            width: crate::world::grid::WIDTH,
             height: crate::world::grid::HEIGHT,
-            tiles:  g.tiles.clone(),
-            biome:  g.biome.clone(),
+            tiles: g.tiles.clone(),
+            biome: g.biome.clone(),
             orgs,
             animals,
-            tick:   sim.tick_count,
+            tick: sim.tick_count,
             day_t,
             era,
             alive,
@@ -111,31 +105,36 @@ pub async fn og_handler(
     };
 
     // PNG encode off the reactor. spawn_blocking failure → 500.
-    let bytes_arc: Arc<Vec<u8>> = match tokio::task::spawn_blocking(move || crate::server::og_image::render(&snapshot)).await {
-        Ok(b) => Arc::new(b),
-        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
-    };
+    let bytes_arc: Arc<Vec<u8>> =
+        match tokio::task::spawn_blocking(move || crate::server::og_image::render(&snapshot)).await {
+            Ok(b) => Arc::new(b),
+            Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+        };
 
     *guard = Some((now, bytes_arc.clone()));
     drop(guard);
 
     Ok((
         [
-            (axum::http::header::CONTENT_TYPE,  "image/png".to_string()),
-            (axum::http::header::CACHE_CONTROL, "public, max-age=300".to_string()),
+            (axum::http::header::CONTENT_TYPE, "image/png".to_string()),
+            (
+                axum::http::header::CACHE_CONTROL,
+                "public, max-age=300".to_string(),
+            ),
         ],
         bytes_arc.as_ref().clone(),
     ))
 }
 
-pub async fn snapshot_handler(
-    State(s): State<AppState>,
-) -> Result<impl IntoResponse, StatusCode> {
+pub async fn snapshot_handler(State(s): State<AppState>) -> Result<impl IntoResponse, StatusCode> {
     let cached = s.latest_full.read().ok().and_then(|g| g.clone());
     match cached {
         Some(arc) => Ok((
             [
-                (axum::http::header::CONTENT_TYPE,  "application/msgpack".to_string()),
+                (
+                    axum::http::header::CONTENT_TYPE,
+                    "application/msgpack".to_string(),
+                ),
                 (axum::http::header::CACHE_CONTROL, "no-store".to_string()),
             ],
             arc.as_ref().clone(),
@@ -147,31 +146,37 @@ pub async fn snapshot_handler(
 pub async fn list_worlds_handler() -> impl IntoResponse {
     let worlds = crate::server::world_archive::list_archived_worlds();
     (
-        [(axum::http::header::CACHE_CONTROL, "public, max-age=60".to_string())],
+        [(
+            axum::http::header::CACHE_CONTROL,
+            "public, max-age=60".to_string(),
+        )],
         Json(serde_json::json!({ "worlds": worlds })),
     )
 }
 
-pub async fn world_meta_handler(
-    Path(hash): Path<String>,
-) -> Result<impl IntoResponse, StatusCode> {
-    let meta = crate::server::world_archive::read_world_meta(&hash)
-        .ok_or(StatusCode::NOT_FOUND)?;
+pub async fn world_meta_handler(Path(hash): Path<String>) -> Result<impl IntoResponse, StatusCode> {
+    let meta = crate::server::world_archive::read_world_meta(&hash).ok_or(StatusCode::NOT_FOUND)?;
     Ok((
-        [(axum::http::header::CACHE_CONTROL, "public, max-age=86400, immutable".to_string())],
+        [(
+            axum::http::header::CACHE_CONTROL,
+            "public, max-age=86400, immutable".to_string(),
+        )],
         Json(meta),
     ))
 }
 
-pub async fn world_snapshot_handler(
-    Path(hash): Path<String>,
-) -> Result<impl IntoResponse, StatusCode> {
-    let bytes = crate::server::world_archive::read_world_snapshot(&hash)
-        .ok_or(StatusCode::NOT_FOUND)?;
+pub async fn world_snapshot_handler(Path(hash): Path<String>) -> Result<impl IntoResponse, StatusCode> {
+    let bytes = crate::server::world_archive::read_world_snapshot(&hash).ok_or(StatusCode::NOT_FOUND)?;
     Ok((
         [
-            (axum::http::header::CONTENT_TYPE,  "application/msgpack".to_string()),
-            (axum::http::header::CACHE_CONTROL, "public, max-age=86400, immutable".to_string()),
+            (
+                axum::http::header::CONTENT_TYPE,
+                "application/msgpack".to_string(),
+            ),
+            (
+                axum::http::header::CACHE_CONTROL,
+                "public, max-age=86400, immutable".to_string(),
+            ),
         ],
         bytes,
     ))
@@ -197,7 +202,10 @@ pub async fn org_detail_handler(
     use crate::organism::organism::OrgDetailJson;
     let detail: OrgDetailJson = {
         let sim = s.sim.lock().await;
-        let org = sim.organisms.iter().find(|o| o.id == id)
+        let org = sim
+            .organisms
+            .iter()
+            .find(|o| o.id == id)
             .ok_or(StatusCode::NOT_FOUND)?;
         org.to_detail_json()
     };
@@ -213,10 +221,18 @@ pub async fn org_conversations_handler(
 ) -> Result<impl IntoResponse, StatusCode> {
     let (name, lineage_id, vocab, convos) = {
         let sim = s.sim.lock().await;
-        let org = sim.organisms.iter().find(|o| o.id == id)
+        let org = sim
+            .organisms
+            .iter()
+            .find(|o| o.id == id)
             .ok_or(StatusCode::NOT_FOUND)?;
         let convos: Vec<_> = org.conversations.iter().cloned().collect();
-        (org.name.clone(), org.lineage_id.clone(), org.vocabulary.as_hashmap(), convos)
+        (
+            org.name.clone(),
+            org.lineage_id.clone(),
+            org.vocabulary.as_hashmap(),
+            convos,
+        )
     };
     Ok((
         [(axum::http::header::CACHE_CONTROL, "no-store".to_string())],
@@ -236,7 +252,10 @@ pub async fn org_life_handler(
 ) -> Result<impl IntoResponse, StatusCode> {
     use crate::organism::organism::OrgLifeJson;
     let sim = s.sim.lock().await;
-    let org = sim.organisms.iter().find(|o| o.id == id)
+    let org = sim
+        .organisms
+        .iter()
+        .find(|o| o.id == id)
         .ok_or(StatusCode::NOT_FOUND)?;
     let life: OrgLifeJson = org.to_life_json();
     Ok((
@@ -245,18 +264,14 @@ pub async fn org_life_handler(
     ))
 }
 
-pub async fn transport_handler(
-    State(s): State<AppState>,
-) -> impl IntoResponse {
+pub async fn transport_handler(State(s): State<AppState>) -> impl IntoResponse {
     (
         [(axum::http::header::CACHE_CONTROL, "no-store".to_string())],
         Json(s.transport_stats.snapshot()),
     )
 }
 
-pub async fn llm_handler(
-    State(s): State<AppState>,
-) -> impl IntoResponse {
+pub async fn llm_handler(State(s): State<AppState>) -> impl IntoResponse {
     (
         [(axum::http::header::CACHE_CONTROL, "no-store".to_string())],
         Json(s.llm_stats.snapshot()),
@@ -270,9 +285,7 @@ pub async fn llm_handler(
 ///
 /// Naming follows the convention `thb_<subsystem>_<metric>_<unit>`.
 /// Counters end in `_total`. Gauges have no `_total` suffix.
-pub async fn metrics_handler(
-    State(s): State<AppState>,
-) -> impl IntoResponse {
+pub async fn metrics_handler(State(s): State<AppState>) -> impl IntoResponse {
     let llm = s.llm_stats.snapshot();
     let transport = s.transport_stats.snapshot();
     let pressure = s.memory_watch.pressure();
@@ -295,7 +308,7 @@ pub async fn metrics_handler(
     };
 
     let pressure_n: u8 = match pressure {
-        crate::sim::memory_pressure::MemoryPressure::Normal   => 0,
+        crate::sim::memory_pressure::MemoryPressure::Normal => 0,
         crate::sim::memory_pressure::MemoryPressure::Elevated => 1,
         crate::sim::memory_pressure::MemoryPressure::Critical => 2,
     };
@@ -314,21 +327,50 @@ pub async fn metrics_handler(
     let _ = writeln!(body, "# HELP thb_memory_pressure 0=normal 1=elevated 2=critical");
     let _ = writeln!(body, "# TYPE thb_memory_pressure gauge");
     let _ = writeln!(body, "thb_memory_pressure {}", pressure_n);
-    let _ = writeln!(body, "# HELP thb_groq_rate_available Permits remaining in the Groq per-minute bucket");
+    let _ = writeln!(
+        body,
+        "# HELP thb_groq_rate_available Permits remaining in the Groq per-minute bucket"
+    );
     let _ = writeln!(body, "# TYPE thb_groq_rate_available gauge");
     let _ = writeln!(body, "thb_groq_rate_available {}", groq_available);
-    let _ = writeln!(body, "# HELP thb_last_full_frame_age_ms Milliseconds since last full frame was generated");
+    let _ = writeln!(
+        body,
+        "# HELP thb_last_full_frame_age_ms Milliseconds since last full frame was generated"
+    );
     let _ = writeln!(body, "# TYPE thb_last_full_frame_age_ms gauge");
     let _ = writeln!(body, "thb_last_full_frame_age_ms {}", last_full_age_ms);
 
     // Transport counters (cumulative since startup).
-    let _ = writeln!(body, "# HELP thb_transport_frames_total Cumulative frame counts by type");
+    let _ = writeln!(
+        body,
+        "# HELP thb_transport_frames_total Cumulative frame counts by type"
+    );
     let _ = writeln!(body, "# TYPE thb_transport_frames_total counter");
-    let _ = writeln!(body, "thb_transport_frames_total{{kind=\"generated\"}} {}", transport.generated_frames);
-    let _ = writeln!(body, "thb_transport_frames_total{{kind=\"sent\"}} {}", transport.sent_frames);
-    let _ = writeln!(body, "thb_transport_frames_total{{kind=\"lagged\"}} {}", transport.lagged_frames);
-    let _ = writeln!(body, "thb_transport_frames_total{{kind=\"dropped\"}} {}", transport.dropped_frames);
-    let _ = writeln!(body, "thb_transport_frames_total{{kind=\"resync\"}} {}", transport.resync_frames);
+    let _ = writeln!(
+        body,
+        "thb_transport_frames_total{{kind=\"generated\"}} {}",
+        transport.generated_frames
+    );
+    let _ = writeln!(
+        body,
+        "thb_transport_frames_total{{kind=\"sent\"}} {}",
+        transport.sent_frames
+    );
+    let _ = writeln!(
+        body,
+        "thb_transport_frames_total{{kind=\"lagged\"}} {}",
+        transport.lagged_frames
+    );
+    let _ = writeln!(
+        body,
+        "thb_transport_frames_total{{kind=\"dropped\"}} {}",
+        transport.dropped_frames
+    );
+    let _ = writeln!(
+        body,
+        "thb_transport_frames_total{{kind=\"resync\"}} {}",
+        transport.resync_frames
+    );
 
     // LLM per-lane.
     for (lane_name, lane) in [
@@ -336,31 +378,60 @@ pub async fn metrics_handler(
         ("think", &llm.think),
         ("conversation", &llm.conversation),
     ] {
-        let _ = writeln!(body, "thb_llm_calls_total{{lane=\"{}\"}} {}", lane_name, lane.calls);
-        let _ = writeln!(body, "thb_llm_errors_total{{lane=\"{}\"}} {}", lane_name, lane.errors);
+        let _ = writeln!(
+            body,
+            "thb_llm_calls_total{{lane=\"{}\"}} {}",
+            lane_name, lane.calls
+        );
+        let _ = writeln!(
+            body,
+            "thb_llm_errors_total{{lane=\"{}\"}} {}",
+            lane_name, lane.errors
+        );
         let _ = writeln!(body, "thb_llm_avg_ms{{lane=\"{}\"}} {}", lane_name, lane.avg_ms);
         let _ = writeln!(body, "thb_llm_p95_ms{{lane=\"{}\"}} {}", lane_name, lane.p95_ms);
     }
     let _ = writeln!(body, "thb_llm_429_total{{lane=\"think\"}} {}", llm.think_429);
-    let _ = writeln!(body, "thb_llm_429_total{{lane=\"narration\"}} {}", llm.narration_429);
-    let _ = writeln!(body, "thb_llm_429_total{{lane=\"conversation\"}} {}", llm.conversation_429);
+    let _ = writeln!(
+        body,
+        "thb_llm_429_total{{lane=\"narration\"}} {}",
+        llm.narration_429
+    );
+    let _ = writeln!(
+        body,
+        "thb_llm_429_total{{lane=\"conversation\"}} {}",
+        llm.conversation_429
+    );
     let _ = writeln!(body, "thb_llm_5xx_total{{lane=\"think\"}} {}", llm.think_5xx);
-    let _ = writeln!(body, "thb_llm_5xx_total{{lane=\"narration\"}} {}", llm.narration_5xx);
-    let _ = writeln!(body, "thb_llm_5xx_total{{lane=\"conversation\"}} {}", llm.conversation_5xx);
-    let _ = writeln!(body, "thb_llm_local_fallback_total{{lane=\"think\"}} {}", llm.think_local_fallback);
+    let _ = writeln!(
+        body,
+        "thb_llm_5xx_total{{lane=\"narration\"}} {}",
+        llm.narration_5xx
+    );
+    let _ = writeln!(
+        body,
+        "thb_llm_5xx_total{{lane=\"conversation\"}} {}",
+        llm.conversation_5xx
+    );
+    let _ = writeln!(
+        body,
+        "thb_llm_local_fallback_total{{lane=\"think\"}} {}",
+        llm.think_local_fallback
+    );
 
     (
         [
-            (axum::http::header::CONTENT_TYPE,  "text/plain; version=0.0.4".to_string()),
+            (
+                axum::http::header::CONTENT_TYPE,
+                "text/plain; version=0.0.4".to_string(),
+            ),
             (axum::http::header::CACHE_CONTROL, "no-store".to_string()),
         ],
         body,
     )
 }
 
-pub async fn memory_handler(
-    State(s): State<AppState>,
-) -> impl IntoResponse {
+pub async fn memory_handler(State(s): State<AppState>) -> impl IntoResponse {
     let rss_kb = read_self_rss_kb();
     let sim = s.sim.lock().await;
     let alive = sim.organisms.iter().filter(|o| o.alive).count();
@@ -370,19 +441,23 @@ pub async fn memory_handler(
     let mut water_entries = 0usize;
     let mut danger_entries = 0usize;
     let mut trust_entries = 0usize;
-    let mut discoveries  = 0usize;
+    let mut discoveries = 0usize;
     let mut thought_hist = 0usize;
     for o in &sim.organisms {
-        if !o.alive { continue; }
+        if !o.alive {
+            continue;
+        }
         let qn = o.q_table.len();
         q_rows += qn;
-        if qn > q_max_per_org { q_max_per_org = qn; }
-        food_entries   += o.food_memory.len();
-        water_entries  += o.water_memory.len();
+        if qn > q_max_per_org {
+            q_max_per_org = qn;
+        }
+        food_entries += o.food_memory.len();
+        water_entries += o.water_memory.len();
         danger_entries += o.danger_memory.len();
-        trust_entries  += o.org_trust.len();
-        discoveries    += o.discoveries.len();
-        thought_hist   += o.thought_history.len();
+        trust_entries += o.org_trust.len();
+        discoveries += o.discoveries.len();
+        thought_hist += o.thought_history.len();
     }
     let n_actions = crate::organism::organism::N_ACTIONS;
     let q_bytes = q_rows * n_actions * 4;
@@ -416,9 +491,7 @@ pub async fn memory_handler(
 /// box working." Returns 200 OK with degraded:false when all green,
 /// 200 OK with degraded:true when any subsystem is in a warning state,
 /// 503 when the sim hasn't ticked in a while (we're dying).
-pub async fn health_handler(
-    State(s): State<AppState>,
-) -> impl IntoResponse {
+pub async fn health_handler(State(s): State<AppState>) -> impl IntoResponse {
     let now = crate::server::transport::now_ms();
     let last_full = s.latest_full_at.load(std::sync::atomic::Ordering::Relaxed);
     let last_full_age_ms = now.saturating_sub(last_full);
@@ -433,10 +506,14 @@ pub async fn health_handler(
     let llm_snap = s.llm_stats.snapshot();
     let narration_err_ratio = if llm_snap.narration.calls > 0 {
         llm_snap.narration.errors as f64 / llm_snap.narration.calls as f64
-    } else { 0.0 };
+    } else {
+        0.0
+    };
     let think_err_ratio = if llm_snap.think.calls > 0 {
         llm_snap.think.errors as f64 / llm_snap.think.calls as f64
-    } else { 0.0 };
+    } else {
+        0.0
+    };
     let llm_failing = narration_err_ratio > 0.5 || think_err_ratio > 0.5;
 
     // Sim alive check: latest_full should refresh every ~3s. If it's
@@ -487,7 +564,8 @@ fn read_self_rss_kb() -> u64 {
     };
     for line in s.lines() {
         if let Some(rest) = line.strip_prefix("VmRSS:") {
-            let kb: u64 = rest.split_whitespace()
+            let kb: u64 = rest
+                .split_whitespace()
                 .next()
                 .and_then(|n| n.parse().ok())
                 .unwrap_or(0);
@@ -504,7 +582,6 @@ async fn handle_socket(
     latest_full: LatestFull,
     transport_stats: SharedTransportStats,
 ) {
-
     loop {
         tokio::select! {
             result = rx.recv() => {

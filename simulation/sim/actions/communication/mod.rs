@@ -1,20 +1,18 @@
-
-
-pub mod develop_writing;
-pub mod send_message;
-pub mod post_notice;
-pub mod spread_rumor;
-pub mod deny_rumor;
 pub mod call_for_help;
-pub mod sound_alarm;
-pub mod signal_allies;
-pub mod establish_postal_route;
 pub mod carve_inscription;
-pub mod publish_decree;
-pub mod develop_symbol;
 pub mod create_code;
 pub mod decode_message;
+pub mod deny_rumor;
+pub mod develop_symbol;
+pub mod develop_writing;
+pub mod establish_postal_route;
 pub mod inter_tribal_signal;
+pub mod post_notice;
+pub mod publish_decree;
+pub mod send_message;
+pub mod signal_allies;
+pub mod sound_alarm;
+pub mod spread_rumor;
 
 use super::ctx::ActionCtx;
 
@@ -35,6 +33,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         418 => create_code::apply(ctx),
         419 => decode_message::apply(ctx),
         420 => inter_tribal_signal::apply(ctx),
-        _   => 0.0,
+        _ => 0.0,
     }
 }

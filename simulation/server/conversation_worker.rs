@@ -1,11 +1,13 @@
 use std::sync::Arc;
 
-use tokio::sync::{Mutex, mpsc};
+use tokio::sync::{mpsc, Mutex};
 
-use crate::server::llm::{GroqResponse, NARRATION_LLM_MODEL, NARRATION_LLM_URL, llm_body, llm_extract, strip_thinking};
-use crate::server::llm_stats::SharedLlmStats;
+use crate::server::llm::{
+    llm_body, llm_extract, strip_thinking, GroqResponse, NARRATION_LLM_MODEL, NARRATION_LLM_URL,
+};
 use crate::server::llm_rate::SharedGroqLimiter;
-use crate::sim::convo_req::{ConvoSpeaker, ConversationReq};
+use crate::server::llm_stats::SharedLlmStats;
+use crate::sim::convo_req::{ConversationReq, ConvoSpeaker};
 
 pub type ConvoLines = Vec<[String; 2]>;
 pub type ConvoStore = Arc<Mutex<std::collections::HashMap<String, ConvoLines>>>;
@@ -13,16 +15,35 @@ pub type ConvoStore = Arc<Mutex<std::collections::HashMap<String, ConvoLines>>>;
 fn merge_vocab(a: &ConvoSpeaker, b: &ConvoSpeaker) -> String {
     let present = |s: Option<&String>| s.map(|w| !w.trim().is_empty()).unwrap_or(false);
     let mut keys: Vec<&str> = Vec::new();
-    for k in ["food", "water", "fire", "danger", "friend", "shelter", "home", "child", "tribe", "hunt"] {
-        if present(a.vocab.get(k)) || present(b.vocab.get(k)) { keys.push(k) }
+    for k in [
+        "food", "water", "fire", "danger", "friend", "shelter", "home", "child", "tribe", "hunt",
+    ] {
+        if present(a.vocab.get(k)) || present(b.vocab.get(k)) {
+            keys.push(k)
+        }
     }
-    if keys.is_empty() { return "  (no shared tribe words yet)".to_string() }
+    if keys.is_empty() {
+        return "  (no shared tribe words yet)".to_string();
+    }
     keys.iter()
         .map(|&k| {
-            let aw = a.vocab.get(k).map(|s| s.as_str()).filter(|s| !s.trim().is_empty()).unwrap_or("-");
-            let bw = b.vocab.get(k).map(|s| s.as_str()).filter(|s| !s.trim().is_empty()).unwrap_or("-");
-            if aw == bw { format!("  {}: both say \"{}\"", k, aw) }
-            else        { format!("  {}: {} says \"{}\", {} says \"{}\"", k, a.name, aw, b.name, bw) }
+            let aw = a
+                .vocab
+                .get(k)
+                .map(|s| s.as_str())
+                .filter(|s| !s.trim().is_empty())
+                .unwrap_or("-");
+            let bw = b
+                .vocab
+                .get(k)
+                .map(|s| s.as_str())
+                .filter(|s| !s.trim().is_empty())
+                .unwrap_or("-");
+            if aw == bw {
+                format!("  {}: both say \"{}\"", k, aw)
+            } else {
+                format!("  {}: {} says \"{}\", {} says \"{}\"", k, a.name, aw, b.name, bw)
+            }
         })
         .collect::<Vec<_>>()
         .join("\n")
@@ -31,12 +52,12 @@ fn merge_vocab(a: &ConvoSpeaker, b: &ConvoSpeaker) -> String {
 fn kind_brief(kind: &str) -> &'static str {
     match kind {
         "courtship" => "Flirting; tentative, warm, increasingly bold. They are not yet partners.",
-        "excited"   => "Sharing genuine excitement about a recent event in their day.",
-        "bonded"    => "Established partners checking in; intimate, familiar.",
-        "chat"      => "Casual chat between tribemates passing time.",
-        "argue"     => "Disagreement; tense, voices rising. Don't resolve it neatly.",
-        "farewell"  => "Saying goodbye for the night, the season, or longer.",
-        _           => "A brief exchange.",
+        "excited" => "Sharing genuine excitement about a recent event in their day.",
+        "bonded" => "Established partners checking in; intimate, familiar.",
+        "chat" => "Casual chat between tribemates passing time.",
+        "argue" => "Disagreement; tense, voices rising. Don't resolve it neatly.",
+        "farewell" => "Saying goodbye for the night, the season, or longer.",
+        _ => "A brief exchange.",
     }
 }
 
@@ -86,18 +107,24 @@ Output ONLY the lines, one per line.",
 }
 
 fn build_retry_prompt(req: &ConversationReq) -> String {
-    format!("\
+    format!(
+        "\
 Your previous response was rejected. Output {n} lines, plain text, one per line. \
 Each line MUST start with \"{a}:\" or \"{b}:\" alternating, starting with {a}: \
 Each line 3-12 words, real speech, ends with . ? or !. \
 Scene: {scene}. No preamble, no markdown, no narration. Output only the {n} lines.",
-        n = req.n_lines, a = req.a.name, b = req.b.name, scene = kind_brief(&req.kind),
+        n = req.n_lines,
+        a = req.a.name,
+        b = req.b.name,
+        scene = kind_brief(&req.kind),
     )
 }
 
 fn parse_and_validate(raw: &str, req: &ConversationReq) -> Result<ConvoLines, &'static str> {
     let raw = raw.trim();
-    if raw.is_empty() { return Err("empty"); }
+    if raw.is_empty() {
+        return Err("empty");
+    }
 
     let a_prefix = format!("{}:", req.a.name);
     let b_prefix = format!("{}:", req.b.name);
@@ -105,31 +132,52 @@ fn parse_and_validate(raw: &str, req: &ConversationReq) -> Result<ConvoLines, &'
     let mut out: ConvoLines = Vec::with_capacity(req.n_lines);
     for line in raw.lines() {
         let mut line = line.trim().to_string();
-        if line.is_empty() { continue }
-        if line.starts_with("- ") { line = line[2..].to_string() }
-        if line.starts_with("* ") { line = line[2..].to_string() }
-        if line.starts_with("```") { continue }
+        if line.is_empty() {
+            continue;
+        }
+        if line.starts_with("- ") {
+            line = line[2..].to_string()
+        }
+        if line.starts_with("* ") {
+            line = line[2..].to_string()
+        }
+        if line.starts_with("```") {
+            continue;
+        }
 
-        let (speaker, text) =
-            if let Some(rest) = line.strip_prefix(&a_prefix) {
-                (req.a.name.clone(), rest.trim().to_string())
-            } else if let Some(rest) = line.strip_prefix(&b_prefix) {
-                (req.b.name.clone(), rest.trim().to_string())
-            } else {
-                continue
-            };
+        let (speaker, text) = if let Some(rest) = line.strip_prefix(&a_prefix) {
+            (req.a.name.clone(), rest.trim().to_string())
+        } else if let Some(rest) = line.strip_prefix(&b_prefix) {
+            (req.b.name.clone(), rest.trim().to_string())
+        } else {
+            continue;
+        };
 
         let mut text = text.trim_matches(|c| c == '"' || c == '\'').to_string();
         text = text.trim().to_string();
-        if text.is_empty() { continue }
-        if text.len() > 140 { return Err("line too long"); }
-        if text.contains("**") || text.contains("```") { return Err("markdown"); }
-        if text.contains('*') || text.contains('(') { return Err("stage direction"); }
+        if text.is_empty() {
+            continue;
+        }
+        if text.len() > 140 {
+            return Err("line too long");
+        }
+        if text.contains("**") || text.contains("```") {
+            return Err("markdown");
+        }
+        if text.contains('*') || text.contains('(') {
+            return Err("stage direction");
+        }
         let words = text.split_whitespace().count();
-        if words < 2 { return Err("line too short"); }
-        if words > 18 { return Err("line too long"); }
+        if words < 2 {
+            return Err("line too short");
+        }
+        if words > 18 {
+            return Err("line too long");
+        }
         let last = text.chars().last().unwrap_or(' ');
-        if last != '.' && last != '?' && last != '!' { return Err("no punctuation"); }
+        if last != '.' && last != '?' && last != '!' {
+            return Err("no punctuation");
+        }
         let lower = text.to_lowercase();
         if lower.starts_with("here is") || lower.starts_with("sure") || lower.starts_with("okay,") {
             return Err("meta prefix");
@@ -137,15 +185,21 @@ fn parse_and_validate(raw: &str, req: &ConversationReq) -> Result<ConvoLines, &'
         out.push([speaker, text]);
     }
 
-    if out.len() < (req.n_lines.saturating_sub(1)) { return Err("too few lines"); }
-    if out.len() > req.n_lines + 2 { return Err("too many lines"); }
+    if out.len() < (req.n_lines.saturating_sub(1)) {
+        return Err("too few lines");
+    }
+    if out.len() > req.n_lines + 2 {
+        return Err("too many lines");
+    }
 
     let expected_first = req.a.name.clone();
     if out.first().map(|p| &p[0] != &expected_first).unwrap_or(true) {
         return Err("wrong first speaker");
     }
     for w in out.windows(2) {
-        if w[0][0] == w[1][0] { return Err("speaker did not alternate"); }
+        if w[0][0] == w[1][0] {
+            return Err("speaker did not alternate");
+        }
     }
 
     Ok(out)
@@ -163,21 +217,26 @@ async fn one_call(
     // pool stays drained, blocking here would wedge the worker. Treat a
     // timeout as a rate-limit miss — return Err so the caller falls back
     // to its template path without recording a success.
-    if tokio::time::timeout(
-        std::time::Duration::from_secs(5),
-        limiter.acquire(),
-    ).await.is_err() {
+    if tokio::time::timeout(std::time::Duration::from_secs(5), limiter.acquire())
+        .await
+        .is_err()
+    {
         tracing::warn!(target: "convo", "rate limiter acquire timed out after 5s — abort");
         return Err(());
     }
     let started = std::time::Instant::now();
-    let resp = client.post(&**NARRATION_LLM_URL)
+    let resp = client
+        .post(&**NARRATION_LLM_URL)
         .header("Authorization", format!("Bearer {}", api_key))
         .json(&llm_body(prompt, max_tokens, &NARRATION_LLM_MODEL))
-        .send().await;
+        .send()
+        .await;
     let resp = match resp {
         Ok(r) => r,
-        Err(_) => { stats.record_conversation(started.elapsed().as_millis() as u64, true); return Err(()) }
+        Err(_) => {
+            stats.record_conversation(started.elapsed().as_millis() as u64, true);
+            return Err(());
+        }
     };
     // Status-check before body parse — same rationale as the
     // narration worker. A 429 body is JSON-shaped error that won't
@@ -193,11 +252,14 @@ async fn one_call(
         }
         stats.record_conversation(elapsed, true);
         tracing::warn!(target: "convo", "http {} from {}", status, &**NARRATION_LLM_URL);
-        return Err(())
+        return Err(());
     }
     let data: GroqResponse = match resp.json().await {
         Ok(d) => d,
-        Err(_) => { stats.record_conversation(started.elapsed().as_millis() as u64, true); return Err(()) }
+        Err(_) => {
+            stats.record_conversation(started.elapsed().as_millis() as u64, true);
+            return Err(());
+        }
     };
     stats.record_conversation(started.elapsed().as_millis() as u64, false);
     Ok(strip_thinking(&llm_extract(data)))
@@ -217,14 +279,30 @@ pub async fn conversation_worker(
 
     while let Some(req) = rx.recv().await {
         let max_tokens = 32 + (req.n_lines as u32) * 28;
-        let raw = one_call(&client, &api_key, build_prompt(&req), &stats, max_tokens, &limiter).await;
+        let raw = one_call(
+            &client,
+            &api_key,
+            build_prompt(&req),
+            &stats,
+            max_tokens,
+            &limiter,
+        )
+        .await;
         let lines = match raw {
             Ok(s) => match parse_and_validate(&s, &req) {
                 Ok(v) => Some(v),
                 Err(why) => {
                     tracing::info!(target: "convo", "reject first ({} ↔ {} / {}): {} — raw: {:?}",
                              req.a.name, req.b.name, req.kind, why, s);
-                    let retry = one_call(&client, &api_key, build_retry_prompt(&req), &stats, max_tokens, &limiter).await;
+                    let retry = one_call(
+                        &client,
+                        &api_key,
+                        build_retry_prompt(&req),
+                        &stats,
+                        max_tokens,
+                        &limiter,
+                    )
+                    .await;
                     match retry {
                         Ok(s2) => match parse_and_validate(&s2, &req) {
                             Ok(v) => Some(v),
@@ -260,19 +338,19 @@ pub async fn conversation_worker(
 fn convo_template_fallback(req: &ConversationReq) -> ConvoLines {
     let scene_line = match req.kind.as_str() {
         "courtship" => "I find myself glancing at you.",
-        "excited"   => "Did you see that today?",
-        "bonded"    => "Stay close tonight.",
-        "argue"     => "That is not how it should be.",
-        "farewell"  => "Until the next dawn.",
-        _           => "It has been a strange day.",
+        "excited" => "Did you see that today?",
+        "bonded" => "Stay close tonight.",
+        "argue" => "That is not how it should be.",
+        "farewell" => "Until the next dawn.",
+        _ => "It has been a strange day.",
     };
     let reply = match req.kind.as_str() {
         "courtship" => "I noticed too.",
-        "excited"   => "Yes, the whole tribe will speak of it.",
-        "bonded"    => "I will. I am here.",
-        "argue"     => "Then say what is.",
-        "farewell"  => "Walk safely.",
-        _           => "Strange — and not yet finished.",
+        "excited" => "Yes, the whole tribe will speak of it.",
+        "bonded" => "I will. I am here.",
+        "argue" => "Then say what is.",
+        "farewell" => "Walk safely.",
+        _ => "Strange — and not yet finished.",
     };
     vec![
         [req.a.name.clone(), scene_line.to_string()],

@@ -1,25 +1,23 @@
-
-
-pub mod compose_song;
-pub mod perform_music;
-pub mod paint_mural;
-pub mod write_poem;
-pub mod recite_poem;
-pub mod dance_performance;
-pub mod theater_play;
-pub mod create_mask;
-pub mod weave_tapestry;
-pub mod create_jewelry;
-pub mod decorate_home;
-pub mod carve_relief;
 pub mod build_monument;
-pub mod establish_tradition;
-pub mod record_cultural_history;
-pub mod create_calendar;
-pub mod name_festival;
+pub mod carve_relief;
 pub mod compose_anthem;
-pub mod street_performance;
+pub mod compose_song;
+pub mod create_calendar;
+pub mod create_jewelry;
+pub mod create_mask;
+pub mod dance_performance;
+pub mod decorate_home;
+pub mod establish_tradition;
+pub mod name_festival;
+pub mod paint_mural;
+pub mod perform_music;
+pub mod recite_poem;
+pub mod record_cultural_history;
 pub mod storytelling_circle;
+pub mod street_performance;
+pub mod theater_play;
+pub mod weave_tapestry;
+pub mod write_poem;
 
 use super::ctx::ActionCtx;
 
@@ -45,6 +43,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         333 => compose_anthem::apply(ctx),
         334 => street_performance::apply(ctx),
         335 => storytelling_circle::apply(ctx),
-        _   => 0.0,
+        _ => 0.0,
     }
 }

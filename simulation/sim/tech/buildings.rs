@@ -1,48 +1,196 @@
-use serde::{Deserialize, Serialize};
 use crate::sim::era::Era;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum BuildingKind {
-    Hut, House, Manor, TownHouse, Apartment,
-    School, University, Library,
-    Market, Temple, Factory, Hospital,
-    Forge, Mill, Bakery, Inn, Bank, Workshop, Granary,
-    Barracks, Lighthouse, Windmill, Watermill,
-    Aqueduct, Bridge, Wall, Tower, Plaza, Statue, Fountain,
-    TrainStation, Airport, Port, Stadium, Museum, Cathedral, Castle,
-    Theatre, Observatory,
-    Tavern, Brewery, Butcher, Fishmonger, Cheesemonger,
-    Tailor, Cobbler, ClothingShop, Jeweler, Apothecary, Herbalist,
-    Barbershop, Scribe, BookStore, ArtGallery, MusicHall, Cafe,
-    Restaurant, Hotel, GuildHall, Courthouse, CityHall, PostOffice,
-    PoliceStation, FireStation, Pharmacy, Clinic, Spa, Bathhouse,
-    Greenhouse, Vineyard, Ranch, Stable, Kennel, Dovecote,
-    Quarry, Mine, SawMill, Tannery, Smithy, Goldsmith,
-    Refinery, PowerPlant, Substation, WaterTower, Reservoir,
-    GasStation, AutoShop, Garage, MallShop, Supermarket,
-    OfficeTower, Skyscraper, Datacenter, Studio,
-    Spaceport, OrbitalLift, SolarArray, WindFarm, FusionPlant,
-    NeuralHub, AiCore, Biodome, Cryolab, NanoFab,
-    Hyperloop, Maglev, Hospital2, ResearchLab, Megastructure,
-    Well, Lamppost, Signpost, MarketStall, FoodCart, Cart,
-    Tent, Pavilion, Gazebo, Bench, Fence, Gate,
-    Watchtower, Gallows, Monument, Obelisk, Shrine,
-    Cemetery, GraveStone, Garden, Orchard, Pond,
-    PlayGround, FlagPole, Bandstand, Kiosk, BillBoard,
-    TelephonePole, StreetLight, BusStop, ParkingLot, Crosswalk,
-    Pyramid, Ziggurat, Coliseum, TriumphalArch, ClockTower,
-    Mosque, Synagogue, Pagoda, Stupa, Mausoleum,
-    Hangar, Silo, Warehouse, Dock, Marina,
-    Lighthouse2, Drydock, Crane, RadioTower, SatelliteDish,
-    WindTurbine, SolarPanel, ChargingStation, RoboticArm, Drone,
-    HoloBoard, NeonSign, ArcadeBox, Fountain2, FoodTruck,
-    Greenhouse2, MushroomFarm, Aquaculture,
+    Hut,
+    House,
+    Manor,
+    TownHouse,
+    Apartment,
+    School,
+    University,
+    Library,
+    Market,
+    Temple,
+    Factory,
+    Hospital,
+    Forge,
+    Mill,
+    Bakery,
+    Inn,
+    Bank,
+    Workshop,
+    Granary,
+    Barracks,
+    Lighthouse,
+    Windmill,
+    Watermill,
+    Aqueduct,
+    Bridge,
+    Wall,
+    Tower,
+    Plaza,
+    Statue,
+    Fountain,
+    TrainStation,
+    Airport,
+    Port,
+    Stadium,
+    Museum,
+    Cathedral,
+    Castle,
+    Theatre,
+    Observatory,
+    Tavern,
+    Brewery,
+    Butcher,
+    Fishmonger,
+    Cheesemonger,
+    Tailor,
+    Cobbler,
+    ClothingShop,
+    Jeweler,
+    Apothecary,
+    Herbalist,
+    Barbershop,
+    Scribe,
+    BookStore,
+    ArtGallery,
+    MusicHall,
+    Cafe,
+    Restaurant,
+    Hotel,
+    GuildHall,
+    Courthouse,
+    CityHall,
+    PostOffice,
+    PoliceStation,
+    FireStation,
+    Pharmacy,
+    Clinic,
+    Spa,
+    Bathhouse,
+    Greenhouse,
+    Vineyard,
+    Ranch,
+    Stable,
+    Kennel,
+    Dovecote,
+    Quarry,
+    Mine,
+    SawMill,
+    Tannery,
+    Smithy,
+    Goldsmith,
+    Refinery,
+    PowerPlant,
+    Substation,
+    WaterTower,
+    Reservoir,
+    GasStation,
+    AutoShop,
+    Garage,
+    MallShop,
+    Supermarket,
+    OfficeTower,
+    Skyscraper,
+    Datacenter,
+    Studio,
+    Spaceport,
+    OrbitalLift,
+    SolarArray,
+    WindFarm,
+    FusionPlant,
+    NeuralHub,
+    AiCore,
+    Biodome,
+    Cryolab,
+    NanoFab,
+    Hyperloop,
+    Maglev,
+    Hospital2,
+    ResearchLab,
+    Megastructure,
+    Well,
+    Lamppost,
+    Signpost,
+    MarketStall,
+    FoodCart,
+    Cart,
+    Tent,
+    Pavilion,
+    Gazebo,
+    Bench,
+    Fence,
+    Gate,
+    Watchtower,
+    Gallows,
+    Monument,
+    Obelisk,
+    Shrine,
+    Cemetery,
+    GraveStone,
+    Garden,
+    Orchard,
+    Pond,
+    PlayGround,
+    FlagPole,
+    Bandstand,
+    Kiosk,
+    BillBoard,
+    TelephonePole,
+    StreetLight,
+    BusStop,
+    ParkingLot,
+    Crosswalk,
+    Pyramid,
+    Ziggurat,
+    Coliseum,
+    TriumphalArch,
+    ClockTower,
+    Mosque,
+    Synagogue,
+    Pagoda,
+    Stupa,
+    Mausoleum,
+    Hangar,
+    Silo,
+    Warehouse,
+    Dock,
+    Marina,
+    Lighthouse2,
+    Drydock,
+    Crane,
+    RadioTower,
+    SatelliteDish,
+    WindTurbine,
+    SolarPanel,
+    ChargingStation,
+    RoboticArm,
+    Drone,
+    HoloBoard,
+    NeonSign,
+    ArcadeBox,
+    Fountain2,
+    FoodTruck,
+    Greenhouse2,
+    MushroomFarm,
+    Aquaculture,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BuildingFunction {
-    Housing, Education, Worship, Trade, Industry, Healthcare,
-    Military, Civic, Infrastructure, Recreation,
+    Housing,
+    Education,
+    Worship,
+    Trade,
+    Industry,
+    Healthcare,
+    Military,
+    Civic,
+    Infrastructure,
+    Recreation,
 }
 
 impl BuildingKind {
@@ -245,11 +393,10 @@ impl BuildingKind {
             Aqueduct | Bridge | Lighthouse | Observatory => Era::Classical,
             TrainStation => Era::Industrial,
             Port => Era::Iron,
-            Tavern | Brewery | Butcher | Fishmonger | Cheesemonger
-                | Tailor | Cobbler | Jeweler | Apothecary | Herbalist
-                | Barbershop | Scribe | Smithy | Goldsmith | GuildHall => Era::Medieval,
-            ClothingShop | BookStore | ArtGallery | MusicHall | Cafe | Restaurant
-                | Hotel | Courthouse | CityHall | PostOffice => Era::Renaissance,
+            Tavern | Brewery | Butcher | Fishmonger | Cheesemonger | Tailor | Cobbler | Jeweler
+            | Apothecary | Herbalist | Barbershop | Scribe | Smithy | Goldsmith | GuildHall => Era::Medieval,
+            ClothingShop | BookStore | ArtGallery | MusicHall | Cafe | Restaurant | Hotel | Courthouse
+            | CityHall | PostOffice => Era::Renaissance,
             PoliceStation | FireStation | Pharmacy | Clinic | Spa | Bathhouse => Era::Industrial,
             Greenhouse | Vineyard | Ranch | Stable | Kennel | Dovecote => Era::Medieval,
             Quarry | Mine | SawMill | Tannery => Era::Bronze,
@@ -261,14 +408,14 @@ impl BuildingKind {
             NeuralHub | AiCore | ResearchLab => Era::Digital,
             Hyperloop | Maglev | Hospital2 => Era::Solar,
             Megastructure => Era::Galactic,
-            Well | Lamppost | Signpost | MarketStall | FoodCart | Cart
-                | Tent | Pavilion | Gazebo | Bench | Fence | Gate
-                | Watchtower | Gallows | Monument | Obelisk | Shrine => Era::Stone,
-            Cemetery | GraveStone | Garden | Orchard | Pond | PlayGround
-                | FlagPole | Bandstand | Kiosk => Era::Bronze,
+            Well | Lamppost | Signpost | MarketStall | FoodCart | Cart | Tent | Pavilion | Gazebo | Bench
+            | Fence | Gate | Watchtower | Gallows | Monument | Obelisk | Shrine => Era::Stone,
+            Cemetery | GraveStone | Garden | Orchard | Pond | PlayGround | FlagPole | Bandstand | Kiosk => {
+                Era::Bronze
+            }
             BillBoard | TelephonePole | StreetLight | BusStop | ParkingLot | Crosswalk => Era::Industrial,
-            Pyramid | Ziggurat | Coliseum | TriumphalArch | ClockTower
-                | Mosque | Synagogue | Pagoda | Stupa | Mausoleum => Era::Classical,
+            Pyramid | Ziggurat | Coliseum | TriumphalArch | ClockTower | Mosque | Synagogue | Pagoda
+            | Stupa | Mausoleum => Era::Classical,
             Hangar | Silo | Warehouse | Dock | Marina | Lighthouse2 | Drydock | Crane => Era::Industrial,
             RadioTower | SatelliteDish => Era::Atomic,
             WindTurbine | SolarPanel | ChargingStation | RoboticArm | Drone => Era::Information,
@@ -280,38 +427,30 @@ impl BuildingKind {
     pub fn footprint(self) -> (u8, u8) {
         use BuildingKind::*;
         match self {
-            Hut | Statue | Fountain | Well | Lamppost | Signpost | MarketStall
-                | FoodCart | Cart | Tent | Bench | Gate | GraveStone | FlagPole
-                | Kiosk | BillBoard | TelephonePole | StreetLight | BusStop
-                | Obelisk | Shrine | Crosswalk | SolarPanel | ChargingStation
-                | RoboticArm | Drone | HoloBoard | NeonSign | ArcadeBox
-                | Pond | Fence | SatelliteDish | FoodTruck => (1, 1),
-            House | Inn | Bakery | Forge | Workshop | Granary | Mill | Windmill
-                | Watermill | Bank | Wall | Tower | Lighthouse | Observatory
-                | Tavern | Brewery | Butcher | Fishmonger | Cheesemonger
-                | Tailor | Cobbler | Jeweler | Apothecary | Herbalist
-                | Barbershop | Scribe | BookStore | ArtGallery | Cafe
-                | PostOffice | Pharmacy | Clinic | Spa | Bathhouse
-                | Smithy | Goldsmith | Quarry | Mine | SawMill | Tannery
-                | Stable | Kennel | Dovecote | Watchtower | Gallows | Monument
-                | Bandstand | Gazebo | Pavilion | ClothingShop | Restaurant
-                | Hotel | GuildHall | Courthouse | PoliceStation | FireStation
-                | MallShop | Supermarket | Studio | GasStation | AutoShop | Garage
-                | Cemetery | Garden | Orchard | PlayGround | ParkingLot | ClockTower
-                | Mosque | Synagogue | Stupa | Mausoleum | Hangar | Silo
-                | Warehouse | Dock | Marina | Lighthouse2 | Drydock | Crane
-                | RadioTower | WindTurbine | ChargingStation | Pyramid | Ziggurat
-                | TriumphalArch | Pagoda | Fountain2 | MushroomFarm | Aquaculture | Greenhouse
-                | Greenhouse2 | Vineyard | Ranch | WaterTower | Reservoir | Substation
-                | Refinery | PowerPlant | MusicHall | CityHall => (2, 2),
+            Hut | Statue | Fountain | Well | Lamppost | Signpost | MarketStall | FoodCart | Cart | Tent
+            | Bench | Gate | GraveStone | FlagPole | Kiosk | BillBoard | TelephonePole | StreetLight
+            | BusStop | Obelisk | Shrine | Crosswalk | SolarPanel | ChargingStation | RoboticArm | Drone
+            | HoloBoard | NeonSign | ArcadeBox | Pond | Fence | SatelliteDish | FoodTruck => (1, 1),
+            House | Inn | Bakery | Forge | Workshop | Granary | Mill | Windmill | Watermill | Bank | Wall
+            | Tower | Lighthouse | Observatory | Tavern | Brewery | Butcher | Fishmonger | Cheesemonger
+            | Tailor | Cobbler | Jeweler | Apothecary | Herbalist | Barbershop | Scribe | BookStore
+            | ArtGallery | Cafe | PostOffice | Pharmacy | Clinic | Spa | Bathhouse | Smithy | Goldsmith
+            | Quarry | Mine | SawMill | Tannery | Stable | Kennel | Dovecote | Watchtower | Gallows
+            | Monument | Bandstand | Gazebo | Pavilion | ClothingShop | Restaurant | Hotel | GuildHall
+            | Courthouse | PoliceStation | FireStation | MallShop | Supermarket | Studio | GasStation
+            | AutoShop | Garage | Cemetery | Garden | Orchard | PlayGround | ParkingLot | ClockTower
+            | Mosque | Synagogue | Stupa | Mausoleum | Hangar | Silo | Warehouse | Dock | Marina
+            | Lighthouse2 | Drydock | Crane | RadioTower | WindTurbine | ChargingStation | Pyramid
+            | Ziggurat | TriumphalArch | Pagoda | Fountain2 | MushroomFarm | Aquaculture | Greenhouse
+            | Greenhouse2 | Vineyard | Ranch | WaterTower | Reservoir | Substation | Refinery
+            | PowerPlant | MusicHall | CityHall => (2, 2),
             TownHouse => (2, 3),
-            Market | School | Hospital | Plaza | Temple | Theatre | Barracks
-                | Museum | TrainStation | Port | Spaceport | OrbitalLift
-                | SolarArray | WindFarm | FusionPlant | NeuralHub | AiCore
-                | Biodome | Cryolab | NanoFab | Hyperloop | Maglev | Hospital2
-                | ResearchLab | OfficeTower | Datacenter | Coliseum => (3, 3),
-            Manor | University | Library | Stadium | Apartment | Cathedral | Castle
-                | Factory | Airport | Skyscraper | Megastructure => (4, 4),
+            Market | School | Hospital | Plaza | Temple | Theatre | Barracks | Museum | TrainStation
+            | Port | Spaceport | OrbitalLift | SolarArray | WindFarm | FusionPlant | NeuralHub | AiCore
+            | Biodome | Cryolab | NanoFab | Hyperloop | Maglev | Hospital2 | ResearchLab | OfficeTower
+            | Datacenter | Coliseum => (3, 3),
+            Manor | University | Library | Stadium | Apartment | Cathedral | Castle | Factory | Airport
+            | Skyscraper | Megastructure => (4, 4),
             Aqueduct | Bridge => (4, 1),
         }
     }
@@ -320,20 +459,18 @@ impl BuildingKind {
         use BuildingKind::*;
         match self {
             Hut => 2,
-            House | Inn | Bakery | Workshop | Forge | Tavern | Cafe | ClothingShop
-                | Tailor | Cobbler | Jeweler | Apothecary | Herbalist | Barbershop
-                | Butcher | Fishmonger | Cheesemonger | Scribe | BookStore | Brewery
-                | Smithy | Goldsmith | Pharmacy | Clinic | Restaurant => 4,
+            House | Inn | Bakery | Workshop | Forge | Tavern | Cafe | ClothingShop | Tailor | Cobbler
+            | Jeweler | Apothecary | Herbalist | Barbershop | Butcher | Fishmonger | Cheesemonger
+            | Scribe | BookStore | Brewery | Smithy | Goldsmith | Pharmacy | Clinic | Restaurant => 4,
             TownHouse | Hotel | Spa | Bathhouse | ArtGallery | MusicHall => 6,
             Manor | Apartment | Hospital2 | Skyscraper => 12,
-            School | University | Library | Temple | Market | Hospital | Cathedral
-                | Theatre | Museum | GuildHall | Courthouse | CityHall | Coliseum
-                | Pyramid | Ziggurat | Mosque | Synagogue | Pagoda | Stupa | Mausoleum
-                | Studio | OfficeTower | Datacenter | NeuralHub | AiCore | Biodome
-                | ResearchLab | Cryolab | NanoFab => 20,
-            Castle | Barracks | Factory | Stadium | Airport | TrainStation | Port
-                | Spaceport | OrbitalLift | FusionPlant | SolarArray | WindFarm
-                | Megastructure | Hyperloop | Maglev | Warehouse | Marina | Hangar => 40,
+            School | University | Library | Temple | Market | Hospital | Cathedral | Theatre | Museum
+            | GuildHall | Courthouse | CityHall | Coliseum | Pyramid | Ziggurat | Mosque | Synagogue
+            | Pagoda | Stupa | Mausoleum | Studio | OfficeTower | Datacenter | NeuralHub | AiCore
+            | Biodome | ResearchLab | Cryolab | NanoFab => 20,
+            Castle | Barracks | Factory | Stadium | Airport | TrainStation | Port | Spaceport
+            | OrbitalLift | FusionPlant | SolarArray | WindFarm | Megastructure | Hyperloop | Maglev
+            | Warehouse | Marina | Hangar => 40,
             _ => 0,
         }
     }
@@ -357,10 +494,9 @@ impl BuildingKind {
             Hospital => &[("brick", 80), ("steel", 30), ("glass", 20)],
             Forge | Smithy | Goldsmith => &[("stone", 30), ("iron", 8)],
             Mill | Windmill | Watermill => &[("wood", 30), ("stone", 12)],
-            Bakery | Inn | Workshop | Tavern | Brewery | Butcher | Fishmonger
-                | Cheesemonger | Tailor | Cobbler | ClothingShop | Jeweler
-                | Apothecary | Herbalist | Barbershop | Scribe | BookStore
-                | Cafe | Restaurant | Hotel | Pharmacy | Clinic => &[("wood", 25), ("stone", 10)],
+            Bakery | Inn | Workshop | Tavern | Brewery | Butcher | Fishmonger | Cheesemonger | Tailor
+            | Cobbler | ClothingShop | Jeweler | Apothecary | Herbalist | Barbershop | Scribe | BookStore
+            | Cafe | Restaurant | Hotel | Pharmacy | Clinic => &[("wood", 25), ("stone", 10)],
             Bank => &[("stone", 60), ("iron", 20), ("gold", 10)],
             Granary | Silo | Warehouse => &[("wood", 30), ("stone", 10)],
             Barracks => &[("wood", 40), ("stone", 30), ("iron", 12)],
@@ -368,9 +504,8 @@ impl BuildingKind {
             Aqueduct => &[("stone", 80)],
             Bridge => &[("stone", 60), ("wood", 20)],
             Wall | Tower | Watchtower => &[("stone", 40)],
-            Plaza | Statue | Fountain | Fountain2 | Monument | Obelisk
-                | Shrine | Bandstand | Pavilion | Gazebo | Bench
-                | TriumphalArch | ClockTower => &[("stone", 20)],
+            Plaza | Statue | Fountain | Fountain2 | Monument | Obelisk | Shrine | Bandstand | Pavilion
+            | Gazebo | Bench | TriumphalArch | ClockTower => &[("stone", 20)],
             TrainStation => &[("brick", 100), ("steel", 60), ("iron", 30)],
             Airport | Hangar => &[("concrete", 300), ("steel", 200), ("glass", 80)],
             Port | Dock | Marina | Drydock => &[("wood", 80), ("stone", 60)],
@@ -378,111 +513,242 @@ impl BuildingKind {
             Museum => &[("stone", 120), ("glass", 30), ("paper", 20)],
             Theatre | MusicHall | ArtGallery => &[("wood", 80), ("stone", 50)],
             Observatory => &[("stone", 60), ("glass", 30), ("iron", 10)],
-            GuildHall | Courthouse | CityHall | PostOffice | PoliceStation
-                | FireStation | Spa | Bathhouse | MallShop | Supermarket
-                | Studio | GasStation | AutoShop | Garage | OfficeTower
-                | Skyscraper => &[("brick", 80), ("steel", 30), ("glass", 20)],
-            Refinery | PowerPlant | Substation | WaterTower | Reservoir
-                | Datacenter => &[("steel", 80), ("concrete", 60)],
-            Greenhouse | Greenhouse2 | Vineyard | Ranch | Stable | Kennel
-                | Dovecote | Garden | Orchard | Pond | MushroomFarm
-                | Aquaculture | PlayGround | Cemetery => &[("wood", 12), ("stone", 4)],
+            GuildHall | Courthouse | CityHall | PostOffice | PoliceStation | FireStation | Spa
+            | Bathhouse | MallShop | Supermarket | Studio | GasStation | AutoShop | Garage | OfficeTower
+            | Skyscraper => &[("brick", 80), ("steel", 30), ("glass", 20)],
+            Refinery | PowerPlant | Substation | WaterTower | Reservoir | Datacenter => {
+                &[("steel", 80), ("concrete", 60)]
+            }
+            Greenhouse | Greenhouse2 | Vineyard | Ranch | Stable | Kennel | Dovecote | Garden | Orchard
+            | Pond | MushroomFarm | Aquaculture | PlayGround | Cemetery => &[("wood", 12), ("stone", 4)],
             Quarry | Mine | SawMill | Tannery => &[("wood", 18), ("stone", 12)],
-            Spaceport | OrbitalLift | FusionPlant | NeuralHub | AiCore
-                | Biodome | Cryolab | NanoFab | Hyperloop | Maglev
-                | Hospital2 | ResearchLab | Megastructure => &[("steel", 200), ("glass", 100)],
-            SolarArray | WindFarm | WindTurbine | SolarPanel
-                | ChargingStation | RoboticArm | Drone | HoloBoard
-                | NeonSign | ArcadeBox | FoodTruck | RadioTower
-                | SatelliteDish | Crane => &[("steel", 40), ("glass", 20)],
-            Pyramid | Ziggurat | Mausoleum | Mosque | Synagogue
-                | Pagoda | Stupa => &[("stone", 120)],
-            Well | Lamppost | Signpost | MarketStall | FoodCart | Cart
-                | Tent | Fence | Gate | Gallows | GraveStone | FlagPole
-                | Kiosk | BillBoard | TelephonePole | StreetLight | BusStop
-                | ParkingLot | Crosswalk => &[("wood", 4), ("stone", 2)],
+            Spaceport | OrbitalLift | FusionPlant | NeuralHub | AiCore | Biodome | Cryolab | NanoFab
+            | Hyperloop | Maglev | Hospital2 | ResearchLab | Megastructure => {
+                &[("steel", 200), ("glass", 100)]
+            }
+            SolarArray | WindFarm | WindTurbine | SolarPanel | ChargingStation | RoboticArm | Drone
+            | HoloBoard | NeonSign | ArcadeBox | FoodTruck | RadioTower | SatelliteDish | Crane => {
+                &[("steel", 40), ("glass", 20)]
+            }
+            Pyramid | Ziggurat | Mausoleum | Mosque | Synagogue | Pagoda | Stupa => &[("stone", 120)],
+            Well | Lamppost | Signpost | MarketStall | FoodCart | Cart | Tent | Fence | Gate | Gallows
+            | GraveStone | FlagPole | Kiosk | BillBoard | TelephonePole | StreetLight | BusStop
+            | ParkingLot | Crosswalk => &[("wood", 4), ("stone", 2)],
             WaterTower | Reservoir => &[("steel", 30), ("concrete", 40)],
         }
     }
 
     pub fn function(self) -> BuildingFunction {
-        use BuildingKind::*;
         use BuildingFunction::*;
+        use BuildingKind::*;
         match self {
-            Hut | House | Manor | TownHouse | Apartment | Castle | Inn
-                | Hotel | Tent | Skyscraper => Housing,
-            School | University | Library | Museum | Observatory
-                | ResearchLab | Scribe | BookStore | Studio => Education,
-            Temple | Cathedral | Shrine | Mosque | Synagogue | Pagoda
-                | Stupa | Mausoleum | Pyramid | Ziggurat | Cemetery
-                | GraveStone => Worship,
-            Market | Bank | Workshop | Bakery | Port | Tavern | Brewery
-                | Butcher | Fishmonger | Cheesemonger | Tailor | Cobbler
-                | ClothingShop | Jeweler | Apothecary | Herbalist | Barbershop
-                | Cafe | Restaurant | GuildHall | MallShop | Supermarket
-                | GasStation | AutoShop | Garage | MarketStall | FoodCart
-                | FoodTruck | Kiosk | ArtGallery => Trade,
-            Forge | Mill | Windmill | Watermill | Factory | Granary | Smithy
-                | Goldsmith | Quarry | Mine | SawMill | Tannery | Refinery
-                | PowerPlant | Substation | OfficeTower | Datacenter
-                | Spaceport | OrbitalLift | SolarArray | WindFarm | FusionPlant
-                | NeuralHub | AiCore | Biodome | Cryolab | NanoFab
-                | Hyperloop | Maglev | Megastructure | SolarPanel | WindTurbine
-                | RoboticArm | Drone | Greenhouse | Greenhouse2 | Vineyard
-                | Ranch | Stable | Kennel | Dovecote | MushroomFarm
-                | Aquaculture | Hangar | Silo | Warehouse | Crane => Industry,
+            Hut | House | Manor | TownHouse | Apartment | Castle | Inn | Hotel | Tent | Skyscraper => Housing,
+            School | University | Library | Museum | Observatory | ResearchLab | Scribe | BookStore
+            | Studio => Education,
+            Temple | Cathedral | Shrine | Mosque | Synagogue | Pagoda | Stupa | Mausoleum | Pyramid
+            | Ziggurat | Cemetery | GraveStone => Worship,
+            Market | Bank | Workshop | Bakery | Port | Tavern | Brewery | Butcher | Fishmonger
+            | Cheesemonger | Tailor | Cobbler | ClothingShop | Jeweler | Apothecary | Herbalist
+            | Barbershop | Cafe | Restaurant | GuildHall | MallShop | Supermarket | GasStation | AutoShop
+            | Garage | MarketStall | FoodCart | FoodTruck | Kiosk | ArtGallery => Trade,
+            Forge | Mill | Windmill | Watermill | Factory | Granary | Smithy | Goldsmith | Quarry | Mine
+            | SawMill | Tannery | Refinery | PowerPlant | Substation | OfficeTower | Datacenter
+            | Spaceport | OrbitalLift | SolarArray | WindFarm | FusionPlant | NeuralHub | AiCore
+            | Biodome | Cryolab | NanoFab | Hyperloop | Maglev | Megastructure | SolarPanel | WindTurbine
+            | RoboticArm | Drone | Greenhouse | Greenhouse2 | Vineyard | Ranch | Stable | Kennel
+            | Dovecote | MushroomFarm | Aquaculture | Hangar | Silo | Warehouse | Crane => Industry,
             Hospital | Pharmacy | Clinic | Spa | Bathhouse | Hospital2 => Healthcare,
-            Barracks | Wall | Tower | Watchtower | Gallows | PoliceStation
-                | FireStation => Military,
-            Plaza | Statue | Fountain | Fountain2 | Lighthouse | Lighthouse2
-                | Courthouse | CityHall | PostOffice | Monument | Obelisk
-                | TriumphalArch | ClockTower | FlagPole | Signpost | Bench
-                | Lamppost | StreetLight | TelephonePole | RadioTower
-                | SatelliteDish | HoloBoard | NeonSign | BillBoard | Well
-                | Garden | Orchard | Pond => Civic,
-            Aqueduct | Bridge | TrainStation | Airport | Dock | Marina
-                | Drydock | BusStop | ParkingLot | Crosswalk | Gate | Fence
-                | ChargingStation | Cart => Infrastructure,
-            Stadium | Theatre | MusicHall | Coliseum | PlayGround | Bandstand
-                | Gazebo | Pavilion | ArcadeBox => Recreation,
+            Barracks | Wall | Tower | Watchtower | Gallows | PoliceStation | FireStation => Military,
+            Plaza | Statue | Fountain | Fountain2 | Lighthouse | Lighthouse2 | Courthouse | CityHall
+            | PostOffice | Monument | Obelisk | TriumphalArch | ClockTower | FlagPole | Signpost | Bench
+            | Lamppost | StreetLight | TelephonePole | RadioTower | SatelliteDish | HoloBoard | NeonSign
+            | BillBoard | Well | Garden | Orchard | Pond => Civic,
+            Aqueduct | Bridge | TrainStation | Airport | Dock | Marina | Drydock | BusStop | ParkingLot
+            | Crosswalk | Gate | Fence | ChargingStation | Cart => Infrastructure,
+            Stadium | Theatre | MusicHall | Coliseum | PlayGround | Bandstand | Gazebo | Pavilion
+            | ArcadeBox => Recreation,
             WaterTower | Reservoir => Infrastructure,
         }
     }
 
     pub fn all() -> &'static [BuildingKind] {
         use BuildingKind::*;
-        &[Hut, House, Manor, TownHouse, Apartment, School, University, Library,
-          Market, Temple, Factory, Hospital, Forge, Mill, Bakery, Inn, Bank,
-          Workshop, Granary, Barracks, Lighthouse, Windmill, Watermill,
-          Aqueduct, Bridge, Wall, Tower, Plaza, Statue, Fountain,
-          TrainStation, Airport, Port, Stadium, Museum, Cathedral, Castle,
-          Theatre, Observatory,
-          Tavern, Brewery, Butcher, Fishmonger, Cheesemonger,
-          Tailor, Cobbler, ClothingShop, Jeweler, Apothecary, Herbalist,
-          Barbershop, Scribe, BookStore, ArtGallery, MusicHall, Cafe,
-          Restaurant, Hotel, GuildHall, Courthouse, CityHall, PostOffice,
-          PoliceStation, FireStation, Pharmacy, Clinic, Spa, Bathhouse,
-          Greenhouse, Vineyard, Ranch, Stable, Kennel, Dovecote,
-          Quarry, Mine, SawMill, Tannery, Smithy, Goldsmith,
-          Refinery, PowerPlant, Substation, WaterTower, Reservoir,
-          GasStation, AutoShop, Garage, MallShop, Supermarket,
-          OfficeTower, Skyscraper, Datacenter, Studio,
-          Spaceport, OrbitalLift, SolarArray, WindFarm, FusionPlant,
-          NeuralHub, AiCore, Biodome, Cryolab, NanoFab,
-          Hyperloop, Maglev, Hospital2, ResearchLab, Megastructure,
-          Well, Lamppost, Signpost, MarketStall, FoodCart, Cart,
-          Tent, Pavilion, Gazebo, Bench, Fence, Gate,
-          Watchtower, Gallows, Monument, Obelisk, Shrine,
-          Cemetery, GraveStone, Garden, Orchard, Pond,
-          PlayGround, FlagPole, Bandstand, Kiosk, BillBoard,
-          TelephonePole, StreetLight, BusStop, ParkingLot, Crosswalk,
-          Pyramid, Ziggurat, Coliseum, TriumphalArch, ClockTower,
-          Mosque, Synagogue, Pagoda, Stupa, Mausoleum,
-          Hangar, Silo, Warehouse, Dock, Marina,
-          Lighthouse2, Drydock, Crane, RadioTower, SatelliteDish,
-          WindTurbine, SolarPanel, ChargingStation, RoboticArm, Drone,
-          HoloBoard, NeonSign, ArcadeBox, Fountain2, FoodTruck,
-          Greenhouse2, MushroomFarm, Aquaculture]
+        &[
+            Hut,
+            House,
+            Manor,
+            TownHouse,
+            Apartment,
+            School,
+            University,
+            Library,
+            Market,
+            Temple,
+            Factory,
+            Hospital,
+            Forge,
+            Mill,
+            Bakery,
+            Inn,
+            Bank,
+            Workshop,
+            Granary,
+            Barracks,
+            Lighthouse,
+            Windmill,
+            Watermill,
+            Aqueduct,
+            Bridge,
+            Wall,
+            Tower,
+            Plaza,
+            Statue,
+            Fountain,
+            TrainStation,
+            Airport,
+            Port,
+            Stadium,
+            Museum,
+            Cathedral,
+            Castle,
+            Theatre,
+            Observatory,
+            Tavern,
+            Brewery,
+            Butcher,
+            Fishmonger,
+            Cheesemonger,
+            Tailor,
+            Cobbler,
+            ClothingShop,
+            Jeweler,
+            Apothecary,
+            Herbalist,
+            Barbershop,
+            Scribe,
+            BookStore,
+            ArtGallery,
+            MusicHall,
+            Cafe,
+            Restaurant,
+            Hotel,
+            GuildHall,
+            Courthouse,
+            CityHall,
+            PostOffice,
+            PoliceStation,
+            FireStation,
+            Pharmacy,
+            Clinic,
+            Spa,
+            Bathhouse,
+            Greenhouse,
+            Vineyard,
+            Ranch,
+            Stable,
+            Kennel,
+            Dovecote,
+            Quarry,
+            Mine,
+            SawMill,
+            Tannery,
+            Smithy,
+            Goldsmith,
+            Refinery,
+            PowerPlant,
+            Substation,
+            WaterTower,
+            Reservoir,
+            GasStation,
+            AutoShop,
+            Garage,
+            MallShop,
+            Supermarket,
+            OfficeTower,
+            Skyscraper,
+            Datacenter,
+            Studio,
+            Spaceport,
+            OrbitalLift,
+            SolarArray,
+            WindFarm,
+            FusionPlant,
+            NeuralHub,
+            AiCore,
+            Biodome,
+            Cryolab,
+            NanoFab,
+            Hyperloop,
+            Maglev,
+            Hospital2,
+            ResearchLab,
+            Megastructure,
+            Well,
+            Lamppost,
+            Signpost,
+            MarketStall,
+            FoodCart,
+            Cart,
+            Tent,
+            Pavilion,
+            Gazebo,
+            Bench,
+            Fence,
+            Gate,
+            Watchtower,
+            Gallows,
+            Monument,
+            Obelisk,
+            Shrine,
+            Cemetery,
+            GraveStone,
+            Garden,
+            Orchard,
+            Pond,
+            PlayGround,
+            FlagPole,
+            Bandstand,
+            Kiosk,
+            BillBoard,
+            TelephonePole,
+            StreetLight,
+            BusStop,
+            ParkingLot,
+            Crosswalk,
+            Pyramid,
+            Ziggurat,
+            Coliseum,
+            TriumphalArch,
+            ClockTower,
+            Mosque,
+            Synagogue,
+            Pagoda,
+            Stupa,
+            Mausoleum,
+            Hangar,
+            Silo,
+            Warehouse,
+            Dock,
+            Marina,
+            Lighthouse2,
+            Drydock,
+            Crane,
+            RadioTower,
+            SatelliteDish,
+            WindTurbine,
+            SolarPanel,
+            ChargingStation,
+            RoboticArm,
+            Drone,
+            HoloBoard,
+            NeonSign,
+            ArcadeBox,
+            Fountain2,
+            FoodTruck,
+            Greenhouse2,
+            MushroomFarm,
+            Aquaculture,
+        ]
     }
 }
 
@@ -500,11 +766,24 @@ pub struct Building {
 
 impl Building {
     pub fn new(id: u32, kind: BuildingKind, x: i32, y: i32, owner: Option<String>, tick: u64) -> Self {
-        Building { id, kind, x, y, owner_lineage: owner, occupants: Vec::new(), built_at_tick: tick, condition: 1.0 }
+        Building {
+            id,
+            kind,
+            x,
+            y,
+            owner_lineage: owner,
+            occupants: Vec::new(),
+            built_at_tick: tick,
+            condition: 1.0,
+        }
     }
 
-    pub fn footprint(&self) -> (u8, u8) { self.kind.footprint() }
-    pub fn function(&self) -> BuildingFunction { self.kind.function() }
+    pub fn footprint(&self) -> (u8, u8) {
+        self.kind.footprint()
+    }
+    pub fn function(&self) -> BuildingFunction {
+        self.kind.function()
+    }
 
     pub fn contains(&self, x: i32, y: i32) -> bool {
         let (w, h) = self.kind.footprint();

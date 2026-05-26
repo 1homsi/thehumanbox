@@ -1,24 +1,22 @@
-
-
-pub mod explore_cave;
-pub mod climb_peak;
-pub mod tame_animal;
-pub mod herd_animals;
-pub mod hunt_small_game;
-pub mod set_trap;
-pub mod check_trap;
-pub mod bless_kin;
-pub mod mourn_together;
-pub mod swim_across;
-pub mod ford_river;
-pub mod climb_tree;
-pub mod follow_river;
 pub mod blaze_trail;
+pub mod bless_kin;
 pub mod build_cairn;
 pub mod chart_coast;
-pub mod retrace_steps;
+pub mod check_trap;
+pub mod climb_peak;
+pub mod climb_tree;
 pub mod descend_canyon;
+pub mod explore_cave;
+pub mod follow_river;
+pub mod ford_river;
+pub mod herd_animals;
+pub mod hunt_small_game;
 pub mod map_landmark;
+pub mod mourn_together;
+pub mod retrace_steps;
+pub mod set_trap;
+pub mod swim_across;
+pub mod tame_animal;
 
 use super::ctx::ActionCtx;
 
@@ -43,6 +41,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         218 => retrace_steps::apply(ctx),
         219 => descend_canyon::apply(ctx),
         220 => map_landmark::apply(ctx),
-        _   => 0.0,
+        _ => 0.0,
     }
 }

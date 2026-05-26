@@ -1,20 +1,18 @@
-
-
-pub mod tend_wound;
 pub mod apply_poultice;
+pub mod blood_ritual_healing;
 pub mod brew_remedy;
-pub mod harvest_medicinal_herbs;
-pub mod quarantine_sick;
-pub mod set_bone;
-pub mod nurse_back;
 pub mod diagnose_illness;
 pub mod fast_for_healing;
-pub mod smoke_purification;
-pub mod test_remedy;
-pub mod mix_antidote;
+pub mod harvest_medicinal_herbs;
 pub mod herb_garden_knowledge;
-pub mod blood_ritual_healing;
+pub mod mix_antidote;
+pub mod nurse_back;
 pub mod preventive_care;
+pub mod quarantine_sick;
+pub mod set_bone;
+pub mod smoke_purification;
+pub mod tend_wound;
+pub mod test_remedy;
 
 use super::ctx::ActionCtx;
 
@@ -35,6 +33,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         258 => herb_garden_knowledge::apply(ctx),
         259 => blood_ritual_healing::apply(ctx),
         260 => preventive_care::apply(ctx),
-        _   => 0.0,
+        _ => 0.0,
     }
 }

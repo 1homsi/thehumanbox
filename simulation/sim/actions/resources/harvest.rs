@@ -1,10 +1,10 @@
-
-
-use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
+use crate::world::tiles::Tile;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if !matches!(ctx.tile, Tile::Food) { return 0.0; }
+    if !matches!(ctx.tile, Tile::Food) {
+        return 0.0;
+    }
     let o = ctx.org_mut();
     o.inv_food = o.inv_food.saturating_add(2);
     let (ix, iy) = (ctx.ix, ctx.iy);

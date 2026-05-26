@@ -1,6 +1,8 @@
 use super::super::ctx::ActionCtx;
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if !ctx.fire_near || ctx.org().inv_food == 0 { return 0.0; }
+    if !ctx.fire_near || ctx.org().inv_food == 0 {
+        return 0.0;
+    }
     let o = ctx.org_mut();
     o.energy = (o.energy + 0.18).min(1.0);
     let cur = o.tools.get("bread").copied().unwrap_or(0);

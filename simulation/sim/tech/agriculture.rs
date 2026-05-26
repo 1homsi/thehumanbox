@@ -1,9 +1,15 @@
-use serde::{Deserialize, Serialize};
 use crate::sim::era::Era;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AgriEra {
-    Foraging, Horticulture, Subsistence, Plough, CropRotation, Industrial, Genetic,
+    Foraging,
+    Horticulture,
+    Subsistence,
+    Plough,
+    CropRotation,
+    Industrial,
+    Genetic,
 }
 
 impl AgriEra {
@@ -45,7 +51,17 @@ impl AgriEra {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum CropKind {
-    Wheat, Rice, Maize, Barley, Potato, Beans, Cotton, Tobacco, Sugarcane, Coffee, Tea,
+    Wheat,
+    Rice,
+    Maize,
+    Barley,
+    Potato,
+    Beans,
+    Cotton,
+    Tobacco,
+    Sugarcane,
+    Coffee,
+    Tea,
 }
 
 impl CropKind {

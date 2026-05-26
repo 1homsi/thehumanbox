@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -7,7 +6,10 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         return 0.0;
     }
     ctx.think("marking tribal borders");
-    ctx.discover("borders", "established formal territorial borders using natural landmarks");
+    ctx.discover(
+        "borders",
+        "established formal territorial borders using natural landmarks",
+    );
     ctx.event("governance", "demarcated tribal territory along rocky boundaries");
     // Use rock outcrop as anchor - claim a wide area around this position
     let lid = ctx.lid.clone();

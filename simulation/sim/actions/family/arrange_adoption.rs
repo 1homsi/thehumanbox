@@ -1,9 +1,11 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let lid = ctx.lid.clone();
-    let stranger_child = ctx.near.iter().copied()
+    let stranger_child = ctx
+        .near
+        .iter()
+        .copied()
         .find(|&k| ctx.sim.organisms[k].lineage_id != lid && ctx.sim.organisms[k].age < 400);
     let Some(ki) = stranger_child else {
         ctx.think("no child to adopt");

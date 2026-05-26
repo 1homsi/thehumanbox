@@ -1,53 +1,53 @@
-pub mod grade_road;
-pub mod pave_road;
-pub mod repair_pothole;
-pub mod patch_road;
-pub mod sand_road;
-pub mod ditch_road;
-pub mod culvert_road;
 pub mod bank_road;
-pub mod crown_road;
-pub mod stripe_road;
 pub mod bridge_inspect;
 pub mod bridge_paint;
-pub mod bridge_repair;
 pub mod bridge_reinforce;
 pub mod bridge_reopen;
-pub mod tunnel_dig;
-pub mod tunnel_shore;
-pub mod tunnel_brace;
-pub mod tunnel_light;
-pub mod tunnel_drain;
+pub mod bridge_repair;
+pub mod cable_bury;
 pub mod cable_lay;
 pub mod cable_repair;
 pub mod cable_splice;
-pub mod cable_bury;
 pub mod cable_tag;
+pub mod crown_road;
+pub mod culvert_road;
+pub mod ditch_road;
+pub mod grade_road;
+pub mod patch_road;
+pub mod pave_road;
+pub mod pipe_clean;
+pub mod pipe_flush;
 pub mod pipe_lay;
 pub mod pipe_solder;
 pub mod pipe_thread;
-pub mod pipe_clean;
-pub mod pipe_flush;
-pub mod rail_lay;
 pub mod rail_align;
-pub mod rail_spike;
-pub mod rail_grade;
 pub mod rail_ballast;
-pub mod switch_set;
-pub mod switch_lock;
-pub mod switch_test;
-pub mod switch_oil;
-pub mod switch_inspect;
-pub mod station_paint;
-pub mod station_sweep;
-pub mod station_post_schedule;
-pub mod station_open;
-pub mod station_close;
-pub mod signal_check;
+pub mod rail_grade;
+pub mod rail_lay;
+pub mod rail_spike;
+pub mod repair_pothole;
+pub mod sand_road;
 pub mod signal_align;
-pub mod signal_test;
+pub mod signal_check;
 pub mod signal_paint;
 pub mod signal_replace;
+pub mod signal_test;
+pub mod station_close;
+pub mod station_open;
+pub mod station_paint;
+pub mod station_post_schedule;
+pub mod station_sweep;
+pub mod stripe_road;
+pub mod switch_inspect;
+pub mod switch_lock;
+pub mod switch_oil;
+pub mod switch_set;
+pub mod switch_test;
+pub mod tunnel_brace;
+pub mod tunnel_dig;
+pub mod tunnel_drain;
+pub mod tunnel_light;
+pub mod tunnel_shore;
 
 use super::ctx::ActionCtx;
 
@@ -103,6 +103,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         3347 => signal_test::apply(ctx),
         3348 => signal_paint::apply(ctx),
         3349 => signal_replace::apply(ctx),
-        _   => 0.0,
+        _ => 0.0,
     }
 }

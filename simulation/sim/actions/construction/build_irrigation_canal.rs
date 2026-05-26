@@ -1,11 +1,11 @@
-
-
+use super::super::ctx::ActionCtx;
 use crate::world::grid::{TrailKind, WorldGrid};
 use crate::world::tiles::Tile;
-use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if !ctx.water_near || !matches!(ctx.tile, Tile::Grass) { return 0.0; }
+    if !ctx.water_near || !matches!(ctx.tile, Tile::Grass) {
+        return 0.0;
+    }
     let (ix, iy) = (ctx.ix, ctx.iy);
     for dx in -3..=3 {
         for dy in -3..=3 {

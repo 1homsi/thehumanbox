@@ -1,14 +1,12 @@
-
-
-pub mod boil_water;
 pub mod bake_bread;
-pub mod ferment_drink;
-pub mod dry_herbs;
-pub mod salt_meat;
-pub mod stockpile_food;
-pub mod share_meal;
+pub mod boil_water;
 pub mod brew_tea;
+pub mod dry_herbs;
+pub mod ferment_drink;
 pub mod grind_grain;
+pub mod salt_meat;
+pub mod share_meal;
+pub mod stockpile_food;
 pub mod taste_test;
 
 use super::ctx::ActionCtx;
@@ -25,6 +23,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         148 => brew_tea::apply(ctx),
         149 => grind_grain::apply(ctx),
         150 => taste_test::apply(ctx),
-        _   => 0.0,
+        _ => 0.0,
     }
 }

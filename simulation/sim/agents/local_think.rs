@@ -1,6 +1,5 @@
-
-use rand::Rng;
 use crate::sim::simulation::ThinkTrigger;
+use rand::Rng;
 
 fn weighted_pick<'a>(rng: &mut impl Rng, options: &[(&'a str, f32)]) -> &'a str {
     let total: f32 = options.iter().map(|(_, w)| w.max(0.0)).sum();
@@ -10,30 +9,39 @@ fn weighted_pick<'a>(rng: &mut impl Rng, options: &[(&'a str, f32)]) -> &'a str 
     let mut roll = rng.random::<f32>() * total;
     for (val, w) in options {
         roll -= w.max(0.0);
-        if roll <= 0.0 { return val; }
+        if roll <= 0.0 {
+            return val;
+        }
     }
     options.last().unwrap().0
 }
 
 pub struct LocalResult {
-    pub word:            &'static str,
-    pub thought:         &'static str,
-    pub directive:       Option<&'static str>,
+    pub word: &'static str,
+    pub thought: &'static str,
+    pub directive: Option<&'static str>,
     pub directive_ticks: u64,
-    pub attitude_delta:  Option<f32>,
-    pub trait_name:      Option<&'static str>,
-    pub trait_delta:     Option<f32>,
-    pub strategy:        Option<&'static str>,
-    pub alliance:        Option<&'static str>,
-    pub discovery:       Option<String>,
+    pub attitude_delta: Option<f32>,
+    pub trait_name: Option<&'static str>,
+    pub trait_delta: Option<f32>,
+    pub strategy: Option<&'static str>,
+    pub alliance: Option<&'static str>,
+    pub discovery: Option<String>,
 }
 
 impl Default for LocalResult {
     fn default() -> Self {
         LocalResult {
-            word: "", thought: "", directive: None, directive_ticks: 0,
-            attitude_delta: None, trait_name: None, trait_delta: None,
-            strategy: None, alliance: None, discovery: None,
+            word: "",
+            thought: "",
+            directive: None,
+            directive_ticks: 0,
+            attitude_delta: None,
+            trait_name: None,
+            trait_delta: None,
+            strategy: None,
+            alliance: None,
+            discovery: None,
         }
     }
 }
@@ -48,29 +56,46 @@ pub fn resolve(trigger: &ThinkTrigger, rng: &mut impl Rng) -> Option<LocalResult
 
     match trigger.scenario.as_str() {
         "first_contact" => {
-            let word = weighted_pick(rng, &[
-                ("friendly",  so * 1.2 + (1.0 - ag) * 0.6),
-                ("cautious",  0.8),
-                ("hostile",   ag * 1.4 + fe * 0.4),
-            ]);
+            let word = weighted_pick(
+                rng,
+                &[
+                    ("friendly", so * 1.2 + (1.0 - ag) * 0.6),
+                    ("cautious", 0.8),
+                    ("hostile", ag * 1.4 + fe * 0.4),
+                ],
+            );
             let (delta, thought) = match word {
-                "friendly" => (0.35f32,  "curious about them"),
-                "hostile"  => (-0.4f32, "wary of strangers"),
-                _          => (0.0f32,  "watching the stranger"),
+                "friendly" => (0.35f32, "curious about them"),
+                "hostile" => (-0.4f32, "wary of strangers"),
+                _ => (0.0f32, "watching the stranger"),
             };
-            Some(LocalResult { word, thought, attitude_delta: Some(delta), ..Default::default() })
+            Some(LocalResult {
+                word,
+                thought,
+                attitude_delta: Some(delta),
+                ..Default::default()
+            })
         }
 
         "council" => {
-            let word = weighted_pick(rng, &[
-                ("settle",  so * 1.2 + re * 0.5),
-                ("hunt",    ag * 1.0 + (1.0 - cu) * 0.4),
-                ("explore", cu * 1.4 + (1.0 - so) * 0.3),
-            ]);
-            let strategy = match word { "settle" => "settle", "hunt" => "hunt", _ => "explore" };
+            let word = weighted_pick(
+                rng,
+                &[
+                    ("settle", so * 1.2 + re * 0.5),
+                    ("hunt", ag * 1.0 + (1.0 - cu) * 0.4),
+                    ("explore", cu * 1.4 + (1.0 - so) * 0.3),
+                ],
+            );
+            let strategy = match word {
+                "settle" => "settle",
+                "hunt" => "hunt",
+                _ => "explore",
+            };
             Some(LocalResult {
-                word, thought: "the tribe council has spoken",
-                strategy: Some(strategy), ..Default::default()
+                word,
+                thought: "the tribe council has spoken",
+                strategy: Some(strategy),
+                ..Default::default()
             })
         }
 
@@ -81,77 +106,119 @@ pub fn resolve(trigger: &ThinkTrigger, rng: &mut impl Rng) -> Option<LocalResult
             } else if ctx.contains("thirst") || ctx.contains("water") || ctx.contains("dehydr") {
                 "seek_water"
             } else {
-                if trigger.energy_avg < 0.2 { "seek_food" } else { "seek_water" }
+                if trigger.energy_avg < 0.2 {
+                    "seek_food"
+                } else {
+                    "seek_water"
+                }
             };
             let need = directive.trim_start_matches("seek_");
             Some(LocalResult {
-                word: need, thought: "desperate for survival",
-                directive: Some(directive), directive_ticks: 300, ..Default::default()
+                word: need,
+                thought: "desperate for survival",
+                directive: Some(directive),
+                directive_ticks: 300,
+                ..Default::default()
             })
         }
 
         "abundance" => {
-            let word = weighted_pick(rng, &[
-                ("socialize", so * 1.5 + ki.min(5.0) * 0.1),
-                ("explore",   cu * 1.2 + (1.0 - so) * 0.4),
-                ("build",     re * 0.8 + (1.0 - cu) * 0.4),
-            ]);
-            let directive = match word { "build" => "explore", _ => word };
+            let word = weighted_pick(
+                rng,
+                &[
+                    ("socialize", so * 1.5 + ki.min(5.0) * 0.1),
+                    ("explore", cu * 1.2 + (1.0 - so) * 0.4),
+                    ("build", re * 0.8 + (1.0 - cu) * 0.4),
+                ],
+            );
+            let directive = match word {
+                "build" => "explore",
+                _ => word,
+            };
             Some(LocalResult {
-                word, thought: "content but curious",
-                directive: Some(directive), directive_ticks: 400, ..Default::default()
+                word,
+                thought: "content but curious",
+                directive: Some(directive),
+                directive_ticks: 400,
+                ..Default::default()
             })
         }
 
         "threat" => {
             let ally_bonus = (ki / 5.0).min(1.0);
-            let word = weighted_pick(rng, &[
-                ("fight", ag * 1.2 + ally_bonus * 0.6),
-                ("flee",  fe * 1.2 + (1.0 - ally_bonus) * 0.5),
-                ("trade", so * 0.9 + (1.0 - ag) * 0.5),
-            ]);
+            let word = weighted_pick(
+                rng,
+                &[
+                    ("fight", ag * 1.2 + ally_bonus * 0.6),
+                    ("flee", fe * 1.2 + (1.0 - ally_bonus) * 0.5),
+                    ("trade", so * 0.9 + (1.0 - ag) * 0.5),
+                ],
+            );
             Some(LocalResult {
-                word, thought: "facing a threat",
-                directive: Some(word), directive_ticks: 250, ..Default::default()
+                word,
+                thought: "facing a threat",
+                directive: Some(word),
+                directive_ticks: 250,
+                ..Default::default()
             })
         }
 
         "lonely" => {
-            let word = weighted_pick(rng, &[
-                ("family",   so * 1.4 + re * 0.3),
-                ("stranger", cu * 0.9 + (1.0 - fe) * 0.4),
-                ("wander",   (1.0 - so) * 0.8 + cu * 0.3),
-            ]);
-            let directive = match word { "family" | "stranger" => "socialize", _ => "explore" };
+            let word = weighted_pick(
+                rng,
+                &[
+                    ("family", so * 1.4 + re * 0.3),
+                    ("stranger", cu * 0.9 + (1.0 - fe) * 0.4),
+                    ("wander", (1.0 - so) * 0.8 + cu * 0.3),
+                ],
+            );
+            let directive = match word {
+                "family" | "stranger" => "socialize",
+                _ => "explore",
+            };
             Some(LocalResult {
-                word, thought: "longing for company",
-                directive: Some(directive), directive_ticks: 500, ..Default::default()
+                word,
+                thought: "longing for company",
+                directive: Some(directive),
+                directive_ticks: 500,
+                ..Default::default()
             })
         }
 
         "restless" => {
-            let word = weighted_pick(rng, &[
-                ("explore", cu * 1.5),
-                ("build",   re * 0.9 + (1.0 - cu) * 0.5),
-                ("create",  cu * 0.8 + so * 0.4),
-            ]);
+            let word = weighted_pick(
+                rng,
+                &[
+                    ("explore", cu * 1.5),
+                    ("build", re * 0.9 + (1.0 - cu) * 0.5),
+                    ("create", cu * 0.8 + so * 0.4),
+                ],
+            );
             Some(LocalResult {
-                word, thought: "restless energy",
-                directive: Some("explore"), directive_ticks: 500, ..Default::default()
+                word,
+                thought: "restless energy",
+                directive: Some("explore"),
+                directive_ticks: 500,
+                ..Default::default()
             })
         }
 
         "invention" => {
-            let candidates: Vec<&str> = trigger.context
+            let candidates: Vec<&str> = trigger
+                .context
                 .split(", ")
                 .map(|s| s.trim())
                 .filter(|s| !s.is_empty())
                 .collect();
-            if candidates.is_empty() { return None; }
+            if candidates.is_empty() {
+                return None;
+            }
             let pick = candidates[rng.random_range(0..candidates.len())].to_string();
             Some(LocalResult {
-                word: "invention", thought: "a sudden realisation",
-                discovery: Some(pick), ..Default::default()
+                word: "invention",
+                thought: "a sudden realisation",
+                discovery: Some(pick),
+                ..Default::default()
             })
         }
 
@@ -164,145 +231,215 @@ pub fn resolve(trigger: &ThinkTrigger, rng: &mut impl Rng) -> Option<LocalResult
             } else if em.contains("mourn") || em.contains("grief") {
                 ("resilience", 0.05)
             } else {
-                weighted_pick(rng, &[
-                    ("curiosity",       (1.0 - cu) * 1.1),
-                    ("social_tendency", (1.0 - so) * 0.9),
-                    ("resilience",      (1.0 - re) * 0.9),
-                    ("aggression",      ag          * 0.4),
-                    ("fear",            fe          * 0.3),
-                ]);
-                let t = weighted_pick(rng, &[
-                    ("curiosity",       (1.0 - cu) * 1.1),
-                    ("social_tendency", (1.0 - so) * 0.9),
-                    ("resilience",      (1.0 - re) * 0.9),
-                ]);
+                weighted_pick(
+                    rng,
+                    &[
+                        ("curiosity", (1.0 - cu) * 1.1),
+                        ("social_tendency", (1.0 - so) * 0.9),
+                        ("resilience", (1.0 - re) * 0.9),
+                        ("aggression", ag * 0.4),
+                        ("fear", fe * 0.3),
+                    ],
+                );
+                let t = weighted_pick(
+                    rng,
+                    &[
+                        ("curiosity", (1.0 - cu) * 1.1),
+                        ("social_tendency", (1.0 - so) * 0.9),
+                        ("resilience", (1.0 - re) * 0.9),
+                    ],
+                );
                 match t {
-                    "curiosity"       => ("curiosity",       0.05),
+                    "curiosity" => ("curiosity", 0.05),
                     "social_tendency" => ("social_tendency", 0.05),
-                    _                 => ("resilience",      0.04),
+                    _ => ("resilience", 0.04),
                 }
             };
             Some(LocalResult {
-                word: trait_name, thought: "reflecting on life",
-                trait_name: Some(trait_name), trait_delta: Some(delta), ..Default::default()
+                word: trait_name,
+                thought: "reflecting on life",
+                trait_name: Some(trait_name),
+                trait_delta: Some(delta),
+                ..Default::default()
             })
         }
 
         "negotiation" => {
-            let has_fire   = trigger.discoveries.iter().any(|d| d == "fire" || d == "cooking");
-            let has_stone  = trigger.discoveries.iter().any(|d| d == "stone" || d == "masonry");
-            let they_have  = !trigger.other_discoveries.is_empty();
-            let alliance = weighted_pick(rng, &[
-                ("food_sharing",       so * 1.1 + if has_fire { 0.4 } else { 0.0 }),
-                ("defense_pact",       ag * 0.8 + if has_stone { 0.4 } else { 0.0 }),
-                ("knowledge_exchange", cu * 1.2 + if they_have { 0.5 } else { 0.0 }),
-                ("territory",          re * 0.7 + (1.0 - so) * 0.4),
-            ]);
+            let has_fire = trigger.discoveries.iter().any(|d| d == "fire" || d == "cooking");
+            let has_stone = trigger.discoveries.iter().any(|d| d == "stone" || d == "masonry");
+            let they_have = !trigger.other_discoveries.is_empty();
+            let alliance = weighted_pick(
+                rng,
+                &[
+                    ("food_sharing", so * 1.1 + if has_fire { 0.4 } else { 0.0 }),
+                    ("defense_pact", ag * 0.8 + if has_stone { 0.4 } else { 0.0 }),
+                    ("knowledge_exchange", cu * 1.2 + if they_have { 0.5 } else { 0.0 }),
+                    ("territory", re * 0.7 + (1.0 - so) * 0.4),
+                ],
+            );
             Some(LocalResult {
-                word: alliance, thought: "a deal was struck",
-                alliance: Some(alliance), ..Default::default()
+                word: alliance,
+                thought: "a deal was struck",
+                alliance: Some(alliance),
+                ..Default::default()
             })
         }
 
         "grief" => {
-            let word = weighted_pick(rng, &[
-                ("mourn",  re * 0.8 + so * 0.5),
-                ("rage",   ag * 1.2 + (1.0 - re) * 0.5),
-                ("endure", re * 1.1 + (1.0 - fe) * 0.4),
-            ]);
-            let thought = match word { "mourn" => "lost someone close", "rage" => "grieving in anger", _ => "enduring the loss" };
-            Some(LocalResult { word, thought, ..Default::default() })
+            let word = weighted_pick(
+                rng,
+                &[
+                    ("mourn", re * 0.8 + so * 0.5),
+                    ("rage", ag * 1.2 + (1.0 - re) * 0.5),
+                    ("endure", re * 1.1 + (1.0 - fe) * 0.4),
+                ],
+            );
+            let thought = match word {
+                "mourn" => "lost someone close",
+                "rage" => "grieving in anger",
+                _ => "enduring the loss",
+            };
+            Some(LocalResult {
+                word,
+                thought,
+                ..Default::default()
+            })
         }
 
         "illness" => {
-            let word = weighted_pick(rng, &[
-                ("rest",      re * 1.0 + fe * 0.4),
-                ("isolate",   (1.0 - so) * 0.9 + fe * 0.3),
-                ("seek_help", so * 1.2 + (1.0 - fe) * 0.3),
-            ]);
-            let thought = match word { "rest" => "resting to recover", "isolate" => "isolating (sick)", _ => "seeking help (sick)" };
+            let word = weighted_pick(
+                rng,
+                &[
+                    ("rest", re * 1.0 + fe * 0.4),
+                    ("isolate", (1.0 - so) * 0.9 + fe * 0.3),
+                    ("seek_help", so * 1.2 + (1.0 - fe) * 0.3),
+                ],
+            );
+            let thought = match word {
+                "rest" => "resting to recover",
+                "isolate" => "isolating (sick)",
+                _ => "seeking help (sick)",
+            };
             Some(LocalResult {
-                word, thought,
-                directive: Some(word), directive_ticks: 200, ..Default::default()
+                word,
+                thought,
+                directive: Some(word),
+                directive_ticks: 200,
+                ..Default::default()
             })
         }
 
         "migration" => {
             let ctx = trigger.context.to_lowercase();
             let starving = ctx.contains("starv") || ctx.contains("scarce");
-            let word = weighted_pick(rng, &[
-                ("migrate", cu * 0.9 + if ki < 5.0 { 0.5 } else { 0.2 } + if starving { 0.6 } else { 0.0 }),
-                ("forage",  (1.0 - cu) * 0.8 + re * 0.4),
-                ("wait",    re * 0.7 + (1.0 - starving as u8 as f32) * 0.5),
-            ]);
+            let word = weighted_pick(
+                rng,
+                &[
+                    (
+                        "migrate",
+                        cu * 0.9 + if ki < 5.0 { 0.5 } else { 0.2 } + if starving { 0.6 } else { 0.0 },
+                    ),
+                    ("forage", (1.0 - cu) * 0.8 + re * 0.4),
+                    ("wait", re * 0.7 + (1.0 - starving as u8 as f32) * 0.5),
+                ],
+            );
             let (directive, thought) = match word {
-                "migrate" => ("explore",   "time to move on"),
-                "forage"  => ("seek_food", "foraging for food"),
-                _         => ("rest",      "waiting out scarcity"),
+                "migrate" => ("explore", "time to move on"),
+                "forage" => ("seek_food", "foraging for food"),
+                _ => ("rest", "waiting out scarcity"),
             };
             Some(LocalResult {
-                word, thought,
-                directive: Some(directive), directive_ticks: 400, ..Default::default()
+                word,
+                thought,
+                directive: Some(directive),
+                directive_ticks: 400,
+                ..Default::default()
             })
         }
 
         "discovery" => {
-            let word = weighted_pick(rng, &[
-                ("excited",  cu * 1.4 + (1.0 - fe) * 0.4),
-                ("grateful", so * 0.9 + re * 0.4),
-                ("cautious", fe * 1.0 + (1.0 - cu) * 0.5),
-            ]);
-            Some(LocalResult { word, thought: "a new discovery", ..Default::default() })
+            let word = weighted_pick(
+                rng,
+                &[
+                    ("excited", cu * 1.4 + (1.0 - fe) * 0.4),
+                    ("grateful", so * 0.9 + re * 0.4),
+                    ("cautious", fe * 1.0 + (1.0 - cu) * 0.5),
+                ],
+            );
+            Some(LocalResult {
+                word,
+                thought: "a new discovery",
+                ..Default::default()
+            })
         }
 
         "elder_teaching" => None,
 
         "moral_dilemma" => {
-            let word = weighted_pick(rng, &[
-                ("steal",  ag * 1.3 + (1.0 - so) * 0.4),
-                ("honor",  so * 1.2 + (1.0 - ag) * 0.6 + re * 0.3),
-            ]);
+            let word = weighted_pick(
+                rng,
+                &[
+                    ("steal", ag * 1.3 + (1.0 - so) * 0.4),
+                    ("honor", so * 1.2 + (1.0 - ag) * 0.6 + re * 0.3),
+                ],
+            );
             let (thought, directive) = match word {
                 "steal" => ("tempted to steal", "seek_food"),
-                _       => ("honoring stranger", "wander"),
+                _ => ("honoring stranger", "wander"),
             };
             Some(LocalResult {
-                word, thought,
-                directive: Some(directive), directive_ticks: 200, ..Default::default()
+                word,
+                thought,
+                directive: Some(directive),
+                directive_ticks: 200,
+                ..Default::default()
             })
         }
 
         "rivalry" => {
-            let word = weighted_pick(rng, &[
-                ("challenge", ag * 1.4 + (1.0 - fe) * 0.5),
-                ("yield",     (1.0 - ag) * 1.2 + fe * 0.6 + so * 0.3),
-            ]);
+            let word = weighted_pick(
+                rng,
+                &[
+                    ("challenge", ag * 1.4 + (1.0 - fe) * 0.5),
+                    ("yield", (1.0 - ag) * 1.2 + fe * 0.6 + so * 0.3),
+                ],
+            );
             let thought = match word {
                 "challenge" => "challenging rival",
-                _           => "yielding ground",
+                _ => "yielding ground",
             };
-            Some(LocalResult { word, thought, ..Default::default() })
-        }
-
-        "migration_urge" => {
             Some(LocalResult {
-                word: "wander", thought: "must wander far",
-                directive: Some("wander"), directive_ticks: 400, ..Default::default()
+                word,
+                thought,
+                ..Default::default()
             })
         }
 
+        "migration_urge" => Some(LocalResult {
+            word: "wander",
+            thought: "must wander far",
+            directive: Some("wander"),
+            directive_ticks: 400,
+            ..Default::default()
+        }),
+
         "jealousy" => {
-            let word = weighted_pick(rng, &[
-                ("watch",  (1.0 - so) * 1.1 + fe * 0.5 + ag * 0.4),
-                ("trust",  so * 1.3 + re * 0.4),
-            ]);
+            let word = weighted_pick(
+                rng,
+                &[
+                    ("watch", (1.0 - so) * 1.1 + fe * 0.5 + ag * 0.4),
+                    ("trust", so * 1.3 + re * 0.4),
+                ],
+            );
             let (thought, delta) = match word {
                 "watch" => ("watching warily", -0.1f32),
-                _       => ("trusting still",   0.05f32),
+                _ => ("trusting still", 0.05f32),
             };
             Some(LocalResult {
-                word, thought,
-                attitude_delta: Some(delta), ..Default::default()
+                word,
+                thought,
+                attitude_delta: Some(delta),
+                ..Default::default()
             })
         }
 
@@ -313,11 +450,15 @@ pub fn resolve(trigger: &ThinkTrigger, rng: &mut impl Rng) -> Option<LocalResult
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::SeedableRng;
     use rand::rngs::StdRng;
+    use rand::SeedableRng;
 
     fn invention_trigger(context: &str) -> ThinkTrigger {
-        ThinkTrigger { scenario: "invention".to_string(), context: context.to_string(), ..Default::default() }
+        ThinkTrigger {
+            scenario: "invention".to_string(),
+            context: context.to_string(),
+            ..Default::default()
+        }
     }
 
     #[test]
@@ -333,7 +474,11 @@ mod tests {
             let res = resolve(&invention_trigger("a, , b, , c"), &mut rng).unwrap();
             let d = res.discovery.unwrap();
             assert!(!d.is_empty(), "invention discovery must never be empty");
-            assert!(["a", "b", "c"].contains(&d.as_str()), "got unexpected discovery: {:?}", d);
+            assert!(
+                ["a", "b", "c"].contains(&d.as_str()),
+                "got unexpected discovery: {:?}",
+                d
+            );
         }
     }
 

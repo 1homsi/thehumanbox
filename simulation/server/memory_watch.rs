@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, AtomicU8, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 
 pub use crate::sim::memory_pressure::MemoryPressure;
@@ -13,10 +13,10 @@ fn pressure_from_u8(v: u8) -> MemoryPressure {
 }
 
 pub struct MemoryWatch {
-    own_rss_kb:       AtomicU64,
+    own_rss_kb: AtomicU64,
     box_available_kb: AtomicU64,
-    box_total_kb:     AtomicU64,
-    pressure:         AtomicU8,
+    box_total_kb: AtomicU64,
+    pressure: AtomicU8,
     floor_mb_elevated: u64,
     floor_mb_critical: u64,
 }
@@ -26,10 +26,10 @@ pub type SharedMemoryWatch = Arc<MemoryWatch>;
 impl MemoryWatch {
     pub fn new(floor_mb_elevated: u64, floor_mb_critical: u64) -> SharedMemoryWatch {
         let me = Arc::new(MemoryWatch {
-            own_rss_kb:       AtomicU64::new(0),
+            own_rss_kb: AtomicU64::new(0),
             box_available_kb: AtomicU64::new(0),
-            box_total_kb:     AtomicU64::new(0),
-            pressure:         AtomicU8::new(MemoryPressure::Normal as u8),
+            box_total_kb: AtomicU64::new(0),
+            pressure: AtomicU8::new(MemoryPressure::Normal as u8),
             floor_mb_elevated,
             floor_mb_critical,
         });
@@ -40,7 +40,9 @@ impl MemoryWatch {
                 ticker.tick().await;
                 let own = read_own_rss_kb().unwrap_or(0);
                 let (total, avail) = read_box_mem_kb().unwrap_or((0, 0));
-                if own > 0 { w.own_rss_kb.store(own, Ordering::Relaxed) }
+                if own > 0 {
+                    w.own_rss_kb.store(own, Ordering::Relaxed)
+                }
                 if total > 0 {
                     w.box_total_kb.store(total, Ordering::Relaxed);
                     w.box_available_kb.store(avail, Ordering::Relaxed);
@@ -58,11 +60,17 @@ impl MemoryWatch {
     }
 
     fn classify(&self, avail_kb: u64) -> MemoryPressure {
-        if avail_kb == 0 { return MemoryPressure::Normal }
+        if avail_kb == 0 {
+            return MemoryPressure::Normal;
+        }
         let avail_mb = avail_kb / 1024;
-        if avail_mb <= self.floor_mb_critical { MemoryPressure::Critical }
-        else if avail_mb <= self.floor_mb_elevated { MemoryPressure::Elevated }
-        else { MemoryPressure::Normal }
+        if avail_mb <= self.floor_mb_critical {
+            MemoryPressure::Critical
+        } else if avail_mb <= self.floor_mb_elevated {
+            MemoryPressure::Elevated
+        } else {
+            MemoryPressure::Normal
+        }
     }
 
     pub fn pressure(&self) -> MemoryPressure {
@@ -99,12 +107,20 @@ fn read_box_mem_kb() -> Option<(u64, u64)> {
     let mut avail: u64 = 0;
     for line in info.lines() {
         if let Some(rest) = line.strip_prefix("MemTotal:") {
-            if let Some(v) = rest.trim().split_whitespace().next().and_then(|s| s.parse().ok()) { total = v }
+            if let Some(v) = rest.trim().split_whitespace().next().and_then(|s| s.parse().ok()) {
+                total = v
+            }
         } else if let Some(rest) = line.strip_prefix("MemAvailable:") {
-            if let Some(v) = rest.trim().split_whitespace().next().and_then(|s| s.parse().ok()) { avail = v }
+            if let Some(v) = rest.trim().split_whitespace().next().and_then(|s| s.parse().ok()) {
+                avail = v
+            }
         }
     }
-    if total == 0 { None } else { Some((total, avail)) }
+    if total == 0 {
+        None
+    } else {
+        Some((total, avail))
+    }
 }
 
 #[cfg(target_os = "macos")]
@@ -113,17 +129,24 @@ fn read_own_rss_kb() -> Option<u64> {
     let out = Command::new("ps")
         .args(["-o", "rss=", "-p"])
         .arg(std::process::id().to_string())
-        .output().ok()?;
+        .output()
+        .ok()?;
     String::from_utf8(out.stdout).ok()?.trim().parse::<u64>().ok()
 }
 
 #[cfg(target_os = "macos")]
-fn read_box_mem_kb() -> Option<(u64, u64)> { None }
+fn read_box_mem_kb() -> Option<(u64, u64)> {
+    None
+}
 
 #[cfg(not(any(target_os = "linux", target_os = "macos")))]
-fn read_own_rss_kb() -> Option<u64> { None }
+fn read_own_rss_kb() -> Option<u64> {
+    None
+}
 #[cfg(not(any(target_os = "linux", target_os = "macos")))]
-fn read_box_mem_kb() -> Option<(u64, u64)> { None }
+fn read_box_mem_kb() -> Option<(u64, u64)> {
+    None
+}
 
 #[cfg(test)]
 mod tests {
@@ -133,10 +156,10 @@ mod tests {
     /// classify() decision table is pure and worth pinning down.
     fn make_watch(floor_elevated: u64, floor_critical: u64) -> MemoryWatch {
         MemoryWatch {
-            own_rss_kb:       AtomicU64::new(0),
+            own_rss_kb: AtomicU64::new(0),
             box_available_kb: AtomicU64::new(0),
-            box_total_kb:     AtomicU64::new(0),
-            pressure:         AtomicU8::new(MemoryPressure::Normal as u8),
+            box_total_kb: AtomicU64::new(0),
+            pressure: AtomicU8::new(MemoryPressure::Normal as u8),
             floor_mb_elevated: floor_elevated,
             floor_mb_critical: floor_critical,
         }

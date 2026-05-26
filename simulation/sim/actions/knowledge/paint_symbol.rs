@@ -1,10 +1,8 @@
-
-use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
+use crate::world::tiles::Tile;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    let canvas = matches!(ctx.tile, Tile::Rock)
-              || ctx.sim.grid.structure_at(ctx.ix, ctx.iy) > 0.1;
+    let canvas = matches!(ctx.tile, Tile::Rock) || ctx.sim.grid.structure_at(ctx.ix, ctx.iy) > 0.1;
     if !canvas {
         ctx.think("looking for a canvas");
         return 0.0;

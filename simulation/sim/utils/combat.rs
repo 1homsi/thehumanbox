@@ -1,5 +1,3 @@
-
-
 use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
 
@@ -10,7 +8,9 @@ impl Simulation {
             self.organisms[k].lineage_id != lid
                 && self.organisms[idx].attitude_toward(&self.organisms[k].lineage_id) < -0.15
         });
-        let Some(ti) = target else { return 0.0; };
+        let Some(ti) = target else {
+            return 0.0;
+        };
 
         let dmg = if ambush { 0.10 } else { 0.06 };
         self.organisms[ti].health = (self.organisms[ti].health - dmg).max(0.0);
@@ -25,17 +25,23 @@ impl Simulation {
             self.organisms[idx].inv_food = self.organisms[idx].inv_food.saturating_add(1);
         }
 
-        let nm   = self.organisms[idx].name.clone();
+        let nm = self.organisms[idx].name.clone();
         let tick = self.tick_count;
         let verb = if ambush { "ambushed" } else { "raided" };
-        push_event(&mut self.events, tick, "challenge", &nm,
-                   &format!("{} a rival from {}", verb, their));
-        self.history.challenges_total += 1;
-        self.organisms[idx].think(
-            if ambush { "springing an ambush" } else { "raiding" },
+        push_event(
+            &mut self.events,
             tick,
+            "challenge",
+            &nm,
+            &format!("{} a rival from {}", verb, their),
         );
+        self.history.challenges_total += 1;
+        self.organisms[idx].think(if ambush { "springing an ambush" } else { "raiding" }, tick);
 
-        if ambush { 0.014 } else { 0.010 }
+        if ambush {
+            0.014
+        } else {
+            0.010
+        }
     }
 }

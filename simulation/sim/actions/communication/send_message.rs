@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -7,6 +6,9 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         return 0.0;
     }
     ctx.think("sending word");
-    ctx.event("social", "sent a message to a kin member to share vital information");
+    ctx.event(
+        "social",
+        "sent a message to a kin member to share vital information",
+    );
     0.005
 }

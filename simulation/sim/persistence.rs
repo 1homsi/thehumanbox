@@ -8,30 +8,30 @@ use serde::{Deserialize, Serialize};
 use crate::organism::animal::{Animal, AnimalKind};
 use crate::organism::organism::Organism;
 use crate::physics::engine::PhysicsEngine;
-use crate::sim::simulation::{Event, History, SAVE_SCHEMA_VERSION, Simulation, StoryEntry, ThinkTrigger};
+use crate::sim::simulation::{Event, History, Simulation, StoryEntry, ThinkTrigger, SAVE_SCHEMA_VERSION};
 use crate::sim::world_events::{DroughtState, WeatherState};
-use crate::world::grid::{HEIGHT, WIDTH, WorldGrid};
+use crate::world::grid::{WorldGrid, HEIGHT, WIDTH};
 use crate::world::tiles::Tile;
 
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub(crate) struct GridSave {
-    tiles:       Vec<i8>,
-    fire:        Vec<f32>,
-    food_trail:  Vec<f32>,
+    tiles: Vec<i8>,
+    fire: Vec<f32>,
+    food_trail: Vec<f32>,
     water_trail: Vec<f32>,
-    path_trail:  Vec<f32>,
-    structure:   Vec<f32>,
-    fertility:   Vec<f32>,
-    hazard:      Vec<f32>,
-    pressure:    Vec<f32>,
+    path_trail: Vec<f32>,
+    structure: Vec<f32>,
+    fertility: Vec<f32>,
+    hazard: Vec<f32>,
+    pressure: Vec<f32>,
 }
 
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub(crate) struct DroughtSave {
-    active:      bool,
-    start_tick:  u64,
+    active: bool,
+    start_tick: u64,
     dried_tiles: Vec<[i32; 2]>,
     rain_relief: u64,
 }
@@ -39,35 +39,46 @@ pub(crate) struct DroughtSave {
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub(crate) struct WeatherSave {
-    kind:       u8,
+    kind: u8,
     start_tick: u64,
-    duration:   u64,
-    intensity:  f32,
-    #[serde(default)] wet_until: u64,
+    duration: u64,
+    intensity: f32,
+    #[serde(default)]
+    wet_until: u64,
 }
 
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub(crate) struct OrgSave {
-    id: String, name: String,
-    x: f32, y: f32,
-    energy: f32, hydration: f32, health: f32,
-    age: u32, alive: bool,
+    id: String,
+    name: String,
+    x: f32,
+    y: f32,
+    energy: f32,
+    hydration: f32,
+    health: f32,
+    age: u32,
+    alive: bool,
     thought: String,
-    generation: u32, parent_id: String, lineage_id: String, max_age: u32,
-    food_memory:   HashMap<String, f32>,
-    water_memory:  HashMap<String, f32>,
+    generation: u32,
+    parent_id: String,
+    lineage_id: String,
+    max_age: u32,
+    food_memory: HashMap<String, f32>,
+    water_memory: HashMap<String, f32>,
     danger_memory: HashMap<String, f32>,
-    thought_history:    Vec<crate::organism::organism::ThoughtEntry>,
-    q_table:            HashMap<String, Vec<(u16, f32)>>,
-    last_reproduced: u64, last_challenged: u64,
+    thought_history: Vec<crate::organism::organism::ThoughtEntry>,
+    q_table: HashMap<String, Vec<(u16, f32)>>,
+    last_reproduced: u64,
+    last_challenged: u64,
     water_ticks: u32,
-    lineage_attitudes:  HashMap<String, f32>,
-    org_trust:          HashMap<String, f32>,
-    traits:      crate::organism::traits::Traits,
-    infection:   f32, carrying: u32,
+    lineage_attitudes: HashMap<String, f32>,
+    org_trust: HashMap<String, f32>,
+    traits: crate::organism::traits::Traits,
+    infection: f32,
+    carrying: u32,
     carrying_type: u8,
-    vocabulary:  crate::organism::vocabulary::Vocabulary,
+    vocabulary: crate::organism::vocabulary::Vocabulary,
     daily_story: String,
     last_story_tick: u64,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -79,7 +90,8 @@ pub(crate) struct OrgSave {
     home_y: f32,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     home_furniture: Vec<String>,
-    #[serde(default)] home_style_seed: u32,
+    #[serde(default)]
+    home_style_seed: u32,
     has_reflected: bool,
     last_invention_tick: u64,
     last_think_tick: u64,
@@ -95,26 +107,45 @@ pub(crate) struct OrgSave {
     #[serde(default)]
     attributes: Vec<String>,
     // ── Emotional / cognitive state (previously dropped on save) ──────
-    #[serde(default)] is_elder:            bool,
-    #[serde(default)] loneliness:          f32,
-    #[serde(default)] boredom:             f32,
-    #[serde(default)] fear_level:          f32,
-    #[serde(default)] comfort:             f32,
-    #[serde(default)] grief_ticks:         u32,
-    #[serde(default)] joy_ticks:           u32,
-    #[serde(default)] aspiration:          String,
-    #[serde(default)] orphaned_tick:       u64,
-    #[serde(default)] sleep_debt:          f32,
-    #[serde(default)] directive:           String,
-    #[serde(default)] directive_until:     u64,
-    #[serde(default)] last_groomed:        u64,
-    #[serde(default)] last_fed_kin:        u64,
-    #[serde(default)] last_ancestral_thought: u64,
+    #[serde(default)]
+    is_elder: bool,
+    #[serde(default)]
+    loneliness: f32,
+    #[serde(default)]
+    boredom: f32,
+    #[serde(default)]
+    fear_level: f32,
+    #[serde(default)]
+    comfort: f32,
+    #[serde(default)]
+    grief_ticks: u32,
+    #[serde(default)]
+    joy_ticks: u32,
+    #[serde(default)]
+    aspiration: String,
+    #[serde(default)]
+    orphaned_tick: u64,
+    #[serde(default)]
+    sleep_debt: f32,
+    #[serde(default)]
+    directive: String,
+    #[serde(default)]
+    directive_until: u64,
+    #[serde(default)]
+    last_groomed: u64,
+    #[serde(default)]
+    last_fed_kin: u64,
+    #[serde(default)]
+    last_ancestral_thought: u64,
     // ── Inventory (previously dropped) ────────────────────────────────
-    #[serde(default)] inv_water: u8,
-    #[serde(default)] inv_food:  u8,
-    #[serde(default)] inv_wood:  u8,
-    #[serde(default)] inv_stone: u8,
+    #[serde(default)]
+    inv_water: u8,
+    #[serde(default)]
+    inv_food: u8,
+    #[serde(default)]
+    inv_wood: u8,
+    #[serde(default)]
+    inv_stone: u8,
     // ── Friend network (previously dropped) ───────────────────────────
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     friends: HashMap<String, String>,
@@ -131,7 +162,11 @@ pub(crate) struct OrgSave {
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub(crate) struct AnimalSave {
-    id: usize, x: f32, y: f32, alive: bool, energy: f32,
+    id: usize,
+    x: f32,
+    y: f32,
+    alive: bool,
+    energy: f32,
     kind: u8,
     last_reproduced: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -151,27 +186,27 @@ pub(crate) struct NegotiationSave {
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub(crate) struct SaveState {
-    pub(crate) version:        u32,
-    pub(crate) tick_count:     u64,
+    pub(crate) version: u32,
+    pub(crate) tick_count: u64,
     next_animal_id: usize,
-    history:        History,
-    drought:        DroughtSave,
-    weather:        WeatherSave,
-    events:         Vec<Event>,
-    pub(crate) organisms:      Vec<OrgSave>,
-    pub(crate) animals:        Vec<AnimalSave>,
-    pub(crate) grid:           GridSave,
-    story_history:  Vec<StoryEntry>,
-    pop_history:    Vec<[u64; 2]>,
+    history: History,
+    drought: DroughtSave,
+    weather: WeatherSave,
+    events: Vec<Event>,
+    pub(crate) organisms: Vec<OrgSave>,
+    pub(crate) animals: Vec<AnimalSave>,
+    pub(crate) grid: GridSave,
+    story_history: Vec<StoryEntry>,
+    pop_history: Vec<[u64; 2]>,
     lineage_centroid_history: HashMap<String, Vec<[i32; 3]>>,
     #[serde(default)]
-    lineage_homes:  HashMap<String, [i32; 3]>,
+    lineage_homes: HashMap<String, [i32; 3]>,
     #[serde(default)]
-    lineage_eras:   HashMap<String, super::era::Era>,
-    current_era:    String,
-    sex_words:      Vec<String>,
-    pub(crate) world_seed:     u64,
-    lineage_names:  HashMap<String, String>,
+    lineage_eras: HashMap<String, super::era::Era>,
+    current_era: String,
+    sex_words: Vec<String>,
+    pub(crate) world_seed: u64,
+    lineage_names: HashMap<String, String>,
     lineage_strategies: HashMap<String, (String, u64)>,
     lineage_last_council: HashMap<String, u64>,
     lineage_elders: HashMap<String, String>,
@@ -187,41 +222,54 @@ pub(crate) struct SaveState {
     settlement_tiers: HashMap<String, u8>,
 }
 
-fn mem_encode(m: &HashMap<(i32,i32), f32>) -> HashMap<String, f32> {
-    m.iter().map(|(&(x,y), &v)| (format!("{},{}", x, y), v)).collect()
+fn mem_encode(m: &HashMap<(i32, i32), f32>) -> HashMap<String, f32> {
+    m.iter()
+        .map(|(&(x, y), &v)| (format!("{},{}", x, y), v))
+        .collect()
 }
 
-fn mem_decode(m: HashMap<String, f32>) -> HashMap<(i32,i32), f32> {
-    m.into_iter().filter_map(|(k, v)| {
-        let mut parts = k.splitn(2, ',');
-        let x = parts.next()?.parse::<i32>().ok()?;
-        let y = parts.next()?.parse::<i32>().ok()?;
-        Some(((x, y), v))
-    }).collect()
+fn mem_decode(m: HashMap<String, f32>) -> HashMap<(i32, i32), f32> {
+    m.into_iter()
+        .filter_map(|(k, v)| {
+            let mut parts = k.splitn(2, ',');
+            let x = parts.next()?.parse::<i32>().ok()?;
+            let y = parts.next()?.parse::<i32>().ok()?;
+            Some(((x, y), v))
+        })
+        .collect()
 }
 
 fn org_to_save(o: &Organism) -> OrgSave {
     OrgSave {
-        id: o.id.clone(), name: o.name.clone(),
-        x: o.x, y: o.y,
-        energy: o.energy, hydration: o.hydration, health: o.health,
-        age: o.age, alive: o.alive,
+        id: o.id.clone(),
+        name: o.name.clone(),
+        x: o.x,
+        y: o.y,
+        energy: o.energy,
+        hydration: o.hydration,
+        health: o.health,
+        age: o.age,
+        alive: o.alive,
         thought: o.thought.clone(),
-        generation: o.generation, parent_id: o.parent_id.clone(),
-        lineage_id: o.lineage_id.clone(), max_age: o.max_age,
-        food_memory:   mem_encode(&o.food_memory),
-        water_memory:  mem_encode(&o.water_memory),
+        generation: o.generation,
+        parent_id: o.parent_id.clone(),
+        lineage_id: o.lineage_id.clone(),
+        max_age: o.max_age,
+        food_memory: mem_encode(&o.food_memory),
+        water_memory: mem_encode(&o.water_memory),
         danger_memory: mem_encode(&o.danger_memory),
-        thought_history:   o.thought_history.iter().cloned().collect(),
-        q_table:           o.q_table.clone(),
-        last_reproduced:   o.last_reproduced, last_challenged: o.last_challenged,
-        water_ticks:       o.water_ticks,
+        thought_history: o.thought_history.iter().cloned().collect(),
+        q_table: o.q_table.clone(),
+        last_reproduced: o.last_reproduced,
+        last_challenged: o.last_challenged,
+        water_ticks: o.water_ticks,
         lineage_attitudes: o.lineage_attitudes.clone(),
-        org_trust:         o.org_trust.clone(),
-        traits:      o.traits.clone(),
-        infection:   o.infection, carrying: o.carrying,
+        org_trust: o.org_trust.clone(),
+        traits: o.traits.clone(),
+        infection: o.infection,
+        carrying: o.carrying,
         carrying_type: o.carrying_type,
-        vocabulary:  o.vocabulary.clone(),
+        vocabulary: o.vocabulary.clone(),
         daily_story: o.daily_story.clone(),
         last_story_tick: o.last_story_tick,
         life_log_legacy: Vec::new(),
@@ -231,79 +279,88 @@ fn org_to_save(o: &Organism) -> OrgSave {
         home_y: o.home_y,
         home_furniture: o.home_furniture.clone(),
         home_style_seed: o.home_style_seed,
-        has_reflected:       o.has_reflected,
+        has_reflected: o.has_reflected,
         last_invention_tick: o.last_invention_tick,
-        last_think_tick:     o.last_think_tick,
-        partner_id:          o.partner_id.clone(),
-        children_count:      o.children_count,
-        sex:                 o.sex.as_str().to_string(),
-        attracted_to:        o.attracted_to.clone(),
-        attraction_tick:     o.attraction_tick,
-        pregnant:            o.pregnant,
-        pregnancy_start:     o.pregnancy_start,
-        conversations:       o.conversations.iter().cloned().collect(),
-        father_id:           o.father_id.clone(),
-        attributes:          o.attributes.iter().cloned().collect(),
-        is_elder:            o.is_elder,
-        loneliness:          o.loneliness,
-        boredom:             o.boredom,
-        fear_level:          o.fear_level,
-        comfort:             o.comfort,
-        grief_ticks:         o.grief_ticks,
-        joy_ticks:           o.joy_ticks,
-        aspiration:          o.aspiration.clone(),
-        orphaned_tick:       o.orphaned_tick,
-        sleep_debt:          o.sleep_debt,
-        directive:           o.directive.clone(),
-        directive_until:     o.directive_until,
-        last_groomed:        o.last_groomed,
-        last_fed_kin:        o.last_fed_kin,
+        last_think_tick: o.last_think_tick,
+        partner_id: o.partner_id.clone(),
+        children_count: o.children_count,
+        sex: o.sex.as_str().to_string(),
+        attracted_to: o.attracted_to.clone(),
+        attraction_tick: o.attraction_tick,
+        pregnant: o.pregnant,
+        pregnancy_start: o.pregnancy_start,
+        conversations: o.conversations.iter().cloned().collect(),
+        father_id: o.father_id.clone(),
+        attributes: o.attributes.iter().cloned().collect(),
+        is_elder: o.is_elder,
+        loneliness: o.loneliness,
+        boredom: o.boredom,
+        fear_level: o.fear_level,
+        comfort: o.comfort,
+        grief_ticks: o.grief_ticks,
+        joy_ticks: o.joy_ticks,
+        aspiration: o.aspiration.clone(),
+        orphaned_tick: o.orphaned_tick,
+        sleep_debt: o.sleep_debt,
+        directive: o.directive.clone(),
+        directive_until: o.directive_until,
+        last_groomed: o.last_groomed,
+        last_fed_kin: o.last_fed_kin,
         last_ancestral_thought: o.last_ancestral_thought,
         inv_water: o.inv_water,
-        inv_food:  o.inv_food,
-        inv_wood:  o.inv_wood,
+        inv_food: o.inv_food,
+        inv_wood: o.inv_wood,
         inv_stone: o.inv_stone,
-        friends:   o.friends.clone(),
+        friends: o.friends.clone(),
         anchor_events: o.anchor_events.clone(),
-        memories:      o.memories.clone(),
-        zodiac:        o.zodiac.clone(),
-        birth_tick:    o.birth_tick,
+        memories: o.memories.clone(),
+        zodiac: o.zodiac.clone(),
+        birth_tick: o.birth_tick,
     }
 }
 
 fn org_from_save(s: OrgSave) -> Organism {
     let vocab_seed = {
-        let lid_seed = s.lineage_id.bytes().fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
-        let id_seed  = s.id.bytes().fold(0u64, |a, b| a.wrapping_add(b as u64));
+        let lid_seed = s
+            .lineage_id
+            .bytes()
+            .fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
+        let id_seed = s.id.bytes().fold(0u64, |a, b| a.wrapping_add(b as u64));
         lid_seed ^ id_seed
     };
     let needs_vocab = s.vocabulary.is_empty();
     let saved_vocab = s.vocabulary;
     let mut o = Organism::new(
-        s.id, s.name, s.x, s.y,
-        s.generation, s.parent_id, s.lineage_id,
-        s.max_age, s.traits,
+        s.id,
+        s.name,
+        s.x,
+        s.y,
+        s.generation,
+        s.parent_id,
+        s.lineage_id,
+        s.max_age,
+        s.traits,
     );
-    o.energy    = s.energy;
+    o.energy = s.energy;
     o.hydration = s.hydration;
-    o.health    = s.health;
-    o.age       = s.age;
-    o.alive     = s.alive;
-    o.thought   = s.thought;
-    o.food_memory   = mem_decode(s.food_memory);
-    o.water_memory  = mem_decode(s.water_memory);
+    o.health = s.health;
+    o.age = s.age;
+    o.alive = s.alive;
+    o.thought = s.thought;
+    o.food_memory = mem_decode(s.food_memory);
+    o.water_memory = mem_decode(s.water_memory);
     o.danger_memory = mem_decode(s.danger_memory);
-    o.thought_history    = s.thought_history.into_iter().collect();
-    o.q_table            = s.q_table;
-    o.last_reproduced    = s.last_reproduced;
-    o.last_challenged    = s.last_challenged;
-    o.water_ticks        = s.water_ticks;
-    o.lineage_attitudes  = s.lineage_attitudes;
-    o.org_trust          = s.org_trust;
-    o.infection       = s.infection;
-    o.carrying        = s.carrying;
-    o.carrying_type   = s.carrying_type;
-    o.daily_story     = s.daily_story;
+    o.thought_history = s.thought_history.into_iter().collect();
+    o.q_table = s.q_table;
+    o.last_reproduced = s.last_reproduced;
+    o.last_challenged = s.last_challenged;
+    o.water_ticks = s.water_ticks;
+    o.lineage_attitudes = s.lineage_attitudes;
+    o.org_trust = s.org_trust;
+    o.infection = s.infection;
+    o.carrying = s.carrying;
+    o.carrying_type = s.carrying_type;
+    o.daily_story = s.daily_story;
     o.last_story_tick = s.last_story_tick;
     // Prefer the structured LifeEvent log; fall back to legacy string
     // log only if no structured entries exist (handles pre-LifeEvent
@@ -311,54 +368,58 @@ fn org_from_save(s: OrgSave) -> Organism {
     o.life_log = if !s.life_log.is_empty() {
         s.life_log.into_iter().collect()
     } else {
-        s.life_log_legacy.into_iter()
+        s.life_log_legacy
+            .into_iter()
             .map(|t| crate::organism::organism::LifeEvent {
-                tick: 0, category: "event".to_string(), text: t,
-                related_id: None, related_name: None,
+                tick: 0,
+                category: "event".to_string(),
+                text: t,
+                related_id: None,
+                related_name: None,
             })
             .collect()
     };
-    o.discoveries     = s.discoveries.into_iter().collect();
+    o.discoveries = s.discoveries.into_iter().collect();
     if s.home_x != 0.0 || s.home_y != 0.0 {
         o.home_x = s.home_x;
         o.home_y = s.home_y;
     }
-    o.home_furniture      = s.home_furniture;
-    o.home_style_seed     = s.home_style_seed;
-    o.has_reflected       = s.has_reflected;
+    o.home_furniture = s.home_furniture;
+    o.home_style_seed = s.home_style_seed;
+    o.has_reflected = s.has_reflected;
     o.last_invention_tick = s.last_invention_tick;
-    o.last_think_tick     = s.last_think_tick;
-    o.partner_id          = s.partner_id;
-    o.children_count      = s.children_count;
-    o.sex                 = crate::organism::organism::Sex::from_str(&s.sex);
-    o.attracted_to        = s.attracted_to;
-    o.attraction_tick     = s.attraction_tick;
-    o.pregnant            = s.pregnant;
-    o.pregnancy_start     = s.pregnancy_start;
-    o.conversations       = s.conversations.into_iter().collect();
-    o.father_id           = s.father_id;
-    o.attributes          = s.attributes.into_iter().collect();
-    o.is_elder            = s.is_elder;
-    o.loneliness          = s.loneliness;
-    o.boredom             = s.boredom;
-    o.fear_level          = s.fear_level;
-    o.comfort             = s.comfort;
-    o.grief_ticks         = s.grief_ticks;
-    o.joy_ticks           = s.joy_ticks;
-    o.aspiration          = s.aspiration;
-    o.orphaned_tick       = s.orphaned_tick;
-    o.sleep_debt          = s.sleep_debt;
-    o.directive           = s.directive;
-    o.directive_until     = s.directive_until;
-    o.last_groomed        = s.last_groomed;
-    o.last_fed_kin        = s.last_fed_kin;
+    o.last_think_tick = s.last_think_tick;
+    o.partner_id = s.partner_id;
+    o.children_count = s.children_count;
+    o.sex = crate::organism::organism::Sex::from_str(&s.sex);
+    o.attracted_to = s.attracted_to;
+    o.attraction_tick = s.attraction_tick;
+    o.pregnant = s.pregnant;
+    o.pregnancy_start = s.pregnancy_start;
+    o.conversations = s.conversations.into_iter().collect();
+    o.father_id = s.father_id;
+    o.attributes = s.attributes.into_iter().collect();
+    o.is_elder = s.is_elder;
+    o.loneliness = s.loneliness;
+    o.boredom = s.boredom;
+    o.fear_level = s.fear_level;
+    o.comfort = s.comfort;
+    o.grief_ticks = s.grief_ticks;
+    o.joy_ticks = s.joy_ticks;
+    o.aspiration = s.aspiration;
+    o.orphaned_tick = s.orphaned_tick;
+    o.sleep_debt = s.sleep_debt;
+    o.directive = s.directive;
+    o.directive_until = s.directive_until;
+    o.last_groomed = s.last_groomed;
+    o.last_fed_kin = s.last_fed_kin;
     o.last_ancestral_thought = s.last_ancestral_thought;
-    o.inv_water           = s.inv_water;
-    o.inv_food            = s.inv_food;
-    o.inv_wood            = s.inv_wood;
-    o.inv_stone           = s.inv_stone;
-    o.friends             = s.friends;
-    o.anchor_events       = s.anchor_events;
+    o.inv_water = s.inv_water;
+    o.inv_food = s.inv_food;
+    o.inv_wood = s.inv_wood;
+    o.inv_stone = s.inv_stone;
+    o.friends = s.friends;
+    o.anchor_events = s.anchor_events;
     if !s.memories.entries.is_empty() {
         o.memories = s.memories;
     }
@@ -380,15 +441,20 @@ fn org_from_save(s: OrgSave) -> Organism {
 fn animal_to_save(a: &Animal) -> AnimalSave {
     let kind = match a.kind {
         AnimalKind::Rabbit => 0,
-        AnimalKind::Deer   => 1,
-        AnimalKind::Boar   => 2,
-        AnimalKind::Bird   => 3,
-        AnimalKind::Fish   => 4,
-        AnimalKind::Wolf   => 5,
-        AnimalKind::Dog    => 6,
+        AnimalKind::Deer => 1,
+        AnimalKind::Boar => 2,
+        AnimalKind::Bird => 3,
+        AnimalKind::Fish => 4,
+        AnimalKind::Wolf => 5,
+        AnimalKind::Dog => 6,
     };
     AnimalSave {
-        id: a.id, x: a.x, y: a.y, alive: a.alive, energy: a.energy, kind,
+        id: a.id,
+        x: a.x,
+        y: a.y,
+        alive: a.alive,
+        energy: a.energy,
+        kind,
         last_reproduced: a.last_reproduced,
         name: a.name.clone(),
         bonded_org: a.bonded_org.clone(),
@@ -407,11 +473,11 @@ fn animal_from_save(s: AnimalSave) -> Animal {
         _ => AnimalKind::Rabbit,
     };
     let mut a = Animal::new(s.id, s.x, s.y, kind);
-    a.alive           = s.alive;
-    a.energy          = s.energy;
+    a.alive = s.alive;
+    a.energy = s.energy;
     a.last_reproduced = s.last_reproduced;
-    a.name            = s.name;
-    a.bonded_org      = s.bonded_org;
+    a.name = s.name;
+    a.bonded_org = s.bonded_org;
     a
 }
 
@@ -434,22 +500,22 @@ impl Simulation {
     /// next tick can run while serde_json + fs::write happen.
     pub fn to_save_state(&self) -> SaveState {
         SaveState {
-            version:        SAVE_SCHEMA_VERSION,
-            tick_count:     self.tick_count,
+            version: SAVE_SCHEMA_VERSION,
+            tick_count: self.tick_count,
             next_animal_id: self.next_animal_id,
-            history:        self.history.clone(),
+            history: self.history.clone(),
             drought: DroughtSave {
-                active:      self.drought.active,
-                start_tick:  self.drought.start_tick,
-                dried_tiles: self.drought.dried_tiles.iter().map(|&(x,y)| [x,y]).collect(),
+                active: self.drought.active,
+                start_tick: self.drought.start_tick,
+                dried_tiles: self.drought.dried_tiles.iter().map(|&(x, y)| [x, y]).collect(),
                 rain_relief: self.drought.rain_relief,
             },
             weather: WeatherSave {
-                kind:       self.weather.kind,
+                kind: self.weather.kind,
                 start_tick: self.weather.start_tick,
-                duration:   self.weather.duration,
-                intensity:  self.weather.intensity,
-                wet_until:  self.weather.wet_until,
+                duration: self.weather.duration,
+                intensity: self.weather.intensity,
+                wet_until: self.weather.wet_until,
             },
             // Cap unbounded VecDeques on save. Their in-memory caps
             // are larger than what makes sense to persist; if we ship
@@ -457,41 +523,51 @@ impl Simulation {
             // serde_json::to_string allocation eats the spawn_blocking
             // budget. The tail is what subsequent reads actually need.
             pop_history: self.pop_history.iter().rev().take(300).rev().cloned().collect(),
-            lineage_centroid_history: self.lineage_centroid_history.iter()
+            lineage_centroid_history: self
+                .lineage_centroid_history
+                .iter()
                 .map(|(k, v)| (k.clone(), v.iter().rev().take(60).rev().cloned().collect()))
                 .collect(),
             lineage_homes: self.lineage_homes.clone(),
             lineage_eras: self.lineage_eras.clone(),
             events: self.events.iter().rev().take(200).rev().cloned().collect(),
-            organisms:     self.organisms.iter().map(org_to_save).collect(),
-            animals:       self.animals.iter().map(animal_to_save).collect(),
+            organisms: self.organisms.iter().map(org_to_save).collect(),
+            animals: self.animals.iter().map(animal_to_save).collect(),
             story_history: self.story_history.iter().rev().take(120).rev().cloned().collect(),
             grid: GridSave {
-                tiles:       self.grid.tiles.clone(),
-                fire:        self.grid.fire_intensity.clone(),
-                food_trail:  self.grid.food_trail.clone(),
+                tiles: self.grid.tiles.clone(),
+                fire: self.grid.fire_intensity.clone(),
+                food_trail: self.grid.food_trail.clone(),
                 water_trail: self.grid.water_trail.clone(),
-                path_trail:  self.grid.path_trail.clone(),
-                structure:   self.grid.structure.clone(),
-                fertility:   self.grid.fertility.clone(),
-                hazard:      self.grid.hazard.clone(),
-                pressure:    self.grid.pressure.clone(),
+                path_trail: self.grid.path_trail.clone(),
+                structure: self.grid.structure.clone(),
+                fertility: self.grid.fertility.clone(),
+                hazard: self.grid.hazard.clone(),
+                pressure: self.grid.pressure.clone(),
             },
-            current_era:    self.current_era.clone(),
-            sex_words:      self.sex_words.to_vec(),
-            world_seed:     self.world_seed,
-            lineage_names:  self.lineage_names.clone(),
+            current_era: self.current_era.clone(),
+            sex_words: self.sex_words.to_vec(),
+            world_seed: self.world_seed,
+            lineage_names: self.lineage_names.clone(),
             lineage_strategies: self.lineage_strategies.clone(),
             lineage_last_council: self.lineage_last_council.clone(),
             lineage_elders: self.lineage_elders.clone(),
-            lineage_negotiations: self.lineage_negotiations.iter()
-                .map(|((a, b), &tick)| NegotiationSave { a: a.clone(), b: b.clone(), tick })
+            lineage_negotiations: self
+                .lineage_negotiations
+                .iter()
+                .map(|((a, b), &tick)| NegotiationSave {
+                    a: a.clone(),
+                    b: b.clone(),
+                    tick,
+                })
                 .collect(),
             pending_thinks: self.pending_thinks.clone(),
             rng: Some(self.rng.clone()),
             flood_tiles: self.flood_tiles.clone(),
-            territory: self.territory.iter()
-                .map(|(lid, tiles)| (lid.clone(), tiles.iter().map(|&(x,y)| [x,y]).collect()))
+            territory: self
+                .territory
+                .iter()
+                .map(|(lid, tiles)| (lid.clone(), tiles.iter().map(|&(x, y)| [x, y]).collect()))
                 .collect(),
             last_immigration_tick: self.last_immigration_tick,
             settlement_tiers: self.settlement_tiers.clone(),
@@ -503,8 +579,7 @@ impl Simulation {
 /// main runtime. Atomic rename + parent-dir fsync mirror the
 /// previous in-line behaviour.
 pub fn write_save_to_disk(state: &SaveState, path: &str) -> io::Result<()> {
-    let json = serde_json::to_string(state)
-        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    let json = serde_json::to_string(state).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
     let tmp_path = format!("{}.tmp", path);
     {
         use std::io::Write;
@@ -514,7 +589,11 @@ pub fn write_save_to_disk(state: &SaveState, path: &str) -> io::Result<()> {
     }
     std::fs::rename(&tmp_path, path)?;
     if let Some(parent) = std::path::Path::new(path).parent() {
-        let dir = if parent.as_os_str().is_empty() { std::path::Path::new(".") } else { parent };
+        let dir = if parent.as_os_str().is_empty() {
+            std::path::Path::new(".")
+        } else {
+            parent
+        };
         if let Ok(d) = std::fs::File::open(dir) {
             let _ = d.sync_all();
         }
@@ -543,19 +622,29 @@ impl Simulation {
                         tracing::warn!(
                             "Save at {} is schema v{} but this binary only supports v{}. \
                              Backed up to {} and starting fresh world.",
-                            path, state.version, SAVE_SCHEMA_VERSION, backup
+                            path,
+                            state.version,
+                            SAVE_SCHEMA_VERSION,
+                            backup
                         );
-                        return Self::new(seed)
+                        return Self::new(seed);
                     }
                     if state.version != 0 && state.version < SAVE_SCHEMA_VERSION {
                         tracing::info!(
                             "Loaded world from {} (tick {}, migrating schema v{} → v{})",
-                            path, state.tick_count, state.version, SAVE_SCHEMA_VERSION
+                            path,
+                            state.tick_count,
+                            state.version,
+                            SAVE_SCHEMA_VERSION
                         );
                     } else {
                         tracing::info!("Loaded world from {} (tick {})", path, state.tick_count);
                     }
-                    let terrain_seed = if state.world_seed > 0 { state.world_seed } else { seed };
+                    let terrain_seed = if state.world_seed > 0 {
+                        state.world_seed
+                    } else {
+                        seed
+                    };
                     let mut sim = Self::from_save(terrain_seed, state);
                     sim.grid.enforce_ocean_border();
                     sim.relocate_edge_squatters();
@@ -566,8 +655,10 @@ impl Simulation {
                     // `save()`. Back it up with a timestamp so the operator
                     // can inspect it.
                     use std::time::{SystemTime, UNIX_EPOCH};
-                    let ts = SystemTime::now().duration_since(UNIX_EPOCH)
-                        .map(|d| d.as_secs()).unwrap_or(0);
+                    let ts = SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .map(|d| d.as_secs())
+                        .unwrap_or(0);
                     let backup = format!("{}.corrupt-{}", path, ts);
                     if let Err(re) = std::fs::rename(path, &backup) {
                         tracing::warn!("Failed to back up corrupt save to {}: {}", backup, re);
@@ -576,7 +667,8 @@ impl Simulation {
                     }
                     tracing::warn!(
                         "Save at {} could not be deserialized ({}) - starting fresh world.",
-                        path, e
+                        path,
+                        e
                     );
                     Self::new(seed)
                 }
@@ -588,11 +680,11 @@ impl Simulation {
         let expected = WIDTH * HEIGHT;
         let mut grid = WorldGrid::new(seed);
         if state.grid.tiles.len() == expected {
-            grid.tiles          = state.grid.tiles;
+            grid.tiles = state.grid.tiles;
             grid.fire_intensity = state.grid.fire;
-            grid.food_trail     = state.grid.food_trail;
-            grid.water_trail    = state.grid.water_trail;
-            grid.path_trail     = state.grid.path_trail;
+            grid.food_trail = state.grid.food_trail;
+            grid.water_trail = state.grid.water_trail;
+            grid.path_trail = state.grid.path_trail;
             if !state.grid.structure.is_empty() && state.grid.structure.len() == expected {
                 grid.structure = state.grid.structure;
             }
@@ -606,13 +698,22 @@ impl Simulation {
                 grid.pressure = state.grid.pressure;
             }
         } else {
-            tracing::info!("Save grid size mismatch (got {}, need {}) - regenerating world", state.grid.tiles.len(), expected);
+            tracing::info!(
+                "Save grid size mismatch (got {}, need {}) - regenerating world",
+                state.grid.tiles.len(),
+                expected
+            );
         }
 
         let drought = DroughtState {
-            active:      state.drought.active,
-            start_tick:  state.drought.start_tick,
-            dried_tiles: state.drought.dried_tiles.into_iter().map(|[x,y]| (x,y)).collect(),
+            active: state.drought.active,
+            start_tick: state.drought.start_tick,
+            dried_tiles: state
+                .drought
+                .dried_tiles
+                .into_iter()
+                .map(|[x, y]| (x, y))
+                .collect(),
             rain_relief: state.drought.rain_relief,
         };
 
@@ -640,7 +741,9 @@ impl Simulation {
             let mut hs = HashSet::new();
             for y in 0..HEIGHT as i32 {
                 for x in 0..WIDTH as i32 {
-                    if grid.structure_at(x, y) > 0.0 { hs.insert((x, y)); }
+                    if grid.structure_at(x, y) > 0.0 {
+                        hs.insert((x, y));
+                    }
                 }
             }
             hs
@@ -658,43 +761,51 @@ impl Simulation {
             grid,
             physics,
             organisms,
-            animals:              state.animals.into_iter().map(animal_from_save).collect(),
-            tick_count:           state.tick_count,
-            events:               state.events.into_iter().collect(),
-            history:              state.history,
+            animals: state.animals.into_iter().map(animal_from_save).collect(),
+            tick_count: state.tick_count,
+            events: state.events.into_iter().collect(),
+            history: state.history,
             drought,
             weather: WeatherState {
-                kind:       state.weather.kind,
+                kind: state.weather.kind,
                 start_tick: state.weather.start_tick,
-                duration:   state.weather.duration,
-                intensity:  state.weather.intensity,
-                wet_until:  state.weather.wet_until,
+                duration: state.weather.duration,
+                intensity: state.weather.intensity,
+                wet_until: state.weather.wet_until,
                 // Wind state isn't persisted across restarts - the
                 // drift converges back within a few ticks anyway.
-                wind_x:          0.4,
-                wind_y:          0.0,
-                wind_last_tick:  state.tick_count,
+                wind_x: 0.4,
+                wind_y: 0.0,
+                wind_last_tick: state.tick_count,
             },
-            flood_tiles:            state.flood_tiles,
-            story_history:          state.story_history.into_iter().collect(),
-            pending_thinks:         state.pending_thinks,
-            pending_convos:         Vec::new(),
-            lineage_strategies:     state.lineage_strategies,
-            lineage_last_council:   state.lineage_last_council,
-            lineage_elders:         state.lineage_elders,
-            lineage_negotiations:   state.lineage_negotiations.into_iter()
+            flood_tiles: state.flood_tiles,
+            story_history: state.story_history.into_iter().collect(),
+            pending_thinks: state.pending_thinks,
+            pending_convos: Vec::new(),
+            lineage_strategies: state.lineage_strategies,
+            lineage_last_council: state.lineage_last_council,
+            lineage_elders: state.lineage_elders,
+            lineage_negotiations: state
+                .lineage_negotiations
+                .into_iter()
                 .map(|n| {
                     let key = if n.a < n.b { (n.a, n.b) } else { (n.b, n.a) };
                     (key, n.tick)
                 })
                 .collect(),
-            pop_history:            state.pop_history.into_iter().collect(),
-            lineage_centroid_history: state.lineage_centroid_history.into_iter()
+            pop_history: state.pop_history.into_iter().collect(),
+            lineage_centroid_history: state
+                .lineage_centroid_history
+                .into_iter()
                 .map(|(k, v)| (k, v.into_iter().collect()))
                 .collect(),
             lineage_homes: state.lineage_homes,
             lineage_eras: state.lineage_eras,
-            current_era:            if state.current_era.is_empty() { "genesis".to_string() } else { state.current_era },
+            current_era: if state.current_era.is_empty() {
+                "genesis".to_string()
+            } else {
+                state.current_era
+            },
             sex_words: {
                 if state.sex_words.len() >= 2 {
                     [state.sex_words[0].clone(), state.sex_words[1].clone()]
@@ -703,22 +814,28 @@ impl Simulation {
                     let mut word_rng = rand::rngs::SmallRng::seed_from_u64(seed.wrapping_add(0xc0ffee));
                     let w0 = gen_phoneme_word(&mut word_rng);
                     let mut w1 = gen_phoneme_word(&mut word_rng);
-                    while w1 == w0 { w1 = gen_phoneme_word(&mut word_rng); }
+                    while w1 == w0 {
+                        w1 = gen_phoneme_word(&mut word_rng);
+                    }
                     [w0, w1]
                 }
             },
-            world_seed:             seed,
-            next_animal_id:         state.next_animal_id,
-            lineage_names:          state.lineage_names,
-            rng:                    state.rng.unwrap_or_else(|| ChaCha8Rng::seed_from_u64(seed ^ state.tick_count)),
-            last_immigration_tick:   state.last_immigration_tick,
+            world_seed: seed,
+            next_animal_id: state.next_animal_id,
+            lineage_names: state.lineage_names,
+            rng: state
+                .rng
+                .unwrap_or_else(|| ChaCha8Rng::seed_from_u64(seed ^ state.tick_count)),
+            last_immigration_tick: state.last_immigration_tick,
             cached_tribal_relations: serde_json::Value::Array(vec![]),
-            cached_lineage_sizes:    serde_json::Value::Array(vec![]),
-            slow_compute_tick:       0,
+            cached_lineage_sizes: serde_json::Value::Array(vec![]),
+            slow_compute_tick: 0,
             active_structure_tiles,
-            settlement_tiers:        state.settlement_tiers,
-            territory: state.territory.into_iter()
-                .map(|(lid, tiles)| (lid, tiles.into_iter().map(|[x,y]| (x,y)).collect()))
+            settlement_tiers: state.settlement_tiers,
+            territory: state
+                .territory
+                .into_iter()
+                .map(|(lid, tiles)| (lid, tiles.into_iter().map(|[x, y]| (x, y)).collect()))
                 .collect(),
             tile_owner: std::collections::HashMap::new(),
             cached_territory: serde_json::Value::Null,
@@ -767,10 +884,10 @@ impl Simulation {
     }
 
     pub fn relocate_edge_squatters(&mut self) {
-        use crate::world::grid::{WorldGrid, WIDTH, HEIGHT};
-        let interior_w_min = (WIDTH  as f32 * 0.05).ceil()  + 1.0;
-        let interior_w_max = WIDTH  as f32 - interior_w_min - 1.0;
-        let interior_h_min = (HEIGHT as f32 * 0.05).ceil()  + 1.0;
+        use crate::world::grid::{WorldGrid, HEIGHT, WIDTH};
+        let interior_w_min = (WIDTH as f32 * 0.05).ceil() + 1.0;
+        let interior_w_max = WIDTH as f32 - interior_w_min - 1.0;
+        let interior_h_min = (HEIGHT as f32 * 0.05).ceil() + 1.0;
         let interior_h_max = HEIGHT as f32 - interior_h_min - 1.0;
 
         for org in self.organisms.iter_mut() {

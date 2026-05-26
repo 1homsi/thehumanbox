@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -15,6 +14,9 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     ctx.sim.organisms[ctx.idx].comfort = (ctx.sim.organisms[ctx.idx].comfort + 0.03).min(1.0);
     let bonus = 0.003 * ctx.kin.len().min(5) as f32;
     ctx.think("holding a family council");
-    ctx.discover("council", "held the first family council to make decisions together");
+    ctx.discover(
+        "council",
+        "held the first family council to make decisions together",
+    );
     bonus + 0.008
 }

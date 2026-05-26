@@ -1,8 +1,10 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    let pupil = ctx.kin.iter().copied()
+    let pupil = ctx
+        .kin
+        .iter()
+        .copied()
         .filter(|&k| ctx.sim.organisms[k].age < 1000)
         .min_by_key(|&k| ctx.sim.organisms[k].age);
     let Some(ki) = pupil else {

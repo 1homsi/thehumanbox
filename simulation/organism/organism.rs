@@ -1,9 +1,12 @@
-use std::collections::{HashMap, HashSet, VecDeque};
-use rand::Rng;
-use serde::Serialize;
 use super::traits::Traits;
 use super::vocabulary::Vocabulary;
-use crate::world::{grid::{WorldGrid, TrailKind}, tiles::Tile};
+use crate::world::{
+    grid::{TrailKind, WorldGrid},
+    tiles::Tile,
+};
+use rand::Rng;
+use serde::Serialize;
+use std::collections::{HashMap, HashSet, VecDeque};
 
 pub const N_ACTIONS: usize = 538;
 
@@ -17,7 +20,10 @@ pub trait QRowExt {
 
 impl QRowExt for QRow {
     fn get_q(&self, action: u16) -> f32 {
-        self.iter().find(|&&(a, _)| a == action).map(|&(_, v)| v).unwrap_or(0.0)
+        self.iter()
+            .find(|&&(a, _)| a == action)
+            .map(|&(_, v)| v)
+            .unwrap_or(0.0)
     }
     fn set_q(&mut self, action: u16, value: f32) {
         if let Some(slot) = self.iter_mut().find(|(a, _)| *a == action) {
@@ -28,28 +34,55 @@ impl QRowExt for QRow {
     }
     fn max_q(&self) -> f32 {
         let m = self.iter().map(|&(_, v)| v).fold(f32::NEG_INFINITY, f32::max);
-        if m.is_finite() { m } else { 0.0 }
+        if m.is_finite() {
+            m
+        } else {
+            0.0
+        }
     }
 }
 
-pub const DIRECTIONS: [(i32, i32); 8] =
-    [(0,-1),(0,1),(-1,0),(1,0),(-1,-1),(1,-1),(-1,1),(1,1)];
+pub const DIRECTIONS: [(i32, i32); 8] = [
+    (0, -1),
+    (0, 1),
+    (-1, 0),
+    (1, 0),
+    (-1, -1),
+    (1, -1),
+    (-1, 1),
+    (1, 1),
+];
 
 const CONSONANTS: &[u8] = b"bdfghjklmnprstvwz";
-const VOWELS:     &[u8] = b"aeiou";
+const VOWELS: &[u8] = b"aeiou";
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, serde::Deserialize, Default)]
-pub enum Sex { #[default] Male, Female }
+pub enum Sex {
+    #[default]
+    Male,
+    Female,
+}
 
 impl Sex {
     pub fn random(rng: &mut impl Rng) -> Self {
-        if rng.random::<bool>() { Sex::Male } else { Sex::Female }
+        if rng.random::<bool>() {
+            Sex::Male
+        } else {
+            Sex::Female
+        }
     }
     pub fn as_str(self) -> &'static str {
-        match self { Sex::Male => "male", Sex::Female => "female" }
+        match self {
+            Sex::Male => "male",
+            Sex::Female => "female",
+        }
     }
     pub fn from_str(s: &str) -> Self {
-        if s == "female" { Sex::Female } else { Sex::Male }
+        if s == "female" {
+            Sex::Female
+        } else {
+            Sex::Male
+        }
     }
 }
 
@@ -95,12 +128,12 @@ pub fn generate_tribe_name(rng: &mut impl Rng) -> String {
 pub fn apply_sex_traits(traits: &mut crate::organism::traits::Traits, sex: Sex) {
     match sex {
         Sex::Male => {
-            traits.aggression      = (traits.aggression      + 0.06).clamp(0.05, 0.95);
-            traits.curiosity       = (traits.curiosity       + 0.02).clamp(0.05, 0.95);
+            traits.aggression = (traits.aggression + 0.06).clamp(0.05, 0.95);
+            traits.curiosity = (traits.curiosity + 0.02).clamp(0.05, 0.95);
             traits.social_tendency = (traits.social_tendency - 0.04).clamp(0.05, 0.95);
         }
         Sex::Female => {
-            traits.resilience      = (traits.resilience      + 0.05).clamp(0.05, 0.95);
+            traits.resilience = (traits.resilience + 0.05).clamp(0.05, 0.95);
             traits.social_tendency = (traits.social_tendency + 0.05).clamp(0.05, 0.95);
             traits.memory_strength = (traits.memory_strength + 0.04).clamp(0.05, 0.95);
         }
@@ -108,9 +141,22 @@ pub fn apply_sex_traits(traits: &mut crate::organism::traits::Traits, sex: Sex) 
 }
 
 fn dir_char(dx: i32, dy: i32) -> char {
-    if dx == 0 && dy == 0 { return 'O'; }
-    if dx.abs() >= dy.abs() { if dx > 0 { 'E' } else { 'W' } }
-    else                    { if dy > 0 { 'S' } else { 'N' } }
+    if dx == 0 && dy == 0 {
+        return 'O';
+    }
+    if dx.abs() >= dy.abs() {
+        if dx > 0 {
+            'E'
+        } else {
+            'W'
+        }
+    } else {
+        if dy > 0 {
+            'S'
+        } else {
+            'N'
+        }
+    }
 }
 
 #[derive(Default, Clone, Serialize, serde::Deserialize)]
@@ -134,45 +180,45 @@ pub struct LifeEvent {
 #[derive(Default, Clone, Serialize, serde::Deserialize)]
 #[serde(default)]
 pub struct ConversationEntry {
-    pub tick:      u64,
+    pub tick: u64,
     pub with_name: String,
-    pub with_id:   String,
-    pub kind:      String,
-    pub lines:     Vec<[String; 2]>,
-    pub meanings:  Vec<String>,
+    pub with_id: String,
+    pub kind: String,
+    pub lines: Vec<[String; 2]>,
+    pub meanings: Vec<String>,
     #[serde(default, skip_serializing_if = "String::is_empty")]
-    pub id:        String,
+    pub id: String,
 }
 
 pub struct Organism {
-    pub id:          String,
-    pub name:        String,
-    pub x:           f32,
-    pub y:           f32,
-    pub prev_x:      f32,
-    pub prev_y:      f32,
-    pub vx_smooth:   f32,
-    pub vy_smooth:   f32,
-    pub energy:      f32,
-    pub hydration:   f32,
-    pub health:      f32,
-    pub age:         u32,
-    pub alive:       bool,
-    pub thought:     String,
+    pub id: String,
+    pub name: String,
+    pub x: f32,
+    pub y: f32,
+    pub prev_x: f32,
+    pub prev_y: f32,
+    pub vx_smooth: f32,
+    pub vy_smooth: f32,
+    pub energy: f32,
+    pub hydration: f32,
+    pub health: f32,
+    pub age: u32,
+    pub alive: bool,
+    pub thought: String,
     /// True when `thought` was set this tick. The SoA delta builder
     /// reads + clears this so we only ship a per-org thought string
     /// over the wire when it changed. Initialised to `true` so a
     /// freshly-spawned org's first thought reaches the client.
     pub thought_dirty: bool,
-    pub generation:  u32,
-    pub parent_id:   String,
-    pub father_id:   Option<String>,
-    pub lineage_id:  String,
-    pub max_age:     u32,
+    pub generation: u32,
+    pub parent_id: String,
+    pub father_id: Option<String>,
+    pub lineage_id: String,
+    pub max_age: u32,
 
-    pub food_memory:   HashMap<(i32,i32), f32>,
-    pub water_memory:  HashMap<(i32,i32), f32>,
-    pub danger_memory: HashMap<(i32,i32), f32>,
+    pub food_memory: HashMap<(i32, i32), f32>,
+    pub water_memory: HashMap<(i32, i32), f32>,
+    pub danger_memory: HashMap<(i32, i32), f32>,
 
     pub thought_history: VecDeque<ThoughtEntry>,
 
@@ -182,90 +228,90 @@ pub struct Organism {
     pub last_challenged: u64,
 
     pub lineage_attitudes: HashMap<String, f32>,
-    pub org_trust:         HashMap<String, f32>,
+    pub org_trust: HashMap<String, f32>,
 
-    pub traits:         Traits,
-    pub infection:      f32,
-    pub carrying:       u32,
-    pub carrying_type:  u8,
+    pub traits: Traits,
+    pub infection: f32,
+    pub carrying: u32,
+    pub carrying_type: u8,
 
-    pub vocabulary:    Vocabulary,
-    pub daily_story:   String,
+    pub vocabulary: Vocabulary,
+    pub daily_story: String,
     pub last_story_tick: u64,
-    pub life_log:      VecDeque<LifeEvent>,
-    pub discoveries:   HashSet<String>,
+    pub life_log: VecDeque<LifeEvent>,
+    pub discoveries: HashSet<String>,
 
     pub home_x: f32,
     pub home_y: f32,
     pub home_furniture: Vec<String>,
     pub home_style_seed: u32,
 
-    pub is_elder:            bool,
-    pub has_reflected:       bool,
+    pub is_elder: bool,
+    pub has_reflected: bool,
     pub last_invention_tick: u64,
 
-    pub directive:       String,
+    pub directive: String,
     pub directive_until: u64,
     pub last_think_tick: u64,
     pub last_think_by_kind: HashMap<String, u64>,
 
-    pub loneliness:  f32,
-    pub boredom:     f32,
-    pub fear_level:  f32,
-    pub comfort:     f32,
+    pub loneliness: f32,
+    pub boredom: f32,
+    pub fear_level: f32,
+    pub comfort: f32,
 
-    pub grief_ticks:    u32,
+    pub grief_ticks: u32,
     /// Lingering emotional uplift. Bumped by partner / child / discovery /
     /// milestone. Decays naturally. Counterpart to grief_ticks.
-    pub joy_ticks:      u32,
+    pub joy_ticks: u32,
     /// Long-term life aspiration assigned at adulthood. Biases action
     /// rewards toward the aspiration's category. Persists for life.
-    pub aspiration:     String,
+    pub aspiration: String,
     /// Tick at which this org last lost a parent (parent_id / father_id
     /// matched a death event). Used by kin in the social tick to bias
     /// share_food / groom toward newly-orphaned minors. 0 = never.
-    pub orphaned_tick:  u64,
-    pub sleep_debt:     f32,
-    pub water_ticks:    u32,
-    pub area_ticks:     u32,
+    pub orphaned_tick: u64,
+    pub sleep_debt: f32,
+    pub water_ticks: u32,
+    pub area_ticks: u32,
     pub last_area_cell: (i32, i32),
-    pub wander_target:  Option<(i32, i32)>,
-    pub last_groomed:   u64,
-    pub last_fed_kin:   u64,
+    pub wander_target: Option<(i32, i32)>,
+    pub last_groomed: u64,
+    pub last_fed_kin: u64,
     pub last_ancestral_thought: u64,
 
-    pub partner_id:     Option<String>,
+    pub partner_id: Option<String>,
     pub children_count: u32,
-    pub sex:            Sex,
+    pub sex: Sex,
 
-    pub attracted_to:    Option<String>,
+    pub attracted_to: Option<String>,
     pub attraction_tick: u64,
 
-    pub pregnant:        bool,
+    pub pregnant: bool,
     pub pregnancy_start: u64,
 
     pub inv_water: u8,
-    pub inv_food:  u8,
-    pub inv_wood:  u8,
+    pub inv_food: u8,
+    pub inv_wood: u8,
     pub inv_stone: u8,
 
     pub nursing_until: u64,
 
-    pub wealth:      u32,
-    pub literacy:    f32,
+    pub wealth: u32,
+    pub literacy: f32,
     pub schooling_ticks: u32,
     pub university_ticks: u32,
-    pub piety:       f32,
-    pub specialty:   Option<String>,
+    pub piety: f32,
+    pub specialty: Option<String>,
     pub religion_id: Option<String>,
-    pub degrees:     Vec<String>,
-    pub tools:       HashMap<String, u8>,
-    pub diseases:    Vec<(String, u64)>,
+    pub degrees: Vec<String>,
+    pub tools: HashMap<String, u8>,
+    pub diseases: Vec<(String, u64)>,
     pub disease_immunity: HashMap<String, u64>,
     pub mounted_vehicle: Option<u32>,
-    pub is_leader:   bool,
+    pub is_leader: bool,
 
-    pub conversations:   VecDeque<ConversationEntry>,
+    pub conversations: VecDeque<ConversationEntry>,
 
     // Named friends: org_id → name. Forms from repeated positive interaction.
     // Unlike org_trust (which is anonymous and decays), friendships are recognized bonds.
@@ -279,7 +325,7 @@ pub struct Organism {
     pub memories: super::memory::MemoryStore,
 
     pub birth_tick: u64,
-    pub zodiac:     String,
+    pub zodiac: String,
 }
 
 impl Organism {
@@ -294,12 +340,14 @@ impl Organism {
     }
 
     pub fn carry_load(&self) -> u32 {
-        self.inv_water as u32 + self.inv_food as u32
-            + self.inv_wood as u32 + self.inv_stone as u32
+        self.inv_water as u32 + self.inv_food as u32 + self.inv_wood as u32 + self.inv_stone as u32
     }
 
     pub fn carry_max(&self) -> u32 {
-        let base: u32 = match self.sex { Sex::Male => 12, Sex::Female => 8 };
+        let base: u32 = match self.sex {
+            Sex::Male => 12,
+            Sex::Female => 8,
+        };
         base + (self.traits.resilience * 4.0) as u32
     }
 
@@ -308,22 +356,39 @@ impl Organism {
     }
 
     pub fn new(
-        id: String, name: String,
-        x: f32, y: f32,
-        generation: u32, parent_id: String, lineage_id: String,
-        max_age: u32, traits: Traits,
+        id: String,
+        name: String,
+        x: f32,
+        y: f32,
+        generation: u32,
+        parent_id: String,
+        lineage_id: String,
+        max_age: u32,
+        traits: Traits,
     ) -> Self {
         Organism {
-            id, name, x, y,
-            prev_x: x, prev_y: y,
-            vx_smooth: 0.0, vy_smooth: 0.0,
-            energy: 1.0, hydration: 1.0, health: 1.0,
-            age: 0, alive: true,
+            id,
+            name,
+            x,
+            y,
+            prev_x: x,
+            prev_y: y,
+            vx_smooth: 0.0,
+            vy_smooth: 0.0,
+            energy: 1.0,
+            hydration: 1.0,
+            health: 1.0,
+            age: 0,
+            alive: true,
             thought: "observing".to_string(),
             thought_dirty: true,
-            generation, parent_id, father_id: None, lineage_id, max_age,
-            food_memory:   HashMap::new(),
-            water_memory:  HashMap::new(),
+            generation,
+            parent_id,
+            father_id: None,
+            lineage_id,
+            max_age,
+            food_memory: HashMap::new(),
+            water_memory: HashMap::new(),
             danger_memory: HashMap::new(),
             thought_history: VecDeque::new(),
             q_table: HashMap::new(),
@@ -331,7 +396,8 @@ impl Organism {
             last_challenged: 0,
             lineage_attitudes: HashMap::new(),
             org_trust: HashMap::new(),
-            traits, infection: 0.0,
+            traits,
+            infection: 0.0,
             carrying: 0,
             carrying_type: 0,
             vocabulary: Vocabulary::from_hashmap(&std::collections::HashMap::new()),
@@ -350,51 +416,51 @@ impl Organism {
             directive_until: 0,
             last_think_tick: 0,
             last_think_by_kind: HashMap::new(),
-            loneliness:  0.0,
-            boredom:     0.0,
-            fear_level:  0.0,
-            comfort:     0.5,
-            grief_ticks:    0,
-            joy_ticks:      0,
-            aspiration:     String::new(),
-            orphaned_tick:  0,
-            sleep_debt:     0.0,
-            water_ticks:    0,
-            area_ticks:     0,
+            loneliness: 0.0,
+            boredom: 0.0,
+            fear_level: 0.0,
+            comfort: 0.5,
+            grief_ticks: 0,
+            joy_ticks: 0,
+            aspiration: String::new(),
+            orphaned_tick: 0,
+            sleep_debt: 0.0,
+            water_ticks: 0,
+            area_ticks: 0,
             last_area_cell: (x as i32, y as i32),
-            wander_target:  None,
-            last_groomed:   0,
-            last_fed_kin:   0,
+            wander_target: None,
+            last_groomed: 0,
+            last_fed_kin: 0,
             last_ancestral_thought: 0,
-            partner_id:     None,
+            partner_id: None,
             children_count: 0,
-            sex:            Sex::Male,
-            attracted_to:    None,
+            sex: Sex::Male,
+            attracted_to: None,
             attraction_tick: 0,
-            pregnant:        false,
+            pregnant: false,
             pregnancy_start: 0,
-            inv_water:       0,
-            inv_food:        0,
-            inv_wood:        0,
-            inv_stone:       0,
-            nursing_until:   0,
-            wealth:          5,
-            literacy:        0.0,
+            inv_water: 0,
+            inv_food: 0,
+            inv_wood: 0,
+            inv_stone: 0,
+            nursing_until: 0,
+            wealth: 5,
+            literacy: 0.0,
             schooling_ticks: 0,
             university_ticks: 0,
-            piety:           0.0,
-            specialty:       None,
-            religion_id:     None,
-            degrees:         Vec::new(),
-            tools:           HashMap::new(),
-            diseases:        Vec::new(),
+            piety: 0.0,
+            specialty: None,
+            religion_id: None,
+            degrees: Vec::new(),
+            tools: HashMap::new(),
+            diseases: Vec::new(),
             disease_immunity: HashMap::new(),
             mounted_vehicle: None,
-            is_leader:       false,
-            conversations:   VecDeque::new(),
-            friends:         HashMap::new(),
-            attributes:      HashSet::new(),
-            anchor_events:   Vec::new(),
+            is_leader: false,
+            conversations: VecDeque::new(),
+            friends: HashMap::new(),
+            attributes: HashSet::new(),
+            anchor_events: Vec::new(),
             memories: {
                 let mut m = super::memory::MemoryStore::default();
                 for entry in super::memory::seed_core_memories(0) {
@@ -403,7 +469,7 @@ impl Organism {
                 m
             },
             birth_tick: 0,
-            zodiac:     String::new(),
+            zodiac: String::new(),
         }
     }
 
@@ -423,11 +489,21 @@ impl Organism {
     }
 
     pub fn combat_tool_bonus(&self) -> f32 {
-        if self.has_tool("rifle") { return 4.5; }
-        if self.has_tool("musket") { return 3.0; }
-        if self.has_tool("iron_sword") { return 1.8; }
-        if self.has_tool("bronze_spear") { return 1.4; }
-        if self.has_tool("stone_spear") { return 1.2; }
+        if self.has_tool("rifle") {
+            return 4.5;
+        }
+        if self.has_tool("musket") {
+            return 3.0;
+        }
+        if self.has_tool("iron_sword") {
+            return 1.8;
+        }
+        if self.has_tool("bronze_spear") {
+            return 1.4;
+        }
+        if self.has_tool("stone_spear") {
+            return 1.2;
+        }
         1.0
     }
 
@@ -463,15 +539,25 @@ impl Organism {
             let _ = MAX_FRIENDS;
             let max_friends = max_friends.min(MAX_FRIENDS);
             if self.friends.len() >= max_friends {
-                let weakest = self.friends.keys()
-                    .min_by_key(|fid| (self.org_trust.get(fid.as_str()).copied().unwrap_or(0.0) * 1000.0) as i32)
+                let weakest = self
+                    .friends
+                    .keys()
+                    .min_by_key(|fid| {
+                        (self.org_trust.get(fid.as_str()).copied().unwrap_or(0.0) * 1000.0) as i32
+                    })
                     .cloned();
-                if let Some(k) = weakest { self.friends.remove(&k); }
+                if let Some(k) = weakest {
+                    self.friends.remove(&k);
+                }
             }
             self.friends.insert(id.to_string(), name.to_string());
-            self.log_life_rel(tick, "friendship",
+            self.log_life_rel(
+                tick,
+                "friendship",
                 format!("became close friends with {}", name),
-                Some(id.to_string()), Some(name.to_string()));
+                Some(id.to_string()),
+                Some(name.to_string()),
+            );
             self.loneliness = (self.loneliness - 0.25).max(0.0);
             self.joy_ticks = (self.joy_ticks + 120).min(1200);
             self.comfort = (self.comfort + 0.05).min(1.0);
@@ -479,19 +565,27 @@ impl Organism {
     }
 
     pub fn trim_social_maps(&mut self) {
-        const MAX_TRUST:     usize = 32;
-        const TRUST_KEEP:    usize = 24;
+        const MAX_TRUST: usize = 32;
+        const TRUST_KEEP: usize = 24;
         const MAX_ATTITUDES: usize = 24;
-        const ATT_KEEP:      usize = 18;
+        const ATT_KEEP: usize = 18;
         if self.org_trust.len() > MAX_TRUST {
             let mut v: Vec<(String, f32)> = self.org_trust.drain().collect();
-            v.sort_by(|a, b| b.1.abs().partial_cmp(&a.1.abs()).unwrap_or(std::cmp::Ordering::Equal));
+            v.sort_by(|a, b| {
+                b.1.abs()
+                    .partial_cmp(&a.1.abs())
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
             v.truncate(TRUST_KEEP);
             self.org_trust = v.into_iter().collect();
         }
         if self.lineage_attitudes.len() > MAX_ATTITUDES {
             let mut v: Vec<(String, f32)> = self.lineage_attitudes.drain().collect();
-            v.sort_by(|a, b| b.1.abs().partial_cmp(&a.1.abs()).unwrap_or(std::cmp::Ordering::Equal));
+            v.sort_by(|a, b| {
+                b.1.abs()
+                    .partial_cmp(&a.1.abs())
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
             v.truncate(ATT_KEEP);
             self.lineage_attitudes = v.into_iter().collect();
         }
@@ -533,26 +627,32 @@ impl Organism {
         self.log_life_rel(tick, category, text, None, None);
     }
 
-    pub fn log_life_rel(&mut self, tick: u64, category: &str, text: String,
-                        related_id: Option<String>, related_name: Option<String>) {
+    pub fn log_life_rel(
+        &mut self,
+        tick: u64,
+        category: &str,
+        text: String,
+        related_id: Option<String>,
+        related_name: Option<String>,
+    ) {
         use super::memory::{MemoryEntry, MemoryKind};
         let (mem_kind, salience, emotion) = match category {
-            "birth"             => (MemoryKind::Bond,    0.95,  3),
-            "death"             => (MemoryKind::Bond,    0.90, -3),
-            "partnership"       => (MemoryKind::Bond,    0.90,  3),
-            "courtship"         => (MemoryKind::Bond,    0.70,  2),
-            "friendship"        => (MemoryKind::Bond,    0.75,  2),
-            "farewell"          => (MemoryKind::Bond,    0.60, -1),
-            "betrayal"          => (MemoryKind::Bond,    0.85, -2),
-            "witnessed"         => (MemoryKind::Episode, 0.55,  0),
-            "danger"            => (MemoryKind::Episode, 0.75, -2),
-            "aspiration"        => (MemoryKind::Fact,    0.85,  2),
-            "specialty"         => (MemoryKind::Fact,    0.75,  1),
-            "graduated"         => (MemoryKind::Fact,    0.75,  2),
-            "religion"          => (MemoryKind::Fact,    0.80,  1),
-            "milestone"         => (MemoryKind::Episode, 0.80,  1),
-            "elder"             => (MemoryKind::Fact,    0.80,  1),
-            _                   => (MemoryKind::Episode, 0.50,  0),
+            "birth" => (MemoryKind::Bond, 0.95, 3),
+            "death" => (MemoryKind::Bond, 0.90, -3),
+            "partnership" => (MemoryKind::Bond, 0.90, 3),
+            "courtship" => (MemoryKind::Bond, 0.70, 2),
+            "friendship" => (MemoryKind::Bond, 0.75, 2),
+            "farewell" => (MemoryKind::Bond, 0.60, -1),
+            "betrayal" => (MemoryKind::Bond, 0.85, -2),
+            "witnessed" => (MemoryKind::Episode, 0.55, 0),
+            "danger" => (MemoryKind::Episode, 0.75, -2),
+            "aspiration" => (MemoryKind::Fact, 0.85, 2),
+            "specialty" => (MemoryKind::Fact, 0.75, 1),
+            "graduated" => (MemoryKind::Fact, 0.75, 2),
+            "religion" => (MemoryKind::Fact, 0.80, 1),
+            "milestone" => (MemoryKind::Episode, 0.80, 1),
+            "elder" => (MemoryKind::Fact, 0.80, 1),
+            _ => (MemoryKind::Episode, 0.50, 0),
         };
         let mut entry = MemoryEntry::new(mem_kind, text.clone(), tick)
             .with_salience(salience)
@@ -562,29 +662,44 @@ impl Organism {
         }
         self.memories.insert(entry);
 
-        self.life_log.push_back(LifeEvent { tick, category: category.to_string(), text, related_id, related_name });
+        self.life_log.push_back(LifeEvent {
+            tick,
+            category: category.to_string(),
+            text,
+            related_id,
+            related_name,
+        });
         if self.life_log.len() > 64 {
             self.life_log.pop_front();
         }
     }
 
-    pub fn remember(mem: &mut HashMap<(i32,i32), f32>, x: i32, y: i32,
-                    strength: f32, mem_trait: f32) {
+    pub fn remember(mem: &mut HashMap<(i32, i32), f32>, x: i32, y: i32, strength: f32, mem_trait: f32) {
         let effective = (strength * (0.7 + 0.6 * mem_trait)).min(1.0);
         let v = mem.entry((x, y)).or_insert(0.0);
         *v = (*v + effective).min(1.0);
     }
 
     pub fn update_attitude(&mut self, other_lid: &str, delta: f32) {
-        if other_lid == self.lineage_id { return; }
+        if other_lid == self.lineage_id {
+            return;
+        }
         let v = self.lineage_attitudes.entry(other_lid.to_string()).or_insert(0.0);
         *v = (*v + delta).max(-1.0).min(1.0);
     }
 
-    pub fn tick_inner_state(&mut self, kin_near: usize, near_shelter: bool,
-                            hostile_near: bool, weather_kind: u8, tick: u64, night: bool) {
+    pub fn tick_inner_state(
+        &mut self,
+        kin_near: usize,
+        near_shelter: bool,
+        hostile_near: bool,
+        weather_kind: u8,
+        tick: u64,
+        night: bool,
+    ) {
         const DAY_LENGTH_LOCAL: u32 = 600;
-        self.memories.tick(tick, DAY_LENGTH_LOCAL, self.traits.memory_strength);
+        self.memories
+            .tick(tick, DAY_LENGTH_LOCAL, self.traits.memory_strength);
 
         if kin_near == 0 {
             self.loneliness = (self.loneliness + 0.0008).min(1.0);
@@ -655,16 +770,19 @@ impl Organism {
         if cell == self.last_area_cell {
             self.area_ticks = self.area_ticks.saturating_add(1);
             if self.area_ticks > 60 && self.boredom > 0.20 && self.wander_target.is_none() {
-                let hash = self.id.bytes().fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
+                let hash = self
+                    .id
+                    .bytes()
+                    .fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
                 let angle = ((hash ^ tick) as f32) * 0.0000014;
-                let dist  = 120.0 + self.traits.curiosity * 380.0;
+                let dist = 120.0 + self.traits.curiosity * 380.0;
                 let tx = (self.x + angle.sin() * dist).round() as i32;
                 let ty = (self.y + angle.cos() * dist).round() as i32;
                 self.wander_target = Some((tx.clamp(5, 595), ty.clamp(5, 295)));
             }
         } else {
             self.last_area_cell = cell;
-            self.area_ticks     = 0;
+            self.area_ticks = 0;
             if let Some(wt) = self.wander_target {
                 if (wt.0 - self.x as i32).abs() + (wt.1 - self.y as i32).abs() < 8 {
                     self.wander_target = None;
@@ -679,12 +797,17 @@ impl Organism {
         }
 
         if self.wander_target.is_none() {
-            let id_hash = self.id.bytes().fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
-            let period  = (900u64).saturating_sub((self.traits.curiosity * 300.0) as u64).max(300);
-            let offset  = id_hash % period;
+            let id_hash = self
+                .id
+                .bytes()
+                .fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
+            let period = (900u64)
+                .saturating_sub((self.traits.curiosity * 300.0) as u64)
+                .max(300);
+            let offset = id_hash % period;
             if tick % period == offset {
                 let angle = ((id_hash ^ tick) as f32) * 0.0000014;
-                let dist  = 150.0 + self.traits.curiosity * 400.0;
+                let dist = 150.0 + self.traits.curiosity * 400.0;
                 let tx = (self.x + angle.sin() * dist).round() as i32;
                 let ty = (self.y + angle.cos() * dist).round() as i32;
                 self.wander_target = Some((tx.clamp(5, 595), ty.clamp(5, 295)));
@@ -692,18 +815,34 @@ impl Organism {
         }
 
         let shelter_bonus = if near_shelter { 0.25 } else { 0.0 };
-        let wet_penalty   = if weather_kind >= 2 && !near_shelter { 0.2 }
-                            else if weather_kind == 1 && !near_shelter { 0.08 }
-                            else { 0.0 };
-        self.comfort = ((self.energy + self.hydration + self.health
-            + (1.0 - self.loneliness) * 0.5
-            + shelter_bonus - wet_penalty
-            - self.fear_level * 0.3
-            - self.sleep_debt * 0.15) / 4.0).clamp(0.0, 1.0);
+        let wet_penalty = if weather_kind >= 2 && !near_shelter {
+            0.2
+        } else if weather_kind == 1 && !near_shelter {
+            0.08
+        } else {
+            0.0
+        };
+        self.comfort =
+            ((self.energy + self.hydration + self.health + (1.0 - self.loneliness) * 0.5 + shelter_bonus
+                - wet_penalty
+                - self.fear_level * 0.3
+                - self.sleep_debt * 0.15)
+                / 4.0)
+                .clamp(0.0, 1.0);
 
-        let passive = matches!(self.thought.as_str(),
-            "observing"|"exploring"|"satisfied"|"at peace"|"restless"|"feeling alone"|
-            "terrified"|"mourning kin"|"exhausted"|"wandering");
+        let passive = matches!(
+            self.thought.as_str(),
+            "observing"
+                | "exploring"
+                | "satisfied"
+                | "at peace"
+                | "restless"
+                | "feeling alone"
+                | "terrified"
+                | "mourning kin"
+                | "exhausted"
+                | "wandering"
+        );
         if passive {
             if self.grief_ticks > 20 {
                 self.think("mourning kin", tick);
@@ -722,12 +861,16 @@ impl Organism {
     }
 
     pub fn attitude_toward(&self, other_lid: &str) -> f32 {
-        if other_lid == self.lineage_id { return 1.0; }
+        if other_lid == self.lineage_id {
+            return 1.0;
+        }
         *self.lineage_attitudes.get(other_lid).unwrap_or(&0.0)
     }
 
     pub fn compress_for_archive(&mut self) {
-        if self.alive { return; }
+        if self.alive {
+            return;
+        }
         self.food_memory.clear();
         self.water_memory.clear();
         self.danger_memory.clear();
@@ -744,26 +887,38 @@ impl Organism {
 
     pub fn decay_memory(&mut self, tick: u64) {
         self.vocabulary.decay(tick, 5000);
-        for mem in [&mut self.food_memory, &mut self.water_memory, &mut self.danger_memory] {
-            mem.retain(|_, v| { *v *= 0.995; *v >= 0.04 });
+        for mem in [
+            &mut self.food_memory,
+            &mut self.water_memory,
+            &mut self.danger_memory,
+        ] {
+            mem.retain(|_, v| {
+                *v *= 0.995;
+                *v >= 0.04
+            });
         }
-        fn trim_mem(mem: &mut HashMap<(i32,i32), f32>, max: usize) {
+        fn trim_mem(mem: &mut HashMap<(i32, i32), f32>, max: usize) {
             if mem.len() > max {
-                let mut e: Vec<_> = mem.iter().map(|(k,v)| (*k, *v)).collect();
+                let mut e: Vec<_> = mem.iter().map(|(k, v)| (*k, *v)).collect();
                 e.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
-                for (k, _) in &e[..e.len() - max] { mem.remove(k); }
+                for (k, _) in &e[..e.len() - max] {
+                    mem.remove(k);
+                }
             }
         }
-        trim_mem(&mut self.food_memory,    70);
-        trim_mem(&mut self.water_memory,   35);
-        trim_mem(&mut self.danger_memory,  20);
-        self.lineage_attitudes.retain(|_, v| { *v *= 0.998; v.abs() >= 0.01 });
+        trim_mem(&mut self.food_memory, 70);
+        trim_mem(&mut self.water_memory, 35);
+        trim_mem(&mut self.danger_memory, 20);
+        self.lineage_attitudes.retain(|_, v| {
+            *v *= 0.998;
+            v.abs() >= 0.01
+        });
         self.org_trust.retain(|_, v| {
             *v *= if *v > 0.0 { 0.9997 } else { 0.999 };
             v.abs() >= 0.01
         });
 
-        const Q_MAX:  usize = 180;
+        const Q_MAX: usize = 180;
         const Q_TRIM: usize = 130;
         if self.q_table.len() > Q_MAX {
             let mut entries: Vec<(String, QRow)> = self.q_table.drain().collect();
@@ -777,15 +932,15 @@ impl Organism {
         }
     }
 
-    pub fn best_remembered(mem: &HashMap<(i32,i32), f32>, ox: f32, oy: f32)
-        -> Option<(i32, i32)>
-    {
+    pub fn best_remembered(mem: &HashMap<(i32, i32), f32>, ox: f32, oy: f32) -> Option<(i32, i32)> {
         let (ix, iy) = (ox as i32, oy as i32);
         let mut best_score = 0.03f32;
-        let mut best_loc   = None;
+        let mut best_loc = None;
         for (&(mx, my), &val) in mem {
             let dist = (mx - ix).abs() + (my - iy).abs();
-            if dist == 0 { continue; }
+            if dist == 0 {
+                continue;
+            }
             let score = val / (1.0 + dist as f32 * 0.03);
             if score > best_score {
                 best_score = score;
@@ -796,10 +951,15 @@ impl Organism {
     }
 
     pub fn think(&mut self, text: &str, tick: u64) {
-        if self.thought == text { return; }
+        if self.thought == text {
+            return;
+        }
         self.thought = text.to_string();
         self.thought_dirty = true;
-        self.thought_history.push_back(ThoughtEntry { tick, text: text.to_string() });
+        self.thought_history.push_back(ThoughtEntry {
+            tick,
+            text: text.to_string(),
+        });
         if self.thought_history.len() > 40 {
             self.thought_history.pop_front();
         }
@@ -807,13 +967,21 @@ impl Organism {
 
     pub fn reflect_internally(&mut self, tick: u64) -> Option<String> {
         use super::memory::MemoryKind;
-        let mood = if self.grief_ticks > 0 { "carrying grief" }
-            else if self.joy_ticks > 0 { "feeling light" }
-            else if self.fear_level > 0.5 { "uneasy" }
-            else if self.loneliness > 0.6 { "alone" }
-            else if self.energy < 0.3 { "weary" }
-            else if self.comfort > 0.7 { "settled" }
-            else { "still" };
+        let mood = if self.grief_ticks > 0 {
+            "carrying grief"
+        } else if self.joy_ticks > 0 {
+            "feeling light"
+        } else if self.fear_level > 0.5 {
+            "uneasy"
+        } else if self.loneliness > 0.6 {
+            "alone"
+        } else if self.energy < 0.3 {
+            "weary"
+        } else if self.comfort > 0.7 {
+            "settled"
+        } else {
+            "still"
+        };
 
         let asp_line = if self.aspiration.is_empty() {
             String::new()
@@ -830,12 +998,12 @@ impl Organism {
         let line = if let Some((kind, text)) = &picked {
             let lower = text.trim_end_matches('.').to_lowercase();
             let frame = match kind {
-                MemoryKind::Core    => format!("I remember — {}", lower),
-                MemoryKind::Bond    => format!("I think of them — {}", lower),
+                MemoryKind::Core => format!("I remember — {}", lower),
+                MemoryKind::Bond => format!("I think of them — {}", lower),
                 MemoryKind::Episode => format!("I haven't forgotten — {}", lower),
-                MemoryKind::Fact    => format!("I know this — {}", lower),
-                MemoryKind::Place   => format!("that place — {}", lower),
-                MemoryKind::Dream   => format!("I dreamt — {}", lower),
+                MemoryKind::Fact => format!("I know this — {}", lower),
+                MemoryKind::Place => format!("that place — {}", lower),
+                MemoryKind::Dream => format!("I dreamt — {}", lower),
             };
             format!("{}{}: {}", mood, asp_line, frame)
         } else {
@@ -847,7 +1015,10 @@ impl Organism {
             self.memories.touch(|m| m.text == target, 0.02);
         }
 
-        self.thought_history.push_back(ThoughtEntry { tick, text: line.clone() });
+        self.thought_history.push_back(ThoughtEntry {
+            tick,
+            text: line.clone(),
+        });
         if self.thought_history.len() > 40 {
             self.thought_history.pop_front();
         }
@@ -856,21 +1027,52 @@ impl Organism {
         Some(line)
     }
 
-    pub fn perceive(&self, grid: &WorldGrid, organisms: &[Organism], night: bool, animal_near: bool, spatial: &crate::sim::spatial::SpatialIndex) -> String {
+    pub fn perceive(
+        &self,
+        grid: &WorldGrid,
+        organisms: &[Organism],
+        night: bool,
+        animal_near: bool,
+        spatial: &crate::sim::spatial::SpatialIndex,
+    ) -> String {
         let (ix, iy) = (self.x as i32, self.y as i32);
         let scan: i32 = if night {
-            if self.traits.curiosity > 0.7 { 8 } else { 6 }
-        } else { 8 };
+            if self.traits.curiosity > 0.7 {
+                8
+            } else {
+                6
+            }
+        } else {
+            8
+        };
 
-        let hunger_raw = if self.energy    < 0.2 { 2 } else if self.energy    < 0.5 { 1 } else { 0 };
-        let hunger = if self.infection > 0.5 { hunger_raw.max(1) } else { hunger_raw };
-        let thirst = if self.hydration < 0.2 { 2 } else if self.hydration < 0.5 { 1 } else { 0 };
+        let hunger_raw = if self.energy < 0.2 {
+            2
+        } else if self.energy < 0.5 {
+            1
+        } else {
+            0
+        };
+        let hunger = if self.infection > 0.5 {
+            hunger_raw.max(1)
+        } else {
+            hunger_raw
+        };
+        let thirst = if self.hydration < 0.2 {
+            2
+        } else if self.hydration < 0.5 {
+            1
+        } else {
+            0
+        };
 
-        let mut food_dx = 0i32; let mut food_dy = 0i32;
-        let mut water_dx = 0i32; let mut water_dy = 0i32;
-        let mut food_dist  = 999i32;
+        let mut food_dx = 0i32;
+        let mut food_dy = 0i32;
+        let mut water_dx = 0i32;
+        let mut water_dy = 0i32;
+        let mut food_dist = 999i32;
         let mut water_dist = 999i32;
-        let mut fire_near  = false;
+        let mut fire_near = false;
         let fire_r = (2.0 + 2.0 * self.traits.fear) as i32;
 
         for dx in -scan..=scan {
@@ -878,16 +1080,34 @@ impl Organism {
                 let t = grid.get(ix + dx, iy + dy);
                 let dist = dx.abs() + dy.abs();
                 match t {
-                    Tile::Food  if dist < food_dist  => { food_dist  = dist; food_dx  = dx; food_dy  = dy; }
-                    Tile::Water if dist < water_dist => { water_dist = dist; water_dx = dx; water_dy = dy; }
-                    Tile::Fire  if dist <= fire_r    => { fire_near = true; }
+                    Tile::Food if dist < food_dist => {
+                        food_dist = dist;
+                        food_dx = dx;
+                        food_dy = dy;
+                    }
+                    Tile::Water if dist < water_dist => {
+                        water_dist = dist;
+                        water_dx = dx;
+                        water_dy = dy;
+                    }
+                    Tile::Fire if dist <= fire_r => {
+                        fire_near = true;
+                    }
                     _ => {}
                 }
             }
         }
 
-        let food_dir  = if food_dist  == 999 { 'X' } else { dir_char(food_dx,  food_dy)  };
-        let water_dir = if water_dist == 999 { 'X' } else { dir_char(water_dx, water_dy) };
+        let food_dir = if food_dist == 999 {
+            'X'
+        } else {
+            dir_char(food_dx, food_dy)
+        };
+        let water_dir = if water_dist == 999 {
+            'X'
+        } else {
+            dir_char(water_dx, water_dy)
+        };
 
         // Spatial-bucketed neighbour scan instead of walking every
         // organism in the world. Radius 5 in tile space; the index
@@ -899,15 +1119,28 @@ impl Organism {
         spatial.query_into(self.x as i32, self.y as i32, 5, &mut buf);
         for &i in &buf {
             let other = &organisms[i];
-            if std::ptr::eq(other, self) || !other.alive { continue; }
+            if std::ptr::eq(other, self) || !other.alive {
+                continue;
+            }
             if (other.x - self.x).abs() + (other.y - self.y).abs() <= 5.0 {
                 org_near = 1;
-                if other.lineage_id == self.lineage_id { kin_near = 1; break; }
+                if other.lineage_id == self.lineage_id {
+                    kin_near = 1;
+                    break;
+                }
             }
         }
 
-        let food_tr  = if grid.detect_trail(ix, iy, TrailKind::Food,  5) > 0.4 { 1 } else { 0 };
-        let water_tr = if grid.detect_trail(ix, iy, TrailKind::Water, 5) > 0.4 { 1 } else { 0 };
+        let food_tr = if grid.detect_trail(ix, iy, TrailKind::Food, 5) > 0.4 {
+            1
+        } else {
+            0
+        };
+        let water_tr = if grid.detect_trail(ix, iy, TrailKind::Water, 5) > 0.4 {
+            1
+        } else {
+            0
+        };
 
         let att_char = {
             let mut nearest_lid: Option<&str> = None;
@@ -917,66 +1150,102 @@ impl Organism {
             spatial.query_into(self.x as i32, self.y as i32, scan as i32, &mut buf);
             for &i in &buf {
                 let other = &organisms[i];
-                if std::ptr::eq(other, self) || !other.alive || other.lineage_id == self.lineage_id { continue; }
+                if std::ptr::eq(other, self) || !other.alive || other.lineage_id == self.lineage_id {
+                    continue;
+                }
                 let d = (other.x - self.x).abs() + (other.y - self.y).abs();
-                if d < nearest_d { nearest_d = d; nearest_lid = Some(&other.lineage_id); }
+                if d < nearest_d {
+                    nearest_d = d;
+                    nearest_lid = Some(&other.lineage_id);
+                }
             }
             match nearest_lid {
                 Some(lid) if nearest_d <= scan as f32 => {
                     let att = self.attitude_toward(lid);
-                    if att >= 0.25 { 'A' } else if att <= -0.25 { 'H' } else { 'N' }
+                    if att >= 0.25 {
+                        'A'
+                    } else if att <= -0.25 {
+                        'H'
+                    } else {
+                        'N'
+                    }
                 }
                 _ => 'X',
             }
         };
 
-        let inf_level = if self.infection > 0.4 { '2' } else if self.infection > 0.15 { '1' } else { '0' };
+        let inf_level = if self.infection > 0.4 {
+            '2'
+        } else if self.infection > 0.15 {
+            '1'
+        } else {
+            '0'
+        };
 
-        let danger_near = self.danger_memory.iter().any(|(&(mx, my), &v)| {
-            v > 0.30 && (mx - ix).abs() + (my - iy).abs() <= 5
-        });
+        let danger_near = self
+            .danger_memory
+            .iter()
+            .any(|(&(mx, my), &v)| v > 0.30 && (mx - ix).abs() + (my - iy).abs() <= 5);
 
         let warmth_char = {
             let mut has_warmth = false;
             'outer: for ddx in -4i32..=4 {
                 for ddy in -4i32..=4 {
                     if grid.get(ix + ddx, iy + ddy) == crate::world::tiles::Tile::Campfire {
-                        has_warmth = true; break 'outer;
+                        has_warmth = true;
+                        break 'outer;
                     }
                 }
             }
-            if has_warmth { 'W' }
-            else if grid.temp_at(ix, iy) < 8.0 { 'C' }
-            else { 'N' }
+            if has_warmth {
+                'W'
+            } else if grid.temp_at(ix, iy) < 8.0 {
+                'C'
+            } else {
+                'N'
+            }
         };
 
         let carry_char = match (self.carrying > 0, self.carrying_type) {
             (true, 2) => 'R',
             (true, _) => 'K',
-            _         => '0',
+            _ => '0',
         };
 
         let shelter_char = {
             let mut s = false;
             'sh: for ddx in -2i32..=2 {
                 for ddy in -2i32..=2 {
-                    let nx = ix + ddx; let ny = iy + ddy;
-                    if matches!(grid.get(nx, ny), Tile::Hut | Tile::Rock)
-                        || grid.structure_at(nx, ny) >= 0.35
+                    let nx = ix + ddx;
+                    let ny = iy + ddy;
+                    if matches!(grid.get(nx, ny), Tile::Hut | Tile::Rock) || grid.structure_at(nx, ny) >= 0.35
                     {
-                        s = true; break 'sh;
+                        s = true;
+                        break 'sh;
                     }
                 }
             }
-            if s { 'S' } else { 'E' }
+            if s {
+                'S'
+            } else {
+                'E'
+            }
         };
 
         let animal_char = if animal_near { 'A' } else { '.' };
 
         let hazard_val = if crate::world::grid::WorldGrid::in_bounds(ix, iy) {
             grid.hazard[crate::world::grid::WorldGrid::idx(ix, iy)]
-        } else { 0.0 };
-        let hazard_char = if hazard_val > 0.15 { 'H' } else if hazard_val > 0.05 { 'h' } else { '.' };
+        } else {
+            0.0
+        };
+        let hazard_char = if hazard_val > 0.15 {
+            'H'
+        } else if hazard_val > 0.05 {
+            'h'
+        } else {
+            '.'
+        };
 
         format!("{hunger}{thirst}{food_dir}{water_dir}{fire_near_c}{org_near}{food_tr}{water_tr}{kin_near}{att_char}{inf_level}{dnear}{warmth}{carry}{shelter}{animal}{hazard}",
             hunger = hunger,
@@ -1001,11 +1270,14 @@ impl Organism {
 
     pub fn near_shelter(&self, grid: &WorldGrid) -> bool {
         let (ix, iy) = (self.x as i32, self.y as i32);
-        (-2i32..=2).any(|dx| (-2i32..=2).any(|dy| {
-            let nx = ix + dx; let ny = iy + dy;
-            matches!(grid.get(nx, ny), Tile::Hut | Tile::Rock | Tile::Campfire)
-                || grid.structure_at(nx, ny) >= 0.35
-        }))
+        (-2i32..=2).any(|dx| {
+            (-2i32..=2).any(|dy| {
+                let nx = ix + dx;
+                let ny = iy + dy;
+                matches!(grid.get(nx, ny), Tile::Hut | Tile::Rock | Tile::Campfire)
+                    || grid.structure_at(nx, ny) >= 0.35
+            })
+        })
     }
 
     pub(crate) fn find_shelter_tile(&self, grid: &WorldGrid, radius: i32) -> Option<(i32, i32)> {
@@ -1014,12 +1286,16 @@ impl Organism {
         let mut best_dist = radius + 1;
         for dx in -radius..=radius {
             for dy in -radius..=radius {
-                let nx = ix + dx; let ny = iy + dy;
+                let nx = ix + dx;
+                let ny = iy + dy;
                 let is_shelter = matches!(grid.get(nx, ny), Tile::Hut | Tile::Campfire)
                     || grid.structure_at(nx, ny) >= 0.35;
                 if is_shelter {
                     let dist = dx.abs() + dy.abs();
-                    if dist < best_dist { best_dist = dist; best = Some((nx, ny)); }
+                    if dist < best_dist {
+                        best_dist = dist;
+                        best = Some((nx, ny));
+                    }
                 }
             }
         }
@@ -1029,14 +1305,17 @@ impl Organism {
     pub(crate) fn toward(&self, target: (i32, i32), grid: &WorldGrid) -> usize {
         let (ix, iy) = (self.x as i32, self.y as i32);
         let (tx, ty) = target;
-        let dx = tx - ix; let dy = ty - iy;
+        let dx = tx - ix;
+        let dy = ty - iy;
         let target_is_water = grid.get(tx, ty) == Tile::Water;
         let mut best_action = 0;
-        let mut best_score  = i32::MIN;
+        let mut best_score = i32::MIN;
         for (i, (adx, ady)) in DIRECTIONS.iter().enumerate() {
             let mut score = adx * dx + ady * dy;
             let t = grid.get(ix + adx, iy + ady);
-            if matches!(t, Tile::Rock | Tile::Void) { score = i32::MIN; }
+            if matches!(t, Tile::Rock | Tile::Void) {
+                score = i32::MIN;
+            }
             if t == Tile::Water {
                 let depth = grid.depth_at(ix + adx, iy + ady);
                 if target_is_water {
@@ -1047,7 +1326,10 @@ impl Organism {
                     score -= 6;
                 }
             }
-            if score > best_score { best_score = score; best_action = i; }
+            if score > best_score {
+                best_score = score;
+                best_action = i;
+            }
         }
         best_action
     }
@@ -1061,7 +1343,10 @@ impl Organism {
                 let nx = ix + dx;
                 let ny = iy + dy;
                 let tile = grid.get(nx, ny);
-                if matches!(tile, Tile::Water | Tile::Rock | Tile::Void | Tile::Fire | Tile::Hut | Tile::Mineral) {
+                if matches!(
+                    tile,
+                    Tile::Water | Tile::Rock | Tile::Void | Tile::Fire | Tile::Hut | Tile::Mineral
+                ) {
                     continue;
                 }
                 let dist = dx.abs() + dy.abs();
@@ -1074,33 +1359,45 @@ impl Organism {
         best
     }
 
-    pub(crate) fn nearest_visible(&self, grid: &WorldGrid, tile_type: Tile, radius: i32)
-        -> Option<(i32, i32)>
-    {
+    pub(crate) fn nearest_visible(
+        &self,
+        grid: &WorldGrid,
+        tile_type: Tile,
+        radius: i32,
+    ) -> Option<(i32, i32)> {
         let (ix, iy) = (self.x as i32, self.y as i32);
         let mut best_dist = radius + 1;
-        let mut best_loc  = None;
+        let mut best_loc = None;
         for dx in -radius..=radius {
             for dy in -radius..=radius {
                 if grid.get(ix + dx, iy + dy) == tile_type {
                     let dist = dx.abs() + dy.abs();
-                    if dist < best_dist { best_dist = dist; best_loc = Some((ix+dx, iy+dy)); }
+                    if dist < best_dist {
+                        best_dist = dist;
+                        best_loc = Some((ix + dx, iy + dy));
+                    }
                 }
             }
         }
         best_loc
     }
 
-    pub(crate) fn find_trail_target(&self, grid: &WorldGrid, kind: TrailKind, radius: i32)
-        -> Option<(i32, i32)>
-    {
+    pub(crate) fn find_trail_target(
+        &self,
+        grid: &WorldGrid,
+        kind: TrailKind,
+        radius: i32,
+    ) -> Option<(i32, i32)> {
         let (ix, iy) = (self.x as i32, self.y as i32);
         let mut best_val = 0.35f32;
         let mut best_loc = None;
         for dx in -radius..=radius {
             for dy in -radius..=radius {
                 let v = grid.trail_at(ix + dx, iy + dy, kind);
-                if v > best_val { best_val = v; best_loc = Some((ix+dx, iy+dy)); }
+                if v > best_val {
+                    best_val = v;
+                    best_loc = Some((ix + dx, iy + dy));
+                }
             }
         }
         best_loc
@@ -1111,7 +1408,9 @@ impl Organism {
         let gamma = 0.9f32;
         let action_u16 = action as u16;
 
-        let best_next = self.q_table.get(next_perception)
+        let best_next = self
+            .q_table
+            .get(next_perception)
             .map(|r| r.max_q())
             .unwrap_or(0.0);
 
@@ -1136,120 +1435,241 @@ impl Organism {
         }
     }
 
-    pub fn to_json(&self) -> OrgJson { self.to_json_with(true) }
+    pub fn to_json(&self) -> OrgJson {
+        self.to_json_with(true)
+    }
 
     pub fn to_json_with(&self, include_cold: bool) -> OrgJson {
         OrgJson {
-            id:       self.id.clone(),
-            x:        (self.x * 10.0).round() / 10.0,
-            y:        (self.y * 10.0).round() / 10.0,
-            energy:   (self.energy    * 1000.0).round() / 1000.0,
-            hydration:(self.hydration * 1000.0).round() / 1000.0,
-            health:   (self.health    * 1000.0).round() / 1000.0,
-            age:      self.age,
-            alive:    self.alive,
-            thought:  self.thought.clone(),
-            infection:     (self.infection * 1000.0).round() / 1000.0,
-            fear_level:    (self.fear_level * 100.0).round() / 100.0,
-            carrying:      self.carrying,
+            id: self.id.clone(),
+            x: (self.x * 10.0).round() / 10.0,
+            y: (self.y * 10.0).round() / 10.0,
+            energy: (self.energy * 1000.0).round() / 1000.0,
+            hydration: (self.hydration * 1000.0).round() / 1000.0,
+            health: (self.health * 1000.0).round() / 1000.0,
+            age: self.age,
+            alive: self.alive,
+            thought: self.thought.clone(),
+            infection: (self.infection * 1000.0).round() / 1000.0,
+            fear_level: (self.fear_level * 100.0).round() / 100.0,
+            carrying: self.carrying,
             carrying_type: self.carrying_type,
-            pregnant:      self.pregnant,
-            partner_id:    self.partner_id.clone(),
-            attracted_to:  self.attracted_to.clone(),
+            pregnant: self.pregnant,
+            partner_id: self.partner_id.clone(),
+            attracted_to: self.attracted_to.clone(),
 
             attitudes: if include_cold {
-                Some(self.lineage_attitudes.iter()
-                    .filter(|(_, &v)| v.abs() > 0.1)
-                    .map(|(k, &v)| (k.clone(), (v * 100.0).round() / 100.0))
-                    .collect())
-            } else { None },
+                Some(
+                    self.lineage_attitudes
+                        .iter()
+                        .filter(|(_, &v)| v.abs() > 0.1)
+                        .map(|(k, &v)| (k.clone(), (v * 100.0).round() / 100.0))
+                        .collect(),
+                )
+            } else {
+                None
+            },
             org_trust: if include_cold {
-                Some(self.org_trust.iter()
-                    .filter(|(_, &v)| v.abs() > 0.15)
-                    .map(|(k, &v)| (k[..k.len().min(8)].to_string(), (v * 100.0).round() / 100.0))
-                    .collect())
-            } else { None },
+                Some(
+                    self.org_trust
+                        .iter()
+                        .filter(|(_, &v)| v.abs() > 0.15)
+                        .map(|(k, &v)| (k[..k.len().min(8)].to_string(), (v * 100.0).round() / 100.0))
+                        .collect(),
+                )
+            } else {
+                None
+            },
             memory_count: if include_cold {
                 Some(MemoryCount {
-                    food:   self.food_memory.len(),
-                    water:  self.water_memory.len(),
+                    food: self.food_memory.len(),
+                    water: self.water_memory.len(),
                     danger: self.danger_memory.len(),
                 })
-            } else { None },
-            has_reflected:       if include_cold { Some(self.has_reflected) }       else { None },
-            last_invention_tick: if include_cold { Some(self.last_invention_tick) } else { None },
-            loneliness:          if include_cold { Some((self.loneliness * 100.0).round() / 100.0) } else { None },
-            boredom:             if include_cold { Some((self.boredom    * 100.0).round() / 100.0) } else { None },
-            comfort:             if include_cold { Some((self.comfort    * 100.0).round() / 100.0) } else { None },
-            grief_ticks:         if include_cold { Some(self.grief_ticks) }         else { None },
-            joy_ticks:           if include_cold && self.joy_ticks > 0 { Some(self.joy_ticks) } else { None },
-            aspiration:          if include_cold && !self.aspiration.is_empty() { Some(self.aspiration.clone()) } else { None },
-            sleep_debt:          if include_cold { Some((self.sleep_debt * 100.0).round() / 100.0) } else { None },
-            children_count:      if include_cold { Some(self.children_count) }      else { None },
-            conversation_count:  if include_cold { Some(self.conversations.len()) } else { None },
+            } else {
+                None
+            },
+            has_reflected: if include_cold {
+                Some(self.has_reflected)
+            } else {
+                None
+            },
+            last_invention_tick: if include_cold {
+                Some(self.last_invention_tick)
+            } else {
+                None
+            },
+            loneliness: if include_cold {
+                Some((self.loneliness * 100.0).round() / 100.0)
+            } else {
+                None
+            },
+            boredom: if include_cold {
+                Some((self.boredom * 100.0).round() / 100.0)
+            } else {
+                None
+            },
+            comfort: if include_cold {
+                Some((self.comfort * 100.0).round() / 100.0)
+            } else {
+                None
+            },
+            grief_ticks: if include_cold {
+                Some(self.grief_ticks)
+            } else {
+                None
+            },
+            joy_ticks: if include_cold && self.joy_ticks > 0 {
+                Some(self.joy_ticks)
+            } else {
+                None
+            },
+            aspiration: if include_cold && !self.aspiration.is_empty() {
+                Some(self.aspiration.clone())
+            } else {
+                None
+            },
+            sleep_debt: if include_cold {
+                Some((self.sleep_debt * 100.0).round() / 100.0)
+            } else {
+                None
+            },
+            children_count: if include_cold {
+                Some(self.children_count)
+            } else {
+                None
+            },
+            conversation_count: if include_cold {
+                Some(self.conversations.len())
+            } else {
+                None
+            },
 
-            name:       if include_cold { Some(self.name.clone())       } else { None },
-            generation: if include_cold { Some(self.generation)         } else { None },
-            parent_id:  if include_cold { Some(self.parent_id.clone())  } else { None },
-            father_id:  if include_cold { Some(self.father_id.clone())  } else { None },
-            lineage_id: if include_cold { Some(self.lineage_id.clone()) } else { None },
-            max_age:    if include_cold { Some(self.max_age)            } else { None },
-            sex:        if include_cold { Some(self.sex.as_str().to_string()) } else { None },
-            traits:     if include_cold {
+            name: if include_cold {
+                Some(self.name.clone())
+            } else {
+                None
+            },
+            generation: if include_cold { Some(self.generation) } else { None },
+            parent_id: if include_cold {
+                Some(self.parent_id.clone())
+            } else {
+                None
+            },
+            father_id: if include_cold {
+                Some(self.father_id.clone())
+            } else {
+                None
+            },
+            lineage_id: if include_cold {
+                Some(self.lineage_id.clone())
+            } else {
+                None
+            },
+            max_age: if include_cold { Some(self.max_age) } else { None },
+            sex: if include_cold {
+                Some(self.sex.as_str().to_string())
+            } else {
+                None
+            },
+            traits: if include_cold {
                 Some(TraitsJson {
-                    curiosity:       (self.traits.curiosity       * 100.0).round() / 100.0,
-                    aggression:      (self.traits.aggression      * 100.0).round() / 100.0,
-                    fear:            (self.traits.fear            * 100.0).round() / 100.0,
+                    curiosity: (self.traits.curiosity * 100.0).round() / 100.0,
+                    aggression: (self.traits.aggression * 100.0).round() / 100.0,
+                    fear: (self.traits.fear * 100.0).round() / 100.0,
                     memory_strength: (self.traits.memory_strength * 100.0).round() / 100.0,
                     social_tendency: (self.traits.social_tendency * 100.0).round() / 100.0,
-                    resilience:      (self.traits.resilience      * 100.0).round() / 100.0,
+                    resilience: (self.traits.resilience * 100.0).round() / 100.0,
                 })
-            } else { None },
-            vocabulary:  if include_cold { Some(self.vocabulary.as_hashmap()) } else { None },
-            discoveries: if include_cold { Some(self.discoveries.iter().cloned().collect()) } else { None },
-            home_x:      if include_cold { Some((self.home_x * 10.0).round() / 10.0) } else { None },
-            home_y:      if include_cold { Some((self.home_y * 10.0).round() / 10.0) } else { None },
-            is_elder:    if include_cold { Some(self.is_elder) } else { None },
-            friends:     if include_cold && !self.friends.is_empty() {
+            } else {
+                None
+            },
+            vocabulary: if include_cold {
+                Some(self.vocabulary.as_hashmap())
+            } else {
+                None
+            },
+            discoveries: if include_cold {
+                Some(self.discoveries.iter().cloned().collect())
+            } else {
+                None
+            },
+            home_x: if include_cold {
+                Some((self.home_x * 10.0).round() / 10.0)
+            } else {
+                None
+            },
+            home_y: if include_cold {
+                Some((self.home_y * 10.0).round() / 10.0)
+            } else {
+                None
+            },
+            is_elder: if include_cold { Some(self.is_elder) } else { None },
+            friends: if include_cold && !self.friends.is_empty() {
                 Some(self.friends.clone())
-            } else { None },
-            attributes:  if include_cold && !self.attributes.is_empty() {
+            } else {
+                None
+            },
+            attributes: if include_cold && !self.attributes.is_empty() {
                 let mut v: Vec<String> = self.attributes.iter().cloned().collect();
                 v.sort();
                 Some(v)
-            } else { None },
+            } else {
+                None
+            },
             anchor_events: if include_cold && !self.anchor_events.is_empty() {
                 Some(self.anchor_events.clone())
-            } else { None },
+            } else {
+                None
+            },
             tools: if include_cold && !self.tools.is_empty() {
                 Some(self.tools.clone())
-            } else { None },
+            } else {
+                None
+            },
             home_furniture: if include_cold && !self.home_furniture.is_empty() {
                 Some(self.home_furniture.clone())
-            } else { None },
+            } else {
+                None
+            },
             home_style_seed: if include_cold && self.home_style_seed > 0 {
                 Some(self.home_style_seed)
-            } else { None },
+            } else {
+                None
+            },
             zodiac: if include_cold && !self.zodiac.is_empty() {
                 Some(self.zodiac.clone())
-            } else { None },
+            } else {
+                None
+            },
             birth_tick: if include_cold && self.birth_tick > 0 {
                 Some(self.birth_tick)
-            } else { None },
+            } else {
+                None
+            },
         }
     }
 
     pub fn to_detail_json(&self) -> OrgDetailJson {
-        let thought_history: Vec<ThoughtJson> = self.thought_history
-            .iter().rev().take(20).rev()
-            .map(|e| ThoughtJson { tick: e.tick, text: e.text.clone() })
+        let thought_history: Vec<ThoughtJson> = self
+            .thought_history
+            .iter()
+            .rev()
+            .take(20)
+            .rev()
+            .map(|e| ThoughtJson {
+                tick: e.tick,
+                text: e.text.clone(),
+            })
             .collect();
-        let life_log: Vec<LifeEventJson> = self.life_log.iter()
+        let life_log: Vec<LifeEventJson> = self
+            .life_log
+            .iter()
             .map(|e| LifeEventJson {
-                tick:         e.tick,
-                category:     e.category.clone(),
-                text:         e.text.clone(),
-                related_id:   e.related_id.clone(),
+                tick: e.tick,
+                category: e.category.clone(),
+                text: e.text.clone(),
+                related_id: e.related_id.clone(),
                 related_name: e.related_name.clone(),
             })
             .collect();
@@ -1258,33 +1678,35 @@ impl Organism {
             .top(20)
             .into_iter()
             .map(|m| MemoryJson {
-                kind:       m.kind.label().to_string(),
-                text:       m.text.clone(),
-                salience:   (m.salience * 100.0).round() / 100.0,
-                emotion:    m.emotion,
-                tick:       m.tick_formed,
+                kind: m.kind.label().to_string(),
+                text: m.text.clone(),
+                salience: (m.salience * 100.0).round() / 100.0,
+                emotion: m.emotion,
+                tick: m.tick_formed,
                 related_id: m.related_id.clone(),
-                recalls:    m.recall_count,
+                recalls: m.recall_count,
             })
             .collect();
         OrgDetailJson {
-            base:            self.to_json(),
+            base: self.to_json(),
             thought_history,
-            vocabulary:      self.vocabulary.as_hashmap(),
-            daily_story:     self.daily_story.clone(),
+            vocabulary: self.vocabulary.as_hashmap(),
+            daily_story: self.daily_story.clone(),
             life_log,
-            conversations:   self.conversations.iter().rev().take(25).rev().cloned().collect(),
+            conversations: self.conversations.iter().rev().take(25).rev().cloned().collect(),
             memories,
         }
     }
 
     pub fn to_life_json(&self) -> OrgLifeJson {
-        let events: Vec<LifeEventJson> = self.life_log.iter()
+        let events: Vec<LifeEventJson> = self
+            .life_log
+            .iter()
             .map(|e| LifeEventJson {
-                tick:         e.tick,
-                category:     e.category.clone(),
-                text:         e.text.clone(),
-                related_id:   e.related_id.clone(),
+                tick: e.tick,
+                category: e.category.clone(),
+                text: e.text.clone(),
+                related_id: e.related_id.clone(),
                 related_name: e.related_name.clone(),
             })
             .collect();
@@ -1293,66 +1715,92 @@ impl Organism {
         let partner_id = self.partner_id.clone();
         let discoveries: Vec<String> = self.discoveries.iter().cloned().collect();
 
-        let emotional_state = if self.grief_ticks > 50 { "devastated" }
-            else if self.grief_ticks > 0 { "grieving" }
-            else if self.loneliness > 0.75 { "desperately lonely" }
-            else if self.fear_level > 0.65 { "terrified" }
-            else if self.loneliness > 0.50 { "lonely" }
-            else if self.comfort > 0.80 { "content" }
-            else if self.boredom > 0.65 { "restless" }
-            else if self.energy < 0.25 { "starving" }
-            else { "stable" };
+        let emotional_state = if self.grief_ticks > 50 {
+            "devastated"
+        } else if self.grief_ticks > 0 {
+            "grieving"
+        } else if self.loneliness > 0.75 {
+            "desperately lonely"
+        } else if self.fear_level > 0.65 {
+            "terrified"
+        } else if self.loneliness > 0.50 {
+            "lonely"
+        } else if self.comfort > 0.80 {
+            "content"
+        } else if self.boredom > 0.65 {
+            "restless"
+        } else if self.energy < 0.25 {
+            "starving"
+        } else {
+            "stable"
+        };
 
         OrgLifeJson {
-            id:              self.id.clone(),
-            name:            self.name.clone(),
-            age_ticks:       self.age,
-            generation:      self.generation,
-            lineage_id:      self.lineage_id.clone(),
-            sex:             self.sex.as_str().to_string(),
-            alive:           self.alive,
-            is_elder:        self.is_elder,
+            id: self.id.clone(),
+            name: self.name.clone(),
+            age_ticks: self.age,
+            generation: self.generation,
+            lineage_id: self.lineage_id.clone(),
+            sex: self.sex.as_str().to_string(),
+            alive: self.alive,
+            is_elder: self.is_elder,
             partner_id,
-            children_count:  self.children_count,
-            friends:         friend_names,
+            children_count: self.children_count,
+            friends: friend_names,
             discoveries,
             emotional_state: emotional_state.to_string(),
             events,
-            thought_history: self.thought_history.iter()
-                .map(|e| ThoughtJson { tick: e.tick, text: e.text.clone() })
+            thought_history: self
+                .thought_history
+                .iter()
+                .map(|e| ThoughtJson {
+                    tick: e.tick,
+                    text: e.text.clone(),
+                })
                 .collect(),
         }
     }
 }
 
-#[derive(Serialize)] pub struct ThoughtJson { pub tick: u64, pub text: String }
-#[derive(Serialize)] pub struct MemoryCount  { pub food: usize, pub water: usize, pub danger: usize }
+#[derive(Serialize)]
+pub struct ThoughtJson {
+    pub tick: u64,
+    pub text: String,
+}
+#[derive(Serialize)]
+pub struct MemoryCount {
+    pub food: usize,
+    pub water: usize,
+    pub danger: usize,
+}
 
 #[derive(Serialize)]
 pub struct LifeEventJson {
-    pub tick:         u64,
-    pub category:     String,
-    pub text:         String,
-    #[serde(skip_serializing_if = "Option::is_none")] pub related_id:   Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")] pub related_name: Option<String>,
+    pub tick: u64,
+    pub category: String,
+    pub text: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub related_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub related_name: Option<String>,
 }
 
 #[derive(Serialize)]
 pub struct OrgLifeJson {
-    pub id:              String,
-    pub name:            String,
-    pub age_ticks:       u32,
-    pub generation:      u32,
-    pub lineage_id:      String,
-    pub sex:             String,
-    pub alive:           bool,
-    pub is_elder:        bool,
-    pub partner_id:      Option<String>,
-    pub children_count:  u32,
-    pub friends:         Vec<String>,
-    pub discoveries:     Vec<String>,
+    pub id: String,
+    pub name: String,
+    pub age_ticks: u32,
+    pub generation: u32,
+    pub lineage_id: String,
+    pub sex: String,
+    pub alive: bool,
+    pub is_elder: bool,
+    pub partner_id: Option<String>,
+    pub children_count: u32,
+    pub friends: Vec<String>,
+    pub discoveries: Vec<String>,
     pub emotional_state: String,
-    pub events:          Vec<LifeEventJson>,
+    pub events: Vec<LifeEventJson>,
     pub thought_history: Vec<ThoughtJson>,
 }
 
@@ -1376,29 +1824,29 @@ pub struct OrgLifeJson {
 ///   too - only a small minority of orgs have either at any tick.
 #[derive(Serialize)]
 pub struct OrgsHotSoa {
-    pub ids:            Vec<String>,
-    pub xs:             Vec<i16>,
-    pub ys:             Vec<i16>,
-    pub vxs:            Vec<i16>,
-    pub vys:            Vec<i16>,
-    pub target_xs:      Vec<i16>,
-    pub target_ys:      Vec<i16>,
-    pub energies:       Vec<u8>,
-    pub hydrations:     Vec<u8>,
-    pub healths:        Vec<u8>,
+    pub ids: Vec<String>,
+    pub xs: Vec<i16>,
+    pub ys: Vec<i16>,
+    pub vxs: Vec<i16>,
+    pub vys: Vec<i16>,
+    pub target_xs: Vec<i16>,
+    pub target_ys: Vec<i16>,
+    pub energies: Vec<u8>,
+    pub hydrations: Vec<u8>,
+    pub healths: Vec<u8>,
     /// Sparse: (index into ids, thought text). Only orgs whose thought
     /// changed this tick. Client merges into prev cached thought.
-    pub thoughts:       Vec<(u32, String)>,
-    pub infections:     Vec<u8>,
-    pub fear_levels:    Vec<u8>,
-    pub carryings:      Vec<u8>,
+    pub thoughts: Vec<(u32, String)>,
+    pub infections: Vec<u8>,
+    pub fear_levels: Vec<u8>,
+    pub carryings: Vec<u8>,
     pub carrying_types: Vec<u8>,
-    pub pregnants:      Vec<bool>,
+    pub pregnants: Vec<bool>,
     /// Sparse: (index into ids, partner_id). Absent → unpartnered.
-    pub partner_ids:    Vec<(u32, String)>,
+    pub partner_ids: Vec<(u32, String)>,
     /// Sparse: (index into ids, attracted_to id). Absent → no
     /// current attraction.
-    pub attracted_tos:  Vec<(u32, String)>,
+    pub attracted_tos: Vec<(u32, String)>,
 }
 
 #[inline]
@@ -1414,25 +1862,25 @@ fn q_pct(v: f32) -> u8 {
 impl OrgsHotSoa {
     pub fn with_capacity(n: usize) -> Self {
         OrgsHotSoa {
-            ids:            Vec::with_capacity(n),
-            xs:             Vec::with_capacity(n),
-            ys:             Vec::with_capacity(n),
-            vxs:            Vec::with_capacity(n),
-            vys:            Vec::with_capacity(n),
-            target_xs:      Vec::with_capacity(n),
-            target_ys:      Vec::with_capacity(n),
-            energies:       Vec::with_capacity(n),
-            hydrations:     Vec::with_capacity(n),
-            healths:        Vec::with_capacity(n),
+            ids: Vec::with_capacity(n),
+            xs: Vec::with_capacity(n),
+            ys: Vec::with_capacity(n),
+            vxs: Vec::with_capacity(n),
+            vys: Vec::with_capacity(n),
+            target_xs: Vec::with_capacity(n),
+            target_ys: Vec::with_capacity(n),
+            energies: Vec::with_capacity(n),
+            hydrations: Vec::with_capacity(n),
+            healths: Vec::with_capacity(n),
             // Sparse fields start empty - only allocate slots actually used.
-            thoughts:       Vec::with_capacity(n / 4),
-            infections:     Vec::with_capacity(n),
-            fear_levels:    Vec::with_capacity(n),
-            carryings:      Vec::with_capacity(n),
+            thoughts: Vec::with_capacity(n / 4),
+            infections: Vec::with_capacity(n),
+            fear_levels: Vec::with_capacity(n),
+            carryings: Vec::with_capacity(n),
             carrying_types: Vec::with_capacity(n),
-            pregnants:      Vec::with_capacity(n),
-            partner_ids:    Vec::with_capacity(n / 8),
-            attracted_tos:  Vec::with_capacity(n / 16),
+            pregnants: Vec::with_capacity(n),
+            partner_ids: Vec::with_capacity(n / 8),
+            attracted_tos: Vec::with_capacity(n / 16),
         }
     }
 
@@ -1442,12 +1890,16 @@ impl OrgsHotSoa {
         // Velocity quantization: * 10 → i16, client decodes /10. Comment
         // and code were drifting at 10× off; standardising on /10 means
         // ±3276.7 tiles/tick representable, plenty of headroom.
-        let enc_vx = (o.vx_smooth * 10.0).round().clamp(i16::MIN as f32, i16::MAX as f32) as i16;
-        let enc_vy = (o.vy_smooth * 10.0).round().clamp(i16::MIN as f32, i16::MAX as f32) as i16;
+        let enc_vx = (o.vx_smooth * 10.0)
+            .round()
+            .clamp(i16::MIN as f32, i16::MAX as f32) as i16;
+        let enc_vy = (o.vy_smooth * 10.0)
+            .round()
+            .clamp(i16::MIN as f32, i16::MAX as f32) as i16;
         // i16::MIN sentinel = no target
         let (enc_tx, enc_ty) = match o.wander_target {
             Some((tx, ty)) => (tx as i16, ty as i16),
-            None           => (i16::MIN, i16::MIN),
+            None => (i16::MIN, i16::MIN),
         };
         let idx = self.ids.len() as u32;
         self.ids.push(o.id.clone());
@@ -1482,107 +1934,157 @@ impl OrgsHotSoa {
         }
     }
 }
-#[derive(Serialize)] pub struct TraitsJson   {
-    pub curiosity: f32, pub aggression: f32, pub fear: f32,
-    pub memory_strength: f32, pub social_tendency: f32, pub resilience: f32,
+#[derive(Serialize)]
+pub struct TraitsJson {
+    pub curiosity: f32,
+    pub aggression: f32,
+    pub fear: f32,
+    pub memory_strength: f32,
+    pub social_tendency: f32,
+    pub resilience: f32,
 }
 #[derive(Serialize)]
 pub struct OrgJson {
     pub id: String,
-    pub x: f32, pub y: f32,
-    pub energy: f32, pub hydration: f32, pub health: f32,
-    pub age: u32, pub alive: bool,
+    pub x: f32,
+    pub y: f32,
+    pub energy: f32,
+    pub hydration: f32,
+    pub health: f32,
+    pub age: u32,
+    pub alive: bool,
     pub thought: String,
-    pub infection:     f32,
-    pub fear_level:    f32,
-    pub carrying:      u32,
+    pub infection: f32,
+    pub fear_level: f32,
+    pub carrying: u32,
     pub carrying_type: u8,
-    pub pregnant:      bool,
-    pub partner_id:     Option<String>,
-    pub attracted_to:   Option<String>,
+    pub pregnant: bool,
+    pub partner_id: Option<String>,
+    pub attracted_to: Option<String>,
 
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub memory_count:        Option<MemoryCount>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub attitudes:           Option<HashMap<String, f32>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub org_trust:           Option<HashMap<String, f32>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub has_reflected:       Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub last_invention_tick: Option<u64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub loneliness:          Option<f32>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub boredom:             Option<f32>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub comfort:             Option<f32>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub grief_ticks:         Option<u32>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub joy_ticks:           Option<u32>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub aspiration:          Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub sleep_debt:          Option<f32>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub children_count:      Option<u32>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub conversation_count:  Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub memory_count: Option<MemoryCount>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attitudes: Option<HashMap<String, f32>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub org_trust: Option<HashMap<String, f32>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_reflected: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_invention_tick: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub loneliness: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub boredom: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub comfort: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub grief_ticks: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub joy_ticks: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub aspiration: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sleep_debt: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub children_count: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub conversation_count: Option<usize>,
 
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub name:        Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub generation:  Option<u32>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub parent_id:   Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub father_id:   Option<Option<String>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub lineage_id:  Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub max_age:     Option<u32>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub sex:         Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub traits:      Option<TraitsJson>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub vocabulary:  Option<HashMap<String, String>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub discoveries: Option<Vec<String>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub home_x:      Option<f32>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub home_y:      Option<f32>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub is_elder:    Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub friends:     Option<HashMap<String, String>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub attributes:  Option<Vec<String>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub anchor_events: Option<Vec<(u64, String, f32)>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub tools:        Option<HashMap<String, u8>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub home_furniture: Option<Vec<String>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub home_style_seed: Option<u32>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub zodiac:         Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")] pub birth_tick:     Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub generation: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub father_id: Option<Option<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lineage_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_age: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sex: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub traits: Option<TraitsJson>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub vocabulary: Option<HashMap<String, String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub discoveries: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub home_x: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub home_y: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_elder: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub friends: Option<HashMap<String, String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attributes: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub anchor_events: Option<Vec<(u64, String, f32)>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tools: Option<HashMap<String, u8>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub home_furniture: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub home_style_seed: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub zodiac: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub birth_tick: Option<u64>,
 }
 
 #[derive(Serialize)]
 pub struct OrgDetailJson {
     #[serde(flatten)]
-    pub base:          OrgJson,
+    pub base: OrgJson,
     pub thought_history: Vec<ThoughtJson>,
-    pub vocabulary:      HashMap<String, String>,
-    pub daily_story:     String,
-    pub life_log:        Vec<LifeEventJson>,
-    pub conversations:   Vec<ConversationEntry>,
-    pub memories:        Vec<MemoryJson>,
+    pub vocabulary: HashMap<String, String>,
+    pub daily_story: String,
+    pub life_log: Vec<LifeEventJson>,
+    pub conversations: Vec<ConversationEntry>,
+    pub memories: Vec<MemoryJson>,
 }
 
 #[derive(Serialize)]
 pub struct MemoryJson {
-    pub kind:       String,
-    pub text:       String,
-    pub salience:   f32,
-    pub emotion:    i8,
-    pub tick:       u64,
+    pub kind: String,
+    pub text: String,
+    pub salience: f32,
+    pub emotion: i8,
+    pub tick: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub related_id: Option<String>,
-    pub recalls:    u32,
+    pub recalls: u32,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::SeedableRng;
     use rand::rngs::StdRng;
+    use rand::SeedableRng;
 
     #[test]
     fn compress_for_archive_clears_heavy_state_but_keeps_skeleton() {
         let mut rng = StdRng::seed_from_u64(0);
         let traits = Traits::random(&mut rng);
         let mut org = Organism::new(
-            "abc12345".into(), "Testname".into(),
-            10.0, 20.0,
-            3, "parent99".into(), "lineage1".into(),
-            5000, traits.clone(),
+            "abc12345".into(),
+            "Testname".into(),
+            10.0,
+            20.0,
+            3,
+            "parent99".into(),
+            "lineage1".into(),
+            5000,
+            traits.clone(),
         );
         org.food_memory.insert((1, 1), 0.5);
         org.water_memory.insert((2, 2), 0.5);
         org.danger_memory.insert((3, 3), 0.5);
-        org.q_table.insert("state".into(), vec![(0, 0.1), (1, 0.1), (2, 0.1)]);
+        org.q_table
+            .insert("state".into(), vec![(0, 0.1), (1, 0.1), (2, 0.1)]);
         org.lineage_attitudes.insert("other".into(), 0.7);
         org.org_trust.insert("xyz".into(), 0.5);
         org.log_event("something happened".into());
@@ -1600,13 +2102,13 @@ mod tests {
         assert!(org.org_trust.is_empty());
         assert!(org.life_log.is_empty());
         assert!(org.discoveries.is_empty());
-        assert_eq!(org.id,          "abc12345");
-        assert_eq!(org.name,        "Testname");
-        assert_eq!(org.lineage_id,  "lineage1");
-        assert_eq!(org.parent_id,   "parent99");
-        assert_eq!(org.father_id,   Some("father77".into()));
-        assert_eq!(org.generation,  3);
-        assert_eq!(org.max_age,     5000);
+        assert_eq!(org.id, "abc12345");
+        assert_eq!(org.name, "Testname");
+        assert_eq!(org.lineage_id, "lineage1");
+        assert_eq!(org.parent_id, "parent99");
+        assert_eq!(org.father_id, Some("father77".into()));
+        assert_eq!(org.generation, 3);
+        assert_eq!(org.max_age, 5000);
         assert_eq!(org.traits.aggression, traits.aggression);
     }
 
@@ -1615,8 +2117,15 @@ mod tests {
         let mut rng = StdRng::seed_from_u64(0);
         let traits = Traits::random(&mut rng);
         let mut org = Organism::new(
-            "id".into(), "Live".into(), 0.0, 0.0,
-            0, "".into(), "lin".into(), 5000, traits,
+            "id".into(),
+            "Live".into(),
+            0.0,
+            0.0,
+            0,
+            "".into(),
+            "lin".into(),
+            5000,
+            traits,
         );
         org.q_table.insert("s".into(), vec![(0, 0.0), (1, 0.0)]);
         org.alive = true;
@@ -1633,15 +2142,20 @@ mod tests {
         grid.set(11, 10, Tile::Grass);
 
         let mut org = Organism::new(
-            "id".into(), "Swimmer".into(), 10.0, 10.0,
-            0, "".into(), "lin".into(), 5000, traits,
+            "id".into(),
+            "Swimmer".into(),
+            10.0,
+            10.0,
+            0,
+            "".into(),
+            "lin".into(),
+            5000,
+            traits,
         );
         org.hydration = 0.95;
         org.water_ticks = 8;
 
-        let (action, thought) = org.choose_action(
-            &grid, 100, 0.0, &[], false, 0, &mut rng, false, "", &[],
-        );
+        let (action, thought) = org.choose_action(&grid, 100, 0.0, &[], false, 0, &mut rng, false, "", &[]);
 
         assert_eq!(DIRECTIONS[action], (1, 0));
         assert_eq!(thought.as_deref(), Some("swimming ashore"));
@@ -1658,8 +2172,15 @@ mod tests {
         grid.depth[wi] = 0.9;
 
         let org = Organism::new(
-            "id".into(), "Walker".into(), 10.0, 10.0,
-            0, "".into(), "lin".into(), 5000, traits,
+            "id".into(),
+            "Walker".into(),
+            10.0,
+            10.0,
+            0,
+            "".into(),
+            "lin".into(),
+            5000,
+            traits,
         );
 
         let action = org.toward((20, 10), &grid);

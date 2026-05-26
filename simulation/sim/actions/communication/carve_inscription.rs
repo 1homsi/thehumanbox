@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -7,7 +6,10 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         return 0.0;
     }
     ctx.think("carefully carving words into rock");
-    ctx.discover("inscription", "carved a lasting inscription to preserve knowledge");
+    ctx.discover(
+        "inscription",
+        "carved a lasting inscription to preserve knowledge",
+    );
     ctx.event("build", "carved an inscription into stone for future generations");
     0.010
 }

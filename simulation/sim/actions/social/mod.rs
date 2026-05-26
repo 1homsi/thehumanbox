@@ -1,15 +1,13 @@
-
-
-pub mod console;
+pub mod apologize;
+pub mod befriend;
+pub mod boast;
 pub mod comfort_child;
-pub mod praise;
-pub mod scold;
+pub mod console;
 pub mod gossip;
 pub mod greet_stranger;
-pub mod apologize;
 pub mod mediate;
-pub mod boast;
-pub mod befriend;
+pub mod praise;
+pub mod scold;
 
 use super::ctx::ActionCtx;
 
@@ -25,6 +23,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         87 => mediate::apply(ctx),
         88 => boast::apply(ctx),
         89 => befriend::apply(ctx),
-        _  => 0.0,
+        _ => 0.0,
     }
 }

@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -9,6 +8,9 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         return 0.0;
     }
     ctx.think("raising the alarm");
-    ctx.event("warfare", "sounded the alarm, alerting the group to an approaching threat");
+    ctx.event(
+        "warfare",
+        "sounded the alarm, alerting the group to an approaching threat",
+    );
     0.007
 }

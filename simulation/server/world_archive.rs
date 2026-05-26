@@ -1,32 +1,34 @@
+use std::collections::HashMap;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::SystemTime;
-use std::collections::HashMap;
-use std::io::Write;
 
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 
-use crate::sim::simulation::Simulation;
 use crate::server::transport::{encode_frame, now_ms};
+use crate::sim::simulation::Simulation;
 
 const WORLDS_DIR: &str = "worlds";
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct WorldMeta {
-    pub hash:             String,
-    pub started_at_ms:    u64,
-    pub ended_at_ms:      u64,
-    pub final_tick:       u64,
+    pub hash: String,
+    pub started_at_ms: u64,
+    pub ended_at_ms: u64,
+    pub final_tick: u64,
     pub final_population: usize,
-    pub peak_population:  u64,
-    pub top_era:          String,
-    pub lineage_count:    usize,
-    pub top_lineage:      Option<String>,
-    pub top_lineage_pop:  usize,
+    pub peak_population: u64,
+    pub top_era: String,
+    pub lineage_count: usize,
+    pub top_lineage: Option<String>,
+    pub top_lineage_pop: usize,
 }
 
-pub fn worlds_dir() -> PathBuf { PathBuf::from(WORLDS_DIR) }
+pub fn worlds_dir() -> PathBuf {
+    PathBuf::from(WORLDS_DIR)
+}
 
 pub fn ensure_worlds_dir() {
     let p = worlds_dir();
@@ -51,27 +53,45 @@ fn ymd_from_unix(secs: i64) -> (i32, u32) {
     let mut remaining = days;
     loop {
         let yd = year_days(year) as i64;
-        if remaining < yd { break }
+        if remaining < yd {
+            break;
+        }
         remaining -= yd;
         year += 1;
     }
     let mut month: u32 = 1;
     loop {
         let md = month_days(year, month) as i64;
-        if remaining < md { break }
+        if remaining < md {
+            break;
+        }
         remaining -= md;
         month += 1;
     }
     (year, month)
 }
 
-fn is_leap(y: i32) -> bool { (y % 4 == 0 && y % 100 != 0) || y % 400 == 0 }
-fn year_days(y: i32) -> u32 { if is_leap(y) { 366 } else { 365 } }
+fn is_leap(y: i32) -> bool {
+    (y % 4 == 0 && y % 100 != 0) || y % 400 == 0
+}
+fn year_days(y: i32) -> u32 {
+    if is_leap(y) {
+        366
+    } else {
+        365
+    }
+}
 fn month_days(y: i32, m: u32) -> u32 {
     match m {
         1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
-        4 | 6 | 9 | 11              => 30,
-        2 => if is_leap(y) { 29 } else { 28 },
+        4 | 6 | 9 | 11 => 30,
+        2 => {
+            if is_leap(y) {
+                29
+            } else {
+                28
+            }
+        }
         _ => 30,
     }
 }
@@ -94,7 +114,9 @@ pub fn list_archived_worlds() -> Vec<WorldMeta> {
     };
     for entry in entries.flatten() {
         let path = entry.path();
-        if path.extension().and_then(|s| s.to_str()) != Some("json") { continue }
+        if path.extension().and_then(|s| s.to_str()) != Some("json") {
+            continue;
+        }
         if let Ok(bytes) = std::fs::read(&path) {
             if let Ok(meta) = serde_json::from_slice::<WorldMeta>(&bytes) {
                 out.push(meta);
@@ -116,7 +138,10 @@ pub fn read_world_snapshot(hash: &str) -> Option<Vec<u8>> {
     std::fs::read(&path).ok()
 }
 
-fn compute_summary(sim: &mut Simulation, peak_pop: u64) -> (String, usize, String, Option<String>, usize, u64) {
+fn compute_summary(
+    sim: &mut Simulation,
+    peak_pop: u64,
+) -> (String, usize, String, Option<String>, usize, u64) {
     let final_tick = sim.tick_count;
     let final_pop: usize = sim.organisms.iter().filter(|o| o.alive).count();
     let top_era = sim.current_era.clone();
@@ -125,12 +150,20 @@ fn compute_summary(sim: &mut Simulation, peak_pop: u64) -> (String, usize, Strin
         *lineage_counts.entry(o.lineage_id.clone()).or_insert(0) += 1;
     }
     let lineage_count = lineage_counts.len();
-    let (top_lid, top_pop) = lineage_counts.iter()
+    let (top_lid, top_pop) = lineage_counts
+        .iter()
         .max_by_key(|(_, c)| *c)
         .map(|(k, v)| (Some(k.clone()), *v))
         .unwrap_or((None, 0));
     let top_lineage_name = top_lid.and_then(|id| sim.lineage_names.get(&id).cloned());
-    (top_era, lineage_count, format!("{}", final_pop), top_lineage_name, top_pop, final_tick)
+    (
+        top_era,
+        lineage_count,
+        format!("{}", final_pop),
+        top_lineage_name,
+        top_pop,
+        final_tick,
+    )
 }
 
 pub async fn archive_and_reset(
@@ -168,20 +201,19 @@ pub async fn archive_and_reset(
         let frame = encode_frame(payload, 0, ended_at_ms, "full");
         let hash_input = format!("{}|{}|{}", started_at_ms, ended_at_ms, final_tick);
         let hash = short_hash(&hash_input);
-        let (top_era, lineage_count, _, top_lineage, top_pop, _) =
-            compute_summary(&mut sim, peak_pop);
+        let (top_era, lineage_count, _, top_lineage, top_pop, _) = compute_summary(&mut sim, peak_pop);
         let final_pop: usize = sim.organisms.iter().filter(|o| o.alive).count();
         let meta = WorldMeta {
-            hash:             hash.clone(),
+            hash: hash.clone(),
             started_at_ms,
             ended_at_ms,
             final_tick,
             final_population: final_pop,
-            peak_population:  peak_pop,
+            peak_population: peak_pop,
             top_era,
             lineage_count,
             top_lineage,
-            top_lineage_pop:  top_pop,
+            top_lineage_pop: top_pop,
         };
         (hash, frame, meta)
     };
@@ -197,7 +229,7 @@ pub async fn archive_and_reset(
         Err(e) => {
             tracing::error!(target: "archive", "meta encode: {}", e);
             let _ = std::fs::remove_file(&snap_path);
-            return None
+            return None;
         }
     };
     if let Err(e) = write_file_atomic(&meta_path, &meta_bytes) {

@@ -1,25 +1,23 @@
-
-
+pub mod accept_loss;
+pub mod anger_outburst;
+pub mod back_down;
+pub mod calming_down;
+pub mod celebrate_victory;
+pub mod confront_bully;
 pub mod express_grief;
 pub mod express_joy;
-pub mod anger_outburst;
-pub mod calming_down;
-pub mod overcome_fear;
-pub mod accept_loss;
-pub mod celebrate_victory;
-pub mod regret_action;
-pub mod forgive_enemy;
-pub mod seek_revenge;
-pub mod find_purpose;
-pub mod lose_faith;
-pub mod renew_faith;
-pub mod confront_bully;
-pub mod stand_ground;
-pub mod back_down;
 pub mod find_inner_peace;
-pub mod succumb_to_despair;
-pub mod recover_from_trauma;
+pub mod find_purpose;
+pub mod forgive_enemy;
+pub mod lose_faith;
 pub mod make_peace_with_past;
+pub mod overcome_fear;
+pub mod recover_from_trauma;
+pub mod regret_action;
+pub mod renew_faith;
+pub mod seek_revenge;
+pub mod stand_ground;
+pub mod succumb_to_despair;
 
 use super::ctx::ActionCtx;
 
@@ -45,6 +43,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         403 => succumb_to_despair::apply(ctx),
         404 => recover_from_trauma::apply(ctx),
         405 => make_peace_with_past::apply(ctx),
-        _   => 0.0,
+        _ => 0.0,
     }
 }

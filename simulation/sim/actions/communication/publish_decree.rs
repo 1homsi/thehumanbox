@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -11,6 +10,9 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.sim.organisms[ki].boredom = (ctx.sim.organisms[ki].boredom - 0.05).max(0.0);
     }
     ctx.think("declaring a new rule for the group");
-    ctx.event("governance", "published a decree that clarified the rules of the community");
+    ctx.event(
+        "governance",
+        "published a decree that clarified the rules of the community",
+    );
     0.010
 }

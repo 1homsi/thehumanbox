@@ -1,11 +1,10 @@
-
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    let has_faith = ctx.org().discoveries.contains("faith")
-                 || ctx.org().discoveries.contains("ritual");
-    if ctx.org().inv_stone == 0 || !has_faith { return 0.0; }
+    let has_faith = ctx.org().discoveries.contains("faith") || ctx.org().discoveries.contains("ritual");
+    if ctx.org().inv_stone == 0 || !has_faith {
+        return 0.0;
+    }
     ctx.org_mut().inv_stone -= 1;
     let (ix, iy) = (ctx.ix, ctx.iy);
     ctx.sim.grid.add_structure(ix, iy, 0.08);

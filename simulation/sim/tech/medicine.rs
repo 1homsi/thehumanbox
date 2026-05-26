@@ -1,9 +1,18 @@
-use serde::{Deserialize, Serialize};
 use crate::sim::era::Era;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum DiseaseKind {
-    Cold, Flu, Fever, Plague, Cholera, Pox, Tuberculosis, Influenza, Malaria, Scurvy,
+    Cold,
+    Flu,
+    Fever,
+    Plague,
+    Cholera,
+    Pox,
+    Tuberculosis,
+    Influenza,
+    Malaria,
+    Scurvy,
 }
 
 impl DiseaseKind {
@@ -78,7 +87,13 @@ impl DiseaseKind {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TreatmentKind {
-    Herbal, Bloodletting, Quinine, Antibiotics, Vaccine, Surgery, GeneTherapy,
+    Herbal,
+    Bloodletting,
+    Quinine,
+    Antibiotics,
+    Vaccine,
+    Surgery,
+    GeneTherapy,
 }
 
 impl TreatmentKind {
@@ -95,7 +110,10 @@ impl TreatmentKind {
         match (self, against) {
             (TreatmentKind::Herbal, DiseaseKind::Cold | DiseaseKind::Fever) => 0.30,
             (TreatmentKind::Quinine, DiseaseKind::Malaria | DiseaseKind::Fever) => 0.70,
-            (TreatmentKind::Antibiotics, DiseaseKind::Plague | DiseaseKind::Cholera | DiseaseKind::Tuberculosis | DiseaseKind::Pox) => 0.85,
+            (
+                TreatmentKind::Antibiotics,
+                DiseaseKind::Plague | DiseaseKind::Cholera | DiseaseKind::Tuberculosis | DiseaseKind::Pox,
+            ) => 0.85,
             (TreatmentKind::Vaccine, _) => 0.95,
             (TreatmentKind::Surgery, DiseaseKind::Plague) => 0.20,
             (TreatmentKind::GeneTherapy, _) => 0.98,
@@ -122,11 +140,23 @@ pub struct Outbreak {
 
 pub fn pick_introduction(era: Era, seed: u64) -> Option<DiseaseKind> {
     let candidates: Vec<DiseaseKind> = [
-        DiseaseKind::Cold, DiseaseKind::Flu, DiseaseKind::Fever, DiseaseKind::Plague,
-        DiseaseKind::Cholera, DiseaseKind::Pox, DiseaseKind::Tuberculosis,
-        DiseaseKind::Influenza, DiseaseKind::Malaria, DiseaseKind::Scurvy,
-    ].into_iter().filter(|d| d.era_appearance() <= era).collect();
-    if candidates.is_empty() { return None; }
+        DiseaseKind::Cold,
+        DiseaseKind::Flu,
+        DiseaseKind::Fever,
+        DiseaseKind::Plague,
+        DiseaseKind::Cholera,
+        DiseaseKind::Pox,
+        DiseaseKind::Tuberculosis,
+        DiseaseKind::Influenza,
+        DiseaseKind::Malaria,
+        DiseaseKind::Scurvy,
+    ]
+    .into_iter()
+    .filter(|d| d.era_appearance() <= era)
+    .collect();
+    if candidates.is_empty() {
+        return None;
+    }
     Some(candidates[(seed as usize) % candidates.len()])
 }
 

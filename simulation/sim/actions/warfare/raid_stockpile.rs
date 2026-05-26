@@ -1,6 +1,5 @@
-
-use crate::world::grid::TrailKind;
 use super::super::ctx::ActionCtx;
+use crate::world::grid::TrailKind;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let (ix, iy) = (ctx.ix, ctx.iy);
@@ -9,8 +8,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         for dy in -3..=3 {
             if ctx.sim.grid.trail_at(ix + dx, iy + dy, TrailKind::Food) > 0.4 {
                 ctx.sim.grid.leave_trail(ix + dx, iy + dy, TrailKind::Food, -0.5);
-                ctx.sim.organisms[ctx.idx].inv_food =
-                    ctx.sim.organisms[ctx.idx].inv_food.saturating_add(1);
+                ctx.sim.organisms[ctx.idx].inv_food = ctx.sim.organisms[ctx.idx].inv_food.saturating_add(1);
                 hit = true;
                 break 'rs;
             }

@@ -1,9 +1,17 @@
-use serde::{Deserialize, Serialize};
 use crate::sim::era::Era;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum GovernmentKind {
-    Tribal, Chiefdom, Monarchy, Theocracy, Republic, Democracy, Empire, Federation, Corporate,
+    Tribal,
+    Chiefdom,
+    Monarchy,
+    Theocracy,
+    Republic,
+    Democracy,
+    Empire,
+    Federation,
+    Corporate,
 }
 
 impl GovernmentKind {
@@ -35,7 +43,10 @@ impl GovernmentKind {
     pub fn leader_count(self) -> u8 {
         match self {
             GovernmentKind::Tribal => 0,
-            GovernmentKind::Chiefdom | GovernmentKind::Monarchy | GovernmentKind::Empire | GovernmentKind::Theocracy => 1,
+            GovernmentKind::Chiefdom
+            | GovernmentKind::Monarchy
+            | GovernmentKind::Empire
+            | GovernmentKind::Theocracy => 1,
             GovernmentKind::Republic => 3,
             GovernmentKind::Democracy | GovernmentKind::Federation => 5,
             GovernmentKind::Corporate => 7,
@@ -54,9 +65,25 @@ impl GovernmentKind {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum LawKind {
-    NoMurder, NoTheft, PropertyRights, Inheritance, Marriage, MilitaryService,
-    Taxation, Education, Religion, Worship, FreedomOfSpeech, NoSlavery, EqualRights,
-    SafetyNet, Healthcare, ChildLabour, EnvironmentalProtection, DigitalRights, Suffrage,
+    NoMurder,
+    NoTheft,
+    PropertyRights,
+    Inheritance,
+    Marriage,
+    MilitaryService,
+    Taxation,
+    Education,
+    Religion,
+    Worship,
+    FreedomOfSpeech,
+    NoSlavery,
+    EqualRights,
+    SafetyNet,
+    Healthcare,
+    ChildLabour,
+    EnvironmentalProtection,
+    DigitalRights,
+    Suffrage,
 }
 
 impl LawKind {
@@ -85,11 +112,21 @@ impl LawKind {
     }
     pub fn era_appearance(self) -> Era {
         match self {
-            LawKind::NoMurder | LawKind::NoTheft | LawKind::Marriage | LawKind::Inheritance | LawKind::Worship => Era::PreStone,
-            LawKind::PropertyRights | LawKind::Religion | LawKind::MilitaryService | LawKind::Taxation => Era::Bronze,
+            LawKind::NoMurder
+            | LawKind::NoTheft
+            | LawKind::Marriage
+            | LawKind::Inheritance
+            | LawKind::Worship => Era::PreStone,
+            LawKind::PropertyRights | LawKind::Religion | LawKind::MilitaryService | LawKind::Taxation => {
+                Era::Bronze
+            }
             LawKind::Education | LawKind::FreedomOfSpeech => Era::Classical,
             LawKind::NoSlavery => Era::Renaissance,
-            LawKind::SafetyNet | LawKind::Healthcare | LawKind::EqualRights | LawKind::ChildLabour | LawKind::Suffrage => Era::Modern,
+            LawKind::SafetyNet
+            | LawKind::Healthcare
+            | LawKind::EqualRights
+            | LawKind::ChildLabour
+            | LawKind::Suffrage => Era::Modern,
             LawKind::EnvironmentalProtection | LawKind::DigitalRights => Era::Information,
         }
     }
@@ -130,12 +167,24 @@ impl Government {
     }
 
     pub fn pick_kind_for(era: Era, pop: usize, literacy_avg: f32) -> GovernmentKind {
-        if era >= Era::Information && literacy_avg > 0.75 { return GovernmentKind::Federation; }
-        if era >= Era::Modern && literacy_avg > 0.6 { return GovernmentKind::Democracy; }
-        if era >= Era::Renaissance && literacy_avg > 0.4 { return GovernmentKind::Republic; }
-        if era >= Era::Iron && pop > 40 { return GovernmentKind::Empire; }
-        if era >= Era::Iron { return GovernmentKind::Monarchy; }
-        if pop > 12 { return GovernmentKind::Chiefdom; }
+        if era >= Era::Information && literacy_avg > 0.75 {
+            return GovernmentKind::Federation;
+        }
+        if era >= Era::Modern && literacy_avg > 0.6 {
+            return GovernmentKind::Democracy;
+        }
+        if era >= Era::Renaissance && literacy_avg > 0.4 {
+            return GovernmentKind::Republic;
+        }
+        if era >= Era::Iron && pop > 40 {
+            return GovernmentKind::Empire;
+        }
+        if era >= Era::Iron {
+            return GovernmentKind::Monarchy;
+        }
+        if pop > 12 {
+            return GovernmentKind::Chiefdom;
+        }
         GovernmentKind::Tribal
     }
 }

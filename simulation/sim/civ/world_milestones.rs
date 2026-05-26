@@ -1,19 +1,50 @@
-use serde::{Deserialize, Serialize};
 use crate::sim::era::Era;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Milestone {
-    FirstFire, FirstTool, FirstShelter, FirstBirth, FirstDeath,
-    FirstSpeech, FirstReligion, FirstWriting, FirstBook, FirstSchool,
-    FirstUniversity, FirstPlague, FirstWar, FirstTreaty,
-    FirstVehicle, FirstShip, FirstTrain, FirstPlane,
-    FirstFactory, FirstHospital, FirstElectricity, FirstComputer,
-    FirstSatellite, FirstAI,
-    Pop100, Pop500, Pop1000, Pop5000,
-    GoldenAge, Renaissance, Enlightenment,
-    GuildFormed, EmpireBorn, RepublicBorn, DemocracyBorn,
-    GreatFamine, GreatPlague, GreatFlood, GreatFire,
-    Revolution, MoonLanding, InternetAge,
+    FirstFire,
+    FirstTool,
+    FirstShelter,
+    FirstBirth,
+    FirstDeath,
+    FirstSpeech,
+    FirstReligion,
+    FirstWriting,
+    FirstBook,
+    FirstSchool,
+    FirstUniversity,
+    FirstPlague,
+    FirstWar,
+    FirstTreaty,
+    FirstVehicle,
+    FirstShip,
+    FirstTrain,
+    FirstPlane,
+    FirstFactory,
+    FirstHospital,
+    FirstElectricity,
+    FirstComputer,
+    FirstSatellite,
+    FirstAI,
+    Pop100,
+    Pop500,
+    Pop1000,
+    Pop5000,
+    GoldenAge,
+    Renaissance,
+    Enlightenment,
+    GuildFormed,
+    EmpireBorn,
+    RepublicBorn,
+    DemocracyBorn,
+    GreatFamine,
+    GreatPlague,
+    GreatFlood,
+    GreatFire,
+    Revolution,
+    MoonLanding,
+    InternetAge,
 }
 
 impl Milestone {
@@ -113,14 +144,43 @@ impl Milestone {
 
     pub fn era_at_least(self) -> Era {
         match self {
-            Milestone::FirstFire | Milestone::FirstTool | Milestone::FirstShelter | Milestone::FirstBirth | Milestone::FirstDeath | Milestone::FirstSpeech => Era::Stone,
-            Milestone::FirstReligion | Milestone::Pop100 | Milestone::FirstWar | Milestone::GreatFamine => Era::Bronze,
+            Milestone::FirstFire
+            | Milestone::FirstTool
+            | Milestone::FirstShelter
+            | Milestone::FirstBirth
+            | Milestone::FirstDeath
+            | Milestone::FirstSpeech => Era::Stone,
+            Milestone::FirstReligion | Milestone::Pop100 | Milestone::FirstWar | Milestone::GreatFamine => {
+                Era::Bronze
+            }
             Milestone::FirstWriting | Milestone::FirstTreaty | Milestone::EmpireBorn => Era::Iron,
-            Milestone::FirstBook | Milestone::FirstSchool | Milestone::FirstUniversity | Milestone::FirstPlague | Milestone::FirstShip | Milestone::Pop500 | Milestone::GoldenAge | Milestone::GreatPlague | Milestone::RepublicBorn | Milestone::GuildFormed => Era::Classical,
+            Milestone::FirstBook
+            | Milestone::FirstSchool
+            | Milestone::FirstUniversity
+            | Milestone::FirstPlague
+            | Milestone::FirstShip
+            | Milestone::Pop500
+            | Milestone::GoldenAge
+            | Milestone::GreatPlague
+            | Milestone::RepublicBorn
+            | Milestone::GuildFormed => Era::Classical,
             Milestone::Renaissance => Era::Renaissance,
-            Milestone::FirstFactory | Milestone::FirstHospital | Milestone::FirstElectricity | Milestone::FirstTrain | Milestone::FirstVehicle | Milestone::Pop1000 | Milestone::Revolution | Milestone::Enlightenment | Milestone::GreatFire | Milestone::GreatFlood => Era::Industrial,
+            Milestone::FirstFactory
+            | Milestone::FirstHospital
+            | Milestone::FirstElectricity
+            | Milestone::FirstTrain
+            | Milestone::FirstVehicle
+            | Milestone::Pop1000
+            | Milestone::Revolution
+            | Milestone::Enlightenment
+            | Milestone::GreatFire
+            | Milestone::GreatFlood => Era::Industrial,
             Milestone::FirstPlane | Milestone::DemocracyBorn | Milestone::MoonLanding => Era::Modern,
-            Milestone::FirstComputer | Milestone::FirstSatellite | Milestone::FirstAI | Milestone::Pop5000 | Milestone::InternetAge => Era::Information,
+            Milestone::FirstComputer
+            | Milestone::FirstSatellite
+            | Milestone::FirstAI
+            | Milestone::Pop5000
+            | Milestone::InternetAge => Era::Information,
         }
     }
 }

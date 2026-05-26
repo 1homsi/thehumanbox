@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 use crate::world::tiles::Tile;
 
@@ -9,7 +8,10 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     }
     ctx.org_mut().inv_wood -= 1;
     ctx.think("planting young trees in rows");
-    ctx.discover("grove_planting", "established a managed grove for future harvests");
+    ctx.discover(
+        "grove_planting",
+        "established a managed grove for future harvests",
+    );
     ctx.event("build", "planted a grove of trees for food and timber");
     0.007
 }

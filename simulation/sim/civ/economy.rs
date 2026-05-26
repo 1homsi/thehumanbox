@@ -1,12 +1,39 @@
+use crate::sim::era::Era;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use crate::sim::era::Era;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Specialty {
-    Farmer, Smith, Hunter, Healer, Scholar, Merchant, Soldier, Builder, Priest, Artist,
-    Engineer, Sailor, Miner, Weaver, Baker, Brewer, Carpenter, Mason, Scribe, Banker,
-    Doctor, Teacher, Lawyer, Officer, Pilot, Programmer, Journalist, Actor, Athlete, Politician,
+    Farmer,
+    Smith,
+    Hunter,
+    Healer,
+    Scholar,
+    Merchant,
+    Soldier,
+    Builder,
+    Priest,
+    Artist,
+    Engineer,
+    Sailor,
+    Miner,
+    Weaver,
+    Baker,
+    Brewer,
+    Carpenter,
+    Mason,
+    Scribe,
+    Banker,
+    Doctor,
+    Teacher,
+    Lawyer,
+    Officer,
+    Pilot,
+    Programmer,
+    Journalist,
+    Actor,
+    Athlete,
+    Politician,
 }
 
 impl Specialty {
@@ -47,11 +74,33 @@ impl Specialty {
 
     pub fn era_unlock(self) -> Era {
         match self {
-            Specialty::Farmer | Specialty::Hunter | Specialty::Healer | Specialty::Builder | Specialty::Priest | Specialty::Artist => Era::Stone,
-            Specialty::Smith | Specialty::Merchant | Specialty::Soldier | Specialty::Sailor | Specialty::Miner | Specialty::Weaver | Specialty::Baker | Specialty::Brewer | Specialty::Carpenter | Specialty::Mason => Era::Bronze,
+            Specialty::Farmer
+            | Specialty::Hunter
+            | Specialty::Healer
+            | Specialty::Builder
+            | Specialty::Priest
+            | Specialty::Artist => Era::Stone,
+            Specialty::Smith
+            | Specialty::Merchant
+            | Specialty::Soldier
+            | Specialty::Sailor
+            | Specialty::Miner
+            | Specialty::Weaver
+            | Specialty::Baker
+            | Specialty::Brewer
+            | Specialty::Carpenter
+            | Specialty::Mason => Era::Bronze,
             Specialty::Scholar | Specialty::Scribe | Specialty::Engineer => Era::Iron,
-            Specialty::Banker | Specialty::Doctor | Specialty::Teacher | Specialty::Lawyer | Specialty::Officer => Era::Renaissance,
-            Specialty::Pilot | Specialty::Journalist | Specialty::Actor | Specialty::Athlete | Specialty::Politician => Era::Modern,
+            Specialty::Banker
+            | Specialty::Doctor
+            | Specialty::Teacher
+            | Specialty::Lawyer
+            | Specialty::Officer => Era::Renaissance,
+            Specialty::Pilot
+            | Specialty::Journalist
+            | Specialty::Actor
+            | Specialty::Athlete
+            | Specialty::Politician => Era::Modern,
             Specialty::Programmer => Era::Information,
         }
     }
@@ -59,12 +108,26 @@ impl Specialty {
     pub fn wealth_per_tick(self) -> u32 {
         match self {
             Specialty::Farmer | Specialty::Hunter | Specialty::Miner => 1,
-            Specialty::Smith | Specialty::Builder | Specialty::Weaver | Specialty::Baker | Specialty::Carpenter | Specialty::Mason | Specialty::Brewer => 2,
+            Specialty::Smith
+            | Specialty::Builder
+            | Specialty::Weaver
+            | Specialty::Baker
+            | Specialty::Carpenter
+            | Specialty::Mason
+            | Specialty::Brewer => 2,
             Specialty::Merchant | Specialty::Sailor => 3,
-            Specialty::Healer | Specialty::Priest | Specialty::Artist | Specialty::Scribe | Specialty::Scholar => 2,
+            Specialty::Healer
+            | Specialty::Priest
+            | Specialty::Artist
+            | Specialty::Scribe
+            | Specialty::Scholar => 2,
             Specialty::Engineer | Specialty::Teacher | Specialty::Soldier => 4,
             Specialty::Doctor | Specialty::Lawyer | Specialty::Banker | Specialty::Officer => 6,
-            Specialty::Pilot | Specialty::Journalist | Specialty::Actor | Specialty::Athlete | Specialty::Politician => 8,
+            Specialty::Pilot
+            | Specialty::Journalist
+            | Specialty::Actor
+            | Specialty::Athlete
+            | Specialty::Politician => 8,
             Specialty::Programmer => 12,
         }
     }
@@ -103,16 +166,96 @@ pub struct PriceTable {
 impl PriceTable {
     pub fn for_era(era: Era) -> Self {
         match era {
-            Era::PreStone | Era::Stone => PriceTable { food: 1, water: 1, wood: 1, stone: 1, iron: 0, cloth: 0, bread: 0 },
-            Era::Bronze => PriceTable { food: 2, water: 1, wood: 1, stone: 1, iron: 0, cloth: 2, bread: 2 },
-            Era::Iron => PriceTable { food: 2, water: 1, wood: 1, stone: 2, iron: 4, cloth: 2, bread: 2 },
-            Era::Classical => PriceTable { food: 3, water: 1, wood: 2, stone: 3, iron: 5, cloth: 3, bread: 3 },
-            Era::Medieval => PriceTable { food: 3, water: 1, wood: 2, stone: 3, iron: 6, cloth: 4, bread: 3 },
-            Era::Renaissance => PriceTable { food: 4, water: 1, wood: 3, stone: 4, iron: 6, cloth: 5, bread: 4 },
-            Era::Industrial => PriceTable { food: 5, water: 1, wood: 4, stone: 5, iron: 8, cloth: 4, bread: 4 },
-            Era::Modern => PriceTable { food: 6, water: 2, wood: 5, stone: 6, iron: 9, cloth: 5, bread: 5 },
-            Era::Information => PriceTable { food: 8, water: 3, wood: 6, stone: 7, iron: 10, cloth: 7, bread: 6 },
-            _ => PriceTable { food: 10, water: 4, wood: 8, stone: 9, iron: 12, cloth: 9, bread: 8 },
+            Era::PreStone | Era::Stone => PriceTable {
+                food: 1,
+                water: 1,
+                wood: 1,
+                stone: 1,
+                iron: 0,
+                cloth: 0,
+                bread: 0,
+            },
+            Era::Bronze => PriceTable {
+                food: 2,
+                water: 1,
+                wood: 1,
+                stone: 1,
+                iron: 0,
+                cloth: 2,
+                bread: 2,
+            },
+            Era::Iron => PriceTable {
+                food: 2,
+                water: 1,
+                wood: 1,
+                stone: 2,
+                iron: 4,
+                cloth: 2,
+                bread: 2,
+            },
+            Era::Classical => PriceTable {
+                food: 3,
+                water: 1,
+                wood: 2,
+                stone: 3,
+                iron: 5,
+                cloth: 3,
+                bread: 3,
+            },
+            Era::Medieval => PriceTable {
+                food: 3,
+                water: 1,
+                wood: 2,
+                stone: 3,
+                iron: 6,
+                cloth: 4,
+                bread: 3,
+            },
+            Era::Renaissance => PriceTable {
+                food: 4,
+                water: 1,
+                wood: 3,
+                stone: 4,
+                iron: 6,
+                cloth: 5,
+                bread: 4,
+            },
+            Era::Industrial => PriceTable {
+                food: 5,
+                water: 1,
+                wood: 4,
+                stone: 5,
+                iron: 8,
+                cloth: 4,
+                bread: 4,
+            },
+            Era::Modern => PriceTable {
+                food: 6,
+                water: 2,
+                wood: 5,
+                stone: 6,
+                iron: 9,
+                cloth: 5,
+                bread: 5,
+            },
+            Era::Information => PriceTable {
+                food: 8,
+                water: 3,
+                wood: 6,
+                stone: 7,
+                iron: 10,
+                cloth: 7,
+                bread: 6,
+            },
+            _ => PriceTable {
+                food: 10,
+                water: 4,
+                wood: 8,
+                stone: 9,
+                iron: 12,
+                cloth: 9,
+                bread: 8,
+            },
         }
     }
 
@@ -203,7 +346,10 @@ pub fn elder_pension(era: Era) -> u32 {
 }
 
 pub fn lineage_currencies(lineage_eras: &HashMap<String, Era>) -> HashMap<String, &'static str> {
-    lineage_eras.iter().map(|(lid, era)| (lid.clone(), currency_unit_for_era(*era))).collect()
+    lineage_eras
+        .iter()
+        .map(|(lid, era)| (lid.clone(), currency_unit_for_era(*era)))
+        .collect()
 }
 
 #[cfg(test)]

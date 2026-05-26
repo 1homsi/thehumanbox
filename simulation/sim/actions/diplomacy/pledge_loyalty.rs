@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -6,7 +5,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("loyal in spirit");
         return 0.0;
     };
-    let oid   = ctx.sim.organisms[ki].id.clone();
+    let oid = ctx.sim.organisms[ki].id.clone();
     let my_id = ctx.sim.organisms[ctx.idx].id.clone();
     {
         let me = &mut ctx.sim.organisms[ctx.idx];

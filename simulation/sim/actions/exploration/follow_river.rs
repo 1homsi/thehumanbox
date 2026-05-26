@@ -1,6 +1,5 @@
-
-use crate::world::grid::TrailKind;
 use super::super::ctx::ActionCtx;
+use crate::world::grid::TrailKind;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     if !ctx.water_near {

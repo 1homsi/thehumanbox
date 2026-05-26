@@ -1,9 +1,12 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    let kids: Vec<usize> = ctx.kin.iter().copied()
-        .filter(|&k| ctx.sim.organisms[k].age < 500).collect();
+    let kids: Vec<usize> = ctx
+        .kin
+        .iter()
+        .copied()
+        .filter(|&k| ctx.sim.organisms[k].age < 500)
+        .collect();
     if kids.is_empty() {
         ctx.think("looking for kids to play");
         return 0.0;

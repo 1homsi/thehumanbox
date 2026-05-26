@@ -1,15 +1,13 @@
-
-
-pub mod chant_at_dawn;
-pub mod paint_body;
-pub mod carve_totem_pole;
-pub mod offer_sacrifice;
-pub mod vision_quest;
+pub mod bless_a_field;
 pub mod burial_rite;
-pub mod wedding_ceremony;
+pub mod carve_totem_pole;
+pub mod chant_at_dawn;
 pub mod coming_of_age;
 pub mod harvest_festival;
-pub mod bless_a_field;
+pub mod offer_sacrifice;
+pub mod paint_body;
+pub mod vision_quest;
+pub mod wedding_ceremony;
 
 use super::ctx::ActionCtx;
 
@@ -25,6 +23,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         208 => coming_of_age::apply(ctx),
         209 => harvest_festival::apply(ctx),
         210 => bless_a_field::apply(ctx),
-        _   => 0.0,
+        _ => 0.0,
     }
 }

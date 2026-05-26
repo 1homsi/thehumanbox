@@ -1,7 +1,5 @@
-
-
-use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
+use crate::world::tiles::Tile;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     if matches!(ctx.tile, Tile::Sand | Tile::Grass) && ctx.chance(0.4) {
@@ -10,5 +8,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("digging a well");
         ctx.discover("well", "dug a well");
         0.05
-    } else { 0.0 }
+    } else {
+        0.0
+    }
 }

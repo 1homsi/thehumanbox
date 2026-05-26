@@ -1,9 +1,12 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    let warband: Vec<usize> = ctx.kin.iter().copied()
-        .filter(|&k| ctx.sim.organisms[k].age >= 800).collect();
+    let warband: Vec<usize> = ctx
+        .kin
+        .iter()
+        .copied()
+        .filter(|&k| ctx.sim.organisms[k].age >= 800)
+        .collect();
     if warband.len() < 2 {
         ctx.think("calling for warriors");
         return 0.0;

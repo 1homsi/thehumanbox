@@ -1,9 +1,16 @@
-use serde::{Deserialize, Serialize};
 use crate::sim::era::Era;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum WritingSystem {
-    None, Pictograph, Cuneiform, Alphabet, Script, Print, Typewriter, Digital,
+    None,
+    Pictograph,
+    Cuneiform,
+    Alphabet,
+    Script,
+    Print,
+    Typewriter,
+    Digital,
 }
 
 impl WritingSystem {
@@ -36,7 +43,17 @@ impl WritingSystem {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum InformationMedium {
-    Oral, Cave, Stone, Scroll, Codex, Book, Pamphlet, Newspaper, Radio, Television, Internet,
+    Oral,
+    Cave,
+    Stone,
+    Scroll,
+    Codex,
+    Book,
+    Pamphlet,
+    Newspaper,
+    Radio,
+    Television,
+    Internet,
 }
 
 impl InformationMedium {
@@ -71,8 +88,21 @@ impl InformationMedium {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum BookTopic {
-    History, Philosophy, Science, Medicine, Religion, Poetry, Law, Engineering,
-    Geography, Mathematics, Astronomy, Fiction, Biography, Economics, Drama,
+    History,
+    Philosophy,
+    Science,
+    Medicine,
+    Religion,
+    Poetry,
+    Law,
+    Engineering,
+    Geography,
+    Mathematics,
+    Astronomy,
+    Fiction,
+    Biography,
+    Economics,
+    Drama,
 }
 
 impl BookTopic {
@@ -110,14 +140,33 @@ pub struct Book {
 }
 
 pub const BOOK_TITLE_PREFIX: &[&str] = &[
-    "On", "The Book of", "Of", "Notes on", "Letters from", "Songs of",
-    "Tales of", "A Treatise on", "Reflections upon",
+    "On",
+    "The Book of",
+    "Of",
+    "Notes on",
+    "Letters from",
+    "Songs of",
+    "Tales of",
+    "A Treatise on",
+    "Reflections upon",
 ];
 
 pub const BOOK_TITLE_TOPIC: &[&str] = &[
-    "the River", "the Sky", "the Hearth", "the Wandering", "the Coming",
-    "the Long Road", "the Stone", "the Star", "the First Word", "the Old Year",
-    "the Hunters", "the Builders", "the Sea", "the Mountain", "the Forest",
+    "the River",
+    "the Sky",
+    "the Hearth",
+    "the Wandering",
+    "the Coming",
+    "the Long Road",
+    "the Stone",
+    "the Star",
+    "the First Word",
+    "the Old Year",
+    "the Hunters",
+    "the Builders",
+    "the Sea",
+    "the Mountain",
+    "the Forest",
 ];
 
 pub fn pick_book_title(seed: u64) -> String {

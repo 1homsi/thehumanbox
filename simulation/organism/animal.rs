@@ -1,81 +1,122 @@
+use crate::world::{
+    grid::{WorldGrid, HEIGHT, WIDTH},
+    tiles::Tile,
+};
 use rand::Rng;
 use serde::Serialize;
-use crate::world::{grid::{WorldGrid, WIDTH, HEIGHT}, tiles::Tile};
 
-const DIRS: [(i32, i32); 8] = [(0,-1),(0,1),(-1,0),(1,0),(-1,-1),(1,-1),(-1,1),(1,1)];
+const DIRS: [(i32, i32); 8] = [
+    (0, -1),
+    (0, 1),
+    (-1, 0),
+    (1, 0),
+    (-1, -1),
+    (1, -1),
+    (-1, 1),
+    (1, 1),
+];
 
 #[derive(Clone, Copy, PartialEq)]
-pub enum AnimalKind { Rabbit, Deer, Boar, Bird, Fish, Wolf, Dog }
+pub enum AnimalKind {
+    Rabbit,
+    Deer,
+    Boar,
+    Bird,
+    Fish,
+    Wolf,
+    Dog,
+}
 
 impl AnimalKind {
     pub fn drain(self) -> f32 {
         match self {
             AnimalKind::Rabbit => 0.0007,
-            AnimalKind::Deer   => 0.0005,
-            AnimalKind::Boar   => 0.0006,
-            AnimalKind::Bird   => 0.0009,
-            AnimalKind::Fish   => 0.0004,
-            AnimalKind::Wolf   => 0.0008,
-            AnimalKind::Dog    => 0.0006,
+            AnimalKind::Deer => 0.0005,
+            AnimalKind::Boar => 0.0006,
+            AnimalKind::Bird => 0.0009,
+            AnimalKind::Fish => 0.0004,
+            AnimalKind::Wolf => 0.0008,
+            AnimalKind::Dog => 0.0006,
         }
     }
     pub fn flee_radius(self) -> f32 {
         match self {
             AnimalKind::Rabbit => 6.0,
-            AnimalKind::Deer   => 4.5,
-            AnimalKind::Boar   => 3.0,
-            AnimalKind::Bird   => 7.0,
-            AnimalKind::Fish   => 0.0,
-            AnimalKind::Wolf   => 0.0,
-            AnimalKind::Dog    => 0.0,
+            AnimalKind::Deer => 4.5,
+            AnimalKind::Boar => 3.0,
+            AnimalKind::Bird => 7.0,
+            AnimalKind::Fish => 0.0,
+            AnimalKind::Wolf => 0.0,
+            AnimalKind::Dog => 0.0,
         }
     }
     pub fn step_size(self) -> i32 {
         match self {
             AnimalKind::Rabbit => 2,
-            AnimalKind::Deer   => 2,
-            AnimalKind::Boar   => 1,
-            AnimalKind::Bird   => 3,
-            AnimalKind::Fish   => 1,
-            AnimalKind::Wolf   => 2,
-            AnimalKind::Dog    => 2,
+            AnimalKind::Deer => 2,
+            AnimalKind::Boar => 1,
+            AnimalKind::Bird => 3,
+            AnimalKind::Fish => 1,
+            AnimalKind::Wolf => 2,
+            AnimalKind::Dog => 2,
         }
     }
-    pub fn aquatic(self) -> bool { matches!(self, AnimalKind::Fish) }
-    pub fn predator(self) -> bool { matches!(self, AnimalKind::Wolf) }
+    pub fn aquatic(self) -> bool {
+        matches!(self, AnimalKind::Fish)
+    }
+    pub fn predator(self) -> bool {
+        matches!(self, AnimalKind::Wolf)
+    }
     pub fn name(self) -> &'static str {
         match self {
             AnimalKind::Rabbit => "rabbit",
-            AnimalKind::Deer   => "deer",
-            AnimalKind::Boar   => "boar",
-            AnimalKind::Bird   => "bird",
-            AnimalKind::Fish   => "fish",
-            AnimalKind::Wolf   => "wolf",
-            AnimalKind::Dog    => "dog",
+            AnimalKind::Deer => "deer",
+            AnimalKind::Boar => "boar",
+            AnimalKind::Bird => "bird",
+            AnimalKind::Fish => "fish",
+            AnimalKind::Wolf => "wolf",
+            AnimalKind::Dog => "dog",
         }
     }
 }
 
 pub struct Animal {
-    pub id:              usize,
-    pub x:               f32,
-    pub y:               f32,
-    pub alive:           bool,
-    pub energy:          f32,
-    pub kind:            AnimalKind,
+    pub id: usize,
+    pub x: f32,
+    pub y: f32,
+    pub alive: bool,
+    pub energy: f32,
+    pub kind: AnimalKind,
     pub last_reproduced: u64,
-    pub bonded_org:      Option<String>,
-    pub name:            Option<String>,
+    pub bonded_org: Option<String>,
+    pub name: Option<String>,
 }
 
 impl Animal {
     pub fn new(id: usize, x: f32, y: f32, kind: AnimalKind) -> Self {
-        Animal { id, x, y, alive: true, energy: 0.8, kind, last_reproduced: 0, bonded_org: None, name: None }
+        Animal {
+            id,
+            x,
+            y,
+            alive: true,
+            energy: 0.8,
+            kind,
+            last_reproduced: 0,
+            bonded_org: None,
+            name: None,
+        }
     }
 
-    pub fn tick(&mut self, grid: &WorldGrid, org_positions: &[(f32, f32)],
-                prey_positions: &[(f32, f32)], rng: &mut impl Rng) {
-        if !self.alive { return; }
+    pub fn tick(
+        &mut self,
+        grid: &WorldGrid,
+        org_positions: &[(f32, f32)],
+        prey_positions: &[(f32, f32)],
+        rng: &mut impl Rng,
+    ) {
+        if !self.alive {
+            return;
+        }
         let (ix, iy) = (self.x as i32, self.y as i32);
 
         let on_food = grid.get(ix, iy) == Tile::Food;
@@ -88,15 +129,20 @@ impl Animal {
 
         let drain = self.kind.drain();
         self.energy = (self.energy - drain).max(0.0);
-        if self.energy <= 0.0 { self.alive = false; return; }
+        if self.energy <= 0.0 {
+            self.alive = false;
+            return;
+        }
 
         let step = self.kind.step_size();
 
         if self.kind.predator() {
-            let target = prey_positions.iter().chain(org_positions.iter())
+            let target = prey_positions
+                .iter()
+                .chain(org_positions.iter())
                 .map(|&(ox, oy)| ((ox - self.x).abs() + (oy - self.y).abs(), ox, oy))
                 .filter(|&(d, _, _)| d < 20.0)
-                .min_by(|(a,_,_),(b,_,_)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+                .min_by(|(a, _, _), (b, _, _)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
             if let Some((_, px, py)) = target {
                 let tx = ix + ((px - self.x).signum() * step as f32) as i32;
                 let ty = iy + ((py - self.y).signum() * step as f32) as i32;
@@ -111,9 +157,12 @@ impl Animal {
                 let mut bd = i32::MAX;
                 for ddx in -8i32..=8 {
                     for ddy in -8i32..=8 {
-                        if grid.get(ix+ddx, iy+ddy) == Tile::Water {
+                        if grid.get(ix + ddx, iy + ddy) == Tile::Water {
                             let d = ddx.abs() + ddy.abs();
-                            if d < bd { bd = d; best = (ix+ddx, iy+ddy); }
+                            if d < bd {
+                                bd = d;
+                                best = (ix + ddx, iy + ddy);
+                            }
                         }
                     }
                 }
@@ -129,17 +178,23 @@ impl Animal {
 
         let flee_r = self.kind.flee_radius();
         let nearest_org = if flee_r > 0.0 {
-            org_positions.iter()
+            org_positions
+                .iter()
                 .map(|&(ox, oy)| ((ox - self.x).abs() + (oy - self.y).abs(), ox, oy))
                 .filter(|&(d, _, _)| d < flee_r)
-                .min_by(|(a,_,_),(b,_,_)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-        } else { None };
+                .min_by(|(a, _, _), (b, _, _)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+        } else {
+            None
+        };
 
         let (tx, ty): (i32, i32) = if let Some((_, ox, oy)) = nearest_org {
             let fdx = self.x - ox;
             let fdy = self.y - oy;
             let len = (fdx * fdx + fdy * fdy).sqrt().max(0.001);
-            (ix + (fdx / len * 4.0).round() as i32, iy + (fdy / len * 4.0).round() as i32)
+            (
+                ix + (fdx / len * 4.0).round() as i32,
+                iy + (fdy / len * 4.0).round() as i32,
+            )
         } else if self.energy < 0.55 && rng.random::<f32>() < 0.35 {
             let mut best_d = 999i32;
             let mut best_t = (ix, iy);
@@ -147,7 +202,10 @@ impl Animal {
                 for ddy in -10i32..=10 {
                     if grid.get(ix + ddx, iy + ddy) == Tile::Food {
                         let d = ddx.abs() + ddy.abs();
-                        if d < best_d { best_d = d; best_t = (ix + ddx, iy + ddy); }
+                        if d < best_d {
+                            best_d = d;
+                            best_t = (ix + ddx, iy + ddy);
+                        }
                     }
                 }
             }
@@ -168,13 +226,25 @@ impl Animal {
         for &(ddx, ddy) in &DIRS {
             let nx = ix + ddx;
             let ny = iy + ddy;
-            if nx < 1 || ny < 1 || nx >= WIDTH as i32 - 1 || ny >= HEIGHT as i32 - 1 { continue; }
+            if nx < 1 || ny < 1 || nx >= WIDTH as i32 - 1 || ny >= HEIGHT as i32 - 1 {
+                continue;
+            }
             let t = grid.get(nx, ny);
-            if matches!(t, Tile::Void | Tile::Rock | Tile::Fire) { continue; }
-            if blocks_water && t == Tile::Water { continue; }
-            if !blocks_water && t != Tile::Water { continue; }
+            if matches!(t, Tile::Void | Tile::Rock | Tile::Fire) {
+                continue;
+            }
+            if blocks_water && t == Tile::Water {
+                continue;
+            }
+            if !blocks_water && t != Tile::Water {
+                continue;
+            }
             let score = (tx - nx).abs() + (ty - ny).abs();
-            if score < best_score { best_score = score; best_step = (ddx, ddy); moved = true; }
+            if score < best_score {
+                best_score = score;
+                best_step = (ddx, ddy);
+                moved = true;
+            }
         }
         if moved {
             self.x = (ix + best_step.0) as f32;
@@ -185,9 +255,9 @@ impl Animal {
 
 #[derive(Serialize)]
 pub struct AnimalJson {
-    pub id:   usize,
-    pub x:    f32,
-    pub y:    f32,
+    pub id: usize,
+    pub x: f32,
+    pub y: f32,
     pub kind: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
@@ -196,9 +266,9 @@ pub struct AnimalJson {
 impl Animal {
     pub fn to_json(&self) -> AnimalJson {
         AnimalJson {
-            id:   self.id,
-            x:    (self.x * 10.0).round() / 10.0,
-            y:    (self.y * 10.0).round() / 10.0,
+            id: self.id,
+            x: (self.x * 10.0).round() / 10.0,
+            y: (self.y * 10.0).round() / 10.0,
             kind: self.kind.name(),
             name: self.name.clone(),
         }
@@ -206,10 +276,9 @@ impl Animal {
 }
 
 const DOG_NAMES: &[&str] = &[
-    "Argo", "Bo", "Cira", "Doro", "Elka", "Fenn", "Gola", "Huri", "Iva",
-    "Juno", "Kato", "Lupa", "Maro", "Nuli", "Oro", "Pira", "Quo", "Ren",
-    "Sila", "Tova", "Uma", "Vela", "Wira", "Xan", "Yara", "Zola",
-    "Aki", "Bran", "Coro", "Dali", "Erin", "Faro", "Gala", "Hima",
+    "Argo", "Bo", "Cira", "Doro", "Elka", "Fenn", "Gola", "Huri", "Iva", "Juno", "Kato", "Lupa", "Maro",
+    "Nuli", "Oro", "Pira", "Quo", "Ren", "Sila", "Tova", "Uma", "Vela", "Wira", "Xan", "Yara", "Zola", "Aki",
+    "Bran", "Coro", "Dali", "Erin", "Faro", "Gala", "Hima",
 ];
 
 pub fn pick_dog_name<R: rand::Rng>(rng: &mut R) -> String {

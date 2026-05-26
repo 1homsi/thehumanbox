@@ -1,35 +1,33 @@
-
-
-pub mod raid;
 pub mod ambush;
-pub mod pillage;
-pub mod sabotage;
-pub mod patrol;
-pub mod stand_guard;
-pub mod rally;
-pub mod defend;
-pub mod retreat;
-pub mod scout_enemy;
 pub mod claim_land;
-pub mod muster_warband;
-pub mod fortify_position;
-pub mod throw_stone;
+pub mod defend;
 pub mod duel_rival;
-pub mod shield_kin;
-pub mod rally_cry;
-pub mod spy_on_rival;
-pub mod raid_stockpile;
+pub mod fortify_position;
 pub mod intercept_raid;
+pub mod muster_warband;
 pub mod negotiate_ransom;
+pub mod patrol;
+pub mod pillage;
+pub mod raid;
+pub mod raid_stockpile;
+pub mod rally;
+pub mod rally_cry;
+pub mod retreat;
+pub mod sabotage;
+pub mod scout_enemy;
+pub mod shield_kin;
+pub mod spy_on_rival;
+pub mod stand_guard;
+pub mod throw_stone;
 
 use super::ctx::ActionCtx;
 
 pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
     match action {
-        96  => raid::apply(ctx),
-        97  => ambush::apply(ctx),
-        98  => pillage::apply(ctx),
-        99  => sabotage::apply(ctx),
+        96 => raid::apply(ctx),
+        97 => ambush::apply(ctx),
+        98 => pillage::apply(ctx),
+        99 => sabotage::apply(ctx),
         100 => patrol::apply(ctx),
         101 => stand_guard::apply(ctx),
         102 => rally::apply(ctx),
@@ -47,6 +45,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         198 => raid_stockpile::apply(ctx),
         199 => intercept_raid::apply(ctx),
         200 => negotiate_ransom::apply(ctx),
-        _   => 0.0,
+        _ => 0.0,
     }
 }

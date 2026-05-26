@@ -1,8 +1,10 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    let pick = ctx.kin.iter().copied()
+    let pick = ctx
+        .kin
+        .iter()
+        .copied()
         .find(|&ki| ctx.sim.organisms[ki].infection > 0.0);
     let Some(ki) = pick else {
         let fallback = ctx.kin.first().copied();

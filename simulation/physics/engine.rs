@@ -1,12 +1,12 @@
+use crate::world::{grid::WorldGrid, tiles::Tile};
 use rand::Rng;
 use std::collections::HashSet;
-use crate::world::{grid::WorldGrid, tiles::Tile};
 
 pub struct PhysicsEngine {
-    pub tick_count:       u64,
-    pub growth_mult:      f32,
-    active_fire_tiles:    HashSet<(i32, i32)>,
-    burn_out:  Vec<(i32, i32)>,
+    pub tick_count: u64,
+    pub growth_mult: f32,
+    active_fire_tiles: HashSet<(i32, i32)>,
+    burn_out: Vec<(i32, i32)>,
     new_fires: Vec<(i32, i32)>,
 }
 
@@ -16,7 +16,7 @@ impl PhysicsEngine {
             tick_count: 0,
             growth_mult: 1.0,
             active_fire_tiles: HashSet::new(),
-            burn_out:  Vec::new(),
+            burn_out: Vec::new(),
             new_fires: Vec::new(),
         }
     }
@@ -56,12 +56,24 @@ impl PhysicsEngine {
         let rain_drain = match weather_kind {
             1 => 0.04,
             2 => 0.20,
-            _ => if wet { 0.015 } else { 0.0 },
+            _ => {
+                if wet {
+                    0.015
+                } else {
+                    0.0
+                }
+            }
         };
         let spread_mult = match weather_kind {
             1 => 0.25,
             2 => 0.0,
-            _ => if wet { 0.1 } else { 1.0 },
+            _ => {
+                if wet {
+                    0.1
+                } else {
+                    1.0
+                }
+            }
         };
 
         let mut campfire_burn_out: Vec<(i32, i32)> = Vec::new();
@@ -75,7 +87,11 @@ impl PhysicsEngine {
                         self.burn_out.push((x, y));
                     } else {
                         *grid.fire_intensity_mut(x, y) = new_int;
-                        let base = if grid.biome_at(x, y) == Biome::Volcanic { 0.012 } else { 0.004 };
+                        let base = if grid.biome_at(x, y) == Biome::Volcanic {
+                            0.012
+                        } else {
+                            0.004
+                        };
                         let spread_chance = base * spread_mult;
                         if spread_chance > 0.0 {
                             for (nx, ny) in WorldGrid::neighbors(x, y) {
@@ -100,7 +116,7 @@ impl PhysicsEngine {
             }
         }
 
-        let burn_out  = std::mem::take(&mut self.burn_out);
+        let burn_out = std::mem::take(&mut self.burn_out);
         let new_fires = std::mem::take(&mut self.new_fires);
 
         for (x, y) in &burn_out {
@@ -121,19 +137,22 @@ impl PhysicsEngine {
             self.active_fire_tiles.insert((*x, *y));
         }
 
-        self.burn_out  = burn_out;
+        self.burn_out = burn_out;
         self.new_fires = new_fires;
     }
 
     fn lightning_strike(&mut self, grid: &mut WorldGrid, rng: &mut impl Rng) {
-        use crate::world::grid::{WIDTH, HEIGHT};
+        use crate::world::grid::{HEIGHT, WIDTH};
         for _ in 0..40 {
             let x = rng.random_range(5..WIDTH as i32 - 5);
             let y = rng.random_range(5..HEIGHT as i32 - 5);
             if grid.get(x, y).flammable() {
-                let min_pool = grid.pool_centers.iter()
+                let min_pool = grid
+                    .pool_centers
+                    .iter()
                     .map(|(px, py)| (x - px).abs() + (y - py).abs())
-                    .min().unwrap_or(999);
+                    .min()
+                    .unwrap_or(999);
                 if min_pool >= 8 {
                     grid.set(x, y, Tile::Fire);
                     *grid.fire_intensity_mut(x, y) = 1.0;
@@ -145,8 +164,8 @@ impl PhysicsEngine {
     }
 
     fn grow_plants(&self, grid: &mut WorldGrid, rng: &mut impl Rng) {
-        use crate::world::grid::{WIDTH, HEIGHT, TrailKind};
-        let base_grow    = 0.0055 * self.growth_mult;
+        use crate::world::grid::{TrailKind, HEIGHT, WIDTH};
+        let base_grow = 0.0055 * self.growth_mult;
         let recover_rate = 0.0018 * (self.growth_mult * 0.7).max(0.4);
 
         for y in 0..HEIGHT as i32 {
@@ -157,7 +176,9 @@ impl PhysicsEngine {
                         let trail_boost = 1.0 + trail * 1.2;
                         let fertility = grid.fertility[WorldGrid::idx(x, y)];
                         let grow_rate = base_grow * grid.biome_growth_mult(x, y) * trail_boost * fertility;
-                        if rng.random::<f32>() < grow_rate { grid.set(x, y, Tile::Food); }
+                        if rng.random::<f32>() < grow_rate {
+                            grid.set(x, y, Tile::Food);
+                        }
                     }
                     Tile::Ash if rng.random::<f32>() < recover_rate => grid.set(x, y, Tile::Grass),
                     _ => {}

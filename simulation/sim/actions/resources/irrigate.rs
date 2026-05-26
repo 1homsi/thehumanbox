@@ -1,8 +1,6 @@
-
-
+use super::super::ctx::ActionCtx;
 use crate::world::grid::WorldGrid;
 use crate::world::tiles::Tile;
-use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     if !ctx.water_near || !matches!(ctx.tile, Tile::Grass) {

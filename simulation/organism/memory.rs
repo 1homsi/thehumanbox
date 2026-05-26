@@ -13,35 +13,35 @@ pub enum MemoryKind {
 impl MemoryKind {
     pub fn label(self) -> &'static str {
         match self {
-            MemoryKind::Core    => "core",
+            MemoryKind::Core => "core",
             MemoryKind::Episode => "episode",
-            MemoryKind::Fact    => "fact",
-            MemoryKind::Bond    => "bond",
-            MemoryKind::Place   => "place",
-            MemoryKind::Dream   => "dream",
+            MemoryKind::Fact => "fact",
+            MemoryKind::Bond => "bond",
+            MemoryKind::Place => "place",
+            MemoryKind::Dream => "dream",
         }
     }
 
     pub fn from_label(s: &str) -> Self {
         match s {
-            "core"    => MemoryKind::Core,
+            "core" => MemoryKind::Core,
             "episode" => MemoryKind::Episode,
-            "fact"    => MemoryKind::Fact,
-            "bond"    => MemoryKind::Bond,
-            "place"   => MemoryKind::Place,
-            "dream"   => MemoryKind::Dream,
-            _         => MemoryKind::Episode,
+            "fact" => MemoryKind::Fact,
+            "bond" => MemoryKind::Bond,
+            "place" => MemoryKind::Place,
+            "dream" => MemoryKind::Dream,
+            _ => MemoryKind::Episode,
         }
     }
 
     pub fn decay_per_day(self) -> f32 {
         match self {
-            MemoryKind::Core    => 0.0,
-            MemoryKind::Fact    => 0.001,
-            MemoryKind::Bond    => 0.003,
-            MemoryKind::Place   => 0.004,
+            MemoryKind::Core => 0.0,
+            MemoryKind::Fact => 0.001,
+            MemoryKind::Bond => 0.003,
+            MemoryKind::Place => 0.004,
             MemoryKind::Episode => 0.008,
-            MemoryKind::Dream   => 0.030,
+            MemoryKind::Dream => 0.030,
         }
     }
 }
@@ -105,14 +105,17 @@ pub struct MemoryStore {
 impl MemoryStore {
     pub const MAX: usize = 64;
     const FLOOR: f32 = 0.02;
+    const DEDUP_WINDOW: usize = 16;
 
     pub fn insert(&mut self, e: MemoryEntry) {
         if e.salience <= 0.0 {
             return;
         }
         if let MemoryKind::Episode | MemoryKind::Place | MemoryKind::Bond | MemoryKind::Dream = e.kind {
-            for existing in self.entries.iter_mut() {
-                if existing.text == e.text && existing.kind == e.kind {
+            let n = self.entries.len();
+            let start = n.saturating_sub(Self::DEDUP_WINDOW);
+            for existing in self.entries[start..].iter_mut() {
+                if existing.kind == e.kind && existing.text == e.text {
                     existing.salience = (existing.salience + e.salience * 0.5).min(1.0);
                     existing.recall_count = existing.recall_count.saturating_add(1);
                     return;
@@ -123,7 +126,9 @@ impl MemoryStore {
         if self.entries.len() > Self::MAX {
             let cap = Self::MAX;
             self.entries.sort_by(|a, b| {
-                b.salience.partial_cmp(&a.salience).unwrap_or(std::cmp::Ordering::Equal)
+                b.salience
+                    .partial_cmp(&a.salience)
+                    .unwrap_or(std::cmp::Ordering::Equal)
             });
             self.entries.truncate(cap);
         }
@@ -144,7 +149,8 @@ impl MemoryStore {
             let decay = e.kind.decay_per_day() * days * (2.0 - mind_keep);
             e.salience = (e.salience - decay).max(0.0);
         }
-        self.entries.retain(|e| e.salience > Self::FLOOR || e.kind == MemoryKind::Core);
+        self.entries
+            .retain(|e| e.salience > Self::FLOOR || e.kind == MemoryKind::Core);
     }
 
     pub fn touch(&mut self, predicate: impl Fn(&MemoryEntry) -> bool, bump: f32) -> usize {
@@ -161,29 +167,40 @@ impl MemoryStore {
 
     pub fn top(&self, n: usize) -> Vec<&MemoryEntry> {
         let mut v: Vec<&MemoryEntry> = self.entries.iter().collect();
-        v.sort_by(|a, b| b.salience.partial_cmp(&a.salience).unwrap_or(std::cmp::Ordering::Equal));
+        v.sort_by(|a, b| {
+            b.salience
+                .partial_cmp(&a.salience)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         v.truncate(n);
         v
     }
 
     pub fn most_salient(&self) -> Option<&MemoryEntry> {
         self.entries.iter().max_by(|a, b| {
-            a.salience.partial_cmp(&b.salience).unwrap_or(std::cmp::Ordering::Equal)
+            a.salience
+                .partial_cmp(&b.salience)
+                .unwrap_or(std::cmp::Ordering::Equal)
         })
     }
 
     pub fn most_salient_of(&self, kind: MemoryKind) -> Option<&MemoryEntry> {
-        self.entries
-            .iter()
-            .filter(|e| e.kind == kind)
-            .max_by(|a, b| a.salience.partial_cmp(&b.salience).unwrap_or(std::cmp::Ordering::Equal))
+        self.entries.iter().filter(|e| e.kind == kind).max_by(|a, b| {
+            a.salience
+                .partial_cmp(&b.salience)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
     }
 
     pub fn recall_about(&self, related_id: &str) -> Option<&MemoryEntry> {
         self.entries
             .iter()
             .filter(|e| e.related_id.as_deref() == Some(related_id))
-            .max_by(|a, b| a.salience.partial_cmp(&b.salience).unwrap_or(std::cmp::Ordering::Equal))
+            .max_by(|a, b| {
+                a.salience
+                    .partial_cmp(&b.salience)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
     }
 
     pub fn pick_for_reflection(&self, prefer_emotion: Option<bool>) -> Option<&MemoryEntry> {
@@ -197,9 +214,11 @@ impl MemoryStore {
                 None => true,
             })
             .collect();
-        candidates
-            .into_iter()
-            .max_by(|a, b| a.salience.partial_cmp(&b.salience).unwrap_or(std::cmp::Ordering::Equal))
+        candidates.into_iter().max_by(|a, b| {
+            a.salience
+                .partial_cmp(&b.salience)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
     }
 
     pub fn len(&self) -> usize {
@@ -216,7 +235,12 @@ pub fn seed_core_memories(tick: u64) -> Vec<MemoryEntry> {
         MemoryEntry::new(MemoryKind::Core, "I am alive in this world.", tick).with_emotion(1),
         MemoryEntry::new(MemoryKind::Core, "The sun rises and the sun sets.", tick).with_emotion(0),
         MemoryEntry::new(MemoryKind::Core, "Other beings move around me.", tick).with_emotion(0),
-        MemoryEntry::new(MemoryKind::Core, "Food keeps me strong; water keeps me well.", tick).with_emotion(0),
+        MemoryEntry::new(
+            MemoryKind::Core,
+            "Food keeps me strong; water keeps me well.",
+            tick,
+        )
+        .with_emotion(0),
         MemoryEntry::new(MemoryKind::Core, "Danger hurts. Fire warms.", tick).with_emotion(0),
         MemoryEntry::new(MemoryKind::Core, "I can choose what to do.", tick).with_emotion(1),
         MemoryEntry::new(MemoryKind::Core, "The world is real and I am part of it.", tick).with_emotion(1),
@@ -234,7 +258,10 @@ mod tests {
             store.insert(m);
         }
         store.tick(10_000, 600, 0.5);
-        assert!(store.entries.iter().all(|e| e.kind != MemoryKind::Core || e.salience >= 0.95));
+        assert!(store
+            .entries
+            .iter()
+            .all(|e| e.kind != MemoryKind::Core || e.salience >= 0.95));
     }
 
     #[test]
@@ -271,6 +298,9 @@ mod tests {
         }
         assert!(store.entries.len() <= MemoryStore::MAX);
         let kept_high = store.entries.iter().filter(|e| e.salience >= 0.85).count();
-        assert_eq!(kept_high, high_count, "all high-salience memories must survive truncation");
+        assert_eq!(
+            kept_high, high_count,
+            "all high-salience memories must survive truncation"
+        );
     }
 }

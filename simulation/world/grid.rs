@@ -58,12 +58,11 @@ impl WorldGrid {
     }
 
     pub fn enforce_ocean_border(&mut self) {
-        const HARD_X: i32 = (WIDTH  as f32 * 0.025) as i32;
+        const HARD_X: i32 = (WIDTH as f32 * 0.025) as i32;
         const HARD_Y: i32 = (HEIGHT as f32 * 0.025) as i32;
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
-                if x < HARD_X || x >= WIDTH as i32 - HARD_X
-                   || y < HARD_Y || y >= HEIGHT as i32 - HARD_Y {
+                if x < HARD_X || x >= WIDTH as i32 - HARD_X || y < HARD_Y || y >= HEIGHT as i32 - HARD_Y {
                     let i = Self::idx(x, y);
                     self.water_out(i);
                 }
@@ -84,11 +83,11 @@ impl WorldGrid {
     }
 
     fn soften_ocean_coast(&mut self) {
-        const HARD_X:  i32 = (WIDTH  as f32 * 0.025) as i32;
-        const HARD_Y:  i32 = (HEIGHT as f32 * 0.025) as i32;
-        const TRANS_X: i32 = (WIDTH  as f32 * 0.10) as i32;
+        const HARD_X: i32 = (WIDTH as f32 * 0.025) as i32;
+        const HARD_Y: i32 = (HEIGHT as f32 * 0.025) as i32;
+        const TRANS_X: i32 = (WIDTH as f32 * 0.10) as i32;
         const TRANS_Y: i32 = (HEIGHT as f32 * 0.10) as i32;
-        let w = WIDTH  as i32;
+        let w = WIDTH as i32;
         let h = HEIGHT as i32;
         let band_x = (TRANS_X - HARD_X).max(1) as f32;
         let band_y = (TRANS_Y - HARD_Y).max(1) as f32;
@@ -97,17 +96,25 @@ impl WorldGrid {
             for x in HARD_X..(w - HARD_X) {
                 let i = Self::idx(x, y);
                 if self.tiles[i] == Tile::Water as i8 {
-                    continue
+                    continue;
                 }
                 let dx_in = (x - HARD_X).min(w - 1 - HARD_X - x);
                 let dy_in = (y - HARD_Y).min(h - 1 - HARD_Y - y);
                 let in_x = dx_in < (TRANS_X - HARD_X);
                 let in_y = dy_in < (TRANS_Y - HARD_Y);
                 if !in_x && !in_y {
-                    continue
+                    continue;
                 }
-                let prog_x = if in_x { (dx_in as f32 / band_x).clamp(0.0, 1.0) } else { 1.0 };
-                let prog_y = if in_y { (dy_in as f32 / band_y).clamp(0.0, 1.0) } else { 1.0 };
+                let prog_x = if in_x {
+                    (dx_in as f32 / band_x).clamp(0.0, 1.0)
+                } else {
+                    1.0
+                };
+                let prog_y = if in_y {
+                    (dy_in as f32 / band_y).clamp(0.0, 1.0)
+                } else {
+                    1.0
+                };
                 let prog = prog_x.min(prog_y);
 
                 let nx = x as f32 / w as f32;
@@ -125,10 +132,9 @@ impl WorldGrid {
     }
 
     pub fn is_edge_border(x: i32, y: i32) -> bool {
-        const HARD_X: i32 = (WIDTH  as f32 * 0.025) as i32;
+        const HARD_X: i32 = (WIDTH as f32 * 0.025) as i32;
         const HARD_Y: i32 = (HEIGHT as f32 * 0.025) as i32;
-        x < HARD_X || x >= WIDTH as i32 - HARD_X
-        || y < HARD_Y || y >= HEIGHT as i32 - HARD_Y
+        x < HARD_X || x >= WIDTH as i32 - HARD_X || y < HARD_Y || y >= HEIGHT as i32 - HARD_Y
     }
 
     pub fn idx(x: i32, y: i32) -> usize {
@@ -254,8 +260,12 @@ impl WorldGrid {
     pub fn decay_trails(&mut self) {
         Self::decay_dirty(
             &mut self.trail_dirty,
-            &mut self.food_trail, &mut self.water_trail, &mut self.path_trail,
-            0.988, 0.988, 0.997,
+            &mut self.food_trail,
+            &mut self.water_trail,
+            &mut self.path_trail,
+            0.988,
+            0.988,
+            0.997,
         );
     }
 
@@ -268,8 +278,12 @@ impl WorldGrid {
         const P3: f32 = 0.991_026; // 0.997^3
         Self::decay_dirty(
             &mut self.trail_dirty,
-            &mut self.food_trail, &mut self.water_trail, &mut self.path_trail,
-            F3, F3, P3,
+            &mut self.food_trail,
+            &mut self.water_trail,
+            &mut self.path_trail,
+            F3,
+            F3,
+            P3,
         );
     }
 
@@ -278,17 +292,39 @@ impl WorldGrid {
     /// once all three layers are within `TRAIL_EPS` of zero.
     fn decay_dirty(
         dirty: &mut std::collections::HashSet<u32>,
-        food: &mut [f32], water: &mut [f32], path: &mut [f32],
-        ff: f32, fw: f32, fp: f32,
+        food: &mut [f32],
+        water: &mut [f32],
+        path: &mut [f32],
+        ff: f32,
+        fw: f32,
+        fp: f32,
     ) {
         dirty.retain(|&i| {
             let idx = i as usize;
             let mut f = food[idx];
             let mut w = water[idx];
             let mut p = path[idx];
-            if f > 0.0 { f *= ff; if f < Self::TRAIL_EPS { f = 0.0; } food[idx]  = f; }
-            if w > 0.0 { w *= fw; if w < Self::TRAIL_EPS { w = 0.0; } water[idx] = w; }
-            if p > 0.0 { p *= fp; if p < Self::TRAIL_EPS { p = 0.0; } path[idx]  = p; }
+            if f > 0.0 {
+                f *= ff;
+                if f < Self::TRAIL_EPS {
+                    f = 0.0;
+                }
+                food[idx] = f;
+            }
+            if w > 0.0 {
+                w *= fw;
+                if w < Self::TRAIL_EPS {
+                    w = 0.0;
+                }
+                water[idx] = w;
+            }
+            if p > 0.0 {
+                p *= fp;
+                if p < Self::TRAIL_EPS {
+                    p = 0.0;
+                }
+                path[idx] = p;
+            }
             // Keep the dirty entry as long as any layer is still active.
             f > 0.0 || w > 0.0 || p > 0.0
         });
@@ -475,16 +511,8 @@ impl WorldGrid {
                 let nx = x as f32 / WIDTH as f32;
                 let ny = y as f32 / HEIGHT as f32;
 
-                let wx = Self::fbm(
-                    nx * 1.7 + 13.7,
-                    ny * 1.7 + 52.4,
-                    seed ^ 0x2a3b_4c5d_6e7f_8a9b,
-                ) * 0.20;
-                let wy = Self::fbm(
-                    nx * 1.7 + 77.3,
-                    ny * 1.7 + 31.1,
-                    seed ^ 0x1b2c_3d4e_5f6a_7b8c,
-                ) * 0.20;
+                let wx = Self::fbm(nx * 1.7 + 13.7, ny * 1.7 + 52.4, seed ^ 0x2a3b_4c5d_6e7f_8a9b) * 0.20;
+                let wy = Self::fbm(nx * 1.7 + 77.3, ny * 1.7 + 31.1, seed ^ 0x1b2c_3d4e_5f6a_7b8c) * 0.20;
                 let wnx = nx + wx;
                 let wny = ny + wy;
 
@@ -512,11 +540,11 @@ impl WorldGrid {
                     1.0
                 };
 
-                const EDGE_KILL:     f32 = 0.04;
+                const EDGE_KILL: f32 = 0.04;
                 const EDGE_FADE_END: f32 = 0.12;
                 let dx_edge = nx.min(1.0 - nx);
                 let dy_edge = ny.min(1.0 - ny);
-                let d_edge  = dx_edge.min(dy_edge);
+                let d_edge = dx_edge.min(dy_edge);
                 let edge_fade = if d_edge < EDGE_KILL {
                     -0.5
                 } else if d_edge < EDGE_FADE_END {
@@ -527,8 +555,7 @@ impl WorldGrid {
                 };
 
                 raw_elev[Self::idx(x as i32, y as i32)] =
-                    ((noise + cont_lift) * polar_fade) * edge_fade.max(0.0)
-                    + edge_fade.min(0.0);
+                    ((noise + cont_lift) * polar_fade) * edge_fade.max(0.0) + edge_fade.min(0.0);
             }
         }
 
@@ -896,12 +923,7 @@ impl WorldGrid {
                 }
                 connected[best_b] = true;
                 if rng.random::<f32>() < 0.65 {
-                    self.carve_river(
-                        pool_centers[best_a],
-                        pool_centers[best_b],
-                        &mut rng,
-                        &land_mask,
-                    );
+                    self.carve_river(pool_centers[best_a], pool_centers[best_b], &mut rng, &land_mask);
                 }
             }
             for _ in 0..(n / 3) {
@@ -964,14 +986,10 @@ impl WorldGrid {
                     if self.tiles[i] != Tile::Water as i8 {
                         continue;
                     }
-                    let on_shore =
-                        [(-1i32, 0i32), (1, 0), (0, -1), (0, 1)]
-                            .iter()
-                            .any(|&(dx, dy)| {
-                                let (nx, ny_) = (x + dx, y + dy);
-                                Self::in_bounds(nx, ny_)
-                                    && self.tiles[Self::idx(nx, ny_)] != Tile::Water as i8
-                            });
+                    let on_shore = [(-1i32, 0i32), (1, 0), (0, -1), (0, 1)].iter().any(|&(dx, dy)| {
+                        let (nx, ny_) = (x + dx, y + dy);
+                        Self::in_bounds(nx, ny_) && self.tiles[Self::idx(nx, ny_)] != Tile::Water as i8
+                    });
                     if on_shore {
                         od[i] = 0;
                         queue.push_back((x, y));
@@ -1003,13 +1021,7 @@ impl WorldGrid {
         }
     }
 
-    fn carve_river(
-        &mut self,
-        from: (i32, i32),
-        to: (i32, i32),
-        rng: &mut impl Rng,
-        land_mask: &[bool],
-    ) {
+    fn carve_river(&mut self, from: (i32, i32), to: (i32, i32), rng: &mut impl Rng, land_mask: &[bool]) {
         let (mut x, mut y) = from;
         let max_steps = ((from.0 - to.0).abs() + (from.1 - to.1).abs()) * 6;
         let mut perp_bias: f32 = if rng.random::<bool>() { 1.0 } else { -1.0 };
@@ -1073,27 +1085,35 @@ impl WorldGrid {
     /// the world-evolution spec calls this out specifically.
     pub fn tick_river_meander(&mut self, rng: &mut impl Rng) {
         for _ in 0..40 {
-            let x = rng.random_range(2..WIDTH  as i32 - 2);
+            let x = rng.random_range(2..WIDTH as i32 - 2);
             let y = rng.random_range(2..HEIGHT as i32 - 2);
-            if self.get(x, y) != Tile::Water { continue; }
+            if self.get(x, y) != Tile::Water {
+                continue;
+            }
             // Detect a linear water stretch on the N/S or E/W axis.
-            let (axis_dx, axis_dy) =
-                if self.get(x - 1, y) == Tile::Water && self.get(x + 1, y) == Tile::Water {
-                    (0i32, 1i32)
-                } else if self.get(x, y - 1) == Tile::Water && self.get(x, y + 1) == Tile::Water {
-                    (1, 0)
-                } else {
-                    continue;
-                };
+            let (axis_dx, axis_dy) = if self.get(x - 1, y) == Tile::Water && self.get(x + 1, y) == Tile::Water
+            {
+                (0i32, 1i32)
+            } else if self.get(x, y - 1) == Tile::Water && self.get(x, y + 1) == Tile::Water {
+                (1, 0)
+            } else {
+                continue;
+            };
             // Bank tiles are perpendicular to the river axis. Erode
             // one, silt the other.
             let bank_a = (x + axis_dx, y + axis_dy);
             let bank_b = (x - axis_dx, y - axis_dy);
             let a_land = !matches!(self.get(bank_a.0, bank_a.1), Tile::Water | Tile::Void);
             let b_land = !matches!(self.get(bank_b.0, bank_b.1), Tile::Water | Tile::Void);
-            if !(a_land && b_land) { continue; }
+            if !(a_land && b_land) {
+                continue;
+            }
             // Coin flip which side erodes.
-            let (erode, silt) = if rng.random::<bool>() { (bank_a, bank_b) } else { (bank_b, bank_a) };
+            let (erode, silt) = if rng.random::<bool>() {
+                (bank_a, bank_b)
+            } else {
+                (bank_b, bank_a)
+            };
             self.tiles[Self::idx(erode.0, erode.1)] = Tile::Water as i8;
             // Silt opposite shore - only if it's currently water (rare
             // mid-river drift case). Most of the time silt-side is
@@ -1114,22 +1134,30 @@ impl WorldGrid {
     pub fn tick_forest_spread(&mut self, rng: &mut impl Rng) {
         let mut grew = 0usize;
         for _ in 0..120 {
-            if grew >= 12 { break; }
-            let x = rng.random_range(1..WIDTH  as i32 - 1);
+            if grew >= 12 {
+                break;
+            }
+            let x = rng.random_range(1..WIDTH as i32 - 1);
             let y = rng.random_range(1..HEIGHT as i32 - 1);
-            if self.get(x, y) != Tile::Grass { continue; }
+            if self.get(x, y) != Tile::Grass {
+                continue;
+            }
             let i = Self::idx(x, y);
-            if self.fertility[i] < 0.55 { continue; }
+            if self.fertility[i] < 0.55 {
+                continue;
+            }
             let mut forest_nb = 0u8;
             for (dx, dy) in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
-                if Self::in_bounds(x + dx, y + dy)
-                    && self.biome_at(x + dx, y + dy) == Biome::Forest
-                {
+                if Self::in_bounds(x + dx, y + dy) && self.biome_at(x + dx, y + dy) == Biome::Forest {
                     forest_nb += 1;
-                    if forest_nb >= 2 { break; }
+                    if forest_nb >= 2 {
+                        break;
+                    }
                 }
             }
-            if forest_nb < 2 { continue; }
+            if forest_nb < 2 {
+                continue;
+            }
             self.biome[i] = Biome::Forest as u8;
             grew += 1;
         }
@@ -1140,15 +1168,23 @@ impl WorldGrid {
     /// to close the "forests spread or die" loop. Caller passes the
     /// drought flag so we only burn the budget when relevant.
     pub fn tick_forest_dieback(&mut self, drought_active: bool, rng: &mut impl Rng) {
-        if !drought_active { return; }
+        if !drought_active {
+            return;
+        }
         let mut died = 0usize;
         for _ in 0..120 {
-            if died >= 8 { break; }
-            let x = rng.random_range(1..WIDTH  as i32 - 1);
+            if died >= 8 {
+                break;
+            }
+            let x = rng.random_range(1..WIDTH as i32 - 1);
             let y = rng.random_range(1..HEIGHT as i32 - 1);
-            if self.biome_at(x, y) != Biome::Forest { continue; }
+            if self.biome_at(x, y) != Biome::Forest {
+                continue;
+            }
             let i = Self::idx(x, y);
-            if self.fertility[i] >= 0.30 { continue; }
+            if self.fertility[i] >= 0.30 {
+                continue;
+            }
             // Demote to grassland; the underlying tile stays grass.
             self.biome[i] = Biome::Grassland as u8;
             died += 1;
@@ -1160,7 +1196,7 @@ impl WorldGrid {
         // 18000 ticks; at 4 changes per ~30 min real that's invisible
         // against the 180k land grid. Bumped 10× so coastlines actually
         // drift on a session timescale.
-        let flood_count  = rng.random_range(30..=80usize);
+        let flood_count = rng.random_range(30..=80usize);
         let emerge_count = rng.random_range(20..=50usize);
 
         let mut flooded = 0usize;
@@ -1195,13 +1231,11 @@ impl WorldGrid {
             if self.get(x, y) != Tile::Water {
                 continue;
             }
-            let coastal =
-                [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]
-                    .iter()
-                    .any(|&(nx, ny)| {
-                        Self::in_bounds(nx, ny)
-                            && !matches!(self.get(nx, ny), Tile::Water | Tile::Void)
-                    });
+            let coastal = [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]
+                .iter()
+                .any(|&(nx, ny)| {
+                    Self::in_bounds(nx, ny) && !matches!(self.get(nx, ny), Tile::Water | Tile::Void)
+                });
             if coastal {
                 let ny_n = y as f32 / HEIGHT as f32;
                 let lat = (ny_n - 0.5).abs() * 2.0;
@@ -1247,7 +1281,9 @@ impl WorldGrid {
             // ~5-tile-wide strip: walk perpendicular ±2.
             for off in -2..=2 {
                 let (tx, ty) = if horizontal { (x, y + off) } else { (x + off, y) };
-                if !Self::in_bounds(tx, ty) { continue; }
+                if !Self::in_bounds(tx, ty) {
+                    continue;
+                }
                 let i = Self::idx(tx, ty);
                 match self.get(tx, ty) {
                     Tile::Grass | Tile::Sand | Tile::Food | Tile::Ash => {
@@ -1262,7 +1298,9 @@ impl WorldGrid {
                     }
                     _ => {}
                 }
-                if flipped >= 30 { return; }
+                if flipped >= 30 {
+                    return;
+                }
             }
         }
     }
@@ -1294,11 +1332,7 @@ impl WorldGrid {
             let row = &self.fire_intensity[y * WIDTH + ox..y * WIDTH + ox + vw];
             for (col_off, &v) in row.iter().enumerate() {
                 if v > 0.001 {
-                    fire.push([
-                        (y - oy) as u16,
-                        col_off as u16,
-                        (v * 1000.0).min(65535.0) as u16,
-                    ]);
+                    fire.push([(y - oy) as u16, col_off as u16, (v * 1000.0).min(65535.0) as u16]);
                 }
             }
         }
@@ -1308,11 +1342,7 @@ impl WorldGrid {
             let row = &self.structure[y * WIDTH + ox..y * WIDTH + ox + vw];
             for (col_off, &v) in row.iter().enumerate() {
                 if v > 0.001 {
-                    structure.push([
-                        (y - oy) as u16,
-                        col_off as u16,
-                        (v * 100.0).min(65535.0) as u16,
-                    ]);
+                    structure.push([(y - oy) as u16, col_off as u16, (v * 100.0).min(65535.0) as u16]);
                 }
             }
         }
@@ -1472,12 +1502,7 @@ mod tests {
                     land += 1;
                     livable += 1;
                 }
-                Tile::Rock
-                | Tile::Snow
-                | Tile::Sand
-                | Tile::Fire
-                | Tile::Scorched
-                | Tile::Mineral => {
+                Tile::Rock | Tile::Snow | Tile::Sand | Tile::Fire | Tile::Scorched | Tile::Mineral => {
                     land += 1;
                     harsh += 1;
                 }

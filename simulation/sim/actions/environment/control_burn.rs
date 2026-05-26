@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 use crate::world::tiles::Tile;
 
@@ -9,6 +8,9 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     }
     ctx.think("setting a careful, directed burn");
     ctx.discover("controlled_burn", "used fire deliberately to renew the land");
-    ctx.event("build", "conducted a controlled burn to clear undergrowth and enrich soil");
+    ctx.event(
+        "build",
+        "conducted a controlled burn to clear undergrowth and enrich soil",
+    );
     0.010
 }

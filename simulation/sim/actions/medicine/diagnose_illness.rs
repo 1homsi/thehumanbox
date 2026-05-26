@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -6,8 +5,8 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("no patient to diagnose");
         return 0.0;
     };
-    let health     = ctx.sim.organisms[ki].health;
-    let infection  = ctx.sim.organisms[ki].infection;
+    let health = ctx.sim.organisms[ki].health;
+    let infection = ctx.sim.organisms[ki].infection;
     let diagnosis = if infection > 0.3 {
         "severe infection detected"
     } else if health < 0.3 {

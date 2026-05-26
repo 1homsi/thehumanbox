@@ -1,10 +1,23 @@
-use serde::{Deserialize, Serialize};
 use crate::sim::era::Era;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TransportKind {
-    Foot, Sled, Cart, Wagon, Boat, Ship, Carriage, Train,
-    Bicycle, Automobile, Truck, Plane, Subway, Helicopter, Rocket,
+    Foot,
+    Sled,
+    Cart,
+    Wagon,
+    Boat,
+    Ship,
+    Carriage,
+    Train,
+    Bicycle,
+    Automobile,
+    Truck,
+    Plane,
+    Subway,
+    Helicopter,
+    Rocket,
 }
 
 impl TransportKind {
@@ -34,7 +47,11 @@ impl TransportKind {
             TransportKind::Wagon | TransportKind::Ship => Era::Iron,
             TransportKind::Carriage => Era::Classical,
             TransportKind::Train | TransportKind::Bicycle => Era::Industrial,
-            TransportKind::Automobile | TransportKind::Truck | TransportKind::Plane | TransportKind::Subway | TransportKind::Helicopter => Era::Modern,
+            TransportKind::Automobile
+            | TransportKind::Truck
+            | TransportKind::Plane
+            | TransportKind::Subway
+            | TransportKind::Helicopter => Era::Modern,
             TransportKind::Rocket => Era::Information,
         }
     }

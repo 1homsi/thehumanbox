@@ -1,25 +1,23 @@
-
-
+pub mod ask_for_help;
+pub mod ask_forgiveness;
+pub mod bond_ritual;
+pub mod challenge_friend;
+pub mod comfort_grieving;
+pub mod defend_reputation;
+pub mod express_admiration;
+pub mod express_gratitude;
+pub mod express_love;
 pub mod gift_food;
 pub mod gift_tool;
-pub mod express_gratitude;
-pub mod ask_for_help;
-pub mod share_burden;
-pub mod comfort_grieving;
 pub mod jealousy_outburst;
+pub mod mentor_moment;
+pub mod offer_protection;
 pub mod pledge_friendship;
 pub mod reconcile;
-pub mod defend_reputation;
-pub mod share_secret;
-pub mod express_admiration;
-pub mod ask_forgiveness;
-pub mod offer_protection;
-pub mod bond_ritual;
-pub mod silent_companionship;
-pub mod challenge_friend;
-pub mod mentor_moment;
-pub mod express_love;
 pub mod resolve_conflict;
+pub mod share_burden;
+pub mod share_secret;
+pub mod silent_companionship;
 
 use super::ctx::ActionCtx;
 
@@ -45,6 +43,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         243 => mentor_moment::apply(ctx),
         244 => express_love::apply(ctx),
         245 => resolve_conflict::apply(ctx),
-        _   => 0.0,
+        _ => 0.0,
     }
 }

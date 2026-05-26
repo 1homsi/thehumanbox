@@ -1,30 +1,32 @@
 use std::sync::Arc;
 
-use tokio::sync::{Mutex, mpsc};
+use tokio::sync::{mpsc, Mutex};
 
-use crate::server::llm::{GroqResponse, NARRATION_LLM_MODEL, NARRATION_LLM_URL, llm_body, llm_extract, strip_thinking};
-use crate::server::llm_stats::SharedLlmStats;
+use crate::server::llm::{
+    llm_body, llm_extract, strip_thinking, GroqResponse, NARRATION_LLM_MODEL, NARRATION_LLM_URL,
+};
 use crate::server::llm_rate::SharedGroqLimiter;
+use crate::server::llm_stats::SharedLlmStats;
 
 pub struct NarrationReq {
-    pub org_id:        String,
-    pub org_name:      String,
-    pub sex:           String,
-    pub age_days:      u32,
-    pub tribe_name:    Option<String>,
-    pub life_log:      Vec<String>,
-    pub vocab:         std::collections::HashMap<String, String>,
-    pub partner_name:  Option<String>,
-    pub children:      u32,
-    pub era:           String,
-    pub mood:          String,
-    pub aspiration:    String,
-    pub memories:      Vec<String>,
+    pub org_id: String,
+    pub org_name: String,
+    pub sex: String,
+    pub age_days: u32,
+    pub tribe_name: Option<String>,
+    pub life_log: Vec<String>,
+    pub vocab: std::collections::HashMap<String, String>,
+    pub partner_name: Option<String>,
+    pub children: u32,
+    pub era: String,
+    pub mood: String,
+    pub aspiration: String,
+    pub memories: Vec<String>,
 }
 
 fn format_events(log: &[String]) -> String {
     if log.is_empty() {
-        return "wandered the world without notable events".to_string()
+        return "wandered the world without notable events".to_string();
     }
     log.iter()
         .enumerate()
@@ -35,16 +37,23 @@ fn format_events(log: &[String]) -> String {
 
 fn format_vocab(vocab: &std::collections::HashMap<String, String>) -> String {
     let mut pairs: Vec<String> = [
-        "food", "water", "fire", "danger", "friend", "shelter", "home", "child", "tribe",
-        "death", "joy", "spirit", "stranger", "hunt", "trade",
+        "food", "water", "fire", "danger", "friend", "shelter", "home", "child", "tribe", "death", "joy",
+        "spirit", "stranger", "hunt", "trade",
     ]
-        .iter()
-        .filter_map(|&c| vocab.get(c)
+    .iter()
+    .filter_map(|&c| {
+        vocab
+            .get(c)
             .filter(|w| !w.trim().is_empty())
-            .map(|w| format!("  {} = \"{}\"", c, w)))
-        .collect();
+            .map(|w| format!("  {} = \"{}\"", c, w))
+    })
+    .collect();
     pairs.sort();
-    if pairs.is_empty() { "  (no tribe words yet)".to_string() } else { pairs.join("\n") }
+    if pairs.is_empty() {
+        "  (no tribe words yet)".to_string()
+    } else {
+        pairs.join("\n")
+    }
 }
 
 fn build_prompt(req: &NarrationReq) -> String {
@@ -107,7 +116,8 @@ Output ONLY the sentence.",
 }
 
 fn build_strict_retry_prompt(req: &NarrationReq) -> String {
-    format!("\
+    format!(
+        "\
 Earlier output was rejected. Try again, even stricter:
 
 ORG: {name} ({sex}, {age} days, mood: {mood})
@@ -126,7 +136,13 @@ Output ONLY the sentence.",
         age = req.age_days,
         mood = req.mood,
         events = format_events(&req.life_log),
-        vocab = req.vocab.iter().take(4).map(|(c,w)| format!("{}={}", c, w)).collect::<Vec<_>>().join(", "),
+        vocab = req
+            .vocab
+            .iter()
+            .take(4)
+            .map(|(c, w)| format!("{}={}", c, w))
+            .collect::<Vec<_>>()
+            .join(", "),
     )
 }
 
@@ -140,16 +156,33 @@ fn validate(s: &str, org_name: &str) -> Result<String, &'static str> {
     }
     let s = s.trim().to_string();
 
-    if s.is_empty() { return Err("empty"); }
-    if s.len() < 10 { return Err("too short"); }
-    if s.len() > 280 { return Err("too long"); }
+    if s.is_empty() {
+        return Err("empty");
+    }
+    if s.len() < 10 {
+        return Err("too short");
+    }
+    if s.len() > 280 {
+        return Err("too long");
+    }
 
     let lower = s.to_lowercase();
     for bad in [
-        "here is", "here's", "sure,", "okay,", "ok,", "sentence:", "story:",
-        "narration:", "output:", "alright,", "got it",
+        "here is",
+        "here's",
+        "sure,",
+        "okay,",
+        "ok,",
+        "sentence:",
+        "story:",
+        "narration:",
+        "output:",
+        "alright,",
+        "got it",
     ] {
-        if lower.starts_with(bad) { return Err("meta prefix"); }
+        if lower.starts_with(bad) {
+            return Err("meta prefix");
+        }
     }
 
     if lower.starts_with(&format!("{} ", org_name.to_lowercase())) {
@@ -159,8 +192,12 @@ fn validate(s: &str, org_name: &str) -> Result<String, &'static str> {
     let words = s.split_whitespace().count();
     // Prompt asks for ≤30; validator allows a little slack (35) so a
     // single extra clause doesn't waste a retry slot.
-    if words > 35 { return Err("too many words"); }
-    if words < 3 { return Err("too few words"); }
+    if words > 35 {
+        return Err("too many words");
+    }
+    if words < 3 {
+        return Err("too few words");
+    }
 
     if !s.ends_with('.') && !s.ends_with('!') && !s.ends_with('?') {
         return Err("no terminal punctuation");
@@ -178,46 +215,85 @@ fn validate(s: &str, org_name: &str) -> Result<String, &'static str> {
 }
 
 fn template_fallback(req: &NarrationReq) -> String {
-    let food_word  = req.vocab.get("food").map(|s| s.as_str()).unwrap_or("food");
+    let food_word = req.vocab.get("food").map(|s| s.as_str()).unwrap_or("food");
     let water_word = req.vocab.get("water").map(|s| s.as_str()).unwrap_or("water");
     let log = &req.life_log;
     if let Some(ev) = log.iter().find(|e| e.contains("offspring")) {
-        let child = ev.split("offspring ").nth(1)
-            .and_then(|s| s.split(" at").next()).unwrap_or("a child");
+        let child = ev
+            .split("offspring ")
+            .nth(1)
+            .and_then(|s| s.split(" at").next())
+            .unwrap_or("a child");
         format!("{} brought {} into the world today.", req.org_name, child)
     } else if log.iter().any(|e| e.contains("war drums")) {
-        format!("{} heard distant war drums and gathered their kin closer.", req.org_name)
+        format!(
+            "{} heard distant war drums and gathered their kin closer.",
+            req.org_name
+        )
     } else if log.iter().any(|e| e.contains("battle")) {
         format!("{} braced as word of battle reached the camp.", req.org_name)
     } else if let Some(ev) = log.iter().find(|e| e.contains("watched") && e.contains("pass")) {
-        let who = ev.split("watched ").nth(1)
-            .and_then(|s| s.split(" pass").next()).unwrap_or("a kinsman");
+        let who = ev
+            .split("watched ")
+            .nth(1)
+            .and_then(|s| s.split(" pass").next())
+            .unwrap_or("a kinsman");
         format!("{} watched {} pass and could not speak.", req.org_name, who)
     } else if log.iter().any(|e| e.contains("first breath")) {
-        format!("{} saw new life take its first breath and felt the camp warm.", req.org_name)
+        format!(
+            "{} saw new life take its first breath and felt the camp warm.",
+            req.org_name
+        )
     } else if let Some(ev) = log.iter().find(|e| e.contains("brought home a")) {
-        let thing = ev.split("brought home a ").nth(1)
-            .and_then(|s| s.split(' ').next()).unwrap_or("trinket");
-        format!("{} brought home a {} and set it by the hearth.", req.org_name, thing)
+        let thing = ev
+            .split("brought home a ")
+            .nth(1)
+            .and_then(|s| s.split(' ').next())
+            .unwrap_or("trinket");
+        format!(
+            "{} brought home a {} and set it by the hearth.",
+            req.org_name, thing
+        )
     } else if log.iter().any(|e| e.contains("wed") || e.contains("married")) {
         format!("{} bound their life to another before the tribe.", req.org_name)
     } else if log.iter().any(|e| e.contains("hut") || e.contains("raised a")) {
         format!("{} raised a shelter from gathered wood.", req.org_name)
-    } else if log.iter().any(|e| e.contains("campfire") || e.contains("lit a fire")) {
+    } else if log
+        .iter()
+        .any(|e| e.contains("campfire") || e.contains("lit a fire"))
+    {
         format!("{} lit a fire and kept the dark at bay.", req.org_name)
     } else if log.iter().any(|e| e.contains("hunted")) {
-        let prey = log.iter().find(|e| e.contains("hunted"))
+        let prey = log
+            .iter()
+            .find(|e| e.contains("hunted"))
             .and_then(|e| e.split("hunted a ").nth(1))
-            .and_then(|s| s.split(" at").next()).unwrap_or("prey");
+            .and_then(|s| s.split(" at").next())
+            .unwrap_or("prey");
         format!("{} ran down a {} and fed well.", req.org_name, prey)
     } else if log.iter().any(|e| e.contains("fled") || e.contains("escaped")) {
-        format!("{} fled with a hammering heart and lived to see dusk.", req.org_name)
+        format!(
+            "{} fled with a hammering heart and lived to see dusk.",
+            req.org_name
+        )
     } else if log.iter().any(|e| e.contains("wrote") || e.contains("book")) {
-        format!("{} set words to page and left a thought for kin yet unborn.", req.org_name)
-    } else if log.iter().any(|e| e.contains("learned") && e.contains("religion")) {
-        format!("{} heard a new faith named and turned it over in their mind.", req.org_name)
+        format!(
+            "{} set words to page and left a thought for kin yet unborn.",
+            req.org_name
+        )
+    } else if log
+        .iter()
+        .any(|e| e.contains("learned") && e.contains("religion"))
+    {
+        format!(
+            "{} heard a new faith named and turned it over in their mind.",
+            req.org_name
+        )
     } else if log.iter().any(|e| e.contains("trade") || e.contains("bartered")) {
-        format!("{} bartered at the edge of camp and came away the richer.", req.org_name)
+        format!(
+            "{} bartered at the edge of camp and came away the richer.",
+            req.org_name
+        )
     } else if log.iter().any(|e| e.contains("ate food")) {
         format!("{} found {} and did not go hungry.", req.org_name, food_word)
     } else if log.iter().any(|e| e.contains("drank")) {
@@ -227,9 +303,15 @@ fn template_fallback(req: &NarrationReq) -> String {
     } else if log.iter().any(|e| e.contains("knowledge")) {
         format!("{} guided their kin to richer ground.", req.org_name)
     } else if req.mood == "joyful" {
-        format!("{} walked through the day with a quiet brightness in their chest.", req.org_name)
+        format!(
+            "{} walked through the day with a quiet brightness in their chest.",
+            req.org_name
+        )
     } else if req.mood == "mourning" {
-        format!("{} carried grief through the camp and spoke little.", req.org_name)
+        format!(
+            "{} carried grief through the camp and spoke little.",
+            req.org_name
+        )
     } else {
         format!("{} roamed and watched the world pass by.", req.org_name)
     }
@@ -246,21 +328,26 @@ async fn one_call(
     // pool stays drained, blocking here would wedge the worker. Treat a
     // timeout as a rate-limit miss — return Err so the caller falls back
     // to its template path without recording a success.
-    if tokio::time::timeout(
-        std::time::Duration::from_secs(5),
-        limiter.acquire(),
-    ).await.is_err() {
+    if tokio::time::timeout(std::time::Duration::from_secs(5), limiter.acquire())
+        .await
+        .is_err()
+    {
         tracing::warn!(target: "narrate", "rate limiter acquire timed out after 5s — abort");
         return Err(());
     }
     let started = std::time::Instant::now();
-    let resp = client.post(&**NARRATION_LLM_URL)
+    let resp = client
+        .post(&**NARRATION_LLM_URL)
         .header("Authorization", format!("Bearer {}", api_key))
         .json(&llm_body(prompt, 96, &NARRATION_LLM_MODEL))
-        .send().await;
+        .send()
+        .await;
     let resp = match resp {
         Ok(r) => r,
-        Err(_) => { stats.record_narration(started.elapsed().as_millis() as u64, true); return Err(()) }
+        Err(_) => {
+            stats.record_narration(started.elapsed().as_millis() as u64, true);
+            return Err(());
+        }
     };
     // Honour HTTP status before attempting to parse the body — Groq's
     // 429/5xx return JSON-shaped errors that won't deserialise into
@@ -275,11 +362,14 @@ async fn one_call(
         }
         stats.record_narration(elapsed, true);
         tracing::warn!(target: "narrate", "http {} from {}", status, &**NARRATION_LLM_URL);
-        return Err(())
+        return Err(());
     }
     let data: GroqResponse = match resp.json().await {
         Ok(d) => d,
-        Err(_) => { stats.record_narration(started.elapsed().as_millis() as u64, true); return Err(()) }
+        Err(_) => {
+            stats.record_narration(started.elapsed().as_millis() as u64, true);
+            return Err(());
+        }
     };
     stats.record_narration(started.elapsed().as_millis() as u64, false);
     Ok(strip_thinking(&llm_extract(data)))
@@ -306,7 +396,14 @@ pub async fn narration_worker(
                 Ok(ok) => Some(ok),
                 Err(why) => {
                     tracing::info!(target: "narrate", "rejected first response for {} ({}): {:?}", req.org_name, why, s);
-                    let retry = one_call(&client, &api_key, build_strict_retry_prompt(&req), &stats, &limiter).await;
+                    let retry = one_call(
+                        &client,
+                        &api_key,
+                        build_strict_retry_prompt(&req),
+                        &stats,
+                        &limiter,
+                    )
+                    .await;
                     match retry {
                         Ok(s2) => match validate(&s2, &req.org_name) {
                             Ok(ok) => Some(ok),

@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -8,7 +7,13 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     }
     ctx.org_mut().inv_wood -= 1;
     ctx.think("driving posts into the hillside");
-    ctx.discover("slope_stabilization", "braced a slope against erosion with timber and rock");
-    ctx.event("build", "stabilized a crumbling slope with wooden supports and packed stone");
+    ctx.discover(
+        "slope_stabilization",
+        "braced a slope against erosion with timber and rock",
+    );
+    ctx.event(
+        "build",
+        "stabilized a crumbling slope with wooden supports and packed stone",
+    );
     0.008
 }

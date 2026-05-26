@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -9,10 +8,8 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("nothing worth hoarding");
         return 0.0;
     }
-    ctx.sim.organisms[ctx.idx].comfort =
-        (ctx.sim.organisms[ctx.idx].comfort + 0.02).min(1.0);
-    ctx.sim.organisms[ctx.idx].boredom =
-        (ctx.sim.organisms[ctx.idx].boredom - 0.05).max(0.0);
+    ctx.sim.organisms[ctx.idx].comfort = (ctx.sim.organisms[ctx.idx].comfort + 0.02).min(1.0);
+    ctx.sim.organisms[ctx.idx].boredom = (ctx.sim.organisms[ctx.idx].boredom - 0.05).max(0.0);
     ctx.think("hoarding");
     0.003
 }

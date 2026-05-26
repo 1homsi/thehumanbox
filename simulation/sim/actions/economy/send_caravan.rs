@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -7,7 +6,10 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         return 0.0;
     }
     let lid = ctx.lid.clone();
-    let has_stranger = ctx.near.iter().copied()
+    let has_stranger = ctx
+        .near
+        .iter()
+        .copied()
         .any(|k| ctx.sim.organisms[k].lineage_id != lid);
     if !has_stranger {
         ctx.think("no destination for the caravan");

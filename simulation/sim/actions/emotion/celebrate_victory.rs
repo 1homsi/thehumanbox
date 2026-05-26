@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -12,6 +11,9 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     }
     ctx.org_mut().comfort = (ctx.org().comfort + 0.06).min(1.0);
     ctx.think("cheering with the group");
-    ctx.event("culture", "celebrated a shared victory, raising everyone's spirits");
+    ctx.event(
+        "culture",
+        "celebrated a shared victory, raising everyone's spirits",
+    );
     0.010
 }

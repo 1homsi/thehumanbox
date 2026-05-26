@@ -1,20 +1,18 @@
-
-
-pub mod pen_animal;
+pub mod brand_livestock;
 pub mod breed_animals;
-pub mod milk_animal;
-pub mod shear_wool;
-pub mod slaughter_animal;
-pub mod train_animal;
-pub mod ride_animal;
+pub mod build_corral;
 pub mod build_stable;
 pub mod feed_livestock;
 pub mod guard_flock;
-pub mod brand_livestock;
-pub mod transport_herd;
-pub mod release_animal;
+pub mod milk_animal;
 pub mod observe_animal_patterns;
-pub mod build_corral;
+pub mod pen_animal;
+pub mod release_animal;
+pub mod ride_animal;
+pub mod shear_wool;
+pub mod slaughter_animal;
+pub mod train_animal;
+pub mod transport_herd;
 
 use super::ctx::ActionCtx;
 
@@ -35,6 +33,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         368 => release_animal::apply(ctx),
         369 => observe_animal_patterns::apply(ctx),
         370 => build_corral::apply(ctx),
-        _   => 0.0,
+        _ => 0.0,
     }
 }

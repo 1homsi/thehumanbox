@@ -1,8 +1,6 @@
-
-
+use super::super::ctx::ActionCtx;
 use crate::organism::organism::Organism;
 use crate::world::tiles::Tile;
-use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let ms = ctx.org().traits.memory_strength;
@@ -10,10 +8,20 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     for dx in -12..=12 {
         for dy in -12..=12 {
             match ctx.sim.grid.get(ix + dx, iy + dy) {
-                Tile::Food  => Organism::remember(
-                    &mut ctx.sim.organisms[ctx.idx].food_memory,  ix + dx, iy + dy, 0.5, ms),
+                Tile::Food => Organism::remember(
+                    &mut ctx.sim.organisms[ctx.idx].food_memory,
+                    ix + dx,
+                    iy + dy,
+                    0.5,
+                    ms,
+                ),
                 Tile::Water => Organism::remember(
-                    &mut ctx.sim.organisms[ctx.idx].water_memory, ix + dx, iy + dy, 0.5, ms),
+                    &mut ctx.sim.organisms[ctx.idx].water_memory,
+                    ix + dx,
+                    iy + dy,
+                    0.5,
+                    ms,
+                ),
                 _ => {}
             }
         }

@@ -1,24 +1,22 @@
-
-
-pub mod form_army;
-pub mod train_soldiers;
-pub mod build_siege_weapon;
-pub mod lay_ambush_trap;
-pub mod establish_garrison;
-pub mod supply_army;
-pub mod execute_flanking;
-pub mod build_war_camp;
-pub mod draft_conscripts;
-pub mod train_cavalry;
 pub mod blockade_route;
-pub mod fortify_walls;
-pub mod coordinate_attack;
-pub mod establish_lookout;
-pub mod plan_retreat_route;
 pub mod build_catapult;
-pub mod naval_formation;
-pub mod siege_breaker;
+pub mod build_siege_weapon;
+pub mod build_war_camp;
+pub mod coordinate_attack;
+pub mod draft_conscripts;
+pub mod establish_garrison;
+pub mod establish_lookout;
+pub mod execute_flanking;
+pub mod form_army;
+pub mod fortify_walls;
 pub mod intelligence_gathering;
+pub mod lay_ambush_trap;
+pub mod naval_formation;
+pub mod plan_retreat_route;
+pub mod siege_breaker;
+pub mod supply_army;
+pub mod train_cavalry;
+pub mod train_soldiers;
 pub mod victory_parade;
 
 use super::ctx::ActionCtx;
@@ -45,6 +43,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         453 => siege_breaker::apply(ctx),
         454 => intelligence_gathering::apply(ctx),
         455 => victory_parade::apply(ctx),
-        _   => 0.0,
+        _ => 0.0,
     }
 }

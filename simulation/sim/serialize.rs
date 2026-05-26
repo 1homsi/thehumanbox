@@ -6,11 +6,19 @@ use crate::sim::config::DAY_LENGTH;
 use crate::sim::simulation::Simulation;
 
 static LOOKAHEAD_TICKS: std::sync::LazyLock<f32> = std::sync::LazyLock::new(|| {
-    let look_ms = std::env::var("LOOKAHEAD_MS").ok()
-        .and_then(|v| v.parse::<f32>().ok()).unwrap_or(150.0);
-    let tick_ms = std::env::var("TICK_MS").ok()
-        .and_then(|v| v.parse::<f32>().ok()).unwrap_or(100.0);
-    if tick_ms <= 0.0 { 0.0 } else { (look_ms / tick_ms).max(0.0) }
+    let look_ms = std::env::var("LOOKAHEAD_MS")
+        .ok()
+        .and_then(|v| v.parse::<f32>().ok())
+        .unwrap_or(150.0);
+    let tick_ms = std::env::var("TICK_MS")
+        .ok()
+        .and_then(|v| v.parse::<f32>().ok())
+        .unwrap_or(100.0);
+    if tick_ms <= 0.0 {
+        0.0
+    } else {
+        (look_ms / tick_ms).max(0.0)
+    }
 });
 
 impl Simulation {
@@ -36,20 +44,34 @@ impl Simulation {
     fn viewport_centroid(&self) -> (i32, i32) {
         let alive: Vec<_> = self.organisms.iter().filter(|o| o.alive).collect();
         if alive.is_empty() {
-            (crate::world::grid::WIDTH as i32 / 2, crate::world::grid::HEIGHT as i32 / 2)
+            (
+                crate::world::grid::WIDTH as i32 / 2,
+                crate::world::grid::HEIGHT as i32 / 2,
+            )
         } else {
             let n = alive.len() as f32;
-            ((alive.iter().map(|o| o.x).sum::<f32>() / n) as i32,
-             (alive.iter().map(|o| o.y).sum::<f32>() / n) as i32)
+            (
+                (alive.iter().map(|o| o.x).sum::<f32>() / n) as i32,
+                (alive.iter().map(|o| o.y).sum::<f32>() / n) as i32,
+            )
         }
     }
 
-    fn state_json_inner(&mut self, vp_cx: i32, vp_cy: i32, force_full: bool, include_cold: bool) -> serde_json::Value {
-        let needs_slow = self.tick_count == 0
-            || self.tick_count.saturating_sub(self.slow_compute_tick) >= 60;
+    fn state_json_inner(
+        &mut self,
+        vp_cx: i32,
+        vp_cy: i32,
+        force_full: bool,
+        include_cold: bool,
+    ) -> serde_json::Value {
+        let needs_slow = self.tick_count == 0 || self.tick_count.saturating_sub(self.slow_compute_tick) >= 60;
         if needs_slow {
-            let alive_lineages: std::collections::HashSet<String> = self.organisms.iter()
-                .filter(|o| o.alive).map(|o| o.lineage_id.clone()).collect();
+            let alive_lineages: std::collections::HashSet<String> = self
+                .organisms
+                .iter()
+                .filter(|o| o.alive)
+                .map(|o| o.lineage_id.clone())
+                .collect();
 
             let mut att_totals: HashMap<(String, String), (f32, u32)> = HashMap::new();
             for org in self.organisms.iter().filter(|o| o.alive) {
@@ -61,30 +83,42 @@ impl Simulation {
                             (other_lid.clone(), org.lineage_id.clone())
                         };
                         let e = att_totals.entry(key).or_insert((0.0, 0));
-                        e.0 += att; e.1 += 1;
+                        e.0 += att;
+                        e.1 += 1;
                     }
                 }
             }
             self.cached_tribal_relations = serde_json::to_value(
-                att_totals.into_iter()
+                att_totals
+                    .into_iter()
                     .filter(|(_, (_, cnt))| *cnt > 0)
                     .map(|((a, b), (sum, cnt))| {
                         let avg = sum / cnt as f32;
-                        let status = if avg > 0.3 { "ally" } else if avg < -0.3 { "rivals" } else { "neutral" };
+                        let status = if avg > 0.3 {
+                            "ally"
+                        } else if avg < -0.3 {
+                            "rivals"
+                        } else {
+                            "neutral"
+                        };
                         json!({ "a": a, "b": b,
                                  "attitude": (avg * 100.0).round() / 100.0, "status": status })
-                    }).collect::<Vec<_>>()
-            ).unwrap();
+                    })
+                    .collect::<Vec<_>>(),
+            )
+            .unwrap();
 
             let mut lineage_sizes: HashMap<String, usize> = HashMap::new();
             for org in self.organisms.iter().filter(|o| o.alive) {
                 *lineage_sizes.entry(org.lineage_id.clone()).or_insert(0) += 1;
             }
             self.cached_lineage_sizes = serde_json::to_value(
-                lineage_sizes.into_iter()
+                lineage_sizes
+                    .into_iter()
                     .map(|(id, count)| json!({"id": id, "count": count}))
-                    .collect::<Vec<_>>()
-            ).unwrap();
+                    .collect::<Vec<_>>(),
+            )
+            .unwrap();
 
             // Compute contested tiles: any tile claimed by 2+ lineages
             let mut tile_claim_count: HashMap<(i32, i32), u32> = HashMap::new();
@@ -93,7 +127,8 @@ impl Simulation {
                     *tile_claim_count.entry(tile).or_insert(0) += 1;
                 }
             }
-            let contested: Vec<[i32; 2]> = tile_claim_count.into_iter()
+            let contested: Vec<[i32; 2]> = tile_claim_count
+                .into_iter()
                 .filter(|(_, c)| *c >= 2)
                 .map(|((x, y), _)| [x, y])
                 .collect();
@@ -109,12 +144,18 @@ impl Simulation {
             self.slow_compute_tick = self.tick_count;
         }
 
-        let include_tiles  = include_cold || self.tick_count % 60 == 0 || self.tick_count <= 1;
+        let include_tiles = include_cold || self.tick_count % 60 == 0 || self.tick_count <= 1;
         let include_static = include_cold || self.tick_count % 60 == 0 || self.tick_count <= 1;
         let include_terrain = include_cold;
-        let grid_json = self.grid.to_json_viewport(vp_cx, vp_cy,
-            crate::world::grid::VP_W, crate::world::grid::VP_H,
-            include_tiles, include_static, include_terrain);
+        let grid_json = self.grid.to_json_viewport(
+            vp_cx,
+            vp_cy,
+            crate::world::grid::VP_W,
+            crate::world::grid::VP_H,
+            include_tiles,
+            include_static,
+            include_terrain,
+        );
         let include_all_entities = force_full || self.tick_count % 120 == 0 || self.tick_count <= 1;
         // When the viewport spans the whole world (the current config),
         // the centroid-centered window can slide off the map and filter
@@ -123,14 +164,16 @@ impl Simulation {
         // entities the client needs to render.
         let half_w = crate::world::grid::VP_W as i32 / 2 + 8;
         let half_h = crate::world::grid::VP_H as i32 / 2 + 8;
-        let left   = (vp_cx - half_w).max(-8);
-        let right  = (vp_cx + half_w).min(crate::world::grid::WIDTH  as i32 + 8);
-        let top    = (vp_cy - half_h).max(-8);
+        let left = (vp_cx - half_w).max(-8);
+        let right = (vp_cx + half_w).min(crate::world::grid::WIDTH as i32 + 8);
+        let top = (vp_cy - half_h).max(-8);
         let bottom = (vp_cy + half_h).min(crate::world::grid::HEIGHT as i32 + 8);
         let full_world_vp = crate::world::grid::VP_W >= crate::world::grid::WIDTH
             && crate::world::grid::VP_H >= crate::world::grid::HEIGHT;
         let in_view = |x: f32, y: f32| {
-            if full_world_vp { return true }
+            if full_world_vp {
+                return true;
+            }
             let x = x as i32;
             let y = y as i32;
             x >= left && x <= right && y >= top && y <= bottom
@@ -138,11 +181,15 @@ impl Simulation {
         let per_org_cold = include_cold;
         use crate::organism::organism::OrgsHotSoa;
         let mut payload = if include_all_entities {
-            let organisms_json = self.organisms.iter()
+            let organisms_json = self
+                .organisms
+                .iter()
                 .filter(|o| o.alive)
                 .map(|o| serde_json::to_value(o.to_json_with(per_org_cold)).unwrap())
                 .collect::<Vec<_>>();
-            let animals_json = self.animals.iter()
+            let animals_json = self
+                .animals
+                .iter()
                 .map(|a| serde_json::to_value(a.to_json()).unwrap())
                 .collect::<Vec<_>>();
             json!({
@@ -172,9 +219,13 @@ impl Simulation {
             // `thought_dirty` after emitting the change. That's fine
             // - `state_json_inner` already holds `&mut self`.
             for o in self.organisms.iter_mut() {
-                if o.alive && in_view(o.x, o.y) { soa.push(o, lookahead); }
+                if o.alive && in_view(o.x, o.y) {
+                    soa.push(o, lookahead);
+                }
             }
-            let animals_json = self.animals.iter()
+            let animals_json = self
+                .animals
+                .iter()
                 .filter(|a| in_view(a.x, a.y))
                 .map(|a| serde_json::to_value(a.to_json()).unwrap())
                 .collect::<Vec<_>>();
@@ -202,104 +253,171 @@ impl Simulation {
         if include_cold {
             if let Some(obj) = payload.as_object_mut() {
                 obj.insert("events".to_string(), serde_json::to_value(&self.events).unwrap());
-                obj.insert("history".to_string(), serde_json::to_value(&self.history).unwrap());
+                obj.insert(
+                    "history".to_string(),
+                    serde_json::to_value(&self.history).unwrap(),
+                );
                 obj.insert(
                     "story_history".to_string(),
-                    serde_json::to_value(self.story_history.iter().rev().take(120).collect::<Vec<_>>()).unwrap(),
+                    serde_json::to_value(self.story_history.iter().rev().take(120).collect::<Vec<_>>())
+                        .unwrap(),
                 );
                 // Tail-only pop_history: only the most recent 60
                 // samples make it to the wire. The full ring buffer
                 // is kept server-side for trend analysis, but the
                 // client only graphs the tail.
-                let tail: Vec<&[u64; 2]> = self.pop_history.iter()
-                    .rev().take(60).collect::<Vec<_>>()
-                    .into_iter().rev().collect();
+                let tail: Vec<&[u64; 2]> = self
+                    .pop_history
+                    .iter()
+                    .rev()
+                    .take(60)
+                    .collect::<Vec<_>>()
+                    .into_iter()
+                    .rev()
+                    .collect();
                 obj.insert("pop_history".to_string(), serde_json::to_value(&tail).unwrap());
-                obj.insert("tribal_relations".to_string(), self.cached_tribal_relations.clone());
+                obj.insert(
+                    "tribal_relations".to_string(),
+                    self.cached_tribal_relations.clone(),
+                );
                 obj.insert("lineage_sizes".to_string(), self.cached_lineage_sizes.clone());
                 obj.insert("territory".to_string(), self.cached_territory.clone());
-                obj.insert("lineage_names".to_string(), serde_json::to_value(&self.lineage_names).unwrap());
-                obj.insert("lineage_centroid_history".to_string(),
-                    serde_json::to_value(&self.lineage_centroid_history).unwrap());
-                obj.insert("lineage_homes".to_string(),
-                    serde_json::to_value(&self.lineage_homes).unwrap());
-                obj.insert("current_era".to_string(), serde_json::to_value(&self.current_era).unwrap());
-                let eras_json: Vec<serde_json::Value> = self.lineage_eras.iter()
+                obj.insert(
+                    "lineage_names".to_string(),
+                    serde_json::to_value(&self.lineage_names).unwrap(),
+                );
+                obj.insert(
+                    "lineage_centroid_history".to_string(),
+                    serde_json::to_value(&self.lineage_centroid_history).unwrap(),
+                );
+                obj.insert(
+                    "lineage_homes".to_string(),
+                    serde_json::to_value(&self.lineage_homes).unwrap(),
+                );
+                obj.insert(
+                    "current_era".to_string(),
+                    serde_json::to_value(&self.current_era).unwrap(),
+                );
+                let eras_json: Vec<serde_json::Value> = self
+                    .lineage_eras
+                    .iter()
                     .map(|(lid, era)| json!({ "lineage_id": lid, "era_name": era.name() }))
                     .collect();
                 obj.insert("lineage_eras".to_string(), serde_json::Value::Array(eras_json));
 
-                let buildings_json: Vec<serde_json::Value> = self.buildings.iter().map(|b| {
-                    json!({
-                        "id": b.id, "kind": b.kind.name(), "x": b.x, "y": b.y,
-                        "lineage_id": b.owner_lineage.clone().unwrap_or_default(),
-                        "condition": b.condition,
-                        "fw": b.kind.footprint().0,
-                        "fh": b.kind.footprint().1,
-                        "function": format!("{:?}", b.kind.function()).to_lowercase(),
+                let buildings_json: Vec<serde_json::Value> = self
+                    .buildings
+                    .iter()
+                    .map(|b| {
+                        json!({
+                            "id": b.id, "kind": b.kind.name(), "x": b.x, "y": b.y,
+                            "lineage_id": b.owner_lineage.clone().unwrap_or_default(),
+                            "condition": b.condition,
+                            "fw": b.kind.footprint().0,
+                            "fh": b.kind.footprint().1,
+                            "function": format!("{:?}", b.kind.function()).to_lowercase(),
+                        })
                     })
-                }).collect();
+                    .collect();
                 obj.insert("buildings".to_string(), serde_json::Value::Array(buildings_json));
 
-                let gov_json: Vec<serde_json::Value> = self.governments.values().map(|g| {
-                    json!({
-                        "lineage_id": g.lineage_id,
-                        "kind": g.kind.name(),
-                        "leader_id": g.leader_id,
-                        "treasury": g.treasury,
-                        "tax_rate": g.tax_rate,
-                        "laws": g.laws.iter().map(|l| l.kind.name()).collect::<Vec<_>>(),
+                let gov_json: Vec<serde_json::Value> = self
+                    .governments
+                    .values()
+                    .map(|g| {
+                        json!({
+                            "lineage_id": g.lineage_id,
+                            "kind": g.kind.name(),
+                            "leader_id": g.leader_id,
+                            "treasury": g.treasury,
+                            "tax_rate": g.tax_rate,
+                            "laws": g.laws.iter().map(|l| l.kind.name()).collect::<Vec<_>>(),
+                        })
                     })
-                }).collect();
+                    .collect();
                 obj.insert("governments".to_string(), serde_json::Value::Array(gov_json));
 
-                let religions_json: Vec<serde_json::Value> = self.religions.iter().map(|r| {
-                    json!({
-                        "id": r.id, "kind": r.kind.name(), "name": r.name,
-                        "founder_lineage": r.founder_lineage, "adherents": r.adherents,
+                let religions_json: Vec<serde_json::Value> = self
+                    .religions
+                    .iter()
+                    .map(|r| {
+                        json!({
+                            "id": r.id, "kind": r.kind.name(), "name": r.name,
+                            "founder_lineage": r.founder_lineage, "adherents": r.adherents,
+                        })
                     })
-                }).collect();
+                    .collect();
                 obj.insert("religions".to_string(), serde_json::Value::Array(religions_json));
 
-                let books_json: Vec<serde_json::Value> = self.books.iter().rev().take(30).map(|b| {
-                    json!({
-                        "id": b.id, "title": b.title, "author_name": b.author_name,
-                        "lineage_id": b.lineage_id, "topic": b.topic.name(), "copies": b.copies,
+                let books_json: Vec<serde_json::Value> = self
+                    .books
+                    .iter()
+                    .rev()
+                    .take(30)
+                    .map(|b| {
+                        json!({
+                            "id": b.id, "title": b.title, "author_name": b.author_name,
+                            "lineage_id": b.lineage_id, "topic": b.topic.name(), "copies": b.copies,
+                        })
                     })
-                }).collect();
+                    .collect();
                 obj.insert("books".to_string(), serde_json::Value::Array(books_json));
 
-                let artworks_json: Vec<serde_json::Value> = self.artworks.iter().rev().take(30).map(|a| {
-                    json!({
-                        "id": a.id, "kind": a.kind.name(), "title": a.title,
-                        "creator_name": a.creator_name, "x": a.location[0], "y": a.location[1],
+                let artworks_json: Vec<serde_json::Value> = self
+                    .artworks
+                    .iter()
+                    .rev()
+                    .take(30)
+                    .map(|a| {
+                        json!({
+                            "id": a.id, "kind": a.kind.name(), "title": a.title,
+                            "creator_name": a.creator_name, "x": a.location[0], "y": a.location[1],
+                        })
                     })
-                }).collect();
+                    .collect();
                 obj.insert("artworks".to_string(), serde_json::Value::Array(artworks_json));
 
-                let headlines_json: Vec<serde_json::Value> = self.headlines.iter().rev().take(20).map(|(t, s)| {
-                    json!({"tick": t, "text": s})
-                }).collect();
+                let headlines_json: Vec<serde_json::Value> = self
+                    .headlines
+                    .iter()
+                    .rev()
+                    .take(20)
+                    .map(|(t, s)| json!({"tick": t, "text": s}))
+                    .collect();
                 obj.insert("headlines".to_string(), serde_json::Value::Array(headlines_json));
 
-                let trades_json: Vec<serde_json::Value> = self.trades.iter().rev().take(30).map(|tr| {
-                    json!({
-                        "tick": tr.tick,
-                        "buyer_id": tr.buyer_id,
-                        "seller_id": tr.seller_id,
-                        "good": tr.good,
-                        "amount": tr.amount,
-                        "price": tr.price,
+                let trades_json: Vec<serde_json::Value> = self
+                    .trades
+                    .iter()
+                    .rev()
+                    .take(30)
+                    .map(|tr| {
+                        json!({
+                            "tick": tr.tick,
+                            "buyer_id": tr.buyer_id,
+                            "seller_id": tr.seller_id,
+                            "good": tr.good,
+                            "amount": tr.amount,
+                            "price": tr.price,
+                        })
                     })
-                }).collect();
+                    .collect();
                 obj.insert("trades".to_string(), serde_json::Value::Array(trades_json));
 
-                let currencies: std::collections::HashMap<String, &str> = self.lineage_eras.iter()
+                let currencies: std::collections::HashMap<String, &str> = self
+                    .lineage_eras
+                    .iter()
                     .map(|(lid, era)| (lid.clone(), crate::sim::economy::currency_unit_for_era(*era)))
                     .collect();
-                obj.insert("lineage_currencies".to_string(), serde_json::to_value(&currencies).unwrap());
+                obj.insert(
+                    "lineage_currencies".to_string(),
+                    serde_json::to_value(&currencies).unwrap(),
+                );
 
-                obj.insert("sex_words".to_string(), serde_json::to_value(&self.sex_words).unwrap());
+                obj.insert(
+                    "sex_words".to_string(),
+                    serde_json::to_value(&self.sex_words).unwrap(),
+                );
             }
         }
         payload
@@ -325,20 +443,29 @@ mod schema_tests {
         let payload = sim.state_json_incremental();
         let obj = payload.as_object().expect("payload must be a JSON object");
         for key in &[
-            "tick", "grid", "organisms_complete", "animals", "animals_complete",
-            "is_day", "day_progress", "season", "season_progress",
-            "drought", "weather",
+            "tick",
+            "grid",
+            "organisms_complete",
+            "animals",
+            "animals_complete",
+            "is_day",
+            "day_progress",
+            "season",
+            "season_progress",
+            "drought",
+            "weather",
         ] {
             assert!(obj.contains_key(*key), "delta payload missing key `{}`", key);
         }
         // The hot-SoA path is what the client decodes for deltas.
-        assert!(obj.contains_key("organisms_hot"),
-            "delta payload must carry organisms_hot");
+        assert!(
+            obj.contains_key("organisms_hot"),
+            "delta payload must carry organisms_hot"
+        );
         // Wind made it into the weather object.
         let weather = obj["weather"].as_object().unwrap();
         for key in &["kind", "intensity", "wind_x", "wind_y"] {
-            assert!(weather.contains_key(*key),
-                "weather missing key `{}`", key);
+            assert!(weather.contains_key(*key), "weather missing key `{}`", key);
         }
     }
 
@@ -352,15 +479,23 @@ mod schema_tests {
         // Need at least one alive org so the SoA isn't empty.
         // The default `new` constructor seeds a small starter pop.
         let payload = sim.state_json_incremental();
-        let hot = payload.as_object().unwrap().get("organisms_hot")
+        let hot = payload
+            .as_object()
+            .unwrap()
+            .get("organisms_hot")
             .expect("organisms_hot present");
         let obj = hot.as_object().expect("organisms_hot is an object");
-        assert!(!obj.contains_key("ages"),
-            "ages must NOT be serialized in delta SoA - saves 4 bytes/org/tick");
+        assert!(
+            !obj.contains_key("ages"),
+            "ages must NOT be serialized in delta SoA - saves 4 bytes/org/tick"
+        );
         // Spot-check that we still have the fields the client expects.
         for key in &["ids", "xs", "ys", "vxs", "vys", "energies", "thoughts"] {
-            assert!(obj.contains_key(*key),
-                "organisms_hot missing required key `{}`", key);
+            assert!(
+                obj.contains_key(*key),
+                "organisms_hot missing required key `{}`",
+                key
+            );
         }
     }
 }

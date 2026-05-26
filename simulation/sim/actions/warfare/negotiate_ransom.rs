@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -13,8 +12,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     };
     let their = ctx.sim.organisms[ki].lineage_id.clone();
     ctx.sim.organisms[ctx.idx].update_attitude(&their, 0.06);
-    ctx.sim.organisms[ctx.idx].inv_food =
-        ctx.sim.organisms[ctx.idx].inv_food.saturating_add(1);
+    ctx.sim.organisms[ctx.idx].inv_food = ctx.sim.organisms[ctx.idx].inv_food.saturating_add(1);
     ctx.think("negotiating a ransom");
     ctx.discover("ransom", "negotiated a ransom");
     0.008

@@ -1,10 +1,10 @@
-
-
-use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
+use crate::world::tiles::Tile;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if ctx.org().inv_wood == 0 { return 0.0; }
+    if ctx.org().inv_wood == 0 {
+        return 0.0;
+    }
     ctx.org_mut().inv_wood -= 1;
     let (ix, iy) = (ctx.ix, ctx.iy);
     ctx.sim.grid.set(ix, iy, Tile::Campfire);

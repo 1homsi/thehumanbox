@@ -1,41 +1,41 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
-pub mod pre_stone;
-pub mod stone;
-pub mod bronze;
-pub mod iron;
-pub mod classical;
-pub mod medieval;
-pub mod renaissance;
-pub mod industrial;
-pub mod modern;
-pub mod information;
 pub mod atomic;
-pub mod space;
-pub mod digital;
-pub mod quantum;
-pub mod solar;
-pub mod fusion;
-pub mod genetic;
-pub mod orbital;
-pub mod lunar;
-pub mod martian;
+pub mod bronze;
+pub mod classical;
 pub mod cyber;
-pub mod neural;
-pub mod posthuman;
-pub mod interstellar;
-pub mod singularity;
-pub mod galactic;
+pub mod digital;
 pub mod dyson;
+pub mod eldritch;
+pub mod fusion;
+pub mod galactic;
+pub mod genetic;
+pub mod industrial;
+pub mod information;
+pub mod interstellar;
+pub mod iron;
 pub mod kardashev2;
 pub mod kardashev3;
-pub mod stellar;
-pub mod nebular;
-pub mod universal;
+pub mod lunar;
+pub mod martian;
+pub mod medieval;
+pub mod modern;
 pub mod multiverse;
+pub mod nebular;
+pub mod neural;
+pub mod orbital;
+pub mod posthuman;
+pub mod pre_stone;
+pub mod quantum;
+pub mod renaissance;
+pub mod singularity;
+pub mod solar;
+pub mod space;
+pub mod stellar;
+pub mod stone;
 pub mod transcendent;
-pub mod eldritch;
+pub mod universal;
 
 pub struct EraSpec {
     pub name: &'static str,
@@ -83,13 +83,41 @@ pub enum Era {
 }
 
 pub const LADDER: [Era; 35] = [
-    Era::PreStone, Era::Stone, Era::Bronze, Era::Iron, Era::Classical,
-    Era::Medieval, Era::Renaissance, Era::Industrial, Era::Modern, Era::Information,
-    Era::Atomic, Era::Space, Era::Digital, Era::Quantum, Era::Solar,
-    Era::Fusion, Era::Genetic, Era::Orbital, Era::Lunar, Era::Martian,
-    Era::Cyber, Era::Neural, Era::Posthuman, Era::Interstellar, Era::Singularity,
-    Era::Galactic, Era::Dyson, Era::Kardashev2, Era::Kardashev3, Era::Stellar,
-    Era::Nebular, Era::Universal, Era::Multiverse, Era::Transcendent, Era::Eldritch,
+    Era::PreStone,
+    Era::Stone,
+    Era::Bronze,
+    Era::Iron,
+    Era::Classical,
+    Era::Medieval,
+    Era::Renaissance,
+    Era::Industrial,
+    Era::Modern,
+    Era::Information,
+    Era::Atomic,
+    Era::Space,
+    Era::Digital,
+    Era::Quantum,
+    Era::Solar,
+    Era::Fusion,
+    Era::Genetic,
+    Era::Orbital,
+    Era::Lunar,
+    Era::Martian,
+    Era::Cyber,
+    Era::Neural,
+    Era::Posthuman,
+    Era::Interstellar,
+    Era::Singularity,
+    Era::Galactic,
+    Era::Dyson,
+    Era::Kardashev2,
+    Era::Kardashev3,
+    Era::Stellar,
+    Era::Nebular,
+    Era::Universal,
+    Era::Multiverse,
+    Era::Transcendent,
+    Era::Eldritch,
 ];
 
 impl Era {
@@ -133,9 +161,15 @@ impl Era {
         }
     }
 
-    pub fn name(self) -> &'static str { self.spec().name }
-    pub fn required_discoveries(self) -> &'static [&'static str] { self.spec().discoveries }
-    fn pop_threshold(self) -> usize { self.spec().pop_threshold }
+    pub fn name(self) -> &'static str {
+        self.spec().name
+    }
+    pub fn required_discoveries(self) -> &'static [&'static str] {
+        self.spec().discoveries
+    }
+    fn pop_threshold(self) -> usize {
+        self.spec().pop_threshold
+    }
 
     pub fn advance(&self) -> Option<Era> {
         let i = LADDER.iter().position(|e| e == self)?;
@@ -150,7 +184,10 @@ impl Era {
 pub fn determine_era_for_lineage(discoveries: &HashSet<String>, pop: usize) -> Era {
     let mut best = Era::PreStone;
     for era in LADDER.iter().copied() {
-        let has_all = era.required_discoveries().iter().all(|d| discoveries.contains(*d));
+        let has_all = era
+            .required_discoveries()
+            .iter()
+            .all(|d| discoveries.contains(*d));
         if has_all && pop >= era.pop_threshold() {
             best = era;
         }

@@ -1,53 +1,53 @@
-pub mod plant_native;
-pub mod restore_riparian;
-pub mod restore_meadow;
-pub mod restore_prairie;
-pub mod restore_wetland;
-pub mod remove_invasive;
-pub mod remove_kudzu;
-pub mod remove_hogweed;
-pub mod remove_garlic_mustard;
-pub mod remove_buckthorn;
 pub mod build_brush_pile;
-pub mod leave_snag;
-pub mod plant_pollinator_strip;
-pub mod plant_hedgerow;
-pub mod plant_windbreak;
+pub mod count_birch;
+pub mod count_fern;
+pub mod count_maple;
+pub mod count_oak;
+pub mod count_pine;
+pub mod cut_invasive;
+pub mod fell_invasive_tree;
+pub mod girdle_tree;
 pub mod install_bat_box;
-pub mod install_owl_box;
 pub mod install_bee_hotel;
-pub mod install_purple_martin_house;
 pub mod install_bluebird_box;
 pub mod install_chimney_swift;
-pub mod install_woodduck_box;
 pub mod install_kestrel_box;
+pub mod install_owl_box;
+pub mod install_purple_martin_house;
 pub mod install_swallow_cup;
 pub mod install_swift_brick;
-pub mod monitor_pollinator;
-pub mod monitor_butterfly;
-pub mod monitor_bee;
-pub mod monitor_amphibian;
-pub mod monitor_reptile;
-pub mod monitor_water_quality;
+pub mod install_woodduck_box;
+pub mod leave_snag;
+pub mod manage_fuel_load;
 pub mod monitor_air_quality;
-pub mod monitor_soil_health;
+pub mod monitor_amphibian;
+pub mod monitor_bee;
+pub mod monitor_butterfly;
 pub mod monitor_canopy_cover;
+pub mod monitor_pollinator;
+pub mod monitor_reptile;
+pub mod monitor_soil_health;
 pub mod monitor_understory;
-pub mod count_oak;
-pub mod count_maple;
-pub mod count_birch;
-pub mod count_pine;
-pub mod count_fern;
-pub mod pull_invasive;
-pub mod cut_invasive;
-pub mod solarize_invasive;
+pub mod monitor_water_quality;
 pub mod mow_invasive;
 pub mod mulch_invasive;
+pub mod plant_hedgerow;
+pub mod plant_native;
+pub mod plant_pollinator_strip;
+pub mod plant_windbreak;
 pub mod prescribed_burn;
-pub mod manage_fuel_load;
-pub mod girdle_tree;
-pub mod fell_invasive_tree;
+pub mod pull_invasive;
+pub mod remove_buckthorn;
+pub mod remove_garlic_mustard;
+pub mod remove_hogweed;
+pub mod remove_invasive;
+pub mod remove_kudzu;
+pub mod restore_meadow;
+pub mod restore_prairie;
+pub mod restore_riparian;
+pub mod restore_wetland;
 pub mod saw_invasive_brush;
+pub mod solarize_invasive;
 
 use super::ctx::ActionCtx;
 
@@ -103,6 +103,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         4427 => girdle_tree::apply(ctx),
         4428 => fell_invasive_tree::apply(ctx),
         4429 => saw_invasive_brush::apply(ctx),
-        _   => 0.0,
+        _ => 0.0,
     }
 }

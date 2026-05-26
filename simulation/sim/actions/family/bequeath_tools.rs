@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -10,7 +9,10 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         ctx.think("no tools to bequeath");
         return 0.0;
     }
-    let pick = ctx.kin.iter().copied()
+    let pick = ctx
+        .kin
+        .iter()
+        .copied()
         .find(|&ki| ctx.sim.organisms[ki].age < 400);
     let Some(ki) = pick else {
         ctx.think("no young kin to receive tools");

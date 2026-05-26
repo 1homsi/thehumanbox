@@ -11,11 +11,15 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let mut passed = 0;
     for &k in &kin {
         let o = &mut ctx.sim.organisms[k];
-        if !o.alive { continue; }
+        if !o.alive {
+            continue;
+        }
         if !o.discoveries.contains(&pick) {
             o.discoveries.insert(pick.clone());
             passed += 1;
-            if passed >= 2 { break; }
+            if passed >= 2 {
+                break;
+            }
         }
     }
     if passed > 0 {

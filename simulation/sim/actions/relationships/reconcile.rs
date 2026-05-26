@@ -1,9 +1,11 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let lid = ctx.lid.clone();
-    let target_lid = ctx.near.iter().copied()
+    let target_lid = ctx
+        .near
+        .iter()
+        .copied()
         .map(|k| ctx.sim.organisms[k].lineage_id.clone())
         .find(|l| *l != lid);
     let Some(tl) = target_lid else {

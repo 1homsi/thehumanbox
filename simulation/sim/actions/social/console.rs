@@ -1,8 +1,10 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    let pick = ctx.kin.iter().copied()
+    let pick = ctx
+        .kin
+        .iter()
+        .copied()
         .max_by_key(|&k| ctx.sim.organisms[k].grief_ticks);
     let Some(ki) = pick else {
         ctx.think("looking for someone to comfort");

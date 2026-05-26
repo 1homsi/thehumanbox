@@ -1,7 +1,5 @@
-
-
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
 use serde::Serialize;
 
@@ -44,17 +42,17 @@ impl TransportWindow {
 #[derive(Default)]
 pub struct TransportStats {
     generated_frames: AtomicU64,
-    sent_frames:      AtomicU64,
-    lagged_frames:    AtomicU64,
-    dropped_frames:   AtomicU64,
-    resync_frames:    AtomicU64,
-    overrun_cycles:   AtomicU64,
+    sent_frames: AtomicU64,
+    lagged_frames: AtomicU64,
+    dropped_frames: AtomicU64,
+    resync_frames: AtomicU64,
+    overrun_cycles: AtomicU64,
     sim_overrun_ticks: AtomicU64,
-    payload_bytes:    std::sync::Mutex<TransportWindow>,
-    full_bytes:       std::sync::Mutex<TransportWindow>,
-    delta_bytes:      std::sync::Mutex<TransportWindow>,
-    frame_gen_ms:     std::sync::Mutex<TransportWindow>,
-    sim_tick_ms:      std::sync::Mutex<TransportWindow>,
+    payload_bytes: std::sync::Mutex<TransportWindow>,
+    full_bytes: std::sync::Mutex<TransportWindow>,
+    delta_bytes: std::sync::Mutex<TransportWindow>,
+    frame_gen_ms: std::sync::Mutex<TransportWindow>,
+    sim_tick_ms: std::sync::Mutex<TransportWindow>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -65,23 +63,23 @@ pub enum FrameKind {
 
 #[derive(Serialize)]
 pub struct TransportStatsSnapshot {
-    pub generated_frames:        u64,
-    pub sent_frames:             u64,
-    pub lagged_frames:           u64,
-    pub dropped_frames:          u64,
-    pub resync_frames:           u64,
-    pub overrun_cycles:          u64,
-    pub sim_overrun_ticks:       u64,
-    pub avg_payload_bytes:       u64,
-    pub p95_payload_bytes:       u64,
-    pub avg_full_bytes:          u64,
-    pub p95_full_bytes:          u64,
-    pub avg_delta_bytes:         u64,
-    pub p95_delta_bytes:         u64,
+    pub generated_frames: u64,
+    pub sent_frames: u64,
+    pub lagged_frames: u64,
+    pub dropped_frames: u64,
+    pub resync_frames: u64,
+    pub overrun_cycles: u64,
+    pub sim_overrun_ticks: u64,
+    pub avg_payload_bytes: u64,
+    pub p95_payload_bytes: u64,
+    pub avg_full_bytes: u64,
+    pub p95_full_bytes: u64,
+    pub avg_delta_bytes: u64,
+    pub p95_delta_bytes: u64,
     pub avg_frame_generation_ms: u64,
     pub p95_frame_generation_ms: u64,
-    pub avg_sim_tick_ms:         u64,
-    pub p95_sim_tick_ms:         u64,
+    pub avg_sim_tick_ms: u64,
+    pub p95_sim_tick_ms: u64,
 }
 
 impl TransportStats {
@@ -89,12 +87,7 @@ impl TransportStats {
         self.record_generated_kind(payload_bytes, frame_gen_ms, None);
     }
 
-    pub fn record_generated_kind(
-        &self,
-        payload_bytes: usize,
-        frame_gen_ms: u64,
-        kind: Option<FrameKind>,
-    ) {
+    pub fn record_generated_kind(&self, payload_bytes: usize, frame_gen_ms: u64, kind: Option<FrameKind>) {
         self.generated_frames.fetch_add(1, Ordering::Relaxed);
         if let Ok(mut w) = self.payload_bytes.lock() {
             w.push(payload_bytes as u64);
@@ -144,32 +137,47 @@ impl TransportStats {
     }
 
     pub fn snapshot(&self) -> TransportStatsSnapshot {
-        let (avg_bytes, p95_bytes) = self.payload_bytes.lock()
-            .map(|w| (w.avg(), w.p95())).unwrap_or((0, 0));
-        let (avg_full,  p95_full)  = self.full_bytes.lock()
-            .map(|w| (w.avg(), w.p95())).unwrap_or((0, 0));
-        let (avg_delta, p95_delta) = self.delta_bytes.lock()
-            .map(|w| (w.avg(), w.p95())).unwrap_or((0, 0));
-        let (avg_ms, p95_ms) = self.frame_gen_ms.lock()
-            .map(|w| (w.avg(), w.p95())).unwrap_or((0, 0));
-        let (avg_sim, p95_sim) = self.sim_tick_ms.lock()
-            .map(|w| (w.avg(), w.p95())).unwrap_or((0, 0));
+        let (avg_bytes, p95_bytes) = self
+            .payload_bytes
+            .lock()
+            .map(|w| (w.avg(), w.p95()))
+            .unwrap_or((0, 0));
+        let (avg_full, p95_full) = self
+            .full_bytes
+            .lock()
+            .map(|w| (w.avg(), w.p95()))
+            .unwrap_or((0, 0));
+        let (avg_delta, p95_delta) = self
+            .delta_bytes
+            .lock()
+            .map(|w| (w.avg(), w.p95()))
+            .unwrap_or((0, 0));
+        let (avg_ms, p95_ms) = self
+            .frame_gen_ms
+            .lock()
+            .map(|w| (w.avg(), w.p95()))
+            .unwrap_or((0, 0));
+        let (avg_sim, p95_sim) = self
+            .sim_tick_ms
+            .lock()
+            .map(|w| (w.avg(), w.p95()))
+            .unwrap_or((0, 0));
         TransportStatsSnapshot {
-            overrun_cycles:          self.overrun_cycles.load(Ordering::Relaxed),
-            sim_overrun_ticks:       self.sim_overrun_ticks.load(Ordering::Relaxed),
-            avg_sim_tick_ms:         avg_sim,
-            p95_sim_tick_ms:         p95_sim,
-            generated_frames:        self.generated_frames.load(Ordering::Relaxed),
-            sent_frames:             self.sent_frames.load(Ordering::Relaxed),
-            lagged_frames:           self.lagged_frames.load(Ordering::Relaxed),
-            dropped_frames:          self.dropped_frames.load(Ordering::Relaxed),
-            resync_frames:           self.resync_frames.load(Ordering::Relaxed),
-            avg_payload_bytes:       avg_bytes,
-            p95_payload_bytes:       p95_bytes,
-            avg_full_bytes:          avg_full,
-            p95_full_bytes:          p95_full,
-            avg_delta_bytes:         avg_delta,
-            p95_delta_bytes:         p95_delta,
+            overrun_cycles: self.overrun_cycles.load(Ordering::Relaxed),
+            sim_overrun_ticks: self.sim_overrun_ticks.load(Ordering::Relaxed),
+            avg_sim_tick_ms: avg_sim,
+            p95_sim_tick_ms: p95_sim,
+            generated_frames: self.generated_frames.load(Ordering::Relaxed),
+            sent_frames: self.sent_frames.load(Ordering::Relaxed),
+            lagged_frames: self.lagged_frames.load(Ordering::Relaxed),
+            dropped_frames: self.dropped_frames.load(Ordering::Relaxed),
+            resync_frames: self.resync_frames.load(Ordering::Relaxed),
+            avg_payload_bytes: avg_bytes,
+            p95_payload_bytes: p95_bytes,
+            avg_full_bytes: avg_full,
+            p95_full_bytes: p95_full,
+            avg_delta_bytes: avg_delta,
+            p95_delta_bytes: p95_delta,
             avg_frame_generation_ms: avg_ms,
             p95_frame_generation_ms: p95_ms,
         }
@@ -196,7 +204,10 @@ pub fn encode_frame(
 ) -> Vec<u8> {
     if let Some(obj) = payload.as_object_mut() {
         obj.insert("frame_id".to_string(), serde_json::json!(frame_id));
-        obj.insert("server_sent_at_ms".to_string(), serde_json::json!(server_sent_at_ms));
+        obj.insert(
+            "server_sent_at_ms".to_string(),
+            serde_json::json!(server_sent_at_ms),
+        );
         obj.insert("frame_kind".to_string(), serde_json::json!(frame_kind));
     }
     rmp_serde::to_vec_named(&payload).unwrap_or_else(|_| Vec::new())
@@ -239,9 +250,13 @@ mod tests {
             })).collect::<Vec<_>>(),
         });
         let msgpack = encode_frame(payload.clone(), 1, 1, "delta");
-        let json    = serde_json::to_vec(&payload).unwrap_or_default();
-        assert!(msgpack.len() <= json.len(),
-            "msgpack {} should not exceed json {}", msgpack.len(), json.len());
+        let json = serde_json::to_vec(&payload).unwrap_or_default();
+        assert!(
+            msgpack.len() <= json.len(),
+            "msgpack {} should not exceed json {}",
+            msgpack.len(),
+            json.len()
+        );
     }
 
     #[test]

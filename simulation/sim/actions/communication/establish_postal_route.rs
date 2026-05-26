@@ -1,4 +1,3 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
@@ -9,7 +8,10 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         return 0.0;
     }
     ctx.think("agreeing on message relay points");
-    ctx.discover("postal_route", "established the first postal relay route between groups");
+    ctx.discover(
+        "postal_route",
+        "established the first postal relay route between groups",
+    );
     ctx.event("trade", "set up a postal route connecting two settlements");
     0.015
 }

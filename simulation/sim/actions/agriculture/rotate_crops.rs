@@ -1,9 +1,10 @@
-
-use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
+use crate::world::tiles::Tile;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if !matches!(ctx.tile, Tile::Food | Tile::Grass) { return 0.0; }
+    if !matches!(ctx.tile, Tile::Food | Tile::Grass) {
+        return 0.0;
+    }
 
     // Crop rotation restores significant fertility - the highest-impact tending action.
     // Requires knowing crop_rotation; organisms learn it by doing this enough times.

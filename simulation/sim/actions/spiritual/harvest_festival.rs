@@ -1,6 +1,5 @@
-
-use crate::world::tiles::Tile;
 use super::super::ctx::ActionCtx;
+use crate::world::tiles::Tile;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let ok = matches!(ctx.tile, Tile::Food) || ctx.org().inv_food >= 2;

@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
-use rand::Rng;
 use rand::seq::IndexedRandom;
+use rand::Rng;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Era {
@@ -131,7 +131,9 @@ impl DegreeKind {
             DegreeKind::Literature => &[("teaching", 0.5), ("art", 0.3)][..],
         };
         for (k, v) in m {
-            if *k == role { return *v; }
+            if *k == role {
+                return *v;
+            }
         }
         0.0
     }
@@ -177,10 +179,18 @@ pub fn advance_literacy(current: f32, has_teacher_nearby: bool, near_school: boo
 
 pub fn pick_degree_for_era<R: Rng>(era: Era, rng: &mut R) -> Option<DegreeKind> {
     let all = [
-        DegreeKind::Philosophy, DegreeKind::Medicine, DegreeKind::Engineering,
-        DegreeKind::Law, DegreeKind::Science, DegreeKind::Arts,
-        DegreeKind::Theology, DegreeKind::Economics, DegreeKind::Architecture,
-        DegreeKind::Astronomy, DegreeKind::Mathematics, DegreeKind::History,
+        DegreeKind::Philosophy,
+        DegreeKind::Medicine,
+        DegreeKind::Engineering,
+        DegreeKind::Law,
+        DegreeKind::Science,
+        DegreeKind::Arts,
+        DegreeKind::Theology,
+        DegreeKind::Economics,
+        DegreeKind::Architecture,
+        DegreeKind::Astronomy,
+        DegreeKind::Mathematics,
+        DegreeKind::History,
         DegreeKind::Literature,
     ];
     let unlocked: Vec<DegreeKind> = all.iter().copied().filter(|d| d.unlocked_by(era)).collect();
@@ -190,8 +200,8 @@ pub fn pick_degree_for_era<R: Rng>(era: Era, rng: &mut R) -> Option<DegreeKind> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::SeedableRng;
     use rand::rngs::StdRng;
+    use rand::SeedableRng;
 
     #[test]
     fn literacy_stays_in_unit_interval() {

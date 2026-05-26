@@ -1,20 +1,18 @@
-
-
-pub mod found_religion;
-pub mod preach;
-pub mod convert_follower;
-pub mod excommunicate;
 pub mod build_altar;
-pub mod perform_exorcism;
-pub mod divine_prophecy;
-pub mod interpret_omen;
-pub mod fast_for_vision;
-pub mod sacred_dance;
-pub mod pilgrimage;
-pub mod found_priesthood;
+pub mod convert_follower;
 pub mod debate_theology;
-pub mod religious_schism;
+pub mod divine_prophecy;
+pub mod excommunicate;
+pub mod fast_for_vision;
+pub mod found_priesthood;
+pub mod found_religion;
 pub mod inter_faith_ceremony;
+pub mod interpret_omen;
+pub mod perform_exorcism;
+pub mod pilgrimage;
+pub mod preach;
+pub mod religious_schism;
+pub mod sacred_dance;
 
 use super::ctx::ActionCtx;
 
@@ -35,6 +33,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         468 => debate_theology::apply(ctx),
         469 => religious_schism::apply(ctx),
         470 => inter_faith_ceremony::apply(ctx),
-        _   => 0.0,
+        _ => 0.0,
     }
 }

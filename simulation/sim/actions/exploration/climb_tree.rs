@@ -1,7 +1,6 @@
-
+use super::super::ctx::ActionCtx;
 use crate::organism::organism::Organism;
 use crate::world::tiles::Tile;
-use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     if !matches!(ctx.tile, Tile::Grass) || !ctx.chance(0.5) {
@@ -15,7 +14,10 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
             if matches!(ctx.sim.grid.get(ix + dx, iy + dy), Tile::Food) {
                 Organism::remember(
                     &mut ctx.sim.organisms[ctx.idx].food_memory,
-                    ix + dx, iy + dy, 0.4, ms,
+                    ix + dx,
+                    iy + dy,
+                    0.4,
+                    ms,
                 );
             }
         }

@@ -21,40 +21,40 @@ pub enum MoonPhase {
 impl MoonPhase {
     pub fn label(self) -> &'static str {
         match self {
-            MoonPhase::NewMoon          => "new_moon",
-            MoonPhase::WaxingCrescent   => "waxing_crescent",
-            MoonPhase::FirstQuarter     => "first_quarter",
-            MoonPhase::WaxingGibbous    => "waxing_gibbous",
-            MoonPhase::FullMoon         => "full_moon",
-            MoonPhase::WaningGibbous    => "waning_gibbous",
-            MoonPhase::LastQuarter      => "last_quarter",
-            MoonPhase::WaningCrescent   => "waning_crescent",
+            MoonPhase::NewMoon => "new_moon",
+            MoonPhase::WaxingCrescent => "waxing_crescent",
+            MoonPhase::FirstQuarter => "first_quarter",
+            MoonPhase::WaxingGibbous => "waxing_gibbous",
+            MoonPhase::FullMoon => "full_moon",
+            MoonPhase::WaningGibbous => "waning_gibbous",
+            MoonPhase::LastQuarter => "last_quarter",
+            MoonPhase::WaningCrescent => "waning_crescent",
         }
     }
 
     pub fn glyph(self) -> &'static str {
         match self {
-            MoonPhase::NewMoon          => "🌑",
-            MoonPhase::WaxingCrescent   => "🌒",
-            MoonPhase::FirstQuarter     => "🌓",
-            MoonPhase::WaxingGibbous    => "🌔",
-            MoonPhase::FullMoon         => "🌕",
-            MoonPhase::WaningGibbous    => "🌖",
-            MoonPhase::LastQuarter      => "🌗",
-            MoonPhase::WaningCrescent   => "🌘",
+            MoonPhase::NewMoon => "🌑",
+            MoonPhase::WaxingCrescent => "🌒",
+            MoonPhase::FirstQuarter => "🌓",
+            MoonPhase::WaxingGibbous => "🌔",
+            MoonPhase::FullMoon => "🌕",
+            MoonPhase::WaningGibbous => "🌖",
+            MoonPhase::LastQuarter => "🌗",
+            MoonPhase::WaningCrescent => "🌘",
         }
     }
 
     pub fn illumination(self) -> f32 {
         match self {
-            MoonPhase::NewMoon          => 0.00,
-            MoonPhase::WaxingCrescent   => 0.25,
-            MoonPhase::FirstQuarter     => 0.50,
-            MoonPhase::WaxingGibbous    => 0.75,
-            MoonPhase::FullMoon         => 1.00,
-            MoonPhase::WaningGibbous    => 0.75,
-            MoonPhase::LastQuarter      => 0.50,
-            MoonPhase::WaningCrescent   => 0.25,
+            MoonPhase::NewMoon => 0.00,
+            MoonPhase::WaxingCrescent => 0.25,
+            MoonPhase::FirstQuarter => 0.50,
+            MoonPhase::WaxingGibbous => 0.75,
+            MoonPhase::FullMoon => 1.00,
+            MoonPhase::WaningGibbous => 0.75,
+            MoonPhase::LastQuarter => 0.50,
+            MoonPhase::WaningCrescent => 0.25,
         }
     }
 }
@@ -92,59 +92,68 @@ pub enum ZodiacSign {
 
 impl ZodiacSign {
     pub const ALL: [ZodiacSign; 12] = [
-        ZodiacSign::Ember, ZodiacSign::Wave, ZodiacSign::Stone, ZodiacSign::Root,
-        ZodiacSign::Bough, ZodiacSign::Crane, ZodiacSign::Wolf, ZodiacSign::Dawn,
-        ZodiacSign::Hearth, ZodiacSign::Veil, ZodiacSign::Spear, ZodiacSign::Seed,
+        ZodiacSign::Ember,
+        ZodiacSign::Wave,
+        ZodiacSign::Stone,
+        ZodiacSign::Root,
+        ZodiacSign::Bough,
+        ZodiacSign::Crane,
+        ZodiacSign::Wolf,
+        ZodiacSign::Dawn,
+        ZodiacSign::Hearth,
+        ZodiacSign::Veil,
+        ZodiacSign::Spear,
+        ZodiacSign::Seed,
     ];
 
     pub fn label(self) -> &'static str {
         match self {
-            ZodiacSign::Ember  => "ember",
-            ZodiacSign::Wave   => "wave",
-            ZodiacSign::Stone  => "stone",
-            ZodiacSign::Root   => "root",
-            ZodiacSign::Bough  => "bough",
-            ZodiacSign::Crane  => "crane",
-            ZodiacSign::Wolf   => "wolf",
-            ZodiacSign::Dawn   => "dawn",
+            ZodiacSign::Ember => "ember",
+            ZodiacSign::Wave => "wave",
+            ZodiacSign::Stone => "stone",
+            ZodiacSign::Root => "root",
+            ZodiacSign::Bough => "bough",
+            ZodiacSign::Crane => "crane",
+            ZodiacSign::Wolf => "wolf",
+            ZodiacSign::Dawn => "dawn",
             ZodiacSign::Hearth => "hearth",
-            ZodiacSign::Veil   => "veil",
-            ZodiacSign::Spear  => "spear",
-            ZodiacSign::Seed   => "seed",
+            ZodiacSign::Veil => "veil",
+            ZodiacSign::Spear => "spear",
+            ZodiacSign::Seed => "seed",
         }
     }
 
     pub fn glyph(self) -> &'static str {
         match self {
-            ZodiacSign::Ember  => "🜂",
-            ZodiacSign::Wave   => "🜄",
-            ZodiacSign::Stone  => "🜃",
-            ZodiacSign::Root   => "꙰",
-            ZodiacSign::Bough  => "ᛉ",
-            ZodiacSign::Crane  => "ᛯ",
-            ZodiacSign::Wolf   => "ᛯ",
-            ZodiacSign::Dawn   => "☼",
+            ZodiacSign::Ember => "🜂",
+            ZodiacSign::Wave => "🜄",
+            ZodiacSign::Stone => "🜃",
+            ZodiacSign::Root => "꙰",
+            ZodiacSign::Bough => "ᛉ",
+            ZodiacSign::Crane => "ᛯ",
+            ZodiacSign::Wolf => "ᛯ",
+            ZodiacSign::Dawn => "☼",
             ZodiacSign::Hearth => "ᚦ",
-            ZodiacSign::Veil   => "ᛏ",
-            ZodiacSign::Spear  => "ᛇ",
-            ZodiacSign::Seed   => "᛫",
+            ZodiacSign::Veil => "ᛏ",
+            ZodiacSign::Spear => "ᛇ",
+            ZodiacSign::Seed => "᛫",
         }
     }
 
     pub fn flavor(self) -> &'static str {
         match self {
-            ZodiacSign::Ember  => "warm-hearted and quick to act",
-            ZodiacSign::Wave   => "fluid, patient, follows the moon",
-            ZodiacSign::Stone  => "steady, slow to anger, slow to fall",
-            ZodiacSign::Root   => "drawn deep, holds onto kin",
-            ZodiacSign::Bough  => "reaches outward, growing always",
-            ZodiacSign::Crane  => "watchful, long memory, careful step",
-            ZodiacSign::Wolf   => "hunts in silence, trusts the pack",
-            ZodiacSign::Dawn   => "born of light, restless until day",
+            ZodiacSign::Ember => "warm-hearted and quick to act",
+            ZodiacSign::Wave => "fluid, patient, follows the moon",
+            ZodiacSign::Stone => "steady, slow to anger, slow to fall",
+            ZodiacSign::Root => "drawn deep, holds onto kin",
+            ZodiacSign::Bough => "reaches outward, growing always",
+            ZodiacSign::Crane => "watchful, long memory, careful step",
+            ZodiacSign::Wolf => "hunts in silence, trusts the pack",
+            ZodiacSign::Dawn => "born of light, restless until day",
             ZodiacSign::Hearth => "keeps the fire, tends the home",
-            ZodiacSign::Veil   => "quiet, sees what others miss",
-            ZodiacSign::Spear  => "true-aimed, blunt, unafraid",
-            ZodiacSign::Seed   => "small now, but everything is coming",
+            ZodiacSign::Veil => "quiet, sees what others miss",
+            ZodiacSign::Spear => "true-aimed, blunt, unafraid",
+            ZodiacSign::Seed => "small now, but everything is coming",
         }
     }
 

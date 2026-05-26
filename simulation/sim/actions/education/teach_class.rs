@@ -1,8 +1,9 @@
-
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if ctx.kin.len() < 2 { return 0.0; }
+    if ctx.kin.len() < 2 {
+        return 0.0;
+    }
     ctx.think("teaching the tribe what I know");
     for i in 0..ctx.kin.len() {
         let ki = ctx.kin[i];

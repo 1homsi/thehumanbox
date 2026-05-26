@@ -1,52 +1,52 @@
-pub mod rock_cradle;
-pub mod rock_baby;
-pub mod pat_baby_back;
-pub mod burp_baby;
-pub mod change_diaper;
-pub mod swaddle_for_sleep;
-pub mod wash_baby;
 pub mod bathe_baby;
-pub mod oil_baby_skin;
-pub mod powder_baby;
-pub mod trim_baby_hair;
-pub mod file_baby_nails;
+pub mod braid_daughter_hair;
 pub mod brush_baby_teeth;
-pub mod feed_baby_porridge;
-pub mod feed_baby_mash;
-pub mod spoon_feed_baby;
-pub mod teach_baby_sign;
-pub mod teach_baby_word;
-pub mod read_picture_book;
-pub mod sing_naming_song;
+pub mod burp_baby;
 pub mod carry_toddler;
-pub mod chase_toddler;
 pub mod catch_toddler;
-pub mod kiss_scraped_knee;
+pub mod change_diaper;
+pub mod chase_toddler;
 pub mod comfort_crying_child;
 pub mod distract_grumpy_kid;
-pub mod tell_silly_joke;
-pub mod pretend_dragon;
-pub mod play_peekaboo;
+pub mod feed_baby_mash;
+pub mod feed_baby_porridge;
+pub mod feed_kid_treat;
+pub mod file_baby_nails;
+pub mod hand_off_kid_to_grand;
+pub mod kiss_scraped_knee;
+pub mod lift_kid_to_window;
+pub mod oil_baby_skin;
+pub mod pack_kid_lunch;
+pub mod pat_baby_back;
+pub mod pick_kid_up_from_play;
 pub mod play_pat_a_cake;
+pub mod play_peekaboo;
+pub mod powder_baby;
+pub mod pretend_dragon;
 pub mod pretend_horse;
 pub mod pretend_market;
-pub mod lift_kid_to_window;
+pub mod read_picture_book;
+pub mod rock_baby;
+pub mod rock_cradle;
 pub mod show_kid_birds;
+pub mod show_kid_garden;
 pub mod show_kid_stars;
-pub mod feed_kid_treat;
-pub mod pack_kid_lunch;
+pub mod sing_naming_song;
+pub mod spoon_feed_baby;
+pub mod swaddle_for_sleep;
+pub mod teach_baby_sign;
+pub mod teach_baby_word;
 pub mod teach_kid_chore;
 pub mod teach_kid_count;
-pub mod teach_kid_letters;
-pub mod pick_kid_up_from_play;
-pub mod hand_off_kid_to_grand;
-pub mod braid_daughter_hair;
-pub mod tie_son_belt;
-pub mod teach_kid_wash;
 pub mod teach_kid_dress;
-pub mod show_kid_garden;
 pub mod teach_kid_garden;
+pub mod teach_kid_letters;
+pub mod teach_kid_wash;
+pub mod tell_silly_joke;
+pub mod tie_son_belt;
+pub mod trim_baby_hair;
 pub mod walk_kid_home;
+pub mod wash_baby;
 
 use super::ctx::ActionCtx;
 
@@ -101,6 +101,6 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         1666 => show_kid_garden::apply(ctx),
         1667 => teach_kid_garden::apply(ctx),
         1668 => walk_kid_home::apply(ctx),
-        _   => 0.0,
+        _ => 0.0,
     }
 }

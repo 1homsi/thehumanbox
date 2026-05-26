@@ -1,9 +1,9 @@
-pub mod tech_progress;
-pub mod tech_tree;
-pub mod inventions;
-pub mod tools;
 pub mod agriculture;
 pub mod buildings;
-pub mod medicine;
-pub mod transportation;
+pub mod inventions;
 pub mod language_tech;
+pub mod medicine;
+pub mod tech_progress;
+pub mod tech_tree;
+pub mod tools;
+pub mod transportation;
