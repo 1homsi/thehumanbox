@@ -146,7 +146,9 @@ impl MemoryStore {
         self.last_decay_tick = tick;
         let mind_keep = 0.6 + memory_strength.clamp(0.0, 1.0) * 0.4;
         for e in self.entries.iter_mut() {
-            let decay = e.kind.decay_per_day() * days * (2.0 - mind_keep);
+            let emotion_brake = 1.0 - (e.emotion.unsigned_abs() as f32 * 0.18).min(0.72);
+            let recall_brake = 1.0 / (1.0 + (e.recall_count as f32) * 0.12);
+            let decay = e.kind.decay_per_day() * days * (2.0 - mind_keep) * emotion_brake * recall_brake;
             e.salience = (e.salience - decay).max(0.0);
         }
         self.entries
