@@ -354,6 +354,18 @@ pub fn deliver_births(
                 format!("first child {}", child_name),
                 0.8,
             );
+            use crate::organism::memory::{MemoryEntry, MemoryKind};
+            let child_id_for_mem = organisms[ci].id.clone();
+            organisms[mi].memories.insert(
+                MemoryEntry::new(
+                    MemoryKind::Bond,
+                    format!("I became a mother — my first child was {}", child_name),
+                    tick,
+                )
+                .with_salience(0.98)
+                .with_emotion(3)
+                .with_related(child_id_for_mem),
+            );
         }
         organisms[mi].children_count += 1;
         organisms[mi].think(&format!("gave birth: {}", child_name), tick);
