@@ -3400,7 +3400,8 @@ impl Simulation {
                 for &((mx, my), v) in &inherited_water {
                     Organism::remember(&mut self.organisms[*gi].water_memory, mx, my, v * 0.4, ms);
                 }
-                let is_direct_kin = self.organisms[*gi].partner_id.as_ref() == Some(&self.organisms[idx].id)
+                let is_widow = self.organisms[*gi].partner_id.as_ref() == Some(&self.organisms[idx].id);
+                let is_direct_kin = is_widow
                     || self.organisms[*gi].parent_id == self.organisms[idx].id
                     || self.organisms[*gi].father_id.as_ref() == Some(&self.organisms[idx].id);
                 if is_direct_kin {
@@ -3411,6 +3412,22 @@ impl Simulation {
                             self.organisms[*gi].discoveries.insert(d.clone());
                         }
                     }
+                }
+                if is_widow {
+                    use crate::organism::memory::{MemoryEntry, MemoryKind};
+                    self.organisms[*gi].memories.insert(
+                        MemoryEntry::new(
+                            MemoryKind::Bond,
+                            format!("I lost {}, who slept beside me through the years", dead_name),
+                            self.tick_count,
+                        )
+                        .with_salience(0.98)
+                        .with_emotion(-3)
+                        .with_related(dead_id.clone()),
+                    );
+                    self.organisms[*gi].grief_ticks = (self.organisms[*gi].grief_ticks + 200).min(800);
+                    self.organisms[*gi].comfort = (self.organisms[*gi].comfort - 0.30).max(0.0);
+                    self.organisms[*gi].partner_id = None;
                 }
             }
 

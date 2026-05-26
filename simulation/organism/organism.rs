@@ -639,6 +639,7 @@ impl Organism {
         let (mem_kind, salience, emotion) = match category {
             "birth" => (MemoryKind::Bond, 0.95, 3),
             "death" => (MemoryKind::Bond, 0.90, -3),
+            "loss" => (MemoryKind::Bond, 0.95, -3),
             "partnership" => (MemoryKind::Bond, 0.90, 3),
             "courtship" => (MemoryKind::Bond, 0.70, 2),
             "friendship" => (MemoryKind::Bond, 0.75, 2),
