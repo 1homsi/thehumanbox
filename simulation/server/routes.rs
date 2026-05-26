@@ -294,8 +294,7 @@ pub async fn metrics_handler(State(s): State<AppState>) -> impl IntoResponse {
     let last_full_age_ms = crate::server::transport::now_ms().saturating_sub(last_full);
     let uptime_ms = crate::server::transport::now_ms().saturating_sub(s.start_ms);
 
-    // Snapshot the sim under the lock briefly for pop / lineage counts.
-    let (alive, lineage_count) = {
+    let (alive, lineage_count, mem_total, mem_with_bonds, year, day_of_year) = {
         let sim = s.sim.lock().await;
         let alive = sim.organisms.iter().filter(|o| o.alive).count();
         let lineages: std::collections::HashSet<&str> = sim
@@ -304,7 +303,28 @@ pub async fn metrics_handler(State(s): State<AppState>) -> impl IntoResponse {
             .filter(|o| o.alive)
             .map(|o| o.lineage_id.as_str())
             .collect();
-        (alive, lineages.len())
+        let mut mem_total: u64 = 0;
+        let mut mem_with_bonds: u64 = 0;
+        for o in sim.organisms.iter().filter(|o| o.alive) {
+            mem_total += o.memories.entries.len() as u64;
+            if o.memories
+                .entries
+                .iter()
+                .any(|m| matches!(m.kind, crate::organism::memory::MemoryKind::Bond))
+            {
+                mem_with_bonds += 1;
+            }
+        }
+        let year = crate::sim::cosmos::current_year(sim.tick_count);
+        let day_of_year = crate::sim::cosmos::day_of_year(sim.tick_count);
+        (
+            alive,
+            lineages.len(),
+            mem_total,
+            mem_with_bonds,
+            year,
+            day_of_year,
+        )
     };
 
     let pressure_n: u8 = match pressure {
@@ -327,6 +347,27 @@ pub async fn metrics_handler(State(s): State<AppState>) -> impl IntoResponse {
     let _ = writeln!(body, "# HELP thb_memory_pressure 0=normal 1=elevated 2=critical");
     let _ = writeln!(body, "# TYPE thb_memory_pressure gauge");
     let _ = writeln!(body, "thb_memory_pressure {}", pressure_n);
+    let _ = writeln!(
+        body,
+        "# HELP thb_org_memories_total Total per-org memory entries across living orgs"
+    );
+    let _ = writeln!(body, "# TYPE thb_org_memories_total gauge");
+    let _ = writeln!(body, "thb_org_memories_total {}", mem_total);
+    let _ = writeln!(
+        body,
+        "# HELP thb_orgs_with_bonds Living orgs carrying at least one Bond memory"
+    );
+    let _ = writeln!(body, "# TYPE thb_orgs_with_bonds gauge");
+    let _ = writeln!(body, "thb_orgs_with_bonds {}", mem_with_bonds);
+    let _ = writeln!(
+        body,
+        "# HELP thb_world_year Current world year (1 year = 84 days)"
+    );
+    let _ = writeln!(body, "# TYPE thb_world_year gauge");
+    let _ = writeln!(body, "thb_world_year {}", year);
+    let _ = writeln!(body, "# HELP thb_world_day_of_year Current day of year (0..83)");
+    let _ = writeln!(body, "# TYPE thb_world_day_of_year gauge");
+    let _ = writeln!(body, "thb_world_day_of_year {}", day_of_year);
     let _ = writeln!(
         body,
         "# HELP thb_groq_rate_available Permits remaining in the Groq per-minute bucket"
