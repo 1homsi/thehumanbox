@@ -53,6 +53,8 @@ export function SelectedOrgCard({ organisms }: Props) {
         <span>gen {org.generation}</span>
         {org.is_elder && <span style={elderTag}>elder</span>}
         {org.sex && <span style={{ opacity: 0.65 }}>{org.sex}</span>}
+        {org.aspiration && <span style={aspirationTag}>{org.aspiration}</span>}
+        {org.zodiac && <span style={zodiacTag}>{org.zodiac}</span>}
       </div>
       <div style={vitals}>
         <Bar label="energy" value={org.energy} color="#7ed957" />
@@ -159,6 +161,22 @@ const metaRow: React.CSSProperties = {
 const elderTag: React.CSSProperties = {
   background: 'rgba(255, 180, 80, 0.18)',
   color: '#ffcf6a',
+  padding: '0 5px',
+  borderRadius: 2,
+  fontSize: 9,
+}
+
+const aspirationTag: React.CSSProperties = {
+  background: 'rgba(246, 208, 98, 0.12)',
+  color: '#f6d062',
+  padding: '0 5px',
+  borderRadius: 2,
+  fontSize: 9,
+}
+
+const zodiacTag: React.CSSProperties = {
+  background: 'rgba(154, 208, 240, 0.12)',
+  color: '#9ad0f0',
   padding: '0 5px',
   borderRadius: 2,
   fontSize: 9,
