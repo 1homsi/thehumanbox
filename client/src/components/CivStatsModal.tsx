@@ -138,9 +138,43 @@ export function CivStatsModal({ world, onClose }: Props) {
   }
   const goodsTotalRows = [...goodsTotals.entries()].sort((a, b) => b[1] - a[1])
 
+  const moonGlyphs: Record<string, string> = {
+    new_moon: '🌑',
+    waxing_crescent: '🌒',
+    first_quarter: '🌓',
+    waxing_gibbous: '🌔',
+    full_moon: '🌕',
+    waning_gibbous: '🌖',
+    last_quarter: '🌗',
+    waning_crescent: '🌘',
+  }
+
   return (
     <Modal open onClose={onClose} className="civ-modal" title={'\u{1F30D} Civilization'}>
       <div className="civ-modal-grid">
+        {world.cosmos && (
+          <section className="civ-section">
+            <h3>The Calendar</h3>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13, padding: '4px 0' }}>
+              <span style={{ color: '#d0c8c0' }}>
+                <strong>year {world.cosmos.year}</strong>
+                <span style={{ color: '#777', marginLeft: 6 }}>
+                  day {world.cosmos.day_of_year} of 84
+                </span>
+              </span>
+              <span style={{ color: '#d0c8c0' }}>
+                {moonGlyphs[world.cosmos.moon_phase] ?? '🌑'}{' '}
+                <strong>{world.cosmos.moon_phase.replace(/_/g, ' ')}</strong>
+                <span style={{ color: '#777', marginLeft: 6 }}>
+                  ({Math.round(world.cosmos.moon_illum * 100)}% lit)
+                </span>
+              </span>
+              <span style={{ color: '#d0c8c0' }}>
+                season:&nbsp;<strong>{world.season}</strong>
+              </span>
+            </div>
+          </section>
+        )}
         <section className="civ-section">
           <h3>Lineages</h3>
           <table className="civ-table">
