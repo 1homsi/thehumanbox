@@ -478,6 +478,7 @@ export default function WorldView3D({ world }: Props) {
                   height={grid.height}
                   weatherKind={world.weather?.kind ?? 'clear'}
                   weatherIntensity={world.weather?.intensity ?? 0}
+                  moonIllum={world.cosmos?.moon_illum ?? 0.7}
                 />
                 <Terrain
                   depthMap={grid.depth_map!}

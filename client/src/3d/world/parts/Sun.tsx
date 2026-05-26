@@ -10,9 +10,10 @@ interface Props {
   height: number
   weatherKind?: 'clear' | 'rain' | 'storm' | 'wet'
   weatherIntensity?: number
+  moonIllum?: number
 }
 
-export function Sun({ dayProgress, width, height, weatherKind = 'clear', weatherIntensity = 0 }: Props) {
+export function Sun({ dayProgress, width, height, weatherKind = 'clear', weatherIntensity = 0, moonIllum = 0.7 }: Props) {
   const cx = width * TILE_SCALE * 0.5
   const cz = height * TILE_SCALE * 0.5
   const r = Math.max(width, height) * TILE_SCALE * 1.2
@@ -92,13 +93,27 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
 
       {}
       <mesh ref={moonRef} position={moonPos} frustumCulled={false}>
-        <sphereGeometry args={[60, 16, 12]} />
+        <sphereGeometry args={[40 + moonIllum * 30, 16, 12]} />
         <meshBasicMaterial
-          color={isNight ? '#f0f4ff' : '#c8d0e8'}
+          color={isNight ? (moonIllum < 0.05 ? '#1a1c28' : '#f0f4ff') : '#c8d0e8'}
           transparent
-          opacity={isNight ? 1.0 : 0.6}
+          opacity={isNight ? (0.15 + moonIllum * 0.85) : 0.6}
+          toneMapped={false}
         />
       </mesh>
+      {isNight && moonIllum > 0.4 && (
+        <mesh position={moonPos} frustumCulled={false} renderOrder={-2}>
+          <sphereGeometry args={[100 + moonIllum * 80, 16, 12]} />
+          <meshBasicMaterial
+            color="#cad8f8"
+            transparent
+            opacity={moonIllum * 0.18}
+            blending={AdditiveBlending}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+      )}
 
       {!isNight && (
         <mesh position={sunPos} frustumCulled={false} renderOrder={-1}>
@@ -181,7 +196,7 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
       )}
 
       {}
-      {isNight && <directionalLight position={moonPos} intensity={0.6 * stormFactor} color="#a8b8e0" />}
+      {isNight && <directionalLight position={moonPos} intensity={(0.15 + 0.55 * moonIllum) * stormFactor} color="#a8b8e0" />}
 
       <ambientLight
         intensity={isNight ? 0.45 : 0.35 + dayStrength * 0.35}
