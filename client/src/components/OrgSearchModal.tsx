@@ -16,12 +16,39 @@ interface Props {
 
 type StatusFilter = 'all' | 'alive' | 'dead'
 type DiscoveryFilter = 'all' | 'fire' | 'shelter'
+type AspirationFilter =
+  | 'all'
+  | 'seeker'
+  | 'wanderer'
+  | 'warrior'
+  | 'connector'
+  | 'builder'
+  | 'devout'
+  | 'sage'
+  | 'provider'
+  | 'artist'
+  | 'healer'
+
+const ASPIRATION_EMOJI: Record<string, string> = {
+  seeker: '🔍',
+  wanderer: '🧭',
+  warrior: '⚔️',
+  connector: '🤝',
+  builder: '🔨',
+  devout: '🕯️',
+  sage: '📜',
+  provider: '🌾',
+  artist: '🎨',
+  healer: '🌿',
+}
 
 export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Props) {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<StatusFilter>('all')
   const [lineageF, setLineageF] = useState('all')
   const [discF, setDiscF] = useState<DiscoveryFilter>('all')
+  const [aspirationF, setAspirationF] = useState<AspirationFilter>('all')
+  const [sexF, setSexF] = useState<'all' | 'male' | 'female'>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [tribeOpen, setTribeOpen] = useState(false)
   const tribeRef = useRef<HTMLDivElement>(null)
@@ -49,6 +76,8 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
         if (lineageF !== 'all' && o.lineage_id !== lineageF) return false
         if (discF === 'fire' && !(o.discoveries ?? []).includes('fire')) return false
         if (discF === 'shelter' && !(o.discoveries ?? []).includes('shelter')) return false
+        if (aspirationF !== 'all' && o.aspiration !== aspirationF) return false
+        if (sexF !== 'all' && o.sex !== sexF) return false
         if (
           q &&
           !o.name.toLowerCase().includes(q) &&
@@ -62,7 +91,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
         if (a.alive !== b.alive) return a.alive ? -1 : 1
         return b.age - a.age
       })
-  }, [organisms, status, lineageF, discF, query])
+  }, [organisms, status, lineageF, discF, aspirationF, sexF, query])
 
   const selectedOrg = selectedId ? (organisms.find((o) => o.id === selectedId) ?? null) : null
 
@@ -112,6 +141,34 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
           >
             🏠 shelter
           </button>
+          <span className="filter-sep">·</span>
+          <button
+            className={clsx('filter-chip', sexF === 'female' && 'active')}
+            onClick={() => setSexF(sexF === 'female' ? 'all' : 'female')}
+            style={{ color: sexF === 'female' ? '#e09ab0' : undefined }}
+          >
+            ♀
+          </button>
+          <button
+            className={clsx('filter-chip', sexF === 'male' && 'active')}
+            onClick={() => setSexF(sexF === 'male' ? 'all' : 'male')}
+            style={{ color: sexF === 'male' ? '#7ab0e0' : undefined }}
+          >
+            ♂
+          </button>
+          <span className="filter-sep">·</span>
+          {(
+            ['seeker', 'wanderer', 'warrior', 'connector', 'builder', 'devout', 'sage', 'provider', 'artist', 'healer'] as AspirationFilter[]
+          ).map((a) => (
+            <button
+              key={a}
+              className={clsx('filter-chip', aspirationF === a && 'active')}
+              onClick={() => setAspirationF(aspirationF === a ? 'all' : a)}
+              title={a}
+            >
+              {ASPIRATION_EMOJI[a]}
+            </button>
+          ))}
           <span className="filter-sep">·</span>
           <div className="tribe-dropdown" ref={tribeRef}>
             <button
@@ -174,6 +231,11 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
                     {org.name}
                   </span>
                   <span className="org-search-badges">
+                    {org.aspiration && ASPIRATION_EMOJI[org.aspiration] && (
+                      <span title={org.aspiration} style={{ marginRight: 2 }}>
+                        {ASPIRATION_EMOJI[org.aspiration]}
+                      </span>
+                    )}
                     {discs.includes('fire') && '🔥'}
                     {discs.includes('shelter') && '🏠'}
                     {discs.includes('cooking') && '🍖'}
