@@ -63,6 +63,7 @@ export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
             lineageNames={world?.lineage_names}
             organisms={world?.organisms}
             religions={world?.religions}
+            onSelectOrg={(id) => selectOrg(id)}
           />
         )}
 

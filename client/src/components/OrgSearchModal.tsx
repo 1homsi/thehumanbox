@@ -306,6 +306,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
               following={false}
               lineageNames={lineageNames}
               organisms={organisms}
+              onSelectOrg={(id) => setSelectedId(id)}
             />
           ) : (
             <div className="org-search-placeholder">← select an organism to view details</div>
