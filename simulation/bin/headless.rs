@@ -396,6 +396,45 @@ fn main() {
         witnessed_count, life_log_total
     );
 
+    {
+        let mut by_kind: HashMap<String, u64> = HashMap::new();
+        let mut total_mem = 0u64;
+        let mut sal_sum = 0.0f64;
+        let mut alive_with_mem = 0u64;
+        let mut most_recalled: Option<(String, u32, String)> = None;
+        for o in sim.organisms.iter().filter(|o| o.alive) {
+            if !o.memories.is_empty() {
+                alive_with_mem += 1;
+            }
+            for m in o.memories.entries.iter() {
+                *by_kind.entry(m.kind.label().to_string()).or_insert(0) += 1;
+                total_mem += 1;
+                sal_sum += m.salience as f64;
+                if m.recall_count > 0 {
+                    let take = match &most_recalled {
+                        None => true,
+                        Some((_, rc, _)) => m.recall_count > *rc,
+                    };
+                    if take {
+                        most_recalled = Some((o.name.clone(), m.recall_count, m.text.clone()));
+                    }
+                }
+            }
+        }
+        let avg_sal = if total_mem > 0 { sal_sum / total_mem as f64 } else { 0.0 };
+        println!("\nMemory store: {} entries across {} living orgs (avg salience {:.2})",
+                 total_mem, alive_with_mem, avg_sal);
+        let mut pairs: Vec<(String, u64)> = by_kind.into_iter().collect();
+        pairs.sort_by(|a, b| b.1.cmp(&a.1));
+        for (k, n) in pairs.iter() {
+            println!("  {:>6} {}", n, k);
+        }
+        if let Some((name, rc, text)) = most_recalled {
+            let preview = if text.len() > 64 { format!("{}…", &text[..64]) } else { text };
+            println!("  most-recalled: {} ({}x) — {}", name, rc, preview);
+        }
+    }
+
     if !sim.workshop_hits.is_empty() {
         println!("\n=== WORKSHOP BONUS ===");
         let mut rows: Vec<(&str, (u64, u64))> = sim.workshop_hits.iter().map(|(k, v)| (*k, *v)).collect();
