@@ -462,6 +462,45 @@ fn main() {
             };
             println!("  most-recalled: {} ({}x) — {}", name, rc, preview);
         }
+
+        let mut deepest_grief: Option<(String, String)> = None;
+        let mut greatest_joy: Option<(String, String)> = None;
+        let mut deepest_grief_score: f32 = 0.0;
+        let mut greatest_joy_score: f32 = 0.0;
+        for o in sim.organisms.iter().filter(|o| o.alive) {
+            for m in o.memories.entries.iter() {
+                if m.emotion <= -2 {
+                    let score = (-m.emotion as f32) * m.salience;
+                    if score > deepest_grief_score {
+                        deepest_grief_score = score;
+                        deepest_grief = Some((o.name.clone(), m.text.clone()));
+                    }
+                }
+                if m.emotion >= 2 {
+                    let score = m.emotion as f32 * m.salience;
+                    if score > greatest_joy_score {
+                        greatest_joy_score = score;
+                        greatest_joy = Some((o.name.clone(), m.text.clone()));
+                    }
+                }
+            }
+        }
+        if let Some((name, text)) = greatest_joy {
+            let preview = if text.len() > 64 {
+                format!("{}…", &text[..64])
+            } else {
+                text
+            };
+            println!("  greatest joy: {} — {}", name, preview);
+        }
+        if let Some((name, text)) = deepest_grief {
+            let preview = if text.len() > 64 {
+                format!("{}…", &text[..64])
+            } else {
+                text
+            };
+            println!("  deepest grief: {} — {}", name, preview);
+        }
     }
 
     if !sim.workshop_hits.is_empty() {
