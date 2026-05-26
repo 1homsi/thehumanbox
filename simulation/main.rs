@@ -653,6 +653,7 @@ async fn main() {
         .route("/ws", get(routes::ws_handler))
         .route("/org/{id}", get(routes::org_detail_handler))
         .route("/org/{id}/life", get(routes::org_life_handler))
+        .route("/org/{id}/conversations", get(routes::org_conversations_handler))
         .route("/version", get(routes::version_handler))
         .route("/snapshot", get(routes::snapshot_handler))
         .route("/transport", get(routes::transport_handler))

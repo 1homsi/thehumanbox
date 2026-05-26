@@ -1,8 +1,8 @@
-import { memo } from 'react'
+import { memo, useMemo, useState } from 'react'
 import clsx from 'clsx'
 import type { OrganismState, ConversationEntry } from '../types'
 import { lineageColor } from '../utils/constants'
-import { useOrgDetail } from '../hooks/useOrgDetail'
+import { useOrgConversations } from '../hooks/useOrgConversations'
 import { Modal } from './Modal'
 
 const DAY_LENGTH = 600
@@ -83,11 +83,23 @@ const ConvoBlock = memo(function ConvoBlock({
   )
 })
 
+type KindFilter = 'all' | 'courtship' | 'bonded' | 'chat' | 'excited' | 'argue' | 'farewell'
+
 export function ConversationsModal({ org, allOrgs, sexWords, onClose }: Props) {
-  const { data: detail, isLoading } = useOrgDetail(org.id)
-  const convos = detail?.conversations ?? []
+  const { data: convosData, isLoading } = useOrgConversations(org.id)
+  const allConvos = convosData?.conversations ?? []
+  const [kindFilter, setKindFilter] = useState<KindFilter>('all')
+  const filteredConvos = useMemo(() => {
+    if (kindFilter === 'all') return allConvos
+    return allConvos.filter((c) => c.kind === kindFilter)
+  }, [allConvos, kindFilter])
   const partnerOrg = org.partner_id ? allOrgs.find((o) => o.id === org.partner_id) : null
   const sexLabel = sexWords ? (org.sex === 'female' ? sexWords[1] : sexWords[0]) : org.sex
+  const kindCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const c of allConvos) counts[c.kind] = (counts[c.kind] ?? 0) + 1
+    return counts
+  }, [allConvos])
 
   return (
     <Modal open onClose={onClose} className="cv-modal" title={`Conversations of ${org.name}`} hideTitle>
@@ -112,9 +124,38 @@ export function ConversationsModal({ org, allOrgs, sexWords, onClose }: Props) {
         </button>
       </div>
 
+      {allConvos.length > 1 && (
+        <div className="cv-filters" style={{ display: 'flex', gap: 6, padding: '6px 12px', flexWrap: 'wrap' }}>
+          {(['all', 'courtship', 'bonded', 'chat', 'excited', 'argue', 'farewell'] as KindFilter[]).map((k) => {
+            const count = k === 'all' ? allConvos.length : (kindCounts[k] ?? 0)
+            if (k !== 'all' && count === 0) return null
+            const isActive = kindFilter === k
+            const meta = k === 'all' ? { icon: '∗', label: 'all', color: '#999' } : kindMeta(k)
+            return (
+              <button
+                key={k}
+                onClick={() => setKindFilter(k)}
+                style={{
+                  background: isActive ? meta.color + '22' : 'transparent',
+                  border: `1px solid ${isActive ? meta.color : '#2a2520'}`,
+                  color: isActive ? meta.color : '#888',
+                  padding: '3px 8px',
+                  borderRadius: 3,
+                  fontSize: 10,
+                  cursor: 'pointer',
+                  letterSpacing: '0.04em',
+                }}
+              >
+                {meta.icon} {meta.label} {count > 0 && <span style={{ opacity: 0.6 }}>({count})</span>}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
       {}
       <div className="cv-modal-body">
-        {isLoading && !detail ? (
+        {isLoading && !convosData ? (
           <div className="cv-empty">
             <div className="cv-loading-dot" aria-hidden>
               •••
@@ -123,18 +164,20 @@ export function ConversationsModal({ org, allOrgs, sexWords, onClose }: Props) {
               loading {org.name}'s conversations…
             </div>
           </div>
-        ) : convos.length === 0 ? (
+        ) : filteredConvos.length === 0 ? (
           <div className="cv-empty">
             <div style={{ fontSize: 28, marginBottom: 8 }}>💬</div>
             <div style={{ fontSize: 11, fontStyle: 'italic', color: '#555', textAlign: 'center' }}>
-              {org.attracted_to
-                ? `${org.name} is drawn to someone - a first conversation is coming`
-                : `${org.name} hasn't spoken with anyone yet`}
+              {allConvos.length === 0
+                ? org.attracted_to
+                  ? `${org.name} is drawn to someone - a first conversation is coming`
+                  : `${org.name} hasn't spoken with anyone yet`
+                : `no ${kindFilter} conversations`}
             </div>
           </div>
         ) : (
           <div className="cv-list">
-            {[...convos].reverse().map((entry, i) => (
+            {[...filteredConvos].reverse().map((entry, i) => (
               <ConvoBlock
                 key={`${entry.tick}-${entry.with_id}-${i}`}
                 entry={entry}

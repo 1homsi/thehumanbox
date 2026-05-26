@@ -195,13 +195,38 @@ pub async fn org_detail_handler(
     State(s): State<AppState>,
 ) -> Result<impl IntoResponse, StatusCode> {
     use crate::organism::organism::OrgDetailJson;
-    let sim = s.sim.lock().await;
-    let org = sim.organisms.iter().find(|o| o.id == id)
-        .ok_or(StatusCode::NOT_FOUND)?;
-    let detail: OrgDetailJson = org.to_detail_json();
+    let detail: OrgDetailJson = {
+        let sim = s.sim.lock().await;
+        let org = sim.organisms.iter().find(|o| o.id == id)
+            .ok_or(StatusCode::NOT_FOUND)?;
+        org.to_detail_json()
+    };
     Ok((
         [(axum::http::header::CACHE_CONTROL, "no-store".to_string())],
         Json(detail),
+    ))
+}
+
+pub async fn org_conversations_handler(
+    Path(id): Path<String>,
+    State(s): State<AppState>,
+) -> Result<impl IntoResponse, StatusCode> {
+    let (name, lineage_id, vocab, convos) = {
+        let sim = s.sim.lock().await;
+        let org = sim.organisms.iter().find(|o| o.id == id)
+            .ok_or(StatusCode::NOT_FOUND)?;
+        let convos: Vec<_> = org.conversations.iter().cloned().collect();
+        (org.name.clone(), org.lineage_id.clone(), org.vocabulary.as_hashmap(), convos)
+    };
+    Ok((
+        [(axum::http::header::CACHE_CONTROL, "no-store".to_string())],
+        Json(serde_json::json!({
+            "id": id,
+            "name": name,
+            "lineage_id": lineage_id,
+            "vocabulary": vocab,
+            "conversations": convos,
+        })),
     ))
 }
 
