@@ -76,6 +76,9 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick > 0 && tick % crate::sim::cosmos::DAY_LENGTH == 0 {
         tick_lunar_observation(sim);
     }
+    if tick > 0 && tick % (crate::sim::cosmos::DAY_LENGTH * 6) == 0 {
+        tick_maybe_eclipse(sim);
+    }
     if tick > 0 && tick % 90 == 0 && sim.is_night() {
         tick_dreams(sim);
     }
@@ -84,6 +87,43 @@ pub fn tick_civ(sim: &mut Simulation) {
     }
     if tick > 0 && tick % 60 == 0 {
         tick_mood_contagion(sim);
+    }
+}
+
+fn tick_maybe_eclipse(sim: &mut Simulation) {
+    use crate::organism::memory::{MemoryEntry, MemoryKind};
+    use crate::sim::cosmos::{moon_phase_at, MoonPhase};
+    let tick = sim.tick_count;
+    let phase = moon_phase_at(tick);
+    let is_eligible = matches!(phase, MoonPhase::FullMoon | MoonPhase::NewMoon);
+    if !is_eligible {
+        return;
+    }
+    let r: f32 = sim.rng.random();
+    if r > 0.04 {
+        return;
+    }
+    let (text, emotion, salience, is_solar) = match phase {
+        MoonPhase::NewMoon  => ("the sun was eaten by the moon at midday", -2, 0.95, true),
+        _                   => ("the moon ran red in the night sky", -1, 0.90, false),
+    };
+    for o in sim.organisms.iter_mut() {
+        if !o.alive {
+            continue;
+        }
+        let entry = MemoryEntry::new(MemoryKind::Episode, text, tick)
+            .with_salience(salience)
+            .with_emotion(emotion);
+        o.memories.insert(entry);
+        o.fear_level = (o.fear_level + if is_solar { 0.18 } else { 0.10 }).min(1.0);
+        o.joy_ticks = o.joy_ticks.saturating_sub(40);
+        o.grief_ticks = (o.grief_ticks + 10).min(400);
+    }
+    let label = if is_solar { "solar eclipse" } else { "lunar eclipse" };
+    push_event(&mut sim.events, tick, "sky", "world", &format!("{}: {}", label, text));
+    sim.headlines.push_back((tick, format!("a {} stunned the people: {}", label, text)));
+    while sim.headlines.len() > 80 {
+        sim.headlines.pop_front();
     }
 }
 
