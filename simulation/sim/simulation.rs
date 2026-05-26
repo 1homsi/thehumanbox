@@ -1477,6 +1477,29 @@ impl Simulation {
                     for ((x, y), v) in food_hints  { Organism::remember(&mut self.organisms[li].food_memory,  x, y, v * 0.3, ms); }
                     for ((x, y), v) in water_hints { Organism::remember(&mut self.organisms[li].water_memory, x, y, v * 0.3, ms); }
                     self.organisms[li].think("listening by the fire", self.tick_count);
+
+                    let story_source = self.organisms[idx]
+                        .memories
+                        .pick_for_reflection(Some(true))
+                        .map(|m| (m.kind, m.text.clone(), m.emotion));
+                    if let Some((kind, text, emotion)) = story_source {
+                        let teller_name = self.organisms[idx].name.clone();
+                        let listener_o = &mut self.organisms[li];
+                        let lower = text.trim_end_matches('.').to_lowercase();
+                        let retold = format!("{} told me — {}", teller_name, lower);
+                        use crate::organism::memory::{MemoryEntry, MemoryKind};
+                        let listener_kind = match kind {
+                            MemoryKind::Core => MemoryKind::Fact,
+                            MemoryKind::Bond => MemoryKind::Episode,
+                            other            => other,
+                        };
+                        let entry = MemoryEntry::new(listener_kind, retold, self.tick_count)
+                            .with_salience(0.55)
+                            .with_emotion(emotion.clamp(-2, 2));
+                        listener_o.memories.insert(entry);
+                        listener_o.comfort = (listener_o.comfort + 0.01).min(1.0);
+                        listener_o.literacy = (listener_o.literacy + 0.0015).min(1.0);
+                    }
                 }
             }
         }
