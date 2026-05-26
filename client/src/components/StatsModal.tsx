@@ -42,7 +42,14 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
       <div className="lang-modal-header">
         <span className="lang-modal-title">STATS</span>
         <span className="tree-modal-sub">
-          day {currentDay} · {liveCount} alive
+          {world.cosmos ? (
+            <>
+              year {world.cosmos.year} · day {world.cosmos.day_of_year} ·{' '}
+            </>
+          ) : (
+            <>day {currentDay} · </>
+          )}
+          {liveCount} alive
         </span>
         <div className="modal-header-actions">
           <button className="reload-btn" onClick={reload} title="Reload from current world">
