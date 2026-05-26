@@ -474,6 +474,12 @@ fn tick_lunar_observation(sim: &mut Simulation) {
     }
     if wrote > 0 {
         push_event(&mut sim.events, tick, "sky", "world", text);
+        if matches!(phase, MoonPhase::FullMoon | MoonPhase::NewMoon) {
+            sim.headlines.push_back((tick, text.to_string()));
+            while sim.headlines.len() > 80 {
+                sim.headlines.pop_front();
+            }
+        }
     }
 }
 
