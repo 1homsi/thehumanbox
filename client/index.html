@@ -71,6 +71,17 @@
       0%   { transform: translateX(-100%); }
       100% { transform: translateX(280%); }
     }
+    #thb-splash .thb-hint {
+      font-size: 11px; letter-spacing: 0.06em; color: #8a7a5a; max-width: 320px;
+      text-align: center; opacity: 0; transition: opacity 600ms ease; line-height: 1.5;
+    }
+    #thb-splash .thb-hint.show { opacity: 1; }
+    #thb-splash .thb-hint button {
+      background: #1c1612; color: #d8d2c4; border: 1px solid #3a3228; padding: 6px 14px;
+      border-radius: 4px; font-size: 11px; letter-spacing: 0.12em; cursor: pointer;
+      text-transform: uppercase; margin-top: 8px; font-family: inherit;
+    }
+    #thb-splash .thb-hint button:hover { background: #2a221c; border-color: #5e5648; }
   </style>
 </head>
 
@@ -81,6 +92,10 @@
       <div class="thb-progress-bar" id="thb-progress-bar"></div>
     </div>
     <div class="thb-sub" id="thb-progress-text">downloading…</div>
+    <div class="thb-hint" id="thb-splash-hint" aria-live="polite">
+      taking longer than usual<br/>
+      <button type="button" id="thb-splash-reload">reload</button>
+    </div>
   </div>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>

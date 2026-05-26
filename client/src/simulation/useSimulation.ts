@@ -106,6 +106,15 @@ export function useSimulation(): {
       snapshotAbort = ctl
       const savedLastFrameId = lastFrameIdRef.current
       lastFrameIdRef.current = 0
+      const scheduleSnapshotRetry = () => {
+        const retryMs = 600 + Math.round(Math.random() * 600)
+        setTimeout(() => {
+          if (destroyed) return
+          if (snapshotPendingRef.current) return
+          if (currentWorldRef.current !== null) return
+          requestSnapshotResync(true)
+        }, retryMs)
+      }
       fetchSnapshotWithProgress(SNAPSHOT_URL, ctl.signal)
         .then((buf) => {
           if (destroyed || ctl.signal.aborted) return
@@ -115,6 +124,7 @@ export function useSimulation(): {
               bootstrapPendingRef.current = false
               scheduleFlush()
             }
+            scheduleSnapshotRetry()
             return
           }
           queuedMsgs.current.unshift(buf)
@@ -128,16 +138,7 @@ export function useSimulation(): {
             bootstrapPendingRef.current = false
             scheduleFlush()
           }
-          // The /snapshot route returns 503 until the sim has produced
-          // its first full frame. Retry after a short jittered delay
-          // so first-boot clients don't sit blind waiting for a gap
-          // detector to fire.
-          const retryMs = 600 + Math.round(Math.random() * 600)
-          setTimeout(() => {
-            if (!destroyed && !snapshotPendingRef.current) {
-              requestSnapshotResync(true)
-            }
-          }, retryMs)
+          scheduleSnapshotRetry()
         })
         .finally(() => {
           if (snapshotAbort === ctl) snapshotAbort = null

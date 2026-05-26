@@ -29,6 +29,14 @@ function hideSplash() {
   setTimeout(() => splash.parentNode?.removeChild(splash), 400)
 }
 window.addEventListener('thb-world-ready', hideSplash, { once: true })
+setTimeout(() => {
+  const hint = document.getElementById('thb-splash-hint')
+  const reload = document.getElementById('thb-splash-reload')
+  if (hint && !document.getElementById('thb-splash')?.classList.contains('hide')) {
+    hint.classList.add('show')
+  }
+  reload?.addEventListener('click', () => window.location.reload(), { once: true })
+}, 6_000)
 setTimeout(hideSplash, 30_000)
 
 type SnapshotProgress = { loaded: number; total: number | null }
