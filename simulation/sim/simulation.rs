@@ -3224,6 +3224,37 @@ impl Simulation {
         }
 
         if !self.organisms[idx].alive {
+            use crate::organism::memory::MemoryKind;
+            let dead = &self.organisms[idx];
+            let mut legacy: Option<(String, String, u32)> = None;
+            let mut best_score = 0u32;
+            for m in dead.memories.entries.iter() {
+                if matches!(m.kind, MemoryKind::Core) {
+                    continue;
+                }
+                let score = m.recall_count.saturating_mul(8) + ((m.salience * 100.0) as u32);
+                if score > best_score {
+                    best_score = score;
+                    legacy = Some((dead.name.clone(), m.text.clone(), m.recall_count));
+                }
+            }
+            if let Some((name, text, recalls)) = legacy {
+                let suffix = if recalls > 5 {
+                    format!(" (held in mind {} times)", recalls)
+                } else {
+                    String::new()
+                };
+                self.headlines.push_back((
+                    self.tick_count,
+                    format!("{} is gone. What they carried: \"{}\"{}", name, text, suffix),
+                ));
+                while self.headlines.len() > 80 {
+                    self.headlines.pop_front();
+                }
+            }
+        }
+
+        if !self.organisms[idx].alive {
             let dead = &self.organisms[idx];
             let bequest = dead.wealth;
             if bequest > 0 {
