@@ -175,6 +175,29 @@ pub fn try_reproduce(
     child.zodiac = crate::sim::cosmos::ZodiacSign::from_birth_tick(tick).label().to_string();
     child.vocabulary = Vocabulary::inherit_from(&organisms[org_idx].vocabulary, rng);
 
+    {
+        use crate::organism::memory::{MemoryEntry, MemoryKind};
+        let mother_name = organisms[org_idx].name.clone();
+        let heirloom = organisms[org_idx]
+            .memories
+            .top(4)
+            .into_iter()
+            .find(|m| !matches!(m.kind, MemoryKind::Core | MemoryKind::Dream))
+            .map(|m| (m.kind, m.text.clone(), m.emotion));
+        if let Some((kind, text, emotion)) = heirloom {
+            let lower = text.trim_end_matches('.').to_lowercase();
+            let retold = format!("my mother {} carried — {}", mother_name, lower);
+            let inherit_kind = match kind {
+                MemoryKind::Bond => MemoryKind::Bond,
+                _                => MemoryKind::Fact,
+            };
+            let entry = MemoryEntry::new(inherit_kind, retold, tick)
+                .with_salience(0.70)
+                .with_emotion((emotion as i32 / 2).clamp(-2, 2) as i8);
+            child.memories.insert(entry);
+        }
+    }
+
     for (state, actions) in &organisms[org_idx].q_table {
         let mut row: crate::organism::organism::QRow = Vec::with_capacity(actions.len());
         for &(a, v) in actions {
