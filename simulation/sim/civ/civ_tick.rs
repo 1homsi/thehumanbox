@@ -70,6 +70,31 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick % 180 == 0 && tick > 0 {
         tick_sky_omens(sim);
     }
+    if tick % 240 == 0 && tick > 0 {
+        tick_reflections(sim);
+    }
+}
+
+fn tick_reflections(sim: &mut Simulation) {
+    let tick = sim.tick_count;
+    let mut hashes: Vec<(usize, u8)> = sim
+        .organisms
+        .iter()
+        .enumerate()
+        .filter(|(_, o)| o.alive && o.age > 600)
+        .map(|(i, o)| {
+            let mut h: u64 = 1469598103934665603;
+            for b in o.id.bytes() {
+                h ^= b as u64;
+                h = h.wrapping_mul(1099511628211);
+            }
+            (i, ((h ^ tick) % 7) as u8)
+        })
+        .collect();
+    hashes.retain(|&(_, slot)| slot == 0);
+    for (i, _) in hashes {
+        sim.organisms[i].reflect_internally(tick);
+    }
 }
 
 fn tick_sky_omens(sim: &mut Simulation) {

@@ -800,6 +800,57 @@ impl Organism {
         }
     }
 
+    pub fn reflect_internally(&mut self, tick: u64) -> Option<String> {
+        use super::memory::MemoryKind;
+        let mood = if self.grief_ticks > 0 { "carrying grief" }
+            else if self.joy_ticks > 0 { "feeling light" }
+            else if self.fear_level > 0.5 { "uneasy" }
+            else if self.loneliness > 0.6 { "alone" }
+            else if self.energy < 0.3 { "weary" }
+            else if self.comfort > 0.7 { "settled" }
+            else { "still" };
+
+        let asp_line = if self.aspiration.is_empty() {
+            String::new()
+        } else {
+            format!(", a {} at heart", self.aspiration)
+        };
+
+        let prefer_emotional = self.fear_level > 0.4 || self.grief_ticks > 0 || self.joy_ticks > 0;
+        let picked: Option<(MemoryKind, String)> = self
+            .memories
+            .pick_for_reflection(if prefer_emotional { Some(true) } else { None })
+            .map(|m| (m.kind, m.text.clone()));
+
+        let line = if let Some((kind, text)) = &picked {
+            let lower = text.trim_end_matches('.').to_lowercase();
+            let frame = match kind {
+                MemoryKind::Core    => format!("I remember — {}", lower),
+                MemoryKind::Bond    => format!("I think of them — {}", lower),
+                MemoryKind::Episode => format!("I haven't forgotten — {}", lower),
+                MemoryKind::Fact    => format!("I know this — {}", lower),
+                MemoryKind::Place   => format!("that place — {}", lower),
+                MemoryKind::Dream   => format!("I dreamt — {}", lower),
+            };
+            format!("{}{}: {}", mood, asp_line, frame)
+        } else {
+            format!("I am {}{}, here in the world", self.name, asp_line)
+        };
+
+        if let Some((_, ref text)) = picked {
+            let target = text.clone();
+            self.memories.touch(|m| m.text == target, 0.02);
+        }
+
+        self.thought_history.push_back(ThoughtEntry { tick, text: line.clone() });
+        if self.thought_history.len() > 40 {
+            self.thought_history.pop_front();
+        }
+        self.thought = line.clone();
+        self.thought_dirty = true;
+        Some(line)
+    }
+
     pub fn perceive(&self, grid: &WorldGrid, organisms: &[Organism], night: bool, animal_near: bool, spatial: &crate::sim::spatial::SpatialIndex) -> String {
         let (ix, iy) = (self.x as i32, self.y as i32);
         let scan: i32 = if night {
