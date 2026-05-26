@@ -912,6 +912,56 @@ fn tick_age_stages(sim: &mut Simulation) {
             );
             org.joy_ticks = (org.joy_ticks + 80).min(1200);
         }
+    }
+
+    let new_elders: Vec<(String, Option<String>)> = sim
+        .organisms
+        .iter()
+        .filter(|o| o.alive && o.is_elder && o.attributes.contains("milestone:elder_headline:pending"))
+        .map(|o| {
+            let testimony = o
+                .memories
+                .entries
+                .iter()
+                .filter(|m| !matches!(m.kind, MemoryKind::Core))
+                .max_by(|a, b| {
+                    a.salience
+                        .partial_cmp(&b.salience)
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                })
+                .map(|m| m.text.clone());
+            (o.name.clone(), testimony)
+        })
+        .collect();
+    for o in sim.organisms.iter_mut() {
+        if o.attributes.remove("milestone:elder_headline:pending") {
+            let _ = o;
+        }
+    }
+    for (name, testimony) in new_elders {
+        let line = match testimony {
+            Some(t) => format!("{} became an elder, carrying: \"{}\"", name, t),
+            None => format!("{} became an elder among the people", name),
+        };
+        sim.headlines.push_back((tick, line));
+        while sim.headlines.len() > 80 {
+            sim.headlines.pop_front();
+        }
+    }
+    for org in sim.organisms.iter_mut() {
+        if !org.alive {
+            continue;
+        }
+        let stage = org.age_stage();
+        if stage == AgeStage::Elder
+            && !org.attributes.contains("milestone:elder_headline:fired")
+            && !org.attributes.contains("milestone:elder_headline:pending")
+        {
+            org.attributes
+                .insert("milestone:elder_headline:fired".to_string());
+            org.attributes
+                .insert("milestone:elder_headline:pending".to_string());
+        }
         if stage == AgeStage::Adult && !org.attributes.contains("milestone:adult") {
             org.attributes.insert("milestone:adult".to_string());
             org.memories.insert(
