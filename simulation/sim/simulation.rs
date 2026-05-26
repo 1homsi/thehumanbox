@@ -3984,6 +3984,36 @@ impl Simulation {
             self.organisms[oi].discover("hunting");
             Organism::remember(&mut self.organisms[oi].food_memory, ax, ay, 0.65, ms);
 
+            {
+                use crate::organism::memory::{MemoryEntry, MemoryKind};
+                let is_first = !self.organisms[oi].attributes.contains("milestone:first_hunt");
+                if is_first {
+                    self.organisms[oi]
+                        .attributes
+                        .insert("milestone:first_hunt".to_string());
+                    self.organisms[oi].memories.insert(
+                        MemoryEntry::new(
+                            MemoryKind::Episode,
+                            format!("my first kill — a {} fell to my hand", kind),
+                            self.tick_count,
+                        )
+                        .with_salience(0.85)
+                        .with_emotion(2),
+                    );
+                    self.organisms[oi].joy_ticks = (self.organisms[oi].joy_ticks + 50).min(1200);
+                } else if matches!(kind, "deer" | "boar" | "wolf") {
+                    self.organisms[oi].memories.insert(
+                        MemoryEntry::new(
+                            MemoryKind::Episode,
+                            format!("brought down a {} that day", kind),
+                            self.tick_count,
+                        )
+                        .with_salience(0.55)
+                        .with_emotion(1),
+                    );
+                }
+            }
+
             if pack_kin >= 1 {
                 let share = if pack_kin >= 3 { 0.12 } else { 0.08 };
                 let helpers: Vec<usize> = organism_spatial
