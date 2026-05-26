@@ -3380,6 +3380,20 @@ impl Simulation {
                         format!("lost parent {}", dead_name),
                         0.95,
                     );
+                    use crate::organism::memory::{MemoryEntry, MemoryKind};
+                    let is_father =
+                        self.organisms[*gi].father_id.as_deref() == Some(self.organisms[idx].id.as_str());
+                    let parent_word = if is_father { "father" } else { "mother" };
+                    self.organisms[*gi].memories.insert(
+                        MemoryEntry::new(
+                            MemoryKind::Bond,
+                            format!("I lost my {} {} when I was small", parent_word, dead_name),
+                            self.tick_count,
+                        )
+                        .with_salience(0.97)
+                        .with_emotion(-3)
+                        .with_related(dead_id.clone()),
+                    );
                 }
                 self.organisms[*gi].grief_ticks = grief_base + self.rng.random_range(0u32..40);
                 self.organisms[*gi].think("mourning kin", self.tick_count);
