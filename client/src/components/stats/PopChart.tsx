@@ -1,11 +1,11 @@
 import { useMemo } from 'react'
 import { DAY_LENGTH } from './constants'
 
-export function PopChart({ history }: { history: [number, number][] }) {
-  const W = 1000
-  const H = 240
-  const PAD = { t: 14, r: 16, b: 36, l: 44 }
+const W = 1000
+const H = 240
+const PAD = { t: 14, r: 16, b: 36, l: 44 }
 
+export function PopChart({ history }: { history: [number, number][] }) {
   const points = useMemo(() => {
     if (history.length < 2) return null
     const maxTick = history[history.length - 1][0]
