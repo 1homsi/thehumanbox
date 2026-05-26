@@ -26,13 +26,43 @@ export function CivSummary({ world }: Props) {
 
   const recentLines = headlines.slice(0, 3)
 
-  if (topEras.length === 0 && buildingTotal === 0 && religions.length === 0 && books.length === 0) {
+  if (
+    topEras.length === 0 &&
+    buildingTotal === 0 &&
+    religions.length === 0 &&
+    books.length === 0 &&
+    !world.cosmos
+  ) {
     return null
+  }
+
+  const moonGlyphs: Record<string, string> = {
+    new_moon: '🌑',
+    waxing_crescent: '🌒',
+    first_quarter: '🌓',
+    waxing_gibbous: '🌔',
+    full_moon: '🌕',
+    waning_gibbous: '🌖',
+    last_quarter: '🌗',
+    waning_crescent: '🌘',
   }
 
   return (
     <div className="civ-summary">
       <div className="section-title">CIVILIZATION</div>
+      {world.cosmos && (
+        <div className="civ-summary-row" style={{ marginBottom: 4 }}>
+          <span className="civ-summary-chip" title={`Year ${world.cosmos.year} · day ${world.cosmos.day_of_year}`}>
+            year {world.cosmos.year}
+          </span>
+          <span
+            className="civ-summary-chip"
+            title={`Moon: ${world.cosmos.moon_phase.replace(/_/g, ' ')}`}
+          >
+            {moonGlyphs[world.cosmos.moon_phase] ?? '🌑'} {world.cosmos.moon_phase.replace(/_/g, ' ')}
+          </span>
+        </div>
+      )}
       {topEras.length > 0 && (
         <div className="civ-summary-row">
           {topEras.map(([era, n]) => (
