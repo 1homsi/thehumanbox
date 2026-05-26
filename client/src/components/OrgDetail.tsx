@@ -223,6 +223,7 @@ interface Props {
   lineageNames?: Record<string, string>
   organisms?: OrganismState[]
   religions?: import('../types').ReligionInfo[]
+  onSelectOrg?: (id: string) => void
 }
 
 function HomeButton({ org }: { org: OrganismState }) {
@@ -244,7 +245,7 @@ function HomeButton({ org }: { org: OrganismState }) {
   )
 }
 
-export function OrgDetail({ org, onClose, onFollow, following, lineageNames, organisms, religions }: Props) {
+export function OrgDetail({ org, onClose, onFollow, following, lineageNames, organisms, religions, onSelectOrg }: Props) {
   const { data: detail } = useOrgDetail(org.id)
   const [showLife, setShowLife] = useState(false)
   const starredOrgIds = useUIStore((s) => s.starredOrgIds)
@@ -757,6 +758,7 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
                   : m.emotion <= -1 ? '#80a8c0'
                   : '#d0c8c0'
                 const bars = Math.max(1, Math.round(m.salience * 5))
+                const relatedOrg = m.related_id ? organisms?.find((o) => o.id === m.related_id) : null
                 return (
                   <div key={i} className="thought-row" style={{ alignItems: 'flex-start' }}>
                     <span
@@ -772,6 +774,24 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
                     </span>
                     <span className="thought-text" style={{ color: emoColor, flex: 1 }}>
                       {m.text}
+                      {relatedOrg && (
+                        <button
+                          onClick={() => onSelectOrg?.(relatedOrg.id)}
+                          style={{
+                            background: 'transparent',
+                            border: '1px solid #2a2520',
+                            color: '#9ad0f0',
+                            fontSize: 9,
+                            padding: '1px 5px',
+                            marginLeft: 6,
+                            borderRadius: 3,
+                            cursor: 'pointer',
+                          }}
+                          title={`Go to ${relatedOrg.name}`}
+                        >
+                          ↪ {relatedOrg.name}
+                        </button>
+                      )}
                     </span>
                     <span style={{ color: '#444', fontFamily: 'monospace', fontSize: 9, marginLeft: 6 }} title={`salience ${(m.salience * 100).toFixed(0)}%`}>
                       {'▮'.repeat(bars)}
