@@ -530,6 +530,33 @@ impl Organism {
 
     pub fn log_life_rel(&mut self, tick: u64, category: &str, text: String,
                         related_id: Option<String>, related_name: Option<String>) {
+        use super::memory::{MemoryEntry, MemoryKind};
+        let (mem_kind, salience, emotion) = match category {
+            "birth"             => (MemoryKind::Bond,    0.95,  3),
+            "death"             => (MemoryKind::Bond,    0.90, -3),
+            "partnership"       => (MemoryKind::Bond,    0.90,  3),
+            "courtship"         => (MemoryKind::Bond,    0.70,  2),
+            "friendship"        => (MemoryKind::Bond,    0.75,  2),
+            "farewell"          => (MemoryKind::Bond,    0.60, -1),
+            "betrayal"          => (MemoryKind::Bond,    0.85, -2),
+            "witnessed"         => (MemoryKind::Episode, 0.55,  0),
+            "danger"            => (MemoryKind::Episode, 0.75, -2),
+            "aspiration"        => (MemoryKind::Fact,    0.85,  2),
+            "specialty"         => (MemoryKind::Fact,    0.75,  1),
+            "graduated"         => (MemoryKind::Fact,    0.75,  2),
+            "religion"          => (MemoryKind::Fact,    0.80,  1),
+            "milestone"         => (MemoryKind::Episode, 0.80,  1),
+            "elder"             => (MemoryKind::Fact,    0.80,  1),
+            _                   => (MemoryKind::Episode, 0.50,  0),
+        };
+        let mut entry = MemoryEntry::new(mem_kind, text.clone(), tick)
+            .with_salience(salience)
+            .with_emotion(emotion);
+        if let Some(ref rid) = related_id {
+            entry = entry.with_related(rid.clone());
+        }
+        self.memories.insert(entry);
+
         self.life_log.push_back(LifeEvent { tick, category: category.to_string(), text, related_id, related_name });
         if self.life_log.len() > 64 {
             self.life_log.pop_front();
@@ -551,6 +578,9 @@ impl Organism {
 
     pub fn tick_inner_state(&mut self, kin_near: usize, near_shelter: bool,
                             hostile_near: bool, weather_kind: u8, tick: u64, night: bool) {
+        const DAY_LENGTH_LOCAL: u32 = 600;
+        self.memories.tick(tick, DAY_LENGTH_LOCAL, self.traits.memory_strength);
+
         if kin_near == 0 {
             self.loneliness = (self.loneliness + 0.0008).min(1.0);
         } else {
