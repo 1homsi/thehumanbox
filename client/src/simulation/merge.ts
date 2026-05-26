@@ -174,6 +174,7 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     lineage_eras: (parsed.lineage_eras as Record<string, string> | undefined) ?? base?.lineage_eras,
     lineage_currencies: parsed.lineage_currencies ?? base?.lineage_currencies,
     active_outbreaks: parsed.active_outbreaks ?? base?.active_outbreaks,
+    cosmos: parsed.cosmos ?? base?.cosmos,
   }
 
   return { next, grid }

@@ -86,6 +86,23 @@ export interface OrganismState {
   piety?: number
   diseases?: Array<{ kind: string; started_tick: number }>
   mounted_vehicle?: number | null
+  zodiac?: string
+  birth_tick?: number
+}
+
+export interface CosmosState {
+  moon_phase:
+    | 'new_moon'
+    | 'waxing_crescent'
+    | 'first_quarter'
+    | 'waxing_gibbous'
+    | 'full_moon'
+    | 'waning_gibbous'
+    | 'last_quarter'
+    | 'waning_crescent'
+  moon_illum: number
+  year: number
+  day_of_year: number
 }
 
 export interface ReligionInfo {
@@ -359,6 +376,7 @@ export interface WorldState {
   lineage_eras?: Array<{ lineage_id: string; era_name: string }> | Record<string, string>
   lineage_currencies?: Record<string, string>
   active_outbreaks?: OutbreakInfo[]
+  cosmos?: CosmosState
 }
 
 export type BuildingKind =

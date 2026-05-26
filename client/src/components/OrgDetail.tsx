@@ -116,6 +116,36 @@ const ASPIRATION_TIPS: Record<string, string> = {
   healer: 'Tends the sick — medicine, herbs, and the long patience of care.',
 }
 
+const ZODIAC_GLYPH: Record<string, string> = {
+  ember: '🜂',
+  wave: '🜄',
+  stone: '🜃',
+  root: '꙰',
+  bough: 'ᛉ',
+  crane: 'ᛯ',
+  wolf: 'ᛯ',
+  dawn: '☼',
+  hearth: 'ᚦ',
+  veil: 'ᛏ',
+  spear: 'ᛇ',
+  seed: '᛫',
+}
+
+const ZODIAC_FLAVOR: Record<string, string> = {
+  ember: 'warm-hearted and quick to act',
+  wave: 'fluid, patient, follows the moon',
+  stone: 'steady, slow to anger, slow to fall',
+  root: 'drawn deep, holds onto kin',
+  bough: 'reaches outward, growing always',
+  crane: 'watchful, long memory, careful step',
+  wolf: 'hunts in silence, trusts the pack',
+  dawn: 'born of light, restless until day',
+  hearth: 'keeps the fire, tends the home',
+  veil: 'quiet, sees what others miss',
+  spear: 'true-aimed, blunt, unafraid',
+  seed: 'small now, but everything is coming',
+}
+
 const TOOL_ICON: Record<string, string> = {
   StoneAxe: '🪓',
   BronzeSpear: '🔱',
@@ -443,6 +473,24 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
                 title={ASPIRATION_TIPS[org.aspiration] ?? ''}
               >
                 {ASPIRATION_EMOJI[org.aspiration] ?? '✦'} {org.aspiration}
+              </span>
+            </div>
+          </>
+        )}
+
+        {org.zodiac && (
+          <>
+            <div className="org-detail-section">BORN UNDER</div>
+            <div className="relation-list">
+              <span
+                className="relation-tag"
+                style={{ background: '#0e1018', color: '#9ad0f0', cursor: 'default' }}
+                title={ZODIAC_FLAVOR[org.zodiac] ?? ''}
+              >
+                {ZODIAC_GLYPH[org.zodiac] ?? '✦'} {org.zodiac}
+              </span>
+              <span style={{ color: '#666', fontSize: 11, marginLeft: 6, fontStyle: 'italic' }}>
+                {ZODIAC_FLAVOR[org.zodiac] ?? ''}
               </span>
             </div>
           </>
