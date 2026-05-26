@@ -739,6 +739,43 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
           </>
         )}
 
+        {detail?.memories && detail.memories.length > 0 && (() => {
+          const mems = detail.memories
+          const oldest = [...mems].sort((a, b) => a.tick - b.tick)[0]
+          const proudest = [...mems]
+            .filter((m) => m.kind !== 'core' && m.emotion >= 2)
+            .sort((a, b) => b.salience - a.salience)[0]
+          const heaviest = [...mems]
+            .filter((m) => m.kind !== 'core' && m.emotion <= -2)
+            .sort((a, b) => b.salience - a.salience)[0]
+          if (!oldest && !proudest && !heaviest) return null
+          return (
+            <>
+              <div className="org-detail-section">INNER LIFE</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '4px 0', fontSize: 11 }}>
+                {oldest && oldest.kind !== 'core' && (
+                  <div>
+                    <span style={{ color: '#666', minWidth: 90, display: 'inline-block' }}>oldest mem:</span>
+                    <span style={{ color: '#a8c0e0' }}>{oldest.text}</span>
+                  </div>
+                )}
+                {proudest && (
+                  <div>
+                    <span style={{ color: '#666', minWidth: 90, display: 'inline-block' }}>proudest:</span>
+                    <span style={{ color: '#f6c46a' }}>{proudest.text}</span>
+                  </div>
+                )}
+                {heaviest && (
+                  <div>
+                    <span style={{ color: '#666', minWidth: 90, display: 'inline-block' }}>heaviest:</span>
+                    <span style={{ color: '#6090c0' }}>{heaviest.text}</span>
+                  </div>
+                )}
+              </div>
+            </>
+          )
+        })()}
+
         {detail?.memories && detail.memories.filter((m) => m.kind === 'bond').length > 0 && (
           <>
             <div className="org-detail-section">BONDS REMEMBERED</div>
