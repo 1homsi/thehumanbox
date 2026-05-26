@@ -450,6 +450,10 @@ async fn main() {
                                 era:          era.clone(),
                                 mood:         mood.to_string(),
                                 aspiration:   o.aspiration.clone(),
+                                memories:     o.memories.top(5).into_iter()
+                                    .filter(|m| m.tick_formed < cur_tick.saturating_sub(1200))
+                                    .map(|m| m.text.clone())
+                                    .collect(),
                             });
                         }
                         candidates.sort_by_key(|c| {

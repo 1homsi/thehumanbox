@@ -19,6 +19,7 @@ pub struct NarrationReq {
     pub era:           String,
     pub mood:          String,
     pub aspiration:    String,
+    pub memories:      Vec<String>,
 }
 
 fn format_events(log: &[String]) -> String {
@@ -52,10 +53,25 @@ fn build_prompt(req: &NarrationReq) -> String {
     } else {
         format!("\nLIFE AIM: a {} at heart — let this colour their reading of the day, but do not name the aim.\n", req.aspiration)
     };
+    let memory_block = if req.memories.is_empty() {
+        String::new()
+    } else {
+        let lines: Vec<String> = req
+            .memories
+            .iter()
+            .take(4)
+            .enumerate()
+            .map(|(i, m)| format!("  {}. {}", i + 1, m))
+            .collect();
+        format!(
+            "\nWHAT STAYS IN THEIR MIND (older memories, not from today):\n{}\n",
+            lines.join("\n")
+        )
+    };
     format!("\
 One-sentence vignette of a person's day in a living tribal-to-civic sim.
 
-ORG: {name} ({sex}, {age} days, mood: {mood}, partner: {partner}, children: {children}, tribe: {tribe}, era: {era}){aspiration}
+ORG: {name} ({sex}, {age} days, mood: {mood}, partner: {partner}, children: {children}, tribe: {tribe}, era: {era}){aspiration}{memory_block}
 
 TRIBE WORDS:
 {vocab}
@@ -84,6 +100,7 @@ Output ONLY the sentence.",
         tribe = req.tribe_name.as_deref().unwrap_or("unnamed"),
         era = req.era,
         aspiration = aspiration_line,
+        memory_block = memory_block,
         vocab = format_vocab(&req.vocab),
         events = format_events(&req.life_log),
     )
