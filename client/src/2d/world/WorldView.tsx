@@ -434,6 +434,33 @@ function drawWorldOnCanvas(
     ctx.fillRect(0, 0, W, H)
   }
 
+  if (!world.is_day && world.cosmos) {
+    const illum = world.cosmos.moon_illum ?? 0.7
+    const radius = 14 + illum * 8
+    const cx = W - 50
+    const cy = 50
+    ctx.save()
+    ctx.beginPath()
+    ctx.arc(cx, cy, radius + 4, 0, Math.PI * 2)
+    ctx.fillStyle = `rgba(180,200,240,${0.05 + illum * 0.12})`
+    ctx.fill()
+    ctx.beginPath()
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2)
+    ctx.fillStyle = `rgba(240,244,255,${0.20 + illum * 0.65})`
+    ctx.fill()
+    const phase = world.cosmos.moon_phase
+    if (phase !== 'full_moon' && phase !== 'new_moon') {
+      const dx = phase.startsWith('waxing') ? -radius * (1 - illum) : radius * (1 - illum)
+      ctx.beginPath()
+      ctx.arc(cx + dx, cy, radius * 1.05, 0, Math.PI * 2)
+      ctx.fillStyle = 'rgba(20,28,70,0.95)'
+      ctx.globalCompositeOperation = 'destination-out'
+      ctx.fill()
+      ctx.globalCompositeOperation = 'source-over'
+    }
+    ctx.restore()
+  }
+
   if (!world.is_day || (world.day_progress ?? 0) > 0.05) {
     const tt = t * 0.001
     ctx.fillStyle = world.is_day ? 'rgba(255,255,255,0.55)' : 'rgba(180,200,240,0.30)'
