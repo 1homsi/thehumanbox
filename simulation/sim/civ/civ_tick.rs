@@ -480,6 +480,31 @@ fn tick_lunar_observation(sim: &mut Simulation) {
                 sim.headlines.pop_front();
             }
         }
+        if matches!(phase, MoonPhase::NewMoon) {
+            let cycle_ticks = crate::sim::cosmos::LUNAR_CYCLE_TICKS;
+            for o in sim.organisms.iter_mut() {
+                if !o.alive {
+                    continue;
+                }
+                if o.birth_tick == 0 || tick < o.birth_tick + cycle_ticks {
+                    continue;
+                }
+                if o.attributes.contains("milestone:lunar_cycle") {
+                    continue;
+                }
+                o.attributes.insert("milestone:lunar_cycle".to_string());
+                o.memories.insert(
+                    MemoryEntry::new(
+                        MemoryKind::Fact,
+                        "I have seen the moon turn its full circle",
+                        tick,
+                    )
+                    .with_salience(0.90)
+                    .with_emotion(2),
+                );
+                o.joy_ticks = (o.joy_ticks + 60).min(1200);
+            }
+        }
     }
 }
 
