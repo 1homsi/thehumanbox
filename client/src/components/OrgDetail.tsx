@@ -739,6 +739,48 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
           </>
         )}
 
+        {detail?.memories && detail.memories.filter((m) => m.kind === 'bond').length > 0 && (
+          <>
+            <div className="org-detail-section">BONDS REMEMBERED</div>
+            <div className="thought-history">
+              {detail.memories
+                .filter((m) => m.kind === 'bond')
+                .slice(0, 8)
+                .map((m, i) => {
+                  const relatedOrg = m.related_id ? organisms?.find((o) => o.id === m.related_id) : null
+                  const emo = m.emotion >= 1 ? '#f6c46a' : m.emotion <= -1 ? '#6090c0' : '#d0c8c0'
+                  return (
+                    <div key={`bond-${i}`} className="thought-row" style={{ alignItems: 'flex-start' }}>
+                      <span className="thought-tick" style={{ color: '#e09ab0', fontWeight: 600, minWidth: 50 }}>
+                        bond
+                      </span>
+                      <span className="thought-text" style={{ color: emo, flex: 1 }}>
+                        {m.text}
+                        {relatedOrg && (
+                          <button
+                            onClick={() => onSelectOrg?.(relatedOrg.id)}
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid #2a2520',
+                              color: lineageColor(relatedOrg.lineage_id),
+                              fontSize: 9,
+                              padding: '1px 5px',
+                              marginLeft: 6,
+                              borderRadius: 3,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            ↪ {relatedOrg.name}
+                          </button>
+                        )}
+                      </span>
+                    </div>
+                  )
+                })}
+            </div>
+          </>
+        )}
+
         {detail?.memories && detail.memories.length > 0 && (
           <>
             <div className="org-detail-section">WHAT THEY REMEMBER</div>
