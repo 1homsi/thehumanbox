@@ -97,7 +97,7 @@ fn build_prompt(req: &NarrationReq) -> String {
     format!("\
 One-sentence vignette of a person's day in a living tribal-to-civic sim.
 
-ORG: {name} ({sex}, {age} days, mood: {mood}, partner: {partner}, children: {children}, tribe: {tribe}, era: {era}){aspiration}{cosmic_line}{memory_block}
+ORG: {name} ({sex}, {age_human}, mood: {mood}, partner: {partner}, children: {children}, tribe: {tribe}, era: {era}){aspiration}{cosmic_line}{memory_block}
 
 TRIBE WORDS:
 {vocab}
@@ -119,7 +119,17 @@ RULES:
 Output ONLY the sentence.",
         name = req.org_name,
         sex = req.sex,
-        age = req.age_days,
+        age_human = if req.age_days >= 84 {
+            let years = req.age_days / 84;
+            let extra = req.age_days % 84;
+            if extra > 0 {
+                format!("{} years {} days old", years, extra)
+            } else {
+                format!("{} years old", years)
+            }
+        } else {
+            format!("{} days old", req.age_days)
+        },
         mood = req.mood,
         partner = req.partner_name.as_deref().unwrap_or("none"),
         children = req.children,
