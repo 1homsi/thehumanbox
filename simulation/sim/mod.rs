@@ -6,6 +6,7 @@ pub mod utils;
 pub mod serialize;
 pub mod persistence;
 pub mod spatial;
+pub mod cosmos;
 
 pub mod agents;
 pub mod civ;

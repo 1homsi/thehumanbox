@@ -277,6 +277,9 @@ pub struct Organism {
     pub anchor_events: Vec<(u64, String, f32)>,
 
     pub memories: super::memory::MemoryStore,
+
+    pub birth_tick: u64,
+    pub zodiac:     String,
 }
 
 impl Organism {
@@ -399,6 +402,8 @@ impl Organism {
                 }
                 m
             },
+            birth_tick: 0,
+            zodiac:     String::new(),
         }
     }
 
@@ -1225,6 +1230,12 @@ impl Organism {
             home_style_seed: if include_cold && self.home_style_seed > 0 {
                 Some(self.home_style_seed)
             } else { None },
+            zodiac: if include_cold && !self.zodiac.is_empty() {
+                Some(self.zodiac.clone())
+            } else { None },
+            birth_tick: if include_cold && self.birth_tick > 0 {
+                Some(self.birth_tick)
+            } else { None },
         }
     }
 
@@ -1524,6 +1535,8 @@ pub struct OrgJson {
     #[serde(default, skip_serializing_if = "Option::is_none")] pub tools:        Option<HashMap<String, u8>>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub home_furniture: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")] pub home_style_seed: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub zodiac:         Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub birth_tick:     Option<u64>,
 }
 
 #[derive(Serialize)]

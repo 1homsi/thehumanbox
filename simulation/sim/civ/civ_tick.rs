@@ -73,6 +73,52 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick % 240 == 0 && tick > 0 {
         tick_reflections(sim);
     }
+    if tick > 0 && tick % crate::sim::cosmos::DAY_LENGTH == 0 {
+        tick_lunar_observation(sim);
+    }
+}
+
+fn tick_lunar_observation(sim: &mut Simulation) {
+    use crate::organism::memory::{MemoryEntry, MemoryKind};
+    use crate::sim::cosmos::{moon_phase_at, MoonPhase};
+    let tick = sim.tick_count;
+    let phase = moon_phase_at(tick);
+    let yesterday_phase = moon_phase_at(tick.saturating_sub(crate::sim::cosmos::DAY_LENGTH));
+    if phase == yesterday_phase {
+        return;
+    }
+    let text = match phase {
+        MoonPhase::FullMoon       => "the moon stood full and bright",
+        MoonPhase::NewMoon        => "the moon went dark tonight",
+        MoonPhase::FirstQuarter   => "the moon hung half-lit, growing",
+        MoonPhase::LastQuarter    => "the moon hung half-lit, fading",
+        MoonPhase::WaxingCrescent => "the moon returned, a thin curve",
+        MoonPhase::WaxingGibbous  => "the moon was nearly full",
+        MoonPhase::WaningGibbous  => "the moon was full no more",
+        MoonPhase::WaningCrescent => "the moon thinned to a sliver",
+    };
+    let (mem_kind, emotion, salience) = match phase {
+        MoonPhase::FullMoon => (MemoryKind::Episode, 1, 0.55),
+        MoonPhase::NewMoon  => (MemoryKind::Episode, -1, 0.45),
+        _                   => (MemoryKind::Fact,    0, 0.40),
+    };
+    let mut wrote = 0;
+    for o in sim.organisms.iter_mut() {
+        if !o.alive { continue; }
+        let entry = MemoryEntry::new(mem_kind, text, tick)
+            .with_salience(salience)
+            .with_emotion(emotion);
+        o.memories.insert(entry);
+        if matches!(phase, MoonPhase::FullMoon) {
+            o.joy_ticks = (o.joy_ticks + 18).min(1200);
+        } else if matches!(phase, MoonPhase::NewMoon) {
+            o.fear_level = (o.fear_level + 0.02).min(1.0);
+        }
+        wrote += 1;
+    }
+    if wrote > 0 {
+        push_event(&mut sim.events, tick, "sky", "world", text);
+    }
 }
 
 fn tick_reflections(sim: &mut Simulation) {

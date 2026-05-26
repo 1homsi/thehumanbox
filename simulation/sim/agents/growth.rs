@@ -33,6 +33,9 @@ pub fn spawn_organism_with_home(
     org.home_x = home_x;
     org.home_y = home_y;
     org.sex = sex;
+    let stagger_tick = (rng.random_range(0..crate::sim::cosmos::YEAR_LENGTH_TICKS)) as u64;
+    org.birth_tick = stagger_tick;
+    org.zodiac = crate::sim::cosmos::ZodiacSign::from_birth_tick(stagger_tick).label().to_string();
     org.vocabulary = Vocabulary::generate(rng);
     org.discoveries.insert("foraging".to_string());
     assign_birth_attributes(&mut org, rng);
@@ -168,6 +171,8 @@ pub fn try_reproduce(
         max_age, child_traits_sexed,
     );
     child.sex = child_sex;
+    child.birth_tick = tick;
+    child.zodiac = crate::sim::cosmos::ZodiacSign::from_birth_tick(tick).label().to_string();
     child.vocabulary = Vocabulary::inherit_from(&organisms[org_idx].vocabulary, rng);
 
     for (state, actions) in &organisms[org_idx].q_table {

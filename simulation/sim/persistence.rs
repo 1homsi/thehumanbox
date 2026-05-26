@@ -122,6 +122,10 @@ pub(crate) struct OrgSave {
     anchor_events: Vec<(u64, String, f32)>,
     #[serde(default)]
     memories: crate::organism::memory::MemoryStore,
+    #[serde(default)]
+    zodiac: String,
+    #[serde(default)]
+    birth_tick: u64,
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -262,6 +266,8 @@ fn org_to_save(o: &Organism) -> OrgSave {
         friends:   o.friends.clone(),
         anchor_events: o.anchor_events.clone(),
         memories:      o.memories.clone(),
+        zodiac:        o.zodiac.clone(),
+        birth_tick:    o.birth_tick,
     }
 }
 
@@ -355,6 +361,12 @@ fn org_from_save(s: OrgSave) -> Organism {
     o.anchor_events       = s.anchor_events;
     if !s.memories.entries.is_empty() {
         o.memories = s.memories;
+    }
+    if !s.zodiac.is_empty() {
+        o.zodiac = s.zodiac;
+    }
+    if s.birth_tick > 0 {
+        o.birth_tick = s.birth_tick;
     }
     if needs_vocab {
         let mut voc_rng = rand::rngs::SmallRng::seed_from_u64(vocab_seed);
