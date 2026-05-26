@@ -275,6 +275,8 @@ pub struct Organism {
     pub attributes: HashSet<String>,
 
     pub anchor_events: Vec<(u64, String, f32)>,
+
+    pub memories: super::memory::MemoryStore,
 }
 
 impl Organism {
@@ -390,6 +392,13 @@ impl Organism {
             friends:         HashMap::new(),
             attributes:      HashSet::new(),
             anchor_events:   Vec::new(),
+            memories: {
+                let mut m = super::memory::MemoryStore::default();
+                for entry in super::memory::seed_core_memories(0) {
+                    m.insert(entry);
+                }
+                m
+            },
         }
     }
 

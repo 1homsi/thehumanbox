@@ -120,6 +120,8 @@ pub(crate) struct OrgSave {
     friends: HashMap<String, String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     anchor_events: Vec<(u64, String, f32)>,
+    #[serde(default)]
+    memories: crate::organism::memory::MemoryStore,
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -259,6 +261,7 @@ fn org_to_save(o: &Organism) -> OrgSave {
         inv_stone: o.inv_stone,
         friends:   o.friends.clone(),
         anchor_events: o.anchor_events.clone(),
+        memories:      o.memories.clone(),
     }
 }
 
@@ -350,6 +353,9 @@ fn org_from_save(s: OrgSave) -> Organism {
     o.inv_stone           = s.inv_stone;
     o.friends             = s.friends;
     o.anchor_events       = s.anchor_events;
+    if !s.memories.entries.is_empty() {
+        o.memories = s.memories;
+    }
     if needs_vocab {
         let mut voc_rng = rand::rngs::SmallRng::seed_from_u64(vocab_seed);
         o.vocabulary = crate::organism::vocabulary::Vocabulary::generate(&mut voc_rng);
