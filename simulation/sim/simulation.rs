@@ -1634,6 +1634,38 @@ impl Simulation {
             reward -= 0.006 * excess * excess;
         }
 
+        if self.organisms[idx].infection < 0.10 && self.organisms[idx].health > 0.4 {
+            let healer_bonus = if self.organisms[idx].specialty.as_deref() == Some("healer")
+                || self.organisms[idx].specialty.as_deref() == Some("doctor")
+                || self.organisms[idx].aspiration == "healer" { 3.0 } else { 1.0 };
+            let resilience = self.organisms[idx].traits.resilience;
+            if resilience > 0.4 || healer_bonus > 1.0 {
+                let sick_kin: Vec<usize> = spatial.query(ox as i32, oy as i32, 3)
+                    .into_iter()
+                    .filter(|&i| {
+                        if i == idx { return false; }
+                        let o = &self.organisms[i];
+                        o.alive && o.lineage_id == lineage
+                            && o.infection > 0.20
+                            && (o.x - ox).abs() + (o.y - oy).abs() <= 2.5
+                    })
+                    .collect();
+                if !sick_kin.is_empty() {
+                    let care_strength = 0.004 * healer_bonus * (0.5 + resilience);
+                    for &ki in &sick_kin {
+                        self.organisms[ki].infection = (self.organisms[ki].infection - care_strength).max(0.0);
+                        self.organisms[ki].comfort = (self.organisms[ki].comfort + 0.002).min(1.0);
+                    }
+                    reward += 0.012 * healer_bonus;
+                    if self.organisms[idx].thought.is_empty()
+                        || self.organisms[idx].thought == "observing"
+                        || self.organisms[idx].thought == "exploring" {
+                        self.organisms[idx].think("tending to the sick", self.tick_count);
+                    }
+                }
+            }
+        }
+
         let att_adjustments: Vec<(usize, f32)> = self.organisms.iter().enumerate()
             .filter(|(i, o)| *i != idx && o.alive && o.lineage_id != lineage)
             .filter(|(_, o)| (o.x - ox).abs() + (o.y - oy).abs() <= 4.0)
