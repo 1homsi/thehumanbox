@@ -96,6 +96,10 @@ def organism_event_rows(snapshot: dict, accept_ids: set[str] | None = None) -> l
     weather = snapshot.get("weather", {}).get("kind") if isinstance(snapshot.get("weather"), dict) else None
     is_day = snapshot.get("is_day")
     era = snapshot.get("current_era")
+    cosmos = snapshot.get("cosmos") or {}
+    moon_phase = cosmos.get("moon_phase")
+    moon_illum = cosmos.get("moon_illum")
+    year = cosmos.get("year")
 
     rows: list[dict] = []
     for org in snapshot.get("organisms", []):
@@ -129,12 +133,17 @@ def organism_event_rows(snapshot: dict, accept_ids: set[str] | None = None) -> l
                 "resilience": (org.get("traits") or {}).get("resilience"),
             },
             "world": {
-                "season":  season,
-                "weather": weather,
-                "is_day":  is_day,
-                "era":     era,
+                "season":     season,
+                "weather":    weather,
+                "is_day":     is_day,
+                "era":        era,
+                "moon_phase": moon_phase,
+                "moon_illum": moon_illum,
+                "year":       year,
             },
             "discoveries": list(org.get("discoveries") or []),
+            "zodiac":      org.get("zodiac"),
+            "aspiration":  org.get("aspiration"),
         })
     return rows
 
