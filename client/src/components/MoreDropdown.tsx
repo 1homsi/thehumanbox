@@ -34,6 +34,7 @@ export function MoreDropdown() {
   const openFamilyTree = useUIStore((s) => s.openFamilyTree)
   const openAbout = useUIStore((s) => s.openAbout)
   const openWorlds = useUIStore((s) => s.openWorlds)
+  const openNotable = useUIStore((s) => s.openNotable)
   const nerdStats = useUIStore((s) => s.nerdStats)
   const setNerdStats = useUIStore((s) => s.setNerdStats)
   const isMobile = useIsMobile()
@@ -373,6 +374,16 @@ export function MoreDropdown() {
           title="Browse archived worlds from past months"
         >
           🌍 worlds
+        </button>
+        <button
+          className="lang-btn"
+          onClick={() => {
+            openNotable()
+            closeMore()
+          }}
+          title="Top organisms by age, family size, friends, wealth, knowledge, joy, grief…"
+        >
+          ✦ notable
         </button>
         <button
           className="lang-btn"
