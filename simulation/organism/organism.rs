@@ -1191,6 +1191,20 @@ impl Organism {
                 related_name: e.related_name.clone(),
             })
             .collect();
+        let memories: Vec<MemoryJson> = self
+            .memories
+            .top(20)
+            .into_iter()
+            .map(|m| MemoryJson {
+                kind:       m.kind.label().to_string(),
+                text:       m.text.clone(),
+                salience:   (m.salience * 100.0).round() / 100.0,
+                emotion:    m.emotion,
+                tick:       m.tick_formed,
+                related_id: m.related_id.clone(),
+                recalls:    m.recall_count,
+            })
+            .collect();
         OrgDetailJson {
             base:            self.to_json(),
             thought_history,
@@ -1198,6 +1212,7 @@ impl Organism {
             daily_story:     self.daily_story.clone(),
             life_log,
             conversations:   self.conversations.iter().rev().take(25).rev().cloned().collect(),
+            memories,
         }
     }
 
@@ -1469,6 +1484,19 @@ pub struct OrgDetailJson {
     pub daily_story:     String,
     pub life_log:        Vec<LifeEventJson>,
     pub conversations:   Vec<ConversationEntry>,
+    pub memories:        Vec<MemoryJson>,
+}
+
+#[derive(Serialize)]
+pub struct MemoryJson {
+    pub kind:       String,
+    pub text:       String,
+    pub salience:   f32,
+    pub emotion:    i8,
+    pub tick:       u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub related_id: Option<String>,
+    pub recalls:    u32,
 }
 
 #[cfg(test)]

@@ -176,12 +176,23 @@ export interface LifeEvent {
   related_name?: string
 }
 
+export interface MemoryEntry {
+  kind: 'core' | 'episode' | 'fact' | 'bond' | 'place' | 'dream'
+  text: string
+  salience: number
+  emotion: number
+  tick: number
+  related_id?: string
+  recalls: number
+}
+
 export interface OrgDetail extends OrganismState {
   thought_history: ThoughtEntry[]
   vocabulary: Record<string, string>
   daily_story: string
   life_log: LifeEvent[]
   conversations: ConversationEntry[]
+  memories: MemoryEntry[]
 }
 
 export interface OrgLife {

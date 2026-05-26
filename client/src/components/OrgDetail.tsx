@@ -690,6 +690,51 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
           </>
         )}
 
+        {detail?.memories && detail.memories.length > 0 && (
+          <>
+            <div className="org-detail-section">WHAT THEY REMEMBER</div>
+            <div className="thought-history">
+              {detail.memories.map((m, i) => {
+                const kindColor: Record<string, string> = {
+                  core: '#d8c060',
+                  episode: '#bfa9d6',
+                  fact: '#90c8b0',
+                  bond: '#e09ab0',
+                  place: '#a8c0e0',
+                  dream: '#888',
+                }
+                const emoColor = m.emotion >= 2 ? '#f6c46a'
+                  : m.emotion >= 1 ? '#d8c060'
+                  : m.emotion <= -2 ? '#6090c0'
+                  : m.emotion <= -1 ? '#80a8c0'
+                  : '#d0c8c0'
+                const bars = Math.max(1, Math.round(m.salience * 5))
+                return (
+                  <div key={i} className="thought-row" style={{ alignItems: 'flex-start' }}>
+                    <span
+                      className="thought-tick"
+                      style={{
+                        color: kindColor[m.kind] ?? '#999',
+                        fontWeight: 600,
+                        minWidth: 56,
+                      }}
+                      title={`${m.kind} — salience ${(m.salience * 100).toFixed(0)}%${m.recalls > 0 ? ` · recalled ${m.recalls}x` : ''}`}
+                    >
+                      {m.kind}
+                    </span>
+                    <span className="thought-text" style={{ color: emoColor, flex: 1 }}>
+                      {m.text}
+                    </span>
+                    <span style={{ color: '#444', fontFamily: 'monospace', fontSize: 9, marginLeft: 6 }} title={`salience ${(m.salience * 100).toFixed(0)}%`}>
+                      {'▮'.repeat(bars)}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </>
+        )}
+
         {detail?.vocabulary && Object.keys(detail.vocabulary).length > 0 && (
           <>
             <div className="org-detail-section">THEIR LANGUAGE</div>
