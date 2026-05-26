@@ -76,6 +76,53 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick > 0 && tick % crate::sim::cosmos::DAY_LENGTH == 0 {
         tick_lunar_observation(sim);
     }
+    if tick > 0 && tick % 90 == 0 && sim.is_night() {
+        tick_dreams(sim);
+    }
+}
+
+fn tick_dreams(sim: &mut Simulation) {
+    use crate::organism::memory::{MemoryEntry, MemoryKind};
+    let tick = sim.tick_count;
+    let n = sim.organisms.len();
+    if n == 0 { return; }
+    let slot = (tick / 90) as usize % 11;
+    let mut dreamed = 0usize;
+    for i in 0..n {
+        if i % 11 != slot { continue; }
+        let o = &sim.organisms[i];
+        if !o.alive { continue; }
+        if o.sleep_debt < 0.10 { continue; }
+
+        let prompts: Vec<(crate::organism::memory::MemoryKind, String, i8)> = o.memories.top(8).into_iter()
+            .filter(|m| m.salience > 0.30)
+            .map(|m| (m.kind, m.text.clone(), m.emotion))
+            .collect();
+        if prompts.len() < 2 { continue; }
+
+        let (a_idx, b_idx) = (
+            (tick as usize ^ i) % prompts.len(),
+            (tick as usize ^ (i * 17 + 3)) % prompts.len(),
+        );
+        if a_idx == b_idx { continue; }
+        let (_, ta, ea) = &prompts[a_idx];
+        let (_, tb, _) = &prompts[b_idx];
+        let lower_a = ta.trim_end_matches('.').to_lowercase();
+        let lower_b = tb.trim_end_matches('.').to_lowercase();
+        let dream_text = match (tick + i as u64) % 4 {
+            0 => format!("a dream where {} and {}", lower_a, lower_b),
+            1 => format!("a dream — {} and the {} together", lower_a, lower_b),
+            2 => format!("a strange dream: {}, then {}", lower_a, lower_b),
+            _ => format!("a dream of {}, somehow tangled with {}", lower_a, lower_b),
+        };
+        let entry = MemoryEntry::new(MemoryKind::Dream, dream_text, tick)
+            .with_salience(0.30 + sim.organisms[i].sleep_debt * 0.3)
+            .with_emotion((*ea as i32 / 2).clamp(-2, 2) as i8);
+        sim.organisms[i].memories.insert(entry);
+        sim.organisms[i].sleep_debt = (sim.organisms[i].sleep_debt - 0.02).max(0.0);
+        dreamed += 1;
+    }
+    let _ = dreamed;
 }
 
 fn tick_lunar_observation(sim: &mut Simulation) {
