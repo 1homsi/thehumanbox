@@ -93,6 +93,61 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick > 0 && tick % 600 == 0 && sim.is_night() {
         tick_partner_pillow_talk(sim);
     }
+    if tick > 0 && tick % 240 == 0 {
+        tick_grudge_recall(sim);
+    }
+}
+
+fn tick_grudge_recall(sim: &mut Simulation) {
+    use crate::organism::memory::MemoryKind;
+    let n = sim.organisms.len();
+    if n == 0 {
+        return;
+    }
+    let snapshot: Vec<(usize, f32, f32, Vec<String>)> = sim
+        .organisms
+        .iter()
+        .enumerate()
+        .filter(|(_, o)| o.alive)
+        .map(|(i, o)| {
+            let foes: Vec<String> = o
+                .memories
+                .entries
+                .iter()
+                .filter(|m| m.kind == MemoryKind::Bond && m.emotion <= -2 && m.salience > 0.5)
+                .filter_map(|m| m.related_id.clone())
+                .take(4)
+                .collect();
+            (i, o.x, o.y, foes)
+        })
+        .collect();
+
+    for (i, x, y, foes) in snapshot {
+        if foes.is_empty() {
+            continue;
+        }
+        let mut bumps = 0u32;
+        for j in 0..n {
+            if j == i {
+                continue;
+            }
+            let other = &sim.organisms[j];
+            if !other.alive {
+                continue;
+            }
+            if (other.x - x).abs() + (other.y - y).abs() > 6.0 {
+                continue;
+            }
+            if foes.iter().any(|fid| fid == &other.id) {
+                bumps += 1;
+            }
+        }
+        if bumps > 0 {
+            let me = &mut sim.organisms[i];
+            me.fear_level = (me.fear_level + 0.012 * bumps as f32).min(1.0);
+            me.comfort = (me.comfort - 0.005 * bumps as f32).max(0.0);
+        }
+    }
 }
 
 fn tick_partner_pillow_talk(sim: &mut Simulation) {
