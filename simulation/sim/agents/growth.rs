@@ -196,6 +196,19 @@ pub fn try_reproduce(
                 .with_emotion((emotion as i32 / 2).clamp(-2, 2) as i8);
             child.memories.insert(entry);
         }
+        let biome_text = match biome {
+            Biome::Forest    => "I was born under the trees of the forest",
+            Biome::Grassland => "I was born on the open grasslands",
+            Biome::Wetland   => "I was born by the wet land where the reeds grow",
+            Biome::Desert    => "I was born in the dry land where the sun burns",
+            Biome::Tundra    => "I was born where the cold lives in the ground",
+            Biome::Volcanic  => "I was born on the burning land",
+        };
+        child.memories.insert(
+            MemoryEntry::new(MemoryKind::Place, biome_text, tick)
+                .with_salience(0.85)
+                .with_emotion(1),
+        );
     }
 
     for (state, actions) in &organisms[org_idx].q_table {
