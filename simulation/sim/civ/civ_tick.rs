@@ -79,6 +79,34 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick > 0 && tick % 90 == 0 && sim.is_night() {
         tick_dreams(sim);
     }
+    if tick > 0 && tick % 300 == 0 {
+        tick_anniversaries(sim);
+    }
+}
+
+fn tick_anniversaries(sim: &mut Simulation) {
+    use crate::organism::memory::{MemoryEntry, MemoryKind};
+    let tick = sim.tick_count;
+    let year_ticks = crate::sim::cosmos::YEAR_LENGTH_TICKS;
+    for o in sim.organisms.iter_mut() {
+        if !o.alive || o.birth_tick == 0 || tick <= o.birth_tick { continue; }
+        let elapsed = tick - o.birth_tick;
+        if elapsed < year_ticks { continue; }
+        let last_year_mark = (elapsed - 300) / year_ticks;
+        let this_year_mark = elapsed / year_ticks;
+        if this_year_mark > last_year_mark {
+            let years = this_year_mark;
+            let text = match years {
+                1 => "I have lived one full year in this world".to_string(),
+                _ => format!("I have lived {} years in this world", years),
+            };
+            let entry = MemoryEntry::new(MemoryKind::Fact, text, tick)
+                .with_salience(0.85)
+                .with_emotion(2);
+            o.memories.insert(entry);
+            o.joy_ticks = (o.joy_ticks + 60).min(1200);
+        }
+    }
 }
 
 fn tick_dreams(sim: &mut Simulation) {
