@@ -382,9 +382,24 @@ pub fn deliver_births(
             for fi in 0..organisms.len() {
                 if organisms[fi].alive && organisms[fi].id == pid {
                     organisms[fi].joy_ticks = (organisms[fi].joy_ticks + 350).min(1200);
+                    let was_first = organisms[fi].children_count == 0;
+                    organisms[fi].children_count = organisms[fi].children_count.saturating_add(1);
                     organisms[fi].log_life_rel(tick, "birth",
                         format!("welcomed {} into the world", cn),
                         Some(ci_id.clone()), Some(cn.clone()));
+                    if was_first {
+                        use crate::organism::memory::{MemoryEntry, MemoryKind};
+                        organisms[fi].memories.insert(
+                            MemoryEntry::new(
+                                MemoryKind::Bond,
+                                format!("I became a father — my first child was {}", cn),
+                                tick,
+                            )
+                            .with_salience(0.96)
+                            .with_emotion(3)
+                            .with_related(ci_id.clone()),
+                        );
+                    }
                     break;
                 }
             }
