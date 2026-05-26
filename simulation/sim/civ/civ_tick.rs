@@ -758,10 +758,24 @@ fn lineage_pop(sim: &Simulation, lid: &str) -> usize {
 }
 
 fn tick_age_stages(sim: &mut Simulation) {
+    let tick = sim.tick_count;
     for org in sim.organisms.iter_mut() {
         if !org.alive { continue; }
         let stage = org.age_stage();
-        if stage == AgeStage::Elder { org.is_elder = true; }
+        if stage == AgeStage::Elder && !org.is_elder {
+            org.is_elder = true;
+            use crate::organism::memory::{MemoryEntry, MemoryKind};
+            org.memories.insert(
+                MemoryEntry::new(
+                    MemoryKind::Fact,
+                    "I am elder now — the young look to me for what I remember",
+                    tick,
+                )
+                .with_salience(0.95)
+                .with_emotion(2),
+            );
+            org.joy_ticks = (org.joy_ticks + 80).min(1200);
+        }
     }
 }
 
