@@ -221,7 +221,10 @@ pub fn gift_knowledge(
     let t_trust = organisms[ti].org_trust.entry(org_id.clone()).or_insert(0.0);
     *t_trust = (*t_trust + 0.15).min(1.0);
 
-    let o_trust = organisms[org_idx].org_trust.entry(target_id).or_insert(0.0);
+    let o_trust = organisms[org_idx]
+        .org_trust
+        .entry(target_id.clone())
+        .or_insert(0.0);
     *o_trust = (*o_trust + 0.05).min(1.0);
 
     let new_att = organisms[org_idx].attitude_toward(&target_lid);
@@ -238,6 +241,38 @@ pub fn gift_knowledge(
             ),
         );
         history.alliances_formed += 1;
+
+        use crate::organism::memory::{MemoryEntry, MemoryKind};
+        let target_name_for_mem = target_name.clone();
+        let target_id_for_mem = target_id.clone();
+        let actor_name = organisms[org_idx].name.clone();
+        let actor_id = organisms[org_idx].id.clone();
+        organisms[org_idx].memories.insert(
+            MemoryEntry::new(
+                MemoryKind::Bond,
+                format!(
+                    "I gave knowledge to {}, of another people — they took it",
+                    target_name_for_mem
+                ),
+                tick,
+            )
+            .with_salience(0.82)
+            .with_emotion(2)
+            .with_related(target_id_for_mem),
+        );
+        organisms[ti].memories.insert(
+            MemoryEntry::new(
+                MemoryKind::Bond,
+                format!(
+                    "{} of another people taught me without asking for return",
+                    actor_name
+                ),
+                tick,
+            )
+            .with_salience(0.85)
+            .with_emotion(2)
+            .with_related(actor_id),
+        );
     }
 
     let reward_add = if new_att >= 0.0 { 0.014 } else { -0.003 };
