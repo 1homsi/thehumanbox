@@ -1,12 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Modal } from './Modal'
-import {
-  DesktopSettings,
-  ModelProvider,
-  SimMode,
-  SimStatus,
-  getDesktop,
-} from '../lib/desktop'
+import { getDesktop } from '../lib/desktop'
+import type { DesktopSettings, ModelProvider, SimMode, SimStatus } from '../lib/desktop'
 
 interface Props {
   onClose: () => void

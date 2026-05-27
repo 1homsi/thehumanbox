@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { getDesktop, UpdateInfo } from '../lib/desktop'
+import { getDesktop } from '../lib/desktop'
+import type { UpdateInfo } from '../lib/desktop'
 
 type State =
   | { kind: 'idle' }
