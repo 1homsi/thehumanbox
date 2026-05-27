@@ -94,6 +94,8 @@ pub type LatestFull = Arc<std::sync::RwLock<Option<Arc<Vec<u8>>>>>;
 /// PNG encode without blocking the world-broadcast tasks.
 pub type OgCache = Arc<tokio::sync::Mutex<Option<(u64, Arc<Vec<u8>>)>>>;
 
+pub type SharedWorldStore = Arc<crate::server::world_store::WorldStore>;
+
 #[derive(Clone)]
 pub struct AppState {
     pub sim: SharedSim,
@@ -106,6 +108,7 @@ pub struct AppState {
     pub groq_limiter: crate::server::llm_rate::SharedGroqLimiter,
     pub og_cache: OgCache,
     pub start_ms: u64,
+    pub world_store: Option<SharedWorldStore>,
 }
 
 #[tokio::main]
@@ -183,6 +186,16 @@ async fn main() {
     let live_save_path = crate::server::world_store::world_save_path(&live_hash);
     let save_path_str = live_save_path.to_string_lossy().to_string();
     let sim = Arc::new(Mutex::new(Simulation::load_or_new(fresh_seed, &save_path_str)));
+    let world_store: Option<SharedWorldStore> = match crate::server::world_store::WorldStore::open(&live_hash)
+    {
+        Ok(s) => Some(Arc::new(s)),
+        Err(e) => {
+            tracing::warn!(target: "world",
+                "could not open worlds/{}/world.sqlite: {} — dead-org memory archive disabled",
+                live_hash, e);
+            None
+        }
+    };
     let (tx, _rx) = broadcast::channel::<Arc<Vec<u8>>>(WS_BROADCAST_BUFFER);
     let latest_full: LatestFull = Arc::new(std::sync::RwLock::new(None));
     let latest_full_at: Arc<std::sync::atomic::AtomicU64> = Arc::new(std::sync::atomic::AtomicU64::new(0));
@@ -281,6 +294,7 @@ async fn main() {
         let convo_tx2 = convo_tx.clone();
         let memory_watch_cl = memory_watch.clone();
         let transport_stats_s = transport_stats.clone();
+        let world_store = world_store.clone();
         tokio::spawn(async move {
             loop {
                 let tick_started = std::time::Instant::now();
@@ -626,10 +640,31 @@ async fn main() {
 
                     let pending_thinks = std::mem::take(&mut s.pending_thinks);
                     let pending_convos = std::mem::take(&mut s.pending_convos);
-                    (pending_thinks, pending_convos, pending_save)
+                    let pending_flushes = std::mem::take(&mut s.pending_memory_flushes);
+                    (pending_thinks, pending_convos, pending_save, pending_flushes)
                 };
 
-                let (pending_thinks, pending_convos, pending_save) = tick_outputs;
+                let (pending_thinks, pending_convos, pending_save, pending_flushes) = tick_outputs;
+                if !pending_flushes.is_empty() {
+                    if let Some(ws) = world_store.clone() {
+                        tokio::task::spawn_blocking(move || {
+                            for f in pending_flushes {
+                                let refs: Vec<&crate::organism::memory::MemoryEntry> =
+                                    f.memories.iter().collect();
+                                if let Err(e) = ws.flush_dead_org_memories(
+                                    &f.org_id,
+                                    &f.org_name,
+                                    &f.lineage_id,
+                                    f.flushed_tick,
+                                    &refs,
+                                ) {
+                                    tracing::warn!(target: "memory",
+                                        "flush_dead_org_memories({}): {}", f.org_id, e);
+                                }
+                            }
+                        });
+                    }
+                }
                 if let Some(state) = pending_save {
                     tokio::task::spawn_blocking(move || {
                         let hash = crate::server::world_store::live_world_hash()
@@ -820,6 +855,7 @@ async fn main() {
         groq_limiter,
         og_cache,
         start_ms,
+        world_store: world_store.clone(),
     };
 
     let app = Router::new()

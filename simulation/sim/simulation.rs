@@ -115,6 +115,14 @@ impl ThinkTrigger {
     }
 }
 
+pub struct PendingMemoryFlush {
+    pub org_id: String,
+    pub org_name: String,
+    pub lineage_id: String,
+    pub flushed_tick: u64,
+    pub memories: Vec<crate::organism::memory::MemoryEntry>,
+}
+
 #[derive(Default, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Event {
@@ -164,6 +172,7 @@ pub struct Simulation {
     pub story_history: VecDeque<StoryEntry>,
     pub pending_thinks: Vec<ThinkTrigger>,
     pub pending_convos: Vec<crate::sim::convo_req::ConversationReq>,
+    pub pending_memory_flushes: Vec<PendingMemoryFlush>,
     pub lineage_names: HashMap<String, String>,
     pub lineage_strategies: HashMap<String, (String, u64)>,
     pub(crate) lineage_last_council: HashMap<String, u64>,
@@ -300,6 +309,7 @@ impl Simulation {
             story_history: VecDeque::new(),
             pending_thinks: Vec::new(),
             pending_convos: Vec::new(),
+            pending_memory_flushes: Vec::new(),
             lineage_names: HashMap::new(),
             lineage_strategies: HashMap::new(),
             lineage_last_council: HashMap::new(),
@@ -783,11 +793,23 @@ impl Simulation {
             if dead_count > RECENT_DEAD_FULL {
                 let to_compress = dead_count - RECENT_DEAD_FULL;
                 let mut compressed = 0usize;
+                let tick_now = self.tick_count;
                 for o in self.organisms.iter_mut() {
                     if compressed >= to_compress {
                         break;
                     }
                     if !o.alive && !o.q_table.is_empty() {
+                        if !o.memories.is_empty() {
+                            let top: Vec<crate::organism::memory::MemoryEntry> =
+                                o.memories.top(8).into_iter().cloned().collect();
+                            self.pending_memory_flushes.push(PendingMemoryFlush {
+                                org_id: o.id.clone(),
+                                org_name: o.name.clone(),
+                                lineage_id: o.lineage_id.clone(),
+                                flushed_tick: tick_now,
+                                memories: top,
+                            });
+                        }
                         o.compress_for_archive();
                         compressed += 1;
                     }
