@@ -10,8 +10,15 @@ name: desktop-release
 #     a failed platform build without re-cutting the release)
 
 on:
-  release:
-    types: [published]
+  # Called from pipeline.yml after publish-release creates the tag. The
+  # `release: published` event doesn't fire reliably when the release is
+  # created by the default GITHUB_TOKEN, so we chain explicitly instead.
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Release tag to upload to (e.g. v0.2.1)'
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       tag:
@@ -52,12 +59,7 @@ jobs:
       - name: Resolve release tag
         id: tag
         shell: bash
-        run: |
-          if [ -n "${{ github.event.inputs.tag }}" ]; then
-            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
-          fi
+        run: echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable

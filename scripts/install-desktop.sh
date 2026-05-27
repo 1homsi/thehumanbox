@@ -28,14 +28,20 @@ esac
 
 echo "==> Resolving latest release..."
 API="https://api.github.com/repos/$OWNER/$REPO/releases/latest"
-URL="$(curl -fsSL "$API" \
-  | grep -oE 'https://[^"]+\.dmg' \
-  | grep -- "-$SUFFIX\"\\?$" \
-  | head -n1)"
+META="$(curl -fsSL "$API")"
+TAG="$(printf '%s' "$META" | grep -oE '"tag_name":[[:space:]]*"[^"]+"' | head -n1 | sed -E 's/.*"([^"]+)"$/\1/' || true)"
+
+# Match any dmg asset whose URL ends in -<arch>.dmg (electron-builder names
+# them like "The Human Box-0.2.4-arm64.dmg").
+URL="$(printf '%s' "$META" | grep -oE 'https://[^"]+\.dmg' | grep -E "${SUFFIX}\$" | head -n1 || true)"
 
 if [[ -z "$URL" ]]; then
-  echo "could not find a $SUFFIX asset on the latest release" >&2
-  echo "browse manually: https://github.com/$OWNER/$REPO/releases/latest" >&2
+  echo
+  echo "No macOS $SUFFIX installer is attached to the latest release${TAG:+ ($TAG)} yet." >&2
+  echo "The desktop build may still be running, or this release was cut before" >&2
+  echo "the desktop pipeline shipped. Check:" >&2
+  echo "  https://github.com/$OWNER/$REPO/releases/latest" >&2
+  echo "  https://github.com/$OWNER/$REPO/actions" >&2
   exit 1
 fi
 

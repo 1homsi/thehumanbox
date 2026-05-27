@@ -277,6 +277,16 @@ jobs:
               ./bin/simulation-rs
           fi
 
+  build-desktop:
+    name: Build desktop installers + attach to release
+    needs: [bump-version, publish-release]
+    permissions:
+      contents: write
+    secrets: inherit
+    uses: ./.github/workflows/desktop-release.yml
+    with:
+      tag: v${{ needs.bump-version.outputs.new }}
+
   deploy-backend:
     name: Deploy backend (SSM, no on-box compile)
     needs: [bump-version, publish-release]
