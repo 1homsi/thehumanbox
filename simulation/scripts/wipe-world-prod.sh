@@ -1,32 +1,28 @@
 #!/usr/bin/env bash
-# Wipe the production world.save on EC2 and restart the simulation.
+# Wipe the production live world on EC2 and restart the simulation.
 #
 # Sends an SSM RunShellScript command that:
 #   1. stops the systemd unit (`thehumanbox`)
-#   2. removes world.save (+ its .tmp / .bak siblings)
-#   3. starts the unit, which boots into the fresh-world branch
-#      (load_or_new prints "No save at ... - starting fresh world").
+#   2. removes the live world dir under <workdir>/worlds/<hash>/
+#   3. removes the <workdir>/worlds/_live marker
+#   4. removes any legacy <workdir>/world.save (pre-refactor)
+#   5. starts the unit, which mints a brand-new world on boot
 #
 # Requires:
-#   - AWS CLI configured (or AWS_* env vars set) with permission to
-#     send SSM commands to the instance
-#   - $INSTANCE_ID env var, or `--instance-id <id>` flag, or the value
-#     baked in below
-#   - $AWS_REGION env var, or `--region <region>` flag
+#   - AWS CLI configured with permission to send SSM commands
+#   - $INSTANCE_ID env var or --instance-id flag
+#   - $AWS_REGION env var or --region flag
 #
-# Confirmation: the script will prompt you to type "WIPE" before
-# sending the command. There's no undo.
+# Confirmation: prompts for "WIPE" before sending unless --yes.
+
 set -euo pipefail
 
 INSTANCE_ID="${INSTANCE_ID:-}"
 REGION="${AWS_REGION:-}"
 
-# Possible locations of world.save on the EC2 box. We try them all
-# since the working dir depends on the systemd unit config and may
-# differ between deploys.
 WORKING_DIRS=(
-  "/root/thehumanbox"
   "/root/thehumanbox/simulation"
+  "/root/thehumanbox"
   "/var/lib/thehumanbox"
 )
 
@@ -34,7 +30,8 @@ usage() {
   cat <<EOF
 Usage: $(basename "$0") [--instance-id <id>] [--region <region>] [--yes]
 
-Wipes the persisted world on the EC2 box and restarts the simulation.
+Wipes the live world on the EC2 box and restarts the simulation —
+the next boot mints a brand-new world from a fresh hash.
 
 Environment fallbacks:
   INSTANCE_ID  EC2 instance id (i-...)
@@ -70,7 +67,8 @@ echo "About to wipe production world on:"
 echo "  instance: $INSTANCE_ID"
 echo "  region:   $REGION"
 echo "This is destructive. The running world will be terminated and a"
-echo "fresh one spawned on the next service start."
+echo "fresh one will be minted on next service start. Historical archived"
+echo "worlds in other hash dirs are preserved."
 if [[ "$SKIP_PROMPT" -ne 1 ]]; then
   read -r -p "Type WIPE to confirm: " confirm
   if [[ "$confirm" != "WIPE" ]]; then
@@ -79,17 +77,26 @@ if [[ "$SKIP_PROMPT" -ne 1 ]]; then
   fi
 fi
 
-# Build the inline shell command. Each path is unlinked best-effort
-# (the -f flag suppresses "no such file" errors so the script doesn't
-# fail on the locations where the save doesn't exist).
-RM_COMMANDS=""
+# Build the inline shell command. For each candidate workdir:
+#   - if worlds/_live exists, read it, then rm -rf the named world dir
+#     and the marker
+#   - rm any legacy CWD world.save siblings
+RM_BLOCK=""
 for dir in "${WORKING_DIRS[@]}"; do
-  RM_COMMANDS+="rm -f $dir/world.save $dir/world.save.tmp $dir/world.save.bak; "
+  RM_BLOCK+="
+if [ -f $dir/worlds/_live ]; then
+  H=\$(cat $dir/worlds/_live);
+  if [ -n \"\$H\" ] && [ -d $dir/worlds/\$H ]; then
+    rm -rf $dir/worlds/\$H;
+    echo removed $dir/worlds/\$H;
+  fi;
+  rm -f $dir/worlds/_live;
+fi;
+rm -f $dir/world.save $dir/world.save.tmp $dir/world.save.bak;
+"
 done
 
-# Single quoted SSM body. Stop first so the running sim doesn't
-# overwrite the file mid-delete.
-WIPE_CMD="systemctl stop thehumanbox; ${RM_COMMANDS}systemctl start thehumanbox; systemctl status thehumanbox --no-pager | head -20"
+WIPE_CMD="systemctl stop thehumanbox; ${RM_BLOCK} systemctl start thehumanbox; systemctl status thehumanbox --no-pager | head -20"
 
 echo
 echo "Sending SSM command..."
@@ -97,7 +104,7 @@ CMD_ID=$(aws ssm send-command \
   --region "$REGION" \
   --instance-ids "$INSTANCE_ID" \
   --document-name "AWS-RunShellScript" \
-  --comment "wipe world + restart" \
+  --comment "wipe live world + restart (mints fresh hash)" \
   --parameters "commands=[\"$WIPE_CMD\"]" \
   --output text --query 'Command.CommandId')
 
@@ -107,8 +114,6 @@ echo
 echo "Polling for command output (Ctrl-C to detach; it'll finish anyway)..."
 echo
 
-# Brief poll for the result. SSM's eventual consistency means the
-# command may not appear immediately; tolerate that.
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12; do
   STATUS=$(aws ssm get-command-invocation \
     --region "$REGION" \
