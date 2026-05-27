@@ -46,10 +46,6 @@ jobs:
             os: macos-14
             sim_target: aarch64-apple-darwin
             bin_name: simulation-rs
-          - label: macOS-x64
-            os: macos-13
-            sim_target: x86_64-apple-darwin
-            bin_name: simulation-rs
           - label: Linux-x64
             os: ubuntu-24.04
             sim_target: x86_64-unknown-linux-gnu

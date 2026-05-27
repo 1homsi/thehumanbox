@@ -22,7 +22,11 @@ fi
 ARCH="$(uname -m)"
 case "$ARCH" in
   arm64) SUFFIX="arm64.dmg" ;;
-  x86_64) SUFFIX="x64.dmg" ;;
+  x86_64)
+    echo "Intel macOS (x86_64) is not supported." >&2
+    echo "Apple Silicon (M1/M2/M3/M4) only — sorry." >&2
+    exit 1
+    ;;
   *) echo "unsupported arch: $ARCH" >&2; exit 1 ;;
 esac
 
