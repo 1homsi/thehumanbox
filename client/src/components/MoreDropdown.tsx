@@ -2,6 +2,7 @@ import clsx from 'clsx'
 import { useUIStore, useViewFlag } from '../stores/store'
 import { startTour, isTourSupported } from '../tour/tour'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { isDesktop } from '../lib/desktop'
 
 function readLowPerf(): boolean {
   try {
@@ -35,6 +36,8 @@ export function MoreDropdown() {
   const openAbout = useUIStore((s) => s.openAbout)
   const openWorlds = useUIStore((s) => s.openWorlds)
   const openNotable = useUIStore((s) => s.openNotable)
+  const openDesktopSettings = useUIStore((s) => s.openDesktopSettings)
+  const onDesktop = isDesktop()
   const nerdStats = useUIStore((s) => s.nerdStats)
   const setNerdStats = useUIStore((s) => s.setNerdStats)
   const isMobile = useIsMobile()
@@ -385,6 +388,18 @@ export function MoreDropdown() {
         >
           ✦ notable
         </button>
+        {onDesktop && (
+          <button
+            className="lang-btn"
+            onClick={() => {
+              openDesktopSettings()
+              closeMore()
+            }}
+            title="Configure local sim, AI model, tick rate, updates (desktop only)"
+          >
+            ⚙ desktop
+          </button>
+        )}
         <button
           className="lang-btn"
           onClick={() => {

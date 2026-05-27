@@ -19,6 +19,7 @@ import { Try3DToast } from './components/Try3DToast'
 import { MobileBanner } from './components/MobileBanner'
 import { WelcomeModal } from './components/WelcomeModal'
 import { UpdateToast } from './components/UpdateToast'
+import { DesktopUpdateToast } from './components/DesktopUpdateToast'
 import { SceneView } from './scenes'
 import { useCurrentScene } from './stores/scene'
 import { HistoricalApp } from './HistoricalApp'
@@ -199,6 +200,7 @@ function LiveApp() {
       <MobileBanner />
       {world && <WelcomeModal />}
       <UpdateToast />
+      <DesktopUpdateToast />
     </div>
   )
 }

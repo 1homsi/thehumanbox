@@ -20,6 +20,9 @@ const WorldsModal = lazy(() => import('./WorldsModal').then((m) => ({ default: m
 const NotableOrgsModal = lazy(() =>
   import('./NotableOrgsModal').then((m) => ({ default: m.NotableOrgsModal })),
 )
+const DesktopSettingsModal = lazy(() =>
+  import('./DesktopSettingsModal').then((m) => ({ default: m.DesktopSettingsModal })),
+)
 
 interface LineageInfo {
   count: number
@@ -44,6 +47,7 @@ export function ModalRouter({ world, lineages }: Props) {
   const showCiv = useUIStore((s) => s.showCiv)
   const showWorlds = useUIStore((s) => s.showWorlds)
   const showNotable = useUIStore((s) => s.showNotable)
+  const showDesktopSettings = useUIStore((s) => s.showDesktopSettings)
   const convoOrgId = useUIStore((s) => s.convoOrgId)
 
   const closeLanguages = useUIStore((s) => s.closeLanguages)
@@ -56,6 +60,7 @@ export function ModalRouter({ world, lineages }: Props) {
   const closeCiv = useUIStore((s) => s.closeCiv)
   const closeWorlds = useUIStore((s) => s.closeWorlds)
   const closeNotable = useUIStore((s) => s.closeNotable)
+  const closeDesktopSettings = useUIStore((s) => s.closeDesktopSettings)
   const closeConvo = useUIStore((s) => s.closeConvo)
   const followOrg = useUIStore((s) => s.followOrg)
 
@@ -107,6 +112,7 @@ export function ModalRouter({ world, lineages }: Props) {
         {showCiv && <CivStatsModal world={world} onClose={closeCiv} />}
         {showWorlds && <WorldsModal onClose={closeWorlds} />}
         {showNotable && <NotableOrgsModal organisms={world.organisms} onClose={closeNotable} />}
+        {showDesktopSettings && <DesktopSettingsModal onClose={closeDesktopSettings} />}
       </Suspense>
 
       {showAllLineages && (

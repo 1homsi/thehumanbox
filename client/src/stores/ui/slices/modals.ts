@@ -13,6 +13,7 @@ export interface ModalsSlice {
   showCiv: boolean
   showWorlds: boolean
   showNotable: boolean
+  showDesktopSettings: boolean
   convoOrgId: string | null
 
   openLanguages: () => void
@@ -35,6 +36,8 @@ export interface ModalsSlice {
   closeCiv: () => void
   openNotable: () => void
   closeNotable: () => void
+  openDesktopSettings: () => void
+  closeDesktopSettings: () => void
   openConvo: (id: string) => void
   closeConvo: () => void
   closeAllModals: () => void
@@ -51,6 +54,7 @@ export const createModalsSlice: StateCreator<UIState, [], [], ModalsSlice> = (se
   showCiv: false,
   showWorlds: false,
   showNotable: false,
+  showDesktopSettings: false,
   convoOrgId: null,
 
   openLanguages: () => {
@@ -103,6 +107,11 @@ export const createModalsSlice: StateCreator<UIState, [], [], ModalsSlice> = (se
     set({ showNotable: true })
   },
   closeNotable: () => set({ showNotable: false }),
+  openDesktopSettings: () => {
+    trackEvent('modal_open', { modal: 'desktop_settings' })
+    set({ showDesktopSettings: true })
+  },
+  closeDesktopSettings: () => set({ showDesktopSettings: false }),
   openConvo: (id) => {
     trackEvent('modal_open', { modal: 'conversations', org_id: id })
     set({ convoOrgId: id })
@@ -120,6 +129,7 @@ export const createModalsSlice: StateCreator<UIState, [], [], ModalsSlice> = (se
       showCiv: false,
       showWorlds: false,
       showNotable: false,
+      showDesktopSettings: false,
       convoOrgId: null,
     }),
 })
