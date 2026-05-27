@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="client/public/favicon-32x32.png" alt="The Human Box" width="64" height="64" />
+</p>
+
 # The Human Box
 
 A persistent artificial-life simulation. A living planetary world of
