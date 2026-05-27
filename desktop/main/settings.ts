@@ -78,10 +78,14 @@ function clampInt(v: number, lo: number, hi: number): number {
   return Math.min(Math.max(Math.round(v), lo), hi)
 }
 
-export function defaultSaveDir(): string {
-  return path.join(app.getPath('userData'), 'worlds')
+export function defaultDataRoot(): string {
+  return app.getPath('userData')
 }
 
-export function effectiveSaveDir(s: Settings): string {
-  return s.saveLocationOverride ?? defaultSaveDir()
+export function effectiveDataRoot(s: Settings): string {
+  return s.saveLocationOverride ?? defaultDataRoot()
+}
+
+export function worldsRoot(s: Settings): string {
+  return path.join(effectiveDataRoot(s), 'worlds')
 }

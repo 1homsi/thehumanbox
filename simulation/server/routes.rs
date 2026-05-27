@@ -165,6 +165,31 @@ pub async fn world_meta_handler(Path(hash): Path<String>) -> Result<impl IntoRes
     ))
 }
 
+pub async fn world_save_handler(Path(hash): Path<String>) -> Result<impl IntoResponse, StatusCode> {
+    let safe = hash
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+    if !safe || hash.len() > 64 {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    let path = crate::server::world_store::world_save_path(&hash);
+    let bytes = std::fs::read(&path).map_err(|_| StatusCode::NOT_FOUND)?;
+    Ok((
+        [
+            (axum::http::header::CONTENT_TYPE, "application/json".to_string()),
+            (
+                axum::http::header::CACHE_CONTROL,
+                "public, max-age=86400, immutable".to_string(),
+            ),
+            (
+                axum::http::header::CONTENT_DISPOSITION,
+                format!("attachment; filename=\"world-{}.save\"", hash),
+            ),
+        ],
+        bytes,
+    ))
+}
+
 pub async fn world_snapshot_handler(Path(hash): Path<String>) -> Result<impl IntoResponse, StatusCode> {
     let bytes = crate::server::world_archive::read_world_snapshot(&hash).ok_or(StatusCode::NOT_FOUND)?;
     Ok((

@@ -5,7 +5,7 @@ import * as path from 'node:path'
 import { app } from 'electron'
 
 import type { Settings } from './settings'
-import { effectiveSaveDir } from './settings'
+import { effectiveDataRoot } from './settings'
 
 export interface RunningSim {
   port: number
@@ -78,7 +78,7 @@ export async function startSim(settings: Settings): Promise<RunningSim> {
   }
 
   const port = await pickFreePort()
-  const workdir = effectiveSaveDir(settings)
+  const workdir = effectiveDataRoot(settings)
   fs.mkdirSync(workdir, { recursive: true })
 
   const env: NodeJS.ProcessEnv = {

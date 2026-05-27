@@ -19,6 +19,10 @@ export interface DesktopBridge {
     reload(): Promise<void>
   }
 
+  world: {
+    importFromRemote(payload: { hash: string; remoteUrl: string }): Promise<{ running: boolean; port: number }>
+  }
+
   on(channel: 'updater:available' | 'updater:downloaded', cb: (payload: unknown) => void): () => void
 }
 
@@ -39,6 +43,10 @@ const bridge: DesktopBridge = {
 
   app: {
     reload: () => ipcRenderer.invoke('app:reload'),
+  },
+
+  world: {
+    importFromRemote: (payload) => ipcRenderer.invoke('world:importFromRemote', payload),
   },
 
   on(channel, cb) {

@@ -874,6 +874,7 @@ async fn main() {
         .route("/worlds", get(routes::list_worlds_handler))
         .route("/worlds/{hash}/meta", get(routes::world_meta_handler))
         .route("/worlds/{hash}/snapshot", get(routes::world_snapshot_handler))
+        .route("/worlds/{hash}/save", get(routes::world_save_handler))
         .layer(compression)
         .layer(cors)
         .with_state(state);

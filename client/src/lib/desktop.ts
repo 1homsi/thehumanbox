@@ -41,6 +41,9 @@ export interface DesktopBridge {
   app: {
     reload(): Promise<void>
   }
+  world: {
+    importFromRemote(payload: { hash: string; remoteUrl: string }): Promise<SimStatus>
+  }
   on(
     channel: 'updater:available' | 'updater:downloaded',
     cb: (payload: UpdateInfo) => void,

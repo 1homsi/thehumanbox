@@ -1,5 +1,7 @@
 import { BrowserWindow, IpcMain } from 'electron'
-import { loadSettings, saveSettings, Settings } from './settings'
+import * as fs from 'node:fs'
+import * as path from 'node:path'
+import { loadSettings, saveSettings, Settings, worldsRoot } from './settings'
 import { activeSim, startSim, stopSim } from './sim-process'
 
 export function registerIpc(ipc: IpcMain, getWindow: () => BrowserWindow | null): void {
@@ -40,5 +42,38 @@ export function registerIpc(ipc: IpcMain, getWindow: () => BrowserWindow | null)
   ipc.handle('app:reload', async () => {
     const win = getWindow()
     win?.reload()
+  })
+
+  ipc.handle('world:importFromRemote', async (_e, payload: { hash: string; remoteUrl: string }) => {
+    const { hash, remoteUrl } = payload
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(hash)) {
+      throw new Error(`invalid world hash: ${hash}`)
+    }
+    const url = `${remoteUrl.replace(/\/+$/, '')}/worlds/${hash}/save`
+    const resp = await fetch(url)
+    if (!resp.ok) {
+      throw new Error(`failed to fetch remote save: ${resp.status} ${resp.statusText}`)
+    }
+    const text = await resp.text()
+
+    await stopSim()
+    const settings = loadSettings()
+    const worldsDir = worldsRoot(settings)
+    fs.mkdirSync(worldsDir, { recursive: true })
+    const targetDir = path.join(worldsDir, hash)
+    fs.mkdirSync(targetDir, { recursive: true })
+    const savePath = path.join(targetDir, 'world.save')
+    fs.writeFileSync(savePath, text, 'utf8')
+    fs.writeFileSync(path.join(worldsDir, '_live'), hash, 'utf8')
+
+    if (settings.mode !== 'local') {
+      saveSettings({ ...settings, mode: 'local' })
+    }
+    const sim = await startSim(loadSettings())
+    const win = getWindow()
+    if (win) {
+      await win.loadURL(`http://127.0.0.1:${sim.port}/?desktop=1&imported=${hash}`)
+    }
+    return { running: true, port: sim.port }
   })
 }

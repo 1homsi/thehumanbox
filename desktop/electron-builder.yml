@@ -38,9 +38,14 @@ mac:
         - arm64
         - x64
   category: public.app-category.simulation-games
-  hardenedRuntime: false
+  # hardenedRuntime + gatekeeperAssess are required for notarization
+  # but only meaningful when a real CSC_LINK is set. electron-builder
+  # auto-detects: if CSC_LINK is empty the build proceeds unsigned.
+  hardenedRuntime: true
   gatekeeperAssess: false
-  identity: null
+  notarize: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
 
 win:
   target:
