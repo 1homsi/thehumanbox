@@ -200,15 +200,34 @@ pub async fn org_detail_handler(
     State(s): State<AppState>,
 ) -> Result<impl IntoResponse, StatusCode> {
     use crate::organism::organism::OrgDetailJson;
-    let detail: OrgDetailJson = {
+    let (mut detail, was_dead_with_empty_memories): (OrgDetailJson, bool) = {
         let sim = s.sim.lock().await;
         let org = sim
             .organisms
             .iter()
             .find(|o| o.id == id)
             .ok_or(StatusCode::NOT_FOUND)?;
-        org.to_detail_json()
+        let needs_fallback = !org.alive && org.memories.is_empty();
+        (org.to_detail_json(), needs_fallback)
     };
+    if was_dead_with_empty_memories && detail.memories.is_empty() {
+        if let Some(ws) = s.world_store.as_ref() {
+            if let Ok(rows) = ws.load_memories_for(&id, 20) {
+                detail.memories = rows
+                    .into_iter()
+                    .map(|m| crate::organism::organism::MemoryJson {
+                        kind: m.kind.label().to_string(),
+                        text: m.text,
+                        salience: (m.salience * 100.0).round() / 100.0,
+                        emotion: m.emotion,
+                        tick: m.tick_formed,
+                        related_id: m.related_id,
+                        recalls: m.recall_count,
+                    })
+                    .collect();
+            }
+        }
+    }
     Ok((
         [(axum::http::header::CACHE_CONTROL, "no-store".to_string())],
         Json(detail),
@@ -251,13 +270,34 @@ pub async fn org_life_handler(
     State(s): State<AppState>,
 ) -> Result<impl IntoResponse, StatusCode> {
     use crate::organism::organism::OrgLifeJson;
-    let sim = s.sim.lock().await;
-    let org = sim
-        .organisms
-        .iter()
-        .find(|o| o.id == id)
-        .ok_or(StatusCode::NOT_FOUND)?;
-    let life: OrgLifeJson = org.to_life_json();
+    let (mut life, was_dead_with_empty_memories): (OrgLifeJson, bool) = {
+        let sim = s.sim.lock().await;
+        let org = sim
+            .organisms
+            .iter()
+            .find(|o| o.id == id)
+            .ok_or(StatusCode::NOT_FOUND)?;
+        let needs_fallback = !org.alive && org.memories.is_empty();
+        (org.to_life_json(), needs_fallback)
+    };
+    if was_dead_with_empty_memories && life.memories.is_empty() {
+        if let Some(ws) = s.world_store.as_ref() {
+            if let Ok(rows) = ws.load_memories_for(&id, 20) {
+                life.memories = rows
+                    .into_iter()
+                    .map(|m| crate::organism::organism::MemoryJson {
+                        kind: m.kind.label().to_string(),
+                        text: m.text,
+                        salience: (m.salience * 100.0).round() / 100.0,
+                        emotion: m.emotion,
+                        tick: m.tick_formed,
+                        related_id: m.related_id,
+                        recalls: m.recall_count,
+                    })
+                    .collect();
+            }
+        }
+    }
     Ok((
         [(axum::http::header::CACHE_CONTROL, "no-store".to_string())],
         Json(life),
