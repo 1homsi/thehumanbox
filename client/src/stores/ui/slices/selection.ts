@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand'
 import type { UIState } from '../types'
-import { trackEvent } from '../../../lib/analytics'
+import { trackEvent } from '../../../lib/observability'
 
 export interface SelectionSlice {
   selectedOrgId: string | null

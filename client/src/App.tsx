@@ -55,7 +55,7 @@ function LiveApp() {
     if (world && !splashHiddenRef.current) {
       splashHiddenRef.current = true
       window.dispatchEvent(new Event('thb-world-ready'))
-      import('./lib/analytics').then((m) =>
+      import('./lib/observability').then((m) =>
         m.trackEvent('world_first_loaded', {
           tick: world.tick,
           alive: world.organisms.filter((o) => o.alive).length,

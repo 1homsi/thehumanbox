@@ -50,7 +50,7 @@ export const createViewFlagsSlice: StateCreator<UIState, [], [], ViewFlagsSlice>
     set((s) => {
       if (s.viewFlags[k] === v) return s
       if (TRACKED_FLAGS.has(k)) {
-        import('../../../lib/analytics').then((m) =>
+        import('../../../lib/observability').then((m) =>
           m.trackEvent('view_flag_toggle', { flag: k as string, value: v }),
         )
       }

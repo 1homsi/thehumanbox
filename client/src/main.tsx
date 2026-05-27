@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 import App from './App.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary'
-import { initAnalytics } from './lib/analytics'
+import { initAnalytics } from './lib/observability'
 
 initAnalytics()
 
