@@ -1,6 +1,6 @@
 {
   "name": "thehumanbox-desktop",
-  "version": "0.0.1",
+  "version": "0.2.6",
   "private": true,
   "description": "The Human Box — desktop app. Runs a local simulation or connects to thehumanbox.com.",
   "homepage": "https://thehumanbox.com",
