@@ -36,11 +36,24 @@ const DEFAULTS: ViewFlags = {
   territoryMap: false,
 }
 
+const TRACKED_FLAGS: Set<keyof ViewFlags> = new Set([
+  'threeD',
+  'orgPov',
+  'photoMode',
+  'randomTour',
+  'hideUI',
+])
+
 export const createViewFlagsSlice: StateCreator<UIState, [], [], ViewFlagsSlice> = (set) => ({
   viewFlags: DEFAULTS,
   setViewFlag: (k, v) =>
     set((s) => {
       if (s.viewFlags[k] === v) return s
+      if (TRACKED_FLAGS.has(k)) {
+        import('../../../lib/analytics').then((m) =>
+          m.trackEvent('view_flag_toggle', { flag: k as string, value: v }),
+        )
+      }
       return { viewFlags: { ...s.viewFlags, [k]: v } }
     }),
 })

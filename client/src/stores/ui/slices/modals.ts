@@ -1,5 +1,6 @@
 import type { StateCreator } from 'zustand'
 import type { UIState } from '../types'
+import { trackEvent } from '../../../lib/analytics'
 
 export interface ModalsSlice {
   showLanguages: boolean
@@ -52,27 +53,60 @@ export const createModalsSlice: StateCreator<UIState, [], [], ModalsSlice> = (se
   showNotable: false,
   convoOrgId: null,
 
-  openLanguages: () => set({ showLanguages: true }),
+  openLanguages: () => {
+    trackEvent('modal_open', { modal: 'languages' })
+    set({ showLanguages: true })
+  },
   closeLanguages: () => set({ showLanguages: false }),
-  openChronicles: () => set({ showChronicles: true }),
+  openChronicles: () => {
+    trackEvent('modal_open', { modal: 'chronicles' })
+    set({ showChronicles: true })
+  },
   closeChronicles: () => set({ showChronicles: false }),
-  openFamilyTree: () => set({ showFamilyTree: true }),
+  openFamilyTree: () => {
+    trackEvent('modal_open', { modal: 'family_tree' })
+    set({ showFamilyTree: true })
+  },
   closeFamilyTree: () => set({ showFamilyTree: false }),
-  openOrgSearch: () => set({ showOrgSearch: true }),
+  openOrgSearch: () => {
+    trackEvent('modal_open', { modal: 'org_search' })
+    set({ showOrgSearch: true })
+  },
   closeOrgSearch: () => set({ showOrgSearch: false }),
-  openStats: () => set({ showStats: true }),
+  openStats: () => {
+    trackEvent('modal_open', { modal: 'stats' })
+    set({ showStats: true })
+  },
   closeStats: () => set({ showStats: false }),
-  openAllLineages: () => set({ showAllLineages: true }),
+  openAllLineages: () => {
+    trackEvent('modal_open', { modal: 'all_lineages' })
+    set({ showAllLineages: true })
+  },
   closeAllLineages: () => set({ showAllLineages: false }),
-  openAbout: () => set({ showAbout: true }),
+  openAbout: () => {
+    trackEvent('modal_open', { modal: 'about' })
+    set({ showAbout: true })
+  },
   closeAbout: () => set({ showAbout: false }),
-  openWorlds: () => set({ showWorlds: true }),
+  openWorlds: () => {
+    trackEvent('modal_open', { modal: 'worlds' })
+    set({ showWorlds: true })
+  },
   closeWorlds: () => set({ showWorlds: false }),
-  openCiv: () => set({ showCiv: true }),
+  openCiv: () => {
+    trackEvent('modal_open', { modal: 'civ' })
+    set({ showCiv: true })
+  },
   closeCiv: () => set({ showCiv: false }),
-  openNotable: () => set({ showNotable: true }),
+  openNotable: () => {
+    trackEvent('modal_open', { modal: 'notable' })
+    set({ showNotable: true })
+  },
   closeNotable: () => set({ showNotable: false }),
-  openConvo: (id) => set({ convoOrgId: id }),
+  openConvo: (id) => {
+    trackEvent('modal_open', { modal: 'conversations', org_id: id })
+    set({ convoOrgId: id })
+  },
   closeConvo: () => set({ convoOrgId: null }),
   closeAllModals: () =>
     set({

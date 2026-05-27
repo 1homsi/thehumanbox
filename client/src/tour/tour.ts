@@ -151,6 +151,7 @@ export function startTour() {
     markSeen()
     return null
   }
+  import('../lib/analytics').then((m) => m.trackEvent('tour_start'))
   if (activeTour) {
     activeTour.complete()
     activeTour = null

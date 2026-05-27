@@ -17,11 +17,8 @@ export function initAnalytics(): void {
     person_profiles: 'identified_only',
     capture_pageview: 'history_change',
     capture_pageleave: true,
-    capture_exceptions: true,
-    autocapture: {
-      dom_event_allowlist: ['click'],
-      element_allowlist: ['button', 'a'],
-    },
+    autocapture: false,
+    capture_exceptions: false,
     disable_session_recording: true,
   })
   initialized = true
