@@ -103,7 +103,7 @@ pub struct MemoryStore {
 }
 
 impl MemoryStore {
-    pub const MAX: usize = 64;
+    pub const MAX: usize = 24;
     const FLOOR: f32 = 0.02;
     const DEDUP_WINDOW: usize = 16;
 

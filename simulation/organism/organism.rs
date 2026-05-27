@@ -885,6 +885,8 @@ impl Organism {
         self.conversations.clear();
         self.friends.clear();
         self.attributes.clear();
+        self.memories.entries.clear();
+        self.memories.entries.shrink_to_fit();
     }
 
     pub fn decay_memory(&mut self, tick: u64) {
