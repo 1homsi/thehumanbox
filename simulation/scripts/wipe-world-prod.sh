@@ -1,54 +1,55 @@
 #!/usr/bin/env bash
-# Wipe the production live world on EC2 and restart the simulation.
+# Archive the live production world and start a fresh one (via SSM).
 #
-# Sends an SSM RunShellScript command that:
-#   1. stops the systemd unit (`thehumanbox`)
-#   2. removes the live world dir under <workdir>/worlds/<hash>/
-#   3. removes the <workdir>/worlds/_live marker
-#   4. removes any legacy <workdir>/world.save (pre-refactor)
-#   5. starts the unit, which mints a brand-new world on boot
+# Default behaviour (--archive, the default):
+#   1) stop thehumanbox
+#   2) write a minimal meta.json into the current worlds/<hash>/ so it
+#      shows in the archived-worlds list
+#   3) clear worlds/_live so the next boot mints a fresh hash
+#   4) start thehumanbox
+#
+# Destructive mode (--destroy):
+#   Removes the live world dir entirely (loses world.save +
+#   world.sqlite + meta). Use only if you really want it gone.
 #
 # Requires:
-#   - AWS CLI configured with permission to send SSM commands
-#   - $INSTANCE_ID env var or --instance-id flag
-#   - $AWS_REGION env var or --region flag
-#
-# Confirmation: prompts for "WIPE" before sending unless --yes.
+#   - AWS CLI configured with SSM RunCommand permission
+#   - $INSTANCE_ID env or --instance-id
+#   - $AWS_REGION env or --region
 
 set -euo pipefail
 
 INSTANCE_ID="${INSTANCE_ID:-}"
 REGION="${AWS_REGION:-}"
-
-WORKING_DIRS=(
-  "/root/thehumanbox/simulation"
-  "/root/thehumanbox"
-  "/var/lib/thehumanbox"
-)
+MODE="archive"
+SKIP_PROMPT=0
 
 usage() {
   cat <<EOF
-Usage: $(basename "$0") [--instance-id <id>] [--region <region>] [--yes]
+Usage: $(basename "$0") [--instance-id <id>] [--region <region>]
+                       [--archive | --destroy] [--yes]
 
-Wipes the live world on the EC2 box and restarts the simulation —
-the next boot mints a brand-new world from a fresh hash.
+Archive or destroy the live production world. Default is archive.
+
+Options:
+  --archive   archive the live world (default; preserves world.save +
+              world.sqlite + writes a placeholder meta.json)
+  --destroy   rm -rf the live world dir (irreversible)
+  --yes       skip the interactive confirmation
 
 Environment fallbacks:
   INSTANCE_ID  EC2 instance id (i-...)
   AWS_REGION   e.g. us-east-1
-
-Options:
-  --yes        skip the interactive WIPE confirmation
-  --help       this message
 EOF
 }
 
-SKIP_PROMPT=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --instance-id) INSTANCE_ID="$2"; shift 2 ;;
     --region)      REGION="$2";      shift 2 ;;
-    --yes)         SKIP_PROMPT=1;    shift   ;;
+    --archive)     MODE="archive";   shift ;;
+    --destroy)     MODE="destroy";   shift ;;
+    --yes)         SKIP_PROMPT=1;    shift ;;
     --help|-h)     usage; exit 0     ;;
     *)             echo "Unknown arg: $1" >&2; usage; exit 1 ;;
   esac
@@ -63,32 +64,42 @@ if [[ -z "$REGION" ]]; then
   exit 1
 fi
 
-echo "About to wipe production world on:"
+echo "About to $MODE the live world on:"
 echo "  instance: $INSTANCE_ID"
 echo "  region:   $REGION"
-echo "This is destructive. The running world will be terminated and a"
-echo "fresh one will be minted on next service start. Historical archived"
-echo "worlds in other hash dirs are preserved."
+if [[ "$MODE" == "destroy" ]]; then
+  echo "(this is destructive — world.save + world.sqlite removed)"
+else
+  echo "(world.save + world.sqlite preserved as historical archive)"
+fi
 if [[ "$SKIP_PROMPT" -ne 1 ]]; then
-  read -r -p "Type WIPE to confirm: " confirm
-  if [[ "$confirm" != "WIPE" ]]; then
-    echo "Aborted."
-    exit 1
+  if [[ "$MODE" == "destroy" ]]; then
+    read -r -p "Type DESTROY to confirm: " confirm
+    [[ "$confirm" == "DESTROY" ]] || { echo "aborted."; exit 1; }
+  else
+    read -r -p "Type RESET to confirm: " confirm
+    [[ "$confirm" == "RESET" ]] || { echo "aborted."; exit 1; }
   fi
 fi
 
-# Build the inline shell command. For each candidate workdir:
-#   - if worlds/_live exists, read it, then rm -rf the named world dir
-#     and the marker
-#   - rm any legacy CWD world.save siblings
-RM_BLOCK=""
+# Candidate working dirs to handle current + legacy layouts.
+WORKING_DIRS=(
+  "/root/thehumanbox/simulation"
+  "/root/thehumanbox"
+  "/var/lib/thehumanbox"
+)
+
+ARCHIVE_BLOCK=""
 for dir in "${WORKING_DIRS[@]}"; do
-  RM_BLOCK+="
+  ARCHIVE_BLOCK+="
 if [ -f $dir/worlds/_live ]; then
   H=\$(cat $dir/worlds/_live);
   if [ -n \"\$H\" ] && [ -d $dir/worlds/\$H ]; then
-    rm -rf $dir/worlds/\$H;
-    echo removed $dir/worlds/\$H;
+    if [ ! -f $dir/worlds/\$H/meta.json ]; then
+      NOW=\$(( \$(date +%s) * 1000 ));
+      printf '{\"hash\":\"%s\",\"started_at_ms\":%d,\"ended_at_ms\":%d,\"final_tick\":0,\"final_population\":0,\"peak_population\":0,\"top_era\":\"\",\"lineage_count\":0,\"top_lineage\":null,\"top_lineage_pop\":0}' \"\$H\" \$NOW \$NOW > $dir/worlds/\$H/meta.json;
+      echo wrote placeholder meta for $dir/worlds/\$H;
+    fi;
   fi;
   rm -f $dir/worlds/_live;
 fi;
@@ -96,7 +107,28 @@ rm -f $dir/world.save $dir/world.save.tmp $dir/world.save.bak;
 "
 done
 
-WIPE_CMD="systemctl stop thehumanbox; ${RM_BLOCK} systemctl start thehumanbox; systemctl status thehumanbox --no-pager | head -20"
+DESTROY_BLOCK=""
+for dir in "${WORKING_DIRS[@]}"; do
+  DESTROY_BLOCK+="
+if [ -f $dir/worlds/_live ]; then
+  H=\$(cat $dir/worlds/_live);
+  if [ -n \"\$H\" ] && [ -d $dir/worlds/\$H ]; then
+    rm -rf $dir/worlds/\$H;
+    echo destroyed $dir/worlds/\$H;
+  fi;
+  rm -f $dir/worlds/_live;
+fi;
+rm -f $dir/world.save $dir/world.save.tmp $dir/world.save.bak;
+"
+done
+
+if [[ "$MODE" == "destroy" ]]; then
+  ACTION_BLOCK="$DESTROY_BLOCK"
+else
+  ACTION_BLOCK="$ARCHIVE_BLOCK"
+fi
+
+WIPE_CMD="systemctl stop thehumanbox; ${ACTION_BLOCK} systemctl start thehumanbox; systemctl status thehumanbox --no-pager | head -20"
 
 echo
 echo "Sending SSM command..."
@@ -104,7 +136,7 @@ CMD_ID=$(aws ssm send-command \
   --region "$REGION" \
   --instance-ids "$INSTANCE_ID" \
   --document-name "AWS-RunShellScript" \
-  --comment "wipe live world + restart (mints fresh hash)" \
+  --comment "wipe live world ($MODE) + restart" \
   --parameters "commands=[\"$WIPE_CMD\"]" \
   --output text --query 'Command.CommandId')
 
