@@ -340,6 +340,9 @@ fn template_fallback(req: &NarrationReq) -> String {
             "{} carried grief through the camp and spoke little.",
             req.org_name
         )
+    } else if let Some(first) = req.memories.first() {
+        let lower = first.trim_end_matches('.').to_lowercase();
+        format!("{} moved through the day, thinking of {}.", req.org_name, lower)
     } else {
         format!("{} roamed and watched the world pass by.", req.org_name)
     }
