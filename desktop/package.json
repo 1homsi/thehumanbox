@@ -1,0 +1,26 @@
+{
+  "name": "thehumanbox-desktop",
+  "version": "0.0.1",
+  "private": true,
+  "description": "The Human Box — desktop app. Runs a local simulation or connects to thehumanbox.com.",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "build:main": "tsc -p tsconfig.json",
+    "build:renderer": "cd ../client && pnpm run build",
+    "build": "pnpm run build:main && pnpm run build:renderer && pnpm run copy:renderer",
+    "copy:renderer": "rm -rf dist/renderer && cp -R ../client/dist dist/renderer",
+    "dev": "pnpm run build:main && electron .",
+    "pack": "pnpm run build && electron-builder --publish never",
+    "release": "pnpm run build && electron-builder --publish always",
+    "clean": "rm -rf dist out"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "electron": "^35.0.0",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.7.2"
+  }
+}

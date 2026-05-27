@@ -1,0 +1,75 @@
+appId: com.thehumanbox.desktop
+productName: The Human Box
+copyright: Copyright © 2026 The Human Box
+
+directories:
+  output: out
+  buildResources: build
+
+files:
+  - dist/**/*
+  - package.json
+  - "!**/*.{ts,map,md}"
+
+extraResources:
+  - from: resources/bin
+    to: bin
+    filter:
+      - "**/*"
+
+asar: true
+asarUnpack:
+  - "**/*.{node,dll,dylib,so}"
+
+publish:
+  - provider: github
+    owner: 1homsi
+    repo: thehumanbox
+    releaseType: release
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+    - target: zip
+      arch:
+        - arm64
+        - x64
+  category: public.app-category.simulation-games
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  identity: null
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: zip
+      arch:
+        - x64
+  publisherName: The Human Box
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+    - target: deb
+      arch:
+        - x64
+  category: Game
+  synopsis: The Human Box — a living simulation
+  description: |
+    The Human Box is a tribal-to-civic simulation where every organism
+    has memory, dreams, relationships, and a lineage. Runs locally or
+    connects to the live shared world at thehumanbox.com.

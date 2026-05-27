@@ -1,0 +1,6 @@
+node_modules/
+dist/
+out/
+resources/bin/
+*.log
+.DS_Store

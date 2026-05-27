@@ -878,7 +878,13 @@ async fn main() {
         .layer(cors)
         .with_state(state);
 
-    let addr = "0.0.0.0:8000";
+    let bind_host = std::env::var("BIND_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
+    let bind_port = std::env::var("PORT")
+        .ok()
+        .and_then(|s| s.parse::<u16>().ok())
+        .unwrap_or(8000);
+    let addr_owned = format!("{}:{}", bind_host, bind_port);
+    let addr: &str = &addr_owned;
     if *NARRATION_LLM_URL == *THINK_LLM_URL && *NARRATION_LLM_MODEL == *THINK_LLM_MODEL {
         tracing::info!(
             "simulation-rs listening on {}  tick={}ms  llm={} ({})",
