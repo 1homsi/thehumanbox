@@ -181,6 +181,9 @@ jobs:
           tmp=$(mktemp)
           jq --arg v "$NEW" '.version = $v' client/package.json > "$tmp" && mv "$tmp" client/package.json
 
+          tmp=$(mktemp)
+          jq --arg v "$NEW" '.version = $v' desktop/package.json > "$tmp" && mv "$tmp" desktop/package.json
+
       - name: Commit + push as bump bot
         env:
           NEW: ${{ steps.bump.outputs.new }}
@@ -188,7 +191,7 @@ jobs:
           set -euo pipefail
           git config user.name  "thb-bumpbot"
           git config user.email "bumpbot@thehumanbox.com"
-          git add simulation/Cargo.toml simulation/Cargo.lock client/package.json
+          git add simulation/Cargo.toml simulation/Cargo.lock client/package.json desktop/package.json
           git commit -m "chore: release $NEW [skip-bump]"
           git pull --rebase origin main
           git push
