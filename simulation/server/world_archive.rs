@@ -112,14 +112,36 @@ pub fn list_archived_worlds() -> Vec<WorldMeta> {
         Ok(e) => e,
         Err(_) => return out,
     };
+    let live = crate::server::world_store::live_world_hash();
     for entry in entries.flatten() {
         let path = entry.path();
-        if path.extension().and_then(|s| s.to_str()) != Some("json") {
+        if path.is_dir() {
+            let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            if name.starts_with('_') || name.starts_with('.') {
+                continue;
+            }
+            if live.as_deref() == Some(name) {
+                continue;
+            }
+            let meta_path = path.join("meta.json");
+            if let Ok(bytes) = std::fs::read(&meta_path) {
+                if let Ok(meta) = serde_json::from_slice::<WorldMeta>(&bytes) {
+                    out.push(meta);
+                }
+            }
             continue;
         }
-        if let Ok(bytes) = std::fs::read(&path) {
-            if let Ok(meta) = serde_json::from_slice::<WorldMeta>(&bytes) {
-                out.push(meta);
+        if path.extension().and_then(|s| s.to_str()) == Some("json")
+            && path
+                .file_name()
+                .and_then(|s| s.to_str())
+                .map(|n| n.ends_with(".meta.json"))
+                .unwrap_or(false)
+        {
+            if let Ok(bytes) = std::fs::read(&path) {
+                if let Ok(meta) = serde_json::from_slice::<WorldMeta>(&bytes) {
+                    out.push(meta);
+                }
             }
         }
     }
@@ -128,14 +150,24 @@ pub fn list_archived_worlds() -> Vec<WorldMeta> {
 }
 
 pub fn read_world_meta(hash: &str) -> Option<WorldMeta> {
-    let path = worlds_dir().join(format!("{}.meta.json", hash));
-    let bytes = std::fs::read(&path).ok()?;
+    let folder_path = worlds_dir().join(hash).join("meta.json");
+    if let Ok(bytes) = std::fs::read(&folder_path) {
+        if let Ok(meta) = serde_json::from_slice(&bytes) {
+            return Some(meta);
+        }
+    }
+    let flat_path = worlds_dir().join(format!("{}.meta.json", hash));
+    let bytes = std::fs::read(&flat_path).ok()?;
     serde_json::from_slice(&bytes).ok()
 }
 
 pub fn read_world_snapshot(hash: &str) -> Option<Vec<u8>> {
-    let path = worlds_dir().join(format!("{}.snap", hash));
-    std::fs::read(&path).ok()
+    let folder_path = worlds_dir().join(hash).join("snapshot");
+    if let Ok(b) = std::fs::read(&folder_path) {
+        return Some(b);
+    }
+    let flat_path = worlds_dir().join(format!("{}.snap", hash));
+    std::fs::read(&flat_path).ok()
 }
 
 fn compute_summary(
@@ -218,8 +250,14 @@ pub async fn archive_and_reset(
         (hash, frame, meta)
     };
 
-    let snap_path = worlds_dir().join(format!("{}.snap", hash));
-    let meta_path = worlds_dir().join(format!("{}.meta.json", hash));
+    let world_folder = crate::server::world_store::world_dir(&hash);
+    if let Err(e) = std::fs::create_dir_all(&world_folder) {
+        tracing::error!(target: "archive", "failed to create world folder {}: {}",
+            world_folder.display(), e);
+        return None;
+    }
+    let snap_path = world_folder.join("snapshot");
+    let meta_path = world_folder.join("meta.json");
     if let Err(e) = write_file_atomic(&snap_path, &snapshot_bytes) {
         tracing::error!(target: "archive", "failed to write snapshot: {}", e);
         return None;
@@ -243,6 +281,15 @@ pub async fn archive_and_reset(
         *sim = Simulation::new(new_seed);
     }
     let _ = std::fs::remove_file(save_path);
+
+    let new_hash = crate::server::world_store::mint_world_hash(new_seed, crate::server::transport::now_ms());
+    let _ = crate::server::world_store::ensure_world_dir(&new_hash);
+    if let Err(e) = crate::server::world_store::set_live_world_hash(&new_hash) {
+        tracing::error!(target: "archive", "failed to write _live marker: {}", e);
+    } else {
+        tracing::warn!(target: "archive",
+            "rolled live world -> {} (previous {} archived)", new_hash, hash);
+    }
 
     tracing::warn!(target: "archive",
         "archived world {} (ended tick={}, pop={}, era={}) and reset",
