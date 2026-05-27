@@ -20,6 +20,13 @@ function emitVersionJson(): Plugin {
 export default defineConfig({
   plugins: [react(), emitVersionJson()],
 
+  // Web is served at root with a Cloudflare SPA-fallback (any deep URL
+  // returns /index.html), so absolute /assets/... is the only safe form
+  // there. Desktop loads index.html over file://, where absolute paths
+  // resolve to filesystem root — so the desktop build flips to relative
+  // via VITE_DESKTOP=1 (set by desktop/package.json's build:renderer).
+  base: process.env.VITE_DESKTOP === '1' ? './' : '/',
+
   build: {
     chunkSizeWarningLimit: 400,
 
