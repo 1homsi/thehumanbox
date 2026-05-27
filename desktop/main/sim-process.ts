@@ -67,6 +67,27 @@ async function pickFreePort(): Promise<number> {
   })
 }
 
+async function waitForPort(port: number, timeoutMs: number, isAlive: () => boolean): Promise<void> {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    if (!isAlive()) throw new Error('simulation-rs exited before binding the port')
+    const ok = await new Promise<boolean>((resolve) => {
+      const socket = net.connect({ host: '127.0.0.1', port }, () => {
+        socket.end()
+        resolve(true)
+      })
+      socket.on('error', () => resolve(false))
+      socket.setTimeout(500, () => {
+        socket.destroy()
+        resolve(false)
+      })
+    })
+    if (ok) return
+    await new Promise((r) => setTimeout(r, 100))
+  }
+  throw new Error(`simulation-rs did not start listening on 127.0.0.1:${port} within ${timeoutMs}ms`)
+}
+
 export async function startSim(settings: Settings): Promise<RunningSim> {
   if (current) return current
 
@@ -85,6 +106,7 @@ export async function startSim(settings: Settings): Promise<RunningSim> {
     ...process.env,
     TICK_MS: String(settings.tickMs),
     PORT: String(port),
+    BIND_HOST: '127.0.0.1',
   }
   if (settings.model.provider !== 'none') {
     env.NARRATION_LLM_URL = settings.model.apiUrl
@@ -101,12 +123,43 @@ export async function startSim(settings: Settings): Promise<RunningSim> {
     stdio: ['ignore', 'pipe', 'pipe'],
   })
 
-  child.stdout?.on('data', (b: Buffer) => process.stdout.write('[sim] ' + b.toString()))
-  child.stderr?.on('data', (b: Buffer) => process.stderr.write('[sim] ' + b.toString()))
+  let alive = true
+  let exitCode: number | null = null
+  const tail: string[] = []
+  const pushTail = (s: string): void => {
+    tail.push(s)
+    while (tail.length > 40) tail.shift()
+  }
+
+  child.stdout?.on('data', (b: Buffer) => {
+    const s = b.toString()
+    pushTail(s)
+    process.stdout.write('[sim] ' + s)
+  })
+  child.stderr?.on('data', (b: Buffer) => {
+    const s = b.toString()
+    pushTail(s)
+    process.stderr.write('[sim] ' + s)
+  })
   child.on('exit', (code, signal) => {
+    alive = false
+    exitCode = code
     console.log(`[sim] exited code=${code} signal=${signal}`)
     if (current && current.child === child) current = null
   })
+
+  try {
+    await waitForPort(port, 15000, () => alive)
+  } catch (err) {
+    try { child.kill('SIGKILL') } catch { /* noop */ }
+    current = null
+    const lastOutput = tail.join('').trim()
+    throw new Error(
+      `${(err as Error).message}` +
+        (exitCode !== null ? ` (exit code ${exitCode})` : '') +
+        (lastOutput ? `\n\nlast output from simulation-rs:\n${lastOutput.slice(-1200)}` : ''),
+    )
+  }
 
   current = { port, child }
   return current!
