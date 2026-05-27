@@ -3149,11 +3149,20 @@ body.thb-colorblind .org-sick-badge {
   border-radius: 6px;
   padding: 10px 12px;
   min-width: 0;
-  max-height: 62vh;
+  min-height: 0;
+  max-height: 420px;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   position: relative;
+}
+.civ-section > h3 {
+  position: sticky;
+  top: 0;
+  background: #28201a;
+  z-index: 1;
+  margin: 0 0 6px 0;
 }
 .civ-section::-webkit-scrollbar {
   width: 6px;
