@@ -45,7 +45,7 @@ use transport::{
 pub type SharedSim = Arc<Mutex<Simulation>>;
 pub type Tx = broadcast::Sender<Arc<Vec<u8>>>;
 
-const SAVE_PATH: &str = "world.save";
+const LEGACY_SAVE_PATH: &str = "world.save";
 const DAY_LENGTH: u64 = 600;
 const WS_BROADCAST_BUFFER: usize = 40;
 pub const WS_RESYNC_LAG_THRESHOLD: u64 = 3;
@@ -146,7 +146,43 @@ async fn main() {
         let t = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default();
         t.as_nanos() as u64 ^ (t.subsec_nanos() as u64).wrapping_mul(0x9e3779b97f4a7c15)
     };
-    let sim = Arc::new(Mutex::new(Simulation::load_or_new(fresh_seed, SAVE_PATH)));
+
+    let live_hash: String = {
+        use crate::server::world_store as ws;
+        if let Some(h) = ws::live_world_hash() {
+            tracing::info!(target: "world", "resuming live world {}", h);
+            h
+        } else {
+            let legacy = std::path::PathBuf::from(LEGACY_SAVE_PATH);
+            let h = ws::mint_world_hash(fresh_seed, now_ms());
+            if legacy.exists() {
+                match ws::migrate_legacy_save(&legacy, &h) {
+                    Ok(true) => {
+                        tracing::warn!(target: "world",
+                            "migrated legacy {} -> worlds/{}/world.save", LEGACY_SAVE_PATH, h);
+                    }
+                    Ok(false) => {
+                        let _ = ws::ensure_world_dir(&h);
+                        let _ = ws::set_live_world_hash(&h);
+                    }
+                    Err(e) => {
+                        tracing::warn!(target: "world",
+                            "legacy save migration failed: {} - starting fresh", e);
+                        let _ = ws::ensure_world_dir(&h);
+                        let _ = ws::set_live_world_hash(&h);
+                    }
+                }
+            } else {
+                let _ = ws::ensure_world_dir(&h);
+                let _ = ws::set_live_world_hash(&h);
+                tracing::info!(target: "world", "minted new live world {}", h);
+            }
+            h
+        }
+    };
+    let live_save_path = crate::server::world_store::world_save_path(&live_hash);
+    let save_path_str = live_save_path.to_string_lossy().to_string();
+    let sim = Arc::new(Mutex::new(Simulation::load_or_new(fresh_seed, &save_path_str)));
     let (tx, _rx) = broadcast::channel::<Arc<Vec<u8>>>(WS_BROADCAST_BUFFER);
     let latest_full: LatestFull = Arc::new(std::sync::RwLock::new(None));
     let latest_full_at: Arc<std::sync::atomic::AtomicU64> = Arc::new(std::sync::atomic::AtomicU64::new(0));
@@ -596,7 +632,14 @@ async fn main() {
                 let (pending_thinks, pending_convos, pending_save) = tick_outputs;
                 if let Some(state) = pending_save {
                     tokio::task::spawn_blocking(move || {
-                        if let Err(e) = sim::persistence::write_save_to_disk(&state, SAVE_PATH) {
+                        let hash = crate::server::world_store::live_world_hash()
+                            .unwrap_or_else(|| "_unknown".to_string());
+                        let path = crate::server::world_store::world_save_path(&hash);
+                        if let Some(parent) = path.parent() {
+                            let _ = std::fs::create_dir_all(parent);
+                        }
+                        let path_str = path.to_string_lossy().to_string();
+                        if let Err(e) = sim::persistence::write_save_to_disk(&state, &path_str) {
                             tracing::warn!(target: "save", "failed: {}", e);
                         }
                     });
@@ -743,9 +786,17 @@ async fn main() {
                 if (y, m) != (cur_y, cur_m) {
                     let started = started_at_arch.load(std::sync::atomic::Ordering::Relaxed);
                     let peak = peak_arch.load(std::sync::atomic::Ordering::Relaxed);
-                    if let Some(hash) =
-                        server::world_archive::archive_and_reset(sim_arch.clone(), started, peak, SAVE_PATH)
-                            .await
+                    let active_hash = crate::server::world_store::live_world_hash()
+                        .unwrap_or_else(|| "_unknown".to_string());
+                    let active_save = crate::server::world_store::world_save_path(&active_hash);
+                    let active_save_str = active_save.to_string_lossy().to_string();
+                    if let Some(hash) = server::world_archive::archive_and_reset(
+                        sim_arch.clone(),
+                        started,
+                        peak,
+                        &active_save_str,
+                    )
+                    .await
                     {
                         tracing::warn!(target: "archive", "month rollover -> archived as {}", hash);
                     }
