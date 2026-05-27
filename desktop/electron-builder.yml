@@ -40,6 +40,7 @@ mac:
   gatekeeperAssess: false
   identity: null
   notarize: false
+  icon: build/icon.icns
 
 win:
   target:
@@ -50,6 +51,7 @@ win:
       arch:
         - x64
   publisherName: The Human Box
+  icon: build/icon.ico
 
 nsis:
   oneClick: false
@@ -72,3 +74,4 @@ linux:
     The Human Box is a tribal-to-civic simulation where every organism
     has memory, dreams, relationships, and a lineage. Runs locally or
     connects to the live shared world at thehumanbox.com.
+  icon: build/icon.png
