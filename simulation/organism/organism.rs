@@ -641,6 +641,7 @@ impl Organism {
             "death" => (MemoryKind::Bond, 0.90, -3),
             "loss" => (MemoryKind::Bond, 0.95, -3),
             "partnership" => (MemoryKind::Bond, 0.90, 3),
+            "love" => (MemoryKind::Bond, 0.92, 3),
             "courtship" => (MemoryKind::Bond, 0.70, 2),
             "friendship" => (MemoryKind::Bond, 0.75, 2),
             "farewell" => (MemoryKind::Bond, 0.60, -1),
