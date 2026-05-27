@@ -11,3 +11,4 @@ pub mod transport;
 #[cfg(feature = "webtransport")]
 pub mod webtransport;
 pub mod world_archive;
+pub mod world_store;
