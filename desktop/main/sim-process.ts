@@ -107,6 +107,7 @@ export async function startSim(settings: Settings): Promise<RunningSim> {
     TICK_MS: String(settings.tickMs),
     PORT: String(port),
     BIND_HOST: '127.0.0.1',
+    THB_EXTRA_CORS_ORIGINS: 'null',
   }
   if (settings.model.provider !== 'none') {
     env.NARRATION_LLM_URL = settings.model.apiUrl

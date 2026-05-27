@@ -1,4 +1,16 @@
-const RAW_BASE = (import.meta.env.VITE_API_BASE ?? 'localhost:8000')
+function readRuntimeOverride(): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const params = new URLSearchParams(window.location.search)
+    const api = params.get('api')
+    if (api && api.trim().length > 0) return api.trim()
+  } catch {
+    /* file:// without search support, ignore */
+  }
+  return null
+}
+
+const RAW_BASE = (readRuntimeOverride() ?? import.meta.env.VITE_API_BASE ?? 'localhost:8000')
   .replace(/^https?:\/\//, '')
   .replace(/^wss?:\/\//, '')
   .replace(/\/$/, '')

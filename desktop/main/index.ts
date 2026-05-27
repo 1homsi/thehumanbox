@@ -32,18 +32,18 @@ function renderBootError(detail: string): string {
 async function createWindow(): Promise<void> {
   const settings = loadSettings()
 
-  let bootUrl: string
-  let bootError: string | null = null
+  let apiBase: string | null = null
+  let bootErrorUrl: string | null = null
   if (settings.mode === 'remote') {
-    bootUrl = `${settings.remoteUrl}/?desktop=1`
+    apiBase = settings.remoteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')
   } else {
     try {
       const sim = await startSim(settings)
-      bootUrl = `http://127.0.0.1:${sim.port}/?desktop=1`
+      apiBase = `127.0.0.1:${sim.port}`
     } catch (err) {
-      bootError = (err as Error).message ?? String(err)
+      const msg = (err as Error).message ?? String(err)
       console.error('[main] failed to start local sim:', err)
-      bootUrl = renderBootError(bootError)
+      bootErrorUrl = renderBootError(msg)
     }
   }
 
@@ -79,12 +79,14 @@ async function createWindow(): Promise<void> {
     mainWindow?.loadURL(renderBootError(`Renderer failed to load.\nURL: ${url}\nCode: ${code}\n${desc}`))
   })
 
-  if (isDev) {
-    const indexFile = path.join(__dirname, '..', 'renderer', 'index.html')
-    await mainWindow.loadFile(indexFile, { query: { boot: bootUrl } })
-    mainWindow.webContents.openDevTools({ mode: 'detach' })
+  if (bootErrorUrl) {
+    await mainWindow.loadURL(bootErrorUrl)
   } else {
-    await mainWindow.loadURL(bootUrl)
+    const indexFile = path.join(__dirname, '..', 'renderer', 'index.html')
+    const query: Record<string, string> = { desktop: '1' }
+    if (apiBase) query.api = apiBase
+    await mainWindow.loadFile(indexFile, { query })
+    if (isDev) mainWindow.webContents.openDevTools({ mode: 'detach' })
   }
 
   mainWindow.on('closed', () => {

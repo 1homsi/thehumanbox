@@ -20,12 +20,13 @@ export function registerIpc(ipc: IpcMain, getWindow: () => BrowserWindow | null)
   ipc.handle('sim:restart', async () => {
     await stopSim()
     const s = loadSettings()
+    const indexFile = path.join(__dirname, '..', 'renderer', 'index.html')
     if (s.mode === 'local') {
       try {
         const sim = await startSim(s)
         const win = getWindow()
         if (win) {
-          await win.loadURL(`http://127.0.0.1:${sim.port}/?desktop=1`)
+          await win.loadFile(indexFile, { query: { desktop: '1', api: `127.0.0.1:${sim.port}` } })
         }
         return { running: true, port: sim.port }
       } catch (e) {
@@ -34,7 +35,8 @@ export function registerIpc(ipc: IpcMain, getWindow: () => BrowserWindow | null)
     }
     const win = getWindow()
     if (win) {
-      await win.loadURL(`${s.remoteUrl}/?desktop=1`)
+      const apiBase = s.remoteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')
+      await win.loadFile(indexFile, { query: { desktop: '1', api: apiBase } })
     }
     return { running: false, port: null }
   })
@@ -72,7 +74,10 @@ export function registerIpc(ipc: IpcMain, getWindow: () => BrowserWindow | null)
     const sim = await startSim(loadSettings())
     const win = getWindow()
     if (win) {
-      await win.loadURL(`http://127.0.0.1:${sim.port}/?desktop=1&imported=${hash}`)
+      const indexFile = path.join(__dirname, '..', 'renderer', 'index.html')
+      await win.loadFile(indexFile, {
+        query: { desktop: '1', api: `127.0.0.1:${sim.port}`, imported: hash },
+      })
     }
     return { running: true, port: sim.port }
   })

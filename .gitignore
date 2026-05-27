@@ -33,3 +33,4 @@ lab/datasets/generated/*
 lab/experiments/*.json
 
 .vscode/
+worlds/
