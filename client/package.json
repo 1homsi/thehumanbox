@@ -27,6 +27,7 @@
     "d3-transition": "^3.0.1",
     "d3-zoom": "^3.0.0",
     "neverthrow": "^8.2.0",
+    "posthog-js": "^1.376.2",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "shepherd.js": "^15.2.2",

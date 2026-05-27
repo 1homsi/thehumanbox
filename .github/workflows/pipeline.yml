@@ -105,6 +105,13 @@ jobs:
           # flag cross-host og:image as "invalid/unreachable" even
           # when it loads fine on real social crawlers.
           VITE_OG_IMAGE_URL: ${{ secrets.VITE_OG_IMAGE_URL || 'https://thehumanbox.com/og.png' }}
+          # PostHog analytics. Token + host pulled from repo secrets so
+          # the key never lands in the repo. Build-time injection means
+          # the bundle only includes them on prod CI builds — local
+          # `pnpm dev` reads the developer's own .env (or simply doesn't
+          # initialize, see analytics.ts).
+          VITE_POSTHOG_KEY:  ${{ secrets.VITE_POSTHOG_KEY }}
+          VITE_POSTHOG_HOST: ${{ secrets.VITE_POSTHOG_HOST || 'https://us.i.posthog.com' }}
 
       - uses: actions/upload-artifact@v7
         with:
