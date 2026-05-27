@@ -78,21 +78,24 @@ The forked world is now yours to evolve — the original archive on thehumanbox.
 
 ## Code signing
 
-For the first release we ship **unsigned** on macOS and Windows. Users will see:
+We ship **unsigned** on macOS and Windows for now (no Apple Developer
+account, no Windows EV cert yet). The CI build sets
+`CSC_IDENTITY_AUTO_DISCOVERY=false` so electron-builder doesn't try to
+sign at all.
 
-- macOS: "unidentified developer" / "app is damaged" — fixed with `xattr -cr "/Applications/The Human Box.app"` or right-click → Open the first time.
-- Windows: SmartScreen warning — click "More info" → "Run anyway".
+What users see, and how to bypass:
 
-The CI workflow `.github/workflows/desktop-release.yml` already reads these secrets if they're set in the repo; the build is unsigned only when the secrets are absent:
+- **macOS** — "app is damaged" / "unidentified developer".
+  Either run the one-liner from the root README, or manually:
+  ```bash
+  xattr -dr com.apple.quarantine "/Applications/The Human Box.app"
+  ```
+- **Windows** — SmartScreen warning. Click "More info" → "Run anyway".
+- **Linux** — nothing to bypass; just `chmod +x` the AppImage.
 
-| Secret | Purpose |
-| --- | --- |
-| `CSC_LINK` | base64-encoded macOS `.p12` developer cert |
-| `CSC_KEY_PASSWORD` | password for the `.p12` above |
-| `APPLE_ID` + `APPLE_APP_SPECIFIC_PASSWORD` + `APPLE_TEAM_ID` | enable notarization (set `mac.notarize: true` in electron-builder.yml when ready) |
-| `WIN_CSC_LINK` + `WIN_CSC_KEY_PASSWORD` | Windows EV cert |
-
-Estimated cost:
-- macOS Apple Developer Program: ~$99/yr
-- Windows EV code-signing cert: ~$300/yr (one-time + verification)
-- Linux: no signing needed
+When we eventually buy certs (~$99/yr Apple, ~$300/yr Windows EV), the
+flip is: add `CSC_LINK` / `CSC_KEY_PASSWORD` / `WIN_CSC_LINK` /
+`WIN_CSC_KEY_PASSWORD` to repo secrets, drop the
+`CSC_IDENTITY_AUTO_DISCOVERY=false` line in
+`.github/workflows/desktop-release.yml`, flip `hardenedRuntime: true`
+and `mac.notarize: true` in `electron-builder.yml`.

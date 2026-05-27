@@ -17,6 +17,23 @@ thehumanbox/
 └── lab/          Python workspace for model experiments and eval tooling
 ```
 
+## Desktop app
+
+macOS one-liner (downloads the latest release and strips the quarantine
+flag so the unsigned app opens normally):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/1homsi/thehumanbox/main/scripts/install-desktop.sh | bash
+```
+
+Windows + Linux: grab the installer from
+[Releases](https://github.com/1homsi/thehumanbox/releases/latest)
+— Windows users click "More info → Run anyway" on the SmartScreen
+prompt, Linux users `chmod +x` the AppImage or install the `.deb`.
+
+The app is **not code-signed yet**, which is why the bypass step is
+needed. Source: [`desktop/`](desktop/).
+
 ## Quick start
 
 **Simulation** (Rust):
