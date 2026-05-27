@@ -19,10 +19,17 @@ on:
         description: 'Release tag to upload to (e.g. v0.2.1)'
         required: true
         type: string
+      version:
+        description: 'Numeric version to stamp into desktop/package.json (e.g. 0.2.1)'
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       tag:
         description: 'Existing release tag to upload to (e.g. v0.2.1)'
+        required: true
+      version:
+        description: 'Numeric version to stamp into desktop/package.json (e.g. 0.2.1)'
         required: true
 
 permissions:
@@ -60,6 +67,19 @@ jobs:
         id: tag
         shell: bash
         run: echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+
+      # The triggering SHA is the user's push, not the bump-bot's commit
+      # that updated desktop/package.json's version. Stamp the version in
+      # explicitly so electron-builder names artifacts + publishes to the
+      # right release tag.
+      - name: Stamp desktop version
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp=$(mktemp)
+          jq --arg v "${{ inputs.version }}" '.version = $v' desktop/package.json > "$tmp"
+          mv "$tmp" desktop/package.json
+          echo "desktop/package.json version → $(jq -r .version desktop/package.json)"
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable

@@ -288,7 +288,8 @@ jobs:
     secrets: inherit
     uses: ./.github/workflows/desktop-release.yml
     with:
-      tag: v${{ needs.bump-version.outputs.new }}
+      tag:     v${{ needs.bump-version.outputs.new }}
+      version: ${{ needs.bump-version.outputs.new }}
 
   deploy-backend:
     name: Deploy backend (SSM, no on-box compile)
