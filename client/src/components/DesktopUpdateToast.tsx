@@ -15,10 +15,12 @@ export function DesktopUpdateToast() {
   useEffect(() => {
     if (!desktop) return
     const offAvailable = desktop.on('updater:available', (info) => {
-      setState({ kind: 'available', info })
+      if (!info) return
+      setState({ kind: 'available', info: info as UpdateInfo })
     })
     const offDownloaded = desktop.on('updater:downloaded', (info) => {
-      setState({ kind: 'downloaded', info })
+      if (!info) return
+      setState({ kind: 'downloaded', info: info as UpdateInfo })
       setDismissed(false)
     })
     return () => {

@@ -23,7 +23,10 @@ export interface DesktopBridge {
     importFromRemote(payload: { hash: string; remoteUrl: string }): Promise<{ running: boolean; port: number }>
   }
 
-  on(channel: 'updater:available' | 'updater:downloaded', cb: (payload: unknown) => void): () => void
+  on(
+    channel: 'updater:available' | 'updater:downloaded' | 'menu:openSettings',
+    cb: (payload: unknown) => void,
+  ): () => void
 }
 
 const bridge: DesktopBridge = {

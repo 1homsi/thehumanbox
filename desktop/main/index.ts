@@ -1,9 +1,11 @@
-import { app, BrowserWindow, globalShortcut, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, globalShortcut, ipcMain, Menu, shell } from 'electron'
 import * as path from 'node:path'
 import { registerIpc } from './ipc'
 import { startSim, stopSim, activeSim } from './sim-process'
-import { loadSettings } from './settings'
+import { loadSettings, saveSettings } from './settings'
 import { initUpdater } from './updater'
+
+app.setName('The Human Box')
 
 const isDev = !app.isPackaged
 let mainWindow: BrowserWindow | null = null
@@ -53,6 +55,12 @@ async function createWindow(): Promise<void> {
     title: 'The Human Box',
     backgroundColor: '#0c0a08',
     icon: path.join(__dirname, '..', '..', 'build', 'icon.png'),
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    titleBarOverlay:
+      process.platform !== 'darwin'
+        ? { color: '#0c0a08', symbolColor: '#f5e9d4', height: 32 }
+        : undefined,
+    trafficLightPosition: process.platform === 'darwin' ? { x: 14, y: 14 } : undefined,
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload', 'index.js'),
       contextIsolation: true,
@@ -84,10 +92,8 @@ async function createWindow(): Promise<void> {
   })
 }
 
-app.whenReady().then(async () => {
-  registerIpc(ipcMain, () => mainWindow)
-  await createWindow()
-  initUpdater(() => mainWindow)
+function buildMenu(): void {
+  const isMac = process.platform === 'darwin'
 
   const toggleDevTools = (): void => {
     if (!mainWindow) return
@@ -97,9 +103,130 @@ app.whenReady().then(async () => {
       mainWindow.webContents.openDevTools({ mode: 'detach' })
     }
   }
-  globalShortcut.register(process.platform === 'darwin' ? 'Cmd+Alt+I' : 'Ctrl+Shift+I', toggleDevTools)
-  globalShortcut.register(process.platform === 'darwin' ? 'Cmd+R' : 'Ctrl+R', () => mainWindow?.reload())
+
+  const restartInMode = async (mode: 'local' | 'remote'): Promise<void> => {
+    const cur = loadSettings()
+    if (cur.mode !== mode) saveSettings({ ...cur, mode })
+    await stopSim()
+    if (mainWindow) {
+      await createWindowReplace()
+    }
+  }
+
+  const settings = loadSettings()
+
+  const template: Electron.MenuItemConstructorOptions[] = [
+    ...(isMac
+      ? [
+          {
+            label: 'The Human Box',
+            submenu: [
+              { role: 'about' as const },
+              { type: 'separator' as const },
+              {
+                label: 'Settings…',
+                accelerator: 'Cmd+,',
+                click: () => mainWindow?.webContents.send('menu:openSettings'),
+              },
+              { type: 'separator' as const },
+              { role: 'services' as const },
+              { type: 'separator' as const },
+              { role: 'hide' as const },
+              { role: 'hideOthers' as const },
+              { role: 'unhide' as const },
+              { type: 'separator' as const },
+              { role: 'quit' as const },
+            ],
+          },
+        ]
+      : []),
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'Reload',
+          accelerator: isMac ? 'Cmd+R' : 'Ctrl+R',
+          click: () => mainWindow?.reload(),
+        },
+        {
+          label: 'Restart simulation',
+          click: () => void restartInMode(loadSettings().mode),
+        },
+        isMac ? { role: 'close' as const } : { role: 'quit' as const },
+      ],
+    },
+    { role: 'editMenu' },
+    {
+      label: 'View',
+      submenu: [
+        {
+          label: 'Toggle DevTools',
+          accelerator: isMac ? 'Cmd+Alt+I' : 'Ctrl+Shift+I',
+          click: toggleDevTools,
+        },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' },
+      ],
+    },
+    {
+      label: 'Mode',
+      submenu: [
+        {
+          label: 'Local simulation',
+          type: 'radio',
+          checked: settings.mode === 'local',
+          click: () => void restartInMode('local'),
+        },
+        {
+          label: 'Remote (thehumanbox.com)',
+          type: 'radio',
+          checked: settings.mode === 'remote',
+          click: () => void restartInMode('remote'),
+        },
+      ],
+    },
+    { role: 'windowMenu' },
+    {
+      role: 'help',
+      submenu: [
+        {
+          label: 'Open GitHub',
+          click: () => void shell.openExternal('https://github.com/1homsi/thehumanbox'),
+        },
+        {
+          label: 'Open thehumanbox.com',
+          click: () => void shell.openExternal('https://thehumanbox.com'),
+        },
+      ],
+    },
+  ]
+
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+}
+
+async function createWindowReplace(): Promise<void> {
+  const old = mainWindow
+  await createWindow()
+  if (old && !old.isDestroyed()) old.close()
+}
+
+app.whenReady().then(async () => {
+  registerIpc(ipcMain, () => mainWindow)
+  await createWindow()
+  buildMenu()
+  initUpdater(() => mainWindow)
+
+  globalShortcut.register(process.platform === 'darwin' ? 'Cmd+Alt+I' : 'Ctrl+Shift+I', () => {
+    if (!mainWindow) return
+    if (mainWindow.webContents.isDevToolsOpened()) mainWindow.webContents.closeDevTools()
+    else mainWindow.webContents.openDevTools({ mode: 'detach' })
+  })
 })
+
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll()

@@ -49,6 +49,13 @@ function LiveApp() {
   const leftOpen = useUIStore((s) => s.leftOpen)
   const toggleLeft = useUIStore((s) => s.toggleLeft)
   const viewFlags = useUIStore((s) => s.viewFlags)
+  const openDesktopSettings = useUIStore((s) => s.openDesktopSettings)
+
+  useEffect(() => {
+    const desk = window.thbDesktop
+    if (!desk) return
+    return desk.on('menu:openSettings', () => openDesktopSettings())
+  }, [openDesktopSettings])
 
   const splashHiddenRef = useRef(false)
   useEffect(() => {
