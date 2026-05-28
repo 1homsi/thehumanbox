@@ -593,7 +593,7 @@ impl Organism {
 
     pub fn store_conversation(&mut self, entry: ConversationEntry) {
         self.conversations.push_back(entry);
-        if self.conversations.len() > 20 {
+        if self.conversations.len() > 8 {
             self.conversations.pop_front();
         }
     }
@@ -671,7 +671,7 @@ impl Organism {
             related_id,
             related_name,
         });
-        if self.life_log.len() > 64 {
+        if self.life_log.len() > 24 {
             self.life_log.pop_front();
         }
     }
@@ -910,9 +910,9 @@ impl Organism {
                 }
             }
         }
-        trim_mem(&mut self.food_memory, 70);
-        trim_mem(&mut self.water_memory, 35);
-        trim_mem(&mut self.danger_memory, 20);
+        trim_mem(&mut self.food_memory, 32);
+        trim_mem(&mut self.water_memory, 16);
+        trim_mem(&mut self.danger_memory, 10);
         self.lineage_attitudes.retain(|_, v| {
             *v *= 0.998;
             v.abs() >= 0.01
@@ -922,8 +922,8 @@ impl Organism {
             v.abs() >= 0.01
         });
 
-        const Q_MAX: usize = 180;
-        const Q_TRIM: usize = 130;
+        const Q_MAX: usize = 120;
+        const Q_TRIM: usize = 80;
         if self.q_table.len() > Q_MAX {
             let mut entries: Vec<(String, QRow)> = self.q_table.drain().collect();
             entries.sort_by(|a, b| {
@@ -964,7 +964,7 @@ impl Organism {
             tick,
             text: text.to_string(),
         });
-        if self.thought_history.len() > 40 {
+        if self.thought_history.len() > 16 {
             self.thought_history.pop_front();
         }
     }
@@ -1023,7 +1023,7 @@ impl Organism {
             tick,
             text: line.clone(),
         });
-        if self.thought_history.len() > 40 {
+        if self.thought_history.len() > 16 {
             self.thought_history.pop_front();
         }
         self.thought = line.clone();

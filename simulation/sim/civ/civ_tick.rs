@@ -1590,6 +1590,15 @@ fn tick_buildings_construct(sim: &mut Simulation) {
         }
     }
     sim.buildings.extend(new_buildings);
+    cap_buildings(sim);
+}
+
+fn cap_buildings(sim: &mut Simulation) {
+    const BUILDINGS_CAP: usize = 1500;
+    if sim.buildings.len() > BUILDINGS_CAP {
+        let excess = sim.buildings.len() - BUILDINGS_CAP;
+        sim.buildings.drain(0..excess);
+    }
 }
 
 fn tick_scatter_props(sim: &mut Simulation) {
@@ -1740,6 +1749,7 @@ fn tick_scatter_props(sim: &mut Simulation) {
         ));
     }
     sim.buildings.extend(new_buildings);
+    cap_buildings(sim);
 }
 
 fn next_target_building(era: Era, pop: usize, existing: &HashSet<BuildingKind>) -> Option<BuildingKind> {
