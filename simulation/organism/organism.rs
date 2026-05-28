@@ -728,8 +728,18 @@ impl Organism {
         }
 
         if self.grief_ticks > 0 {
-            self.grief_ticks = self.grief_ticks.saturating_sub(1);
-            self.fear_level = (self.fear_level + 0.004).min(1.0);
+            let extra = if self.discoveries.contains("herbalism") || self.discoveries.contains("ritual_dance") {
+                1
+            } else {
+                0
+            };
+            self.grief_ticks = self.grief_ticks.saturating_sub(1 + extra);
+            let fear_add = if self.discoveries.contains("ritual_dance") {
+                0.003
+            } else {
+                0.004
+            };
+            self.fear_level = (self.fear_level + fear_add).min(1.0);
         }
         if self.joy_ticks > 0 {
             self.joy_ticks = self.joy_ticks.saturating_sub(1);
@@ -756,8 +766,11 @@ impl Organism {
             _ => {}
         }
 
+        let has_leather = self.discoveries.contains("leatherwork") || self.discoveries.contains("animal_hides")
+            || self.discoveries.contains("textiles");
         if night && !near_shelter {
-            self.sleep_debt = (self.sleep_debt + 0.0015).min(1.0);
+            let add = if has_leather { 0.0009 } else { 0.0015 };
+            self.sleep_debt = (self.sleep_debt + add).min(1.0);
         } else if near_shelter {
             self.sleep_debt = (self.sleep_debt - 0.010).max(0.0);
         } else {

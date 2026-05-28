@@ -1828,8 +1828,15 @@ impl Simulation {
         }
 
         if self.organisms[idx].infection > 0.01 {
-            let med_mult = if self.organisms[idx].discoveries.contains("medicine") {
-                0.990
+            let d = &self.organisms[idx].discoveries;
+            let med_mult = if d.contains("antibiotics") {
+                0.970
+            } else if d.contains("alchemy") {
+                0.982
+            } else if d.contains("medicine") || d.contains("medicine_lore") {
+                0.988
+            } else if d.contains("poultice") || d.contains("herbalism") {
+                0.992
             } else {
                 0.997
             };
