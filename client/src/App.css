@@ -44,6 +44,15 @@ select:focus-visible {
   }
 }
 
+body.thb-app-minimized canvas {
+  visibility: hidden;
+}
+body.thb-app-minimized *,
+body.thb-app-minimized *::before,
+body.thb-app-minimized *::after {
+  animation-play-state: paused !important;
+}
+
 .app {
   display: flex;
   flex-direction: column;

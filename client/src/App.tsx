@@ -60,6 +60,19 @@ function LiveApp() {
     return desk.on('menu:openSettings', () => openDesktopSettings())
   }, [openDesktopSettings])
 
+  useEffect(() => {
+    const desk = window.thbDesktop
+    if (!desk) return
+    return desk.on('app:visibility', (payload) => {
+      const v = payload as unknown as string
+      if (v === 'minimized') {
+        document.body.classList.add('thb-app-minimized')
+      } else {
+        document.body.classList.remove('thb-app-minimized')
+      }
+    })
+  }, [])
+
   const splashHiddenRef = useRef(false)
   useEffect(() => {
     if (world && !splashHiddenRef.current) {
