@@ -1388,6 +1388,49 @@ body.thb-photo-mode .header:hover {
   justify-content: center;
   z-index: 100;
 }
+.idle-resume-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.idle-resume-panel {
+  background: #28201a;
+  border: 1px solid #443329;
+  border-radius: 8px;
+  padding: 28px 32px;
+  max-width: 420px;
+  text-align: center;
+  color: #f5e9d4;
+}
+.idle-resume-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.idle-resume-sub {
+  font-size: 13px;
+  color: #bfae90;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+.idle-resume-btn {
+  background: #6b8e5a;
+  color: #0c0a08;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 24px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+.idle-resume-btn:hover {
+  background: #84a76e;
+}
 .lang-modal {
   background: #28201a;
   border: 1px solid #443329;

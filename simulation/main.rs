@@ -61,7 +61,7 @@ fn network_ms() -> u64 {
     std::env::var("NETWORK_MS")
         .ok()
         .and_then(|v| v.parse().ok())
-        .unwrap_or(100)
+        .unwrap_or(500)
 }
 
 fn lookahead_ms() -> u64 {
@@ -715,6 +715,10 @@ async fn main() {
         tokio::spawn(async move {
             loop {
                 let cycle_started = std::time::Instant::now();
+                if tx_clone.receiver_count() == 0 {
+                    sleep_until_period_end(cycle_started, *NETWORK_MS).await;
+                    continue;
+                }
                 let (frame, full_payload) = {
                     let mut s = sim_clone.lock().await;
                     let is_full_frame = s.tick_count % FULL_FRAME_EVERY_TICKS == 0;

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, Suspense } from 'react'
 import { lazyWithRetry } from './utils/lazyWithRetry'
 import { useSimulation } from './simulation/useSimulation'
+import { IdleResumeOverlay } from './components/IdleResumeOverlay'
 import { useUIStore } from './stores/store'
 import { WS_BASE } from './lib/config'
 
@@ -42,7 +43,7 @@ function App() {
 }
 
 function LiveApp() {
-  const { world, connected, status, failedAttempts, interp } = useSimulation()
+  const { world, connected, status, failedAttempts, interp, idleParked, resume } = useSimulation()
   const currentScene = useCurrentScene()
 
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
@@ -150,6 +151,8 @@ function LiveApp() {
   return (
     <div className="app">
       <AppHeader world={world ?? null} connected={connected} fireTiles={fireTiles} sickOrgs={sickOrgs} />
+
+      {idleParked && <IdleResumeOverlay onResume={resume} />}
 
       <main className="main" data-tour="world-canvas">
         {world ? (

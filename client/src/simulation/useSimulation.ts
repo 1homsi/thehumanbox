@@ -26,10 +26,13 @@ export function useSimulation(): {
   status: ConnectionStatus
   failedAttempts: number
   interp: InterpRefs
+  idleParked: boolean
+  resume: () => void
 } {
   const [world, setWorld] = useState<WorldState | null>(null)
   const [connected, setConnected] = useState(false)
   const [failedAttempts, setFailedAttempts] = useState(0)
+  const [idleParked, setIdleParked] = useState(false)
   const wsRef = useRef<WebSocket | null>(null)
   const organismCache = useRef<Map<string, OrganismState>>(new Map())
   const animalCache = useRef<Map<number, AnimalState>>(new Map())
@@ -51,6 +54,9 @@ export function useSimulation(): {
   const pendingSetWorldRef = useRef<WorldState | null>(null)
   const setWorldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const snapshotFetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const resumeRef = useRef<() => void>(() => {})
+  const idleParkedRef = useRef(false)
+  useEffect(() => { idleParkedRef.current = idleParked }, [idleParked])
 
   useEffect(() => {
     const MAX_BUFFERED_MESSAGES = 32
@@ -300,8 +306,69 @@ export function useSimulation(): {
 
     connect()
 
+    const IDLE_HIDDEN_MS = 30_000
+    const IDLE_AFK_MS = 10 * 60_000
+    let hiddenTimer: ReturnType<typeof setTimeout> | null = null
+    let lastInteractionAt = Date.now()
+    let afkTimer: ReturnType<typeof setTimeout> | null = null
+
+    function parkSocket() {
+      if (reconnectTimer !== null) {
+        clearTimeout(reconnectTimer)
+        reconnectTimer = null
+      }
+      if (rafPending.current !== null) {
+        cancelAnimationFrame(rafPending.current)
+        rafPending.current = null
+      }
+      queuedMsgs.current = []
+      const ws = wsRef.current
+      if (ws) {
+        ws.onclose = null
+        ws.onmessage = null
+        try { ws.close() } catch { /* noop */ }
+        wsRef.current = null
+      }
+      setConnected(false)
+      setIdleParked(true)
+    }
+
+    resumeRef.current = () => {
+      setIdleParked(false)
+      lastInteractionAt = Date.now()
+      scheduleAfkCheck()
+      reconnectDelayMs = 1000
+      bootstrapPendingRef.current = true
+      awaitingFullFrameRef.current = true
+      connect()
+    }
+
+    function scheduleAfkCheck() {
+      if (afkTimer !== null) clearTimeout(afkTimer)
+      afkTimer = setTimeout(() => {
+        if (Date.now() - lastInteractionAt >= IDLE_AFK_MS) parkSocket()
+        else scheduleAfkCheck()
+      }, IDLE_AFK_MS)
+    }
+    scheduleAfkCheck()
+
+    function onInteraction() { lastInteractionAt = Date.now() }
+    window.addEventListener('mousemove', onInteraction, { passive: true })
+    window.addEventListener('keydown', onInteraction, { passive: true })
+    window.addEventListener('pointerdown', onInteraction, { passive: true })
+
     function onVisibilityChange() {
-      if (document.visibilityState !== 'visible') return
+      if (document.visibilityState === 'hidden') {
+        if (hiddenTimer !== null) clearTimeout(hiddenTimer)
+        hiddenTimer = setTimeout(parkSocket, IDLE_HIDDEN_MS)
+        return
+      }
+      if (hiddenTimer !== null) {
+        clearTimeout(hiddenTimer)
+        hiddenTimer = null
+      }
+      lastInteractionAt = Date.now()
+      if (idleParkedRef.current) return
       if (rafPending.current !== null) {
         cancelAnimationFrame(rafPending.current)
         rafPending.current = null
@@ -328,6 +395,17 @@ export function useSimulation(): {
       destroyed = true
       document.removeEventListener('visibilitychange', onVisibilityChange)
       window.removeEventListener('online', onVisibilityChange)
+      window.removeEventListener('mousemove', onInteraction)
+      window.removeEventListener('keydown', onInteraction)
+      window.removeEventListener('pointerdown', onInteraction)
+      if (hiddenTimer !== null) {
+        clearTimeout(hiddenTimer)
+        hiddenTimer = null
+      }
+      if (afkTimer !== null) {
+        clearTimeout(afkTimer)
+        afkTimer = null
+      }
       if (reconnectTimer !== null) {
         clearTimeout(reconnectTimer)
         reconnectTimer = null
@@ -379,5 +457,7 @@ export function useSimulation(): {
       currentServerAt: currentServerAtRef,
       currentReceivedAt: currentReceivedAtRef,
     },
+    idleParked,
+    resume: () => resumeRef.current(),
   }
 }

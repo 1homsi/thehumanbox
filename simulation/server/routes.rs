@@ -688,6 +688,12 @@ async fn handle_socket(
     latest_full: LatestFull,
     transport_stats: SharedTransportStats,
 ) {
+    const IDLE_PING_INTERVAL: std::time::Duration = std::time::Duration::from_secs(30);
+    const IDLE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5 * 60);
+    let mut last_client_msg = std::time::Instant::now();
+    let mut ping_ticker = tokio::time::interval(IDLE_PING_INTERVAL);
+    ping_ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+
     loop {
         tokio::select! {
             result = rx.recv() => {
@@ -727,8 +733,16 @@ async fn handle_socket(
             msg = socket.recv() => {
                 match msg {
                     Some(Ok(Message::Close(_))) | None => break,
+                    Some(Ok(_)) => { last_client_msg = std::time::Instant::now(); }
                     _ => {}
                 }
+            }
+            _ = ping_ticker.tick() => {
+                if last_client_msg.elapsed() > IDLE_TIMEOUT {
+                    let _ = socket.send(Message::Close(None)).await;
+                    break;
+                }
+                if socket.send(Message::Ping(Vec::new().into())).await.is_err() { break; }
             }
         }
     }
