@@ -4,6 +4,7 @@ import { useSimulation } from './simulation/useSimulation'
 import { IdleResumeOverlay } from './components/IdleResumeOverlay'
 import { DesktopDownloadToast } from './components/DesktopDownloadToast'
 import { CommandPalette } from './components/CommandPalette'
+import { HeadlineTicker } from './components/HeadlineTicker'
 import { trackEvent } from './lib/observability'
 import { useUIStore } from './stores/store'
 import { WS_BASE } from './lib/config'
@@ -179,6 +180,7 @@ function LiveApp() {
   return (
     <div className="app">
       <AppHeader world={world ?? null} connected={connected} fireTiles={fireTiles} sickOrgs={sickOrgs} />
+      <HeadlineTicker world={world ?? null} enabled={viewFlags.headlineTicker !== false} />
 
       {idleParked && <IdleResumeOverlay onResume={resume} />}
       <DesktopDownloadToast />

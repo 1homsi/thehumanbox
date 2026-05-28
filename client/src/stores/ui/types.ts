@@ -26,6 +26,7 @@ export interface ViewFlags {
   colorBlind: boolean
   orgPov: boolean
   territoryMap: boolean
+  headlineTicker: boolean
 }
 
 import type {

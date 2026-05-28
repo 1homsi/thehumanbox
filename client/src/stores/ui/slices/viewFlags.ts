@@ -35,6 +35,7 @@ const DEFAULTS: ViewFlags = {
   colorBlind: false,
   orgPov: false,
   territoryMap: false,
+  headlineTicker: true,
 }
 
 const TRACKED_FLAGS: Set<keyof ViewFlags> = new Set([
