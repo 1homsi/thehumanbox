@@ -3,6 +3,7 @@ import { lazyWithRetry } from './utils/lazyWithRetry'
 import { useSimulation } from './simulation/useSimulation'
 import { IdleResumeOverlay } from './components/IdleResumeOverlay'
 import { DesktopDownloadToast } from './components/DesktopDownloadToast'
+import { trackEvent } from './lib/observability'
 import { useUIStore } from './stores/store'
 import { WS_BASE } from './lib/config'
 
@@ -64,12 +65,10 @@ function LiveApp() {
     if (world && !splashHiddenRef.current) {
       splashHiddenRef.current = true
       window.dispatchEvent(new Event('thb-world-ready'))
-      import('./lib/observability').then((m) =>
-        m.trackEvent('world_first_loaded', {
-          tick: world.tick,
-          alive: world.organisms.filter((o) => o.alive).length,
-        }),
-      )
+      trackEvent('world_first_loaded', {
+        tick: world.tick,
+        alive: world.organisms.filter((o) => o.alive).length,
+      })
     }
   }, [world])
 

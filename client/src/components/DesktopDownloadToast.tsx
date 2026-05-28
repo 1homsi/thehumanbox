@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getDesktop } from '../lib/desktop'
+import { trackEvent } from '../lib/observability'
 
 const RELEASES_URL = 'https://github.com/1homsi/thehumanbox/releases/latest'
 const INSTALL_CMD = 'curl -fsSL https://raw.githubusercontent.com/1homsi/thehumanbox/main/scripts/install-desktop.sh | bash'
@@ -95,9 +96,7 @@ export function DesktopDownloadToast() {
           target="_blank"
           rel="noreferrer"
           onClick={() => {
-            import('../lib/observability').then((m) =>
-              m.trackEvent('desktop_toast_download_clicked', { mac }),
-            )
+            trackEvent('desktop_toast_download_clicked', { mac })
           }}
         >
           Download

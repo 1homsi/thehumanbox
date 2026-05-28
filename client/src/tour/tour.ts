@@ -1,5 +1,6 @@
 import Shepherd from 'shepherd.js'
 import 'shepherd.js/dist/css/shepherd.css'
+import { trackEvent } from '../lib/observability'
 
 const TOUR_KEY = 'thb-tour-completed-v1'
 
@@ -151,7 +152,7 @@ export function startTour() {
     markSeen()
     return null
   }
-  import('../lib/observability').then((m) => m.trackEvent('tour_start'))
+  trackEvent('tour_start')
   if (activeTour) {
     activeTour.complete()
     activeTour = null

@@ -1,5 +1,6 @@
 import type { StateCreator } from 'zustand'
 import type { UIState, ViewFlags } from '../types'
+import { trackEvent } from '../../../lib/observability'
 
 export interface ViewFlagsSlice {
   viewFlags: ViewFlags
@@ -50,9 +51,7 @@ export const createViewFlagsSlice: StateCreator<UIState, [], [], ViewFlagsSlice>
     set((s) => {
       if (s.viewFlags[k] === v) return s
       if (TRACKED_FLAGS.has(k)) {
-        import('../../../lib/observability').then((m) =>
-          m.trackEvent('view_flag_toggle', { flag: k as string, value: v }),
-        )
+        trackEvent('view_flag_toggle', { flag: k as string, value: v })
       }
       return { viewFlags: { ...s.viewFlags, [k]: v } }
     }),

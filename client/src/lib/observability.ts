@@ -19,6 +19,7 @@ export function initAnalytics(): void {
     capture_pageleave: true,
     autocapture: false,
     capture_exceptions: false,
+    capture_performance: false,
     disable_session_recording: true,
   })
   initialized = true
