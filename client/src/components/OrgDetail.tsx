@@ -460,6 +460,73 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
                   </span>
                 </div>
               )}
+              {org.hope !== undefined && (
+                <MiniBar
+                  label="hope"
+                  value={org.hope}
+                  color="#a8e0ff"
+                  tip="Hope - rises when safe and well-fed, falls under threat or hunger."
+                />
+              )}
+              {org.awe !== undefined && org.awe > 0.05 && (
+                <MiniBar
+                  label="awe"
+                  value={org.awe}
+                  color="#d8c8ff"
+                  tip="Awe - deepens under open sky at night. Feeds spiritual growth."
+                />
+              )}
+              {org.gratitude !== undefined && org.gratitude > 0.05 && (
+                <MiniBar
+                  label="gratitude"
+                  value={org.gratitude}
+                  color="#ffd890"
+                  tip="Gratitude - accumulates in comfort surrounded by kin. Drives sharing."
+                />
+              )}
+              {org.jealousy !== undefined && org.jealousy > 0.05 && (
+                <MiniBar
+                  label="jealousy"
+                  value={org.jealousy}
+                  color="#90a050"
+                  invert
+                  tip="Jealousy - creeps when rivals encroach during scarcity."
+                />
+              )}
+              {org.anger !== undefined && org.anger > 0.05 && (
+                <MiniBar
+                  label="anger"
+                  value={org.anger}
+                  color="#ff5028"
+                  invert
+                  tip="Anger - spikes against hostile neighbours, cools quickly when safe."
+                />
+              )}
+              {org.regret !== undefined && org.regret > 0.05 && (
+                <MiniBar
+                  label="regret"
+                  value={org.regret}
+                  color="#7080a8"
+                  invert
+                  tip="Regret - carried after outbursts or long grief."
+                />
+              )}
+              {org.curiosity_drive !== undefined && org.curiosity_drive > 0.05 && (
+                <MiniBar
+                  label="curiosity"
+                  value={org.curiosity_drive}
+                  color="#80d0a8"
+                  tip="Curiosity drive - bored, well-fed organisms wander further."
+                />
+              )}
+              {org.spiritual !== undefined && org.spiritual > 0.05 && (
+                <MiniBar
+                  label="spiritual"
+                  value={org.spiritual}
+                  color="#e0c068"
+                  tip="Spiritual depth - rises in safe nighttime shelter. Draws pilgrimages to temples."
+                />
+              )}
             </div>
           </>
         )}
