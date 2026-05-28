@@ -44,8 +44,17 @@ function badgesFor(o: OrganismState): { text: string; color: string }[] {
   if ((o.traits?.aggression ?? 0) > 0.8) out.push({ text: '⚡', color: '#ff5020' }) // aggressive trait
   if ((o.traits?.social_tendency ?? 0) > 0.8) out.push({ text: '◉', color: '#60c8f0' }) // highly social
 
-  // Cap at 3 to avoid clutter
-  return out.slice(0, 3)
+  // Extended emotional fields (new this session)
+  if ((o.hope ?? 0) > 0.75) out.push({ text: '◇', color: '#a8e0ff' })
+  if ((o.awe ?? 0) > 0.5) out.push({ text: '✶', color: '#d8c8ff' })
+  if ((o.gratitude ?? 0) > 0.6) out.push({ text: '⌖', color: '#ffd890' })
+  if ((o.jealousy ?? 0) > 0.55) out.push({ text: '⌅', color: '#90a050' })
+  if ((o.anger ?? 0) > 0.55) out.push({ text: '⚞', color: '#ff5028' })
+  if ((o.regret ?? 0) > 0.55) out.push({ text: '⊘', color: '#7080a8' })
+  if ((o.spiritual ?? 0) > 0.7) out.push({ text: '☥', color: '#e0c068' })
+
+  // Cap at 4 to avoid clutter
+  return out.slice(0, 4)
 }
 
 export function OrgStateBadges({ organisms, depthMap, biomes }: Props) {

@@ -287,6 +287,14 @@ pub struct Organism {
     pub boredom: f32,
     pub fear_level: f32,
     pub comfort: f32,
+    pub hope: f32,
+    pub awe: f32,
+    pub gratitude: f32,
+    pub jealousy: f32,
+    pub anger: f32,
+    pub regret: f32,
+    pub curiosity_drive: f32,
+    pub spiritual: f32,
 
     pub grief_ticks: u32,
     /// Lingering emotional uplift. Bumped by partner / child / discovery /
@@ -448,6 +456,14 @@ impl Organism {
             boredom: 0.0,
             fear_level: 0.0,
             comfort: 0.5,
+            hope: 0.5,
+            awe: 0.0,
+            gratitude: 0.0,
+            jealousy: 0.0,
+            anger: 0.0,
+            regret: 0.0,
+            curiosity_drive: 0.0,
+            spiritual: 0.0,
             grief_ticks: 0,
             joy_ticks: 0,
             aspiration: String::new(),
@@ -807,6 +823,54 @@ impl Organism {
         if self.sleep_debt > 0.4 {
             let drain = 0.0004 * self.sleep_debt * (if near_shelter { 0.4 } else { 1.0 });
             self.energy = (self.energy - drain).max(0.0);
+        }
+
+        if self.energy > 0.6 && self.hydration > 0.6 && self.health > 0.7 && !hostile_near {
+            self.hope = (self.hope + 0.002).min(1.0);
+        } else if self.energy < 0.25 || self.hydration < 0.25 || self.health < 0.3 {
+            self.hope = (self.hope - 0.003).max(0.0);
+        } else {
+            self.hope = (self.hope - 0.0002).max(0.0);
+        }
+
+        if self.comfort > 0.7 && kin_near >= 2 {
+            self.gratitude = (self.gratitude + 0.001).min(1.0);
+        } else {
+            self.gratitude = (self.gratitude * 0.9985).max(0.0);
+        }
+
+        if hostile_near {
+            self.anger = (self.anger + 0.004).min(1.0);
+        } else {
+            self.anger = (self.anger * 0.9985).max(0.0);
+        }
+
+        if hostile_near && self.energy < 0.45 {
+            self.jealousy = (self.jealousy + 0.001).min(1.0);
+        } else {
+            self.jealousy = (self.jealousy * 0.999).max(0.0);
+        }
+
+        if self.grief_ticks > 100 {
+            self.regret = (self.regret + 0.0008).min(1.0);
+        } else {
+            self.regret = (self.regret * 0.9992).max(0.0);
+        }
+
+        let nightly_awe = if night && !near_shelter { 0.0008 } else { 0.0 };
+        self.awe = (self.awe + nightly_awe - 0.0004).max(0.0).min(1.0);
+
+        if self.boredom > 0.4 || self.energy > 0.55 {
+            self.curiosity_drive =
+                (self.curiosity_drive + 0.0006 * self.traits.curiosity).min(1.0);
+        } else {
+            self.curiosity_drive = (self.curiosity_drive * 0.999).max(0.0);
+        }
+
+        if night && near_shelter && self.comfort > 0.5 {
+            self.spiritual = (self.spiritual + 0.0006).min(1.0);
+        } else {
+            self.spiritual = (self.spiritual * 0.99985).max(0.0);
         }
 
         let cell = (self.x as i32 / 10, self.y as i32 / 10);
@@ -1601,6 +1665,46 @@ impl Organism {
             } else {
                 None
             },
+            hope: if include_cold {
+                Some((self.hope * 100.0).round() / 100.0)
+            } else {
+                None
+            },
+            awe: if include_cold {
+                Some((self.awe * 100.0).round() / 100.0)
+            } else {
+                None
+            },
+            gratitude: if include_cold {
+                Some((self.gratitude * 100.0).round() / 100.0)
+            } else {
+                None
+            },
+            jealousy: if include_cold {
+                Some((self.jealousy * 100.0).round() / 100.0)
+            } else {
+                None
+            },
+            anger: if include_cold {
+                Some((self.anger * 100.0).round() / 100.0)
+            } else {
+                None
+            },
+            regret: if include_cold {
+                Some((self.regret * 100.0).round() / 100.0)
+            } else {
+                None
+            },
+            curiosity_drive: if include_cold {
+                Some((self.curiosity_drive * 100.0).round() / 100.0)
+            } else {
+                None
+            },
+            spiritual: if include_cold {
+                Some((self.spiritual * 100.0).round() / 100.0)
+            } else {
+                None
+            },
             aspiration: if include_cold && !self.aspiration.is_empty() {
                 Some(self.aspiration.clone())
             } else {
@@ -2090,6 +2194,22 @@ pub struct OrgJson {
     pub grief_ticks: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub joy_ticks: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hope: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub awe: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub gratitude: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub jealousy: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub anger: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub regret: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub curiosity_drive: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spiritual: Option<f32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub aspiration: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

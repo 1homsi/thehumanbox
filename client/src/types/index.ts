@@ -22,7 +22,18 @@ export interface Traits {
   resilience: number
 }
 
-export interface OrganismState {
+interface ExtendedEmotions {
+  hope?: number
+  awe?: number
+  gratitude?: number
+  jealousy?: number
+  anger?: number
+  regret?: number
+  curiosity_drive?: number
+  spiritual?: number
+}
+
+export interface OrganismState extends ExtendedEmotions {
   id: string
   name: string
   x: number
