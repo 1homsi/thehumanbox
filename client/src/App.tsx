@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, Suspense } from 'react'
 import { lazyWithRetry } from './utils/lazyWithRetry'
 import { useSimulation } from './simulation/useSimulation'
 import { IdleResumeOverlay } from './components/IdleResumeOverlay'
+import { DesktopDownloadToast } from './components/DesktopDownloadToast'
 import { useUIStore } from './stores/store'
 import { WS_BASE } from './lib/config'
 
@@ -153,6 +154,7 @@ function LiveApp() {
       <AppHeader world={world ?? null} connected={connected} fireTiles={fireTiles} sickOrgs={sickOrgs} />
 
       {idleParked && <IdleResumeOverlay onResume={resume} />}
+      <DesktopDownloadToast />
 
       <main className="main" data-tour="world-canvas">
         {world ? (
