@@ -449,4 +449,6 @@ export interface Building {
   footprint?: [number, number]
   condition?: number
   occupants?: string[]
+  owner_lineage?: string | null
+  lineage_id?: string | null
 }

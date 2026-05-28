@@ -23,6 +23,7 @@ import { GroundMist } from './parts/GroundMist'
 import { Comet } from './parts/Comet'
 import { ConstructionScaffolds } from './parts/ConstructionScaffolds'
 import { BuildSparks } from './parts/BuildSparks'
+import { Vehicles3D } from './parts/Vehicles3D'
 import { DayClockDriver } from './parts/DayClockDriver'
 import { HelpOverlay } from './parts/HelpOverlay'
 import { AmbientMotes } from './parts/AmbientMotes'
@@ -624,6 +625,13 @@ export default function WorldView3D({ world }: Props) {
                   buildings={world.buildings}
                   depthMap={grid.depth_map}
                   biomes={grid.biomes}
+                />
+                <Vehicles3D
+                  buildings={world.buildings}
+                  lineageEras={world.lineage_eras as unknown as Record<string, string>}
+                  depthMap={grid.depth_map}
+                  biomes={grid.biomes}
+                  isNight={isNight}
                 />
                 <AmbientMotes isNight={isNight} weatherKind={world.weather?.kind ?? 'clear'} />
                 <Fireflies hutPositions={hutWorldPositions} isNight={isNight} />
