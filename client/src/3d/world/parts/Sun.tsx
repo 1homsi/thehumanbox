@@ -13,6 +13,11 @@ interface Props {
   moonIllum?: number
 }
 
+function smoothstep(edge0: number, edge1: number, x: number): number {
+  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)))
+  return t * t * (3 - 2 * t)
+}
+
 export function Sun({ dayProgress, width, height, weatherKind = 'clear', weatherIntensity = 0, moonIllum = 0.7 }: Props) {
   const cx = width * TILE_SCALE * 0.5
   const cz = height * TILE_SCALE * 0.5
@@ -31,9 +36,11 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
     [cx, cz, r, sunAz, sunAlt],
   )
 
+  const dayWeight = smoothstep(-0.08, 0.18, sunAlt)
+  const nightWeight = 1 - dayWeight
+  const twilightWeight = 1 - Math.abs(sunAlt) / 0.25
+  const isTwilight = twilightWeight > 0
   const dayStrength = Math.max(0, sunAlt)
-  const isNight = sunAlt < 0
-  const isTwilight = !isNight && dayStrength < 0.25
 
   const moonPos = useMemo<[number, number, number]>(
     () => [cx + sunAz * r * 0.8, -sunAlt * r * 0.8, cz],
@@ -47,180 +54,157 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
     moonRef.current.scale.set(s, s, s)
   })
 
-  // Smooth turbidity / rayleigh through the day instead of binary switch.
-  // Higher rayleigh = more atmospheric scattering = warmer dusk colours.
-  const skyTurbidity = 4 + (isTwilight ? 4 - dayStrength * 8 : Math.max(0, 1 - dayStrength) * 2)
-  const skyRayleigh = 2 + (isTwilight ? 3 - dayStrength * 6 : Math.max(0, 1 - dayStrength) * 1.5)
+  const skyTurbidity = 4 + Math.max(0, 1 - dayWeight) * 4
+  const skyRayleigh = 2 + Math.max(0, 1 - dayWeight) * 2.5
+
+  const bgR = nightWeight * 0.03 + dayWeight * (dayStrength * 0.45 + 0.18)
+  const bgG = nightWeight * 0.05 + dayWeight * (dayStrength * 0.55 + 0.22)
+  const bgB = nightWeight * 0.1 + dayWeight * (dayStrength * 0.55 + 0.42)
+
+  const sunCoreOpacity = dayWeight
+  const sunHazeOpacity = Math.max(dayWeight * (isTwilight ? 0.55 : 0.28), 0)
+  const sunOuterOpacity = Math.max(dayWeight * (isTwilight ? 0.22 : 0.1), 0)
+  const sunAtmosOpacity = Math.max(dayWeight * (isTwilight ? 0.12 : 0.045), 0)
+
+  const moonOpacity = nightWeight * (0.15 + moonIllum * 0.85) + dayWeight * 0.6
+  const moonGlowOpacity = nightWeight * moonIllum * 0.18
+
+  const sunColorCore =
+    dayStrength < 0.18 ? '#ff8c4a' : dayStrength < 0.4 ? '#ffc580' : '#fff6d8'
+  const sunColorHaze =
+    dayStrength < 0.18 ? '#ff6a30' : dayStrength < 0.4 ? '#ffb068' : '#fff0c0'
+  const sunColorOuter =
+    dayStrength < 0.18 ? '#ff5020' : dayStrength < 0.4 ? '#ff9050' : '#ffe8a0'
+  const sunColorAtmos =
+    dayStrength < 0.18 ? '#ff4818' : dayStrength < 0.4 ? '#ff7848' : '#ffd890'
+
+  const dirSunIntensity = (0.45 + dayStrength * 1.1) * stormFactor * dayWeight
+  const dirSunColor =
+    weatherKind === 'storm'
+      ? '#8a98b8'
+      : dayStrength < 0.15
+        ? '#ff8c4a'
+        : dayStrength < 0.35
+          ? '#ffb878'
+          : '#fff4dc'
+
+  const dirMoonIntensity = (0.15 + 0.55 * moonIllum) * stormFactor * nightWeight
+
+  const ambientIntensity = nightWeight * 0.45 + dayWeight * (0.35 + dayStrength * 0.35)
+  const ambR = nightWeight * (0x5a / 255) + dayWeight * 1
+  const ambG = nightWeight * (0x68 / 255) + dayWeight * 1
+  const ambB = nightWeight * (0x90 / 255) + dayWeight * 1
+
+  const hemiSky = new Color()
+    .setRGB(nightWeight * 0.29 + dayWeight * 0.61, nightWeight * 0.34 + dayWeight * 0.72, nightWeight * 0.47 + dayWeight * 0.88)
+    .getHex()
+  const hemiGround = new Color()
+    .setRGB(nightWeight * 0.1 + dayWeight * 0.24, nightWeight * 0.13 + dayWeight * 0.37, nightWeight * 0.19 + dayWeight * 0.24)
+    .getHex()
+  const hemiIntensity = (nightWeight * 0.3 + dayWeight * (0.4 + dayStrength * 0.2)) * stormFactor
 
   return (
     <>
-      <color
-        attach="background"
-        args={[
-          new Color()
-            .setRGB(
-              isNight ? 0.03 : isTwilight ? 0.55 + dayStrength * 0.4 : dayStrength * 0.45 + 0.18,
-              isNight ? 0.05 : isTwilight ? 0.38 + dayStrength * 0.45 : dayStrength * 0.55 + 0.22,
-              isNight ? 0.1 : isTwilight ? 0.3 + dayStrength * 0.55 : dayStrength * 0.55 + 0.42,
-            )
-            .getHex(),
-        ]}
+      <color attach="background" args={[new Color().setRGB(bgR, bgG, bgB).getHex()]} />
+
+      <Sky
+        distance={100000}
+        sunPosition={sunPos}
+        turbidity={skyTurbidity}
+        rayleigh={skyRayleigh}
+        mieCoefficient={0.005}
+        mieDirectionalG={0.85}
       />
 
-      {}
-      {!isNight && (
-        <Sky
-          distance={100000}
-          sunPosition={sunPos}
-          turbidity={skyTurbidity}
-          rayleigh={skyRayleigh}
-          mieCoefficient={0.005}
-          mieDirectionalG={0.85}
-        />
-      )}
-
-      {/*
-        Stars stay mounted with stable parameters across the whole
-        day/night cycle. Previously `count`, `factor`, and `speed`
-        flipped between day and night, which forced drei to rebuild
-        the entire star buffer (~5000 points × position+random attrs)
-        on every transition. The Sky component naturally occludes the
-        stars during daylight, so we don't need to swap counts to hide
-        them - the day-time render cost is the same as a 5000-point
-        Points draw, which is one cheap GL call.
-      */}
       <Stars radius={r * 6} depth={r * 2} count={5000} factor={5} saturation={0} fade speed={0.6} />
 
-      {}
       <mesh ref={moonRef} position={moonPos} frustumCulled={false}>
         <sphereGeometry args={[40 + moonIllum * 30, 16, 12]} />
         <meshBasicMaterial
-          color={isNight ? (moonIllum < 0.05 ? '#1a1c28' : '#f0f4ff') : '#c8d0e8'}
+          color={nightWeight > 0.5 ? (moonIllum < 0.05 ? '#1a1c28' : '#f0f4ff') : '#c8d0e8'}
           transparent
-          opacity={isNight ? (0.15 + moonIllum * 0.85) : 0.6}
+          opacity={moonOpacity}
           toneMapped={false}
         />
       </mesh>
-      {isNight && moonIllum > 0.4 && (
-        <mesh position={moonPos} frustumCulled={false} renderOrder={-2}>
-          <sphereGeometry args={[100 + moonIllum * 80, 16, 12]} />
-          <meshBasicMaterial
-            color="#cad8f8"
-            transparent
-            opacity={moonIllum * 0.18}
-            blending={AdditiveBlending}
-            depthWrite={false}
-            toneMapped={false}
-          />
-        </mesh>
-      )}
-
-      {!isNight && (
-        <mesh position={sunPos} frustumCulled={false} renderOrder={-1}>
-          <sphereGeometry args={[isTwilight ? 75 : 55, 24, 18]} />
-          <meshBasicMaterial
-            color={dayStrength < 0.18 ? '#ff8c4a' : dayStrength < 0.4 ? '#ffc580' : '#fff6d8'}
-            transparent
-            opacity={1.0}
-            depthWrite={false}
-            toneMapped={false}
-          />
-        </mesh>
-      )}
-      {!isNight && (
-        <mesh position={sunPos} frustumCulled={false} renderOrder={-2}>
-          <sphereGeometry args={[isTwilight ? 220 : 150, 24, 16]} />
-          <meshBasicMaterial
-            color={dayStrength < 0.18 ? '#ff6a30' : dayStrength < 0.4 ? '#ffb068' : '#fff0c0'}
-            transparent
-            opacity={isTwilight ? 0.55 : 0.28}
-            blending={AdditiveBlending}
-            depthWrite={false}
-            toneMapped={false}
-          />
-        </mesh>
-      )}
-      {!isNight && (
-        <mesh position={sunPos} frustumCulled={false} renderOrder={-3}>
-          <sphereGeometry args={[isTwilight ? 520 : 320, 16, 12]} />
-          <meshBasicMaterial
-            color={dayStrength < 0.18 ? '#ff5020' : dayStrength < 0.4 ? '#ff9050' : '#ffe8a0'}
-            transparent
-            opacity={isTwilight ? 0.22 : 0.1}
-            blending={AdditiveBlending}
-            depthWrite={false}
-            toneMapped={false}
-          />
-        </mesh>
-      )}
-      {/* Outer atmospheric haze around the sun — soft warm tint that
-          gives a believable scattering glow off the horizon. */}
-      {!isNight && (
-        <mesh position={sunPos} frustumCulled={false} renderOrder={-4}>
-          <sphereGeometry args={[isTwilight ? 1100 : 700, 12, 10]} />
-          <meshBasicMaterial
-            color={dayStrength < 0.18 ? '#ff4818' : dayStrength < 0.4 ? '#ff7848' : '#ffd890'}
-            transparent
-            opacity={isTwilight ? 0.12 : 0.045}
-            blending={AdditiveBlending}
-            depthWrite={false}
-            toneMapped={false}
-          />
-        </mesh>
-      )}
-
-      {!isNight && (
-        <directionalLight
-          position={sunPos}
-          intensity={(0.45 + dayStrength * 1.1) * stormFactor}
-          color={
-            weatherKind === 'storm'
-              ? '#8a98b8'
-              : dayStrength < 0.15
-                ? '#ff8c4a'
-                : dayStrength < 0.35
-                  ? '#ffb878'
-                  : '#fff4dc'
-          }
-          castShadow
-          shadow-mapSize={[2048, 2048]}
-          shadow-bias={-0.00025}
-          shadow-normalBias={0.04}
-          shadow-camera-left={-300}
-          shadow-camera-right={300}
-          shadow-camera-top={300}
-          shadow-camera-bottom={-300}
-          shadow-camera-near={1}
-          shadow-camera-far={3000}
+      <mesh position={moonPos} frustumCulled={false} renderOrder={-2}>
+        <sphereGeometry args={[100 + moonIllum * 80, 16, 12]} />
+        <meshBasicMaterial
+          color="#cad8f8"
+          transparent
+          opacity={moonGlowOpacity}
+          blending={AdditiveBlending}
+          depthWrite={false}
+          toneMapped={false}
         />
-      )}
+      </mesh>
 
-      {}
-      {isNight && <directionalLight position={moonPos} intensity={(0.15 + 0.55 * moonIllum) * stormFactor} color="#a8b8e0" />}
+      <mesh position={sunPos} frustumCulled={false} renderOrder={-1}>
+        <sphereGeometry args={[isTwilight ? 75 : 55, 24, 18]} />
+        <meshBasicMaterial color={sunColorCore} transparent opacity={sunCoreOpacity} depthWrite={false} toneMapped={false} />
+      </mesh>
+      <mesh position={sunPos} frustumCulled={false} renderOrder={-2}>
+        <sphereGeometry args={[isTwilight ? 220 : 150, 24, 16]} />
+        <meshBasicMaterial
+          color={sunColorHaze}
+          transparent
+          opacity={sunHazeOpacity}
+          blending={AdditiveBlending}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+      <mesh position={sunPos} frustumCulled={false} renderOrder={-3}>
+        <sphereGeometry args={[isTwilight ? 520 : 320, 16, 12]} />
+        <meshBasicMaterial
+          color={sunColorOuter}
+          transparent
+          opacity={sunOuterOpacity}
+          blending={AdditiveBlending}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+      <mesh position={sunPos} frustumCulled={false} renderOrder={-4}>
+        <sphereGeometry args={[isTwilight ? 1100 : 700, 12, 10]} />
+        <meshBasicMaterial
+          color={sunColorAtmos}
+          transparent
+          opacity={sunAtmosOpacity}
+          blending={AdditiveBlending}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+
+      <directionalLight
+        position={sunPos}
+        intensity={dirSunIntensity}
+        color={dirSunColor}
+        castShadow
+        shadow-mapSize={[2048, 2048]}
+        shadow-bias={-0.00025}
+        shadow-normalBias={0.04}
+        shadow-camera-left={-300}
+        shadow-camera-right={300}
+        shadow-camera-top={300}
+        shadow-camera-bottom={-300}
+        shadow-camera-near={1}
+        shadow-camera-far={3000}
+      />
+
+      <directionalLight position={moonPos} intensity={dirMoonIntensity} color="#a8b8e0" />
 
       <ambientLight
-        intensity={isNight ? 0.45 : 0.35 + dayStrength * 0.35}
-        color={isNight ? '#5a6890' : '#ffffff'}
+        intensity={ambientIntensity}
+        color={new Color(ambR, ambG, ambB).getHex()}
       />
 
-      <hemisphereLight
-        args={[
-          isNight ? '#4a5878' : '#9bb8e0',
-          isNight ? '#1a2030' : '#3d5e3d',
-          (isNight ? 0.3 : 0.4 + dayStrength * 0.2) * stormFactor,
-        ]}
-      />
+      <hemisphereLight args={[hemiSky, hemiGround, hemiIntensity]} />
 
       <primitive
         attach="fog"
         object={(() => {
-          // Smooth colour ramp through the day. dayProgress 0..1 maps:
-          // 0   → dawn pink
-          // 0.25 → mid-morning cool blue
-          // 0.5 → noon pale blue
-          // 0.7 → afternoon warm
-          // 0.82 → dusk amber
-          // 0.95 → night navy
           const stops: Array<[number, [number, number, number]]> = [
             [0.0, [0.86, 0.7, 0.66]],
             [0.12, [0.92, 0.82, 0.74]],
@@ -246,7 +230,6 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
           let r = lo[1][0] + (hi[1][0] - lo[1][0]) * t
           let g = lo[1][1] + (hi[1][1] - lo[1][1]) * t
           let b = lo[1][2] + (hi[1][2] - lo[1][2]) * t
-          // Weather override pushes colour grey-blue.
           if (weatherKind === 'storm') {
             r = r * 0.4 + 0.32
             g = g * 0.4 + 0.36
@@ -257,17 +240,13 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
             b = b * 0.7 + 0.22
           }
           const c = new Color(r, g, b)
-          const density =
+          const baseDensity =
             weatherKind === 'storm'
               ? 0.0024
               : weatherKind === 'rain'
                 ? 0.0014
-                : isNight
-                  ? 0.001
-                  : isTwilight
-                    ? 0.0009
-                    : 0.0006
-          return new FogExp2(c, density)
+                : nightWeight * 0.001 + dayWeight * (isTwilight ? 0.0009 : 0.0006)
+          return new FogExp2(c, baseDensity)
         })()}
       />
     </>

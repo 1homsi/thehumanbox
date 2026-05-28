@@ -20,6 +20,7 @@ import { Snow } from './parts/Snow'
 import { ShootingStars } from './parts/ShootingStars'
 import { Aurora } from './parts/Aurora'
 import { GroundMist } from './parts/GroundMist'
+import { DayClockDriver } from './parts/DayClockDriver'
 import { HelpOverlay } from './parts/HelpOverlay'
 import { AmbientMotes } from './parts/AmbientMotes'
 import { MiniMap } from './parts/MiniMap'
@@ -366,7 +367,8 @@ export default function WorldView3D({ world }: Props) {
 
   const grid = world?.grid
   const ready = !!(grid?.depth_map && grid?.biomes && grid?.tiles && grid?.width && grid?.height)
-  const dayProgress = world?.day_progress ?? 0.3
+  const serverDayProgress = world?.day_progress ?? 0.3
+  const [dayProgress, setDayProgress] = useState<number>(serverDayProgress)
   const sunAlt = Math.sin((dayProgress - 0.25) * 2 * Math.PI)
   const isNight = sunAlt < 0
 
@@ -475,6 +477,7 @@ export default function WorldView3D({ world }: Props) {
           <Suspense fallback={null}>
             {ready && grid && (
               <>
+                <DayClockDriver target={serverDayProgress} onTick={setDayProgress} />
                 <Sun
                   dayProgress={dayProgress}
                   width={grid.width}
