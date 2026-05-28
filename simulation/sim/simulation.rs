@@ -695,10 +695,17 @@ impl Simulation {
         }
 
         let spatial = SpatialIndex::build(&self.organisms, 10);
+        let mut spatial_buf: Vec<usize> = Vec::with_capacity(32);
         for i in 0..self.organisms.len() {
             if self.organisms[i].alive {
                 let prev_len = self.organisms.len();
-                self.tick_organism(i, alive_count_before_loop, &lineage_counts, &spatial);
+                self.tick_organism(
+                    i,
+                    alive_count_before_loop,
+                    &lineage_counts,
+                    &spatial,
+                    &mut spatial_buf,
+                );
 
                 if self.organisms.len() > prev_len {
                     let child_idx = self.organisms.len() - 1;
@@ -872,6 +879,7 @@ impl Simulation {
         alive_count: usize,
         lineage_counts: &HashMap<String, usize>,
         spatial: &SpatialIndex,
+        spatial_buf: &mut Vec<usize>,
     ) {
         let night = self.is_night();
         let epsilon = (0.30 - self.organisms[idx].age as f32 * 0.00005).max(0.08);
@@ -881,38 +889,46 @@ impl Simulation {
 
         {
             let org = &self.organisms[idx];
-            let kin_near = spatial
-                .query(org.x as i32, org.y as i32, 5)
-                .into_iter()
-                .filter(|&i| {
-                    if i == idx {
-                        return false;
-                    }
-                    let o = &self.organisms[i];
-                    o.alive
-                        && o.lineage_id == org.lineage_id
-                        && (o.x - org.x).abs() + (o.y - org.y).abs() <= 5.0
-                })
-                .count();
-            let (ox2, oy2) = (org.x as i32, org.y as i32);
+            let ox = org.x as i32;
+            let oy = org.y as i32;
+            spatial.query_into(ox, oy, 5, spatial_buf);
+            let mut kin_near: usize = 0;
+            for &i in spatial_buf.iter() {
+                if i == idx {
+                    continue;
+                }
+                let o = &self.organisms[i];
+                if o.alive
+                    && o.lineage_id == org.lineage_id
+                    && (o.x - org.x).abs() + (o.y - org.y).abs() <= 5.0
+                {
+                    kin_near += 1;
+                }
+            }
             let near_shelter = (-2i32..=2).any(|dx| {
                 (-2i32..=2).any(|dy| {
-                    let nx = ox2 + dx;
-                    let ny = oy2 + dy;
+                    let nx = ox + dx;
+                    let ny = oy + dy;
                     matches!(self.grid.get(nx, ny), Tile::Hut | Tile::Rock)
                         || self.grid.structure_at(nx, ny) >= 0.35
                 })
             });
-            let hostile_near = spatial.query(org.x as i32, org.y as i32, 6).into_iter().any(|i| {
+            spatial.query_into(ox, oy, 6, spatial_buf);
+            let mut hostile_near = false;
+            for &i in spatial_buf.iter() {
                 if i == idx {
-                    return false;
+                    continue;
                 }
                 let o = &self.organisms[i];
-                o.alive
+                if o.alive
                     && o.lineage_id != org.lineage_id
                     && (o.x - org.x).abs() + (o.y - org.y).abs() <= 6.0
                     && org.attitude_toward(&o.lineage_id) < -0.2
-            });
+                {
+                    hostile_near = true;
+                    break;
+                }
+            }
             let weather_kind = self.weather.kind;
             let tick_now = self.tick_count;
             self.organisms[idx].tick_inner_state(
@@ -5097,7 +5113,8 @@ mod tests {
         lineage_counts.insert("lid-a".into(), 1);
         lineage_counts.insert("lid-b".into(), 1);
         let spatial = SpatialIndex::build(&sim.organisms, 10);
-        sim.tick_organism(0, alive_count, &lineage_counts, &spatial);
+        let mut spatial_buf: Vec<usize> = Vec::new();
+        sim.tick_organism(0, alive_count, &lineage_counts, &spatial, &mut spatial_buf);
 
         assert!(
             sim.organisms[0].wander_target.is_none(),
@@ -5161,7 +5178,8 @@ mod tests {
         lineage_counts.insert("lid-a".into(), 1);
         lineage_counts.insert("lid-b".into(), 1);
         let spatial2 = SpatialIndex::build(&sim.organisms, 10);
-        sim.tick_organism(0, 2, &lineage_counts, &spatial2);
+        let mut spatial_buf2: Vec<usize> = Vec::new();
+        sim.tick_organism(0, 2, &lineage_counts, &spatial2, &mut spatial_buf2);
 
         let wt = sim.organisms[0].wander_target;
         assert!(wt.is_some(), "in-range friend should set wander_target, got None");
