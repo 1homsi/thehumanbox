@@ -22,6 +22,7 @@ import { Aurora } from './parts/Aurora'
 import { GroundMist } from './parts/GroundMist'
 import { Comet } from './parts/Comet'
 import { ConstructionScaffolds } from './parts/ConstructionScaffolds'
+import { BuildSparks } from './parts/BuildSparks'
 import { DayClockDriver } from './parts/DayClockDriver'
 import { HelpOverlay } from './parts/HelpOverlay'
 import { AmbientMotes } from './parts/AmbientMotes'
@@ -615,6 +616,11 @@ export default function WorldView3D({ world }: Props) {
                   height={grid.height}
                 />
                 <ConstructionScaffolds
+                  buildings={world.buildings}
+                  depthMap={grid.depth_map}
+                  biomes={grid.biomes}
+                />
+                <BuildSparks
                   buildings={world.buildings}
                   depthMap={grid.depth_map}
                   biomes={grid.biomes}
