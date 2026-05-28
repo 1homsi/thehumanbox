@@ -3,6 +3,7 @@ import { lazyWithRetry } from './utils/lazyWithRetry'
 import { useSimulation } from './simulation/useSimulation'
 import { IdleResumeOverlay } from './components/IdleResumeOverlay'
 import { DesktopDownloadToast } from './components/DesktopDownloadToast'
+import { CommandPalette } from './components/CommandPalette'
 import { trackEvent } from './lib/observability'
 import { useUIStore } from './stores/store'
 import { WS_BASE } from './lib/config'
@@ -181,6 +182,7 @@ function LiveApp() {
 
       {idleParked && <IdleResumeOverlay onResume={resume} />}
       <DesktopDownloadToast />
+      <CommandPalette />
 
       <main className="main" data-tour="world-canvas">
         {world ? (

@@ -111,6 +111,15 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick > 0 && tick % 6 == 0 {
         tick_birth_celebrations(sim);
     }
+    if tick > 0 && tick % 20 == 0 {
+        tick_funerals(sim);
+    }
+    if tick > 0 && tick % 8 == 0 {
+        tick_naming_ceremonies(sim);
+    }
+    if tick > 0 && tick % 1800 == 0 {
+        tick_festivals(sim);
+    }
     tick_season_change(sim);
     if tick > 0 && tick % 600 == 0 && sim.is_night() {
         tick_partner_pillow_talk(sim);
@@ -365,6 +374,184 @@ fn tick_season_change(sim: &mut Simulation) {
             .with_emotion(emotion);
         o.memories.insert(entry);
         picked += 1;
+    }
+}
+
+fn tick_funerals(sim: &mut Simulation) {
+    use crate::organism::memory::{MemoryEntry, MemoryKind};
+    let tick = sim.tick_count;
+    if sim.organisms.is_empty() {
+        return;
+    }
+    let recent_deaths: Vec<(String, f32, f32)> = sim
+        .organisms
+        .iter()
+        .filter(|o| !o.alive && o.age > 800)
+        .filter(|o| {
+            let since = tick.saturating_sub(o.last_story_tick);
+            since > 0 && since < 80
+        })
+        .map(|o| (o.lineage_id.clone(), o.x, o.y))
+        .collect();
+    if recent_deaths.is_empty() {
+        return;
+    }
+    let mut bumps: Vec<usize> = Vec::new();
+    for (lid, dx, dy) in recent_deaths.iter() {
+        let mut count = 0;
+        for (j, o) in sim.organisms.iter().enumerate() {
+            if !o.alive || &o.lineage_id != lid {
+                continue;
+            }
+            if (o.x - dx).abs() + (o.y - dy).abs() > 12.0 {
+                continue;
+            }
+            bumps.push(j);
+            count += 1;
+            if count >= 8 {
+                break;
+            }
+        }
+    }
+    for idx in bumps {
+        sim.organisms[idx].grief_ticks = (sim.organisms[idx].grief_ticks + 60).min(400);
+        let entry = MemoryEntry::new(
+            MemoryKind::Episode,
+            "we mourned together — the wind carried our voices",
+            tick,
+        )
+        .with_salience(0.85)
+        .with_emotion(-2);
+        sim.organisms[idx].memories.insert(entry);
+    }
+}
+
+fn tick_naming_ceremonies(sim: &mut Simulation) {
+    use crate::organism::memory::{MemoryEntry, MemoryKind};
+    let tick = sim.tick_count;
+    let n = sim.organisms.len();
+    if n == 0 {
+        return;
+    }
+    let candidates: Vec<(usize, String, String, f32, f32)> = sim
+        .organisms
+        .iter()
+        .enumerate()
+        .filter(|(_, o)| o.alive && o.age == 40)
+        .map(|(i, o)| (i, o.lineage_id.clone(), o.name.clone(), o.x, o.y))
+        .collect();
+    if candidates.is_empty() {
+        return;
+    }
+    let mut events: Vec<(String, String)> = Vec::new();
+    let mut bumps: Vec<usize> = Vec::new();
+    for (idx, lid, name, cx, cy) in candidates.iter() {
+        let mut witnesses = 0;
+        for (j, o) in sim.organisms.iter().enumerate() {
+            if j == *idx || !o.alive || &o.lineage_id != lid {
+                continue;
+            }
+            if (o.x - cx).abs() + (o.y - cy).abs() > 6.0 {
+                continue;
+            }
+            bumps.push(j);
+            witnesses += 1;
+            if witnesses >= 5 {
+                break;
+            }
+        }
+        if witnesses >= 2 {
+            events.push((name.clone(), lid.clone()));
+        }
+    }
+    let lineage_names = sim.lineage_names.clone();
+    for idx in bumps {
+        sim.organisms[idx].joy_ticks = (sim.organisms[idx].joy_ticks + 25).min(1200);
+        let entry = MemoryEntry::new(
+            MemoryKind::Episode,
+            "we welcomed a new soul into our people by name",
+            tick,
+        )
+        .with_salience(0.7)
+        .with_emotion(2);
+        sim.organisms[idx].memories.insert(entry);
+    }
+    for (name, lid) in events {
+        let lname = lineage_names.get(&lid).cloned().unwrap_or(lid);
+        push_event(
+            &mut sim.events,
+            tick,
+            "born",
+            &name,
+            &format!("the {} gave {} their name", lname, name),
+        );
+    }
+}
+
+fn tick_festivals(sim: &mut Simulation) {
+    use crate::organism::memory::{MemoryEntry, MemoryKind};
+    let tick = sim.tick_count;
+    if sim.organisms.is_empty() {
+        return;
+    }
+    let mut lineage_stats: HashMap<String, (u32, u32, u32)> = HashMap::new();
+    for o in sim.organisms.iter() {
+        if !o.alive {
+            continue;
+        }
+        let e = lineage_stats.entry(o.lineage_id.clone()).or_insert((0, 0, 0));
+        e.0 += 1;
+        if o.joy_ticks > 200 {
+            e.1 += 1;
+        }
+        if o.comfort > 0.7 {
+            e.2 += 1;
+        }
+    }
+    let mut headlines: Vec<String> = Vec::new();
+    let mut joy_targets: Vec<String> = Vec::new();
+    for (lid, (pop, joyful, comfy)) in lineage_stats.iter() {
+        if *pop < 8 {
+            continue;
+        }
+        if (*joyful as f32) / (*pop as f32) < 0.45 {
+            continue;
+        }
+        if (*comfy as f32) / (*pop as f32) < 0.4 {
+            continue;
+        }
+        let lname = sim
+            .lineage_names
+            .get(lid)
+            .cloned()
+            .unwrap_or_else(|| lid.clone());
+        headlines.push(format!("the {} held a festival — drums, dancing, every belly full", lname));
+        joy_targets.push(lid.clone());
+    }
+    for h in headlines {
+        push_event(&mut sim.events, tick, "festival", "world", &h);
+        sim.headlines.push_back((tick, h));
+        while sim.headlines.len() > 80 {
+            sim.headlines.pop_front();
+        }
+    }
+    for lid in joy_targets {
+        for o in sim.organisms.iter_mut() {
+            if !o.alive || o.lineage_id != lid {
+                continue;
+            }
+            o.joy_ticks = (o.joy_ticks + 30).min(1200);
+            if sim.rng.random::<f32>() < 0.25 {
+                let entry = MemoryEntry::new(
+                    MemoryKind::Episode,
+                    "we held a festival — drums until dawn",
+                    tick,
+                )
+                .with_salience(0.78)
+                .with_emotion(2);
+                o.memories.insert(entry);
+            }
+        }
     }
 }
 
