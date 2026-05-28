@@ -696,6 +696,12 @@ impl Simulation {
 
         let spatial = SpatialIndex::build(&self.organisms, 10);
         let mut spatial_buf: Vec<usize> = Vec::with_capacity(32);
+        let mut org_idx_by_id: HashMap<String, usize> = HashMap::with_capacity(self.organisms.len());
+        for (i, o) in self.organisms.iter().enumerate() {
+            if o.alive {
+                org_idx_by_id.insert(o.id.clone(), i);
+            }
+        }
         for i in 0..self.organisms.len() {
             if self.organisms[i].alive {
                 let prev_len = self.organisms.len();
@@ -705,6 +711,7 @@ impl Simulation {
                     &lineage_counts,
                     &spatial,
                     &mut spatial_buf,
+                    &org_idx_by_id,
                 );
 
                 if self.organisms.len() > prev_len {
@@ -880,6 +887,7 @@ impl Simulation {
         lineage_counts: &HashMap<String, usize>,
         spatial: &SpatialIndex,
         spatial_buf: &mut Vec<usize>,
+        org_idx_by_id: &HashMap<String, usize>,
     ) {
         let night = self.is_night();
         let epsilon = (0.30 - self.organisms[idx].age as f32 * 0.00005).max(0.08);
@@ -944,25 +952,29 @@ impl Simulation {
         {
             let my_lid = self.organisms[idx].lineage_id.clone();
             let intruders: Vec<String> = if let Some(elder_id) = self.lineage_elders.get(&my_lid) {
-                let elder_id = elder_id.clone();
-                if let Some(elder) = self.organisms.iter().find(|o| o.alive && o.id == elder_id) {
+                if let Some(&elder_idx) = org_idx_by_id.get(elder_id) {
+                    let elder = &self.organisms[elder_idx];
                     let (ex, ey) = (elder.home_x, elder.home_y);
                     let org = &self.organisms[idx];
                     if (org.x - ex).abs() + (org.y - ey).abs() < 20.0 {
-                        self.organisms
-                            .iter()
-                            .filter(|o| o.alive && o.lineage_id != my_lid)
-                            .filter(|o| (o.x - ex).abs() + (o.y - ey).abs() < 12.0)
-                            .map(|o| o.lineage_id.clone())
-                            .collect()
+                        let mut v: Vec<String> = Vec::new();
+                        for o in self.organisms.iter() {
+                            if !o.alive || o.lineage_id == my_lid {
+                                continue;
+                            }
+                            if (o.x - ex).abs() + (o.y - ey).abs() < 12.0 {
+                                v.push(o.lineage_id.clone());
+                            }
+                        }
+                        v
                     } else {
-                        vec![]
+                        Vec::new()
                     }
                 } else {
-                    vec![]
+                    Vec::new()
                 }
             } else {
-                vec![]
+                Vec::new()
             };
             for intruder_lid in intruders {
                 let att = self.organisms[idx]
@@ -5114,7 +5126,14 @@ mod tests {
         lineage_counts.insert("lid-b".into(), 1);
         let spatial = SpatialIndex::build(&sim.organisms, 10);
         let mut spatial_buf: Vec<usize> = Vec::new();
-        sim.tick_organism(0, alive_count, &lineage_counts, &spatial, &mut spatial_buf);
+        let org_idx_by_id: HashMap<String, usize> = sim
+            .organisms
+            .iter()
+            .enumerate()
+            .filter(|(_, o)| o.alive)
+            .map(|(i, o)| (o.id.clone(), i))
+            .collect();
+        sim.tick_organism(0, alive_count, &lineage_counts, &spatial, &mut spatial_buf, &org_idx_by_id);
 
         assert!(
             sim.organisms[0].wander_target.is_none(),
@@ -5179,7 +5198,14 @@ mod tests {
         lineage_counts.insert("lid-b".into(), 1);
         let spatial2 = SpatialIndex::build(&sim.organisms, 10);
         let mut spatial_buf2: Vec<usize> = Vec::new();
-        sim.tick_organism(0, 2, &lineage_counts, &spatial2, &mut spatial_buf2);
+        let org_idx_by_id2: HashMap<String, usize> = sim
+            .organisms
+            .iter()
+            .enumerate()
+            .filter(|(_, o)| o.alive)
+            .map(|(i, o)| (o.id.clone(), i))
+            .collect();
+        sim.tick_organism(0, 2, &lineage_counts, &spatial2, &mut spatial_buf2, &org_idx_by_id2);
 
         let wt = sim.organisms[0].wander_target;
         assert!(wt.is_some(), "in-range friend should set wander_target, got None");
