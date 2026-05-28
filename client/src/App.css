@@ -3502,10 +3502,31 @@ body.thb-colorblind .org-sick-badge {
   flex-wrap: wrap;
   gap: 4px;
 }
-.civ-empty {
-  font-size: 10px;
-  color: #6e6555;
+.empty-state,
+.civ-empty,
+.org-search-empty,
+.worlds-empty {
+  font-size: 11px;
+  color: #8c7c63;
   font-style: italic;
+  letter-spacing: 0.02em;
+  padding: 16px 12px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.9;
+}
+.empty-state::before,
+.civ-empty::before,
+.org-search-empty::before,
+.worlds-empty::before {
+  content: '◯';
+  font-size: 16px;
+  color: #5a4838;
+  font-style: normal;
+  line-height: 1;
 }
 .civ-headline {
   padding: 4px 0;
