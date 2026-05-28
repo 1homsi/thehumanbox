@@ -327,6 +327,35 @@ function buildTray(): void {
             },
           },
           { type: 'separator' },
+          {
+            label: 'Take screenshot',
+            click: () => void captureScreenshot().then((fp) => {
+              if (fp) {
+                notifyMilestone('Screenshot saved', fp)
+                shell.showItemInFolder(fp)
+              }
+            }),
+          },
+          {
+            label: 'Open worlds folder',
+            click: () => {
+              const dir = path.join(
+                loadSettings().saveLocationOverride ?? app.getPath('userData'),
+                'worlds',
+              )
+              fs.mkdirSync(dir, { recursive: true })
+              void shell.openPath(dir)
+            },
+          },
+          {
+            label: 'Open logs folder',
+            click: () => {
+              const logDir = app.getPath('logs')
+              fs.mkdirSync(logDir, { recursive: true })
+              void shell.openPath(logDir)
+            },
+          },
+          { type: 'separator' },
           { label: 'Quit The Human Box', role: 'quit' },
         ]),
       )
@@ -365,11 +394,40 @@ function notifyMilestone(title: string, body: string): void {
   n.show()
 }
 
+function applyAutoLaunch(): void {
+  try {
+    const s = loadSettings()
+    app.setLoginItemSettings({
+      openAtLogin: s.autoLaunch,
+      openAsHidden: s.startMinimized,
+    })
+  } catch (e) {
+    console.warn('[main] setLoginItemSettings failed:', e)
+  }
+}
+
+async function captureScreenshot(): Promise<string | null> {
+  if (!mainWindow) return null
+  try {
+    const img = await mainWindow.webContents.capturePage()
+    const root = path.join(app.getPath('pictures'), 'TheHumanBox')
+    fs.mkdirSync(root, { recursive: true })
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const fp = path.join(root, `thb-${stamp}.png`)
+    fs.writeFileSync(fp, img.toPNG())
+    return fp
+  } catch (e) {
+    console.warn('[main] capturePage failed:', e)
+    return null
+  }
+}
+
 app.whenReady().then(async () => {
   registerIpc(ipcMain, () => mainWindow)
   await createWindow()
   buildMenu()
   buildTray()
+  applyAutoLaunch()
   initUpdater(() => mainWindow)
 
   globalShortcut.register(process.platform === 'darwin' ? 'Cmd+Alt+I' : 'Ctrl+Shift+I', () => {
@@ -385,6 +443,31 @@ app.whenReady().then(async () => {
   })
 
   ipcMain.handle('app:trayToggle', () => toggleWindow())
+
+  ipcMain.handle('app:screenshot', async () => {
+    const fp = await captureScreenshot()
+    if (fp) {
+      notifyMilestone('Screenshot saved', fp)
+      shell.showItemInFolder(fp)
+    }
+    return fp
+  })
+
+  ipcMain.handle('app:openLogs', () => {
+    const logDir = app.getPath('logs')
+    fs.mkdirSync(logDir, { recursive: true })
+    shell.openPath(logDir)
+  })
+
+  ipcMain.handle('app:openWorlds', () => {
+    const dir = path.join(loadSettings().saveLocationOverride ?? app.getPath('userData'), 'worlds')
+    fs.mkdirSync(dir, { recursive: true })
+    shell.openPath(dir)
+  })
+
+  ipcMain.handle('app:applyAutoLaunch', () => {
+    applyAutoLaunch()
+  })
 })
 
 

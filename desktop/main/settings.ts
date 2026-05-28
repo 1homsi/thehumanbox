@@ -17,6 +17,9 @@ export interface Settings {
   }
   saveLocationOverride: string | null
   autoUpdate: boolean
+  autoLaunch: boolean
+  startMinimized: boolean
+  pauseWhenHidden: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -31,6 +34,9 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   saveLocationOverride: null,
   autoUpdate: true,
+  autoLaunch: false,
+  startMinimized: false,
+  pauseWhenHidden: true,
 }
 
 function settingsPath(): string {
@@ -70,6 +76,9 @@ function mergeWithDefaults(partial: Partial<Settings>): Settings {
     },
     saveLocationOverride: partial.saveLocationOverride ?? DEFAULT_SETTINGS.saveLocationOverride,
     autoUpdate: partial.autoUpdate ?? DEFAULT_SETTINGS.autoUpdate,
+    autoLaunch: partial.autoLaunch ?? DEFAULT_SETTINGS.autoLaunch,
+    startMinimized: partial.startMinimized ?? DEFAULT_SETTINGS.startMinimized,
+    pauseWhenHidden: partial.pauseWhenHidden ?? DEFAULT_SETTINGS.pauseWhenHidden,
   }
 }
 

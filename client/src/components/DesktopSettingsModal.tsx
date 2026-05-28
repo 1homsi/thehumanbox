@@ -63,6 +63,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
     setBusy(true)
     try {
       await desktop.settings.set(settings)
+      await desktop.app.applyAutoLaunch()
       setSavedAt(Date.now())
     } finally {
       setBusy(false)
@@ -211,6 +212,38 @@ export function DesktopSettingsModal({ onClose }: Props) {
           />
         </Section>
 
+        <Section title="Desktop behaviour">
+          <Toggle
+            checked={settings.autoLaunch}
+            onChange={(v) => update({ autoLaunch: v })}
+            label="Launch automatically when I sign in"
+          />
+          <Toggle
+            checked={settings.startMinimized}
+            onChange={(v) => update({ startMinimized: v })}
+            label="Start hidden in the tray (no window on launch)"
+          />
+          <Toggle
+            checked={settings.pauseWhenHidden}
+            onChange={(v) => update({ pauseWhenHidden: v })}
+            label="Pause renderer when window is minimized (saves CPU)"
+          />
+        </Section>
+
+        <Section title="Tools">
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button onClick={() => void desktop?.app.screenshot()} style={btnSecondary}>
+              take screenshot
+            </button>
+            <button onClick={() => void desktop?.app.openWorlds()} style={btnSecondary}>
+              open worlds folder
+            </button>
+            <button onClick={() => void desktop?.app.openLogs()} style={btnSecondary}>
+              open logs folder
+            </button>
+          </div>
+        </Section>
+
         <div style={{ display: 'flex', gap: 8, marginTop: 16, alignItems: 'center' }}>
           <button onClick={save} disabled={busy} style={btnPrimary}>
             {busy ? 'saving…' : 'save settings'}
@@ -309,6 +342,18 @@ const btnPrimary: React.CSSProperties = {
   borderRadius: 4,
   fontSize: 11,
   letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  cursor: 'pointer',
+}
+
+const btnSecondary: React.CSSProperties = {
+  background: 'transparent',
+  border: '1px solid #443329',
+  color: '#bfae90',
+  padding: '5px 12px',
+  borderRadius: 4,
+  fontSize: 10,
+  letterSpacing: '0.05em',
   textTransform: 'uppercase',
   cursor: 'pointer',
 }

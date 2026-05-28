@@ -13,6 +13,9 @@ export interface DesktopSettings {
   }
   saveLocationOverride: string | null
   autoUpdate: boolean
+  autoLaunch: boolean
+  startMinimized: boolean
+  pauseWhenHidden: boolean
 }
 
 export interface SimStatus {
@@ -42,6 +45,10 @@ export interface DesktopBridge {
     reload(): Promise<void>
     notify(payload: { title: string; body: string }): Promise<void>
     trayToggle(): Promise<void>
+    screenshot(): Promise<string | null>
+    openLogs(): Promise<void>
+    openWorlds(): Promise<void>
+    applyAutoLaunch(): Promise<void>
   }
   world: {
     importFromRemote(payload: { hash: string; remoteUrl: string }): Promise<SimStatus>
