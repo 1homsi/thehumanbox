@@ -102,6 +102,9 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick > 0 && tick % 80 == 0 {
         tick_friend_gravitation(sim);
     }
+    if tick > 0 && tick % 20 == 0 {
+        tick_building_progress(sim);
+    }
     tick_season_change(sim);
     if tick > 0 && tick % 600 == 0 && sim.is_night() {
         tick_partner_pillow_talk(sim);
@@ -1906,6 +1909,43 @@ fn cap_buildings(sim: &mut Simulation) {
     if sim.buildings.len() > BUILDINGS_CAP {
         let excess = sim.buildings.len() - BUILDINGS_CAP;
         sim.buildings.drain(0..excess);
+    }
+}
+
+fn tick_building_progress(sim: &mut Simulation) {
+    if sim.buildings.is_empty() {
+        return;
+    }
+    let snapshot: Vec<(f32, f32, String)> = sim
+        .organisms
+        .iter()
+        .filter(|o| o.alive)
+        .map(|o| (o.x, o.y, o.lineage_id.clone()))
+        .collect();
+    for b in sim.buildings.iter_mut() {
+        if b.condition >= 1.0 {
+            continue;
+        }
+        let owner = match &b.owner_lineage {
+            Some(s) => s.clone(),
+            None => continue,
+        };
+        let bx = b.x as f32;
+        let by = b.y as f32;
+        let mut workers = 0u32;
+        for (ox, oy, lid) in snapshot.iter() {
+            if lid != &owner {
+                continue;
+            }
+            if (ox - bx).abs() + (oy - by).abs() < 5.0 {
+                workers += 1;
+            }
+        }
+        if workers == 0 {
+            continue;
+        }
+        let progress = 0.015 * (workers as f32).sqrt().min(3.0);
+        b.condition = (b.condition + progress).min(1.0);
     }
 }
 

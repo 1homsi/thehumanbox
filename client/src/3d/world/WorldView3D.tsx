@@ -21,6 +21,7 @@ import { ShootingStars } from './parts/ShootingStars'
 import { Aurora } from './parts/Aurora'
 import { GroundMist } from './parts/GroundMist'
 import { Comet } from './parts/Comet'
+import { ConstructionScaffolds } from './parts/ConstructionScaffolds'
 import { DayClockDriver } from './parts/DayClockDriver'
 import { HelpOverlay } from './parts/HelpOverlay'
 import { AmbientMotes } from './parts/AmbientMotes'
@@ -612,6 +613,11 @@ export default function WorldView3D({ world }: Props) {
                   dayOfYear={world.cosmos?.day_of_year}
                   width={grid.width}
                   height={grid.height}
+                />
+                <ConstructionScaffolds
+                  buildings={world.buildings}
+                  depthMap={grid.depth_map}
+                  biomes={grid.biomes}
                 />
                 <AmbientMotes isNight={isNight} weatherKind={world.weather?.kind ?? 'clear'} />
                 <Fireflies hutPositions={hutWorldPositions} isNight={isNight} />

@@ -774,7 +774,7 @@ impl Building {
             owner_lineage: owner,
             occupants: Vec::new(),
             built_at_tick: tick,
-            condition: 1.0,
+            condition: 0.15,
         }
     }
 
