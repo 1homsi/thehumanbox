@@ -141,6 +141,9 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick > 0 && tick % 200 == 0 {
         tick_curiosity_exploration(sim);
     }
+    if tick > 0 && tick % 600 == 0 {
+        tick_weddings(sim);
+    }
     tick_season_change(sim);
     if tick > 0 && tick % 600 == 0 && sim.is_night() {
         tick_partner_pillow_talk(sim);
@@ -457,6 +460,99 @@ fn tick_spiritual_pilgrimage(sim: &mut Simulation) {
     for (i, dx, dy) in moves {
         sim.organisms[i].x += dx;
         sim.organisms[i].y += dy;
+    }
+}
+
+fn tick_weddings(sim: &mut Simulation) {
+    use crate::organism::memory::{MemoryEntry, MemoryKind};
+    let tick = sim.tick_count;
+    let n = sim.organisms.len();
+    if n == 0 {
+        return;
+    }
+    let pairs: Vec<(usize, usize, String, f32, f32)> = {
+        let mut seen: HashSet<(usize, usize)> = HashSet::new();
+        let mut out: Vec<(usize, usize, String, f32, f32)> = Vec::new();
+        let mut by_id: HashMap<String, usize> = HashMap::new();
+        for (i, o) in sim.organisms.iter().enumerate() {
+            if o.alive {
+                by_id.insert(o.id.clone(), i);
+            }
+        }
+        for (i, o) in sim.organisms.iter().enumerate() {
+            if !o.alive {
+                continue;
+            }
+            let Some(ref pid) = o.partner_id else { continue };
+            let Some(&j) = by_id.get(pid) else { continue };
+            if i == j {
+                continue;
+            }
+            let p = &sim.organisms[j];
+            if !p.alive {
+                continue;
+            }
+            let key = if i < j { (i, j) } else { (j, i) };
+            if !seen.insert(key) {
+                continue;
+            }
+            if (o.x - p.x).abs() + (o.y - p.y).abs() > 2.0 {
+                continue;
+            }
+            let attr = ((o.id.bytes().fold(0u32, |a, b| a.wrapping_add(b as u32))
+                + p.id.bytes().fold(0u32, |a, b| a.wrapping_add(b as u32))) as u64
+                * 17)
+                % 30_000;
+            if tick.saturating_sub(attr) % 30_000 != 0 {
+                continue;
+            }
+            out.push((i, j, o.lineage_id.clone(), (o.x + p.x) * 0.5, (o.y + p.y) * 0.5));
+        }
+        out
+    };
+    if pairs.is_empty() {
+        return;
+    }
+    let mut bumps: Vec<usize> = Vec::new();
+    let mut headlines: Vec<String> = Vec::new();
+    for (i, j, lid, cx, cy) in pairs.iter() {
+        let mut witnesses = 0;
+        for (k, o) in sim.organisms.iter().enumerate() {
+            if !o.alive || k == *i || k == *j || &o.lineage_id != lid {
+                continue;
+            }
+            if (o.x - cx).abs() + (o.y - cy).abs() > 6.0 {
+                continue;
+            }
+            bumps.push(k);
+            witnesses += 1;
+            if witnesses >= 6 {
+                break;
+            }
+        }
+        let n1 = sim.organisms[*i].name.clone();
+        let n2 = sim.organisms[*j].name.clone();
+        headlines.push(format!("{} and {} pledged themselves to each other", n1, n2));
+        bumps.push(*i);
+        bumps.push(*j);
+    }
+    for idx in bumps {
+        sim.organisms[idx].joy_ticks = (sim.organisms[idx].joy_ticks + 35).min(1200);
+        let entry = MemoryEntry::new(
+            MemoryKind::Episode,
+            "we celebrated a pairing — vows, dance, and food until the stars dimmed",
+            tick,
+        )
+        .with_salience(0.78)
+        .with_emotion(2);
+        sim.organisms[idx].memories.insert(entry);
+    }
+    for h in headlines {
+        push_event(&mut sim.events, tick, "marriage", "world", &h);
+        sim.headlines.push_back((tick, h));
+        while sim.headlines.len() > 80 {
+            sim.headlines.pop_front();
+        }
     }
 }
 
