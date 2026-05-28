@@ -954,16 +954,26 @@ impl Organism {
 
     pub fn decay_memory(&mut self, tick: u64) {
         self.vocabulary.decay(tick, 5000);
-        for mem in [
-            &mut self.food_memory,
-            &mut self.water_memory,
-            &mut self.danger_memory,
-        ] {
-            mem.retain(|_, v| {
-                *v *= 0.995;
-                *v >= 0.04
-            });
-        }
+        let preserves_food = self.discoveries.contains("food_preservation")
+            || self.discoveries.contains("salt_harvesting");
+        let cartography = self.discoveries.contains("cartography");
+        let star_charts = self.discoveries.contains("star_charts");
+        let food_decay = if preserves_food { 0.998 } else { 0.995 };
+        let water_decay = if cartography || star_charts { 0.998 } else { 0.995 };
+        let danger_decay = 0.995;
+
+        self.food_memory.retain(|_, v| {
+            *v *= food_decay;
+            *v >= 0.04
+        });
+        self.water_memory.retain(|_, v| {
+            *v *= water_decay;
+            *v >= 0.04
+        });
+        self.danger_memory.retain(|_, v| {
+            *v *= danger_decay;
+            *v >= 0.04
+        });
         fn trim_mem(mem: &mut HashMap<(i32, i32), f32>, max: usize) {
             if mem.len() > max {
                 let mut e: Vec<_> = mem.iter().map(|(k, v)| (*k, *v)).collect();

@@ -108,6 +108,9 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick > 0 && tick % 40 == 0 {
         tick_evening_gathering(sim);
     }
+    if tick > 0 && tick % 6 == 0 {
+        tick_birth_celebrations(sim);
+    }
     tick_season_change(sim);
     if tick > 0 && tick % 600 == 0 && sim.is_night() {
         tick_partner_pillow_talk(sim);
@@ -362,6 +365,52 @@ fn tick_season_change(sim: &mut Simulation) {
             .with_emotion(emotion);
         o.memories.insert(entry);
         picked += 1;
+    }
+}
+
+fn tick_birth_celebrations(sim: &mut Simulation) {
+    use crate::organism::memory::{MemoryEntry, MemoryKind};
+    let tick = sim.tick_count;
+    if sim.organisms.is_empty() {
+        return;
+    }
+    let newborns: Vec<(usize, String, f32, f32)> = sim
+        .organisms
+        .iter()
+        .enumerate()
+        .filter(|(_, o)| o.alive && o.age > 0 && o.age <= 6)
+        .map(|(i, o)| (i, o.lineage_id.clone(), o.x, o.y))
+        .collect();
+    if newborns.is_empty() {
+        return;
+    }
+    let mut bumps: Vec<usize> = Vec::new();
+    for (newborn_idx, lid, nx, ny) in newborns.iter() {
+        let mut count = 0;
+        for (j, o) in sim.organisms.iter().enumerate() {
+            if j == *newborn_idx || !o.alive || o.lineage_id != *lid {
+                continue;
+            }
+            if (o.x - nx).abs() + (o.y - ny).abs() > 8.0 {
+                continue;
+            }
+            bumps.push(j);
+            count += 1;
+            if count >= 6 {
+                break;
+            }
+        }
+    }
+    for idx in bumps {
+        sim.organisms[idx].joy_ticks = (sim.organisms[idx].joy_ticks + 40).min(1200);
+        let entry = MemoryEntry::new(
+            MemoryKind::Episode,
+            "a new child arrived in our home — we all crowded close",
+            tick,
+        )
+        .with_salience(0.80)
+        .with_emotion(2);
+        sim.organisms[idx].memories.insert(entry);
     }
 }
 
