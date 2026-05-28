@@ -93,6 +93,7 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick > 0 && tick % 180 == 0 {
         tick_meteor_shower(sim);
     }
+    tick_season_change(sim);
     if tick > 0 && tick % 600 == 0 && sim.is_night() {
         tick_partner_pillow_talk(sim);
     }
@@ -280,6 +281,72 @@ fn tick_maybe_eclipse(sim: &mut Simulation) {
         .push_back((tick, format!("a {} stunned the people: {}", label, text)));
     while sim.headlines.len() > 80 {
         sim.headlines.pop_front();
+    }
+}
+
+fn tick_season_change(sim: &mut Simulation) {
+    use crate::organism::memory::{MemoryEntry, MemoryKind};
+    use crate::sim::config::{SEASONS, SEASON_LENGTH};
+    let tick = sim.tick_count;
+    if tick == 0 {
+        return;
+    }
+    let prev = ((tick - 1) / SEASON_LENGTH) as usize % SEASONS.len();
+    let now = (tick / SEASON_LENGTH) as usize % SEASONS.len();
+    if prev == now {
+        return;
+    }
+    let s = SEASONS[now];
+    let (headline, mem_text, emotion, salience) = match s {
+        "abundance" => (
+            "the world quickens — green covers the hills again",
+            "warmth returned, and the earth gave fresh shoots",
+            2i8,
+            0.7,
+        ),
+        "decline" => (
+            "leaves turn — the long descent into colder days begins",
+            "the air thinned and the leaves began to fall",
+            0i8,
+            0.55,
+        ),
+        "scarcity" => (
+            "frost takes the land — winter is here",
+            "the first frost arrived and the cold settled in my bones",
+            -1i8,
+            0.75,
+        ),
+        "recovery" => (
+            "the thaw begins — meltwater runs in the gullies",
+            "the snow softened, the streams ran fast and cold",
+            1i8,
+            0.65,
+        ),
+        _ => return,
+    };
+    push_event(&mut sim.events, tick, "season", "world", headline);
+    sim.headlines.push_back((tick, headline.to_string()));
+    while sim.headlines.len() > 80 {
+        sim.headlines.pop_front();
+    }
+    let alive_n = sim.organisms.iter().filter(|o| o.alive).count();
+    if alive_n == 0 {
+        return;
+    }
+    let pick_n = (alive_n / 10).max(1).min(20);
+    let mut picked = 0usize;
+    for o in sim.organisms.iter_mut() {
+        if !o.alive || picked >= pick_n {
+            continue;
+        }
+        if sim.rng.random::<f32>() > pick_n as f32 / alive_n as f32 {
+            continue;
+        }
+        let entry = MemoryEntry::new(MemoryKind::Episode, mem_text, tick)
+            .with_salience(salience)
+            .with_emotion(emotion);
+        o.memories.insert(entry);
+        picked += 1;
     }
 }
 
