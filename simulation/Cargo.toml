@@ -28,6 +28,7 @@ tracing            = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 image              = { version = "0.25", default-features = false, features = ["png"] }
 rusqlite           = { version = "0.32", features = ["bundled"] }
+flate2             = "1"
 
 wtransport  = { version = "0.7", optional = true }
 

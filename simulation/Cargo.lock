@@ -1668,6 +1668,7 @@ version = "0.2.16"
 dependencies = [
  "axum",
  "dotenvy",
+ "flate2",
  "image",
  "rand",
  "rand_chacha",

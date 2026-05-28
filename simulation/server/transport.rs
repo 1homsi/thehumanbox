@@ -210,18 +210,71 @@ pub fn encode_frame(
         );
         obj.insert("frame_kind".to_string(), serde_json::json!(frame_kind));
     }
-    rmp_serde::to_vec_named(&payload).unwrap_or_else(|_| Vec::new())
+    let raw = match rmp_serde::to_vec_named(&payload) {
+        Ok(v) => v,
+        Err(_) => return Vec::new(),
+    };
+    if raw.len() < 2048 {
+        let mut out = Vec::with_capacity(raw.len() + 1);
+        out.push(0u8);
+        out.extend_from_slice(&raw);
+        return out;
+    }
+    use flate2::write::GzEncoder;
+    use std::io::Write;
+    let mut encoder = GzEncoder::new(Vec::with_capacity(raw.len() / 2), flate2::Compression::fast());
+    if encoder.write_all(&raw).is_err() {
+        let mut out = Vec::with_capacity(raw.len() + 1);
+        out.push(0u8);
+        out.extend_from_slice(&raw);
+        return out;
+    }
+    let gz = match encoder.finish() {
+        Ok(v) => v,
+        Err(_) => {
+            let mut out = Vec::with_capacity(raw.len() + 1);
+            out.push(0u8);
+            out.extend_from_slice(&raw);
+            return out;
+        }
+    };
+    if gz.len() + 1 >= raw.len() {
+        let mut out = Vec::with_capacity(raw.len() + 1);
+        out.push(0u8);
+        out.extend_from_slice(&raw);
+        return out;
+    }
+    let mut out = Vec::with_capacity(gz.len() + 1);
+    out.push(1u8);
+    out.extend_from_slice(&gz);
+    out
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    fn decode_for_test(encoded: &[u8]) -> serde_json::Value {
+        assert!(!encoded.is_empty(), "encoded payload was empty");
+        match encoded[0] {
+            0 => rmp_serde::from_slice(&encoded[1..]).expect("msgpack decode"),
+            1 => {
+                use flate2::read::GzDecoder;
+                use std::io::Read;
+                let mut decoder = GzDecoder::new(&encoded[1..]);
+                let mut buf = Vec::new();
+                decoder.read_to_end(&mut buf).expect("gunzip decode");
+                rmp_serde::from_slice(&buf).expect("msgpack after gunzip")
+            }
+            other => panic!("unknown wire codec tag {}", other),
+        }
+    }
+
     #[test]
     fn encode_frame_adds_transport_metadata() {
         let payload = serde_json::json!({ "tick": 12, "organisms": [], "animals": [] });
         let encoded = encode_frame(payload, 77, 123_456, "delta");
-        let decoded: serde_json::Value = rmp_serde::from_slice(&encoded).unwrap();
+        let decoded = decode_for_test(&encoded);
 
         assert_eq!(decoded["frame_id"], 77);
         assert_eq!(decoded["server_sent_at_ms"], 123_456);
@@ -249,14 +302,15 @@ mod tests {
                 "age": 1234,
             })).collect::<Vec<_>>(),
         });
-        let msgpack = encode_frame(payload.clone(), 1, 1, "delta");
+        let encoded = encode_frame(payload.clone(), 1, 1, "delta");
         let json = serde_json::to_vec(&payload).unwrap_or_default();
         assert!(
-            msgpack.len() <= json.len(),
-            "msgpack {} should not exceed json {}",
-            msgpack.len(),
+            encoded.len() <= json.len(),
+            "encoded {} should not exceed json {}",
+            encoded.len(),
             json.len()
         );
+        let _ = decode_for_test(&encoded);
     }
 
     #[test]

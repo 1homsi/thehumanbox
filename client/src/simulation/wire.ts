@@ -1,5 +1,6 @@
 import { Result, ok, err } from 'neverthrow'
 import { decode as msgpackDecode } from '@msgpack/msgpack'
+import { gunzipSync } from 'fflate'
 import type { WorldState, GridState, GridWire, OrganismState, AnimalState } from '../types'
 
 export type ParseError = { kind: 'json'; message: string } | { kind: 'schema'; issues: string[] }
@@ -257,7 +258,12 @@ export function parseWorldFrame(
     if (typeof raw === 'string') {
       decoded = JSON.parse(raw)
     } else {
-      const bytes = raw instanceof Uint8Array ? raw : new Uint8Array(raw)
+      let bytes = raw instanceof Uint8Array ? raw : new Uint8Array(raw)
+      if (bytes.length > 0 && bytes[0] === 0) {
+        bytes = bytes.subarray(1)
+      } else if (bytes.length > 0 && bytes[0] === 1) {
+        bytes = gunzipSync(bytes.subarray(1))
+      }
       decoded = msgpackDecode(bytes)
     }
   } catch (e) {
