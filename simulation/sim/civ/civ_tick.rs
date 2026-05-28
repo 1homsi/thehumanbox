@@ -150,6 +150,12 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick > 0 && tick % 60 == 0 {
         tick_storyteller(sim);
     }
+    if tick > 0 && tick % 90 == 0 {
+        tick_arguments(sim);
+    }
+    if tick > 0 && tick % 240 == 0 {
+        tick_reconciliations(sim);
+    }
     tick_season_change(sim);
     if tick > 0 && tick % 600 == 0 && sim.is_night() {
         tick_partner_pillow_talk(sim);
@@ -466,6 +472,142 @@ fn tick_spiritual_pilgrimage(sim: &mut Simulation) {
     for (i, dx, dy) in moves {
         sim.organisms[i].x += dx;
         sim.organisms[i].y += dy;
+    }
+}
+
+fn tick_arguments(sim: &mut Simulation) {
+    use crate::organism::memory::{MemoryEntry, MemoryKind};
+    let tick = sim.tick_count;
+    let n = sim.organisms.len();
+    if n == 0 {
+        return;
+    }
+    let mut events: Vec<(usize, usize)> = Vec::new();
+    for i in 0..n {
+        let o = &sim.organisms[i];
+        if !o.alive || o.anger < 0.3 {
+            continue;
+        }
+        for j in (i + 1)..n {
+            let p = &sim.organisms[j];
+            if !p.alive || p.lineage_id != o.lineage_id {
+                continue;
+            }
+            if (p.x - o.x).abs() + (p.y - o.y).abs() > 2.0 {
+                continue;
+            }
+            let trust_io = o.org_trust.get(&p.id).copied().unwrap_or(0.0);
+            let trust_oi = p.org_trust.get(&o.id).copied().unwrap_or(0.0);
+            if trust_io > -0.2 && trust_oi > -0.2 {
+                continue;
+            }
+            if sim.rng.random::<f32>() > 0.03 {
+                continue;
+            }
+            events.push((i, j));
+            break;
+        }
+    }
+    for (i, j) in events {
+        let n1 = sim.organisms[i].name.clone();
+        let n2 = sim.organisms[j].name.clone();
+        for idx in [i, j] {
+            let other_id = if idx == i {
+                sim.organisms[j].id.clone()
+            } else {
+                sim.organisms[i].id.clone()
+            };
+            let entry = MemoryEntry::new(
+                MemoryKind::Episode,
+                "we argued — raised voices we'll both regret",
+                tick,
+            )
+            .with_salience(0.65)
+            .with_emotion(-2)
+            .with_related(other_id.clone());
+            sim.organisms[idx].memories.insert(entry);
+            sim.organisms[idx].regret = (sim.organisms[idx].regret + 0.04).min(1.0);
+            sim.organisms[idx].fear_level = (sim.organisms[idx].fear_level + 0.02).min(1.0);
+            let trust = sim.organisms[idx]
+                .org_trust
+                .entry(other_id)
+                .or_insert(0.0);
+            *trust = (*trust - 0.08).max(-1.0);
+        }
+        push_event(
+            &mut sim.events,
+            tick,
+            "argument",
+            &n1,
+            &format!("argued with {}", n2),
+        );
+    }
+}
+
+fn tick_reconciliations(sim: &mut Simulation) {
+    use crate::organism::memory::{MemoryEntry, MemoryKind};
+    let tick = sim.tick_count;
+    let n = sim.organisms.len();
+    if n == 0 {
+        return;
+    }
+    let mut events: Vec<(usize, usize)> = Vec::new();
+    for i in 0..n {
+        let o = &sim.organisms[i];
+        if !o.alive || o.regret < 0.4 {
+            continue;
+        }
+        let candidate: Option<usize> = sim
+            .organisms
+            .iter()
+            .enumerate()
+            .filter(|(j, p)| {
+                *j != i && p.alive && p.lineage_id == o.lineage_id
+                    && (p.x - o.x).abs() + (p.y - o.y).abs() <= 2.0
+                    && o.org_trust.get(&p.id).copied().unwrap_or(0.0) < -0.1
+            })
+            .map(|(j, _)| j)
+            .next();
+        if let Some(j) = candidate {
+            if sim.rng.random::<f32>() < 0.06 {
+                events.push((i, j));
+            }
+        }
+    }
+    for (i, j) in events {
+        let n1 = sim.organisms[i].name.clone();
+        let n2 = sim.organisms[j].name.clone();
+        for idx in [i, j] {
+            let other_id = if idx == i {
+                sim.organisms[j].id.clone()
+            } else {
+                sim.organisms[i].id.clone()
+            };
+            let entry = MemoryEntry::new(
+                MemoryKind::Episode,
+                "we made peace — words I'd carried for weeks finally rested",
+                tick,
+            )
+            .with_salience(0.78)
+            .with_emotion(2)
+            .with_related(other_id.clone());
+            sim.organisms[idx].memories.insert(entry);
+            sim.organisms[idx].regret = (sim.organisms[idx].regret * 0.4).max(0.0);
+            sim.organisms[idx].joy_ticks = (sim.organisms[idx].joy_ticks + 30).min(1200);
+            sim.organisms[idx].gratitude = (sim.organisms[idx].gratitude + 0.15).min(1.0);
+            let trust = sim.organisms[idx]
+                .org_trust
+                .entry(other_id)
+                .or_insert(0.0);
+            *trust = (*trust + 0.18).min(1.0);
+        }
+        push_event(
+            &mut sim.events,
+            tick,
+            "reconcile",
+            &n1,
+            &format!("made peace with {}", n2),
+        );
     }
 }
 
