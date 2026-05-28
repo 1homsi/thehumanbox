@@ -18,6 +18,7 @@ import { Birds } from './parts/Birds'
 import { Clouds3D } from './parts/Clouds3D'
 import { Snow } from './parts/Snow'
 import { ShootingStars } from './parts/ShootingStars'
+import { Aurora } from './parts/Aurora'
 import { HelpOverlay } from './parts/HelpOverlay'
 import { AmbientMotes } from './parts/AmbientMotes'
 import { MiniMap } from './parts/MiniMap'
@@ -589,6 +590,12 @@ export default function WorldView3D({ world }: Props) {
                   intensity={0.55 + (world.weather?.intensity ?? 0) * 0.4}
                 />
                 <ShootingStars isNight={isNight} width={grid.width} height={grid.height} />
+                <Aurora
+                  isNight={isNight}
+                  season={world.season}
+                  width={grid.width}
+                  height={grid.height}
+                />
                 <AmbientMotes isNight={isNight} weatherKind={world.weather?.kind ?? 'clear'} />
                 <Fireflies hutPositions={hutWorldPositions} isNight={isNight} />
                 <SocialBeams
