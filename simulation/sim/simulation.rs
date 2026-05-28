@@ -658,30 +658,25 @@ impl Simulation {
             }
         }
 
-        let alive_count_before_loop = self.organisms.iter().filter(|o| o.alive).count();
-
-        let mut lineage_counts: HashMap<String, usize> = HashMap::new();
-        for o in self.organisms.iter().filter(|o| o.alive) {
-            *lineage_counts.entry(o.lineage_id.clone()).or_insert(0) += 1;
-        }
-
-        // Sparse-region check: split the world into a 3×3 grid of quadrants
-        // and count alive orgs per cell. If half or more quadrants hold
-        // ≤6 orgs, the world is heavily clumped and a fresh immigrant tribe
-        // somewhere remote can correct the distribution.
-        let sparse_quadrants = {
-            const QX: i32 = 3;
-            const QY: i32 = 3;
-            let qw = WIDTH as f32 / QX as f32;
-            let qh = HEIGHT as f32 / QY as f32;
-            let mut counts = [[0u32; QX as usize]; QY as usize];
-            for o in self.organisms.iter().filter(|o| o.alive) {
-                let cx = ((o.x / qw).floor() as i32).clamp(0, QX - 1);
-                let cy = ((o.y / qh).floor() as i32).clamp(0, QY - 1);
-                counts[cy as usize][cx as usize] += 1;
+        const QX: i32 = 3;
+        const QY: i32 = 3;
+        let qw = WIDTH as f32 / QX as f32;
+        let qh = HEIGHT as f32 / QY as f32;
+        let mut quadrant_counts = [[0u32; QX as usize]; QY as usize];
+        let mut alive_count_before_loop: usize = 0;
+        let mut lineage_counts: HashMap<String, usize> =
+            HashMap::with_capacity(self.lineage_names.len().max(8));
+        for o in self.organisms.iter() {
+            if !o.alive {
+                continue;
             }
-            counts.iter().flatten().filter(|&&n| n <= 6).count()
-        };
+            alive_count_before_loop += 1;
+            *lineage_counts.entry(o.lineage_id.clone()).or_insert(0) += 1;
+            let cx = ((o.x / qw).floor() as i32).clamp(0, QX - 1);
+            let cy = ((o.y / qh).floor() as i32).clamp(0, QY - 1);
+            quadrant_counts[cy as usize][cx as usize] += 1;
+        }
+        let sparse_quadrants = quadrant_counts.iter().flatten().filter(|&&n| n <= 6).count();
         let world_is_clumped = sparse_quadrants >= 5;
         let immig_cooldown = if alive_count_before_loop < 60 {
             Some(200u64)

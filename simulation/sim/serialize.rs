@@ -42,18 +42,24 @@ impl Simulation {
     }
 
     fn viewport_centroid(&self) -> (i32, i32) {
-        let alive: Vec<_> = self.organisms.iter().filter(|o| o.alive).collect();
-        if alive.is_empty() {
+        let mut sx: f32 = 0.0;
+        let mut sy: f32 = 0.0;
+        let mut n: u32 = 0;
+        for o in &self.organisms {
+            if o.alive {
+                sx += o.x;
+                sy += o.y;
+                n += 1;
+            }
+        }
+        if n == 0 {
             (
                 crate::world::grid::WIDTH as i32 / 2,
                 crate::world::grid::HEIGHT as i32 / 2,
             )
         } else {
-            let n = alive.len() as f32;
-            (
-                (alive.iter().map(|o| o.x).sum::<f32>() / n) as i32,
-                (alive.iter().map(|o| o.y).sum::<f32>() / n) as i32,
-            )
+            let nf = n as f32;
+            ((sx / nf) as i32, (sy / nf) as i32)
         }
     }
 
@@ -181,17 +187,16 @@ impl Simulation {
         let per_org_cold = include_cold;
         use crate::organism::organism::OrgsHotSoa;
         let mut payload = if include_all_entities {
-            let organisms_json = self
-                .organisms
-                .iter()
-                .filter(|o| o.alive)
-                .map(|o| serde_json::to_value(o.to_json_with(per_org_cold)).unwrap())
-                .collect::<Vec<_>>();
-            let animals_json = self
-                .animals
-                .iter()
-                .map(|a| serde_json::to_value(a.to_json()).unwrap())
-                .collect::<Vec<_>>();
+            let mut organisms_json: Vec<serde_json::Value> = Vec::with_capacity(self.organisms.len());
+            for o in self.organisms.iter() {
+                if o.alive {
+                    organisms_json.push(serde_json::to_value(o.to_json_with(per_org_cold)).unwrap());
+                }
+            }
+            let mut animals_json: Vec<serde_json::Value> = Vec::with_capacity(self.animals.len());
+            for a in self.animals.iter() {
+                animals_json.push(serde_json::to_value(a.to_json()).unwrap());
+            }
             json!({
                 "tick":               self.tick_count,
                 "grid":               serde_json::to_value(grid_json).unwrap(),
@@ -223,12 +228,12 @@ impl Simulation {
                     soa.push(o, lookahead);
                 }
             }
-            let animals_json = self
-                .animals
-                .iter()
-                .filter(|a| in_view(a.x, a.y))
-                .map(|a| serde_json::to_value(a.to_json()).unwrap())
-                .collect::<Vec<_>>();
+            let mut animals_json: Vec<serde_json::Value> = Vec::with_capacity(self.animals.len());
+            for a in self.animals.iter() {
+                if in_view(a.x, a.y) {
+                    animals_json.push(serde_json::to_value(a.to_json()).unwrap());
+                }
+            }
             json!({
                 "tick":               self.tick_count,
                 "grid":               serde_json::to_value(grid_json).unwrap(),
