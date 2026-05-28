@@ -718,7 +718,8 @@ impl Simulation {
                     let child_idx = self.organisms.len() - 1;
                     let child_lid = self.organisms[child_idx].lineage_id.clone();
                     if let Some(elder_id) = self.lineage_elders.get(&child_lid).cloned() {
-                        if let Some(epos) = self.organisms.iter().position(|o| o.alive && o.id == elder_id) {
+                        let epos_opt = org_idx_by_id.get(&elder_id).copied();
+                        if let Some(epos) = epos_opt {
                             if epos != child_idx {
                                 let danger: Vec<_> = self.organisms[epos]
                                     .danger_memory
@@ -899,18 +900,27 @@ impl Simulation {
             let org = &self.organisms[idx];
             let ox = org.x as i32;
             let oy = org.y as i32;
-            spatial.query_into(ox, oy, 5, spatial_buf);
+            spatial.query_into(ox, oy, 6, spatial_buf);
             let mut kin_near: usize = 0;
+            let mut hostile_near = false;
             for &i in spatial_buf.iter() {
                 if i == idx {
                     continue;
                 }
                 let o = &self.organisms[i];
-                if o.alive
-                    && o.lineage_id == org.lineage_id
-                    && (o.x - org.x).abs() + (o.y - org.y).abs() <= 5.0
+                if !o.alive {
+                    continue;
+                }
+                let dist = (o.x - org.x).abs() + (o.y - org.y).abs();
+                if o.lineage_id == org.lineage_id {
+                    if dist <= 5.0 {
+                        kin_near += 1;
+                    }
+                } else if !hostile_near
+                    && dist <= 6.0
+                    && org.attitude_toward(&o.lineage_id) < -0.2
                 {
-                    kin_near += 1;
+                    hostile_near = true;
                 }
             }
             let near_shelter = (-2i32..=2).any(|dx| {
@@ -921,22 +931,6 @@ impl Simulation {
                         || self.grid.structure_at(nx, ny) >= 0.35
                 })
             });
-            spatial.query_into(ox, oy, 6, spatial_buf);
-            let mut hostile_near = false;
-            for &i in spatial_buf.iter() {
-                if i == idx {
-                    continue;
-                }
-                let o = &self.organisms[i];
-                if o.alive
-                    && o.lineage_id != org.lineage_id
-                    && (o.x - org.x).abs() + (o.y - org.y).abs() <= 6.0
-                    && org.attitude_toward(&o.lineage_id) < -0.2
-                {
-                    hostile_near = true;
-                    break;
-                }
-            }
             let weather_kind = self.weather.kind;
             let tick_now = self.tick_count;
             self.organisms[idx].tick_inner_state(
