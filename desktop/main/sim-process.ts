@@ -7,9 +7,13 @@ import { app } from 'electron'
 import type { Settings } from './settings'
 import { effectiveDataRoot } from './settings'
 
+const PID_FILE_NAME = 'sim.pid'
+let exitHandlersInstalled = false
+
 export interface RunningSim {
   port: number
   child: ChildProcess
+  pidFile: string
 }
 
 let current: RunningSim | null = null
@@ -88,8 +92,58 @@ async function waitForPort(port: number, timeoutMs: number, isAlive: () => boole
   throw new Error(`simulation-rs did not start listening on 127.0.0.1:${port} within ${timeoutMs}ms`)
 }
 
+function pidFilePath(settings: Settings): string {
+  return path.join(effectiveDataRoot(settings), PID_FILE_NAME)
+}
+
+function killOrphanFromPidFile(settings: Settings): void {
+  const pidPath = pidFilePath(settings)
+  let raw: string
+  try {
+    raw = fs.readFileSync(pidPath, 'utf8').trim()
+  } catch {
+    return
+  }
+  const pid = parseInt(raw, 10)
+  if (!Number.isFinite(pid) || pid <= 1) {
+    try { fs.unlinkSync(pidPath) } catch { /* noop */ }
+    return
+  }
+  try {
+    process.kill(pid, 0)
+    process.kill(pid, 'SIGKILL')
+    console.log(`[sim] killed orphan simulation-rs pid=${pid}`)
+  } catch {
+    /* not running, fine */
+  }
+  try { fs.unlinkSync(pidPath) } catch { /* noop */ }
+}
+
+function installExitHandlersOnce(): void {
+  if (exitHandlersInstalled) return
+  exitHandlersInstalled = true
+  const killCurrent = (): void => {
+    const c = current
+    if (!c) return
+    try { c.child.kill('SIGKILL') } catch { /* noop */ }
+    try { fs.unlinkSync(c.pidFile) } catch { /* noop */ }
+    current = null
+  }
+  process.on('exit', killCurrent)
+  process.on('SIGINT', () => { killCurrent(); process.exit(130) })
+  process.on('SIGTERM', () => { killCurrent(); process.exit(143) })
+  process.on('uncaughtException', (e) => {
+    console.error('[main] uncaughtException', e)
+    killCurrent()
+    process.exit(1)
+  })
+}
+
 export async function startSim(settings: Settings): Promise<RunningSim> {
   if (current) return current
+
+  installExitHandlersOnce()
+  killOrphanFromPidFile(settings)
 
   const bin = locateSimBinary()
   if (!bin) {
@@ -124,6 +178,15 @@ export async function startSim(settings: Settings): Promise<RunningSim> {
     stdio: ['ignore', 'pipe', 'pipe'],
   })
 
+  const pidFile = pidFilePath(settings)
+  if (child.pid !== undefined) {
+    try {
+      fs.writeFileSync(pidFile, String(child.pid), 'utf8')
+    } catch (e) {
+      console.warn(`[sim] could not write pid file ${pidFile}:`, e)
+    }
+  }
+
   let alive = true
   let exitCode: number | null = null
   const tail: string[] = []
@@ -146,6 +209,7 @@ export async function startSim(settings: Settings): Promise<RunningSim> {
     alive = false
     exitCode = code
     console.log(`[sim] exited code=${code} signal=${signal}`)
+    try { fs.unlinkSync(pidFile) } catch { /* noop */ }
     if (current && current.child === child) current = null
   })
 
@@ -153,6 +217,7 @@ export async function startSim(settings: Settings): Promise<RunningSim> {
     await waitForPort(port, 15000, () => alive)
   } catch (err) {
     try { child.kill('SIGKILL') } catch { /* noop */ }
+    try { fs.unlinkSync(pidFile) } catch { /* noop */ }
     current = null
     const lastOutput = tail.join('').trim()
     throw new Error(
@@ -162,15 +227,16 @@ export async function startSim(settings: Settings): Promise<RunningSim> {
     )
   }
 
-  current = { port, child }
+  current = { port, child, pidFile }
   return current!
 }
 
 export async function stopSim(timeoutMs = 5000): Promise<void> {
   if (!current) return
-  const { child } = current
+  const { child, pidFile } = current
   const port = current.port
   current = null
+  try { fs.unlinkSync(pidFile) } catch { /* noop */ }
 
   return new Promise((resolve) => {
     let settled = false
