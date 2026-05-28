@@ -135,6 +135,12 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick > 0 && tick % 300 == 0 {
         tick_hopeful_aspiration(sim);
     }
+    if tick > 0 && tick % 100 == 0 {
+        tick_jealousy_rivalries(sim);
+    }
+    if tick > 0 && tick % 200 == 0 {
+        tick_curiosity_exploration(sim);
+    }
     tick_season_change(sim);
     if tick > 0 && tick % 600 == 0 && sim.is_night() {
         tick_partner_pillow_talk(sim);
@@ -451,6 +457,68 @@ fn tick_spiritual_pilgrimage(sim: &mut Simulation) {
     for (i, dx, dy) in moves {
         sim.organisms[i].x += dx;
         sim.organisms[i].y += dy;
+    }
+}
+
+fn tick_jealousy_rivalries(sim: &mut Simulation) {
+    let n = sim.organisms.len();
+    if n == 0 {
+        return;
+    }
+    let mut attitude_drops: Vec<(usize, String, f32)> = Vec::new();
+    for i in 0..n {
+        let o = &sim.organisms[i];
+        if !o.alive || o.jealousy < 0.6 {
+            continue;
+        }
+        let (my_x, my_y, my_lid) = (o.x, o.y, o.lineage_id.clone());
+        for j in 0..n {
+            if i == j {
+                continue;
+            }
+            let other = &sim.organisms[j];
+            if !other.alive || other.lineage_id == my_lid {
+                continue;
+            }
+            if (other.x - my_x).abs() + (other.y - my_y).abs() > 8.0 {
+                continue;
+            }
+            attitude_drops.push((i, other.lineage_id.clone(), -0.004));
+            break;
+        }
+    }
+    for (idx, rival_lid, delta) in attitude_drops {
+        let entry = sim.organisms[idx]
+            .lineage_attitudes
+            .entry(rival_lid)
+            .or_insert(0.0);
+        *entry = (*entry + delta).max(-1.0);
+    }
+}
+
+fn tick_curiosity_exploration(sim: &mut Simulation) {
+    let n = sim.organisms.len();
+    if n == 0 {
+        return;
+    }
+    for i in 0..n {
+        let o = &mut sim.organisms[i];
+        if !o.alive || o.curiosity_drive < 0.6 || o.wander_target.is_some() {
+            continue;
+        }
+        if o.energy < 0.5 {
+            continue;
+        }
+        let hash = o
+            .id
+            .bytes()
+            .fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
+        let angle = ((hash ^ sim.tick_count) as f32) * 0.0000014;
+        let dist = 200.0 + o.curiosity_drive * 350.0;
+        let tx = (o.x + angle.sin() * dist).round() as i32;
+        let ty = (o.y + angle.cos() * dist).round() as i32;
+        o.wander_target = Some((tx.clamp(5, 595), ty.clamp(5, 295)));
+        o.curiosity_drive = (o.curiosity_drive * 0.4).max(0.0);
     }
 }
 
