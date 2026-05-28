@@ -9,8 +9,10 @@ import {
   Matrix4,
   MeshStandardMaterial,
   Quaternion,
+  SphereGeometry,
   Vector3,
 } from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { OrganismState } from '../../../types'
 import { lineageColor } from '../../../utils/constants'
 import { useUIStore } from '../../../stores/store'
@@ -140,6 +142,25 @@ function applyEraTint(out: Color, eraName: string | undefined): void {
   out.lerp(_tintCol, t[3])
 }
 
+function buildHumanoidLodGeometry(): CapsuleGeometry {
+  const Y_OFFSET = -0.09
+  const torso = new CapsuleGeometry(0.16, 0.32, 4, 6)
+  torso.translate(0, 0.16 + Y_OFFSET, 0)
+  const head = new SphereGeometry(0.12, 8, 6)
+  head.translate(0, 0.46 + Y_OFFSET, 0)
+  const legL = new CapsuleGeometry(0.07, 0.22, 3, 4)
+  legL.translate(-0.07, -0.18 + Y_OFFSET, 0)
+  const legR = legL.clone()
+  legR.translate(0.14, 0, 0)
+  const armL = new CapsuleGeometry(0.055, 0.26, 3, 4)
+  armL.translate(-0.2, 0.22 + Y_OFFSET, 0)
+  const armR = armL.clone()
+  armR.translate(0.4, 0, 0)
+  const merged = mergeGeometries([torso, head, legL, legR, armL, armR])
+  if (merged) merged.computeVertexNormals()
+  return (merged ?? new CapsuleGeometry(0.18, 0.55, 4, 6)) as unknown as CapsuleGeometry
+}
+
 function FarHumans({
   organisms,
   depthMap,
@@ -152,7 +173,7 @@ function FarHumans({
   lineageEras?: Record<string, string>
 }) {
   const meshRef = useRef<InstancedMesh | null>(null)
-  const geometry = useMemo(() => new CapsuleGeometry(0.18, 0.55, 4, 6), [])
+  const geometry = useMemo(() => buildHumanoidLodGeometry(), [])
   const material = useMemo(() => new MeshStandardMaterial({ roughness: 0.85 }), [])
   const count = organisms.length
 
