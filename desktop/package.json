@@ -12,7 +12,7 @@
   "main": "dist/main/index.js",
   "scripts": {
     "build:main": "tsc -p tsconfig.json",
-    "build:renderer": "cd ../client && VITE_DESKTOP=1 pnpm run build",
+    "build:renderer": "cd ../client && cross-env VITE_DESKTOP=1 pnpm run build",
     "build": "pnpm run build:main && pnpm run build:renderer && pnpm run copy:renderer",
     "copy:renderer": "rm -rf dist/renderer && cp -R ../client/dist dist/renderer",
     "dev": "pnpm run build:main && electron .",
@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "cross-env": "^10.1.0",
     "electron": "^35.0.0",
     "electron-builder": "^25.1.8",
     "typescript": "^5.7.2"
