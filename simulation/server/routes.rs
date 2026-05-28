@@ -135,7 +135,10 @@ pub async fn snapshot_handler(State(s): State<AppState>) -> Result<impl IntoResp
                     axum::http::header::CONTENT_TYPE,
                     "application/msgpack".to_string(),
                 ),
-                (axum::http::header::CACHE_CONTROL, "no-store".to_string()),
+                (
+                    axum::http::header::CACHE_CONTROL,
+                    "public, max-age=2, s-maxage=2".to_string(),
+                ),
             ],
             arc.as_ref().clone(),
         )),
