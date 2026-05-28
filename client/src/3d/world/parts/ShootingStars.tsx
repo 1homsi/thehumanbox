@@ -18,7 +18,8 @@ interface Streak {
   length: number
 }
 
-const MAX_STREAKS = 3
+const MAX_STREAKS = 8
+const SHOWER_PROBABILITY = 0.04
 
 export function ShootingStars({ isNight, width, height }: Props) {
   const streaks = useMemo<Streak[]>(
@@ -47,9 +48,14 @@ export function ShootingStars({ isNight, width, height }: Props) {
     const now = performance.now()
 
     if (isNight && now >= nextSpawnRef.current) {
-      const slot = streaks.find((s) => !s.active)
-      if (slot) {
-        const az = Math.random() * Math.PI * 2
+      const shower = Math.random() < SHOWER_PROBABILITY
+      const count = shower ? 4 + Math.floor(Math.random() * 4) : 1
+      const baseAz = Math.random() * Math.PI * 2
+      let spawned = 0
+      for (const slot of streaks) {
+        if (spawned >= count) break
+        if (slot.active) continue
+        const az = shower ? baseAz + (Math.random() - 0.5) * 0.4 : Math.random() * Math.PI * 2
         const startY = skyR * (0.5 + Math.random() * 0.3)
         slot.pos.set(cx + Math.cos(az) * skyR * 0.8, startY, cz + Math.sin(az) * skyR * 0.8)
         const arcAz = az + (Math.random() - 0.5) * 1.2
@@ -59,12 +65,15 @@ export function ShootingStars({ isNight, width, height }: Props) {
           -speed * (0.35 + Math.random() * 0.25),
           Math.sin(arcAz) * -speed * 0.7,
         )
-        slot.life = 0
+        slot.life = -spawned * 0.18
         slot.maxLife = 0.9 + Math.random() * 0.7
         slot.length = 60 + Math.random() * 80
         slot.active = true
+        spawned++
       }
-      nextSpawnRef.current = now + 6_000 + Math.random() * 22_000
+      nextSpawnRef.current = shower
+        ? now + 90_000 + Math.random() * 120_000
+        : now + 6_000 + Math.random() * 22_000
     }
 
     if (!isNight && streaks.every((s) => !s.active)) return
@@ -76,8 +85,12 @@ export function ShootingStars({ isNight, width, height }: Props) {
         if (el) el.visible = false
         continue
       }
-      s.pos.addScaledVector(s.vel, delta)
       s.life += delta
+      if (s.life < 0) {
+        if (el) el.visible = false
+        continue
+      }
+      s.pos.addScaledVector(s.vel, delta)
       if (s.life >= s.maxLife) {
         s.active = false
         if (el) el.visible = false
