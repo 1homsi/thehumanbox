@@ -156,6 +156,7 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick > 0 && tick % 240 == 0 {
         tick_reconciliations(sim);
     }
+    tick_daily_summary(sim);
     tick_season_change(sim);
     if tick > 0 && tick % 600 == 0 && sim.is_night() {
         tick_partner_pillow_talk(sim);
@@ -473,6 +474,53 @@ fn tick_spiritual_pilgrimage(sim: &mut Simulation) {
         sim.organisms[i].x += dx;
         sim.organisms[i].y += dy;
     }
+}
+
+fn tick_daily_summary(sim: &mut Simulation) {
+    let tick = sim.tick_count;
+    let day_len = crate::sim::cosmos::DAY_LENGTH;
+    let phase = tick % day_len;
+    if phase != day_len - 1 {
+        return;
+    }
+    let day_idx = tick / day_len;
+    if day_idx == 0 {
+        return;
+    }
+    let alive = sim.organisms.iter().filter(|o| o.alive).count() as u64;
+    let births_today = sim
+        .organisms
+        .iter()
+        .filter(|o| o.alive && (o.age as u64) <= day_len)
+        .count() as u64;
+    let deaths_today = sim
+        .organisms
+        .iter()
+        .filter(|o| !o.alive && tick.saturating_sub(o.last_story_tick) <= day_len)
+        .count() as u64;
+    let joyful = sim
+        .organisms
+        .iter()
+        .filter(|o| o.alive && o.joy_ticks > 200)
+        .count() as u64;
+    let grief = sim
+        .organisms
+        .iter()
+        .filter(|o| o.alive && o.grief_ticks > 100)
+        .count() as u64;
+    let lineage_count = sim
+        .organisms
+        .iter()
+        .filter(|o| o.alive)
+        .map(|o| o.lineage_id.clone())
+        .collect::<HashSet<_>>()
+        .len() as u64;
+
+    let summary = format!(
+        "day {} ended: {} alive across {} lineages — {} born, {} lost, {} joyful, {} grieving",
+        day_idx, alive, lineage_count, births_today, deaths_today, joyful, grief,
+    );
+    push_event(&mut sim.events, tick, "daily", "world", &summary);
 }
 
 fn tick_arguments(sim: &mut Simulation) {
