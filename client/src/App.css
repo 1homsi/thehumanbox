@@ -1401,16 +1401,50 @@ body.thb-photo-mode .header:hover {
 .idle-resume-panel {
   background: #28201a;
   border: 1px solid #443329;
-  border-radius: 8px;
-  padding: 28px 32px;
+  border-radius: 10px;
+  padding: 32px 36px 28px;
   max-width: 420px;
   text-align: center;
   color: #f5e9d4;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+}
+.idle-resume-eye {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, rgba(245, 233, 212, 0.06) 0%, transparent 70%);
+  border: 1px solid #5a4838;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.idle-resume-eye::before {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  border: 1px solid #6b8e5a;
+  animation: idle-eye-pulse 2.4s ease-in-out infinite;
+}
+.idle-resume-eye-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6b8e5a;
+  box-shadow: 0 0 14px rgba(107, 142, 90, 0.6);
+}
+@keyframes idle-eye-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.45; }
+  50% { transform: scale(1.18); opacity: 0; }
 }
 .idle-resume-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
-  margin-bottom: 12px;
+  margin-bottom: 18px;
+  letter-spacing: 0.02em;
+  color: #f5e9d4;
 }
 .idle-resume-sub {
   font-size: 13px;
@@ -1423,13 +1457,19 @@ body.thb-photo-mode .header:hover {
   color: #0c0a08;
   border: none;
   border-radius: 4px;
-  padding: 10px 24px;
+  padding: 10px 28px;
   font-weight: 600;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: background 0.12s, transform 0.06s;
 }
 .idle-resume-btn:hover {
   background: #84a76e;
+}
+.idle-resume-btn:active {
+  transform: translateY(1px);
 }
 .desktop-toast {
   position: fixed;
@@ -1437,6 +1477,7 @@ body.thb-photo-mode .header:hover {
   right: 16px;
   z-index: 90;
   width: 340px;
+  max-width: calc(100vw - 32px);
   background: #28201a;
   border: 1px solid #443329;
   border-radius: 8px;
@@ -3094,6 +3135,23 @@ body.thb-photo-mode .header:hover {
 .try-3d-toast__close:focus-visible {
   outline: 2px solid #e5ddc7;
   outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .thb-3d-minimap {
+    display: none !important;
+  }
+  .desktop-toast {
+    top: 56px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+  }
+  .idle-resume-panel {
+    margin: 0 16px;
+    padding: 22px 20px;
+  }
 }
 
 @media (max-width: 520px) {
