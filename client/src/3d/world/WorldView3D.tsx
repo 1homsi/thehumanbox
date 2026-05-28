@@ -26,6 +26,7 @@ import { BuildSparks } from './parts/BuildSparks'
 import { Vehicles3D } from './parts/Vehicles3D'
 import { Roads3D } from './parts/Roads3D'
 import { Boats3D } from './parts/Boats3D'
+import { Farms3D } from './parts/Farms3D'
 import { DayClockDriver } from './parts/DayClockDriver'
 import { HelpOverlay } from './parts/HelpOverlay'
 import { AmbientMotes } from './parts/AmbientMotes'
@@ -647,6 +648,11 @@ export default function WorldView3D({ world }: Props) {
                   biomes={grid.biomes}
                   width={grid.width}
                   height={grid.height}
+                />
+                <Farms3D
+                  buildings={world.buildings}
+                  depthMap={grid.depth_map}
+                  biomes={grid.biomes}
                 />
                 <AmbientMotes isNight={isNight} weatherKind={world.weather?.kind ?? 'clear'} />
                 <Fireflies hutPositions={hutWorldPositions} isNight={isNight} />
