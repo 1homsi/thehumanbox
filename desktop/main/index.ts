@@ -1,4 +1,5 @@
-import { app, BrowserWindow, globalShortcut, ipcMain, Menu, shell } from 'electron'
+import { app, BrowserWindow, globalShortcut, ipcMain, Menu, nativeImage, Notification, shell, Tray } from 'electron'
+import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { registerIpc } from './ipc'
 import { startSim, stopSim, activeSim } from './sim-process'
@@ -9,6 +10,52 @@ app.setName('The Human Box')
 
 const isDev = !app.isPackaged
 let mainWindow: BrowserWindow | null = null
+let tray: Tray | null = null
+
+interface WindowState {
+  x?: number
+  y?: number
+  width: number
+  height: number
+  maximized?: boolean
+}
+
+function windowStateFile(): string {
+  return path.join(app.getPath('userData'), 'window-state.json')
+}
+
+function loadWindowState(): WindowState {
+  try {
+    const raw = fs.readFileSync(windowStateFile(), 'utf8')
+    const parsed = JSON.parse(raw) as Partial<WindowState>
+    return {
+      x: parsed.x,
+      y: parsed.y,
+      width: typeof parsed.width === 'number' && parsed.width >= 800 ? parsed.width : 1400,
+      height: typeof parsed.height === 'number' && parsed.height >= 600 ? parsed.height : 900,
+      maximized: parsed.maximized === true,
+    }
+  } catch {
+    return { width: 1400, height: 900 }
+  }
+}
+
+function persistWindowState(win: BrowserWindow): void {
+  if (win.isDestroyed()) return
+  try {
+    const bounds = win.getNormalBounds ? win.getNormalBounds() : win.getBounds()
+    const state: WindowState = {
+      x: bounds.x,
+      y: bounds.y,
+      width: bounds.width,
+      height: bounds.height,
+      maximized: win.isMaximized(),
+    }
+    fs.writeFileSync(windowStateFile(), JSON.stringify(state, null, 2), 'utf8')
+  } catch (e) {
+    console.warn('[main] could not persist window state:', e)
+  }
+}
 
 function renderBootError(detail: string): string {
   const safe = detail.replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]!))
@@ -47,9 +94,12 @@ async function createWindow(): Promise<void> {
     }
   }
 
+  const winState = loadWindowState()
   mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
+    x: winState.x,
+    y: winState.y,
+    width: winState.width,
+    height: winState.height,
     minWidth: 1000,
     minHeight: 700,
     title: 'The Human Box',
@@ -67,6 +117,28 @@ async function createWindow(): Promise<void> {
       nodeIntegration: false,
       sandbox: true,
     },
+  })
+  if (winState.maximized) mainWindow.maximize()
+
+  const persistDebounced = (() => {
+    let t: NodeJS.Timeout | null = null
+    return () => {
+      if (t) clearTimeout(t)
+      t = setTimeout(() => {
+        if (mainWindow) persistWindowState(mainWindow)
+      }, 400)
+    }
+  })()
+  mainWindow.on('resize', persistDebounced)
+  mainWindow.on('move', persistDebounced)
+  mainWindow.on('maximize', persistDebounced)
+  mainWindow.on('unmaximize', persistDebounced)
+
+  mainWindow.on('minimize', () => {
+    mainWindow?.webContents.send('app:visibility', 'minimized')
+  })
+  mainWindow.on('restore', () => {
+    mainWindow?.webContents.send('app:visibility', 'restored')
   })
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -216,10 +288,88 @@ async function createWindowReplace(): Promise<void> {
   if (old && !old.isDestroyed()) old.close()
 }
 
+function buildTray(): void {
+  if (tray) return
+  try {
+    const iconPath = path.join(__dirname, '..', '..', 'build', 'icon.png')
+    let img = nativeImage.createFromPath(iconPath)
+    if (process.platform === 'darwin') {
+      img = img.resize({ width: 18, height: 18 })
+      img.setTemplateImage(true)
+    } else {
+      img = img.resize({ width: 22, height: 22 })
+    }
+    tray = new Tray(img)
+    tray.setToolTip('The Human Box')
+    const update = (): void => {
+      if (!tray) return
+      tray.setContextMenu(
+        Menu.buildFromTemplate([
+          {
+            label: mainWindow && mainWindow.isVisible() ? 'Hide window' : 'Show window',
+            click: () => toggleWindow(),
+          },
+          { type: 'separator' },
+          {
+            label: 'Switch to Local',
+            click: () => {
+              const cur = loadSettings()
+              if (cur.mode !== 'local') saveSettings({ ...cur, mode: 'local' })
+              void stopSim().then(() => createWindowReplace())
+            },
+          },
+          {
+            label: 'Switch to Remote',
+            click: () => {
+              const cur = loadSettings()
+              if (cur.mode !== 'remote') saveSettings({ ...cur, mode: 'remote' })
+              void stopSim().then(() => createWindowReplace())
+            },
+          },
+          { type: 'separator' },
+          { label: 'Quit The Human Box', role: 'quit' },
+        ]),
+      )
+    }
+    update()
+    tray.on('click', () => toggleWindow())
+    mainWindow?.on('show', update)
+    mainWindow?.on('hide', update)
+  } catch (e) {
+    console.warn('[main] tray init failed:', e)
+  }
+}
+
+function toggleWindow(): void {
+  if (!mainWindow) {
+    void createWindow()
+    return
+  }
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore()
+    mainWindow.focus()
+    return
+  }
+  if (mainWindow.isVisible()) {
+    mainWindow.hide()
+  } else {
+    mainWindow.show()
+    mainWindow.focus()
+  }
+}
+
+function notifyMilestone(title: string, body: string): void {
+  if (!Notification.isSupported()) return
+  const n = new Notification({ title, body, silent: false })
+  n.on('click', () => toggleWindow())
+  n.show()
+}
+
 app.whenReady().then(async () => {
   registerIpc(ipcMain, () => mainWindow)
   await createWindow()
   buildMenu()
+  buildTray()
   initUpdater(() => mainWindow)
 
   globalShortcut.register(process.platform === 'darwin' ? 'Cmd+Alt+I' : 'Ctrl+Shift+I', () => {
@@ -227,6 +377,14 @@ app.whenReady().then(async () => {
     if (mainWindow.webContents.isDevToolsOpened()) mainWindow.webContents.closeDevTools()
     else mainWindow.webContents.openDevTools({ mode: 'detach' })
   })
+
+  globalShortcut.register(process.platform === 'darwin' ? 'Cmd+Shift+H' : 'Ctrl+Shift+H', toggleWindow)
+
+  ipcMain.handle('app:notify', (_e, payload: { title: string; body: string }) => {
+    notifyMilestone(payload.title, payload.body)
+  })
+
+  ipcMain.handle('app:trayToggle', () => toggleWindow())
 })
 
 

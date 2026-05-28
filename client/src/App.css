@@ -3173,6 +3173,16 @@ body.thb-photo-mode .header:hover {
   outline-offset: 2px;
 }
 
+@media (max-width: 1080px) {
+  .header-actions .lang-btn .btn-label {
+    display: none;
+  }
+  .header-actions .lang-btn {
+    min-width: 36px;
+    padding: 4px 8px;
+  }
+}
+
 @media (max-width: 600px) {
   .thb-3d-minimap {
     display: none !important;

@@ -40,12 +40,18 @@ export interface DesktopBridge {
   }
   app: {
     reload(): Promise<void>
+    notify(payload: { title: string; body: string }): Promise<void>
+    trayToggle(): Promise<void>
   }
   world: {
     importFromRemote(payload: { hash: string; remoteUrl: string }): Promise<SimStatus>
   }
   on(
-    channel: 'updater:available' | 'updater:downloaded' | 'menu:openSettings',
+    channel:
+      | 'updater:available'
+      | 'updater:downloaded'
+      | 'menu:openSettings'
+      | 'app:visibility',
     cb: (payload: UpdateInfo | null) => void,
   ): () => void
 }

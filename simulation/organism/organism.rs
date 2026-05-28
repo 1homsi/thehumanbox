@@ -140,6 +140,34 @@ pub fn apply_sex_traits(traits: &mut crate::organism::traits::Traits, sex: Sex) 
     }
 }
 
+fn best_remembered_cell(
+    memory: &std::collections::HashMap<(i32, i32), f32>,
+    cx: f32,
+    cy: f32,
+    danger: &std::collections::HashMap<(i32, i32), f32>,
+) -> Option<(i32, i32)> {
+    let mut best_score = f32::MIN;
+    let mut best: Option<(i32, i32)> = None;
+    for (&cell, &strength) in memory.iter() {
+        if strength < 0.15 {
+            continue;
+        }
+        let tx = (cell.0 * 10 + 5) as f32;
+        let ty = (cell.1 * 10 + 5) as f32;
+        let dist = ((tx - cx) * (tx - cx) + (ty - cy) * (ty - cy)).sqrt();
+        if dist > 300.0 {
+            continue;
+        }
+        let danger_penalty = danger.get(&cell).copied().unwrap_or(0.0) * 2.0;
+        let score = strength - (dist / 300.0) * 0.5 - danger_penalty;
+        if score > best_score {
+            best_score = score;
+            best = Some((tx as i32, ty as i32));
+        }
+    }
+    best
+}
+
 fn dir_char(dx: i32, dy: i32) -> char {
     if dx == 0 && dy == 0 {
         return 'O';
@@ -808,6 +836,28 @@ impl Organism {
         if let Some(wt) = self.wander_target {
             if (wt.0 - self.x as i32).abs() + (wt.1 - self.y as i32).abs() <= 6 {
                 self.wander_target = None;
+            }
+        }
+
+        if self.wander_target.is_none() {
+            if self.energy < 0.4 && !self.food_memory.is_empty() {
+                if let Some(target) = best_remembered_cell(
+                    &self.food_memory,
+                    self.x,
+                    self.y,
+                    &self.danger_memory,
+                ) {
+                    self.wander_target = Some(target);
+                }
+            } else if self.hydration < 0.4 && !self.water_memory.is_empty() {
+                if let Some(target) = best_remembered_cell(
+                    &self.water_memory,
+                    self.x,
+                    self.y,
+                    &self.danger_memory,
+                ) {
+                    self.wander_target = Some(target);
+                }
             }
         }
 

@@ -96,6 +96,12 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick > 0 && tick % 360 == 0 {
         tick_aurora_sighting(sim);
     }
+    if tick > 0 && tick % 240 == 0 {
+        tick_teaching(sim);
+    }
+    if tick > 0 && tick % 80 == 0 {
+        tick_friend_gravitation(sim);
+    }
     tick_season_change(sim);
     if tick > 0 && tick % 600 == 0 && sim.is_night() {
         tick_partner_pillow_talk(sim);
@@ -350,6 +356,131 @@ fn tick_season_change(sim: &mut Simulation) {
             .with_emotion(emotion);
         o.memories.insert(entry);
         picked += 1;
+    }
+}
+
+fn tick_friend_gravitation(sim: &mut Simulation) {
+    let n = sim.organisms.len();
+    if n == 0 {
+        return;
+    }
+    let mut moves: Vec<(usize, f32, f32)> = Vec::new();
+    for i in 0..n {
+        let o = &sim.organisms[i];
+        if !o.alive {
+            continue;
+        }
+        if o.loneliness < 0.4 {
+            continue;
+        }
+        if o.energy < 0.2 {
+            continue;
+        }
+        let friends = &o.friends;
+        if friends.is_empty() {
+            continue;
+        }
+        let (ox, oy) = (o.x, o.y);
+        let my_lid = o.lineage_id.clone();
+        let mut best: Option<(f32, f32, f32)> = None;
+        for friend_id in friends.keys() {
+            let f = sim.organisms.iter().find(|p| &p.id == friend_id);
+            if let Some(f) = f {
+                if !f.alive {
+                    continue;
+                }
+                if f.lineage_id != my_lid {
+                    continue;
+                }
+                let d = (f.x - ox).abs() + (f.y - oy).abs();
+                if d > 80.0 || d < 6.0 {
+                    continue;
+                }
+                if let Some((b, _, _)) = best {
+                    if d < b {
+                        best = Some((d, f.x, f.y));
+                    }
+                } else {
+                    best = Some((d, f.x, f.y));
+                }
+            }
+        }
+        if let Some((_, fx, fy)) = best {
+            let dx = (fx - ox).signum() * 0.4;
+            let dy = (fy - oy).signum() * 0.4;
+            moves.push((i, dx, dy));
+        }
+    }
+    for (i, dx, dy) in moves {
+        sim.organisms[i].x += dx;
+        sim.organisms[i].y += dy;
+    }
+}
+
+fn tick_teaching(sim: &mut Simulation) {
+    let tick = sim.tick_count;
+    let n = sim.organisms.len();
+    if n == 0 {
+        return;
+    }
+    let mut transfers: Vec<(usize, String)> = Vec::with_capacity(8);
+    for i in 0..n {
+        let elder = &sim.organisms[i];
+        if !elder.alive || elder.age_stage() != AgeStage::Elder && elder.age_stage() != AgeStage::Adult {
+            continue;
+        }
+        if elder.discoveries.is_empty() {
+            continue;
+        }
+        let elder_lid = elder.lineage_id.clone();
+        let elder_x = elder.x;
+        let elder_y = elder.y;
+        let teach_strength = elder.traits.social_tendency * 0.5 + 0.3;
+        for j in 0..n {
+            if i == j {
+                continue;
+            }
+            let child = &sim.organisms[j];
+            if !child.alive {
+                continue;
+            }
+            if child.lineage_id != elder_lid {
+                continue;
+            }
+            if !matches!(child.age_stage(), AgeStage::Child | AgeStage::Teen) {
+                continue;
+            }
+            let dist = (child.x - elder_x).abs() + (child.y - elder_y).abs();
+            if dist > 4.0 {
+                continue;
+            }
+            let r: f32 = sim.rng.random();
+            if r > teach_strength * 0.20 {
+                continue;
+            }
+            let known: Vec<String> = sim.organisms[i]
+                .discoveries
+                .difference(&sim.organisms[j].discoveries)
+                .cloned()
+                .collect();
+            if known.is_empty() {
+                continue;
+            }
+            let pick = known[sim.rng.random_range(0..known.len())].clone();
+            transfers.push((j, pick));
+        }
+    }
+    for (idx, name) in transfers {
+        if sim.organisms[idx].discoveries.insert(name.clone()) {
+            let oname = sim.organisms[idx].name.clone();
+            push_event(
+                &mut sim.events,
+                tick,
+                "build",
+                &oname,
+                &format!("learned {} from an elder", name.replace('_', " ")),
+            );
+        }
     }
 }
 

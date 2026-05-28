@@ -17,6 +17,8 @@ export interface DesktopBridge {
 
   app: {
     reload(): Promise<void>
+    notify(payload: { title: string; body: string }): Promise<void>
+    trayToggle(): Promise<void>
   }
 
   world: {
@@ -24,7 +26,11 @@ export interface DesktopBridge {
   }
 
   on(
-    channel: 'updater:available' | 'updater:downloaded' | 'menu:openSettings',
+    channel:
+      | 'updater:available'
+      | 'updater:downloaded'
+      | 'menu:openSettings'
+      | 'app:visibility',
     cb: (payload: unknown) => void,
   ): () => void
 }
@@ -46,6 +52,8 @@ const bridge: DesktopBridge = {
 
   app: {
     reload: () => ipcRenderer.invoke('app:reload'),
+    notify: (payload) => ipcRenderer.invoke('app:notify', payload),
+    trayToggle: () => ipcRenderer.invoke('app:trayToggle'),
   },
 
   world: {
