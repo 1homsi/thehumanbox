@@ -73,6 +73,20 @@ function LiveApp() {
     })
   }, [])
 
+  const lastHeadlineTickRef = useRef<number>(0)
+  useEffect(() => {
+    const desk = window.thbDesktop
+    if (!desk) return
+    if (!world?.headlines || world.headlines.length === 0) return
+    const newest = world.headlines[0]
+    if (!newest || typeof newest.tick !== 'number') return
+    if (newest.tick <= lastHeadlineTickRef.current) return
+    lastHeadlineTickRef.current = newest.tick
+    if (document.visibilityState !== 'visible' || document.body.classList.contains('thb-app-minimized')) {
+      void desk.app.notify({ title: 'The Human Box', body: newest.text })
+    }
+  }, [world?.headlines])
+
   const splashHiddenRef = useRef(false)
   useEffect(() => {
     if (world && !splashHiddenRef.current) {

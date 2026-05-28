@@ -105,6 +105,9 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick > 0 && tick % 20 == 0 {
         tick_building_progress(sim);
     }
+    if tick > 0 && tick % 40 == 0 {
+        tick_evening_gathering(sim);
+    }
     tick_season_change(sim);
     if tick > 0 && tick % 600 == 0 && sim.is_night() {
         tick_partner_pillow_talk(sim);
@@ -359,6 +362,62 @@ fn tick_season_change(sim: &mut Simulation) {
             .with_emotion(emotion);
         o.memories.insert(entry);
         picked += 1;
+    }
+}
+
+fn tick_evening_gathering(sim: &mut Simulation) {
+    let tick = sim.tick_count;
+    let phase = tick % crate::sim::cosmos::DAY_LENGTH;
+    let day_len = crate::sim::cosmos::DAY_LENGTH as f32;
+    let dusk_start = (day_len * 0.62) as u64;
+    let dusk_end = (day_len * 0.74) as u64;
+    if phase < dusk_start || phase > dusk_end {
+        return;
+    }
+    if sim.organisms.is_empty() || sim.buildings.is_empty() {
+        return;
+    }
+    let mut moves: Vec<(usize, f32, f32)> = Vec::new();
+    for (i, o) in sim.organisms.iter().enumerate() {
+        if !o.alive || o.age < 200 {
+            continue;
+        }
+        let my_lid = &o.lineage_id;
+        let mut best: Option<(f32, f32, f32)> = None;
+        for b in sim.buildings.iter() {
+            if b.condition < 0.4 {
+                continue;
+            }
+            if let Some(owner) = &b.owner_lineage {
+                if owner != my_lid {
+                    continue;
+                }
+            } else {
+                continue;
+            }
+            let bx = b.x as f32;
+            let by = b.y as f32;
+            let dist = (bx - o.x).abs() + (by - o.y).abs();
+            if dist > 60.0 || dist < 2.0 {
+                continue;
+            }
+            if let Some((d, _, _)) = best {
+                if dist < d {
+                    best = Some((dist, bx, by));
+                }
+            } else {
+                best = Some((dist, bx, by));
+            }
+        }
+        if let Some((_, bx, by)) = best {
+            let dx = (bx - o.x).signum() * 0.25;
+            let dy = (by - o.y).signum() * 0.25;
+            moves.push((i, dx, dy));
+        }
+    }
+    for (i, dx, dy) in moves {
+        sim.organisms[i].x += dx;
+        sim.organisms[i].y += dy;
     }
 }
 
