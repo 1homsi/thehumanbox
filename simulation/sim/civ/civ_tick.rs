@@ -90,6 +90,9 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick > 0 && tick % 60 == 0 {
         tick_mood_contagion(sim);
     }
+    if tick > 0 && tick % 180 == 0 {
+        tick_meteor_shower(sim);
+    }
     if tick > 0 && tick % 600 == 0 && sim.is_night() {
         tick_partner_pillow_talk(sim);
     }
@@ -275,6 +278,54 @@ fn tick_maybe_eclipse(sim: &mut Simulation) {
     );
     sim.headlines
         .push_back((tick, format!("a {} stunned the people: {}", label, text)));
+    while sim.headlines.len() > 80 {
+        sim.headlines.pop_front();
+    }
+}
+
+fn tick_meteor_shower(sim: &mut Simulation) {
+    use crate::organism::memory::{MemoryEntry, MemoryKind};
+    let tick = sim.tick_count;
+    if !sim.is_night() {
+        return;
+    }
+    let r: f32 = sim.rng.random();
+    if r > 0.015 {
+        return;
+    }
+    let alive_count = sim.organisms.iter().filter(|o| o.alive).count();
+    if alive_count == 0 {
+        return;
+    }
+    let pick_n = (alive_count / 8).max(1).min(20);
+    let mut picked = 0;
+    for o in sim.organisms.iter_mut() {
+        if !o.alive || picked >= pick_n {
+            continue;
+        }
+        if sim.rng.random::<f32>() > pick_n as f32 / alive_count as f32 {
+            continue;
+        }
+        let entry = MemoryEntry::new(
+            MemoryKind::Episode,
+            "stars fell across the sky tonight — I made a wish",
+            tick,
+        )
+        .with_salience(0.78)
+        .with_emotion(2);
+        o.memories.insert(entry);
+        o.joy_ticks = (o.joy_ticks + 30).min(1200);
+        picked += 1;
+    }
+    push_event(
+        &mut sim.events,
+        tick,
+        "sky",
+        "world",
+        "a meteor shower lit the night",
+    );
+    sim.headlines
+        .push_back((tick, "stars fell across the sky — many made wishes".to_string()));
     while sim.headlines.len() > 80 {
         sim.headlines.pop_front();
     }
