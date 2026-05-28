@@ -127,11 +127,3 @@ text instantly; the LLM rewrites in place when it returns.
 - Use overlays (hazard, fertility, density, age, threat, structures,
   trails) to look at the world by lens.
 - Run photo mode, slow-mo, fast-mo, immersive mode, random tour.
-
-## Deployment
-
-EC2 c7g.medium, 2 GB RAM. Backend behind a Cloudflare tunnel; frontend
-on Cloudflare Pages. CF Pages auto-deploys from `main`. Backend deploys
-via `.github/workflows/pipeline.yml` — build → bump → publish release →
-deploy. See [simulation/README.md](simulation/README.md) for env vars
-and Cloudflare cache-bypass routes.
