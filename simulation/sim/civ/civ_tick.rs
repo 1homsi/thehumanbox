@@ -93,6 +93,9 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick > 0 && tick % 180 == 0 {
         tick_meteor_shower(sim);
     }
+    if tick > 0 && tick % 360 == 0 {
+        tick_aurora_sighting(sim);
+    }
     tick_season_change(sim);
     if tick > 0 && tick % 600 == 0 && sim.is_night() {
         tick_partner_pillow_talk(sim);
@@ -346,6 +349,60 @@ fn tick_season_change(sim: &mut Simulation) {
             .with_salience(salience)
             .with_emotion(emotion);
         o.memories.insert(entry);
+        picked += 1;
+    }
+}
+
+fn tick_aurora_sighting(sim: &mut Simulation) {
+    use crate::organism::memory::{MemoryEntry, MemoryKind};
+    let tick = sim.tick_count;
+    if !sim.is_night() {
+        return;
+    }
+    let season = sim.season();
+    if season != "scarcity" && season != "recovery" {
+        return;
+    }
+    let r: f32 = sim.rng.random();
+    if r > 0.025 {
+        return;
+    }
+    let alive_n = sim.organisms.iter().filter(|o| o.alive).count();
+    if alive_n == 0 {
+        return;
+    }
+    push_event(
+        &mut sim.events,
+        tick,
+        "sky",
+        "world",
+        "the night sky rippled with green and violet curtains",
+    );
+    sim.headlines.push_back((
+        tick,
+        "the people watched green light dance across the cold sky".to_string(),
+    ));
+    while sim.headlines.len() > 80 {
+        sim.headlines.pop_front();
+    }
+    let pick_n = (alive_n / 6).max(1).min(40);
+    let mut picked = 0usize;
+    for o in sim.organisms.iter_mut() {
+        if !o.alive || picked >= pick_n {
+            continue;
+        }
+        if sim.rng.random::<f32>() > pick_n as f32 / alive_n as f32 {
+            continue;
+        }
+        let entry = MemoryEntry::new(
+            MemoryKind::Episode,
+            "I saw green and violet curtains breathing across the night sky",
+            tick,
+        )
+        .with_salience(0.82)
+        .with_emotion(2);
+        o.memories.insert(entry);
+        o.joy_ticks = (o.joy_ticks + 25).min(1200);
         picked += 1;
     }
 }
