@@ -1255,7 +1255,7 @@ fn tick_specialties(sim: &mut Simulation) {
                     o.traits.aggression,
                     o.traits.social_tendency,
                     o.lineage_id.clone(),
-                    o.discoveries.contains(&"writing".to_string()),
+                    o.discoveries.contains("writing"),
                 ))
             } else {
                 None
