@@ -19,6 +19,7 @@ import { Clouds3D } from './parts/Clouds3D'
 import { Snow } from './parts/Snow'
 import { ShootingStars } from './parts/ShootingStars'
 import { Aurora } from './parts/Aurora'
+import { GroundMist } from './parts/GroundMist'
 import { HelpOverlay } from './parts/HelpOverlay'
 import { AmbientMotes } from './parts/AmbientMotes'
 import { MiniMap } from './parts/MiniMap'
@@ -595,6 +596,12 @@ export default function WorldView3D({ world }: Props) {
                   season={world.season}
                   width={grid.width}
                   height={grid.height}
+                />
+                <GroundMist
+                  dayProgress={dayProgress}
+                  width={grid.width}
+                  height={grid.height}
+                  weatherKind={world.weather?.kind ?? 'clear'}
                 />
                 <AmbientMotes isNight={isNight} weatherKind={world.weather?.kind ?? 'clear'} />
                 <Fireflies hutPositions={hutWorldPositions} isNight={isNight} />
