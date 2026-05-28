@@ -20,6 +20,7 @@ import { Snow } from './parts/Snow'
 import { ShootingStars } from './parts/ShootingStars'
 import { Aurora } from './parts/Aurora'
 import { GroundMist } from './parts/GroundMist'
+import { Comet } from './parts/Comet'
 import { DayClockDriver } from './parts/DayClockDriver'
 import { HelpOverlay } from './parts/HelpOverlay'
 import { AmbientMotes } from './parts/AmbientMotes'
@@ -605,6 +606,12 @@ export default function WorldView3D({ world }: Props) {
                   width={grid.width}
                   height={grid.height}
                   weatherKind={world.weather?.kind ?? 'clear'}
+                />
+                <Comet
+                  isNight={isNight}
+                  dayOfYear={world.cosmos?.day_of_year}
+                  width={grid.width}
+                  height={grid.height}
                 />
                 <AmbientMotes isNight={isNight} weatherKind={world.weather?.kind ?? 'clear'} />
                 <Fireflies hutPositions={hutWorldPositions} isNight={isNight} />

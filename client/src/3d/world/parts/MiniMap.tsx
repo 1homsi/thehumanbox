@@ -166,6 +166,21 @@ export function MiniMap({ organisms, animals, tiles, depthMap, biomes, width, he
         ctx.fillRect(Math.floor(mx) - 1, Math.floor(my) - 1, 3, 3)
       }
 
+      const ping = clickPingRef.current
+      if (ping) {
+        const age = (performance.now() - ping.at) / 380
+        if (age >= 1) {
+          clickPingRef.current = null
+        } else {
+          const radius = 3 + age * 18
+          ctx.beginPath()
+          ctx.arc(ping.x, ping.y, radius, 0, Math.PI * 2)
+          ctx.strokeStyle = `rgba(255, 207, 106, ${1 - age})`
+          ctx.lineWidth = 1.2
+          ctx.stroke()
+        }
+      }
+
       const cx = (cameraSnapshot.x / TILE_SCALE / width) * MAP_W
       const cz = (cameraSnapshot.z / TILE_SCALE / height) * MAP_H
       const yaw = Math.atan2(cameraSnapshot.dirX, cameraSnapshot.dirZ)
@@ -190,6 +205,7 @@ export function MiniMap({ organisms, animals, tiles, depthMap, biomes, width, he
     return () => cancelAnimationFrame(rafRef.current)
   }, [organisms, animals, width, height, selectedOrgId])
 
+  const clickPingRef = useRef<{ x: number; y: number; at: number } | null>(null)
   const onClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const rect = (e.target as HTMLCanvasElement).getBoundingClientRect()
     const mx = e.clientX - rect.left
@@ -198,7 +214,12 @@ export function MiniMap({ organisms, animals, tiles, depthMap, biomes, width, he
     const ty = (my / MAP_H) * height
     const wx = tx * TILE_SCALE
     const wz = ty * TILE_SCALE
-    cameraCommand.teleport = { x: wx, y: cameraSnapshot.y, z: wz }
+    clickPingRef.current = { x: mx, y: my, at: performance.now() }
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        cameraCommand.teleport = { x: wx, y: cameraSnapshot.y, z: wz }
+      })
+    })
   }
 
   return (
