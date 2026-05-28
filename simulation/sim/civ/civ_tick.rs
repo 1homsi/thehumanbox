@@ -129,6 +129,12 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick > 0 && tick % 50 == 0 {
         tick_anger_outbursts(sim);
     }
+    if tick > 0 && tick % 90 == 0 {
+        tick_spiritual_pilgrimage(sim);
+    }
+    if tick > 0 && tick % 300 == 0 {
+        tick_hopeful_aspiration(sim);
+    }
     tick_season_change(sim);
     if tick > 0 && tick % 600 == 0 && sim.is_night() {
         tick_partner_pillow_talk(sim);
@@ -383,6 +389,107 @@ fn tick_season_change(sim: &mut Simulation) {
             .with_emotion(emotion);
         o.memories.insert(entry);
         picked += 1;
+    }
+}
+
+fn tick_spiritual_pilgrimage(sim: &mut Simulation) {
+    let n = sim.organisms.len();
+    if n == 0 || sim.buildings.is_empty() {
+        return;
+    }
+    let temples: Vec<(f32, f32, String)> = sim
+        .buildings
+        .iter()
+        .filter(|b| {
+            (b.condition >= 0.5)
+                && matches!(
+                    b.kind,
+                    crate::sim::tech::buildings::BuildingKind::Temple
+                        | crate::sim::tech::buildings::BuildingKind::Shrine
+                        | crate::sim::tech::buildings::BuildingKind::Cathedral
+                )
+        })
+        .map(|b| {
+            (
+                b.x as f32 + 0.5,
+                b.y as f32 + 0.5,
+                b.owner_lineage.clone().unwrap_or_default(),
+            )
+        })
+        .collect();
+    if temples.is_empty() {
+        return;
+    }
+    let mut moves: Vec<(usize, f32, f32)> = Vec::new();
+    for (i, o) in sim.organisms.iter().enumerate() {
+        if !o.alive || o.spiritual < 0.55 {
+            continue;
+        }
+        let mut best: Option<(f32, f32, f32)> = None;
+        for (tx, ty, tlid) in temples.iter() {
+            if !tlid.is_empty() && tlid != &o.lineage_id {
+                continue;
+            }
+            let d = (tx - o.x).abs() + (ty - o.y).abs();
+            if d > 70.0 || d < 2.0 {
+                continue;
+            }
+            if let Some((bd, _, _)) = best {
+                if d < bd {
+                    best = Some((d, *tx, *ty));
+                }
+            } else {
+                best = Some((d, *tx, *ty));
+            }
+        }
+        if let Some((_, tx, ty)) = best {
+            let dx = (tx - o.x).signum() * 0.18;
+            let dy = (ty - o.y).signum() * 0.18;
+            moves.push((i, dx, dy));
+        }
+    }
+    for (i, dx, dy) in moves {
+        sim.organisms[i].x += dx;
+        sim.organisms[i].y += dy;
+    }
+}
+
+fn tick_hopeful_aspiration(sim: &mut Simulation) {
+    let tick = sim.tick_count;
+    let aspirations = [
+        "to build a great hall",
+        "to remember every name",
+        "to never be hungry again",
+        "to keep my kin safe",
+        "to see the far shore",
+        "to write our story down",
+        "to learn the night sky",
+        "to be remembered well",
+    ];
+    for o in sim.organisms.iter_mut() {
+        if !o.alive || o.age < 600 {
+            continue;
+        }
+        if !o.aspiration.is_empty() {
+            continue;
+        }
+        if o.hope < 0.65 {
+            continue;
+        }
+        let r: f32 = sim.rng.random();
+        if r > 0.001 {
+            continue;
+        }
+        let pick = aspirations[sim.rng.random_range(0..aspirations.len())];
+        o.aspiration = pick.to_string();
+        let oname = o.name.clone();
+        push_event(
+            &mut sim.events,
+            tick,
+            "aspiration",
+            &oname,
+            &format!("decided: {}", pick),
+        );
     }
 }
 
