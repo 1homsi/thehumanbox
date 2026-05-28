@@ -244,6 +244,29 @@ function buildMenu(): void {
         { role: 'zoomOut' },
         { type: 'separator' },
         { role: 'togglefullscreen' },
+        { type: 'separator' },
+        {
+          label: 'Always on top',
+          type: 'checkbox',
+          checked: mainWindow ? mainWindow.isAlwaysOnTop() : false,
+          accelerator: isMac ? 'Cmd+Shift+T' : 'Ctrl+Shift+T',
+          click: (item) => {
+            if (!mainWindow) return
+            mainWindow.setAlwaysOnTop(item.checked)
+          },
+        },
+        {
+          label: 'Screenshot',
+          accelerator: isMac ? 'Cmd+Shift+S' : 'Ctrl+Shift+S',
+          click: () => {
+            void captureScreenshot().then((fp) => {
+              if (fp) {
+                notifyMilestone('Screenshot saved', fp)
+                shell.showItemInFolder(fp)
+              }
+            })
+          },
+        },
       ],
     },
     {
@@ -356,6 +379,26 @@ function buildTray(): void {
             },
           },
           { type: 'separator' },
+          {
+            label: 'Always on top',
+            type: 'checkbox',
+            checked: mainWindow ? mainWindow.isAlwaysOnTop() : false,
+            click: (item) => {
+              if (!mainWindow) return
+              mainWindow.setAlwaysOnTop(item.checked)
+            },
+          },
+          {
+            label: 'About The Human Box',
+            click: () => {
+              const ver = app.getVersion()
+              notifyMilestone(
+                'The Human Box',
+                `v${ver}\nA persistent artificial-life simulation.\nthehumanbox.com`,
+              )
+            },
+          },
+          { type: 'separator' },
           { label: 'Quit The Human Box', role: 'quit' },
         ]),
       )
@@ -437,6 +480,14 @@ app.whenReady().then(async () => {
   })
 
   globalShortcut.register(process.platform === 'darwin' ? 'Cmd+Shift+H' : 'Ctrl+Shift+H', toggleWindow)
+  globalShortcut.register(process.platform === 'darwin' ? 'Cmd+Shift+S' : 'Ctrl+Shift+S', () => {
+    void captureScreenshot().then((fp) => {
+      if (fp) {
+        notifyMilestone('Screenshot saved', fp)
+        shell.showItemInFolder(fp)
+      }
+    })
+  })
 
   ipcMain.handle('app:notify', (_e, payload: { title: string; body: string }) => {
     notifyMilestone(payload.title, payload.body)
