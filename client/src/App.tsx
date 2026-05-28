@@ -75,6 +75,30 @@ function LiveApp() {
     })
   }, [])
 
+  useEffect(() => {
+    function onKey(e: KeyboardEvent): void {
+      if (e.key !== 'Tab') return
+      const target = e.target as HTMLElement | null
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return
+      }
+      const orgs = world?.organisms.filter((o) => o.alive)
+      if (!orgs || orgs.length === 0) return
+      e.preventDefault()
+      const dir = e.shiftKey ? -1 : 1
+      const currentIdx = selectedOrgId
+        ? orgs.findIndex((o) => o.id === selectedOrgId)
+        : -1
+      const next = orgs[(currentIdx + dir + orgs.length) % orgs.length]
+      if (next) {
+        useUIStore.getState().selectOrg(next.id)
+        useUIStore.getState().followOrg(next.id)
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [world, selectedOrgId])
+
   const lastHeadlineTickRef = useRef<number>(0)
   useEffect(() => {
     const desk = window.thbDesktop
