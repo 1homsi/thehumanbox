@@ -144,6 +144,12 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick > 0 && tick % 600 == 0 {
         tick_weddings(sim);
     }
+    if tick > 0 && tick % 120 == 0 {
+        tick_dream_sharing(sim);
+    }
+    if tick > 0 && tick % 60 == 0 {
+        tick_storyteller(sim);
+    }
     tick_season_change(sim);
     if tick > 0 && tick % 600 == 0 && sim.is_night() {
         tick_partner_pillow_talk(sim);
@@ -460,6 +466,133 @@ fn tick_spiritual_pilgrimage(sim: &mut Simulation) {
     for (i, dx, dy) in moves {
         sim.organisms[i].x += dx;
         sim.organisms[i].y += dy;
+    }
+}
+
+fn tick_dream_sharing(sim: &mut Simulation) {
+    use crate::organism::memory::{MemoryEntry, MemoryKind};
+    let tick = sim.tick_count;
+    if !sim.is_night() {
+        return;
+    }
+    let n = sim.organisms.len();
+    if n == 0 {
+        return;
+    }
+    let mut shares: Vec<(usize, usize)> = Vec::new();
+    let mut by_id: HashMap<String, usize> = HashMap::new();
+    for (i, o) in sim.organisms.iter().enumerate() {
+        if o.alive {
+            by_id.insert(o.id.clone(), i);
+        }
+    }
+    for (i, o) in sim.organisms.iter().enumerate() {
+        if !o.alive {
+            continue;
+        }
+        if o.spiritual < 0.3 && o.awe < 0.3 {
+            continue;
+        }
+        let Some(ref pid) = o.partner_id else { continue };
+        let Some(&j) = by_id.get(pid) else { continue };
+        if i == j {
+            continue;
+        }
+        let p = &sim.organisms[j];
+        if !p.alive {
+            continue;
+        }
+        if (p.x - o.x).abs() + (p.y - o.y).abs() > 2.0 {
+            continue;
+        }
+        if sim.rng.random::<f32>() > 0.04 {
+            continue;
+        }
+        shares.push((i, j));
+    }
+    for (i, j) in shares {
+        let entry = MemoryEntry::new(
+            MemoryKind::Dream,
+            "we shared a dream tonight — bright shapes that neither of us could name",
+            tick,
+        )
+        .with_salience(0.6)
+        .with_emotion(2);
+        sim.organisms[i].memories.insert(entry.clone());
+        sim.organisms[j].memories.insert(entry);
+        sim.organisms[i].spiritual = (sim.organisms[i].spiritual + 0.02).min(1.0);
+        sim.organisms[j].spiritual = (sim.organisms[j].spiritual + 0.02).min(1.0);
+    }
+}
+
+fn tick_storyteller(sim: &mut Simulation) {
+    use crate::organism::memory::{MemoryEntry, MemoryKind};
+    let tick = sim.tick_count;
+    let phase = tick % crate::sim::cosmos::DAY_LENGTH;
+    let day_len = crate::sim::cosmos::DAY_LENGTH as f32;
+    let evening_start = (day_len * 0.70) as u64;
+    let evening_end = (day_len * 0.85) as u64;
+    if phase < evening_start || phase > evening_end {
+        return;
+    }
+    let n = sim.organisms.len();
+    if n == 0 {
+        return;
+    }
+    let storytellers: Vec<(usize, String, f32, f32, String)> = sim
+        .organisms
+        .iter()
+        .enumerate()
+        .filter(|(_, o)| {
+            o.alive
+                && o.is_elder
+                && o.spiritual > 0.5
+                && !o.memories.entries.is_empty()
+        })
+        .map(|(i, o)| {
+            let pick = o
+                .memories
+                .entries
+                .iter()
+                .max_by(|a, b| {
+                    a.salience
+                        .partial_cmp(&b.salience)
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                })
+                .map(|m| m.text.clone())
+                .unwrap_or_default();
+            (i, o.lineage_id.clone(), o.x, o.y, pick)
+        })
+        .filter(|(_, _, _, _, text)| !text.is_empty())
+        .collect();
+    if storytellers.is_empty() {
+        return;
+    }
+    for (si, lid, sx, sy, text) in storytellers.iter() {
+        let mut listeners = 0;
+        for (j, o) in sim.organisms.iter_mut().enumerate() {
+            if j == *si || !o.alive || &o.lineage_id != lid {
+                continue;
+            }
+            if (o.x - sx).abs() + (o.y - sy).abs() > 4.0 {
+                continue;
+            }
+            if sim.rng.random::<f32>() > 0.15 {
+                continue;
+            }
+            let entry = MemoryEntry::new(
+                MemoryKind::Fact,
+                format!("an elder told us: {}", text),
+                tick,
+            )
+            .with_salience(0.5)
+            .with_emotion(1);
+            o.memories.insert(entry);
+            listeners += 1;
+            if listeners >= 6 {
+                break;
+            }
+        }
     }
 }
 
