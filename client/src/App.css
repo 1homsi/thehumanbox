@@ -1505,8 +1505,8 @@ body.thb-photo-mode .header:hover {
 }
 .desktop-toast {
   position: fixed;
-  top: 64px;
-  right: 16px;
+  bottom: 16px;
+  left: 16px;
   z-index: 90;
   width: 340px;
   max-width: calc(100vw - 32px);
@@ -2865,7 +2865,11 @@ body.thb-photo-mode .header:hover {
   .stats-modal,
   .about-modal,
   .cv-modal,
-  .life-modal {
+  .life-modal,
+  .civ-modal,
+  .notable-modal,
+  .settings-modal,
+  .worlds-modal {
     width: 100vw !important;
     max-width: 100vw !important;
     border-radius: 14px 14px 0 0 !important;
@@ -3173,8 +3177,11 @@ body.thb-photo-mode .header:hover {
   .thb-3d-minimap {
     display: none !important;
   }
+  .thb-3d-hud {
+    top: 60px !important;
+  }
   .desktop-toast {
-    top: 56px;
+    bottom: 12px;
     left: 12px;
     right: 12px;
     width: auto;
