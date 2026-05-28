@@ -9,7 +9,8 @@ pub struct SpatialIndex {
 
 impl SpatialIndex {
     pub fn build(organisms: &[Organism], bucket_size: i32) -> Self {
-        let mut buckets: HashMap<(i32, i32), Vec<usize>> = HashMap::new();
+        let mut buckets: HashMap<(i32, i32), Vec<usize>> =
+            HashMap::with_capacity(organisms.len() / 4 + 8);
         for (i, org) in organisms.iter().enumerate() {
             if !org.alive {
                 continue;
@@ -21,7 +22,8 @@ impl SpatialIndex {
     }
 
     pub fn build_animals(animals: &[Animal], bucket_size: i32) -> Self {
-        let mut buckets: HashMap<(i32, i32), Vec<usize>> = HashMap::new();
+        let mut buckets: HashMap<(i32, i32), Vec<usize>> =
+            HashMap::with_capacity(animals.len() / 4 + 8);
         for (i, a) in animals.iter().enumerate() {
             if !a.alive {
                 continue;

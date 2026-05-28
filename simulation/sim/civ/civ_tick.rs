@@ -100,32 +100,33 @@ pub fn tick_civ(sim: &mut Simulation) {
 
 fn tick_grudge_recall(sim: &mut Simulation) {
     use crate::organism::memory::MemoryKind;
+    use std::collections::HashSet;
     let n = sim.organisms.len();
     if n == 0 {
         return;
     }
-    let snapshot: Vec<(usize, f32, f32, Vec<String>)> = sim
-        .organisms
-        .iter()
-        .enumerate()
-        .filter(|(_, o)| o.alive)
-        .map(|(i, o)| {
-            let foes: Vec<String> = o
-                .memories
-                .entries
-                .iter()
-                .filter(|m| m.kind == MemoryKind::Bond && m.emotion <= -2 && m.salience > 0.5)
-                .filter_map(|m| m.related_id.clone())
-                .take(4)
-                .collect();
-            (i, o.x, o.y, foes)
-        })
-        .collect();
-
-    for (i, x, y, foes) in snapshot {
-        if foes.is_empty() {
+    let mut snapshot: Vec<(usize, f32, f32, HashSet<String>)> = Vec::with_capacity(n / 4);
+    for (i, o) in sim.organisms.iter().enumerate() {
+        if !o.alive {
             continue;
         }
+        let mut foes: HashSet<String> = HashSet::with_capacity(4);
+        for m in o.memories.entries.iter() {
+            if foes.len() >= 4 {
+                break;
+            }
+            if m.kind == MemoryKind::Bond && m.emotion <= -2 && m.salience > 0.5 {
+                if let Some(rid) = &m.related_id {
+                    foes.insert(rid.clone());
+                }
+            }
+        }
+        if !foes.is_empty() {
+            snapshot.push((i, o.x, o.y, foes));
+        }
+    }
+
+    for (i, x, y, foes) in snapshot {
         let mut bumps = 0u32;
         for j in 0..n {
             if j == i {
@@ -138,7 +139,7 @@ fn tick_grudge_recall(sim: &mut Simulation) {
             if (other.x - x).abs() + (other.y - y).abs() > 6.0 {
                 continue;
             }
-            if foes.iter().any(|fid| fid == &other.id) {
+            if foes.contains(&other.id) {
                 bumps += 1;
             }
         }
@@ -583,9 +584,10 @@ fn tick_witnessed_events(sim: &mut Simulation) {
         return;
     }
 
-    // Build name → org index map and lineage → indices map for O(N) lookup.
-    let mut by_name: HashMap<String, usize> = HashMap::new();
-    let mut by_lineage: HashMap<String, Vec<usize>> = HashMap::new();
+    let n = sim.organisms.len();
+    let mut by_name: HashMap<String, usize> = HashMap::with_capacity(n);
+    let mut by_lineage: HashMap<String, Vec<usize>> =
+        HashMap::with_capacity(sim.lineage_names.len().max(8));
     for (i, o) in sim.organisms.iter().enumerate() {
         if !o.alive {
             continue;
