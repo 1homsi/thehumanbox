@@ -120,6 +120,15 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick > 0 && tick % 1800 == 0 {
         tick_festivals(sim);
     }
+    if tick > 0 && tick % 60 == 0 {
+        tick_awe_marvels(sim);
+    }
+    if tick > 0 && tick % 30 == 0 {
+        tick_gratitude_sharing(sim);
+    }
+    if tick > 0 && tick % 50 == 0 {
+        tick_anger_outbursts(sim);
+    }
     tick_season_change(sim);
     if tick > 0 && tick % 600 == 0 && sim.is_night() {
         tick_partner_pillow_talk(sim);
@@ -374,6 +383,110 @@ fn tick_season_change(sim: &mut Simulation) {
             .with_emotion(emotion);
         o.memories.insert(entry);
         picked += 1;
+    }
+}
+
+fn tick_awe_marvels(sim: &mut Simulation) {
+    use crate::organism::memory::{MemoryEntry, MemoryKind};
+    let tick = sim.tick_count;
+    if !sim.is_night() {
+        return;
+    }
+    for o in sim.organisms.iter_mut() {
+        if !o.alive || o.awe < 0.55 {
+            continue;
+        }
+        let r: f32 = sim.rng.random();
+        if r > 0.008 {
+            continue;
+        }
+        let entry = MemoryEntry::new(
+            MemoryKind::Episode,
+            "I marvelled at the stars tonight — the world felt impossibly large",
+            tick,
+        )
+        .with_salience(0.7)
+        .with_emotion(2);
+        o.memories.insert(entry);
+        o.spiritual = (o.spiritual + 0.04).min(1.0);
+    }
+}
+
+fn tick_gratitude_sharing(sim: &mut Simulation) {
+    let tick = sim.tick_count;
+    let n = sim.organisms.len();
+    if n == 0 {
+        return;
+    }
+    let givers: Vec<(usize, String, f32, f32, f32, f32)> = sim
+        .organisms
+        .iter()
+        .enumerate()
+        .filter(|(_, o)| o.alive && o.gratitude > 0.5 && o.energy > 0.5)
+        .map(|(i, o)| (i, o.lineage_id.clone(), o.x, o.y, o.energy, o.hydration))
+        .collect();
+    if givers.is_empty() {
+        return;
+    }
+    let mut transfers: Vec<(usize, usize, f32, f32)> = Vec::new();
+    for (gi, lid, gx, gy, ge, gh) in givers.iter() {
+        for (j, o) in sim.organisms.iter().enumerate() {
+            if !o.alive || j == *gi || &o.lineage_id != lid {
+                continue;
+            }
+            if (o.x - gx).abs() + (o.y - gy).abs() > 3.0 {
+                continue;
+            }
+            if o.energy < 0.3 && *ge > 0.55 {
+                transfers.push((*gi, j, 0.05, 0.0));
+                break;
+            }
+            if o.hydration < 0.3 && *gh > 0.55 {
+                transfers.push((*gi, j, 0.0, 0.05));
+                break;
+            }
+        }
+    }
+    for (gi, ri, e, h) in transfers {
+        sim.organisms[gi].energy = (sim.organisms[gi].energy - e).max(0.0);
+        sim.organisms[gi].hydration = (sim.organisms[gi].hydration - h).max(0.0);
+        sim.organisms[ri].energy = (sim.organisms[ri].energy + e).min(1.0);
+        sim.organisms[ri].hydration = (sim.organisms[ri].hydration + h).min(1.0);
+        sim.organisms[gi].gratitude = (sim.organisms[gi].gratitude * 0.7).max(0.0);
+        sim.organisms[ri].joy_ticks = (sim.organisms[ri].joy_ticks + 8).min(1200);
+        let gname = sim.organisms[gi].name.clone();
+        push_event(
+            &mut sim.events,
+            tick,
+            "build",
+            &gname,
+            "shared their food with kin",
+        );
+    }
+}
+
+fn tick_anger_outbursts(sim: &mut Simulation) {
+    use crate::organism::memory::{MemoryEntry, MemoryKind};
+    let tick = sim.tick_count;
+    for o in sim.organisms.iter_mut() {
+        if !o.alive || o.anger < 0.7 {
+            continue;
+        }
+        let r: f32 = sim.rng.random();
+        if r > 0.05 {
+            continue;
+        }
+        let entry = MemoryEntry::new(
+            MemoryKind::Episode,
+            "I lost my temper — words I cannot take back",
+            tick,
+        )
+        .with_salience(0.7)
+        .with_emotion(-2);
+        o.memories.insert(entry);
+        o.fear_level = (o.fear_level + 0.05).min(1.0);
+        o.regret = (o.regret + 0.15).min(1.0);
+        o.anger = (o.anger * 0.4).max(0.0);
     }
 }
 
