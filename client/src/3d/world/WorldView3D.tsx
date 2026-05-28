@@ -24,6 +24,8 @@ import { Comet } from './parts/Comet'
 import { ConstructionScaffolds } from './parts/ConstructionScaffolds'
 import { BuildSparks } from './parts/BuildSparks'
 import { Vehicles3D } from './parts/Vehicles3D'
+import { Roads3D } from './parts/Roads3D'
+import { Boats3D } from './parts/Boats3D'
 import { DayClockDriver } from './parts/DayClockDriver'
 import { HelpOverlay } from './parts/HelpOverlay'
 import { AmbientMotes } from './parts/AmbientMotes'
@@ -632,6 +634,19 @@ export default function WorldView3D({ world }: Props) {
                   depthMap={grid.depth_map}
                   biomes={grid.biomes}
                   isNight={isNight}
+                />
+                <Roads3D
+                  buildings={world.buildings}
+                  lineageEras={world.lineage_eras as unknown as Record<string, string>}
+                  depthMap={grid.depth_map}
+                  biomes={grid.biomes}
+                />
+                <Boats3D
+                  tiles={grid.tiles}
+                  depthMap={grid.depth_map}
+                  biomes={grid.biomes}
+                  width={grid.width}
+                  height={grid.height}
                 />
                 <AmbientMotes isNight={isNight} weatherKind={world.weather?.kind ?? 'clear'} />
                 <Fireflies hutPositions={hutWorldPositions} isNight={isNight} />
