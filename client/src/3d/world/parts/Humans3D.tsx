@@ -186,15 +186,20 @@ function FarHumans({
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
   }, [count])
 
-  useFrame(() => {
+  useFrame(({ clock }) => {
     const mesh = meshRef.current
     if (!mesh) return
+    const t = clock.getElapsedTime()
     for (let i = 0; i < count; i++) {
       const o = organisms[i]
       const [tx, ty] = getOrgXY(o.id)
+      const [vx, vy] = getOrgVelocityXY(o.id)
+      const speed = Math.sqrt(vx * vx + vy * vy)
       const groundY = heightAt(tx, ty, depthMap, biomes)
-      // Height pinned to half-capsule so the foot sits on terrain.
-      _pos.set(tx * TILE_SCALE, groundY + 0.45, ty * TILE_SCALE)
+      const idHash = o.id ? o.id.charCodeAt(0) * 13 + o.id.charCodeAt(o.id.length - 1) : 0
+      const phase = idHash * 0.1
+      const bob = speed > 0.02 ? Math.abs(Math.sin(t * 12 + phase)) * Math.min(0.06, speed * 1.4) : 0
+      _pos.set(tx * TILE_SCALE, groundY + 0.45 + bob, ty * TILE_SCALE)
       _euler.set(0, getOrgHeading(o.id), 0)
       _quat.setFromEuler(_euler)
       // Inherit the same per-org scale we'd use for skinned figures
