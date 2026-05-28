@@ -2254,7 +2254,9 @@ body.thb-photo-mode .header:hover {
 }
 
 /* ── Stats modal ─────────────────────────────────────────────────────── */
-.stats-modal {
+.stats-modal,
+.notable-modal,
+.settings-modal {
   background: #28201a;
   border: 1px solid #443329;
   border-radius: 6px;
@@ -2264,6 +2266,10 @@ body.thb-photo-mode .header:hover {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+.notable-modal,
+.settings-modal {
+  width: 760px;
 }
 .stats-quick {
   gap: 8px;
