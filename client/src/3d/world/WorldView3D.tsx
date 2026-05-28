@@ -28,6 +28,7 @@ import { Roads3D } from './parts/Roads3D'
 import { Boats3D } from './parts/Boats3D'
 import { Farms3D } from './parts/Farms3D'
 import { WatchtowerBeams } from './parts/WatchtowerBeams'
+import { IndustrySmoke } from './parts/IndustrySmoke'
 import { DayClockDriver } from './parts/DayClockDriver'
 import { HelpOverlay } from './parts/HelpOverlay'
 import { AmbientMotes } from './parts/AmbientMotes'
@@ -660,6 +661,11 @@ export default function WorldView3D({ world }: Props) {
                   depthMap={grid.depth_map}
                   biomes={grid.biomes}
                   isNight={isNight}
+                />
+                <IndustrySmoke
+                  buildings={world.buildings}
+                  depthMap={grid.depth_map}
+                  biomes={grid.biomes}
                 />
                 <AmbientMotes isNight={isNight} weatherKind={world.weather?.kind ?? 'clear'} />
                 <Fireflies hutPositions={hutWorldPositions} isNight={isNight} />
