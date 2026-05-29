@@ -1,7 +1,17 @@
 import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Vector3 } from 'three'
+import { Vector3, BoxGeometry, MeshBasicMaterial } from 'three'
 import { TILE_SCALE } from './constants'
+
+// One shared geometry + material for all streaks instead of allocating a
+// fresh pair per mesh.
+const STREAK_GEO = new BoxGeometry(1, 0.6, 0.6)
+const STREAK_MAT = new MeshBasicMaterial({
+  color: '#fff8d8',
+  transparent: true,
+  opacity: 0.95,
+  toneMapped: false,
+})
 
 interface Props {
   isNight: boolean
@@ -113,13 +123,12 @@ export function ShootingStars({ isNight, width, height }: Props) {
           ref={(el) => {
             refsArray.current[i] = el as unknown as HTMLElement | null
           }}
+          geometry={STREAK_GEO}
+          material={STREAK_MAT}
           frustumCulled={false}
           visible={false}
           renderOrder={-1}
-        >
-          <boxGeometry args={[1, 0.6, 0.6]} />
-          <meshBasicMaterial color="#fff8d8" transparent opacity={0.95} toneMapped={false} />
-        </mesh>
+        />
       ))}
     </>
   )

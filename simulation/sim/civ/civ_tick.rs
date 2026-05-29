@@ -525,18 +525,31 @@ fn tick_daily_summary(sim: &mut Simulation) {
 
 fn tick_arguments(sim: &mut Simulation) {
     use crate::organism::memory::{MemoryEntry, MemoryKind};
+    use crate::sim::spatial::SpatialIndex;
     let tick = sim.tick_count;
     let n = sim.organisms.len();
     if n == 0 {
         return;
     }
+    if !sim.organisms.iter().any(|o| o.alive && o.anger >= 0.3) {
+        return;
+    }
+    let spatial = SpatialIndex::build(&sim.organisms, 8);
+    let mut buf: Vec<usize> = Vec::with_capacity(32);
     let mut events: Vec<(usize, usize)> = Vec::new();
     for i in 0..n {
         let o = &sim.organisms[i];
         if !o.alive || o.anger < 0.3 {
             continue;
         }
-        for j in (i + 1)..n {
+        // Each unordered pair is initiated by the angry lower-index member
+        // (j > i), matching the original (i+1..n) scan — just neighborhood-
+        // limited instead of full N.
+        spatial.query_into(o.x as i32, o.y as i32, 2, &mut buf);
+        for &j in buf.iter() {
+            if j <= i {
+                continue;
+            }
             let p = &sim.organisms[j];
             if !p.alive || p.lineage_id != o.lineage_id {
                 continue;
@@ -594,28 +607,34 @@ fn tick_arguments(sim: &mut Simulation) {
 
 fn tick_reconciliations(sim: &mut Simulation) {
     use crate::organism::memory::{MemoryEntry, MemoryKind};
+    use crate::sim::spatial::SpatialIndex;
     let tick = sim.tick_count;
     let n = sim.organisms.len();
     if n == 0 {
         return;
     }
+    if !sim.organisms.iter().any(|o| o.alive && o.regret >= 0.4) {
+        return;
+    }
+    let spatial = SpatialIndex::build(&sim.organisms, 8);
+    let mut buf: Vec<usize> = Vec::with_capacity(32);
     let mut events: Vec<(usize, usize)> = Vec::new();
     for i in 0..n {
         let o = &sim.organisms[i];
         if !o.alive || o.regret < 0.4 {
             continue;
         }
-        let candidate: Option<usize> = sim
-            .organisms
-            .iter()
-            .enumerate()
-            .filter(|(j, p)| {
-                *j != i && p.alive && p.lineage_id == o.lineage_id
-                    && (p.x - o.x).abs() + (p.y - o.y).abs() <= 2.0
-                    && o.org_trust.get(&p.id).copied().unwrap_or(0.0) < -0.1
-            })
-            .map(|(j, _)| j)
-            .next();
+        spatial.query_into(o.x as i32, o.y as i32, 2, &mut buf);
+        let candidate: Option<usize> = buf.iter().copied().find(|&j| {
+            if j == i {
+                return false;
+            }
+            let p = &sim.organisms[j];
+            p.alive
+                && p.lineage_id == o.lineage_id
+                && (p.x - o.x).abs() + (p.y - o.y).abs() <= 2.0
+                && o.org_trust.get(&p.id).copied().unwrap_or(0.0) < -0.1
+        });
         if let Some(j) = candidate {
             if sim.rng.random::<f32>() < 0.06 {
                 events.push((i, j));
@@ -717,6 +736,7 @@ fn tick_dream_sharing(sim: &mut Simulation) {
 
 fn tick_storyteller(sim: &mut Simulation) {
     use crate::organism::memory::{MemoryEntry, MemoryKind};
+    use crate::sim::spatial::SpatialIndex;
     let tick = sim.tick_count;
     let phase = tick % crate::sim::cosmos::DAY_LENGTH;
     let day_len = crate::sim::cosmos::DAY_LENGTH as f32;
@@ -758,10 +778,18 @@ fn tick_storyteller(sim: &mut Simulation) {
     if storytellers.is_empty() {
         return;
     }
+    let spatial = SpatialIndex::build(&sim.organisms, 8);
+    let mut buf: Vec<usize> = Vec::with_capacity(32);
+    let mut inserts: Vec<(usize, String)> = Vec::new();
     for (si, lid, sx, sy, text) in storytellers.iter() {
+        spatial.query_into(*sx as i32, *sy as i32, 4, &mut buf);
         let mut listeners = 0;
-        for (j, o) in sim.organisms.iter_mut().enumerate() {
-            if j == *si || !o.alive || &o.lineage_id != lid {
+        for &j in buf.iter() {
+            if j == *si {
+                continue;
+            }
+            let o = &sim.organisms[j];
+            if !o.alive || &o.lineage_id != lid {
                 continue;
             }
             if (o.x - sx).abs() + (o.y - sy).abs() > 4.0 {
@@ -770,19 +798,18 @@ fn tick_storyteller(sim: &mut Simulation) {
             if sim.rng.random::<f32>() > 0.15 {
                 continue;
             }
-            let entry = MemoryEntry::new(
-                MemoryKind::Fact,
-                format!("an elder told us: {}", text),
-                tick,
-            )
-            .with_salience(0.5)
-            .with_emotion(1);
-            o.memories.insert(entry);
+            inserts.push((j, text.clone()));
             listeners += 1;
             if listeners >= 6 {
                 break;
             }
         }
+    }
+    for (j, text) in inserts {
+        let entry = MemoryEntry::new(MemoryKind::Fact, format!("an elder told us: {}", text), tick)
+            .with_salience(0.5)
+            .with_emotion(1);
+        sim.organisms[j].memories.insert(entry);
     }
 }
 
@@ -841,12 +868,19 @@ fn tick_weddings(sim: &mut Simulation) {
     if pairs.is_empty() {
         return;
     }
+    let spatial = crate::sim::spatial::SpatialIndex::build(&sim.organisms, 8);
+    let mut wbuf: Vec<usize> = Vec::with_capacity(32);
     let mut bumps: Vec<usize> = Vec::new();
     let mut headlines: Vec<String> = Vec::new();
     for (i, j, lid, cx, cy) in pairs.iter() {
+        spatial.query_into(*cx as i32, *cy as i32, 6, &mut wbuf);
         let mut witnesses = 0;
-        for (k, o) in sim.organisms.iter().enumerate() {
-            if !o.alive || k == *i || k == *j || &o.lineage_id != lid {
+        for &k in wbuf.iter() {
+            if k == *i || k == *j {
+                continue;
+            }
+            let o = &sim.organisms[k];
+            if !o.alive || &o.lineage_id != lid {
                 continue;
             }
             if (o.x - cx).abs() + (o.y - cy).abs() > 6.0 {
@@ -1068,7 +1102,7 @@ fn tick_gratitude_sharing(sim: &mut Simulation) {
         push_event(
             &mut sim.events,
             tick,
-            "build",
+            "gift",
             &gname,
             "shared their food with kin",
         );
@@ -1119,10 +1153,14 @@ fn tick_funerals(sim: &mut Simulation) {
     if recent_deaths.is_empty() {
         return;
     }
+    let spatial = crate::sim::spatial::SpatialIndex::build(&sim.organisms, 8);
+    let mut buf: Vec<usize> = Vec::with_capacity(64);
     let mut bumps: Vec<usize> = Vec::new();
     for (lid, dx, dy) in recent_deaths.iter() {
+        spatial.query_into(*dx as i32, *dy as i32, 12, &mut buf);
         let mut count = 0;
-        for (j, o) in sim.organisms.iter().enumerate() {
+        for &j in buf.iter() {
+            let o = &sim.organisms[j];
             if !o.alive || &o.lineage_id != lid {
                 continue;
             }
@@ -1166,12 +1204,19 @@ fn tick_naming_ceremonies(sim: &mut Simulation) {
     if candidates.is_empty() {
         return;
     }
+    let spatial = crate::sim::spatial::SpatialIndex::build(&sim.organisms, 8);
+    let mut buf: Vec<usize> = Vec::with_capacity(32);
     let mut events: Vec<(String, String)> = Vec::new();
     let mut bumps: Vec<usize> = Vec::new();
     for (idx, lid, name, cx, cy) in candidates.iter() {
+        spatial.query_into(*cx as i32, *cy as i32, 6, &mut buf);
         let mut witnesses = 0;
-        for (j, o) in sim.organisms.iter().enumerate() {
-            if j == *idx || !o.alive || &o.lineage_id != lid {
+        for &j in buf.iter() {
+            if j == *idx {
+                continue;
+            }
+            let o = &sim.organisms[j];
+            if !o.alive || &o.lineage_id != lid {
                 continue;
             }
             if (o.x - cx).abs() + (o.y - cy).abs() > 6.0 {
@@ -1187,7 +1232,6 @@ fn tick_naming_ceremonies(sim: &mut Simulation) {
             events.push((name.clone(), lid.clone()));
         }
     }
-    let lineage_names = sim.lineage_names.clone();
     for idx in bumps {
         sim.organisms[idx].joy_ticks = (sim.organisms[idx].joy_ticks + 25).min(1200);
         let entry = MemoryEntry::new(
@@ -1200,7 +1244,7 @@ fn tick_naming_ceremonies(sim: &mut Simulation) {
         sim.organisms[idx].memories.insert(entry);
     }
     for (name, lid) in events {
-        let lname = lineage_names.get(&lid).cloned().unwrap_or(lid);
+        let lname = sim.lineage_names.get(&lid).cloned().unwrap_or(lid);
         push_event(
             &mut sim.events,
             tick,
@@ -1294,11 +1338,18 @@ fn tick_birth_celebrations(sim: &mut Simulation) {
     if newborns.is_empty() {
         return;
     }
+    let spatial = crate::sim::spatial::SpatialIndex::build(&sim.organisms, 8);
+    let mut buf: Vec<usize> = Vec::with_capacity(32);
     let mut bumps: Vec<usize> = Vec::new();
     for (newborn_idx, lid, nx, ny) in newborns.iter() {
+        spatial.query_into(*nx as i32, *ny as i32, 8, &mut buf);
         let mut count = 0;
-        for (j, o) in sim.organisms.iter().enumerate() {
-            if j == *newborn_idx || !o.alive || o.lineage_id != *lid {
+        for &j in buf.iter() {
+            if j == *newborn_idx {
+                continue;
+            }
+            let o = &sim.organisms[j];
+            if !o.alive || o.lineage_id != *lid {
                 continue;
             }
             if (o.x - nx).abs() + (o.y - ny).abs() > 8.0 {
@@ -1433,15 +1484,26 @@ fn tick_friend_gravitation(sim: &mut Simulation) {
 }
 
 fn tick_teaching(sim: &mut Simulation) {
+    use crate::sim::spatial::SpatialIndex;
     let tick = sim.tick_count;
     let n = sim.organisms.len();
     if n == 0 {
         return;
     }
+    let any_teacher = sim.organisms.iter().any(|o| {
+        o.alive
+            && !o.discoveries.is_empty()
+            && matches!(o.age_stage(), AgeStage::Elder | AgeStage::Adult)
+    });
+    if !any_teacher {
+        return;
+    }
+    let spatial = SpatialIndex::build(&sim.organisms, 8);
+    let mut buf: Vec<usize> = Vec::with_capacity(32);
     let mut transfers: Vec<(usize, String)> = Vec::with_capacity(8);
     for i in 0..n {
         let elder = &sim.organisms[i];
-        if !elder.alive || elder.age_stage() != AgeStage::Elder && elder.age_stage() != AgeStage::Adult {
+        if !elder.alive || !matches!(elder.age_stage(), AgeStage::Elder | AgeStage::Adult) {
             continue;
         }
         if elder.discoveries.is_empty() {
@@ -1451,38 +1513,44 @@ fn tick_teaching(sim: &mut Simulation) {
         let elder_x = elder.x;
         let elder_y = elder.y;
         let teach_strength = elder.traits.social_tendency * 0.5 + 0.3;
-        for j in 0..n {
+        spatial.query_into(elder_x as i32, elder_y as i32, 4, &mut buf);
+        for k in 0..buf.len() {
+            let j = buf[k];
             if i == j {
                 continue;
             }
             let child = &sim.organisms[j];
-            if !child.alive {
-                continue;
-            }
-            if child.lineage_id != elder_lid {
+            if !child.alive || child.lineage_id != elder_lid {
                 continue;
             }
             if !matches!(child.age_stage(), AgeStage::Child | AgeStage::Teen) {
                 continue;
             }
-            let dist = (child.x - elder_x).abs() + (child.y - elder_y).abs();
-            if dist > 4.0 {
+            if (child.x - elder_x).abs() + (child.y - elder_y).abs() > 4.0 {
                 continue;
             }
             let r: f32 = sim.rng.random();
             if r > teach_strength * 0.20 {
                 continue;
             }
-            let known: Vec<String> = sim.organisms[i]
-                .discoveries
-                .difference(&sim.organisms[j].discoveries)
-                .cloned()
-                .collect();
-            if known.is_empty() {
-                continue;
+            // Reservoir-pick one discovery the child lacks, without
+            // allocating the full set difference.
+            let elder_d = &sim.organisms[i].discoveries;
+            let child_d = &sim.organisms[j].discoveries;
+            let mut chosen: Option<&String> = None;
+            let mut seen = 0u32;
+            for d in elder_d.iter() {
+                if child_d.contains(d) {
+                    continue;
+                }
+                seen += 1;
+                if sim.rng.random_range(0..seen) == 0 {
+                    chosen = Some(d);
+                }
             }
-            let pick = known[sim.rng.random_range(0..known.len())].clone();
-            transfers.push((j, pick));
+            if let Some(name) = chosen {
+                transfers.push((j, name.clone()));
+            }
         }
     }
     for (idx, name) in transfers {
@@ -1491,7 +1559,7 @@ fn tick_teaching(sim: &mut Simulation) {
             push_event(
                 &mut sim.events,
                 tick,
-                "build",
+                "teach",
                 &oname,
                 &format!("learned {} from an elder", name.replace('_', " ")),
             );
@@ -1933,6 +2001,8 @@ fn tick_witnessed_events(sim: &mut Simulation) {
                     | "battle_began"
                     | "treaty"
                     | "build"
+                    | "gift"
+                    | "teach"
                     | "milestone"
                     | "specialty"
                     | "graduated"
@@ -1968,7 +2038,7 @@ fn tick_witnessed_events(sim: &mut Simulation) {
             "war_declared" => format!("heard war drums from {}", actor_name),
             "battle_began" => format!("heard of battle: {}", detail),
             "treaty" => format!("heard of a treaty signed by {}", actor_name),
-            "build" => format!("heard that {} {}", actor_name, detail),
+            "build" | "gift" | "teach" => format!("heard that {} {}", actor_name, detail),
             "milestone" => format!("witnessed an age turn: {}", detail),
             "specialty" => format!("saw {} take up a trade: {}", actor_name, detail),
             "graduated" => format!("heard {} earned a degree: {}", actor_name, detail),
@@ -1995,7 +2065,8 @@ fn tick_witnessed_events(sim: &mut Simulation) {
             );
             // Witnessing big moments stirs mood.
             match etype.as_str() {
-                "born" | "religion_founded" | "build" | "specialty" | "graduated" | "milestone" => {
+                "born" | "religion_founded" | "build" | "gift" | "teach" | "specialty"
+                | "graduated" | "milestone" => {
                     sim.organisms[ki].joy_ticks = (sim.organisms[ki].joy_ticks + 40).min(1200);
                 }
                 "death" => {
