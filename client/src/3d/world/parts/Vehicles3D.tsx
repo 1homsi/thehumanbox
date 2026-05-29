@@ -1,5 +1,4 @@
-import { useMemo, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useMemo, useRef, useEffect, useLayoutEffect } from 'react'
 import {
   BoxGeometry,
   CylinderGeometry,
@@ -139,7 +138,10 @@ export function Vehicles3D({ buildings, lineageEras, depthMap, biomes, isNight }
   const bikeRef = useRef<InstancedMesh>(null)
   const carRef = useRef<InstancedMesh>(null)
 
-  useFrame(() => {
+  // Vehicles are static — fill instance matrices once when placements
+  // change, not every frame. (useLayoutEffect so the upload happens
+  // after the conditional instancedMesh meshes mount/remount.)
+  useLayoutEffect(() => {
     for (const [ref, list] of [
       [cartRef, placements.carts],
       [bikeRef, placements.bikes],
@@ -147,11 +149,6 @@ export function Vehicles3D({ buildings, lineageEras, depthMap, biomes, isNight }
     ] as const) {
       const mesh = ref.current
       if (!mesh) continue
-      if (list.length === 0) {
-        mesh.count = 0
-        mesh.instanceMatrix.needsUpdate = true
-        continue
-      }
       for (let i = 0; i < list.length; i++) {
         const v = list[i]
         tmp.position.set(v.x, v.y, v.z)
@@ -163,12 +160,15 @@ export function Vehicles3D({ buildings, lineageEras, depthMap, biomes, isNight }
       mesh.count = list.length
       mesh.instanceMatrix.needsUpdate = true
     }
-  })
+  }, [placements])
 
-  const dim = isNight ? 0.65 : 1
-  cartMat.emissive.setRGB(0.03 * dim, 0.02 * dim, 0)
-  carMat.emissive.setRGB(0.04 * dim, 0.06 * dim, 0.08 * dim)
-  bikeMat.emissive.setRGB(0, 0, 0)
+  // Night emissive dimming only changes when isNight flips.
+  useEffect(() => {
+    const dim = isNight ? 0.65 : 1
+    cartMat.emissive.setRGB(0.03 * dim, 0.02 * dim, 0)
+    carMat.emissive.setRGB(0.04 * dim, 0.06 * dim, 0.08 * dim)
+    bikeMat.emissive.setRGB(0, 0, 0)
+  }, [isNight, cartMat, carMat, bikeMat])
 
   return (
     <>

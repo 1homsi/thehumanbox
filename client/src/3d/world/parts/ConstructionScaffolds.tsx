@@ -42,6 +42,7 @@ export function ConstructionScaffolds({ buildings, depthMap, biomes }: Props) {
   }, [buildings, depthMap, biomes])
 
   useFrame(({ clock }) => {
+    if (typeof document !== 'undefined' && document.hidden) return
     const mesh = meshRef.current
     if (!mesh) return
     if (targets.length === 0) {

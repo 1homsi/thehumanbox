@@ -44,6 +44,7 @@ export function Comet({ isNight, dayOfYear, width, height }: Props) {
   const haloRef = useRef<Mesh>(null)
 
   useFrame(({ clock }) => {
+    if (typeof document !== 'undefined' && document.hidden) return
     if (t01 === null || !isNight) {
       if (headRef.current) headRef.current.visible = false
       if (tailRef.current) tailRef.current.visible = false

@@ -1,5 +1,4 @@
-import { useMemo, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useMemo, useRef, useLayoutEffect } from 'react'
 import { BoxGeometry, InstancedMesh, MeshStandardMaterial, Object3D } from 'three'
 import type { Building } from '../../../types'
 import { TILE_SCALE } from './constants'
@@ -83,14 +82,11 @@ export function Roads3D({ buildings, lineageEras, depthMap, biomes }: Props) {
     return result.slice(0, MAX_SEGMENTS)
   }, [buildings, lineageEras, depthMap, biomes])
 
-  useFrame(() => {
+  // Roads are static geometry — fill instance matrices once whenever the
+  // segment set changes, not every frame.
+  useLayoutEffect(() => {
     const mesh = meshRef.current
     if (!mesh) return
-    if (segments.length === 0) {
-      mesh.count = 0
-      mesh.instanceMatrix.needsUpdate = true
-      return
-    }
     for (let i = 0; i < segments.length; i++) {
       const s = segments[i]
       tmp.position.set(s.x, s.y, s.z)
@@ -101,7 +97,7 @@ export function Roads3D({ buildings, lineageEras, depthMap, biomes }: Props) {
     }
     mesh.count = segments.length
     mesh.instanceMatrix.needsUpdate = true
-  })
+  }, [segments])
 
   if (segments.length === 0) return null
 

@@ -25,6 +25,7 @@ export function Aurora({ isNight, season, width, height }: Props) {
   const tintB = useMemo(() => new Color('#9b6df2'), [])
 
   useFrame(({ clock }) => {
+    if (typeof document !== 'undefined' && document.hidden) return
     if (!visible) return
     const t = clock.getElapsedTime()
     for (let i = 0; i < refs.current.length; i++) {

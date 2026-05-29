@@ -45,6 +45,7 @@ export function WatchtowerBeams({ buildings, depthMap, biomes, isNight }: Props)
   const refs = useRef<Array<Group | null>>([])
 
   useFrame(({ clock }) => {
+    if (typeof document !== 'undefined' && document.hidden) return
     if (!isNight) return
     const t = clock.getElapsedTime()
     for (let i = 0; i < sources.length; i++) {

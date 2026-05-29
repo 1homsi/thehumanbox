@@ -37,6 +37,7 @@ export function GroundMist({ dayProgress, width, height, weatherKind = 'clear' }
   }, [width, height])
 
   useFrame(({ clock }) => {
+    if (typeof document !== 'undefined' && document.hidden) return
     const mesh = meshRef.current
     if (!mesh) return
     if (visibility <= 0.01) {
