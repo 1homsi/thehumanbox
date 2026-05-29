@@ -63,8 +63,21 @@ fn lookahead_ms() -> u64 {
         .unwrap_or(150)
 }
 
+fn daily_egress_mb() -> u64 {
+    std::env::var("DAILY_EGRESS_MB")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(5000)
+}
+
 static TICK_MS: std::sync::LazyLock<u64> = std::sync::LazyLock::new(tick_ms);
 static NETWORK_MS: std::sync::LazyLock<u64> = std::sync::LazyLock::new(network_ms);
+// Soft daily egress ceiling. As the rolling-24h byte total approaches it,
+// the broadcaster widens its cadence (sends frames less often) so the AWS
+// data-transfer bill is bounded no matter how many tabs stream — without
+// ever disconnecting an active viewer. 0 disables the governor.
+static DAILY_EGRESS_BYTES: std::sync::LazyLock<u64> =
+    std::sync::LazyLock::new(|| daily_egress_mb().saturating_mul(1024 * 1024));
 pub static LOOKAHEAD_MS: std::sync::LazyLock<u64> = std::sync::LazyLock::new(lookahead_ms);
 
 const FULL_FRAME_EVERY_TICKS: u64 = 30;
@@ -748,11 +761,35 @@ async fn main() {
                     }
                     latest_full_at_w.store(transport::now_ms(), std::sync::atomic::Ordering::Relaxed);
                 }
+                let receivers = tx_clone.receiver_count() as u64;
+                let frame_len = frame.len() as u64;
                 let _ = tx_clone.send(frame);
-                if cycle_started.elapsed().as_millis() as u64 > *NETWORK_MS {
+
+                // Egress this cycle is the frame size times every subscriber
+                // it fans out to. Accumulate it into the rolling-24h window
+                // and widen the cadence as we approach the daily budget — a
+                // graceful, non-disconnecting cap on the data-transfer bill.
+                transport_stats_w.record_egress(frame_len.saturating_mul(receivers), now_ms());
+                let budget = *DAILY_EGRESS_BYTES;
+                let cadence_mult = if budget == 0 {
+                    1
+                } else {
+                    let frac = transport_stats_w.day_sent_bytes() as f64 / budget as f64;
+                    if frac >= 1.0 {
+                        6
+                    } else if frac >= 0.9 {
+                        4
+                    } else if frac >= 0.7 {
+                        2
+                    } else {
+                        1
+                    }
+                };
+                let effective_ms = (*NETWORK_MS).saturating_mul(cadence_mult);
+                if cycle_started.elapsed().as_millis() as u64 > effective_ms {
                     transport_stats_w.record_broadcaster_overrun();
                 }
-                sleep_until_period_end(cycle_started, *NETWORK_MS).await;
+                sleep_until_period_end(cycle_started, effective_ms).await;
             }
         });
     }
@@ -894,6 +931,13 @@ async fn main() {
         tracing::info!("simulation-rs listening on {}  tick={}ms", addr, *TICK_MS);
         tracing::info!("    narration: {} ({})", *NARRATION_LLM_MODEL, *NARRATION_LLM_URL);
         tracing::info!("    think:     {} ({})", *THINK_LLM_MODEL, *THINK_LLM_URL);
+    }
+    if *DAILY_EGRESS_BYTES == 0 {
+        tracing::warn!(target: "egress", "daily egress governor DISABLED (DAILY_EGRESS_MB=0) - no bill ceiling");
+    } else {
+        tracing::info!(target: "egress",
+            "egress governor: broadcast cadence widens past {} MB/24h (base {}ms; ×2 @70%, ×4 @90%, ×6 @100%)",
+            *DAILY_EGRESS_BYTES / (1024 * 1024), *NETWORK_MS);
     }
     // Bind / serve with clear error messages instead of `.unwrap()`
     // panics - the most common failure here is "port already in use"

@@ -48,6 +48,11 @@ pub struct TransportStats {
     resync_frames: AtomicU64,
     overrun_cycles: AtomicU64,
     sim_overrun_ticks: AtomicU64,
+    // Rolling 24h egress accounting (bytes actually pushed to clients,
+    // i.e. frame_len * receiver_count). Drives the budget-aware adaptive
+    // broadcast cadence so a traffic spike can't run up the AWS bill.
+    day_sent_bytes: AtomicU64,
+    day_start_ms: AtomicU64,
     payload_bytes: std::sync::Mutex<TransportWindow>,
     full_bytes: std::sync::Mutex<TransportWindow>,
     delta_bytes: std::sync::Mutex<TransportWindow>,
@@ -80,6 +85,7 @@ pub struct TransportStatsSnapshot {
     pub p95_frame_generation_ms: u64,
     pub avg_sim_tick_ms: u64,
     pub p95_sim_tick_ms: u64,
+    pub day_sent_bytes: u64,
 }
 
 impl TransportStats {
@@ -112,6 +118,25 @@ impl TransportStats {
 
     pub fn record_sent(&self) {
         self.sent_frames.fetch_add(1, Ordering::Relaxed);
+    }
+
+    /// Accumulate bytes pushed to clients this broadcast cycle into a
+    /// rolling 24h window. Only the broadcaster task calls this, so the
+    /// load/store sequence has no contention. Returns nothing; read the
+    /// running total with `day_sent_bytes`.
+    pub fn record_egress(&self, bytes: u64, now_ms: u64) {
+        const DAY_MS: u64 = 24 * 60 * 60 * 1000;
+        let start = self.day_start_ms.load(Ordering::Relaxed);
+        if start == 0 || now_ms.saturating_sub(start) >= DAY_MS {
+            self.day_start_ms.store(now_ms, Ordering::Relaxed);
+            self.day_sent_bytes.store(bytes, Ordering::Relaxed);
+        } else {
+            self.day_sent_bytes.fetch_add(bytes, Ordering::Relaxed);
+        }
+    }
+
+    pub fn day_sent_bytes(&self) -> u64 {
+        self.day_sent_bytes.load(Ordering::Relaxed)
     }
 
     pub fn record_lagged(&self, dropped: u64) {
@@ -180,6 +205,7 @@ impl TransportStats {
             p95_delta_bytes: p95_delta,
             avg_frame_generation_ms: avg_ms,
             p95_frame_generation_ms: p95_ms,
+            day_sent_bytes: self.day_sent_bytes.load(Ordering::Relaxed),
         }
     }
 }
