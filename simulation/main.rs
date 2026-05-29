@@ -16,7 +16,8 @@ use crate::server::{
 
 use axum::http::HeaderValue;
 use axum::{
-    routing::get, Router,
+    routing::{get, post},
+    Router,
 };
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
@@ -892,7 +893,7 @@ async fn main() {
         world_store: world_store.clone(),
     };
 
-    let app = Router::new()
+    let mut app = Router::new()
         .route("/ws", get(routes::ws_handler))
         .route("/org/{id}", get(routes::org_detail_handler))
         .route("/org/{id}/life", get(routes::org_life_handler))
@@ -908,10 +909,14 @@ async fn main() {
         .route("/worlds", get(routes::list_worlds_handler))
         .route("/worlds/{hash}/meta", get(routes::world_meta_handler))
         .route("/worlds/{hash}/snapshot", get(routes::world_snapshot_handler))
-        .route("/worlds/{hash}/save", get(routes::world_save_handler))
-        .layer(compression)
-        .layer(cors)
-        .with_state(state);
+        .route("/worlds/{hash}/save", get(routes::world_save_handler));
+
+    if std::env::var("THB_SANDBOX").ok().as_deref() == Some("1") {
+        app = app.route("/command", post(routes::command_handler));
+        tracing::info!("sandbox enabled: POST /command accepts world-mutation commands");
+    }
+
+    let app = app.layer(compression).layer(cors).with_state(state);
 
     let bind_host = std::env::var("BIND_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
     let bind_port = std::env::var("PORT")

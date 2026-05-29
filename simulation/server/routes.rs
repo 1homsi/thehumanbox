@@ -25,6 +25,18 @@ pub async fn ws_handler(ws: WebSocketUpgrade, State(s): State<AppState>) -> impl
         .on_upgrade(move |socket| handle_socket(socket, rx, sim, latest_full, transport_stats))
 }
 
+pub async fn command_handler(State(s): State<AppState>, body: String) -> StatusCode {
+    if body.len() > 4096 {
+        return StatusCode::PAYLOAD_TOO_LARGE;
+    }
+    let mut sim = s.sim.lock().await;
+    if sim.apply_command_json(&body) {
+        StatusCode::OK
+    } else {
+        StatusCode::BAD_REQUEST
+    }
+}
+
 /// OG (Open Graph) social-share image. Renders the current world map
 /// to a 1200×630 PNG and caches it for 5 minutes so social crawlers
 /// (Facebook, WhatsApp, Twitter, Discord, LinkedIn) don't hammer the

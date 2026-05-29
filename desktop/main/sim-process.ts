@@ -162,6 +162,7 @@ export async function startSim(settings: Settings): Promise<RunningSim> {
     PORT: String(port),
     BIND_HOST: '127.0.0.1',
     THB_EXTRA_CORS_ORIGINS: 'null',
+    THB_SANDBOX: '1',
   }
   if (settings.model.provider !== 'none') {
     env.NARRATION_LLM_URL = settings.model.apiUrl

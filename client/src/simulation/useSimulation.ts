@@ -8,6 +8,7 @@ import { updateOrgMotion, updateAnimalMotion } from '../3d/world/parts/motion-st
 import { logger } from '../lib/logger'
 import { type WorldSource, OWN_WORLD_ID, getOwnWorldSeed } from './worldSource'
 import type { SandboxCommand } from './sandbox'
+import { isDesktop } from '../lib/desktop'
 
 const WASM_BASE_TICK_MS = 120
 
@@ -543,9 +544,18 @@ export function useSimulation(source: WorldSource = 'remote'): {
     },
     idleParked,
     resume: () => resumeRef.current(),
-    sandboxAvailable: source === 'wasm',
-    sendCommand: (cmd: SandboxCommand) =>
-      wasmWorkerRef.current?.postMessage({ type: 'command', json: JSON.stringify(cmd) }),
+    sandboxAvailable: source === 'wasm' || isDesktop(),
+    sendCommand: (cmd: SandboxCommand) => {
+      if (source === 'wasm') {
+        wasmWorkerRef.current?.postMessage({ type: 'command', json: JSON.stringify(cmd) })
+      } else {
+        void fetch(`${API_BASE}/command`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(cmd),
+        }).catch(() => {})
+      }
+    },
     pauseSim: () => wasmWorkerRef.current?.postMessage({ type: 'pause' }),
     setSpeed: (mult: number) =>
       wasmWorkerRef.current?.postMessage({
