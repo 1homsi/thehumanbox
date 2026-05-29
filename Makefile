@@ -15,7 +15,7 @@ CARGO_RELEASE := cd simulation && cargo
 .PHONY: help sim client desktop-dev desktop-pack desktop-release \
         headless test test-backend test-frontend test-desktop \
         lint lint-rust lint-client fmt fmt-rust fmt-client \
-        build build-client build-sim build-desktop \
+        build build-client build-sim build-desktop wasm \
         wipe wipe-archive logs profile lab-pipeline metrics snapshot \
         install install-client install-desktop install-sim \
         clean clean-sim clean-client clean-desktop \
@@ -52,8 +52,8 @@ desktop-release: ## Build + publish desktop installers to GitHub Releases (requi
 
 test: test-backend test-frontend ## Run every test suite
 
-test-backend: ## Rust simulation tests (release, locked)
-	$(CARGO_RELEASE) test --release --locked
+test-backend: ## Rust simulation tests (release, locked, whole workspace)
+	$(CARGO_RELEASE) test --release --locked --workspace
 
 test-frontend: ## Client unit tests
 	cd client && pnpm test
@@ -65,9 +65,9 @@ test-desktop: ## Desktop tsc typecheck
 
 lint: lint-rust lint-client ## Lint everything
 
-lint-rust: ## cargo fmt --check + clippy -D warnings
+lint-rust: ## cargo fmt --check + clippy -D warnings (whole workspace)
 	$(CARGO_RELEASE) fmt --all -- --check
-	$(CARGO_RELEASE) clippy --all-targets -- -D warnings
+	$(CARGO_RELEASE) clippy --workspace --all-targets -- -D warnings
 
 lint-client: ## eslint + prettier check
 	cd client && pnpm lint
@@ -83,10 +83,16 @@ fmt-client: ## prettier write
 
 # ── Build ───────────────────────────────────────────────────────────
 
-build: build-sim build-client ## Build both sim and client for production
+build: build-sim wasm build-client ## Build sim, wasm, and client for production
 
 build-sim: ## cargo build --release for the simulation
 	$(CARGO_RELEASE) build --release --bin simulation-rs
+
+wasm: ## Build the browser WASM sim-core into client/src/wasm/sim-core (needs rustup + wasm-pack)
+	rustup target add wasm32-unknown-unknown >/dev/null 2>&1 || true
+	cd simulation && RUSTFLAGS='--cfg getrandom_backend="wasm_js"' \
+		rustup run stable wasm-pack build sim-core --target web --release \
+		--out-dir ../../client/src/wasm/sim-core
 
 build-client: ## Production Vite build (web target)
 	cd client && pnpm run build

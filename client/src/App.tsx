@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, Suspense } from 'react'
 import { lazyWithRetry } from './utils/lazyWithRetry'
 import { useSimulation } from './simulation/useSimulation'
+import { getWorldSource } from './simulation/worldSource'
 import { IdleResumeOverlay } from './components/IdleResumeOverlay'
 import { DesktopDownloadToast } from './components/DesktopDownloadToast'
 import { CommandPalette } from './components/CommandPalette'
@@ -47,7 +48,10 @@ function App() {
 }
 
 function LiveApp() {
-  const { world, connected, status, failedAttempts, interp, idleParked, resume } = useSimulation()
+  const worldSourceRef = useRef(getWorldSource())
+  const { world, connected, status, failedAttempts, interp, idleParked, resume } = useSimulation(
+    worldSourceRef.current,
+  )
   const currentScene = useCurrentScene()
 
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
@@ -79,16 +83,17 @@ function LiveApp() {
     function onKey(e: KeyboardEvent): void {
       if (e.key !== 'Tab') return
       const target = e.target as HTMLElement | null
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+      if (
+        target &&
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+      ) {
         return
       }
       const orgs = world?.organisms.filter((o) => o.alive)
       if (!orgs || orgs.length === 0) return
       e.preventDefault()
       const dir = e.shiftKey ? -1 : 1
-      const currentIdx = selectedOrgId
-        ? orgs.findIndex((o) => o.id === selectedOrgId)
-        : -1
+      const currentIdx = selectedOrgId ? orgs.findIndex((o) => o.id === selectedOrgId) : -1
       const next = orgs[(currentIdx + dir + orgs.length) % orgs.length]
       if (next) {
         useUIStore.getState().selectOrg(next.id)

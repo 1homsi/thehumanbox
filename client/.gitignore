@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Generated wasm-pack output (built by `make wasm` / CI before the client build)
+src/wasm/sim-core
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

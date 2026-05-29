@@ -676,7 +676,7 @@ impl Simulation {
         }
     }
 
-    fn from_save(seed: u64, state: SaveState) -> Self {
+    pub fn from_save(seed: u64, state: SaveState) -> Self {
         let expected = WIDTH * HEIGHT;
         let mut grid = WorldGrid::new(seed);
         if state.grid.tiles.len() == expected {

@@ -3,6 +3,19 @@ import { useUIStore, useViewFlag } from '../stores/store'
 import { startTour, isTourSupported } from '../tour/tour'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { isDesktop } from '../lib/desktop'
+import {
+  getWorldSource,
+  setWorldSourceAndReload,
+  clearOwnWorldSeed,
+  OWN_WORLD_ID,
+} from '../simulation/worldSource'
+import { deleteWorld } from '../simulation/wasmDb'
+
+async function resetOwnWorld() {
+  await deleteWorld(OWN_WORLD_ID)
+  clearOwnWorldSeed()
+  window.location.reload()
+}
 
 function readLowPerf(): boolean {
   try {
@@ -74,9 +87,43 @@ export function MoreDropdown() {
   const colorBlind = useViewFlag('colorBlind')
 
   const closeMore = () => useUIStore.setState({ showMore: false })
+  const worldSource = getWorldSource()
 
   return (
     <div className="more-dropdown">
+      {!onDesktop && (
+        <>
+          <div className="more-dropdown-section">world</div>
+          <div className="more-dropdown-grid">
+            <button
+              className={clsx('lang-btn', worldSource === 'remote' && 'active')}
+              aria-pressed={worldSource === 'remote'}
+              onClick={() => worldSource !== 'remote' && setWorldSourceAndReload('remote')}
+              title="Watch the shared Human Box, streamed live. The canonical world everyone sees."
+            >
+              📡 human box
+            </button>
+            <button
+              className={clsx('lang-btn', worldSource === 'wasm' && 'active')}
+              aria-pressed={worldSource === 'wasm'}
+              onClick={() => worldSource !== 'wasm' && setWorldSourceAndReload('wasm')}
+              title="Run your own world entirely in this browser — nothing streamed, saved locally. (beta)"
+            >
+              🧪 my world
+            </button>
+            {worldSource === 'wasm' && (
+              <button
+                className="lang-btn"
+                onClick={() => void resetOwnWorld()}
+                title="Wipe your saved browser world and start a fresh one"
+              >
+                ↺ reset
+              </button>
+            )}
+          </div>
+          <div className="more-dropdown-divider" />
+        </>
+      )}
       <div className="more-dropdown-section">overlays</div>
       <div className="more-dropdown-grid">
         <button

@@ -4,8 +4,6 @@ version = "0.2.38"
 edition = "2021"
 
 [lib]
-# rlib for the native server/headless consumers; cdylib so the wasm
-# facade crate can produce a loadable module.
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
@@ -17,7 +15,7 @@ rand_distr  = "0.5"
 uuid        = { version = "1", features = ["v4"] }
 tracing     = "0.1"
 
-# On wasm32, uuid v4 + the rand stack need browser entropy via getrandom's
-# "js" backend. This is a no-op for native targets.
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.3", features = ["wasm_js"] }
+uuid = { version = "1", features = ["js"] }
+wasm-bindgen = "0.2"

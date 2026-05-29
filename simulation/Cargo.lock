@@ -1668,6 +1668,7 @@ dependencies = [
  "serde_json",
  "tracing",
  "uuid",
+ "wasm-bindgen",
 ]
 
 [[package]]

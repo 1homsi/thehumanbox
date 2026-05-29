@@ -6,6 +6,7 @@ import { fetchSnapshotWithProgress, parseWorldFrame } from './wire'
 import { mergeFrame, type MergeCaches } from './merge'
 import { updateOrgMotion, updateAnimalMotion } from '../3d/world/parts/motion-state'
 import { logger } from '../lib/logger'
+import { type WorldSource, OWN_WORLD_ID, getOwnWorldSeed } from './worldSource'
 
 const WS_URL = `${WS_BASE}/ws`
 const SNAPSHOT_URL = `${API_BASE}/snapshot`
@@ -20,7 +21,7 @@ export interface InterpRefs {
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'unreachable'
 
-export function useSimulation(): {
+export function useSimulation(source: WorldSource = 'remote'): {
   world: WorldState | null
   connected: boolean
   status: ConnectionStatus
@@ -56,7 +57,9 @@ export function useSimulation(): {
   const snapshotFetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const resumeRef = useRef<() => void>(() => {})
   const idleParkedRef = useRef(false)
-  useEffect(() => { idleParkedRef.current = idleParked }, [idleParked])
+  useEffect(() => {
+    idleParkedRef.current = idleParked
+  }, [idleParked])
 
   useEffect(() => {
     const MAX_BUFFERED_MESSAGES = 32
@@ -80,6 +83,7 @@ export function useSimulation(): {
     }
 
     function markAwaitingFullFrame() {
+      if (source === 'wasm') return
       awaitingFullFrameRef.current = true
       if (snapshotFetchTimerRef.current !== null) return
       snapshotFetchTimerRef.current = setTimeout(() => {
@@ -100,6 +104,7 @@ export function useSimulation(): {
     let snapshotAbort: AbortController | null = null
 
     function requestSnapshotResync(force = false) {
+      if (source === 'wasm') return
       if (destroyed) return
       if (snapshotPendingRef.current) {
         if (!force) return
@@ -238,6 +243,69 @@ export function useSimulation(): {
 
     let destroyed = false
 
+    if (source === 'wasm') {
+      bootstrapPendingRef.current = false
+      const worker = new Worker(new URL('./wasmWorker.ts', import.meta.url), {
+        type: 'module',
+      })
+      let announced = false
+      worker.onmessage = (e: MessageEvent) => {
+        if (destroyed) return
+        const m = e.data as { type: string; frame?: string; message?: string }
+        if (m.type === 'frame' && typeof m.frame === 'string') {
+          if (!announced) {
+            announced = true
+            setConnected(true)
+          }
+          enqueueMessage(m.frame)
+        } else if (m.type === 'ready') {
+          if (!announced) {
+            announced = true
+            setConnected(true)
+          }
+        } else if (m.type === 'error' && m.message) {
+          logger.warn('wasm', m.message)
+        }
+      }
+      worker.onerror = (e: ErrorEvent) => {
+        logger.warn('wasm', 'worker error:', e.message)
+      }
+      worker.postMessage({ type: 'start', id: OWN_WORLD_ID, seed: getOwnWorldSeed() })
+
+      const onVisibility = () => {
+        if (document.visibilityState === 'hidden') {
+          worker.postMessage({ type: 'save' })
+          worker.postMessage({ type: 'pause' })
+        } else {
+          worker.postMessage({ type: 'resume' })
+        }
+      }
+      const onPageHide = () => worker.postMessage({ type: 'save' })
+      document.addEventListener('visibilitychange', onVisibility)
+      window.addEventListener('pagehide', onPageHide)
+      resumeRef.current = () => {
+        setIdleParked(false)
+        worker.postMessage({ type: 'resume' })
+      }
+
+      return () => {
+        destroyed = true
+        document.removeEventListener('visibilitychange', onVisibility)
+        window.removeEventListener('pagehide', onPageHide)
+        if (rafPending.current !== null) {
+          cancelAnimationFrame(rafPending.current)
+          rafPending.current = null
+        }
+        if (setWorldTimerRef.current !== null) {
+          clearTimeout(setWorldTimerRef.current)
+          setWorldTimerRef.current = null
+        }
+        queuedMsgs.current = []
+        worker.postMessage({ type: 'stop' })
+        worker.terminate()
+      }
+    }
+
     let reconnectDelayMs = 1000
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -326,7 +394,11 @@ export function useSimulation(): {
       if (ws) {
         ws.onclose = null
         ws.onmessage = null
-        try { ws.close() } catch { /* noop */ }
+        try {
+          ws.close()
+        } catch {
+          /* noop */
+        }
         wsRef.current = null
       }
       setConnected(false)
@@ -352,7 +424,9 @@ export function useSimulation(): {
     }
     scheduleAfkCheck()
 
-    function onInteraction() { lastInteractionAt = Date.now() }
+    function onInteraction() {
+      lastInteractionAt = Date.now()
+    }
     window.addEventListener('mousemove', onInteraction, { passive: true })
     window.addEventListener('keydown', onInteraction, { passive: true })
     window.addEventListener('pointerdown', onInteraction, { passive: true })
@@ -435,7 +509,7 @@ export function useSimulation(): {
         wsRef.current = null
       }
     }
-  }, [])
+  }, [source])
 
   const status: ConnectionStatus = connected
     ? 'connected'

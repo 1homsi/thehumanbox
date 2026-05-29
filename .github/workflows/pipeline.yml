@@ -92,6 +92,21 @@ jobs:
         working-directory: client
         run: pnpm test
 
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: simulation -> target
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Build wasm sim-core
+        working-directory: simulation
+        run: |
+          RUSTFLAGS='--cfg getrandom_backend="wasm_js"' \
+            wasm-pack build sim-core --target web --release \
+            --out-dir ../../client/src/wasm/sim-core
+
       - name: pnpm run build
         working-directory: client
         run: pnpm run build
