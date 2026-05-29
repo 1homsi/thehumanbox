@@ -212,7 +212,6 @@ fn concept_gloss(concept: &str) -> &'static str {
         "eclipse" => "an eclipse",
         "clay" => "clay",
         "mud" => "mud",
-        "hide" => "a hide",
         "fur" => "fur",
         "feather" => "a feather",
         "shell" => "a shell",

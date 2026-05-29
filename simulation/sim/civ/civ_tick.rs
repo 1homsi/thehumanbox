@@ -2126,7 +2126,7 @@ fn tick_home_furnishing(sim: &mut Simulation) {
                 "wine_jug" => specialty.as_deref() == Some("brewer") || aggression < 0.4,
                 "four_poster_bed" | "armchair" | "sofa" | "coffee_table" => wealth > 8,
                 "piano" | "gramophone" | "smart_speaker" => social > 0.55 && wealth > 12,
-                "telescope_decor" | "monitor" | "computer_desk" => curiosity > 0.55,
+                "monitor" | "computer_desk" => curiosity > 0.55,
                 "fireplace" | "kitchen_stove" => resilience > 0.4,
                 "mirror" => social > 0.5,
                 _ => true,

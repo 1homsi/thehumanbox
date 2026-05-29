@@ -440,7 +440,7 @@ impl BuildingKind {
             | Courthouse | PoliceStation | FireStation | MallShop | Supermarket | Studio | GasStation
             | AutoShop | Garage | Cemetery | Garden | Orchard | PlayGround | ParkingLot | ClockTower
             | Mosque | Synagogue | Stupa | Mausoleum | Hangar | Silo | Warehouse | Dock | Marina
-            | Lighthouse2 | Drydock | Crane | RadioTower | WindTurbine | ChargingStation | Pyramid
+            | Lighthouse2 | Drydock | Crane | RadioTower | WindTurbine | Pyramid
             | Ziggurat | TriumphalArch | Pagoda | Fountain2 | MushroomFarm | Aquaculture | Greenhouse
             | Greenhouse2 | Vineyard | Ranch | WaterTower | Reservoir | Substation | Refinery
             | PowerPlant | MusicHall | CityHall => (2, 2),
@@ -534,7 +534,6 @@ impl BuildingKind {
             Well | Lamppost | Signpost | MarketStall | FoodCart | Cart | Tent | Fence | Gate | Gallows
             | GraveStone | FlagPole | Kiosk | BillBoard | TelephonePole | StreetLight | BusStop
             | ParkingLot | Crosswalk => &[("wood", 4), ("stone", 2)],
-            WaterTower | Reservoir => &[("steel", 30), ("concrete", 40)],
         }
     }
 
