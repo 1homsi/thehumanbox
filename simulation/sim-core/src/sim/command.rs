@@ -249,3 +249,44 @@ impl Simulation {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::sim::simulation::Simulation;
+
+    fn alive(sim: &Simulation) -> usize {
+        sim.organisms.iter().filter(|o| o.alive).count()
+    }
+
+    #[test]
+    fn spawn_adds_organisms() {
+        let mut sim = Simulation::new(1);
+        let before = alive(&sim);
+        assert!(sim.apply_command_json(r#"{"cmd":"spawn","x":100.0,"y":100.0,"count":3}"#));
+        assert_eq!(alive(&sim), before + 3);
+    }
+
+    #[test]
+    fn bad_command_rejected() {
+        let mut sim = Simulation::new(1);
+        assert!(!sim.apply_command_json(r#"{"cmd":"definitely_not_a_command"}"#));
+        assert!(!sim.apply_command_json("not even json"));
+    }
+
+    #[test]
+    fn weather_and_drought_apply() {
+        let mut sim = Simulation::new(1);
+        assert!(sim.apply_command_json(r#"{"cmd":"weather","kind":"storm"}"#));
+        assert_eq!(sim.weather.kind, 2);
+        assert!(sim.apply_command_json(r#"{"cmd":"drought","active":true}"#));
+        assert!(sim.drought.active);
+    }
+
+    #[test]
+    fn spawn_animal_adds_one() {
+        let mut sim = Simulation::new(1);
+        let before = sim.animals.len();
+        assert!(sim.apply_command_json(r#"{"cmd":"spawn_animal","x":80.0,"y":80.0,"kind":"wolf"}"#));
+        assert_eq!(sim.animals.len(), before + 1);
+    }
+}
