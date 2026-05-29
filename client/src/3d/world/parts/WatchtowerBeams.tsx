@@ -32,8 +32,8 @@ export function WatchtowerBeams({ buildings, depthMap, biomes, isNight }: Props)
       if ((b.condition ?? 1) < 0.6) continue
       const kind = b.kind.toLowerCase()
       if (!WATCHER_KINDS.has(kind)) continue
-      const fw = b.footprint?.[0] ?? 1
-      const fh = b.footprint?.[1] ?? 1
+      const fw = b.fw ?? 1
+      const fh = b.fh ?? 1
       const wx = (b.x + fw / 2) * TILE_SCALE
       const wz = (b.y + fh / 2) * TILE_SCALE
       const wy = heightAt(b.x, b.y, depthMap, biomes) + 4

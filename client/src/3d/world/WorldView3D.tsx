@@ -43,6 +43,7 @@ import { OrgStateBadges } from './parts/OrgStateBadges'
 import { FootstepDust } from './parts/FootstepDust'
 import { TribeLabels } from './parts/TribeLabels'
 import { FireLights } from './parts/FireLights'
+import { normalizeLineageEras } from '../../utils/lineageEras'
 import { TimeOfDayTint } from './parts/TimeOfDayTint'
 import { CinematicGrade } from './parts/CinematicGrade'
 import { CameraBreath } from './parts/CameraBreath'
@@ -378,6 +379,7 @@ export default function WorldView3D({ world }: Props) {
   const ready = !!(grid?.depth_map && grid?.biomes && grid?.tiles && grid?.width && grid?.height)
   const serverDayProgress = world?.day_progress ?? 0.3
   const [dayProgress, setDayProgress] = useState<number>(serverDayProgress)
+  const lineageErasMap = useMemo(() => normalizeLineageEras(world?.lineage_eras), [world?.lineage_eras])
   const sunAlt = Math.sin((dayProgress - 0.25) * 2 * Math.PI)
   const isNight = sunAlt < 0
 
@@ -519,7 +521,7 @@ export default function WorldView3D({ world }: Props) {
                   organisms={world.viewport_organisms ?? world.organisms ?? []}
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}
-                  lineageEras={world.lineage_eras as Record<string, string> | undefined}
+                  lineageEras={lineageErasMap}
                 />
                 <Buildings3D
                   buildings={world.buildings ?? []}
@@ -633,14 +635,14 @@ export default function WorldView3D({ world }: Props) {
                 />
                 <Vehicles3D
                   buildings={world.buildings}
-                  lineageEras={world.lineage_eras as unknown as Record<string, string>}
+                  lineageEras={lineageErasMap}
                   depthMap={grid.depth_map}
                   biomes={grid.biomes}
                   isNight={isNight}
                 />
                 <Roads3D
                   buildings={world.buildings}
-                  lineageEras={world.lineage_eras as unknown as Record<string, string>}
+                  lineageEras={lineageErasMap}
                   depthMap={grid.depth_map}
                   biomes={grid.biomes}
                 />

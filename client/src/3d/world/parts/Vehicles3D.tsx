@@ -123,8 +123,8 @@ export function Vehicles3D({ buildings, lineageEras, depthMap, biomes, isNight }
       if (!kind) continue
       const seed = (b.id * 9301 + 49297) % 233280
       if (seed % 100 > 35) continue
-      const fw = b.footprint?.[0] ?? 1
-      const fh = b.footprint?.[1] ?? 1
+      const fw = b.fw ?? 1
+      const fh = b.fh ?? 1
       const wx = (b.x + fw + 0.5) * TILE_SCALE
       const wz = (b.y + fh / 2) * TILE_SCALE
       const wy = heightAt(b.x + fw, b.y + Math.floor(fh / 2), depthMap, biomes)

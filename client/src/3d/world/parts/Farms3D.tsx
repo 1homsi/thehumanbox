@@ -50,7 +50,7 @@ export function Farms3D({ buildings, depthMap, biomes }: Props) {
     for (const b of buildings) {
       if ((b.condition ?? 1) < 0.5) continue
       if (!FARMABLE.has(b.kind.toLowerCase())) continue
-      const fw = b.footprint?.[0] ?? 1
+      const fw = b.fw ?? 1
       const baseX = (b.x + fw + 1) * TILE_SCALE
       const baseZ = (b.y - 0.5) * TILE_SCALE
       const baseY = heightAt(b.x + fw, b.y, depthMap, biomes)

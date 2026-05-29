@@ -447,6 +447,8 @@ export interface Building {
   x: number
   y: number
   footprint?: [number, number]
+  fw?: number
+  fh?: number
   condition?: number
   occupants?: string[]
   owner_lineage?: string | null

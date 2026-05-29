@@ -59,8 +59,8 @@ export function BuildSparks({ buildings, depthMap, biomes }: Props) {
     for (const b of buildings) {
       const c = b.condition ?? 1
       if (c >= 0.97 || c < 0.05) continue
-      const fw = b.footprint?.[0] ?? 1
-      const fh = b.footprint?.[1] ?? 1
+      const fw = b.fw ?? 1
+      const fh = b.fh ?? 1
       const wx = (b.x + fw / 2) * TILE_SCALE
       const wz = (b.y + fh / 2) * TILE_SCALE
       const wy = heightAt(b.x, b.y, depthMap, biomes)
