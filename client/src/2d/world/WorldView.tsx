@@ -446,7 +446,7 @@ function drawWorldOnCanvas(
     ctx.fill()
     ctx.beginPath()
     ctx.arc(cx, cy, radius, 0, Math.PI * 2)
-    ctx.fillStyle = `rgba(240,244,255,${0.20 + illum * 0.65})`
+    ctx.fillStyle = `rgba(240,244,255,${0.2 + illum * 0.65})`
     ctx.fill()
     const phase = world.cosmos.moon_phase
     if (phase !== 'full_moon' && phase !== 'new_moon') {
@@ -2059,9 +2059,11 @@ function CameraController({
 interface Props {
   world: WorldState
   interp?: InterpRefs
+  sandboxArmed?: boolean
+  onSandboxApply?: (worldX: number, worldY: number) => void
 }
 
-export function WorldView({ world, interp }: Props) {
+export function WorldView({ world, interp, sandboxArmed, onSandboxApply }: Props) {
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
   const followOrgId = useUIStore((s) => s.followOrgId)
   const overlay = useUIStore((s) => s.overlay)
@@ -2112,6 +2114,11 @@ export function WorldView({ world, interp }: Props) {
     const canvasTileY = (camY + (sy - dims.h / 2) / zoom) / TILE
     const worldX = canvasTileX + ox
     const worldY = canvasTileY + oy
+
+    if (sandboxArmed && onSandboxApply) {
+      onSandboxApply(worldX, worldY)
+      return
+    }
 
     const isCoarse = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
 
@@ -2188,7 +2195,7 @@ export function WorldView({ world, interp }: Props) {
         flex: 1,
         minWidth: 0,
         overflow: 'hidden',
-        cursor: 'grab',
+        cursor: sandboxArmed ? 'crosshair' : 'grab',
         position: 'relative',
         // touch-action: none stops the browser from claiming
         // two-finger pinch as page-zoom; the gesture handler

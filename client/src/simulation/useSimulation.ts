@@ -7,6 +7,9 @@ import { mergeFrame, type MergeCaches } from './merge'
 import { updateOrgMotion, updateAnimalMotion } from '../3d/world/parts/motion-state'
 import { logger } from '../lib/logger'
 import { type WorldSource, OWN_WORLD_ID, getOwnWorldSeed } from './worldSource'
+import type { SandboxCommand } from './sandbox'
+
+const WASM_BASE_TICK_MS = 120
 
 const WS_URL = `${WS_BASE}/ws`
 const SNAPSHOT_URL = `${API_BASE}/snapshot`
@@ -29,12 +32,17 @@ export function useSimulation(source: WorldSource = 'remote'): {
   interp: InterpRefs
   idleParked: boolean
   resume: () => void
+  sandboxAvailable: boolean
+  sendCommand: (cmd: SandboxCommand) => void
+  pauseSim: () => void
+  setSpeed: (mult: number) => void
 } {
   const [world, setWorld] = useState<WorldState | null>(null)
   const [connected, setConnected] = useState(false)
   const [failedAttempts, setFailedAttempts] = useState(0)
   const [idleParked, setIdleParked] = useState(false)
   const wsRef = useRef<WebSocket | null>(null)
+  const wasmWorkerRef = useRef<Worker | null>(null)
   const organismCache = useRef<Map<string, OrganismState>>(new Map())
   const animalCache = useRef<Map<number, AnimalState>>(new Map())
   const queuedMsgs = useRef<Array<ArrayBuffer | Uint8Array | string>>([])
@@ -248,6 +256,7 @@ export function useSimulation(source: WorldSource = 'remote'): {
       const worker = new Worker(new URL('./wasmWorker.ts', import.meta.url), {
         type: 'module',
       })
+      wasmWorkerRef.current = worker
       let announced = false
       worker.onmessage = (e: MessageEvent) => {
         if (destroyed) return
@@ -303,6 +312,7 @@ export function useSimulation(source: WorldSource = 'remote'): {
         queuedMsgs.current = []
         worker.postMessage({ type: 'stop' })
         worker.terminate()
+        wasmWorkerRef.current = null
       }
     }
 
@@ -533,5 +543,14 @@ export function useSimulation(source: WorldSource = 'remote'): {
     },
     idleParked,
     resume: () => resumeRef.current(),
+    sandboxAvailable: source === 'wasm',
+    sendCommand: (cmd: SandboxCommand) =>
+      wasmWorkerRef.current?.postMessage({ type: 'command', json: JSON.stringify(cmd) }),
+    pauseSim: () => wasmWorkerRef.current?.postMessage({ type: 'pause' }),
+    setSpeed: (mult: number) =>
+      wasmWorkerRef.current?.postMessage({
+        type: 'speed',
+        tickMs: Math.max(16, Math.round(WASM_BASE_TICK_MS / mult)),
+      }),
   }
 }

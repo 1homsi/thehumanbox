@@ -17,6 +17,8 @@ type InMsg =
   | { type: 'save' }
   | { type: 'reset' }
   | { type: 'stop' }
+  | { type: 'command'; json: string }
+  | { type: 'speed'; tickMs: number }
 
 const DEEP_FULL_EVERY_TICKS = 300n
 
@@ -66,13 +68,20 @@ function stopTimers() {
   }
 }
 
+function tickOnce() {
+  if (paused || !sim) return
+  sim.tickN(stepsPerEmit)
+  const tc = sim.tickCount()
+  emit(tc % DEEP_FULL_EVERY_TICKS === 0n)
+}
+
+function startTickTimer() {
+  if (tickTimer !== null) clearInterval(tickTimer)
+  tickTimer = setInterval(tickOnce, tickMs)
+}
+
 function beginLoop(autosaveEveryMs: number) {
-  tickTimer = setInterval(() => {
-    if (paused || !sim) return
-    sim.tickN(stepsPerEmit)
-    const tc = sim.tickCount()
-    emit(tc % DEEP_FULL_EVERY_TICKS === 0n)
-  }, tickMs)
+  startTickTimer()
   saveTimer = setInterval(() => {
     if (!paused) void persist()
   }, autosaveEveryMs)
@@ -129,6 +138,16 @@ self.onmessage = (e: MessageEvent) => {
       break
     case 'save':
       void persist()
+      break
+    case 'command':
+      if (sim) {
+        sim.command(msg.json)
+        emit(true)
+      }
+      break
+    case 'speed':
+      tickMs = Math.max(16, msg.tickMs)
+      if (tickTimer !== null) startTickTimer()
       break
     case 'reset':
       stopTimers()

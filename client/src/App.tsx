@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useRef, Suspense } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from 'react'
 import { lazyWithRetry } from './utils/lazyWithRetry'
 import { useSimulation } from './simulation/useSimulation'
 import { getWorldSource } from './simulation/worldSource'
+import { SandboxToolbar } from './components/SandboxToolbar'
+import type { SandboxTool } from './simulation/sandbox'
 import { IdleResumeOverlay } from './components/IdleResumeOverlay'
 import { DesktopDownloadToast } from './components/DesktopDownloadToast'
 import { CommandPalette } from './components/CommandPalette'
@@ -48,10 +50,47 @@ function App() {
 
 function LiveApp() {
   const worldSourceRef = useRef(getWorldSource())
-  const { world, connected, status, failedAttempts, interp, idleParked, resume } = useSimulation(
-    worldSourceRef.current,
-  )
+  const {
+    world,
+    connected,
+    status,
+    failedAttempts,
+    interp,
+    idleParked,
+    resume,
+    sandboxAvailable,
+    sendCommand,
+    pauseSim,
+    setSpeed,
+  } = useSimulation(worldSourceRef.current)
   const currentScene = useCurrentScene()
+
+  const [armedTool, setArmedTool] = useState<SandboxTool | null>(null)
+  const [brush, setBrush] = useState(2)
+
+  const onPickTool = useCallback(
+    (tool: SandboxTool) => {
+      if (tool.mode === 'instant') {
+        if (tool.time) {
+          if (tool.time.control === 'pause') pauseSim()
+          else if (tool.time.control === 'resume') resume()
+          else if (tool.time.control === 'speed' && tool.time.mult) setSpeed(tool.time.mult)
+        } else if (tool.fire) {
+          sendCommand(tool.fire)
+        }
+        return
+      }
+      setArmedTool((prev) => (prev?.id === tool.id ? null : tool))
+    },
+    [pauseSim, resume, setSpeed, sendCommand],
+  )
+
+  const handleSandboxApply = useCallback(
+    (wx: number, wy: number) => {
+      if (armedTool?.build) sendCommand(armedTool.build(Math.round(wx), Math.round(wy), brush))
+    },
+    [armedTool, brush, sendCommand],
+  )
 
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
   const leftOpen = useUIStore((s) => s.leftOpen)
@@ -236,7 +275,12 @@ function LiveApp() {
                 <WorldView3D world={world} hideUI={viewFlags.hideUI} />
               </Suspense>
             ) : (
-              <WorldView world={world} interp={interp} />
+              <WorldView
+                world={world}
+                interp={interp}
+                sandboxArmed={!!armedTool}
+                onSandboxApply={handleSandboxApply}
+              />
             )}
 
             <RightPanel world={world} liveOrgs={liveOrgs} deadOrgs={deadOrgs} selectedOrg={selectedOrg} />
@@ -261,6 +305,16 @@ function LiveApp() {
           </div>
         )}
       </main>
+
+      {world && sandboxAvailable && (
+        <SandboxToolbar
+          armedToolId={armedTool?.id ?? null}
+          brush={brush}
+          onBrush={setBrush}
+          onPick={onPickTool}
+          onClearArmed={() => setArmedTool(null)}
+        />
+      )}
 
       {world && <ModalRouter world={world} lineages={lineages} />}
 

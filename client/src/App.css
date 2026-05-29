@@ -4527,3 +4527,82 @@ body.thb-colorblind .org-sick-badge {
   color: #1a1208 !important;
   filter: brightness(1.05) !important;
 }
+
+.sandbox-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  pointer-events: none;
+}
+.sandbox-tabs,
+.sandbox-tools {
+  display: flex;
+  gap: 4px;
+  background: rgba(20, 18, 14, 0.92);
+  border: 1px solid #3a2e25;
+  border-radius: 8px;
+  padding: 4px;
+  pointer-events: auto;
+  max-width: 92vw;
+  flex-wrap: wrap;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+.sandbox-tab,
+.sandbox-tool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 44px;
+  padding: 4px 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #cbbfa8;
+  cursor: pointer;
+  font-family: inherit;
+}
+.sandbox-tab:hover,
+.sandbox-tool:hover {
+  background: #2a2218;
+}
+.sandbox-tab.active,
+.sandbox-tool.active {
+  background: #3a2d22;
+  border-color: #6b5a3e;
+  color: #f0d088;
+}
+.sandbox-tab-icon,
+.sandbox-tool-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+.sandbox-tab-label,
+.sandbox-tool-label {
+  font-size: 8px;
+  letter-spacing: 0.04em;
+}
+.sandbox-brush {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #cbbfa8;
+  font-size: 9px;
+  padding: 0 8px;
+}
+.sandbox-brush input {
+  width: 72px;
+  accent-color: #c79a5a;
+}
+.sandbox-brush-val {
+  width: 10px;
+  text-align: center;
+  color: #f0d088;
+}

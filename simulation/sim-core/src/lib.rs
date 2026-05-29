@@ -68,6 +68,10 @@ mod wasm_facade {
             serde_json::to_vec(&self.inner.to_save_state()).unwrap_or_default()
         }
 
+        pub fn command(&mut self, json: &str) -> bool {
+            self.inner.apply_command_json(json)
+        }
+
         #[wasm_bindgen(js_name = tickCount)]
         pub fn tick_count(&self) -> u64 {
             self.inner.tick_count
