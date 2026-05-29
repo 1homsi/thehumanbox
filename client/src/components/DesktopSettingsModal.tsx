@@ -2,9 +2,56 @@ import { useEffect, useState } from 'react'
 import { Modal } from './Modal'
 import { getDesktop } from '../lib/desktop'
 import type { DesktopSettings, ModelProvider, SimMode, SimStatus } from '../lib/desktop'
+import {
+  getWorldSource,
+  setWorldSourceAndReload,
+  clearOwnWorldSeed,
+  OWN_WORLD_ID,
+} from '../simulation/worldSource'
+import { deleteWorld } from '../simulation/wasmDb'
 
 interface Props {
   onClose: () => void
+}
+
+async function resetOwnWorld() {
+  await deleteWorld(OWN_WORLD_ID)
+  clearOwnWorldSeed()
+  window.location.reload()
+}
+
+function WorldSourceSection() {
+  const source = getWorldSource()
+  return (
+    <Section title="World">
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button
+          className={'lang-btn' + (source === 'remote' ? ' active' : '')}
+          aria-pressed={source === 'remote'}
+          onClick={() => source !== 'remote' && setWorldSourceAndReload('remote')}
+        >
+          📡 human box
+        </button>
+        <button
+          className={'lang-btn' + (source === 'wasm' ? ' active' : '')}
+          aria-pressed={source === 'wasm'}
+          onClick={() => source !== 'wasm' && setWorldSourceAndReload('wasm')}
+        >
+          🧪 my world
+        </button>
+        {source === 'wasm' && (
+          <button className="lang-btn" onClick={() => void resetOwnWorld()}>
+            ↺ reset
+          </button>
+        )}
+      </div>
+      <div style={{ fontSize: 10, color: '#666', marginTop: 8, lineHeight: 1.5 }}>
+        <strong style={{ color: '#bfae90' }}>Human Box</strong> is the shared world everyone watches, streamed
+        live. <strong style={{ color: '#bfae90' }}>My World</strong> runs entirely in this browser — nothing
+        streamed, saved locally so it resumes when you return. (beta)
+      </div>
+    </Section>
+  )
 }
 
 const PROVIDER_DEFAULTS: Record<ModelProvider, { url: string; model: string }> = {
@@ -31,15 +78,15 @@ export function DesktopSettingsModal({ onClose }: Props) {
 
   if (!desktop) {
     return (
-      <Modal open onClose={onClose} className="settings-modal" title="Desktop Settings" hideTitle>
+      <Modal open onClose={onClose} className="settings-modal" title="Settings" hideTitle>
         <div className="lang-modal-header">
-          <span className="lang-modal-title">DESKTOP SETTINGS</span>
+          <span className="lang-modal-title">SETTINGS</span>
           <button aria-label="Close" className="close-btn" onClick={onClose}>
             ✕
           </button>
         </div>
-        <div style={{ padding: 24, color: '#999', fontSize: 12 }}>
-          Desktop settings are only available in the desktop app.
+        <div style={{ padding: 16, overflowY: 'auto', maxHeight: '70vh' }}>
+          <WorldSourceSection />
         </div>
       </Modal>
     )
@@ -53,8 +100,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
     )
   }
 
-  const update = (patch: Partial<DesktopSettings>) =>
-    setSettings((s) => (s ? { ...s, ...patch } : s))
+  const update = (patch: Partial<DesktopSettings>) => setSettings((s) => (s ? { ...s, ...patch } : s))
   const updateModel = (patch: Partial<DesktopSettings['model']>) =>
     setSettings((s) => (s ? { ...s, model: { ...s.model, ...patch } } : s))
 
@@ -88,7 +134,9 @@ export function DesktopSettingsModal({ onClose }: Props) {
     <Modal open onClose={onClose} className="settings-modal" title="Desktop Settings" hideTitle>
       <div className="lang-modal-header">
         <span className="lang-modal-title">DESKTOP SETTINGS</span>
-        <span className="tree-modal-sub">v{desktop.appVersion} · {desktop.platform}</span>
+        <span className="tree-modal-sub">
+          v{desktop.appVersion} · {desktop.platform}
+        </span>
         <button aria-label="Close" className="close-btn" onClick={onClose}>
           ✕
         </button>
@@ -188,7 +236,11 @@ export function DesktopSettingsModal({ onClose }: Props) {
                   type="password"
                   value={settings.model.apiKey}
                   onChange={(e) => updateModel({ apiKey: e.target.value })}
-                  placeholder={settings.model.provider === 'ollama' || settings.model.provider === 'llama-cpp' ? '(not needed for local)' : 'sk-...'}
+                  placeholder={
+                    settings.model.provider === 'ollama' || settings.model.provider === 'llama-cpp'
+                      ? '(not needed for local)'
+                      : 'sk-...'
+                  }
                   style={inputStyle}
                 />
               </Field>
@@ -301,7 +353,9 @@ export function DesktopSettingsModal({ onClose }: Props) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 18 }}>
-      <div style={{ fontSize: 10, color: '#999', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+      <div
+        style={{ fontSize: 10, color: '#999', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}
+      >
         {title}
       </div>
       {children}
@@ -332,7 +386,16 @@ function Radio({
   label: string
 }) {
   return (
-    <label style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '4px 0', cursor: 'pointer', fontSize: 12 }}>
+    <label
+      style={{
+        display: 'flex',
+        gap: 8,
+        alignItems: 'center',
+        padding: '4px 0',
+        cursor: 'pointer',
+        fontSize: 12,
+      }}
+    >
       <input
         type="radio"
         name={name}

@@ -19,7 +19,6 @@ export interface ViewFlags {
   threeD: boolean
   hideUI: boolean
   photoMode: boolean
-  actionTicker: boolean
   randomTour: boolean
   slowMo: boolean
   fastMo: boolean

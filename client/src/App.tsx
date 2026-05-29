@@ -19,7 +19,6 @@ import { WorldFooter } from './components/WorldFooter'
 import { AppHeader } from './components/AppHeader'
 import { RightPanel } from './components/RightPanel'
 import { ModalRouter } from './components/ModalRouter'
-import { ActionTicker } from './components/ActionTicker'
 import { ThreeDLoading } from './components/ThreeDLoading'
 import { Try3DToast } from './components/Try3DToast'
 import { MobileBanner } from './components/MobileBanner'
@@ -209,7 +208,7 @@ function LiveApp() {
   return (
     <div className="app">
       <AppHeader world={world ?? null} connected={connected} fireTiles={fireTiles} sickOrgs={sickOrgs} />
-      <HeadlineTicker world={world ?? null} enabled={viewFlags.headlineTicker !== false} />
+      <HeadlineTicker world={world ?? null} enabled={viewFlags.headlineTicker} />
 
       {idleParked && <IdleResumeOverlay onResume={resume} />}
       <DesktopDownloadToast />
@@ -262,8 +261,6 @@ function LiveApp() {
           </div>
         )}
       </main>
-
-      {world && viewFlags.actionTicker && <ActionTicker world={world} />}
 
       {world && <ModalRouter world={world} lineages={lineages} />}
 

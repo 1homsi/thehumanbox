@@ -57,6 +57,7 @@ export function AppHeader({ world, connected, fireTiles, sickOrgs }: Props) {
   const openOrgSearch = useUIStore((s) => s.openOrgSearch)
   const openChronicles = useUIStore((s) => s.openChronicles)
   const openCiv = useUIStore((s) => s.openCiv)
+  const openSettings = useUIStore((s) => s.openDesktopSettings)
   const setFullscreen = useUIStore((s) => s.setFullscreen)
 
   const moreRef = useRef<HTMLDivElement>(null)
@@ -146,26 +147,32 @@ export function AppHeader({ world, connected, fireTiles, sickOrgs }: Props) {
             <span className={clsx('season-badge', `season-${world.season}`)}>{world.season}</span>
           </Tooltip>
         )}
-        {world?.cosmos && (() => {
-          const glyphs: Record<string, string> = {
-            new_moon: '🌑',
-            waxing_crescent: '🌒',
-            first_quarter: '🌓',
-            waxing_gibbous: '🌔',
-            full_moon: '🌕',
-            waning_gibbous: '🌖',
-            last_quarter: '🌗',
-            waning_crescent: '🌘',
-          }
-          const label = world.cosmos.moon_phase.replace(/_/g, ' ')
-          return (
-            <Tooltip tip={`Moon: ${label} · year ${world.cosmos.year} · day ${world.cosmos.day_of_year} of the year`}>
-              <span className="season-badge" style={{ background: 'transparent', border: '1px solid #2a2520' }}>
-                {glyphs[world.cosmos.moon_phase] ?? '🌑'} {label}
-              </span>
-            </Tooltip>
-          )
-        })()}
+        {world?.cosmos &&
+          (() => {
+            const glyphs: Record<string, string> = {
+              new_moon: '🌑',
+              waxing_crescent: '🌒',
+              first_quarter: '🌓',
+              waxing_gibbous: '🌔',
+              full_moon: '🌕',
+              waning_gibbous: '🌖',
+              last_quarter: '🌗',
+              waning_crescent: '🌘',
+            }
+            const label = world.cosmos.moon_phase.replace(/_/g, ' ')
+            return (
+              <Tooltip
+                tip={`Moon: ${label} · year ${world.cosmos.year} · day ${world.cosmos.day_of_year} of the year`}
+              >
+                <span
+                  className="season-badge"
+                  style={{ background: 'transparent', border: '1px solid #2a2520' }}
+                >
+                  {glyphs[world.cosmos.moon_phase] ?? '🌑'} {label}
+                </span>
+              </Tooltip>
+            )
+          })()}
         {world?.current_era && world.current_era !== 'genesis' && world.current_era !== 'equilibrium' && (
           <Tooltip
             tip={`World era: ${world.current_era} - shapes resource availability and organism behaviour`}
@@ -243,6 +250,17 @@ export function AppHeader({ world, connected, fireTiles, sickOrgs }: Props) {
             </button>
             {showMore && <MoreDropdown />}
           </div>
+          <Tooltip tip="Settings — world source, and local sim options">
+            <button
+              className="lang-btn"
+              data-tour="settings-btn"
+              onClick={openSettings}
+              aria-label="Settings"
+            >
+              <span className="btn-icon">⚙</span>
+              <span className="btn-label">settings</span>
+            </button>
+          </Tooltip>
         </div>
       )}
       {world && (

@@ -28,14 +28,13 @@ const DEFAULTS: ViewFlags = {
   threeD: false,
   hideUI: false,
   photoMode: false,
-  actionTicker: false,
   randomTour: false,
   slowMo: false,
   fastMo: false,
   colorBlind: false,
   orgPov: false,
   territoryMap: false,
-  headlineTicker: true,
+  headlineTicker: false,
 }
 
 const TRACKED_FLAGS: Set<keyof ViewFlags> = new Set([
