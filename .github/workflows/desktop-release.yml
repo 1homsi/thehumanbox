@@ -80,7 +80,7 @@ jobs:
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.sim_target }}
+          targets: wasm32-unknown-unknown, ${{ matrix.sim_target }}
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -97,6 +97,16 @@ jobs:
         run: |
           mkdir -p desktop/resources/bin
           cp simulation/target/${{ matrix.sim_target }}/release/${{ matrix.bin_name }} desktop/resources/bin/
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: Build wasm sim-core (renderer imports it)
+        shell: bash
+        working-directory: simulation
+        env:
+          RUSTFLAGS: '--cfg getrandom_backend="wasm_js"'
+        run: wasm-pack build sim-core --target web --release --out-dir ../../client/src/wasm/sim-core
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
