@@ -845,8 +845,10 @@ impl Organism {
             self.anger = (self.anger * 0.9985).max(0.0);
         }
 
-        if hostile_near && self.energy < 0.45 {
-            self.jealousy = (self.jealousy + 0.001).min(1.0);
+        if hostile_near {
+            // Envy of a thriving rival nearby; faster when also struggling.
+            let gain = if self.energy < 0.45 { 0.006 } else { 0.003 };
+            self.jealousy = (self.jealousy + gain).min(1.0);
         } else {
             self.jealousy = (self.jealousy * 0.999).max(0.0);
         }
@@ -857,8 +859,14 @@ impl Organism {
             self.regret = (self.regret * 0.9992).max(0.0);
         }
 
-        let nightly_awe = if night && !near_shelter { 0.0008 } else { 0.0 };
-        self.awe = (self.awe + nightly_awe - 0.0004).max(0.0).min(1.0);
+        // Awe accrues under open night sky and only erodes slowly while
+        // sheltered / in daylight — an unconditional decay made it
+        // impossible to ever reach a meaningful level.
+        if night && !near_shelter {
+            self.awe = (self.awe + 0.0016).min(1.0);
+        } else {
+            self.awe = (self.awe * 0.9996).max(0.0);
+        }
 
         if self.boredom > 0.4 || self.energy > 0.55 {
             self.curiosity_drive =

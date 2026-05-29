@@ -822,11 +822,16 @@ fn tick_weddings(sim: &mut Simulation) {
             if (o.x - p.x).abs() + (o.y - p.y).abs() > 2.0 {
                 continue;
             }
-            let attr = ((o.id.bytes().fold(0u32, |a, b| a.wrapping_add(b as u32))
-                + p.id.bytes().fold(0u32, |a, b| a.wrapping_add(b as u32))) as u64
-                * 17)
-                % 30_000;
-            if tick.saturating_sub(attr) % 30_000 != 0 {
+            // A couple's wedding day is one of the 50 cadence-aligned
+            // slots in a 30000-tick window, picked deterministically from
+            // their ids. tick_weddings only runs at multiples of 600, so
+            // the slot MUST be a multiple of 600 too — otherwise the exact
+            // match could never land (the old `% 30_000` attractor matched
+            // ~1/600 of couples and silently barred the rest).
+            let hashsum = o.id.bytes().fold(0u32, |a, b| a.wrapping_add(b as u32))
+                + p.id.bytes().fold(0u32, |a, b| a.wrapping_add(b as u32));
+            let slot = ((hashsum as u64).wrapping_mul(17) % 50) * 600;
+            if tick % 30_000 != slot {
                 continue;
             }
             out.push((i, j, o.lineage_id.clone(), (o.x + p.x) * 0.5, (o.y + p.y) * 0.5));
@@ -887,7 +892,7 @@ fn tick_jealousy_rivalries(sim: &mut Simulation) {
     let mut attitude_drops: Vec<(usize, String, f32)> = Vec::new();
     for i in 0..n {
         let o = &sim.organisms[i];
-        if !o.alive || o.jealousy < 0.6 {
+        if !o.alive || o.jealousy < 0.4 {
             continue;
         }
         let (my_x, my_y, my_lid) = (o.x, o.y, o.lineage_id.clone());
@@ -1063,7 +1068,7 @@ fn tick_anger_outbursts(sim: &mut Simulation) {
     use crate::organism::memory::{MemoryEntry, MemoryKind};
     let tick = sim.tick_count;
     for o in sim.organisms.iter_mut() {
-        if !o.alive || o.anger < 0.7 {
+        if !o.alive || o.anger < 0.5 {
             continue;
         }
         let r: f32 = sim.rng.random();
