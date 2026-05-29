@@ -1,13 +1,13 @@
 use crate::sim::age_stage::AgeStage;
 use crate::sim::buildings::{Building, BuildingKind};
 use crate::sim::culture::{
-    pick_religion_name, ArtKind, Artwork, Festival, FestivalKind, Religion, ReligionKind,
+    pick_religion_name, ArtKind, Artwork, Religion, ReligionKind,
 };
-use crate::sim::economy::{currency_unit_for_era, elder_pension, Specialty};
+use crate::sim::economy::{elder_pension, Specialty};
 use crate::sim::era::Era;
 use crate::sim::government::{Government, GovernmentKind, Law, LawKind};
 use crate::sim::language_tech::{pick_book_title, Book, BookTopic};
-use crate::sim::medicine::{pick_introduction, ActiveDisease, DiseaseKind, Outbreak};
+use crate::sim::medicine::{pick_introduction, DiseaseKind};
 use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
 use crate::sim::world_milestones::Milestone;

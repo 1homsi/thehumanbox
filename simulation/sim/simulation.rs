@@ -5,7 +5,7 @@ use super::world_events::{
 use super::{courtship, growth, social};
 use crate::organism::animal::{Animal, AnimalKind};
 use crate::organism::attributes::check_earned_attributes;
-use crate::organism::organism::{generate_tribe_name, Organism, DIRECTIONS};
+use crate::organism::organism::{Organism, DIRECTIONS};
 use crate::physics::engine::PhysicsEngine;
 use crate::world::{
     grid::{TrailKind, WorldGrid, HEIGHT, WIDTH},
@@ -15,7 +15,6 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::io;
 
 fn derive_mood(o: &Organism) -> String {
     if o.infection > 0.20 {
@@ -488,7 +487,7 @@ impl Simulation {
                 .tick(&mut self.grid, &mut self.rng, self.weather.kind, wet);
         }
 
-        let phase = self.tick_count % DAY_LENGTH;
+        let _phase = self.tick_count % DAY_LENGTH;
 
         let season_str = season.to_string();
         tick_drought(

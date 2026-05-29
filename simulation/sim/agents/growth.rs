@@ -1,7 +1,7 @@
 use crate::organism::attributes::{
     assign_birth_attributes, check_earned_attributes, inherit_attributes_from_parents,
 };
-use crate::organism::organism::{apply_sex_traits, generate_name, Organism, Sex, N_ACTIONS};
+use crate::organism::organism::{apply_sex_traits, generate_name, Organism, Sex};
 use crate::organism::traits::Traits;
 use crate::organism::vocabulary::Vocabulary;
 use crate::sim::config::MAX_POPULATION;

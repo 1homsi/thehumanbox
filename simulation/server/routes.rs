@@ -9,7 +9,7 @@ use axum::{
 };
 use tokio::sync::broadcast;
 
-use crate::server::transport::{encode_frame, now_ms, SharedTransportStats};
+use crate::server::transport::SharedTransportStats;
 use crate::{AppState, LatestFull, SharedSim, WS_RESYNC_LAG_THRESHOLD};
 
 pub async fn ws_handler(ws: WebSocketUpgrade, State(s): State<AppState>) -> impl IntoResponse {

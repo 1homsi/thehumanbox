@@ -172,7 +172,7 @@ pub fn read_world_snapshot(hash: &str) -> Option<Vec<u8>> {
 
 fn compute_summary(
     sim: &mut Simulation,
-    peak_pop: u64,
+    _peak_pop: u64,
 ) -> (String, usize, String, Option<String>, usize, u64) {
     let final_tick = sim.tick_count;
     let final_pop: usize = sim.organisms.iter().filter(|o| o.alive).count();

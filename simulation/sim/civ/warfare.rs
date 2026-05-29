@@ -211,7 +211,7 @@ pub fn try_spawn_raids(
     tick: u64,
     rng: &mut rand_chacha::ChaCha8Rng,
     organisms: &[crate::organism::organism::Organism],
-    territory: &HashMap<String, HashSet<(i32, i32)>>,
+    _territory: &HashMap<String, HashSet<(i32, i32)>>,
     treaties: &[Treaty],
     active_battles: &[Battle],
     events: &mut std::collections::VecDeque<crate::sim::simulation::Event>,

@@ -9,20 +9,14 @@ mod world;
 #[cfg(feature = "webtransport")]
 use crate::server::webtransport;
 use crate::server::{
-    conversation_worker, llm, llm_rate, llm_stats, memory_watch, narration_worker, og_image, routes,
+    conversation_worker, llm, llm_rate, llm_stats, memory_watch, narration_worker, routes,
     think_worker, transport,
 };
 
 use axum::http::HeaderValue;
 use axum::{
-    extract::ws::{Message, WebSocket},
-    extract::{Path, State, WebSocketUpgrade},
-    http::StatusCode,
-    response::IntoResponse,
-    routing::get,
-    Json, Router,
+    routing::get, Router,
 };
-use serde::{Deserialize, Serialize};
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 use tokio::sync::{broadcast, mpsc, Mutex};
@@ -30,16 +24,14 @@ use tower_http::compression::CompressionLayer;
 use tower_http::cors::{AllowOrigin, Any, CorsLayer};
 
 use llm::{
-    llm_body, llm_extract, strip_thinking, GroqMessage, GroqRequest, GroqResponse, NARRATION_LLM_KEY,
+    NARRATION_LLM_KEY,
     NARRATION_LLM_MODEL, NARRATION_LLM_URL, THINK_LLM_KEY, THINK_LLM_MODEL, THINK_LLM_URL,
 };
 use narration_worker::{narration_worker, NarrationReq};
-use sim::local_think;
 use sim::simulation::{Simulation, StoryEntry, ThinkTrigger};
 use think_worker::{think_worker, ThinkResult};
 use transport::{
     encode_frame, next_frame_id, now_ms, FrameClock, FrameKind, SharedTransportStats, TransportStats,
-    TransportStatsSnapshot,
 };
 
 pub type SharedSim = Arc<Mutex<Simulation>>;

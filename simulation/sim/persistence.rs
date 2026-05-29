@@ -498,7 +498,7 @@ impl Simulation {
     /// while you hold the sim lock, then pass the result to
     /// `write_save_to_disk` on a background blocking task so the
     /// next tick can run while serde_json + fs::write happen.
-    pub fn to_save_state(&self) -> SaveState {
+    pub(crate) fn to_save_state(&self) -> SaveState {
         SaveState {
             version: SAVE_SCHEMA_VERSION,
             tick_count: self.tick_count,
