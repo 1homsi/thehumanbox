@@ -1,13 +1,10 @@
 #![allow(dead_code)]
 
-#[path = "../organism/mod.rs"]
-mod organism;
-#[path = "../physics/mod.rs"]
-mod physics;
-#[path = "../sim/mod.rs"]
-mod sim;
-#[path = "../world/mod.rs"]
-mod world;
+// Sim core comes from the shared `sim-core` crate now (no more #[path]
+// includes that recompiled the core into this binary separately).
+// Re-export at the crate root so both bare (`world::grid`) and qualified
+// (`crate::world::grid`) paths in this file keep resolving.
+pub use sim_core::{organism, physics, sim, world};
 
 use serde_json::json;
 use sim::simulation::Simulation;

@@ -11,7 +11,11 @@ path = "main.rs"
 name = "headless"
 path = "bin/headless.rs"
 
+[workspace]
+members = ["sim-core"]
+
 [dependencies]
+sim-core    = { path = "sim-core" }
 tokio       = { version = "1",   features = ["full"] }
 axum        = { version = "0.8", features = ["ws"] }
 serde       = { version = "1",   features = ["derive"] }

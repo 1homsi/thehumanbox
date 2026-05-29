@@ -1657,6 +1657,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "sim-core"
+version = "0.2.38"
+dependencies = [
+ "getrandom 0.3.4",
+ "rand",
+ "rand_chacha",
+ "rand_distr",
+ "serde",
+ "serde_json",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "simd-adler32"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1678,6 +1692,7 @@ dependencies = [
  "rusqlite",
  "serde",
  "serde_json",
+ "sim-core",
  "tokio",
  "tower-http 0.5.2",
  "tracing",

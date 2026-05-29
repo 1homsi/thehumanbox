@@ -1,10 +1,11 @@
 #![allow(dead_code)]
 
-mod organism;
-mod physics;
+// The sim core now lives in the `sim-core` crate. Re-export its modules at
+// the crate root so every existing `crate::sim::…` / `crate::organism::…`
+// path in this binary and in `server/*` keeps resolving unchanged.
+pub use sim_core::{organism, physics, sim, world};
+
 mod server;
-mod sim;
-mod world;
 
 #[cfg(feature = "webtransport")]
 use crate::server::webtransport;

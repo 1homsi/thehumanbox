@@ -185,7 +185,7 @@ pub(crate) struct NegotiationSave {
 
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
-pub(crate) struct SaveState {
+pub struct SaveState {
     pub(crate) version: u32,
     pub(crate) tick_count: u64,
     next_animal_id: usize,
@@ -498,7 +498,7 @@ impl Simulation {
     /// while you hold the sim lock, then pass the result to
     /// `write_save_to_disk` on a background blocking task so the
     /// next tick can run while serde_json + fs::write happen.
-    pub(crate) fn to_save_state(&self) -> SaveState {
+    pub fn to_save_state(&self) -> SaveState {
         SaveState {
             version: SAVE_SCHEMA_VERSION,
             tick_count: self.tick_count,

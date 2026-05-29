@@ -43,9 +43,11 @@ jobs:
         working-directory: simulation
         run: cargo clippy --all-targets --locked -- -W clippy::all
         continue-on-error: true # ratchet — see fmt note above.
-      - name: cargo test --release --locked
+      - name: cargo test --release --locked --workspace
         working-directory: simulation
-        run: cargo test --release --locked
+        # --workspace so the sim-core crate's tests run too (the bulk of the
+        # suite lives there after the core was split out for the wasm build).
+        run: cargo test --release --locked --workspace
       - name: headless smoke (6000 ticks, fixed seed)
         working-directory: simulation
         run: |
