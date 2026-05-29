@@ -885,19 +885,30 @@ fn tick_weddings(sim: &mut Simulation) {
 }
 
 fn tick_jealousy_rivalries(sim: &mut Simulation) {
+    use crate::sim::spatial::SpatialIndex;
     let n = sim.organisms.len();
     if n == 0 {
         return;
     }
+    // Only jealous orgs need a neighborhood scan; a spatial index turns
+    // the old full O(N^2) rival search into an ~8-radius bucket query.
+    let any_jealous = sim.organisms.iter().any(|o| o.alive && o.jealousy >= 0.4);
+    if !any_jealous {
+        return;
+    }
+    let spatial = SpatialIndex::build(&sim.organisms, 8);
+    let mut buf: Vec<usize> = Vec::with_capacity(32);
     let mut attitude_drops: Vec<(usize, String, f32)> = Vec::new();
     for i in 0..n {
         let o = &sim.organisms[i];
         if !o.alive || o.jealousy < 0.4 {
             continue;
         }
-        let (my_x, my_y, my_lid) = (o.x, o.y, o.lineage_id.clone());
-        for j in 0..n {
-            if i == j {
+        let (my_x, my_y) = (o.x, o.y);
+        let my_lid = o.lineage_id.as_str();
+        spatial.query_into(my_x as i32, my_y as i32, 8, &mut buf);
+        for &j in buf.iter() {
+            if j == i {
                 continue;
             }
             let other = &sim.organisms[j];
@@ -1325,26 +1336,30 @@ fn tick_evening_gathering(sim: &mut Simulation) {
     if sim.organisms.is_empty() || sim.buildings.is_empty() {
         return;
     }
+    // Group eligible buildings by owning lineage once, so each adult only
+    // scans its own lineage's gathering spots instead of every building.
+    let mut buildings_by_lineage: HashMap<&str, Vec<(f32, f32)>> = HashMap::new();
+    for b in sim.buildings.iter() {
+        if b.condition < 0.4 {
+            continue;
+        }
+        if let Some(owner) = b.owner_lineage.as_deref() {
+            buildings_by_lineage
+                .entry(owner)
+                .or_default()
+                .push((b.x as f32, b.y as f32));
+        }
+    }
     let mut moves: Vec<(usize, f32, f32)> = Vec::new();
     for (i, o) in sim.organisms.iter().enumerate() {
         if !o.alive || o.age < 200 {
             continue;
         }
-        let my_lid = &o.lineage_id;
+        let Some(spots) = buildings_by_lineage.get(o.lineage_id.as_str()) else {
+            continue;
+        };
         let mut best: Option<(f32, f32, f32)> = None;
-        for b in sim.buildings.iter() {
-            if b.condition < 0.4 {
-                continue;
-            }
-            if let Some(owner) = &b.owner_lineage {
-                if owner != my_lid {
-                    continue;
-                }
-            } else {
-                continue;
-            }
-            let bx = b.x as f32;
-            let by = b.y as f32;
+        for &(bx, by) in spots.iter() {
             let dist = (bx - o.x).abs() + (by - o.y).abs();
             if dist > 60.0 || dist < 2.0 {
                 continue;
@@ -1374,51 +1389,41 @@ fn tick_friend_gravitation(sim: &mut Simulation) {
     if n == 0 {
         return;
     }
+    // O(1) friend resolution instead of a full organisms scan per friend.
+    let mut id_to_idx: HashMap<&str, usize> = HashMap::with_capacity(n);
+    for (idx, o) in sim.organisms.iter().enumerate() {
+        if o.alive {
+            id_to_idx.insert(o.id.as_str(), idx);
+        }
+    }
     let mut moves: Vec<(usize, f32, f32)> = Vec::new();
     for i in 0..n {
         let o = &sim.organisms[i];
-        if !o.alive {
-            continue;
-        }
-        if o.loneliness < 0.4 {
-            continue;
-        }
-        if o.energy < 0.2 {
-            continue;
-        }
-        let friends = &o.friends;
-        if friends.is_empty() {
+        if !o.alive || o.loneliness < 0.4 || o.energy < 0.2 || o.friends.is_empty() {
             continue;
         }
         let (ox, oy) = (o.x, o.y);
-        let my_lid = o.lineage_id.clone();
+        let my_lid = o.lineage_id.as_str();
         let mut best: Option<(f32, f32, f32)> = None;
-        for friend_id in friends.keys() {
-            let f = sim.organisms.iter().find(|p| &p.id == friend_id);
-            if let Some(f) = f {
-                if !f.alive {
-                    continue;
-                }
-                if f.lineage_id != my_lid {
-                    continue;
-                }
-                let d = (f.x - ox).abs() + (f.y - oy).abs();
-                if d > 80.0 || d < 6.0 {
-                    continue;
-                }
-                if let Some((b, _, _)) = best {
-                    if d < b {
-                        best = Some((d, f.x, f.y));
-                    }
-                } else {
-                    best = Some((d, f.x, f.y));
-                }
+        for friend_id in o.friends.keys() {
+            let Some(&fi) = id_to_idx.get(friend_id.as_str()) else {
+                continue;
+            };
+            let f = &sim.organisms[fi];
+            if !f.alive || f.lineage_id != my_lid {
+                continue;
+            }
+            let d = (f.x - ox).abs() + (f.y - oy).abs();
+            if d > 80.0 || d < 6.0 {
+                continue;
+            }
+            match best {
+                Some((b, _, _)) if d >= b => {}
+                _ => best = Some((d, f.x, f.y)),
             }
         }
         if let Some((_, fx, fy)) = best {
-            let dx = (fx - ox).signum() * 0.4;
-            let dy = (fy - oy).signum() * 0.4;
-            moves.push((i, dx, dy));
+            moves.push((i, (fx - ox).signum() * 0.4, (fy - oy).signum() * 0.4));
         }
     }
     for (i, dx, dy) in moves {
@@ -2923,27 +2928,32 @@ fn tick_building_progress(sim: &mut Simulation) {
     if sim.buildings.is_empty() {
         return;
     }
-    let snapshot: Vec<(f32, f32, String)> = sim
-        .organisms
-        .iter()
-        .filter(|o| o.alive)
-        .map(|o| (o.x, o.y, o.lineage_id.clone()))
-        .collect();
+    // Group alive worker positions by lineage once (borrowing the id, no
+    // per-org String clone), so each unfinished building only scans its
+    // own lineage's workers instead of every alive organism.
+    let mut by_lineage: HashMap<&str, Vec<(f32, f32)>> = HashMap::new();
+    for o in sim.organisms.iter() {
+        if o.alive {
+            by_lineage
+                .entry(o.lineage_id.as_str())
+                .or_default()
+                .push((o.x, o.y));
+        }
+    }
     for b in sim.buildings.iter_mut() {
         if b.condition >= 1.0 {
             continue;
         }
-        let owner = match &b.owner_lineage {
-            Some(s) => s.clone(),
-            None => continue,
+        let Some(owner) = b.owner_lineage.as_deref() else {
+            continue;
+        };
+        let Some(workers_pos) = by_lineage.get(owner) else {
+            continue;
         };
         let bx = b.x as f32;
         let by = b.y as f32;
         let mut workers = 0u32;
-        for (ox, oy, lid) in snapshot.iter() {
-            if lid != &owner {
-                continue;
-            }
+        for (ox, oy) in workers_pos.iter() {
             if (ox - bx).abs() + (oy - by).abs() < 5.0 {
                 workers += 1;
             }
