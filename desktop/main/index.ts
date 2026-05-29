@@ -1,4 +1,4 @@
-import { app, BrowserWindow, globalShortcut, ipcMain, Menu, nativeImage, Notification, shell, Tray } from 'electron'
+import { app, BrowserWindow, dialog, globalShortcut, ipcMain, Menu, nativeImage, Notification, shell, Tray } from 'electron'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { registerIpc } from './ipc'
@@ -518,6 +518,20 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('app:applyAutoLaunch', () => {
     applyAutoLaunch()
+  })
+
+  // Native folder picker for the save-location override. Returns the
+  // chosen absolute path, or null if cancelled. The renderer persists it
+  // into settings.saveLocationOverride and restarts the sim.
+  ipcMain.handle('app:pickSaveDir', async () => {
+    if (!mainWindow) return null
+    const res = await dialog.showOpenDialog(mainWindow, {
+      title: 'Choose where The Human Box stores worlds',
+      properties: ['openDirectory', 'createDirectory'],
+      defaultPath: loadSettings().saveLocationOverride ?? app.getPath('userData'),
+    })
+    if (res.canceled || res.filePaths.length === 0) return null
+    return res.filePaths[0]
   })
 })
 

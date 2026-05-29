@@ -230,6 +230,45 @@ export function DesktopSettingsModal({ onClose }: Props) {
           />
         </Section>
 
+        <Section title="Save location">
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <code
+              style={{
+                flex: 1,
+                minWidth: 180,
+                fontSize: 10,
+                color: '#bfae90',
+                background: '#1a1612',
+                border: '1px solid #3a2e25',
+                borderRadius: 4,
+                padding: '6px 8px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {settings.saveLocationOverride ?? 'default (app data folder)'}
+            </code>
+            <button
+              onClick={async () => {
+                const dir = await desktop?.app.pickSaveDir()
+                if (dir) update({ saveLocationOverride: dir })
+              }}
+              style={btnSecondary}
+            >
+              choose…
+            </button>
+            {settings.saveLocationOverride && (
+              <button onClick={() => update({ saveLocationOverride: null })} style={btnSecondary}>
+                reset
+              </button>
+            )}
+          </div>
+          <div style={{ fontSize: 10, color: '#666', marginTop: 6 }}>
+            Where worlds are stored. Save + restart for the change to take effect.
+          </div>
+        </Section>
+
         <Section title="Tools">
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button onClick={() => void desktop?.app.screenshot()} style={btnSecondary}>

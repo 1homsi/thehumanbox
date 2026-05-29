@@ -49,6 +49,7 @@ export interface DesktopBridge {
     openLogs(): Promise<void>
     openWorlds(): Promise<void>
     applyAutoLaunch(): Promise<void>
+    pickSaveDir(): Promise<string | null>
   }
   world: {
     importFromRemote(payload: { hash: string; remoteUrl: string }): Promise<SimStatus>

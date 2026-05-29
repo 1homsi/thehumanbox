@@ -23,6 +23,7 @@ export interface DesktopBridge {
     openLogs(): Promise<void>
     openWorlds(): Promise<void>
     applyAutoLaunch(): Promise<void>
+    pickSaveDir(): Promise<string | null>
   }
 
   world: {
@@ -62,6 +63,7 @@ const bridge: DesktopBridge = {
     openLogs: () => ipcRenderer.invoke('app:openLogs'),
     openWorlds: () => ipcRenderer.invoke('app:openWorlds'),
     applyAutoLaunch: () => ipcRenderer.invoke('app:applyAutoLaunch'),
+    pickSaveDir: () => ipcRenderer.invoke('app:pickSaveDir'),
   },
 
   world: {
