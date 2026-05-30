@@ -37,11 +37,14 @@ export function useSimulation(source: WorldSource = 'remote'): {
   sendCommand: (cmd: SandboxCommand) => void
   pauseSim: () => void
   setSpeed: (mult: number) => void
+  fellBackToLocal: boolean
 } {
   const [world, setWorld] = useState<WorldState | null>(null)
   const [connected, setConnected] = useState(false)
   const [failedAttempts, setFailedAttempts] = useState(0)
   const [idleParked, setIdleParked] = useState(false)
+  const [fellBack, setFellBack] = useState(false)
+  const effectiveSource: WorldSource = source === 'wasm' || fellBack ? 'wasm' : 'remote'
   const wsRef = useRef<WebSocket | null>(null)
   const wasmWorkerRef = useRef<Worker | null>(null)
   const organismCache = useRef<Map<string, OrganismState>>(new Map())
@@ -92,7 +95,7 @@ export function useSimulation(source: WorldSource = 'remote'): {
     }
 
     function markAwaitingFullFrame() {
-      if (source === 'wasm') return
+      if (effectiveSource === 'wasm') return
       awaitingFullFrameRef.current = true
       if (snapshotFetchTimerRef.current !== null) return
       snapshotFetchTimerRef.current = setTimeout(() => {
@@ -113,7 +116,7 @@ export function useSimulation(source: WorldSource = 'remote'): {
     let snapshotAbort: AbortController | null = null
 
     function requestSnapshotResync(force = false) {
-      if (source === 'wasm') return
+      if (effectiveSource === 'wasm') return
       if (destroyed) return
       if (snapshotPendingRef.current) {
         if (!force) return
@@ -252,7 +255,7 @@ export function useSimulation(source: WorldSource = 'remote'): {
 
     let destroyed = false
 
-    if (source === 'wasm') {
+    if (effectiveSource === 'wasm') {
       bootstrapPendingRef.current = false
       const worker = new Worker(new URL('./wasmWorker.ts', import.meta.url), {
         type: 'module',
@@ -319,6 +322,9 @@ export function useSimulation(source: WorldSource = 'remote'): {
 
     let reconnectDelayMs = 1000
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+    let everConnected = false
+    let attempts = 0
+    const REMOTE_FALLBACK_ATTEMPTS = 3
 
     function scheduleReconnect() {
       if (destroyed) return
@@ -354,6 +360,8 @@ export function useSimulation(source: WorldSource = 'remote'): {
       ws.onopen = () => {
         if (destroyed) return
         reconnectDelayMs = 1000
+        everConnected = true
+        attempts = 0
         setConnected(true)
         setFailedAttempts(0)
         requestSnapshotResync()
@@ -361,14 +369,19 @@ export function useSimulation(source: WorldSource = 'remote'): {
       ws.onclose = () => {
         if (destroyed) return
         setConnected(false)
-        setFailedAttempts((n) => n + 1)
+        attempts += 1
+        setFailedAttempts(attempts)
         if (rafPending.current !== null) {
           cancelAnimationFrame(rafPending.current)
           rafPending.current = null
         }
         queuedMsgs.current = []
         bootstrapPendingRef.current = true
-        scheduleReconnect()
+        if (!everConnected && attempts >= REMOTE_FALLBACK_ATTEMPTS) {
+          setFellBack(true)
+        } else {
+          scheduleReconnect()
+        }
       }
       ws.onerror = () => {
         try {
@@ -520,7 +533,7 @@ export function useSimulation(source: WorldSource = 'remote'): {
         wsRef.current = null
       }
     }
-  }, [source])
+  }, [effectiveSource])
 
   const status: ConnectionStatus = connected
     ? 'connected'
@@ -544,9 +557,10 @@ export function useSimulation(source: WorldSource = 'remote'): {
     },
     idleParked,
     resume: () => resumeRef.current(),
-    sandboxAvailable: source === 'wasm' || isDesktop(),
+    sandboxAvailable: effectiveSource === 'wasm' || isDesktop(),
+    fellBackToLocal: source !== 'wasm' && fellBack,
     sendCommand: (cmd: SandboxCommand) => {
-      if (source === 'wasm') {
+      if (effectiveSource === 'wasm') {
         wasmWorkerRef.current?.postMessage({ type: 'command', json: JSON.stringify(cmd) })
       } else {
         void fetch(`${API_BASE}/command`, {

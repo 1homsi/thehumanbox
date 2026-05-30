@@ -62,6 +62,7 @@ function LiveApp() {
     sendCommand,
     pauseSim,
     setSpeed,
+    fellBackToLocal,
   } = useSimulation(worldSourceRef.current)
   const currentScene = useCurrentScene()
 
@@ -248,6 +249,13 @@ function LiveApp() {
     <div className="app">
       <AppHeader world={world ?? null} connected={connected} fireTiles={fireTiles} sickOrgs={sickOrgs} />
       <HeadlineTicker world={world ?? null} enabled={viewFlags.headlineTicker} />
+
+      {fellBackToLocal && (
+        <div className="fallback-banner">
+          ⚠ The shared Human Box is unreachable — running a local world in your browser.{' '}
+          <button onClick={() => window.location.reload()}>retry live</button>
+        </div>
+      )}
 
       {idleParked && <IdleResumeOverlay onResume={resume} />}
       <DesktopDownloadToast />
