@@ -645,10 +645,7 @@ impl Simulation {
                     } else {
                         seed
                     };
-                    let mut sim = Self::from_save(terrain_seed, state);
-                    sim.grid.enforce_ocean_border();
-                    sim.relocate_edge_squatters();
-                    sim
+                    Self::from_save(terrain_seed, state)
                 }
                 Err(e) => {
                     // Don't overwrite a possibly-recoverable save on the next
@@ -881,6 +878,8 @@ impl Simulation {
             }
             sim.tile_owner = owner;
         }
+        sim.grid.enforce_ocean_border();
+        sim.relocate_edge_squatters();
         sim
     }
 

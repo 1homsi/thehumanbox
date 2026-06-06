@@ -350,21 +350,56 @@ fn start_drought(
     drought.active = true;
     drought.start_tick = tick;
     drought.rain_relief = 0;
-    // Find every water tile that touches non-water - i.e. the
-    // shoreline. We dry a fraction of that, which gives a natural
-    // "lake retreated" look instead of the prior Manhattan-3 dotted
-    // ring pattern. Shrink-from-edge is what real droughts do.
-    use crate::world::grid::{HEIGHT, WIDTH};
+    use crate::world::grid::{WorldGrid, HEIGHT, WIDTH};
+    use std::collections::VecDeque;
+    let w = WIDTH as i32;
+    let h = HEIGHT as i32;
+
+    let mut ocean = vec![false; WIDTH * HEIGHT];
+    let mut q: VecDeque<(i32, i32)> = VecDeque::new();
+    let mut seed_ocean = |x: i32, y: i32, ocean: &mut Vec<bool>, q: &mut VecDeque<(i32, i32)>| {
+        if grid.get(x, y) == Tile::Water {
+            let i = WorldGrid::idx(x, y);
+            if !ocean[i] {
+                ocean[i] = true;
+                q.push_back((x, y));
+            }
+        }
+    };
+    for x in 0..w {
+        seed_ocean(x, 0, &mut ocean, &mut q);
+        seed_ocean(x, h - 1, &mut ocean, &mut q);
+    }
+    for y in 0..h {
+        seed_ocean(0, y, &mut ocean, &mut q);
+        seed_ocean(w - 1, y, &mut ocean, &mut q);
+    }
+    while let Some((x, y)) = q.pop_front() {
+        for (dx, dy) in [(-1i32, 0i32), (1, 0), (0, -1), (0, 1)] {
+            let (nx, ny) = (x + dx, y + dy);
+            if nx >= 0 && nx < w && ny >= 0 && ny < h && grid.get(nx, ny) == Tile::Water {
+                let ni = WorldGrid::idx(nx, ny);
+                if !ocean[ni] {
+                    ocean[ni] = true;
+                    q.push_back((nx, ny));
+                }
+            }
+        }
+    }
+
     let mut shoreline: Vec<(i32, i32)> = Vec::new();
-    for y in 0..HEIGHT as i32 {
-        for x in 0..WIDTH as i32 {
+    for y in 0..h {
+        for x in 0..w {
             if grid.get(x, y) != Tile::Water {
                 continue;
             }
-            let edge = matches!(grid.get(x - 1, y), Tile::Water) == false
-                || matches!(grid.get(x + 1, y), Tile::Water) == false
-                || matches!(grid.get(x, y - 1), Tile::Water) == false
-                || matches!(grid.get(x, y + 1), Tile::Water) == false;
+            if WorldGrid::is_edge_border(x, y) || ocean[WorldGrid::idx(x, y)] {
+                continue;
+            }
+            let edge = !matches!(grid.get(x - 1, y), Tile::Water)
+                || !matches!(grid.get(x + 1, y), Tile::Water)
+                || !matches!(grid.get(x, y - 1), Tile::Water)
+                || !matches!(grid.get(x, y + 1), Tile::Water);
             if edge {
                 shoreline.push((x, y));
             }
@@ -558,6 +593,30 @@ mod tests {
 
         assert_eq!(events.len(), 40);
         assert_eq!(events.front().unwrap().tick, 0);
+    }
+
+    #[test]
+    fn drought_never_dries_ocean_or_border() {
+        use crate::world::grid::{WorldGrid, HEIGHT, WIDTH};
+        use rand::SeedableRng;
+        let mut grid = WorldGrid::new(42);
+        let mut drought = DroughtState::default();
+        let mut history = super::super::simulation::History::default();
+        let mut events = VecDeque::new();
+        let mut rng = rand::rngs::StdRng::seed_from_u64(7);
+
+        for _ in 0..40 {
+            start_drought(&mut drought, &mut grid, 0, &mut history, &mut events, &mut rng);
+            end_drought(&mut drought, &mut grid, 0, &mut events);
+        }
+
+        for y in 0..HEIGHT as i32 {
+            for x in 0..WIDTH as i32 {
+                if WorldGrid::is_edge_border(x, y) {
+                    assert_eq!(grid.get(x, y), Tile::Water, "border tile ({x},{y}) was dried");
+                }
+            }
+        }
     }
 }
 
