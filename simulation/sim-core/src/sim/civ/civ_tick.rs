@@ -1443,7 +1443,12 @@ fn tick_friend_gravitation(sim: &mut Simulation) {
                 continue;
             };
             let f = &sim.organisms[fi];
-            if !f.alive || f.lineage_id != my_lid {
+            if !f.alive {
+                continue;
+            }
+            let same_lineage = f.lineage_id == my_lid;
+            let friendly_cross_lineage = !same_lineage && o.attitude_toward(&f.lineage_id) >= -0.15;
+            if !same_lineage && !friendly_cross_lineage {
                 continue;
             }
             let d = (f.x - ox).abs() + (f.y - oy).abs();
@@ -1456,7 +1461,19 @@ fn tick_friend_gravitation(sim: &mut Simulation) {
             }
         }
         if let Some((_, fx, fy)) = best {
-            moves.push((i, (fx - ox).signum() * 0.4, (fy - oy).signum() * 0.4));
+            let dx = fx - ox;
+            let dy = fy - oy;
+            let step_x = if dx.abs() < f32::EPSILON {
+                0.0
+            } else {
+                dx.signum() * 0.4
+            };
+            let step_y = if dy.abs() < f32::EPSILON {
+                0.0
+            } else {
+                dy.signum() * 0.4
+            };
+            moves.push((i, step_x, step_y));
         }
     }
     for (i, dx, dy) in moves {
@@ -4189,5 +4206,67 @@ fn tick_milestones(sim: &mut Simulation) {
         while sim.headlines.len() > 80 {
             sim.headlines.pop_front();
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::organism::organism::Organism;
+    use crate::organism::traits::Traits;
+
+    fn test_org(id: &str, name: &str, lineage: &str, x: f32, y: f32) -> Organism {
+        let mut org = Organism::new(
+            id.to_string(),
+            name.to_string(),
+            x,
+            y,
+            0,
+            String::new(),
+            lineage.to_string(),
+            20_000,
+            Traits::default(),
+        );
+        org.alive = true;
+        org.age = 1500;
+        org.energy = 0.8;
+        org.loneliness = 0.85;
+        org
+    }
+
+    #[test]
+    fn friend_gravitation_follows_cross_lineage_friend() {
+        let mut sim = Simulation::new(0x51);
+        sim.organisms.clear();
+
+        let mut lonely = test_org("lonely", "Lonely", "lineage-a", 20.0, 20.0);
+        lonely.friends.insert("friend".into(), "Friend".into());
+        lonely.lineage_attitudes.insert("lineage-b".into(), 0.20);
+        sim.organisms.push(lonely);
+        sim.organisms
+            .push(test_org("friend", "Friend", "lineage-b", 42.0, 20.0));
+
+        tick_friend_gravitation(&mut sim);
+
+        assert!(sim.organisms[0].x > 20.0);
+        assert_eq!(sim.organisms[0].y, 20.0);
+    }
+
+    #[test]
+    fn friend_gravitation_ignores_hostile_cross_lineage_friend() {
+        let mut sim = Simulation::new(0x52);
+        sim.organisms.clear();
+
+        let mut lonely = test_org("lonely", "Lonely", "lineage-a", 20.0, 20.0);
+        lonely.friends.insert("friend".into(), "Friend".into());
+        lonely.lineage_attitudes.insert("lineage-b".into(), -0.50);
+        sim.organisms.push(lonely);
+        sim.organisms
+            .push(test_org("friend", "Friend", "lineage-b", 42.0, 20.0));
+
+        tick_friend_gravitation(&mut sim);
+
+        assert_eq!(sim.organisms[0].x, 20.0);
+        assert_eq!(sim.organisms[0].y, 20.0);
     }
 }
