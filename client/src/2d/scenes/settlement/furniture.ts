@@ -95,11 +95,7 @@ function drawSmallHut(ctx: CanvasRenderingContext2D, x: number, y: number) {
   ctx.fillRect(x + 8, y + 14, 1, 1)
 }
 
-export function drawSettlementFurniture(
-  ctx: CanvasRenderingContext2D,
-  f: SceneFixture,
-  t: number,
-) {
+export function drawSettlementFurniture(ctx: CanvasRenderingContext2D, f: SceneFixture, t: number) {
   const x = f.x * TILE_PX
   const y = f.y * TILE_PX
   switch (f.kind) {

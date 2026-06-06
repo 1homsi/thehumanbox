@@ -31,7 +31,7 @@ export function resolveForgeScene(world: WorldState, scene: SceneId): SceneConte
     const entry: SceneOccupant = {
       org: o,
       role: isWorker ? 'host' : 'patron',
-      activity: isWorker ? `working at the ${kind}` : (o.thought || 'visiting'),
+      activity: isWorker ? `working at the ${kind}` : o.thought || 'visiting',
     }
     if (d <= 3) inside.push(entry)
     else away.push(entry)

@@ -26,7 +26,8 @@ export function ConstructionScaffolds({ buildings, depthMap, biomes }: Props) {
   const meshRef = useRef<InstancedMesh>(null)
   const targets = useMemo(() => {
     if (!buildings || !depthMap || !biomes) return []
-    const out: Array<{ x: number; y: number; z: number; height: number; progress: number; pulse: number }> = []
+    const out: Array<{ x: number; y: number; z: number; height: number; progress: number; pulse: number }> =
+      []
     for (const b of buildings) {
       const c = b.condition ?? 1
       if (c >= 0.97) continue

@@ -86,11 +86,7 @@ function drawStool(ctx: CanvasRenderingContext2D, x: number, y: number) {
   ctx.fillRect(x + 9, y + 11, 2, 4)
 }
 
-export function drawTavernFurniture(
-  ctx: CanvasRenderingContext2D,
-  f: SceneFixture,
-  t: number,
-) {
+export function drawTavernFurniture(ctx: CanvasRenderingContext2D, f: SceneFixture, t: number) {
   const x = f.x * TILE_PX
   const y = f.y * TILE_PX
   switch (f.kind) {

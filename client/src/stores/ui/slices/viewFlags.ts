@@ -37,13 +37,7 @@ const DEFAULTS: ViewFlags = {
   headlineTicker: false,
 }
 
-const TRACKED_FLAGS: Set<keyof ViewFlags> = new Set([
-  'threeD',
-  'orgPov',
-  'photoMode',
-  'randomTour',
-  'hideUI',
-])
+const TRACKED_FLAGS: Set<keyof ViewFlags> = new Set(['threeD', 'orgPov', 'photoMode', 'randomTour', 'hideUI'])
 
 export const createViewFlagsSlice: StateCreator<UIState, [], [], ViewFlagsSlice> = (set) => ({
   viewFlags: DEFAULTS,

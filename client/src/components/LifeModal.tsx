@@ -309,11 +309,16 @@ export function LifeModal({ orgId, orgName, onClose }: Props) {
                       place: '#a8c0e0',
                       dream: '#888',
                     }
-                    const emoColor = m.emotion >= 2 ? '#f6c46a'
-                      : m.emotion >= 1 ? '#d8c060'
-                      : m.emotion <= -2 ? '#6090c0'
-                      : m.emotion <= -1 ? '#80a8c0'
-                      : '#cccccc'
+                    const emoColor =
+                      m.emotion >= 2
+                        ? '#f6c46a'
+                        : m.emotion >= 1
+                          ? '#d8c060'
+                          : m.emotion <= -2
+                            ? '#6090c0'
+                            : m.emotion <= -1
+                              ? '#80a8c0'
+                              : '#cccccc'
                     return (
                       <div
                         key={`mem-${i}`}

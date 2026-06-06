@@ -1332,7 +1332,6 @@ static TECH: &[TechNode] = &[
         unlocks: &[],
         discovery_rate: 0.01,
     },
-
     TechNode {
         name: "herbalism",
         era: Era::Stone,
@@ -1445,7 +1444,6 @@ static TECH: &[TechNode] = &[
         unlocks: &[],
         discovery_rate: 2.0,
     },
-
     TechNode {
         name: "beekeeping",
         era: Era::Bronze,
@@ -1495,7 +1493,6 @@ static TECH: &[TechNode] = &[
         unlocks: &[],
         discovery_rate: 1.4,
     },
-
     TechNode {
         name: "glassblowing",
         era: Era::Iron,
@@ -1531,7 +1528,6 @@ static TECH: &[TechNode] = &[
         unlocks: &[],
         discovery_rate: 1.2,
     },
-
     TechNode {
         name: "philosophy",
         era: Era::Classical,
@@ -1560,7 +1556,6 @@ static TECH: &[TechNode] = &[
         unlocks: &[],
         discovery_rate: 1.0,
     },
-
     TechNode {
         name: "heraldry",
         era: Era::Medieval,
@@ -1582,7 +1577,6 @@ static TECH: &[TechNode] = &[
         unlocks: &[],
         discovery_rate: 0.7,
     },
-
     TechNode {
         name: "perspective_art",
         era: Era::Renaissance,
@@ -1597,7 +1591,6 @@ static TECH: &[TechNode] = &[
         unlocks: &[],
         discovery_rate: 0.7,
     },
-
     TechNode {
         name: "refrigeration",
         era: Era::Modern,
@@ -1619,7 +1612,6 @@ static TECH: &[TechNode] = &[
         unlocks: &[],
         discovery_rate: 0.5,
     },
-
     TechNode {
         name: "search_engine",
         era: Era::Information,
@@ -1641,7 +1633,6 @@ static TECH: &[TechNode] = &[
         unlocks: &[],
         discovery_rate: 0.4,
     },
-
     TechNode {
         name: "nuclear_power",
         era: Era::Atomic,

@@ -90,7 +90,11 @@ export function ShootingStars({ isNight, width, height }: Props) {
 
     for (let i = 0; i < streaks.length; i++) {
       const s = streaks[i]
-      const el = refsArray.current[i] as unknown as { position: Vector3; scale: Vector3; visible: boolean } | null
+      const el = refsArray.current[i] as unknown as {
+        position: Vector3
+        scale: Vector3
+        visible: boolean
+      } | null
       if (!s.active) {
         if (el) el.visible = false
         continue

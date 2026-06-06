@@ -13,8 +13,8 @@ TAG          ?=
 CARGO_RELEASE := cd simulation && cargo
 
 .PHONY: help sim client desktop-dev desktop-pack desktop-release \
-        headless test test-backend test-frontend test-desktop \
-        lint lint-rust lint-client fmt fmt-rust fmt-client \
+        headless test test-backend test-frontend test-desktop test-lab \
+        lint lint-rust lint-client lint-lab fmt fmt-rust fmt-client \
         build build-client build-sim build-desktop wasm \
         wipe wipe-archive logs profile lab-pipeline metrics snapshot \
         install install-client install-desktop install-sim \
@@ -50,7 +50,7 @@ desktop-release: ## Build + publish desktop installers to GitHub Releases (requi
 
 # ── Tests ───────────────────────────────────────────────────────────
 
-test: test-backend test-frontend ## Run every test suite
+test: test-backend test-frontend test-desktop test-lab ## Run every test suite
 
 test-backend: ## Rust simulation tests (release, locked, whole workspace)
 	$(CARGO_RELEASE) test --release --locked --workspace
@@ -61,17 +61,23 @@ test-frontend: ## Client unit tests
 test-desktop: ## Desktop tsc typecheck
 	cd desktop && pnpm exec tsc -p tsconfig.json --noEmit
 
+test-lab: ## Python lab tests
+	cd lab && $$(test -x .venv/bin/python && printf .venv/bin/python || printf python3) -m pytest
+
 # ── Lint + format ───────────────────────────────────────────────────
 
-lint: lint-rust lint-client ## Lint everything
+lint: lint-rust lint-client lint-lab ## Lint everything
 
-lint-rust: ## cargo fmt --check + clippy -D warnings (whole workspace)
+lint-rust: ## cargo fmt --check + clippy (whole workspace)
 	$(CARGO_RELEASE) fmt --all -- --check
-	$(CARGO_RELEASE) clippy --workspace --all-targets -- -D warnings
+	$(CARGO_RELEASE) clippy --workspace --all-targets -- -W clippy::all
 
 lint-client: ## eslint + prettier check
 	cd client && pnpm lint
 	cd client && pnpm format:check
+
+lint-lab: ## ruff check for lab package + tests
+	cd lab && $$(test -x .venv/bin/python && printf .venv/bin/python || printf python3) -m ruff check .
 
 fmt: fmt-rust fmt-client ## Auto-format the entire tree
 

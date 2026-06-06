@@ -43,7 +43,6 @@ export function Birds({ width, height, isNight = false, weatherKind = 'clear' }:
       })
     }
     return arr
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cx, cz, radius])
 
   useFrame(({ clock }) => {

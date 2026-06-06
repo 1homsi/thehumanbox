@@ -149,7 +149,7 @@ class CheckpointAndCompressTests(unittest.TestCase):
                 sink.write(json.dumps({"a": 1}) + "\n")
                 sink.write(b'{"a":2}\n')
             with gzip.open(path, "rt", encoding="utf-8") as f:
-                lines = [json.loads(l) for l in f if l.strip()]
+                lines = [json.loads(line) for line in f if line.strip()]
             self.assertEqual(lines, [{"a": 1}, {"a": 2}])
 
 

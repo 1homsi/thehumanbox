@@ -122,12 +122,5 @@ export function BuildSparks({ buildings, depthMap, biomes }: Props) {
   })
 
   if (sites.length === 0) return null
-  return (
-    <instancedMesh
-      ref={meshRef}
-      args={[GEO, MAT, MAX_SPARKS]}
-      frustumCulled={false}
-      renderOrder={-1}
-    />
-  )
+  return <instancedMesh ref={meshRef} args={[GEO, MAT, MAX_SPARKS]} frustumCulled={false} renderOrder={-1} />
 }

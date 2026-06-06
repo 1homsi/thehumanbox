@@ -37,12 +37,9 @@ jobs:
       - name: cargo fmt --check
         working-directory: simulation
         run: cargo fmt --all -- --check
-        continue-on-error: true # ratchet — flip to hard-fail once
-                                # the existing tree is formatted.
       - name: cargo clippy
         working-directory: simulation
         run: cargo clippy --all-targets --locked -- -W clippy::all
-        continue-on-error: true # ratchet — see fmt note above.
       - name: cargo test --release --locked --workspace
         working-directory: simulation
         # --workspace so the sim-core crate's tests run too (the bulk of the
@@ -67,7 +64,7 @@ jobs:
           version: 10
       - uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version-file: .node-version
           cache: pnpm
           cache-dependency-path: client/pnpm-lock.yaml
       - name: pnpm install
@@ -80,13 +77,10 @@ jobs:
       - name: pnpm lint
         working-directory: client
         run: pnpm lint
-        continue-on-error: true # ratchet — flip once existing lint
-                                # debt is paid down.
 
       - name: pnpm format:check
         working-directory: client
         run: pnpm format:check
-        continue-on-error: true # ratchet — same.
 
       - name: pnpm test
         working-directory: client
@@ -142,12 +136,56 @@ jobs:
             client/functions
           retention-days: 7
 
+  test-desktop:
+    name: Typecheck desktop
+    if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          cache-dependency-path: desktop/pnpm-lock.yaml
+      - name: pnpm install
+        working-directory: desktop
+        run: pnpm install --frozen-lockfile
+      - name: tsc --noEmit
+        working-directory: desktop
+        run: pnpm exec tsc -p tsconfig.json --noEmit
+
+  test-lab:
+    name: Test lab
+    if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: lab/pyproject.toml
+      - name: Install lab
+        working-directory: lab
+        run: python -m pip install -e '.[dev]'
+      - name: ruff check
+        working-directory: lab
+        run: python -m ruff check .
+      - name: pytest
+        working-directory: lab
+        run: python -m pytest
+
   bump-version:
     name: Bump version
     # Only runs for direct pushes to main (post-merge). PRs go through
     # the test jobs only — no version bump, no deploy.
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    needs: [test-backend, test-frontend]
+    needs: [test-backend, test-frontend, test-desktop, test-lab]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:

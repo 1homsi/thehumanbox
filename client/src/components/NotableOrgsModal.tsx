@@ -138,7 +138,15 @@ export function NotableOrgsModal({ organisms, onClose }: Props) {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 6, padding: '8px 12px', flexWrap: 'wrap', borderBottom: '1px solid #1a1612' }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: 6,
+          padding: '8px 12px',
+          flexWrap: 'wrap',
+          borderBottom: '1px solid #1a1612',
+        }}
+      >
         {CATEGORIES.map((cat) => {
           const isActive = activeCat === cat.id
           return (
@@ -221,9 +229,7 @@ export function NotableOrgsModal({ organisms, onClose }: Props) {
                         {r.org.sex === 'female' ? '♀' : '♂'}
                       </span>
                     )}
-                    <span style={{ color: '#555', marginLeft: 8, fontSize: 10 }}>
-                      gen {r.org.generation}
-                    </span>
+                    <span style={{ color: '#555', marginLeft: 8, fontSize: 10 }}>gen {r.org.generation}</span>
                     {!r.org.alive && <span style={{ color: '#444', marginLeft: 6 }}>†</span>}
                   </span>
                   <span style={{ color: '#9a8870', fontSize: 11, fontFamily: 'monospace' }}>{r.label}</span>

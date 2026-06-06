@@ -158,9 +158,7 @@ export function CivStatsModal({ world, onClose }: Props) {
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13, padding: '4px 0' }}>
               <span style={{ color: '#d0c8c0' }}>
                 <strong>year {world.cosmos.year}</strong>
-                <span style={{ color: '#777', marginLeft: 6 }}>
-                  day {world.cosmos.day_of_year} of 84
-                </span>
+                <span style={{ color: '#777', marginLeft: 6 }}>day {world.cosmos.day_of_year} of 84</span>
               </span>
               <span style={{ color: '#d0c8c0' }}>
                 {moonGlyphs[world.cosmos.moon_phase] ?? '🌑'}{' '}
@@ -209,9 +207,7 @@ export function CivStatsModal({ world, onClose }: Props) {
                         <button
                           className="civ-row-link"
                           onClick={() => {
-                            useSceneStore
-                              .getState()
-                              .enter({ kind: 'tavern', lineageId: l.id })
+                            useSceneStore.getState().enter({ kind: 'tavern', lineageId: l.id })
                             onClose()
                           }}
                         >
@@ -290,9 +286,7 @@ export function CivStatsModal({ world, onClose }: Props) {
 
         <section className="civ-section">
           <h3>Goods in Circulation</h3>
-          {goodsTotalRows.length === 0 && (
-            <div className="civ-empty">No crafted goods held yet</div>
-          )}
+          {goodsTotalRows.length === 0 && <div className="civ-empty">No crafted goods held yet</div>}
           <div className="civ-build-grid">
             {goodsTotalRows.map(([kind, total]) => (
               <span key={kind} className="civ-chip" title={kind.replace(/_/g, ' ')}>
@@ -375,9 +369,15 @@ export function CivStatsModal({ world, onClose }: Props) {
               const seller = nameById.get(t.seller_id) ?? t.seller_id.slice(0, 6)
               return (
                 <div key={`${t.tick}-${i}`} className="civ-row">
-                  <span className="civ-row-head">{'\u{1F4B0}'} {seller} → {buyer}</span>
-                  <span className="civ-row-sub">{GOOD_EMOJI[t.good] ?? ''} {t.amount} {t.good.replace(/_/g, ' ')}</span>
-                  <span className="civ-row-tag">{t.price} coin{t.price === 1 ? '' : 's'}</span>
+                  <span className="civ-row-head">
+                    {'\u{1F4B0}'} {seller} → {buyer}
+                  </span>
+                  <span className="civ-row-sub">
+                    {GOOD_EMOJI[t.good] ?? ''} {t.amount} {t.good.replace(/_/g, ' ')}
+                  </span>
+                  <span className="civ-row-tag">
+                    {t.price} coin{t.price === 1 ? '' : 's'}
+                  </span>
                   <span className="civ-row-tag">tick {t.tick}</span>
                 </div>
               )

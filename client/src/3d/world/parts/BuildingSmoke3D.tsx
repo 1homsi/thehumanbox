@@ -66,23 +66,13 @@ export function BuildingSmoke3D({ buildings, depthMap, biomes }: Props) {
   return (
     <>
       {Array.from(grouped.entries()).map(([kind, entry]) => (
-        <SmokeColumns
-          key={`smoke-${kind}`}
-          positions={entry.positions}
-          spec={entry.spec}
-        />
+        <SmokeColumns key={`smoke-${kind}`} positions={entry.positions} spec={entry.spec} />
       ))}
     </>
   )
 }
 
-function SmokeColumns({
-  positions,
-  spec,
-}: {
-  positions: [number, number, number][]
-  spec: SmokeSourceSpec
-}) {
+function SmokeColumns({ positions, spec }: { positions: [number, number, number][]; spec: SmokeSourceSpec }) {
   const meshRef = useRef<InstancedMesh>(null)
   const total = positions.length * spec.count
 

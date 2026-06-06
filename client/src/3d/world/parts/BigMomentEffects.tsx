@@ -64,12 +64,24 @@ function classify(e: SimEvent): MomentKind | null {
   const d = (e.detail || '').toLowerCase()
   if (t === 'died' || t === 'death' || d.includes('died') || d.includes('passed away')) return 'death'
   if (t === 'born' || t === 'birth' || d.includes('was born') || d.includes('newborn')) return 'birth'
-  if (t === 'partnership' || d.includes('became partners') || d.includes('married') || d.includes('paired with'))
+  if (
+    t === 'partnership' ||
+    d.includes('became partners') ||
+    d.includes('married') ||
+    d.includes('paired with')
+  )
     return 'partnership'
   if (t === 'war_declared') return 'war_declared'
   if (t === 'religion' && (d.includes('reached') || d.includes('milestone'))) return 'religion_milestone'
   if (t === 'milestone' || d.includes('the world')) return 'milestone'
-  if (t === 'built' && (d.includes('cathedral') || d.includes('castle') || d.includes('factory') || d.includes('datacenter') || d.includes('university')))
+  if (
+    t === 'built' &&
+    (d.includes('cathedral') ||
+      d.includes('castle') ||
+      d.includes('factory') ||
+      d.includes('datacenter') ||
+      d.includes('university'))
+  )
     return 'first_build'
   if (t === 'era' || d.includes('entered the') || d.includes('became a')) return 'era_up'
   return null
@@ -193,17 +205,7 @@ export function BigMomentEffects({ events, organisms, world, depthMap, biomes }:
   )
 }
 
-function Pop({
-  kind,
-  age,
-  color,
-  label,
-}: {
-  kind: MomentKind
-  age: number
-  color: string
-  label?: string
-}) {
+function Pop({ kind, age, color, label }: { kind: MomentKind; age: number; color: string; label?: string }) {
   const fade = Math.max(0, 1 - age)
   switch (kind) {
     case 'era_up':
@@ -279,17 +281,7 @@ function Pillar({
   )
 }
 
-function Flash({
-  age,
-  color,
-  label,
-  icon,
-}: {
-  age: number
-  color: string
-  label?: string
-  icon?: string
-}) {
+function Flash({ age, color, label, icon }: { age: number; color: string; label?: string; icon?: string }) {
   const fade = Math.max(0, 1 - age)
   const scale = 1 + age * 3
   return (

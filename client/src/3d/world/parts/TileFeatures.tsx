@@ -69,22 +69,69 @@ function biomeTreeRule(b: number): { chance: number; spacing: number } {
   }
 }
 
-function biomeUndergrowthRule(
-  b: number,
-): { bush: number; tuft: number; flower: number; bushColor: string; tuftColor: string; flowerColor: string } {
+function biomeUndergrowthRule(b: number): {
+  bush: number
+  tuft: number
+  flower: number
+  bushColor: string
+  tuftColor: string
+  flowerColor: string
+} {
   switch (b) {
     case B_FOREST:
-      return { bush: 0.18, tuft: 0.12, flower: 0.03, bushColor: '#3a5e2a', tuftColor: '#4e7a36', flowerColor: '#f6d062' }
+      return {
+        bush: 0.18,
+        tuft: 0.12,
+        flower: 0.03,
+        bushColor: '#3a5e2a',
+        tuftColor: '#4e7a36',
+        flowerColor: '#f6d062',
+      }
     case B_WETLAND:
-      return { bush: 0.12, tuft: 0.18, flower: 0.05, bushColor: '#3a6028', tuftColor: '#5a8038', flowerColor: '#ffaad8' }
+      return {
+        bush: 0.12,
+        tuft: 0.18,
+        flower: 0.05,
+        bushColor: '#3a6028',
+        tuftColor: '#5a8038',
+        flowerColor: '#ffaad8',
+      }
     case B_GRASS:
-      return { bush: 0.09, tuft: 0.16, flower: 0.04, bushColor: '#456e2c', tuftColor: '#5e8a3c', flowerColor: '#ffd060' }
+      return {
+        bush: 0.09,
+        tuft: 0.16,
+        flower: 0.04,
+        bushColor: '#456e2c',
+        tuftColor: '#5e8a3c',
+        flowerColor: '#ffd060',
+      }
     case B_TUNDRA:
-      return { bush: 0.05, tuft: 0.06, flower: 0.015, bushColor: '#566858', tuftColor: '#7a8a6a', flowerColor: '#e8d8f0' }
+      return {
+        bush: 0.05,
+        tuft: 0.06,
+        flower: 0.015,
+        bushColor: '#566858',
+        tuftColor: '#7a8a6a',
+        flowerColor: '#e8d8f0',
+      }
     case B_DESERT:
-      return { bush: 0.05, tuft: 0.03, flower: 0.01, bushColor: '#8a7a48', tuftColor: '#a89a5a', flowerColor: '#ff8a3a' }
+      return {
+        bush: 0.05,
+        tuft: 0.03,
+        flower: 0.01,
+        bushColor: '#8a7a48',
+        tuftColor: '#a89a5a',
+        flowerColor: '#ff8a3a',
+      }
     case B_VOLCANIC:
-      return { bush: 0.02, tuft: 0.01, flower: 0.0, bushColor: '#5a4a3a', tuftColor: '#6a5848', flowerColor: '#ff6628' }
+      return {
+        bush: 0.02,
+        tuft: 0.01,
+        flower: 0.0,
+        bushColor: '#5a4a3a',
+        tuftColor: '#6a5848',
+        flowerColor: '#ff6628',
+      }
     default:
       return { bush: 0.0, tuft: 0.0, flower: 0.0, bushColor: '#000', tuftColor: '#000', flowerColor: '#000' }
   }

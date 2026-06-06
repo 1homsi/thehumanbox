@@ -397,7 +397,7 @@ export default function WorldView3D({ world }: Props) {
       }
     }
     return out
-  }, [grid?.tiles, grid?.depth_map, grid?.biomes])
+  }, [grid?.tiles, grid?.depth_map, grid?.biomes, grid?.height, grid?.width])
 
   const buildingAABBs = useMemo<BuildingAABB[]>(() => {
     if (!grid?.tiles || !grid?.depth_map || !grid?.biomes) return []
@@ -605,12 +605,7 @@ export default function WorldView3D({ world }: Props) {
                   intensity={0.55 + (world.weather?.intensity ?? 0) * 0.4}
                 />
                 <ShootingStars isNight={isNight} width={grid.width} height={grid.height} />
-                <Aurora
-                  isNight={isNight}
-                  season={world.season}
-                  width={grid.width}
-                  height={grid.height}
-                />
+                <Aurora isNight={isNight} season={world.season} width={grid.width} height={grid.height} />
                 <GroundMist
                   dayProgress={dayProgress}
                   width={grid.width}
@@ -628,11 +623,7 @@ export default function WorldView3D({ world }: Props) {
                   depthMap={grid.depth_map}
                   biomes={grid.biomes}
                 />
-                <BuildSparks
-                  buildings={world.buildings}
-                  depthMap={grid.depth_map}
-                  biomes={grid.biomes}
-                />
+                <BuildSparks buildings={world.buildings} depthMap={grid.depth_map} biomes={grid.biomes} />
                 <Vehicles3D
                   buildings={world.buildings}
                   lineageEras={lineageErasMap}
@@ -653,22 +644,14 @@ export default function WorldView3D({ world }: Props) {
                   width={grid.width}
                   height={grid.height}
                 />
-                <Farms3D
-                  buildings={world.buildings}
-                  depthMap={grid.depth_map}
-                  biomes={grid.biomes}
-                />
+                <Farms3D buildings={world.buildings} depthMap={grid.depth_map} biomes={grid.biomes} />
                 <WatchtowerBeams
                   buildings={world.buildings}
                   depthMap={grid.depth_map}
                   biomes={grid.biomes}
                   isNight={isNight}
                 />
-                <IndustrySmoke
-                  buildings={world.buildings}
-                  depthMap={grid.depth_map}
-                  biomes={grid.biomes}
-                />
+                <IndustrySmoke buildings={world.buildings} depthMap={grid.depth_map} biomes={grid.biomes} />
                 <AmbientMotes isNight={isNight} weatherKind={world.weather?.kind ?? 'clear'} />
                 <Fireflies hutPositions={hutWorldPositions} isNight={isNight} />
                 <SocialBeams
@@ -686,11 +669,7 @@ export default function WorldView3D({ world }: Props) {
               </>
             )}
             <CinematicGrade dayProgress={dayProgress} weatherKind={world?.weather?.kind ?? 'clear'} />
-            <FlyCamera
-              depthMap={grid?.depth_map}
-              biomes={grid?.biomes}
-              buildingAABBs={buildingAABBs}
-            />
+            <FlyCamera depthMap={grid?.depth_map} biomes={grid?.biomes} buildingAABBs={buildingAABBs} />
             <CameraBreath enabled={!isTouch} />
             <CameraSync />
             {isTouch ? (

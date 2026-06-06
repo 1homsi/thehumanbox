@@ -51,13 +51,7 @@ function Hearth({ time }: { time: number }) {
         <coneGeometry args={[0.32, 0.6, 8]} />
         <meshStandardMaterial color="#ff8030" emissive="#ff5020" emissiveIntensity={flicker} />
       </mesh>
-      <pointLight
-        position={[0, 0.6, 0]}
-        intensity={1.5 * flicker}
-        distance={6}
-        color="#ffa050"
-        castShadow
-      />
+      <pointLight position={[0, 0.6, 0]} intensity={1.5 * flicker} distance={6} color="#ffa050" castShadow />
     </group>
   )
 }
@@ -107,7 +101,7 @@ function Occupant({
       </mesh>
       {selected && (
         <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[0.32, 0.40, 24]} />
+          <ringGeometry args={[0.32, 0.4, 24]} />
           <meshBasicMaterial color="#ffe066" transparent opacity={0.85} />
         </mesh>
       )}

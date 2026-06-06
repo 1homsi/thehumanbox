@@ -440,10 +440,10 @@ impl BuildingKind {
             | Courthouse | PoliceStation | FireStation | MallShop | Supermarket | Studio | GasStation
             | AutoShop | Garage | Cemetery | Garden | Orchard | PlayGround | ParkingLot | ClockTower
             | Mosque | Synagogue | Stupa | Mausoleum | Hangar | Silo | Warehouse | Dock | Marina
-            | Lighthouse2 | Drydock | Crane | RadioTower | WindTurbine | Pyramid
-            | Ziggurat | TriumphalArch | Pagoda | Fountain2 | MushroomFarm | Aquaculture | Greenhouse
-            | Greenhouse2 | Vineyard | Ranch | WaterTower | Reservoir | Substation | Refinery
-            | PowerPlant | MusicHall | CityHall => (2, 2),
+            | Lighthouse2 | Drydock | Crane | RadioTower | WindTurbine | Pyramid | Ziggurat
+            | TriumphalArch | Pagoda | Fountain2 | MushroomFarm | Aquaculture | Greenhouse | Greenhouse2
+            | Vineyard | Ranch | WaterTower | Reservoir | Substation | Refinery | PowerPlant | MusicHall
+            | CityHall => (2, 2),
             TownHouse => (2, 3),
             Market | School | Hospital | Plaza | Temple | Theatre | Barracks | Museum | TrainStation
             | Port | Spaceport | OrbitalLift | SolarArray | WindFarm | FusionPlant | NeuralHub | AiCore

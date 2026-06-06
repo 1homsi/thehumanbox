@@ -21,13 +21,14 @@
     "clean": "rm -rf dist out"
   },
   "dependencies": {
-    "electron-updater": "^6.3.9"
+    "electron-updater": "^6.8.9"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2",
+    "@types/node": "^24.13.1",
     "cross-env": "^10.1.0",
     "electron": "^35.0.0",
-    "electron-builder": "^25.1.8",
+    "electron-builder": "^26.15.0",
+    "electron-builder-squirrel-windows": "26.15.0",
     "typescript": "^5.7.2"
   }
 }

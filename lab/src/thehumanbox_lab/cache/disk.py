@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import hashlib
 import json
 import os
@@ -23,8 +24,10 @@ class DiskCache:
         if not p.exists():
             return None
         if self.ttl is not None and (time.time() - p.stat().st_mtime) > self.ttl:
-            try: p.unlink()
-            except OSError: pass
+            try:
+                p.unlink()
+            except OSError:
+                pass
             return None
         try:
             with p.open("rb") as f:
@@ -45,8 +48,11 @@ class DiskCache:
     def clear(self) -> int:
         n = 0
         for f in self.root.glob("*.pkl"):
-            try: f.unlink(); n += 1
-            except OSError: pass
+            try:
+                f.unlink()
+                n += 1
+            except OSError:
+                pass
         return n
 
 

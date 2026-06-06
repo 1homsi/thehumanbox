@@ -21,7 +21,7 @@ function drawForgeFire(ctx: CanvasRenderingContext2D, x: number, y: number, t: n
   ctx.fillRect(x + 2, y + 3, 12, 12)
   ctx.fillStyle = '#1a0a05'
   ctx.fillRect(x + 4, y + 6, 8, 7)
-  const flick = (Math.sin(t * 0.010) + 1) / 2
+  const flick = (Math.sin(t * 0.01) + 1) / 2
   ctx.fillStyle = '#ff4818'
   ctx.fillRect(x + 5, y + 7, 6, 6)
   ctx.fillStyle = '#ffaa30'

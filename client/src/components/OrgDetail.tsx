@@ -245,7 +245,16 @@ function HomeButton({ org }: { org: OrganismState }) {
   )
 }
 
-export function OrgDetail({ org, onClose, onFollow, following, lineageNames, organisms, religions, onSelectOrg }: Props) {
+export function OrgDetail({
+  org,
+  onClose,
+  onFollow,
+  following,
+  lineageNames,
+  organisms,
+  religions,
+  onSelectOrg,
+}: Props) {
   const { data: detail } = useOrgDetail(org.id)
   const [showLife, setShowLife] = useState(false)
   const starredOrgIds = useUIStore((s) => s.starredOrgIds)
@@ -799,49 +808,57 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
               {witnessed.map((e, i) => (
                 <div key={i} className="thought-row">
                   <span className="thought-tick">t{e.tick.toLocaleString()}</span>
-                  <span className="thought-text" style={{ color: '#bfa9d6' }}>{e.text}</span>
+                  <span className="thought-text" style={{ color: '#bfa9d6' }}>
+                    {e.text}
+                  </span>
                 </div>
               ))}
             </div>
           </>
         )}
 
-        {detail?.memories && detail.memories.length > 0 && (() => {
-          const mems = detail.memories
-          const oldest = [...mems].sort((a, b) => a.tick - b.tick)[0]
-          const proudest = [...mems]
-            .filter((m) => m.kind !== 'core' && m.emotion >= 2)
-            .sort((a, b) => b.salience - a.salience)[0]
-          const heaviest = [...mems]
-            .filter((m) => m.kind !== 'core' && m.emotion <= -2)
-            .sort((a, b) => b.salience - a.salience)[0]
-          if (!oldest && !proudest && !heaviest) return null
-          return (
-            <>
-              <div className="org-detail-section">INNER LIFE</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '4px 0', fontSize: 11 }}>
-                {oldest && oldest.kind !== 'core' && (
-                  <div>
-                    <span style={{ color: '#666', minWidth: 90, display: 'inline-block' }}>oldest mem:</span>
-                    <span style={{ color: '#a8c0e0' }}>{oldest.text}</span>
-                  </div>
-                )}
-                {proudest && (
-                  <div>
-                    <span style={{ color: '#666', minWidth: 90, display: 'inline-block' }}>proudest:</span>
-                    <span style={{ color: '#f6c46a' }}>{proudest.text}</span>
-                  </div>
-                )}
-                {heaviest && (
-                  <div>
-                    <span style={{ color: '#666', minWidth: 90, display: 'inline-block' }}>heaviest:</span>
-                    <span style={{ color: '#6090c0' }}>{heaviest.text}</span>
-                  </div>
-                )}
-              </div>
-            </>
-          )
-        })()}
+        {detail?.memories &&
+          detail.memories.length > 0 &&
+          (() => {
+            const mems = detail.memories
+            const oldest = [...mems].sort((a, b) => a.tick - b.tick)[0]
+            const proudest = [...mems]
+              .filter((m) => m.kind !== 'core' && m.emotion >= 2)
+              .sort((a, b) => b.salience - a.salience)[0]
+            const heaviest = [...mems]
+              .filter((m) => m.kind !== 'core' && m.emotion <= -2)
+              .sort((a, b) => b.salience - a.salience)[0]
+            if (!oldest && !proudest && !heaviest) return null
+            return (
+              <>
+                <div className="org-detail-section">INNER LIFE</div>
+                <div
+                  style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '4px 0', fontSize: 11 }}
+                >
+                  {oldest && oldest.kind !== 'core' && (
+                    <div>
+                      <span style={{ color: '#666', minWidth: 90, display: 'inline-block' }}>
+                        oldest mem:
+                      </span>
+                      <span style={{ color: '#a8c0e0' }}>{oldest.text}</span>
+                    </div>
+                  )}
+                  {proudest && (
+                    <div>
+                      <span style={{ color: '#666', minWidth: 90, display: 'inline-block' }}>proudest:</span>
+                      <span style={{ color: '#f6c46a' }}>{proudest.text}</span>
+                    </div>
+                  )}
+                  {heaviest && (
+                    <div>
+                      <span style={{ color: '#666', minWidth: 90, display: 'inline-block' }}>heaviest:</span>
+                      <span style={{ color: '#6090c0' }}>{heaviest.text}</span>
+                    </div>
+                  )}
+                </div>
+              </>
+            )
+          })()}
 
         {detail?.memories && detail.memories.filter((m) => m.kind === 'bond').length > 0 && (
           <>
@@ -855,7 +872,10 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
                   const emo = m.emotion >= 1 ? '#f6c46a' : m.emotion <= -1 ? '#6090c0' : '#d0c8c0'
                   return (
                     <div key={`bond-${i}`} className="thought-row" style={{ alignItems: 'flex-start' }}>
-                      <span className="thought-tick" style={{ color: '#e09ab0', fontWeight: 600, minWidth: 50 }}>
+                      <span
+                        className="thought-tick"
+                        style={{ color: '#e09ab0', fontWeight: 600, minWidth: 50 }}
+                      >
                         bond
                       </span>
                       <span className="thought-text" style={{ color: emo, flex: 1 }}>
@@ -898,11 +918,16 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
                   place: '#a8c0e0',
                   dream: '#888',
                 }
-                const emoColor = m.emotion >= 2 ? '#f6c46a'
-                  : m.emotion >= 1 ? '#d8c060'
-                  : m.emotion <= -2 ? '#6090c0'
-                  : m.emotion <= -1 ? '#80a8c0'
-                  : '#d0c8c0'
+                const emoColor =
+                  m.emotion >= 2
+                    ? '#f6c46a'
+                    : m.emotion >= 1
+                      ? '#d8c060'
+                      : m.emotion <= -2
+                        ? '#6090c0'
+                        : m.emotion <= -1
+                          ? '#80a8c0'
+                          : '#d0c8c0'
                 const bars = Math.max(1, Math.round(m.salience * 5))
                 const relatedOrg = m.related_id ? organisms?.find((o) => o.id === m.related_id) : null
                 return (
@@ -939,7 +964,10 @@ export function OrgDetail({ org, onClose, onFollow, following, lineageNames, org
                         </button>
                       )}
                     </span>
-                    <span style={{ color: '#444', fontFamily: 'monospace', fontSize: 9, marginLeft: 6 }} title={`salience ${(m.salience * 100).toFixed(0)}%`}>
+                    <span
+                      style={{ color: '#444', fontFamily: 'monospace', fontSize: 9, marginLeft: 6 }}
+                      title={`salience ${(m.salience * 100).toFixed(0)}%`}
+                    >
                       {'▮'.repeat(bars)}
                     </span>
                   </div>

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import Any, Awaitable, Callable, Optional
+from typing import Any, Callable, Optional
 
 try:
     import websockets

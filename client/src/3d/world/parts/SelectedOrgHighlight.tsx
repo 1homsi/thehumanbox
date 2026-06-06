@@ -56,7 +56,6 @@ export function SelectedOrgHighlight({ organisms, depthMap, biomes }: Props) {
     const positions = new Float32Array(TRAIL_LEN * 3)
     geo.setAttribute('position', new BufferAttribute(positions, 3))
     return geo
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useFrame(({ clock }) => {

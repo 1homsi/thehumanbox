@@ -38,11 +38,9 @@ def bleu(pred: str, ref: str, max_n: int = 4) -> float:
     log_sum = 0.0
     for n in range(1, max_n + 1):
         overlap, total = _modified_precision(pred_tokens, ref_tokens, n)
-        if total == 0:
+        if total == 0 or overlap == 0:
             return 0.0
         p = (overlap + 1e-9) / (total + 1e-9)
-        if p <= 0:
-            return 0.0
         log_sum += weights[n - 1] * math.log(p)
     bp = 1.0
     if len(pred_tokens) < len(ref_tokens):

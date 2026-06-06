@@ -1,11 +1,5 @@
 import { useMemo, useRef, useEffect, useLayoutEffect } from 'react'
-import {
-  BoxGeometry,
-  CylinderGeometry,
-  InstancedMesh,
-  MeshStandardMaterial,
-  Object3D,
-} from 'three'
+import { BoxGeometry, CylinderGeometry, InstancedMesh, MeshStandardMaterial, Object3D } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { Building } from '../../../types'
 import { TILE_SCALE } from './constants'
@@ -104,7 +98,10 @@ export function Vehicles3D({ buildings, lineageEras, depthMap, biomes, isNight }
   const carGeo = useMemo(() => buildCarGeo(), [])
   const cartMat = useMemo(() => new MeshStandardMaterial({ color: '#6b4628', roughness: 0.9 }), [])
   const bikeMat = useMemo(() => new MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.45 }), [])
-  const carMat = useMemo(() => new MeshStandardMaterial({ color: '#3a4452', roughness: 0.45, metalness: 0.45 }), [])
+  const carMat = useMemo(
+    () => new MeshStandardMaterial({ color: '#3a4452', roughness: 0.45, metalness: 0.45 }),
+    [],
+  )
 
   const placements = useMemo(() => {
     if (!buildings || !lineageEras || !depthMap || !biomes) {
@@ -173,13 +170,28 @@ export function Vehicles3D({ buildings, lineageEras, depthMap, biomes, isNight }
   return (
     <>
       {placements.carts.length > 0 && (
-        <instancedMesh ref={cartRef} args={[cartGeo, cartMat, Math.max(1, placements.carts.length)]} castShadow frustumCulled={false} />
+        <instancedMesh
+          ref={cartRef}
+          args={[cartGeo, cartMat, Math.max(1, placements.carts.length)]}
+          castShadow
+          frustumCulled={false}
+        />
       )}
       {placements.bikes.length > 0 && (
-        <instancedMesh ref={bikeRef} args={[bikeGeo, bikeMat, Math.max(1, placements.bikes.length)]} castShadow frustumCulled={false} />
+        <instancedMesh
+          ref={bikeRef}
+          args={[bikeGeo, bikeMat, Math.max(1, placements.bikes.length)]}
+          castShadow
+          frustumCulled={false}
+        />
       )}
       {placements.cars.length > 0 && (
-        <instancedMesh ref={carRef} args={[carGeo, carMat, Math.max(1, placements.cars.length)]} castShadow frustumCulled={false} />
+        <instancedMesh
+          ref={carRef}
+          args={[carGeo, carMat, Math.max(1, placements.cars.length)]}
+          castShadow
+          frustumCulled={false}
+        />
       )}
     </>
   )

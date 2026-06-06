@@ -74,7 +74,6 @@ export function OrgStateBadges({ organisms, depthMap, biomes }: Props) {
       out.push({ o, badges })
     }
     return out
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organisms, camera.position.x, camera.position.z])
 
   return (

@@ -1897,7 +1897,7 @@ function WorldSprite({
       _baseCanvas = null
       _baseKey = null
     }
-  }, [interp, dyn, onFirstDraw])
+  }, [interp, dyn, onFirstDraw, cameraStateRef, viewportDims])
 
   return (
     <>
@@ -1948,8 +1948,7 @@ function CameraController({
     }
     raf = requestAnimationFrame(trySet)
     return () => cancelAnimationFrame(raf)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [camera, cameraStateRef, containerH, containerW, minZoom, worldH, worldW])
 
   const prevFollowRef = useRef<{ x: number; y: number } | null>(null)
   useEffect(() => {
@@ -2025,7 +2024,7 @@ function CameraController({
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
     }
-  }, [camera, containerEl, containerW, containerH, worldW, worldH])
+  }, [camera, cameraStateRef, containerEl, containerW, containerH, minZoom, worldW, worldH])
 
   const clampCam = useRef<((x: number, y: number, zoom: number) => { x: number; y: number }) | null>(null)
   clampCam.current = (x, y, zoom) => {

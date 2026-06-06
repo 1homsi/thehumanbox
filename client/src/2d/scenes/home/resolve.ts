@@ -110,7 +110,16 @@ function defaultsForEra(era: string): string[] {
     case 'modern':
       return ['kitchen_stove', 'refrigerator', 'sofa', 'coffee_table', 'television', 'four_poster_bed']
     case 'information':
-      return ['kitchen_stove', 'refrigerator', 'sofa', 'coffee_table', 'television', 'computer_desk', 'monitor', 'smart_speaker']
+      return [
+        'kitchen_stove',
+        'refrigerator',
+        'sofa',
+        'coffee_table',
+        'television',
+        'computer_desk',
+        'monitor',
+        'smart_speaker',
+      ]
     default:
       return ['hearth', 'mat']
   }
@@ -155,10 +164,7 @@ function eraFromWorld(world: WorldState, host: OrganismState): string {
       )?.era_name ?? 'pre-stone'
     )
   }
-  return (
-    ((world.lineage_eras as Record<string, string> | undefined) ?? {})[host.lineage_id] ??
-    'pre-stone'
-  )
+  return ((world.lineage_eras as Record<string, string> | undefined) ?? {})[host.lineage_id] ?? 'pre-stone'
 }
 
 export function resolveHomeScene(world: WorldState, scene: SceneId): SceneContext | null {
@@ -191,7 +197,7 @@ export function resolveHomeScene(world: WorldState, scene: SceneId): SceneContex
 
   const flavor =
     aiPicked.length === 0
-      ? ERA_LABEL[era] ?? 'A home'
+      ? (ERA_LABEL[era] ?? 'A home')
       : `${ERA_LABEL[era] ?? 'A home'} · ${aiPicked.length} chosen pieces`
 
   return {

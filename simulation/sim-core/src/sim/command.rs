@@ -120,7 +120,16 @@ impl Simulation {
                         .unwrap_or_else(|| format!("L{}", &Uuid::new_v4().to_string()[..6]));
                     let jx = (x + self.rng.random_range(-2.0..2.0)).clamp(2.0, WIDTH as f32 - 2.0);
                     let jy = (y + self.rng.random_range(-2.0..2.0)).clamp(2.0, HEIGHT as f32 - 2.0);
-                    spawn_organism_with_home(&self.grid, &mut self.organisms, jx, jy, jx, jy, lid, &mut self.rng);
+                    spawn_organism_with_home(
+                        &self.grid,
+                        &mut self.organisms,
+                        jx,
+                        jy,
+                        jx,
+                        jy,
+                        lid,
+                        &mut self.rng,
+                    );
                 }
             }
             Command::Smite { x, y, radius } => {

@@ -12,13 +12,7 @@ interface Props {
   isNight: boolean
 }
 
-const WATCHER_KINDS = new Set([
-  'watchtower',
-  'lighthouse',
-  'fortress',
-  'castle',
-  'observatory',
-])
+const WATCHER_KINDS = new Set(['watchtower', 'lighthouse', 'fortress', 'castle', 'observatory'])
 
 const BEAM_GEO = new ConeGeometry(8, 60, 18, 1, true)
 BEAM_GEO.translate(0, 30, 0)

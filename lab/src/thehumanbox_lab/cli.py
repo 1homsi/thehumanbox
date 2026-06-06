@@ -7,7 +7,7 @@ from pathlib import Path
 from .backends import KNOWN_BACKENDS, get_backend
 from .backends.health import probe_all
 from .dataset_builder import build_thought_examples
-from .eval import bench, compare_bench, judge_dataset, render_html, run_ab
+from .eval import compare_bench, judge_dataset, render_html, run_ab
 from .eval_runner import baseline_engine, ollama_engine, run_eval, run_sweep
 from .jsonl import read_jsonl, write_jsonl
 from .local_stack import probe_stack
@@ -34,7 +34,7 @@ def build_parser() -> argparse.ArgumentParser:
     inspect = subparsers.add_parser("inspect-jsonl", help="Inspect a JSONL dataset")
     inspect.add_argument("path")
 
-    probe = subparsers.add_parser("probe-stack", help="Probe local inference tooling")
+    subparsers.add_parser("probe-stack", help="Probe local inference tooling")
 
     models = subparsers.add_parser("show-models", help="Show local model registry")
     models.add_argument("--registry", default=None)

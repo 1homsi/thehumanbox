@@ -32,7 +32,12 @@ export function CommandPalette() {
       { id: 'civ', label: 'Open Civilization', run: () => openCiv() },
       { id: 'chronicles', label: 'Open Chronicles', run: () => openChronicles() },
       { id: 'worlds', label: 'Open Past Worlds', run: () => openWorlds() },
-      { id: 'search', label: 'Find Organism', hint: 'search by name / thought / lineage', run: () => openOrgSearch() },
+      {
+        id: 'search',
+        label: 'Find Organism',
+        hint: 'search by name / thought / lineage',
+        run: () => openOrgSearch(),
+      },
       { id: 'left', label: 'Toggle Left Panel', run: () => toggleLeft() },
       {
         id: 'tour',
@@ -54,18 +59,36 @@ export function CommandPalette() {
     if (desktop) {
       cmds.push(
         { id: 'desk-settings', label: 'Desktop Settings', run: () => openDesktopSettings() },
-        { id: 'desk-screenshot', label: 'Take Screenshot', hint: 'save to ~/Pictures/TheHumanBox', run: () => void desktop.app.screenshot() },
+        {
+          id: 'desk-screenshot',
+          label: 'Take Screenshot',
+          hint: 'save to ~/Pictures/TheHumanBox',
+          run: () => void desktop.app.screenshot(),
+        },
         { id: 'desk-open-worlds', label: 'Open Worlds Folder', run: () => void desktop.app.openWorlds() },
         { id: 'desk-open-logs', label: 'Open Logs Folder', run: () => void desktop.app.openLogs() },
       )
     }
     return cmds
-  }, [openStats, openCiv, openChronicles, openWorlds, openOrgSearch, openDesktopSettings, toggleLeft, setViewFlag, viewFlags, desktop])
+  }, [
+    openStats,
+    openCiv,
+    openChronicles,
+    openWorlds,
+    openOrgSearch,
+    openDesktopSettings,
+    toggleLeft,
+    setViewFlag,
+    viewFlags,
+    desktop,
+  ])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return commands
-    return commands.filter((c) => c.label.toLowerCase().includes(q) || (c.hint?.toLowerCase().includes(q) ?? false))
+    return commands.filter(
+      (c) => c.label.toLowerCase().includes(q) || (c.hint?.toLowerCase().includes(q) ?? false),
+    )
   }, [commands, query])
 
   useEffect(() => {

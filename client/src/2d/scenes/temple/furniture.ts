@@ -88,11 +88,7 @@ function drawBrazier(ctx: CanvasRenderingContext2D, x: number, y: number, t: num
   ctx.globalCompositeOperation = 'source-over'
 }
 
-export function drawTempleFurniture(
-  ctx: CanvasRenderingContext2D,
-  f: SceneFixture,
-  t: number,
-) {
+export function drawTempleFurniture(ctx: CanvasRenderingContext2D, f: SceneFixture, t: number) {
   const x = f.x * TILE_PX
   const y = f.y * TILE_PX
   switch (f.kind) {

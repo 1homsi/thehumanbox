@@ -223,7 +223,14 @@ const WORKSHOP_POLISH: Partial<Record<string, { layers: PolishLayer[] }>> = {
     layers: [
       { geometry: ROOF_CAFE, yOffset: 4.0, color: '#3a2418' },
       { geometry: AWNING, yOffset: 2.6, color: '#c84030', dz: 1.6 },
-      { geometry: SIGN, yOffset: 3.4, color: '#3a1a08', dz: 2.05, emissive: '#ffa44a', emissiveIntensity: 0.12 },
+      {
+        geometry: SIGN,
+        yOffset: 3.4,
+        color: '#3a1a08',
+        dz: 2.05,
+        emissive: '#ffa44a',
+        emissiveIntensity: 0.12,
+      },
     ],
   },
   Restaurant: {
@@ -242,7 +249,14 @@ const WORKSHOP_POLISH: Partial<Record<string, { layers: PolishLayer[] }>> = {
   Tailor: {
     layers: [
       { geometry: ROOF_TAILOR, yOffset: 4.9, color: '#3a1830' },
-      { geometry: SIGN, yOffset: 3.8, color: '#3a1830', dz: 2.05, emissive: '#d870e0', emissiveIntensity: 0.1 },
+      {
+        geometry: SIGN,
+        yOffset: 3.8,
+        color: '#3a1830',
+        dz: 2.05,
+        emissive: '#d870e0',
+        emissiveIntensity: 0.1,
+      },
     ],
   },
   ClothingShop: {
@@ -265,9 +279,7 @@ const WORKSHOP_POLISH: Partial<Record<string, { layers: PolishLayer[] }>> = {
     ],
   },
   Library: {
-    layers: [
-      { geometry: ROOF_LIBRARY, yOffset: 5.4, color: '#2a1408' },
-    ],
+    layers: [{ geometry: ROOF_LIBRARY, yOffset: 5.4, color: '#2a1408' }],
   },
   Scribe: {
     layers: [{ geometry: ROOF_LIBRARY, yOffset: 5.4, color: '#2a1408' }],
@@ -275,7 +287,14 @@ const WORKSHOP_POLISH: Partial<Record<string, { layers: PolishLayer[] }>> = {
   BookStore: {
     layers: [
       { geometry: ROOF_LIBRARY, yOffset: 5.4, color: '#2a1408' },
-      { geometry: SIGN, yOffset: 3.6, color: '#3a2010', dz: 2.05, emissive: '#d8b270', emissiveIntensity: 0.08 },
+      {
+        geometry: SIGN,
+        yOffset: 3.6,
+        color: '#3a2010',
+        dz: 2.05,
+        emissive: '#d8b270',
+        emissiveIntensity: 0.08,
+      },
     ],
   },
   Factory: {
@@ -288,24 +307,64 @@ const WORKSHOP_POLISH: Partial<Record<string, { layers: PolishLayer[] }>> = {
   },
   Forge: {
     layers: [
-      { geometry: FORGE_CHIMNEY, yOffset: 4.3, color: '#3a1808', dx: 0, dz: -1.2, emissive: '#ff5020', emissiveIntensity: 0.35 },
+      {
+        geometry: FORGE_CHIMNEY,
+        yOffset: 4.3,
+        color: '#3a1808',
+        dx: 0,
+        dz: -1.2,
+        emissive: '#ff5020',
+        emissiveIntensity: 0.35,
+      },
     ],
   },
   Smithy: {
     layers: [
-      { geometry: FORGE_CHIMNEY, yOffset: 4.3, color: '#3a1808', dx: 0, dz: -1.2, emissive: '#ff5020', emissiveIntensity: 0.35 },
+      {
+        geometry: FORGE_CHIMNEY,
+        yOffset: 4.3,
+        color: '#3a1808',
+        dx: 0,
+        dz: -1.2,
+        emissive: '#ff5020',
+        emissiveIntensity: 0.35,
+      },
     ],
   },
   Refinery: {
     layers: [
       { geometry: SMOKESTACK, yOffset: 9.5, color: '#5a4838', dx: 2.0, dz: 0 },
-      { geometry: SMOKESTACK_TIP, yOffset: 11.7, color: '#1a1410', dx: 2.0, dz: 0, emissive: '#ff8040', emissiveIntensity: 0.4 },
+      {
+        geometry: SMOKESTACK_TIP,
+        yOffset: 11.7,
+        color: '#1a1410',
+        dx: 2.0,
+        dz: 0,
+        emissive: '#ff8040',
+        emissiveIntensity: 0.4,
+      },
     ],
   },
   Datacenter: {
     layers: [
-      { geometry: SERVER_RACK, yOffset: 5.7, color: '#1a2028', dx: -1.6, dz: 0, emissive: '#20a8d0', emissiveIntensity: 0.3 },
-      { geometry: SERVER_RACK, yOffset: 5.7, color: '#1a2028', dx: 1.6, dz: 0, emissive: '#20a8d0', emissiveIntensity: 0.3 },
+      {
+        geometry: SERVER_RACK,
+        yOffset: 5.7,
+        color: '#1a2028',
+        dx: -1.6,
+        dz: 0,
+        emissive: '#20a8d0',
+        emissiveIntensity: 0.3,
+      },
+      {
+        geometry: SERVER_RACK,
+        yOffset: 5.7,
+        color: '#1a2028',
+        dx: 1.6,
+        dz: 0,
+        emissive: '#20a8d0',
+        emissiveIntensity: 0.3,
+      },
     ],
   },
   Temple: {
@@ -315,9 +374,7 @@ const WORKSHOP_POLISH: Partial<Record<string, { layers: PolishLayer[] }>> = {
     ],
   },
   Shrine: {
-    layers: [
-      { geometry: SPIRE_BASE, yOffset: 3.0, color: '#3a2418' },
-    ],
+    layers: [{ geometry: SPIRE_BASE, yOffset: 3.0, color: '#3a2418' }],
   },
   Cathedral: {
     layers: [
@@ -362,12 +419,28 @@ const GENERIC_SPECS: Record<string, GenericSpec> = {
   CityHall: { color: '#b8a060', width: 6, height: 6, depth: 5, yOffset: 3.0 },
   PostOffice: { color: '#a05848', width: 4, height: 4, depth: 4, yOffset: 2.0 },
   PoliceStation: { color: '#3050a0', width: 5, height: 4, depth: 4, yOffset: 2.0 },
-  FireStation: { color: '#c83020', width: 5, height: 4, depth: 4, yOffset: 2.0, emissive: '#c83020', emissiveIntensity: 0.3 },
+  FireStation: {
+    color: '#c83020',
+    width: 5,
+    height: 4,
+    depth: 4,
+    yOffset: 2.0,
+    emissive: '#c83020',
+    emissiveIntensity: 0.3,
+  },
   Pharmacy: { color: '#48a070', width: 4, height: 4, depth: 4, yOffset: 2.0 },
   Clinic: { color: '#e8e8e8', width: 4, height: 4, depth: 4, yOffset: 2.0 },
   Spa: { color: '#c8a0c0', width: 5, height: 3, depth: 4, yOffset: 1.5 },
   Bathhouse: { color: '#a0c0d8', width: 5, height: 3, depth: 5, yOffset: 1.5 },
-  Greenhouse: { color: '#b0e0a0', width: 5, height: 4, depth: 5, yOffset: 2.0, emissive: '#80c060', emissiveIntensity: 0.1 },
+  Greenhouse: {
+    color: '#b0e0a0',
+    width: 5,
+    height: 4,
+    depth: 5,
+    yOffset: 2.0,
+    emissive: '#80c060',
+    emissiveIntensity: 0.1,
+  },
   Vineyard: { color: '#80a060', width: 5, height: 1, depth: 5, yOffset: 0.5 },
   Ranch: { color: '#a87850', width: 6, height: 3, depth: 6, yOffset: 1.5 },
   Stable: { color: '#785030', width: 5, height: 3, depth: 4, yOffset: 1.5 },
@@ -377,7 +450,15 @@ const GENERIC_SPECS: Record<string, GenericSpec> = {
   Mine: { color: '#605050', width: 4, height: 2, depth: 4, yOffset: 1.0 },
   SawMill: { color: '#a07848', width: 5, height: 3, depth: 5, yOffset: 1.5 },
   Tannery: { color: '#7a5838', width: 5, height: 3, depth: 4, yOffset: 1.5 },
-  Smithy: { color: '#604030', width: 4, height: 3, depth: 4, yOffset: 1.5, emissive: '#ff6020', emissiveIntensity: 0.4 },
+  Smithy: {
+    color: '#604030',
+    width: 4,
+    height: 3,
+    depth: 4,
+    yOffset: 1.5,
+    emissive: '#ff6020',
+    emissiveIntensity: 0.4,
+  },
   Goldsmith: { color: '#d8b048', width: 4, height: 3, depth: 4, yOffset: 1.5 },
   Refinery: { color: '#807868', width: 6, height: 6, depth: 6, yOffset: 3.0 },
   PowerPlant: { color: '#808080', width: 6, height: 5, depth: 6, yOffset: 2.5 },
@@ -389,27 +470,139 @@ const GENERIC_SPECS: Record<string, GenericSpec> = {
   Garage: { color: '#707070', width: 4, height: 3, depth: 4, yOffset: 1.5 },
   MallShop: { color: '#a0a8b8', width: 6, height: 4, depth: 6, yOffset: 2.0 },
   Supermarket: { color: '#48a048', width: 6, height: 4, depth: 5, yOffset: 2.0 },
-  OfficeTower: { color: '#88a0b8', width: 5, height: 11, depth: 5, yOffset: 5.5, emissive: '#88a0b8', emissiveIntensity: 0.1 },
-  Skyscraper: { color: '#5070a0', width: 6, height: 16, depth: 6, yOffset: 8.0, emissive: '#a0c0e0', emissiveIntensity: 0.15 },
-  Datacenter: { color: '#202830', width: 6, height: 4, depth: 5, yOffset: 2.0, emissive: '#20a8d0', emissiveIntensity: 0.3 },
+  OfficeTower: {
+    color: '#88a0b8',
+    width: 5,
+    height: 11,
+    depth: 5,
+    yOffset: 5.5,
+    emissive: '#88a0b8',
+    emissiveIntensity: 0.1,
+  },
+  Skyscraper: {
+    color: '#5070a0',
+    width: 6,
+    height: 16,
+    depth: 6,
+    yOffset: 8.0,
+    emissive: '#a0c0e0',
+    emissiveIntensity: 0.15,
+  },
+  Datacenter: {
+    color: '#202830',
+    width: 6,
+    height: 4,
+    depth: 5,
+    yOffset: 2.0,
+    emissive: '#20a8d0',
+    emissiveIntensity: 0.3,
+  },
   Studio: { color: '#383848', width: 5, height: 4, depth: 4, yOffset: 2.0 },
   Spaceport: { color: '#a0a0c0', width: 8, height: 4, depth: 8, yOffset: 2.0 },
-  OrbitalLift: { color: '#7080a0', width: 4, height: 24, depth: 4, yOffset: 12.0, emissive: '#a0c0ff', emissiveIntensity: 0.4 },
-  SolarArray: { color: '#2050a0', width: 7, height: 0.4, depth: 7, yOffset: 1.0, emissive: '#1030a0', emissiveIntensity: 0.3 },
+  OrbitalLift: {
+    color: '#7080a0',
+    width: 4,
+    height: 24,
+    depth: 4,
+    yOffset: 12.0,
+    emissive: '#a0c0ff',
+    emissiveIntensity: 0.4,
+  },
+  SolarArray: {
+    color: '#2050a0',
+    width: 7,
+    height: 0.4,
+    depth: 7,
+    yOffset: 1.0,
+    emissive: '#1030a0',
+    emissiveIntensity: 0.3,
+  },
   WindFarm: { color: '#c8d8e8', width: 7, height: 12, depth: 7, yOffset: 6.0 },
-  FusionPlant: { color: '#a020a0', width: 6, height: 6, depth: 6, yOffset: 3.0, emissive: '#ff20ff', emissiveIntensity: 0.6 },
-  NeuralHub: { color: '#a050d0', width: 6, height: 4, depth: 5, yOffset: 2.0, emissive: '#c060ff', emissiveIntensity: 0.5 },
-  AiCore: { color: '#20c0d0', width: 5, height: 5, depth: 5, yOffset: 2.5, emissive: '#20c0d0', emissiveIntensity: 0.6 },
-  Biodome: { color: '#80e090', width: 7, height: 5, depth: 7, yOffset: 2.5, emissive: '#80ff80', emissiveIntensity: 0.2 },
-  Cryolab: { color: '#c8e0f0', width: 5, height: 4, depth: 5, yOffset: 2.0, emissive: '#a0d0ff', emissiveIntensity: 0.3 },
+  FusionPlant: {
+    color: '#a020a0',
+    width: 6,
+    height: 6,
+    depth: 6,
+    yOffset: 3.0,
+    emissive: '#ff20ff',
+    emissiveIntensity: 0.6,
+  },
+  NeuralHub: {
+    color: '#a050d0',
+    width: 6,
+    height: 4,
+    depth: 5,
+    yOffset: 2.0,
+    emissive: '#c060ff',
+    emissiveIntensity: 0.5,
+  },
+  AiCore: {
+    color: '#20c0d0',
+    width: 5,
+    height: 5,
+    depth: 5,
+    yOffset: 2.5,
+    emissive: '#20c0d0',
+    emissiveIntensity: 0.6,
+  },
+  Biodome: {
+    color: '#80e090',
+    width: 7,
+    height: 5,
+    depth: 7,
+    yOffset: 2.5,
+    emissive: '#80ff80',
+    emissiveIntensity: 0.2,
+  },
+  Cryolab: {
+    color: '#c8e0f0',
+    width: 5,
+    height: 4,
+    depth: 5,
+    yOffset: 2.0,
+    emissive: '#a0d0ff',
+    emissiveIntensity: 0.3,
+  },
   NanoFab: { color: '#80a0c0', width: 5, height: 4, depth: 5, yOffset: 2.0 },
-  Hyperloop: { color: '#404868', width: 12, height: 1, depth: 1.5, yOffset: 0.5, emissive: '#6080a0', emissiveIntensity: 0.4 },
+  Hyperloop: {
+    color: '#404868',
+    width: 12,
+    height: 1,
+    depth: 1.5,
+    yOffset: 0.5,
+    emissive: '#6080a0',
+    emissiveIntensity: 0.4,
+  },
   Maglev: { color: '#506880', width: 12, height: 1, depth: 1.5, yOffset: 0.5 },
-  Hospital2: { color: '#f0f0f0', width: 7, height: 8, depth: 7, yOffset: 4.0, emissive: '#ff4040', emissiveIntensity: 0.3 },
+  Hospital2: {
+    color: '#f0f0f0',
+    width: 7,
+    height: 8,
+    depth: 7,
+    yOffset: 4.0,
+    emissive: '#ff4040',
+    emissiveIntensity: 0.3,
+  },
   ResearchLab: { color: '#a8c0d8', width: 5, height: 4, depth: 5, yOffset: 2.0 },
-  Megastructure: { color: '#404060', width: 12, height: 20, depth: 12, yOffset: 10.0, emissive: '#8060c0', emissiveIntensity: 0.5 },
+  Megastructure: {
+    color: '#404060',
+    width: 12,
+    height: 20,
+    depth: 12,
+    yOffset: 10.0,
+    emissive: '#8060c0',
+    emissiveIntensity: 0.5,
+  },
   Well: { color: '#807060', width: 1.2, height: 1.2, depth: 1.2, yOffset: 0.6 },
-  Lamppost: { color: '#303030', width: 0.3, height: 3.5, depth: 0.3, yOffset: 1.75, emissive: '#ffd060', emissiveIntensity: 1.2 },
+  Lamppost: {
+    color: '#303030',
+    width: 0.3,
+    height: 3.5,
+    depth: 0.3,
+    yOffset: 1.75,
+    emissive: '#ffd060',
+    emissiveIntensity: 1.2,
+  },
   Signpost: { color: '#785030', width: 0.3, height: 2.5, depth: 0.3, yOffset: 1.25 },
   MarketStall: { color: '#c87840', width: 1.5, height: 1.5, depth: 1.5, yOffset: 0.75 },
   FoodCart: { color: '#a05030', width: 1.4, height: 1.3, depth: 1.4, yOffset: 0.65 },
@@ -424,19 +617,43 @@ const GENERIC_SPECS: Record<string, GenericSpec> = {
   Gallows: { color: '#4a2a18', width: 1.2, height: 3.5, depth: 1.2, yOffset: 1.75 },
   Monument: { color: '#a8a098', width: 2, height: 4, depth: 2, yOffset: 2.0 },
   Obelisk: { color: '#888080', width: 1, height: 5, depth: 1, yOffset: 2.5 },
-  Shrine: { color: '#c8a050', width: 1.5, height: 2, depth: 1.5, yOffset: 1.0, emissive: '#ffb040', emissiveIntensity: 0.4 },
+  Shrine: {
+    color: '#c8a050',
+    width: 1.5,
+    height: 2,
+    depth: 1.5,
+    yOffset: 1.0,
+    emissive: '#ffb040',
+    emissiveIntensity: 0.4,
+  },
   Cemetery: { color: '#808080', width: 4, height: 0.4, depth: 4, yOffset: 0.2 },
   GraveStone: { color: '#909090', width: 0.8, height: 1.2, depth: 0.3, yOffset: 0.6 },
   Garden: { color: '#80b070', width: 4, height: 0.4, depth: 4, yOffset: 0.2 },
   Orchard: { color: '#608838', width: 4, height: 0.4, depth: 4, yOffset: 0.2 },
-  Pond: { color: '#5078a0', width: 2.5, height: 0.3, depth: 2.5, yOffset: 0.15, emissive: '#3060a0', emissiveIntensity: 0.2 },
+  Pond: {
+    color: '#5078a0',
+    width: 2.5,
+    height: 0.3,
+    depth: 2.5,
+    yOffset: 0.15,
+    emissive: '#3060a0',
+    emissiveIntensity: 0.2,
+  },
   PlayGround: { color: '#d8a070', width: 4, height: 1.5, depth: 4, yOffset: 0.75 },
   FlagPole: { color: '#a8a8a8', width: 0.2, height: 5, depth: 0.2, yOffset: 2.5 },
   Bandstand: { color: '#a89070', width: 2.5, height: 1.5, depth: 2.5, yOffset: 0.75 },
   Kiosk: { color: '#a07050', width: 1.2, height: 1.8, depth: 1.2, yOffset: 0.9 },
   BillBoard: { color: '#b0b0b0', width: 0.3, height: 3, depth: 1.5, yOffset: 1.5 },
   TelephonePole: { color: '#604838', width: 0.3, height: 4, depth: 0.3, yOffset: 2.0 },
-  StreetLight: { color: '#303030', width: 0.25, height: 3, depth: 0.25, yOffset: 1.5, emissive: '#ffe080', emissiveIntensity: 1.0 },
+  StreetLight: {
+    color: '#303030',
+    width: 0.25,
+    height: 3,
+    depth: 0.25,
+    yOffset: 1.5,
+    emissive: '#ffe080',
+    emissiveIntensity: 1.0,
+  },
   BusStop: { color: '#506888', width: 1.5, height: 1.8, depth: 0.6, yOffset: 0.9 },
   ParkingLot: { color: '#404040', width: 4, height: 0.2, depth: 4, yOffset: 0.1 },
   Crosswalk: { color: '#dcdcdc', width: 1, height: 0.05, depth: 0.6, yOffset: 0.025 },
@@ -455,33 +672,129 @@ const GENERIC_SPECS: Record<string, GenericSpec> = {
   Warehouse: { color: '#706050', width: 6, height: 4, depth: 4, yOffset: 2.0 },
   Dock: { color: '#604838', width: 4, height: 0.4, depth: 2.5, yOffset: 0.2 },
   Marina: { color: '#5878a0', width: 5, height: 0.5, depth: 4, yOffset: 0.25 },
-  Lighthouse2: { color: '#e0d8c8', width: 2, height: 6, depth: 2, yOffset: 3.0, emissive: '#ffd060', emissiveIntensity: 0.6 },
+  Lighthouse2: {
+    color: '#e0d8c8',
+    width: 2,
+    height: 6,
+    depth: 2,
+    yOffset: 3.0,
+    emissive: '#ffd060',
+    emissiveIntensity: 0.6,
+  },
   Drydock: { color: '#606870', width: 5, height: 1, depth: 4, yOffset: 0.5 },
   Crane: { color: '#a8a020', width: 2, height: 7, depth: 2, yOffset: 3.5 },
-  RadioTower: { color: '#c84040', width: 1.5, height: 9, depth: 1.5, yOffset: 4.5, emissive: '#ff4040', emissiveIntensity: 0.4 },
+  RadioTower: {
+    color: '#c84040',
+    width: 1.5,
+    height: 9,
+    depth: 1.5,
+    yOffset: 4.5,
+    emissive: '#ff4040',
+    emissiveIntensity: 0.4,
+  },
   SatelliteDish: { color: '#a0a0a0', width: 1.5, height: 1.5, depth: 1.5, yOffset: 0.75 },
   WindTurbine: { color: '#e0e0e0', width: 0.5, height: 7, depth: 0.5, yOffset: 3.5 },
-  SolarPanel: { color: '#1030a0', width: 1.2, height: 0.2, depth: 1.2, yOffset: 0.4, emissive: '#1030a0', emissiveIntensity: 0.2 },
-  ChargingStation: { color: '#30c050', width: 0.6, height: 1.6, depth: 0.6, yOffset: 0.8, emissive: '#30ff60', emissiveIntensity: 0.6 },
+  SolarPanel: {
+    color: '#1030a0',
+    width: 1.2,
+    height: 0.2,
+    depth: 1.2,
+    yOffset: 0.4,
+    emissive: '#1030a0',
+    emissiveIntensity: 0.2,
+  },
+  ChargingStation: {
+    color: '#30c050',
+    width: 0.6,
+    height: 1.6,
+    depth: 0.6,
+    yOffset: 0.8,
+    emissive: '#30ff60',
+    emissiveIntensity: 0.6,
+  },
   RoboticArm: { color: '#a8a020', width: 0.5, height: 1.8, depth: 0.5, yOffset: 0.9 },
   Drone: { color: '#404048', width: 0.6, height: 0.3, depth: 0.6, yOffset: 1.4 },
-  HoloBoard: { color: '#20a8d0', width: 1.2, height: 2.5, depth: 0.2, yOffset: 1.25, emissive: '#20a8d0', emissiveIntensity: 1.0 },
-  NeonSign: { color: '#e020a0', width: 1.5, height: 1.5, depth: 0.2, yOffset: 1.5, emissive: '#ff20a0', emissiveIntensity: 1.4 },
-  ArcadeBox: { color: '#3030c0', width: 1, height: 2, depth: 1, yOffset: 1.0, emissive: '#a020ff', emissiveIntensity: 0.5 },
-  Fountain2: { color: '#80a8c8', width: 2, height: 1.2, depth: 2, yOffset: 0.6, emissive: '#a0c0e0', emissiveIntensity: 0.3 },
+  HoloBoard: {
+    color: '#20a8d0',
+    width: 1.2,
+    height: 2.5,
+    depth: 0.2,
+    yOffset: 1.25,
+    emissive: '#20a8d0',
+    emissiveIntensity: 1.0,
+  },
+  NeonSign: {
+    color: '#e020a0',
+    width: 1.5,
+    height: 1.5,
+    depth: 0.2,
+    yOffset: 1.5,
+    emissive: '#ff20a0',
+    emissiveIntensity: 1.4,
+  },
+  ArcadeBox: {
+    color: '#3030c0',
+    width: 1,
+    height: 2,
+    depth: 1,
+    yOffset: 1.0,
+    emissive: '#a020ff',
+    emissiveIntensity: 0.5,
+  },
+  Fountain2: {
+    color: '#80a8c8',
+    width: 2,
+    height: 1.2,
+    depth: 2,
+    yOffset: 0.6,
+    emissive: '#a0c0e0',
+    emissiveIntensity: 0.3,
+  },
   FoodTruck: { color: '#c87030', width: 2.5, height: 1.8, depth: 1.4, yOffset: 0.9 },
-  Greenhouse2: { color: '#c0e8b0', width: 4, height: 3, depth: 4, yOffset: 1.5, emissive: '#a0e090', emissiveIntensity: 0.2 },
+  Greenhouse2: {
+    color: '#c0e8b0',
+    width: 4,
+    height: 3,
+    depth: 4,
+    yOffset: 1.5,
+    emissive: '#a0e090',
+    emissiveIntensity: 0.2,
+  },
   MushroomFarm: { color: '#a06848', width: 4, height: 2, depth: 4, yOffset: 1.0 },
-  Aquaculture: { color: '#3868a0', width: 4, height: 0.4, depth: 4, yOffset: 0.2, emissive: '#3060a0', emissiveIntensity: 0.2 },
+  Aquaculture: {
+    color: '#3868a0',
+    width: 4,
+    height: 0.4,
+    depth: 4,
+    yOffset: 0.2,
+    emissive: '#3060a0',
+    emissiveIntensity: 0.2,
+  },
   TrainStation: { color: '#604030', width: 7, height: 4, depth: 5, yOffset: 2.0 },
   Airport: { color: '#a0a8c0', width: 9, height: 3, depth: 8, yOffset: 1.5 },
   Port: { color: '#5878a0', width: 7, height: 2, depth: 5, yOffset: 1.0 },
   Stadium: { color: '#a8a098', width: 9, height: 5, depth: 9, yOffset: 2.5 },
   Museum: { color: '#a8a088', width: 6, height: 5, depth: 5, yOffset: 2.5 },
-  Cathedral: { color: '#c8b878', width: 10, height: 14, depth: 10, yOffset: 7.0, emissive: '#e8d8a0', emissiveIntensity: 0.08 },
+  Cathedral: {
+    color: '#c8b878',
+    width: 10,
+    height: 14,
+    depth: 10,
+    yOffset: 7.0,
+    emissive: '#e8d8a0',
+    emissiveIntensity: 0.08,
+  },
   Castle: { color: '#807868', width: 12, height: 12, depth: 12, yOffset: 6.0 },
   Theatre: { color: '#a05870', width: 6, height: 5, depth: 5, yOffset: 2.5 },
-  Observatory: { color: '#a0a8b8', width: 4, height: 5, depth: 4, yOffset: 2.5, emissive: '#a0c0e0', emissiveIntensity: 0.2 },
+  Observatory: {
+    color: '#a0a8b8',
+    width: 4,
+    height: 5,
+    depth: 4,
+    yOffset: 2.5,
+    emissive: '#a0c0e0',
+    emissiveIntensity: 0.2,
+  },
   Plaza: { color: '#a89880', width: 5, height: 0.2, depth: 5, yOffset: 0.1 },
   Statue: { color: '#b0b0b0', width: 1, height: 3, depth: 1, yOffset: 1.5 },
   Fountain: { color: '#80a8c8', width: 1.5, height: 1, depth: 1.5, yOffset: 0.5 },
@@ -491,7 +804,10 @@ const GENERIC_GEOM_CACHE = new Map<string, BoxGeometry>()
 function getGenericGeom(s: GenericSpec): BoxGeometry {
   const key = `${s.width}|${s.height}|${s.depth}`
   let g = GENERIC_GEOM_CACHE.get(key)
-  if (!g) { g = new BoxGeometry(s.width, s.height, s.depth); GENERIC_GEOM_CACHE.set(key, g) }
+  if (!g) {
+    g = new BoxGeometry(s.width, s.height, s.depth)
+    GENERIC_GEOM_CACHE.set(key, g)
+  }
   return g
 }
 
@@ -1212,38 +1528,39 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
         )
       })}
 
-      {windowsOn && Object.entries(WINDOW_SPECS).map(([kind, spec]) => {
-        if (!spec) return null
-        const positions = groups[kind as BuildingKind] ?? []
-        if (positions.length === 0) return null
-        const intensity = nightFrac * 1.6
-        // Lay perSide windows along the front face, mirrored on the back.
-        const offsets: [number, number, number][] = []
-        for (let s = -1; s <= 1; s += 2) {
-          for (let i = 0; i < spec.perSide; i++) {
-            const t = (i + 1) / (spec.perSide + 1) - 0.5
-            offsets.push([t * spec.spread, 0, s * spec.forwardZ])
+      {windowsOn &&
+        Object.entries(WINDOW_SPECS).map(([kind, spec]) => {
+          if (!spec) return null
+          const positions = groups[kind as BuildingKind] ?? []
+          if (positions.length === 0) return null
+          const intensity = nightFrac * 1.6
+          // Lay perSide windows along the front face, mirrored on the back.
+          const offsets: [number, number, number][] = []
+          for (let s = -1; s <= 1; s += 2) {
+            for (let i = 0; i < spec.perSide; i++) {
+              const t = (i + 1) / (spec.perSide + 1) - 0.5
+              offsets.push([t * spec.spread, 0, s * spec.forwardZ])
+            }
           }
-        }
-        return (
-          <group key={`window-${kind}`}>
-            {offsets.map((off, idx) => (
-              <Layer
-                key={`${kind}-w-${idx}`}
-                positions={positions.map(
-                  ([x, y, z]) => [x + off[0], y, z + off[2]] as [number, number, number],
-                )}
-                yOffset={spec.yOffset}
-                geometry={NIGHT_WINDOW}
-                color="#3a2a18"
-                emissive="#ffcc78"
-                emissiveIntensity={intensity}
-                maxCount={cap(positions.length)}
-              />
-            ))}
-          </group>
-        )
-      })}
+          return (
+            <group key={`window-${kind}`}>
+              {offsets.map((off, idx) => (
+                <Layer
+                  key={`${kind}-w-${idx}`}
+                  positions={positions.map(
+                    ([x, y, z]) => [x + off[0], y, z + off[2]] as [number, number, number],
+                  )}
+                  yOffset={spec.yOffset}
+                  geometry={NIGHT_WINDOW}
+                  color="#3a2a18"
+                  emissive="#ffcc78"
+                  emissiveIntensity={intensity}
+                  maxCount={cap(positions.length)}
+                />
+              ))}
+            </group>
+          )
+        })}
 
       {Object.entries(WORKSHOP_POLISH).map(([kind, polish]) => {
         if (!polish) return null
@@ -1254,7 +1571,9 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
             {polish.layers.map((l, i) => (
               <Layer
                 key={`${kind}-${i}`}
-                positions={positions.map(([x, y, z]) => [x + (l.dx ?? 0), y, z + (l.dz ?? 0)] as [number, number, number])}
+                positions={positions.map(
+                  ([x, y, z]) => [x + (l.dx ?? 0), y, z + (l.dz ?? 0)] as [number, number, number],
+                )}
                 yOffset={l.yOffset}
                 geometry={l.geometry}
                 color={l.color}

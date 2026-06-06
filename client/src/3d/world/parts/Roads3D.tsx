@@ -36,7 +36,12 @@ export function Roads3D({ buildings, lineageEras, depthMap, biomes }: Props) {
     for (const [lid, list] of byLineage) {
       if (list.length < 2) continue
       const era = lineageEras[lid]
-      const advanced = era === 'industrial' || era === 'modern' || era === 'information' || era === 'atomic' || era === 'space'
+      const advanced =
+        era === 'industrial' ||
+        era === 'modern' ||
+        era === 'information' ||
+        era === 'atomic' ||
+        era === 'space'
       const maxDist = advanced ? ROAD_MAX_DIST_POST : ROAD_MAX_DIST_PRE
       const connected = new Set<number>()
       list.sort((a, b) => a.id - b.id)

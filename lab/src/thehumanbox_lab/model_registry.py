@@ -5,7 +5,7 @@ from dataclasses import dataclass, asdict, fields
 from pathlib import Path
 from typing import Any, Optional
 
-from .local_stack import installed_ollama_model_names, list_ollama_models
+from .local_stack import installed_ollama_model_names
 
 
 @dataclass

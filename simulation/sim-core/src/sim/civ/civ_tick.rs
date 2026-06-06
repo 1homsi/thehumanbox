@@ -1,8 +1,6 @@
 use crate::sim::age_stage::AgeStage;
 use crate::sim::buildings::{Building, BuildingKind};
-use crate::sim::culture::{
-    pick_religion_name, ArtKind, Artwork, Religion, ReligionKind,
-};
+use crate::sim::culture::{pick_religion_name, ArtKind, Artwork, Religion, ReligionKind};
 use crate::sim::economy::{elder_pension, Specialty};
 use crate::sim::era::Era;
 use crate::sim::government::{Government, GovernmentKind, Law, LawKind};
@@ -589,10 +587,7 @@ fn tick_arguments(sim: &mut Simulation) {
             sim.organisms[idx].memories.insert(entry);
             sim.organisms[idx].regret = (sim.organisms[idx].regret + 0.04).min(1.0);
             sim.organisms[idx].fear_level = (sim.organisms[idx].fear_level + 0.02).min(1.0);
-            let trust = sim.organisms[idx]
-                .org_trust
-                .entry(other_id)
-                .or_insert(0.0);
+            let trust = sim.organisms[idx].org_trust.entry(other_id).or_insert(0.0);
             *trust = (*trust - 0.08).max(-1.0);
         }
         push_event(
@@ -662,10 +657,7 @@ fn tick_reconciliations(sim: &mut Simulation) {
             sim.organisms[idx].regret = (sim.organisms[idx].regret * 0.4).max(0.0);
             sim.organisms[idx].joy_ticks = (sim.organisms[idx].joy_ticks + 30).min(1200);
             sim.organisms[idx].gratitude = (sim.organisms[idx].gratitude + 0.15).min(1.0);
-            let trust = sim.organisms[idx]
-                .org_trust
-                .entry(other_id)
-                .or_insert(0.0);
+            let trust = sim.organisms[idx].org_trust.entry(other_id).or_insert(0.0);
             *trust = (*trust + 0.18).min(1.0);
         }
         push_event(
@@ -753,12 +745,7 @@ fn tick_storyteller(sim: &mut Simulation) {
         .organisms
         .iter()
         .enumerate()
-        .filter(|(_, o)| {
-            o.alive
-                && o.is_elder
-                && o.spiritual > 0.5
-                && !o.memories.entries.is_empty()
-        })
+        .filter(|(_, o)| o.alive && o.is_elder && o.spiritual > 0.5 && !o.memories.entries.is_empty())
         .map(|(i, o)| {
             let pick = o
                 .memories
@@ -978,10 +965,9 @@ fn tick_curiosity_exploration(sim: &mut Simulation) {
         if o.energy < 0.5 {
             continue;
         }
-        let hash = o
-            .id
-            .bytes()
-            .fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
+        let hash =
+            o.id.bytes()
+                .fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
         let angle = ((hash ^ sim.tick_count) as f32) * 0.0000014;
         let dist = 200.0 + o.curiosity_drive * 350.0;
         let tx = (o.x + angle.sin() * dist).round() as i32;
@@ -1287,12 +1273,11 @@ fn tick_festivals(sim: &mut Simulation) {
         if (*comfy as f32) / (*pop as f32) < 0.4 {
             continue;
         }
-        let lname = sim
-            .lineage_names
-            .get(lid)
-            .cloned()
-            .unwrap_or_else(|| lid.clone());
-        headlines.push(format!("the {} held a festival — drums, dancing, every belly full", lname));
+        let lname = sim.lineage_names.get(lid).cloned().unwrap_or_else(|| lid.clone());
+        headlines.push(format!(
+            "the {} held a festival — drums, dancing, every belly full",
+            lname
+        ));
         joy_targets.push(lid.clone());
     }
     for h in headlines {
@@ -1309,13 +1294,10 @@ fn tick_festivals(sim: &mut Simulation) {
             }
             o.joy_ticks = (o.joy_ticks + 30).min(1200);
             if sim.rng.random::<f32>() < 0.25 {
-                let entry = MemoryEntry::new(
-                    MemoryKind::Episode,
-                    "we held a festival — drums until dawn",
-                    tick,
-                )
-                .with_salience(0.78)
-                .with_emotion(2);
+                let entry =
+                    MemoryEntry::new(MemoryKind::Episode, "we held a festival — drums until dawn", tick)
+                        .with_salience(0.78)
+                        .with_emotion(2);
                 o.memories.insert(entry);
             }
         }
@@ -1491,9 +1473,7 @@ fn tick_teaching(sim: &mut Simulation) {
         return;
     }
     let any_teacher = sim.organisms.iter().any(|o| {
-        o.alive
-            && !o.discoveries.is_empty()
-            && matches!(o.age_stage(), AgeStage::Elder | AgeStage::Adult)
+        o.alive && !o.discoveries.is_empty() && matches!(o.age_stage(), AgeStage::Elder | AgeStage::Adult)
     });
     if !any_teacher {
         return;
@@ -1975,8 +1955,7 @@ fn tick_witnessed_events(sim: &mut Simulation) {
 
     let n = sim.organisms.len();
     let mut by_name: HashMap<String, usize> = HashMap::with_capacity(n);
-    let mut by_lineage: HashMap<String, Vec<usize>> =
-        HashMap::with_capacity(sim.lineage_names.len().max(8));
+    let mut by_lineage: HashMap<String, Vec<usize>> = HashMap::with_capacity(sim.lineage_names.len().max(8));
     for (i, o) in sim.organisms.iter().enumerate() {
         if !o.alive {
             continue;
@@ -2065,8 +2044,8 @@ fn tick_witnessed_events(sim: &mut Simulation) {
             );
             // Witnessing big moments stirs mood.
             match etype.as_str() {
-                "born" | "religion_founded" | "build" | "gift" | "teach" | "specialty"
-                | "graduated" | "milestone" => {
+                "born" | "religion_founded" | "build" | "gift" | "teach" | "specialty" | "graduated"
+                | "milestone" => {
                     sim.organisms[ki].joy_ticks = (sim.organisms[ki].joy_ticks + 40).min(1200);
                 }
                 "death" => {

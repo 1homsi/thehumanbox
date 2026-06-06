@@ -16,14 +16,7 @@ const KIND_SUBTITLE: Record<string, string> = {
   secular: 'a civic hall of remembrance',
 }
 
-const TEMPLE_KINDS = new Set([
-  'temple',
-  'cathedral',
-  'shrine',
-  'mosque',
-  'synagogue',
-  'pagoda',
-])
+const TEMPLE_KINDS = new Set(['temple', 'cathedral', 'shrine', 'mosque', 'synagogue', 'pagoda'])
 
 function findTempleAnchor(world: WorldState, lineageId: string): { x: number; y: number } | null {
   const buildings = world.buildings ?? []
@@ -33,7 +26,13 @@ function findTempleAnchor(world: WorldState, lineageId: string): { x: number; y:
     const owner = (b as { lineage_id?: string }).lineage_id
     if (owner && owner !== lineageId) continue
     const rank =
-      b.kind === 'cathedral' ? 4 : b.kind === 'temple' ? 3 : b.kind === 'mosque' || b.kind === 'synagogue' || b.kind === 'pagoda' ? 2 : 1
+      b.kind === 'cathedral'
+        ? 4
+        : b.kind === 'temple'
+          ? 3
+          : b.kind === 'mosque' || b.kind === 'synagogue' || b.kind === 'pagoda'
+            ? 2
+            : 1
     const score = rank + (b.condition ?? 1)
     if (!best || score > best.score) best = { x: b.x, y: b.y, score }
   }
@@ -73,11 +72,7 @@ export function resolveTempleScene(world: WorldState, scene: SceneId): SceneCont
     if (d > TEMPLE_RADIUS) continue
     const piety = o.piety ?? 0
     if (!sameFaith && piety < 0.2) continue
-    const role: SceneOccupant['role'] = o.is_leader
-      ? 'priest'
-      : piety > 0.6
-        ? 'worshipper'
-        : 'guest'
+    const role: SceneOccupant['role'] = o.is_leader ? 'priest' : piety > 0.6 ? 'worshipper' : 'guest'
     const activity = piety > 0.6 ? 'praying' : piety > 0.3 ? 'reflecting' : 'observing'
     const entry: SceneOccupant = { org: o, role, activity }
     if (d <= 4) inside.push(entry)

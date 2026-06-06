@@ -18,7 +18,14 @@ function smoothstep(edge0: number, edge1: number, x: number): number {
   return t * t * (3 - 2 * t)
 }
 
-export function Sun({ dayProgress, width, height, weatherKind = 'clear', weatherIntensity = 0, moonIllum = 0.7 }: Props) {
+export function Sun({
+  dayProgress,
+  width,
+  height,
+  weatherKind = 'clear',
+  weatherIntensity = 0,
+  moonIllum = 0.7,
+}: Props) {
   const cx = width * TILE_SCALE * 0.5
   const cz = height * TILE_SCALE * 0.5
   const r = Math.max(width, height) * TILE_SCALE * 1.2
@@ -69,14 +76,10 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
   const moonOpacity = nightWeight * (0.15 + moonIllum * 0.85) + dayWeight * 0.6
   const moonGlowOpacity = nightWeight * moonIllum * 0.18
 
-  const sunColorCore =
-    dayStrength < 0.18 ? '#ff8c4a' : dayStrength < 0.4 ? '#ffc580' : '#fff6d8'
-  const sunColorHaze =
-    dayStrength < 0.18 ? '#ff6a30' : dayStrength < 0.4 ? '#ffb068' : '#fff0c0'
-  const sunColorOuter =
-    dayStrength < 0.18 ? '#ff5020' : dayStrength < 0.4 ? '#ff9050' : '#ffe8a0'
-  const sunColorAtmos =
-    dayStrength < 0.18 ? '#ff4818' : dayStrength < 0.4 ? '#ff7848' : '#ffd890'
+  const sunColorCore = dayStrength < 0.18 ? '#ff8c4a' : dayStrength < 0.4 ? '#ffc580' : '#fff6d8'
+  const sunColorHaze = dayStrength < 0.18 ? '#ff6a30' : dayStrength < 0.4 ? '#ffb068' : '#fff0c0'
+  const sunColorOuter = dayStrength < 0.18 ? '#ff5020' : dayStrength < 0.4 ? '#ff9050' : '#ffe8a0'
+  const sunColorAtmos = dayStrength < 0.18 ? '#ff4818' : dayStrength < 0.4 ? '#ff7848' : '#ffd890'
 
   const dirSunIntensity = (0.45 + dayStrength * 1.1) * stormFactor * dayWeight
   const dirSunColor =
@@ -96,10 +99,18 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
   const ambB = nightWeight * (0x90 / 255) + dayWeight * 1
 
   const hemiSky = new Color()
-    .setRGB(nightWeight * 0.29 + dayWeight * 0.61, nightWeight * 0.34 + dayWeight * 0.72, nightWeight * 0.47 + dayWeight * 0.88)
+    .setRGB(
+      nightWeight * 0.29 + dayWeight * 0.61,
+      nightWeight * 0.34 + dayWeight * 0.72,
+      nightWeight * 0.47 + dayWeight * 0.88,
+    )
     .getHex()
   const hemiGround = new Color()
-    .setRGB(nightWeight * 0.1 + dayWeight * 0.24, nightWeight * 0.13 + dayWeight * 0.37, nightWeight * 0.19 + dayWeight * 0.24)
+    .setRGB(
+      nightWeight * 0.1 + dayWeight * 0.24,
+      nightWeight * 0.13 + dayWeight * 0.37,
+      nightWeight * 0.19 + dayWeight * 0.24,
+    )
     .getHex()
   const hemiIntensity = (nightWeight * 0.3 + dayWeight * (0.4 + dayStrength * 0.2)) * stormFactor
 
@@ -141,7 +152,13 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
 
       <mesh position={sunPos} frustumCulled={false} renderOrder={-1}>
         <sphereGeometry args={[isTwilight ? 75 : 55, 24, 18]} />
-        <meshBasicMaterial color={sunColorCore} transparent opacity={sunCoreOpacity} depthWrite={false} toneMapped={false} />
+        <meshBasicMaterial
+          color={sunColorCore}
+          transparent
+          opacity={sunCoreOpacity}
+          depthWrite={false}
+          toneMapped={false}
+        />
       </mesh>
       <mesh position={sunPos} frustumCulled={false} renderOrder={-2}>
         <sphereGeometry args={[isTwilight ? 220 : 150, 24, 16]} />
@@ -195,10 +212,7 @@ export function Sun({ dayProgress, width, height, weatherKind = 'clear', weather
 
       <directionalLight position={moonPos} intensity={dirMoonIntensity} color="#a8b8e0" />
 
-      <ambientLight
-        intensity={ambientIntensity}
-        color={new Color(ambR, ambG, ambB).getHex()}
-      />
+      <ambientLight intensity={ambientIntensity} color={new Color(ambR, ambG, ambB).getHex()} />
 
       <hemisphereLight args={[hemiSky, hemiGround, hemiIntensity]} />
 

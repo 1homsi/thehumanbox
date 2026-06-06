@@ -64,8 +64,20 @@ export function GroundMist({ dayProgress, width, height, weatherKind = 'clear' }
   if (visibility <= 0.01) return null
 
   return (
-    <instancedMesh ref={meshRef} args={[geo, undefined, PATCHES]} count={0} frustumCulled={false} renderOrder={-1}>
-      <meshBasicMaterial color="#d8e4ec" transparent opacity={0.18 * visibility} depthWrite={false} toneMapped={false} />
+    <instancedMesh
+      ref={meshRef}
+      args={[geo, undefined, PATCHES]}
+      count={0}
+      frustumCulled={false}
+      renderOrder={-1}
+    >
+      <meshBasicMaterial
+        color="#d8e4ec"
+        transparent
+        opacity={0.18 * visibility}
+        depthWrite={false}
+        toneMapped={false}
+      />
     </instancedMesh>
   )
 }

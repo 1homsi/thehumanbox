@@ -32,7 +32,7 @@ def _caps_penalty(text: str) -> float:
     ratio = caps / len(letters)
     if ratio <= 0.3:
         return 0.0
-    return min(1.0, (ratio - 0.3) / 0.7)
+    return min(1.0, ((ratio - 0.3) / 0.7) * 1.6)
 
 
 def _bracket_penalty(text: str) -> float:
@@ -56,5 +56,5 @@ def score(text: str) -> float:
         _caps_penalty(text),
         _bracket_penalty(text),
     ]
-    raw = 1.0 - sum(penalties) / len(penalties)
+    raw = 1.0 - min(1.0, sum(penalties))
     return max(0.0, min(1.0, raw))

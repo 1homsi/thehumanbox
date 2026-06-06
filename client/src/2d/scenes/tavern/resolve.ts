@@ -48,11 +48,7 @@ export function resolveTavernScene(world: WorldState, scene: SceneId): SceneCont
     const hasSpirit = ((o.tools ?? {}).spirit ?? 0) > 0 || ((o.tools ?? {}).bottle ?? 0) > 0
     const eligible = knowsBrewing || drinkerThought || hasSpirit || o.is_leader
     if (!eligible) continue
-    const role: SceneOccupant['role'] = o.is_leader
-      ? 'host'
-      : hasSpirit
-        ? 'brewer'
-        : 'patron'
+    const role: SceneOccupant['role'] = o.is_leader ? 'host' : hasSpirit ? 'brewer' : 'patron'
     const activity = hasSpirit
       ? 'serving'
       : drinkerThought

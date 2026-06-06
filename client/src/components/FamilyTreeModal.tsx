@@ -220,7 +220,10 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
     if (!canvas || !wrap || !zoom || !nodes.length) return
     const vw = wrap.clientWidth
     const vh = wrap.clientHeight
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+    let minX = Infinity,
+      maxX = -Infinity,
+      minY = Infinity,
+      maxY = -Infinity
     for (const n of nodes) {
       if (n.x < minX) minX = n.x
       if (n.x > maxX) maxX = n.x
@@ -228,8 +231,8 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
       if (n.y > maxY) maxY = n.y
     }
     const PAD = 80
-    const treeW = (maxX - minX) + NODE_R * 2 + PAD * 2
-    const treeH = (maxY - minY) + NODE_R * 2 + PAD * 2
+    const treeW = maxX - minX + NODE_R * 2 + PAD * 2
+    const treeH = maxY - minY + NODE_R * 2 + PAD * 2
     const k = Math.min(vw / treeW, vh / treeH, 1)
     const kClamped = Math.max(k, 0.015)
     const cx = (minX + maxX) / 2
@@ -466,7 +469,10 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
     if (targets.length === 0) return
     const vw = wrap.clientWidth
     const vh = wrap.clientHeight
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+    let minX = Infinity,
+      maxX = -Infinity,
+      minY = Infinity,
+      maxY = -Infinity
     for (const n of targets) {
       if (n.x < minX) minX = n.x
       if (n.x > maxX) maxX = n.x
@@ -474,8 +480,8 @@ export function FamilyTreeModal({ organisms: livOrgs, sexWords, onClose }: Props
       if (n.y > maxY) maxY = n.y
     }
     const PAD = 80
-    const treeW = (maxX - minX) + NODE_R * 2 + PAD * 2
-    const treeH = (maxY - minY) + NODE_R * 2 + PAD * 2
+    const treeW = maxX - minX + NODE_R * 2 + PAD * 2
+    const treeH = maxY - minY + NODE_R * 2 + PAD * 2
     const k = Math.min(vw / treeW, vh / treeH, 1)
     const kClamped = Math.max(k, 0.015)
     const cx = (minX + maxX) / 2

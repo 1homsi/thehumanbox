@@ -40,6 +40,26 @@ updates:
       prefix: client(deps)
       include: scope
 
+  - package-ecosystem: npm
+    directory: /desktop
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+    groups:
+      desktop-npm-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
+    commit-message:
+      prefix: desktop(deps)
+      include: scope
+
   - package-ecosystem: pip
     directory: /lab
     schedule:

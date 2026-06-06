@@ -85,7 +85,7 @@ function orgColor(o: OrganismState): string {
   if ((o.fear_level ?? 0) > 0.72) return 'hsl(10,  72%, 38%)' // fear: deep red-orange
   if ((o.grief_ticks ?? 0) > 14) return 'hsl(220, 52%, 40%)' // grief: washed blue
   if (o.energy < 0.12) return 'hsl(38,  55%, 30%)' // starving: dark earth
-  if ((o.is_elder ?? false)) return 'hsl(0, 0%, 78%)' // elder: silver hair
+  if (o.is_elder ?? false) return 'hsl(0, 0%, 78%)' // elder: silver hair
   if ((o.comfort ?? 0) > 0.82) return 'hsl(50,  80%, 58%)' // content: warm gold
   if ((o.traits?.aggression ?? 0) > 0.8) return 'hsl(0,   60%, 48%)' // aggressive: muted red
   const base = lineageColor(o.lineage_id)

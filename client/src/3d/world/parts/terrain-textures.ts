@@ -55,9 +55,7 @@ function paintTile(cbuf: Uint8Array, bbuf: Uint8Array, tx: number, ty: number, v
 
       // Subtle color variation overlay — three-way mix so the same biome
       // shows patches of slightly different hue rather than one flat tone.
-      const patch =
-        noise(x / 110, y / 110, variant + 41) * 0.6 +
-        noise(x / 40, y / 40, variant + 43) * 0.4
+      const patch = noise(x / 110, y / 110, variant + 41) * 0.6 + noise(x / 40, y / 40, variant + 43) * 0.4
 
       switch (variant) {
         case 0: {

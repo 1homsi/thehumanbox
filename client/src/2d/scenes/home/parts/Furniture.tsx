@@ -22,7 +22,16 @@ export function Furniture({ fixture }: Props) {
     case 'mat':
       return (
         <g transform={`translate(${x} ${y})`}>
-          <rect x="-13" y="-5" width="26" height="10" rx="3" fill="#7c5a3a" stroke="#3a2618" strokeWidth="1" />
+          <rect
+            x="-13"
+            y="-5"
+            width="26"
+            height="10"
+            rx="3"
+            fill="#7c5a3a"
+            stroke="#3a2618"
+            strokeWidth="1"
+          />
           <line x1="-13" y1="-2" x2="13" y2="-2" stroke="#3a2618" strokeWidth="0.5" opacity="0.5" />
           <line x1="-13" y1="2" x2="13" y2="2" stroke="#3a2618" strokeWidth="0.5" opacity="0.5" />
           <title>{label}</title>
@@ -31,7 +40,16 @@ export function Furniture({ fixture }: Props) {
     case 'storage':
       return (
         <g transform={`translate(${x} ${y})`}>
-          <rect x="-9" y="-7" width="18" height="14" fill="#6a4825" stroke="#2a1810" strokeWidth="1" rx="1.5" />
+          <rect
+            x="-9"
+            y="-7"
+            width="18"
+            height="14"
+            fill="#6a4825"
+            stroke="#2a1810"
+            strokeWidth="1"
+            rx="1.5"
+          />
           <rect x="-9" y="-7" width="18" height="3" fill="#3a2618" />
           <title>{label}</title>
         </g>
@@ -69,7 +87,16 @@ export function Furniture({ fixture }: Props) {
     case 'rug':
       return (
         <g transform={`translate(${x} ${y})`}>
-          <rect x="-16" y="-8" width="32" height="16" rx="1" fill="#8a3a3a" stroke="#3a1818" strokeWidth="0.8" />
+          <rect
+            x="-16"
+            y="-8"
+            width="32"
+            height="16"
+            rx="1"
+            fill="#8a3a3a"
+            stroke="#3a1818"
+            strokeWidth="0.8"
+          />
           <rect x="-13" y="-5" width="26" height="10" fill="none" stroke="#d8b270" strokeWidth="0.7" />
           <rect x="-2" y="-2" width="4" height="4" fill="#d8b270" opacity="0.7" />
           <title>{label}</title>
@@ -79,7 +106,16 @@ export function Furniture({ fixture }: Props) {
       return (
         <g transform={`translate(${x} ${y})`}>
           <ellipse cx="0" cy="3" rx="4" ry="1.4" fill="#3a2618" />
-          <rect x="-3" y="-2" width="6" height="5" rx="1.5" fill="#a87850" stroke="#3a2618" strokeWidth="0.8" />
+          <rect
+            x="-3"
+            y="-2"
+            width="6"
+            height="5"
+            rx="1.5"
+            fill="#a87850"
+            stroke="#3a2618"
+            strokeWidth="0.8"
+          />
           <circle cx="0" cy="-3" r="1.4" fill="#ffd06a">
             <animate attributeName="r" values="1.2;1.6;1.2" dur="1.6s" repeatCount="indefinite" />
           </circle>
@@ -98,7 +134,12 @@ export function Furniture({ fixture }: Props) {
       return (
         <g transform={`translate(${x} ${y})`}>
           <ellipse cx="0" cy="6" rx="4" ry="1" fill="#1a1208" />
-          <path d="M -4 4 Q -5 -2 -2 -6 L 2 -6 Q 5 -2 4 4 Z" fill="#6a3838" stroke="#3a1818" strokeWidth="0.8" />
+          <path
+            d="M -4 4 Q -5 -2 -2 -6 L 2 -6 Q 5 -2 4 4 Z"
+            fill="#6a3838"
+            stroke="#3a1818"
+            strokeWidth="0.8"
+          />
           <path d="M 3 -3 Q 6 -2 5 1" fill="none" stroke="#3a1818" strokeWidth="1" />
           <title>{label}</title>
         </g>
@@ -153,7 +194,16 @@ export function Furniture({ fixture }: Props) {
     case 'mirror':
       return (
         <g transform={`translate(${x} ${y})`}>
-          <rect x="-5" y="-10" width="10" height="20" rx="5" fill="#a09078" stroke="#1c0e08" strokeWidth="0.8" />
+          <rect
+            x="-5"
+            y="-10"
+            width="10"
+            height="20"
+            rx="5"
+            fill="#a09078"
+            stroke="#1c0e08"
+            strokeWidth="0.8"
+          />
           <rect x="-3.5" y="-8.5" width="7" height="17" rx="3.5" fill="#c8d8e8" opacity="0.9" />
           <line x1="-2.5" y1="-6" x2="2.5" y2="6" stroke="#fff" strokeWidth="0.8" opacity="0.5" />
           <title>{label}</title>
@@ -162,7 +212,12 @@ export function Furniture({ fixture }: Props) {
     case 'vase_flowers':
       return (
         <g transform={`translate(${x} ${y})`}>
-          <path d="M -3 6 L -3 0 Q -3 -2 -2 -3 L 2 -3 Q 3 -2 3 0 L 3 6 Z" fill="#6890b0" stroke="#1c0e08" strokeWidth="0.6" />
+          <path
+            d="M -3 6 L -3 0 Q -3 -2 -2 -3 L 2 -3 Q 3 -2 3 0 L 3 6 Z"
+            fill="#6890b0"
+            stroke="#1c0e08"
+            strokeWidth="0.6"
+          />
           <circle cx="-2" cy="-5" r="2" fill="#d8485e" />
           <circle cx="2" cy="-6" r="1.8" fill="#f8c060" />
           <circle cx="0" cy="-7" r="1.6" fill="#e88da0" />
@@ -210,20 +265,92 @@ export function Furniture({ fixture }: Props) {
     case 'armchair':
       return (
         <g transform={`translate(${x} ${y})`}>
-          <rect x="-8" y="-2" width="16" height="10" rx="2" fill="#5a3838" stroke="#1c0e08" strokeWidth="0.8" />
-          <rect x="-10" y="-8" width="3" height="14" rx="1.5" fill="#5a3838" stroke="#1c0e08" strokeWidth="0.8" />
-          <rect x="7" y="-8" width="3" height="14" rx="1.5" fill="#5a3838" stroke="#1c0e08" strokeWidth="0.8" />
-          <rect x="-7" y="-8" width="14" height="6" rx="2" fill="#6a4848" stroke="#1c0e08" strokeWidth="0.8" />
+          <rect
+            x="-8"
+            y="-2"
+            width="16"
+            height="10"
+            rx="2"
+            fill="#5a3838"
+            stroke="#1c0e08"
+            strokeWidth="0.8"
+          />
+          <rect
+            x="-10"
+            y="-8"
+            width="3"
+            height="14"
+            rx="1.5"
+            fill="#5a3838"
+            stroke="#1c0e08"
+            strokeWidth="0.8"
+          />
+          <rect
+            x="7"
+            y="-8"
+            width="3"
+            height="14"
+            rx="1.5"
+            fill="#5a3838"
+            stroke="#1c0e08"
+            strokeWidth="0.8"
+          />
+          <rect
+            x="-7"
+            y="-8"
+            width="14"
+            height="6"
+            rx="2"
+            fill="#6a4848"
+            stroke="#1c0e08"
+            strokeWidth="0.8"
+          />
           <title>{label}</title>
         </g>
       )
     case 'sofa':
       return (
         <g transform={`translate(${x} ${y})`}>
-          <rect x="-15" y="-2" width="30" height="9" rx="2" fill="#3a5a7a" stroke="#1c0e08" strokeWidth="0.8" />
-          <rect x="-17" y="-5" width="3" height="12" rx="1.5" fill="#3a5a7a" stroke="#1c0e08" strokeWidth="0.8" />
-          <rect x="14" y="-5" width="3" height="12" rx="1.5" fill="#3a5a7a" stroke="#1c0e08" strokeWidth="0.8" />
-          <rect x="-14" y="-7" width="28" height="6" rx="2" fill="#4a6a8a" stroke="#1c0e08" strokeWidth="0.8" />
+          <rect
+            x="-15"
+            y="-2"
+            width="30"
+            height="9"
+            rx="2"
+            fill="#3a5a7a"
+            stroke="#1c0e08"
+            strokeWidth="0.8"
+          />
+          <rect
+            x="-17"
+            y="-5"
+            width="3"
+            height="12"
+            rx="1.5"
+            fill="#3a5a7a"
+            stroke="#1c0e08"
+            strokeWidth="0.8"
+          />
+          <rect
+            x="14"
+            y="-5"
+            width="3"
+            height="12"
+            rx="1.5"
+            fill="#3a5a7a"
+            stroke="#1c0e08"
+            strokeWidth="0.8"
+          />
+          <rect
+            x="-14"
+            y="-7"
+            width="28"
+            height="6"
+            rx="2"
+            fill="#4a6a8a"
+            stroke="#1c0e08"
+            strokeWidth="0.8"
+          />
           <line x1="0" y1="-7" x2="0" y2="-1" stroke="#1c0e08" strokeWidth="0.6" />
           <title>{label}</title>
         </g>
@@ -231,7 +358,16 @@ export function Furniture({ fixture }: Props) {
     case 'coffee_table':
       return (
         <g transform={`translate(${x} ${y})`}>
-          <rect x="-10" y="-3" width="20" height="5" rx="0.8" fill="#3a2618" stroke="#1c0e08" strokeWidth="0.6" />
+          <rect
+            x="-10"
+            y="-3"
+            width="20"
+            height="5"
+            rx="0.8"
+            fill="#3a2618"
+            stroke="#1c0e08"
+            strokeWidth="0.6"
+          />
           <rect x="-9" y="2" width="1.5" height="4" fill="#3a2618" />
           <rect x="7.5" y="2" width="1.5" height="4" fill="#3a2618" />
           <title>{label}</title>
@@ -284,14 +420,32 @@ export function Furniture({ fixture }: Props) {
           <line x1="0" y1="6" x2="-3" y2="8" stroke="#1c0e08" strokeWidth="1.5" />
           <line x1="0" y1="6" x2="3" y2="8" stroke="#1c0e08" strokeWidth="1.5" />
           <line x1="0" y1="6" x2="0" y2="8" stroke="#1c0e08" strokeWidth="1.5" />
-          <rect x="-1.5" y="-6" width="3" height="12" transform="rotate(25)" fill="#3a4868" stroke="#1c0e08" strokeWidth="0.6" />
+          <rect
+            x="-1.5"
+            y="-6"
+            width="3"
+            height="12"
+            transform="rotate(25)"
+            fill="#3a4868"
+            stroke="#1c0e08"
+            strokeWidth="0.6"
+          />
           <title>{label}</title>
         </g>
       )
     case 'radio_set':
       return (
         <g transform={`translate(${x} ${y})`}>
-          <rect x="-7" y="-5" width="14" height="10" rx="1" fill="#5a3818" stroke="#1c0e08" strokeWidth="0.6" />
+          <rect
+            x="-7"
+            y="-5"
+            width="14"
+            height="10"
+            rx="1"
+            fill="#5a3818"
+            stroke="#1c0e08"
+            strokeWidth="0.6"
+          />
           <rect x="-5" y="-3.5" width="6" height="5" fill="#1c0e08" />
           <circle cx="3.5" cy="-1" r="1.2" fill="#d8b270" />
           <circle cx="3.5" cy="2" r="1.2" fill="#d8b270" />
@@ -302,9 +456,23 @@ export function Furniture({ fixture }: Props) {
     case 'television':
       return (
         <g transform={`translate(${x} ${y})`}>
-          <rect x="-12" y="-7" width="24" height="14" rx="1.5" fill="#1c0e08" stroke="#000" strokeWidth="0.8" />
+          <rect
+            x="-12"
+            y="-7"
+            width="24"
+            height="14"
+            rx="1.5"
+            fill="#1c0e08"
+            stroke="#000"
+            strokeWidth="0.8"
+          />
           <rect x="-10" y="-5" width="20" height="10" fill="#506880">
-            <animate attributeName="fill" values="#506880;#607890;#506880" dur="3s" repeatCount="indefinite" />
+            <animate
+              attributeName="fill"
+              values="#506880;#607890;#506880"
+              dur="3s"
+              repeatCount="indefinite"
+            />
           </rect>
           <rect x="-3" y="7" width="6" height="2" fill="#1c0e08" />
           <title>{label}</title>
@@ -313,7 +481,16 @@ export function Furniture({ fixture }: Props) {
     case 'refrigerator':
       return (
         <g transform={`translate(${x} ${y})`}>
-          <rect x="-6" y="-12" width="12" height="24" rx="1" fill="#e8e8e8" stroke="#1c0e08" strokeWidth="0.8" />
+          <rect
+            x="-6"
+            y="-12"
+            width="12"
+            height="24"
+            rx="1"
+            fill="#e8e8e8"
+            stroke="#1c0e08"
+            strokeWidth="0.8"
+          />
           <line x1="-6" y1="-3" x2="6" y2="-3" stroke="#1c0e08" strokeWidth="0.6" />
           <rect x="4" y="-9" width="0.8" height="2.5" fill="#1c0e08" />
           <rect x="4" y="2" width="0.8" height="2.5" fill="#1c0e08" />
@@ -341,7 +518,12 @@ export function Furniture({ fixture }: Props) {
           <rect x="10" y="4" width="2" height="6" fill="#3a2618" />
           <rect x="-7" y="-9" width="14" height="9" fill="#1c0e08" stroke="#000" strokeWidth="0.5" />
           <rect x="-6" y="-8" width="12" height="7" fill="#3a6890">
-            <animate attributeName="fill" values="#3a6890;#4a7aa0;#3a6890" dur="3.5s" repeatCount="indefinite" />
+            <animate
+              attributeName="fill"
+              values="#3a6890;#4a7aa0;#3a6890"
+              dur="3.5s"
+              repeatCount="indefinite"
+            />
           </rect>
           <rect x="-2" y="0.5" width="4" height="1.5" fill="#1c0e08" />
           <title>{label}</title>
@@ -352,7 +534,12 @@ export function Furniture({ fixture }: Props) {
         <g transform={`translate(${x} ${y})`}>
           <rect x="-8" y="-6" width="16" height="10" fill="#1c0e08" stroke="#000" strokeWidth="0.6" />
           <rect x="-7" y="-5" width="14" height="8" fill="#3a6a8a">
-            <animate attributeName="fill" values="#3a6a8a;#4a7a9a;#3a6a8a" dur="4s" repeatCount="indefinite" />
+            <animate
+              attributeName="fill"
+              values="#3a6a8a;#4a7a9a;#3a6a8a"
+              dur="4s"
+              repeatCount="indefinite"
+            />
           </rect>
           <rect x="-1.5" y="4" width="3" height="2" fill="#1c0e08" />
           <rect x="-3" y="6" width="6" height="1" fill="#3a2618" />
@@ -363,7 +550,16 @@ export function Furniture({ fixture }: Props) {
       return (
         <g transform={`translate(${x} ${y})`}>
           <ellipse cx="0" cy="5" rx="4" ry="1" fill="#1c0e08" />
-          <rect x="-3.5" y="-5" width="7" height="10" rx="3" fill="#2a2a3a" stroke="#1c0e08" strokeWidth="0.6" />
+          <rect
+            x="-3.5"
+            y="-5"
+            width="7"
+            height="10"
+            rx="3"
+            fill="#2a2a3a"
+            stroke="#1c0e08"
+            strokeWidth="0.6"
+          />
           <circle cx="0" cy="-2" r="1.2" fill="#5a8aff" opacity="0.8">
             <animate attributeName="opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite" />
           </circle>
@@ -405,7 +601,16 @@ export function Furniture({ fixture }: Props) {
     case 'kitchen_stove':
       return (
         <g transform={`translate(${x} ${y})`}>
-          <rect x="-8" y="-7" width="16" height="14" rx="1" fill="#c8c8c8" stroke="#1c0e08" strokeWidth="0.8" />
+          <rect
+            x="-8"
+            y="-7"
+            width="16"
+            height="14"
+            rx="1"
+            fill="#c8c8c8"
+            stroke="#1c0e08"
+            strokeWidth="0.8"
+          />
           <circle cx="-4" cy="-3" r="1.4" fill="#1c0e08" />
           <circle cx="4" cy="-3" r="1.4" fill="#1c0e08" />
           <circle cx="-4" cy="2" r="1.4" fill="#1c0e08" />
@@ -433,7 +638,12 @@ export function Furniture({ fixture }: Props) {
         <g transform={`translate(${x} ${y})`}>
           <rect x="-5" y="2" width="10" height="5" fill="#3a2618" stroke="#1c0e08" strokeWidth="0.6" />
           <rect x="-3" y="0" width="6" height="2" fill="#5a4838" />
-          <path d="M -8 -4 L -8 0 L 8 0 L 8 -4 L 6 -6 L -6 -6 Z" fill="#4a4858" stroke="#1c0e08" strokeWidth="0.6" />
+          <path
+            d="M -8 -4 L -8 0 L 8 0 L 8 -4 L 6 -6 L -6 -6 Z"
+            fill="#4a4858"
+            stroke="#1c0e08"
+            strokeWidth="0.6"
+          />
           <title>{label}</title>
         </g>
       )

@@ -158,7 +158,18 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
           </button>
           <span className="filter-sep">·</span>
           {(
-            ['seeker', 'wanderer', 'warrior', 'connector', 'builder', 'devout', 'sage', 'provider', 'artist', 'healer'] as AspirationFilter[]
+            [
+              'seeker',
+              'wanderer',
+              'warrior',
+              'connector',
+              'builder',
+              'devout',
+              'sage',
+              'provider',
+              'artist',
+              'healer',
+            ] as AspirationFilter[]
           ).map((a) => (
             <button
               key={a}

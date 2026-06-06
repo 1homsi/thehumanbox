@@ -25,11 +25,7 @@ export interface RoomPalette {
   outside: string
 }
 
-export type FurnitureDrawer = (
-  ctx: CanvasRenderingContext2D,
-  fixture: SceneFixture,
-  time: number,
-) => void
+export type FurnitureDrawer = (ctx: CanvasRenderingContext2D, fixture: SceneFixture, time: number) => void
 
 interface Props {
   ctx: SceneContext

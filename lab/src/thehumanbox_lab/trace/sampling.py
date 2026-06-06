@@ -27,7 +27,8 @@ def stratified(
         return []
     key_fn: Callable[[Record], Any]
     if isinstance(key, str):
-        key_fn = lambda r: r.get(key)
+        def key_fn(r: Record) -> Any:
+            return r.get(key)
     else:
         key_fn = key
     buckets: dict[Any, list[Record]] = defaultdict(list)

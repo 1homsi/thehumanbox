@@ -69,7 +69,11 @@ export function Comet({ isNight, dayOfYear, width, height }: Props) {
       tailRef.current.visible = true
       const tailDir = az + Math.PI
       const tailLen = 220 + altFactor * 90
-      tailRef.current.position.set(x + Math.cos(tailDir) * tailLen * 0.5, y + 18, z + Math.sin(tailDir) * tailLen * 0.5)
+      tailRef.current.position.set(
+        x + Math.cos(tailDir) * tailLen * 0.5,
+        y + 18,
+        z + Math.sin(tailDir) * tailLen * 0.5,
+      )
       tailRef.current.rotation.y = -tailDir + Math.PI / 2
       tailRef.current.scale.set(tailLen, 18 + altFactor * 8, 1)
     }
@@ -86,7 +90,14 @@ export function Comet({ isNight, dayOfYear, width, height }: Props) {
     <group renderOrder={-1}>
       <mesh ref={haloRef} frustumCulled={false} visible={false}>
         <sphereGeometry args={[28, 16, 12]} />
-        <meshBasicMaterial color="#bfe6ff" transparent opacity={0.28} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+        <meshBasicMaterial
+          color="#bfe6ff"
+          transparent
+          opacity={0.28}
+          blending={AdditiveBlending}
+          depthWrite={false}
+          toneMapped={false}
+        />
       </mesh>
       <mesh ref={headRef} frustumCulled={false} visible={false}>
         <sphereGeometry args={[12, 16, 12]} />
@@ -94,7 +105,14 @@ export function Comet({ isNight, dayOfYear, width, height }: Props) {
       </mesh>
       <mesh ref={tailRef} frustumCulled={false} visible={false} renderOrder={-2}>
         <planeGeometry args={[1, 1]} />
-        <meshBasicMaterial color="#cfeaff" transparent opacity={0.35} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+        <meshBasicMaterial
+          color="#cfeaff"
+          transparent
+          opacity={0.35}
+          blending={AdditiveBlending}
+          depthWrite={false}
+          toneMapped={false}
+        />
       </mesh>
     </group>
   )

@@ -10,8 +10,8 @@ mod server;
 #[cfg(feature = "webtransport")]
 use crate::server::webtransport;
 use crate::server::{
-    conversation_worker, llm, llm_rate, llm_stats, memory_watch, narration_worker, routes,
-    think_worker, transport,
+    conversation_worker, llm, llm_rate, llm_stats, memory_watch, narration_worker, routes, think_worker,
+    transport,
 };
 
 use axum::http::HeaderValue;
@@ -26,8 +26,7 @@ use tower_http::compression::CompressionLayer;
 use tower_http::cors::{AllowOrigin, Any, CorsLayer};
 
 use llm::{
-    NARRATION_LLM_KEY,
-    NARRATION_LLM_MODEL, NARRATION_LLM_URL, THINK_LLM_KEY, THINK_LLM_MODEL, THINK_LLM_URL,
+    NARRATION_LLM_KEY, NARRATION_LLM_MODEL, NARRATION_LLM_URL, THINK_LLM_KEY, THINK_LLM_MODEL, THINK_LLM_URL,
 };
 use narration_worker::{narration_worker, NarrationReq};
 use sim::simulation::{Simulation, StoryEntry, ThinkTrigger};

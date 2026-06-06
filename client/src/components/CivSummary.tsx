@@ -52,13 +52,13 @@ export function CivSummary({ world }: Props) {
       <div className="section-title">CIVILIZATION</div>
       {world.cosmos && (
         <div className="civ-summary-row" style={{ marginBottom: 4 }}>
-          <span className="civ-summary-chip" title={`Year ${world.cosmos.year} · day ${world.cosmos.day_of_year}`}>
-            year {world.cosmos.year}
-          </span>
           <span
             className="civ-summary-chip"
-            title={`Moon: ${world.cosmos.moon_phase.replace(/_/g, ' ')}`}
+            title={`Year ${world.cosmos.year} · day ${world.cosmos.day_of_year}`}
           >
+            year {world.cosmos.year}
+          </span>
+          <span className="civ-summary-chip" title={`Moon: ${world.cosmos.moon_phase.replace(/_/g, ' ')}`}>
             {moonGlyphs[world.cosmos.moon_phase] ?? '🌑'} {world.cosmos.moon_phase.replace(/_/g, ' ')}
           </span>
         </div>
