@@ -50,7 +50,6 @@ win:
     - target: zip
       arch:
         - x64
-  publisherName: The Human Box
   icon: build/icon.ico
 
 nsis:
