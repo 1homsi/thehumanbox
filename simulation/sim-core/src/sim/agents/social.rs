@@ -452,13 +452,33 @@ pub fn groom(
     let (ox, oy) = (organisms[org_idx].x, organisms[org_idx].y);
     let org_lineage = organisms[org_idx].lineage_id.clone();
     let org_id = organisms[org_idx].id.clone();
+    let friend_ids: std::collections::HashSet<String> = organisms[org_idx].friends.keys().cloned().collect();
+    let high_trust: std::collections::HashSet<String> = organisms[org_idx]
+        .org_trust
+        .iter()
+        .filter(|(_, &v)| v >= 0.55)
+        .map(|(k, _)| k.clone())
+        .collect();
 
     let target_idx = organisms
         .iter()
         .enumerate()
-        .filter(|(i, o)| *i != org_idx && o.alive && o.lineage_id == org_lineage)
+        .filter(|(i, o)| {
+            if *i == org_idx || !o.alive {
+                return false;
+            }
+            let same_lineage = o.lineage_id == org_lineage;
+            let bonded = friend_ids.contains(&o.id) || high_trust.contains(&o.id);
+            let not_hostile = same_lineage || organisms[org_idx].attitude_toward(&o.lineage_id) >= -0.15;
+            (same_lineage || bonded) && not_hostile
+        })
         .filter(|(_, o)| (o.x - ox).abs() + (o.y - oy).abs() <= 3.0)
         .min_by(|(_, a), (_, b)| {
+            let a_needs_care = (a.infection > 0.05) as u8 + (a.grief_ticks > 0) as u8;
+            let b_needs_care = (b.infection > 0.05) as u8 + (b.grief_ticks > 0) as u8;
+            if a_needs_care != b_needs_care {
+                return b_needs_care.cmp(&a_needs_care);
+            }
             let da = (a.x - ox).abs() + (a.y - oy).abs();
             let db = (b.x - ox).abs() + (b.y - oy).abs();
             da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
@@ -472,6 +492,8 @@ pub fn groom(
 
     let target_name = organisms[ti].name.clone();
     let ti_id = organisms[ti].id.clone();
+    let target_lineage = organisms[ti].lineage_id.clone();
+    let cross_lineage = target_lineage != org_lineage;
 
     organisms[org_idx].infection = (organisms[org_idx].infection * 0.94).max(0.0);
     organisms[ti].infection = (organisms[ti].infection * 0.94).max(0.0);
@@ -503,6 +525,10 @@ pub fn groom(
     if organisms[ti].grief_ticks > 0 {
         organisms[ti].grief_ticks = organisms[ti].grief_ticks.saturating_sub(8);
     }
+    if cross_lineage {
+        organisms[org_idx].update_attitude(&target_lineage, 0.01);
+        organisms[ti].update_attitude(&org_lineage, 0.018);
+    }
 
     let org_name = organisms[org_idx].name.clone();
     organisms[org_idx].think(
@@ -510,16 +536,19 @@ pub fn groom(
         tick,
     );
 
-    if organisms[ti].infection > 0.15 {
-        push_event(
-            events,
-            tick,
-            "social",
-            &org_name,
-            &format!("grooming {} (healing touch)", target_name),
-        );
+    if organisms[ti].infection > 0.15 || cross_lineage {
+        let detail = if cross_lineage {
+            format!("grooming {} (trusted care)", target_name)
+        } else {
+            format!("grooming {} (healing touch)", target_name)
+        };
+        push_event(events, tick, "social", &org_name, &detail);
     }
-    0.012
+    if cross_lineage {
+        0.018
+    } else {
+        0.012
+    }
 }
 
 pub fn teach(
@@ -1036,5 +1065,49 @@ mod tests {
         assert!(trusting_food > skeptic_food);
         assert!(trusting_danger > skeptic_danger);
         assert!(skeptic_danger > skeptic_food);
+    }
+
+    #[test]
+    fn groom_cares_for_trusted_cross_lineage_friend() {
+        let mut organisms = vec![
+            test_org("caregiver", "Caregiver", "lineage-a", 10.0, 10.0),
+            test_org("friend", "Friend", "lineage-b", 11.0, 10.0),
+        ];
+        organisms[0].add_friend("friend", "Friend", 1);
+        organisms[0].org_trust.insert("friend".into(), 0.60);
+        organisms[0].lineage_attitudes.insert("lineage-b".into(), 0.10);
+        organisms[1].infection = 0.40;
+        organisms[1].grief_ticks = 20;
+
+        let mut events = std::collections::VecDeque::new();
+        let reward = groom(0, &mut organisms, 120, &mut events);
+
+        assert_eq!(reward, 0.018);
+        assert!(organisms[1].infection < 0.40);
+        assert_eq!(organisms[1].grief_ticks, 12);
+        assert!(organisms[1].org_trust.get("caregiver").copied().unwrap_or(0.0) >= 0.06);
+        assert!(organisms[0].attitude_toward("lineage-b") > 0.10);
+        assert!(organisms[1].attitude_toward("lineage-a") > 0.0);
+        assert!(events
+            .iter()
+            .any(|event| event.etype == "social" && event.detail.contains("trusted care")));
+    }
+
+    #[test]
+    fn groom_ignores_hostile_stranger_without_bond() {
+        let mut organisms = vec![
+            test_org("caregiver", "Caregiver", "lineage-a", 10.0, 10.0),
+            test_org("stranger", "Stranger", "lineage-b", 11.0, 10.0),
+        ];
+        organisms[0].lineage_attitudes.insert("lineage-b".into(), -0.50);
+        organisms[1].infection = 0.40;
+
+        let mut events = std::collections::VecDeque::new();
+        let reward = groom(0, &mut organisms, 120, &mut events);
+
+        assert_eq!(reward, 0.0);
+        assert_eq!(organisms[1].infection, 0.40);
+        assert!(events.is_empty());
+        assert_eq!(organisms[0].thought, "grooming (alone)");
     }
 }
