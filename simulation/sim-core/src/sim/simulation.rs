@@ -2613,7 +2613,16 @@ impl Simulation {
 
         let next_perception =
             self.organisms[idx].perceive(&self.grid, &self.organisms, night, animal_near, spatial);
-        self.organisms[idx].learn(&perception, action, reward, &next_perception);
+        let next_ix = self.organisms[idx].x as i32;
+        let next_iy = self.organisms[idx].y as i32;
+        let next_available = crate::sim::actions::available_actions(self, idx, next_ix, next_iy);
+        self.organisms[idx].learn_with_available_actions(
+            &perception,
+            action,
+            reward,
+            &next_perception,
+            Some(&next_available),
+        );
 
         if self.organisms[idx].energy > 0.7 && self.organisms[idx].hydration > 0.7 {
             let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);

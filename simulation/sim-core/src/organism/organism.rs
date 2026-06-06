@@ -16,6 +16,7 @@ pub trait QRowExt {
     fn get_q(&self, action: u16) -> f32;
     fn set_q(&mut self, action: u16, value: f32);
     fn max_q(&self) -> f32;
+    fn max_q_for_actions(&self, actions: &[usize]) -> f32;
 }
 
 impl QRowExt for QRow {
@@ -34,6 +35,17 @@ impl QRowExt for QRow {
     }
     fn max_q(&self) -> f32 {
         let m = self.iter().map(|&(_, v)| v).fold(f32::NEG_INFINITY, f32::max);
+        if m.is_finite() {
+            m
+        } else {
+            0.0
+        }
+    }
+    fn max_q_for_actions(&self, actions: &[usize]) -> f32 {
+        let m = actions
+            .iter()
+            .map(|&a| self.get_q(a as u16))
+            .fold(f32::NEG_INFINITY, f32::max);
         if m.is_finite() {
             m
         } else {
@@ -1649,6 +1661,17 @@ impl Organism {
     }
 
     pub fn learn(&mut self, perception: &str, action: usize, reward: f32, next_perception: &str) {
+        self.learn_with_available_actions(perception, action, reward, next_perception, None);
+    }
+
+    pub fn learn_with_available_actions(
+        &mut self,
+        perception: &str,
+        action: usize,
+        reward: f32,
+        next_perception: &str,
+        next_available: Option<&[usize]>,
+    ) {
         let alpha = (0.08 + self.traits.memory_strength.clamp(0.0, 1.0) * 0.14).clamp(0.08, 0.22);
         let gamma = (0.82 + self.traits.curiosity.clamp(0.0, 1.0) * 0.12).clamp(0.82, 0.94);
         let action_u16 = action as u16;
@@ -1656,7 +1679,10 @@ impl Organism {
         let best_next = self
             .q_table
             .get(next_perception)
-            .map(|r| r.max_q())
+            .map(|r| match next_available {
+                Some(actions) => r.max_q_for_actions(actions),
+                None => r.max_q(),
+            })
             .unwrap_or(0.0);
 
         let effective_reward = if reward < 0.0 {
@@ -2532,6 +2558,35 @@ mod tests {
             fearful_q < resilient_q,
             "fearful_q={fearful_q} resilient_q={resilient_q}"
         );
+    }
+
+    #[test]
+    fn learning_bootstrap_respects_available_next_actions() {
+        let mut unrestricted = learning_test_org(0.5, 0.5, 0.5, 0.5);
+        let mut restricted = learning_test_org(0.5, 0.5, 0.5, 0.5);
+        unrestricted
+            .q_table
+            .insert("next".into(), vec![(10, 8.0), (2, 1.0)]);
+        restricted
+            .q_table
+            .insert("next".into(), vec![(10, 8.0), (2, 1.0)]);
+
+        unrestricted.learn("state", 1, 0.0, "next");
+        restricted.learn_with_available_actions("state", 1, 0.0, "next", Some(&[2]));
+
+        let unrestricted_q = unrestricted.q_table.get("state").unwrap().get_q(1);
+        let restricted_q = restricted.q_table.get("state").unwrap().get_q(1);
+        assert!(
+            restricted_q < unrestricted_q,
+            "restricted_q={restricted_q} unrestricted_q={unrestricted_q}"
+        );
+    }
+
+    #[test]
+    fn q_row_available_action_max_treats_unseen_actions_as_zero() {
+        let row = vec![(3, -0.5), (4, -0.2)];
+
+        assert_eq!(row.max_q_for_actions(&[3, 99]), 0.0);
     }
 
     #[test]
