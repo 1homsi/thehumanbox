@@ -145,27 +145,69 @@ fn best_remembered_cell(
     cx: f32,
     cy: f32,
     danger: &std::collections::HashMap<(i32, i32), f32>,
+    urgency: f32,
 ) -> Option<(i32, i32)> {
-    let mut best_score = f32::MIN;
+    let mut best_score = 0.03f32;
     let mut best: Option<(i32, i32)> = None;
+    let urgency = urgency.clamp(0.0, 1.0);
+    let max_dist = 180.0 + urgency * 260.0;
+    let distance_weight = 0.85 - urgency * 0.45;
+    let danger_weight = 1.25 + urgency * 1.75;
     for (&cell, &strength) in memory.iter() {
         if strength < 0.15 {
             continue;
         }
-        let tx = (cell.0 * 10 + 5) as f32;
-        let ty = (cell.1 * 10 + 5) as f32;
+        let tx = cell.0 as f32;
+        let ty = cell.1 as f32;
         let dist = ((tx - cx) * (tx - cx) + (ty - cy) * (ty - cy)).sqrt();
-        if dist > 300.0 {
+        if dist > max_dist {
             continue;
         }
-        let danger_penalty = danger.get(&cell).copied().unwrap_or(0.0) * 2.0;
-        let score = strength - (dist / 300.0) * 0.5 - danger_penalty;
+        let local_danger = nearby_memory_strength(danger, cell, 1);
+        let score = strength * (1.0 + urgency * 0.35)
+            - (dist / max_dist) * distance_weight
+            - local_danger * danger_weight;
         if score > best_score {
             best_score = score;
-            best = Some((tx as i32, ty as i32));
+            best = Some(cell);
         }
     }
     best
+}
+
+fn nearby_memory_strength(
+    memory: &std::collections::HashMap<(i32, i32), f32>,
+    cell: (i32, i32),
+    radius: i32,
+) -> f32 {
+    let mut best = memory.get(&cell).copied().unwrap_or(0.0);
+    for dx in -radius..=radius {
+        for dy in -radius..=radius {
+            if dx == 0 && dy == 0 {
+                continue;
+            }
+            if let Some(v) = memory.get(&(cell.0 + dx, cell.1 + dy)) {
+                if *v > best {
+                    best = *v;
+                }
+            }
+        }
+    }
+    best
+}
+
+fn remembered_dir_char(
+    memory: &std::collections::HashMap<(i32, i32), f32>,
+    cx: f32,
+    cy: f32,
+    danger: &std::collections::HashMap<(i32, i32), f32>,
+    urgency: f32,
+) -> char {
+    if let Some((tx, ty)) = best_remembered_cell(memory, cx, cy, danger, urgency) {
+        dir_char(tx - cx as i32, ty - cy as i32)
+    } else {
+        'X'
+    }
 }
 
 fn dir_char(dx: i32, dy: i32) -> char {
@@ -184,6 +226,16 @@ fn dir_char(dx: i32, dy: i32) -> char {
         } else {
             'N'
         }
+    }
+}
+
+fn reserve_char(count: u8, stocked_at: u8) -> char {
+    if count == 0 {
+        '0'
+    } else if count >= stocked_at {
+        '2'
+    } else {
+        '1'
     }
 }
 
@@ -772,7 +824,8 @@ impl Organism {
         }
 
         if self.grief_ticks > 0 {
-            let extra = if self.discoveries.contains("herbalism") || self.discoveries.contains("ritual_dance") {
+            let extra = if self.discoveries.contains("herbalism") || self.discoveries.contains("ritual_dance")
+            {
                 1
             } else {
                 0
@@ -810,7 +863,8 @@ impl Organism {
             _ => {}
         }
 
-        let has_leather = self.discoveries.contains("leatherwork") || self.discoveries.contains("animal_hides")
+        let has_leather = self.discoveries.contains("leatherwork")
+            || self.discoveries.contains("animal_hides")
             || self.discoveries.contains("textiles");
         if night && !near_shelter {
             let add = if has_leather { 0.0009 } else { 0.0015 };
@@ -869,8 +923,7 @@ impl Organism {
         }
 
         if self.boredom > 0.4 || self.energy > 0.55 {
-            self.curiosity_drive =
-                (self.curiosity_drive + 0.0006 * self.traits.curiosity).min(1.0);
+            self.curiosity_drive = (self.curiosity_drive + 0.0006 * self.traits.curiosity).min(1.0);
         } else {
             self.curiosity_drive = (self.curiosity_drive * 0.999).max(0.0);
         }
@@ -913,21 +966,17 @@ impl Organism {
 
         if self.wander_target.is_none() {
             if self.energy < 0.4 && !self.food_memory.is_empty() {
-                if let Some(target) = best_remembered_cell(
-                    &self.food_memory,
-                    self.x,
-                    self.y,
-                    &self.danger_memory,
-                ) {
+                let urgency = (0.4 - self.energy) / 0.4;
+                if let Some(target) =
+                    best_remembered_cell(&self.food_memory, self.x, self.y, &self.danger_memory, urgency)
+                {
                     self.wander_target = Some(target);
                 }
             } else if self.hydration < 0.4 && !self.water_memory.is_empty() {
-                if let Some(target) = best_remembered_cell(
-                    &self.water_memory,
-                    self.x,
-                    self.y,
-                    &self.danger_memory,
-                ) {
+                let urgency = (0.4 - self.hydration) / 0.4;
+                if let Some(target) =
+                    best_remembered_cell(&self.water_memory, self.x, self.y, &self.danger_memory, urgency)
+                {
                     self.wander_target = Some(target);
                 }
             }
@@ -1026,8 +1075,8 @@ impl Organism {
 
     pub fn decay_memory(&mut self, tick: u64) {
         self.vocabulary.decay(tick, 5000);
-        let preserves_food = self.discoveries.contains("food_preservation")
-            || self.discoveries.contains("salt_harvesting");
+        let preserves_food =
+            self.discoveries.contains("food_preservation") || self.discoveries.contains("salt_harvesting");
         let cartography = self.discoveries.contains("cartography");
         let star_charts = self.discoveries.contains("star_charts");
         let food_decay = if preserves_food { 0.998 } else { 0.995 };
@@ -1082,15 +1131,29 @@ impl Organism {
     }
 
     pub fn best_remembered(mem: &HashMap<(i32, i32), f32>, ox: f32, oy: f32) -> Option<(i32, i32)> {
+        Self::best_remembered_with_danger(mem, ox, oy, &HashMap::new(), 0.5)
+    }
+
+    pub fn best_remembered_with_danger(
+        mem: &HashMap<(i32, i32), f32>,
+        ox: f32,
+        oy: f32,
+        danger: &HashMap<(i32, i32), f32>,
+        urgency: f32,
+    ) -> Option<(i32, i32)> {
         let (ix, iy) = (ox as i32, oy as i32);
         let mut best_score = 0.03f32;
         let mut best_loc = None;
+        let urgency = urgency.clamp(0.0, 1.0);
+        let distance_weight = 0.03 + (1.0 - urgency) * 0.035;
+        let danger_weight = 1.2 + urgency * 1.8;
         for (&(mx, my), &val) in mem {
             let dist = (mx - ix).abs() + (my - iy).abs();
             if dist == 0 {
                 continue;
             }
-            let score = val / (1.0 + dist as f32 * 0.03);
+            let danger_penalty = nearby_memory_strength(danger, (mx, my), 1) * danger_weight;
+            let score = val * (1.0 + urgency * 0.35) / (1.0 + dist as f32 * distance_weight) - danger_penalty;
             if score > best_score {
                 best_score = score;
                 best_loc = Some((mx, my));
@@ -1257,6 +1320,20 @@ impl Organism {
         } else {
             dir_char(water_dx, water_dy)
         };
+        let remembered_food_dir = remembered_dir_char(
+            &self.food_memory,
+            self.x,
+            self.y,
+            &self.danger_memory,
+            hunger as f32 / 2.0,
+        );
+        let remembered_water_dir = remembered_dir_char(
+            &self.water_memory,
+            self.x,
+            self.y,
+            &self.danger_memory,
+            thirst as f32 / 2.0,
+        );
 
         // Spatial-bucketed neighbour scan instead of walking every
         // organism in the world. Radius 5 in tile space; the index
@@ -1360,6 +1437,8 @@ impl Organism {
             (true, _) => 'K',
             _ => '0',
         };
+        let food_reserve_char = reserve_char(self.inv_food, 3);
+        let water_reserve_char = reserve_char(self.inv_water, 4);
 
         let shelter_char = {
             let mut s = false;
@@ -1396,11 +1475,13 @@ impl Organism {
             '.'
         };
 
-        format!("{hunger}{thirst}{food_dir}{water_dir}{fire_near_c}{org_near}{food_tr}{water_tr}{kin_near}{att_char}{inf_level}{dnear}{warmth}{carry}{shelter}{animal}{hazard}",
+        format!("{hunger}{thirst}{food_dir}{water_dir}{mem_food}{mem_water}{fire_near_c}{org_near}{food_tr}{water_tr}{kin_near}{att_char}{inf_level}{dnear}{warmth}{carry}{food_reserve}{water_reserve}{shelter}{animal}{hazard}",
             hunger = hunger,
             thirst = thirst,
             food_dir = food_dir,
             water_dir = water_dir,
+            mem_food = remembered_food_dir,
+            mem_water = remembered_water_dir,
             fire_near_c = if fire_near { 1 } else { 0 },
             org_near = org_near,
             food_tr = food_tr,
@@ -1411,6 +1492,8 @@ impl Organism {
             dnear = if danger_near { 'D' } else { 'S' },
             warmth = warmth_char,
             carry  = carry_char,
+            food_reserve = food_reserve_char,
+            water_reserve = water_reserve_char,
             shelter = shelter_char,
             animal  = animal_char,
             hazard  = hazard_char,
@@ -1458,21 +1541,34 @@ impl Organism {
         let dy = ty - iy;
         let target_is_water = grid.get(tx, ty) == Tile::Water;
         let mut best_action = 0;
-        let mut best_score = i32::MIN;
+        let mut best_score = f32::NEG_INFINITY;
         for (i, (adx, ady)) in DIRECTIONS.iter().enumerate() {
-            let mut score = adx * dx + ady * dy;
-            let t = grid.get(ix + adx, iy + ady);
-            if matches!(t, Tile::Rock | Tile::Void) {
-                score = i32::MIN;
+            let nx = ix + adx;
+            let ny = iy + ady;
+            let progress = *adx * dx + *ady * dy;
+            let mut score = progress as f32;
+            let t = grid.get(nx, ny);
+            if !t.walkable() {
+                score = f32::NEG_INFINITY;
             }
             if t == Tile::Water {
-                let depth = grid.depth_at(ix + adx, iy + ady);
+                let depth = grid.depth_at(nx, ny);
                 if target_is_water {
-                    score -= (depth * 8.0).round() as i32;
+                    score -= depth * 8.0;
                 } else if depth > 0.18 {
-                    score -= 10_000;
+                    score -= 10_000.0;
                 } else {
-                    score -= 6;
+                    score -= 6.0;
+                }
+            }
+            let hazard = grid.hazard_at(nx, ny);
+            if hazard > 0.0 {
+                let cautiousness = 0.7 + self.traits.fear * 0.8 + (1.0 - self.health).max(0.0) * 0.5;
+                let hazard_penalty = hazard * 14.0 * cautiousness;
+                if progress <= 0 {
+                    score -= hazard_penalty;
+                } else {
+                    score -= hazard_penalty.min(progress as f32 - 0.25);
                 }
             }
             if score > best_score {
@@ -1553,8 +1649,8 @@ impl Organism {
     }
 
     pub fn learn(&mut self, perception: &str, action: usize, reward: f32, next_perception: &str) {
-        let alpha = 0.15f32;
-        let gamma = 0.9f32;
+        let alpha = (0.08 + self.traits.memory_strength.clamp(0.0, 1.0) * 0.14).clamp(0.08, 0.22);
+        let gamma = (0.82 + self.traits.curiosity.clamp(0.0, 1.0) * 0.12).clamp(0.82, 0.94);
         let action_u16 = action as u16;
 
         let best_next = self
@@ -1564,7 +1660,9 @@ impl Organism {
             .unwrap_or(0.0);
 
         let effective_reward = if reward < 0.0 {
-            reward * 1.4
+            let fear_weight = 1.0 + self.traits.fear.clamp(0.0, 1.0) * 0.45;
+            let resilience_softening = 1.0 - self.traits.resilience.clamp(0.0, 1.0) * 0.20;
+            reward * fear_weight * resilience_softening
         } else if reward < 0.01 {
             reward - 0.01
         } else {
@@ -2369,6 +2467,266 @@ mod tests {
         assert!(!org.q_table.is_empty());
     }
 
+    fn learning_test_org(memory_strength: f32, curiosity: f32, fear: f32, resilience: f32) -> Organism {
+        let mut org = Organism::new(
+            "id".into(),
+            "Learner".into(),
+            0.0,
+            0.0,
+            0,
+            "".into(),
+            "lin".into(),
+            5000,
+            Traits {
+                memory_strength,
+                curiosity,
+                fear,
+                resilience,
+                ..Traits::default()
+            },
+        );
+        org.q_table.insert("next".into(), vec![(2, 1.0)]);
+        org
+    }
+
+    #[test]
+    fn learning_rate_scales_with_memory_strength() {
+        let mut slow = learning_test_org(0.1, 0.5, 0.5, 0.5);
+        let mut fast = learning_test_org(0.9, 0.5, 0.5, 0.5);
+
+        slow.learn("state", 1, 0.2, "next");
+        fast.learn("state", 1, 0.2, "next");
+
+        let slow_q = slow.q_table.get("state").unwrap().get_q(1);
+        let fast_q = fast.q_table.get("state").unwrap().get_q(1);
+        assert!(fast_q > slow_q, "fast_q={fast_q} slow_q={slow_q}");
+    }
+
+    #[test]
+    fn curious_organisms_value_future_reward_more() {
+        let mut cautious = learning_test_org(0.5, 0.1, 0.5, 0.5);
+        let mut curious = learning_test_org(0.5, 0.9, 0.5, 0.5);
+
+        cautious.learn("state", 1, 0.0, "next");
+        curious.learn("state", 1, 0.0, "next");
+
+        let cautious_q = cautious.q_table.get("state").unwrap().get_q(1);
+        let curious_q = curious.q_table.get("state").unwrap().get_q(1);
+        assert!(
+            curious_q > cautious_q,
+            "curious_q={curious_q} cautious_q={cautious_q}"
+        );
+    }
+
+    #[test]
+    fn fearful_low_resilience_organisms_learn_stronger_negative_signal() {
+        let mut resilient = learning_test_org(0.5, 0.5, 0.1, 0.9);
+        let mut fearful = learning_test_org(0.5, 0.5, 0.9, 0.1);
+
+        resilient.learn("state", 1, -0.2, "missing");
+        fearful.learn("state", 1, -0.2, "missing");
+
+        let resilient_q = resilient.q_table.get("state").unwrap().get_q(1);
+        let fearful_q = fearful.q_table.get("state").unwrap().get_q(1);
+        assert!(
+            fearful_q < resilient_q,
+            "fearful_q={fearful_q} resilient_q={resilient_q}"
+        );
+    }
+
+    #[test]
+    fn remembered_resource_selection_avoids_known_danger() {
+        let mut water = HashMap::new();
+        water.insert((80, 5), 1.0);
+        water.insert((40, 5), 0.55);
+        let mut danger = HashMap::new();
+        danger.insert((80, 5), 0.9);
+
+        let target = Organism::best_remembered_with_danger(&water, 5.0, 5.0, &danger, 0.8);
+
+        assert_eq!(target, Some((40, 5)));
+    }
+
+    #[test]
+    fn remembered_resource_selection_still_uses_strong_safe_memory() {
+        let mut food = HashMap::new();
+        food.insert((80, 5), 1.0);
+        food.insert((40, 5), 0.55);
+        let danger = HashMap::new();
+
+        let target = Organism::best_remembered_with_danger(&food, 5.0, 5.0, &danger, 0.8);
+
+        assert_eq!(target, Some((80, 5)));
+    }
+
+    #[test]
+    fn perception_encodes_remembered_resource_direction() {
+        let mut rng = StdRng::seed_from_u64(0);
+        let traits = Traits::random(&mut rng);
+        let grid = WorldGrid::new(3);
+        let spatial = crate::sim::spatial::SpatialIndex::build(&[], 10);
+        let mut org = Organism::new(
+            "id".into(),
+            "Rememberer".into(),
+            50.0,
+            50.0,
+            0,
+            "".into(),
+            "lin".into(),
+            5000,
+            traits,
+        );
+        org.energy = 0.30;
+        org.food_memory.insert((80, 50), 0.8);
+
+        let perception = org.perceive(&grid, &[], false, false, &spatial);
+
+        assert_eq!(perception.chars().nth(2), Some('X'), "no visible food");
+        assert_eq!(perception.chars().nth(4), Some('E'), "remembered food is east");
+    }
+
+    #[test]
+    fn perception_ignores_dangerous_remembered_resource() {
+        let mut rng = StdRng::seed_from_u64(0);
+        let traits = Traits::random(&mut rng);
+        let grid = WorldGrid::new(4);
+        let spatial = crate::sim::spatial::SpatialIndex::build(&[], 10);
+        let mut org = Organism::new(
+            "id".into(),
+            "Cautious".into(),
+            50.0,
+            50.0,
+            0,
+            "".into(),
+            "lin".into(),
+            5000,
+            traits,
+        );
+        org.energy = 0.30;
+        org.food_memory.insert((80, 50), 0.9);
+        org.danger_memory.insert((80, 50), 0.9);
+
+        assert_eq!(
+            Organism::best_remembered_with_danger(&org.food_memory, org.x, org.y, &org.danger_memory, 0.5),
+            None
+        );
+
+        let perception = org.perceive(&grid, &[], false, false, &spatial);
+
+        assert_eq!(perception.chars().nth(4), Some('X'), "{perception}");
+    }
+
+    #[test]
+    fn perception_encodes_carried_food_and_water_reserves() {
+        let mut rng = StdRng::seed_from_u64(0);
+        let traits = Traits::random(&mut rng);
+        let grid = WorldGrid::new(5);
+        let spatial = crate::sim::spatial::SpatialIndex::build(&[], 10);
+        let mut org = Organism::new(
+            "id".into(),
+            "Prepared".into(),
+            50.0,
+            50.0,
+            0,
+            "".into(),
+            "lin".into(),
+            5000,
+            traits,
+        );
+        org.inv_food = 3;
+        org.inv_water = 1;
+
+        let perception = org.perceive(&grid, &[], false, false, &spatial);
+
+        assert_eq!(perception.chars().nth(16), Some('2'), "stocked food reserve");
+        assert_eq!(perception.chars().nth(17), Some('1'), "light water reserve");
+    }
+
+    #[test]
+    fn hungry_organism_filters_learned_choice_to_survival_actions() {
+        let mut rng = StdRng::seed_from_u64(0);
+        let traits = Traits::random(&mut rng);
+        let mut grid = WorldGrid::new(4);
+        for x in 40..=60 {
+            for y in 40..=60 {
+                grid.set(x, y, Tile::Sand);
+            }
+        }
+        let mut org = Organism::new(
+            "id".into(),
+            "Hungry".into(),
+            50.0,
+            50.0,
+            0,
+            "".into(),
+            "lin".into(),
+            5000,
+            traits,
+        );
+        org.energy = 0.32;
+        org.hydration = 0.80;
+        org.q_table
+            .insert("state".into(), vec![(3000, 9.0), (1140, 0.4), (0, 0.2)]);
+
+        let (action, _) = org.choose_action(
+            &grid,
+            100,
+            0.0,
+            &[],
+            false,
+            0,
+            &mut rng,
+            false,
+            "state",
+            &[0, 1140, 3000],
+        );
+
+        assert_eq!(action, 1140);
+    }
+
+    #[test]
+    fn injured_organism_filters_learned_choice_to_recovery_actions() {
+        let mut rng = StdRng::seed_from_u64(0);
+        let traits = Traits::random(&mut rng);
+        let mut grid = WorldGrid::new(4);
+        for x in 40..=60 {
+            for y in 40..=60 {
+                grid.set(x, y, Tile::Grass);
+            }
+        }
+        let mut org = Organism::new(
+            "id".into(),
+            "Injured".into(),
+            50.0,
+            50.0,
+            0,
+            "".into(),
+            "lin".into(),
+            5000,
+            traits,
+        );
+        org.energy = 0.80;
+        org.hydration = 0.80;
+        org.health = 0.42;
+        org.q_table
+            .insert("state".into(), vec![(3000, 9.0), (17, 0.4), (0, 0.2)]);
+
+        let (action, _) = org.choose_action(
+            &grid,
+            100,
+            0.0,
+            &[],
+            false,
+            0,
+            &mut rng,
+            false,
+            "state",
+            &[0, 17, 3000],
+        );
+
+        assert_eq!(action, 17);
+    }
+
     #[test]
     fn hydrated_organisms_leave_water_instead_of_lingering() {
         let mut rng = StdRng::seed_from_u64(0);
@@ -2421,5 +2779,131 @@ mod tests {
 
         let action = org.toward((20, 10), &grid);
         assert_ne!(DIRECTIONS[action], (1, 0));
+    }
+
+    #[test]
+    fn movement_toward_target_prefers_safer_nearby_step() {
+        let mut rng = StdRng::seed_from_u64(0);
+        let traits = Traits::random(&mut rng);
+        let mut grid = WorldGrid::new(2);
+        for x in 8..=12 {
+            for y in 8..=12 {
+                grid.set(x, y, Tile::Grass);
+            }
+        }
+        let east_idx = WorldGrid::idx(11, 10);
+        grid.hazard[east_idx] = 0.95;
+
+        let org = Organism::new(
+            "id".into(),
+            "CautiousWalker".into(),
+            10.0,
+            10.0,
+            0,
+            "".into(),
+            "lin".into(),
+            5000,
+            traits,
+        );
+
+        let action = org.toward((20, 10), &grid);
+
+        assert_ne!(DIRECTIONS[action], (1, 0));
+        assert!(matches!(DIRECTIONS[action], (1, -1) | (1, 1)));
+    }
+
+    #[test]
+    fn movement_toward_target_uses_hazardous_step_when_safer_routes_blocked() {
+        let mut rng = StdRng::seed_from_u64(0);
+        let traits = Traits::random(&mut rng);
+        let mut grid = WorldGrid::new(2);
+        for x in 8..=12 {
+            for y in 8..=12 {
+                grid.set(x, y, Tile::Grass);
+            }
+        }
+        grid.hazard[WorldGrid::idx(11, 10)] = 0.95;
+        grid.set(11, 9, Tile::Rock);
+        grid.set(11, 11, Tile::Rock);
+
+        let org = Organism::new(
+            "id".into(),
+            "TrappedWalker".into(),
+            10.0,
+            10.0,
+            0,
+            "".into(),
+            "lin".into(),
+            5000,
+            traits,
+        );
+
+        let action = org.toward((20, 10), &grid);
+
+        assert_eq!(DIRECTIONS[action], (1, 0));
+    }
+
+    #[test]
+    fn movement_toward_shelter_does_not_step_into_hut_tile() {
+        let mut rng = StdRng::seed_from_u64(0);
+        let traits = Traits::random(&mut rng);
+        let mut grid = WorldGrid::new(2);
+        for x in 8..=12 {
+            for y in 8..=12 {
+                grid.set(x, y, Tile::Grass);
+            }
+        }
+        grid.set(11, 10, Tile::Hut);
+
+        let org = Organism::new(
+            "id".into(),
+            "ShelterSeeker".into(),
+            10.0,
+            10.0,
+            0,
+            "".into(),
+            "lin".into(),
+            5000,
+            traits,
+        );
+
+        let action = org.toward((11, 10), &grid);
+
+        assert_ne!(DIRECTIONS[action], (1, 0));
+        assert!(grid
+            .get(10 + DIRECTIONS[action].0, 10 + DIRECTIONS[action].1)
+            .walkable());
+    }
+
+    #[test]
+    fn movement_toward_target_does_not_step_into_mineral_tile() {
+        let mut rng = StdRng::seed_from_u64(0);
+        let traits = Traits::random(&mut rng);
+        let mut grid = WorldGrid::new(2);
+        for x in 8..=12 {
+            for y in 8..=12 {
+                grid.set(x, y, Tile::Grass);
+            }
+        }
+        grid.set(11, 10, Tile::Mineral);
+
+        let org = Organism::new(
+            "id".into(),
+            "Miner".into(),
+            10.0,
+            10.0,
+            0,
+            "".into(),
+            "lin".into(),
+            5000,
+            traits,
+        );
+
+        let action = org.toward((20, 10), &grid);
+
+        assert_ne!(DIRECTIONS[action], (1, 0));
+        assert!(grid
+            .get(10 + DIRECTIONS[action].0, 10 + DIRECTIONS[action].1)
+            .walkable());
     }
 }

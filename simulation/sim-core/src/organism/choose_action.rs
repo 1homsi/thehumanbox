@@ -7,6 +7,64 @@ use crate::world::{
 
 use super::organism::{Organism, QRowExt, N_ACTIONS};
 
+fn survival_relevant_action(
+    action: usize,
+    needs_food: bool,
+    needs_water: bool,
+    needs_recovery: bool,
+) -> bool {
+    match action {
+        0..=7 => true,
+        8 => needs_food,
+        9 => needs_water,
+        10 | 11 | 17 | 18 | 19 => true,
+        26..=38 => needs_food || needs_water,
+        107..=116 | 221..=225 => needs_recovery,
+        141..=150 | 336..=355 | 1140..=1189 => needs_food,
+        246..=260 | 1320..=1369 => needs_recovery,
+        2160..=2212 => true,
+        _ => false,
+    }
+}
+
+fn context_actions(
+    available: &[usize],
+    energy: f32,
+    hydration: f32,
+    health: f32,
+    sleep_debt: f32,
+) -> Option<Vec<usize>> {
+    let needs_food = energy < 0.34;
+    let needs_water = hydration < 0.34;
+    let needs_recovery = health < 0.48 || sleep_debt > 0.48;
+    if !needs_food && !needs_water && !needs_recovery {
+        return None;
+    }
+
+    let mut filtered: Vec<usize> = available
+        .iter()
+        .copied()
+        .filter(|&action| survival_relevant_action(action, needs_food, needs_water, needs_recovery))
+        .collect();
+
+    if filtered.is_empty() {
+        filtered.extend(0..=7);
+        if needs_food {
+            filtered.push(8);
+            filtered.push(10);
+        }
+        if needs_water {
+            filtered.push(9);
+            filtered.push(18);
+        }
+        if needs_recovery {
+            filtered.push(17);
+        }
+    }
+
+    Some(filtered)
+}
+
 impl Organism {
     pub fn choose_action(
         &self,
@@ -110,7 +168,14 @@ impl Organism {
                 set_thought!("moving to water");
                 return (self.toward(v, grid), thought);
             }
-            if let Some(t) = Self::best_remembered(&self.water_memory, self.x, self.y) {
+            let urgency = (0.38 - self.hydration) / 0.38;
+            if let Some(t) = Self::best_remembered_with_danger(
+                &self.water_memory,
+                self.x,
+                self.y,
+                &self.danger_memory,
+                urgency,
+            ) {
                 set_thought!("moving to known water");
                 return (self.toward(t, grid), thought);
             }
@@ -144,7 +209,14 @@ impl Organism {
                 set_thought!("moving to food");
                 return (self.toward(v, grid), thought);
             }
-            if let Some(t) = Self::best_remembered(&self.food_memory, self.x, self.y) {
+            let urgency = (0.42 - self.energy) / 0.42;
+            if let Some(t) = Self::best_remembered_with_danger(
+                &self.food_memory,
+                self.x,
+                self.y,
+                &self.danger_memory,
+                urgency,
+            ) {
                 set_thought!("moving to known food");
                 return (self.toward(t, grid), thought);
             }
@@ -346,7 +418,14 @@ impl Organism {
                         set_thought!("pursuing food");
                         return (self.toward(v, grid), thought);
                     }
-                    if let Some(t) = Self::best_remembered(&self.food_memory, self.x, self.y) {
+                    let urgency = (0.85 - self.energy) / 0.85;
+                    if let Some(t) = Self::best_remembered_with_danger(
+                        &self.food_memory,
+                        self.x,
+                        self.y,
+                        &self.danger_memory,
+                        urgency,
+                    ) {
                         set_thought!("heading to known food");
                         return (self.toward(t, grid), thought);
                     }
@@ -356,7 +435,14 @@ impl Organism {
                         set_thought!("pursuing water");
                         return (self.toward(v, grid), thought);
                     }
-                    if let Some(t) = Self::best_remembered(&self.water_memory, self.x, self.y) {
+                    let urgency = (0.85 - self.hydration) / 0.85;
+                    if let Some(t) = Self::best_remembered_with_danger(
+                        &self.water_memory,
+                        self.x,
+                        self.y,
+                        &self.danger_memory,
+                        urgency,
+                    ) {
                         set_thought!("heading to known water");
                         return (self.toward(t, grid), thought);
                     }
@@ -917,6 +1003,15 @@ impl Organism {
             }
         }
 
+        let context_pool = context_actions(
+            available,
+            self.energy,
+            self.hydration,
+            self.health,
+            self.sleep_debt,
+        );
+        let decision_pool = context_pool.as_deref().unwrap_or(available);
+
         let age_decay = 1.0 / (1.0 + self.age as f32 / 2000.0);
         let eff_eps = (epsilon * (0.5 + self.traits.curiosity) * age_decay)
             .max(0.02)
@@ -964,7 +1059,7 @@ impl Organism {
             }
             let on_food = tile == Tile::Food;
             let on_water = tile == Tile::Water;
-            let filtered: Vec<usize> = available
+            let filtered: Vec<usize> = decision_pool
                 .iter()
                 .copied()
                 .filter(|&a| match a {
@@ -975,7 +1070,11 @@ impl Organism {
                     _ => true,
                 })
                 .collect();
-            let pool: &[usize] = if filtered.is_empty() { available } else { &filtered };
+            let pool: &[usize] = if filtered.is_empty() {
+                decision_pool
+            } else {
+                &filtered
+            };
             let pick = if pool.is_empty() {
                 rng.random_range(0..N_ACTIONS)
             } else {
@@ -1009,7 +1108,7 @@ impl Organism {
                 })
                 .unwrap_or_else(|| seed_q(a))
         };
-        let best_avail = available.iter().copied().max_by(|&a, &b| {
+        let best_avail = decision_pool.iter().copied().max_by(|&a, &b| {
             lookup(a)
                 .partial_cmp(&lookup(b))
                 .unwrap_or(std::cmp::Ordering::Equal)
@@ -1023,7 +1122,11 @@ impl Organism {
         if let Some(best_idx) = best_avail {
             return (best_idx, thought);
         }
-        let pool = if available.is_empty() { &[][..] } else { available };
+        let pool = if decision_pool.is_empty() {
+            &[][..]
+        } else {
+            decision_pool
+        };
         let pick = if pool.is_empty() {
             rng.random_range(0..N_ACTIONS)
         } else {

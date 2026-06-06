@@ -156,6 +156,16 @@ impl Simulation {
         ) {
             return false;
         }
+        if self.grid.hazard_at(x, y) >= 0.45 {
+            return false;
+        }
+        let nearby_hazards = (-2i32..=2)
+            .flat_map(|dx| (-2i32..=2).map(move |dy| (dx, dy)))
+            .filter(|(dx, dy)| self.grid.hazard_at(x + dx, y + dy) >= 0.65)
+            .count();
+        if nearby_hazards >= 3 {
+            return false;
+        }
         let nearby_water = (-2i32..=2)
             .flat_map(|dx| (-2i32..=2).map(move |dy| (dx, dy)))
             .filter(|(dx, dy)| {

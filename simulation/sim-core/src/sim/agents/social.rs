@@ -3,6 +3,7 @@ use crate::sim::simulation::{Event, History};
 use crate::sim::world_events::push_event;
 use crate::world::tiles::Tile;
 use rand::Rng;
+use std::collections::HashMap;
 
 pub fn signal_food(
     org_idx: usize,
@@ -769,48 +770,150 @@ pub fn share_food(
     0.025
 }
 
+fn ranked_memory_share(
+    memory: &HashMap<(i32, i32), f32>,
+    origin: (i32, i32),
+    min_strength: f32,
+    max_distance: i32,
+    limit: usize,
+) -> Vec<((i32, i32), f32)> {
+    let mut items: Vec<((i32, i32), f32, f32)> = memory
+        .iter()
+        .filter_map(|(&(x, y), &strength)| {
+            if strength < min_strength {
+                return None;
+            }
+            let dist = (x - origin.0).abs() + (y - origin.1).abs();
+            if dist > max_distance {
+                return None;
+            }
+            let score = strength - (dist as f32 / max_distance as f32) * 0.18;
+            Some(((x, y), strength, score))
+        })
+        .collect();
+    items.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
+    items
+        .into_iter()
+        .take(limit)
+        .map(|(pos, strength, _)| (pos, strength))
+        .collect()
+}
+
+fn recipient_source_trust_factor(recipient: &Organism, speaker_id: &str, same_lineage: bool) -> f32 {
+    let trust = recipient.org_trust.get(speaker_id).copied().unwrap_or(0.0);
+    if trust < -0.35 {
+        if same_lineage {
+            0.45
+        } else {
+            0.25
+        }
+    } else if trust < -0.10 {
+        0.60
+    } else if trust > 0.50 {
+        1.20
+    } else if trust > 0.20 {
+        1.08
+    } else {
+        0.85
+    }
+}
+
 pub fn social_knowledge_share(org_idx: usize, organisms: &mut Vec<Organism>, tick: u64, rng: &mut impl Rng) {
     let org_lineage = organisms[org_idx].lineage_id.clone();
     let org_id = organisms[org_idx].id.clone();
     let (ox, oy) = (organisms[org_idx].x as i32, organisms[org_idx].y as i32);
-
-    let kin_indices: Vec<usize> = organisms
-        .iter()
-        .enumerate()
-        .filter(|(i, o)| *i != org_idx && o.alive && o.lineage_id == org_lineage)
-        .filter(|(_, o)| (o.x - organisms[org_idx].x).abs() + (o.y - organisms[org_idx].y).abs() <= 4.0)
-        .map(|(i, _)| i)
-        .collect();
-
-    if kin_indices.is_empty() {
+    let food_to_share = ranked_memory_share(&organisms[org_idx].food_memory, (ox, oy), 0.45, 70, 4);
+    let water_to_share = ranked_memory_share(&organisms[org_idx].water_memory, (ox, oy), 0.45, 70, 3);
+    let danger_to_share = ranked_memory_share(&organisms[org_idx].danger_memory, (ox, oy), 0.35, 90, 4);
+    if food_to_share.is_empty() && water_to_share.is_empty() && danger_to_share.is_empty() {
         return;
     }
 
-    let food_to_share: Vec<((i32, i32), f32)> = organisms[org_idx]
-        .food_memory
+    let friend_ids: std::collections::HashSet<String> = organisms[org_idx].friends.keys().cloned().collect();
+    let high_trust: std::collections::HashSet<String> = organisms[org_idx]
+        .org_trust
         .iter()
-        .filter(|(&(x, y), &v)| v > 0.5 && (x - ox).abs() + (y - oy).abs() <= 20)
-        .map(|(&k, &v)| (k, v))
+        .filter(|(_, &v)| v >= 0.50)
+        .map(|(k, _)| k.clone())
         .collect();
-    let water_to_share: Vec<((i32, i32), f32)> = organisms[org_idx]
-        .water_memory
+
+    let share_targets: Vec<(usize, f32)> = organisms
         .iter()
-        .filter(|(&(x, y), &v)| v > 0.5 && (x - ox).abs() + (y - oy).abs() <= 20)
-        .map(|(&k, &v)| (k, v))
+        .enumerate()
+        .filter(|(_, o)| (o.x - organisms[org_idx].x).abs() + (o.y - organisms[org_idx].y).abs() <= 4.0)
+        .filter_map(|(i, o)| {
+            if i == org_idx || !o.alive {
+                return None;
+            }
+            let same_lineage = o.lineage_id == org_lineage;
+            let named_friend = friend_ids.contains(&o.id);
+            let trusted = high_trust.contains(&o.id);
+            let attitude = organisms[org_idx].attitude_toward(&o.lineage_id);
+            if !same_lineage && !named_friend && !trusted && attitude < 0.35 {
+                return None;
+            }
+            if !same_lineage && attitude < -0.15 {
+                return None;
+            }
+            let trust = organisms[org_idx].org_trust.get(&o.id).copied().unwrap_or(0.0);
+            let strength = if same_lineage {
+                0.11 + organisms[org_idx].traits.social_tendency * 0.03
+            } else if named_friend {
+                0.08 + trust.max(0.0) * 0.04
+            } else if trusted {
+                0.055 + trust.max(0.0) * 0.03
+            } else {
+                0.035 + attitude.max(0.0) * 0.025
+            };
+            Some((i, strength.min(0.15)))
+        })
         .collect();
-    let mem_trait = organisms[org_idx].traits.memory_strength;
+
+    if share_targets.is_empty() {
+        return;
+    }
 
     let my_vocab = organisms[org_idx].vocabulary.clone();
 
-    for ki in &kin_indices {
+    let mut shared_any = false;
+    for &(ki, relationship_strength) in &share_targets {
+        let recipient_memory = organisms[ki].traits.memory_strength;
+        let same_lineage = organisms[ki].lineage_id == org_lineage;
+        let source_factor = recipient_source_trust_factor(&organisms[ki], &org_id, same_lineage);
+        let resource_strength = relationship_strength * source_factor;
+        let danger_strength = relationship_strength * source_factor.max(0.60);
         for &((x, y), v) in &food_to_share {
-            Organism::remember(&mut organisms[*ki].food_memory, x, y, v * 0.03, mem_trait);
+            Organism::remember(
+                &mut organisms[ki].food_memory,
+                x,
+                y,
+                v * resource_strength,
+                recipient_memory,
+            );
+            shared_any = true;
         }
         for &((x, y), v) in &water_to_share {
-            Organism::remember(&mut organisms[*ki].water_memory, x, y, v * 0.03, mem_trait);
+            Organism::remember(
+                &mut organisms[ki].water_memory,
+                x,
+                y,
+                v * resource_strength,
+                recipient_memory,
+            );
+            shared_any = true;
         }
-        let ki_id = organisms[*ki].id.clone();
-        let t = organisms[*ki].org_trust.entry(org_id.clone()).or_insert(0.0);
+        for &((x, y), v) in &danger_to_share {
+            Organism::remember(
+                &mut organisms[ki].danger_memory,
+                x,
+                y,
+                v * danger_strength * 1.25,
+                recipient_memory,
+            );
+            shared_any = true;
+        }
+        let ki_id = organisms[ki].id.clone();
+        let t = organisms[ki].org_trust.entry(org_id.clone()).or_insert(0.0);
         *t = (*t + 0.008).min(1.0);
         let ki_trust_after = *t;
         let o_t = organisms[org_idx].org_trust.entry(ki_id.clone()).or_insert(0.0);
@@ -822,24 +925,116 @@ pub fn social_knowledge_share(org_idx: usize, organisms: &mut Vec<Organism>, tic
         if ki_trust_after >= FRIEND_THRESHOLD {
             let on = organisms[org_idx].name.clone();
             let oi = org_id.clone();
-            organisms[*ki].add_friend(&oi, &on, tick);
+            organisms[ki].add_friend(&oi, &on, tick);
         }
         if my_trust_after >= FRIEND_THRESHOLD {
-            let ki_name = organisms[*ki].name.clone();
+            let ki_name = organisms[ki].name.clone();
             organisms[org_idx].add_friend(&ki_id, &ki_name, tick);
         }
     }
 
-    let kin_snapshots: Vec<std::collections::HashMap<String, String>> = kin_indices
+    if shared_any {
+        organisms[org_idx].think("sharing what I know", tick);
+    }
+
+    let peer_snapshots: Vec<std::collections::HashMap<String, String>> = share_targets
         .iter()
-        .map(|&ki| organisms[ki].vocabulary.as_hashmap())
+        .map(|&(ki, _)| organisms[ki].vocabulary.as_hashmap())
         .collect();
     organisms[org_idx]
         .vocabulary
-        .converge_with(&kin_snapshots, rng, 0.40);
-    let mut all_snapshots = kin_snapshots.clone();
+        .converge_with(&peer_snapshots, rng, 0.40);
+    let mut all_snapshots = peer_snapshots.clone();
     all_snapshots.push(my_vocab.as_hashmap());
-    for &ki in &kin_indices {
+    for &(ki, _) in &share_targets {
         organisms[ki].vocabulary.converge_with(&all_snapshots, rng, 0.40);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::organism::traits::Traits;
+    use rand::rngs::StdRng;
+    use rand::SeedableRng;
+
+    fn test_org(id: &str, name: &str, lineage: &str, x: f32, y: f32) -> Organism {
+        Organism::new(
+            id.to_string(),
+            name.to_string(),
+            x,
+            y,
+            0,
+            String::new(),
+            lineage.to_string(),
+            5000,
+            Traits::default(),
+        )
+    }
+
+    #[test]
+    fn social_knowledge_share_spreads_memories_to_trusted_friend() {
+        let mut rng = StdRng::seed_from_u64(0);
+        let mut organisms = vec![
+            test_org("teacher", "Teacher", "lineage-a", 10.0, 10.0),
+            test_org("student", "Student", "lineage-b", 12.0, 10.0),
+        ];
+        organisms[0].org_trust.insert("student".into(), 0.65);
+        organisms[0].lineage_attitudes.insert("lineage-b".into(), 0.25);
+        organisms[0].food_memory.insert((40, 10), 0.9);
+        organisms[0].water_memory.insert((12, 50), 0.8);
+        organisms[0].danger_memory.insert((20, 20), 0.7);
+
+        social_knowledge_share(0, &mut organisms, 42, &mut rng);
+
+        assert!(organisms[1].food_memory.get(&(40, 10)).copied().unwrap_or(0.0) > 0.04);
+        assert!(organisms[1].water_memory.get(&(12, 50)).copied().unwrap_or(0.0) > 0.03);
+        assert!(organisms[1].danger_memory.get(&(20, 20)).copied().unwrap_or(0.0) > 0.04);
+        assert_eq!(organisms[0].thought, "sharing what I know");
+    }
+
+    #[test]
+    fn social_knowledge_share_does_not_inform_hostile_stranger() {
+        let mut rng = StdRng::seed_from_u64(0);
+        let mut organisms = vec![
+            test_org("speaker", "Speaker", "lineage-a", 10.0, 10.0),
+            test_org("stranger", "Stranger", "lineage-b", 11.0, 10.0),
+        ];
+        organisms[0].lineage_attitudes.insert("lineage-b".into(), -0.50);
+        organisms[0].food_memory.insert((40, 10), 0.9);
+        organisms[0].danger_memory.insert((20, 20), 0.7);
+
+        social_knowledge_share(0, &mut organisms, 42, &mut rng);
+
+        assert!(organisms[1].food_memory.is_empty());
+        assert!(organisms[1].danger_memory.is_empty());
+    }
+
+    #[test]
+    fn social_knowledge_share_discounts_distrusted_source_claims() {
+        let mut rng = StdRng::seed_from_u64(0);
+        let mut organisms = vec![
+            test_org("speaker", "Speaker", "lineage-a", 10.0, 10.0),
+            test_org("trusting", "Trusting", "lineage-b", 11.0, 10.0),
+            test_org("skeptic", "Skeptic", "lineage-b", 12.0, 10.0),
+        ];
+        organisms[0].org_trust.insert("trusting".into(), 0.70);
+        organisms[0].org_trust.insert("skeptic".into(), 0.70);
+        organisms[0].lineage_attitudes.insert("lineage-b".into(), 0.45);
+        organisms[0].food_memory.insert((40, 10), 0.9);
+        organisms[0].danger_memory.insert((20, 20), 0.7);
+        organisms[1].org_trust.insert("speaker".into(), 0.60);
+        organisms[2].org_trust.insert("speaker".into(), -0.60);
+
+        social_knowledge_share(0, &mut organisms, 42, &mut rng);
+
+        let trusting_food = organisms[1].food_memory.get(&(40, 10)).copied().unwrap_or(0.0);
+        let skeptic_food = organisms[2].food_memory.get(&(40, 10)).copied().unwrap_or(0.0);
+        let trusting_danger = organisms[1].danger_memory.get(&(20, 20)).copied().unwrap_or(0.0);
+        let skeptic_danger = organisms[2].danger_memory.get(&(20, 20)).copied().unwrap_or(0.0);
+
+        assert!(trusting_food > skeptic_food);
+        assert!(trusting_danger > skeptic_danger);
+        assert!(skeptic_danger > skeptic_food);
     }
 }

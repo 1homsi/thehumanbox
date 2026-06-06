@@ -36,6 +36,348 @@ fn derive_mood(o: &Organism) -> String {
     }
     .to_string()
 }
+
+fn fallback_walkable_step(
+    grid: &WorldGrid,
+    ix: i32,
+    iy: i32,
+    requested_action: usize,
+    fear: f32,
+    health: f32,
+) -> Option<(i32, i32)> {
+    let (rdx, rdy) = DIRECTIONS[requested_action];
+    let mut best: Option<(i32, i32)> = None;
+    let mut best_score = f32::NEG_INFINITY;
+    for &(dx, dy) in &DIRECTIONS {
+        let nx = ix + dx;
+        let ny = iy + dy;
+        let tile = grid.get(nx, ny);
+        if !tile.walkable() {
+            continue;
+        }
+        let alignment = (dx * rdx + dy * rdy) as f32;
+        let mut score = alignment * 10.0;
+        if tile == Tile::Water {
+            let depth = grid.depth_at(nx, ny);
+            if depth > 0.18 {
+                score -= 40.0;
+            } else {
+                score -= 4.0 + depth * 8.0;
+            }
+        }
+        let hazard = grid.hazard_at(nx, ny);
+        if hazard > 0.0 {
+            let cautiousness = 0.7 + fear * 0.8 + (1.0 - health).max(0.0) * 0.5;
+            score -= hazard * 14.0 * cautiousness;
+        }
+        if score > best_score {
+            best_score = score;
+            best = Some((nx, ny));
+        }
+    }
+    best
+}
+
+fn safe_flee_target(
+    grid: &WorldGrid,
+    ox: f32,
+    oy: f32,
+    away_dx: f32,
+    away_dy: f32,
+    flee_dist: f32,
+) -> (i32, i32) {
+    let raw_tx = ((ox + away_dx * flee_dist).round() as i32).clamp(5, WIDTH as i32 - 5);
+    let raw_ty = ((oy + away_dy * flee_dist).round() as i32).clamp(5, HEIGHT as i32 - 5);
+    let start = (ox as i32, oy as i32);
+    let mut best = (raw_tx, raw_ty);
+    let mut best_score = f32::NEG_INFINITY;
+
+    for radius in [0i32, 4, 8, 14] {
+        for dx in -radius..=radius {
+            for dy in -radius..=radius {
+                if radius > 0 && dx.abs() != radius && dy.abs() != radius {
+                    continue;
+                }
+                let tx = (raw_tx + dx).clamp(5, WIDTH as i32 - 5);
+                let ty = (raw_ty + dy).clamp(5, HEIGHT as i32 - 5);
+                let tile = grid.get(tx, ty);
+                if !tile.walkable() {
+                    continue;
+                }
+                let progress =
+                    ((tx - start.0) as f32 * away_dx + (ty - start.1) as f32 * away_dy) / flee_dist.max(1.0);
+                let mut score = progress * 10.0;
+                score -= ((tx - raw_tx).abs() + (ty - raw_ty).abs()) as f32 * 0.12;
+                if tile == Tile::Water {
+                    score -= 5.0 + grid.depth_at(tx, ty) * 12.0;
+                }
+                score -= grid.hazard_at(tx, ty) * 18.0;
+                if score > best_score {
+                    best_score = score;
+                    best = (tx, ty);
+                }
+            }
+        }
+        if best_score.is_finite()
+            && grid.hazard_at(best.0, best.1) < 0.40
+            && grid.get(best.0, best.1) != Tile::Water
+        {
+            break;
+        }
+    }
+
+    best
+}
+
+fn movement_step_feedback(
+    grid: &WorldGrid,
+    ix: i32,
+    iy: i32,
+    requested_action: usize,
+    destination: Option<(i32, i32)>,
+) -> f32 {
+    let (dx, dy) = DIRECTIONS[requested_action];
+    let requested = (ix + dx, iy + dy);
+    let requested_tile = grid.get(requested.0, requested.1);
+    let Some((mx, my)) = destination else {
+        return -0.018;
+    };
+
+    let mut feedback = 0.001;
+    if !requested_tile.walkable() {
+        feedback -= 0.006;
+    }
+    if (mx, my) != requested {
+        feedback -= 0.002;
+    }
+
+    let moved_tile = grid.get(mx, my);
+    if moved_tile == Tile::Water {
+        let depth = grid.depth_at(mx, my);
+        feedback -= 0.003 + depth * 0.012;
+    }
+    let hazard = grid.hazard_at(mx, my);
+    if hazard > 0.0 {
+        feedback -= hazard * 0.025;
+    }
+
+    feedback
+}
+
+fn movement_momentum_feedback(
+    org: &Organism,
+    grid: &WorldGrid,
+    from: (i32, i32),
+    destination: Option<(i32, i32)>,
+) -> f32 {
+    let Some((mx, my)) = destination else {
+        return 0.0;
+    };
+    let step = ((mx - from.0) as f32, (my - from.1) as f32);
+    let step_len = (step.0 * step.0 + step.1 * step.1).sqrt();
+    let prior_len = (org.vx_smooth * org.vx_smooth + org.vy_smooth * org.vy_smooth).sqrt();
+    if step_len < 0.5 || prior_len < 0.15 {
+        return 0.0;
+    }
+
+    let dot = (step.0 * org.vx_smooth + step.1 * org.vy_smooth) / (step_len * prior_len);
+    if dot >= -0.55 {
+        return 0.0;
+    }
+
+    let urgent = org.energy < 0.32 || org.hydration < 0.32 || org.health < 0.45;
+    let escaping_danger = org.fear_level > 0.55
+        || grid.hazard_at(from.0, from.1) > 0.35
+        || grid.hazard_at(mx, my) + 0.10 < grid.hazard_at(from.0, from.1);
+    if urgent || escaping_danger {
+        return 0.0;
+    }
+
+    -0.006 * (1.0 - org.traits.curiosity * 0.35).clamp(0.65, 1.0)
+}
+
+fn urgent_resource_progress_feedback(
+    org: &Organism,
+    from: (i32, i32),
+    destination: Option<(i32, i32)>,
+) -> f32 {
+    let Some(to) = destination else {
+        let hunger_urgency = (0.50 - org.energy).max(0.0) / 0.50;
+        let thirst_urgency = (0.50 - org.hydration).max(0.0) / 0.50;
+        return -0.004 * hunger_urgency.max(thirst_urgency).min(1.0);
+    };
+
+    let mut feedback = 0.0f32;
+    let mut score_target = |target: Option<(i32, i32)>, urgency: f32| {
+        let Some((tx, ty)) = target else {
+            return;
+        };
+        let urgency = urgency.clamp(0.0, 1.0);
+        if urgency <= 0.0 {
+            return;
+        }
+        let before = (tx - from.0).abs() + (ty - from.1).abs();
+        let after = (tx - to.0).abs() + (ty - to.1).abs();
+        if before == 0 {
+            return;
+        }
+        let delta = before - after;
+        if delta > 0 {
+            feedback += (delta as f32 / before as f32).min(0.25) * 0.018 * urgency;
+        } else if delta < 0 {
+            feedback -= ((-delta) as f32 / before as f32).min(0.25) * 0.012 * urgency;
+        }
+    };
+
+    let hunger_urgency = (0.50 - org.energy) / 0.50;
+    if hunger_urgency > 0.0 {
+        let target = Organism::best_remembered_with_danger(
+            &org.food_memory,
+            from.0 as f32,
+            from.1 as f32,
+            &org.danger_memory,
+            hunger_urgency,
+        );
+        score_target(target, hunger_urgency);
+    }
+
+    let thirst_urgency = (0.50 - org.hydration) / 0.50;
+    if thirst_urgency > 0.0 {
+        let target = Organism::best_remembered_with_danger(
+            &org.water_memory,
+            from.0 as f32,
+            from.1 as f32,
+            &org.danger_memory,
+            thirst_urgency,
+        );
+        score_target(target, thirst_urgency);
+    }
+
+    feedback
+}
+
+fn reserve_inventory_feedback(
+    prev_energy: f32,
+    prev_hydration: f32,
+    prev_food: u8,
+    prev_water: u8,
+    org: &Organism,
+) -> f32 {
+    let food_gain = org.inv_food.saturating_sub(prev_food) as f32;
+    let water_gain = org.inv_water.saturating_sub(prev_water) as f32;
+    let mut feedback = 0.0f32;
+
+    if food_gain > 0.0 && prev_food < 3 {
+        let future_hunger = ((0.80 - prev_energy) / 0.80).clamp(0.15, 1.0);
+        let room_factor = (3 - prev_food).min(food_gain as u8) as f32;
+        feedback += 0.006 * future_hunger * room_factor;
+    }
+
+    if water_gain > 0.0 && prev_water < 4 {
+        let future_thirst = ((0.85 - prev_hydration) / 0.85).clamp(0.15, 1.0);
+        let room_factor = (4 - prev_water).min(water_gain as u8) as f32;
+        feedback += 0.005 * future_thirst * room_factor;
+    }
+
+    feedback
+}
+
+fn use_needed_reserves(org: &mut Organism, tick: u64) -> (bool, bool) {
+    let urgent_water = org.hydration < 0.24;
+    let periodic_water = org.hydration < 0.55 && tick % 8 == 0;
+    let used_water = if org.inv_water > 0 && (urgent_water || periodic_water) {
+        org.inv_water -= 1;
+        org.hydration = (org.hydration + 0.18).min(1.0);
+        true
+    } else {
+        false
+    };
+
+    let urgent_food = org.energy < 0.28;
+    let periodic_food = org.energy < 0.45 && tick % 6 == 0;
+    let used_food = if org.inv_food > 0 && (urgent_food || periodic_food) {
+        org.inv_food -= 1;
+        org.energy = (org.energy + 0.30).min(1.0);
+        true
+    } else {
+        false
+    };
+
+    (used_food, used_water)
+}
+
+fn resource_near(grid: &WorldGrid, x: i32, y: i32, tile: Tile) -> bool {
+    (-1i32..=1).any(|dx| (-1i32..=1).any(|dy| grid.get(x + dx, y + dy) == tile))
+}
+
+fn decay_local_resource_memory(
+    memory: &mut HashMap<(i32, i32), f32>,
+    x: i32,
+    y: i32,
+    exact_factor: f32,
+    nearby_factor: f32,
+) {
+    for dx in -1i32..=1 {
+        for dy in -1i32..=1 {
+            let key = (x + dx, y + dy);
+            if let Some(v) = memory.get_mut(&key) {
+                *v *= if dx == 0 && dy == 0 {
+                    exact_factor
+                } else {
+                    nearby_factor
+                };
+            }
+        }
+    }
+    memory.retain(|_, v| *v >= 0.04);
+}
+
+fn verify_local_resource_memory(org: &mut Organism, grid: &WorldGrid, x: i32, y: i32) {
+    let tile = grid.get(x, y);
+    if tile == Tile::Water {
+        let ms = org.traits.memory_strength;
+        Organism::remember(&mut org.water_memory, x, y, 0.2, ms);
+    } else if !resource_near(grid, x, y, Tile::Water) {
+        decay_local_resource_memory(&mut org.water_memory, x, y, 0.45, 0.70);
+    }
+
+    if tile == Tile::Food {
+        let ms = org.traits.memory_strength;
+        Organism::remember(&mut org.food_memory, x, y, 0.2, ms);
+    } else if !resource_near(grid, x, y, Tile::Food) {
+        decay_local_resource_memory(&mut org.food_memory, x, y, 0.45, 0.70);
+    }
+}
+
+fn local_danger_present(grid: &WorldGrid, animals: &[Animal], x: i32, y: i32) -> bool {
+    let terrain_danger = (-1i32..=1).any(|dx| {
+        (-1i32..=1).any(|dy| {
+            let nx = x + dx;
+            let ny = y + dy;
+            matches!(grid.get(nx, ny), Tile::Fire) || grid.hazard_at(nx, ny) >= 0.35
+        })
+    });
+    if terrain_danger {
+        return true;
+    }
+
+    animals
+        .iter()
+        .any(|a| a.alive && a.kind.predator() && (a.x - x as f32).abs() + (a.y - y as f32).abs() <= 5.0)
+}
+
+fn verify_local_danger_memory(org: &mut Organism, grid: &WorldGrid, animals: &[Animal], x: i32, y: i32) {
+    if local_danger_present(grid, animals, x, y) {
+        let current_hazard = grid.hazard_at(x, y);
+        if current_hazard >= 0.35 || matches!(grid.get(x, y), Tile::Fire) {
+            let ms = org.traits.memory_strength;
+            Organism::remember(&mut org.danger_memory, x, y, 0.20 + current_hazard * 0.40, ms);
+        }
+        return;
+    }
+
+    decay_local_resource_memory(&mut org.danger_memory, x, y, 0.50, 0.72);
+}
 use super::spatial::SpatialIndex;
 
 pub const SAVE_SCHEMA_VERSION: u32 = 3;
@@ -894,6 +1236,8 @@ impl Simulation {
 
         let prev_energy = self.organisms[idx].energy;
         let prev_hydration = self.organisms[idx].hydration;
+        let prev_inv_food = self.organisms[idx].inv_food;
+        let prev_inv_water = self.organisms[idx].inv_water;
 
         {
             let org = &self.organisms[idx];
@@ -915,10 +1259,7 @@ impl Simulation {
                     if dist <= 5.0 {
                         kin_near += 1;
                     }
-                } else if !hostile_near
-                    && dist <= 6.0
-                    && org.attitude_toward(&o.lineage_id) < -0.2
-                {
+                } else if !hostile_near && dist <= 6.0 && org.attitude_toward(&o.lineage_id) < -0.2 {
                     hostile_near = true;
                 }
             }
@@ -1084,8 +1425,7 @@ impl Simulation {
             };
             // Set a distant flee target so they keep running after the wolf leaves range
             let flee_dist = 20.0 + fear_trait * 30.0;
-            let tx = ((ox + fdx * flee_dist).round() as i32).clamp(5, crate::world::grid::WIDTH as i32 - 5);
-            let ty = ((oy + fdy * flee_dist).round() as i32).clamp(5, crate::world::grid::HEIGHT as i32 - 5);
+            let (tx, ty) = safe_flee_target(&self.grid, ox, oy, fdx, fdy, flee_dist);
             self.organisms[idx].wander_target = Some((tx, ty));
             self.organisms[idx].fear_level = (self.organisms[idx].fear_level + 0.12).min(1.0);
             // Burn wolf location into danger memory
@@ -1138,19 +1478,36 @@ impl Simulation {
         let (ix, iy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
 
         let mut signal_reward = 0.0f32;
+        let mut movement_reward = 0.0f32;
 
         if action < 8 {
             let (dx, dy) = DIRECTIONS[action];
             let (nx, ny) = (ix + dx, iy + dy);
             let next_tile = self.grid.get(nx, ny);
-            if next_tile.walkable() {
-                self.organisms[idx].x = nx as f32;
-                self.organisms[idx].y = ny as f32;
-                self.grid.leave_trail(nx, ny, TrailKind::Path, 0.06);
-                self.grid.stamp_pressure(nx, ny);
+            let destination = if next_tile.walkable() {
+                Some((nx, ny))
+            } else {
+                fallback_walkable_step(
+                    &self.grid,
+                    ix,
+                    iy,
+                    action,
+                    self.organisms[idx].traits.fear,
+                    self.organisms[idx].health,
+                )
+            };
+            movement_reward = movement_step_feedback(&self.grid, ix, iy, action, destination);
+            movement_reward +=
+                movement_momentum_feedback(&self.organisms[idx], &self.grid, (ix, iy), destination);
+            movement_reward += urgent_resource_progress_feedback(&self.organisms[idx], (ix, iy), destination);
+            if let Some((mx, my)) = destination {
+                self.organisms[idx].x = mx as f32;
+                self.organisms[idx].y = my as f32;
+                self.grid.leave_trail(mx, my, TrailKind::Path, 0.06);
+                self.grid.stamp_pressure(mx, my);
                 let has_farming = self.organisms[idx].discoveries.contains("farm");
                 if has_farming {
-                    let fidx = WorldGrid::idx(nx, ny);
+                    let fidx = WorldGrid::idx(mx, my);
                     if self.grid.fertility[fidx] < 0.25 {
                         self.grid.fertility[fidx] = (self.grid.fertility[fidx] + 0.004).min(0.55);
                     }
@@ -1634,20 +1991,8 @@ impl Simulation {
             }
         }
 
-        if current_tile == Tile::Water {
-            let ms = self.organisms[idx].traits.memory_strength;
-            Organism::remember(&mut self.organisms[idx].water_memory, cx, cy, 0.2, ms);
-        } else if let Some(v) = self.organisms[idx].water_memory.get_mut(&(cx, cy)) {
-            *v *= 0.55;
-        }
-        if current_tile == Tile::Food {
-            let ms = self.organisms[idx].traits.memory_strength;
-            Organism::remember(&mut self.organisms[idx].food_memory, cx, cy, 0.2, ms);
-        } else if matches!(current_tile, Tile::Grass | Tile::Sand | Tile::Ash) {
-            if let Some(v) = self.organisms[idx].food_memory.get_mut(&(cx, cy)) {
-                *v *= 0.85;
-            }
-        }
+        verify_local_resource_memory(&mut self.organisms[idx], &self.grid, cx, cy);
+        verify_local_danger_memory(&mut self.organisms[idx], &self.grid, &self.animals, cx, cy);
 
         if self.organisms[idx].carrying > 0 {
             self.organisms[idx].carrying -= 1;
@@ -1772,17 +2117,8 @@ impl Simulation {
         self.organisms[idx].energy = (self.organisms[idx].energy - 0.0022 * shelter_drain_mult).max(0.0);
         self.organisms[idx].hydration = (self.organisms[idx].hydration - 0.0014 * hydration_mult).max(0.0);
 
-        if self.organisms[idx].hydration < 0.55
-            && self.organisms[idx].inv_water > 0
-            && self.tick_count % 8 == 0
-        {
-            self.organisms[idx].inv_water -= 1;
-            self.organisms[idx].hydration = (self.organisms[idx].hydration + 0.18).min(1.0);
-        }
-
-        if self.organisms[idx].energy < 0.45 && self.organisms[idx].inv_food > 0 && self.tick_count % 6 == 0 {
-            self.organisms[idx].inv_food -= 1;
-            self.organisms[idx].energy = (self.organisms[idx].energy + 0.30).min(1.0);
+        let (used_food_reserve, _) = use_needed_reserves(&mut self.organisms[idx], self.tick_count);
+        if used_food_reserve {
             self.organisms[idx].think("eating stored food", self.tick_count);
         }
         self.apply_water_fatigue(idx, cx, cy);
@@ -2105,6 +2441,13 @@ impl Simulation {
 
         let mut reward = (self.organisms[idx].energy - prev_energy) * 2.0
             + (self.organisms[idx].hydration - prev_hydration) * 2.0;
+        reward += reserve_inventory_feedback(
+            prev_energy,
+            prev_hydration,
+            prev_inv_food,
+            prev_inv_water,
+            &self.organisms[idx],
+        );
         if current_tile == Tile::Fire {
             reward -= 0.5;
         }
@@ -2234,6 +2577,7 @@ impl Simulation {
         }
 
         reward += signal_reward;
+        reward += movement_reward;
 
         let loneliness = self.organisms[idx].loneliness;
         let boredom = self.organisms[idx].boredom;
@@ -2321,6 +2665,14 @@ impl Simulation {
                 if let Some(lid) = nearest_lid {
                     if self.organisms[idx].attitude_toward(&lid) >= 0.25 {
                         self.organisms[idx].think("coexisting peacefully", self.tick_count);
+                        if self.tick_count % 60 == (idx as u64 % 60) {
+                            social::social_knowledge_share(
+                                idx,
+                                &mut self.organisms,
+                                self.tick_count,
+                                &mut self.rng,
+                            );
+                        }
                     } else {
                         self.organisms[idx].think("wary", self.tick_count);
                     }
@@ -4543,6 +4895,371 @@ mod tests {
     }
 
     #[test]
+    fn fallback_walkable_step_detours_around_blocked_direction() {
+        let mut grid = WorldGrid::new(101);
+        for x in 8..=12 {
+            for y in 8..=12 {
+                grid.set(x, y, Tile::Grass);
+            }
+        }
+        grid.set(11, 10, Tile::Rock);
+
+        let step = fallback_walkable_step(&grid, 10, 10, 3, 0.5, 1.0);
+
+        assert!(matches!(step, Some((11, 9)) | Some((11, 11))));
+    }
+
+    #[test]
+    fn fallback_walkable_step_prefers_safer_aligned_detour() {
+        let mut grid = WorldGrid::new(102);
+        for x in 8..=12 {
+            for y in 8..=12 {
+                grid.set(x, y, Tile::Grass);
+            }
+        }
+        grid.set(11, 10, Tile::Rock);
+        grid.hazard[WorldGrid::idx(11, 9)] = 0.95;
+
+        let step = fallback_walkable_step(&grid, 10, 10, 3, 0.9, 0.4);
+
+        assert_eq!(step, Some((11, 11)));
+    }
+
+    #[test]
+    fn safe_flee_target_avoids_hazardous_raw_anchor() {
+        let mut grid = WorldGrid::new(120);
+        for x in 45..=85 {
+            for y in 45..=65 {
+                grid.set(x, y, Tile::Grass);
+                grid.hazard[WorldGrid::idx(x, y)] = 0.0;
+            }
+        }
+        grid.hazard[WorldGrid::idx(70, 50)] = 0.95;
+
+        let target = safe_flee_target(&grid, 50.0, 50.0, 1.0, 0.0, 20.0);
+
+        assert_ne!(target, (70, 50));
+        assert_eq!(grid.get(target.0, target.1), Tile::Grass);
+        assert!(grid.hazard_at(target.0, target.1) < 0.40);
+    }
+
+    #[test]
+    fn safe_flee_target_avoids_unwalkable_raw_anchor() {
+        let mut grid = WorldGrid::new(121);
+        for x in 45..=85 {
+            for y in 45..=65 {
+                grid.set(x, y, Tile::Grass);
+                grid.hazard[WorldGrid::idx(x, y)] = 0.0;
+            }
+        }
+        grid.set(70, 50, Tile::Rock);
+
+        let target = safe_flee_target(&grid, 50.0, 50.0, 1.0, 0.0, 20.0);
+
+        assert_ne!(target, (70, 50));
+        assert!(grid.get(target.0, target.1).walkable());
+    }
+
+    #[test]
+    fn movement_feedback_penalizes_blocked_detour() {
+        let mut grid = WorldGrid::new(105);
+        for x in 8..=12 {
+            for y in 8..=12 {
+                grid.set(x, y, Tile::Grass);
+            }
+        }
+        grid.set(11, 10, Tile::Rock);
+
+        let feedback = movement_step_feedback(&grid, 10, 10, 3, Some((11, 11)));
+
+        assert!(feedback < 0.0);
+    }
+
+    #[test]
+    fn movement_feedback_penalizes_hazardous_destination_more_than_safe_step() {
+        let mut grid = WorldGrid::new(106);
+        for x in 8..=12 {
+            for y in 8..=12 {
+                grid.set(x, y, Tile::Grass);
+            }
+        }
+        grid.hazard[WorldGrid::idx(11, 10)] = 0.9;
+
+        let hazardous = movement_step_feedback(&grid, 10, 10, 3, Some((11, 10)));
+        let safe = movement_step_feedback(&grid, 10, 10, 5, Some((11, 9)));
+
+        assert!(hazardous < safe);
+        assert!(hazardous < 0.0);
+        assert!(safe > 0.0);
+    }
+
+    #[test]
+    fn movement_momentum_feedback_penalizes_backtracking_loop() {
+        let mut sim = Simulation::new(113);
+        let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+        sim.organisms[idx].energy = 0.80;
+        sim.organisms[idx].hydration = 0.80;
+        sim.organisms[idx].health = 0.90;
+        sim.organisms[idx].fear_level = 0.0;
+        sim.organisms[idx].vx_smooth = 1.0;
+        sim.organisms[idx].vy_smooth = 0.0;
+
+        let feedback = movement_momentum_feedback(&sim.organisms[idx], &sim.grid, (10, 10), Some((9, 10)));
+
+        assert!(feedback < 0.0);
+    }
+
+    #[test]
+    fn movement_momentum_feedback_allows_danger_escape_backtrack() {
+        let mut sim = Simulation::new(114);
+        let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+        sim.organisms[idx].energy = 0.80;
+        sim.organisms[idx].hydration = 0.80;
+        sim.organisms[idx].health = 0.90;
+        sim.organisms[idx].vx_smooth = 1.0;
+        sim.organisms[idx].vy_smooth = 0.0;
+        sim.grid.hazard[WorldGrid::idx(10, 10)] = 0.80;
+        sim.grid.hazard[WorldGrid::idx(9, 10)] = 0.05;
+
+        let feedback = movement_momentum_feedback(&sim.organisms[idx], &sim.grid, (10, 10), Some((9, 10)));
+
+        assert_eq!(feedback, 0.0);
+    }
+
+    #[test]
+    fn resource_progress_feedback_rewards_moving_toward_remembered_food() {
+        let mut sim = Simulation::new(107);
+        let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+        sim.organisms[idx].energy = 0.25;
+        sim.organisms[idx].hydration = 0.90;
+        sim.organisms[idx].food_memory.insert((20, 10), 0.9);
+
+        let feedback = urgent_resource_progress_feedback(&sim.organisms[idx], (10, 10), Some((11, 10)));
+
+        assert!(feedback > 0.0);
+    }
+
+    #[test]
+    fn resource_progress_feedback_penalizes_moving_away_from_remembered_water() {
+        let mut sim = Simulation::new(108);
+        let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+        sim.organisms[idx].energy = 0.90;
+        sim.organisms[idx].hydration = 0.20;
+        sim.organisms[idx].water_memory.insert((20, 10), 0.9);
+
+        let feedback = urgent_resource_progress_feedback(&sim.organisms[idx], (10, 10), Some((9, 10)));
+
+        assert!(feedback < 0.0);
+    }
+
+    #[test]
+    fn reserve_inventory_feedback_rewards_useful_food_reserve_gain() {
+        let mut sim = Simulation::new(115);
+        let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+        sim.organisms[idx].inv_food = 1;
+        sim.organisms[idx].inv_water = 0;
+
+        let feedback = reserve_inventory_feedback(0.45, 0.90, 0, 0, &sim.organisms[idx]);
+
+        assert!(feedback > 0.0);
+    }
+
+    #[test]
+    fn reserve_inventory_feedback_does_not_reward_food_hoarding_past_small_buffer() {
+        let mut sim = Simulation::new(116);
+        let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+        sim.organisms[idx].inv_food = 4;
+        sim.organisms[idx].inv_water = 0;
+
+        let feedback = reserve_inventory_feedback(0.45, 0.90, 3, 0, &sim.organisms[idx]);
+
+        assert_eq!(feedback, 0.0);
+    }
+
+    #[test]
+    fn reserve_inventory_feedback_rewards_water_reserve_when_future_thirsty() {
+        let mut sim = Simulation::new(117);
+        let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+        sim.organisms[idx].inv_food = 0;
+        sim.organisms[idx].inv_water = 2;
+
+        let feedback = reserve_inventory_feedback(0.90, 0.35, 0, 0, &sim.organisms[idx]);
+
+        assert!(feedback > 0.0);
+    }
+
+    #[test]
+    fn critical_reserve_use_ignores_periodic_cadence() {
+        let mut sim = Simulation::new(118);
+        let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+        sim.organisms[idx].energy = 0.20;
+        sim.organisms[idx].hydration = 0.18;
+        sim.organisms[idx].inv_food = 1;
+        sim.organisms[idx].inv_water = 1;
+
+        let (used_food, used_water) = use_needed_reserves(&mut sim.organisms[idx], 5);
+
+        assert!(used_food);
+        assert!(used_water);
+        assert_eq!(sim.organisms[idx].inv_food, 0);
+        assert_eq!(sim.organisms[idx].inv_water, 0);
+        assert!(sim.organisms[idx].energy > 0.20);
+        assert!(sim.organisms[idx].hydration > 0.18);
+    }
+
+    #[test]
+    fn moderate_reserve_use_keeps_periodic_cadence() {
+        let mut sim = Simulation::new(119);
+        let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+        sim.organisms[idx].energy = 0.40;
+        sim.organisms[idx].hydration = 0.50;
+        sim.organisms[idx].inv_food = 1;
+        sim.organisms[idx].inv_water = 1;
+
+        let (used_food, used_water) = use_needed_reserves(&mut sim.organisms[idx], 5);
+
+        assert!(!used_food);
+        assert!(!used_water);
+        assert_eq!(sim.organisms[idx].inv_food, 1);
+        assert_eq!(sim.organisms[idx].inv_water, 1);
+    }
+
+    #[test]
+    fn local_resource_verification_decays_stale_food_memory_nearby() {
+        let mut sim = Simulation::new(109);
+        let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+        for x in 9..=11 {
+            for y in 9..=11 {
+                sim.grid.set(x, y, Tile::Grass);
+            }
+        }
+        sim.organisms[idx].food_memory.insert((10, 10), 0.9);
+        sim.organisms[idx].food_memory.insert((11, 10), 0.8);
+
+        verify_local_resource_memory(&mut sim.organisms[idx], &sim.grid, 10, 10);
+
+        assert!(
+            sim.organisms[idx]
+                .food_memory
+                .get(&(10, 10))
+                .copied()
+                .unwrap_or(0.0)
+                < 0.5
+        );
+        assert!(
+            sim.organisms[idx]
+                .food_memory
+                .get(&(11, 10))
+                .copied()
+                .unwrap_or(0.0)
+                < 0.8
+        );
+    }
+
+    #[test]
+    fn local_resource_verification_keeps_memory_when_resource_is_nearby() {
+        let mut sim = Simulation::new(110);
+        let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+        for x in 9..=11 {
+            for y in 9..=11 {
+                sim.grid.set(x, y, Tile::Grass);
+            }
+        }
+        sim.grid.set(11, 10, Tile::Food);
+        sim.organisms[idx].food_memory.insert((10, 10), 0.9);
+
+        verify_local_resource_memory(&mut sim.organisms[idx], &sim.grid, 10, 10);
+
+        assert_eq!(sim.organisms[idx].food_memory.get(&(10, 10)).copied(), Some(0.9));
+    }
+
+    #[test]
+    fn local_danger_verification_decays_stale_safe_area_memory() {
+        let mut sim = Simulation::new(111);
+        let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+        for x in 9..=11 {
+            for y in 9..=11 {
+                sim.grid.set(x, y, Tile::Grass);
+                sim.grid.hazard[WorldGrid::idx(x, y)] = 0.0;
+            }
+        }
+        sim.organisms[idx].danger_memory.insert((10, 10), 0.9);
+        sim.organisms[idx].danger_memory.insert((11, 10), 0.8);
+
+        verify_local_danger_memory(&mut sim.organisms[idx], &sim.grid, &sim.animals, 10, 10);
+
+        assert!(
+            sim.organisms[idx]
+                .danger_memory
+                .get(&(10, 10))
+                .copied()
+                .unwrap_or(0.0)
+                < 0.55
+        );
+        assert!(
+            sim.organisms[idx]
+                .danger_memory
+                .get(&(11, 10))
+                .copied()
+                .unwrap_or(0.0)
+                < 0.8
+        );
+    }
+
+    #[test]
+    fn local_danger_verification_keeps_memory_when_hazard_remains_nearby() {
+        let mut sim = Simulation::new(112);
+        let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+        for x in 9..=11 {
+            for y in 9..=11 {
+                sim.grid.set(x, y, Tile::Grass);
+                sim.grid.hazard[WorldGrid::idx(x, y)] = 0.0;
+            }
+        }
+        sim.grid.hazard[WorldGrid::idx(11, 10)] = 0.70;
+        sim.organisms[idx].danger_memory.insert((11, 10), 0.8);
+
+        verify_local_danger_memory(&mut sim.organisms[idx], &sim.grid, &sim.animals, 10, 10);
+
+        assert_eq!(
+            sim.organisms[idx].danger_memory.get(&(11, 10)).copied(),
+            Some(0.8)
+        );
+    }
+
+    #[test]
+    fn land_target_rejects_hazardous_anchor() {
+        let mut sim = Simulation::new(103);
+        for x in 45..=55 {
+            for y in 45..=55 {
+                sim.grid.set(x, y, Tile::Grass);
+                sim.grid.hazard[WorldGrid::idx(x, y)] = 0.0;
+            }
+        }
+        sim.grid.hazard[WorldGrid::idx(50, 50)] = 0.60;
+
+        assert!(!sim.is_good_land_target(50, 50));
+        assert!(sim.is_good_land_target(54, 54));
+    }
+
+    #[test]
+    fn wander_validation_clears_hazardous_existing_target() {
+        let mut sim = Simulation::new(104);
+        let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+        sim.organisms[idx].energy = 0.95;
+        sim.organisms[idx].hydration = 0.95;
+        sim.organisms[idx].age = 2_000;
+        sim.organisms[idx].fear_level = 0.0;
+        sim.organisms[idx].wander_target = Some((80, 80));
+        sim.grid.set(80, 80, Tile::Grass);
+        sim.grid.hazard[WorldGrid::idx(80, 80)] = 0.90;
+
+        sim.validate_or_assign_wander_target(idx);
+
+        assert_ne!(sim.organisms[idx].wander_target, Some((80, 80)));
+    }
+
+    #[test]
     fn save_result_writes_schema_version_and_cleans_temp_file() {
         let mut path = std::env::temp_dir();
         path.push(format!("thehumanbox-save-test-{}.json", std::process::id()));
@@ -5140,7 +5857,14 @@ mod tests {
             .filter(|(_, o)| o.alive)
             .map(|(i, o)| (o.id.clone(), i))
             .collect();
-        sim.tick_organism(0, alive_count, &lineage_counts, &spatial, &mut spatial_buf, &org_idx_by_id);
+        sim.tick_organism(
+            0,
+            alive_count,
+            &lineage_counts,
+            &spatial,
+            &mut spatial_buf,
+            &org_idx_by_id,
+        );
 
         assert!(
             sim.organisms[0].wander_target.is_none(),
@@ -5212,7 +5936,14 @@ mod tests {
             .filter(|(_, o)| o.alive)
             .map(|(i, o)| (o.id.clone(), i))
             .collect();
-        sim.tick_organism(0, 2, &lineage_counts, &spatial2, &mut spatial_buf2, &org_idx_by_id2);
+        sim.tick_organism(
+            0,
+            2,
+            &lineage_counts,
+            &spatial2,
+            &mut spatial_buf2,
+            &org_idx_by_id2,
+        );
 
         let wt = sim.organisms[0].wander_target;
         assert!(wt.is_some(), "in-range friend should set wander_target, got None");
