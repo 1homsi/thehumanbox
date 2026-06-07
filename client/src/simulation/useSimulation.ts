@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { WorldState, GridState, OrganismState, AnimalState } from '../types'
-import { WS_BASE, API_BASE } from '../lib/config'
+import { WS_BASE, API_BASE, IS_LOCAL_SERVER } from '../lib/config'
 import { useWorldStore } from '../stores/worldStore'
 import { fetchSnapshotWithProgress, parseWorldFrame } from './wire'
 import { mergeFrame, type MergeCaches } from './merge'
@@ -405,6 +405,7 @@ export function useSimulation(source: WorldSource = 'remote'): {
     let afkTimer: ReturnType<typeof setTimeout> | null = null
 
     function parkSocket() {
+      if (IS_LOCAL_SERVER) return
       if (reconnectTimer !== null) {
         clearTimeout(reconnectTimer)
         reconnectTimer = null

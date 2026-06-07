@@ -21,3 +21,4 @@ const wsScheme = isLocal ? 'ws' : 'wss'
 
 export const API_BASE = `${httpScheme}://${RAW_BASE}`
 export const WS_BASE = `${wsScheme}://${RAW_BASE}`
+export const IS_LOCAL_SERVER = isLocal
