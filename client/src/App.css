@@ -206,6 +206,10 @@ body.thb-photo-mode .headline-ticker {
   z-index: 100;
 }
 
+.thb-desktop-mac .header {
+  padding-left: 84px;
+}
+
 .header-left {
   display: flex;
   align-items: center;

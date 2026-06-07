@@ -100,6 +100,13 @@ function LiveApp() {
   const openDesktopSettings = useUIStore((s) => s.openDesktopSettings)
 
   useEffect(() => {
+    if (window.thbDesktop?.platform === 'darwin') {
+      document.body.classList.add('thb-desktop-mac')
+      return () => document.body.classList.remove('thb-desktop-mac')
+    }
+  }, [])
+
+  useEffect(() => {
     const desk = window.thbDesktop
     if (!desk) return
     return desk.on('menu:openSettings', () => openDesktopSettings())
