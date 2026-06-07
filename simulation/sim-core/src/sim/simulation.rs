@@ -4792,8 +4792,9 @@ impl Simulation {
         let mut max_era: Option<Era> = None;
         let alive_lineages: HashSet<String> = agg.keys().cloned().collect();
         for (lid, (discoveries, pop)) in agg.iter() {
-            let new_era = determine_era_for_lineage(discoveries, *pop);
             let prev = self.lineage_eras.get(lid).copied().unwrap_or(Era::PreStone);
+            let discovered_era = determine_era_for_lineage(discoveries, *pop);
+            let new_era = discovered_era.max(prev);
             if new_era > prev {
                 let lname = self
                     .lineage_names
@@ -4901,6 +4902,39 @@ mod tests {
         assert!(scarcity_driven_migration_season("decline"));
         assert!(!scarcity_driven_migration_season("winter"));
         assert!(!scarcity_driven_migration_season("dry"));
+    }
+
+    #[test]
+    fn lineage_era_does_not_regress_when_population_dips() {
+        use crate::organism::organism::Organism;
+        use crate::organism::traits::Traits;
+        use crate::sim::era::Era;
+
+        let mut sim = Simulation::new(0xaea);
+        sim.organisms.clear();
+        let mut survivor = Organism::new(
+            "survivor".to_string(),
+            "Survivor".to_string(),
+            50.0,
+            50.0,
+            0,
+            String::new(),
+            "lineage-a".to_string(),
+            20_000,
+            Traits::default(),
+        );
+        survivor.alive = true;
+        survivor.discoveries.insert("fire".to_string());
+        survivor.discoveries.insert("stone_tools".to_string());
+        survivor.discoveries.insert("shelter".to_string());
+        sim.organisms.push(survivor);
+        sim.lineage_eras.insert("lineage-a".to_string(), Era::Classical);
+        sim.current_era = "classical".to_string();
+
+        sim.update_lineage_eras();
+
+        assert_eq!(sim.lineage_eras.get("lineage-a"), Some(&Era::Classical));
+        assert_eq!(sim.current_era, "classical");
     }
 
     #[test]
