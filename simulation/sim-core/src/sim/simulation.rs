@@ -1360,11 +1360,11 @@ impl Simulation {
             self.organisms[idx].perceive(&self.grid, &self.organisms, night, animal_near, spatial);
         self.validate_or_assign_wander_target(idx);
 
-        let hungry = self.organisms[idx].energy < 0.55;
         let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
         let fear_trait = self.organisms[idx].traits.fear;
 
-        // Wolf flee: instinctive - higher fear trait = larger detection radius
+        // Wolf pressure is remembered as context. Only collision-range danger
+        // stays reflexive; otherwise the learned chooser decides what to do.
         let wolf_flee_radius = 6.0 + fear_trait * 8.0;
         let wolf_threat = self
             .animals
@@ -1373,17 +1373,19 @@ impl Simulation {
             .map(|a| ((a.x - ox).abs() + (a.y - oy).abs(), a.x, a.y))
             .filter(|&(d, _, _)| d <= wolf_flee_radius)
             .min_by(|(a, _, _), (b, _, _)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-
-        let prey_nearby = if hungry && wolf_threat.is_none() {
-            self.animals
-                .iter()
-                .filter(|a| a.alive && !matches!(a.kind, AnimalKind::Wolf))
-                .map(|a| ((a.x - ox).abs() + (a.y - oy).abs(), a.x, a.y))
-                .filter(|&(d, _, _)| d <= 6.0)
-                .min_by(|(a, _, _), (b, _, _)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-        } else {
-            None
-        };
+        if let Some((_, wx, wy)) = wolf_threat {
+            let wx_i = wx as i32;
+            let wy_i = wy as i32;
+            let prev = self.organisms[idx]
+                .danger_memory
+                .get(&(wx_i, wy_i))
+                .copied()
+                .unwrap_or(0.0);
+            self.organisms[idx]
+                .danger_memory
+                .insert((wx_i, wy_i), (prev + 0.4).min(1.0));
+            self.organisms[idx].fear_level = (self.organisms[idx].fear_level + 0.05).min(1.0);
+        }
 
         // Need-driven construction: during storms, organisms with wood and no nearby shelter
         // urgently build wherever they're standing if the tile allows it.
@@ -1409,7 +1411,7 @@ impl Simulation {
 
         let (action, new_thought): (usize, Option<String>) = if let Some(sb) = storm_build {
             sb
-        } else if let Some((_, wx, wy)) = wolf_threat {
+        } else if let Some((dist, wx, wy)) = wolf_threat.filter(|(dist, _, _)| *dist <= 2.5) {
             let fdx = (ox - wx).signum();
             let fdy = (oy - wy).signum();
             let dir = match (fdx as i32, fdy as i32) {
@@ -1427,34 +1429,9 @@ impl Simulation {
             let flee_dist = 20.0 + fear_trait * 30.0;
             let (tx, ty) = safe_flee_target(&self.grid, ox, oy, fdx, fdy, flee_dist);
             self.organisms[idx].wander_target = Some((tx, ty));
-            self.organisms[idx].fear_level = (self.organisms[idx].fear_level + 0.12).min(1.0);
-            // Burn wolf location into danger memory
-            let wx_i = wx as i32;
-            let wy_i = wy as i32;
-            let prev = self.organisms[idx]
-                .danger_memory
-                .get(&(wx_i, wy_i))
-                .copied()
-                .unwrap_or(0.0);
-            self.organisms[idx]
-                .danger_memory
-                .insert((wx_i, wy_i), (prev + 0.4).min(1.0));
+            self.organisms[idx].fear_level =
+                (self.organisms[idx].fear_level + 0.07 + (2.5 - dist) * 0.02).min(1.0);
             (dir, Some("wolf! run!".to_string()))
-        } else if let Some((_, ax, ay)) = prey_nearby {
-            let dx = (ax - ox).signum();
-            let dy = (ay - oy).signum();
-            let dir = match (dx as i32, dy as i32) {
-                (0, -1) => 0,
-                (0, 1) => 1,
-                (-1, 0) => 2,
-                (1, 0) => 3,
-                (-1, -1) => 4,
-                (1, -1) => 5,
-                (-1, 1) => 6,
-                (1, 1) => 7,
-                _ => 3,
-            };
-            (dir, Some("stalking prey".to_string()))
         } else {
             let (oa_ix, oa_iy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
             let avail = crate::sim::actions::available_actions(&self, idx, oa_ix, oa_iy);
@@ -4907,7 +4884,6 @@ mod tests {
     #[test]
     fn lineage_era_does_not_regress_when_population_dips() {
         use crate::organism::organism::Organism;
-        use crate::organism::traits::Traits;
         use crate::sim::era::Era;
 
         let mut sim = Simulation::new(0xaea);
@@ -4921,7 +4897,7 @@ mod tests {
             String::new(),
             "lineage-a".to_string(),
             20_000,
-            Traits::default(),
+            crate::organism::traits::Traits::default(),
         );
         survivor.alive = true;
         survivor.discoveries.insert("fire".to_string());
@@ -4935,6 +4911,122 @@ mod tests {
 
         assert_eq!(sim.lineage_eras.get("lineage-a"), Some(&Era::Classical));
         assert_eq!(sim.current_era, "classical");
+    }
+
+    fn autonomy_test_organism(id: &str, x: f32, y: f32) -> Organism {
+        let mut org = Organism::new(
+            id.to_string(),
+            "Autonomous".to_string(),
+            x,
+            y,
+            0,
+            String::new(),
+            "lineage-a".to_string(),
+            20_000,
+            crate::organism::traits::Traits::default(),
+        );
+        org.alive = true;
+        org.age = 1500;
+        org.energy = 0.60;
+        org.hydration = 0.60;
+        org.health = 0.90;
+        org.sleep_debt = 0.0;
+        org.fear_level = 0.0;
+        org.traits.fear = 0.10;
+        org.traits.curiosity = 0.10;
+        org
+    }
+
+    fn flatten_test_area(sim: &mut Simulation, cx: i32, cy: i32) {
+        for x in (cx - 12)..=(cx + 12) {
+            for y in (cy - 12)..=(cy + 12) {
+                sim.grid.set(x, y, Tile::Sand);
+                sim.grid.hazard[WorldGrid::idx(x, y)] = 0.0;
+            }
+        }
+    }
+
+    fn learned_perception_for_first_org(sim: &Simulation, animal_near: bool) -> String {
+        let spatial = SpatialIndex::build(&sim.organisms, 10);
+        sim.organisms[0].perceive(&sim.grid, &sim.organisms, false, animal_near, &spatial)
+    }
+
+    fn tick_first_org(sim: &mut Simulation) {
+        let mut lineage_counts = std::collections::HashMap::new();
+        lineage_counts.insert("lineage-a".to_string(), 1);
+        let spatial = SpatialIndex::build(&sim.organisms, 10);
+        let mut spatial_buf = Vec::new();
+        let org_idx_by_id: HashMap<String, usize> = sim
+            .organisms
+            .iter()
+            .enumerate()
+            .filter(|(_, o)| o.alive)
+            .map(|(i, o)| (o.id.clone(), i))
+            .collect();
+        sim.tick_organism(0, 1, &lineage_counts, &spatial, &mut spatial_buf, &org_idx_by_id);
+    }
+
+    #[test]
+    fn nearby_prey_does_not_override_learned_action_choice() {
+        let mut sim = Simulation::new(0xa701);
+        sim.organisms.clear();
+        sim.animals.clear();
+        flatten_test_area(&mut sim, 50, 50);
+        let mut org = autonomy_test_organism("learner", 50.0, 50.0);
+        org.energy = 0.50;
+        sim.organisms.push(org);
+        sim.animals.push(Animal::new(1, 54.0, 50.0, AnimalKind::Deer));
+        sim.tick_count = 5_000;
+
+        let perception = learned_perception_for_first_org(&sim, true);
+        sim.organisms[0]
+            .q_table
+            .insert(perception, vec![(24, 5.0), (3, 0.1)]);
+
+        tick_first_org(&mut sim);
+
+        assert_eq!(sim.organisms[0].thought, "scouting the area");
+        assert_ne!(sim.organisms[0].thought, "stalking prey");
+    }
+
+    #[test]
+    fn distant_wolf_pressure_updates_memory_without_forcing_action() {
+        let mut sim = Simulation::new(0xa702);
+        sim.organisms.clear();
+        sim.animals.clear();
+        flatten_test_area(&mut sim, 50, 50);
+        sim.organisms.push(autonomy_test_organism("learner", 50.0, 50.0));
+        sim.animals.push(Animal::new(1, 54.0, 50.0, AnimalKind::Wolf));
+        sim.tick_count = 5_000;
+
+        let perception = learned_perception_for_first_org(&sim, true);
+        sim.organisms[0]
+            .q_table
+            .insert(perception, vec![(24, 5.0), (3, 0.1)]);
+
+        tick_first_org(&mut sim);
+
+        assert_eq!(sim.organisms[0].thought, "scouting the area");
+        assert!(sim.organisms[0].danger_memory.contains_key(&(54, 50)));
+        assert!(sim.organisms[0].fear_level > 0.0);
+        assert_ne!(sim.organisms[0].thought, "wolf! run!");
+    }
+
+    #[test]
+    fn adjacent_wolf_still_triggers_emergency_reflex() {
+        let mut sim = Simulation::new(0xa703);
+        sim.organisms.clear();
+        sim.animals.clear();
+        flatten_test_area(&mut sim, 50, 50);
+        sim.organisms.push(autonomy_test_organism("learner", 50.0, 50.0));
+        sim.animals.push(Animal::new(1, 51.0, 51.0, AnimalKind::Wolf));
+        sim.tick_count = 5_000;
+
+        tick_first_org(&mut sim);
+
+        assert_eq!(sim.organisms[0].thought, "wolf! run!");
+        assert!(sim.organisms[0].wander_target.is_some());
+        assert!(sim.organisms[0].danger_memory.contains_key(&(51, 51)));
     }
 
     #[test]
