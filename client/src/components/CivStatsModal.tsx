@@ -182,228 +182,230 @@ export function CivStatsModal({ world, onClose }: Props) {
       )}
       <div className="civ-modal-grid">
         <div className="civ-cols">
-        <section className="civ-section">
-          <h3>Lineages</h3>
-          <table className="civ-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Lineage Era</th>
-                <th>Pop</th>
-                <th>Gov</th>
-                <th>Currency</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {lineages.slice(0, 12).map((l) => {
-                const era = lineageEras[l.id] ?? 'pre-stone'
-                const gov = governments.find((g) => g.lineage_id === l.id)
-                const hasBrewing = world.organisms.some(
-                  (o) => o.alive && o.lineage_id === l.id && o.discoveries.includes('brewing'),
-                )
-                return (
-                  <tr key={l.id}>
-                    <td>{lineageById(l.id)}</td>
-                    <td>
-                      {ERA_EMOJI[era] ?? ''} {era}
-                    </td>
-                    <td>{l.count}</td>
-                    <td>{gov ? `${GOV_EMOJI[gov.kind] ?? ''} ${gov.kind}` : '-'}</td>
-                    <td>{currencies[l.id] ?? '-'}</td>
-                    <td>
-                      {hasBrewing && (
-                        <button
-                          className="civ-row-link"
-                          onClick={() => {
-                            useSceneStore.getState().enter({ kind: 'tavern', lineageId: l.id })
-                            onClose()
-                          }}
-                        >
-                          🍻 tavern
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </section>
+          <section className="civ-section">
+            <h3>Lineages</h3>
+            <table className="civ-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Lineage Era</th>
+                  <th>Pop</th>
+                  <th>Gov</th>
+                  <th>Currency</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {lineages.slice(0, 12).map((l) => {
+                  const era = lineageEras[l.id] ?? 'pre-stone'
+                  const gov = governments.find((g) => g.lineage_id === l.id)
+                  const hasBrewing = world.organisms.some(
+                    (o) => o.alive && o.lineage_id === l.id && o.discoveries.includes('brewing'),
+                  )
+                  return (
+                    <tr key={l.id}>
+                      <td>{lineageById(l.id)}</td>
+                      <td>
+                        {ERA_EMOJI[era] ?? ''} {era}
+                      </td>
+                      <td>{l.count}</td>
+                      <td>{gov ? `${GOV_EMOJI[gov.kind] ?? ''} ${gov.kind}` : '-'}</td>
+                      <td>{currencies[l.id] ?? '-'}</td>
+                      <td>
+                        {hasBrewing && (
+                          <button
+                            className="civ-row-link"
+                            onClick={() => {
+                              useSceneStore.getState().enter({ kind: 'tavern', lineageId: l.id })
+                              onClose()
+                            }}
+                          >
+                            🍻 tavern
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </section>
 
-        <section className="civ-section">
-          <h3>Governments &amp; Leaders</h3>
-          {governments.length === 0 && <div className="civ-empty">No governments yet</div>}
-          {governments.map((g) => (
-            <div key={g.lineage_id} className="civ-row">
-              <span className="civ-row-head">
-                {GOV_EMOJI[g.kind] ?? ''} {g.kind}
-              </span>
-              <span className="civ-row-sub">{lineageById(g.lineage_id)}</span>
-              {g.leader_id && <span className="civ-row-tag">leader: {orgById(g.leader_id)}</span>}
-              {typeof g.treasury === 'number' && <span className="civ-row-tag">treasury: {g.treasury}</span>}
-              {g.laws && g.laws.length > 0 && (
-                <div className="civ-row-laws">
-                  {g.laws.map((l) => (
-                    <span key={l} className="civ-chip">
-                      {l}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </section>
-
-        <section className="civ-section">
-          <h3>Religions</h3>
-          {religions.length === 0 && <div className="civ-empty">No religions founded yet</div>}
-          {religions.map((r) => (
-            <div key={r.id} className="civ-row">
-              <span className="civ-row-head">
-                {'\u{271D}\u{FE0F}'} {r.name}
-              </span>
-              <span className="civ-row-sub">{r.kind}</span>
-              <span className="civ-row-tag">{r.adherents} adherents</span>
-              <span className="civ-row-tag">
-                founded by {lineageById(r.founder_lineage ?? r.lineage_id ?? '')}
-              </span>
-              <button
-                className="civ-row-link"
-                onClick={() => {
-                  useSceneStore.getState().enter({ kind: 'temple', religionId: r.id })
-                  onClose()
-                }}
-              >
-                enter temple →
-              </button>
-            </div>
-          ))}
-        </section>
-
-        <section className="civ-section">
-          <h3>Buildings</h3>
-          {buildingRows.length === 0 && <div className="civ-empty">Nothing built yet</div>}
-          <div className="civ-build-grid">
-            {buildingRows.map(([kind, count]) => (
-              <span key={kind} className="civ-chip">
-                {kind}: {count}
-              </span>
-            ))}
-          </div>
-        </section>
-
-        <section className="civ-section">
-          <h3>Goods in Circulation</h3>
-          {goodsTotalRows.length === 0 && <div className="civ-empty">No crafted goods held yet</div>}
-          <div className="civ-build-grid">
-            {goodsTotalRows.map(([kind, total]) => (
-              <span key={kind} className="civ-chip" title={kind.replace(/_/g, ' ')}>
-                {GOOD_EMOJI[kind] ?? '🧰'} {kind.replace(/_/g, ' ')}: {total}
-              </span>
-            ))}
-          </div>
-          {goodsTotalRows.length > 0 && (
-            <div style={{ marginTop: 8, fontSize: 11, color: '#888' }}>
-              by lineage:
-              <div style={{ marginTop: 4 }}>
-                {[...goodsByLineage.entries()]
-                  .sort((a, b) => {
-                    const sa = [...a[1].values()].reduce((s, v) => s + v, 0)
-                    const sb = [...b[1].values()].reduce((s, v) => s + v, 0)
-                    return sb - sa
-                  })
-                  .slice(0, 6)
-                  .map(([lid, bag]) => {
-                    const lname = lineageById(lid)
-                    const total = [...bag.values()].reduce((s, v) => s + v, 0)
-                    const top = [...bag.entries()]
-                      .sort((a, b) => b[1] - a[1])
-                      .slice(0, 4)
-                      .map(([k, n]) => `${GOOD_EMOJI[k] ?? ''}${n}`)
-                      .join(' ')
-                    return (
-                      <div key={lid} className="civ-row" style={{ padding: '2px 0' }}>
-                        <span className="civ-row-head">{lname}</span>
-                        <span className="civ-row-tag">{total} held</span>
-                        <span className="civ-row-sub">{top}</span>
-                      </div>
-                    )
-                  })}
+          <section className="civ-section">
+            <h3>Governments &amp; Leaders</h3>
+            {governments.length === 0 && <div className="civ-empty">No governments yet</div>}
+            {governments.map((g) => (
+              <div key={g.lineage_id} className="civ-row">
+                <span className="civ-row-head">
+                  {GOV_EMOJI[g.kind] ?? ''} {g.kind}
+                </span>
+                <span className="civ-row-sub">{lineageById(g.lineage_id)}</span>
+                {g.leader_id && <span className="civ-row-tag">leader: {orgById(g.leader_id)}</span>}
+                {typeof g.treasury === 'number' && (
+                  <span className="civ-row-tag">treasury: {g.treasury}</span>
+                )}
+                {g.laws && g.laws.length > 0 && (
+                  <div className="civ-row-laws">
+                    {g.laws.map((l) => (
+                      <span key={l} className="civ-chip">
+                        {l}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          )}
-        </section>
+            ))}
+          </section>
 
-        <section className="civ-section">
-          <h3>Recent Books</h3>
-          {books.length === 0 && <div className="civ-empty">No books written yet</div>}
-          {books.slice(0, 10).map((b) => (
-            <div key={b.id} className="civ-row">
-              <span className="civ-row-head">
-                {'\u{1F4D6}'} {b.title}
-              </span>
-              <span className="civ-row-sub">
-                {b.author_name} on {b.topic}
-              </span>
-              <span className="civ-row-tag">{b.copies} copies</span>
-            </div>
-          ))}
-        </section>
+          <section className="civ-section">
+            <h3>Religions</h3>
+            {religions.length === 0 && <div className="civ-empty">No religions founded yet</div>}
+            {religions.map((r) => (
+              <div key={r.id} className="civ-row">
+                <span className="civ-row-head">
+                  {'\u{271D}\u{FE0F}'} {r.name}
+                </span>
+                <span className="civ-row-sub">{r.kind}</span>
+                <span className="civ-row-tag">{r.adherents} adherents</span>
+                <span className="civ-row-tag">
+                  founded by {lineageById(r.founder_lineage ?? r.lineage_id ?? '')}
+                </span>
+                <button
+                  className="civ-row-link"
+                  onClick={() => {
+                    useSceneStore.getState().enter({ kind: 'temple', religionId: r.id })
+                    onClose()
+                  }}
+                >
+                  enter temple →
+                </button>
+              </div>
+            ))}
+          </section>
 
-        <section className="civ-section">
-          <h3>Artworks</h3>
-          {artworks.length === 0 && <div className="civ-empty">Nothing made yet</div>}
-          {artworks.slice(0, 10).map((a) => (
-            <div key={a.id} className="civ-row">
-              <span className="civ-row-head">
-                {ART_EMOJI[a.kind] ?? ''} {a.title}
-              </span>
-              <span className="civ-row-sub">by {a.creator_name}</span>
+          <section className="civ-section">
+            <h3>Buildings</h3>
+            {buildingRows.length === 0 && <div className="civ-empty">Nothing built yet</div>}
+            <div className="civ-build-grid">
+              {buildingRows.map(([kind, count]) => (
+                <span key={kind} className="civ-chip">
+                  {kind}: {count}
+                </span>
+              ))}
             </div>
-          ))}
-        </section>
+          </section>
 
-        <section className="civ-section">
-          <h3>Recent Trades</h3>
-          {(() => {
-            const trades = world.trades ?? []
-            if (trades.length === 0) {
-              return <div className="civ-empty">No trades yet (needs barter / currency)</div>
-            }
-            const nameById = new Map<string, string>()
-            for (const o of world.organisms) nameById.set(o.id, o.name)
-            return trades.slice(0, 10).map((t, i) => {
-              const buyer = nameById.get(t.buyer_id) ?? t.buyer_id.slice(0, 6)
-              const seller = nameById.get(t.seller_id) ?? t.seller_id.slice(0, 6)
-              return (
-                <div key={`${t.tick}-${i}`} className="civ-row">
-                  <span className="civ-row-head">
-                    {'\u{1F4B0}'} {seller} → {buyer}
-                  </span>
-                  <span className="civ-row-sub">
-                    {GOOD_EMOJI[t.good] ?? ''} {t.amount} {t.good.replace(/_/g, ' ')}
-                  </span>
-                  <span className="civ-row-tag">
-                    {t.price} coin{t.price === 1 ? '' : 's'}
-                  </span>
-                  <span className="civ-row-tag">tick {t.tick}</span>
+          <section className="civ-section">
+            <h3>Goods in Circulation</h3>
+            {goodsTotalRows.length === 0 && <div className="civ-empty">No crafted goods held yet</div>}
+            <div className="civ-build-grid">
+              {goodsTotalRows.map(([kind, total]) => (
+                <span key={kind} className="civ-chip" title={kind.replace(/_/g, ' ')}>
+                  {GOOD_EMOJI[kind] ?? '🧰'} {kind.replace(/_/g, ' ')}: {total}
+                </span>
+              ))}
+            </div>
+            {goodsTotalRows.length > 0 && (
+              <div style={{ marginTop: 8, fontSize: 11, color: '#888' }}>
+                by lineage:
+                <div style={{ marginTop: 4 }}>
+                  {[...goodsByLineage.entries()]
+                    .sort((a, b) => {
+                      const sa = [...a[1].values()].reduce((s, v) => s + v, 0)
+                      const sb = [...b[1].values()].reduce((s, v) => s + v, 0)
+                      return sb - sa
+                    })
+                    .slice(0, 6)
+                    .map(([lid, bag]) => {
+                      const lname = lineageById(lid)
+                      const total = [...bag.values()].reduce((s, v) => s + v, 0)
+                      const top = [...bag.entries()]
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 4)
+                        .map(([k, n]) => `${GOOD_EMOJI[k] ?? ''}${n}`)
+                        .join(' ')
+                      return (
+                        <div key={lid} className="civ-row" style={{ padding: '2px 0' }}>
+                          <span className="civ-row-head">{lname}</span>
+                          <span className="civ-row-tag">{total} held</span>
+                          <span className="civ-row-sub">{top}</span>
+                        </div>
+                      )
+                    })}
                 </div>
-              )
-            })
-          })()}
-        </section>
+              </div>
+            )}
+          </section>
 
-        <section className="civ-section">
-          <h3>Headlines</h3>
-          {headlines.length === 0 && <div className="civ-empty">No notable events yet</div>}
-          {headlines.slice(0, 12).map((h, i) => (
-            <div key={`${h.tick}-${i}`} className="civ-headline">
-              <span className="civ-headline-tick">tick {h.tick}</span>
-              <span className="civ-headline-text">{h.text}</span>
-            </div>
-          ))}
-        </section>
+          <section className="civ-section">
+            <h3>Recent Books</h3>
+            {books.length === 0 && <div className="civ-empty">No books written yet</div>}
+            {books.slice(0, 10).map((b) => (
+              <div key={b.id} className="civ-row">
+                <span className="civ-row-head">
+                  {'\u{1F4D6}'} {b.title}
+                </span>
+                <span className="civ-row-sub">
+                  {b.author_name} on {b.topic}
+                </span>
+                <span className="civ-row-tag">{b.copies} copies</span>
+              </div>
+            ))}
+          </section>
+
+          <section className="civ-section">
+            <h3>Artworks</h3>
+            {artworks.length === 0 && <div className="civ-empty">Nothing made yet</div>}
+            {artworks.slice(0, 10).map((a) => (
+              <div key={a.id} className="civ-row">
+                <span className="civ-row-head">
+                  {ART_EMOJI[a.kind] ?? ''} {a.title}
+                </span>
+                <span className="civ-row-sub">by {a.creator_name}</span>
+              </div>
+            ))}
+          </section>
+
+          <section className="civ-section">
+            <h3>Recent Trades</h3>
+            {(() => {
+              const trades = world.trades ?? []
+              if (trades.length === 0) {
+                return <div className="civ-empty">No trades yet (needs barter / currency)</div>
+              }
+              const nameById = new Map<string, string>()
+              for (const o of world.organisms) nameById.set(o.id, o.name)
+              return trades.slice(0, 10).map((t, i) => {
+                const buyer = nameById.get(t.buyer_id) ?? t.buyer_id.slice(0, 6)
+                const seller = nameById.get(t.seller_id) ?? t.seller_id.slice(0, 6)
+                return (
+                  <div key={`${t.tick}-${i}`} className="civ-row">
+                    <span className="civ-row-head">
+                      {'\u{1F4B0}'} {seller} → {buyer}
+                    </span>
+                    <span className="civ-row-sub">
+                      {GOOD_EMOJI[t.good] ?? ''} {t.amount} {t.good.replace(/_/g, ' ')}
+                    </span>
+                    <span className="civ-row-tag">
+                      {t.price} coin{t.price === 1 ? '' : 's'}
+                    </span>
+                    <span className="civ-row-tag">tick {t.tick}</span>
+                  </div>
+                )
+              })
+            })()}
+          </section>
+
+          <section className="civ-section">
+            <h3>Headlines</h3>
+            {headlines.length === 0 && <div className="civ-empty">No notable events yet</div>}
+            {headlines.slice(0, 12).map((h, i) => (
+              <div key={`${h.tick}-${i}`} className="civ-headline">
+                <span className="civ-headline-tick">tick {h.tick}</span>
+                <span className="civ-headline-text">{h.text}</span>
+              </div>
+            ))}
+          </section>
         </div>
       </div>
     </Modal>
