@@ -65,6 +65,28 @@ fn context_actions(
     Some(filtered)
 }
 
+fn directive_action_boost(directive: &str, action: usize) -> f32 {
+    let aligned = match directive {
+        "seek_food" | "forage" => matches!(action, 8 | 19 | 26..=38 | 141..=150 | 336..=355 | 1140..=1189),
+        "seek_water" => matches!(action, 9 | 18 | 166..=180 | 1320..=1369),
+        "explore" | "wander" | "migrate" => matches!(action, 0..=7 | 24 | 205 | 2160..=2212),
+        "socialize" => matches!(action, 10 | 13 | 80..=95 | 181..=200 | 226..=245),
+        "flee" => matches!(action, 0..=7 | 11 | 17),
+        "fight" | "defend" | "hunt" => matches!(action, 0..=7 | 12 | 5820..=5869),
+        "trade" => matches!(action, 13 | 90..=95 | 2700..=2749 | 5460..=5509),
+        "rest" => matches!(action, 17 | 107..=116 | 221..=225),
+        "isolate" => matches!(action, 0..=7 | 17),
+        "seek_help" => matches!(action, 10 | 11 | 107..=116 | 181..=190),
+        "settle" => matches!(action, 14 | 15 | 17 | 39..=50 | 146 | 147),
+        _ => false,
+    };
+    if aligned {
+        0.08
+    } else {
+        0.0
+    }
+}
+
 impl Organism {
     pub fn choose_action(
         &self,
@@ -409,175 +431,6 @@ impl Organism {
         if should_rest && self.near_shelter(grid) && rng.random::<f32>() < 0.52 {
             set_thought!("resting");
             return (17, thought);
-        }
-
-        if tick < self.directive_until && !self.directive.is_empty() {
-            match self.directive.as_str() {
-                "seek_food" if self.energy < 0.85 => {
-                    if let Some(v) = self.nearest_visible(grid, Tile::Food, 20) {
-                        set_thought!("pursuing food");
-                        return (self.toward(v, grid), thought);
-                    }
-                    let urgency = (0.85 - self.energy) / 0.85;
-                    if let Some(t) = Self::best_remembered_with_danger(
-                        &self.food_memory,
-                        self.x,
-                        self.y,
-                        &self.danger_memory,
-                        urgency,
-                    ) {
-                        set_thought!("heading to known food");
-                        return (self.toward(t, grid), thought);
-                    }
-                }
-                "seek_water" if self.hydration < 0.85 => {
-                    if let Some(v) = self.nearest_visible(grid, Tile::Water, 20) {
-                        set_thought!("pursuing water");
-                        return (self.toward(v, grid), thought);
-                    }
-                    let urgency = (0.85 - self.hydration) / 0.85;
-                    if let Some(t) = Self::best_remembered_with_danger(
-                        &self.water_memory,
-                        self.x,
-                        self.y,
-                        &self.danger_memory,
-                        urgency,
-                    ) {
-                        set_thought!("heading to known water");
-                        return (self.toward(t, grid), thought);
-                    }
-                }
-                "explore" => {
-                    set_thought!("venturing far");
-                    return (rng.random_range(0..8), thought);
-                }
-                "socialize" => {
-                    set_thought!("seeking company");
-                    return (if rng.random::<f32>() < 0.5 { 10 } else { 13 }, thought);
-                }
-                "flee" => {
-                    let (hx, hy) = (self.home_x as i32, self.home_y as i32);
-                    set_thought!("fleeing to safety");
-                    return (self.toward((hx, hy), grid), thought);
-                }
-                "fight" => {
-                    set_thought!("standing ground");
-                    return (12, thought);
-                }
-                "trade" => {
-                    set_thought!("offering peace");
-                    return (13, thought);
-                }
-                "rest" => {
-                    if let Some(s) = self.find_shelter_tile(grid, 18) {
-                        if (s.0 - ix).abs() + (s.1 - iy).abs() > 1 {
-                            set_thought!("retreating to rest");
-                            return (self.toward(s, grid), thought);
-                        }
-                    }
-                    set_thought!("resting");
-                    return (17, thought);
-                }
-                "isolate" => {
-                    let kin_cx_opt: Option<(f32, f32)> = {
-                        let mut sum_x = 0.0f32;
-                        let mut sum_y = 0.0f32;
-                        let mut n = 0usize;
-                        for o in organisms.iter() {
-                            if std::ptr::eq(o, self) || !o.alive {
-                                continue;
-                            }
-                            if o.lineage_id != self.lineage_id {
-                                continue;
-                            }
-                            if (o.x - self.x).abs() + (o.y - self.y).abs() > 12.0 {
-                                continue;
-                            }
-                            sum_x += o.x;
-                            sum_y += o.y;
-                            n += 1;
-                        }
-                        if n > 0 {
-                            Some((sum_x / n as f32, sum_y / n as f32))
-                        } else {
-                            None
-                        }
-                    };
-                    if let Some((kx, ky)) = kin_cx_opt {
-                        let dx = self.x - kx;
-                        let dy = self.y - ky;
-                        let target = (ix + (dx * 4.0).round() as i32, iy + (dy * 4.0).round() as i32);
-                        set_thought!("isolating");
-                        return (self.toward(target, grid), thought);
-                    }
-                    set_thought!("isolating");
-                    return (rng.random_range(0..8), thought);
-                }
-                "wander" => {
-                    set_thought!("wandering on impulse");
-                    return (rng.random_range(0..8), thought);
-                }
-                "seek_help" => {
-                    let elder_pos: Option<(i32, i32)> = organisms
-                        .iter()
-                        .filter(|o| {
-                            !std::ptr::eq(*o, self)
-                                && o.alive
-                                && o.lineage_id == self.lineage_id
-                                && o.is_elder
-                        })
-                        .min_by(|a, b| {
-                            let da = (a.x - self.x).abs() + (a.y - self.y).abs();
-                            let db = (b.x - self.x).abs() + (b.y - self.y).abs();
-                            da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
-                        })
-                        .map(|o| (o.x as i32, o.y as i32));
-                    if let Some(ep) = elder_pos {
-                        set_thought!("seeking the elder");
-                        return (self.toward(ep, grid), thought);
-                    }
-                    set_thought!("calling for help");
-                    return (11, thought);
-                }
-                "settle" => {
-                    let (hx, hy) = (self.home_x as i32, self.home_y as i32);
-                    if (hx - ix).abs() + (hy - iy).abs() > 4 {
-                        set_thought!("settling near home");
-                        return (self.toward((hx, hy), grid), thought);
-                    }
-                    set_thought!("settling in");
-                    return (17, thought);
-                }
-                "hunt" => {
-                    set_thought!("hunting");
-                    return (12, thought);
-                }
-                "forage" => {
-                    if let Some(v) = self.nearest_visible(grid, Tile::Food, 16) {
-                        set_thought!("foraging");
-                        return (self.toward(v, grid), thought);
-                    }
-                    set_thought!("foraging the brush");
-                    return (19, thought);
-                }
-                "defend" => {
-                    set_thought!("defending");
-                    return (12, thought);
-                }
-                "migrate" => {
-                    let hash = self
-                        .id
-                        .bytes()
-                        .fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
-                    let angle = ((hash ^ tick) as f32) * 0.0000019;
-                    let dist = 80.0 + 220.0 * self.traits.curiosity;
-                    let tx = (self.x + angle.sin() * dist).round() as i32;
-                    let ty = (self.y + angle.cos() * dist).round() as i32;
-                    set_thought!("migrating");
-                    return (self.toward((tx, ty), grid), thought);
-                }
-                _ => {}
-            }
         }
 
         if self.age < 900 && self.energy > 0.6 && self.hydration > 0.6 && !night {
@@ -1084,6 +937,11 @@ impl Organism {
         }
 
         let q_row = self.q_table.get(cached_perception);
+        let active_directive = if tick < self.directive_until {
+            self.directive.as_str()
+        } else {
+            ""
+        };
         // Optimistic initialisation for never-visited actions: small
         // positive seed proportional to action_id. Higher-tier phase-3
         // actions (id ≥ 140) get a slightly larger seed so they get
@@ -1100,13 +958,10 @@ impl Organism {
             q_row
                 .map(|r| {
                     let v = r.get_q(a as u16);
-                    if v == 0.0 {
-                        seed_q(a)
-                    } else {
-                        v
-                    }
+                    let learned = if v == 0.0 { seed_q(a) } else { v };
+                    learned + directive_action_boost(active_directive, a)
                 })
-                .unwrap_or_else(|| seed_q(a))
+                .unwrap_or_else(|| seed_q(a) + directive_action_boost(active_directive, a))
         };
         let best_avail = decision_pool.iter().copied().max_by(|&a, &b| {
             lookup(a)
