@@ -151,35 +151,44 @@ export function CivStatsModal({ world, onClose }: Props) {
 
   return (
     <Modal open onClose={onClose} className="civ-modal" title={'\u{1F30D} Civilization'}>
+      {world.cosmos && (
+        <div className="civ-calendar">
+          <div className="civ-cal-item">
+            <span className="civ-cal-label">year</span>
+            <span className="civ-cal-value">{world.cosmos.year}</span>
+            <span className="civ-cal-sub">day {world.cosmos.day_of_year} of 84</span>
+          </div>
+          <span className="civ-cal-sep" aria-hidden="true" />
+          <div className="civ-cal-item">
+            <span className="civ-cal-moon">{moonGlyphs[world.cosmos.moon_phase] ?? '🌑'}</span>
+            <span className="civ-cal-value">{world.cosmos.moon_phase.replace(/_/g, ' ')}</span>
+            <span className="civ-cal-sub">{Math.round(world.cosmos.moon_illum * 100)}% lit</span>
+          </div>
+          <span className="civ-cal-sep" aria-hidden="true" />
+          <div className="civ-cal-item">
+            <span className="civ-cal-label">season</span>
+            <span className="civ-cal-value">{world.season}</span>
+          </div>
+          {world.current_era && (
+            <>
+              <span className="civ-cal-sep" aria-hidden="true" />
+              <div className="civ-cal-item">
+                <span className="civ-cal-label">world tech</span>
+                <span className="civ-cal-value">{world.current_era}</span>
+              </div>
+            </>
+          )}
+        </div>
+      )}
       <div className="civ-modal-grid">
-        {world.cosmos && (
-          <section className="civ-section">
-            <h3>The Calendar</h3>
-            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13, padding: '4px 0' }}>
-              <span style={{ color: '#d0c8c0' }}>
-                <strong>year {world.cosmos.year}</strong>
-                <span style={{ color: '#777', marginLeft: 6 }}>day {world.cosmos.day_of_year} of 84</span>
-              </span>
-              <span style={{ color: '#d0c8c0' }}>
-                {moonGlyphs[world.cosmos.moon_phase] ?? '🌑'}{' '}
-                <strong>{world.cosmos.moon_phase.replace(/_/g, ' ')}</strong>
-                <span style={{ color: '#777', marginLeft: 6 }}>
-                  ({Math.round(world.cosmos.moon_illum * 100)}% lit)
-                </span>
-              </span>
-              <span style={{ color: '#d0c8c0' }}>
-                season:&nbsp;<strong>{world.season}</strong>
-              </span>
-            </div>
-          </section>
-        )}
+        <div className="civ-cols">
         <section className="civ-section">
           <h3>Lineages</h3>
           <table className="civ-table">
             <thead>
               <tr>
                 <th>Name</th>
-                <th>Era</th>
+                <th>Lineage Era</th>
                 <th>Pop</th>
                 <th>Gov</th>
                 <th>Currency</th>
@@ -395,6 +404,7 @@ export function CivStatsModal({ world, onClose }: Props) {
             </div>
           ))}
         </section>
+        </div>
       </div>
     </Modal>
   )
