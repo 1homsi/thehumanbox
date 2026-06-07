@@ -87,6 +87,14 @@ fn directive_action_boost(directive: &str, action: usize) -> f32 {
     }
 }
 
+fn preferred_action_boost(preferred: Option<usize>, action: usize) -> f32 {
+    if preferred == Some(action) {
+        0.08
+    } else {
+        0.0
+    }
+}
+
 impl Organism {
     pub fn choose_action(
         &self,
@@ -663,14 +671,6 @@ impl Organism {
             }
         }
 
-        if let Some(wt) = self.wander_target {
-            let dist = (wt.0 - ix).abs() + (wt.1 - iy).abs();
-            if dist > 4 && self.energy > 0.20 && self.hydration > 0.20 {
-                set_thought!("wandering");
-                return (self.toward(wt, grid), thought);
-            }
-        }
-
         if tick >= self.directive_until
             && self.energy > 0.45
             && self.hydration > 0.45
@@ -942,6 +942,14 @@ impl Organism {
         } else {
             ""
         };
+        let active_wander_action = self.wander_target.and_then(|wt| {
+            let dist = (wt.0 - ix).abs() + (wt.1 - iy).abs();
+            if dist > 4 && self.energy > 0.20 && self.hydration > 0.20 {
+                Some(self.toward(wt, grid))
+            } else {
+                None
+            }
+        });
         // Optimistic initialisation for never-visited actions: small
         // positive seed proportional to action_id. Higher-tier phase-3
         // actions (id ≥ 140) get a slightly larger seed so they get
@@ -959,9 +967,15 @@ impl Organism {
                 .map(|r| {
                     let v = r.get_q(a as u16);
                     let learned = if v == 0.0 { seed_q(a) } else { v };
-                    learned + directive_action_boost(active_directive, a)
+                    learned
+                        + directive_action_boost(active_directive, a)
+                        + preferred_action_boost(active_wander_action, a)
                 })
-                .unwrap_or_else(|| seed_q(a) + directive_action_boost(active_directive, a))
+                .unwrap_or_else(|| {
+                    seed_q(a)
+                        + directive_action_boost(active_directive, a)
+                        + preferred_action_boost(active_wander_action, a)
+                })
         };
         let best_avail = decision_pool.iter().copied().max_by(|&a, &b| {
             lookup(a)
@@ -975,6 +989,9 @@ impl Organism {
         // settling on the least-bad. Greedy-on-best is the right policy
         // here; exploration is already gated by `eff_eps` upstream.
         if let Some(best_idx) = best_avail {
+            if active_wander_action == Some(best_idx) && thought.is_none() {
+                set_thought!("wandering");
+            }
             return (best_idx, thought);
         }
         let pool = if decision_pool.is_empty() {

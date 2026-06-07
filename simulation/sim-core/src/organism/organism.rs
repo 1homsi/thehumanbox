@@ -2873,6 +2873,76 @@ mod tests {
     }
 
     #[test]
+    fn wander_target_does_not_override_stronger_learned_choice() {
+        let mut rng = StdRng::seed_from_u64(0);
+        let traits = Traits::random(&mut rng);
+        let mut grid = WorldGrid::new(4);
+        for x in 40..=60 {
+            for y in 40..=60 {
+                grid.set(x, y, Tile::Sand);
+            }
+        }
+        let mut org = Organism::new(
+            "id".into(),
+            "SelfDirectedWanderer".into(),
+            50.0,
+            50.0,
+            0,
+            "".into(),
+            "lin".into(),
+            5000,
+            traits,
+        );
+        org.energy = 0.80;
+        org.hydration = 0.80;
+        org.health = 0.90;
+        org.age = 1500;
+        org.wander_target = Some((80, 50));
+        org.q_table.insert("state".into(), vec![(3, 0.1), (24, 5.0)]);
+
+        let (action, thought) =
+            org.choose_action(&grid, 100, 0.0, &[], false, 0, &mut rng, false, "state", &[3, 24]);
+
+        assert_eq!(action, 24);
+        assert_ne!(thought.as_deref(), Some("wandering"));
+    }
+
+    #[test]
+    fn wander_target_biases_tie_without_forcing_action() {
+        let mut rng = StdRng::seed_from_u64(0);
+        let traits = Traits::random(&mut rng);
+        let mut grid = WorldGrid::new(4);
+        for x in 40..=60 {
+            for y in 40..=60 {
+                grid.set(x, y, Tile::Sand);
+            }
+        }
+        let mut org = Organism::new(
+            "id".into(),
+            "SuggestibleWanderer".into(),
+            50.0,
+            50.0,
+            0,
+            "".into(),
+            "lin".into(),
+            5000,
+            traits,
+        );
+        org.energy = 0.80;
+        org.hydration = 0.80;
+        org.health = 0.90;
+        org.age = 1500;
+        org.wander_target = Some((80, 50));
+        org.q_table.insert("state".into(), vec![(3, 0.0), (24, 0.0)]);
+
+        let (action, thought) =
+            org.choose_action(&grid, 100, 0.0, &[], false, 0, &mut rng, false, "state", &[3, 24]);
+
+        assert_eq!(action, 3);
+        assert_eq!(thought.as_deref(), Some("wandering"));
+    }
+
+    #[test]
     fn hydrated_organisms_leave_water_instead_of_lingering() {
         let mut rng = StdRng::seed_from_u64(0);
         let traits = Traits::random(&mut rng);
