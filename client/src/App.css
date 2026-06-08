@@ -4761,3 +4761,16 @@ body.thb-colorblind .org-sick-badge {
   text-align: center;
   color: #f0d088;
 }
+.sandbox-status {
+  max-width: 92vw;
+  padding: 5px 10px;
+  border: 1px solid #5e4a34;
+  border-radius: 6px;
+  background: rgba(20, 18, 14, 0.94);
+  color: #f0d088;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-align: center;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}

@@ -34,7 +34,7 @@ export function useSimulation(source: WorldSource = 'remote'): {
   idleParked: boolean
   resume: () => void
   sandboxAvailable: boolean
-  sendCommand: (cmd: SandboxCommand) => void
+  sendCommand: (cmd: SandboxCommand) => Promise<boolean>
   pauseSim: () => void
   setSpeed: (mult: number) => void
   fellBackToLocal: boolean
@@ -558,17 +558,22 @@ export function useSimulation(source: WorldSource = 'remote'): {
     },
     idleParked,
     resume: () => resumeRef.current(),
-    sandboxAvailable: effectiveSource === 'wasm' || isDesktop(),
+    sandboxAvailable: effectiveSource === 'wasm' || (isDesktop() && IS_LOCAL_SERVER),
     fellBackToLocal: source !== 'wasm' && fellBack,
-    sendCommand: (cmd: SandboxCommand) => {
+    sendCommand: async (cmd: SandboxCommand) => {
       if (effectiveSource === 'wasm') {
         wasmWorkerRef.current?.postMessage({ type: 'command', json: JSON.stringify(cmd) })
-      } else {
-        void fetch(`${API_BASE}/command`, {
+        return true
+      }
+      try {
+        const res = await fetch(`${API_BASE}/command`, {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify(cmd),
-        }).catch(() => {})
+        })
+        return res.ok
+      } catch {
+        return false
       }
     },
     pauseSim: () => wasmWorkerRef.current?.postMessage({ type: 'pause' }),

@@ -68,29 +68,74 @@ function LiveApp() {
 
   const [armedTool, setArmedTool] = useState<SandboxTool | null>(null)
   const [brush, setBrush] = useState(2)
+  const [sandboxStatus, setSandboxStatus] = useState<string | null>(null)
+  const sandboxStatusTimer = useRef<number | null>(null)
+
+  const setTemporarySandboxStatus = useCallback((message: string | null, ms = 1800) => {
+    if (sandboxStatusTimer.current !== null) window.clearTimeout(sandboxStatusTimer.current)
+    setSandboxStatus(message)
+    if (message) {
+      sandboxStatusTimer.current = window.setTimeout(() => {
+        setSandboxStatus(null)
+        sandboxStatusTimer.current = null
+      }, ms)
+    } else {
+      sandboxStatusTimer.current = null
+    }
+  }, [])
+
+  useEffect(
+    () => () => {
+      if (sandboxStatusTimer.current !== null) window.clearTimeout(sandboxStatusTimer.current)
+    },
+    [],
+  )
 
   const onPickTool = useCallback(
     (tool: SandboxTool) => {
       if (tool.mode === 'instant') {
+        setSandboxStatus(`${tool.label}...`)
+        let handled = true
         if (tool.time) {
           if (tool.time.control === 'pause') pauseSim()
           else if (tool.time.control === 'resume') resume()
           else if (tool.time.control === 'speed' && tool.time.mult) setSpeed(tool.time.mult)
+          setTemporarySandboxStatus(`${tool.label} applied`)
         } else if (tool.fire) {
-          sendCommand(tool.fire)
+          void sendCommand(tool.fire).then((ok) =>
+            setTemporarySandboxStatus(ok ? `${tool.label} applied` : `${tool.label} failed`),
+          )
+        } else {
+          handled = false
         }
+        if (!handled) setTemporarySandboxStatus(null)
         return
       }
-      setArmedTool((prev) => (prev?.id === tool.id ? null : tool))
+      setArmedTool((prev) => {
+        const next = prev?.id === tool.id ? null : tool
+        if (sandboxStatusTimer.current !== null) {
+          window.clearTimeout(sandboxStatusTimer.current)
+          sandboxStatusTimer.current = null
+        }
+        setSandboxStatus(next ? `${tool.label} armed - click the world to apply` : null)
+        return next
+      })
     },
-    [pauseSim, resume, setSpeed, sendCommand],
+    [pauseSim, resume, setSpeed, sendCommand, setTemporarySandboxStatus],
   )
 
   const handleSandboxApply = useCallback(
     (wx: number, wy: number) => {
-      if (armedTool?.build) sendCommand(armedTool.build(Math.round(wx), Math.round(wy), brush))
+      if (!armedTool?.build) return
+      const label = armedTool.label
+      const x = Math.round(wx)
+      const y = Math.round(wy)
+      setSandboxStatus(`${label} -> ${x}, ${y}`)
+      void sendCommand(armedTool.build(x, y, brush)).then((ok) => {
+        setTemporarySandboxStatus(ok ? `${label} applied at ${x}, ${y}` : `${label} failed`)
+      })
     },
-    [armedTool, brush, sendCommand],
+    [armedTool, brush, sendCommand, setTemporarySandboxStatus],
   )
 
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
@@ -324,10 +369,15 @@ function LiveApp() {
       {world && sandboxAvailable && (
         <SandboxToolbar
           armedToolId={armedTool?.id ?? null}
+          armedToolLabel={armedTool?.label ?? null}
           brush={brush}
+          status={sandboxStatus}
           onBrush={setBrush}
           onPick={onPickTool}
-          onClearArmed={() => setArmedTool(null)}
+          onClearArmed={() => {
+            setArmedTool(null)
+            setTemporarySandboxStatus(null)
+          }}
         />
       )}
 

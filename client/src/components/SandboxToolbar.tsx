@@ -4,13 +4,23 @@ import { SANDBOX_CATEGORIES, type SandboxTool } from '../simulation/sandbox'
 
 interface Props {
   armedToolId: string | null
+  armedToolLabel?: string | null
   brush: number
+  status?: string | null
   onBrush: (n: number) => void
   onPick: (tool: SandboxTool) => void
   onClearArmed: () => void
 }
 
-export function SandboxToolbar({ armedToolId, brush, onBrush, onPick, onClearArmed }: Props) {
+export function SandboxToolbar({
+  armedToolId,
+  armedToolLabel,
+  brush,
+  status,
+  onBrush,
+  onPick,
+  onClearArmed,
+}: Props) {
   const [catId, setCatId] = useState(SANDBOX_CATEGORIES[0].id)
   const cat = SANDBOX_CATEGORIES.find((c) => c.id === catId) ?? SANDBOX_CATEGORIES[0]
   const hasPointTools = cat.tools.some((t) => t.mode === 'point')
@@ -64,6 +74,11 @@ export function SandboxToolbar({ armedToolId, brush, onBrush, onPick, onClearArm
           </label>
         )}
       </div>
+      {(armedToolId || status) && (
+        <div className="sandbox-status" role="status" aria-live="polite">
+          {status ?? `${armedToolLabel ?? 'tool'} armed - click the world to apply`}
+        </div>
+      )}
     </div>
   )
 }
