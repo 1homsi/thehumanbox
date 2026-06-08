@@ -27,8 +27,8 @@
     "@types/node": "^24.13.1",
     "cross-env": "^10.1.0",
     "electron": "^35.0.0",
-    "electron-builder": "^26.15.0",
-    "electron-builder-squirrel-windows": "26.15.0",
+    "electron-builder": "^26.15.2",
+    "electron-builder-squirrel-windows": "26.15.2",
     "typescript": "^5.7.2"
   }
 }
