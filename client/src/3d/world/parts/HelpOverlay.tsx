@@ -34,6 +34,7 @@ export function HelpOverlay() {
         <Row k="space" v="rise" />
         <Row k="shift" v="descend" />
         <Row k="ctrl" v="boost (4× speed)" />
+        <Row k="C" v="reset camera" />
         <div style={spacer} />
         <Row k="click org" v="select an organism" />
         <Row k="F" v="toggle follow selected" />

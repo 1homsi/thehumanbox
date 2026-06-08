@@ -217,7 +217,12 @@ export function MiniMap({ organisms, animals, tiles, depthMap, biomes, width, he
     clickPingRef.current = { x: mx, y: my, at: performance.now() }
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        cameraCommand.teleport = { x: wx, y: cameraSnapshot.y, z: wz }
+        cameraCommand.teleport = {
+          x: wx,
+          y: Math.max(cameraSnapshot.y, 30),
+          z: wz + 35,
+          lookAt: { x: wx, y: 5, z: wz },
+        }
       })
     })
   }

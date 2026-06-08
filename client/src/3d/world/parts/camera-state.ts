@@ -7,6 +7,16 @@ export interface CameraSnapshot {
   dirZ: number
 }
 
+export interface CameraLookAt {
+  x: number
+  y: number
+  z: number
+}
+
+export interface CameraTeleport extends CameraLookAt {
+  lookAt?: CameraLookAt
+}
+
 export const cameraSnapshot: CameraSnapshot = {
   x: 0,
   y: 0,
@@ -17,9 +27,11 @@ export const cameraSnapshot: CameraSnapshot = {
 }
 
 export const cameraCommand: {
-  teleport: { x: number; y: number; z: number } | null
+  teleport: CameraTeleport | null
+  reset: boolean
   followOrgId: string | null
 } = {
   teleport: null,
+  reset: false,
   followOrgId: null,
 }

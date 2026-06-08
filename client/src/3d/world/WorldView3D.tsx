@@ -1,7 +1,7 @@
 import { Suspense, useRef, useEffect, useState, useMemo } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { KeyboardControls, useKeyboardControls, PointerLockControls, OrbitControls } from '@react-three/drei'
-import { Vector3, TOUCH, PCFSoftShadowMap, ACESFilmicToneMapping, SRGBColorSpace } from 'three'
+import { Vector3, TOUCH, PCFSoftShadowMap, ACESFilmicToneMapping, SRGBColorSpace, type Camera } from 'three'
 import type { WorldState } from '../../types'
 import { useUIStore } from '../../stores/store'
 import { Terrain } from './parts/Terrain'
@@ -53,7 +53,7 @@ import { TerritoryOverlay } from './parts/TerritoryOverlay'
 import { TILE_SCALE } from './parts/constants'
 import { heightAtWorld, heightAt } from './parts/terrain-utils'
 import { getOrgXY } from './parts/motion-state'
-import { cameraCommand } from './parts/camera-state'
+import { cameraCommand, type CameraLookAt, type CameraTeleport } from './parts/camera-state'
 
 type MoveKeys = 'forward' | 'back' | 'left' | 'right' | 'up' | 'down' | 'boost'
 
@@ -80,6 +80,8 @@ interface FlyCameraProps {
   depthMap?: number[][]
   biomes?: number[][]
   buildingAABBs?: BuildingAABB[]
+  worldWidth?: number
+  worldHeight?: number
 }
 
 const CAMERA_RADIUS = 1.6
@@ -89,6 +91,43 @@ const MIN_SEA_LEVEL = 0.6
 const MAX_ALTITUDE = 900
 
 const CAM_LS_KEY = 'thb-3d-cam-v1'
+
+function worldCenter(width?: number, height?: number): CameraLookAt {
+  return {
+    x: ((width ?? 150) * TILE_SCALE) / 2,
+    y: 10,
+    z: ((height ?? 75) * TILE_SCALE) / 2,
+  }
+}
+
+function defaultCameraPose(width?: number, height?: number): CameraTeleport {
+  const center = worldCenter(width, height)
+  return {
+    x: center.x - 90,
+    y: 95,
+    z: center.z + 180,
+    lookAt: center,
+  }
+}
+
+function applyTeleport(camera: Camera, teleport: CameraTeleport) {
+  camera.position.set(teleport.x, teleport.y, teleport.z)
+  if (teleport.lookAt) {
+    camera.up.set(0, 1, 0)
+    camera.lookAt(teleport.lookAt.x, teleport.lookAt.y, teleport.lookAt.z)
+    camera.rotation.order = 'YXZ'
+    camera.rotation.z = 0
+  }
+}
+
+function clampCameraToWorld(camera: Camera, width?: number, height?: number) {
+  if (!width || !height) return
+  const maxX = Math.max(0, (width - 1) * TILE_SCALE)
+  const maxZ = Math.max(0, (height - 1) * TILE_SCALE)
+  const margin = TILE_SCALE * 20
+  camera.position.x = Math.max(-margin, Math.min(maxX + margin, camera.position.x))
+  camera.position.z = Math.max(-margin, Math.min(maxZ + margin, camera.position.z))
+}
 
 function loadSavedCam(): { x: number; y: number; z: number; rx: number; ry: number } | null {
   try {
@@ -122,7 +161,7 @@ function blockedAt(x: number, y: number, z: number, bs: BuildingAABB[] | undefin
   return false
 }
 
-function FlyCamera({ depthMap, biomes, buildingAABBs }: FlyCameraProps) {
+function FlyCamera({ depthMap, biomes, buildingAABBs, worldWidth, worldHeight }: FlyCameraProps) {
   const [, get] = useKeyboardControls<MoveKeys>()
   const { camera } = useThree()
   const velocity = useRef(new Vector3())
@@ -139,15 +178,23 @@ function FlyCamera({ depthMap, biomes, buildingAABBs }: FlyCameraProps) {
       camera.position.set(saved.x, saved.y, saved.z)
       camera.rotation.order = 'YXZ'
       camera.rotation.set(saved.rx, saved.ry, 0, 'YXZ')
+      clampCameraToWorld(camera, worldWidth, worldHeight)
+    } else {
+      applyTeleport(camera, defaultCameraPose(worldWidth, worldHeight))
     }
     camera.up.set(0, 1, 0)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [worldWidth, worldHeight])
 
   useFrame((_, delta) => {
+    if (cameraCommand.reset) {
+      applyTeleport(camera, defaultCameraPose(worldWidth, worldHeight))
+      cameraCommand.reset = false
+      cameraCommand.followOrgId = null
+    }
+
     if (cameraCommand.teleport) {
-      const { x, y, z } = cameraCommand.teleport
-      camera.position.set(x, y, z)
+      applyTeleport(camera, cameraCommand.teleport)
       cameraCommand.teleport = null
     }
 
@@ -218,6 +265,7 @@ function FlyCamera({ depthMap, biomes, buildingAABBs }: FlyCameraProps) {
       if (camera.position.y < MIN_SEA_LEVEL) camera.position.y = MIN_SEA_LEVEL
     }
     if (camera.position.y > MAX_ALTITUDE) camera.position.y = MAX_ALTITUDE
+    clampCameraToWorld(camera, worldWidth, worldHeight)
 
     if (camera.rotation.z !== 0) camera.rotation.z = 0
 
@@ -319,6 +367,11 @@ export default function WorldView3D({ world }: Props) {
       x: cx * TILE_SCALE,
       y: 80,
       z: cy * TILE_SCALE + 60,
+      lookAt: {
+        x: cx * TILE_SCALE,
+        y: 8,
+        z: cy * TILE_SCALE,
+      },
     }
     didInitialAimRef.current = true
   }, [world])
@@ -345,6 +398,11 @@ export default function WorldView3D({ world }: Props) {
               x: tx * TILE_SCALE,
               y: 30,
               z: ty * TILE_SCALE + 25,
+              lookAt: {
+                x: tx * TILE_SCALE,
+                y: 4,
+                z: ty * TILE_SCALE,
+              },
             }
           }
         }
@@ -360,9 +418,17 @@ export default function WorldView3D({ world }: Props) {
               x: tx * TILE_SCALE,
               y: 30,
               z: ty * TILE_SCALE + 25,
+              lookAt: {
+                x: tx * TILE_SCALE,
+                y: 4,
+                z: ty * TILE_SCALE,
+              },
             }
           }
         }
+      } else if (e.code === 'KeyC' && !e.repeat) {
+        setFollow(false)
+        cameraCommand.reset = true
       } else if (e.code === 'Escape' && follow) {
         setFollow(false)
       }
@@ -669,7 +735,13 @@ export default function WorldView3D({ world }: Props) {
               </>
             )}
             <CinematicGrade dayProgress={dayProgress} weatherKind={world?.weather?.kind ?? 'clear'} />
-            <FlyCamera depthMap={grid?.depth_map} biomes={grid?.biomes} buildingAABBs={buildingAABBs} />
+            <FlyCamera
+              depthMap={grid?.depth_map}
+              biomes={grid?.biomes}
+              buildingAABBs={buildingAABBs}
+              worldWidth={grid?.width}
+              worldHeight={grid?.height}
+            />
             <CameraBreath enabled={!isTouch} />
             <CameraSync />
             {isTouch ? (
@@ -710,7 +782,7 @@ export default function WorldView3D({ world }: Props) {
       <div style={hudStyle}>
         {isTouch
           ? 'drag to orbit · pinch to zoom'
-          : 'click to look · WASD move · space/shift up/down · ctrl boost · F follow · J jump · R random · click map · esc release'}
+          : 'click to look · WASD move · space/shift up/down · ctrl boost · C reset · F follow · J jump · R random · click map · esc release'}
         {follow && selectedOrgId && <span style={{ color: '#ff8a3a', marginLeft: 10 }}>· following</span>}
       </div>
     </div>

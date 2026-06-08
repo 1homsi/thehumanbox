@@ -27,6 +27,11 @@ export function SelectedOrgCard({ organisms }: Props) {
       x: tx * TILE_SCALE,
       y: cameraSnapshot.y,
       z: ty * TILE_SCALE + 30,
+      lookAt: {
+        x: tx * TILE_SCALE,
+        y: 4,
+        z: ty * TILE_SCALE,
+      },
     }
   }
 
