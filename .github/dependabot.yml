@@ -7,6 +7,12 @@ updates:
       day: monday
     open-pull-requests-limit: 5
     groups:
+      rand-stack:
+        patterns:
+          - "rand"
+          - "rand_core"
+          - "rand_chacha"
+          - "rand_distr"
       cargo-minor-and-patch:
         update-types:
           - minor

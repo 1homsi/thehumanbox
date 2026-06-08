@@ -119,8 +119,8 @@ impl WorldGrid {
 
                 let nx = x as f32 / w as f32;
                 let ny = y as f32 / h as f32;
-                let noise_a = Self::fbm(nx * 6.0, ny * 6.0, 0xC0A57_1234_5678);
-                let noise_b = Self::fbm(nx * 14.0, ny * 14.0, 0xC0A57_8765_4321);
+                let noise_a = Self::fbm(nx * 6.0, ny * 6.0, 0x000C_0A57_1234_5678);
+                let noise_b = Self::fbm(nx * 14.0, ny * 14.0, 0x000C_0A57_8765_4321);
                 let noise = noise_a * 0.65 + noise_b * 0.35;
 
                 let waterness = (1.0 - prog).powf(1.6) + noise * 0.45 - 0.10;

@@ -15,11 +15,11 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  test-backend:
-    name: Test backend
+  backend-lint:
+    name: Backend lint (fmt + clippy)
     if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 10
     env:
       CARGO_INCREMENTAL: 0
       CARGO_NET_RETRY: 10
@@ -40,11 +40,47 @@ jobs:
       - name: cargo clippy
         working-directory: simulation
         run: cargo clippy --all-targets --locked -- -W clippy::all
+
+  backend-tests:
+    name: Backend tests (release workspace)
+    if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      CARGO_INCREMENTAL: 0
+      CARGO_NET_RETRY: 10
+      RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install mold linker
+        run: sudo apt-get install -y mold
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: simulation -> target
       - name: cargo test --release --locked --workspace
         working-directory: simulation
         # --workspace so the sim-core crate's tests run too (the bulk of the
         # suite lives there after the core was split out for the wasm build).
         run: cargo test --release --locked --workspace
+
+  backend-headless:
+    name: Backend headless smoke
+    if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      CARGO_INCREMENTAL: 0
+      CARGO_NET_RETRY: 10
+      RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install mold linker
+        run: sudo apt-get install -y mold
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: simulation -> target
       - name: headless smoke (6000 ticks, fixed seed)
         working-directory: simulation
         run: |
@@ -53,7 +89,7 @@ jobs:
         timeout-minutes: 4
 
   test-frontend:
-    name: Test + build frontend
+    name: Test frontend
     if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -86,6 +122,17 @@ jobs:
         working-directory: client
         run: pnpm test
 
+  build-wasm:
+    name: Build wasm sim-core
+    if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      CARGO_INCREMENTAL: 0
+      CARGO_NET_RETRY: 10
+    steps:
+      - uses: actions/checkout@v6
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
@@ -100,6 +147,40 @@ jobs:
           RUSTFLAGS='--cfg getrandom_backend="wasm_js"' \
             wasm-pack build sim-core --target web --release \
             --out-dir ../../client/src/wasm/sim-core
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sim-core-wasm
+          path: client/src/wasm/sim-core
+          retention-days: 7
+
+  build-frontend:
+    name: Build frontend
+    if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
+    needs: [test-frontend, build-wasm]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          cache-dependency-path: client/pnpm-lock.yaml
+      - name: pnpm install
+        working-directory: client
+        run: pnpm install --frozen-lockfile
+
+      - id: ts
+        run: echo "build_ts=$(date -u +%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Download wasm sim-core
+        uses: actions/download-artifact@v8
+        with:
+          name: sim-core-wasm
+          path: client/src/wasm/sim-core
 
       - name: pnpm run build
         working-directory: client
@@ -185,7 +266,7 @@ jobs:
     # Only runs for direct pushes to main (post-merge). PRs go through
     # the test jobs only — no version bump, no deploy.
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    needs: [test-backend, test-frontend, test-desktop, test-lab]
+    needs: [release-gate]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -251,6 +332,16 @@ jobs:
           git commit -m "chore: release $NEW [skip-bump]"
           git pull --rebase origin main
           git push
+
+  release-gate:
+    name: Release gate (all checks completed)
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    needs: [backend-lint, backend-tests, backend-headless, test-frontend, build-wasm, build-frontend, test-desktop, test-lab]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Confirm release prerequisites
+        run: echo "All test, wasm, frontend, desktop, and lab checks completed successfully."
 
   build-backend-binary:
     name: Build backend binary (aarch64, at bumped commit)
@@ -381,7 +472,7 @@ jobs:
 
   deploy-frontend:
     name: Deploy frontend (Cloudflare Pages)
-    needs: bump-version
+    needs: [bump-version, build-frontend]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:

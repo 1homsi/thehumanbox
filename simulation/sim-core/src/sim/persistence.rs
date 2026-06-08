@@ -847,6 +847,7 @@ impl Simulation {
             festivals: Vec::new(),
             next_festival_id: 1,
             action_counts: HashMap::new(),
+            decision_counts: HashMap::new(),
             workshop_hits: HashMap::new(),
             last_witness_tick: 0,
             books: Vec::new(),

@@ -350,6 +350,20 @@ fn main() {
             println!("  {:>7}  {}", n, cat);
         }
     }
+    if !sim.decision_counts.is_empty() {
+        let total: u64 = sim.decision_counts.values().sum();
+        let mut rows: Vec<(&'static str, u64)> = sim.decision_counts.iter().map(|(k, v)| (*k, *v)).collect();
+        rows.sort_by(|a, b| b.1.cmp(&a.1));
+        println!("\nDecision origin coverage:");
+        for (origin, n) in rows {
+            let pct = if total > 0 {
+                (n as f64 / total as f64) * 100.0
+            } else {
+                0.0
+            };
+            println!("  {:>7}  {:>5.1}%  {}", n, pct, origin);
+        }
+    }
     let mut era_counts: HashMap<String, usize> = HashMap::new();
     for (_, era) in sim.lineage_eras.iter() {
         *era_counts.entry(era.name().to_string()).or_insert(0) += 1;
@@ -508,7 +522,7 @@ fn main() {
         for (cat, (hit, miss)) in &rows {
             let total = hit + miss;
             let pct = if total > 0 {
-                (*hit as f64 * 100.0 / total as f64)
+                *hit as f64 * 100.0 / total as f64
             } else {
                 0.0
             };
