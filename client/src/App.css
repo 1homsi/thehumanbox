@@ -3645,6 +3645,36 @@ body.thb-colorblind .org-sick-badge {
   color: #8a8170;
   font-weight: 600;
 }
+.civ-era-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 120px;
+  max-width: 180px;
+}
+.civ-era-next,
+.civ-era-ready,
+.civ-era-gate,
+.civ-era-missing {
+  display: block;
+  font-size: 10px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.civ-era-next {
+  color: #c8c0b0;
+  text-transform: capitalize;
+}
+.civ-era-ready {
+  color: #9fd49f;
+  text-transform: capitalize;
+}
+.civ-era-gate {
+  color: #d0a66f;
+}
+.civ-era-missing {
+  color: #8f8575;
+}
 .civ-row {
   padding: 5px 0;
   border-bottom: 1px solid #3a2d22;

@@ -76,6 +76,7 @@ export function CivStatsModal({ world, onClose }: Props) {
   const lineages = world.lineage_sizes ?? []
   const lineageNames = world.lineage_names ?? {}
   const lineageEras = normalizeLineageEras(world.lineage_eras)
+  const eraProgress = new Map((world.lineage_era_progress ?? []).map((p) => [p.lineage_id, p]))
   const currencies = (world.lineage_currencies ?? {}) as Record<string, string>
   const governments =
     (
@@ -190,6 +191,7 @@ export function CivStatsModal({ world, onClose }: Props) {
                   <th>Name</th>
                   <th>Lineage Era</th>
                   <th>Pop</th>
+                  <th>Next</th>
                   <th>Gov</th>
                   <th>Currency</th>
                   <th></th>
@@ -198,6 +200,7 @@ export function CivStatsModal({ world, onClose }: Props) {
               <tbody>
                 {lineages.slice(0, 12).map((l) => {
                   const era = lineageEras[l.id] ?? 'pre-stone'
+                  const progress = eraProgress.get(l.id)
                   const gov = governments.find((g) => g.lineage_id === l.id)
                   const hasBrewing = world.organisms.some(
                     (o) => o.alive && o.lineage_id === l.id && o.discoveries.includes('brewing'),
@@ -209,6 +212,28 @@ export function CivStatsModal({ world, onClose }: Props) {
                         {ERA_EMOJI[era] ?? ''} {era}
                       </td>
                       <td>{l.count}</td>
+                      <td>
+                        {progress?.next_era ? (
+                          <div className="civ-era-progress">
+                            <span className={progress.ready ? 'civ-era-ready' : 'civ-era-next'}>
+                              {progress.next_era}
+                            </span>
+                            {!progress.pop_ready && (
+                              <span className="civ-era-gate">
+                                pop {progress.pop}/{progress.pop_required}
+                              </span>
+                            )}
+                            {progress.missing.length > 0 && (
+                              <span className="civ-era-missing">
+                                missing {progress.missing.slice(0, 3).join(', ')}
+                                {progress.missing.length > 3 ? ' +' : ''}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="civ-era-next">-</span>
+                        )}
+                      </td>
                       <td>{gov ? `${GOV_EMOJI[gov.kind] ?? ''} ${gov.kind}` : '-'}</td>
                       <td>{currencies[l.id] ?? '-'}</td>
                       <td>

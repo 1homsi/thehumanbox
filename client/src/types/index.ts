@@ -388,9 +388,24 @@ export interface WorldState {
   vehicles?: VehicleInfo[]
   festivals?: FestivalInfo[]
   lineage_eras?: Array<{ lineage_id: string; era_name: string }> | Record<string, string>
+  lineage_era_progress?: LineageEraProgress[]
   lineage_currencies?: Record<string, string>
   active_outbreaks?: OutbreakInfo[]
   cosmos?: CosmosState
+}
+
+export interface LineageEraProgress {
+  lineage_id: string
+  era_name: string
+  next_era?: string | null
+  pop: number
+  pop_required: number
+  pop_ready: boolean
+  required: string[]
+  known: string[]
+  missing: string[]
+  discovery_ready: boolean
+  ready: boolean
 }
 
 export type BuildingKind =

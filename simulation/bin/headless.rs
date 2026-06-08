@@ -8,7 +8,7 @@ pub use sim_core::{organism, physics, sim, world};
 
 use serde_json::json;
 use sim::simulation::Simulation;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use world::grid::{WorldGrid, HEIGHT, WIDTH};
@@ -375,6 +375,59 @@ fn main() {
         print!(" {}={}", e, c)
     }
     println!();
+    if !sim.lineage_eras.is_empty() {
+        let mut lineage_discoveries: HashMap<String, HashSet<String>> = HashMap::new();
+        let mut lineage_pop: HashMap<String, usize> = HashMap::new();
+        for org in sim.organisms.iter().filter(|o| o.alive) {
+            *lineage_pop.entry(org.lineage_id.clone()).or_insert(0) += 1;
+            let entry = lineage_discoveries.entry(org.lineage_id.clone()).or_default();
+            for d in &org.discoveries {
+                entry.insert(d.clone());
+            }
+        }
+        let mut blockers: Vec<(String, String, usize, usize, Vec<&str>)> = sim
+            .lineage_eras
+            .iter()
+            .filter_map(|(lid, era)| {
+                let next = era.advance()?;
+                let pop = *lineage_pop.get(lid).unwrap_or(&0);
+                let required_pop = next.pop_threshold();
+                let known = lineage_discoveries.get(lid);
+                let missing: Vec<&str> = next
+                    .required_discoveries()
+                    .iter()
+                    .copied()
+                    .filter(|d| !known.is_some_and(|set| set.contains(*d)))
+                    .collect();
+                if missing.is_empty() && pop >= required_pop {
+                    return None;
+                }
+                Some((lid.clone(), next.name().to_string(), pop, required_pop, missing))
+            })
+            .collect();
+        blockers.sort_by(|a, b| b.2.cmp(&a.2).then_with(|| a.1.cmp(&b.1)));
+        if !blockers.is_empty() {
+            println!("Era advancement blockers:");
+            for (lid, next, pop, required_pop, missing) in blockers.into_iter().take(8) {
+                let name = sim
+                    .lineage_names
+                    .get(&lid)
+                    .cloned()
+                    .unwrap_or_else(|| lid.chars().take(8).collect());
+                let pop_gate = if pop < required_pop {
+                    format!(" pop {pop}/{required_pop}")
+                } else {
+                    String::new()
+                };
+                let missing_gate = if missing.is_empty() {
+                    String::new()
+                } else {
+                    format!(" missing {}", missing.join(","))
+                };
+                println!("  {} -> {}{}{}", name, next, pop_gate, missing_gate);
+            }
+        }
+    }
 
     let mut aspirations: HashMap<String, usize> = HashMap::new();
     let mut joy_count = 0usize;

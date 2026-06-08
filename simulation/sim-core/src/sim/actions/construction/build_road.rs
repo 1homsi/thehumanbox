@@ -6,5 +6,6 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     ctx.sim.grid.leave_trail(ix, iy, TrailKind::Path, 2.5);
     ctx.think("laying a road");
     ctx.discover("roads", "laid the first road");
+    ctx.org_mut().discover("road_building");
     0.004
 }

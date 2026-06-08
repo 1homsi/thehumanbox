@@ -7,6 +7,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     ctx.org_mut().inv_wood -= 1;
     ctx.think("inscribing knowledge onto bark");
     ctx.discover("scroll_writing", "created the first written scroll");
+    ctx.org_mut().discover("writing");
     ctx.event("build", "a scroll is written to preserve knowledge");
     0.010
 }

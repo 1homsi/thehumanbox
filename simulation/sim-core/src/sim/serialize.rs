@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use serde_json::json;
 
@@ -310,6 +310,59 @@ impl Simulation {
                     .collect();
                 obj.insert("lineage_eras".to_string(), serde_json::Value::Array(eras_json));
 
+                let mut lineage_discoveries: HashMap<String, HashSet<String>> = HashMap::new();
+                let mut lineage_pop: HashMap<String, usize> = HashMap::new();
+                for org in self.organisms.iter().filter(|o| o.alive) {
+                    *lineage_pop.entry(org.lineage_id.clone()).or_insert(0) += 1;
+                    let entry = lineage_discoveries.entry(org.lineage_id.clone()).or_default();
+                    for d in &org.discoveries {
+                        entry.insert(d.clone());
+                    }
+                }
+                let era_progress_json: Vec<serde_json::Value> = self
+                    .lineage_eras
+                    .iter()
+                    .map(|(lid, era)| {
+                        let pop = *lineage_pop.get(lid).unwrap_or(&0);
+                        let discoveries = lineage_discoveries.get(lid);
+                        let next = era.advance();
+                        let (next_era, required, known, missing, pop_required) = if let Some(next) = next {
+                            let required = next.required_discoveries();
+                            let has = |d: &str| discoveries.is_some_and(|set| set.contains(d));
+                            let known: Vec<&str> = required.iter().copied().filter(|d| has(d)).collect();
+                            let missing: Vec<&str> = required.iter().copied().filter(|d| !has(d)).collect();
+                            (
+                                Some(next.name()),
+                                required.to_vec(),
+                                known,
+                                missing,
+                                next.pop_threshold(),
+                            )
+                        } else {
+                            (None, Vec::new(), Vec::new(), Vec::new(), 0)
+                        };
+                        let discovery_ready = missing.is_empty();
+                        let pop_ready = pop >= pop_required;
+                        json!({
+                            "lineage_id": lid,
+                            "era_name": era.name(),
+                            "next_era": next_era,
+                            "pop": pop,
+                            "pop_required": pop_required,
+                            "pop_ready": pop_ready,
+                            "required": required,
+                            "known": known,
+                            "missing": missing,
+                            "discovery_ready": discovery_ready,
+                            "ready": discovery_ready && pop_ready,
+                        })
+                    })
+                    .collect();
+                obj.insert(
+                    "lineage_era_progress".to_string(),
+                    serde_json::Value::Array(era_progress_json),
+                );
+
                 let buildings_json: Vec<serde_json::Value> = self
                     .buildings
                     .iter()
@@ -472,6 +525,45 @@ mod schema_tests {
         for key in &["kind", "intensity", "wind_x", "wind_y"] {
             assert!(weather.contains_key(*key), "weather missing key `{}`", key);
         }
+    }
+
+    #[test]
+    fn full_payload_includes_lineage_era_progress() {
+        let mut sim = Simulation::new(42);
+        let lid = sim
+            .organisms
+            .iter()
+            .find(|o| o.alive)
+            .expect("founder exists")
+            .lineage_id
+            .clone();
+        for org in sim.organisms.iter_mut().filter(|o| o.lineage_id == lid) {
+            org.discoveries.insert("fire".to_string());
+            org.discoveries.insert("stone_tools".to_string());
+            org.discoveries.insert("shelter".to_string());
+            org.discoveries.insert("smelting".to_string());
+        }
+        sim.lineage_eras.insert(lid.clone(), crate::sim::era::Era::Stone);
+
+        let payload = sim.state_json();
+        let rows = payload
+            .get("lineage_era_progress")
+            .and_then(|v| v.as_array())
+            .expect("lineage_era_progress array");
+        let row = rows
+            .iter()
+            .find(|row| row.get("lineage_id").and_then(|v| v.as_str()) == Some(lid.as_str()))
+            .expect("progress for lineage");
+
+        assert_eq!(row.get("era_name").and_then(|v| v.as_str()), Some("stone"));
+        assert_eq!(row.get("next_era").and_then(|v| v.as_str()), Some("bronze"));
+        assert_eq!(row.get("known").and_then(|v| v.as_array()).unwrap().len(), 1);
+        assert!(row
+            .get("missing")
+            .and_then(|v| v.as_array())
+            .unwrap()
+            .iter()
+            .any(|v| v.as_str() == Some("agriculture")));
     }
 
     /// Verify that ages was actually dropped from the SoA payload -

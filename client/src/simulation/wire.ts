@@ -81,6 +81,7 @@ export type IncomingWorldFrame = Pick<
   governments?: unknown
   artworks?: unknown
   lineage_eras?: unknown
+  lineage_era_progress?: WorldState['lineage_era_progress']
   lineage_currencies?: WorldState['lineage_currencies']
   active_outbreaks?: WorldState['active_outbreaks']
   cosmos?: WorldState['cosmos']

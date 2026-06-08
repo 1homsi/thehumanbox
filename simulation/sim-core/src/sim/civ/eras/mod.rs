@@ -167,7 +167,7 @@ impl Era {
     pub fn required_discoveries(self) -> &'static [&'static str] {
         self.spec().discoveries
     }
-    fn pop_threshold(self) -> usize {
+    pub fn pop_threshold(self) -> usize {
         self.spec().pop_threshold
     }
 
