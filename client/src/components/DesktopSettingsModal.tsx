@@ -124,12 +124,15 @@ export function DesktopSettingsModal({ onClose }: Props) {
   }
 
   async function restart() {
-    if (!desktop) return
+    if (!settings || !desktop) return
     setBusy(true)
     setStatus(null)
     try {
+      await desktop.settings.set(settings)
+      await desktop.app.applyAutoLaunch()
       const next = await desktop.sim.restart()
       setStatus(next)
+      setSavedAt(Date.now())
     } finally {
       setBusy(false)
     }
@@ -181,7 +184,11 @@ export function DesktopSettingsModal({ onClose }: Props) {
             </button>
             {status && (
               <span style={{ fontSize: 11, color: '#888' }}>
-                {status.running ? `local sim @ :${status.port}` : 'no local sim running'}
+                {status.mode === 'remote'
+                  ? `remote: ${status.remoteUrl ?? settings.remoteUrl}`
+                  : status.running
+                    ? `local sim @ :${status.port}`
+                    : 'no local sim running'}
                 {status.error && <span style={{ color: '#e85040', marginLeft: 6 }}>{status.error}</span>}
               </span>
             )}

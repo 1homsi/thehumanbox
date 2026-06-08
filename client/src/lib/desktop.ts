@@ -21,6 +21,8 @@ export interface DesktopSettings {
 export interface SimStatus {
   running: boolean
   port: number | null
+  mode?: SimMode
+  remoteUrl?: string
   error?: string
 }
 

@@ -38,7 +38,7 @@ export function registerIpc(ipc: IpcMain, getWindow: () => BrowserWindow | null)
       const apiBase = s.remoteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')
       await win.loadFile(indexFile, { query: { desktop: '1', api: apiBase } })
     }
-    return { running: false, port: null }
+    return { running: false, port: null, mode: 'remote', remoteUrl: s.remoteUrl }
   })
 
   ipc.handle('app:reload', async () => {
