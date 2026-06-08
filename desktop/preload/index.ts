@@ -25,6 +25,7 @@ export interface DesktopBridge {
     applyAutoLaunch(): Promise<void>
     pickSaveDir(): Promise<string | null>
     checkForUpdates(): Promise<unknown>
+    installUpdate(): Promise<unknown>
   }
 
   world: {
@@ -66,6 +67,7 @@ const bridge: DesktopBridge = {
     applyAutoLaunch: () => ipcRenderer.invoke('app:applyAutoLaunch'),
     pickSaveDir: () => ipcRenderer.invoke('app:pickSaveDir'),
     checkForUpdates: () => ipcRenderer.invoke('app:checkForUpdates'),
+    installUpdate: () => ipcRenderer.invoke('app:installUpdate'),
   },
 
   world: {

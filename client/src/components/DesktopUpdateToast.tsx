@@ -11,6 +11,8 @@ export function DesktopUpdateToast() {
   const desktop = getDesktop()
   const [state, setState] = useState<State>({ kind: 'idle' })
   const [dismissed, setDismissed] = useState(false)
+  const [installing, setInstalling] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!desktop) return
@@ -22,6 +24,7 @@ export function DesktopUpdateToast() {
       if (!info) return
       setState({ kind: 'downloaded', info: info as UpdateInfo })
       setDismissed(false)
+      setError(null)
     })
     return () => {
       offAvailable()
@@ -44,17 +47,32 @@ export function DesktopUpdateToast() {
       <div style={left}>
         <div style={titleStyle}>{title}</div>
         <div style={subStyle}>{subtitle}</div>
+        {error && <div style={errorStyle}>{error}</div>}
       </div>
       <div style={{ display: 'flex', gap: 6 }}>
         {isReady && (
           <button
             style={primaryBtn}
+            disabled={installing}
             onClick={() => {
-              desktop.app.reload().catch(() => {})
+              setInstalling(true)
+              setError(null)
+              desktop.app
+                .installUpdate()
+                .then((result) => {
+                  if (result.status !== 'downloaded') {
+                    setInstalling(false)
+                    setError(result.message ?? 'update is not ready yet')
+                  }
+                })
+                .catch((err: unknown) => {
+                  setInstalling(false)
+                  setError(err instanceof Error ? err.message : 'could not restart updater')
+                })
             }}
-            title="The main process will quit-and-install on its own dialog; this just reloads the window"
+            title="Restart The Human Box and install the downloaded update"
           >
-            restart
+            {installing ? 'restarting…' : 'restart'}
           </button>
         )}
         <button style={dismissBtn} onClick={() => setDismissed(true)} aria-label="Dismiss">
@@ -97,6 +115,12 @@ const titleStyle: React.CSSProperties = {
 const subStyle: React.CSSProperties = {
   fontSize: 10,
   color: '#999',
+}
+
+const errorStyle: React.CSSProperties = {
+  fontSize: 10,
+  color: '#ff7a68',
+  marginTop: 4,
 }
 
 const primaryBtn: React.CSSProperties = {

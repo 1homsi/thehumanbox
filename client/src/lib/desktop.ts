@@ -68,6 +68,7 @@ export interface DesktopBridge {
     applyAutoLaunch(): Promise<void>
     pickSaveDir(): Promise<string | null>
     checkForUpdates(): Promise<UpdateCheckResult>
+    installUpdate(): Promise<UpdateCheckResult>
   }
   world: {
     importFromRemote(payload: { hash: string; remoteUrl: string }): Promise<SimStatus>

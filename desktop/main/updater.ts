@@ -122,3 +122,21 @@ export async function checkForUpdatesNow(): Promise<UpdateCheckResult> {
     return latestStatus
   }
 }
+
+export function installDownloadedUpdate(): UpdateCheckResult {
+  if (!app.isPackaged) {
+    latestStatus = {
+      status: 'unsupported',
+      message: 'Update installs are only available in packaged builds.',
+    }
+    return latestStatus
+  }
+  if (latestStatus.status !== 'downloaded') {
+    return {
+      ...latestStatus,
+      message: latestStatus.message ?? 'No downloaded update is ready to install.',
+    }
+  }
+  setImmediate(() => autoUpdater.quitAndInstall())
+  return latestStatus
+}
