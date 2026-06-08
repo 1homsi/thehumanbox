@@ -2552,6 +2552,20 @@ body.thb-photo-mode .header:hover {
 .settings-modal {
   width: 760px;
 }
+.desktop-toggle-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 28px;
+  padding: 4px 0;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.desktop-toggle-row input {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
 .stats-quick {
   gap: 8px;
 }

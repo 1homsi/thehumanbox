@@ -477,7 +477,7 @@ function Toggle({
   label: string
 }) {
   return (
-    <label style={{ display: 'flex', gap: 8, alignItems: 'center', cursor: 'pointer', fontSize: 12 }}>
+    <label className="desktop-toggle-row">
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       <span>{label}</span>
     </label>
