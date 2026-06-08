@@ -11,6 +11,7 @@ import { HeadlineTicker } from './components/HeadlineTicker'
 import { trackEvent } from './lib/observability'
 import { useUIStore } from './stores/store'
 import { WS_BASE } from './lib/config'
+import { getDesktop, type SimMode } from './lib/desktop'
 
 const WS_HOST = WS_BASE.replace(/^wss?:\/\//, '')
 import { WorldView } from './2d/world/WorldView'
@@ -65,11 +66,14 @@ function LiveApp() {
     fellBackToLocal,
   } = useSimulation(worldSourceRef.current)
   const currentScene = useCurrentScene()
+  const desktop = getDesktop()
 
   const [armedTool, setArmedTool] = useState<SandboxTool | null>(null)
   const [brush, setBrush] = useState(2)
   const [sandboxStatus, setSandboxStatus] = useState<string | null>(null)
+  const [desktopMode, setDesktopMode] = useState<SimMode | null>(desktop ? null : 'local')
   const sandboxStatusTimer = useRef<number | null>(null)
+  const sandboxControlsEnabled = sandboxAvailable && (!desktop || desktopMode === 'local')
 
   const setTemporarySandboxStatus = useCallback((message: string | null, ms = 1800) => {
     if (sandboxStatusTimer.current !== null) window.clearTimeout(sandboxStatusTimer.current)
@@ -90,6 +94,23 @@ function LiveApp() {
     },
     [],
   )
+
+  useEffect(() => {
+    if (!desktop) return
+    let alive = true
+    void desktop.settings.get().then((settings) => {
+      if (alive) setDesktopMode(settings.mode)
+    })
+    return () => {
+      alive = false
+    }
+  }, [desktop])
+
+  useEffect(() => {
+    if (sandboxControlsEnabled) return
+    setArmedTool(null)
+    setTemporarySandboxStatus(null)
+  }, [sandboxControlsEnabled, setTemporarySandboxStatus])
 
   const onPickTool = useCallback(
     (tool: SandboxTool) => {
@@ -338,7 +359,7 @@ function LiveApp() {
               <WorldView
                 world={world}
                 interp={interp}
-                sandboxArmed={!!armedTool}
+                sandboxArmed={sandboxControlsEnabled && !!armedTool}
                 onSandboxApply={handleSandboxApply}
               />
             )}
@@ -366,7 +387,7 @@ function LiveApp() {
         )}
       </main>
 
-      {world && sandboxAvailable && (
+      {world && sandboxControlsEnabled && (
         <SandboxToolbar
           armedToolId={armedTool?.id ?? null}
           armedToolLabel={armedTool?.label ?? null}
