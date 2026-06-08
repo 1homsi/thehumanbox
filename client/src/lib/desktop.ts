@@ -29,6 +29,21 @@ export interface UpdateInfo {
   releaseDate?: string
 }
 
+export type UpdateCheckStatus =
+  | 'checking'
+  | 'available'
+  | 'downloaded'
+  | 'up-to-date'
+  | 'unsupported'
+  | 'error'
+
+export interface UpdateCheckResult {
+  status: UpdateCheckStatus
+  version?: string
+  releaseDate?: string
+  message?: string
+}
+
 export interface DesktopBridge {
   isDesktop: true
   platform: string
@@ -50,6 +65,7 @@ export interface DesktopBridge {
     openWorlds(): Promise<void>
     applyAutoLaunch(): Promise<void>
     pickSaveDir(): Promise<string | null>
+    checkForUpdates(): Promise<UpdateCheckResult>
   }
   world: {
     importFromRemote(payload: { hash: string; remoteUrl: string }): Promise<SimStatus>

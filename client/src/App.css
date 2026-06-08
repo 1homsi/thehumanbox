@@ -207,7 +207,52 @@ body.thb-photo-mode .headline-ticker {
 }
 
 .thb-desktop-mac .header {
-  padding-left: 84px;
+  padding-left: 112px;
+}
+
+.mac-update-btn {
+  display: none;
+}
+
+.thb-desktop-mac .mac-update-btn {
+  position: absolute;
+  left: 74px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid #443329;
+  border-radius: 999px;
+  background: rgba(20, 16, 12, 0.7);
+  color: #bfae90;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.thb-desktop-mac .mac-update-btn:hover {
+  border-color: #6a543f;
+  color: #f0d088;
+  background: rgba(58, 45, 34, 0.88);
+}
+
+.thb-desktop-mac .mac-update-btn:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.thb-desktop-mac .mac-update-btn.checking {
+  animation: thb-update-spin 900ms linear infinite;
+}
+
+@keyframes thb-update-spin {
+  to {
+    transform: translateY(-50%) rotate(360deg);
+  }
 }
 
 .header-left {

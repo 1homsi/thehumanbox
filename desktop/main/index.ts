@@ -4,7 +4,7 @@ import * as path from 'node:path'
 import { registerIpc } from './ipc'
 import { startSim, stopSim, activeSim } from './sim-process'
 import { loadSettings, saveSettings } from './settings'
-import { initUpdater } from './updater'
+import { checkForUpdatesNow, initUpdater } from './updater'
 
 app.setName('The Human Box')
 
@@ -519,6 +519,8 @@ app.whenReady().then(async () => {
   ipcMain.handle('app:applyAutoLaunch', () => {
     applyAutoLaunch()
   })
+
+  ipcMain.handle('app:checkForUpdates', () => checkForUpdatesNow())
 
   // Native folder picker for the save-location override. Returns the
   // chosen absolute path, or null if cancelled. The renderer persists it

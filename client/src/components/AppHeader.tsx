@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import type { WorldState } from '../types'
 import { useUIStore } from '../stores/store'
 import { Tooltip } from './Tooltip'
 import { MoreDropdown } from './MoreDropdown'
+import { getDesktop } from '../lib/desktop'
 
 function DayNightDial({ isDay, progress }: { isDay: boolean; progress: number }) {
   const angle = progress * 360 - 90
@@ -95,6 +96,7 @@ export function AppHeader({ world, connected, fireTiles, sickOrgs }: Props) {
 
   return (
     <header className="header">
+      <MacUpdateControl />
       <div className="header-left">
         <h1>The Human Box</h1>
         <a
@@ -319,5 +321,50 @@ export function AppHeader({ world, connected, fireTiles, sickOrgs }: Props) {
         </button>
       )}
     </header>
+  )
+}
+
+function MacUpdateControl() {
+  const desktop = getDesktop()
+  const [checking, setChecking] = useState(false)
+  const [message, setMessage] = useState('Check for updates')
+
+  if (!desktop || desktop.platform !== 'darwin') return null
+
+  async function check() {
+    if (!desktop || checking) return
+    setChecking(true)
+    setMessage('Checking...')
+    try {
+      const result = await desktop.app.checkForUpdates()
+      if (result.status === 'available') {
+        setMessage(result.version ? `v${result.version} available` : 'Update available')
+      } else if (result.status === 'downloaded') {
+        setMessage(result.version ? `v${result.version} ready` : 'Update ready')
+      } else if (result.status === 'up-to-date') {
+        setMessage('Up to date')
+      } else if (result.status === 'unsupported') {
+        setMessage('Packaged app only')
+      } else {
+        setMessage('Check failed')
+      }
+    } finally {
+      setChecking(false)
+      window.setTimeout(() => setMessage('Check for updates'), 3500)
+    }
+  }
+
+  return (
+    <Tooltip tip={message}>
+      <button
+        type="button"
+        className={clsx('mac-update-btn', checking && 'checking')}
+        onClick={check}
+        disabled={checking}
+        aria-label="Check for updates"
+      >
+        ↻
+      </button>
+    </Tooltip>
   )
 }

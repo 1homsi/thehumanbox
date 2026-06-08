@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Modal } from './Modal'
 import { getDesktop } from '../lib/desktop'
-import type { DesktopSettings, ModelProvider, SimMode, SimStatus } from '../lib/desktop'
+import type {
+  DesktopBridge,
+  DesktopSettings,
+  ModelProvider,
+  SimMode,
+  SimStatus,
+  UpdateCheckResult,
+} from '../lib/desktop'
 import {
   getWorldSource,
   setWorldSourceAndReload,
@@ -262,6 +269,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
             onChange={(v) => update({ autoUpdate: v })}
             label="Auto-check for updates and prompt when ready"
           />
+          <UpdateCheckButton desktop={desktop} />
         </Section>
 
         <Section title="Desktop behaviour">
@@ -347,6 +355,50 @@ export function DesktopSettingsModal({ onClose }: Props) {
         </div>
       </div>
     </Modal>
+  )
+}
+
+function updateCheckMessage(result: UpdateCheckResult | null): string {
+  if (!result) return ''
+  if (result.status === 'checking') return 'checking...'
+  if (result.status === 'available')
+    return result.version ? `v${result.version} available` : 'update available'
+  if (result.status === 'downloaded') return result.version ? `v${result.version} ready` : 'update ready'
+  if (result.status === 'up-to-date') return 'up to date'
+  if (result.status === 'unsupported') return result.message ?? 'only available in packaged builds'
+  return result.message ?? 'update check failed'
+}
+
+function UpdateCheckButton({ desktop }: { desktop: DesktopBridge }) {
+  const [result, setResult] = useState<UpdateCheckResult | null>(null)
+  const [checking, setChecking] = useState(false)
+
+  async function check() {
+    setChecking(true)
+    setResult({ status: 'checking' })
+    try {
+      setResult(await desktop.app.checkForUpdates())
+    } finally {
+      setChecking(false)
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
+      <button onClick={check} disabled={checking} style={btnSecondary}>
+        {checking ? 'checking...' : 'check for updates'}
+      </button>
+      {result && (
+        <span
+          style={{
+            color: result.status === 'error' ? '#e85040' : '#888',
+            fontSize: 11,
+          }}
+        >
+          {updateCheckMessage(result)}
+        </span>
+      )}
+    </div>
   )
 }
 
