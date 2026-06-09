@@ -842,6 +842,8 @@ interface LayerProps {
   maxCount: number
   scale?: number
   rotY?: number
+  offsetX?: number
+  offsetZ?: number
 }
 
 function Layer({
@@ -854,6 +856,8 @@ function Layer({
   maxCount,
   scale = 1,
   rotY = 0,
+  offsetX = 0,
+  offsetZ = 0,
 }: LayerProps) {
   const meshRef = useRef<InstancedMesh>(null)
   const count = Math.min(positions.length, maxCount)
@@ -864,7 +868,7 @@ function Layer({
     if (!mesh) return
     for (let i = 0; i < count; i++) {
       const [px, py, pz] = positions[i]
-      tmp.position.set(px, py + yOffset, pz)
+      tmp.position.set(px + offsetX, py + yOffset, pz + offsetZ)
       tmp.rotation.set(0, rotY, 0)
       tmp.scale.setScalar(scale)
       tmp.updateMatrix()
@@ -872,7 +876,7 @@ function Layer({
     }
     mesh.count = count
     mesh.instanceMatrix.needsUpdate = true
-  }, [positions, count, yOffset, scale, rotY])
+  }, [positions, count, yOffset, scale, rotY, offsetX, offsetZ])
 
   if (count === 0) return null
   return (
@@ -886,7 +890,19 @@ function Layer({
   )
 }
 
-function SpinningBlades({ positions, axis }: { positions: [number, number, number][]; axis: 'z' | 'x' }) {
+function SpinningBlades({
+  positions,
+  axis,
+  offsetX = 0,
+  offsetY = 0,
+  offsetZ = 0,
+}: {
+  positions: [number, number, number][]
+  axis: 'z' | 'x'
+  offsetX?: number
+  offsetY?: number
+  offsetZ?: number
+}) {
   const meshRef = useRef<InstancedMesh>(null)
   const count = positions.length
   const material = getMat('#3a2a1a')
@@ -900,7 +916,7 @@ function SpinningBlades({ positions, axis }: { positions: [number, number, numbe
       const [px, py, pz] = positions[i]
       for (let b = 0; b < 4; b++) {
         const a = (b * Math.PI) / 2 + t * (axis === 'x' ? 1.6 : 2.2)
-        tmp.position.set(px, py, pz)
+        tmp.position.set(px + offsetX, py + offsetY, pz + offsetZ)
         if (axis === 'z') tmp.rotation.set(0, 0, a)
         else tmp.rotation.set(a, 0, 0)
         tmp.scale.setScalar(1)
@@ -1060,11 +1076,13 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
         maxCount={cap(houses.length)}
       />
       <Layer
-        positions={houses.map(([x, y, z]) => [x + 2.4, y, z + 2.0] as [number, number, number])}
+        positions={houses}
         yOffset={6.4}
         geometry={HOUSE_CHIMNEY}
         color="#4a3020"
         maxCount={cap(houses.length)}
+        offsetX={2.4}
+        offsetZ={2.0}
       />
 
       <Layer
@@ -1075,11 +1093,12 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
         maxCount={cap(manors.length)}
       />
       <Layer
-        positions={manors.map(([x, y, z]) => [x + 7.2, y, z] as [number, number, number])}
+        positions={manors}
         yOffset={3.3}
         geometry={MANOR_WALL_B}
         color={FN_COLOR[FN_DEFAULT.Manor ?? 'Housing']}
         maxCount={cap(manors.length)}
+        offsetX={7.2}
       />
       <Layer
         positions={manors}
@@ -1089,11 +1108,12 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
         maxCount={cap(manors.length)}
       />
       <Layer
-        positions={manors.map(([x, y, z]) => [x + 7.2, y, z] as [number, number, number])}
+        positions={manors}
         yOffset={8.4}
         geometry={MANOR_ROOF_B}
         color={ROOF_DARK}
         maxCount={cap(manors.length)}
+        offsetX={7.2}
       />
 
       <Layer
@@ -1127,32 +1147,40 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
         maxCount={cap(schools.length)}
       />
       <Layer
-        positions={schools.map(([x, y, z]) => [x - 2.0, y, z - 1.5] as [number, number, number])}
+        positions={schools}
         yOffset={1.8}
         geometry={SCHOOL_WING}
         color={FN_COLOR.Education}
         maxCount={cap(schools.length)}
+        offsetX={-2.0}
+        offsetZ={-1.5}
       />
       <Layer
-        positions={schools.map(([x, y, z]) => [x + 2.0, y, z - 1.5] as [number, number, number])}
+        positions={schools}
         yOffset={1.8}
         geometry={SCHOOL_WING}
         color={FN_COLOR.Education}
         maxCount={cap(schools.length)}
+        offsetX={2.0}
+        offsetZ={-1.5}
       />
       <Layer
-        positions={schools.map(([x, y, z]) => [x - 2.0, y, z + 1.5] as [number, number, number])}
+        positions={schools}
         yOffset={1.8}
         geometry={SCHOOL_WING}
         color={FN_COLOR.Education}
         maxCount={cap(schools.length)}
+        offsetX={-2.0}
+        offsetZ={1.5}
       />
       <Layer
-        positions={schools.map(([x, y, z]) => [x + 2.0, y, z + 1.5] as [number, number, number])}
+        positions={schools}
         yOffset={1.8}
         geometry={SCHOOL_WING}
         color={FN_COLOR.Education}
         maxCount={cap(schools.length)}
+        offsetX={2.0}
+        offsetZ={1.5}
       />
 
       <Layer
@@ -1163,32 +1191,40 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
         maxCount={cap(universities.length)}
       />
       <Layer
-        positions={universities.map(([x, y, z]) => [x - 2.4, y, z + 2.8] as [number, number, number])}
+        positions={universities}
         yOffset={2.8}
         geometry={UNI_COL}
         color="#e8dcb6"
         maxCount={cap(universities.length)}
+        offsetX={-2.4}
+        offsetZ={2.8}
       />
       <Layer
-        positions={universities.map(([x, y, z]) => [x - 0.8, y, z + 2.8] as [number, number, number])}
+        positions={universities}
         yOffset={2.8}
         geometry={UNI_COL}
         color="#e8dcb6"
         maxCount={cap(universities.length)}
+        offsetX={-0.8}
+        offsetZ={2.8}
       />
       <Layer
-        positions={universities.map(([x, y, z]) => [x + 0.8, y, z + 2.8] as [number, number, number])}
+        positions={universities}
         yOffset={2.8}
         geometry={UNI_COL}
         color="#e8dcb6"
         maxCount={cap(universities.length)}
+        offsetX={0.8}
+        offsetZ={2.8}
       />
       <Layer
-        positions={universities.map(([x, y, z]) => [x + 2.4, y, z + 2.8] as [number, number, number])}
+        positions={universities}
         yOffset={2.8}
         geometry={UNI_COL}
         color="#e8dcb6"
         maxCount={cap(universities.length)}
+        offsetX={2.4}
+        offsetZ={2.8}
       />
 
       <Layer
@@ -1206,32 +1242,40 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
         maxCount={cap(libraries.length)}
       />
       <Layer
-        positions={libraries.map(([x, y, z]) => [x - 1.6, y, z + 3.05] as [number, number, number])}
+        positions={libraries}
         yOffset={1.0}
         geometry={LIB_BOOK}
         color="#8a3030"
         maxCount={cap(libraries.length)}
+        offsetX={-1.6}
+        offsetZ={3.05}
       />
       <Layer
-        positions={libraries.map(([x, y, z]) => [x - 0.6, y, z + 3.05] as [number, number, number])}
+        positions={libraries}
         yOffset={1.0}
         geometry={LIB_BOOK}
         color="#306030"
         maxCount={cap(libraries.length)}
+        offsetX={-0.6}
+        offsetZ={3.05}
       />
       <Layer
-        positions={libraries.map(([x, y, z]) => [x + 0.6, y, z + 3.05] as [number, number, number])}
+        positions={libraries}
         yOffset={1.0}
         geometry={LIB_BOOK}
         color="#304878"
         maxCount={cap(libraries.length)}
+        offsetX={0.6}
+        offsetZ={3.05}
       />
       <Layer
-        positions={libraries.map(([x, y, z]) => [x + 1.6, y, z + 3.05] as [number, number, number])}
+        positions={libraries}
         yOffset={1.0}
         geometry={LIB_BOOK}
         color="#a07030"
         maxCount={cap(libraries.length)}
+        offsetX={1.6}
+        offsetZ={3.05}
       />
 
       <Layer
@@ -1242,32 +1286,40 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
         maxCount={cap(markets.length)}
       />
       <Layer
-        positions={markets.map(([x, y, z]) => [x - 2.4, y, z - 1.8] as [number, number, number])}
+        positions={markets}
         yOffset={1.6}
         geometry={MARKET_POST}
         color="#5a3a1a"
         maxCount={cap(markets.length)}
+        offsetX={-2.4}
+        offsetZ={-1.8}
       />
       <Layer
-        positions={markets.map(([x, y, z]) => [x + 2.4, y, z - 1.8] as [number, number, number])}
+        positions={markets}
         yOffset={1.6}
         geometry={MARKET_POST}
         color="#5a3a1a"
         maxCount={cap(markets.length)}
+        offsetX={2.4}
+        offsetZ={-1.8}
       />
       <Layer
-        positions={markets.map(([x, y, z]) => [x - 2.4, y, z + 1.8] as [number, number, number])}
+        positions={markets}
         yOffset={1.6}
         geometry={MARKET_POST}
         color="#5a3a1a"
         maxCount={cap(markets.length)}
+        offsetX={-2.4}
+        offsetZ={1.8}
       />
       <Layer
-        positions={markets.map(([x, y, z]) => [x + 2.4, y, z + 1.8] as [number, number, number])}
+        positions={markets}
         yOffset={1.6}
         geometry={MARKET_POST}
         color="#5a3a1a"
         maxCount={cap(markets.length)}
+        offsetX={2.4}
+        offsetZ={1.8}
       />
 
       <Layer
@@ -1307,18 +1359,22 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
         maxCount={cap(factories.length)}
       />
       <Layer
-        positions={factories.map(([x, y, z]) => [x - 2.2, y, z - 1.6] as [number, number, number])}
+        positions={factories}
         yOffset={7.2}
         geometry={FACTORY_STACK}
         color="#3a3a3a"
         maxCount={cap(factories.length)}
+        offsetX={-2.2}
+        offsetZ={-1.6}
       />
       <Layer
-        positions={factories.map(([x, y, z]) => [x + 2.2, y, z - 1.6] as [number, number, number])}
+        positions={factories}
         yOffset={7.2}
         geometry={FACTORY_STACK}
         color="#3a3a3a"
         maxCount={cap(factories.length)}
+        offsetX={2.2}
+        offsetZ={-1.6}
       />
 
       <Layer
@@ -1329,22 +1385,24 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
         maxCount={cap(hospitals.length)}
       />
       <Layer
-        positions={hospitals.map(([x, y, z]) => [x, y, z + 2.55] as [number, number, number])}
+        positions={hospitals}
         yOffset={2.6}
         geometry={HOSP_CROSS_V}
         color="#ffffff"
         emissive="#d83030"
         emissiveIntensity={1.4}
         maxCount={cap(hospitals.length)}
+        offsetZ={2.55}
       />
       <Layer
-        positions={hospitals.map(([x, y, z]) => [x, y, z + 2.56] as [number, number, number])}
+        positions={hospitals}
         yOffset={2.6}
         geometry={HOSP_CROSS_H}
         color="#ffffff"
         emissive="#d83030"
         emissiveIntensity={1.4}
         maxCount={cap(hospitals.length)}
+        offsetZ={2.56}
       />
 
       <Layer
@@ -1355,13 +1413,14 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
         maxCount={cap(forges.length)}
       />
       <Layer
-        positions={forges.map(([x, y, z]) => [x, y, z + 2.05] as [number, number, number])}
+        positions={forges}
         yOffset={1.6}
         geometry={FORGE_WIN}
         color="#ff8030"
         emissive="#ff7020"
         emissiveIntensity={2.2}
         maxCount={cap(forges.length)}
+        offsetZ={2.05}
       />
       <ForgeGlows positions={forges} />
 
@@ -1395,17 +1454,15 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
         maxCount={cap(windmills.length)}
       />
       <Layer
-        positions={windmills.map(([x, y, z]) => [x, y, z + 1.9] as [number, number, number])}
+        positions={windmills}
         yOffset={4.2}
         geometry={BLADE_HUB}
         color="#3a2a1a"
         maxCount={cap(windmills.length)}
         rotY={Math.PI / 2}
+        offsetZ={1.9}
       />
-      <SpinningBlades
-        positions={windmills.map(([x, y, z]) => [x, y + 4.2, z + 2.1] as [number, number, number])}
-        axis="z"
-      />
+      <SpinningBlades positions={windmills} axis="z" offsetY={4.2} offsetZ={2.1} />
 
       <Layer
         positions={watermills}
@@ -1421,10 +1478,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
         color={ROOF_DARK}
         maxCount={cap(watermills.length)}
       />
-      <SpinningBlades
-        positions={watermills.map(([x, y, z]) => [x + 2.2, y + 1.6, z] as [number, number, number])}
-        axis="x"
-      />
+      <SpinningBlades positions={watermills} axis="x" offsetX={2.2} offsetY={1.6} />
 
       <Layer
         positions={lighthouses}
@@ -1490,25 +1544,27 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
         maxCount={cap(aqueducts.length)}
       />
       <Layer
-        positions={aqueducts.map(([x, y, z]) => [x - 3.0, y, z] as [number, number, number])}
+        positions={aqueducts}
+        yOffset={1.5}
+        geometry={AQUE_LEG}
+        color={FN_COLOR.Infrastructure}
+        maxCount={cap(aqueducts.length)}
+        offsetX={-3.0}
+      />
+      <Layer
+        positions={aqueducts}
         yOffset={1.5}
         geometry={AQUE_LEG}
         color={FN_COLOR.Infrastructure}
         maxCount={cap(aqueducts.length)}
       />
       <Layer
-        positions={aqueducts.map(([x, y, z]) => [x, y, z] as [number, number, number])}
+        positions={aqueducts}
         yOffset={1.5}
         geometry={AQUE_LEG}
         color={FN_COLOR.Infrastructure}
         maxCount={cap(aqueducts.length)}
-      />
-      <Layer
-        positions={aqueducts.map(([x, y, z]) => [x + 3.0, y, z] as [number, number, number])}
-        yOffset={1.5}
-        geometry={AQUE_LEG}
-        color={FN_COLOR.Infrastructure}
-        maxCount={cap(aqueducts.length)}
+        offsetX={3.0}
       />
 
       {Object.entries(GENERIC_SPECS).map(([kind, spec]) => {
@@ -1547,15 +1603,15 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
               {offsets.map((off, idx) => (
                 <Layer
                   key={`${kind}-w-${idx}`}
-                  positions={positions.map(
-                    ([x, y, z]) => [x + off[0], y, z + off[2]] as [number, number, number],
-                  )}
+                  positions={positions}
                   yOffset={spec.yOffset}
                   geometry={NIGHT_WINDOW}
                   color="#3a2a18"
                   emissive="#ffcc78"
                   emissiveIntensity={intensity}
                   maxCount={cap(positions.length)}
+                  offsetX={off[0]}
+                  offsetZ={off[2]}
                 />
               ))}
             </group>
@@ -1571,15 +1627,15 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
             {polish.layers.map((l, i) => (
               <Layer
                 key={`${kind}-${i}`}
-                positions={positions.map(
-                  ([x, y, z]) => [x + (l.dx ?? 0), y, z + (l.dz ?? 0)] as [number, number, number],
-                )}
+                positions={positions}
                 yOffset={l.yOffset}
                 geometry={l.geometry}
                 color={l.color}
                 emissive={l.emissive}
                 emissiveIntensity={l.emissiveIntensity}
                 maxCount={cap(positions.length)}
+                offsetX={l.dx ?? 0}
+                offsetZ={l.dz ?? 0}
               />
             ))}
           </group>

@@ -11,7 +11,7 @@ import {
   useDynamicCanvas,
   useGestures,
 } from 'cubeforge'
-import type { WorldState } from '../../types'
+import type { AnimalState, OrganismState, WorldState } from '../../types'
 import type { InterpRefs } from '../../simulation/useSimulation'
 import { useUIStore, type ViewFlags } from '../../stores/store'
 import { lineageColor, cbFireRgba } from '../../utils/constants'
@@ -65,23 +65,42 @@ function deriveAgeStage(age: number, isElder: boolean, declared?: string): AgeSt
   if (age < 1400) return 'teen'
   return 'adult'
 }
-const _orgLastPos = new Map<string, { x: number; y: number; movedAt: number }>()
-function orgFrame(id: string, x: number, y: number): number {
+const _orgLastPos = new Map<string, { x: number; y: number; movedAt: number; phase: number }>()
+function orgAnimPhase(id: string): number {
   let h = 2166136261 >>> 0
   for (let i = 0; i < id.length; i++) {
     h ^= id.charCodeAt(i)
     h = Math.imul(h, 16777619) >>> 0
   }
-  const now = Date.now()
+  return h % 800
+}
+function orgFrame(id: string, x: number, y: number, now: number): number {
   const last = _orgLastPos.get(id)
   let movedAt = last?.movedAt ?? 0
+  let phase = last?.phase
+  if (phase == null) phase = orgAnimPhase(id)
   if (!last || Math.abs(last.x - x) > 0.02 || Math.abs(last.y - y) > 0.02) {
     movedAt = now
-    _orgLastPos.set(id, { x, y, movedAt })
+    _orgLastPos.set(id, { x, y, movedAt, phase })
   }
   if (now - movedAt > 350) return 0
-  const phase = h % 800
   return Math.floor(((now + phase) % 800) / 200)
+}
+
+interface OrgInterpCache {
+  source: OrganismState[] | null
+  prevSource: OrganismState[] | null
+  frameId: number
+  items: OrganismState[]
+  prevById: Map<string, OrganismState>
+}
+
+interface AnimalInterpCache {
+  source: AnimalState[] | null
+  prevSource: AnimalState[] | null
+  frameId: number
+  items: AnimalState[]
+  prevById: Map<number, AnimalState>
 }
 
 const ERA_CLOTHING_COLOR: Record<string, string> = {
@@ -1528,7 +1547,7 @@ function drawWorldOnCanvas(
     const stage = deriveAgeStage(org.age ?? 0, !!org.is_elder, org.age_stage)
     const ageScale = stage === 'infant' ? 0.55 : stage === 'child' ? 0.78 : stage === 'adult' ? 1.1 : 1.0
     const spriteSize = Math.max(12, bodyR * 3.2 * ageScale)
-    const frame = orgFrame(org.id, org.x, org.y)
+    const frame = orgFrame(org.id, org.x, org.y, t)
     const drewLid = lineageErasMap[org.lineage_id] ?? ''
     const drew = drawPeopleTile(
       ctx,
@@ -1734,6 +1753,20 @@ function WorldSprite({
   const cachedDepth = useRef<number[][] | null>(null)
   const cachedBiomes = useRef<number[][] | null>(null)
   const filledOnce = useRef(false)
+  const orgInterpCache = useRef<OrgInterpCache>({
+    source: null,
+    prevSource: null,
+    frameId: -1,
+    items: [],
+    prevById: new Map(),
+  })
+  const animalInterpCache = useRef<AnimalInterpCache>({
+    source: null,
+    prevSource: null,
+    frameId: -1,
+    items: [],
+    prevById: new Map(),
+  })
 
   useLayoutEffect(() => {
     if (filledOnce.current) return
@@ -1805,24 +1838,60 @@ function WorldSprite({
       let renderOrgs = w.viewport_organisms ?? w.organisms
       if (prev && cur === w) {
         const prevOrgs = prev.viewport_organisms ?? prev.organisms
-        const prevById = new Map<string, (typeof prevOrgs)[number]>()
-        for (const o of prevOrgs) prevById.set(o.id, o)
-        renderOrgs = renderOrgs.map((o) => {
-          const p = prevById.get(o.id)
-          if (!p || !p.alive || !o.alive) return o
-          return { ...o, x: p.x + (o.x - p.x) * t, y: p.y + (o.y - p.y) * t }
-        })
+        const cache = orgInterpCache.current
+        if (cache.prevSource !== prevOrgs) {
+          cache.prevSource = prevOrgs
+          cache.prevById.clear()
+          for (const o of prevOrgs) cache.prevById.set(o.id, o)
+        }
+        if (cache.source !== renderOrgs || cache.frameId !== w.frame_id) {
+          cache.source = renderOrgs
+          cache.frameId = w.frame_id
+          cache.items = renderOrgs.map((o) => ({ ...o }))
+        }
+        const items = cache.items
+        for (let i = 0; i < renderOrgs.length; i++) {
+          const o = renderOrgs[i]
+          const out = items[i]
+          const p = cache.prevById.get(o.id)
+          if (p && p.alive && o.alive) {
+            out.x = p.x + (o.x - p.x) * t
+            out.y = p.y + (o.y - p.y) * t
+          } else {
+            out.x = o.x
+            out.y = o.y
+          }
+        }
+        renderOrgs = items
       }
       let renderAnimals = w.viewport_animals ?? w.animals
       if (prev && cur === w) {
         const prevAnimals = prev.viewport_animals ?? prev.animals
-        const prevById = new Map<number, (typeof prevAnimals)[number]>()
-        for (const a of prevAnimals) prevById.set(a.id, a)
-        renderAnimals = renderAnimals.map((a) => {
-          const p = prevById.get(a.id)
-          if (!p) return a
-          return { ...a, x: p.x + (a.x - p.x) * t, y: p.y + (a.y - p.y) * t }
-        })
+        const cache = animalInterpCache.current
+        if (cache.prevSource !== prevAnimals) {
+          cache.prevSource = prevAnimals
+          cache.prevById.clear()
+          for (const a of prevAnimals) cache.prevById.set(a.id, a)
+        }
+        if (cache.source !== renderAnimals || cache.frameId !== w.frame_id) {
+          cache.source = renderAnimals
+          cache.frameId = w.frame_id
+          cache.items = renderAnimals.map((a) => ({ ...a }))
+        }
+        const items = cache.items
+        for (let i = 0; i < renderAnimals.length; i++) {
+          const a = renderAnimals[i]
+          const out = items[i]
+          const p = cache.prevById.get(a.id)
+          if (p) {
+            out.x = p.x + (a.x - p.x) * t
+            out.y = p.y + (a.y - p.y) * t
+          } else {
+            out.x = a.x
+            out.y = a.y
+          }
+        }
+        renderAnimals = items
       }
 
       const lerpCycle = (a: number, b: number, k: number) => {
