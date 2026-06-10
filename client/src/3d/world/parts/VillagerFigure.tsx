@@ -12,6 +12,7 @@ import {
   TorusGeometry,
 } from 'three'
 import type { OrganismState } from '../../../types'
+import { toolFromThought, type OrgAccessory } from './org-work'
 
 const GEO = {
   head: new SphereGeometry(0.5, 10, 8),
@@ -102,40 +103,8 @@ interface Look {
   circlet: boolean
   cloak: boolean
   skirt: boolean
-  accessory: 'none' | 'spear' | 'staff' | 'hammer' | 'hoe' | 'axe' | 'pickaxe' | 'rod'
+  accessory: OrgAccessory
   belly: boolean
-}
-
-export function toolFromThought(thought: string): Look['accessory'] | null {
-  const t = thought.toLowerCase()
-  if (t.includes('chop') || t.includes('timber') || t.includes('sapling') || t.includes('wood')) return 'axe'
-  if (t.includes('mining') || t.includes('ore') || t.includes('quarry') || t.includes('stone'))
-    return 'pickaxe'
-  if (t.includes('fish')) return 'rod'
-  if (t.includes('harvest') || t.includes('planting') || t.includes('irrigat') || t.includes('sowing'))
-    return 'hoe'
-  if (t.includes('build') || t.includes('construct') || t.includes('raising') || t.includes('repair'))
-    return 'hammer'
-  return null
-}
-
-export function workAnimFromThought(thought: string): 'Chop' | 'Fish' | null {
-  const t = thought.toLowerCase()
-  if (t.includes('fishing') || t.includes('to fish')) return 'Fish'
-  if (
-    t.includes('chop') ||
-    t.includes('gathering wood') ||
-    t.includes('gathering stone') ||
-    t.includes('timber') ||
-    t.includes('mining') ||
-    t.includes('quarry') ||
-    t.includes('harvest') ||
-    t.includes('digging') ||
-    t.includes('build') ||
-    t.includes('construct')
-  )
-    return 'Chop'
-  return null
 }
 
 function deriveLook(org: OrganismState, era?: string): Look {

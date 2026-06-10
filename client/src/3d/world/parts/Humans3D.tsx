@@ -17,7 +17,8 @@ import { lineageColor } from '../../../utils/constants'
 import { useUIStore } from '../../../stores/store'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
-import { VillagerFigure, workAnimFromThought } from './VillagerFigure'
+import { VillagerFigure } from './VillagerFigure'
+import { workAnimFromThought } from './org-work'
 import { getOrgXY, getOrgVelocityXY, getOrgHeading } from './motion-state'
 
 interface Props {
