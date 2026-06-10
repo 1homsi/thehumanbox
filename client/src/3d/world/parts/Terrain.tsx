@@ -106,29 +106,28 @@ export function Terrain({ depthMap, biomes, width, height, season, onTilePick }:
 
         const [r, g, bl] = BIOME_COLORS[b] ?? BIOME_COLORS[0]
         const darken = d >= 254 ? 1.0 : 0.45
-        let h = (x * 374761393 + y * 668265263) | 0
-        h = ((h ^ (h >>> 13)) * 1274126177) | 0
-        const jitter = (((h >>> 0) & 0xff) - 128) / 1700
+        const jitter =
+          (vNoise3d(x / 5.3, y / 5.3) - 0.5) * 0.045 + (vNoise3d(x / 17 + 31, y / 17 + 31) - 0.5) * 0.06
         const snow = d >= 254 ? Math.max(0, Math.min(0.55, (elev - 5.5) * 0.18)) : 0
         let baseR = r + jitter
         let baseG = g + jitter
         let baseB = bl + jitter
 
         if (d >= 254) {
+          const macro = vNoise3d(x / 34, y / 34) * 0.6 + vNoise3d(x / 11 + 5, y / 11 + 5) * 0.4
           const tint = season ? SEASON_TINT_3D[season] : undefined
           if (tint) {
-            const macro = vNoise3d(x / 34, y / 34) * 0.6 + vNoise3d(x / 11 + 5, y / 11 + 5) * 0.4
             let w = tint.w * (0.5 + macro * 0.95)
             if (w > 0.8) w = 0.8
             const iw = 1 - w
             baseR = baseR * iw + tint.rgb[0] * w
             baseG = baseG * iw + tint.rgb[1] * w
             baseB = baseB * iw + tint.rgb[2] * w
-            const lum = 0.92 + macro * 0.16
-            baseR *= lum
-            baseG *= lum
-            baseB *= lum
           }
+          const lum = 0.92 + macro * 0.16
+          baseR *= lum
+          baseG *= lum
+          baseB *= lum
           const nD = depthMap[y - 1]?.[x] ?? 255
           const sD = depthMap[y + 1]?.[x] ?? 255
           const eD = dRow?.[x + 1] ?? 255

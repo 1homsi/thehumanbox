@@ -1,7 +1,7 @@
 import { useMemo, useRef } from 'react'
 import { Sky, Stars } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import { Color, Mesh, AdditiveBlending, FogExp2 } from 'three'
+import { Color, Mesh, Object3D, AdditiveBlending, FogExp2 } from 'three'
 import { TILE_SCALE } from './constants'
 
 interface Props {
@@ -54,7 +54,24 @@ export function Sun({
     [cx, cz, r, sunAz, sunAlt],
   )
   const moonRef = useRef<Mesh>(null)
-  useFrame(({ clock }) => {
+  const shadowTarget = useMemo(() => {
+    const t = new Object3D()
+    t.position.set(cx, 0, cz)
+    return t
+  }, [cx, cz])
+  const shadowHalf = 190
+  const fwdScratch = useRef({ x: 0, z: 0 })
+  useFrame(({ clock, camera }) => {
+    const focus = Math.min(120, Math.max(40, camera.position.y * 0.9))
+    const ex = camera.matrixWorld.elements
+    fwdScratch.current.x = -ex[8]
+    fwdScratch.current.z = -ex[10]
+    shadowTarget.position.set(
+      camera.position.x + fwdScratch.current.x * focus,
+      0,
+      camera.position.z + fwdScratch.current.z * focus,
+    )
+    shadowTarget.updateMatrixWorld()
     if (!moonRef.current) return
     const t = clock.getElapsedTime()
     const s = 1 + Math.sin(t * 0.5) * 0.02
@@ -91,9 +108,9 @@ export function Sun({
           ? '#ffb878'
           : '#fff4dc'
 
-  const dirMoonIntensity = (0.15 + 0.55 * moonIllum) * stormFactor * nightWeight
+  const dirMoonIntensity = (0.25 + 0.7 * moonIllum) * stormFactor * nightWeight
 
-  const ambientIntensity = nightWeight * 0.45 + dayWeight * (0.35 + dayStrength * 0.35)
+  const ambientIntensity = nightWeight * 0.32 + dayWeight * (0.35 + dayStrength * 0.35)
   const ambR = nightWeight * (0x5a / 255) + dayWeight * 1
   const ambG = nightWeight * (0x68 / 255) + dayWeight * 1
   const ambB = nightWeight * (0x90 / 255) + dayWeight * 1
@@ -194,20 +211,22 @@ export function Sun({
         />
       </mesh>
 
+      <primitive object={shadowTarget} />
       <directionalLight
         position={sunPos}
+        target={shadowTarget}
         intensity={dirSunIntensity}
         color={dirSunColor}
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-bias={-0.00025}
-        shadow-normalBias={0.04}
-        shadow-camera-left={-300}
-        shadow-camera-right={300}
-        shadow-camera-top={300}
-        shadow-camera-bottom={-300}
+        shadow-normalBias={0.06}
+        shadow-camera-left={-shadowHalf}
+        shadow-camera-right={shadowHalf}
+        shadow-camera-top={shadowHalf}
+        shadow-camera-bottom={-shadowHalf}
         shadow-camera-near={1}
-        shadow-camera-far={3000}
+        shadow-camera-far={4000}
       />
 
       <directionalLight position={moonPos} intensity={dirMoonIntensity} color="#a8b8e0" />
