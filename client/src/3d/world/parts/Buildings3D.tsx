@@ -218,7 +218,50 @@ interface PolishLayer {
   emissiveIntensity?: number
 }
 
+const BANK_COL = new CylinderGeometry(0.3, 0.3, 4.6, 8)
+const BANK_PED = new BoxGeometry(6.6, 0.5, 1.2)
+const GRANARY_ROOF = (() => {
+  const g = new ConeGeometry(4.2, 2.6, 4)
+  g.rotateY(Math.PI / 4)
+  return g
+})()
+const GRANARY_STILT = new BoxGeometry(0.5, 1.2, 0.5)
+const BARRACKS_FLAGPOLE = new CylinderGeometry(0.08, 0.08, 4.2, 6)
+const BARRACKS_FLAG = new BoxGeometry(1.4, 0.8, 0.06)
+
 const WORKSHOP_POLISH: Partial<Record<string, { layers: PolishLayer[] }>> = {
+  Bank: {
+    layers: [
+      { geometry: BANK_PED, yOffset: 5.3, color: '#a89868', dz: 0 },
+      { geometry: BANK_COL, yOffset: 2.4, color: '#d8cfb8', dx: -2.2, dz: 2.3 },
+      { geometry: BANK_COL, yOffset: 2.4, color: '#d8cfb8', dx: -0.75, dz: 2.3 },
+      { geometry: BANK_COL, yOffset: 2.4, color: '#d8cfb8', dx: 0.75, dz: 2.3 },
+      { geometry: BANK_COL, yOffset: 2.4, color: '#d8cfb8', dx: 2.2, dz: 2.3 },
+    ],
+  },
+  Granary: {
+    layers: [
+      { geometry: GRANARY_ROOF, yOffset: 5.7, color: '#6a4a20' },
+      { geometry: GRANARY_STILT, yOffset: 0.6, color: '#5a4226', dx: -2.0, dz: 2.0 },
+      { geometry: GRANARY_STILT, yOffset: 0.6, color: '#5a4226', dx: 2.0, dz: 2.0 },
+      { geometry: GRANARY_STILT, yOffset: 0.6, color: '#5a4226', dx: -2.0, dz: -2.0 },
+      { geometry: GRANARY_STILT, yOffset: 0.6, color: '#5a4226', dx: 2.0, dz: -2.0 },
+    ],
+  },
+  Barracks: {
+    layers: [
+      { geometry: BARRACKS_FLAGPOLE, yOffset: 5.5, color: '#4a4038', dx: 2.4, dz: 2.0 },
+      {
+        geometry: BARRACKS_FLAG,
+        yOffset: 7.0,
+        color: '#a83030',
+        dx: 3.1,
+        dz: 2.0,
+        emissive: '#a83030',
+        emissiveIntensity: 0.08,
+      },
+    ],
+  },
   Cafe: {
     layers: [
       { geometry: ROOF_CAFE, yOffset: 4.0, color: '#3a2418' },
@@ -395,6 +438,9 @@ interface GenericSpec {
 }
 
 const GENERIC_SPECS: Record<string, GenericSpec> = {
+  Bank: { color: '#b8a878', width: 6, height: 5, depth: 5, yOffset: 2.5 },
+  Granary: { color: '#b88848', width: 5, height: 4, depth: 5, yOffset: 2.4 },
+  Barracks: { color: '#5a5a5a', width: 6, height: 3.5, depth: 5, yOffset: 1.75 },
   Tavern: { color: '#7a4a28', width: 5, height: 4, depth: 5, yOffset: 2.0 },
   Brewery: { color: '#7a4a28', width: 5, height: 5, depth: 5, yOffset: 2.5 },
   Butcher: { color: '#a04848', width: 4, height: 3.5, depth: 4, yOffset: 1.75 },
