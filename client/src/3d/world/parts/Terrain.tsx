@@ -17,6 +17,7 @@ interface Props {
   width: number
   height: number
   season?: string
+  onTilePick?: (x: number, y: number) => void
 }
 
 const TEX_TILES_PER_WORLD = 16
@@ -49,7 +50,7 @@ function vNoise3d(x: number, y: number): number {
   return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy
 }
 
-export function Terrain({ depthMap, biomes, width, height, season }: Props) {
+export function Terrain({ depthMap, biomes, width, height, season, onTilePick }: Props) {
   const meshRef = useRef<Mesh>(null)
   const gl = useThree((s) => s.gl)
 
@@ -291,5 +292,22 @@ export function Terrain({ depthMap, biomes, width, height, season }: Props) {
   )
 
   if (!geometry) return null
-  return <mesh ref={meshRef} geometry={geometry} material={material} receiveShadow castShadow />
+  return (
+    <mesh
+      ref={meshRef}
+      geometry={geometry}
+      material={material}
+      receiveShadow
+      castShadow
+      onClick={
+        onTilePick
+          ? (e) => {
+              if (e.delta > 5) return
+              e.stopPropagation()
+              onTilePick(e.point.x / TILE_SCALE, e.point.z / TILE_SCALE)
+            }
+          : undefined
+      }
+    />
+  )
 }

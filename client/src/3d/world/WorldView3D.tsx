@@ -299,11 +299,13 @@ interface Props {
   // Kept on the prop interface for API stability; intentionally
   // ignored here.
   hideUI?: boolean
+  sandboxArmed?: boolean
+  onSandboxApply?: (worldX: number, worldY: number) => void
 }
 
 const SEL_LS_KEY = 'thb-3d-sel-v1'
 
-export default function WorldView3D({ world }: Props) {
+export default function WorldView3D({ world, sandboxArmed, onSandboxApply }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
   const selectOrgStore = useUIStore((s) => s.selectOrg)
@@ -569,6 +571,11 @@ export default function WorldView3D({ world }: Props) {
                   width={grid.width}
                   height={grid.height}
                   season={world.season}
+                  onTilePick={
+                    sandboxArmed && onSandboxApply
+                      ? (x, y) => onSandboxApply(x + (grid.origin_x ?? 0), y + (grid.origin_y ?? 0))
+                      : undefined
+                  }
                 />
                 <Water
                   width={grid.width}

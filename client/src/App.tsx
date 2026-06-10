@@ -363,7 +363,12 @@ function LiveApp() {
               </Suspense>
             ) : viewFlags.threeD ? (
               <Suspense fallback={<ThreeDLoading />}>
-                <WorldView3D world={world} hideUI={viewFlags.hideUI} />
+                <WorldView3D
+                  world={world}
+                  hideUI={viewFlags.hideUI}
+                  sandboxArmed={!!armedTool}
+                  onSandboxApply={handleSandboxApply}
+                />
               </Suspense>
             ) : (
               <WorldView
