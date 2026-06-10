@@ -1,3 +1,5 @@
+import { getBuildingSprite, hasBuildingSprite, PAD, PAD_BOT } from './building-sprites'
+
 export const BUILDING_EMOJI: Record<string, string> = {
   Hut: '\u{1F6D6}',
   House: '\u{1F3E0}',
@@ -677,6 +679,7 @@ export function drawBuilding(
   ox: number,
   oy: number,
   tileSize: number,
+  nightFactor = 0,
 ) {
   const [fw, fh] = buildingFootprint(building.kind)
   const px = (building.x - ox) * tileSize
@@ -707,6 +710,17 @@ export function drawBuilding(
   ctx.ellipse(shadowCx, shadowCy, shadowRx, shadowRy, 0, 0, Math.PI * 2)
   ctx.fill()
   ctx.restore()
+
+  if (hasBuildingSprite(k)) {
+    const variant = (((building.id ?? 0) * 2654435761) ^ (building.x * 73856093) ^ (building.y * 19349663)) >>> 0
+    const nightBucket = Math.max(0, Math.min(3, Math.round(nightFactor * 3)))
+    const condBucket = cond < 0.45 ? 0 : 1
+    const sprite = getBuildingSprite(k, fw, fh, tileSize, variant & 7, nightBucket, condBucket)
+    if (sprite) {
+      ctx.drawImage(sprite, Math.round(px - PAD), Math.round(py + h + PAD_BOT - sprite.height))
+      return
+    }
+  }
 
   if (isHouseLike(k)) {
     const wallH = h * 0.62
