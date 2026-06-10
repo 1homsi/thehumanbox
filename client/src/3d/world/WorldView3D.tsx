@@ -568,6 +568,7 @@ export default function WorldView3D({ world }: Props) {
                   biomes={grid.biomes!}
                   width={grid.width}
                   height={grid.height}
+                  season={world.season}
                 />
                 <Water
                   width={grid.width}

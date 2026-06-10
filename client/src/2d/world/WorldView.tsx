@@ -188,6 +188,7 @@ let _baseKey: {
   tiles: number[][]
   biomes?: number[][]
   depth_map?: number[][]
+  season?: string
 } | null = null
 
 onAnyAtlasLoaded(() => {
@@ -209,6 +210,7 @@ function baseLayerMatches(
   tiles: number[][],
   biomes?: number[][],
   depth_map?: number[][],
+  season?: string,
 ) {
   return (
     !!key &&
@@ -218,9 +220,40 @@ function baseLayerMatches(
     key.origin_y === origin_y &&
     key.tiles === tiles &&
     key.biomes === biomes &&
-    key.depth_map === depth_map
+    key.depth_map === depth_map &&
+    key.season === season
   )
 }
+
+function vnHash(x: number, y: number): number {
+  let h = (x * 374761393 + y * 668265263) | 0
+  h = ((h ^ (h >>> 13)) * 1274126177) | 0
+  return ((h >>> 0) & 0xffff) / 0xffff
+}
+
+function valueNoise(x: number, y: number): number {
+  const xi = Math.floor(x)
+  const yi = Math.floor(y)
+  const fx = x - xi
+  const fy = y - yi
+  const sx = fx * fx * (3 - 2 * fx)
+  const sy = fy * fy * (3 - 2 * fy)
+  const a = vnHash(xi, yi)
+  const b = vnHash(xi + 1, yi)
+  const c = vnHash(xi, yi + 1)
+  const d = vnHash(xi + 1, yi + 1)
+  return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy
+}
+
+const SEASON_LAND_TINT: Record<string, { rgb: [number, number, number]; w: number }> = {
+  abundance: { rgb: [58, 138, 66], w: 0.22 },
+  recovery: { rgb: [92, 150, 64], w: 0.3 },
+  decline: { rgb: [150, 118, 44], w: 0.42 },
+  scarcity: { rgb: [128, 102, 56], w: 0.52 },
+}
+
+const BEACH_RGB: [number, number, number] = [196, 176, 122]
+const SHALLOW_RGB: [number, number, number] = [116, 198, 208]
 
 function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
   const { width, height, tiles, biomes } = world.grid
@@ -231,9 +264,10 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
   const W = width * TILE
   const H = height * TILE
 
+  const season = world.season
   if (
     _baseCanvas &&
-    baseLayerMatches(_baseKey, width, height, origin_x, origin_y, tiles, biomes, depth_map)
+    baseLayerMatches(_baseKey, width, height, origin_x, origin_y, tiles, biomes, depth_map, season)
   ) {
     return _baseCanvas
   }
@@ -256,15 +290,30 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
     if (tid === 13) return 15
     return 9
   }
+  const landTint = SEASON_LAND_TINT[season]
   for (let row = 0; row < height; row++) {
     const tileRow = tiles[row]
     const biomeRow = biomes?.[row]
     const depthRow = depth_map?.[row]
     const tileRowPrev = row > 0 ? tiles[row - 1] : undefined
+    const tileRowNext = row + 1 < height ? tiles[row + 1] : undefined
     for (let col = 0; col < width; col++) {
       const tid = tileRow?.[col] ?? 0
       const rgb = TILE_RGB[tid] ?? TILE_RGB[0]
       let [r, g, b] = rgb
+
+      const isWater = tid === 2 || tid === 9
+      const wN = tileRowPrev?.[col]
+      const wS = tileRowNext?.[col]
+      const wW = col > 0 ? tileRow?.[col - 1] : undefined
+      const wE = tileRow?.[col + 1]
+      const touchesWater =
+        wN === 2 || wN === 9 || wS === 2 || wS === 9 || wW === 2 || wW === 9 || wE === 2 || wE === 9
+      const touchesLand =
+        (wN !== undefined && wN !== 2 && wN !== 9) ||
+        (wS !== undefined && wS !== 2 && wS !== 9) ||
+        (wW !== undefined && wW !== 2 && wW !== 9) ||
+        (wE !== undefined && wE !== 2 && wE !== 9)
 
       if (tid === 2 && depthRow) {
         const dv = depthRow[col]
@@ -274,6 +323,12 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
           g = (170 - t_ * 42) | 0
           b = (220 - t_ * 30) | 0
         }
+      }
+
+      if (isWater && touchesLand) {
+        r = (r * 0.68 + SHALLOW_RGB[0] * 0.32) | 0
+        g = (g * 0.68 + SHALLOW_RGB[1] * 0.32) | 0
+        b = (b * 0.68 + SHALLOW_RGB[2] * 0.32) | 0
       }
 
       if (tid !== 2 && tid !== 5 && tid !== 12) {
@@ -291,10 +346,26 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
       }
 
       let shading = 0
-      if (tid !== 2 && tid !== 9) {
-        const w = col > 0 ? tileRow?.[col - 1] : undefined
-        const n = tileRowPrev?.[col]
-        if (w === 2 || w === 9 || n === 2 || n === 9) shading = 6
+      if (!isWater) {
+        const grassy = tid === 1 || tid === 3 || tid === 6 || tid === 13
+        if (grassy && landTint) {
+          const macro = valueNoise(col / 42, row / 42) * 0.65 + valueNoise(col / 13 + 7, row / 13 + 7) * 0.35
+          let w = landTint.w * (0.55 + macro * 0.9)
+          if (w > 0.85) w = 0.85
+          const iw = 1 - w
+          r = (r * iw + landTint.rgb[0] * w) | 0
+          g = (g * iw + landTint.rgb[1] * w) | 0
+          b = (b * iw + landTint.rgb[2] * w) | 0
+          shading += ((macro - 0.5) * 26) | 0
+        }
+        if (touchesWater) {
+          if (tid === 1 || tid === 3 || tid === 6 || tid === 13) {
+            r = (r * 0.55 + BEACH_RGB[0] * 0.45) | 0
+            g = (g * 0.55 + BEACH_RGB[1] * 0.45) | 0
+            b = (b * 0.55 + BEACH_RGB[2] * 0.45) | 0
+          }
+          shading += 8
+        }
       }
 
       const varAmt = varAmtFor(tid)
@@ -335,7 +406,7 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
     drawNaturalDecor(baseCtx, width, height, tiles, biomes)
   }
   _baseCanvas = canvas
-  _baseKey = { width, height, origin_x, origin_y, tiles, biomes, depth_map }
+  _baseKey = { width, height, origin_x, origin_y, tiles, biomes, depth_map, season }
   return canvas
 }
 
@@ -383,28 +454,37 @@ function drawWorldOnCanvas(
   if (!base) return
   ctx.drawImage(base, 0, 0)
 
-  const seasonTints: Record<string, string> = {
-    decline: 'rgba(180,110,30,0.07)',
-    scarcity: 'rgba(90,60,30,0.11)',
-    recovery: 'rgba(30,120,150,0.07)',
+  const sp = world.season_progress ?? 0.5
+  const seasonTints: Record<string, [number, number, number, number]> = {
+    decline: [180, 110, 30, 0.05 + sp * 0.06],
+    scarcity: [95, 70, 40, 0.07 + sp * 0.07],
+    recovery: [40, 130, 150, 0.04 + (1 - sp) * 0.05],
   }
   const skyTint = seasonTints[world.season]
   if (skyTint) {
-    ctx.fillStyle = skyTint
+    ctx.fillStyle = `rgba(${skyTint[0]},${skyTint[1]},${skyTint[2]},${skyTint[3]})`
     ctx.fillRect(0, 0, W, H)
   }
 
   {
     const dp = world.day_progress ?? 0.5
     if (!world.is_day) {
-      const mid = 1 - Math.abs(dp - 0.85) * 4
-      ctx.fillStyle = `rgba(20,28,70,${0.1 + Math.max(0, mid) * 0.06})`
+      const mid = Math.max(0, 1 - Math.abs(dp - 0.85) * 4)
+      ctx.fillStyle = `rgba(14,20,58,${0.22 + mid * 0.1})`
       ctx.fillRect(0, 0, W, H)
-    } else if (dp < 0.1) {
-      ctx.fillStyle = `rgba(255,170,90,${((0.1 - dp) / 0.1) * 0.06})`
+      ctx.fillStyle = `rgba(80,110,200,${0.05 + mid * 0.03})`
       ctx.fillRect(0, 0, W, H)
-    } else if (dp > 0.6) {
-      ctx.fillStyle = `rgba(230,130,70,${((dp - 0.6) / 0.1) * 0.07})`
+    } else if (dp < 0.12) {
+      const k = (0.12 - dp) / 0.12
+      ctx.fillStyle = `rgba(255,160,80,${k * 0.14})`
+      ctx.fillRect(0, 0, W, H)
+      ctx.fillStyle = `rgba(120,80,160,${k * 0.06})`
+      ctx.fillRect(0, 0, W, H)
+    } else if (dp > 0.55) {
+      const k = Math.min(1, (dp - 0.55) / 0.15)
+      ctx.fillStyle = `rgba(235,120,60,${k * 0.15})`
+      ctx.fillRect(0, 0, W, H)
+      ctx.fillStyle = `rgba(150,70,140,${k * 0.05})`
       ctx.fillRect(0, 0, W, H)
     }
   }
@@ -424,26 +504,36 @@ function drawWorldOnCanvas(
     }
     if (kind === 'rain' || kind === 'storm') {
       const isStorm = kind === 'storm'
-      ctx.strokeStyle = isStorm
-        ? `rgba(180,195,230,${0.1 + wi * 0.1})`
-        : `rgba(170,190,225,${0.08 + wi * 0.08})`
-      ctx.lineWidth = 1
-      const streaks = Math.round((isStorm ? 80 : 50) * (0.4 + wi * 0.6))
-      // Wind drives the streak angle. Magnitude controls slant
-      // intensity; storms are inherently more violent so multiply.
       const wx = world.weather.wind_x ?? 0.4
       const wy = world.weather.wind_y ?? 0.0
-      const baseSlant = isStorm ? 10 : 6
-      const slantX = wx * baseSlant
-      const slantY = (1 + wy * 0.5) * 8 // mostly downward, biased by wind_y
-      ctx.beginPath()
-      for (let i = 0; i < streaks; i++) {
-        const sxp = (i * 137 + t * 0.7) % W
-        const syp = (i * 251 + t * (isStorm ? 1.4 : 1.0)) % H
-        ctx.moveTo(sxp, syp)
-        ctx.lineTo(sxp + slantX, syp + slantY)
+      if (world.season === 'scarcity' && !isStorm) {
+        ctx.fillStyle = `rgba(240,246,255,${0.35 + wi * 0.3})`
+        const flakes = Math.round(90 * (0.4 + wi * 0.6))
+        for (let i = 0; i < flakes; i++) {
+          const drift = Math.sin(t * 0.0012 + i * 1.7) * 6 + wx * 10
+          const sxp = (i * 137 + t * 0.12 + drift) % W
+          const syp = (i * 251 + t * 0.25) % H
+          const sz = 1 + ((i * 7) % 2)
+          ctx.fillRect(sxp, syp, sz, sz)
+        }
+      } else {
+        ctx.strokeStyle = isStorm
+          ? `rgba(180,195,230,${0.1 + wi * 0.1})`
+          : `rgba(170,190,225,${0.08 + wi * 0.08})`
+        ctx.lineWidth = 1
+        const streaks = Math.round((isStorm ? 80 : 50) * (0.4 + wi * 0.6))
+        const baseSlant = isStorm ? 10 : 6
+        const slantX = wx * baseSlant
+        const slantY = (1 + wy * 0.5) * 8
+        ctx.beginPath()
+        for (let i = 0; i < streaks; i++) {
+          const sxp = (i * 137 + t * 0.7) % W
+          const syp = (i * 251 + t * (isStorm ? 1.4 : 1.0)) % H
+          ctx.moveTo(sxp, syp)
+          ctx.lineTo(sxp + slantX, syp + slantY)
+        }
+        ctx.stroke()
       }
-      ctx.stroke()
     }
   }
 
@@ -506,23 +596,37 @@ function drawWorldOnCanvas(
   {
     const dm = world.grid.depth_map
     if (dm) {
-      ctx.fillStyle = 'rgba(255,255,255,0.42)'
-      for (let row = 1; row < height - 1; row++) {
-        const drow = dm[row]
-        if (!drow) continue
-        for (let col = 1; col < width - 1; col++) {
-          if ((drow[col] ?? 255) >= 254) continue
-          const n = dm[row - 1]?.[col] ?? 255
-          const s = dm[row + 1]?.[col] ?? 255
-          const e = drow[col + 1] ?? 255
-          const w = drow[col - 1] ?? 255
-          if (n < 254 && s < 254 && e < 254 && w < 254) continue
-          const px = col * TILE
-          const py = row * TILE
-          if (n >= 254) ctx.fillRect(px, py, TILE, 1)
-          if (s >= 254) ctx.fillRect(px, py + TILE - 1, TILE, 1)
-          if (e >= 254) ctx.fillRect(px + TILE - 1, py, 1, TILE)
-          if (w >= 254) ctx.fillRect(px, py, 1, TILE)
+      const foamT = t * 0.0014
+      const fr0 = Math.max(1, r0)
+      const fr1 = Math.min(height - 1, r1)
+      const fc0 = Math.max(1, c0)
+      const fc1 = Math.min(width - 1, c1)
+      for (let pass = 0; pass < 2; pass++) {
+        ctx.fillStyle = pass === 0 ? 'rgba(255,255,255,0.30)' : 'rgba(255,255,255,0.55)'
+        for (let row = fr0; row < fr1; row++) {
+          const drow = dm[row]
+          if (!drow) continue
+          for (let col = fc0; col < fc1; col++) {
+            if ((drow[col] ?? 255) >= 254) continue
+            const n = dm[row - 1]?.[col] ?? 255
+            const s = dm[row + 1]?.[col] ?? 255
+            const e = drow[col + 1] ?? 255
+            const w = drow[col - 1] ?? 255
+            if (n < 254 && s < 254 && e < 254 && w < 254) continue
+            if (pass === 1) {
+              let h = (col * 374761393 + row * 668265263) | 0
+              h = ((h ^ (h >>> 13)) * 1274126177) >>> 0
+              const pulse = Math.sin(foamT + ((h & 0xff) / 255) * Math.PI * 2)
+              if (pulse < 0.25) continue
+            }
+            const px = col * TILE
+            const py = row * TILE
+            const th = pass === 1 ? 2 : 1
+            if (n >= 254) ctx.fillRect(px, py, TILE, th)
+            if (s >= 254) ctx.fillRect(px, py + TILE - th, TILE, th)
+            if (e >= 254) ctx.fillRect(px + TILE - th, py, th, TILE)
+            if (w >= 254) ctx.fillRect(px, py, th, TILE)
+          }
         }
       }
     }
@@ -596,8 +700,21 @@ function drawWorldOnCanvas(
         const fi = fire_intensity[row][col]
         ctx.fillStyle = cbFireRgba(255, 200, 80, fi * 0.7)
         ctx.fillRect(px, py, TILE, TILE)
-        ctx.fillStyle = cbFireRgba(255, 160, 40, fi * 0.12)
-        ctx.fillRect(px - TILE * 2, py - TILE * 2, TILE * 5, TILE * 5)
+        if (!world.is_day) {
+          const fcx = px + TILE / 2
+          const fcy = py + TILE / 2
+          const flicker = 0.85 + Math.sin(Date.now() * 0.011 + col * 3.1 + row * 1.7) * 0.15
+          const lr = TILE * 5.5 * flicker
+          const grad = ctx.createRadialGradient(fcx, fcy, TILE * 0.4, fcx, fcy, lr)
+          grad.addColorStop(0, `rgba(255,190,90,${0.5 * fi})`)
+          grad.addColorStop(0.45, `rgba(255,150,50,${0.22 * fi})`)
+          grad.addColorStop(1, 'rgba(255,120,30,0)')
+          ctx.fillStyle = grad
+          ctx.fillRect(fcx - lr, fcy - lr, lr * 2, lr * 2)
+        } else {
+          ctx.fillStyle = cbFireRgba(255, 160, 40, fi * 0.12)
+          ctx.fillRect(px - TILE * 2, py - TILE * 2, TILE * 5, TILE * 5)
+        }
         if (TILE >= 8) {
           const cx2 = px + TILE / 2
           ctx.fillStyle = cbFireRgba(255, 80, 0, fi * 0.6)

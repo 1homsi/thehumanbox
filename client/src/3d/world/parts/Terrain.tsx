@@ -16,11 +16,40 @@ interface Props {
   biomes: number[][]
   width: number
   height: number
+  season?: string
 }
 
 const TEX_TILES_PER_WORLD = 16
 
-export function Terrain({ depthMap, biomes, width, height }: Props) {
+const SEASON_TINT_3D: Record<string, { rgb: [number, number, number]; w: number }> = {
+  abundance: { rgb: [0.23, 0.54, 0.26], w: 0.18 },
+  recovery: { rgb: [0.36, 0.59, 0.25], w: 0.26 },
+  decline: { rgb: [0.59, 0.46, 0.17], w: 0.38 },
+  scarcity: { rgb: [0.5, 0.4, 0.22], w: 0.48 },
+}
+const BEACH_3D: [number, number, number] = [0.77, 0.69, 0.48]
+
+function vnHash3d(x: number, y: number): number {
+  let h = (x * 374761393 + y * 668265263) | 0
+  h = ((h ^ (h >>> 13)) * 1274126177) | 0
+  return ((h >>> 0) & 0xffff) / 0xffff
+}
+
+function vNoise3d(x: number, y: number): number {
+  const xi = Math.floor(x)
+  const yi = Math.floor(y)
+  const fx = x - xi
+  const fy = y - yi
+  const sx = fx * fx * (3 - 2 * fx)
+  const sy = fy * fy * (3 - 2 * fy)
+  const a = vnHash3d(xi, yi)
+  const b = vnHash3d(xi + 1, yi)
+  const c = vnHash3d(xi, yi + 1)
+  const d = vnHash3d(xi + 1, yi + 1)
+  return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy
+}
+
+export function Terrain({ depthMap, biomes, width, height, season }: Props) {
   const meshRef = useRef<Mesh>(null)
   const gl = useThree((s) => s.gl)
 
@@ -80,9 +109,36 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
         h = ((h ^ (h >>> 13)) * 1274126177) | 0
         const jitter = (((h >>> 0) & 0xff) - 128) / 1700
         const snow = d >= 254 ? Math.max(0, Math.min(0.55, (elev - 5.5) * 0.18)) : 0
-        const baseR = r + jitter
-        const baseG = g + jitter
-        const baseB = bl + jitter
+        let baseR = r + jitter
+        let baseG = g + jitter
+        let baseB = bl + jitter
+
+        if (d >= 254) {
+          const tint = season ? SEASON_TINT_3D[season] : undefined
+          if (tint) {
+            const macro = vNoise3d(x / 34, y / 34) * 0.6 + vNoise3d(x / 11 + 5, y / 11 + 5) * 0.4
+            let w = tint.w * (0.5 + macro * 0.95)
+            if (w > 0.8) w = 0.8
+            const iw = 1 - w
+            baseR = baseR * iw + tint.rgb[0] * w
+            baseG = baseG * iw + tint.rgb[1] * w
+            baseB = baseB * iw + tint.rgb[2] * w
+            const lum = 0.92 + macro * 0.16
+            baseR *= lum
+            baseG *= lum
+            baseB *= lum
+          }
+          const nD = depthMap[y - 1]?.[x] ?? 255
+          const sD = depthMap[y + 1]?.[x] ?? 255
+          const eD = dRow?.[x + 1] ?? 255
+          const wD = dRow?.[x - 1] ?? 255
+          if (nD < 254 || sD < 254 || eD < 254 || wD < 254) {
+            baseR = baseR * 0.55 + BEACH_3D[0] * 0.45
+            baseG = baseG * 0.55 + BEACH_3D[1] * 0.45
+            baseB = baseB * 0.55 + BEACH_3D[2] * 0.45
+          }
+        }
+
         colors[i * 3] = (baseR + (1.0 - baseR) * snow) * darken
         colors[i * 3 + 1] = (baseG + (1.0 - baseG) * snow) * darken
         colors[i * 3 + 2] = (baseB + (1.0 - baseB) * snow) * darken
@@ -106,7 +162,7 @@ export function Terrain({ depthMap, biomes, width, height }: Props) {
     geo.setIndex(indices)
     geo.computeVertexNormals()
     return geo
-  }, [depthMap, biomes, width, height])
+  }, [depthMap, biomes, width, height, season])
 
   const material = useMemo(() => {
     const m = new MeshStandardMaterial({
