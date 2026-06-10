@@ -1,43 +1,41 @@
 import type { OrganismState, AnimalState } from '../../../types'
 
-interface OrgPrediction {
-  serverX: number
-  serverY: number
-  serverTime: number
-
+interface MotionEntry {
+  fromX: number
+  fromY: number
+  toX: number
+  toY: number
+  segStart: number
+  segDur: number
+  arrivalEma: number
+  lastArrival: number
   velX: number
   velY: number
-  velDt: number
-
-  errorX: number
-  errorY: number
-
   heading: number
-  lastPredX: number
-  lastPredY: number
+  dispX: number
+  dispY: number
   lastReadTime: number
-
+  lastSeen: number
   targetX: number | undefined
   targetY: number | undefined
 }
 
-type AnimalPrediction = OrgPrediction
-
-const orgState = new Map<string, OrgPrediction>()
-const animalState = new Map<number, AnimalPrediction>()
+const orgState = new Map<string, MotionEntry>()
+const animalState = new Map<number, MotionEntry>()
 
 const TICK_MS = 100
+const MIN_ARRIVAL_MS = 120
+const MAX_ARRIVAL_MS = 1500
+const SEG_DUR_FACTOR = 1.08
+const MIN_SEG_MS = 150
+const MAX_SEG_MS = 1600
+const GLIDE_DECAY_PER_S = 5
+const HEADING_TURN_RATE = Math.PI * 1.4
+const TELEPORT_DIST_SQ = 12 * 12
+const PRUNE_AFTER_MS = 15000
+const PRUNE_EVERY = 120
 
-const ERROR_DECAY_PER_S = 12
-
-const VEL_EMA_ALPHA = 0.45
-
-const HEADING_TURN_RATE = Math.PI
-
-const MAX_EXTRAP_MS = 150
-
-// Approximate tile steps per second (1 tile/tick × 10 ticks/s)
-const TILES_PER_SECOND = 10
+let pruneCounter = 0
 
 export function updateOrgMotion(organisms: OrganismState[]) {
   const now = performance.now()
@@ -45,10 +43,15 @@ export function updateOrgMotion(organisms: OrganismState[]) {
     if (!o.alive) continue
     const entry = orgState.get(o.id)
     if (entry) {
-      ingestSnapshot(entry, o.x, o.y, now, o.vx, o.vy, o.target_x, o.target_y)
+      ingestSnapshot(entry, o.x, o.y, now, o.target_x, o.target_y)
     } else {
       orgState.set(o.id, fresh(o.x, o.y, now))
     }
+  }
+  if (++pruneCounter >= PRUNE_EVERY) {
+    pruneCounter = 0
+    prune(orgState, now)
+    prune(animalState, now)
   }
 }
 
@@ -61,7 +64,8 @@ export function getOrgXY(id: string): [number, number] {
 export function getOrgVelocityXY(id: string): [number, number] {
   const e = orgState.get(id)
   if (!e) return [0, 0]
-  return [e.velX * TICK_MS * 0.001, e.velY * TICK_MS * 0.001]
+  const g = glideFactor(e)
+  return [e.velX * g * TICK_MS * 0.001, e.velY * g * TICK_MS * 0.001]
 }
 
 export function getOrgHeading(id: string): number {
@@ -94,108 +98,110 @@ export function getAnimalHeading(id: number): number {
   return e.heading
 }
 
-function fresh(x: number, y: number, now: number): OrgPrediction {
+function prune<K>(map: Map<K, MotionEntry>, now: number) {
+  for (const [k, e] of map) {
+    if (now - e.lastSeen > PRUNE_AFTER_MS) map.delete(k)
+  }
+}
+
+function fresh(x: number, y: number, now: number): MotionEntry {
   return {
-    serverX: x,
-    serverY: y,
-    serverTime: now,
+    fromX: x,
+    fromY: y,
+    toX: x,
+    toY: y,
+    segStart: now,
+    segDur: 1,
+    arrivalEma: 0,
+    lastArrival: now,
     velX: 0,
     velY: 0,
-    velDt: TICK_MS,
-    errorX: 0,
-    errorY: 0,
     heading: 0,
-    lastPredX: x,
-    lastPredY: y,
+    dispX: x,
+    dispY: y,
     lastReadTime: now,
+    lastSeen: now,
     targetX: undefined,
     targetY: undefined,
   }
 }
 
 function ingestSnapshot(
-  e: OrgPrediction,
+  e: MotionEntry,
   x: number,
   y: number,
   now: number,
-  vx?: number,
-  vy?: number,
   targetX?: number,
   targetY?: number,
 ) {
-  if (e.serverX === x && e.serverY === y && now - e.serverTime < TICK_MS * 0.5) {
-    // still update target even if position hasn't changed
-    e.targetX = targetX
-    e.targetY = targetY
+  e.lastSeen = now
+  e.targetX = targetX
+  e.targetY = targetY
+  if (x === e.toX && y === e.toY) return
+
+  const rawDt = now - e.lastArrival
+  const dt = Math.max(MIN_ARRIVAL_MS, Math.min(MAX_ARRIVAL_MS, rawDt))
+  e.arrivalEma = e.arrivalEma > 0 ? e.arrivalEma * 0.6 + dt * 0.4 : dt
+  e.lastArrival = now
+
+  const jx = x - e.dispX
+  const jy = y - e.dispY
+  if (jx * jx + jy * jy > TELEPORT_DIST_SQ) {
+    e.fromX = x
+    e.fromY = y
+    e.toX = x
+    e.toY = y
+    e.dispX = x
+    e.dispY = y
+    e.segStart = now
+    e.segDur = 1
+    e.velX = 0
+    e.velY = 0
     return
   }
 
-  const dt = Math.max(1, now - e.serverTime)
-  const dtSec = dt * 0.001
-
-  if (vx !== undefined && vy !== undefined) {
-    e.velX = vx
-    e.velY = vy
-  } else {
-    const rawVx = (x - e.serverX) / dtSec
-    const rawVy = (y - e.serverY) / dtSec
-    e.velX = e.velX * (1 - VEL_EMA_ALPHA) + rawVx * VEL_EMA_ALPHA
-    e.velY = e.velY * (1 - VEL_EMA_ALPHA) + rawVy * VEL_EMA_ALPHA
-  }
-  e.velDt = dt
-
-  e.errorX = e.lastPredX - x
-  e.errorY = e.lastPredY - y
-
-  e.serverX = x
-  e.serverY = y
-  e.serverTime = now
-  e.targetX = targetX
-  e.targetY = targetY
+  e.fromX = e.dispX
+  e.fromY = e.dispY
+  e.toX = x
+  e.toY = y
+  e.segStart = now
+  e.segDur = Math.max(MIN_SEG_MS, Math.min(MAX_SEG_MS, e.arrivalEma * SEG_DUR_FACTOR))
+  const segSec = e.segDur * 0.001
+  e.velX = (e.toX - e.fromX) / segSec
+  e.velY = (e.toY - e.fromY) / segSec
 }
 
-function advanceAndRead(e: OrgPrediction): [number, number] {
+function glideFactor(e: MotionEntry): number {
+  const over = (performance.now() - e.segStart) * 0.001 - e.segDur * 0.001
+  if (over <= 0) return 1
+  return Math.exp(-GLIDE_DECAY_PER_S * over)
+}
+
+function advanceAndRead(e: MotionEntry): [number, number] {
   const now = performance.now()
   const frameDt = Math.max(0.001, (now - e.lastReadTime) * 0.001)
   e.lastReadTime = now
 
-  const totalElapsed = now - e.serverTime
-  const extrap = Math.min(totalElapsed, MAX_EXTRAP_MS) * 0.001
+  const elapsed = now - e.segStart
+  const t = elapsed / e.segDur
 
-  // Velocity-based dead reckoning
-  let outX = e.serverX + e.velX * extrap
-  let outY = e.serverY + e.velY * extrap
-
-  // Blend toward target-based prediction as extrapolation grows.
-  // This curves the organism toward its actual destination instead of
-  // sliding in a straight line past it.
-  if (e.targetX !== undefined && e.targetY !== undefined) {
-    const tdx = e.targetX - e.serverX
-    const tdy = e.targetY - e.serverY
-    const tdist = Math.sqrt(tdx * tdx + tdy * tdy)
-    if (tdist > 1.5) {
-      const speed = Math.max(Math.sqrt(e.velX * e.velX + e.velY * e.velY), TILES_PER_SECOND * 0.5)
-      const moveAmt = Math.min(tdist, speed * extrap)
-      const tpX = e.serverX + (tdx / tdist) * moveAmt
-      const tpY = e.serverY + (tdy / tdist) * moveAmt
-      // blend factor: 0 at extrap=0, grows to ~0.6 at max extrap
-      const blend = Math.min(extrap / (MAX_EXTRAP_MS * 0.001), 1.0) * 0.6
-      outX = outX + (tpX - outX) * blend
-      outY = outY + (tpY - outY) * blend
-    }
+  let outX: number
+  let outY: number
+  if (t <= 1) {
+    outX = e.fromX + (e.toX - e.fromX) * t
+    outY = e.fromY + (e.toY - e.fromY) * t
+  } else {
+    const overSec = (elapsed - e.segDur) * 0.001
+    const slide = (1 - Math.exp(-GLIDE_DECAY_PER_S * overSec)) / GLIDE_DECAY_PER_S
+    outX = e.toX + e.velX * slide
+    outY = e.toY + e.velY * slide
   }
 
-  // Incremental error correction using actual frame delta
-  const decay = Math.exp(-ERROR_DECAY_PER_S * frameDt)
-  e.errorX *= decay
-  e.errorY *= decay
-
-  outX += e.errorX
-  outY += e.errorY
-
-  const speed2 = e.velX * e.velX + e.velY * e.velY
-  if (speed2 > 0.01) {
-    const target = Math.atan2(e.velX, e.velY)
+  const g = t <= 1 ? 1 : glideFactor(e)
+  const vx = e.velX * g
+  const vy = e.velY * g
+  if (vx * vx + vy * vy > 0.04) {
+    const target = Math.atan2(vx, vy)
     let diff = target - e.heading
     while (diff > Math.PI) diff -= Math.PI * 2
     while (diff < -Math.PI) diff += Math.PI * 2
@@ -204,7 +210,7 @@ function advanceAndRead(e: OrgPrediction): [number, number] {
     else e.heading += Math.sign(diff) * maxStep
   }
 
-  e.lastPredX = outX
-  e.lastPredY = outY
+  e.dispX = outX
+  e.dispY = outY
   return [outX, outY]
 }
