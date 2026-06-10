@@ -1664,6 +1664,7 @@ dependencies = [
  "rand",
  "rand_chacha",
  "rand_distr",
+ "rustc-hash",
  "serde",
  "serde_json",
  "tracing",

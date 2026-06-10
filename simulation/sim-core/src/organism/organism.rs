@@ -1,3 +1,4 @@
+use rustc_hash::FxHashMap;
 use super::traits::Traits;
 use super::vocabulary::Vocabulary;
 use crate::world::{
@@ -179,10 +180,10 @@ pub fn apply_sex_traits(traits: &mut crate::organism::traits::Traits, sex: Sex) 
 }
 
 fn best_remembered_cell(
-    memory: &std::collections::HashMap<(i32, i32), f32>,
+    memory: &FxHashMap<(i32, i32), f32>,
     cx: f32,
     cy: f32,
-    danger: &std::collections::HashMap<(i32, i32), f32>,
+    danger: &FxHashMap<(i32, i32), f32>,
     urgency: f32,
 ) -> Option<(i32, i32)> {
     let mut best_score = 0.03f32;
@@ -214,7 +215,7 @@ fn best_remembered_cell(
 }
 
 fn nearby_memory_strength(
-    memory: &std::collections::HashMap<(i32, i32), f32>,
+    memory: &FxHashMap<(i32, i32), f32>,
     cell: (i32, i32),
     radius: i32,
 ) -> f32 {
@@ -235,10 +236,10 @@ fn nearby_memory_strength(
 }
 
 fn remembered_dir_char(
-    memory: &std::collections::HashMap<(i32, i32), f32>,
+    memory: &FxHashMap<(i32, i32), f32>,
     cx: f32,
     cy: f32,
-    danger: &std::collections::HashMap<(i32, i32), f32>,
+    danger: &FxHashMap<(i32, i32), f32>,
     urgency: f32,
 ) -> char {
     if let Some((tx, ty)) = best_remembered_cell(memory, cx, cy, danger, urgency) {
@@ -334,13 +335,13 @@ pub struct Organism {
     pub lineage_id: String,
     pub max_age: u32,
 
-    pub food_memory: HashMap<(i32, i32), f32>,
-    pub water_memory: HashMap<(i32, i32), f32>,
-    pub danger_memory: HashMap<(i32, i32), f32>,
+    pub food_memory: FxHashMap<(i32, i32), f32>,
+    pub water_memory: FxHashMap<(i32, i32), f32>,
+    pub danger_memory: FxHashMap<(i32, i32), f32>,
 
     pub thought_history: VecDeque<ThoughtEntry>,
 
-    pub q_table: HashMap<String, QRow>,
+    pub q_table: FxHashMap<String, QRow>,
 
     pub last_reproduced: u64,
     pub last_challenged: u64,
@@ -514,11 +515,11 @@ impl Organism {
             father_id: None,
             lineage_id,
             max_age,
-            food_memory: HashMap::new(),
-            water_memory: HashMap::new(),
-            danger_memory: HashMap::new(),
+            food_memory: FxHashMap::default(),
+            water_memory: FxHashMap::default(),
+            danger_memory: FxHashMap::default(),
             thought_history: VecDeque::new(),
-            q_table: HashMap::new(),
+            q_table: FxHashMap::default(),
             last_reproduced: 0,
             last_challenged: 0,
             lineage_attitudes: HashMap::new(),
@@ -812,7 +813,7 @@ impl Organism {
         }
     }
 
-    pub fn remember(mem: &mut HashMap<(i32, i32), f32>, x: i32, y: i32, strength: f32, mem_trait: f32) {
+    pub fn remember(mem: &mut FxHashMap<(i32, i32), f32>, x: i32, y: i32, strength: f32, mem_trait: f32) {
         let effective = (strength * (0.7 + 0.6 * mem_trait)).min(1.0);
         let v = mem.entry((x, y)).or_insert(0.0);
         *v = (*v + effective).min(1.0);
@@ -1135,7 +1136,7 @@ impl Organism {
             *v *= danger_decay;
             *v >= 0.04
         });
-        fn trim_mem(mem: &mut HashMap<(i32, i32), f32>, max: usize) {
+        fn trim_mem(mem: &mut FxHashMap<(i32, i32), f32>, max: usize) {
             if mem.len() > max {
                 let mut e: Vec<_> = mem.iter().map(|(k, v)| (*k, *v)).collect();
                 e.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
@@ -1170,15 +1171,15 @@ impl Organism {
         }
     }
 
-    pub fn best_remembered(mem: &HashMap<(i32, i32), f32>, ox: f32, oy: f32) -> Option<(i32, i32)> {
-        Self::best_remembered_with_danger(mem, ox, oy, &HashMap::new(), 0.5)
+    pub fn best_remembered(mem: &FxHashMap<(i32, i32), f32>, ox: f32, oy: f32) -> Option<(i32, i32)> {
+        Self::best_remembered_with_danger(mem, ox, oy, &FxHashMap::default(), 0.5)
     }
 
     pub fn best_remembered_with_danger(
-        mem: &HashMap<(i32, i32), f32>,
+        mem: &FxHashMap<(i32, i32), f32>,
         ox: f32,
         oy: f32,
-        danger: &HashMap<(i32, i32), f32>,
+        danger: &FxHashMap<(i32, i32), f32>,
         urgency: f32,
     ) -> Option<(i32, i32)> {
         let (ix, iy) = (ox as i32, oy as i32);
@@ -2663,10 +2664,10 @@ mod tests {
 
     #[test]
     fn remembered_resource_selection_avoids_known_danger() {
-        let mut water = HashMap::new();
+        let mut water = FxHashMap::default();
         water.insert((80, 5), 1.0);
         water.insert((40, 5), 0.55);
-        let mut danger = HashMap::new();
+        let mut danger = FxHashMap::default();
         danger.insert((80, 5), 0.9);
 
         let target = Organism::best_remembered_with_danger(&water, 5.0, 5.0, &danger, 0.8);
@@ -2676,10 +2677,10 @@ mod tests {
 
     #[test]
     fn remembered_resource_selection_still_uses_strong_safe_memory() {
-        let mut food = HashMap::new();
+        let mut food = FxHashMap::default();
         food.insert((80, 5), 1.0);
         food.insert((40, 5), 0.55);
-        let danger = HashMap::new();
+        let danger = FxHashMap::default();
 
         let target = Organism::best_remembered_with_danger(&food, 5.0, 5.0, &danger, 0.8);
 

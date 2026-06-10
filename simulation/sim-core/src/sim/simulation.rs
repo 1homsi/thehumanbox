@@ -1,3 +1,4 @@
+use rustc_hash::FxHashMap;
 use super::config::{season_growth, DAY_LENGTH, SEASONS, SEASON_LENGTH};
 use super::world_events::{
     push_event, tick_drought, tick_outbreak, tick_weather, tick_world_evolution, DroughtState, WeatherState,
@@ -312,7 +313,7 @@ fn resource_near(grid: &WorldGrid, x: i32, y: i32, tile: Tile) -> bool {
 }
 
 fn decay_local_resource_memory(
-    memory: &mut HashMap<(i32, i32), f32>,
+    memory: &mut FxHashMap<(i32, i32), f32>,
     x: i32,
     y: i32,
     exact_factor: f32,
@@ -1011,8 +1012,8 @@ impl Simulation {
         let qh = HEIGHT as f32 / QY as f32;
         let mut quadrant_counts = [[0u32; QX as usize]; QY as usize];
         let mut alive_count_before_loop: usize = 0;
-        let mut lineage_counts: HashMap<String, usize> =
-            HashMap::with_capacity(self.lineage_names.len().max(8));
+        let mut lineage_counts: FxHashMap<String, usize> =
+            FxHashMap::with_capacity_and_hasher(self.lineage_names.len().max(8), Default::default());
         for o in self.organisms.iter() {
             if !o.alive {
                 continue;
@@ -1043,7 +1044,7 @@ impl Simulation {
 
         let spatial = SpatialIndex::build(&self.organisms, 10);
         let mut spatial_buf: Vec<usize> = Vec::with_capacity(32);
-        let mut org_idx_by_id: HashMap<String, usize> = HashMap::with_capacity(self.organisms.len());
+        let mut org_idx_by_id: FxHashMap<String, usize> = FxHashMap::with_capacity_and_hasher(self.organisms.len(), Default::default());
         for (i, o) in self.organisms.iter().enumerate() {
             if o.alive {
                 org_idx_by_id.insert(o.id.clone(), i);
@@ -1232,10 +1233,10 @@ impl Simulation {
         &mut self,
         idx: usize,
         alive_count: usize,
-        lineage_counts: &HashMap<String, usize>,
+        lineage_counts: &FxHashMap<String, usize>,
         spatial: &SpatialIndex,
         spatial_buf: &mut Vec<usize>,
-        org_idx_by_id: &HashMap<String, usize>,
+        org_idx_by_id: &FxHashMap<String, usize>,
     ) {
         let night = self.is_night();
         let epsilon = (0.30 - self.organisms[idx].age as f32 * 0.00005).max(0.08);
@@ -4984,11 +4985,11 @@ mod tests {
     }
 
     fn tick_first_org(sim: &mut Simulation) {
-        let mut lineage_counts = std::collections::HashMap::new();
+        let mut lineage_counts = FxHashMap::default();
         lineage_counts.insert("lineage-a".to_string(), 1);
         let spatial = SpatialIndex::build(&sim.organisms, 10);
         let mut spatial_buf = Vec::new();
-        let org_idx_by_id: HashMap<String, usize> = sim
+        let org_idx_by_id: FxHashMap<String, usize> = sim
             .organisms
             .iter()
             .enumerate()
@@ -6012,12 +6013,12 @@ mod tests {
 
         // Drive the per-org tick to exercise the friend-seek block.
         let alive_count = 2;
-        let mut lineage_counts = std::collections::HashMap::new();
+        let mut lineage_counts = FxHashMap::default();
         lineage_counts.insert("lid-a".into(), 1);
         lineage_counts.insert("lid-b".into(), 1);
         let spatial = SpatialIndex::build(&sim.organisms, 10);
         let mut spatial_buf: Vec<usize> = Vec::new();
-        let org_idx_by_id: HashMap<String, usize> = sim
+        let org_idx_by_id: FxHashMap<String, usize> = sim
             .organisms
             .iter()
             .enumerate()
@@ -6091,12 +6092,12 @@ mod tests {
 
         sim.tick_count = 5_000;
 
-        let mut lineage_counts = std::collections::HashMap::new();
+        let mut lineage_counts = FxHashMap::default();
         lineage_counts.insert("lid-a".into(), 1);
         lineage_counts.insert("lid-b".into(), 1);
         let spatial2 = SpatialIndex::build(&sim.organisms, 10);
         let mut spatial_buf2: Vec<usize> = Vec::new();
-        let org_idx_by_id2: HashMap<String, usize> = sim
+        let org_idx_by_id2: FxHashMap<String, usize> = sim
             .organisms
             .iter()
             .enumerate()

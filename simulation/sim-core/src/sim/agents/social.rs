@@ -1,9 +1,9 @@
+use rustc_hash::FxHashMap;
 use crate::organism::organism::Organism;
 use crate::sim::simulation::{Event, History};
 use crate::sim::world_events::push_event;
 use crate::world::tiles::Tile;
 use rand::Rng;
-use std::collections::HashMap;
 
 pub fn signal_food(
     org_idx: usize,
@@ -800,7 +800,7 @@ pub fn share_food(
 }
 
 fn ranked_memory_share(
-    memory: &HashMap<(i32, i32), f32>,
+    memory: &FxHashMap<(i32, i32), f32>,
     origin: (i32, i32),
     min_strength: f32,
     max_distance: i32,

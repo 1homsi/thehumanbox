@@ -1,3 +1,4 @@
+use rustc_hash::FxHashMap;
 use std::collections::{HashMap, HashSet};
 use std::io;
 
@@ -68,7 +69,7 @@ pub(crate) struct OrgSave {
     water_memory: HashMap<String, f32>,
     danger_memory: HashMap<String, f32>,
     thought_history: Vec<crate::organism::organism::ThoughtEntry>,
-    q_table: HashMap<String, Vec<(u16, f32)>>,
+    q_table: FxHashMap<String, Vec<(u16, f32)>>,
     last_reproduced: u64,
     last_challenged: u64,
     water_ticks: u32,
@@ -222,13 +223,13 @@ pub struct SaveState {
     settlement_tiers: HashMap<String, u8>,
 }
 
-fn mem_encode(m: &HashMap<(i32, i32), f32>) -> HashMap<String, f32> {
+fn mem_encode(m: &FxHashMap<(i32, i32), f32>) -> HashMap<String, f32> {
     m.iter()
         .map(|(&(x, y), &v)| (format!("{},{}", x, y), v))
         .collect()
 }
 
-fn mem_decode(m: HashMap<String, f32>) -> HashMap<(i32, i32), f32> {
+fn mem_decode(m: HashMap<String, f32>) -> FxHashMap<(i32, i32), f32> {
     m.into_iter()
         .filter_map(|(k, v)| {
             let mut parts = k.splitn(2, ',');

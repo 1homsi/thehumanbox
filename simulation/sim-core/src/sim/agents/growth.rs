@@ -84,7 +84,7 @@ pub fn try_reproduce(
     _history: &mut History,
     rng: &mut impl Rng,
     alive_count: usize,
-    lineage_counts: &std::collections::HashMap<String, usize>,
+    lineage_counts: &rustc_hash::FxHashMap<String, usize>,
 ) {
     if alive_count >= MAX_POPULATION {
         return;
