@@ -1,5 +1,4 @@
 import { useMemo, useRef, useEffect } from 'react'
-import { useGLTF } from '@react-three/drei'
 import { useThree, useFrame } from '@react-three/fiber'
 import {
   CapsuleGeometry,
@@ -18,7 +17,7 @@ import { lineageColor } from '../../../utils/constants'
 import { useUIStore } from '../../../stores/store'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
-import { AnimatedFigure } from './AnimatedFigure'
+import { VillagerFigure } from './VillagerFigure'
 import { getOrgXY, getOrgVelocityXY, getOrgHeading } from './motion-state'
 
 interface Props {
@@ -241,7 +240,6 @@ export function Humans3D({ organisms, depthMap, biomes, lineageEras }: Props) {
   const { camera } = useThree()
   const selectOrg = useUIStore((s) => s.selectOrg)
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
-  const { scene, animations } = useGLTF('/models/robot-expressive.glb')
 
   // Partition organisms by distance every render. Far cohort becomes
   // one InstancedMesh; near cohort renders full skinned figures with
@@ -306,9 +304,10 @@ export function Humans3D({ organisms, depthMap, biomes, lineageEras }: Props) {
               selectOrg(o.id)
             }}
           >
-            <AnimatedFigure
-              scene={scene}
-              animations={animations}
+            <VillagerFigure
+              org={o}
+              era={lineageEras?.[o.lineage_id]}
+              tunicColor={orgColor(o)}
               getPosition={() => {
                 const [x, y] = getOrgXY(o.id)
                 const groundY = heightAt(x, y, depthMap, biomes)
@@ -317,7 +316,6 @@ export function Humans3D({ organisms, depthMap, biomes, lineageEras }: Props) {
               getHeading={() => getOrgHeading(o.id)}
               scale={scale}
               animation={pickAnim(o, moving)}
-              color={orgColor(o)}
               animate={animate}
               timeScale={timeScale}
             />
@@ -328,5 +326,3 @@ export function Humans3D({ organisms, depthMap, biomes, lineageEras }: Props) {
     </>
   )
 }
-
-useGLTF.preload('/models/robot-expressive.glb')
