@@ -720,6 +720,9 @@ impl Simulation {
         if trigger.season.is_empty() {
             trigger.season = self.season().to_string();
         }
+        if self.pending_thinks.len() >= 128 {
+            self.pending_thinks.remove(0);
+        }
         self.pending_thinks.push(trigger);
     }
 
