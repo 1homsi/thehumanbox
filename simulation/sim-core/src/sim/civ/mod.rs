@@ -5,6 +5,7 @@ pub mod economy_tick;
 pub mod education;
 pub mod eras;
 pub use eras as era;
+pub mod moments;
 pub mod government;
 pub mod warfare;
 pub mod world_milestones;
