@@ -80,6 +80,26 @@ export function WorkEffects3D({ organisms, depthMap, biomes }: Props) {
 
       for (let i = 0; i < PARTICLES_PER; i++) {
         const idx = slot * PARTICLES_PER + i
+        const isLeaf = kind === 'wood' && i >= 3
+        if (isLeaf) {
+          const phase = (t / (CYCLE_S * 2.6) + hash01(seed + i * 53)) % 1
+          const ang = hash01(seed + i * 17) * Math.PI * 2
+          const sway = Math.sin(t * 2.2 + i * 2.1) * 0.45
+          const r = 0.5 + hash01(seed + i * 41) * 0.9
+          _pos.set(
+            wx + Math.cos(ang) * r + sway,
+            groundY + 4.6 - phase * 4.2,
+            wz + Math.sin(ang) * r + Math.cos(t * 1.7 + i) * 0.3,
+          )
+          const s = 0.8 + hash01(seed + i * 23) * 0.5
+          _scale.set(s, s, s)
+          _mat.compose(_pos, _quat, _scale)
+          mesh.setMatrixAt(idx, _mat)
+          _col.set(hash01(seed + i * 11) < 0.5 ? '#4f8a3a' : '#6aa848')
+          mesh.setColorAt(idx, _col)
+          _col.set(WORK_COLOR[kind])
+          continue
+        }
         const phase = (t / CYCLE_S + hash01(seed + i * 97)) % 1
         const ang = hash01(seed + i * 13) * Math.PI * 2
         const r = 0.25 + phase * (0.7 + hash01(seed + i * 7) * 0.5)
