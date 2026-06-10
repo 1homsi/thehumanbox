@@ -670,7 +670,7 @@ export default function WorldView3D({ world, sandboxArmed, onSandboxApply }: Pro
                 <Clouds3D
                   width={grid.width}
                   height={grid.height}
-                  isNight={isNight}
+                  dayProgress={dayProgress}
                   weatherKind={world.weather?.kind ?? 'clear'}
                   intensity={world.weather?.intensity ?? 0}
                 />
