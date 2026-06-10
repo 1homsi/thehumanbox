@@ -1438,7 +1438,7 @@ impl Simulation {
                 (dir, Some("wolf! run!".to_string()), "emergency_reflex")
             } else {
                 let (oa_ix, oa_iy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
-                let avail = crate::sim::actions::available_actions(&self, idx, oa_ix, oa_iy);
+                let avail = crate::sim::actions::available_actions(&self, idx, oa_ix, oa_iy, spatial);
                 let q_seen = self.organisms[idx].q_table.get(&perception).is_some();
                 let active_directive = if self.tick_count < self.organisms[idx].directive_until
                     && !self.organisms[idx].directive.is_empty()
@@ -2621,7 +2621,7 @@ impl Simulation {
             self.organisms[idx].perceive(&self.grid, &self.organisms, night, animal_near, spatial);
         let next_ix = self.organisms[idx].x as i32;
         let next_iy = self.organisms[idx].y as i32;
-        let next_available = crate::sim::actions::available_actions(self, idx, next_ix, next_iy);
+        let next_available = crate::sim::actions::available_actions(self, idx, next_ix, next_iy, spatial);
         self.organisms[idx].learn_with_available_actions(
             &perception,
             action,

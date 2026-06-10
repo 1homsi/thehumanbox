@@ -389,26 +389,8 @@ pub fn try_reproduce(
         }
     }
 
-    let drift = 70.0;
-    let dx = rng.random_range(-drift..=drift) * 0.5 + rng.random_range(-drift..=drift) * 0.5;
-    let dy = rng.random_range(-drift..=drift) * 0.5 + rng.random_range(-drift..=drift) * 0.5;
-    let reflect = |mut v: f32, max: f32| {
-        if v < 0.0 {
-            v = -v;
-        }
-        if v > max {
-            v = 2.0 * max - v;
-        }
-        v.clamp(0.0, max)
-    };
-    child.home_x = reflect(
-        organisms[org_idx].home_x + dx,
-        (crate::world::grid::WIDTH - 1) as f32,
-    );
-    child.home_y = reflect(
-        organisms[org_idx].home_y + dy,
-        (crate::world::grid::HEIGHT - 1) as f32,
-    );
+    child.home_x = organisms[org_idx].home_x;
+    child.home_y = organisms[org_idx].home_y;
 
     if organisms[org_idx].infection > 0.1 {
         child.infection = organisms[org_idx].infection * 0.15;

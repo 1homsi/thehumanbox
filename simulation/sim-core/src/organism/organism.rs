@@ -10,6 +10,8 @@ use std::collections::{HashMap, HashSet, VecDeque};
 
 pub const N_ACTIONS: usize = 538;
 
+pub const ACTION_ID_SPACE: usize = 6144;
+
 pub type QRow = Vec<(u16, f32)>;
 
 pub trait QRowExt {
@@ -42,10 +44,34 @@ impl QRowExt for QRow {
         }
     }
     fn max_q_for_actions(&self, actions: &[usize]) -> f32 {
-        let m = actions
-            .iter()
-            .map(|&a| self.get_q(a as u16))
-            .fold(f32::NEG_INFINITY, f32::max);
+        if actions.is_empty() {
+            return 0.0;
+        }
+        if actions.iter().any(|&a| a >= ACTION_ID_SPACE) {
+            let m = actions
+                .iter()
+                .map(|&a| self.get_q(a as u16))
+                .fold(f32::NEG_INFINITY, f32::max);
+            return if m.is_finite() { m } else { 0.0 };
+        }
+        let mut avail = [false; ACTION_ID_SPACE];
+        for &a in actions {
+            avail[a] = true;
+        }
+        let mut m = f32::NEG_INFINITY;
+        let mut matched = 0usize;
+        for &(a, v) in self.iter() {
+            let ai = a as usize;
+            if ai < ACTION_ID_SPACE && avail[ai] {
+                matched += 1;
+                if v > m {
+                    m = v;
+                }
+            }
+        }
+        if matched < actions.len() {
+            m = m.max(0.0);
+        }
         if m.is_finite() {
             m
         } else {
@@ -351,6 +377,7 @@ pub struct Organism {
     pub boredom: f32,
     pub fear_level: f32,
     pub comfort: f32,
+    pub mood: f32,
     pub hope: f32,
     pub awe: f32,
     pub gratitude: f32,
@@ -520,6 +547,7 @@ impl Organism {
             boredom: 0.0,
             fear_level: 0.0,
             comfort: 0.5,
+            mood: 0.0,
             hope: 0.5,
             awe: 0.0,
             gratitude: 0.0,
@@ -2423,7 +2451,51 @@ pub struct MemoryJson {
 mod tests {
     use super::*;
     use rand::rngs::StdRng;
+    use rand::Rng;
     use rand::SeedableRng;
+
+    fn max_q_for_actions_reference(row: &QRow, actions: &[usize]) -> f32 {
+        let m = actions
+            .iter()
+            .map(|&a| row.get_q(a as u16))
+            .fold(f32::NEG_INFINITY, f32::max);
+        if m.is_finite() {
+            m
+        } else {
+            0.0
+        }
+    }
+
+    #[test]
+    fn max_q_for_actions_matches_reference_semantics() {
+        const ID_TEST_SPACE: usize = 7000;
+        let mut rng = StdRng::seed_from_u64(99);
+        for _ in 0..500 {
+            let row_len = rng.random_range(0..60);
+            let mut row: QRow = Vec::new();
+            for _ in 0..row_len {
+                let a = rng.random_range(0..ID_TEST_SPACE) as u16;
+                let v = rng.random_range(-2.0f32..2.0);
+                row.set_q(a, v);
+            }
+            let n_avail = rng.random_range(0..200);
+            let mut actions: Vec<usize> = Vec::new();
+            let mut seen = vec![false; ID_TEST_SPACE];
+            for _ in 0..n_avail {
+                let a = rng.random_range(0..ID_TEST_SPACE);
+                if !seen[a] {
+                    seen[a] = true;
+                    actions.push(a);
+                }
+            }
+            let expected = max_q_for_actions_reference(&row, &actions);
+            let got = row.max_q_for_actions(&actions);
+            assert!(
+                (expected - got).abs() < 1e-6,
+                "mismatch: expected {expected} got {got} (row {row:?}, actions {actions:?})"
+            );
+        }
+    }
 
     #[test]
     fn compress_for_archive_clears_heavy_state_but_keeps_skeleton() {

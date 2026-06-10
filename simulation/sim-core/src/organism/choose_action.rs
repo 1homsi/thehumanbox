@@ -6,7 +6,7 @@ use crate::world::{
 };
 
 use super::decision_bias::{directive_action_boost, preferred_action_boost};
-use super::organism::{Organism, QRowExt, N_ACTIONS};
+use super::organism::{Organism, QRowExt, ACTION_ID_SPACE, N_ACTIONS};
 
 fn survival_relevant_action(
     action: usize,
@@ -933,26 +933,35 @@ impl Organism {
                 0.01
             }
         };
+        let mut dense = [0.0f32; ACTION_ID_SPACE];
+        if let Some(r) = q_row {
+            for &(a, v) in r.iter() {
+                let ai = a as usize;
+                if ai < ACTION_ID_SPACE {
+                    dense[ai] = v;
+                }
+            }
+        }
         let lookup = |a: usize| -> f32 {
-            q_row
-                .map(|r| {
-                    let v = r.get_q(a as u16);
-                    let learned = if v == 0.0 { seed_q(a) } else { v };
-                    learned
-                        + directive_action_boost(active_directive, a)
-                        + preferred_action_boost(active_wander_action, a)
-                })
-                .unwrap_or_else(|| {
-                    seed_q(a)
-                        + directive_action_boost(active_directive, a)
-                        + preferred_action_boost(active_wander_action, a)
-                })
+            let v = if a < ACTION_ID_SPACE {
+                dense[a]
+            } else {
+                q_row.map(|r| r.get_q(a as u16)).unwrap_or(0.0)
+            };
+            let learned = if v == 0.0 { seed_q(a) } else { v };
+            learned
+                + directive_action_boost(active_directive, a)
+                + preferred_action_boost(active_wander_action, a)
         };
-        let best_avail = decision_pool.iter().copied().max_by(|&a, &b| {
-            lookup(a)
-                .partial_cmp(&lookup(b))
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
+        let mut best_avail: Option<usize> = None;
+        let mut best_score = f32::NEG_INFINITY;
+        for &a in decision_pool {
+            let s = lookup(a);
+            if best_avail.is_none() || s >= best_score {
+                best_score = s;
+                best_avail = Some(a);
+            }
+        }
         // Commit to the best available action even when best_val ≤ 0.
         // The previous gate (`if best_val > 0.0`) silently fell through
         // to a uniform-random pick whenever every learned Q was negative,

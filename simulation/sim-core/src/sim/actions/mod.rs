@@ -123,18 +123,39 @@ use super::simulation::Simulation;
 use crate::world::tiles::Tile;
 use ctx::ActionCtx;
 
-pub fn available_actions(sim: &Simulation, idx: usize, ix: i32, iy: i32) -> Vec<usize> {
+pub fn available_actions(
+    sim: &Simulation,
+    idx: usize,
+    ix: i32,
+    iy: i32,
+    spatial: &crate::sim::spatial::SpatialIndex,
+) -> Vec<usize> {
     let org = &sim.organisms[idx];
     let tile = sim.grid.get(ix, iy);
     let (sx, sy) = (org.x, org.y);
     let lid = &org.lineage_id;
 
-    let kin_near = sim.organisms.iter().enumerate().any(|(i, o)| {
-        i != idx && o.alive && o.lineage_id == *lid && (o.x - sx).abs() + (o.y - sy).abs() <= 6.0
-    });
-    let stranger_near = sim.organisms.iter().enumerate().any(|(i, o)| {
-        i != idx && o.alive && o.lineage_id != *lid && (o.x - sx).abs() + (o.y - sy).abs() <= 6.0
-    });
+    let mut near_buf: Vec<usize> = Vec::with_capacity(16);
+    spatial.query_into(sx as i32, sy as i32, 6, &mut near_buf);
+    let mut kin_near = false;
+    let mut stranger_near = false;
+    for &i in &near_buf {
+        if i == idx {
+            continue;
+        }
+        let o = &sim.organisms[i];
+        if !o.alive || (o.x - sx).abs() + (o.y - sy).abs() > 6.0 {
+            continue;
+        }
+        if o.lineage_id == *lid {
+            kin_near = true;
+        } else {
+            stranger_near = true;
+        }
+        if kin_near && stranger_near {
+            break;
+        }
+    }
     let any_near = kin_near || stranger_near;
     let has_mats = org.inv_wood > 0 || org.inv_stone > 0;
     let has_food = org.inv_food > 0 || matches!(tile, Tile::Food);

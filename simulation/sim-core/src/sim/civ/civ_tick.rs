@@ -162,6 +162,96 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick > 0 && tick % 240 == 0 {
         tick_grudge_recall(sim);
     }
+    if tick > 0 && tick % 45 == 0 {
+        tick_mood(sim);
+    }
+}
+
+fn tick_mood(sim: &mut Simulation) {
+    use crate::organism::memory::{MemoryEntry, MemoryKind};
+    let tick = sim.tick_count;
+    let mut partner_pos: HashMap<String, (f32, f32, String)> = HashMap::new();
+    for o in sim.organisms.iter() {
+        if o.alive {
+            partner_pos.insert(o.id.clone(), (o.x, o.y, o.name.clone()));
+        }
+    }
+    for i in 0..sim.organisms.len() {
+        if !sim.organisms[i].alive {
+            continue;
+        }
+        let roll: f32 = sim.rng.random();
+        let org = &mut sim.organisms[i];
+        let grief = (org.grief_ticks as f32 / 900.0).min(1.0);
+        let joy = (org.joy_ticks as f32 / 600.0).min(1.0);
+        let partner_alive = org
+            .partner_id
+            .as_ref()
+            .map(|p| partner_pos.contains_key(p))
+            .unwrap_or(false);
+        let hunger_pressure = if org.energy < 0.3 { 0.25 } else { 0.0 };
+        let mood = joy * 0.5 + org.comfort * 0.35 + org.health * 0.2
+            + if partner_alive { 0.15 } else { 0.0 }
+            - grief * 0.85
+            - org.fear_level * 0.45
+            - org.loneliness * 0.35
+            - org.boredom * 0.2
+            - hunger_pressure;
+        org.mood = mood.clamp(-1.5, 1.5);
+
+        if tick < org.directive_until {
+            continue;
+        }
+        if mood < -0.75 && roll < 0.30 {
+            org.directive = "isolate".to_string();
+            org.directive_until = tick + 300;
+            org.think("everything feels heavy — I need to be alone", tick);
+            if roll < 0.15 {
+                org.memories.insert(
+                    MemoryEntry::new(
+                        MemoryKind::Episode,
+                        "a darkness settled over me and I withdrew from everyone",
+                        tick,
+                    )
+                    .with_salience(0.7)
+                    .with_emotion(-2),
+                );
+                org.log_life(tick, "hardship", "withdrew beneath a weight of sorrow".to_string());
+            }
+        } else if mood < -0.35 && roll < 0.35 {
+            if org.fear_level > 0.5 {
+                org.directive = "seek_help".to_string();
+                org.directive_until = tick + 240;
+                org.think("I can't face this alone", tick);
+            } else {
+                org.directive = "rest".to_string();
+                org.directive_until = tick + 240;
+                org.think("worn thin — I need rest", tick);
+            }
+        } else if mood > 0.55 && roll < 0.30 {
+            if org.loneliness > 0.35 || org.boredom > 0.45 {
+                org.directive = "socialize".to_string();
+                org.directive_until = tick + 240;
+                org.think("feeling light — I want company", tick);
+            } else if org.traits.curiosity > 0.6 {
+                org.directive = "explore".to_string();
+                org.directive_until = tick + 240;
+                org.think("a good day to see what's beyond the ridge", tick);
+            }
+        }
+
+        if partner_alive && mood > -0.35 && roll > 0.55 {
+            if let Some(pid) = org.partner_id.clone() {
+                if let Some(&(px, py, ref pname)) = partner_pos.get(&pid) {
+                    let dist = (px - org.x).abs() + (py - org.y).abs();
+                    if dist > 30.0 {
+                        org.wander_target = Some((px as i32, py as i32));
+                        org.think(&format!("I miss {} — going to find them", pname), tick);
+                    }
+                }
+            }
+        }
+    }
 }
 
 fn tick_grudge_recall(sim: &mut Simulation) {
@@ -882,6 +972,21 @@ fn tick_weddings(sim: &mut Simulation) {
         let n1 = sim.organisms[*i].name.clone();
         let n2 = sim.organisms[*j].name.clone();
         headlines.push(format!("{} and {} pledged themselves to each other", n1, n2));
+        let elder_of_pair = if sim.organisms[*i].age >= sim.organisms[*j].age {
+            *i
+        } else {
+            *j
+        };
+        let (hx, hy) = (
+            sim.organisms[elder_of_pair].home_x,
+            sim.organisms[elder_of_pair].home_y,
+        );
+        for &p in [i, j].iter() {
+            let org = &mut sim.organisms[*p];
+            org.home_x = hx;
+            org.home_y = hy;
+            org.attributes.insert("left_home".to_string());
+        }
         bumps.push(*i);
         bumps.push(*j);
     }
@@ -2454,6 +2559,43 @@ fn lineage_pop(sim: &Simulation, lid: &str) -> usize {
 fn tick_age_stages(sim: &mut Simulation) {
     use crate::organism::memory::{MemoryEntry, MemoryKind};
     let tick = sim.tick_count;
+    for i in 0..sim.organisms.len() {
+        if !sim.organisms[i].alive {
+            continue;
+        }
+        if sim.organisms[i].age_stage() == AgeStage::Teen
+            && !sim.organisms[i].attributes.contains("left_home")
+        {
+            let drift = 70.0;
+            let dx = sim.rng.random_range(-drift..=drift) * 0.5
+                + sim.rng.random_range(-drift..=drift) * 0.5;
+            let dy = sim.rng.random_range(-drift..=drift) * 0.5
+                + sim.rng.random_range(-drift..=drift) * 0.5;
+            let reflect = |mut v: f32, max: f32| {
+                if v < 0.0 {
+                    v = -v;
+                }
+                if v > max {
+                    v = 2.0 * max - v;
+                }
+                v.clamp(0.0, max)
+            };
+            let org = &mut sim.organisms[i];
+            org.home_x = reflect(org.home_x + dx, (crate::world::grid::WIDTH - 1) as f32);
+            org.home_y = reflect(org.home_y + dy, (crate::world::grid::HEIGHT - 1) as f32);
+            org.attributes.insert("left_home".to_string());
+            org.log_life(tick, "milestone", "left the family hearth to claim my own ground".to_string());
+            org.memories.insert(
+                MemoryEntry::new(
+                    MemoryKind::Episode,
+                    "the day I left the family hearth — frightened, and free",
+                    tick,
+                )
+                .with_salience(0.85)
+                .with_emotion(1),
+            );
+        }
+    }
     for org in sim.organisms.iter_mut() {
         if !org.alive {
             continue;
@@ -4232,6 +4374,58 @@ mod tests {
         org.energy = 0.8;
         org.loneliness = 0.85;
         org
+    }
+
+    #[test]
+    fn deep_grief_sets_a_withdrawal_directive() {
+        let mut sim = Simulation::new(7);
+        let id = sim.organisms[0].id.clone();
+        for _ in 0..20 {
+            {
+                let org = sim.organisms.iter_mut().find(|o| o.id == id).unwrap();
+                org.grief_ticks = 100_000;
+                org.comfort = 0.0;
+                org.joy_ticks = 0;
+                org.fear_level = 0.0;
+                org.loneliness = 1.0;
+                org.directive_until = 0;
+                org.directive.clear();
+            }
+            sim.tick_count += 45;
+            tick_mood(&mut sim);
+            let org = sim.organisms.iter().find(|o| o.id == id).unwrap();
+            if !org.directive.is_empty() {
+                assert!(
+                    org.directive == "isolate" || org.directive == "rest",
+                    "unexpected directive {}",
+                    org.directive
+                );
+                assert!(org.directive_until > sim.tick_count);
+                return;
+            }
+        }
+        panic!("20 mood cycles under maximal grief never set a directive");
+    }
+
+    #[test]
+    fn good_mood_is_computed_positive() {
+        let mut sim = Simulation::new(7);
+        let id = sim.organisms[0].id.clone();
+        {
+            let org = sim.organisms.iter_mut().find(|o| o.id == id).unwrap();
+            org.grief_ticks = 0;
+            org.joy_ticks = 1200;
+            org.comfort = 1.0;
+            org.health = 1.0;
+            org.fear_level = 0.0;
+            org.loneliness = 0.0;
+            org.boredom = 0.0;
+            org.energy = 1.0;
+        }
+        sim.tick_count += 45;
+        tick_mood(&mut sim);
+        let org = sim.organisms.iter().find(|o| o.id == id).unwrap();
+        assert!(org.mood > 0.5, "expected positive mood, got {}", org.mood);
     }
 
     #[test]
