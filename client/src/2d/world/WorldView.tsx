@@ -20,6 +20,9 @@ import {
   onAnyAtlasLoaded,
   drawPeopleTile,
   pickHumanSprite,
+  SPRITE,
+  ATLAS_CREATURE,
+  drawTile,
   type AgeStage,
 } from '../../utils/sprites'
 import { drawBuilding } from './buildings2d'
@@ -1409,10 +1412,20 @@ function drawWorldOnCanvas(
     const cxHi = c1 + BLDG_MARGIN
     const ryLo = r0 - BLDG_MARGIN
     const ryHi = r1 + BLDG_MARGIN
-    for (const b of world.buildings) {
+    const bdp = world.day_progress ?? 0.5
+    const bNight = world.is_day ? 0 : Math.max(0, Math.min(1, 1 - Math.abs(bdp - 0.5) * 2))
+    const sorted = [...world.buildings].sort((a, b) => (a.y ?? 0) - (b.y ?? 0))
+    for (const b of sorted) {
       if (typeof b.x !== 'number' || typeof b.y !== 'number') continue
       if (b.x < cxLo || b.x > cxHi || b.y < ryLo || b.y > ryHi) continue
-      drawBuilding(ctx, { id: b.id, kind: b.kind, x: b.x, y: b.y, condition: b.condition }, ox, oy, TILE)
+      drawBuilding(
+        ctx,
+        { id: b.id, kind: b.kind, x: b.x, y: b.y, condition: b.condition },
+        ox,
+        oy,
+        TILE,
+        bNight,
+      )
     }
     type Cluster = { cx: number; cy: number; count: number; lineage: string }
     const clusters: Cluster[] = []
@@ -1461,51 +1474,55 @@ function drawWorldOnCanvas(
     ctx.restore()
   }
 
-  const ANIMAL_EMOJI: Record<string, string> = {
-    wolf: '🐺',
-    deer: '🦌',
-    boar: '🐗',
-    rabbit: '🐇',
-    fish: '🐟',
-    bird: '🐦',
-    dog: '🐕',
-  }
   if (viewFlags.animals && animals.length > 0) {
-    // Setting ctx.font invalidates Chrome's text-shaper cache. Group
-    // animals into the two size buckets and assign the font ONCE per
-    // bucket instead of once per animal.
     ctx.save()
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    const small: typeof animals = []
-    const large: typeof animals = []
+    const atlasReady = ATLAS_CREATURE.complete && ATLAS_CREATURE.naturalWidth > 0
     for (const animal of animals) {
-      const sm = animal.kind === 'fish' || animal.kind === 'bird' || animal.kind === 'rabbit'
-      ;(sm ? small : large).push(animal)
-    }
-    const drawBucket = (list: typeof animals, font: string) => {
-      if (list.length === 0) return
-      ctx.font = font
-      for (const animal of list) {
-        const emoji = ANIMAL_EMOJI[animal.kind] ?? '🐾'
-        const speed =
-          animal.kind === 'fish'
-            ? 0.0028
-            : animal.kind === 'bird'
-              ? 0.005
-              : animal.kind === 'wolf' || animal.kind === 'dog'
-                ? 0.0042
-                : 0.0036
-        const amp = animal.kind === 'fish' ? 1.4 : 0.8
-        const phase = t * speed + animal.id * 0.7
-        const yOff = Math.sin(phase) * amp
-        const cx = (animal.x - ox) * TILE + TILE / 2
-        const cy = (animal.y - oy) * TILE + TILE / 2 + yOff
-        ctx.fillText(emoji, cx, cy)
+      const small = animal.kind === 'fish' || animal.kind === 'bird' || animal.kind === 'rabbit'
+      const size = small ? 11 : 14
+      const speed =
+        animal.kind === 'fish'
+          ? 0.0028
+          : animal.kind === 'bird'
+            ? 0.005
+            : animal.kind === 'wolf' || animal.kind === 'dog'
+              ? 0.0042
+              : 0.0036
+      const amp = animal.kind === 'fish' ? 1.4 : animal.kind === 'bird' ? 1.6 : 0.7
+      const phase = t * speed + animal.id * 0.7
+      const yOff = Math.sin(phase) * amp
+      const cx = (animal.x - ox) * TILE + TILE / 2
+      const cy = (animal.y - oy) * TILE + TILE / 2 + yOff
+      if (animal.kind !== 'fish' && animal.kind !== 'bird') {
+        ctx.fillStyle = 'rgba(0,0,0,0.3)'
+        ctx.beginPath()
+        ctx.ellipse(cx, cy + size * 0.42, size * 0.32, size * 0.14, 0, 0, Math.PI * 2)
+        ctx.fill()
+      }
+      if (atlasReady) {
+        const frames = (SPRITE.animals as Record<string, readonly (readonly [number, number])[]>)[
+          animal.kind
+        ]
+        const tile = frames
+          ? frames[(Math.floor(t / 260) + animal.id) % frames.length]
+          : SPRITE.animals.rabbit[0]
+        const flip = ((animal.id * 2654435761) >>> 0) & 1
+        if (flip) {
+          ctx.save()
+          ctx.translate(cx + size / 2, cy - size / 2)
+          ctx.scale(-1, 1)
+          drawTile(ctx, ATLAS_CREATURE, tile, 0, 0, size)
+          ctx.restore()
+        } else {
+          drawTile(ctx, ATLAS_CREATURE, tile, cx - size / 2, cy - size / 2, size)
+        }
+      } else {
+        ctx.fillStyle = animal.kind === 'wolf' ? '#6a6a72' : '#8a6a4a'
+        ctx.beginPath()
+        ctx.ellipse(cx, cy, size * 0.32, size * 0.22, 0, 0, Math.PI * 2)
+        ctx.fill()
       }
     }
-    drawBucket(small, '9px serif')
-    drawBucket(large, '11px serif')
     ctx.restore()
   }
 
