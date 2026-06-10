@@ -1,3 +1,4 @@
+#![allow(clippy::needless_range_loop, clippy::explicit_counter_loop)]
 #![allow(dead_code)]
 
 // Sim core comes from the shared `sim-core` crate now (no more #[path]
@@ -155,7 +156,7 @@ fn main() {
         // Profile CSV: every `profile_every` ticks. Reads RSS via
         // /proc/self/status on Linux; falls back to 0 elsewhere.
         if let Some(w) = profile_writer.as_mut() {
-            if profile_every > 0 && t % profile_every == 0 {
+            if profile_every > 0 && t.is_multiple_of(profile_every) {
                 use std::io::Write as _;
                 let rss_kb = read_self_rss_kb();
                 let _ = writeln!(w, "{},{},{},{}", t, alive, tick_us as f64 / 1000.0, rss_kb,);
@@ -163,16 +164,16 @@ fn main() {
         }
 
         if let Some(writer) = trace_writer.as_mut() {
-            if trace_every > 0 && t % trace_every == 0 {
+            if trace_every > 0 && t.is_multiple_of(trace_every) {
                 write_trace_rows(&sim, writer, trace_limit);
             }
         }
 
-        if coverage_every > 0 && t % coverage_every == 0 {
+        if coverage_every > 0 && t.is_multiple_of(coverage_every) {
             print_coverage_row(t, &sim);
         }
 
-        if growth_every > 0 && t % growth_every == 0 {
+        if growth_every > 0 && t.is_multiple_of(growth_every) {
             print_growth_row(t, &sim);
         }
 
@@ -180,16 +181,16 @@ fn main() {
             *thought_freq.entry(org.thought.clone()).or_insert(0) += 1;
         }
 
-        if t % print_every == 0 {
+        if t.is_multiple_of(print_every) {
             let fire_count = sim
                 .organisms
                 .iter()
-                .filter(|o| o.alive && o.discoveries.contains(&"fire".to_string()))
+                .filter(|o| o.alive && o.discoveries.contains("fire"))
                 .count();
             let shelter_count = sim
                 .organisms
                 .iter()
-                .filter(|o| o.alive && o.discoveries.contains(&"shelter".to_string()))
+                .filter(|o| o.alive && o.discoveries.contains("shelter"))
                 .count();
             let animal_count = sim.animals.iter().filter(|a| a.alive).count();
             let lineage_count: std::collections::HashSet<&str> = sim
@@ -251,52 +252,52 @@ fn main() {
     let fire_disc = sim
         .organisms
         .iter()
-        .filter(|o| o.discoveries.contains(&"fire".to_string()))
+        .filter(|o| o.discoveries.contains("fire"))
         .count();
     let shelter_disc = sim
         .organisms
         .iter()
-        .filter(|o| o.discoveries.contains(&"shelter".to_string()))
+        .filter(|o| o.discoveries.contains("shelter"))
         .count();
     let hunt_disc = sim
         .organisms
         .iter()
-        .filter(|o| o.discoveries.contains(&"hunt".to_string()))
+        .filter(|o| o.discoveries.contains("hunt"))
         .count();
     let medicine_disc = sim
         .organisms
         .iter()
-        .filter(|o| o.discoveries.contains(&"medicine".to_string()))
+        .filter(|o| o.discoveries.contains("medicine"))
         .count();
     let barter_disc = sim
         .organisms
         .iter()
-        .filter(|o| o.discoveries.contains(&"barter".to_string()))
+        .filter(|o| o.discoveries.contains("barter"))
         .count();
     let currency_disc = sim
         .organisms
         .iter()
-        .filter(|o| o.discoveries.contains(&"currency".to_string()))
+        .filter(|o| o.discoveries.contains("currency"))
         .count();
     let wood_disc = sim
         .organisms
         .iter()
-        .filter(|o| o.discoveries.contains(&"woodcutting".to_string()))
+        .filter(|o| o.discoveries.contains("woodcutting"))
         .count();
     let forestry_disc = sim
         .organisms
         .iter()
-        .filter(|o| o.discoveries.contains(&"forestry".to_string()))
+        .filter(|o| o.discoveries.contains("forestry"))
         .count();
     let rich_n = sim
         .organisms
         .iter()
-        .filter(|o| o.alive && o.discoveries.contains(&"rich".to_string()))
+        .filter(|o| o.alive && o.discoveries.contains("rich"))
         .count();
     let poor_n = sim
         .organisms
         .iter()
-        .filter(|o| o.alive && o.discoveries.contains(&"poor".to_string()))
+        .filter(|o| o.alive && o.discoveries.contains("poor"))
         .count();
     println!(
         "\nDiscoveries (ever, alive+dead):  fire={}  shelter={}  hunt={}  medicine={}  woodcutting={}  forestry={}  barter={}  currency={}",
@@ -1145,7 +1146,7 @@ fn run_one_seed(seed: u64, max_ticks: u64) -> SweepResult {
         let alive = sim.organisms.iter().filter(|o| o.alive).count();
         peak_pop = peak_pop.max(alive);
 
-        if sim.tick_count % 1000 == 0 {
+        if sim.tick_count.is_multiple_of(1000) {
             alive_samples.push(alive);
             let lineages = sim
                 .organisms

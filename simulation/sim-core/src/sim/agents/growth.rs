@@ -46,7 +46,7 @@ pub fn spawn_organism_with_home(
     org.home_x = home_x;
     org.home_y = home_y;
     org.sex = sex;
-    let stagger_tick = (rng.random_range(0..crate::sim::cosmos::YEAR_LENGTH_TICKS)) as u64;
+    let stagger_tick = rng.random_range(0..crate::sim::cosmos::YEAR_LENGTH_TICKS);
     org.birth_tick = stagger_tick;
     org.zodiac = crate::sim::cosmos::ZodiacSign::from_birth_tick(stagger_tick)
         .label()
@@ -75,6 +75,7 @@ pub fn spawn_organism_with_home(
     organisms.push(org);
 }
 
+#[allow(clippy::if_same_then_else)]
 pub fn try_reproduce(
     org_idx: usize,
     organisms: &mut Vec<Organism>,
@@ -436,7 +437,7 @@ pub fn try_reproduce(
 pub const PREGNANCY_DURATION: u64 = 1200;
 
 pub fn deliver_births(
-    organisms: &mut Vec<Organism>,
+    organisms: &mut [Organism],
     tick: u64,
     events: &mut std::collections::VecDeque<Event>,
     history: &mut History,

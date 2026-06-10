@@ -641,6 +641,7 @@ pub fn generate_conversation(
     (entry_a, entry_b)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn generate_conversation_with_req(
     a: &Organism,
     b: &Organism,

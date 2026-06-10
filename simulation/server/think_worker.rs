@@ -597,11 +597,10 @@ fn build_result_from_llm(trigger: &ThinkTrigger, response: &str) -> Option<Think
         // Fallback: use first non-empty line that isn't an ACTION line
         response
             .lines()
-            .filter(|l| {
+            .find(|l| {
                 let ll = l.to_lowercase();
                 !ll.starts_with("action:") && !l.trim().is_empty()
             })
-            .next()
             .unwrap_or("")
             .trim()
             .to_string()

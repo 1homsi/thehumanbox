@@ -1,13 +1,13 @@
-use rustc_hash::FxHashMap;
 use crate::organism::organism::Organism;
 use crate::sim::simulation::{Event, History};
 use crate::sim::world_events::push_event;
 use crate::world::tiles::Tile;
 use rand::Rng;
+use rustc_hash::FxHashMap;
 
 pub fn signal_food(
     org_idx: usize,
-    organisms: &mut Vec<Organism>,
+    organisms: &mut [Organism],
     grid: &crate::world::grid::WorldGrid,
     tick: u64,
     events: &mut std::collections::VecDeque<Event>,
@@ -91,7 +91,7 @@ pub fn signal_food(
 
 pub fn sound_alarm(
     org_idx: usize,
-    organisms: &mut Vec<Organism>,
+    organisms: &mut [Organism],
     grid: &crate::world::grid::WorldGrid,
     tick: u64,
     events: &mut std::collections::VecDeque<Event>,
@@ -171,7 +171,7 @@ pub fn sound_alarm(
 
 pub fn gift_knowledge(
     org_idx: usize,
-    organisms: &mut Vec<Organism>,
+    organisms: &mut [Organism],
     tick: u64,
     events: &mut std::collections::VecDeque<Event>,
     history: &mut History,
@@ -314,7 +314,7 @@ pub fn gift_knowledge(
 
 pub fn challenge_stranger(
     org_idx: usize,
-    organisms: &mut Vec<Organism>,
+    organisms: &mut [Organism],
     tick: u64,
     events: &mut std::collections::VecDeque<Event>,
     history: &mut History,
@@ -445,7 +445,7 @@ pub fn challenge_stranger(
 
 pub fn groom(
     org_idx: usize,
-    organisms: &mut Vec<Organism>,
+    organisms: &mut [Organism],
     tick: u64,
     events: &mut std::collections::VecDeque<Event>,
 ) -> f32 {
@@ -553,7 +553,7 @@ pub fn groom(
 
 pub fn teach(
     org_idx: usize,
-    organisms: &mut Vec<Organism>,
+    organisms: &mut [Organism],
     tick: u64,
     events: &mut std::collections::VecDeque<Event>,
     rng: &mut impl Rng,
@@ -713,7 +713,7 @@ pub fn teach(
 
 pub fn share_food(
     org_idx: usize,
-    organisms: &mut Vec<Organism>,
+    organisms: &mut [Organism],
     tick: u64,
     events: &mut std::collections::VecDeque<Event>,
 ) -> f32 {
@@ -847,7 +847,7 @@ fn recipient_source_trust_factor(recipient: &Organism, speaker_id: &str, same_li
     }
 }
 
-pub fn social_knowledge_share(org_idx: usize, organisms: &mut Vec<Organism>, tick: u64, rng: &mut impl Rng) {
+pub fn social_knowledge_share(org_idx: usize, organisms: &mut [Organism], tick: u64, rng: &mut impl Rng) {
     let org_lineage = organisms[org_idx].lineage_id.clone();
     let org_id = organisms[org_idx].id.clone();
     let (ox, oy) = (organisms[org_idx].x as i32, organisms[org_idx].y as i32);

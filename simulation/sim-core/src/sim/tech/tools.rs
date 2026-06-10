@@ -56,12 +56,7 @@ impl ToolKind {
     }
 
     pub fn from_name(s: &str) -> Option<ToolKind> {
-        for &k in Self::all() {
-            if k.name() == s {
-                return Some(k);
-            }
-        }
-        None
+        Self::all().iter().find(|&&k| k.name() == s).copied()
     }
 
     pub fn era_unlock(self) -> Era {

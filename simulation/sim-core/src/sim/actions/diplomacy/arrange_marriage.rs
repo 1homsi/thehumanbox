@@ -7,7 +7,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         .copied()
         .filter(|&k| {
             let a = ctx.sim.organisms[k].age;
-            a >= 800 && a < 4000
+            (800..4000).contains(&a)
         })
         .collect();
     if mates.len() < 2 {

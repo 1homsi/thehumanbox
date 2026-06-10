@@ -21,6 +21,7 @@ pub enum Era {
 }
 
 impl Era {
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Era {
         match s {
             "stone" => Era::Stone,

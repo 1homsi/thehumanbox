@@ -67,6 +67,7 @@ fn context_actions(
 }
 
 impl Organism {
+    #[allow(clippy::too_many_arguments)]
     pub fn choose_action(
         &self,
         grid: &WorldGrid,
@@ -148,12 +149,14 @@ impl Organism {
         }
 
         let needs_ok = self.hydration > 0.62 && self.energy > 0.50;
-        if needs_ok && !self.pregnant {
-            if (self.health < 0.80 || self.sleep_debt > 0.12) && !self.near_shelter(grid) {
-                if let Some(s) = self.find_shelter_tile(grid, 14) {
-                    set_thought!("returning to shelter");
-                    return (self.toward(s, grid), thought);
-                }
+        if needs_ok
+            && !self.pregnant
+            && (self.health < 0.80 || self.sleep_debt > 0.12)
+            && !self.near_shelter(grid)
+        {
+            if let Some(s) = self.find_shelter_tile(grid, 14) {
+                set_thought!("returning to shelter");
+                return (self.toward(s, grid), thought);
             }
         }
 
@@ -322,11 +325,10 @@ impl Organism {
                 && dist_home < 8.0
                 && self.energy > 0.50
                 && rng.random::<f32>() < 0.08
+                && tile == Tile::Grass
             {
-                if tile == Tile::Grass {
-                    set_thought!("planting a sapling");
-                    return (30, thought);
-                }
+                set_thought!("planting a sapling");
+                return (30, thought);
             }
         }
 
@@ -444,27 +446,30 @@ impl Organism {
                         && (o.x - self.x).abs() + (o.y - self.y).abs() <= 6.0
                 })
                 .count();
-            if near_fire && kin_nearby >= 1 && self.energy > 0.5 && self.hydration > 0.5 {
-                if rng.random::<f32>() < 0.12 * self.traits.social_tendency {
-                    let roll = rng.random::<f32>();
-                    if roll < 0.30 {
-                        set_thought!("dancing by the fire");
-                        return (20, thought);
-                    } else if roll < 0.55 {
-                        set_thought!("singing by the fire");
-                        return (21, thought);
-                    }
-                    let s = [
-                        "socialising by the fire",
-                        "warming by the fire",
-                        "telling stories",
-                        "resting with kin",
-                        "tending the fire",
-                        "sharing a meal",
-                    ];
-                    set_thought!(s[rng.random_range(0..s.len())]);
-                    return (17, thought);
+            if near_fire
+                && kin_nearby >= 1
+                && self.energy > 0.5
+                && self.hydration > 0.5
+                && rng.random::<f32>() < 0.12 * self.traits.social_tendency
+            {
+                let roll = rng.random::<f32>();
+                if roll < 0.30 {
+                    set_thought!("dancing by the fire");
+                    return (20, thought);
+                } else if roll < 0.55 {
+                    set_thought!("singing by the fire");
+                    return (21, thought);
                 }
+                let s = [
+                    "socialising by the fire",
+                    "warming by the fire",
+                    "telling stories",
+                    "resting with kin",
+                    "tending the fire",
+                    "sharing a meal",
+                ];
+                set_thought!(s[rng.random_range(0..s.len())]);
+                return (17, thought);
             }
         }
 
@@ -630,14 +635,16 @@ impl Organism {
             set_thought!("expecting");
         }
 
-        if self.traits.social_tendency > 0.5 && self.energy > 0.55 && self.hydration > 0.55 {
-            if rng.random::<f32>() < self.traits.social_tendency * 0.06 {
-                if let Some(t) = self.find_trail_target(grid, TrailKind::Path, 14) {
-                    let dist = (t.0 - ix).abs() + (t.1 - iy).abs();
-                    if dist > 5 {
-                        set_thought!("following migration path");
-                        return (self.toward(t, grid), thought);
-                    }
+        if self.traits.social_tendency > 0.5
+            && self.energy > 0.55
+            && self.hydration > 0.55
+            && rng.random::<f32>() < self.traits.social_tendency * 0.06
+        {
+            if let Some(t) = self.find_trail_target(grid, TrailKind::Path, 14) {
+                let dist = (t.0 - ix).abs() + (t.1 - iy).abs();
+                if dist > 5 {
+                    set_thought!("following migration path");
+                    return (self.toward(t, grid), thought);
                 }
             }
         }
@@ -837,9 +844,7 @@ impl Organism {
         let decision_pool = context_pool.as_deref().unwrap_or(available);
 
         let age_decay = 1.0 / (1.0 + self.age as f32 / 2000.0);
-        let eff_eps = (epsilon * (0.5 + self.traits.curiosity) * age_decay)
-            .max(0.02)
-            .min(0.80);
+        let eff_eps = (epsilon * (0.5 + self.traits.curiosity) * age_decay).clamp(0.02, 0.80);
         if rng.random::<f32>() < eff_eps {
             if rng.random::<f32>() < 0.10 {
                 if let Some(p) = self.find_trail_target(grid, TrailKind::Path, 5) {

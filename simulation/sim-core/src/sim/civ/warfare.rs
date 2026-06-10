@@ -218,7 +218,7 @@ pub fn try_spawn_raids(
 ) -> Vec<Battle> {
     use rand::Rng;
     let mut out = Vec::new();
-    if tick % RAID_CHECK_INTERVAL != 0 {
+    if !tick.is_multiple_of(RAID_CHECK_INTERVAL) {
         return out;
     }
 
@@ -354,7 +354,7 @@ pub fn try_spawn_border_wars(
 ) -> Vec<Battle> {
     use rand::Rng;
     let mut out = Vec::new();
-    if tick == 0 || tick % BORDER_WAR_CHECK_INTERVAL != 0 {
+    if tick == 0 || !tick.is_multiple_of(BORDER_WAR_CHECK_INTERVAL) {
         return out;
     }
 

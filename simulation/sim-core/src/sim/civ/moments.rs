@@ -4,7 +4,6 @@ use crate::sim::world_events::push_event;
 use rand::Rng;
 use std::collections::{HashMap, HashSet};
 
-
 pub(super) fn tick_mood(sim: &mut Simulation) {
     use crate::organism::memory::{MemoryEntry, MemoryKind};
     let tick = sim.tick_count;
@@ -28,8 +27,7 @@ pub(super) fn tick_mood(sim: &mut Simulation) {
             .map(|p| partner_pos.contains_key(p))
             .unwrap_or(false);
         let hunger_pressure = if org.energy < 0.3 { 0.25 } else { 0.0 };
-        let mood = joy * 0.5 + org.comfort * 0.35 + org.health * 0.2
-            + if partner_alive { 0.15 } else { 0.0 }
+        let mood = joy * 0.5 + org.comfort * 0.35 + org.health * 0.2 + if partner_alive { 0.15 } else { 0.0 }
             - grief * 0.85
             - org.fear_level * 0.45
             - org.loneliness * 0.35
@@ -54,7 +52,11 @@ pub(super) fn tick_mood(sim: &mut Simulation) {
                     .with_salience(0.7)
                     .with_emotion(-2),
                 );
-                org.log_life(tick, "hardship", "withdrew beneath a weight of sorrow".to_string());
+                org.log_life(
+                    tick,
+                    "hardship",
+                    "withdrew beneath a weight of sorrow".to_string(),
+                );
             }
         } else if mood < -0.35 && roll < 0.35 {
             if org.fear_level > 0.5 {
@@ -323,7 +325,7 @@ pub(super) fn tick_season_change(sim: &mut Simulation) {
     if alive_n == 0 {
         return;
     }
-    let pick_n = (alive_n / 10).max(1).min(20);
+    let pick_n = (alive_n / 10).clamp(1, 20);
     let mut picked = 0usize;
     for o in sim.organisms.iter_mut() {
         if !o.alive || picked >= pick_n {
@@ -379,7 +381,7 @@ pub(super) fn tick_spiritual_pilgrimage(sim: &mut Simulation) {
                 continue;
             }
             let d = (tx - o.x).abs() + (ty - o.y).abs();
-            if d > 70.0 || d < 2.0 {
+            if !(2.0..=70.0).contains(&d) {
                 continue;
             }
             if let Some((bd, _, _)) = best {
@@ -1337,7 +1339,7 @@ pub(super) fn tick_evening_gathering(sim: &mut Simulation) {
         let mut best: Option<(f32, f32, f32)> = None;
         for &(bx, by) in spots.iter() {
             let dist = (bx - o.x).abs() + (by - o.y).abs();
-            if dist > 60.0 || dist < 2.0 {
+            if !(2.0..=60.0).contains(&dist) {
                 continue;
             }
             if let Some((d, _, _)) = best {
@@ -1395,7 +1397,7 @@ pub(super) fn tick_friend_gravitation(sim: &mut Simulation) {
                 continue;
             }
             let d = (f.x - ox).abs() + (f.y - oy).abs();
-            if d > 80.0 || d < 6.0 {
+            if !(6.0..=80.0).contains(&d) {
                 continue;
             }
             match best {
@@ -1539,7 +1541,7 @@ pub(super) fn tick_aurora_sighting(sim: &mut Simulation) {
     while sim.headlines.len() > 80 {
         sim.headlines.pop_front();
     }
-    let pick_n = (alive_n / 6).max(1).min(40);
+    let pick_n = (alive_n / 6).clamp(1, 40);
     let mut picked = 0usize;
     for o in sim.organisms.iter_mut() {
         if !o.alive || picked >= pick_n {
@@ -1575,7 +1577,7 @@ pub(super) fn tick_meteor_shower(sim: &mut Simulation) {
     if alive_count == 0 {
         return;
     }
-    let pick_n = (alive_count / 8).max(1).min(20);
+    let pick_n = (alive_count / 8).clamp(1, 20);
     let mut picked = 0;
     for o in sim.organisms.iter_mut() {
         if !o.alive || picked >= pick_n {
@@ -2068,4 +2070,3 @@ pub(super) const FURNITURE_POOL: &[(&str, &[&str], &str)] = &[
     ("photo_frame", &["photography"], "industrial"),
     ("kitchen_stove", &["electricity"], "modern"),
 ];
-

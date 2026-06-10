@@ -732,9 +732,7 @@ impl WorldGrid {
                 let temp = temp_map[i];
                 let moist = moist_map[i];
 
-                let biome = if norm_elev > 0.84 {
-                    Biome::Tundra
-                } else if temp < -8.0 {
+                let biome = if norm_elev > 0.84 || temp < -8.0 {
                     Biome::Tundra
                 } else if temp < 4.0 {
                     if moist > 0.48 {
@@ -816,9 +814,7 @@ impl WorldGrid {
                             }
                         }
                         Biome::Tundra => {
-                            if norm_elev > 0.85 || temp_map[i] < -16.0 {
-                                Tile::Snow as i8
-                            } else if rng.random::<f32>() < 0.18 {
+                            if norm_elev > 0.85 || temp_map[i] < -16.0 || rng.random::<f32>() < 0.18 {
                                 Tile::Snow as i8
                             } else {
                                 Tile::Grass as i8

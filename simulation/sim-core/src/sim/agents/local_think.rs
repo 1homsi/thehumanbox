@@ -16,6 +16,7 @@ fn weighted_pick<'a>(rng: &mut impl Rng, options: &[(&'a str, f32)]) -> &'a str 
     options.last().unwrap().0
 }
 
+#[derive(Default)]
 pub struct LocalResult {
     pub word: &'static str,
     pub thought: &'static str,
@@ -27,23 +28,6 @@ pub struct LocalResult {
     pub strategy: Option<&'static str>,
     pub alliance: Option<&'static str>,
     pub discovery: Option<String>,
-}
-
-impl Default for LocalResult {
-    fn default() -> Self {
-        LocalResult {
-            word: "",
-            thought: "",
-            directive: None,
-            directive_ticks: 0,
-            attitude_delta: None,
-            trait_name: None,
-            trait_delta: None,
-            strategy: None,
-            alliance: None,
-            discovery: None,
-        }
-    }
 }
 
 pub fn resolve(trigger: &ThinkTrigger, rng: &mut impl Rng) -> Option<LocalResult> {

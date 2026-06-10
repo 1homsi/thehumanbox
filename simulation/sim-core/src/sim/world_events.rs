@@ -126,7 +126,7 @@ const WET_AFTERMATH_TICKS: u64 = 1200;
 pub fn tick_weather(
     weather: &mut WeatherState,
     grid: &mut WorldGrid,
-    organisms: &mut Vec<Organism>,
+    organisms: &mut [Organism],
     tick: u64,
     season: &str,
     events: &mut std::collections::VecDeque<super::simulation::Event>,
@@ -188,7 +188,7 @@ pub fn tick_weather(
 }
 
 fn apply_wet_aftermath(weather: &WeatherState, grid: &mut WorldGrid, tick: u64, rng: &mut impl Rng) {
-    if tick % 30 != 0 {
+    if !tick.is_multiple_of(30) {
         return;
     }
     for _ in 0..3 {
@@ -199,7 +199,7 @@ fn apply_wet_aftermath(weather: &WeatherState, grid: &mut WorldGrid, tick: u64, 
             *grid.fire_intensity_mut(x, y) = 0.0;
         }
     }
-    if tick % 60 == 0 {
+    if tick.is_multiple_of(60) {
         let _ = weather;
         for _ in 0..4 {
             let x = rng.random_range(1..WIDTH as i32 - 1);
@@ -215,12 +215,12 @@ fn apply_wet_aftermath(weather: &WeatherState, grid: &mut WorldGrid, tick: u64, 
 fn apply_weather(
     weather: &WeatherState,
     grid: &mut WorldGrid,
-    organisms: &mut Vec<Organism>,
+    organisms: &mut [Organism],
     tick: u64,
     rng: &mut impl Rng,
 ) {
     use crate::world::grid::{HEIGHT, WIDTH};
-    if tick % 20 != 0 {
+    if !tick.is_multiple_of(20) {
         return;
     }
 
@@ -294,22 +294,12 @@ fn apply_weather(
     }
 }
 
+#[derive(Default)]
 pub struct DroughtState {
     pub active: bool,
     pub start_tick: u64,
     pub dried_tiles: Vec<(i32, i32)>,
     pub rain_relief: u64,
-}
-
-impl Default for DroughtState {
-    fn default() -> Self {
-        DroughtState {
-            active: false,
-            start_tick: 0,
-            dried_tiles: Vec::new(),
-            rain_relief: 0,
-        }
-    }
 }
 
 pub fn tick_drought(
@@ -357,7 +347,7 @@ fn start_drought(
 
     let mut ocean = vec![false; WIDTH * HEIGHT];
     let mut q: VecDeque<(i32, i32)> = VecDeque::new();
-    let mut seed_ocean = |x: i32, y: i32, ocean: &mut Vec<bool>, q: &mut VecDeque<(i32, i32)>| {
+    let seed_ocean = |x: i32, y: i32, ocean: &mut Vec<bool>, q: &mut VecDeque<(i32, i32)>| {
         if grid.get(x, y) == Tile::Water {
             let i = WorldGrid::idx(x, y);
             if !ocean[i] {
@@ -498,7 +488,7 @@ fn end_drought(
 }
 
 pub fn tick_outbreak(
-    organisms: &mut Vec<Organism>,
+    organisms: &mut [Organism],
     grid: &mut WorldGrid,
     tick: u64,
     season: &str,
@@ -579,50 +569,9 @@ pub fn push_event(
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::collections::VecDeque;
-
-    #[test]
-    fn recent_events_keep_enough_context_for_debugging() {
-        let mut events = VecDeque::new();
-        for i in 0..40 {
-            push_event(&mut events, i, "test", "world", "event");
-        }
-
-        assert_eq!(events.len(), 40);
-        assert_eq!(events.front().unwrap().tick, 0);
-    }
-
-    #[test]
-    fn drought_never_dries_ocean_or_border() {
-        use crate::world::grid::{WorldGrid, HEIGHT, WIDTH};
-        use rand::SeedableRng;
-        let mut grid = WorldGrid::new(42);
-        let mut drought = DroughtState::default();
-        let mut history = super::super::simulation::History::default();
-        let mut events = VecDeque::new();
-        let mut rng = rand::rngs::StdRng::seed_from_u64(7);
-
-        for _ in 0..40 {
-            start_drought(&mut drought, &mut grid, 0, &mut history, &mut events, &mut rng);
-            end_drought(&mut drought, &mut grid, 0, &mut events);
-        }
-
-        for y in 0..HEIGHT as i32 {
-            for x in 0..WIDTH as i32 {
-                if WorldGrid::is_edge_border(x, y) {
-                    assert_eq!(grid.get(x, y), Tile::Water, "border tile ({x},{y}) was dried");
-                }
-            }
-        }
-    }
-}
-
 pub fn tick_world_evolution(
     grid: &mut WorldGrid,
-    organisms: &mut Vec<Organism>,
+    organisms: &mut [Organism],
     flood_tiles: &mut Vec<(i32, i32, u64)>,
     tick: u64,
     season: &str,
@@ -925,7 +874,7 @@ pub fn tick_world_evolution(
         }
     }
 
-    if tick % 600 == 0 {
+    if tick.is_multiple_of(600) {
         for _ in 0..120 {
             let x = rng.random_range(1..WIDTH as i32 - 1);
             let y = rng.random_range(1..HEIGHT as i32 - 1);
@@ -946,7 +895,7 @@ pub fn tick_world_evolution(
         }
     }
 
-    if tick % 6000 == 0 && tick >= 9000 {
+    if tick.is_multiple_of(6000) && tick >= 9000 {
         let mut edge_water: Vec<(i32, i32)> = Vec::new();
         for _ in 0..2000 {
             let x = rng.random_range(1..WIDTH as i32 - 1);
@@ -973,7 +922,7 @@ pub fn tick_world_evolution(
             for ddx in -6i32..=6 {
                 for ddy in -6i32..=6 {
                     let d = ddx.abs() + ddy.abs();
-                    if d < 3 || d > 6 {
+                    if !(3..=6).contains(&d) {
                         continue;
                     }
                     let (nx, ny) = (wx + ddx, wy + ddy);
@@ -1001,32 +950,32 @@ pub fn tick_world_evolution(
 
     // Bumped from 18000 → 6000 so coastline drift is observable within
     // one session (~10 min real between events instead of ~30 min).
-    if tick % 6000 == 0 && tick >= 6000 {
+    if tick.is_multiple_of(6000) && tick >= 6000 {
         grid.tick_geology(rng);
     }
     // River meander: a single bank-flip per call, much faster cadence
     // than geology - gives mid-session lakes a visible "shifted" feel
     // without bulldozing them.
-    if tick % 1800 == 0 && tick >= 1800 {
+    if tick.is_multiple_of(1800) && tick >= 1800 {
         grid.tick_river_meander(rng);
     }
     // Forest spread: counterbalance to the shrink-only forest drift
     // already in the biome system. Closes the "forests spread or die"
     // loop the world-evolution spec asks for.
-    if tick % 900 == 0 && tick >= 900 {
+    if tick.is_multiple_of(900) && tick >= 900 {
         grid.tick_forest_spread(rng);
     }
     // Forest die-back: paired with the spread loop. Only fires under
     // active drought + low-fertility tiles, so the world's forests
     // shrink during sustained dry spells.
-    if tick % 600 == 0 && tick >= 600 {
+    if tick.is_multiple_of(600) && tick >= 600 {
         grid.tick_forest_dieback(drought_active, rng);
     }
     // Rare tectonic event: every 30k ticks, flip a coin. On average one
     // earthquake per ~60k ticks - uncommon enough that organisms can't
     // build a routine around it, frequent enough that long-running worlds
     // accumulate a few visible fault scars.
-    if tick % 30000 == 0 && tick >= 30000 && rng.random_bool(0.5) {
+    if tick.is_multiple_of(30000) && tick >= 30000 && rng.random_bool(0.5) {
         grid.tick_earthquake(rng);
         push_event(
             events,
@@ -1063,6 +1012,47 @@ pub fn tick_world_evolution(
                 org.traits.memory_strength = (org.traits.memory_strength + 0.0005).clamp(0.1, 0.9);
             }
             Biome::Grassland => {}
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::VecDeque;
+
+    #[test]
+    fn recent_events_keep_enough_context_for_debugging() {
+        let mut events = VecDeque::new();
+        for i in 0..40 {
+            push_event(&mut events, i, "test", "world", "event");
+        }
+
+        assert_eq!(events.len(), 40);
+        assert_eq!(events.front().unwrap().tick, 0);
+    }
+
+    #[test]
+    fn drought_never_dries_ocean_or_border() {
+        use crate::world::grid::{WorldGrid, HEIGHT, WIDTH};
+        use rand::SeedableRng;
+        let mut grid = WorldGrid::new(42);
+        let mut drought = DroughtState::default();
+        let mut history = super::super::simulation::History::default();
+        let mut events = VecDeque::new();
+        let mut rng = rand::rngs::StdRng::seed_from_u64(7);
+
+        for _ in 0..40 {
+            start_drought(&mut drought, &mut grid, 0, &mut history, &mut events, &mut rng);
+            end_drought(&mut drought, &mut grid, 0, &mut events);
+        }
+
+        for y in 0..HEIGHT as i32 {
+            for x in 0..WIDTH as i32 {
+                if WorldGrid::is_edge_border(x, y) {
+                    assert_eq!(grid.get(x, y), Tile::Water, "border tile ({x},{y}) was dried");
+                }
+            }
         }
     }
 }

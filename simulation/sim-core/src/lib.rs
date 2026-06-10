@@ -1,3 +1,4 @@
+#![allow(clippy::needless_range_loop)]
 pub mod organism;
 pub mod physics;
 pub mod sim;

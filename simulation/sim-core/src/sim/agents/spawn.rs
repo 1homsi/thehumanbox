@@ -215,7 +215,7 @@ impl Simulation {
             .collect();
         let mut scored = scored;
         scored.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
-        let top = scored.len().min(12).max(1);
+        let top = scored.len().clamp(1, 12);
         let (anchor_x, anchor_y, _) = scored[self.rng.random_range(0..top)];
 
         let tribe_size = self.rng.random_range(8usize..=14);

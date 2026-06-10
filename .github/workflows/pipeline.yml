@@ -39,7 +39,7 @@ jobs:
         run: cargo fmt --all -- --check
       - name: cargo clippy
         working-directory: simulation
-        run: cargo clippy --all-targets --locked -- -W clippy::all
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
   backend-tests:
     name: Backend tests (release workspace)

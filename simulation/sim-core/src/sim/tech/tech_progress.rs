@@ -17,7 +17,7 @@ pub fn tick_tech_progress(
     events: &mut VecDeque<Event>,
     lineage_names: &HashMap<String, String>,
 ) {
-    if tick == 0 || tick % TICK_INTERVAL != 0 {
+    if tick == 0 || !tick.is_multiple_of(TICK_INTERVAL) {
         return;
     }
 

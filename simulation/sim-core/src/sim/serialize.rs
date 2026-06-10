@@ -150,8 +150,8 @@ impl Simulation {
             self.slow_compute_tick = self.tick_count;
         }
 
-        let include_tiles = include_cold || self.tick_count % 60 == 0 || self.tick_count <= 1;
-        let include_static = include_cold || self.tick_count % 60 == 0 || self.tick_count <= 1;
+        let include_tiles = include_cold || self.tick_count.is_multiple_of(60) || self.tick_count <= 1;
+        let include_static = include_cold || self.tick_count.is_multiple_of(60) || self.tick_count <= 1;
         let include_terrain = include_cold;
         let grid_json = self.grid.to_json_viewport(
             vp_cx,
@@ -162,7 +162,7 @@ impl Simulation {
             include_static,
             include_terrain,
         );
-        let include_all_entities = force_full || self.tick_count % 120 == 0 || self.tick_count <= 1;
+        let include_all_entities = force_full || self.tick_count.is_multiple_of(120) || self.tick_count <= 1;
         // When the viewport spans the whole world (the current config),
         // the centroid-centered window can slide off the map and filter
         // out entities that are still on the canvas. Compute the actual

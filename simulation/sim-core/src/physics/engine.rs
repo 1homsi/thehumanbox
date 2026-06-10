@@ -10,6 +10,12 @@ pub struct PhysicsEngine {
     new_fires: Vec<(i32, i32)>,
 }
 
+impl Default for PhysicsEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PhysicsEngine {
     pub fn new() -> Self {
         PhysicsEngine {
@@ -32,13 +38,13 @@ impl PhysicsEngine {
         // decay every 3rd physics tick (every 15 sim ticks) is still
         // well below those time constants. Apply a stronger decay factor
         // so the effective half-life stays the same.
-        if self.tick_count % 3 == 0 {
+        if self.tick_count.is_multiple_of(3) {
             grid.decay_trails_strong();
         }
 
         let interval = (150.0 / self.growth_mult.max(0.3)) as u64;
         let interval = interval.max(80);
-        if !wet && weather_kind != 1 && weather_kind != 2 && self.tick_count % interval == 0 {
+        if !wet && weather_kind != 1 && weather_kind != 2 && self.tick_count.is_multiple_of(interval) {
             self.lightning_strike(grid, rng);
         }
     }

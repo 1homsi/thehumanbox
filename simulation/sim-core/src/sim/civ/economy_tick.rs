@@ -12,16 +12,16 @@ pub fn tick_economy(sim: &mut Simulation, tick: u64) {
     if tick == 0 {
         return;
     }
-    if tick % 240 == 0 {
+    if tick.is_multiple_of(240) {
         pay_wages(sim, tick);
     }
-    if tick % 180 == 0 {
+    if tick.is_multiple_of(180) {
         run_barter(sim, tick);
     }
-    if tick % 220 == 0 {
+    if tick.is_multiple_of(220) {
         run_currency_trade(sim, tick);
     }
-    if tick % 1200 == 0 {
+    if tick.is_multiple_of(1200) {
         update_wealth_labels(sim);
     }
 }

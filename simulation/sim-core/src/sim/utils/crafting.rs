@@ -1,6 +1,7 @@
 use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
 
+#[allow(dead_code)]
 impl Simulation {
     pub(crate) fn consume_material(&mut self, idx: usize) {
         let o = &mut self.organisms[idx];

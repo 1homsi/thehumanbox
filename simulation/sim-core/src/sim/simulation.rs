@@ -1,4 +1,3 @@
-use rustc_hash::FxHashMap;
 use super::config::{season_growth, DAY_LENGTH, SEASONS, SEASON_LENGTH};
 use super::world_events::{
     push_event, tick_drought, tick_outbreak, tick_weather, tick_world_evolution, DroughtState, WeatherState,
@@ -15,6 +14,7 @@ use crate::world::{
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet, VecDeque};
 
@@ -286,7 +286,7 @@ fn reserve_inventory_feedback(
 
 fn use_needed_reserves(org: &mut Organism, tick: u64) -> (bool, bool) {
     let urgent_water = org.hydration < 0.24;
-    let periodic_water = org.hydration < 0.55 && tick % 8 == 0;
+    let periodic_water = org.hydration < 0.55 && tick.is_multiple_of(8);
     let used_water = if org.inv_water > 0 && (urgent_water || periodic_water) {
         org.inv_water -= 1;
         org.hydration = (org.hydration + 0.18).min(1.0);
@@ -296,7 +296,7 @@ fn use_needed_reserves(org: &mut Organism, tick: u64) -> (bool, bool) {
     };
 
     let urgent_food = org.energy < 0.28;
-    let periodic_food = org.energy < 0.45 && tick % 6 == 0;
+    let periodic_food = org.energy < 0.45 && tick.is_multiple_of(6);
     let used_food = if org.inv_food > 0 && (urgent_food || periodic_food) {
         org.inv_food -= 1;
         org.energy = (org.energy + 0.30).min(1.0);
@@ -730,7 +730,7 @@ impl Simulation {
     pub fn apply_memory_pressure(&mut self, pressure: super::memory_pressure::MemoryPressure) {
         use super::memory_pressure::MemoryPressure;
         match pressure {
-            MemoryPressure::Normal => return,
+            MemoryPressure::Normal => (),
             MemoryPressure::Elevated => {
                 self.organisms
                     .retain(|o| o.alive || self.tick_count.saturating_sub(o.last_story_tick) < 30_000);
@@ -799,7 +799,7 @@ impl Simulation {
 
         super::civ_tick::tick_civ(self);
 
-        if self.tick_count % 6000 == 0 {
+        if self.tick_count.is_multiple_of(6000) {
             let alive = self.organisms.iter().filter(|o| o.alive).count();
             let q_rows: usize = self
                 .organisms
@@ -830,7 +830,7 @@ impl Simulation {
         let season = self.season();
         self.physics.growth_mult = season_growth(season);
 
-        if self.tick_count % 5 == 0 {
+        if self.tick_count.is_multiple_of(5) {
             let wet = self.weather.is_wet(self.tick_count);
             self.physics
                 .tick(&mut self.grid, &mut self.rng, self.weather.kind, wet);
@@ -869,7 +869,7 @@ impl Simulation {
             &mut self.rng,
         );
 
-        if self.tick_count % 300 == 0 {
+        if self.tick_count.is_multiple_of(300) {
             tick_world_evolution(
                 &mut self.grid,
                 &mut self.organisms,
@@ -883,11 +883,11 @@ impl Simulation {
             );
         }
 
-        if self.tick_count % 500 == 0 {
+        if self.tick_count.is_multiple_of(500) {
             self.grid.decay_world_layers();
         }
 
-        if self.tick_count % 1200 == 0 {
+        if self.tick_count.is_multiple_of(1200) {
             let new_era = self.compute_era();
             if new_era != self.current_era {
                 self.history.era_history.push_back(EraEntry {
@@ -912,7 +912,7 @@ impl Simulation {
             self.tick_settlements();
         }
 
-        if self.tick_count % 600 == 0 {
+        if self.tick_count.is_multiple_of(600) {
             super::tech_progress::seed_baseline_discoveries(&mut self.organisms, self.tick_count);
             self.update_lineage_eras();
             self.tick_water_depletion();
@@ -967,7 +967,7 @@ impl Simulation {
             &mut self.history,
         );
 
-        if self.tick_count % DAY_LENGTH == 0 {
+        if self.tick_count.is_multiple_of(DAY_LENGTH) {
             let alive = self.organisms.iter().filter(|o| o.alive).count() as u64;
             self.pop_history.push_back([self.tick_count, alive]);
             if self.pop_history.len() > 1000 {
@@ -976,11 +976,11 @@ impl Simulation {
             self.sample_lineage_centroids();
         }
 
-        if self.tick_count % 60 == 0 && !self.lineage_centroid_history.is_empty() {
+        if self.tick_count.is_multiple_of(60) && !self.lineage_centroid_history.is_empty() {
             self.tick_ancestral_recognition();
         }
 
-        if self.tick_count % 200 == 0 {
+        if self.tick_count.is_multiple_of(200) {
             let mut candidates: HashMap<String, (String, u32)> = HashMap::new();
             for org in self.organisms.iter().filter(|o| o.alive) {
                 let e = candidates
@@ -1044,7 +1044,8 @@ impl Simulation {
 
         let spatial = SpatialIndex::build(&self.organisms, 10);
         let mut spatial_buf: Vec<usize> = Vec::with_capacity(32);
-        let mut org_idx_by_id: FxHashMap<String, usize> = FxHashMap::with_capacity_and_hasher(self.organisms.len(), Default::default());
+        let mut org_idx_by_id: FxHashMap<String, usize> =
+            FxHashMap::with_capacity_and_hasher(self.organisms.len(), Default::default());
         for (i, o) in self.organisms.iter().enumerate() {
             if o.alive {
                 org_idx_by_id.insert(o.id.clone(), i);
@@ -1144,7 +1145,7 @@ impl Simulation {
             o.vy_smooth = VEL_EMA_ALPHA * inst_vy + (1.0 - VEL_EMA_ALPHA) * o.vy_smooth;
         }
 
-        if self.tick_count % 1200 == 0 {
+        if self.tick_count.is_multiple_of(1200) {
             let dead_count = self.organisms.iter().filter(|o| !o.alive).count();
             const RECENT_DEAD_FULL: usize = 300;
             const MAX_ARCHIVE: usize = 800;
@@ -1442,8 +1443,8 @@ impl Simulation {
                 (dir, Some("wolf! run!".to_string()), "emergency_reflex")
             } else {
                 let (oa_ix, oa_iy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
-                let avail = crate::sim::actions::available_actions(&self, idx, oa_ix, oa_iy, spatial);
-                let q_seen = self.organisms[idx].q_table.get(&perception).is_some();
+                let avail = crate::sim::actions::available_actions(self, idx, oa_ix, oa_iy, spatial);
+                let q_seen = self.organisms[idx].q_table.contains_key(&perception);
                 let active_directive = if self.tick_count < self.organisms[idx].directive_until
                     && !self.organisms[idx].directive.is_empty()
                 {
@@ -2141,7 +2142,7 @@ impl Simulation {
 
         let temp = self.grid.temp_at(cx, cy);
         let resilience = self.organisms[idx].traits.resilience;
-        if temp < 10.0 || temp > 30.0 {
+        if !(10.0..=30.0).contains(&temp) {
             let stress = if temp < 10.0 {
                 (10.0 - temp) / 40.0
             } else {
@@ -2436,7 +2437,7 @@ impl Simulation {
         }
 
         self.organisms[idx].age += 1;
-        if self.organisms[idx].age % 100 == 0 {
+        if self.organisms[idx].age.is_multiple_of(100) {
             self.organisms[idx].decay_memory(self.tick_count);
         }
 
@@ -3175,14 +3176,17 @@ impl Simulation {
             let (ox2, oy2) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
             let food_near = (-8i32..=8)
                 .any(|ddx| (-8i32..=8).any(|ddy| self.grid.get(ox2 + ddx, oy2 + ddy) == Tile::Food));
-            if !food_near && self.organisms[idx].food_memory.len() < 8 && self.rng.random::<f32>() < 0.0015 {
-                if self.organisms[idx].wander_target.is_none() && self.organisms[idx].energy > 0.4 {
-                    let hash = self.tick_count ^ idx as u64;
-                    let tx = (ox2 + ((hash % 40) as i32 - 20)).clamp(5, WIDTH as i32 - 5);
-                    let ty = (oy2 + ((hash / 40 % 30) as i32 - 15)).clamp(5, HEIGHT as i32 - 5);
-                    self.organisms[idx].wander_target = Some((tx, ty));
-                    self.organisms[idx].think("migrating for food", self.tick_count);
-                }
+            if !food_near
+                && self.organisms[idx].food_memory.len() < 8
+                && self.rng.random::<f32>() < 0.0015
+                && self.organisms[idx].wander_target.is_none()
+                && self.organisms[idx].energy > 0.4
+            {
+                let hash = self.tick_count ^ idx as u64;
+                let tx = (ox2 + ((hash % 40) as i32 - 20)).clamp(5, WIDTH as i32 - 5);
+                let ty = (oy2 + ((hash / 40 % 30) as i32 - 15)).clamp(5, HEIGHT as i32 - 5);
+                self.organisms[idx].wander_target = Some((tx, ty));
+                self.organisms[idx].think("migrating for food", self.tick_count);
             }
         }
 
@@ -3934,10 +3938,8 @@ impl Simulation {
                 }
             }
 
-            if self.rng.random::<f32>() < 0.25 {
-                if matches!(self.grid.get(dx, dy), Tile::Grass | Tile::Ash) {
-                    self.grid.set(dx, dy, Tile::Food);
-                }
+            if self.rng.random::<f32>() < 0.25 && matches!(self.grid.get(dx, dy), Tile::Grass | Tile::Ash) {
+                self.grid.set(dx, dy, Tile::Food);
             }
         }
     }
@@ -3987,7 +3989,7 @@ impl Simulation {
         // the world animal-less forever, since reproduction requires
         // living parents. Every 600 ticks, if the population dipped
         // below the floor, drip-spawn some back.
-        if self.tick_count > 0 && self.tick_count % 600 == 0 {
+        if self.tick_count > 0 && self.tick_count.is_multiple_of(600) {
             let alive = self.animals.iter().filter(|a| a.alive).count();
             const ANIMAL_FLOOR: usize = 40;
             if alive < ANIMAL_FLOOR {
@@ -4513,6 +4515,7 @@ impl Simulation {
         }
     }
 
+    #[cfg(test)]
     fn current_nearby_organisms(&self, x: i32, y: i32, radius: i32) -> Vec<usize> {
         let spatial = SpatialIndex::build(&self.organisms, 10);
         spatial
@@ -4698,7 +4701,7 @@ impl Simulation {
                 to_claim.push((tx, ty));
             }
         }
-        let tiles = self.territory.entry(lid.to_string()).or_insert_with(HashSet::new);
+        let tiles = self.territory.entry(lid.to_string()).or_default();
         for p in &to_claim {
             tiles.insert(*p);
         }

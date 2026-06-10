@@ -26,11 +26,14 @@ impl Default for Traits {
 }
 
 fn clamp_trait(v: f32) -> f32 {
-    v.max(0.1).min(0.9)
+    v.clamp(0.1, 0.9)
 }
 
 fn gauss(rng: &mut impl Rng, std: f32) -> f32 {
-    Normal::new(0.0f32, std).unwrap().sample(rng)
+    match Normal::new(0.0f32, std) {
+        Ok(d) => d.sample(rng),
+        Err(_) => 0.0,
+    }
 }
 
 impl Traits {

@@ -89,7 +89,7 @@ impl Simulation {
         let curiosity = self.organisms[idx].traits.curiosity;
         let age = self.organisms[idx].age;
 
-        let adolescent = age >= 1500 && age < 1900;
+        let adolescent = (1500..1900).contains(&age);
         if curiosity < 0.40 && !adolescent {
             return;
         }

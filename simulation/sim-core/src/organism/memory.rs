@@ -268,8 +268,10 @@ mod tests {
 
     #[test]
     fn dreams_decay_fast() {
-        let mut store = MemoryStore::default();
-        store.last_decay_tick = 1;
+        let mut store = MemoryStore {
+            last_decay_tick: 1,
+            ..Default::default()
+        };
         store.insert(MemoryEntry::new(MemoryKind::Dream, "a strange flash", 1));
         store.tick(1 + 5 * 600, 600, 0.5);
         let dream = store.entries.iter().find(|e| e.kind == MemoryKind::Dream);

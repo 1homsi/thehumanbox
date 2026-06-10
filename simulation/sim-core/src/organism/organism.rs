@@ -1,4 +1,3 @@
-use rustc_hash::FxHashMap;
 use super::traits::Traits;
 use super::vocabulary::Vocabulary;
 use crate::world::{
@@ -6,6 +5,7 @@ use crate::world::{
     tiles::Tile,
 };
 use rand::Rng;
+use rustc_hash::FxHashMap;
 use serde::Serialize;
 use std::collections::{HashMap, HashSet, VecDeque};
 
@@ -116,6 +116,7 @@ impl Sex {
             Sex::Female => "female",
         }
     }
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Self {
         if s == "female" {
             Sex::Female
@@ -214,11 +215,7 @@ fn best_remembered_cell(
     best
 }
 
-fn nearby_memory_strength(
-    memory: &FxHashMap<(i32, i32), f32>,
-    cell: (i32, i32),
-    radius: i32,
-) -> f32 {
+fn nearby_memory_strength(memory: &FxHashMap<(i32, i32), f32>, cell: (i32, i32), radius: i32) -> f32 {
     let mut best = memory.get(&cell).copied().unwrap_or(0.0);
     for dx in -radius..=radius {
         for dy in -radius..=radius {
@@ -824,7 +821,7 @@ impl Organism {
             return;
         }
         let v = self.lineage_attitudes.entry(other_lid.to_string()).or_insert(0.0);
-        *v = (*v + delta).max(-1.0).min(1.0);
+        *v = (*v + delta).clamp(-1.0, 1.0);
     }
 
     pub fn tick_inner_state(
@@ -1414,7 +1411,7 @@ impl Organism {
             let mut nearest_d = 999.0f32;
             // Same spatial bucket reuse - nearest non-kin within `scan`.
             buf.clear();
-            spatial.query_into(self.x as i32, self.y as i32, scan as i32, &mut buf);
+            spatial.query_into(self.x as i32, self.y as i32, scan, &mut buf);
             for &i in &buf {
                 let other = &organisms[i];
                 if std::ptr::eq(other, self) || !other.alive || other.lineage_id == self.lineage_id {

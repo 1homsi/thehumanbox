@@ -193,7 +193,7 @@ fn parse_and_validate(raw: &str, req: &ConversationReq) -> Result<ConvoLines, &'
     }
 
     let expected_first = req.a.name.clone();
-    if out.first().map(|p| &p[0] != &expected_first).unwrap_or(true) {
+    if out.first().map(|p| p[0] != expected_first).unwrap_or(true) {
         return Err("wrong first speaker");
     }
     for w in out.windows(2) {

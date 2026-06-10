@@ -2,7 +2,7 @@ use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     let season_tick = ctx.tick % 12000;
-    if season_tick < 3000 || season_tick >= 6000 {
+    if !(3000..6000).contains(&season_tick) {
         return 0.0;
     }
     ctx.org_mut().inv_food = ctx.org_mut().inv_food.saturating_add(1);

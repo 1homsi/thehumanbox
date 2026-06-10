@@ -7,7 +7,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         .copied()
         .filter(|&k| {
             let a = ctx.sim.organisms[k].age;
-            a >= 700 && a < 900
+            (700..900).contains(&a)
         })
         .min_by_key(|&k| ctx.sim.organisms[k].age);
     let Some(ki) = pick else {

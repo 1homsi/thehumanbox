@@ -584,7 +584,7 @@ async fn main() {
                             } else {
                                 "content"
                             };
-                            let age_days = (o.age / DAY_LENGTH as u32).max(0);
+                            let age_days = o.age / DAY_LENGTH as u32;
                             let tribe_name = lineage_names.get(&o.lineage_id).cloned();
                             let partner_name = o.partner_id.as_ref().and_then(|pid| name_for(pid));
                             candidates.push(NarrationReq {

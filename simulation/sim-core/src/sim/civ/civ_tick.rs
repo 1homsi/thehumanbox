@@ -1,3 +1,4 @@
+use super::moments::*;
 use crate::sim::age_stage::AgeStage;
 use crate::sim::buildings::{Building, BuildingKind};
 use crate::sim::culture::{pick_religion_name, ArtKind, Artwork, Religion, ReligionKind};
@@ -11,159 +12,158 @@ use crate::sim::world_events::push_event;
 use crate::sim::world_milestones::Milestone;
 use rand::Rng;
 use std::collections::{HashMap, HashSet};
-use super::moments::*;
 
 pub fn tick_civ(sim: &mut Simulation) {
     let tick = sim.tick_count;
 
-    if tick % 60 == 0 {
+    if tick.is_multiple_of(60) {
         tick_age_stages(sim);
     }
-    if tick % 120 == 0 {
+    if tick.is_multiple_of(120) {
         tick_specialties(sim);
         tick_aspirations(sim);
         tick_wealth(sim);
     }
-    if tick % 200 == 0 {
+    if tick.is_multiple_of(200) {
         tick_governments(sim);
         tick_milestones(sim);
     }
-    if tick % 300 == 0 {
+    if tick.is_multiple_of(300) {
         tick_education(sim);
     }
-    if tick % 240 == 0 {
+    if tick.is_multiple_of(240) {
         tick_buildings_construct(sim);
     }
-    if tick % 400 == 0 {
+    if tick.is_multiple_of(400) {
         tick_disease_spread(sim);
     }
-    if tick % 150 == 0 {
+    if tick.is_multiple_of(150) {
         tick_scatter_props(sim);
     }
-    if tick % 400 == 0 {
+    if tick.is_multiple_of(400) {
         tick_religion_founding(sim);
         tick_artwork(sim);
         tick_books(sim);
     }
-    if tick % 240 == 0 {
+    if tick.is_multiple_of(240) {
         tick_religion_adherents(sim);
         tick_religion_effects(sim);
     }
-    if tick % 600 == 0 {
+    if tick.is_multiple_of(600) {
         tick_leader_influence(sim);
     }
     super::economy_tick::tick_economy(sim, tick);
-    if tick % 1200 == 0 {
+    if tick.is_multiple_of(1200) {
         tick_disease_introduce(sim);
     }
-    if tick % 500 == 0 && tick > 0 {
+    if tick.is_multiple_of(500) && tick > 0 {
         tick_cross_lineage_knowledge(sim);
     }
-    if tick % 180 == 0 && tick > 0 {
+    if tick.is_multiple_of(180) && tick > 0 {
         tick_building_auras(sim);
     }
-    if tick % 1200 == 0 && tick > 0 {
+    if tick.is_multiple_of(1200) && tick > 0 {
         tick_home_furnishing(sim);
     }
-    if tick % 60 == 0 && tick > 0 {
+    if tick.is_multiple_of(60) && tick > 0 {
         tick_witnessed_events(sim);
     }
-    if tick % 180 == 0 && tick > 0 {
+    if tick.is_multiple_of(180) && tick > 0 {
         tick_sky_omens(sim);
     }
-    if tick % 240 == 0 && tick > 0 {
+    if tick.is_multiple_of(240) && tick > 0 {
         tick_reflections(sim);
     }
-    if tick > 0 && tick % crate::sim::cosmos::DAY_LENGTH == 0 {
+    if tick > 0 && tick.is_multiple_of(crate::sim::cosmos::DAY_LENGTH) {
         tick_lunar_observation(sim);
     }
-    if tick > 0 && tick % (crate::sim::cosmos::DAY_LENGTH * 6) == 0 {
+    if tick > 0 && tick.is_multiple_of(crate::sim::cosmos::DAY_LENGTH * 6) {
         tick_maybe_eclipse(sim);
     }
-    if tick > 0 && tick % 90 == 0 && sim.is_night() {
+    if tick > 0 && tick.is_multiple_of(90) && sim.is_night() {
         tick_dreams(sim);
     }
-    if tick > 0 && tick % 300 == 0 {
+    if tick > 0 && tick.is_multiple_of(300) {
         tick_anniversaries(sim);
     }
-    if tick > 0 && tick % 60 == 0 {
+    if tick > 0 && tick.is_multiple_of(60) {
         tick_mood_contagion(sim);
     }
-    if tick > 0 && tick % 180 == 0 {
+    if tick > 0 && tick.is_multiple_of(180) {
         tick_meteor_shower(sim);
     }
-    if tick > 0 && tick % 360 == 0 {
+    if tick > 0 && tick.is_multiple_of(360) {
         tick_aurora_sighting(sim);
     }
-    if tick > 0 && tick % 240 == 0 {
+    if tick > 0 && tick.is_multiple_of(240) {
         tick_teaching(sim);
     }
-    if tick > 0 && tick % 80 == 0 {
+    if tick > 0 && tick.is_multiple_of(80) {
         tick_friend_gravitation(sim);
     }
-    if tick > 0 && tick % 20 == 0 {
+    if tick > 0 && tick.is_multiple_of(20) {
         tick_building_progress(sim);
     }
-    if tick > 0 && tick % 40 == 0 {
+    if tick > 0 && tick.is_multiple_of(40) {
         tick_evening_gathering(sim);
     }
-    if tick > 0 && tick % 6 == 0 {
+    if tick > 0 && tick.is_multiple_of(6) {
         tick_birth_celebrations(sim);
     }
-    if tick > 0 && tick % 20 == 0 {
+    if tick > 0 && tick.is_multiple_of(20) {
         tick_funerals(sim);
     }
-    if tick > 0 && tick % 8 == 0 {
+    if tick > 0 && tick.is_multiple_of(8) {
         tick_naming_ceremonies(sim);
     }
-    if tick > 0 && tick % 1800 == 0 {
+    if tick > 0 && tick.is_multiple_of(1800) {
         tick_festivals(sim);
     }
-    if tick > 0 && tick % 60 == 0 {
+    if tick > 0 && tick.is_multiple_of(60) {
         tick_awe_marvels(sim);
     }
-    if tick > 0 && tick % 30 == 0 {
+    if tick > 0 && tick.is_multiple_of(30) {
         tick_gratitude_sharing(sim);
     }
-    if tick > 0 && tick % 50 == 0 {
+    if tick > 0 && tick.is_multiple_of(50) {
         tick_anger_outbursts(sim);
     }
-    if tick > 0 && tick % 90 == 0 {
+    if tick > 0 && tick.is_multiple_of(90) {
         tick_spiritual_pilgrimage(sim);
     }
-    if tick > 0 && tick % 300 == 0 {
+    if tick > 0 && tick.is_multiple_of(300) {
         tick_hopeful_aspiration(sim);
     }
-    if tick > 0 && tick % 100 == 0 {
+    if tick > 0 && tick.is_multiple_of(100) {
         tick_jealousy_rivalries(sim);
     }
-    if tick > 0 && tick % 200 == 0 {
+    if tick > 0 && tick.is_multiple_of(200) {
         tick_curiosity_exploration(sim);
     }
-    if tick > 0 && tick % 600 == 0 {
+    if tick > 0 && tick.is_multiple_of(600) {
         tick_weddings(sim);
     }
-    if tick > 0 && tick % 120 == 0 {
+    if tick > 0 && tick.is_multiple_of(120) {
         tick_dream_sharing(sim);
     }
-    if tick > 0 && tick % 60 == 0 {
+    if tick > 0 && tick.is_multiple_of(60) {
         tick_storyteller(sim);
     }
-    if tick > 0 && tick % 90 == 0 {
+    if tick > 0 && tick.is_multiple_of(90) {
         tick_arguments(sim);
     }
-    if tick > 0 && tick % 240 == 0 {
+    if tick > 0 && tick.is_multiple_of(240) {
         tick_reconciliations(sim);
     }
     tick_daily_summary(sim);
     tick_season_change(sim);
-    if tick > 0 && tick % 600 == 0 && sim.is_night() {
+    if tick > 0 && tick.is_multiple_of(600) && sim.is_night() {
         tick_partner_pillow_talk(sim);
     }
-    if tick > 0 && tick % 240 == 0 {
+    if tick > 0 && tick.is_multiple_of(240) {
         tick_grudge_recall(sim);
     }
-    if tick > 0 && tick % 45 == 0 {
+    if tick > 0 && tick.is_multiple_of(45) {
         tick_mood(sim);
     }
 }
@@ -504,10 +504,8 @@ fn tick_age_stages(sim: &mut Simulation) {
             && !sim.organisms[i].attributes.contains("left_home")
         {
             let drift = 70.0;
-            let dx = sim.rng.random_range(-drift..=drift) * 0.5
-                + sim.rng.random_range(-drift..=drift) * 0.5;
-            let dy = sim.rng.random_range(-drift..=drift) * 0.5
-                + sim.rng.random_range(-drift..=drift) * 0.5;
+            let dx = sim.rng.random_range(-drift..=drift) * 0.5 + sim.rng.random_range(-drift..=drift) * 0.5;
+            let dy = sim.rng.random_range(-drift..=drift) * 0.5 + sim.rng.random_range(-drift..=drift) * 0.5;
             let reflect = |mut v: f32, max: f32| {
                 if v < 0.0 {
                     v = -v;
@@ -521,7 +519,11 @@ fn tick_age_stages(sim: &mut Simulation) {
             org.home_x = reflect(org.home_x + dx, (crate::world::grid::WIDTH - 1) as f32);
             org.home_y = reflect(org.home_y + dy, (crate::world::grid::HEIGHT - 1) as f32);
             org.attributes.insert("left_home".to_string());
-            org.log_life(tick, "milestone", "left the family hearth to claim my own ground".to_string());
+            org.log_life(
+                tick,
+                "milestone",
+                "left the family hearth to claim my own ground".to_string(),
+            );
             org.memories.insert(
                 MemoryEntry::new(
                     MemoryKind::Episode,
@@ -708,7 +710,8 @@ fn tick_specialties(sim: &mut Simulation) {
         })
         .collect();
 
-    let traits_clone: Vec<(usize, f32, f32, f32, f32, f32, String, bool)> = sim
+    type OrgTraitRow = (usize, f32, f32, f32, f32, f32, String, bool);
+    let traits_clone: Vec<OrgTraitRow> = sim
         .organisms
         .iter()
         .enumerate()
@@ -1475,12 +1478,7 @@ fn next_target_building(era: Era, pop: usize, existing: &HashSet<BuildingKind>) 
     if era >= Era::Galactic && pop >= 450 {
         wishlist.push(Megastructure);
     }
-    for k in wishlist {
-        if !existing.contains(&k) {
-            return Some(k);
-        }
-    }
-    None
+    wishlist.into_iter().find(|&k| !existing.contains(&k))
 }
 
 fn lineage_center(sim: &Simulation, lid: &str) -> (i32, i32) {
@@ -1724,37 +1722,35 @@ fn tick_religion_founding(sim: &mut Simulation) {
             ReligionKind::Secular,
         ];
         for k in candidates {
-            if k.era_unlock() <= era && !existing_kinds.contains(&k) {
-                if sim.rng.random::<f32>() < 0.08 {
-                    let id = format!("rel{}", sim.next_religion_id);
-                    sim.next_religion_id += 1;
-                    let name = pick_religion_name(sim.tick_count + (lid.len() as u64)).to_string();
-                    sim.religions.push(Religion {
-                        id: id.clone(),
-                        kind: k,
-                        name: name.clone(),
-                        founded_tick: sim.tick_count,
-                        founder_lineage: lid.clone(),
-                        adherents: 1,
-                        last_milestone: None,
-                    });
-                    push_event(
-                        &mut sim.events,
-                        sim.tick_count,
-                        "religion_founded",
-                        &lid,
-                        &format!("founded {} ({})", name, k.name()),
-                    );
-                    let tick = sim.tick_count;
-                    let entry_msg = format!("our people founded {}", name);
-                    for o in sim.organisms.iter_mut() {
-                        if !o.alive || o.lineage_id != lid {
-                            continue;
-                        }
-                        o.log_life(tick, "civ", entry_msg.clone());
+            if k.era_unlock() <= era && !existing_kinds.contains(&k) && sim.rng.random::<f32>() < 0.08 {
+                let id = format!("rel{}", sim.next_religion_id);
+                sim.next_religion_id += 1;
+                let name = pick_religion_name(sim.tick_count + (lid.len() as u64)).to_string();
+                sim.religions.push(Religion {
+                    id: id.clone(),
+                    kind: k,
+                    name: name.clone(),
+                    founded_tick: sim.tick_count,
+                    founder_lineage: lid.clone(),
+                    adherents: 1,
+                    last_milestone: None,
+                });
+                push_event(
+                    &mut sim.events,
+                    sim.tick_count,
+                    "religion_founded",
+                    &lid,
+                    &format!("founded {} ({})", name, k.name()),
+                );
+                let tick = sim.tick_count;
+                let entry_msg = format!("our people founded {}", name);
+                for o in sim.organisms.iter_mut() {
+                    if !o.alive || o.lineage_id != lid {
+                        continue;
                     }
-                    break;
+                    o.log_life(tick, "civ", entry_msg.clone());
                 }
+                break;
             }
         }
     }
