@@ -553,7 +553,7 @@ fn pick_combatants(
         None => return Vec::new(),
     };
     ids.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
-    let take = n.min(ids.len()).max(0);
+    let take = n.min(ids.len());
     let mut chosen: Vec<String> = ids.into_iter().take(take * 2).map(|(s, _)| s).collect();
     chosen.shuffle(rng);
     chosen.truncate(take);

@@ -459,7 +459,7 @@ fn end_drought(
             (x, y, n)
         })
         .collect();
-    by_neighbor_water.sort_by(|a, b| b.2.cmp(&a.2));
+    by_neighbor_water.sort_by_key(|e| std::cmp::Reverse(e.2));
     for (x, y, _) in by_neighbor_water.into_iter().take(restore_count) {
         if matches!(grid.get(x, y), Tile::Grass | Tile::Ash) {
             grid.set(x, y, Tile::Water);
