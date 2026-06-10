@@ -389,7 +389,24 @@ export default function WorldView3D({ world, sandboxArmed, onSandboxApply }: Pro
   const selectOrg = useUIStore((s) => s.selectOrg)
 
   useEffect(() => {
+    const MOVE_CODES = new Set([
+      'KeyW',
+      'KeyA',
+      'KeyS',
+      'KeyD',
+      'ArrowUp',
+      'ArrowDown',
+      'ArrowLeft',
+      'ArrowRight',
+      'Space',
+      'ShiftLeft',
+      'ShiftRight',
+    ])
     const onKey = (e: KeyboardEvent) => {
+      if (follow && MOVE_CODES.has(e.code)) {
+        setFollow(false)
+        return
+      }
       if (e.code === 'KeyF' && !e.repeat) {
         if (selectedOrgId) setFollow((prev) => !prev)
       } else if (e.code === 'KeyJ' && !e.repeat) {
