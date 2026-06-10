@@ -207,7 +207,14 @@ function paintHut(p: P) {
   p.ctx.fillStyle = 'rgba(0,0,0,0.14)'
   for (let i = 1; i < 4; i++) {
     const t = i / 4
-    px(p.ctx, cx - (rw / 2 + 2) * (1 - t) - 1, y1 - wallH - rh * t, (rw + 4) * (1 - t) + 2, 1, 'rgba(0,0,0,0.12)')
+    px(
+      p.ctx,
+      cx - (rw / 2 + 2) * (1 - t) - 1,
+      y1 - wallH - rh * t,
+      (rw + 4) * (1 - t) + 2,
+      1,
+      'rgba(0,0,0,0.12)',
+    )
   }
   door(p, cx, y1, Math.max(3, w * 0.22), wallH * 0.7)
   cracks(p, cx - rw / 2, y1 - wallH, rw, wallH)
@@ -580,8 +587,22 @@ function paintIndustrial(p: P) {
   if (kind === 'Forge' || kind === 'Smithy') {
     const dw = Math.max(5, w * 0.3)
     px(p.ctx, x0 + w / 2 - dw / 2, y1 - wallH * 0.7, dw, wallH * 0.7, '#1c1410')
-    px(p.ctx, x0 + w / 2 - dw / 2 + 1, y1 - wallH * 0.4, dw - 2, wallH * 0.4, `rgba(255,120,30,${0.5 + p.night * 0.15})`)
-    px(p.ctx, x0 + w / 2 - dw / 2 + 2, y1 - wallH * 0.22, dw - 4, wallH * 0.22, `rgba(255,200,80,${0.5 + p.night * 0.15})`)
+    px(
+      p.ctx,
+      x0 + w / 2 - dw / 2 + 1,
+      y1 - wallH * 0.4,
+      dw - 2,
+      wallH * 0.4,
+      `rgba(255,120,30,${0.5 + p.night * 0.15})`,
+    )
+    px(
+      p.ctx,
+      x0 + w / 2 - dw / 2 + 2,
+      y1 - wallH * 0.22,
+      dw - 4,
+      wallH * 0.22,
+      `rgba(255,200,80,${0.5 + p.night * 0.15})`,
+    )
   } else {
     door(p, x0 + w * 0.3, y1, Math.max(5, w * 0.22), wallH * 0.6, '#3a3632')
   }
@@ -608,7 +629,8 @@ function paintFarm(p: P) {
     const wallY = y1 - wallH
     px(p.ctx, x0, wallY, w, wallH, 'rgba(170,220,200,0.55)')
     outline(p.ctx, x0, wallY, w, wallH)
-    for (let i = 1; i < Math.floor(w / 6); i++) px(p.ctx, x0 + i * 6, wallY, 1, wallH, 'rgba(255,255,255,0.5)')
+    for (let i = 1; i < Math.floor(w / 6); i++)
+      px(p.ctx, x0 + i * 6, wallY, 1, wallH, 'rgba(255,255,255,0.5)')
     gableRoof(p, x0, wallY, w, h * 0.3, 'rgba(190,230,215,0.7)', 1)
     px(p.ctx, x0 + 2, y1 - 3, w - 4, 2, '#3f7a3f')
     return
@@ -937,34 +959,40 @@ reg(paintCottage, [
   'Spa',
   'Kennel',
 ])
-reg((p) => paintTownhouse(p, false), [
-  'TownHouse',
-  'Hotel',
-  'BookStore',
-  'Scribe',
-  'Tailor',
-  'Barbershop',
-  'PostOffice',
-  'GuildHall',
-  'ArtGallery',
-  'MusicHall',
-  'Theatre',
-])
-reg((p) => paintTownhouse(p, true), [
-  'Market',
-  'Butcher',
-  'Fishmonger',
-  'Cheesemonger',
-  'ClothingShop',
-  'Jeweler',
-  'Apothecary',
-  'Cafe',
-  'Restaurant',
-  'Pharmacy',
-  'MallShop',
-  'Supermarket',
-  'BusStop',
-])
+reg(
+  (p) => paintTownhouse(p, false),
+  [
+    'TownHouse',
+    'Hotel',
+    'BookStore',
+    'Scribe',
+    'Tailor',
+    'Barbershop',
+    'PostOffice',
+    'GuildHall',
+    'ArtGallery',
+    'MusicHall',
+    'Theatre',
+  ],
+)
+reg(
+  (p) => paintTownhouse(p, true),
+  [
+    'Market',
+    'Butcher',
+    'Fishmonger',
+    'Cheesemonger',
+    'ClothingShop',
+    'Jeweler',
+    'Apothecary',
+    'Cafe',
+    'Restaurant',
+    'Pharmacy',
+    'MallShop',
+    'Supermarket',
+    'BusStop',
+  ],
+)
 reg(paintManor, [
   'Manor',
   'School',

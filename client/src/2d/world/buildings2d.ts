@@ -712,7 +712,8 @@ export function drawBuilding(
   ctx.restore()
 
   if (hasBuildingSprite(k)) {
-    const variant = (((building.id ?? 0) * 2654435761) ^ (building.x * 73856093) ^ (building.y * 19349663)) >>> 0
+    const variant =
+      (((building.id ?? 0) * 2654435761) ^ (building.x * 73856093) ^ (building.y * 19349663)) >>> 0
     const nightBucket = Math.max(0, Math.min(3, Math.round(nightFactor * 3)))
     const condBucket = cond < 0.45 ? 0 : 1
     const sprite = getBuildingSprite(k, fw, fh, tileSize, variant & 7, nightBucket, condBucket)

@@ -1500,9 +1500,7 @@ function drawWorldOnCanvas(
         ctx.fill()
       }
       if (atlasReady) {
-        const frames = (SPRITE.animals as Record<string, readonly (readonly [number, number])[]>)[
-          animal.kind
-        ]
+        const frames = (SPRITE.animals as Record<string, readonly (readonly [number, number])[]>)[animal.kind]
         const tile = frames
           ? frames[(Math.floor(t / 260) + animal.id) % frames.length]
           : SPRITE.animals.rabbit[0]

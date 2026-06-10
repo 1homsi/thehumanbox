@@ -191,73 +191,73 @@ export function CivStatsModal({ world, onClose }: Props) {
             <h3>Lineages</h3>
             <div className="civ-table-wrap">
               <table className="civ-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Lineage Era</th>
-                  <th>Pop</th>
-                  <th>Next</th>
-                  <th>Gov</th>
-                  <th>Currency</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {lineages.slice(0, 12).map((l) => {
-                  const era = lineageEras[l.id] ?? 'pre-stone'
-                  const progress = eraProgress.get(l.id)
-                  const gov = governments.find((g) => g.lineage_id === l.id)
-                  const hasBrewing = world.organisms.some(
-                    (o) => o.alive && o.lineage_id === l.id && o.discoveries.includes('brewing'),
-                  )
-                  return (
-                    <tr key={l.id}>
-                      <td>{lineageById(l.id)}</td>
-                      <td>
-                        {ERA_EMOJI[era] ?? ''} {era}
-                      </td>
-                      <td>{l.count}</td>
-                      <td>
-                        {progress?.next_era ? (
-                          <div className="civ-era-progress">
-                            <span className={progress.ready ? 'civ-era-ready' : 'civ-era-next'}>
-                              {progress.next_era}
-                            </span>
-                            {!progress.pop_ready && (
-                              <span className="civ-era-gate">
-                                pop {progress.pop}/{progress.pop_required}
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Lineage Era</th>
+                    <th>Pop</th>
+                    <th>Next</th>
+                    <th>Gov</th>
+                    <th>Currency</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lineages.slice(0, 12).map((l) => {
+                    const era = lineageEras[l.id] ?? 'pre-stone'
+                    const progress = eraProgress.get(l.id)
+                    const gov = governments.find((g) => g.lineage_id === l.id)
+                    const hasBrewing = world.organisms.some(
+                      (o) => o.alive && o.lineage_id === l.id && o.discoveries.includes('brewing'),
+                    )
+                    return (
+                      <tr key={l.id}>
+                        <td>{lineageById(l.id)}</td>
+                        <td>
+                          {ERA_EMOJI[era] ?? ''} {era}
+                        </td>
+                        <td>{l.count}</td>
+                        <td>
+                          {progress?.next_era ? (
+                            <div className="civ-era-progress">
+                              <span className={progress.ready ? 'civ-era-ready' : 'civ-era-next'}>
+                                {progress.next_era}
                               </span>
-                            )}
-                            {progress.missing.length > 0 && (
-                              <span className="civ-era-missing">
-                                missing {progress.missing.slice(0, 3).join(', ')}
-                                {progress.missing.length > 3 ? ' +' : ''}
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="civ-era-next">-</span>
-                        )}
-                      </td>
-                      <td>{gov ? `${GOV_EMOJI[gov.kind] ?? ''} ${gov.kind}` : '-'}</td>
-                      <td>{currencies[l.id] ?? '-'}</td>
-                      <td>
-                        {hasBrewing && (
-                          <button
-                            className="civ-row-link"
-                            onClick={() => {
-                              useSceneStore.getState().enter({ kind: 'tavern', lineageId: l.id })
-                              onClose()
-                            }}
-                          >
-                            🍻 tavern
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
+                              {!progress.pop_ready && (
+                                <span className="civ-era-gate">
+                                  pop {progress.pop}/{progress.pop_required}
+                                </span>
+                              )}
+                              {progress.missing.length > 0 && (
+                                <span className="civ-era-missing">
+                                  missing {progress.missing.slice(0, 3).join(', ')}
+                                  {progress.missing.length > 3 ? ' +' : ''}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="civ-era-next">-</span>
+                          )}
+                        </td>
+                        <td>{gov ? `${GOV_EMOJI[gov.kind] ?? ''} ${gov.kind}` : '-'}</td>
+                        <td>{currencies[l.id] ?? '-'}</td>
+                        <td>
+                          {hasBrewing && (
+                            <button
+                              className="civ-row-link"
+                              onClick={() => {
+                                useSceneStore.getState().enter({ kind: 'tavern', lineageId: l.id })
+                                onClose()
+                              }}
+                            >
+                              🍻 tavern
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
               </table>
             </div>
           </section>
