@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import {
   BoxGeometry,
   BufferGeometry,
+  Color,
   ConeGeometry,
   CylinderGeometry,
   InstancedMesh,
@@ -20,7 +21,38 @@ interface Props {
   depthMap: number[][]
   biomes: number[][]
   dayProgress?: number
+  lineageEras?: Record<string, string>
 }
+
+const ERA_TIER_TINT: [Color, number][] = [
+  [new Color(0.66, 0.52, 0.34), 0.4],
+  [new Color(0.74, 0.55, 0.4), 0.28],
+  [new Color(0.8, 0.78, 0.72), 0.34],
+  [new Color(0.68, 0.76, 0.85), 0.38],
+]
+
+function eraTierIndex(era?: string): number {
+  switch (era) {
+    case 'pre-stone':
+    case 'stone':
+      return 0
+    case 'bronze':
+    case 'iron':
+      return 1
+    case 'classical':
+    case 'medieval':
+      return 2
+    case 'renaissance':
+    case 'industrial':
+    case 'modern':
+    case 'information':
+      return 3
+    default:
+      return 1
+  }
+}
+
+const _tintScratch = new Color()
 
 const NIGHT_WINDOW = new BoxGeometry(0.8, 0.8, 0.05)
 
@@ -890,6 +922,7 @@ interface LayerProps {
   rotY?: number
   offsetX?: number
   offsetZ?: number
+  tiers?: number[]
 }
 
 function Layer({
@@ -904,14 +937,16 @@ function Layer({
   rotY = 0,
   offsetX = 0,
   offsetZ = 0,
+  tiers,
 }: LayerProps) {
   const meshRef = useRef<InstancedMesh>(null)
   const count = Math.min(positions.length, maxCount)
-  const material = getMat(color, emissive ? { emissive, emissiveIntensity } : undefined)
+  const material = getMat(tiers ? '#ffffff' : color, emissive ? { emissive, emissiveIntensity } : undefined)
 
   useLayoutEffect(() => {
     const mesh = meshRef.current
     if (!mesh) return
+    const base = tiers ? new Color(color) : null
     for (let i = 0; i < count; i++) {
       const [px, py, pz] = positions[i]
       tmp.position.set(px + offsetX, py + yOffset, pz + offsetZ)
@@ -919,10 +954,16 @@ function Layer({
       tmp.scale.setScalar(scale)
       tmp.updateMatrix()
       mesh.setMatrixAt(i, tmp.matrix)
+      if (base && tiers) {
+        const [tint, w] = ERA_TIER_TINT[tiers[i] ?? 1] ?? ERA_TIER_TINT[1]
+        _tintScratch.copy(base).lerp(tint, w)
+        mesh.setColorAt(i, _tintScratch)
+      }
     }
     mesh.count = count
     mesh.instanceMatrix.needsUpdate = true
-  }, [positions, count, yOffset, scale, rotY, offsetX, offsetZ])
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
+  }, [positions, count, yOffset, scale, rotY, offsetX, offsetZ, tiers, color])
 
   if (count === 0) return null
   return (
@@ -1045,19 +1086,29 @@ function groupBuildings(
   buildings: Building[],
   depthMap: number[][],
   biomes: number[][],
-): Record<BuildingKind, [number, number, number][]> {
+  lineageEras?: Record<string, string>,
+): {
+  groups: Record<BuildingKind, [number, number, number][]>
+  tiers: Record<string, number[]>
+} {
   const out: Record<string, [number, number, number][]> = {}
+  const tiers: Record<string, number[]> = {}
   for (const b of buildings) {
     const px = b.x * TILE_SCALE
     const pz = b.y * TILE_SCALE
     const py = heightAt(b.x, b.y, depthMap, biomes)
-    if (!out[b.kind]) out[b.kind] = []
+    if (!out[b.kind]) {
+      out[b.kind] = []
+      tiers[b.kind] = []
+    }
     out[b.kind].push([px, py, pz])
+    const lid = b.lineage_id ?? b.owner_lineage ?? ''
+    tiers[b.kind].push(eraTierIndex(lid ? lineageEras?.[lid] : undefined))
   }
-  return out as Record<BuildingKind, [number, number, number][]>
+  return { groups: out as Record<BuildingKind, [number, number, number][]>, tiers }
 }
 
-export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: Props) {
+export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, lineageEras }: Props) {
   // Lights up windows during night (dayProgress > 0.85 || < 0.05) and the
   // hour either side of dawn/dusk.
   const nightFrac = (() => {
@@ -1068,9 +1119,9 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
     return 0
   })()
   const windowsOn = nightFrac > 0.02
-  const groups = useMemo(
-    () => groupBuildings(buildings ?? [], depthMap, biomes),
-    [buildings, depthMap, biomes],
+  const { groups, tiers } = useMemo(
+    () => groupBuildings(buildings ?? [], depthMap, biomes, lineageEras),
+    [buildings, depthMap, biomes, lineageEras],
   )
 
   const huts = groups.Hut ?? []
@@ -1105,6 +1156,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
         geometry={HUT_GEO}
         color={FN_COLOR[FN_DEFAULT.Hut ?? 'Housing']}
         maxCount={cap(huts.length)}
+        tiers={tiers.Hut}
       />
 
       <Layer
@@ -1113,6 +1165,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
         geometry={HOUSE_WALL}
         color={FN_COLOR[FN_DEFAULT.House ?? 'Housing']}
         maxCount={cap(houses.length)}
+        tiers={tiers.House}
       />
       <Layer
         positions={houses}
@@ -1137,6 +1190,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
         geometry={MANOR_WALL_A}
         color={FN_COLOR[FN_DEFAULT.Manor ?? 'Housing']}
         maxCount={cap(manors.length)}
+        tiers={tiers.Manor}
       />
       <Layer
         positions={manors}
@@ -1145,6 +1199,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
         color={FN_COLOR[FN_DEFAULT.Manor ?? 'Housing']}
         maxCount={cap(manors.length)}
         offsetX={7.2}
+        tiers={tiers.Manor}
       />
       <Layer
         positions={manors}
@@ -1168,6 +1223,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
         geometry={TOWNHOUSE_GEO}
         color="#b89070"
         maxCount={cap(townhouses.length)}
+        tiers={tiers.TownHouse}
       />
       <Layer
         positions={townhouses}
@@ -1626,6 +1682,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5 }: 
             emissive={spec.emissive}
             emissiveIntensity={spec.emissiveIntensity}
             maxCount={cap(positions.length)}
+            tiers={tiers[kind]}
           />
         )
       })}

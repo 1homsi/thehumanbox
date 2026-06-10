@@ -621,6 +621,7 @@ export default function WorldView3D({ world, sandboxArmed, onSandboxApply }: Pro
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}
                   dayProgress={dayProgress}
+                  lineageEras={lineageErasMap}
                 />
                 <BuildingSmoke3D
                   buildings={world.buildings ?? []}
