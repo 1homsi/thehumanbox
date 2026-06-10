@@ -361,7 +361,17 @@ export function applyGridWire(wire: GridWire, cache: GridState | null): GridStat
   }
 
   let fertility = cache?.fertility
-  if (wire.fertility) {
+  if (wire.fertility_dense && wire.fertility_dense.length >= w * h) {
+    fertility = take2D(fertility, h, w, 0.4)
+    const src = wire.fertility_dense
+    for (let row = 0; row < h; row++) {
+      const base = row * w
+      const frow = fertility[row]
+      for (let col = 0; col < w; col++) {
+        frow[col] = src[base + col] / 100
+      }
+    }
+  } else if (wire.fertility) {
     fertility = take2D(fertility, h, w, 0.4)
     for (const [row, col, v] of wire.fertility) {
       if (row < h && col < w) fertility[row][col] = v / 100

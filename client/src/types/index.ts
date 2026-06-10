@@ -333,6 +333,7 @@ export interface GridWire {
   depth_map?: number[][]
   trails?: [number, number, number, number, number][]
   fertility?: [number, number, number][]
+  fertility_dense?: number[] | Uint8Array
   hazard?: [number, number, number][]
 }
 

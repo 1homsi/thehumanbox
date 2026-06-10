@@ -1372,20 +1372,19 @@ impl WorldGrid {
             None
         };
 
-        let fertility: Option<Vec<[u16; 3]>> = if include_static {
-            let mut v: Vec<[u16; 3]> = Vec::new();
+        let fertility_dense: Option<Vec<u8>> = if include_static {
+            let mut v: Vec<u8> = Vec::with_capacity(vw * vh);
             for y in oy..oy + vh {
                 let row = &self.fertility[y * WIDTH + ox..y * WIDTH + ox + vw];
-                for (col_off, &f) in row.iter().enumerate() {
-                    if (f - 0.40).abs() > 0.15 {
-                        v.push([(y - oy) as u16, col_off as u16, (f * 100.0).min(65535.0) as u16]);
-                    }
+                for &f in row.iter() {
+                    v.push((f * 100.0).clamp(0.0, 255.0) as u8);
                 }
             }
             Some(v)
         } else {
             None
         };
+        let fertility: Option<Vec<[u16; 3]>> = None;
 
         let hazard: Option<Vec<[u16; 3]>> = if include_static {
             let mut v: Vec<[u16; 3]> = Vec::new();
@@ -1438,6 +1437,7 @@ impl WorldGrid {
             depth_map,
             trails,
             fertility,
+            fertility_dense,
             hazard,
         }
     }
@@ -1480,6 +1480,8 @@ pub struct GridJson {
     pub trails: Option<Vec<[u16; 5]>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fertility: Option<Vec<[u16; 3]>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fertility_dense: Option<Vec<u8>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hazard: Option<Vec<[u16; 3]>>,
 }
