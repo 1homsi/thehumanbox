@@ -589,6 +589,7 @@ export default function WorldView3D({ world, sandboxArmed, onSandboxApply }: Pro
                   width={grid.width}
                   height={grid.height}
                   season={world.season}
+                  pathTrail={grid.path_trail}
                   onTilePick={
                     sandboxArmed && onSandboxApply
                       ? (x, y) => onSandboxApply(x + (grid.origin_x ?? 0), y + (grid.origin_y ?? 0))

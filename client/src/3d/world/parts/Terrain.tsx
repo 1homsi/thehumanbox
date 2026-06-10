@@ -17,8 +17,11 @@ interface Props {
   width: number
   height: number
   season?: string
+  pathTrail?: number[][]
   onTilePick?: (x: number, y: number) => void
 }
+
+const WORN_PATH: [number, number, number] = [0.48, 0.38, 0.27]
 
 const TEX_TILES_PER_WORLD = 16
 
@@ -50,7 +53,7 @@ function vNoise3d(x: number, y: number): number {
   return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy
 }
 
-export function Terrain({ depthMap, biomes, width, height, season, onTilePick }: Props) {
+export function Terrain({ depthMap, biomes, width, height, season, pathTrail, onTilePick }: Props) {
   const meshRef = useRef<Mesh>(null)
   const gl = useThree((s) => s.gl)
 
@@ -137,6 +140,13 @@ export function Terrain({ depthMap, biomes, width, height, season, onTilePick }:
             baseG = baseG * 0.55 + BEACH_3D[1] * 0.45
             baseB = baseB * 0.55 + BEACH_3D[2] * 0.45
           }
+          const trail = pathTrail?.[y]?.[x] ?? 0
+          if (trail > 12) {
+            const tw = Math.min(0.6, (trail / 255) * 0.85)
+            baseR = baseR * (1 - tw) + WORN_PATH[0] * tw
+            baseG = baseG * (1 - tw) + WORN_PATH[1] * tw
+            baseB = baseB * (1 - tw) + WORN_PATH[2] * tw
+          }
         }
 
         colors[i * 3] = (baseR + (1.0 - baseR) * snow) * darken
@@ -162,7 +172,7 @@ export function Terrain({ depthMap, biomes, width, height, season, onTilePick }:
     geo.setIndex(indices)
     geo.computeVertexNormals()
     return geo
-  }, [depthMap, biomes, width, height, season])
+  }, [depthMap, biomes, width, height, season, pathTrail])
 
   const material = useMemo(() => {
     const m = new MeshStandardMaterial({
