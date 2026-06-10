@@ -17,7 +17,7 @@ import { lineageColor } from '../../../utils/constants'
 import { useUIStore } from '../../../stores/store'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
-import { VillagerFigure } from './VillagerFigure'
+import { VillagerFigure, workAnimFromThought } from './VillagerFigure'
 import { getOrgXY, getOrgVelocityXY, getOrgHeading } from './motion-state'
 
 interface Props {
@@ -61,6 +61,11 @@ function pickAnim(o: OrganismState, isMoving: boolean): string {
 
   // Trait-influenced: highly aggressive organism swings more
   if ((o.traits?.aggression ?? 0) > 0.85 && isMoving) return 'Running'
+
+  if (!isMoving) {
+    const work = workAnimFromThought(o.thought || '')
+    if (work) return work
+  }
 
   // Thought text as fallback for actions that have no dedicated field
   const t = (o.thought || '').toLowerCase()

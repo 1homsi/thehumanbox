@@ -41,6 +41,7 @@ import { EventFloaters } from './parts/EventFloaters'
 import { BigMomentEffects } from './parts/BigMomentEffects'
 import { OrgStateBadges } from './parts/OrgStateBadges'
 import { FootstepDust } from './parts/FootstepDust'
+import { WorkEffects3D } from './parts/WorkEffects3D'
 import { TribeLabels } from './parts/TribeLabels'
 import { FireLights } from './parts/FireLights'
 import { normalizeLineageEras } from '../../utils/lineageEras'
@@ -659,6 +660,11 @@ export default function WorldView3D({ world, sandboxArmed, onSandboxApply }: Pro
                   biomes={grid.biomes!}
                 />
                 <FootstepDust
+                  organisms={world.viewport_organisms ?? world.organisms ?? []}
+                  depthMap={grid.depth_map!}
+                  biomes={grid.biomes!}
+                />
+                <WorkEffects3D
                   organisms={world.viewport_organisms ?? world.organisms ?? []}
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}

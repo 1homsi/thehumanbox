@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import {
+  BoxGeometry,
   CapsuleGeometry,
   Color,
   ConeGeometry,
@@ -31,6 +32,12 @@ const GEO = {
   belt: new TorusGeometry(0.45, 0.05, 6, 10),
   circlet: new TorusGeometry(0.42, 0.035, 6, 12),
   cloak: new ConeGeometry(0.68, 1.25, 8, 1, true),
+  axeHead: new BoxGeometry(0.08, 0.3, 0.42),
+  pickHead: new ConeGeometry(0.07, 0.5, 5),
+  rod: new CylinderGeometry(0.025, 0.04, 2.0, 5),
+  log: new CylinderGeometry(0.11, 0.11, 0.85, 6),
+  rock: new SphereGeometry(0.2, 6, 5),
+  sack: new SphereGeometry(0.24, 7, 6),
 }
 
 const matCache = new Map<string, MeshStandardMaterial>()
@@ -95,8 +102,40 @@ interface Look {
   circlet: boolean
   cloak: boolean
   skirt: boolean
-  accessory: 'none' | 'spear' | 'staff' | 'hammer' | 'hoe'
+  accessory: 'none' | 'spear' | 'staff' | 'hammer' | 'hoe' | 'axe' | 'pickaxe' | 'rod'
   belly: boolean
+}
+
+export function toolFromThought(thought: string): Look['accessory'] | null {
+  const t = thought.toLowerCase()
+  if (t.includes('chop') || t.includes('timber') || t.includes('sapling') || t.includes('wood')) return 'axe'
+  if (t.includes('mining') || t.includes('ore') || t.includes('quarry') || t.includes('stone'))
+    return 'pickaxe'
+  if (t.includes('fish')) return 'rod'
+  if (t.includes('harvest') || t.includes('planting') || t.includes('irrigat') || t.includes('sowing'))
+    return 'hoe'
+  if (t.includes('build') || t.includes('construct') || t.includes('raising') || t.includes('repair'))
+    return 'hammer'
+  return null
+}
+
+export function workAnimFromThought(thought: string): 'Chop' | 'Fish' | null {
+  const t = thought.toLowerCase()
+  if (t.includes('fishing') || t.includes('to fish')) return 'Fish'
+  if (
+    t.includes('chop') ||
+    t.includes('gathering wood') ||
+    t.includes('gathering stone') ||
+    t.includes('timber') ||
+    t.includes('mining') ||
+    t.includes('quarry') ||
+    t.includes('harvest') ||
+    t.includes('digging') ||
+    t.includes('build') ||
+    t.includes('construct')
+  )
+    return 'Chop'
+  return null
 }
 
 function deriveLook(org: OrganismState, era?: string): Look {
@@ -106,7 +145,9 @@ function deriveLook(org: OrganismState, era?: string): Look {
   const female = org.sex === 'female'
   const spec = (org.specialty ?? '').toLowerCase()
   let accessory: Look['accessory'] = 'none'
-  if (elder) accessory = 'staff'
+  const activeTool = toolFromThought(org.thought ?? '')
+  if (activeTool) accessory = activeTool
+  else if (elder) accessory = 'staff'
   else if (spec.includes('smith') || spec.includes('mason')) accessory = 'hammer'
   else if (spec.includes('farm')) accessory = 'hoe'
   else if (tier === 'primal' && (h & 3) === 0) accessory = 'spear'
@@ -227,6 +268,22 @@ export function VillagerFigure({
       case 'Punch': {
         armRUp = 1.4 + Math.max(0, Math.sin(t * 9)) * 0.6
         lean = 0.12
+        break
+      }
+      case 'Chop': {
+        const swing = Math.sin(t * 6)
+        armRUp = 1.6 + swing * 0.9
+        armLUp = 1.3 + swing * 0.8
+        lean = 0.18 + Math.max(0, -swing) * 0.14
+        bob = Math.abs(swing) * 0.03
+        break
+      }
+      case 'Fish': {
+        armRUp = 0.95
+        armLUp = 0.2
+        lean = 0.06
+        bob = Math.sin(t * 1.4) * 0.02
+        headPitch = 0.18
         break
       }
       case 'Wave': {
@@ -363,7 +420,79 @@ export function VillagerFigure({
               />
             </group>
           )}
+          {look.accessory === 'axe' && (
+            <group position={[0, -0.62, 0.12]} rotation={[0.4, 0, 0]}>
+              <mesh
+                geometry={GEO.spearShaft}
+                material={mat('#6e4a28')}
+                position={[0, 0.32, 0]}
+                scale={[1.2, 0.75, 1.2]}
+              />
+              <mesh geometry={GEO.axeHead} material={mat('#9aa0a6')} position={[0, 0.82, 0.16]} />
+            </group>
+          )}
+          {look.accessory === 'pickaxe' && (
+            <group position={[0, -0.62, 0.12]} rotation={[0.4, 0, 0]}>
+              <mesh
+                geometry={GEO.spearShaft}
+                material={mat('#6e4a28')}
+                position={[0, 0.32, 0]}
+                scale={[1.2, 0.75, 1.2]}
+              />
+              <mesh
+                geometry={GEO.pickHead}
+                material={mat('#8a8f94')}
+                position={[0, 0.82, 0.22]}
+                rotation={[Math.PI / 2, 0, 0]}
+              />
+              <mesh
+                geometry={GEO.pickHead}
+                material={mat('#8a8f94')}
+                position={[0, 0.82, -0.22]}
+                rotation={[-Math.PI / 2, 0, 0]}
+              />
+            </group>
+          )}
+          {look.accessory === 'rod' && (
+            <group position={[0, -0.62, 0.12]} rotation={[0.9, 0, 0]}>
+              <mesh geometry={GEO.rod} material={mat('#7a5a34')} position={[0, 0.8, 0]} />
+              <mesh geometry={GEO.eye} material={mat('#dddddd')} position={[0, 1.78, 0]} />
+            </group>
+          )}
         </group>
+
+        {org.carrying > 0 && (
+          <group position={[0, 1.5, -0.42]} rotation={[0.25, 0, 0]}>
+            {org.carrying_type === 2 ? (
+              <>
+                <mesh geometry={GEO.rock} material={mat('#8e8e8e')} position={[0.1, 0, 0]} />
+                <mesh
+                  geometry={GEO.rock}
+                  material={mat('#7a7a7a')}
+                  position={[-0.12, 0.08, 0]}
+                  scale={[0.8, 0.8, 0.8]}
+                />
+              </>
+            ) : org.carrying_type === 1 ? (
+              <>
+                <mesh
+                  geometry={GEO.log}
+                  material={mat('#7a5230')}
+                  position={[0, 0, 0]}
+                  rotation={[0, 0, Math.PI / 2]}
+                />
+                <mesh
+                  geometry={GEO.log}
+                  material={mat('#6a4628')}
+                  position={[0, 0.18, 0]}
+                  rotation={[0, 0, Math.PI / 2]}
+                />
+              </>
+            ) : (
+              <mesh geometry={GEO.sack} material={mat('#b09060')} scale={[1, 0.85, 0.7]} />
+            )}
+          </group>
+        )}
 
         <group ref={head} position={[0, 2.08, 0]}>
           <mesh geometry={GEO.head} material={skin} castShadow />
