@@ -115,6 +115,8 @@ pub struct AppState {
     pub og_cache: OgCache,
     pub start_ms: u64,
     pub world_store: Option<SharedWorldStore>,
+    pub world_started_at: Arc<AtomicU64>,
+    pub peak_pop: Arc<AtomicU64>,
 }
 
 #[tokio::main]
@@ -722,6 +724,19 @@ async fn main() {
             loop {
                 let cycle_started = std::time::Instant::now();
                 if tx_clone.receiver_count() == 0 {
+                    let age_ms =
+                        now_ms().saturating_sub(latest_full_at_w.load(std::sync::atomic::Ordering::Relaxed));
+                    if age_ms > 60_000 {
+                        let full = {
+                            let mut s = sim_clone.lock().await;
+                            let frame_id = next_frame_id(&frame_clock_w);
+                            Arc::new(encode_frame(s.state_json(), frame_id, now_ms(), "full"))
+                        };
+                        if let Ok(mut slot) = latest_full_w.write() {
+                            *slot = Some(full);
+                        }
+                        latest_full_at_w.store(now_ms(), std::sync::atomic::Ordering::Relaxed);
+                    }
                     sleep_until_period_end(cycle_started, *NETWORK_MS).await;
                     continue;
                 }
@@ -890,6 +905,8 @@ async fn main() {
         og_cache,
         start_ms,
         world_store: world_store.clone(),
+        world_started_at: world_started_at.clone(),
+        peak_pop: peak_pop.clone(),
     };
 
     let mut app = Router::new()
@@ -913,6 +930,14 @@ async fn main() {
     if std::env::var("THB_SANDBOX").ok().as_deref() == Some("1") {
         app = app.route("/command", post(routes::command_handler));
         tracing::info!("sandbox enabled: POST /command accepts world-mutation commands");
+    }
+
+    if std::env::var("THB_ADMIN_TOKEN")
+        .map(|t| !t.trim().is_empty())
+        .unwrap_or(false)
+    {
+        app = app.route("/admin/reset-world", post(routes::admin_reset_world_handler));
+        tracing::info!("admin enabled: POST /admin/reset-world (x-admin-token gated)");
     }
 
     let app = app.layer(compression).layer(cors).with_state(state);

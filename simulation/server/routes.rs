@@ -25,6 +25,48 @@ pub async fn ws_handler(ws: WebSocketUpgrade, State(s): State<AppState>) -> impl
         .on_upgrade(move |socket| handle_socket(socket, rx, sim, latest_full, transport_stats))
 }
 
+pub async fn admin_reset_world_handler(
+    State(s): State<AppState>,
+    headers: axum::http::HeaderMap,
+) -> impl IntoResponse {
+    let expected = std::env::var("THB_ADMIN_TOKEN").unwrap_or_default();
+    let provided = headers
+        .get("x-admin-token")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+    if expected.trim().is_empty() || provided != expected.trim() {
+        return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({"ok": false}))).into_response();
+    }
+
+    let started = s.world_started_at.load(std::sync::atomic::Ordering::Relaxed);
+    let peak = s.peak_pop.load(std::sync::atomic::Ordering::Relaxed);
+    let active_hash = crate::server::world_store::live_world_hash().unwrap_or_else(|| "_unknown".to_string());
+    let active_save = crate::server::world_store::world_save_path(&active_hash);
+    let active_save_str = active_save.to_string_lossy().to_string();
+
+    let archived =
+        crate::server::world_archive::archive_and_reset(s.sim.clone(), started, peak, &active_save_str).await;
+
+    s.world_started_at.store(
+        crate::server::transport::now_ms(),
+        std::sync::atomic::Ordering::Relaxed,
+    );
+    s.peak_pop.store(0, std::sync::atomic::Ordering::Relaxed);
+
+    let new_hash = crate::server::world_store::live_world_hash();
+    tracing::warn!(target: "admin",
+        "world reset via /admin/reset-world: archived={:?} new_live={:?}", archived, new_hash);
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "ok": true,
+            "archived": archived,
+            "new_world": new_hash,
+        })),
+    )
+        .into_response()
+}
+
 pub async fn command_handler(State(s): State<AppState>, body: String) -> StatusCode {
     if body.len() > 4096 {
         return StatusCode::PAYLOAD_TOO_LARGE;
