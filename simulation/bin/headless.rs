@@ -243,7 +243,7 @@ fn main() {
     println!("droughts:    {}  outbreaks: {}", h.droughts, h.outbreaks);
 
     let mut freq_vec: Vec<(String, u64)> = thought_freq.into_iter().collect();
-    freq_vec.sort_by(|a, b| b.1.cmp(&a.1));
+    freq_vec.sort_by_key(|e| std::cmp::Reverse(e.1));
     println!("\nTop behaviors (thought frequency across all organism-ticks):");
     for (thought, count) in freq_vec.iter().take(10) {
         println!("  {:>10}  {}", count, thought);
@@ -323,7 +323,7 @@ fn main() {
     }
     if !goods_totals.is_empty() {
         let mut goods_vec: Vec<(String, u64)> = goods_totals.into_iter().collect();
-        goods_vec.sort_by(|a, b| b.1.cmp(&a.1));
+        goods_vec.sort_by_key(|e| std::cmp::Reverse(e.1));
         println!("\nGoods in circulation (alive holders):");
         for (good, total) in goods_vec.iter().take(20) {
             let holders = goods_holders.get(good).copied().unwrap_or(0);
@@ -336,7 +336,7 @@ fn main() {
     }
     if !trade_goods.is_empty() {
         let mut tg: Vec<(String, u64)> = trade_goods.into_iter().collect();
-        tg.sort_by(|a, b| b.1.cmp(&a.1));
+        tg.sort_by_key(|e| std::cmp::Reverse(e.1));
         println!("Trade volume by good:");
         for (g, n) in tg.iter().take(15) {
             println!("  {:>4}  {}", n, g);
@@ -345,7 +345,7 @@ fn main() {
 
     if !sim.action_counts.is_empty() {
         let mut rows: Vec<(&'static str, u64)> = sim.action_counts.iter().map(|(k, v)| (*k, *v)).collect();
-        rows.sort_by(|a, b| b.1.cmp(&a.1));
+        rows.sort_by_key(|e| std::cmp::Reverse(e.1));
         println!("\nRound-9 category coverage (action firings):");
         for (cat, n) in rows {
             println!("  {:>7}  {}", n, cat);
@@ -354,7 +354,7 @@ fn main() {
     if !sim.decision_counts.is_empty() {
         let total: u64 = sim.decision_counts.values().sum();
         let mut rows: Vec<(&'static str, u64)> = sim.decision_counts.iter().map(|(k, v)| (*k, *v)).collect();
-        rows.sort_by(|a, b| b.1.cmp(&a.1));
+        rows.sort_by_key(|e| std::cmp::Reverse(e.1));
         println!("\nDecision origin coverage:");
         for (origin, n) in rows {
             let pct = if total > 0 {
@@ -370,7 +370,7 @@ fn main() {
         *era_counts.entry(era.name().to_string()).or_insert(0) += 1;
     }
     let mut era_pairs: Vec<(String, usize)> = era_counts.into_iter().collect();
-    era_pairs.sort_by(|a, b| b.1.cmp(&a.1));
+    era_pairs.sort_by_key(|e| std::cmp::Reverse(e.1));
     print!("Lineage eras:");
     for (e, c) in era_pairs.iter() {
         print!(" {}={}", e, c)
@@ -461,7 +461,7 @@ fn main() {
         aspirations.len()
     );
     let mut asp_pairs: Vec<(String, usize)> = aspirations.into_iter().collect();
-    asp_pairs.sort_by(|a, b| b.1.cmp(&a.1));
+    asp_pairs.sort_by_key(|e| std::cmp::Reverse(e.1));
     for (asp, n) in asp_pairs.iter() {
         println!("  {:>4}  {}", n, asp);
     }
@@ -515,7 +515,7 @@ fn main() {
             total_mem, alive_with_mem, avg_sal
         );
         let mut pairs: Vec<(String, u64)> = by_kind.into_iter().collect();
-        pairs.sort_by(|a, b| b.1.cmp(&a.1));
+        pairs.sort_by_key(|e| std::cmp::Reverse(e.1));
         for (k, n) in pairs.iter() {
             println!("  {:>6} {}", n, k);
         }
@@ -571,7 +571,7 @@ fn main() {
     if !sim.workshop_hits.is_empty() {
         println!("\n=== WORKSHOP BONUS ===");
         let mut rows: Vec<(&str, (u64, u64))> = sim.workshop_hits.iter().map(|(k, v)| (*k, *v)).collect();
-        rows.sort_by(|a, b| (b.1 .0 + b.1 .1).cmp(&(a.1 .0 + a.1 .1)));
+        rows.sort_by_key(|e| std::cmp::Reverse(e.1 .0 + e.1 .1));
         let (mut h, mut m) = (0u64, 0u64);
         for (cat, (hit, miss)) in &rows {
             let total = hit + miss;
@@ -614,7 +614,7 @@ fn main() {
     );
     if !sim.religions.is_empty() {
         let mut religions_sorted: Vec<_> = sim.religions.iter().collect();
-        religions_sorted.sort_by(|a, b| b.adherents.cmp(&a.adherents));
+        religions_sorted.sort_by_key(|r| std::cmp::Reverse(r.adherents));
         for r in religions_sorted.iter().take(5) {
             let last = r
                 .last_milestone
@@ -642,7 +642,7 @@ fn main() {
     );
     if !gov_kinds.is_empty() {
         let mut gk: Vec<(String, usize)> = gov_kinds.into_iter().collect();
-        gk.sort_by(|a, b| b.1.cmp(&a.1));
+        gk.sort_by_key(|e| std::cmp::Reverse(e.1));
         print!("  kinds:");
         for (k, n) in gk.iter() {
             print!(" {}={}", k, n);
@@ -658,7 +658,7 @@ fn main() {
     }
     println!("Buildings: {} total", sim.buildings.len());
     let mut bbk: Vec<(String, usize)> = bldg_by_kind.into_iter().collect();
-    bbk.sort_by(|a, b| b.1.cmp(&a.1));
+    bbk.sort_by_key(|e| std::cmp::Reverse(e.1));
     for (k, n) in bbk.iter().take(12) {
         println!("  {:>4}  {}", n, k);
     }
@@ -702,7 +702,7 @@ fn main() {
         friendship_total += o.friends.len() as u64;
     }
     let mut sc: Vec<(String, usize)> = spec_counts.into_iter().collect();
-    sc.sort_by(|a, b| b.1.cmp(&a.1));
+    sc.sort_by_key(|e| std::cmp::Reverse(e.1));
     println!("\nFamily / society:");
     println!("  partnerships:   {}", partnered / 2);
     println!("  total children: {}", total_children);
@@ -713,8 +713,8 @@ fn main() {
     };
     println!("  avg children per adult: {:.2}", avg_children);
     println!("  friendships:    {}", friendship_total);
-    if age_at_death_n > 0 {
-        println!("  mean age at death: {} ticks", age_at_death_sum / age_at_death_n);
+    if let Some(mean_age) = age_at_death_sum.checked_div(age_at_death_n) {
+        println!("  mean age at death: {} ticks", mean_age);
     }
     if !sc.is_empty() {
         print!("  specialties:");
@@ -740,7 +740,7 @@ fn main() {
             *by_kind.entry(a.kind.name().to_string()).or_insert(0) += 1;
         }
         let mut row: Vec<(String, usize)> = by_kind.into_iter().collect();
-        row.sort_by(|a, b| b.1.cmp(&a.1));
+        row.sort_by_key(|e| std::cmp::Reverse(e.1));
         let total: usize = sim.animals.iter().filter(|a| a.alive).count();
         let parts: Vec<String> = row.iter().map(|(k, n)| format!("{}={}", k, n)).collect();
         println!("Animals alive at end: {}  ({})", total, parts.join(" "));
@@ -751,7 +751,7 @@ fn main() {
         *lineage_alive.entry(&org.lineage_id).or_insert(0) += 1;
     }
     let mut alive_lineages: Vec<(&str, usize)> = lineage_alive.into_iter().collect();
-    alive_lineages.sort_by(|a, b| b.1.cmp(&a.1));
+    alive_lineages.sort_by_key(|e| std::cmp::Reverse(e.1));
     println!("\nSurviving lineages:");
     for (lid, count) in alive_lineages.iter().take(8) {
         let avg_gen = sim

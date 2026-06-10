@@ -93,7 +93,7 @@ fn read_own_rss_kb() -> Option<u64> {
     let status = std::fs::read_to_string("/proc/self/status").ok()?;
     for line in status.lines() {
         if let Some(rest) = line.strip_prefix("VmRSS:") {
-            let kb: u64 = rest.trim().split_whitespace().next()?.parse().ok()?;
+            let kb: u64 = rest.split_whitespace().next()?.parse().ok()?;
             return Some(kb);
         }
     }
@@ -107,11 +107,11 @@ fn read_box_mem_kb() -> Option<(u64, u64)> {
     let mut avail: u64 = 0;
     for line in info.lines() {
         if let Some(rest) = line.strip_prefix("MemTotal:") {
-            if let Some(v) = rest.trim().split_whitespace().next().and_then(|s| s.parse().ok()) {
+            if let Some(v) = rest.split_whitespace().next().and_then(|s| s.parse().ok()) {
                 total = v
             }
         } else if let Some(rest) = line.strip_prefix("MemAvailable:") {
-            if let Some(v) = rest.trim().split_whitespace().next().and_then(|s| s.parse().ok()) {
+            if let Some(v) = rest.split_whitespace().next().and_then(|s| s.parse().ok()) {
                 avail = v
             }
         }

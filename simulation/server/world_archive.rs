@@ -145,7 +145,7 @@ pub fn list_archived_worlds() -> Vec<WorldMeta> {
             }
         }
     }
-    out.sort_by(|a, b| b.ended_at_ms.cmp(&a.ended_at_ms));
+    out.sort_by_key(|w| std::cmp::Reverse(w.ended_at_ms));
     out
 }
 
