@@ -117,6 +117,7 @@ export function CivStatsModal({ world, onClose }: Props) {
   }
   const buildingRows = Object.entries(buildingCounts).sort((a, b) => b[1] - a[1])
 
+  const isDisplayableGood = (k: string) => /^[a-z][a-z0-9_]*$/.test(k)
   const goodsByLineage = new Map<string, Map<string, number>>()
   for (const o of world.organisms) {
     if (!o.alive || !o.tools) continue
@@ -127,7 +128,7 @@ export function CivStatsModal({ world, onClose }: Props) {
       goodsByLineage.set(lid, bag)
     }
     for (const [k, v] of Object.entries(o.tools)) {
-      if (!v) continue
+      if (!v || !isDisplayableGood(k)) continue
       bag.set(k, (bag.get(k) ?? 0) + v)
     }
   }
@@ -137,7 +138,10 @@ export function CivStatsModal({ world, onClose }: Props) {
       goodsTotals.set(k, (goodsTotals.get(k) ?? 0) + v)
     }
   }
-  const goodsTotalRows = [...goodsTotals.entries()].sort((a, b) => b[1] - a[1])
+  const GOODS_CHIP_CAP = 36
+  const goodsTotalRowsAll = [...goodsTotals.entries()].sort((a, b) => b[1] - a[1])
+  const goodsTotalRows = goodsTotalRowsAll.slice(0, GOODS_CHIP_CAP)
+  const goodsOverflow = goodsTotalRowsAll.length - goodsTotalRows.length
 
   const moonGlyphs: Record<string, string> = {
     new_moon: '🌑',
@@ -183,9 +187,10 @@ export function CivStatsModal({ world, onClose }: Props) {
       )}
       <div className="civ-modal-grid">
         <div className="civ-cols">
-          <section className="civ-section">
+          <section className="civ-section civ-section--span">
             <h3>Lineages</h3>
-            <table className="civ-table">
+            <div className="civ-table-wrap">
+              <table className="civ-table">
               <thead>
                 <tr>
                   <th>Name</th>
@@ -253,7 +258,8 @@ export function CivStatsModal({ world, onClose }: Props) {
                   )
                 })}
               </tbody>
-            </table>
+              </table>
+            </div>
           </section>
 
           <section className="civ-section">
@@ -329,6 +335,7 @@ export function CivStatsModal({ world, onClose }: Props) {
                   {GOOD_EMOJI[kind] ?? '🧰'} {kind.replace(/_/g, ' ')}: {total}
                 </span>
               ))}
+              {goodsOverflow > 0 && <span className="civ-chip">+{goodsOverflow} more</span>}
             </div>
             {goodsTotalRows.length > 0 && (
               <div style={{ marginTop: 8, fontSize: 11, color: '#888' }}>

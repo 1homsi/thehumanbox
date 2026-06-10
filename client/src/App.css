@@ -3678,6 +3678,13 @@ body.thb-colorblind .org-sick-badge {
   padding: 13px 15px 15px;
   margin: 0 0 16px;
   min-width: 0;
+  overflow: hidden;
+}
+.civ-section--span {
+  column-span: all;
+}
+.civ-table-wrap {
+  overflow-x: auto;
 }
 .civ-section h3 {
   margin: 0 0 11px 0;
