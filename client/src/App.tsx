@@ -28,14 +28,18 @@ import { MobileBanner } from './components/MobileBanner'
 import { WelcomeModal } from './components/WelcomeModal'
 import { UpdateToast } from './components/UpdateToast'
 import { DesktopUpdateToast } from './components/DesktopUpdateToast'
-import { SceneView } from './scenes'
 import { useCurrentScene } from './stores/scene'
-import { HistoricalApp } from './HistoricalApp'
 import type { OrganismState } from './types'
 import clsx from 'clsx'
 import './App.css'
 
 const WorldView3D = lazyWithRetry(() => import('./3d/world/WorldView3D'))
+const SceneView = lazyWithRetry(() =>
+  import('./scenes/components/SceneView').then((m) => ({ default: m.SceneView })),
+)
+const HistoricalApp = lazyWithRetry(() =>
+  import('./HistoricalApp').then((m) => ({ default: m.HistoricalApp })),
+)
 
 const TILE_FIRE = 4
 
@@ -44,7 +48,11 @@ const HISTORICAL_ROUTE = /^\/world\/([a-f0-9]{6,16})\/?$/
 function App() {
   const match = typeof window !== 'undefined' ? HISTORICAL_ROUTE.exec(window.location.pathname) : null
   if (match) {
-    return <HistoricalApp hash={match[1]} />
+    return (
+      <Suspense fallback={null}>
+        <HistoricalApp hash={match[1]} />
+      </Suspense>
+    )
   }
   return <LiveApp />
 }
@@ -350,7 +358,9 @@ function LiveApp() {
             )}
 
             {currentScene ? (
-              <SceneView world={world} />
+              <Suspense fallback={null}>
+                <SceneView world={world} />
+              </Suspense>
             ) : viewFlags.threeD ? (
               <Suspense fallback={<ThreeDLoading />}>
                 <WorldView3D world={world} hideUI={viewFlags.hideUI} />
