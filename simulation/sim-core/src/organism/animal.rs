@@ -16,7 +16,7 @@ const DIRS: [(i32, i32); 8] = [
     (1, 1),
 ];
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AnimalKind {
     Rabbit,
     Deer,

@@ -4215,7 +4215,26 @@ impl Simulation {
             .map(|a| (a.id, a.x, a.y, a.kind))
             .collect();
 
+        let kind_cap = |k: AnimalKind| -> usize {
+            match k {
+                AnimalKind::Rabbit => 130,
+                AnimalKind::Deer => 110,
+                AnimalKind::Boar => 90,
+                AnimalKind::Bird => 120,
+                AnimalKind::Fish => 110,
+                AnimalKind::Wolf => 45,
+                AnimalKind::Dog => 40,
+            }
+        };
+        let mut kind_alive: HashMap<AnimalKind, usize> = HashMap::new();
+        for a in self.animals.iter().filter(|a| a.alive) {
+            *kind_alive.entry(a.kind).or_insert(0) += 1;
+        }
+
         for (pid, px, py, kind) in candidates {
+            if kind_alive.get(&kind).copied().unwrap_or(0) >= kind_cap(kind) {
+                continue;
+            }
             let biome = self.grid.biome_at(px as i32, py as i32);
             let biome_mult: f32 = match (kind, biome) {
                 (AnimalKind::Rabbit, Biome::Grassland) => 1.5,
@@ -4268,6 +4287,7 @@ impl Simulation {
                 let nx = (px + ox).max(1.0).min(WIDTH as f32 - 2.0);
                 let ny = (py + oy).max(1.0).min(HEIGHT as f32 - 2.0);
                 self.animals.push(Animal::new(nid, nx, ny, kind));
+                *kind_alive.entry(kind).or_insert(0) += 1;
                 if let Some(p) = self.animals.iter_mut().find(|a| a.id == pid) {
                     p.last_reproduced = self.tick_count;
                 }
