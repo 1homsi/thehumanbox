@@ -41,8 +41,8 @@ function waterColorAt(progress: number): [number, number, number] {
   ]
 }
 
-const SUB_X = 96
-const SUB_Y = 48
+const SUB_X = 160
+const SUB_Y = 80
 
 export function Water({ width, height, depthMap, dayProgress = 0.5 }: Props) {
   const outerMatRef = useRef<MeshStandardMaterial>(null)
@@ -64,18 +64,28 @@ export function Water({ width, height, depthMap, dayProgress = 0.5 }: Props) {
     const geo = new PlaneGeometry(PLANE_W, PLANE_H, SUB_X, SUB_Y)
     const pos = geo.attributes.position as BufferAttribute
     const mask = new Float32Array(pos.count)
+    const shore = new Float32Array(pos.count)
     if (depthMap && depthMap.length) {
       for (let i = 0; i < pos.count; i++) {
         const lx = pos.getX(i)
         const ly = pos.getY(i)
-        const col = Math.floor((lx + PLANE_W / 2) / TILE_SCALE)
-        const row = Math.floor((ly + PLANE_H / 2) / TILE_SCALE)
-        const d =
-          depthMap[Math.max(0, Math.min(height - 1, row))]?.[Math.max(0, Math.min(width - 1, col))] ?? 255
+        const col = Math.max(0, Math.min(width - 1, Math.floor((lx + PLANE_W / 2) / TILE_SCALE)))
+        const row = Math.max(0, Math.min(height - 1, Math.floor((ly + PLANE_H / 2) / TILE_SCALE)))
+        const d = depthMap[row]?.[col] ?? 255
         const isLand = d >= 254
         mask[i] = isLand ? 1 : 0
         if (isLand) {
           pos.setZ(i, -3.0)
+        } else {
+          let nearLand = false
+          for (let dy = -1; dy <= 1 && !nearLand; dy++) {
+            for (let dx = -1; dx <= 1 && !nearLand; dx++) {
+              const nd = depthMap[row + dy]?.[col + dx] ?? 255
+              if (nd >= 254) nearLand = true
+            }
+          }
+          const shallow = Math.max(0, Math.min(1, (d - 150) / 50))
+          shore[i] = nearLand ? 1 : shallow * 0.45
         }
       }
       pos.needsUpdate = true
@@ -83,6 +93,7 @@ export function Water({ width, height, depthMap, dayProgress = 0.5 }: Props) {
       mask.fill(0)
     }
     geo.setAttribute('aLand', new BufferAttribute(mask, 1))
+    geo.setAttribute('aShore', new BufferAttribute(shore, 1))
     const normals = new Float32Array(pos.count * 3)
     for (let i = 0; i < pos.count; i++) {
       normals[i * 3] = 0
@@ -122,15 +133,29 @@ export function Water({ width, height, depthMap, dayProgress = 0.5 }: Props) {
         '#include <common>',
         `#include <common>
          attribute float aLand;
+         attribute float aShore;
          uniform float uWaveTime;
          varying vec2 vWavePos;
-         varying float vLand;`,
+         varying float vLand;
+         varying float vShore;`,
+      )
+      .replace(
+        '#include <beginnormal_vertex>',
+        `#include <beginnormal_vertex>
+         if (aLand < 0.5) {
+           float dwx = 0.0048 * cos(position.x * 0.04 + uWaveTime * 0.7)
+                     + 0.0010 * cos((position.x + position.y) * 0.02 + uWaveTime * 0.3);
+           float dwy = -0.0040 * sin(position.y * 0.05 + uWaveTime * 0.55)
+                     + 0.0010 * cos((position.x + position.y) * 0.02 + uWaveTime * 0.3);
+           objectNormal = normalize(vec3(-dwx * 26.0, -dwy * 26.0, 1.0));
+         }`,
       )
       .replace(
         '#include <begin_vertex>',
         `#include <begin_vertex>
          vWavePos = position.xy;
          vLand = aLand;
+         vShore = aShore;
          if (aLand < 0.5) {
            float wave = sin(position.x * 0.04 + uWaveTime * 0.7) * 0.12
                       + cos(position.y * 0.05 + uWaveTime * 0.55) * 0.08
@@ -144,19 +169,31 @@ export function Water({ width, height, depthMap, dayProgress = 0.5 }: Props) {
         `#include <common>
          uniform float uWaveTime;
          varying vec2 vWavePos;
-         varying float vLand;`,
+         varying float vLand;
+         varying float vShore;`,
       )
       .replace(
         '#include <dithering_fragment>',
         `#include <dithering_fragment>
          if (vLand < 0.5) {
-           // High-frequency sparkle riding on top of the wave field.
            float sparkle = sin(vWavePos.x * 0.6 + uWaveTime * 1.7)
                          * cos(vWavePos.y * 0.55 + uWaveTime * 1.3);
            sparkle += sin(vWavePos.x * 0.32 - uWaveTime * 1.1)
                     * cos(vWavePos.y * 0.42 + uWaveTime * 0.9);
            sparkle = max(0.0, sparkle - 0.75) * 1.4;
            gl_FragColor.rgb += vec3(sparkle * 0.6, sparkle * 0.55, sparkle * 0.5);
+
+           vec3 fresnelView = normalize(vViewPosition);
+           float fres = pow(1.0 - clamp(dot(normal, fresnelView), 0.0, 1.0), 3.0);
+           gl_FragColor.rgb += vec3(0.10, 0.13, 0.16) * fres;
+           gl_FragColor.a = min(1.0, gl_FragColor.a + fres * 0.12);
+
+           float foamBand = vShore * (0.55 + 0.45 * sin(uWaveTime * 1.5
+                            + vWavePos.x * 0.45 + vWavePos.y * 0.38));
+           float foamNoise = 0.5 + 0.5 * sin(vWavePos.x * 1.7 + uWaveTime * 0.8)
+                                       * cos(vWavePos.y * 1.5 - uWaveTime * 0.6);
+           float foam = clamp(foamBand * (0.45 + 0.55 * foamNoise), 0.0, 1.0) * 0.55;
+           gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.92, 0.96, 0.98), foam);
          }`,
       )
   }
