@@ -42,6 +42,7 @@ import { BigMomentEffects } from './parts/BigMomentEffects'
 import { OrgStateBadges } from './parts/OrgStateBadges'
 import { FootstepDust } from './parts/FootstepDust'
 import { WorkEffects3D } from './parts/WorkEffects3D'
+import { GrassTufts } from './parts/GrassTufts'
 import { TribeLabels } from './parts/TribeLabels'
 import { FireLights } from './parts/FireLights'
 import { normalizeLineageEras } from '../../utils/lineageEras'
@@ -609,6 +610,13 @@ export default function WorldView3D({ world, sandboxArmed, onSandboxApply }: Pro
                   width={grid.width}
                   height={grid.height}
                   pathTrail={grid.path_trail}
+                />
+                <GrassTufts
+                  tiles={grid.tiles!}
+                  biomes={grid.biomes!}
+                  depthMap={grid.depth_map!}
+                  width={grid.width}
+                  height={grid.height}
                 />
                 <Humans3D
                   organisms={world.viewport_organisms ?? world.organisms ?? []}
