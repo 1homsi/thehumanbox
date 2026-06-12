@@ -12,6 +12,8 @@ function cornerHeight(ix: number, iy: number, depthMap: number[][], biomes: numb
   return -depthFrac * MAX_DEPTH
 }
 
+const DETAIL_AMP = 0.24
+
 export function heightAt(tileX: number, tileY: number, depthMap: number[][], biomes: number[][]): number {
   const w = depthMap[0]?.length ?? 0
   const h = depthMap.length
@@ -22,16 +24,23 @@ export function heightAt(tileX: number, tileY: number, depthMap: number[][], bio
   const y1 = Math.min(h - 1, y0 + 1)
   const fx = Math.max(0, Math.min(1, tileX - x0))
   const fy = Math.max(0, Math.min(1, tileY - y0))
+  const sx = fx * fx * (3 - 2 * fx)
+  const sy = fy * fy * (3 - 2 * fy)
 
   const h00 = cornerHeight(x0, y0, depthMap, biomes)
   const h10 = cornerHeight(x1, y0, depthMap, biomes)
   const h01 = cornerHeight(x0, y1, depthMap, biomes)
   const h11 = cornerHeight(x1, y1, depthMap, biomes)
 
-  if (fx + fy <= 1) {
-    return h00 * (1 - fx - fy) + h10 * fx + h01 * fy
-  }
-  return h10 * (1 - fy) + h01 * (1 - fx) + h11 * (fx + fy - 1)
+  const base = h00 * (1 - sx) * (1 - sy) + h10 * sx * (1 - sy) + h01 * (1 - sx) * sy + h11 * sx * sy
+
+  const allLand =
+    (depthMap[y0]?.[x0] ?? 255) >= 254 &&
+    (depthMap[y0]?.[x1] ?? 255) >= 254 &&
+    (depthMap[y1]?.[x0] ?? 255) >= 254 &&
+    (depthMap[y1]?.[x1] ?? 255) >= 254
+  if (!allLand) return base
+  return base + terrainNoise(tileX * 2.13 + 7.7, tileY * 2.13 + 3.1) * DETAIL_AMP
 }
 
 export function heightAtWorld(

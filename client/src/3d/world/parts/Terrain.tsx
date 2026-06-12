@@ -1,15 +1,9 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useThree } from '@react-three/fiber'
 import { BufferAttribute, BufferGeometry, Mesh, MeshStandardMaterial } from 'three'
-import {
-  TILE_SCALE,
-  MAX_DEPTH,
-  BIOME_COLORS,
-  BIOME_ELEVATION,
-  BIOME_ROUGHNESS,
-  terrainNoise,
-} from './constants'
+import { TILE_SCALE, BIOME_COLORS } from './constants'
 import { getTerrainTextures, biomeQuadrant } from './terrain-textures'
+import { heightAt } from './terrain-utils'
 
 interface Props {
   depthMap: number[][]
@@ -75,49 +69,49 @@ export function Terrain({ depthMap, biomes, width, height, season, pathTrail, on
     if (!depthMap || !biomes) return null
     const geo = new BufferGeometry()
 
-    const positions = new Float32Array(width * height * 3)
-    const colors = new Float32Array(width * height * 3)
-    const uvs = new Float32Array(width * height * 2)
-    const quads = new Float32Array(width * height)
-    const indices: number[] = []
+    const SUB = 2
+    const gw = (width - 1) * SUB + 1
+    const gh = (height - 1) * SUB + 1
+    const positions = new Float32Array(gw * gh * 3)
+    const colors = new Float32Array(gw * gh * 3)
+    const uvs = new Float32Array(gw * gh * 2)
+    const quads = new Float32Array(gw * gh)
+    const elevs = new Float32Array(gw * gh)
 
-    for (let y = 0; y < height; y++) {
+    for (let vy = 0; vy < gh; vy++) {
+      const ty = vy / SUB
+      const y = Math.max(0, Math.min(height - 1, Math.round(ty)))
       const dRow = depthMap[y]
       const bRow = biomes[y]
-      for (let x = 0; x < width; x++) {
-        const i = y * width + x
+      for (let vx = 0; vx < gw; vx++) {
+        const tx = vx / SUB
+        const x = Math.max(0, Math.min(width - 1, Math.round(tx)))
+        const i = vy * gw + vx
         const d = dRow?.[x] ?? 255
         const b = bRow?.[x] ?? 0
-        let elev: number
-        if (d >= 254) {
-          const base = BIOME_ELEVATION[b] ?? 0
-          const rough = BIOME_ROUGHNESS[b] ?? 0.5
-          elev = base + terrainNoise(x, y) * rough
-        } else {
-          const depthFrac = Math.max(0, Math.min(1, 1 - d / 200))
-          elev = -depthFrac * MAX_DEPTH
-        }
+        const elev = heightAt(tx, ty, depthMap, biomes)
+        elevs[i] = elev
 
-        positions[i * 3] = x * TILE_SCALE
+        positions[i * 3] = tx * TILE_SCALE
         positions[i * 3 + 1] = elev
-        positions[i * 3 + 2] = y * TILE_SCALE
+        positions[i * 3 + 2] = ty * TILE_SCALE
 
-        uvs[i * 2] = (x / width) * TEX_TILES_PER_WORLD
-        uvs[i * 2 + 1] = (y / height) * TEX_TILES_PER_WORLD
+        uvs[i * 2] = (tx / width) * TEX_TILES_PER_WORLD
+        uvs[i * 2 + 1] = (ty / height) * TEX_TILES_PER_WORLD
 
         quads[i] = biomeQuadrant(b)
 
         const [r, g, bl] = BIOME_COLORS[b] ?? BIOME_COLORS[0]
         const darken = d >= 254 ? 1.0 : 0.45
         const jitter =
-          (vNoise3d(x / 5.3, y / 5.3) - 0.5) * 0.045 + (vNoise3d(x / 17 + 31, y / 17 + 31) - 0.5) * 0.06
+          (vNoise3d(tx / 5.3, ty / 5.3) - 0.5) * 0.045 + (vNoise3d(tx / 17 + 31, ty / 17 + 31) - 0.5) * 0.06
         const snow = d >= 254 ? Math.max(0, Math.min(0.55, (elev - 5.5) * 0.18)) : 0
         let baseR = r + jitter
         let baseG = g + jitter
         let baseB = bl + jitter
 
         if (d >= 254) {
-          const macro = vNoise3d(x / 34, y / 34) * 0.6 + vNoise3d(x / 11 + 5, y / 11 + 5) * 0.4
+          const macro = vNoise3d(tx / 34, ty / 34) * 0.6 + vNoise3d(tx / 11 + 5, ty / 11 + 5) * 0.4
           const tint = season ? SEASON_TINT_3D[season] : undefined
           if (tint) {
             let w = tint.w * (0.5 + macro * 0.95)
@@ -155,13 +149,38 @@ export function Terrain({ depthMap, biomes, width, height, season, pathTrail, on
       }
     }
 
-    for (let y = 0; y < height - 1; y++) {
-      for (let x = 0; x < width - 1; x++) {
-        const a = y * width + x
+    const step = TILE_SCALE / SUB
+    for (let vy = 0; vy < gh; vy++) {
+      for (let vx = 0; vx < gw; vx++) {
+        const i = vy * gw + vx
+        if (elevs[i] <= 0.2) continue
+        const eL = elevs[vy * gw + Math.max(0, vx - 1)]
+        const eR = elevs[vy * gw + Math.min(gw - 1, vx + 1)]
+        const eU = elevs[Math.max(0, vy - 1) * gw + vx]
+        const eD2 = elevs[Math.min(gh - 1, vy + 1) * gw + vx]
+        const slope = Math.hypot((eR - eL) / (2 * step), (eD2 - eU) / (2 * step))
+        if (slope < 0.34) continue
+        const t = Math.min(1, (slope - 0.34) / 0.55) * 0.7
+        colors[i * 3] = colors[i * 3] * (1 - t) + 0.5 * t
+        colors[i * 3 + 1] = colors[i * 3 + 1] * (1 - t) + 0.46 * t
+        colors[i * 3 + 2] = colors[i * 3 + 2] * (1 - t) + 0.4 * t
+      }
+    }
+
+    const indices = new Uint32Array((gw - 1) * (gh - 1) * 6)
+    let ii = 0
+    for (let vy = 0; vy < gh - 1; vy++) {
+      for (let vx = 0; vx < gw - 1; vx++) {
+        const a = vy * gw + vx
         const b = a + 1
-        const c = a + width
+        const c = a + gw
         const d = c + 1
-        indices.push(a, c, b, b, c, d)
+        indices[ii++] = a
+        indices[ii++] = c
+        indices[ii++] = b
+        indices[ii++] = b
+        indices[ii++] = c
+        indices[ii++] = d
       }
     }
 
@@ -169,7 +188,7 @@ export function Terrain({ depthMap, biomes, width, height, season, pathTrail, on
     geo.setAttribute('color', new BufferAttribute(colors, 3))
     geo.setAttribute('uv', new BufferAttribute(uvs, 2))
     geo.setAttribute('aQuad', new BufferAttribute(quads, 1))
-    geo.setIndex(indices)
+    geo.setIndex(new BufferAttribute(indices, 1))
     geo.computeVertexNormals()
     return geo
   }, [depthMap, biomes, width, height, season, pathTrail])
