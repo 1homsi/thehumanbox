@@ -923,6 +923,7 @@ interface LayerProps {
   offsetX?: number
   offsetZ?: number
   tiers?: number[]
+  conds?: number[]
 }
 
 function Layer({
@@ -938,6 +939,7 @@ function Layer({
   offsetX = 0,
   offsetZ = 0,
   tiers,
+  conds,
 }: LayerProps) {
   const meshRef = useRef<InstancedMesh>(null)
   const count = Math.min(positions.length, maxCount)
@@ -949,9 +951,11 @@ function Layer({
     const base = tiers ? new Color(color) : null
     for (let i = 0; i < count; i++) {
       const [px, py, pz] = positions[i]
-      tmp.position.set(px + offsetX, py + yOffset, pz + offsetZ)
+      const c = conds?.[i] ?? 1
+      const yScale = c >= 0.97 ? 1 : 0.12 + 0.88 * Math.min(1, c / 0.97)
+      tmp.position.set(px + offsetX, py + yOffset * yScale, pz + offsetZ)
       tmp.rotation.set(0, rotY, 0)
-      tmp.scale.setScalar(scale)
+      tmp.scale.set(scale, scale * yScale, scale)
       tmp.updateMatrix()
       mesh.setMatrixAt(i, tmp.matrix)
       if (base && tiers) {
@@ -963,7 +967,7 @@ function Layer({
     mesh.count = count
     mesh.instanceMatrix.needsUpdate = true
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
-  }, [positions, count, yOffset, scale, rotY, offsetX, offsetZ, tiers, color])
+  }, [positions, count, yOffset, scale, rotY, offsetX, offsetZ, tiers, conds, color])
 
   if (count === 0) return null
   return (
@@ -1090,9 +1094,11 @@ function groupBuildings(
 ): {
   groups: Record<BuildingKind, [number, number, number][]>
   tiers: Record<string, number[]>
+  conds: Record<string, number[]>
 } {
   const out: Record<string, [number, number, number][]> = {}
   const tiers: Record<string, number[]> = {}
+  const conds: Record<string, number[]> = {}
   for (const b of buildings) {
     const px = b.x * TILE_SCALE
     const pz = b.y * TILE_SCALE
@@ -1100,12 +1106,14 @@ function groupBuildings(
     if (!out[b.kind]) {
       out[b.kind] = []
       tiers[b.kind] = []
+      conds[b.kind] = []
     }
     out[b.kind].push([px, py, pz])
     const lid = b.lineage_id ?? b.owner_lineage ?? ''
     tiers[b.kind].push(eraTierIndex(lid ? lineageEras?.[lid] : undefined))
+    conds[b.kind].push(b.condition ?? 1)
   }
-  return { groups: out as Record<BuildingKind, [number, number, number][]>, tiers }
+  return { groups: out as Record<BuildingKind, [number, number, number][]>, tiers, conds }
 }
 
 export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, lineageEras }: Props) {
@@ -1119,7 +1127,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
     return 0
   })()
   const windowsOn = nightFrac > 0.02
-  const { groups, tiers } = useMemo(
+  const { groups, tiers, conds } = useMemo(
     () => groupBuildings(buildings ?? [], depthMap, biomes, lineageEras),
     [buildings, depthMap, biomes, lineageEras],
   )
@@ -1157,6 +1165,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
         color={FN_COLOR[FN_DEFAULT.Hut ?? 'Housing']}
         maxCount={cap(huts.length)}
         tiers={tiers.Hut}
+        conds={conds.Hut}
       />
 
       <Layer
@@ -1166,6 +1175,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
         color={FN_COLOR[FN_DEFAULT.House ?? 'Housing']}
         maxCount={cap(houses.length)}
         tiers={tiers.House}
+        conds={conds.House}
       />
       <Layer
         positions={houses}
@@ -1173,6 +1183,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
         geometry={HOUSE_ROOF}
         color={ROOF_TILE}
         maxCount={cap(houses.length)}
+        conds={conds.House}
       />
       <Layer
         positions={houses}
@@ -1180,6 +1191,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
         geometry={HOUSE_CHIMNEY}
         color="#4a3020"
         maxCount={cap(houses.length)}
+        conds={conds.House}
         offsetX={2.4}
         offsetZ={2.0}
       />
@@ -1191,6 +1203,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
         color={FN_COLOR[FN_DEFAULT.Manor ?? 'Housing']}
         maxCount={cap(manors.length)}
         tiers={tiers.Manor}
+        conds={conds.Manor}
       />
       <Layer
         positions={manors}
@@ -1200,6 +1213,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
         maxCount={cap(manors.length)}
         offsetX={7.2}
         tiers={tiers.Manor}
+        conds={conds.Manor}
       />
       <Layer
         positions={manors}
@@ -1207,6 +1221,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
         geometry={MANOR_ROOF_A}
         color={ROOF_DARK}
         maxCount={cap(manors.length)}
+        conds={conds.Manor}
       />
       <Layer
         positions={manors}
@@ -1214,6 +1229,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
         geometry={MANOR_ROOF_B}
         color={ROOF_DARK}
         maxCount={cap(manors.length)}
+        conds={conds.Manor}
         offsetX={7.2}
       />
 
@@ -1224,6 +1240,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
         color="#b89070"
         maxCount={cap(townhouses.length)}
         tiers={tiers.TownHouse}
+        conds={conds.TownHouse}
       />
       <Layer
         positions={townhouses}
@@ -1231,6 +1248,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
         geometry={TOWNHOUSE_ROOF}
         color={ROOF_DARK}
         maxCount={cap(townhouses.length)}
+        conds={conds.TownHouse}
       />
 
       <Layer
@@ -1239,6 +1257,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
         geometry={APARTMENT_GEO}
         color="#a0a0a0"
         maxCount={cap(apartments.length)}
+        conds={conds.Apartment}
       />
 
       <Layer
@@ -1683,6 +1702,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
             emissiveIntensity={spec.emissiveIntensity}
             maxCount={cap(positions.length)}
             tiers={tiers[kind]}
+            conds={conds[kind]}
           />
         )
       })}
