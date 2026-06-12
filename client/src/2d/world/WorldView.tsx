@@ -26,6 +26,7 @@ import {
   type AgeStage,
 } from '../../utils/sprites'
 import { drawBuilding } from './buildings2d'
+import { getBuildingSprite, PAD as SPRITE_PAD, PAD_BOT as SPRITE_PAD_BOT } from './building-sprites'
 import { normalizeLineageEras } from '../../utils/lineageEras'
 import { useSceneStore } from '../../stores/scene'
 
@@ -747,22 +748,17 @@ function drawWorldOnCanvas(
         const glowAlpha = 0.1 + (0.42 - 0.1) * nightFactor
         ctx.fillStyle = `rgba(255,215,110,${glowAlpha})`
         ctx.fillRect(bx - TILE, by - TILE, BW + TILE * 2, BH + TILE * 2)
-        ctx.fillStyle = '#5a2e08'
-        ctx.beginPath()
-        ctx.moveTo(bx + BW / 2, by)
-        ctx.lineTo(bx + BW, by + BH * 0.44)
-        ctx.lineTo(bx, by + BH * 0.44)
-        ctx.closePath()
-        ctx.fill()
-        ctx.fillStyle = '#b89060'
-        ctx.fillRect(bx + 1, by + BH * 0.44, BW - 2, BH * 0.56 - 1)
-        ctx.fillStyle = '#2a1000'
-        ctx.fillRect(bx + BW / 2 - 2, by + BH * 0.6, 4, BH * 0.36 - 1)
+        const hutVariant = (((col * 73856093) ^ (row * 19349663)) >>> 0) & 7
+        const hutNight = Math.max(0, Math.min(3, Math.round(nightFactor * 3)))
+        const hutSprite = getBuildingSprite('Hut', 2, 2, TILE, hutVariant, hutNight, 1)
+        if (hutSprite) {
+          ctx.drawImage(
+            hutSprite,
+            Math.round(bx - SPRITE_PAD),
+            Math.round(by + BH + SPRITE_PAD_BOT - hutSprite.height),
+          )
+        }
         const now = Date.now()
-        const windowAlpha = world.is_day ? 0.6 : Math.sin(now * 0.002) * 0.1 + 0.7
-        ctx.fillStyle = `rgba(255,230,140,${windowAlpha})`
-        ctx.fillRect(bx + 3, by + BH * 0.5, 3, 3)
-        ctx.fillRect(bx + BW - 6, by + BH * 0.5, 3, 3)
         const smokeAlpha = !world.is_day ? 0.25 : 0
         if (smokeAlpha > 0) {
           for (let s = 0; s < 3; s++) {
