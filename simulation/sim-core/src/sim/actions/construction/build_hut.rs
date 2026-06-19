@@ -8,6 +8,8 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     ctx.org_mut().inv_wood -= 1;
     let (ix, iy) = (ctx.ix, ctx.iy);
     ctx.sim.grid.set(ix, iy, Tile::Hut);
+    ctx.sim.grid.add_structure(ix, iy, 1.0);
+    ctx.sim.active_structure_tiles.insert((ix, iy));
 
     // Reward scales with environmental need: storm exposure and poor health
     let weather_kind = ctx.sim.weather.kind;

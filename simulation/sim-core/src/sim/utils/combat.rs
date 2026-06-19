@@ -25,6 +25,24 @@ impl Simulation {
             self.organisms[idx].inv_food = self.organisms[idx].inv_food.saturating_add(1);
         }
 
+        let (tx, ty) = (self.organisms[ti].x as i32, self.organisms[ti].y as i32);
+        let smash = if ambush { 0.5 } else { 0.32 };
+        'raze: for dy in -2..=2 {
+            for dx in -2..=2 {
+                let (px, py) = (tx + dx, ty + dy);
+                if self.grid.structure_at(px, py) > 0.1 {
+                    self.grid.add_structure(px, py, -smash);
+                    self.active_structure_tiles.insert((px, py));
+                    if matches!(self.grid.get(px, py), crate::world::tiles::Tile::Hut)
+                        && self.grid.structure_at(px, py) < 0.1
+                    {
+                        self.grid.set(px, py, crate::world::tiles::Tile::Ash);
+                    }
+                    break 'raze;
+                }
+            }
+        }
+
         let nm = self.organisms[idx].name.clone();
         let tick = self.tick_count;
         let verb = if ambush { "ambushed" } else { "raided" };
