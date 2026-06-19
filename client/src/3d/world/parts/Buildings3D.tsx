@@ -25,28 +25,38 @@ interface Props {
 }
 
 const ERA_TIER_TINT: [Color, number][] = [
-  [new Color(0.66, 0.52, 0.34), 0.4],
-  [new Color(0.74, 0.55, 0.4), 0.28],
-  [new Color(0.8, 0.78, 0.72), 0.34],
-  [new Color(0.68, 0.76, 0.85), 0.38],
+  [new Color(0.45, 0.34, 0.22), 0.5],
+  [new Color(0.6, 0.5, 0.36), 0.45],
+  [new Color(0.72, 0.5, 0.3), 0.5],
+  [new Color(0.5, 0.46, 0.42), 0.5],
+  [new Color(0.86, 0.83, 0.74), 0.6],
+  [new Color(0.62, 0.6, 0.56), 0.55],
+  [new Color(0.82, 0.68, 0.42), 0.55],
+  [new Color(0.42, 0.42, 0.45), 0.6],
+  [new Color(0.55, 0.7, 0.88), 0.6],
 ]
 
 function eraTierIndex(era?: string): number {
   switch (era) {
     case 'pre-stone':
-    case 'stone':
       return 0
-    case 'bronze':
-    case 'iron':
+    case 'stone':
       return 1
-    case 'classical':
-    case 'medieval':
+    case 'bronze':
       return 2
+    case 'iron':
+      return 3
+    case 'classical':
+      return 4
+    case 'medieval':
+      return 5
     case 'renaissance':
+      return 6
     case 'industrial':
+      return 7
     case 'modern':
     case 'information':
-      return 3
+      return 8
     default:
       return 1
   }
