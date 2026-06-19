@@ -621,6 +621,21 @@ fn scarcity_driven_migration_season(season: &str) -> bool {
     matches!(season, "scarcity" | "decline")
 }
 
+fn era_fanfare(era: &str) -> &'static str {
+    match era {
+        "stone" => "Stone tools change everything.",
+        "bronze" => "The first metal is poured.",
+        "iron" => "Iron forges sharper tools and sharper wars.",
+        "classical" => "Cities, law and philosophy take shape.",
+        "medieval" => "Castles rise and faith spans the land.",
+        "renaissance" => "Art and discovery flower anew.",
+        "industrial" => "Smoke and steam — the age of machines.",
+        "modern" => "Engines, wires and crowded cities.",
+        "information" => "The world wires itself together.",
+        _ => "A new age dawns.",
+    }
+}
+
 impl Simulation {
     pub fn new(seed: u64) -> Self {
         let rng = ChaCha8Rng::seed_from_u64(seed);
@@ -897,13 +912,21 @@ impl Simulation {
                 if self.history.era_history.len() > 60 {
                     self.history.era_history.pop_front();
                 }
+                let fanfare = era_fanfare(&new_era);
                 push_event(
                     &mut self.events,
                     self.tick_count,
                     "era",
                     "world",
-                    &format!("the {} era begins", new_era),
+                    &format!("the {} era begins — {}", new_era, fanfare),
                 );
+                self.headlines.push_back((
+                    self.tick_count,
+                    format!("\u{2728} The {} era begins. {}", new_era, fanfare),
+                ));
+                while self.headlines.len() > 80 {
+                    self.headlines.pop_front();
+                }
                 self.current_era = new_era;
             }
         }

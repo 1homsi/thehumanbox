@@ -1,8 +1,8 @@
 import { useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Billboard, Text } from '@react-three/drei'
-import { DoubleSide } from 'three'
-import type { OrganismState, SimEvent, WorldState } from '../../../types'
+import { DoubleSide, type Mesh, type MeshBasicMaterial } from 'three'
+import type { BattleInfo, OrganismState, SimEvent, WorldState } from '../../../types'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
 import { getOrgXY } from './motion-state'
@@ -201,7 +201,89 @@ export function BigMomentEffects({ events, organisms, world, depthMap, biomes }:
           </group>
         )
       })}
+      <BattleMarkers battles={world.battles ?? []} depthMap={depthMap} biomes={biomes} />
     </>
+  )
+}
+
+const BATTLE_HEIGHT: Record<string, number> = {
+  Skirmish: 5,
+  Raid: 7,
+  Siege: 11,
+  Battle: 13,
+  War: 18,
+}
+
+function BattleMarkers({
+  battles,
+  depthMap,
+  biomes,
+}: {
+  battles: BattleInfo[]
+  depthMap: number[][]
+  biomes: number[][]
+}) {
+  const active = battles.filter((b) => !b.ended)
+  if (active.length === 0) return null
+  return (
+    <>
+      {active.map((b) => {
+        const [tx, ty] = b.location
+        const groundY = heightAt(tx, ty, depthMap, biomes)
+        return (
+          <group key={b.id} position={[tx * TILE_SCALE, groundY, ty * TILE_SCALE]}>
+            <BattleMarker scale={b.scale} />
+          </group>
+        )
+      })}
+    </>
+  )
+}
+
+function BattleMarker({ scale }: { scale: string }) {
+  const ringRef = useRef<Mesh>(null)
+  const beamRef = useRef<Mesh>(null)
+  const height = BATTLE_HEIGHT[scale] ?? 8
+  const color = COLORS.war_declared
+
+  useFrame(({ clock }) => {
+    const p = 0.5 + 0.5 * Math.sin(clock.getElapsedTime() * 5)
+    const ring = ringRef.current
+    if (ring) {
+      const s = 1 + p * 0.7
+      ring.scale.set(s, s, s)
+      ;(ring.material as MeshBasicMaterial).opacity = 0.3 + p * 0.45
+    }
+    const beam = beamRef.current
+    if (beam) {
+      ;(beam.material as MeshBasicMaterial).opacity = 0.25 + p * 0.4
+    }
+  })
+
+  return (
+    <group>
+      <mesh ref={ringRef} position={[0, 0.15, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[2.2, 3.0, 32]} />
+        <meshBasicMaterial color={color} transparent opacity={0.5} side={DoubleSide} depthWrite={false} />
+      </mesh>
+      <mesh ref={beamRef} position={[0, height / 2, 0]}>
+        <cylinderGeometry args={[0.5, 1.1, height, 12, 1, true]} />
+        <meshBasicMaterial color={color} transparent opacity={0.4} side={DoubleSide} depthWrite={false} />
+      </mesh>
+      <Billboard position={[0, height + 1.6, 0]} frustumCulled={false}>
+        <Text
+          fontSize={1.1}
+          color={color}
+          anchorX="center"
+          anchorY="middle"
+          outlineWidth={0.08}
+          outlineColor="#000"
+          renderOrder={998}
+        >
+          {`⚔ ${scale}`}
+        </Text>
+      </Billboard>
+    </group>
   )
 }
 
@@ -209,7 +291,7 @@ function Pop({ kind, age, color, label }: { kind: MomentKind; age: number; color
   const fade = Math.max(0, 1 - age)
   switch (kind) {
     case 'era_up':
-      return <Pillar age={age} color={color} />
+      return <Pillar age={age} color={color} height={22} radius={1.4} label={label} />
     case 'religion_milestone':
       return <Pillar age={age} color={color} radius={1.2} height={14} label={label} />
     case 'war_declared':
