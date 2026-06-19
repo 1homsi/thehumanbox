@@ -829,8 +829,12 @@ impl Organism {
         };
         let t = self.org_trust.entry(other_id.to_string()).or_insert(0.0);
         *t = (*t + trust_delta).clamp(-1.0, 1.0);
+        let trust_now = *t;
         if att_delta != 0.0 {
             self.update_attitude(other_lineage, att_delta);
+        }
+        if trust_now > 0.5 && !self.friends.contains_key(other_id) {
+            self.add_friend(other_id, other_name, tick);
         }
         let about = anchor_cat.unwrap_or(kind);
         let mem_kind = if emotion.abs() >= 2 {
