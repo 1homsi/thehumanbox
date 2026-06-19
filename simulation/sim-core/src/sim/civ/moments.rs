@@ -122,8 +122,10 @@ pub(super) fn tick_grudge_recall(sim: &mut Simulation) {
         }
     }
 
+    let tick = sim.tick_count;
     for (i, x, y, foes) in snapshot {
         let mut bumps = 0u32;
+        let mut reconciled: Vec<(String, String)> = Vec::new();
         for j in 0..n {
             if j == i {
                 continue;
@@ -136,13 +138,39 @@ pub(super) fn tick_grudge_recall(sim: &mut Simulation) {
                 continue;
             }
             if foes.contains(&other.id) {
-                bumps += 1;
+                let warmed = sim.organisms[i].org_trust.get(&other.id).copied().unwrap_or(0.0) > 0.15;
+                if warmed {
+                    reconciled.push((other.id.clone(), other.name.clone()));
+                } else {
+                    bumps += 1;
+                }
             }
         }
+        let me = &mut sim.organisms[i];
         if bumps > 0 {
-            let me = &mut sim.organisms[i];
             me.fear_level = (me.fear_level + 0.012 * bumps as f32).min(1.0);
             me.comfort = (me.comfort - 0.005 * bumps as f32).max(0.0);
+        }
+        for (fid, fname) in &reconciled {
+            let mut healed = false;
+            for m in me.memories.entries.iter_mut() {
+                if m.emotion <= -2 && m.related_id.as_deref() == Some(fid.as_str()) {
+                    m.salience -= 0.12;
+                    if m.salience < 0.4 {
+                        m.emotion = 0;
+                        healed = true;
+                    }
+                }
+            }
+            if healed {
+                me.log_life_rel(
+                    tick,
+                    "friendship",
+                    format!("made peace with {}", fname),
+                    Some(fid.clone()),
+                    Some(fname.clone()),
+                );
+            }
         }
     }
 }
