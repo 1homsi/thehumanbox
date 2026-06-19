@@ -487,6 +487,23 @@ impl Simulation {
                     .collect();
                 obj.insert("battles".to_string(), serde_json::Value::Array(battles_json));
 
+                let treaties_json: Vec<serde_json::Value> = self
+                    .treaties
+                    .iter()
+                    .filter(|t| t.expires_tick > now)
+                    .rev()
+                    .take(16)
+                    .map(|t| {
+                        json!({
+                            "tick": t.signed_tick,
+                            "a_lineage": t.lineage_a,
+                            "b_lineage": t.lineage_b,
+                            "kind": t.kind.name(),
+                        })
+                    })
+                    .collect();
+                obj.insert("treaties".to_string(), serde_json::Value::Array(treaties_json));
+
                 let trades_json: Vec<serde_json::Value> = self
                     .trades
                     .iter()

@@ -105,6 +105,7 @@ export function CivStatsModal({ world, onClose }: Props) {
     ).artworks ?? []
   const headlines = world.headlines ?? []
   const battles = world.battles ?? []
+  const treaties = world.treaties ?? []
 
   const lineageById = (lid: string) => lineageNames[lid] ?? lid.slice(0, 6)
   const orgById = (id: string | null | undefined) => {
@@ -347,6 +348,19 @@ export function CivStatsModal({ world, onClose }: Props) {
                 </div>
               )
             })}
+          </section>
+
+          <section className="civ-section">
+            <h3>Diplomacy</h3>
+            {treaties.length === 0 && <div className="civ-empty">No treaties yet</div>}
+            {treaties.map((t, i) => (
+              <div key={`${t.a_lineage}-${t.b_lineage}-${i}`} className="civ-row">
+                <span className="civ-row-head">
+                  {'\u{1F91D}'} {lineageById(t.a_lineage)} &amp; {lineageById(t.b_lineage)}
+                </span>
+                <span className="civ-row-tag">{(t.kind ?? 'treaty').replace(/_/g, ' ')}</span>
+              </div>
+            ))}
           </section>
 
           <section className="civ-section">
