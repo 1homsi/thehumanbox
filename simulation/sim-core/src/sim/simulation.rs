@@ -3656,6 +3656,33 @@ impl Simulation {
                                 *cur = (*cur + sentiment * 0.3).clamp(-1.0, 1.0);
                             }
                         }
+                        let bystanders: Vec<usize> = self
+                            .organisms
+                            .iter()
+                            .enumerate()
+                            .filter(|(j, o)| {
+                                *j != idx
+                                    && *j != ci
+                                    && o.alive
+                                    && (o.x - ox).abs() + (o.y - oy).abs() <= 5.0
+                            })
+                            .map(|(j, _)| j)
+                            .take(3)
+                            .collect();
+                        let emotion: i8 = if kind == "argue" { -1 } else { 1 };
+                        for j in bystanders {
+                            use crate::organism::memory::{MemoryEntry, MemoryKind};
+                            self.organisms[j].memories.insert(
+                                MemoryEntry::new(
+                                    MemoryKind::Episode,
+                                    format!("overheard {} and {} {}", a_name, c_name, kind),
+                                    tc,
+                                )
+                                .with_salience(0.35)
+                                .with_emotion(emotion),
+                            );
+                            self.organisms[j].update_attitude(&a_lid, 0.004 * emotion as f32);
+                        }
                     }
                 }
             }
