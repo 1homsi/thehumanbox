@@ -1212,7 +1212,12 @@ impl Simulation {
                     to_remove.push((x, y));
                 }
                 let tile = self.grid.get(x, y);
-                if ns >= 0.85 && tile != Tile::Hut {
+                if ns >= 0.85
+                    && matches!(
+                        tile,
+                        Tile::Grass | Tile::Sand | Tile::Snow | Tile::Ash | Tile::Food
+                    )
+                {
                     promote.push((x, y));
                 } else if ns < 0.1 && tile == Tile::Hut {
                     demote.push((x, y));

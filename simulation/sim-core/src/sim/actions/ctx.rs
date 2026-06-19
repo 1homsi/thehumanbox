@@ -287,6 +287,9 @@ impl<'a> ActionCtx<'a> {
     /// success, `0.0` if any guard fails. The caller's `apply` fn
     /// just needs `ctx.build_one(BuildSpec { … })`.
     pub fn build_one(&mut self, spec: BuildSpec) -> f32 {
+        if matches!(self.tile, Tile::Water | Tile::Flooded | Tile::Void) {
+            return 0.0;
+        }
         if spec.need_water_near && !self.water_near {
             return 0.0;
         }
