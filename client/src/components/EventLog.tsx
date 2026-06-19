@@ -15,6 +15,9 @@ const DRAMA_EVENT_TYPES = new Set([
   'festival',
   'death',
   'died',
+  'drought',
+  'weather',
+  'eruption',
 ])
 
 function EventLogImpl() {
