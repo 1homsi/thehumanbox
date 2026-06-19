@@ -11,10 +11,17 @@ pub struct ConvoSpeaker {
     pub recent: Vec<String>,
 }
 
+pub struct ConvoTopic {
+    pub category: String,
+    pub text: String,
+    pub who: String,
+}
+
 pub struct ConversationReq {
     pub entry_id: String,
     pub kind: String,
     pub n_lines: usize,
     pub a: ConvoSpeaker,
     pub b: ConvoSpeaker,
+    pub topic: Option<ConvoTopic>,
 }

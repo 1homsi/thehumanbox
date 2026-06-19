@@ -61,11 +61,22 @@ fn kind_brief(kind: &str) -> &'static str {
     }
 }
 
+fn anchor_line(req: &ConversationReq) -> String {
+    match &req.topic {
+        Some(t) => format!(
+            "\nANCHOR: {who} recently experienced this — \"{text}\". The talk centers on it; reference it naturally.",
+            who = t.who,
+            text = t.text,
+        ),
+        None => String::new(),
+    }
+}
+
 fn build_prompt(req: &ConversationReq) -> String {
     format!("\
 Short dialogue for primitive tribespeople in a tribal-survival sim. Basic English with a few invented tribe words.
 
-SCENE: {scene}
+SCENE: {scene}{anchor}
 
 A — {a_name} ({a_sex}, {a_age} days, mood: {a_mood}, tribe: {a_tribe}{a_partner})
   recent: {a_recent}
@@ -83,6 +94,7 @@ RULES:
 
 Output ONLY the lines, one per line.",
         scene    = kind_brief(&req.kind),
+        anchor   = anchor_line(req),
         n        = req.n_lines,
         a_name   = req.a.name, a_sex = req.a.sex, a_age = req.a.age_days, a_mood = req.a.mood,
         a_tribe  = req.a.tribe_name.as_deref().unwrap_or("unnamed"),
