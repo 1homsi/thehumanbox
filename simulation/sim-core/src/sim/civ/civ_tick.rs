@@ -1764,6 +1764,11 @@ fn tick_religion_adherents(sim: &mut Simulation) {
             .entry(r.founder_lineage.clone())
             .or_insert(r.id.clone());
     }
+    let total_followers: u32 = adherents_by_id.values().sum();
+    let dominant: Option<(String, u32)> = adherents_by_id
+        .iter()
+        .max_by_key(|(_, n)| **n)
+        .map(|(id, n)| (id.clone(), *n));
     let convert_chance = 0.005f32;
     for org in sim.organisms.iter_mut() {
         if !org.alive {
@@ -1777,6 +1782,17 @@ fn tick_religion_adherents(sim: &mut Simulation) {
                 org.religion_id = Some(rid.clone());
                 org.piety = 0.20 + org.traits.social_tendency * 0.20;
                 *adherents_by_id.entry(rid.clone()).or_insert(0) += 1;
+                continue;
+            }
+        }
+        if let Some((did, dn)) = dominant.as_ref() {
+            if *dn >= 3 && total_followers > 0 {
+                let share = (*dn as f32 / total_followers as f32).min(0.9);
+                if sim.rng.random::<f32>() < convert_chance * (0.4 + org.traits.social_tendency) * (0.5 + share) {
+                    org.religion_id = Some(did.clone());
+                    org.piety = 0.15 + org.traits.social_tendency * 0.20;
+                    *adherents_by_id.entry(did.clone()).or_insert(0) += 1;
+                }
             }
         }
     }
