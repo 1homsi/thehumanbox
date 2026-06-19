@@ -1490,6 +1490,18 @@ fn lineage_center(sim: &Simulation, lid: &str) -> (i32, i32) {
     ((sx / n) as i32, (sy / n) as i32)
 }
 
+fn seat_building_for(gov_kind: &str) -> Option<BuildingKind> {
+    use BuildingKind::*;
+    match gov_kind {
+        "monarchy" | "empire" => Some(Castle),
+        "republic" | "democracy" | "federation" => Some(CityHall),
+        "theocracy" => Some(Temple),
+        "corporate" => Some(OfficeTower),
+        "chiefdom" => Some(GuildHall),
+        _ => None,
+    }
+}
+
 fn tick_governments(sim: &mut Simulation) {
     let lineages: Vec<String> = sim
         .organisms
@@ -1527,6 +1539,31 @@ fn tick_governments(sim: &mut Simulation) {
                     continue;
                 }
                 o.log_life(tick, "civ", entry_msg.clone());
+            }
+            if let Some(seat) = seat_building_for(target_kind.name()) {
+                let already = sim
+                    .buildings
+                    .iter()
+                    .any(|b| b.kind == seat && b.owner_lineage.as_deref() == Some(lid.as_str()));
+                let (cx, cy) = lineage_center(sim, lid);
+                if !already && (cx != 0 || cy != 0) {
+                    let id = sim.next_building_id;
+                    sim.next_building_id += 1;
+                    let mut b = Building::new(id, seat, cx, cy, Some(lid.clone()), tick);
+                    b.condition = 1.0;
+                    sim.buildings.push(b);
+                    sim.headlines.push_back((
+                        tick,
+                        format!(
+                            "\u{1F3DB}\u{FE0F} {} established its seat of power as a {}",
+                            sim.lineage_names.get(lid).cloned().unwrap_or_else(|| lid.clone()),
+                            target_kind.name()
+                        ),
+                    ));
+                    while sim.headlines.len() > 80 {
+                        sim.headlines.pop_front();
+                    }
+                }
             }
         }
     }
