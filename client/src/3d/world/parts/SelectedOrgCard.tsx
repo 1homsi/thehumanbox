@@ -36,6 +36,10 @@ export function SelectedOrgCard({ organisms }: Props) {
   }
 
   const distress = org.health < 0.3 || org.energy < 0.15 || org.hydration < 0.15
+  const partnerName = org.partner_id
+    ? (organisms.find((o) => o.id === org.partner_id)?.name ?? null)
+    : null
+  const friendCount = org.friends ? Object.keys(org.friends).length : 0
   const goal =
     org.hydration < 0.3
       ? 'seeking water'
@@ -73,6 +77,17 @@ export function SelectedOrgCard({ organisms }: Props) {
       <div style={goalRow}>
         <span style={{ opacity: 0.55 }}>pursuing</span> {goal}
       </div>
+      {(partnerName || friendCount > 0) && (
+        <div style={goalRow}>
+          {partnerName && <span style={{ color: '#c07090' }}>♥ {partnerName}</span>}
+          {partnerName && friendCount > 0 && <span style={{ opacity: 0.4 }}> · </span>}
+          {friendCount > 0 && (
+            <span style={{ opacity: 0.7 }}>
+              {friendCount} friend{friendCount === 1 ? '' : 's'}
+            </span>
+          )}
+        </div>
+      )}
       <div style={metaRow}>
         <span>age {Math.floor(org.age / 100) / 10}k</span>
         <span>gen {org.generation}</span>
