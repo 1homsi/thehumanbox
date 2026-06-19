@@ -42,6 +42,17 @@ const ConvoBlock = memo(function ConvoBlock({
   const selfColor = lineageColor(selfOrg.lineage_id)
   const meta = kindMeta(entry.kind)
   const day = Math.floor(entry.tick / DAY_LENGTH)
+  const trust = selfOrg.org_trust?.[entry.with_id] ?? 0
+  const rel =
+    selfOrg.partner_id === entry.with_id
+      ? { text: '♥ partner', color: '#c07090' }
+      : selfOrg.friends?.[entry.with_id]
+        ? { text: 'friend', color: '#5b9' }
+        : trust > 0.25
+          ? { text: 'trusts', color: '#7bbbff' }
+          : trust < -0.25
+            ? { text: 'wary', color: '#e06030' }
+            : null
 
   return (
     <div className="cv-block">
@@ -56,6 +67,20 @@ const ConvoBlock = memo(function ConvoBlock({
           <span className="cv-sep">&amp;</span>
           <span style={{ color: pColor, fontWeight: 600 }}>{entry.with_name}</span>
         </span>
+        {rel && (
+          <span
+            style={{
+              color: rel.color,
+              fontSize: 10,
+              border: `1px solid ${rel.color}55`,
+              borderRadius: 3,
+              padding: '1px 5px',
+              marginLeft: 6,
+            }}
+          >
+            {rel.text}
+          </span>
+        )}
         <span className="cv-day">day {day}</span>
       </div>
 
