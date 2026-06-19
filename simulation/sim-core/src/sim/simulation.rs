@@ -856,6 +856,7 @@ impl Simulation {
         let _phase = self.tick_count % DAY_LENGTH;
 
         let season_str = season.to_string();
+        let drought_was_active = self.drought.active;
         tick_drought(
             &mut self.drought,
             &mut self.grid,
@@ -867,6 +868,15 @@ impl Simulation {
             &mut self.events,
             &mut self.rng,
         );
+        if self.drought.active && !drought_was_active {
+            self.headlines.push_back((
+                self.tick_count,
+                "\u{1F325}\u{FE0F} A drought grips the land — water retreats and crops wither.".to_string(),
+            ));
+            while self.headlines.len() > 80 {
+                self.headlines.pop_front();
+            }
+        }
         tick_outbreak(
             &mut self.organisms,
             &mut self.grid,
