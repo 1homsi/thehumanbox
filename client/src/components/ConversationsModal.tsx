@@ -109,7 +109,7 @@ const ConvoBlock = memo(function ConvoBlock({
   )
 })
 
-type KindFilter = 'all' | 'courtship' | 'bonded' | 'chat' | 'excited' | 'argue' | 'farewell'
+type KindFilter = 'all' | 'courtship' | 'bonded' | 'chat' | 'gossip' | 'excited' | 'argue' | 'farewell'
 
 export function ConversationsModal({ org, allOrgs, sexWords, onClose }: Props) {
   const { data: convosData, isLoading } = useOrgConversations(org.id)
@@ -155,7 +155,7 @@ export function ConversationsModal({ org, allOrgs, sexWords, onClose }: Props) {
           className="cv-filters"
           style={{ display: 'flex', gap: 6, padding: '6px 12px', flexWrap: 'wrap' }}
         >
-          {(['all', 'courtship', 'bonded', 'chat', 'excited', 'argue', 'farewell'] as KindFilter[]).map(
+          {(['all', 'courtship', 'bonded', 'chat', 'gossip', 'excited', 'argue', 'farewell'] as KindFilter[]).map(
             (k) => {
               const count = k === 'all' ? allConvos.length : (kindCounts[k] ?? 0)
               if (k !== 'all' && count === 0) return null
