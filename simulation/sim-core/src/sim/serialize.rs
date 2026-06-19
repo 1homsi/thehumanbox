@@ -444,6 +444,23 @@ impl Simulation {
                     .collect();
                 obj.insert("headlines".to_string(), serde_json::Value::Array(headlines_json));
 
+                let mut lineage_alive: HashMap<&str, u32> = HashMap::new();
+                for o in self.organisms.iter().filter(|o| o.alive) {
+                    *lineage_alive.entry(o.lineage_id.as_str()).or_insert(0) += 1;
+                }
+                if let Some((top_lid, _)) = lineage_alive.iter().max_by_key(|(_, n)| **n) {
+                    let top_lid = *top_lid;
+                    let featured = self
+                        .organisms
+                        .iter()
+                        .filter(|o| o.alive && o.lineage_id == top_lid)
+                        .max_by_key(|o| o.age)
+                        .map(|o| o.id.clone());
+                    if let Some(fid) = featured {
+                        obj.insert("featured_org_id".to_string(), serde_json::Value::String(fid));
+                    }
+                }
+
                 let now = self.tick_count;
                 let battles_json: Vec<serde_json::Value> = self
                     .battles

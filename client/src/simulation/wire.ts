@@ -68,6 +68,7 @@ export type IncomingWorldFrame = Pick<
   lineage_centroid_history?: WorldState['lineage_centroid_history']
   lineage_homes?: WorldState['lineage_homes']
   current_era?: WorldState['current_era']
+  featured_org_id?: WorldState['featured_org_id']
   sex_words?: WorldState['sex_words']
   buildings?: WorldState['buildings']
   religions?: WorldState['religions']

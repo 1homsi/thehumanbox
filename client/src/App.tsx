@@ -224,6 +224,21 @@ function LiveApp() {
     return () => document.removeEventListener('keydown', onKey)
   }, [world, selectedOrgId])
 
+  const didAutoFollowRef = useRef(false)
+  useEffect(() => {
+    if (didAutoFollowRef.current) return
+    if (selectedOrgId) {
+      didAutoFollowRef.current = true
+      return
+    }
+    const featured = world?.featured_org_id
+    if (!featured) return
+    if (!world?.organisms.some((o) => o.id === featured && o.alive)) return
+    didAutoFollowRef.current = true
+    useUIStore.getState().selectOrg(featured)
+    useUIStore.getState().followOrg(featured)
+  }, [world, selectedOrgId])
+
   const lastHeadlineTickRef = useRef<number>(0)
   useEffect(() => {
     const desk = window.thbDesktop

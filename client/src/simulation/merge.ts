@@ -147,6 +147,7 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     lineage_centroid_history: parsed.lineage_centroid_history ?? base?.lineage_centroid_history,
     lineage_homes: parsed.lineage_homes ?? base?.lineage_homes,
     current_era: parsed.current_era ?? base?.current_era,
+    featured_org_id: parsed.featured_org_id ?? base?.featured_org_id,
     sex_words: reuseArrayIfShallowEqual(
       incomingSexWords as string[] | undefined,
       base?.sex_words as string[] | undefined,

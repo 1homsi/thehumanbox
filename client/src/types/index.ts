@@ -380,6 +380,7 @@ export interface WorldState {
   lineage_centroid_history?: Record<string, [number, number, number][]>
   lineage_homes?: Record<string, [number, number, number]>
   current_era?: string
+  featured_org_id?: string
   sex_words?: [string, string]
   territory?: {
     claimed: { lid: string; tiles: [number, number][] }[]

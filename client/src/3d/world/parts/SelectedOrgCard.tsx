@@ -35,8 +35,13 @@ export function SelectedOrgCard({ organisms }: Props) {
     }
   }
 
+  const distress = org.health < 0.3 || org.energy < 0.15 || org.hydration < 0.15
+
   return (
-    <div className="thb-3d-orgcard" style={wrap}>
+    <div
+      className="thb-3d-orgcard"
+      style={distress ? { ...wrap, border: '1px solid rgba(230, 80, 60, 0.7)' } : wrap}
+    >
       <div style={header}>
         <span
           style={{
