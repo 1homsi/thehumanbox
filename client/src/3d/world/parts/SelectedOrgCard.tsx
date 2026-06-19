@@ -36,6 +36,18 @@ export function SelectedOrgCard({ organisms }: Props) {
   }
 
   const distress = org.health < 0.3 || org.energy < 0.15 || org.hydration < 0.15
+  const goal =
+    org.hydration < 0.3
+      ? 'seeking water'
+      : org.energy < 0.3
+        ? 'seeking food'
+        : org.health < 0.4
+          ? 'resting & recovering'
+          : (org.comfort ?? 1) < 0.3
+            ? 'looking for shelter'
+            : org.specialty
+              ? `working as ${org.specialty}`
+              : 'exploring'
 
   return (
     <div
@@ -58,6 +70,9 @@ export function SelectedOrgCard({ organisms }: Props) {
         </button>
       </div>
       {org.thought && <div style={thought}>“{org.thought}”</div>}
+      <div style={goalRow}>
+        <span style={{ opacity: 0.55 }}>pursuing</span> {goal}
+      </div>
       <div style={metaRow}>
         <span>age {Math.floor(org.age / 100) / 10}k</span>
         <span>gen {org.generation}</span>
@@ -158,6 +173,13 @@ const thought: React.CSSProperties = {
   color: '#9fb6cc',
   marginBottom: 8,
   fontSize: 10.5,
+}
+
+const goalRow: React.CSSProperties = {
+  fontSize: 10.5,
+  color: '#cbb27a',
+  marginBottom: 8,
+  letterSpacing: '0.03em',
 }
 
 const metaRow: React.CSSProperties = {
