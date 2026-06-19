@@ -1206,6 +1206,12 @@ pub(super) fn tick_festivals(sim: &mut Simulation) {
             e.2 += 1;
         }
     }
+    let (festival_name, flavor) = match sim.season() {
+        "abundance" => ("a Sun Feast", "drums, dancing, every belly full"),
+        "decline" => ("a Fading-Light Rite", "lanterns lit against the coming dark"),
+        "scarcity" => ("a Long-Night Vigil", "huddled close, sharing the last stores"),
+        _ => ("a Greening Rite", "the first shoots blessed with song"),
+    };
     let mut headlines: Vec<String> = Vec::new();
     let mut joy_targets: Vec<String> = Vec::new();
     for (lid, (pop, joyful, comfy)) in lineage_stats.iter() {
@@ -1219,10 +1225,7 @@ pub(super) fn tick_festivals(sim: &mut Simulation) {
             continue;
         }
         let lname = sim.lineage_names.get(lid).cloned().unwrap_or_else(|| lid.clone());
-        headlines.push(format!(
-            "the {} held a festival — drums, dancing, every belly full",
-            lname
-        ));
+        headlines.push(format!("the {} held {} — {}", lname, festival_name, flavor));
         joy_targets.push(lid.clone());
     }
     for h in headlines {
