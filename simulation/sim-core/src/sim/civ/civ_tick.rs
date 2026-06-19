@@ -55,6 +55,9 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick.is_multiple_of(300) {
         tick_dynasty_watch(sim);
     }
+    if tick.is_multiple_of(800) {
+        tick_diplomacy(sim);
+    }
     super::economy_tick::tick_economy(sim, tick);
     if tick.is_multiple_of(1200) {
         tick_disease_introduce(sim);
@@ -1491,6 +1494,65 @@ fn lineage_center(sim: &Simulation, lid: &str) -> (i32, i32) {
         return (0, 0);
     }
     ((sx / n) as i32, (sy / n) as i32)
+}
+
+fn tick_diplomacy(sim: &mut Simulation) {
+    use crate::sim::civ::warfare::{has_active_treaty, Treaty, TreatyKind};
+    let tick = sim.tick_count;
+    let mut sums: HashMap<(String, String), (f32, u32)> = HashMap::new();
+    for o in sim.organisms.iter().filter(|o| o.alive) {
+        for (other, att) in o.lineage_attitudes.iter() {
+            if other == &o.lineage_id {
+                continue;
+            }
+            let e = sums.entry((o.lineage_id.clone(), other.clone())).or_insert((0.0, 0));
+            e.0 += *att;
+            e.1 += 1;
+        }
+    }
+    let avg = |a: &str, b: &str| -> Option<f32> {
+        sums.get(&(a.to_string(), b.to_string())).map(|(s, n)| s / *n as f32)
+    };
+    let lineages: Vec<String> = sim
+        .organisms
+        .iter()
+        .filter(|o| o.alive)
+        .map(|o| o.lineage_id.clone())
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .collect();
+    let mut formed = 0;
+    for i in 0..lineages.len() {
+        for j in (i + 1)..lineages.len() {
+            if formed >= 2 {
+                break;
+            }
+            let (a, b) = (&lineages[i], &lineages[j]);
+            if has_active_treaty(&sim.treaties, a, b, tick) {
+                continue;
+            }
+            let warm = matches!((avg(a, b), avg(b, a)), (Some(x), Some(y)) if x > 0.35 && y > 0.35);
+            if !warm {
+                continue;
+            }
+            sim.treaties.push(Treaty {
+                lineage_a: a.clone(),
+                lineage_b: b.clone(),
+                kind: TreatyKind::Alliance,
+                signed_tick: tick,
+                expires_tick: tick + 12000,
+            });
+            let na = sim.lineage_names.get(a).cloned().unwrap_or_else(|| a.clone());
+            let nb = sim.lineage_names.get(b).cloned().unwrap_or_else(|| b.clone());
+            let line = format!("\u{1F91D} {} and {} forged an alliance.", na, nb);
+            push_event(&mut sim.events, tick, "treaty", "world", &line);
+            sim.headlines.push_back((tick, line));
+            while sim.headlines.len() > 80 {
+                sim.headlines.pop_front();
+            }
+            formed += 1;
+        }
+    }
 }
 
 fn tick_dynasty_watch(sim: &mut Simulation) {
