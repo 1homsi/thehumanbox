@@ -3427,6 +3427,14 @@ impl Simulation {
                         self.organisms[idx].store_conversation(conv_a);
                         self.organisms[pi].store_conversation(conv_b);
                         self.pending_convos.push(req);
+                        let a_lid = self.organisms[idx].lineage_id.clone();
+                        let b_lid = self.organisms[pi].lineage_id.clone();
+                        self.organisms[idx].record_conversation_outcome(
+                            &pid, &b_lid, &pname, "courtship", None, tc,
+                        );
+                        self.organisms[pi].record_conversation_outcome(
+                            &oid, &a_lid, &oname, "courtship", None, tc,
+                        );
                         self.organisms[idx].partner_id = Some(pid.clone());
                         self.organisms[idx].attracted_to = None;
                         self.organisms[pi].partner_id = Some(oid.clone());
@@ -3495,6 +3503,17 @@ impl Simulation {
                         self.organisms[idx].store_conversation(conv_a);
                         self.organisms[pi].store_conversation(conv_b);
                         self.pending_convos.push(req);
+                        let a_id = self.organisms[idx].id.clone();
+                        let a_name = self.organisms[idx].name.clone();
+                        let a_lid = self.organisms[idx].lineage_id.clone();
+                        let b_name = self.organisms[pi].name.clone();
+                        let b_lid = self.organisms[pi].lineage_id.clone();
+                        self.organisms[idx].record_conversation_outcome(
+                            &pid, &b_lid, &b_name, "bonded", None, tc,
+                        );
+                        self.organisms[pi].record_conversation_outcome(
+                            &a_id, &a_lid, &a_name, "bonded", None, tc,
+                        );
                     }
                 }
             }
@@ -3570,6 +3589,17 @@ impl Simulation {
                         self.organisms[idx].store_conversation(conv_a);
                         self.organisms[ci].store_conversation(conv_b);
                         self.pending_convos.push(req);
+                        let a_id = self.organisms[idx].id.clone();
+                        let a_name = self.organisms[idx].name.clone();
+                        let a_lid = self.organisms[idx].lineage_id.clone();
+                        let c_id = self.organisms[ci].id.clone();
+                        let c_name = self.organisms[ci].name.clone();
+                        self.organisms[idx].record_conversation_outcome(
+                            &c_id, &their_lid, &c_name, kind, None, tc,
+                        );
+                        self.organisms[ci].record_conversation_outcome(
+                            &a_id, &a_lid, &a_name, kind, None, tc,
+                        );
                     }
                 }
             }

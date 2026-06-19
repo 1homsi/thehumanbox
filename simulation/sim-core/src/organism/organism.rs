@@ -810,6 +810,45 @@ impl Organism {
         }
     }
 
+    pub fn record_conversation_outcome(
+        &mut self,
+        other_id: &str,
+        other_lineage: &str,
+        other_name: &str,
+        kind: &str,
+        anchor_cat: Option<&str>,
+        tick: u64,
+    ) {
+        use super::memory::{MemoryEntry, MemoryKind};
+        let (trust_delta, att_delta, emotion) = match kind {
+            "courtship" | "bonded" => (0.04, 0.02, 3i8),
+            "excited" => (0.03, 0.015, 1),
+            "gossip" => (0.01, 0.0, 0),
+            "argue" => (-0.06, -0.03, -2),
+            _ => (0.015, 0.0075, 0),
+        };
+        let t = self.org_trust.entry(other_id.to_string()).or_insert(0.0);
+        *t = (*t + trust_delta).clamp(-1.0, 1.0);
+        if att_delta != 0.0 {
+            self.update_attitude(other_lineage, att_delta);
+        }
+        let about = anchor_cat.unwrap_or(kind);
+        let mem_kind = if emotion.abs() >= 2 {
+            MemoryKind::Bond
+        } else {
+            MemoryKind::Episode
+        };
+        let salience = if emotion.abs() >= 2 { 0.7 } else { 0.55 };
+        self.memories.insert(
+            MemoryEntry::new(mem_kind, format!("talked with {} about {}", other_name, about), tick)
+                .with_salience(salience)
+                .with_emotion(emotion)
+                .with_related(other_id.to_string()),
+        );
+        self.memories
+            .touch(|m| m.related_id.as_deref() == Some(other_id), 0.10);
+    }
+
     pub fn remember(mem: &mut FxHashMap<(i32, i32), f32>, x: i32, y: i32, strength: f32, mem_trait: f32) {
         let effective = (strength * (0.7 + 0.6 * mem_trait)).min(1.0);
         let v = mem.entry((x, y)).or_insert(0.0);
