@@ -3576,8 +3576,21 @@ impl Simulation {
                     let their_lid = self.organisms[ci].lineage_id.clone();
                     let att = self.organisms[idx].attitude_toward(&their_lid);
                     let combined_energy = self.organisms[idx].energy + self.organisms[ci].energy;
+                    let gossip_target: Option<(String, f32)> = {
+                        let cid = self.organisms[ci].id.clone();
+                        self.organisms[idx]
+                            .org_trust
+                            .iter()
+                            .filter(|(id, v)| v.abs() > 0.4 && **id != cid)
+                            .max_by(|a, b| {
+                                a.1.abs().partial_cmp(&b.1.abs()).unwrap_or(std::cmp::Ordering::Equal)
+                            })
+                            .map(|(id, v)| (id.clone(), *v))
+                    };
                     let kind = if att < -0.3 {
                         "argue"
+                    } else if gossip_target.is_some() && att >= 0.0 && self.rng.random::<f32>() < 0.5 {
+                        "gossip"
                     } else if combined_energy > 1.5 && att >= 0.0 {
                         "excited"
                     } else {
@@ -3635,6 +3648,12 @@ impl Simulation {
                         self.organisms[ci].record_conversation_outcome(
                             &a_id, &a_lid, &a_name, kind, None, tc,
                         );
+                        if kind == "gossip" {
+                            if let Some((tid, sentiment)) = &gossip_target {
+                                let cur = self.organisms[ci].org_trust.entry(tid.clone()).or_insert(0.0);
+                                *cur = (*cur + sentiment * 0.3).clamp(-1.0, 1.0);
+                            }
+                        }
                     }
                 }
             }

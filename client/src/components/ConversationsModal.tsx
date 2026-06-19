@@ -19,6 +19,7 @@ const KIND_META: Record<string, { icon: string; label: string; color: string }> 
   bonded: { icon: '♥', label: 'Partners talking', color: '#c07090' },
   farewell: { icon: '✦', label: 'Farewell', color: '#778' },
   chat: { icon: '💬', label: 'Casual chat', color: '#5b9' },
+  gossip: { icon: '🗣', label: 'Gossip', color: '#b98ad0' },
   excited: { icon: '✨', label: 'Sharing excitement', color: '#7bbbff' },
   argue: { icon: '⚡', label: 'Argument', color: '#e06030' },
 }

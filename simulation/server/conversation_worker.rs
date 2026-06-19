@@ -55,6 +55,7 @@ fn kind_brief(kind: &str) -> &'static str {
         "excited" => "Sharing genuine excitement about a recent event in their day.",
         "bonded" => "Established partners checking in; intimate, familiar.",
         "chat" => "Casual chat between tribemates passing time.",
+        "gossip" => "Trading gossip about someone else — hushed, curious, a little judgmental.",
         "argue" => "Disagreement; tense, voices rising. Don't resolve it neatly.",
         "farewell" => "Saying goodbye for the night, the season, or longer.",
         _ => "A brief exchange.",

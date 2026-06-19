@@ -580,6 +580,7 @@ fn mood_arc(kind: &str) -> Vec<u8> {
         "bonded" => vec![0, 1, 3, 1],
         "farewell" => vec![0, 4],
         "chat" => vec![0, 5, 6, 5],
+        "gossip" => vec![5, 6, 7, 5],
         "argue" => vec![7, 7, 0, 7],
         "excited" => vec![0, 8, 8, 5],
         _ => vec![0, 1],
