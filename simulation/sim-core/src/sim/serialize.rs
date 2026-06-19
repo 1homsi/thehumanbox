@@ -444,6 +444,32 @@ impl Simulation {
                     .collect();
                 obj.insert("headlines".to_string(), serde_json::Value::Array(headlines_json));
 
+                let now = self.tick_count;
+                let battles_json: Vec<serde_json::Value> = self
+                    .battles
+                    .iter()
+                    .filter(|b| b.ended_tick.is_none_or(|e| now.saturating_sub(e) < 900))
+                    .rev()
+                    .take(16)
+                    .map(|b| {
+                        json!({
+                            "id": b.id,
+                            "attackers": b.attackers,
+                            "defenders": b.defenders,
+                            "scale": format!("{:?}", b.scale),
+                            "location": [b.location.0, b.location.1],
+                            "started_tick": b.started_tick,
+                            "ended": b.ended_tick.is_some(),
+                            "outcome": b.outcome.map(|o| format!("{:?}", o)),
+                            "casualties_a": b.casualties_a,
+                            "casualties_d": b.casualties_d,
+                            "initial_a": b.initial_a,
+                            "initial_d": b.initial_d,
+                        })
+                    })
+                    .collect();
+                obj.insert("battles".to_string(), serde_json::Value::Array(battles_json));
+
                 let trades_json: Vec<serde_json::Value> = self
                     .trades
                     .iter()

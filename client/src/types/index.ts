@@ -143,11 +143,18 @@ export interface HeadlineInfo {
 }
 
 export interface BattleInfo {
-  tick: number
-  a_lineage: string
-  b_lineage: string
-  casualties?: number
-  active?: boolean
+  id: string
+  attackers: string[]
+  defenders: string[]
+  scale: string
+  location: [number, number]
+  started_tick: number
+  ended: boolean
+  outcome?: string | null
+  casualties_a: number
+  casualties_d: number
+  initial_a: number
+  initial_d: number
 }
 
 export interface TreatyInfo {

@@ -104,6 +104,7 @@ export function CivStatsModal({ world, onClose }: Props) {
       }
     ).artworks ?? []
   const headlines = world.headlines ?? []
+  const battles = world.battles ?? []
 
   const lineageById = (lid: string) => lineageNames[lid] ?? lid.slice(0, 6)
   const orgById = (id: string | null | undefined) => {
@@ -315,6 +316,37 @@ export function CivStatsModal({ world, onClose }: Props) {
                 </button>
               </div>
             ))}
+          </section>
+
+          <section className="civ-section">
+            <h3>Conflicts</h3>
+            {battles.length === 0 && <div className="civ-empty">No battles yet</div>}
+            {battles.map((b) => {
+              const atk = b.attackers.map(lineageById).join(', ')
+              const def = b.defenders.map(lineageById).join(', ')
+              const outcomeLabel =
+                b.outcome === 'AttackerVictory'
+                  ? `${atk} won`
+                  : b.outcome === 'DefenderVictory'
+                    ? `${def} won`
+                    : b.outcome === 'Stalemate'
+                      ? 'stalemate'
+                      : null
+              return (
+                <div key={b.id} className="civ-row">
+                  <span className="civ-row-head">
+                    {'\u{2694}\u{FE0F}'} {b.scale}
+                  </span>
+                  <span className="civ-row-sub">
+                    {atk} vs {def}
+                  </span>
+                  <span className="civ-row-tag">
+                    {'\u{1F480}'} {b.casualties_a + b.casualties_d}
+                  </span>
+                  <span className="civ-row-tag">{b.ended ? (outcomeLabel ?? 'ended') : 'ongoing'}</span>
+                </div>
+              )
+            })}
           </section>
 
           <section className="civ-section">
