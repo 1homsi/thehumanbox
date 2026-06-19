@@ -376,7 +376,7 @@ export function CivStatsModal({ world, onClose }: Props) {
           <section className="civ-section">
             <h3>Recent Books</h3>
             {books.length === 0 && <div className="civ-empty">No books written yet</div>}
-            {books.slice(0, 10).map((b) => (
+            {books.slice(0, 6).map((b) => (
               <div key={b.id} className="civ-row">
                 <span className="civ-row-head">
                   {'\u{1F4D6}'} {b.title}
@@ -392,7 +392,7 @@ export function CivStatsModal({ world, onClose }: Props) {
           <section className="civ-section">
             <h3>Artworks</h3>
             {artworks.length === 0 && <div className="civ-empty">Nothing made yet</div>}
-            {artworks.slice(0, 10).map((a) => (
+            {artworks.slice(0, 6).map((a) => (
               <div key={a.id} className="civ-row">
                 <span className="civ-row-head">
                   {ART_EMOJI[a.kind] ?? ''} {a.title}
@@ -411,7 +411,7 @@ export function CivStatsModal({ world, onClose }: Props) {
               }
               const nameById = new Map<string, string>()
               for (const o of world.organisms) nameById.set(o.id, o.name)
-              return trades.slice(0, 10).map((t, i) => {
+              return trades.slice(0, 6).map((t, i) => {
                 const buyer = nameById.get(t.buyer_id) ?? t.buyer_id.slice(0, 6)
                 const seller = nameById.get(t.seller_id) ?? t.seller_id.slice(0, 6)
                 return (
