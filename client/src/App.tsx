@@ -224,17 +224,14 @@ function LiveApp() {
     return () => document.removeEventListener('keydown', onKey)
   }, [world, selectedOrgId])
 
-  const didAutoFollowRef = useRef(false)
   useEffect(() => {
-    if (didAutoFollowRef.current) return
-    if (selectedOrgId) {
-      didAutoFollowRef.current = true
-      return
-    }
     const featured = world?.featured_org_id
     if (!featured) return
-    if (!world?.organisms.some((o) => o.id === featured && o.alive)) return
-    didAutoFollowRef.current = true
+    const featuredAlive = world?.organisms.some((o) => o.id === featured && o.alive)
+    if (!featuredAlive) return
+    const selectedAlive =
+      selectedOrgId && world?.organisms.some((o) => o.id === selectedOrgId && o.alive)
+    if (selectedAlive) return
     useUIStore.getState().selectOrg(featured)
     useUIStore.getState().followOrg(featured)
   }, [world, selectedOrgId])
