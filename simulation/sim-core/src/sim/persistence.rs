@@ -862,6 +862,7 @@ impl Simulation {
             treaties: Vec::new(),
             outbreaks: Vec::new(),
             milestones_achieved: HashSet::new(),
+            lineage_peak_pop: std::collections::HashMap::new(),
             headlines: std::collections::VecDeque::new(),
             trades: std::collections::VecDeque::new(),
             water_use: std::collections::HashMap::new(),

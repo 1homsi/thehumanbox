@@ -52,6 +52,9 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick.is_multiple_of(600) {
         tick_leader_influence(sim);
     }
+    if tick.is_multiple_of(300) {
+        tick_dynasty_watch(sim);
+    }
     super::economy_tick::tick_economy(sim, tick);
     if tick.is_multiple_of(1200) {
         tick_disease_introduce(sim);
@@ -1488,6 +1491,34 @@ fn lineage_center(sim: &Simulation, lid: &str) -> (i32, i32) {
         return (0, 0);
     }
     ((sx / n) as i32, (sy / n) as i32)
+}
+
+fn tick_dynasty_watch(sim: &mut Simulation) {
+    let mut pop_now: HashMap<String, u32> = HashMap::new();
+    for o in sim.organisms.iter().filter(|o| o.alive) {
+        *pop_now.entry(o.lineage_id.clone()).or_insert(0) += 1;
+    }
+    let tick = sim.tick_count;
+    let tracked: Vec<String> = sim.lineage_peak_pop.keys().cloned().collect();
+    for lid in tracked {
+        let peak = sim.lineage_peak_pop.get(&lid).copied().unwrap_or(0);
+        if pop_now.get(&lid).copied().unwrap_or(0) == 0 && peak >= 8 {
+            let name = sim.lineage_names.get(&lid).cloned().unwrap_or_else(|| lid.clone());
+            let line = format!("\u{1F480} The {} dynasty has died out, after rising to {} strong.", name, peak);
+            push_event(&mut sim.events, tick, "milestone", "world", &line);
+            sim.headlines.push_back((tick, line));
+            while sim.headlines.len() > 80 {
+                sim.headlines.pop_front();
+            }
+            sim.lineage_peak_pop.remove(&lid);
+        }
+    }
+    for (lid, n) in pop_now {
+        let e = sim.lineage_peak_pop.entry(lid).or_insert(0);
+        if n > *e {
+            *e = n;
+        }
+    }
 }
 
 fn seat_building_for(gov_kind: &str) -> Option<BuildingKind> {
