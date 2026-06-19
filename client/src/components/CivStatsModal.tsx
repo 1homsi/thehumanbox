@@ -115,7 +115,10 @@ export function CivStatsModal({ world, onClose }: Props) {
   for (const b of world.buildings ?? []) {
     buildingCounts[b.kind] = (buildingCounts[b.kind] ?? 0) + 1
   }
-  const buildingRows = Object.entries(buildingCounts).sort((a, b) => b[1] - a[1])
+  const buildingRowsAll = Object.entries(buildingCounts).sort((a, b) => b[1] - a[1])
+  const BUILDING_CHIP_CAP = 28
+  const buildingRows = buildingRowsAll.slice(0, BUILDING_CHIP_CAP)
+  const buildingOverflow = buildingRowsAll.length - buildingRows.length
 
   const isDisplayableGood = (k: string) => /^[a-z][a-z0-9_]*$/.test(k)
   const goodsByLineage = new Map<string, Map<string, number>>()
@@ -323,6 +326,7 @@ export function CivStatsModal({ world, onClose }: Props) {
                   {kind}: {count}
                 </span>
               ))}
+              {buildingOverflow > 0 && <span className="civ-chip">+{buildingOverflow} more</span>}
             </div>
           </section>
 
