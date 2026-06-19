@@ -61,6 +61,31 @@ fn kind_brief(kind: &str) -> &'static str {
     }
 }
 
+fn era_register(era: &str) -> (&'static str, &'static str) {
+    match era {
+        "pre-stone" | "stone" | "bronze" => (
+            "primitive tribespeople in a tribal-survival sim. Basic English with a few invented tribe words",
+            "",
+        ),
+        "iron" | "classical" | "medieval" => (
+            "people of an age of iron, law and faith. Plain speech with a little formality; no modern words",
+            "\n- Forbidden words: factory, engine, steam, machine, gun, code, phone, electricity.",
+        ),
+        "renaissance" => (
+            "people of an age of art, trade and discovery. Speak plainly with occasional flourish; no industrial words",
+            "\n- Forbidden words: engine, steam, machine, gun, code, phone, electricity.",
+        ),
+        "industrial" | "modern" => (
+            "people of an age of machines, cities and trade. Ordinary modern-ish speech",
+            "",
+        ),
+        _ => (
+            "people of a far-future age of advanced technology. Clipped, knowing speech",
+            "",
+        ),
+    }
+}
+
 fn anchor_line(req: &ConversationReq) -> String {
     match &req.topic {
         Some(t) => format!(
@@ -73,8 +98,9 @@ fn anchor_line(req: &ConversationReq) -> String {
 }
 
 fn build_prompt(req: &ConversationReq) -> String {
+    let (register, forbidden) = era_register(&req.era);
     format!("\
-Short dialogue for primitive tribespeople in a tribal-survival sim. Basic English with a few invented tribe words.
+Short dialogue for {register}.
 
 SCENE: {scene}{anchor}
 
@@ -90,7 +116,7 @@ RULES:
 - Output EXACTLY {n} lines, each ending in . ? or !, alternating \"{a_name}:\" / \"{b_name}:\" starting with {a_name}:.
 - 3-12 words per line; real speech, not narration. Reference recent/mood/scene.
 - Mostly ordinary English; you MAY substitute one tribe word per line where it fits.
-- No stage directions, parentheses, markdown, translations, or preamble.
+- No stage directions, parentheses, markdown, translations, or preamble.{forbidden}
 
 Output ONLY the lines, one per line.",
         scene    = kind_brief(&req.kind),

@@ -24,4 +24,5 @@ pub struct ConversationReq {
     pub a: ConvoSpeaker,
     pub b: ConvoSpeaker,
     pub topic: Option<ConvoTopic>,
+    pub era: String,
 }

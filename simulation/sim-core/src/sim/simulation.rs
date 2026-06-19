@@ -3420,6 +3420,10 @@ impl Simulation {
                             b_mood,
                             tc,
                             "courtship",
+                            self.lineage_eras
+                                .get(&self.organisms[idx].lineage_id)
+                                .map(|e| e.name())
+                                .unwrap_or("pre-stone"),
                             &mut self.rng,
                         );
                         self.organisms[idx].vocabulary.touch_all_known(tc);
@@ -3496,6 +3500,10 @@ impl Simulation {
                             b_mood,
                             tc,
                             "bonded",
+                            self.lineage_eras
+                                .get(&self.organisms[idx].lineage_id)
+                                .map(|e| e.name())
+                                .unwrap_or("pre-stone"),
                             &mut self.rng,
                         );
                         self.organisms[idx].vocabulary.touch_all_known(tc);
@@ -3582,6 +3590,10 @@ impl Simulation {
                             b_mood,
                             tc,
                             kind,
+                            self.lineage_eras
+                                .get(&self.organisms[idx].lineage_id)
+                                .map(|e| e.name())
+                                .unwrap_or("pre-stone"),
                             &mut self.rng,
                         );
                         self.organisms[idx].vocabulary.touch_all_known(tc);

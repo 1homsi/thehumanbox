@@ -695,6 +695,7 @@ pub fn generate_conversation_with_req(
     b_mood: String,
     tick: u64,
     kind: &str,
+    era: &str,
     rng: &mut impl Rng,
 ) -> (
     ConversationEntry,
@@ -742,6 +743,7 @@ pub fn generate_conversation_with_req(
         a: speaker(a, a_mood, a_tribe, a_partner, a_recent),
         b: speaker(b, b_mood, b_tribe, b_partner, b_recent),
         topic,
+        era: era.to_string(),
     };
     (conv_a, conv_b, req)
 }
