@@ -1103,14 +1103,11 @@ fn tick_building_progress(sim: &mut Simulation) {
         let by = b.y as f32;
         let mut workers = 0u32;
         for (ox, oy) in workers_pos.iter() {
-            if (ox - bx).abs() + (oy - by).abs() < 5.0 {
+            if (ox - bx).abs() + (oy - by).abs() < 7.0 {
                 workers += 1;
             }
         }
-        if workers == 0 {
-            continue;
-        }
-        let progress = 0.015 * (workers as f32).sqrt().min(3.0);
+        let progress = 0.004 + 0.015 * (workers as f32).sqrt().min(3.0);
         b.condition = (b.condition + progress).min(1.0);
     }
 }
@@ -1253,14 +1250,9 @@ fn tick_scatter_props(sim: &mut Simulation) {
 
         let id = sim.next_building_id;
         sim.next_building_id += 1;
-        new_buildings.push(Building::new(
-            id,
-            kind,
-            cx + dx,
-            cy + dy,
-            Some(lid.clone()),
-            sim.tick_count,
-        ));
+        let mut prop = Building::new(id, kind, cx + dx, cy + dy, Some(lid.clone()), sim.tick_count);
+        prop.condition = 1.0;
+        new_buildings.push(prop);
     }
     sim.buildings.extend(new_buildings);
     cap_buildings(sim);
