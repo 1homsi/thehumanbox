@@ -1065,10 +1065,26 @@ fn tick_buildings_construct(sim: &mut Simulation) {
                 &lid,
                 &format!("built a {}", kn),
             );
+            if is_wonder(kind) {
+                let lname = sim.lineage_names.get(&lid).cloned().unwrap_or_else(|| lid.clone());
+                let line = format!("\u{1F3DB}\u{FE0F} The {} raised a {} — a wonder of their age.", lname, kn);
+                sim.headlines.push_back((sim.tick_count, line));
+                while sim.headlines.len() > 80 {
+                    sim.headlines.pop_front();
+                }
+            }
         }
     }
     sim.buildings.extend(new_buildings);
     cap_buildings(sim);
+}
+
+fn is_wonder(kind: BuildingKind) -> bool {
+    use BuildingKind::*;
+    matches!(
+        kind,
+        Cathedral | Castle | Pyramid | Ziggurat | Coliseum | University | Observatory | Stadium | Museum
+    )
 }
 
 fn cap_buildings(sim: &mut Simulation) {
