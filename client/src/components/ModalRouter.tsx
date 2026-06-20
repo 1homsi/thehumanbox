@@ -75,7 +75,13 @@ export function ModalRouter({ world, lineages }: Props) {
             lineageNames={world.lineage_names}
           />
         )}
-        {showChronicles && <ChroniclesModal stories={world.story_history ?? []} onClose={closeChronicles} />}
+        {showChronicles && (
+          <ChroniclesModal
+            stories={world.story_history ?? []}
+            headlines={world.headlines ?? []}
+            onClose={closeChronicles}
+          />
+        )}
         {showFamilyTree && (
           <FamilyTreeModal
             organisms={world.organisms}

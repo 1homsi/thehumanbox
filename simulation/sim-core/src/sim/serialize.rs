@@ -439,7 +439,7 @@ impl Simulation {
                     .headlines
                     .iter()
                     .rev()
-                    .take(20)
+                    .take(60)
                     .map(|(t, s)| json!({"tick": t, "text": s}))
                     .collect();
                 obj.insert("headlines".to_string(), serde_json::Value::Array(headlines_json));
