@@ -144,7 +144,7 @@ export function Sun({
         mieDirectionalG={0.85}
       />
 
-      <Stars radius={1600} depth={350} count={5000} factor={6} saturation={0} fade speed={0.6} />
+      <Stars radius={1600} depth={350} count={8500} factor={7} saturation={0.12} fade speed={0.6} />
 
       <mesh ref={moonRef} position={moonPos} frustumCulled={false}>
         <sphereGeometry args={[40 + moonIllum * 30, 16, 12]} />
