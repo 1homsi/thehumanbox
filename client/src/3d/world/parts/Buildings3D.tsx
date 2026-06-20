@@ -134,6 +134,9 @@ const HUT_GEO = (() => {
   const g = new ConeGeometry(4.6, 6.4, 6)
   return g
 })()
+// A warm doorway/hearth glow so every hut twinkles at night, turning a
+// village into a constellation of golden lights rather than dark cones.
+const HUT_GLOW = new BoxGeometry(1.5, 1.9, 0.3)
 const HOUSE_WALL = new BoxGeometry(8.0, 5.4, 9.0)
 const HOUSE_ROOF = (() => {
   const g = new ConeGeometry(6.4, 4.0, 4)
@@ -1247,6 +1250,19 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
         tiers={tiers.Hut}
         conds={conds.Hut}
       />
+      {windowsOn && huts.length > 0 && (
+        <Layer
+          positions={huts}
+          yOffset={1.5}
+          geometry={HUT_GLOW}
+          color="#3a2410"
+          emissive="#ff9a44"
+          emissiveIntensity={nightFrac * 1.5}
+          maxCount={cap(huts.length)}
+          offsetZ={4.2}
+          conds={conds.Hut}
+        />
+      )}
 
       <Layer
         positions={houses}
