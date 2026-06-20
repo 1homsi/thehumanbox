@@ -156,6 +156,8 @@ const TENT_GEO = (() => {
   return g
 })()
 const TENT_FLAP = new BoxGeometry(0.7, 1.2, 0.1)
+// A board hung on the very common signpost so it reads as a sign, not a stick.
+const SIGN_BOARD = new BoxGeometry(1.2, 0.6, 0.12)
 // Lived-in clutter scattered beside dwellings so a village reads as inhabited.
 const BARREL_GEO = new CylinderGeometry(0.5, 0.45, 1.3, 8)
 const CRATE_GEO = new BoxGeometry(0.95, 0.95, 0.95)
@@ -2007,6 +2009,17 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
               tiers={tiers[kind]}
               conds={conds[kind]}
             />
+            {kind === 'Signpost' && (
+              <Layer
+                positions={positions}
+                yOffset={2.0}
+                geometry={SIGN_BOARD}
+                color="#8a6a3e"
+                maxCount={cap(positions.length)}
+                offsetX={0.4}
+                vary={0.22}
+              />
+            )}
             {wantsRoof(kind, spec) && (
               <>
                 <Layer
