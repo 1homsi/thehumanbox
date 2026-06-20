@@ -10,9 +10,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
             if ctx.sim.grid.structure_at(px, py) > 0.2 {
                 ctx.sim.grid.add_structure(px, py, -0.45);
                 ctx.sim.active_structure_tiles.insert((px, py));
-                if matches!(ctx.sim.grid.get(px, py), Tile::Hut)
-                    && ctx.sim.grid.structure_at(px, py) < 0.1
-                {
+                if matches!(ctx.sim.grid.get(px, py), Tile::Hut) && ctx.sim.grid.structure_at(px, py) < 0.1 {
                     ctx.sim.grid.set(px, py, Tile::Ash);
                 }
                 ctx.sim.organisms[ctx.idx].inv_wood = ctx.sim.organisms[ctx.idx].inv_wood.saturating_add(1);

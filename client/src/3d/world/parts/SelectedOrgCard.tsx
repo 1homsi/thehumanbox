@@ -36,9 +36,7 @@ export function SelectedOrgCard({ organisms }: Props) {
   }
 
   const distress = org.health < 0.3 || org.energy < 0.15 || org.hydration < 0.15
-  const partnerName = org.partner_id
-    ? (organisms.find((o) => o.id === org.partner_id)?.name ?? null)
-    : null
+  const partnerName = org.partner_id ? (organisms.find((o) => o.id === org.partner_id)?.name ?? null) : null
   const friendCount = org.friends ? Object.keys(org.friends).length : 0
   const goal =
     org.hydration < 0.3

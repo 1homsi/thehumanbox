@@ -229,8 +229,7 @@ function LiveApp() {
     if (!featured) return
     const featuredAlive = world?.organisms.some((o) => o.id === featured && o.alive)
     if (!featuredAlive) return
-    const selectedAlive =
-      selectedOrgId && world?.organisms.some((o) => o.id === selectedOrgId && o.alive)
+    const selectedAlive = selectedOrgId && world?.organisms.some((o) => o.id === selectedOrgId && o.alive)
     if (selectedAlive) return
     useUIStore.getState().selectOrg(featured)
     useUIStore.getState().followOrg(featured)

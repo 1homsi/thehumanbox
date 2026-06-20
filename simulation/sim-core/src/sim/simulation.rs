@@ -3469,10 +3469,20 @@ impl Simulation {
                         let a_lid = self.organisms[idx].lineage_id.clone();
                         let b_lid = self.organisms[pi].lineage_id.clone();
                         self.organisms[idx].record_conversation_outcome(
-                            &pid, &b_lid, &pname, "courtship", None, tc,
+                            &pid,
+                            &b_lid,
+                            &pname,
+                            "courtship",
+                            None,
+                            tc,
                         );
                         self.organisms[pi].record_conversation_outcome(
-                            &oid, &a_lid, &oname, "courtship", None, tc,
+                            &oid,
+                            &a_lid,
+                            &oname,
+                            "courtship",
+                            None,
+                            tc,
                         );
                         self.organisms[idx].partner_id = Some(pid.clone());
                         self.organisms[idx].attracted_to = None;
@@ -3551,12 +3561,10 @@ impl Simulation {
                         let a_lid = self.organisms[idx].lineage_id.clone();
                         let b_name = self.organisms[pi].name.clone();
                         let b_lid = self.organisms[pi].lineage_id.clone();
-                        self.organisms[idx].record_conversation_outcome(
-                            &pid, &b_lid, &b_name, "bonded", None, tc,
-                        );
-                        self.organisms[pi].record_conversation_outcome(
-                            &a_id, &a_lid, &a_name, "bonded", None, tc,
-                        );
+                        self.organisms[idx]
+                            .record_conversation_outcome(&pid, &b_lid, &b_name, "bonded", None, tc);
+                        self.organisms[pi]
+                            .record_conversation_outcome(&a_id, &a_lid, &a_name, "bonded", None, tc);
                     }
                 }
             }
@@ -3595,7 +3603,9 @@ impl Simulation {
                             .iter()
                             .filter(|(id, v)| v.abs() > 0.4 && **id != cid)
                             .max_by(|a, b| {
-                                a.1.abs().partial_cmp(&b.1.abs()).unwrap_or(std::cmp::Ordering::Equal)
+                                a.1.abs()
+                                    .partial_cmp(&b.1.abs())
+                                    .unwrap_or(std::cmp::Ordering::Equal)
                             })
                             .map(|(id, v)| (id.clone(), *v))
                     };
@@ -3654,12 +3664,10 @@ impl Simulation {
                         let a_lid = self.organisms[idx].lineage_id.clone();
                         let c_id = self.organisms[ci].id.clone();
                         let c_name = self.organisms[ci].name.clone();
-                        self.organisms[idx].record_conversation_outcome(
-                            &c_id, &their_lid, &c_name, kind, None, tc,
-                        );
-                        self.organisms[ci].record_conversation_outcome(
-                            &a_id, &a_lid, &a_name, kind, None, tc,
-                        );
+                        self.organisms[idx]
+                            .record_conversation_outcome(&c_id, &their_lid, &c_name, kind, None, tc);
+                        self.organisms[ci]
+                            .record_conversation_outcome(&a_id, &a_lid, &a_name, kind, None, tc);
                         if kind == "gossip" {
                             if let Some((tid, sentiment)) = &gossip_target {
                                 let cur = self.organisms[ci].org_trust.entry(tid.clone()).or_insert(0.0);
@@ -3671,10 +3679,7 @@ impl Simulation {
                             .iter()
                             .enumerate()
                             .filter(|(j, o)| {
-                                *j != idx
-                                    && *j != ci
-                                    && o.alive
-                                    && (o.x - ox).abs() + (o.y - oy).abs() <= 5.0
+                                *j != idx && *j != ci && o.alive && (o.x - ox).abs() + (o.y - oy).abs() <= 5.0
                             })
                             .map(|(j, _)| j)
                             .take(3)

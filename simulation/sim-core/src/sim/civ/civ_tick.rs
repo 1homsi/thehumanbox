@@ -1069,8 +1069,15 @@ fn tick_buildings_construct(sim: &mut Simulation) {
                 &format!("built a {}", kn),
             );
             if is_wonder(kind) {
-                let lname = sim.lineage_names.get(&lid).cloned().unwrap_or_else(|| lid.clone());
-                let line = format!("\u{1F3DB}\u{FE0F} The {} raised a {} — a wonder of their age.", lname, kn);
+                let lname = sim
+                    .lineage_names
+                    .get(&lid)
+                    .cloned()
+                    .unwrap_or_else(|| lid.clone());
+                let line = format!(
+                    "\u{1F3DB}\u{FE0F} The {} raised a {} — a wonder of their age.",
+                    lname, kn
+                );
                 sim.headlines.push_back((sim.tick_count, line));
                 while sim.headlines.len() > 80 {
                     sim.headlines.pop_front();
@@ -1524,13 +1531,16 @@ fn tick_diplomacy(sim: &mut Simulation) {
             if other == &o.lineage_id {
                 continue;
             }
-            let e = sums.entry((o.lineage_id.clone(), other.clone())).or_insert((0.0, 0));
+            let e = sums
+                .entry((o.lineage_id.clone(), other.clone()))
+                .or_insert((0.0, 0));
             e.0 += *att;
             e.1 += 1;
         }
     }
     let avg = |a: &str, b: &str| -> Option<f32> {
-        sums.get(&(a.to_string(), b.to_string())).map(|(s, n)| s / *n as f32)
+        sums.get(&(a.to_string(), b.to_string()))
+            .map(|(s, n)| s / *n as f32)
     };
     let lineages: Vec<String> = sim
         .organisms
@@ -1585,7 +1595,10 @@ fn tick_plague_watch(sim: &mut Simulation) {
     }
     if alive >= 20 && (sick as f32) / (alive as f32) > 0.15 {
         let tick = sim.tick_count;
-        let line = format!("\u{1F912} A plague spreads — {} of {} are gravely ill.", sick, alive);
+        let line = format!(
+            "\u{1F912} A plague spreads — {} of {} are gravely ill.",
+            sick, alive
+        );
         push_event(&mut sim.events, tick, "outbreak", "world", &line);
         sim.headlines.push_back((tick, line));
         while sim.headlines.len() > 80 {
@@ -1604,8 +1617,15 @@ fn tick_dynasty_watch(sim: &mut Simulation) {
     for lid in tracked {
         let peak = sim.lineage_peak_pop.get(&lid).copied().unwrap_or(0);
         if pop_now.get(&lid).copied().unwrap_or(0) == 0 && peak >= 8 {
-            let name = sim.lineage_names.get(&lid).cloned().unwrap_or_else(|| lid.clone());
-            let line = format!("\u{1F480} The {} dynasty has died out, after rising to {} strong.", name, peak);
+            let name = sim
+                .lineage_names
+                .get(&lid)
+                .cloned()
+                .unwrap_or_else(|| lid.clone());
+            let line = format!(
+                "\u{1F480} The {} dynasty has died out, after rising to {} strong.",
+                name, peak
+            );
             push_event(&mut sim.events, tick, "milestone", "world", &line);
             sim.headlines.push_back((tick, line));
             while sim.headlines.len() > 80 {
@@ -1957,7 +1977,9 @@ fn tick_religion_adherents(sim: &mut Simulation) {
         if let Some((did, dn)) = dominant.as_ref() {
             if *dn >= 3 && total_followers > 0 {
                 let share = (*dn as f32 / total_followers as f32).min(0.9);
-                if sim.rng.random::<f32>() < convert_chance * (0.4 + org.traits.social_tendency) * (0.5 + share) {
+                if sim.rng.random::<f32>()
+                    < convert_chance * (0.4 + org.traits.social_tendency) * (0.5 + share)
+                {
                     org.religion_id = Some(did.clone());
                     org.piety = 0.15 + org.traits.social_tendency * 0.20;
                     *adherents_by_id.entry(did.clone()).or_insert(0) += 1;

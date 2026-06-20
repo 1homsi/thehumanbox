@@ -155,32 +155,32 @@ export function ConversationsModal({ org, allOrgs, sexWords, onClose }: Props) {
           className="cv-filters"
           style={{ display: 'flex', gap: 6, padding: '6px 12px', flexWrap: 'wrap' }}
         >
-          {(['all', 'courtship', 'bonded', 'chat', 'gossip', 'excited', 'argue', 'farewell'] as KindFilter[]).map(
-            (k) => {
-              const count = k === 'all' ? allConvos.length : (kindCounts[k] ?? 0)
-              if (k !== 'all' && count === 0) return null
-              const isActive = kindFilter === k
-              const meta = k === 'all' ? { icon: '∗', label: 'all', color: '#999' } : kindMeta(k)
-              return (
-                <button
-                  key={k}
-                  onClick={() => setKindFilter(k)}
-                  style={{
-                    background: isActive ? meta.color + '22' : 'transparent',
-                    border: `1px solid ${isActive ? meta.color : '#2a2520'}`,
-                    color: isActive ? meta.color : '#888',
-                    padding: '3px 8px',
-                    borderRadius: 3,
-                    fontSize: 10,
-                    cursor: 'pointer',
-                    letterSpacing: '0.04em',
-                  }}
-                >
-                  {meta.icon} {meta.label} {count > 0 && <span style={{ opacity: 0.6 }}>({count})</span>}
-                </button>
-              )
-            },
-          )}
+          {(
+            ['all', 'courtship', 'bonded', 'chat', 'gossip', 'excited', 'argue', 'farewell'] as KindFilter[]
+          ).map((k) => {
+            const count = k === 'all' ? allConvos.length : (kindCounts[k] ?? 0)
+            if (k !== 'all' && count === 0) return null
+            const isActive = kindFilter === k
+            const meta = k === 'all' ? { icon: '∗', label: 'all', color: '#999' } : kindMeta(k)
+            return (
+              <button
+                key={k}
+                onClick={() => setKindFilter(k)}
+                style={{
+                  background: isActive ? meta.color + '22' : 'transparent',
+                  border: `1px solid ${isActive ? meta.color : '#2a2520'}`,
+                  color: isActive ? meta.color : '#888',
+                  padding: '3px 8px',
+                  borderRadius: 3,
+                  fontSize: 10,
+                  cursor: 'pointer',
+                  letterSpacing: '0.04em',
+                }}
+              >
+                {meta.icon} {meta.label} {count > 0 && <span style={{ opacity: 0.6 }}>({count})</span>}
+              </button>
+            )
+          })}
         </div>
       )}
 

@@ -844,10 +844,14 @@ impl Organism {
         };
         let salience = if emotion.abs() >= 2 { 0.7 } else { 0.55 };
         self.memories.insert(
-            MemoryEntry::new(mem_kind, format!("talked with {} about {}", other_name, about), tick)
-                .with_salience(salience)
-                .with_emotion(emotion)
-                .with_related(other_id.to_string()),
+            MemoryEntry::new(
+                mem_kind,
+                format!("talked with {} about {}", other_name, about),
+                tick,
+            )
+            .with_salience(salience)
+            .with_emotion(emotion)
+            .with_related(other_id.to_string()),
         );
         self.memories
             .touch(|m| m.related_id.as_deref() == Some(other_id), 0.10);

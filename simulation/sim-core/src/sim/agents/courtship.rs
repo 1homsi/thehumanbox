@@ -654,12 +654,7 @@ fn category_salience(cat: &str) -> f32 {
     }
 }
 
-fn pick_anchor(
-    a: &Organism,
-    b: &Organism,
-    tick: u64,
-    day_len: u32,
-) -> Option<super::convo_req::ConvoTopic> {
+fn pick_anchor(a: &Organism, b: &Organism, tick: u64, day_len: u32) -> Option<super::convo_req::ConvoTopic> {
     let day_len = day_len.max(1) as f32;
     let mut best: Option<(f32, &str, &str, &str)> = None;
     for (who, o) in [(a.name.as_str(), a), (b.name.as_str(), b)] {
