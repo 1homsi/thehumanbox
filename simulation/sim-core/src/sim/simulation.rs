@@ -1404,29 +1404,34 @@ impl Simulation {
             }
         }
 
-        let animal_near = {
-            let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
-            self.animals
-                .iter()
-                .any(|a| a.alive && (a.x - ox).abs() + (a.y - oy).abs() <= 8.0)
-        };
+        let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
+        let fear_trait = self.organisms[idx].traits.fear;
+        let wolf_flee_radius = 6.0 + fear_trait * 8.0;
+
+        // Single pass over animals: detect any creature within perception
+        // range and the nearest threatening wolf at once, instead of two
+        // separate full scans of the animal list per organism per tick.
+        let mut animal_near = false;
+        let mut wolf_threat: Option<(f32, f32, f32)> = None;
+        for a in self.animals.iter() {
+            if !a.alive {
+                continue;
+            }
+            let d = (a.x - ox).abs() + (a.y - oy).abs();
+            if d <= 8.0 {
+                animal_near = true;
+            }
+            if matches!(a.kind, AnimalKind::Wolf)
+                && d <= wolf_flee_radius
+                && wolf_threat.map(|(bd, _, _)| d < bd).unwrap_or(true)
+            {
+                wolf_threat = Some((d, a.x, a.y));
+            }
+        }
+
         let perception =
             self.organisms[idx].perceive(&self.grid, &self.organisms, night, animal_near, spatial);
         self.validate_or_assign_wander_target(idx);
-
-        let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
-        let fear_trait = self.organisms[idx].traits.fear;
-
-        // Wolf pressure is remembered as context. Only collision-range danger
-        // stays reflexive; otherwise the learned chooser decides what to do.
-        let wolf_flee_radius = 6.0 + fear_trait * 8.0;
-        let wolf_threat = self
-            .animals
-            .iter()
-            .filter(|a| a.alive && matches!(a.kind, AnimalKind::Wolf))
-            .map(|a| ((a.x - ox).abs() + (a.y - oy).abs(), a.x, a.y))
-            .filter(|&(d, _, _)| d <= wolf_flee_radius)
-            .min_by(|(a, _, _), (b, _, _)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
         if let Some((_, wx, wy)) = wolf_threat {
             let wx_i = wx as i32;
             let wy_i = wy as i32;

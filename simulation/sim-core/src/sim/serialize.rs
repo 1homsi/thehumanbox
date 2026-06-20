@@ -271,15 +271,8 @@ impl Simulation {
                 // samples make it to the wire. The full ring buffer
                 // is kept server-side for trend analysis, but the
                 // client only graphs the tail.
-                let tail: Vec<&[u64; 2]> = self
-                    .pop_history
-                    .iter()
-                    .rev()
-                    .take(60)
-                    .collect::<Vec<_>>()
-                    .into_iter()
-                    .rev()
-                    .collect();
+                let start = self.pop_history.len().saturating_sub(60);
+                let tail: Vec<&[u64; 2]> = self.pop_history.iter().skip(start).collect();
                 obj.insert("pop_history".to_string(), serde_json::to_value(&tail).unwrap());
                 obj.insert(
                     "tribal_relations".to_string(),
