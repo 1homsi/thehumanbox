@@ -140,6 +140,13 @@ const HUT_GLOW = new BoxGeometry(1.5, 1.9, 0.3)
 // A recessed doorway on generic buildings: a dark slab by day that warms to
 // a lit threshold at night, so every structure reads as a real building.
 const DOOR_GEO = new BoxGeometry(1.3, 2.0, 0.18)
+// Lived-in clutter scattered beside dwellings so a village reads as inhabited.
+const BARREL_GEO = new CylinderGeometry(0.5, 0.45, 1.3, 8)
+const CRATE_GEO = new BoxGeometry(0.95, 0.95, 0.95)
+const WOODPILE_GEO = new BoxGeometry(1.7, 0.65, 0.85)
+function hash01(px: number, pz: number, salt: number): number {
+  return (Math.imul(((px | 0) * 73856093) ^ ((pz | 0) * 19349663) ^ salt, 2654435761) >>> 0) / 4294967295
+}
 const HOUSE_WALL = new BoxGeometry(8.0, 5.4, 9.0)
 const HOUSE_ROOF = (() => {
   const g = new ConeGeometry(6.4, 4.0, 4)
@@ -1242,8 +1249,54 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
 
   const cap = (n: number) => Math.max(50, n)
 
+  const clutter = useMemo(() => {
+    const barrels: [number, number, number][] = []
+    const crates: [number, number, number][] = []
+    const wood: [number, number, number][] = []
+    const dwellings = [...huts, ...houses, ...manors, ...townhouses]
+    for (const [px, py, pz] of dwellings) {
+      const h = hash01(px, pz, 1)
+      if (h < 0.55) barrels.push([px + 3.4 + h * 1.5, py, pz + 2.6 - h * 1.2])
+      const h2 = hash01(px, pz, 7)
+      if (h2 < 0.5) crates.push([px - 3.2 - h2, py, pz + 2.2 + h2 * 1.4])
+      const h3 = hash01(px, pz, 13)
+      if (h3 < 0.4) wood.push([px - 0.5 + h3 * 2, py, pz - 3.4 - h3])
+    }
+    return { barrels, crates, wood }
+  }, [huts, houses, manors, townhouses])
+
   return (
     <>
+      {clutter.barrels.length > 0 && (
+        <Layer
+          positions={clutter.barrels}
+          yOffset={0.65}
+          geometry={BARREL_GEO}
+          color="#6a4a28"
+          maxCount={cap(clutter.barrels.length)}
+          vary={0.22}
+        />
+      )}
+      {clutter.crates.length > 0 && (
+        <Layer
+          positions={clutter.crates}
+          yOffset={0.48}
+          geometry={CRATE_GEO}
+          color="#8a6838"
+          maxCount={cap(clutter.crates.length)}
+          vary={0.22}
+        />
+      )}
+      {clutter.wood.length > 0 && (
+        <Layer
+          positions={clutter.wood}
+          yOffset={0.33}
+          geometry={WOODPILE_GEO}
+          color="#5a4128"
+          maxCount={cap(clutter.wood.length)}
+          vary={0.26}
+        />
+      )}
       <Layer
         positions={huts}
         yOffset={3.2}
