@@ -23,8 +23,8 @@ interface Props {
   height: number
 }
 
-const COUNT = 900
-const RADIUS_TILES = 34
+const COUNT = 2400
+const RADIUS_TILES = 30
 const RESCATTER_DIST = 6
 
 const TUFT_GEO = (() => {
