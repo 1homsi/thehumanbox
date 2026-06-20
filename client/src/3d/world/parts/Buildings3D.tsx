@@ -168,6 +168,12 @@ const WELL_ROOF = (() => {
 })()
 // Bright market-stall awning so market clusters pop with colour.
 const MARKET_AWNING = new BoxGeometry(1.9, 0.14, 1.35)
+// Cart wheels (axis along X so the disc faces sideways).
+const CART_WHEEL = (() => {
+  const g = new CylinderGeometry(0.42, 0.42, 0.16, 10)
+  g.rotateZ(Math.PI / 2)
+  return g
+})()
 const STALL_KINDS = new Set(['MarketStall', 'FoodCart', 'Kiosk'])
 const STALL_AWNING_COLOR: Record<string, string> = {
   MarketStall: '#c0392b',
@@ -2083,6 +2089,26 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
                 maxCount={cap(positions.length)}
                 vary={0.18}
               />
+            )}
+            {(kind === 'Cart' || kind === 'FoodCart') && (
+              <>
+                <Layer
+                  positions={positions}
+                  yOffset={0.42}
+                  geometry={CART_WHEEL}
+                  color="#3a2a18"
+                  maxCount={cap(positions.length)}
+                  offsetX={0.74}
+                />
+                <Layer
+                  positions={positions}
+                  yOffset={0.42}
+                  geometry={CART_WHEEL}
+                  color="#3a2a18"
+                  maxCount={cap(positions.length)}
+                  offsetX={-0.74}
+                />
+              </>
             )}
             {wantsRoof(kind, spec) && (
               <>
