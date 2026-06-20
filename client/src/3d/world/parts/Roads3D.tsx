@@ -1,8 +1,27 @@
 import { useMemo, useRef, useLayoutEffect } from 'react'
-import { BoxGeometry, InstancedMesh, MeshStandardMaterial, Object3D } from 'three'
+import { BoxGeometry, Color, InstancedMesh, MeshStandardMaterial, Object3D } from 'three'
 import type { Building } from '../../../types'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
+
+// Roads pave over as a lineage advances: packed dirt → cut stone → asphalt.
+function roadColorForEra(era: string | undefined): string {
+  switch (era) {
+    case 'industrial':
+    case 'modern':
+    case 'information':
+    case 'atomic':
+    case 'space':
+      return '#3a3a40'
+    case 'classical':
+    case 'medieval':
+    case 'renaissance':
+      return '#8a8378'
+    default:
+      return '#7c6a52'
+  }
+}
+const _roadCol = new Color()
 
 interface Props {
   buildings: Building[] | undefined
@@ -12,7 +31,7 @@ interface Props {
 }
 
 const ROAD_GEO = new BoxGeometry(1, 0.05, 0.4)
-const ROAD_MAT = new MeshStandardMaterial({ color: '#7c6a52', roughness: 0.95 })
+const ROAD_MAT = new MeshStandardMaterial({ color: '#ffffff', roughness: 0.95 })
 
 const ROAD_MAX_DIST_PRE = 12
 const ROAD_MAX_DIST_POST = 32
@@ -24,7 +43,7 @@ export function Roads3D({ buildings, lineageEras, depthMap, biomes }: Props) {
 
   const segments = useMemo(() => {
     if (!buildings || !lineageEras || !depthMap || !biomes) return []
-    const result: Array<{ x: number; z: number; y: number; len: number; rot: number }> = []
+    const result: Array<{ x: number; z: number; y: number; len: number; rot: number; color: string }> = []
     const byLineage = new Map<string, Building[]>()
     for (const b of buildings) {
       if ((b.condition ?? 1) < 0.6) continue
@@ -43,6 +62,7 @@ export function Roads3D({ buildings, lineageEras, depthMap, biomes }: Props) {
         era === 'atomic' ||
         era === 'space'
       const maxDist = advanced ? ROAD_MAX_DIST_POST : ROAD_MAX_DIST_PRE
+      const roadColor = roadColorForEra(era)
       const connected = new Set<number>()
       list.sort((a, b) => a.id - b.id)
       for (let i = 0; i < list.length && result.length < MAX_SEGMENTS; i++) {
@@ -81,7 +101,7 @@ export function Roads3D({ buildings, lineageEras, depthMap, biomes }: Props) {
         )
         const len = Math.sqrt((bx - ax) ** 2 + (bz - az) ** 2)
         const rot = Math.atan2(bz - az, bx - ax)
-        result.push({ x: midX, z: midZ, y: midGy + 0.025, len, rot })
+        result.push({ x: midX, z: midZ, y: midGy + 0.025, len, rot, color: roadColor })
       }
     }
     return result.slice(0, MAX_SEGMENTS)
@@ -99,9 +119,11 @@ export function Roads3D({ buildings, lineageEras, depthMap, biomes }: Props) {
       tmp.scale.set(s.len, 1, 1)
       tmp.updateMatrix()
       mesh.setMatrixAt(i, tmp.matrix)
+      mesh.setColorAt(i, _roadCol.set(s.color))
     }
     mesh.count = segments.length
     mesh.instanceMatrix.needsUpdate = true
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
   }, [segments])
 
   if (segments.length === 0) return null
