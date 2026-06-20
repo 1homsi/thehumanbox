@@ -12,6 +12,7 @@ import {
   MeshStandardMaterial,
   Object3D,
   PlaneGeometry,
+  SphereGeometry,
   SpotLight,
 } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
@@ -173,6 +174,16 @@ const CART_WHEEL = (() => {
   const g = new CylinderGeometry(0.42, 0.42, 0.16, 10)
   g.rotateZ(Math.PI / 2)
   return g
+})()
+// A figure on a pedestal instead of a thin box, for statue landmarks.
+const STATUE_GEO = (() => {
+  const pedestal = new BoxGeometry(0.95, 0.55, 0.95)
+  pedestal.translate(0, 0.27, 0)
+  const body = new CylinderGeometry(0.22, 0.32, 1.4, 8)
+  body.translate(0, 1.25, 0)
+  const head = new SphereGeometry(0.26, 8, 6)
+  head.translate(0, 2.1, 0)
+  return mergeGeometries([pedestal, body, head]) ?? pedestal
 })()
 // A rounded-top headstone instead of a flat slab.
 const GRAVE_GEO = (() => {
@@ -2030,6 +2041,19 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
         if (positions.length === 0) return null
         // Tents are extremely common — render them as a peaked canvas tent
         // (with a contrasting door flap) rather than a plain box.
+        if (kind === 'Statue') {
+          return (
+            <Layer
+              key={kind}
+              positions={positions}
+              yOffset={0}
+              geometry={STATUE_GEO}
+              color={spec.color}
+              maxCount={cap(positions.length)}
+              vary={0.12}
+            />
+          )
+        }
         if (kind === 'GraveStone') {
           return (
             <Layer
