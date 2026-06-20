@@ -39,8 +39,17 @@ const DEFAULTS: ViewFlags = {
 
 const TRACKED_FLAGS: Set<keyof ViewFlags> = new Set(['threeD', 'orgPov', 'photoMode', 'randomTour', 'hideUI'])
 
+function initialViewFlags(): ViewFlags {
+  if (typeof window === 'undefined') return DEFAULTS
+  const params = new URLSearchParams(window.location.search)
+  if (params.get('3d') === '1' || params.has('view3d')) {
+    return { ...DEFAULTS, threeD: true }
+  }
+  return DEFAULTS
+}
+
 export const createViewFlagsSlice: StateCreator<UIState, [], [], ViewFlagsSlice> = (set) => ({
-  viewFlags: DEFAULTS,
+  viewFlags: initialViewFlags(),
   setViewFlag: (k, v) =>
     set((s) => {
       if (s.viewFlags[k] === v) return s
