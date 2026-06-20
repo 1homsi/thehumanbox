@@ -14,6 +14,7 @@ import {
   PlaneGeometry,
   SpotLight,
 } from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { Building, BuildingFunction, BuildingKind } from '../../../types'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
@@ -220,7 +221,18 @@ const TOWER_CAP = (() => {
   return g
 })()
 const BRIDGE_GEO = new BoxGeometry(8.0, 0.5, 1.8)
-const WALL_GEO = new BoxGeometry(8.0, 2.4, 0.8)
+const WALL_GEO = (() => {
+  const base = new BoxGeometry(8.0, 2.4, 0.8)
+  const parts = [base]
+  // Crenellated battlements (merlons) along the top so walls read as
+  // fortifications rather than plain slabs.
+  for (const mx of [-3, -1.1, 1.1, 3]) {
+    const m = new BoxGeometry(1.1, 0.7, 0.86)
+    m.translate(mx, 1.55, 0)
+    parts.push(m)
+  }
+  return mergeGeometries(parts) ?? base
+})()
 const AQUE_TOP = new BoxGeometry(8.0, 0.6, 1.6)
 const AQUE_LEG = new BoxGeometry(0.7, 3.0, 1.4)
 
