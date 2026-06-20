@@ -987,6 +987,9 @@ interface LayerProps {
   offsetZ?: number
   tiers?: number[]
   conds?: number[]
+  // Per-instance brightness jitter (0..1) hashed from position, so a row of
+  // identical instances (e.g. roofs) reads as hand-built rather than cloned.
+  vary?: number
 }
 
 function Layer({
@@ -1003,15 +1006,20 @@ function Layer({
   offsetZ = 0,
   tiers,
   conds,
+  vary,
 }: LayerProps) {
   const meshRef = useRef<InstancedMesh>(null)
   const count = Math.min(positions.length, maxCount)
-  const material = getMat(tiers ? '#ffffff' : color, emissive ? { emissive, emissiveIntensity } : undefined)
+  const perInstanceColor = !!tiers || !!vary
+  const material = getMat(
+    perInstanceColor ? '#ffffff' : color,
+    emissive ? { emissive, emissiveIntensity } : undefined,
+  )
 
   useLayoutEffect(() => {
     const mesh = meshRef.current
     if (!mesh) return
-    const base = tiers ? new Color(color) : null
+    const base = perInstanceColor ? new Color(color) : null
     for (let i = 0; i < count; i++) {
       const [px, py, pz] = positions[i]
       const c = conds?.[i] ?? 1
@@ -1021,16 +1029,25 @@ function Layer({
       tmp.scale.set(scale, scale * yScale, scale)
       tmp.updateMatrix()
       mesh.setMatrixAt(i, tmp.matrix)
-      if (base && tiers) {
-        const [tint, w] = ERA_TIER_TINT[tiers[i] ?? 1] ?? ERA_TIER_TINT[1]
-        _tintScratch.copy(base).lerp(tint, w)
+      if (base) {
+        if (tiers) {
+          const [tint, w] = ERA_TIER_TINT[tiers[i] ?? 1] ?? ERA_TIER_TINT[1]
+          _tintScratch.copy(base).lerp(tint, w)
+        } else {
+          _tintScratch.copy(base)
+        }
+        if (vary) {
+          const hsh =
+            (Math.imul(((px | 0) * 73856093) ^ ((pz | 0) * 19349663), 2654435761) >>> 0) / 4294967295
+          _tintScratch.multiplyScalar(1 + (hsh - 0.5) * 2 * vary)
+        }
         mesh.setColorAt(i, _tintScratch)
       }
     }
     mesh.count = count
     mesh.instanceMatrix.needsUpdate = true
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
-  }, [positions, count, yOffset, scale, rotY, offsetX, offsetZ, tiers, conds, color])
+  }, [positions, count, yOffset, scale, rotY, offsetX, offsetZ, tiers, conds, color, vary, perInstanceColor])
 
   if (count === 0) return null
   return (
@@ -1775,6 +1792,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
                 color={GENERIC_ROOF_COLOR}
                 maxCount={cap(positions.length)}
                 conds={conds[kind]}
+                vary={0.34}
               />
             )}
           </group>
