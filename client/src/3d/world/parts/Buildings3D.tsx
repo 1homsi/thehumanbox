@@ -220,7 +220,23 @@ const TOWER_CAP = (() => {
   const g = new ConeGeometry(1.55, 2.0, 8)
   return g
 })()
-const BRIDGE_GEO = new BoxGeometry(8.0, 0.5, 1.8)
+const BRIDGE_GEO = (() => {
+  const deck = new BoxGeometry(8.0, 0.4, 1.8)
+  const parts = [deck]
+  // Side railings so a bridge reads as a built crossing, not a plank.
+  for (const rz of [-0.82, 0.82]) {
+    const rail = new BoxGeometry(8.0, 0.5, 0.16)
+    rail.translate(0, 0.42, rz)
+    parts.push(rail)
+  }
+  // Support posts dipping toward the water.
+  for (const px of [-2.6, 2.6]) {
+    const post = new BoxGeometry(0.4, 1.5, 0.45)
+    post.translate(px, -0.75, 0)
+    parts.push(post)
+  }
+  return mergeGeometries(parts) ?? deck
+})()
 const WALL_GEO = (() => {
   const base = new BoxGeometry(8.0, 2.4, 0.8)
   const parts = [base]
