@@ -137,6 +137,9 @@ const HUT_GEO = (() => {
 // A warm doorway/hearth glow so every hut twinkles at night, turning a
 // village into a constellation of golden lights rather than dark cones.
 const HUT_GLOW = new BoxGeometry(1.5, 1.9, 0.3)
+// A recessed doorway on generic buildings: a dark slab by day that warms to
+// a lit threshold at night, so every structure reads as a real building.
+const DOOR_GEO = new BoxGeometry(1.3, 2.0, 0.18)
 const HOUSE_WALL = new BoxGeometry(8.0, 5.4, 9.0)
 const HOUSE_ROOF = (() => {
   const g = new ConeGeometry(6.4, 4.0, 4)
@@ -1801,15 +1804,28 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
               conds={conds[kind]}
             />
             {wantsRoof(kind, spec) && (
-              <Layer
-                positions={positions}
-                yOffset={spec.height + genericRoofHeight(spec) / 2}
-                geometry={getGenericRoof(spec)}
-                color={GENERIC_ROOF_COLOR}
-                maxCount={cap(positions.length)}
-                conds={conds[kind]}
-                vary={0.34}
-              />
+              <>
+                <Layer
+                  positions={positions}
+                  yOffset={spec.height + genericRoofHeight(spec) / 2}
+                  geometry={getGenericRoof(spec)}
+                  color={GENERIC_ROOF_COLOR}
+                  maxCount={cap(positions.length)}
+                  conds={conds[kind]}
+                  vary={0.34}
+                />
+                <Layer
+                  positions={positions}
+                  yOffset={1.0}
+                  geometry={DOOR_GEO}
+                  color="#241810"
+                  emissive="#ff9a44"
+                  emissiveIntensity={windowsOn ? nightFrac * 1.3 : 0}
+                  maxCount={cap(positions.length)}
+                  offsetZ={spec.depth / 2 + 0.06}
+                  conds={conds[kind]}
+                />
+              </>
             )}
           </group>
         )
