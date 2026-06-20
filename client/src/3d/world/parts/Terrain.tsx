@@ -101,7 +101,24 @@ export function Terrain({ depthMap, biomes, width, height, season, pathTrail, on
 
         quads[i] = biomeQuadrant(b)
 
-        const [r, g, bl] = BIOME_COLORS[b] ?? BIOME_COLORS[0]
+        // Bilinearly blend biome colour across the four surrounding tiles so
+        // biome boundaries read as natural gradients instead of hard tile
+        // blocks on the subdivided mesh.
+        const x0 = Math.max(0, Math.min(width - 1, Math.floor(tx)))
+        const x1 = Math.min(width - 1, x0 + 1)
+        const y0b = Math.max(0, Math.min(height - 1, Math.floor(ty)))
+        const y1b = Math.min(height - 1, y0b + 1)
+        const fx = Math.max(0, Math.min(1, tx - x0))
+        const fy = Math.max(0, Math.min(1, ty - y0b))
+        const c00 = BIOME_COLORS[biomes[y0b]?.[x0] ?? 0] ?? BIOME_COLORS[0]
+        const c10 = BIOME_COLORS[biomes[y0b]?.[x1] ?? 0] ?? BIOME_COLORS[0]
+        const c01 = BIOME_COLORS[biomes[y1b]?.[x0] ?? 0] ?? BIOME_COLORS[0]
+        const c11 = BIOME_COLORS[biomes[y1b]?.[x1] ?? 0] ?? BIOME_COLORS[0]
+        const lx = (a: number, c: number) => a + (c - a) * fx
+        const ly = (a: number, c: number) => a + (c - a) * fy
+        const r = ly(lx(c00[0], c10[0]), lx(c01[0], c11[0]))
+        const g = ly(lx(c00[1], c10[1]), lx(c01[1], c11[1]))
+        const bl = ly(lx(c00[2], c10[2]), lx(c01[2], c11[2]))
         const darken = d >= 254 ? 1.0 : 0.45
         const jitter =
           (vNoise3d(tx / 5.3, ty / 5.3) - 0.5) * 0.045 + (vNoise3d(tx / 17 + 31, ty / 17 + 31) - 0.5) * 0.06
@@ -134,7 +151,11 @@ export function Terrain({ depthMap, biomes, width, height, season, pathTrail, on
             baseG = baseG * 0.55 + BEACH_3D[1] * 0.45
             baseB = baseB * 0.55 + BEACH_3D[2] * 0.45
           }
-          const trail = pathTrail?.[y]?.[x] ?? 0
+          const t00 = pathTrail?.[y0b]?.[x0] ?? 0
+          const t10 = pathTrail?.[y0b]?.[x1] ?? 0
+          const t01 = pathTrail?.[y1b]?.[x0] ?? 0
+          const t11 = pathTrail?.[y1b]?.[x1] ?? 0
+          const trail = ly(lx(t00, t10), lx(t01, t11))
           if (trail > 12) {
             const tw = Math.min(0.6, (trail / 255) * 0.85)
             baseR = baseR * (1 - tw) + WORN_PATH[0] * tw
