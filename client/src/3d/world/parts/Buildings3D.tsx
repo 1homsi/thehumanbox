@@ -480,6 +480,7 @@ interface GenericSpec {
 }
 
 const GENERIC_SPECS: Record<string, GenericSpec> = {
+  Workshop: { color: '#7a5a38', width: 5, height: 3.5, depth: 5, yOffset: 1.75 },
   Bank: { color: '#b8a878', width: 6, height: 5, depth: 5, yOffset: 2.5 },
   Granary: { color: '#b88848', width: 5, height: 4, depth: 5, yOffset: 2.4 },
   Barracks: { color: '#5a5a5a', width: 6, height: 3.5, depth: 5, yOffset: 1.75 },
@@ -895,6 +896,58 @@ function getGenericGeom(s: GenericSpec): BoxGeometry {
   if (!g) {
     g = new BoxGeometry(s.width, s.height, s.depth)
     GENERIC_GEOM_CACHE.set(key, g)
+  }
+  return g
+}
+
+// A plain coloured box reads as an unfinished block. Most building-shaped
+// generic kinds get a pitched hip roof so they read as real structures.
+// Flat props, towers, panels and pieces with their own silhouette opt out.
+const GENERIC_ROOF_COLOR = '#4a2f1e'
+const NO_ROOF = new Set<string>([
+  'OfficeTower',
+  'Skyscraper',
+  'WaterTower',
+  'Silo',
+  'OrbitalLift',
+  'Obelisk',
+  'RadioTower',
+  'Crane',
+  'Megastructure',
+  'Lighthouse2',
+  'ClockTower',
+  'Pagoda',
+  'WindFarm',
+  'Statue',
+  'Monument',
+  'FlagPole',
+  'SolarArray',
+  'Datacenter',
+  'AiCore',
+  'NeuralHub',
+  'FusionPlant',
+  'Cryolab',
+  'NanoFab',
+  'Biodome',
+  'Spaceport',
+])
+function genericRoofHeight(s: GenericSpec): number {
+  return Math.min(4, Math.max(1.3, s.height * 0.42))
+}
+function wantsRoof(kind: string, s: GenericSpec): boolean {
+  if (NO_ROOF.has(kind)) return false
+  return s.height >= 3 && s.height <= 9 && Math.min(s.width, s.depth) >= 3
+}
+const GENERIC_ROOF_CACHE = new Map<string, ConeGeometry>()
+function getGenericRoof(s: GenericSpec): ConeGeometry {
+  const r = Math.max(s.width, s.depth) * 0.72
+  const h = genericRoofHeight(s)
+  const key = `${r.toFixed(2)}|${h.toFixed(2)}`
+  let g = GENERIC_ROOF_CACHE.get(key)
+  if (!g) {
+    g = new ConeGeometry(r, h, 4)
+    g.rotateY(Math.PI / 4)
+    GENERIC_ROOF_CACHE.set(key, g)
   }
   return g
 }
@@ -1702,18 +1755,29 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
         const positions = groups[kind as BuildingKind] ?? []
         if (positions.length === 0) return null
         return (
-          <Layer
-            key={kind}
-            positions={positions}
-            yOffset={spec.yOffset}
-            geometry={getGenericGeom(spec)}
-            color={spec.color}
-            emissive={spec.emissive}
-            emissiveIntensity={spec.emissiveIntensity}
-            maxCount={cap(positions.length)}
-            tiers={tiers[kind]}
-            conds={conds[kind]}
-          />
+          <group key={kind}>
+            <Layer
+              positions={positions}
+              yOffset={spec.yOffset}
+              geometry={getGenericGeom(spec)}
+              color={spec.color}
+              emissive={spec.emissive}
+              emissiveIntensity={spec.emissiveIntensity}
+              maxCount={cap(positions.length)}
+              tiers={tiers[kind]}
+              conds={conds[kind]}
+            />
+            {wantsRoof(kind, spec) && (
+              <Layer
+                positions={positions}
+                yOffset={spec.height + genericRoofHeight(spec) / 2}
+                geometry={getGenericRoof(spec)}
+                color={GENERIC_ROOF_COLOR}
+                maxCount={cap(positions.length)}
+                conds={conds[kind]}
+              />
+            )}
+          </group>
         )
       })}
 
