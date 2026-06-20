@@ -28,50 +28,66 @@ const FIELD_GEO = new BoxGeometry(1, 0.12, 1)
 
 // A tilled, crop-coloured ground patch per farm so croplands read as golden
 // patchwork from above; the stalks below add detail up close.
+const FURROWS = 5
 function FieldPlanes({ buildings, depthMap, biomes }: Props) {
   const ref = useRef<InstancedMesh>(null)
-  const fields = useMemo(() => {
+  // Each field is rendered as FURROWS alternating-shade strips so it reads as
+  // a plowed, cultivated plot rather than a flat colour patch.
+  const strips = useMemo(() => {
     if (!buildings || !depthMap || !biomes) return []
-    const out: Array<{ x: number; y: number; z: number; id: number }> = []
+    const out: Array<{ x: number; y: number; z: number; w: number; d: number; rot: number; shade: number }> =
+      []
     for (const b of buildings) {
       if ((b.condition ?? 1) < 0.5) continue
       if (!FARMABLE.has(b.kind.toLowerCase())) continue
       const fw = b.fw ?? 1
-      out.push({
-        x: (b.x + fw + 1.8) * TILE_SCALE,
-        y: heightAt(b.x + fw, b.y, depthMap, biomes) + 0.07,
-        z: (b.y + 1.3) * TILE_SCALE,
-        id: b.id,
-      })
+      const h = (Math.imul(b.id, 2654435761) >>> 0) / 4294967295
+      const cx = (b.x + fw + 1.8) * TILE_SCALE
+      const cz = (b.y + 1.3) * TILE_SCALE
+      const cy = heightAt(b.x + fw, b.y, depthMap, biomes) + 0.07
+      const fieldW = 5 + h * 2.5
+      const fieldD = 4.5 + h * 2
+      const rot = h * Math.PI
+      const stripD = fieldD / FURROWS
+      for (let s = 0; s < FURROWS; s++) {
+        const off = (s + 0.5) * stripD - fieldD / 2
+        out.push({
+          x: cx + Math.sin(rot) * off,
+          y: cy + (s % 2) * 0.02,
+          z: cz + Math.cos(rot) * off,
+          w: fieldW,
+          d: stripD * 0.92,
+          rot,
+          shade: (s % 2) * 0.12 + h * 0.18,
+        })
+      }
     }
-    return out.slice(0, 500)
+    return out.slice(0, 2500)
   }, [buildings, depthMap, biomes])
 
   useLayoutEffect(() => {
     const m = ref.current
     if (!m) return
-    for (let i = 0; i < fields.length; i++) {
-      const f = fields[i]
-      const h = (Math.imul(f.id, 2654435761) >>> 0) / 4294967295
+    for (let i = 0; i < strips.length; i++) {
+      const f = strips[i]
       tmp.position.set(f.x, f.y, f.z)
-      tmp.rotation.set(0, h * Math.PI, 0)
-      tmp.scale.set(5 + h * 2.5, 1, 4.5 + h * 2)
+      tmp.rotation.set(0, f.rot, 0)
+      tmp.scale.set(f.w, 1, f.d)
       tmp.updateMatrix()
       m.setMatrixAt(i, tmp.matrix)
-      // Wheat-gold to tilled-green, varied per field.
-      _fcol.setRGB(0.52 + h * 0.18, 0.5 + h * 0.06, 0.24 + h * 0.05)
+      _fcol.setRGB(0.46 + f.shade, 0.46 + f.shade * 0.5, 0.22 + f.shade * 0.4)
       m.setColorAt(i, _fcol)
     }
-    m.count = fields.length
+    m.count = strips.length
     m.instanceMatrix.needsUpdate = true
     if (m.instanceColor) m.instanceColor.needsUpdate = true
-  }, [fields])
+  }, [strips])
 
-  if (fields.length === 0) return null
+  if (strips.length === 0) return null
   return (
     <instancedMesh
       ref={ref}
-      args={[FIELD_GEO, undefined, Math.max(1, fields.length)]}
+      args={[FIELD_GEO, undefined, Math.max(1, strips.length)]}
       receiveShadow
       frustumCulled={false}
     >
