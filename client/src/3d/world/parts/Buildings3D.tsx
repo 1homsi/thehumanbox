@@ -1253,7 +1253,12 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
     const barrels: [number, number, number][] = []
     const crates: [number, number, number][] = []
     const wood: [number, number, number][] = []
-    const dwellings = [...huts, ...houses, ...manors, ...townhouses]
+    const dwellings = [
+      ...(groups.Hut ?? []),
+      ...(groups.House ?? []),
+      ...(groups.Manor ?? []),
+      ...(groups.TownHouse ?? []),
+    ]
     for (const [px, py, pz] of dwellings) {
       const h = hash01(px, pz, 1)
       if (h < 0.55) barrels.push([px + 3.4 + h * 1.5, py, pz + 2.6 - h * 1.2])
@@ -1263,7 +1268,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
       if (h3 < 0.4) wood.push([px - 0.5 + h3 * 2, py, pz - 3.4 - h3])
     }
     return { barrels, crates, wood }
-  }, [huts, houses, manors, townhouses])
+  }, [groups])
 
   return (
     <>
