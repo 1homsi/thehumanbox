@@ -45,6 +45,9 @@ pub fn tick_civ(sim: &mut Simulation) {
         tick_artwork(sim);
         tick_books(sim);
     }
+    if tick.is_multiple_of(1600) {
+        tick_religion_schism(sim);
+    }
     if tick.is_multiple_of(240) {
         tick_religion_adherents(sim);
         tick_religion_effects(sim);
@@ -1936,6 +1939,75 @@ fn pick_leaders(sim: &mut Simulation, lineages: &[String]) {
         while sim.headlines.len() > 80 {
             sim.headlines.pop_front();
         }
+    }
+}
+
+fn tick_religion_schism(sim: &mut Simulation) {
+    use rand::Rng;
+    let mut counts: HashMap<String, u32> = HashMap::new();
+    for o in sim.organisms.iter().filter(|o| o.alive) {
+        if let Some(rid) = o.religion_id.as_ref() {
+            *counts.entry(rid.clone()).or_insert(0) += 1;
+        }
+    }
+    let big = counts.iter().filter(|(_, n)| **n >= 12).max_by_key(|(_, n)| **n);
+    let Some((parent_id, _)) = big else {
+        return;
+    };
+    let parent_id = parent_id.clone();
+    if sim.rng.random::<f32>() >= 0.05 {
+        return;
+    }
+    let Some(parent) = sim.religions.iter().find(|r| r.id == parent_id) else {
+        return;
+    };
+    let kind = parent.kind;
+    let parent_name = parent.name.clone();
+
+    let converts: Vec<usize> = sim
+        .organisms
+        .iter()
+        .enumerate()
+        .filter(|(_, o)| o.alive && o.religion_id.as_deref() == Some(parent_id.as_str()))
+        .map(|(i, _)| i)
+        .collect();
+    let mut chosen: Vec<usize> = Vec::new();
+    for i in converts {
+        if sim.rng.random::<f32>() < 0.4 {
+            chosen.push(i);
+        }
+    }
+    if chosen.len() < 3 {
+        return;
+    }
+
+    let sect_id = format!("rel{}", sim.next_religion_id);
+    sim.next_religion_id += 1;
+    let sect_name = pick_religion_name(sim.tick_count + chosen.len() as u64 + 7).to_string();
+    let founder_lineage = sim.organisms[chosen[0]].lineage_id.clone();
+    let tick = sim.tick_count;
+    for &i in &chosen {
+        sim.organisms[i].religion_id = Some(sect_id.clone());
+    }
+    sim.religions.push(Religion {
+        id: sect_id,
+        kind,
+        name: sect_name.clone(),
+        founded_tick: tick,
+        founder_lineage,
+        adherents: chosen.len() as u32,
+        last_milestone: None,
+    });
+    let line = format!(
+        "\u{271D}\u{FE0F} A schism splits {}: the {} sect breaks away with {} believers.",
+        parent_name,
+        sect_name,
+        chosen.len()
+    );
+    push_event(&mut sim.events, tick, "religion", "world", &line);
+    sim.headlines.push_back((tick, line));
+    while sim.headlines.len() > 80 {
+        sim.headlines.pop_front();
     }
 }
 
