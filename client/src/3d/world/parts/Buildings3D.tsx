@@ -149,6 +149,13 @@ const WATCH_CAP = (() => {
   g.rotateY(Math.PI / 6)
   return g
 })()
+// A peaked canvas tent (very common prop) + a dark door flap.
+const TENT_GEO = (() => {
+  const g = new ConeGeometry(1.5, 2.2, 4)
+  g.rotateY(Math.PI / 4)
+  return g
+})()
+const TENT_FLAP = new BoxGeometry(0.7, 1.2, 0.1)
 // Lived-in clutter scattered beside dwellings so a village reads as inhabited.
 const BARREL_GEO = new CylinderGeometry(0.5, 0.45, 1.3, 8)
 const CRATE_GEO = new BoxGeometry(0.95, 0.95, 0.95)
@@ -1960,6 +1967,33 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
       {Object.entries(GENERIC_SPECS).map(([kind, spec]) => {
         const positions = groups[kind as BuildingKind] ?? []
         if (positions.length === 0) return null
+        // Tents are extremely common — render them as a peaked canvas tent
+        // (with a contrasting door flap) rather than a plain box.
+        if (kind === 'Tent') {
+          return (
+            <group key={kind}>
+              <Layer
+                positions={positions}
+                yOffset={1.0}
+                geometry={TENT_GEO}
+                color={spec.color}
+                maxCount={cap(positions.length)}
+                tiers={tiers[kind]}
+                conds={conds[kind]}
+                vary={0.16}
+              />
+              <Layer
+                positions={positions}
+                yOffset={0.65}
+                geometry={TENT_FLAP}
+                color="#3a2c18"
+                maxCount={cap(positions.length)}
+                offsetZ={1.0}
+                conds={conds[kind]}
+              />
+            </group>
+          )
+        }
         return (
           <group key={kind}>
             <Layer
