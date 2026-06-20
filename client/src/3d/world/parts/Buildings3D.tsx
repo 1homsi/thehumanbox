@@ -174,6 +174,19 @@ const CART_WHEEL = (() => {
   g.rotateZ(Math.PI / 2)
   return g
 })()
+// A gateway (two posts + lintel beam) instead of a solid box.
+const GATE_GEO = (() => {
+  const parts = []
+  for (const px of [-0.62, 0.62]) {
+    const post = new BoxGeometry(0.3, 2.2, 0.45)
+    post.translate(px, 1.1, 0)
+    parts.push(post)
+  }
+  const beam = new BoxGeometry(1.7, 0.45, 0.55)
+  beam.translate(0, 2.05, 0)
+  parts.push(beam)
+  return mergeGeometries(parts) ?? parts[0]
+})()
 // A post-and-rail fence panel instead of a solid slab.
 const FENCE_GEO = (() => {
   const parts = []
@@ -2008,6 +2021,20 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
         if (positions.length === 0) return null
         // Tents are extremely common — render them as a peaked canvas tent
         // (with a contrasting door flap) rather than a plain box.
+        if (kind === 'Gate') {
+          return (
+            <Layer
+              key={kind}
+              positions={positions}
+              yOffset={0}
+              geometry={GATE_GEO}
+              color={spec.color}
+              maxCount={cap(positions.length)}
+              tiers={tiers[kind]}
+              vary={0.14}
+            />
+          )
+        }
         if (kind === 'Fence') {
           return (
             <Layer
