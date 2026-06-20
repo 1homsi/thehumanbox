@@ -459,8 +459,8 @@ function collectFeatures(
 
 const BUSH_GEO = new SphereGeometry(0.55, 6, 5)
 const GRASS_TUFT_GEO = new ConeGeometry(0.18, 0.5, 4)
-const FLOWER_STEM = new CylinderGeometry(0.025, 0.03, 0.28, 4)
-const FLOWER_HEAD = new SphereGeometry(0.09, 5, 4)
+const FLOWER_STEM = new CylinderGeometry(0.03, 0.035, 0.34, 4)
+const FLOWER_HEAD = new SphereGeometry(0.14, 6, 5)
 const PINE_TRUNK = new CylinderGeometry(0.16, 0.22, 1.4, 5)
 const PINE_CANOPY = new ConeGeometry(1.4, 3.2, 6)
 const OAK_TRUNK = new CylinderGeometry(0.2, 0.28, 1.6, 6)
