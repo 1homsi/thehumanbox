@@ -563,6 +563,10 @@ interface InstanceProps {
   scale?: number
   randomYaw?: boolean
   wind?: { heightRef: number; strength?: number }
+  // Per-instance size spread: base + seed*range. Defaults to a tight 0.85..1.15;
+  // trees pass a wider range so a forest mixes saplings and giants.
+  scaleBase?: number
+  scaleRange?: number
 }
 
 function InstanceLayer({
@@ -574,6 +578,8 @@ function InstanceLayer({
   scale = 1,
   randomYaw = false,
   wind,
+  scaleBase = 0.85,
+  scaleRange = 0.3,
 }: InstanceProps) {
   const meshRef = useRef<InstancedMesh>(null)
   const count = Math.min(positions.length, maxCount)
@@ -598,13 +604,13 @@ function InstanceLayer({
       const [px, py, pz] = positions[i]
       tmp.position.set(px, py + yOffset, pz)
       tmp.rotation.set(0, randomYaw ? seed(i) * Math.PI * 2 : 0, 0)
-      tmp.scale.setScalar(scale * (0.85 + seed(i + 100) * 0.3))
+      tmp.scale.setScalar(scale * (scaleBase + seed(i + 100) * scaleRange))
       tmp.updateMatrix()
       mesh.setMatrixAt(i, tmp.matrix)
     }
     mesh.count = count
     mesh.instanceMatrix.needsUpdate = true
-  }, [positions, count, yOffset, scale, randomYaw])
+  }, [positions, count, yOffset, scale, randomYaw, scaleBase, scaleRange])
 
   if (count === 0) return null
   return (
@@ -835,6 +841,8 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height, pathTrail
         color="#5a3f25"
         maxCount={20000}
         randomYaw
+        scaleBase={0.85}
+        scaleRange={0.55}
       />
       <InstanceLayer
         positions={features.trees[0]}
@@ -843,6 +851,8 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height, pathTrail
         color="#264f25"
         maxCount={20000}
         randomYaw
+        scaleBase={0.85}
+        scaleRange={0.55}
         wind={{ heightRef: 1.6, strength: 0.9 }}
       />
 
@@ -854,6 +864,8 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height, pathTrail
         color="#6a4a2c"
         maxCount={15000}
         randomYaw
+        scaleBase={0.85}
+        scaleRange={0.55}
       />
       <InstanceLayer
         positions={features.trees[1]}
@@ -862,6 +874,8 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height, pathTrail
         color="#37753c"
         maxCount={15000}
         randomYaw
+        scaleBase={0.85}
+        scaleRange={0.55}
         wind={{ heightRef: 1.3, strength: 1.1 }}
       />
 
@@ -873,6 +887,8 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height, pathTrail
         color="#7a5a2e"
         maxCount={4000}
         randomYaw
+        scaleBase={0.85}
+        scaleRange={0.55}
       />
       <InstanceLayer
         positions={features.trees[2]}
@@ -881,6 +897,8 @@ export function TileFeatures({ tiles, biomes, depthMap, width, height, pathTrail
         color="#4a8f3a"
         maxCount={4000}
         randomYaw
+        scaleBase={0.85}
+        scaleRange={0.55}
         wind={{ heightRef: 0.3, strength: 1.4 }}
       />
 
