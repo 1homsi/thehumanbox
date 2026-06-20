@@ -40,6 +40,13 @@ impl GovernmentKind {
             GovernmentKind::Corporate => Era::Information,
         }
     }
+    pub fn is_hereditary(self) -> bool {
+        matches!(
+            self,
+            GovernmentKind::Monarchy | GovernmentKind::Empire | GovernmentKind::Chiefdom
+        )
+    }
+
     pub fn leader_count(self) -> u8 {
         match self {
             GovernmentKind::Tribal => 0,

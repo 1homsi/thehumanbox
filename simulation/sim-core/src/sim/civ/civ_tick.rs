@@ -1819,6 +1819,9 @@ fn tick_leader_influence(sim: &mut Simulation) {
 }
 
 fn pick_leaders(sim: &mut Simulation, lineages: &[String]) {
+    use rand::Rng;
+    let mut announcements: Vec<(u64, String)> = Vec::new();
+    let tick = sim.tick_count;
     for lid in lineages {
         let Some(g) = sim.governments.get(lid) else {
             continue;
@@ -1828,7 +1831,17 @@ fn pick_leaders(sim: &mut Simulation, lineages: &[String]) {
             continue;
         }
         let want = kind.leader_count() as usize;
-        let mut candidates: Vec<(usize, f32)> = Vec::new();
+        let prev_leader_id = g.leader_id.clone();
+        let prev_leader_alive = prev_leader_id
+            .as_ref()
+            .map(|id| {
+                sim.organisms
+                    .iter()
+                    .any(|o| o.alive && &o.id == id && &o.lineage_id == lid)
+            })
+            .unwrap_or(false);
+
+        let mut candidates: Vec<(usize, f32, String)> = Vec::new();
         for (i, o) in sim.organisms.iter().enumerate() {
             if !o.alive || o.lineage_id != *lid {
                 continue;
@@ -1838,27 +1851,90 @@ fn pick_leaders(sim: &mut Simulation, lineages: &[String]) {
             }
             let score =
                 o.traits.social_tendency + o.traits.memory_strength + o.traits.curiosity + (o.literacy * 0.5);
-            candidates.push((i, score));
+            candidates.push((i, score, o.id.clone()));
+        }
+        if candidates.is_empty() {
+            continue;
         }
         candidates.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-        let leaders: Vec<usize> = candidates.iter().take(want).map(|c| c.0).collect();
+
+        // A living monarch reigns until death — but may be toppled in a coup.
+        let coup = prev_leader_alive
+            && kind.is_hereditary()
+            && candidates.len() > 1
+            && sim.rng.random::<f32>() < 0.02;
+
+        let mut primary_idx = candidates[0].0;
+        let mut event: Option<&str> = None;
+        if prev_leader_alive && !coup {
+            if let Some(pid) = &prev_leader_id {
+                if let Some(c) = candidates.iter().find(|c| &c.2 == pid) {
+                    primary_idx = c.0;
+                }
+            }
+        } else if coup {
+            // Highest-scoring challenger who is not the deposed ruler.
+            if let Some(c) = candidates.iter().find(|c| Some(&c.2) != prev_leader_id.as_ref()) {
+                primary_idx = c.0;
+            }
+            event = Some("seized power in a coup");
+        } else {
+            // Vacant throne. Hereditary lines pass to an heir if one lives.
+            if kind.is_hereditary() {
+                if let Some(pid) = &prev_leader_id {
+                    let heir = candidates.iter().find(|c| {
+                        let o = &sim.organisms[c.0];
+                        o.parent_id == *pid || o.father_id.as_deref() == Some(pid.as_str())
+                    });
+                    if let Some(h) = heir {
+                        primary_idx = h.0;
+                        event = Some("succeeds to the throne as heir");
+                    } else {
+                        event = Some("takes the throne, the old line ended");
+                    }
+                }
+            }
+        }
+
+        let council_ids: Vec<String> = candidates
+            .iter()
+            .filter(|c| c.0 != primary_idx)
+            .take(want.saturating_sub(1))
+            .map(|c| c.2.clone())
+            .collect();
+        let leader_id = sim.organisms[primary_idx].id.clone();
+
         for o in sim.organisms.iter_mut() {
             if o.lineage_id == *lid {
                 o.is_leader = false;
             }
         }
-        let leader_id = leaders.first().map(|&i| sim.organisms[i].id.clone());
-        let council_ids: Vec<String> = leaders
-            .iter()
-            .skip(1)
-            .map(|&i| sim.organisms[i].id.clone())
-            .collect();
-        for &i in &leaders {
-            sim.organisms[i].is_leader = true;
+        sim.organisms[primary_idx].is_leader = true;
+        for cid in &council_ids {
+            if let Some(o) = sim.organisms.iter_mut().find(|o| &o.id == cid) {
+                o.is_leader = true;
+            }
         }
+
+        if let Some(verb) = event {
+            let lname = sim.lineage_names.get(lid).cloned().unwrap_or_else(|| lid.clone());
+            let leader_name = sim.organisms[primary_idx].name.clone();
+            announcements.push((
+                tick,
+                format!("\u{1F451} {} of the {} {}.", leader_name, lname, verb),
+            ));
+        }
+
         if let Some(g) = sim.governments.get_mut(lid) {
-            g.leader_id = leader_id;
+            g.leader_id = Some(leader_id);
             g.council_ids = council_ids;
+        }
+    }
+    for (t, line) in announcements {
+        push_event(&mut sim.events, t, "government_changed", "world", &line);
+        sim.headlines.push_back((t, line));
+        while sim.headlines.len() > 80 {
+            sim.headlines.pop_front();
         }
     }
 }
