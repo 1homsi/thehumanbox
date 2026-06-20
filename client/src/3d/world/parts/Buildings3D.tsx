@@ -158,6 +158,14 @@ const TENT_GEO = (() => {
 const TENT_FLAP = new BoxGeometry(0.7, 1.2, 0.1)
 // A board hung on the very common signpost so it reads as a sign, not a stick.
 const SIGN_BOARD = new BoxGeometry(1.2, 0.6, 0.12)
+// A proper stone well (common village centrepiece) instead of a grey box.
+const WELL_DRUM = new CylinderGeometry(0.62, 0.68, 0.95, 12)
+const WELL_POST = new BoxGeometry(0.13, 1.5, 0.13)
+const WELL_ROOF = (() => {
+  const g = new ConeGeometry(0.95, 0.6, 4)
+  g.rotateY(Math.PI / 4)
+  return g
+})()
 // Lived-in clutter scattered beside dwellings so a village reads as inhabited.
 const BARREL_GEO = new CylinderGeometry(0.5, 0.45, 1.3, 8)
 const CRATE_GEO = new BoxGeometry(0.95, 0.95, 0.95)
@@ -1971,6 +1979,44 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
         if (positions.length === 0) return null
         // Tents are extremely common — render them as a peaked canvas tent
         // (with a contrasting door flap) rather than a plain box.
+        if (kind === 'Well') {
+          return (
+            <group key={kind}>
+              <Layer
+                positions={positions}
+                yOffset={0.48}
+                geometry={WELL_DRUM}
+                color="#8a8278"
+                maxCount={cap(positions.length)}
+                vary={0.16}
+              />
+              <Layer
+                positions={positions}
+                yOffset={1.2}
+                geometry={WELL_POST}
+                color="#5e4226"
+                maxCount={cap(positions.length)}
+                offsetX={-0.5}
+              />
+              <Layer
+                positions={positions}
+                yOffset={1.2}
+                geometry={WELL_POST}
+                color="#5e4226"
+                maxCount={cap(positions.length)}
+                offsetX={0.5}
+              />
+              <Layer
+                positions={positions}
+                yOffset={2.05}
+                geometry={WELL_ROOF}
+                color={GENERIC_ROOF_COLOR}
+                maxCount={cap(positions.length)}
+                vary={0.3}
+              />
+            </group>
+          )
+        }
         if (kind === 'Tent') {
           return (
             <group key={kind}>
