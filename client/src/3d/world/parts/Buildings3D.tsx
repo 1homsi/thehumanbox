@@ -174,6 +174,21 @@ const CART_WHEEL = (() => {
   g.rotateZ(Math.PI / 2)
   return g
 })()
+// A post-and-rail fence panel instead of a solid slab.
+const FENCE_GEO = (() => {
+  const parts = []
+  for (const px of [-0.45, 0.45]) {
+    const post = new BoxGeometry(0.12, 1.0, 0.12)
+    post.translate(px, 0.5, 0)
+    parts.push(post)
+  }
+  for (const ry of [0.32, 0.74]) {
+    const rail = new BoxGeometry(1.0, 0.1, 0.08)
+    rail.translate(0, ry, 0)
+    parts.push(rail)
+  }
+  return mergeGeometries(parts) ?? parts[0]
+})()
 const STALL_KINDS = new Set(['MarketStall', 'FoodCart', 'Kiosk'])
 const STALL_AWNING_COLOR: Record<string, string> = {
   MarketStall: '#c0392b',
@@ -1993,6 +2008,19 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
         if (positions.length === 0) return null
         // Tents are extremely common — render them as a peaked canvas tent
         // (with a contrasting door flap) rather than a plain box.
+        if (kind === 'Fence') {
+          return (
+            <Layer
+              key={kind}
+              positions={positions}
+              yOffset={0}
+              geometry={FENCE_GEO}
+              color={spec.color}
+              maxCount={cap(positions.length)}
+              vary={0.16}
+            />
+          )
+        }
         if (kind === 'Well') {
           return (
             <group key={kind}>
