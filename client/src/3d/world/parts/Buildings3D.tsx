@@ -143,6 +143,12 @@ const HUT_GLOW = new BoxGeometry(1.5, 1.9, 0.3)
 // A recessed doorway on generic buildings: a dark slab by day that warms to
 // a lit threshold at night, so every structure reads as a real building.
 const DOOR_GEO = new BoxGeometry(1.3, 2.0, 0.18)
+// Pointed cap so watchtowers (too narrow for the generic roof) read as towers.
+const WATCH_CAP = (() => {
+  const g = new ConeGeometry(1.7, 2.2, 6)
+  g.rotateY(Math.PI / 6)
+  return g
+})()
 // Lived-in clutter scattered beside dwellings so a village reads as inhabited.
 const BARREL_GEO = new CylinderGeometry(0.5, 0.45, 1.3, 8)
 const CRATE_GEO = new BoxGeometry(0.95, 0.95, 0.95)
@@ -1990,6 +1996,16 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
                   conds={conds[kind]}
                 />
               </>
+            )}
+            {kind === 'Watchtower' && (
+              <Layer
+                positions={positions}
+                yOffset={spec.height + 1.0}
+                geometry={WATCH_CAP}
+                color={GENERIC_ROOF_COLOR}
+                maxCount={cap(positions.length)}
+                conds={conds[kind]}
+              />
             )}
           </group>
         )
