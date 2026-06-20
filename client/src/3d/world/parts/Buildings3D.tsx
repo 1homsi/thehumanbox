@@ -1,8 +1,10 @@
 import { useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import {
+  AdditiveBlending,
   BoxGeometry,
   BufferGeometry,
+  CircleGeometry,
   Color,
   ConeGeometry,
   CylinderGeometry,
@@ -1074,6 +1076,51 @@ function Layer({
   )
 }
 
+const GLOW_DISC = (() => {
+  const g = new CircleGeometry(1, 18)
+  g.rotateX(-Math.PI / 2)
+  return g
+})()
+
+// Cheap warm light-pools on the ground beneath lit dwellings at night — fakes
+// hearth-light spilling out without the cost of real point lights.
+function GroundGlow({ positions, nightFrac }: { positions: [number, number, number][]; nightFrac: number }) {
+  const meshRef = useRef<InstancedMesh>(null)
+  const count = positions.length
+  useLayoutEffect(() => {
+    const mesh = meshRef.current
+    if (!mesh) return
+    for (let i = 0; i < count; i++) {
+      const [px, py, pz] = positions[i]
+      tmp.position.set(px, py + 0.18, pz)
+      tmp.rotation.set(0, 0, 0)
+      tmp.scale.setScalar(4.4)
+      tmp.updateMatrix()
+      mesh.setMatrixAt(i, tmp.matrix)
+    }
+    mesh.count = count
+    mesh.instanceMatrix.needsUpdate = true
+  }, [positions, count])
+  if (count === 0) return null
+  return (
+    <instancedMesh
+      ref={meshRef}
+      args={[GLOW_DISC, undefined, Math.max(1, count)]}
+      renderOrder={-1}
+      frustumCulled={false}
+    >
+      <meshBasicMaterial
+        color="#ff9440"
+        transparent
+        opacity={Math.min(0.32, nightFrac * 0.32)}
+        blending={AdditiveBlending}
+        depthWrite={false}
+        toneMapped={false}
+      />
+    </instancedMesh>
+  )
+}
+
 function SpinningBlades({
   positions,
   axis,
@@ -1272,6 +1319,9 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
 
   return (
     <>
+      {windowsOn && (
+        <GroundGlow positions={[...huts, ...houses, ...manors, ...townhouses]} nightFrac={nightFrac} />
+      )}
       {clutter.barrels.length > 0 && (
         <Layer
           positions={clutter.barrels}
