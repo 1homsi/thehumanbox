@@ -993,6 +993,7 @@ impl Simulation {
                 &mut self.history.deaths_combat,
                 &self.lineage_eras,
             );
+            self.apply_conquests();
         }
 
         growth::deliver_births(
@@ -4886,6 +4887,77 @@ impl Simulation {
 
     pub fn is_night(&self) -> bool {
         (self.tick_count % DAY_LENGTH) >= (DAY_LENGTH as f64 * 0.7) as u64
+    }
+
+    fn apply_conquests(&mut self) {
+        use super::warfare::BattleOutcome;
+        let now = self.tick_count;
+        let conquests: Vec<(String, String, (i32, i32))> = self
+            .battles
+            .iter()
+            .filter(|b| b.ended_tick == Some(now))
+            .filter_map(|b| {
+                let (loser, winner) = match b.outcome {
+                    Some(BattleOutcome::AttackerVictory) => (b.defenders.first()?, b.attackers.first()?),
+                    Some(BattleOutcome::DefenderVictory) => (b.attackers.first()?, b.defenders.first()?),
+                    _ => return None,
+                };
+                if loser == winner {
+                    return None;
+                }
+                Some((loser.clone(), winner.clone(), b.location))
+            })
+            .collect();
+        for (loser, winner, (lx, ly)) in conquests {
+            let Some(loser_tiles) = self.territory.get(&loser).cloned() else {
+                continue;
+            };
+            let r = 14;
+            let taken: Vec<(i32, i32)> = loser_tiles
+                .iter()
+                .copied()
+                .filter(|&(x, y)| (x - lx).abs() <= r && (y - ly).abs() <= r)
+                .collect();
+            if taken.len() < 4 {
+                continue;
+            }
+            if let Some(lset) = self.territory.get_mut(&loser) {
+                for t in &taken {
+                    lset.remove(t);
+                }
+            }
+            let wset = self.territory.entry(winner.clone()).or_default();
+            for &t in &taken {
+                wset.insert(t);
+            }
+            let taken_set: std::collections::HashSet<(i32, i32)> = taken.iter().copied().collect();
+            for b in self.buildings.iter_mut() {
+                if taken_set.contains(&(b.x, b.y)) {
+                    b.owner_lineage = Some(winner.clone());
+                }
+            }
+            let wname = self
+                .lineage_names
+                .get(&winner)
+                .cloned()
+                .unwrap_or_else(|| winner.clone());
+            let lname = self
+                .lineage_names
+                .get(&loser)
+                .cloned()
+                .unwrap_or_else(|| loser.clone());
+            let line = format!(
+                "\u{2694}\u{FE0F} The {} conquered {} tiles of {} land.",
+                wname,
+                taken.len(),
+                lname
+            );
+            push_event(&mut self.events, now, "milestone", "world", &line);
+            self.headlines.push_back((now, line));
+            while self.headlines.len() > 80 {
+                self.headlines.pop_front();
+            }
+        }
     }
 
     pub fn season(&self) -> &'static str {
