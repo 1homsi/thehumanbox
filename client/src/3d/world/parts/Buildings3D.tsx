@@ -174,6 +174,15 @@ const CART_WHEEL = (() => {
   g.rotateZ(Math.PI / 2)
   return g
 })()
+// A rounded-top headstone instead of a flat slab.
+const GRAVE_GEO = (() => {
+  const slab = new BoxGeometry(0.7, 1.0, 0.24)
+  slab.translate(0, 0.5, 0)
+  const cap = new CylinderGeometry(0.35, 0.35, 0.24, 12)
+  cap.rotateX(Math.PI / 2)
+  cap.translate(0, 1.0, 0)
+  return mergeGeometries([slab, cap]) ?? slab
+})()
 // A gateway (two posts + lintel beam) instead of a solid box.
 const GATE_GEO = (() => {
   const parts = []
@@ -2021,6 +2030,19 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
         if (positions.length === 0) return null
         // Tents are extremely common — render them as a peaked canvas tent
         // (with a contrasting door flap) rather than a plain box.
+        if (kind === 'GraveStone') {
+          return (
+            <Layer
+              key={kind}
+              positions={positions}
+              yOffset={0}
+              geometry={GRAVE_GEO}
+              color={spec.color}
+              maxCount={cap(positions.length)}
+              vary={0.16}
+            />
+          )
+        }
         if (kind === 'Gate') {
           return (
             <Layer
