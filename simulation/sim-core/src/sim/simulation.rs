@@ -1336,12 +1336,17 @@ impl Simulation {
             let my_lid = self.organisms[idx].lineage_id.clone();
             let intruders: Vec<String> = if let Some(elder_id) = self.lineage_elders.get(&my_lid) {
                 if let Some(&elder_idx) = org_idx_by_id.get(elder_id) {
-                    let elder = &self.organisms[elder_idx];
-                    let (ex, ey) = (elder.home_x, elder.home_y);
-                    let org = &self.organisms[idx];
-                    if (org.x - ex).abs() + (org.y - ey).abs() < 20.0 {
+                    let ex = self.organisms[elder_idx].home_x;
+                    let ey = self.organisms[elder_idx].home_y;
+                    let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
+                    if (ox - ex).abs() + (oy - ey).abs() < 20.0 {
+                        // Query the spatial index around the home instead of
+                        // scanning every organism — this block runs per-tick
+                        // for every organism near its lineage's elder home.
+                        spatial.query_into(ex as i32, ey as i32, 12, spatial_buf);
                         let mut v: Vec<String> = Vec::new();
-                        for o in self.organisms.iter() {
+                        for &i in spatial_buf.iter() {
+                            let o = &self.organisms[i];
                             if !o.alive || o.lineage_id == my_lid {
                                 continue;
                             }
