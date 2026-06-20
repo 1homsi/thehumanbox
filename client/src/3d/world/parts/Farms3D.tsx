@@ -1,6 +1,14 @@
 import { useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { BoxGeometry, Color, ConeGeometry, InstancedMesh, MeshStandardMaterial, Object3D } from 'three'
+import {
+  BoxGeometry,
+  Color,
+  ConeGeometry,
+  InstancedMesh,
+  MeshStandardMaterial,
+  Object3D,
+  SphereGeometry,
+} from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { Building } from '../../../types'
 import { TILE_SCALE } from './constants'
@@ -68,6 +76,69 @@ function FieldPlanes({ buildings, depthMap, biomes }: Props) {
       frustumCulled={false}
     >
       <meshStandardMaterial color="#ffffff" roughness={0.96} />
+    </instancedMesh>
+  )
+}
+
+const LIVESTOCK_KINDS = new Set(['pasture', 'ranch', 'corral', 'stable', 'barn', 'farm'])
+const ANIMAL_GEO = new SphereGeometry(0.6, 8, 6)
+
+// Grazing livestock scattered around pastures/ranches/farms — sheep (pale) and
+// cattle (brown) — so rural land reads as inhabited and worked.
+function Herds({ buildings, depthMap, biomes }: Props) {
+  const ref = useRef<InstancedMesh>(null)
+  const animals = useMemo(() => {
+    if (!buildings || !depthMap || !biomes) return []
+    const out: Array<{ x: number; y: number; z: number; c: number }> = []
+    for (const b of buildings) {
+      if ((b.condition ?? 1) < 0.5) continue
+      if (!LIVESTOCK_KINDS.has(b.kind.toLowerCase())) continue
+      const fw = b.fw ?? 1
+      const n = 4 + ((b.id * 7) % 4)
+      for (let i = 0; i < n; i++) {
+        const s = (b.id * 31 + i * 97) % 1000
+        const ax = b.x + fw + 1 + ((s % 100) / 100) * 6
+        const az = b.y - 1 + (((s / 100) % 100) / 100) * 6
+        out.push({
+          x: ax * TILE_SCALE,
+          y: heightAt(Math.round(ax), Math.round(az), depthMap, biomes) + 0.45,
+          z: az * TILE_SCALE,
+          c: s % 3,
+        })
+      }
+    }
+    return out.slice(0, 600)
+  }, [buildings, depthMap, biomes])
+
+  useLayoutEffect(() => {
+    const m = ref.current
+    if (!m) return
+    for (let i = 0; i < animals.length; i++) {
+      const a = animals[i]
+      tmp.position.set(a.x, a.y, a.z)
+      tmp.rotation.set(0, (a.x + a.z) % 6.28, 0)
+      tmp.scale.set(1.0, 0.78, 1.5)
+      tmp.updateMatrix()
+      m.setMatrixAt(i, tmp.matrix)
+      if (a.c === 0) _fcol.setRGB(0.86, 0.84, 0.78)
+      else if (a.c === 1) _fcol.setRGB(0.42, 0.3, 0.2)
+      else _fcol.setRGB(0.2, 0.18, 0.16)
+      m.setColorAt(i, _fcol)
+    }
+    m.count = animals.length
+    m.instanceMatrix.needsUpdate = true
+    if (m.instanceColor) m.instanceColor.needsUpdate = true
+  }, [animals])
+
+  if (animals.length === 0) return null
+  return (
+    <instancedMesh
+      ref={ref}
+      args={[ANIMAL_GEO, undefined, Math.max(1, animals.length)]}
+      castShadow
+      frustumCulled={false}
+    >
+      <meshStandardMaterial color="#ffffff" roughness={0.92} />
     </instancedMesh>
   )
 }
@@ -152,6 +223,7 @@ export function Farms3D({ buildings, depthMap, biomes }: Props) {
   return (
     <>
       <FieldPlanes buildings={buildings} depthMap={depthMap} biomes={biomes} />
+      <Herds buildings={buildings} depthMap={depthMap} biomes={biomes} />
       {positions.length > 0 && (
         <instancedMesh
           ref={meshRef}
