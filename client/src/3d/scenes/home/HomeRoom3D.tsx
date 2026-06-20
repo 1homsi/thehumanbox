@@ -65,6 +65,77 @@ function SleepMat() {
   )
 }
 
+function Furniture() {
+  return (
+    <group>
+      {/* Rug */}
+      <mesh position={[0.2, 0.02, -0.2]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[2.6, 2.0]} />
+        <meshStandardMaterial color="#9a4838" roughness={1} />
+      </mesh>
+      {/* Table */}
+      <group position={[0.2, 0, -0.3]}>
+        <mesh position={[0, 0.62, 0]} castShadow receiveShadow>
+          <boxGeometry args={[1.5, 0.1, 0.9]} />
+          <meshStandardMaterial color="#6e4a26" roughness={0.85} />
+        </mesh>
+        {[
+          [-0.65, -0.38],
+          [0.65, -0.38],
+          [-0.65, 0.38],
+          [0.65, 0.38],
+        ].map(([lx, lz], i) => (
+          <mesh key={i} position={[lx, 0.31, lz]} castShadow>
+            <cylinderGeometry args={[0.05, 0.05, 0.62, 6]} />
+            <meshStandardMaterial color="#583a1e" />
+          </mesh>
+        ))}
+        {/* a bowl + a loaf on the table */}
+        <mesh position={[-0.3, 0.72, 0]} castShadow>
+          <cylinderGeometry args={[0.16, 0.12, 0.1, 10]} />
+          <meshStandardMaterial color="#caa46a" />
+        </mesh>
+        <mesh position={[0.35, 0.72, 0.1]} castShadow>
+          <boxGeometry args={[0.32, 0.16, 0.2]} />
+          <meshStandardMaterial color="#c08a4a" roughness={1} />
+        </mesh>
+      </group>
+      {/* Two stools */}
+      {[
+        [-0.9, -0.3],
+        [1.3, -0.3],
+      ].map(([sx, sz], i) => (
+        <mesh key={i} position={[sx, 0.28, sz]} castShadow>
+          <cylinderGeometry args={[0.26, 0.24, 0.12, 10]} />
+          <meshStandardMaterial color="#6e4a26" roughness={0.9} />
+        </mesh>
+      ))}
+      {/* Wall shelf with pots on the back wall */}
+      <group position={[1.6, 1.7, -ROOM_D / 2 + WALL_T + 0.15]}>
+        <mesh castShadow receiveShadow>
+          <boxGeometry args={[2.2, 0.08, 0.4]} />
+          <meshStandardMaterial color="#5e3e1c" roughness={0.95} />
+        </mesh>
+        {[-0.7, 0, 0.7].map((px, i) => (
+          <mesh key={i} position={[px, 0.22, 0]} castShadow>
+            <cylinderGeometry args={[0.16, 0.18, 0.34, 9]} />
+            <meshStandardMaterial color={i === 1 ? '#7a8a4a' : '#8a5a3a'} roughness={0.9} />
+          </mesh>
+        ))}
+      </group>
+      {/* Hanging herb bundles from a ceiling beam near the hearth */}
+      <group position={[-ROOM_W / 2 + 1.6, ROOM_H - 0.35, ROOM_D / 2 - 1.6]}>
+        {[-0.4, 0, 0.4].map((hx, i) => (
+          <mesh key={i} position={[hx, -0.25, 0]} castShadow>
+            <coneGeometry args={[0.12, 0.5, 5]} />
+            <meshStandardMaterial color={i % 2 ? '#6a7a38' : '#8a8a48'} roughness={1} />
+          </mesh>
+        ))}
+      </group>
+    </group>
+  )
+}
+
 function StorageChest() {
   return (
     <mesh position={[ROOM_W / 2 - 1.0, 0.3, ROOM_D / 2 - 1.0]} castShadow receiveShadow>
@@ -189,6 +260,7 @@ export function HomeRoom3D({ ctx, onExit, onFocusOrg }: Props) {
           <FrameTick>{(t) => <Hearth time={t} />}</FrameTick>
           <SleepMat />
           <StorageChest />
+          <Furniture />
           {occupants.map((occ, i) => {
             const [x, z] = slots[i] ?? [0, 0]
             return (
