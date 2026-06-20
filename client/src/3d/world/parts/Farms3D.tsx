@@ -1,6 +1,6 @@
-import { useMemo, useRef } from 'react'
+import { useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { BoxGeometry, ConeGeometry, InstancedMesh, MeshStandardMaterial, Object3D } from 'three'
+import { BoxGeometry, Color, ConeGeometry, InstancedMesh, MeshStandardMaterial, Object3D } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { Building } from '../../../types'
 import { TILE_SCALE } from './constants'
@@ -15,6 +15,62 @@ interface Props {
 const ROWS_PER_FIELD = 6
 const PLANTS_PER_ROW = 4
 const tmp = new Object3D()
+const _fcol = new Color()
+const FIELD_GEO = new BoxGeometry(1, 0.12, 1)
+
+// A tilled, crop-coloured ground patch per farm so croplands read as golden
+// patchwork from above; the stalks below add detail up close.
+function FieldPlanes({ buildings, depthMap, biomes }: Props) {
+  const ref = useRef<InstancedMesh>(null)
+  const fields = useMemo(() => {
+    if (!buildings || !depthMap || !biomes) return []
+    const out: Array<{ x: number; y: number; z: number; id: number }> = []
+    for (const b of buildings) {
+      if ((b.condition ?? 1) < 0.5) continue
+      if (!FARMABLE.has(b.kind.toLowerCase())) continue
+      const fw = b.fw ?? 1
+      out.push({
+        x: (b.x + fw + 1.8) * TILE_SCALE,
+        y: heightAt(b.x + fw, b.y, depthMap, biomes) + 0.07,
+        z: (b.y + 1.3) * TILE_SCALE,
+        id: b.id,
+      })
+    }
+    return out.slice(0, 500)
+  }, [buildings, depthMap, biomes])
+
+  useLayoutEffect(() => {
+    const m = ref.current
+    if (!m) return
+    for (let i = 0; i < fields.length; i++) {
+      const f = fields[i]
+      const h = (Math.imul(f.id, 2654435761) >>> 0) / 4294967295
+      tmp.position.set(f.x, f.y, f.z)
+      tmp.rotation.set(0, h * Math.PI, 0)
+      tmp.scale.set(5 + h * 2.5, 1, 4.5 + h * 2)
+      tmp.updateMatrix()
+      m.setMatrixAt(i, tmp.matrix)
+      // Wheat-gold to tilled-green, varied per field.
+      _fcol.setRGB(0.52 + h * 0.18, 0.5 + h * 0.06, 0.24 + h * 0.05)
+      m.setColorAt(i, _fcol)
+    }
+    m.count = fields.length
+    m.instanceMatrix.needsUpdate = true
+    if (m.instanceColor) m.instanceColor.needsUpdate = true
+  }, [fields])
+
+  if (fields.length === 0) return null
+  return (
+    <instancedMesh
+      ref={ref}
+      args={[FIELD_GEO, undefined, Math.max(1, fields.length)]}
+      receiveShadow
+      frustumCulled={false}
+    >
+      <meshStandardMaterial color="#ffffff" roughness={0.96} />
+    </instancedMesh>
+  )
+}
 
 function buildPlantGeo() {
   const stalk = new BoxGeometry(0.04, 0.4, 0.04)
@@ -93,14 +149,18 @@ export function Farms3D({ buildings, depthMap, biomes }: Props) {
     mesh.instanceMatrix.needsUpdate = true
   })
 
-  if (positions.length === 0) return null
   return (
-    <instancedMesh
-      ref={meshRef}
-      args={[geo, matCrop, Math.max(1, positions.length)]}
-      castShadow
-      receiveShadow
-      frustumCulled={false}
-    />
+    <>
+      <FieldPlanes buildings={buildings} depthMap={depthMap} biomes={biomes} />
+      {positions.length > 0 && (
+        <instancedMesh
+          ref={meshRef}
+          args={[geo, matCrop, Math.max(1, positions.length)]}
+          castShadow
+          receiveShadow
+          frustumCulled={false}
+        />
+      )}
+    </>
   )
 }
