@@ -14,9 +14,11 @@ interface Props {
 
 const WATCHER_KINDS = new Set(['watchtower', 'lighthouse', 'fortress', 'castle', 'observatory'])
 
-const BEAM_GEO = new ConeGeometry(8, 60, 18, 1, true)
-BEAM_GEO.translate(0, 30, 0)
-BEAM_GEO.rotateX(Math.PI / 2)
+const BEAM_GEO = new ConeGeometry(3.4, 38, 18, 1, true)
+BEAM_GEO.translate(0, 19, 0)
+// Angle slightly downward so it reads as a searchlight raking the ground
+// rather than a flat translucent sheet lying across the camera.
+BEAM_GEO.rotateX(Math.PI / 2 - 0.26)
 
 export function WatchtowerBeams({ buildings, depthMap, biomes, isNight }: Props) {
   const sources = useMemo(() => {
@@ -65,7 +67,7 @@ export function WatchtowerBeams({ buildings, depthMap, biomes, isNight }: Props)
             <meshBasicMaterial
               color={src.warm ? '#ffd28a' : '#bfe6ff'}
               transparent
-              opacity={0.18}
+              opacity={0.08}
               blending={AdditiveBlending}
               depthWrite={false}
               toneMapped={false}
