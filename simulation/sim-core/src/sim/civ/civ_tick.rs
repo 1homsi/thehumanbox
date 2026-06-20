@@ -58,6 +58,9 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick.is_multiple_of(300) {
         tick_dynasty_watch(sim);
     }
+    if tick > 0 && tick.is_multiple_of(900) {
+        tick_deforestation(sim);
+    }
     if tick.is_multiple_of(800) {
         tick_diplomacy(sim);
     }
@@ -1609,6 +1612,41 @@ fn tick_plague_watch(sim: &mut Simulation) {
         sim.headlines.push_back((tick, line));
         while sim.headlines.len() > 80 {
             sim.headlines.pop_front();
+        }
+    }
+}
+
+fn tick_deforestation(sim: &mut Simulation) {
+    use crate::world::grid::WorldGrid;
+    use crate::world::tiles::Biome;
+    use rand::Rng;
+    let alive_lineages: HashSet<String> = sim
+        .organisms
+        .iter()
+        .filter(|o| o.alive)
+        .map(|o| o.lineage_id.clone())
+        .collect();
+    for lid in alive_lineages {
+        if lineage_pop(sim, &lid) < 5 {
+            continue;
+        }
+        let (cx, cy) = lineage_center(sim, &lid);
+        if cx == 0 && cy == 0 {
+            continue;
+        }
+        let mut cleared = 0;
+        'scan: for dy in -6..=6 {
+            for dx in -6..=6 {
+                if cleared >= 2 {
+                    break 'scan;
+                }
+                let (x, y) = (cx + dx, cy + dy);
+                if sim.grid.biome_at(x, y) == Biome::Forest && sim.rng.random::<f32>() < 0.05 {
+                    let i = WorldGrid::idx(x, y);
+                    sim.grid.biome[i] = Biome::Grassland as u8;
+                    cleared += 1;
+                }
+            }
         }
     }
 }
