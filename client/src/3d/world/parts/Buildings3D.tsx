@@ -166,6 +166,14 @@ const WELL_ROOF = (() => {
   g.rotateY(Math.PI / 4)
   return g
 })()
+// Bright market-stall awning so market clusters pop with colour.
+const MARKET_AWNING = new BoxGeometry(1.9, 0.14, 1.35)
+const STALL_KINDS = new Set(['MarketStall', 'FoodCart', 'Kiosk'])
+const STALL_AWNING_COLOR: Record<string, string> = {
+  MarketStall: '#c0392b',
+  FoodCart: '#1f6f54',
+  Kiosk: '#2c5d8a',
+}
 // Lived-in clutter scattered beside dwellings so a village reads as inhabited.
 const BARREL_GEO = new CylinderGeometry(0.5, 0.45, 1.3, 8)
 const CRATE_GEO = new BoxGeometry(0.95, 0.95, 0.95)
@@ -2064,6 +2072,16 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
                 maxCount={cap(positions.length)}
                 offsetX={0.4}
                 vary={0.22}
+              />
+            )}
+            {STALL_KINDS.has(kind) && (
+              <Layer
+                positions={positions}
+                yOffset={spec.height + 0.5}
+                geometry={MARKET_AWNING}
+                color={STALL_AWNING_COLOR[kind] ?? '#c0392b'}
+                maxCount={cap(positions.length)}
+                vary={0.18}
               />
             )}
             {wantsRoof(kind, spec) && (
