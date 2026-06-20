@@ -1005,6 +1005,9 @@ interface LayerProps {
   // Per-instance brightness jitter (0..1) hashed from position, so a row of
   // identical instances (e.g. roofs) reads as hand-built rather than cloned.
   vary?: number
+  // Per-instance random yaw + size jitter (0..1) hashed from position, so
+  // radially-symmetric instances (huts) look organically placed, not gridded.
+  jitter?: number
 }
 
 function Layer({
@@ -1022,6 +1025,7 @@ function Layer({
   tiers,
   conds,
   vary,
+  jitter,
 }: LayerProps) {
   const meshRef = useRef<InstancedMesh>(null)
   const count = Math.min(positions.length, maxCount)
@@ -1039,9 +1043,18 @@ function Layer({
       const [px, py, pz] = positions[i]
       const c = conds?.[i] ?? 1
       const yScale = c >= 0.97 ? 1 : 0.12 + 0.88 * Math.min(1, c / 0.97)
+      let yaw = rotY
+      let s = scale
+      if (jitter) {
+        const jy = (Math.imul(((px | 0) * 374761393) ^ ((pz | 0) * 668265263), 2246822519) >>> 0) / 4294967295
+        const js =
+          (Math.imul(((px | 0) * 2246822519) ^ ((pz | 0) * 3266489917), 668265263) >>> 0) / 4294967295
+        yaw = jy * Math.PI * 2
+        s = scale * (1 + (js - 0.5) * 2 * jitter)
+      }
       tmp.position.set(px + offsetX, py + yOffset * yScale, pz + offsetZ)
-      tmp.rotation.set(0, rotY, 0)
-      tmp.scale.set(scale, scale * yScale, scale)
+      tmp.rotation.set(0, yaw, 0)
+      tmp.scale.set(s, s * yScale, s)
       tmp.updateMatrix()
       mesh.setMatrixAt(i, tmp.matrix)
       if (base) {
@@ -1062,7 +1075,21 @@ function Layer({
     mesh.count = count
     mesh.instanceMatrix.needsUpdate = true
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
-  }, [positions, count, yOffset, scale, rotY, offsetX, offsetZ, tiers, conds, color, vary, perInstanceColor])
+  }, [
+    positions,
+    count,
+    yOffset,
+    scale,
+    rotY,
+    offsetX,
+    offsetZ,
+    tiers,
+    conds,
+    color,
+    vary,
+    jitter,
+    perInstanceColor,
+  ])
 
   if (count === 0) return null
   return (
@@ -1360,6 +1387,7 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
         maxCount={cap(huts.length)}
         tiers={tiers.Hut}
         conds={conds.Hut}
+        jitter={0.16}
       />
       {windowsOn && huts.length > 0 && (
         <Layer
