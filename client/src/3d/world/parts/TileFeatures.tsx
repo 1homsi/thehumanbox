@@ -80,27 +80,27 @@ function biomeUndergrowthRule(b: number): {
   switch (b) {
     case B_FOREST:
       return {
-        bush: 0.18,
-        tuft: 0.12,
-        flower: 0.03,
+        bush: 0.28,
+        tuft: 0.26,
+        flower: 0.08,
         bushColor: '#3a5e2a',
         tuftColor: '#4e7a36',
         flowerColor: '#f6d062',
       }
     case B_WETLAND:
       return {
-        bush: 0.12,
-        tuft: 0.18,
-        flower: 0.05,
+        bush: 0.18,
+        tuft: 0.32,
+        flower: 0.13,
         bushColor: '#3a6028',
         tuftColor: '#5a8038',
         flowerColor: '#ffaad8',
       }
     case B_GRASS:
       return {
-        bush: 0.09,
-        tuft: 0.16,
-        flower: 0.04,
+        bush: 0.14,
+        tuft: 0.34,
+        flower: 0.12,
         bushColor: '#456e2c',
         tuftColor: '#5e8a3c',
         flowerColor: '#ffd060',
