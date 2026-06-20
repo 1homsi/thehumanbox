@@ -110,7 +110,7 @@ export function OrgLabels({ organisms, depthMap, biomes }: Props) {
             </Text>
             <Text
               fontSize={0.35}
-              color={lineageColor(getLineage(l.id, organisms))}
+              color={lineageColor(l.lineage_id)}
               outlineWidth={0.04}
               outlineColor="#000000"
               anchorX="center"
@@ -162,9 +162,4 @@ function badgeForOrg(l: {
   if (l.hasDegree) parts.push('\u{1F393}')
   if (l.specialty && SPECIALTY_GLYPH[l.specialty]) parts.push(SPECIALTY_GLYPH[l.specialty])
   return parts.join(' ')
-}
-
-function getLineage(id: string, organisms: OrganismState[]): string | null {
-  for (const o of organisms) if (o.id === id) return o.lineage_id
-  return null
 }

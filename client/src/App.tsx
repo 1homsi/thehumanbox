@@ -290,18 +290,20 @@ function LiveApp() {
 
   const selectedOrg = selectedOrgId ? (world?.organisms.find((o) => o.id === selectedOrgId) ?? null) : null
 
+  const gridTiles = world?.grid.tiles
+  const orgList = world?.organisms
   const fireTiles = useMemo(
-    () => (world ? world.grid.tiles.reduce((n, row) => n + row.filter((t) => t === TILE_FIRE).length, 0) : 0),
-    [world],
+    () => (gridTiles ? gridTiles.reduce((n, row) => n + row.filter((t) => t === TILE_FIRE).length, 0) : 0),
+    [gridTiles],
   )
 
   const sickOrgs = useMemo(
-    () => (world ? world.organisms.filter((o) => o.alive && o.infection > 0.15).length : 0),
-    [world],
+    () => (orgList ? orgList.filter((o) => o.alive && o.infection > 0.15).length : 0),
+    [orgList],
   )
 
-  const liveOrgs = useMemo(() => (world ? world.organisms.filter((o) => o.alive) : []), [world])
-  const deadOrgs = useMemo(() => (world ? world.organisms.filter((o) => !o.alive) : []), [world])
+  const liveOrgs = useMemo(() => orgList?.filter((o) => o.alive) ?? [], [orgList])
+  const deadOrgs = useMemo(() => orgList?.filter((o) => !o.alive) ?? [], [orgList])
 
   const liveOrgsRef = useRef<OrganismState[]>([])
   useEffect(() => {

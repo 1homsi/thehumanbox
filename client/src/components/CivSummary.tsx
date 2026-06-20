@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react'
 import type { WorldState } from '../types'
 import { useUIStore } from '../stores/store'
 import { normalizeLineageEras } from '../utils/lineageEras'
@@ -6,22 +7,24 @@ interface Props {
   world: WorldState
 }
 
-export function CivSummary({ world }: Props) {
+function CivSummaryImpl({ world }: Props) {
   const openCiv = useUIStore((s) => s.openCiv)
-  const lineageEras = normalizeLineageEras(world.lineage_eras)
   const lineageNames = world.lineage_names ?? {}
   const buildings = world.buildings ?? []
   const religions = world.religions ?? []
   const books = world.books ?? []
   const headlines = world.headlines ?? []
 
-  const eraSummary: Record<string, number> = {}
-  for (const era of Object.values(lineageEras)) {
-    eraSummary[era] = (eraSummary[era] ?? 0) + 1
-  }
-  const topEras = Object.entries(eraSummary)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
+  const topEras = useMemo(() => {
+    const eras = normalizeLineageEras(world.lineage_eras)
+    const eraSummary: Record<string, number> = {}
+    for (const era of Object.values(eras)) {
+      eraSummary[era] = (eraSummary[era] ?? 0) + 1
+    }
+    return Object.entries(eraSummary)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+  }, [world.lineage_eras])
   const buildingTotal = buildings.length
 
   const recentLines = headlines.slice(0, 3)
@@ -109,3 +112,5 @@ export function CivSummary({ world }: Props) {
     </div>
   )
 }
+
+export const CivSummary = memo(CivSummaryImpl)

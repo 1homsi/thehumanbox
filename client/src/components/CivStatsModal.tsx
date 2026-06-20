@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import type { WorldState } from '../types'
 import { Modal } from './Modal'
 import { normalizeLineageEras } from '../utils/lineageEras'
@@ -108,45 +109,56 @@ export function CivStatsModal({ world, onClose }: Props) {
   const treaties = world.treaties ?? []
 
   const lineageById = (lid: string) => lineageNames[lid] ?? lid.slice(0, 6)
+  const nameById = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const o of world.organisms) m.set(o.id, o.name)
+    return m
+  }, [world.organisms])
   const orgById = (id: string | null | undefined) => {
     if (!id) return null
-    return world.organisms.find((o) => o.id === id)?.name ?? id.slice(0, 6)
+    return nameById.get(id) ?? id.slice(0, 6)
   }
 
-  const buildingCounts: Record<string, number> = {}
-  for (const b of world.buildings ?? []) {
-    buildingCounts[b.kind] = (buildingCounts[b.kind] ?? 0) + 1
-  }
-  const buildingRowsAll = Object.entries(buildingCounts).sort((a, b) => b[1] - a[1])
-  const BUILDING_CHIP_CAP = 28
-  const buildingRows = buildingRowsAll.slice(0, BUILDING_CHIP_CAP)
-  const buildingOverflow = buildingRowsAll.length - buildingRows.length
+  const { buildingRows, buildingOverflow } = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const b of world.buildings ?? []) {
+      counts[b.kind] = (counts[b.kind] ?? 0) + 1
+    }
+    const all = Object.entries(counts).sort((a, b) => b[1] - a[1])
+    const CAP = 28
+    return { buildingRows: all.slice(0, CAP), buildingOverflow: all.length - Math.min(all.length, CAP) }
+  }, [world.buildings])
 
-  const isDisplayableGood = (k: string) => /^[a-z][a-z0-9_]*$/.test(k)
-  const goodsByLineage = new Map<string, Map<string, number>>()
-  for (const o of world.organisms) {
-    if (!o.alive || !o.tools) continue
-    const lid = o.lineage_id
-    let bag = goodsByLineage.get(lid)
-    if (!bag) {
-      bag = new Map<string, number>()
-      goodsByLineage.set(lid, bag)
+  const { goodsByLineage, goodsTotalRows, goodsOverflow } = useMemo(() => {
+    const isDisplayableGood = (k: string) => /^[a-z][a-z0-9_]*$/.test(k)
+    const byLineage = new Map<string, Map<string, number>>()
+    for (const o of world.organisms) {
+      if (!o.alive || !o.tools) continue
+      const lid = o.lineage_id
+      let bag = byLineage.get(lid)
+      if (!bag) {
+        bag = new Map<string, number>()
+        byLineage.set(lid, bag)
+      }
+      for (const [k, v] of Object.entries(o.tools)) {
+        if (!v || !isDisplayableGood(k)) continue
+        bag.set(k, (bag.get(k) ?? 0) + v)
+      }
     }
-    for (const [k, v] of Object.entries(o.tools)) {
-      if (!v || !isDisplayableGood(k)) continue
-      bag.set(k, (bag.get(k) ?? 0) + v)
+    const totals = new Map<string, number>()
+    for (const bag of byLineage.values()) {
+      for (const [k, v] of bag) {
+        totals.set(k, (totals.get(k) ?? 0) + v)
+      }
     }
-  }
-  const goodsTotals = new Map<string, number>()
-  for (const bag of goodsByLineage.values()) {
-    for (const [k, v] of bag) {
-      goodsTotals.set(k, (goodsTotals.get(k) ?? 0) + v)
+    const CAP = 36
+    const all = [...totals.entries()].sort((a, b) => b[1] - a[1])
+    return {
+      goodsByLineage: byLineage,
+      goodsTotalRows: all.slice(0, CAP),
+      goodsOverflow: all.length - Math.min(all.length, CAP),
     }
-  }
-  const GOODS_CHIP_CAP = 36
-  const goodsTotalRowsAll = [...goodsTotals.entries()].sort((a, b) => b[1] - a[1])
-  const goodsTotalRows = goodsTotalRowsAll.slice(0, GOODS_CHIP_CAP)
-  const goodsOverflow = goodsTotalRowsAll.length - goodsTotalRows.length
+  }, [world.organisms])
 
   const moonGlyphs: Record<string, string> = {
     new_moon: '🌑',
