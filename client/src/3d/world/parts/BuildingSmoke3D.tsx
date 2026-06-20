@@ -28,6 +28,7 @@ interface SmokeSourceSpec {
 }
 
 const SMOKE_SOURCES: Partial<Record<string, SmokeSourceSpec>> = {
+  Hut: { yOffset: 5.4, dx: 0.5, dz: 0.5, thickness: 0.4, rise: 1.4, count: 4, opacity: 0.32 },
   House: { yOffset: 6.4, dx: 2.4, dz: 2.0, thickness: 0.55, rise: 1.6, count: 5, opacity: 0.45 },
   Manor: { yOffset: 10.4, dx: 3.6, dz: 3.0, thickness: 0.7, rise: 1.5, count: 6, opacity: 0.5 },
   TownHouse: { yOffset: 13.8, dx: 1.6, dz: 1.5, thickness: 0.45, rise: 1.8, count: 5, opacity: 0.4 },
