@@ -758,6 +758,71 @@ pub(super) fn tick_storyteller(sim: &mut Simulation) {
     }
 }
 
+pub(super) fn tick_separations(sim: &mut Simulation) {
+    use rand::Rng;
+    let tick = sim.tick_count;
+    let mut by_id: HashMap<String, usize> = HashMap::new();
+    for (i, o) in sim.organisms.iter().enumerate() {
+        if o.alive {
+            by_id.insert(o.id.clone(), i);
+        }
+    }
+    let mut seen: HashSet<(usize, usize)> = HashSet::new();
+    let mut strained: Vec<(usize, usize, String, String)> = Vec::new();
+    for (i, o) in sim.organisms.iter().enumerate() {
+        if !o.alive {
+            continue;
+        }
+        let Some(ref pid) = o.partner_id else { continue };
+        let Some(&j) = by_id.get(pid) else { continue };
+        if i == j {
+            continue;
+        }
+        let key = if i < j { (i, j) } else { (j, i) };
+        if !seen.insert(key) {
+            continue;
+        }
+        let p = &sim.organisms[j];
+        let a_trust = o.org_trust.get(&p.id).copied().unwrap_or(0.0);
+        let b_trust = p.org_trust.get(&o.id).copied().unwrap_or(0.0);
+        if a_trust < -0.05 || b_trust < -0.05 {
+            strained.push((i, j, o.name.clone(), p.name.clone()));
+        }
+    }
+    for (i, j, a_name, b_name) in strained {
+        if sim.rng.random::<f32>() >= 0.05 {
+            continue;
+        }
+        let lid = sim.organisms[i].lineage_id.clone();
+        sim.organisms[i].partner_id = None;
+        sim.organisms[j].partner_id = None;
+        sim.organisms[i].comfort = (sim.organisms[i].comfort - 0.1).max(0.0);
+        sim.organisms[j].comfort = (sim.organisms[j].comfort - 0.1).max(0.0);
+        let bid = sim.organisms[j].id.clone();
+        let aid = sim.organisms[i].id.clone();
+        sim.organisms[i].log_life_rel(
+            tick,
+            "farewell",
+            format!("parted ways with {}", b_name),
+            Some(bid),
+            Some(b_name.clone()),
+        );
+        sim.organisms[j].log_life_rel(
+            tick,
+            "farewell",
+            format!("parted ways with {}", a_name),
+            Some(aid),
+            Some(a_name.clone()),
+        );
+        let h = format!("\u{1F494} {} and {} parted ways.", a_name, b_name);
+        push_event(&mut sim.events, tick, "marriage", &lid, &h);
+        sim.headlines.push_back((tick, h));
+        while sim.headlines.len() > 80 {
+            sim.headlines.pop_front();
+        }
+    }
+}
+
 pub(super) fn tick_weddings(sim: &mut Simulation) {
     use crate::organism::memory::{MemoryEntry, MemoryKind};
     let tick = sim.tick_count;

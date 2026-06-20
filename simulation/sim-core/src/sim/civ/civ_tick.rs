@@ -155,6 +155,9 @@ pub fn tick_civ(sim: &mut Simulation) {
     if tick > 0 && tick.is_multiple_of(600) {
         tick_weddings(sim);
     }
+    if tick > 0 && tick.is_multiple_of(1200) {
+        tick_separations(sim);
+    }
     if tick > 0 && tick.is_multiple_of(120) {
         tick_dream_sharing(sim);
     }
