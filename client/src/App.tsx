@@ -232,7 +232,6 @@ function LiveApp() {
     const selectedAlive = selectedOrgId && world?.organisms.some((o) => o.id === selectedOrgId && o.alive)
     if (selectedAlive) return
     useUIStore.getState().selectOrg(featured)
-    useUIStore.getState().followOrg(featured)
   }, [world, selectedOrgId])
 
   const lastHeadlineTickRef = useRef<number>(0)

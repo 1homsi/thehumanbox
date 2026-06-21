@@ -108,11 +108,13 @@ function worldCenter(width?: number, height?: number): CameraLookAt {
 
 function defaultCameraPose(width?: number, height?: number): CameraTeleport {
   const center = worldCenter(width, height)
+  const span = Math.max(width ?? 150, height ?? 75) * TILE_SCALE
+  const dist = Math.min(340, span * 0.3)
   return {
-    x: center.x - 90,
-    y: 95,
-    z: center.z + 180,
-    lookAt: center,
+    x: center.x,
+    y: Math.max(130, dist * 0.7),
+    z: center.z + dist,
+    lookAt: { x: center.x, y: 0, z: center.z },
   }
 }
 
