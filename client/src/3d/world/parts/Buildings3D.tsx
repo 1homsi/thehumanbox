@@ -302,6 +302,9 @@ const FENCE_GEO = (() => {
 const STALL_KINDS = new Set(['MarketStall', 'FoodCart', 'Kiosk'])
 // Open community shelters that should carry a peaked canopy roof.
 const SHELTER_KINDS = new Set(['Gazebo', 'Pavilion', 'Bandstand'])
+// Domed religious/civic buildings get a hemisphere dome on top.
+const DOME_KINDS = new Set(['Mosque', 'Stupa', 'Mausoleum'])
+const DOME_GEO = new SphereGeometry(1, 16, 9, 0, Math.PI * 2, 0, Math.PI / 2)
 const STALL_AWNING_COLOR: Record<string, string> = {
   MarketStall: '#c0392b',
   FoodCart: '#1f6f54',
@@ -2335,6 +2338,17 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
                 color={GENERIC_ROOF_COLOR}
                 maxCount={cap(positions.length)}
                 vary={0.3}
+              />
+            )}
+            {DOME_KINDS.has(kind) && (
+              <Layer
+                positions={positions}
+                yOffset={spec.height}
+                geometry={DOME_GEO}
+                color="#cdbfa0"
+                maxCount={cap(positions.length)}
+                scale={spec.width * 0.46}
+                vary={0.12}
               />
             )}
             {(kind === 'Cart' || kind === 'FoodCart') && (
