@@ -175,6 +175,28 @@ const CART_WHEEL = (() => {
   g.rotateZ(Math.PI / 2)
   return g
 })()
+// A real 4-sided pyramid (it's a wonder; a box was embarrassing).
+const PYRAMID_GEO = (() => {
+  const g = new ConeGeometry(4.7, 5.4, 4)
+  g.rotateY(Math.PI / 4)
+  g.translate(0, 2.7, 0)
+  return g
+})()
+// A stepped ziggurat — stacked shrinking tiers.
+const ZIGGURAT_GEO = (() => {
+  const tiers = [
+    [6.0, 1.3, 0.65],
+    [4.5, 1.2, 1.9],
+    [3.0, 1.1, 3.05],
+    [1.6, 1.0, 4.1],
+  ]
+  const parts = tiers.map(([w, h, y]) => {
+    const b = new BoxGeometry(w, h, w)
+    b.translate(0, y, 0)
+    return b
+  })
+  return mergeGeometries(parts) ?? parts[0]
+})()
 // A tapered obelisk with a pyramidion cap instead of a square column.
 const OBELISK_GEO = (() => {
   const col = new BoxGeometry(0.85, 4.5, 0.85)
@@ -2065,6 +2087,21 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
         if (positions.length === 0) return null
         // Tents are extremely common — render them as a peaked canvas tent
         // (with a contrasting door flap) rather than a plain box.
+        if (kind === 'Pyramid' || kind === 'Ziggurat') {
+          return (
+            <Layer
+              key={kind}
+              positions={positions}
+              yOffset={0}
+              geometry={kind === 'Pyramid' ? PYRAMID_GEO : ZIGGURAT_GEO}
+              color={spec.color}
+              maxCount={cap(positions.length)}
+              tiers={tiers[kind]}
+              conds={conds[kind]}
+              vary={0.1}
+            />
+          )
+        }
         if (kind === 'Obelisk' || kind === 'Monument') {
           return (
             <Layer
