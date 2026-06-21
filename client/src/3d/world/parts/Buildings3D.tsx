@@ -315,6 +315,99 @@ const CLOCK_FACE = (() => {
   g.rotateX(Math.PI / 2)
   return g
 })()
+const CASTLE_GEO = (() => {
+  const parts: BufferGeometry[] = []
+  const curtain = new BoxGeometry(5.4, 2.2, 5.4)
+  curtain.translate(0, 1.1, 0)
+  parts.push(curtain)
+  const keep = new BoxGeometry(2.6, 4.2, 2.6)
+  keep.translate(0, 2.1, 0)
+  parts.push(keep)
+  for (const cx of [-2.4, 2.4]) {
+    for (const cz of [-2.4, 2.4]) {
+      const tower = new CylinderGeometry(0.85, 0.95, 4.6, 8)
+      tower.translate(cx, 2.3, cz)
+      parts.push(tower)
+      const cap = new ConeGeometry(1.05, 1.1, 8)
+      cap.translate(cx, 5.0, cz)
+      parts.push(cap)
+    }
+  }
+  const battle = new ConeGeometry(1.0, 1.1, 4)
+  battle.rotateY(Math.PI / 4)
+  battle.translate(0, 4.6, 0)
+  parts.push(battle)
+  return mergeGeometries(parts) ?? curtain
+})()
+const CATHEDRAL_GEO = (() => {
+  const parts: BufferGeometry[] = []
+  const nave = new BoxGeometry(2.6, 3.0, 5.0)
+  nave.translate(0, 1.5, 0)
+  parts.push(nave)
+  const roof = new ConeGeometry(2.1, 1.4, 4)
+  roof.rotateY(Math.PI / 4)
+  roof.scale(1, 1, 1.9)
+  roof.translate(0, 3.4, 0)
+  parts.push(roof)
+  const tower = new BoxGeometry(1.7, 5.6, 1.7)
+  tower.translate(0, 2.8, 3.0)
+  parts.push(tower)
+  const spire = new ConeGeometry(1.15, 2.4, 4)
+  spire.rotateY(Math.PI / 4)
+  spire.translate(0, 6.8, 3.0)
+  parts.push(spire)
+  return mergeGeometries(parts) ?? nave
+})()
+const FOUNTAIN_BASIN = (() => {
+  const parts: BufferGeometry[] = []
+  const lower = new CylinderGeometry(1.5, 1.6, 0.5, 16)
+  lower.translate(0, 0.25, 0)
+  parts.push(lower)
+  const ped = new CylinderGeometry(0.42, 0.5, 0.85, 10)
+  ped.translate(0, 0.7, 0)
+  parts.push(ped)
+  const upper = new CylinderGeometry(0.78, 0.66, 0.32, 14)
+  upper.translate(0, 1.15, 0)
+  parts.push(upper)
+  return mergeGeometries(parts) ?? lower
+})()
+const FOUNTAIN_WATER = (() => {
+  const parts: BufferGeometry[] = []
+  const pool = new CylinderGeometry(1.36, 1.36, 0.12, 16)
+  pool.translate(0, 0.46, 0)
+  parts.push(pool)
+  const jet = new CylinderGeometry(0.1, 0.16, 0.95, 8)
+  jet.translate(0, 1.75, 0)
+  parts.push(jet)
+  return mergeGeometries(parts) ?? pool
+})()
+const WATERTOWER_TANK = (() => {
+  const parts: BufferGeometry[] = []
+  for (const lx of [-0.95, 0.95]) {
+    for (const lz of [-0.95, 0.95]) {
+      const leg = new BoxGeometry(0.22, 4.0, 0.22)
+      leg.translate(lx, 2.0, lz)
+      parts.push(leg)
+    }
+  }
+  const brace = new BoxGeometry(2.1, 0.18, 0.18)
+  brace.translate(0, 1.6, 0.95)
+  parts.push(brace)
+  const brace2 = new BoxGeometry(2.1, 0.18, 0.18)
+  brace2.translate(0, 1.6, -0.95)
+  parts.push(brace2)
+  const cone = new ConeGeometry(1.4, 0.9, 12)
+  cone.rotateX(Math.PI)
+  cone.translate(0, 4.35, 0)
+  parts.push(cone)
+  const tank = new CylinderGeometry(1.4, 1.4, 1.7, 12)
+  tank.translate(0, 5.45, 0)
+  parts.push(tank)
+  const top = new ConeGeometry(1.42, 0.7, 12)
+  top.translate(0, 6.65, 0)
+  parts.push(top)
+  return mergeGeometries(parts) ?? tank
+})()
 const STALL_AWNING_COLOR: Record<string, string> = {
   MarketStall: '#c0392b',
   FoodCart: '#1f6f54',
@@ -2159,6 +2252,73 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
               tiers={tiers[kind]}
               vary={0.12}
             />
+          )
+        }
+        if (kind === 'Castle') {
+          return (
+            <Layer
+              key={kind}
+              positions={positions}
+              yOffset={0}
+              geometry={CASTLE_GEO}
+              color={spec.color}
+              maxCount={cap(positions.length)}
+              tiers={tiers[kind]}
+              conds={conds[kind]}
+              vary={0.08}
+            />
+          )
+        }
+        if (kind === 'Cathedral') {
+          return (
+            <Layer
+              key={kind}
+              positions={positions}
+              yOffset={0}
+              geometry={CATHEDRAL_GEO}
+              color={spec.color}
+              maxCount={cap(positions.length)}
+              tiers={tiers[kind]}
+              conds={conds[kind]}
+              vary={0.08}
+            />
+          )
+        }
+        if (kind === 'WaterTower') {
+          return (
+            <Layer
+              key={kind}
+              positions={positions}
+              yOffset={0}
+              geometry={WATERTOWER_TANK}
+              color={spec.color}
+              maxCount={cap(positions.length)}
+              tiers={tiers[kind]}
+              conds={conds[kind]}
+              vary={0.1}
+            />
+          )
+        }
+        if (kind === 'Fountain') {
+          return (
+            <group key={kind}>
+              <Layer
+                positions={positions}
+                yOffset={0}
+                geometry={FOUNTAIN_BASIN}
+                color="#9aa0a6"
+                maxCount={cap(positions.length)}
+                vary={0.1}
+              />
+              <Layer
+                positions={positions}
+                yOffset={0}
+                geometry={FOUNTAIN_WATER}
+                color="#5fa8d6"
+                maxCount={cap(positions.length)}
+                vary={0.12}
+              />
+            </group>
           )
         }
         if (kind === 'Pyramid' || kind === 'Ziggurat') {
