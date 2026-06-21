@@ -175,6 +175,28 @@ const CART_WHEEL = (() => {
   g.rotateZ(Math.PI / 2)
   return g
 })()
+// A tapered obelisk with a pyramidion cap instead of a square column.
+const OBELISK_GEO = (() => {
+  const col = new BoxGeometry(0.85, 4.5, 0.85)
+  col.translate(0, 2.25, 0)
+  const cap = new ConeGeometry(0.62, 0.7, 4)
+  cap.rotateY(Math.PI / 4)
+  cap.translate(0, 4.85, 0)
+  return mergeGeometries([col, cap]) ?? col
+})()
+// A stepped monument (tiered base + column + cap) instead of a box.
+const MONUMENT_GEO = (() => {
+  const base = new BoxGeometry(2.2, 0.7, 2.2)
+  base.translate(0, 0.35, 0)
+  const mid = new BoxGeometry(1.45, 0.5, 1.45)
+  mid.translate(0, 0.95, 0)
+  const col = new BoxGeometry(0.95, 2.6, 0.95)
+  col.translate(0, 2.5, 0)
+  const cap = new ConeGeometry(0.72, 0.75, 4)
+  cap.rotateY(Math.PI / 4)
+  cap.translate(0, 4.15, 0)
+  return mergeGeometries([base, mid, col, cap]) ?? base
+})()
 // A figure on a pedestal instead of a thin box, for statue landmarks.
 const STATUE_GEO = (() => {
   const pedestal = new BoxGeometry(0.95, 0.55, 0.95)
@@ -2041,6 +2063,20 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
         if (positions.length === 0) return null
         // Tents are extremely common — render them as a peaked canvas tent
         // (with a contrasting door flap) rather than a plain box.
+        if (kind === 'Obelisk' || kind === 'Monument') {
+          return (
+            <Layer
+              key={kind}
+              positions={positions}
+              yOffset={0}
+              geometry={kind === 'Obelisk' ? OBELISK_GEO : MONUMENT_GEO}
+              color={spec.color}
+              maxCount={cap(positions.length)}
+              tiers={tiers[kind]}
+              vary={0.12}
+            />
+          )
+        }
         if (kind === 'Statue') {
           return (
             <Layer
