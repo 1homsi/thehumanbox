@@ -305,6 +305,16 @@ const SHELTER_KINDS = new Set(['Gazebo', 'Pavilion', 'Bandstand'])
 // Domed religious/civic buildings get a hemisphere dome on top.
 const DOME_KINDS = new Set(['Mosque', 'Stupa', 'Mausoleum'])
 const DOME_GEO = new SphereGeometry(1, 16, 9, 0, Math.PI * 2, 0, Math.PI / 2)
+const CLOCK_ROOF = (() => {
+  const g = new ConeGeometry(2.0, 1.9, 4)
+  g.rotateY(Math.PI / 4)
+  return g
+})()
+const CLOCK_FACE = (() => {
+  const g = new CylinderGeometry(0.62, 0.62, 0.14, 14)
+  g.rotateX(Math.PI / 2)
+  return g
+})()
 const STALL_AWNING_COLOR: Record<string, string> = {
   MarketStall: '#c0392b',
   FoodCart: '#1f6f54',
@@ -2350,6 +2360,27 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
                 scale={spec.width * 0.46}
                 vary={0.12}
               />
+            )}
+            {kind === 'ClockTower' && (
+              <>
+                <Layer
+                  positions={positions}
+                  yOffset={spec.height + 0.95}
+                  geometry={CLOCK_ROOF}
+                  color={GENERIC_ROOF_COLOR}
+                  maxCount={cap(positions.length)}
+                />
+                <Layer
+                  positions={positions}
+                  yOffset={spec.height - 1.0}
+                  geometry={CLOCK_FACE}
+                  color="#efe6cf"
+                  emissive="#d8c890"
+                  emissiveIntensity={windowsOn ? nightFrac * 0.8 : 0.15}
+                  maxCount={cap(positions.length)}
+                  offsetZ={spec.depth / 2 + 0.05}
+                />
+              </>
             )}
             {(kind === 'Cart' || kind === 'FoodCart') && (
               <>
