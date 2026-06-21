@@ -217,10 +217,10 @@ function FlyCamera({ depthMap, biomes, buildingAABBs, worldWidth, worldHeight }:
         camera.getWorldDirection(fwd)
         fwd.y = 0
         if (fwd.lengthSq() > 0) fwd.normalize()
-        const targetX = wx - fwd.x * 35
-        const targetZ = wz - fwd.z * 35
+        const targetX = wx - fwd.x * 20
+        const targetZ = wz - fwd.z * 20
         const groundY = depthMap && biomes ? heightAt(tx, ty, depthMap, biomes) : 0
-        const targetY = groundY + 12
+        const targetY = groundY + 8.5
         const lerp = 1 - Math.exp(-5.0 * delta)
         camera.position.x += (targetX - camera.position.x) * lerp
         camera.position.y += (targetY - camera.position.y) * lerp
