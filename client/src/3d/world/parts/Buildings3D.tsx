@@ -175,6 +175,26 @@ const CART_WHEEL = (() => {
   g.rotateZ(Math.PI / 2)
   return g
 })()
+// A tiered pagoda (stacked diminishing roofs) instead of a red box.
+const PAGODA_GEO = (() => {
+  const parts: BufferGeometry[] = []
+  const body = new BoxGeometry(1.7, 5.6, 1.7)
+  body.translate(0, 2.8, 0)
+  parts.push(body)
+  const tiers: Array<[number, number]> = [
+    [2.7, 2.0],
+    [2.3, 3.4],
+    [1.9, 4.7],
+    [1.4, 5.9],
+  ]
+  for (const [r, y] of tiers) {
+    const roof = new ConeGeometry(r, 0.6, 4)
+    roof.rotateY(Math.PI / 4)
+    roof.translate(0, y, 0)
+    parts.push(roof)
+  }
+  return mergeGeometries(parts) ?? body
+})()
 // A real 4-sided pyramid (it's a wonder; a box was embarrassing).
 const PYRAMID_GEO = (() => {
   const g = new ConeGeometry(4.7, 5.4, 4)
@@ -2087,6 +2107,20 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
         if (positions.length === 0) return null
         // Tents are extremely common — render them as a peaked canvas tent
         // (with a contrasting door flap) rather than a plain box.
+        if (kind === 'Pagoda') {
+          return (
+            <Layer
+              key={kind}
+              positions={positions}
+              yOffset={0}
+              geometry={PAGODA_GEO}
+              color={spec.color}
+              maxCount={cap(positions.length)}
+              tiers={tiers[kind]}
+              vary={0.12}
+            />
+          )
+        }
         if (kind === 'Pyramid' || kind === 'Ziggurat') {
           return (
             <Layer
