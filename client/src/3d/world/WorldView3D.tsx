@@ -28,6 +28,7 @@ import { Roads3D } from './parts/Roads3D'
 import { Boats3D } from './parts/Boats3D'
 import { Birds3D } from './parts/Birds3D'
 import { DistantMountains } from './parts/DistantMountains'
+import { Fireflies3D } from './parts/Fireflies3D'
 import { Farms3D } from './parts/Farms3D'
 import { WatchtowerBeams } from './parts/WatchtowerBeams'
 import { IndustrySmoke } from './parts/IndustrySmoke'
@@ -588,6 +589,14 @@ export default function WorldView3D({ world, sandboxArmed, onSandboxApply }: Pro
                 />
                 <Birds3D width={grid.width} height={grid.height} dayProgress={dayProgress} />
                 <DistantMountains width={grid.width} height={grid.height} />
+                <Fireflies3D
+                  width={grid.width}
+                  height={grid.height}
+                  tiles={grid.tiles}
+                  depthMap={grid.depth_map}
+                  biomes={grid.biomes}
+                  dayProgress={dayProgress}
+                />
                 <Terrain
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}
