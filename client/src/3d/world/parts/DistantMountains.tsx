@@ -65,8 +65,8 @@ function buildRing(
       colors[v * 3 + 2] = _rock.b
     }
     cone.setAttribute('color', new BufferAttribute(colors, 3))
-    cone.translate(x, h * 0.5 - 40, z)
     cone.rotateY(((s * 211) % 628) / 100)
+    cone.translate(x, h * 0.5 - 40, z)
     parts.push(cone)
   }
   return mergeGeometries(parts)
@@ -78,8 +78,8 @@ export function DistantMountains({ width, height }: Props) {
     const cz = height * TILE_SCALE * 0.5
     const mapR = Math.max(width, height) * TILE_SCALE * 0.5
     return {
-      near: buildRing(cx, cz, mapR + 340, 210, 40, 100, 100, 110, 0, '#54637c', 0.8, 0.62),
-      far: buildRing(cx, cz, mapR + 600, 210, 90, 200, 130, 120, 500, '#7e8aa0', 0.58, 0.9),
+      near: buildRing(cx, cz, mapR + 150, 220, 40, 100, 100, 110, 0, '#54637c', 0.8, 0.62),
+      far: buildRing(cx, cz, mapR + 380, 220, 90, 200, 130, 120, 500, '#7e8aa0', 0.58, 0.9),
     }
   }, [width, height])
 
