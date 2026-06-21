@@ -175,6 +175,19 @@ const CART_WHEEL = (() => {
   g.rotateZ(Math.PI / 2)
   return g
 })()
+// A freestanding triumphal arch (two piers + top block) instead of a box.
+const ARCH_GEO = (() => {
+  const parts: BufferGeometry[] = []
+  for (const px of [-1.1, 1.1]) {
+    const pier = new BoxGeometry(0.8, 2.8, 1.2)
+    pier.translate(px, 1.4, 0)
+    parts.push(pier)
+  }
+  const top = new BoxGeometry(3.0, 0.9, 1.25)
+  top.translate(0, 3.1, 0)
+  parts.push(top)
+  return mergeGeometries(parts) ?? parts[0]
+})()
 // A tiered pagoda (stacked diminishing roofs) instead of a red box.
 const PAGODA_GEO = (() => {
   const parts: BufferGeometry[] = []
@@ -2107,6 +2120,20 @@ export function Buildings3D({ buildings, depthMap, biomes, dayProgress = 0.5, li
         if (positions.length === 0) return null
         // Tents are extremely common — render them as a peaked canvas tent
         // (with a contrasting door flap) rather than a plain box.
+        if (kind === 'TriumphalArch') {
+          return (
+            <Layer
+              key={kind}
+              positions={positions}
+              yOffset={0}
+              geometry={ARCH_GEO}
+              color={spec.color}
+              maxCount={cap(positions.length)}
+              tiers={tiers[kind]}
+              vary={0.1}
+            />
+          )
+        }
         if (kind === 'Pagoda') {
           return (
             <Layer
