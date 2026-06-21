@@ -36,9 +36,13 @@ const GEO = {
   axeHead: new BoxGeometry(0.08, 0.3, 0.42),
   pickHead: new ConeGeometry(0.07, 0.5, 5),
   rod: new CylinderGeometry(0.025, 0.04, 2.0, 5),
-  log: new CylinderGeometry(0.11, 0.11, 0.85, 6),
-  rock: new SphereGeometry(0.2, 6, 5),
-  sack: new SphereGeometry(0.24, 7, 6),
+  log: new CylinderGeometry(0.13, 0.13, 1.05, 6),
+  rock: new SphereGeometry(0.22, 6, 5),
+  sack: new SphereGeometry(0.27, 7, 6),
+  pack: new BoxGeometry(0.62, 0.72, 0.42),
+  packLid: new BoxGeometry(0.66, 0.22, 0.46),
+  strap: new BoxGeometry(0.09, 0.78, 0.07),
+  cane: new CylinderGeometry(0.035, 0.045, 1.5, 5),
 }
 
 const matCache = new Map<string, MeshStandardMaterial>()
@@ -91,8 +95,11 @@ function eraTier(era?: string): EraTier {
   }
 }
 
+type AgeStage = 'infant' | 'child' | 'teen' | 'adult' | 'elder'
+
 interface Look {
   tier: EraTier
+  stage: AgeStage
   skin: string
   hairColor: string
   hood: boolean
@@ -105,35 +112,72 @@ interface Look {
   skirt: boolean
   accessory: OrgAccessory
   belly: boolean
+  build: number
+  pack: boolean
+  cane: boolean
+}
+
+function ageStageOf(org: OrganismState): AgeStage {
+  if (org.age_stage) return org.age_stage
+  if (org.is_elder) return 'elder'
+  const a = org.age
+  const frac = org.max_age ? a / org.max_age : a / 4000
+  if (frac < 0.06) return 'infant'
+  if (frac < 0.16) return 'child'
+  if (frac < 0.28) return 'teen'
+  if (frac > 0.8) return 'elder'
+  return 'adult'
+}
+
+function hasStuff(org: OrganismState): boolean {
+  if (org.carrying > 0) return true
+  const inv = org.inventory
+  if (inv) {
+    for (const k in inv) if (inv[k] > 0) return true
+  }
+  return false
 }
 
 function deriveLook(org: OrganismState, era?: string): Look {
   const h = idHash(org.id)
   const tier = eraTier(era)
-  const elder = !!org.is_elder || org.age_stage === 'elder'
+  const stage = ageStageOf(org)
+  const elder = stage === 'elder'
+  const young = stage === 'infant' || stage === 'child'
   const female = org.sex === 'female'
   const spec = (org.specialty ?? '').toLowerCase()
   let accessory: Look['accessory'] = 'none'
   const activeTool = toolFromThought(org.thought ?? '')
   if (activeTool) accessory = activeTool
-  else if (elder) accessory = 'staff'
   else if (spec.includes('smith') || spec.includes('mason')) accessory = 'hammer'
   else if (spec.includes('farm')) accessory = 'hoe'
   else if (tier === 'primal' && (h & 3) === 0) accessory = 'spear'
+  const forager =
+    spec.includes('forag') ||
+    spec.includes('gather') ||
+    spec.includes('hunt') ||
+    spec.includes('trad') ||
+    spec.includes('porter') ||
+    spec.includes('builder')
+  const buildBase = 0.86 + (((h >> 7) % 100) / 100) * 0.3
   return {
     tier,
+    stage,
     skin: SKIN_TONES[h % SKIN_TONES.length],
     hairColor: elder ? '#cfcfcf' : HAIR_TONES[(h >> 3) % HAIR_TONES.length],
     hood: tier === 'civic' && (h & 1) === 0,
     hair: true,
     bun: female && (h & 2) === 0,
-    beard: !female && (elder || (h & 7) === 0),
-    belt: tier !== 'primal',
-    circlet: tier === 'advanced' || (tier === 'civic' && (h & 4) === 0),
-    cloak: tier !== 'primal' && ((h >> 5) & 1) === 0,
+    beard: !female && !young && (elder || (h & 7) === 0),
+    belt: tier !== 'primal' && !young,
+    circlet: !young && (tier === 'advanced' || (tier === 'civic' && (h & 4) === 0)),
+    cloak: tier !== 'primal' && !young && ((h >> 5) & 1) === 0,
     skirt: female || tier === 'civic' || tier === 'advanced',
     accessory,
     belly: !!org.pregnant,
+    build: female ? buildBase * 0.93 : buildBase,
+    pack: org.carrying > 0 || (forager && hasStuff(org)) || (forager && (h & 1) === 0),
+    cane: elder && (h & 1) === 0,
   }
 }
 
@@ -285,6 +329,17 @@ export function VillagerFigure({
       }
     }
 
+    if (org.carrying > 0) {
+      // Hauling a load: hunch forward and bring both arms up to steady it.
+      lean = Math.max(lean, 0.17)
+      armLUp = Math.max(armLUp, 0.5)
+      armRUp = Math.max(armRUp, 0.5)
+    }
+    if (look.stage === 'elder') {
+      // Stooped posture and a bowed head read instantly as old age.
+      lean += 0.18
+      headPitch += 0.14
+    }
     if (grief) {
       headPitch += 0.35
       armLUp = Math.min(armLUp, 0.1)
@@ -320,7 +375,7 @@ export function VillagerFigure({
 
   return (
     <group ref={root} scale={[scale, scale, scale]}>
-      <group ref={body} position={[0, 0, 0]}>
+      <group ref={body} position={[0, 0, 0]} scale={[look.build, 1, look.build]}>
         <group ref={legL} position={[0.18, 0.62, 0]}>
           <mesh geometry={GEO.leg} material={tunicDark} position={[0, -0.3, 0]} />
         </group>
@@ -430,20 +485,46 @@ export function VillagerFigure({
           )}
         </group>
 
+        {look.pack && (
+          <group position={[0, 1.18, -0.42]}>
+            <mesh geometry={GEO.pack} material={mat('#6b4a2a')} castShadow />
+            <mesh geometry={GEO.packLid} material={mat('#553c20')} position={[0, 0.34, 0.02]} />
+            <mesh
+              geometry={GEO.strap}
+              material={mat('#4a3018')}
+              position={[0.22, 0.18, 0.4]}
+              rotation={[0.2, 0, 0.12]}
+            />
+            <mesh
+              geometry={GEO.strap}
+              material={mat('#4a3018')}
+              position={[-0.22, 0.18, 0.4]}
+              rotation={[0.2, 0, -0.12]}
+            />
+          </group>
+        )}
+
+        {look.cane && (
+          <group position={[0.52, 1.5, 0.16]} rotation={[0.06, 0, 0.05]}>
+            <mesh geometry={GEO.cane} material={mat('#5a4226')} position={[0, -0.75, 0]} />
+          </group>
+        )}
+
         {org.carrying > 0 && (
-          <group position={[0, 1.5, -0.42]} rotation={[0.25, 0, 0]}>
+          <group position={[0, 1.62, -0.46]} rotation={[0.22, 0, 0]}>
             {org.carrying_type === 2 ? (
               <>
-                <mesh geometry={GEO.rock} material={mat('#8e8e8e')} position={[0.1, 0, 0]} />
+                <mesh geometry={GEO.rock} material={mat('#8e8e8e')} position={[0.12, 0, 0]} />
+                <mesh geometry={GEO.rock} material={mat('#7a7a7a')} position={[-0.14, 0.1, 0]} />
                 <mesh
                   geometry={GEO.rock}
-                  material={mat('#7a7a7a')}
-                  position={[-0.12, 0.08, 0]}
+                  material={mat('#828282')}
+                  position={[0.02, 0.22, -0.05]}
                   scale={[0.8, 0.8, 0.8]}
                 />
               </>
             ) : org.carrying_type === 1 ? (
-              <>
+              <group rotation={[0, 0, 0.32]}>
                 <mesh
                   geometry={GEO.log}
                   material={mat('#7a5230')}
@@ -453,12 +534,18 @@ export function VillagerFigure({
                 <mesh
                   geometry={GEO.log}
                   material={mat('#6a4628')}
-                  position={[0, 0.18, 0]}
+                  position={[0, 0.2, 0.02]}
                   rotation={[0, 0, Math.PI / 2]}
                 />
-              </>
+                <mesh
+                  geometry={GEO.log}
+                  material={mat('#835a36')}
+                  position={[0, 0.1, -0.18]}
+                  rotation={[0, 0, Math.PI / 2]}
+                />
+              </group>
             ) : (
-              <mesh geometry={GEO.sack} material={mat('#b09060')} scale={[1, 0.85, 0.7]} />
+              <mesh geometry={GEO.sack} material={mat('#b09060')} scale={[1.1, 0.95, 0.8]} />
             )}
           </group>
         )}

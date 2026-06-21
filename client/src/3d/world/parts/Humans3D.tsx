@@ -100,6 +100,40 @@ function orgColor(o: OrganismState): string {
   return base
 }
 
+// Figure size from life stage + per-individual variation, so a crowd reads as
+// infants, children, adults and stooped elders of differing builds — not clones.
+function figureScale(o: OrganismState): number {
+  let s = 0.46
+  switch (o.age_stage) {
+    case 'infant':
+      s = 0.22
+      break
+    case 'child':
+      s = 0.3
+      break
+    case 'teen':
+      s = 0.38
+      break
+    case 'elder':
+      s = 0.41
+      break
+    case 'adult':
+      s = 0.46
+      break
+    default:
+      if (o.age < 500) s = 0.3
+      else if (o.age < 900) s = 0.36
+      else if (o.age > 3000) s = 0.42
+  }
+  if (o.is_elder && o.age_stage !== 'elder') s = 0.41
+  if (o.pregnant) s *= 1.1
+  const hh = o.id ? (o.id.charCodeAt(0) * 31 + o.id.charCodeAt(o.id.length - 1) * 7) % 100 : 50
+  s *= 0.9 + (hh / 100) * 0.2
+  s *= 0.88 + (o.traits?.resilience ?? 0.5) * 0.24
+  s *= 0.85 + Math.min(1, o.health) * 0.15
+  return s
+}
+
 function tintHsl(hslIn: string, dh: number, ds: number, dl: number): string {
   const m = /hsl\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)%\s*,\s*(-?\d+(?:\.\d+)?)%\s*\)/.exec(hslIn)
   if (!m) return hslIn
@@ -207,17 +241,10 @@ function FarHumans({
       _pos.set(tx * TILE_SCALE, groundY + 0.45 + bob, ty * TILE_SCALE)
       _euler.set(0, getOrgHeading(o.id), 0)
       _quat.setFromEuler(_euler)
-      // Inherit the same per-org scale we'd use for skinned figures
-      // so figures don't visibly snap on the LOD boundary.
-      let s = 0.45
-      if (o.age < 500) s = 0.26
-      else if (o.age < 900) s = 0.34
-      else if (o.age > 3000) s = 0.42
-      if (o.is_elder) s *= 0.93
-      if (o.pregnant) s *= 1.12
+      // Same per-org scale as the skinned figures so nothing snaps at the
+      // LOD boundary.
+      let s = figureScale(o)
       if (o.sex === 'female') s *= 0.97
-      s *= 0.88 + (o.traits?.resilience ?? 0.5) * 0.24
-      s *= 0.85 + Math.min(1, o.health) * 0.15
       _scale.set(s, s, s)
       _mat.compose(_pos, _quat, _scale)
       mesh.setMatrixAt(i, _mat)
@@ -288,13 +315,7 @@ export function Humans3D({ organisms, depthMap, biomes, lineageEras }: Props) {
         const speed = Math.hypot(vx, vy)
         const moving = speed > 0.05
 
-        let scale = 0.45
-        if (o.age < 500) scale = 0.3
-        else if (o.age < 900) scale = 0.36
-        else if (o.age > 3000) scale = 0.42
-        if (o.pregnant) scale *= 1.1
-        scale *= 0.88 + (o.traits?.resilience ?? 0.5) * 0.24
-        scale *= 0.85 + Math.min(1, o.health) * 0.15
+        const scale = figureScale(o)
 
         const timeScale = Math.max(0.55, Math.min(2.4, 1.0 + speed * 1.4))
         const dx = o.x * TILE_SCALE - camera.position.x
