@@ -9,6 +9,18 @@ export type SandboxCommand =
   | { cmd: 'outbreak'; count?: number }
   | { cmd: 'spawn_animal'; x: number; y: number; kind?: string }
 
+/**
+ * Command permission belongs at the transport boundary, not just the toolbar.
+ * This makes 2D, 3D, shortcuts, and future controls obey the same rule.
+ */
+export function canSendSandboxCommand(
+  source: 'remote' | 'wasm',
+  desktop: boolean,
+  localServer: boolean,
+): boolean {
+  return source === 'wasm' || (desktop && localServer)
+}
+
 export type TimeControl = { control: 'pause' | 'resume' | 'speed'; mult?: number }
 
 export interface SandboxTool {

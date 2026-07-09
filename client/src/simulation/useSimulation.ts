@@ -7,7 +7,7 @@ import { mergeFrame, type MergeCaches } from './merge'
 import { updateOrgMotion, updateAnimalMotion } from '../3d/world/parts/motion-state'
 import { logger } from '../lib/logger'
 import { type WorldSource, OWN_WORLD_ID, getOwnWorldSeed } from './worldSource'
-import type { SandboxCommand } from './sandbox'
+import { canSendSandboxCommand, type SandboxCommand } from './sandbox'
 import { isDesktop } from '../lib/desktop'
 
 const WASM_BASE_TICK_MS = 120
@@ -45,6 +45,7 @@ export function useSimulation(source: WorldSource = 'remote'): {
   const [idleParked, setIdleParked] = useState(false)
   const [fellBack, setFellBack] = useState(false)
   const effectiveSource: WorldSource = source === 'wasm' || fellBack ? 'wasm' : 'remote'
+  const sandboxAvailable = canSendSandboxCommand(effectiveSource, isDesktop(), IS_LOCAL_SERVER)
   const wsRef = useRef<WebSocket | null>(null)
   const wasmWorkerRef = useRef<Worker | null>(null)
   const organismCache = useRef<Map<string, OrganismState>>(new Map())
@@ -558,9 +559,10 @@ export function useSimulation(source: WorldSource = 'remote'): {
     },
     idleParked,
     resume: () => resumeRef.current(),
-    sandboxAvailable: effectiveSource === 'wasm' || (isDesktop() && IS_LOCAL_SERVER),
+    sandboxAvailable,
     fellBackToLocal: source !== 'wasm' && fellBack,
     sendCommand: async (cmd: SandboxCommand) => {
+      if (!sandboxAvailable) return false
       if (effectiveSource === 'wasm') {
         wasmWorkerRef.current?.postMessage({ type: 'command', json: JSON.stringify(cmd) })
         return true

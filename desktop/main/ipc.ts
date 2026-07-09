@@ -3,6 +3,7 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { loadSettings, saveSettings, Settings, worldsRoot } from './settings'
 import { activeSim, startSim, stopSim } from './sim-process'
+import { remoteApiHost } from './sim-mode'
 
 export function registerIpc(ipc: IpcMain, getWindow: () => BrowserWindow | null): void {
   ipc.handle('settings:get', () => loadSettings())
@@ -35,7 +36,7 @@ export function registerIpc(ipc: IpcMain, getWindow: () => BrowserWindow | null)
     }
     const win = getWindow()
     if (win) {
-      const apiBase = s.remoteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')
+      const apiBase = remoteApiHost(s.remoteUrl)
       await win.loadFile(indexFile, { query: { desktop: '1', api: apiBase } })
     }
     return { running: false, port: null, mode: 'remote', remoteUrl: s.remoteUrl }

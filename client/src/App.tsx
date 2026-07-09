@@ -155,7 +155,7 @@ function LiveApp() {
 
   const handleSandboxApply = useCallback(
     (wx: number, wy: number) => {
-      if (!armedTool?.build) return
+      if (!sandboxControlsEnabled || !armedTool?.build) return
       const label = armedTool.label
       const x = Math.round(wx)
       const y = Math.round(wy)
@@ -164,7 +164,7 @@ function LiveApp() {
         setTemporarySandboxStatus(ok ? `${label} applied at ${x}, ${y}` : `${label} failed`)
       })
     },
-    [armedTool, brush, sendCommand, setTemporarySandboxStatus],
+    [armedTool, brush, sandboxControlsEnabled, sendCommand, setTemporarySandboxStatus],
   )
 
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
@@ -378,7 +378,7 @@ function LiveApp() {
                 <WorldView3D
                   world={world}
                   hideUI={viewFlags.hideUI}
-                  sandboxArmed={!!armedTool}
+                  sandboxArmed={sandboxControlsEnabled && !!armedTool}
                   onSandboxApply={handleSandboxApply}
                 />
               </Suspense>

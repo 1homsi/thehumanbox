@@ -12,6 +12,7 @@
   "main": "dist/main/index.js",
   "scripts": {
     "build:main": "tsc -p tsconfig.json",
+    "test:main": "pnpm run build:main && node --test dist/main/*.test.js",
     "build:renderer": "cd ../client && cross-env VITE_DESKTOP=1 pnpm run build",
     "build": "pnpm run build:main && pnpm run build:renderer && pnpm run copy:renderer",
     "copy:renderer": "rm -rf dist/renderer && cp -R ../client/dist dist/renderer",

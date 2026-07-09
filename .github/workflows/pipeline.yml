@@ -88,6 +88,32 @@ jobs:
           ./target/release/headless --seed 42 --ticks 6000 --every 6000
         timeout-minutes: 4
 
+  backend-performance:
+    name: Backend performance budget
+    if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      CARGO_INCREMENTAL: 0
+      CARGO_NET_RETRY: 10
+      RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
+      TICKS: 8000
+      MAX_TICK_MS: 80
+      SEEDS: "42 1337 2026"
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install mold linker
+        run: sudo apt-get install -y mold
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: simulation -> target
+      - name: Build headless benchmark
+        working-directory: simulation
+        run: cargo build --release --locked --bin headless
+      - name: Enforce multi-seed tick budget
+        run: scripts/perf-gate.sh
+
   test-frontend:
     name: Test frontend
     if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
@@ -238,6 +264,9 @@ jobs:
       - name: tsc --noEmit
         working-directory: desktop
         run: pnpm exec tsc -p tsconfig.json --noEmit
+      - name: desktop main-process tests
+        working-directory: desktop
+        run: pnpm run test:main
 
   test-lab:
     name: Test lab
@@ -336,7 +365,7 @@ jobs:
   release-gate:
     name: Release gate (all checks completed)
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    needs: [backend-lint, backend-tests, backend-headless, test-frontend, build-wasm, build-frontend, test-desktop, test-lab]
+    needs: [backend-lint, backend-tests, backend-headless, backend-performance, test-frontend, build-wasm, build-frontend, test-desktop, test-lab]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:

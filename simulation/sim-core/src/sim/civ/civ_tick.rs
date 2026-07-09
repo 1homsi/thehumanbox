@@ -8,12 +8,13 @@ use crate::sim::government::{Government, GovernmentKind, Law, LawKind};
 use crate::sim::language_tech::{pick_book_title, Book, BookTopic};
 use crate::sim::medicine::{pick_introduction, DiseaseKind};
 use crate::sim::simulation::Simulation;
+use crate::sim::spatial::SpatialIndex;
 use crate::sim::world_events::push_event;
 use crate::sim::world_milestones::Milestone;
 use rand::Rng;
 use std::collections::{HashMap, HashSet};
 
-pub fn tick_civ(sim: &mut Simulation) {
+pub fn tick_civ(sim: &mut Simulation, spatial: Option<&SpatialIndex>) {
     let tick = sim.tick_count;
 
     if tick.is_multiple_of(60) {
@@ -72,7 +73,9 @@ pub fn tick_civ(sim: &mut Simulation) {
         tick_disease_introduce(sim);
     }
     if tick.is_multiple_of(500) && tick > 0 {
-        tick_cross_lineage_knowledge(sim);
+        if let Some(spatial) = spatial {
+            tick_cross_lineage_knowledge(sim, spatial);
+        }
     }
     if tick.is_multiple_of(180) && tick > 0 {
         tick_building_auras(sim);
@@ -434,68 +437,108 @@ fn tick_building_auras(sim: &mut Simulation) {
     }
 }
 
-fn tick_cross_lineage_knowledge(sim: &mut Simulation) {
-    let snapshot: Vec<(usize, f32, f32, String, Vec<String>)> = sim
-        .organisms
-        .iter()
-        .enumerate()
-        .filter(|(_, o)| o.alive)
-        .map(|(i, o)| {
-            (
-                i,
-                o.x,
-                o.y,
-                o.lineage_id.clone(),
-                o.discoveries.iter().cloned().collect(),
-            )
-        })
-        .collect();
+fn tick_cross_lineage_knowledge(sim: &mut Simulation, spatial: &SpatialIndex) {
+    let mut nearby = Vec::with_capacity(32);
+    let mut to_grant: Vec<(usize, usize, String)> = Vec::new();
 
-    let mut to_grant: Vec<(usize, String)> = Vec::new();
-    for i in 0..snapshot.len() {
-        let (_, ax, ay, alid, _) = &snapshot[i];
-        for j in 0..snapshot.len() {
-            if i == j {
+    for learner_idx in 0..sim.organisms.len() {
+        let learner = &sim.organisms[learner_idx];
+        if !learner.alive {
+            continue;
+        }
+        let (x, y) = (learner.x, learner.y);
+        let learner_lineage = &learner.lineage_id;
+        let curiosity = learner.traits.curiosity;
+        let sociability = learner.traits.social_tendency;
+
+        spatial.query_into(x as i32, y as i32, 4, &mut nearby);
+        let mut best_teacher: Option<(usize, f32)> = None;
+        for &teacher_idx in &nearby {
+            if teacher_idx == learner_idx {
                 continue;
             }
-            let (_, bx, by, blid, bdisc) = &snapshot[j];
-            if alid == blid {
+            let teacher = &sim.organisms[teacher_idx];
+            if !teacher.alive || teacher.lineage_id == *learner_lineage {
                 continue;
             }
-            let d = (ax - bx).abs() + (ay - by).abs();
-            if d > 4.0 {
+            let distance = (teacher.x - x).abs() + (teacher.y - y).abs();
+            if distance > 4.0 || teacher.discoveries.is_empty() {
                 continue;
             }
-            let (_, _, _, _, adisc) = &snapshot[i];
-            let learnable: Vec<&String> = bdisc.iter().filter(|d| !adisc.contains(d)).collect();
-            if learnable.is_empty() {
+            if !teacher
+                .discoveries
+                .iter()
+                .any(|d| !learner.discoveries.contains(d))
+            {
                 continue;
             }
-            let pick = learnable[(sim.tick_count as usize + i + j) % learnable.len()];
-            if sim.rng.random::<f32>() < 0.08 {
-                to_grant.push((snapshot[i].0, pick.clone()));
+            if best_teacher.is_none_or(|(_, best_distance)| distance < best_distance) {
+                best_teacher = Some((teacher_idx, distance));
             }
-            break;
+        }
+
+        let Some((teacher_idx, distance)) = best_teacher else {
+            continue;
+        };
+        let teacher = &sim.organisms[teacher_idx];
+        let attitude = learner.attitude_toward(&teacher.lineage_id);
+        let trust = learner.org_trust.get(&teacher.id).copied().unwrap_or(0.0);
+        // Curious, social organisms learn more readily, especially from a
+        // trusted nearby teacher. Hostility makes accidental cultural transfer
+        // rare without making it impossible at a shared border.
+        let chance =
+            (0.025 + curiosity * 0.050 + sociability * 0.025 + trust * 0.040 + attitude.max(0.0) * 0.030)
+                * (1.0 - distance / 8.0)
+                * if attitude < -0.35 { 0.18 } else { 1.0 };
+        if sim.rng.random::<f32>() >= chance {
+            continue;
+        }
+
+        // Reservoir sample a discovery without materialising a set-difference.
+        let mut selected: Option<&String> = None;
+        let mut choices = 0u32;
+        for discovery in &teacher.discoveries {
+            if learner.discoveries.contains(discovery) {
+                continue;
+            }
+            choices += 1;
+            if sim.rng.random_range(0..choices) == 0 {
+                selected = Some(discovery);
+            }
+        }
+        if let Some(discovery) = selected {
+            to_grant.push((learner_idx, teacher_idx, discovery.clone()));
         }
     }
 
     let tick_now = sim.tick_count;
-    let mut events: Vec<(String, String, String)> = Vec::new();
-    for (i, disc) in to_grant {
-        let o = &mut sim.organisms[i];
-        if !o.alive || o.discoveries.contains(&disc) {
+    let mut events: Vec<(String, String)> = Vec::new();
+    for (learner_idx, teacher_idx, discovery) in to_grant {
+        if learner_idx == teacher_idx || !sim.organisms[learner_idx].alive {
             continue;
         }
-        o.discoveries.insert(disc.clone());
-        events.push((o.name.clone(), o.lineage_id.clone(), disc));
+        let teacher_id = sim.organisms[teacher_idx].id.clone();
+        let teacher_name = sim.organisms[teacher_idx].name.clone();
+        let teacher_lineage = sim.organisms[teacher_idx].lineage_id.clone();
+        let learner = &mut sim.organisms[learner_idx];
+        if !learner.discoveries.insert(discovery.clone()) {
+            continue;
+        }
+        *learner.org_trust.entry(teacher_id).or_insert(0.0) += 0.015;
+        learner.think(
+            &format!("{} showed me {}", teacher_name, discovery.replace('_', " ")),
+            tick_now,
+        );
+        learner.update_attitude(&teacher_lineage, 0.004);
+        events.push((learner.name.clone(), discovery));
     }
-    for (name, _lid, disc) in events {
+    for (name, disc) in events {
         push_event(
             &mut sim.events,
             tick_now,
             "build",
             &name,
-            &format!("learned {} from an outsider", disc.replace('_', " ")),
+            &format!("learned {} through a nearby encounter", disc.replace('_', " ")),
         );
     }
 }
@@ -505,6 +548,9 @@ fn lineage_era(sim: &Simulation, lid: &str) -> Era {
 }
 
 fn lineage_pop(sim: &Simulation, lid: &str) -> usize {
+    if let Some(stats) = sim.lineage_aggregates.get(lid) {
+        return stats.population;
+    }
     sim.organisms
         .iter()
         .filter(|o| o.alive && o.lineage_id == lid)
@@ -1515,6 +1561,9 @@ fn next_target_building(era: Era, pop: usize, existing: &HashSet<BuildingKind>) 
 }
 
 fn lineage_center(sim: &Simulation, lid: &str) -> (i32, i32) {
+    if let Some(stats) = sim.lineage_aggregates.get(lid) {
+        return stats.center();
+    }
     let mut sx = 0i64;
     let mut sy = 0i64;
     let mut n = 0i64;
@@ -1774,6 +1823,9 @@ fn tick_governments(sim: &mut Simulation) {
 }
 
 fn lineage_literacy(sim: &Simulation, lid: &str) -> f32 {
+    if let Some(stats) = sim.lineage_aggregates.get(lid) {
+        return stats.literacy();
+    }
     let mut sum = 0.0;
     let mut n = 0;
     for o in &sim.organisms {
@@ -2703,6 +2755,33 @@ mod tests {
         org.energy = 0.8;
         org.loneliness = 0.85;
         org
+    }
+
+    #[test]
+    fn cross_lineage_learning_uses_nearby_contact_without_snapshot_clones() {
+        let mut sim = Simulation::new(0x1ea1);
+        sim.organisms.clear();
+        sim.tick_count = 500;
+
+        let mut learner = test_org("learner", "Learner", "lineage-a", 20.0, 20.0);
+        learner.traits.curiosity = 1.0;
+        learner.traits.social_tendency = 1.0;
+        learner.lineage_attitudes.insert("lineage-b".into(), 0.8);
+        let mut teacher = test_org("teacher", "Teacher", "lineage-b", 21.0, 20.0);
+        teacher.discoveries.insert("bronze_working".into());
+        sim.organisms.push(learner);
+        sim.organisms.push(teacher);
+
+        let spatial = SpatialIndex::build(&sim.organisms, 8);
+        for _ in 0..100 {
+            tick_cross_lineage_knowledge(&mut sim, &spatial);
+            if sim.organisms[0].discoveries.contains("bronze_working") {
+                break;
+            }
+        }
+
+        assert!(sim.organisms[0].discoveries.contains("bronze_working"));
+        assert!(sim.organisms[0].org_trust.get("teacher").copied().unwrap_or(0.0) > 0.0);
     }
 
     #[test]

@@ -18,7 +18,7 @@ CARGO_RELEASE := cd simulation && cargo
         build build-client build-sim build-desktop wasm \
         wipe wipe-archive logs profile lab-pipeline metrics snapshot \
         install install-client install-desktop install-sim \
-        clean clean-sim clean-client clean-desktop \
+        clean clean-sim clean-client clean-desktop perf-gate \
         ci-status ci-watch ci-log redeploy ec2-status worlds-list \
         commit-as-1homsi tag-list release-latest
 
@@ -116,6 +116,10 @@ profile: ## Headless perf profile CSV — `make profile OUT=a.csv TICKS=12000`
 	$(CARGO_RELEASE) run --release --bin headless -- \
 		--seed $(SEED) --ticks $(TICKS) --every $(TICKS) \
 		--profile ../$(OUT) --profile-every 100
+
+perf-gate: ## Multi-seed sim budget — `make perf-gate TICKS=8000 MAX_TICK_MS=80`
+	$(CARGO_RELEASE) build --release --locked --bin headless
+	TICKS=$(TICKS) MAX_TICK_MS=$${MAX_TICK_MS:-80} scripts/perf-gate.sh
 
 metrics: ## Scrape /metrics once from a running sim — `make metrics HOST=...`
 	@curl -s $(HOST)/metrics

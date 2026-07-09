@@ -1,4 +1,5 @@
 use super::config::{season_growth, DAY_LENGTH, SEASONS, SEASON_LENGTH};
+use super::spatial::SpatialIndex;
 use super::world_events::{
     push_event, tick_drought, tick_outbreak, tick_weather, tick_world_evolution, DroughtState, WeatherState,
 };
@@ -380,8 +381,6 @@ fn verify_local_danger_memory(org: &mut Organism, grid: &WorldGrid, animals: &[A
 
     decay_local_resource_memory(&mut org.danger_memory, x, y, 0.50, 0.72);
 }
-use super::spatial::SpatialIndex;
-
 pub const SAVE_SCHEMA_VERSION: u32 = 3;
 
 #[derive(Default, Clone, Serialize, Deserialize)]
@@ -495,6 +494,38 @@ pub struct History {
     pub era_history: VecDeque<EraEntry>,
 }
 
+/// Read-mostly lineage facts collected once at the start of every tick.
+/// Civilization systems previously re-counted and re-centred the same
+/// populations independently; this keeps those scheduled decisions cheap and
+/// internally consistent for the tick.
+#[derive(Default, Clone, Copy)]
+pub(crate) struct LineageAggregate {
+    pub population: usize,
+    pub x_sum: f32,
+    pub y_sum: f32,
+    pub literacy_sum: f32,
+}
+
+impl LineageAggregate {
+    pub fn center(self) -> (i32, i32) {
+        if self.population == 0 {
+            return (0, 0);
+        }
+        (
+            (self.x_sum / self.population as f32) as i32,
+            (self.y_sum / self.population as f32) as i32,
+        )
+    }
+
+    pub fn literacy(self) -> f32 {
+        if self.population == 0 {
+            0.0
+        } else {
+            self.literacy_sum / self.population as f32
+        }
+    }
+}
+
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct EraEntry {
     pub tick: u64,
@@ -532,6 +563,7 @@ pub struct Simulation {
     /// spread of centroids.
     pub lineage_homes: HashMap<String, [i32; 3]>,
     pub lineage_eras: HashMap<String, super::era::Era>,
+    pub(crate) lineage_aggregates: HashMap<String, LineageAggregate>,
     pub buildings: Vec<super::buildings::Building>,
     pub next_building_id: u32,
     pub governments: HashMap<String, super::government::Government>,
@@ -638,6 +670,18 @@ fn era_fanfare(era: &str) -> &'static str {
 }
 
 impl Simulation {
+    fn rebuild_lineage_aggregates(&mut self) {
+        self.lineage_aggregates.clear();
+        self.lineage_aggregates.reserve(self.lineage_names.len().max(8));
+        for org in self.organisms.iter().filter(|org| org.alive) {
+            let entry = self.lineage_aggregates.entry(org.lineage_id.clone()).or_default();
+            entry.population += 1;
+            entry.x_sum += org.x;
+            entry.y_sum += org.y;
+            entry.literacy_sum += org.literacy;
+        }
+    }
+
     pub fn new(seed: u64) -> Self {
         let rng = ChaCha8Rng::seed_from_u64(seed);
         let grid = WorldGrid::new(seed);
@@ -679,6 +723,7 @@ impl Simulation {
             lineage_centroid_history: HashMap::new(),
             lineage_homes: HashMap::new(),
             lineage_eras: HashMap::new(),
+            lineage_aggregates: HashMap::new(),
             buildings: Vec::new(),
             next_building_id: 1,
             governments: HashMap::new(),
@@ -814,7 +859,15 @@ impl Simulation {
     pub fn tick(&mut self) {
         self.tick_count += 1;
 
-        super::civ_tick::tick_civ(self);
+        self.rebuild_lineage_aggregates();
+        // Cross-lineage learning only runs every 500 ticks. Build the spatial
+        // index on that cadence so contact lookup stays local instead of
+        // comparing every living pair.
+        let civ_spatial = self
+            .tick_count
+            .is_multiple_of(500)
+            .then(|| SpatialIndex::build(&self.organisms, 8));
+        super::civ_tick::tick_civ(self, civ_spatial.as_ref());
 
         if self.tick_count.is_multiple_of(6000) {
             let alive = self.organisms.iter().filter(|o| o.alive).count();
