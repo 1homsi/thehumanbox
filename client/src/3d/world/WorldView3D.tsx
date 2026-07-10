@@ -59,6 +59,7 @@ import { CameraBreath } from './parts/CameraBreath'
 import { Fireflies } from './parts/Fireflies'
 import { SocialBeams } from './parts/SocialBeams'
 import { TerritoryOverlay } from './parts/TerritoryOverlay'
+import { DataOverlays3D } from './parts/DataOverlays3D'
 import { TILE_SCALE } from './parts/constants'
 import { heightAtWorld, heightAt } from './parts/terrain-utils'
 import { getOrgHeading, getOrgXY } from './parts/motion-state'
@@ -358,6 +359,7 @@ export default function WorldView3D({ world, sandboxArmed, onSandboxApply, onCon
   // every flag toggle; a scalar selector is virtually free.
   const showTerritoryMap = useUIStore((s) => s.viewFlags.territoryMap)
   const orgPov = useUIStore((s) => s.viewFlags.orgPov)
+  const overlay = useUIStore((s) => s.overlay)
   const [follow, setFollow] = useState(false)
 
   // Touch detection - PointerLockControls requires a mouse, so on touch
@@ -878,6 +880,16 @@ export default function WorldView3D({ world, sandboxArmed, onSandboxApply, onCon
                     territory={world.territory}
                     depthMap={grid.depth_map!}
                     biomes={grid.biomes!}
+                  />
+                )}
+                {overlay && (
+                  <DataOverlays3D
+                    overlay={overlay}
+                    world={world}
+                    depthMap={grid.depth_map!}
+                    biomes={grid.biomes!}
+                    width={grid.width}
+                    height={grid.height}
                   />
                 )}
               </>
