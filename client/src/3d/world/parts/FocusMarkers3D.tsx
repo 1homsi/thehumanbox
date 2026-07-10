@@ -44,7 +44,7 @@ const FOCUS_COLOR: Record<string, string> = {
   thriving: '#ffe066',
 }
 
-export function matchesFocus(focus: string, org: OrganismState): boolean {
+function matchesFocus(focus: string, org: OrganismState): boolean {
   if (focus.startsWith('lineage:')) return org.lineage_id === focus.slice(8)
   if (focus === 'sick') return org.infection > 0.15
   if (focus === 'hungry') return org.energy < 0.3
