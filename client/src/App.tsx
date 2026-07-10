@@ -23,6 +23,7 @@ import { AppHeader } from './components/AppHeader'
 import { RightPanel } from './components/RightPanel'
 import { ModalRouter } from './components/ModalRouter'
 import { ThreeDLoading } from './components/ThreeDLoading'
+import { ThreeDErrorBoundary } from './components/ThreeDErrorBoundary'
 import { Try3DToast } from './components/Try3DToast'
 import { MobileBanner } from './components/MobileBanner'
 import { WelcomeModal } from './components/WelcomeModal'
@@ -166,6 +167,18 @@ function LiveApp() {
     },
     [armedTool, brush, sandboxControlsEnabled, sendCommand, setTemporarySandboxStatus],
   )
+
+  const [threeDIssue, setThreeDIssue] = useState<'crash' | 'unsupported' | 'context' | null>(null)
+
+  const handleThreeDFailure = useCallback((reason: 'crash' | 'unsupported' | 'context') => {
+    setThreeDIssue(reason)
+    useUIStore.getState().setViewFlag('threeD', false)
+  }, [])
+
+  const retryThreeD = useCallback(() => {
+    setThreeDIssue(null)
+    useUIStore.getState().setViewFlag('threeD', true)
+  }, [])
 
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
   const leftOpen = useUIStore((s) => s.leftOpen)
@@ -350,6 +363,18 @@ function LiveApp() {
         </div>
       )}
 
+      {threeDIssue && (
+        <div className="fallback-banner">
+          {threeDIssue === 'unsupported'
+            ? '⚠ 3D needs WebGL, which this browser does not support — showing the classic view.'
+            : threeDIssue === 'context'
+              ? '⚠ The 3D view lost its graphics context — returned to the classic view.'
+              : '⚠ The 3D view hit a rendering error — returned to the classic view.'}{' '}
+          {threeDIssue !== 'unsupported' && <button onClick={retryThreeD}>try 3D again</button>}{' '}
+          <button onClick={() => setThreeDIssue(null)}>dismiss</button>
+        </div>
+      )}
+
       {idleParked && <IdleResumeOverlay onResume={resume} />}
       <DesktopDownloadToast />
       <CommandPalette />
@@ -374,14 +399,16 @@ function LiveApp() {
                 <SceneView world={world} />
               </Suspense>
             ) : viewFlags.threeD ? (
-              <Suspense fallback={<ThreeDLoading />}>
-                <WorldView3D
-                  world={world}
-                  hideUI={viewFlags.hideUI}
-                  sandboxArmed={sandboxControlsEnabled && !!armedTool}
-                  onSandboxApply={handleSandboxApply}
-                />
-              </Suspense>
+              <ThreeDErrorBoundary onCrash={() => handleThreeDFailure('crash')}>
+                <Suspense fallback={<ThreeDLoading />}>
+                  <WorldView3D
+                    world={world}
+                    hideUI={viewFlags.hideUI}
+                    sandboxArmed={sandboxControlsEnabled && !!armedTool}
+                    onSandboxApply={handleSandboxApply}
+                  />
+                </Suspense>
+              </ThreeDErrorBoundary>
             ) : (
               <WorldView
                 world={world}
