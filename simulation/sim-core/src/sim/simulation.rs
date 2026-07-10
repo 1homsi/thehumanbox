@@ -5080,7 +5080,7 @@ impl Simulation {
                 );
             }
         }
-        for (_, n) in self.water_use.iter_mut() {
+        for n in self.water_use.values_mut() {
             *n = ((*n as f32) * KEEP_FRACTION) as u32;
         }
         self.water_use.retain(|_, n| *n > 0);
