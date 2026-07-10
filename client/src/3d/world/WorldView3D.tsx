@@ -329,12 +329,23 @@ interface Props {
   hideUI?: boolean
   sandboxArmed?: boolean
   onSandboxApply?: (worldX: number, worldY: number) => void
+  onContextLost?: () => void
 }
 
 const SEL_LS_KEY = 'thb-3d-sel-v1'
 
-export default function WorldView3D({ world, sandboxArmed, onSandboxApply }: Props) {
+export default function WorldView3D({ world, sandboxArmed, onSandboxApply, onContextLost }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const contextLostRef = useRef(onContextLost)
+  contextLostRef.current = onContextLost
+  const contextWatchdog = useRef<number | null>(null)
+
+  useEffect(
+    () => () => {
+      if (contextWatchdog.current !== null) window.clearTimeout(contextWatchdog.current)
+    },
+    [],
+  )
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
   const selectOrgStore = useUIStore((s) => s.selectOrg)
   // WorldView3D only reads one flag (territoryMap). Subscribing to
@@ -578,7 +589,20 @@ export default function WorldView3D({ world, sandboxArmed, onSandboxApply }: Pro
             gl.toneMappingExposure = 0.95
             gl.outputColorSpace = SRGBColorSpace
             const dom = gl.domElement
-            dom.addEventListener('webglcontextlost', (e) => e.preventDefault())
+            dom.addEventListener('webglcontextlost', (e) => {
+              e.preventDefault()
+              if (contextWatchdog.current !== null) window.clearTimeout(contextWatchdog.current)
+              contextWatchdog.current = window.setTimeout(() => {
+                contextWatchdog.current = null
+                contextLostRef.current?.()
+              }, 6000)
+            })
+            dom.addEventListener('webglcontextrestored', () => {
+              if (contextWatchdog.current !== null) {
+                window.clearTimeout(contextWatchdog.current)
+                contextWatchdog.current = null
+              }
+            })
             const orig = dom.requestPointerLock?.bind(dom)
             if (orig) {
               dom.requestPointerLock = (opts?: PointerLockOptions) => {

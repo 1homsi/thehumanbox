@@ -24,6 +24,7 @@ import { RightPanel } from './components/RightPanel'
 import { ModalRouter } from './components/ModalRouter'
 import { ThreeDLoading } from './components/ThreeDLoading'
 import { ThreeDErrorBoundary } from './components/ThreeDErrorBoundary'
+import { webglAvailable } from './lib/webgl'
 import { Try3DToast } from './components/Try3DToast'
 import { MobileBanner } from './components/MobileBanner'
 import { WelcomeModal } from './components/WelcomeModal'
@@ -180,11 +181,18 @@ function LiveApp() {
     useUIStore.getState().setViewFlag('threeD', true)
   }, [])
 
+
+  const webglOk = useMemo(() => webglAvailable(), [])
+
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
   const leftOpen = useUIStore((s) => s.leftOpen)
   const toggleLeft = useUIStore((s) => s.toggleLeft)
   const viewFlags = useUIStore((s) => s.viewFlags)
   const openDesktopSettings = useUIStore((s) => s.openDesktopSettings)
+
+  useEffect(() => {
+    if (viewFlags.threeD && !webglOk) handleThreeDFailure('unsupported')
+  }, [viewFlags.threeD, webglOk, handleThreeDFailure])
 
   useEffect(() => {
     if (window.thbDesktop?.platform === 'darwin') {
@@ -398,7 +406,7 @@ function LiveApp() {
               <Suspense fallback={null}>
                 <SceneView world={world} />
               </Suspense>
-            ) : viewFlags.threeD ? (
+            ) : viewFlags.threeD && webglOk ? (
               <ThreeDErrorBoundary onCrash={() => handleThreeDFailure('crash')}>
                 <Suspense fallback={<ThreeDLoading />}>
                   <WorldView3D
@@ -406,6 +414,7 @@ function LiveApp() {
                     hideUI={viewFlags.hideUI}
                     sandboxArmed={sandboxControlsEnabled && !!armedTool}
                     onSandboxApply={handleSandboxApply}
+                    onContextLost={() => handleThreeDFailure('context')}
                   />
                 </Suspense>
               </ThreeDErrorBoundary>
