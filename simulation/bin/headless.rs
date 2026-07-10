@@ -366,7 +366,7 @@ fn main() {
         }
     }
     let mut era_counts: HashMap<String, usize> = HashMap::new();
-    for (_, era) in sim.lineage_eras.iter() {
+    for era in sim.lineage_eras.values() {
         *era_counts.entry(era.name().to_string()).or_insert(0) += 1;
     }
     let mut era_pairs: Vec<(String, usize)> = era_counts.into_iter().collect();
