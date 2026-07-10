@@ -306,6 +306,36 @@ export function Humans3D({ organisms, depthMap, biomes, lineageEras }: Props) {
     // components for height sampling, never in this partition.
   }, [organisms, camera.position.x, camera.position.z, selectedOrgId])
 
+  const attentionById = useMemo(() => {
+    const byId = new Map(organisms.filter((org) => org.alive).map((org) => [org.id, org]))
+    const result = new Map<string, number>()
+    const normalizeAngle = (angle: number) => Math.atan2(Math.sin(angle), Math.cos(angle))
+    for (const org of near) {
+      const relatedIds = new Set<string>()
+      if (org.partner_id) relatedIds.add(org.partner_id)
+      if (org.parent_id) relatedIds.add(org.parent_id)
+      for (const friendId of Object.keys(org.friends ?? {})) relatedIds.add(friendId)
+      let closest: OrganismState | null = null
+      let closestDistanceSq = 8 * 8
+      for (const id of relatedIds) {
+        const other = byId.get(id)
+        if (!other) continue
+        const dx = other.x - org.x
+        const dy = other.y - org.y
+        const distanceSq = dx * dx + dy * dy
+        if (distanceSq < closestDistanceSq) {
+          closestDistanceSq = distanceSq
+          closest = other
+        }
+      }
+      if (closest) {
+        const worldYaw = Math.atan2(closest.x - org.x, closest.y - org.y)
+        result.set(org.id, Math.max(-0.9, Math.min(0.9, normalizeAngle(worldYaw - getOrgHeading(org.id)))))
+      }
+    }
+    return result
+  }, [organisms, near])
+
   if (!depthMap || !biomes) return null
 
   return (
@@ -345,6 +375,7 @@ export function Humans3D({ organisms, depthMap, biomes, lineageEras }: Props) {
               animation={pickAnim(o, moving)}
               animate={animate}
               timeScale={timeScale}
+              attentionYaw={attentionById.get(o.id)}
             />
           </group>
         )

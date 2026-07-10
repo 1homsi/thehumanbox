@@ -46,6 +46,7 @@ import { BigMomentEffects } from './parts/BigMomentEffects'
 import { OrgStateBadges } from './parts/OrgStateBadges'
 import { FootstepDust } from './parts/FootstepDust'
 import { WorkEffects3D } from './parts/WorkEffects3D'
+import { ThoughtBubbles3D } from './parts/ThoughtBubbles3D'
 import { GrassTufts } from './parts/GrassTufts'
 import { TribeLabels } from './parts/TribeLabels'
 import { FireLights } from './parts/FireLights'
@@ -58,7 +59,7 @@ import { SocialBeams } from './parts/SocialBeams'
 import { TerritoryOverlay } from './parts/TerritoryOverlay'
 import { TILE_SCALE } from './parts/constants'
 import { heightAtWorld, heightAt } from './parts/terrain-utils'
-import { getOrgXY } from './parts/motion-state'
+import { getOrgHeading, getOrgXY } from './parts/motion-state'
 import { cameraCommand, type CameraLookAt, type CameraTeleport } from './parts/camera-state'
 
 type MoveKeys = 'forward' | 'back' | 'left' | 'right' | 'up' | 'down' | 'boost'
@@ -176,9 +177,10 @@ function FlyCamera({ depthMap, biomes, buildingAABBs, worldWidth, worldHeight }:
   const saveTimerRef = useRef(0)
   // Reuse these across every useFrame call instead of `new`-ing three
   // Vector3s per frame at 60 Hz.
-  const fwdScratch = useRef(new Vector3())
   const forwardScratch = useRef(new Vector3())
   const rightScratch = useRef(new Vector3())
+  const followLookAt = useRef(new Vector3())
+  const followInitialized = useRef(false)
 
   useEffect(() => {
     const saved = loadSavedCam()
@@ -213,19 +215,37 @@ function FlyCamera({ depthMap, biomes, buildingAABBs, worldWidth, worldHeight }:
       if (tx !== 0 || ty !== 0) {
         const wx = tx * TILE_SCALE
         const wz = ty * TILE_SCALE
-        const fwd = fwdScratch.current
-        camera.getWorldDirection(fwd)
-        fwd.y = 0
-        if (fwd.lengthSq() > 0) fwd.normalize()
-        const targetX = wx - fwd.x * 20
-        const targetZ = wz - fwd.z * 20
+        const heading = getOrgHeading(cameraCommand.followOrgId)
+        const headingX = Math.sin(heading)
+        const headingZ = Math.cos(heading)
+        const sideX = headingZ
+        const sideZ = -headingX
+        const targetX = wx - headingX * 15 + sideX * 3.5
+        const targetZ = wz - headingZ * 15 + sideZ * 3.5
         const groundY = depthMap && biomes ? heightAt(tx, ty, depthMap, biomes) : 0
-        const targetY = groundY + 8.5
-        const lerp = 1 - Math.exp(-5.0 * delta)
+        const targetY = groundY + 7.2
+        const look = followLookAt.current
+        const lookX = wx + headingX * 5
+        const lookY = groundY + 1.6
+        const lookZ = wz + headingZ * 5
+        if (!followInitialized.current) {
+          look.set(lookX, lookY, lookZ)
+          followInitialized.current = true
+        }
+        const lerp = 1 - Math.exp(-4.5 * delta)
         camera.position.x += (targetX - camera.position.x) * lerp
         camera.position.y += (targetY - camera.position.y) * lerp
         camera.position.z += (targetZ - camera.position.z) * lerp
+        const lookLerp = 1 - Math.exp(-7 * delta)
+        look.x += (lookX - look.x) * lookLerp
+        look.y += (lookY - look.y) * lookLerp
+        look.z += (lookZ - look.z) * lookLerp
+        camera.lookAt(look)
+        camera.rotation.order = 'YXZ'
+        camera.rotation.z = 0
       }
+    } else {
+      followInitialized.current = false
     }
 
     const speed = 30 * (k.boost ? 4 : 1)
@@ -699,6 +719,11 @@ export default function WorldView3D({ world, sandboxArmed, onSandboxApply }: Pro
                   biomes={grid.biomes!}
                 />
                 <WorkEffects3D
+                  organisms={world.viewport_organisms ?? world.organisms ?? []}
+                  depthMap={grid.depth_map!}
+                  biomes={grid.biomes!}
+                />
+                <ThoughtBubbles3D
                   organisms={world.viewport_organisms ?? world.organisms ?? []}
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}

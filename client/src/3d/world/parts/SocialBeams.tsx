@@ -44,6 +44,29 @@ export function SocialBeams({ organisms, depthMap, biomes }: Props) {
   const colorArray = useMemo(() => new Float32Array(MAX_BEAMS * 6), []) // RGB per vertex
   const frameCount = useRef(0)
   const beamCount = useRef(0) // stable across throttled frames
+  const connectedPairs = useMemo(() => {
+    const byId = new Map(organisms.filter((org) => org.alive).map((org) => [org.id, org]))
+    const seen = new Set<string>()
+    const pairs: [OrganismState, OrganismState][] = []
+    const add = (a: OrganismState, otherId: string | null | undefined) => {
+      if (!otherId || otherId === a.id) return
+      const b = byId.get(otherId)
+      if (!b) return
+      const key = a.id < b.id ? `${a.id}\u0000${b.id}` : `${b.id}\u0000${a.id}`
+      if (seen.has(key) || connectionStrength(a, b) < MIN_STRENGTH) return
+      seen.add(key)
+      pairs.push([a, b])
+    }
+    for (const org of byId.values()) {
+      add(org, org.partner_id)
+      add(org, org.parent_id)
+      for (const friendId of Object.keys(org.friends ?? {})) add(org, friendId)
+      for (const [trustedId, trust] of Object.entries(org.org_trust ?? {})) {
+        if (trust > 0.6) add(org, trustedId)
+      }
+    }
+    return pairs
+  }, [organisms])
 
   useFrame(({ clock }) => {
     const geom = geomRef.current
@@ -52,46 +75,35 @@ export function SocialBeams({ organisms, depthMap, biomes }: Props) {
 
     const t = clock.getElapsedTime()
 
-    // Heavy O(N^2) pair recompute only every 4 frames; in between, the
-    // previously written posArray/colorArray + draw range are reused.
+    // Relationship edges are built once per world update. Per-frame work is
+    // proportional to actual bonds, not every possible organism pair.
     if (frameCount.current % 4 === 0) {
       let n = 0
-      const orgs = organisms
-      const len = orgs.length
-
-      outer: for (let i = 0; i < len; i++) {
-        const a = orgs[i]
-        if (!a.alive) continue
+      for (const [a, b] of connectedPairs) {
+        if (n >= MAX_BEAMS) break
         const [ax, az] = getOrgXY(a.id)
-        for (let j = i + 1; j < len; j++) {
-          if (n >= MAX_BEAMS) break outer
-          const b = orgs[j]
-          if (!b.alive) continue
-          const [bx, bz] = getOrgXY(b.id)
-          const ddx = ax - bx
-          const ddz = az - bz
-          if (ddx * ddx + ddz * ddz > BEAM_DIST * BEAM_DIST) continue
-          const str = connectionStrength(a, b)
-          if (str < MIN_STRENGTH) continue
-          const agy = heightAt(ax, az, depthMap, biomes)
-          const bgy = heightAt(bx, bz, depthMap, biomes)
-          const base = n * 6
-          posArray[base + 0] = ax * TILE_SCALE
-          posArray[base + 1] = agy + 1.5
-          posArray[base + 2] = az * TILE_SCALE
-          posArray[base + 3] = bx * TILE_SCALE
-          posArray[base + 4] = bgy + 1.5
-          posArray[base + 5] = bz * TILE_SCALE
+        const [bx, bz] = getOrgXY(b.id)
+        const ddx = ax - bx
+        const ddz = az - bz
+        if (ddx * ddx + ddz * ddz > BEAM_DIST * BEAM_DIST) continue
+        const agy = heightAt(ax, az, depthMap, biomes)
+        const bgy = heightAt(bx, bz, depthMap, biomes)
+        const base = n * 6
+        posArray[base + 0] = ax * TILE_SCALE
+        posArray[base + 1] = agy + 1.5
+        posArray[base + 2] = az * TILE_SCALE
+        posArray[base + 3] = bx * TILE_SCALE
+        posArray[base + 4] = bgy + 1.5
+        posArray[base + 5] = bz * TILE_SCALE
 
-          const [r, g, bv] = beamRGB(a, b)
-          colorArray[base + 0] = r
-          colorArray[base + 1] = g
-          colorArray[base + 2] = bv
-          colorArray[base + 3] = r
-          colorArray[base + 4] = g
-          colorArray[base + 5] = bv
-          n++
-        }
+        const [r, g, bv] = beamRGB(a, b)
+        colorArray[base + 0] = r
+        colorArray[base + 1] = g
+        colorArray[base + 2] = bv
+        colorArray[base + 3] = r
+        colorArray[base + 4] = g
+        colorArray[base + 5] = bv
+        n++
       }
 
       beamCount.current = n

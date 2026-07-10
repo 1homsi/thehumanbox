@@ -191,6 +191,7 @@ interface Props {
   animation: string
   animate?: boolean
   timeScale?: number
+  attentionYaw?: number
 }
 
 export function VillagerFigure({
@@ -203,6 +204,7 @@ export function VillagerFigure({
   animation,
   animate = true,
   timeScale = 1,
+  attentionYaw,
 }: Props) {
   const root = useRef<Group>(null)
   const body = useRef<Group>(null)
@@ -324,7 +326,7 @@ export function VillagerFigure({
       default: {
         bob = Math.sin(t * 1.8) * 0.015
         armSwing = Math.sin(t * 1.8) * 0.05
-        headYaw = Math.sin(t * 0.4 + 1.7) * 0.2
+        headYaw = attentionYaw ?? Math.sin(t * 0.4 + 1.7) * 0.2
         break
       }
     }
