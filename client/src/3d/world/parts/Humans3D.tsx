@@ -215,6 +215,7 @@ function FarHumans({
   const geometry = useMemo(() => buildHumanoidLodGeometry(), [])
   const material = useMemo(() => new MeshStandardMaterial({ roughness: 0.85 }), [])
   const count = organisms.length
+  const selectOrg = useUIStore((s) => s.selectOrg)
 
   useEffect(() => {
     // Re-create the InstancedMesh when capacity changes - three.js
@@ -265,6 +266,20 @@ function FarHumans({
       args={[geometry, material, count]}
       castShadow
       frustumCulled={false}
+      onClick={(e) => {
+        if (e.instanceId == null) return
+        const o = organisms[e.instanceId]
+        if (!o) return
+        e.stopPropagation()
+        selectOrg(o.id)
+      }}
+      onPointerOver={(e) => {
+        e.stopPropagation()
+        document.body.style.cursor = 'pointer'
+      }}
+      onPointerOut={() => {
+        document.body.style.cursor = ''
+      }}
     />
   )
 }
@@ -359,6 +374,13 @@ export function Humans3D({ organisms, depthMap, biomes, lineageEras }: Props) {
             onClick={(e) => {
               e.stopPropagation()
               selectOrg(o.id)
+            }}
+            onPointerOver={(e) => {
+              e.stopPropagation()
+              document.body.style.cursor = 'pointer'
+            }}
+            onPointerOut={() => {
+              document.body.style.cursor = ''
             }}
           >
             <VillagerFigure

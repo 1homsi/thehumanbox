@@ -30,8 +30,10 @@ export const cameraCommand: {
   teleport: CameraTeleport | null
   reset: boolean
   followOrgId: string | null
+  povOrgId: string | null
 } = {
   teleport: null,
   reset: false,
   followOrgId: null,
+  povOrgId: null,
 }

@@ -203,6 +203,7 @@ function FlyCamera({ depthMap, biomes, buildingAABBs, worldWidth, worldHeight }:
       applyTeleport(camera, defaultCameraPose(worldWidth, worldHeight))
       cameraCommand.reset = false
       cameraCommand.followOrgId = null
+      cameraCommand.povOrgId = null
     }
 
     if (cameraCommand.teleport) {
@@ -212,24 +213,26 @@ function FlyCamera({ depthMap, biomes, buildingAABBs, worldWidth, worldHeight }:
 
     const k = get()
     const userDriving = k.forward || k.back || k.left || k.right || k.up || k.down
-    if (cameraCommand.followOrgId && !userDriving) {
-      const [tx, ty] = getOrgXY(cameraCommand.followOrgId)
+    const trackedOrgId = cameraCommand.povOrgId ?? cameraCommand.followOrgId
+    if (trackedOrgId && !userDriving) {
+      const pov = !!cameraCommand.povOrgId
+      const [tx, ty] = getOrgXY(trackedOrgId)
       if (tx !== 0 || ty !== 0) {
         const wx = tx * TILE_SCALE
         const wz = ty * TILE_SCALE
-        const heading = getOrgHeading(cameraCommand.followOrgId)
+        const heading = getOrgHeading(trackedOrgId)
         const headingX = Math.sin(heading)
         const headingZ = Math.cos(heading)
         const sideX = headingZ
         const sideZ = -headingX
-        const targetX = wx - headingX * 15 + sideX * 3.5
-        const targetZ = wz - headingZ * 15 + sideZ * 3.5
+        const targetX = pov ? wx + headingX * 0.35 : wx - headingX * 15 + sideX * 3.5
+        const targetZ = pov ? wz + headingZ * 0.35 : wz - headingZ * 15 + sideZ * 3.5
         const groundY = depthMap && biomes ? heightAt(tx, ty, depthMap, biomes) : 0
-        const targetY = groundY + 7.2
+        const targetY = groundY + (pov ? 1.5 : 7.2)
         const look = followLookAt.current
-        const lookX = wx + headingX * 5
-        const lookY = groundY + 1.6
-        const lookZ = wz + headingZ * 5
+        const lookX = wx + headingX * (pov ? 12 : 5)
+        const lookY = groundY + (pov ? 1.3 : 1.6)
+        const lookZ = wz + headingZ * (pov ? 12 : 5)
         if (!followInitialized.current) {
           look.set(lookX, lookY, lookZ)
           followInitialized.current = true
@@ -354,6 +357,7 @@ export default function WorldView3D({ world, sandboxArmed, onSandboxApply, onCon
   // the whole viewFlags object re-renders the entire 3D tree on
   // every flag toggle; a scalar selector is virtually free.
   const showTerritoryMap = useUIStore((s) => s.viewFlags.territoryMap)
+  const orgPov = useUIStore((s) => s.viewFlags.orgPov)
   const [follow, setFollow] = useState(false)
 
   // Touch detection - PointerLockControls requires a mouse, so on touch
@@ -500,6 +504,13 @@ export default function WorldView3D({ world, sandboxArmed, onSandboxApply, onCon
   useEffect(() => {
     cameraCommand.followOrgId = follow && selectedOrgId ? selectedOrgId : null
   }, [follow, selectedOrgId])
+
+  useEffect(() => {
+    cameraCommand.povOrgId = orgPov && selectedOrgId ? selectedOrgId : null
+    return () => {
+      cameraCommand.povOrgId = null
+    }
+  }, [orgPov, selectedOrgId])
 
   const grid = world?.grid
   const ready = !!(grid?.depth_map && grid?.biomes && grid?.tiles && grid?.width && grid?.height)
