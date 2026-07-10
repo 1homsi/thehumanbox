@@ -1,4 +1,4 @@
-import { Suspense, useRef, useEffect, useState, useMemo } from 'react'
+import { Suspense, useRef, useEffect, useState, useMemo, useCallback } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { KeyboardControls, useKeyboardControls, PointerLockControls, OrbitControls } from '@react-three/drei'
 import { Vector3, TOUCH, PCFSoftShadowMap, ACESFilmicToneMapping, SRGBColorSpace, type Camera } from 'three'
@@ -52,6 +52,7 @@ import { TribeLabels } from './parts/TribeLabels'
 import { FireLights } from './parts/FireLights'
 import { normalizeLineageEras } from '../../utils/lineageEras'
 import { LOW_PERF } from '../../lib/perf'
+import { useSceneStore } from '../../stores/scene'
 import { TimeOfDayTint } from './parts/TimeOfDayTint'
 import { CinematicGrade } from './parts/CinematicGrade'
 import { CameraBreath } from './parts/CameraBreath'
@@ -508,6 +509,30 @@ export default function WorldView3D({ world, sandboxArmed, onSandboxApply, onCon
   const sunAlt = Math.sin((dayProgress - 0.25) * 2 * Math.PI)
   const isNight = sunAlt < 0
 
+  const handleTilePick = useCallback(
+    (x: number, y: number) => {
+      if (!world?.grid) return
+      if (sandboxArmed && onSandboxApply) {
+        onSandboxApply(x + (world.grid.origin_x ?? 0), y + (world.grid.origin_y ?? 0))
+        return
+      }
+      const tx = Math.floor(x)
+      const ty = Math.floor(y)
+      const tileVal = world.grid.tiles?.[ty]?.[tx]
+      const structVal = world.grid.structure?.[ty]?.[tx] ?? 0
+      if (tileVal !== 8 && structVal < 0.35) return
+      let bestHost: { id: string; age: number } | null = null
+      for (const org of world.organisms ?? []) {
+        if (!org.alive) continue
+        if (Math.floor(org.home_x) === tx && Math.floor(org.home_y) === ty) {
+          if (!bestHost || org.age > bestHost.age) bestHost = { id: org.id, age: org.age }
+        }
+      }
+      if (bestHost) useSceneStore.getState().enter({ kind: 'home', orgId: bestHost.id })
+    },
+    [world, sandboxArmed, onSandboxApply],
+  )
+
   // Hut world positions for Fireflies (computed once per grid change)
   const hutWorldPositions = useMemo<[number, number, number][]>(() => {
     if (!grid?.tiles || !grid?.depth_map || !grid?.biomes) return []
@@ -661,11 +686,7 @@ export default function WorldView3D({ world, sandboxArmed, onSandboxApply, onCon
                   height={grid.height}
                   season={world.season}
                   pathTrail={grid.path_trail}
-                  onTilePick={
-                    sandboxArmed && onSandboxApply
-                      ? (x, y) => onSandboxApply(x + (grid.origin_x ?? 0), y + (grid.origin_y ?? 0))
-                      : undefined
-                  }
+                  onTilePick={handleTilePick}
                 />
                 <Water
                   width={grid.width}
