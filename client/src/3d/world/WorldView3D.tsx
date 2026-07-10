@@ -51,6 +51,7 @@ import { GrassTufts } from './parts/GrassTufts'
 import { TribeLabels } from './parts/TribeLabels'
 import { FireLights } from './parts/FireLights'
 import { normalizeLineageEras } from '../../utils/lineageEras'
+import { LOW_PERF } from '../../lib/perf'
 import { TimeOfDayTint } from './parts/TimeOfDayTint'
 import { CinematicGrade } from './parts/CinematicGrade'
 import { CameraBreath } from './parts/CameraBreath'
@@ -582,8 +583,9 @@ export default function WorldView3D({ world, sandboxArmed, onSandboxApply, onCon
       <KeyboardControls map={KEY_MAP}>
         <Canvas
           camera={{ position: [cx - 80, 95, cz + 220], fov: 58, near: 0.5, far: 4000 }}
-          shadows={{ type: PCFSoftShadowMap }}
-          gl={{ antialias: true, powerPreference: 'high-performance' }}
+          shadows={LOW_PERF ? false : { type: PCFSoftShadowMap }}
+          dpr={LOW_PERF ? [1, 1.5] : [1, 2]}
+          gl={{ antialias: !LOW_PERF, powerPreference: 'high-performance' }}
           onCreated={({ gl }) => {
             gl.toneMapping = ACESFilmicToneMapping
             gl.toneMappingExposure = 0.95

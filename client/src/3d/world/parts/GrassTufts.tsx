@@ -14,6 +14,7 @@ import type { WebGLProgramParametersWithUniforms } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
+import { LOW_PERF } from '../../../lib/perf'
 
 interface Props {
   tiles: number[][]
@@ -23,7 +24,7 @@ interface Props {
   height: number
 }
 
-const COUNT = 2400
+const COUNT = LOW_PERF ? 900 : 2400
 const RADIUS_TILES = 30
 const RESCATTER_DIST = 6
 
