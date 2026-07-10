@@ -1,6 +1,12 @@
 import { Suspense, useRef, useEffect, useState, useMemo, useCallback } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { KeyboardControls, useKeyboardControls, PointerLockControls, OrbitControls } from '@react-three/drei'
+import {
+  KeyboardControls,
+  useKeyboardControls,
+  PointerLockControls,
+  OrbitControls,
+  Stats,
+} from '@react-three/drei'
 import { Vector3, TOUCH, PCFSoftShadowMap, ACESFilmicToneMapping, SRGBColorSpace, type Camera } from 'three'
 import type { WorldState } from '../../types'
 import { useUIStore } from '../../stores/store'
@@ -362,6 +368,7 @@ export default function WorldView3D({ world, sandboxArmed, onSandboxApply, onCon
   const orgPov = useUIStore((s) => s.viewFlags.orgPov)
   const showNames = useUIStore((s) => s.viewFlags.names)
   const showAnimals = useUIStore((s) => s.viewFlags.animals)
+  const showFps = useUIStore((s) => s.viewFlags.fps)
   const overlay = useUIStore((s) => s.overlay)
   const focus = useUIStore((s) => s.focus)
   const [follow, setFollow] = useState(false)
@@ -920,6 +927,7 @@ export default function WorldView3D({ world, sandboxArmed, onSandboxApply, onCon
             />
             <CameraBreath enabled={!isTouch} />
             <CameraSync />
+            {showFps && <Stats />}
             {isTouch ? (
               <OrbitControls enableDamping touches={{ ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_PAN }} />
             ) : (

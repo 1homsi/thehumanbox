@@ -202,15 +202,17 @@ export function MoreDropdown() {
       <div className="more-dropdown-divider" />
       <div className="more-dropdown-section">view</div>
       <div className="more-dropdown-grid">
-        <Tooltip tip="Outline each lineage's claimed territory">
-          <button
-            className={clsx('lang-btn', territory && 'active')}
-            aria-pressed={!!territory}
-            onClick={() => setViewFlag('territory', !territory)}
-          >
-            ⬡ territory
-          </button>
-        </Tooltip>
+        {!threeD && (
+          <Tooltip tip="Outline each lineage's claimed territory">
+            <button
+              className={clsx('lang-btn', territory && 'active')}
+              aria-pressed={!!territory}
+              onClick={() => setViewFlag('territory', !territory)}
+            >
+              ⬡ territory
+            </button>
+          </Tooltip>
+        )}
         <Tooltip tip="Show each organism's name">
           <button
             className={clsx('lang-btn', names && 'active')}
@@ -220,15 +222,17 @@ export function MoreDropdown() {
             Aa names
           </button>
         </Tooltip>
-        <Tooltip tip="Show speech bubbles with current thoughts">
-          <button
-            className={clsx('lang-btn', thoughts && 'active')}
-            aria-pressed={!!thoughts}
-            onClick={() => setViewFlag('thoughts', !thoughts)}
-          >
-            💭 thoughts
-          </button>
-        </Tooltip>
+        {!threeD && (
+          <Tooltip tip="Show speech bubbles with current thoughts">
+            <button
+              className={clsx('lang-btn', thoughts && 'active')}
+              aria-pressed={!!thoughts}
+              onClick={() => setViewFlag('thoughts', !thoughts)}
+            >
+              💭 thoughts
+            </button>
+          </Tooltip>
+        )}
         <Tooltip tip="Show wild animals roaming the world">
           <button
             className={clsx('lang-btn', animals && 'active')}
@@ -238,20 +242,24 @@ export function MoreDropdown() {
             🦌 animals
           </button>
         </Tooltip>
-        <Tooltip tip="Show the tile grid lines">
-          <button
-            className={clsx('lang-btn', grid && 'active')}
-            aria-pressed={!!grid}
-            onClick={() => setViewFlag('grid', !grid)}
-          >
-            ⊞ grid
-          </button>
-        </Tooltip>
+        {!threeD && (
+          <Tooltip tip="Show the tile grid lines">
+            <button
+              className={clsx('lang-btn', grid && 'active')}
+              aria-pressed={!!grid}
+              onClick={() => setViewFlag('grid', !grid)}
+            >
+              ⊞ grid
+            </button>
+          </Tooltip>
+        )}
       </div>
 
       <div className="more-dropdown-divider" />
       <div className="more-dropdown-section">organism decorations</div>
       <div className="more-dropdown-grid">
+        {!threeD && (
+          <>
         <Tooltip tip="Colored dot per organism showing tribe affiliation">
           <button
             className={clsx('lang-btn', lineageDot && 'active')}
@@ -351,6 +359,8 @@ export function MoreDropdown() {
             ↝ history
           </button>
         </Tooltip>
+          </>
+        )}
         <Tooltip tip="Frames-per-second and frame timing">
           <button
             className={clsx('lang-btn', fps && 'active')}
