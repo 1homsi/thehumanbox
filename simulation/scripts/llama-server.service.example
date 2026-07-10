@@ -12,10 +12,9 @@
 # bind 0.0.0.0 - llama-server has no auth, anything reachable can
 # burn your CPU.
 #
-# c7g sizing note: gemma-3-270m at Q4_K_M is ~180 MB on disk, fits
-# easily in the c7g.large (4 GB) memory budget alongside the sim.
-# --threads is set to "nproc" at install time so update this file
-# if you resize the instance.
+# Low-memory profile for running Gemma alongside the simulation on a
+# burstable instance. It deliberately allows only one decode slot and
+# quantizes the KV cache; raise these limits only after measuring RSS.
 
 [Unit]
 Description=llama.cpp inference server (gemma-3-270m-it Q4_K_M)
@@ -29,24 +28,28 @@ Group=ubuntu
 WorkingDirectory=/home/ubuntu/llama.cpp
 
 # --host 127.0.0.1 is critical: keep this loopback-only.
-# --ctx-size 4096 is more than enough for the short-prompt
-#   thought-generation traffic; bump if you start handing it
-#   longer context windows.
+# Thought prompts are short, so a 1024-token context avoids reserving a
+# large KV cache that requests never use.
 ExecStart=/home/ubuntu/llama.cpp/build/bin/llama-server \
   --model /home/ubuntu/llama.cpp/models/gemma-3-270m-it-Q4_K_M.gguf \
   --host 127.0.0.1 \
   --port 8080 \
-  --ctx-size 4096 \
-  --threads 2
+  --ctx-size 1024 \
+  --parallel 1 \
+  --batch-size 128 \
+  --ubatch-size 64 \
+  --cache-type-k q8_0 \
+  --cache-type-v q8_0 \
+  --threads 1
 
 Restart=on-failure
 RestartSec=5
 
-# Resource cap so a runaway request can't starve the sim process.
-# c7g.large has 2 vCPU - leave room for axum.
-CPUQuota=150%
-MemoryHigh=2G
-MemoryMax=2.5G
+# Resource cap so inference cannot starve or OOM the simulation.
+CPUQuota=80%
+MemoryHigh=600M
+MemoryMax=700M
+TasksMax=64
 
 # Hardening
 NoNewPrivileges=true

@@ -99,6 +99,7 @@ jobs:
       RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
       TICKS: 8000
       MAX_TICK_MS: 80
+      MAX_RSS_MB: 256
       SEEDS: "42 1337 2026"
     steps:
       - uses: actions/checkout@v6

@@ -19,12 +19,19 @@ pub struct MemoryWatch {
     pressure: AtomicU8,
     floor_mb_elevated: u64,
     floor_mb_critical: u64,
+    rss_mb_elevated: u64,
+    rss_mb_critical: u64,
 }
 
 pub type SharedMemoryWatch = Arc<MemoryWatch>;
 
 impl MemoryWatch {
-    pub fn new(floor_mb_elevated: u64, floor_mb_critical: u64) -> SharedMemoryWatch {
+    pub fn new(
+        floor_mb_elevated: u64,
+        floor_mb_critical: u64,
+        rss_mb_elevated: u64,
+        rss_mb_critical: u64,
+    ) -> SharedMemoryWatch {
         let me = Arc::new(MemoryWatch {
             own_rss_kb: AtomicU64::new(0),
             box_available_kb: AtomicU64::new(0),
@@ -32,6 +39,8 @@ impl MemoryWatch {
             pressure: AtomicU8::new(MemoryPressure::Normal as u8),
             floor_mb_elevated,
             floor_mb_critical,
+            rss_mb_elevated,
+            rss_mb_critical,
         });
         let w = me.clone();
         tokio::spawn(async move {
@@ -47,7 +56,7 @@ impl MemoryWatch {
                     w.box_total_kb.store(total, Ordering::Relaxed);
                     w.box_available_kb.store(avail, Ordering::Relaxed);
                 }
-                let pressure = w.classify(avail);
+                let pressure = w.classify(avail, own);
                 let prev = w.pressure.swap(pressure as u8, Ordering::Relaxed);
                 if prev != pressure as u8 {
                     tracing::warn!(target: "mem", "pressure {:?} → {:?} (avail={:.0} MB, own_rss={:.0} MB)",
@@ -59,14 +68,16 @@ impl MemoryWatch {
         me
     }
 
-    fn classify(&self, avail_kb: u64) -> MemoryPressure {
-        if avail_kb == 0 {
-            return MemoryPressure::Normal;
-        }
+    fn classify(&self, avail_kb: u64, own_rss_kb: u64) -> MemoryPressure {
         let avail_mb = avail_kb / 1024;
-        if avail_mb <= self.floor_mb_critical {
+        let own_mb = own_rss_kb / 1024;
+        let host_critical = avail_mb > 0 && avail_mb <= self.floor_mb_critical;
+        let host_elevated = avail_mb > 0 && avail_mb <= self.floor_mb_elevated;
+        let rss_critical = self.rss_mb_critical > 0 && own_mb >= self.rss_mb_critical;
+        let rss_elevated = self.rss_mb_elevated > 0 && own_mb >= self.rss_mb_elevated;
+        if host_critical || rss_critical {
             MemoryPressure::Critical
-        } else if avail_mb <= self.floor_mb_elevated {
+        } else if host_elevated || rss_elevated {
             MemoryPressure::Elevated
         } else {
             MemoryPressure::Normal
@@ -162,6 +173,8 @@ mod tests {
             pressure: AtomicU8::new(MemoryPressure::Normal as u8),
             floor_mb_elevated: floor_elevated,
             floor_mb_critical: floor_critical,
+            rss_mb_elevated: 256,
+            rss_mb_critical: 384,
         }
     }
 
@@ -171,21 +184,27 @@ mod tests {
         // Treat that as Normal so a probe failure doesn't trigger
         // adaptive throttling unnecessarily.
         let w = make_watch(400, 200);
-        assert!(matches!(w.classify(0), MemoryPressure::Normal));
+        assert!(matches!(w.classify(0, 0), MemoryPressure::Normal));
     }
 
     #[test]
     fn classify_above_elevated_floor_normal() {
         let w = make_watch(400, 200);
         // 500 MB available, elevated floor 400 — comfortably normal.
-        assert!(matches!(w.classify(500 * 1024), MemoryPressure::Normal));
+        assert!(matches!(
+            w.classify(500 * 1024, 100 * 1024),
+            MemoryPressure::Normal
+        ));
     }
 
     #[test]
     fn classify_below_elevated_above_critical_elevated() {
         let w = make_watch(400, 200);
         // 350 MB available → below elevated floor, above critical.
-        assert!(matches!(w.classify(350 * 1024), MemoryPressure::Elevated));
+        assert!(matches!(
+            w.classify(350 * 1024, 100 * 1024),
+            MemoryPressure::Elevated
+        ));
     }
 
     #[test]
@@ -193,18 +212,34 @@ mod tests {
         let w = make_watch(400, 200);
         // Boundary inclusive — at exactly the elevated floor we
         // already want the watchdog engaged.
-        assert!(matches!(w.classify(400 * 1024), MemoryPressure::Elevated));
+        assert!(matches!(
+            w.classify(400 * 1024, 100 * 1024),
+            MemoryPressure::Elevated
+        ));
     }
 
     #[test]
     fn classify_at_critical_floor_is_critical() {
         let w = make_watch(400, 200);
-        assert!(matches!(w.classify(200 * 1024), MemoryPressure::Critical));
+        assert!(matches!(
+            w.classify(200 * 1024, 100 * 1024),
+            MemoryPressure::Critical
+        ));
     }
 
     #[test]
     fn classify_well_below_critical_is_critical() {
         let w = make_watch(400, 200);
-        assert!(matches!(w.classify(50 * 1024), MemoryPressure::Critical));
+        assert!(matches!(
+            w.classify(50 * 1024, 100 * 1024),
+            MemoryPressure::Critical
+        ));
+    }
+
+    #[test]
+    fn classify_uses_own_rss_when_host_memory_is_unknown() {
+        let w = make_watch(400, 200);
+        assert!(matches!(w.classify(0, 300 * 1024), MemoryPressure::Elevated));
+        assert!(matches!(w.classify(0, 400 * 1024), MemoryPressure::Critical));
     }
 }

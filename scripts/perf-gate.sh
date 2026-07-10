@@ -8,6 +8,7 @@ BIN=${HEADLESS_BIN:-"$ROOT/simulation/target/release/headless"}
 TICKS=${TICKS:-8000}
 PROFILE_EVERY=${PROFILE_EVERY:-100}
 MAX_TICK_MS=${MAX_TICK_MS:-80}
+MAX_RSS_MB=${MAX_RSS_MB:-256}
 SEEDS=${SEEDS:-"42 1337 2026"}
 TMPDIR=${TMPDIR:-/tmp}/thehumanbox-perf-$$
 mkdir -p "$TMPDIR"
@@ -24,9 +25,17 @@ for seed in $SEEDS; do
     --profile "$profile" --profile-every "$PROFILE_EVERY" >/dev/null
   max_ms=$(awk -F, 'NR > 1 && $3 > max { max = $3 } END { printf "%.3f", max + 0 }' "$profile")
   mean_ms=$(awk -F, 'NR > 1 { sum += $3; n += 1 } END { printf "%.3f", n ? sum / n : 0 }' "$profile")
-  echo "seed=$seed mean_tick_ms=$mean_ms max_tick_ms=$max_ms budget_ms=$MAX_TICK_MS"
+  peak_rss_kb=$(awk -F, 'NR > 1 && $4 > max { max = $4 } END { printf "%.0f", max + 0 }' "$profile")
+  peak_rss_mb=$(awk -v kb="$peak_rss_kb" 'BEGIN { printf "%.1f", kb / 1024 }')
+  echo "seed=$seed mean_tick_ms=$mean_ms max_tick_ms=$max_ms peak_rss_mb=$peak_rss_mb budgets=${MAX_TICK_MS}ms/${MAX_RSS_MB}MB"
   awk -v max="$MAX_TICK_MS" -v actual="$max_ms" 'BEGIN { exit actual > max }' || {
     echo "performance budget exceeded for seed $seed: ${max_ms}ms > ${MAX_TICK_MS}ms" >&2
     exit 1
   }
+  if [[ "$peak_rss_kb" -gt 0 ]]; then
+    awk -v max="$MAX_RSS_MB" -v actual="$peak_rss_mb" 'BEGIN { exit actual > max }' || {
+      echo "memory budget exceeded for seed $seed: ${peak_rss_mb}MB > ${MAX_RSS_MB}MB" >&2
+      exit 1
+    }
+  fi
 done

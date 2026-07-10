@@ -725,6 +725,43 @@ impl Organism {
         }
     }
 
+    pub fn trim_cognitive_state(&mut self, critical: bool) {
+        fn trim_mem(mem: &mut FxHashMap<(i32, i32), f32>, keep: usize) {
+            if mem.len() > keep {
+                let mut entries: Vec<_> = mem.drain().collect();
+                entries.sort_unstable_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+                entries.truncate(keep);
+                mem.extend(entries);
+            }
+            mem.shrink_to_fit();
+        }
+
+        self.trim_social_maps();
+        let (q_keep, food_keep, water_keep, danger_keep) =
+            if critical { (32, 12, 8, 6) } else { (64, 24, 12, 8) };
+        trim_mem(&mut self.food_memory, food_keep);
+        trim_mem(&mut self.water_memory, water_keep);
+        trim_mem(&mut self.danger_memory, danger_keep);
+
+        if self.q_table.len() > q_keep {
+            let mut entries: Vec<(String, QRow)> = self.q_table.drain().collect();
+            entries.sort_unstable_by(|a, b| {
+                let strength = |row: &QRow| row.iter().map(|(_, value)| value.abs()).fold(0.0f32, f32::max);
+                strength(&b.1)
+                    .partial_cmp(&strength(&a.1))
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
+            entries.truncate(q_keep);
+            self.q_table.extend(entries);
+        }
+        for row in self.q_table.values_mut() {
+            row.shrink_to_fit();
+        }
+        self.q_table.shrink_to_fit();
+        self.org_trust.shrink_to_fit();
+        self.lineage_attitudes.shrink_to_fit();
+    }
+
     pub fn store_conversation(&mut self, entry: ConversationEntry) {
         self.conversations.push_back(entry);
         if self.conversations.len() > 12 {

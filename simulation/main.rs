@@ -71,6 +71,12 @@ fn daily_egress_mb() -> u64 {
         .unwrap_or(5000)
 }
 
+fn env_flag(name: &str) -> bool {
+    std::env::var(name)
+        .map(|value| matches!(value.to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"))
+        .unwrap_or(false)
+}
+
 static TICK_MS: std::sync::LazyLock<u64> = std::sync::LazyLock::new(tick_ms);
 static NETWORK_MS: std::sync::LazyLock<u64> = std::sync::LazyLock::new(network_ms);
 // Soft daily egress ceiling. As the rolling-24h byte total approaches it,
@@ -210,6 +216,7 @@ async fn main() {
     let frame_clock: FrameClock = Arc::new(AtomicU64::new(0));
     let transport_stats: SharedTransportStats = Arc::new(TransportStats::default());
     let llm_stats: llm_stats::SharedLlmStats = Arc::new(llm_stats::LlmStats::default());
+    let low_memory_mode = env_flag("THB_LOW_MEMORY");
 
     {
         let mut s = sim.lock().await;
@@ -243,14 +250,23 @@ async fn main() {
     let mem_elev_mb: u64 = std::env::var("MEM_FLOOR_ELEVATED_MB")
         .ok()
         .and_then(|s| s.parse().ok())
-        .unwrap_or(400);
+        .unwrap_or(if low_memory_mode { 320 } else { 400 });
     let mem_crit_mb: u64 = std::env::var("MEM_FLOOR_CRITICAL_MB")
         .ok()
         .and_then(|s| s.parse().ok())
-        .unwrap_or(200);
-    let memory_watch = memory_watch::MemoryWatch::new(mem_elev_mb, mem_crit_mb);
-    tracing::warn!(target: "mem", "watchdog: elevated below {} MB available, critical below {} MB available",
-        mem_elev_mb, mem_crit_mb);
+        .unwrap_or(if low_memory_mode { 160 } else { 200 });
+    let rss_elev_mb: u64 = std::env::var("MEM_RSS_ELEVATED_MB")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(if low_memory_mode { 180 } else { 320 });
+    let rss_crit_mb: u64 = std::env::var("MEM_RSS_CRITICAL_MB")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(if low_memory_mode { 260 } else { 480 });
+    let memory_watch = memory_watch::MemoryWatch::new(mem_elev_mb, mem_crit_mb, rss_elev_mb, rss_crit_mb);
+    tracing::warn!(target: "mem",
+        "watchdog: low_memory={} host_available={} / {} MB, process_rss={} / {} MB",
+        low_memory_mode, mem_elev_mb, mem_crit_mb, rss_elev_mb, rss_crit_mb);
 
     // Local think lane (llama.cpp) needs its own throttle. Without one,
     // bursts of 14 think scenarios per tick flood llama.cpp's per-slot KV
@@ -260,7 +276,7 @@ async fn main() {
     let local_think_per_min: usize = std::env::var("LOCAL_THINK_RPM")
         .ok()
         .and_then(|s| s.parse().ok())
-        .unwrap_or(240);
+        .unwrap_or(if low_memory_mode { 60 } else { 240 });
     let local_think_limiter = llm_rate::GroqRateLimiter::new(local_think_per_min);
     tracing::info!(target: "think", "local rate limit: {}/min", local_think_per_min);
 
@@ -303,6 +319,11 @@ async fn main() {
         let memory_watch_cl = memory_watch.clone();
         let transport_stats_s = transport_stats.clone();
         let world_store = world_store.clone();
+        let save_in_progress = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let narration_batch_max: usize = std::env::var("NARRATION_BATCH_MAX")
+            .ok()
+            .and_then(|value| value.parse().ok())
+            .unwrap_or(if low_memory_mode { 2 } else { 4 });
         tokio::spawn(async move {
             loop {
                 let tick_started = std::time::Instant::now();
@@ -561,72 +582,74 @@ async fn main() {
                         let cur_tick = s.tick_count;
                         let era = s.current_era.clone();
                         let lineage_names = s.lineage_names.clone();
-                        let name_for = |id: &str| -> Option<String> {
-                            s.organisms.iter().find(|o| o.id == id).map(|o| o.name.clone())
-                        };
+                        let mut candidate_indices: Vec<usize> = s
+                            .organisms
+                            .iter()
+                            .enumerate()
+                            .filter_map(|(index, org)| {
+                                (org.alive && !org.life_log.is_empty()).then_some(index)
+                            })
+                            .collect();
+                        candidate_indices.sort_unstable_by_key(|&index| s.organisms[index].last_story_tick);
+                        candidate_indices.truncate(narration_batch_max);
 
-                        let mut candidates: Vec<NarrationReq> = Vec::new();
-                        for o in s.organisms.iter().filter(|o| o.alive && !o.life_log.is_empty()) {
-                            let mood = if o.infection > 0.20 {
-                                "sick"
-                            } else if o.energy < 0.30 {
-                                "hungry"
-                            } else if o.hydration < 0.30 {
-                                "thirsty"
-                            } else if o.fear_level > 0.40 {
-                                "afraid"
-                            } else if o.grief_ticks > 0 {
-                                "mourning"
-                            } else if o.joy_ticks > 0 {
-                                "joyful"
-                            } else if o.loneliness > 0.60 {
-                                "lonely"
-                            } else if o.is_elder {
-                                "weary"
-                            } else {
-                                "content"
+                        for index in candidate_indices {
+                            let req = {
+                                let o = &s.organisms[index];
+                                let mood = if o.infection > 0.20 {
+                                    "sick"
+                                } else if o.energy < 0.30 {
+                                    "hungry"
+                                } else if o.hydration < 0.30 {
+                                    "thirsty"
+                                } else if o.fear_level > 0.40 {
+                                    "afraid"
+                                } else if o.grief_ticks > 0 {
+                                    "mourning"
+                                } else if o.joy_ticks > 0 {
+                                    "joyful"
+                                } else if o.loneliness > 0.60 {
+                                    "lonely"
+                                } else if o.is_elder {
+                                    "weary"
+                                } else {
+                                    "content"
+                                };
+                                let age_days = o.age / DAY_LENGTH as u32;
+                                let tribe_name = lineage_names.get(&o.lineage_id).cloned();
+                                let partner_name = o.partner_id.as_ref().and_then(|pid| {
+                                    s.organisms
+                                        .iter()
+                                        .find(|candidate| candidate.id == *pid)
+                                        .map(|p| p.name.clone())
+                                });
+                                NarrationReq {
+                                    org_id: o.id.clone(),
+                                    org_name: o.name.clone(),
+                                    sex: format!("{:?}", o.sex).to_lowercase(),
+                                    age_days,
+                                    tribe_name,
+                                    life_log: o.life_log.iter().map(|e| e.text.clone()).collect(),
+                                    vocab: o.vocabulary.as_hashmap(),
+                                    partner_name,
+                                    children: o.children_count,
+                                    era: era.clone(),
+                                    mood: mood.to_string(),
+                                    aspiration: o.aspiration.clone(),
+                                    memories: o
+                                        .memories
+                                        .top(5)
+                                        .into_iter()
+                                        .filter(|m| m.tick_formed < cur_tick.saturating_sub(1200))
+                                        .map(|m| m.text.clone())
+                                        .collect(),
+                                    zodiac: o.zodiac.clone(),
+                                    moon_phase: sim::cosmos::moon_phase_at(cur_tick).label().to_string(),
+                                }
                             };
-                            let age_days = o.age / DAY_LENGTH as u32;
-                            let tribe_name = lineage_names.get(&o.lineage_id).cloned();
-                            let partner_name = o.partner_id.as_ref().and_then(|pid| name_for(pid));
-                            candidates.push(NarrationReq {
-                                org_id: o.id.clone(),
-                                org_name: o.name.clone(),
-                                sex: format!("{:?}", o.sex).to_lowercase(),
-                                age_days,
-                                tribe_name,
-                                life_log: o.life_log.iter().map(|e| e.text.clone()).collect(),
-                                vocab: o.vocabulary.as_hashmap(),
-                                partner_name,
-                                children: o.children_count,
-                                era: era.clone(),
-                                mood: mood.to_string(),
-                                aspiration: o.aspiration.clone(),
-                                memories: o
-                                    .memories
-                                    .top(5)
-                                    .into_iter()
-                                    .filter(|m| m.tick_formed < cur_tick.saturating_sub(1200))
-                                    .map(|m| m.text.clone())
-                                    .collect(),
-                                zodiac: o.zodiac.clone(),
-                                moon_phase: sim::cosmos::moon_phase_at(cur_tick).label().to_string(),
-                            });
-                        }
-                        candidates.sort_by_key(|c| {
-                            s.organisms
-                                .iter()
-                                .find(|o| o.id == c.org_id)
-                                .map(|o| o.last_story_tick)
-                                .unwrap_or(0)
-                        });
-                        for req in candidates {
-                            let oid = req.org_id.clone();
                             match narration_tx2.try_send(req) {
                                 Ok(()) => {
-                                    if let Some(org) = s.organisms.iter_mut().find(|o| o.id == oid) {
-                                        org.last_story_tick = cur_tick;
-                                    }
+                                    s.organisms[index].last_story_tick = cur_tick;
                                 }
                                 Err(_) => break,
                             }
@@ -640,7 +663,16 @@ async fn main() {
                     // blocked the lock for 100-300ms every 600 ticks,
                     // causing visible tick-rate hitches and freezing
                     // HTTP routes that share the same mutex.
-                    let pending_save = if s.tick_count % SAVE_EVERY_TICKS == 0 {
+                    let pending_save = if s.tick_count % SAVE_EVERY_TICKS == 0
+                        && save_in_progress
+                            .compare_exchange(
+                                false,
+                                true,
+                                std::sync::atomic::Ordering::AcqRel,
+                                std::sync::atomic::Ordering::Relaxed,
+                            )
+                            .is_ok()
+                    {
                         Some(s.to_save_state())
                     } else {
                         None
@@ -674,6 +706,7 @@ async fn main() {
                     }
                 }
                 if let Some(state) = pending_save {
+                    let save_in_progress = save_in_progress.clone();
                     tokio::task::spawn_blocking(move || {
                         let hash = crate::server::world_store::live_world_hash()
                             .unwrap_or_else(|| "_unknown".to_string());
@@ -685,12 +718,14 @@ async fn main() {
                         if let Err(e) = sim::persistence::write_save_to_disk(&state, &path_str) {
                             tracing::warn!(target: "save", "failed: {}", e);
                         }
+                        save_in_progress.store(false, std::sync::atomic::Ordering::Release);
                     });
                 }
                 let pressure = memory_watch_cl.pressure();
                 let think_budget = match pressure {
+                    memory_watch::MemoryPressure::Normal if low_memory_mode => 2,
                     memory_watch::MemoryPressure::Normal => usize::MAX,
-                    memory_watch::MemoryPressure::Elevated => 2,
+                    memory_watch::MemoryPressure::Elevated => 1,
                     memory_watch::MemoryPressure::Critical => 0,
                 };
                 for (i, t) in pending_thinks.into_iter().enumerate() {

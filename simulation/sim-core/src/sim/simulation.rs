@@ -670,6 +670,14 @@ fn era_fanfare(era: &str) -> &'static str {
 }
 
 impl Simulation {
+    fn push_pending_convo(&mut self, req: crate::sim::convo_req::ConversationReq) {
+        const MAX_PENDING_CONVOS: usize = 32;
+        if self.pending_convos.len() >= MAX_PENDING_CONVOS {
+            self.pending_convos.remove(0);
+        }
+        self.pending_convos.push(req);
+    }
+
     fn rebuild_lineage_aggregates(&mut self) {
         self.lineage_aggregates.clear();
         self.lineage_aggregates.reserve(self.lineage_names.len().max(8));
@@ -805,13 +813,13 @@ impl Simulation {
                     dead_kept <= 400
                 });
                 for o in self.organisms.iter_mut().filter(|o| o.alive) {
-                    o.trim_social_maps();
+                    o.trim_cognitive_state(false);
                 }
             }
             MemoryPressure::Critical => {
                 self.organisms.retain(|o| o.alive);
                 for o in self.organisms.iter_mut() {
-                    o.trim_social_maps();
+                    o.trim_cognitive_state(true);
                     while o.life_log.len() > 24 {
                         o.life_log.pop_front();
                     }
@@ -3529,7 +3537,7 @@ impl Simulation {
                         self.organisms[pi].vocabulary.touch_all_known(tc);
                         self.organisms[idx].store_conversation(conv_a);
                         self.organisms[pi].store_conversation(conv_b);
-                        self.pending_convos.push(req);
+                        self.push_pending_convo(req);
                         let a_lid = self.organisms[idx].lineage_id.clone();
                         let b_lid = self.organisms[pi].lineage_id.clone();
                         self.organisms[idx].record_conversation_outcome(
@@ -3619,7 +3627,7 @@ impl Simulation {
                         self.organisms[pi].vocabulary.touch_all_known(tc);
                         self.organisms[idx].store_conversation(conv_a);
                         self.organisms[pi].store_conversation(conv_b);
-                        self.pending_convos.push(req);
+                        self.push_pending_convo(req);
                         let a_id = self.organisms[idx].id.clone();
                         let a_name = self.organisms[idx].name.clone();
                         let a_lid = self.organisms[idx].lineage_id.clone();
@@ -3722,7 +3730,7 @@ impl Simulation {
                         self.organisms[ci].vocabulary.touch_all_known(tc);
                         self.organisms[idx].store_conversation(conv_a);
                         self.organisms[ci].store_conversation(conv_b);
-                        self.pending_convos.push(req);
+                        self.push_pending_convo(req);
                         let a_id = self.organisms[idx].id.clone();
                         let a_name = self.organisms[idx].name.clone();
                         let a_lid = self.organisms[idx].lineage_id.clone();

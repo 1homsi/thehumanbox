@@ -935,6 +935,15 @@ fn build_result_from_llm(trigger: &ThinkTrigger, response: &str) -> Option<Think
     }
 }
 
+async fn push_result(results: &Arc<Mutex<Vec<ThinkResult>>>, result: ThinkResult) {
+    const MAX_PENDING_RESULTS: usize = 32;
+    let mut pending = results.lock().await;
+    if pending.len() >= MAX_PENDING_RESULTS {
+        pending.remove(0);
+    }
+    pending.push(result);
+}
+
 pub async fn think_worker(
     mut rx: mpsc::Receiver<ThinkTrigger>,
     results: Arc<Mutex<Vec<ThinkResult>>>,
@@ -967,7 +976,7 @@ pub async fn think_worker(
             let mut rng = rand::rngs::SmallRng::seed_from_u64(deterministic_think_seed(&trigger, attempt));
             if let Some(local) = local_think::resolve(&trigger, &mut rng) {
                 if let Some(r) = build_result_from_local(&trigger, local) {
-                    results.lock().await.push(r);
+                    push_result(&results, r).await;
                 }
             }
             continue;
@@ -999,7 +1008,7 @@ pub async fn think_worker(
                         rand::rngs::SmallRng::seed_from_u64(deterministic_think_seed(&trigger, attempt));
                     if let Some(local) = local_think::resolve(&trigger, &mut rng) {
                         if let Some(r) = build_result_from_local(&trigger, local) {
-                            results.lock().await.push(r);
+                            push_result(&results, r).await;
                         }
                     }
                     continue;
@@ -1056,7 +1065,7 @@ pub async fn think_worker(
                             rand::rngs::SmallRng::seed_from_u64(deterministic_think_seed(&trigger, attempt));
                         if let Some(local) = local_think::resolve(&trigger, &mut rng) {
                             if let Some(r) = build_result_from_local(&trigger, local) {
-                                results.lock().await.push(r);
+                                push_result(&results, r).await;
                             }
                         }
                     }
@@ -1078,7 +1087,7 @@ pub async fn think_worker(
                         rand::rngs::SmallRng::seed_from_u64(deterministic_think_seed(&trigger, attempt));
                     if let Some(local) = local_think::resolve(&trigger, &mut rng) {
                         if let Some(r) = build_result_from_local(&trigger, local) {
-                            results.lock().await.push(r);
+                            push_result(&results, r).await;
                         }
                     }
                     continue;
@@ -1100,7 +1109,7 @@ pub async fn think_worker(
                     rand::rngs::SmallRng::seed_from_u64(deterministic_think_seed(&trigger, attempt));
                 if let Some(local) = local_think::resolve(&trigger, &mut rng) {
                     if let Some(r) = build_result_from_local(&trigger, local) {
-                        results.lock().await.push(r);
+                        push_result(&results, r).await;
                     }
                 }
                 continue;
@@ -1112,20 +1121,20 @@ pub async fn think_worker(
             let mut rng = rand::rngs::SmallRng::seed_from_u64(deterministic_think_seed(&trigger, attempt));
             if let Some(local) = local_think::resolve(&trigger, &mut rng) {
                 if let Some(r) = build_result_from_local(&trigger, local) {
-                    results.lock().await.push(r);
+                    push_result(&results, r).await;
                 }
             }
             continue;
         }
 
         if let Some(result) = build_result_from_llm(&trigger, &response) {
-            results.lock().await.push(result);
+            push_result(&results, result).await;
         } else {
             // Parse failure → local fallback
             let mut rng = rand::rngs::SmallRng::seed_from_u64(deterministic_think_seed(&trigger, attempt));
             if let Some(local) = local_think::resolve(&trigger, &mut rng) {
                 if let Some(r) = build_result_from_local(&trigger, local) {
-                    results.lock().await.push(r);
+                    push_result(&results, r).await;
                 }
             }
         }

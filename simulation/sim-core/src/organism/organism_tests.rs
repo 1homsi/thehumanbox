@@ -114,6 +114,25 @@ fn compress_for_archive_skips_live_organisms() {
     assert!(!org.q_table.is_empty());
 }
 
+#[test]
+fn cognitive_trim_keeps_strongest_learning_and_place_memories() {
+    let mut org = learning_test_org(0.5, 0.5, 0.5, 0.5);
+    for index in 0..100 {
+        org.q_table
+            .insert(format!("state-{index}"), vec![(0, index as f32 / 100.0)]);
+        org.food_memory.insert((index, index), index as f32 / 100.0);
+    }
+    org.q_table.insert("strong-danger".into(), vec![(2, -9.0)]);
+    org.food_memory.insert((999, 999), 9.0);
+
+    org.trim_cognitive_state(true);
+
+    assert_eq!(org.q_table.len(), 32);
+    assert!(org.q_table.contains_key("strong-danger"));
+    assert_eq!(org.food_memory.len(), 12);
+    assert!(org.food_memory.contains_key(&(999, 999)));
+}
+
 fn learning_test_org(memory_strength: f32, curiosity: f32, fear: f32, resilience: f32) -> Organism {
     let mut org = Organism::new(
         "id".into(),

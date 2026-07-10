@@ -8,6 +8,12 @@ Wipes the local `world.save` (and `.tmp`/`.bak` siblings) and rebuilds the relea
 
 ### setup-llama-cpp.sh
 Idempotent bootstrap that installs build deps, clones and CMake-builds `llama.cpp` (llama-cli + llama-server), and downloads the Gemma 3 270m Q4_K_M GGUF, then smoke-tests the server.
+
+`llama-server.service.example` is the bounded local-inference profile. It uses a
+single decode slot, a 1024-token context, a quantized KV cache, and a 700 MB hard
+limit. Load `low-memory.env.example` into the simulation service when preparing
+a 1 GiB burstable host. If the combined services still approach the critical
+floor, move `THINK_LLM_URL` off-box or disable local inference before resizing.
 **When to run:** Once per machine when provisioning the EC2 box (or any Linux dev host) for local-think; safe to re-run since each step is skipped if already done.
 
 ### wipe-world-here.sh
