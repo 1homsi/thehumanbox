@@ -8,9 +8,12 @@ import { getOrgXY } from './motion-state'
 
 interface Props {
   organisms: OrganismState[]
+  following?: boolean
+  onToggleFollow?: () => void
+  showKeyHints?: boolean
 }
 
-export function SelectedOrgCard({ organisms }: Props) {
+export function SelectedOrgCard({ organisms, following, onToggleFollow, showKeyHints = true }: Props) {
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
   const selectOrg = useUIStore((s) => s.selectOrg)
 
@@ -67,6 +70,15 @@ export function SelectedOrgCard({ organisms }: Props) {
         <button style={goBtn} onClick={onGo} title="jump camera here">
           go
         </button>
+        {onToggleFollow && (
+          <button
+            style={following ? { ...goBtn, background: 'rgba(230, 130, 50, 0.35)' } : goBtn}
+            onClick={onToggleFollow}
+            title={following ? 'stop following' : 'follow with the camera'}
+          >
+            {following ? 'following' : 'follow'}
+          </button>
+        )}
         <button style={dismiss} onClick={() => selectOrg(null)} title="release">
           ×
         </button>
@@ -99,7 +111,7 @@ export function SelectedOrgCard({ organisms }: Props) {
         <Bar label="health" value={org.health} color="#f6a64a" />
         <Bar label="hydration" value={org.hydration} color="#4fa9d8" />
       </div>
-      <div style={hint}>press F to follow · ESC to release</div>
+      {showKeyHints && <div style={hint}>press F to follow · ESC to release</div>}
     </div>
   )
 }

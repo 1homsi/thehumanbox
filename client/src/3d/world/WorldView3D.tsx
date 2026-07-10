@@ -937,7 +937,14 @@ export default function WorldView3D({ world, sandboxArmed, onSandboxApply, onCon
         </Canvas>
       </KeyboardControls>
 
-      {ready && grid && <SelectedOrgCard organisms={world.viewport_organisms ?? world.organisms ?? []} />}
+      {ready && grid && (
+        <SelectedOrgCard
+          organisms={world.viewport_organisms ?? world.organisms ?? []}
+          following={follow}
+          onToggleFollow={() => setFollow((prev) => !prev)}
+          showKeyHints={!isTouch}
+        />
+      )}
 
       {ready && <WorldHud />}
 
