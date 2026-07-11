@@ -35,15 +35,25 @@ const ROAD_MAT = new MeshStandardMaterial({ color: '#ffffff', roughness: 0.95 })
 
 const ROAD_MAX_DIST_PRE = 12
 const ROAD_MAX_DIST_POST = 32
-const MAX_SEGMENTS = 800
+const MAX_SEGMENTS = 2400
+const CHUNK_LEN = TILE_SCALE * 1.5
 const tmp = new Object3D()
+tmp.rotation.order = 'YZX'
 
 export function Roads3D({ buildings, lineageEras, depthMap, biomes }: Props) {
   const meshRef = useRef<InstancedMesh>(null)
 
   const segments = useMemo(() => {
     if (!buildings || !lineageEras || !depthMap || !biomes) return []
-    const result: Array<{ x: number; z: number; y: number; len: number; rot: number; color: string }> = []
+    const result: Array<{
+      x: number
+      z: number
+      y: number
+      len: number
+      rot: number
+      tilt: number
+      color: string
+    }> = []
     const byLineage = new Map<string, Building[]>()
     for (const b of buildings) {
       if ((b.condition ?? 1) < 0.6) continue
@@ -91,17 +101,29 @@ export function Roads3D({ buildings, lineageEras, depthMap, biomes }: Props) {
         const az = (a.y + 0.5) * TILE_SCALE
         const bx = (nearest.x + 0.5) * TILE_SCALE
         const bz = (nearest.y + 0.5) * TILE_SCALE
-        const midX = (ax + bx) / 2
-        const midZ = (az + bz) / 2
-        const midGy = heightAt(
-          Math.floor((a.x + nearest.x) / 2),
-          Math.floor((a.y + nearest.y) / 2),
-          depthMap,
-          biomes,
-        )
         const len = Math.sqrt((bx - ax) ** 2 + (bz - az) ** 2)
         const rot = Math.atan2(bz - az, bx - ax)
-        result.push({ x: midX, z: midZ, y: midGy + 0.025, len, rot, color: roadColor })
+        const chunks = Math.max(1, Math.ceil(len / CHUNK_LEN))
+        for (let c = 0; c < chunks && result.length < MAX_SEGMENTS; c++) {
+          const t0 = c / chunks
+          const t1 = (c + 1) / chunks
+          const x0 = ax + (bx - ax) * t0
+          const z0 = az + (bz - az) * t0
+          const x1 = ax + (bx - ax) * t1
+          const z1 = az + (bz - az) * t1
+          const h0 = heightAt(x0 / TILE_SCALE, z0 / TILE_SCALE, depthMap, biomes)
+          const h1 = heightAt(x1 / TILE_SCALE, z1 / TILE_SCALE, depthMap, biomes)
+          const chunkLen = len / chunks
+          result.push({
+            x: (x0 + x1) / 2,
+            z: (z0 + z1) / 2,
+            y: (h0 + h1) / 2 + 0.04,
+            len: Math.sqrt(chunkLen * chunkLen + (h1 - h0) * (h1 - h0)) * 1.04,
+            rot,
+            tilt: Math.atan2(h1 - h0, chunkLen),
+            color: roadColor,
+          })
+        }
       }
     }
     return result.slice(0, MAX_SEGMENTS)
@@ -115,7 +137,7 @@ export function Roads3D({ buildings, lineageEras, depthMap, biomes }: Props) {
     for (let i = 0; i < segments.length; i++) {
       const s = segments[i]
       tmp.position.set(s.x, s.y, s.z)
-      tmp.rotation.set(0, -s.rot, 0)
+      tmp.rotation.set(0, -s.rot, s.tilt)
       tmp.scale.set(s.len, 1, 1)
       tmp.updateMatrix()
       mesh.setMatrixAt(i, tmp.matrix)
