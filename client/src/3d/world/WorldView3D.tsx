@@ -528,7 +528,15 @@ export default function WorldView3D({ world, sandboxArmed, onSandboxApply, onCon
   const grid = world?.grid
   const ready = !!(grid?.depth_map && grid?.biomes && grid?.tiles && grid?.width && grid?.height)
   const serverDayProgress = world?.day_progress ?? 0.3
-  const [dayProgress, setDayProgress] = useState<number>(serverDayProgress)
+  const [liveDayProgress, setDayProgress] = useState<number>(serverDayProgress)
+  const todOverride = useMemo(() => {
+    if (typeof window === 'undefined') return null
+    const raw = new URLSearchParams(window.location.search).get('tod')
+    if (raw == null) return null
+    const v = Number.parseFloat(raw)
+    return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : null
+  }, [])
+  const dayProgress = todOverride ?? liveDayProgress
   const lineageErasMap = useMemo(() => normalizeLineageEras(world?.lineage_eras), [world?.lineage_eras])
   const sunAlt = Math.sin((dayProgress - 0.25) * 2 * Math.PI)
   const isNight = sunAlt < 0
