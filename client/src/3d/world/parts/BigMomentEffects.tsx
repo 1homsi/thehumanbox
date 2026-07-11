@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Billboard, Text } from '@react-three/drei'
+import { Text } from '@react-three/drei'
+import { FaceCamera } from './FaceCamera'
 import { DoubleSide, type Mesh, type MeshBasicMaterial } from 'three'
 import type { BattleInfo, OrganismState, SimEvent, WorldState } from '../../../types'
 import { TILE_SCALE } from './constants'
@@ -270,7 +271,7 @@ function BattleMarker({ scale }: { scale: string }) {
         <cylinderGeometry args={[0.5, 1.1, height, 12, 1, true]} />
         <meshBasicMaterial color={color} transparent opacity={0.4} side={DoubleSide} depthWrite={false} />
       </mesh>
-      <Billboard position={[0, height + 1.6, 0]} frustumCulled={false}>
+      <FaceCamera position={[0, height + 1.6, 0]}>
         <Text
           fontSize={1.1}
           color={color}
@@ -282,7 +283,7 @@ function BattleMarker({ scale }: { scale: string }) {
         >
           {`⚔ ${scale}`}
         </Text>
-      </Billboard>
+      </FaceCamera>
     </group>
   )
 }
@@ -307,12 +308,12 @@ function Pop({ kind, age, color, label }: { kind: MomentKind; age: number; color
     case 'death':
     default:
       return (
-        <Billboard position={[0, 1.5, 0]} frustumCulled={false}>
+        <FaceCamera position={[0, 1.5, 0]}>
           <mesh>
             <circleGeometry args={[0.6 + age * 1.4, 16]} />
             <meshBasicMaterial color={color} transparent opacity={fade * 0.55} side={DoubleSide} />
           </mesh>
-        </Billboard>
+        </FaceCamera>
       )
   }
 }
@@ -343,7 +344,7 @@ function Pillar({
         <meshBasicMaterial color={color} transparent opacity={fade * 0.7} side={DoubleSide} />
       </mesh>
       {label && (
-        <Billboard position={[0, height * rise + 1.4, 0]} frustumCulled={false}>
+        <FaceCamera position={[0, height * rise + 1.4, 0]}>
           <Text
             fontSize={0.7}
             color={color}
@@ -357,7 +358,7 @@ function Pillar({
           >
             {label}
           </Text>
-        </Billboard>
+        </FaceCamera>
       )}
     </group>
   )
@@ -367,7 +368,7 @@ function Flash({ age, color, label, icon }: { age: number; color: string; label?
   const fade = Math.max(0, 1 - age)
   const scale = 1 + age * 3
   return (
-    <Billboard position={[0, 3.5, 0]} frustumCulled={false}>
+    <FaceCamera position={[0, 3.5, 0]}>
       <mesh>
         <circleGeometry args={[0.8 * scale, 24]} />
         <meshBasicMaterial color={color} transparent opacity={fade * 0.45} side={DoubleSide} />
@@ -403,7 +404,7 @@ function Flash({ age, color, label, icon }: { age: number; color: string; label?
           {label}
         </Text>
       )}
-    </Billboard>
+    </FaceCamera>
   )
 }
 
@@ -411,7 +412,7 @@ function Hearts({ age, color }: { age: number; color: string }) {
   const fade = Math.max(0, 1 - age)
   const rise = age * 4
   return (
-    <Billboard position={[0, 1.8 + rise, 0]} frustumCulled={false}>
+    <FaceCamera position={[0, 1.8 + rise, 0]}>
       <Text
         fontSize={1.6}
         color={color}
@@ -425,7 +426,7 @@ function Hearts({ age, color }: { age: number; color: string }) {
       >
         ♥
       </Text>
-    </Billboard>
+    </FaceCamera>
   )
 }
 
@@ -433,7 +434,7 @@ function Spark({ age, color }: { age: number; color: string }) {
   const fade = Math.max(0, 1 - age)
   const grow = 0.3 + age * 1.0
   return (
-    <Billboard position={[0, 1.4, 0]} frustumCulled={false}>
+    <FaceCamera position={[0, 1.4, 0]}>
       <mesh>
         <circleGeometry args={[grow, 12]} />
         <meshBasicMaterial color={color} transparent opacity={fade * 0.7} side={DoubleSide} />
@@ -451,6 +452,6 @@ function Spark({ age, color }: { age: number; color: string }) {
       >
         ✦
       </Text>
-    </Billboard>
+    </FaceCamera>
   )
 }

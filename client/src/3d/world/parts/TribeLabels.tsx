@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
-import { Billboard, Text } from '@react-three/drei'
+import { Text } from '@react-three/drei'
+import { FaceCamera } from './FaceCamera'
 import type { OrganismState } from '../../../types'
 import { lineageColor } from '../../../utils/constants'
 import { TILE_SCALE } from './constants'
@@ -52,11 +53,7 @@ export function TribeLabels({ organisms, lineageNames, depthMap, biomes }: Props
       {tribes.map((t) => {
         const groundY = heightAt(t.cx, t.cy, depthMap, biomes)
         return (
-          <Billboard
-            key={t.lineageId}
-            position={[t.cx * TILE_SCALE, groundY + 35, t.cy * TILE_SCALE]}
-            frustumCulled={false}
-          >
+          <FaceCamera key={t.lineageId} position={[t.cx * TILE_SCALE, groundY + 35, t.cy * TILE_SCALE]}>
             <Text
               fontSize={3.6}
               color={lineageColor(t.lineageId)}
@@ -88,7 +85,7 @@ export function TribeLabels({ organisms, lineageNames, depthMap, biomes }: Props
             >
               {`${t.count} kin`}
             </Text>
-          </Billboard>
+          </FaceCamera>
         )
       })}
     </>

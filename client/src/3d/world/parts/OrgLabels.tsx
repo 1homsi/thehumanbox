@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useThree } from '@react-three/fiber'
-import { Billboard, Text } from '@react-three/drei'
+import { Text } from '@react-three/drei'
+import { FaceCamera } from './FaceCamera'
 import type { OrganismState } from '../../../types'
 import { lineageColor } from '../../../utils/constants'
 import { useUIStore } from '../../../stores/store'
@@ -72,7 +73,7 @@ export function OrgLabels({ organisms, depthMap, biomes }: Props) {
       {labels.map((l) => {
         const badge = badgeForOrg(l)
         return (
-          <Billboard key={l.id} position={l.pos} frustumCulled={false} follow={true}>
+          <FaceCamera key={l.id} position={l.pos}>
             {badge && (
               <Text
                 fontSize={0.55}
@@ -125,7 +126,7 @@ export function OrgLabels({ organisms, depthMap, biomes }: Props) {
             >
               ◆
             </Text>
-          </Billboard>
+          </FaceCamera>
         )
       })}
     </>

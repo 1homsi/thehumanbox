@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Billboard, Text } from '@react-three/drei'
+import { Text } from '@react-three/drei'
+import { FaceCamera } from './FaceCamera'
 import type { OrganismState, SimEvent } from '../../../types'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
@@ -106,7 +107,7 @@ export function EventFloaters({ events, organisms, depthMap, biomes }: Props) {
         const rise = age * 6
         const fade = Math.max(0, 1 - age)
         return (
-          <Billboard key={f.key} position={[f.worldX, f.worldY + rise, f.worldZ]} frustumCulled={false}>
+          <FaceCamera key={f.key} position={[f.worldX, f.worldY + rise, f.worldZ]}>
             <Text
               fontSize={0.6}
               color={f.color}
@@ -120,7 +121,7 @@ export function EventFloaters({ events, organisms, depthMap, biomes }: Props) {
             >
               {f.text}
             </Text>
-          </Billboard>
+          </FaceCamera>
         )
       })}
     </>

@@ -1,5 +1,6 @@
 import { useMemo, useRef } from 'react'
-import { Billboard, Text } from '@react-three/drei'
+import { Text } from '@react-three/drei'
+import { FaceCamera } from './FaceCamera'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Group } from 'three'
 import type { OrganismState } from '../../../types'
@@ -123,7 +124,7 @@ function BadgeRow({
   const [tx, ty] = getOrgXY(orgId)
   const groundY = heightAt(tx, ty, depthMap, biomes)
   return (
-    <Billboard position={[tx * TILE_SCALE, groundY + 3.4, ty * TILE_SCALE]} frustumCulled={false}>
+    <FaceCamera position={[tx * TILE_SCALE, groundY + 3.4, ty * TILE_SCALE]}>
       <group ref={groupRef}>
         {badges.map((b, i) => (
           <Text
@@ -142,6 +143,6 @@ function BadgeRow({
           </Text>
         ))}
       </group>
-    </Billboard>
+    </FaceCamera>
   )
 }

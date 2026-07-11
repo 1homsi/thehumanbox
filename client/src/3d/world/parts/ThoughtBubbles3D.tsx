@@ -1,4 +1,4 @@
-import { Billboard, RoundedBox, Text } from '@react-three/drei'
+import { RoundedBox, Text } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import { Group } from 'three'
@@ -91,10 +91,11 @@ function ThoughtBubble({
     const distance = group.position.distanceTo(camera.position)
     const scale = Math.min(1.25, Math.max(0.72, distance / 80))
     group.scale.setScalar(scale)
+    camera.getWorldQuaternion(group.quaternion)
   })
 
   return (
-    <Billboard ref={ref} follow>
+    <group ref={ref}>
       <RoundedBox args={[width, 1.05, 0.08]} radius={0.18} smoothness={3} renderOrder={980 - index}>
         <meshBasicMaterial color="#10151b" transparent opacity={0.78} depthWrite={false} />
       </RoundedBox>
@@ -115,6 +116,6 @@ function ThoughtBubble({
         <planeGeometry args={[0.42, 0.42]} />
         <meshBasicMaterial color="#10151b" transparent opacity={0.78} depthWrite={false} />
       </mesh>
-    </Billboard>
+    </group>
   )
 }
