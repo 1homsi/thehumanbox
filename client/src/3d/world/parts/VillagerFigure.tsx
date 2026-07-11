@@ -18,8 +18,12 @@ const GEO = {
   head: new SphereGeometry(0.5, 10, 8),
   torso: new CylinderGeometry(0.34, 0.52, 1.05, 8),
   skirt: new CylinderGeometry(0.52, 0.62, 0.35, 8),
-  limb: new CapsuleGeometry(0.11, 0.46, 3, 6),
-  leg: new CapsuleGeometry(0.13, 0.4, 3, 6),
+  upperArm: new CapsuleGeometry(0.105, 0.2, 3, 6),
+  forearm: new CapsuleGeometry(0.09, 0.18, 3, 6),
+  hand: new SphereGeometry(0.095, 6, 5),
+  thigh: new CapsuleGeometry(0.125, 0.2, 3, 6),
+  shin: new CapsuleGeometry(0.1, 0.18, 3, 6),
+  foot: new BoxGeometry(0.17, 0.09, 0.32),
   hood: new ConeGeometry(0.56, 0.72, 8),
   hair: new SphereGeometry(0.52, 8, 6, 0, Math.PI * 2, 0, Math.PI * 0.46),
   bun: new SphereGeometry(0.16, 6, 6),
@@ -211,10 +215,29 @@ export function VillagerFigure({
   const head = useRef<Group>(null)
   const armL = useRef<Group>(null)
   const armR = useRef<Group>(null)
+  const elbowL = useRef<Group>(null)
+  const elbowR = useRef<Group>(null)
   const legL = useRef<Group>(null)
   const legR = useRef<Group>(null)
+  const kneeL = useRef<Group>(null)
+  const kneeR = useRef<Group>(null)
   const cloak = useRef<Group>(null)
   const clock = useRef(idHash(org.id) % 100)
+  const pose = useRef({
+    legSwing: 0,
+    legsForward: 0,
+    knee: 0,
+    armSwing: 0,
+    armLUp: 0,
+    armRUp: 0,
+    elbow: 0,
+    bob: 0,
+    lean: 0,
+    crouch: 0,
+    headPitch: 0,
+    headYaw: 0,
+    spin: 0,
+  })
 
   const look = useMemo(() => deriveLook(org, era), [org, era])
   const tunic = useMemo(() => mat(tunicColor), [tunicColor])
@@ -239,6 +262,8 @@ export function VillagerFigure({
     const t = clock.current
 
     let legSwing = 0
+    let legsForward = 0
+    let knee = 0
     let armSwing = 0
     let bob = 0
     let lean = 0
@@ -247,6 +272,7 @@ export function VillagerFigure({
     let headYaw = 0
     let armLUp = 0
     let armRUp = 0
+    let elbow = 0.22
     let spin = 0
 
     switch (animation) {
@@ -255,6 +281,9 @@ export function VillagerFigure({
         armSwing = -Math.sin(t * 11) * 0.7
         bob = Math.abs(Math.sin(t * 11)) * 0.08
         lean = 0.28
+        knee = 0.35
+        elbow = 0.85
+        spin = Math.sin(t * 11) * 0.06
         break
       }
       case 'Walking': {
@@ -262,14 +291,19 @@ export function VillagerFigure({
         armSwing = -Math.sin(t * 6.5) * 0.35
         bob = Math.abs(Math.sin(t * 6.5)) * 0.04
         lean = 0.08
+        knee = 0.18
+        elbow = 0.35
+        spin = Math.sin(t * 6.5) * 0.04
         break
       }
       case 'Sitting': {
         crouch = 0.45
-        legSwing = 1.35
+        legsForward = 1.35
+        knee = 1.45
         headPitch = 0.25
         armLUp = 0.25
         armRUp = 0.25
+        elbow = 0.55
         break
       }
       case 'Dance': {
@@ -291,6 +325,8 @@ export function VillagerFigure({
         armLUp = 1.3 + swing * 0.8
         lean = 0.18 + Math.max(0, -swing) * 0.14
         bob = Math.abs(swing) * 0.03
+        elbow = 0.45 + Math.max(0, swing) * 0.35
+        knee = 0.14
         break
       }
       case 'Fish': {
@@ -299,6 +335,7 @@ export function VillagerFigure({
         lean = 0.06
         bob = Math.sin(t * 1.4) * 0.02
         headPitch = 0.18
+        elbow = 0.6
         break
       }
       case 'Wave': {
@@ -321,12 +358,15 @@ export function VillagerFigure({
       case 'Death': {
         crouch = 0.85
         headPitch = 0.6
+        legsForward = 0.8
+        knee = 1.2
         break
       }
       default: {
         bob = Math.sin(t * 1.8) * 0.015
         armSwing = Math.sin(t * 1.8) * 0.05
         headYaw = attentionYaw ?? Math.sin(t * 0.4 + 1.7) * 0.2
+        knee = 0.06
         break
       }
     }
@@ -353,36 +393,65 @@ export function VillagerFigure({
       headYaw += Math.sin(t * 5) * 0.12
     }
 
-    body.current.position.y = bob - crouch * 0.55
-    body.current.rotation.x = lean
-    body.current.rotation.y = spin
-    if (legL.current) legL.current.rotation.x = legSwing
-    if (legR.current) legR.current.rotation.x = -legSwing
+    const p = pose.current
+    const kFast = 1 - Math.exp(-16 * dt)
+    const kSlow = 1 - Math.exp(-8 * dt)
+    p.legSwing += (legSwing - p.legSwing) * kFast
+    p.legsForward += (legsForward - p.legsForward) * kSlow
+    p.knee += (knee - p.knee) * kFast
+    p.armSwing += (armSwing - p.armSwing) * kFast
+    p.armLUp += (armLUp - p.armLUp) * kFast
+    p.armRUp += (armRUp - p.armRUp) * kFast
+    p.elbow += (elbow - p.elbow) * kFast
+    p.bob += (bob - p.bob) * kFast
+    p.lean += (lean - p.lean) * kSlow
+    p.crouch += (crouch - p.crouch) * kSlow
+    p.headPitch += (headPitch - p.headPitch) * kSlow
+    p.headYaw += (headYaw - p.headYaw) * kSlow
+    p.spin += (spin - p.spin) * kFast
+
+    body.current.position.y = p.bob - p.crouch * 0.55
+    body.current.rotation.x = p.lean
+    body.current.rotation.y = p.spin
+    if (legL.current) legL.current.rotation.x = p.legSwing - p.legsForward
+    if (legR.current) legR.current.rotation.x = -p.legSwing - p.legsForward
+    if (kneeL.current) kneeL.current.rotation.x = p.knee + Math.max(0, p.legSwing) * 0.7
+    if (kneeR.current) kneeR.current.rotation.x = p.knee + Math.max(0, -p.legSwing) * 0.7
     if (armL.current) {
-      armL.current.rotation.x = armSwing
-      armL.current.rotation.z = 0.18 + armLUp
+      armL.current.rotation.x = p.armSwing
+      armL.current.rotation.z = 0.18 + p.armLUp
     }
     if (armR.current) {
-      armR.current.rotation.x = -armSwing
-      armR.current.rotation.z = -0.18 - armRUp
+      armR.current.rotation.x = -p.armSwing
+      armR.current.rotation.z = -0.18 - p.armRUp
     }
+    if (elbowL.current) elbowL.current.rotation.x = -p.elbow
+    if (elbowR.current) elbowR.current.rotation.x = -p.elbow
     if (head.current) {
-      head.current.rotation.x = headPitch
-      head.current.rotation.y = headYaw
+      head.current.rotation.x = p.headPitch
+      head.current.rotation.y = p.headYaw
     }
     if (cloak.current) {
-      cloak.current.rotation.x = -0.12 - Math.abs(legSwing) * 0.25 - Math.sin(t * 2.2) * 0.03
+      cloak.current.rotation.x = -0.12 - Math.abs(p.legSwing) * 0.25 - Math.sin(t * 2.2) * 0.03
     }
   })
 
   return (
     <group ref={root} scale={[scale, scale, scale]}>
       <group ref={body} position={[0, 0, 0]} scale={[look.build, 1, look.build]}>
-        <group ref={legL} position={[0.18, 0.62, 0]}>
-          <mesh geometry={GEO.leg} material={tunicDark} position={[0, -0.3, 0]} />
+        <group ref={legL} position={[0.18, 0.68, 0]}>
+          <mesh geometry={GEO.thigh} material={tunicDark} position={[0, -0.16, 0]} />
+          <group ref={kneeL} position={[0, -0.34, 0]}>
+            <mesh geometry={GEO.shin} material={tunicDark} position={[0, -0.15, 0]} />
+            <mesh geometry={GEO.foot} material={mat('#4a3424')} position={[0, -0.31, 0.07]} />
+          </group>
         </group>
-        <group ref={legR} position={[-0.18, 0.62, 0]}>
-          <mesh geometry={GEO.leg} material={tunicDark} position={[0, -0.3, 0]} />
+        <group ref={legR} position={[-0.18, 0.68, 0]}>
+          <mesh geometry={GEO.thigh} material={tunicDark} position={[0, -0.16, 0]} />
+          <group ref={kneeR} position={[0, -0.34, 0]}>
+            <mesh geometry={GEO.shin} material={tunicDark} position={[0, -0.15, 0]} />
+            <mesh geometry={GEO.foot} material={mat('#4a3424')} position={[0, -0.31, 0.07]} />
+          </group>
         </group>
 
         <mesh geometry={GEO.torso} material={tunic} position={[0, 1.1, 0]} castShadow />
@@ -403,24 +472,31 @@ export function VillagerFigure({
         )}
 
         <group ref={armL} position={[0.42, 1.52, 0]}>
-          <mesh geometry={GEO.limb} material={skin} position={[0, -0.32, 0]} />
+          <mesh geometry={GEO.upperArm} material={tunic} position={[0, -0.16, 0]} />
+          <group ref={elbowL} position={[0, -0.33, 0]}>
+            <mesh geometry={GEO.forearm} material={skin} position={[0, -0.15, 0]} />
+            <mesh geometry={GEO.hand} material={skin} position={[0, -0.32, 0]} />
+          </group>
         </group>
         <group ref={armR} position={[-0.42, 1.52, 0]}>
-          <mesh geometry={GEO.limb} material={skin} position={[0, -0.32, 0]} />
+          <mesh geometry={GEO.upperArm} material={tunic} position={[0, -0.16, 0]} />
+          <group ref={elbowR} position={[0, -0.33, 0]}>
+          <mesh geometry={GEO.forearm} material={skin} position={[0, -0.15, 0]} />
+          <mesh geometry={GEO.hand} material={skin} position={[0, -0.32, 0]} />
           {look.accessory === 'staff' && (
-            <group position={[0, -0.62, 0.12]}>
+            <group position={[0, -0.32, 0.12]}>
               <mesh geometry={GEO.staff} material={mat('#5a4226')} position={[0, 0.45, 0]} />
               <mesh geometry={GEO.orb} material={mat('#7fd4ff', 1.6)} position={[0, 1.36, 0]} />
             </group>
           )}
           {look.accessory === 'spear' && (
-            <group position={[0, -0.62, 0.12]}>
+            <group position={[0, -0.32, 0.12]}>
               <mesh geometry={GEO.spearShaft} material={mat('#6e4a28')} position={[0, 0.4, 0]} />
               <mesh geometry={GEO.spearTip} material={mat('#9a9a9a')} position={[0, 1.25, 0]} />
             </group>
           )}
           {look.accessory === 'hammer' && (
-            <group position={[0, -0.62, 0.12]} rotation={[0.5, 0, 0]}>
+            <group position={[0, -0.32, 0.12]} rotation={[0.5, 0, 0]}>
               <mesh
                 geometry={GEO.spearShaft}
                 material={mat('#6e4a28')}
@@ -436,7 +512,7 @@ export function VillagerFigure({
             </group>
           )}
           {look.accessory === 'hoe' && (
-            <group position={[0, -0.62, 0.12]} rotation={[0.35, 0, 0]}>
+            <group position={[0, -0.32, 0.12]} rotation={[0.35, 0, 0]}>
               <mesh geometry={GEO.spearShaft} material={mat('#6e4a28')} position={[0, 0.4, 0]} />
               <mesh
                 geometry={GEO.spearTip}
@@ -447,7 +523,7 @@ export function VillagerFigure({
             </group>
           )}
           {look.accessory === 'axe' && (
-            <group position={[0, -0.62, 0.12]} rotation={[0.4, 0, 0]}>
+            <group position={[0, -0.32, 0.12]} rotation={[0.4, 0, 0]}>
               <mesh
                 geometry={GEO.spearShaft}
                 material={mat('#6e4a28')}
@@ -458,7 +534,7 @@ export function VillagerFigure({
             </group>
           )}
           {look.accessory === 'pickaxe' && (
-            <group position={[0, -0.62, 0.12]} rotation={[0.4, 0, 0]}>
+            <group position={[0, -0.32, 0.12]} rotation={[0.4, 0, 0]}>
               <mesh
                 geometry={GEO.spearShaft}
                 material={mat('#6e4a28')}
@@ -480,11 +556,12 @@ export function VillagerFigure({
             </group>
           )}
           {look.accessory === 'rod' && (
-            <group position={[0, -0.62, 0.12]} rotation={[0.9, 0, 0]}>
+            <group position={[0, -0.32, 0.12]} rotation={[0.9, 0, 0]}>
               <mesh geometry={GEO.rod} material={mat('#7a5a34')} position={[0, 0.8, 0]} />
               <mesh geometry={GEO.eye} material={mat('#dddddd')} position={[0, 1.78, 0]} />
             </group>
           )}
+          </group>
         </group>
 
         {look.pack && (

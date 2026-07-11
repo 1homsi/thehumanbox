@@ -20,6 +20,7 @@ import { heightAt } from './terrain-utils'
 import { VillagerFigure } from './VillagerFigure'
 import { workAnimFromThought } from './org-work'
 import { getOrgXY, getOrgVelocityXY, getOrgHeading } from './motion-state'
+import { LOW_PERF } from '../../../lib/perf'
 
 interface Props {
   organisms: OrganismState[]
@@ -37,7 +38,7 @@ const NEAR_RADIUS_SQ = 280 * 280
 const ANIMATE_RADIUS_SQ = 220 * 220
 // Hard cap on full skinned-mesh figures regardless of camera distance.
 // Bounds worst-case CPU when the camera flies over a dense settlement.
-const MAX_SKINNED = 80
+const MAX_SKINNED = LOW_PERF ? 36 : 80
 
 // Data-driven: organism is inside their home when they're genuinely at rest
 // Uses actual numeric fields - sleep_debt, energy - not thought text
