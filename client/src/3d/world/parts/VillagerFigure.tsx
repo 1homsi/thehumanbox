@@ -215,8 +215,8 @@ export function VillagerFigure({
   const head = useRef<Group>(null)
   const armL = useRef<Group>(null)
   const armR = useRef<Group>(null)
-  const elbowL = useRef<Group>(null)
-  const elbowR = useRef<Group>(null)
+  const elbowLRef = useRef<Group>(null)
+  const elbowRRef = useRef<Group>(null)
   const legL = useRef<Group>(null)
   const legR = useRef<Group>(null)
   const kneeL = useRef<Group>(null)
@@ -230,7 +230,8 @@ export function VillagerFigure({
     armSwing: 0,
     armLUp: 0,
     armRUp: 0,
-    elbow: 0,
+    elbowL: 0,
+    elbowR: 0,
     bob: 0,
     lean: 0,
     crouch: 0,
@@ -272,8 +273,14 @@ export function VillagerFigure({
     let headYaw = 0
     let armLUp = 0
     let armRUp = 0
-    let elbow = 0.22
+    let elbowL = 0.22
+    let elbowR = 0.22
     let spin = 0
+
+    const setElbows = (v: number) => {
+      elbowL = v
+      elbowR = v
+    }
 
     switch (animation) {
       case 'Running': {
@@ -282,7 +289,7 @@ export function VillagerFigure({
         bob = Math.abs(Math.sin(t * 11)) * 0.08
         lean = 0.28
         knee = 0.35
-        elbow = 0.85
+        setElbows(0.85)
         spin = Math.sin(t * 11) * 0.06
         break
       }
@@ -292,7 +299,7 @@ export function VillagerFigure({
         bob = Math.abs(Math.sin(t * 6.5)) * 0.04
         lean = 0.08
         knee = 0.18
-        elbow = 0.35
+        setElbows(0.35)
         spin = Math.sin(t * 6.5) * 0.04
         break
       }
@@ -303,7 +310,7 @@ export function VillagerFigure({
         headPitch = 0.25
         armLUp = 0.25
         armRUp = 0.25
-        elbow = 0.55
+        setElbows(0.55)
         break
       }
       case 'Dance': {
@@ -325,7 +332,7 @@ export function VillagerFigure({
         armLUp = 1.3 + swing * 0.8
         lean = 0.18 + Math.max(0, -swing) * 0.14
         bob = Math.abs(swing) * 0.03
-        elbow = 0.45 + Math.max(0, swing) * 0.35
+        setElbows(0.45 + Math.max(0, swing) * 0.35)
         knee = 0.14
         break
       }
@@ -335,7 +342,7 @@ export function VillagerFigure({
         lean = 0.06
         bob = Math.sin(t * 1.4) * 0.02
         headPitch = 0.18
-        elbow = 0.6
+        setElbows(0.6)
         break
       }
       case 'Wave': {
@@ -353,6 +360,42 @@ export function VillagerFigure({
       }
       case 'No': {
         headYaw = Math.sin(t * 6) * 0.45
+        break
+      }
+      case 'Sleep': {
+        crouch = 0.8
+        legsForward = 0.55
+        knee = 1.25
+        headPitch = 0.55
+        bob = Math.sin(t * 1.2) * 0.02
+        setElbows(0.5)
+        break
+      }
+      case 'Eat': {
+        crouch = 0.12
+        headPitch = 0.12 + Math.max(0, Math.sin(t * 2.6)) * 0.08
+        armRUp = 0.42
+        elbowR = 1.15 + Math.max(0, Math.sin(t * 2.6)) * 0.55
+        elbowL = 0.4
+        break
+      }
+      case 'Talk': {
+        armRUp = 0.45 + Math.max(0, Math.sin(t * 2.2)) * 0.4
+        armLUp = 0.25 + Math.max(0, Math.sin(t * 1.7 + 1.3)) * 0.35
+        setElbows(0.9)
+        headPitch = Math.sin(t * 3.1) * 0.06
+        headYaw = attentionYaw ?? Math.sin(t * 0.9) * 0.12
+        bob = Math.sin(t * 1.8) * 0.012
+        break
+      }
+      case 'Forage': {
+        const cycle = Math.sin(t * 2.1)
+        lean = 0.42 + Math.max(0, cycle) * 0.22
+        knee = 0.32
+        headPitch = 0.3
+        armRUp = 0.25
+        elbowR = 0.5 + Math.max(0, -cycle) * 0.7
+        elbowL = 0.35
         break
       }
       case 'Death': {
@@ -402,7 +445,8 @@ export function VillagerFigure({
     p.armSwing += (armSwing - p.armSwing) * kFast
     p.armLUp += (armLUp - p.armLUp) * kFast
     p.armRUp += (armRUp - p.armRUp) * kFast
-    p.elbow += (elbow - p.elbow) * kFast
+    p.elbowL += (elbowL - p.elbowL) * kFast
+    p.elbowR += (elbowR - p.elbowR) * kFast
     p.bob += (bob - p.bob) * kFast
     p.lean += (lean - p.lean) * kSlow
     p.crouch += (crouch - p.crouch) * kSlow
@@ -425,8 +469,8 @@ export function VillagerFigure({
       armR.current.rotation.x = -p.armSwing
       armR.current.rotation.z = -0.18 - p.armRUp
     }
-    if (elbowL.current) elbowL.current.rotation.x = -p.elbow
-    if (elbowR.current) elbowR.current.rotation.x = -p.elbow
+    if (elbowLRef.current) elbowLRef.current.rotation.x = -p.elbowL
+    if (elbowRRef.current) elbowRRef.current.rotation.x = -p.elbowR
     if (head.current) {
       head.current.rotation.x = p.headPitch
       head.current.rotation.y = p.headYaw
@@ -473,14 +517,14 @@ export function VillagerFigure({
 
         <group ref={armL} position={[0.42, 1.52, 0]}>
           <mesh geometry={GEO.upperArm} material={tunic} position={[0, -0.16, 0]} />
-          <group ref={elbowL} position={[0, -0.33, 0]}>
+          <group ref={elbowLRef} position={[0, -0.33, 0]}>
             <mesh geometry={GEO.forearm} material={skin} position={[0, -0.15, 0]} />
             <mesh geometry={GEO.hand} material={skin} position={[0, -0.32, 0]} />
           </group>
         </group>
         <group ref={armR} position={[-0.42, 1.52, 0]}>
           <mesh geometry={GEO.upperArm} material={tunic} position={[0, -0.16, 0]} />
-          <group ref={elbowR} position={[0, -0.33, 0]}>
+          <group ref={elbowRRef} position={[0, -0.33, 0]}>
           <mesh geometry={GEO.forearm} material={skin} position={[0, -0.15, 0]} />
           <mesh geometry={GEO.hand} material={skin} position={[0, -0.32, 0]} />
           {look.accessory === 'staff' && (

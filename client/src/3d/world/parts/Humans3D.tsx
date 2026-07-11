@@ -71,6 +71,19 @@ function pickAnim(o: OrganismState, isMoving: boolean): string {
 
   // Thought text as fallback for actions that have no dedicated field
   const t = (o.thought || '').toLowerCase()
+  if (t.includes('sleep') || t.includes('nap') || t.includes('dozing')) return 'Sleep'
+  if (!isMoving && (t.includes('eat') || t.includes('meal') || t.includes('nibbl'))) return 'Eat'
+  if (
+    !isMoving &&
+    (t.includes('talk') ||
+      t.includes('chat') ||
+      t.includes('gossip') ||
+      t.includes('stor') ||
+      t.includes('discuss') ||
+      t.includes('debat') ||
+      t.includes('teach'))
+  )
+    return 'Talk'
   if (t.includes('dance') || t.includes('celebrat') || t.includes('feast')) return 'Dance'
   if (t.includes('duel') || t.includes('punch') || t.includes('challeng') || t.includes('throw'))
     return 'Punch'
@@ -79,8 +92,7 @@ function pickAnim(o: OrganismState, isMoving: boolean): string {
   if (t.includes('yes')) return 'Yes'
   if (t.includes('no ')) return 'No'
   if (t.includes('flee') || t.includes('raid') || t.includes('ambush')) return 'Running'
-  if (t.includes('rest') || t.includes('sleep') || t.includes('sit') || t.includes('meditat'))
-    return 'Sitting'
+  if (t.includes('rest') || t.includes('sit') || t.includes('meditat')) return 'Sitting'
 
   return isMoving ? 'Walking' : 'Idle'
 }

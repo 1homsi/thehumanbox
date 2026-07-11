@@ -13,7 +13,7 @@ export function toolFromThought(thought: string): OrgAccessory | null {
   return null
 }
 
-export function workAnimFromThought(thought: string): 'Chop' | 'Fish' | null {
+export function workAnimFromThought(thought: string): 'Chop' | 'Fish' | 'Forage' | null {
   const t = thought.toLowerCase()
   if (t.includes('fishing') || t.includes('to fish')) return 'Fish'
   if (
@@ -29,5 +29,13 @@ export function workAnimFromThought(thought: string): 'Chop' | 'Fish' | null {
     t.includes('construct')
   )
     return 'Chop'
+  if (
+    t.includes('forag') ||
+    t.includes('gather') ||
+    t.includes('picking') ||
+    t.includes('berr') ||
+    t.includes('plucking')
+  )
+    return 'Forage'
   return null
 }
