@@ -525,86 +525,86 @@ export function VillagerFigure({
         <group ref={armR} position={[-0.42, 1.52, 0]}>
           <mesh geometry={GEO.upperArm} material={tunic} position={[0, -0.16, 0]} />
           <group ref={elbowRRef} position={[0, -0.33, 0]}>
-          <mesh geometry={GEO.forearm} material={skin} position={[0, -0.15, 0]} />
-          <mesh geometry={GEO.hand} material={skin} position={[0, -0.32, 0]} />
-          {look.accessory === 'staff' && (
-            <group position={[0, -0.32, 0.12]}>
-              <mesh geometry={GEO.staff} material={mat('#5a4226')} position={[0, 0.45, 0]} />
-              <mesh geometry={GEO.orb} material={mat('#7fd4ff', 1.6)} position={[0, 1.36, 0]} />
-            </group>
-          )}
-          {look.accessory === 'spear' && (
-            <group position={[0, -0.32, 0.12]}>
-              <mesh geometry={GEO.spearShaft} material={mat('#6e4a28')} position={[0, 0.4, 0]} />
-              <mesh geometry={GEO.spearTip} material={mat('#9a9a9a')} position={[0, 1.25, 0]} />
-            </group>
-          )}
-          {look.accessory === 'hammer' && (
-            <group position={[0, -0.32, 0.12]} rotation={[0.5, 0, 0]}>
-              <mesh
-                geometry={GEO.spearShaft}
-                material={mat('#6e4a28')}
-                position={[0, 0.2, 0]}
-                scale={[1, 0.55, 1]}
-              />
-              <mesh
-                geometry={GEO.belly}
-                material={mat('#777777')}
-                position={[0, 0.65, 0]}
-                scale={[0.55, 0.4, 0.55]}
-              />
-            </group>
-          )}
-          {look.accessory === 'hoe' && (
-            <group position={[0, -0.32, 0.12]} rotation={[0.35, 0, 0]}>
-              <mesh geometry={GEO.spearShaft} material={mat('#6e4a28')} position={[0, 0.4, 0]} />
-              <mesh
-                geometry={GEO.spearTip}
-                material={mat('#8a7a5a')}
-                position={[0, 1.2, 0.05]}
-                rotation={[1.2, 0, 0]}
-              />
-            </group>
-          )}
-          {look.accessory === 'axe' && (
-            <group position={[0, -0.32, 0.12]} rotation={[0.4, 0, 0]}>
-              <mesh
-                geometry={GEO.spearShaft}
-                material={mat('#6e4a28')}
-                position={[0, 0.32, 0]}
-                scale={[1.2, 0.75, 1.2]}
-              />
-              <mesh geometry={GEO.axeHead} material={mat('#9aa0a6')} position={[0, 0.82, 0.16]} />
-            </group>
-          )}
-          {look.accessory === 'pickaxe' && (
-            <group position={[0, -0.32, 0.12]} rotation={[0.4, 0, 0]}>
-              <mesh
-                geometry={GEO.spearShaft}
-                material={mat('#6e4a28')}
-                position={[0, 0.32, 0]}
-                scale={[1.2, 0.75, 1.2]}
-              />
-              <mesh
-                geometry={GEO.pickHead}
-                material={mat('#8a8f94')}
-                position={[0, 0.82, 0.22]}
-                rotation={[Math.PI / 2, 0, 0]}
-              />
-              <mesh
-                geometry={GEO.pickHead}
-                material={mat('#8a8f94')}
-                position={[0, 0.82, -0.22]}
-                rotation={[-Math.PI / 2, 0, 0]}
-              />
-            </group>
-          )}
-          {look.accessory === 'rod' && (
-            <group position={[0, -0.32, 0.12]} rotation={[0.9, 0, 0]}>
-              <mesh geometry={GEO.rod} material={mat('#7a5a34')} position={[0, 0.8, 0]} />
-              <mesh geometry={GEO.eye} material={mat('#dddddd')} position={[0, 1.78, 0]} />
-            </group>
-          )}
+            <mesh geometry={GEO.forearm} material={skin} position={[0, -0.15, 0]} />
+            <mesh geometry={GEO.hand} material={skin} position={[0, -0.32, 0]} />
+            {look.accessory === 'staff' && (
+              <group position={[0, -0.32, 0.12]}>
+                <mesh geometry={GEO.staff} material={mat('#5a4226')} position={[0, 0.45, 0]} />
+                <mesh geometry={GEO.orb} material={mat('#7fd4ff', 1.6)} position={[0, 1.36, 0]} />
+              </group>
+            )}
+            {look.accessory === 'spear' && (
+              <group position={[0, -0.32, 0.12]}>
+                <mesh geometry={GEO.spearShaft} material={mat('#6e4a28')} position={[0, 0.4, 0]} />
+                <mesh geometry={GEO.spearTip} material={mat('#9a9a9a')} position={[0, 1.25, 0]} />
+              </group>
+            )}
+            {look.accessory === 'hammer' && (
+              <group position={[0, -0.32, 0.12]} rotation={[0.5, 0, 0]}>
+                <mesh
+                  geometry={GEO.spearShaft}
+                  material={mat('#6e4a28')}
+                  position={[0, 0.2, 0]}
+                  scale={[1, 0.55, 1]}
+                />
+                <mesh
+                  geometry={GEO.belly}
+                  material={mat('#777777')}
+                  position={[0, 0.65, 0]}
+                  scale={[0.55, 0.4, 0.55]}
+                />
+              </group>
+            )}
+            {look.accessory === 'hoe' && (
+              <group position={[0, -0.32, 0.12]} rotation={[0.35, 0, 0]}>
+                <mesh geometry={GEO.spearShaft} material={mat('#6e4a28')} position={[0, 0.4, 0]} />
+                <mesh
+                  geometry={GEO.spearTip}
+                  material={mat('#8a7a5a')}
+                  position={[0, 1.2, 0.05]}
+                  rotation={[1.2, 0, 0]}
+                />
+              </group>
+            )}
+            {look.accessory === 'axe' && (
+              <group position={[0, -0.32, 0.12]} rotation={[0.4, 0, 0]}>
+                <mesh
+                  geometry={GEO.spearShaft}
+                  material={mat('#6e4a28')}
+                  position={[0, 0.32, 0]}
+                  scale={[1.2, 0.75, 1.2]}
+                />
+                <mesh geometry={GEO.axeHead} material={mat('#9aa0a6')} position={[0, 0.82, 0.16]} />
+              </group>
+            )}
+            {look.accessory === 'pickaxe' && (
+              <group position={[0, -0.32, 0.12]} rotation={[0.4, 0, 0]}>
+                <mesh
+                  geometry={GEO.spearShaft}
+                  material={mat('#6e4a28')}
+                  position={[0, 0.32, 0]}
+                  scale={[1.2, 0.75, 1.2]}
+                />
+                <mesh
+                  geometry={GEO.pickHead}
+                  material={mat('#8a8f94')}
+                  position={[0, 0.82, 0.22]}
+                  rotation={[Math.PI / 2, 0, 0]}
+                />
+                <mesh
+                  geometry={GEO.pickHead}
+                  material={mat('#8a8f94')}
+                  position={[0, 0.82, -0.22]}
+                  rotation={[-Math.PI / 2, 0, 0]}
+                />
+              </group>
+            )}
+            {look.accessory === 'rod' && (
+              <group position={[0, -0.32, 0.12]} rotation={[0.9, 0, 0]}>
+                <mesh geometry={GEO.rod} material={mat('#7a5a34')} position={[0, 0.8, 0]} />
+                <mesh geometry={GEO.eye} material={mat('#dddddd')} position={[0, 1.78, 0]} />
+              </group>
+            )}
           </group>
         </group>
 

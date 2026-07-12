@@ -181,7 +181,6 @@ function LiveApp() {
     useUIStore.getState().setViewFlag('threeD', true)
   }, [])
 
-
   const webglOk = useMemo(() => webglAvailable(), [])
 
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
