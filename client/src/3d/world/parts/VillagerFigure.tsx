@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import {
   BoxGeometry,
   CapsuleGeometry,
+  CircleGeometry,
   Color,
   ConeGeometry,
   CylinderGeometry,
@@ -35,6 +36,7 @@ const GEO = {
   spearShaft: new CylinderGeometry(0.035, 0.035, 1.5, 6),
   spearTip: new ConeGeometry(0.09, 0.26, 6),
   belt: new TorusGeometry(0.45, 0.05, 6, 10),
+  collar: new TorusGeometry(0.31, 0.055, 6, 12, Math.PI),
   circlet: new TorusGeometry(0.42, 0.035, 6, 12),
   cloak: new ConeGeometry(0.68, 1.25, 8, 1, true),
   axeHead: new BoxGeometry(0.08, 0.3, 0.42),
@@ -47,6 +49,14 @@ const GEO = {
   packLid: new BoxGeometry(0.66, 0.22, 0.46),
   strap: new BoxGeometry(0.09, 0.78, 0.07),
   cane: new CylinderGeometry(0.035, 0.045, 1.5, 5),
+  ear: new SphereGeometry(0.095, 7, 6),
+  nose: new ConeGeometry(0.075, 0.18, 6),
+  eyeWhite: new SphereGeometry(0.086, 8, 6),
+  iris: new SphereGeometry(0.04, 7, 6),
+  brow: new BoxGeometry(0.17, 0.035, 0.035),
+  mouth: new TorusGeometry(0.11, 0.022, 5, 10, Math.PI),
+  shoulder: new SphereGeometry(0.24, 7, 6),
+  groundShadow: new CircleGeometry(0.56, 18),
 }
 
 const matCache = new Map<string, MeshStandardMaterial>()
@@ -80,6 +90,14 @@ function idHash(id: string): number {
 
 const SKIN_TONES = ['#e8b88a', '#d9a06e', '#c98a58', '#a96c42', '#8a5430', '#f0c9a0']
 const HAIR_TONES = ['#2a1c10', '#4a2e16', '#6e4520', '#8a6438', '#1c1c22', '#5a3c2a']
+const EYE_TONES = ['#302016', '#466b68', '#53759a', '#6d552c', '#3f3428']
+const groundShadowMat = new MeshStandardMaterial({
+  color: '#17130f',
+  transparent: true,
+  opacity: 0.28,
+  roughness: 1,
+  depthWrite: false,
+})
 
 type EraTier = 'primal' | 'tribal' | 'civic' | 'advanced'
 
@@ -119,6 +137,9 @@ interface Look {
   build: number
   pack: boolean
   cane: boolean
+  eyeColor: string
+  trimColor: string
+  faceWidth: number
 }
 
 function ageStageOf(org: OrganismState): AgeStage {
@@ -182,6 +203,16 @@ function deriveLook(org: OrganismState, era?: string): Look {
     build: female ? buildBase * 0.93 : buildBase,
     pack: org.carrying > 0 || (forager && hasStuff(org)) || (forager && (h & 1) === 0),
     cane: elder && (h & 1) === 0,
+    eyeColor: EYE_TONES[(h >> 9) % EYE_TONES.length],
+    trimColor:
+      tier === 'advanced'
+        ? '#d8e5ea'
+        : tier === 'civic'
+          ? '#d5b66f'
+          : tier === 'tribal'
+            ? '#b78b55'
+            : '#725037',
+    faceWidth: 0.92 + (((h >> 12) % 9) - 4) * 0.018,
   }
 }
 
@@ -248,6 +279,8 @@ export function VillagerFigure({
   )
   const skin = mat(look.skin)
   const hairM = mat(look.hairColor)
+  const eyeM = mat(look.eyeColor)
+  const trimM = mat(look.trimColor)
 
   const grief = (org.grief_ticks ?? 0) > 14
   const afraid = (org.fear_level ?? 0) > 0.6
@@ -482,6 +515,14 @@ export function VillagerFigure({
 
   return (
     <group ref={root} scale={[scale, scale, scale]}>
+      <mesh
+        geometry={GEO.groundShadow}
+        material={groundShadowMat}
+        position={[0, 0.025, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        scale={[look.build * 1.1, look.build * 0.82, 1]}
+        receiveShadow
+      />
       <group ref={body} position={[0, 0, 0]} scale={[look.build, 1, look.build]}>
         <group ref={legL} position={[0.18, 0.68, 0]}>
           <mesh geometry={GEO.thigh} material={tunicDark} position={[0, -0.16, 0]} />
@@ -499,6 +540,16 @@ export function VillagerFigure({
         </group>
 
         <mesh geometry={GEO.torso} material={tunic} position={[0, 1.1, 0]} castShadow />
+        <mesh geometry={GEO.shoulder} material={tunic} position={[0.38, 1.49, 0]} scale={[1, 0.72, 1]} />
+        <mesh geometry={GEO.shoulder} material={tunic} position={[-0.38, 1.49, 0]} scale={[1, 0.72, 1]} />
+        {look.tier !== 'primal' && (
+          <mesh
+            geometry={GEO.collar}
+            material={trimM}
+            position={[0, 1.58, 0.08]}
+            rotation={[Math.PI / 2, 0, 0]}
+          />
+        )}
         {look.skirt && <mesh geometry={GEO.skirt} material={tunic} position={[0, 0.62, 0]} />}
         {look.belt && (
           <mesh
@@ -673,10 +724,41 @@ export function VillagerFigure({
           </group>
         )}
 
-        <group ref={head} position={[0, 2.08, 0]}>
-          <mesh geometry={GEO.head} material={skin} castShadow />
-          <mesh geometry={GEO.eye} material={mat('#1a1410')} position={[0.18, 0.06, 0.44]} />
-          <mesh geometry={GEO.eye} material={mat('#1a1410')} position={[-0.18, 0.06, 0.44]} />
+        <group ref={head} position={[0, 2.08, 0]} scale={[look.faceWidth, 1, 1]}>
+          <mesh geometry={GEO.head} material={skin} castShadow scale={[0.94, 1.04, 0.92]} />
+          <mesh geometry={GEO.ear} material={skin} position={[0.47, 0, 0]} scale={[0.7, 1.05, 0.55]} />
+          <mesh geometry={GEO.ear} material={skin} position={[-0.47, 0, 0]} scale={[0.7, 1.05, 0.55]} />
+          <mesh
+            geometry={GEO.nose}
+            material={skin}
+            position={[0, -0.02, 0.5]}
+            rotation={[Math.PI / 2, 0, 0]}
+          />
+          {[-1, 1].map((side) => (
+            <group key={side} position={[side * 0.18, 0.07, 0.445]}>
+              <mesh geometry={GEO.eyeWhite} material={mat('#f3eadc')} scale={[1.15, 0.78, 0.38]} />
+              <mesh geometry={GEO.iris} material={eyeM} position={[0, 0, 0.061]} scale={[1, 1, 0.5]} />
+              <mesh
+                geometry={GEO.eye}
+                material={mat('#15110e')}
+                position={[0, 0, 0.082]}
+                scale={[0.46, 0.46, 0.35]}
+              />
+              <mesh
+                geometry={GEO.brow}
+                material={hairM}
+                position={[0, 0.125, 0.04]}
+                rotation={[0, 0, side * (afraid ? 0.22 : grief ? -0.18 : 0.04)]}
+              />
+            </group>
+          ))}
+          <mesh
+            geometry={GEO.mouth}
+            material={mat(grief ? '#4f302d' : '#78473d')}
+            position={[0, -0.2, 0.46]}
+            rotation={[afraid ? 0 : Math.PI, 0, afraid ? 0 : Math.PI]}
+            scale={[afraid ? 0.62 : 1, afraid ? 0.75 : 0.55, 0.6]}
+          />
           {look.hood ? (
             <mesh geometry={GEO.hood} material={tunicDark} position={[0, 0.3, -0.03]} />
           ) : (
