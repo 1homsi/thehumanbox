@@ -10,6 +10,10 @@ interface Props {
   onBrush: (n: number) => void
   onPick: (tool: SandboxTool) => void
   onClearArmed: () => void
+  onSave?: () => void
+  saveStatus?: string
+  saveBusy?: boolean
+  saveError?: boolean
 }
 
 export function SandboxToolbar({
@@ -20,6 +24,10 @@ export function SandboxToolbar({
   onBrush,
   onPick,
   onClearArmed,
+  onSave,
+  saveStatus,
+  saveBusy = false,
+  saveError = false,
 }: Props) {
   const [catId, setCatId] = useState(SANDBOX_CATEGORIES[0].id)
   const cat = SANDBOX_CATEGORIES.find((c) => c.id === catId) ?? SANDBOX_CATEGORIES[0]
@@ -77,6 +85,19 @@ export function SandboxToolbar({
       {(armedToolId || status) && (
         <div className="sandbox-status" role="status" aria-live="polite">
           {status ?? `${armedToolLabel ?? 'tool'} armed - click the world to apply`}
+        </div>
+      )}
+      {onSave && (
+        <div className={clsx('sandbox-save', saveError && 'error')}>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saveBusy || saveError}
+            title="Save this world on this device now"
+          >
+            {saveBusy ? 'saving…' : '💾 save world'}
+          </button>
+          {saveStatus && <span role="status">{saveStatus}</span>}
         </div>
       )}
     </div>

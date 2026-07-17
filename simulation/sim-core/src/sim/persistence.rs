@@ -158,6 +158,60 @@ pub(crate) struct OrgSave {
     zodiac: String,
     #[serde(default)]
     birth_tick: u64,
+    #[serde(default)]
+    last_think_by_kind: HashMap<String, u64>,
+    #[serde(default)]
+    mood: f32,
+    #[serde(default)]
+    hope: f32,
+    #[serde(default)]
+    awe: f32,
+    #[serde(default)]
+    gratitude: f32,
+    #[serde(default)]
+    jealousy: f32,
+    #[serde(default)]
+    anger: f32,
+    #[serde(default)]
+    regret: f32,
+    #[serde(default)]
+    curiosity_drive: f32,
+    #[serde(default)]
+    spiritual: f32,
+    #[serde(default)]
+    area_ticks: u32,
+    #[serde(default)]
+    last_area_cell: [i32; 2],
+    #[serde(default)]
+    wander_target: Option<[i32; 2]>,
+    #[serde(default)]
+    nursing_until: u64,
+    #[serde(default)]
+    wealth: u32,
+    #[serde(default)]
+    literacy: f32,
+    #[serde(default)]
+    schooling_ticks: u32,
+    #[serde(default)]
+    university_ticks: u32,
+    #[serde(default)]
+    piety: f32,
+    #[serde(default)]
+    specialty: Option<String>,
+    #[serde(default)]
+    religion_id: Option<String>,
+    #[serde(default)]
+    degrees: Vec<String>,
+    #[serde(default)]
+    tools: HashMap<String, u8>,
+    #[serde(default)]
+    diseases: Vec<(String, u64)>,
+    #[serde(default)]
+    disease_immunity: HashMap<String, u64>,
+    #[serde(default)]
+    mounted_vehicle: Option<u32>,
+    #[serde(default)]
+    is_leader: bool,
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -182,6 +236,14 @@ pub(crate) struct NegotiationSave {
     a: String,
     b: String,
     tick: u64,
+}
+
+#[derive(Default, Serialize, Deserialize)]
+#[serde(default)]
+pub(crate) struct WaterUseSave {
+    x: i32,
+    y: i32,
+    count: u32,
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -221,6 +283,56 @@ pub struct SaveState {
     last_immigration_tick: u64,
     #[serde(default)]
     settlement_tiers: HashMap<String, u8>,
+    #[serde(default)]
+    buildings: Vec<super::buildings::Building>,
+    #[serde(default)]
+    next_building_id: u32,
+    #[serde(default)]
+    governments: HashMap<String, super::government::Government>,
+    #[serde(default)]
+    religions: Vec<super::culture::Religion>,
+    #[serde(default)]
+    next_religion_id: u32,
+    #[serde(default)]
+    artworks: Vec<super::culture::Artwork>,
+    #[serde(default)]
+    next_artwork_id: u32,
+    #[serde(default)]
+    festivals: Vec<super::culture::Festival>,
+    #[serde(default)]
+    next_festival_id: u32,
+    #[serde(default)]
+    last_witness_tick: u64,
+    #[serde(default)]
+    books: Vec<super::language_tech::Book>,
+    #[serde(default)]
+    next_book_id: u32,
+    #[serde(default)]
+    farms: Vec<super::agriculture::Farm>,
+    #[serde(default)]
+    next_farm_id: u32,
+    #[serde(default)]
+    vehicles: Vec<super::transportation::Vehicle>,
+    #[serde(default)]
+    next_vehicle_id: u32,
+    #[serde(default)]
+    battles: Vec<super::warfare::Battle>,
+    #[serde(default)]
+    next_battle_id: u32,
+    #[serde(default)]
+    treaties: Vec<super::warfare::Treaty>,
+    #[serde(default)]
+    outbreaks: Vec<super::medicine::Outbreak>,
+    #[serde(default)]
+    milestones_achieved: HashSet<String>,
+    #[serde(default)]
+    lineage_peak_pop: HashMap<String, u32>,
+    #[serde(default)]
+    headlines: Vec<(u64, String)>,
+    #[serde(default)]
+    trades: Vec<super::economy::Trade>,
+    #[serde(default)]
+    water_use: Vec<WaterUseSave>,
 }
 
 fn mem_encode(m: &FxHashMap<(i32, i32), f32>) -> HashMap<String, f32> {
@@ -317,10 +429,37 @@ fn org_to_save(o: &Organism) -> OrgSave {
         memories: o.memories.clone(),
         zodiac: o.zodiac.clone(),
         birth_tick: o.birth_tick,
+        last_think_by_kind: o.last_think_by_kind.clone(),
+        mood: o.mood,
+        hope: o.hope,
+        awe: o.awe,
+        gratitude: o.gratitude,
+        jealousy: o.jealousy,
+        anger: o.anger,
+        regret: o.regret,
+        curiosity_drive: o.curiosity_drive,
+        spiritual: o.spiritual,
+        area_ticks: o.area_ticks,
+        last_area_cell: [o.last_area_cell.0, o.last_area_cell.1],
+        wander_target: o.wander_target.map(|(x, y)| [x, y]),
+        nursing_until: o.nursing_until,
+        wealth: o.wealth,
+        literacy: o.literacy,
+        schooling_ticks: o.schooling_ticks,
+        university_ticks: o.university_ticks,
+        piety: o.piety,
+        specialty: o.specialty.clone(),
+        religion_id: o.religion_id.clone(),
+        degrees: o.degrees.clone(),
+        tools: o.tools.clone(),
+        diseases: o.diseases.clone(),
+        disease_immunity: o.disease_immunity.clone(),
+        mounted_vehicle: o.mounted_vehicle,
+        is_leader: o.is_leader,
     }
 }
 
-fn org_from_save(s: OrgSave) -> Organism {
+fn org_from_save(s: OrgSave, save_version: u32) -> Organism {
     let vocab_seed = {
         let lid_seed = s
             .lineage_id
@@ -429,6 +568,35 @@ fn org_from_save(s: OrgSave) -> Organism {
     }
     if s.birth_tick > 0 {
         o.birth_tick = s.birth_tick;
+    }
+    if save_version >= 4 {
+        o.last_think_by_kind = s.last_think_by_kind;
+        o.mood = s.mood;
+        o.hope = s.hope;
+        o.awe = s.awe;
+        o.gratitude = s.gratitude;
+        o.jealousy = s.jealousy;
+        o.anger = s.anger;
+        o.regret = s.regret;
+        o.curiosity_drive = s.curiosity_drive;
+        o.spiritual = s.spiritual;
+        o.area_ticks = s.area_ticks;
+        o.last_area_cell = (s.last_area_cell[0], s.last_area_cell[1]);
+        o.wander_target = s.wander_target.map(|[x, y]| (x, y));
+        o.nursing_until = s.nursing_until;
+        o.wealth = s.wealth;
+        o.literacy = s.literacy;
+        o.schooling_ticks = s.schooling_ticks;
+        o.university_ticks = s.university_ticks;
+        o.piety = s.piety;
+        o.specialty = s.specialty;
+        o.religion_id = s.religion_id;
+        o.degrees = s.degrees;
+        o.tools = s.tools;
+        o.diseases = s.diseases;
+        o.disease_immunity = s.disease_immunity;
+        o.mounted_vehicle = s.mounted_vehicle;
+        o.is_leader = s.is_leader;
     }
     if needs_vocab {
         let mut voc_rng = rand::rngs::SmallRng::seed_from_u64(vocab_seed);
@@ -572,6 +740,35 @@ impl Simulation {
                 .collect(),
             last_immigration_tick: self.last_immigration_tick,
             settlement_tiers: self.settlement_tiers.clone(),
+            buildings: self.buildings.clone(),
+            next_building_id: self.next_building_id,
+            governments: self.governments.clone(),
+            religions: self.religions.clone(),
+            next_religion_id: self.next_religion_id,
+            artworks: self.artworks.clone(),
+            next_artwork_id: self.next_artwork_id,
+            festivals: self.festivals.clone(),
+            next_festival_id: self.next_festival_id,
+            last_witness_tick: self.last_witness_tick,
+            books: self.books.clone(),
+            next_book_id: self.next_book_id,
+            farms: self.farms.clone(),
+            next_farm_id: self.next_farm_id,
+            vehicles: self.vehicles.clone(),
+            next_vehicle_id: self.next_vehicle_id,
+            battles: self.battles.clone(),
+            next_battle_id: self.next_battle_id,
+            treaties: self.treaties.clone(),
+            outbreaks: self.outbreaks.clone(),
+            milestones_achieved: self.milestones_achieved.clone(),
+            lineage_peak_pop: self.lineage_peak_pop.clone(),
+            headlines: self.headlines.iter().rev().take(160).rev().cloned().collect(),
+            trades: self.trades.iter().rev().take(500).rev().cloned().collect(),
+            water_use: self
+                .water_use
+                .iter()
+                .map(|(&(x, y), &count)| WaterUseSave { x, y, count })
+                .collect(),
         }
     }
 }
@@ -679,10 +876,18 @@ impl Simulation {
         let mut grid = WorldGrid::new(seed);
         if state.grid.tiles.len() == expected {
             grid.tiles = state.grid.tiles;
-            grid.fire_intensity = state.grid.fire;
-            grid.food_trail = state.grid.food_trail;
-            grid.water_trail = state.grid.water_trail;
-            grid.path_trail = state.grid.path_trail;
+            if state.grid.fire.len() == expected {
+                grid.fire_intensity = state.grid.fire;
+            }
+            if state.grid.food_trail.len() == expected {
+                grid.food_trail = state.grid.food_trail;
+            }
+            if state.grid.water_trail.len() == expected {
+                grid.water_trail = state.grid.water_trail;
+            }
+            if state.grid.path_trail.len() == expected {
+                grid.path_trail = state.grid.path_trail;
+            }
             if !state.grid.structure.is_empty() && state.grid.structure.len() == expected {
                 grid.structure = state.grid.structure;
             }
@@ -695,6 +900,12 @@ impl Simulation {
             if !state.grid.pressure.is_empty() && state.grid.pressure.len() == expected {
                 grid.pressure = state.grid.pressure;
             }
+            grid.trail_dirty = (0..expected)
+                .filter(|&i| {
+                    grid.food_trail[i] > 0.0 || grid.water_trail[i] > 0.0 || grid.path_trail[i] > 0.0
+                })
+                .map(|i| i as u32)
+                .collect();
         } else {
             tracing::info!(
                 "Save grid size mismatch (got {}, need {}) - regenerating world",
@@ -716,8 +927,13 @@ impl Simulation {
         };
 
         let tick = state.tick_count;
+        let save_version = state.version;
         let is_legacy_save = state.rng.is_none();
-        let mut organisms: Vec<_> = state.organisms.into_iter().map(org_from_save).collect();
+        let mut organisms: Vec<_> = state
+            .organisms
+            .into_iter()
+            .map(|saved| org_from_save(saved, save_version))
+            .collect();
         {
             use rand::Rng;
             let mut rng = rand::rngs::SmallRng::seed_from_u64(seed ^ tick ^ 0xdeadbeef);
@@ -747,6 +963,10 @@ impl Simulation {
             hs
         };
         let mut physics = PhysicsEngine::new();
+        // Simulation physics runs exactly once every five world ticks.
+        // Reconstruct its cadence so trail decay and lightning continue from
+        // the same phase instead of restarting after every load.
+        physics.tick_count = state.tick_count / 5;
         for y in 0..HEIGHT as i32 {
             for x in 0..WIDTH as i32 {
                 if matches!(grid.get(x, y), Tile::Fire | Tile::Campfire) {
@@ -755,12 +975,80 @@ impl Simulation {
             }
         }
 
+        let next_building_id = state
+            .next_building_id
+            .max(
+                state
+                    .buildings
+                    .iter()
+                    .map(|b| b.id.saturating_add(1))
+                    .max()
+                    .unwrap_or(1),
+            )
+            .max(1);
+        let next_artwork_id = state
+            .next_artwork_id
+            .max(
+                state
+                    .artworks
+                    .iter()
+                    .map(|a| a.id.saturating_add(1))
+                    .max()
+                    .unwrap_or(1),
+            )
+            .max(1);
+        let next_festival_id = state
+            .next_festival_id
+            .max(
+                state
+                    .festivals
+                    .iter()
+                    .map(|f| f.id.saturating_add(1))
+                    .max()
+                    .unwrap_or(1),
+            )
+            .max(1);
+        let next_book_id = state
+            .next_book_id
+            .max(
+                state
+                    .books
+                    .iter()
+                    .map(|b| b.id.saturating_add(1))
+                    .max()
+                    .unwrap_or(1),
+            )
+            .max(1);
+        let next_farm_id = state
+            .next_farm_id
+            .max(
+                state
+                    .farms
+                    .iter()
+                    .map(|f| f.id.saturating_add(1))
+                    .max()
+                    .unwrap_or(1),
+            )
+            .max(1);
+        let next_vehicle_id = state
+            .next_vehicle_id
+            .max(
+                state
+                    .vehicles
+                    .iter()
+                    .map(|v| v.id.saturating_add(1))
+                    .max()
+                    .unwrap_or(1),
+            )
+            .max(1);
+
         let mut sim = Simulation {
             grid,
             physics,
             organisms,
             animals: state.animals.into_iter().map(animal_from_save).collect(),
             tick_count: state.tick_count,
+            population_limit: super::config::DEFAULT_MAX_POPULATION,
             events: state.events.into_iter().collect(),
             history: state.history,
             drought,
@@ -839,34 +1127,38 @@ impl Simulation {
                 .collect(),
             tile_owner: std::collections::HashMap::new(),
             cached_territory: serde_json::Value::Null,
-            buildings: Vec::new(),
-            next_building_id: 1,
-            governments: HashMap::new(),
-            religions: Vec::new(),
-            next_religion_id: 1,
-            artworks: Vec::new(),
-            next_artwork_id: 1,
-            festivals: Vec::new(),
-            next_festival_id: 1,
+            buildings: state.buildings,
+            next_building_id,
+            governments: state.governments,
+            religions: state.religions,
+            next_religion_id: state.next_religion_id.max(1),
+            artworks: state.artworks,
+            next_artwork_id,
+            festivals: state.festivals,
+            next_festival_id,
             action_counts: HashMap::new(),
             decision_counts: HashMap::new(),
             workshop_hits: HashMap::new(),
-            last_witness_tick: 0,
-            books: Vec::new(),
-            next_book_id: 1,
-            farms: Vec::new(),
-            next_farm_id: 1,
-            vehicles: Vec::new(),
-            next_vehicle_id: 1,
-            battles: Vec::new(),
-            next_battle_id: 1,
-            treaties: Vec::new(),
-            outbreaks: Vec::new(),
-            milestones_achieved: HashSet::new(),
-            lineage_peak_pop: std::collections::HashMap::new(),
-            headlines: std::collections::VecDeque::new(),
-            trades: std::collections::VecDeque::new(),
-            water_use: std::collections::HashMap::new(),
+            last_witness_tick: state.last_witness_tick,
+            books: state.books,
+            next_book_id,
+            farms: state.farms,
+            next_farm_id,
+            vehicles: state.vehicles,
+            next_vehicle_id,
+            battles: state.battles,
+            next_battle_id: state.next_battle_id.max(1),
+            treaties: state.treaties,
+            outbreaks: state.outbreaks,
+            milestones_achieved: state.milestones_achieved,
+            lineage_peak_pop: state.lineage_peak_pop,
+            headlines: state.headlines.into_iter().collect(),
+            trades: state.trades.into_iter().collect(),
+            water_use: state
+                .water_use
+                .into_iter()
+                .map(|entry| ((entry.x, entry.y), entry.count))
+                .collect(),
         };
         // The save format only stores the forward map; rebuild the
         // inverse map after the struct exists. Last claim in the

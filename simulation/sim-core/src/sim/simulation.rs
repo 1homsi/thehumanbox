@@ -1,4 +1,7 @@
-use super::config::{season_growth, DAY_LENGTH, SEASONS, SEASON_LENGTH};
+use super::config::{
+    season_growth, DAY_LENGTH, DEFAULT_MAX_POPULATION, MAX_POPULATION_LIMIT, MIN_POPULATION_LIMIT, SEASONS,
+    SEASON_LENGTH,
+};
 use super::spatial::SpatialIndex;
 use super::world_events::{
     push_event, tick_drought, tick_outbreak, tick_weather, tick_world_evolution, DroughtState, WeatherState,
@@ -381,7 +384,7 @@ fn verify_local_danger_memory(org: &mut Organism, grid: &WorldGrid, animals: &[A
 
     decay_local_resource_memory(&mut org.danger_memory, x, y, 0.50, 0.72);
 }
-pub const SAVE_SCHEMA_VERSION: u32 = 3;
+pub const SAVE_SCHEMA_VERSION: u32 = 4;
 
 #[derive(Default, Clone, Serialize, Deserialize)]
 #[serde(default)]
@@ -538,6 +541,7 @@ pub struct Simulation {
     pub organisms: Vec<Organism>,
     pub animals: Vec<Animal>,
     pub tick_count: u64,
+    pub(crate) population_limit: usize,
     pub events: VecDeque<Event>,
     pub history: History,
     pub drought: DroughtState,
@@ -654,21 +658,6 @@ fn scarcity_driven_migration_season(season: &str) -> bool {
     matches!(season, "scarcity" | "decline")
 }
 
-fn era_fanfare(era: &str) -> &'static str {
-    match era {
-        "stone" => "Stone tools change everything.",
-        "bronze" => "The first metal is poured.",
-        "iron" => "Iron forges sharper tools and sharper wars.",
-        "classical" => "Cities, law and philosophy take shape.",
-        "medieval" => "Castles rise and faith spans the land.",
-        "renaissance" => "Art and discovery flower anew.",
-        "industrial" => "Smoke and steam — the age of machines.",
-        "modern" => "Engines, wires and crowded cities.",
-        "information" => "The world wires itself together.",
-        _ => "A new age dawns.",
-    }
-}
-
 impl Simulation {
     fn push_pending_convo(&mut self, req: crate::sim::convo_req::ConversationReq) {
         const MAX_PENDING_CONVOS: usize = 32;
@@ -713,6 +702,7 @@ impl Simulation {
             organisms: Vec::new(),
             animals: Vec::new(),
             tick_count: 0,
+            population_limit: DEFAULT_MAX_POPULATION,
             events: VecDeque::new(),
             history: History::default(),
             drought: DroughtState::default(),
@@ -778,6 +768,18 @@ impl Simulation {
         sim.spawn_founders();
         sim.spawn_animals(14);
         sim
+    }
+
+    /// Sets the natural population ceiling for this runtime. Hosted and WASM
+    /// worlds keep the conservative default; downloadable worlds can opt into
+    /// a much larger long game without changing the save format.
+    pub fn set_population_limit(&mut self, limit: usize) -> usize {
+        self.population_limit = limit.clamp(MIN_POPULATION_LIMIT, MAX_POPULATION_LIMIT);
+        self.population_limit
+    }
+
+    pub fn population_limit(&self) -> usize {
+        self.population_limit
     }
 
     fn push_think_for(&mut self, org_idx: usize, mut trigger: ThinkTrigger) {
@@ -975,35 +977,9 @@ impl Simulation {
             self.grid.decay_world_layers();
         }
 
-        if self.tick_count.is_multiple_of(1200) {
-            let new_era = self.compute_era();
-            if new_era != self.current_era {
-                self.history.era_history.push_back(EraEntry {
-                    tick: self.tick_count,
-                    era: new_era.clone(),
-                });
-                if self.history.era_history.len() > 60 {
-                    self.history.era_history.pop_front();
-                }
-                let fanfare = era_fanfare(&new_era);
-                push_event(
-                    &mut self.events,
-                    self.tick_count,
-                    "era",
-                    "world",
-                    &format!("the {} era begins — {}", new_era, fanfare),
-                );
-                self.headlines.push_back((
-                    self.tick_count,
-                    format!("\u{2728} The {} era begins. {}", new_era, fanfare),
-                ));
-                while self.headlines.len() > 80 {
-                    self.headlines.pop_front();
-                }
-                self.current_era = new_era;
-            }
-        }
-
+        // `current_era` is the world's highest technological era. Ecological
+        // state is already represented by seasons, drought, weather, and
+        // population history, so it must not enter the era transition stream.
         if self.tick_count % 1200 == 600 {
             self.tick_settlements();
         }
@@ -3781,9 +3757,9 @@ impl Simulation {
             &self.grid,
             self.tick_count,
             &mut self.events,
-            &mut self.history,
             &mut self.rng,
             alive_count,
+            self.population_limit,
             lineage_counts,
         );
 
@@ -5098,11 +5074,13 @@ impl Simulation {
                 entry.0.insert(d.clone());
             }
         }
+        let world_population: usize = agg.values().map(|(_, population)| *population).sum();
         let mut max_era: Option<Era> = None;
         let alive_lineages: HashSet<String> = agg.keys().cloned().collect();
-        for (lid, (discoveries, pop)) in agg.iter() {
+        for (lid, (discoveries, _lineage_population)) in agg.iter() {
             let prev = self.lineage_eras.get(lid).copied().unwrap_or(Era::PreStone);
-            let discovered_era = determine_era_for_lineage(discoveries, *pop);
+            let discovered_era =
+                determine_era_for_lineage(discoveries, world_population, self.population_limit());
             let new_era = discovered_era.max(prev);
             if new_era > prev {
                 let lname = self
@@ -5146,41 +5124,6 @@ impl Simulation {
                 self.current_era = mname;
             }
         }
-    }
-
-    fn compute_era(&self) -> String {
-        let alive = self.organisms.iter().filter(|o| o.alive).count();
-        if alive == 0 {
-            return "extinction".to_string();
-        }
-        let food_tiles = self.grid.tiles.iter().filter(|&&t| t == Tile::Food as i8).count();
-        let food_per_cap = food_tiles as f32 / alive.max(1) as f32;
-        let pop_trend = if self.pop_history.len() >= 5 {
-            let recent = self.pop_history[self.pop_history.len() - 1][1] as f32;
-            let older = self.pop_history[self.pop_history.len() - 5][1] as f32;
-            (recent - older) / (older + 1.0)
-        } else {
-            0.0
-        };
-        if alive < 6 {
-            return "collapse".to_string();
-        }
-        if self.drought.active && food_per_cap < 2.0 {
-            return "drought".to_string();
-        }
-        if food_per_cap > 14.0 && pop_trend > 0.08 {
-            return "abundance".to_string();
-        }
-        if food_per_cap < 2.5 && pop_trend < -0.05 {
-            return "collapse".to_string();
-        }
-        if pop_trend > 0.12 {
-            return "expansion".to_string();
-        }
-        if pop_trend < -0.08 {
-            return "decline".to_string();
-        }
-        "equilibrium".to_string()
     }
 }
 

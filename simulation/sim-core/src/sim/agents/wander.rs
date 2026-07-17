@@ -1,5 +1,6 @@
 use rand::Rng;
 
+use crate::sim::config::{lineage_overcrowding_threshold, DEFAULT_MAX_POPULATION};
 use crate::sim::simulation::Simulation;
 use crate::world::grid::{HEIGHT, WIDTH};
 use crate::world::tiles::Tile;
@@ -49,9 +50,20 @@ impl Simulation {
                 .iter()
                 .filter(|o| o.alive && o.lineage_id == lid)
                 .count();
-            let overcrowded = lineage_total >= 45;
+            let population_limit = self.population_limit();
+            let overcrowded = lineage_total >= lineage_overcrowding_threshold(population_limit);
             let fork_eligible = age >= 700 && curiosity >= 0.40 && count >= 4;
-            let fork_chance = if overcrowded { 0.7 } else { 0.35 };
+            let fork_chance = if overcrowded {
+                0.7
+            } else if population_limit > DEFAULT_MAX_POPULATION {
+                // Large desktop worlds need stable, growing civilizations to
+                // reach their late eras. Expeditions still happen, but they
+                // no longer fragment every settlement at the hosted-world
+                // rate long before a lineage can mature.
+                0.08
+            } else {
+                0.35
+            };
             if (fork_eligible || (overcrowded && age >= 700 && count >= 3))
                 && self.rng.random::<f32>() < fork_chance
             {

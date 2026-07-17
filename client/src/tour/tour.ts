@@ -1,6 +1,7 @@
 import Shepherd from 'shepherd.js'
 import 'shepherd.js/dist/css/shepherd.css'
 import { trackEvent } from '../lib/observability'
+import { getWorldSource } from '../simulation/worldSource'
 
 const TOUR_KEY = 'thb-tour-completed-v1'
 
@@ -36,92 +37,95 @@ interface StepDef {
   on?: 'top' | 'bottom' | 'left' | 'right' | 'auto'
 }
 
-const STEPS: StepDef[] = [
-  {
-    selector: '.header h1',
-    title: 'Welcome to The Human Box',
-    text:
-      'This is a living simulation. Hundreds of tiny humans are born, learn, build, fight, ' +
-      'pray, and die in real time. You’re just watching - no buttons to press.',
-    on: 'bottom',
-  },
-  {
-    selector: '.header-badges',
-    title: 'World pulse',
-    text:
-      'These badges show what the world is doing right now: day or night, current season, ' +
-      'global era, weather, active fires, and how many humans are sick.',
-    on: 'bottom',
-  },
-  {
-    selector: '[data-tour="world-canvas"]',
-    title: 'The world',
-    text:
-      'The map itself. Drag to pan, scroll to zoom. Each tiny figure is a real person with ' +
-      'a name, family, beliefs, and a life story. Click one to follow them.',
-    on: 'auto',
-  },
-  {
-    selector: '.panel-left, [data-tour="left-panel"]',
-    title: 'World stats',
-    text:
-      'On the left: population history, the lineages alive right now, recent events, and ' +
-      'the civilisation summary. The "view all" button in the civ panel opens the full breakdown.',
-    on: 'right',
-  },
-  {
-    selector: '[data-tour="right-panel"], .panel-right',
-    title: 'Organism inspector',
-    text:
-      'On the right: every living and dead organism. Click any name to read their life log, ' +
-      'see who their parents and friends are, and follow them on the map.',
-    on: 'left',
-  },
-  {
-    selector: '[data-tour="stats-btn"]',
-    title: 'Stats',
-    text: 'Deep population stats: birth/death rates, trait distributions, age pyramid, discoveries.',
-    on: 'bottom',
-  },
-  {
-    selector: '[data-tour="civ-btn"]',
-    title: 'Civilization',
-    text:
-      'Per-lineage civilisation breakdown: era, government, religion, books written, buildings built, ' +
-      'and recent headlines.',
-    on: 'bottom',
-  },
-  {
-    selector: '[data-tour="search-btn"]',
-    title: 'Search',
-    text: 'Find any organism by name, lineage, thought, or discovery. Works on both living and dead.',
-    on: 'bottom',
-  },
-  {
-    selector: '[data-tour="chronicles-btn"]',
-    title: 'Chronicles',
-    text:
-      'Stories the world has lived through - written by the simulation itself when something ' +
-      'meaningful happens. Wars, plagues, foundings, deaths.',
-    on: 'bottom',
-  },
-  {
-    selector: '[data-tour="more-btn"]',
-    title: 'More',
-    text:
-      'Hidden under here: map overlays (heat, fertility, hazard, density), the experimental 3D ' +
-      'world, a focus filter for highlighting sub-groups, photo mode, and this tour.',
-    on: 'bottom',
-  },
-  {
-    selector: '.header h1',
-    title: 'That’s it - have fun',
-    text:
-      'The world keeps running on the server even when you close the tab. Come back later and ' +
-      'civilisations will have risen and fallen without you.',
-    on: 'bottom',
-  },
-]
+function tourSteps(): StepDef[] {
+  const local = getWorldSource() === 'wasm'
+  return [
+    {
+      selector: '.header h1',
+      title: 'Welcome to The Human Box',
+      text: local
+        ? 'This is your private living world. Watch hundreds of tiny humans build a civilisation, or use the game controls to shape what happens.'
+        : 'This is the shared living simulation. Hundreds of tiny humans are born, learn, build, fight, pray, and die in real time.',
+      on: 'bottom',
+    },
+    {
+      selector: '.header-badges',
+      title: 'World pulse',
+      text:
+        'These badges show what the world is doing right now: day or night, current season, ' +
+        'global era, weather, active fires, and how many humans are sick.',
+      on: 'bottom',
+    },
+    {
+      selector: '[data-tour="world-canvas"]',
+      title: 'The world',
+      text:
+        'The map itself. Drag to pan, scroll to zoom. Each tiny figure is a real person with ' +
+        'a name, family, beliefs, and a life story. Click one to follow them.',
+      on: 'auto',
+    },
+    {
+      selector: '.panel-left, [data-tour="left-panel"]',
+      title: 'World stats',
+      text:
+        'On the left: population history, the lineages alive right now, recent events, and ' +
+        'the civilisation summary. The "view all" button in the civ panel opens the full breakdown.',
+      on: 'right',
+    },
+    {
+      selector: '[data-tour="right-panel"], .panel-right',
+      title: 'Organism inspector',
+      text:
+        'On the right: every living and dead organism. Click any name to read their life log, ' +
+        'see who their parents and friends are, and follow them on the map.',
+      on: 'left',
+    },
+    {
+      selector: '[data-tour="stats-btn"]',
+      title: 'Stats',
+      text: 'Deep population stats: birth/death rates, trait distributions, age pyramid, discoveries.',
+      on: 'bottom',
+    },
+    {
+      selector: '[data-tour="civ-btn"]',
+      title: 'Civilization',
+      text:
+        'Per-lineage civilisation breakdown: era, government, religion, books written, buildings built, ' +
+        'and recent headlines.',
+      on: 'bottom',
+    },
+    {
+      selector: '[data-tour="search-btn"]',
+      title: 'Search',
+      text: 'Find any organism by name, lineage, thought, or discovery. Works on both living and dead.',
+      on: 'bottom',
+    },
+    {
+      selector: '[data-tour="chronicles-btn"]',
+      title: 'Chronicles',
+      text:
+        'Stories the world has lived through - written by the simulation itself when something ' +
+        'meaningful happens. Wars, plagues, foundings, deaths.',
+      on: 'bottom',
+    },
+    {
+      selector: '[data-tour="more-btn"]',
+      title: 'More',
+      text:
+        'Hidden under here: map overlays (heat, fertility, hazard, density), the experimental 3D ' +
+        'world, a focus filter for highlighting sub-groups, photo mode, and this tour.',
+      on: 'bottom',
+    },
+    {
+      selector: '.header h1',
+      title: 'That’s it - have fun',
+      text: local
+        ? 'Your world is saved on this device. Open Settings whenever you want to reset it or switch to the persistent Shared World.'
+        : 'The Shared World keeps running online when you close the tab. Choose My World in Settings whenever you want a private game of your own.',
+      on: 'bottom',
+    },
+  ]
+}
 
 let activeTour: ReturnType<typeof createTour> | null = null
 
@@ -157,7 +161,7 @@ export function startTour() {
     activeTour.complete()
     activeTour = null
   }
-  const liveSteps = STEPS.filter((s) => !s.selector || selectorPresent(s.selector))
+  const liveSteps = tourSteps().filter((s) => !s.selector || selectorPresent(s.selector))
   if (liveSteps.length === 0) {
     markSeen()
     return null

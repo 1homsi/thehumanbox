@@ -77,6 +77,27 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
     ],
   },
   {
+    id: 'build',
+    label: 'build',
+    icon: '🏠',
+    tools: [
+      {
+        id: 'shelter',
+        label: 'shelter',
+        icon: '🛖',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'paint', x, y, tile: 'hut', radius: 0 }),
+      },
+      {
+        id: 'campfire',
+        label: 'campfire',
+        icon: '🔥',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'paint', x, y, tile: 'campfire', radius: 0 }),
+      },
+    ],
+  },
+  {
     id: 'terrain',
     label: 'terrain',
     icon: '⛰️',

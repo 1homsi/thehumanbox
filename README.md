@@ -4,8 +4,9 @@
 
 # The Human Box
 
-A persistent artificial-life simulation. A living planetary world of
-autonomous humans who learn, form tribes, develop language, build
+An artificial-life game built first for private, downloadable worlds.
+Run one locally, shape it with sandbox controls, or watch the online world
+where autonomous humans learn, form tribes, develop language, build
 cities, found religions, declare wars, sign treaties, invent computers,
 and pass culture across generations. Nothing is scripted. Only world
 laws.
@@ -56,8 +57,9 @@ cd client
 pnpm install
 pnpm run dev
 ```
-Expects the simulation at `localhost:8000`. Override with
-`VITE_API_BASE=api.example.com` for prod.
+Starts with a private in-browser world and needs no server. Choose the
+Shared World in Settings to use the simulation at `localhost:8000`.
+Override that host with `VITE_API_BASE=api.example.com` for production.
 
 ## What's in the world
 
@@ -74,8 +76,9 @@ their parents — and then they get to live.
   and onward to Atomic, Space, Digital, Quantum, Genetic, Orbital,
   Lunar, Martian, Cyber, Neural, Posthuman, Interstellar, Singularity,
   Galactic, Dyson, Kardashev2/3, and a handful of speculative endgame
-  eras. Lineages reach each era when their population and required
-  discoveries cross the threshold.
+  eras. Lineages reach each era when their discoveries and the living
+  world's civilization capacity cross the threshold; late-era gates scale
+  to the chosen local world size so the full ladder remains reachable.
 - Several thousand distinct actions an organism can choose. Each
   category — agriculture, hunting, weaving, brewing, distillation,
   journalism, fashion, retail, cafe work, tech_devops, religion,

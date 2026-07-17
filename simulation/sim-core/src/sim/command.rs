@@ -7,8 +7,6 @@ use rand::Rng;
 use serde::Deserialize;
 use uuid::Uuid;
 
-const SANDBOX_MAX_POPULATION: usize = 2000;
-
 #[derive(Deserialize)]
 #[serde(tag = "cmd", rename_all = "snake_case")]
 pub enum Command {
@@ -73,6 +71,8 @@ fn tile_from_name(name: &str) -> Option<Tile> {
         "snow" => Tile::Snow,
         "ash" => Tile::Ash,
         "fire" => Tile::Fire,
+        "campfire" => Tile::Campfire,
+        "hut" => Tile::Hut,
         "void" => Tile::Void,
         _ => return None,
     })
@@ -111,7 +111,7 @@ impl Simulation {
             Command::Spawn { x, y, count, lineage } => {
                 let n = count.clamp(1, 50);
                 for _ in 0..n {
-                    if self.organisms.iter().filter(|o| o.alive).count() >= SANDBOX_MAX_POPULATION {
+                    if self.organisms.iter().filter(|o| o.alive).count() >= self.population_limit() {
                         break;
                     }
                     let lid = lineage
@@ -172,8 +172,14 @@ impl Simulation {
                         let (nx, ny) = (x + dx, y + dy);
                         if WorldGrid::in_bounds(nx, ny) && !protected(self.grid.get(nx, ny)) {
                             self.grid.set(nx, ny, t);
-                            if t == Tile::Fire {
+                            if matches!(t, Tile::Fire | Tile::Campfire) {
                                 *self.grid.fire_intensity_mut(nx, ny) = 1.0;
+                                self.physics.register_fire(nx, ny);
+                            } else {
+                                // Painting over a burning tile must clear its
+                                // independent heat layer too, or a hut/resource
+                                // can retain a permanent phantom flame.
+                                *self.grid.fire_intensity_mut(nx, ny) = 0.0;
                             }
                         }
                     }
@@ -297,5 +303,22 @@ mod tests {
         let before = sim.animals.len();
         assert!(sim.apply_command_json(r#"{"cmd":"spawn_animal","x":80.0,"y":80.0,"kind":"wolf"}"#));
         assert_eq!(sim.animals.len(), before + 1);
+    }
+
+    #[test]
+    fn sandbox_can_place_shelter_and_campfire() {
+        use crate::world::tiles::Tile;
+
+        let mut sim = Simulation::new(1);
+        sim.grid.set(100, 100, Tile::Fire);
+        *sim.grid.fire_intensity_mut(100, 100) = 0.8;
+        sim.physics.register_fire(100, 100);
+        assert!(sim.apply_command_json(r#"{"cmd":"paint","x":100,"y":100,"tile":"hut","radius":0}"#));
+        assert_eq!(sim.grid.get(100, 100), Tile::Hut);
+        assert_eq!(sim.grid.fire_intensity(100, 100), 0.0);
+
+        assert!(sim.apply_command_json(r#"{"cmd":"paint","x":102,"y":100,"tile":"campfire","radius":0}"#));
+        assert_eq!(sim.grid.get(102, 100), Tile::Campfire);
+        assert_eq!(sim.grid.fire_intensity(102, 100), 1.0);
     }
 }

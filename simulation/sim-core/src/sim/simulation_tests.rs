@@ -40,6 +40,199 @@ fn lineage_era_does_not_regress_when_population_dips() {
     assert_eq!(sim.current_era, "classical");
 }
 
+fn prepare_atomic_population_gate_world(
+    sim: &mut Simulation,
+    desired_world_population: usize,
+) -> (String, usize) {
+    use crate::sim::era::Era;
+
+    let lineage_id = sim
+        .organisms
+        .iter()
+        .find(|org| org.alive)
+        .expect("founder exists")
+        .lineage_id
+        .clone();
+    let lineage_population = sim
+        .organisms
+        .iter()
+        .filter(|org| org.alive && org.lineage_id == lineage_id)
+        .count();
+    assert!(lineage_population < Era::Atomic.pop_threshold());
+    assert!(lineage_population <= desired_world_population);
+
+    for org in sim
+        .organisms
+        .iter_mut()
+        .filter(|org| org.alive && org.lineage_id == lineage_id)
+    {
+        for discovery in Era::Atomic.required_discoveries() {
+            org.discoveries.insert((*discovery).to_string());
+        }
+    }
+
+    let mut living = lineage_population;
+    for org in sim
+        .organisms
+        .iter_mut()
+        .filter(|org| org.alive && org.lineage_id != lineage_id)
+    {
+        if living < desired_world_population {
+            living += 1;
+        } else {
+            org.alive = false;
+        }
+    }
+    assert_eq!(living, desired_world_population);
+
+    sim.lineage_eras.clear();
+    sim.lineage_eras.insert(lineage_id.clone(), Era::Information);
+    sim.current_era = Era::Information.name().to_string();
+    (lineage_id, lineage_population)
+}
+
+#[test]
+fn small_lineage_advances_when_living_world_meets_population_gate() {
+    use crate::sim::era::Era;
+
+    let mut sim = Simulation::new(0xa70a);
+    let atomic_gate = Era::Atomic.pop_threshold();
+    let (lineage_id, lineage_population) = prepare_atomic_population_gate_world(&mut sim, atomic_gate);
+
+    sim.update_lineage_eras();
+
+    assert!(lineage_population < atomic_gate);
+    assert_eq!(sim.lineage_eras.get(&lineage_id), Some(&Era::Atomic));
+    assert_eq!(sim.current_era, Era::Atomic.name());
+    assert!(sim
+        .lineage_eras
+        .iter()
+        .filter(|(other_id, _)| *other_id != &lineage_id)
+        .all(|(_, era)| *era < Era::Atomic));
+}
+
+#[test]
+fn small_lineage_cannot_advance_before_living_world_meets_population_gate() {
+    use crate::sim::era::Era;
+
+    let mut sim = Simulation::new(0xa709);
+    let below_atomic_gate = Era::Atomic.pop_threshold() - 1;
+    let (lineage_id, _) = prepare_atomic_population_gate_world(&mut sim, below_atomic_gate);
+
+    sim.update_lineage_eras();
+
+    assert_eq!(
+        sim.organisms.iter().filter(|org| org.alive).count(),
+        below_atomic_gate
+    );
+    assert_eq!(sim.lineage_eras.get(&lineage_id), Some(&Era::Information));
+    assert_eq!(sim.current_era, Era::Information.name());
+}
+
+fn prepare_technological_era_boundary(sim: &mut Simulation, era: crate::sim::era::Era) {
+    let alive_lineages: std::collections::HashSet<String> = sim
+        .organisms
+        .iter()
+        .filter(|org| org.alive)
+        .map(|org| org.lineage_id.clone())
+        .collect();
+
+    sim.tick_count = 1199;
+    sim.current_era = era.name().to_string();
+    sim.lineage_eras.clear();
+    for lineage_id in alive_lineages {
+        sim.lineage_eras.insert(lineage_id, era);
+    }
+    sim.events.clear();
+    sim.headlines.clear();
+    sim.history.era_history.clear();
+}
+
+const ECOLOGICAL_CONDITION_LABELS: [&str; 10] = [
+    "extinction",
+    "collapse",
+    "drought",
+    "abundance",
+    "growth",
+    "expansion",
+    "decline",
+    "equilibrium",
+    "scarcity",
+    "recovery",
+];
+
+fn is_ecological_condition(label: &str) -> bool {
+    ECOLOGICAL_CONDITION_LABELS.contains(&label)
+}
+
+fn announces_ecological_era(text: &str) -> bool {
+    let text = text.to_ascii_lowercase();
+    ECOLOGICAL_CONDITION_LABELS
+        .iter()
+        .any(|label| text.contains(&format!("the {label} era begins")))
+}
+
+#[test]
+fn twelve_hundred_tick_boundary_keeps_current_era_technological() {
+    use crate::sim::era::Era;
+
+    let mut sim = Simulation::new(0xe12a);
+    prepare_technological_era_boundary(&mut sim, Era::Classical);
+
+    sim.tick();
+
+    assert_eq!(sim.tick_count, 1200);
+    assert_eq!(sim.current_era, "classical");
+    assert!(sim.history.era_history.is_empty());
+    assert!(!sim.events.iter().any(|event| event.etype == "era"));
+    assert!(!sim
+        .headlines
+        .iter()
+        .any(|(_, headline)| announces_ecological_era(headline)));
+}
+
+#[test]
+fn twelve_hundred_tick_boundary_emits_only_real_technological_era_advances() {
+    use crate::sim::era::Era;
+
+    let mut sim = Simulation::new(0x7ec4);
+    for org in sim.organisms.iter_mut().filter(|org| org.alive) {
+        org.discoveries.insert("fire".to_string());
+        org.discoveries.insert("stone_tools".to_string());
+        org.discoveries.insert("shelter".to_string());
+    }
+    prepare_technological_era_boundary(&mut sim, Era::PreStone);
+
+    sim.tick();
+
+    assert_eq!(sim.current_era, "stone");
+    assert_eq!(
+        sim.history
+            .era_history
+            .iter()
+            .map(|entry| entry.era.as_str())
+            .collect::<Vec<_>>(),
+        vec!["stone"]
+    );
+    assert!(!sim
+        .history
+        .era_history
+        .iter()
+        .any(|entry| is_ecological_condition(&entry.era)));
+    assert_eq!(
+        sim.events
+            .iter()
+            .filter(|event| event.etype == "era")
+            .map(|event| event.detail.as_str())
+            .collect::<Vec<_>>(),
+        vec!["the stone era begins"]
+    );
+    assert!(!sim
+        .headlines
+        .iter()
+        .any(|(_, headline)| announces_ecological_era(headline)));
+}
+
 fn autonomy_test_organism(id: &str, x: f32, y: f32) -> Organism {
     let mut org = Organism::new(
         id.to_string(),
@@ -647,6 +840,87 @@ fn save_load_preserves_in_progress_flood_tiles() {
     let loaded = Simulation::load_or_new(999, &path_s);
 
     assert_eq!(loaded.flood_tiles, vec![(10, 20, 200), (30, 40, 250)]);
+
+    let _ = std::fs::remove_file(&path_s);
+    let _ = std::fs::remove_file(format!("{}.tmp", path_s));
+}
+
+#[test]
+fn save_load_preserves_civilization_and_personal_progress() {
+    use crate::sim::buildings::{Building, BuildingKind};
+    use crate::sim::culture::{Religion, ReligionKind};
+    use crate::sim::government::{Government, GovernmentKind};
+
+    let mut path = std::env::temp_dir();
+    path.push(format!(
+        "thehumanbox-world-continuity-test-{}.json",
+        std::process::id()
+    ));
+    let path_s = path.to_string_lossy().to_string();
+    let _ = std::fs::remove_file(&path_s);
+    let _ = std::fs::remove_file(format!("{}.tmp", path_s));
+
+    let mut sim = Simulation::new(23);
+    sim.tick_count = 42_000;
+    sim.buildings.push(Building::new(
+        41,
+        BuildingKind::Library,
+        100,
+        80,
+        Some("lineage-a".to_string()),
+        40_000,
+    ));
+    sim.next_building_id = 42;
+    sim.governments.insert(
+        "lineage-a".to_string(),
+        Government::new("lineage-a".to_string(), GovernmentKind::Republic, 30_000),
+    );
+    sim.religions.push(Religion {
+        id: "faith-a".to_string(),
+        kind: ReligionKind::Animism,
+        name: "The River Way".to_string(),
+        founded_tick: 20_000,
+        founder_lineage: "lineage-a".to_string(),
+        adherents: 12,
+        last_milestone: Some(10),
+    });
+    sim.milestones_achieved.insert("first_library".to_string());
+    sim.headlines.push_back((41_500, "A library opened".to_string()));
+    sim.water_use.insert((100, 80), 17);
+
+    let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+    let org_id = sim.organisms[idx].id.clone();
+    sim.organisms[idx].wealth = 321;
+    sim.organisms[idx].literacy = 0.84;
+    sim.organisms[idx].mood = 0.73;
+    sim.organisms[idx].specialty = Some("scholar".to_string());
+    sim.organisms[idx].religion_id = Some("faith-a".to_string());
+    sim.organisms[idx]
+        .last_think_by_kind
+        .insert("discovery".to_string(), 41_000);
+    sim.organisms[idx].is_leader = true;
+
+    sim.save_result(&path_s).unwrap();
+    let loaded = Simulation::load_or_new(999, &path_s);
+
+    assert_eq!(loaded.buildings.len(), 1);
+    assert_eq!(loaded.buildings[0].kind, BuildingKind::Library);
+    assert_eq!(loaded.next_building_id, 42);
+    assert_eq!(loaded.governments["lineage-a"].kind, GovernmentKind::Republic);
+    assert_eq!(loaded.religions[0].name, "The River Way");
+    assert!(loaded.milestones_achieved.contains("first_library"));
+    assert_eq!(loaded.headlines.back().unwrap().1, "A library opened");
+    assert_eq!(loaded.water_use.get(&(100, 80)), Some(&17));
+    assert_eq!(loaded.physics.tick_count, 8_400);
+
+    let loaded_org = loaded.organisms.iter().find(|o| o.id == org_id).unwrap();
+    assert_eq!(loaded_org.wealth, 321);
+    assert_eq!(loaded_org.literacy, 0.84);
+    assert_eq!(loaded_org.mood, 0.73);
+    assert_eq!(loaded_org.specialty.as_deref(), Some("scholar"));
+    assert_eq!(loaded_org.religion_id.as_deref(), Some("faith-a"));
+    assert_eq!(loaded_org.last_think_by_kind.get("discovery"), Some(&41_000));
+    assert!(loaded_org.is_leader);
 
     let _ = std::fs::remove_file(&path_s);
     let _ = std::fs::remove_file(format!("{}.tmp", path_s));

@@ -25,15 +25,24 @@ mod wasm_facade {
         }
 
         #[wasm_bindgen(js_name = fromSerialized)]
-        pub fn from_serialized(seed: u64, bytes: &[u8]) -> Sim {
-            match serde_json::from_slice::<SaveState>(bytes) {
-                Ok(state) => Sim {
-                    inner: Simulation::from_save(seed, state),
-                },
-                Err(_) => Sim {
-                    inner: Simulation::new(seed),
-                },
+        pub fn from_serialized(seed: u64, bytes: &[u8]) -> Result<Sim, JsValue> {
+            let state = serde_json::from_slice::<SaveState>(bytes)
+                .map_err(|error| JsValue::from_str(&format!("invalid world save: {error}")))?;
+            if state.version != 0 && state.version > crate::sim::simulation::SAVE_SCHEMA_VERSION {
+                return Err(JsValue::from_str(&format!(
+                    "world save schema v{} is newer than supported v{}",
+                    state.version,
+                    crate::sim::simulation::SAVE_SCHEMA_VERSION
+                )));
             }
+            let terrain_seed = if state.world_seed > 0 {
+                state.world_seed
+            } else {
+                seed
+            };
+            Ok(Sim {
+                inner: Simulation::from_save(terrain_seed, state),
+            })
         }
 
         pub fn tick(&mut self) {
@@ -71,6 +80,26 @@ mod wasm_facade {
 
         pub fn command(&mut self, json: &str) -> bool {
             self.inner.apply_command_json(json)
+        }
+
+        #[wasm_bindgen(js_name = orgDetail)]
+        pub fn org_detail(&self, id: &str) -> String {
+            self.inner
+                .organisms
+                .iter()
+                .find(|org| org.id == id)
+                .and_then(|org| serde_json::to_string(&org.to_detail_json()).ok())
+                .unwrap_or_default()
+        }
+
+        #[wasm_bindgen(js_name = orgLife)]
+        pub fn org_life(&self, id: &str) -> String {
+            self.inner
+                .organisms
+                .iter()
+                .find(|org| org.id == id)
+                .and_then(|org| serde_json::to_string(&org.to_life_json()).ok())
+                .unwrap_or_default()
         }
 
         #[wasm_bindgen(js_name = tickCount)]

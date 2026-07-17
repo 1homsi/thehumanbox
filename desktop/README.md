@@ -52,6 +52,7 @@ Stored as JSON at `app.getPath('userData') + '/settings.json'`. Schema:
   "mode": "local",
   "remoteUrl": "https://api.thehumanbox.com",
   "tickMs": 100,
+  "populationCap": 500,
   "model": {
     "provider": "none",
     "apiUrl": "",
@@ -64,6 +65,8 @@ Stored as JSON at `app.getPath('userData') + '/settings.json'`. Schema:
 ```
 
 Model providers supported: `groq`, `openai`, `anthropic`, `ollama`, `llama-cpp`, `none`. The simulation reads `NARRATION_LLM_URL/KEY/MODEL` and `THINK_LLM_URL/KEY/MODEL` env vars; the Electron sim-process wrapper translates settings → env vars when spawning.
+
+`none` is the default and explicitly clears inherited API keys/endpoints, so a private desktop world makes no AI network calls unless the player opts into a provider. The default 500-person capacity is the tested balanced tier; larger presets extend the scale of late-era civilizations and are marked accordingly in Settings.
 
 ## Browsing + forking remote worlds (Tier-C "hybrid" mode)
 

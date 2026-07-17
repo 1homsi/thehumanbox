@@ -255,6 +255,12 @@ impl Simulation {
                 },
             })
         };
+        if let Some(obj) = payload.as_object_mut() {
+            obj.insert(
+                "population_limit".to_string(),
+                serde_json::to_value(self.population_limit()).unwrap(),
+            );
+        }
         if include_cold {
             if let Some(obj) = payload.as_object_mut() {
                 obj.insert("events".to_string(), serde_json::to_value(&self.events).unwrap());
@@ -312,42 +318,52 @@ impl Simulation {
                         entry.insert(d.clone());
                     }
                 }
+                let world_population: usize = lineage_pop.values().sum();
                 let era_progress_json: Vec<serde_json::Value> = self
                     .lineage_eras
                     .iter()
                     .map(|(lid, era)| {
-                        let pop = *lineage_pop.get(lid).unwrap_or(&0);
+                        let lineage_population = *lineage_pop.get(lid).unwrap_or(&0);
                         let discoveries = lineage_discoveries.get(lid);
                         let next = era.advance();
-                        let (next_era, required, known, missing, pop_required) = if let Some(next) = next {
-                            let required = next.required_discoveries();
-                            let has = |d: &str| discoveries.is_some_and(|set| set.contains(d));
-                            let known: Vec<&str> = required.iter().copied().filter(|d| has(d)).collect();
-                            let missing: Vec<&str> = required.iter().copied().filter(|d| !has(d)).collect();
-                            (
-                                Some(next.name()),
-                                required.to_vec(),
-                                known,
-                                missing,
-                                next.pop_threshold(),
-                            )
-                        } else {
-                            (None, Vec::new(), Vec::new(), Vec::new(), 0)
-                        };
+                        let (next_era, required, known, missing, world_population_required) =
+                            if let Some(next) = next {
+                                let required = next.required_discoveries();
+                                let has = |d: &str| discoveries.is_some_and(|set| set.contains(d));
+                                let known: Vec<&str> = required.iter().copied().filter(|d| has(d)).collect();
+                                let missing: Vec<&str> =
+                                    required.iter().copied().filter(|d| !has(d)).collect();
+                                (
+                                    Some(next.name()),
+                                    required.to_vec(),
+                                    known,
+                                    missing,
+                                    next.population_gate(self.population_limit()),
+                                )
+                            } else {
+                                (None, Vec::new(), Vec::new(), Vec::new(), 0)
+                            };
                         let discovery_ready = missing.is_empty();
-                        let pop_ready = pop >= pop_required;
+                        let lineage_population_ready = lineage_population >= world_population_required;
+                        let world_population_ready = world_population >= world_population_required;
                         json!({
                             "lineage_id": lid,
                             "era_name": era.name(),
                             "next_era": next_era,
-                            "pop": pop,
-                            "pop_required": pop_required,
-                            "pop_ready": pop_ready,
+                            // Keep the original fields for older clients, but make the
+                            // lineage/world distinction explicit for current clients.
+                            "pop": lineage_population,
+                            "pop_required": world_population_required,
+                            "pop_ready": lineage_population_ready,
+                            "lineage_population": lineage_population,
+                            "world_population": world_population,
+                            "world_population_required": world_population_required,
+                            "world_population_ready": world_population_ready,
                             "required": required,
                             "known": known,
                             "missing": missing,
                             "discovery_ready": discovery_ready,
-                            "ready": discovery_ready && pop_ready,
+                            "ready": discovery_ready && world_population_ready,
                         })
                     })
                     .collect();
@@ -596,7 +612,17 @@ mod schema_tests {
             org.discoveries.insert("shelter".to_string());
             org.discoveries.insert("smelting".to_string());
         }
+        let mut kept_one_lineage_member = false;
+        for org in sim.organisms.iter_mut().filter(|o| o.lineage_id == lid) {
+            if kept_one_lineage_member {
+                org.alive = false;
+            } else {
+                kept_one_lineage_member = true;
+            }
+        }
         sim.lineage_eras.insert(lid.clone(), crate::sim::era::Era::Stone);
+
+        let world_population = sim.organisms.iter().filter(|o| o.alive).count();
 
         let payload = sim.state_json();
         let rows = payload
@@ -610,6 +636,21 @@ mod schema_tests {
 
         assert_eq!(row.get("era_name").and_then(|v| v.as_str()), Some("stone"));
         assert_eq!(row.get("next_era").and_then(|v| v.as_str()), Some("bronze"));
+        assert_eq!(row.get("pop").and_then(|v| v.as_u64()), Some(1));
+        assert_eq!(row.get("pop_ready").and_then(|v| v.as_bool()), Some(false));
+        assert_eq!(row.get("lineage_population").and_then(|v| v.as_u64()), Some(1));
+        assert_eq!(
+            row.get("world_population").and_then(|v| v.as_u64()),
+            Some(world_population as u64)
+        );
+        assert_eq!(
+            row.get("world_population_required").and_then(|v| v.as_u64()),
+            Some(crate::sim::era::Era::Bronze.pop_threshold() as u64)
+        );
+        assert_eq!(
+            row.get("world_population_ready").and_then(|v| v.as_bool()),
+            Some(true)
+        );
         assert_eq!(row.get("known").and_then(|v| v.as_array()).unwrap().len(), 1);
         assert!(row
             .get("missing")

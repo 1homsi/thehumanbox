@@ -130,6 +130,7 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     server_sent_at_ms: parsed.server_sent_at_ms,
     frame_kind: parsed.frame_kind,
     tick: parsed.tick,
+    population_limit: parsed.population_limit ?? base?.population_limit,
     grid,
     events: reuseArrayIfShallowEqual(parsed.events ?? base?.events ?? [], base?.events) ?? [],
     is_day: parsed.is_day ?? base?.is_day ?? true,

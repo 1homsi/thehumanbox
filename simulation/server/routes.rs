@@ -44,8 +44,15 @@ pub async fn admin_reset_world_handler(
     let active_save = crate::server::world_store::world_save_path(&active_hash);
     let active_save_str = active_save.to_string_lossy().to_string();
 
-    let archived =
-        crate::server::world_archive::archive_and_reset(s.sim.clone(), started, peak, &active_save_str).await;
+    let archived = crate::server::world_archive::archive_and_reset(
+        s.sim.clone(),
+        started,
+        peak,
+        &active_save_str,
+        s.population_limit,
+        s.save_gate.clone(),
+    )
+    .await;
 
     s.world_started_at.store(
         crate::server::transport::now_ms(),
@@ -76,6 +83,78 @@ pub async fn command_handler(State(s): State<AppState>, body: String) -> StatusC
         StatusCode::OK
     } else {
         StatusCode::BAD_REQUEST
+    }
+}
+
+#[derive(serde::Deserialize)]
+pub struct RuntimeRequest {
+    control: String,
+    mult: Option<f64>,
+}
+
+pub async fn runtime_handler(
+    State(s): State<AppState>,
+    Json(request): Json<RuntimeRequest>,
+) -> impl IntoResponse {
+    let result = match request.control.as_str() {
+        "pause" => {
+            s.runtime_control.set_paused(true);
+            Some((true, s.runtime_control.tick_ms()))
+        }
+        "resume" => {
+            s.runtime_control.set_paused(false);
+            Some((false, s.runtime_control.tick_ms()))
+        }
+        "speed" => request
+            .mult
+            .and_then(|multiplier| s.runtime_control.set_speed(multiplier))
+            .map(|tick_ms| (s.runtime_control.paused(), tick_ms)),
+        _ => None,
+    };
+
+    match result {
+        Some((paused, tick_ms)) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "ok": true,
+                "paused": paused,
+                "tick_ms": tick_ms,
+            })),
+        )
+            .into_response(),
+        None => (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "ok": false,
+                "error": "control must be pause, resume, or speed (0.25x to 8x)",
+            })),
+        )
+            .into_response(),
+    }
+}
+
+pub async fn save_handler(State(s): State<AppState>) -> impl IntoResponse {
+    match crate::write_final_world_save(s.sim.clone(), s.save_gate.clone()).await {
+        Ok((tick, _path)) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "ok": true,
+                "tick": tick,
+                "saved_at": crate::server::transport::now_ms(),
+            })),
+        )
+            .into_response(),
+        Err(error) => {
+            tracing::error!(target: "save", "manual checkpoint failed: {}", error);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({
+                    "ok": false,
+                    "error": "world checkpoint failed",
+                })),
+            )
+                .into_response()
+        }
     }
 }
 

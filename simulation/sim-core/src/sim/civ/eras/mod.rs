@@ -120,6 +120,13 @@ pub const LADDER: [Era; 35] = [
     Era::Eldritch,
 ];
 
+/// The original technology ladder was balanced around the hosted world's
+/// 350-person ceiling. Keep every established gate through Posthuman intact,
+/// then spread the formerly unreachable late-game gates across the remaining
+/// capacity selected for this world.
+const BASELINE_WORLD_CAPACITY: usize = 350;
+const FINAL_ERA_RAW_THRESHOLD: usize = 1260;
+
 impl Era {
     pub fn spec(self) -> &'static EraSpec {
         match self {
@@ -171,6 +178,29 @@ impl Era {
         self.spec().pop_threshold
     }
 
+    pub fn population_gate(self, population_limit: usize) -> usize {
+        // A later era must never demand fewer people than an earlier one.
+        // (Modern historically listed 30 after Industrial's 40.)
+        let raw = LADDER
+            .iter()
+            .copied()
+            .take_while(|era| *era <= self)
+            .map(Era::pop_threshold)
+            .max()
+            .unwrap_or(0);
+        if raw <= BASELINE_WORLD_CAPACITY {
+            return raw.min(population_limit);
+        }
+        if population_limit <= BASELINE_WORLD_CAPACITY {
+            return population_limit;
+        }
+
+        let raw_span = FINAL_ERA_RAW_THRESHOLD - BASELINE_WORLD_CAPACITY;
+        let world_span = population_limit - BASELINE_WORLD_CAPACITY;
+        let late_progress = raw - BASELINE_WORLD_CAPACITY;
+        BASELINE_WORLD_CAPACITY + late_progress.saturating_mul(world_span).div_ceil(raw_span)
+    }
+
     pub fn advance(&self) -> Option<Era> {
         let i = LADDER.iter().position(|e| e == self)?;
         LADDER.get(i + 1).copied()
@@ -181,14 +211,22 @@ impl Era {
     }
 }
 
-pub fn determine_era_for_lineage(discoveries: &HashSet<String>, pop: usize) -> Era {
+/// Finds the highest era supported by one lineage's discoveries and the
+/// living world's civilization capacity. Knowledge remains lineage-specific,
+/// while population gates represent the people available across the world to
+/// sustain increasingly complex technology.
+pub fn determine_era_for_lineage(
+    discoveries: &HashSet<String>,
+    world_population: usize,
+    population_limit: usize,
+) -> Era {
     let mut best = Era::PreStone;
     for era in LADDER.iter().copied() {
         let has_all = era
             .required_discoveries()
             .iter()
             .all(|d| discoveries.contains(*d));
-        if has_all && pop >= era.pop_threshold() {
+        if has_all && world_population >= era.population_gate(population_limit) {
             best = era;
         }
     }
@@ -202,8 +240,8 @@ mod tests {
     #[test]
     fn pre_stone_with_no_discoveries() {
         let d: HashSet<String> = HashSet::new();
-        assert_eq!(determine_era_for_lineage(&d, 0), Era::PreStone);
-        assert_eq!(determine_era_for_lineage(&d, 100), Era::PreStone);
+        assert_eq!(determine_era_for_lineage(&d, 0, 350), Era::PreStone);
+        assert_eq!(determine_era_for_lineage(&d, 100, 350), Era::PreStone);
     }
 
     #[test]
@@ -212,7 +250,7 @@ mod tests {
         d.insert("fire".to_string());
         d.insert("stone_tools".to_string());
         d.insert("shelter".to_string());
-        assert_eq!(determine_era_for_lineage(&d, 1), Era::Stone);
+        assert_eq!(determine_era_for_lineage(&d, 1, 350), Era::Stone);
     }
 
     #[test]
@@ -228,5 +266,25 @@ mod tests {
         for e in LADDER.iter() {
             assert!(seen.insert(e.name()), "duplicate era name: {}", e.name());
         }
+    }
+
+    #[test]
+    fn every_world_size_can_reach_the_full_ladder_without_weakening_early_eras() {
+        for population_limit in [120, 350, 500, 1000, 2000, 5000] {
+            let gates: Vec<usize> = LADDER
+                .iter()
+                .map(|era| era.population_gate(population_limit))
+                .collect();
+            assert!(gates.windows(2).all(|window| window[0] <= window[1]));
+            assert_eq!(Era::Eldritch.population_gate(population_limit), population_limit);
+        }
+
+        assert_eq!(Era::Atomic.population_gate(500), Era::Atomic.pop_threshold());
+        assert_eq!(
+            Era::Posthuman.population_gate(500),
+            Era::Posthuman.pop_threshold()
+        );
+        assert_eq!(Era::Interstellar.population_gate(500), 354);
+        assert_eq!(Era::Modern.population_gate(500), Era::Industrial.pop_threshold());
     }
 }

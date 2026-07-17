@@ -203,8 +203,11 @@ pub async fn archive_and_reset(
     process_started_at_ms: u64,
     peak_pop: u64,
     save_path: &str,
+    population_limit: Option<usize>,
+    save_gate: crate::SaveGate,
 ) -> Option<String> {
     ensure_worlds_dir();
+    let _save_guard = save_gate.lock().await;
     let ended_at_ms = now_ms();
     let new_seed: u64 = {
         let t = std::time::SystemTime::now()
@@ -213,42 +216,45 @@ pub async fn archive_and_reset(
         t.as_nanos() as u64 ^ (t.subsec_nanos() as u64).wrapping_mul(0x9e3779b97f4a7c15)
     };
 
-    let (hash, snapshot_bytes, meta) = {
-        let mut sim = shared_sim.lock().await;
-        let final_tick = sim.tick_count;
-        if final_tick < 600 {
-            tracing::warn!(target: "archive",
-                "skipping archive: world only ran {} ticks since boot - not worth saving",
-                final_tick);
-            return None;
-        }
-        let tick_ms_total: u64 = final_tick.saturating_mul(100);
-        let derived_start = ended_at_ms.saturating_sub(tick_ms_total);
-        let started_at_ms = if derived_start > 0 && derived_start < process_started_at_ms {
-            derived_start
-        } else {
-            process_started_at_ms
-        };
-        let payload = sim.state_json();
-        let frame = encode_frame(payload, 0, ended_at_ms, "full");
-        let hash_input = format!("{}|{}|{}", started_at_ms, ended_at_ms, final_tick);
-        let hash = short_hash(&hash_input);
-        let (top_era, lineage_count, _, top_lineage, top_pop, _) = compute_summary(&mut sim, peak_pop);
-        let final_pop: usize = sim.organisms.iter().filter(|o| o.alive).count();
-        let meta = WorldMeta {
-            hash: hash.clone(),
-            started_at_ms,
-            ended_at_ms,
-            final_tick,
-            final_population: final_pop,
-            peak_population: peak_pop,
-            top_era,
-            lineage_count,
-            top_lineage,
-            top_lineage_pop: top_pop,
-        };
-        (hash, frame, meta)
+    // Keep the simulation locked from the archive boundary through artifact
+    // creation and replacement. Otherwise ticks and accepted player commands
+    // can land after the snapshot and then be silently discarded by the reset.
+    // Any artifact/marker failure returns before `sim` is replaced, preserving
+    // the old live world in memory and on disk.
+    let mut sim = shared_sim.lock().await;
+    let final_tick = sim.tick_count;
+    if final_tick < 600 {
+        tracing::warn!(target: "archive",
+            "skipping archive: world only ran {} ticks since boot - not worth saving",
+            final_tick);
+        return None;
+    }
+    let tick_ms_total: u64 = final_tick.saturating_mul(100);
+    let derived_start = ended_at_ms.saturating_sub(tick_ms_total);
+    let started_at_ms = if derived_start > 0 && derived_start < process_started_at_ms {
+        derived_start
+    } else {
+        process_started_at_ms
     };
+    let payload = sim.state_json();
+    let snapshot_bytes = encode_frame(payload, 0, ended_at_ms, "full");
+    let hash_input = format!("{}|{}|{}", started_at_ms, ended_at_ms, final_tick);
+    let hash = short_hash(&hash_input);
+    let (top_era, lineage_count, _, top_lineage, top_pop, _) = compute_summary(&mut sim, peak_pop);
+    let final_pop: usize = sim.organisms.iter().filter(|o| o.alive).count();
+    let meta = WorldMeta {
+        hash: hash.clone(),
+        started_at_ms,
+        ended_at_ms,
+        final_tick,
+        final_population: final_pop,
+        peak_population: peak_pop,
+        top_era,
+        lineage_count,
+        top_lineage,
+        top_lineage_pop: top_pop,
+    };
+    let save_state = sim.to_save_state();
 
     let world_folder = crate::server::world_store::world_dir(&hash);
     if let Err(e) = std::fs::create_dir_all(&world_folder) {
@@ -258,8 +264,15 @@ pub async fn archive_and_reset(
     }
     let snap_path = world_folder.join("snapshot");
     let meta_path = world_folder.join("meta.json");
+    let archive_save_path = world_folder.join("world.save");
+    let archive_save_path_str = archive_save_path.to_string_lossy().to_string();
+    if let Err(e) = crate::sim::persistence::write_save_to_disk(&save_state, &archive_save_path_str) {
+        tracing::error!(target: "archive", "failed to write restorable world save: {}", e);
+        return None;
+    }
     if let Err(e) = write_file_atomic(&snap_path, &snapshot_bytes) {
         tracing::error!(target: "archive", "failed to write snapshot: {}", e);
+        let _ = std::fs::remove_file(&archive_save_path);
         return None;
     }
     let meta_bytes = match serde_json::to_vec_pretty(&meta) {
@@ -267,29 +280,38 @@ pub async fn archive_and_reset(
         Err(e) => {
             tracing::error!(target: "archive", "meta encode: {}", e);
             let _ = std::fs::remove_file(&snap_path);
+            let _ = std::fs::remove_file(&archive_save_path);
             return None;
         }
     };
     if let Err(e) = write_file_atomic(&meta_path, &meta_bytes) {
         tracing::error!(target: "archive", "failed to write meta: {}", e);
         let _ = std::fs::remove_file(&snap_path);
+        let _ = std::fs::remove_file(&archive_save_path);
         return None;
     }
 
-    {
-        let mut sim = shared_sim.lock().await;
-        *sim = Simulation::new(new_seed);
+    let mut next = Simulation::new(new_seed);
+    if let Some(limit) = population_limit {
+        next.set_population_limit(limit);
     }
-    let _ = std::fs::remove_file(save_path);
 
     let new_hash = crate::server::world_store::mint_world_hash(new_seed, crate::server::transport::now_ms());
-    let _ = crate::server::world_store::ensure_world_dir(&new_hash);
+    if let Err(e) = crate::server::world_store::ensure_world_dir(&new_hash) {
+        tracing::error!(target: "archive", "failed to create next live world folder: {}", e);
+        return None;
+    }
     if let Err(e) = crate::server::world_store::set_live_world_hash(&new_hash) {
         tracing::error!(target: "archive", "failed to write _live marker: {}", e);
-    } else {
-        tracing::warn!(target: "archive",
-            "rolled live world -> {} (previous {} archived)", new_hash, hash);
+        let _ = std::fs::remove_dir(crate::server::world_store::world_dir(&new_hash));
+        return None;
     }
+    *sim = next;
+    drop(sim);
+
+    let _ = std::fs::remove_file(save_path);
+    tracing::warn!(target: "archive",
+        "rolled live world -> {} (previous {} archived)", new_hash, hash);
 
     tracing::warn!(target: "archive",
         "archived world {} (ended tick={}, pop={}, era={}) and reset",

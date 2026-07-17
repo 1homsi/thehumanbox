@@ -349,6 +349,7 @@ export interface WorldState {
   server_sent_at_ms: number
   frame_kind: 'delta' | 'full'
   tick: number
+  population_limit?: number
   grid: GridState
   organisms: OrganismState[]
   organisms_complete?: boolean
@@ -410,6 +411,10 @@ export interface LineageEraProgress {
   pop: number
   pop_required: number
   pop_ready: boolean
+  lineage_population?: number
+  world_population?: number
+  world_population_required?: number
+  world_population_ready?: boolean
   required: string[]
   known: string[]
   missing: string[]

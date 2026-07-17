@@ -9,6 +9,7 @@ export interface Settings {
   mode: SimMode
   remoteUrl: string
   tickMs: number
+  populationCap: number
   model: {
     provider: ModelProvider
     apiUrl: string
@@ -26,6 +27,7 @@ export const DEFAULT_SETTINGS: Settings = {
   mode: 'local',
   remoteUrl: 'https://api.thehumanbox.com',
   tickMs: 100,
+  populationCap: 500,
   model: {
     provider: 'none',
     apiUrl: '',
@@ -68,6 +70,7 @@ function mergeWithDefaults(partial: Partial<Settings>): Settings {
     mode: partial.mode ?? DEFAULT_SETTINGS.mode,
     remoteUrl: partial.remoteUrl ?? DEFAULT_SETTINGS.remoteUrl,
     tickMs: clampInt(partial.tickMs ?? DEFAULT_SETTINGS.tickMs, 30, 5000),
+    populationCap: clampInt(partial.populationCap ?? DEFAULT_SETTINGS.populationCap, 120, 5000),
     model: {
       provider: (partial.model?.provider as ModelProvider | undefined) ?? DEFAULT_SETTINGS.model.provider,
       apiUrl: partial.model?.apiUrl ?? DEFAULT_SETTINGS.model.apiUrl,

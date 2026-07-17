@@ -223,6 +223,11 @@ export function CivStatsModal({ world, onClose }: Props) {
                   {lineages.slice(0, 12).map((l) => {
                     const era = lineageEras[l.id] ?? 'pre-stone'
                     const progress = eraProgress.get(l.id)
+                    const worldPopulation = progress?.world_population ?? progress?.pop ?? 0
+                    const worldPopulationRequired =
+                      progress?.world_population_required ?? progress?.pop_required ?? 0
+                    const worldPopulationReady =
+                      progress?.world_population_ready ?? progress?.pop_ready ?? true
                     const gov = governments.find((g) => g.lineage_id === l.id)
                     const hasBrewing = world.organisms.some(
                       (o) => o.alive && o.lineage_id === l.id && o.discoveries.includes('brewing'),
@@ -240,9 +245,9 @@ export function CivStatsModal({ world, onClose }: Props) {
                               <span className={progress.ready ? 'civ-era-ready' : 'civ-era-next'}>
                                 {progress.next_era}
                               </span>
-                              {!progress.pop_ready && (
+                              {!worldPopulationReady && (
                                 <span className="civ-era-gate">
-                                  pop {progress.pop}/{progress.pop_required}
+                                  world population {worldPopulation}/{worldPopulationRequired}
                                 </span>
                               )}
                               {progress.missing.length > 0 && (

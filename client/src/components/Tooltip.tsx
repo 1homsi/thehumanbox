@@ -56,6 +56,13 @@ export function Tooltip({ tip, children }: Props) {
       hide()
       ;(children.props.onBlur as ((e: React.FocusEvent) => void) | undefined)?.(e)
     },
+    onClick: (e: React.MouseEvent) => {
+      // A click often opens a modal above the trigger while the pointer is
+      // still hovering it. Close the portal immediately so the old tooltip
+      // never floats over the newly opened screen.
+      hide()
+      ;(children.props.onClick as ((e: React.MouseEvent) => void) | undefined)?.(e)
+    },
     // Touch/pen: long-press (>=400ms) reveals the tooltip. A short tap is
     // ignored here so the wrapped element's onClick fires normally without
     // a lingering tooltip from synthesized mouseenter on iOS.

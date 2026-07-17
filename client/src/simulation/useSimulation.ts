@@ -1,12 +1,18 @@
-import { useEffect, useRef, useState } from 'react'
-import type { WorldState, GridState, OrganismState, AnimalState } from '../types'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { WorldState, GridState, OrganismState, AnimalState, OrgDetail, OrgLife } from '../types'
 import { WS_BASE, API_BASE, IS_LOCAL_SERVER } from '../lib/config'
 import { useWorldStore } from '../stores/worldStore'
 import { fetchSnapshotWithProgress, parseWorldFrame } from './wire'
 import { mergeFrame, type MergeCaches } from './merge'
 import { updateOrgMotion, updateAnimalMotion } from '../3d/world/parts/motion-state'
 import { logger } from '../lib/logger'
-import { type WorldSource, OWN_WORLD_ID, getOwnWorldSeed } from './worldSource'
+import {
+  type WorldSource,
+  OWN_WORLD_ID,
+  clearOwnWorldResetRequest,
+  getOwnWorldSeed,
+  hasOwnWorldResetRequest,
+} from './worldSource'
 import { canSendSandboxCommand, type SandboxCommand } from './sandbox'
 import { isDesktop } from '../lib/desktop'
 
@@ -24,6 +30,13 @@ export interface InterpRefs {
 }
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'unreachable'
+export type LocalSaveStatus =
+  | { phase: 'inactive' }
+  | { phase: 'loading' }
+  | { phase: 'ready'; restored: boolean; tick: number }
+  | { phase: 'saving'; tick: number }
+  | { phase: 'saved'; tick: number; savedAt: number }
+  | { phase: 'error'; message: string }
 
 export function useSimulation(source: WorldSource = 'remote'): {
   world: WorldState | null
@@ -38,16 +51,30 @@ export function useSimulation(source: WorldSource = 'remote'): {
   pauseSim: () => void
   setSpeed: (mult: number) => void
   fellBackToLocal: boolean
+  localSaveStatus: LocalSaveStatus
+  saveLocalWorld: () => Promise<boolean>
+  loadLocalOrgDetail: (id: string) => Promise<OrgDetail | null>
+  loadLocalOrgLife: (id: string) => Promise<OrgLife | null>
 } {
   const [world, setWorld] = useState<WorldState | null>(null)
   const [connected, setConnected] = useState(false)
   const [failedAttempts, setFailedAttempts] = useState(0)
   const [idleParked, setIdleParked] = useState(false)
   const [fellBack, setFellBack] = useState(false)
+  const [localSaveStatus, setLocalSaveStatus] = useState<LocalSaveStatus>(
+    source === 'wasm' ? { phase: 'loading' } : { phase: 'inactive' },
+  )
   const effectiveSource: WorldSource = source === 'wasm' || fellBack ? 'wasm' : 'remote'
   const sandboxAvailable = canSendSandboxCommand(effectiveSource, isDesktop(), IS_LOCAL_SERVER)
   const wsRef = useRef<WebSocket | null>(null)
   const wasmWorkerRef = useRef<Worker | null>(null)
+  const nextWorkerRequestRef = useRef(1)
+  const pendingWorkerRequestsRef = useRef(
+    new Map<number, { resolve: (ok: boolean) => void; timer: ReturnType<typeof setTimeout> }>(),
+  )
+  const pendingWorkerDataRequestsRef = useRef(
+    new Map<number, { resolve: (json: string | null) => void; timer: ReturnType<typeof setTimeout> }>(),
+  )
   const organismCache = useRef<Map<string, OrganismState>>(new Map())
   const animalCache = useRef<Map<number, AnimalState>>(new Map())
   const queuedMsgs = useRef<Array<ArrayBuffer | Uint8Array | string>>([])
@@ -257,6 +284,10 @@ export function useSimulation(source: WorldSource = 'remote'): {
     let destroyed = false
 
     if (effectiveSource === 'wasm') {
+      setIdleParked(false)
+      setLocalSaveStatus({ phase: 'loading' })
+      const pendingWorkerRequests = pendingWorkerRequestsRef.current
+      const pendingWorkerDataRequests = pendingWorkerDataRequestsRef.current
       bootstrapPendingRef.current = false
       const worker = new Worker(new URL('./wasmWorker.ts', import.meta.url), {
         type: 'module',
@@ -265,7 +296,18 @@ export function useSimulation(source: WorldSource = 'remote'): {
       let announced = false
       worker.onmessage = (e: MessageEvent) => {
         if (destroyed) return
-        const m = e.data as { type: string; frame?: string; message?: string }
+        const m = e.data as {
+          type: string
+          frame?: string
+          message?: string
+          restored?: boolean
+          tick?: number
+          savedAt?: number
+          requestId?: number
+          ok?: boolean
+          json?: string
+          persistenceReady?: boolean
+        }
         if (m.type === 'frame' && typeof m.frame === 'string') {
           if (!announced) {
             announced = true
@@ -277,21 +319,57 @@ export function useSimulation(source: WorldSource = 'remote'): {
             announced = true
             setConnected(true)
           }
+          if (m.persistenceReady !== false) {
+            setLocalSaveStatus({
+              phase: 'ready',
+              restored: m.restored === true,
+              tick: m.tick ?? 0,
+            })
+          }
+        } else if (m.type === 'reset_done') {
+          clearOwnWorldResetRequest()
+        } else if (m.type === 'saving') {
+          setLocalSaveStatus({ phase: 'saving', tick: m.tick ?? 0 })
+        } else if (m.type === 'saved') {
+          setLocalSaveStatus({ phase: 'saved', tick: m.tick ?? 0, savedAt: m.savedAt ?? Date.now() })
+        } else if ((m.type === 'command_result' || m.type === 'save_result') && m.requestId !== undefined) {
+          const pending = pendingWorkerRequests.get(m.requestId)
+          if (pending) {
+            clearTimeout(pending.timer)
+            pendingWorkerRequests.delete(m.requestId)
+            pending.resolve(m.ok === true)
+          }
+        } else if (
+          (m.type === 'org_detail_result' || m.type === 'org_life_result') &&
+          m.requestId !== undefined
+        ) {
+          const pending = pendingWorkerDataRequests.get(m.requestId)
+          if (pending) {
+            clearTimeout(pending.timer)
+            pendingWorkerDataRequests.delete(m.requestId)
+            pending.resolve(m.json || null)
+          }
         } else if (m.type === 'error' && m.message) {
           logger.warn('wasm', m.message)
+          setLocalSaveStatus({ phase: 'error', message: m.message })
         }
       }
       worker.onerror = (e: ErrorEvent) => {
         logger.warn('wasm', 'worker error:', e.message)
       }
-      worker.postMessage({ type: 'start', id: OWN_WORLD_ID, seed: getOwnWorldSeed() })
+      worker.postMessage({
+        type: 'start',
+        id: OWN_WORLD_ID,
+        seed: getOwnWorldSeed(),
+        reset: hasOwnWorldResetRequest(),
+      })
 
       const onVisibility = () => {
         if (document.visibilityState === 'hidden') {
           worker.postMessage({ type: 'save' })
-          worker.postMessage({ type: 'pause' })
+          worker.postMessage({ type: 'visibility', hidden: true })
         } else {
-          worker.postMessage({ type: 'resume' })
+          worker.postMessage({ type: 'visibility', hidden: false })
         }
       }
       const onPageHide = () => worker.postMessage({ type: 'save' })
@@ -315,11 +393,28 @@ export function useSimulation(source: WorldSource = 'remote'): {
           setWorldTimerRef.current = null
         }
         queuedMsgs.current = []
+        for (const pending of pendingWorkerRequests.values()) {
+          clearTimeout(pending.timer)
+          pending.resolve(false)
+        }
+        pendingWorkerRequests.clear()
+        for (const pending of pendingWorkerDataRequests.values()) {
+          clearTimeout(pending.timer)
+          pending.resolve(null)
+        }
+        pendingWorkerDataRequests.clear()
         worker.postMessage({ type: 'stop' })
-        worker.terminate()
+        const forceTerminate = setTimeout(() => worker.terminate(), 1500)
+        worker.onmessage = (event: MessageEvent) => {
+          if ((event.data as { type?: string }).type !== 'stopped') return
+          clearTimeout(forceTerminate)
+          worker.terminate()
+        }
         wasmWorkerRef.current = null
       }
     }
+
+    setLocalSaveStatus({ phase: 'inactive' })
 
     let reconnectDelayMs = 1000
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null
@@ -537,6 +632,98 @@ export function useSimulation(source: WorldSource = 'remote'): {
     }
   }, [effectiveSource])
 
+  const requestFromWasm = useCallback(
+    (payload: { type: 'command'; json: string } | { type: 'save' }): Promise<boolean> => {
+      const worker = wasmWorkerRef.current
+      if (!worker) return Promise.resolve(false)
+      const requestId = nextWorkerRequestRef.current++
+      return new Promise<boolean>((resolve) => {
+        const timer = setTimeout(() => {
+          pendingWorkerRequestsRef.current.delete(requestId)
+          resolve(false)
+        }, 5000)
+        pendingWorkerRequestsRef.current.set(requestId, { resolve, timer })
+        worker.postMessage({ ...payload, requestId })
+      })
+    },
+    [],
+  )
+
+  const requestDataFromWasm = useCallback(
+    <T>(payload: { type: 'org_detail' | 'org_life'; id: string }): Promise<T | null> => {
+      const worker = wasmWorkerRef.current
+      if (!worker) return Promise.resolve(null)
+      const requestId = nextWorkerRequestRef.current++
+      return new Promise<string | null>((resolve) => {
+        const timer = setTimeout(() => {
+          pendingWorkerDataRequestsRef.current.delete(requestId)
+          resolve(null)
+        }, 5000)
+        pendingWorkerDataRequestsRef.current.set(requestId, { resolve, timer })
+        worker.postMessage({ ...payload, requestId })
+      }).then((json) => {
+        if (!json) return null
+        try {
+          return JSON.parse(json) as T
+        } catch (error) {
+          logger.warn('wasm', 'invalid local organism data:', error)
+          return null
+        }
+      })
+    },
+    [],
+  )
+
+  const loadLocalOrgDetail = useCallback(
+    (id: string) => requestDataFromWasm<OrgDetail>({ type: 'org_detail', id }),
+    [requestDataFromWasm],
+  )
+  const loadLocalOrgLife = useCallback(
+    (id: string) => requestDataFromWasm<OrgLife>({ type: 'org_life', id }),
+    [requestDataFromWasm],
+  )
+
+  const controlDesktopRuntime = useCallback(
+    async (control: 'pause' | 'resume' | 'speed', mult?: number): Promise<boolean> => {
+      if (!isDesktop()) return false
+      try {
+        const response = await fetch(`${API_BASE}/runtime`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ control, mult }),
+        })
+        return response.ok
+      } catch {
+        return false
+      }
+    },
+    [],
+  )
+
+  const saveLocalWorld = useCallback(async (): Promise<boolean> => {
+    if (wasmWorkerRef.current) return requestFromWasm({ type: 'save' })
+    if (!isDesktop()) return false
+    const tick = currentWorldRef.current?.tick ?? 0
+    setLocalSaveStatus({ phase: 'saving', tick })
+    try {
+      const response = await fetch(`${API_BASE}/save`, { method: 'POST' })
+      if (!response.ok) throw new Error(`save failed (${response.status})`)
+      const result = (await response.json()) as { tick?: number; saved_at?: number }
+      setLocalSaveStatus({
+        phase: 'saved',
+        tick: result.tick ?? tick,
+        savedAt: result.saved_at ?? Date.now(),
+      })
+      return true
+    } catch (error) {
+      setLocalSaveStatus({
+        phase: 'error',
+        message: error instanceof Error ? error.message : 'save failed',
+      })
+      return false
+    }
+  }, [requestFromWasm])
+
   const status: ConnectionStatus = connected
     ? 'connected'
     : failedAttempts >= 3
@@ -558,14 +745,26 @@ export function useSimulation(source: WorldSource = 'remote'): {
       currentReceivedAt: currentReceivedAtRef,
     },
     idleParked,
-    resume: () => resumeRef.current(),
+    resume: () => {
+      if (wasmWorkerRef.current) {
+        resumeRef.current()
+      } else if (isDesktop()) {
+        setIdleParked(false)
+        void controlDesktopRuntime('resume')
+      } else {
+        resumeRef.current()
+      }
+    },
     sandboxAvailable,
     fellBackToLocal: source !== 'wasm' && fellBack,
+    localSaveStatus,
+    saveLocalWorld,
+    loadLocalOrgDetail,
+    loadLocalOrgLife,
     sendCommand: async (cmd: SandboxCommand) => {
       if (!sandboxAvailable) return false
       if (effectiveSource === 'wasm') {
-        wasmWorkerRef.current?.postMessage({ type: 'command', json: JSON.stringify(cmd) })
-        return true
+        return requestFromWasm({ type: 'command', json: JSON.stringify(cmd) })
       }
       try {
         const res = await fetch(`${API_BASE}/command`, {
@@ -578,11 +777,19 @@ export function useSimulation(source: WorldSource = 'remote'): {
         return false
       }
     },
-    pauseSim: () => wasmWorkerRef.current?.postMessage({ type: 'pause' }),
-    setSpeed: (mult: number) =>
-      wasmWorkerRef.current?.postMessage({
-        type: 'speed',
-        tickMs: Math.max(16, Math.round(WASM_BASE_TICK_MS / mult)),
-      }),
+    pauseSim: () => {
+      if (wasmWorkerRef.current) wasmWorkerRef.current.postMessage({ type: 'pause' })
+      else if (isDesktop()) void controlDesktopRuntime('pause')
+    },
+    setSpeed: (mult: number) => {
+      if (wasmWorkerRef.current) {
+        wasmWorkerRef.current.postMessage({
+          type: 'speed',
+          tickMs: Math.max(16, Math.round(WASM_BASE_TICK_MS / mult)),
+        })
+      } else if (isDesktop()) {
+        void controlDesktopRuntime('speed', mult)
+      }
+    },
   }
 }

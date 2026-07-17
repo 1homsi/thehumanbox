@@ -9,53 +9,41 @@ import type {
   SimStatus,
   UpdateCheckResult,
 } from '../lib/desktop'
-import {
-  getWorldSource,
-  setWorldSourceAndReload,
-  clearOwnWorldSeed,
-  OWN_WORLD_ID,
-} from '../simulation/worldSource'
-import { deleteWorld } from '../simulation/wasmDb'
+import { getWorldSource, setWorldSourceAndReload, requestOwnWorldReset } from '../simulation/worldSource'
 
 interface Props {
   onClose: () => void
 }
 
-async function resetOwnWorld() {
-  await deleteWorld(OWN_WORLD_ID)
-  clearOwnWorldSeed()
-  window.location.reload()
-}
-
 function WorldSourceSection() {
   const source = getWorldSource()
   return (
-    <Section title="World">
+    <Section title="Play mode">
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <button
-          className={'lang-btn' + (source === 'remote' ? ' active' : '')}
-          aria-pressed={source === 'remote'}
-          onClick={() => source !== 'remote' && setWorldSourceAndReload('remote')}
-        >
-          📡 human box
-        </button>
         <button
           className={'lang-btn' + (source === 'wasm' ? ' active' : '')}
           aria-pressed={source === 'wasm'}
           onClick={() => source !== 'wasm' && setWorldSourceAndReload('wasm')}
         >
-          🧪 my world
+          🎮 my world · local
+        </button>
+        <button
+          className={'lang-btn' + (source === 'remote' ? ' active' : '')}
+          aria-pressed={source === 'remote'}
+          onClick={() => source !== 'remote' && setWorldSourceAndReload('remote')}
+        >
+          📡 shared world · online
         </button>
         {source === 'wasm' && (
-          <button className="lang-btn" onClick={() => void resetOwnWorld()}>
+          <button className="lang-btn" onClick={requestOwnWorldReset}>
             ↺ reset
           </button>
         )}
       </div>
       <div style={{ fontSize: 10, color: '#666', marginTop: 8, lineHeight: 1.5 }}>
-        <strong style={{ color: '#bfae90' }}>Human Box</strong> is the shared world everyone watches, streamed
-        live. <strong style={{ color: '#bfae90' }}>My World</strong> runs entirely in this browser — nothing
-        streamed, saved locally so it resumes when you return. (beta)
+        <strong style={{ color: '#bfae90' }}>My World</strong> is the default: a private game that runs and
+        saves entirely in this browser, without connecting to The Human Box server. Switch to the{' '}
+        <strong style={{ color: '#bfae90' }}>Shared World</strong> to watch the persistent online simulation.
       </div>
     </Section>
   )
@@ -69,6 +57,13 @@ const PROVIDER_DEFAULTS: Record<ModelProvider, { url: string; model: string }> =
   'llama-cpp': { url: 'http://localhost:8080/v1/chat/completions', model: 'default' },
   none: { url: '', model: '' },
 }
+
+const POPULATION_CAP_PRESETS: ReadonlyArray<readonly [number, string]> = [
+  [350, 'light'],
+  [500, 'recommended'],
+  [1000, 'ambitious'],
+  [2000, 'experimental'],
+]
 
 export function DesktopSettingsModal({ onClose }: Props) {
   const desktop = getDesktop()
@@ -129,7 +124,6 @@ export function DesktopSettingsModal({ onClose }: Props) {
     setStatus(null)
     try {
       await desktop.settings.set(settings)
-      await desktop.app.applyAutoLaunch()
       const next = await desktop.sim.restart()
       setStatus(next)
       setSavedAt(Date.now())
@@ -208,6 +202,34 @@ export function DesktopSettingsModal({ onClose }: Props) {
             />
             <div style={{ fontSize: 10, color: '#666', marginTop: 4 }}>
               Lower = faster world (more CPU). Default 100 ms.
+            </div>
+          </Field>
+          <Field label={`World capacity — ${settings.populationCap.toLocaleString()} people`}>
+            <input
+              type="range"
+              min={120}
+              max={5000}
+              step={20}
+              value={settings.populationCap}
+              onChange={(e) => update({ populationCap: parseInt(e.target.value, 10) })}
+              style={{ width: '100%' }}
+            />
+            <div className="desktop-cap-presets" role="group" aria-label="World capacity presets">
+              {POPULATION_CAP_PRESETS.map(([cap, label]) => (
+                <button
+                  key={cap}
+                  type="button"
+                  className={settings.populationCap === cap ? 'active' : ''}
+                  onClick={() => update({ populationCap: cap })}
+                >
+                  {cap.toLocaleString()} · {label}
+                </button>
+              ))}
+            </div>
+            <div style={{ fontSize: 10, color: '#777', marginTop: 6, lineHeight: 1.5 }}>
+              Every size can reach the full era ladder. Larger worlds spread the late-era population gates
+              across a bigger civilization. 500 is tuned for the default speed; 1,000+ needs a fast machine
+              and 5,000 is unproven. Applies after restart.
             </div>
           </Field>
         </Section>

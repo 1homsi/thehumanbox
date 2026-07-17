@@ -761,6 +761,11 @@ pub struct Building {
     pub occupants: Vec<String>,
     pub built_at_tick: u64,
     pub condition: f32,
+    /// True only for ambient settlement scenery. Decorative buildings
+    /// may be rotated out to keep long-running worlds fast; functional
+    /// buildings and wonders are permanent world history.
+    #[serde(default)]
+    pub decorative: bool,
 }
 
 impl Building {
@@ -774,6 +779,7 @@ impl Building {
             occupants: Vec::new(),
             built_at_tick: tick,
             condition: 0.15,
+            decorative: false,
         }
     }
 

@@ -1068,7 +1068,19 @@ fn pick_degree(era: Era, seed: u64) -> &'static str {
     opts[(seed as usize) % opts.len()]
 }
 
+const FUNCTIONAL_BUILDINGS_CAP: usize = 1200;
+const BUILDINGS_SOFT_CAP: usize = 1500;
+
 fn tick_buildings_construct(sim: &mut Simulation) {
+    let mut functional_slots = FUNCTIONAL_BUILDINGS_CAP.saturating_sub(
+        sim.buildings
+            .iter()
+            .filter(|building| !building.decorative)
+            .count(),
+    );
+    if functional_slots == 0 {
+        return;
+    }
     let mut new_buildings: Vec<Building> = Vec::new();
     let alive_lineages: HashSet<String> = sim
         .organisms
@@ -1077,6 +1089,9 @@ fn tick_buildings_construct(sim: &mut Simulation) {
         .map(|o| o.lineage_id.clone())
         .collect();
     for lid in alive_lineages {
+        if functional_slots == 0 {
+            break;
+        }
         let era = lineage_era(sim, &lid);
         let pop = lineage_pop(sim, &lid);
         if pop < 5 {
@@ -1096,6 +1111,9 @@ fn tick_buildings_construct(sim: &mut Simulation) {
             .map(|b| b.kind)
             .collect();
         for _ in 0..builds_this_pass {
+            if functional_slots == 0 {
+                break;
+            }
             let target = next_target_building(era, pop, &existing);
             let Some(kind) = target else { break };
             existing.insert(kind);
@@ -1115,6 +1133,7 @@ fn tick_buildings_construct(sim: &mut Simulation) {
                 Some(lid.clone()),
                 sim.tick_count,
             ));
+            functional_slots -= 1;
             let kn = kind.name().to_string();
             push_event(
                 &mut sim.events,
@@ -1153,11 +1172,22 @@ fn is_wonder(kind: BuildingKind) -> bool {
 }
 
 fn cap_buildings(sim: &mut Simulation) {
-    const BUILDINGS_CAP: usize = 1500;
-    if sim.buildings.len() > BUILDINGS_CAP {
-        let excess = sim.buildings.len() - BUILDINGS_CAP;
-        sim.buildings.drain(0..excess);
+    let mut excess = sim.buildings.len().saturating_sub(BUILDINGS_SOFT_CAP);
+    if excess == 0 {
+        return;
     }
+
+    // Ambient props are disposable rendering detail. Functional buildings
+    // and wonders represent civilization progress, so a busy old world must
+    // never silently erase them just because newer scenery was scattered.
+    sim.buildings.retain(|building| {
+        if excess > 0 && building.decorative {
+            excess -= 1;
+            false
+        } else {
+            true
+        }
+    });
 }
 
 fn tick_building_progress(sim: &mut Simulation) {
@@ -1211,6 +1241,16 @@ fn tick_scatter_props(sim: &mut Simulation) {
     for lid in alive_lineages {
         let pop = lineage_pop(sim, &lid);
         if pop < 3 {
+            continue;
+        }
+        const MAX_DECORATIVE_PER_LINEAGE: usize = 48;
+        if sim
+            .buildings
+            .iter()
+            .filter(|building| building.decorative && building.owner_lineage.as_deref() == Some(lid.as_str()))
+            .count()
+            >= MAX_DECORATIVE_PER_LINEAGE
+        {
             continue;
         }
         let era = lineage_era(sim, &lid);
@@ -1339,6 +1379,7 @@ fn tick_scatter_props(sim: &mut Simulation) {
         sim.next_building_id += 1;
         let mut prop = Building::new(id, kind, cx + dx, cy + dy, Some(lid.clone()), sim.tick_count);
         prop.condition = 1.0;
+        prop.decorative = true;
         new_buildings.push(prop);
     }
     sim.buildings.extend(new_buildings);
@@ -2870,5 +2911,59 @@ mod tests {
 
         assert_eq!(sim.organisms[0].x, 20.0);
         assert_eq!(sim.organisms[0].y, 20.0);
+    }
+
+    #[test]
+    fn building_cap_prunes_scenery_without_erasing_civilization() {
+        let mut sim = Simulation::new(0xB17D);
+        sim.buildings.clear();
+
+        let wonder = Building::new(1, BuildingKind::University, 10, 10, Some("lineage-a".into()), 1);
+        let hospital = Building::new(2, BuildingKind::Hospital, 12, 10, Some("lineage-a".into()), 2);
+        sim.buildings.push(wonder);
+        sim.buildings.push(hospital);
+
+        for id in 3..=1_600 {
+            let mut prop = Building::new(
+                id,
+                BuildingKind::Bench,
+                id as i32 % 100,
+                id as i32 / 100,
+                Some("lineage-a".into()),
+                id as u64,
+            );
+            prop.condition = 1.0;
+            prop.decorative = true;
+            sim.buildings.push(prop);
+        }
+
+        cap_buildings(&mut sim);
+
+        assert_eq!(sim.buildings.len(), 1_500);
+        assert!(sim.buildings.iter().any(|building| building.id == 1));
+        assert!(sim.buildings.iter().any(|building| building.id == 2));
+    }
+
+    #[test]
+    fn functional_building_budget_prevents_unbounded_world_growth() {
+        let mut sim = Simulation::new(0xB01D);
+        sim.buildings.clear();
+        for id in 0..FUNCTIONAL_BUILDINGS_CAP as u32 {
+            sim.buildings.push(Building::new(
+                id,
+                BuildingKind::Hospital,
+                id as i32 % 100,
+                id as i32 / 100,
+                Some("lineage-a".into()),
+                id as u64,
+            ));
+        }
+        for org in sim.organisms.iter_mut().filter(|org| org.alive) {
+            org.lineage_id = "lineage-a".into();
+        }
+
+        tick_buildings_construct(&mut sim);
+
+        assert_eq!(sim.buildings.len(), FUNCTIONAL_BUILDINGS_CAP);
     }
 }

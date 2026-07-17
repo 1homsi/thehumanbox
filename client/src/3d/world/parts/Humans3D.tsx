@@ -27,6 +27,8 @@ interface Props {
   depthMap: number[][]
   biomes: number[][]
   lineageEras?: Record<string, string>
+  sandboxArmed?: boolean
+  onSandboxApply?: (x: number, y: number) => void
 }
 
 // Cull radius for full skinned-mesh AnimatedFigure rendering. Past
@@ -218,11 +220,15 @@ function FarHumans({
   depthMap,
   biomes,
   lineageEras,
+  sandboxArmed,
+  onSandboxApply,
 }: {
   organisms: OrganismState[]
   depthMap: number[][]
   biomes: number[][]
   lineageEras?: Record<string, string>
+  sandboxArmed?: boolean
+  onSandboxApply?: (x: number, y: number) => void
 }) {
   const meshRef = useRef<InstancedMesh | null>(null)
   const geometry = useMemo(() => buildHumanoidLodGeometry(), [])
@@ -284,7 +290,8 @@ function FarHumans({
         const o = organisms[e.instanceId]
         if (!o) return
         e.stopPropagation()
-        selectOrg(o.id)
+        if (sandboxArmed && onSandboxApply) onSandboxApply(o.x, o.y)
+        else selectOrg(o.id)
       }}
       onPointerOver={(e) => {
         e.stopPropagation()
@@ -297,7 +304,7 @@ function FarHumans({
   )
 }
 
-export function Humans3D({ organisms, depthMap, biomes, lineageEras }: Props) {
+export function Humans3D({ organisms, depthMap, biomes, lineageEras, sandboxArmed, onSandboxApply }: Props) {
   const { camera } = useThree()
   const selectOrg = useUIStore((s) => s.selectOrg)
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
@@ -386,7 +393,8 @@ export function Humans3D({ organisms, depthMap, biomes, lineageEras }: Props) {
             key={o.id}
             onClick={(e) => {
               e.stopPropagation()
-              selectOrg(o.id)
+              if (sandboxArmed && onSandboxApply) onSandboxApply(o.x, o.y)
+              else selectOrg(o.id)
             }}
             onPointerOver={(e) => {
               e.stopPropagation()
@@ -415,7 +423,14 @@ export function Humans3D({ organisms, depthMap, biomes, lineageEras }: Props) {
           </group>
         )
       })}
-      <FarHumans organisms={far} depthMap={depthMap} biomes={biomes} lineageEras={lineageEras} />
+      <FarHumans
+        organisms={far}
+        depthMap={depthMap}
+        biomes={biomes}
+        lineageEras={lineageEras}
+        sandboxArmed={sandboxArmed}
+        onSandboxApply={onSandboxApply}
+      />
     </>
   )
 }

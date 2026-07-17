@@ -747,6 +747,8 @@ export default function WorldView3D({ world, sandboxArmed, onSandboxApply, onCon
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}
                   lineageEras={lineageErasMap}
+                  sandboxArmed={sandboxArmed}
+                  onSandboxApply={onSandboxApply}
                 />
                 <Buildings3D
                   buildings={world.buildings ?? []}
