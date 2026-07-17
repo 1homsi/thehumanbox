@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from 'react'
 import { lazyWithRetry } from './utils/lazyWithRetry'
 import { useSimulation } from './simulation/useSimulation'
-import { getWorldSource } from './simulation/worldSource'
+import { getWorldSource, shouldShowIdleResume, shouldUseSimulationApi } from './simulation/worldSource'
+import { SimulationDataProvider } from './simulation/SimulationDataProvider'
 import { SandboxToolbar } from './components/SandboxToolbar'
 import type { SandboxTool } from './simulation/sandbox'
 import { IdleResumeOverlay } from './components/IdleResumeOverlay'
@@ -10,7 +11,7 @@ import { CommandPalette } from './components/CommandPalette'
 import { HeadlineTicker } from './components/HeadlineTicker'
 import { trackEvent } from './lib/observability'
 import { useUIStore } from './stores/store'
-import { WS_BASE } from './lib/config'
+import { IS_LOCAL_SERVER, WS_BASE } from './lib/config'
 import { getDesktop, type SimMode } from './lib/desktop'
 
 const WS_HOST = WS_BASE.replace(/^wss?:\/\//, '')
@@ -61,6 +62,8 @@ function App() {
 
 function LiveApp() {
   const worldSourceRef = useRef(getWorldSource())
+  const desktop = getDesktop()
+  const isLocalWebWorld = !desktop && worldSourceRef.current === 'wasm'
   const {
     world,
     connected,
@@ -74,9 +77,18 @@ function LiveApp() {
     pauseSim,
     setSpeed,
     fellBackToLocal,
+    localSaveStatus,
+    saveLocalWorld,
+    loadLocalOrgDetail,
+    loadLocalOrgLife,
   } = useSimulation(worldSourceRef.current)
+  const isLocalRuntime = isLocalWebWorld || fellBackToLocal || IS_LOCAL_SERVER
+  const simulationApiEnabled = shouldUseSimulationApi(worldSourceRef.current) && !fellBackToLocal
+  const simulationData = useMemo(
+    () => ({ apiEnabled: simulationApiEnabled, loadLocalOrgDetail, loadLocalOrgLife }),
+    [loadLocalOrgDetail, loadLocalOrgLife, simulationApiEnabled],
+  )
   const currentScene = useCurrentScene()
-  const desktop = getDesktop()
 
   const [armedTool, setArmedTool] = useState<SandboxTool | null>(null)
   const [brush, setBrush] = useState(2)
@@ -359,119 +371,147 @@ function LiveApp() {
   }, [world, liveOrgs])
 
   return (
-    <div className="app">
-      <AppHeader world={world ?? null} connected={connected} fireTiles={fireTiles} sickOrgs={sickOrgs} />
-      <HeadlineTicker world={world ?? null} enabled={viewFlags.headlineTicker} />
+    <SimulationDataProvider value={simulationData}>
+      <div className="app">
+        <AppHeader world={world ?? null} connected={connected} fireTiles={fireTiles} sickOrgs={sickOrgs} />
+        <HeadlineTicker world={world ?? null} enabled={viewFlags.headlineTicker} />
 
-      {fellBackToLocal && (
-        <div className="fallback-banner">
-          ⚠ The shared Human Box is unreachable — running a local world in your browser.{' '}
-          <button onClick={() => window.location.reload()}>retry live</button>
-        </div>
-      )}
-
-      {threeDIssue && (
-        <div className="fallback-banner">
-          {threeDIssue === 'unsupported'
-            ? '⚠ 3D needs WebGL, which this browser does not support — showing the classic view.'
-            : threeDIssue === 'context'
-              ? '⚠ The 3D view lost its graphics context — returned to the classic view.'
-              : '⚠ The 3D view hit a rendering error — returned to the classic view.'}{' '}
-          {threeDIssue !== 'unsupported' && <button onClick={retryThreeD}>try 3D again</button>}{' '}
-          <button onClick={() => setThreeDIssue(null)}>dismiss</button>
-        </div>
-      )}
-
-      {idleParked && <IdleResumeOverlay onResume={resume} />}
-      <DesktopDownloadToast />
-      <CommandPalette />
-
-      <main className="main" data-tour="world-canvas">
-        {world ? (
-          <div className="layout">
-            {(!viewFlags.threeD || !viewFlags.hideUI) && (
-              <>
-                {leftOpen && <div className="panel-overlay panel-overlay-left" onClick={toggleLeft} />}
-                <aside className={clsx('panel', 'panel-left', leftOpen && 'open')}>
-                  <HistoryGrid />
-                  <LineagesList />
-                  <EventLog />
-                  <WorldFooter world={world} />
-                </aside>
-              </>
-            )}
-
-            {currentScene ? (
-              <Suspense fallback={null}>
-                <SceneView world={world} />
-              </Suspense>
-            ) : viewFlags.threeD && webglOk ? (
-              <ThreeDErrorBoundary onCrash={() => handleThreeDFailure('crash')}>
-                <Suspense fallback={<ThreeDLoading />}>
-                  <WorldView3D
-                    world={world}
-                    hideUI={viewFlags.hideUI}
-                    sandboxArmed={sandboxControlsEnabled && !!armedTool}
-                    onSandboxApply={handleSandboxApply}
-                    onContextLost={() => handleThreeDFailure('context')}
-                  />
-                </Suspense>
-              </ThreeDErrorBoundary>
-            ) : (
-              <WorldView
-                world={world}
-                interp={interp}
-                sandboxArmed={sandboxControlsEnabled && !!armedTool}
-                onSandboxApply={handleSandboxApply}
-              />
-            )}
-
-            <RightPanel world={world} liveOrgs={liveOrgs} deadOrgs={deadOrgs} selectedOrg={selectedOrg} />
-          </div>
-        ) : (
-          <div className="waiting">
-            <div className="waiting-spinner" aria-hidden="true" />
-            <div className="waiting-title">
-              {status === 'unreachable'
-                ? 'simulation server unreachable'
-                : status === 'reconnecting'
-                  ? 'reconnecting…'
-                  : 'connecting…'}
-            </div>
-            <div className="waiting-sub">
-              {status === 'unreachable'
-                ? `tried ${failedAttempts} times. waiting for ${WS_HOST} to come back online - retries continue automatically.`
-                : status === 'reconnecting'
-                  ? `attempt ${failedAttempts + 1} - backing off and retrying`
-                  : 'opening websocket and fetching the world snapshot'}
-            </div>
+        {fellBackToLocal && (
+          <div className="fallback-banner">
+            ⚠ The shared Human Box is unreachable — running a local world in your browser.{' '}
+            <button onClick={() => window.location.reload()}>retry live</button>
           </div>
         )}
-      </main>
 
-      {world && sandboxControlsEnabled && (
-        <SandboxToolbar
-          armedToolId={armedTool?.id ?? null}
-          armedToolLabel={armedTool?.label ?? null}
-          brush={brush}
-          status={sandboxStatus}
-          onBrush={setBrush}
-          onPick={onPickTool}
-          onClearArmed={() => {
-            setArmedTool(null)
-            setTemporarySandboxStatus(null)
-          }}
-        />
-      )}
+        {threeDIssue && (
+          <div className="fallback-banner">
+            {threeDIssue === 'unsupported'
+              ? '⚠ 3D needs WebGL, which this browser does not support — showing the classic view.'
+              : threeDIssue === 'context'
+                ? '⚠ The 3D view lost its graphics context — returned to the classic view.'
+                : '⚠ The 3D view hit a rendering error — returned to the classic view.'}{' '}
+            {threeDIssue !== 'unsupported' && <button onClick={retryThreeD}>try 3D again</button>}{' '}
+            <button onClick={() => setThreeDIssue(null)}>dismiss</button>
+          </div>
+        )}
 
-      {world && <ModalRouter world={world} lineages={lineages} />}
+        {shouldShowIdleResume(idleParked, isLocalRuntime) && <IdleResumeOverlay onResume={resume} />}
+        <DesktopDownloadToast />
+        <CommandPalette />
 
-      {world && <Try3DToast />}
-      <MobileBanner />
-      {world && <WelcomeModal />}
-      <UpdateToast />
-      <DesktopUpdateToast />
-    </div>
+        <main className="main" data-tour="world-canvas">
+          {world ? (
+            <div className="layout">
+              {(!viewFlags.threeD || !viewFlags.hideUI) && (
+                <>
+                  {leftOpen && <div className="panel-overlay panel-overlay-left" onClick={toggleLeft} />}
+                  <aside className={clsx('panel', 'panel-left', leftOpen && 'open')}>
+                    <HistoryGrid />
+                    <LineagesList />
+                    <EventLog />
+                    <WorldFooter world={world} />
+                  </aside>
+                </>
+              )}
+
+              {currentScene ? (
+                <Suspense fallback={null}>
+                  <SceneView world={world} />
+                </Suspense>
+              ) : viewFlags.threeD && webglOk ? (
+                <ThreeDErrorBoundary onCrash={() => handleThreeDFailure('crash')}>
+                  <Suspense fallback={<ThreeDLoading />}>
+                    <WorldView3D
+                      world={world}
+                      hideUI={viewFlags.hideUI}
+                      sandboxArmed={sandboxControlsEnabled && !!armedTool}
+                      onSandboxApply={handleSandboxApply}
+                      onContextLost={() => handleThreeDFailure('context')}
+                    />
+                  </Suspense>
+                </ThreeDErrorBoundary>
+              ) : (
+                <WorldView
+                  world={world}
+                  interp={interp}
+                  sandboxArmed={sandboxControlsEnabled && !!armedTool}
+                  onSandboxApply={handleSandboxApply}
+                />
+              )}
+
+              <RightPanel world={world} liveOrgs={liveOrgs} deadOrgs={deadOrgs} selectedOrg={selectedOrg} />
+            </div>
+          ) : (
+            <div className="waiting">
+              <div className="waiting-spinner" aria-hidden="true" />
+              <div className="waiting-title">
+                {isLocalWebWorld
+                  ? 'starting your world…'
+                  : status === 'unreachable'
+                    ? 'simulation server unreachable'
+                    : status === 'reconnecting'
+                      ? 'reconnecting…'
+                      : 'connecting…'}
+              </div>
+              <div className="waiting-sub">
+                {isLocalWebWorld
+                  ? 'loading the private simulation on this device — no server connection needed'
+                  : status === 'unreachable'
+                    ? `tried ${failedAttempts} times. waiting for ${WS_HOST} to come back online - retries continue automatically.`
+                    : status === 'reconnecting'
+                      ? `attempt ${failedAttempts + 1} - backing off and retrying`
+                      : 'opening websocket and fetching the world snapshot'}
+              </div>
+            </div>
+          )}
+        </main>
+
+        {world && sandboxControlsEnabled && (
+          <SandboxToolbar
+            armedToolId={armedTool?.id ?? null}
+            armedToolLabel={armedTool?.label ?? null}
+            brush={brush}
+            status={sandboxStatus}
+            onBrush={setBrush}
+            onPick={onPickTool}
+            onClearArmed={() => {
+              setArmedTool(null)
+              setTemporarySandboxStatus(null)
+            }}
+            onSave={
+              isLocalWebWorld || fellBackToLocal || (desktop && desktopMode === 'local')
+                ? () => void saveLocalWorld()
+                : undefined
+            }
+            saveBusy={localSaveStatus.phase === 'loading' || localSaveStatus.phase === 'saving'}
+            saveError={localSaveStatus.phase === 'error'}
+            saveStatus={
+              localSaveStatus.phase === 'loading'
+                ? 'loading local save…'
+                : localSaveStatus.phase === 'ready'
+                  ? localSaveStatus.restored
+                    ? `world restored at tick ${localSaveStatus.tick.toLocaleString()}`
+                    : 'new local world ready'
+                  : localSaveStatus.phase === 'saving'
+                    ? `saving tick ${localSaveStatus.tick.toLocaleString()}…`
+                    : localSaveStatus.phase === 'saved'
+                      ? `saved locally · tick ${localSaveStatus.tick.toLocaleString()}`
+                      : localSaveStatus.phase === 'error'
+                        ? localSaveStatus.message
+                        : undefined
+            }
+          />
+        )}
+
+        {world && <ModalRouter world={world} lineages={lineages} />}
+
+        {world && <Try3DToast />}
+        <MobileBanner />
+        {world && <WelcomeModal />}
+        <UpdateToast />
+        <DesktopUpdateToast />
+      </div>
+    </SimulationDataProvider>
   )
 }
 

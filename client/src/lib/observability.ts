@@ -1,4 +1,5 @@
 import type posthogType from 'posthog-js'
+import { getWorldSource } from '../simulation/worldSource'
 
 const KEY = import.meta.env.VITE_POSTHOG_KEY as string | undefined
 const HOST = (import.meta.env.VITE_POSTHOG_HOST as string | undefined) ?? 'https://us.i.posthog.com'
@@ -11,6 +12,7 @@ export function initAnalytics(): void {
   if (client || loading) return
   if (!KEY) return
   if (typeof window === 'undefined') return
+  if (!window.thbDesktop && getWorldSource() === 'wasm') return
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     return
   }

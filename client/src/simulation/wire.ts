@@ -86,6 +86,7 @@ export type IncomingWorldFrame = Pick<
   lineage_currencies?: WorldState['lineage_currencies']
   active_outbreaks?: WorldState['active_outbreaks']
   cosmos?: WorldState['cosmos']
+  population_limit?: WorldState['population_limit']
 }
 
 export async function fetchSnapshotWithProgress(

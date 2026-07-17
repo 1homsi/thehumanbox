@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Modal } from './Modal'
 import { API_BASE } from '../lib/config'
 import { useUIStore } from '../stores/store'
+import { useSimulationData } from '../simulation/simulationData'
 
 interface Props {
   onClose: () => void
@@ -35,9 +36,10 @@ export function AboutModal({ onClose }: Props) {
   const [backend, setBackend] = useState<BackendVersion | null>(null)
   const [error, setError] = useState<string | null>(null)
   const nerdStats = useUIStore((s) => s.nerdStats)
+  const { apiEnabled } = useSimulationData()
 
   useEffect(() => {
-    if (!nerdStats) return
+    if (!nerdStats || !apiEnabled) return
     const ctrl = new AbortController()
     fetch(`${API_BASE}/version`, { signal: ctrl.signal })
       .then((r) => {
@@ -50,7 +52,7 @@ export function AboutModal({ onClose }: Props) {
         setError(e.message ?? String(e))
       })
     return () => ctrl.abort()
-  }, [nerdStats])
+  }, [apiEnabled, nerdStats])
 
   return (
     <Modal open onClose={onClose} className="about-modal" title="About" hideTitle>
@@ -79,10 +81,19 @@ export function AboutModal({ onClose }: Props) {
               <span className="about-v">{fmtTime(FE_BUILD_TS)}</span>
             </div>
 
-            <div className="about-section">BACKEND</div>
-            {error && <div className="about-err">could not reach simulation /version: {error}</div>}
-            {!error && !backend && <div className="about-loading">loading…</div>}
-            {backend && (
+            <div className="about-section">SIMULATION</div>
+            {!apiEnabled ? (
+              <div className="about-grid">
+                <span className="about-k">runtime</span>
+                <span className="about-v">local browser · offline</span>
+              </div>
+            ) : (
+              <>
+                {error && <div className="about-err">could not reach simulation /version: {error}</div>}
+                {!error && !backend && <div className="about-loading">loading…</div>}
+              </>
+            )}
+            {apiEnabled && backend && (
               <div className="about-grid">
                 <span className="about-k">name</span>
                 <span className="about-v">

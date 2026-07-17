@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { startTour, isTourSupported } from '../tour/tour'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { getWorldSource } from '../simulation/worldSource'
 
 const STORAGE_KEY = 'thb-welcome-seen-v1'
 
@@ -9,7 +10,7 @@ interface Step {
   body: string
 }
 
-const STEPS: Step[] = [
+const SHARED_STEPS: Step[] = [
   {
     title: 'Welcome to The Human Box',
     body:
@@ -37,11 +38,33 @@ const STEPS: Step[] = [
   },
 ]
 
+const LOCAL_STEPS: Step[] = [
+  {
+    title: 'This is your Human Box',
+    body:
+      'A private living world running on your device. Tiny humans are born, learn, build, ' +
+      'fight, pray, die, and pass their stories on.',
+  },
+  {
+    title: 'Watch it evolve — or shape it',
+    body:
+      'Follow any human, explore their family and memories, or use the game controls to change ' +
+      'time, place buildings, and create disasters.',
+  },
+  {
+    title: 'Private and local by default',
+    body:
+      'This world runs in your browser and saves on this device. It does not connect to The Human ' +
+      'Box server. You can choose the persistent Shared World later in Settings.',
+  },
+]
+
 export function WelcomeModal() {
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState(0)
   const isMobile = useIsMobile()
   const tourAvailable = !isMobile && isTourSupported()
+  const steps = getWorldSource() === 'wasm' ? LOCAL_STEPS : SHARED_STEPS
 
   useEffect(() => {
     let seen = true
@@ -55,8 +78,8 @@ export function WelcomeModal() {
 
   if (!open) return null
 
-  const isLast = step >= STEPS.length - 1
-  const current = STEPS[step]
+  const isLast = step >= steps.length - 1
+  const current = steps[step]
 
   const finish = (withTour: boolean) => {
     try {
@@ -83,7 +106,7 @@ export function WelcomeModal() {
     <div className="welcome-backdrop" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
       <div className="welcome-modal">
         <div className="welcome-step-indicator">
-          {STEPS.map((_, i) => (
+          {steps.map((_, i) => (
             <span key={i} className={'welcome-dot' + (i === step ? ' active' : i < step ? ' done' : '')} />
           ))}
         </div>

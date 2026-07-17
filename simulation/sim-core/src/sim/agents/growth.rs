@@ -4,7 +4,7 @@ use crate::organism::attributes::{
 use crate::organism::organism::{apply_sex_traits, generate_name, Organism, Sex};
 use crate::organism::traits::Traits;
 use crate::organism::vocabulary::Vocabulary;
-use crate::sim::config::MAX_POPULATION;
+use crate::sim::config::natural_lineage_limit;
 use crate::sim::simulation::{Event, History};
 use crate::sim::world_events::push_event;
 use crate::world::{
@@ -82,12 +82,12 @@ pub fn try_reproduce(
     grid: &WorldGrid,
     tick: u64,
     events: &mut std::collections::VecDeque<Event>,
-    _history: &mut History,
     rng: &mut impl Rng,
     alive_count: usize,
+    population_limit: usize,
     lineage_counts: &rustc_hash::FxHashMap<String, usize>,
 ) {
-    if alive_count >= MAX_POPULATION {
+    if alive_count >= population_limit {
         return;
     }
 
@@ -96,8 +96,8 @@ pub fn try_reproduce(
         return;
     }
 
-    const MAX_LINEAGE_POP: usize = 60;
-    if lineage_counts.get(&org.lineage_id).copied().unwrap_or(0) >= MAX_LINEAGE_POP {
+    let lineage_limit = natural_lineage_limit(population_limit);
+    if lineage_counts.get(&org.lineage_id).copied().unwrap_or(0) >= lineage_limit {
         return;
     }
 

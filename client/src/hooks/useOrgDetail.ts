@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import type { OrgDetail } from '../types'
 import { API_BASE } from '../lib/config'
+import { useSimulationData } from '../simulation/simulationData'
 
 export interface UseOrgDetailResult {
   data: OrgDetail | null
@@ -9,9 +10,15 @@ export interface UseOrgDetailResult {
 }
 
 export function useOrgDetail(id: string | null): UseOrgDetailResult {
+  const { apiEnabled, loadLocalOrgDetail } = useSimulationData()
   const { data, isLoading, isError } = useQuery<OrgDetail>({
-    queryKey: ['orgDetail', id],
+    queryKey: ['orgDetail', apiEnabled ? 'api' : 'local', id],
     queryFn: async () => {
+      if (!apiEnabled) {
+        const detail = await loadLocalOrgDetail(id!)
+        if (!detail) throw new Error(`local organism ${id} is unavailable`)
+        return detail
+      }
       const res = await fetch(`${API_BASE}/org/${id}`)
       if (!res.ok) throw new Error(`org ${id}: ${res.status}`)
       return res.json() as Promise<OrgDetail>

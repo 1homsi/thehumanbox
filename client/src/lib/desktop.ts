@@ -5,6 +5,7 @@ export interface DesktopSettings {
   mode: SimMode
   remoteUrl: string
   tickMs: number
+  populationCap: number
   model: {
     provider: ModelProvider
     apiUrl: string

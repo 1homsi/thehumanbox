@@ -3,6 +3,8 @@ import { Modal } from './Modal'
 import { fetchWorldsList, type WorldMeta } from '../simulation/useHistoricalWorld'
 import { getDesktop } from '../lib/desktop'
 import { API_BASE } from '../lib/config'
+import { useUIStore } from '../stores/store'
+import { useSimulationData } from '../simulation/simulationData'
 
 interface Props {
   onClose: () => void
@@ -24,8 +26,11 @@ export function WorldsModal({ onClose }: Props) {
   const [importing, setImporting] = useState<string | null>(null)
   const [importErr, setImportErr] = useState<string | null>(null)
   const desktop = getDesktop()
+  const openSettings = useUIStore((s) => s.openDesktopSettings)
+  const { apiEnabled } = useSimulationData()
 
   useEffect(() => {
+    if (!apiEnabled) return
     const ctl = new AbortController()
     fetchWorldsList(ctl.signal)
       .then(setWorlds)
@@ -34,7 +39,7 @@ export function WorldsModal({ onClose }: Props) {
         setError(e instanceof Error ? e.message : String(e))
       })
     return () => ctl.abort()
-  }, [])
+  }, [apiEnabled])
 
   return (
     <Modal open onClose={onClose} className="worlds-modal" title="Past worlds" hideTitle>
@@ -45,13 +50,31 @@ export function WorldsModal({ onClose }: Props) {
         </button>
       </div>
       <div className="worlds-body">
-        <p className="worlds-blurb">
-          The live world resets at the start of every month. Old worlds are frozen here forever - explore the
-          end-state of each civilisation.
-        </p>
-        {error && <div className="worlds-err">could not load: {error}</div>}
-        {!error && worlds == null && <div className="worlds-loading">loading…</div>}
-        {!error && worlds && worlds.length === 0 && (
+        {!apiEnabled ? (
+          <>
+            <p className="worlds-blurb">
+              Your private world lives in this browser and does not connect to the shared-world server. Switch
+              to Shared World in Settings to browse its archived civilizations.
+            </p>
+            <button
+              className="lang-btn"
+              onClick={() => {
+                onClose()
+                openSettings()
+              }}
+            >
+              open settings
+            </button>
+          </>
+        ) : (
+          <p className="worlds-blurb">
+            The shared world resets at the start of every month. Old worlds are frozen here forever - explore
+            the end-state of each civilisation.
+          </p>
+        )}
+        {apiEnabled && error && <div className="worlds-err">could not load: {error}</div>}
+        {apiEnabled && !error && worlds == null && <div className="worlds-loading">loading…</div>}
+        {apiEnabled && !error && worlds && worlds.length === 0 && (
           <div className="worlds-empty">no past worlds yet. check back at the next month rollover.</div>
         )}
         {importErr && (
@@ -59,7 +82,7 @@ export function WorldsModal({ onClose }: Props) {
             could not import: {importErr}
           </div>
         )}
-        {!error && worlds && worlds.length > 0 && (
+        {apiEnabled && !error && worlds && worlds.length > 0 && (
           <ul className="worlds-list">
             {worlds.map((w) => {
               const isImporting = importing === w.hash

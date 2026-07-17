@@ -1,4 +1,4 @@
-import { spawn, ChildProcess } from 'node:child_process'
+import { spawn, ChildProcess, execFileSync } from 'node:child_process'
 import * as fs from 'node:fs'
 import * as net from 'node:net'
 import * as path from 'node:path'
@@ -6,14 +6,23 @@ import { app } from 'electron'
 
 import type { Settings } from './settings'
 import { effectiveDataRoot } from './settings'
+import { buildLocalSimEnv } from './sim-env'
 
 const PID_FILE_NAME = 'sim.pid'
 let exitHandlersInstalled = false
+let exitInProgress = false
+let startInFlight: Promise<RunningSim> | null = null
+let stopInFlight: Promise<void> | null = null
 
 export interface RunningSim {
   port: number
   child: ChildProcess
   pidFile: string
+}
+
+interface SimPidRecord {
+  pid: number
+  port?: number
 }
 
 let current: RunningSim | null = null
@@ -96,7 +105,55 @@ function pidFilePath(settings: Settings): string {
   return path.join(effectiveDataRoot(settings), PID_FILE_NAME)
 }
 
-function killOrphanFromPidFile(settings: Settings): void {
+function pidBelongsToSimulation(pid: number): boolean {
+  try {
+    if (process.platform === 'win32') {
+      const listing = execFileSync(
+        'tasklist',
+        ['/FI', `PID eq ${pid}`, '/FO', 'CSV', '/NH'],
+        { encoding: 'utf8', windowsHide: true },
+      )
+      return listing.toLowerCase().includes('simulation-rs.exe')
+    }
+    const command = execFileSync('ps', ['-p', String(pid), '-o', 'comm='], {
+      encoding: 'utf8',
+    }).trim()
+    return path.basename(command) === platformBinaryName()
+  } catch {
+    return false
+  }
+}
+
+async function waitForPidExit(pid: number, timeoutMs: number): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    try {
+      process.kill(pid, 0)
+    } catch {
+      return true
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+  return false
+}
+
+async function checkpointSim(port: number, timeoutMs: number): Promise<boolean> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), Math.max(250, timeoutMs))
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}/save`, {
+      method: 'POST',
+      signal: controller.signal,
+    })
+    return response.ok
+  } catch {
+    return false
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+async function killOrphanFromPidFile(settings: Settings): Promise<void> {
   const pidPath = pidFilePath(settings)
   let raw: string
   try {
@@ -104,15 +161,40 @@ function killOrphanFromPidFile(settings: Settings): void {
   } catch {
     return
   }
-  const pid = parseInt(raw, 10)
+  let record: SimPidRecord
+  try {
+    const parsed = JSON.parse(raw) as Partial<SimPidRecord> | number
+    if (typeof parsed !== 'object' || parsed === null) throw new Error('legacy pid record')
+    record = {
+      pid: Number(parsed.pid),
+      port: parsed.port === undefined ? undefined : Number(parsed.port),
+    }
+  } catch {
+    // Backward compatibility with the original pid-only file.
+    record = { pid: parseInt(raw, 10) }
+  }
+  const { pid } = record
   if (!Number.isFinite(pid) || pid <= 1) {
     try { fs.unlinkSync(pidPath) } catch { /* noop */ }
     return
   }
   try {
     process.kill(pid, 0)
-    process.kill(pid, 'SIGKILL')
-    console.log(`[sim] killed orphan simulation-rs pid=${pid}`)
+    if (!pidBelongsToSimulation(pid)) {
+      console.warn(`[sim] stale pid file points to a different process; refusing to kill pid=${pid}`)
+      try { fs.unlinkSync(pidPath) } catch { /* noop */ }
+      return
+    }
+    if (record.port && !(await checkpointSim(record.port, 2_000))) {
+      console.warn(`[sim] orphan checkpoint was unavailable on port ${record.port}`)
+    }
+    process.kill(pid, process.platform === 'win32' ? undefined : 'SIGTERM')
+    if (!(await waitForPidExit(pid, 3_000))) {
+      process.kill(pid, 'SIGKILL')
+      console.warn(`[sim] force-killed unresponsive orphan simulation-rs pid=${pid}`)
+    } else {
+      console.log(`[sim] stopped orphan simulation-rs pid=${pid}`)
+    }
   } catch {
     /* not running, fine */
   }
@@ -122,28 +204,50 @@ function killOrphanFromPidFile(settings: Settings): void {
 function installExitHandlersOnce(): void {
   if (exitHandlersInstalled) return
   exitHandlersInstalled = true
-  const killCurrent = (): void => {
+  const signalCurrent = (): void => {
     const c = current
     if (!c) return
-    try { c.child.kill('SIGKILL') } catch { /* noop */ }
-    try { fs.unlinkSync(c.pidFile) } catch { /* noop */ }
-    current = null
+    try {
+      c.child.kill('SIGTERM')
+    } catch {
+      /* noop */
+    }
   }
-  process.on('exit', killCurrent)
-  process.on('SIGINT', () => { killCurrent(); process.exit(130) })
-  process.on('SIGTERM', () => { killCurrent(); process.exit(143) })
+  const stopAndExit = (code: number): void => {
+    if (exitInProgress) return
+    exitInProgress = true
+    void stopSim().finally(() => process.exit(code))
+  }
+  // `exit` itself cannot wait for asynchronous cleanup, but a best-effort
+  // SIGTERM still gives the Rust process a chance to flush its final save.
+  process.on('exit', signalCurrent)
+  process.on('SIGINT', () => stopAndExit(130))
+  process.on('SIGTERM', () => stopAndExit(143))
   process.on('uncaughtException', (e) => {
     console.error('[main] uncaughtException', e)
-    killCurrent()
-    process.exit(1)
+    stopAndExit(1)
   })
 }
 
 export async function startSim(settings: Settings): Promise<RunningSim> {
+  if (stopInFlight) await stopInFlight
+  if (current) return current
+  if (startInFlight) return startInFlight
+
+  const attempt = startSimOnce(settings)
+  startInFlight = attempt
+  try {
+    return await attempt
+  } finally {
+    if (startInFlight === attempt) startInFlight = null
+  }
+}
+
+async function startSimOnce(settings: Settings): Promise<RunningSim> {
   if (current) return current
 
   installExitHandlersOnce()
-  killOrphanFromPidFile(settings)
+  await killOrphanFromPidFile(settings)
 
   const bin = locateSimBinary()
   if (!bin) {
@@ -156,22 +260,7 @@ export async function startSim(settings: Settings): Promise<RunningSim> {
   const workdir = effectiveDataRoot(settings)
   fs.mkdirSync(workdir, { recursive: true })
 
-  const env: NodeJS.ProcessEnv = {
-    ...process.env,
-    TICK_MS: String(settings.tickMs),
-    PORT: String(port),
-    BIND_HOST: '127.0.0.1',
-    THB_EXTRA_CORS_ORIGINS: 'null',
-    THB_SANDBOX: '1',
-  }
-  if (settings.model.provider !== 'none') {
-    env.NARRATION_LLM_URL = settings.model.apiUrl
-    env.NARRATION_LLM_KEY = settings.model.apiKey
-    env.NARRATION_LLM_MODEL = settings.model.modelName
-    env.THINK_LLM_URL = settings.model.apiUrl
-    env.THINK_LLM_KEY = settings.model.apiKey
-    env.THINK_LLM_MODEL = settings.model.modelName
-  }
+  const env = buildLocalSimEnv(settings, port)
 
   const child = spawn(bin, [], {
     cwd: workdir,
@@ -182,7 +271,7 @@ export async function startSim(settings: Settings): Promise<RunningSim> {
   const pidFile = pidFilePath(settings)
   if (child.pid !== undefined) {
     try {
-      fs.writeFileSync(pidFile, String(child.pid), 'utf8')
+      fs.writeFileSync(pidFile, JSON.stringify({ pid: child.pid, port }), 'utf8')
     } catch (e) {
       console.warn(`[sim] could not write pid file ${pidFile}:`, e)
     }
@@ -233,17 +322,49 @@ export async function startSim(settings: Settings): Promise<RunningSim> {
 }
 
 export async function stopSim(timeoutMs = 5000): Promise<void> {
+  if (stopInFlight) return stopInFlight
+
+  const attempt = stopSimOnce(timeoutMs)
+  stopInFlight = attempt
+  try {
+    await attempt
+  } finally {
+    if (stopInFlight === attempt) stopInFlight = null
+  }
+}
+
+async function stopSimOnce(timeoutMs: number): Promise<void> {
+  if (!current && startInFlight) {
+    try {
+      await startInFlight
+    } catch {
+      return
+    }
+  }
   if (!current) return
   const { child, pidFile } = current
   const port = current.port
-  current = null
-  try { fs.unlinkSync(pidFile) } catch { /* noop */ }
+
+  // Checkpoint over loopback before relying on platform signal semantics.
+  // Windows does not reliably deliver a Ctrl-C/SIGTERM equivalent to the
+  // child, while the local HTTP save path is identical on every platform.
+  if (!(await checkpointSim(port, Math.max(500, Math.min(3_000, timeoutMs - 500))))) {
+    console.warn('[sim] checkpoint before stop was unavailable')
+  }
+
+  if (child.exitCode !== null || child.signalCode !== null) {
+    if (current?.child === child) current = null
+    try { fs.unlinkSync(pidFile) } catch { /* noop */ }
+    return
+  }
 
   return new Promise((resolve) => {
     let settled = false
     const done = () => {
       if (settled) return
       settled = true
+      if (current?.child === child) current = null
+      try { fs.unlinkSync(pidFile) } catch { /* noop */ }
       resolve()
     }
     child.once('exit', done)
@@ -254,6 +375,7 @@ export async function stopSim(timeoutMs = 5000): Promise<void> {
         child.kill('SIGTERM')
       }
     } catch {
+      try { fs.unlinkSync(pidFile) } catch { /* noop */ }
       done()
       return
     }

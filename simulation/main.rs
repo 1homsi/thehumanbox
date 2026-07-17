@@ -19,9 +19,10 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use std::sync::atomic::AtomicU64;
+use std::future::IntoFuture;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
-use tokio::sync::{broadcast, mpsc, Mutex};
+use tokio::sync::{broadcast, mpsc, watch, Mutex};
 use tower_http::compression::CompressionLayer;
 use tower_http::cors::{AllowOrigin, Any, CorsLayer};
 
@@ -77,6 +78,154 @@ fn env_flag(name: &str) -> bool {
         .unwrap_or(false)
 }
 
+fn parse_env_switch(value: &str, default: bool) -> bool {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "1" | "true" | "yes" | "on" => true,
+        "0" | "false" | "no" | "off" => false,
+        _ => default,
+    }
+}
+
+fn monthly_rollover_enabled_for(profile: Option<&str>, rollover: Option<&str>) -> bool {
+    if profile
+        .map(|value| value.trim().eq_ignore_ascii_case("local"))
+        .unwrap_or(false)
+    {
+        return false;
+    }
+    rollover
+        .map(|value| parse_env_switch(value, true))
+        .unwrap_or(true)
+}
+
+fn monthly_rollover_enabled() -> bool {
+    monthly_rollover_enabled_for(
+        std::env::var("THB_PROFILE").ok().as_deref(),
+        std::env::var("THB_MONTHLY_ROLLOVER").ok().as_deref(),
+    )
+}
+
+fn population_limit_from_env_value(value: Option<&str>) -> Option<usize> {
+    value.and_then(|raw| raw.trim().parse::<usize>().ok())
+}
+
+fn configured_population_limit() -> Option<usize> {
+    population_limit_from_env_value(std::env::var("MAX_POPULATION").ok().as_deref())
+}
+
+async fn sleep_until_period_end_or_shutdown(
+    cycle_start: std::time::Instant,
+    period_ms: u64,
+    shutdown: &mut watch::Receiver<bool>,
+) -> bool {
+    if *shutdown.borrow() {
+        return true;
+    }
+    let elapsed = cycle_start.elapsed().as_millis() as u64;
+    if elapsed >= period_ms {
+        return false;
+    }
+    tokio::select! {
+        _ = tokio::time::sleep(tokio::time::Duration::from_millis(period_ms - elapsed)) => false,
+        changed = shutdown.changed() => changed.is_err() || *shutdown.borrow(),
+    }
+}
+
+async fn shutdown_signal() -> &'static str {
+    #[cfg(unix)]
+    {
+        let mut terminate = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("failed to install SIGTERM handler");
+        tokio::select! {
+            result = tokio::signal::ctrl_c() => {
+                if let Err(error) = result {
+                    tracing::warn!("Ctrl-C handler failed: {}", error);
+                }
+                "Ctrl-C"
+            }
+            _ = terminate.recv() => "SIGTERM",
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        if let Err(error) = tokio::signal::ctrl_c().await {
+            tracing::warn!("Ctrl-C handler failed: {}", error);
+        }
+        "Ctrl-C"
+    }
+}
+
+pub type SaveGate = Arc<tokio::sync::Mutex<()>>;
+
+pub struct RuntimeControl {
+    paused: AtomicBool,
+    tick_ms: AtomicU64,
+    base_tick_ms: u64,
+}
+
+impl RuntimeControl {
+    fn new(base_tick_ms: u64) -> Self {
+        Self {
+            paused: AtomicBool::new(false),
+            tick_ms: AtomicU64::new(base_tick_ms),
+            base_tick_ms,
+        }
+    }
+
+    pub fn paused(&self) -> bool {
+        self.paused.load(Ordering::Relaxed)
+    }
+
+    pub fn set_paused(&self, paused: bool) {
+        self.paused.store(paused, Ordering::Relaxed);
+    }
+
+    pub fn tick_ms(&self) -> u64 {
+        self.tick_ms.load(Ordering::Relaxed)
+    }
+
+    pub fn set_speed(&self, multiplier: f64) -> Option<u64> {
+        if !multiplier.is_finite() || !(0.25..=8.0).contains(&multiplier) {
+            return None;
+        }
+        let tick_ms = ((self.base_tick_ms as f64 / multiplier).round() as u64).clamp(16, 5_000);
+        self.tick_ms.store(tick_ms, Ordering::Relaxed);
+        Some(tick_ms)
+    }
+}
+
+pub type SharedRuntimeControl = Arc<RuntimeControl>;
+
+pub(crate) async fn write_final_world_save(
+    sim: SharedSim,
+    save_gate: SaveGate,
+) -> Result<(u64, std::path::PathBuf), String> {
+    // Serialize the snapshot and write as one ordered checkpoint. Taking the
+    // gate first guarantees an older periodic snapshot can never land after a
+    // newer manual or shutdown save.
+    let _save_guard = save_gate.lock().await;
+    let (state, tick, path) = {
+        let s = sim.lock().await;
+        let hash = crate::server::world_store::live_world_hash().unwrap_or_else(|| "_unknown".to_string());
+        (
+            s.to_save_state(),
+            s.tick_count,
+            crate::server::world_store::world_save_path(&hash),
+        )
+    };
+    let path_for_write = path.clone();
+    tokio::task::spawn_blocking(move || {
+        if let Some(parent) = path_for_write.parent() {
+            std::fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+        }
+        let path_str = path_for_write.to_string_lossy().to_string();
+        sim::persistence::write_save_to_disk(&state, &path_str).map_err(|error| error.to_string())
+    })
+    .await
+    .map_err(|error| format!("final save task failed: {error}"))??;
+    Ok((tick, path))
+}
+
 static TICK_MS: std::sync::LazyLock<u64> = std::sync::LazyLock::new(tick_ms);
 static NETWORK_MS: std::sync::LazyLock<u64> = std::sync::LazyLock::new(network_ms);
 // Soft daily egress ceiling. As the rolling-24h byte total approaches it,
@@ -123,6 +272,9 @@ pub struct AppState {
     pub world_store: Option<SharedWorldStore>,
     pub world_started_at: Arc<AtomicU64>,
     pub peak_pop: Arc<AtomicU64>,
+    pub population_limit: Option<usize>,
+    pub runtime_control: SharedRuntimeControl,
+    pub save_gate: SaveGate,
 }
 
 #[tokio::main]
@@ -142,16 +294,25 @@ async fn main() {
         .with_level(true)
         .init();
 
-    let narration_key = (*NARRATION_LLM_KEY).clone();
-    let think_key = (*THINK_LLM_KEY).clone();
+    let llm_disabled = env_flag("THB_LLM_DISABLED");
+    let narration_key = if llm_disabled {
+        String::new()
+    } else {
+        (*NARRATION_LLM_KEY).clone()
+    };
+    let think_key = if llm_disabled {
+        String::new()
+    } else {
+        (*THINK_LLM_KEY).clone()
+    };
     let is_local = |u: &str| u.contains("localhost") || u.contains("127.0.0.1");
-    if narration_key.is_empty() && !is_local(&NARRATION_LLM_URL) {
+    if !llm_disabled && narration_key.is_empty() && !is_local(&NARRATION_LLM_URL) {
         tracing::warn!(
             "no NARRATION_LLM_KEY / LLM_KEY / GROQ_API_KEY set - \
                         remote narration calls will fail"
         );
     }
-    if think_key.is_empty() && !is_local(&THINK_LLM_URL) {
+    if !llm_disabled && think_key.is_empty() && !is_local(&THINK_LLM_URL) {
         tracing::warn!(
             "no THINK_LLM_KEY / LLM_KEY / GROQ_API_KEY set - \
                         remote think calls will fail"
@@ -199,7 +360,13 @@ async fn main() {
     };
     let live_save_path = crate::server::world_store::world_save_path(&live_hash);
     let save_path_str = live_save_path.to_string_lossy().to_string();
-    let sim = Arc::new(Mutex::new(Simulation::load_or_new(fresh_seed, &save_path_str)));
+    let mut loaded_sim = Simulation::load_or_new(fresh_seed, &save_path_str);
+    let population_limit = configured_population_limit().map(|requested| {
+        let applied = loaded_sim.set_population_limit(requested);
+        tracing::info!(target: "world", "population limit: {} (requested {})", applied, requested);
+        applied
+    });
+    let sim = Arc::new(Mutex::new(loaded_sim));
     let world_store: Option<SharedWorldStore> = match crate::server::world_store::WorldStore::open(&live_hash)
     {
         Ok(s) => Some(Arc::new(s)),
@@ -217,6 +384,11 @@ async fn main() {
     let transport_stats: SharedTransportStats = Arc::new(TransportStats::default());
     let llm_stats: llm_stats::SharedLlmStats = Arc::new(llm_stats::LlmStats::default());
     let low_memory_mode = env_flag("THB_LOW_MEMORY");
+    let (shutdown_tx, shutdown_rx) = watch::channel(false);
+    let runtime_control = Arc::new(RuntimeControl::new(*TICK_MS));
+    let save_gate: SaveGate = Arc::new(tokio::sync::Mutex::new(()));
+    let pending_save_task: Arc<std::sync::Mutex<Option<tokio::task::JoinHandle<()>>>> =
+        Arc::new(std::sync::Mutex::new(None));
 
     {
         let mut s = sim.lock().await;
@@ -280,36 +452,43 @@ async fn main() {
     let local_think_limiter = llm_rate::GroqRateLimiter::new(local_think_per_min);
     tracing::info!(target: "think", "local rate limit: {}/min", local_think_per_min);
 
-    {
-        let stories_w = stories.clone();
-        let key = narration_key.clone();
-        let stats = llm_stats.clone();
-        let limiter = groq_limiter.clone();
-        tokio::spawn(narration_worker(narration_rx, stories_w, key, stats, limiter));
-    }
-    {
-        let results_w = think_results.clone();
-        let key = think_key.clone();
-        let stats = llm_stats.clone();
-        let think_limiter = if llm_rate::url_needs_groq_quota(&THINK_LLM_URL) {
-            tracing::info!(target: "groq", "think lane points at Groq - applying shared rate limit");
-            Some(groq_limiter.clone())
-        } else {
-            Some(local_think_limiter.clone())
-        };
-        tokio::spawn(think_worker(think_rx, results_w, key, stats, think_limiter));
-    }
-    {
-        let store_w = convo_store.clone();
-        let key = narration_key.clone();
-        let stats = llm_stats.clone();
-        let limiter = groq_limiter.clone();
-        tokio::spawn(conversation_worker::conversation_worker(
-            convo_rx, store_w, key, stats, limiter,
-        ));
+    if llm_disabled {
+        drop(narration_rx);
+        drop(think_rx);
+        drop(convo_rx);
+        tracing::info!(target: "llm", "LLM workers disabled; simulation will not make AI network calls");
+    } else {
+        {
+            let stories_w = stories.clone();
+            let key = narration_key.clone();
+            let stats = llm_stats.clone();
+            let limiter = groq_limiter.clone();
+            tokio::spawn(narration_worker(narration_rx, stories_w, key, stats, limiter));
+        }
+        {
+            let results_w = think_results.clone();
+            let key = think_key.clone();
+            let stats = llm_stats.clone();
+            let think_limiter = if llm_rate::url_needs_groq_quota(&THINK_LLM_URL) {
+                tracing::info!(target: "groq", "think lane points at Groq - applying shared rate limit");
+                Some(groq_limiter.clone())
+            } else {
+                Some(local_think_limiter.clone())
+            };
+            tokio::spawn(think_worker(think_rx, results_w, key, stats, think_limiter));
+        }
+        {
+            let store_w = convo_store.clone();
+            let key = narration_key.clone();
+            let stats = llm_stats.clone();
+            let limiter = groq_limiter.clone();
+            tokio::spawn(conversation_worker::conversation_worker(
+                convo_rx, store_w, key, stats, limiter,
+            ));
+        }
     }
 
-    {
+    let tick_task = {
         let sim_clone = sim.clone();
         let stories_clone = stories.clone();
         let think_res_clone = think_results.clone();
@@ -320,12 +499,26 @@ async fn main() {
         let transport_stats_s = transport_stats.clone();
         let world_store = world_store.clone();
         let save_in_progress = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let pending_save_task = pending_save_task.clone();
+        let runtime_control = runtime_control.clone();
+        let save_gate = save_gate.clone();
+        let mut shutdown = shutdown_rx.clone();
         let narration_batch_max: usize = std::env::var("NARRATION_BATCH_MAX")
             .ok()
             .and_then(|value| value.parse().ok())
             .unwrap_or(if low_memory_mode { 2 } else { 4 });
         tokio::spawn(async move {
             loop {
+                if *shutdown.borrow() {
+                    break;
+                }
+                if runtime_control.paused() {
+                    if sleep_until_period_end_or_shutdown(std::time::Instant::now(), 50, &mut shutdown).await
+                    {
+                        break;
+                    }
+                    continue;
+                }
                 let tick_started = std::time::Instant::now();
                 let tick_outputs = {
                     let mut s: tokio::sync::MutexGuard<'_, _> = sim_clone.lock().await;
@@ -656,14 +849,10 @@ async fn main() {
                         }
                     }
 
-                    // Snapshot the save state while the lock is held
-                    // (cheap-ish clones); the heavy lifting (serde_json
-                    // + fs::write + fsync) happens on a blocking task so
-                    // the next tick can run during it. Previously this
-                    // blocked the lock for 100-300ms every 600 ticks,
-                    // causing visible tick-rate hitches and freezing
-                    // HTTP routes that share the same mutex.
-                    let pending_save = if s.tick_count % SAVE_EVERY_TICKS == 0
+                    // Reserve one periodic checkpoint. The snapshot itself is
+                    // taken after acquiring the shared save gate below, so an
+                    // older queued save can never overwrite a newer manual one.
+                    let pending_save = s.tick_count % SAVE_EVERY_TICKS == 0
                         && save_in_progress
                             .compare_exchange(
                                 false,
@@ -671,12 +860,7 @@ async fn main() {
                                 std::sync::atomic::Ordering::AcqRel,
                                 std::sync::atomic::Ordering::Relaxed,
                             )
-                            .is_ok()
-                    {
-                        Some(s.to_save_state())
-                    } else {
-                        None
-                    };
+                            .is_ok();
 
                     let pending_thinks = std::mem::take(&mut s.pending_thinks);
                     let pending_convos = std::mem::take(&mut s.pending_convos);
@@ -705,21 +889,38 @@ async fn main() {
                         });
                     }
                 }
-                if let Some(state) = pending_save {
+                if pending_save {
                     let save_in_progress = save_in_progress.clone();
-                    tokio::task::spawn_blocking(move || {
-                        let hash = crate::server::world_store::live_world_hash()
-                            .unwrap_or_else(|| "_unknown".to_string());
-                        let path = crate::server::world_store::world_save_path(&hash);
-                        if let Some(parent) = path.parent() {
-                            let _ = std::fs::create_dir_all(parent);
-                        }
-                        let path_str = path.to_string_lossy().to_string();
-                        if let Err(e) = sim::persistence::write_save_to_disk(&state, &path_str) {
-                            tracing::warn!(target: "save", "failed: {}", e);
+                    let save_gate = save_gate.clone();
+                    let sim_for_save = sim_clone.clone();
+                    let save_task = tokio::spawn(async move {
+                        let _save_guard = save_gate.lock().await;
+                        let state = {
+                            let sim = sim_for_save.lock().await;
+                            sim.to_save_state()
+                        };
+                        let result = tokio::task::spawn_blocking(move || {
+                            let hash = crate::server::world_store::live_world_hash()
+                                .unwrap_or_else(|| "_unknown".to_string());
+                            let path = crate::server::world_store::world_save_path(&hash);
+                            if let Some(parent) = path.parent() {
+                                let _ = std::fs::create_dir_all(parent);
+                            }
+                            let path_str = path.to_string_lossy().to_string();
+                            sim::persistence::write_save_to_disk(&state, &path_str)
+                        })
+                        .await;
+                        match result {
+                            Ok(Ok(())) => {}
+                            Ok(Err(error)) => tracing::warn!(target: "save", "failed: {}", error),
+                            Err(error) => tracing::warn!(target: "save", "task failed: {}", error),
                         }
                         save_in_progress.store(false, std::sync::atomic::Ordering::Release);
                     });
+                    let mut slot = pending_save_task
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner());
+                    *slot = Some(save_task);
                 }
                 let pressure = memory_watch_cl.pressure();
                 let think_budget = match pressure {
@@ -742,11 +943,15 @@ async fn main() {
                 for c in convos_to_send {
                     let _ = convo_tx2.try_send(c);
                 }
-                transport_stats_s.record_sim_tick(tick_started.elapsed().as_millis() as u64, *TICK_MS);
-                sleep_until_period_end(tick_started, *TICK_MS).await;
+                let runtime_tick_ms = runtime_control.tick_ms();
+                transport_stats_s.record_sim_tick(tick_started.elapsed().as_millis() as u64, runtime_tick_ms);
+                if sleep_until_period_end_or_shutdown(tick_started, runtime_tick_ms, &mut shutdown).await {
+                    break;
+                }
             }
-        });
-    }
+            tracing::info!(target: "shutdown", "simulation tick loop stopped");
+        })
+    };
 
     {
         let sim_clone = sim.clone();
@@ -885,10 +1090,12 @@ async fn main() {
     server::world_archive::ensure_worlds_dir();
     let world_started_at = Arc::new(std::sync::atomic::AtomicU64::new(start_ms));
     let peak_pop = Arc::new(std::sync::atomic::AtomicU64::new(0));
-    {
+    if monthly_rollover_enabled() {
         let sim_arch = sim.clone();
         let started_at_arch = world_started_at.clone();
         let peak_arch = peak_pop.clone();
+        let population_limit_arch = population_limit;
+        let save_gate_arch = save_gate.clone();
         tokio::spawn(async move {
             let (mut cur_y, mut cur_m) = server::world_archive::current_year_month_utc();
             loop {
@@ -914,6 +1121,8 @@ async fn main() {
                         started,
                         peak,
                         &active_save_str,
+                        population_limit_arch,
+                        save_gate_arch.clone(),
                     )
                     .await
                     {
@@ -926,10 +1135,13 @@ async fn main() {
                 }
             }
         });
+        tracing::info!(target: "archive", "monthly world rollover enabled");
+    } else {
+        tracing::info!(target: "archive", "monthly world rollover disabled for this profile");
     }
 
     let state = AppState {
-        sim,
+        sim: sim.clone(),
         tx,
         latest_full,
         latest_full_at: latest_full_at.clone(),
@@ -942,6 +1154,9 @@ async fn main() {
         world_store: world_store.clone(),
         world_started_at: world_started_at.clone(),
         peak_pop: peak_pop.clone(),
+        population_limit,
+        runtime_control,
+        save_gate: save_gate.clone(),
     };
 
     let mut app = Router::new()
@@ -963,8 +1178,11 @@ async fn main() {
         .route("/worlds/{hash}/save", get(routes::world_save_handler));
 
     if std::env::var("THB_SANDBOX").ok().as_deref() == Some("1") {
-        app = app.route("/command", post(routes::command_handler));
-        tracing::info!("sandbox enabled: POST /command accepts world-mutation commands");
+        app = app
+            .route("/command", post(routes::command_handler))
+            .route("/runtime", post(routes::runtime_handler))
+            .route("/save", post(routes::save_handler));
+        tracing::info!("sandbox enabled: POST /command, /runtime and /save accept local game controls");
     }
 
     if std::env::var("THB_ADMIN_TOKEN")
@@ -984,7 +1202,13 @@ async fn main() {
         .unwrap_or(8000);
     let addr_owned = format!("{}:{}", bind_host, bind_port);
     let addr: &str = &addr_owned;
-    if *NARRATION_LLM_URL == *THINK_LLM_URL && *NARRATION_LLM_MODEL == *THINK_LLM_MODEL {
+    if llm_disabled {
+        tracing::info!(
+            "simulation-rs listening on {}  tick={}ms  llm=disabled",
+            addr,
+            *TICK_MS
+        );
+    } else if *NARRATION_LLM_URL == *THINK_LLM_URL && *NARRATION_LLM_MODEL == *THINK_LLM_MODEL {
         tracing::info!(
             "simulation-rs listening on {}  tick={}ms  llm={} ({})",
             addr,
@@ -1019,8 +1243,94 @@ async fn main() {
             std::process::exit(1);
         }
     };
-    if let Err(e) = axum::serve(listener, app).await {
-        tracing::error!("axum::serve exited: {}", e);
-        std::process::exit(1);
+    let server_result = {
+        let server = axum::serve(listener, app).into_future();
+        tokio::pin!(server);
+        tokio::select! {
+            result = &mut server => Some(result),
+            reason = shutdown_signal() => {
+                tracing::info!(target: "shutdown", "{} received; stopping simulation", reason);
+                None
+            }
+        }
+    };
+
+    let _ = shutdown_tx.send(true);
+    if let Err(error) = tick_task.await {
+        tracing::warn!(target: "shutdown", "tick task did not stop cleanly: {}", error);
+    }
+
+    let pending_save = {
+        let mut slot = pending_save_task
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        slot.take()
+    };
+    if let Some(task) = pending_save {
+        if let Err(error) = task.await {
+            tracing::warn!(target: "save", "periodic save task failed during shutdown: {}", error);
+        }
+    }
+
+    match write_final_world_save(sim.clone(), save_gate).await {
+        Ok((tick, path)) => {
+            tracing::info!(target: "save", "final world save at tick {} -> {}", tick, path.display());
+        }
+        Err(error) => {
+            tracing::error!(target: "save", "final world save failed: {}", error);
+        }
+    }
+
+    if let Some(Err(error)) = server_result {
+        tracing::error!("axum::serve exited: {}", error);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{monthly_rollover_enabled_for, population_limit_from_env_value, RuntimeControl};
+
+    #[test]
+    fn local_profile_always_disables_monthly_rollover() {
+        assert!(!monthly_rollover_enabled_for(Some("local"), None));
+        assert!(!monthly_rollover_enabled_for(Some("LOCAL"), Some("1")));
+    }
+
+    #[test]
+    fn hosted_rollover_defaults_on_and_honors_explicit_off() {
+        assert!(monthly_rollover_enabled_for(None, None));
+        assert!(monthly_rollover_enabled_for(Some("hosted"), Some("yes")));
+        assert!(!monthly_rollover_enabled_for(Some("hosted"), Some("0")));
+    }
+
+    #[test]
+    fn population_limit_parser_ignores_missing_or_invalid_values() {
+        assert_eq!(population_limit_from_env_value(Some(" 1200 ")), Some(1200));
+        assert_eq!(population_limit_from_env_value(Some("many")), None);
+        assert_eq!(population_limit_from_env_value(None), None);
+    }
+
+    #[test]
+    fn runtime_control_pauses_and_scales_from_configured_speed() {
+        let runtime = RuntimeControl::new(100);
+        assert!(!runtime.paused());
+        assert_eq!(runtime.tick_ms(), 100);
+
+        runtime.set_paused(true);
+        assert!(runtime.paused());
+        assert_eq!(runtime.set_speed(2.0), Some(50));
+        assert_eq!(runtime.tick_ms(), 50);
+
+        runtime.set_paused(false);
+        assert!(!runtime.paused());
+    }
+
+    #[test]
+    fn runtime_control_rejects_unbounded_speeds() {
+        let runtime = RuntimeControl::new(100);
+        assert_eq!(runtime.set_speed(0.0), None);
+        assert_eq!(runtime.set_speed(9.0), None);
+        assert_eq!(runtime.set_speed(f64::NAN), None);
+        assert_eq!(runtime.tick_ms(), 100);
     }
 }

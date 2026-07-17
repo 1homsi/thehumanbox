@@ -1,8 +1,9 @@
 # The Human Box — Client
 
-React/Vite frontend for [The Human Box](https://thehumanbox.com).
-Connects to the simulation server via WebSocket and renders the live
-world.
+React/Vite frontend for [The Human Box](https://thehumanbox.com). New
+web players start with a private simulation that runs and saves in the
+browser. The persistent shared world is available as an opt-in mode in
+Settings and streams from the simulation server over WebSocket.
 
 ## What you're looking at
 
@@ -58,8 +59,10 @@ pnpm install
 pnpm run dev
 ```
 
-Expects the simulation server at `localhost:8000`. See
-[../simulation/](../simulation/) to run it.
+The default private world needs no server. To develop against the
+shared world, start the server at `localhost:8000` (see
+[../simulation/](../simulation/)), then choose **Shared World** in the
+web app's Settings.
 
 ## Environment
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import type { OrgLife, LifeEvent } from '../types'
 import { Modal } from './Modal'
 import { API_BASE } from '../lib/config'
+import { useSimulationData } from '../simulation/simulationData'
 
 const DAY_LENGTH = 600
 
@@ -84,6 +85,7 @@ interface Props {
 }
 
 export function LifeModal({ orgId, orgName, onClose }: Props) {
+  const { apiEnabled, loadLocalOrgLife } = useSimulationData()
   const [life, setLife] = useState<OrgLife | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -91,26 +93,38 @@ export function LifeModal({ orgId, orgName, onClose }: Props) {
   useEffect(() => {
     setLoading(true)
     setError(false)
+    setLife(null)
     // Abort the in-flight fetch when the modal unmounts or orgId
     // changes, so the late .then doesn't flip stale state onto the
     // next-opened modal.
     const ctrl = new AbortController()
-    fetch(`${API_BASE}/org/${orgId}/life`, { signal: ctrl.signal })
-      .then((r) => {
-        if (!r.ok) throw new Error()
-        return r.json()
-      })
-      .then((d: OrgLife) => {
-        setLife(d)
+    let cancelled = false
+    const request = apiEnabled
+      ? fetch(`${API_BASE}/org/${orgId}/life`, { signal: ctrl.signal }).then((r) => {
+          if (!r.ok) throw new Error()
+          return r.json() as Promise<OrgLife>
+        })
+      : loadLocalOrgLife(orgId).then((localLife) => {
+          if (!localLife) throw new Error()
+          return localLife
+        })
+    request
+      .then((result) => {
+        if (cancelled) return
+        setLife(result)
         setLoading(false)
       })
       .catch((e: unknown) => {
+        if (cancelled) return
         if (e instanceof DOMException && e.name === 'AbortError') return
         setError(true)
         setLoading(false)
       })
-    return () => ctrl.abort()
-  }, [orgId])
+    return () => {
+      cancelled = true
+      ctrl.abort()
+    }
+  }, [apiEnabled, loadLocalOrgLife, orgId])
 
   const ageInDays = life ? Math.floor(life.age_ticks / DAY_LENGTH) : 0
 

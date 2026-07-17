@@ -62,6 +62,13 @@ export function AppHeader({ world, connected, fireTiles, sickOrgs }: Props) {
   const setFullscreen = useUIStore((s) => s.setFullscreen)
 
   const moreRef = useRef<HTMLDivElement>(null)
+  const livePopulation = world?.lineage_sizes?.reduce((total, lineage) => total + lineage.count, 0) ?? 0
+  const populationLimit = world?.population_limit
+  const nextPopulationMilestone = [100, 500, 1000, 5000].find(
+    (target) => target > livePopulation && (populationLimit === undefined || target <= populationLimit),
+  )
+  const nearPopulationLimit =
+    populationLimit !== undefined && populationLimit > 0 && livePopulation >= populationLimit * 0.9
 
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
@@ -134,6 +141,16 @@ export function AppHeader({ world, connected, fireTiles, sickOrgs }: Props) {
         )}
       </div>
       <div className="header-badges">
+        {world && livePopulation > 0 && (
+          <Tooltip
+            tip={`${livePopulation.toLocaleString()} people alive${populationLimit ? ` · natural growth capacity ${populationLimit.toLocaleString()}` : ''}${nextPopulationMilestone ? ` · next population milestone ${nextPopulationMilestone.toLocaleString()}` : ''}`}
+          >
+            <span className={clsx('population-badge', nearPopulationLimit && 'near-limit')}>
+              people {livePopulation.toLocaleString()}
+              {populationLimit ? ` / ${populationLimit.toLocaleString()}` : ''}
+            </span>
+          </Tooltip>
+        )}
         {world && (
           <Tooltip
             tip={`${world.is_day ? 'Daytime' : 'Nighttime'} - day progress ${Math.round((world.day_progress ?? 0) * 100)}%`}

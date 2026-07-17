@@ -385,6 +385,21 @@ body.thb-photo-mode .headline-ticker {
   border-radius: 4px;
 }
 
+.population-badge {
+  font-size: 11px;
+  color: #b8d6a1;
+  padding: 2px 7px;
+  background: #182218;
+  border: 1px solid #2f442e;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.population-badge.near-limit {
+  color: #f0c860;
+  background: #2a2110;
+  border-color: #665128;
+}
+
 .season-badge {
   font-size: 11px;
   padding: 2px 8px;
@@ -2565,6 +2580,28 @@ body.thb-photo-mode .header:hover {
 .desktop-toggle-row input {
   flex: 0 0 auto;
   margin-top: 1px;
+}
+.desktop-cap-presets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 7px;
+}
+.desktop-cap-presets button {
+  border: 1px solid #443329;
+  border-radius: 3px;
+  background: #1c1612;
+  color: #8f8276;
+  padding: 5px 4px;
+  font: inherit;
+  font-size: 9px;
+  cursor: pointer;
+}
+.desktop-cap-presets button:hover,
+.desktop-cap-presets button.active {
+  border-color: #927047;
+  color: #f0d088;
+  background: #33271d;
 }
 .stats-quick {
   gap: 8px;
@@ -4794,4 +4831,39 @@ body.thb-colorblind .org-sick-badge {
   text-align: center;
   pointer-events: none;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+.sandbox-save {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 22px;
+  padding: 3px 7px;
+  border: 1px solid #3a2e25;
+  border-radius: 6px;
+  background: rgba(20, 18, 14, 0.94);
+  color: #8fbaa0;
+  font-size: 9px;
+  pointer-events: auto;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+.sandbox-save.error {
+  color: #e08070;
+  border-color: rgba(224, 112, 112, 0.35);
+}
+.sandbox-save button {
+  padding: 3px 7px;
+  border: 1px solid #5e4a34;
+  border-radius: 4px;
+  background: #2a2218;
+  color: #e7d8bc;
+  font: inherit;
+  cursor: pointer;
+}
+.sandbox-save button:hover:not(:disabled) {
+  border-color: #8a6a3e;
+  color: #f0d088;
+}
+.sandbox-save button:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
