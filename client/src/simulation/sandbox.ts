@@ -8,6 +8,14 @@ export type SandboxCommand =
   | { cmd: 'drought'; active: boolean }
   | { cmd: 'outbreak'; count?: number }
   | { cmd: 'spawn_animal'; x: number; y: number; kind?: string }
+  | {
+      cmd: 'guide'
+      lineage: string
+      strategy: LineageStrategy
+      duration_ticks?: number
+    }
+
+export type LineageStrategy = 'hunt' | 'explore' | 'settle' | 'trade' | 'defend'
 
 /**
  * Command permission belongs at the transport boundary, not just the toolbar.

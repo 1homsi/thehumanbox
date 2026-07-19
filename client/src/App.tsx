@@ -1,10 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from 'react'
 import { lazyWithRetry } from './utils/lazyWithRetry'
 import { useSimulation } from './simulation/useSimulation'
-import { getWorldSource, shouldShowIdleResume, shouldUseSimulationApi } from './simulation/worldSource'
+import {
+  getWorldSource,
+  reloadAppSafely,
+  resolvePlayerWorldKind,
+  shouldShowIdleResume,
+  shouldUseSimulationApi,
+} from './simulation/worldSource'
 import { SimulationDataProvider } from './simulation/SimulationDataProvider'
 import { SandboxToolbar } from './components/SandboxToolbar'
-import type { SandboxTool } from './simulation/sandbox'
+import type { LineageStrategy, SandboxTool } from './simulation/sandbox'
 import { IdleResumeOverlay } from './components/IdleResumeOverlay'
 import { DesktopDownloadToast } from './components/DesktopDownloadToast'
 import { CommandPalette } from './components/CommandPalette'
@@ -13,6 +19,12 @@ import { trackEvent } from './lib/observability'
 import { useUIStore } from './stores/store'
 import { IS_LOCAL_SERVER, WS_BASE } from './lib/config'
 import { getDesktop, type SimMode } from './lib/desktop'
+import {
+  DESKTOP_PAUSE_WHEN_HIDDEN_EVENT,
+  isDesktopWindowInactive,
+  parsePauseWhenHiddenPreference,
+  shouldPauseDesktopRenderer,
+} from './lib/desktopVisibility'
 
 const WS_HOST = WS_BASE.replace(/^wss?:\/\//, '')
 import { WorldView } from './2d/world/WorldView'
@@ -64,6 +76,10 @@ function LiveApp() {
   const worldSourceRef = useRef(getWorldSource())
   const desktop = getDesktop()
   const isLocalWebWorld = !desktop && worldSourceRef.current === 'wasm'
+  const [desktopMode, setDesktopMode] = useState<SimMode | null>(desktop ? null : 'local')
+  const [desktopPauseWhenHidden, setDesktopPauseWhenHidden] = useState(true)
+  const [desktopRendererPaused, setDesktopRendererPaused] = useState(false)
+  const desktopWindowInactiveRef = useRef(false)
   const {
     world,
     connected,
@@ -76,24 +92,30 @@ function LiveApp() {
     sendCommand,
     pauseSim,
     setSpeed,
+    runtimeState,
     fellBackToLocal,
     localSaveStatus,
     saveLocalWorld,
     loadLocalOrgDetail,
     loadLocalOrgLife,
   } = useSimulation(worldSourceRef.current)
-  const isLocalRuntime = isLocalWebWorld || fellBackToLocal || IS_LOCAL_SERVER
+  const playerWorldKind = resolvePlayerWorldKind(worldSourceRef.current, {
+    desktop: !!desktop,
+    desktopMode,
+    localServer: IS_LOCAL_SERVER,
+    fellBackToLocal,
+  })
+  const isLocalRuntime = playerWorldKind === 'local'
   const simulationApiEnabled = shouldUseSimulationApi(worldSourceRef.current) && !fellBackToLocal
   const simulationData = useMemo(
-    () => ({ apiEnabled: simulationApiEnabled, loadLocalOrgDetail, loadLocalOrgLife }),
-    [loadLocalOrgDetail, loadLocalOrgLife, simulationApiEnabled],
+    () => ({ apiEnabled: simulationApiEnabled, playerWorldKind, loadLocalOrgDetail, loadLocalOrgLife }),
+    [loadLocalOrgDetail, loadLocalOrgLife, playerWorldKind, simulationApiEnabled],
   )
   const currentScene = useCurrentScene()
 
   const [armedTool, setArmedTool] = useState<SandboxTool | null>(null)
   const [brush, setBrush] = useState(2)
   const [sandboxStatus, setSandboxStatus] = useState<string | null>(null)
-  const [desktopMode, setDesktopMode] = useState<SimMode | null>(desktop ? null : 'local')
   const sandboxStatusTimer = useRef<number | null>(null)
   const sandboxControlsEnabled = sandboxAvailable && (!desktop || desktopMode === 'local')
 
@@ -120,11 +142,28 @@ function LiveApp() {
   useEffect(() => {
     if (!desktop) return
     let alive = true
-    void desktop.settings.get().then((settings) => {
-      if (alive) setDesktopMode(settings.mode)
-    })
+    let settingsRevision = 0
+    const applyInitialSettings = (settings: { mode: SimMode; pauseWhenHidden: boolean }) => {
+      if (!alive) return
+      setDesktopMode(settings.mode)
+      setDesktopPauseWhenHidden(settings.pauseWhenHidden)
+    }
+    void desktop.settings
+      .get()
+      .then((settings) => {
+        if (settingsRevision === 0) applyInitialSettings(settings)
+      })
+      .catch(() => undefined)
+    const onPreferenceChange = (event: Event) => {
+      const next = parsePauseWhenHiddenPreference((event as CustomEvent<unknown>).detail)
+      if (next === null) return
+      settingsRevision += 1
+      if (alive) setDesktopPauseWhenHidden(next)
+    }
+    window.addEventListener(DESKTOP_PAUSE_WHEN_HIDDEN_EVENT, onPreferenceChange)
     return () => {
       alive = false
+      window.removeEventListener(DESKTOP_PAUSE_WHEN_HIDDEN_EVENT, onPreferenceChange)
     }
   }, [desktop])
 
@@ -140,10 +179,17 @@ function LiveApp() {
         setSandboxStatus(`${tool.label}...`)
         let handled = true
         if (tool.time) {
-          if (tool.time.control === 'pause') pauseSim()
-          else if (tool.time.control === 'resume') resume()
-          else if (tool.time.control === 'speed' && tool.time.mult) setSpeed(tool.time.mult)
-          setTemporarySandboxStatus(`${tool.label} applied`)
+          const result =
+            tool.time.control === 'pause'
+              ? pauseSim()
+              : tool.time.control === 'resume'
+                ? resume()
+                : tool.time.control === 'speed' && tool.time.mult
+                  ? setSpeed(tool.time.mult)
+                  : Promise.resolve(false)
+          void result.then((ok) =>
+            setTemporarySandboxStatus(ok ? `${tool.label} applied` : `${tool.label} failed`),
+          )
         } else if (tool.fire) {
           void sendCommand(tool.fire).then((ok) =>
             setTemporarySandboxStatus(ok ? `${tool.label} applied` : `${tool.label} failed`),
@@ -179,6 +225,21 @@ function LiveApp() {
       })
     },
     [armedTool, brush, sandboxControlsEnabled, sendCommand, setTemporarySandboxStatus],
+  )
+
+  const guideLineage = useCallback(
+    async (lineage: string, strategy: LineageStrategy) => {
+      if (!sandboxControlsEnabled) return false
+      const ok = await sendCommand({
+        cmd: 'guide',
+        lineage,
+        strategy,
+        duration_ticks: 7200,
+      })
+      setTemporarySandboxStatus(ok ? `${strategy} guidance set` : 'guidance failed')
+      return ok
+    },
+    [sandboxControlsEnabled, sendCommand, setTemporarySandboxStatus],
   )
 
   const [threeDIssue, setThreeDIssue] = useState<'crash' | 'unsupported' | 'context' | null>(null)
@@ -219,17 +280,22 @@ function LiveApp() {
   }, [openDesktopSettings])
 
   useEffect(() => {
-    const desk = window.thbDesktop
-    if (!desk) return
-    return desk.on('app:visibility', (payload) => {
-      const v = payload as unknown as string
-      if (v === 'minimized') {
-        document.body.classList.add('thb-app-minimized')
-      } else {
-        document.body.classList.remove('thb-app-minimized')
-      }
-    })
-  }, [])
+    if (!desktop) return
+    const applyVisibility = (visibility: 'minimized' | 'hidden' | 'restored') => {
+      desktopWindowInactiveRef.current = isDesktopWindowInactive(visibility)
+      const paused = shouldPauseDesktopRenderer(desktopPauseWhenHidden, visibility)
+      setDesktopRendererPaused(paused)
+      document.body.classList.toggle('thb-app-minimized', paused)
+    }
+    const currentVisibility =
+      desktopWindowInactiveRef.current || document.visibilityState === 'hidden' ? 'hidden' : 'restored'
+    applyVisibility(currentVisibility)
+    const stopListening = desktop.on('app:visibility', applyVisibility)
+    return () => {
+      stopListening()
+      document.body.classList.remove('thb-app-minimized')
+    }
+  }, [desktop, desktopPauseWhenHidden])
 
   useEffect(() => {
     function onKey(e: KeyboardEvent): void {
@@ -275,7 +341,7 @@ function LiveApp() {
     if (!newest || typeof newest.tick !== 'number') return
     if (newest.tick <= lastHeadlineTickRef.current) return
     lastHeadlineTickRef.current = newest.tick
-    if (document.visibilityState !== 'visible' || document.body.classList.contains('thb-app-minimized')) {
+    if (document.visibilityState !== 'visible' || desktopWindowInactiveRef.current) {
       void desk.app.notify({ title: 'The Human Box', body: newest.text })
     }
   }, [world?.headlines])
@@ -379,7 +445,7 @@ function LiveApp() {
         {fellBackToLocal && (
           <div className="fallback-banner">
             ⚠ The shared Human Box is unreachable — running a local world in your browser.{' '}
-            <button onClick={() => window.location.reload()}>retry live</button>
+            <button onClick={() => reloadAppSafely()}>retry live</button>
           </div>
         )}
 
@@ -395,7 +461,9 @@ function LiveApp() {
           </div>
         )}
 
-        {shouldShowIdleResume(idleParked, isLocalRuntime) && <IdleResumeOverlay onResume={resume} />}
+        {shouldShowIdleResume(idleParked, isLocalRuntime) && (
+          <IdleResumeOverlay onResume={() => void resume()} />
+        )}
         <DesktopDownloadToast />
         <CommandPalette />
 
@@ -424,6 +492,7 @@ function LiveApp() {
                     <WorldView3D
                       world={world}
                       hideUI={viewFlags.hideUI}
+                      rendererPaused={desktopRendererPaused}
                       sandboxArmed={sandboxControlsEnabled && !!armedTool}
                       onSandboxApply={handleSandboxApply}
                       onContextLost={() => handleThreeDFailure('context')}
@@ -434,6 +503,7 @@ function LiveApp() {
                 <WorldView
                   world={world}
                   interp={interp}
+                  rendererPaused={desktopRendererPaused}
                   sandboxArmed={sandboxControlsEnabled && !!armedTool}
                   onSandboxApply={handleSandboxApply}
                 />
@@ -445,7 +515,7 @@ function LiveApp() {
             <div className="waiting">
               <div className="waiting-spinner" aria-hidden="true" />
               <div className="waiting-title">
-                {isLocalWebWorld
+                {playerWorldKind === 'local'
                   ? 'starting your world…'
                   : status === 'unreachable'
                     ? 'simulation server unreachable'
@@ -454,8 +524,8 @@ function LiveApp() {
                       : 'connecting…'}
               </div>
               <div className="waiting-sub">
-                {isLocalWebWorld
-                  ? 'loading the private simulation on this device — no server connection needed'
+                {playerWorldKind === 'local'
+                  ? 'loading your private simulation on this device — no Shared World connection needed'
                   : status === 'unreachable'
                     ? `tried ${failedAttempts} times. waiting for ${WS_HOST} to come back online - retries continue automatically.`
                     : status === 'reconnecting'
@@ -472,6 +542,8 @@ function LiveApp() {
             armedToolLabel={armedTool?.label ?? null}
             brush={brush}
             status={sandboxStatus}
+            runtimePaused={runtimeState.paused}
+            runtimeSpeed={runtimeState.speed}
             onBrush={setBrush}
             onPick={onPickTool}
             onClearArmed={() => {
@@ -483,27 +555,40 @@ function LiveApp() {
                 ? () => void saveLocalWorld()
                 : undefined
             }
-            saveBusy={localSaveStatus.phase === 'loading' || localSaveStatus.phase === 'saving'}
+            saveBusy={
+              localSaveStatus.phase === 'loading' ||
+              localSaveStatus.phase === 'retrying' ||
+              localSaveStatus.phase === 'saving'
+            }
             saveError={localSaveStatus.phase === 'error'}
+            saveRetryable={localSaveStatus.phase === 'error' && localSaveStatus.retryable === true}
             saveStatus={
               localSaveStatus.phase === 'loading'
                 ? 'loading local save…'
-                : localSaveStatus.phase === 'ready'
-                  ? localSaveStatus.restored
-                    ? `world restored at tick ${localSaveStatus.tick.toLocaleString()}`
-                    : 'new local world ready'
-                  : localSaveStatus.phase === 'saving'
-                    ? `saving tick ${localSaveStatus.tick.toLocaleString()}…`
-                    : localSaveStatus.phase === 'saved'
-                      ? `saved locally · tick ${localSaveStatus.tick.toLocaleString()}`
-                      : localSaveStatus.phase === 'error'
-                        ? localSaveStatus.message
-                        : undefined
+                : localSaveStatus.phase === 'retrying'
+                  ? 'retrying local storage…'
+                  : localSaveStatus.phase === 'ready'
+                    ? localSaveStatus.restored
+                      ? `world restored at tick ${localSaveStatus.tick.toLocaleString()}`
+                      : 'new local world ready'
+                    : localSaveStatus.phase === 'saving'
+                      ? `saving tick ${localSaveStatus.tick.toLocaleString()}…`
+                      : localSaveStatus.phase === 'saved'
+                        ? `saved locally · tick ${localSaveStatus.tick.toLocaleString()}`
+                        : localSaveStatus.phase === 'error'
+                          ? localSaveStatus.message
+                          : undefined
             }
           />
         )}
 
-        {world && <ModalRouter world={world} lineages={lineages} />}
+        {world && (
+          <ModalRouter
+            world={world}
+            lineages={lineages}
+            onGuide={sandboxControlsEnabled ? guideLineage : undefined}
+          />
+        )}
 
         {world && <Try3DToast />}
         <MobileBanner />

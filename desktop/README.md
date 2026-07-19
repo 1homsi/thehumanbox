@@ -72,12 +72,19 @@ Model providers supported: `groq`, `openai`, `anthropic`, `ollama`, `llama-cpp`,
 
 When running in local mode, the Past Worlds modal shows a "↓ copy local" button on each remote archive. Clicking it:
 
-1. Hits `GET /worlds/<hash>/save` on the remote (returns the world.save JSON for that archived world).
-2. Writes it to `<userData>/worlds/<hash>/world.save` on the local machine.
-3. Updates `<userData>/worlds/_live` to point at the imported hash.
-4. Switches mode to local if it wasn't already, restarts the sim, reloads the window at the local ephemeral port.
+1. Streams `GET /worlds/<hash>/save` with a timeout and 256 MiB hard limit.
+2. Validates the JSON schema, version, seed, tick, entities, and complete terrain before stopping the active world.
+3. Checkpoints the current world, stages the import under a unique name, and atomically switches `worlds/_live`.
+4. Switches to local mode and restarts. Any failure rolls the marker and settings back; the validated download remains preserved for recovery.
 
 The forked world is now yours to evolve — the original archive on thehumanbox.com is untouched.
+
+Save-folder changes use the same safety model: checkpoint, take exclusive
+ownership of both folders, copy into staging, switch only after the copy is
+complete, and retain the old folder as a rollback backup. The desktop also
+offers a portable world export and a confirmed “start new world” flow that
+archives the old world instead of deleting it. Atomic data-root and PID records
+prevent two app processes from writing the same local world.
 
 ## Code signing
 

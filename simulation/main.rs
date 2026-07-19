@@ -78,6 +78,128 @@ fn env_flag(name: &str) -> bool {
         .unwrap_or(false)
 }
 
+fn write_desktop_record_atomically(
+    path: &std::path::Path,
+    value: &serde_json::Value,
+    token: &str,
+    child_pid: u32,
+) -> Result<(), String> {
+    use std::io::Write;
+
+    let parent = path
+        .parent()
+        .ok_or_else(|| format!("{} has no parent folder", path.display()))?;
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or_else(|| format!("{} has no valid file name", path.display()))?;
+    let temp = parent.join(format!(".{file_name}.{token}.{child_pid}.tmp"));
+    let bytes = serde_json::to_vec(value).map_err(|error| error.to_string())?;
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&temp)
+        .map_err(|error| format!("could not create {}: {error}", temp.display()))?;
+    if let Err(error) = file.write_all(&bytes).and_then(|_| file.sync_all()) {
+        let _ = std::fs::remove_file(&temp);
+        return Err(format!("could not persist {}: {error}", temp.display()));
+    }
+    drop(file);
+
+    let target_matches = || {
+        std::fs::read(path)
+            .ok()
+            .and_then(|raw| serde_json::from_slice::<serde_json::Value>(&raw).ok())
+            .as_ref()
+            == Some(value)
+    };
+    if path.exists() {
+        if target_matches() {
+            let _ = std::fs::remove_file(&temp);
+            return Ok(());
+        }
+        let _ = std::fs::remove_file(&temp);
+        return Err(format!("{} is owned by another process", path.display()));
+    }
+    if let Err(error) = std::fs::rename(&temp, path) {
+        if target_matches() {
+            let _ = std::fs::remove_file(&temp);
+            return Ok(());
+        }
+        let _ = std::fs::remove_file(&temp);
+        return Err(format!("could not activate {}: {error}", path.display()));
+    }
+    if let Ok(directory) = std::fs::File::open(parent) {
+        let _ = directory.sync_all();
+    }
+    Ok(())
+}
+
+fn claim_desktop_data_lock_at(
+    root: &std::path::Path,
+    token: &str,
+    parent_pid: u32,
+    child_pid: u32,
+    port: u16,
+) -> Result<(), String> {
+    if token.is_empty()
+        || token.len() > 128
+        || !token
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_')
+    {
+        return Err("desktop data-lock token is invalid".to_string());
+    }
+    let lock_dir = root.join(".thehumanbox-data.lock");
+    let owner_path = lock_dir.join("owner.json");
+    let owner: serde_json::Value = serde_json::from_slice(
+        &std::fs::read(&owner_path)
+            .map_err(|error| format!("could not read {}: {error}", owner_path.display()))?,
+    )
+    .map_err(|error| format!("could not decode {}: {error}", owner_path.display()))?;
+    if owner.get("token").and_then(serde_json::Value::as_str) != Some(token)
+        || owner.get("pid").and_then(serde_json::Value::as_u64) != Some(u64::from(parent_pid))
+    {
+        return Err("desktop data lock changed before the simulation child claimed it".to_string());
+    }
+
+    // The pid record is durable before child.json announces adoption. A new
+    // desktop can therefore either wait for the short unclaimed-launch grace
+    // period or find and terminate this exact orphan before opening the world.
+    let pid_record = serde_json::json!({
+        "pid": child_pid,
+        "port": port,
+        "token": token,
+    });
+    write_desktop_record_atomically(&root.join("sim.pid"), &pid_record, token, child_pid)?;
+    let claimed_at = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis();
+    let child_record = serde_json::json!({
+        "pid": child_pid,
+        "token": token,
+        "claimedAt": claimed_at,
+    });
+    write_desktop_record_atomically(&lock_dir.join("child.json"), &child_record, token, child_pid)
+}
+
+fn claim_desktop_data_lock_from_env() -> Result<(), String> {
+    let Ok(token) = std::env::var("THB_DATA_LOCK_TOKEN") else {
+        return Ok(());
+    };
+    let parent_pid = std::env::var("THB_DESKTOP_PARENT_PID")
+        .map_err(|_| "THB_DESKTOP_PARENT_PID is required with a data-lock token".to_string())?
+        .parse::<u32>()
+        .map_err(|_| "THB_DESKTOP_PARENT_PID is invalid".to_string())?;
+    let port = std::env::var("PORT")
+        .map_err(|_| "PORT is required with a data-lock token".to_string())?
+        .parse::<u16>()
+        .map_err(|_| "PORT is invalid".to_string())?;
+    let root = std::env::current_dir().map_err(|error| error.to_string())?;
+    claim_desktop_data_lock_at(&root, &token, parent_pid, std::process::id(), port)
+}
+
 fn parse_env_switch(value: &str, default: bool) -> bool {
     match value.trim().to_ascii_lowercase().as_str() {
         "1" | "true" | "yes" | "on" => true,
@@ -184,6 +306,10 @@ impl RuntimeControl {
         self.tick_ms.load(Ordering::Relaxed)
     }
 
+    pub fn speed(&self) -> f64 {
+        self.base_tick_ms as f64 / self.tick_ms() as f64
+    }
+
     pub fn set_speed(&self, multiplier: f64) -> Option<u64> {
         if !multiplier.is_finite() || !(0.25..=8.0).contains(&multiplier) {
             return None;
@@ -279,6 +405,10 @@ pub struct AppState {
 
 #[tokio::main]
 async fn main() {
+    if let Err(error) = claim_desktop_data_lock_from_env() {
+        eprintln!("simulation-rs refused desktop data ownership: {error}");
+        std::process::exit(1);
+    }
     dotenvy::dotenv().ok();
 
     // Tracing init. RUST_LOG drives the filter; default to `info` so
@@ -568,6 +698,7 @@ async fn main() {
                                 if let Some(disc) = &r.new_discovery {
                                     if !org.discoveries.contains(disc) {
                                         org.discoveries.insert(disc.clone());
+                                        org.last_invention_tick = tick;
                                         org.log_life(
                                             tick,
                                             "discovery",
@@ -1180,9 +1311,14 @@ async fn main() {
     if std::env::var("THB_SANDBOX").ok().as_deref() == Some("1") {
         app = app
             .route("/command", post(routes::command_handler))
-            .route("/runtime", post(routes::runtime_handler))
+            .route(
+                "/runtime",
+                get(routes::runtime_status_handler).post(routes::runtime_handler),
+            )
             .route("/save", post(routes::save_handler));
-        tracing::info!("sandbox enabled: POST /command, /runtime and /save accept local game controls");
+        tracing::info!(
+            "sandbox enabled: local game controls expose POST /command, GET/POST /runtime, and POST /save"
+        );
     }
 
     if std::env::var("THB_ADMIN_TOKEN")
@@ -1288,7 +1424,70 @@ async fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::{monthly_rollover_enabled_for, population_limit_from_env_value, RuntimeControl};
+    use super::{
+        claim_desktop_data_lock_at, monthly_rollover_enabled_for, population_limit_from_env_value,
+        RuntimeControl,
+    };
+
+    fn temporary_lock_root(label: &str) -> std::path::PathBuf {
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        std::env::temp_dir().join(format!("thehumanbox-{label}-{}-{unique}", std::process::id()))
+    }
+
+    #[test]
+    fn desktop_child_claims_lock_and_pid_before_world_startup() {
+        let root = temporary_lock_root("child-lock");
+        let lock_dir = root.join(".thehumanbox-data.lock");
+        std::fs::create_dir_all(&lock_dir).unwrap();
+        std::fs::write(
+            lock_dir.join("owner.json"),
+            serde_json::json!({
+                "pid": 41,
+                "token": "test-token",
+                "acquiredAt": 1,
+            })
+            .to_string(),
+        )
+        .unwrap();
+
+        claim_desktop_data_lock_at(&root, "test-token", 41, 42, 4321).unwrap();
+
+        let pid: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(root.join("sim.pid")).unwrap()).unwrap();
+        let child: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(lock_dir.join("child.json")).unwrap()).unwrap();
+        assert_eq!(pid["pid"], 42);
+        assert_eq!(pid["port"], 4321);
+        assert_eq!(pid["token"], "test-token");
+        assert_eq!(child["pid"], 42);
+        assert_eq!(child["token"], "test-token");
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn desktop_child_refuses_a_replaced_lock_token() {
+        let root = temporary_lock_root("child-lock-mismatch");
+        let lock_dir = root.join(".thehumanbox-data.lock");
+        std::fs::create_dir_all(&lock_dir).unwrap();
+        std::fs::write(
+            lock_dir.join("owner.json"),
+            serde_json::json!({
+                "pid": 41,
+                "token": "new-owner",
+                "acquiredAt": 1,
+            })
+            .to_string(),
+        )
+        .unwrap();
+
+        assert!(claim_desktop_data_lock_at(&root, "old-owner", 41, 42, 4321).is_err());
+        assert!(!root.join("sim.pid").exists());
+        assert!(!lock_dir.join("child.json").exists());
+        std::fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn local_profile_always_disables_monthly_rollover() {
@@ -1320,6 +1519,7 @@ mod tests {
         assert!(runtime.paused());
         assert_eq!(runtime.set_speed(2.0), Some(50));
         assert_eq!(runtime.tick_ms(), 50);
+        assert!((runtime.speed() - 2.0).abs() < f64::EPSILON);
 
         runtime.set_paused(false);
         assert!(!runtime.paused());

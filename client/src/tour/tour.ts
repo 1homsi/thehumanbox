@@ -1,7 +1,8 @@
 import Shepherd from 'shepherd.js'
 import 'shepherd.js/dist/css/shepherd.css'
 import { trackEvent } from '../lib/observability'
-import { getWorldSource } from '../simulation/worldSource'
+import type { PlayerWorldKind } from '../simulation/worldSource'
+import { tourWorldCopy } from '../simulation/playerWorldCopy'
 
 const TOUR_KEY = 'thb-tour-completed-v1'
 
@@ -37,15 +38,13 @@ interface StepDef {
   on?: 'top' | 'bottom' | 'left' | 'right' | 'auto'
 }
 
-function tourSteps(): StepDef[] {
-  const local = getWorldSource() === 'wasm'
+function tourSteps(worldKind: PlayerWorldKind): StepDef[] {
+  const worldCopy = tourWorldCopy(worldKind)
   return [
     {
       selector: '.header h1',
       title: 'Welcome to The Human Box',
-      text: local
-        ? 'This is your private living world. Watch hundreds of tiny humans build a civilisation, or use the game controls to shape what happens.'
-        : 'This is the shared living simulation. Hundreds of tiny humans are born, learn, build, fight, pray, and die in real time.',
+      text: worldCopy.opening,
       on: 'bottom',
     },
     {
@@ -119,9 +118,7 @@ function tourSteps(): StepDef[] {
     {
       selector: '.header h1',
       title: 'That’s it - have fun',
-      text: local
-        ? 'Your world is saved on this device. Open Settings whenever you want to reset it or switch to the persistent Shared World.'
-        : 'The Shared World keeps running online when you close the tab. Choose My World in Settings whenever you want a private game of your own.',
+      text: worldCopy.closing,
       on: 'bottom',
     },
   ]
@@ -151,7 +148,7 @@ function selectorPresent(sel: string): boolean {
   }
 }
 
-export function startTour() {
+export function startTour(worldKind: PlayerWorldKind = 'shared') {
   if (!isTourSupported()) {
     markSeen()
     return null
@@ -161,7 +158,7 @@ export function startTour() {
     activeTour.complete()
     activeTour = null
   }
-  const liveSteps = tourSteps().filter((s) => !s.selector || selectorPresent(s.selector))
+  const liveSteps = tourSteps(worldKind).filter((s) => !s.selector || selectorPresent(s.selector))
   if (liveSteps.length === 0) {
     markSeen()
     return null

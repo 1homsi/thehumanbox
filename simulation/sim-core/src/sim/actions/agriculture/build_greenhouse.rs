@@ -1,12 +1,17 @@
+use super::super::construction::{start_project, ProjectSpec};
 use super::super::ctx::ActionCtx;
+use crate::sim::tech::buildings::BuildingKind;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if ctx.org().inv_wood == 0 || !ctx.rock_near {
+    if !ctx.rock_near {
         return 0.0;
     }
-    ctx.org_mut().inv_wood -= 1;
-    ctx.think("building a greenhouse");
-    ctx.discover("greenhouse", "constructed the first greenhouse");
-    ctx.event("build", "built a greenhouse for year-round growing");
-    0.015
+    start_project(
+        ctx,
+        ProjectSpec {
+            kind: BuildingKind::Greenhouse,
+            thought: "building a greenhouse",
+            reward: 0.015,
+        },
+    )
 }

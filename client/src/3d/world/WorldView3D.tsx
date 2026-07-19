@@ -72,6 +72,7 @@ import { TILE_SCALE } from './parts/constants'
 import { heightAtWorld, heightAt } from './parts/terrain-utils'
 import { getOrgHeading, getOrgXY } from './parts/motion-state'
 import { cameraCommand, type CameraLookAt, type CameraTeleport } from './parts/camera-state'
+import { threeFrameLoopForPause } from '../../lib/desktopVisibility'
 
 type MoveKeys = 'forward' | 'back' | 'left' | 'right' | 'up' | 'down' | 'boost'
 
@@ -341,6 +342,7 @@ interface Props {
   // Kept on the prop interface for API stability; intentionally
   // ignored here.
   hideUI?: boolean
+  rendererPaused?: boolean
   sandboxArmed?: boolean
   onSandboxApply?: (worldX: number, worldY: number) => void
   onContextLost?: () => void
@@ -348,7 +350,13 @@ interface Props {
 
 const SEL_LS_KEY = 'thb-3d-sel-v1'
 
-export default function WorldView3D({ world, sandboxArmed, onSandboxApply, onContextLost }: Props) {
+export default function WorldView3D({
+  world,
+  rendererPaused = false,
+  sandboxArmed,
+  onSandboxApply,
+  onContextLost,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const contextLostRef = useRef(onContextLost)
   contextLostRef.current = onContextLost
@@ -640,6 +648,7 @@ export default function WorldView3D({ world, sandboxArmed, onSandboxApply, onCon
     >
       <KeyboardControls map={KEY_MAP}>
         <Canvas
+          frameloop={threeFrameLoopForPause(rendererPaused)}
           camera={{ position: [cx - 80, 95, cz + 220], fov: 58, near: 0.5, far: 4000 }}
           shadows={LOW_PERF ? false : { type: PCFSoftShadowMap }}
           dpr={LOW_PERF ? [1, 1.5] : [1, 2]}
@@ -894,7 +903,13 @@ export default function WorldView3D({ world, sandboxArmed, onSandboxApply, onCon
                   width={grid.width}
                   height={grid.height}
                 />
-                <Farms3D buildings={world.buildings} depthMap={grid.depth_map} biomes={grid.biomes} />
+                <Farms3D
+                  buildings={world.buildings}
+                  farms={world.farms}
+                  tick={world.tick}
+                  depthMap={grid.depth_map}
+                  biomes={grid.biomes}
+                />
                 <WatchtowerBeams
                   buildings={world.buildings}
                   depthMap={grid.depth_map}

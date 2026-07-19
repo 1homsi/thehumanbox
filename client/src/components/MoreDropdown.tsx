@@ -2,7 +2,9 @@ import clsx from 'clsx'
 import { useUIStore, useViewFlag } from '../stores/store'
 import { startTour, isTourSupported } from '../tour/tour'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { useSimulationData } from '../simulation/simulationData'
 import { Tooltip } from './Tooltip'
+import { reloadAppSafely } from '../simulation/worldSource'
 
 function readLowPerf(): boolean {
   try {
@@ -13,14 +15,25 @@ function readLowPerf(): boolean {
 }
 
 function toggleLowPerf() {
+  let wasLowPerf = false
   try {
-    const cur = readLowPerf()
-    if (cur) window.localStorage.removeItem('thb-perf')
+    wasLowPerf = readLowPerf()
+    if (wasLowPerf) window.localStorage.removeItem('thb-perf')
     else window.localStorage.setItem('thb-perf', 'low')
   } catch {
     return
   }
-  window.location.reload()
+  reloadAppSafely({
+    onFailure: () => {
+      try {
+        if (wasLowPerf) window.localStorage.setItem('thb-perf', 'low')
+        else window.localStorage.removeItem('thb-perf')
+      } catch {
+        /* keep the current renderer mode if storage became unavailable */
+      }
+    },
+    failureMessage: 'could not checkpoint the current world; performance-mode refresh was cancelled safely',
+  })
 }
 
 export function MoreDropdown() {
@@ -40,6 +53,7 @@ export function MoreDropdown() {
   const setNerdStats = useUIStore((s) => s.setNerdStats)
   const isMobile = useIsMobile()
   const tourAvailable = !isMobile && isTourSupported()
+  const { playerWorldKind } = useSimulationData()
 
   const territory = useViewFlag('territory')
   const names = useViewFlag('names')
@@ -458,7 +472,7 @@ export function MoreDropdown() {
               className="lang-btn"
               onClick={() => {
                 closeMore()
-                startTour()
+                startTour(playerWorldKind)
               }}
             >
               🎓 tour

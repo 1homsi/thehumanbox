@@ -1,14 +1,14 @@
-use super::super::ctx::{ActionCtx, BuildSpec};
+use super::super::ctx::ActionCtx;
+use super::{start_project, ProjectSpec};
+use crate::sim::tech::buildings::BuildingKind;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.build_one(BuildSpec {
-        need_either_material: true,
-        structure_add: 0.04,
-        mark_active: true,
-        thought: "hanging a gate",
-        discovery: "gates",
-        event_msg: "built a gate",
-        reward: 0.010,
-        ..Default::default()
-    })
+    start_project(
+        ctx,
+        ProjectSpec {
+            kind: BuildingKind::Gate,
+            thought: "hanging a gate",
+            reward: 0.010,
+        },
+    )
 }

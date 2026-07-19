@@ -365,6 +365,7 @@ fn hungry_organism_filters_learned_choice_to_survival_actions() {
 
     let (action, _) = org.choose_action(
         &grid,
+        &[],
         100,
         0.0,
         &[],
@@ -408,6 +409,7 @@ fn injured_organism_filters_learned_choice_to_recovery_actions() {
 
     let (action, _) = org.choose_action(
         &grid,
+        &[],
         100,
         0.0,
         &[],
@@ -453,6 +455,7 @@ fn active_directive_does_not_override_stronger_learned_choice() {
 
     let (action, _) = org.choose_action(
         &grid,
+        &[],
         100,
         0.0,
         &[],
@@ -498,6 +501,7 @@ fn active_directive_biases_tie_without_forcing_action() {
 
     let (action, _) = org.choose_action(
         &grid,
+        &[],
         100,
         0.0,
         &[],
@@ -510,6 +514,60 @@ fn active_directive_biases_tie_without_forcing_action() {
     );
 
     assert_eq!(action, 13);
+}
+
+#[test]
+fn equal_q_actions_do_not_always_choose_the_highest_id() {
+    let mut chosen = std::collections::HashSet::new();
+    let mut grid = WorldGrid::new(4);
+    for x in 40..=60 {
+        for y in 40..=60 {
+            grid.set(x, y, Tile::Sand);
+        }
+    }
+    for seed in 0..32 {
+        let mut rng = StdRng::seed_from_u64(seed);
+        let traits = Traits::random(&mut rng);
+        let mut org = Organism::new(
+            format!("id-{seed}"),
+            "Tied".into(),
+            50.0,
+            50.0,
+            0,
+            "".into(),
+            "lin".into(),
+            5000,
+            traits,
+        );
+        org.energy = 0.80;
+        org.hydration = 0.80;
+        org.health = 0.90;
+        org.age = 1500;
+        org.q_table.insert("state".into(), vec![(3000, 1.0), (3001, 1.0)]);
+
+        let (action, _) = org.choose_action(
+            &grid,
+            &[],
+            100,
+            0.0,
+            &[],
+            false,
+            0,
+            &mut rng,
+            false,
+            "state",
+            &[3000, 3001],
+        );
+        if matches!(action, 3000 | 3001) {
+            chosen.insert(action);
+        }
+    }
+
+    assert_eq!(
+        chosen.len(),
+        2,
+        "seeded tie-breaking should reach both equal actions"
+    );
 }
 
 #[test]
@@ -540,8 +598,19 @@ fn wander_target_does_not_override_stronger_learned_choice() {
     org.wander_target = Some((80, 50));
     org.q_table.insert("state".into(), vec![(3, 0.1), (24, 5.0)]);
 
-    let (action, thought) =
-        org.choose_action(&grid, 100, 0.0, &[], false, 0, &mut rng, false, "state", &[3, 24]);
+    let (action, thought) = org.choose_action(
+        &grid,
+        &[],
+        100,
+        0.0,
+        &[],
+        false,
+        0,
+        &mut rng,
+        false,
+        "state",
+        &[3, 24],
+    );
 
     assert_eq!(action, 24);
     assert_ne!(thought.as_deref(), Some("wandering"));
@@ -575,8 +644,19 @@ fn wander_target_biases_tie_without_forcing_action() {
     org.wander_target = Some((80, 50));
     org.q_table.insert("state".into(), vec![(3, 0.0), (24, 0.0)]);
 
-    let (action, thought) =
-        org.choose_action(&grid, 100, 0.0, &[], false, 0, &mut rng, false, "state", &[3, 24]);
+    let (action, thought) = org.choose_action(
+        &grid,
+        &[],
+        100,
+        0.0,
+        &[],
+        false,
+        0,
+        &mut rng,
+        false,
+        "state",
+        &[3, 24],
+    );
 
     assert_eq!(action, 3);
     assert_eq!(thought.as_deref(), Some("wandering"));
@@ -604,7 +684,7 @@ fn hydrated_organisms_leave_water_instead_of_lingering() {
     org.hydration = 0.95;
     org.water_ticks = 8;
 
-    let (action, thought) = org.choose_action(&grid, 100, 0.0, &[], false, 0, &mut rng, false, "", &[]);
+    let (action, thought) = org.choose_action(&grid, &[], 100, 0.0, &[], false, 0, &mut rng, false, "", &[]);
 
     assert_eq!(DIRECTIONS[action], (1, 0));
     assert_eq!(thought.as_deref(), Some("swimming ashore"));

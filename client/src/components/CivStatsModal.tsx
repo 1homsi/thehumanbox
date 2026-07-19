@@ -1,13 +1,24 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import type { WorldState } from '../types'
+import type { LineageStrategy } from '../simulation/sandbox'
 import { Modal } from './Modal'
 import { normalizeLineageEras } from '../utils/lineageEras'
 import { useSceneStore } from '../stores/scene'
+import { farmStage } from '../world/farms'
 
 interface Props {
   world: WorldState
   onClose: () => void
+  onGuide?: (lineageId: string, strategy: LineageStrategy) => Promise<boolean>
 }
+
+const GUIDANCE: Array<{ value: LineageStrategy; label: string }> = [
+  { value: 'hunt', label: 'secure food' },
+  { value: 'explore', label: 'explore' },
+  { value: 'settle', label: 'settle & build' },
+  { value: 'trade', label: 'trade' },
+  { value: 'defend', label: 'defend' },
+]
 
 const ERA_EMOJI: Record<string, string> = {
   'pre-stone': '\u{1F33F}',
@@ -73,7 +84,9 @@ const ART_EMOJI: Record<string, string> = {
   digital: '\u{1F5A5}\u{FE0F}',
 }
 
-export function CivStatsModal({ world, onClose }: Props) {
+export function CivStatsModal({ world, onClose, onGuide }: Props) {
+  const [guidanceBusy, setGuidanceBusy] = useState<string | null>(null)
+  const [guidanceResult, setGuidanceResult] = useState<Record<string, string>>({})
   const lineages = world.lineage_sizes ?? []
   const lineageNames = world.lineage_names ?? {}
   const lineageEras = normalizeLineageEras(world.lineage_eras)
@@ -128,6 +141,27 @@ export function CivStatsModal({ world, onClose }: Props) {
     const CAP = 28
     return { buildingRows: all.slice(0, CAP), buildingOverflow: all.length - Math.min(all.length, CAP) }
   }, [world.buildings])
+
+  const farmSummary = useMemo(() => {
+    const stages = { fallow: 0, growing: 0, mature: 0 }
+    const crops = new Map<string, number>()
+    let projectedYield = 0
+    for (const farm of world.farms ?? []) {
+      const stage = farmStage(farm, world.tick)
+      if (stage === 'fallow' || stage === 'harvested') stages.fallow++
+      else if (stage === 'mature') stages.mature++
+      else stages.growing++
+      if (farm.crop && stage !== 'fallow' && stage !== 'harvested') {
+        crops.set(farm.crop, (crops.get(farm.crop) ?? 0) + 1)
+      }
+      if (stage === 'mature') projectedYield += farm.yield ?? 0
+    }
+    return {
+      stages,
+      projectedYield,
+      crops: [...crops.entries()].sort((a, b) => b[1] - a[1]),
+    }
+  }, [world.farms, world.tick])
 
   const { goodsByLineage, goodsTotalRows, goodsOverflow } = useMemo(() => {
     const isDisplayableGood = (k: string) => /^[a-z][a-z0-9_]*$/.test(k)
@@ -264,17 +298,61 @@ export function CivStatsModal({ world, onClose }: Props) {
                         <td>{gov ? `${GOV_EMOJI[gov.kind] ?? ''} ${gov.kind}` : '-'}</td>
                         <td>{currencies[l.id] ?? '-'}</td>
                         <td>
-                          {hasBrewing && (
-                            <button
-                              className="civ-row-link"
-                              onClick={() => {
-                                useSceneStore.getState().enter({ kind: 'tavern', lineageId: l.id })
-                                onClose()
-                              }}
-                            >
-                              🍻 tavern
-                            </button>
-                          )}
+                          <div className="civ-lineage-actions">
+                            {world.lineage_strategies?.[l.id] && (
+                              <span className="civ-strategy-active">
+                                guided: {world.lineage_strategies[l.id].strategy}
+                              </span>
+                            )}
+                            {guidanceResult[l.id] && (
+                              <span className="civ-strategy-status" role="status">
+                                {guidanceResult[l.id]}
+                              </span>
+                            )}
+                            {onGuide && (
+                              <select
+                                className="civ-guide-select"
+                                aria-label={`Guide ${lineageById(l.id)}`}
+                                value=""
+                                disabled={guidanceBusy === l.id}
+                                onChange={(event) => {
+                                  const strategy = event.target.value as LineageStrategy
+                                  if (!strategy) return
+                                  setGuidanceBusy(l.id)
+                                  setGuidanceResult((current) => ({ ...current, [l.id]: 'guiding…' }))
+                                  void onGuide(l.id, strategy)
+                                    .then((ok) => {
+                                      setGuidanceResult((current) => ({
+                                        ...current,
+                                        [l.id]: ok ? strategy : 'failed',
+                                      }))
+                                    })
+                                    .catch(() => {
+                                      setGuidanceResult((current) => ({ ...current, [l.id]: 'failed' }))
+                                    })
+                                    .finally(() => setGuidanceBusy(null))
+                                }}
+                              >
+                                <option value="">guide…</option>
+                                {GUIDANCE.map((strategy) => (
+                                  <option key={strategy.value} value={strategy.value}>
+                                    {strategy.label}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                            {hasBrewing && (
+                              <button
+                                className="civ-row-link"
+                                onClick={() => {
+                                  useSceneStore.getState().enter({ kind: 'tavern', lineageId: l.id })
+                                  onClose()
+                                }}
+                              >
+                                🍻 tavern
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     )
@@ -391,6 +469,54 @@ export function CivStatsModal({ world, onClose }: Props) {
               ))}
               {buildingOverflow > 0 && <span className="civ-chip">+{buildingOverflow} more</span>}
             </div>
+          </section>
+
+          <section className="civ-section">
+            <h3>Settlements</h3>
+            {!world.settlements?.length ? (
+              <div className="civ-empty">No stable settlements yet</div>
+            ) : (
+              world.settlements.map((settlement) => (
+                <div key={settlement.lineage_id} className="civ-row">
+                  <span className="civ-row-head">
+                    {settlement.tier >= 5 ? '🏙️' : settlement.tier >= 3 ? '🏘️' : '⛺'} {settlement.name}
+                  </span>
+                  <span className="civ-row-sub">{settlement.tier_name}</span>
+                  <span className="civ-row-tag">{settlement.population} people</span>
+                  <span className="civ-row-tag">{settlement.building_count} completed buildings</span>
+                  {settlement.capacity > 0 && (
+                    <span className="civ-row-tag">capacity {settlement.capacity}</span>
+                  )}
+                </div>
+              ))
+            )}
+          </section>
+
+          <section className="civ-section">
+            <h3>Agriculture</h3>
+            {!world.farms?.length ? (
+              <div className="civ-empty">No fields have been plowed yet</div>
+            ) : (
+              <>
+                <div className="civ-build-grid">
+                  <span className="civ-chip">🌱 growing: {farmSummary.stages.growing}</span>
+                  <span className="civ-chip">🌾 harvest ready: {farmSummary.stages.mature}</span>
+                  <span className="civ-chip">🟫 fallow: {farmSummary.stages.fallow}</span>
+                  {farmSummary.projectedYield > 0 && (
+                    <span className="civ-chip">projected food: {farmSummary.projectedYield}</span>
+                  )}
+                </div>
+                {farmSummary.crops.length > 0 && (
+                  <div className="civ-build-grid" style={{ marginTop: 8 }}>
+                    {farmSummary.crops.map(([crop, count]) => (
+                      <span key={crop} className="civ-chip">
+                        {crop}: {count} {count === 1 ? 'field' : 'fields'}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
           </section>
 
           <section className="civ-section">

@@ -9,6 +9,58 @@ fn scarcity_migration_uses_configured_season_names() {
 }
 
 #[test]
+fn emergency_shelter_reflex_does_not_reopen_an_existing_project() {
+    use crate::sim::buildings::{Building, BuildingKind};
+
+    let mut sim = Simulation::new(0xE911);
+    let idx = sim.organisms.iter().position(|organism| organism.alive).unwrap();
+    sim.buildings.clear();
+    sim.weather.kind = 2;
+    sim.organisms[idx].inv_wood = 1;
+    let lineage = sim.organisms[idx].lineage_id.clone();
+    let (x, y) = (90, 90);
+    sim.organisms[idx].x = x as f32;
+    sim.organisms[idx].y = y as f32;
+    for tile_y in y - 4..=y + 4 {
+        for tile_x in x - 4..=x + 4 {
+            sim.grid.set(tile_x, tile_y, Tile::Grass);
+            sim.grid.structure[WorldGrid::idx(tile_x, tile_y)] = 0.0;
+        }
+    }
+
+    assert!(sim.should_start_emergency_shelter(idx));
+
+    let mut hut = Building::new(1, BuildingKind::Hut, x, y, Some(lineage), sim.tick_count);
+    hut.condition = 0.5;
+    sim.buildings.push(hut);
+    assert!(sim.organisms[idx].has_shelter_project_within(&sim.buildings, 3));
+    assert!(!sim.organisms[idx].near_shelter(&sim.grid, &sim.buildings));
+    assert!(!sim.should_start_emergency_shelter(idx));
+
+    sim.buildings[0].condition = 1.0;
+    assert!(sim.organisms[idx].near_shelter(&sim.grid, &sim.buildings));
+    assert!(!sim.should_start_emergency_shelter(idx));
+}
+
+#[test]
+fn fortify_position_consumes_material_and_records_lineage_ownership() {
+    let mut sim = Simulation::new(0xF047);
+    let idx = sim.organisms.iter().position(|organism| organism.alive).unwrap();
+    let lineage_id = sim.organisms[idx].lineage_id.clone();
+    sim.organisms[idx].inv_wood = 1;
+    let (x, y) = (sim.organisms[idx].x as i32, sim.organisms[idx].y as i32);
+    let spatial = crate::sim::spatial::SpatialIndex::build(&sim.organisms, 10);
+
+    let result = crate::sim::actions::try_apply(&mut sim, idx, 192, x, y, &spatial);
+
+    assert!(result.is_some_and(|reward| reward > 0.0));
+    assert_eq!(sim.organisms[idx].inv_wood, 0);
+    assert!(sim.field_fortifications.iter().any(|fortification| {
+        fortification.x == x && fortification.y == y && fortification.lineage_id == lineage_id
+    }));
+}
+
+#[test]
 fn lineage_era_does_not_regress_when_population_dips() {
     use crate::organism::organism::Organism;
     use crate::sim::era::Era;
@@ -580,6 +632,21 @@ fn moderate_reserve_use_keeps_periodic_cadence() {
 }
 
 #[test]
+fn stored_winter_provisions_feed_an_organism_after_carried_food_runs_out() {
+    let mut sim = Simulation::new(120);
+    let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+    sim.organisms[idx].energy = 0.20;
+    sim.organisms[idx].inv_food = 0;
+    sim.organisms[idx].tools.insert("winter_provisions".into(), 2);
+
+    let (used_food, _) = use_needed_reserves(&mut sim.organisms[idx], 5);
+
+    assert!(used_food);
+    assert_eq!(sim.organisms[idx].tools.get("winter_provisions"), Some(&1));
+    assert!(sim.organisms[idx].energy > 0.20);
+}
+
+#[test]
 fn local_resource_verification_decays_stale_food_memory_nearby() {
     let mut sim = Simulation::new(109);
     let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
@@ -805,6 +872,7 @@ fn save_load_preserves_organism_cooldowns_for_deterministic_replay() {
     let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
     sim.organisms[idx].last_think_tick = 1_000;
     sim.organisms[idx].last_invention_tick = 2_000;
+    sim.organisms[idx].last_experiment_tick = 3_000;
     let org_id = sim.organisms[idx].id.clone();
 
     sim.save_result(&path_s).unwrap();
@@ -818,6 +886,10 @@ fn save_load_preserves_organism_cooldowns_for_deterministic_replay() {
     assert_eq!(
         loaded_org.last_invention_tick, 2_000,
         "cooldown was jittered on load - breaks determinism"
+    );
+    assert_eq!(
+        loaded_org.last_experiment_tick, 3_000,
+        "experiment evidence was lost on load"
     );
 
     let _ = std::fs::remove_file(&path_s);
@@ -850,6 +922,7 @@ fn save_load_preserves_civilization_and_personal_progress() {
     use crate::sim::buildings::{Building, BuildingKind};
     use crate::sim::culture::{Religion, ReligionKind};
     use crate::sim::government::{Government, GovernmentKind};
+    use crate::sim::warfare::FieldFortification;
 
     let mut path = std::env::temp_dir();
     path.push(format!(
@@ -875,6 +948,7 @@ fn save_load_preserves_civilization_and_personal_progress() {
         "lineage-a".to_string(),
         Government::new("lineage-a".to_string(), GovernmentKind::Republic, 30_000),
     );
+    sim.governments.get_mut("lineage-a").unwrap().tax_receipts_pending = 17;
     sim.religions.push(Religion {
         id: "faith-a".to_string(),
         kind: ReligionKind::Animism,
@@ -887,6 +961,13 @@ fn save_load_preserves_civilization_and_personal_progress() {
     sim.milestones_achieved.insert("first_library".to_string());
     sim.headlines.push_back((41_500, "A library opened".to_string()));
     sim.water_use.insert((100, 80), 17);
+    sim.grid.add_structure(101, 80, 0.12);
+    sim.active_structure_tiles.insert((101, 80));
+    sim.field_fortifications.push(FieldFortification {
+        x: 101,
+        y: 80,
+        lineage_id: "lineage-a".to_string(),
+    });
 
     let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
     let org_id = sim.organisms[idx].id.clone();
@@ -907,10 +988,19 @@ fn save_load_preserves_civilization_and_personal_progress() {
     assert_eq!(loaded.buildings[0].kind, BuildingKind::Library);
     assert_eq!(loaded.next_building_id, 42);
     assert_eq!(loaded.governments["lineage-a"].kind, GovernmentKind::Republic);
+    assert_eq!(loaded.governments["lineage-a"].tax_receipts_pending, 17);
     assert_eq!(loaded.religions[0].name, "The River Way");
     assert!(loaded.milestones_achieved.contains("first_library"));
     assert_eq!(loaded.headlines.back().unwrap().1, "A library opened");
     assert_eq!(loaded.water_use.get(&(100, 80)), Some(&17));
+    assert_eq!(
+        loaded.field_fortifications,
+        vec![FieldFortification {
+            x: 101,
+            y: 80,
+            lineage_id: "lineage-a".to_string(),
+        }]
+    );
     assert_eq!(loaded.physics.tick_count, 8_400);
 
     let loaded_org = loaded.organisms.iter().find(|o| o.id == org_id).unwrap();

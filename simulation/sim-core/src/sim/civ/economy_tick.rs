@@ -1,7 +1,10 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-use crate::sim::civ::economy::{currency_unit_for_era, PriceTable, Trade, TRADABLE_TOOLS};
+use crate::sim::civ::economy::{
+    currency_unit_for_era, military_issue_for_era, PriceTable, Trade, MILITARY_EQUIPMENT_COST, TRADABLE_TOOLS,
+};
 use crate::sim::civ::era::Era;
+use crate::sim::civ::government::LawKind;
 use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
 
@@ -13,7 +16,7 @@ pub fn tick_economy(sim: &mut Simulation, tick: u64) {
         return;
     }
     if tick.is_multiple_of(240) {
-        pay_wages(sim, tick);
+        run_fiscal_cycle(sim, tick);
     }
     if tick.is_multiple_of(180) {
         run_barter(sim, tick);
@@ -26,10 +29,30 @@ pub fn tick_economy(sim: &mut Simulation, tick: u64) {
     }
 }
 
-fn pay_wages(sim: &mut Simulation, _tick: u64) {
+#[derive(Clone)]
+struct FiscalPolicy {
+    tax_rate: f32,
+    education: bool,
+    healthcare: bool,
+    safety_net: bool,
+    military_service: bool,
+    era: Era,
+}
+
+fn run_fiscal_cycle(sim: &mut Simulation, tick: u64) {
+    // Administrators can remit current receipts early through the collection
+    // action. Anything still pending is carried into the treasury here before
+    // the next payroll, so a lineage without an available administrator never
+    // loses lawfully withheld revenue.
+    let pending_lineages: Vec<String> = sim.governments.keys().cloned().collect();
+    for lineage in pending_lineages {
+        remit_pending_income_taxes(sim, &lineage);
+    }
+
     let shop_anchors: Vec<(f32, f32, &'static str, Option<String>)> = sim
         .buildings
         .iter()
+        .filter(|b| b.is_operational())
         .filter_map(|b| {
             let kind = match b.kind {
                 crate::sim::tech::buildings::BuildingKind::Forge => "forge",
@@ -46,19 +69,281 @@ fn pay_wages(sim: &mut Simulation, _tick: u64) {
         })
         .collect();
 
+    // Private income is created only when an organism produced something or
+    // worked at a completed workplace. Public-service income is paid from a
+    // lineage treasury below, so money no longer appears twice from two
+    // unrelated wage ticks.
+    let mut earned = vec![0u32; sim.organisms.len()];
+    for (idx, org) in sim.organisms.iter_mut().enumerate() {
+        if !org.alive {
+            continue;
+        }
+        let Some(name) = org.specialty.clone() else {
+            continue;
+        };
+        let base = wage_for(&name);
+        if base == 0 {
+            continue;
+        }
+        let income = claim_productive_income(&name, org, &shop_anchors, base);
+        if income > 0 {
+            org.wealth = org.wealth.saturating_add(income);
+            earned[idx] = income;
+        }
+    }
+
+    let policies: HashMap<String, FiscalPolicy> = sim
+        .governments
+        .iter()
+        .map(|(lid, government)| {
+            (
+                lid.clone(),
+                FiscalPolicy {
+                    tax_rate: government.effective_tax_rate(),
+                    education: government.has_law(LawKind::Education),
+                    healthcare: government.has_law(LawKind::Healthcare),
+                    safety_net: government.has_law(LawKind::SafetyNet),
+                    military_service: government.has_law(LawKind::MilitaryService),
+                    era: sim.lineage_eras.get(lid).copied().unwrap_or(Era::PreStone),
+                },
+            )
+        })
+        .collect();
+
+    // Assess tax across the lineage's whole payroll. Rounding every one-coin
+    // wage upward would turn a 2-20% tax law into a 100% tax on subsistence
+    // workers. Pooling first preserves the enacted rate while still letting
+    // early governments collect from a broad productive population.
+    let collected = collect_income_taxes(sim, &policies, &earned, tick);
+    for (lid, amount) in collected {
+        if let Some(government) = sim.governments.get_mut(&lid) {
+            government.tax_receipts_pending = government.tax_receipts_pending.saturating_add(amount);
+        }
+    }
+
+    fund_public_services(sim, &policies, tick);
+}
+
+/// Move rate-assessed payroll withholding into the public treasury.
+///
+/// Citizen wealth is deliberately untouched here: `collect_income_taxes`
+/// already withheld exactly the enacted share from newly earned income. This
+/// makes administration useful without allowing repeated actions to tax the
+/// same accumulated savings again.
+pub(crate) fn remit_pending_income_taxes(sim: &mut Simulation, lineage: &str) -> u64 {
+    let Some(government) = sim.governments.get_mut(lineage) else {
+        return 0;
+    };
+    let amount = std::mem::take(&mut government.tax_receipts_pending);
+    government.treasury = government.treasury.saturating_add(amount);
+    amount
+}
+
+fn collect_income_taxes(
+    sim: &mut Simulation,
+    policies: &HashMap<String, FiscalPolicy>,
+    earned: &[u32],
+    tick: u64,
+) -> HashMap<String, u64> {
+    let mut contributors: HashMap<String, Vec<usize>> = HashMap::new();
+    for (idx, org) in sim.organisms.iter().enumerate() {
+        if org.alive
+            && earned.get(idx).copied().unwrap_or(0) > 0
+            && policies
+                .get(&org.lineage_id)
+                .is_some_and(|policy| policy.tax_rate > 0.0)
+        {
+            contributors.entry(org.lineage_id.clone()).or_default().push(idx);
+        }
+    }
+
+    let mut collected = HashMap::new();
+    for (lineage, mut members) in contributors {
+        let rate = policies[&lineage].tax_rate;
+        let total_income: u64 = members.iter().map(|index| u64::from(earned[*index])).sum();
+        let target = ((total_income as f64 * f64::from(rate)).floor() as u64).min(total_income);
+        if target == 0 {
+            continue;
+        }
+
+        // Rotate equal fractional assessments each fiscal cycle so the same
+        // low-wage worker is not always the one who contributes the remainder.
+        let member_count = members.len();
+        members.rotate_left(((tick / 240) as usize) % member_count);
+        members.sort_by(|a, b| {
+            let a_fraction = earned[*a] as f32 * rate - (earned[*a] as f32 * rate).floor();
+            let b_fraction = earned[*b] as f32 * rate - (earned[*b] as f32 * rate).floor();
+            b_fraction.total_cmp(&a_fraction)
+        });
+
+        let mut paid = 0u64;
+        for &index in &members {
+            let base = ((earned[index] as f32 * rate).floor() as u32).min(sim.organisms[index].wealth);
+            sim.organisms[index].wealth -= base;
+            paid += u64::from(base);
+        }
+        let mut remainder = target.saturating_sub(paid);
+        for &index in &members {
+            if remainder == 0 {
+                break;
+            }
+            if sim.organisms[index].wealth > 0 {
+                sim.organisms[index].wealth -= 1;
+                paid += 1;
+                remainder -= 1;
+            }
+        }
+        if paid > 0 {
+            collected.insert(lineage, paid);
+        }
+    }
+    collected
+}
+
+fn claim_productive_income(
+    specialty: &str,
+    org: &mut crate::organism::organism::Organism,
+    anchors: &[(f32, f32, &'static str, Option<String>)],
+    base: u32,
+) -> u32 {
+    // These roles are paid from taxation only when the relevant institution
+    // exists. Treating them as private output would mint their salary twice.
+    if matches!(
+        specialty,
+        "healer" | "doctor" | "teacher" | "scholar" | "soldier" | "officer" | "politician"
+    ) {
+        return 0;
+    }
+
+    // A private wage represents a sale. Consume the sold unit so one berry or
+    // stone cannot mint income forever merely by remaining in inventory.
+    let gathered_output = match specialty {
+        "farmer" | "hunter" if org.inv_food >= 3 => {
+            org.inv_food -= 1;
+            true
+        }
+        "miner" | "mason" if org.inv_stone > 0 => {
+            org.inv_stone -= 1;
+            true
+        }
+        "builder" | "carpenter" if org.inv_wood > 0 => {
+            org.inv_wood -= 1;
+            true
+        }
+        "builder" | "carpenter" if org.inv_stone > 0 => {
+            org.inv_stone -= 1;
+            true
+        }
+        "sailor" if org.inv_food >= 3 => {
+            org.inv_food -= 1;
+            true
+        }
+        "sailor" if org.inv_water >= 3 => {
+            org.inv_water -= 1;
+            true
+        }
+        _ => false,
+    };
+    let workplace_output = shop_bonus_for(specialty, org, anchors) > 0;
+    if workplace_output {
+        // Workshop and service income represents labor rather than a raw-good
+        // sale. Charging energy makes the output part of the organism's real
+        // activity budget instead of a free proximity stipend.
+        org.energy = (org.energy - 0.012).max(0.0);
+    }
+    if gathered_output || workplace_output {
+        base + u32::from(workplace_output) * base
+    } else {
+        0
+    }
+}
+
+fn fund_public_services(sim: &mut Simulation, policies: &HashMap<String, FiscalPolicy>, tick: u64) {
+    let mut spent: HashMap<String, u64> = HashMap::new();
+    let mut funded_education: HashSet<String> = HashSet::new();
+    let mut funded_healthcare: HashSet<String> = HashSet::new();
     for org in sim.organisms.iter_mut() {
         if !org.alive {
             continue;
         }
-        let Some(name) = org.specialty.as_deref() else {
+        let Some(policy) = policies.get(&org.lineage_id) else {
             continue;
         };
-        let base = wage_for(name);
-        if base == 0 {
-            continue;
+        let already_spent = spent.get(&org.lineage_id).copied().unwrap_or(0);
+        let available = sim
+            .governments
+            .get(&org.lineage_id)
+            .map(|g| g.treasury.saturating_sub(already_spent))
+            .unwrap_or(0);
+        let specialty = org.specialty.as_deref().unwrap_or("");
+
+        let wage = if policy.education && matches!(specialty, "teacher" | "scholar") && available >= 2 {
+            funded_education.insert(org.lineage_id.clone());
+            2
+        } else if policy.healthcare && matches!(specialty, "healer" | "doctor") && available >= 3 {
+            funded_healthcare.insert(org.lineage_id.clone());
+            3
+        } else if policy.military_service && matches!(specialty, "soldier" | "officer") && available >= 3 {
+            let military_wage = if specialty == "officer" { 5 } else { 3 };
+            let weapon = military_issue_for_era(policy.era);
+            if available >= MILITARY_EQUIPMENT_COST + military_wage && !org.has_tool(weapon) {
+                org.tools.insert(weapon.to_string(), 1);
+                *spent.entry(org.lineage_id.clone()).or_default() += MILITARY_EQUIPMENT_COST;
+            }
+            military_wage
+        } else if policy.safety_net && org.wealth <= 1 && org.age > 180 && available >= 1 {
+            1
+        } else {
+            0
+        };
+
+        let already_spent = spent.get(&org.lineage_id).copied().unwrap_or(0);
+        let available = sim
+            .governments
+            .get(&org.lineage_id)
+            .map(|g| g.treasury.saturating_sub(already_spent))
+            .unwrap_or(0);
+        let paid = wage.min(available);
+        if paid > 0 {
+            org.wealth = org.wealth.saturating_add(paid as u32);
+            *spent.entry(org.lineage_id.clone()).or_default() += paid;
         }
-        let bonus = shop_bonus_for(name, org, &shop_anchors);
-        org.wealth = org.wealth.saturating_add(base + bonus);
+    }
+
+    // A funded teacher or clinician serves their community, not merely
+    // themselves. Benefits are deliberately gradual so institutions matter
+    // across generations without instantly erasing hardship.
+    for org in sim.organisms.iter_mut().filter(|org| org.alive) {
+        if funded_education.contains(&org.lineage_id) && org.age > 120 {
+            org.literacy = (org.literacy + 0.0025).min(1.0);
+        }
+        if funded_healthcare.contains(&org.lineage_id) {
+            org.health = (org.health + 0.015).min(1.0);
+            org.infection = (org.infection - 0.012).max(0.0);
+        }
+    }
+
+    for (lid, government) in sim.governments.iter_mut() {
+        government.conscription = policies.get(lid).is_some_and(|policy| policy.military_service);
+        government.treasury = government
+            .treasury
+            .saturating_sub(spent.get(lid).copied().unwrap_or(0));
+    }
+
+    if tick.is_multiple_of(2400) {
+        for (lid, amount) in spent.iter().filter(|(_, amount)| **amount > 0) {
+            push_event(
+                &mut sim.events,
+                tick,
+                "government_spending",
+                lid,
+                &format!(
+                    "{} invested {} from its treasury in public services",
+                    lid_short(lid),
+                    amount
+                ),
+            );
+        }
     }
 }
 
@@ -494,5 +779,111 @@ fn lid_short(lid: &str) -> &str {
         &lid[..6]
     } else {
         lid
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::sim::civ::government::{Government, GovernmentKind, Law};
+
+    #[test]
+    fn gathered_output_is_required_for_private_income() {
+        let mut sim = Simulation::new(71);
+        let org = sim.organisms.iter_mut().find(|org| org.alive).unwrap();
+        org.specialty = Some("farmer".into());
+        org.inv_food = 0;
+        assert_eq!(claim_productive_income("farmer", org, &[], 1), 0);
+        org.inv_food = 1;
+        assert_eq!(claim_productive_income("farmer", org, &[], 1), 0);
+        assert_eq!(org.inv_food, 1, "subsistence food must not be sold");
+        org.inv_food = 3;
+        assert_eq!(claim_productive_income("farmer", org, &[], 1), 1);
+        assert_eq!(org.inv_food, 2, "only the surplus food unit should be sold");
+        assert_eq!(
+            claim_productive_income("farmer", org, &[], 1),
+            0,
+            "the same food unit cannot pay a second wage"
+        );
+    }
+
+    #[test]
+    fn tax_law_withholds_only_the_enacted_share_of_new_income_and_remits_once() {
+        let mut sim = Simulation::new(72);
+        for org in &mut sim.organisms {
+            org.alive = false;
+        }
+        for org in sim.organisms.iter_mut().take(5) {
+            org.alive = true;
+            org.lineage_id = "taxed".into();
+            org.specialty = Some("farmer".into());
+            org.inv_food = 3;
+            org.wealth = 100;
+        }
+
+        let mut government = Government::new("taxed".into(), GovernmentKind::Republic, 1);
+        government.tax_rate = 0.2;
+        government.laws.push(Law {
+            kind: LawKind::Taxation,
+            enacted_tick: 1,
+        });
+        sim.governments.insert("taxed".into(), government);
+
+        run_fiscal_cycle(&mut sim, 240);
+
+        assert_eq!(
+            sim.organisms.iter().take(5).map(|org| org.wealth).sum::<u32>(),
+            504,
+            "a 20% tax should withhold one of five new one-coin wages without touching savings"
+        );
+        assert_eq!(sim.governments["taxed"].treasury, 0);
+        assert_eq!(sim.governments["taxed"].tax_receipts_pending, 1);
+
+        run_fiscal_cycle(&mut sim, 480);
+
+        assert_eq!(
+            sim.organisms.iter().take(5).map(|org| org.wealth).sum::<u32>(),
+            504
+        );
+        assert_eq!(sim.governments["taxed"].treasury, 1);
+        assert_eq!(sim.governments["taxed"].tax_receipts_pending, 0);
+        assert_eq!(remit_pending_income_taxes(&mut sim, "taxed"), 0);
+        assert_eq!(sim.governments["taxed"].treasury, 1);
+    }
+
+    #[test]
+    fn military_equipment_tracks_era() {
+        assert_eq!(military_issue_for_era(Era::Stone), "spear");
+        assert_eq!(military_issue_for_era(Era::Renaissance), "musket");
+        assert_eq!(military_issue_for_era(Era::Industrial), "rifle");
+    }
+
+    #[test]
+    fn military_law_turns_treasury_funds_into_equipment_and_pay() {
+        let mut sim = Simulation::new(73);
+        for org in &mut sim.organisms {
+            org.alive = false;
+        }
+        let soldier = &mut sim.organisms[0];
+        soldier.alive = true;
+        soldier.lineage_id = "guard".into();
+        soldier.specialty = Some("soldier".into());
+        soldier.wealth = 0;
+
+        let mut government = Government::new("guard".into(), GovernmentKind::Republic, 1);
+        government.treasury = 10;
+        government.laws.push(Law {
+            kind: LawKind::MilitaryService,
+            enacted_tick: 1,
+        });
+        sim.governments.insert("guard".into(), government);
+        sim.lineage_eras.insert("guard".into(), Era::Industrial);
+
+        run_fiscal_cycle(&mut sim, 240);
+
+        assert!(sim.organisms[0].has_tool("rifle"));
+        assert_eq!(sim.organisms[0].wealth, 3);
+        assert_eq!(sim.governments["guard"].treasury, 3);
+        assert!(sim.governments["guard"].conscription);
     }
 }

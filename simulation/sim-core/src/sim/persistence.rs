@@ -95,6 +95,8 @@ pub(crate) struct OrgSave {
     home_style_seed: u32,
     has_reflected: bool,
     last_invention_tick: u64,
+    #[serde(default)]
+    last_experiment_tick: u64,
     last_think_tick: u64,
     partner_id: Option<String>,
     children_count: u32,
@@ -333,6 +335,8 @@ pub struct SaveState {
     trades: Vec<super::economy::Trade>,
     #[serde(default)]
     water_use: Vec<WaterUseSave>,
+    #[serde(default)]
+    field_fortifications: Vec<super::warfare::FieldFortification>,
 }
 
 fn mem_encode(m: &FxHashMap<(i32, i32), f32>) -> HashMap<String, f32> {
@@ -350,6 +354,41 @@ fn mem_decode(m: HashMap<String, f32>) -> FxHashMap<(i32, i32), f32> {
             Some(((x, y), v))
         })
         .collect()
+}
+
+/// Saved `next_*_id` fields are advisory when loading older or hand-imported
+/// worlds. Several of those fields were added after their entity collections,
+/// so serde legitimately defaults them to zero. Always advance past every
+/// persisted numeric ID before the simulation is allowed to create more
+/// entities.
+fn repaired_next_u32_id(saved_next: u32, ids: impl Iterator<Item = u32>) -> u32 {
+    ids.fold(saved_next.max(1), |next, id| next.max(id.saturating_add(1)))
+}
+
+fn repaired_next_animal_id(saved_next: usize, animals: &[AnimalSave]) -> usize {
+    animals
+        .iter()
+        .fold(saved_next, |next, animal| next.max(animal.id.saturating_add(1)))
+}
+
+fn repaired_next_religion_id(saved_next: u32, religions: &[super::culture::Religion]) -> u32 {
+    repaired_next_u32_id(
+        saved_next,
+        religions.iter().filter_map(|religion| {
+            religion
+                .id
+                .strip_prefix("rel")
+                .and_then(|suffix| suffix.parse::<u32>().ok())
+        }),
+    )
+}
+
+fn repaired_next_sequence(saved_next: u32, persisted_count: usize) -> u32 {
+    saved_next.max(
+        u32::try_from(persisted_count)
+            .unwrap_or(u32::MAX)
+            .saturating_add(1),
+    )
 }
 
 fn org_to_save(o: &Organism) -> OrgSave {
@@ -394,6 +433,7 @@ fn org_to_save(o: &Organism) -> OrgSave {
         home_style_seed: o.home_style_seed,
         has_reflected: o.has_reflected,
         last_invention_tick: o.last_invention_tick,
+        last_experiment_tick: o.last_experiment_tick,
         last_think_tick: o.last_think_tick,
         partner_id: o.partner_id.clone(),
         children_count: o.children_count,
@@ -528,6 +568,7 @@ fn org_from_save(s: OrgSave, save_version: u32) -> Organism {
     o.home_style_seed = s.home_style_seed;
     o.has_reflected = s.has_reflected;
     o.last_invention_tick = s.last_invention_tick;
+    o.last_experiment_tick = s.last_experiment_tick;
     o.last_think_tick = s.last_think_tick;
     o.partner_id = s.partner_id;
     o.children_count = s.children_count;
@@ -769,6 +810,7 @@ impl Simulation {
                 .iter()
                 .map(|(&(x, y), &count)| WaterUseSave { x, y, count })
                 .collect(),
+            field_fortifications: self.field_fortifications.clone(),
         }
     }
 }
@@ -962,6 +1004,11 @@ impl Simulation {
             }
             hs
         };
+        let field_fortifications = state
+            .field_fortifications
+            .into_iter()
+            .filter(|fortification| grid.structure_at(fortification.x, fortification.y) > 0.0)
+            .collect();
         let mut physics = PhysicsEngine::new();
         // Simulation physics runs exactly once every five world ticks.
         // Reconstruct its cadence so trail decay and lightning continue from
@@ -975,72 +1022,28 @@ impl Simulation {
             }
         }
 
-        let next_building_id = state
-            .next_building_id
-            .max(
-                state
-                    .buildings
-                    .iter()
-                    .map(|b| b.id.saturating_add(1))
-                    .max()
-                    .unwrap_or(1),
-            )
-            .max(1);
-        let next_artwork_id = state
-            .next_artwork_id
-            .max(
-                state
-                    .artworks
-                    .iter()
-                    .map(|a| a.id.saturating_add(1))
-                    .max()
-                    .unwrap_or(1),
-            )
-            .max(1);
-        let next_festival_id = state
-            .next_festival_id
-            .max(
-                state
-                    .festivals
-                    .iter()
-                    .map(|f| f.id.saturating_add(1))
-                    .max()
-                    .unwrap_or(1),
-            )
-            .max(1);
-        let next_book_id = state
-            .next_book_id
-            .max(
-                state
-                    .books
-                    .iter()
-                    .map(|b| b.id.saturating_add(1))
-                    .max()
-                    .unwrap_or(1),
-            )
-            .max(1);
-        let next_farm_id = state
-            .next_farm_id
-            .max(
-                state
-                    .farms
-                    .iter()
-                    .map(|f| f.id.saturating_add(1))
-                    .max()
-                    .unwrap_or(1),
-            )
-            .max(1);
-        let next_vehicle_id = state
-            .next_vehicle_id
-            .max(
-                state
-                    .vehicles
-                    .iter()
-                    .map(|v| v.id.saturating_add(1))
-                    .max()
-                    .unwrap_or(1),
-            )
-            .max(1);
+        let next_animal_id = repaired_next_animal_id(state.next_animal_id, &state.animals);
+        let next_building_id =
+            repaired_next_u32_id(state.next_building_id, state.buildings.iter().map(|b| b.id));
+        let mut religions = state.religions;
+        super::actions::religion_expanded::repair_persisted_religions(&mut organisms, &mut religions);
+        let next_religion_id = repaired_next_religion_id(state.next_religion_id, &religions);
+        let next_artwork_id =
+            repaired_next_u32_id(state.next_artwork_id, state.artworks.iter().map(|a| a.id));
+        let next_festival_id =
+            repaired_next_u32_id(state.next_festival_id, state.festivals.iter().map(|f| f.id));
+        let next_book_id = repaired_next_u32_id(state.next_book_id, state.books.iter().map(|b| b.id));
+        let next_farm_id = repaired_next_u32_id(state.next_farm_id, state.farms.iter().map(|f| f.id));
+        let mut farms = state.farms;
+        super::agriculture::deduplicate_farm_plots(&mut farms);
+        let next_vehicle_id =
+            repaired_next_u32_id(state.next_vehicle_id, state.vehicles.iter().map(|v| v.id));
+        // Battle IDs currently encode tick and lineages rather than this
+        // sequence, but preserve a useful monotonic counter for old saves and
+        // the eventual numeric-ID migration instead of resetting it to one.
+        let next_battle_id = repaired_next_sequence(state.next_battle_id, state.battles.len());
+        let mut treaties = state.treaties;
+        super::warfare::consolidate_treaties(&mut treaties, state.tick_count);
 
         let mut sim = Simulation {
             grid,
@@ -1109,7 +1112,7 @@ impl Simulation {
                 }
             },
             world_seed: seed,
-            next_animal_id: state.next_animal_id,
+            next_animal_id,
             lineage_names: state.lineage_names,
             rng: state
                 .rng
@@ -1119,6 +1122,7 @@ impl Simulation {
             cached_lineage_sizes: serde_json::Value::Array(vec![]),
             slow_compute_tick: 0,
             active_structure_tiles,
+            field_fortifications,
             settlement_tiers: state.settlement_tiers,
             territory: state
                 .territory
@@ -1130,8 +1134,8 @@ impl Simulation {
             buildings: state.buildings,
             next_building_id,
             governments: state.governments,
-            religions: state.religions,
-            next_religion_id: state.next_religion_id.max(1),
+            religions,
+            next_religion_id,
             artworks: state.artworks,
             next_artwork_id,
             festivals: state.festivals,
@@ -1142,13 +1146,13 @@ impl Simulation {
             last_witness_tick: state.last_witness_tick,
             books: state.books,
             next_book_id,
-            farms: state.farms,
+            farms,
             next_farm_id,
             vehicles: state.vehicles,
             next_vehicle_id,
             battles: state.battles,
-            next_battle_id: state.next_battle_id.max(1),
-            treaties: state.treaties,
+            next_battle_id,
+            treaties,
             outbreaks: state.outbreaks,
             milestones_achieved: state.milestones_achieved,
             lineage_peak_pop: state.lineage_peak_pop,
@@ -1176,6 +1180,10 @@ impl Simulation {
         }
         sim.grid.enforce_ocean_border();
         sim.relocate_edge_squatters();
+        // The saved map is a cache, not source-of-truth. Rebuild it from
+        // living residents and operational buildings so extinct/imported
+        // stale rows disappear immediately on load without emitting events.
+        super::civ::settlements::rebuild_tiers(&mut sim);
         sim
     }
 
@@ -1215,6 +1223,25 @@ impl Simulation {
 mod tests {
     use super::*;
 
+    fn saved_battle(id: &str) -> super::super::warfare::Battle {
+        super::super::warfare::Battle {
+            id: id.to_string(),
+            attackers: Vec::new(),
+            defenders: Vec::new(),
+            attacker_orgs: Vec::new(),
+            defender_orgs: Vec::new(),
+            scale: super::super::warfare::BattleScale::Skirmish,
+            location: (10, 10),
+            started_tick: 1,
+            ended_tick: None,
+            casualties_a: 0,
+            casualties_d: 0,
+            outcome: None,
+            initial_a: 0,
+            initial_d: 0,
+        }
+    }
+
     #[test]
     fn empty_save_json_loads_as_default_state() {
         let parsed: SaveState = serde_json::from_str("{}")
@@ -1231,5 +1258,265 @@ mod tests {
         std::fs::write(&path_s, "{}").unwrap();
         let _sim = Simulation::load_or_new(7, &path_s);
         let _ = std::fs::remove_file(&path_s);
+    }
+
+    #[test]
+    fn legacy_default_counters_advance_past_all_persisted_ids() {
+        use super::super::agriculture::{CropKind, Farm};
+        use super::super::buildings::{Building, BuildingKind};
+        use super::super::culture::{ArtKind, Artwork, Festival, FestivalKind, Religion, ReligionKind};
+        use super::super::language_tech::{Book, BookTopic};
+        use super::super::transportation::{TransportKind, Vehicle};
+
+        let mut state = SaveState::default();
+        state.animals.push(AnimalSave {
+            id: 41,
+            ..AnimalSave::default()
+        });
+        state
+            .buildings
+            .push(Building::new(51, BuildingKind::Hut, 10, 10, None, 1));
+        state.religions.push(Religion {
+            id: "rel61".to_string(),
+            kind: ReligionKind::Animism,
+            name: "Old Path".to_string(),
+            founded_tick: 1,
+            founder_lineage: "lineage-a".to_string(),
+            adherents: 2,
+            last_milestone: None,
+        });
+        state.artworks.push(Artwork {
+            id: 71,
+            kind: ArtKind::CavePainting,
+            creator_id: "artist-a".to_string(),
+            creator_name: "Artist".to_string(),
+            location: [10, 10],
+            tick: 1,
+            title: "First Mark".to_string(),
+        });
+        state.festivals.push(Festival {
+            id: 81,
+            lineage_id: "lineage-a".to_string(),
+            name: "First Feast".to_string(),
+            kind: FestivalKind::Harvest,
+            start_tick: 1,
+            duration_ticks: 10,
+            center: [10, 10],
+        });
+        state.books.push(Book {
+            id: 91,
+            title: "Old Words".to_string(),
+            author_org_id: "author-a".to_string(),
+            author_name: "Author".to_string(),
+            written_tick: 1,
+            lineage_id: "lineage-a".to_string(),
+            topic: BookTopic::History,
+            copies: 1,
+        });
+        state.farms.push(Farm {
+            id: 101,
+            x: 10,
+            y: 10,
+            owner_lineage: "lineage-a".to_string(),
+            crop: CropKind::Wheat,
+            planted_tick: 1,
+            ready_tick: 100,
+            harvested: false,
+            prepared: false,
+        });
+        state.vehicles.push(Vehicle {
+            id: 111,
+            kind: TransportKind::Cart,
+            owner_lineage: "lineage-a".to_string(),
+            x: 10,
+            y: 10,
+            occupants: Vec::new(),
+            cargo: 0,
+        });
+        state.battles.push(saved_battle("legacy-battle-a"));
+        state.battles.push(saved_battle("legacy-battle-b"));
+
+        let loaded = Simulation::from_save(7, state);
+
+        assert_eq!(loaded.next_animal_id, 42);
+        assert_eq!(loaded.next_building_id, 52);
+        assert_eq!(loaded.next_religion_id, 62);
+        assert_eq!(loaded.next_artwork_id, 72);
+        assert_eq!(loaded.next_festival_id, 82);
+        assert_eq!(loaded.next_book_id, 92);
+        assert_eq!(loaded.next_farm_id, 102);
+        assert_eq!(loaded.next_vehicle_id, 112);
+        assert_eq!(loaded.next_battle_id, 3);
+    }
+
+    #[test]
+    fn loading_repairs_dangling_religions_and_exact_live_adherent_counts() {
+        use super::super::culture::{Religion, ReligionKind};
+
+        let mut state = SaveState {
+            version: SAVE_SCHEMA_VERSION,
+            ..SaveState::default()
+        };
+        state.religions.extend([
+            Religion {
+                id: "rel7".to_string(),
+                kind: ReligionKind::Animism,
+                name: "Living Path".to_string(),
+                founded_tick: 1,
+                founder_lineage: "lineage-a".to_string(),
+                adherents: 99,
+                last_milestone: None,
+            },
+            Religion {
+                id: "rel8".to_string(),
+                kind: ReligionKind::Animism,
+                name: "Empty Path".to_string(),
+                founded_tick: 2,
+                founder_lineage: "lineage-b".to_string(),
+                adherents: 42,
+                last_milestone: None,
+            },
+            Religion {
+                id: "rel7".to_string(),
+                kind: ReligionKind::Secular,
+                name: "Duplicate Later Path".to_string(),
+                founded_tick: 9,
+                founder_lineage: "lineage-c".to_string(),
+                adherents: 500,
+                last_milestone: None,
+            },
+        ]);
+        state.organisms.extend([
+            OrgSave {
+                id: "valid-alive".to_string(),
+                name: "Valid Alive".to_string(),
+                x: 20.0,
+                y: 20.0,
+                alive: true,
+                lineage_id: "lineage-a".to_string(),
+                max_age: 20_000,
+                piety: 0.8,
+                religion_id: Some("rel7".to_string()),
+                ..OrgSave::default()
+            },
+            OrgSave {
+                id: "valid-dead".to_string(),
+                name: "Valid Dead".to_string(),
+                x: 21.0,
+                y: 20.0,
+                alive: false,
+                lineage_id: "lineage-a".to_string(),
+                max_age: 20_000,
+                piety: 0.7,
+                religion_id: Some("rel7".to_string()),
+                ..OrgSave::default()
+            },
+            OrgSave {
+                id: "dangling-alive".to_string(),
+                name: "Dangling Alive".to_string(),
+                x: 22.0,
+                y: 20.0,
+                alive: true,
+                lineage_id: "lineage-c".to_string(),
+                max_age: 20_000,
+                piety: 0.9,
+                religion_id: Some("rel-missing".to_string()),
+                ..OrgSave::default()
+            },
+        ]);
+
+        let loaded = Simulation::from_save(7, state);
+        let valid_alive = loaded
+            .organisms
+            .iter()
+            .find(|organism| organism.id == "valid-alive")
+            .unwrap();
+        let valid_dead = loaded
+            .organisms
+            .iter()
+            .find(|organism| organism.id == "valid-dead")
+            .unwrap();
+        let dangling = loaded
+            .organisms
+            .iter()
+            .find(|organism| organism.id == "dangling-alive")
+            .unwrap();
+
+        assert_eq!(valid_alive.religion_id.as_deref(), Some("rel7"));
+        assert_eq!(valid_alive.piety, 0.8);
+        assert_eq!(valid_dead.religion_id.as_deref(), Some("rel7"));
+        assert_eq!(valid_dead.piety, 0.7);
+        assert_eq!(dangling.religion_id, None);
+        assert_eq!(dangling.piety, 0.0);
+        assert_eq!(loaded.religions.len(), 2);
+        assert_eq!(loaded.religions[0].id, "rel7");
+        assert_eq!(loaded.religions[0].name, "Living Path");
+        assert_eq!(loaded.religions[0].adherents, 1);
+        assert_eq!(loaded.religions[1].adherents, 0);
+        assert_eq!(loaded.next_religion_id, 9);
+    }
+
+    #[test]
+    fn loading_consolidates_treaties_to_one_active_record_per_pair() {
+        use super::super::warfare::{Treaty, TreatyKind};
+
+        let mut state = SaveState {
+            tick_count: 50,
+            ..SaveState::default()
+        };
+        state.treaties.extend([
+            Treaty {
+                lineage_a: "river".into(),
+                lineage_b: "hill".into(),
+                kind: TreatyKind::NonAggression,
+                signed_tick: 10,
+                expires_tick: 100,
+            },
+            Treaty {
+                lineage_a: "hill".into(),
+                lineage_b: "river".into(),
+                kind: TreatyKind::Trade,
+                signed_tick: 20,
+                expires_tick: 200,
+            },
+            Treaty {
+                lineage_a: "river".into(),
+                lineage_b: "hill".into(),
+                kind: TreatyKind::Alliance,
+                signed_tick: 1,
+                expires_tick: 40,
+            },
+            Treaty {
+                lineage_a: "same".into(),
+                lineage_b: "same".into(),
+                kind: TreatyKind::Alliance,
+                signed_tick: 20,
+                expires_tick: 200,
+            },
+        ]);
+
+        let loaded = Simulation::from_save(7, state);
+
+        assert_eq!(loaded.treaties.len(), 1);
+        assert_eq!(loaded.treaties[0].lineage_a, "hill");
+        assert_eq!(loaded.treaties[0].lineage_b, "river");
+        assert_eq!(loaded.treaties[0].kind, TreatyKind::Trade);
+        assert_eq!(loaded.treaties[0].signed_tick, 20);
+    }
+
+    #[test]
+    fn valid_saved_counter_is_never_moved_backwards() {
+        assert_eq!(repaired_next_u32_id(500, [1, 20, 99].into_iter()), 500);
+        assert_eq!(repaired_next_sequence(500, 12), 500);
+        assert_eq!(
+            repaired_next_animal_id(
+                500,
+                &[AnimalSave {
+                    id: 99,
+                    ..AnimalSave::default()
+                }],
+            ),
+            500
+        );
     }
 }

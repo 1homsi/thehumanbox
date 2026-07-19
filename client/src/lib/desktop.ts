@@ -1,5 +1,8 @@
+import type { DesktopVisibility } from './desktopVisibility'
+
 export type SimMode = 'local' | 'remote'
 export type ModelProvider = 'groq' | 'openai' | 'anthropic' | 'ollama' | 'llama-cpp' | 'none'
+export type { DesktopVisibility } from './desktopVisibility'
 
 export interface DesktopSettings {
   mode: SimMode
@@ -72,12 +75,24 @@ export interface DesktopBridge {
     installUpdate(): Promise<UpdateCheckResult>
   }
   world: {
-    importFromRemote(payload: { hash: string; remoteUrl: string }): Promise<SimStatus>
+    importFromRemote(payload: {
+      hash: string
+      remoteUrl: string
+    }): Promise<SimStatus & { importedHash: string; tick: number; schemaVersion: number }>
+    migrateDataRoot(payload: { targetDir: string | null }): Promise<{
+      settings: DesktopSettings
+      migrated: boolean
+      previousFolderKept?: string
+    }>
+    exportActive(): Promise<{ exported: boolean; filePath?: string; hash?: string }>
+    resetLocal(): Promise<{ reset: boolean; exported?: boolean; filePath?: string; port?: number }>
   }
   on(
-    channel: 'updater:available' | 'updater:downloaded' | 'menu:openSettings' | 'app:visibility',
+    channel: 'updater:available' | 'updater:downloaded',
     cb: (payload: UpdateInfo | null) => void,
   ): () => void
+  on(channel: 'menu:openSettings', cb: (payload: null) => void): () => void
+  on(channel: 'app:visibility', cb: (payload: DesktopVisibility) => void): () => void
 }
 
 declare global {

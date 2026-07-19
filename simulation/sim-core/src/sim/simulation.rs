@@ -301,10 +301,24 @@ fn use_needed_reserves(org: &mut Organism, tick: u64) -> (bool, bool) {
 
     let urgent_food = org.energy < 0.28;
     let periodic_food = org.energy < 0.45 && tick.is_multiple_of(6);
-    let used_food = if org.inv_food > 0 && (urgent_food || periodic_food) {
+    let needs_food = urgent_food || periodic_food;
+    let used_food = if org.inv_food > 0 && needs_food {
         org.inv_food -= 1;
         org.energy = (org.energy + 0.30).min(1.0);
         true
+    } else if needs_food {
+        let stored = org.tools.get("winter_provisions").copied().unwrap_or(0);
+        if stored == 0 {
+            false
+        } else {
+            if stored == 1 {
+                org.tools.remove("winter_provisions");
+            } else {
+                org.tools.insert("winter_provisions".into(), stored - 1);
+            }
+            org.energy = (org.energy + 0.30).min(1.0);
+            true
+        }
     } else {
         false
     };
@@ -606,6 +620,7 @@ pub struct Simulation {
     pub(crate) cached_lineage_sizes: serde_json::Value,
     pub(crate) slow_compute_tick: u64,
     pub(crate) active_structure_tiles: HashSet<(i32, i32)>,
+    pub(crate) field_fortifications: Vec<super::warfare::FieldFortification>,
     pub(crate) settlement_tiers: HashMap<String, u8>,
     // lineage_id → set of claimed tiles. Kept for serialisation, draw
     // overlays, and territory-size eviction logic.
@@ -682,7 +697,8 @@ impl Simulation {
     pub fn new(seed: u64) -> Self {
         let rng = ChaCha8Rng::seed_from_u64(seed);
         let grid = WorldGrid::new(seed);
-        let physics = PhysicsEngine::new();
+        let mut physics = PhysicsEngine::new();
+        physics.register_existing_fires(&grid);
 
         let sex_words = {
             use crate::organism::vocabulary::gen_phoneme_word;
@@ -760,6 +776,7 @@ impl Simulation {
             cached_lineage_sizes: serde_json::Value::Array(vec![]),
             slow_compute_tick: 0,
             active_structure_tiles: HashSet::new(),
+            field_fortifications: Vec::new(),
             settlement_tiers: HashMap::new(),
             territory: HashMap::new(),
             tile_owner: HashMap::new(),
@@ -804,11 +821,14 @@ impl Simulation {
         match pressure {
             MemoryPressure::Normal => (),
             MemoryPressure::Elevated => {
-                self.organisms
-                    .retain(|o| o.alive || self.tick_count.saturating_sub(o.last_story_tick) < 30_000);
+                self.organisms.retain(|o| {
+                    o.alive
+                        || growth::is_pending_birth(o)
+                        || self.tick_count.saturating_sub(o.last_story_tick) < 30_000
+                });
                 let mut dead_kept = 0usize;
                 self.organisms.retain(|o| {
-                    if o.alive {
+                    if o.alive || growth::is_pending_birth(o) {
                         return true;
                     }
                     dead_kept += 1;
@@ -819,7 +839,7 @@ impl Simulation {
                 }
             }
             MemoryPressure::Critical => {
-                self.organisms.retain(|o| o.alive);
+                self.organisms.retain(|o| o.alive || growth::is_pending_birth(o));
                 for o in self.organisms.iter_mut() {
                     o.trim_cognitive_state(true);
                     while o.life_log.len() > 24 {
@@ -952,15 +972,23 @@ impl Simulation {
         tick_weather(
             &mut self.weather,
             &mut self.grid,
+            &mut self.physics,
             &mut self.organisms,
             self.tick_count,
             &season_str,
             &mut self.events,
             &mut self.rng,
         );
+        super::agriculture::tick_farm_weather(
+            &mut self.farms,
+            self.tick_count,
+            self.drought.active,
+            self.weather.is_wet(self.tick_count),
+            &season_str,
+        );
 
         if self.tick_count.is_multiple_of(300) {
-            tick_world_evolution(
+            let ignited_fires = tick_world_evolution(
                 &mut self.grid,
                 &mut self.organisms,
                 &mut self.flood_tiles,
@@ -971,6 +999,9 @@ impl Simulation {
                 &mut self.events,
                 &mut self.rng,
             );
+            for (x, y) in ignited_fires {
+                self.physics.register_fire(x, y);
+            }
         }
 
         if self.tick_count.is_multiple_of(500) {
@@ -996,6 +1027,8 @@ impl Simulation {
             &mut self.organisms,
             &mut self.events,
             &self.lineage_names,
+            &self.buildings,
+            &self.governments,
         );
 
         {
@@ -1025,10 +1058,15 @@ impl Simulation {
                 &mut self.battles,
                 &mut self.treaties,
                 &mut self.organisms,
-                &self.active_structure_tiles,
                 &mut self.events,
                 &mut self.history.deaths_combat,
-                &self.lineage_eras,
+                super::warfare::BattleInstitutions {
+                    lineage_eras: &self.lineage_eras,
+                    governments: &self.governments,
+                    buildings: &self.buildings,
+                    field_fortifications: &self.field_fortifications,
+                    grid: &self.grid,
+                },
             );
             self.apply_conquests();
         }
@@ -1085,14 +1123,12 @@ impl Simulation {
         let qh = HEIGHT as f32 / QY as f32;
         let mut quadrant_counts = [[0u32; QX as usize]; QY as usize];
         let mut alive_count_before_loop: usize = 0;
-        let mut lineage_counts: FxHashMap<String, usize> =
-            FxHashMap::with_capacity_and_hasher(self.lineage_names.len().max(8), Default::default());
+        let mut lineage_counts = growth::lineage_population_slots(&self.organisms);
         for o in self.organisms.iter() {
             if !o.alive {
                 continue;
             }
             alive_count_before_loop += 1;
-            *lineage_counts.entry(o.lineage_id.clone()).or_insert(0) += 1;
             let cx = ((o.x / qw).floor() as i32).clamp(0, QX - 1);
             let cy = ((o.y / qh).floor() as i32).clamp(0, QY - 1);
             quadrant_counts[cy as usize][cx as usize] += 1;
@@ -1108,12 +1144,20 @@ impl Simulation {
         } else {
             None
         };
+        let reserved_before_immigration = growth::population_slots_used(&self.organisms);
         if let Some(cd) = immig_cooldown {
             if self.tick_count - self.last_immigration_tick >= cd {
-                self.spawn_immigrant_tribe();
-                self.last_immigration_tick = self.tick_count;
+                // Immigrant tribes contain at most 14 people. Waiting for a
+                // full tribe-sized opening keeps both living people and
+                // pending births inside the selected world capacity.
+                if reserved_before_immigration.saturating_add(14) <= self.population_limit {
+                    self.spawn_immigrant_tribe();
+                    self.last_immigration_tick = self.tick_count;
+                }
             }
         }
+
+        let mut population_slots_used = growth::population_slots_used(&self.organisms);
 
         let spatial = SpatialIndex::build(&self.organisms, 10);
         let mut spatial_buf: Vec<usize> = Vec::with_capacity(32);
@@ -1129,7 +1173,7 @@ impl Simulation {
                 let prev_len = self.organisms.len();
                 self.tick_organism(
                     i,
-                    alive_count_before_loop,
+                    population_slots_used,
                     &lineage_counts,
                     &spatial,
                     &mut spatial_buf,
@@ -1137,6 +1181,13 @@ impl Simulation {
                 );
 
                 if self.organisms.len() > prev_len {
+                    let new_slots = self.organisms.len() - prev_len;
+                    population_slots_used += new_slots;
+                    for child in &self.organisms[prev_len..] {
+                        if growth::is_pending_birth(child) {
+                            *lineage_counts.entry(child.lineage_id.clone()).or_insert(0) += 1;
+                        }
+                    }
                     let child_idx = self.organisms.len() - 1;
                     let child_lid = self.organisms[child_idx].lineage_id.clone();
                     if let Some(elder_id) = self.lineage_elders.get(&child_lid).cloned() {
@@ -1219,7 +1270,11 @@ impl Simulation {
         }
 
         if self.tick_count.is_multiple_of(1200) {
-            let dead_count = self.organisms.iter().filter(|o| !o.alive).count();
+            let dead_count = self
+                .organisms
+                .iter()
+                .filter(|o| !o.alive && !growth::is_pending_birth(o))
+                .count();
             const RECENT_DEAD_FULL: usize = 300;
             const MAX_ARCHIVE: usize = 800;
             if dead_count > RECENT_DEAD_FULL {
@@ -1230,7 +1285,7 @@ impl Simulation {
                     if compressed >= to_compress {
                         break;
                     }
-                    if !o.alive && !o.q_table.is_empty() {
+                    if !o.alive && !growth::is_pending_birth(o) && !o.q_table.is_empty() {
                         if !o.memories.is_empty() {
                             let top: Vec<crate::organism::memory::MemoryEntry> =
                                 o.memories.top(8).into_iter().cloned().collect();
@@ -1247,12 +1302,16 @@ impl Simulation {
                     }
                 }
             }
-            let dead_now = self.organisms.iter().filter(|o| !o.alive).count();
+            let dead_now = self
+                .organisms
+                .iter()
+                .filter(|o| !o.alive && !growth::is_pending_birth(o))
+                .count();
             if dead_now > MAX_ARCHIVE {
                 let excess = dead_now - MAX_ARCHIVE;
                 let mut removed = 0usize;
                 self.organisms.retain(|o| {
-                    if o.alive {
+                    if o.alive || growth::is_pending_birth(o) {
                         return true;
                     }
                     if removed < excess {
@@ -1298,6 +1357,8 @@ impl Simulation {
             }
             for (x, y) in to_remove {
                 self.active_structure_tiles.remove(&(x, y));
+                self.field_fortifications
+                    .retain(|fortification| fortification.x != x || fortification.y != y);
             }
             for (x, y) in promote {
                 self.grid.set(x, y, Tile::Hut);
@@ -1308,10 +1369,26 @@ impl Simulation {
         }
     }
 
+    fn should_start_emergency_shelter(&self, idx: usize) -> bool {
+        if self.weather.kind < 2 || self.organisms[idx].inv_wood < 1 {
+            return false;
+        }
+        let org = &self.organisms[idx];
+        if org.has_shelter_within(&self.grid, &self.buildings, 3)
+            || org.has_shelter_project_within(&self.buildings, 3)
+        {
+            return false;
+        }
+        matches!(
+            self.grid.get(org.x as i32, org.y as i32),
+            Tile::Grass | Tile::Sand | Tile::Snow
+        )
+    }
+
     fn tick_organism(
         &mut self,
         idx: usize,
-        alive_count: usize,
+        population_slots_used: usize,
         lineage_counts: &FxHashMap<String, usize>,
         spatial: &SpatialIndex,
         spatial_buf: &mut Vec<usize>,
@@ -1349,14 +1426,7 @@ impl Simulation {
                     hostile_near = true;
                 }
             }
-            let near_shelter = (-2i32..=2).any(|dx| {
-                (-2i32..=2).any(|dy| {
-                    let nx = ox + dx;
-                    let ny = oy + dy;
-                    matches!(self.grid.get(nx, ny), Tile::Hut | Tile::Rock)
-                        || self.grid.structure_at(nx, ny) >= 0.35
-                })
-            });
+            let near_shelter = org.near_shelter(&self.grid, &self.buildings);
             let weather_kind = self.weather.kind;
             let tick_now = self.tick_count;
             self.organisms[idx].tick_inner_state(
@@ -1485,25 +1555,9 @@ impl Simulation {
 
         // Need-driven construction: during storms, organisms with wood and no nearby shelter
         // urgently build wherever they're standing if the tile allows it.
-        let storm_build: Option<(usize, Option<String>)> =
-            if self.weather.kind >= 2 && self.organisms[idx].inv_wood >= 1 {
-                let (bx, by) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
-                let shelter_nearby = (-3i32..=3).any(|dx| {
-                    (-3i32..=3).any(|dy| matches!(self.grid.get(bx + dx, by + dy), Tile::Hut | Tile::Rock))
-                });
-                if !shelter_nearby {
-                    let tile = self.grid.get(bx, by);
-                    if matches!(tile, Tile::Grass | Tile::Sand | Tile::Snow) {
-                        Some((49, Some("must build shelter now!".to_string())))
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            } else {
-                None
-            };
+        let storm_build: Option<(usize, Option<String>)> = self
+            .should_start_emergency_shelter(idx)
+            .then(|| (49, Some("must build shelter now!".to_string())));
 
         let (action, new_thought, decision_origin): (usize, Option<String>, &'static str) =
             if let Some((action, thought)) = storm_build {
@@ -1530,6 +1584,7 @@ impl Simulation {
                     (self.organisms[idx].fear_level + 0.07 + (2.5 - dist) * 0.02).min(1.0);
                 (dir, Some("wolf! run!".to_string()), "emergency_reflex")
             } else {
+                self.refresh_lineage_guidance(idx);
                 let (oa_ix, oa_iy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
                 let avail = crate::sim::actions::available_actions(self, idx, oa_ix, oa_iy, spatial);
                 let q_seen = self.organisms[idx].q_table.contains_key(&perception);
@@ -1545,6 +1600,7 @@ impl Simulation {
                     .map(|target| self.organisms[idx].toward(target, &self.grid));
                 let chosen = self.organisms[idx].choose_action(
                     &self.grid,
+                    &self.buildings,
                     self.tick_count,
                     epsilon,
                     &self.organisms,
@@ -2694,15 +2750,10 @@ impl Simulation {
         {
             let lid = self.organisms[idx].lineage_id.clone();
             if let Some((strategy, expiry)) = self.lineage_strategies.get(&lid) {
-                if *expiry > self.tick_count {
+                if *expiry > self.tick_count && directive_aligns_action(strategy, action) {
                     let bonus: f32 = match strategy.as_str() {
-                        "hunt" if action < 8 => 0.008,
-                        "explore" if action < 8 => 0.004,
-                        "settle" if action == 17 => 0.006,
-                        "settle" if action == 14 || action == 15 => 0.005,
-                        "settle" if action == 146 || action == 147 => 0.004,
-                        "trade" if action == 13 => 0.008,
-                        "defend" if action == 12 => 0.006,
+                        "hunt" | "trade" | "defend" => 0.008,
+                        "explore" | "settle" => 0.006,
                         _ => 0.0,
                     };
                     reward += bonus;
@@ -3758,7 +3809,7 @@ impl Simulation {
             self.tick_count,
             &mut self.events,
             &mut self.rng,
-            alive_count,
+            population_slots_used,
             self.population_limit,
             lineage_counts,
         );
@@ -4829,57 +4880,7 @@ impl Simulation {
     }
 
     fn tick_settlements(&mut self) {
-        const TIER_NAMES: [&str; 6] = ["wilderness", "camp", "hamlet", "village", "town", "city"];
-        const THRESHOLDS: [usize; 6] = [0, 4, 10, 22, 40, 70];
-
-        let mut built: Vec<(i32, i32)> = self
-            .active_structure_tiles
-            .iter()
-            .filter(|&&(x, y)| {
-                self.grid.structure_at(x, y) >= 0.35
-                    || matches!(self.grid.get(x, y), Tile::Hut | Tile::Campfire)
-            })
-            .copied()
-            .collect();
-        if built.len() > 4000 {
-            built.truncate(4000);
-        }
-
-        let mut counts: HashMap<String, usize> = HashMap::new();
-        for (bx, by) in built {
-            let mut best: Option<(f32, &str)> = None;
-            for o in self.organisms.iter().filter(|o| o.alive) {
-                let d = (o.x - bx as f32).abs() + (o.y - by as f32).abs();
-                if d <= 16.0 && best.map(|(bd, _)| d < bd).unwrap_or(true) {
-                    best = Some((d, o.lineage_id.as_str()));
-                }
-            }
-            if let Some((_, lid)) = best {
-                *counts.entry(lid.to_string()).or_insert(0) += 1;
-            }
-        }
-
-        for (lid, count) in counts {
-            let mut tier = 0u8;
-            for (t, &need) in THRESHOLDS.iter().enumerate() {
-                if count >= need {
-                    tier = t as u8;
-                }
-            }
-            let prev = *self.settlement_tiers.get(&lid).unwrap_or(&0);
-            if tier > prev {
-                self.settlement_tiers.insert(lid.clone(), tier);
-                let tribe = self
-                    .lineage_names
-                    .get(&lid)
-                    .cloned()
-                    .unwrap_or_else(|| "a tribe".to_string());
-                let msg = format!("{}'s settlement grew into a {}", tribe, TIER_NAMES[tier as usize]);
-                push_event(&mut self.events, self.tick_count, "build", &tribe, &msg);
-            } else if tier < prev {
-                self.settlement_tiers.insert(lid.clone(), tier);
-            }
-        }
+        super::civ::settlements::tick(self);
     }
 
     /// Claim all non-water tiles within `radius` of `(cx, cy)` for lineage `lid`.

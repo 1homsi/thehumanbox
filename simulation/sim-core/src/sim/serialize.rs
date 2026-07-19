@@ -308,6 +308,21 @@ impl Simulation {
                     .map(|(lid, era)| json!({ "lineage_id": lid, "era_name": era.name() }))
                     .collect();
                 obj.insert("lineage_eras".to_string(), serde_json::Value::Array(eras_json));
+                let active_strategies: HashMap<String, serde_json::Value> = self
+                    .lineage_strategies
+                    .iter()
+                    .filter(|(_, (_, expires_tick))| *expires_tick > self.tick_count)
+                    .map(|(lineage_id, (strategy, expires_tick))| {
+                        (
+                            lineage_id.clone(),
+                            json!({ "strategy": strategy, "expires_tick": expires_tick }),
+                        )
+                    })
+                    .collect();
+                obj.insert(
+                    "lineage_strategies".to_string(),
+                    serde_json::to_value(active_strategies).unwrap(),
+                );
 
                 let mut lineage_discoveries: HashMap<String, HashSet<String>> = HashMap::new();
                 let mut lineage_pop: HashMap<String, usize> = HashMap::new();
@@ -387,6 +402,54 @@ impl Simulation {
                     })
                     .collect();
                 obj.insert("buildings".to_string(), serde_json::Value::Array(buildings_json));
+
+                let farms_json: Vec<serde_json::Value> = self
+                    .farms
+                    .iter()
+                    .map(|farm| {
+                        let fertility = self.grid.fertility_at(farm.x, farm.y);
+                        let era = self.era(&farm.owner_lineage);
+                        json!({
+                            "id": farm.id,
+                            "x": farm.x,
+                            "y": farm.y,
+                            "crop": farm.crop.name(),
+                            "lineage_id": farm.owner_lineage,
+                            "planted_tick": farm.planted_tick,
+                            "ready_tick": farm.ready_tick,
+                            "harvested": farm.harvested,
+                            "stage": farm.stage(self.tick_count),
+                            "progress": farm.progress(self.tick_count).clamp(0.0, 1.0),
+                            "yield": if farm.harvested {
+                                0
+                            } else {
+                                farm.projected_yield(era, fertility)
+                            },
+                        })
+                    })
+                    .collect();
+                obj.insert("farms".to_string(), serde_json::Value::Array(farms_json));
+
+                let settlements_json: Vec<serde_json::Value> = crate::sim::civ::settlements::snapshots(self)
+                    .into_iter()
+                    .map(|settlement| {
+                        json!({
+                            "lineage_id": settlement.lineage_id,
+                            "name": settlement.name,
+                            "tier": settlement.tier,
+                            "tier_name": settlement.tier_name,
+                            "center": settlement.center,
+                            "population": settlement.population,
+                            "building_count": settlement.building_count,
+                            "capacity": settlement.capacity,
+                            "score": settlement.score,
+                        })
+                    })
+                    .collect();
+                obj.insert(
+                    "settlements".to_string(),
+                    serde_json::Value::Array(settlements_json),
+                );
 
                 let gov_json: Vec<serde_json::Value> = self
                     .governments
@@ -688,5 +751,132 @@ mod schema_tests {
                 key
             );
         }
+    }
+
+    #[test]
+    fn full_payload_exposes_only_active_player_guidance() {
+        let mut sim = Simulation::new(43);
+        let lid = sim
+            .organisms
+            .iter()
+            .find(|org| org.alive)
+            .unwrap()
+            .lineage_id
+            .clone();
+        sim.tick_count = 500;
+        sim.lineage_strategies.insert(lid.clone(), ("trade".into(), 900));
+        sim.lineage_strategies
+            .insert("expired".into(), ("hunt".into(), 400));
+
+        let payload = sim.state_json();
+        let strategies = payload["lineage_strategies"].as_object().unwrap();
+        assert_eq!(strategies[&lid]["strategy"].as_str(), Some("trade"));
+        assert!(!strategies.contains_key("expired"));
+    }
+
+    #[test]
+    fn full_payload_exposes_farm_lifecycle_contract() {
+        let mut sim = Simulation::new(44);
+        let lineage_id = sim
+            .organisms
+            .iter()
+            .find(|org| org.alive)
+            .unwrap()
+            .lineage_id
+            .clone();
+        sim.tick_count = 1_300;
+        sim.lineage_eras
+            .insert(lineage_id.clone(), crate::sim::era::Era::Bronze);
+        sim.farms.push(crate::sim::agriculture::Farm {
+            id: 7,
+            x: 120,
+            y: 120,
+            owner_lineage: lineage_id.clone(),
+            crop: crate::sim::agriculture::CropKind::Wheat,
+            planted_tick: 100,
+            ready_tick: 1_300,
+            harvested: false,
+            prepared: false,
+        });
+
+        let payload = sim.state_json();
+        let farm = payload["farms"][0].as_object().expect("farm object");
+        let actual: std::collections::BTreeSet<&str> = farm.keys().map(String::as_str).collect();
+        let expected: std::collections::BTreeSet<&str> = [
+            "id",
+            "x",
+            "y",
+            "crop",
+            "lineage_id",
+            "planted_tick",
+            "ready_tick",
+            "harvested",
+            "stage",
+            "progress",
+            "yield",
+        ]
+        .into_iter()
+        .collect();
+
+        assert_eq!(actual, expected);
+        assert_eq!(farm["id"].as_u64(), Some(7));
+        assert_eq!(farm["crop"].as_str(), Some("wheat"));
+        assert_eq!(farm["lineage_id"].as_str(), Some(lineage_id.as_str()));
+        assert_eq!(farm["stage"].as_str(), Some("mature"));
+        assert_eq!(farm["progress"].as_f64(), Some(1.0));
+        assert!(farm["yield"].as_u64().is_some_and(|value| value > 0));
+    }
+
+    #[test]
+    fn full_payload_exposes_authoritative_settlement_contract() {
+        use crate::sim::buildings::{Building, BuildingKind};
+
+        let mut sim = Simulation::new(45);
+        let lineage_id = "settlement-wire".to_string();
+        sim.lineage_names.clear();
+        sim.lineage_names
+            .insert(lineage_id.clone(), "Harbor Folk".to_string());
+        for (index, org) in sim.organisms.iter_mut().enumerate() {
+            org.alive = index < 4;
+            if org.alive {
+                org.lineage_id = lineage_id.clone();
+                org.x = 100.0 + index as f32;
+                org.y = 110.0;
+            }
+        }
+        sim.buildings.clear();
+        for (id, kind, x) in [(1, BuildingKind::House, 100), (2, BuildingKind::Hut, 104)] {
+            let mut building = Building::new(id, kind, x, 110, Some(lineage_id.clone()), 1);
+            building.condition = 1.0;
+            sim.buildings.push(building);
+        }
+
+        let payload = sim.state_json();
+        let settlement = payload["settlements"][0].as_object().expect("settlement object");
+        let actual: std::collections::BTreeSet<&str> = settlement.keys().map(String::as_str).collect();
+        let expected: std::collections::BTreeSet<&str> = [
+            "lineage_id",
+            "name",
+            "tier",
+            "tier_name",
+            "center",
+            "population",
+            "building_count",
+            "capacity",
+            "score",
+        ]
+        .into_iter()
+        .collect();
+
+        assert_eq!(actual, expected);
+        assert_eq!(settlement["lineage_id"].as_str(), Some(lineage_id.as_str()));
+        assert_eq!(settlement["name"].as_str(), Some("Harbor Folk"));
+        assert_eq!(settlement["tier"].as_u64(), Some(2));
+        assert_eq!(settlement["tier_name"].as_str(), Some("hamlet"));
+        assert_eq!(settlement["population"].as_u64(), Some(4));
+        assert_eq!(settlement["building_count"].as_u64(), Some(2));
+        assert_eq!(settlement["capacity"].as_u64(), Some(6));
+        assert!(settlement["score"].as_u64().is_some_and(|score| score >= 24));
+        assert_eq!(settlement["center"].as_array().map(Vec::len), Some(2));
     }
 }

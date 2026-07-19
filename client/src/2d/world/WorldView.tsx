@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   Game,
   World,
@@ -10,6 +10,7 @@ import {
   useEntity,
   useDynamicCanvas,
   useGestures,
+  type GameControls,
 } from 'cubeforge'
 import type { AnimalState, OrganismState, WorldState } from '../../types'
 import type { InterpRefs } from '../../simulation/useSimulation'
@@ -29,8 +30,10 @@ import { drawBuilding } from './buildings2d'
 import { getBuildingSprite, PAD as SPRITE_PAD, PAD_BOT as SPRITE_PAD_BOT } from './building-sprites'
 import { normalizeLineageEras } from '../../utils/lineageEras'
 import { useSceneStore } from '../../stores/scene'
+import { farmCropColor, farmProgress, farmStage } from '../../world/farms'
 
 import { LOW_PERF } from '../../lib/perf'
+import { syncRendererLoopPause } from '../../lib/desktopVisibility'
 
 function deriveAgeStage(age: number, isElder: boolean, declared?: string): AgeStage {
   if (declared === 'infant' || declared === 'child' || declared === 'teen' || declared === 'adult')
@@ -1371,6 +1374,43 @@ function drawWorldOnCanvas(
     }
   }
 
+  if (world.farms && world.farms.length > 0) {
+    ctx.save()
+    for (const farm of world.farms) {
+      const localX = farm.x - ox
+      const localY = farm.y - oy
+      if (localX < c0 - 1 || localX > c1 || localY < r0 - 1 || localY > r1) continue
+      const x = localX * TILE
+      const y = localY * TILE
+      const progress = farmProgress(farm, world.tick)
+      const stage = farmStage(farm, world.tick)
+      const cropColor = farmCropColor(farm.crop)
+
+      ctx.fillStyle = stage === 'fallow' ? '#6b4c32' : '#705335'
+      ctx.fillRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1)
+      ctx.strokeStyle = stage === 'mature' ? '#f1d36c' : 'rgba(42, 29, 20, 0.65)'
+      ctx.lineWidth = stage === 'mature' ? 1.2 : 0.7
+      for (let row = 2; row < TILE; row += 3) {
+        ctx.beginPath()
+        ctx.moveTo(x + 1, y + row)
+        ctx.lineTo(x + TILE - 1, y + row)
+        ctx.stroke()
+      }
+      if (stage !== 'fallow') {
+        ctx.fillStyle = cropColor
+        const plantHeight = Math.max(1, Math.round(1 + progress * 4))
+        for (let px = 3; px < TILE; px += 4) {
+          ctx.fillRect(x + px, y + TILE - plantHeight - 1, 1.5, plantHeight)
+        }
+      }
+      if (stage === 'mature') {
+        ctx.strokeStyle = 'rgba(255, 232, 145, 0.9)'
+        ctx.strokeRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1)
+      }
+    }
+    ctx.restore()
+  }
+
   if (world.buildings && world.buildings.length > 0) {
     // Viewport-clip the building loop. Buildings are world-positioned;
     // c0/r0/c1/r1 are the tile-aligned visible window already computed
@@ -1396,28 +1436,52 @@ function drawWorldOnCanvas(
         bNight,
       )
     }
-    type Cluster = { cx: number; cy: number; count: number; lineage: string }
+    type Cluster = {
+      cx: number
+      cy: number
+      count: number
+      lineage: string
+      name?: string
+      tier?: number
+      tierName?: string
+      population?: number
+    }
     const clusters: Cluster[] = []
     const CITY_RADIUS_SQ = 14 * 14
-    // Same viewport clip as the building draw loop. The city labels are
-    // only visible if there's a cluster on screen, and the O(N) inner
-    // find() against the growing cluster list was the single most
-    // expensive per-frame call on low-end laptops.
-    for (const b of world.buildings) {
-      const lid = (b as { lineage_id?: string }).lineage_id ?? ''
-      if (!lid) continue
-      const bx = b.x
-      const by = b.y
-      if (bx < cxLo || bx > cxHi || by < ryLo || by > ryHi) continue
-      const existing = clusters.find(
-        (c) => c.lineage === lid && (c.cx - bx) ** 2 + (c.cy - by) ** 2 < CITY_RADIUS_SQ,
-      )
-      if (existing) {
-        existing.cx = (existing.cx * existing.count + bx) / (existing.count + 1)
-        existing.cy = (existing.cy * existing.count + by) / (existing.count + 1)
-        existing.count++
-      } else {
-        clusters.push({ cx: bx, cy: by, count: 1, lineage: lid })
+    if (world.settlements?.length) {
+      for (const settlement of world.settlements) {
+        const [cx, cy] = settlement.center
+        if (cx < cxLo || cx > cxHi || cy < ryLo || cy > ryHi) continue
+        clusters.push({
+          cx,
+          cy,
+          count: settlement.building_count,
+          lineage: settlement.lineage_id,
+          name: settlement.name,
+          tier: settlement.tier,
+          tierName: settlement.tier_name,
+          population: settlement.population,
+        })
+      }
+    } else {
+      // Legacy snapshots lack authoritative settlements. Retain the old
+      // visual clustering as a compatibility fallback only.
+      for (const b of world.buildings) {
+        const lid = (b as { lineage_id?: string }).lineage_id ?? ''
+        if (!lid) continue
+        const bx = b.x
+        const by = b.y
+        if (bx < cxLo || bx > cxHi || by < ryLo || by > ryHi) continue
+        const existing = clusters.find(
+          (c) => c.lineage === lid && (c.cx - bx) ** 2 + (c.cy - by) ** 2 < CITY_RADIUS_SQ,
+        )
+        if (existing) {
+          existing.cx = (existing.cx * existing.count + bx) / (existing.count + 1)
+          existing.cy = (existing.cy * existing.count + by) / (existing.count + 1)
+          existing.count++
+        } else {
+          clusters.push({ cx: bx, cy: by, count: 1, lineage: lid })
+        }
       }
     }
     const lineageNames = world.lineage_names ?? {}
@@ -1425,20 +1489,33 @@ function drawWorldOnCanvas(
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     for (const c of clusters) {
-      if (c.count < 4) continue
-      const name = lineageNames[c.lineage] ?? c.lineage.slice(0, 6)
+      if (c.tier === 0 || (c.tier === undefined && c.count < 4)) continue
+      const name = c.name ?? lineageNames[c.lineage] ?? c.lineage.slice(0, 6)
       const label =
-        c.count >= 12 ? `${name.toUpperCase()} CITY` : c.count >= 8 ? `${name} town` : `${name} village`
+        c.tier !== undefined
+          ? c.tier >= 5
+            ? `${name.toUpperCase()} CITY`
+            : `${name} ${c.tierName ?? 'settlement'}`
+          : c.count >= 12
+            ? `${name.toUpperCase()} CITY`
+            : c.count >= 8
+              ? `${name} town`
+              : `${name} village`
       const lx = (c.cx - ox) * TILE
       const ly = (c.cy - oy) * TILE - TILE * 2
-      ctx.font = c.count >= 12 ? 'bold 12px monospace' : '10px monospace'
+      const major = (c.tier ?? (c.count >= 12 ? 5 : 0)) >= 5
+      ctx.font = major ? 'bold 12px monospace' : '10px monospace'
       ctx.fillStyle = 'rgba(0,0,0,0.65)'
       ctx.fillText(label, lx + 1, ly + 1)
-      ctx.fillStyle = c.count >= 12 ? '#ffd28a' : c.count >= 8 ? '#e5c89a' : '#c8b890'
+      ctx.fillStyle = major ? '#ffd28a' : (c.tier ?? 0) >= 4 || c.count >= 8 ? '#e5c89a' : '#c8b890'
       ctx.fillText(label, lx, ly)
       ctx.font = '8px monospace'
       ctx.fillStyle = '#8a8170'
-      ctx.fillText(`${c.count} bldgs`, lx, ly + 10)
+      ctx.fillText(
+        c.population !== undefined ? `${c.population} people · ${c.count} buildings` : `${c.count} bldgs`,
+        lx,
+        ly + 10,
+      )
     }
     ctx.restore()
   }
@@ -1826,6 +1903,7 @@ function WorldSprite({
   overlay,
   focus,
   viewFlags,
+  rendererPaused,
   onFirstDraw,
   atX,
   atY,
@@ -1838,6 +1916,7 @@ function WorldSprite({
   overlay: string | null
   focus: string
   viewFlags: ViewFlags
+  rendererPaused: boolean
   onFirstDraw: () => void
   atX: number
   atY: number
@@ -1889,7 +1968,7 @@ function WorldSprite({
   viewFlagsRef.current = viewFlags
 
   useEffect(() => {
-    if (!interp) return
+    if (!interp || rendererPaused) return
     let raf = 0
     let stopped = false
     let lastDrawnAt: number = 0
@@ -2067,7 +2146,7 @@ function WorldSprite({
       _baseCanvas = null
       _baseKey = null
     }
-  }, [interp, dyn, onFirstDraw, cameraStateRef, viewportDims])
+  }, [interp, dyn, onFirstDraw, cameraStateRef, viewportDims, rendererPaused])
 
   return (
     <>
@@ -2228,11 +2307,12 @@ function CameraController({
 interface Props {
   world: WorldState
   interp?: InterpRefs
+  rendererPaused?: boolean
   sandboxArmed?: boolean
   onSandboxApply?: (worldX: number, worldY: number) => void
 }
 
-export function WorldView({ world, interp, sandboxArmed, onSandboxApply }: Props) {
+export function WorldView({ world, interp, rendererPaused = false, sandboxArmed, onSandboxApply }: Props) {
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
   const followOrgId = useUIStore((s) => s.followOrgId)
   const overlay = useUIStore((s) => s.overlay)
@@ -2251,6 +2331,19 @@ export function WorldView({ world, interp, sandboxArmed, onSandboxApply }: Props
   const cameraStateRef = useRef({ x: cx, y: cy, zoom: 1.5 })
   const [dims, setDims] = useState({ w: 0, h: 0 })
   const [mapReady, setMapReady] = useState(false)
+  const gameControlsRef = useRef<GameControls | null>(null)
+  const rendererPausedRef = useRef(rendererPaused)
+  rendererPausedRef.current = rendererPaused
+
+  const handleGameReady = useCallback((controls: GameControls) => {
+    gameControlsRef.current = controls
+    syncRendererLoopPause(controls, rendererPausedRef.current)
+  }, [])
+
+  useEffect(() => {
+    const controls = gameControlsRef.current
+    if (controls) syncRendererLoopPause(controls, rendererPaused)
+  }, [rendererPaused])
 
   const followTarget = followOrgId
     ? (() => {
@@ -2386,7 +2479,13 @@ export function WorldView({ world, interp, sandboxArmed, onSandboxApply }: Props
         }}
       />
       {dims.w > 0 && (
-        <Game gravity={0} width={dims.w} height={dims.h} style={{ display: 'block' }}>
+        <Game
+          gravity={0}
+          width={dims.w}
+          height={dims.h}
+          onReady={handleGameReady}
+          style={{ display: 'block' }}
+        >
           <World background="#1a4a80">
             <Camera2D />
 
@@ -2398,6 +2497,7 @@ export function WorldView({ world, interp, sandboxArmed, onSandboxApply }: Props
                 overlay={overlay}
                 focus={focus}
                 viewFlags={viewFlags}
+                rendererPaused={rendererPaused}
                 onFirstDraw={() => setMapReady(true)}
                 atX={cx}
                 atY={cy}

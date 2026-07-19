@@ -379,7 +379,7 @@ pub(super) fn tick_spiritual_pilgrimage(sim: &mut Simulation) {
         .buildings
         .iter()
         .filter(|b| {
-            (b.condition >= 0.5)
+            b.is_operational()
                 && matches!(
                     b.kind,
                     crate::sim::tech::buildings::BuildingKind::Temple
@@ -1414,7 +1414,7 @@ pub(super) fn tick_evening_gathering(sim: &mut Simulation) {
     // scans its own lineage's gathering spots instead of every building.
     let mut buildings_by_lineage: HashMap<&str, Vec<(f32, f32)>> = HashMap::new();
     for b in sim.buildings.iter() {
-        if b.condition < 0.4 {
+        if !b.is_operational() {
             continue;
         }
         if let Some(owner) = b.owner_lineage.as_deref() {

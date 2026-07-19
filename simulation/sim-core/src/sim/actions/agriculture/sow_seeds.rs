@@ -1,14 +1,12 @@
 use super::super::ctx::ActionCtx;
-use crate::world::tiles::Tile;
+use super::farm_ops;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if !matches!(ctx.tile, Tile::Grass | Tile::Food) {
+    let crop = farm_ops::crop_for_plot(ctx.sim, ctx.idx, ctx.ix, ctx.iy, ctx.water_near);
+    if farm_ops::plant_crop(ctx.sim, ctx.idx, ctx.ix, ctx.iy, crop, true).is_none() {
         return 0.0;
     }
-    if ctx.chance(0.5) {
-        ctx.org_mut().inv_food = ctx.org_mut().inv_food.saturating_add(1);
-    }
-    ctx.think("sowing seeds");
-    ctx.event("build", "scattered seeds across the field");
+    ctx.think(&format!("sowing {} seeds", crop.name()));
+    ctx.event("build", &format!("sowed a field of {}", crop.name()));
     0.006
 }

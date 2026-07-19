@@ -2,7 +2,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
 use super::era::Era;
+use super::government::{Government, LawKind};
+use crate::sim::tech::buildings::{Building, BuildingKind};
 use crate::sim::world_events::push_event;
+use crate::world::grid::WorldGrid;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum CombatStyle {
@@ -39,6 +42,16 @@ impl CombatStyle {
             CombatStyle::Modern => "modern",
         }
     }
+}
+
+/// A temporary, lineage-owned fighting position created in the field. This is
+/// separate from permanent buildings so digging in can matter without
+/// pretending a complete wall was constructed instantly.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FieldFortification {
+    pub x: i32,
+    pub y: i32,
+    pub lineage_id: String,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -128,7 +141,7 @@ impl TreatyKind {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Treaty {
     pub lineage_a: String,
     pub lineage_b: String,
@@ -171,9 +184,26 @@ pub fn damage_multiplier(style: CombatStyle) -> f32 {
 }
 
 pub fn has_active_treaty(treaties: &[Treaty], a: &str, b: &str, tick: u64) -> bool {
+    if a.is_empty() || b.is_empty() || a == b {
+        return false;
+    }
     treaties.iter().any(|t| {
-        t.expires_tick > tick
+        t.signed_tick <= tick
+            && t.expires_tick > tick
             && ((t.lineage_a == a && t.lineage_b == b) || (t.lineage_a == b && t.lineage_b == a))
+    })
+}
+
+pub fn has_active_battle_between(battles: &[Battle], lineage_a: &str, lineage_b: &str) -> bool {
+    if lineage_a.is_empty() || lineage_b.is_empty() || lineage_a == lineage_b {
+        return false;
+    }
+    battles.iter().any(|battle| {
+        battle.ended_tick.is_none()
+            && ((battle.attackers.iter().any(|lineage| lineage == lineage_a)
+                && battle.defenders.iter().any(|lineage| lineage == lineage_b))
+                || (battle.attackers.iter().any(|lineage| lineage == lineage_b)
+                    && battle.defenders.iter().any(|lineage| lineage == lineage_a)))
     })
 }
 
@@ -185,6 +215,179 @@ pub fn treaty_attitude_bonus(kind: TreatyKind) -> f32 {
         TreatyKind::NonAggression => 0.05,
         TreatyKind::Vassalage => -0.10,
     }
+}
+
+fn treaty_matches_lineages(treaty: &Treaty, lineage_a: &str, lineage_b: &str) -> bool {
+    (treaty.lineage_a == lineage_a && treaty.lineage_b == lineage_b)
+        || (treaty.lineage_a == lineage_b && treaty.lineage_b == lineage_a)
+}
+
+fn treaty_pair(treaty: &Treaty) -> (&str, &str) {
+    if treaty.lineage_a <= treaty.lineage_b {
+        (&treaty.lineage_a, &treaty.lineage_b)
+    } else {
+        (&treaty.lineage_b, &treaty.lineage_a)
+    }
+}
+
+fn treaty_kind_priority(kind: TreatyKind) -> u8 {
+    match kind {
+        TreatyKind::NonAggression => 1,
+        TreatyKind::Trade => 2,
+        TreatyKind::Defensive => 3,
+        TreatyKind::Alliance => 4,
+        TreatyKind::Vassalage => 5,
+    }
+}
+
+/// Remove inactive or malformed agreements and deterministically retain one
+/// current agreement per unordered lineage pair. The most recently signed
+/// record wins; expiry, kind priority, and stored orientation break malformed
+/// import ties without changing the direction of vassalage records.
+///
+/// Returns the number of removed records so direct autonomous, post-battle,
+/// and load callers can report or test repairs without reimplementing them.
+pub fn consolidate_treaties(treaties: &mut Vec<Treaty>, tick: u64) -> usize {
+    let before = treaties.len();
+    treaties.retain(|treaty| {
+        !treaty.lineage_a.is_empty()
+            && !treaty.lineage_b.is_empty()
+            && treaty.lineage_a != treaty.lineage_b
+            && treaty.signed_tick <= tick
+            && treaty.signed_tick < treaty.expires_tick
+            && treaty.expires_tick > tick
+    });
+    treaties.sort_by(|left, right| {
+        let left_pair = treaty_pair(left);
+        let right_pair = treaty_pair(right);
+        left_pair
+            .0
+            .cmp(right_pair.0)
+            .then_with(|| left_pair.1.cmp(right_pair.1))
+            .then_with(|| right.signed_tick.cmp(&left.signed_tick))
+            .then_with(|| right.expires_tick.cmp(&left.expires_tick))
+            .then_with(|| treaty_kind_priority(right.kind).cmp(&treaty_kind_priority(left.kind)))
+            .then_with(|| left.lineage_a.cmp(&right.lineage_a))
+            .then_with(|| left.lineage_b.cmp(&right.lineage_b))
+    });
+
+    let mut consolidated: Vec<Treaty> = Vec::with_capacity(treaties.len());
+    for treaty in treaties.drain(..) {
+        if consolidated
+            .last()
+            .is_some_and(|previous| treaty_matches_lineages(previous, &treaty.lineage_a, &treaty.lineage_b))
+        {
+            continue;
+        }
+        consolidated.push(treaty);
+    }
+    *treaties = consolidated;
+    before.saturating_sub(treaties.len())
+}
+
+fn update_reciprocal_lineage_attitudes(
+    organisms: &mut [crate::organism::organism::Organism],
+    lineage_a: &str,
+    lineage_b: &str,
+    delta: f32,
+) {
+    for organism in organisms.iter_mut().filter(|organism| organism.alive) {
+        if organism.lineage_id == lineage_a {
+            organism.update_attitude(lineage_b, delta);
+        } else if organism.lineage_id == lineage_b {
+            organism.update_attitude(lineage_a, delta);
+        }
+    }
+}
+
+fn cap_reciprocal_lineage_attitudes(
+    organisms: &mut [crate::organism::organism::Organism],
+    lineage_a: &str,
+    lineage_b: &str,
+    maximum: f32,
+) {
+    for organism in organisms.iter_mut().filter(|organism| organism.alive) {
+        let other = if organism.lineage_id == lineage_a {
+            lineage_b
+        } else if organism.lineage_id == lineage_b {
+            lineage_a
+        } else {
+            continue;
+        };
+        let current = organism.attitude_toward(other);
+        if current > maximum {
+            organism.update_attitude(other, maximum - current);
+        }
+    }
+}
+
+/// Create or renew the one active treaty between a pair of lineages.
+///
+/// The simulation treats any active treaty as a conflict gate, so duplicate
+/// records could accidentally extend or stack diplomacy in surprising ways.
+/// Consolidating the pair here gives actions and autonomous diplomacy the same
+/// stable invariant: at most one active treaty per lineage pair.
+pub fn establish_treaty(
+    treaties: &mut Vec<Treaty>,
+    organisms: &mut [crate::organism::organism::Organism],
+    lineage_a: &str,
+    lineage_b: &str,
+    kind: TreatyKind,
+    signed_tick: u64,
+    expires_tick: u64,
+) -> bool {
+    if lineage_a.is_empty() || lineage_b.is_empty() || lineage_a == lineage_b || expires_tick <= signed_tick {
+        return false;
+    }
+
+    let active_same_kind_expiry = treaties
+        .iter()
+        .filter(|treaty| {
+            treaty_matches_lineages(treaty, lineage_a, lineage_b)
+                && treaty.kind == kind
+                && treaty.signed_tick <= signed_tick
+                && treaty.expires_tick > signed_tick
+        })
+        .map(|treaty| treaty.expires_tick)
+        .max();
+    consolidate_treaties(treaties, signed_tick);
+    treaties.retain(|treaty| !treaty_matches_lineages(treaty, lineage_a, lineage_b));
+    treaties.push(Treaty {
+        lineage_a: lineage_a.to_string(),
+        lineage_b: lineage_b.to_string(),
+        kind,
+        signed_tick,
+        expires_tick: active_same_kind_expiry
+            .map(|existing_expiry| existing_expiry.max(expires_tick))
+            .unwrap_or(expires_tick),
+    });
+    consolidate_treaties(treaties, signed_tick);
+    if active_same_kind_expiry.is_none() {
+        update_reciprocal_lineage_attitudes(organisms, lineage_a, lineage_b, treaty_attitude_bonus(kind));
+    }
+    true
+}
+
+/// Break active agreements between two lineages and make the declaration of
+/// war known to both populations rather than only to the declaring actor.
+pub fn declare_hostilities(
+    treaties: &mut Vec<Treaty>,
+    organisms: &mut [crate::organism::organism::Organism],
+    lineage_a: &str,
+    lineage_b: &str,
+    tick: u64,
+    attitude_penalty: f32,
+) -> usize {
+    if lineage_a.is_empty() || lineage_b.is_empty() || lineage_a == lineage_b {
+        return 0;
+    }
+
+    consolidate_treaties(treaties, tick);
+    let before = treaties.len();
+    treaties.retain(|treaty| !treaty_matches_lineages(treaty, lineage_a, lineage_b));
+    let invalidated = before - treaties.len();
+    cap_reciprocal_lineage_attitudes(organisms, lineage_a, lineage_b, -attitude_penalty.abs());
+    invalidated
 }
 
 pub fn scale_for_participants(n: usize) -> BattleScale {
@@ -543,7 +746,7 @@ fn pick_combatants(
     let mut ids: Vec<(String, f32)> = match pop_per_lineage.get(lid) {
         Some(v) => v
             .iter()
-            .filter(|&&i| organisms[i].alive && organisms[i].age >= 12)
+            .filter(|&&i| organisms[i].alive && organisms[i].age_stage().can_combat())
             .map(|&i| {
                 let dx = organisms[i].x - near.0 as f32;
                 let dy = organisms[i].y - near.1 as f32;
@@ -560,16 +763,23 @@ fn pick_combatants(
     chosen
 }
 
+pub struct BattleInstitutions<'a> {
+    pub lineage_eras: &'a HashMap<String, Era>,
+    pub governments: &'a HashMap<String, Government>,
+    pub buildings: &'a [Building],
+    pub field_fortifications: &'a [FieldFortification],
+    pub grid: &'a WorldGrid,
+}
+
 pub fn tick_battles(
     tick: u64,
     rng: &mut rand_chacha::ChaCha8Rng,
     battles: &mut Vec<Battle>,
     treaties: &mut Vec<Treaty>,
     organisms: &mut [crate::organism::organism::Organism],
-    structure_tiles: &HashSet<(i32, i32)>,
     events: &mut std::collections::VecDeque<crate::sim::simulation::Event>,
     history_combat_deaths: &mut u64,
-    lineage_eras: &HashMap<String, Era>,
+    institutions: BattleInstitutions<'_>,
 ) {
     use rand::Rng;
     let mut signed: Vec<(String, String, TreatyKind)> = Vec::new();
@@ -591,33 +801,49 @@ pub fn tick_battles(
             .filter(|&i| organisms[i].alive)
             .collect();
 
-        let near_struct = battle.location;
-        let defender_wall_bonus = nearby_defensive_structure(structure_tiles, near_struct);
+        let defender_wall_bonus =
+            nearby_operational_defense(institutions.buildings, &battle.defenders, battle.location)
+                || nearby_field_fortification(
+                    institutions.field_fortifications,
+                    &battle.defenders,
+                    battle.location,
+                    institutions.grid,
+                );
 
         let att_era = battle
             .attackers
             .first()
-            .and_then(|lid| lineage_eras.get(lid).copied())
+            .and_then(|lid| institutions.lineage_eras.get(lid).copied())
             .unwrap_or(Era::PreStone);
         let def_era = battle
             .defenders
             .first()
-            .and_then(|lid| lineage_eras.get(lid).copied())
+            .and_then(|lid| institutions.lineage_eras.get(lid).copied())
             .unwrap_or(Era::PreStone);
-        let att_style = pick_combat_style(att_era, att_era >= Era::Renaissance);
-        let def_style = pick_combat_style(def_era, def_era >= Era::Renaissance);
+        let att_policy_bonus = battle
+            .attackers
+            .first()
+            .map(|lid| military_policy_bonus(institutions.governments.get(lid)))
+            .unwrap_or(0.0);
+        let def_policy_bonus = battle
+            .defenders
+            .first()
+            .map(|lid| military_policy_bonus(institutions.governments.get(lid)))
+            .unwrap_or(0.0);
 
-        let pairs = att_alive.len().min(def_alive.len()).max(1);
         let base_dmg = 0.06f32;
 
-        for k in 0..att_alive.len() {
+        // A combatant can die to fire, illness, or another system between
+        // battle ticks. Resolve the empty side below instead of indexing an
+        // empty force while trying to manufacture one combat pair.
+        let pairs = att_alive.len().min(def_alive.len());
+        for k in 0..pairs {
             let ai = att_alive[k];
-            if k >= pairs {
-                break;
-            }
             let di = def_alive[k % def_alive.len()];
-            let a_bonus = soldier_bonus(&organisms[ai]);
-            let d_bonus = soldier_bonus(&organisms[di]);
+            let att_style = combat_style_for(&organisms[ai], att_era);
+            let def_style = combat_style_for(&organisms[di], def_era);
+            let a_bonus = soldier_bonus(&organisms[ai]) + att_policy_bonus;
+            let d_bonus = soldier_bonus(&organisms[di]) + def_policy_bonus;
             let a_dmg =
                 base_dmg * damage_multiplier(att_style) * (1.0 + a_bonus) * (0.7 + rng.random::<f32>() * 0.6);
             let d_dmg = base_dmg
@@ -717,24 +943,9 @@ pub fn tick_battles(
     }
 
     for (a, b, kind) in signed {
-        let expires = tick + 2000 + (rng.random::<u64>() % 4000);
-        let treaty = Treaty {
-            lineage_a: a.clone(),
-            lineage_b: b.clone(),
-            kind,
-            signed_tick: tick,
-            expires_tick: expires,
-        };
-        let bonus = treaty_attitude_bonus(kind);
-        for o in organisms.iter_mut() {
-            if !o.alive {
-                continue;
-            }
-            if o.lineage_id == a {
-                o.update_attitude(&b, bonus);
-            } else if o.lineage_id == b {
-                o.update_attitude(&a, bonus);
-            }
+        let expires = tick.saturating_add(2000 + (rng.random::<u64>() % 4000));
+        if !establish_treaty(treaties, organisms, &a, &b, kind, tick, expires) {
+            continue;
         }
         push_event(
             events,
@@ -752,10 +963,9 @@ pub fn tick_battles(
                 &format!("{} becomes vassal of {}", a, b),
             );
         }
-        treaties.push(treaty);
     }
 
-    treaties.retain(|t| t.expires_tick > tick);
+    consolidate_treaties(treaties, tick);
 
     let mut active_finished: Vec<usize> = Vec::new();
     for (i, b) in battles.iter().enumerate() {
@@ -783,24 +993,121 @@ fn organism_index(organisms: &[crate::organism::organism::Organism], id: &str) -
     organisms.iter().position(|o| o.id == id)
 }
 
-fn soldier_bonus(_o: &crate::organism::organism::Organism) -> f32 {
-    0.0
+fn combat_style_for(org: &crate::organism::organism::Organism, era: Era) -> CombatStyle {
+    if org.has_tool("rifle") {
+        if era >= Era::Modern {
+            CombatStyle::Modern
+        } else {
+            CombatStyle::Rifle
+        }
+    } else if org.has_tool("musket") {
+        CombatStyle::Musket
+    } else if org.has_tool("sword") || org.has_tool("iron_sword") || org.has_tool("bow") {
+        CombatStyle::Sword
+    } else if org.has_tool("spear") || org.has_tool("bronze_spear") || org.has_tool("stone_spear") {
+        CombatStyle::Spear
+    } else {
+        CombatStyle::Brawl
+    }
 }
 
-fn nearby_defensive_structure(structure_tiles: &HashSet<(i32, i32)>, loc: (i32, i32)) -> bool {
-    for dx in -3..=3 {
-        for dy in -3..=3 {
-            if structure_tiles.contains(&(loc.0 + dx, loc.1 + dy)) {
-                return true;
-            }
-        }
+fn military_policy_bonus(government: Option<&Government>) -> f32 {
+    let Some(government) = government else {
+        return 0.0;
+    };
+    if !government.has_law(LawKind::MilitaryService) {
+        return 0.0;
     }
-    false
+    // An enacted service law improves coordination. A funded treasury adds a
+    // smaller logistics bonus, capped so equipment and individual skill still
+    // decide battles.
+    0.08 + (government.treasury as f32 / 500.0).min(0.12)
+}
+
+fn soldier_bonus(o: &crate::organism::organism::Organism) -> f32 {
+    let training: f32 = match o.specialty.as_deref() {
+        Some("officer") => 0.38,
+        Some("soldier") => 0.24,
+        _ => 0.0,
+    };
+    let equipment: f32 = if o.has_tool("rifle") {
+        0.34
+    } else if o.has_tool("musket") {
+        0.25
+    } else if o.has_tool("sword") || o.has_tool("bow") {
+        0.16
+    } else if o.has_tool("spear") || o.discoveries.contains("spear") {
+        0.10
+    } else {
+        0.0
+    };
+    let readiness = (0.55 + 0.25 * o.energy + 0.20 * o.health).clamp(0.4, 1.0);
+    (training + equipment) * readiness
+}
+
+fn is_defensive_building(kind: BuildingKind) -> bool {
+    matches!(
+        kind,
+        BuildingKind::Wall
+            | BuildingKind::Tower
+            | BuildingKind::Watchtower
+            | BuildingKind::Barracks
+            | BuildingKind::Castle
+            | BuildingKind::Gate
+            | BuildingKind::Fence
+    )
+}
+
+fn nearby_operational_defense(buildings: &[Building], defenders: &[String], loc: (i32, i32)) -> bool {
+    buildings.iter().any(|building| {
+        if !building.is_operational() || !is_defensive_building(building.kind) {
+            return false;
+        }
+        let Some(owner) = building.owner_lineage.as_deref() else {
+            return false;
+        };
+        if !defenders.iter().any(|lineage| lineage == owner) {
+            return false;
+        }
+        let (width, height) = building.footprint();
+        let nearest_x = loc.0.clamp(building.x, building.x + i32::from(width) - 1);
+        let nearest_y = loc.1.clamp(building.y, building.y + i32::from(height) - 1);
+        (loc.0 - nearest_x).abs() <= 3 && (loc.1 - nearest_y).abs() <= 3
+    })
+}
+
+fn nearby_field_fortification(
+    fortifications: &[FieldFortification],
+    defenders: &[String],
+    loc: (i32, i32),
+    grid: &WorldGrid,
+) -> bool {
+    fortifications.iter().any(|fortification| {
+        grid.structure_at(fortification.x, fortification.y) > 0.0
+            && defenders
+                .iter()
+                .any(|lineage| lineage == &fortification.lineage_id)
+            && (loc.0 - fortification.x).abs() <= 3
+            && (loc.1 - fortification.y).abs() <= 3
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::sim::civ::government::{GovernmentKind, Law};
+    use crate::sim::simulation::Simulation;
+    use rand::SeedableRng;
+
+    fn treaty(a: &str, b: &str, kind: TreatyKind, signed_tick: u64, expires_tick: u64) -> Treaty {
+        Treaty {
+            lineage_a: a.to_string(),
+            lineage_b: b.to_string(),
+            kind,
+            signed_tick,
+            expires_tick,
+        }
+    }
 
     #[test]
     fn combat_style_progression() {
@@ -830,5 +1137,287 @@ mod tests {
         assert!(matches!(scale_for_participants(10), BattleScale::Siege));
         assert!(matches!(scale_for_participants(20), BattleScale::Battle));
         assert!(matches!(scale_for_participants(40), BattleScale::War));
+    }
+
+    #[test]
+    fn same_kind_renewal_extends_without_stacking_goodwill() {
+        let mut sim = Simulation::new(85);
+        sim.organisms.truncate(4);
+        for (index, organism) in sim.organisms.iter_mut().enumerate() {
+            organism.alive = true;
+            organism.lineage_id = if index < 2 { "river".into() } else { "hill".into() };
+        }
+
+        assert!(establish_treaty(
+            &mut sim.treaties,
+            &mut sim.organisms,
+            "river",
+            "hill",
+            TreatyKind::NonAggression,
+            10,
+            100,
+        ));
+        let attitudes_after_signing: Vec<f32> = sim
+            .organisms
+            .iter()
+            .map(|organism| {
+                let other = if organism.lineage_id == "river" {
+                    "hill"
+                } else {
+                    "river"
+                };
+                organism.attitude_toward(other)
+            })
+            .collect();
+
+        assert!(establish_treaty(
+            &mut sim.treaties,
+            &mut sim.organisms,
+            "hill",
+            "river",
+            TreatyKind::NonAggression,
+            20,
+            200,
+        ));
+
+        assert_eq!(sim.treaties.len(), 1);
+        assert_eq!(sim.treaties[0].signed_tick, 20);
+        assert_eq!(sim.treaties[0].expires_tick, 200);
+        let attitudes_after_renewal: Vec<f32> = sim
+            .organisms
+            .iter()
+            .map(|organism| {
+                let other = if organism.lineage_id == "river" {
+                    "hill"
+                } else {
+                    "river"
+                };
+                organism.attitude_toward(other)
+            })
+            .collect();
+        assert_eq!(attitudes_after_renewal, attitudes_after_signing);
+
+        assert!(establish_treaty(
+            &mut sim.treaties,
+            &mut sim.organisms,
+            "river",
+            "hill",
+            TreatyKind::NonAggression,
+            201,
+            300,
+        ));
+        assert!(sim.organisms[0].attitude_toward("hill") > attitudes_after_renewal[0]);
+    }
+
+    #[test]
+    fn consolidation_deterministically_removes_expired_invalid_and_duplicate_records() {
+        let records = vec![
+            treaty("a", "b", TreatyKind::NonAggression, 1, 10),
+            treaty("b", "a", TreatyKind::NonAggression, 20, 100),
+            treaty("a", "b", TreatyKind::Trade, 30, 90),
+            treaty("same", "same", TreatyKind::Alliance, 10, 100),
+            treaty("future", "other", TreatyKind::Trade, 100, 200),
+            treaty("vassal", "ruler", TreatyKind::Vassalage, 40, 140),
+        ];
+        let mut forward = records.clone();
+        let mut reverse = records;
+        reverse.reverse();
+
+        assert_eq!(consolidate_treaties(&mut forward, 50), 4);
+        assert_eq!(consolidate_treaties(&mut reverse, 50), 4);
+
+        assert_eq!(forward, reverse, "input order must not change consolidation");
+        assert_eq!(forward.len(), 2);
+        let pair = forward
+            .iter()
+            .find(|record| treaty_matches_lineages(record, "a", "b"))
+            .unwrap();
+        assert_eq!(pair.kind, TreatyKind::Trade);
+        assert_eq!(pair.signed_tick, 30);
+        let vassalage = forward
+            .iter()
+            .find(|record| record.kind == TreatyKind::Vassalage)
+            .unwrap();
+        assert_eq!(vassalage.lineage_a, "vassal", "direction must be preserved");
+        assert_eq!(vassalage.lineage_b, "ruler");
+    }
+
+    #[test]
+    fn opposing_lineages_in_an_unfinished_battle_cannot_negotiate() {
+        let mut battle = Battle {
+            id: "active-conflict".into(),
+            attackers: vec!["river".into()],
+            defenders: vec!["hill".into()],
+            attacker_orgs: Vec::new(),
+            defender_orgs: Vec::new(),
+            scale: BattleScale::Skirmish,
+            location: (20, 20),
+            started_tick: 1,
+            ended_tick: None,
+            casualties_a: 0,
+            casualties_d: 0,
+            outcome: None,
+            initial_a: 1,
+            initial_d: 1,
+        };
+
+        assert!(has_active_battle_between(
+            std::slice::from_ref(&battle),
+            "river",
+            "hill"
+        ));
+        assert!(has_active_battle_between(
+            std::slice::from_ref(&battle),
+            "hill",
+            "river"
+        ));
+        battle.ended_tick = Some(20);
+        assert!(!has_active_battle_between(&[battle], "river", "hill"));
+    }
+
+    #[test]
+    fn combatant_selection_uses_normalized_age_stages() {
+        let mut sim = Simulation::new(84);
+        let ages = [
+            ("infant", 50),
+            ("child", 200),
+            ("teen", 300),
+            ("adult", 500),
+            ("elder", 800),
+        ];
+        let indices: Vec<_> = sim
+            .organisms
+            .iter()
+            .enumerate()
+            .filter_map(|(index, org)| org.alive.then_some(index))
+            .take(ages.len())
+            .collect();
+        assert_eq!(indices.len(), ages.len());
+        for (position, (index, (id, age))) in indices.iter().copied().zip(ages).enumerate() {
+            let org = &mut sim.organisms[index];
+            org.id = id.into();
+            org.lineage_id = "guard".into();
+            org.age = age;
+            org.max_age = 1_000;
+            org.x = position as f32;
+            org.y = 0.0;
+        }
+        let populations = HashMap::from([("guard".to_string(), indices)]);
+        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(84);
+
+        let selected = pick_combatants(
+            &sim.organisms,
+            &populations,
+            "guard",
+            ages.len(),
+            (0, 0),
+            &mut rng,
+        );
+
+        assert_eq!(selected.len(), 3);
+        assert!(!selected.iter().any(|id| id == "infant" || id == "child"));
+        assert!(selected.iter().any(|id| id == "teen"));
+        assert!(selected.iter().any(|id| id == "adult"));
+        assert!(selected.iter().any(|id| id == "elder"));
+    }
+
+    #[test]
+    fn training_and_equipment_create_real_combat_advantage() {
+        let mut sim = Simulation::new(81);
+        let index = sim.organisms.iter().position(|org| org.alive).unwrap();
+        let civilian_bonus = soldier_bonus(&sim.organisms[index]);
+        let recruit = &mut sim.organisms[index];
+        recruit.specialty = Some("soldier".into());
+        recruit.tools.insert("spear".into(), 1);
+        assert!(soldier_bonus(recruit) > civilian_bonus + 0.2);
+        recruit.tools.insert("rifle".into(), 1);
+        assert!(soldier_bonus(recruit) > 0.5);
+    }
+
+    #[test]
+    fn firearm_style_applies_only_to_the_equipped_combatant() {
+        let mut sim = Simulation::new(82);
+        let mut indices = sim
+            .organisms
+            .iter()
+            .enumerate()
+            .filter_map(|(index, org)| org.alive.then_some(index));
+        let armed = indices.next().unwrap();
+        let unarmed = indices.next().unwrap();
+        sim.organisms[armed].tools.insert("rifle".into(), 1);
+
+        assert_eq!(
+            combat_style_for(&sim.organisms[armed], Era::Modern),
+            CombatStyle::Modern
+        );
+        assert_eq!(
+            combat_style_for(&sim.organisms[unarmed], Era::Modern),
+            CombatStyle::Brawl,
+            "one rifle must not upgrade the rest of the force"
+        );
+    }
+
+    #[test]
+    fn military_law_and_funding_improve_coordination() {
+        let mut government = Government::new("guard".into(), GovernmentKind::Republic, 1);
+        assert_eq!(military_policy_bonus(Some(&government)), 0.0);
+        government.laws.push(Law {
+            kind: LawKind::MilitaryService,
+            enacted_tick: 2,
+        });
+        let unfunded = military_policy_bonus(Some(&government));
+        government.treasury = 500;
+        assert!(military_policy_bonus(Some(&government)) > unfunded);
+    }
+
+    #[test]
+    fn defense_bonus_requires_completed_defender_owned_fortifications() {
+        let defenders = vec!["guard".to_string()];
+        let mut wall = Building::new(1, BuildingKind::Wall, 20, 20, Some("guard".into()), 1);
+        assert!(!nearby_operational_defense(&[wall.clone()], &defenders, (20, 20)));
+
+        wall.condition = 1.0;
+        assert!(nearby_operational_defense(&[wall.clone()], &defenders, (23, 20)));
+
+        wall.kind = BuildingKind::Temple;
+        assert!(!nearby_operational_defense(&[wall.clone()], &defenders, (20, 20)));
+
+        wall.kind = BuildingKind::Watchtower;
+        wall.owner_lineage = Some("attacker".into());
+        assert!(!nearby_operational_defense(&[wall], &defenders, (20, 20)));
+
+        let field_position = FieldFortification {
+            x: 22,
+            y: 20,
+            lineage_id: "guard".into(),
+        };
+        let mut sim = Simulation::new(83);
+        *sim.grid.structure_at_mut(22, 20) = 0.12;
+        assert!(nearby_field_fortification(
+            std::slice::from_ref(&field_position),
+            &defenders,
+            (20, 20),
+            &sim.grid,
+        ));
+        assert!(!nearby_field_fortification(
+            &[FieldFortification {
+                lineage_id: "attacker".into(),
+                ..field_position
+            }],
+            &defenders,
+            (20, 20),
+            &sim.grid,
+        ));
+        *sim.grid.structure_at_mut(22, 20) = 0.0;
+        assert!(!nearby_field_fortification(
+            &[FieldFortification {
+                x: 22,
+                y: 20,
+                lineage_id: "guard".into(),
+            }],
+            &defenders,
+            (20, 20),
+            &sim.grid,
+        ));
     }
 }

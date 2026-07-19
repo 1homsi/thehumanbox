@@ -155,6 +155,10 @@ pub struct Government {
     pub laws: Vec<Law>,
     pub tax_rate: f32,
     pub treasury: u64,
+    /// Income tax already withheld from current payroll but not yet remitted
+    /// to the public treasury by an administrator or the next fiscal cycle.
+    #[serde(default)]
+    pub tax_receipts_pending: u64,
     pub conscription: bool,
 }
 
@@ -169,6 +173,7 @@ impl Government {
             laws: Vec::new(),
             tax_rate: kind.default_tax_rate(),
             treasury: 0,
+            tax_receipts_pending: 0,
             conscription: false,
         }
     }
@@ -194,6 +199,39 @@ impl Government {
         }
         GovernmentKind::Tribal
     }
+
+    /// Change the form of government without erasing the institutions the
+    /// lineage already built. Laws, public funds, tax policy, and military
+    /// policy survive constitutional changes; only offices that no longer
+    /// exist are removed.
+    pub fn transition_to(&mut self, kind: GovernmentKind, tick: u64) {
+        self.kind = kind;
+        self.established_tick = tick;
+        let leader_count = usize::from(kind.leader_count());
+        if leader_count == 0 {
+            self.leader_id = None;
+            self.council_ids.clear();
+        } else {
+            self.council_ids.truncate(leader_count.saturating_sub(1));
+        }
+    }
+
+    /// Laws are simulation rules, not just historical labels. Keeping the
+    /// lookup here gives the economy, education, and warfare systems one
+    /// consistent source of truth.
+    pub fn has_law(&self, kind: LawKind) -> bool {
+        self.laws.iter().any(|law| law.kind == kind)
+    }
+
+    /// Governments cannot collect tax before their people have enacted a tax
+    /// law. The clamp protects old or imported saves with out-of-range values.
+    pub fn effective_tax_rate(&self) -> f32 {
+        if self.has_law(LawKind::Taxation) {
+            self.tax_rate.clamp(0.0, 0.5)
+        } else {
+            0.0
+        }
+    }
 }
 
 #[cfg(test)]
@@ -210,5 +248,41 @@ mod tests {
     fn tribal_for_small_groups() {
         let g = Government::pick_kind_for(Era::Stone, 6, 0.0);
         assert!(matches!(g, GovernmentKind::Tribal));
+    }
+
+    #[test]
+    fn taxation_requires_an_enacted_law() {
+        let mut g = Government::new("lineage".into(), GovernmentKind::Republic, 10);
+        assert_eq!(g.effective_tax_rate(), 0.0);
+        g.laws.push(Law {
+            kind: LawKind::Taxation,
+            enacted_tick: 20,
+        });
+        assert_eq!(g.effective_tax_rate(), g.tax_rate);
+    }
+
+    #[test]
+    fn constitutional_transition_preserves_institutional_state() {
+        let mut g = Government::new("lineage".into(), GovernmentKind::Republic, 10);
+        g.leader_id = Some("leader".into());
+        g.council_ids = vec!["council-a".into(), "council-b".into()];
+        g.laws.push(Law {
+            kind: LawKind::Taxation,
+            enacted_tick: 20,
+        });
+        g.tax_rate = 0.17;
+        g.treasury = 840;
+        g.conscription = true;
+
+        g.transition_to(GovernmentKind::Democracy, 100);
+
+        assert_eq!(g.kind, GovernmentKind::Democracy);
+        assert_eq!(g.established_tick, 100);
+        assert_eq!(g.leader_id.as_deref(), Some("leader"));
+        assert_eq!(g.council_ids.len(), 2);
+        assert!(g.has_law(LawKind::Taxation));
+        assert_eq!(g.tax_rate, 0.17);
+        assert_eq!(g.treasury, 840);
+        assert!(g.conscription);
     }
 }

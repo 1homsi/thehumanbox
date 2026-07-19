@@ -10,15 +10,20 @@ import {
   SphereGeometry,
 } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import type { Building } from '../../../types'
+import type { Building, FarmInfo } from '../../../types'
+import { farmCropColor, farmProgress, farmStage } from '../../../world/farms'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
 
 interface Props {
   buildings: Building[] | undefined
+  farms: FarmInfo[] | undefined
+  tick: number
   depthMap: number[][] | undefined
   biomes: number[][] | undefined
 }
+
+type BuildingProps = Pick<Props, 'buildings' | 'depthMap' | 'biomes'>
 
 const ROWS_PER_FIELD = 6
 const PLANTS_PER_ROW = 4
@@ -29,41 +34,66 @@ const FIELD_GEO = new BoxGeometry(1, 0.12, 1)
 // A tilled, crop-coloured ground patch per farm so croplands read as golden
 // patchwork from above; the stalks below add detail up close.
 const FURROWS = 5
-function FieldPlanes({ buildings, depthMap, biomes }: Props) {
+function FieldPlanes({ buildings, farms, depthMap, biomes }: Props) {
   const ref = useRef<InstancedMesh>(null)
   // Each field is rendered as FURROWS alternating-shade strips so it reads as
   // a plowed, cultivated plot rather than a flat colour patch.
   const strips = useMemo(() => {
-    if (!buildings || !depthMap || !biomes) return []
+    if (!depthMap || !biomes) return []
     const out: Array<{ x: number; y: number; z: number; w: number; d: number; rot: number; shade: number }> =
       []
-    for (const b of buildings) {
-      if ((b.condition ?? 1) < 0.5) continue
-      if (!FARMABLE.has(b.kind.toLowerCase())) continue
-      const fw = b.fw ?? 1
-      const h = (Math.imul(b.id, 2654435761) >>> 0) / 4294967295
-      const cx = (b.x + fw + 1.8) * TILE_SCALE
-      const cz = (b.y + 1.3) * TILE_SCALE
-      const cy = heightAt(b.x + fw, b.y, depthMap, biomes) + 0.07
-      const fieldW = 5 + h * 2.5
-      const fieldD = 4.5 + h * 2
-      const rot = h * Math.PI
-      const stripD = fieldD / FURROWS
-      for (let s = 0; s < FURROWS; s++) {
-        const off = (s + 0.5) * stripD - fieldD / 2
-        out.push({
-          x: cx + Math.sin(rot) * off,
-          y: cy + (s % 2) * 0.02,
-          z: cz + Math.cos(rot) * off,
-          w: fieldW,
-          d: stripD * 0.92,
-          rot,
-          shade: (s % 2) * 0.12 + h * 0.18,
-        })
+    if (farms && farms.length > 0) {
+      for (const farm of farms) {
+        const h = (Math.imul(farm.id, 2654435761) >>> 0) / 4294967295
+        const cx = (farm.x + 0.5) * TILE_SCALE
+        const cz = (farm.y + 0.5) * TILE_SCALE
+        const cy = heightAt(farm.x, farm.y, depthMap, biomes) + 0.07
+        const fieldW = TILE_SCALE * 0.92
+        const fieldD = TILE_SCALE * 0.92
+        const rot = 0
+        const stripD = fieldD / FURROWS
+        for (let s = 0; s < FURROWS; s++) {
+          const off = (s + 0.5) * stripD - fieldD / 2
+          out.push({
+            x: cx + Math.sin(rot) * off,
+            y: cy + (s % 2) * 0.012,
+            z: cz + Math.cos(rot) * off,
+            w: fieldW,
+            d: stripD * 0.9,
+            rot,
+            shade: (s % 2) * 0.08 + h * 0.08,
+          })
+        }
+      }
+    } else {
+      for (const b of buildings ?? []) {
+        if ((b.condition ?? 1) < 0.5) continue
+        if (!FARMABLE.has(b.kind.toLowerCase())) continue
+        const fw = b.fw ?? 1
+        const h = (Math.imul(b.id, 2654435761) >>> 0) / 4294967295
+        const cx = (b.x + fw + 1.8) * TILE_SCALE
+        const cz = (b.y + 1.3) * TILE_SCALE
+        const cy = heightAt(b.x + fw, b.y, depthMap, biomes) + 0.07
+        const fieldW = 5 + h * 2.5
+        const fieldD = 4.5 + h * 2
+        const rot = h * Math.PI
+        const stripD = fieldD / FURROWS
+        for (let s = 0; s < FURROWS; s++) {
+          const off = (s + 0.5) * stripD - fieldD / 2
+          out.push({
+            x: cx + Math.sin(rot) * off,
+            y: cy + (s % 2) * 0.02,
+            z: cz + Math.cos(rot) * off,
+            w: fieldW,
+            d: stripD * 0.92,
+            rot,
+            shade: (s % 2) * 0.12 + h * 0.18,
+          })
+        }
       }
     }
     return out.slice(0, 2500)
-  }, [buildings, depthMap, biomes])
+  }, [buildings, farms, depthMap, biomes])
 
   useLayoutEffect(() => {
     const m = ref.current
@@ -101,7 +131,7 @@ const ANIMAL_GEO = new SphereGeometry(0.6, 8, 6)
 
 // Grazing livestock scattered around pastures/ranches/farms — sheep (pale) and
 // cattle (brown) — so rural land reads as inhabited and worked.
-function Herds({ buildings, depthMap, biomes }: Props) {
+function Herds({ buildings, depthMap, biomes }: BuildingProps) {
   const ref = useRef<InstancedMesh>(null)
   const animals = useMemo(() => {
     if (!buildings || !depthMap || !biomes) return []
@@ -182,36 +212,70 @@ const FARMABLE = new Set([
   'stable',
 ])
 
-export function Farms3D({ buildings, depthMap, biomes }: Props) {
+export function Farms3D({ buildings, farms, tick, depthMap, biomes }: Props) {
   const geo = useMemo(() => buildPlantGeo(), [])
-  const matCrop = useMemo(() => new MeshStandardMaterial({ color: '#8caa48', roughness: 0.9 }), [])
+  const matCrop = useMemo(() => new MeshStandardMaterial({ color: '#ffffff', roughness: 0.9 }), [])
   const meshRef = useRef<InstancedMesh>(null)
 
   const positions = useMemo(() => {
-    if (!buildings || !depthMap || !biomes) return []
-    const result: Array<{ x: number; y: number; z: number; sway: number; height: number }> = []
-    for (const b of buildings) {
-      if ((b.condition ?? 1) < 0.5) continue
-      if (!FARMABLE.has(b.kind.toLowerCase())) continue
-      const fw = b.fw ?? 1
-      const baseX = (b.x + fw + 1) * TILE_SCALE
-      const baseZ = (b.y - 0.5) * TILE_SCALE
-      const baseY = heightAt(b.x + fw, b.y, depthMap, biomes)
-      for (let row = 0; row < ROWS_PER_FIELD; row++) {
-        for (let p = 0; p < PLANTS_PER_ROW; p++) {
-          const seed = (b.id * 31 + row * 7 + p * 13) % 1000
-          const jx = ((seed % 100) - 50) * 0.005
-          const jz = (((seed / 100) % 100) - 50) * 0.005
-          const x = baseX + p * 0.4 + jx
-          const z = baseZ + row * 0.6 + jz
-          const sway = ((seed % 314) / 100) * 0.4
-          const height = 0.75 + (seed % 30) / 100
-          result.push({ x, y: baseY, z, sway, height })
+    if (!depthMap || !biomes) return []
+    const result: Array<{ x: number; y: number; z: number; sway: number; height: number; color: string }> = []
+    if (farms && farms.length > 0) {
+      for (const farm of farms) {
+        const stage = farmStage(farm, tick)
+        if (stage === 'fallow') continue
+        const progress = farmProgress(farm, tick)
+        const baseY = heightAt(farm.x, farm.y, depthMap, biomes)
+        for (let row = 0; row < 4; row++) {
+          for (let p = 0; p < 4; p++) {
+            const seed = (farm.id * 31 + row * 7 + p * 13) % 1000
+            const x = (farm.x + 0.17 + p * 0.21) * TILE_SCALE
+            const z = (farm.y + 0.17 + row * 0.21) * TILE_SCALE
+            result.push({
+              x,
+              y: baseY,
+              z,
+              sway: ((seed % 314) / 100) * 0.4,
+              height: 0.16 + progress * 0.95,
+              color: farmCropColor(farm.crop),
+            })
+          }
+        }
+      }
+    } else {
+      for (const b of buildings ?? []) {
+        if ((b.condition ?? 1) < 0.5) continue
+        if (!FARMABLE.has(b.kind.toLowerCase())) continue
+        const fw = b.fw ?? 1
+        const baseX = (b.x + fw + 1) * TILE_SCALE
+        const baseZ = (b.y - 0.5) * TILE_SCALE
+        const baseY = heightAt(b.x + fw, b.y, depthMap, biomes)
+        for (let row = 0; row < ROWS_PER_FIELD; row++) {
+          for (let p = 0; p < PLANTS_PER_ROW; p++) {
+            const seed = (b.id * 31 + row * 7 + p * 13) % 1000
+            const jx = ((seed % 100) - 50) * 0.005
+            const jz = (((seed / 100) % 100) - 50) * 0.005
+            const x = baseX + p * 0.4 + jx
+            const z = baseZ + row * 0.6 + jz
+            const sway = ((seed % 314) / 100) * 0.4
+            const height = 0.75 + (seed % 30) / 100
+            result.push({ x, y: baseY, z, sway, height, color: '#8caa48' })
+          }
         }
       }
     }
     return result.slice(0, 800)
-  }, [buildings, depthMap, biomes])
+  }, [buildings, farms, tick, depthMap, biomes])
+
+  useLayoutEffect(() => {
+    const mesh = meshRef.current
+    if (!mesh) return
+    for (let i = 0; i < positions.length; i++) {
+      _fcol.set(positions[i].color)
+      mesh.setColorAt(i, _fcol)
+    }
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
+  }, [positions])
 
   useFrame(({ clock }) => {
     if (typeof document !== 'undefined' && document.hidden) return
@@ -238,7 +302,7 @@ export function Farms3D({ buildings, depthMap, biomes }: Props) {
 
   return (
     <>
-      <FieldPlanes buildings={buildings} depthMap={depthMap} biomes={biomes} />
+      <FieldPlanes buildings={buildings} farms={farms} tick={tick} depthMap={depthMap} biomes={biomes} />
       <Herds buildings={buildings} depthMap={depthMap} biomes={biomes} />
       {positions.length > 0 && (
         <instancedMesh

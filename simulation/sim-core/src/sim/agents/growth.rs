@@ -14,6 +14,28 @@ use crate::world::{
 use rand::Rng;
 use uuid::Uuid;
 
+pub fn is_pending_birth(organism: &Organism) -> bool {
+    !organism.alive && organism.age == 0 && !organism.parent_id.is_empty() && organism.father_id.is_some()
+}
+
+pub fn population_slots_used(organisms: &[Organism]) -> usize {
+    organisms
+        .iter()
+        .filter(|organism| organism.alive || is_pending_birth(organism))
+        .count()
+}
+
+pub fn lineage_population_slots(organisms: &[Organism]) -> rustc_hash::FxHashMap<String, usize> {
+    let mut counts = rustc_hash::FxHashMap::default();
+    for organism in organisms
+        .iter()
+        .filter(|organism| organism.alive || is_pending_birth(organism))
+    {
+        *counts.entry(organism.lineage_id.clone()).or_insert(0) += 1;
+    }
+    counts
+}
+
 pub fn spawn_organism_with_home(
     grid: &WorldGrid,
     organisms: &mut Vec<Organism>,
@@ -83,16 +105,16 @@ pub fn try_reproduce(
     tick: u64,
     events: &mut std::collections::VecDeque<Event>,
     rng: &mut impl Rng,
-    alive_count: usize,
+    population_slots_used: usize,
     population_limit: usize,
     lineage_counts: &rustc_hash::FxHashMap<String, usize>,
 ) {
-    if alive_count >= population_limit {
+    if population_slots_used >= population_limit {
         return;
     }
 
     let org = &organisms[org_idx];
-    if org.sex != Sex::Female {
+    if org.sex != Sex::Female || org.pregnant {
         return;
     }
 
@@ -101,8 +123,8 @@ pub fn try_reproduce(
         return;
     }
 
-    let critical = alive_count < 30;
-    let low_pop = alive_count < 80;
+    let critical = population_slots_used < 30;
+    let low_pop = population_slots_used < 80;
     let (e_min, h_min, hp_min, cooldown, partner_dist) = if critical {
         (0.18, 0.18, 0.22, 350u64, 200.0f32)
     } else if low_pop {
@@ -442,12 +464,48 @@ pub fn deliver_births(
     events: &mut std::collections::VecDeque<Event>,
     history: &mut History,
 ) {
-    let unborn_map: std::collections::HashMap<&str, usize> = organisms
+    let unborn_map: std::collections::HashMap<String, usize> = organisms
         .iter()
         .enumerate()
-        .filter(|(_, o)| !o.alive && o.age == 0)
-        .map(|(i, o)| (o.parent_id.as_str(), i))
+        .filter(|(_, organism)| is_pending_birth(organism))
+        .map(|(index, organism)| (organism.parent_id.clone(), index))
         .collect();
+    let mother_map: std::collections::HashMap<String, usize> = organisms
+        .iter()
+        .enumerate()
+        .filter(|(_, organism)| organism.sex == Sex::Female)
+        .map(|(index, organism)| (organism.id.clone(), index))
+        .collect();
+
+    // An unborn record reserves a population slot. If its mother dies (or a
+    // damaged/old save loses the pregnancy flag), cancel it explicitly so it
+    // can neither appear later as a ghost birth nor reserve capacity forever.
+    let cancellations: Vec<(usize, Option<usize>)> = organisms
+        .iter()
+        .enumerate()
+        .filter(|(_, organism)| is_pending_birth(organism))
+        .filter_map(|(child_idx, child)| {
+            let mother_idx = mother_map.get(&child.parent_id).copied();
+            let viable = mother_idx.is_some_and(|index| organisms[index].alive && organisms[index].pregnant);
+            (!viable).then_some((child_idx, mother_idx))
+        })
+        .collect();
+    for (child_idx, mother_idx) in cancellations {
+        let child_name = organisms[child_idx].name.clone();
+        organisms[child_idx].age = 1;
+        organisms[child_idx].thought = "lost before birth".to_string();
+        organisms[child_idx].thought_dirty = true;
+        if let Some(mother_idx) = mother_idx {
+            organisms[mother_idx].pregnant = false;
+        }
+        push_event(
+            events,
+            tick,
+            "loss",
+            &child_name,
+            "the pregnancy ended when the mother could no longer carry it",
+        );
+    }
 
     let mut deliveries: Vec<(usize, usize)> = Vec::new();
     for mother_idx in 0..organisms.len() {
@@ -457,9 +515,19 @@ pub fn deliver_births(
         if tick.saturating_sub(organisms[mother_idx].pregnancy_start) < PREGNANCY_DURATION {
             continue;
         }
+        if !organisms[mother_idx].alive {
+            organisms[mother_idx].pregnant = false;
+            continue;
+        }
         let mother_id = organisms[mother_idx].id.as_str();
         if let Some(&child_idx) = unborn_map.get(mother_id) {
+            if !is_pending_birth(&organisms[child_idx]) {
+                organisms[mother_idx].pregnant = false;
+                continue;
+            }
             deliveries.push((mother_idx, child_idx));
+        } else {
+            organisms[mother_idx].pregnant = false;
         }
     }
     for (mi, ci) in deliveries {
@@ -575,4 +643,93 @@ fn find_spawn_near(grid: &WorldGrid, x: i32, y: i32, rng: &mut impl Rng) -> Opti
         }
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand::{rngs::StdRng, SeedableRng};
+    use std::collections::VecDeque;
+
+    fn test_organism(id: &str, sex: Sex, alive: bool, rng: &mut StdRng) -> Organism {
+        let mut organism = Organism::new(
+            id.to_string(),
+            id.to_string(),
+            20.0,
+            20.0,
+            0,
+            String::new(),
+            "lineage".to_string(),
+            10_000,
+            Traits::random(rng),
+        );
+        organism.sex = sex;
+        organism.alive = alive;
+        organism
+    }
+
+    fn pending_child(mother_id: &str, rng: &mut StdRng) -> Organism {
+        let mut child = test_organism("child", Sex::Female, false, rng);
+        child.parent_id = mother_id.to_string();
+        child.father_id = Some("father".to_string());
+        child.age = 0;
+        child
+    }
+
+    #[test]
+    fn pending_births_reserve_population_slots() {
+        let mut rng = StdRng::seed_from_u64(1);
+        let living = test_organism("mother", Sex::Female, true, &mut rng);
+        let pending = pending_child("mother", &mut rng);
+        let mut archived = test_organism("dead", Sex::Male, false, &mut rng);
+        archived.age = 100;
+
+        let organisms = vec![living, pending, archived];
+        assert_eq!(population_slots_used(&organisms), 2);
+        assert_eq!(lineage_population_slots(&organisms)["lineage"], 2);
+        assert!(is_pending_birth(&organisms[1]));
+        assert!(!is_pending_birth(&organisms[2]));
+    }
+
+    #[test]
+    fn dead_mother_cancels_pending_birth_and_releases_slot() {
+        let mut rng = StdRng::seed_from_u64(2);
+        let mut mother = test_organism("mother", Sex::Female, false, &mut rng);
+        mother.pregnant = true;
+        mother.pregnancy_start = 1;
+        let child = pending_child("mother", &mut rng);
+        let mut organisms = vec![mother, child];
+        let mut events = VecDeque::new();
+        let mut history = History::default();
+
+        assert_eq!(population_slots_used(&organisms), 1);
+        deliver_births(&mut organisms, PREGNANCY_DURATION + 1, &mut events, &mut history);
+
+        assert_eq!(population_slots_used(&organisms), 0);
+        assert!(!organisms[0].pregnant);
+        assert!(!is_pending_birth(&organisms[1]));
+        assert_eq!(organisms[1].thought, "lost before birth");
+        assert_eq!(history.births, 0);
+        assert!(events.iter().any(|event| event.etype == "loss"));
+    }
+
+    #[test]
+    fn delivery_consumes_the_already_reserved_slot() {
+        let mut rng = StdRng::seed_from_u64(3);
+        let mut mother = test_organism("mother", Sex::Female, true, &mut rng);
+        mother.pregnant = true;
+        mother.pregnancy_start = 1;
+        let child = pending_child("mother", &mut rng);
+        let mut organisms = vec![mother, child];
+        let mut events = VecDeque::new();
+        let mut history = History::default();
+
+        assert_eq!(population_slots_used(&organisms), 2);
+        deliver_births(&mut organisms, PREGNANCY_DURATION + 1, &mut events, &mut history);
+
+        assert_eq!(population_slots_used(&organisms), 2);
+        assert!(organisms[1].alive);
+        assert!(!organisms[0].pregnant);
+        assert_eq!(history.births, 1);
+    }
 }

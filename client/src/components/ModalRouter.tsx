@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import { lazyWithRetry as lazy } from '../utils/lazyWithRetry'
 import type { WorldState, OrganismState } from '../types'
+import type { LineageStrategy } from '../simulation/sandbox'
 import { useUIStore } from '../stores/store'
 
 const LanguageModal = lazy(() => import('./LanguageModal').then((m) => ({ default: m.LanguageModal })))
@@ -34,9 +35,10 @@ interface LineageInfo {
 interface Props {
   world: WorldState
   lineages: Record<string, LineageInfo>
+  onGuide?: (lineageId: string, strategy: LineageStrategy) => Promise<boolean>
 }
 
-export function ModalRouter({ world, lineages }: Props) {
+export function ModalRouter({ world, lineages, onGuide }: Props) {
   const showLanguages = useUIStore((s) => s.showLanguages)
   const showChronicles = useUIStore((s) => s.showChronicles)
   const showFamilyTree = useUIStore((s) => s.showFamilyTree)
@@ -115,7 +117,7 @@ export function ModalRouter({ world, lineages }: Props) {
           })()}
         {showStats && <StatsModal world={world} onClose={closeStats} />}
         {showAbout && <AboutModal onClose={closeAbout} />}
-        {showCiv && <CivStatsModal world={world} onClose={closeCiv} />}
+        {showCiv && <CivStatsModal world={world} onClose={closeCiv} onGuide={onGuide} />}
         {showWorlds && <WorldsModal onClose={closeWorlds} />}
         {showNotable && <NotableOrgsModal organisms={world.organisms} onClose={closeNotable} />}
         {showDesktopSettings && <DesktopSettingsModal onClose={closeDesktopSettings} />}

@@ -92,6 +92,18 @@ pub struct RuntimeRequest {
     mult: Option<f64>,
 }
 
+pub async fn runtime_status_handler(State(s): State<AppState>) -> impl IntoResponse {
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "ok": true,
+            "paused": s.runtime_control.paused(),
+            "tick_ms": s.runtime_control.tick_ms(),
+            "speed": s.runtime_control.speed(),
+        })),
+    )
+}
+
 pub async fn runtime_handler(
     State(s): State<AppState>,
     Json(request): Json<RuntimeRequest>,
@@ -119,6 +131,7 @@ pub async fn runtime_handler(
                 "ok": true,
                 "paused": paused,
                 "tick_ms": tick_ms,
+                "speed": s.runtime_control.speed(),
             })),
         )
             .into_response(),

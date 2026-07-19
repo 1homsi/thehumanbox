@@ -1,5 +1,6 @@
 use super::traits::Traits;
 use super::vocabulary::Vocabulary;
+use crate::sim::buildings::Building;
 use crate::world::{
     grid::{TrailKind, WorldGrid},
     tiles::Tile,
@@ -365,6 +366,7 @@ pub struct Organism {
     pub is_elder: bool,
     pub has_reflected: bool,
     pub last_invention_tick: u64,
+    pub last_experiment_tick: u64,
 
     pub directive: String,
     pub directive_until: u64,
@@ -537,6 +539,7 @@ impl Organism {
             is_elder: false,
             has_reflected: false,
             last_invention_tick: 0,
+            last_experiment_tick: 0,
             directive: String::new(),
             directive_until: 0,
             last_think_tick: 0,
@@ -1622,19 +1625,47 @@ impl Organism {
         )
     }
 
-    pub fn near_shelter(&self, grid: &WorldGrid) -> bool {
+    pub fn near_shelter(&self, grid: &WorldGrid, buildings: &[Building]) -> bool {
+        self.has_shelter_within(grid, buildings, 2)
+    }
+
+    pub(crate) fn has_shelter_within(&self, grid: &WorldGrid, buildings: &[Building], radius: i32) -> bool {
         let (ix, iy) = (self.x as i32, self.y as i32);
-        (-2i32..=2).any(|dx| {
-            (-2i32..=2).any(|dy| {
+        let legacy_shelter = (-radius..=radius).any(|dx| {
+            (-radius..=radius).any(|dy| {
                 let nx = ix + dx;
                 let ny = iy + dy;
                 matches!(grid.get(nx, ny), Tile::Hut | Tile::Rock | Tile::Campfire)
                     || grid.structure_at(nx, ny) >= 0.35
             })
+        });
+        legacy_shelter
+            || buildings.iter().any(|building| {
+                if !building.provides_shelter_for(&self.lineage_id) {
+                    return false;
+                }
+                let (sx, sy) = building.closest_footprint_tile(ix, iy);
+                (sx - ix).abs() <= radius && (sy - iy).abs() <= radius
+            })
+    }
+
+    pub(crate) fn has_shelter_project_within(&self, buildings: &[Building], radius: i32) -> bool {
+        let (ix, iy) = (self.x as i32, self.y as i32);
+        buildings.iter().any(|building| {
+            if !building.is_shelter_project_for(&self.lineage_id) {
+                return false;
+            }
+            let (sx, sy) = building.closest_footprint_tile(ix, iy);
+            (sx - ix).abs() <= radius && (sy - iy).abs() <= radius
         })
     }
 
-    pub(crate) fn find_shelter_tile(&self, grid: &WorldGrid, radius: i32) -> Option<(i32, i32)> {
+    pub(crate) fn find_shelter_tile(
+        &self,
+        grid: &WorldGrid,
+        buildings: &[Building],
+        radius: i32,
+    ) -> Option<(i32, i32)> {
         let (ix, iy) = (self.x as i32, self.y as i32);
         let mut best: Option<(i32, i32)> = None;
         let mut best_dist = radius + 1;
@@ -1651,6 +1682,17 @@ impl Organism {
                         best = Some((nx, ny));
                     }
                 }
+            }
+        }
+        for building in buildings
+            .iter()
+            .filter(|building| building.provides_shelter_for(&self.lineage_id))
+        {
+            let (sx, sy) = building.closest_footprint_tile(ix, iy);
+            let dist = (sx - ix).abs() + (sy - iy).abs();
+            if dist < best_dist {
+                best_dist = dist;
+                best = Some((sx, sy));
             }
         }
         best

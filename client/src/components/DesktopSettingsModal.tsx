@@ -9,7 +9,16 @@ import type {
   SimStatus,
   UpdateCheckResult,
 } from '../lib/desktop'
-import { getWorldSource, setWorldSourceAndReload, requestOwnWorldReset } from '../simulation/worldSource'
+import {
+  getWorldSource,
+  OWN_WORLD_ID,
+  requestOwnWorldCheckpoint,
+  requestOwnWorldRecovery,
+  requestOwnWorldReset,
+  setWorldSourceAndReload,
+} from '../simulation/worldSource'
+import { deleteWorld, listRecoveryWorlds, loadWorld, type RecoveryWorld } from '../simulation/wasmDb'
+import { DESKTOP_PAUSE_WHEN_HIDDEN_EVENT } from '../lib/desktopVisibility'
 
 interface Props {
   onClose: () => void
@@ -17,6 +26,48 @@ interface Props {
 
 function WorldSourceSection() {
   const source = getWorldSource()
+  const [recoveries, setRecoveries] = useState<RecoveryWorld[]>([])
+  const [storageMessage, setStorageMessage] = useState<string | null>(null)
+  const [storageBusy, setStorageBusy] = useState(false)
+
+  useEffect(() => {
+    if (source !== 'wasm') return
+    void listRecoveryWorlds(OWN_WORLD_ID)
+      .then(setRecoveries)
+      .catch((error) => setStorageMessage(`could not list recovery saves: ${String(error)}`))
+  }, [source])
+
+  async function exportSavedWorld(id: string, label: string) {
+    setStorageBusy(true)
+    setStorageMessage(null)
+    try {
+      if (id === OWN_WORLD_ID && !(await requestOwnWorldCheckpoint())) {
+        throw new Error('current world could not be checkpointed')
+      }
+      const saved = await loadWorld(id)
+      if (!saved) throw new Error('save no longer exists')
+      const bytes = new Uint8Array(saved.blob).buffer
+      const url = URL.createObjectURL(new Blob([bytes], { type: 'application/json' }))
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `thehumanbox-${label}-tick-${saved.tick}.world.save`
+      link.click()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+      setStorageMessage(`exported tick ${saved.tick.toLocaleString()}`)
+    } catch (error) {
+      setStorageMessage(`export failed: ${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      setStorageBusy(false)
+    }
+  }
+
+  function confirmReset() {
+    const confirmed = window.confirm(
+      'Start a new private world?\n\nThe current save will be kept in Recovery saves. Use “export save” first if you also want a portable file.',
+    )
+    if (confirmed) requestOwnWorldReset()
+  }
+
   return (
     <Section title="Play mode">
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -35,9 +86,18 @@ function WorldSourceSection() {
           📡 shared world · online
         </button>
         {source === 'wasm' && (
-          <button className="lang-btn" onClick={requestOwnWorldReset}>
-            ↺ reset
-          </button>
+          <>
+            <button
+              className="lang-btn"
+              disabled={storageBusy}
+              onClick={() => void exportSavedWorld(OWN_WORLD_ID, 'my-world')}
+            >
+              ↓ export save
+            </button>
+            <button className="lang-btn" disabled={storageBusy} onClick={confirmReset}>
+              ↺ start new…
+            </button>
+          </>
         )}
       </div>
       <div style={{ fontSize: 10, color: '#666', marginTop: 8, lineHeight: 1.5 }}>
@@ -45,6 +105,74 @@ function WorldSourceSection() {
         saves entirely in this browser, without connecting to The Human Box server. Switch to the{' '}
         <strong style={{ color: '#bfae90' }}>Shared World</strong> to watch the persistent online simulation.
       </div>
+      {source === 'wasm' && recoveries.length > 0 && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontSize: 10, color: '#999', textTransform: 'uppercase', letterSpacing: 1 }}>
+            Recovery saves
+          </div>
+          <div style={{ fontSize: 10, color: '#666', margin: '5px 0 7px', lineHeight: 1.45 }}>
+            Reset and unreadable worlds are retained here. Restores are validated before replacing your active
+            save.
+          </div>
+          {recoveries.slice(0, 8).map((recovery) => (
+            <div
+              key={recovery.id}
+              style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 5, flexWrap: 'wrap' }}
+            >
+              <span style={{ flex: 1, minWidth: 160, fontSize: 10, color: '#bfae90' }}>
+                tick {recovery.tick.toLocaleString()} · {new Date(recovery.savedAt).toLocaleString()} ·{' '}
+                {(recovery.bytes / 1024 / 1024).toFixed(1)} MiB
+              </span>
+              <button
+                className="lang-btn"
+                disabled={storageBusy}
+                onClick={() => void exportSavedWorld(recovery.id, 'recovery')}
+              >
+                export
+              </button>
+              <button
+                className="lang-btn"
+                disabled={storageBusy}
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      `Restore the recovery from tick ${recovery.tick.toLocaleString()}?\n\nIt will be validated before becoming active, and the recovery copy remains available.`,
+                    )
+                  ) {
+                    requestOwnWorldRecovery(recovery.id)
+                  }
+                }}
+              >
+                restore…
+              </button>
+              <button
+                className="lang-btn"
+                disabled={storageBusy}
+                onClick={async () => {
+                  if (!window.confirm(`Permanently delete the recovery from tick ${recovery.tick}?`)) return
+                  setStorageBusy(true)
+                  try {
+                    await deleteWorld(recovery.id)
+                    setRecoveries((items) => items.filter((item) => item.id !== recovery.id))
+                    setStorageMessage('recovery copy deleted')
+                  } catch (error) {
+                    setStorageMessage(
+                      `could not delete recovery: ${error instanceof Error ? error.message : String(error)}`,
+                    )
+                  } finally {
+                    setStorageBusy(false)
+                  }
+                }}
+              >
+                delete…
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      {storageMessage && (
+        <div style={{ marginTop: 8, fontSize: 10, color: '#bfae90', lineHeight: 1.45 }}>{storageMessage}</div>
+      )}
     </Section>
   )
 }
@@ -71,6 +199,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
   const [status, setStatus] = useState<SimStatus | null>(null)
   const [busy, setBusy] = useState(false)
   const [savedAt, setSavedAt] = useState<number | null>(null)
+  const [safetyMessage, setSafetyMessage] = useState<string | null>(null)
 
   useEffect(() => {
     if (!desktop) return
@@ -110,7 +239,11 @@ export function DesktopSettingsModal({ onClose }: Props) {
     if (!settings || !desktop) return
     setBusy(true)
     try {
-      await desktop.settings.set(settings)
+      const saved = await desktop.settings.set(settings)
+      setSettings(saved)
+      window.dispatchEvent(
+        new CustomEvent(DESKTOP_PAUSE_WHEN_HIDDEN_EVENT, { detail: saved.pauseWhenHidden }),
+      )
       await desktop.app.applyAutoLaunch()
       setSavedAt(Date.now())
     } finally {
@@ -123,10 +256,40 @@ export function DesktopSettingsModal({ onClose }: Props) {
     setBusy(true)
     setStatus(null)
     try {
-      await desktop.settings.set(settings)
+      const saved = await desktop.settings.set(settings)
+      window.dispatchEvent(
+        new CustomEvent(DESKTOP_PAUSE_WHEN_HIDDEN_EVENT, { detail: saved.pauseWhenHidden }),
+      )
       const next = await desktop.sim.restart()
       setStatus(next)
       setSavedAt(Date.now())
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function migrateSaveFolder(targetDir: string | null) {
+    if (!desktop || !settings) return
+    const label = targetDir ?? 'the default app data folder'
+    if (
+      !window.confirm(
+        `Move active storage to ${label}?\n\nThe simulation will checkpoint and restart. The current folder is kept as a backup. The destination must not already contain a worlds folder.`,
+      )
+    ) {
+      return
+    }
+    setBusy(true)
+    setSafetyMessage('checkpointing and copying worlds…')
+    try {
+      const result = await desktop.world.migrateDataRoot({ targetDir })
+      setSettings(result.settings)
+      setSafetyMessage(
+        result.migrated
+          ? `worlds migrated safely; previous folder kept at ${result.previousFolderKept ?? 'the old location'}`
+          : 'this is already the active save folder',
+      )
+    } catch (error) {
+      setSafetyMessage(`migration failed safely: ${error instanceof Error ? error.message : String(error)}`)
     } finally {
       setBusy(false)
     }
@@ -315,7 +478,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
           <Toggle
             checked={settings.pauseWhenHidden}
             onChange={(v) => update({ pauseWhenHidden: v })}
-            label="Pause renderer when window is minimized (saves CPU)"
+            label="Pause renderer when window is minimized or hidden (saves CPU)"
           />
         </Section>
 
@@ -341,21 +504,28 @@ export function DesktopSettingsModal({ onClose }: Props) {
             <button
               onClick={async () => {
                 const dir = await desktop?.app.pickSaveDir()
-                if (dir) update({ saveLocationOverride: dir })
+                if (dir) await migrateSaveFolder(dir)
               }}
+              disabled={busy}
               style={btnSecondary}
             >
-              choose…
+              migrate…
             </button>
             {settings.saveLocationOverride && (
-              <button onClick={() => update({ saveLocationOverride: null })} style={btnSecondary}>
-                reset
+              <button onClick={() => void migrateSaveFolder(null)} disabled={busy} style={btnSecondary}>
+                migrate to default
               </button>
             )}
           </div>
           <div style={{ fontSize: 10, color: '#666', marginTop: 6 }}>
-            Where worlds are stored. Save + restart for the change to take effect.
+            Migration checkpoints and copies the complete worlds folder before switching. The previous folder
+            stays untouched as a rollback backup.
           </div>
+          {safetyMessage && (
+            <div style={{ fontSize: 10, color: '#bfae90', marginTop: 6, lineHeight: 1.45 }}>
+              {safetyMessage}
+            </div>
+          )}
         </Section>
 
         <Section title="Tools">
@@ -368,6 +538,45 @@ export function DesktopSettingsModal({ onClose }: Props) {
             </button>
             <button onClick={() => void desktop?.app.openLogs()} style={btnSecondary}>
               open logs folder
+            </button>
+            <button
+              onClick={async () => {
+                setSafetyMessage('checkpointing world for export…')
+                try {
+                  const result = await desktop.world.exportActive()
+                  setSafetyMessage(
+                    result.exported ? `world exported to ${result.filePath}` : 'export cancelled',
+                  )
+                } catch (error) {
+                  setSafetyMessage(`export failed: ${error instanceof Error ? error.message : String(error)}`)
+                }
+              }}
+              disabled={busy || settings.mode !== 'local'}
+              style={btnSecondary}
+            >
+              export world save…
+            </button>
+            <button
+              onClick={async () => {
+                setSafetyMessage(null)
+                setBusy(true)
+                try {
+                  const result = await desktop.world.resetLocal()
+                  setSafetyMessage(
+                    result.reset ? 'new world started; previous world archived' : 'reset cancelled',
+                  )
+                } catch (error) {
+                  setSafetyMessage(
+                    `reset failed safely: ${error instanceof Error ? error.message : String(error)}`,
+                  )
+                } finally {
+                  setBusy(false)
+                }
+              }}
+              disabled={busy || settings.mode !== 'local'}
+              style={{ ...btnSecondary, color: '#ff9b6b', borderColor: '#7a3f32' }}
+            >
+              start a new world…
             </button>
           </div>
         </Section>

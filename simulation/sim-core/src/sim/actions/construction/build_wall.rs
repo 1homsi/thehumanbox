@@ -1,14 +1,14 @@
-use super::super::ctx::{ActionCtx, BuildSpec};
+use super::super::ctx::ActionCtx;
+use super::{start_project, ProjectSpec};
+use crate::sim::tech::buildings::BuildingKind;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.build_one(BuildSpec {
-        need_either_material: true,
-        structure_add: 0.06,
-        mark_active: true,
-        thought: "raising a wall",
-        discovery: "walls",
-        event_msg: "built the first wall",
-        reward: 0.012,
-        ..Default::default()
-    })
+    start_project(
+        ctx,
+        ProjectSpec {
+            kind: BuildingKind::Wall,
+            thought: "raising a wall",
+            reward: 0.012,
+        },
+    )
 }

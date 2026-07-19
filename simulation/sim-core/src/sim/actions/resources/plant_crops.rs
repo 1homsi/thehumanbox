@@ -1,15 +1,12 @@
+use super::super::agriculture::farm_ops;
 use super::super::ctx::ActionCtx;
-use crate::world::tiles::Tile;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    let fidx = ctx.fidx;
-    if !matches!(ctx.tile, Tile::Grass) || ctx.sim.grid.fertility[fidx] <= 0.4 {
+    let crop = farm_ops::crop_for_plot(ctx.sim, ctx.idx, ctx.ix, ctx.iy, ctx.water_near);
+    if farm_ops::plant_crop(ctx.sim, ctx.idx, ctx.ix, ctx.iy, crop, false).is_none() {
         return 0.0;
     }
-    let (ix, iy) = (ctx.ix, ctx.iy);
-    ctx.sim.grid.set(ix, iy, Tile::Food);
-    ctx.sim.grid.reduce_fertility(ix, iy, 0.04);
-    ctx.think("planting crops");
+    ctx.think(&format!("planting {}", crop.name()));
     ctx.discover("farm", "planted a crop field");
     0.014
 }
