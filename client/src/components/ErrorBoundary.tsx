@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { logger } from '../lib/logger'
+import { reloadAppSafely } from '../simulation/worldSource'
 
 interface Props {
   /** Subtree to guard. */
@@ -57,11 +58,10 @@ export class ErrorBoundary extends Component<Props, State> {
             The world stuttered
           </h1>
           <p style={{ fontSize: 13, color: '#7e7568', maxWidth: 480, textAlign: 'center', margin: 0 }}>
-            Something unexpected happened in the renderer. The simulation is still running on the server -
-            reload to reconnect.
+            Something unexpected happened in the renderer. Reload to reconnect to the current simulation.
           </p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => reloadAppSafely()}
             style={{
               background: '#3a2618',
               color: '#d8d2c4',

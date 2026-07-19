@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { initAnalytics } from './lib/observability'
+import { reloadAppSafely } from './simulation/worldSource'
 
 initAnalytics()
 
@@ -38,7 +39,7 @@ setTimeout(() => {
   if (hint && !document.getElementById('thb-splash')?.classList.contains('hide')) {
     hint.classList.add('show')
   }
-  reload?.addEventListener('click', () => window.location.reload(), { once: true })
+  reload?.addEventListener('click', () => reloadAppSafely(), { once: true })
 }, 6_000)
 setTimeout(hideSplash, 30_000)
 

@@ -152,6 +152,23 @@ pub fn currency_unit_for_era(era: Era) -> &'static str {
     }
 }
 
+/// Standard equipment issued to publicly funded soldiers in each era.
+/// Keeping this in the economy domain gives conscription actions and the
+/// recurring fiscal cycle one source of truth for military procurement.
+pub const MILITARY_EQUIPMENT_COST: u64 = 4;
+
+pub fn military_issue_for_era(era: Era) -> &'static str {
+    if era >= Era::Industrial {
+        "rifle"
+    } else if era >= Era::Renaissance {
+        "musket"
+    } else if era >= Era::Bronze {
+        "sword"
+    } else {
+        "spear"
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PriceTable {
     pub food: u32,

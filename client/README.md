@@ -64,10 +64,16 @@ shared world, start the server at `localhost:8000` (see
 [../simulation/](../simulation/)), then choose **Shared World** in the
 web app's Settings.
 
+Private worlds checkpoint in IndexedDB. Settings can export the active save,
+confirm and archive it before starting over, and list, export, or restore
+recovery copies. Recovery candidates are deserialized and tick-checked in the
+WASM simulation before replacing the primary save; transient IndexedDB failures
+are retried without treating a read failure as an empty world.
+
 ## Environment
 
-| Variable | Default | Description |
-|---|---|---|
+| Variable        | Default          | Description                              |
+| --------------- | ---------------- | ---------------------------------------- |
 | `VITE_API_BASE` | `localhost:8000` | host[:port] of the simulation, no scheme |
 
 The client derives both the WS URL (`ws://` or `wss://`) and the HTTP

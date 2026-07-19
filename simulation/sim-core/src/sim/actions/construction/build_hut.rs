@@ -1,15 +1,12 @@
 use super::super::ctx::ActionCtx;
+use super::{start_project, ProjectSpec};
+use crate::sim::tech::buildings::BuildingKind;
 use crate::world::tiles::Tile;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if ctx.org().inv_wood < 1 || !matches!(ctx.tile, Tile::Grass | Tile::Sand | Tile::Snow) {
+    if !matches!(ctx.tile, Tile::Grass | Tile::Sand | Tile::Snow) {
         return 0.0;
     }
-    ctx.org_mut().inv_wood -= 1;
-    let (ix, iy) = (ctx.ix, ctx.iy);
-    ctx.sim.grid.set(ix, iy, Tile::Hut);
-    ctx.sim.grid.add_structure(ix, iy, 1.0);
-    ctx.sim.active_structure_tiles.insert((ix, iy));
 
     // Reward scales with environmental need: storm exposure and poor health
     let weather_kind = ctx.sim.weather.kind;
@@ -23,7 +20,12 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     };
     let health_bonus = if health < 0.5 { (0.5 - health) * 0.08 } else { 0.0 };
 
-    ctx.think("building shelter");
-    ctx.discover("shelter", "built a hut");
-    0.04 + storm_bonus + health_bonus
+    start_project(
+        ctx,
+        ProjectSpec {
+            kind: BuildingKind::Hut,
+            thought: "building shelter",
+            reward: 0.04 + storm_bonus + health_bonus,
+        },
+    )
 }

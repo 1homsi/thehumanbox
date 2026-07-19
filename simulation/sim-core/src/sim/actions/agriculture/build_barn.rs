@@ -1,12 +1,17 @@
+use super::super::construction::{start_project, ProjectSpec};
 use super::super::ctx::ActionCtx;
+use crate::sim::tech::buildings::BuildingKind;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if ctx.org().inv_wood == 0 {
-        return 0.0;
-    }
-    ctx.org_mut().inv_wood -= 1;
-    ctx.think("building a barn");
-    ctx.discover("barn", "constructed the first barn");
-    ctx.event("build", "raised a barn for storage and shelter");
-    0.012
+    // Granary is the canonical agricultural storage building represented in
+    // the world model; the barn action opens that real project instead of
+    // granting an immediate narrative-only structure.
+    start_project(
+        ctx,
+        ProjectSpec {
+            kind: BuildingKind::Granary,
+            thought: "building a barn",
+            reward: 0.012,
+        },
+    )
 }

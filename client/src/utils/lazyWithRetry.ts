@@ -1,4 +1,5 @@
 import { lazy, type ComponentType } from 'react'
+import { reloadAppSafely } from '../simulation/worldSource'
 
 const RELOAD_KEY = 'thb-chunk-reload-at'
 const RELOAD_COOLDOWN_MS = 15_000
@@ -17,7 +18,10 @@ function maybeReload() {
     const now = Date.now()
     if (now - last < RELOAD_COOLDOWN_MS) return false
     sessionStorage.setItem(RELOAD_KEY, String(now))
-    window.location.reload()
+    reloadAppSafely({
+      onFailure: () => sessionStorage.removeItem(RELOAD_KEY),
+      failureMessage: 'could not checkpoint the current world; renderer update was cancelled safely',
+    })
     return true
   } catch {
     return false

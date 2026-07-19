@@ -5,6 +5,7 @@ import { getDesktop } from '../lib/desktop'
 import { API_BASE } from '../lib/config'
 import { useUIStore } from '../stores/store'
 import { useSimulationData } from '../simulation/simulationData'
+import { worldsIntroCopy } from '../simulation/playerWorldCopy'
 
 interface Props {
   onClose: () => void
@@ -27,7 +28,7 @@ export function WorldsModal({ onClose }: Props) {
   const [importErr, setImportErr] = useState<string | null>(null)
   const desktop = getDesktop()
   const openSettings = useUIStore((s) => s.openDesktopSettings)
-  const { apiEnabled } = useSimulationData()
+  const { apiEnabled, playerWorldKind } = useSimulationData()
 
   useEffect(() => {
     if (!apiEnabled) return
@@ -52,10 +53,7 @@ export function WorldsModal({ onClose }: Props) {
       <div className="worlds-body">
         {!apiEnabled ? (
           <>
-            <p className="worlds-blurb">
-              Your private world lives in this browser and does not connect to the shared-world server. Switch
-              to Shared World in Settings to browse its archived civilizations.
-            </p>
+            <p className="worlds-blurb">{worldsIntroCopy(playerWorldKind, apiEnabled)}</p>
             <button
               className="lang-btn"
               onClick={() => {
@@ -67,15 +65,16 @@ export function WorldsModal({ onClose }: Props) {
             </button>
           </>
         ) : (
-          <p className="worlds-blurb">
-            The shared world resets at the start of every month. Old worlds are frozen here forever - explore
-            the end-state of each civilisation.
-          </p>
+          <p className="worlds-blurb">{worldsIntroCopy(playerWorldKind, apiEnabled)}</p>
         )}
         {apiEnabled && error && <div className="worlds-err">could not load: {error}</div>}
         {apiEnabled && !error && worlds == null && <div className="worlds-loading">loading…</div>}
         {apiEnabled && !error && worlds && worlds.length === 0 && (
-          <div className="worlds-empty">no past worlds yet. check back at the next month rollover.</div>
+          <div className="worlds-empty">
+            {playerWorldKind === 'local'
+              ? 'no local archives yet.'
+              : 'no past worlds yet. check back at the next month rollover.'}
+          </div>
         )}
         {importErr && (
           <div className="worlds-err" style={{ marginBottom: 8 }}>

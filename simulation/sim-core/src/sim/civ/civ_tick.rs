@@ -1,8 +1,9 @@
 use super::moments::*;
 use crate::sim::age_stage::AgeStage;
 use crate::sim::buildings::{Building, BuildingKind};
-use crate::sim::culture::{pick_religion_name, ArtKind, Artwork, Religion, ReligionKind};
-use crate::sim::economy::{elder_pension, Specialty};
+use crate::sim::config::natural_lineage_limit;
+use crate::sim::culture::{ArtKind, Artwork, Religion, ReligionKind};
+use crate::sim::economy::Specialty;
 use crate::sim::era::Era;
 use crate::sim::government::{Government, GovernmentKind, Law, LawKind};
 use crate::sim::language_tech::{pick_book_title, Book, BookTopic};
@@ -23,7 +24,6 @@ pub fn tick_civ(sim: &mut Simulation, spatial: Option<&SpatialIndex>) {
     if tick.is_multiple_of(120) {
         tick_specialties(sim);
         tick_aspirations(sim);
-        tick_wealth(sim);
     }
     if tick.is_multiple_of(200) {
         tick_governments(sim);
@@ -299,6 +299,9 @@ fn tick_building_auras(sim: &mut Simulation) {
         .buildings
         .iter()
         .filter_map(|b| {
+            if !b.is_operational() {
+                return None;
+            }
             let kind = b.kind;
             if !matches!(
                 kind,
@@ -695,36 +698,6 @@ fn tick_age_stages(sim: &mut Simulation) {
     }
 }
 
-fn tick_wealth(sim: &mut Simulation) {
-    let era_map: HashMap<String, Era> = sim.lineage_eras.clone();
-    for org in sim.organisms.iter_mut() {
-        if !org.alive {
-            continue;
-        }
-        if let Some(spec_name) = org.specialty.clone() {
-            let earn = specialty_earn(&spec_name);
-            org.wealth = org.wealth.saturating_add(earn);
-        }
-        let era = era_map.get(&org.lineage_id).copied().unwrap_or(Era::PreStone);
-        if org.age_stage() == AgeStage::Elder {
-            org.wealth = org.wealth.saturating_add(elder_pension(era));
-        }
-    }
-}
-
-fn specialty_earn(name: &str) -> u32 {
-    match name {
-        "farmer" | "hunter" | "miner" => 1,
-        "smith" | "builder" | "weaver" | "baker" | "carpenter" | "mason" | "brewer" => 2,
-        "merchant" | "sailor" | "healer" | "priest" | "artist" | "scribe" | "scholar" => 2,
-        "engineer" | "teacher" | "soldier" => 4,
-        "doctor" | "lawyer" | "banker" | "officer" => 6,
-        "pilot" | "journalist" | "actor" | "athlete" | "politician" => 8,
-        "programmer" => 12,
-        _ => 0,
-    }
-}
-
 fn workshop_pull(kind: BuildingKind) -> Option<Specialty> {
     use BuildingKind::*;
     Some(match kind {
@@ -766,6 +739,9 @@ fn tick_specialties(sim: &mut Simulation) {
         .buildings
         .iter()
         .filter_map(|b| {
+            if !b.is_operational() {
+                return None;
+            }
             let s = workshop_pull(b.kind)?;
             let (fw, fh) = b.kind.footprint();
             let bx = b.x as f32 + fw as f32 / 2.0;
@@ -973,7 +949,7 @@ fn tick_education(sim: &mut Simulation) {
     let school_positions: Vec<(i32, i32, String)> = sim
         .buildings
         .iter()
-        .filter(|b| matches!(b.kind, BuildingKind::School))
+        .filter(|b| b.is_operational() && matches!(b.kind, BuildingKind::School))
         .map(|b| {
             (
                 b.x + b.kind.footprint().0 as i32 / 2,
@@ -985,7 +961,7 @@ fn tick_education(sim: &mut Simulation) {
     let uni_positions: Vec<(i32, i32, String)> = sim
         .buildings
         .iter()
-        .filter(|b| matches!(b.kind, BuildingKind::University))
+        .filter(|b| b.is_operational() && matches!(b.kind, BuildingKind::University))
         .map(|b| {
             (
                 b.x + b.kind.footprint().0 as i32 / 2,
@@ -1070,6 +1046,313 @@ fn pick_degree(era: Era, seed: u64) -> &'static str {
 
 const FUNCTIONAL_BUILDINGS_CAP: usize = 1200;
 const BUILDINGS_SOFT_CAP: usize = 1500;
+const BASELINE_MAX_BUILDING_REQUIREMENT: usize = 450;
+const CONSTRUCTION_WORKER_REACH: f32 = 18.0;
+
+fn construction_population_requirement(base: usize, population_limit: usize) -> usize {
+    // Building thresholds were originally authored for a single lineage that
+    // could grow to 450 people. A local world intentionally protects multiple
+    // lineages, so scale that secondary gate to the largest sustainable
+    // lineage share. Era/discovery requirements remain unchanged.
+    let lineage_capacity =
+        natural_lineage_limit(population_limit).clamp(1, BASELINE_MAX_BUILDING_REQUIREMENT);
+    // Preserve authored pacing wherever it is achievable. Only gates above
+    // the expected lineage ceiling are lowered; proportional compression
+    // would make classical cities appear in settlements of just 3 people.
+    base.min(lineage_capacity)
+}
+
+fn reserve_construction_cost(sim: &mut Simulation, lineage: &str, kind: BuildingKind) -> bool {
+    let cost = kind.construction_cost();
+    let mut wood_available = 0u32;
+    let mut stone_available = 0u32;
+    let mut wealth_available = 0u64;
+    for org in sim
+        .organisms
+        .iter()
+        .filter(|org| org.alive && org.lineage_id == lineage)
+    {
+        wood_available += u32::from(org.inv_wood);
+        stone_available += u32::from(org.inv_stone);
+        wealth_available += u64::from(org.wealth);
+    }
+    if wood_available < u32::from(cost.wood)
+        || stone_available < u32::from(cost.stone)
+        || wealth_available < u64::from(cost.wealth)
+    {
+        return false;
+    }
+
+    let mut wood_left = u32::from(cost.wood);
+    let mut stone_left = u32::from(cost.stone);
+    let mut wealth_left = cost.wealth;
+    for org in sim
+        .organisms
+        .iter_mut()
+        .filter(|org| org.alive && org.lineage_id == lineage)
+    {
+        let wood = wood_left.min(u32::from(org.inv_wood));
+        org.inv_wood -= wood as u8;
+        wood_left -= wood;
+
+        let stone = stone_left.min(u32::from(org.inv_stone));
+        org.inv_stone -= stone as u8;
+        stone_left -= stone;
+
+        let wealth = wealth_left.min(org.wealth);
+        org.wealth -= wealth;
+        wealth_left -= wealth;
+        if wood_left == 0 && stone_left == 0 && wealth_left == 0 {
+            break;
+        }
+    }
+    debug_assert_eq!((wood_left, stone_left, wealth_left), (0, 0, 0));
+    true
+}
+
+fn building_footprints_overlap(
+    a_x: i32,
+    a_y: i32,
+    a_width: u8,
+    a_height: u8,
+    b_x: i32,
+    b_y: i32,
+    b_width: u8,
+    b_height: u8,
+) -> bool {
+    a_x < b_x + i32::from(b_width)
+        && a_x + i32::from(a_width) > b_x
+        && a_y < b_y + i32::from(b_height)
+        && a_y + i32::from(a_height) > b_y
+}
+
+fn construction_site_is_valid(sim: &Simulation, kind: BuildingKind, x: i32, y: i32) -> bool {
+    use crate::world::grid::{HEIGHT, WIDTH};
+    use crate::world::tiles::Tile;
+
+    let (width, height) = kind.footprint();
+    if x < 0 || y < 0 || x + i32::from(width) > WIDTH as i32 || y + i32::from(height) > HEIGHT as i32 {
+        return false;
+    }
+
+    if kind == BuildingKind::Bridge {
+        // A bridge spans a four-tile horizontal channel: dry land anchors
+        // both ends, while at least one interior tile must actually be water.
+        // Water is invalid for every other construction kind.
+        let valid_anchor = |tile| {
+            matches!(
+                tile,
+                Tile::Grass | Tile::Food | Tile::Ash | Tile::Scorched | Tile::Snow | Tile::Sand
+            )
+        };
+        if height != 1
+            || width < 3
+            || !valid_anchor(sim.grid.get(x, y))
+            || !valid_anchor(sim.grid.get(x + i32::from(width) - 1, y))
+        {
+            return false;
+        }
+        let mut crosses_water = false;
+        for tile_x in x + 1..x + i32::from(width) - 1 {
+            match sim.grid.get(tile_x, y) {
+                Tile::Water => crosses_water = true,
+                tile if valid_anchor(tile) => {}
+                _ => return false,
+            }
+        }
+        if !crosses_water {
+            return false;
+        }
+    } else {
+        for tile_y in y..y + i32::from(height) {
+            for tile_x in x..x + i32::from(width) {
+                if matches!(
+                    sim.grid.get(tile_x, tile_y),
+                    Tile::Void | Tile::Water | Tile::Fire | Tile::Campfire | Tile::Hut | Tile::Flooded
+                ) {
+                    return false;
+                }
+            }
+        }
+    }
+    !sim.buildings.iter().any(|building| {
+        !building.decorative
+            && building_footprints_overlap(
+                x,
+                y,
+                width,
+                height,
+                building.x,
+                building.y,
+                building.footprint().0,
+                building.footprint().1,
+            )
+    })
+}
+
+fn apply_completed_building_effect(sim: &mut Simulation, kind: BuildingKind, x: i32, y: i32) {
+    use crate::world::grid::{TrailKind, WorldGrid};
+    use crate::world::tiles::Tile;
+
+    match kind {
+        BuildingKind::Well => {
+            // Groundwater is a completed well's effect, not a free side
+            // effect of selecting the action that opened its project.
+            sim.grid.set(x, y, Tile::Water);
+        }
+        BuildingKind::Bridge => {
+            let (width, height) = kind.footprint();
+            for tile_y in y..y + i32::from(height) {
+                for tile_x in x..x + i32::from(width) {
+                    if sim.grid.get(tile_x, tile_y) == Tile::Water {
+                        // Sand is walkable, nonflammable, and cannot regrow
+                        // food. The Building entity supplies the bridge visual;
+                        // the terrain conversion supplies actual traversal.
+                        sim.grid.set(tile_x, tile_y, Tile::Sand);
+                        let index = WorldGrid::idx(tile_x, tile_y);
+                        sim.grid.depth[index] = 0.0;
+                        sim.grid.fertility[index] = 0.0;
+                    }
+                    sim.grid.leave_trail(tile_x, tile_y, TrailKind::Path, 5.0);
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
+fn can_work_on_construction(org: &crate::organism::organism::Organism) -> bool {
+    org.alive && org.age_stage() == AgeStage::Adult && org.energy > 0.20 && org.health > 0.25
+}
+
+fn construction_site_has_reachable_worker(sim: &Simulation, lineage: &str, x: i32, y: i32) -> bool {
+    sim.organisms.iter().any(|org| {
+        org.lineage_id == lineage
+            && can_work_on_construction(org)
+            && (org.x - x as f32).abs() + (org.y - y as f32).abs() <= CONSTRUCTION_WORKER_REACH
+    })
+}
+
+fn find_construction_site(
+    sim: &Simulation,
+    lineage: &str,
+    kind: BuildingKind,
+    preferred_x: i32,
+    preferred_y: i32,
+) -> Option<(i32, i32)> {
+    if construction_site_is_valid(sim, kind, preferred_x, preferred_y)
+        && construction_site_has_reachable_worker(sim, lineage, preferred_x, preferred_y)
+    {
+        return Some((preferred_x, preferred_y));
+    }
+    // Automatic plans use a preferred settlement offset. Search a compact
+    // ring around it so water or another structure delays only this site,
+    // rather than charging resources or permanently blocking construction.
+    for radius in 1i32..=12 {
+        for dy in -radius..=radius {
+            for dx in -radius..=radius {
+                if dx.abs() != radius && dy.abs() != radius {
+                    continue;
+                }
+                let x = preferred_x + dx;
+                let y = preferred_y + dy;
+                if construction_site_is_valid(sim, kind, x, y)
+                    && construction_site_has_reachable_worker(sim, lineage, x, y)
+                {
+                    return Some((x, y));
+                }
+            }
+        }
+    }
+    None
+}
+
+fn start_building_at_valid_site(
+    sim: &mut Simulation,
+    lineage: &str,
+    kind: BuildingKind,
+    site_x: i32,
+    site_y: i32,
+) -> bool {
+    if sim
+        .buildings
+        .iter()
+        .filter(|building| !building.decorative)
+        .count()
+        >= FUNCTIONAL_BUILDINGS_CAP
+    {
+        return false;
+    }
+    if !construction_site_is_valid(sim, kind, site_x, site_y)
+        || !construction_site_has_reachable_worker(sim, lineage, site_x, site_y)
+    {
+        return false;
+    }
+    if !reserve_construction_cost(sim, lineage, kind) {
+        return false;
+    }
+    let (site_width, site_height) = kind.footprint();
+    sim.buildings.retain(|building| {
+        !building.decorative
+            || !building_footprints_overlap(
+                site_x,
+                site_y,
+                site_width,
+                site_height,
+                building.x,
+                building.y,
+                building.footprint().0,
+                building.footprint().1,
+            )
+    });
+    let id = sim.next_building_id;
+    sim.next_building_id += 1;
+    sim.buildings.push(Building::new(
+        id,
+        kind,
+        site_x,
+        site_y,
+        Some(lineage.to_string()),
+        sim.tick_count,
+    ));
+    let cost = kind.construction_cost();
+    push_event(
+        &mut sim.events,
+        sim.tick_count,
+        "construction_started",
+        lineage,
+        &format!(
+            "started a {} using {} wood, {} stone, and {} wealth",
+            kind.name(),
+            cost.wood,
+            cost.stone,
+            cost.wealth
+        ),
+    );
+    true
+}
+
+/// Opens a construction project at an exact, player-selected site.
+///
+/// Action-driven construction must never silently move a project or consume
+/// materials for a blocked footprint. Validation and worker availability are
+/// therefore checked before the lineage's pooled cost is reserved.
+pub(crate) fn try_start_building_at(
+    sim: &mut Simulation,
+    lineage: &str,
+    kind: BuildingKind,
+    x: i32,
+    y: i32,
+) -> bool {
+    start_building_at_valid_site(sim, lineage, kind, x, y)
+}
+
+fn try_start_building(sim: &mut Simulation, lineage: &str, kind: BuildingKind, x: i32, y: i32) -> bool {
+    let Some((site_x, site_y)) = find_construction_site(sim, lineage, kind, x, y) else {
+        return false;
+    };
+    start_building_at_valid_site(sim, lineage, kind, site_x, site_y)
+}
 
 fn tick_buildings_construct(sim: &mut Simulation) {
     let mut functional_slots = FUNCTIONAL_BUILDINGS_CAP.saturating_sub(
@@ -1081,7 +1364,6 @@ fn tick_buildings_construct(sim: &mut Simulation) {
     if functional_slots == 0 {
         return;
     }
-    let mut new_buildings: Vec<Building> = Vec::new();
     let alive_lineages: HashSet<String> = sim
         .organisms
         .iter()
@@ -1094,7 +1376,7 @@ fn tick_buildings_construct(sim: &mut Simulation) {
         }
         let era = lineage_era(sim, &lid);
         let pop = lineage_pop(sim, &lid);
-        if pop < 5 {
+        if pop < 3 {
             continue;
         }
         let builds_this_pass = if pop >= 40 {
@@ -1107,59 +1389,33 @@ fn tick_buildings_construct(sim: &mut Simulation) {
         let mut existing: HashSet<BuildingKind> = sim
             .buildings
             .iter()
-            .filter(|b| b.owner_lineage.as_deref() == Some(&lid))
+            .filter(|b| !b.decorative && b.owner_lineage.as_deref() == Some(&lid))
             .map(|b| b.kind)
             .collect();
         for _ in 0..builds_this_pass {
             if functional_slots == 0 {
                 break;
             }
-            let target = next_target_building(era, pop, &existing);
-            let Some(kind) = target else { break };
-            existing.insert(kind);
-            let (cx, cy) = lineage_center(sim, &lid);
-            if cx == 0 && cy == 0 {
-                break;
-            }
-            let offset_x = (sim.next_building_id as i32 * 3) % 16 - 8;
-            let offset_y = (sim.next_building_id as i32 * 5) % 14 - 7;
-            let id = sim.next_building_id;
-            sim.next_building_id += 1;
-            new_buildings.push(Building::new(
-                id,
-                kind,
-                cx + offset_x,
-                cy + offset_y,
-                Some(lid.clone()),
-                sim.tick_count,
-            ));
-            functional_slots -= 1;
-            let kn = kind.name().to_string();
-            push_event(
-                &mut sim.events,
-                sim.tick_count,
-                "built",
-                &lid,
-                &format!("built a {}", kn),
-            );
-            if is_wonder(kind) {
-                let lname = sim
-                    .lineage_names
-                    .get(&lid)
-                    .cloned()
-                    .unwrap_or_else(|| lid.clone());
-                let line = format!(
-                    "\u{1F3DB}\u{FE0F} The {} raised a {} — a wonder of their age.",
-                    lname, kn
-                );
-                sim.headlines.push_back((sim.tick_count, line));
-                while sim.headlines.len() > 80 {
-                    sim.headlines.pop_front();
+            let mut considered = existing.clone();
+            let mut started = None;
+            while let Some(kind) = next_target_building(era, pop, sim.population_limit(), &considered) {
+                considered.insert(kind);
+                let (cx, cy) = lineage_center(sim, &lid);
+                if cx == 0 && cy == 0 {
+                    break;
+                }
+                let offset_x = (sim.next_building_id as i32 * 3) % 16 - 8;
+                let offset_y = (sim.next_building_id as i32 * 5) % 14 - 7;
+                if try_start_building(sim, &lid, kind, cx + offset_x, cy + offset_y) {
+                    started = Some(kind);
+                    break;
                 }
             }
+            let Some(kind) = started else { break };
+            existing.insert(kind);
+            functional_slots -= 1;
         }
     }
-    sim.buildings.extend(new_buildings);
     cap_buildings(sim);
 }
 
@@ -1194,38 +1450,135 @@ fn tick_building_progress(sim: &mut Simulation) {
     if sim.buildings.is_empty() {
         return;
     }
-    // Group alive worker positions by lineage once (borrowing the id, no
-    // per-org String clone), so each unfinished building only scans its
-    // own lineage's workers instead of every alive organism.
-    let mut by_lineage: HashMap<&str, Vec<(f32, f32)>> = HashMap::new();
-    for o in sim.organisms.iter() {
-        if o.alive {
-            by_lineage
-                .entry(o.lineage_id.as_str())
-                .or_default()
-                .push((o.x, o.y));
-        }
+    #[derive(Clone, Copy)]
+    struct Worker {
+        index: usize,
+        x: f32,
+        y: f32,
+        effort: f32,
     }
-    for b in sim.buildings.iter_mut() {
-        if b.condition >= 1.0 {
-            continue;
+
+    let mut completed: Vec<(String, BuildingKind, i32, i32)> = Vec::new();
+    let assigned_workers: HashSet<usize> = {
+        let organisms = &sim.organisms;
+        let mut by_lineage: HashMap<&str, Vec<Worker>> = HashMap::new();
+        for (index, org) in organisms.iter().enumerate() {
+            if !can_work_on_construction(org) {
+                continue;
+            }
+            let skill = match org.specialty.as_deref() {
+                Some("builder" | "carpenter" | "mason" | "engineer") => 1.75,
+                Some("smith" | "miner") => 1.30,
+                _ => 1.0,
+            };
+            by_lineage
+                .entry(org.lineage_id.as_str())
+                .or_default()
+                .push(Worker {
+                    index,
+                    x: org.x,
+                    y: org.y,
+                    effort: skill * (0.5 + org.energy.clamp(0.0, 1.0) * 0.5),
+                });
         }
-        let Some(owner) = b.owner_lineage.as_deref() else {
-            continue;
-        };
-        let Some(workers_pos) = by_lineage.get(owner) else {
-            continue;
-        };
-        let bx = b.x as f32;
-        let by = b.y as f32;
-        let mut workers = 0u32;
-        for (ox, oy) in workers_pos.iter() {
-            if (ox - bx).abs() + (oy - by).abs() < 7.0 {
-                workers += 1;
+
+        let mut assigned = HashSet::new();
+        for building in sim.buildings.iter_mut() {
+            if building.is_complete() || building.decorative {
+                continue;
+            }
+            building.occupants.clear();
+            let Some(owner) = building.owner_lineage.as_deref() else {
+                continue;
+            };
+            let Some(lineage_workers) = by_lineage.get(owner) else {
+                continue;
+            };
+            let bx = building.x as f32;
+            let by = building.y as f32;
+            let mut nearby: Vec<(f32, Worker)> = lineage_workers
+                .iter()
+                .copied()
+                .filter(|worker| !assigned.contains(&worker.index))
+                .filter_map(|worker| {
+                    let distance = (worker.x - bx).abs() + (worker.y - by).abs();
+                    // The same reach is enforced before materials are charged,
+                    // so a fallback site cannot create a permanently stalled
+                    // project beyond every worker's travel range.
+                    (distance <= CONSTRUCTION_WORKER_REACH).then_some((distance / worker.effort, worker))
+                })
+                .collect();
+            nearby.sort_by(|(score_a, worker_a), (score_b, worker_b)| {
+                score_a
+                    .total_cmp(score_b)
+                    .then_with(|| worker_a.index.cmp(&worker_b.index))
+            });
+
+            let crew_capacity = building.kind.construction_crew_capacity();
+            let crew: Vec<Worker> = nearby
+                .into_iter()
+                .take(crew_capacity)
+                .map(|(_, worker)| worker)
+                .collect();
+            if crew.is_empty() {
+                continue;
+            }
+            let effort: f32 = crew.iter().map(|worker| worker.effort).sum();
+            for worker in &crew {
+                assigned.insert(worker.index);
+                building.occupants.push(organisms[worker.index].id.clone());
+            }
+            let labor = f32::from(building.kind.construction_cost().labor);
+            building.condition = (building.condition + effort / labor).min(1.0);
+            if building.is_complete() {
+                building.built_at_tick = sim.tick_count;
+                building.occupants.clear();
+                completed.push((owner.to_string(), building.kind, building.x, building.y));
             }
         }
-        let progress = 0.004 + 0.015 * (workers as f32).sqrt().min(3.0);
-        b.condition = (b.condition + progress).min(1.0);
+        assigned
+    };
+
+    for worker_index in assigned_workers {
+        sim.organisms[worker_index].energy = (sim.organisms[worker_index].energy - 0.006).max(0.0);
+    }
+    for (lineage, kind, x, y) in completed {
+        // Construction knowledge is earned only when the project becomes
+        // operational. Share the canonical building discovery across the
+        // owning lineage so an unfinished action cannot unlock technology and
+        // the knowledge does not disappear with a single builder.
+        for org in sim
+            .organisms
+            .iter_mut()
+            .filter(|org| org.alive && org.lineage_id == lineage)
+        {
+            org.discover(kind.name());
+            for alias in kind.completion_discovery_aliases() {
+                org.discover(alias);
+            }
+        }
+        apply_completed_building_effect(sim, kind, x, y);
+        push_event(
+            &mut sim.events,
+            sim.tick_count,
+            "built",
+            &lineage,
+            &format!("completed a {}", kind.name()),
+        );
+        if is_wonder(kind) {
+            let lineage_name = sim.lineage_names.get(&lineage).cloned().unwrap_or(lineage);
+            sim.headlines.push_back((
+                sim.tick_count,
+                format!(
+                    "\u{1F3DB}\u{FE0F} The {} completed a {} — a wonder of their age.",
+                    lineage_name,
+                    kind.name()
+                ),
+            ));
+            while sim.headlines.len() > 80 {
+                sim.headlines.pop_front();
+            }
+        }
     }
 }
 
@@ -1386,37 +1739,43 @@ fn tick_scatter_props(sim: &mut Simulation) {
     cap_buildings(sim);
 }
 
-fn next_target_building(era: Era, pop: usize, existing: &HashSet<BuildingKind>) -> Option<BuildingKind> {
+fn next_target_building(
+    era: Era,
+    pop: usize,
+    population_limit: usize,
+    existing: &HashSet<BuildingKind>,
+) -> Option<BuildingKind> {
     use BuildingKind::*;
     let mut wishlist: Vec<BuildingKind> = Vec::new();
-    if era >= Era::Stone && pop >= 3 {
+    let meets = |base| pop >= construction_population_requirement(base, population_limit);
+    if era >= Era::Stone && meets(3) {
         wishlist.push(Hut);
         wishlist.push(Tent);
         wishlist.push(Well);
         wishlist.push(Signpost);
         wishlist.push(Shrine);
     }
-    if era >= Era::Stone && pop >= 6 {
+    if era >= Era::Stone && meets(6) {
         wishlist.push(Watchtower);
         wishlist.push(Fence);
         wishlist.push(Gate);
         wishlist.push(Cart);
     }
-    if era >= Era::Bronze && pop >= 8 {
+    if era >= Era::Bronze && meets(8) {
         wishlist.push(House);
         wishlist.push(Forge);
         wishlist.push(Granary);
         wishlist.push(MarketStall);
         wishlist.push(Smithy);
     }
-    if era >= Era::Bronze && pop >= 10 {
+    if era >= Era::Bronze && meets(10) {
         wishlist.push(Quarry);
         wishlist.push(Mine);
         wishlist.push(SawMill);
         wishlist.push(Tannery);
         wishlist.push(Stable);
     }
-    if era >= Era::Bronze && pop >= 12 {
+    if era >= Era::Bronze && meets(12) {
         wishlist.push(Temple);
         wishlist.push(Garden);
         wishlist.push(Orchard);
@@ -1425,14 +1784,14 @@ fn next_target_building(era: Era, pop: usize, existing: &HashSet<BuildingKind>) 
         wishlist.push(Monument);
         wishlist.push(Obelisk);
     }
-    if era >= Era::Iron && pop >= 15 {
+    if era >= Era::Iron && meets(15) {
         wishlist.push(Market);
         wishlist.push(Workshop);
         wishlist.push(Plaza);
         wishlist.push(Port);
         wishlist.push(FoodCart);
     }
-    if era >= Era::Iron && pop >= 18 {
+    if era >= Era::Iron && meets(18) {
         wishlist.push(Butcher);
         wishlist.push(Fishmonger);
         wishlist.push(Cheesemonger);
@@ -1441,7 +1800,7 @@ fn next_target_building(era: Era, pop: usize, existing: &HashSet<BuildingKind>) 
         wishlist.push(Cobbler);
         wishlist.push(Goldsmith);
     }
-    if era >= Era::Classical && pop >= 18 {
+    if era >= Era::Classical && meets(18) {
         wishlist.push(School);
         wishlist.push(Library);
         wishlist.push(Bridge);
@@ -1451,7 +1810,7 @@ fn next_target_building(era: Era, pop: usize, existing: &HashSet<BuildingKind>) 
         wishlist.push(Coliseum);
         wishlist.push(TriumphalArch);
     }
-    if era >= Era::Classical && pop >= 22 {
+    if era >= Era::Classical && meets(22) {
         wishlist.push(Aqueduct);
         wishlist.push(Observatory);
         wishlist.push(ClockTower);
@@ -1460,7 +1819,7 @@ fn next_target_building(era: Era, pop: usize, existing: &HashSet<BuildingKind>) 
         wishlist.push(Gazebo);
         wishlist.push(Bandstand);
     }
-    if era >= Era::Medieval && pop >= 25 {
+    if era >= Era::Medieval && meets(25) {
         wishlist.push(Manor);
         wishlist.push(Mill);
         wishlist.push(Castle);
@@ -1470,7 +1829,7 @@ fn next_target_building(era: Era, pop: usize, existing: &HashSet<BuildingKind>) 
         wishlist.push(Jeweler);
         wishlist.push(Scribe);
     }
-    if era >= Era::Medieval && pop >= 30 {
+    if era >= Era::Medieval && meets(30) {
         wishlist.push(Cathedral);
         wishlist.push(Inn);
         wishlist.push(Bakery);
@@ -1486,7 +1845,7 @@ fn next_target_building(era: Era, pop: usize, existing: &HashSet<BuildingKind>) 
         wishlist.push(Mosque);
         wishlist.push(Synagogue);
     }
-    if era >= Era::Renaissance && pop >= 40 {
+    if era >= Era::Renaissance && meets(40) {
         wishlist.push(University);
         wishlist.push(TownHouse);
         wishlist.push(Theatre);
@@ -1498,7 +1857,7 @@ fn next_target_building(era: Era, pop: usize, existing: &HashSet<BuildingKind>) 
         wishlist.push(Restaurant);
         wishlist.push(Hotel);
     }
-    if era >= Era::Renaissance && pop >= 45 {
+    if era >= Era::Renaissance && meets(45) {
         wishlist.push(Bank);
         wishlist.push(Courthouse);
         wishlist.push(CityHall);
@@ -1507,7 +1866,7 @@ fn next_target_building(era: Era, pop: usize, existing: &HashSet<BuildingKind>) 
         wishlist.push(Marina);
         wishlist.push(Drydock);
     }
-    if era >= Era::Industrial && pop >= 60 {
+    if era >= Era::Industrial && meets(60) {
         wishlist.push(Factory);
         wishlist.push(TrainStation);
         wishlist.push(Barracks);
@@ -1524,7 +1883,7 @@ fn next_target_building(era: Era, pop: usize, existing: &HashSet<BuildingKind>) 
         wishlist.push(Warehouse);
         wishlist.push(Silo);
     }
-    if era >= Era::Industrial && pop >= 70 {
+    if era >= Era::Industrial && meets(70) {
         wishlist.push(Museum);
         wishlist.push(Lighthouse);
         wishlist.push(Lighthouse2);
@@ -1537,7 +1896,7 @@ fn next_target_building(era: Era, pop: usize, existing: &HashSet<BuildingKind>) 
         wishlist.push(Hangar);
         wishlist.push(Dock);
     }
-    if era >= Era::Modern && pop >= 100 {
+    if era >= Era::Modern && meets(100) {
         wishlist.push(Hospital);
         wishlist.push(Apartment);
         wishlist.push(Stadium);
@@ -1553,13 +1912,13 @@ fn next_target_building(era: Era, pop: usize, existing: &HashSet<BuildingKind>) 
         wishlist.push(ArcadeBox);
         wishlist.push(Fountain2);
     }
-    if era >= Era::Modern && pop >= 120 {
+    if era >= Era::Modern && meets(120) {
         wishlist.push(Airport);
         wishlist.push(Greenhouse2);
         wishlist.push(MushroomFarm);
         wishlist.push(Aquaculture);
     }
-    if era >= Era::Information && pop >= 140 {
+    if era >= Era::Information && meets(140) {
         wishlist.push(OfficeTower);
         wishlist.push(Skyscraper);
         wishlist.push(Datacenter);
@@ -1570,32 +1929,32 @@ fn next_target_building(era: Era, pop: usize, existing: &HashSet<BuildingKind>) 
         wishlist.push(RoboticArm);
         wishlist.push(Drone);
     }
-    if era >= Era::Atomic && pop >= 160 {
+    if era >= Era::Atomic && meets(160) {
         wishlist.push(RadioTower);
         wishlist.push(SatelliteDish);
         wishlist.push(Spaceport);
         wishlist.push(SolarArray);
         wishlist.push(WindFarm);
     }
-    if era >= Era::Digital && pop >= 180 {
+    if era >= Era::Digital && meets(180) {
         wishlist.push(NeuralHub);
         wishlist.push(AiCore);
         wishlist.push(ResearchLab);
         wishlist.push(HoloBoard);
     }
-    if era >= Era::Fusion && pop >= 220 {
+    if era >= Era::Fusion && meets(220) {
         wishlist.push(FusionPlant);
         wishlist.push(OrbitalLift);
         wishlist.push(Biodome);
         wishlist.push(Cryolab);
         wishlist.push(NanoFab);
     }
-    if era >= Era::Solar && pop >= 240 {
+    if era >= Era::Solar && meets(240) {
         wishlist.push(Hyperloop);
         wishlist.push(Maglev);
         wishlist.push(Hospital2);
     }
-    if era >= Era::Galactic && pop >= 450 {
+    if era >= Era::Galactic && meets(450) {
         wishlist.push(Megastructure);
     }
     wishlist.into_iter().find(|&k| !existing.contains(&k))
@@ -1622,7 +1981,9 @@ fn lineage_center(sim: &Simulation, lid: &str) -> (i32, i32) {
 }
 
 fn tick_diplomacy(sim: &mut Simulation) {
-    use crate::sim::civ::warfare::{has_active_treaty, Treaty, TreatyKind};
+    use crate::sim::civ::warfare::{
+        establish_treaty, has_active_battle_between, has_active_treaty, TreatyKind,
+    };
     let tick = sim.tick_count;
     let mut sums: HashMap<(String, String), (f32, u32)> = HashMap::new();
     for o in sim.organisms.iter().filter(|o| o.alive) {
@@ -1641,7 +2002,7 @@ fn tick_diplomacy(sim: &mut Simulation) {
         sums.get(&(a.to_string(), b.to_string()))
             .map(|(s, n)| s / *n as f32)
     };
-    let lineages: Vec<String> = sim
+    let mut lineages: Vec<String> = sim
         .organisms
         .iter()
         .filter(|o| o.alive)
@@ -1649,6 +2010,7 @@ fn tick_diplomacy(sim: &mut Simulation) {
         .collect::<HashSet<_>>()
         .into_iter()
         .collect();
+    lineages.sort();
     let mut formed = 0;
     for i in 0..lineages.len() {
         for j in (i + 1)..lineages.len() {
@@ -1656,20 +2018,24 @@ fn tick_diplomacy(sim: &mut Simulation) {
                 break;
             }
             let (a, b) = (&lineages[i], &lineages[j]);
-            if has_active_treaty(&sim.treaties, a, b, tick) {
+            if has_active_treaty(&sim.treaties, a, b, tick) || has_active_battle_between(&sim.battles, a, b) {
                 continue;
             }
             let warm = matches!((avg(a, b), avg(b, a)), (Some(x), Some(y)) if x > 0.35 && y > 0.35);
             if !warm {
                 continue;
             }
-            sim.treaties.push(Treaty {
-                lineage_a: a.clone(),
-                lineage_b: b.clone(),
-                kind: TreatyKind::Alliance,
-                signed_tick: tick,
-                expires_tick: tick + 12000,
-            });
+            if !establish_treaty(
+                &mut sim.treaties,
+                &mut sim.organisms,
+                a,
+                b,
+                TreatyKind::Alliance,
+                tick,
+                tick.saturating_add(12_000),
+            ) {
+                continue;
+            }
             let na = sim.lineage_names.get(a).cloned().unwrap_or_else(|| a.clone());
             let nb = sim.lineage_names.get(b).cloned().unwrap_or_else(|| b.clone());
             let line = format!("\u{1F91D} {} and {} forged an alliance.", na, nb);
@@ -1809,8 +2175,12 @@ fn tick_governments(sim: &mut Simulation) {
         let target_kind = Government::pick_kind_for(era, pop, literacy_avg);
         let existing = sim.governments.get(lid).map(|g| g.kind);
         if existing != Some(target_kind) {
-            let g = Government::new(lid.clone(), target_kind, sim.tick_count);
-            sim.governments.insert(lid.clone(), g);
+            if let Some(government) = sim.governments.get_mut(lid) {
+                government.transition_to(target_kind, sim.tick_count);
+            } else {
+                let government = Government::new(lid.clone(), target_kind, sim.tick_count);
+                sim.governments.insert(lid.clone(), government);
+            }
             push_event(
                 &mut sim.events,
                 sim.tick_count,
@@ -1826,30 +2196,18 @@ fn tick_governments(sim: &mut Simulation) {
                 }
                 o.log_life(tick, "civ", entry_msg.clone());
             }
-            if let Some(seat) = seat_building_for(target_kind.name()) {
-                let already = sim
-                    .buildings
-                    .iter()
-                    .any(|b| b.kind == seat && b.owner_lineage.as_deref() == Some(lid.as_str()));
-                let (cx, cy) = lineage_center(sim, lid);
-                if !already && (cx != 0 || cy != 0) {
-                    let id = sim.next_building_id;
-                    sim.next_building_id += 1;
-                    let mut b = Building::new(id, seat, cx, cy, Some(lid.clone()), tick);
-                    b.condition = 1.0;
-                    sim.buildings.push(b);
-                    sim.headlines.push_back((
-                        tick,
-                        format!(
-                            "\u{1F3DB}\u{FE0F} {} established its seat of power as a {}",
-                            sim.lineage_names.get(lid).cloned().unwrap_or_else(|| lid.clone()),
-                            target_kind.name()
-                        ),
-                    ));
-                    while sim.headlines.len() > 80 {
-                        sim.headlines.pop_front();
-                    }
-                }
+        }
+        // A government may be declared immediately, but its physical seat is
+        // a real construction project. Retry on later government ticks when
+        // the lineage initially lacks materials instead of granting it free.
+        if let Some(seat) = seat_building_for(target_kind.name()) {
+            let already = sim
+                .buildings
+                .iter()
+                .any(|b| b.kind == seat && b.owner_lineage.as_deref() == Some(lid.as_str()));
+            let (cx, cy) = lineage_center(sim, lid);
+            if !already && (cx != 0 || cy != 0) {
+                try_start_building(sim, lid, seat, cx, cy);
             }
         }
     }
@@ -2085,6 +2443,7 @@ fn pick_leaders(sim: &mut Simulation, lineages: &[String]) {
 }
 
 fn tick_religion_schism(sim: &mut Simulation) {
+    use crate::sim::actions::religion_expanded::{create_religion, recount_religion_adherents};
     use rand::Rng;
     let mut counts: HashMap<String, u32> = HashMap::new();
     for o in sim.organisms.iter().filter(|o| o.alive) {
@@ -2119,27 +2478,27 @@ fn tick_religion_schism(sim: &mut Simulation) {
             chosen.push(i);
         }
     }
+    if chosen.len() == counts.get(&parent_id).copied().unwrap_or(0) as usize {
+        chosen.pop();
+    }
     if chosen.len() < 3 {
         return;
     }
 
-    let sect_id = format!("rel{}", sim.next_religion_id);
-    sim.next_religion_id += 1;
-    let sect_name = pick_religion_name(sim.tick_count + chosen.len() as u64 + 7).to_string();
     let founder_lineage = sim.organisms[chosen[0]].lineage_id.clone();
     let tick = sim.tick_count;
+    let name_seed = tick.wrapping_add(chosen.len() as u64).wrapping_add(7);
+    let sect_id = create_religion(sim, kind, &founder_lineage, tick, name_seed);
     for &i in &chosen {
         sim.organisms[i].religion_id = Some(sect_id.clone());
     }
-    sim.religions.push(Religion {
-        id: sect_id,
-        kind,
-        name: sect_name.clone(),
-        founded_tick: tick,
-        founder_lineage,
-        adherents: chosen.len() as u32,
-        last_milestone: None,
-    });
+    recount_religion_adherents(sim);
+    let sect_name = sim
+        .religions
+        .iter()
+        .find(|religion| religion.id == sect_id)
+        .map(|religion| religion.name.clone())
+        .unwrap_or_else(|| sect_id.clone());
     let line = format!(
         "\u{271D}\u{FE0F} A schism splits {}: the {} sect breaks away with {} believers.",
         parent_name,
@@ -2154,6 +2513,8 @@ fn tick_religion_schism(sim: &mut Simulation) {
 }
 
 fn tick_religion_founding(sim: &mut Simulation) {
+    use crate::sim::actions::religion_expanded::{create_religion, recount_religion_adherents};
+
     let lineages: Vec<String> = sim
         .organisms
         .iter()
@@ -2194,26 +2555,33 @@ fn tick_religion_founding(sim: &mut Simulation) {
         ];
         for k in candidates {
             if k.era_unlock() <= era && !existing_kinds.contains(&k) && sim.rng.random::<f32>() < 0.08 {
-                let id = format!("rel{}", sim.next_religion_id);
-                sim.next_religion_id += 1;
-                let name = pick_religion_name(sim.tick_count + (lid.len() as u64)).to_string();
-                sim.religions.push(Religion {
-                    id: id.clone(),
-                    kind: k,
-                    name: name.clone(),
-                    founded_tick: sim.tick_count,
-                    founder_lineage: lid.clone(),
-                    adherents: 1,
-                    last_milestone: None,
-                });
+                let Some(founder_idx) = sim
+                    .organisms
+                    .iter()
+                    .position(|o| o.alive && o.lineage_id == lid && o.religion_id.is_none())
+                    .or_else(|| sim.organisms.iter().position(|o| o.alive && o.lineage_id == lid))
+                else {
+                    break;
+                };
+                let tick = sim.tick_count;
+                let name_seed = tick.wrapping_add(lid.len() as u64);
+                let id = create_religion(sim, k, &lid, tick, name_seed);
+                sim.organisms[founder_idx].religion_id = Some(id.clone());
+                sim.organisms[founder_idx].piety = sim.organisms[founder_idx].piety.max(0.30);
+                recount_religion_adherents(sim);
+                let name = sim
+                    .religions
+                    .iter()
+                    .find(|religion| religion.id == id)
+                    .map(|religion| religion.name.clone())
+                    .unwrap_or_else(|| id.clone());
                 push_event(
                     &mut sim.events,
-                    sim.tick_count,
+                    tick,
                     "religion_founded",
                     &lid,
                     &format!("founded {} ({})", name, k.name()),
                 );
-                let tick = sim.tick_count;
                 let entry_msg = format!("our people founded {}", name);
                 for o in sim.organisms.iter_mut() {
                     if !o.alive || o.lineage_id != lid {
@@ -2278,9 +2646,7 @@ fn tick_religion_adherents(sim: &mut Simulation) {
         }
     }
     for r in sim.religions.iter_mut() {
-        if let Some(n) = adherents_by_id.get(&r.id) {
-            r.adherents = (*n).max(1);
-        }
+        r.adherents = adherents_by_id.get(&r.id).copied().unwrap_or(0);
     }
 }
 
@@ -2293,10 +2659,11 @@ fn tick_religion_effects(sim: &mut Simulation) {
         .buildings
         .iter()
         .filter(|b| {
-            matches!(
-                b.kind,
-                BK::Temple | BK::Cathedral | BK::Shrine | BK::Mosque | BK::Synagogue | BK::Pagoda
-            )
+            b.is_operational()
+                && matches!(
+                    b.kind,
+                    BK::Temple | BK::Cathedral | BK::Shrine | BK::Mosque | BK::Synagogue | BK::Pagoda
+                )
         })
         .map(|b| {
             let (fw, fh) = b.kind.footprint();
@@ -2668,42 +3035,42 @@ fn tick_milestones(sim: &mut Simulation) {
     if sim
         .buildings
         .iter()
-        .any(|b| matches!(b.kind, BuildingKind::School))
+        .any(|b| b.is_operational() && matches!(b.kind, BuildingKind::School))
     {
         new_ms.push(Milestone::FirstSchool);
     }
     if sim
         .buildings
         .iter()
-        .any(|b| matches!(b.kind, BuildingKind::University))
+        .any(|b| b.is_operational() && matches!(b.kind, BuildingKind::University))
     {
         new_ms.push(Milestone::FirstUniversity);
     }
     if sim
         .buildings
         .iter()
-        .any(|b| matches!(b.kind, BuildingKind::Factory))
+        .any(|b| b.is_operational() && matches!(b.kind, BuildingKind::Factory))
     {
         new_ms.push(Milestone::FirstFactory);
     }
     if sim
         .buildings
         .iter()
-        .any(|b| matches!(b.kind, BuildingKind::Hospital))
+        .any(|b| b.is_operational() && matches!(b.kind, BuildingKind::Hospital))
     {
         new_ms.push(Milestone::FirstHospital);
     }
     if sim
         .buildings
         .iter()
-        .any(|b| matches!(b.kind, BuildingKind::TrainStation))
+        .any(|b| b.is_operational() && matches!(b.kind, BuildingKind::TrainStation))
     {
         new_ms.push(Milestone::FirstTrain);
     }
     if sim
         .buildings
         .iter()
-        .any(|b| matches!(b.kind, BuildingKind::Airport))
+        .any(|b| b.is_operational() && matches!(b.kind, BuildingKind::Airport))
     {
         new_ms.push(Milestone::FirstPlane);
     }
@@ -2796,6 +3163,173 @@ mod tests {
         org.energy = 0.8;
         org.loneliness = 0.85;
         org
+    }
+
+    #[test]
+    fn autonomous_diplomacy_respects_active_battles_and_keeps_one_treaty() {
+        use crate::sim::warfare::{Battle, BattleScale, TreatyKind};
+
+        let mut sim = Simulation::new(0xD1_9101);
+        sim.organisms.clear();
+        let mut river = test_org("river-one", "River", "river", 50.0, 50.0);
+        let mut hill = test_org("hill-one", "Hill", "hill", 51.0, 50.0);
+        river.lineage_attitudes.insert("hill".into(), 0.8);
+        hill.lineage_attitudes.insert("river".into(), 0.8);
+        sim.organisms.extend([river, hill]);
+        sim.battles.push(Battle {
+            id: "battle-river-hill".into(),
+            attackers: vec!["river".into()],
+            defenders: vec!["hill".into()],
+            attacker_orgs: vec!["river-one".into()],
+            defender_orgs: vec!["hill-one".into()],
+            scale: BattleScale::Skirmish,
+            location: (50, 50),
+            started_tick: 100,
+            ended_tick: None,
+            casualties_a: 0,
+            casualties_d: 0,
+            outcome: None,
+            initial_a: 1,
+            initial_d: 1,
+        });
+
+        sim.tick_count = 800;
+        tick_diplomacy(&mut sim);
+        assert!(sim.treaties.is_empty());
+
+        sim.battles[0].ended_tick = Some(900);
+        sim.tick_count = 1_600;
+        tick_diplomacy(&mut sim);
+        assert_eq!(sim.treaties.len(), 1);
+        assert_eq!(sim.treaties[0].kind, TreatyKind::Alliance);
+
+        sim.tick_count = 2_400;
+        tick_diplomacy(&mut sim);
+        assert_eq!(sim.treaties.len(), 1);
+    }
+
+    #[test]
+    fn autonomous_religion_founding_assigns_a_real_founder() {
+        let mut sim = Simulation::new(0xFA_1001);
+        sim.organisms.truncate(5);
+        sim.religions.clear();
+        sim.religions.push(Religion {
+            id: "rel1".into(),
+            kind: ReligionKind::Animism,
+            name: "Existing Path".into(),
+            founded_tick: 1,
+            founder_lineage: "other-lineage".into(),
+            adherents: 0,
+            last_milestone: None,
+        });
+        sim.next_religion_id = 1;
+        let lineage = "autonomous-faith-lineage";
+        for organism in &mut sim.organisms {
+            organism.alive = true;
+            organism.lineage_id = lineage.into();
+            organism.religion_id = None;
+            organism.piety = 0.0;
+        }
+        sim.lineage_aggregates.clear();
+        sim.lineage_eras.insert(lineage.into(), Era::PreStone);
+
+        for attempt in 1..=500 {
+            sim.tick_count = attempt * 2_400;
+            tick_religion_founding(&mut sim);
+            if sim.religions.len() > 1 {
+                break;
+            }
+        }
+
+        let religion = sim
+            .religions
+            .iter()
+            .find(|religion| religion.founder_lineage == lineage)
+            .expect("a faith should eventually be founded");
+        assert_eq!(religion.id, "rel2");
+        let followers: Vec<_> = sim
+            .organisms
+            .iter()
+            .filter(|organism| {
+                organism.alive && organism.religion_id.as_deref() == Some(religion.id.as_str())
+            })
+            .collect();
+        assert_eq!(followers.len(), 1);
+        assert!(followers[0].piety >= 0.30);
+        assert_eq!(religion.adherents, 1);
+    }
+
+    #[test]
+    fn autonomous_schism_uses_unique_ids_and_recounts_both_faiths() {
+        let mut sim = Simulation::new(0xFA_1003);
+        sim.organisms.clear();
+        for index in 0..12 {
+            let mut follower = test_org(
+                &format!("follower-{index}"),
+                &format!("Follower {index}"),
+                "shared-lineage",
+                20.0 + index as f32,
+                20.0,
+            );
+            follower.religion_id = Some("rel1".into());
+            sim.organisms.push(follower);
+        }
+        sim.religions.clear();
+        sim.religions.push(Religion {
+            id: "rel1".into(),
+            kind: ReligionKind::Animism,
+            name: "Parent Path".into(),
+            founded_tick: 1,
+            founder_lineage: "shared-lineage".into(),
+            adherents: 12,
+            last_milestone: None,
+        });
+        sim.next_religion_id = 1;
+
+        for attempt in 1..=1_000 {
+            sim.tick_count = attempt * 1_600;
+            tick_religion_schism(&mut sim);
+            if sim.religions.len() > 1 {
+                break;
+            }
+        }
+
+        assert_eq!(sim.religions.len(), 2);
+        assert!(sim.religions.iter().any(|religion| religion.id == "rel2"));
+        assert_eq!(
+            sim.religions
+                .iter()
+                .map(|religion| religion.adherents)
+                .sum::<u32>(),
+            12
+        );
+        assert!(sim
+            .religions
+            .iter()
+            .find(|religion| religion.id == "rel1")
+            .is_some_and(|religion| religion.adherents > 0));
+    }
+
+    #[test]
+    fn periodic_religion_recount_sets_extinct_faiths_to_zero() {
+        let mut sim = Simulation::new(0xFA_1002);
+        for organism in &mut sim.organisms {
+            organism.religion_id = None;
+        }
+        sim.religions.clear();
+        sim.religions.push(Religion {
+            id: "rel-extinct".into(),
+            kind: ReligionKind::Animism,
+            name: "Forgotten Path".into(),
+            founded_tick: 1,
+            founder_lineage: "extinct-lineage".into(),
+            adherents: 42,
+            last_milestone: None,
+        });
+
+        tick_religion_adherents(&mut sim);
+
+        assert_eq!(sim.religions[0].adherents, 0);
     }
 
     #[test]
@@ -2965,5 +3499,336 @@ mod tests {
         tick_buildings_construct(&mut sim);
 
         assert_eq!(sim.buildings.len(), FUNCTIONAL_BUILDINGS_CAP);
+    }
+
+    #[test]
+    fn building_population_gates_are_reachable_at_every_supported_world_size() {
+        let authored_gates = [
+            3usize, 6, 8, 10, 12, 15, 18, 22, 25, 30, 40, 45, 60, 70, 100, 120, 140, 160, 180, 220, 240, 450,
+        ];
+        for population_limit in [120, 350, 500, 1_000, 2_000, 5_000] {
+            let lineage_capacity =
+                natural_lineage_limit(population_limit).min(BASELINE_MAX_BUILDING_REQUIREMENT);
+            let requirements: Vec<usize> = authored_gates
+                .iter()
+                .map(|base| construction_population_requirement(*base, population_limit))
+                .collect();
+            assert!(requirements.windows(2).all(|pair| pair[0] <= pair[1]));
+            assert_eq!(requirements.last().copied(), Some(lineage_capacity));
+
+            let existing: HashSet<BuildingKind> = BuildingKind::all()
+                .iter()
+                .copied()
+                .filter(|kind| *kind != BuildingKind::Megastructure)
+                .collect();
+            assert_eq!(
+                next_target_building(Era::Galactic, lineage_capacity, population_limit, &existing),
+                Some(BuildingKind::Megastructure),
+                "Galactic construction should remain reachable at cap {population_limit}"
+            );
+        }
+        assert_eq!(construction_population_requirement(40, 350), 40);
+        assert_eq!(construction_population_requirement(100, 350), 60);
+        assert_eq!(construction_population_requirement(240, 500), 240);
+    }
+
+    #[test]
+    fn construction_reservation_is_atomic_and_charges_materials_and_wealth() {
+        let mut sim = Simulation::new(0xC057);
+        sim.organisms.clear();
+        let mut builder = test_org("builder", "Builder", "lineage-a", 10.0, 10.0);
+        let cost = BuildingKind::Factory.construction_cost();
+        builder.inv_wood = cost.wood as u8;
+        builder.inv_stone = cost.stone as u8;
+        builder.wealth = cost.wealth.saturating_sub(1);
+        sim.organisms.push(builder);
+
+        assert!(!reserve_construction_cost(
+            &mut sim,
+            "lineage-a",
+            BuildingKind::Factory
+        ));
+        assert_eq!(sim.organisms[0].inv_wood, cost.wood as u8);
+        assert_eq!(sim.organisms[0].inv_stone, cost.stone as u8);
+
+        sim.organisms[0].wealth = cost.wealth;
+        assert!(reserve_construction_cost(
+            &mut sim,
+            "lineage-a",
+            BuildingKind::Factory
+        ));
+        assert_eq!(sim.organisms[0].inv_wood, 0);
+        assert_eq!(sim.organisms[0].inv_stone, 0);
+        assert_eq!(sim.organisms[0].wealth, 0);
+    }
+
+    #[test]
+    fn invalid_construction_site_does_not_charge_the_lineage() {
+        let mut sim = Simulation::new(0x51_7E);
+        sim.organisms.clear();
+        sim.buildings.clear();
+        let mut builder = test_org("builder", "Builder", "lineage-a", 10.0, 10.0);
+        let cost = BuildingKind::Hut.construction_cost();
+        builder.inv_wood = cost.wood as u8;
+        builder.inv_stone = cost.stone as u8;
+        builder.wealth = cost.wealth;
+        sim.organisms.push(builder);
+
+        assert!(!try_start_building(
+            &mut sim,
+            "lineage-a",
+            BuildingKind::Hut,
+            -1_000,
+            -1_000,
+        ));
+        assert!(sim.buildings.is_empty());
+        assert_eq!(sim.organisms[0].inv_wood, cost.wood as u8);
+        assert_eq!(sim.organisms[0].inv_stone, cost.stone as u8);
+        assert_eq!(sim.organisms[0].wealth, cost.wealth);
+    }
+
+    #[test]
+    fn fallback_construction_site_remains_within_worker_reach() {
+        use crate::world::tiles::Tile;
+
+        let mut sim = Simulation::new(0x51_7F);
+        sim.organisms.clear();
+        sim.buildings.clear();
+        for y in 5..=15 {
+            for x in 5..=35 {
+                sim.grid.set(x, y, Tile::Grass);
+            }
+        }
+        let mut builder = test_org("builder", "Builder", "lineage-a", 10.0, 10.0);
+        builder.age = 10_000;
+        let cost = BuildingKind::Hut.construction_cost();
+        builder.inv_wood = cost.wood as u8;
+        builder.inv_stone = cost.stone as u8;
+        builder.wealth = cost.wealth;
+        sim.organisms.push(builder);
+        sim.buildings.push(Building::new(
+            900,
+            BuildingKind::Hut,
+            28,
+            10,
+            Some("lineage-b".into()),
+            0,
+        ));
+
+        assert!(try_start_building(
+            &mut sim,
+            "lineage-a",
+            BuildingKind::Hut,
+            28,
+            10,
+        ));
+        let project = sim
+            .buildings
+            .iter()
+            .find(|building| building.owner_lineage.as_deref() == Some("lineage-a"))
+            .expect("reachable fallback project");
+        let distance =
+            (project.x as f32 - sim.organisms[0].x).abs() + (project.y as f32 - sim.organisms[0].y).abs();
+        assert!(distance <= CONSTRUCTION_WORKER_REACH);
+    }
+
+    #[test]
+    fn construction_stalls_without_active_workers_then_completes_with_labor() {
+        let mut sim = Simulation::new(0x1AB0);
+        sim.organisms.clear();
+        sim.buildings.clear();
+        let mut worker = test_org("worker", "Worker", "lineage-a", 50.0, 50.0);
+        worker.age = 10_000;
+        worker.specialty = Some("builder".into());
+        sim.organisms.push(worker);
+        sim.buildings.push(Building::new(
+            1,
+            BuildingKind::Hut,
+            10,
+            10,
+            Some("lineage-a".into()),
+            0,
+        ));
+
+        tick_building_progress(&mut sim);
+        assert_eq!(sim.buildings[0].condition, 0.0);
+        assert!(sim.buildings[0].occupants.is_empty());
+
+        sim.organisms[0].x = 10.0;
+        sim.organisms[0].y = 10.0;
+        let starting_energy = sim.organisms[0].energy;
+        for tick in 1..=10 {
+            sim.tick_count = tick * 20;
+            tick_building_progress(&mut sim);
+            if sim.buildings[0].is_complete() {
+                break;
+            }
+        }
+        assert!(sim.buildings[0].is_complete());
+        assert_eq!(sim.buildings[0].built_at_tick, sim.tick_count);
+        assert!(sim.buildings[0].occupants.is_empty());
+        assert!(sim.organisms[0].energy < starting_energy);
+        assert!(sim
+            .events
+            .iter()
+            .any(|event| event.etype == "built" && event.detail.contains("hut")));
+    }
+
+    #[test]
+    fn completed_housing_is_shelter_and_unfinished_projects_are_not() {
+        use crate::world::grid::WorldGrid;
+        use crate::world::tiles::Tile;
+
+        let mut sim = Simulation::new(0x005E_17E2);
+        sim.organisms.clear();
+        sim.buildings.clear();
+        let resident = test_org("resident", "Resident", "lineage-a", 80.0, 80.0);
+        sim.organisms.push(resident);
+        for y in 75..=85 {
+            for x in 75..=85 {
+                sim.grid.set(x, y, Tile::Grass);
+                sim.grid.structure[WorldGrid::idx(x, y)] = 0.0;
+            }
+        }
+
+        let mut hut = Building::new(1, BuildingKind::Hut, 81, 80, Some("lineage-a".into()), 0);
+        hut.condition = 0.99;
+        sim.buildings.push(hut);
+
+        assert!(!sim.organisms[0].near_shelter(&sim.grid, &sim.buildings));
+        assert!(sim.organisms[0].has_shelter_project_within(&sim.buildings, 3));
+
+        sim.buildings[0].condition = 1.0;
+        assert!(sim.organisms[0].near_shelter(&sim.grid, &sim.buildings));
+        assert!(!sim.organisms[0].has_shelter_project_within(&sim.buildings, 3));
+
+        let mut path = std::env::temp_dir();
+        path.push(format!(
+            "thehumanbox-shelter-save-test-{}.json",
+            std::process::id()
+        ));
+        let path_s = path.to_string_lossy().to_string();
+        let _ = std::fs::remove_file(&path_s);
+        let _ = std::fs::remove_file(format!("{}.tmp", path_s));
+
+        sim.save_result(&path_s).unwrap();
+        let loaded = Simulation::load_or_new(0x0BAD_5EED, &path_s);
+        let loaded_resident = loaded
+            .organisms
+            .iter()
+            .find(|org| org.id == "resident")
+            .expect("resident survives save/load");
+        assert!(loaded_resident.near_shelter(&loaded.grid, &loaded.buildings));
+
+        let _ = std::fs::remove_file(&path_s);
+        let _ = std::fs::remove_file(format!("{}.tmp", path_s));
+    }
+
+    #[test]
+    fn bridge_requires_a_crossing_and_only_changes_terrain_on_completion() {
+        use crate::world::grid::{TrailKind, WorldGrid};
+        use crate::world::tiles::Tile;
+
+        let mut sim = Simulation::new(0x00B2_1D6E);
+        sim.organisms.clear();
+        sim.buildings.clear();
+        let (x, y) = (120, 120);
+        for tile_y in y - 2..=y + 4 {
+            for tile_x in x - 2..=x + 8 {
+                sim.grid.set(tile_x, tile_y, Tile::Grass);
+                sim.grid.structure[WorldGrid::idx(tile_x, tile_y)] = 0.0;
+            }
+        }
+        sim.grid.set(x + 1, y, Tile::Water);
+        sim.grid.set(x + 2, y, Tile::Water);
+        sim.grid.depth[WorldGrid::idx(x + 1, y)] = 0.8;
+        sim.grid.depth[WorldGrid::idx(x + 2, y)] = 0.7;
+
+        let mut builder = test_org("bridge-builder", "Builder", "lineage-a", x as f32, y as f32);
+        builder.age = 10_000;
+        builder.energy = 1.0;
+        let cost = BuildingKind::Bridge.construction_cost();
+        builder.inv_wood = cost.wood as u8;
+        builder.inv_stone = cost.stone as u8;
+        builder.wealth = cost.wealth;
+        sim.organisms.push(builder);
+
+        assert!(construction_site_is_valid(&sim, BuildingKind::Bridge, x, y));
+        assert!(!construction_site_is_valid(&sim, BuildingKind::Bridge, x, y + 2));
+        assert!(!construction_site_is_valid(&sim, BuildingKind::Hut, x + 1, y));
+        assert!(try_start_building_at(
+            &mut sim,
+            "lineage-a",
+            BuildingKind::Bridge,
+            x,
+            y
+        ));
+        assert_eq!(sim.grid.get(x + 1, y), Tile::Water);
+        assert_eq!(sim.grid.trail_at(x + 1, y, TrailKind::Path), 0.0);
+
+        sim.buildings[0].condition = 0.99;
+        sim.tick_count = 20;
+        tick_building_progress(&mut sim);
+
+        assert!(sim.buildings[0].is_operational());
+        for tile_x in x..=x + 3 {
+            assert_eq!(sim.grid.trail_at(tile_x, y, TrailKind::Path), 5.0);
+        }
+        for tile_x in x + 1..=x + 2 {
+            assert_eq!(sim.grid.get(tile_x, y), Tile::Sand);
+            assert_eq!(sim.grid.depth_at(tile_x, y), 0.0);
+            assert!(sim.grid.get(tile_x, y).walkable());
+        }
+
+        let mut path = std::env::temp_dir();
+        path.push(format!(
+            "thehumanbox-bridge-save-test-{}.json",
+            std::process::id()
+        ));
+        let path_s = path.to_string_lossy().to_string();
+        let _ = std::fs::remove_file(&path_s);
+        let _ = std::fs::remove_file(format!("{}.tmp", path_s));
+
+        sim.save_result(&path_s).unwrap();
+        let loaded = Simulation::load_or_new(0x0BAD_5EED, &path_s);
+        assert!(loaded
+            .buildings
+            .iter()
+            .any(|building| building.kind == BuildingKind::Bridge && building.is_operational()));
+        assert_eq!(loaded.grid.get(x + 1, y), Tile::Sand);
+        assert!(loaded.grid.trail_at(x + 1, y, TrailKind::Path) > 0.0);
+
+        let _ = std::fs::remove_file(&path_s);
+        let _ = std::fs::remove_file(format!("{}.tmp", path_s));
+    }
+
+    #[test]
+    fn incomplete_buildings_grant_no_aura() {
+        let mut sim = Simulation::new(0xA0AA);
+        sim.organisms.clear();
+        sim.buildings.clear();
+        let mut patient = test_org("patient", "Patient", "lineage-a", 10.0, 10.0);
+        patient.infection = 0.8;
+        patient.health = 0.5;
+        sim.organisms.push(patient);
+        let mut hospital = Building::new(1, BuildingKind::Hospital, 10, 10, Some("lineage-a".into()), 0);
+        hospital.condition = 0.99;
+        sim.buildings.push(hospital);
+
+        tick_building_auras(&mut sim);
+        assert_eq!(sim.organisms[0].infection, 0.8);
+        assert_eq!(sim.organisms[0].health, 0.5);
+
+        sim.buildings[0].condition = 1.0;
+        tick_building_auras(&mut sim);
+        assert!(sim.organisms[0].infection < 0.8);
+        assert!(sim.organisms[0].health > 0.5);
+
+        sim.organisms[0].infection = 0.8;
+        sim.organisms[0].health = 0.5;
+        sim.buildings[0].decorative = true;
+        tick_building_auras(&mut sim);
+        assert_eq!(sim.organisms[0].infection, 0.8);
+        assert_eq!(sim.organisms[0].health, 0.5);
     }
 }

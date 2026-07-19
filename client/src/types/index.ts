@@ -181,11 +181,29 @@ export interface OutbreakInfo {
 }
 
 export interface FarmInfo {
+  id: number
   x: number
   y: number
   crop?: string
   yield?: number
   lineage_id?: string
+  planted_tick?: number
+  ready_tick?: number
+  harvested?: boolean
+  stage?: 'fallow' | 'seeded' | 'growing' | 'mature' | 'harvested'
+  progress?: number
+}
+
+export interface SettlementInfo {
+  lineage_id: string
+  name: string
+  tier: number
+  tier_name: string
+  center: [number, number]
+  population: number
+  building_count: number
+  capacity: number
+  score: number
 }
 
 export interface VehicleInfo {
@@ -395,9 +413,11 @@ export interface WorldState {
   treaties?: TreatyInfo[]
   trades?: TradeInfo[]
   farms?: FarmInfo[]
+  settlements?: SettlementInfo[]
   vehicles?: VehicleInfo[]
   festivals?: FestivalInfo[]
   lineage_eras?: Array<{ lineage_id: string; era_name: string }> | Record<string, string>
+  lineage_strategies?: Record<string, { strategy: string; expires_tick: number }>
   lineage_era_progress?: LineageEraProgress[]
   lineage_currencies?: Record<string, string>
   active_outbreaks?: OutbreakInfo[]

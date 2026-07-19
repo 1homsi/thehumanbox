@@ -193,6 +193,21 @@ pub enum BuildingFunction {
     Recreation,
 }
 
+/// Resources committed when a settlement opens a construction site.
+///
+/// Organisms currently carry raw wood and stone rather than dozens of refined
+/// commodities. Refined inputs from `material_cost` are therefore represented
+/// by wealth (the lineage buys or manufactures them), while every advanced
+/// structure still needs a small stone foundation. Labor is paid over time by
+/// nearby, active workers rather than at site creation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ConstructionCost {
+    pub wood: u16,
+    pub stone: u16,
+    pub wealth: u32,
+    pub labor: u16,
+}
+
 impl BuildingKind {
     pub fn name(self) -> &'static str {
         match self {
@@ -537,6 +552,75 @@ impl BuildingKind {
         }
     }
 
+    /// Converts the detailed material bill into resources the live simulation
+    /// can actually account for today. The divisor keeps pooled lineage costs
+    /// achievable even in the smallest supported local worlds.
+    pub fn construction_cost(self) -> ConstructionCost {
+        let mut raw_wood = 0u32;
+        let mut raw_stone = 0u32;
+        let mut refined = 0u32;
+        for &(material, amount) in self.material_cost() {
+            match material {
+                "wood" | "grass" | "paper" => raw_wood = raw_wood.saturating_add(amount),
+                "stone" => raw_stone = raw_stone.saturating_add(amount),
+                _ => refined = refined.saturating_add(amount),
+            }
+        }
+
+        let wood = raw_wood.div_ceil(20) as u16;
+        let mut stone = raw_stone.div_ceil(20) as u16;
+        let wealth = refined.div_ceil(20);
+        let (width, height) = self.footprint();
+        let area = u16::from(width) * u16::from(height);
+        if wood == 0 && stone == 0 {
+            stone = area.div_ceil(4).max(1);
+        }
+        let era_complexity = crate::sim::era::LADDER
+            .iter()
+            .position(|era| *era == self.era_unlock())
+            .unwrap_or(0) as u16;
+
+        ConstructionCost {
+            wood,
+            stone,
+            wealth,
+            labor: area
+                .saturating_mul(4)
+                .saturating_add(era_complexity.saturating_mul(2))
+                .max(1),
+        }
+    }
+
+    /// Maximum useful simultaneous crew size. Larger projects can absorb more
+    /// workers, while a hut cannot unrealistically employ an entire lineage.
+    pub fn construction_crew_capacity(self) -> usize {
+        usize::from(self.construction_cost().labor.div_ceil(24).clamp(1, 6))
+    }
+
+    /// Compatibility knowledge earned alongside the canonical building name
+    /// when construction completes. These keys were historically granted by
+    /// individual actions; keeping them completion-bound preserves existing
+    /// technology prerequisites without letting unfinished sites unlock them.
+    pub fn completion_discovery_aliases(self) -> &'static [&'static str] {
+        use BuildingKind::*;
+        match self {
+            Hut => &["shelter"],
+            Theatre => &["amphitheater"],
+            Market => &["markets"],
+            MarketStall => &["market"],
+            Forge => &["metallurgy"],
+            Granary => &["barn"],
+            Aqueduct => &["aqueducts"],
+            Wall => &["walls"],
+            Fence => &["fencing"],
+            Gate => &["gates"],
+            Watchtower => &["scouting"],
+            Shrine => &["religion"],
+            Dock => &["quay"],
+            _ => &[],
+        }
+    }
+
     pub fn function(self) -> BuildingFunction {
         use BuildingFunction::*;
         use BuildingKind::*;
@@ -778,9 +862,19 @@ impl Building {
             owner_lineage: owner,
             occupants: Vec::new(),
             built_at_tick: tick,
-            condition: 0.15,
+            condition: 0.0,
             decorative: false,
         }
+    }
+
+    pub fn is_complete(&self) -> bool {
+        self.condition >= 1.0
+    }
+
+    /// Only constructed, functional buildings may influence organisms or
+    /// civilization systems. Decorative props remain visual world detail.
+    pub fn is_operational(&self) -> bool {
+        !self.decorative && self.is_complete()
     }
 
     pub fn footprint(&self) -> (u8, u8) {
@@ -788,6 +882,39 @@ impl Building {
     }
     pub fn function(&self) -> BuildingFunction {
         self.kind.function()
+    }
+
+    /// A completed housing building can shelter its owning lineage. Buildings
+    /// without an owner are shared world structures; unfinished and decorative
+    /// buildings never grant shelter effects.
+    pub fn provides_shelter_for(&self, lineage: &str) -> bool {
+        self.is_operational()
+            && self.function() == BuildingFunction::Housing
+            && self
+                .owner_lineage
+                .as_deref()
+                .map(|owner| owner == lineage)
+                .unwrap_or(true)
+    }
+
+    /// Whether this is an unfinished housing project already owned by a
+    /// lineage. This is deliberately separate from `provides_shelter_for`:
+    /// callers may avoid opening duplicate projects without treating a work
+    /// site as weather protection or a home.
+    pub fn is_shelter_project_for(&self, lineage: &str) -> bool {
+        !self.decorative
+            && !self.is_complete()
+            && self.function() == BuildingFunction::Housing
+            && self.owner_lineage.as_deref() == Some(lineage)
+    }
+
+    /// The closest tile in this building's footprint to a world position.
+    pub fn closest_footprint_tile(&self, x: i32, y: i32) -> (i32, i32) {
+        let (width, height) = self.footprint();
+        (
+            x.clamp(self.x, self.x + i32::from(width) - 1),
+            y.clamp(self.y, self.y + i32::from(height) - 1),
+        )
     }
 
     pub fn contains(&self, x: i32, y: i32) -> bool {
@@ -812,5 +939,71 @@ mod tests {
         assert!(BuildingKind::Hut.era_unlock() < BuildingKind::House.era_unlock());
         assert!(BuildingKind::House.era_unlock() < BuildingKind::Manor.era_unlock());
         assert!(BuildingKind::Manor.era_unlock() < BuildingKind::Apartment.era_unlock());
+    }
+
+    #[test]
+    fn construction_costs_use_real_resources_and_scale_labor() {
+        let hut = BuildingKind::Hut.construction_cost();
+        let factory = BuildingKind::Factory.construction_cost();
+        let megastructure = BuildingKind::Megastructure.construction_cost();
+
+        assert!(hut.wood > 0);
+        assert_eq!(hut.wealth, 0);
+        assert!(
+            factory.stone > 0,
+            "advanced sites still need a physical foundation"
+        );
+        assert!(
+            factory.wealth > 0,
+            "refined industrial materials are financed through wealth"
+        );
+        assert!(factory.labor > hut.labor);
+        assert!(megastructure.labor > factory.labor);
+        assert!(BuildingKind::Megastructure.construction_crew_capacity() > 1);
+
+        for kind in BuildingKind::all() {
+            let cost = kind.construction_cost();
+            assert!(
+                cost.wood > 0 || cost.stone > 0,
+                "{} has no material cost",
+                kind.name()
+            );
+            assert!(cost.labor > 0, "{} has no labor cost", kind.name());
+        }
+    }
+
+    #[test]
+    fn new_functional_buildings_start_incomplete() {
+        let mut building = Building::new(1, BuildingKind::School, 0, 0, Some("lineage".into()), 10);
+        assert!(!building.is_complete());
+        assert!(!building.is_operational());
+        assert_eq!(building.condition, 0.0);
+
+        building.condition = 1.0;
+        assert!(building.is_operational());
+        building.decorative = true;
+        assert!(!building.is_operational());
+    }
+
+    #[test]
+    fn shelter_requires_completed_operational_housing_and_respects_ownership() {
+        let mut hut = Building::new(1, BuildingKind::Hut, 4, 5, Some("lineage-a".into()), 10);
+        assert!(!hut.provides_shelter_for("lineage-a"));
+        assert!(hut.is_shelter_project_for("lineage-a"));
+        assert!(!hut.is_shelter_project_for("lineage-b"));
+
+        hut.condition = 1.0;
+        assert!(hut.provides_shelter_for("lineage-a"));
+        assert!(!hut.provides_shelter_for("lineage-b"));
+        assert!(!hut.is_shelter_project_for("lineage-a"));
+
+        hut.decorative = true;
+        assert!(!hut.provides_shelter_for("lineage-a"));
+
+        let mut shared_house = Building::new(2, BuildingKind::House, 8, 9, None, 10);
+        shared_house.condition = 1.0;
+        assert!(shared_house.provides_shelter_for("lineage-a"));
+        assert!(shared_house.provides_shelter_for("lineage-b"));
+        assert_eq!(shared_house.closest_footprint_tile(20, 8), (9, 9));
     }
 }

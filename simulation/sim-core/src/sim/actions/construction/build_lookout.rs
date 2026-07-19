@@ -1,4 +1,6 @@
-use super::super::ctx::{ActionCtx, BuildSpec};
+use super::super::ctx::ActionCtx;
+use super::{start_project, ProjectSpec};
+use crate::sim::tech::buildings::BuildingKind;
 use crate::world::grid::WorldGrid;
 use crate::world::tiles::Tile;
 
@@ -10,14 +12,12 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     if !ctx.rock_near && elev <= 0.7 {
         return 0.0;
     }
-    ctx.build_one(BuildSpec {
-        need_stone: true,
-        structure_add: 0.06,
-        mark_active: true,
-        thought: "raising a lookout",
-        discovery: "scouting",
-        event_msg: "raised a lookout",
-        reward: 0.010,
-        ..Default::default()
-    })
+    start_project(
+        ctx,
+        ProjectSpec {
+            kind: BuildingKind::Watchtower,
+            thought: "raising a lookout",
+            reward: 0.010,
+        },
+    )
 }

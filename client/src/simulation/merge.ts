@@ -171,6 +171,7 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     battles: parsed.battles ?? base?.battles,
     treaties: parsed.treaties ?? base?.treaties,
     farms: parsed.farms ?? base?.farms,
+    settlements: parsed.settlements ?? base?.settlements,
     vehicles: parsed.vehicles ?? base?.vehicles,
     festivals: parsed.festivals ?? base?.festivals,
     lineage_eras: (parsed.lineage_eras as Record<string, string> | undefined) ?? base?.lineage_eras,

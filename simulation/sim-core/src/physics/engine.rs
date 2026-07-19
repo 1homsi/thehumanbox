@@ -53,6 +53,20 @@ impl PhysicsEngine {
         self.active_fire_tiles.insert((x, y));
     }
 
+    /// Register fire tiles created before the physics engine existed, such as
+    /// volcanic fires from initial world generation.
+    pub fn register_existing_fires(&mut self, grid: &WorldGrid) {
+        use crate::world::grid::{HEIGHT, WIDTH};
+
+        for y in 0..HEIGHT as i32 {
+            for x in 0..WIDTH as i32 {
+                if matches!(grid.get(x, y), Tile::Fire | Tile::Campfire) {
+                    self.active_fire_tiles.insert((x, y));
+                }
+            }
+        }
+    }
+
     fn update_fire(&mut self, grid: &mut WorldGrid, rng: &mut impl Rng, weather_kind: u8, wet: bool) {
         use crate::world::tiles::Biome;
 

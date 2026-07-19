@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useVersionCheck } from '../hooks/useVersionCheck'
+import { reloadAppSafely } from '../simulation/worldSource'
 
 export function UpdateToast() {
   const { newVersionAvailable } = useVersionCheck()
@@ -10,7 +11,14 @@ export function UpdateToast() {
 
   const reload = () => {
     setReloading(true)
-    window.setTimeout(() => window.location.reload(), 80)
+    window.setTimeout(
+      () =>
+        reloadAppSafely({
+          onFailure: () => setReloading(false),
+          failureMessage: 'could not checkpoint the current world; update refresh was cancelled safely',
+        }),
+      80,
+    )
   }
 
   return (

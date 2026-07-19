@@ -51,7 +51,56 @@ pub mod wet_age_carcass;
 
 use super::ctx::ActionCtx;
 
+pub const OUTPUT_CAP: u8 = 12;
+
+pub fn output_key(action: usize) -> Option<&'static str> {
+    Some(match action {
+        5820..=5821 | 5824..=5830 => "carcass",
+        5822 => "pelvis",
+        5823 | 5852 => "brisket",
+        5831 => "primal",
+        5832 => "subprimal",
+        5833 => "steak",
+        5834 => "chop",
+        5835 => "roast",
+        5836 => "loin",
+        5837 => "rib",
+        5838 => "shank",
+        5839 => "meat",
+        5840 | 5850 => "chuck",
+        5841 => "round",
+        5842 => "flank",
+        5843 => "plate",
+        5844 => "skirt",
+        5845 | 5853 => "fat",
+        5846 => "skin",
+        5847 => "tendon",
+        5848 => "sinew",
+        5849 => "cut",
+        5851 => "sirloin",
+        5854..=5859 => "sausage",
+        5860 => "belly",
+        5861 => "ham",
+        5862 => "beef",
+        5863 => "age",
+        5864 => "salt",
+        5865 => "steaks",
+        5866 => "roasts",
+        5867 => "ground",
+        5868 => "seal",
+        5869 => "package",
+        _ => return None,
+    })
+}
+
 pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
+    let Some(output) = output_key(action) else {
+        return 0.0;
+    };
+    if ctx.org().tools.get(output).copied().unwrap_or(0) >= OUTPUT_CAP {
+        return 0.0;
+    }
+
     match action {
         5820 => skin_carcass::apply(ctx),
         5821 => head_off_carcass::apply(ctx),

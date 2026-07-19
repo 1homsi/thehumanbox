@@ -77,6 +77,7 @@ export type IncomingWorldFrame = Pick<
   battles?: WorldState['battles']
   treaties?: WorldState['treaties']
   farms?: WorldState['farms']
+  settlements?: WorldState['settlements']
   vehicles?: WorldState['vehicles']
   festivals?: WorldState['festivals']
   governments?: unknown

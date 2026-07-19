@@ -7,14 +7,28 @@ import { mergeFrame, type MergeCaches } from './merge'
 import { updateOrgMotion, updateAnimalMotion } from '../3d/world/parts/motion-state'
 import { logger } from '../lib/logger'
 import {
+  type LocalWorldReloadDetail,
   type WorldSource,
+  LOCAL_WORLD_CHECKPOINT_EVENT,
+  LOCAL_WORLD_RELOAD_EVENT,
   OWN_WORLD_ID,
+  clearOwnWorldRecoveryRequest,
   clearOwnWorldResetRequest,
   getOwnWorldSeed,
+  getOwnWorldRecoveryRequest,
   hasOwnWorldResetRequest,
 } from './worldSource'
 import { canSendSandboxCommand, type SandboxCommand } from './sandbox'
 import { isDesktop } from '../lib/desktop'
+import { localSaveWorkerRequest } from './wasmPersistence'
+import {
+  nextRuntimeState,
+  parseRuntimeControlResult,
+  reconcileRuntimeState,
+  type RuntimeControl,
+  type RuntimeControlResult,
+  type RuntimeState,
+} from './runtimeControls'
 
 const WASM_BASE_TICK_MS = 120
 
@@ -34,9 +48,10 @@ export type LocalSaveStatus =
   | { phase: 'inactive' }
   | { phase: 'loading' }
   | { phase: 'ready'; restored: boolean; tick: number }
+  | { phase: 'retrying'; tick: number }
   | { phase: 'saving'; tick: number }
   | { phase: 'saved'; tick: number; savedAt: number }
-  | { phase: 'error'; message: string }
+  | { phase: 'error'; message: string; retryable?: boolean }
 
 export function useSimulation(source: WorldSource = 'remote'): {
   world: WorldState | null
@@ -45,11 +60,12 @@ export function useSimulation(source: WorldSource = 'remote'): {
   failedAttempts: number
   interp: InterpRefs
   idleParked: boolean
-  resume: () => void
+  resume: () => Promise<boolean>
   sandboxAvailable: boolean
   sendCommand: (cmd: SandboxCommand) => Promise<boolean>
-  pauseSim: () => void
-  setSpeed: (mult: number) => void
+  pauseSim: () => Promise<boolean>
+  setSpeed: (mult: number) => Promise<boolean>
+  runtimeState: RuntimeState
   fellBackToLocal: boolean
   localSaveStatus: LocalSaveStatus
   saveLocalWorld: () => Promise<boolean>
@@ -61,6 +77,7 @@ export function useSimulation(source: WorldSource = 'remote'): {
   const [failedAttempts, setFailedAttempts] = useState(0)
   const [idleParked, setIdleParked] = useState(false)
   const [fellBack, setFellBack] = useState(false)
+  const [runtimeState, setRuntimeState] = useState<RuntimeState>({ paused: false, speed: 1 })
   const [localSaveStatus, setLocalSaveStatus] = useState<LocalSaveStatus>(
     source === 'wasm' ? { phase: 'loading' } : { phase: 'inactive' },
   )
@@ -68,9 +85,13 @@ export function useSimulation(source: WorldSource = 'remote'): {
   const sandboxAvailable = canSendSandboxCommand(effectiveSource, isDesktop(), IS_LOCAL_SERVER)
   const wsRef = useRef<WebSocket | null>(null)
   const wasmWorkerRef = useRef<Worker | null>(null)
+  const runtimeControlQueueRef = useRef<Promise<void>>(Promise.resolve())
   const nextWorkerRequestRef = useRef(1)
   const pendingWorkerRequestsRef = useRef(
-    new Map<number, { resolve: (ok: boolean) => void; timer: ReturnType<typeof setTimeout> }>(),
+    new Map<
+      number,
+      { resolve: (result: RuntimeControlResult) => void; timer: ReturnType<typeof setTimeout> }
+    >(),
   )
   const pendingWorkerDataRequestsRef = useRef(
     new Map<number, { resolve: (json: string | null) => void; timer: ReturnType<typeof setTimeout> }>(),
@@ -102,6 +123,7 @@ export function useSimulation(source: WorldSource = 'remote'): {
   }, [idleParked])
 
   useEffect(() => {
+    setRuntimeState({ paused: false, speed: 1 })
     const MAX_BUFFERED_MESSAGES = 32
     const SNAPSHOT_FETCH_GRACE_MS = 250
 
@@ -307,6 +329,9 @@ export function useSimulation(source: WorldSource = 'remote'): {
           ok?: boolean
           json?: string
           persistenceReady?: boolean
+          retryable?: boolean
+          paused?: boolean
+          tickMs?: number
         }
         if (m.type === 'frame' && typeof m.frame === 'string') {
           if (!announced) {
@@ -314,7 +339,7 @@ export function useSimulation(source: WorldSource = 'remote'): {
             setConnected(true)
           }
           enqueueMessage(m.frame)
-        } else if (m.type === 'ready') {
+        } else if (m.type === 'ready' || m.type === 'storage_ready') {
           if (!announced) {
             announced = true
             setConnected(true)
@@ -328,16 +353,36 @@ export function useSimulation(source: WorldSource = 'remote'): {
           }
         } else if (m.type === 'reset_done') {
           clearOwnWorldResetRequest()
+        } else if (m.type === 'recovery_done') {
+          clearOwnWorldRecoveryRequest()
+        } else if (m.type === 'recovery_cancelled') {
+          clearOwnWorldRecoveryRequest()
+        } else if (m.type === 'storage_retrying') {
+          setLocalSaveStatus({ phase: 'retrying', tick: m.tick ?? 0 })
         } else if (m.type === 'saving') {
           setLocalSaveStatus({ phase: 'saving', tick: m.tick ?? 0 })
         } else if (m.type === 'saved') {
           setLocalSaveStatus({ phase: 'saved', tick: m.tick ?? 0, savedAt: m.savedAt ?? Date.now() })
-        } else if ((m.type === 'command_result' || m.type === 'save_result') && m.requestId !== undefined) {
+        } else if (
+          (m.type === 'command_result' ||
+            m.type === 'save_result' ||
+            m.type === 'storage_retry_result' ||
+            m.type === 'reload_result' ||
+            m.type === 'runtime_result') &&
+          m.requestId !== undefined
+        ) {
           const pending = pendingWorkerRequests.get(m.requestId)
           if (pending) {
             clearTimeout(pending.timer)
             pendingWorkerRequests.delete(m.requestId)
-            pending.resolve(m.ok === true)
+            pending.resolve({
+              ok: m.ok === true,
+              paused: typeof m.paused === 'boolean' ? m.paused : undefined,
+              speed:
+                typeof m.tickMs === 'number' && Number.isFinite(m.tickMs) && m.tickMs > 0
+                  ? WASM_BASE_TICK_MS / m.tickMs
+                  : undefined,
+            })
           }
         } else if (
           (m.type === 'org_detail_result' || m.type === 'org_life_result') &&
@@ -351,7 +396,7 @@ export function useSimulation(source: WorldSource = 'remote'): {
           }
         } else if (m.type === 'error' && m.message) {
           logger.warn('wasm', m.message)
-          setLocalSaveStatus({ phase: 'error', message: m.message })
+          setLocalSaveStatus({ phase: 'error', message: m.message, retryable: m.retryable === true })
         }
       }
       worker.onerror = (e: ErrorEvent) => {
@@ -362,7 +407,57 @@ export function useSimulation(source: WorldSource = 'remote'): {
         id: OWN_WORLD_ID,
         seed: getOwnWorldSeed(),
         reset: hasOwnWorldResetRequest(),
+        recoveryId: getOwnWorldRecoveryRequest(),
       })
+
+      const checkpointWorker = (): Promise<boolean> => {
+        const requestId = nextWorkerRequestRef.current++
+        return new Promise<boolean>((resolve) => {
+          const timer = setTimeout(() => {
+            pendingWorkerRequests.delete(requestId)
+            resolve(false)
+          }, 7_000)
+          pendingWorkerRequests.set(requestId, { resolve: (result) => resolve(result.ok), timer })
+          worker.postMessage({ type: 'save', requestId })
+        })
+      }
+      const prepareWorkerReload = (): Promise<boolean> => {
+        const requestId = nextWorkerRequestRef.current++
+        return new Promise<boolean>((resolve) => {
+          const timer = setTimeout(() => {
+            pendingWorkerRequests.delete(requestId)
+            resolve(false)
+          }, 7_000)
+          pendingWorkerRequests.set(requestId, { resolve: (result) => resolve(result.ok), timer })
+          worker.postMessage({ type: 'prepare_reload', requestId })
+        })
+      }
+      const onCheckpointRequest = (event: Event) => {
+        const request = event as CustomEvent<{ resolve?: (ok: boolean) => void }>
+        if (typeof request.detail?.resolve !== 'function') return
+        event.preventDefault()
+        void checkpointWorker().then(request.detail.resolve)
+      }
+      const onSafeReloadRequest = (event: Event) => {
+        const request = event as CustomEvent<LocalWorldReloadDetail>
+        event.preventDefault()
+        void prepareWorkerReload().then((ok) => {
+          if (ok) {
+            window.location.reload()
+          } else {
+            request.detail?.onFailure?.()
+            setLocalSaveStatus({
+              phase: 'error',
+              retryable: true,
+              message:
+                request.detail?.failureMessage ??
+                'could not checkpoint the current world; refresh was cancelled safely',
+            })
+          }
+        })
+      }
+      window.addEventListener(LOCAL_WORLD_CHECKPOINT_EVENT, onCheckpointRequest)
+      window.addEventListener(LOCAL_WORLD_RELOAD_EVENT, onSafeReloadRequest)
 
       const onVisibility = () => {
         if (document.visibilityState === 'hidden') {
@@ -384,6 +479,8 @@ export function useSimulation(source: WorldSource = 'remote'): {
         destroyed = true
         document.removeEventListener('visibilitychange', onVisibility)
         window.removeEventListener('pagehide', onPageHide)
+        window.removeEventListener(LOCAL_WORLD_CHECKPOINT_EVENT, onCheckpointRequest)
+        window.removeEventListener(LOCAL_WORLD_RELOAD_EVENT, onSafeReloadRequest)
         if (rafPending.current !== null) {
           cancelAnimationFrame(rafPending.current)
           rafPending.current = null
@@ -395,7 +492,7 @@ export function useSimulation(source: WorldSource = 'remote'): {
         queuedMsgs.current = []
         for (const pending of pendingWorkerRequests.values()) {
           clearTimeout(pending.timer)
-          pending.resolve(false)
+          pending.resolve({ ok: false })
         }
         pendingWorkerRequests.clear()
         for (const pending of pendingWorkerDataRequests.values()) {
@@ -415,6 +512,20 @@ export function useSimulation(source: WorldSource = 'remote'): {
     }
 
     setLocalSaveStatus({ phase: 'inactive' })
+    if (isDesktop()) {
+      const hydrateRuntimeState = async (): Promise<void> => {
+        try {
+          const response = await fetch(`${API_BASE}/runtime`)
+          const body: unknown = await response.json().catch(() => null)
+          const result = parseRuntimeControlResult(response.ok, body)
+          if (!destroyed) setRuntimeState((current) => reconcileRuntimeState(current, result))
+        } catch {
+          // Keep the conservative initial state until the local runtime is
+          // reachable; a later acknowledged control will replace it.
+        }
+      }
+      runtimeControlQueueRef.current = hydrateRuntimeState()
+    }
 
     let reconnectDelayMs = 1000
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null
@@ -633,7 +744,15 @@ export function useSimulation(source: WorldSource = 'remote'): {
   }, [effectiveSource])
 
   const requestFromWasm = useCallback(
-    (payload: { type: 'command'; json: string } | { type: 'save' }): Promise<boolean> => {
+    (
+      payload:
+        | { type: 'command'; json: string }
+        | { type: 'save' }
+        | { type: 'retry_storage' }
+        | { type: 'pause' }
+        | { type: 'resume' }
+        | { type: 'speed'; tickMs: number },
+    ): Promise<boolean> => {
       const worker = wasmWorkerRef.current
       if (!worker) return Promise.resolve(false)
       const requestId = nextWorkerRequestRef.current++
@@ -641,6 +760,28 @@ export function useSimulation(source: WorldSource = 'remote'): {
         const timer = setTimeout(() => {
           pendingWorkerRequestsRef.current.delete(requestId)
           resolve(false)
+        }, 5000)
+        pendingWorkerRequestsRef.current.set(requestId, {
+          resolve: (result) => resolve(result.ok),
+          timer,
+        })
+        worker.postMessage({ ...payload, requestId })
+      })
+    },
+    [],
+  )
+
+  const requestRuntimeFromWasm = useCallback(
+    (
+      payload: { type: 'pause' } | { type: 'resume' } | { type: 'speed'; tickMs: number },
+    ): Promise<RuntimeControlResult> => {
+      const worker = wasmWorkerRef.current
+      if (!worker) return Promise.resolve({ ok: false })
+      const requestId = nextWorkerRequestRef.current++
+      return new Promise<RuntimeControlResult>((resolve) => {
+        const timer = setTimeout(() => {
+          pendingWorkerRequestsRef.current.delete(requestId)
+          resolve({ ok: false })
         }, 5000)
         pendingWorkerRequestsRef.current.set(requestId, { resolve, timer })
         worker.postMessage({ ...payload, requestId })
@@ -684,24 +825,71 @@ export function useSimulation(source: WorldSource = 'remote'): {
   )
 
   const controlDesktopRuntime = useCallback(
-    async (control: 'pause' | 'resume' | 'speed', mult?: number): Promise<boolean> => {
-      if (!isDesktop()) return false
+    async (control: RuntimeControl, mult?: number): Promise<RuntimeControlResult> => {
+      if (!isDesktop()) return { ok: false }
       try {
         const response = await fetch(`${API_BASE}/runtime`, {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ control, mult }),
         })
-        return response.ok
+        const body: unknown = await response.json().catch(() => null)
+        return parseRuntimeControlResult(response.ok, body)
       } catch {
-        return false
+        return { ok: false }
       }
     },
     [],
   )
 
+  const applyRuntimeControl = useCallback(
+    (control: RuntimeControl, mult?: number): Promise<boolean> => {
+      const run = async (): Promise<boolean> => {
+        let result: RuntimeControlResult
+        if (wasmWorkerRef.current) {
+          if (control === 'pause') result = await requestRuntimeFromWasm({ type: 'pause' })
+          else if (control === 'resume') result = await requestRuntimeFromWasm({ type: 'resume' })
+          else if (typeof mult === 'number' && Number.isFinite(mult) && mult > 0) {
+            result = await requestRuntimeFromWasm({
+              type: 'speed',
+              tickMs: Math.max(16, Math.round(WASM_BASE_TICK_MS / mult)),
+            })
+          } else {
+            result = { ok: false }
+          }
+        } else if (isDesktop()) {
+          result = await controlDesktopRuntime(control, mult)
+        } else if (control === 'resume') {
+          resumeRef.current()
+          result = { ok: true, paused: false }
+        } else {
+          result = { ok: false }
+        }
+
+        if (!result.ok) return false
+        if (control === 'resume') setIdleParked(false)
+        setRuntimeState((current) => nextRuntimeState(current, control, mult, result))
+        return true
+      }
+
+      const pending = runtimeControlQueueRef.current.then(run, run)
+      runtimeControlQueueRef.current = pending.then(
+        () => undefined,
+        () => undefined,
+      )
+      return pending
+    },
+    [controlDesktopRuntime, requestRuntimeFromWasm],
+  )
+
+  const resume = useCallback(() => applyRuntimeControl('resume'), [applyRuntimeControl])
+  const pauseSim = useCallback(() => applyRuntimeControl('pause'), [applyRuntimeControl])
+  const setSpeed = useCallback((mult: number) => applyRuntimeControl('speed', mult), [applyRuntimeControl])
+
   const saveLocalWorld = useCallback(async (): Promise<boolean> => {
-    if (wasmWorkerRef.current) return requestFromWasm({ type: 'save' })
+    if (wasmWorkerRef.current) {
+      return requestFromWasm({ type: localSaveWorkerRequest(localSaveStatus) })
+    }
     if (!isDesktop()) return false
     const tick = currentWorldRef.current?.tick ?? 0
     setLocalSaveStatus({ phase: 'saving', tick })
@@ -722,7 +910,7 @@ export function useSimulation(source: WorldSource = 'remote'): {
       })
       return false
     }
-  }, [requestFromWasm])
+  }, [localSaveStatus, requestFromWasm])
 
   const status: ConnectionStatus = connected
     ? 'connected'
@@ -745,17 +933,9 @@ export function useSimulation(source: WorldSource = 'remote'): {
       currentReceivedAt: currentReceivedAtRef,
     },
     idleParked,
-    resume: () => {
-      if (wasmWorkerRef.current) {
-        resumeRef.current()
-      } else if (isDesktop()) {
-        setIdleParked(false)
-        void controlDesktopRuntime('resume')
-      } else {
-        resumeRef.current()
-      }
-    },
+    resume,
     sandboxAvailable,
+    runtimeState,
     fellBackToLocal: source !== 'wasm' && fellBack,
     localSaveStatus,
     saveLocalWorld,
@@ -777,19 +957,7 @@ export function useSimulation(source: WorldSource = 'remote'): {
         return false
       }
     },
-    pauseSim: () => {
-      if (wasmWorkerRef.current) wasmWorkerRef.current.postMessage({ type: 'pause' })
-      else if (isDesktop()) void controlDesktopRuntime('pause')
-    },
-    setSpeed: (mult: number) => {
-      if (wasmWorkerRef.current) {
-        wasmWorkerRef.current.postMessage({
-          type: 'speed',
-          tickMs: Math.max(16, Math.round(WASM_BASE_TICK_MS / mult)),
-        })
-      } else if (isDesktop()) {
-        void controlDesktopRuntime('speed', mult)
-      }
-    },
+    pauseSim,
+    setSpeed,
   }
 }

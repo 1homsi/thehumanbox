@@ -1,5 +1,6 @@
 use super::config::{DROUGHT_BASE_PROB, DROUGHT_DURATION, OUTBREAK_BASE_PROB};
 use crate::organism::organism::Organism;
+use crate::physics::engine::PhysicsEngine;
 use crate::world::{
     grid::{WorldGrid, HEIGHT, WIDTH},
     tiles::{Biome, Tile},
@@ -126,6 +127,7 @@ const WET_AFTERMATH_TICKS: u64 = 1200;
 pub fn tick_weather(
     weather: &mut WeatherState,
     grid: &mut WorldGrid,
+    physics: &mut PhysicsEngine,
     organisms: &mut [Organism],
     tick: u64,
     season: &str,
@@ -139,7 +141,7 @@ pub fn tick_weather(
     // "monsoon" / "dry" feel.
     weather.tick_wind(tick, season, rng);
     if weather.kind != 0 {
-        apply_weather(weather, grid, organisms, tick, rng);
+        apply_weather(weather, grid, physics, organisms, tick, rng);
         let elapsed = tick.saturating_sub(weather.start_tick);
         if weather.kind == 2 && elapsed >= (weather.duration * 70 / 100) {
             weather.kind = 1;
@@ -215,6 +217,7 @@ fn apply_wet_aftermath(weather: &WeatherState, grid: &mut WorldGrid, tick: u64, 
 fn apply_weather(
     weather: &WeatherState,
     grid: &mut WorldGrid,
+    physics: &mut PhysicsEngine,
     organisms: &mut [Organism],
     tick: u64,
     rng: &mut impl Rng,
@@ -288,6 +291,7 @@ fn apply_weather(
                 }
                 grid.set(x, y, Tile::Fire);
                 *grid.fire_intensity_mut(x, y) = 1.0;
+                physics.register_fire(x, y);
                 break;
             }
         }
@@ -579,7 +583,8 @@ pub fn tick_world_evolution(
     weather: &WeatherState,
     events: &mut std::collections::VecDeque<super::simulation::Event>,
     rng: &mut impl Rng,
-) {
+) -> Vec<(i32, i32)> {
+    let mut ignited_fires = Vec::new();
     if season != "scarcity" {
         let mut food_tiles: Vec<(i32, i32)> = Vec::new();
         for _ in 0..1400 {
@@ -751,6 +756,7 @@ pub fn tick_world_evolution(
         if grid.biome_at(x, y) == Biome::Volcanic && rng.random::<f32>() < 0.000005 {
             grid.set(x, y, Tile::Fire);
             *grid.fire_intensity_mut(x, y) = 1.0;
+            ignited_fires.push((x, y));
             for _ in 0..4 {
                 let dx = rng.random_range(-3i32..=3);
                 let dy = rng.random_range(-3i32..=3);
@@ -758,6 +764,7 @@ pub fn tick_world_evolution(
                 if WorldGrid::in_bounds(nx, ny) {
                     grid.set(nx, ny, Tile::Fire);
                     *grid.fire_intensity_mut(nx, ny) = 1.0;
+                    ignited_fires.push((nx, ny));
                 }
             }
             let mut placed = 0;
@@ -1014,6 +1021,7 @@ pub fn tick_world_evolution(
             Biome::Grassland => {}
         }
     }
+    ignited_fires
 }
 
 #[cfg(test)]

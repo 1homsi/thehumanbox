@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import clsx from 'clsx'
 import { SANDBOX_CATEGORIES, type SandboxTool } from '../simulation/sandbox'
+import { isRuntimeControlActive } from '../simulation/runtimeControls'
 
 interface Props {
   armedToolId: string | null
   armedToolLabel?: string | null
   brush: number
   status?: string | null
+  runtimePaused?: boolean
+  runtimeSpeed?: number
   onBrush: (n: number) => void
   onPick: (tool: SandboxTool) => void
   onClearArmed: () => void
@@ -14,6 +17,11 @@ interface Props {
   saveStatus?: string
   saveBusy?: boolean
   saveError?: boolean
+  saveRetryable?: boolean
+}
+
+function formatSpeed(speed: number): string {
+  return `${Number.isInteger(speed) ? speed.toFixed(0) : speed}×`
 }
 
 export function SandboxToolbar({
@@ -21,6 +29,8 @@ export function SandboxToolbar({
   armedToolLabel,
   brush,
   status,
+  runtimePaused = false,
+  runtimeSpeed = 1,
   onBrush,
   onPick,
   onClearArmed,
@@ -28,10 +38,13 @@ export function SandboxToolbar({
   saveStatus,
   saveBusy = false,
   saveError = false,
+  saveRetryable = false,
 }: Props) {
   const [catId, setCatId] = useState(SANDBOX_CATEGORIES[0].id)
   const cat = SANDBOX_CATEGORIES.find((c) => c.id === catId) ?? SANDBOX_CATEGORIES[0]
   const hasPointTools = cat.tools.some((t) => t.mode === 'point')
+  const runtimeStatus =
+    cat.id === 'time' ? `${runtimePaused ? 'paused' : 'running'} · ${formatSpeed(runtimeSpeed)}` : null
 
   return (
     <div className="sandbox-bar">
@@ -56,17 +69,23 @@ export function SandboxToolbar({
         >
           <span className="sandbox-tool-icon">🖱️</span>
         </button>
-        {cat.tools.map((t) => (
-          <button
-            key={t.id}
-            className={clsx('sandbox-tool', armedToolId === t.id && 'active')}
-            onClick={() => onPick(t)}
-            title={t.label}
-          >
-            <span className="sandbox-tool-icon">{t.icon}</span>
-            <span className="sandbox-tool-label">{t.label}</span>
-          </button>
-        ))}
+        {cat.tools.map((t) => {
+          const active = armedToolId === t.id || isRuntimeControlActive(t.time, runtimePaused, runtimeSpeed)
+          return (
+            <button
+              key={t.id}
+              className={clsx('sandbox-tool', active && 'active')}
+              aria-pressed={
+                t.time ? isRuntimeControlActive(t.time, runtimePaused, runtimeSpeed) : armedToolId === t.id
+              }
+              onClick={() => onPick(t)}
+              title={t.label}
+            >
+              <span className="sandbox-tool-icon">{t.icon}</span>
+              <span className="sandbox-tool-label">{t.label}</span>
+            </button>
+          )
+        })}
         {hasPointTools && (
           <label className="sandbox-brush" title="Brush size">
             <span>brush</span>
@@ -82,9 +101,10 @@ export function SandboxToolbar({
           </label>
         )}
       </div>
-      {(armedToolId || status) && (
+      {(armedToolId || status || runtimeStatus) && (
         <div className="sandbox-status" role="status" aria-live="polite">
-          {status ?? `${armedToolLabel ?? 'tool'} armed - click the world to apply`}
+          {status ??
+            (armedToolId ? `${armedToolLabel ?? 'tool'} armed - click the world to apply` : runtimeStatus)}
         </div>
       )}
       {onSave && (
@@ -92,10 +112,14 @@ export function SandboxToolbar({
           <button
             type="button"
             onClick={onSave}
-            disabled={saveBusy || saveError}
-            title="Save this world on this device now"
+            disabled={saveBusy || (saveError && !saveRetryable)}
+            title={
+              saveError && saveRetryable
+                ? 'Retry saving this world on this device'
+                : 'Save this world on this device now'
+            }
           >
-            {saveBusy ? 'saving…' : '💾 save world'}
+            {saveBusy ? 'saving…' : saveError && saveRetryable ? '↻ retry save' : '💾 save world'}
           </button>
           {saveStatus && <span role="status">{saveStatus}</span>}
         </div>

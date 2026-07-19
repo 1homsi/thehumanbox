@@ -1,5 +1,6 @@
 use rand::Rng;
 
+use crate::sim::buildings::Building;
 use crate::world::{
     grid::{TrailKind, WorldGrid},
     tiles::Tile,
@@ -71,6 +72,7 @@ impl Organism {
     pub fn choose_action(
         &self,
         grid: &WorldGrid,
+        buildings: &[Building],
         tick: u64,
         epsilon: f32,
         organisms: &[Organism],
@@ -152,9 +154,9 @@ impl Organism {
         if needs_ok
             && !self.pregnant
             && (self.health < 0.80 || self.sleep_debt > 0.12)
-            && !self.near_shelter(grid)
+            && !self.near_shelter(grid, buildings)
         {
-            if let Some(s) = self.find_shelter_tile(grid, 14) {
+            if let Some(s) = self.find_shelter_tile(grid, buildings, 14) {
                 set_thought!("returning to shelter");
                 return (self.toward(s, grid), thought);
             }
@@ -247,7 +249,7 @@ impl Organism {
         let needs_easy = self.hydration > 0.55 && self.energy > 0.50 && self.health > 0.55;
         let dist_home = (self.x - self.home_x).abs() + (self.y - self.home_y).abs();
         let at_home_zone = dist_home < 6.0;
-        let in_shelter = self.near_shelter(grid);
+        let in_shelter = self.near_shelter(grid, buildings);
 
         if needs_easy && !night && !fire_dangerous {
             if self.carrying > 0 && self.carrying_type != 2 {
@@ -367,21 +369,21 @@ impl Organism {
             }
         }
 
-        if weather_kind >= 2 && !self.near_shelter(grid) {
-            if let Some(v) = self.find_shelter_tile(grid, 14) {
+        if weather_kind >= 2 && !self.near_shelter(grid, buildings) {
+            if let Some(v) = self.find_shelter_tile(grid, buildings, 14) {
                 set_thought!("sheltering from storm");
                 return (self.toward(v, grid), thought);
             }
         }
 
         if night {
-            let ns = self.near_shelter(grid);
+            let ns = self.near_shelter(grid, buildings);
             if ns && self.sleep_debt > 0.08 && self.energy > 0.25 && rng.random::<f32>() < 0.65 {
                 set_thought!("resting");
                 return (17, thought);
             }
             if !ns && self.hydration > 0.25 {
-                if let Some(s) = self.find_shelter_tile(grid, 16) {
+                if let Some(s) = self.find_shelter_tile(grid, buildings, 16) {
                     set_thought!("finding shelter");
                     return (self.toward(s, grid), thought);
                 }
@@ -407,9 +409,10 @@ impl Organism {
             return (17, thought);
         }
 
-        let should_rest =
-            self.health < 0.65 || self.sleep_debt > 0.30 || (self.grief_ticks > 0 && self.near_shelter(grid));
-        if should_rest && self.near_shelter(grid) && rng.random::<f32>() < 0.52 {
+        let should_rest = self.health < 0.65
+            || self.sleep_debt > 0.30
+            || (self.grief_ticks > 0 && self.near_shelter(grid, buildings));
+        if should_rest && self.near_shelter(grid, buildings) && rng.random::<f32>() < 0.52 {
             set_thought!("resting");
             return (17, thought);
         }
@@ -625,8 +628,8 @@ impl Organism {
             }
         }
 
-        if self.pregnant && !self.near_shelter(grid) && self.energy > 0.3 {
-            if let Some(s) = self.find_shelter_tile(grid, 18) {
+        if self.pregnant && !self.near_shelter(grid, buildings) && self.energy > 0.3 {
+            if let Some(s) = self.find_shelter_tile(grid, buildings, 18) {
                 set_thought!("nesting");
                 return (self.toward(s, grid), thought);
             }
@@ -686,7 +689,11 @@ impl Organism {
                 set_thought!("foraging the brush");
                 return (19, thought);
             }
-            if self.boredom > 0.55 && needs_ok && self.near_shelter(grid) && rng.random::<f32>() < 0.25 {
+            if self.boredom > 0.55
+                && needs_ok
+                && self.near_shelter(grid, buildings)
+                && rng.random::<f32>() < 0.25
+            {
                 set_thought!("taking a quiet moment");
                 return (22, thought);
             }
@@ -752,7 +759,11 @@ impl Organism {
             let has_blade = self.discoveries.contains("knife")
                 || self.discoveries.contains("axe")
                 || self.discoveries.contains("spear");
-            if has_blade && self.boredom > 0.50 && self.near_shelter(grid) && rng.random::<f32>() < 0.04 {
+            if has_blade
+                && self.boredom > 0.50
+                && self.near_shelter(grid, buildings)
+                && rng.random::<f32>() < 0.04
+            {
                 set_thought!("sharpening a blade");
                 return (157, thought);
             }
@@ -828,7 +839,7 @@ impl Organism {
                 return (210, thought);
             }
 
-            if self.sleep_debt > 0.35 && self.near_shelter(grid) && rng.random::<f32>() < 0.12 {
+            if self.sleep_debt > 0.35 && self.near_shelter(grid, buildings) && rng.random::<f32>() < 0.12 {
                 set_thought!("taking a nap");
                 return (221, thought);
             }
@@ -960,11 +971,24 @@ impl Organism {
         };
         let mut best_avail: Option<usize> = None;
         let mut best_score = f32::NEG_INFINITY;
+        let mut equal_best_seen = 0u32;
         for &a in decision_pool {
             let s = lookup(a);
-            if best_avail.is_none() || s >= best_score {
+            if best_avail.is_none() || s > best_score + f32::EPSILON {
                 best_score = s;
                 best_avail = Some(a);
+                equal_best_seen = 1;
+            } else if (s - best_score).abs() <= f32::EPSILON {
+                // Reservoir-sample exact ties. Previously `>=` always chose
+                // the final (usually highest-ID) action, so large generated
+                // families looked diverse on paper but converged on one
+                // deterministic tail action. The simulation RNG remains
+                // seeded, preserving reproducible worlds while allowing
+                // different organisms/ticks to make different tied choices.
+                equal_best_seen += 1;
+                if rng.random_range(0..equal_best_seen) == 0 {
+                    best_avail = Some(a);
+                }
             }
         }
         // Commit to the best available action even when best_val ≤ 0.
