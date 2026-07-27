@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable, Iterator, Mapping
 from pathlib import Path
-from typing import Iterable, Iterator, Mapping, Any
+from typing import Any
+
 
 def read_jsonl(path: str | Path) -> Iterator[dict[str, Any]]:
     file_path = Path(path)
@@ -16,7 +18,7 @@ def read_jsonl(path: str | Path) -> Iterator[dict[str, Any]]:
             except json.JSONDecodeError as exc:
                 raise ValueError(f"invalid JSONL in {file_path} at line {line_no}: {exc}") from exc
             if not isinstance(value, dict):
-                raise ValueError(f"expected JSON object in {file_path} at line {line_no}")
+                raise TypeError(f"expected JSON object in {file_path} at line {line_no}")
             yield value
 
 def write_jsonl(path: str | Path, rows: Iterable[Mapping[str, Any]]) -> None:

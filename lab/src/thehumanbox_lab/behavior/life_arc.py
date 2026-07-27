@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass, field
-from typing import Any, Iterable
+from typing import Any
 
 
 @dataclass(slots=True)
@@ -73,29 +74,34 @@ def summarize_life(org: dict[str, Any]) -> LifeArc:
         cat = str(ev.get("category") or ev.get("type") or "").lower()
         text = str(ev.get("text") or ev.get("detail") or "").lower()
         is_self_birth = cat in ("birth", "born") or "born to" in text
-        if is_self_birth:
-            if birth_tick is None or tick < birth_tick:
-                birth_tick = tick
-        if cat in ("discovery", "discover") or "discovered" in text or "discovery" in cat:
-            if first_disc_tick is None or tick < first_disc_tick:
-                first_disc_tick = tick
-                first_disc = ev.get("text") or ev.get("detail")
+        if is_self_birth and (birth_tick is None or tick < birth_tick):
+            birth_tick = tick
+        if (
+            cat in ("discovery", "discover") or "discovered" in text or "discovery" in cat
+        ) and (first_disc_tick is None or tick < first_disc_tick):
+            first_disc_tick = tick
+            first_disc = ev.get("text") or ev.get("detail")
         is_child_event = (
             cat in ("child", "birth_child", "mate", "had_child", "parent")
             or "child born" in text
             or "first child" in text
             or "had a child" in text
         )
-        if is_child_event and not is_self_birth:
-            if first_child_tick is None or tick < first_child_tick:
-                first_child_tick = tick
-        if any(tok in cat or tok in text for tok in _CONFLICT_TOKENS):
-            if first_conflict_tick is None or tick < first_conflict_tick:
-                first_conflict_tick = tick
-        if any(tok in cat or tok in text for tok in _DEATH_TOKENS):
-            if death_tick is None or tick > death_tick:
-                death_tick = tick
-                death_cause = _classify_death(text, cat)
+        if (
+            is_child_event
+            and not is_self_birth
+            and (first_child_tick is None or tick < first_child_tick)
+        ):
+            first_child_tick = tick
+        if any(tok in cat or tok in text for tok in _CONFLICT_TOKENS) and (
+            first_conflict_tick is None or tick < first_conflict_tick
+        ):
+            first_conflict_tick = tick
+        if any(tok in cat or tok in text for tok in _DEATH_TOKENS) and (
+            death_tick is None or tick > death_tick
+        ):
+            death_tick = tick
+            death_cause = _classify_death(text, cat)
 
     if not alive and death_cause is None:
         death_cause = "unknown"

@@ -5,6 +5,9 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+from thehumanbox_lab.trace.checkpoint import load, save, should_resume
+from thehumanbox_lab.trace.compress import compressed_sink
+from thehumanbox_lab.trace.diff import snapshot_delta
 from thehumanbox_lab.trace.filters import (
     by_event_type,
     by_lineage,
@@ -14,9 +17,6 @@ from thehumanbox_lab.trace.filters import (
     union,
 )
 from thehumanbox_lab.trace.sampling import importance, stratified, uniform
-from thehumanbox_lab.trace.diff import snapshot_delta
-from thehumanbox_lab.trace.checkpoint import load, save, should_resume
-from thehumanbox_lab.trace.compress import compressed_sink
 
 
 def _ev(tick, oid, lineage, etype, **extra):

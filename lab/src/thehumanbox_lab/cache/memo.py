@@ -1,6 +1,8 @@
 from __future__ import annotations
+
 import functools
-from typing import Callable
+from collections.abc import Callable
+
 from .disk import DiskCache, cache_call
 
 

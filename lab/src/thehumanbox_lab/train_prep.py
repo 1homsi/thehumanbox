@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
+
 def stable_split_key(prompt: str) -> float:
     digest = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
     return int(digest[:8], 16) / 0xFFFFFFFF

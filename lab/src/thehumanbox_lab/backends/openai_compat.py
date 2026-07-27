@@ -5,6 +5,7 @@ import os
 import urllib.error
 import urllib.request
 
+
 class OpenAICompatBackend:
     name = "openai_compat"
 

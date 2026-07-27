@@ -10,7 +10,6 @@ if str(SRC) not in sys.path:
 
 from thehumanbox_lab.cli import main
 
-
 if __name__ == "__main__":
     sys.argv = ["thb-lab", "plan-train-run", *sys.argv[1:]]
     raise SystemExit(main())

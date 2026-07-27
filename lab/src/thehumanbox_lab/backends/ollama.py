@@ -4,6 +4,7 @@ import json
 import urllib.error
 import urllib.request
 
+
 class OllamaBackend:
     name = "ollama"
 

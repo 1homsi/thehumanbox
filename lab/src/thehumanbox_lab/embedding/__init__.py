@@ -4,9 +4,9 @@ from .vector import cosine, euclidean, normalize
 
 __all__ = [
     "CharNgramEmbedder",
-    "kmeans",
-    "nearest_neighbors",
     "cosine",
     "euclidean",
+    "kmeans",
+    "nearest_neighbors",
     "normalize",
 ]

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 from .action_seq import extract_actions, top_ngrams
 from .death_causes import aggregate_deaths

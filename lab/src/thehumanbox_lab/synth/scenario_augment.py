@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import random
-from typing import Callable, Iterable
+from collections.abc import Callable, Iterable
 
 from .back_translate import back_translate
 from .paraphrase import paraphrase
@@ -39,7 +39,7 @@ def augment_set(
         op_seed = rng.randrange(1, 1 << 30)
         try:
             candidate = OP_REGISTRY[op_name](source, op_seed)
-        except Exception:
+        except Exception:  # noqa: BLE001 - augmentation operators are extensible callbacks
             attempts += 1
             continue
         if candidate and candidate not in results and candidate.strip():

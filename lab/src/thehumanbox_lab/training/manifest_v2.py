@@ -37,7 +37,7 @@ class TrainManifestV2:
         return json.dumps(self.to_dict(), indent=indent, sort_keys=True, default=str)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "TrainManifestV2":
+    def from_dict(cls, data: dict[str, Any]) -> TrainManifestV2:
         return cls(
             run_name=str(data["run_name"]),
             task=str(data["task"]),

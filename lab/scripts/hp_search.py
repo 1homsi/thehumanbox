@@ -5,13 +5,13 @@ import json
 import sys
 from pathlib import Path
 
-from thehumanbox_lab.training.hp_search import grid, random_sample, config_hash
+from thehumanbox_lab.training.hp_search import config_hash, grid, random_sample
 
 
 def _load_spec(path: Path) -> list[dict]:
     data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, list):
-        raise ValueError("spec file must be a JSON list of {name, values} objects")
+        raise TypeError("spec file must be a JSON list of {name, values} objects")
     return data
 
 

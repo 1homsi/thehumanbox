@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any
 
+
 @dataclass(slots=True)
 class LoraConfig:
     rank: int = 16

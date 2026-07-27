@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from statistics import mean
-from typing import Callable
 
 
 def _percentile(values: list[float], pct: float) -> float:
@@ -35,7 +35,7 @@ def bench(
         started = time.perf_counter()
         try:
             out = model_fn(prompt)
-        except Exception:
+        except Exception:  # noqa: BLE001 - caller-supplied model functions may raise anything
             errors += 1
             latencies.append((time.perf_counter() - started) * 1000.0)
             outputs.append("")

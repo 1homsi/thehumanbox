@@ -6,8 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from thehumanbox_lab.scoring import score
-from thehumanbox_lab.scoring import coherence, interest, length
+from thehumanbox_lab.scoring import coherence, interest, length, score
 from thehumanbox_lab.scoring.aggregator import composite, normalize_weights
 from thehumanbox_lab.scoring.calibrator import apply, fit
 from thehumanbox_lab.scoring.judge_rubric import parse, render

@@ -15,7 +15,7 @@ class WandbStub:
         self._step = 0
         self._started_at: float | None = None
 
-    def init(self, name: str, config: dict[str, Any] | None = None) -> "WandbStub":
+    def init(self, name: str, config: dict[str, Any] | None = None) -> WandbStub:
         self._log_dir.mkdir(parents=True, exist_ok=True)
         ts = int(time.time())
         self._run_name = name
