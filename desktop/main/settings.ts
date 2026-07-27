@@ -7,18 +7,11 @@ import {
   requireOrUpgradeDataRootIdentity,
 } from "./world-safety";
 
-export type SimMode = "local" | "remote";
-export type ModelProvider =
-  | "groq"
-  | "openai"
-  | "anthropic"
-  | "ollama"
-  | "llama-cpp"
-  | "none";
+export type SimMode = "local";
+export type ModelProvider = "ollama" | "llama-cpp" | "custom" | "none";
 
 export interface Settings {
   mode: SimMode;
-  remoteUrl: string;
   tickMs: number;
   populationCap: number;
   model: {
@@ -36,7 +29,6 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   mode: "local",
-  remoteUrl: "https://api.thehumanbox.com",
   tickMs: 100,
   populationCap: 500,
   model: {
@@ -69,13 +61,15 @@ export function loadSettings(): Settings {
 
 export function saveSettings(s: Settings): void {
   const p = settingsPath();
-  atomicReplaceFile(p, JSON.stringify(s, null, 2));
+  atomicReplaceFile(p, JSON.stringify(mergeWithDefaults(s), null, 2));
 }
 
 function mergeWithDefaults(partial: Partial<Settings>): Settings {
+  const provider = partial.model?.provider;
   return {
-    mode: partial.mode ?? DEFAULT_SETTINGS.mode,
-    remoteUrl: partial.remoteUrl ?? DEFAULT_SETTINGS.remoteUrl,
+    // Older releases supported a hosted "remote" mode. Always migrate those
+    // settings back to the bundled local simulation.
+    mode: "local",
     tickMs: clampInt(partial.tickMs ?? DEFAULT_SETTINGS.tickMs, 30, 5000),
     populationCap: clampInt(
       partial.populationCap ?? DEFAULT_SETTINGS.populationCap,
@@ -83,9 +77,9 @@ function mergeWithDefaults(partial: Partial<Settings>): Settings {
       5000,
     ),
     model: {
-      provider:
-        (partial.model?.provider as ModelProvider | undefined) ??
-        DEFAULT_SETTINGS.model.provider,
+      provider: isModelProvider(provider)
+        ? provider
+        : DEFAULT_SETTINGS.model.provider,
       apiUrl: partial.model?.apiUrl ?? DEFAULT_SETTINGS.model.apiUrl,
       apiKey: partial.model?.apiKey ?? DEFAULT_SETTINGS.model.apiKey,
       modelName: partial.model?.modelName ?? DEFAULT_SETTINGS.model.modelName,
@@ -98,6 +92,15 @@ function mergeWithDefaults(partial: Partial<Settings>): Settings {
     pauseWhenHidden:
       partial.pauseWhenHidden ?? DEFAULT_SETTINGS.pauseWhenHidden,
   };
+}
+
+function isModelProvider(value: unknown): value is ModelProvider {
+  return (
+    value === "ollama" ||
+    value === "llama-cpp" ||
+    value === "custom" ||
+    value === "none"
+  );
 }
 
 function clampInt(v: number, lo: number, hi: number): number {

@@ -19,7 +19,6 @@ import {
   startSimWithDataRootLock,
   stopSim,
 } from "./sim-process";
-import { remoteApiHost } from "./sim-mode";
 import { acquireDataRootLock, type DataRootLock } from "./data-lock";
 import {
   atomicWriteNewFile,
@@ -27,9 +26,7 @@ import {
   assertNoLegacyWorldAtMigrationTarget,
   assertNoUnmigratedLegacyWorld,
   beginSaveFolderMigration,
-  chooseAvailableWorldHash,
   copyWorldsToStaging,
-  downloadAndValidateWorldSave,
   finishSaveFolderMigration,
   hasRecoverableSaveFolderMigration,
   inspectSaveFolderMigrationSource,
@@ -128,7 +125,6 @@ async function loadLocalRenderer(
 }
 
 async function restartPriorWorld(settings: Settings): Promise<string | null> {
-  if (settings.mode !== "local") return null;
   try {
     await startSim(settings);
     return null;
@@ -206,7 +202,7 @@ export function registerIpc(
       );
     }
     saveSettings(next);
-    return next;
+    return loadSettings();
   });
 
   ipc.handle("sim:status", () => {
@@ -219,140 +215,19 @@ export function registerIpc(
   ipc.handle("sim:restart", async () => {
     await stopSim();
     const s = loadSettings();
-    const indexFile = path.join(__dirname, "..", "renderer", "index.html");
-    if (s.mode === "local") {
-      try {
-        const sim = await startSim(s);
-        await loadLocalRenderer(getWindow, sim.port);
-        return { running: true, port: sim.port };
-      } catch (e) {
-        return { running: false, port: null, error: (e as Error).message };
-      }
+    try {
+      const sim = await startSim(s);
+      await loadLocalRenderer(getWindow, sim.port);
+      return { running: true, port: sim.port };
+    } catch (e) {
+      return { running: false, port: null, error: (e as Error).message };
     }
-    const win = getWindow();
-    if (win) {
-      const apiBase = remoteApiHost(s.remoteUrl);
-      await win.loadFile(indexFile, { query: { desktop: "1", api: apiBase } });
-    }
-    return {
-      running: false,
-      port: null,
-      mode: "remote",
-      remoteUrl: s.remoteUrl,
-    };
   });
 
   ipc.handle("app:reload", async () => {
     const win = getWindow();
     win?.reload();
   });
-
-  ipc.handle(
-    "world:importFromRemote",
-    async (_e, payload: { hash: string; remoteUrl: string }) => {
-      const { hash, remoteUrl } = payload;
-      validateWorldHash(hash);
-      const url = `${remoteUrl.replace(/\/+$/, "")}/worlds/${hash}/save`;
-
-      // Download, bound, decode and validate the complete save before touching
-      // the active process or its live-world marker.
-      const validated = await downloadAndValidateWorldSave(url);
-      if (validated.seedText === "0") {
-        throw new Error(
-          "remote save has no stable world seed and cannot be imported safely",
-        );
-      }
-      const priorSettings = loadSettings();
-      prepareDataRoot(priorSettings);
-      const worldsDir = worldsRoot(priorSettings);
-      const token = randomUUID();
-      const stagingDir = path.join(worldsDir, `.import-${token}`);
-      const stagingSave = path.join(stagingDir, "world.save");
-
-      const markerPath = path.join(worldsDir, "_live");
-      let marker: ReplacedFile | null = null;
-      let committed = false;
-      let importedHash = hash;
-      let stoppedForOperation = false;
-      let operationLock: DataRootLock | null = null;
-      try {
-        await stopSim(5_000, true);
-        stoppedForOperation = true;
-        operationLock = acquireDataRootLock(effectiveDataRoot(priorSettings));
-        fs.mkdirSync(worldsDir, { recursive: true });
-        importedHash = chooseAvailableWorldHash(worldsDir, hash);
-        atomicWriteNewFile(stagingSave, validated.bytes);
-        const targetDir = path.join(worldsDir, importedHash);
-        fs.renameSync(stagingDir, targetDir);
-        syncDirectoryBestEffort(worldsDir);
-        committed = true;
-        marker = replaceFileForTransaction(markerPath, importedHash, token);
-
-        const localSettings = { ...priorSettings, mode: "local" as const };
-        saveSettings(localSettings);
-        const handedLock = operationLock;
-        operationLock = null;
-        const sim = await startSimWithDataRootLock(localSettings, handedLock);
-        await verifyImportedWorldLoaded(
-          sim.port,
-          markerPath,
-          importedHash,
-          path.join(worldsDir, importedHash, "world.save"),
-          validated,
-        );
-        await loadLocalRenderer(getWindow, sim.port, {
-          imported: importedHash,
-        });
-        finishReplacedFile(marker);
-        return {
-          running: true,
-          port: sim.port,
-          importedHash,
-          tick: validated.tick,
-          schemaVersion: validated.version,
-        };
-      } catch (error) {
-        if (stoppedForOperation) await stopSim().catch(() => {});
-        let rollbackError: string | null = null;
-        if (marker) {
-          try {
-            operationLock ??= acquireDataRootLock(
-              effectiveDataRoot(priorSettings),
-            );
-            rollbackReplacedFile(marker);
-          } catch (rollbackFailure) {
-            rollbackError =
-              rollbackFailure instanceof Error
-                ? rollbackFailure.message
-                : String(rollbackFailure);
-          }
-        }
-        if (stoppedForOperation) saveSettings(priorSettings);
-        operationLock?.release();
-        operationLock = null;
-        const restartError = rollbackError
-          ? "not attempted because the previous live-world marker could not be restored"
-          : stoppedForOperation
-            ? await restartPriorWorld(priorSettings)
-            : null;
-        const preserved = committed
-          ? ` The validated import remains preserved as worlds/${importedHash}.`
-          : "";
-        const restoreDetail = restartError
-          ? ` The previous world also failed to restart: ${restartError}.`
-          : "";
-        const rollbackDetail = rollbackError
-          ? ` The live-world marker could not be rolled back because the folder is locked: ${rollbackError}.`
-          : "";
-        throw new Error(
-          `${error instanceof Error ? error.message : String(error)}.${preserved}${restoreDetail}${rollbackDetail}`,
-        );
-      } finally {
-        operationLock?.release();
-        if (!committed) fs.rmSync(stagingDir, { recursive: true, force: true });
-      }
-    },
-  );
 
   ipc.handle(
     "world:migrateDataRoot",

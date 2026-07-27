@@ -33,13 +33,6 @@ export interface DesktopBridge {
   };
 
   world: {
-    importFromRemote(payload: { hash: string; remoteUrl: string }): Promise<{
-      running: boolean;
-      port: number;
-      importedHash: string;
-      tick: number;
-      schemaVersion: number;
-    }>;
     migrateDataRoot(payload: { targetDir: string | null }): Promise<unknown>;
     exportActive(): Promise<{
       exported: boolean;
@@ -93,8 +86,6 @@ const bridge: DesktopBridge = {
   },
 
   world: {
-    importFromRemote: (payload) =>
-      ipcRenderer.invoke("world:importFromRemote", payload),
     migrateDataRoot: (payload) =>
       ipcRenderer.invoke("world:migrateDataRoot", payload),
     exportActive: () => ipcRenderer.invoke("world:exportActive"),

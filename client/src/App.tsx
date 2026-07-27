@@ -1,23 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from 'react'
 import { lazyWithRetry } from './utils/lazyWithRetry'
 import { useSimulation } from './simulation/useSimulation'
-import {
-  getWorldSource,
-  reloadAppSafely,
-  resolvePlayerWorldKind,
-  shouldShowIdleResume,
-  shouldUseSimulationApi,
-} from './simulation/worldSource'
+import { getWorldSource, resolvePlayerWorldKind, shouldUseSimulationApi } from './simulation/worldSource'
 import { SimulationDataProvider } from './simulation/SimulationDataProvider'
 import { SandboxToolbar } from './components/SandboxToolbar'
 import type { LineageStrategy, SandboxTool } from './simulation/sandbox'
-import { IdleResumeOverlay } from './components/IdleResumeOverlay'
 import { DesktopDownloadToast } from './components/DesktopDownloadToast'
 import { CommandPalette } from './components/CommandPalette'
 import { HeadlineTicker } from './components/HeadlineTicker'
 import { trackEvent } from './lib/observability'
 import { useUIStore } from './stores/store'
-import { IS_LOCAL_SERVER, WS_BASE } from './lib/config'
+import { IS_LOCAL_SERVER } from './lib/config'
 import { getDesktop, type SimMode } from './lib/desktop'
 import {
   DESKTOP_PAUSE_WHEN_HIDDEN_EVENT,
@@ -26,7 +19,6 @@ import {
   shouldPauseDesktopRenderer,
 } from './lib/desktopVisibility'
 
-const WS_HOST = WS_BASE.replace(/^wss?:\/\//, '')
 import { WorldView } from './2d/world/WorldView'
 import { EventLog } from './components/EventLog'
 import { HistoryGrid } from './components/HistoryGrid'
@@ -52,23 +44,9 @@ const WorldView3D = lazyWithRetry(() => import('./3d/world/WorldView3D'))
 const SceneView = lazyWithRetry(() =>
   import('./scenes/components/SceneView').then((m) => ({ default: m.SceneView })),
 )
-const HistoricalApp = lazyWithRetry(() =>
-  import('./HistoricalApp').then((m) => ({ default: m.HistoricalApp })),
-)
-
 const TILE_FIRE = 4
 
-const HISTORICAL_ROUTE = /^\/world\/([a-f0-9]{6,16})\/?$/
-
 function App() {
-  const match = typeof window !== 'undefined' ? HISTORICAL_ROUTE.exec(window.location.pathname) : null
-  if (match) {
-    return (
-      <Suspense fallback={null}>
-        <HistoricalApp hash={match[1]} />
-      </Suspense>
-    )
-  }
   return <LiveApp />
 }
 
@@ -83,17 +61,13 @@ function LiveApp() {
   const {
     world,
     connected,
-    status,
-    failedAttempts,
     interp,
-    idleParked,
     resume,
     sandboxAvailable,
     sendCommand,
     pauseSim,
     setSpeed,
     runtimeState,
-    fellBackToLocal,
     localSaveStatus,
     saveLocalWorld,
     loadLocalOrgDetail,
@@ -103,10 +77,8 @@ function LiveApp() {
     desktop: !!desktop,
     desktopMode,
     localServer: IS_LOCAL_SERVER,
-    fellBackToLocal,
   })
-  const isLocalRuntime = playerWorldKind === 'local'
-  const simulationApiEnabled = shouldUseSimulationApi(worldSourceRef.current) && !fellBackToLocal
+  const simulationApiEnabled = shouldUseSimulationApi(worldSourceRef.current)
   const simulationData = useMemo(
     () => ({ apiEnabled: simulationApiEnabled, playerWorldKind, loadLocalOrgDetail, loadLocalOrgLife }),
     [loadLocalOrgDetail, loadLocalOrgLife, playerWorldKind, simulationApiEnabled],
@@ -442,13 +414,6 @@ function LiveApp() {
         <AppHeader world={world ?? null} connected={connected} fireTiles={fireTiles} sickOrgs={sickOrgs} />
         <HeadlineTicker world={world ?? null} enabled={viewFlags.headlineTicker} />
 
-        {fellBackToLocal && (
-          <div className="fallback-banner">
-            ⚠ The shared Human Box is unreachable — running a local world in your browser.{' '}
-            <button onClick={() => reloadAppSafely()}>retry live</button>
-          </div>
-        )}
-
         {threeDIssue && (
           <div className="fallback-banner">
             {threeDIssue === 'unsupported'
@@ -461,9 +426,6 @@ function LiveApp() {
           </div>
         )}
 
-        {shouldShowIdleResume(idleParked, isLocalRuntime) && (
-          <IdleResumeOverlay onResume={() => void resume()} />
-        )}
         <DesktopDownloadToast />
         <CommandPalette />
 
@@ -514,23 +476,11 @@ function LiveApp() {
           ) : (
             <div className="waiting">
               <div className="waiting-spinner" aria-hidden="true" />
-              <div className="waiting-title">
-                {playerWorldKind === 'local'
-                  ? 'starting your world…'
-                  : status === 'unreachable'
-                    ? 'simulation server unreachable'
-                    : status === 'reconnecting'
-                      ? 'reconnecting…'
-                      : 'connecting…'}
-              </div>
+              <div className="waiting-title">starting your world…</div>
               <div className="waiting-sub">
-                {playerWorldKind === 'local'
-                  ? 'loading your private simulation on this device — no Shared World connection needed'
-                  : status === 'unreachable'
-                    ? `tried ${failedAttempts} times. waiting for ${WS_HOST} to come back online - retries continue automatically.`
-                    : status === 'reconnecting'
-                      ? `attempt ${failedAttempts + 1} - backing off and retrying`
-                      : 'opening websocket and fetching the world snapshot'}
+                {desktop
+                  ? 'starting the native simulation on this computer'
+                  : 'loading the private WebAssembly simulation saved in this browser'}
               </div>
             </div>
           )}
@@ -551,7 +501,7 @@ function LiveApp() {
               setTemporarySandboxStatus(null)
             }}
             onSave={
-              isLocalWebWorld || fellBackToLocal || (desktop && desktopMode === 'local')
+              isLocalWebWorld || (desktop && desktopMode === 'local')
                 ? () => void saveLocalWorld()
                 : undefined
             }

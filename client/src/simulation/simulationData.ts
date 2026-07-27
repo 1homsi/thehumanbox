@@ -12,8 +12,8 @@ export interface SimulationDataAccess {
 const unavailable = async () => null
 
 export const SimulationDataContext = createContext<SimulationDataAccess>({
-  apiEnabled: true,
-  playerWorldKind: 'shared',
+  apiEnabled: false,
+  playerWorldKind: 'local',
   loadLocalOrgDetail: unavailable,
   loadLocalOrgLife: unavailable,
 })

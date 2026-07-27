@@ -15,8 +15,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  backend-lint:
-    name: Backend lint (fmt + clippy)
+  simulation-lint:
+    name: Simulation lint (fmt + clippy)
     if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -41,8 +41,8 @@ jobs:
         working-directory: simulation
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
-  backend-tests:
-    name: Backend tests (release workspace)
+  simulation-tests:
+    name: Simulation tests (release workspace)
     if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -64,8 +64,8 @@ jobs:
         # suite lives there after the core was split out for the wasm build).
         run: cargo test --release --locked --workspace
 
-  backend-headless:
-    name: Backend headless smoke
+  simulation-headless:
+    name: Simulation headless smoke
     if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 8
@@ -88,8 +88,8 @@ jobs:
           ./target/release/headless --seed 42 --ticks 6000 --every 6000
         timeout-minutes: 4
 
-  backend-performance:
-    name: Backend performance budget
+  simulation-performance:
+    name: Simulation performance budget
     if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 12
@@ -213,17 +213,8 @@ jobs:
         working-directory: client
         run: pnpm run build
         env:
-          VITE_API_BASE:     ${{ secrets.VITE_API_BASE }}
           VITE_GIT_SHA:      ${{ github.sha }}
           VITE_BUILD_TS:     ${{ steps.ts.outputs.build_ts }}
-          # Public URL of the dynamic OG endpoint exposed by the
-          # simulation server. Defaults to the public production URL
-          # if the repo secret isn't set yet.
-          # Point at the same-origin proxy (client/functions/og.png.ts)
-          # rather than the cross-origin API URL — SEO validators
-          # flag cross-host og:image as "invalid/unreachable" even
-          # when it loads fine on real social crawlers.
-          VITE_OG_IMAGE_URL: ${{ secrets.VITE_OG_IMAGE_URL || 'https://thehumanbox.com/og.png' }}
           # PostHog analytics. Token + host pulled from repo secrets so
           # the key never lands in the repo. Build-time injection means
           # the bundle only includes them on prod CI builds — local
@@ -235,13 +226,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: client-dist
-          # Include both the static build and the Pages Functions
-          # directory so the deploy job can hand both to wrangler.
-          # Cloudflare Pages picks up `functions/` next to the
-          # deploy directory and bundles each route automatically.
-          path: |
-            client/dist
-            client/functions
+          path: client/dist
           retention-days: 7
 
   test-desktop:
@@ -366,63 +351,16 @@ jobs:
   release-gate:
     name: Release gate (all checks completed)
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    needs: [backend-lint, backend-tests, backend-headless, backend-performance, test-frontend, build-wasm, build-frontend, test-desktop, test-lab]
+    needs: [simulation-lint, simulation-tests, simulation-headless, simulation-performance, test-frontend, build-wasm, build-frontend, test-desktop, test-lab]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
       - name: Confirm release prerequisites
         run: echo "All test, wasm, frontend, desktop, and lab checks completed successfully."
 
-  build-backend-binary:
-    name: Build backend binary (aarch64, at bumped commit)
-    needs: [bump-version]
-    runs-on: ubuntu-24.04-arm
-    timeout-minutes: 20
-    concurrency:
-      group: pipeline-deploy-main
-      cancel-in-progress: false
-    env:
-      CARGO_INCREMENTAL: 0
-      CARGO_NET_RETRY: 10
-      RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: main
-      - name: Install mold linker
-        run: sudo apt-get install -y mold
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: simulation -> target
-          key: aarch64-release
-      - name: Verify version matches expected
-        env:
-          NEW: ${{ needs.bump-version.outputs.new }}
-        run: |
-          set -euo pipefail
-          ACTUAL=$(grep '^version = ' simulation/Cargo.toml | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
-          if [[ "$ACTUAL" != "$NEW" ]]; then
-            echo "Cargo.toml says version=$ACTUAL but expected $NEW - did the bump push not land?" >&2
-            exit 1
-          fi
-          echo "OK: building binary with embedded version $ACTUAL"
-      - name: cargo build --release --bin simulation-rs
-        working-directory: simulation
-        run: cargo build --release --locked --bin simulation-rs
-      - name: Strip binary
-        run: |
-          strip simulation/target/release/simulation-rs
-          ls -lh simulation/target/release/simulation-rs
-      - uses: actions/upload-artifact@v7
-        with:
-          name: simulation-rs-aarch64
-          path: simulation/target/release/simulation-rs
-          retention-days: 14
-
   publish-release:
-    name: Publish release with aarch64 binary
-    needs: [bump-version, build-backend-binary]
+    name: Publish desktop release
+    needs: [bump-version]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -432,29 +370,20 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v6
-      - name: Download binary artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: simulation-rs-aarch64
-          path: ./bin
-      - name: Make binary executable
-        run: chmod +x ./bin/simulation-rs
-      - name: Create release + attach binary (idempotent)
+      - name: Create release for desktop installers (idempotent)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NEW:      ${{ needs.bump-version.outputs.new }}
         run: |
           set -euo pipefail
           if gh release view "v$NEW" >/dev/null 2>&1; then
-            echo "Release v$NEW already exists - replacing binary"
-            gh release upload "v$NEW" ./bin/simulation-rs --clobber
+            echo "Release v$NEW already exists"
           else
             echo "Creating release v$NEW"
             gh release create "v$NEW" \
               --title "v$NEW" \
-              --notes "Automated release. Backend binary built on ubuntu-24.04-arm runner; SHA ${GITHUB_SHA}." \
-              --target main \
-              ./bin/simulation-rs
+              --notes "Automated desktop release. Native installers run the simulation locally; SHA ${GITHUB_SHA}." \
+              --target main
           fi
 
   build-desktop:
@@ -468,38 +397,6 @@ jobs:
       tag:     v${{ needs.bump-version.outputs.new }}
       version: ${{ needs.bump-version.outputs.new }}
 
-  deploy-backend:
-    name: Deploy backend (SSM, no on-box compile)
-    needs: [bump-version, publish-release]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    concurrency:
-      group: pipeline-deploy-main
-      cancel-in-progress: false
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region:            ${{ vars.AWS_REGION }}
-
-      - name: Send SSM deploy command
-        env:
-          INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
-          NEW_VERSION: ${{ needs.bump-version.outputs.new }}
-        run: |
-          set -euo pipefail
-          DEPLOY_CMD="cd /root/thehumanbox && git pull --ff-only && chmod +x scripts/update.sh && scripts/update.sh ${NEW_VERSION}"
-          CMD_ID=$(aws ssm send-command \
-            --instance-ids "$INSTANCE_ID" \
-            --document-name "AWS-RunShellScript" \
-            --comment "deploy v$NEW_VERSION (gh-release binary)" \
-            --parameters "commands=[\"$DEPLOY_CMD\"]" \
-            --output text --query 'Command.CommandId')
-          echo "SSM command dispatched: $CMD_ID"
-          echo "Track: https://${{ vars.AWS_REGION }}.console.aws.amazon.com/systems-manager/run-command/$CMD_ID"
-
   deploy-frontend:
     name: Deploy frontend (Cloudflare Pages)
     needs: [bump-version, build-frontend]
@@ -509,23 +406,16 @@ jobs:
       contents:    read
       deployments: write
     steps:
-      - name: Download dist/ + functions/ from test-frontend
+      - name: Download static frontend
         uses: actions/download-artifact@v8
         with:
           name: client-dist
-          # Multi-path upload's common-ancestor strips the `client/`
-          # prefix, so the artifact contains `dist/` and `functions/`
-          # at its root. Restore them under `client/` so the layout
-          # mirrors the source tree.
-          path: client
+          path: client/dist
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          # Run from client/ so wrangler discovers ./functions next
-          # to the deploy target. Without the workingDirectory wrangler
-          # would look for functions/ at the repo root and miss them.
           workingDirectory: client
           command: pages deploy dist --project-name=thehumanbox --branch=main

@@ -17,7 +17,6 @@ const CivStatsModal = lazy(() => import('./CivStatsModal').then((m) => ({ defaul
 const AllLineagesModal = lazy(() =>
   import('./AllLineagesModal').then((m) => ({ default: m.AllLineagesModal })),
 )
-const WorldsModal = lazy(() => import('./WorldsModal').then((m) => ({ default: m.WorldsModal })))
 const NotableOrgsModal = lazy(() =>
   import('./NotableOrgsModal').then((m) => ({ default: m.NotableOrgsModal })),
 )
@@ -47,7 +46,6 @@ export function ModalRouter({ world, lineages, onGuide }: Props) {
   const showAllLineages = useUIStore((s) => s.showAllLineages)
   const showAbout = useUIStore((s) => s.showAbout)
   const showCiv = useUIStore((s) => s.showCiv)
-  const showWorlds = useUIStore((s) => s.showWorlds)
   const showNotable = useUIStore((s) => s.showNotable)
   const showDesktopSettings = useUIStore((s) => s.showDesktopSettings)
   const convoOrgId = useUIStore((s) => s.convoOrgId)
@@ -60,7 +58,6 @@ export function ModalRouter({ world, lineages, onGuide }: Props) {
   const closeAllLineages = useUIStore((s) => s.closeAllLineages)
   const closeAbout = useUIStore((s) => s.closeAbout)
   const closeCiv = useUIStore((s) => s.closeCiv)
-  const closeWorlds = useUIStore((s) => s.closeWorlds)
   const closeNotable = useUIStore((s) => s.closeNotable)
   const closeDesktopSettings = useUIStore((s) => s.closeDesktopSettings)
   const closeConvo = useUIStore((s) => s.closeConvo)
@@ -118,7 +115,6 @@ export function ModalRouter({ world, lineages, onGuide }: Props) {
         {showStats && <StatsModal world={world} onClose={closeStats} />}
         {showAbout && <AboutModal onClose={closeAbout} />}
         {showCiv && <CivStatsModal world={world} onClose={closeCiv} onGuide={onGuide} />}
-        {showWorlds && <WorldsModal onClose={closeWorlds} />}
         {showNotable && <NotableOrgsModal organisms={world.organisms} onClose={closeNotable} />}
         {showDesktopSettings && <DesktopSettingsModal onClose={closeDesktopSettings} />}
       </Suspense>

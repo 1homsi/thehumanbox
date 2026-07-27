@@ -7,7 +7,6 @@ import type { Settings } from './settings'
 function settings(overrides: Partial<Settings> = {}): Settings {
   const defaults: Settings = {
     mode: 'local',
-    remoteUrl: 'https://api.thehumanbox.com',
     tickMs: 100,
     populationCap: 1000,
     model: { provider: 'none', apiUrl: '', apiKey: '', modelName: '' },

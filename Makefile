@@ -216,10 +216,3 @@ tag-list: ## Show recent release tags
 
 release-latest: ## Show the latest GitHub release
 	@gh release view
-
-ec2-status: ## SSM the EC2 box for sim service status
-	@aws ssm send-command \
-		--instance-ids "$$EC2_INSTANCE_ID" \
-		--document-name "AWS-RunShellScript" \
-		--parameters 'commands=["systemctl status thehumanbox --no-pager | head -20"]' \
-		--output text --query 'Command.CommandId'
