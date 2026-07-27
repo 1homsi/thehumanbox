@@ -22,7 +22,7 @@ export type LineageStrategy = 'hunt' | 'explore' | 'settle' | 'trade' | 'defend'
  * This makes 2D, 3D, shortcuts, and future controls obey the same rule.
  */
 export function canSendSandboxCommand(
-  source: 'remote' | 'wasm',
+  source: 'native' | 'wasm',
   desktop: boolean,
   localServer: boolean,
 ): boolean {

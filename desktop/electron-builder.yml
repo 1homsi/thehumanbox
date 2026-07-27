@@ -71,6 +71,6 @@ linux:
   synopsis: The Human Box — a living simulation
   description: |
     The Human Box is a tribal-to-civic simulation where every organism
-    has memory, dreams, relationships, and a lineage. Runs locally or
-    connects to the live shared world at thehumanbox.com.
+    has memory, dreams, relationships, and a lineage. The simulation
+    and its worlds run locally on the player's computer.
   icon: build/icon.png

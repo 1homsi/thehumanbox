@@ -148,7 +148,7 @@ function selectorPresent(sel: string): boolean {
   }
 }
 
-export function startTour(worldKind: PlayerWorldKind = 'shared') {
+export function startTour(worldKind: PlayerWorldKind = 'local') {
   if (!isTourSupported()) {
     markSeen()
     return null

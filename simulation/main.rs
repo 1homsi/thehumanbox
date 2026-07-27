@@ -548,7 +548,7 @@ async fn main() {
 
     // Box-wide memory floors. We watch /proc/meminfo MemAvailable and
     // throttle when the WHOLE box (us + llama.cpp + everything) runs low.
-    // EC2 c7g.medium has 2 GB RAM; defaults leave generous breathing room.
+    // Defaults leave breathing room on a modest desktop.
     let mem_elev_mb: u64 = std::env::var("MEM_FLOOR_ELEVATED_MB")
         .ok()
         .and_then(|s| s.parse().ok())

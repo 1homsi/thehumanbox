@@ -47,7 +47,6 @@ export function MoreDropdown() {
   const openLanguages = useUIStore((s) => s.openLanguages)
   const openFamilyTree = useUIStore((s) => s.openFamilyTree)
   const openAbout = useUIStore((s) => s.openAbout)
-  const openWorlds = useUIStore((s) => s.openWorlds)
   const openNotable = useUIStore((s) => s.openNotable)
   const nerdStats = useUIStore((s) => s.nerdStats)
   const setNerdStats = useUIStore((s) => s.setNerdStats)
@@ -431,17 +430,6 @@ export function MoreDropdown() {
             }}
           >
             ⊞ world
-          </button>
-        </Tooltip>
-        <Tooltip tip="Browse archived worlds from past months">
-          <button
-            className="lang-btn"
-            onClick={() => {
-              openWorlds()
-              closeMore()
-            }}
-          >
-            🌍 worlds
           </button>
         </Tooltip>
         <Tooltip tip="Top organisms by age, family size, friends, wealth, knowledge, joy, grief…">

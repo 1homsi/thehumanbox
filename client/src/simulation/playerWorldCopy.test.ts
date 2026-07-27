@@ -9,13 +9,7 @@ describe('local-player copy', () => {
     expect(worldsIntroCopy('local', true)).toContain('saved on this computer')
   })
 
-  it('reserves server-continuity claims for the shared world', () => {
-    expect(welcomeStepsFor('shared')[3].body).toContain('continuously on the server')
-    expect(tourWorldCopy('shared').closing).toContain('keeps running online')
-    expect(worldsIntroCopy('shared', true)).toContain('resets at the start of every month')
-  })
-
-  it('explains why browser-local worlds do not list shared archives', () => {
-    expect(worldsIntroCopy('local', false)).toContain('does not connect to the Shared World server')
+  it('explains that browser worlds never use a hosted simulation', () => {
+    expect(worldsIntroCopy('local', false)).toContain('never connects to a hosted simulation server')
   })
 })

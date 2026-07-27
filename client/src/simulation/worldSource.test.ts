@@ -5,8 +5,6 @@ import {
   reloadAppSafely,
   resolvePlayerWorldKind,
   resolveWorldSource,
-  shouldCheckpointSourceSwitch,
-  shouldShowIdleResume,
   shouldUseSimulationApi,
 } from './worldSource'
 
@@ -31,12 +29,12 @@ describe('resolveWorldSource', () => {
   })
 
   it('lets the desktop renderer use its native simulation mode', () => {
-    expect(resolveWorldSource(null, true)).toBe('remote')
+    expect(resolveWorldSource(null, true)).toBe('native')
   })
 
-  it('preserves an explicit player choice', () => {
-    expect(resolveWorldSource('remote', false)).toBe('remote')
-    expect(resolveWorldSource('wasm', true)).toBe('wasm')
+  it('ignores legacy source preferences', () => {
+    expect(resolveWorldSource('native', false)).toBe('wasm')
+    expect(resolveWorldSource('wasm', true)).toBe('native')
   })
 })
 
@@ -44,7 +42,7 @@ describe('resolvePlayerWorldKind', () => {
   it('identifies browser-owned and fallback simulations as local', () => {
     expect(resolvePlayerWorldKind('wasm', { desktop: false, localServer: false })).toBe('local')
     expect(
-      resolvePlayerWorldKind('remote', {
+      resolvePlayerWorldKind('native', {
         desktop: false,
         localServer: false,
         fellBackToLocal: true,
@@ -52,52 +50,15 @@ describe('resolvePlayerWorldKind', () => {
     ).toBe('local')
   })
 
-  it('keeps an explicitly selected browser remote world shared even on localhost', () => {
-    expect(resolvePlayerWorldKind('remote', { desktop: false, localServer: true })).toBe('shared')
-  })
-
-  it('uses the resolved desktop setting as the authoritative identity', () => {
+  it('identifies the desktop native simulation as local', () => {
     expect(
-      resolvePlayerWorldKind('remote', {
+      resolvePlayerWorldKind('native', {
         desktop: true,
         desktopMode: 'local',
         localServer: true,
       }),
     ).toBe('local')
-    expect(
-      resolvePlayerWorldKind('remote', {
-        desktop: true,
-        desktopMode: 'remote',
-        localServer: true,
-      }),
-    ).toBe('shared')
-  })
-
-  it('uses the endpoint only while desktop settings are still loading', () => {
-    expect(
-      resolvePlayerWorldKind('remote', {
-        desktop: true,
-        desktopMode: null,
-        localServer: true,
-      }),
-    ).toBe('local')
-    expect(
-      resolvePlayerWorldKind('remote', {
-        desktop: true,
-        desktopMode: null,
-        localServer: false,
-      }),
-    ).toBe('shared')
-  })
-})
-
-describe('shouldShowIdleResume', () => {
-  it('never interrupts a local game for inactivity', () => {
-    expect(shouldShowIdleResume(true, true)).toBe(false)
-  })
-
-  it('still lets the hosted world park idle connections', () => {
-    expect(shouldShowIdleResume(true, false)).toBe(true)
+    expect(resolvePlayerWorldKind('native', { desktop: true, localServer: false })).toBe('local')
   })
 })
 
@@ -106,27 +67,12 @@ describe('shouldUseSimulationApi', () => {
     expect(shouldUseSimulationApi('wasm')).toBe(false)
   })
 
-  it('uses the API for an explicitly selected shared web world', () => {
-    expect(shouldUseSimulationApi('remote')).toBe(true)
-  })
-
   it('allows desktop to reach its native simulation', () => {
-    expect(shouldUseSimulationApi('remote')).toBe(true)
+    expect(shouldUseSimulationApi('native')).toBe(true)
   })
 
   it('keeps an explicitly selected desktop WASM world on its own data source', () => {
     expect(shouldUseSimulationApi('wasm')).toBe(false)
-  })
-})
-
-describe('shouldCheckpointSourceSwitch', () => {
-  it('checkpoints and releases a browser world before going online', () => {
-    expect(shouldCheckpointSourceSwitch('wasm', 'remote')).toBe(true)
-  })
-
-  it('does not add a checkpoint reload to other source transitions', () => {
-    expect(shouldCheckpointSourceSwitch('remote', 'wasm')).toBe(false)
-    expect(shouldCheckpointSourceSwitch('remote', 'remote')).toBe(false)
   })
 })
 

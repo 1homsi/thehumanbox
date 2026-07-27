@@ -7,11 +7,11 @@ describe('sandbox command permission', () => {
   })
 
   it('allows commands for a desktop app connected to its local simulation', () => {
-    expect(canSendSandboxCommand('remote', true, true)).toBe(true)
+    expect(canSendSandboxCommand('native', true, true)).toBe(true)
   })
 
   it('rejects commands for the shared remote world in every renderer', () => {
-    expect(canSendSandboxCommand('remote', false, false)).toBe(false)
-    expect(canSendSandboxCommand('remote', true, false)).toBe(false)
+    expect(canSendSandboxCommand('native', false, false)).toBe(false)
+    expect(canSendSandboxCommand('native', true, false)).toBe(false)
   })
 })

@@ -53,7 +53,7 @@ export type LocalSaveStatus =
   | { phase: 'saved'; tick: number; savedAt: number }
   | { phase: 'error'; message: string; retryable?: boolean }
 
-export function useSimulation(source: WorldSource = 'remote'): {
+export function useSimulation(source: WorldSource = 'native'): {
   world: WorldState | null
   connected: boolean
   status: ConnectionStatus
@@ -66,7 +66,6 @@ export function useSimulation(source: WorldSource = 'remote'): {
   pauseSim: () => Promise<boolean>
   setSpeed: (mult: number) => Promise<boolean>
   runtimeState: RuntimeState
-  fellBackToLocal: boolean
   localSaveStatus: LocalSaveStatus
   saveLocalWorld: () => Promise<boolean>
   loadLocalOrgDetail: (id: string) => Promise<OrgDetail | null>
@@ -76,12 +75,11 @@ export function useSimulation(source: WorldSource = 'remote'): {
   const [connected, setConnected] = useState(false)
   const [failedAttempts, setFailedAttempts] = useState(0)
   const [idleParked, setIdleParked] = useState(false)
-  const [fellBack, setFellBack] = useState(false)
   const [runtimeState, setRuntimeState] = useState<RuntimeState>({ paused: false, speed: 1 })
   const [localSaveStatus, setLocalSaveStatus] = useState<LocalSaveStatus>(
     source === 'wasm' ? { phase: 'loading' } : { phase: 'inactive' },
   )
-  const effectiveSource: WorldSource = source === 'wasm' || fellBack ? 'wasm' : 'remote'
+  const effectiveSource = source
   const sandboxAvailable = canSendSandboxCommand(effectiveSource, isDesktop(), IS_LOCAL_SERVER)
   const wsRef = useRef<WebSocket | null>(null)
   const wasmWorkerRef = useRef<Worker | null>(null)
@@ -529,9 +527,7 @@ export function useSimulation(source: WorldSource = 'remote'): {
 
     let reconnectDelayMs = 1000
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null
-    let everConnected = false
     let attempts = 0
-    const REMOTE_FALLBACK_ATTEMPTS = 3
 
     function scheduleReconnect() {
       if (destroyed) return
@@ -567,7 +563,6 @@ export function useSimulation(source: WorldSource = 'remote'): {
       ws.onopen = () => {
         if (destroyed) return
         reconnectDelayMs = 1000
-        everConnected = true
         attempts = 0
         setConnected(true)
         setFailedAttempts(0)
@@ -584,11 +579,7 @@ export function useSimulation(source: WorldSource = 'remote'): {
         }
         queuedMsgs.current = []
         bootstrapPendingRef.current = true
-        if (!everConnected && attempts >= REMOTE_FALLBACK_ATTEMPTS) {
-          setFellBack(true)
-        } else {
-          scheduleReconnect()
-        }
+        scheduleReconnect()
       }
       ws.onerror = () => {
         try {
@@ -936,7 +927,6 @@ export function useSimulation(source: WorldSource = 'remote'): {
     resume,
     sandboxAvailable,
     runtimeState,
-    fellBackToLocal: source !== 'wasm' && fellBack,
     localSaveStatus,
     saveLocalWorld,
     loadLocalOrgDetail,

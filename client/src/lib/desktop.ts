@@ -1,12 +1,11 @@
 import type { DesktopVisibility } from './desktopVisibility'
 
-export type SimMode = 'local' | 'remote'
-export type ModelProvider = 'groq' | 'openai' | 'anthropic' | 'ollama' | 'llama-cpp' | 'none'
+export type SimMode = 'local'
+export type ModelProvider = 'ollama' | 'llama-cpp' | 'custom' | 'none'
 export type { DesktopVisibility } from './desktopVisibility'
 
 export interface DesktopSettings {
   mode: SimMode
-  remoteUrl: string
   tickMs: number
   populationCap: number
   model: {
@@ -26,7 +25,6 @@ export interface SimStatus {
   running: boolean
   port: number | null
   mode?: SimMode
-  remoteUrl?: string
   error?: string
 }
 
@@ -75,10 +73,6 @@ export interface DesktopBridge {
     installUpdate(): Promise<UpdateCheckResult>
   }
   world: {
-    importFromRemote(payload: {
-      hash: string
-      remoteUrl: string
-    }): Promise<SimStatus & { importedHash: string; tick: number; schemaVersion: number }>
     migrateDataRoot(payload: { targetDir: string | null }): Promise<{
       settings: DesktopSettings
       migrated: boolean

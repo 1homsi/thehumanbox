@@ -11,7 +11,6 @@ export interface ModalsSlice {
   showAllLineages: boolean
   showAbout: boolean
   showCiv: boolean
-  showWorlds: boolean
   showNotable: boolean
   showDesktopSettings: boolean
   convoOrgId: string | null
@@ -30,8 +29,6 @@ export interface ModalsSlice {
   closeAllLineages: () => void
   openAbout: () => void
   closeAbout: () => void
-  openWorlds: () => void
-  closeWorlds: () => void
   openCiv: () => void
   closeCiv: () => void
   openNotable: () => void
@@ -52,7 +49,6 @@ export const createModalsSlice: StateCreator<UIState, [], [], ModalsSlice> = (se
   showAllLineages: false,
   showAbout: false,
   showCiv: false,
-  showWorlds: false,
   showNotable: false,
   showDesktopSettings: false,
   convoOrgId: null,
@@ -92,11 +88,6 @@ export const createModalsSlice: StateCreator<UIState, [], [], ModalsSlice> = (se
     set({ showAbout: true })
   },
   closeAbout: () => set({ showAbout: false }),
-  openWorlds: () => {
-    trackEvent('modal_open', { modal: 'worlds' })
-    set({ showWorlds: true })
-  },
-  closeWorlds: () => set({ showWorlds: false }),
   openCiv: () => {
     trackEvent('modal_open', { modal: 'civ' })
     set({ showCiv: true })
@@ -127,7 +118,6 @@ export const createModalsSlice: StateCreator<UIState, [], [], ModalsSlice> = (se
       showAllLineages: false,
       showAbout: false,
       showCiv: false,
-      showWorlds: false,
       showNotable: false,
       showDesktopSettings: false,
       convoOrgId: null,

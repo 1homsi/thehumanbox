@@ -5,8 +5,8 @@
 # The Human Box
 
 An artificial-life game built first for private, downloadable worlds.
-Run one locally, shape it with sandbox controls, or watch the online world
-where autonomous humans learn, form tribes, develop language, build
+Run one locally or shape it with sandbox controls while autonomous humans
+learn, form tribes, develop language, build
 cities, found religions, declare wars, sign treaties, invent computers,
 and pass culture across generations. Nothing is scripted. Only world
 laws.
@@ -57,9 +57,9 @@ cd client
 pnpm install
 pnpm run dev
 ```
-Starts with a private in-browser world and needs no server. Choose the
-Shared World in Settings to use the simulation at `localhost:8000`.
-Override that host with `VITE_API_BASE=api.example.com` for production.
+Starts a private WebAssembly world, persists it in the browser, and never
+contacts a hosted simulation API. The desktop app bundles the native Rust
+simulation and can connect to a local or user-configured AI model.
 
 ## What's in the world
 

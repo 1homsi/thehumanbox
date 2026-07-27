@@ -1,9 +1,8 @@
 # The Human Box — Client
 
-React/Vite frontend for [The Human Box](https://thehumanbox.com). New
-web players start with a private simulation that runs and saves in the
-browser. The persistent shared world is available as an opt-in mode in
-Settings and streams from the simulation server over WebSocket.
+React/Vite frontend for [The Human Box](https://thehumanbox.com). Web
+players get a private WebAssembly simulation that runs and saves in the
+browser. The standalone site does not connect to a simulation API.
 
 ## What you're looking at
 
@@ -59,10 +58,10 @@ pnpm install
 pnpm run dev
 ```
 
-The default private world needs no server. To develop against the
-shared world, start the server at `localhost:8000` (see
-[../simulation/](../simulation/)), then choose **Shared World** in the
-web app's Settings.
+The browser world needs no server. Electron injects a loopback API address
+at runtime for the native simulation bundled with the downloadable app;
+standalone browser builds ignore API query parameters and environment
+overrides.
 
 Private worlds checkpoint in IndexedDB. Settings can export the active save,
 confirm and archive it before starting over, and list, export, or restore
@@ -70,36 +69,10 @@ recovery copies. Recovery candidates are deserialized and tick-checked in the
 WASM simulation before replacing the primary save; transient IndexedDB failures
 are retried without treating a read failure as an empty world.
 
-## Environment
+## Deployment
 
-| Variable        | Default          | Description                              |
-| --------------- | ---------------- | ---------------------------------------- |
-| `VITE_API_BASE` | `localhost:8000` | host[:port] of the simulation, no scheme |
-
-The client derives both the WS URL (`ws://` or `wss://`) and the HTTP
-snapshot URL from `VITE_API_BASE`. Examples:
-
-- `VITE_API_BASE=localhost:8000` → `ws://localhost:8000/ws`
-- `VITE_API_BASE=api.thehumanbox.com` → `wss://api.thehumanbox.com/ws`
-- `VITE_API_BASE=10.0.0.5:8000` → `ws://10.0.0.5:8000/ws`
-
-TLS is auto-detected: localhost and RFC-1918 addresses use `ws://` +
-`http://`, everything else gets `wss://` + `https://`.
-
-## Cloudflare Pages + API host
-
-Keep the frontend on Pages, but treat the simulation API host as
-fully dynamic. In Cloudflare, set **Bypass cache** rules for:
-
-- `/ws`
-- `/snapshot`
-- `/transport`
-- `/version`
-- `/org/*`
-- `/worlds/*`
-
-Leave API-side performance features off for those routes. The live
-stream depends on low-jitter delivery, not CDN-style caching.
+Cloudflare Pages serves only the static browser build. There are no Pages
+Functions or hosted simulation routes.
 
 ## Mobile
 
