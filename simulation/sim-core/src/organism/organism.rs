@@ -1827,6 +1827,10 @@ impl Organism {
         let alpha = (0.08 + self.traits.memory_strength.clamp(0.0, 1.0) * 0.14).clamp(0.08, 0.22);
         let gamma = (0.82 + self.traits.curiosity.clamp(0.0, 1.0) * 0.12).clamp(0.82, 0.94);
         let action_u16 = action as u16;
+        let first_attempt = !self
+            .q_table
+            .get(perception)
+            .is_some_and(|row| row.iter().any(|&(known, _)| known == action_u16));
 
         let best_next = self
             .q_table
@@ -1837,14 +1841,23 @@ impl Organism {
             })
             .unwrap_or(0.0);
 
-        let effective_reward = if reward < 0.0 {
+        // Novel choices carry a small intrinsic reward. Curious organisms
+        // value that first attempt more, while repeating an unrewarding
+        // choice still receives the normal inactivity penalty.
+        let novelty_reward = if first_attempt && reward >= 0.0 {
+            0.004 + self.traits.curiosity.clamp(0.0, 1.0) * 0.008
+        } else {
+            0.0
+        };
+        let observed_reward = reward + novelty_reward;
+        let effective_reward = if observed_reward < 0.0 {
             let fear_weight = 1.0 + self.traits.fear.clamp(0.0, 1.0) * 0.45;
             let resilience_softening = 1.0 - self.traits.resilience.clamp(0.0, 1.0) * 0.20;
-            reward * fear_weight * resilience_softening
-        } else if reward < 0.01 {
-            reward - 0.01
+            observed_reward * fear_weight * resilience_softening
+        } else if observed_reward < 0.006 {
+            observed_reward - 0.006
         } else {
-            reward
+            observed_reward
         };
 
         if let Some(row) = self.q_table.get_mut(perception) {
@@ -1862,6 +1875,28 @@ impl Organism {
 
     pub fn to_json(&self) -> OrgJson {
         self.to_json_with(true)
+    }
+
+    fn learning_summary(&self) -> LearningSummary {
+        let states = self.q_table.len();
+        let tried_actions = self.q_table.values().map(Vec::len).sum();
+        let promising_states = self.q_table.values().filter(|row| row.max_q() > 0.01).count();
+        let confidence = if states == 0 {
+            0.0
+        } else {
+            let total: f32 = self
+                .q_table
+                .values()
+                .map(|row| (row.max_q().max(0.0) / 0.25).clamp(0.0, 1.0))
+                .sum();
+            (total / states as f32 * 100.0).round() / 100.0
+        };
+        LearningSummary {
+            states,
+            tried_actions,
+            promising_states,
+            confidence,
+        }
     }
 
     pub fn to_json_with(&self, include_cold: bool) -> OrgJson {
@@ -1911,6 +1946,11 @@ impl Organism {
                     water: self.water_memory.len(),
                     danger: self.danger_memory.len(),
                 })
+            } else {
+                None
+            },
+            learning: if include_cold {
+                Some(self.learning_summary())
             } else {
                 None
             },
@@ -2461,6 +2501,8 @@ pub struct OrgJson {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub memory_count: Option<MemoryCount>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub learning: Option<LearningSummary>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub attitudes: Option<HashMap<String, f32>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub org_trust: Option<HashMap<String, f32>>,
@@ -2545,6 +2587,14 @@ pub struct OrgJson {
     pub zodiac: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub birth_tick: Option<u64>,
+}
+
+#[derive(Serialize)]
+pub struct LearningSummary {
+    pub states: usize,
+    pub tried_actions: usize,
+    pub promising_states: usize,
+    pub confidence: f32,
 }
 
 #[derive(Serialize)]

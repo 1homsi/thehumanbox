@@ -6,7 +6,7 @@ use crate::world::{
     tiles::Tile,
 };
 
-use super::decision_bias::{directive_action_boost, preferred_action_boost};
+use super::decision_bias::{directive_action_boost, directive_aligns_action, preferred_action_boost};
 use super::organism::{Organism, QRowExt, ACTION_ID_SPACE, N_ACTIONS};
 
 fn survival_relevant_action(
@@ -853,6 +853,12 @@ impl Organism {
             self.sleep_debt,
         );
         let decision_pool = context_pool.as_deref().unwrap_or(available);
+        let q_row = self.q_table.get(cached_perception);
+        let active_directive = if tick < self.directive_until {
+            self.directive.as_str()
+        } else {
+            ""
+        };
 
         let age_decay = 1.0 / (1.0 + self.age as f32 / 2000.0);
         let eff_eps = (epsilon * (0.5 + self.traits.curiosity) * age_decay).clamp(0.02, 0.80);
@@ -915,20 +921,41 @@ impl Organism {
             } else {
                 &filtered
             };
-            let pick = if pool.is_empty() {
+            // Guidance should shape experimentation as well as exploitation.
+            // Previously epsilon exploration ignored the player's strategy,
+            // making guided lineages look unresponsive exactly while they
+            // were trying new behavior.
+            let directed: Vec<usize> = if active_directive.is_empty() {
+                Vec::new()
+            } else {
+                pool.iter()
+                    .copied()
+                    .filter(|&action| directive_aligns_action(active_directive, action))
+                    .collect()
+            };
+            let guided_pool: &[usize] = if directed.is_empty() { pool } else { &directed };
+
+            // Curious organisms prefer choices they have not tried in this
+            // situation. The fallback stays seeded and random, so worlds
+            // remain deterministic without converging on numeric action IDs.
+            let untried: Vec<usize> = guided_pool
+                .iter()
+                .copied()
+                .filter(|&action| {
+                    !q_row.is_some_and(|row| row.iter().any(|&(known, _)| known as usize == action))
+                })
+                .collect();
+            let seek_novelty = !untried.is_empty()
+                && rng.random::<f32>() < (0.25 + self.traits.curiosity * 0.65).clamp(0.25, 0.90);
+            let exploration_pool: &[usize] = if seek_novelty { &untried } else { guided_pool };
+            let pick = if exploration_pool.is_empty() {
                 rng.random_range(0..N_ACTIONS)
             } else {
-                pool[rng.random_range(0..pool.len())]
+                exploration_pool[rng.random_range(0..exploration_pool.len())]
             };
             return (pick, thought);
         }
 
-        let q_row = self.q_table.get(cached_perception);
-        let active_directive = if tick < self.directive_until {
-            self.directive.as_str()
-        } else {
-            ""
-        };
         let active_wander_action = self.wander_target.and_then(|wt| {
             let dist = (wt.0 - ix).abs() + (wt.1 - iy).abs();
             if dist > 4 && self.energy > 0.20 && self.hydration > 0.20 {
@@ -937,34 +964,28 @@ impl Organism {
                 None
             }
         });
-        // Optimistic initialisation for never-visited actions: small
-        // positive seed proportional to action_id. Higher-tier phase-3
-        // actions (id ≥ 140) get a slightly larger seed so they get
-        // picked by ties early on, breaking the cold-start where they
-        // sat at Q=0 and never accumulated reward signal.
-        let seed_q = |a: usize| -> f32 {
-            if a >= 140 {
-                0.02
-            } else {
-                0.01
-            }
-        };
         let mut dense = [0.0f32; ACTION_ID_SPACE];
+        let mut seen = [false; ACTION_ID_SPACE];
         if let Some(r) = q_row {
             for &(a, v) in r.iter() {
                 let ai = a as usize;
                 if ai < ACTION_ID_SPACE {
                     dense[ai] = v;
+                    seen[ai] = true;
                 }
             }
         }
         let lookup = |a: usize| -> f32 {
-            let v = if a < ACTION_ID_SPACE {
-                dense[a]
+            let (v, tried) = if a < ACTION_ID_SPACE {
+                (dense[a], seen[a])
             } else {
-                q_row.map(|r| r.get_q(a as u16)).unwrap_or(0.0)
+                (
+                    q_row.map(|r| r.get_q(a as u16)).unwrap_or(0.0),
+                    q_row.is_some_and(|r| r.iter().any(|&(known, _)| known as usize == a)),
+                )
             };
-            let learned = if v == 0.0 { seed_q(a) } else { v };
+            let novelty_seed = 0.006 + self.traits.curiosity.clamp(0.0, 1.0) * 0.012;
+            let learned = if tried { v } else { novelty_seed };
             learned
                 + directive_action_boost(active_directive, a)
                 + preferred_action_boost(active_wander_action, a)

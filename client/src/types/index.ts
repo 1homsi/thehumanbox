@@ -49,6 +49,12 @@ export interface OrganismState extends ExtendedEmotions {
   lineage_id: string
   max_age: number
   memory_count?: { food: number; water: number; danger: number }
+  learning?: {
+    states: number
+    tried_actions: number
+    promising_states: number
+    confidence: number
+  }
   attitudes?: Record<string, number>
   org_trust?: Record<string, number>
   traits: Traits
