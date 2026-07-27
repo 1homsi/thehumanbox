@@ -18,7 +18,7 @@ def lineage_pop_svg(
     lineages: list[str] = []
     seen: set[str] = set()
     for row in pop_history:
-        for k in row.get("populations", {}).keys():
+        for k in row.get("populations", {}):
             if k not in seen:
                 seen.add(k)
                 lineages.append(k)

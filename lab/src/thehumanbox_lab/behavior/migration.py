@@ -67,7 +67,7 @@ def detect_migrations(
     if not isinstance(lineage_centroid_history, dict):
         return []
     results: list[MigrationEvent] = []
-    for lineage_id, _entries in lineage_centroid_history.items():
+    for lineage_id in lineage_centroid_history:
         series = _series(lineage_centroid_history, lineage_id)
         for i in range(1, len(series)):
             prev_tick, px, py = series[i - 1]

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Protocol, runtime_checkable
 
+
 @runtime_checkable
 class Backend(Protocol):
     name: str
@@ -37,4 +38,4 @@ def get_backend(name: str, **opts: Any) -> Backend:
 
 KNOWN_BACKENDS = ("ollama", "llamacpp", "openai_compat", "groq", "dummy")
 
-__all__ = ["Backend", "get_backend", "KNOWN_BACKENDS"]
+__all__ = ["KNOWN_BACKENDS", "Backend", "get_backend"]

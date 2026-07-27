@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass
-from typing import Any, Iterable
+from typing import Any
 
 
 @dataclass(slots=True)
@@ -43,7 +44,7 @@ def _lineage_ids(snapshot: dict[str, Any]) -> set[str]:
     for key in ("territory", "lineage_homes", "lineage_sizes", "lineage_names"):
         val = snapshot.get(key)
         if isinstance(val, dict):
-            ids.update(str(k) for k in val.keys())
+            ids.update(str(k) for k in val)
     for org in snapshot.get("organisms", []) or []:
         lin = org.get("lineage_id") if isinstance(org, dict) else None
         if lin:

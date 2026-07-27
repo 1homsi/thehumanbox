@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import gzip
 from pathlib import Path
-from typing import IO, Any
+from typing import IO, Any, Self
 
 try:
     import zstandard
@@ -14,7 +14,7 @@ class _ZstdWriter:
     def __init__(self, path: Path) -> None:
         if zstandard is None:
             raise RuntimeError("zstandard not installed")
-        self._raw: IO[bytes] = open(path, "wb")
+        self._raw: IO[bytes] = open(path, "wb")  # noqa: SIM115 - this class owns and closes it
         self._cctx = zstandard.ZstdCompressor()
         self._stream = self._cctx.stream_writer(self._raw)
 
@@ -32,16 +32,16 @@ class _ZstdWriter:
         finally:
             self._raw.close()
 
-    def __enter__(self) -> "_ZstdWriter":
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, *exc: Any) -> None:
+    def __exit__(self, *exc: object) -> None:
         self.close()
 
 
 class _GzipWriter:
     def __init__(self, path: Path) -> None:
-        self._fp = gzip.open(path, "wb")
+        self._fp = gzip.open(path, "wb")  # noqa: SIM115 - this class owns and closes it
 
     def write(self, data: bytes | str) -> int:
         if isinstance(data, str):
@@ -54,10 +54,10 @@ class _GzipWriter:
     def close(self) -> None:
         self._fp.close()
 
-    def __enter__(self) -> "_GzipWriter":
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, *exc: Any) -> None:
+    def __exit__(self, *exc: object) -> None:
         self.close()
 
 

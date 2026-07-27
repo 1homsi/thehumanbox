@@ -5,7 +5,7 @@ import json
 import sys
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -60,7 +60,7 @@ def build(snapshot_url: str, out_path: Path) -> Path:
         {"heading": "Terrain Heatmap", "chunks": [heatmap_svg(data["terrain"])]},
         {"heading": "Event Timeline", "chunks": [timeline_svg(data["timeline"])]},
     ]
-    subtitle = f"generated {datetime.now(timezone.utc).isoformat(timespec='seconds')}"
+    subtitle = f"generated {datetime.now(UTC).isoformat(timespec='seconds')}"
     html = render_html("The Human Box — Lab Report", sections, subtitle=subtitle)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(html, encoding="utf-8")

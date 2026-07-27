@@ -10,7 +10,7 @@ from thehumanbox_lab.behavior import render_report
 
 
 def _load_snapshot(source: str) -> dict:
-    if source.startswith("http://") or source.startswith("https://"):
+    if source.startswith(("http://", "https://")):
         with urllib.request.urlopen(source, timeout=10) as resp:
             return json.loads(resp.read().decode("utf-8"))
     return json.loads(Path(source).read_text(encoding="utf-8"))
@@ -55,7 +55,7 @@ def main() -> int:
     args = parse_args()
     try:
         snapshot = _load_snapshot(args.snapshot)
-    except Exception as exc:
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         print(f"failed to load snapshot from {args.snapshot}: {exc}", file=sys.stderr)
         return 2
     history = _load_history(args.history)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 
+
 class DummyBackend:
     name = "dummy"
 
@@ -11,7 +12,7 @@ class DummyBackend:
         self.calls = 0
 
     def _hash(self, text: str) -> str:
-        digest = hashlib.sha256(f"{self.seed}:{text}".encode("utf-8")).hexdigest()
+        digest = hashlib.sha256(f"{self.seed}:{text}".encode()).hexdigest()
         return digest
 
     def complete(

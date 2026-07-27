@@ -22,6 +22,7 @@ from .token_budget import estimate_dataset
 from .train_manifest import default_manifest
 from .train_prep import split_rows, teacher_rows_to_sft
 
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="thb-lab", description="The Human Box lab tooling")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -376,14 +377,14 @@ def cmd_backend(args: argparse.Namespace) -> int:
         for name in names:
             try:
                 backend = get_backend(name)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - backend plugins define their own errors
                 results[name] = {"available": False, "error": f"init: {exc}"}
                 continue
             try:
                 if not backend.health():
                     results[name] = {"available": False, "error": "health check failed"}
                     continue
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - backend plugins define their own errors
                 results[name] = {"available": False, "error": f"health: {exc}"}
                 continue
             latencies: list[float] = []
@@ -392,7 +393,7 @@ def cmd_backend(args: argparse.Namespace) -> int:
                 start = time.perf_counter()
                 try:
                     backend.complete(args.prompt, max_tokens=32, temperature=0.0)
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001 - benchmark isolates backend failures
                     error = f"complete: {exc}"
                     break
                 latencies.append((time.perf_counter() - start) * 1000.0)

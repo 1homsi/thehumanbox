@@ -9,7 +9,7 @@ Split = tuple[list[Record], list[Record], list[Record]]
 
 
 def _stable_score(value: str, seed: int) -> float:
-    payload = f"{seed}::{value}".encode("utf-8")
+    payload = f"{seed}::{value}".encode()
     digest = hashlib.sha256(payload).hexdigest()
     return int(digest[:12], 16) / float(0xFFFFFFFFFFFF)
 

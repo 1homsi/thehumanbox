@@ -14,11 +14,13 @@ if str(SRC_DIR) not in sys.path:
 from thehumanbox_lab.model_registry import (
     ModelEntry,
     diff,
-    filter as filter_entries,
     find,
     load_all_cards,
     load_registry,
     pretty_table,
+)
+from thehumanbox_lab.model_registry import (
+    filter as filter_entries,
 )
 
 

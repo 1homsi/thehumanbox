@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from .formatters import format as format_records
 
@@ -43,12 +44,12 @@ def _percentile(values: list[int], pct: float) -> int:
     if len(ordered) == 1:
         return ordered[0]
     rank = (len(ordered) - 1) * pct
-    lower = int(math.floor(rank))
-    upper = int(math.ceil(rank))
+    lower = math.floor(rank)
+    upper = math.ceil(rank)
     if lower == upper:
         return ordered[lower]
     fraction = rank - lower
-    return int(round(ordered[lower] + (ordered[upper] - ordered[lower]) * fraction))
+    return round(ordered[lower] + (ordered[upper] - ordered[lower]) * fraction)
 
 
 def estimate_dataset(

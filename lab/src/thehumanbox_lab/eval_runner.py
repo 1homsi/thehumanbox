@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import re
 import time
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from statistics import mean
-from typing import Callable
 
 from .baseline import predict_thought
 from .ollama_client import generate
 from .schemas import ThoughtExample
-from .task_specs import TaskSpec, THOUGHT_V1, compact_response
+from .task_specs import THOUGHT_V1, TaskSpec, compact_response
 
 WORD_RE = re.compile(r"[a-z0-9']+")
 

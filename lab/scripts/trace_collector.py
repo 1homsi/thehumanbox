@@ -160,15 +160,15 @@ def _decode_frame(raw: bytes | str) -> dict | None:
                 obj = msgpack.unpackb(raw, raw=False)
                 if isinstance(obj, dict):
                     return obj
-            except Exception:
-                pass
+            except (TypeError, ValueError, UnicodeError):
+                obj = None
         try:
             return json.loads(raw)
-        except Exception:
+        except (TypeError, ValueError, UnicodeError):
             return None
     try:
         return json.loads(raw)
-    except Exception:
+    except (TypeError, ValueError, UnicodeError):
         return None
 
 

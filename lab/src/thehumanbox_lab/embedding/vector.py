@@ -1,6 +1,7 @@
 from __future__ import annotations
+
 import math
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 
 def normalize(v: Sequence[float]) -> list[float]:

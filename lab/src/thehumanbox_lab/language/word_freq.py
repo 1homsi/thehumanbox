@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 
 def _iter_vocabs(orgs: Iterable[Any]) -> Iterable[dict]:
@@ -43,7 +44,7 @@ def popular_drift(orgs: Iterable[Any], threshold: float = 0.5) -> list[tuple[str
         total = sum(counter.values())
         if total == 0:
             continue
-        top_word, top_count = counter.most_common(1)[0]
+        _top_word, top_count = counter.most_common(1)[0]
         disagreement = (total - top_count) / total
         if disagreement > threshold:
             drifted.append((concept, dict(counter.most_common(5))))

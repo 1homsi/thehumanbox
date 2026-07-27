@@ -47,7 +47,7 @@ def run(label: str, cmd: list[str]) -> None:
     """Run a subcommand and stream its output. Aborts on non-zero exit."""
     print(f"\n=== {label} ===", flush=True)
     print(" ".join(cmd), flush=True)
-    res = subprocess.run(cmd, cwd=LAB)
+    res = subprocess.run(cmd, cwd=LAB, check=False)
     if res.returncode != 0:
         print(f"[run_pipeline] stage {label!r} failed (exit {res.returncode})", file=sys.stderr)
         sys.exit(res.returncode)

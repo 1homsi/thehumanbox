@@ -10,7 +10,7 @@ from thehumanbox_lab.language.dialect import cluster_dialects
 
 
 def _load(source: str) -> dict:
-    if source.startswith("http://") or source.startswith("https://"):
+    if source.startswith(("http://", "https://")):
         with urlopen(source) as resp:
             raw = resp.read()
     else:
@@ -18,7 +18,7 @@ def _load(source: str) -> dict:
     try:
         import msgpack
         return msgpack.unpackb(raw, raw=False)
-    except Exception:
+    except (TypeError, ValueError, UnicodeError):
         return json.loads(raw.decode("utf-8"))
 
 

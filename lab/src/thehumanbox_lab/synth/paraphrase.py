@@ -65,9 +65,8 @@ def paraphrase(text: str, rng_seed: int = 0) -> str:
     tokens = re.findall(r"\w+|[^\w\s]+|\s+", text)
     out: list[str] = []
     for token in tokens:
-        if token.strip() and token[:1].isalpha():
-            if rng.random() < 0.7:
-                out.append(_pick_replacement(token, rng))
-                continue
+        if token.strip() and token[:1].isalpha() and rng.random() < 0.7:
+            out.append(_pick_replacement(token, rng))
+            continue
         out.append(token)
     return "".join(out)
