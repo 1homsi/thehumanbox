@@ -25,7 +25,7 @@ jobs:
       CARGO_NET_RETRY: 10
       RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install mold linker
         run: sudo apt-get install -y mold
       - uses: dtolnay/rust-toolchain@stable
@@ -51,7 +51,7 @@ jobs:
       CARGO_NET_RETRY: 10
       RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install mold linker
         run: sudo apt-get install -y mold
       - uses: dtolnay/rust-toolchain@stable
@@ -74,7 +74,7 @@ jobs:
       CARGO_NET_RETRY: 10
       RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install mold linker
         run: sudo apt-get install -y mold
       - uses: dtolnay/rust-toolchain@stable
@@ -102,7 +102,7 @@ jobs:
       MAX_RSS_MB: 256
       SEEDS: "42 1337 2026"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install mold linker
         run: sudo apt-get install -y mold
       - uses: dtolnay/rust-toolchain@stable
@@ -121,11 +121,11 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
         with:
           version: 10
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
           cache: pnpm
@@ -158,7 +158,7 @@ jobs:
       CARGO_INCREMENTAL: 0
       CARGO_NET_RETRY: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -187,11 +187,11 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
         with:
           version: 10
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
           cache: pnpm
@@ -235,11 +235,11 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
         with:
           version: 10
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
           cache: pnpm
@@ -260,8 +260,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
           cache: pip
@@ -292,7 +292,7 @@ jobs:
     outputs:
       new: ${{ steps.bump.outputs.new }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           token: ${{ secrets.BUMP_PAT }}
@@ -369,7 +369,7 @@ jobs:
       group: pipeline-deploy-main
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Create release for desktop installers (idempotent)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
