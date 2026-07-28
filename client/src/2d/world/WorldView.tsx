@@ -31,6 +31,7 @@ import { getBuildingSprite, PAD as SPRITE_PAD, PAD_BOT as SPRITE_PAD_BOT } from 
 import { normalizeLineageEras } from '../../utils/lineageEras'
 import { useSceneStore } from '../../stores/scene'
 import { farmCropColor, farmProgress, farmStage } from '../../world/farms'
+import { activeStrategy, strategyTimeLabel } from '../../world/strategy-visuals'
 
 import { LOW_PERF } from '../../lib/perf'
 import { syncRendererLoopPause } from '../../lib/desktopVisibility'
@@ -1489,7 +1490,8 @@ function drawWorldOnCanvas(
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     for (const c of clusters) {
-      if (c.tier === 0 || (c.tier === undefined && c.count < 4)) continue
+      const showSettlementLabel = c.tier !== 0 && !(c.tier === undefined && c.count < 4)
+      if (!showSettlementLabel) continue
       const name = c.name ?? lineageNames[c.lineage] ?? c.lineage.slice(0, 6)
       const label =
         c.tier !== undefined
@@ -1856,6 +1858,64 @@ function drawWorldOnCanvas(
     }
   }
   ctx.globalAlpha = 1
+
+  // Player strategy beacons are a HUD overlay, so draw them after all
+  // organisms and buildings. Otherwise a busy settlement can bury the
+  // guidance label under hundreds of sprites.
+  if (world.lineage_strategies) {
+    const settlementsByLineage = new Map(
+      (world.settlements ?? []).map((settlement) => [settlement.lineage_id, settlement]),
+    )
+    for (const [lineage, entry] of Object.entries(world.lineage_strategies)) {
+      const strategy = activeStrategy(entry, world.tick)
+      if (!strategy) continue
+      const settlement = settlementsByLineage.get(lineage)
+      const home = world.lineage_homes?.[lineage]
+      const members = organisms.filter((organism) => organism.alive && organism.lineage_id === lineage)
+      if (!settlement && !home && members.length === 0) continue
+      const wx =
+        settlement?.center[0] ??
+        home?.[0] ??
+        members.reduce((sum, organism) => sum + organism.x, 0) / members.length
+      const wy =
+        settlement?.center[1] ??
+        home?.[1] ??
+        members.reduce((sum, organism) => sum + organism.y, 0) / members.length
+      const centerX = (wx - ox) * TILE + TILE / 2
+      const centerY = (wy - oy) * TILE + TILE / 2
+      if (centerX < -32 || centerX > W + 32 || centerY < -32 || centerY > H + 32) continue
+
+      const pulse = 22 + Math.sin(t * 0.003 + wx * 0.11 + wy * 0.07) * 4
+      ctx.save()
+      ctx.globalAlpha = 0.82
+      ctx.strokeStyle = strategy.color
+      ctx.lineWidth = 2.5
+      ctx.beginPath()
+      ctx.arc(centerX, centerY, pulse, 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.globalAlpha = 0.28
+      ctx.beginPath()
+      ctx.arc(centerX, centerY, pulse + 7, 0, Math.PI * 2)
+      ctx.stroke()
+
+      const label = `${strategy.symbol} ${strategy.label} · ${strategyTimeLabel(strategy.ticksRemaining)}`
+      ctx.font = 'bold 11px monospace'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      const labelWidth = ctx.measureText(label).width + 12
+      const labelY = centerY - pulse - 12
+      ctx.globalAlpha = 0.92
+      ctx.fillStyle = '#11181c'
+      ctx.fillRect(centerX - labelWidth / 2, labelY - 8, labelWidth, 16)
+      ctx.globalAlpha = 1
+      ctx.strokeStyle = strategy.color
+      ctx.lineWidth = 1
+      ctx.strokeRect(centerX - labelWidth / 2, labelY - 8, labelWidth, 16)
+      ctx.fillStyle = strategy.color
+      ctx.fillText(label, centerX, labelY + 0.5)
+      ctx.restore()
+    }
+  }
 
   if (viewFlags.fps) {
     fpsSamples.push(t)

@@ -54,6 +54,7 @@ import { FootstepDust } from './parts/FootstepDust'
 import { WorkEffects3D } from './parts/WorkEffects3D'
 import { ThoughtBubbles3D } from './parts/ThoughtBubbles3D'
 import { SettlementDetails3D } from './parts/SettlementDetails3D'
+import { StrategyMarkers3D } from './parts/StrategyMarkers3D'
 import { GrassTufts } from './parts/GrassTufts'
 import { TribeLabels } from './parts/TribeLabels'
 import { FireLights } from './parts/FireLights'
@@ -774,6 +775,15 @@ export default function WorldView3D({
                     dayProgress={dayProgress}
                   />
                 )}
+                <StrategyMarkers3D
+                  settlements={world.settlements ?? []}
+                  strategies={world.lineage_strategies}
+                  lineageHomes={world.lineage_homes}
+                  organisms={world.organisms ?? []}
+                  tick={world.tick}
+                  depthMap={grid.depth_map!}
+                  biomes={grid.biomes!}
+                />
                 <BuildingSmoke3D
                   buildings={world.buildings ?? []}
                   depthMap={grid.depth_map!}

@@ -260,6 +260,25 @@ impl Simulation {
                 "population_limit".to_string(),
                 serde_json::to_value(self.population_limit()).unwrap(),
             );
+            // Player guidance is short-lived and changes on command, so it
+            // cannot wait for a cold/full frame. Shipping this tiny map on
+            // every frame keeps the HUD and world markers responsive and
+            // also lets an empty map clear an expired strategy immediately.
+            let active_strategies: HashMap<String, serde_json::Value> = self
+                .lineage_strategies
+                .iter()
+                .filter(|(_, (_, expires_tick))| *expires_tick > self.tick_count)
+                .map(|(lineage_id, (strategy, expires_tick))| {
+                    (
+                        lineage_id.clone(),
+                        json!({ "strategy": strategy, "expires_tick": expires_tick }),
+                    )
+                })
+                .collect();
+            obj.insert(
+                "lineage_strategies".to_string(),
+                serde_json::to_value(active_strategies).unwrap(),
+            );
         }
         if include_cold {
             if let Some(obj) = payload.as_object_mut() {
@@ -308,22 +327,6 @@ impl Simulation {
                     .map(|(lid, era)| json!({ "lineage_id": lid, "era_name": era.name() }))
                     .collect();
                 obj.insert("lineage_eras".to_string(), serde_json::Value::Array(eras_json));
-                let active_strategies: HashMap<String, serde_json::Value> = self
-                    .lineage_strategies
-                    .iter()
-                    .filter(|(_, (_, expires_tick))| *expires_tick > self.tick_count)
-                    .map(|(lineage_id, (strategy, expires_tick))| {
-                        (
-                            lineage_id.clone(),
-                            json!({ "strategy": strategy, "expires_tick": expires_tick }),
-                        )
-                    })
-                    .collect();
-                obj.insert(
-                    "lineage_strategies".to_string(),
-                    serde_json::to_value(active_strategies).unwrap(),
-                );
-
                 let mut lineage_discoveries: HashMap<String, HashSet<String>> = HashMap::new();
                 let mut lineage_pop: HashMap<String, usize> = HashMap::new();
                 for org in self.organisms.iter().filter(|o| o.alive) {
@@ -754,7 +757,7 @@ mod schema_tests {
     }
 
     #[test]
-    fn full_payload_exposes_only_active_player_guidance() {
+    fn every_payload_exposes_only_active_player_guidance() {
         let mut sim = Simulation::new(43);
         let lid = sim
             .organisms
@@ -770,6 +773,11 @@ mod schema_tests {
 
         let payload = sim.state_json();
         let strategies = payload["lineage_strategies"].as_object().unwrap();
+        assert_eq!(strategies[&lid]["strategy"].as_str(), Some("trade"));
+        assert!(!strategies.contains_key("expired"));
+
+        let incremental = sim.state_json_incremental();
+        let strategies = incremental["lineage_strategies"].as_object().unwrap();
         assert_eq!(strategies[&lid]["strategy"].as_str(), Some("trade"));
         assert!(!strategies.contains_key("expired"));
     }

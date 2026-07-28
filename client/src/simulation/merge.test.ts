@@ -150,3 +150,40 @@ describe('mergeFrame organism handling', () => {
     expect(r2.grid.structure).toBe(r1.grid.structure)
   })
 })
+
+describe('mergeFrame lineage strategy handling', () => {
+  it('retains guidance across deltas and lets a full frame clear it', () => {
+    const caches = emptyCaches()
+    const guidance = {
+      'lin-x': {
+        strategy: 'explore' as const,
+        expires_tick: 2_000,
+      },
+    }
+
+    const full = mergeFrame(
+      baseFrame({
+        frame_kind: 'full',
+        lineage_strategies: guidance,
+      }),
+      caches,
+    )
+    expect(full.next.lineage_strategies).toEqual(guidance)
+
+    caches.prevWorld = full.next
+    const delta = mergeFrame(baseFrame({ frame_id: 2, tick: 1 }), caches)
+    expect(delta.next.lineage_strategies).toBe(full.next.lineage_strategies)
+
+    caches.prevWorld = delta.next
+    const cleared = mergeFrame(
+      baseFrame({
+        frame_id: 3,
+        frame_kind: 'full',
+        tick: 2,
+        lineage_strategies: {},
+      }),
+      caches,
+    )
+    expect(cleared.next.lineage_strategies).toEqual({})
+  })
+})
