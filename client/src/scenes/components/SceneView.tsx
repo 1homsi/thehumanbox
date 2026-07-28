@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import type { WorldState } from '../../types'
 import { useSceneStore, useCurrentScene } from '../../stores/scene'
 import { useUIStore, useViewFlag } from '../../stores/store'
@@ -31,6 +31,13 @@ export function SceneView({ world }: Props) {
     if (!ctx) return null
     return { renderer: r, ctx }
   }, [scene, world, mode])
+
+  useEffect(() => {
+    // A building can fall while its interior is open. Leave the scene as
+    // soon as its resolver becomes invalid instead of trapping the player
+    // on a blank interior layer.
+    if (scene && !resolved) exit()
+  }, [scene, resolved, exit])
 
   if (!scene || !resolved) return null
 

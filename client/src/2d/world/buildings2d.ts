@@ -1,4 +1,6 @@
 import { getBuildingSprite, hasBuildingSprite, PAD, PAD_BOT } from './building-sprites'
+import type { Building } from '../../types'
+import { getBuildingState, type BuildingState } from '../../world/building-state'
 
 export const BUILDING_EMOJI: Record<string, string> = {
   Hut: '\u{1F6D6}',
@@ -368,13 +370,10 @@ export function buildingEmoji(kind: string): string {
   return BUILDING_EMOJI[kind] ?? BUILDING_EMOJI[normKind(kind)] ?? '\u{1F3DA}\u{FE0F}'
 }
 
-export interface BuildingLike {
-  id?: number
-  kind: string
-  x: number
-  y: number
-  condition?: number
-}
+export type BuildingLike = Pick<
+  Building,
+  'id' | 'kind' | 'x' | 'y' | 'condition' | 'damage' | 'integrity' | 'ruined' | 'repairing'
+>
 
 const WALL_COLORS: Record<string, string> = {
   Hut: '#8a6a44',
@@ -673,6 +672,127 @@ function isHouseLike(kind: string): boolean {
   return HOUSE_LIKE.has(kind) || HOUSE_LIKE.has(normKind(kind))
 }
 
+function visualHash(building: BuildingLike, salt: number): number {
+  let value =
+    Math.imul((building.id ?? 0) + salt * 101, 2654435761) ^
+    Math.imul(Math.floor(building.x) + salt, 73856093) ^
+    Math.imul(Math.floor(building.y) - salt, 19349663)
+  value ^= value >>> 16
+  return (value >>> 0) / 4294967295
+}
+
+function drawRuinedBuilding(
+  ctx: CanvasRenderingContext2D,
+  building: BuildingLike,
+  state: BuildingState,
+  px: number,
+  py: number,
+  w: number,
+  h: number,
+  tileSize: number,
+) {
+  ctx.save()
+
+  // A collapsed, soot-black footprint replaces the intact silhouette.
+  ctx.fillStyle = 'rgba(24, 17, 14, 0.88)'
+  ctx.beginPath()
+  ctx.ellipse(px + w / 2, py + h * 0.78, w * 0.58, h * 0.34, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  const rubbleCount = Math.min(12, 5 + Math.ceil((w + h) / Math.max(1, tileSize)))
+  const rubbleColors = ['#51443a', '#66584b', '#3b312b', '#796652']
+  for (let i = 0; i < rubbleCount; i++) {
+    const rx = visualHash(building, i * 3 + 1)
+    const ry = visualHash(building, i * 3 + 2)
+    const rs = visualHash(building, i * 3 + 3)
+    const rw = Math.max(2, tileSize * (0.18 + rs * 0.25))
+    const rh = Math.max(2, tileSize * (0.12 + (1 - rs) * 0.18))
+    ctx.fillStyle = rubbleColors[i % rubbleColors.length]
+    ctx.fillRect(px + rx * Math.max(1, w - rw), py + h * (0.48 + ry * 0.42), rw, rh)
+  }
+
+  ctx.strokeStyle = '#2c1c16'
+  ctx.lineWidth = Math.max(2, tileSize * 0.13)
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(px + w * 0.16, py + h * 0.32)
+  ctx.lineTo(px + w * 0.84, py + h * 0.82)
+  ctx.moveTo(px + w * 0.8, py + h * 0.28)
+  ctx.lineTo(px + w * 0.2, py + h * 0.84)
+  ctx.stroke()
+
+  if (state.isRepairing) {
+    ctx.strokeStyle = '#efc76d'
+    ctx.lineWidth = Math.max(1.5, tileSize * 0.09)
+    ctx.setLineDash([Math.max(2, tileSize * 0.22), Math.max(1, tileSize * 0.12)])
+    ctx.strokeRect(px - 1, py + h * 0.12, w + 2, h * 0.82)
+    ctx.setLineDash([])
+    ctx.beginPath()
+    ctx.moveTo(px + w * 0.2, py + h * 0.12)
+    ctx.lineTo(px + w * 0.2, py + h * 0.94)
+    ctx.moveTo(px + w * 0.8, py + h * 0.12)
+    ctx.lineTo(px + w * 0.8, py + h * 0.94)
+    ctx.stroke()
+  }
+
+  const label = state.isRepairing ? 'REBUILDING' : 'RUIN'
+  ctx.font = `bold ${Math.max(6, Math.min(9, tileSize * 0.5))}px monospace`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'bottom'
+  ctx.lineWidth = 3
+  ctx.strokeStyle = 'rgba(20, 12, 9, 0.95)'
+  ctx.strokeText(label, px + w / 2, py + h * 0.4)
+  ctx.fillStyle = state.isRepairing ? '#ffd77f' : '#ff725e'
+  ctx.fillText(label, px + w / 2, py + h * 0.4)
+  ctx.restore()
+}
+
+function drawBuildingDamage(
+  ctx: CanvasRenderingContext2D,
+  building: BuildingLike,
+  state: BuildingState,
+  px: number,
+  py: number,
+  w: number,
+  h: number,
+  tileSize: number,
+) {
+  if (!state.isDamaged) return
+  const severity = Math.max(state.damage, 1 - state.integrity)
+
+  ctx.save()
+  ctx.fillStyle = `rgba(30, 18, 13, ${0.1 + severity * 0.38})`
+  ctx.fillRect(px, py, w, h)
+
+  ctx.strokeStyle = severity > 0.55 ? '#2b1712' : '#493126'
+  ctx.lineWidth = Math.max(1.2, tileSize * (0.055 + severity * 0.045))
+  ctx.lineJoin = 'bevel'
+  const crackX = px + w * (0.28 + visualHash(building, 71) * 0.4)
+  ctx.beginPath()
+  ctx.moveTo(crackX, py + h * 0.08)
+  ctx.lineTo(crackX - w * 0.12, py + h * 0.34)
+  ctx.lineTo(crackX + w * 0.08, py + h * 0.53)
+  ctx.lineTo(crackX - w * 0.16, py + h * 0.82)
+  ctx.moveTo(crackX - w * 0.05, py + h * 0.44)
+  ctx.lineTo(crackX - w * 0.25, py + h * 0.58)
+  ctx.stroke()
+
+  const barY = py - Math.max(4, tileSize * 0.28)
+  const barH = Math.max(3, tileSize * 0.18)
+  ctx.fillStyle = 'rgba(18, 12, 10, 0.9)'
+  ctx.fillRect(px, barY, w, barH)
+  ctx.fillStyle = state.isRepairing ? '#eac05b' : severity > 0.55 ? '#f05b43' : '#e28d3f'
+  ctx.fillRect(px + 1, barY + 1, Math.max(0, (w - 2) * state.integrity), Math.max(1, barH - 2))
+
+  if (state.isRepairing) {
+    ctx.strokeStyle = '#f4d47c'
+    ctx.lineWidth = Math.max(1, tileSize * 0.07)
+    ctx.setLineDash([Math.max(2, tileSize * 0.2), Math.max(1, tileSize * 0.1)])
+    ctx.strokeRect(px - 1, py - 1, w + 2, h + 2)
+  }
+  ctx.restore()
+}
+
 export function drawBuilding(
   ctx: CanvasRenderingContext2D,
   building: BuildingLike,
@@ -687,6 +807,7 @@ export function drawBuilding(
   const w = fw * tileSize
   const h = fh * tileSize
   const cond = building.condition ?? 1
+  const structural = getBuildingState(building)
   const k = normKind(building.kind)
 
   ctx.save()
@@ -711,6 +832,11 @@ export function drawBuilding(
   ctx.fill()
   ctx.restore()
 
+  if (structural.isRuined) {
+    drawRuinedBuilding(ctx, building, structural, px, py, w, h, tileSize)
+    return
+  }
+
   if (hasBuildingSprite(k)) {
     const variant =
       (((building.id ?? 0) * 2654435761) ^ (building.x * 73856093) ^ (building.y * 19349663)) >>> 0
@@ -719,6 +845,7 @@ export function drawBuilding(
     const sprite = getBuildingSprite(k, fw, fh, tileSize, variant & 7, nightBucket, condBucket)
     if (sprite) {
       ctx.drawImage(sprite, Math.round(px - PAD), Math.round(py + h + PAD_BOT - sprite.height))
+      drawBuildingDamage(ctx, building, structural, px, py, w, h, tileSize)
       return
     }
   }
@@ -814,4 +941,5 @@ export function drawBuilding(
     ctx.fillText(emoji, px + w / 2, baseY + 1)
     ctx.restore()
   }
+  drawBuildingDamage(ctx, building, structural, px, py, w, h, tileSize)
 }

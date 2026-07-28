@@ -398,7 +398,7 @@ fn verify_local_danger_memory(org: &mut Organism, grid: &WorldGrid, animals: &[A
 
     decay_local_resource_memory(&mut org.danger_memory, x, y, 0.50, 0.72);
 }
-pub const SAVE_SCHEMA_VERSION: u32 = 4;
+pub const SAVE_SCHEMA_VERSION: u32 = 5;
 
 #[derive(Default, Clone, Serialize, Deserialize)]
 #[serde(default)]
@@ -619,6 +619,11 @@ pub struct Simulation {
     pub(crate) cached_tribal_relations: serde_json::Value,
     pub(crate) cached_lineage_sizes: serde_json::Value,
     pub(crate) slow_compute_tick: u64,
+    /// Incremented whenever construction, ownership, damage, repair, or
+    /// eviction changes a building so the wire can publish it immediately
+    /// without shipping the entire building list on every hot frame.
+    pub(crate) building_state_revision: u64,
+    pub(crate) serialized_building_state_revision: u64,
     pub(crate) active_structure_tiles: HashSet<(i32, i32)>,
     pub(crate) field_fortifications: Vec<super::warfare::FieldFortification>,
     pub(crate) settlement_tiers: HashMap<String, u8>,
@@ -775,6 +780,8 @@ impl Simulation {
             cached_tribal_relations: serde_json::Value::Array(vec![]),
             cached_lineage_sizes: serde_json::Value::Array(vec![]),
             slow_compute_tick: 0,
+            building_state_revision: 0,
+            serialized_building_state_revision: 0,
             active_structure_tiles: HashSet::new(),
             field_fortifications: Vec::new(),
             settlement_tiers: HashMap::new(),
@@ -1070,6 +1077,7 @@ impl Simulation {
             );
             self.apply_conquests();
         }
+        super::civ::building_damage::tick_building_damage(self);
 
         growth::deliver_births(
             &mut self.organisms,
@@ -4979,10 +4987,15 @@ impl Simulation {
                 wset.insert(t);
             }
             let taken_set: std::collections::HashSet<(i32, i32)> = taken.iter().copied().collect();
+            let mut buildings_captured = false;
             for b in self.buildings.iter_mut() {
                 if taken_set.contains(&(b.x, b.y)) {
                     b.owner_lineage = Some(winner.clone());
+                    buildings_captured = true;
                 }
+            }
+            if buildings_captured {
+                self.building_state_revision = self.building_state_revision.wrapping_add(1);
             }
             let wname = self
                 .lineage_names

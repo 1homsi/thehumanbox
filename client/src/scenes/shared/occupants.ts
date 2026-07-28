@@ -1,4 +1,5 @@
 import type { OrganismState, WorldState } from '../../types'
+import { hasRuinedBuildingAtWorldTile } from '../../world/building-state'
 import type { OccupantRole, SceneOccupant } from '../core/types'
 
 const INSIDE_RADIUS = 1
@@ -6,18 +7,23 @@ const HOUSEHOLD_RADIUS = 6
 const STRUCTURE_MIN = 0.35
 
 function structureAt(world: WorldState, x: number, y: number): number {
-  const ix = Math.floor(x)
-  const iy = Math.floor(y)
+  const ix = Math.floor(x - (world.grid.origin_x ?? 0))
+  const iy = Math.floor(y - (world.grid.origin_y ?? 0))
   const row = world.grid?.structure?.[iy]
   if (!row) return 0
   const v = row[ix]
   return typeof v === 'number' ? v : 0
 }
 
+function hasStandingHome(world: WorldState, x: number, y: number): boolean {
+  return !hasRuinedBuildingAtWorldTile(world.buildings, x, y)
+}
+
 function isInsideHome(org: OrganismState, world: WorldState): boolean {
   const dx = Math.floor(org.x) - Math.floor(org.home_x)
   const dy = Math.floor(org.y) - Math.floor(org.home_y)
   if (Math.abs(dx) > INSIDE_RADIUS || Math.abs(dy) > INSIDE_RADIUS) return false
+  if (!hasStandingHome(world, org.home_x, org.home_y)) return false
   return structureAt(world, org.home_x, org.home_y) >= STRUCTURE_MIN
 }
 
@@ -34,6 +40,7 @@ export function hasBuiltHome(
   world: WorldState | undefined | null,
 ): boolean {
   if (!org || !world) return false
+  if (!hasStandingHome(world, org.home_x, org.home_y)) return false
   return structureAt(world, org.home_x, org.home_y) >= STRUCTURE_MIN
 }
 

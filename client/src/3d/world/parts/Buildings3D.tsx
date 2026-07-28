@@ -1340,7 +1340,7 @@ function Layer({
     for (let i = 0; i < count; i++) {
       const [px, py, pz] = positions[i]
       const c = conds?.[i] ?? 1
-      const yScale = c >= 0.97 ? 1 : 0.12 + 0.88 * Math.min(1, c / 0.97)
+      const yScale = c >= 1 ? 1 : 0.12 + 0.88 * Math.min(1, c)
       let yaw = rotY
       let s = scale
       if (jitter) {

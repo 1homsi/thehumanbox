@@ -33,6 +33,7 @@ import { useSceneStore } from '../../stores/scene'
 import { farmCropColor, farmProgress, farmStage } from '../../world/farms'
 import { activeStrategy, strategyTimeLabel } from '../../world/strategy-visuals'
 import { TILE_ID, isWaterTile } from '../../world/terrain-ids'
+import { getBuildingState, hasRuinedBuildingAtWorldTile, isRuinedBuilding } from '../../world/building-state'
 import {
   buildTerritoryIndex,
   lineageAtTerritoryTile,
@@ -169,6 +170,8 @@ const fpsSamples: number[] = []
 
 let _imgBuf: ImageData | null = null
 let _baseCanvas: HTMLCanvasElement | null = null
+let _ruinedBuildingSource: WorldState['buildings']
+let _ruinedBuildingTiles = new Set<string>()
 let _baseKey: {
   width: number
   height: number
@@ -179,6 +182,24 @@ let _baseKey: {
   depth_map?: number[][]
   season?: string
 } | null = null
+
+function ruinedBuildingTiles(buildings: WorldState['buildings']): ReadonlySet<string> {
+  if (buildings === _ruinedBuildingSource) return _ruinedBuildingTiles
+  const tiles = new Set<string>()
+  for (const building of buildings ?? []) {
+    if (!isRuinedBuilding(building)) continue
+    const footprintWidth = Math.max(1, Math.floor(building.footprint?.[0] ?? building.fw ?? 1))
+    const footprintHeight = Math.max(1, Math.floor(building.footprint?.[1] ?? building.fh ?? 1))
+    for (let dy = 0; dy < footprintHeight; dy++) {
+      for (let dx = 0; dx < footprintWidth; dx++) {
+        tiles.add(`${Math.floor(building.x + dx)},${Math.floor(building.y + dy)}`)
+      }
+    }
+  }
+  _ruinedBuildingSource = buildings
+  _ruinedBuildingTiles = tiles
+  return tiles
+}
 
 onAnyAtlasLoaded(() => {
   _baseKey = null
@@ -438,6 +459,7 @@ function drawWorldOnCanvas(
   const W = width * TILE
   const H = height * TILE
   const t = Date.now()
+  const ruinedTiles = ruinedBuildingTiles(world.buildings)
 
   const base = getBaseLayerCanvas(world)
   if (!base) return
@@ -723,7 +745,7 @@ function drawWorldOnCanvas(
         }
       }
 
-      if (t === 8) {
+      if (t === TILE_ID.HUT && !ruinedTiles.has(`${col + ox},${row + oy}`)) {
         const BW = TILE * 2
         const BH = TILE * 2
         const bx = px - TILE / 2
@@ -1399,7 +1421,17 @@ function drawWorldOnCanvas(
       if (b.x < cxLo || b.x > cxHi || b.y < ryLo || b.y > ryHi) continue
       drawBuilding(
         ctx,
-        { id: b.id, kind: b.kind, x: b.x, y: b.y, condition: b.condition },
+        {
+          id: b.id,
+          kind: b.kind,
+          x: b.x,
+          y: b.y,
+          condition: b.condition,
+          damage: b.damage,
+          integrity: b.integrity,
+          ruined: b.ruined,
+          repairing: b.repairing,
+        },
         ox,
         oy,
         TILE,
@@ -1437,6 +1469,7 @@ function drawWorldOnCanvas(
       // Legacy snapshots lack authoritative settlements. Retain the old
       // visual clustering as a compatibility fallback only.
       for (const b of world.buildings) {
+        if (!getBuildingState(b).isOperational) continue
         const lid = (b as { lineage_id?: string }).lineage_id ?? ''
         if (!lid) continue
         const bx = b.x
@@ -2442,6 +2475,7 @@ export function WorldView({ world, interp, rendererPaused = false, sandboxArmed,
       return
     }
 
+    const ruinedBuildingAtTile = hasRuinedBuildingAtWorldTile(world.buildings, tx, ty)
     const localCol = tx - ox
     const localRow = ty - oy
     const tileRow = world.grid?.tiles?.[localRow]
@@ -2453,7 +2487,7 @@ export function WorldView({ world, interp, rendererPaused = false, sandboxArmed,
     const isHut = tileVal === TILE_ID.HUT
     const structRow = world.grid?.structure?.[localRow]
     const structVal = (structRow && structRow[localCol]) || 0
-    if (isHut || structVal >= 0.35) {
+    if (!ruinedBuildingAtTile && (isHut || structVal >= 0.35)) {
       let bestHost: { id: string; age: number } | null = null
       for (const org of world.organisms) {
         if (!org.alive) continue

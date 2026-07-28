@@ -1,5 +1,6 @@
 import type { SceneContext, SceneFixture, SceneId, SceneOccupant } from '../../../scenes/core/types'
 import type { WorldState } from '../../../types'
+import { getBuildingState } from '../../../world/building-state'
 
 const TEMPLE_RADIUS = 20
 
@@ -21,10 +22,13 @@ const TEMPLE_KINDS = new Set(['temple', 'cathedral', 'shrine', 'mosque', 'synago
 function findTempleAnchor(world: WorldState, lineageId: string): { x: number; y: number } | null {
   const buildings = world.buildings ?? []
   let best: { x: number; y: number; score: number } | null = null
+  let hasMatchingTemple = false
   for (const b of buildings) {
     if (!TEMPLE_KINDS.has(b.kind)) continue
     const owner = (b as { lineage_id?: string }).lineage_id
     if (owner && owner !== lineageId) continue
+    hasMatchingTemple = true
+    if (!getBuildingState(b).isOperational) continue
     const rank =
       b.kind === 'cathedral'
         ? 4
@@ -37,6 +41,7 @@ function findTempleAnchor(world: WorldState, lineageId: string): { x: number; y:
     if (!best || score > best.score) best = { x: b.x, y: b.y, score }
   }
   if (best) return best
+  if (hasMatchingTemple) return null
 
   let cx = 0
   let cy = 0

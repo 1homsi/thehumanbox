@@ -308,7 +308,8 @@ mod tests {
         tick(&mut sim);
         assert_eq!(sim.settlement_tiers.get(&lineage_id), Some(&2));
 
-        sim.buildings[1].condition = 0.0;
+        sim.buildings[1].damage = 1.0;
+        sim.buildings[1].ruined_at_tick = Some(sim.tick_count);
         tick(&mut sim);
 
         let snapshot = snapshots(&sim).pop().unwrap();

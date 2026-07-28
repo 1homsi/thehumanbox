@@ -665,6 +665,18 @@ export interface Building {
   fw?: number
   fh?: number
   condition?: number
+  construction_progress?: number
+  /** Structural damage, kept separate from construction progress. */
+  damage?: number
+  /** Remaining structural integrity (`1 - damage`). */
+  integrity?: number
+  /** Destroyed buildings remain non-operational until rebuilt. */
+  ruined?: boolean
+  /** True while workers are actively repairing or rebuilding the structure. */
+  repairing?: boolean
+  ruined_at_tick?: number | null
+  last_damage_tick?: number | null
+  last_repair_tick?: number | null
   occupants?: string[]
   owner_lineage?: string | null
   lineage_id?: string | null

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mergeFrame, type MergeCaches } from './merge'
 import type { IncomingWorldFrame } from './wire'
-import type { OrganismState, AnimalState } from '../types'
+import type { OrganismState, AnimalState, Building } from '../types'
 
 function emptyCaches(): MergeCaches {
   return {
@@ -216,6 +216,19 @@ describe('mergeFrame civilization state handling', () => {
         y: 3,
       },
     ]
+    const buildings: Building[] = [
+      {
+        id: 9,
+        kind: 'house',
+        x: 2,
+        y: 3,
+        condition: 1,
+        damage: 0.6,
+        integrity: 0.4,
+        ruined: false,
+        repairing: true,
+      },
+    ]
 
     const full = mergeFrame(
       baseFrame({
@@ -224,6 +237,7 @@ describe('mergeFrame civilization state handling', () => {
         trades,
         governments,
         artworks,
+        buildings,
       }),
       caches,
     )
@@ -231,6 +245,7 @@ describe('mergeFrame civilization state handling', () => {
     expect(full.next.trades).toBe(trades)
     expect(full.next.governments).toBe(governments)
     expect(full.next.artworks).toBe(artworks)
+    expect(full.next.buildings).toBe(buildings)
 
     caches.prevWorld = full.next
     const delta = mergeFrame(baseFrame({ frame_id: 2, tick: 2 }), caches)
@@ -238,16 +253,38 @@ describe('mergeFrame civilization state handling', () => {
     expect(delta.next.trades).toBe(trades)
     expect(delta.next.governments).toBe(governments)
     expect(delta.next.artworks).toBe(artworks)
+    expect(delta.next.buildings).toBe(buildings)
 
     caches.prevWorld = delta.next
-    const cleared = mergeFrame(
+    const rebuiltBuildings: Building[] = [
+      {
+        ...buildings[0],
+        damage: 0,
+        integrity: 1,
+        repairing: false,
+      },
+    ]
+    const rebuilt = mergeFrame(
       baseFrame({
         frame_id: 3,
+        tick: 3,
+        buildings: rebuiltBuildings,
+      }),
+      caches,
+    )
+    expect(rebuilt.next.buildings).toBe(rebuiltBuildings)
+
+    caches.prevWorld = rebuilt.next
+    const cleared = mergeFrame(
+      baseFrame({
+        frame_id: 4,
         frame_kind: 'full',
+        tick: 4,
         territory: { claimed: [], contested: [] },
         trades: [],
         governments: [],
         artworks: [],
+        buildings: [],
       }),
       caches,
     )
@@ -255,5 +292,6 @@ describe('mergeFrame civilization state handling', () => {
     expect(cleared.next.trades).toEqual([])
     expect(cleared.next.governments).toEqual([])
     expect(cleared.next.artworks).toEqual([])
+    expect(cleared.next.buildings).toEqual([])
   })
 })

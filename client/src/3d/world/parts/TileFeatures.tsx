@@ -35,6 +35,7 @@ interface Props {
   width: number
   height: number
   pathTrail?: number[][]
+  suppressedHutTiles?: ReadonlySet<string>
 }
 
 function biomeTreeRule(b: number): { chance: number; spacing: number } {
@@ -141,6 +142,7 @@ function collectFeatures(
   width: number,
   height: number,
   pathTrail?: number[][],
+  suppressedHutTiles?: ReadonlySet<string>,
 ) {
   const trees: { 0: [number, number, number, number][]; 1: (typeof trees)[0]; 2: (typeof trees)[0] } = {
     0: [],
@@ -186,7 +188,7 @@ function collectFeatures(
       const ground = heightAt(x, y, depthMap, biomes)
       const px = x * TILE_SCALE
       const pz = y * TILE_SCALE
-      if (t === TILE_ID.HUT) huts.push([px, ground, pz])
+      if (t === TILE_ID.HUT && !suppressedHutTiles?.has(`${x},${y}`)) huts.push([px, ground, pz])
       else if (t === TILE_ID.CAMPFIRE) campfires.push([px, ground, pz])
       else if (t === TILE_ID.FIRE) fires.push([px, ground, pz])
       else if (t === TILE_ID.ROCK) rocks.push([px, ground, pz])
@@ -803,10 +805,18 @@ function CampfireFlames({
   )
 }
 
-export function TileFeatures({ tiles, biomes, depthMap, width, height, pathTrail }: Props) {
+export function TileFeatures({
+  tiles,
+  biomes,
+  depthMap,
+  width,
+  height,
+  pathTrail,
+  suppressedHutTiles,
+}: Props) {
   const features = useMemo(
-    () => collectFeatures(tiles, biomes, depthMap, width, height, pathTrail),
-    [tiles, biomes, depthMap, width, height, pathTrail],
+    () => collectFeatures(tiles, biomes, depthMap, width, height, pathTrail, suppressedHutTiles),
+    [tiles, biomes, depthMap, width, height, pathTrail, suppressedHutTiles],
   )
 
   const treeYAdjust = 0.7

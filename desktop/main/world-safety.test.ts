@@ -41,7 +41,7 @@ import {
 function validSave(overrides: Record<string, unknown> = {}): Buffer {
   return Buffer.from(
     JSON.stringify({
-      version: 4,
+      version: 5,
       tick_count: 123,
       world_seed: 99,
       organisms: [],
@@ -77,7 +77,7 @@ test("validates the required native world-save shape", () => {
   const result = validateWorldSaveBytes(
     validSave({ world_seed: 18_000_000_000_000_000_000 }),
   );
-  assert.equal(result.version, 4);
+  assert.equal(result.version, 5);
   assert.equal(result.tick, 123);
   assert.equal(result.seed, 18_000_000_000_000_000_000);
   assert.equal(result.seedText, "18000000000000000000");
@@ -105,9 +105,10 @@ test("startup handshake rejects a silently minted replacement world", () => {
 
 test("rejects incompatible or incomplete saves before import", () => {
   assert.throws(
-    () => validateWorldSaveBytes(validSave({ version: 5 })),
+    () => validateWorldSaveBytes(validSave({ version: 6 })),
     /newer/,
   );
+  assert.doesNotThrow(() => validateWorldSaveBytes(validSave({ version: 4 })));
   assert.throws(
     () => validateWorldSaveBytes(validSave({ grid: { tiles: [0] } })),
     /expected 180000/,

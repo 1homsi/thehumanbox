@@ -16,6 +16,7 @@ import { Sun } from './parts/Sun'
 import { Humans3D } from './parts/Humans3D'
 import { Animals3D } from './parts/Animals3D'
 import { Buildings3D } from './parts/Buildings3D'
+import { BuildingDamage3D } from './parts/BuildingDamage3D'
 import { BuildingSmoke3D } from './parts/BuildingSmoke3D'
 import { OrgLabels } from './parts/OrgLabels'
 import { TileFeatures } from './parts/TileFeatures'
@@ -76,6 +77,7 @@ import { cameraCommand, type CameraLookAt, type CameraTeleport } from './parts/c
 import { threeFrameLoopForPause } from '../../lib/desktopVisibility'
 import { TILE_ID } from '../../world/terrain-ids'
 import { buildTerritoryIndex, lineageAtTerritoryTile } from '../../world/territory'
+import { hasRuinedBuildingAtWorldTile, isRuinedBuilding } from '../../world/building-state'
 
 type MoveKeys = 'forward' | 'back' | 'left' | 'right' | 'up' | 'down' | 'boost'
 
@@ -385,6 +387,29 @@ export default function WorldView3D({
   const focus = useUIStore((s) => s.focus)
   const setFocus = useUIStore((s) => s.setFocus)
   const territoryIndex = useMemo(() => buildTerritoryIndex(world?.territory), [world?.territory])
+  // Every normal building consumer receives this same list. That keeps
+  // windows, industry smoke, settlement props, roads, vehicles, farm
+  // fallbacks, searchlights, collisions, and ordinary scaffolds off ruins.
+  const standingBuildings = useMemo(
+    () => (world?.buildings ?? []).filter((building) => !isRuinedBuilding(building)),
+    [world?.buildings],
+  )
+  const ruinedBuildingLocalTiles = useMemo(() => {
+    const tiles = new Set<string>()
+    const originX = world?.grid.origin_x ?? 0
+    const originY = world?.grid.origin_y ?? 0
+    for (const building of world?.buildings ?? []) {
+      if (!isRuinedBuilding(building)) continue
+      const footprintWidth = Math.max(1, Math.floor(building.footprint?.[0] ?? building.fw ?? 1))
+      const footprintHeight = Math.max(1, Math.floor(building.footprint?.[1] ?? building.fh ?? 1))
+      for (let dy = 0; dy < footprintHeight; dy++) {
+        for (let dx = 0; dx < footprintWidth; dx++) {
+          tiles.add(`${Math.floor(building.x + dx - originX)},${Math.floor(building.y + dy - originY)}`)
+        }
+      }
+    }
+    return tiles
+  }, [world?.buildings, world?.grid.origin_x, world?.grid.origin_y])
   const hasFollowTarget = followOrgId !== null
   const followingSelected = selectedOrgId !== null && followOrgId === selectedOrgId
 
@@ -553,10 +578,10 @@ export default function WorldView3D({
       }
       const tx = Math.floor(x)
       const ty = Math.floor(y)
+      const worldTileX = tx + (world.grid.origin_x ?? 0)
+      const worldTileY = ty + (world.grid.origin_y ?? 0)
 
       if (showTerritoryMap) {
-        const worldTileX = tx + (world.grid.origin_x ?? 0)
-        const worldTileY = ty + (world.grid.origin_y ?? 0)
         const focusedLineage = focus.startsWith('lineage:') ? focus.slice('lineage:'.length) : null
         const lineageId = lineageAtTerritoryTile(territoryIndex, worldTileX, worldTileY, focusedLineage)
         selectOrg(null)
@@ -565,13 +590,15 @@ export default function WorldView3D({
         return
       }
 
+      if (hasRuinedBuildingAtWorldTile(world.buildings, worldTileX, worldTileY)) return
+
       const tileVal = world.grid.tiles?.[ty]?.[tx]
       const structVal = world.grid.structure?.[ty]?.[tx] ?? 0
       if (tileVal !== TILE_ID.HUT && structVal < 0.35) return
       let bestHost: { id: string; age: number } | null = null
       for (const org of world.organisms ?? []) {
         if (!org.alive) continue
-        if (Math.floor(org.home_x) === tx && Math.floor(org.home_y) === ty) {
+        if (Math.floor(org.home_x) === worldTileX && Math.floor(org.home_y) === worldTileY) {
           if (!bestHost || org.age > bestHost.age) bestHost = { id: org.id, age: org.age }
         }
       }
@@ -589,12 +616,13 @@ export default function WorldView3D({
       if (!tRow) continue
       for (let col = 0; col < grid.width; col++) {
         if (tRow[col] !== TILE_ID.HUT) continue
+        if (ruinedBuildingLocalTiles.has(`${col},${row}`)) continue
         const ground = heightAt(col, row, grid.depth_map, grid.biomes)
         out.push([col * TILE_SCALE, ground, row * TILE_SCALE])
       }
     }
     return out
-  }, [grid?.tiles, grid?.depth_map, grid?.biomes, grid?.height, grid?.width])
+  }, [grid?.tiles, grid?.depth_map, grid?.biomes, grid?.height, grid?.width, ruinedBuildingLocalTiles])
 
   const buildingAABBs = useMemo<BuildingAABB[]>(() => {
     if (!grid?.tiles || !grid?.depth_map || !grid?.biomes) return []
@@ -605,6 +633,7 @@ export default function WorldView3D({
       if (!tRow) continue
       for (let col = 0; col < grid.width; col++) {
         if (tRow[col] !== TILE_ID.HUT) continue
+        if (ruinedBuildingLocalTiles.has(`${col},${row}`)) continue
         const ground = heightAt(col, row, grid.depth_map, grid.biomes)
         const cx = col * TILE_SCALE
         const cz = row * TILE_SCALE
@@ -619,7 +648,7 @@ export default function WorldView3D({
         })
       }
     }
-    for (const b of world?.buildings ?? []) {
+    for (const b of standingBuildings) {
       if (typeof b.x !== 'number' || typeof b.y !== 'number') continue
       const fp = (b.footprint ?? [2, 2]) as [number, number]
       const ground = heightAt(b.x, b.y, grid.depth_map, grid.biomes)
@@ -637,7 +666,15 @@ export default function WorldView3D({
       })
     }
     return out
-  }, [grid?.tiles, grid?.depth_map, grid?.biomes, grid?.height, grid?.width, world?.buildings])
+  }, [
+    grid?.tiles,
+    grid?.depth_map,
+    grid?.biomes,
+    grid?.height,
+    grid?.width,
+    ruinedBuildingLocalTiles,
+    standingBuildings,
+  ])
 
   const cx = (grid?.width ?? 150) * TILE_SCALE * 0.5
   const cz = (grid?.height ?? 75) * TILE_SCALE * 0.5
@@ -749,6 +786,7 @@ export default function WorldView3D({
                   width={grid.width}
                   height={grid.height}
                   pathTrail={grid.path_trail}
+                  suppressedHutTiles={ruinedBuildingLocalTiles}
                 />
                 <GrassTufts
                   tiles={grid.tiles!}
@@ -766,15 +804,20 @@ export default function WorldView3D({
                   onSandboxApply={onSandboxApply}
                 />
                 <Buildings3D
-                  buildings={world.buildings ?? []}
+                  buildings={standingBuildings}
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}
                   dayProgress={dayProgress}
                   lineageEras={lineageErasMap}
                 />
+                <BuildingDamage3D
+                  buildings={world.buildings}
+                  depthMap={grid.depth_map}
+                  biomes={grid.biomes}
+                />
                 {!LOW_PERF && (
                   <SettlementDetails3D
-                    buildings={world.buildings ?? []}
+                    buildings={standingBuildings}
                     depthMap={grid.depth_map!}
                     biomes={grid.biomes!}
                     dayProgress={dayProgress}
@@ -790,7 +833,7 @@ export default function WorldView3D({
                   biomes={grid.biomes!}
                 />
                 <BuildingSmoke3D
-                  buildings={world.buildings ?? []}
+                  buildings={standingBuildings}
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}
                 />
@@ -893,20 +936,20 @@ export default function WorldView3D({
                   height={grid.height}
                 />
                 <ConstructionScaffolds
-                  buildings={world.buildings}
+                  buildings={standingBuildings}
                   depthMap={grid.depth_map}
                   biomes={grid.biomes}
                 />
                 <BuildSparks buildings={world.buildings} depthMap={grid.depth_map} biomes={grid.biomes} />
                 <Vehicles3D
-                  buildings={world.buildings}
+                  buildings={standingBuildings}
                   lineageEras={lineageErasMap}
                   depthMap={grid.depth_map}
                   biomes={grid.biomes}
                   isNight={isNight}
                 />
                 <Roads3D
-                  buildings={world.buildings}
+                  buildings={standingBuildings}
                   lineageEras={lineageErasMap}
                   depthMap={grid.depth_map}
                   biomes={grid.biomes}
@@ -919,19 +962,19 @@ export default function WorldView3D({
                   height={grid.height}
                 />
                 <Farms3D
-                  buildings={world.buildings}
+                  buildings={standingBuildings}
                   farms={world.farms}
                   tick={world.tick}
                   depthMap={grid.depth_map}
                   biomes={grid.biomes}
                 />
                 <WatchtowerBeams
-                  buildings={world.buildings}
+                  buildings={standingBuildings}
                   depthMap={grid.depth_map}
                   biomes={grid.biomes}
                   isNight={isNight}
                 />
-                <IndustrySmoke buildings={world.buildings} depthMap={grid.depth_map} biomes={grid.biomes} />
+                <IndustrySmoke buildings={standingBuildings} depthMap={grid.depth_map} biomes={grid.biomes} />
                 <AmbientMotes isNight={isNight} weatherKind={world.weather?.kind ?? 'clear'} />
                 <Fireflies hutPositions={hutWorldPositions} isNight={isNight} />
                 <SocialBeams

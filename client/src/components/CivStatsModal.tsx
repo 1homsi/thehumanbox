@@ -5,6 +5,7 @@ import { Modal } from './Modal'
 import { normalizeLineageEras } from '../utils/lineageEras'
 import { useSceneStore } from '../stores/scene'
 import { farmStage } from '../world/farms'
+import { getBuildingState } from '../world/building-state'
 
 interface Props {
   world: WorldState
@@ -19,6 +20,21 @@ const GUIDANCE: Array<{ value: LineageStrategy; label: string }> = [
   { value: 'trade', label: 'trade' },
   { value: 'defend', label: 'defend' },
 ]
+
+function hasEnterableBuilding(world: WorldState, kinds: ReadonlySet<string>, lineageId: string): boolean {
+  const matching = (world.buildings ?? []).filter((building) => {
+    if (!kinds.has(building.kind.toLowerCase())) return false
+    const owner = building.lineage_id ?? building.owner_lineage
+    return !owner || owner === lineageId
+  })
+  // Older snapshots did not carry all building records and use the scene
+  // resolver's lineage-centroid fallback. Only an explicitly ruined record
+  // suppresses that legacy path.
+  return matching.length === 0 || matching.some((building) => getBuildingState(building).isOperational)
+}
+
+const TAVERN_BUILDINGS = new Set(['tavern'])
+const TEMPLE_BUILDINGS = new Set(['temple', 'cathedral', 'shrine', 'mosque', 'synagogue', 'pagoda'])
 
 const ERA_EMOJI: Record<string, string> = {
   'pre-stone': '\u{1F33F}',
@@ -245,6 +261,7 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                     const hasBrewing = world.organisms.some(
                       (o) => o.alive && o.lineage_id === l.id && o.discoveries.includes('brewing'),
                     )
+                    const canEnterTavern = hasEnterableBuilding(world, TAVERN_BUILDINGS, l.id)
                     return (
                       <tr key={l.id}>
                         <td>{lineageById(l.id)}</td>
@@ -320,7 +337,7 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                                 ))}
                               </select>
                             )}
-                            {hasBrewing && (
+                            {hasBrewing && canEnterTavern && (
                               <button
                                 className="civ-row-link"
                                 onClick={() => {
@@ -370,27 +387,33 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
           <section className="civ-section">
             <h3>Religions</h3>
             {religions.length === 0 && <div className="civ-empty">No religions founded yet</div>}
-            {religions.map((r) => (
-              <div key={r.id} className="civ-row">
-                <span className="civ-row-head">
-                  {'\u{271D}\u{FE0F}'} {r.name}
-                </span>
-                <span className="civ-row-sub">{r.kind}</span>
-                <span className="civ-row-tag">{r.adherents} adherents</span>
-                <span className="civ-row-tag">
-                  founded by {lineageById(r.founder_lineage ?? r.lineage_id ?? '')}
-                </span>
-                <button
-                  className="civ-row-link"
-                  onClick={() => {
-                    useSceneStore.getState().enter({ kind: 'temple', religionId: r.id })
-                    onClose()
-                  }}
-                >
-                  enter temple →
-                </button>
-              </div>
-            ))}
+            {religions.map((r) => {
+              const lineageId = r.founder_lineage ?? r.lineage_id ?? ''
+              const canEnterTemple = hasEnterableBuilding(world, TEMPLE_BUILDINGS, lineageId)
+              return (
+                <div key={r.id} className="civ-row">
+                  <span className="civ-row-head">
+                    {'\u{271D}\u{FE0F}'} {r.name}
+                  </span>
+                  <span className="civ-row-sub">{r.kind}</span>
+                  <span className="civ-row-tag">{r.adherents} adherents</span>
+                  <span className="civ-row-tag">founded by {lineageById(lineageId)}</span>
+                  {canEnterTemple ? (
+                    <button
+                      className="civ-row-link"
+                      onClick={() => {
+                        useSceneStore.getState().enter({ kind: 'temple', religionId: r.id })
+                        onClose()
+                      }}
+                    >
+                      enter temple →
+                    </button>
+                  ) : (
+                    <span className="civ-row-tag">temple unavailable</span>
+                  )}
+                </div>
+              )
+            })}
           </section>
 
           <section className="civ-section">
