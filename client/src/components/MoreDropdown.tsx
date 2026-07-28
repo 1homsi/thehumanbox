@@ -43,6 +43,7 @@ export function MoreDropdown() {
   const setOverlay = useUIStore((s) => s.setOverlay)
   const setFocus = useUIStore((s) => s.setFocus)
   const setViewFlag = useUIStore((s) => s.setViewFlag)
+  const setTerritoryView = useUIStore((s) => s.setTerritoryView)
   const toggleLeft = useUIStore((s) => s.toggleLeft)
   const openLanguages = useUIStore((s) => s.openLanguages)
   const openFamilyTree = useUIStore((s) => s.openFamilyTree)
@@ -71,7 +72,6 @@ export function MoreDropdown() {
   const hazard = useViewFlag('hazard')
   const history = useViewFlag('history')
   const fps = useViewFlag('fps')
-  const territoryMap = useViewFlag('territoryMap')
   const threeD = useViewFlag('threeD')
   const hideUI = useViewFlag('hideUI')
   const orgPov = useViewFlag('orgPov')
@@ -220,7 +220,7 @@ export function MoreDropdown() {
             <button
               className={clsx('lang-btn', territory && 'active')}
               aria-pressed={!!territory}
-              onClick={() => setViewFlag('territory', !territory)}
+              onClick={() => setTerritoryView(!territory)}
             >
               ⬡ territory
             </button>
@@ -384,13 +384,13 @@ export function MoreDropdown() {
           </button>
         </Tooltip>
         {threeD && (
-          <Tooltip tip="3D territory overlay — lineage claims and contested zones (3D only)">
+          <Tooltip tip="Territory overlay — lineage claims and contested zones">
             <button
-              className={clsx('lang-btn', territoryMap && 'active')}
-              aria-pressed={!!territoryMap}
-              onClick={() => setViewFlag('territoryMap', !territoryMap)}
+              className={clsx('lang-btn', territory && 'active')}
+              aria-pressed={!!territory}
+              onClick={() => setTerritoryView(!territory)}
             >
-              ⬡ territory 3d
+              ⬡ territory
             </button>
           </Tooltip>
         )}

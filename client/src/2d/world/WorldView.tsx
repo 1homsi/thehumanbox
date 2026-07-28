@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   Game,
   World,
@@ -32,6 +32,14 @@ import { normalizeLineageEras } from '../../utils/lineageEras'
 import { useSceneStore } from '../../stores/scene'
 import { farmCropColor, farmProgress, farmStage } from '../../world/farms'
 import { activeStrategy, strategyTimeLabel } from '../../world/strategy-visuals'
+import { TILE_ID, isWaterTile } from '../../world/terrain-ids'
+import {
+  buildTerritoryIndex,
+  lineageAtTerritoryTile,
+  territoryEmphasis,
+  territoryStanding,
+  territoryTileKey,
+} from '../../world/territory'
 
 import { LOW_PERF } from '../../lib/perf'
 import { syncRendererLoopPause } from '../../lib/desktopVisibility'
@@ -1059,112 +1067,73 @@ function drawWorldOnCanvas(
     }
   }
 
-  const liveOrgs = organisms.filter((o) => o.alive && o.lineage_id)
-  if (viewFlags.territory && liveOrgs.length > 0) {
-    const BLOCK = 4
-    const MAX_DIST_SQ = 40 * 40
-    const bw = Math.ceil(width / BLOCK)
-    const bh = Math.ceil(height / BLOCK)
+  if (viewFlags.territory && world.territory) {
+    const index = buildTerritoryIndex(world.territory)
+    const focusedLineage = focus.startsWith('lineage:') ? focus.slice('lineage:'.length) : null
 
-    // Dedupe by lineage so two orgs of the same lineage share one
-    // palette entry (string ops happen once per lineage, not per org).
-    type Lin = { fill: string; border: string; lid: string }
-    const linByLid = new Map<string, number>()
-    const lineages: Lin[] = []
-    // Parallel SoA arrays for the nearest-org search - cache friendlier
-    // than walking an array of records, and lets us skip object lookups
-    // inside the hot inner loop.
-    const orgTx = new Float32Array(liveOrgs.length)
-    const orgTy = new Float32Array(liveOrgs.length)
-    const orgLin = new Int32Array(liveOrgs.length)
-    for (let i = 0; i < liveOrgs.length; i++) {
-      const o = liveOrgs[i]
-      orgTx[i] = o.x - ox
-      orgTy[i] = o.y - oy
-      let idx = linByLid.get(o.lineage_id)
-      if (idx === undefined) {
-        const hsl = lineageColor(o.lineage_id)
-        const dark = hsl
-          .replace(/(\d+)%\)$/, (_, l) => `${Math.max(15, Number(l) - 30)}%, 0.85)`)
+    for (const claim of world.territory.claimed) {
+      const standing = territoryStanding(claim.lid, focusedLineage, world.tribal_relations)
+      const emphasis = territoryEmphasis(standing)
+      const color = lineageColor(claim.lid)
+      const fill = color.replace('hsl(', 'hsla(').replace(')', `, ${emphasis.fillAlpha})`)
+      const border =
+        emphasis.borderColor ??
+        color
+          .replace(/(\d+)%\)$/, (_, lightness) => `${Math.max(15, Number(lightness) - 24)}%, 0.9)`)
           .replace('hsl(', 'hsla(')
-        const fill = hsl.replace('hsl(', 'hsla(').replace(')', ', 0.25)')
-        idx = lineages.length
-        lineages.push({ fill, border: dark, lid: o.lineage_id })
-        linByLid.set(o.lineage_id, idx)
-      }
-      orgLin[i] = idx
-    }
 
-    // Flat Int32Array for owner-lineage indices: 1 alloc instead of 3×
-    // nested arrays of strings. -1 = unowned, otherwise index into `lineages`.
-    const owner = new Int32Array(bw * bh)
-    owner.fill(-1)
-    const orgN = liveOrgs.length
-    for (let by = 0; by < bh; by++) {
-      const rowOffset = by * bw
-      const cy2 = by * BLOCK + BLOCK * 0.5
-      const cy2i = Math.floor(cy2)
-      const tilesRow = tiles[cy2i]
-      for (let bx = 0; bx < bw; bx++) {
-        const cx2 = bx * BLOCK + BLOCK * 0.5
-        if (tilesRow?.[Math.floor(cx2)] === 2) continue
-        let bestIdx = -1,
-          bestDist = MAX_DIST_SQ
-        for (let i = 0; i < orgN; i++) {
-          const dx = orgTx[i] - cx2
-          const dy = orgTy[i] - cy2
-          const d = dx * dx + dy * dy
-          if (d < bestDist) {
-            bestDist = d
-            bestIdx = orgLin[i]
-          }
+      ctx.beginPath()
+      for (const [worldTileX, worldTileY] of claim.tiles) {
+        const col = worldTileX - ox
+        const row = worldTileY - oy
+        if (col < c0 || col >= c1 || row < r0 || row >= r1) continue
+        ctx.rect(col * TILE, row * TILE, TILE, TILE)
+      }
+      ctx.fillStyle = fill
+      ctx.fill()
+
+      ctx.beginPath()
+      const owns = (x: number, y: number) =>
+        index.ownersByTile.get(territoryTileKey(x, y))?.includes(claim.lid) === true
+      for (const [worldTileX, worldTileY] of claim.tiles) {
+        const col = worldTileX - ox
+        const row = worldTileY - oy
+        if (col < c0 || col >= c1 || row < r0 || row >= r1) continue
+        const px = col * TILE
+        const py = row * TILE
+        if (!owns(worldTileX, worldTileY - 1)) {
+          ctx.moveTo(px, py)
+          ctx.lineTo(px + TILE, py)
         }
-        if (bestIdx >= 0) owner[rowOffset + bx] = bestIdx
-      }
-    }
-
-    // Fill pass: batch contiguous spans of identical lineage on the same
-    // row into a single fillRect (avoids per-cell state-change cost).
-    for (let by = 0; by < bh; by++) {
-      const rowOffset = by * bw
-      let bx = 0
-      while (bx < bw) {
-        const idx = owner[rowOffset + bx]
-        if (idx < 0) {
-          bx++
-          continue
+        if (!owns(worldTileX + 1, worldTileY)) {
+          ctx.moveTo(px + TILE, py)
+          ctx.lineTo(px + TILE, py + TILE)
         }
-        let ex = bx + 1
-        while (ex < bw && owner[rowOffset + ex] === idx) ex++
-        ctx.fillStyle = lineages[idx].fill
-        ctx.fillRect(bx * BLOCK * TILE, by * BLOCK * TILE, (ex - bx) * BLOCK * TILE, BLOCK * TILE)
-        bx = ex
-      }
-    }
-
-    const BW = 2
-    for (let by = 0; by < bh; by++) {
-      const rowOffset = by * bw
-      const topOffset = by > 0 ? rowOffset - bw : -1
-      const bottomOffset = by < bh - 1 ? rowOffset + bw : -1
-      for (let bx = 0; bx < bw; bx++) {
-        const idx = owner[rowOffset + bx]
-        if (idx < 0) continue
-        const top = topOffset >= 0 ? owner[topOffset + bx] : -1
-        const bottom = bottomOffset >= 0 ? owner[bottomOffset + bx] : -1
-        const left = bx > 0 ? owner[rowOffset + bx - 1] : -1
-        const right = bx < bw - 1 ? owner[rowOffset + bx + 1] : -1
-        if (top !== idx || bottom !== idx || left !== idx || right !== idx) {
-          ctx.fillStyle = lineages[idx].border
-          const px = bx * BLOCK * TILE,
-            py = by * BLOCK * TILE
-          const sz = BLOCK * TILE
-          if (top !== idx) ctx.fillRect(px, py, sz, BW)
-          if (bottom !== idx) ctx.fillRect(px, py + sz - BW, sz, BW)
-          if (left !== idx) ctx.fillRect(px, py, BW, sz)
-          if (right !== idx) ctx.fillRect(px + sz - BW, py, BW, sz)
+        if (!owns(worldTileX, worldTileY + 1)) {
+          ctx.moveTo(px + TILE, py + TILE)
+          ctx.lineTo(px, py + TILE)
+        }
+        if (!owns(worldTileX - 1, worldTileY)) {
+          ctx.moveTo(px, py + TILE)
+          ctx.lineTo(px, py)
         }
       }
+      ctx.strokeStyle = border
+      ctx.lineWidth = emphasis.borderWidth
+      ctx.stroke()
+    }
+
+    if (world.territory.contested.length > 0) {
+      const pulse = 0.12 + Math.abs(Math.sin(t / 420)) * 0.16
+      ctx.beginPath()
+      for (const [worldTileX, worldTileY] of world.territory.contested) {
+        const col = worldTileX - ox
+        const row = worldTileY - oy
+        if (col < c0 || col >= c1 || row < r0 || row >= r1) continue
+        ctx.rect(col * TILE, row * TILE, TILE, TILE)
+      }
+      ctx.fillStyle = `rgba(255,255,255,${pulse})`
+      ctx.fill()
     }
   }
 
@@ -2377,8 +2346,10 @@ export function WorldView({ world, interp, rendererPaused = false, sandboxArmed,
   const followOrgId = useUIStore((s) => s.followOrgId)
   const overlay = useUIStore((s) => s.overlay)
   const focus = useUIStore((s) => s.focus)
+  const setFocus = useUIStore((s) => s.setFocus)
   const viewFlags = useUIStore((s) => s.viewFlags)
   const onOrgSelect = useUIStore((s) => s.selectOrg)
+  const territoryIndex = useMemo(() => buildTerritoryIndex(world.territory), [world.territory])
   const W = world.grid.width * TILE
   const H = world.grid.height * TILE
   const cx = W / 2
@@ -2442,6 +2413,18 @@ export function WorldView({ world, interp, rendererPaused = false, sandboxArmed,
       return
     }
 
+    const tx = Math.floor(worldX)
+    const ty = Math.floor(worldY)
+
+    if (viewFlags.territory) {
+      const focusedLineage = focus.startsWith('lineage:') ? focus.slice('lineage:'.length) : null
+      const lineageId = lineageAtTerritoryTile(territoryIndex, tx, ty, focusedLineage)
+      onOrgSelect(null)
+      useUIStore.setState({ panelOpen: false })
+      setFocus(lineageId ? `lineage:${lineageId}` : 'all')
+      return
+    }
+
     const isCoarse = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
 
     let nearestOrg: { id: string; dist: number } | null = null
@@ -2459,19 +2442,15 @@ export function WorldView({ world, interp, rendererPaused = false, sandboxArmed,
       return
     }
 
-    const tx = Math.floor(worldX)
-    const ty = Math.floor(worldY)
     const localCol = tx - ox
     const localRow = ty - oy
-    const TILE_WATER = 2
-    const TILE_HUT = 8
     const tileRow = world.grid?.tiles?.[localRow]
     const tileVal = tileRow ? tileRow[localCol] : undefined
-    if (tileVal === TILE_WATER && (!nearestOrg || nearestOrg.dist >= 2.5)) {
+    if (isWaterTile(tileVal) && (!nearestOrg || nearestOrg.dist >= 2.5)) {
       onOrgSelect(null)
       return
     }
-    const isHut = tileVal === TILE_HUT
+    const isHut = tileVal === TILE_ID.HUT
     const structRow = world.grid?.structure?.[localRow]
     const structVal = (structRow && structRow[localCol]) || 0
     if (isHut || structVal >= 0.35) {

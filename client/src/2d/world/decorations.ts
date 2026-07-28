@@ -8,6 +8,7 @@
 import { SPRITE, ATLAS_TOWN, drawTile } from '../../utils/sprites'
 import type { WorldState } from '../../types'
 import { TILE } from '../../world/palette'
+import { BIOME_ID, TILE_ID, isWaterTile } from '../../world/terrain-ids'
 
 export function drawCloudShape(
   ctx: CanvasRenderingContext2D,
@@ -58,15 +59,6 @@ export function drawTrees(
   biomes?: number[][],
 ) {
   if (!biomes || !ATLAS_TOWN.complete) return
-  const TILE_GRASS = 1
-  const TILE_FOOD = 3
-  const BIOME_GRASS = 0
-  const BIOME_FOREST = 1
-  const BIOME_DESERT = 2
-  const BIOME_TUNDRA = 3
-  const BIOME_WETLAND = 4
-  const BIOME_VOLCANIC = 5
-
   const TREE_SIZE = 16
 
   const placed: Uint8Array = new Uint8Array(width * height)
@@ -87,7 +79,7 @@ export function drawTrees(
     const bRow = biomes[y]
     if (!tRow || !bRow) continue
     const t = tRow[x]
-    if (t !== TILE_GRASS && t !== TILE_FOOD) continue
+    if (t !== TILE_ID.GRASS && t !== TILE_ID.FOOD) continue
     const biome = bRow[x] ?? 0
 
     let hash = (x * 73856093) ^ (y * 19349663)
@@ -98,27 +90,27 @@ export function drawTrees(
     let chance = 0
     let spacing = 2
     switch (biome) {
-      case BIOME_FOREST:
+      case BIOME_ID.FOREST:
         chance = 0.32
         spacing = 2
         break
-      case BIOME_WETLAND:
+      case BIOME_ID.WETLAND:
         chance = 0.18
         spacing = 3
         break
-      case BIOME_GRASS:
+      case BIOME_ID.GRASSLAND:
         chance = 0.06
         spacing = 5
         break
-      case BIOME_TUNDRA:
+      case BIOME_ID.TUNDRA:
         chance = 0.1
         spacing = 4
         break
-      case BIOME_DESERT:
+      case BIOME_ID.DESERT:
         chance = 0.03
         spacing = 6
         break
-      case BIOME_VOLCANIC:
+      case BIOME_ID.VOLCANIC:
         chance = 0.05
         spacing = 4
         break
@@ -145,22 +137,22 @@ export function drawTrees(
 
     let sprite = SPRITE.trees.oak_mid
     switch (biome) {
-      case BIOME_FOREST:
+      case BIOME_ID.FOREST:
         sprite = r1 < 0.45 ? SPRITE.trees.conifer : r1 < 0.75 ? SPRITE.trees.oak_dark : SPRITE.trees.oak_mid
         break
-      case BIOME_WETLAND:
+      case BIOME_ID.WETLAND:
         sprite = r1 < 0.6 ? SPRITE.trees.bush : SPRITE.trees.oak_mid
         break
-      case BIOME_GRASS:
+      case BIOME_ID.GRASSLAND:
         sprite = r1 < 0.6 ? SPRITE.trees.oak_light : SPRITE.trees.oak_mid
         break
-      case BIOME_TUNDRA:
+      case BIOME_ID.TUNDRA:
         sprite = SPRITE.trees.conifer_dk
         break
-      case BIOME_DESERT:
+      case BIOME_ID.DESERT:
         sprite = r1 < 0.5 ? SPRITE.trees.cactus : SPRITE.trees.dead
         break
-      case BIOME_VOLCANIC:
+      case BIOME_ID.VOLCANIC:
         sprite = SPRITE.trees.dead
         break
     }
@@ -176,18 +168,6 @@ export function drawNaturalDecor(
   biomes?: number[][],
 ) {
   if (!biomes) return
-  const TILE_GRASS = 1
-  const TILE_FOOD = 3
-  const TILE_WATER = 0
-  const TILE_SAND = 13
-  const TILE_SNOW = 12
-  const TILE_ROCK = 5
-  const BIOME_GRASS = 0
-  const BIOME_FOREST = 1
-  const BIOME_DESERT = 2
-  const BIOME_TUNDRA = 3
-  const BIOME_WETLAND = 4
-
   ctx.save()
   for (let y = 1; y < height - 1; y++) {
     const tRow = tiles[y]
@@ -204,9 +184,9 @@ export function drawNaturalDecor(
       const px = x * TILE
       const py = y * TILE
 
-      if (t === TILE_ROCK || (t === TILE_SAND && biome === BIOME_DESERT && r0 < 0.04)) {
+      if (t === TILE_ID.ROCK || (t === TILE_ID.SAND && biome === BIOME_ID.DESERT && r0 < 0.04)) {
         const sz = 2 + Math.floor(r1 * 3)
-        ctx.fillStyle = t === TILE_ROCK ? '#5e5650' : '#8a7654'
+        ctx.fillStyle = t === TILE_ID.ROCK ? '#5e5650' : '#8a7654'
         ctx.beginPath()
         ctx.ellipse(
           px + TILE / 2 + (r2 - 0.5) * TILE * 0.4,
@@ -220,7 +200,7 @@ export function drawNaturalDecor(
         ctx.fill()
         continue
       }
-      if (t === TILE_SNOW && r0 < 0.18) {
+      if (t === TILE_ID.SNOW && r0 < 0.18) {
         ctx.fillStyle = 'rgba(245,250,255,0.7)'
         ctx.beginPath()
         ctx.ellipse(
@@ -235,9 +215,9 @@ export function drawNaturalDecor(
         ctx.fill()
         continue
       }
-      if (t !== TILE_GRASS && t !== TILE_FOOD) continue
+      if (t !== TILE_ID.GRASS && t !== TILE_ID.FOOD) continue
 
-      if (biome === BIOME_GRASS && r0 < 0.08) {
+      if (biome === BIOME_ID.GRASSLAND && r0 < 0.08) {
         const colors = ['#d65a78', '#e8c044', '#a87fd6', '#e58a3a']
         ctx.fillStyle = colors[Math.floor(r2 * colors.length)]
         const fx = px + TILE / 2 + (r1 - 0.5) * TILE * 0.4
@@ -245,7 +225,7 @@ export function drawNaturalDecor(
         ctx.fillRect(fx - 1, fy - 1, 3, 3)
         ctx.fillStyle = '#3a6b32'
         ctx.fillRect(fx, fy + 1, 1, 2)
-      } else if (biome === BIOME_FOREST && r0 < 0.06) {
+      } else if (biome === BIOME_ID.FOREST && r0 < 0.06) {
         const mx = px + TILE / 2 + (r2 - 0.5) * TILE * 0.4
         const my = py + TILE / 2 + (r1 - 0.5) * TILE * 0.4
         ctx.fillStyle = r1 < 0.5 ? '#c54a4a' : '#ddd5b8'
@@ -254,8 +234,8 @@ export function drawNaturalDecor(
         ctx.fill()
         ctx.fillStyle = '#f0e8d8'
         ctx.fillRect(mx - 1, my + 1, 2, 2)
-      } else if ((biome === BIOME_GRASS || biome === BIOME_WETLAND) && r1 < 0.12) {
-        ctx.strokeStyle = biome === BIOME_WETLAND ? '#5a8848' : '#7ea860'
+      } else if ((biome === BIOME_ID.GRASSLAND || biome === BIOME_ID.WETLAND) && r1 < 0.12) {
+        ctx.strokeStyle = biome === BIOME_ID.WETLAND ? '#5a8848' : '#7ea860'
         ctx.lineWidth = 1
         const gx = px + TILE / 2 + (r0 - 0.5) * TILE * 0.5
         const gy = py + TILE - 1
@@ -265,7 +245,7 @@ export function drawNaturalDecor(
         ctx.moveTo(gx + 1, gy)
         ctx.lineTo(gx + 1 + (r2 - 0.5) * 2, gy - 2)
         ctx.stroke()
-      } else if (biome === BIOME_TUNDRA && r0 < 0.08) {
+      } else if (biome === BIOME_ID.TUNDRA && r0 < 0.08) {
         ctx.fillStyle = 'rgba(220,225,235,0.55)'
         ctx.beginPath()
         ctx.ellipse(
@@ -292,12 +272,12 @@ export function drawNaturalDecor(
     const tRow = tiles[y]
     if (!tRow) continue
     for (let x = 1; x < width - 1; x++) {
-      if (tRow[x] !== TILE_WATER) continue
+      if (!isWaterTile(tRow[x])) continue
       const above = tiles[y - 1]?.[x]
       const below = tiles[y + 1]?.[x]
       const left = tRow[x - 1]
       const right = tRow[x + 1]
-      const landGrass = (n: number | undefined) => n === TILE_GRASS || n === TILE_FOOD
+      const landGrass = (n: number | undefined) => n === TILE_ID.GRASS || n === TILE_ID.FOOD
       if (!landGrass(above) && !landGrass(below) && !landGrass(left) && !landGrass(right)) continue
       let hash = ((x * 374761393) ^ (y * 668265263)) >>> 0
       hash = ((hash ^ (hash >>> 13)) * 1274126177) >>> 0

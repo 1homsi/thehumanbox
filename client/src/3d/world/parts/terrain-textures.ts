@@ -1,4 +1,5 @@
 import { ClampToEdgeWrapping, DataTexture, LinearFilter, LinearMipMapLinearFilter, RGBAFormat } from 'three'
+import { BIOME_ID } from '../../../world/terrain-ids'
 const TILE = 1024
 const ATLAS = TILE * 2
 
@@ -148,17 +149,17 @@ export function getTerrainTextures(): { color: DataTexture; bump: DataTexture } 
 
 export function biomeQuadrant(biomeId: number): number {
   switch (biomeId) {
-    case 0:
+    case BIOME_ID.GRASSLAND:
       return 0
-    case 1:
+    case BIOME_ID.FOREST:
       return 3
-    case 2:
+    case BIOME_ID.DESERT:
       return 1
-    case 3:
-      return 0
-    case 4:
-      return 1
-    case 5:
+    case BIOME_ID.WETLAND:
+      return 3
+    case BIOME_ID.TUNDRA:
+      return 2
+    case BIOME_ID.VOLCANIC:
       return 2
     default:
       return 0

@@ -1,7 +1,14 @@
 import { useState } from 'react'
 import clsx from 'clsx'
-import { SANDBOX_CATEGORIES, type SandboxTool } from '../simulation/sandbox'
+import {
+  SANDBOX_CATEGORIES,
+  isSandboxViewControlActive,
+  type SandboxTool,
+  type SandboxViewFlag,
+} from '../simulation/sandbox'
 import { isRuntimeControlActive } from '../simulation/runtimeControls'
+
+const CATEGORY_STORAGE_KEY = 'thb-sandbox-category'
 
 interface Props {
   armedToolId: string | null
@@ -10,9 +17,12 @@ interface Props {
   status?: string | null
   runtimePaused?: boolean
   runtimeSpeed?: number
+  activeOverlay?: string | null
+  activeViewFlags?: Partial<Record<SandboxViewFlag, boolean>>
   onBrush: (n: number) => void
   onPick: (tool: SandboxTool) => void
   onClearArmed: () => void
+  onClearView?: () => void
   onSave?: () => void
   saveStatus?: string
   saveBusy?: boolean
@@ -24,6 +34,17 @@ function formatSpeed(speed: number): string {
   return `${Number.isInteger(speed) ? speed.toFixed(0) : speed}×`
 }
 
+function readInitialCategory(): string {
+  if (typeof window === 'undefined') return SANDBOX_CATEGORIES[0].id
+  try {
+    const saved = window.localStorage.getItem(CATEGORY_STORAGE_KEY)
+    if (saved && SANDBOX_CATEGORIES.some((category) => category.id === saved)) return saved
+  } catch {
+    // Storage can be unavailable in private or locked-down browser contexts.
+  }
+  return SANDBOX_CATEGORIES[0].id
+}
+
 export function SandboxToolbar({
   armedToolId,
   armedToolLabel,
@@ -31,20 +52,42 @@ export function SandboxToolbar({
   status,
   runtimePaused = false,
   runtimeSpeed = 1,
+  activeOverlay = null,
+  activeViewFlags = {},
   onBrush,
   onPick,
   onClearArmed,
+  onClearView,
   onSave,
   saveStatus,
   saveBusy = false,
   saveError = false,
   saveRetryable = false,
 }: Props) {
-  const [catId, setCatId] = useState(SANDBOX_CATEGORIES[0].id)
+  const [catId, setCatId] = useState(readInitialCategory)
   const cat = SANDBOX_CATEGORIES.find((c) => c.id === catId) ?? SANDBOX_CATEGORIES[0]
   const hasPointTools = cat.tools.some((t) => t.mode === 'point')
+  const hasActiveView = cat.tools.some((tool) =>
+    isSandboxViewControlActive(tool.view, activeOverlay, activeViewFlags),
+  )
+  const hasActiveMapLayer =
+    SANDBOX_CATEGORIES.find((category) => category.id === 'maps')?.tools.some((tool) =>
+      isSandboxViewControlActive(tool.view, activeOverlay, activeViewFlags),
+    ) ?? false
   const runtimeStatus =
     cat.id === 'time' ? `${runtimePaused ? 'paused' : 'running'} · ${formatSpeed(runtimeSpeed)}` : null
+  const selectCategory = (id: string) => {
+    setCatId(id)
+    try {
+      window.localStorage.setItem(CATEGORY_STORAGE_KEY, id)
+    } catch {
+      // The toolbar still works when browser storage is unavailable.
+    }
+  }
+  const clearCurrentTool = () => {
+    onClearArmed()
+    if (cat.tools.some((tool) => tool.view)) onClearView?.()
+  }
 
   return (
     <div className="sandbox-bar">
@@ -53,9 +96,14 @@ export function SandboxToolbar({
           {SANDBOX_CATEGORIES.map((c) => (
             <button
               key={c.id}
-              className={clsx('sandbox-tab', c.id === catId && 'active')}
-              onClick={() => setCatId(c.id)}
-              title={c.label}
+              className={clsx(
+                'sandbox-tab',
+                c.id === catId && 'active',
+                c.id === 'maps' && hasActiveMapLayer && 'engaged',
+              )}
+              aria-pressed={c.id === catId}
+              onClick={() => selectCategory(c.id)}
+              title={c.id === 'maps' && hasActiveMapLayer ? 'maps · layer active' : c.label}
             >
               <span className="sandbox-tab-icon">{c.icon}</span>
               <span className="sandbox-tab-label">{c.label}</span>
@@ -65,20 +113,28 @@ export function SandboxToolbar({
         <span className="sandbox-divider" aria-hidden="true" />
         <div className="sandbox-tools" aria-label={`${cat.label} tools`}>
           <button
-            className={clsx('sandbox-tool', !armedToolId && 'active')}
-            onClick={onClearArmed}
-            title="Cursor — stop placing"
+            className={clsx('sandbox-tool', !armedToolId && !hasActiveView && 'active')}
+            aria-pressed={!armedToolId && !hasActiveView}
+            onClick={clearCurrentTool}
+            title={cat.tools.some((tool) => tool.view) ? 'Clear map layers' : 'Cursor — stop placing'}
           >
             <span className="sandbox-tool-icon">🖱️</span>
           </button>
           {cat.tools.map((t) => {
-            const active = armedToolId === t.id || isRuntimeControlActive(t.time, runtimePaused, runtimeSpeed)
+            const active =
+              armedToolId === t.id ||
+              isRuntimeControlActive(t.time, runtimePaused, runtimeSpeed) ||
+              isSandboxViewControlActive(t.view, activeOverlay, activeViewFlags)
             return (
               <button
                 key={t.id}
                 className={clsx('sandbox-tool', active && 'active')}
                 aria-pressed={
-                  t.time ? isRuntimeControlActive(t.time, runtimePaused, runtimeSpeed) : armedToolId === t.id
+                  t.time
+                    ? isRuntimeControlActive(t.time, runtimePaused, runtimeSpeed)
+                    : t.view
+                      ? isSandboxViewControlActive(t.view, activeOverlay, activeViewFlags)
+                      : armedToolId === t.id
                 }
                 onClick={() => onPick(t)}
                 title={t.label}

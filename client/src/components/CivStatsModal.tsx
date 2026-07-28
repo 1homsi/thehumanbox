@@ -92,31 +92,10 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
   const lineageEras = normalizeLineageEras(world.lineage_eras)
   const eraProgress = new Map((world.lineage_era_progress ?? []).map((p) => [p.lineage_id, p]))
   const currencies = (world.lineage_currencies ?? {}) as Record<string, string>
-  const governments =
-    (
-      world as unknown as {
-        governments?: Array<{
-          lineage_id: string
-          kind: string
-          leader_id?: string | null
-          treasury?: number
-          laws?: string[]
-        }>
-      }
-    ).governments ?? []
+  const governments = world.governments ?? []
   const religions = world.religions ?? []
   const books = world.books ?? []
-  const artworks =
-    (
-      world as unknown as {
-        artworks?: Array<{
-          id: number
-          kind: string
-          title: string
-          creator_name: string
-        }>
-      }
-    ).artworks ?? []
+  const artworks = world.artworks ?? []
   const headlines = world.headlines ?? []
   const battles = world.battles ?? []
   const treaties = world.treaties ?? []

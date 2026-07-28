@@ -70,18 +70,20 @@ export type IncomingWorldFrame = Pick<
   current_era?: WorldState['current_era']
   featured_org_id?: WorldState['featured_org_id']
   sex_words?: WorldState['sex_words']
+  territory?: WorldState['territory']
   buildings?: WorldState['buildings']
   religions?: WorldState['religions']
   books?: WorldState['books']
   headlines?: WorldState['headlines']
   battles?: WorldState['battles']
   treaties?: WorldState['treaties']
+  trades?: WorldState['trades']
   farms?: WorldState['farms']
   settlements?: WorldState['settlements']
   vehicles?: WorldState['vehicles']
   festivals?: WorldState['festivals']
-  governments?: unknown
-  artworks?: unknown
+  governments?: WorldState['governments']
+  artworks?: WorldState['artworks']
   lineage_eras?: unknown
   lineage_strategies?: WorldState['lineage_strategies']
   lineage_era_progress?: WorldState['lineage_era_progress']

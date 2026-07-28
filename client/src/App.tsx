@@ -37,6 +37,7 @@ import { UpdateToast } from './components/UpdateToast'
 import { DesktopUpdateToast } from './components/DesktopUpdateToast'
 import { useCurrentScene } from './stores/scene'
 import type { OrganismState } from './types'
+import { TILE_ID } from './world/terrain-ids'
 import clsx from 'clsx'
 import './App.css'
 
@@ -44,8 +45,6 @@ const WorldView3D = lazyWithRetry(() => import('./3d/world/WorldView3D'))
 const SceneView = lazyWithRetry(() =>
   import('./scenes/components/SceneView').then((m) => ({ default: m.SceneView })),
 )
-const TILE_FIRE = 4
-
 function App() {
   return <LiveApp />
 }
@@ -147,6 +146,23 @@ function LiveApp() {
 
   const onPickTool = useCallback(
     (tool: SandboxTool) => {
+      if (tool.view) {
+        setArmedTool(null)
+        const ui = useUIStore.getState()
+        let enabled: boolean
+        if (tool.view.control === 'overlay') {
+          enabled = ui.overlay !== tool.view.value
+          ui.setOverlay(enabled ? tool.view.value : null)
+        } else if (tool.view.value === 'territory') {
+          enabled = !ui.viewFlags.territory
+          ui.setTerritoryView(enabled)
+        } else {
+          enabled = !ui.viewFlags[tool.view.value]
+          ui.setViewFlag(tool.view.value, enabled)
+        }
+        setTemporarySandboxStatus(`${tool.label} map ${enabled ? 'on' : 'off'}`)
+        return
+      }
       if (tool.mode === 'instant') {
         setSandboxStatus(`${tool.label}...`)
         let handled = true
@@ -231,6 +247,7 @@ function LiveApp() {
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
   const leftOpen = useUIStore((s) => s.leftOpen)
   const toggleLeft = useUIStore((s) => s.toggleLeft)
+  const overlay = useUIStore((s) => s.overlay)
   const viewFlags = useUIStore((s) => s.viewFlags)
   const openDesktopSettings = useUIStore((s) => s.openDesktopSettings)
 
@@ -294,16 +311,6 @@ function LiveApp() {
     return () => document.removeEventListener('keydown', onKey)
   }, [world, selectedOrgId])
 
-  useEffect(() => {
-    const featured = world?.featured_org_id
-    if (!featured) return
-    const featuredAlive = world?.organisms.some((o) => o.id === featured && o.alive)
-    if (!featuredAlive) return
-    const selectedAlive = selectedOrgId && world?.organisms.some((o) => o.id === selectedOrgId && o.alive)
-    if (selectedAlive) return
-    useUIStore.getState().selectOrg(featured)
-  }, [world, selectedOrgId])
-
   const lastHeadlineTickRef = useRef<number>(0)
   useEffect(() => {
     const desk = window.thbDesktop
@@ -362,7 +369,7 @@ function LiveApp() {
   const gridTiles = world?.grid.tiles
   const orgList = world?.organisms
   const fireTiles = useMemo(
-    () => (gridTiles ? gridTiles.reduce((n, row) => n + row.filter((t) => t === TILE_FIRE).length, 0) : 0),
+    () => (gridTiles ? gridTiles.reduce((n, row) => n + row.filter((t) => t === TILE_ID.FIRE).length, 0) : 0),
     [gridTiles],
   )
 
@@ -436,10 +443,14 @@ function LiveApp() {
                 <>
                   {leftOpen && <div className="panel-overlay panel-overlay-left" onClick={toggleLeft} />}
                   <aside className={clsx('panel', 'panel-left', leftOpen && 'open')}>
-                    <HistoryGrid />
-                    <LineagesList />
-                    <EventLog />
-                    <WorldFooter world={world} />
+                    {leftOpen && (
+                      <>
+                        <HistoryGrid />
+                        <LineagesList />
+                        <EventLog />
+                        <WorldFooter world={world} />
+                      </>
+                    )}
                   </aside>
                 </>
               )}
@@ -494,11 +505,23 @@ function LiveApp() {
             status={sandboxStatus}
             runtimePaused={runtimeState.paused}
             runtimeSpeed={runtimeState.speed}
+            activeOverlay={overlay}
+            activeViewFlags={{
+              territory: viewFlags.territory,
+              history: viewFlags.history,
+            }}
             onBrush={setBrush}
             onPick={onPickTool}
             onClearArmed={() => {
               setArmedTool(null)
               setTemporarySandboxStatus(null)
+            }}
+            onClearView={() => {
+              const ui = useUIStore.getState()
+              ui.setOverlay(null)
+              ui.setTerritoryView(false)
+              ui.setViewFlag('history', false)
+              setTemporarySandboxStatus('map layers cleared')
             }}
             onSave={
               isLocalWebWorld || (desktop && desktopMode === 'local')

@@ -179,6 +179,24 @@ export interface TradeInfo {
   price: number
 }
 
+export interface GovernmentInfo {
+  lineage_id: string
+  kind: string
+  leader_id?: string | null
+  treasury?: number
+  tax_rate?: number
+  laws?: string[]
+}
+
+export interface ArtworkInfo {
+  id: number
+  kind: string
+  title: string
+  creator_name: string
+  x?: number
+  y?: number
+}
+
 export interface OutbreakInfo {
   kind: string
   started?: number
@@ -418,6 +436,8 @@ export interface WorldState {
   battles?: BattleInfo[]
   treaties?: TreatyInfo[]
   trades?: TradeInfo[]
+  governments?: GovernmentInfo[]
+  artworks?: ArtworkInfo[]
   farms?: FarmInfo[]
   settlements?: SettlementInfo[]
   vehicles?: VehicleInfo[]

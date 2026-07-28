@@ -19,6 +19,7 @@ import {
 import { TILE_SCALE, BIOME_ELEVATION, BIOME_ROUGHNESS, terrainNoise } from './constants'
 import { heightAt } from './terrain-utils'
 import { applyWindSway, windUniforms } from './tree-wind'
+import { BIOME_ID, TILE_ID } from '../../../world/terrain-ids'
 
 function TreeWindController() {
   useFrame(({ clock }) => {
@@ -26,20 +27,6 @@ function TreeWindController() {
   })
   return null
 }
-
-const T_GRASS = 1
-const T_FOOD = 3
-const T_FIRE = 4
-const T_ROCK = 5
-const T_CAMPFIRE = 7
-const T_HUT = 8
-const T_MINERAL = 10
-const B_GRASS = 0
-const B_FOREST = 1
-const B_DESERT = 2
-const B_WETLAND = 3
-const B_TUNDRA = 4
-const B_VOLCANIC = 5
 
 interface Props {
   tiles: number[][]
@@ -52,17 +39,17 @@ interface Props {
 
 function biomeTreeRule(b: number): { chance: number; spacing: number } {
   switch (b) {
-    case B_FOREST:
+    case BIOME_ID.FOREST:
       return { chance: 0.38, spacing: 2 }
-    case B_WETLAND:
+    case BIOME_ID.WETLAND:
       return { chance: 0.22, spacing: 3 }
-    case B_GRASS:
+    case BIOME_ID.GRASSLAND:
       return { chance: 0.12, spacing: 4 }
-    case B_TUNDRA:
+    case BIOME_ID.TUNDRA:
       return { chance: 0.14, spacing: 4 }
-    case B_DESERT:
+    case BIOME_ID.DESERT:
       return { chance: 0.04, spacing: 6 }
-    case B_VOLCANIC:
+    case BIOME_ID.VOLCANIC:
       return { chance: 0.06, spacing: 4 }
     default:
       return { chance: 0.0, spacing: 0 }
@@ -78,7 +65,7 @@ function biomeUndergrowthRule(b: number): {
   flowerColor: string
 } {
   switch (b) {
-    case B_FOREST:
+    case BIOME_ID.FOREST:
       return {
         bush: 0.28,
         tuft: 0.26,
@@ -87,7 +74,7 @@ function biomeUndergrowthRule(b: number): {
         tuftColor: '#4e7a36',
         flowerColor: '#f6d062',
       }
-    case B_WETLAND:
+    case BIOME_ID.WETLAND:
       return {
         bush: 0.18,
         tuft: 0.32,
@@ -96,7 +83,7 @@ function biomeUndergrowthRule(b: number): {
         tuftColor: '#5a8038',
         flowerColor: '#ffaad8',
       }
-    case B_GRASS:
+    case BIOME_ID.GRASSLAND:
       return {
         bush: 0.14,
         tuft: 0.34,
@@ -105,7 +92,7 @@ function biomeUndergrowthRule(b: number): {
         tuftColor: '#5e8a3c',
         flowerColor: '#ffd060',
       }
-    case B_TUNDRA:
+    case BIOME_ID.TUNDRA:
       return {
         bush: 0.05,
         tuft: 0.06,
@@ -114,7 +101,7 @@ function biomeUndergrowthRule(b: number): {
         tuftColor: '#7a8a6a',
         flowerColor: '#e8d8f0',
       }
-    case B_DESERT:
+    case BIOME_ID.DESERT:
       return {
         bush: 0.05,
         tuft: 0.03,
@@ -123,7 +110,7 @@ function biomeUndergrowthRule(b: number): {
         tuftColor: '#a89a5a',
         flowerColor: '#ff8a3a',
       }
-    case B_VOLCANIC:
+    case BIOME_ID.VOLCANIC:
       return {
         bush: 0.02,
         tuft: 0.01,
@@ -138,9 +125,9 @@ function biomeUndergrowthRule(b: number): {
 }
 
 function treeSpecies(b: number, hash: number): 0 | 1 | 2 {
-  if (b === B_FOREST || b === B_TUNDRA) return (hash & 0x3) === 0 ? 1 : 0
-  if (b === B_DESERT) return 2
-  if (b === B_WETLAND) return hash & 0x1 ? 1 : 0
+  if (b === BIOME_ID.FOREST || b === BIOME_ID.TUNDRA) return (hash & 0x3) === 0 ? 1 : 0
+  if (b === BIOME_ID.DESERT) return 2
+  if (b === BIOME_ID.WETLAND) return hash & 0x1 ? 1 : 0
   const r = hash & 0x7
   if (r < 4) return 1
   if (r < 6) return 0
@@ -199,11 +186,11 @@ function collectFeatures(
       const ground = heightAt(x, y, depthMap, biomes)
       const px = x * TILE_SCALE
       const pz = y * TILE_SCALE
-      if (t === T_HUT) huts.push([px, ground, pz])
-      else if (t === T_CAMPFIRE) campfires.push([px, ground, pz])
-      else if (t === T_FIRE) fires.push([px, ground, pz])
-      else if (t === T_ROCK) rocks.push([px, ground, pz])
-      else if (t === T_MINERAL) minerals.push([px, ground, pz])
+      if (t === TILE_ID.HUT) huts.push([px, ground, pz])
+      else if (t === TILE_ID.CAMPFIRE) campfires.push([px, ground, pz])
+      else if (t === TILE_ID.FIRE) fires.push([px, ground, pz])
+      else if (t === TILE_ID.ROCK) rocks.push([px, ground, pz])
+      else if (t === TILE_ID.MINERAL) minerals.push([px, ground, pz])
 
       const b = bRow?.[x] ?? 0
       if (b === 5 && x % 3 === 0 && y % 3 === 0) {
@@ -225,7 +212,7 @@ function collectFeatures(
     const dRow = depthMap[y]
     if (!tRow || !bRow || !dRow) continue
     const t = tRow[x]
-    if (t !== T_GRASS && t !== T_FOOD) continue
+    if (t !== TILE_ID.GRASS && t !== TILE_ID.FOOD) continue
     const d = dRow[x] ?? 255
     if (d < 254) continue
     const b = bRow[x] ?? 0
@@ -266,7 +253,7 @@ function collectFeatures(
     if (!tRow || !bRow || !dRow) continue
     for (let x = 0; x < width; x++) {
       const t = tRow[x]
-      if (t !== T_GRASS && t !== T_FOOD) continue
+      if (t !== TILE_ID.GRASS && t !== TILE_ID.FOOD) continue
       const d = dRow[x] ?? 255
       if (d < 254) continue
       const idx = y * width + x

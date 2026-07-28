@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { BufferAttribute, BufferGeometry, CanvasTexture, DoubleSide, LinearFilter } from 'three'
 import type { WorldState } from '../../../types'
+import { territoryTileToViewport } from '../../../world/territory'
 import { heightAt } from './terrain-utils'
 import { TILE_SCALE } from './constants'
 
@@ -76,7 +77,13 @@ function drawOverlay(
     data[i + 3] = Math.round(Math.min(1, a) * 255)
   }
   const grid = world.grid
+  const originX = grid.origin_x ?? 0
+  const originY = grid.origin_y ?? 0
   const organisms = (world.viewport_organisms ?? world.organisms ?? []).filter((o) => o.alive)
+  const organismCell = (x: number, y: number): [number, number] => {
+    const [viewportX, viewportY] = territoryTileToViewport(x, y, originX, originY)
+    return [Math.round(viewportX), Math.round(viewportY)]
+  }
 
   if (overlay === 'hazard' && grid.hazard) {
     for (let row = 0; row < height; row++) {
@@ -141,8 +148,7 @@ function drawOverlay(
     const sum = new Float32Array(n)
     const cnt = new Float32Array(n)
     for (const org of organisms) {
-      const tx = Math.round(org.x)
-      const ty = Math.round(org.y)
+      const [tx, ty] = organismCell(org.x, org.y)
       if (tx < 0 || ty < 0 || tx >= width || ty >= height) continue
       for (let dy = -1; dy <= 1; dy++) {
         for (let dx = -1; dx <= 1; dx++) {
@@ -172,8 +178,7 @@ function drawOverlay(
     for (const org of organisms) {
       const f = org.fear_level ?? 0
       if (f < 0.3) continue
-      const tx = Math.round(org.x)
-      const ty = Math.round(org.y)
+      const [tx, ty] = organismCell(org.x, org.y)
       for (let dy = -R; dy <= R; dy++) {
         for (let dx = -R; dx <= R; dx++) {
           const d = Math.abs(dx) + Math.abs(dy)
@@ -200,8 +205,7 @@ function drawOverlay(
     const heat = new Float32Array(n)
     const R = 4
     for (const org of organisms) {
-      const tx = Math.round(org.x)
-      const ty = Math.round(org.y)
+      const [tx, ty] = organismCell(org.x, org.y)
       for (let dy = -R; dy <= R; dy++) {
         for (let dx = -R; dx <= R; dx++) {
           const d = Math.abs(dx) + Math.abs(dy)

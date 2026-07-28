@@ -187,3 +187,73 @@ describe('mergeFrame lineage strategy handling', () => {
     expect(cleared.next.lineage_strategies).toEqual({})
   })
 })
+
+describe('mergeFrame civilization state handling', () => {
+  it('preserves cold civilization payloads across deltas and accepts authoritative empty updates', () => {
+    const caches = emptyCaches()
+    const territory = {
+      claimed: [{ lid: 'lin-x', tiles: [[2, 3] as [number, number]] }],
+      contested: [] as [number, number][],
+    }
+    const trades = [
+      {
+        tick: 1,
+        buyer_id: 'a',
+        seller_id: 'b',
+        good: 'grain',
+        amount: 2,
+        price: 4,
+      },
+    ]
+    const governments = [{ lineage_id: 'lin-x', kind: 'council', laws: ['commons'] }]
+    const artworks = [
+      {
+        id: 1,
+        kind: 'mural',
+        title: 'Dawn',
+        creator_name: 'Alia',
+        x: 2,
+        y: 3,
+      },
+    ]
+
+    const full = mergeFrame(
+      baseFrame({
+        frame_kind: 'full',
+        territory,
+        trades,
+        governments,
+        artworks,
+      }),
+      caches,
+    )
+    expect(full.next.territory).toBe(territory)
+    expect(full.next.trades).toBe(trades)
+    expect(full.next.governments).toBe(governments)
+    expect(full.next.artworks).toBe(artworks)
+
+    caches.prevWorld = full.next
+    const delta = mergeFrame(baseFrame({ frame_id: 2, tick: 2 }), caches)
+    expect(delta.next.territory).toBe(territory)
+    expect(delta.next.trades).toBe(trades)
+    expect(delta.next.governments).toBe(governments)
+    expect(delta.next.artworks).toBe(artworks)
+
+    caches.prevWorld = delta.next
+    const cleared = mergeFrame(
+      baseFrame({
+        frame_id: 3,
+        frame_kind: 'full',
+        territory: { claimed: [], contested: [] },
+        trades: [],
+        governments: [],
+        artworks: [],
+      }),
+      caches,
+    )
+    expect(cleared.next.territory).toEqual({ claimed: [], contested: [] })
+    expect(cleared.next.trades).toEqual([])
+    expect(cleared.next.governments).toEqual([])
+    expect(cleared.next.artworks).toEqual([])
+  })
+})

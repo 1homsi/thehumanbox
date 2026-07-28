@@ -45,7 +45,6 @@ import { AmbientMotes } from './parts/AmbientMotes'
 import { MiniMap } from './parts/MiniMap'
 import { CameraSync } from './parts/CameraSync'
 import { SelectedOrgHighlight } from './parts/SelectedOrgHighlight'
-import { SelectedOrgCard } from './parts/SelectedOrgCard'
 import { WorldHud } from './parts/WorldHud'
 import { EventFloaters } from './parts/EventFloaters'
 import { BigMomentEffects } from './parts/BigMomentEffects'
@@ -67,6 +66,7 @@ import { CameraBreath } from './parts/CameraBreath'
 import { Fireflies } from './parts/Fireflies'
 import { SocialBeams } from './parts/SocialBeams'
 import { TerritoryOverlay } from './parts/TerritoryOverlay'
+import { LineageHistory3D } from './parts/LineageHistory3D'
 import { DataOverlays3D } from './parts/DataOverlays3D'
 import { FocusMarkers3D } from './parts/FocusMarkers3D'
 import { TILE_SCALE } from './parts/constants'
@@ -74,6 +74,8 @@ import { heightAtWorld, heightAt } from './parts/terrain-utils'
 import { getOrgHeading, getOrgXY } from './parts/motion-state'
 import { cameraCommand, type CameraLookAt, type CameraTeleport } from './parts/camera-state'
 import { threeFrameLoopForPause } from '../../lib/desktopVisibility'
+import { TILE_ID } from '../../world/terrain-ids'
+import { buildTerritoryIndex, lineageAtTerritoryTile } from '../../world/territory'
 
 type MoveKeys = 'forward' | 'back' | 'left' | 'right' | 'up' | 'down' | 'boost'
 
@@ -349,8 +351,6 @@ interface Props {
   onContextLost?: () => void
 }
 
-const SEL_LS_KEY = 'thb-3d-sel-v1'
-
 export default function WorldView3D({
   world,
   rendererPaused = false,
@@ -370,18 +370,23 @@ export default function WorldView3D({
     [],
   )
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
-  const selectOrgStore = useUIStore((s) => s.selectOrg)
-  // WorldView3D only reads one flag (territoryMap). Subscribing to
+  const followOrgId = useUIStore((s) => s.followOrgId)
+  const followOrg = useUIStore((s) => s.followOrg)
+  // WorldView3D only reads one flag (territory). Subscribing to
   // the whole viewFlags object re-renders the entire 3D tree on
   // every flag toggle; a scalar selector is virtually free.
-  const showTerritoryMap = useUIStore((s) => s.viewFlags.territoryMap)
+  const showTerritoryMap = useUIStore((s) => s.viewFlags.territory)
+  const showHistory = useUIStore((s) => s.viewFlags.history)
   const orgPov = useUIStore((s) => s.viewFlags.orgPov)
   const showNames = useUIStore((s) => s.viewFlags.names)
   const showAnimals = useUIStore((s) => s.viewFlags.animals)
   const showFps = useUIStore((s) => s.viewFlags.fps)
   const overlay = useUIStore((s) => s.overlay)
   const focus = useUIStore((s) => s.focus)
-  const [follow, setFollow] = useState(false)
+  const setFocus = useUIStore((s) => s.setFocus)
+  const territoryIndex = useMemo(() => buildTerritoryIndex(world?.territory), [world?.territory])
+  const hasFollowTarget = followOrgId !== null
+  const followingSelected = selectedOrgId !== null && followOrgId === selectedOrgId
 
   // Touch detection - PointerLockControls requires a mouse, so on touch
   // devices fall back to OrbitControls (drag to orbit, pinch to zoom).
@@ -393,27 +398,12 @@ export default function WorldView3D({
   }, [])
 
   useEffect(() => {
-    if (!world) return
-    if (selectedOrgId) return
     try {
-      const id = localStorage.getItem(SEL_LS_KEY)
-      if (!id) return
-      const live = (world.viewport_organisms ?? world.organisms ?? []).some((o) => o.id === id && o.alive)
-      if (live) selectOrgStore(id)
+      localStorage.removeItem('thb-3d-sel-v1')
     } catch {
-      /* ignore */
+      /* legacy selection storage can be unavailable */
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [!!world])
-
-  useEffect(() => {
-    try {
-      if (selectedOrgId) localStorage.setItem(SEL_LS_KEY, selectedOrgId)
-      else localStorage.removeItem(SEL_LS_KEY)
-    } catch {
-      /* ignore */
-    }
-  }, [selectedOrgId])
+  }, [])
 
   const didInitialAimRef = useRef(false)
   useEffect(() => {
@@ -471,12 +461,12 @@ export default function WorldView3D({
       'ShiftRight',
     ])
     const onKey = (e: KeyboardEvent) => {
-      if (follow && MOVE_CODES.has(e.code)) {
-        setFollow(false)
+      if (hasFollowTarget && MOVE_CODES.has(e.code)) {
+        followOrg(null)
         return
       }
       if (e.code === 'KeyF' && !e.repeat) {
-        if (selectedOrgId) setFollow((prev) => !prev)
+        if (selectedOrgId) followOrg(followingSelected ? null : selectedOrgId)
       } else if (e.code === 'KeyJ' && !e.repeat) {
         if (selectedOrgId) {
           const [tx, ty] = getOrgXY(selectedOrgId)
@@ -498,7 +488,7 @@ export default function WorldView3D({
         if (live.length) {
           const pick = live[Math.floor(Math.random() * live.length)]
           selectOrg(pick.id)
-          setFollow(true)
+          followOrg(pick.id)
           const [tx, ty] = getOrgXY(pick.id)
           if (tx !== 0 || ty !== 0) {
             cameraCommand.teleport = {
@@ -514,19 +504,22 @@ export default function WorldView3D({
           }
         }
       } else if (e.code === 'KeyC' && !e.repeat) {
-        setFollow(false)
+        followOrg(null)
         cameraCommand.reset = true
-      } else if (e.code === 'Escape' && follow) {
-        setFollow(false)
+      } else if (e.code === 'Escape' && hasFollowTarget) {
+        followOrg(null)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [selectedOrgId, follow, selectOrg, world])
+  }, [selectedOrgId, hasFollowTarget, followingSelected, selectOrg, followOrg, world])
 
   useEffect(() => {
-    cameraCommand.followOrgId = follow && selectedOrgId ? selectedOrgId : null
-  }, [follow, selectedOrgId])
+    cameraCommand.followOrgId = followOrgId
+    return () => {
+      if (cameraCommand.followOrgId === followOrgId) cameraCommand.followOrgId = null
+    }
+  }, [followOrgId])
 
   useEffect(() => {
     cameraCommand.povOrgId = orgPov && selectedOrgId ? selectedOrgId : null
@@ -560,9 +553,21 @@ export default function WorldView3D({
       }
       const tx = Math.floor(x)
       const ty = Math.floor(y)
+
+      if (showTerritoryMap) {
+        const worldTileX = tx + (world.grid.origin_x ?? 0)
+        const worldTileY = ty + (world.grid.origin_y ?? 0)
+        const focusedLineage = focus.startsWith('lineage:') ? focus.slice('lineage:'.length) : null
+        const lineageId = lineageAtTerritoryTile(territoryIndex, worldTileX, worldTileY, focusedLineage)
+        selectOrg(null)
+        useUIStore.setState({ panelOpen: false })
+        setFocus(lineageId ? `lineage:${lineageId}` : 'all')
+        return
+      }
+
       const tileVal = world.grid.tiles?.[ty]?.[tx]
       const structVal = world.grid.structure?.[ty]?.[tx] ?? 0
-      if (tileVal !== 8 && structVal < 0.35) return
+      if (tileVal !== TILE_ID.HUT && structVal < 0.35) return
       let bestHost: { id: string; age: number } | null = null
       for (const org of world.organisms ?? []) {
         if (!org.alive) continue
@@ -572,7 +577,7 @@ export default function WorldView3D({
       }
       if (bestHost) useSceneStore.getState().enter({ kind: 'home', orgId: bestHost.id })
     },
-    [world, sandboxArmed, onSandboxApply],
+    [world, sandboxArmed, onSandboxApply, showTerritoryMap, focus, territoryIndex, selectOrg, setFocus],
   )
 
   // Hut world positions for Fireflies (computed once per grid change)
@@ -583,7 +588,7 @@ export default function WorldView3D({
       const tRow = grid.tiles[row]
       if (!tRow) continue
       for (let col = 0; col < grid.width; col++) {
-        if (tRow[col] !== 8) continue
+        if (tRow[col] !== TILE_ID.HUT) continue
         const ground = heightAt(col, row, grid.depth_map, grid.biomes)
         out.push([col * TILE_SCALE, ground, row * TILE_SCALE])
       }
@@ -599,7 +604,7 @@ export default function WorldView3D({
       const tRow = tiles[row]
       if (!tRow) continue
       for (let col = 0; col < grid.width; col++) {
-        if (tRow[col] !== 8) continue
+        if (tRow[col] !== TILE_ID.HUT) continue
         const ground = heightAt(col, row, grid.depth_map, grid.biomes)
         const cx = col * TILE_SCALE
         const cz = row * TILE_SCALE
@@ -937,8 +942,21 @@ export default function WorldView3D({
                 {showTerritoryMap && world.territory && (
                   <TerritoryOverlay
                     territory={world.territory}
+                    relations={world.tribal_relations}
+                    focus={focus}
                     depthMap={grid.depth_map!}
                     biomes={grid.biomes!}
+                    originX={grid.origin_x ?? 0}
+                    originY={grid.origin_y ?? 0}
+                  />
+                )}
+                {showHistory && world.lineage_centroid_history && (
+                  <LineageHistory3D
+                    history={world.lineage_centroid_history}
+                    depthMap={grid.depth_map!}
+                    biomes={grid.biomes!}
+                    originX={grid.origin_x ?? 0}
+                    originY={grid.origin_y ?? 0}
                   />
                 )}
                 {focus !== 'all' && (
@@ -981,15 +999,6 @@ export default function WorldView3D({
         </Canvas>
       </KeyboardControls>
 
-      {ready && grid && (
-        <SelectedOrgCard
-          organisms={world.viewport_organisms ?? world.organisms ?? []}
-          following={follow}
-          onToggleFollow={() => setFollow((prev) => !prev)}
-          showKeyHints={!isTouch}
-        />
-      )}
-
       {ready && <WorldHud />}
 
       {ready && grid && (
@@ -1018,7 +1027,7 @@ export default function WorldView3D({
         {isTouch
           ? 'drag to orbit · pinch to zoom'
           : 'click to look · WASD move · space/shift up/down · ctrl boost · C reset · F follow · J jump · R random · click map · esc release'}
-        {follow && selectedOrgId && <span style={{ color: '#ff8a3a', marginLeft: 10 }}>· following</span>}
+        {hasFollowTarget && <span style={{ color: '#ff8a3a', marginLeft: 10 }}>· following</span>}
       </div>
     </div>
   )
