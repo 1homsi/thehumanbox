@@ -153,6 +153,7 @@ enum PlaceGate {
     Home,
     WildLand,
     Water,
+    BridgeSite,
     Rock,
     Fire,
     Hut,
@@ -170,6 +171,7 @@ enum ResourceGate {
     Food,
     CarriedFood,
     Materials,
+    BridgeMaterials,
     TradeGoods,
     Wealth,
     Wood,
@@ -397,8 +399,8 @@ const BASE_ACTION_BANDS: &[ActionBand] = &[
         Classical,
         AdultOrElder,
         None,
-        PlaceGate::Water,
-        Materials,
+        PlaceGate::BridgeSite,
+        BridgeMaterials,
         qualification_all_discoveries(&["engineering", "masonry"], &["builder", "engineer"], 0.0)
     ),
     band!(
@@ -4496,6 +4498,9 @@ fn band_is_eligible(
         PlaceGate::Home => context.near_home,
         PlaceGate::WildLand => context.wild_land,
         PlaceGate::Water => context.near_water,
+        PlaceGate::BridgeSite => {
+            super::civ_tick::construction_site_is_valid(sim, BuildingKind::Bridge, ix, iy)
+        }
         PlaceGate::Rock => context.near_rock,
         PlaceGate::Fire => context.near_fire,
         PlaceGate::Hut => matches!(sim.grid.get(ix, iy), Tile::Hut),
@@ -4520,6 +4525,9 @@ fn band_is_eligible(
         ResourceGate::Food => context.has_food,
         ResourceGate::CarriedFood => context.has_carried_food,
         ResourceGate::Materials => context.has_materials,
+        ResourceGate::BridgeMaterials => {
+            super::civ_tick::lineage_can_afford_construction(sim, &org.lineage_id, BuildingKind::Bridge)
+        }
         ResourceGate::TradeGoods => context.has_carried_food || context.has_materials || org.wealth > 0,
         ResourceGate::Wealth => org.wealth > 0,
         ResourceGate::Wood => context.has_wood,
@@ -5787,6 +5795,59 @@ mod tests {
                 "action {action} must revalidate profession at apply time"
             );
         }
+    }
+
+    #[test]
+    fn bridge_action_requires_the_exact_buildable_crossing_it_will_use() {
+        let mut sim = Simulation::new(0xB21D_6E51);
+        sim.buildings.clear();
+        sim.organisms.truncate(1);
+        let idx = 0;
+        let (x, y) = (120, 120);
+        let lineage = sim.organisms[idx].lineage_id.clone();
+        sim.lineage_eras.insert(lineage, Era::Classical);
+        let bridge_cost = BuildingKind::Bridge.construction_cost();
+        let builder = &mut sim.organisms[idx];
+        builder.x = x as f32;
+        builder.y = y as f32;
+        builder.age = builder.max_age / 2;
+        builder.energy = 1.0;
+        builder.health = 1.0;
+        builder.specialty = Some("engineer".into());
+        builder.discoveries.insert("engineering".into());
+        builder.discoveries.insert("masonry".into());
+        builder.inv_wood = u8::try_from(bridge_cost.wood).expect("bridge wood cost fits inventory");
+        builder.inv_stone = u8::try_from(bridge_cost.stone).expect("bridge stone cost fits inventory");
+        builder.wealth = bridge_cost.wealth;
+        for tile_y in y - 3..=y + 3 {
+            for tile_x in x - 3..=x + 7 {
+                sim.grid.set(tile_x, tile_y, Tile::Grass);
+            }
+        }
+
+        // Nearby water alone is insufficient: the action creates its project
+        // at the actor's exact tile and the bridge footprint extends east.
+        sim.grid.set(x, y - 1, Tile::Water);
+        assert!(!actions_for(&sim, idx).contains(&41));
+
+        // A dry anchor, water channel, and dry far anchor match the canonical
+        // construction validator, so availability and application now agree.
+        sim.grid.set(x, y - 1, Tile::Grass);
+        sim.grid.set(x + 1, y, Tile::Water);
+        sim.grid.set(x + 2, y, Tile::Water);
+        assert!(bridge_cost.stone > 0);
+        sim.organisms[idx].inv_stone =
+            u8::try_from(bridge_cost.stone - 1).expect("bridge stone cost fits inventory");
+        assert!(!actions_for(&sim, idx).contains(&41));
+        sim.organisms[idx].inv_stone =
+            u8::try_from(bridge_cost.stone).expect("bridge stone cost fits inventory");
+        assert!(actions_for(&sim, idx).contains(&41));
+        let spatial = SpatialIndex::build(&sim.organisms, 10);
+        assert!(try_apply(&mut sim, idx, 41, x, y, &spatial).is_some_and(|reward| reward > 0.0));
+        assert!(sim
+            .buildings
+            .iter()
+            .any(|building| building.kind == BuildingKind::Bridge && !building.is_complete()));
     }
 
     #[test]

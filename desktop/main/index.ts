@@ -13,6 +13,7 @@ import {
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { registerIpc } from "./ipc";
+import { runExclusiveDesktopOperation } from "./exclusive-operation";
 import { startSim, stopSim, activeSim } from "./sim-process";
 import { loadSettings, prepareDataRoot, saveSettings } from "./settings";
 import {
@@ -214,6 +215,17 @@ async function createWindow(): Promise<void> {
   });
 }
 
+async function restartInMode(mode: "local" | "remote"): Promise<void> {
+  await runExclusiveDesktopOperation("switch simulation mode", async () => {
+    const cur = loadSettings();
+    await stopSim(5_000, true);
+    if (cur.mode !== mode) saveSettings({ ...cur, mode });
+    if (mainWindow) {
+      await createWindowReplace();
+    }
+  });
+}
+
 function buildMenu(): void {
   const isMac = process.platform === "darwin";
 
@@ -223,15 +235,6 @@ function buildMenu(): void {
       mainWindow.webContents.closeDevTools();
     } else {
       mainWindow.webContents.openDevTools({ mode: "detach" });
-    }
-  };
-
-  const restartInMode = async (mode: "local" | "remote"): Promise<void> => {
-    const cur = loadSettings();
-    if (cur.mode !== mode) saveSettings({ ...cur, mode });
-    await stopSim();
-    if (mainWindow) {
-      await createWindowReplace();
     }
   };
 
@@ -272,7 +275,8 @@ function buildMenu(): void {
         },
         {
           label: "Restart simulation",
-          click: () => void restartInMode(loadSettings().mode),
+          click: () =>
+            void restartInMode(loadSettings().mode).catch(console.error),
         },
         isMac ? { role: "close" as const } : { role: "quit" as const },
       ],
@@ -324,13 +328,13 @@ function buildMenu(): void {
           label: "Local simulation",
           type: "radio",
           checked: settings.mode === "local",
-          click: () => void restartInMode("local"),
+          click: () => void restartInMode("local").catch(console.error),
         },
         {
           label: "Remote (thehumanbox.com)",
           type: "radio",
           checked: settings.mode === "remote",
-          click: () => void restartInMode("remote"),
+          click: () => void restartInMode("remote").catch(console.error),
         },
       ],
     },
@@ -387,20 +391,11 @@ function buildTray(): void {
           { type: "separator" },
           {
             label: "Switch to Local",
-            click: () => {
-              const cur = loadSettings();
-              if (cur.mode !== "local") saveSettings({ ...cur, mode: "local" });
-              void stopSim().then(() => createWindowReplace());
-            },
+            click: () => void restartInMode("local").catch(console.error),
           },
           {
             label: "Switch to Remote",
-            click: () => {
-              const cur = loadSettings();
-              if (cur.mode !== "remote")
-                saveSettings({ ...cur, mode: "remote" });
-              void stopSim().then(() => createWindowReplace());
-            },
+            click: () => void restartInMode("remote").catch(console.error),
           },
           { type: "separator" },
           {

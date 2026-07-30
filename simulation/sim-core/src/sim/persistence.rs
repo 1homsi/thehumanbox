@@ -18,6 +18,10 @@ use crate::world::tiles::Tile;
 #[serde(default)]
 pub(crate) struct GridSave {
     tiles: Vec<i8>,
+    /// Water depth changes at runtime as droughts, floods, and completed
+    /// infrastructure reshape the map, so it cannot be regenerated from the
+    /// world seed on load.
+    depth: Vec<f32>,
     fire: Vec<f32>,
     food_trail: Vec<f32>,
     water_trail: Vec<f32>,
@@ -37,7 +41,7 @@ pub(crate) struct DroughtSave {
     rain_relief: u64,
 }
 
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 #[serde(default)]
 pub(crate) struct WeatherSave {
     kind: u8,
@@ -46,6 +50,24 @@ pub(crate) struct WeatherSave {
     intensity: f32,
     #[serde(default)]
     wet_until: u64,
+    wind_x: f32,
+    wind_y: f32,
+    wind_last_tick: u64,
+}
+
+impl Default for WeatherSave {
+    fn default() -> Self {
+        Self {
+            kind: 0,
+            start_tick: 0,
+            duration: 0,
+            intensity: 0.0,
+            wet_until: 0,
+            wind_x: 0.4,
+            wind_y: 0.0,
+            wind_last_tick: 0,
+        }
+    }
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -273,6 +295,10 @@ pub struct SaveState {
     pub(crate) world_seed: u64,
     lineage_names: HashMap<String, String>,
     lineage_strategies: HashMap<String, (String, u64)>,
+    #[serde(default)]
+    lineage_strategy_objectives: HashMap<String, super::simulation::StrategyObjective>,
+    #[serde(default)]
+    lineage_strategy_history: Vec<super::simulation::StrategyCampaignRecord>,
     lineage_last_council: HashMap<String, u64>,
     lineage_elders: HashMap<String, String>,
     lineage_negotiations: Vec<NegotiationSave>,
@@ -726,6 +752,9 @@ impl Simulation {
                 duration: self.weather.duration,
                 intensity: self.weather.intensity,
                 wet_until: self.weather.wet_until,
+                wind_x: self.weather.wind_x,
+                wind_y: self.weather.wind_y,
+                wind_last_tick: self.weather.wind_last_tick,
             },
             // Cap unbounded VecDeques on save. Their in-memory caps
             // are larger than what makes sense to persist; if we ship
@@ -746,6 +775,7 @@ impl Simulation {
             story_history: self.story_history.iter().rev().take(120).rev().cloned().collect(),
             grid: GridSave {
                 tiles: self.grid.tiles.clone(),
+                depth: self.grid.depth.clone(),
                 fire: self.grid.fire_intensity.clone(),
                 food_trail: self.grid.food_trail.clone(),
                 water_trail: self.grid.water_trail.clone(),
@@ -760,6 +790,15 @@ impl Simulation {
             world_seed: self.world_seed,
             lineage_names: self.lineage_names.clone(),
             lineage_strategies: self.lineage_strategies.clone(),
+            lineage_strategy_objectives: self.lineage_strategy_objectives.clone(),
+            lineage_strategy_history: self
+                .lineage_strategy_history
+                .iter()
+                .rev()
+                .take(40)
+                .rev()
+                .cloned()
+                .collect(),
             lineage_last_council: self.lineage_last_council.clone(),
             lineage_elders: self.lineage_elders.clone(),
             lineage_negotiations: self
@@ -918,6 +957,9 @@ impl Simulation {
         let mut grid = WorldGrid::new(seed);
         if state.grid.tiles.len() == expected {
             grid.tiles = state.grid.tiles;
+            if state.grid.depth.len() == expected {
+                grid.depth = state.grid.depth;
+            }
             if state.grid.fire.len() == expected {
                 grid.fire_intensity = state.grid.fire;
             }
@@ -1061,11 +1103,9 @@ impl Simulation {
                 duration: state.weather.duration,
                 intensity: state.weather.intensity,
                 wet_until: state.weather.wet_until,
-                // Wind state isn't persisted across restarts - the
-                // drift converges back within a few ticks anyway.
-                wind_x: 0.4,
-                wind_y: 0.0,
-                wind_last_tick: state.tick_count,
+                wind_x: state.weather.wind_x,
+                wind_y: state.weather.wind_y,
+                wind_last_tick: state.weather.wind_last_tick,
             },
             flood_tiles: state.flood_tiles,
             story_history: state.story_history.into_iter().collect(),
@@ -1073,6 +1113,8 @@ impl Simulation {
             pending_convos: Vec::new(),
             pending_memory_flushes: Vec::new(),
             lineage_strategies: state.lineage_strategies,
+            lineage_strategy_objectives: state.lineage_strategy_objectives,
+            lineage_strategy_history: state.lineage_strategy_history.into_iter().collect(),
             lineage_last_council: state.lineage_last_council,
             lineage_elders: state.lineage_elders,
             lineage_negotiations: state
@@ -1180,6 +1222,61 @@ impl Simulation {
         }
         sim.grid.enforce_ocean_border();
         sim.relocate_edge_squatters();
+        // Strategy guidance existed before campaign objectives. Upgrade active
+        // legacy guidance in-place so an imported local world immediately
+        // gains a real target instead of displaying 0/0 forever.
+        let living_lineages: std::collections::HashSet<String> = sim
+            .organisms
+            .iter()
+            .filter(|organism| organism.alive || super::agents::growth::is_pending_birth(organism))
+            .map(|organism| organism.lineage_id.clone())
+            .collect();
+        let loaded_tick = sim.tick_count;
+        sim.lineage_strategies
+            .retain(|lineage_id, (strategy, expires_tick)| {
+                matches!(
+                    strategy.as_str(),
+                    "hunt" | "explore" | "settle" | "trade" | "defend"
+                ) && *expires_tick > loaded_tick
+                    && living_lineages.contains(lineage_id)
+            });
+        let legacy_objectives: Vec<(String, String, u64)> = sim
+            .lineage_strategies
+            .iter()
+            .filter(|(lineage_id, (strategy, _))| {
+                sim.lineage_strategy_objectives
+                    .get(*lineage_id)
+                    .is_none_or(|objective| objective.strategy != strategy.as_str() || objective.target == 0)
+            })
+            .map(|(lineage_id, (strategy, expires_tick))| {
+                (lineage_id.clone(), strategy.clone(), *expires_tick)
+            })
+            .collect();
+        for (lineage_id, objective) in sim.lineage_strategy_objectives.iter_mut() {
+            objective.target = objective.target.max(1);
+            objective.progress = objective.progress.min(objective.target);
+            if objective.completed_tick.is_some() && objective.failed_tick.is_some() {
+                if objective.completed_tick <= objective.failed_tick {
+                    objective.failed_tick = None;
+                } else {
+                    objective.completed_tick = None;
+                }
+            }
+            if let Some((strategy, expires_tick)) = sim.lineage_strategies.get(lineage_id) {
+                if objective.strategy == *strategy && objective.target > 0 {
+                    objective.expires_tick = *expires_tick;
+                }
+            }
+        }
+        for (lineage_id, strategy, expires_tick) in legacy_objectives {
+            sim.lineage_strategy_objectives.remove(&lineage_id);
+            sim.start_strategy_objective(&lineage_id, &strategy, expires_tick);
+        }
+        sim.resolve_strategy_objective_expirations();
+        // Old/imported saves may predate terrain effects for completed wells
+        // and bridges. Reassert only operational infrastructure so an
+        // unfinished project still grants no world effect.
+        super::civ_tick::reconcile_operational_infrastructure(&mut sim);
         // The saved map is a cache, not source-of-truth. Rebuild it from
         // living residents and operational buildings so extinct/imported
         // stale rows disappear immediately on load without emitting events.
@@ -1250,6 +1347,7 @@ mod tests {
         assert!(parsed.organisms.is_empty());
         assert!(parsed.animals.is_empty());
         assert!(parsed.grid.tiles.is_empty());
+        assert_eq!(parsed.weather.wind_x, 0.4);
 
         let mut path = std::env::temp_dir();
         path.push(format!("thehumanbox-empty-save-test-{}.json", std::process::id()));
@@ -1258,6 +1356,59 @@ mod tests {
         std::fs::write(&path_s, "{}").unwrap();
         let _sim = Simulation::load_or_new(7, &path_s);
         let _ = std::fs::remove_file(&path_s);
+    }
+
+    #[test]
+    fn mutable_depth_wind_and_operational_infrastructure_survive_reload() {
+        use crate::sim::buildings::{Building, BuildingKind};
+
+        let seed = 0x5A7E_10AD;
+        let mut sim = Simulation::new(seed);
+        let (water_x, water_y) = (100, 100);
+        let water_index = WorldGrid::idx(water_x, water_y);
+        sim.grid.set(water_x, water_y, Tile::Water);
+        sim.grid.depth[water_index] = 0.73;
+        sim.weather.wind_x = -0.31;
+        sim.weather.wind_y = 0.62;
+        sim.weather.wind_last_tick = 1_234;
+
+        // Simulate an imported legacy world whose completed well has lost its
+        // one-time terrain effect. Loading must repair it without completing
+        // unfinished projects.
+        let (well_x, well_y) = (110, 110);
+        sim.grid.set(well_x, well_y, Tile::Grass);
+        let mut completed_well = Building::new(
+            90_001,
+            BuildingKind::Well,
+            well_x,
+            well_y,
+            Some("lineage-a".into()),
+            10,
+        );
+        completed_well.condition = 1.0;
+        sim.buildings.push(completed_well);
+        let mut unfinished_well = Building::new(
+            90_002,
+            BuildingKind::Well,
+            well_x + 2,
+            well_y,
+            Some("lineage-a".into()),
+            10,
+        );
+        unfinished_well.condition = 0.99;
+        sim.grid.set(well_x + 2, well_y, Tile::Grass);
+        sim.buildings.push(unfinished_well);
+
+        let loaded = Simulation::from_save(seed, sim.to_save_state());
+
+        assert_eq!(loaded.grid.get(water_x, water_y), Tile::Water);
+        assert!((loaded.grid.depth_at(water_x, water_y) - 0.73).abs() < f32::EPSILON);
+        assert!((loaded.weather.wind_x - (-0.31)).abs() < f32::EPSILON);
+        assert!((loaded.weather.wind_y - 0.62).abs() < f32::EPSILON);
+        assert_eq!(loaded.weather.wind_last_tick, 1_234);
+        assert_eq!(loaded.grid.get(well_x, well_y), Tile::Water);
+        assert_eq!(loaded.grid.depth_at(well_x, well_y), 0.0);
+        assert_eq!(loaded.grid.get(well_x + 2, well_y), Tile::Grass);
     }
 
     #[test]

@@ -1064,22 +1064,7 @@ fn construction_population_requirement(base: usize, population_limit: usize) -> 
 
 fn reserve_construction_cost(sim: &mut Simulation, lineage: &str, kind: BuildingKind) -> bool {
     let cost = kind.construction_cost();
-    let mut wood_available = 0u32;
-    let mut stone_available = 0u32;
-    let mut wealth_available = 0u64;
-    for org in sim
-        .organisms
-        .iter()
-        .filter(|org| org.alive && org.lineage_id == lineage)
-    {
-        wood_available += u32::from(org.inv_wood);
-        stone_available += u32::from(org.inv_stone);
-        wealth_available += u64::from(org.wealth);
-    }
-    if wood_available < u32::from(cost.wood)
-        || stone_available < u32::from(cost.stone)
-        || wealth_available < u64::from(cost.wealth)
-    {
+    if !lineage_can_afford_construction(sim, lineage, kind) {
         return false;
     }
 
@@ -1110,6 +1095,25 @@ fn reserve_construction_cost(sim: &mut Simulation, lineage: &str, kind: Building
     true
 }
 
+/// Uses the same pooled-lineage accounting as construction reservation, but
+/// without mutating inventory. Action selection can therefore avoid offering
+/// a project that its effect would immediately reject for missing inputs.
+pub(crate) fn lineage_can_afford_construction(sim: &Simulation, lineage: &str, kind: BuildingKind) -> bool {
+    let cost = kind.construction_cost();
+    let (wood, stone, wealth) = sim
+        .organisms
+        .iter()
+        .filter(|org| org.alive && org.lineage_id == lineage)
+        .fold((0u32, 0u32, 0u64), |(wood, stone, wealth), org| {
+            (
+                wood + u32::from(org.inv_wood),
+                stone + u32::from(org.inv_stone),
+                wealth + u64::from(org.wealth),
+            )
+        });
+    wood >= u32::from(cost.wood) && stone >= u32::from(cost.stone) && wealth >= u64::from(cost.wealth)
+}
+
 fn building_footprints_overlap(
     a_x: i32,
     a_y: i32,
@@ -1126,7 +1130,7 @@ fn building_footprints_overlap(
         && a_y + i32::from(a_height) > b_y
 }
 
-fn construction_site_is_valid(sim: &Simulation, kind: BuildingKind, x: i32, y: i32) -> bool {
+pub(crate) fn construction_site_is_valid(sim: &Simulation, kind: BuildingKind, x: i32, y: i32) -> bool {
     use crate::world::grid::{HEIGHT, WIDTH};
     use crate::world::tiles::Tile;
 
@@ -1199,25 +1203,45 @@ fn apply_completed_building_effect(sim: &mut Simulation, kind: BuildingKind, x: 
             // Groundwater is a completed well's effect, not a free side
             // effect of selecting the action that opened its project.
             sim.grid.set(x, y, Tile::Water);
+            sim.grid.depth[WorldGrid::idx(x, y)] = 0.0;
         }
         BuildingKind::Bridge => {
             let (width, height) = kind.footprint();
             for tile_y in y..y + i32::from(height) {
                 for tile_x in x..x + i32::from(width) {
-                    if sim.grid.get(tile_x, tile_y) == Tile::Water {
+                    if matches!(sim.grid.get(tile_x, tile_y), Tile::Water | Tile::Flooded) {
                         // Sand is walkable, nonflammable, and cannot regrow
                         // food. The Building entity supplies the bridge visual;
                         // the terrain conversion supplies actual traversal.
                         sim.grid.set(tile_x, tile_y, Tile::Sand);
-                        let index = WorldGrid::idx(tile_x, tile_y);
-                        sim.grid.depth[index] = 0.0;
-                        sim.grid.fertility[index] = 0.0;
+                        sim.grid.fertility[WorldGrid::idx(tile_x, tile_y)] = 0.0;
                     }
+                    // Depth is mutable independently of the tile enum. Keep
+                    // the complete footprint traversable after hydrology or
+                    // loading an older save regenerated its depth layer.
+                    sim.grid.depth[WorldGrid::idx(tile_x, tile_y)] = 0.0;
                     sim.grid.leave_trail(tile_x, tile_y, TrailKind::Path, 5.0);
                 }
             }
         }
         _ => {}
+    }
+}
+
+/// Reasserts the terrain contract of completed infrastructure after mutable
+/// hydrology has run or a save has been imported. Collect first so applying an
+/// effect can mutably borrow the simulation without aliasing `buildings`.
+pub(crate) fn reconcile_operational_infrastructure(sim: &mut Simulation) {
+    let infrastructure: Vec<_> = sim
+        .buildings
+        .iter()
+        .filter(|building| {
+            building.is_operational() && matches!(building.kind, BuildingKind::Well | BuildingKind::Bridge)
+        })
+        .map(|building| (building.kind, building.x, building.y))
+        .collect();
+    for (kind, x, y) in infrastructure {
+        apply_completed_building_effect(sim, kind, x, y);
     }
 }
 
@@ -3800,6 +3824,67 @@ mod tests {
 
         let _ = std::fs::remove_file(&path_s);
         let _ = std::fs::remove_file(format!("{}.tmp", path_s));
+    }
+
+    #[test]
+    fn operational_infrastructure_recovers_after_hydrology_changes() {
+        use crate::world::grid::WorldGrid;
+        use crate::world::tiles::Tile;
+
+        let mut sim = Simulation::new(0x1AF2_A57A);
+        sim.buildings.clear();
+        let (bridge_x, bridge_y) = (140, 140);
+        for tile_y in bridge_y - 2..=bridge_y + 6 {
+            for tile_x in bridge_x - 2..=bridge_x + 8 {
+                sim.grid.set(tile_x, tile_y, Tile::Grass);
+            }
+        }
+
+        let mut bridge = Building::new(
+            1,
+            BuildingKind::Bridge,
+            bridge_x,
+            bridge_y,
+            Some("lineage-a".into()),
+            1,
+        );
+        bridge.condition = 1.0;
+        sim.buildings.push(bridge);
+        sim.grid.set(bridge_x + 1, bridge_y, Tile::Water);
+        sim.grid.set(bridge_x + 2, bridge_y, Tile::Flooded);
+        sim.grid.depth[WorldGrid::idx(bridge_x + 1, bridge_y)] = 0.8;
+        sim.grid.depth[WorldGrid::idx(bridge_x + 2, bridge_y)] = 0.6;
+
+        let well_x = bridge_x;
+        let well_y = bridge_y + 3;
+        let mut well = Building::new(2, BuildingKind::Well, well_x, well_y, Some("lineage-a".into()), 1);
+        well.condition = 1.0;
+        sim.buildings.push(well);
+        sim.grid.set(well_x, well_y, Tile::Grass);
+        sim.grid.depth[WorldGrid::idx(well_x, well_y)] = 0.9;
+
+        let unfinished_x = well_x + 3;
+        let mut unfinished_well = Building::new(
+            3,
+            BuildingKind::Well,
+            unfinished_x,
+            well_y,
+            Some("lineage-a".into()),
+            1,
+        );
+        unfinished_well.condition = 0.99;
+        sim.buildings.push(unfinished_well);
+        sim.grid.set(unfinished_x, well_y, Tile::Grass);
+
+        reconcile_operational_infrastructure(&mut sim);
+
+        for tile_x in bridge_x..bridge_x + 4 {
+            assert!(sim.grid.get(tile_x, bridge_y).walkable());
+            assert_eq!(sim.grid.depth_at(tile_x, bridge_y), 0.0);
+        }
+        assert_eq!(sim.grid.get(well_x, well_y), Tile::Water);
+        assert_eq!(sim.grid.depth_at(well_x, well_y), 0.0);
+        assert_eq!(sim.grid.get(unfinished_x, well_y), Tile::Grass);
     }
 
     #[test]

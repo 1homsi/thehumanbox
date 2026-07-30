@@ -54,6 +54,18 @@ pub async fn admin_reset_world_handler(
     )
     .await;
 
+    let Some(archived_hash) = archived else {
+        tracing::error!(target: "admin", "world reset via /admin/reset-world failed; live world was preserved");
+        return (
+            StatusCode::CONFLICT,
+            Json(serde_json::json!({
+                "ok": false,
+                "error": "world could not be archived; live world was not reset",
+            })),
+        )
+            .into_response();
+    };
+
     s.world_started_at.store(
         crate::server::transport::now_ms(),
         std::sync::atomic::Ordering::Relaxed,
@@ -62,12 +74,12 @@ pub async fn admin_reset_world_handler(
 
     let new_hash = crate::server::world_store::live_world_hash();
     tracing::warn!(target: "admin",
-        "world reset via /admin/reset-world: archived={:?} new_live={:?}", archived, new_hash);
+        "world reset via /admin/reset-world: archived={} new_live={:?}", archived_hash, new_hash);
     (
         StatusCode::OK,
         Json(serde_json::json!({
             "ok": true,
-            "archived": archived,
+            "archived": archived_hash,
             "new_world": new_hash,
         })),
     )

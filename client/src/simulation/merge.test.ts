@@ -149,4 +149,67 @@ describe('mergeFrame organism handling', () => {
     expect(r2.grid.fire_intensity).toBe(r1.grid.fire_intensity)
     expect(r2.grid.structure).toBe(r1.grid.structure)
   })
+
+  it('carries strategy objectives and campaign history across delta frames', () => {
+    const caches = emptyCaches()
+    const first = mergeFrame(
+      baseFrame({
+        lineage_strategies: {
+          'lin-a': {
+            strategy: 'settle',
+            expires_tick: 900,
+            started_tick: 300,
+            progress: 40,
+            target: 100,
+            completed: false,
+            status: 'active',
+          },
+        },
+        lineage_strategy_history: [
+          {
+            lineage_id: 'lin-a',
+            lineage_name: 'Lineage A',
+            strategy: 'explore',
+            started_tick: 100,
+            ended_tick: 250,
+            progress: 60,
+            target: 60,
+            outcome: 'completed',
+            reason: null,
+          },
+        ],
+      }),
+      caches,
+    )
+    caches.prevWorld = first.next
+
+    const inherited = mergeFrame(baseFrame({ frame_id: 2, tick: 301 }), caches)
+    expect(inherited.next.lineage_strategies?.['lin-a']?.progress).toBe(40)
+    expect(inherited.next.lineage_strategy_history?.[0]?.outcome).toBe('completed')
+    caches.prevWorld = inherited.next
+
+    const cleared = mergeFrame(
+      baseFrame({
+        frame_id: 3,
+        tick: 900,
+        lineage_strategies: {},
+        lineage_strategy_history: [
+          {
+            lineage_id: 'lin-a',
+            lineage_name: 'Lineage A',
+            strategy: 'settle',
+            started_tick: 300,
+            ended_tick: 900,
+            progress: 78,
+            target: 100,
+            outcome: 'expired',
+            reason: 'deadline',
+          },
+        ],
+      }),
+      caches,
+    )
+    expect(cleared.next.lineage_strategies).toEqual({})
+    expect(cleared.next.lineage_strategy_history?.[0]?.outcome).toBe('expired')
+  })
 })

@@ -15,6 +15,48 @@ export class TerminationUnconfirmedError extends Error {
   }
 }
 
+export interface OrphanPidClaim {
+  pid: number;
+  port?: number;
+  token?: string;
+}
+
+/**
+ * A live simulation may only be terminated when its pid record is tied to the
+ * exact stale data lock we recovered. If the pid record disappeared, the
+ * child's durable lock claim is sufficient and safer than starting a second
+ * writer beside it.
+ */
+export function resolveOwnedOrphanPid(
+  pidRecord: OrphanPidClaim | null,
+  recoveredToken: string | null,
+  recoveredChildPid: number | null,
+): OrphanPidClaim | null {
+  if (recoveredToken === null) {
+    if (pidRecord === null) return null;
+    throw new Error(
+      "a live simulation pid has no matching recovered data-lock claim; refusing to terminate it",
+    );
+  }
+
+  if (pidRecord === null) {
+    return recoveredChildPid === null
+      ? null
+      : { pid: recoveredChildPid, token: recoveredToken };
+  }
+  if (pidRecord.token !== recoveredToken) {
+    throw new Error(
+      "the live simulation pid does not match the recovered save-folder lock; refusing to terminate it",
+    );
+  }
+  if (recoveredChildPid !== null && pidRecord.pid !== recoveredChildPid) {
+    throw new Error(
+      "the live simulation pid changed after claiming the recovered save-folder lock; refusing to terminate it",
+    );
+  }
+  return pidRecord;
+}
+
 export function childTerminationConfirmed(
   child: ChildTerminationObservable,
 ): boolean {

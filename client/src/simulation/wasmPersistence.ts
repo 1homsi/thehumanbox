@@ -60,3 +60,40 @@ export function findRequestedRecovery<T extends { id: string }>(
 ): T | null {
   return recoveries.find((recovery) => recovery.id === recoveryId) ?? null
 }
+
+/**
+ * A reload checkpoint may finish after the renderer has already timed out and
+ * told the player that reload was cancelled. In that case the worker must stay
+ * alive instead of releasing its lock and leaving the current page frozen.
+ */
+export function canFinalizeReloadCheckpoint(
+  saveSucceeded: boolean,
+  deadlineAt: number,
+  now = Date.now(),
+): boolean {
+  return saveSucceeded && Number.isFinite(deadlineAt) && now <= deadlineAt
+}
+
+export interface ReloadCheckpointOperations {
+  quiesce: () => void
+  persist: () => Promise<boolean>
+  resume: () => void
+}
+
+export async function runReloadCheckpoint(
+  deadlineAt: number,
+  operations: ReloadCheckpointOperations,
+  now: () => number = Date.now,
+): Promise<boolean> {
+  operations.quiesce()
+  let saved: boolean
+  try {
+    saved = await operations.persist()
+  } catch {
+    operations.resume()
+    return false
+  }
+  const canFinalize = canFinalizeReloadCheckpoint(saved, deadlineAt, now())
+  if (!canFinalize) operations.resume()
+  return canFinalize
+}

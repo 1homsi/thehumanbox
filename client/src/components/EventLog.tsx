@@ -18,6 +18,9 @@ const DRAMA_EVENT_TYPES = new Set([
   'drought',
   'weather',
   'eruption',
+  'strategy_complete',
+  'strategy_failed',
+  'strategy_redirected',
 ])
 
 function EventLogImpl() {

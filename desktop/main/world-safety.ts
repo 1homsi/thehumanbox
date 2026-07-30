@@ -9,6 +9,7 @@ const DATA_ROOT_IDENTITY_NAME = ".thehumanbox-data-root.json";
 const DATA_ROOT_IDENTITY_KIND = "thehumanbox-data-root";
 const PARKED_WORLDS_PREFIX = ".thehumanbox-migration-parked-worlds-";
 const WORLDS_BACKUP_PREFIX = ".thehumanbox-worlds-backup-";
+const MAX_U64 = (1n << 64n) - 1n;
 
 export interface ValidatedWorldSave {
   bytes: Buffer;
@@ -32,6 +33,12 @@ export interface DataRootIdentity {
   createdAt: number;
 }
 
+export interface ActiveWorldFiles {
+  hash: string;
+  savePath: string;
+  markerPath: string;
+}
+
 type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
 function record(value: unknown): Record<string, unknown> | null {
@@ -53,10 +60,69 @@ function nonNegativeJsonInteger(value: unknown): value is number {
   );
 }
 
-function unsignedIntegerText(json: string, key: string): string {
-  const match = new RegExp(`"${key}"\\s*:\\s*(\\d+)`).exec(json);
-  if (!match) throw new Error(`world save is missing its ${key}`);
-  return BigInt(match[1]).toString();
+function topLevelUnsignedIntegerText(json: string, key: string): string {
+  let depth = 0;
+  let previousSignificant = "";
+  let found: string | null = null;
+
+  for (let index = 0; index < json.length; index += 1) {
+    const character = json[index];
+    if (/\s/.test(character)) continue;
+    if (character === '"') {
+      const stringStart = index;
+      index += 1;
+      while (index < json.length) {
+        if (json[index] === "\\") {
+          index += 2;
+          continue;
+        }
+        if (json[index] === '"') break;
+        index += 1;
+      }
+      if (index >= json.length) break; // JSON.parse already reports this.
+
+      if (
+        depth === 1 &&
+        (previousSignificant === "{" || previousSignificant === ",")
+      ) {
+        const decodedKey = JSON.parse(
+          json.slice(stringStart, index + 1),
+        ) as string;
+        let valueStart = index + 1;
+        while (/\s/.test(json[valueStart] ?? "")) valueStart += 1;
+        if (json[valueStart] === ":") {
+          valueStart += 1;
+          while (/\s/.test(json[valueStart] ?? "")) valueStart += 1;
+          if (decodedKey === key) {
+            const match = /^(?:0|[1-9]\d*)/.exec(json.slice(valueStart));
+            if (!match) {
+              throw new Error(`world save has an invalid ${key}`);
+            }
+            let afterValue = valueStart + match[0].length;
+            while (/\s/.test(json[afterValue] ?? "")) afterValue += 1;
+            if (json[afterValue] !== "," && json[afterValue] !== "}") {
+              throw new Error(`world save has an invalid ${key}`);
+            }
+            if (found !== null) {
+              throw new Error(`world save contains duplicate ${key} fields`);
+            }
+            found = BigInt(match[0]).toString();
+          }
+        }
+      }
+      previousSignificant = '"';
+      continue;
+    }
+    if (character === "{" || character === "[") depth += 1;
+    if (character === "}" || character === "]") depth -= 1;
+    previousSignificant = character;
+  }
+
+  if (found === null) throw new Error(`world save is missing its ${key}`);
+  if (BigInt(found) > MAX_U64) {
+    throw new Error(`world save ${key} exceeds Rust's u64 range`);
+  }
+  return found;
 }
 
 export function validateWorldSaveBytes(bytes: Uint8Array): ValidatedWorldSave {
@@ -131,13 +197,16 @@ export function validateWorldSaveBytes(bytes: Uint8Array): ValidatedWorldSave {
     throw new Error("world save terrain contains an invalid tile value");
   }
 
+  const tickText = topLevelUnsignedIntegerText(text, "tick_count");
+  const seedText = topLevelUnsignedIntegerText(text, "world_seed");
+
   return {
     bytes: Buffer.from(bytes),
     version,
     tick: save.tick_count,
     seed: save.world_seed,
-    tickText: unsignedIntegerText(text, "tick_count"),
-    seedText: unsignedIntegerText(text, "world_seed"),
+    tickText,
+    seedText,
   };
 }
 
@@ -358,6 +427,10 @@ function parseDataRootIdentity(root: string): DataRootIdentity {
   const markerPath = dataRootIdentityPath(root);
   let parsed: Partial<DataRootIdentity>;
   try {
+    const markerStat = fs.lstatSync(markerPath);
+    if (markerStat.isSymbolicLink() || !markerStat.isFile()) {
+      throw new Error("identity marker is not a regular file");
+    }
     parsed = JSON.parse(
       fs.readFileSync(markerPath, "utf8"),
     ) as Partial<DataRootIdentity>;
@@ -388,6 +461,46 @@ function isRegularNonemptyFile(filePath: string): boolean {
   }
 }
 
+function pathEntryExists(filePath: string): boolean {
+  try {
+    fs.lstatSync(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function isPlainDirectory(directory: string): boolean {
+  try {
+    const stat = fs.lstatSync(directory);
+    return stat.isDirectory() && !stat.isSymbolicLink();
+  } catch {
+    return false;
+  }
+}
+
+export function resolveActiveWorldFiles(root: string): ActiveWorldFiles {
+  const worldsDir = path.join(path.resolve(root), "worlds");
+  if (!isPlainDirectory(worldsDir)) {
+    throw new Error("worlds path is missing or is not a regular directory");
+  }
+  const markerPath = path.join(worldsDir, "_live");
+  if (!isRegularNonemptyFile(markerPath)) {
+    throw new Error("live-world marker is missing or is not a regular file");
+  }
+  const hash = fs.readFileSync(markerPath, "utf8").trim();
+  validateWorldHash(hash);
+  const worldDir = path.join(worldsDir, hash);
+  if (!isPlainDirectory(worldDir)) {
+    throw new Error(`active world ${hash} is not a regular directory`);
+  }
+  const savePath = path.join(worldDir, "world.save");
+  if (!isRegularNonemptyFile(savePath)) {
+    throw new Error(`active world ${hash} has no regular world.save file`);
+  }
+  return { hash, savePath, markerPath };
+}
+
 function containsRecognizableExistingWorld(root: string): boolean {
   const legacySave = path.join(root, "world.save");
   if (isRegularNonemptyFile(legacySave)) {
@@ -410,6 +523,9 @@ function containsRecognizableExistingWorld(root: string): boolean {
 
   const hashes = new Set<string>();
   try {
+    if (!isRegularNonemptyFile(path.join(worldsDir, "_live"))) {
+      throw new Error("unsafe live marker");
+    }
     const liveHash = fs
       .readFileSync(path.join(worldsDir, "_live"), "utf8")
       .trim();
@@ -429,6 +545,7 @@ function containsRecognizableExistingWorld(root: string): boolean {
   }
 
   for (const hash of hashes) {
+    if (!isPlainDirectory(path.join(worldsDir, hash))) continue;
     const savePath = path.join(worldsDir, hash, "world.save");
     if (!isRegularNonemptyFile(savePath)) continue;
     try {
@@ -492,6 +609,34 @@ export function requireExistingDataRootIdentity(
 }
 
 /**
+ * A newly selected custom destination may be initialized only when it is
+ * empty. A pre-identified app root can be reused even if its worlds are
+ * currently parked or backed up, but arbitrary nonempty folders must never be
+ * silently claimed as game storage.
+ */
+export function assertEmptyOrIdentifiedDataRoot(root: string): void {
+  const resolvedRoot = path.resolve(root);
+  let stat: fs.Stats;
+  try {
+    stat = fs.statSync(resolvedRoot);
+  } catch {
+    throw new Error(`save folder does not exist: ${resolvedRoot}`);
+  }
+  if (!stat.isDirectory()) {
+    throw new Error(`save folder is not a directory: ${resolvedRoot}`);
+  }
+  if (fs.existsSync(dataRootIdentityPath(resolvedRoot))) {
+    requireExistingDataRootIdentity(resolvedRoot);
+    return;
+  }
+  if (fs.readdirSync(resolvedRoot).length > 0) {
+    throw new Error(
+      "the selected custom save folder is not empty and has no existing The Human Box data-root identity",
+    );
+  }
+}
+
+/**
  * Open an explicit override without ever creating it. Roots from older desktop
  * versions are upgraded only when a valid native world proves their identity.
  */
@@ -535,10 +680,16 @@ export function recoverInterruptedFileReplacement(target: string): void {
   );
   const newest = (names: string[]) =>
     names
-      .map((name) => ({
-        name,
-        mtime: fs.statSync(path.join(dir, name)).mtimeMs,
-      }))
+      .map((name) => {
+        const candidate = path.join(dir, name);
+        const stat = fs.lstatSync(candidate);
+        if (stat.isSymbolicLink() || !stat.isFile()) {
+          throw new Error(
+            `interrupted file replacement has an unsafe rollback entry: ${candidate}`,
+          );
+        }
+        return { name, mtime: stat.mtimeMs };
+      })
       .sort((a, b) => b.mtime - a.mtime)[0]?.name;
 
   // The caller removes the rollback only after the replacement has been
@@ -579,10 +730,16 @@ export function recoverInterruptedWorldReset(markerPath: string): void {
   const parked = fs
     .readdirSync(worldsDir)
     .filter((name) => name.startsWith(prefix))
-    .map((name) => ({
-      name,
-      mtime: fs.statSync(path.join(worldsDir, name)).mtimeMs,
-    }))
+    .map((name) => {
+      const candidate = path.join(worldsDir, name);
+      const stat = fs.lstatSync(candidate);
+      if (stat.isSymbolicLink() || !stat.isFile()) {
+        throw new Error(
+          `interrupted world reset has an unsafe parked marker: ${candidate}`,
+        );
+      }
+      return { name, mtime: stat.mtimeMs };
+    })
     .sort((a, b) => b.mtime - a.mtime);
 
   const interrupted = parked[0];
@@ -731,8 +888,12 @@ function canonicalPath(input: string): string {
 }
 
 export function rootsOverlap(a: string, b: string): boolean {
-  const first = canonicalPath(a);
-  const second = canonicalPath(b);
+  const normalize = (input: string): string => {
+    const resolved = path.resolve(input);
+    return process.platform === "win32"
+      ? resolved.toLocaleLowerCase("en-US")
+      : resolved;
+  };
   const isSameOrDescendant = (parent: string, child: string): boolean => {
     const relative = path.relative(parent, child);
     return (
@@ -742,7 +903,32 @@ export function rootsOverlap(a: string, b: string): boolean {
         !path.isAbsolute(relative))
     );
   };
-  return isSameOrDescendant(first, second) || isSameOrDescendant(second, first);
+  const overlaps = (first: string, second: string): boolean =>
+    isSameOrDescendant(first, second) || isSameOrDescendant(second, first);
+
+  // Check both names as entered and their existing realpath prefixes. The
+  // lexical check prevents a leaf symlink inside a data root from escaping
+  // containment checks; the canonical check catches an outside alias that
+  // resolves back into the managed root.
+  return (
+    overlaps(normalize(a), normalize(b)) ||
+    overlaps(canonicalPath(a), canonicalPath(b))
+  );
+}
+
+export function pathsReferToSameLocation(a: string, b: string): boolean {
+  return canonicalPath(a) === canonicalPath(b);
+}
+
+export function assertExportOutsideDataRoot(
+  dataRoot: string,
+  destination: string,
+): void {
+  if (rootsOverlap(dataRoot, destination)) {
+    throw new Error(
+      "world exports must be saved outside The Human Box data folder",
+    );
+  }
 }
 
 export function assertNoUnmigratedLegacyWorld(sourceRoot: string): void {
@@ -780,15 +966,13 @@ export function inspectSaveFolderMigrationSource(
   const markerPath = path.join(resolvedSource, "worlds", "_live");
   assertNoUnmigratedLegacyWorld(resolvedSource);
 
-  if (!fs.existsSync(markerPath)) {
+  if (!pathEntryExists(markerPath)) {
     return null;
   }
 
-  const hash = fs.readFileSync(markerPath, "utf8").trim();
-  validateWorldHash(hash);
-  const bytes = fs.readFileSync(
-    path.join(resolvedSource, "worlds", hash, "world.save"),
-  );
+  const activeWorld = resolveActiveWorldFiles(resolvedSource);
+  const hash = activeWorld.hash;
+  const bytes = fs.readFileSync(activeWorld.savePath);
   const validated = validateWorldSaveBytes(bytes);
   if (validated.seedText === "0") {
     throw new Error(
@@ -864,6 +1048,8 @@ function readSaveFolderMigrationJournal(
   targetRoot: string,
 ): SaveFolderMigrationJournal | null {
   try {
+    const journalStat = fs.lstatSync(migrationJournalPath(targetRoot));
+    if (journalStat.isSymbolicLink() || !journalStat.isFile()) return null;
     const parsed = JSON.parse(
       fs.readFileSync(migrationJournalPath(targetRoot), "utf8"),
     ) as Omit<Partial<SaveFolderMigrationJournal>, "version"> & {
@@ -1159,17 +1345,15 @@ export function finishSaveFolderMigration(
 ): boolean {
   const journal = readSaveFolderMigrationJournal(targetRoot);
   if (!journal || journal.token !== token) return false;
-  if (journal.targetHadWorlds) {
-    if (journal.state !== "verified") {
-      throw new Error(
-        "cannot commit replacement worlds before runtime verification",
-      );
-    }
-    if (!fs.existsSync(path.join(path.resolve(targetRoot), "worlds"))) {
-      throw new Error(
-        "cannot commit replacement worlds without a live destination copy",
-      );
-    }
+  if (journal.state !== "verified") {
+    throw new Error(
+      "cannot commit migrated worlds before runtime verification",
+    );
+  }
+  if (!fs.existsSync(path.join(path.resolve(targetRoot), "worlds"))) {
+    throw new Error(
+      "cannot commit migrated worlds without a live destination copy",
+    );
   }
   preserveParkedWorldsBackup(targetRoot, journal);
   fs.unlinkSync(migrationJournalPath(targetRoot));
@@ -1189,7 +1373,19 @@ export function finishCommittedMigrationForActiveRoot(
 ): boolean {
   const resolvedTarget = path.resolve(targetRoot);
   const journal = readSaveFolderMigrationJournal(resolvedTarget);
-  if (!journal || journal.targetRoot !== resolvedTarget) return false;
+  if (!journal) {
+    if (pathEntryExists(migrationJournalPath(resolvedTarget))) {
+      throw new Error(
+        "active save folder has an unreadable or invalid migration journal",
+      );
+    }
+    return false;
+  }
+  if (journal.targetRoot !== resolvedTarget) {
+    throw new Error(
+      "active save folder migration journal belongs to a different path",
+    );
+  }
   if (journal.state !== "verified") {
     throw new Error(
       "active save folder has an unverified migration; refusing to select it until the original folder is restored",

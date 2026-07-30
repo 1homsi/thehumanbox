@@ -16,6 +16,7 @@ import { DesktopDownloadToast } from './components/DesktopDownloadToast'
 import { CommandPalette } from './components/CommandPalette'
 import { HeadlineTicker } from './components/HeadlineTicker'
 import { trackEvent } from './lib/observability'
+import { reconcileViewerSelection } from './lib/viewerSelection'
 import { useUIStore } from './stores/store'
 import { IS_LOCAL_SERVER, WS_BASE } from './lib/config'
 import { getDesktop, type SimMode } from './lib/desktop'
@@ -99,6 +100,7 @@ function LiveApp() {
     loadLocalOrgDetail,
     loadLocalOrgLife,
   } = useSimulation(worldSourceRef.current)
+  const localStartupFailed = !world && localSaveStatus.phase === 'error' && localSaveStatus.fatal === true
   const playerWorldKind = resolvePlayerWorldKind(worldSourceRef.current, {
     desktop: !!desktop,
     desktopMode,
@@ -323,13 +325,11 @@ function LiveApp() {
   }, [world, selectedOrgId])
 
   useEffect(() => {
-    const featured = world?.featured_org_id
-    if (!featured) return
-    const featuredAlive = world?.organisms.some((o) => o.id === featured && o.alive)
-    if (!featuredAlive) return
-    const selectedAlive = selectedOrgId && world?.organisms.some((o) => o.id === selectedOrgId && o.alive)
-    if (selectedAlive) return
-    useUIStore.getState().selectOrg(featured)
+    if (!world) return
+    const reconciledSelection = reconcileViewerSelection(selectedOrgId, world)
+    if (reconciledSelection !== selectedOrgId) {
+      useUIStore.getState().selectOrg(reconciledSelection)
+    }
   }, [world, selectedOrgId])
 
   const lastHeadlineTickRef = useRef<number>(0)
@@ -348,15 +348,16 @@ function LiveApp() {
 
   const splashHiddenRef = useRef(false)
   useEffect(() => {
-    if (world && !splashHiddenRef.current) {
-      splashHiddenRef.current = true
-      window.dispatchEvent(new Event('thb-world-ready'))
+    if ((!world && !localStartupFailed) || splashHiddenRef.current) return
+    splashHiddenRef.current = true
+    window.dispatchEvent(new Event('thb-world-ready'))
+    if (world) {
       trackEvent('world_first_loaded', {
         tick: world.tick,
         alive: world.organisms.filter((o) => o.alive).length,
       })
     }
-  }, [world])
+  }, [localStartupFailed, world])
 
   useEffect(() => {
     if (viewFlags.threeD && viewFlags.hideUI) {
@@ -513,25 +514,34 @@ function LiveApp() {
             </div>
           ) : (
             <div className="waiting">
-              <div className="waiting-spinner" aria-hidden="true" />
+              {!localStartupFailed && <div className="waiting-spinner" aria-hidden="true" />}
               <div className="waiting-title">
-                {playerWorldKind === 'local'
-                  ? 'starting your world…'
-                  : status === 'unreachable'
-                    ? 'simulation server unreachable'
-                    : status === 'reconnecting'
-                      ? 'reconnecting…'
-                      : 'connecting…'}
+                {localStartupFailed
+                  ? 'local world could not start'
+                  : playerWorldKind === 'local'
+                    ? 'starting your world…'
+                    : status === 'unreachable'
+                      ? 'simulation server unreachable'
+                      : status === 'reconnecting'
+                        ? 'reconnecting…'
+                        : 'connecting…'}
               </div>
               <div className="waiting-sub">
-                {playerWorldKind === 'local'
-                  ? 'loading your private simulation on this device — no Shared World connection needed'
-                  : status === 'unreachable'
-                    ? `tried ${failedAttempts} times. waiting for ${WS_HOST} to come back online - retries continue automatically.`
-                    : status === 'reconnecting'
-                      ? `attempt ${failedAttempts + 1} - backing off and retrying`
-                      : 'opening websocket and fetching the world snapshot'}
+                {localStartupFailed
+                  ? localSaveStatus.message
+                  : playerWorldKind === 'local'
+                    ? 'loading your private simulation on this device — no Shared World connection needed'
+                    : status === 'unreachable'
+                      ? `tried ${failedAttempts} times. waiting for ${WS_HOST} to come back online - retries continue automatically.`
+                      : status === 'reconnecting'
+                        ? `attempt ${failedAttempts + 1} - backing off and retrying`
+                        : 'opening websocket and fetching the world snapshot'}
               </div>
+              {localStartupFailed && (
+                <button className="lang-btn" onClick={() => reloadAppSafely()}>
+                  retry local world
+                </button>
+              )}
             </div>
           )}
         </main>

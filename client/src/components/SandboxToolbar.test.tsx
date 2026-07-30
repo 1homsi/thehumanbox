@@ -22,6 +22,14 @@ function renderSaveButton(saveError: boolean, saveRetryable: boolean, saveBusy =
 }
 
 describe('SandboxToolbar local save recovery', () => {
+  it('presents one labeled dock with understandable category and cursor states', () => {
+    const markup = renderSaveButton(false, false)
+    expect(markup).toContain('aria-label="World controls"')
+    expect(markup).toContain('role="group" aria-label="Tool categories"')
+    expect(markup).toContain('aria-pressed="true"')
+    expect(markup).toContain('aria-label="Cursor — stop placing"')
+  })
+
   it('keeps a retryable failed save actionable', () => {
     const markup = renderSaveButton(true, true)
     expect(markup).toContain('↻ retry save')

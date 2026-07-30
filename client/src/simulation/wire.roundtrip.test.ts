@@ -59,6 +59,31 @@ const knownDelta = () => ({
   organisms_complete: false,
   animals: [],
   animals_complete: false,
+  lineage_strategies: {
+    'lineage-1': {
+      strategy: 'explore',
+      expires_tick: 12600,
+      started_tick: 12000,
+      progress: 18,
+      target: 60,
+      completed: false,
+      completed_tick: null,
+      status: 'active',
+    },
+  },
+  lineage_strategy_history: [
+    {
+      lineage_id: 'lineage-1',
+      lineage_name: 'Wayfinders',
+      strategy: 'settle',
+      started_tick: 11000,
+      ended_tick: 11800,
+      progress: 40,
+      target: 80,
+      outcome: 'redirected',
+      reason: 'player_redirected',
+    },
+  ],
 })
 
 describe('wire round-trip', () => {
@@ -92,6 +117,12 @@ describe('wire round-trip', () => {
     expect((f.organisms_hot as unknown as { ages?: unknown }).ages).toBeUndefined()
     expect(f.organisms_complete).toBe(false)
     expect(f.animals).toEqual([])
+    expect(f.lineage_strategies?.['lineage-1']?.progress).toBe(18)
+    expect(f.lineage_strategy_history?.[0]).toMatchObject({
+      lineage_name: 'Wayfinders',
+      outcome: 'redirected',
+      reason: 'player_redirected',
+    })
   })
 
   it('also accepts a JSON-encoded frame (legacy path)', () => {
@@ -115,5 +146,44 @@ describe('wire round-trip', () => {
     expect(result.isErr()).toBe(true)
     if (result.isOk()) return
     expect(result.error.kind).toBe('schema')
+  })
+
+  it('rejects malformed campaign state at the wire boundary', () => {
+    const malformed = {
+      ...knownDelta(),
+      lineage_strategies: {
+        'lineage-1': {
+          strategy: 'trade',
+          expires_tick: -1,
+          status: 'stuck',
+          completed: 'yes',
+          completed_tick: -2,
+        },
+      },
+      lineage_strategy_history: [
+        {
+          lineage_id: 'lineage-1',
+          lineage_name: 'Traders',
+          strategy: 'trade',
+          started_tick: 100,
+          ended_tick: 200,
+          progress: 20,
+          target: 40,
+          outcome: 'failed',
+          reason: 'unknown_failure',
+        },
+      ],
+    }
+    const result = parseWorldFrame(msgpackEncode(malformed))
+
+    expect(result.isErr()).toBe(true)
+    if (result.isOk()) return
+    expect(result.error.kind).toBe('schema')
+    if (result.error.kind !== 'schema') return
+    expect(result.error.issues).toContain('lineage_strategies.lineage-1.expires_tick is invalid')
+    expect(result.error.issues).toContain('lineage_strategies.lineage-1.status is invalid')
+    expect(result.error.issues).toContain('lineage_strategies.lineage-1.completed is not a boolean')
+    expect(result.error.issues).toContain('lineage_strategies.lineage-1.completed_tick is invalid')
+    expect(result.error.issues).toContain('lineage_strategy_history.0.reason is invalid')
   })
 })

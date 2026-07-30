@@ -22,8 +22,8 @@ import { canSendSandboxCommand, type SandboxCommand } from './sandbox'
 import { isDesktop } from '../lib/desktop'
 import { localSaveWorkerRequest } from './wasmPersistence'
 import {
+  fetchRuntimeControlState,
   nextRuntimeState,
-  parseRuntimeControlResult,
   reconcileRuntimeState,
   type RuntimeControl,
   type RuntimeControlResult,
@@ -31,6 +31,8 @@ import {
 } from './runtimeControls'
 
 const WASM_BASE_TICK_MS = 120
+const RELOAD_CHECKPOINT_DEADLINE_MS = 6_000
+const RELOAD_CHECKPOINT_TIMEOUT_MS = 7_000
 
 const WS_URL = `${WS_BASE}/ws`
 const SNAPSHOT_URL = `${API_BASE}/snapshot`
@@ -51,7 +53,7 @@ export type LocalSaveStatus =
   | { phase: 'retrying'; tick: number }
   | { phase: 'saving'; tick: number }
   | { phase: 'saved'; tick: number; savedAt: number }
-  | { phase: 'error'; message: string; retryable?: boolean }
+  | { phase: 'error'; message: string; retryable?: boolean; fatal?: boolean }
 
 export function useSimulation(source: WorldSource = 'remote'): {
   world: WorldState | null
@@ -86,6 +88,7 @@ export function useSimulation(source: WorldSource = 'remote'): {
   const wsRef = useRef<WebSocket | null>(null)
   const wasmWorkerRef = useRef<Worker | null>(null)
   const runtimeControlQueueRef = useRef<Promise<void>>(Promise.resolve())
+  const runtimeSourceGenerationRef = useRef(0)
   const nextWorkerRequestRef = useRef(1)
   const pendingWorkerRequestsRef = useRef(
     new Map<
@@ -123,6 +126,8 @@ export function useSimulation(source: WorldSource = 'remote'): {
   }, [idleParked])
 
   useEffect(() => {
+    runtimeSourceGenerationRef.current += 1
+    runtimeControlQueueRef.current = Promise.resolve()
     setRuntimeState({ paused: false, speed: 1 })
     const MAX_BUFFERED_MESSAGES = 32
     const SNAPSHOT_FETCH_GRACE_MS = 250
@@ -316,6 +321,7 @@ export function useSimulation(source: WorldSource = 'remote'): {
       })
       wasmWorkerRef.current = worker
       let announced = false
+      let workerFailed = false
       worker.onmessage = (e: MessageEvent) => {
         if (destroyed) return
         const m = e.data as {
@@ -330,6 +336,7 @@ export function useSimulation(source: WorldSource = 'remote'): {
           json?: string
           persistenceReady?: boolean
           retryable?: boolean
+          fatal?: boolean
           paused?: boolean
           tickMs?: number
         }
@@ -396,11 +403,26 @@ export function useSimulation(source: WorldSource = 'remote'): {
           }
         } else if (m.type === 'error' && m.message) {
           logger.warn('wasm', m.message)
-          setLocalSaveStatus({ phase: 'error', message: m.message, retryable: m.retryable === true })
+          workerFailed ||= m.fatal === true
+          if (workerFailed) setConnected(false)
+          setLocalSaveStatus({
+            phase: 'error',
+            message: m.message,
+            retryable: m.retryable === true,
+            fatal: workerFailed,
+          })
         }
       }
       worker.onerror = (e: ErrorEvent) => {
+        if (destroyed) return
+        workerFailed = true
+        setConnected(false)
         logger.warn('wasm', 'worker error:', e.message)
+        setLocalSaveStatus({
+          phase: 'error',
+          fatal: true,
+          message: e.message || 'the local simulation worker stopped unexpectedly',
+        })
       }
       worker.postMessage({
         type: 'start',
@@ -421,26 +443,46 @@ export function useSimulation(source: WorldSource = 'remote'): {
           worker.postMessage({ type: 'save', requestId })
         })
       }
+      let reloadPreparation: Promise<boolean> | null = null
       const prepareWorkerReload = (): Promise<boolean> => {
+        if (reloadPreparation) return reloadPreparation
         const requestId = nextWorkerRequestRef.current++
-        return new Promise<boolean>((resolve) => {
+        const deadlineAt = Date.now() + RELOAD_CHECKPOINT_DEADLINE_MS
+        const preparation = new Promise<boolean>((resolve) => {
           const timer = setTimeout(() => {
             pendingWorkerRequests.delete(requestId)
             resolve(false)
-          }, 7_000)
+          }, RELOAD_CHECKPOINT_TIMEOUT_MS)
           pendingWorkerRequests.set(requestId, { resolve: (result) => resolve(result.ok), timer })
-          worker.postMessage({ type: 'prepare_reload', requestId })
+          worker.postMessage({ type: 'prepare_reload', requestId, deadlineAt })
         })
+        reloadPreparation = preparation
+        void preparation.then((ok) => {
+          if (!ok && reloadPreparation === preparation) reloadPreparation = null
+        })
+        return preparation
       }
       const onCheckpointRequest = (event: Event) => {
         const request = event as CustomEvent<{ resolve?: (ok: boolean) => void }>
         if (typeof request.detail?.resolve !== 'function') return
         event.preventDefault()
+        if (workerFailed) {
+          request.detail.resolve(false)
+          return
+        }
         void checkpointWorker().then(request.detail.resolve)
       }
       const onSafeReloadRequest = (event: Event) => {
         const request = event as CustomEvent<LocalWorldReloadDetail>
         event.preventDefault()
+        // No in-memory world remains after a fatal worker failure, so there is
+        // nothing left to checkpoint. Reload the last durable save directly
+        // instead of trapping every retry behind a request the worker cannot
+        // answer.
+        if (workerFailed) {
+          window.location.reload()
+          return
+        }
         void prepareWorkerReload().then((ok) => {
           if (ok) {
             window.location.reload()
@@ -512,17 +554,13 @@ export function useSimulation(source: WorldSource = 'remote'): {
     }
 
     setLocalSaveStatus({ phase: 'inactive' })
+    const runtimeHydrationAbort = new AbortController()
     if (isDesktop()) {
       const hydrateRuntimeState = async (): Promise<void> => {
-        try {
-          const response = await fetch(`${API_BASE}/runtime`)
-          const body: unknown = await response.json().catch(() => null)
-          const result = parseRuntimeControlResult(response.ok, body)
-          if (!destroyed) setRuntimeState((current) => reconcileRuntimeState(current, result))
-        } catch {
-          // Keep the conservative initial state until the local runtime is
-          // reachable; a later acknowledged control will replace it.
-        }
+        const result = await fetchRuntimeControlState(`${API_BASE}/runtime`, {
+          signal: runtimeHydrationAbort.signal,
+        })
+        if (!destroyed) setRuntimeState((current) => reconcileRuntimeState(current, result))
       }
       runtimeControlQueueRef.current = hydrateRuntimeState()
     }
@@ -699,6 +737,7 @@ export function useSimulation(source: WorldSource = 'remote'): {
 
     return () => {
       destroyed = true
+      runtimeHydrationAbort.abort()
       document.removeEventListener('visibilitychange', onVisibilityChange)
       window.removeEventListener('online', onVisibilityChange)
       window.removeEventListener('mousemove', onInteraction)
@@ -827,24 +866,20 @@ export function useSimulation(source: WorldSource = 'remote'): {
   const controlDesktopRuntime = useCallback(
     async (control: RuntimeControl, mult?: number): Promise<RuntimeControlResult> => {
       if (!isDesktop()) return { ok: false }
-      try {
-        const response = await fetch(`${API_BASE}/runtime`, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ control, mult }),
-        })
-        const body: unknown = await response.json().catch(() => null)
-        return parseRuntimeControlResult(response.ok, body)
-      } catch {
-        return { ok: false }
-      }
+      return fetchRuntimeControlState(`${API_BASE}/runtime`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ control, mult }),
+      })
     },
     [],
   )
 
   const applyRuntimeControl = useCallback(
     (control: RuntimeControl, mult?: number): Promise<boolean> => {
+      const sourceGeneration = runtimeSourceGenerationRef.current
       const run = async (): Promise<boolean> => {
+        if (sourceGeneration !== runtimeSourceGenerationRef.current) return false
         let result: RuntimeControlResult
         if (wasmWorkerRef.current) {
           if (control === 'pause') result = await requestRuntimeFromWasm({ type: 'pause' })
@@ -866,7 +901,7 @@ export function useSimulation(source: WorldSource = 'remote'): {
           result = { ok: false }
         }
 
-        if (!result.ok) return false
+        if (!result.ok || sourceGeneration !== runtimeSourceGenerationRef.current) return false
         if (control === 'resume') setIdleParked(false)
         setRuntimeState((current) => nextRuntimeState(current, control, mult, result))
         return true

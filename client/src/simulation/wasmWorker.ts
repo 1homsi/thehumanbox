@@ -12,6 +12,7 @@ import {
 import {
   findRequestedRecovery,
   rememberStorageRetry,
+  runReloadCheckpoint,
   runStorageRetry,
   type StorageRetry,
 } from './wasmPersistence'
@@ -33,7 +34,7 @@ type InMsg =
   | { type: 'visibility'; hidden: boolean }
   | { type: 'save'; requestId?: number }
   | { type: 'retry_storage'; requestId?: number }
-  | { type: 'prepare_reload'; requestId: number }
+  | { type: 'prepare_reload'; requestId: number; deadlineAt: number }
   | { type: 'stop' }
   | { type: 'command'; json: string; requestId: number }
   | { type: 'org_detail'; id: string; requestId: number }
@@ -51,10 +52,12 @@ let worldId = 'browser-own'
 let seed = '0'
 let tickMs = 120
 let stepsPerEmit = 1
+let autosaveEveryMs = DEFAULT_AUTOSAVE_MS
 let frameId = 0
 let started = false
 let manuallyPaused = false
 let hiddenPaused = false
+let reloadPreparing = false
 let tickTimer: ReturnType<typeof setInterval> | null = null
 let saveTimer: ReturnType<typeof setInterval> | null = null
 let persistInFlight: Promise<boolean> | null = null
@@ -355,7 +358,7 @@ function stopTimers() {
 }
 
 function tickOnce() {
-  if (manuallyPaused || hiddenPaused || !sim) return
+  if (manuallyPaused || hiddenPaused || reloadPreparing || !sim) return
   sim.tickN(stepsPerEmit)
   const tc = sim.tickCount()
   emit(tc % DEEP_FULL_EVERY_TICKS === 0n)
@@ -380,12 +383,16 @@ async function start(msg: StartMsg) {
   seed = msg.seed
   tickMs = msg.tickMs ?? tickMs
   stepsPerEmit = msg.stepsPerEmit ?? stepsPerEmit
-  const autosaveEveryMs = msg.autosaveEveryMs ?? DEFAULT_AUTOSAVE_MS
+  autosaveEveryMs = msg.autosaveEveryMs ?? DEFAULT_AUTOSAVE_MS
 
   try {
     await init({ module_or_path: wasmUrl })
   } catch (e) {
-    post({ type: 'error', message: `wasm init failed: ${e instanceof Error ? e.message : String(e)}` })
+    post({
+      type: 'error',
+      fatal: true,
+      message: `wasm init failed: ${e instanceof Error ? e.message : String(e)}`,
+    })
     return
   }
 
@@ -573,9 +580,23 @@ self.onmessage = (e: MessageEvent) => {
       })
       break
     case 'prepare_reload':
-      void persist().then(async (ok) => {
+      if (reloadPreparing) {
+        post({ type: 'reload_result', requestId: msg.requestId, ok: false })
+        break
+      }
+      // Freeze ticks before serializing. Previously the world kept advancing
+      // while IndexedDB committed an older snapshot, then freed the newer
+      // in-memory state, losing every tick in between on reload.
+      reloadPreparing = true
+      void runReloadCheckpoint(msg.deadlineAt, {
+        quiesce: stopTimers,
+        persist,
+        resume: () => {
+          reloadPreparing = false
+          beginLoop(autosaveEveryMs)
+        },
+      }).then(async (ok) => {
         if (ok) {
-          stopTimers()
           if (sim) {
             sim.free()
             sim = null
@@ -587,7 +608,7 @@ self.onmessage = (e: MessageEvent) => {
       })
       break
     case 'command':
-      if (sim) {
+      if (sim && !reloadPreparing) {
         const ok = sim.command(msg.json)
         if (ok) {
           emit(true)

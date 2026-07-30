@@ -295,6 +295,9 @@ export interface SimEvent {
     | 'build'
     | 'weather'
     | 'era'
+    | 'strategy_complete'
+    | 'strategy_failed'
+    | 'strategy_redirected'
   actor: string
   detail: string
 }
@@ -417,11 +420,36 @@ export interface WorldState {
   vehicles?: VehicleInfo[]
   festivals?: FestivalInfo[]
   lineage_eras?: Array<{ lineage_id: string; era_name: string }> | Record<string, string>
-  lineage_strategies?: Record<string, { strategy: string; expires_tick: number }>
+  lineage_strategies?: Record<
+    string,
+    {
+      strategy: string
+      expires_tick: number
+      started_tick?: number
+      progress?: number
+      target?: number
+      completed?: boolean
+      completed_tick?: number | null
+      status?: 'active' | 'completed'
+    }
+  >
+  lineage_strategy_history?: StrategyCampaignInfo[]
   lineage_era_progress?: LineageEraProgress[]
   lineage_currencies?: Record<string, string>
   active_outbreaks?: OutbreakInfo[]
   cosmos?: CosmosState
+}
+
+export interface StrategyCampaignInfo {
+  lineage_id: string
+  lineage_name: string
+  strategy: string
+  started_tick: number
+  ended_tick: number
+  progress: number
+  target: number
+  outcome: 'completed' | 'expired' | 'redirected' | 'failed'
+  reason?: 'deadline' | 'player_redirected' | 'lineage_extinct' | null
 }
 
 export interface LineageEraProgress {

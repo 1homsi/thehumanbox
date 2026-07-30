@@ -14,7 +14,9 @@ import { tmpdir } from "node:os";
 import * as path from "node:path";
 import test from "node:test";
 import {
+  assertEmptyOrIdentifiedDataRoot,
   assertSameLoadedWorld,
+  assertExportOutsideDataRoot,
   assertNoLegacyWorldAtMigrationTarget,
   atomicReplaceFile,
   beginSaveFolderMigration,
@@ -27,6 +29,7 @@ import {
   inspectSaveFolderMigrationSource,
   initializeDataRootIdentity,
   markSaveFolderMigrationVerified,
+  pathsReferToSameLocation,
   requireOrUpgradeDataRootIdentity,
   requireExistingDataRootIdentity,
   recoverInterruptedFileReplacement,
@@ -82,6 +85,54 @@ test("validates the required native world-save shape", () => {
   assert.equal(result.seed, 18_000_000_000_000_000_000);
   assert.equal(result.seedText, "18000000000000000000");
   assert.equal(result.tickText, "123");
+});
+
+test("reads exact top-level u64 fields instead of matching nested lookalikes", () => {
+  const bytes = Buffer.from(
+    JSON.stringify({
+      version: 4,
+      organisms: [{ tick_count: 1, world_seed: 2 }],
+      animals: [],
+      grid: { tiles: new Array(600 * 300).fill(0) },
+      tick_count: 18_000_000_000_000_000_001n.toString(),
+      world_seed: 18_000_000_000_000_000_002n.toString(),
+    })
+      .replace(
+        '"tick_count":"18000000000000000001"',
+        '"tick_count":18000000000000000001',
+      )
+      .replace(
+        '"world_seed":"18000000000000000002"',
+        '"world_seed":18000000000000000002',
+      ),
+  );
+  const result = validateWorldSaveBytes(bytes);
+  assert.equal(result.tickText, "18000000000000000001");
+  assert.equal(result.seedText, "18000000000000000002");
+});
+
+test("rejects ambiguous or out-of-range top-level u64 fields", () => {
+  const duplicateSeed = Buffer.from(
+    validSave()
+      .toString("utf8")
+      .replace('"world_seed":99', '"world_seed":98,"world_seed":99'),
+  );
+  assert.throws(
+    () => validateWorldSaveBytes(duplicateSeed),
+    /duplicate world_seed fields/,
+  );
+
+  assert.throws(
+    () =>
+      validateWorldSaveBytes(
+        Buffer.from(
+          validSave()
+            .toString("utf8")
+            .replace('"world_seed":99', '"world_seed":18446744073709551616'),
+        ),
+      ),
+    /exceeds Rust's u64 range/,
+  );
 });
 
 test("startup handshake rejects a silently minted replacement world", () => {
@@ -253,6 +304,66 @@ test("custom data roots are identified, upgraded only from real worlds, and neve
   }
 });
 
+test("only empty or previously identified custom folders can become migration targets", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "thb-target-ownership-test-"));
+  const empty = path.join(root, "empty");
+  const unrelated = path.join(root, "unrelated");
+  const identified = path.join(root, "identified");
+  try {
+    mkdirSync(empty);
+    mkdirSync(unrelated);
+    mkdirSync(identified);
+    writeFileSync(path.join(unrelated, "family-photos.txt"), "keep me");
+    initializeDataRootIdentity(identified);
+    writeFileSync(path.join(identified, "retained-backup.txt"), "owned");
+
+    assert.doesNotThrow(() => assertEmptyOrIdentifiedDataRoot(empty));
+    assert.doesNotThrow(() => assertEmptyOrIdentifiedDataRoot(identified));
+    assert.throws(
+      () => assertEmptyOrIdentifiedDataRoot(unrelated),
+      /not empty.*no existing The Human Box data-root identity/,
+    );
+    assert.equal(
+      readFileSync(path.join(unrelated, "family-photos.txt"), "utf8"),
+      "keep me",
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("never trusts symlinked active-world control paths", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "thb-symlink-world-test-"));
+  const source = path.join(root, "source");
+  const externalWorld = path.join(root, "external-world");
+  try {
+    mkdirSync(path.join(source, "worlds"), { recursive: true });
+    mkdirSync(externalWorld);
+    writeFileSync(path.join(externalWorld, "world.save"), validSave());
+    symlinkSync(
+      externalWorld,
+      path.join(source, "worlds", "linked-world"),
+      process.platform === "win32" ? "junction" : "dir",
+    );
+    writeFileSync(path.join(source, "worlds", "_live"), "linked-world");
+
+    assert.throws(
+      () => requireOrUpgradeDataRootIdentity(source),
+      /empty or is not recognized/,
+    );
+    assert.equal(
+      existsSync(path.join(source, ".thehumanbox-data-root.json")),
+      false,
+    );
+    assert.throws(
+      () => inspectSaveFolderMigrationSource(source),
+      /active world linked-world is not a regular directory/,
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("never parks or replaces worlds in an unidentified destination", () => {
   const root = mkdtempSync(
     path.join(tmpdir(), "thb-unidentified-migration-target-"),
@@ -312,6 +423,8 @@ test("rejects nested and symlink-aliased save roots", () => {
     assert.equal(rootsOverlap(source, nested), true);
     assert.equal(rootsOverlap(nested, source), true);
     assert.equal(rootsOverlap(source, alias), true);
+    assert.equal(pathsReferToSameLocation(source, alias), true);
+    assert.equal(pathsReferToSameLocation(source, nested), false);
     assert.throws(
       () => beginSaveFolderMigration(source, nested, "nested-token"),
       /save folder cannot overlap/,
@@ -319,6 +432,47 @@ test("rejects nested and symlink-aliased save roots", () => {
     assert.throws(
       () => beginSaveFolderMigration(source, alias, "alias-token"),
       /save folder cannot overlap/,
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("refuses exports that could overwrite managed world data through an alias", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "thb-export-path-test-"));
+  const dataRoot = path.join(root, "data");
+  const alias = path.join(root, "data-alias");
+  const external = path.join(root, "external-marker");
+  try {
+    mkdirSync(path.join(dataRoot, "worlds"), { recursive: true });
+    writeFileSync(external, "external");
+    symlinkSync(
+      dataRoot,
+      alias,
+      process.platform === "win32" ? "junction" : "dir",
+    );
+    symlinkSync(external, path.join(dataRoot, "worlds", "_live"), "file");
+    assert.throws(
+      () =>
+        assertExportOutsideDataRoot(
+          dataRoot,
+          path.join(dataRoot, "worlds", "_live"),
+        ),
+      /outside The Human Box data folder/,
+    );
+    assert.throws(
+      () =>
+        assertExportOutsideDataRoot(
+          dataRoot,
+          path.join(alias, "worlds", "portable.save"),
+        ),
+      /outside The Human Box data folder/,
+    );
+    assert.doesNotThrow(() =>
+      assertExportOutsideDataRoot(
+        dataRoot,
+        path.join(root, "exports", "portable.save"),
+      ),
     );
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -631,6 +785,11 @@ test("does not reclaim a migration journal created for a different source", () =
     assert.equal(existsSync(path.join(target, "worlds")), true);
     assert.equal(finishSaveFolderMigration(target, "not-the-owner"), false);
     assert.equal(hasRecoverableSaveFolderMigration(source, target), true);
+    assert.throws(
+      () => finishSaveFolderMigration(target, "owner-token"),
+      /before runtime verification/,
+    );
+    markSaveFolderMigrationVerified(target, "owner-token");
     assert.equal(finishSaveFolderMigration(target, "owner-token"), true);
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -662,6 +821,45 @@ test("only a runtime-verified migration journal is eligible for startup commit",
   }
 });
 
+test("startup refuses an invalid migration journal instead of selecting ambiguous worlds", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "thb-invalid-journal-test-"));
+  try {
+    mkdirSync(path.join(root, "worlds"));
+    writeFileSync(
+      path.join(root, ".thehumanbox-migration-journal.json"),
+      "{truncated",
+    );
+    assert.throws(
+      () => finishCommittedMigrationForActiveRoot(root),
+      /unreadable or invalid migration journal/,
+    );
+    assert.equal(existsSync(path.join(root, "worlds")), true);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("startup refuses a migration journal after its destination folder was moved", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "thb-moved-journal-test-"));
+  const source = path.join(root, "source");
+  const target = path.join(root, "target");
+  const movedTarget = path.join(root, "moved-target");
+  try {
+    beginSaveFolderMigration(source, target, "moved-token");
+    mkdirSync(path.join(target, "worlds"));
+    markSaveFolderMigrationVerified(target, "moved-token");
+    renameSync(target, movedTarget);
+
+    assert.throws(
+      () => finishCommittedMigrationForActiveRoot(movedTarget),
+      /belongs to a different path/,
+    );
+    assert.equal(existsSync(path.join(movedTarget, "worlds")), true);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("recovers the old marker after a crash between replacement renames", () => {
   const root = mkdtempSync(path.join(tmpdir(), "thb-marker-test-"));
   const marker = path.join(root, "_live");
@@ -684,6 +882,24 @@ test("recovers the old marker after the unverified replacement became live", () 
     recoverInterruptedFileReplacement(marker);
     assert.equal(readFileSync(marker, "utf8"), "old-world");
     assert.equal(existsSync(`${marker}.rollback-token`), false);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("recovery never activates a symlinked rollback marker", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "thb-marker-symlink-test-"));
+  const marker = path.join(root, "_live");
+  const external = path.join(root, "external");
+  try {
+    writeFileSync(marker, "current-world");
+    writeFileSync(external, "external-world");
+    symlinkSync(external, `${marker}.rollback-token`, "file");
+    assert.throws(
+      () => recoverInterruptedFileReplacement(marker),
+      /unsafe rollback entry/,
+    );
+    assert.equal(readFileSync(marker, "utf8"), "current-world");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

@@ -24,6 +24,40 @@ interface AppReloadOptions extends Partial<LocalWorldReloadDetail> {
   unavailableMessage?: string
 }
 
+interface LocalWorldRequestSnapshot {
+  seed: string | null
+  reset: string | null
+  recovery: string | null
+}
+
+function readLocalWorldRequestSnapshot(): LocalWorldRequestSnapshot | null {
+  try {
+    return {
+      seed: window.localStorage.getItem(SEED_KEY),
+      reset: window.localStorage.getItem(RESET_KEY),
+      recovery: window.localStorage.getItem(RECOVERY_KEY),
+    }
+  } catch {
+    return null
+  }
+}
+
+function restoreStorageValue(key: string, value: string | null): void {
+  if (value === null) window.localStorage.removeItem(key)
+  else window.localStorage.setItem(key, value)
+}
+
+function restoreLocalWorldRequestSnapshot(snapshot: LocalWorldRequestSnapshot): void {
+  try {
+    restoreStorageValue(SEED_KEY, snapshot.seed)
+    restoreStorageValue(RESET_KEY, snapshot.reset)
+    restoreStorageValue(RECOVERY_KEY, snapshot.recovery)
+  } catch {
+    // Storage becoming unavailable mid-operation is not recoverable here, but
+    // the worker checkpoint still prevents destructive reload from proceeding.
+  }
+}
+
 export function resolveWorldSource(stored: string | null, desktop: boolean): WorldSource {
   if (stored === 'remote') return 'remote'
   if (stored === 'wasm') return 'wasm'
@@ -111,14 +145,15 @@ export function reloadAppSafely(options: AppReloadOptions = {}): boolean {
   return true
 }
 
-export function setWorldSourceAndReload(next: WorldSource) {
+export function setWorldSourceAndReload(next: WorldSource): boolean {
   const current = getWorldSource()
   let previous: string | null = null
   try {
     previous = window.localStorage.getItem(SOURCE_KEY)
     window.localStorage.setItem(SOURCE_KEY, next)
   } catch {
-    /* noop */
+    window.alert('Your browser could not save the play-mode choice. The current world was left open safely.')
+    return false
   }
   if (shouldCheckpointSourceSwitch(current, next)) {
     const rollback = () => {
@@ -129,16 +164,15 @@ export function setWorldSourceAndReload(next: WorldSource) {
         /* noop */
       }
     }
-    reloadAppSafely({
+    return reloadAppSafely({
       operation: 'source-switch',
       onFailure: rollback,
       failureMessage: 'could not checkpoint the current world; going online was cancelled safely',
       requireLocalWorld: true,
       unavailableMessage: 'The local world is still loading. Wait a moment, then try going online again.',
     })
-    return
   }
-  reloadAppSafely()
+  return reloadAppSafely()
 }
 
 export function getOwnWorldSeed(): string {
@@ -168,17 +202,24 @@ export function clearOwnWorldSeed() {
   }
 }
 
-export function requestOwnWorldReset() {
+export function requestOwnWorldReset(): boolean {
+  const snapshot = readLocalWorldRequestSnapshot()
+  if (!snapshot) {
+    window.alert('Browser storage is unavailable. The current world was not reset.')
+    return false
+  }
   try {
     window.localStorage.setItem(RESET_KEY, '1')
     window.localStorage.removeItem(RECOVERY_KEY)
+    window.localStorage.removeItem(SEED_KEY)
   } catch {
-    /* noop */
+    restoreLocalWorldRequestSnapshot(snapshot)
+    window.alert('Browser storage is unavailable. The current world was not reset.')
+    return false
   }
-  clearOwnWorldSeed()
-  reloadAppSafely({
+  return reloadAppSafely({
     operation: 'reset',
-    onFailure: clearOwnWorldResetRequest,
+    onFailure: () => restoreLocalWorldRequestSnapshot(snapshot),
     failureMessage: 'could not checkpoint the current world; reset was cancelled safely',
     requireLocalWorld: true,
     unavailableMessage:
@@ -202,16 +243,27 @@ export function clearOwnWorldResetRequest() {
   }
 }
 
-export function requestOwnWorldRecovery(recoveryId: string) {
+export function requestOwnWorldRecovery(recoveryId: string): boolean {
+  if (!recoveryId.startsWith(`${OWN_WORLD_ID}:recovery:`)) {
+    window.alert('That recovery save is not valid for this local world.')
+    return false
+  }
+  const snapshot = readLocalWorldRequestSnapshot()
+  if (!snapshot) {
+    window.alert('Browser storage is unavailable. The recovery request was not started.')
+    return false
+  }
   try {
     window.localStorage.setItem(RECOVERY_KEY, recoveryId)
     window.localStorage.removeItem(RESET_KEY)
   } catch {
-    /* noop */
+    restoreLocalWorldRequestSnapshot(snapshot)
+    window.alert('Browser storage is unavailable. The recovery request was not started.')
+    return false
   }
-  reloadAppSafely({
+  return reloadAppSafely({
     operation: 'recovery',
-    onFailure: clearOwnWorldRecoveryRequest,
+    onFailure: () => restoreLocalWorldRequestSnapshot(snapshot),
     failureMessage: 'could not checkpoint the current world; restore was cancelled safely',
     requireLocalWorld: true,
     unavailableMessage: 'The local world is still loading. Wait a moment, then try restoring again.',

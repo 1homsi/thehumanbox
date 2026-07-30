@@ -5,21 +5,72 @@ use serde_json::json;
 use crate::sim::config::DAY_LENGTH;
 use crate::sim::simulation::Simulation;
 
+fn lookahead_ticks_for_values(look_ms: Option<&str>, tick_ms: Option<&str>) -> f32 {
+    let look_ms = look_ms
+        .and_then(|value| value.trim().parse::<f32>().ok())
+        .filter(|value| value.is_finite())
+        .unwrap_or(150.0)
+        .max(0.0);
+    // Keep prediction cadence aligned with the server's bounded runtime
+    // interval. Invalid or zero TICK_MS used to disable lookahead while the
+    // server silently ran at its 100ms fallback, making movement stutter.
+    let tick_ms = tick_ms
+        .and_then(|value| value.trim().parse::<f32>().ok())
+        .filter(|value| value.is_finite() && *value > 0.0)
+        .unwrap_or(100.0)
+        .clamp(16.0, 5_000.0);
+    look_ms / tick_ms
+}
+
 static LOOKAHEAD_TICKS: std::sync::LazyLock<f32> = std::sync::LazyLock::new(|| {
-    let look_ms = std::env::var("LOOKAHEAD_MS")
-        .ok()
-        .and_then(|v| v.parse::<f32>().ok())
-        .unwrap_or(150.0);
-    let tick_ms = std::env::var("TICK_MS")
-        .ok()
-        .and_then(|v| v.parse::<f32>().ok())
-        .unwrap_or(100.0);
-    if tick_ms <= 0.0 {
-        0.0
-    } else {
-        (look_ms / tick_ms).max(0.0)
-    }
+    lookahead_ticks_for_values(
+        std::env::var("LOOKAHEAD_MS").ok().as_deref(),
+        std::env::var("TICK_MS").ok().as_deref(),
+    )
 });
+
+fn lineage_strategy_payload(sim: &Simulation) -> serde_json::Value {
+    let active_strategies: HashMap<String, serde_json::Value> = sim
+        .lineage_strategies
+        .iter()
+        .filter(|(_, (_, expires_tick))| *expires_tick > sim.tick_count)
+        .map(|(lineage_id, (strategy, expires_tick))| {
+            let objective = sim
+                .lineage_strategy_objectives
+                .get(lineage_id)
+                .filter(|objective| objective.strategy == strategy.as_str());
+            (
+                lineage_id.clone(),
+                json!({
+                    "strategy": strategy,
+                    "expires_tick": expires_tick,
+                    "started_tick": objective.map(|objective| objective.started_tick).unwrap_or(sim.tick_count),
+                    "progress": objective.map(|objective| objective.progress).unwrap_or(0),
+                    "target": objective.map(|objective| objective.target).unwrap_or(0),
+                    "completed": objective.and_then(|objective| objective.completed_tick).is_some(),
+                    "completed_tick": objective.and_then(|objective| objective.completed_tick),
+                    "status": if objective.and_then(|objective| objective.completed_tick).is_some() {
+                        "completed"
+                    } else {
+                        "active"
+                    },
+                }),
+            )
+        })
+        .collect();
+    serde_json::to_value(active_strategies).unwrap()
+}
+
+fn lineage_strategy_history_payload(sim: &Simulation) -> serde_json::Value {
+    serde_json::to_value(
+        sim.lineage_strategy_history
+            .iter()
+            .rev()
+            .take(20)
+            .collect::<Vec<_>>(),
+    )
+    .unwrap()
+}
 
 impl Simulation {
     pub fn state_json(&mut self) -> serde_json::Value {
@@ -260,6 +311,14 @@ impl Simulation {
                 "population_limit".to_string(),
                 serde_json::to_value(self.population_limit()).unwrap(),
             );
+            // Campaigns are live player-facing state. Sending this small map
+            // on every frame avoids a short objective completing or expiring
+            // entirely between deep/cold snapshots.
+            obj.insert("lineage_strategies".to_string(), lineage_strategy_payload(self));
+            obj.insert(
+                "lineage_strategy_history".to_string(),
+                lineage_strategy_history_payload(self),
+            );
         }
         if include_cold {
             if let Some(obj) = payload.as_object_mut() {
@@ -308,22 +367,6 @@ impl Simulation {
                     .map(|(lid, era)| json!({ "lineage_id": lid, "era_name": era.name() }))
                     .collect();
                 obj.insert("lineage_eras".to_string(), serde_json::Value::Array(eras_json));
-                let active_strategies: HashMap<String, serde_json::Value> = self
-                    .lineage_strategies
-                    .iter()
-                    .filter(|(_, (_, expires_tick))| *expires_tick > self.tick_count)
-                    .map(|(lineage_id, (strategy, expires_tick))| {
-                        (
-                            lineage_id.clone(),
-                            json!({ "strategy": strategy, "expires_tick": expires_tick }),
-                        )
-                    })
-                    .collect();
-                obj.insert(
-                    "lineage_strategies".to_string(),
-                    serde_json::to_value(active_strategies).unwrap(),
-                );
-
                 let mut lineage_discoveries: HashMap<String, HashSet<String>> = HashMap::new();
                 let mut lineage_pop: HashMap<String, usize> = HashMap::new();
                 for org in self.organisms.iter().filter(|o| o.alive) {
@@ -618,6 +661,14 @@ impl Simulation {
 mod schema_tests {
     use super::*;
 
+    #[test]
+    fn lookahead_uses_the_same_safe_tick_bounds_as_the_runtime() {
+        assert!((lookahead_ticks_for_values(Some("150"), Some("100")) - 1.5).abs() < f32::EPSILON);
+        assert!((lookahead_ticks_for_values(Some("150"), Some("0")) - 1.5).abs() < f32::EPSILON);
+        assert!((lookahead_ticks_for_values(Some("150"), Some("8")) - 9.375).abs() < f32::EPSILON);
+        assert_eq!(lookahead_ticks_for_values(Some("-5"), Some("100")), 0.0);
+    }
+
     /// Lock the delta payload's top-level shape. The client wire
     /// round-trip test in client/src/simulation/wire.roundtrip.test.ts
     /// expects these exact keys; if a refactor here removes one
@@ -644,6 +695,8 @@ mod schema_tests {
             "season_progress",
             "drought",
             "weather",
+            "lineage_strategies",
+            "lineage_strategy_history",
         ] {
             assert!(obj.contains_key(*key), "delta payload missing key `{}`", key);
         }
@@ -765,13 +818,47 @@ mod schema_tests {
             .clone();
         sim.tick_count = 500;
         sim.lineage_strategies.insert(lid.clone(), ("trade".into(), 900));
+        sim.lineage_strategy_objectives.insert(
+            lid.clone(),
+            crate::sim::simulation::StrategyObjective {
+                strategy: "trade".into(),
+                started_tick: 450,
+                expires_tick: 900,
+                progress: 17,
+                target: 80,
+                completed_tick: None,
+                failed_tick: None,
+            },
+        );
         sim.lineage_strategies
             .insert("expired".into(), ("hunt".into(), 400));
+        sim.lineage_strategy_history
+            .push_back(crate::sim::simulation::StrategyCampaignRecord {
+                lineage_id: lid.clone(),
+                lineage_name: "Wayfinders".into(),
+                strategy: "explore".into(),
+                started_tick: 100,
+                ended_tick: 420,
+                progress: 60,
+                target: 60,
+                outcome: "completed".into(),
+                reason: None,
+            });
 
         let payload = sim.state_json();
         let strategies = payload["lineage_strategies"].as_object().unwrap();
         assert_eq!(strategies[&lid]["strategy"].as_str(), Some("trade"));
+        assert_eq!(strategies[&lid]["started_tick"].as_u64(), Some(450));
+        assert_eq!(strategies[&lid]["progress"].as_u64(), Some(17));
+        assert_eq!(strategies[&lid]["target"].as_u64(), Some(80));
+        assert_eq!(strategies[&lid]["completed"].as_bool(), Some(false));
+        assert_eq!(strategies[&lid]["status"].as_str(), Some("active"));
         assert!(!strategies.contains_key("expired"));
+        let history = payload["lineage_strategy_history"].as_array().unwrap();
+        assert_eq!(history.len(), 1);
+        assert_eq!(history[0]["lineage_id"].as_str(), Some(lid.as_str()));
+        assert_eq!(history[0]["strategy"].as_str(), Some("explore"));
+        assert_eq!(history[0]["outcome"].as_str(), Some("completed"));
     }
 
     #[test]

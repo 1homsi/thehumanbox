@@ -12,12 +12,42 @@ interface Props {
   onGuide?: (lineageId: string, strategy: LineageStrategy) => Promise<boolean>
 }
 
-const GUIDANCE: Array<{ value: LineageStrategy; label: string }> = [
-  { value: 'hunt', label: 'secure food' },
-  { value: 'explore', label: 'explore' },
-  { value: 'settle', label: 'settle & build' },
-  { value: 'trade', label: 'trade' },
-  { value: 'defend', label: 'defend' },
+const GUIDANCE: Array<{
+  value: LineageStrategy
+  label: string
+  description: string
+  reward: string
+}> = [
+  {
+    value: 'hunt',
+    label: 'secure food',
+    description: 'focus hunters on tracking, trapping, and bringing food home',
+    reward: 'food reserves for every living member',
+  },
+  {
+    value: 'explore',
+    label: 'explore',
+    description: 'push into unknown terrain and act on new discoveries',
+    reward: 'trail maps and a curiosity surge',
+  },
+  {
+    value: 'settle',
+    label: 'settle & build',
+    description: 'gather materials, rest safely, and expand the settlement',
+    reward: 'communal wood and stone reserves',
+  },
+  {
+    value: 'trade',
+    label: 'trade',
+    description: 'seek exchanges, markets, and foreign trade partners',
+    reward: 'shared wealth for the lineage',
+  },
+  {
+    value: 'defend',
+    label: 'defend',
+    description: 'sound alarms, fortify territory, and protect vulnerable kin',
+    reward: 'restored health, courage, and morale',
+  },
 ]
 
 const ERA_EMOJI: Record<string, string> = {
@@ -85,8 +115,9 @@ const ART_EMOJI: Record<string, string> = {
 }
 
 export function CivStatsModal({ world, onClose, onGuide }: Props) {
-  const [guidanceBusy, setGuidanceBusy] = useState<string | null>(null)
+  const [guidanceBusy, setGuidanceBusy] = useState<Record<string, boolean>>({})
   const [guidanceResult, setGuidanceResult] = useState<Record<string, string>>({})
+  const [showAllCampaigns, setShowAllCampaigns] = useState(false)
   const lineages = world.lineage_sizes ?? []
   const lineageNames = world.lineage_names ?? {}
   const lineageEras = normalizeLineageEras(world.lineage_eras)
@@ -120,8 +151,43 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
   const headlines = world.headlines ?? []
   const battles = world.battles ?? []
   const treaties = world.treaties ?? []
+  const campaignHistory = world.lineage_strategy_history ?? []
 
   const lineageById = (lid: string) => lineageNames[lid] ?? lid.slice(0, 6)
+  const activeStrategyFor = (lineageId: string) => {
+    const strategy = world.lineage_strategies?.[lineageId]
+    return strategy && strategy.expires_tick > world.tick ? strategy : undefined
+  }
+  const guideLineage = (lineageId: string, strategy: LineageStrategy) => {
+    if (!onGuide || guidanceBusy[lineageId]) return
+    const active = activeStrategyFor(lineageId)
+    if (
+      active &&
+      !active.completed &&
+      active.strategy !== strategy &&
+      !window.confirm(
+        `Redirect ${lineageById(lineageId)} from ${active.strategy} to ${strategy}? Current progress will be archived.`,
+      )
+    ) {
+      return
+    }
+
+    setGuidanceBusy((current) => ({ ...current, [lineageId]: true }))
+    setGuidanceResult((current) => ({ ...current, [lineageId]: 'guiding…' }))
+    void onGuide(lineageId, strategy)
+      .then((ok) => {
+        setGuidanceResult((current) => ({
+          ...current,
+          [lineageId]: ok ? `${strategy} campaign started` : 'guidance rejected',
+        }))
+      })
+      .catch(() => {
+        setGuidanceResult((current) => ({ ...current, [lineageId]: 'guidance unavailable' }))
+      })
+      .finally(() => {
+        setGuidanceBusy((current) => ({ ...current, [lineageId]: false }))
+      })
+  }
   const nameById = useMemo(() => {
     const m = new Map<string, string>()
     for (const o of world.organisms) m.set(o.id, o.name)
@@ -263,6 +329,13 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                     const worldPopulationReady =
                       progress?.world_population_ready ?? progress?.pop_ready ?? true
                     const gov = governments.find((g) => g.lineage_id === l.id)
+                    const activeStrategy = activeStrategyFor(l.id)
+                    const objectiveProgress = activeStrategy?.progress ?? 0
+                    const objectiveTarget = activeStrategy?.target ?? 0
+                    const objectivePercent =
+                      objectiveTarget > 0
+                        ? Math.max(0, Math.min(100, Math.round((objectiveProgress / objectiveTarget) * 100)))
+                        : 0
                     const hasBrewing = world.organisms.some(
                       (o) => o.alive && o.lineage_id === l.id && o.discoveries.includes('brewing'),
                     )
@@ -299,47 +372,16 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                         <td>{currencies[l.id] ?? '-'}</td>
                         <td>
                           <div className="civ-lineage-actions">
-                            {world.lineage_strategies?.[l.id] && (
-                              <span className="civ-strategy-active">
-                                guided: {world.lineage_strategies[l.id].strategy}
-                              </span>
-                            )}
-                            {guidanceResult[l.id] && (
-                              <span className="civ-strategy-status" role="status">
-                                {guidanceResult[l.id]}
-                              </span>
-                            )}
-                            {onGuide && (
-                              <select
-                                className="civ-guide-select"
-                                aria-label={`Guide ${lineageById(l.id)}`}
-                                value=""
-                                disabled={guidanceBusy === l.id}
-                                onChange={(event) => {
-                                  const strategy = event.target.value as LineageStrategy
-                                  if (!strategy) return
-                                  setGuidanceBusy(l.id)
-                                  setGuidanceResult((current) => ({ ...current, [l.id]: 'guiding…' }))
-                                  void onGuide(l.id, strategy)
-                                    .then((ok) => {
-                                      setGuidanceResult((current) => ({
-                                        ...current,
-                                        [l.id]: ok ? strategy : 'failed',
-                                      }))
-                                    })
-                                    .catch(() => {
-                                      setGuidanceResult((current) => ({ ...current, [l.id]: 'failed' }))
-                                    })
-                                    .finally(() => setGuidanceBusy(null))
-                                }}
+                            {activeStrategy && (
+                              <span
+                                className={
+                                  activeStrategy.completed
+                                    ? 'civ-strategy-active civ-strategy-complete'
+                                    : 'civ-strategy-active'
+                                }
                               >
-                                <option value="">guide…</option>
-                                {GUIDANCE.map((strategy) => (
-                                  <option key={strategy.value} value={strategy.value}>
-                                    {strategy.label}
-                                  </option>
-                                ))}
-                              </select>
+                                {activeStrategy.strategy} {objectivePercent}%
+                              </span>
                             )}
                             {hasBrewing && (
                               <button
@@ -360,6 +402,148 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                 </tbody>
               </table>
             </div>
+            <div className="civ-campaign-board">
+              <div className="civ-campaign-board-heading">
+                <div>
+                  <span className="civ-campaign-board-kicker">Player guidance</span>
+                  <h4>Lineage campaigns</h4>
+                </div>
+                <span className="civ-campaign-board-help">
+                  Lineages still choose their own actions; successful aligned actions fill the goal.
+                </span>
+              </div>
+              <div className="civ-campaign-cards">
+                {lineages.map((lineage) => {
+                  const active = activeStrategyFor(lineage.id)
+                  const meta = GUIDANCE.find((entry) => entry.value === active?.strategy)
+                  const progress = active?.progress ?? 0
+                  const target = active?.target ?? 0
+                  const percent =
+                    target > 0 ? Math.max(0, Math.min(100, Math.round((progress / target) * 100))) : 0
+                  const remaining = active ? Math.max(0, active.expires_tick - world.tick) : 0
+                  return (
+                    <article
+                      key={lineage.id}
+                      className={`civ-campaign-card${active?.completed ? ' completed' : ''}`}
+                    >
+                      <div className="civ-campaign-card-head">
+                        <div>
+                          <span className="civ-campaign-lineage">{lineageById(lineage.id)}</span>
+                          <span className="civ-campaign-pop">{lineage.count} people</span>
+                        </div>
+                        {active ? (
+                          <span className="civ-campaign-badge">
+                            {active.completed ? 'completed' : (meta?.label ?? active.strategy)}
+                          </span>
+                        ) : (
+                          <span className="civ-campaign-badge idle">awaiting guidance</span>
+                        )}
+                      </div>
+
+                      {active ? (
+                        <>
+                          <p className="civ-campaign-description">
+                            {meta?.description ?? `focus on ${active.strategy}`}
+                          </p>
+                          <div className="civ-campaign-progress-copy">
+                            <span>
+                              {progress}/{target} aligned actions
+                            </span>
+                            <span>{active.completed ? 'reward earned' : `${remaining} ticks left`}</span>
+                          </div>
+                          <span
+                            className="civ-campaign-card-progress"
+                            role="progressbar"
+                            aria-label={`${lineageById(lineage.id)} ${active.strategy} campaign`}
+                            aria-valuemin={0}
+                            aria-valuemax={target}
+                            aria-valuenow={Math.min(progress, target)}
+                          >
+                            <span style={{ width: `${percent}%` }} />
+                          </span>
+                          <span className="civ-campaign-reward">
+                            Reward: {meta?.reward ?? 'lineage morale'}
+                          </span>
+                        </>
+                      ) : (
+                        <p className="civ-campaign-description">
+                          Choose a soft objective to give this lineage a visible goal and completion reward.
+                        </p>
+                      )}
+
+                      <div className="civ-campaign-card-actions">
+                        {onGuide && (
+                          <select
+                            className="civ-guide-select"
+                            aria-label={`Guide ${lineageById(lineage.id)}`}
+                            value=""
+                            disabled={Boolean(guidanceBusy[lineage.id])}
+                            onChange={(event) => {
+                              const strategy = event.target.value as LineageStrategy
+                              if (strategy) guideLineage(lineage.id, strategy)
+                            }}
+                          >
+                            <option value="">{active ? 'change campaign…' : 'start campaign…'}</option>
+                            {GUIDANCE.map((strategy) => (
+                              <option key={strategy.value} value={strategy.value}>
+                                {strategy.label}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        {guidanceResult[lineage.id] && (
+                          <span className="civ-strategy-status" role="status">
+                            {guidanceResult[lineage.id]}
+                          </span>
+                        )}
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            </div>
+            {campaignHistory.length > 0 && (
+              <div className="civ-campaign-history">
+                <div className="civ-campaign-history-head">
+                  <span className="civ-campaign-history-title">Recent campaigns</span>
+                  {campaignHistory.length > 6 && (
+                    <button
+                      type="button"
+                      className="civ-campaign-history-toggle"
+                      onClick={() => setShowAllCampaigns((current) => !current)}
+                    >
+                      {showAllCampaigns ? 'show recent' : `show all ${campaignHistory.length}`}
+                    </button>
+                  )}
+                </div>
+                <div className="civ-campaign-history-list">
+                  {(showAllCampaigns ? campaignHistory : campaignHistory.slice(0, 6)).map((campaign) => {
+                    const icon =
+                      campaign.outcome === 'completed' ? '✓' : campaign.outcome === 'redirected' ? '↪' : '×'
+                    return (
+                      <div
+                        key={`${campaign.lineage_id}:${campaign.started_tick}:${campaign.ended_tick}:${campaign.strategy}:${campaign.outcome}`}
+                        className={`civ-campaign-record civ-campaign-record--${campaign.outcome}`}
+                      >
+                        <span className="civ-campaign-outcome" aria-hidden="true">
+                          {icon}
+                        </span>
+                        <span className="civ-campaign-name">
+                          {campaign.lineage_name || lineageById(campaign.lineage_id)} · {campaign.strategy}
+                        </span>
+                        <span className="civ-campaign-result">
+                          {campaign.reason === 'lineage_extinct' ? 'lineage ended' : campaign.outcome}
+                        </span>
+                        <span className="civ-campaign-effort">
+                          {campaign.progress}/{campaign.target}
+                        </span>
+                        <span className="civ-campaign-tick">t{campaign.ended_tick}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </section>
 
           <section className="civ-section">

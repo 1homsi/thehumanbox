@@ -45,14 +45,18 @@ export function SandboxToolbar({
   const hasPointTools = cat.tools.some((t) => t.mode === 'point')
   const runtimeStatus =
     cat.id === 'time' ? `${runtimePaused ? 'paused' : 'running'} · ${formatSpeed(runtimeSpeed)}` : null
+  const contextStatus =
+    status ?? (armedToolId ? `${armedToolLabel ?? 'tool'} armed - click the world to apply` : runtimeStatus)
 
   return (
-    <div className="sandbox-bar">
-      <div className="sandbox-tabs">
+    <section className="sandbox-bar" aria-label="World controls">
+      <div className="sandbox-tabs" role="group" aria-label="Tool categories">
         {SANDBOX_CATEGORIES.map((c) => (
           <button
+            type="button"
             key={c.id}
             className={clsx('sandbox-tab', c.id === catId && 'active')}
+            aria-pressed={c.id === catId}
             onClick={() => setCatId(c.id)}
             title={c.label}
           >
@@ -61,18 +65,26 @@ export function SandboxToolbar({
           </button>
         ))}
       </div>
-      <div className="sandbox-tools">
-        <button
-          className={clsx('sandbox-tool', !armedToolId && 'active')}
-          onClick={onClearArmed}
-          title="Cursor — stop placing"
-        >
-          <span className="sandbox-tool-icon">🖱️</span>
-        </button>
+      <span className="sandbox-separator" aria-hidden="true" />
+      <div className="sandbox-tools" role="group" aria-label={`${cat.label} tools`}>
+        {hasPointTools && (
+          <button
+            type="button"
+            className={clsx('sandbox-tool', !armedToolId && 'active')}
+            aria-label="Cursor — stop placing"
+            aria-pressed={!armedToolId}
+            onClick={onClearArmed}
+            title="Cursor — stop placing"
+          >
+            <span className="sandbox-tool-icon">🖱️</span>
+            <span className="sandbox-tool-label">cursor</span>
+          </button>
+        )}
         {cat.tools.map((t) => {
           const active = armedToolId === t.id || isRuntimeControlActive(t.time, runtimePaused, runtimeSpeed)
           return (
             <button
+              type="button"
               key={t.id}
               className={clsx('sandbox-tool', active && 'active')}
               aria-pressed={
@@ -101,10 +113,9 @@ export function SandboxToolbar({
           </label>
         )}
       </div>
-      {(armedToolId || status || runtimeStatus) && (
+      {contextStatus && (
         <div className="sandbox-status" role="status" aria-live="polite">
-          {status ??
-            (armedToolId ? `${armedToolLabel ?? 'tool'} armed - click the world to apply` : runtimeStatus)}
+          {contextStatus}
         </div>
       )}
       {onSave && (
@@ -121,9 +132,13 @@ export function SandboxToolbar({
           >
             {saveBusy ? 'saving…' : saveError && saveRetryable ? '↻ retry save' : '💾 save world'}
           </button>
-          {saveStatus && <span role="status">{saveStatus}</span>}
+          {saveStatus && (
+            <span className="sandbox-save-status" role="status">
+              {saveStatus}
+            </span>
+          )}
         </div>
       )}
-    </div>
+    </section>
   )
 }

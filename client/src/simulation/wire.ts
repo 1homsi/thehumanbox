@@ -83,6 +83,8 @@ export type IncomingWorldFrame = Pick<
   governments?: unknown
   artworks?: unknown
   lineage_eras?: unknown
+  lineage_strategies?: WorldState['lineage_strategies']
+  lineage_strategy_history?: WorldState['lineage_strategy_history']
   lineage_era_progress?: WorldState['lineage_era_progress']
   lineage_currencies?: WorldState['lineage_currencies']
   active_outbreaks?: WorldState['active_outbreaks']
@@ -313,6 +315,85 @@ export function parseWorldFrame(
   if (d.day_progress !== undefined && !isNum(d.day_progress)) issues.push('day_progress is not a number')
   if (d.season_progress !== undefined && !isNum(d.season_progress))
     issues.push('season_progress is not a number')
+  if (d.lineage_strategies !== undefined) {
+    if (
+      d.lineage_strategies == null ||
+      typeof d.lineage_strategies !== 'object' ||
+      Array.isArray(d.lineage_strategies)
+    ) {
+      issues.push('lineage_strategies is not an object')
+    } else {
+      for (const [lineageId, rawStrategy] of Object.entries(
+        d.lineage_strategies as Record<string, unknown>,
+      )) {
+        if (!rawStrategy || typeof rawStrategy !== 'object' || Array.isArray(rawStrategy)) {
+          issues.push(`lineage_strategies.${lineageId} is not an object`)
+          continue
+        }
+        const strategy = rawStrategy as Record<string, unknown>
+        if (!isStr(strategy.strategy)) issues.push(`lineage_strategies.${lineageId}.strategy is not a string`)
+        if (!isNum(strategy.expires_tick) || strategy.expires_tick < 0)
+          issues.push(`lineage_strategies.${lineageId}.expires_tick is invalid`)
+        for (const field of ['started_tick', 'progress', 'target'] as const) {
+          if (strategy[field] !== undefined && (!isNum(strategy[field]) || strategy[field] < 0)) {
+            issues.push(`lineage_strategies.${lineageId}.${field} is invalid`)
+          }
+        }
+        if (strategy.completed !== undefined && !isBool(strategy.completed)) {
+          issues.push(`lineage_strategies.${lineageId}.completed is not a boolean`)
+        }
+        if (
+          strategy.completed_tick !== undefined &&
+          strategy.completed_tick !== null &&
+          (!isNum(strategy.completed_tick) || strategy.completed_tick < 0)
+        ) {
+          issues.push(`lineage_strategies.${lineageId}.completed_tick is invalid`)
+        }
+        if (
+          strategy.status !== undefined &&
+          strategy.status !== 'active' &&
+          strategy.status !== 'completed'
+        ) {
+          issues.push(`lineage_strategies.${lineageId}.status is invalid`)
+        }
+      }
+    }
+  }
+  if (d.lineage_strategy_history !== undefined) {
+    if (!Array.isArray(d.lineage_strategy_history)) {
+      issues.push('lineage_strategy_history is not an array')
+    } else {
+      const outcomes = new Set(['completed', 'expired', 'redirected', 'failed'])
+      const reasons = new Set(['deadline', 'player_redirected', 'lineage_extinct'])
+      for (const [index, rawCampaign] of d.lineage_strategy_history.entries()) {
+        if (!rawCampaign || typeof rawCampaign !== 'object' || Array.isArray(rawCampaign)) {
+          issues.push(`lineage_strategy_history.${index} is not an object`)
+          continue
+        }
+        const campaign = rawCampaign as Record<string, unknown>
+        if (!isStr(campaign.lineage_id))
+          issues.push(`lineage_strategy_history.${index}.lineage_id is not a string`)
+        if (!isStr(campaign.lineage_name))
+          issues.push(`lineage_strategy_history.${index}.lineage_name is not a string`)
+        if (!isStr(campaign.strategy))
+          issues.push(`lineage_strategy_history.${index}.strategy is not a string`)
+        if (!isStr(campaign.outcome) || !outcomes.has(campaign.outcome))
+          issues.push(`lineage_strategy_history.${index}.outcome is invalid`)
+        if (
+          campaign.reason !== undefined &&
+          campaign.reason !== null &&
+          (!isStr(campaign.reason) || !reasons.has(campaign.reason))
+        ) {
+          issues.push(`lineage_strategy_history.${index}.reason is invalid`)
+        }
+        for (const field of ['started_tick', 'ended_tick', 'progress', 'target'] as const) {
+          if (!isNum(campaign[field]) || campaign[field] < 0) {
+            issues.push(`lineage_strategy_history.${index}.${field} is invalid`)
+          }
+        }
+      }
+    }
+  }
 
   if (issues.length > 0) {
     return err({ kind: 'schema', issues })

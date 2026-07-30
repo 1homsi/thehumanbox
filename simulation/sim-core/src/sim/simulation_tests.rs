@@ -1,6 +1,293 @@
 use super::*;
 
 #[test]
+fn completing_a_strategy_objective_rewards_the_lineage_once() {
+    let mut sim = Simulation::new(0x57A7_E6E);
+    sim.tick_count = 100;
+    let lineage_id = sim
+        .organisms
+        .iter()
+        .find(|organism| organism.alive)
+        .unwrap()
+        .lineage_id
+        .clone();
+    sim.lineage_names
+        .insert(lineage_id.clone(), "Wayfinders".to_string());
+    sim.start_strategy_objective(&lineage_id, "trade", 200);
+    let objective = sim.lineage_strategy_objectives.get_mut(&lineage_id).unwrap();
+    objective.target = 2;
+
+    for organism in sim
+        .organisms
+        .iter_mut()
+        .filter(|organism| organism.alive && organism.lineage_id == lineage_id)
+    {
+        organism.wealth = 0;
+        organism.hope = 0.0;
+        organism.joy_ticks = 0;
+    }
+
+    sim.record_strategy_progress(&lineage_id, "trade");
+    assert_eq!(sim.lineage_strategy_objectives[&lineage_id].progress, 1);
+    sim.record_strategy_progress(&lineage_id, "trade");
+
+    let completed_tick = sim.lineage_strategy_objectives[&lineage_id].completed_tick;
+    assert_eq!(completed_tick, Some(100));
+    assert_eq!(sim.lineage_strategy_objectives[&lineage_id].failed_tick, None);
+    assert_eq!(sim.lineage_strategy_history.len(), 1);
+    let campaign = sim.lineage_strategy_history.back().unwrap();
+    assert_eq!(campaign.lineage_id, lineage_id);
+    assert_eq!(campaign.lineage_name, "Wayfinders");
+    assert_eq!(campaign.strategy, "trade");
+    assert_eq!(campaign.outcome, "completed");
+    assert_eq!(campaign.reason, None);
+    assert_eq!(campaign.progress, 2);
+    assert_eq!(campaign.target, 2);
+    for organism in sim
+        .organisms
+        .iter()
+        .filter(|organism| organism.alive && organism.lineage_id == lineage_id)
+    {
+        assert_eq!(organism.wealth, 3);
+        assert!((organism.hope - 0.10).abs() < f32::EPSILON);
+        assert_eq!(organism.joy_ticks, 180);
+        assert!(organism.attributes.contains("campaign:trade"));
+    }
+    assert_eq!(
+        sim.events
+            .iter()
+            .filter(|event| event.etype == "strategy_complete")
+            .count(),
+        1
+    );
+
+    sim.record_strategy_progress(&lineage_id, "trade");
+    assert_eq!(
+        sim.events
+            .iter()
+            .filter(|event| event.etype == "strategy_complete")
+            .count(),
+        1
+    );
+    assert!(sim
+        .organisms
+        .iter()
+        .filter(|organism| organism.alive && organism.lineage_id == lineage_id)
+        .all(|organism| organism.wealth == 3));
+}
+
+#[test]
+fn replaying_a_completed_strategy_does_not_create_another_reward() {
+    let mut sim = Simulation::new(0xD0B1_E);
+    sim.tick_count = 100;
+    let lineage_id = sim
+        .organisms
+        .iter()
+        .find(|organism| organism.alive)
+        .unwrap()
+        .lineage_id
+        .clone();
+    sim.start_strategy_objective(&lineage_id, "trade", 200);
+    sim.lineage_strategy_objectives
+        .get_mut(&lineage_id)
+        .unwrap()
+        .target = 1;
+    for organism in sim
+        .organisms
+        .iter_mut()
+        .filter(|organism| organism.alive && organism.lineage_id == lineage_id)
+    {
+        organism.wealth = 0;
+    }
+    sim.record_strategy_progress(&lineage_id, "trade");
+    assert!(sim.lineage_strategy_objectives[&lineage_id]
+        .completed_tick
+        .is_some());
+    assert_eq!(sim.lineage_strategy_history.len(), 1);
+
+    sim.start_strategy_objective(&lineage_id, "trade", 300);
+    assert_eq!(sim.lineage_strategy_objectives[&lineage_id].target, 1);
+    assert_eq!(sim.lineage_strategy_objectives[&lineage_id].expires_tick, 300);
+    sim.record_strategy_progress(&lineage_id, "trade");
+
+    assert_eq!(sim.lineage_strategy_history.len(), 1);
+    assert!(sim
+        .organisms
+        .iter()
+        .filter(|organism| organism.alive && organism.lineage_id == lineage_id)
+        .all(|organism| organism.wealth == 3));
+}
+
+#[test]
+fn expired_strategy_objective_records_failure_and_penalty_once() {
+    let mut sim = Simulation::new(0xFA11_ED);
+    sim.tick_count = 100;
+    let lineage_id = sim
+        .organisms
+        .iter()
+        .find(|organism| organism.alive)
+        .unwrap()
+        .lineage_id
+        .clone();
+    sim.lineage_names
+        .insert(lineage_id.clone(), "Long Walk".to_string());
+    sim.start_strategy_objective(&lineage_id, "explore", 110);
+    sim.lineage_strategies
+        .insert(lineage_id.clone(), ("explore".to_string(), 110));
+    let objective = sim.lineage_strategy_objectives.get_mut(&lineage_id).unwrap();
+    objective.progress = 7;
+    objective.target = 10;
+    for organism in sim
+        .organisms
+        .iter_mut()
+        .filter(|organism| organism.alive && organism.lineage_id == lineage_id)
+    {
+        organism.hope = 0.50;
+        organism.boredom = 0.10;
+    }
+
+    sim.tick_count = 110;
+    sim.resolve_strategy_objective_expirations();
+
+    let objective = &sim.lineage_strategy_objectives[&lineage_id];
+    assert_eq!(objective.completed_tick, None);
+    assert_eq!(objective.failed_tick, Some(110));
+    assert_eq!(sim.lineage_strategy_history.len(), 1);
+    let campaign = sim.lineage_strategy_history.back().unwrap();
+    assert_eq!(campaign.outcome, "expired");
+    assert_eq!(campaign.lineage_name, "Long Walk");
+    assert_eq!(campaign.reason.as_deref(), Some("deadline"));
+    assert_eq!(campaign.progress, 7);
+    assert_eq!(campaign.target, 10);
+    assert!(!sim.lineage_strategies.contains_key(&lineage_id));
+    assert_eq!(
+        sim.events
+            .iter()
+            .filter(|event| event.etype == "strategy_failed")
+            .count(),
+        1
+    );
+    assert!(sim
+        .organisms
+        .iter()
+        .filter(|organism| organism.alive && organism.lineage_id == lineage_id)
+        .all(|organism| {
+            (organism.hope - 0.46).abs() < f32::EPSILON && (organism.boredom - 0.13).abs() < f32::EPSILON
+        }));
+
+    sim.resolve_strategy_objective_expirations();
+    assert_eq!(sim.lineage_strategy_history.len(), 1);
+    assert_eq!(
+        sim.events
+            .iter()
+            .filter(|event| event.etype == "strategy_failed")
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn extinct_lineage_archives_an_active_campaign_with_its_name() {
+    let mut sim = Simulation::new(0xE771_C7);
+    sim.tick_count = 200;
+    let lineage_id = sim
+        .organisms
+        .iter()
+        .find(|organism| organism.alive)
+        .unwrap()
+        .lineage_id
+        .clone();
+    sim.lineage_names
+        .insert(lineage_id.clone(), "Last Ember".to_string());
+    sim.start_strategy_objective(&lineage_id, "defend", 800);
+    sim.lineage_strategies
+        .insert(lineage_id.clone(), ("defend".to_string(), 800));
+    for organism in sim
+        .organisms
+        .iter_mut()
+        .filter(|organism| organism.lineage_id == lineage_id)
+    {
+        organism.alive = false;
+        organism.pregnant = false;
+    }
+
+    sim.resolve_extinct_strategy_objectives();
+
+    assert!(!sim.lineage_strategy_objectives.contains_key(&lineage_id));
+    assert!(!sim.lineage_strategies.contains_key(&lineage_id));
+    let campaign = sim.lineage_strategy_history.back().unwrap();
+    assert_eq!(campaign.lineage_id, lineage_id);
+    assert_eq!(campaign.lineage_name, "Last Ember");
+    assert_eq!(campaign.outcome, "failed");
+    assert_eq!(campaign.reason.as_deref(), Some("lineage_extinct"));
+}
+
+#[test]
+fn loading_legacy_guidance_creates_a_playable_objective() {
+    let mut sim = Simulation::new(0x1E6A_C7);
+    sim.tick_count = 400;
+    let lineage_id = sim
+        .organisms
+        .iter()
+        .find(|organism| organism.alive)
+        .unwrap()
+        .lineage_id
+        .clone();
+    sim.lineage_strategies
+        .insert(lineage_id.clone(), ("settle".to_string(), 1_000));
+    sim.lineage_strategy_objectives.clear();
+
+    let loaded = Simulation::from_save(0x1E6A_C7, sim.to_save_state());
+
+    let objective = loaded.lineage_strategy_objectives.get(&lineage_id).unwrap();
+    assert_eq!(objective.strategy, "settle");
+    assert_eq!(objective.started_tick, 400);
+    assert_eq!(objective.expires_tick, 1_000);
+    assert_eq!(objective.progress, 0);
+    assert_eq!(objective.target, 300);
+    assert_eq!(objective.completed_tick, None);
+    assert_eq!(objective.failed_tick, None);
+}
+
+#[test]
+fn loading_repairs_zero_target_or_mismatched_guidance_objectives() {
+    let mut sim = Simulation::new(0xBAD_0B1);
+    sim.tick_count = 400;
+    let lineage_id = sim
+        .organisms
+        .iter()
+        .find(|organism| organism.alive)
+        .unwrap()
+        .lineage_id
+        .clone();
+    sim.lineage_strategies
+        .insert(lineage_id.clone(), ("trade".to_string(), 1_000));
+    sim.lineage_strategy_objectives.insert(
+        lineage_id.clone(),
+        StrategyObjective {
+            strategy: "hunt".to_string(),
+            started_tick: 100,
+            expires_tick: 800,
+            progress: 50,
+            target: 0,
+            completed_tick: None,
+            failed_tick: None,
+        },
+    );
+
+    let loaded = Simulation::from_save(0xBAD_0B1, sim.to_save_state());
+
+    let objective = loaded.lineage_strategy_objectives.get(&lineage_id).unwrap();
+    assert_eq!(objective.strategy, "trade");
+    assert_eq!(objective.started_tick, 400);
+    assert_eq!(objective.expires_tick, 1_000);
+    assert_eq!(objective.progress, 0);
+    assert_eq!(objective.target, 300);
+    assert_eq!(objective.completed_tick, None);
+    assert_eq!(objective.failed_tick, None);
+}
+
+#[test]
 fn scarcity_migration_uses_configured_season_names() {
     assert!(scarcity_driven_migration_season("scarcity"));
     assert!(scarcity_driven_migration_season("decline"));
@@ -814,8 +1101,38 @@ fn save_load_preserves_social_continuity_and_rng_stream() {
 
     let mut sim = Simulation::new(17);
     sim.tick_count = 12_345;
+    let guided_lineage = sim
+        .organisms
+        .iter()
+        .find(|organism| organism.alive)
+        .unwrap()
+        .lineage_id
+        .clone();
     sim.lineage_strategies
-        .insert("lineage-a".to_string(), ("settle".to_string(), 13_000));
+        .insert(guided_lineage.clone(), ("settle".to_string(), 13_000));
+    sim.lineage_strategy_objectives.insert(
+        guided_lineage.clone(),
+        StrategyObjective {
+            strategy: "settle".to_string(),
+            started_tick: 12_000,
+            expires_tick: 13_000,
+            progress: 27,
+            target: 90,
+            completed_tick: None,
+            failed_tick: None,
+        },
+    );
+    sim.lineage_strategy_history.push_back(StrategyCampaignRecord {
+        lineage_id: "lineage-a".to_string(),
+        lineage_name: "Lineage A".to_string(),
+        strategy: "trade".to_string(),
+        started_tick: 11_000,
+        ended_tick: 11_800,
+        progress: 80,
+        target: 80,
+        outcome: "completed".to_string(),
+        reason: None,
+    });
     sim.lineage_last_council.insert("lineage-a".to_string(), 12_000);
     sim.lineage_elders
         .insert("lineage-a".to_string(), "elder-a".to_string());
@@ -837,9 +1154,23 @@ fn save_load_preserves_social_continuity_and_rng_stream() {
     let mut loaded = Simulation::load_or_new(999, &path_s);
 
     assert_eq!(
-        loaded.lineage_strategies.get("lineage-a"),
+        loaded.lineage_strategies.get(&guided_lineage),
         Some(&("settle".to_string(), 13_000))
     );
+    let objective = loaded.lineage_strategy_objectives.get(&guided_lineage).unwrap();
+    assert_eq!(objective.strategy, "settle");
+    assert_eq!(objective.started_tick, 12_000);
+    assert_eq!(objective.expires_tick, 13_000);
+    assert_eq!(objective.progress, 27);
+    assert_eq!(objective.target, 90);
+    assert_eq!(objective.completed_tick, None);
+    assert_eq!(objective.failed_tick, None);
+    assert_eq!(loaded.lineage_strategy_history.len(), 1);
+    let campaign = loaded.lineage_strategy_history.back().unwrap();
+    assert_eq!(campaign.lineage_id, "lineage-a");
+    assert_eq!(campaign.strategy, "trade");
+    assert_eq!(campaign.outcome, "completed");
+    assert_eq!(campaign.ended_tick, 11_800);
     assert_eq!(loaded.lineage_last_council.get("lineage-a"), Some(&12_000));
     assert_eq!(
         loaded.lineage_elders.get("lineage-a"),

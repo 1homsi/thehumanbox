@@ -15,10 +15,12 @@ import {
 } from "./data-lock";
 import {
   finishCommittedMigrationForActiveRoot,
+  pathsReferToSameLocation,
   recoverInterruptedFileReplacement,
 } from "./world-safety";
 import {
   childTerminationConfirmed,
+  resolveOwnedOrphanPid,
   TerminationUnconfirmedError,
   waitForChildTermination,
 } from "./process-lifecycle";
@@ -203,40 +205,78 @@ async function checkpointSim(
 async function killOrphanFromPidFile(
   settings: Settings,
   expectedLockToken: string | null,
+  expectedChildPid: number | null,
 ): Promise<void> {
   const pidPath = pidFilePath(settings);
-  let raw: string;
+  let raw: string | null = null;
   try {
     raw = fs.readFileSync(pidPath, "utf8").trim();
   } catch {
-    return;
+    // A durable child.json claim can recover an orphan even if sim.pid was
+    // separately lost or damaged. Without either record there is no orphan to
+    // quiesce.
   }
-  let record: SimPidRecord;
-  try {
-    const parsed = JSON.parse(raw) as Partial<SimPidRecord> | number;
-    if (typeof parsed !== "object" || parsed === null)
-      throw new Error("legacy pid record");
-    record = {
-      pid: Number(parsed.pid),
-      port: parsed.port === undefined ? undefined : Number(parsed.port),
-      token: typeof parsed.token === "string" ? parsed.token : undefined,
-    };
-  } catch {
-    // Backward compatibility with the original pid-only file.
-    record = { pid: parseInt(raw, 10) };
+  let record: SimPidRecord | null = null;
+  if (raw !== null) {
+    try {
+      const parsed = JSON.parse(raw) as Partial<SimPidRecord> | number;
+      if (typeof parsed !== "object" || parsed === null)
+        throw new Error("legacy pid record");
+      record = {
+        pid: Number(parsed.pid),
+        port: parsed.port === undefined ? undefined : Number(parsed.port),
+        token: typeof parsed.token === "string" ? parsed.token : undefined,
+      };
+    } catch {
+      // Backward compatibility with the original pid-only file. A malformed
+      // record can still fall back to the lock's durable child claim below.
+      const legacyPid = parseInt(raw, 10);
+      if (Number.isFinite(legacyPid)) record = { pid: legacyPid };
+    }
+  }
+  if (record && (!Number.isSafeInteger(record.pid) || record.pid <= 1)) {
+    record = null;
+  }
+
+  if (record) {
+    try {
+      process.kill(record.pid, 0);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
+      try {
+        fs.unlinkSync(pidPath);
+      } catch {
+        /* noop */
+      }
+      return;
+    }
+    if (!pidBelongsToSimulation(record.pid)) {
+      console.warn(
+        `[sim] stale pid file points to a different process; refusing to kill pid=${record.pid}`,
+      );
+      try {
+        fs.unlinkSync(pidPath);
+      } catch {
+        /* noop */
+      }
+      return;
+    }
+  }
+
+  record = resolveOwnedOrphanPid(record, expectedLockToken, expectedChildPid);
+  if (!record) {
+    try {
+      fs.unlinkSync(pidPath);
+    } catch {
+      /* noop */
+    }
+    return;
   }
   const { pid } = record;
-  if (!Number.isFinite(pid) || pid <= 1) {
-    try {
-      fs.unlinkSync(pidPath);
-    } catch {
-      /* noop */
-    }
-    return;
-  }
   try {
     process.kill(pid, 0);
-  } catch {
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
     try {
       fs.unlinkSync(pidPath);
     } catch {
@@ -244,20 +284,8 @@ async function killOrphanFromPidFile(
     }
     return;
   }
-  if (expectedLockToken && record.token !== expectedLockToken) {
-    throw new Error(
-      "the live simulation pid does not match the recovered save-folder lock; refusing to terminate it",
-    );
-  }
   if (!pidBelongsToSimulation(pid)) {
-    console.warn(
-      `[sim] stale pid file points to a different process; refusing to kill pid=${pid}`,
-    );
-    try {
-      fs.unlinkSync(pidPath);
-    } catch {
-      /* noop */
-    }
+    console.warn(`[sim] recovered child pid=${pid} is no longer simulation-rs`);
     return;
   }
   if (record.port && !(await checkpointSim(record.port, 2_000))) {
@@ -305,15 +333,17 @@ export async function quiesceRecoveredDataRoot(
   dataLock: DataRootLock,
 ): Promise<void> {
   if (!dataLock.recoveredToken) return;
-  if (
-    path.resolve(dataLock.root) !== path.resolve(effectiveDataRoot(settings))
-  ) {
+  if (!pathsReferToSameLocation(dataLock.root, effectiveDataRoot(settings))) {
     throw new Error(
       "recovered data-root lock does not match the simulation save folder",
     );
   }
   try {
-    await killOrphanFromPidFile(settings, dataLock.recoveredToken);
+    await killOrphanFromPidFile(
+      settings,
+      dataLock.recoveredToken,
+      dataLock.recoveredChildPid,
+    );
   } catch (error) {
     if (!(error instanceof TerminationUnconfirmedError) || !error.confirmation)
       throw error;
@@ -354,7 +384,19 @@ function installExitHandlersOnce(): void {
 
 export async function startSim(settings: Settings): Promise<RunningSim> {
   if (stopInFlight) await stopInFlight.promise;
-  if (current) return current;
+  if (current) {
+    if (
+      !pathsReferToSameLocation(
+        current.dataLock.root,
+        effectiveDataRoot(settings),
+      )
+    ) {
+      throw new Error(
+        "the running simulation belongs to a different save folder",
+      );
+    }
+    return current;
+  }
   if (startInFlight) return startInFlight;
 
   const attempt = startSimOnce(settings);
@@ -376,9 +418,7 @@ export async function startSimWithDataRootLock(
       "simulation lifecycle changed during the data-root transaction",
     );
   }
-  if (
-    path.resolve(dataLock.root) !== path.resolve(effectiveDataRoot(settings))
-  ) {
+  if (!pathsReferToSameLocation(dataLock.root, effectiveDataRoot(settings))) {
     dataLock.release();
     throw new Error("data-root lock does not match the simulation save folder");
   }
@@ -430,7 +470,11 @@ async function startSimOnce(
     // Once a crashed Electron parent is gone, its Rust child may still be
     // writing the prior world. Stop and confirm that exact orphan before any
     // journal or live-marker recovery mutates the data tree.
-    await killOrphanFromPidFile(settings, dataLock.recoveredToken);
+    await killOrphanFromPidFile(
+      settings,
+      dataLock.recoveredToken,
+      dataLock.recoveredChildPid,
+    );
     // A handed lock belongs to an import/reset/migration that is still being
     // verified by this Electron process. Its journal and rollback markers are
     // deliberate; only an ordinary startup may treat them as crash evidence.

@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
+  canFinalizeReloadCheckpoint,
   findRequestedRecovery,
   localSaveWorkerRequest,
   rememberStorageRetry,
+  runReloadCheckpoint,
   runStorageRetry,
   type StorageRetryOperations,
 } from './wasmPersistence'
@@ -78,5 +80,56 @@ describe('local WASM storage retries', () => {
     await expect(runStorageRetry(true, { kind: 'read' }, ops)).resolves.toBe(true)
     expect(ops.persist).toHaveBeenCalledOnce()
     expect(ops.read).not.toHaveBeenCalled()
+  })
+
+  it('does not shut down the worker after a reload checkpoint missed its renderer deadline', () => {
+    expect(canFinalizeReloadCheckpoint(true, 10_000, 9_999)).toBe(true)
+    expect(canFinalizeReloadCheckpoint(true, 10_000, 10_001)).toBe(false)
+    expect(canFinalizeReloadCheckpoint(false, 10_000, 9_999)).toBe(false)
+  })
+
+  it('freezes before saving and resumes when the checkpoint completes too late', async () => {
+    const order: string[] = []
+    const ok = await runReloadCheckpoint(
+      10_000,
+      {
+        quiesce: () => order.push('quiesce'),
+        persist: async () => {
+          order.push('persist')
+          return true
+        },
+        resume: () => order.push('resume'),
+      },
+      () => 10_001,
+    )
+
+    expect(ok).toBe(false)
+    expect(order).toEqual(['quiesce', 'persist', 'resume'])
+  })
+
+  it('leaves the worker quiesced after an on-time durable checkpoint', async () => {
+    const resume = vi.fn()
+    const ok = await runReloadCheckpoint(
+      10_000,
+      { quiesce: vi.fn(), persist: async () => true, resume },
+      () => 10_000,
+    )
+
+    expect(ok).toBe(true)
+    expect(resume).not.toHaveBeenCalled()
+  })
+
+  it('resumes when persistence unexpectedly rejects', async () => {
+    const resume = vi.fn()
+    const ok = await runReloadCheckpoint(10_000, {
+      quiesce: vi.fn(),
+      persist: async () => {
+        throw new Error('IndexedDB unavailable')
+      },
+      resume,
+    })
+
+    expect(ok).toBe(false)
+    expect(resume).toHaveBeenCalledOnce()
   })
 })

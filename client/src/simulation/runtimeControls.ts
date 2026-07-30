@@ -13,6 +13,38 @@ export interface RuntimeControlResult {
   speed?: number
 }
 
+const RUNTIME_REQUEST_TIMEOUT_MS = 5_000
+
+/**
+ * Runtime status and control requests share one serialized UI queue. Bound
+ * every request so an unresponsive desktop backend cannot permanently block
+ * pause, resume, and speed controls behind a hydration request.
+ */
+export async function fetchRuntimeControlState(
+  url: string,
+  init: RequestInit = {},
+  timeoutMs = RUNTIME_REQUEST_TIMEOUT_MS,
+  fetchImpl: typeof fetch = fetch,
+): Promise<RuntimeControlResult> {
+  const controller = new AbortController()
+  const callerSignal = init.signal
+  const abortFromCaller = () => controller.abort()
+  if (callerSignal?.aborted) controller.abort()
+  else callerSignal?.addEventListener('abort', abortFromCaller, { once: true })
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    const response = await fetchImpl(url, { ...init, signal: controller.signal })
+    const body: unknown = await response.json().catch(() => null)
+    return parseRuntimeControlResult(response.ok, body)
+  } catch {
+    return { ok: false }
+  } finally {
+    clearTimeout(timer)
+    callerSignal?.removeEventListener('abort', abortFromCaller)
+  }
+}
+
 export function reconcileRuntimeState(current: RuntimeState, result: RuntimeControlResult): RuntimeState {
   if (!result.ok) return current
   return {

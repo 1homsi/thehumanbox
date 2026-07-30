@@ -19,16 +19,27 @@ export interface DataRootLock {
   root: string;
   token: string;
   recoveredToken: string | null;
+  recoveredChildPid: number | null;
   release(): void;
 }
 
-function processIsAlive(pid: number): boolean {
+type ProcessSignalProbe = (pid: number, signal: 0) => true;
+
+/**
+ * Treat only ESRCH as proof that a process is gone. EPERM and other probe
+ * failures mean liveness is unknown, so stealing its data lock would be
+ * unsafe.
+ */
+export function processIsAlive(
+  pid: number,
+  probe: ProcessSignalProbe = process.kill,
+): boolean {
   if (!Number.isSafeInteger(pid) || pid <= 1) return false;
   try {
-    process.kill(pid, 0);
+    probe(pid, 0);
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code !== "ESRCH";
   }
 }
 
@@ -79,6 +90,25 @@ function readChildOwner(lockDir: string, token: string): ChildOwner | null {
   }
 }
 
+function liveSimulationPidRecord(root: string): number | null {
+  try {
+    const raw = fs.readFileSync(path.join(root, "sim.pid"), "utf8").trim();
+    let pid: number;
+    try {
+      const parsed = JSON.parse(raw) as { pid?: unknown } | number;
+      pid =
+        typeof parsed === "object" && parsed !== null
+          ? Number(parsed.pid)
+          : Number(parsed);
+    } catch {
+      pid = parseInt(raw, 10);
+    }
+    return processIsAlive(pid) ? pid : null;
+  } catch {
+    return null;
+  }
+}
+
 export function acquireDataRootLock(
   root: string,
   ownerPid = process.pid,
@@ -88,6 +118,7 @@ export function acquireDataRootLock(
   const lockDir = path.join(root, LOCK_DIR_NAME);
   const token = randomUUID();
   let recoveredToken: string | null = null;
+  let recoveredChildPid: number | null = null;
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
@@ -103,10 +134,19 @@ export function acquireDataRootLock(
       }
       syncDirectoryBestEffort(lockDir);
       syncDirectoryBestEffort(root);
+      if (!allowOrphanRecovery) {
+        const orphanPid = liveSimulationPidRecord(root);
+        if (orphanPid !== null) {
+          throw new Error(
+            `this save folder still has a live simulation pid record (${orphanPid}); reopen the app to recover it before changing world data`,
+          );
+        }
+      }
       return {
         root,
         token,
         recoveredToken,
+        recoveredChildPid,
         release: () => {
           const current = readOwner(lockDir);
           if (current?.token !== token) return;
@@ -172,7 +212,10 @@ export function acquireDataRootLock(
 
       const staleDir = `${lockDir}.stale-${token}`;
       try {
-        if (owner) recoveredToken = owner.token;
+        if (owner) {
+          recoveredToken = owner.token;
+          recoveredChildPid = childOwner?.pid ?? null;
+        }
         fs.renameSync(lockDir, staleDir);
         fs.rmSync(staleDir, { recursive: true, force: true });
         syncDirectoryBestEffort(root);

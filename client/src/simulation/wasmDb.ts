@@ -7,6 +7,7 @@ const MAX_DB_ATTEMPTS = 3
 
 function openDb(): Promise<IDBDatabase> {
   if (dbPromise) return dbPromise
+  let abandoned = false
   const opening = new Promise<IDBDatabase>((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION)
     req.onupgradeneeded = () => {
@@ -17,6 +18,14 @@ function openDb(): Promise<IDBDatabase> {
     }
     req.onsuccess = () => {
       const db = req.result
+      // `blocked` rejects immediately so the UI can offer a retry, but the
+      // browser may still complete that original open request later. Close
+      // the orphaned connection or it can block the retry/next upgrade even
+      // though no caller can ever receive it.
+      if (abandoned || dbPromise !== opening) {
+        db.close()
+        return
+      }
       db.onversionchange = () => {
         db.close()
         if (dbPromise === opening) dbPromise = null
@@ -24,10 +33,13 @@ function openDb(): Promise<IDBDatabase> {
       resolve(db)
     }
     req.onerror = () => {
+      if (abandoned) return
+      abandoned = true
       if (dbPromise === opening) dbPromise = null
       reject(req.error ?? new Error('indexedDB open failed'))
     }
     req.onblocked = () => {
+      abandoned = true
       if (dbPromise === opening) dbPromise = null
       reject(new Error('indexedDB open blocked by another tab'))
     }

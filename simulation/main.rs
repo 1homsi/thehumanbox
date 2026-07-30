@@ -43,19 +43,28 @@ const LEGACY_SAVE_PATH: &str = "world.save";
 const DAY_LENGTH: u64 = 600;
 const WS_BROADCAST_BUFFER: usize = 40;
 pub const WS_RESYNC_LAG_THRESHOLD: u64 = 3;
+const MIN_RUNTIME_TICK_MS: u64 = 16;
+const MAX_RUNTIME_TICK_MS: u64 = 5_000;
+
+fn bounded_interval_ms(value: Option<&str>, fallback: u64, min: u64, max: u64) -> u64 {
+    value
+        .and_then(|raw| raw.trim().parse::<u64>().ok())
+        .filter(|interval| *interval > 0)
+        .unwrap_or(fallback)
+        .clamp(min, max)
+}
 
 fn tick_ms() -> u64 {
-    std::env::var("TICK_MS")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(100)
+    bounded_interval_ms(
+        std::env::var("TICK_MS").ok().as_deref(),
+        100,
+        MIN_RUNTIME_TICK_MS,
+        MAX_RUNTIME_TICK_MS,
+    )
 }
 
 fn network_ms() -> u64 {
-    std::env::var("NETWORK_MS")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(500)
+    bounded_interval_ms(std::env::var("NETWORK_MS").ok().as_deref(), 500, 16, 60_000)
 }
 
 fn lookahead_ms() -> u64 {
@@ -287,6 +296,7 @@ pub struct RuntimeControl {
 
 impl RuntimeControl {
     fn new(base_tick_ms: u64) -> Self {
+        let base_tick_ms = base_tick_ms.clamp(MIN_RUNTIME_TICK_MS, MAX_RUNTIME_TICK_MS);
         Self {
             paused: AtomicBool::new(false),
             tick_ms: AtomicU64::new(base_tick_ms),
@@ -314,10 +324,29 @@ impl RuntimeControl {
         if !multiplier.is_finite() || !(0.25..=8.0).contains(&multiplier) {
             return None;
         }
-        let tick_ms = ((self.base_tick_ms as f64 / multiplier).round() as u64).clamp(16, 5_000);
+        let tick_ms = ((self.base_tick_ms as f64 / multiplier).round() as u64)
+            .clamp(MIN_RUNTIME_TICK_MS, MAX_RUNTIME_TICK_MS);
         self.tick_ms.store(tick_ms, Ordering::Relaxed);
         Some(tick_ms)
     }
+}
+
+fn default_cors_origins(local_profile: bool) -> Vec<&'static str> {
+    let mut origins = vec![
+        "https://thehumanbox.com",
+        "https://www.thehumanbox.com",
+        "http://localhost:5173",
+        "http://localhost:4173",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:4173",
+    ];
+    // Electron's loadFile renderer has an opaque origin and Chromium sends
+    // `Origin: null` for its API requests. Only the loopback-bound local
+    // profile needs that origin; hosted servers must continue rejecting it.
+    if local_profile {
+        origins.push("null");
+    }
+    origins
 }
 
 pub type SharedRuntimeControl = Arc<RuntimeControl>;
@@ -1186,16 +1215,13 @@ async fn main() {
     // additional origins for staging environments. Wide-open `Any`
     // origin lets any site embed our endpoints (cost amplification +
     // scraping risk), so we lock it down by default.
-    let mut allowed: Vec<HeaderValue> = vec![
-        "https://thehumanbox.com",
-        "https://www.thehumanbox.com",
-        "http://localhost:5173",
-        "http://localhost:4173",
-        "http://127.0.0.1:5173",
-    ]
-    .into_iter()
-    .filter_map(|s| HeaderValue::from_str(s).ok())
-    .collect();
+    let local_profile = std::env::var("THB_PROFILE")
+        .map(|profile| profile.trim().eq_ignore_ascii_case("local"))
+        .unwrap_or(false);
+    let mut allowed: Vec<HeaderValue> = default_cors_origins(local_profile)
+        .into_iter()
+        .filter_map(|s| HeaderValue::from_str(s).ok())
+        .collect();
     if let Ok(extra) = std::env::var("THB_EXTRA_CORS_ORIGINS") {
         for origin in extra.split(',') {
             let trimmed = origin.trim();
@@ -1425,8 +1451,8 @@ async fn main() {
 #[cfg(test)]
 mod tests {
     use super::{
-        claim_desktop_data_lock_at, monthly_rollover_enabled_for, population_limit_from_env_value,
-        RuntimeControl,
+        bounded_interval_ms, claim_desktop_data_lock_at, default_cors_origins, monthly_rollover_enabled_for,
+        population_limit_from_env_value, RuntimeControl, MIN_RUNTIME_TICK_MS,
     };
 
     fn temporary_lock_root(label: &str) -> std::path::PathBuf {
@@ -1507,6 +1533,27 @@ mod tests {
         assert_eq!(population_limit_from_env_value(Some(" 1200 ")), Some(1200));
         assert_eq!(population_limit_from_env_value(Some("many")), None);
         assert_eq!(population_limit_from_env_value(None), None);
+    }
+
+    #[test]
+    fn runtime_intervals_reject_zero_and_stay_inside_safe_bounds() {
+        assert_eq!(bounded_interval_ms(Some("0"), 100, 16, 5_000), 100);
+        assert_eq!(bounded_interval_ms(Some(" 8 "), 100, 16, 5_000), 16);
+        assert_eq!(bounded_interval_ms(Some("9000"), 100, 16, 5_000), 5_000);
+        assert_eq!(bounded_interval_ms(Some("invalid"), 500, 16, 60_000), 500);
+
+        let runtime = RuntimeControl::new(0);
+        assert_eq!(runtime.tick_ms(), MIN_RUNTIME_TICK_MS);
+        assert!(runtime.speed().is_finite());
+    }
+
+    #[test]
+    fn local_cors_supports_file_renderers_without_opening_hosted_servers() {
+        let hosted = default_cors_origins(false);
+        let local = default_cors_origins(true);
+        assert!(hosted.contains(&"http://127.0.0.1:4173"));
+        assert!(!hosted.contains(&"null"));
+        assert!(local.contains(&"null"));
     }
 
     #[test]

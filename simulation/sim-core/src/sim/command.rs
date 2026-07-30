@@ -339,6 +339,7 @@ impl Simulation {
                         organism.directive_until = expires_at;
                     }
                 }
+                self.start_strategy_objective(&lineage, &strategy, expires_at);
                 self.lineage_strategies.insert(lineage, (strategy, expires_at));
                 true
             }
@@ -503,6 +504,13 @@ mod tests {
             sim.lineage_strategies.get(&lineage),
             Some(&("explore".to_string(), 1100))
         );
+        let objective = sim.lineage_strategy_objectives.get(&lineage).unwrap();
+        assert_eq!(objective.strategy, "explore");
+        assert_eq!(objective.started_tick, 500);
+        assert_eq!(objective.expires_tick, 1100);
+        assert_eq!(objective.progress, 0);
+        assert_eq!(objective.target, 300);
+        assert_eq!(objective.completed_tick, None);
         assert_eq!(sim.organisms[guided_index].directive, "explore");
         assert_eq!(sim.organisms[guided_index].directive_until, 1100);
         if let Some(index) = protected_index {
@@ -517,6 +525,16 @@ mod tests {
             sim.lineage_strategies.get(&lineage),
             Some(&("defend".to_string(), 560))
         );
+        let objective = sim.lineage_strategy_objectives.get(&lineage).unwrap();
+        assert_eq!(objective.strategy, "defend");
+        assert_eq!(objective.started_tick, 500);
+        assert_eq!(objective.expires_tick, 560);
+        assert_eq!(objective.target, 30);
+        assert_eq!(sim.lineage_strategy_history.len(), 1);
+        let redirected = sim.lineage_strategy_history.back().unwrap();
+        assert_eq!(redirected.lineage_id, lineage);
+        assert_eq!(redirected.strategy, "explore");
+        assert_eq!(redirected.outcome, "redirected");
         assert_eq!(sim.organisms[guided_index].directive, "defend");
         assert_eq!(sim.organisms[guided_index].directive_until, 560);
         if let Some(index) = protected_index {

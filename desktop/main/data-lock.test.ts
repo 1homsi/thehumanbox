@@ -12,9 +12,28 @@ import * as path from "node:path";
 import test from "node:test";
 import {
   acquireDataRootLock,
+  processIsAlive,
   removePidRecordIfOwned,
   writePidRecordAtomically,
 } from "./data-lock";
+
+test("does not mistake an unprobeable process for a dead lock owner", () => {
+  const error = Object.assign(new Error("operation not permitted"), {
+    code: "EPERM",
+  });
+  assert.equal(
+    processIsAlive(42, () => {
+      throw error;
+    }),
+    true,
+  );
+  assert.equal(
+    processIsAlive(42, () => {
+      throw Object.assign(new Error("no such process"), { code: "ESRCH" });
+    }),
+    false,
+  );
+});
 
 test("data-root ownership is exclusive and releasable", () => {
   const root = mkdtempSync(path.join(tmpdir(), "thb-lock-test-"));
@@ -95,6 +114,31 @@ test("data operations cannot steal a lock from a live orphan simulation", () => 
     );
 
     assert.throws(() => acquireDataRootLock(root), /orphan simulation process/);
+
+    const recovered = acquireDataRootLock(root, process.pid, true);
+    assert.equal(recovered.recoveredToken, "child-token");
+    assert.equal(recovered.recoveredChildPid, process.pid);
+    recovered.release();
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("data operations refuse a live pid record even when its lock directory was lost", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "thb-live-pid-without-lock-"));
+  try {
+    writeFileSync(
+      path.join(root, "sim.pid"),
+      JSON.stringify({ pid: process.pid, port: 9999, token: "lost-lock" }),
+    );
+    assert.throws(
+      () => acquireDataRootLock(root),
+      /live simulation pid record.*reopen the app/,
+    );
+    assert.equal(existsSync(path.join(root, ".thehumanbox-data.lock")), false);
+
+    const recoveryLock = acquireDataRootLock(root, process.pid, true);
+    recoveryLock.release();
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

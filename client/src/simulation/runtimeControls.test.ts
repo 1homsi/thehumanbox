@@ -1,5 +1,49 @@
-import { describe, expect, it } from 'vitest'
-import { nextRuntimeState, parseRuntimeControlResult, reconcileRuntimeState } from './runtimeControls'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  fetchRuntimeControlState,
+  nextRuntimeState,
+  parseRuntimeControlResult,
+  reconcileRuntimeState,
+} from './runtimeControls'
+
+afterEach(() => {
+  vi.useRealTimers()
+})
+
+describe('fetchRuntimeControlState', () => {
+  it('parses an acknowledged runtime response', async () => {
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ ok: true, paused: true, speed: 2 }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+    ) as unknown as typeof fetch
+
+    await expect(fetchRuntimeControlState('/runtime', {}, 100, fetchImpl)).resolves.toEqual({
+      ok: true,
+      paused: true,
+      speed: 2,
+    })
+  })
+
+  it('aborts a hung runtime request instead of blocking later controls forever', async () => {
+    vi.useFakeTimers()
+    const fetchImpl = vi.fn(
+      (_url: RequestInfo | URL, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => {
+            reject(new DOMException('aborted', 'AbortError'))
+          })
+        }),
+    ) as unknown as typeof fetch
+
+    const result = fetchRuntimeControlState('/runtime', {}, 50, fetchImpl)
+    await vi.advanceTimersByTimeAsync(50)
+
+    await expect(result).resolves.toEqual({ ok: false })
+  })
+})
 
 describe('parseRuntimeControlResult', () => {
   it('requires both a successful response and an affirmative backend result', () => {
