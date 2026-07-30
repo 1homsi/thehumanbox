@@ -179,6 +179,33 @@ export interface TradeInfo {
   price: number
 }
 
+export interface TradeRouteInfo {
+  id: number
+  lineage_a: string
+  lineage_b: string
+  a_center: [number, number]
+  b_center: [number, number]
+  established_tick: number
+  last_dispatch_tick: number
+  deliveries: number
+  volume: number
+}
+
+export interface CaravanInfo {
+  id: number
+  route_id: number
+  sender_lineage: string
+  receiver_lineage: string
+  sender_org_id: string
+  cargo: string
+  amount: number
+  unit_price: number
+  departed_tick: number
+  arrives_tick: number
+  from: [number, number]
+  to: [number, number]
+}
+
 export interface GovernmentInfo {
   lineage_id: string
   kind: string
@@ -439,6 +466,8 @@ export interface WorldState {
   battles?: BattleInfo[]
   treaties?: TreatyInfo[]
   trades?: TradeInfo[]
+  trade_routes?: TradeRouteInfo[]
+  caravans?: CaravanInfo[]
   governments?: GovernmentInfo[]
   artworks?: ArtworkInfo[]
   farms?: FarmInfo[]

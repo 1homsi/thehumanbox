@@ -360,6 +360,14 @@ pub struct SaveState {
     #[serde(default)]
     trades: Vec<super::economy::Trade>,
     #[serde(default)]
+    trade_routes: Vec<super::civ::trade_routes::TradeRoute>,
+    #[serde(default)]
+    caravans: Vec<super::civ::trade_routes::Caravan>,
+    #[serde(default)]
+    next_trade_route_id: u32,
+    #[serde(default)]
+    next_caravan_id: u32,
+    #[serde(default)]
     water_use: Vec<WaterUseSave>,
     #[serde(default)]
     field_fortifications: Vec<super::warfare::FieldFortification>,
@@ -844,6 +852,10 @@ impl Simulation {
             lineage_peak_pop: self.lineage_peak_pop.clone(),
             headlines: self.headlines.iter().rev().take(160).rev().cloned().collect(),
             trades: self.trades.iter().rev().take(500).rev().cloned().collect(),
+            trade_routes: self.trade_routes.clone(),
+            caravans: self.caravans.clone(),
+            next_trade_route_id: self.next_trade_route_id,
+            next_caravan_id: self.next_caravan_id,
             water_use: self
                 .water_use
                 .iter()
@@ -1091,6 +1103,14 @@ impl Simulation {
         let next_battle_id = repaired_next_sequence(state.next_battle_id, state.battles.len());
         let mut treaties = state.treaties;
         super::warfare::consolidate_treaties(&mut treaties, state.tick_count);
+        let next_trade_route_id = repaired_next_u32_id(
+            state.next_trade_route_id,
+            state.trade_routes.iter().map(|route| route.id),
+        );
+        let next_caravan_id = repaired_next_u32_id(
+            state.next_caravan_id,
+            state.caravans.iter().map(|caravan| caravan.id),
+        );
 
         let mut sim = Simulation {
             grid,
@@ -1207,6 +1227,10 @@ impl Simulation {
             lineage_peak_pop: state.lineage_peak_pop,
             headlines: state.headlines.into_iter().collect(),
             trades: state.trades.into_iter().collect(),
+            trade_routes: state.trade_routes,
+            caravans: state.caravans,
+            next_trade_route_id,
+            next_caravan_id,
             water_use: state
                 .water_use
                 .into_iter()
@@ -1288,6 +1312,7 @@ impl Simulation {
         // living residents and operational buildings so extinct/imported
         // stale rows disappear immediately on load without emitting events.
         super::civ::settlements::rebuild_tiers(&mut sim);
+        super::civ::trade_routes::repair_loaded_state(&mut sim);
         sim
     }
 

@@ -78,6 +78,8 @@ export type IncomingWorldFrame = Pick<
   battles?: WorldState['battles']
   treaties?: WorldState['treaties']
   trades?: WorldState['trades']
+  trade_routes?: WorldState['trade_routes']
+  caravans?: WorldState['caravans']
   farms?: WorldState['farms']
   settlements?: WorldState['settlements']
   vehicles?: WorldState['vehicles']
@@ -290,6 +292,17 @@ export function parseWorldFrame(
   const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)
   const isStr = (v: unknown): v is string => typeof v === 'string'
   const isBool = (v: unknown): v is boolean => typeof v === 'boolean'
+  const isPoint = (v: unknown): v is [number, number] =>
+    Array.isArray(v) && v.length === 2 && isNum(v[0]) && isNum(v[1])
+  const validateNonNegativeNumber = (
+    value: unknown,
+    path: string,
+    { integer = false }: { integer?: boolean } = {},
+  ) => {
+    if (!isNum(value) || value < 0 || (integer && !Number.isInteger(value))) {
+      issues.push(`${path} is invalid`)
+    }
+  }
 
   if (!isNum(d.frame_id)) issues.push('frame_id is not a finite number')
   if (!isNum(d.tick)) issues.push('tick is not a finite number')
@@ -393,6 +406,59 @@ export function parseWorldFrame(
             issues.push(`lineage_strategy_history.${index}.${field} is invalid`)
           }
         }
+      }
+    }
+  }
+  if (d.trade_routes !== undefined) {
+    if (!Array.isArray(d.trade_routes)) {
+      issues.push('trade_routes is not an array')
+    } else {
+      for (const [index, rawRoute] of d.trade_routes.entries()) {
+        const path = `trade_routes.${index}`
+        if (!rawRoute || typeof rawRoute !== 'object' || Array.isArray(rawRoute)) {
+          issues.push(`${path} is not an object`)
+          continue
+        }
+        const route = rawRoute as Record<string, unknown>
+        validateNonNegativeNumber(route.id, `${path}.id`, { integer: true })
+        if (!isStr(route.lineage_a) || route.lineage_a.length === 0)
+          issues.push(`${path}.lineage_a is invalid`)
+        if (!isStr(route.lineage_b) || route.lineage_b.length === 0)
+          issues.push(`${path}.lineage_b is invalid`)
+        if (!isPoint(route.a_center)) issues.push(`${path}.a_center is invalid`)
+        if (!isPoint(route.b_center)) issues.push(`${path}.b_center is invalid`)
+        validateNonNegativeNumber(route.established_tick, `${path}.established_tick`, { integer: true })
+        validateNonNegativeNumber(route.last_dispatch_tick, `${path}.last_dispatch_tick`, { integer: true })
+        validateNonNegativeNumber(route.deliveries, `${path}.deliveries`, { integer: true })
+        validateNonNegativeNumber(route.volume, `${path}.volume`)
+      }
+    }
+  }
+  if (d.caravans !== undefined) {
+    if (!Array.isArray(d.caravans)) {
+      issues.push('caravans is not an array')
+    } else {
+      for (const [index, rawCaravan] of d.caravans.entries()) {
+        const path = `caravans.${index}`
+        if (!rawCaravan || typeof rawCaravan !== 'object' || Array.isArray(rawCaravan)) {
+          issues.push(`${path} is not an object`)
+          continue
+        }
+        const caravan = rawCaravan as Record<string, unknown>
+        validateNonNegativeNumber(caravan.id, `${path}.id`, { integer: true })
+        validateNonNegativeNumber(caravan.route_id, `${path}.route_id`, { integer: true })
+        if (!isStr(caravan.sender_lineage) || caravan.sender_lineage.length === 0)
+          issues.push(`${path}.sender_lineage is invalid`)
+        if (!isStr(caravan.receiver_lineage) || caravan.receiver_lineage.length === 0)
+          issues.push(`${path}.receiver_lineage is invalid`)
+        if (!isStr(caravan.sender_org_id)) issues.push(`${path}.sender_org_id is invalid`)
+        if (!isStr(caravan.cargo) || caravan.cargo.length === 0) issues.push(`${path}.cargo is invalid`)
+        validateNonNegativeNumber(caravan.amount, `${path}.amount`, { integer: true })
+        validateNonNegativeNumber(caravan.unit_price, `${path}.unit_price`)
+        validateNonNegativeNumber(caravan.departed_tick, `${path}.departed_tick`, { integer: true })
+        validateNonNegativeNumber(caravan.arrives_tick, `${path}.arrives_tick`, { integer: true })
+        if (!isPoint(caravan.from)) issues.push(`${path}.from is invalid`)
+        if (!isPoint(caravan.to)) issues.push(`${path}.to is invalid`)
       }
     }
   }

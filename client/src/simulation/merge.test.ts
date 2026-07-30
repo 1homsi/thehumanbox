@@ -251,6 +251,58 @@ describe('mergeFrame lineage strategy handling', () => {
   })
 })
 
+describe('mergeFrame trade network handling', () => {
+  it('retains moving routes across sparse deltas and accepts authoritative empty arrays', () => {
+    const caches = emptyCaches()
+    const tradeRoutes = [
+      {
+        id: 3,
+        lineage_a: 'lin-a',
+        lineage_b: 'lin-b',
+        a_center: [10, 20] as [number, number],
+        b_center: [80, 90] as [number, number],
+        established_tick: 100,
+        last_dispatch_tick: 120,
+        deliveries: 2,
+        volume: 5,
+      },
+    ]
+    const caravans = [
+      {
+        id: 4,
+        route_id: 3,
+        sender_lineage: 'lin-a',
+        receiver_lineage: 'lin-b',
+        sender_org_id: 'org-a',
+        cargo: 'food',
+        amount: 2,
+        unit_price: 3,
+        departed_tick: 120,
+        arrives_tick: 240,
+        from: [10, 20] as [number, number],
+        to: [80, 90] as [number, number],
+      },
+    ]
+
+    const first = mergeFrame(
+      baseFrame({ frame_kind: 'full', trade_routes: tradeRoutes, caravans }),
+      caches,
+    )
+    caches.prevWorld = first.next
+    const sparse = mergeFrame(baseFrame({ frame_id: 2, tick: 121 }), caches)
+    expect(sparse.next.trade_routes).toBe(tradeRoutes)
+    expect(sparse.next.caravans).toBe(caravans)
+
+    caches.prevWorld = sparse.next
+    const arrived = mergeFrame(
+      baseFrame({ frame_id: 3, tick: 240, trade_routes: tradeRoutes, caravans: [] }),
+      caches,
+    )
+    expect(arrived.next.trade_routes).toBe(tradeRoutes)
+    expect(arrived.next.caravans).toEqual([])
+  })
+})
+
 describe('mergeFrame civilization state handling', () => {
   it('preserves cold civilization payloads across deltas and accepts authoritative empty updates', () => {
     const caches = emptyCaches()

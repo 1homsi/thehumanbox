@@ -1,19 +1,13 @@
 use super::super::ctx::ActionCtx;
+use crate::sim::civ::trade_routes::receive_due_for_lineage;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    let lid = ctx.lid.clone();
-    let pick = ctx
-        .near
-        .iter()
-        .copied()
-        .find(|&k| ctx.sim.organisms[k].lineage_id != lid && ctx.sim.organisms[k].inv_food > 0);
-    let Some(ki) = pick else {
-        ctx.think("no caravan arriving");
+    let lineage_id = ctx.lid.clone();
+    if !receive_due_for_lineage(ctx.sim, &lineage_id) {
+        ctx.think("no caravan has reached this lineage and is ready to unload");
         return 0.0;
-    };
-    ctx.sim.organisms[ki].inv_food -= 1;
-    ctx.sim.organisms[ctx.idx].inv_food = ctx.sim.organisms[ctx.idx].inv_food.saturating_add(1);
+    }
+
     ctx.think("receiving caravan goods");
-    ctx.event("trade", "received a caravan delivering food");
     0.008
 }

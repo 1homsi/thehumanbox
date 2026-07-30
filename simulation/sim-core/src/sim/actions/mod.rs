@@ -128,6 +128,42 @@ use ctx::ActionCtx;
 
 const ACTIONS_PER_BAND: usize = 8;
 
+/// Return one stable nearby representative for each foreign lineage.
+///
+/// Spatial buckets are an implementation detail and must not decide who an
+/// organism negotiates with. Prefer the closest living representative, then
+/// use lineage, organism id, and index as deterministic tie breakers.
+fn deterministic_foreign_partners(ctx: &ActionCtx) -> Vec<usize> {
+    let mut partners: Vec<usize> = ctx
+        .near
+        .iter()
+        .copied()
+        .filter(|&index| {
+            ctx.sim
+                .organisms
+                .get(index)
+                .is_some_and(|organism| organism.alive && organism.lineage_id != ctx.lid)
+        })
+        .collect();
+
+    partners.sort_unstable_by(|&left_index, &right_index| {
+        let left = &ctx.sim.organisms[left_index];
+        let right = &ctx.sim.organisms[right_index];
+        let left_distance = (left.x - ctx.sx).abs() + (left.y - ctx.sy).abs();
+        let right_distance = (right.x - ctx.sx).abs() + (right.y - ctx.sy).abs();
+
+        left_distance
+            .total_cmp(&right_distance)
+            .then_with(|| left.lineage_id.cmp(&right.lineage_id))
+            .then_with(|| left.id.cmp(&right.id))
+            .then_with(|| left_index.cmp(&right_index))
+    });
+
+    let mut seen_lineages = std::collections::BTreeSet::new();
+    partners.retain(|&index| seen_lineages.insert(ctx.sim.organisms[index].lineage_id.clone()));
+    partners
+}
+
 #[derive(Clone, Copy)]
 enum AgeGate {
     Child,
@@ -767,12 +803,24 @@ const BASE_ACTION_BANDS: &[ActionBand] = &[
     ),
     band!(
         288,
+        288,
+        Iron,
+        AdultOrElder,
+        None,
+        PlaceGate::Workspace(Workspace::Trade),
+        // The route handler selects and consumes concrete cargo atomically;
+        // a generic gate would reject tools/water or double-charge goods.
+        None,
+        qualification(&["currency"], &["merchant"], 0.0)
+    ),
+    band!(
+        289,
         289,
         Iron,
         AdultOrElder,
-        Stranger,
+        None,
         PlaceGate::Workspace(Workspace::Trade),
-        TradeGoods,
+        None,
         qualification(&["currency"], &["merchant"], 0.0)
     ),
     band!(
@@ -4726,7 +4774,6 @@ fn action_uses_deferred_resource_charge(action: usize) -> bool {
             | 50
             | 276
             | 287
-            | 288
             | 291
             | 292
             | 348
@@ -4961,6 +5008,8 @@ pub fn available_actions(
             && (!action_requires_semantic_validation(*action) || semantically_eligible.contains(action))
             && agriculture::action_is_possible(sim, idx, *action, ix, iy, near_water)
             && religion_expanded::action_is_possible(sim, idx, *action, &near_buf, sim.tick_count)
+            && crate::sim::civ::trade_routes::action_is_possible(sim, idx, *action, &near_buf)
+            && (*action != 2704 || crate::sim::civ::trade_routes::can_dispatch_caravan(sim, idx))
             && seen.insert(*action)
     });
 
@@ -6177,5 +6226,70 @@ mod tests {
         assert!(!actions_for(&sim, idx).contains(&456));
         let spatial = SpatialIndex::build(&sim.organisms, 10);
         assert!(try_apply(&mut sim, idx, 456, 100, 100, &spatial).is_none());
+    }
+
+    #[test]
+    fn established_route_dispatches_tool_cargo_without_a_foreign_visitor() {
+        let mut sim = Simulation::new(25);
+        sim.organisms.truncate(2);
+        for (index, organism) in sim.organisms.iter_mut().enumerate() {
+            organism.alive = true;
+            organism.lineage_id = if index == 0 { "river" } else { "hill" }.into();
+            organism.x = if index == 0 { 100.0 } else { 220.0 };
+            organism.y = if index == 0 { 100.0 } else { 160.0 };
+            organism.home_x = organism.x;
+            organism.home_y = organism.y;
+            organism.age = organism.max_age / 2;
+            organism.inv_food = 0;
+            organism.inv_water = 0;
+            organism.inv_wood = 0;
+            organism.inv_stone = 0;
+            organism.tools.clear();
+        }
+        sim.organisms[0].specialty = Some("merchant".into());
+        sim.organisms[0].discoveries.insert("currency".into());
+        sim.organisms[0].tools.insert("cloth".into(), 2);
+        sim.lineage_eras.insert("river".into(), Era::Iron);
+        sim.lineage_eras.insert("hill".into(), Era::Iron);
+
+        let mut market = Building::new(
+            1,
+            BuildingKind::MarketStall,
+            100,
+            100,
+            Some("river".into()),
+            sim.tick_count,
+        );
+        market.condition = 1.0;
+        let mut river_hut = Building::new(
+            2,
+            BuildingKind::Hut,
+            101,
+            100,
+            Some("river".into()),
+            sim.tick_count,
+        );
+        river_hut.condition = 1.0;
+        let mut hill_hut = Building::new(
+            3,
+            BuildingKind::Hut,
+            220,
+            160,
+            Some("hill".into()),
+            sim.tick_count,
+        );
+        hill_hut.condition = 1.0;
+        sim.buildings.extend([market, river_hut, hill_hut]);
+
+        assert!(crate::sim::civ::trade_routes::establish_route(&mut sim, 0, 1));
+        assert!(actions_for(&sim, 0).contains(&288));
+
+        let spatial = SpatialIndex::build(&sim.organisms, 10);
+        let reward = try_apply(&mut sim, 0, 288, 100, 100, &spatial);
+        assert!(reward.is_some_and(|reward| reward > 0.0));
+        assert_eq!(sim.organisms[0].tools.get("cloth"), None);
+        assert_eq!(sim.caravans.len(), 1);
+        assert_eq!(sim.caravans[0].cargo, "cloth");
+        assert_eq!(sim.caravans[0].amount, 2);
     }
 }

@@ -67,6 +67,7 @@ import { CameraBreath } from './parts/CameraBreath'
 import { Fireflies } from './parts/Fireflies'
 import { SocialBeams } from './parts/SocialBeams'
 import { TerritoryOverlay } from './parts/TerritoryOverlay'
+import { TradeRoutes3D } from './parts/TradeRoutes3D'
 import { LineageHistory3D } from './parts/LineageHistory3D'
 import { DataOverlays3D } from './parts/DataOverlays3D'
 import { FocusMarkers3D } from './parts/FocusMarkers3D'
@@ -981,6 +982,15 @@ export default function WorldView3D({
                   organisms={world.viewport_organisms ?? world.organisms ?? []}
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}
+                />
+                <TradeRoutes3D
+                  routes={world.trade_routes}
+                  caravans={world.caravans}
+                  tick={world.tick}
+                  depthMap={grid.depth_map!}
+                  biomes={grid.biomes!}
+                  originX={grid.origin_x ?? 0}
+                  originY={grid.origin_y ?? 0}
                 />
                 {showTerritoryMap && world.territory && (
                   <TerritoryOverlay

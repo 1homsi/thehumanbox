@@ -172,6 +172,8 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     battles: parsed.battles ?? base?.battles,
     treaties: parsed.treaties ?? base?.treaties,
     trades: parsed.trades ?? base?.trades,
+    trade_routes: parsed.trade_routes ?? base?.trade_routes,
+    caravans: parsed.caravans ?? base?.caravans,
     governments: parsed.governments ?? base?.governments,
     artworks: parsed.artworks ?? base?.artworks,
     farms: parsed.farms ?? base?.farms,

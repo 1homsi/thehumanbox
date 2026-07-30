@@ -319,6 +319,49 @@ impl Simulation {
                 "lineage_strategy_history".to_string(),
                 lineage_strategy_history_payload(self),
             );
+            // Routes are small and caravans visibly move every tick, so they
+            // belong in hot/delta frames rather than the once-per-cold-snapshot
+            // economy payload. The private dispatch_state used for delayed
+            // Q-learning credit never crosses this boundary.
+            let trade_routes = self
+                .trade_routes
+                .iter()
+                .map(|route| {
+                    json!({
+                        "id": route.id,
+                        "lineage_a": route.lineage_a,
+                        "lineage_b": route.lineage_b,
+                        "a_center": route.a_center,
+                        "b_center": route.b_center,
+                        "established_tick": route.established_tick,
+                        "last_dispatch_tick": route.last_dispatch_tick,
+                        "deliveries": route.deliveries,
+                        "volume": route.volume,
+                    })
+                })
+                .collect();
+            obj.insert("trade_routes".to_string(), serde_json::Value::Array(trade_routes));
+            let caravans = self
+                .caravans
+                .iter()
+                .map(|caravan| {
+                    json!({
+                        "id": caravan.id,
+                        "route_id": caravan.route_id,
+                        "sender_lineage": caravan.sender_lineage,
+                        "receiver_lineage": caravan.receiver_lineage,
+                        "sender_org_id": caravan.sender_org_id,
+                        "cargo": caravan.cargo,
+                        "amount": caravan.amount,
+                        "unit_price": caravan.unit_price,
+                        "departed_tick": caravan.departed_tick,
+                        "arrives_tick": caravan.arrives_tick,
+                        "from": caravan.from,
+                        "to": caravan.to,
+                    })
+                })
+                .collect();
+            obj.insert("caravans".to_string(), serde_json::Value::Array(caravans));
         }
         if include_cold {
             if let Some(obj) = payload.as_object_mut() {

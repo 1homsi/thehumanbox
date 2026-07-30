@@ -84,6 +84,35 @@ const knownDelta = () => ({
       reason: 'player_redirected',
     },
   ],
+  trade_routes: [
+    {
+      id: 7,
+      lineage_a: 'lineage-1',
+      lineage_b: 'lineage-2',
+      a_center: [100, 80] as [number, number],
+      b_center: [240, 160] as [number, number],
+      established_tick: 12000,
+      last_dispatch_tick: 12300,
+      deliveries: 4,
+      volume: 11,
+    },
+  ],
+  caravans: [
+    {
+      id: 9,
+      route_id: 7,
+      sender_lineage: 'lineage-1',
+      receiver_lineage: 'lineage-2',
+      sender_org_id: 'org-1',
+      cargo: 'wood',
+      amount: 3,
+      unit_price: 2,
+      departed_tick: 12300,
+      arrives_tick: 12600,
+      from: [100, 80] as [number, number],
+      to: [240, 160] as [number, number],
+    },
+  ],
 })
 
 describe('wire round-trip', () => {
@@ -122,6 +151,20 @@ describe('wire round-trip', () => {
       lineage_name: 'Wayfinders',
       outcome: 'redirected',
       reason: 'player_redirected',
+    })
+    expect(f.trade_routes?.[0]).toMatchObject({
+      id: 7,
+      lineage_a: 'lineage-1',
+      lineage_b: 'lineage-2',
+      deliveries: 4,
+      volume: 11,
+    })
+    expect(f.caravans?.[0]).toMatchObject({
+      id: 9,
+      route_id: 7,
+      cargo: 'wood',
+      amount: 3,
+      arrives_tick: 12600,
     })
   })
 
@@ -185,5 +228,49 @@ describe('wire round-trip', () => {
     expect(result.error.issues).toContain('lineage_strategies.lineage-1.completed is not a boolean')
     expect(result.error.issues).toContain('lineage_strategies.lineage-1.completed_tick is invalid')
     expect(result.error.issues).toContain('lineage_strategy_history.0.reason is invalid')
+  })
+
+  it('rejects malformed trade routes and caravans at the wire boundary', () => {
+    const malformed = {
+      ...knownDelta(),
+      trade_routes: [
+        {
+          id: -1,
+          lineage_a: '',
+          lineage_b: 'lineage-2',
+          a_center: [100],
+          b_center: [240, 160],
+          established_tick: 1.5,
+          last_dispatch_tick: -1,
+          deliveries: -2,
+          volume: -3,
+        },
+      ],
+      caravans: [
+        {
+          id: 1.5,
+          route_id: -1,
+          sender_lineage: '',
+          receiver_lineage: 'lineage-2',
+          sender_org_id: 99,
+          cargo: '',
+          amount: -1,
+          unit_price: Number.NaN,
+          departed_tick: 10.5,
+          arrives_tick: -1,
+          from: [0, Number.POSITIVE_INFINITY],
+          to: 'nowhere',
+        },
+      ],
+    }
+    const result = parseWorldFrame(JSON.stringify(malformed))
+
+    expect(result.isErr()).toBe(true)
+    if (result.isOk() || result.error.kind !== 'schema') return
+    expect(result.error.issues).toContain('trade_routes.0.id is invalid')
+    expect(result.error.issues).toContain('trade_routes.0.a_center is invalid')
+    expect(result.error.issues).toContain('caravans.0.route_id is invalid')
+    expect(result.error.issues).toContain('caravans.0.sender_org_id is invalid')
+    expect(result.error.issues).toContain('caravans.0.to is invalid')
   })
 })

@@ -12,6 +12,10 @@ const BARTER_RADIUS: f32 = 3.0;
 const TRADE_LOG_CAP: usize = 500;
 
 pub fn tick_economy(sim: &mut Simulation, tick: u64) {
+    // Persistent caravans move and unload independently of the slower barter
+    // and fiscal cadences. Keeping this in the economy tick also gives local
+    // WASM worlds deterministic delivery timing without a background service.
+    super::trade_routes::tick(sim);
     if tick == 0 {
         return;
     }

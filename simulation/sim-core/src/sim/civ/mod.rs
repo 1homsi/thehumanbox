@@ -9,5 +9,6 @@ pub use eras as era;
 pub mod government;
 pub mod moments;
 pub mod settlements;
+pub mod trade_routes;
 pub mod warfare;
 pub mod world_milestones;

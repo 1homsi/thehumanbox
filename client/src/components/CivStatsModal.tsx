@@ -147,6 +147,8 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
   const battles = world.battles ?? []
   const treaties = world.treaties ?? []
   const campaignHistory = world.lineage_strategy_history ?? []
+  const tradeRoutes = world.trade_routes ?? []
+  const caravans = world.caravans ?? []
 
   const lineageById = (lid: string) => lineageNames[lid] ?? lid.slice(0, 6)
   const activeStrategyFor = (lineageId: string) => {
@@ -775,6 +777,86 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                 <span className="civ-row-sub">by {a.creator_name}</span>
               </div>
             ))}
+          </section>
+
+          <section className="civ-section">
+            <h3>Trade Network</h3>
+            {tradeRoutes.length === 0 && caravans.length === 0 ? (
+              <div className="civ-empty">
+                No routes yet — Iron-era merchants need two established settlements, currency, navigation, and
+                a trade workspace.
+              </div>
+            ) : (
+              <>
+                <div className="civ-row">
+                  <span className="civ-row-head">
+                    {'\u{1F6E4}\u{FE0F}'} {tradeRoutes.length} route{tradeRoutes.length === 1 ? '' : 's'}
+                  </span>
+                  <span className="civ-row-tag">
+                    {caravans.length} caravan{caravans.length === 1 ? '' : 's'} traveling
+                  </span>
+                  <span className="civ-row-sub">
+                    {tradeRoutes.reduce((sum, route) => sum + route.deliveries, 0)} deliveries ·{' '}
+                    {tradeRoutes.reduce((sum, route) => sum + route.volume, 0)} goods moved
+                  </span>
+                </div>
+                {[...tradeRoutes]
+                  .sort(
+                    (left, right) =>
+                      right.deliveries - left.deliveries ||
+                      right.last_dispatch_tick - left.last_dispatch_tick ||
+                      left.id - right.id,
+                  )
+                  .slice(0, 8)
+                  .map((route) => {
+                    const routeCaravans = caravans.filter((caravan) => caravan.route_id === route.id)
+                    const distance =
+                      Math.abs(route.a_center[0] - route.b_center[0]) +
+                      Math.abs(route.a_center[1] - route.b_center[1])
+                    return (
+                      <div key={route.id} className="civ-row">
+                        <span className="civ-row-head">
+                          {lineageById(route.lineage_a)} ↔ {lineageById(route.lineage_b)}
+                        </span>
+                        <span className="civ-row-sub">
+                          {distance} tiles · {route.deliveries} delivered · {route.volume} volume
+                        </span>
+                        {routeCaravans.length > 0 && (
+                          <span className="civ-row-tag">
+                            {routeCaravans.length} en route
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
+                {[...caravans]
+                  .sort((left, right) => left.arrives_tick - right.arrives_tick || left.id - right.id)
+                  .slice(0, 8)
+                  .map((caravan) => {
+                    const duration = Math.max(1, caravan.arrives_tick - caravan.departed_tick)
+                    const progress = Math.max(
+                      0,
+                      Math.min(1, (world.tick - caravan.departed_tick) / duration),
+                    )
+                    const eta = Math.max(0, caravan.arrives_tick - world.tick)
+                    return (
+                      <div key={caravan.id} className="civ-row">
+                        <span className="civ-row-head">
+                          {'\u{1F42A}'} {lineageById(caravan.sender_lineage)} →{' '}
+                          {lineageById(caravan.receiver_lineage)}
+                        </span>
+                        <span className="civ-row-sub">
+                          {GOOD_EMOJI[caravan.cargo] ?? '\u{1F4E6}'} {caravan.amount}{' '}
+                          {caravan.cargo.replace(/_/g, ' ')} · {Math.round(progress * 100)}%
+                        </span>
+                        <span className="civ-row-tag">
+                          {eta === 0 ? 'ready to unload' : `${eta} ticks away`}
+                        </span>
+                      </div>
+                    )
+                  })}
+              </>
+            )}
           </section>
 
           <section className="civ-section">

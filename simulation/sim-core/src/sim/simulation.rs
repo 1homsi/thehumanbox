@@ -637,6 +637,10 @@ pub struct Simulation {
     pub lineage_peak_pop: HashMap<String, u32>,
     pub headlines: VecDeque<(u64, String)>,
     pub trades: VecDeque<super::civ::economy::Trade>,
+    pub trade_routes: Vec<super::civ::trade_routes::TradeRoute>,
+    pub caravans: Vec<super::civ::trade_routes::Caravan>,
+    pub next_trade_route_id: u32,
+    pub next_caravan_id: u32,
     pub water_use: HashMap<(i32, i32), u32>,
     pub current_era: String,
     pub sex_words: [String; 2],
@@ -800,6 +804,10 @@ impl Simulation {
             lineage_peak_pop: HashMap::new(),
             headlines: VecDeque::new(),
             trades: VecDeque::new(),
+            trade_routes: Vec::new(),
+            caravans: Vec::new(),
+            next_trade_route_id: 1,
+            next_caravan_id: 1,
             water_use: HashMap::new(),
             current_era: "genesis".to_string(),
             sex_words,
@@ -936,7 +944,7 @@ impl Simulation {
         }
     }
 
-    fn record_strategy_progress(&mut self, lineage_id: &str, strategy: &str) {
+    pub(crate) fn record_strategy_progress(&mut self, lineage_id: &str, strategy: &str) {
         let completed_objective = {
             let Some(objective) = self.lineage_strategy_objectives.get_mut(lineage_id) else {
                 return;
@@ -2527,6 +2535,20 @@ impl Simulation {
                 action_succeeded = r > 0.0;
                 signal_reward += r;
                 self.organisms[idx].energy = (self.organisms[idx].energy - 0.0015).max(0.0);
+                if action == 288 && action_succeeded {
+                    // Caravan payoff is delayed until the destination really
+                    // receives the cargo. Preserve the dispatch perception on
+                    // this exact shipment so delivery can reinforce the
+                    // originating Q-table row, including across save/reload.
+                    let sender_id = self.organisms[idx].id.clone();
+                    if let Some(caravan) = self.caravans.iter_mut().rev().find(|caravan| {
+                        caravan.sender_org_id == sender_id
+                            && caravan.departed_tick == self.tick_count
+                            && caravan.dispatch_state.is_empty()
+                    }) {
+                        caravan.dispatch_state = perception.clone();
+                    }
+                }
             }
         }
 
@@ -3156,7 +3178,10 @@ impl Simulation {
             self.lineage_strategies
                 .get(&lineage_id)
                 .filter(|(strategy, expiry)| {
-                    action_succeeded && *expiry > self.tick_count && directive_aligns_action(strategy, action)
+                    action_succeeded
+                        && !matches!(action, 287..=289 | 2704)
+                        && *expiry > self.tick_count
+                        && directive_aligns_action(strategy, action)
                 })
                 .map(|(strategy, _)| {
                     let bonus = match strategy.as_str() {
