@@ -25,7 +25,7 @@ describe('SandboxToolbar local save recovery', () => {
   it('presents one labeled dock with understandable category and cursor states', () => {
     const markup = renderSaveButton(false, false)
     expect(markup).toContain('aria-label="World controls"')
-    expect(markup).toContain('role="group" aria-label="Tool categories"')
+    expect(markup).toContain('aria-label="World tools"')
     expect(markup).toContain('aria-pressed="true"')
     expect(markup).toContain('aria-label="Cursor — stop placing"')
   })
