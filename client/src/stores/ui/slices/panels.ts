@@ -1,8 +1,6 @@
 import type { StateCreator } from 'zustand'
 import type { UIState } from '../types'
 
-const isWideViewport = typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches
-
 export interface PanelsSlice {
   panelOpen: boolean
   leftOpen: boolean
@@ -14,9 +12,12 @@ export interface PanelsSlice {
 
 export const createPanelsSlice: StateCreator<UIState, [], [], PanelsSlice> = (set) => ({
   panelOpen: false,
-  leftOpen: isWideViewport,
+  leftOpen: false,
   showMore: false,
-  togglePanel: () => set((s) => ({ panelOpen: !s.panelOpen })),
+  togglePanel: () =>
+    set((s) =>
+      s.panelOpen ? { panelOpen: false, selectedOrgId: null, followOrgId: null } : { panelOpen: true },
+    ),
   toggleLeft: () => set((s) => ({ leftOpen: !s.leftOpen })),
   toggleMore: () => set((s) => ({ showMore: !s.showMore })),
 })

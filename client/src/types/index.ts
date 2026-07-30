@@ -49,6 +49,12 @@ export interface OrganismState extends ExtendedEmotions {
   lineage_id: string
   max_age: number
   memory_count?: { food: number; water: number; danger: number }
+  learning?: {
+    states: number
+    tried_actions: number
+    promising_states: number
+    confidence: number
+  }
   attitudes?: Record<string, number>
   org_trust?: Record<string, number>
   traits: Traits
@@ -171,6 +177,24 @@ export interface TradeInfo {
   good: string
   amount: number
   price: number
+}
+
+export interface GovernmentInfo {
+  lineage_id: string
+  kind: string
+  leader_id?: string | null
+  treasury?: number
+  tax_rate?: number
+  laws?: string[]
+}
+
+export interface ArtworkInfo {
+  id: number
+  kind: string
+  title: string
+  creator_name: string
+  x?: number
+  y?: number
 }
 
 export interface OutbreakInfo {
@@ -415,6 +439,8 @@ export interface WorldState {
   battles?: BattleInfo[]
   treaties?: TreatyInfo[]
   trades?: TradeInfo[]
+  governments?: GovernmentInfo[]
+  artworks?: ArtworkInfo[]
   farms?: FarmInfo[]
   settlements?: SettlementInfo[]
   vehicles?: VehicleInfo[]
@@ -667,6 +693,18 @@ export interface Building {
   fw?: number
   fh?: number
   condition?: number
+  construction_progress?: number
+  /** Structural damage, kept separate from construction progress. */
+  damage?: number
+  /** Remaining structural integrity (`1 - damage`). */
+  integrity?: number
+  /** Destroyed buildings remain non-operational until rebuilt. */
+  ruined?: boolean
+  /** True while workers are actively repairing or rebuilding the structure. */
+  repairing?: boolean
+  ruined_at_tick?: number | null
+  last_damage_tick?: number | null
+  last_repair_tick?: number | null
   occupants?: string[]
   owner_lineage?: string | null
   lineage_id?: string | null

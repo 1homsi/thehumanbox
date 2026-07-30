@@ -30,7 +30,7 @@ export function ConstructionScaffolds({ buildings, depthMap, biomes }: Props) {
       []
     for (const b of buildings) {
       const c = b.condition ?? 1
-      if (c >= 0.97) continue
+      if (c >= 1) continue
       const fw = b.fw ?? 1
       const fh = b.fh ?? 1
       const wx = (b.x + fw / 2) * TILE_SCALE

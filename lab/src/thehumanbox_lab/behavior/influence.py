@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-from typing import Any, Iterable
-
+from collections.abc import Iterable
+from typing import Any
 
 _TEACH_CATEGORIES = {"teach", "teaching", "taught", "mentor", "lesson"}
 _DISCOVERY_CATEGORIES = {"discovery", "discover", "discovered", "share_discovery"}

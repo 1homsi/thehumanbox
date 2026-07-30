@@ -2,6 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { InstancedMesh, Object3D, SphereGeometry, MeshBasicMaterial } from 'three'
 import type { Building } from '../../../types'
+import { getBuildingState } from '../../../world/building-state'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
 
@@ -58,13 +59,17 @@ export function BuildSparks({ buildings, depthMap, biomes }: Props) {
     const out: Array<{ x: number; y: number; z: number; rate: number }> = []
     for (const b of buildings) {
       const c = b.condition ?? 1
-      if (c >= 0.97 || c < 0.05) continue
+      const structural = getBuildingState(b)
+      const activeConstruction = !structural.isRuined && c >= 0.05 && c < 1
+      if (!activeConstruction && !structural.isRepairing) continue
       const fw = b.fw ?? 1
       const fh = b.fh ?? 1
       const wx = (b.x + fw / 2) * TILE_SCALE
       const wz = (b.y + fh / 2) * TILE_SCALE
       const wy = heightAt(b.x, b.y, depthMap, biomes)
-      const rate = (1 - c) * 0.9
+      const rate = structural.isRepairing
+        ? 0.35 + Math.max(structural.damage, 1 - structural.integrity) * 0.65
+        : (1 - c) * 0.9
       out.push({ x: wx, y: wy + 1.2, z: wz, rate })
     }
     return out

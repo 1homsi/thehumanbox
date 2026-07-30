@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mergeFrame, type MergeCaches } from './merge'
 import type { IncomingWorldFrame } from './wire'
-import type { OrganismState, AnimalState } from '../types'
+import type { OrganismState, AnimalState, Building } from '../types'
 
 function emptyCaches(): MergeCaches {
   return {
@@ -211,5 +211,150 @@ describe('mergeFrame organism handling', () => {
     )
     expect(cleared.next.lineage_strategies).toEqual({})
     expect(cleared.next.lineage_strategy_history?.[0]?.outcome).toBe('expired')
+  })
+})
+
+describe('mergeFrame lineage strategy handling', () => {
+  it('retains guidance across deltas and lets a full frame clear it', () => {
+    const caches = emptyCaches()
+    const guidance = {
+      'lin-x': {
+        strategy: 'explore' as const,
+        expires_tick: 2_000,
+      },
+    }
+
+    const full = mergeFrame(
+      baseFrame({
+        frame_kind: 'full',
+        lineage_strategies: guidance,
+      }),
+      caches,
+    )
+    expect(full.next.lineage_strategies).toEqual(guidance)
+
+    caches.prevWorld = full.next
+    const delta = mergeFrame(baseFrame({ frame_id: 2, tick: 1 }), caches)
+    expect(delta.next.lineage_strategies).toBe(full.next.lineage_strategies)
+
+    caches.prevWorld = delta.next
+    const cleared = mergeFrame(
+      baseFrame({
+        frame_id: 3,
+        frame_kind: 'full',
+        tick: 2,
+        lineage_strategies: {},
+      }),
+      caches,
+    )
+    expect(cleared.next.lineage_strategies).toEqual({})
+  })
+})
+
+describe('mergeFrame civilization state handling', () => {
+  it('preserves cold civilization payloads across deltas and accepts authoritative empty updates', () => {
+    const caches = emptyCaches()
+    const territory = {
+      claimed: [{ lid: 'lin-x', tiles: [[2, 3] as [number, number]] }],
+      contested: [] as [number, number][],
+    }
+    const trades = [
+      {
+        tick: 1,
+        buyer_id: 'a',
+        seller_id: 'b',
+        good: 'grain',
+        amount: 2,
+        price: 4,
+      },
+    ]
+    const governments = [{ lineage_id: 'lin-x', kind: 'council', laws: ['commons'] }]
+    const artworks = [
+      {
+        id: 1,
+        kind: 'mural',
+        title: 'Dawn',
+        creator_name: 'Alia',
+        x: 2,
+        y: 3,
+      },
+    ]
+    const buildings: Building[] = [
+      {
+        id: 9,
+        kind: 'house',
+        x: 2,
+        y: 3,
+        condition: 1,
+        damage: 0.6,
+        integrity: 0.4,
+        ruined: false,
+        repairing: true,
+      },
+    ]
+
+    const full = mergeFrame(
+      baseFrame({
+        frame_kind: 'full',
+        territory,
+        trades,
+        governments,
+        artworks,
+        buildings,
+      }),
+      caches,
+    )
+    expect(full.next.territory).toBe(territory)
+    expect(full.next.trades).toBe(trades)
+    expect(full.next.governments).toBe(governments)
+    expect(full.next.artworks).toBe(artworks)
+    expect(full.next.buildings).toBe(buildings)
+
+    caches.prevWorld = full.next
+    const delta = mergeFrame(baseFrame({ frame_id: 2, tick: 2 }), caches)
+    expect(delta.next.territory).toBe(territory)
+    expect(delta.next.trades).toBe(trades)
+    expect(delta.next.governments).toBe(governments)
+    expect(delta.next.artworks).toBe(artworks)
+    expect(delta.next.buildings).toBe(buildings)
+
+    caches.prevWorld = delta.next
+    const rebuiltBuildings: Building[] = [
+      {
+        ...buildings[0],
+        damage: 0,
+        integrity: 1,
+        repairing: false,
+      },
+    ]
+    const rebuilt = mergeFrame(
+      baseFrame({
+        frame_id: 3,
+        tick: 3,
+        buildings: rebuiltBuildings,
+      }),
+      caches,
+    )
+    expect(rebuilt.next.buildings).toBe(rebuiltBuildings)
+
+    caches.prevWorld = rebuilt.next
+    const cleared = mergeFrame(
+      baseFrame({
+        frame_id: 4,
+        frame_kind: 'full',
+        tick: 4,
+        territory: { claimed: [], contested: [] },
+        trades: [],
+        governments: [],
+        artworks: [],
+        buildings: [],
+      }),
+      caches,
+    )
+    expect(cleared.next.territory).toEqual({ claimed: [], contested: [] })
+    expect(cleared.next.trades).toEqual([])
+    expect(cleared.next.governments).toEqual([])
+    expect(cleared.next.artworks).toEqual([])
+    expect(cleared.next.buildings).toEqual([])
   })
 })

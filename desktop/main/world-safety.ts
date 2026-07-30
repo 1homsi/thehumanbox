@@ -3,7 +3,7 @@ import * as path from "node:path";
 import { randomUUID } from "node:crypto";
 
 export const MAX_REMOTE_SAVE_BYTES = 256 * 1024 * 1024;
-export const SUPPORTED_SAVE_SCHEMA_VERSION = 4;
+export const SUPPORTED_SAVE_SCHEMA_VERSION = 5;
 const EXPECTED_GRID_TILES = 600 * 300;
 const DATA_ROOT_IDENTITY_NAME = ".thehumanbox-data-root.json";
 const DATA_ROOT_IDENTITY_KIND = "thehumanbox-data-root";

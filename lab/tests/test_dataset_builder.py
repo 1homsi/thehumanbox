@@ -4,9 +4,10 @@ from thehumanbox_lab.dataset_builder import build_thought_examples
 from thehumanbox_lab.eval_runner import EvalPrediction, run_eval, token_jaccard
 from thehumanbox_lab.schemas import ThoughtExample, TraceEvent
 from thehumanbox_lab.task_specs import THOUGHT_V1, compact_response
-from thehumanbox_lab.train_manifest import default_manifest
 from thehumanbox_lab.teacher_dataset import build_distillation_rows
+from thehumanbox_lab.train_manifest import default_manifest
 from thehumanbox_lab.train_prep import split_rows, teacher_rows_to_sft
+
 
 class DatasetBuilderTests(unittest.TestCase):
     def test_build_thought_examples_uses_recent_history(self) -> None:

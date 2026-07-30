@@ -153,6 +153,7 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
       incomingSexWords as string[] | undefined,
       base?.sex_words as string[] | undefined,
     ) as [string, string] | undefined,
+    territory: parsed.territory ?? base?.territory,
     // Materialise the org / animal arrays from the cache, then reuse
     // the previous frame's array reference when membership *and*
     // identities are unchanged. This is the key to keeping selectors
@@ -170,6 +171,9 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     headlines: parsed.headlines ?? base?.headlines,
     battles: parsed.battles ?? base?.battles,
     treaties: parsed.treaties ?? base?.treaties,
+    trades: parsed.trades ?? base?.trades,
+    governments: parsed.governments ?? base?.governments,
+    artworks: parsed.artworks ?? base?.artworks,
     farms: parsed.farms ?? base?.farms,
     settlements: parsed.settlements ?? base?.settlements,
     vehicles: parsed.vehicles ?? base?.vehicles,

@@ -4,7 +4,6 @@ from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-
 _CAUSES = ("starvation", "dehydration", "sickness", "combat", "old_age")
 
 

@@ -1065,8 +1065,13 @@ impl Simulation {
         }
 
         let next_animal_id = repaired_next_animal_id(state.next_animal_id, &state.animals);
-        let next_building_id =
-            repaired_next_u32_id(state.next_building_id, state.buildings.iter().map(|b| b.id));
+        let mut buildings = state.buildings;
+        let next_building_id = repaired_next_u32_id(state.next_building_id, buildings.iter().map(|b| b.id));
+        for building in &mut buildings {
+            if building.damage_fraction() >= 1.0 && building.ruined_at_tick.is_none() {
+                building.ruined_at_tick = Some(building.last_damage_tick.unwrap_or(state.tick_count));
+            }
+        }
         let mut religions = state.religions;
         super::actions::religion_expanded::repair_persisted_religions(&mut organisms, &mut religions);
         let next_religion_id = repaired_next_religion_id(state.next_religion_id, &religions);
@@ -1173,7 +1178,9 @@ impl Simulation {
                 .collect(),
             tile_owner: std::collections::HashMap::new(),
             cached_territory: serde_json::Value::Null,
-            buildings: state.buildings,
+            building_state_revision: 1,
+            serialized_building_state_revision: 0,
+            buildings,
             next_building_id,
             governments: state.governments,
             religions,
@@ -1409,6 +1416,55 @@ mod tests {
         assert_eq!(loaded.grid.get(well_x, well_y), Tile::Water);
         assert_eq!(loaded.grid.depth_at(well_x, well_y), 0.0);
         assert_eq!(loaded.grid.get(well_x + 2, well_y), Tile::Grass);
+    }
+
+    #[test]
+    fn building_damage_round_trips_through_schema_v5() {
+        use super::super::buildings::{Building, BuildingKind};
+
+        let mut sim = Simulation::new(0xB01D);
+        sim.buildings.clear();
+        let mut building = Building::new(77, BuildingKind::House, 31, 32, Some("lineage-a".into()), 10);
+        building.condition = 1.0;
+        building.damage = 0.82;
+        building.ruined_at_tick = Some(90);
+        building.last_damage_tick = Some(91);
+        building.last_repair_tick = Some(92);
+        sim.buildings.push(building);
+
+        let state = sim.to_save_state();
+        assert_eq!(state.version, 5);
+        let encoded = serde_json::to_string(&state).expect("serialize save state");
+        let decoded: SaveState = serde_json::from_str(&encoded).expect("deserialize save state");
+        let loaded = Simulation::from_save(sim.world_seed, decoded);
+        let building = loaded.buildings.first().expect("persisted building");
+
+        assert!((building.damage_fraction() - 0.82).abs() < 0.000_001);
+        assert_eq!(building.ruined_at_tick, Some(90));
+        assert_eq!(building.last_damage_tick, Some(91));
+        assert_eq!(building.last_repair_tick, Some(92));
+        assert!(building.is_ruined());
+        assert_eq!(loaded.building_state_revision, 1);
+        assert_eq!(loaded.serialized_building_state_revision, 0);
+    }
+
+    #[test]
+    fn loading_latches_timestamp_less_full_damage_as_a_ruin() {
+        use super::super::buildings::{Building, BuildingKind};
+
+        let mut state = SaveState {
+            version: SAVE_SCHEMA_VERSION,
+            tick_count: 321,
+            ..SaveState::default()
+        };
+        let mut building = Building::new(78, BuildingKind::Factory, 20, 20, None, 10);
+        building.condition = 1.0;
+        building.damage = 1.0;
+        state.buildings.push(building);
+
+        let loaded = Simulation::from_save(7, state);
+        assert_eq!(loaded.buildings[0].ruined_at_tick, Some(321));
+        assert!(loaded.buildings[0].is_ruined());
     }
 
     #[test]

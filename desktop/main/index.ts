@@ -15,7 +15,7 @@ import * as path from "node:path";
 import { registerIpc } from "./ipc";
 import { runExclusiveDesktopOperation } from "./exclusive-operation";
 import { startSim, stopSim, activeSim } from "./sim-process";
-import { loadSettings, prepareDataRoot, saveSettings } from "./settings";
+import { loadSettings, prepareDataRoot } from "./settings";
 import {
   checkForUpdatesNow,
   initUpdater,
@@ -110,7 +110,7 @@ function renderBootError(detail: string): string {
 <h1>The Human Box couldn't start the local simulation</h1>
 <pre>${safe}</pre>
 <p>Open DevTools with <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>I</kbd> (macOS) or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> (Win/Linux) for more.</p>
-<p>You can also switch to remote mode in settings (More → ⚙ desktop) and reload.</p>
+<p>Check the logs for details, then restart the local simulation from Settings.</p>
 </div></body></html>`)}`;
 }
 
@@ -119,17 +119,13 @@ async function createWindow(): Promise<void> {
 
   let apiBase: string | null = null;
   let bootErrorUrl: string | null = null;
-  if (settings.mode === "remote") {
-    apiBase = settings.remoteUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
-  } else {
-    try {
-      const sim = await startSim(settings);
-      apiBase = `127.0.0.1:${sim.port}`;
-    } catch (err) {
-      const msg = (err as Error).message ?? String(err);
-      console.error("[main] failed to start local sim:", err);
-      bootErrorUrl = renderBootError(msg);
-    }
+  try {
+    const sim = await startSim(settings);
+    apiBase = `127.0.0.1:${sim.port}`;
+  } catch (err) {
+    const msg = (err as Error).message ?? String(err);
+    console.error("[main] failed to start local sim:", err);
+    bootErrorUrl = renderBootError(msg);
   }
 
   const winState = loadWindowState();
@@ -215,17 +211,6 @@ async function createWindow(): Promise<void> {
   });
 }
 
-async function restartInMode(mode: "local" | "remote"): Promise<void> {
-  await runExclusiveDesktopOperation("switch simulation mode", async () => {
-    const cur = loadSettings();
-    await stopSim(5_000, true);
-    if (cur.mode !== mode) saveSettings({ ...cur, mode });
-    if (mainWindow) {
-      await createWindowReplace();
-    }
-  });
-}
-
 function buildMenu(): void {
   const isMac = process.platform === "darwin";
 
@@ -238,7 +223,14 @@ function buildMenu(): void {
     }
   };
 
-  const settings = loadSettings();
+  const restartSimulation = async (): Promise<void> => {
+    await runExclusiveDesktopOperation("restart the simulation", async () => {
+      await stopSim(5_000, true);
+      if (mainWindow) {
+        await createWindowReplace();
+      }
+    });
+  };
 
   const template: Electron.MenuItemConstructorOptions[] = [
     ...(isMac
@@ -275,8 +267,7 @@ function buildMenu(): void {
         },
         {
           label: "Restart simulation",
-          click: () =>
-            void restartInMode(loadSettings().mode).catch(console.error),
+          click: () => void restartSimulation().catch(console.error),
         },
         isMac ? { role: "close" as const } : { role: "quit" as const },
       ],
@@ -318,23 +309,6 @@ function buildMenu(): void {
               }
             });
           },
-        },
-      ],
-    },
-    {
-      label: "Mode",
-      submenu: [
-        {
-          label: "Local simulation",
-          type: "radio",
-          checked: settings.mode === "local",
-          click: () => void restartInMode("local").catch(console.error),
-        },
-        {
-          label: "Remote (thehumanbox.com)",
-          type: "radio",
-          checked: settings.mode === "remote",
-          click: () => void restartInMode("remote").catch(console.error),
         },
       ],
     },
@@ -387,15 +361,6 @@ function buildTray(): void {
                 ? "Hide window"
                 : "Show window",
             click: () => toggleWindow(),
-          },
-          { type: "separator" },
-          {
-            label: "Switch to Local",
-            click: () => void restartInMode("local").catch(console.error),
-          },
-          {
-            label: "Switch to Remote",
-            click: () => void restartInMode("remote").catch(console.error),
           },
           { type: "separator" },
           {

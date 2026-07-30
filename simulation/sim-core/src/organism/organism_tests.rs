@@ -185,6 +185,37 @@ fn curious_organisms_value_future_reward_more() {
 }
 
 #[test]
+fn curious_organisms_value_genuinely_new_choices() {
+    let mut cautious = learning_test_org(0.5, 0.1, 0.5, 0.5);
+    let mut curious = learning_test_org(0.5, 0.9, 0.5, 0.5);
+
+    cautious.learn("new-state", 7, 0.0, "missing");
+    curious.learn("new-state", 7, 0.0, "missing");
+
+    let cautious_q = cautious.q_table.get("new-state").unwrap().get_q(7);
+    let curious_q = curious.q_table.get("new-state").unwrap().get_q(7);
+    assert!(cautious_q < 0.0, "cautious_q={cautious_q}");
+    assert!(curious_q > 0.0, "curious_q={curious_q}");
+    assert!(curious_q > cautious_q);
+}
+
+#[test]
+fn repeating_an_unrewarding_choice_loses_the_novelty_bonus() {
+    let mut org = learning_test_org(0.5, 0.9, 0.5, 0.5);
+
+    org.learn("state", 7, 0.0, "missing");
+    let after_first = org.q_table.get("state").unwrap().get_q(7);
+    org.learn("state", 7, 0.0, "missing");
+    let after_repeat = org.q_table.get("state").unwrap().get_q(7);
+
+    assert!(after_first > 0.0);
+    assert!(
+        after_repeat < after_first,
+        "after_first={after_first} after_repeat={after_repeat}"
+    );
+}
+
+#[test]
 fn fearful_low_resilience_organisms_learn_stronger_negative_signal() {
     let mut resilient = learning_test_org(0.5, 0.5, 0.1, 0.9);
     let mut fearful = learning_test_org(0.5, 0.5, 0.9, 0.1);
@@ -568,6 +599,73 @@ fn equal_q_actions_do_not_always_choose_the_highest_id() {
         2,
         "seeded tie-breaking should reach both equal actions"
     );
+}
+
+#[test]
+fn untried_actions_are_not_ranked_by_numeric_id() {
+    let mut chosen = std::collections::HashSet::new();
+    let mut grid = WorldGrid::new(4);
+    for x in 40..=60 {
+        for y in 40..=60 {
+            grid.set(x, y, Tile::Sand);
+        }
+    }
+    for seed in 0..64 {
+        let mut rng = StdRng::seed_from_u64(seed);
+        let mut traits = Traits::random(&mut rng);
+        traits.curiosity = 0.5;
+        let mut org = Organism::new(
+            format!("id-{seed}"),
+            "Unbiased".into(),
+            50.0,
+            50.0,
+            0,
+            "".into(),
+            "lin".into(),
+            5000,
+            traits,
+        );
+        org.energy = 0.80;
+        org.hydration = 0.80;
+        org.health = 0.90;
+        org.age = 1500;
+
+        let (action, _) = org.choose_action(
+            &grid,
+            &[],
+            100,
+            0.0,
+            &[],
+            false,
+            0,
+            &mut rng,
+            false,
+            "state",
+            &[24, 3001],
+        );
+        if matches!(action, 24 | 3001) {
+            chosen.insert(action);
+        }
+    }
+
+    assert_eq!(
+        chosen.len(),
+        2,
+        "cold-start selection should not privilege the higher action id"
+    );
+}
+
+#[test]
+fn serialized_learning_summary_reports_experience() {
+    let mut org = learning_test_org(0.5, 0.9, 0.5, 0.5);
+    org.learn("foraging", 8, 0.2, "next");
+    org.learn("foraging", 9, -0.1, "next");
+
+    let learning = org.to_json().learning.expect("learning summary");
+    assert!(learning.states >= 2);
+    assert!(learning.tried_actions >= 3);
+    assert!(learning.promising_states >= 1);
+    assert!(learning.confidence > 0.0);
 }
 
 #[test]

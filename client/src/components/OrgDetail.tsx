@@ -555,6 +555,44 @@ export function OrgDetail({
           </>
         )}
 
+        {detail?.learning && detail.learning.states > 0 && (
+          <>
+            <div className="org-detail-section">LEARNING</div>
+            <div className="trait-full-grid">
+              <MiniBar
+                label="confidence"
+                value={detail.learning.confidence}
+                color="#79d6b0"
+                tip="How consistently this person has found rewarding choices across situations."
+              />
+              <div className="trait-full-row">
+                <Tooltip tip="Distinct situations this person has learned from.">
+                  <span className="trait-full-label" style={{ cursor: 'default' }}>
+                    experience
+                  </span>
+                </Tooltip>
+                <span className="bar-pct">{detail.learning.states} states</span>
+              </div>
+              <div className="trait-full-row">
+                <Tooltip tip="Situation-specific actions this person has actually attempted.">
+                  <span className="trait-full-label" style={{ cursor: 'default' }}>
+                    choices tried
+                  </span>
+                </Tooltip>
+                <span className="bar-pct">{detail.learning.tried_actions}</span>
+              </div>
+              <div className="trait-full-row">
+                <Tooltip tip="Situations where this person currently knows at least one promising response.">
+                  <span className="trait-full-label" style={{ cursor: 'default' }}>
+                    useful lessons
+                  </span>
+                </Tooltip>
+                <span className="bar-pct">{detail.learning.promising_states}</span>
+              </div>
+            </div>
+          </>
+        )}
+
         {org.zodiac && (
           <>
             <div className="org-detail-section">BORN UNDER</div>

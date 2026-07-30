@@ -5,12 +5,13 @@ import json
 import os
 import pickle
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 
 class DiskCache:
-    def __init__(self, root: str | Path = ".cache/thb-lab", ttl_seconds: Optional[float] = None) -> None:
+    def __init__(self, root: str | Path = ".cache/thb-lab", ttl_seconds: float | None = None) -> None:
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
         self.ttl = ttl_seconds
@@ -19,7 +20,7 @@ class DiskCache:
         h = hashlib.sha256(key.encode("utf-8")).hexdigest()[:32]
         return self.root / f"{h}.pkl"
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         p = self._path(key)
         if not p.exists():
             return None

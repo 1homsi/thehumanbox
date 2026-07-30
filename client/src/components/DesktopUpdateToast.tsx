@@ -85,7 +85,7 @@ export function DesktopUpdateToast() {
 
 const wrap: React.CSSProperties = {
   position: 'fixed',
-  bottom: 16,
+  bottom: 76,
   right: 16,
   zIndex: 1500,
   display: 'flex',

@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import { AdditiveBlending, Color, InstancedMesh, MeshBasicMaterial, Object3D, SphereGeometry } from 'three'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
+import { isWaterTile } from '../../../world/terrain-ids'
 
 interface Props {
   width: number
@@ -12,8 +13,6 @@ interface Props {
   biomes: number[][] | undefined
   dayProgress: number
 }
-
-const T_WATER = 1
 
 const FLY_GEO = new SphereGeometry(0.34, 6, 5)
 const FLY_MAT = new MeshBasicMaterial({
@@ -42,7 +41,7 @@ export function Fireflies3D({ width, height, tiles, depthMap, biomes, dayProgres
       const row = tiles[y]
       if (!row) continue
       for (let x = 0; x < width; x += step) {
-        if (row[x] !== undefined && row[x] !== T_WATER) land.push([x, y])
+        if (row[x] !== undefined && !isWaterTile(row[x])) land.push([x, y])
       }
     }
     if (land.length === 0) return []

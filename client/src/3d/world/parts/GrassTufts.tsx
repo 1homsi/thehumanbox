@@ -14,6 +14,7 @@ import type { WebGLProgramParametersWithUniforms } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
+import { TILE_ID } from '../../../world/terrain-ids'
 import { LOW_PERF } from '../../../lib/perf'
 
 interface Props {
@@ -106,7 +107,7 @@ export function GrassTufts({ tiles, biomes, depthMap, width, height }: Props) {
       const cellY = Math.floor(camTy) + Math.floor((hash01(i * 13 + 5) - 0.5) * RADIUS_TILES * 2)
       if (cellX < 1 || cellY < 1 || cellX >= width - 1 || cellY >= height - 1) continue
       const t = tiles[cellY]?.[cellX]
-      if (t !== 1 && t !== 3) continue
+      if (t !== TILE_ID.GRASS && t !== TILE_ID.FOOD) continue
       const seed = ((cellX * 73856093) ^ (cellY * 19349663) ^ (i * 83492791)) >>> 0
       const jx = hash01(seed) - 0.5
       const jy = hash01(seed + 17) - 0.5

@@ -5,20 +5,18 @@ import {
   getWorldSource,
   reloadAppSafely,
   resolvePlayerWorldKind,
-  shouldShowIdleResume,
   shouldUseSimulationApi,
 } from './simulation/worldSource'
 import { SimulationDataProvider } from './simulation/SimulationDataProvider'
 import { SandboxToolbar } from './components/SandboxToolbar'
 import type { LineageStrategy, SandboxTool } from './simulation/sandbox'
-import { IdleResumeOverlay } from './components/IdleResumeOverlay'
 import { DesktopDownloadToast } from './components/DesktopDownloadToast'
 import { CommandPalette } from './components/CommandPalette'
 import { HeadlineTicker } from './components/HeadlineTicker'
 import { trackEvent } from './lib/observability'
 import { reconcileViewerSelection } from './lib/viewerSelection'
 import { useUIStore } from './stores/store'
-import { IS_LOCAL_SERVER, WS_BASE } from './lib/config'
+import { IS_LOCAL_SERVER } from './lib/config'
 import { getDesktop, type SimMode } from './lib/desktop'
 import {
   DESKTOP_PAUSE_WHEN_HIDDEN_EVENT,
@@ -27,7 +25,6 @@ import {
   shouldPauseDesktopRenderer,
 } from './lib/desktopVisibility'
 
-const WS_HOST = WS_BASE.replace(/^wss?:\/\//, '')
 import { WorldView } from './2d/world/WorldView'
 import { EventLog } from './components/EventLog'
 import { HistoryGrid } from './components/HistoryGrid'
@@ -46,6 +43,7 @@ import { UpdateToast } from './components/UpdateToast'
 import { DesktopUpdateToast } from './components/DesktopUpdateToast'
 import { useCurrentScene } from './stores/scene'
 import type { OrganismState } from './types'
+import { TILE_ID } from './world/terrain-ids'
 import clsx from 'clsx'
 import './App.css'
 
@@ -53,23 +51,7 @@ const WorldView3D = lazyWithRetry(() => import('./3d/world/WorldView3D'))
 const SceneView = lazyWithRetry(() =>
   import('./scenes/components/SceneView').then((m) => ({ default: m.SceneView })),
 )
-const HistoricalApp = lazyWithRetry(() =>
-  import('./HistoricalApp').then((m) => ({ default: m.HistoricalApp })),
-)
-
-const TILE_FIRE = 4
-
-const HISTORICAL_ROUTE = /^\/world\/([a-f0-9]{6,16})\/?$/
-
 function App() {
-  const match = typeof window !== 'undefined' ? HISTORICAL_ROUTE.exec(window.location.pathname) : null
-  if (match) {
-    return (
-      <Suspense fallback={null}>
-        <HistoricalApp hash={match[1]} />
-      </Suspense>
-    )
-  }
   return <LiveApp />
 }
 
@@ -84,17 +66,13 @@ function LiveApp() {
   const {
     world,
     connected,
-    status,
-    failedAttempts,
     interp,
-    idleParked,
     resume,
     sandboxAvailable,
     sendCommand,
     pauseSim,
     setSpeed,
     runtimeState,
-    fellBackToLocal,
     localSaveStatus,
     saveLocalWorld,
     loadLocalOrgDetail,
@@ -105,10 +83,8 @@ function LiveApp() {
     desktop: !!desktop,
     desktopMode,
     localServer: IS_LOCAL_SERVER,
-    fellBackToLocal,
   })
-  const isLocalRuntime = playerWorldKind === 'local'
-  const simulationApiEnabled = shouldUseSimulationApi(worldSourceRef.current) && !fellBackToLocal
+  const simulationApiEnabled = shouldUseSimulationApi(worldSourceRef.current)
   const simulationData = useMemo(
     () => ({ apiEnabled: simulationApiEnabled, playerWorldKind, loadLocalOrgDetail, loadLocalOrgLife }),
     [loadLocalOrgDetail, loadLocalOrgLife, playerWorldKind, simulationApiEnabled],
@@ -177,6 +153,23 @@ function LiveApp() {
 
   const onPickTool = useCallback(
     (tool: SandboxTool) => {
+      if (tool.view) {
+        setArmedTool(null)
+        const ui = useUIStore.getState()
+        let enabled: boolean
+        if (tool.view.control === 'overlay') {
+          enabled = ui.overlay !== tool.view.value
+          ui.setOverlay(enabled ? tool.view.value : null)
+        } else if (tool.view.value === 'territory') {
+          enabled = !ui.viewFlags.territory
+          ui.setTerritoryView(enabled)
+        } else {
+          enabled = !ui.viewFlags[tool.view.value]
+          ui.setViewFlag(tool.view.value, enabled)
+        }
+        setTemporarySandboxStatus(`${tool.label} map ${enabled ? 'on' : 'off'}`)
+        return
+      }
       if (tool.mode === 'instant') {
         setSandboxStatus(`${tool.label}...`)
         let handled = true
@@ -261,6 +254,7 @@ function LiveApp() {
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
   const leftOpen = useUIStore((s) => s.leftOpen)
   const toggleLeft = useUIStore((s) => s.toggleLeft)
+  const overlay = useUIStore((s) => s.overlay)
   const viewFlags = useUIStore((s) => s.viewFlags)
   const openDesktopSettings = useUIStore((s) => s.openDesktopSettings)
 
@@ -391,7 +385,7 @@ function LiveApp() {
   const gridTiles = world?.grid.tiles
   const orgList = world?.organisms
   const fireTiles = useMemo(
-    () => (gridTiles ? gridTiles.reduce((n, row) => n + row.filter((t) => t === TILE_FIRE).length, 0) : 0),
+    () => (gridTiles ? gridTiles.reduce((n, row) => n + row.filter((t) => t === TILE_ID.FIRE).length, 0) : 0),
     [gridTiles],
   )
 
@@ -443,13 +437,6 @@ function LiveApp() {
         <AppHeader world={world ?? null} connected={connected} fireTiles={fireTiles} sickOrgs={sickOrgs} />
         <HeadlineTicker world={world ?? null} enabled={viewFlags.headlineTicker} />
 
-        {fellBackToLocal && (
-          <div className="fallback-banner">
-            ⚠ The shared Human Box is unreachable — running a local world in your browser.{' '}
-            <button onClick={() => reloadAppSafely()}>retry live</button>
-          </div>
-        )}
-
         {threeDIssue && (
           <div className="fallback-banner">
             {threeDIssue === 'unsupported'
@@ -462,9 +449,6 @@ function LiveApp() {
           </div>
         )}
 
-        {shouldShowIdleResume(idleParked, isLocalRuntime) && (
-          <IdleResumeOverlay onResume={() => void resume()} />
-        )}
         <DesktopDownloadToast />
         <CommandPalette />
 
@@ -475,10 +459,14 @@ function LiveApp() {
                 <>
                   {leftOpen && <div className="panel-overlay panel-overlay-left" onClick={toggleLeft} />}
                   <aside className={clsx('panel', 'panel-left', leftOpen && 'open')}>
-                    <HistoryGrid />
-                    <LineagesList />
-                    <EventLog />
-                    <WorldFooter world={world} />
+                    {leftOpen && (
+                      <>
+                        <HistoryGrid />
+                        <LineagesList />
+                        <EventLog />
+                        <WorldFooter world={world} />
+                      </>
+                    )}
                   </aside>
                 </>
               )}
@@ -516,26 +504,14 @@ function LiveApp() {
             <div className="waiting">
               {!localStartupFailed && <div className="waiting-spinner" aria-hidden="true" />}
               <div className="waiting-title">
-                {localStartupFailed
-                  ? 'local world could not start'
-                  : playerWorldKind === 'local'
-                    ? 'starting your world…'
-                    : status === 'unreachable'
-                      ? 'simulation server unreachable'
-                      : status === 'reconnecting'
-                        ? 'reconnecting…'
-                        : 'connecting…'}
+                {localStartupFailed ? 'local world could not start' : 'starting your world…'}
               </div>
               <div className="waiting-sub">
                 {localStartupFailed
                   ? localSaveStatus.message
-                  : playerWorldKind === 'local'
-                    ? 'loading your private simulation on this device — no Shared World connection needed'
-                    : status === 'unreachable'
-                      ? `tried ${failedAttempts} times. waiting for ${WS_HOST} to come back online - retries continue automatically.`
-                      : status === 'reconnecting'
-                        ? `attempt ${failedAttempts + 1} - backing off and retrying`
-                        : 'opening websocket and fetching the world snapshot'}
+                  : desktop
+                    ? 'starting the native simulation on this computer'
+                    : 'loading the private WebAssembly simulation saved in this browser'}
               </div>
               {localStartupFailed && (
                 <button className="lang-btn" onClick={() => reloadAppSafely()}>
@@ -554,14 +530,26 @@ function LiveApp() {
             status={sandboxStatus}
             runtimePaused={runtimeState.paused}
             runtimeSpeed={runtimeState.speed}
+            activeOverlay={overlay}
+            activeViewFlags={{
+              territory: viewFlags.territory,
+              history: viewFlags.history,
+            }}
             onBrush={setBrush}
             onPick={onPickTool}
             onClearArmed={() => {
               setArmedTool(null)
               setTemporarySandboxStatus(null)
             }}
+            onClearView={() => {
+              const ui = useUIStore.getState()
+              ui.setOverlay(null)
+              ui.setTerritoryView(false)
+              ui.setViewFlag('history', false)
+              setTemporarySandboxStatus('map layers cleared')
+            }}
             onSave={
-              isLocalWebWorld || fellBackToLocal || (desktop && desktopMode === 'local')
+              isLocalWebWorld || (desktop && desktopMode === 'local')
                 ? () => void saveLocalWorld()
                 : undefined
             }

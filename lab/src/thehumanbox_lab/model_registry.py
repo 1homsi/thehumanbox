@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, asdict, fields
+from dataclasses import asdict, dataclass, fields
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from .local_stack import installed_ollama_model_names
 
@@ -13,22 +13,22 @@ class ModelEntry:
     name: str
     family: str
     params_b: float
-    base_url_pattern: Optional[str] = None
-    license: Optional[str] = None
-    quantization: Optional[str] = None
-    default_temp: Optional[float] = None
-    default_max_tokens: Optional[int] = None
-    cost_per_million_tokens: Optional[float] = None
-    source: Optional[str] = None
-    eval_baseline_score: Optional[float] = None
-    last_updated: Optional[str] = None
-    runtime: Optional[str] = None
-    id: Optional[str] = None
-    role: Optional[str] = None
-    status: Optional[str] = None
+    base_url_pattern: str | None = None
+    license: str | None = None
+    quantization: str | None = None
+    default_temp: float | None = None
+    default_max_tokens: int | None = None
+    cost_per_million_tokens: float | None = None
+    source: str | None = None
+    eval_baseline_score: float | None = None
+    last_updated: str | None = None
+    runtime: str | None = None
+    id: str | None = None
+    role: str | None = None
+    status: str | None = None
 
     @classmethod
-    def from_dict(cls, raw: dict[str, Any]) -> "ModelEntry":
+    def from_dict(cls, raw: dict[str, Any]) -> ModelEntry:
         allowed = {f.name for f in fields(cls)}
         kwargs = {k: v for k, v in raw.items() if k in allowed}
         if "name" not in kwargs and "id" in kwargs:
@@ -62,7 +62,7 @@ def load_registry_raw(path: str | Path | None = None) -> dict[str, Any]:
     return _read_raw(path)
 
 
-def find(name: str, path: str | Path | None = None) -> Optional[ModelEntry]:
+def find(name: str, path: str | Path | None = None) -> ModelEntry | None:
     for entry in load_registry(path):
         if entry.name == name or entry.id == name:
             return entry
@@ -70,10 +70,10 @@ def find(name: str, path: str | Path | None = None) -> Optional[ModelEntry]:
 
 
 def filter(
-    family: Optional[str] = None,
-    max_params_b: Optional[float] = None,
-    min_eval: Optional[float] = None,
-    license: Optional[str] = None,
+    family: str | None = None,
+    max_params_b: float | None = None,
+    min_eval: float | None = None,
+    license: str | None = None,
     path: str | Path | None = None,
 ) -> list[ModelEntry]:
     out: list[ModelEntry] = []
@@ -82,9 +82,10 @@ def filter(
             continue
         if max_params_b is not None and entry.params_b > max_params_b:
             continue
-        if min_eval is not None:
-            if entry.eval_baseline_score is None or entry.eval_baseline_score < min_eval:
-                continue
+        if min_eval is not None and (
+            entry.eval_baseline_score is None or entry.eval_baseline_score < min_eval
+        ):
+            continue
         if license is not None and entry.license != license:
             continue
         out.append(entry)
@@ -106,8 +107,7 @@ def pretty_table(entries: list[ModelEntry]) -> str:
     widths = [len(h) for h in headers]
     for row in rows:
         for i, cell in enumerate(row):
-            if len(cell) > widths[i]:
-                widths[i] = len(cell)
+            widths[i] = max(widths[i], len(cell))
 
     def fmt(row: list[str]) -> str:
         return " | ".join(cell.ljust(widths[i]) for i, cell in enumerate(row))
@@ -160,9 +160,7 @@ def _parse_simple_yaml(text: str) -> dict[str, str]:
         key, _, value = line.partition(":")
         key = key.strip()
         value = value.strip()
-        if value.startswith('"') and value.endswith('"') and len(value) >= 2:
-            value = value[1:-1]
-        elif value.startswith("'") and value.endswith("'") and len(value) >= 2:
+        if value.startswith('"') and value.endswith('"') and len(value) >= 2 or value.startswith("'") and value.endswith("'") and len(value) >= 2:
             value = value[1:-1]
         result[key] = value
     return result

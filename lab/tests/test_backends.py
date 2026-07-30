@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from thehumanbox_lab.backends import Backend, KNOWN_BACKENDS, get_backend
+from thehumanbox_lab.backends import KNOWN_BACKENDS, Backend, get_backend
 from thehumanbox_lab.backends.dummy import DummyBackend
 from thehumanbox_lab.backends.health import probe_all, probe_one
 from thehumanbox_lab.backends.manager import RequestManager

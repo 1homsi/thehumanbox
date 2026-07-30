@@ -21,19 +21,19 @@ def _decode(body: bytes, content_type: str) -> dict[str, Any]:
             obj = msgpack.unpackb(body, raw=False)
             if isinstance(obj, dict):
                 return obj
-        except Exception:
-            pass
+        except (TypeError, ValueError, UnicodeError):
+            obj = None
     if msgpack is not None and not ct.startswith("application/json"):
         try:
             obj = msgpack.unpackb(body, raw=False)
             if isinstance(obj, dict):
                 return obj
-        except Exception:
-            pass
+        except (TypeError, ValueError, UnicodeError):
+            obj = None
     text = body.decode("utf-8", errors="replace")
     obj = json.loads(text)
     if not isinstance(obj, dict):
-        raise ValueError("snapshot must decode to dict")
+        raise TypeError("snapshot must decode to dict")
     return obj
 
 
@@ -60,7 +60,7 @@ def fetch_periodic(
                 time.sleep(interval_s)
             try:
                 snap = fetch_snapshot(url)
-            except Exception as exc:
+            except (OSError, TypeError, ValueError) as exc:
                 snap = {"_error": str(exc), "_at": time.time()}
             out.write(json.dumps(snap, ensure_ascii=False))
             out.write("\n")

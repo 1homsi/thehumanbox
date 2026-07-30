@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from statistics import mean
-from typing import Callable
 
 from .metrics import bleu, chrf, jaccard_words, rouge_l
 from .semantic import tfidf_cosine

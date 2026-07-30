@@ -3,7 +3,8 @@ from __future__ import annotations
 import hashlib
 import itertools
 import random
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 
 def _normalize_spaces(spaces: Sequence[dict[str, Any]]) -> list[tuple[str, list[Any]]]:

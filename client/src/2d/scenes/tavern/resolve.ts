@@ -1,19 +1,27 @@
 import type { SceneContext, SceneFixture, SceneId, SceneOccupant } from '../../../scenes/core/types'
 import type { WorldState } from '../../../types'
+import { getBuildingState } from '../../../world/building-state'
 
 export const TAVERN_RADIUS = 18
 
 function findTavernAnchor(world: WorldState, lineageId: string): { x: number; y: number } | null {
   const buildings = world.buildings ?? []
   let best: { x: number; y: number; score: number } | null = null
+  let hasMatchingTavern = false
   for (const b of buildings) {
     if (b.kind !== 'tavern') continue
     const owner = (b as { lineage_id?: string }).lineage_id
     if (owner && owner !== lineageId) continue
+    hasMatchingTavern = true
+    if (!getBuildingState(b).isOperational) continue
     const score = b.condition ?? 1
     if (!best || score > best.score) best = { x: b.x, y: b.y, score }
   }
   if (best) return best
+  // The legacy fallback is only for worlds that never serialized taverns.
+  // A known but unfinished or ruined tavern must not conjure a usable
+  // interior elsewhere.
+  if (hasMatchingTavern) return null
 
   let cx = 0
   let cy = 0

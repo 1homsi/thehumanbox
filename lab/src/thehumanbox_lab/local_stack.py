@@ -6,6 +6,7 @@ import subprocess
 import sys
 from typing import Any
 
+
 def command_version(command: str, args: list[str]) -> str | None:
     path = shutil.which(command)
     if not path:
@@ -18,7 +19,7 @@ def command_version(command: str, args: list[str]) -> str | None:
             text=True,
             timeout=5,
         )
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
         return f"{path} (found, version check failed)"
     output = (result.stdout or result.stderr).strip().splitlines()
     version = output[0] if output else "version unknown"
@@ -36,7 +37,7 @@ def list_ollama_models() -> list[dict[str, Any]]:
             text=True,
             timeout=10,
         )
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
         return []
     lines = [line.rstrip() for line in result.stdout.splitlines() if line.strip()]
     if len(lines) <= 1:

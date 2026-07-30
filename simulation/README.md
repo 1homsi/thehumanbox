@@ -114,20 +114,8 @@ loop:
 Narration and conversation workers share a single token-bucket rate
 limiter against the Groq quota.
 
-## Cloudflare / deployment
+## Local runtime
 
-Runs as a systemd unit on EC2, exposed via a Cloudflare tunnel.
-`.github/workflows/pipeline.yml` handles build → bump → publish →
-deploy.
-
-In Cloudflare, keep backend routes uncached. Add bypass rules for:
-
-- `/ws`
-- `/snapshot`
-- `/transport`
-- `/version`
-- `/org/*`
-- `/worlds/*`
-
-`/transport` exposes websocket timing and lag diagnostics. All API
-routes should stay `no-store` end-to-end.
+The downloadable desktop app bundles this binary and binds it to loopback.
+The browser build uses `sim-core` through WebAssembly instead. The project
+does not deploy a hosted simulation service.

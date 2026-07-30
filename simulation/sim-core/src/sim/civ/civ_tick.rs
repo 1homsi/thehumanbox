@@ -1046,6 +1046,8 @@ fn pick_degree(era: Era, seed: u64) -> &'static str {
 
 const FUNCTIONAL_BUILDINGS_CAP: usize = 1200;
 const BUILDINGS_SOFT_CAP: usize = 1500;
+const RUIN_RETENTION_TICKS: u64 = 1_200;
+const REPAIR_GRACE_TICKS: u64 = 600;
 const BASELINE_MAX_BUILDING_REQUIREMENT: usize = 450;
 const CONSTRUCTION_WORKER_REACH: f32 = 18.0;
 
@@ -1062,11 +1064,15 @@ fn construction_population_requirement(base: usize, population_limit: usize) -> 
     base.min(lineage_capacity)
 }
 
+fn construction_cost_available(sim: &Simulation, lineage: &str, kind: BuildingKind) -> bool {
+    lineage_can_afford_construction(sim, lineage, kind)
+}
+
 fn reserve_construction_cost(sim: &mut Simulation, lineage: &str, kind: BuildingKind) -> bool {
-    let cost = kind.construction_cost();
-    if !lineage_can_afford_construction(sim, lineage, kind) {
+    if !construction_cost_available(sim, lineage, kind) {
         return false;
     }
+    let cost = kind.construction_cost();
 
     let mut wood_left = u32::from(cost.wood);
     let mut stone_left = u32::from(cost.stone);
@@ -1298,17 +1304,30 @@ fn start_building_at_valid_site(
     site_x: i32,
     site_y: i32,
 ) -> bool {
+    if !construction_site_is_valid(sim, kind, site_x, site_y)
+        || !construction_site_has_reachable_worker(sim, lineage, site_x, site_y)
+        || !construction_cost_available(sim, lineage, kind)
+    {
+        return false;
+    }
+    let functional_count = sim
+        .buildings
+        .iter()
+        .filter(|building| !building.decorative)
+        .count();
+    if functional_count >= FUNCTIONAL_BUILDINGS_CAP {
+        let needed = functional_count - FUNCTIONAL_BUILDINGS_CAP + 1;
+        if abandoned_ruin_candidates(sim).len() < needed {
+            return false;
+        }
+        prune_abandoned_ruins(sim, needed);
+    }
     if sim
         .buildings
         .iter()
         .filter(|building| !building.decorative)
         .count()
         >= FUNCTIONAL_BUILDINGS_CAP
-    {
-        return false;
-    }
-    if !construction_site_is_valid(sim, kind, site_x, site_y)
-        || !construction_site_has_reachable_worker(sim, lineage, site_x, site_y)
     {
         return false;
     }
@@ -1339,6 +1358,7 @@ fn start_building_at_valid_site(
         Some(lineage.to_string()),
         sim.tick_count,
     ));
+    sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
     let cost = kind.construction_cost();
     push_event(
         &mut sim.events,
@@ -1379,12 +1399,21 @@ fn try_start_building(sim: &mut Simulation, lineage: &str, kind: BuildingKind, x
 }
 
 fn tick_buildings_construct(sim: &mut Simulation) {
-    let mut functional_slots = FUNCTIONAL_BUILDINGS_CAP.saturating_sub(
-        sim.buildings
-            .iter()
-            .filter(|building| !building.decorative)
-            .count(),
-    );
+    let functional_count = sim
+        .buildings
+        .iter()
+        .filter(|building| !building.decorative)
+        .count();
+    let mut functional_slots = FUNCTIONAL_BUILDINGS_CAP.saturating_sub(functional_count);
+    if functional_slots == 0 {
+        let needed = functional_count - FUNCTIONAL_BUILDINGS_CAP + 1;
+        if abandoned_ruin_candidates(sim).len() >= needed {
+            // Reserve one logical slot. The selected project will perform the
+            // actual eviction only after its site, worker, and pooled cost all
+            // pass non-mutating validation.
+            functional_slots = 1;
+        }
+    }
     if functional_slots == 0 {
         return;
     }
@@ -1451,11 +1480,70 @@ fn is_wonder(kind: BuildingKind) -> bool {
     )
 }
 
+fn abandoned_ruin_candidates(sim: &Simulation) -> Vec<(u64, u32, usize)> {
+    let now = sim.tick_count;
+    let living_lineages: HashSet<String> = sim
+        .organisms
+        .iter()
+        .filter(|organism| organism.alive)
+        .map(|organism| organism.lineage_id.clone())
+        .collect();
+    let mut candidates: Vec<(u64, u32, usize)> = sim
+        .buildings
+        .iter()
+        .enumerate()
+        .filter_map(|(index, building)| {
+            if !building.is_ruined() || is_wonder(building.kind) {
+                return None;
+            }
+            let owner_abandoned = building
+                .owner_lineage
+                .as_ref()
+                .is_none_or(|owner| !living_lineages.contains(owner));
+            let ruin_origin = building
+                .ruined_at_tick
+                .or(building.last_damage_tick)
+                .unwrap_or(building.built_at_tick);
+            let old_enough = now.saturating_sub(ruin_origin) >= RUIN_RETENTION_TICKS;
+            let recently_repaired = building
+                .last_repair_tick
+                .is_some_and(|repair_tick| now.saturating_sub(repair_tick) <= REPAIR_GRACE_TICKS);
+            (owner_abandoned && old_enough && !recently_repaired).then_some((ruin_origin, building.id, index))
+        })
+        .collect();
+    candidates.sort_unstable();
+    candidates
+}
+
+fn prune_abandoned_ruins(sim: &mut Simulation, limit: usize) -> usize {
+    if limit == 0 {
+        return 0;
+    }
+    let remove_indices: HashSet<usize> = abandoned_ruin_candidates(sim)
+        .into_iter()
+        .take(limit)
+        .map(|(_, _, index)| index)
+        .collect();
+    let initial_len = sim.buildings.len();
+    let mut index = 0usize;
+    sim.buildings.retain(|_| {
+        let keep = !remove_indices.contains(&index);
+        index += 1;
+        keep
+    });
+    let removed = initial_len.saturating_sub(sim.buildings.len());
+    if removed > 0 {
+        sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
+    }
+    removed
+}
+
 fn cap_buildings(sim: &mut Simulation) {
     let mut excess = sim.buildings.len().saturating_sub(BUILDINGS_SOFT_CAP);
     if excess == 0 {
         return;
     }
+    let initial_len = sim.buildings.len();
 
     // Ambient props are disposable rendering detail. Functional buildings
     // and wonders represent civilization progress, so a busy old world must
@@ -1468,6 +1556,14 @@ fn cap_buildings(sim: &mut Simulation) {
             true
         }
     });
+    let scenery_removed = initial_len.saturating_sub(sim.buildings.len());
+    if scenery_removed > 0 {
+        sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
+    }
+    excess = sim.buildings.len().saturating_sub(BUILDINGS_SOFT_CAP);
+    if excess > 0 {
+        prune_abandoned_ruins(sim, excess);
+    }
 }
 
 fn tick_building_progress(sim: &mut Simulation) {
@@ -1483,7 +1579,7 @@ fn tick_building_progress(sim: &mut Simulation) {
     }
 
     let mut completed: Vec<(String, BuildingKind, i32, i32)> = Vec::new();
-    let assigned_workers: HashSet<usize> = {
+    let (assigned_workers, building_changed): (HashSet<usize>, bool) = {
         let organisms = &sim.organisms;
         let mut by_lineage: HashMap<&str, Vec<Worker>> = HashMap::new();
         for (index, org) in organisms.iter().enumerate() {
@@ -1507,6 +1603,7 @@ fn tick_building_progress(sim: &mut Simulation) {
         }
 
         let mut assigned = HashSet::new();
+        let mut building_changed = false;
         for building in sim.buildings.iter_mut() {
             if building.is_complete() || building.decorative {
                 continue;
@@ -1554,15 +1651,19 @@ fn tick_building_progress(sim: &mut Simulation) {
             }
             let labor = f32::from(building.kind.construction_cost().labor);
             building.condition = (building.condition + effort / labor).min(1.0);
+            building_changed = true;
             if building.is_complete() {
                 building.built_at_tick = sim.tick_count;
                 building.occupants.clear();
                 completed.push((owner.to_string(), building.kind, building.x, building.y));
             }
         }
-        assigned
+        (assigned, building_changed)
     };
 
+    if building_changed {
+        sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
+    }
     for worker_index in assigned_workers {
         sim.organisms[worker_index].energy = (sim.organisms[worker_index].energy - 0.006).max(0.0);
     }
@@ -1759,7 +1860,10 @@ fn tick_scatter_props(sim: &mut Simulation) {
         prop.decorative = true;
         new_buildings.push(prop);
     }
-    sim.buildings.extend(new_buildings);
+    if !new_buildings.is_empty() {
+        sim.buildings.extend(new_buildings);
+        sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
+    }
     cap_buildings(sim);
 }
 
@@ -3523,6 +3627,140 @@ mod tests {
         tick_buildings_construct(&mut sim);
 
         assert_eq!(sim.buildings.len(), FUNCTIONAL_BUILDINGS_CAP);
+    }
+
+    #[test]
+    fn abandoned_ruins_cannot_deadlock_the_functional_building_budget() {
+        let mut sim = Simulation::new(0xB01E);
+        sim.organisms.clear();
+        sim.buildings.clear();
+        sim.tick_count = RUIN_RETENTION_TICKS + 240;
+        for id in 0..FUNCTIONAL_BUILDINGS_CAP as u32 {
+            let mut ruin = Building::new(
+                id,
+                BuildingKind::Hospital,
+                300 + id as i32 % 100,
+                100 + id as i32 / 100,
+                Some("extinct-lineage".into()),
+                1,
+            );
+            ruin.condition = 1.0;
+            ruin.damage = 1.0;
+            sim.buildings.push(ruin);
+        }
+        sim.next_building_id = FUNCTIONAL_BUILDINGS_CAP as u32 + 1;
+
+        let mut builder = test_org("builder", "Builder", "new-lineage", 10.0, 10.0);
+        builder.age = builder.max_age / 2;
+        let cost = BuildingKind::Hut.construction_cost();
+        builder.inv_wood = cost.wood as u8;
+        builder.inv_stone = cost.stone as u8;
+        builder.wealth = cost.wealth;
+        sim.organisms.push(builder);
+        sim.grid.set(10, 10, crate::world::tiles::Tile::Grass);
+
+        tick_buildings_construct(&mut sim);
+        assert_eq!(
+            sim.buildings.len(),
+            FUNCTIONAL_BUILDINGS_CAP,
+            "planning alone must not evict history before a funded project is selected"
+        );
+        assert!(try_start_building_at(
+            &mut sim,
+            "new-lineage",
+            BuildingKind::Hut,
+            10,
+            10,
+        ));
+        assert_eq!(sim.buildings.len(), FUNCTIONAL_BUILDINGS_CAP);
+        assert!(sim
+            .buildings
+            .iter()
+            .any(|building| building.kind == BuildingKind::Hut));
+    }
+
+    #[test]
+    fn failed_unfunded_construction_does_not_evict_abandoned_history() {
+        let mut sim = Simulation::new(0xB020);
+        sim.organisms.clear();
+        sim.buildings.clear();
+        sim.tick_count = RUIN_RETENTION_TICKS + 240;
+        for id in 0..FUNCTIONAL_BUILDINGS_CAP as u32 {
+            let mut ruin = Building::new(
+                id,
+                BuildingKind::Hospital,
+                300 + id as i32 % 100,
+                100 + id as i32 / 100,
+                Some("extinct-lineage".into()),
+                1,
+            );
+            ruin.condition = 1.0;
+            ruin.damage = 1.0;
+            sim.buildings.push(ruin);
+        }
+        let mut builder = test_org("builder", "Builder", "new-lineage", 10.0, 10.0);
+        builder.age = builder.max_age / 2;
+        builder.inv_wood = 0;
+        builder.inv_stone = 0;
+        builder.wealth = 0;
+        sim.organisms.push(builder);
+        sim.grid.set(10, 10, crate::world::tiles::Tile::Grass);
+
+        assert!(!try_start_building_at(
+            &mut sim,
+            "new-lineage",
+            BuildingKind::Hut,
+            10,
+            10,
+        ));
+        assert_eq!(sim.buildings.len(), FUNCTIONAL_BUILDINGS_CAP);
+
+        tick_buildings_construct(&mut sim);
+        assert_eq!(
+            sim.buildings.len(),
+            FUNCTIONAL_BUILDINGS_CAP,
+            "autonomous planning must also preserve ruins until a funded project succeeds"
+        );
+    }
+
+    #[test]
+    fn active_rebuilds_and_ruined_wonders_are_never_abandoned() {
+        let mut sim = Simulation::new(0xB01F);
+        sim.buildings.clear();
+        sim.tick_count = RUIN_RETENTION_TICKS + 1_000;
+
+        let mut rebuilding = Building::new(1, BuildingKind::House, 10, 10, Some("lineage-a".into()), 1);
+        rebuilding.condition = 1.0;
+        rebuilding.damage = 0.8;
+        rebuilding.ruined_at_tick = Some(1);
+        rebuilding.last_repair_tick = Some(sim.tick_count - REPAIR_GRACE_TICKS);
+        sim.buildings.push(rebuilding);
+
+        let mut wonder = Building::new(2, BuildingKind::University, 20, 20, Some("lineage-a".into()), 1);
+        wonder.condition = 1.0;
+        wonder.damage = 1.0;
+        wonder.ruined_at_tick = Some(1);
+        sim.buildings.push(wonder);
+
+        assert_eq!(prune_abandoned_ruins(&mut sim, usize::MAX), 0);
+        assert_eq!(sim.buildings.len(), 2);
+    }
+
+    #[test]
+    fn old_ruins_persist_when_the_world_is_not_under_capacity_pressure() {
+        let mut sim = Simulation::new(0xB021);
+        sim.buildings.clear();
+        sim.tick_count = RUIN_RETENTION_TICKS + 1_000;
+        let mut ruin = Building::new(1, BuildingKind::House, 10, 10, None, 1);
+        ruin.condition = 1.0;
+        ruin.damage = 1.0;
+        ruin.ruined_at_tick = Some(1);
+        sim.buildings.push(ruin);
+
+        cap_buildings(&mut sim);
+
+        assert_eq!(sim.buildings.len(), 1);
+        assert!(sim.buildings[0].is_ruined());
     }
 
     #[test]

@@ -17,7 +17,6 @@ export function CommandPalette() {
   const openStats = useUIStore((s) => s.openStats)
   const openCiv = useUIStore((s) => s.openCiv)
   const openChronicles = useUIStore((s) => s.openChronicles)
-  const openWorlds = useUIStore((s) => s.openWorlds)
   const openOrgSearch = useUIStore((s) => s.openOrgSearch)
   const openDesktopSettings = useUIStore((s) => s.openDesktopSettings)
   const toggleLeft = useUIStore((s) => s.toggleLeft)
@@ -31,7 +30,6 @@ export function CommandPalette() {
       { id: 'stats', label: 'Open Stats', run: () => openStats() },
       { id: 'civ', label: 'Open Civilization', run: () => openCiv() },
       { id: 'chronicles', label: 'Open Chronicles', run: () => openChronicles() },
-      { id: 'worlds', label: 'Open Past Worlds', run: () => openWorlds() },
       {
         id: 'search',
         label: 'Find Organism',
@@ -74,7 +72,6 @@ export function CommandPalette() {
     openStats,
     openCiv,
     openChronicles,
-    openWorlds,
     openOrgSearch,
     openDesktopSettings,
     toggleLeft,

@@ -51,7 +51,7 @@ def _table(rows: list[dict[str, Any]], limit: int = 50) -> str:
     if not rows:
         return "<p>No rows.</p>"
     shown = rows[:limit]
-    columns = list({k for r in shown for k in r.keys()})
+    columns = list({k for r in shown for k in r})
     head = "".join(f"<th>{html.escape(c)}</th>" for c in columns)
     body_parts = []
     for r in shown:

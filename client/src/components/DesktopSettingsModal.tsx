@@ -5,7 +5,6 @@ import type {
   DesktopBridge,
   DesktopSettings,
   ModelProvider,
-  SimMode,
   SimStatus,
   UpdateCheckResult,
 } from '../lib/desktop'
@@ -15,7 +14,6 @@ import {
   requestOwnWorldCheckpoint,
   requestOwnWorldRecovery,
   requestOwnWorldReset,
-  setWorldSourceAndReload,
 } from '../simulation/worldSource'
 import { deleteWorld, listRecoveryWorlds, loadWorld, type RecoveryWorld } from '../simulation/wasmDb'
 import { DESKTOP_PAUSE_WHEN_HIDDEN_EVENT } from '../lib/desktopVisibility'
@@ -71,20 +69,7 @@ function WorldSourceSection() {
   return (
     <Section title="Play mode">
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <button
-          className={'lang-btn' + (source === 'wasm' ? ' active' : '')}
-          aria-pressed={source === 'wasm'}
-          onClick={() => source !== 'wasm' && setWorldSourceAndReload('wasm')}
-        >
-          🎮 my world · local
-        </button>
-        <button
-          className={'lang-btn' + (source === 'remote' ? ' active' : '')}
-          aria-pressed={source === 'remote'}
-          onClick={() => source !== 'remote' && setWorldSourceAndReload('remote')}
-        >
-          📡 shared world · online
-        </button>
+        <span className="lang-btn active">🎮 private browser world</span>
         {source === 'wasm' && (
           <>
             <button
@@ -101,9 +86,8 @@ function WorldSourceSection() {
         )}
       </div>
       <div style={{ fontSize: 10, color: '#666', marginTop: 8, lineHeight: 1.5 }}>
-        <strong style={{ color: '#bfae90' }}>My World</strong> is the default: a private game that runs and
-        saves entirely in this browser, without connecting to The Human Box server. Switch to the{' '}
-        <strong style={{ color: '#bfae90' }}>Shared World</strong> to watch the persistent online simulation.
+        The web game runs and saves entirely in this browser. It never connects to a hosted simulation API.
+        For the full native game and configurable local AI, download the desktop app.
       </div>
       {source === 'wasm' && recoveries.length > 0 && (
         <div style={{ marginTop: 12 }}>
@@ -178,11 +162,9 @@ function WorldSourceSection() {
 }
 
 const PROVIDER_DEFAULTS: Record<ModelProvider, { url: string; model: string }> = {
-  groq: { url: 'https://api.groq.com/openai/v1/chat/completions', model: 'llama-3.1-8b-instant' },
-  openai: { url: 'https://api.openai.com/v1/chat/completions', model: 'gpt-4o-mini' },
-  anthropic: { url: 'https://api.anthropic.com/v1/messages', model: 'claude-haiku-4-5' },
   ollama: { url: 'http://localhost:11434/v1/chat/completions', model: 'llama3.2' },
   'llama-cpp': { url: 'http://localhost:8080/v1/chat/completions', model: 'default' },
+  custom: { url: '', model: '' },
   none: { url: '', model: '' },
 }
 
@@ -310,42 +292,17 @@ export function DesktopSettingsModal({ onClose }: Props) {
       </div>
 
       <div style={{ padding: 16, overflowY: 'auto', maxHeight: '70vh' }}>
-        <Section title="Mode">
-          <Radio
-            name="mode"
-            value="local"
-            current={settings.mode}
-            onChange={(v) => update({ mode: v as SimMode })}
-            label="Local — run a private simulation on this machine"
-          />
-          <Radio
-            name="mode"
-            value="remote"
-            current={settings.mode}
-            onChange={(v) => update({ mode: v as SimMode })}
-            label="Remote — connect to the live shared world"
-          />
-          {settings.mode === 'remote' && (
-            <Field label="Remote URL">
-              <input
-                type="text"
-                value={settings.remoteUrl}
-                onChange={(e) => update({ remoteUrl: e.target.value })}
-                style={inputStyle}
-              />
-            </Field>
-          )}
+        <Section title="Local simulation">
+          <div style={{ fontSize: 11, color: '#bfae90', lineHeight: 1.5 }}>
+            Your world runs natively on this computer and stays in your chosen save folder.
+          </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
             <button onClick={restart} disabled={busy} style={btnPrimary}>
-              {busy ? 'restarting…' : 'apply mode + restart'}
+              {busy ? 'restarting…' : 'apply + restart'}
             </button>
             {status && (
               <span style={{ fontSize: 11, color: '#888' }}>
-                {status.mode === 'remote'
-                  ? `remote: ${status.remoteUrl ?? settings.remoteUrl}`
-                  : status.running
-                    ? `local sim @ :${status.port}`
-                    : 'no local sim running'}
+                {status.running ? `local sim @ :${status.port}` : 'no local sim running'}
                 {status.error && <span style={{ color: '#e85040', marginLeft: 6 }}>{status.error}</span>}
               </span>
             )}
@@ -397,7 +354,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
           </Field>
         </Section>
 
-        <Section title="AI model (local mode only)">
+        <Section title="AI model (optional)">
           <Field label="Provider">
             <select
               value={settings.model.provider}
@@ -413,11 +370,9 @@ export function DesktopSettingsModal({ onClose }: Props) {
               style={inputStyle}
             >
               <option value="none">none (sim still runs, just no LLM narration)</option>
-              <option value="groq">Groq</option>
-              <option value="openai">OpenAI</option>
-              <option value="anthropic">Anthropic</option>
               <option value="ollama">Ollama (local)</option>
               <option value="llama-cpp">llama.cpp (local)</option>
+              <option value="custom">Custom OpenAI-compatible endpoint</option>
             </select>
           </Field>
           {settings.model.provider !== 'none' && (
@@ -453,6 +408,10 @@ export function DesktopSettingsModal({ onClose }: Props) {
               </Field>
             </>
           )}
+          <div style={{ fontSize: 10, color: '#666', lineHeight: 1.5 }}>
+            The desktop simulation runs without AI. To add narration, point it at a model server running on
+            your computer.
+          </div>
         </Section>
 
         <Section title="Updates">
@@ -551,7 +510,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
                   setSafetyMessage(`export failed: ${error instanceof Error ? error.message : String(error)}`)
                 }
               }}
-              disabled={busy || settings.mode !== 'local'}
+              disabled={busy}
               style={btnSecondary}
             >
               export world save…
@@ -573,7 +532,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
                   setBusy(false)
                 }
               }}
-              disabled={busy || settings.mode !== 'local'}
+              disabled={busy}
               style={{ ...btnSecondary, color: '#ff9b6b', borderColor: '#7a3f32' }}
             >
               start a new world…
@@ -588,7 +547,7 @@ export function DesktopSettingsModal({ onClose }: Props) {
           {justSaved && <span style={{ fontSize: 11, color: '#7ed957' }}>saved</span>}
           <span style={{ flex: 1 }} />
           <span style={{ fontSize: 10, color: '#666' }}>
-            Restart for mode/tick/model changes to take full effect.
+            Restart for tick and model changes to take full effect.
           </span>
         </div>
       </div>
@@ -659,42 +618,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <div style={{ fontSize: 10, color: '#777', marginBottom: 4 }}>{label}</div>
       {children}
     </div>
-  )
-}
-
-function Radio({
-  name,
-  value,
-  current,
-  onChange,
-  label,
-}: {
-  name: string
-  value: string
-  current: string
-  onChange: (v: string) => void
-  label: string
-}) {
-  return (
-    <label
-      style={{
-        display: 'flex',
-        gap: 8,
-        alignItems: 'center',
-        padding: '4px 0',
-        cursor: 'pointer',
-        fontSize: 12,
-      }}
-    >
-      <input
-        type="radio"
-        name={name}
-        value={value}
-        checked={current === value}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      <span>{label}</span>
-    </label>
   )
 }
 

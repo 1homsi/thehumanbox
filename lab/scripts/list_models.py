@@ -9,7 +9,8 @@ SRC_DIR = SCRIPT_DIR.parent / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from thehumanbox_lab.model_registry import filter as filter_entries, pretty_table
+from thehumanbox_lab.model_registry import filter as filter_entries
+from thehumanbox_lab.model_registry import pretty_table
 
 
 def main(argv: list[str] | None = None) -> int:

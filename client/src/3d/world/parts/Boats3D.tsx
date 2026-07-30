@@ -4,6 +4,7 @@ import { BoxGeometry, InstancedMesh, MeshStandardMaterial, Object3D } from 'thre
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
+import { TILE_ID } from '../../../world/terrain-ids'
 
 interface Props {
   tiles: number[][] | undefined
@@ -13,7 +14,6 @@ interface Props {
   height: number
 }
 
-const T_WATER = 1
 const MAX_BOATS = 60
 const tmp = new Object3D()
 
@@ -47,7 +47,7 @@ export function Boats3D({ tiles, depthMap, biomes, width, height }: Props) {
       const r = tiles[row]
       if (!r) continue
       for (let col = 0; col < W; col += 6) {
-        if (r[col] !== T_WATER) continue
+        if (r[col] !== TILE_ID.WATER) continue
         let landNearby = false
         for (let dy = -1; dy <= 1 && !landNearby; dy++) {
           for (let dx = -1; dx <= 1 && !landNearby; dx++) {
@@ -56,7 +56,7 @@ export function Boats3D({ tiles, depthMap, biomes, width, height }: Props) {
             if (ny < 0 || ny >= H || nx < 0 || nx >= W) continue
             const rn = tiles[ny]
             if (!rn) continue
-            if (rn[nx] !== T_WATER && rn[nx] !== undefined) landNearby = true
+            if (rn[nx] !== TILE_ID.WATER && rn[nx] !== undefined) landNearby = true
           }
         }
         if (!landNearby) continue

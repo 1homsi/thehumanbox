@@ -1,3 +1,4 @@
+pub mod building_damage;
 pub mod civ_tick;
 pub mod culture;
 pub mod economy;

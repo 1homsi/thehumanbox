@@ -1,7 +1,14 @@
 import { useState } from 'react'
 import clsx from 'clsx'
-import { SANDBOX_CATEGORIES, type SandboxTool } from '../simulation/sandbox'
+import {
+  SANDBOX_CATEGORIES,
+  isSandboxViewControlActive,
+  type SandboxTool,
+  type SandboxViewFlag,
+} from '../simulation/sandbox'
 import { isRuntimeControlActive } from '../simulation/runtimeControls'
+
+const CATEGORY_STORAGE_KEY = 'thb-sandbox-category'
 
 interface Props {
   armedToolId: string | null
@@ -10,9 +17,12 @@ interface Props {
   status?: string | null
   runtimePaused?: boolean
   runtimeSpeed?: number
+  activeOverlay?: string | null
+  activeViewFlags?: Partial<Record<SandboxViewFlag, boolean>>
   onBrush: (n: number) => void
   onPick: (tool: SandboxTool) => void
   onClearArmed: () => void
+  onClearView?: () => void
   onSave?: () => void
   saveStatus?: string
   saveBusy?: boolean
@@ -24,6 +34,17 @@ function formatSpeed(speed: number): string {
   return `${Number.isInteger(speed) ? speed.toFixed(0) : speed}×`
 }
 
+function readInitialCategory(): string {
+  if (typeof window === 'undefined') return SANDBOX_CATEGORIES[0].id
+  try {
+    const saved = window.localStorage.getItem(CATEGORY_STORAGE_KEY)
+    if (saved && SANDBOX_CATEGORIES.some((category) => category.id === saved)) return saved
+  } catch {
+    // Storage can be unavailable in private or locked-down browser contexts.
+  }
+  return SANDBOX_CATEGORIES[0].id
+}
+
 export function SandboxToolbar({
   armedToolId,
   armedToolLabel,
@@ -31,114 +52,160 @@ export function SandboxToolbar({
   status,
   runtimePaused = false,
   runtimeSpeed = 1,
+  activeOverlay = null,
+  activeViewFlags = {},
   onBrush,
   onPick,
   onClearArmed,
+  onClearView,
   onSave,
   saveStatus,
   saveBusy = false,
   saveError = false,
   saveRetryable = false,
 }: Props) {
-  const [catId, setCatId] = useState(SANDBOX_CATEGORIES[0].id)
+  const [catId, setCatId] = useState(readInitialCategory)
   const cat = SANDBOX_CATEGORIES.find((c) => c.id === catId) ?? SANDBOX_CATEGORIES[0]
   const hasPointTools = cat.tools.some((t) => t.mode === 'point')
+  const hasActiveView = cat.tools.some((tool) =>
+    isSandboxViewControlActive(tool.view, activeOverlay, activeViewFlags),
+  )
+  const hasActiveMapLayer =
+    SANDBOX_CATEGORIES.find((category) => category.id === 'maps')?.tools.some((tool) =>
+      isSandboxViewControlActive(tool.view, activeOverlay, activeViewFlags),
+    ) ?? false
   const runtimeStatus =
     cat.id === 'time' ? `${runtimePaused ? 'paused' : 'running'} · ${formatSpeed(runtimeSpeed)}` : null
-  const contextStatus =
-    status ?? (armedToolId ? `${armedToolLabel ?? 'tool'} armed - click the world to apply` : runtimeStatus)
+  const selectCategory = (id: string) => {
+    setCatId(id)
+    try {
+      window.localStorage.setItem(CATEGORY_STORAGE_KEY, id)
+    } catch {
+      // The toolbar still works when browser storage is unavailable.
+    }
+  }
+  const clearCurrentTool = () => {
+    onClearArmed()
+    if (cat.tools.some((tool) => tool.view)) onClearView?.()
+  }
 
   return (
     <section className="sandbox-bar" aria-label="World controls">
-      <div className="sandbox-tabs" role="group" aria-label="Tool categories">
-        {SANDBOX_CATEGORIES.map((c) => (
-          <button
-            type="button"
-            key={c.id}
-            className={clsx('sandbox-tab', c.id === catId && 'active')}
-            aria-pressed={c.id === catId}
-            onClick={() => setCatId(c.id)}
-            title={c.label}
-          >
-            <span className="sandbox-tab-icon">{c.icon}</span>
-            <span className="sandbox-tab-label">{c.label}</span>
-          </button>
-        ))}
-      </div>
-      <span className="sandbox-separator" aria-hidden="true" />
-      <div className="sandbox-tools" role="group" aria-label={`${cat.label} tools`}>
-        {hasPointTools && (
-          <button
-            type="button"
-            className={clsx('sandbox-tool', !armedToolId && 'active')}
-            aria-label="Cursor — stop placing"
-            aria-pressed={!armedToolId}
-            onClick={onClearArmed}
-            title="Cursor — stop placing"
-          >
-            <span className="sandbox-tool-icon">🖱️</span>
-            <span className="sandbox-tool-label">cursor</span>
-          </button>
-        )}
-        {cat.tools.map((t) => {
-          const active = armedToolId === t.id || isRuntimeControlActive(t.time, runtimePaused, runtimeSpeed)
-          return (
+      <div className="sandbox-dock">
+        <nav className="sandbox-tabs" aria-label="World tools">
+          {SANDBOX_CATEGORIES.map((c) => (
             <button
               type="button"
-              key={t.id}
-              className={clsx('sandbox-tool', active && 'active')}
-              aria-pressed={
-                t.time ? isRuntimeControlActive(t.time, runtimePaused, runtimeSpeed) : armedToolId === t.id
-              }
-              onClick={() => onPick(t)}
-              title={t.label}
+              key={c.id}
+              className={clsx(
+                'sandbox-tab',
+                c.id === catId && 'active',
+                c.id === 'maps' && hasActiveMapLayer && 'engaged',
+              )}
+              aria-pressed={c.id === catId}
+              onClick={() => selectCategory(c.id)}
+              title={c.id === 'maps' && hasActiveMapLayer ? 'maps · layer active' : c.label}
             >
-              <span className="sandbox-tool-icon">{t.icon}</span>
-              <span className="sandbox-tool-label">{t.label}</span>
+              <span className="sandbox-tab-icon">{c.icon}</span>
+              <span className="sandbox-tab-label">{c.label}</span>
             </button>
-          )
-        })}
-        {hasPointTools && (
-          <label className="sandbox-brush" title="Brush size">
-            <span>brush</span>
-            <input
-              type="range"
-              min={0}
-              max={8}
-              step={1}
-              value={brush}
-              onChange={(e) => onBrush(parseInt(e.target.value, 10))}
-            />
-            <span className="sandbox-brush-val">{brush}</span>
-          </label>
-        )}
-      </div>
-      {contextStatus && (
-        <div className="sandbox-status" role="status" aria-live="polite">
-          {contextStatus}
-        </div>
-      )}
-      {onSave && (
-        <div className={clsx('sandbox-save', saveError && 'error')}>
+          ))}
+        </nav>
+        <span className="sandbox-divider" aria-hidden="true" />
+        <div className="sandbox-tools" role="group" aria-label={`${cat.label} tools`}>
           <button
             type="button"
-            onClick={onSave}
-            disabled={saveBusy || (saveError && !saveRetryable)}
-            title={
-              saveError && saveRetryable
-                ? 'Retry saving this world on this device'
-                : 'Save this world on this device now'
-            }
+            className={clsx('sandbox-tool', !armedToolId && !hasActiveView && 'active')}
+            aria-label={cat.tools.some((tool) => tool.view) ? 'Clear map layers' : 'Cursor — stop placing'}
+            aria-pressed={!armedToolId && !hasActiveView}
+            onClick={clearCurrentTool}
+            title={cat.tools.some((tool) => tool.view) ? 'Clear map layers' : 'Cursor — stop placing'}
           >
-            {saveBusy ? 'saving…' : saveError && saveRetryable ? '↻ retry save' : '💾 save world'}
-          </button>
-          {saveStatus && (
-            <span className="sandbox-save-status" role="status">
-              {saveStatus}
+            <span className="sandbox-tool-icon">🖱️</span>
+            <span className="sandbox-tool-label">
+              {cat.tools.some((tool) => tool.view) ? 'clear' : 'cursor'}
             </span>
+          </button>
+          {cat.tools.map((t) => {
+            const active =
+              armedToolId === t.id ||
+              isRuntimeControlActive(t.time, runtimePaused, runtimeSpeed) ||
+              isSandboxViewControlActive(t.view, activeOverlay, activeViewFlags)
+            return (
+              <button
+                type="button"
+                key={t.id}
+                className={clsx('sandbox-tool', active && 'active')}
+                aria-pressed={
+                  t.time
+                    ? isRuntimeControlActive(t.time, runtimePaused, runtimeSpeed)
+                    : t.view
+                      ? isSandboxViewControlActive(t.view, activeOverlay, activeViewFlags)
+                      : armedToolId === t.id
+                }
+                onClick={() => onPick(t)}
+                title={t.label}
+              >
+                <span className="sandbox-tool-icon">{t.icon}</span>
+                <span className="sandbox-tool-label">{t.label}</span>
+              </button>
+            )
+          })}
+          {hasPointTools && (
+            <label className="sandbox-brush" title="Brush size">
+              <span>brush</span>
+              <input
+                type="range"
+                min={0}
+                max={8}
+                step={1}
+                value={brush}
+                onChange={(e) => onBrush(parseInt(e.target.value, 10))}
+              />
+              <span className="sandbox-brush-val">{brush}</span>
+            </label>
           )}
         </div>
-      )}
+        <div className="sandbox-utility">
+          {(armedToolId || status || runtimeStatus) && (
+            <div className="sandbox-status" role="status" aria-live="polite">
+              {status ??
+                (armedToolId
+                  ? `${armedToolLabel ?? 'tool'} armed - click the world to apply`
+                  : runtimeStatus)}
+            </div>
+          )}
+          {onSave && (
+            <div className={clsx('sandbox-save', saveError && 'error')}>
+              <button
+                type="button"
+                onClick={onSave}
+                disabled={saveBusy || (saveError && !saveRetryable)}
+                aria-label={
+                  saveBusy ? 'saving' : saveError && saveRetryable ? '↻ retry save' : '💾 save world'
+                }
+                title={
+                  saveError && saveRetryable
+                    ? 'Retry saving this world on this device'
+                    : 'Save this world on this device now'
+                }
+              >
+                <span className="sandbox-save-icon">
+                  {saveError && saveRetryable ? '↻' : saveBusy ? '…' : '💾'}
+                </span>
+                <span className="sandbox-save-label">
+                  {saveBusy ? 'saving' : saveError && saveRetryable ? 'retry save' : 'save world'}
+                </span>
+              </button>
+              {saveStatus && (
+                <span className="sandbox-save-status" role="status">
+                  {saveStatus}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </section>
   )
 }

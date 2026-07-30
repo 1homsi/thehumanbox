@@ -1,12 +1,13 @@
 import type { SceneContext, SceneFixture, SceneId, SceneOccupant } from '../../../scenes/core/types'
 import type { WorldState } from '../../../types'
+import { getBuildingState } from '../../../world/building-state'
 
 const RADIUS = 14
 
 export function resolveForgeScene(world: WorldState, scene: SceneId): SceneContext | null {
   if (scene.kind !== 'forge' && scene.kind !== 'bakery' && scene.kind !== 'mill') return null
   const building = world.buildings?.find((b) => b.id === scene.buildingId)
-  if (!building) return null
+  if (!building || !getBuildingState(building).isOperational) return null
 
   const kind = scene.kind
   const wantedSpecialties: string[] =

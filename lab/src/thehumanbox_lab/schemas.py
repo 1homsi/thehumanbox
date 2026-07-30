@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any
 
+
 @dataclass(slots=True)
 class TraceEvent:
     tick: int
@@ -14,7 +15,7 @@ class TraceEvent:
     state: dict[str, float]
 
     @classmethod
-    def from_row(cls, row: dict[str, Any]) -> "TraceEvent":
+    def from_row(cls, row: dict[str, Any]) -> TraceEvent:
         return cls(
             tick=int(row["tick"]),
             organism_id=str(row["organism_id"]),
@@ -38,7 +39,7 @@ class ThoughtExample:
         return asdict(self)
 
     @classmethod
-    def from_row(cls, row: dict[str, Any]) -> "ThoughtExample":
+    def from_row(cls, row: dict[str, Any]) -> ThoughtExample:
         return cls(
             organism_id=str(row["organism_id"]),
             lineage_id=str(row.get("lineage_id", "")),

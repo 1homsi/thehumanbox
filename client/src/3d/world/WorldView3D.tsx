@@ -16,6 +16,7 @@ import { Sun } from './parts/Sun'
 import { Humans3D } from './parts/Humans3D'
 import { Animals3D } from './parts/Animals3D'
 import { Buildings3D } from './parts/Buildings3D'
+import { BuildingDamage3D } from './parts/BuildingDamage3D'
 import { BuildingSmoke3D } from './parts/BuildingSmoke3D'
 import { OrgLabels } from './parts/OrgLabels'
 import { TileFeatures } from './parts/TileFeatures'
@@ -45,7 +46,6 @@ import { AmbientMotes } from './parts/AmbientMotes'
 import { MiniMap } from './parts/MiniMap'
 import { CameraSync } from './parts/CameraSync'
 import { SelectedOrgHighlight } from './parts/SelectedOrgHighlight'
-import { SelectedOrgCard } from './parts/SelectedOrgCard'
 import { WorldHud } from './parts/WorldHud'
 import { EventFloaters } from './parts/EventFloaters'
 import { BigMomentEffects } from './parts/BigMomentEffects'
@@ -54,6 +54,7 @@ import { FootstepDust } from './parts/FootstepDust'
 import { WorkEffects3D } from './parts/WorkEffects3D'
 import { ThoughtBubbles3D } from './parts/ThoughtBubbles3D'
 import { SettlementDetails3D } from './parts/SettlementDetails3D'
+import { StrategyMarkers3D } from './parts/StrategyMarkers3D'
 import { GrassTufts } from './parts/GrassTufts'
 import { TribeLabels } from './parts/TribeLabels'
 import { FireLights } from './parts/FireLights'
@@ -66,6 +67,7 @@ import { CameraBreath } from './parts/CameraBreath'
 import { Fireflies } from './parts/Fireflies'
 import { SocialBeams } from './parts/SocialBeams'
 import { TerritoryOverlay } from './parts/TerritoryOverlay'
+import { LineageHistory3D } from './parts/LineageHistory3D'
 import { DataOverlays3D } from './parts/DataOverlays3D'
 import { FocusMarkers3D } from './parts/FocusMarkers3D'
 import { TILE_SCALE } from './parts/constants'
@@ -73,6 +75,9 @@ import { heightAtWorld, heightAt } from './parts/terrain-utils'
 import { getOrgHeading, getOrgXY } from './parts/motion-state'
 import { cameraCommand, type CameraLookAt, type CameraTeleport } from './parts/camera-state'
 import { threeFrameLoopForPause } from '../../lib/desktopVisibility'
+import { TILE_ID } from '../../world/terrain-ids'
+import { buildTerritoryIndex, lineageAtTerritoryTile } from '../../world/territory'
+import { hasRuinedBuildingAtWorldTile, isRuinedBuilding } from '../../world/building-state'
 
 type MoveKeys = 'forward' | 'back' | 'left' | 'right' | 'up' | 'down' | 'boost'
 
@@ -348,8 +353,6 @@ interface Props {
   onContextLost?: () => void
 }
 
-const SEL_LS_KEY = 'thb-3d-sel-v1'
-
 export default function WorldView3D({
   world,
   rendererPaused = false,
@@ -369,18 +372,46 @@ export default function WorldView3D({
     [],
   )
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
-  const selectOrgStore = useUIStore((s) => s.selectOrg)
-  // WorldView3D only reads one flag (territoryMap). Subscribing to
+  const followOrgId = useUIStore((s) => s.followOrgId)
+  const followOrg = useUIStore((s) => s.followOrg)
+  // WorldView3D only reads one flag (territory). Subscribing to
   // the whole viewFlags object re-renders the entire 3D tree on
   // every flag toggle; a scalar selector is virtually free.
-  const showTerritoryMap = useUIStore((s) => s.viewFlags.territoryMap)
+  const showTerritoryMap = useUIStore((s) => s.viewFlags.territory)
+  const showHistory = useUIStore((s) => s.viewFlags.history)
   const orgPov = useUIStore((s) => s.viewFlags.orgPov)
   const showNames = useUIStore((s) => s.viewFlags.names)
   const showAnimals = useUIStore((s) => s.viewFlags.animals)
   const showFps = useUIStore((s) => s.viewFlags.fps)
   const overlay = useUIStore((s) => s.overlay)
   const focus = useUIStore((s) => s.focus)
-  const [follow, setFollow] = useState(false)
+  const setFocus = useUIStore((s) => s.setFocus)
+  const territoryIndex = useMemo(() => buildTerritoryIndex(world?.territory), [world?.territory])
+  // Every normal building consumer receives this same list. That keeps
+  // windows, industry smoke, settlement props, roads, vehicles, farm
+  // fallbacks, searchlights, collisions, and ordinary scaffolds off ruins.
+  const standingBuildings = useMemo(
+    () => (world?.buildings ?? []).filter((building) => !isRuinedBuilding(building)),
+    [world?.buildings],
+  )
+  const ruinedBuildingLocalTiles = useMemo(() => {
+    const tiles = new Set<string>()
+    const originX = world?.grid.origin_x ?? 0
+    const originY = world?.grid.origin_y ?? 0
+    for (const building of world?.buildings ?? []) {
+      if (!isRuinedBuilding(building)) continue
+      const footprintWidth = Math.max(1, Math.floor(building.footprint?.[0] ?? building.fw ?? 1))
+      const footprintHeight = Math.max(1, Math.floor(building.footprint?.[1] ?? building.fh ?? 1))
+      for (let dy = 0; dy < footprintHeight; dy++) {
+        for (let dx = 0; dx < footprintWidth; dx++) {
+          tiles.add(`${Math.floor(building.x + dx - originX)},${Math.floor(building.y + dy - originY)}`)
+        }
+      }
+    }
+    return tiles
+  }, [world?.buildings, world?.grid.origin_x, world?.grid.origin_y])
+  const hasFollowTarget = followOrgId !== null
+  const followingSelected = selectedOrgId !== null && followOrgId === selectedOrgId
 
   // Touch detection - PointerLockControls requires a mouse, so on touch
   // devices fall back to OrbitControls (drag to orbit, pinch to zoom).
@@ -392,27 +423,12 @@ export default function WorldView3D({
   }, [])
 
   useEffect(() => {
-    if (!world) return
-    if (selectedOrgId) return
     try {
-      const id = localStorage.getItem(SEL_LS_KEY)
-      if (!id) return
-      const live = (world.viewport_organisms ?? world.organisms ?? []).some((o) => o.id === id && o.alive)
-      if (live) selectOrgStore(id)
+      localStorage.removeItem('thb-3d-sel-v1')
     } catch {
-      /* ignore */
+      /* legacy selection storage can be unavailable */
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [!!world])
-
-  useEffect(() => {
-    try {
-      if (selectedOrgId) localStorage.setItem(SEL_LS_KEY, selectedOrgId)
-      else localStorage.removeItem(SEL_LS_KEY)
-    } catch {
-      /* ignore */
-    }
-  }, [selectedOrgId])
+  }, [])
 
   const didInitialAimRef = useRef(false)
   useEffect(() => {
@@ -470,12 +486,12 @@ export default function WorldView3D({
       'ShiftRight',
     ])
     const onKey = (e: KeyboardEvent) => {
-      if (follow && MOVE_CODES.has(e.code)) {
-        setFollow(false)
+      if (hasFollowTarget && MOVE_CODES.has(e.code)) {
+        followOrg(null)
         return
       }
       if (e.code === 'KeyF' && !e.repeat) {
-        if (selectedOrgId) setFollow((prev) => !prev)
+        if (selectedOrgId) followOrg(followingSelected ? null : selectedOrgId)
       } else if (e.code === 'KeyJ' && !e.repeat) {
         if (selectedOrgId) {
           const [tx, ty] = getOrgXY(selectedOrgId)
@@ -497,7 +513,7 @@ export default function WorldView3D({
         if (live.length) {
           const pick = live[Math.floor(Math.random() * live.length)]
           selectOrg(pick.id)
-          setFollow(true)
+          followOrg(pick.id)
           const [tx, ty] = getOrgXY(pick.id)
           if (tx !== 0 || ty !== 0) {
             cameraCommand.teleport = {
@@ -513,19 +529,22 @@ export default function WorldView3D({
           }
         }
       } else if (e.code === 'KeyC' && !e.repeat) {
-        setFollow(false)
+        followOrg(null)
         cameraCommand.reset = true
-      } else if (e.code === 'Escape' && follow) {
-        setFollow(false)
+      } else if (e.code === 'Escape' && hasFollowTarget) {
+        followOrg(null)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [selectedOrgId, follow, selectOrg, world])
+  }, [selectedOrgId, hasFollowTarget, followingSelected, selectOrg, followOrg, world])
 
   useEffect(() => {
-    cameraCommand.followOrgId = follow && selectedOrgId ? selectedOrgId : null
-  }, [follow, selectedOrgId])
+    cameraCommand.followOrgId = followOrgId
+    return () => {
+      if (cameraCommand.followOrgId === followOrgId) cameraCommand.followOrgId = null
+    }
+  }, [followOrgId])
 
   useEffect(() => {
     cameraCommand.povOrgId = orgPov && selectedOrgId ? selectedOrgId : null
@@ -559,19 +578,33 @@ export default function WorldView3D({
       }
       const tx = Math.floor(x)
       const ty = Math.floor(y)
+      const worldTileX = tx + (world.grid.origin_x ?? 0)
+      const worldTileY = ty + (world.grid.origin_y ?? 0)
+
+      if (showTerritoryMap) {
+        const focusedLineage = focus.startsWith('lineage:') ? focus.slice('lineage:'.length) : null
+        const lineageId = lineageAtTerritoryTile(territoryIndex, worldTileX, worldTileY, focusedLineage)
+        selectOrg(null)
+        useUIStore.setState({ panelOpen: false })
+        setFocus(lineageId ? `lineage:${lineageId}` : 'all')
+        return
+      }
+
+      if (hasRuinedBuildingAtWorldTile(world.buildings, worldTileX, worldTileY)) return
+
       const tileVal = world.grid.tiles?.[ty]?.[tx]
       const structVal = world.grid.structure?.[ty]?.[tx] ?? 0
-      if (tileVal !== 8 && structVal < 0.35) return
+      if (tileVal !== TILE_ID.HUT && structVal < 0.35) return
       let bestHost: { id: string; age: number } | null = null
       for (const org of world.organisms ?? []) {
         if (!org.alive) continue
-        if (Math.floor(org.home_x) === tx && Math.floor(org.home_y) === ty) {
+        if (Math.floor(org.home_x) === worldTileX && Math.floor(org.home_y) === worldTileY) {
           if (!bestHost || org.age > bestHost.age) bestHost = { id: org.id, age: org.age }
         }
       }
       if (bestHost) useSceneStore.getState().enter({ kind: 'home', orgId: bestHost.id })
     },
-    [world, sandboxArmed, onSandboxApply],
+    [world, sandboxArmed, onSandboxApply, showTerritoryMap, focus, territoryIndex, selectOrg, setFocus],
   )
 
   // Hut world positions for Fireflies (computed once per grid change)
@@ -582,13 +615,14 @@ export default function WorldView3D({
       const tRow = grid.tiles[row]
       if (!tRow) continue
       for (let col = 0; col < grid.width; col++) {
-        if (tRow[col] !== 8) continue
+        if (tRow[col] !== TILE_ID.HUT) continue
+        if (ruinedBuildingLocalTiles.has(`${col},${row}`)) continue
         const ground = heightAt(col, row, grid.depth_map, grid.biomes)
         out.push([col * TILE_SCALE, ground, row * TILE_SCALE])
       }
     }
     return out
-  }, [grid?.tiles, grid?.depth_map, grid?.biomes, grid?.height, grid?.width])
+  }, [grid?.tiles, grid?.depth_map, grid?.biomes, grid?.height, grid?.width, ruinedBuildingLocalTiles])
 
   const buildingAABBs = useMemo<BuildingAABB[]>(() => {
     if (!grid?.tiles || !grid?.depth_map || !grid?.biomes) return []
@@ -598,7 +632,8 @@ export default function WorldView3D({
       const tRow = tiles[row]
       if (!tRow) continue
       for (let col = 0; col < grid.width; col++) {
-        if (tRow[col] !== 8) continue
+        if (tRow[col] !== TILE_ID.HUT) continue
+        if (ruinedBuildingLocalTiles.has(`${col},${row}`)) continue
         const ground = heightAt(col, row, grid.depth_map, grid.biomes)
         const cx = col * TILE_SCALE
         const cz = row * TILE_SCALE
@@ -613,7 +648,7 @@ export default function WorldView3D({
         })
       }
     }
-    for (const b of world?.buildings ?? []) {
+    for (const b of standingBuildings) {
       if (typeof b.x !== 'number' || typeof b.y !== 'number') continue
       const fp = (b.footprint ?? [2, 2]) as [number, number]
       const ground = heightAt(b.x, b.y, grid.depth_map, grid.biomes)
@@ -631,7 +666,15 @@ export default function WorldView3D({
       })
     }
     return out
-  }, [grid?.tiles, grid?.depth_map, grid?.biomes, grid?.height, grid?.width, world?.buildings])
+  }, [
+    grid?.tiles,
+    grid?.depth_map,
+    grid?.biomes,
+    grid?.height,
+    grid?.width,
+    ruinedBuildingLocalTiles,
+    standingBuildings,
+  ])
 
   const cx = (grid?.width ?? 150) * TILE_SCALE * 0.5
   const cz = (grid?.height ?? 75) * TILE_SCALE * 0.5
@@ -743,6 +786,7 @@ export default function WorldView3D({
                   width={grid.width}
                   height={grid.height}
                   pathTrail={grid.path_trail}
+                  suppressedHutTiles={ruinedBuildingLocalTiles}
                 />
                 <GrassTufts
                   tiles={grid.tiles!}
@@ -760,22 +804,36 @@ export default function WorldView3D({
                   onSandboxApply={onSandboxApply}
                 />
                 <Buildings3D
-                  buildings={world.buildings ?? []}
+                  buildings={standingBuildings}
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}
                   dayProgress={dayProgress}
                   lineageEras={lineageErasMap}
                 />
+                <BuildingDamage3D
+                  buildings={world.buildings}
+                  depthMap={grid.depth_map}
+                  biomes={grid.biomes}
+                />
                 {!LOW_PERF && (
                   <SettlementDetails3D
-                    buildings={world.buildings ?? []}
+                    buildings={standingBuildings}
                     depthMap={grid.depth_map!}
                     biomes={grid.biomes!}
                     dayProgress={dayProgress}
                   />
                 )}
+                <StrategyMarkers3D
+                  settlements={world.settlements ?? []}
+                  strategies={world.lineage_strategies}
+                  lineageHomes={world.lineage_homes}
+                  organisms={world.organisms ?? []}
+                  tick={world.tick}
+                  depthMap={grid.depth_map!}
+                  biomes={grid.biomes!}
+                />
                 <BuildingSmoke3D
-                  buildings={world.buildings ?? []}
+                  buildings={standingBuildings}
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}
                 />
@@ -878,20 +936,20 @@ export default function WorldView3D({
                   height={grid.height}
                 />
                 <ConstructionScaffolds
-                  buildings={world.buildings}
+                  buildings={standingBuildings}
                   depthMap={grid.depth_map}
                   biomes={grid.biomes}
                 />
                 <BuildSparks buildings={world.buildings} depthMap={grid.depth_map} biomes={grid.biomes} />
                 <Vehicles3D
-                  buildings={world.buildings}
+                  buildings={standingBuildings}
                   lineageEras={lineageErasMap}
                   depthMap={grid.depth_map}
                   biomes={grid.biomes}
                   isNight={isNight}
                 />
                 <Roads3D
-                  buildings={world.buildings}
+                  buildings={standingBuildings}
                   lineageEras={lineageErasMap}
                   depthMap={grid.depth_map}
                   biomes={grid.biomes}
@@ -904,19 +962,19 @@ export default function WorldView3D({
                   height={grid.height}
                 />
                 <Farms3D
-                  buildings={world.buildings}
+                  buildings={standingBuildings}
                   farms={world.farms}
                   tick={world.tick}
                   depthMap={grid.depth_map}
                   biomes={grid.biomes}
                 />
                 <WatchtowerBeams
-                  buildings={world.buildings}
+                  buildings={standingBuildings}
                   depthMap={grid.depth_map}
                   biomes={grid.biomes}
                   isNight={isNight}
                 />
-                <IndustrySmoke buildings={world.buildings} depthMap={grid.depth_map} biomes={grid.biomes} />
+                <IndustrySmoke buildings={standingBuildings} depthMap={grid.depth_map} biomes={grid.biomes} />
                 <AmbientMotes isNight={isNight} weatherKind={world.weather?.kind ?? 'clear'} />
                 <Fireflies hutPositions={hutWorldPositions} isNight={isNight} />
                 <SocialBeams
@@ -927,8 +985,21 @@ export default function WorldView3D({
                 {showTerritoryMap && world.territory && (
                   <TerritoryOverlay
                     territory={world.territory}
+                    relations={world.tribal_relations}
+                    focus={focus}
                     depthMap={grid.depth_map!}
                     biomes={grid.biomes!}
+                    originX={grid.origin_x ?? 0}
+                    originY={grid.origin_y ?? 0}
+                  />
+                )}
+                {showHistory && world.lineage_centroid_history && (
+                  <LineageHistory3D
+                    history={world.lineage_centroid_history}
+                    depthMap={grid.depth_map!}
+                    biomes={grid.biomes!}
+                    originX={grid.origin_x ?? 0}
+                    originY={grid.origin_y ?? 0}
                   />
                 )}
                 {focus !== 'all' && (
@@ -971,15 +1042,6 @@ export default function WorldView3D({
         </Canvas>
       </KeyboardControls>
 
-      {ready && grid && (
-        <SelectedOrgCard
-          organisms={world.viewport_organisms ?? world.organisms ?? []}
-          following={follow}
-          onToggleFollow={() => setFollow((prev) => !prev)}
-          showKeyHints={!isTouch}
-        />
-      )}
-
       {ready && <WorldHud />}
 
       {ready && grid && (
@@ -1008,7 +1070,7 @@ export default function WorldView3D({
         {isTouch
           ? 'drag to orbit · pinch to zoom'
           : 'click to look · WASD move · space/shift up/down · ctrl boost · C reset · F follow · J jump · R random · click map · esc release'}
-        {follow && selectedOrgId && <span style={{ color: '#ff8a3a', marginLeft: 10 }}>· following</span>}
+        {hasFollowTarget && <span style={{ color: '#ff8a3a', marginLeft: 10 }}>· following</span>}
       </div>
     </div>
   )

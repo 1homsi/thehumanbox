@@ -5,7 +5,7 @@ import os
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 State = dict[str, Any]
 
@@ -28,7 +28,7 @@ def load(path: Path | str) -> State:
             data = json.load(f)
         if not isinstance(data, dict):
             return _default_state()
-    except Exception:
+    except (OSError, TypeError, json.JSONDecodeError):
         return _default_state()
     base = _default_state()
     base.update(data)
@@ -57,7 +57,7 @@ def save(path: Path | str, state: State) -> None:
         raise
 
 
-def should_resume(path: Path | str) -> Optional[State]:
+def should_resume(path: Path | str) -> State | None:
     p = Path(path)
     if not p.exists():
         return None

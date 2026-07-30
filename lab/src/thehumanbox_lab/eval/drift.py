@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from statistics import mean
-from typing import Iterable
 
 
 def _percentile(values: list[float], pct: float) -> float:

@@ -1,11 +1,10 @@
 # The Human Box — Desktop
 
-A cross-platform desktop app that either:
-
-- **Local mode (default):** runs the Rust simulation binary on the user's machine and points a bundled copy of the web client at it. Saves live in `~/Library/Application Support/TheHumanBox/worlds/` (macOS), `%APPDATA%/TheHumanBox/worlds/` (Windows), `~/.config/TheHumanBox/worlds/` (Linux).
-- **Remote mode:** connects to `https://thehumanbox.com` like the web app, with bonus desktop niceties (system tray, native notifications, keyboard shortcuts, auto-update).
-
-Users can switch modes from a settings panel.
+A cross-platform desktop app that runs the Rust simulation binary on the
+user's machine and points a bundled copy of the client at its loopback API.
+Saves live in `~/Library/Application Support/TheHumanBox/worlds/` (macOS),
+`%APPDATA%/TheHumanBox/worlds/` (Windows), or
+`~/.config/TheHumanBox/worlds/` (Linux).
 
 ## What's in this directory
 
@@ -50,7 +49,6 @@ Stored as JSON at `app.getPath('userData') + '/settings.json'`. Schema:
 ```json
 {
   "mode": "local",
-  "remoteUrl": "https://api.thehumanbox.com",
   "tickMs": 100,
   "populationCap": 500,
   "model": {
@@ -64,20 +62,13 @@ Stored as JSON at `app.getPath('userData') + '/settings.json'`. Schema:
 }
 ```
 
-Model providers supported: `groq`, `openai`, `anthropic`, `ollama`, `llama-cpp`, `none`. The simulation reads `NARRATION_LLM_URL/KEY/MODEL` and `THINK_LLM_URL/KEY/MODEL` env vars; the Electron sim-process wrapper translates settings → env vars when spawning.
+Model providers supported: `ollama`, `llama-cpp`, any custom local
+OpenAI-compatible endpoint, and `none`. The
+simulation reads `NARRATION_LLM_URL/KEY/MODEL` and
+`THINK_LLM_URL/KEY/MODEL` env vars; the Electron sim-process wrapper
+translates settings into process-local environment variables when spawning.
 
 `none` is the default and explicitly clears inherited API keys/endpoints, so a private desktop world makes no AI network calls unless the player opts into a provider. The default 500-person capacity is the tested balanced tier; larger presets extend the scale of late-era civilizations and are marked accordingly in Settings.
-
-## Browsing + forking remote worlds (Tier-C "hybrid" mode)
-
-When running in local mode, the Past Worlds modal shows a "↓ copy local" button on each remote archive. Clicking it:
-
-1. Streams `GET /worlds/<hash>/save` with a timeout and 256 MiB hard limit.
-2. Validates the JSON schema, version, seed, tick, entities, and complete terrain before stopping the active world.
-3. Checkpoints the current world, stages the import under a unique name, and atomically switches `worlds/_live`.
-4. Switches to local mode and restarts. Any failure rolls the marker and settings back; the validated download remains preserved for recovery.
-
-The forked world is now yours to evolve — the original archive on thehumanbox.com is untouched.
 
 Save-folder changes use the same safety model: checkpoint, take exclusive
 ownership of both folders, copy into staging, switch only after the copy is

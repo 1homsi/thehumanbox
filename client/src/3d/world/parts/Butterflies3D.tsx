@@ -4,6 +4,7 @@ import { BoxGeometry, Color, InstancedMesh, MeshStandardMaterial, Object3D } fro
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
+import { BIOME_ID, isWaterTile } from '../../../world/terrain-ids'
 
 interface Props {
   width: number
@@ -13,10 +14,6 @@ interface Props {
   biomes: number[][] | undefined
   dayProgress: number
 }
-
-const T_WATER = 1
-const B_GRASS = 0
-const B_FOREST = 1
 
 const WING_GEO = (() => {
   const l = new BoxGeometry(0.34, 0.02, 0.26)
@@ -46,7 +43,11 @@ export function Butterflies3D({ width, height, tiles, depthMap, biomes, dayProgr
       const brow = biomes[y]
       if (!row || !brow) continue
       for (let x = 0; x < width; x += step) {
-        if (row[x] !== undefined && row[x] !== T_WATER && (brow[x] === B_GRASS || brow[x] === B_FOREST)) {
+        if (
+          row[x] !== undefined &&
+          !isWaterTile(row[x]) &&
+          (brow[x] === BIOME_ID.GRASSLAND || brow[x] === BIOME_ID.FOREST)
+        ) {
           meadow.push([x, y])
         }
       }

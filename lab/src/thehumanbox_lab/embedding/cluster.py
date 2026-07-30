@@ -1,6 +1,8 @@
 from __future__ import annotations
+
 import random
-from typing import Sequence
+from collections.abc import Sequence
+
 from .vector import cosine, euclidean, mean_vec
 
 

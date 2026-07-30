@@ -22,7 +22,7 @@ export type LineageStrategy = 'hunt' | 'explore' | 'settle' | 'trade' | 'defend'
  * This makes 2D, 3D, shortcuts, and future controls obey the same rule.
  */
 export function canSendSandboxCommand(
-  source: 'remote' | 'wasm',
+  source: 'native' | 'wasm',
   desktop: boolean,
   localServer: boolean,
 ): boolean {
@@ -30,6 +30,14 @@ export function canSendSandboxCommand(
 }
 
 export type TimeControl = { control: 'pause' | 'resume' | 'speed'; mult?: number }
+
+export type SandboxOverlay = 'density' | 'hazard' | 'fertility' | 'structures' | 'trails' | 'age' | 'threat'
+
+export type SandboxViewFlag = 'territory' | 'history'
+
+export type SandboxViewControl =
+  | { control: 'overlay'; value: SandboxOverlay }
+  | { control: 'flag'; value: SandboxViewFlag }
 
 export interface SandboxTool {
   id: string
@@ -39,6 +47,7 @@ export interface SandboxTool {
   build?: (x: number, y: number, brush: number) => SandboxCommand
   fire?: SandboxCommand
   time?: TimeControl
+  view?: SandboxViewControl
 }
 
 export interface SandboxCategory {
@@ -46,6 +55,15 @@ export interface SandboxCategory {
   label: string
   icon: string
   tools: SandboxTool[]
+}
+
+export function isSandboxViewControlActive(
+  view: SandboxViewControl | undefined,
+  overlay: string | null,
+  flags: Partial<Record<SandboxViewFlag, boolean>>,
+): boolean {
+  if (!view) return false
+  return view.control === 'overlay' ? overlay === view.value : flags[view.value] === true
 }
 
 export const SANDBOX_CATEGORIES: SandboxCategory[] = [
@@ -165,6 +183,55 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '💧',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'paint', x, y, tile: 'water', radius: b }),
+      },
+    ],
+  },
+  {
+    id: 'maps',
+    label: 'maps',
+    icon: '🗺️',
+    tools: [
+      {
+        id: 'territory_map',
+        label: 'borders',
+        icon: '⬡',
+        mode: 'instant',
+        view: { control: 'flag', value: 'territory' },
+      },
+      {
+        id: 'settlement_map',
+        label: 'towns',
+        icon: '🏘️',
+        mode: 'instant',
+        view: { control: 'overlay', value: 'structures' },
+      },
+      {
+        id: 'population_map',
+        label: 'people',
+        icon: '👥',
+        mode: 'instant',
+        view: { control: 'overlay', value: 'density' },
+      },
+      {
+        id: 'hazard_map',
+        label: 'danger',
+        icon: '⚔️',
+        mode: 'instant',
+        view: { control: 'overlay', value: 'hazard' },
+      },
+      {
+        id: 'routes_map',
+        label: 'routes',
+        icon: '〰️',
+        mode: 'instant',
+        view: { control: 'overlay', value: 'trails' },
+      },
+      {
+        id: 'migration_map',
+        label: 'history',
+        icon: '🧭',
+        mode: 'instant',
+        view: { control: 'flag', value: 'history' },
       },
     ],
   },

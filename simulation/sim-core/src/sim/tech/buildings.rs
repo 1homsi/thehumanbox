@@ -1,6 +1,8 @@
 use crate::sim::era::Era;
 use serde::{Deserialize, Serialize};
 
+pub const REPAIR_ACTIVITY_TICKS: u64 = 40;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum BuildingKind {
     Hut,
@@ -845,6 +847,20 @@ pub struct Building {
     pub occupants: Vec<String>,
     pub built_at_tick: u64,
     pub condition: f32,
+    /// Structural damage is separate from construction progress. `0.0` is
+    /// intact and `1.0` is destroyed; lowering `condition` would incorrectly
+    /// turn a damaged building back into a construction site and replay its
+    /// completion rewards.
+    #[serde(default)]
+    pub damage: f32,
+    /// Ruins stay non-operational until repairs cross the rebuild threshold.
+    /// This prevents a single repair action from instantly restoring a city.
+    #[serde(default)]
+    pub ruined_at_tick: Option<u64>,
+    #[serde(default)]
+    pub last_damage_tick: Option<u64>,
+    #[serde(default)]
+    pub last_repair_tick: Option<u64>,
     /// True only for ambient settlement scenery. Decorative buildings
     /// may be rotated out to keep long-running worlds fast; functional
     /// buildings and wonders are permanent world history.
@@ -863,6 +879,10 @@ impl Building {
             occupants: Vec::new(),
             built_at_tick: tick,
             condition: 0.0,
+            damage: 0.0,
+            ruined_at_tick: None,
+            last_damage_tick: None,
+            last_repair_tick: None,
             decorative: false,
         }
     }
@@ -871,10 +891,40 @@ impl Building {
         self.condition >= 1.0
     }
 
+    pub fn damage_fraction(&self) -> f32 {
+        if self.damage.is_finite() {
+            self.damage.clamp(0.0, 1.0)
+        } else {
+            0.0
+        }
+    }
+
+    pub fn integrity(&self) -> f32 {
+        1.0 - self.damage_fraction()
+    }
+
+    pub fn is_damaged(&self) -> bool {
+        self.damage_fraction() > 0.001
+    }
+
+    pub fn is_ruined(&self) -> bool {
+        self.ruined_at_tick.is_some() || self.damage_fraction() >= 1.0
+    }
+
+    pub fn is_repairing_at(&self, tick: u64) -> bool {
+        !self.decorative
+            && self.is_complete()
+            && self.is_damaged()
+            && self.last_repair_tick.is_some_and(|repair_tick| {
+                repair_tick >= self.last_damage_tick.unwrap_or(0)
+                    && tick.saturating_sub(repair_tick) <= REPAIR_ACTIVITY_TICKS
+            })
+    }
+
     /// Only constructed, functional buildings may influence organisms or
     /// civilization systems. Decorative props remain visual world detail.
     pub fn is_operational(&self) -> bool {
-        !self.decorative && self.is_complete()
+        !self.decorative && self.is_complete() && !self.is_ruined()
     }
 
     pub fn footprint(&self) -> (u8, u8) {
@@ -981,8 +1031,49 @@ mod tests {
 
         building.condition = 1.0;
         assert!(building.is_operational());
+        building.damage = 1.0;
+        building.ruined_at_tick = Some(20);
+        assert!(building.is_complete());
+        assert!(building.is_ruined());
+        assert!(!building.is_operational());
         building.decorative = true;
         assert!(!building.is_operational());
+    }
+
+    #[test]
+    fn older_building_json_migrates_as_healthy() {
+        let building = Building::new(1, BuildingKind::House, 2, 3, Some("lineage".into()), 10);
+        let mut value = serde_json::to_value(building).unwrap();
+        let object = value.as_object_mut().unwrap();
+        object.remove("damage");
+        object.remove("ruined_at_tick");
+        object.remove("last_damage_tick");
+        object.remove("last_repair_tick");
+
+        let restored: Building = serde_json::from_value(value).unwrap();
+        assert_eq!(restored.damage_fraction(), 0.0);
+        assert!(!restored.is_ruined());
+        assert_eq!(restored.integrity(), 1.0);
+    }
+
+    #[test]
+    fn repairing_requires_a_completed_site_and_the_latest_activity_to_be_repair() {
+        let mut building = Building::new(1, BuildingKind::House, 2, 3, Some("lineage".into()), 10);
+        building.condition = 1.0;
+        building.damage = 0.5;
+        building.last_damage_tick = Some(15);
+        building.last_repair_tick = Some(20);
+        assert!(building.is_repairing_at(20 + REPAIR_ACTIVITY_TICKS));
+        assert!(!building.is_repairing_at(21 + REPAIR_ACTIVITY_TICKS));
+
+        building.last_damage_tick = Some(21);
+        assert!(!building.is_repairing_at(22));
+        building.last_repair_tick = Some(22);
+        building.condition = 0.5;
+        assert!(!building.is_repairing_at(22));
+        building.condition = 1.0;
+        building.decorative = true;
+        assert!(!building.is_repairing_at(22));
     }
 
     #[test]

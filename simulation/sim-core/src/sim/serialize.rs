@@ -430,22 +430,6 @@ impl Simulation {
                     serde_json::Value::Array(era_progress_json),
                 );
 
-                let buildings_json: Vec<serde_json::Value> = self
-                    .buildings
-                    .iter()
-                    .map(|b| {
-                        json!({
-                            "id": b.id, "kind": b.kind.name(), "x": b.x, "y": b.y,
-                            "lineage_id": b.owner_lineage.clone().unwrap_or_default(),
-                            "condition": b.condition,
-                            "fw": b.kind.footprint().0,
-                            "fh": b.kind.footprint().1,
-                            "function": format!("{:?}", b.kind.function()).to_lowercase(),
-                        })
-                    })
-                    .collect();
-                obj.insert("buildings".to_string(), serde_json::Value::Array(buildings_json));
-
                 let farms_json: Vec<serde_json::Value> = self
                     .farms
                     .iter()
@@ -653,6 +637,40 @@ impl Simulation {
                 );
             }
         }
+        let buildings_changed = self.building_state_revision != self.serialized_building_state_revision;
+        if include_cold || force_full || buildings_changed {
+            if let Some(obj) = payload.as_object_mut() {
+                let buildings_json: Vec<serde_json::Value> = self
+                    .buildings
+                    .iter()
+                    .map(|b| {
+                        json!({
+                            "id": b.id,
+                            "kind": b.kind.name(),
+                            "x": b.x,
+                            "y": b.y,
+                            "lineage_id": b.owner_lineage.clone().unwrap_or_default(),
+                            // `condition` is retained for older clients. It is
+                            // construction progress, not structural health.
+                            "condition": b.condition,
+                            "construction_progress": b.condition,
+                            "damage": b.damage_fraction(),
+                            "integrity": b.integrity(),
+                            "ruined": b.is_ruined(),
+                            "repairing": b.is_repairing_at(self.tick_count),
+                            "ruined_at_tick": b.ruined_at_tick,
+                            "last_damage_tick": b.last_damage_tick,
+                            "last_repair_tick": b.last_repair_tick,
+                            "fw": b.kind.footprint().0,
+                            "fh": b.kind.footprint().1,
+                            "function": format!("{:?}", b.kind.function()).to_lowercase(),
+                        })
+                    })
+                    .collect();
+                obj.insert("buildings".to_string(), serde_json::Value::Array(buildings_json));
+                self.serialized_building_state_revision = self.building_state_revision;
+            }
+        }
         payload
     }
 }
@@ -710,6 +728,57 @@ mod schema_tests {
         for key in &["kind", "intensity", "wind_x", "wind_y"] {
             assert!(weather.contains_key(*key), "weather missing key `{}`", key);
         }
+    }
+
+    #[test]
+    fn building_wire_contract_separates_construction_from_damage() {
+        use crate::sim::buildings::{Building, BuildingKind};
+
+        let mut sim = Simulation::new(420);
+        sim.buildings.clear();
+        let mut building = Building::new(9, BuildingKind::House, 40, 41, Some("wire".into()), 12);
+        building.condition = 1.0;
+        building.damage = 0.40;
+        building.ruined_at_tick = Some(55);
+        building.last_damage_tick = Some(56);
+        building.last_repair_tick = Some(57);
+        sim.buildings.push(building);
+        sim.tick_count = 58;
+
+        let payload = sim.state_json();
+        let building = payload["buildings"][0].as_object().expect("building object");
+
+        assert_eq!(building["condition"].as_f64(), Some(1.0));
+        assert_eq!(building["construction_progress"].as_f64(), Some(1.0));
+        assert!((building["damage"].as_f64().unwrap() - 0.40).abs() < 0.000_001);
+        assert!((building["integrity"].as_f64().unwrap() - 0.60).abs() < 0.000_001);
+        assert_eq!(building["ruined"].as_bool(), Some(true));
+        assert_eq!(building["repairing"].as_bool(), Some(true));
+        assert_eq!(building["ruined_at_tick"].as_u64(), Some(55));
+        assert_eq!(building["last_damage_tick"].as_u64(), Some(56));
+        assert_eq!(building["last_repair_tick"].as_u64(), Some(57));
+    }
+
+    #[test]
+    fn incremental_payload_only_resends_buildings_after_state_changes() {
+        let mut sim = Simulation::new(421);
+        sim.tick_count = 5;
+
+        let initial = sim.state_json_incremental();
+        assert!(
+            initial.get("buildings").is_none(),
+            "unchanged building state should stay off the hot wire"
+        );
+
+        sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
+        let changed = sim.state_json_incremental();
+        assert!(changed["buildings"].is_array());
+
+        let unchanged = sim.state_json_incremental();
+        assert!(
+            unchanged.get("buildings").is_none(),
+            "building state should only be sent once per revision"
+        );
     }
 
     #[test]
@@ -807,7 +876,7 @@ mod schema_tests {
     }
 
     #[test]
-    fn full_payload_exposes_only_active_player_guidance() {
+    fn every_payload_exposes_only_active_player_guidance() {
         let mut sim = Simulation::new(43);
         let lid = sim
             .organisms
@@ -859,6 +928,13 @@ mod schema_tests {
         assert_eq!(history[0]["lineage_id"].as_str(), Some(lid.as_str()));
         assert_eq!(history[0]["strategy"].as_str(), Some("explore"));
         assert_eq!(history[0]["outcome"].as_str(), Some("completed"));
+
+        let incremental = sim.state_json_incremental();
+        let strategies = incremental["lineage_strategies"].as_object().unwrap();
+        assert_eq!(strategies[&lid]["strategy"].as_str(), Some("trade"));
+        assert!(!strategies.contains_key("expired"));
+        let history = incremental["lineage_strategy_history"].as_array().unwrap();
+        assert_eq!(history.len(), 1);
     }
 
     #[test]

@@ -1,6 +1,6 @@
-export type WorldSource = 'remote' | 'wasm'
-export type PlayerWorldKind = 'local' | 'shared'
-export type DesktopWorldMode = 'local' | 'remote' | null | undefined
+export type WorldSource = 'native' | 'wasm'
+export type PlayerWorldKind = 'local'
+export type DesktopWorldMode = 'local' | null | undefined
 
 const SOURCE_KEY = 'thb-world-source'
 const SEED_KEY = 'thb-wasm-seed'
@@ -10,7 +10,7 @@ export const LOCAL_WORLD_CHECKPOINT_EVENT = 'thb:local-world-checkpoint'
 export const LOCAL_WORLD_RELOAD_EVENT = 'thb:local-world-safe-reload'
 export const OWN_WORLD_ID = 'browser-own'
 
-export type LocalWorldReloadOperation = 'reload' | 'source-switch' | 'reset' | 'recovery'
+export type LocalWorldReloadOperation = 'reload' | 'reset' | 'recovery'
 
 export interface LocalWorldReloadDetail {
   operation: LocalWorldReloadOperation
@@ -59,14 +59,10 @@ function restoreLocalWorldRequestSnapshot(snapshot: LocalWorldRequestSnapshot): 
 }
 
 export function resolveWorldSource(stored: string | null, desktop: boolean): WorldSource {
-  if (stored === 'remote') return 'remote'
-  if (stored === 'wasm') return 'wasm'
-
-  // The desktop renderer talks to the native simulation selected in
-  // Desktop Settings (local by default). The standalone web app starts
-  // a private in-browser world and never contacts the shared server
-  // unless the player explicitly opts into it.
-  return desktop ? 'remote' : 'wasm'
+  void stored
+  // Electron talks only to its bundled native simulation. A standalone
+  // browser always runs the simulation worker and ignores legacy preferences.
+  return desktop ? 'native' : 'wasm'
 }
 
 export function resolvePlayerWorldKind(
@@ -78,27 +74,13 @@ export function resolvePlayerWorldKind(
     fellBackToLocal?: boolean
   },
 ): PlayerWorldKind {
-  if (source === 'wasm' || options.fellBackToLocal) return 'local'
-
-  // A browser `remote` source is always the explicitly selected Shared World.
-  // Localhost can be a development server, so it must not change that identity.
-  if (!options.desktop) return 'shared'
-
-  // Desktop Settings is authoritative once loaded. Before it resolves, the
-  // bundled native API is local while an externally configured API is shared.
-  if (options.desktopMode === 'local') return 'local'
-  if (options.desktopMode === 'remote') return 'shared'
-  return options.localServer ? 'local' : 'shared'
-}
-
-export function shouldShowIdleResume(idleParked: boolean, localRuntime: boolean): boolean {
-  return idleParked && !localRuntime
+  void source
+  void options
+  return 'local'
 }
 
 export function shouldUseSimulationApi(source: WorldSource): boolean {
-  // Desktop's normal `remote` source is its native local API. An explicit
-  // WASM source always gets details from that same in-browser simulation.
-  return source === 'remote'
+  return source === 'native'
 }
 
 export function getWorldSource(): WorldSource {
@@ -110,15 +92,10 @@ export function getWorldSource(): WorldSource {
   }
 }
 
-export function shouldCheckpointSourceSwitch(current: WorldSource, next: WorldSource): boolean {
-  return current === 'wasm' && next === 'remote'
-}
-
 /**
  * Give an active browser-local worker the first chance to durably save and
- * release its Web Lock. Remote/native pages have no listener and reload
- * immediately. This also catches temporary WASM fallback worlds whose stored
- * source still says `remote`.
+ * release its Web Lock. Native pages have no listener and reload immediately.
+ * This also catches temporary WASM fallback worlds.
  */
 export function reloadAppSafely(options: AppReloadOptions = {}): boolean {
   const detail: LocalWorldReloadDetail = {
@@ -143,36 +120,6 @@ export function reloadAppSafely(options: AppReloadOptions = {}): boolean {
 
   window.location.reload()
   return true
-}
-
-export function setWorldSourceAndReload(next: WorldSource): boolean {
-  const current = getWorldSource()
-  let previous: string | null = null
-  try {
-    previous = window.localStorage.getItem(SOURCE_KEY)
-    window.localStorage.setItem(SOURCE_KEY, next)
-  } catch {
-    window.alert('Your browser could not save the play-mode choice. The current world was left open safely.')
-    return false
-  }
-  if (shouldCheckpointSourceSwitch(current, next)) {
-    const rollback = () => {
-      try {
-        if (previous === null) window.localStorage.removeItem(SOURCE_KEY)
-        else window.localStorage.setItem(SOURCE_KEY, previous)
-      } catch {
-        /* noop */
-      }
-    }
-    return reloadAppSafely({
-      operation: 'source-switch',
-      onFailure: rollback,
-      failureMessage: 'could not checkpoint the current world; going online was cancelled safely',
-      requireLocalWorld: true,
-      unavailableMessage: 'The local world is still loading. Wait a moment, then try going online again.',
-    })
-  }
-  return reloadAppSafely()
 }
 
 export function getOwnWorldSeed(): string {
