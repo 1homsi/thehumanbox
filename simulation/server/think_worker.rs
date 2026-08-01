@@ -973,7 +973,7 @@ pub async fn think_worker(
         let (prompt, max_tokens) = build_prompt(&trigger);
         if prompt.is_empty() {
             // Unknown scenario — fall back to local
-            let mut rng = rand::rngs::SmallRng::seed_from_u64(deterministic_think_seed(&trigger, attempt));
+            let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(deterministic_think_seed(&trigger, attempt));
             if let Some(local) = local_think::resolve(&trigger, &mut rng) {
                 if let Some(r) = build_result_from_local(&trigger, local) {
                     push_result(&results, r).await;
@@ -1005,7 +1005,7 @@ pub async fn think_worker(
                     );
                     stats.note_think_local_fallback();
                     let mut rng =
-                        rand::rngs::SmallRng::seed_from_u64(deterministic_think_seed(&trigger, attempt));
+                        rand_chacha::ChaCha8Rng::seed_from_u64(deterministic_think_seed(&trigger, attempt));
                     if let Some(local) = local_think::resolve(&trigger, &mut rng) {
                         if let Some(r) = build_result_from_local(&trigger, local) {
                             push_result(&results, r).await;
@@ -1061,8 +1061,9 @@ pub async fn think_worker(
                     } else {
                         tracing::info!(target: "think", "llm {} - falling back to local for {}", status, trigger.org_name);
                         stats.note_think_local_fallback();
-                        let mut rng =
-                            rand::rngs::SmallRng::seed_from_u64(deterministic_think_seed(&trigger, attempt));
+                        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(deterministic_think_seed(
+                            &trigger, attempt,
+                        ));
                         if let Some(local) = local_think::resolve(&trigger, &mut rng) {
                             if let Some(r) = build_result_from_local(&trigger, local) {
                                 push_result(&results, r).await;
@@ -1084,7 +1085,7 @@ pub async fn think_worker(
                         status, trigger.org_name, body_safe);
                     stats.note_think_local_fallback();
                     let mut rng =
-                        rand::rngs::SmallRng::seed_from_u64(deterministic_think_seed(&trigger, attempt));
+                        rand_chacha::ChaCha8Rng::seed_from_u64(deterministic_think_seed(&trigger, attempt));
                     if let Some(local) = local_think::resolve(&trigger, &mut rng) {
                         if let Some(r) = build_result_from_local(&trigger, local) {
                             push_result(&results, r).await;
@@ -1106,7 +1107,7 @@ pub async fn think_worker(
                     trigger.org_name, trigger.scenario, e);
                 // Network error → local fallback immediately (no retry)
                 let mut rng =
-                    rand::rngs::SmallRng::seed_from_u64(deterministic_think_seed(&trigger, attempt));
+                    rand_chacha::ChaCha8Rng::seed_from_u64(deterministic_think_seed(&trigger, attempt));
                 if let Some(local) = local_think::resolve(&trigger, &mut rng) {
                     if let Some(r) = build_result_from_local(&trigger, local) {
                         push_result(&results, r).await;
@@ -1118,7 +1119,7 @@ pub async fn think_worker(
 
         if response.is_empty() {
             // Empty response → local fallback
-            let mut rng = rand::rngs::SmallRng::seed_from_u64(deterministic_think_seed(&trigger, attempt));
+            let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(deterministic_think_seed(&trigger, attempt));
             if let Some(local) = local_think::resolve(&trigger, &mut rng) {
                 if let Some(r) = build_result_from_local(&trigger, local) {
                     push_result(&results, r).await;
@@ -1131,7 +1132,7 @@ pub async fn think_worker(
             push_result(&results, result).await;
         } else {
             // Parse failure → local fallback
-            let mut rng = rand::rngs::SmallRng::seed_from_u64(deterministic_think_seed(&trigger, attempt));
+            let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(deterministic_think_seed(&trigger, attempt));
             if let Some(local) = local_think::resolve(&trigger, &mut rng) {
                 if let Some(r) = build_result_from_local(&trigger, local) {
                     push_result(&results, r).await;

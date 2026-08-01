@@ -674,7 +674,7 @@ fn org_from_save(s: OrgSave, save_version: u32) -> Organism {
         o.is_leader = s.is_leader;
     }
     if needs_vocab {
-        let mut voc_rng = rand::rngs::SmallRng::seed_from_u64(vocab_seed);
+        let mut voc_rng = rand_chacha::ChaCha8Rng::seed_from_u64(vocab_seed);
         o.vocabulary = crate::organism::vocabulary::Vocabulary::generate(&mut voc_rng);
     } else {
         o.vocabulary = saved_vocab;
@@ -1031,8 +1031,8 @@ impl Simulation {
             .map(|saved| org_from_save(saved, save_version))
             .collect();
         {
-            use rand::Rng;
-            let mut rng = rand::rngs::SmallRng::seed_from_u64(seed ^ tick ^ 0xdeadbeef);
+            use rand::RngExt;
+            let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(seed ^ tick ^ 0xdeadbeef);
             for org in &mut organisms {
                 if is_legacy_save {
                     if tick.saturating_sub(org.last_think_tick) >= 4000 {
@@ -1169,7 +1169,7 @@ impl Simulation {
                     [state.sex_words[0].clone(), state.sex_words[1].clone()]
                 } else {
                     use crate::organism::vocabulary::gen_phoneme_word;
-                    let mut word_rng = rand::rngs::SmallRng::seed_from_u64(seed.wrapping_add(0xc0ffee));
+                    let mut word_rng = rand_chacha::ChaCha8Rng::seed_from_u64(seed.wrapping_add(0xc0ffee));
                     let w0 = gen_phoneme_word(&mut word_rng);
                     let mut w1 = gen_phoneme_word(&mut word_rng);
                     while w1 == w0 {

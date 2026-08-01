@@ -1090,7 +1090,7 @@ fn save_result_writes_schema_version_and_cleans_temp_file() {
 
 #[test]
 fn save_load_preserves_social_continuity_and_rng_stream() {
-    use rand::Rng;
+    use rand::RngExt;
 
     let mut path = std::env::temp_dir();
     path.push(format!("thehumanbox-continuity-test-{}.json", std::process::id()));

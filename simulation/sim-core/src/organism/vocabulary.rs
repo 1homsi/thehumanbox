@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::{Rng, RngExt};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::sync::OnceLock;

@@ -16,7 +16,7 @@ use crate::world::{
     grid::{TrailKind, WorldGrid, HEIGHT, WIDTH},
     tiles::Tile,
 };
-use rand::{Rng, SeedableRng};
+use rand::{RngExt, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -740,7 +740,7 @@ impl Simulation {
         let sex_words = {
             use crate::organism::vocabulary::gen_phoneme_word;
             use rand::SeedableRng;
-            let mut word_rng = rand::rngs::SmallRng::seed_from_u64(seed.wrapping_add(0xc0ffee));
+            let mut word_rng = rand_chacha::ChaCha8Rng::seed_from_u64(seed.wrapping_add(0xc0ffee));
             let w0 = gen_phoneme_word(&mut word_rng);
             let mut w1 = gen_phoneme_word(&mut word_rng);
             while w1 == w0 {

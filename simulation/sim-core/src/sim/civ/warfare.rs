@@ -419,7 +419,7 @@ pub fn try_spawn_raids(
     active_battles: &[Battle],
     events: &mut std::collections::VecDeque<crate::sim::simulation::Event>,
 ) -> Vec<Battle> {
-    use rand::Rng;
+    use rand::RngExt;
     let mut out = Vec::new();
     if !tick.is_multiple_of(RAID_CHECK_INTERVAL) {
         return out;
@@ -555,7 +555,7 @@ pub fn try_spawn_border_wars(
     active_battles: &[Battle],
     events: &mut std::collections::VecDeque<crate::sim::simulation::Event>,
 ) -> Vec<Battle> {
-    use rand::Rng;
+    use rand::RngExt;
     let mut out = Vec::new();
     if tick == 0 || !tick.is_multiple_of(BORDER_WAR_CHECK_INTERVAL) {
         return out;
@@ -781,7 +781,7 @@ pub fn tick_battles(
     history_combat_deaths: &mut u64,
     institutions: BattleInstitutions<'_>,
 ) {
-    use rand::Rng;
+    use rand::RngExt;
     let mut signed: Vec<(String, String, TreatyKind)> = Vec::new();
     for battle in battles.iter_mut() {
         if battle.ended_tick.is_some() {

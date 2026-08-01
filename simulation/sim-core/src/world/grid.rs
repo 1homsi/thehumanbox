@@ -1,5 +1,5 @@
 use super::tiles::{Biome, Tile};
-use rand::Rng;
+use rand::{Rng, RngExt};
 use serde::Serialize;
 
 pub const WIDTH: usize = 600;

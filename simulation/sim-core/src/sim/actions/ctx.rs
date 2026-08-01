@@ -148,7 +148,7 @@ impl<'a> ActionCtx<'a> {
     }
 
     pub fn chance(&mut self, p: f32) -> bool {
-        use rand::Rng;
+        use rand::RngExt;
         self.sim.rng.random::<f32>() < p
     }
 

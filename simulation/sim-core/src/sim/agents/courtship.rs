@@ -1,5 +1,5 @@
 use crate::organism::organism::{ConversationEntry, Organism};
-use rand::Rng;
+use rand::{Rng, RngExt};
 
 fn concept_gloss(concept: &str) -> &'static str {
     match concept {

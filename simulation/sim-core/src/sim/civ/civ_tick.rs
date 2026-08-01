@@ -12,7 +12,7 @@ use crate::sim::simulation::Simulation;
 use crate::sim::spatial::SpatialIndex;
 use crate::sim::world_events::push_event;
 use crate::sim::world_milestones::Milestone;
-use rand::Rng;
+use rand::RngExt;
 use std::collections::{HashMap, HashSet};
 
 pub fn tick_civ(sim: &mut Simulation, spatial: Option<&SpatialIndex>) {
@@ -2203,7 +2203,7 @@ fn tick_plague_watch(sim: &mut Simulation) {
 fn tick_deforestation(sim: &mut Simulation) {
     use crate::world::grid::WorldGrid;
     use crate::world::tiles::Biome;
-    use rand::Rng;
+    use rand::RngExt;
     let alive_lineages: HashSet<String> = sim
         .organisms
         .iter()
@@ -2442,7 +2442,7 @@ fn tick_leader_influence(sim: &mut Simulation) {
 }
 
 fn pick_leaders(sim: &mut Simulation, lineages: &[String]) {
-    use rand::Rng;
+    use rand::RngExt;
     let mut announcements: Vec<(u64, String)> = Vec::new();
     let tick = sim.tick_count;
 
@@ -2572,7 +2572,7 @@ fn pick_leaders(sim: &mut Simulation, lineages: &[String]) {
 
 fn tick_religion_schism(sim: &mut Simulation) {
     use crate::sim::actions::religion_expanded::{create_religion, recount_religion_adherents};
-    use rand::Rng;
+    use rand::RngExt;
     let mut counts: HashMap<String, u32> = HashMap::new();
     for o in sim.organisms.iter().filter(|o| o.alive) {
         if let Some(rid) = o.religion_id.as_ref() {

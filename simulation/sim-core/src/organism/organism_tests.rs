@@ -1,6 +1,6 @@
 use super::*;
 use rand::rngs::StdRng;
-use rand::Rng;
+use rand::RngExt;
 use rand::SeedableRng;
 
 fn max_q_for_actions_reference(row: &QRow, actions: &[usize]) -> f32 {

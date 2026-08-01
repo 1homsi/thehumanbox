@@ -1,5 +1,5 @@
 use crate::sim::simulation::ThinkTrigger;
-use rand::Rng;
+use rand::{Rng, RngExt};
 
 fn weighted_pick<'a>(rng: &mut impl Rng, options: &[(&'a str, f32)]) -> &'a str {
     let total: f32 = options.iter().map(|(_, w)| w.max(0.0)).sum();

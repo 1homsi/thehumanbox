@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::RngExt;
 
 use crate::sim::config::{lineage_overcrowding_threshold, DEFAULT_MAX_POPULATION};
 use crate::sim::simulation::Simulation;

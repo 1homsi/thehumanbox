@@ -1,5 +1,5 @@
 use super::organism::Organism;
-use rand::Rng;
+use rand::{Rng, RngExt};
 use std::collections::HashSet;
 
 // ─────────────────────────────────────────────────────────────────────────────
