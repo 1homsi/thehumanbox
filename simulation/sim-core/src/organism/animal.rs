@@ -2,7 +2,7 @@ use crate::world::{
     grid::{WorldGrid, HEIGHT, WIDTH},
     tiles::Tile,
 };
-use rand::Rng;
+use rand::{Rng, RngExt};
 use serde::Serialize;
 
 const DIRS: [(i32, i32); 8] = [
@@ -296,7 +296,7 @@ mod tests {
         grid.set(121, 120, Tile::Food);
         let mut animal = Animal::new(1, 120.0, 120.0, AnimalKind::Rabbit);
         animal.energy = 0.3;
-        let mut rng = rand::rngs::SmallRng::seed_from_u64(3);
+        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(3);
 
         animal.tick(&grid, &[], &[], &mut rng);
 

@@ -11,7 +11,7 @@ use crate::world::{
     grid::WorldGrid,
     tiles::{Biome, Tile},
 };
-use rand::Rng;
+use rand::{Rng, RngExt};
 use uuid::Uuid;
 
 pub fn is_pending_birth(organism: &Organism) -> bool {

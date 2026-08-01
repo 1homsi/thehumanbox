@@ -1,5 +1,5 @@
 use crate::world::{grid::WorldGrid, tiles::Tile};
-use rand::Rng;
+use rand::{Rng, RngExt};
 use std::collections::HashSet;
 
 pub struct PhysicsEngine {

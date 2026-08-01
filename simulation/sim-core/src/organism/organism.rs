@@ -5,7 +5,7 @@ use crate::world::{
     grid::{TrailKind, WorldGrid},
     tiles::Tile,
 };
-use rand::Rng;
+use rand::{Rng, RngExt};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 use std::collections::{HashMap, HashSet, VecDeque};

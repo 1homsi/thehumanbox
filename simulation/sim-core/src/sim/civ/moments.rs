@@ -1,7 +1,7 @@
 use crate::sim::age_stage::AgeStage;
 use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
-use rand::Rng;
+use rand::RngExt;
 use std::collections::{HashMap, HashSet};
 
 pub(super) fn tick_mood(sim: &mut Simulation) {
@@ -759,7 +759,7 @@ pub(super) fn tick_storyteller(sim: &mut Simulation) {
 }
 
 pub(super) fn tick_separations(sim: &mut Simulation) {
-    use rand::Rng;
+    use rand::RngExt;
     let tick = sim.tick_count;
     let mut by_id: HashMap<String, usize> = HashMap::new();
     for (i, o) in sim.organisms.iter().enumerate() {

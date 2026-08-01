@@ -5,7 +5,7 @@ use crate::world::{
     grid::{WorldGrid, HEIGHT, WIDTH},
     tiles::{Biome, Tile},
 };
-use rand::Rng;
+use rand::{Rng, RngExt};
 
 pub struct WeatherState {
     pub kind: u8,

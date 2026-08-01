@@ -1,5 +1,5 @@
 use super::super::ctx::ActionCtx;
-use rand::Rng;
+use rand::RngExt;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
     ctx.think("experimenting");

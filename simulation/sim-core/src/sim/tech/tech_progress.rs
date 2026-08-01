@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::RngExt;
 use rand_chacha::ChaCha8Rng;
 use std::collections::{HashMap, HashSet, VecDeque};
 

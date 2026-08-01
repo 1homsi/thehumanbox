@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::RngExt;
 use uuid::Uuid;
 
 use crate::organism::organism::{apply_sex_traits, generate_name, generate_tribe_name, Organism, Sex};
