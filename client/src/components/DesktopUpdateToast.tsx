@@ -3,9 +3,7 @@ import { getDesktop } from '../lib/desktop'
 import type { UpdateInfo } from '../lib/desktop'
 
 type State =
-  | { kind: 'idle' }
-  | { kind: 'available'; info: UpdateInfo }
-  | { kind: 'downloaded'; info: UpdateInfo }
+  { kind: 'idle' } | { kind: 'available'; info: UpdateInfo } | { kind: 'downloaded'; info: UpdateInfo }
 
 export function DesktopUpdateToast() {
   const desktop = getDesktop()

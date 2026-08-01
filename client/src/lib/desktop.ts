@@ -34,12 +34,7 @@ export interface UpdateInfo {
 }
 
 export type UpdateCheckStatus =
-  | 'checking'
-  | 'available'
-  | 'downloaded'
-  | 'up-to-date'
-  | 'unsupported'
-  | 'error'
+  'checking' | 'available' | 'downloaded' | 'up-to-date' | 'unsupported' | 'error'
 
 export interface UpdateCheckResult {
   status: UpdateCheckStatus

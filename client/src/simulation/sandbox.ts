@@ -36,8 +36,7 @@ export type SandboxOverlay = 'density' | 'hazard' | 'fertility' | 'structures' |
 export type SandboxViewFlag = 'territory' | 'history'
 
 export type SandboxViewControl =
-  | { control: 'overlay'; value: SandboxOverlay }
-  | { control: 'flag'; value: SandboxViewFlag }
+  { control: 'overlay'; value: SandboxOverlay } | { control: 'flag'; value: SandboxViewFlag }
 
 export interface SandboxTool {
   id: string
