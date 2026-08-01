@@ -366,14 +366,67 @@ export function buildingFootprint(kind: string): [number, number] {
   return k ?? [1, 1]
 }
 
+function positiveTileSpan(value: number | undefined, fallback: number): number {
+  const resolved = Number.isFinite(value) ? (value as number) : fallback
+  return Math.max(1, Math.floor(resolved))
+}
+
 export function buildingEmoji(kind: string): string {
   return BUILDING_EMOJI[kind] ?? BUILDING_EMOJI[normKind(kind)] ?? '\u{1F3DA}\u{FE0F}'
 }
 
 export type BuildingLike = Pick<
   Building,
-  'id' | 'kind' | 'x' | 'y' | 'condition' | 'damage' | 'integrity' | 'ruined' | 'repairing'
+  | 'id'
+  | 'kind'
+  | 'x'
+  | 'y'
+  | 'footprint'
+  | 'fw'
+  | 'fh'
+  | 'condition'
+  | 'damage'
+  | 'integrity'
+  | 'ruined'
+  | 'repairing'
 >
+
+/**
+ * Uses the footprint supplied by the simulation whenever possible. The local
+ * kind table only exists for legacy snapshots that predate serialized sizes.
+ */
+export function resolveBuildingFootprint(
+  building: Pick<BuildingLike, 'kind' | 'footprint' | 'fw' | 'fh'>,
+): [number, number] {
+  const fallback = buildingFootprint(building.kind)
+  if (building.footprint) {
+    return [
+      positiveTileSpan(building.footprint[0], fallback[0]),
+      positiveTileSpan(building.footprint[1], fallback[1]),
+    ]
+  }
+  if (building.fw !== undefined || building.fh !== undefined) {
+    return [positiveTileSpan(building.fw, fallback[0]), positiveTileSpan(building.fh, fallback[1])]
+  }
+  return [positiveTileSpan(fallback[0], 1), positiveTileSpan(fallback[1], 1)]
+}
+
+/** Bottom edge used for painter-style depth sorting. */
+export function buildingDepthKey(building: BuildingLike): number {
+  const [, height] = resolveBuildingFootprint(building)
+  return (Number.isFinite(building.y) ? building.y : 0) + height
+}
+
+/** Stable bottom-edge ordering for buildings that share a depth row. */
+export function compareBuildingsByDepth(a: BuildingLike, b: BuildingLike): number {
+  return (
+    buildingDepthKey(a) - buildingDepthKey(b) ||
+    (Number.isFinite(a.x) ? a.x : 0) - (Number.isFinite(b.x) ? b.x : 0) ||
+    a.id - b.id
+  )
+}
+
+export type BuildingVisualDetail = 'overview' | 'standard' | 'detail'
 
 const WALL_COLORS: Record<string, string> = {
   Hut: '#8a6a44',
@@ -681,6 +734,227 @@ function visualHash(building: BuildingLike, salt: number): number {
   return (value >>> 0) / 4294967295
 }
 
+function drawPixelLine(
+  ctx: CanvasRenderingContext2D,
+  fromX: number,
+  fromY: number,
+  toX: number,
+  toY: number,
+  color: string,
+  size = 1,
+) {
+  let x = Math.round(fromX)
+  let y = Math.round(fromY)
+  const targetX = Math.round(toX)
+  const targetY = Math.round(toY)
+  const dx = Math.abs(targetX - x)
+  const sx = x < targetX ? 1 : -1
+  const dy = -Math.abs(targetY - y)
+  const sy = y < targetY ? 1 : -1
+  let error = dx + dy
+  const pixelSize = Math.max(1, Math.round(size))
+  const offset = Math.floor(pixelSize / 2)
+
+  while (true) {
+    ctx.fillStyle = color
+    ctx.fillRect(x - offset, y - offset, pixelSize, pixelSize)
+    if (x === targetX && y === targetY) break
+    const twiceError = error * 2
+    if (twiceError >= dy) {
+      error += dy
+      x += sx
+    }
+    if (twiceError <= dx) {
+      error += dx
+      y += sy
+    }
+  }
+}
+
+function drawBuildingShadow(
+  ctx: CanvasRenderingContext2D,
+  px: number,
+  py: number,
+  w: number,
+  h: number,
+  tileSize: number,
+) {
+  const x = Math.round(px)
+  const y = Math.round(py + h)
+  const width = Math.max(1, Math.round(w))
+  const outerInset = Math.min(Math.floor(width / 4), Math.max(1, Math.round(tileSize * 0.12)))
+  const innerInset = Math.min(Math.floor(width / 3), Math.max(2, Math.round(tileSize * 0.24)))
+
+  // Three hard-edged bands read as a ground shadow without blurring adjacent
+  // sprites or introducing sub-pixel filtering into the pixel-art layer.
+  ctx.fillStyle = 'rgba(15, 11, 9, 0.18)'
+  ctx.fillRect(x, y - 1, width, Math.max(2, Math.round(tileSize * 0.24)))
+  ctx.fillStyle = 'rgba(15, 11, 9, 0.28)'
+  ctx.fillRect(
+    x + outerInset,
+    y - 2,
+    Math.max(1, width - outerInset * 2),
+    Math.max(2, Math.round(tileSize * 0.18)),
+  )
+  ctx.fillStyle = 'rgba(15, 11, 9, 0.38)'
+  ctx.fillRect(
+    x + innerInset,
+    y - 2,
+    Math.max(1, width - innerInset * 2),
+    Math.max(1, Math.round(tileSize * 0.1)),
+  )
+}
+
+function drawProgressBar(
+  ctx: CanvasRenderingContext2D,
+  px: number,
+  py: number,
+  w: number,
+  tileSize: number,
+  progress: number,
+  color: string,
+) {
+  const x = Math.round(px)
+  const width = Math.max(3, Math.round(w))
+  const height = Math.max(3, Math.round(tileSize * 0.18))
+  const y = Math.round(py - Math.max(4, tileSize * 0.28))
+  ctx.fillStyle = 'rgba(18, 12, 10, 0.9)'
+  ctx.fillRect(x, y, width, height)
+  ctx.fillStyle = color
+  ctx.fillRect(
+    x + 1,
+    y + 1,
+    Math.max(0, Math.round((width - 2) * Math.max(0, Math.min(1, progress)))),
+    Math.max(1, height - 2),
+  )
+}
+
+function drawConstructionSite(
+  ctx: CanvasRenderingContext2D,
+  building: BuildingLike,
+  state: BuildingState,
+  px: number,
+  py: number,
+  w: number,
+  h: number,
+  tileSize: number,
+  detail: BuildingVisualDetail,
+) {
+  const progress = Math.max(0, Math.min(1, state.constructionProgress))
+  const x = Math.round(px)
+  const y = Math.round(py)
+  const width = Math.max(3, Math.round(w))
+  const height = Math.max(3, Math.round(h))
+  const groundY = y + height
+  const foundationHeight = Math.max(2, Math.round(tileSize * 0.2))
+  const foundationY = groundY - foundationHeight
+  const foundationProgress = Math.min(1, Math.max(0.12, progress / 0.2))
+  const foundationWidth = Math.max(2, Math.round(width * foundationProgress))
+  const foundationX = x + Math.floor((width - foundationWidth) / 2)
+
+  // Cleared earth and a foundation make even a zero-progress reservation
+  // distinguishable from an operational building.
+  ctx.fillStyle = '#493727'
+  ctx.fillRect(
+    x,
+    groundY - Math.max(2, Math.round(tileSize * 0.3)),
+    width,
+    Math.max(2, Math.round(tileSize * 0.3)),
+  )
+  ctx.fillStyle = '#30251d'
+  ctx.fillRect(foundationX - 1, foundationY - 1, foundationWidth + 2, foundationHeight + 2)
+  ctx.fillStyle = '#807566'
+  ctx.fillRect(foundationX, foundationY, foundationWidth, foundationHeight)
+  ctx.fillStyle = '#a59a87'
+  ctx.fillRect(foundationX, foundationY, foundationWidth, 1)
+
+  // Material stacks remain visible through the early build and disappear as
+  // the shell consumes them.
+  if (progress < 0.62) {
+    const stackWidth = Math.max(2, Math.min(5, Math.round(tileSize * 0.26)))
+    const stackX = x + 1 + Math.round(visualHash(building, 31) * Math.max(0, width - stackWidth - 2))
+    const stackY = groundY - foundationHeight - 2
+    ctx.fillStyle = '#4a2f1d'
+    ctx.fillRect(stackX, stackY, stackWidth, 2)
+    ctx.fillStyle = '#b07943'
+    ctx.fillRect(stackX, stackY - 1, stackWidth, 1)
+
+    const stoneX = x + width - Math.max(3, Math.round(tileSize * 0.3))
+    ctx.fillStyle = '#5c554d'
+    ctx.fillRect(stoneX, groundY - foundationHeight - 2, 3, 2)
+    ctx.fillStyle = '#81766a'
+    ctx.fillRect(stoneX + 1, groundY - foundationHeight - 3, 2, 1)
+  }
+
+  if (progress >= 0.16) {
+    const shellProgress = Math.min(1, (progress - 0.16) / 0.84)
+    const maximumShellHeight = Math.max(4, height - foundationHeight)
+    const shellHeight = Math.max(3, Math.round(maximumShellHeight * (0.18 + shellProgress * 0.82)))
+    const shellTop = foundationY - shellHeight
+    const frameColor = '#76502f'
+    const highlight = '#a87945'
+
+    // Unfinished masonry fills upward in discrete bands; exposed posts and
+    // cross-braces keep it visibly under construction even at 99%.
+    if (progress >= 0.36) {
+      const wallInset = Math.max(2, Math.round(tileSize * 0.14))
+      const wallTop = Math.round(
+        foundationY - shellHeight * Math.min(0.9, Math.max(0.15, (progress - 0.28) / 0.72)),
+      )
+      ctx.fillStyle = '#756c5d'
+      ctx.fillRect(
+        x + wallInset,
+        wallTop,
+        Math.max(1, width - wallInset * 2),
+        Math.max(1, foundationY - wallTop),
+      )
+      ctx.fillStyle = '#918676'
+      for (let row = wallTop; row < foundationY; row += 4) {
+        ctx.fillRect(x + wallInset, row, Math.max(1, width - wallInset * 2), 1)
+      }
+    }
+
+    const postWidth = Math.max(1, Math.round(tileSize * 0.1))
+    const postCount = Math.max(2, Math.min(5, Math.ceil(width / Math.max(8, tileSize))))
+    for (let i = 0; i < postCount; i++) {
+      const postX = Math.round(x + (i * (width - postWidth)) / Math.max(1, postCount - 1))
+      ctx.fillStyle = frameColor
+      ctx.fillRect(postX, shellTop, postWidth, foundationY - shellTop)
+      ctx.fillStyle = highlight
+      ctx.fillRect(postX, shellTop, 1, foundationY - shellTop)
+    }
+
+    const beamStep = Math.max(5, Math.round(tileSize * 0.42))
+    for (let beamY = foundationY - 2; beamY >= shellTop; beamY -= beamStep) {
+      ctx.fillStyle = frameColor
+      ctx.fillRect(x, beamY, width, Math.max(1, postWidth))
+    }
+    drawPixelLine(ctx, x, foundationY - 1, x + width - 1, shellTop, '#5d3c25')
+    drawPixelLine(ctx, x + width - 1, foundationY - 1, x, shellTop, '#5d3c25')
+
+    if (progress >= 0.78) {
+      const roofPeakY = Math.max(y, shellTop - Math.max(3, Math.round(tileSize * 0.28)))
+      drawPixelLine(ctx, x - 1, shellTop, x + Math.floor(width / 2), roofPeakY, frameColor, postWidth)
+      drawPixelLine(ctx, x + Math.floor(width / 2), roofPeakY, x + width, shellTop, frameColor, postWidth)
+    }
+
+    if (detail !== 'overview') {
+      const scaffoldOffset = Math.max(2, Math.round(tileSize * 0.15))
+      const scaffoldTop = Math.max(y, shellTop - 2)
+      ctx.fillStyle = '#c99a52'
+      ctx.fillRect(x - scaffoldOffset, scaffoldTop, 1, groundY - scaffoldTop)
+      ctx.fillRect(x + width + scaffoldOffset - 1, scaffoldTop, 1, groundY - scaffoldTop)
+      for (let row = groundY - 2; row >= scaffoldTop; row -= Math.max(5, Math.round(tileSize * 0.4))) {
+        ctx.fillRect(x - scaffoldOffset, row, width + scaffoldOffset * 2, 1)
+      }
+    }
+  }
+
+  if (detail === 'detail') {
+    drawProgressBar(ctx, px, py, w, tileSize, progress, '#e7b94f')
+  }
+}
+
 function drawRuinedBuilding(
   ctx: CanvasRenderingContext2D,
   building: BuildingLike,
@@ -690,14 +964,23 @@ function drawRuinedBuilding(
   w: number,
   h: number,
   tileSize: number,
+  detail: BuildingVisualDetail,
 ) {
   ctx.save()
 
-  // A collapsed, soot-black footprint replaces the intact silhouette.
+  const x = Math.round(px)
+  const y = Math.round(py)
+  const width = Math.max(3, Math.round(w))
+  const height = Math.max(3, Math.round(h))
+  const rubbleTop = y + Math.round(height * 0.48)
+  const rubbleBottom = y + height
+
+  // A stepped, soot-black footprint replaces the intact silhouette.
   ctx.fillStyle = 'rgba(24, 17, 14, 0.88)'
-  ctx.beginPath()
-  ctx.ellipse(px + w / 2, py + h * 0.78, w * 0.58, h * 0.34, 0, 0, Math.PI * 2)
-  ctx.fill()
+  ctx.fillRect(x, rubbleTop + 2, width, Math.max(1, rubbleBottom - rubbleTop - 2))
+  ctx.fillRect(x + 1, rubbleTop + 1, Math.max(1, width - 2), Math.max(1, rubbleBottom - rubbleTop))
+  ctx.fillStyle = 'rgba(44, 31, 25, 0.92)'
+  ctx.fillRect(x + 2, rubbleTop, Math.max(1, width - 4), Math.max(1, rubbleBottom - rubbleTop - 1))
 
   const rubbleCount = Math.min(12, 5 + Math.ceil((w + h) / Math.max(1, tileSize)))
   const rubbleColors = ['#51443a', '#66584b', '#3b312b', '#796652']
@@ -705,45 +988,42 @@ function drawRuinedBuilding(
     const rx = visualHash(building, i * 3 + 1)
     const ry = visualHash(building, i * 3 + 2)
     const rs = visualHash(building, i * 3 + 3)
-    const rw = Math.max(2, tileSize * (0.18 + rs * 0.25))
-    const rh = Math.max(2, tileSize * (0.12 + (1 - rs) * 0.18))
+    const rw = Math.max(2, Math.round(tileSize * (0.18 + rs * 0.25)))
+    const rh = Math.max(2, Math.round(tileSize * (0.12 + (1 - rs) * 0.18)))
+    const rubbleX = x + Math.round(rx * Math.max(0, width - rw))
+    const rubbleY = rubbleTop + Math.round(ry * Math.max(0, rubbleBottom - rubbleTop - rh))
     ctx.fillStyle = rubbleColors[i % rubbleColors.length]
-    ctx.fillRect(px + rx * Math.max(1, w - rw), py + h * (0.48 + ry * 0.42), rw, rh)
+    ctx.fillRect(rubbleX, rubbleY, rw, rh)
+    ctx.fillStyle = i % 2 === 0 ? '#8b755e' : '#443831'
+    ctx.fillRect(rubbleX, rubbleY, Math.max(1, rw - 1), 1)
   }
 
-  ctx.strokeStyle = '#2c1c16'
-  ctx.lineWidth = Math.max(2, tileSize * 0.13)
-  ctx.lineCap = 'round'
-  ctx.beginPath()
-  ctx.moveTo(px + w * 0.16, py + h * 0.32)
-  ctx.lineTo(px + w * 0.84, py + h * 0.82)
-  ctx.moveTo(px + w * 0.8, py + h * 0.28)
-  ctx.lineTo(px + w * 0.2, py + h * 0.84)
-  ctx.stroke()
+  drawPixelLine(ctx, x + width * 0.16, y + height * 0.32, x + width * 0.84, y + height * 0.82, '#2c1c16', 2)
+  drawPixelLine(ctx, x + width * 0.8, y + height * 0.28, x + width * 0.2, y + height * 0.84, '#2c1c16', 2)
 
-  if (state.isRepairing) {
-    ctx.strokeStyle = '#efc76d'
-    ctx.lineWidth = Math.max(1.5, tileSize * 0.09)
-    ctx.setLineDash([Math.max(2, tileSize * 0.22), Math.max(1, tileSize * 0.12)])
-    ctx.strokeRect(px - 1, py + h * 0.12, w + 2, h * 0.82)
-    ctx.setLineDash([])
-    ctx.beginPath()
-    ctx.moveTo(px + w * 0.2, py + h * 0.12)
-    ctx.lineTo(px + w * 0.2, py + h * 0.94)
-    ctx.moveTo(px + w * 0.8, py + h * 0.12)
-    ctx.lineTo(px + w * 0.8, py + h * 0.94)
-    ctx.stroke()
+  if (state.isRepairing && detail !== 'overview') {
+    const scaffoldTop = y + Math.max(2, Math.round(height * 0.12))
+    const left = x + Math.max(1, Math.round(width * 0.18))
+    const right = x + width - Math.max(2, Math.round(width * 0.18))
+    ctx.fillStyle = '#efc76d'
+    ctx.fillRect(left, scaffoldTop, 1, rubbleBottom - scaffoldTop)
+    ctx.fillRect(right, scaffoldTop, 1, rubbleBottom - scaffoldTop)
+    for (let row = scaffoldTop; row < rubbleBottom; row += Math.max(4, Math.round(tileSize * 0.35))) {
+      ctx.fillRect(left, row, Math.max(1, right - left + 1), 1)
+    }
   }
 
-  const label = state.isRepairing ? 'REBUILDING' : 'RUIN'
-  ctx.font = `bold ${Math.max(6, Math.min(9, tileSize * 0.5))}px monospace`
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'bottom'
-  ctx.lineWidth = 3
-  ctx.strokeStyle = 'rgba(20, 12, 9, 0.95)'
-  ctx.strokeText(label, px + w / 2, py + h * 0.4)
-  ctx.fillStyle = state.isRepairing ? '#ffd77f' : '#ff725e'
-  ctx.fillText(label, px + w / 2, py + h * 0.4)
+  if (detail !== 'overview') {
+    const label = state.isRepairing ? 'REBUILDING' : 'RUIN'
+    ctx.font = `bold ${Math.max(6, Math.min(9, tileSize * 0.5))}px monospace`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'bottom'
+    ctx.lineWidth = 3
+    ctx.strokeStyle = 'rgba(20, 12, 9, 0.95)'
+    ctx.strokeText(label, x + width / 2, y + height * 0.4)
+    ctx.fillStyle = state.isRepairing ? '#ffd77f' : '#ff725e'
+    ctx.fillText(label, x + width / 2, y + height * 0.4)
+  }
   ctx.restore()
 }
 
@@ -756,6 +1036,7 @@ function drawBuildingDamage(
   w: number,
   h: number,
   tileSize: number,
+  detail: BuildingVisualDetail,
 ) {
   if (!state.isDamaged) return
   const severity = Math.max(state.damage, 1 - state.integrity)
@@ -764,27 +1045,34 @@ function drawBuildingDamage(
   ctx.fillStyle = `rgba(30, 18, 13, ${0.1 + severity * 0.38})`
   ctx.fillRect(px, py, w, h)
 
-  ctx.strokeStyle = severity > 0.55 ? '#2b1712' : '#493126'
-  ctx.lineWidth = Math.max(1.2, tileSize * (0.055 + severity * 0.045))
-  ctx.lineJoin = 'bevel'
-  const crackX = px + w * (0.28 + visualHash(building, 71) * 0.4)
-  ctx.beginPath()
-  ctx.moveTo(crackX, py + h * 0.08)
-  ctx.lineTo(crackX - w * 0.12, py + h * 0.34)
-  ctx.lineTo(crackX + w * 0.08, py + h * 0.53)
-  ctx.lineTo(crackX - w * 0.16, py + h * 0.82)
-  ctx.moveTo(crackX - w * 0.05, py + h * 0.44)
-  ctx.lineTo(crackX - w * 0.25, py + h * 0.58)
-  ctx.stroke()
+  if (detail !== 'overview') {
+    ctx.strokeStyle = severity > 0.55 ? '#2b1712' : '#493126'
+    ctx.lineWidth = Math.max(1.2, tileSize * (0.055 + severity * 0.045))
+    ctx.lineJoin = 'bevel'
+    const crackX = px + w * (0.28 + visualHash(building, 71) * 0.4)
+    ctx.beginPath()
+    ctx.moveTo(crackX, py + h * 0.08)
+    ctx.lineTo(crackX - w * 0.12, py + h * 0.34)
+    ctx.lineTo(crackX + w * 0.08, py + h * 0.53)
+    ctx.lineTo(crackX - w * 0.16, py + h * 0.82)
+    ctx.moveTo(crackX - w * 0.05, py + h * 0.44)
+    ctx.lineTo(crackX - w * 0.25, py + h * 0.58)
+    ctx.stroke()
+  }
 
-  const barY = py - Math.max(4, tileSize * 0.28)
-  const barH = Math.max(3, tileSize * 0.18)
-  ctx.fillStyle = 'rgba(18, 12, 10, 0.9)'
-  ctx.fillRect(px, barY, w, barH)
-  ctx.fillStyle = state.isRepairing ? '#eac05b' : severity > 0.55 ? '#f05b43' : '#e28d3f'
-  ctx.fillRect(px + 1, barY + 1, Math.max(0, (w - 2) * state.integrity), Math.max(1, barH - 2))
+  if (detail === 'detail') {
+    drawProgressBar(
+      ctx,
+      px,
+      py,
+      w,
+      tileSize,
+      state.integrity,
+      state.isRepairing ? '#eac05b' : severity > 0.55 ? '#f05b43' : '#e28d3f',
+    )
+  }
 
-  if (state.isRepairing) {
+  if (state.isRepairing && detail !== 'overview') {
     ctx.strokeStyle = '#f4d47c'
     ctx.lineWidth = Math.max(1, tileSize * 0.07)
     ctx.setLineDash([Math.max(2, tileSize * 0.2), Math.max(1, tileSize * 0.1)])
@@ -800,8 +1088,9 @@ export function drawBuilding(
   oy: number,
   tileSize: number,
   nightFactor = 0,
+  detail: BuildingVisualDetail = 'standard',
 ) {
-  const [fw, fh] = buildingFootprint(building.kind)
+  const [fw, fh] = resolveBuildingFootprint(building)
   const px = (building.x - ox) * tileSize
   const py = (building.y - oy) * tileSize
   const w = fw * tileSize
@@ -810,30 +1099,15 @@ export function drawBuilding(
   const structural = getBuildingState(building)
   const k = normKind(building.kind)
 
-  ctx.save()
-  const shadowCx = px + w / 2
-  const shadowCy = py + h + tileSize * 0.05
-  const shadowRx = w * 0.62
-  const shadowRy = tileSize * 0.42
-  const grad = ctx.createRadialGradient(
-    shadowCx,
-    shadowCy,
-    0,
-    shadowCx,
-    shadowCy,
-    Math.max(shadowRx, shadowRy),
-  )
-  grad.addColorStop(0, 'rgba(0,0,0,0.55)')
-  grad.addColorStop(0.55, 'rgba(0,0,0,0.30)')
-  grad.addColorStop(1, 'rgba(0,0,0,0)')
-  ctx.fillStyle = grad
-  ctx.beginPath()
-  ctx.ellipse(shadowCx, shadowCy, shadowRx, shadowRy, 0, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.restore()
+  drawBuildingShadow(ctx, px, py, w, h, tileSize)
 
   if (structural.isRuined) {
-    drawRuinedBuilding(ctx, building, structural, px, py, w, h, tileSize)
+    drawRuinedBuilding(ctx, building, structural, px, py, w, h, tileSize, detail)
+    return
+  }
+
+  if (!structural.isComplete) {
+    drawConstructionSite(ctx, building, structural, px, py, w, h, tileSize, detail)
     return
   }
 
@@ -845,7 +1119,7 @@ export function drawBuilding(
     const sprite = getBuildingSprite(k, fw, fh, tileSize, variant & 7, nightBucket, condBucket)
     if (sprite) {
       ctx.drawImage(sprite, Math.round(px - PAD), Math.round(py + h + PAD_BOT - sprite.height))
-      drawBuildingDamage(ctx, building, structural, px, py, w, h, tileSize)
+      drawBuildingDamage(ctx, building, structural, px, py, w, h, tileSize, detail)
       return
     }
   }
@@ -941,5 +1215,5 @@ export function drawBuilding(
     ctx.fillText(emoji, px + w / 2, baseY + 1)
     ctx.restore()
   }
-  drawBuildingDamage(ctx, building, structural, px, py, w, h, tileSize)
+  drawBuildingDamage(ctx, building, structural, px, py, w, h, tileSize, detail)
 }

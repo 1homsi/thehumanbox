@@ -20,19 +20,28 @@ import {
   ATLAS_TOWN,
   onAnyAtlasLoaded,
   drawPeopleTile,
+  pickAnimalTile,
   pickHumanSprite,
-  SPRITE,
   ATLAS_CREATURE,
   drawTile,
-  type AgeStage,
 } from '../../utils/sprites'
-import { drawBuilding } from './buildings2d'
+import { compareBuildingsByDepth, drawBuilding } from './buildings2d'
 import { getBuildingSprite, PAD as SPRITE_PAD, PAD_BOT as SPRITE_PAD_BOT } from './building-sprites'
 import { normalizeLineageEras } from '../../utils/lineageEras'
 import { useSceneStore } from '../../stores/scene'
 import { farmCropColor, farmProgress, farmStage } from '../../world/farms'
 import { activeStrategy, strategyTimeLabel } from '../../world/strategy-visuals'
-import { TILE_ID, isWaterTile } from '../../world/terrain-ids'
+import { TILE_ID, isPermanentWaterTile, isWaterTile } from '../../world/terrain-ids'
+import {
+  EDGE_EAST,
+  EDGE_NORTH,
+  EDGE_SOUTH,
+  EDGE_WEST,
+  baseTerrainTile,
+  permanentWaterDepth,
+  permanentWaterLandEdgeMask,
+  terrainVisualSignature,
+} from '../../world/terrain-visuals'
 import { getBuildingState, hasRuinedBuildingAtWorldTile, isRuinedBuilding } from '../../world/building-state'
 import {
   buildTerritoryIndex,
@@ -44,18 +53,10 @@ import {
 
 import { LOW_PERF } from '../../lib/perf'
 import { syncRendererLoopPause } from '../../lib/desktopVisibility'
+import { deterministicAppearanceIndex, resolveAgeStage, zoomDetailLevel } from './character-visuals'
 
-function deriveAgeStage(age: number, isElder: boolean, declared?: string): AgeStage {
-  if (declared === 'infant' || declared === 'child' || declared === 'teen' || declared === 'adult')
-    return declared
-  if (declared === 'elder') return 'adult'
-  if (isElder) return 'adult'
-  if (age < 220) return 'infant'
-  if (age < 700) return 'child'
-  if (age < 1400) return 'teen'
-  return 'adult'
-}
 const _orgLastPos = new Map<string, { x: number; y: number; movedAt: number; phase: number }>()
+const _animalLastPos = new Map<number, { x: number; y: number; movedAt: number }>()
 function orgAnimPhase(id: string): number {
   let h = 2166136261 >>> 0
   for (let i = 0; i < id.length; i++) {
@@ -77,6 +78,19 @@ function orgFrame(id: string, x: number, y: number, now: number): number {
   return Math.floor(((now + phase) % 800) / 200)
 }
 
+function animalIsMoving(id: number, x: number, y: number, now: number): boolean {
+  const last = _animalLastPos.get(id)
+  if (!last) {
+    _animalLastPos.set(id, { x, y, movedAt: 0 })
+    return false
+  }
+  if (Math.abs(last.x - x) > 0.02 || Math.abs(last.y - y) > 0.02) {
+    _animalLastPos.set(id, { x, y, movedAt: now })
+    return true
+  }
+  return now - last.movedAt < 320
+}
+
 interface OrgInterpCache {
   source: OrganismState[] | null
   prevSource: OrganismState[] | null
@@ -91,19 +105,6 @@ interface AnimalInterpCache {
   frameId: number
   items: AnimalState[]
   prevById: Map<number, AnimalState>
-}
-
-const ERA_CLOTHING_COLOR: Record<string, string> = {
-  'pre-stone': '#6b5239',
-  stone: '#7a6b55',
-  bronze: '#a06a3c',
-  iron: '#5e6e75',
-  classical: '#c8a868',
-  medieval: '#6a4030',
-  renaissance: '#8a3848',
-  industrial: '#3a2e22',
-  modern: '#3a4a6a',
-  information: '#3878b8',
 }
 
 const ERA_STRIPE_COLOR: Record<string, string> = {
@@ -162,6 +163,133 @@ const SPECIALTY_EMOJI: Record<string, string> = {
   athlete: '\u{1F3C5}',
   politician: '\u{1F3DB}\u{FE0F}',
 }
+
+function drawCanineSprite(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  size: number,
+  kind: 'wolf' | 'dog',
+  flipped: boolean,
+  step: number,
+) {
+  const unit = Math.max(1, Math.floor(size / 14))
+  const spriteWidth = 14 * unit
+  const spriteHeight = 14 * unit
+  const left = Math.round(cx - spriteWidth / 2)
+  const top = Math.round(cy - spriteHeight / 2)
+  const outline = '#261d20'
+  const fur = kind === 'wolf' ? '#677483' : '#a8643f'
+  const highlight = kind === 'wolf' ? '#a8b3bc' : '#d49a66'
+  const dark = kind === 'wolf' ? '#3d4854' : '#6f3c2b'
+  const rect = (x: number, y: number, width: number, height: number, color: string) => {
+    ctx.fillStyle = color
+    ctx.fillRect(x * unit, y * unit, width * unit, height * unit)
+  }
+
+  ctx.save()
+  ctx.translate(flipped ? left + spriteWidth : left, top)
+  if (flipped) ctx.scale(-1, 1)
+
+  // Tail, body and head share an outline so both animals read clearly
+  // against grass, sand and snow at the world camera scale.
+  rect(0, 4, 4, 3, outline)
+  rect(1, 4, 3, 1, fur)
+  rect(2, 5, 2, 1, highlight)
+  rect(3, 4, 8, 6, outline)
+  rect(4, 5, 6, 4, fur)
+  rect(4, 8, 6, 1, dark)
+  rect(9, 2, 5, 7, outline)
+  rect(10, 3, 3, 5, fur)
+  rect(9, 0, 2, 3, outline)
+  rect(12, 1, 2, 3, outline)
+  rect(10, 1, 1, 2, dark)
+  rect(12, 2, 1, 2, dark)
+  rect(12, 5, 2, 2, highlight)
+  rect(13, 5, 1, 1, '#171317')
+  rect(11, 4, 1, 1, '#f1d37b')
+
+  const frontFoot = step % 2 === 0 ? 0 : 1
+  const backFoot = step % 2 === 0 ? 1 : 0
+  rect(4, 9, 2, 4, outline)
+  rect(5, 9, 1, 3, fur)
+  rect(4 - backFoot, 12, 3, 1, outline)
+  rect(8, 9, 2, 4, outline)
+  rect(9, 9, 1, 3, fur)
+  rect(8 + frontFoot, 12, 3, 1, outline)
+
+  if (kind === 'dog') {
+    rect(9, 6, 4, 1, '#e95b55')
+    rect(10, 7, 1, 1, '#f2c84b')
+  }
+  ctx.restore()
+}
+
+function visualTileHash(col: number, row: number, salt = 0): number {
+  let hash = (col * 374761393 + row * 668265263 + salt * 1274126177) | 0
+  hash = ((hash ^ (hash >>> 13)) * 1274126177) | 0
+  return hash >>> 0
+}
+
+function drawFoodPatch(ctx: CanvasRenderingContext2D, px: number, py: number, seed: number) {
+  const berry = (seed & 1) === 0 ? '#e25757' : '#e2bd45'
+  ctx.fillStyle = '#244d2a'
+  ctx.fillRect(px + 2, py + 3, 5, 3)
+  ctx.fillRect(px + 3, py + 2, 3, 5)
+  ctx.fillStyle = '#4f8a43'
+  ctx.fillRect(px + 2, py + 3, 2, 2)
+  ctx.fillRect(px + 5, py + 2, 2, 2)
+  ctx.fillStyle = berry
+  ctx.fillRect(px + 3 + ((seed >>> 4) & 1), py + 3, 1, 1)
+  ctx.fillRect(px + 5, py + 5, 1, 1)
+}
+
+function drawMineralOutcrop(ctx: CanvasRenderingContext2D, px: number, py: number, seed: number) {
+  ctx.fillStyle = '#3d3937'
+  ctx.fillRect(px + 1, py + 5, 7, 2)
+  ctx.fillRect(px + 2, py + 3, 5, 3)
+  ctx.fillRect(px + 4, py + 2, 3, 2)
+  ctx.fillStyle = '#716a62'
+  ctx.fillRect(px + 3, py + 3, 2, 1)
+  ctx.fillRect(px + 5, py + 4, 2, 1)
+  ctx.fillStyle = (seed & 1) === 0 ? '#e2b84d' : '#7fc9c7'
+  ctx.fillRect(px + 5, py + 3, 1, 1)
+  ctx.fillRect(px + 3, py + 5, 1, 1)
+}
+
+function drawPixelFire(
+  ctx: CanvasRenderingContext2D,
+  px: number,
+  py: number,
+  intensity: number,
+  frame: number,
+  campfire: boolean,
+) {
+  const strength = Math.max(0.2, Math.min(1, intensity))
+  const shift = frame & 1
+  if (campfire) {
+    ctx.fillStyle = '#3b2418'
+    ctx.fillRect(px + 1, py + 6, 6, 2)
+    ctx.fillStyle = '#82502a'
+    ctx.fillRect(px + 2, py + 6, 2, 1)
+    ctx.fillRect(px + 5, py + 7, 2, 1)
+  } else {
+    ctx.fillStyle = 'rgba(62,35,24,0.75)'
+    ctx.fillRect(px + 1, py + 7, 6, 1)
+  }
+
+  ctx.fillStyle = cbFireRgba(204, 54, 16, 0.8 * strength)
+  ctx.fillRect(px + 2, py + 3 + shift, 5, 4 - shift)
+  ctx.fillStyle = cbFireRgba(255, 126, 24, 0.95 * strength)
+  ctx.fillRect(px + 3 + shift, py + 2, 3, 4)
+  ctx.fillStyle = cbFireRgba(255, 222, 92, strength)
+  ctx.fillRect(px + 4, py + 3 - shift, 1, 3)
+  if (strength > 0.55) {
+    ctx.fillStyle = cbFireRgba(255, 164, 48, 0.75 * strength)
+    ctx.fillRect(px + ((frame + 1) % 6), py + 1, 1, 1)
+  }
+}
+
 import { TILE, TILE_RGB, BIOME_RGBA, THOUGHT_COLORS } from '../../world/palette'
 import { orgVariant } from '../../world/org-variant'
 import { drawTrees, drawClouds, drawNaturalDecor, scratchA, scratchB } from './decorations'
@@ -178,6 +306,7 @@ let _baseKey: {
   origin_x: number
   origin_y: number
   tiles: number[][]
+  terrain_signature: number
   biomes?: number[][]
   depth_map?: number[][]
   season?: string
@@ -231,10 +360,7 @@ function drawTradeNetwork2D(
   const oy = world.grid.origin_y ?? 0
   const margin = 8
   const isVisible = (x: number, y: number) =>
-    x >= bounds.c0 - margin &&
-    x <= bounds.c1 + margin &&
-    y >= bounds.r0 - margin &&
-    y <= bounds.r1 + margin
+    x >= bounds.c0 - margin && x <= bounds.c1 + margin && y >= bounds.r0 - margin && y <= bounds.r1 + margin
 
   const visibleRoutes: NonNullable<WorldState['trade_routes']> = []
   for (const route of world.trade_routes ?? []) {
@@ -285,10 +411,10 @@ function drawTradeNetwork2D(
     const bx = route.b_center[0] - ox
     const by = route.b_center[1] - oy
 
-    const startX = ax * TILE
-    const startY = ay * TILE
-    const endX = bx * TILE
-    const endY = by * TILE
+    const startX = (ax + 0.5) * TILE
+    const startY = (ay + 0.5) * TILE
+    const endX = (bx + 0.5) * TILE
+    const endY = (by + 0.5) * TILE
     const gradient = ctx.createLinearGradient(startX, startY, endX, endY)
     gradient.addColorStop(0, lineageColor(route.lineage_a))
     gradient.addColorStop(1, lineageColor(route.lineage_b))
@@ -322,8 +448,8 @@ function drawTradeNetwork2D(
   ctx.textBaseline = 'middle'
   ctx.font = `${Math.max(10, Math.round(TILE * 0.9))}px sans-serif`
   for (const { caravan, localX, localY } of visibleCaravans) {
-    const px = localX * TILE
-    const py = localY * TILE + Math.sin(now / 170 + caravan.id * 0.73) * 1.2
+    const px = (localX + 0.5) * TILE
+    const py = (localY + 0.5) * TILE + Math.sin(now / 170 + caravan.id * 0.73) * 1.2
     const angle = Math.atan2(caravan.to[1] - caravan.from[1], caravan.to[0] - caravan.from[0])
     const radius = Math.max(6, TILE * 0.48)
     ctx.save()
@@ -371,6 +497,7 @@ function baseLayerMatches(
   origin_x: number,
   origin_y: number,
   tiles: number[][],
+  terrain_signature: number,
   biomes?: number[][],
   depth_map?: number[][],
   season?: string,
@@ -381,7 +508,7 @@ function baseLayerMatches(
     key.height === height &&
     key.origin_x === origin_x &&
     key.origin_y === origin_y &&
-    key.tiles === tiles &&
+    (key.tiles === tiles || key.terrain_signature === terrain_signature) &&
     key.biomes === biomes &&
     key.depth_map === depth_map &&
     key.season === season
@@ -415,7 +542,6 @@ const SEASON_LAND_TINT: Record<string, { rgb: [number, number, number]; w: numbe
   scarcity: { rgb: [128, 102, 56], w: 0.52 },
 }
 
-const BEACH_RGB: [number, number, number] = [196, 176, 122]
 const SHALLOW_RGB: [number, number, number] = [116, 198, 208]
 
 function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
@@ -428,10 +554,24 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
   const H = height * TILE
 
   const season = world.season
+  const terrain_signature =
+    _baseKey?.tiles === tiles ? _baseKey.terrain_signature : terrainVisualSignature(tiles, width, height)
   if (
     _baseCanvas &&
-    baseLayerMatches(_baseKey, width, height, origin_x, origin_y, tiles, biomes, depth_map, season)
+    baseLayerMatches(
+      _baseKey,
+      width,
+      height,
+      origin_x,
+      origin_y,
+      tiles,
+      terrain_signature,
+      biomes,
+      depth_map,
+      season,
+    )
   ) {
+    if (_baseKey) _baseKey.tiles = tiles
     return _baseCanvas
   }
 
@@ -445,13 +585,13 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
   const imgData = getReuseImgData(W, H)
   const d = imgData.data
   const varAmtFor = (tid: number): number => {
-    if (tid === 2 || tid === 9) return 4
-    if (tid === 1 || tid === 3) return 13
-    if (tid === 5) return 17
-    if (tid === 6) return 19
-    if (tid === 12) return 7
-    if (tid === 13) return 15
-    return 9
+    if (tid === 2 || tid === 9) return 2
+    if (tid === 1 || tid === 3) return 5
+    if (tid === 5) return 8
+    if (tid === 6) return 9
+    if (tid === 12) return 3
+    if (tid === 13) return 5
+    return 4
   }
   const landTint = SEASON_LAND_TINT[season]
   for (let row = 0; row < height; row++) {
@@ -461,40 +601,38 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
     const tileRowPrev = row > 0 ? tiles[row - 1] : undefined
     const tileRowNext = row + 1 < height ? tiles[row + 1] : undefined
     for (let col = 0; col < width; col++) {
-      const tid = tileRow?.[col] ?? 0
+      const rawTid = tileRow?.[col] ?? TILE_ID.VOID
+      const tid = baseTerrainTile(rawTid)
       const rgb = TILE_RGB[tid] ?? TILE_RGB[0]
       let [r, g, b] = rgb
 
-      const isWater = tid === 2 || tid === 9
+      const isWater = isWaterTile(rawTid)
+      const isPermanentWater = isPermanentWaterTile(rawTid)
       const wN = tileRowPrev?.[col]
       const wS = tileRowNext?.[col]
       const wW = col > 0 ? tileRow?.[col - 1] : undefined
       const wE = tileRow?.[col + 1]
-      const touchesWater =
-        wN === 2 || wN === 9 || wS === 2 || wS === 9 || wW === 2 || wW === 9 || wE === 2 || wE === 9
       const touchesLand =
-        (wN !== undefined && wN !== 2 && wN !== 9) ||
-        (wS !== undefined && wS !== 2 && wS !== 9) ||
-        (wW !== undefined && wW !== 2 && wW !== 9) ||
-        (wE !== undefined && wE !== 2 && wE !== 9)
+        (wN !== undefined && !isWaterTile(wN)) ||
+        (wS !== undefined && !isWaterTile(wS)) ||
+        (wW !== undefined && !isWaterTile(wW)) ||
+        (wE !== undefined && !isWaterTile(wE))
 
-      if (tid === 2 && depthRow) {
-        const dv = depthRow[col]
-        if (dv < 255) {
-          const t_ = 1 - dv / 200
-          r = (100 - t_ * 28) | 0
-          g = (170 - t_ * 42) | 0
-          b = (220 - t_ * 30) | 0
-        }
+      const visualDepth = permanentWaterDepth(rawTid, depthRow?.[col])
+      if (visualDepth !== null) {
+        const t_ = 1 - Math.min(200, visualDepth) / 200
+        r = (100 - t_ * 28) | 0
+        g = (170 - t_ * 42) | 0
+        b = (220 - t_ * 30) | 0
       }
 
-      if (isWater && touchesLand) {
+      if (isPermanentWater && touchesLand) {
         r = (r * 0.68 + SHALLOW_RGB[0] * 0.32) | 0
         g = (g * 0.68 + SHALLOW_RGB[1] * 0.32) | 0
         b = (b * 0.68 + SHALLOW_RGB[2] * 0.32) | 0
       }
 
-      if (tid !== 2 && tid !== 5 && tid !== 12) {
+      if (!isWater && tid !== TILE_ID.ROCK && tid !== TILE_ID.SNOW) {
         const bm = biomeRow?.[col] ?? 0
         const bo = BIOME_RGBA[bm]
         if (bo) {
@@ -508,26 +646,18 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
         }
       }
 
-      let shading = 0
+      const macro = valueNoise(col / 42, row / 42) * 0.65 + valueNoise(col / 13 + 7, row / 13 + 7) * 0.35
+      let shading = ((macro - 0.5) * (isWater ? 5 : 14)) | 0
       if (!isWater) {
         const grassy = tid === 1 || tid === 3 || tid === 6 || tid === 13
         if (grassy && landTint) {
-          const macro = valueNoise(col / 42, row / 42) * 0.65 + valueNoise(col / 13 + 7, row / 13 + 7) * 0.35
           let w = landTint.w * (0.55 + macro * 0.9)
           if (w > 0.85) w = 0.85
           const iw = 1 - w
           r = (r * iw + landTint.rgb[0] * w) | 0
           g = (g * iw + landTint.rgb[1] * w) | 0
           b = (b * iw + landTint.rgb[2] * w) | 0
-          shading += ((macro - 0.5) * 26) | 0
-        }
-        if (touchesWater) {
-          if (tid === 1 || tid === 3 || tid === 6 || tid === 13) {
-            r = (r * 0.55 + BEACH_RGB[0] * 0.45) | 0
-            g = (g * 0.55 + BEACH_RGB[1] * 0.45) | 0
-            b = (b * 0.55 + BEACH_RGB[2] * 0.45) | 0
-          }
-          shading += 8
+          shading += ((macro - 0.5) * 8) | 0
         }
       }
 
@@ -539,9 +669,15 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
         let pi = (gy * W + bx) * 4
         for (let tx = 0; tx < TILE; tx++, pi += 4) {
           const gx = bx + tx
-          let h = (gx * 374761393 + gy * 668265263) | 0
+          // Texture in small pixel-art clusters instead of independent
+          // per-pixel static. The macro field shapes broad biome patches;
+          // this 2x2 dither keeps nearby terrain readable at game scale.
+          const clusterX = gx >> 1
+          const clusterY = gy >> 1
+          let h = (clusterX * 374761393 + clusterY * 668265263) | 0
           h = ((h ^ (h >>> 13)) * 1274126177) | 0
-          const k = ((((h >>> 0) & 0xff) - 128) * varAmt) >> 7
+          const dither = ((gx ^ gy) & 1) === 0 ? -1 : 1
+          const k = (((((h >>> 0) & 0xff) - 128) * varAmt) >> 7) + dither
           let rr = r + k + shading
           let gg = g + k + shading
           let bb = b + k + shading
@@ -561,15 +697,26 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
   }
 
   const baseCtx = canvas.getContext('2d')!
+  baseCtx.imageSmoothingEnabled = false
   baseCtx.putImageData(imgData, 0, 0)
   if (biomes && ATLAS_TOWN.complete) {
-    drawTrees(baseCtx, width, height, tiles, biomes)
+    drawTrees(baseCtx, width, height, tiles, biomes, origin_x, origin_y)
   }
   if (biomes) {
-    drawNaturalDecor(baseCtx, width, height, tiles, biomes)
+    drawNaturalDecor(baseCtx, width, height, tiles, biomes, origin_x, origin_y)
   }
   _baseCanvas = canvas
-  _baseKey = { width, height, origin_x, origin_y, tiles, biomes, depth_map, season }
+  _baseKey = {
+    width,
+    height,
+    origin_x,
+    origin_y,
+    tiles,
+    terrain_signature,
+    biomes,
+    depth_map,
+    season,
+  }
   return canvas
 }
 
@@ -581,6 +728,7 @@ function drawWorldOnCanvas(
   focus: string,
   viewFlags: ViewFlags,
   bounds?: { c0: number; c1: number; r0: number; r1: number },
+  cameraZoom = 1,
 ) {
   const { width, height, tiles, fire_intensity, structure } = world.grid
   const { food_trail, water_trail, path_trail, fertility, hazard } = world.grid
@@ -613,6 +761,7 @@ function drawWorldOnCanvas(
   const H = height * TILE
   const t = Date.now()
   const ruinedTiles = ruinedBuildingTiles(world.buildings)
+  ctx.imageSmoothingEnabled = false
 
   const base = getBaseLayerCanvas(world)
   if (!base) return
@@ -707,33 +856,6 @@ function drawWorldOnCanvas(
     ctx.fillRect(0, 0, W, H)
   }
 
-  if (!world.is_day && world.cosmos) {
-    const illum = world.cosmos.moon_illum ?? 0.7
-    const radius = 14 + illum * 8
-    const cx = W - 50
-    const cy = 50
-    ctx.save()
-    ctx.beginPath()
-    ctx.arc(cx, cy, radius + 4, 0, Math.PI * 2)
-    ctx.fillStyle = `rgba(180,200,240,${0.05 + illum * 0.12})`
-    ctx.fill()
-    ctx.beginPath()
-    ctx.arc(cx, cy, radius, 0, Math.PI * 2)
-    ctx.fillStyle = `rgba(240,244,255,${0.2 + illum * 0.65})`
-    ctx.fill()
-    const phase = world.cosmos.moon_phase
-    if (phase !== 'full_moon' && phase !== 'new_moon') {
-      const dx = phase.startsWith('waxing') ? -radius * (1 - illum) : radius * (1 - illum)
-      ctx.beginPath()
-      ctx.arc(cx + dx, cy, radius * 1.05, 0, Math.PI * 2)
-      ctx.fillStyle = 'rgba(20,28,70,0.95)'
-      ctx.globalCompositeOperation = 'destination-out'
-      ctx.fill()
-      ctx.globalCompositeOperation = 'source-over'
-    }
-    ctx.restore()
-  }
-
   if (!world.is_day || (world.day_progress ?? 0) > 0.05) {
     const tt = t * 0.001
     ctx.fillStyle = world.is_day ? 'rgba(255,255,255,0.55)' : 'rgba(180,200,240,0.30)'
@@ -741,10 +863,8 @@ function drawWorldOnCanvas(
     // stable as the camera pans (stride-2 sampling must visit the
     // same cells from frame to frame).
     for (let row = r0 & ~1; row < r1; row += 2) {
-      const drow = world.grid.depth_map?.[row]
-      if (!drow) continue
       for (let col = c0 & ~1; col < c1; col += 2) {
-        if ((drow[col] ?? 255) >= 254) continue
+        if (!isPermanentWaterTile(tiles[row]?.[col])) continue
         let h = (col * 374761393 + row * 668265263) | 0
         h = ((h ^ (h >>> 13)) * 1274126177) >>> 0
         const phase = ((h & 0xff) / 255) * Math.PI * 2
@@ -758,39 +878,30 @@ function drawWorldOnCanvas(
   }
 
   {
-    const dm = world.grid.depth_map
-    if (dm) {
-      const foamT = t * 0.0014
-      const fr0 = Math.max(1, r0)
-      const fr1 = Math.min(height - 1, r1)
-      const fc0 = Math.max(1, c0)
-      const fc1 = Math.min(width - 1, c1)
-      for (let pass = 0; pass < 2; pass++) {
-        ctx.fillStyle = pass === 0 ? 'rgba(255,255,255,0.30)' : 'rgba(255,255,255,0.55)'
-        for (let row = fr0; row < fr1; row++) {
-          const drow = dm[row]
-          if (!drow) continue
-          for (let col = fc0; col < fc1; col++) {
-            if ((drow[col] ?? 255) >= 254) continue
-            const n = dm[row - 1]?.[col] ?? 255
-            const s = dm[row + 1]?.[col] ?? 255
-            const e = drow[col + 1] ?? 255
-            const w = drow[col - 1] ?? 255
-            if (n < 254 && s < 254 && e < 254 && w < 254) continue
-            if (pass === 1) {
-              let h = (col * 374761393 + row * 668265263) | 0
-              h = ((h ^ (h >>> 13)) * 1274126177) >>> 0
-              const pulse = Math.sin(foamT + ((h & 0xff) / 255) * Math.PI * 2)
-              if (pulse < 0.25) continue
-            }
-            const px = col * TILE
-            const py = row * TILE
-            const th = pass === 1 ? 2 : 1
-            if (n >= 254) ctx.fillRect(px, py, TILE, th)
-            if (s >= 254) ctx.fillRect(px, py + TILE - th, TILE, th)
-            if (e >= 254) ctx.fillRect(px + TILE - th, py, th, TILE)
-            if (w >= 254) ctx.fillRect(px, py, th, TILE)
+    const foamT = t * 0.0014
+    const fr0 = Math.max(0, r0)
+    const fr1 = Math.min(height, r1)
+    const fc0 = Math.max(0, c0)
+    const fc1 = Math.min(width, c1)
+    for (let pass = 0; pass < 2; pass++) {
+      ctx.fillStyle = pass === 0 ? 'rgba(255,255,255,0.30)' : 'rgba(255,255,255,0.55)'
+      for (let row = fr0; row < fr1; row++) {
+        for (let col = fc0; col < fc1; col++) {
+          const shore = permanentWaterLandEdgeMask(tiles, row, col)
+          if (shore === 0) continue
+          if (pass === 1) {
+            let h = (col * 374761393 + row * 668265263) | 0
+            h = ((h ^ (h >>> 13)) * 1274126177) >>> 0
+            const pulse = Math.sin(foamT + ((h & 0xff) / 255) * Math.PI * 2)
+            if (pulse < 0.25) continue
           }
+          const px = col * TILE
+          const py = row * TILE
+          const th = pass === 1 ? 2 : 1
+          if (shore & EDGE_NORTH) ctx.fillRect(px, py, TILE, th)
+          if (shore & EDGE_SOUTH) ctx.fillRect(px, py + TILE - th, TILE, th)
+          if (shore & EDGE_EAST) ctx.fillRect(px + TILE - th, py, th, TILE)
+          if (shore & EDGE_WEST) ctx.fillRect(px, py, th, TILE)
         }
       }
     }
@@ -799,118 +910,95 @@ function drawWorldOnCanvas(
   // Lake shimmer - animated sparkle on shallow water tiles (depth 180-253)
   {
     const dm = world.grid.depth_map
-    if (dm) {
-      const shimmerT = t * 0.0015
-      ctx.fillStyle = 'rgba(180,230,255,0.28)'
-      for (let row = r0; row < r1; row++) {
-        const dr = dm[row]
-        if (!dr) continue
+    const shimmerT = t * 0.0015
+    ctx.fillStyle = 'rgba(180,230,255,0.28)'
+    for (let row = r0; row < r1; row++) {
+      for (let col = c0; col < c1; col++) {
+        const d = permanentWaterDepth(tiles[row]?.[col], dm?.[row]?.[col])
+        if (d === null || d < 180) continue
+        let h = (col * 374761393 + row * 668265263) | 0
+        h = ((h ^ (h >>> 13)) * 1274126177) >>> 0
+        const pulse = Math.sin(shimmerT * 2.1 + ((h & 0xff) / 255) * Math.PI * 2)
+        if (pulse < 0.6) continue
+        ctx.fillRect(col * TILE + ((h >>> 8) & 3), row * TILE + ((h >>> 10) & 3), 2, 1)
+      }
+    }
+
+    // Integer-aligned wavelets stay within the camera window instead of
+    // scanning and antialiasing paths across the whole world.
+    if (!LOW_PERF) {
+      ctx.fillStyle = 'rgba(140,200,240,0.2)'
+      const wavePhase = Math.floor(shimmerT * 3)
+      for (let row = r0; row < r1; row += 2) {
         for (let col = c0; col < c1; col++) {
-          const d = dr[col] ?? 255
-          if (d < 180 || d >= 254) continue
-          let h = (col * 374761393 + row * 668265263 + ((shimmerT * 100) | 0)) | 0
+          const d = permanentWaterDepth(tiles[row]?.[col], dm?.[row]?.[col])
+          if (d === null || d < 180) continue
+          let h = (col * 374761393 + row * 668265263) | 0
           h = ((h ^ (h >>> 13)) * 1274126177) >>> 0
-          const pulse = Math.sin(shimmerT * 2.1 + ((h & 0xff) / 255) * Math.PI * 2)
-          if (pulse < 0.6) continue
-          ctx.fillRect(col * TILE + ((h >>> 8) & 3), row * TILE + ((h >>> 10) & 3), 2, 1)
+          if ((h + wavePhase) % 7 !== 0) continue
+          const wx = col * TILE + 1 + ((h >>> 8) & 1)
+          const wy = row * TILE + 2 + ((wavePhase + (h >>> 10)) & 3)
+          ctx.fillRect(wx, wy, 3, 1)
         }
       }
-      // Subtle wave lines on lakes - skip on mobile (O(w×h) inner loop)
-      ctx.save()
-      ctx.strokeStyle = 'rgba(140,200,240,0.18)'
-      ctx.lineWidth = 0.8
-      const skipWaves = LOW_PERF
-      for (let row = 1; row < height - 1 && !skipWaves; row++) {
-        const dr = dm[row]
-        if (!dr) continue
-        let waveStart = -1
-        for (let col = 0; col <= width; col++) {
-          const d = col < width ? (dr[col] ?? 255) : 255
-          const shallow = d >= 180 && d < 254
-          if (shallow && waveStart < 0) waveStart = col
-          if (!shallow && waveStart >= 0) {
-            const wlen = col - waveStart
-            if (wlen >= 3) {
-              const wy = row * TILE + TILE / 2 + Math.sin(shimmerT + waveStart * 0.3) * 0.8
-              ctx.beginPath()
-              ctx.moveTo(waveStart * TILE + 2, wy)
-              for (let wx = waveStart + 1; wx < col; wx++) {
-                ctx.lineTo(wx * TILE + TILE / 2, wy + Math.sin(shimmerT * 1.4 + wx * 0.5) * 1.0)
-              }
-              ctx.stroke()
-            }
-            waveStart = -1
-          }
-        }
-      }
-      ctx.restore()
     }
   }
 
   for (let row = r0; row < r1; row++) {
     for (let col = c0; col < c1; col++) {
-      const t = tiles[row][col]
-      if (t !== 4 && t !== 7 && t !== 8) continue
+      const tile = tiles[row][col]
+      if (
+        tile !== TILE_ID.FOOD &&
+        tile !== TILE_ID.FIRE &&
+        tile !== TILE_ID.CAMPFIRE &&
+        tile !== TILE_ID.HUT &&
+        tile !== TILE_ID.MINERAL
+      ) {
+        continue
+      }
       const px = col * TILE
       const py = row * TILE
+      const seed = visualTileHash(col + ox, row + oy)
 
-      if (t === 4 && fire_intensity) {
-        const fi = fire_intensity[row][col]
-        ctx.fillStyle = cbFireRgba(255, 120, 0, fi * 0.55)
-        ctx.fillRect(px, py, TILE, TILE)
+      if (tile === TILE_ID.FOOD) {
+        drawFoodPatch(ctx, px, py, seed)
       }
 
-      if (t === 7 && fire_intensity) {
-        const fi = fire_intensity[row][col]
-        ctx.fillStyle = cbFireRgba(255, 200, 80, fi * 0.7)
-        ctx.fillRect(px, py, TILE, TILE)
+      if (tile === TILE_ID.MINERAL) {
+        drawMineralOutcrop(ctx, px, py, seed)
+      }
+
+      if (tile === TILE_ID.FIRE || tile === TILE_ID.CAMPFIRE) {
+        const fi = fire_intensity?.[row]?.[col] ?? 1
+        const isCampfire = tile === TILE_ID.CAMPFIRE
         if (!world.is_day) {
           const fcx = px + TILE / 2
           const fcy = py + TILE / 2
-          const flicker = 0.85 + Math.sin(Date.now() * 0.011 + col * 3.1 + row * 1.7) * 0.15
-          const lr = TILE * 5.5 * flicker
+          const flicker = 0.88 + Math.sin(t * 0.011 + col * 3.1 + row * 1.7) * 0.12
+          const lr = TILE * (isCampfire ? 4.2 : 3.2) * flicker
           const grad = ctx.createRadialGradient(fcx, fcy, TILE * 0.4, fcx, fcy, lr)
-          grad.addColorStop(0, `rgba(255,190,90,${0.5 * fi})`)
-          grad.addColorStop(0.45, `rgba(255,150,50,${0.22 * fi})`)
+          grad.addColorStop(0, `rgba(255,190,90,${0.36 * fi})`)
+          grad.addColorStop(0.45, `rgba(255,150,50,${0.14 * fi})`)
           grad.addColorStop(1, 'rgba(255,120,30,0)')
           ctx.fillStyle = grad
           ctx.fillRect(fcx - lr, fcy - lr, lr * 2, lr * 2)
-        } else {
-          ctx.fillStyle = cbFireRgba(255, 160, 40, fi * 0.12)
-          ctx.fillRect(px - TILE * 2, py - TILE * 2, TILE * 5, TILE * 5)
         }
-        if (TILE >= 8) {
-          const cx2 = px + TILE / 2
-          ctx.fillStyle = cbFireRgba(255, 80, 0, fi * 0.6)
-          ctx.beginPath()
-          ctx.arc(cx2, py + TILE * 0.4, TILE * 0.18, 0, Math.PI * 2)
-          ctx.fill()
-          // Market stall awning adjacent to campfire
-          const stallAngle = (((col + row) * 137) % 360) * (Math.PI / 180)
-          const sd = TILE * 1.6
-          const sx = px + TILE / 2 + Math.cos(stallAngle) * sd
-          const sy = py + TILE / 2 + Math.sin(stallAngle) * sd
-          ctx.fillStyle = 'rgba(200,120,30,0.70)'
-          ctx.fillRect(sx - TILE * 0.6, sy - TILE * 0.3, TILE * 1.2, TILE * 0.6)
-          ctx.fillStyle = 'rgba(90,50,15,0.70)'
-          ctx.fillRect(sx - TILE * 0.5, sy, TILE * 0.15, TILE * 0.5)
-          ctx.fillRect(sx + TILE * 0.35, sy, TILE * 0.15, TILE * 0.5)
-        }
+        drawPixelFire(ctx, px, py, fi, Math.floor(t / 170 + (seed & 7)), isCampfire)
       }
 
-      if (t === TILE_ID.HUT && !ruinedTiles.has(`${col + ox},${row + oy}`)) {
-        const BW = TILE * 2
-        const BH = TILE * 2
-        const bx = px - TILE / 2
-        const by = py - TILE / 2
+      if (tile === TILE_ID.HUT && !ruinedTiles.has(`${col + ox},${row + oy}`)) {
+        const BW = TILE
+        const BH = TILE
+        const bx = px
+        const by = py
         const dp = world.day_progress ?? 0.5
         const nightFactor = world.is_day ? 0 : 1 - Math.abs(dp - 0.5) * 2
-        const glowAlpha = 0.1 + (0.42 - 0.1) * nightFactor
+        const glowAlpha = 0.04 + 0.18 * nightFactor
         ctx.fillStyle = `rgba(255,215,110,${glowAlpha})`
-        ctx.fillRect(bx - TILE, by - TILE, BW + TILE * 2, BH + TILE * 2)
+        ctx.fillRect(bx - TILE / 2, by - TILE / 2, BW + TILE, BH + TILE)
         const hutVariant = (((col * 73856093) ^ (row * 19349663)) >>> 0) & 7
         const hutNight = Math.max(0, Math.min(3, Math.round(nightFactor * 3)))
-        const hutSprite = getBuildingSprite('Hut', 2, 2, TILE, hutVariant, hutNight, 1)
+        const hutSprite = getBuildingSprite('Hut', 1, 1, TILE, hutVariant, hutNight, 1)
         if (hutSprite) {
           ctx.drawImage(
             hutSprite,
@@ -924,17 +1012,13 @@ function drawWorldOnCanvas(
           for (let s = 0; s < 3; s++) {
             const phase = (now * 0.0008 + s * 0.4) % 1
             ctx.fillStyle = `rgba(180,180,185,${smokeAlpha * (1 - phase)})`
-            ctx.beginPath()
-            ctx.ellipse(
-              bx + BW / 2 + Math.sin(phase * Math.PI) * 2,
-              by - phase * 12,
-              3 + phase * 4,
-              2 + phase * 2,
-              0,
-              0,
-              Math.PI * 2,
+            const smokeSize = 1 + Math.floor(phase * 2)
+            ctx.fillRect(
+              Math.round(bx + BW / 2 + Math.sin(phase * Math.PI) * 2),
+              Math.round(by - phase * 10),
+              smokeSize + 1,
+              smokeSize,
             )
-            ctx.fill()
           }
         }
       }
@@ -1312,59 +1396,7 @@ function drawWorldOnCanvas(
     }
   }
 
-  {
-    const phase = world.day_progress
-    const smoothstep = (t: number) => t * t * (3 - 2 * t)
-
-    let darkness = 0
-    if (phase >= 0.55 && phase < 0.8) {
-      darkness = 0.85 * smoothstep((phase - 0.55) / 0.25)
-    } else if (phase >= 0.8 && phase < 0.95) {
-      darkness = 0.85
-    } else if (phase >= 0.95) {
-      darkness = 0.85 * (1 - smoothstep((phase - 0.95) / 0.1))
-    } else if (phase < 0.05) {
-      darkness = 0.85 * (1 - smoothstep((phase + 0.05) / 0.1))
-    }
-
-    const gauss = (d: number, sigma: number) => Math.exp(-(d * d) / (2 * sigma * sigma))
-
-    const sunsetDist = Math.abs(phase - 0.67)
-    let dawnDist = Math.abs(phase - 0.0)
-    dawnDist = Math.min(dawnDist, 1 - dawnDist)
-    const warm = Math.max(gauss(sunsetDist, 0.06), gauss(dawnDist, 0.04))
-
-    if (warm > 0.01) {
-      ctx.fillStyle = `rgba(255, 100, 40, ${warm * 0.2})`
-      ctx.fillRect(0, 0, W, H)
-    }
-    if (darkness > 0) {
-      ctx.fillStyle = `rgba(0, 0, 40, ${darkness * 0.55})`
-      ctx.fillRect(0, 0, W, H)
-    }
-  }
-
-  const weather = world.weather
-  drawClouds(ctx, W, H, weather, t)
-  if (weather && weather.kind !== 'clear') {
-    const isStorm = weather.kind === 'storm'
-    const tintAlpha = weather.intensity * (isStorm ? 0.38 : 0.22)
-    ctx.fillStyle = isStorm ? `rgba(18,28,60,${tintAlpha})` : `rgba(45,90,170,${tintAlpha})`
-    ctx.fillRect(0, 0, W, H)
-    const streakSpacing = isStorm ? 5 : 9
-    const streakOpacity = weather.intensity * (isStorm ? 0.75 : 0.5)
-    const animOffset = (t / (isStorm ? 40 : 65)) % streakSpacing
-    ctx.save()
-    ctx.strokeStyle = `rgba(170,210,255,${streakOpacity})`
-    ctx.lineWidth = isStorm ? 1.2 : 0.7
-    for (let sx = -H * 0.5 - streakSpacing + animOffset; sx < W + H * 0.5; sx += streakSpacing) {
-      ctx.beginPath()
-      ctx.moveTo(sx, 0)
-      ctx.lineTo(sx + H * 0.35, H)
-      ctx.stroke()
-    }
-    ctx.restore()
-  }
+  drawClouds(ctx, W, H, world.weather, t)
 
   if (viewFlags.history && world.lineage_centroid_history) {
     ctx.save()
@@ -1531,26 +1563,29 @@ function drawWorldOnCanvas(
       const stage = farmStage(farm, world.tick)
       const cropColor = farmCropColor(farm.crop)
 
+      ctx.fillStyle = '#3f2c21'
+      ctx.fillRect(x, y, TILE, TILE)
       ctx.fillStyle = stage === 'fallow' ? '#6b4c32' : '#705335'
-      ctx.fillRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1)
-      ctx.strokeStyle = stage === 'mature' ? '#f1d36c' : 'rgba(42, 29, 20, 0.65)'
-      ctx.lineWidth = stage === 'mature' ? 1.2 : 0.7
-      for (let row = 2; row < TILE; row += 3) {
-        ctx.beginPath()
-        ctx.moveTo(x + 1, y + row)
-        ctx.lineTo(x + TILE - 1, y + row)
-        ctx.stroke()
+      ctx.fillRect(x + 1, y + 1, TILE - 2, TILE - 2)
+      ctx.fillStyle = stage === 'mature' ? '#b98b45' : '#4a3326'
+      for (let row = 2; row < TILE - 1; row += 3) {
+        ctx.fillRect(x + 1, y + row, TILE - 2, 1)
       }
       if (stage !== 'fallow') {
         ctx.fillStyle = cropColor
         const plantHeight = Math.max(1, Math.round(1 + progress * 4))
-        for (let px = 3; px < TILE; px += 4) {
-          ctx.fillRect(x + px, y + TILE - plantHeight - 1, 1.5, plantHeight)
+        const cropOffset = (farm.crop?.length ?? 0) % 2
+        for (let plantX = 2 + cropOffset; plantX < TILE - 1; plantX += 3) {
+          ctx.fillRect(x + plantX, y + TILE - plantHeight - 1, 1, plantHeight)
+          if (plantHeight >= 3) ctx.fillRect(x + plantX + 1, y + TILE - plantHeight, 1, 1)
         }
       }
       if (stage === 'mature') {
-        ctx.strokeStyle = 'rgba(255, 232, 145, 0.9)'
-        ctx.strokeRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1)
+        ctx.fillStyle = 'rgba(255, 232, 145, 0.9)'
+        ctx.fillRect(x, y, TILE, 1)
+        ctx.fillRect(x, y + TILE - 1, TILE, 1)
+        ctx.fillRect(x, y, 1, TILE)
+        ctx.fillRect(x + TILE - 1, y, 1, TILE)
       }
     }
     ctx.restore()
@@ -1568,7 +1603,8 @@ function drawWorldOnCanvas(
     const ryHi = r1 + BLDG_MARGIN
     const bdp = world.day_progress ?? 0.5
     const bNight = world.is_day ? 0 : Math.max(0, Math.min(1, 1 - Math.abs(bdp - 0.5) * 2))
-    const sorted = [...world.buildings].sort((a, b) => (a.y ?? 0) - (b.y ?? 0))
+    const buildingDetail = zoomDetailLevel(cameraZoom)
+    const sorted = [...world.buildings].sort(compareBuildingsByDepth)
     for (const b of sorted) {
       if (typeof b.x !== 'number' || typeof b.y !== 'number') continue
       if (b.x < cxLo || b.x > cxHi || b.y < ryLo || b.y > ryHi) continue
@@ -1584,11 +1620,15 @@ function drawWorldOnCanvas(
           integrity: b.integrity,
           ruined: b.ruined,
           repairing: b.repairing,
+          footprint: b.footprint,
+          fw: b.fw,
+          fh: b.fh,
         },
         ox,
         oy,
         TILE,
         bNight,
+        buildingDetail,
       )
     }
     type Cluster = {
@@ -1645,7 +1685,9 @@ function drawWorldOnCanvas(
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     for (const c of clusters) {
-      const showSettlementLabel = c.tier !== 0 && !(c.tier === undefined && c.count < 4)
+      const major = (c.tier ?? (c.count >= 12 ? 5 : 0)) >= 5
+      const showSettlementLabel =
+        c.tier !== 0 && !(c.tier === undefined && c.count < 4) && (buildingDetail !== 'overview' || major)
       if (!showSettlementLabel) continue
       const name = c.name ?? lineageNames[c.lineage] ?? c.lineage.slice(0, 6)
       const label =
@@ -1660,7 +1702,6 @@ function drawWorldOnCanvas(
               : `${name} village`
       const lx = (c.cx - ox) * TILE
       const ly = (c.cy - oy) * TILE - TILE * 2
-      const major = (c.tier ?? (c.count >= 12 ? 5 : 0)) >= 5
       ctx.font = major ? 'bold 12px monospace' : '10px monospace'
       ctx.fillStyle = 'rgba(0,0,0,0.65)'
       ctx.fillText(label, lx + 1, ly + 1)
@@ -1682,9 +1723,17 @@ function drawWorldOnCanvas(
   if (viewFlags.animals && animals.length > 0) {
     ctx.save()
     const atlasReady = ATLAS_CREATURE.complete && ATLAS_CREATURE.naturalWidth > 0
+    if (_animalLastPos.size > Math.max(256, animals.length * 3)) {
+      const visibleIds = new Set(animals.map((animal) => animal.id))
+      for (const id of _animalLastPos.keys()) {
+        if (!visibleIds.has(id)) _animalLastPos.delete(id)
+      }
+    }
     for (const animal of animals) {
       const small = animal.kind === 'fish' || animal.kind === 'bird' || animal.kind === 'rabbit'
       const size = small ? 11 : 14
+      const moving =
+        animal.kind === 'fish' || animal.kind === 'bird' || animalIsMoving(animal.id, animal.x, animal.y, t)
       const speed =
         animal.kind === 'fish'
           ? 0.0028
@@ -1693,7 +1742,7 @@ function drawWorldOnCanvas(
             : animal.kind === 'wolf' || animal.kind === 'dog'
               ? 0.0042
               : 0.0036
-      const amp = animal.kind === 'fish' ? 1.4 : animal.kind === 'bird' ? 1.6 : 0.7
+      const amp = animal.kind === 'fish' ? 1.4 : animal.kind === 'bird' ? 1.6 : moving ? 0.55 : 0
       const phase = t * speed + animal.id * 0.7
       const yOff = Math.sin(phase) * amp
       const cx = (animal.x - ox) * TILE + TILE / 2
@@ -1704,23 +1753,36 @@ function drawWorldOnCanvas(
         ctx.ellipse(cx, cy + size * 0.42, size * 0.32, size * 0.14, 0, 0, Math.PI * 2)
         ctx.fill()
       }
-      if (atlasReady) {
-        const frames = (SPRITE.animals as Record<string, readonly (readonly [number, number])[]>)[animal.kind]
-        const tile = frames
-          ? frames[(Math.floor(t / 260) + animal.id) % frames.length]
-          : SPRITE.animals.rabbit[0]
-        const flip = ((animal.id * 2654435761) >>> 0) & 1
-        if (flip) {
+      const flip = (((animal.id * 2654435761) >>> 0) & 1) === 1
+      if (animal.kind === 'wolf' || animal.kind === 'dog') {
+        drawCanineSprite(
+          ctx,
+          cx,
+          cy,
+          size,
+          animal.kind,
+          flip,
+          moving ? Math.floor(t / 220 + animal.id) & 1 : 0,
+        )
+      } else if (atlasReady) {
+        // Tiny Creatures is a catalogue, not an animation strip. Keep each
+        // animal on one deterministic variant so deer never morph into boar.
+        const tile = pickAnimalTile(animal.kind, animal.id)
+        const dx = Math.round(cx - size / 2)
+        const dy = Math.round(cy - size / 2)
+        if (!tile) {
+          continue
+        } else if (flip) {
           ctx.save()
-          ctx.translate(cx + size / 2, cy - size / 2)
+          ctx.translate(dx + size, 0)
           ctx.scale(-1, 1)
-          drawTile(ctx, ATLAS_CREATURE, tile, 0, 0, size)
+          drawTile(ctx, ATLAS_CREATURE, tile, 0, dy, size)
           ctx.restore()
         } else {
-          drawTile(ctx, ATLAS_CREATURE, tile, cx - size / 2, cy - size / 2, size)
+          drawTile(ctx, ATLAS_CREATURE, tile, dx, dy, size)
         }
       } else {
-        ctx.fillStyle = animal.kind === 'wolf' ? '#6a6a72' : '#8a6a4a'
+        ctx.fillStyle = animal.kind === 'fish' ? '#6f9fb0' : '#8a6a4a'
         ctx.beginPath()
         ctx.ellipse(cx, cy, size * 0.32, size * 0.22, 0, 0, Math.PI * 2)
         ctx.fill()
@@ -1745,6 +1807,14 @@ function drawWorldOnCanvas(
     return true
   }
 
+  if (_orgLastPos.size > Math.max(512, organisms.length * 3)) {
+    const visibleIds = new Set(organisms.map((organism) => organism.id))
+    for (const id of _orgLastPos.keys()) {
+      if (!visibleIds.has(id)) _orgLastPos.delete(id)
+    }
+  }
+
+  const characterDetail = zoomDetailLevel(cameraZoom)
   for (const org of organisms) {
     if (!org.alive) continue
     // Data-driven house entry: use actual sleep_debt, energy, health fields - no text matching
@@ -1758,15 +1828,26 @@ function drawWorldOnCanvas(
     const px = (org.x - ox) * TILE + TILE / 2
     const py = (org.y - oy) * TILE + TILE / 2
     const focused = isFocused(org)
+    const isSelected = org.id === selectedOrgId
+    const fullDetail = isSelected || characterDetail === 'detail'
+    const standardDetail = isSelected || characterDetail !== 'overview'
+    const variant = orgVariant(org.id)
+    const bodyR = variant.bodyRadius * (org.sex === 'male' ? 1.05 : 0.95)
+    const orgSex: 'male' | 'female' = org.sex === 'female' ? 'female' : 'male'
+    const stage = resolveAgeStage(org)
+    // The atlas owns age-specific proportions. Keeping one destination box
+    // prevents infants and children from being scaled down twice.
+    const spriteSize = Math.round(Math.max(19, bodyR * 3.8))
+    const spriteTop = py - spriteSize * 0.78
     ctx.globalAlpha = focused ? 1 : 0.12
 
     ctx.fillStyle = 'rgba(0,0,0,0.4)'
     ctx.beginPath()
-    ctx.ellipse(px + 1, py + 3, 5, 3, 0, 0, Math.PI * 2)
+    ctx.ellipse(px + 1, py + spriteSize * 0.2, spriteSize * 0.27, spriteSize * 0.1, 0, 0, Math.PI * 2)
     ctx.fill()
 
     const isSignaling = org.thought.startsWith('"') || org.thought.startsWith("'")
-    if (isSignaling || org.thought === 'sounding alarm') {
+    if (standardDetail && (isSignaling || org.thought === 'sounding alarm')) {
       ctx.strokeStyle =
         org.thought.includes('!') || org.thought === 'sounding alarm'
           ? 'rgba(255,68,136,0.6)'
@@ -1775,7 +1856,7 @@ function drawWorldOnCanvas(
       ctx.beginPath()
       ctx.arc(px, py, 10, 0, Math.PI * 2)
       ctx.stroke()
-    } else if (org.thought === 'challenging' || org.thought === 'challenging alone') {
+    } else if (standardDetail && (org.thought === 'challenging' || org.thought === 'challenging alone')) {
       ctx.strokeStyle = org.thought === 'challenging' ? 'rgba(255,34,0,0.85)' : 'rgba(204,68,34,0.7)'
       ctx.lineWidth = 2
       ctx.beginPath()
@@ -1787,50 +1868,33 @@ function drawWorldOnCanvas(
       ctx.stroke()
     }
 
-    if (org.infection > 0.15) {
+    if (standardDetail && org.infection > 0.15) {
       ctx.beginPath()
       ctx.arc(px, py, 8, 0, Math.PI * 2)
       ctx.fillStyle = `rgba(187,255,68,${org.infection * 0.3})`
       ctx.fill()
     }
 
-    if (org.is_elder) {
-      ctx.strokeStyle = 'rgba(255,220,80,0.85)'
-      ctx.lineWidth = 1.5
-      ctx.setLineDash([3, 2])
-      ctx.beginPath()
-      ctx.arc(px, py, 9, 0, Math.PI * 2)
-      ctx.stroke()
-      ctx.setLineDash([])
-    }
-
-    if (org.id === selectedOrgId) {
+    if (isSelected) {
       ctx.strokeStyle = 'rgba(255,255,255,0.9)'
       ctx.lineWidth = 1.5
       ctx.setLineDash([3, 2])
       ctx.beginPath()
-      ctx.arc(px, py, 10, 0, Math.PI * 2)
+      ctx.ellipse(px, py + 2, spriteSize * 0.42, spriteSize * 0.24, 0, 0, Math.PI * 2)
       ctx.stroke()
       ctx.setLineDash([])
     }
 
-    if (org.lineage_id) {
+    if (standardDetail && org.lineage_id) {
       ctx.strokeStyle = lineageColor(org.lineage_id)
-      ctx.lineWidth = org.traits ? 1 + org.traits.resilience * 2 : 2
+      ctx.lineWidth = org.traits ? 0.75 + org.traits.resilience : 1
       ctx.beginPath()
-      ctx.arc(px, py, 7, 0, Math.PI * 2)
+      ctx.ellipse(px, py + 3, spriteSize * 0.34, spriteSize * 0.17, 0, 0, Math.PI * 2)
       ctx.stroke()
     }
 
-    if (org.carrying > 0) {
-      ctx.fillStyle = org.carrying_type === 2 ? '#9a9a9a' : '#8b5e3c'
-      ctx.fillRect(px - 3, py - 13, 6, 4)
-    }
-
-    const variant = orgVariant(org.id)
-    const bodyR = variant.bodyRadius * (org.sex === 'male' ? 1.05 : 0.95)
-
-    // Body fill: data-driven emotional state overrides thought colors when strong
+    // Keep simulation state visible as a restrained aura, not an opaque shape
+    // painted over the character art.
     let bodyFill: string
     if (org.infection > 0.38) bodyFill = 'hsl(85,60%,48%)'
     else if ((org.fear_level ?? 0) > 0.72) bodyFill = 'hsl(10,70%,48%)'
@@ -1846,16 +1910,19 @@ function drawWorldOnCanvas(
       const b = Math.round(80 * (1 - h) + 100 * h)
       bodyFill = `rgb(${r},${g},${b})`
     } else if (viewFlags.age) {
-      if (org.is_elder) bodyFill = '#e9c87a'
-      else if (org.age < 900) bodyFill = '#8db5d6'
+      if (stage === 'elder') bodyFill = '#e9c87a'
+      else if (stage === 'infant' || stage === 'child') bodyFill = '#8db5d6'
       else bodyFill = '#b8b8a8'
     }
+    ctx.save()
+    ctx.globalAlpha *= viewFlags.health || viewFlags.age ? 0.3 : standardDetail ? 0.16 : 0.1
     ctx.fillStyle = bodyFill
     ctx.beginPath()
-    ctx.arc(px, py, bodyR, 0, Math.PI * 2)
+    ctx.arc(px, py, bodyR + 1.5, 0, Math.PI * 2)
     ctx.fill()
+    ctx.restore()
 
-    if (viewFlags.fear && (org.fear_level ?? 0) > 0.25) {
+    if (standardDetail && viewFlags.fear && (org.fear_level ?? 0) > 0.25) {
       const fa = Math.min(0.55, (org.fear_level ?? 0) * 0.8)
       ctx.beginPath()
       ctx.arc(px, py, bodyR + 4, 0, Math.PI * 2)
@@ -1863,14 +1930,14 @@ function drawWorldOnCanvas(
       ctx.fill()
     }
 
-    if (viewFlags.lineageDot && org.lineage_id) {
+    if (standardDetail && viewFlags.lineageDot && org.lineage_id) {
       ctx.fillStyle = lineageColor(org.lineage_id)
       ctx.beginPath()
       ctx.arc(px, py + bodyR * 0.4, 1.6, 0, Math.PI * 2)
       ctx.fill()
     }
 
-    if (viewFlags.pregnancy && org.pregnant) {
+    if (standardDetail && viewFlags.pregnancy && org.pregnant) {
       ctx.strokeStyle = 'rgba(255,220,120,0.9)'
       ctx.lineWidth = 1.3
       ctx.setLineDash([2, 2])
@@ -1880,69 +1947,42 @@ function drawWorldOnCanvas(
       ctx.setLineDash([])
     }
 
-    const orgSex: 'male' | 'female' = org.sex === 'female' ? 'female' : 'male'
-    const stage = deriveAgeStage(org.age ?? 0, !!org.is_elder, org.age_stage)
-    const ageScale = stage === 'infant' ? 0.55 : stage === 'child' ? 0.78 : stage === 'adult' ? 1.1 : 1.0
-    const spriteSize = Math.max(12, bodyR * 3.2 * ageScale)
     const frame = orgFrame(org.id, org.x, org.y, t)
-    const drewLid = lineageErasMap[org.lineage_id] ?? ''
     const drew = drawPeopleTile(
       ctx,
-      pickHumanSprite(orgSex, stage, frame),
-      px - spriteSize / 2,
-      py - spriteSize * 0.78,
+      pickHumanSprite(orgSex, stage, frame, deterministicAppearanceIndex(org.id)),
+      Math.round(px - spriteSize / 2),
+      Math.round(spriteTop),
       spriteSize,
     )
     if (!drew) {
       ctx.fillStyle = variant.hairColor
       ctx.beginPath()
-      ctx.arc(px, py - bodyR * 0.7, bodyR * 0.55 * ageScale, 0, Math.PI * 2)
+      ctx.arc(px, py - bodyR * 0.7, bodyR * 0.55, 0, Math.PI * 2)
       ctx.fill()
       ctx.fillStyle = variant.accent
-      ctx.fillRect(px - bodyR * 0.7 * ageScale, py + bodyR * 0.15, bodyR * 1.4 * ageScale, 1.4)
-    }
-    const eraClothingColor = ERA_CLOTHING_COLOR[drewLid] ?? null
-    if (eraClothingColor) {
-      ctx.save()
-      ctx.fillStyle = eraClothingColor
-      ctx.globalAlpha = 0.55
-      ctx.fillRect(
-        px - bodyR * 0.85 * ageScale,
-        py - bodyR * 0.1,
-        bodyR * 1.7 * ageScale,
-        bodyR * 0.85 * ageScale,
-      )
-      ctx.restore()
-    }
-    if (stage === 'elder') {
-      ctx.save()
-      ctx.strokeStyle = 'rgba(255,255,255,0.55)'
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      ctx.moveTo(px + bodyR * 0.7, py + bodyR * 0.2)
-      ctx.lineTo(px + bodyR * 1.1, py + bodyR * 1.2)
-      ctx.stroke()
-      ctx.restore()
+      ctx.fillRect(Math.round(px - bodyR * 0.7), Math.round(py + bodyR * 0.15), bodyR * 1.4, 2)
     }
 
     const era = lineageErasMap[org.lineage_id] ?? ''
-    if (era && era !== 'pre-stone' && era !== 'stone') {
+    if (standardDetail && era && era !== 'pre-stone' && era !== 'stone') {
       ctx.save()
       ctx.fillStyle = ERA_STRIPE_COLOR[era] ?? 'rgba(255,255,255,0.0)'
-      ctx.globalAlpha = 0.65
-      ctx.fillRect(px - bodyR, py + bodyR + 0.8, bodyR * 2, 1.4)
+      ctx.globalAlpha *= 0.75
+      ctx.fillRect(Math.round(px - bodyR), Math.round(py + bodyR + 1), Math.round(bodyR * 2), 1)
       ctx.restore()
     }
     if (org.is_leader) {
-      ctx.save()
-      ctx.font = '8px serif'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillText('\u{1F451}', px, py - spriteSize * 0.92)
-      ctx.restore()
+      const crownX = Math.round(px - 4)
+      const crownY = Math.round(spriteTop - 2)
+      ctx.fillStyle = '#f2c84b'
+      ctx.fillRect(crownX, crownY, 8, 2)
+      ctx.fillRect(crownX, crownY - 2, 2, 2)
+      ctx.fillRect(crownX + 3, crownY - 3, 2, 3)
+      ctx.fillRect(crownX + 6, crownY - 2, 2, 2)
     }
     const specEmoji = SPECIALTY_EMOJI[org.specialty ?? ''] ?? ''
-    if (specEmoji) {
+    if (fullDetail && specEmoji) {
       ctx.save()
       ctx.font = '7px serif'
       ctx.textAlign = 'center'
@@ -1950,7 +1990,7 @@ function drawWorldOnCanvas(
       ctx.fillText(specEmoji, px + bodyR + 1, py - bodyR * 0.4)
       ctx.restore()
     }
-    if (org.diseases && org.diseases.length > 0) {
+    if (standardDetail && org.diseases && org.diseases.length > 0) {
       ctx.save()
       ctx.font = '7px serif'
       ctx.textAlign = 'center'
@@ -1958,7 +1998,7 @@ function drawWorldOnCanvas(
       ctx.fillText('\u{1F912}', px - bodyR - 1, py - bodyR * 0.4)
       ctx.restore()
     }
-    if (org.tools) {
+    if (fullDetail && org.tools) {
       const toolEmoji = pickToolEmoji(org.tools)
       if (toolEmoji) {
         ctx.save()
@@ -1969,7 +2009,7 @@ function drawWorldOnCanvas(
         ctx.restore()
       }
     }
-    if (org.degrees && org.degrees.length > 0) {
+    if (fullDetail && org.degrees && org.degrees.length > 0) {
       ctx.save()
       ctx.font = '7px serif'
       ctx.textAlign = 'center'
@@ -1978,40 +2018,52 @@ function drawWorldOnCanvas(
       ctx.restore()
     }
 
-    const barW = TILE - 2
-    const bx = (org.x - ox) * TILE + 1
-    const by = (org.y - oy) * TILE
-    ctx.fillStyle = 'rgba(0,0,0,0.6)'
-    ctx.fillRect(bx, by - 5, barW, 2)
-    ctx.fillStyle = '#55dd55'
-    ctx.fillRect(bx, by - 5, barW * org.energy, 2)
-    ctx.fillStyle = 'rgba(0,0,0,0.6)'
-    ctx.fillRect(bx, by - 2, barW, 2)
-    ctx.fillStyle = '#4499ff'
-    ctx.fillRect(bx, by - 2, barW * org.hydration, 2)
+    if (standardDetail && org.carrying > 0) {
+      ctx.fillStyle = org.carrying_type === 2 ? '#9a9a9a' : '#8b5e3c'
+      ctx.fillRect(Math.round(px + spriteSize * 0.2), Math.round(py - 1), 5, 4)
+    }
 
-    const isSelected = org.id === selectedOrgId
-    const showName = isSelected || viewFlags.names
-    const showThought = (isSelected || viewFlags.thoughts) && org.thought && org.thought !== 'observing'
+    const showVitals = isSelected || org.energy < 0.22 || org.hydration < 0.22 || org.health < 0.22
+    if (showVitals) {
+      const barW = Math.max(8, Math.round(spriteSize * 0.55))
+      const bx = Math.round(px - barW / 2)
+      const by = Math.round(spriteTop - 5)
+      ctx.fillStyle = 'rgba(0,0,0,0.68)'
+      ctx.fillRect(bx - 1, by - 1, barW + 2, 6)
+      ctx.fillStyle = '#55dd55'
+      ctx.fillRect(bx, by, Math.round(barW * Math.max(0, Math.min(1, org.energy))), 1)
+      ctx.fillStyle = '#4499ff'
+      ctx.fillRect(bx, by + 2, Math.round(barW * Math.max(0, Math.min(1, org.hydration))), 1)
+      ctx.fillStyle = '#ff665c'
+      ctx.fillRect(bx, by + 4, Math.round(barW * Math.max(0, Math.min(1, org.health))), 1)
+    }
+
+    const showName = isSelected || (standardDetail && viewFlags.names)
+    const showThought =
+      (isSelected || (fullDetail && viewFlags.thoughts)) && org.thought && org.thought !== 'observing'
+    const labelY = spriteTop - (showVitals ? 10 : 2)
 
     if (showName) {
       ctx.font = isSelected ? 'bold 10px monospace' : '9px monospace'
       ctx.textAlign = 'center'
+      ctx.textBaseline = 'bottom'
       ctx.lineWidth = 3
       ctx.strokeStyle = 'rgba(0,0,0,0.85)'
-      ctx.strokeText(org.name, px, py - 9)
+      ctx.strokeText(org.name, px, labelY)
       ctx.fillStyle = isSelected ? '#ffffff' : 'rgba(255,255,255,0.95)'
-      ctx.fillText(org.name, px, py - 9)
+      ctx.fillText(org.name, px, labelY)
     }
 
     if (showThought) {
       ctx.font = '8px monospace'
       ctx.textAlign = 'center'
+      ctx.textBaseline = 'bottom'
       ctx.lineWidth = 2.5
       ctx.strokeStyle = 'rgba(0,0,0,0.85)'
-      ctx.strokeText(org.thought, px, py - (showName ? 18 : 9))
+      const thoughtY = labelY - (showName ? 10 : 0)
+      ctx.strokeText(org.thought, px, thoughtY)
       ctx.fillStyle = isSelected ? 'rgba(180,220,255,1)' : 'rgba(180,220,255,0.9)'
-      ctx.fillText(org.thought, px, py - (showName ? 18 : 9))
+      ctx.fillText(org.thought, px, thoughtY)
     }
   }
   ctx.globalAlpha = 1
@@ -2227,7 +2279,9 @@ function WorldSprite({
             )
           : 1
 
-      const uiKey = `${selectedOrgIdRef.current ?? ''}|${overlayRef.current ?? ''}|${focusRef.current}|${viewFlagsRef.current.territory ? 't' : ''}${viewFlagsRef.current.names ? 'n' : ''}${viewFlagsRef.current.thoughts ? 'h' : ''}${viewFlagsRef.current.animals ? 'a' : ''}${viewFlagsRef.current.grid ? 'g' : ''}`
+      const renderZoom = cameraStateRef?.current.zoom ?? 1
+      const detailBucket = zoomDetailLevel(renderZoom)
+      const uiKey = `${selectedOrgIdRef.current ?? ''}|${overlayRef.current ?? ''}|${focusRef.current}|${viewFlagsRef.current.territory ? 't' : ''}${viewFlagsRef.current.names ? 'n' : ''}${viewFlagsRef.current.thoughts ? 'h' : ''}${viewFlagsRef.current.animals ? 'a' : ''}${viewFlagsRef.current.grid ? 'g' : ''}|${detailBucket}`
       const settled =
         t >= PREDICT_CAP && lastDrawnT >= PREDICT_CAP && curServerAt === lastDrawnAt && uiKey === lastDrawnUI
       if (settled) return
@@ -2321,7 +2375,7 @@ function WorldSprite({
       let bounds: { c0: number; c1: number; r0: number; r1: number } | undefined
       if (cameraStateRef && viewportDims && viewportDims.w > 0 && viewportDims.h > 0) {
         const cam = cameraStateRef.current
-        const zoom = cam.zoom > 0 ? cam.zoom : 1
+        const zoom = renderZoom > 0 ? renderZoom : 1
         const halfW = viewportDims.w / (2 * zoom)
         const halfH = viewportDims.h / (2 * zoom)
         const MARGIN = 4
@@ -2342,6 +2396,7 @@ function WorldSprite({
         focusRef.current,
         viewFlagsRef.current,
         bounds,
+        renderZoom,
       )
       dyn.markDirty()
 

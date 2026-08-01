@@ -1,12 +1,7 @@
 import { useEffect, useRef } from 'react'
-import {
-  ATLAS_TOWN,
-  onAnyAtlasLoaded,
-  drawPeopleTile,
-  pickHumanSprite,
-  type AgeStage,
-} from '../../../utils/sprites'
-import type { SceneContext, SceneFixture, SceneOccupant } from '../../../scenes/core/types'
+import { ATLAS_TOWN, onAnyAtlasLoaded, drawPeopleTile, pickHumanSprite } from '../../../utils/sprites'
+import type { SceneContext, SceneFixture } from '../../../scenes/core/types'
+import { deterministicAppearanceIndex, resolveAgeStage } from '../../world/character-visuals'
 
 export const TILE_PX = 16
 export const SCALE = 3
@@ -35,18 +30,6 @@ interface Props {
   selectedOrgId: string | null
   onSelectOrg: (id: string) => void
   hover: number
-}
-
-function deriveStage(o: SceneOccupant['org']): AgeStage {
-  const declared = o.age_stage as AgeStage | undefined
-  if (declared === 'infant' || declared === 'child' || declared === 'teen' || declared === 'adult')
-    return declared
-  if (declared === 'elder') return 'adult'
-  if (o.is_elder) return 'adult'
-  if (o.age < 220) return 'infant'
-  if (o.age < 900) return 'child'
-  if (o.age < 1800) return 'teen'
-  return 'adult'
 }
 
 function drawFloor(ctx: CanvasRenderingContext2D, p: RoomPalette) {
@@ -146,12 +129,15 @@ export function RoomCanvas({
         const [cx, cy] = slots[i] ?? [7, 5]
         const px = cx * TILE_PX
         const py = cy * TILE_PX
-        const stage = deriveStage(occ.org)
-        const frame = Math.floor(time / 220) % 4
         const sex = (occ.org.sex ?? 'male') as 'male' | 'female'
-        const sprite = pickHumanSprite(sex, stage, frame)
+        const sprite = pickHumanSprite(
+          sex,
+          resolveAgeStage(occ.org),
+          0,
+          deterministicAppearanceIndex(occ.org.id),
+        )
         const size = 32
-        const dx = px - 8
+        const dx = px - size / 2
         const dy = py - 16
 
         c.fillStyle = 'rgba(0,0,0,0.45)'

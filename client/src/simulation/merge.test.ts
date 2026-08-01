@@ -284,10 +284,7 @@ describe('mergeFrame trade network handling', () => {
       },
     ]
 
-    const first = mergeFrame(
-      baseFrame({ frame_kind: 'full', trade_routes: tradeRoutes, caravans }),
-      caches,
-    )
+    const first = mergeFrame(baseFrame({ frame_kind: 'full', trade_routes: tradeRoutes, caravans }), caches)
     caches.prevWorld = first.next
     const sparse = mergeFrame(baseFrame({ frame_id: 2, tick: 121 }), caches)
     expect(sparse.next.trade_routes).toBe(tradeRoutes)

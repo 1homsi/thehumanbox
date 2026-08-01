@@ -1,12 +1,7 @@
 import { useEffect, useRef } from 'react'
-import {
-  ATLAS_TOWN,
-  onAnyAtlasLoaded,
-  drawPeopleTile,
-  pickHumanSprite,
-  type AgeStage,
-} from '../../../utils/sprites'
-import type { SceneContext, SceneOccupant } from '../../../scenes/core/types'
+import { ATLAS_TOWN, onAnyAtlasLoaded, drawPeopleTile, pickHumanSprite } from '../../../utils/sprites'
+import type { SceneContext } from '../../../scenes/core/types'
+import { deterministicAppearanceIndex, resolveAgeStage } from '../../world/character-visuals'
 
 const TILE_PX = 16
 const SCALE = 3
@@ -155,18 +150,6 @@ function eraOf(world: SceneContext['world'], lid: string): string {
   const raw = world.lineage_eras
   if (Array.isArray(raw)) return raw.find((e) => e.lineage_id === lid)?.era_name ?? 'pre-stone'
   return (raw as Record<string, string> | undefined)?.[lid] ?? 'pre-stone'
-}
-
-function deriveStage(o: SceneOccupant['org']): AgeStage {
-  const declared = o.age_stage as AgeStage | undefined
-  if (declared === 'infant' || declared === 'child' || declared === 'teen' || declared === 'adult')
-    return declared
-  if (declared === 'elder') return 'adult'
-  if (o.is_elder) return 'adult'
-  if (o.age < 220) return 'infant'
-  if (o.age < 900) return 'child'
-  if (o.age < 1800) return 'teen'
-  return 'adult'
 }
 
 function occupantSlots(n: number): Array<[number, number]> {
@@ -424,12 +407,15 @@ export function HomeCanvas({ ctx: sceneCtx, selectedOrgId, onSelectOrg, hover }:
         const [cx, cy] = orderedSlots[i] ?? [7, 5]
         const px = cx * TILE_PX
         const py = cy * TILE_PX
-        const stage = deriveStage(occ.org)
-        const frame = Math.floor(time / 220) % 4
         const sex = (occ.org.sex ?? 'male') as 'male' | 'female'
-        const sprite = pickHumanSprite(sex, stage, frame)
+        const sprite = pickHumanSprite(
+          sex,
+          resolveAgeStage(occ.org),
+          0,
+          deterministicAppearanceIndex(occ.org.id),
+        )
         const size = 32
-        const dx = px - 8
+        const dx = px - size / 2
         const dy = py - 16
 
         c.fillStyle = 'rgba(0,0,0,0.45)'

@@ -33,3 +33,8 @@ export const BIOME_ID = {
 export function isWaterTile(tile: number | undefined): boolean {
   return tile === TILE_ID.WATER || tile === TILE_ID.FLOODED
 }
+
+/** Permanent lakes/ocean. Floodwater is rendered as a separate shallow overlay. */
+export function isPermanentWaterTile(tile: number | undefined): boolean {
+  return tile === TILE_ID.WATER
+}

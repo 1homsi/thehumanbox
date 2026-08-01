@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BIOME_ID, TILE_ID, isWaterTile } from './terrain-ids'
+import { BIOME_ID, TILE_ID, isPermanentWaterTile, isWaterTile } from './terrain-ids'
 
 describe('terrain wire IDs', () => {
   it('matches the complete sim-core Tile repr', () => {
@@ -37,5 +37,11 @@ describe('terrain wire IDs', () => {
     expect(isWaterTile(TILE_ID.FLOODED)).toBe(true)
     expect(isWaterTile(TILE_ID.GRASS)).toBe(false)
     expect(isWaterTile(undefined)).toBe(false)
+  })
+
+  it('keeps permanent coast water distinct from temporary floods', () => {
+    expect(isPermanentWaterTile(TILE_ID.WATER)).toBe(true)
+    expect(isPermanentWaterTile(TILE_ID.FLOODED)).toBe(false)
+    expect(isPermanentWaterTile(TILE_ID.GRASS)).toBe(false)
   })
 })

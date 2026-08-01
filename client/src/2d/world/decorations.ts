@@ -9,6 +9,14 @@ import { SPRITE, ATLAS_TOWN, drawTile } from '../../utils/sprites'
 import type { WorldState } from '../../types'
 import { TILE } from '../../world/palette'
 import { BIOME_ID, TILE_ID, isWaterTile } from '../../world/terrain-ids'
+import {
+  EDGE_EAST,
+  EDGE_NORTH,
+  EDGE_SOUTH,
+  EDGE_WEST,
+  permanentWaterLandEdgeMask,
+  permanentWaterNeighborMask,
+} from '../../world/terrain-visuals'
 
 export function drawCloudShape(
   ctx: CanvasRenderingContext2D,
@@ -27,20 +35,36 @@ export function drawCloudShape(
   }
 
   const drawPuff = (px: number, py: number, pr: number, pa: number) => {
-    const g = ctx.createRadialGradient(px, py, 0, px, py, pr)
-    g.addColorStop(0, `rgba(${color},${pa})`)
-    g.addColorStop(0.55, `rgba(${color},${pa * 0.7})`)
-    g.addColorStop(0.85, `rgba(${color},${pa * 0.25})`)
-    g.addColorStop(1, `rgba(${color},0)`)
-    ctx.fillStyle = g
-    ctx.beginPath()
-    ctx.arc(px, py, pr, 0, Math.PI * 2)
-    ctx.fill()
+    const radius = Math.max(3, Math.round(pr))
+    const x = Math.round(px)
+    const y = Math.round(py)
+    ctx.fillStyle = `rgba(${color},${pa * 0.25})`
+    ctx.fillRect(x - radius, y - Math.round(radius * 0.24), radius * 2, Math.max(2, radius))
+    ctx.fillStyle = `rgba(${color},${pa * 0.58})`
+    ctx.fillRect(
+      x - Math.round(radius * 0.72),
+      y - Math.round(radius * 0.52),
+      Math.round(radius * 1.44),
+      Math.max(2, Math.round(radius * 0.84)),
+    )
+    ctx.fillStyle = `rgba(${color},${pa})`
+    ctx.fillRect(
+      x - Math.round(radius * 0.42),
+      y - Math.round(radius * 0.68),
+      Math.max(2, Math.round(radius * 0.84)),
+      Math.max(2, Math.round(radius * 0.5)),
+    )
   }
 
-  drawPuff(cx, cy + cloudH * 0.15, Math.max(cloudW, cloudH) * 0.85, alpha * 0.9)
+  ctx.fillStyle = `rgba(${color},${alpha * 0.42})`
+  ctx.fillRect(
+    Math.round(cx - cloudW * 0.72),
+    Math.round(cy - cloudH * 0.08),
+    Math.round(cloudW * 1.44),
+    Math.max(3, Math.round(cloudH * 0.55)),
+  )
 
-  const nPuffs = 8 + Math.floor(rand() * 5)
+  const nPuffs = 6 + Math.floor(rand() * 4)
   for (let p = 0; p < nPuffs; p++) {
     const t = p / (nPuffs - 1)
     const edgeBias = 1 - Math.abs(t - 0.5) * 1.6
@@ -57,6 +81,8 @@ export function drawTrees(
   height: number,
   tiles: number[][],
   biomes?: number[][],
+  originX = 0,
+  originY = 0,
 ) {
   if (!biomes || !ATLAS_TOWN.complete) return
   const TREE_SIZE = 16
@@ -79,10 +105,20 @@ export function drawTrees(
     const bRow = biomes[y]
     if (!tRow || !bRow) continue
     const t = tRow[x]
-    if (t !== TILE_ID.GRASS && t !== TILE_ID.FOOD) continue
     const biome = bRow[x] ?? 0
+    const supportsTree =
+      biome === BIOME_ID.DESERT
+        ? t === TILE_ID.SAND || t === TILE_ID.GRASS
+        : biome === BIOME_ID.TUNDRA
+          ? t === TILE_ID.SNOW || t === TILE_ID.GRASS || t === TILE_ID.FOOD
+          : biome === BIOME_ID.VOLCANIC
+            ? t === TILE_ID.ASH || t === TILE_ID.SCORCHED || t === TILE_ID.GRASS
+            : t === TILE_ID.GRASS || t === TILE_ID.FOOD
+    if (!supportsTree) continue
 
-    let hash = (x * 73856093) ^ (y * 19349663)
+    const worldX = x + originX
+    const worldY = y + originY
+    let hash = (worldX * 73856093) ^ (worldY * 19349663)
     hash = ((hash ^ (hash >>> 13)) * 0x5bd1e995) >>> 0
     const r0 = (hash & 0xff) / 255
     const r1 = ((hash >>> 8) & 0xff) / 255
@@ -156,7 +192,15 @@ export function drawTrees(
         sprite = SPRITE.trees.dead
         break
     }
-    drawTile(ctx, ATLAS_TOWN, sprite, cx, cy, sz)
+    const shadowWidth = Math.max(4, Math.round(sz * 0.48))
+    ctx.fillStyle = 'rgba(20,24,18,0.24)'
+    ctx.fillRect(
+      Math.round(cx + (sz - shadowWidth) / 2),
+      Math.round(cy + sz * 0.77),
+      shadowWidth,
+      Math.max(1, Math.round(sz * 0.1)),
+    )
+    drawTile(ctx, ATLAS_TOWN, sprite, Math.round(cx), Math.round(cy), Math.round(sz))
   }
 }
 
@@ -166,6 +210,8 @@ export function drawNaturalDecor(
   height: number,
   tiles: number[][],
   biomes?: number[][],
+  originX = 0,
+  originY = 0,
 ) {
   if (!biomes) return
   ctx.save()
@@ -176,7 +222,9 @@ export function drawNaturalDecor(
     for (let x = 1; x < width - 1; x++) {
       const t = tRow[x]
       const biome = bRow[x] ?? 0
-      let hash = ((x * 374761393) ^ (y * 668265263)) >>> 0
+      const worldX = x + originX
+      const worldY = y + originY
+      let hash = ((worldX * 374761393) ^ (worldY * 668265263)) >>> 0
       hash = ((hash ^ (hash >>> 13)) * 1274126177) >>> 0
       const r0 = (hash & 0xff) / 255
       const r1 = ((hash >>> 8) & 0xff) / 255
@@ -185,34 +233,21 @@ export function drawNaturalDecor(
       const py = y * TILE
 
       if (t === TILE_ID.ROCK || (t === TILE_ID.SAND && biome === BIOME_ID.DESERT && r0 < 0.04)) {
-        const sz = 2 + Math.floor(r1 * 3)
-        ctx.fillStyle = t === TILE_ID.ROCK ? '#5e5650' : '#8a7654'
-        ctx.beginPath()
-        ctx.ellipse(
-          px + TILE / 2 + (r2 - 0.5) * TILE * 0.4,
-          py + TILE / 2 + (r0 - 0.5) * TILE * 0.4,
-          sz,
-          sz * 0.7,
-          0,
-          0,
-          Math.PI * 2,
-        )
-        ctx.fill()
+        const sz = 2 + Math.floor(r1 * 2)
+        const rockX = Math.round(px + TILE / 2 + (r2 - 0.5) * TILE * 0.4 - sz / 2)
+        const rockY = Math.round(py + TILE / 2 + (r0 - 0.5) * TILE * 0.4)
+        ctx.fillStyle = t === TILE_ID.ROCK ? '#443f3b' : '#705f45'
+        ctx.fillRect(rockX, rockY, sz + 1, 2)
+        ctx.fillStyle = t === TILE_ID.ROCK ? '#77706a' : '#a58a5e'
+        ctx.fillRect(rockX + 1, rockY - 1, Math.max(1, sz - 1), 1)
         continue
       }
       if (t === TILE_ID.SNOW && r0 < 0.18) {
+        const snowX = Math.round(px + TILE / 2 + (r2 - 0.5) * TILE * 0.3)
+        const snowY = Math.round(py + TILE / 2 + (r1 - 0.5) * TILE * 0.3)
         ctx.fillStyle = 'rgba(245,250,255,0.7)'
-        ctx.beginPath()
-        ctx.ellipse(
-          px + TILE / 2 + (r2 - 0.5) * TILE * 0.3,
-          py + TILE / 2 + (r1 - 0.5) * TILE * 0.3,
-          2 + r2 * 2,
-          1 + r1,
-          0,
-          0,
-          Math.PI * 2,
-        )
-        ctx.fill()
+        ctx.fillRect(snowX - 2, snowY, 4, 1)
+        ctx.fillRect(snowX - 1, snowY - 1, 3, 1)
         continue
       }
       if (t !== TILE_ID.GRASS && t !== TILE_ID.FOOD) continue
@@ -268,31 +303,93 @@ export function drawNaturalDecor(
     }
   }
 
+  // Crisp land/water transitions. Permanent water creates beaches and
+  // shallow rims; temporary floodwater remains a separate muddy overlay.
+  for (let y = 0; y < height; y++) {
+    const tRow = tiles[y]
+    if (!tRow) continue
+    for (let x = 0; x < width; x++) {
+      const t = tRow[x]
+      const px = x * TILE
+      const py = y * TILE
+      if (!isWaterTile(t)) {
+        const beach = permanentWaterNeighborMask(tiles, y, x)
+        if (beach !== 0) {
+          ctx.fillStyle = '#b9a66f'
+          if (beach & EDGE_NORTH) ctx.fillRect(px, py, TILE, 2)
+          if (beach & EDGE_SOUTH) ctx.fillRect(px, py + TILE - 2, TILE, 2)
+          if (beach & EDGE_WEST) ctx.fillRect(px, py, 2, TILE)
+          if (beach & EDGE_EAST) ctx.fillRect(px + TILE - 2, py, 2, TILE)
+          ctx.fillStyle = '#ddc98e'
+          if (beach & EDGE_NORTH) ctx.fillRect(px + 1, py, TILE - 2, 1)
+          if (beach & EDGE_SOUTH) ctx.fillRect(px + 1, py + TILE - 1, TILE - 2, 1)
+          if (beach & EDGE_WEST) ctx.fillRect(px, py + 1, 1, TILE - 2)
+          if (beach & EDGE_EAST) ctx.fillRect(px + TILE - 1, py + 1, 1, TILE - 2)
+        }
+      } else if (t === TILE_ID.WATER) {
+        const shore = permanentWaterLandEdgeMask(tiles, y, x)
+        if (shore !== 0) {
+          ctx.fillStyle = 'rgba(145,220,222,0.42)'
+          if (shore & EDGE_NORTH) ctx.fillRect(px, py, TILE, 1)
+          if (shore & EDGE_SOUTH) ctx.fillRect(px, py + TILE - 1, TILE, 1)
+          if (shore & EDGE_WEST) ctx.fillRect(px, py, 1, TILE)
+          if (shore & EDGE_EAST) ctx.fillRect(px + TILE - 1, py, 1, TILE)
+        }
+      } else {
+        const worldX = x + originX
+        const worldY = y + originY
+        let hash = ((worldX * 374761393) ^ (worldY * 668265263)) >>> 0
+        hash = ((hash ^ (hash >>> 13)) * 1274126177) >>> 0
+        ctx.fillStyle = 'rgba(175,214,206,0.24)'
+        ctx.fillRect(px + 1 + ((hash >>> 8) & 1), py + 2, 4, 1)
+        ctx.fillStyle = 'rgba(74,101,91,0.3)'
+        ctx.fillRect(px + 3, py + 5, 3, 1)
+      }
+    }
+  }
+
   for (let y = 1; y < height - 1; y++) {
     const tRow = tiles[y]
     if (!tRow) continue
     for (let x = 1; x < width - 1; x++) {
-      if (!isWaterTile(tRow[x])) continue
+      if (tRow[x] !== TILE_ID.WATER) continue
       const above = tiles[y - 1]?.[x]
       const below = tiles[y + 1]?.[x]
       const left = tRow[x - 1]
       const right = tRow[x + 1]
       const landGrass = (n: number | undefined) => n === TILE_ID.GRASS || n === TILE_ID.FOOD
-      if (!landGrass(above) && !landGrass(below) && !landGrass(left) && !landGrass(right)) continue
-      let hash = ((x * 374761393) ^ (y * 668265263)) >>> 0
+      const grassEdges = [
+        landGrass(above) ? EDGE_NORTH : 0,
+        landGrass(below) ? EDGE_SOUTH : 0,
+        landGrass(left) ? EDGE_WEST : 0,
+        landGrass(right) ? EDGE_EAST : 0,
+      ].filter(Boolean)
+      if (grassEdges.length === 0) continue
+      const worldX = x + originX
+      const worldY = y + originY
+      let hash = ((worldX * 374761393) ^ (worldY * 668265263)) >>> 0
       hash = ((hash ^ (hash >>> 13)) * 1274126177) >>> 0
       if ((hash & 0xff) > 110) continue
       const r1 = ((hash >>> 8) & 0xff) / 255
       const r2 = ((hash >>> 16) & 0xff) / 255
       ctx.strokeStyle = '#3e6b3a'
       ctx.lineWidth = 1
-      const px = x * TILE + TILE / 2 + (r2 - 0.5) * TILE * 0.5
-      const py = y * TILE + TILE
+      const edge = grassEdges[hash % grassEdges.length]
+      let px = x * TILE + 2 + Math.round(r2 * Math.max(1, TILE - 4))
+      let py = y * TILE + TILE - 1
+      if (edge === EDGE_NORTH) py = y * TILE + 2
+      else if (edge === EDGE_WEST) {
+        px = x * TILE + 1
+        py = y * TILE + 3 + Math.round(r2 * Math.max(1, TILE - 6))
+      } else if (edge === EDGE_EAST) {
+        px = x * TILE + TILE - 1
+        py = y * TILE + 3 + Math.round(r2 * Math.max(1, TILE - 6))
+      }
       ctx.beginPath()
       ctx.moveTo(px, py)
-      ctx.lineTo(px + (r1 - 0.5) * 2, py - 4)
+      ctx.lineTo(px + Math.round((r1 - 0.5) * 2), py - 4)
       ctx.moveTo(px + 1, py)
-      ctx.lineTo(px + 1 + (r1 - 0.5) * 2, py - 3)
+      ctx.lineTo(px + 1 + Math.round((r1 - 0.5) * 2), py - 3)
       ctx.stroke()
     }
   }

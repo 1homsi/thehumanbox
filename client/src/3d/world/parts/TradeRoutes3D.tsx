@@ -80,10 +80,7 @@ function CaravanMarker({ caravan }: { caravan: CaravanVisual }) {
   })
 
   return (
-    <group
-      ref={markerRef}
-      position={[caravan.x * TILE_SCALE, caravan.groundY + 0.7, caravan.y * TILE_SCALE]}
-    >
+    <group ref={markerRef} position={[caravan.x * TILE_SCALE, caravan.groundY + 0.7, caravan.y * TILE_SCALE]}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.42, 0]} renderOrder={16}>
         <ringGeometry args={[1.15, 1.42, 20]} />
         <meshBasicMaterial
@@ -132,15 +129,7 @@ function CaravanMarker({ caravan }: { caravan: CaravanVisual }) {
   )
 }
 
-export function TradeRoutes3D({
-  routes,
-  caravans,
-  tick,
-  depthMap,
-  biomes,
-  originX,
-  originY,
-}: Props) {
+export function TradeRoutes3D({ routes, caravans, tick, depthMap, biomes, originX, originY }: Props) {
   const width = depthMap[0]?.length ?? 0
   const height = depthMap.length
   const routeVisuals = useMemo<RouteVisual[]>(() => {
@@ -160,11 +149,7 @@ export function TradeRoutes3D({
         const x = from[0] + (to[0] - from[0]) * progress
         const y = from[1] + (to[1] - from[1]) * progress
         const terrainY = heightAt(x, y, depthMap, biomes)
-        points.push([
-          x * TILE_SCALE,
-          terrainY + 0.38 + Math.sin(progress * Math.PI) * 0.18,
-          y * TILE_SCALE,
-        ])
+        points.push([x * TILE_SCALE, terrainY + 0.38 + Math.sin(progress * Math.PI) * 0.18, y * TILE_SCALE])
         colors.push(new Color().lerpColors(lineageA, lineageB, progress))
       }
       visuals.push({ id: route.id, points, colors })

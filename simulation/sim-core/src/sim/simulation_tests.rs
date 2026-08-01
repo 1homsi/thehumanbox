@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn completing_a_strategy_objective_rewards_the_lineage_once() {
-    let mut sim = Simulation::new(0x57A7_E6E);
+    let mut sim = Simulation::new(0x057A_7E6E);
     sim.tick_count = 100;
     let lineage_id = sim
         .organisms
@@ -78,7 +78,7 @@ fn completing_a_strategy_objective_rewards_the_lineage_once() {
 
 #[test]
 fn replaying_a_completed_strategy_does_not_create_another_reward() {
-    let mut sim = Simulation::new(0xD0B1_E);
+    let mut sim = Simulation::new(0x000D_0B1E);
     sim.tick_count = 100;
     let lineage_id = sim
         .organisms
@@ -120,7 +120,7 @@ fn replaying_a_completed_strategy_does_not_create_another_reward() {
 
 #[test]
 fn expired_strategy_objective_records_failure_and_penalty_once() {
-    let mut sim = Simulation::new(0xFA11_ED);
+    let mut sim = Simulation::new(0x00FA_11ED);
     sim.tick_count = 100;
     let lineage_id = sim
         .organisms
@@ -188,7 +188,7 @@ fn expired_strategy_objective_records_failure_and_penalty_once() {
 
 #[test]
 fn extinct_lineage_archives_an_active_campaign_with_its_name() {
-    let mut sim = Simulation::new(0xE771_C7);
+    let mut sim = Simulation::new(0x00E7_71C7);
     sim.tick_count = 200;
     let lineage_id = sim
         .organisms
@@ -224,7 +224,7 @@ fn extinct_lineage_archives_an_active_campaign_with_its_name() {
 
 #[test]
 fn loading_legacy_guidance_creates_a_playable_objective() {
-    let mut sim = Simulation::new(0x1E6A_C7);
+    let mut sim = Simulation::new(0x001E_6AC7);
     sim.tick_count = 400;
     let lineage_id = sim
         .organisms
@@ -237,7 +237,7 @@ fn loading_legacy_guidance_creates_a_playable_objective() {
         .insert(lineage_id.clone(), ("settle".to_string(), 1_000));
     sim.lineage_strategy_objectives.clear();
 
-    let loaded = Simulation::from_save(0x1E6A_C7, sim.to_save_state());
+    let loaded = Simulation::from_save(0x001E_6AC7, sim.to_save_state());
 
     let objective = loaded.lineage_strategy_objectives.get(&lineage_id).unwrap();
     assert_eq!(objective.strategy, "settle");

@@ -264,9 +264,7 @@ fn route_direction(route: &TradeRoute, sender_lineage: &str) -> Option<([i32; 2]
 }
 
 fn dispatch_route_index(sim: &Simulation, actor_idx: usize, partner_lineage: Option<&str>) -> Option<usize> {
-    let Some(actor) = sim.organisms.get(actor_idx).filter(|organism| organism.alive) else {
-        return None;
-    };
+    let actor = sim.organisms.get(actor_idx).filter(|organism| organism.alive)?;
     if sim.caravans.len() >= MAX_CARAVANS || cargo_candidate(sim, actor_idx).is_none() {
         return None;
     }
@@ -374,7 +372,7 @@ fn dispatch_caravan_on_route_index(sim: &mut Simulation, actor_idx: usize, route
         .get(&actor_lineage)
         .copied()
         .unwrap_or(crate::sim::era::Era::Iron);
-    let unit_price = PriceTable::for_era(era).price_for(era, &cargo).max(1).min(100);
+    let unit_price = PriceTable::for_era(era).price_for(era, &cargo).clamp(1, 100);
     let route_id = sim.trade_routes[route_index].id;
     sim.trade_routes[route_index].last_dispatch_tick = sim.tick_count;
     sim.caravans.push(Caravan {
@@ -1075,16 +1073,16 @@ mod tests {
                 unit_price: 1,
                 departed_tick: 10,
                 arrives_tick: 20,
-                from: valid_route
-                    .lineage_a
-                    .eq("river")
-                    .then_some(valid_route.a_center)
-                    .unwrap_or(valid_route.b_center),
-                to: valid_route
-                    .lineage_a
-                    .eq("hill")
-                    .then_some(valid_route.a_center)
-                    .unwrap_or(valid_route.b_center),
+                from: if valid_route.lineage_a == "river" {
+                    valid_route.a_center
+                } else {
+                    valid_route.b_center
+                },
+                to: if valid_route.lineage_a == "hill" {
+                    valid_route.a_center
+                } else {
+                    valid_route.b_center
+                },
                 dispatch_state: "state".repeat(600),
             })
             .collect();

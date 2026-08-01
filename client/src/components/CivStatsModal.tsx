@@ -822,9 +822,7 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                           {distance} tiles · {route.deliveries} delivered · {route.volume} volume
                         </span>
                         {routeCaravans.length > 0 && (
-                          <span className="civ-row-tag">
-                            {routeCaravans.length} en route
-                          </span>
+                          <span className="civ-row-tag">{routeCaravans.length} en route</span>
                         )}
                       </div>
                     )
@@ -834,10 +832,7 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                   .slice(0, 8)
                   .map((caravan) => {
                     const duration = Math.max(1, caravan.arrives_tick - caravan.departed_tick)
-                    const progress = Math.max(
-                      0,
-                      Math.min(1, (world.tick - caravan.departed_tick) / duration),
-                    )
+                    const progress = Math.max(0, Math.min(1, (world.tick - caravan.departed_tick) / duration))
                     const eta = Math.max(0, caravan.arrives_tick - world.tick)
                     return (
                       <div key={caravan.id} className="civ-row">
