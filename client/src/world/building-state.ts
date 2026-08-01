@@ -8,12 +8,7 @@ function unit(value: number | undefined, fallback: number): number {
 }
 
 export type BuildingVisualPhase =
-  | 'construction'
-  | 'intact'
-  | 'damaged'
-  | 'repairing'
-  | 'ruined'
-  | 'rebuilding'
+  'construction' | 'intact' | 'damaged' | 'repairing' | 'ruined' | 'rebuilding'
 
 export interface BuildingState {
   /** Existing construction progress. Never derived from structural damage. */

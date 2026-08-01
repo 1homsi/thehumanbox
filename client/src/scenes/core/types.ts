@@ -16,16 +16,7 @@ export type SceneKind = SceneId['kind']
 export type RenderMode = '2d' | '3d'
 
 export type OccupantRole =
-  | 'host'
-  | 'partner'
-  | 'child'
-  | 'kin'
-  | 'guest'
-  | 'stranger'
-  | 'patron'
-  | 'worshipper'
-  | 'brewer'
-  | 'priest'
+  'host' | 'partner' | 'child' | 'kin' | 'guest' | 'stranger' | 'patron' | 'worshipper' | 'brewer' | 'priest'
 
 export interface SceneOccupant {
   org: OrganismState
