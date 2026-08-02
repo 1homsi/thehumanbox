@@ -1,25 +1,22 @@
 use super::super::ctx::ActionCtx;
-use crate::world::grid::TrailKind;
+use crate::sim::survival_resources::{CacheRaidOutcome, CachedSupply};
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    let (ix, iy) = (ctx.ix, ctx.iy);
-    let mut hit = false;
-    'rs: for dx in -3..=3 {
-        for dy in -3..=3 {
-            if ctx.sim.grid.trail_at(ix + dx, iy + dy, TrailKind::Food) > 0.4 {
-                ctx.sim.grid.leave_trail(ix + dx, iy + dy, TrailKind::Food, -0.5);
-                ctx.sim.organisms[ctx.idx].inv_food = ctx.sim.organisms[ctx.idx].inv_food.saturating_add(1);
-                hit = true;
-                break 'rs;
-            }
+    match ctx.sim.raid_supply_cache(ctx.idx, ctx.ix, ctx.iy) {
+        Some(CacheRaidOutcome::Stolen(supply)) => {
+            ctx.think(match supply {
+                CachedSupply::Food => "stealing food from a hostile cache",
+                CachedSupply::Water => "stealing water from a hostile cache",
+            });
+            ctx.discover("stockpile-raid", "raided a defended supply cache");
+            ctx.event("war", "stole supplies from a rival cache");
+            0.018
         }
-    }
-    if hit {
-        ctx.think("raiding a stockpile");
-        ctx.discover("stockpile-raid", "raided a cache");
-        0.010
-    } else {
-        ctx.think("scouting for caches");
-        0.0
+        Some(CacheRaidOutcome::Intercepted) => {
+            ctx.think("driven back from a fortified cache");
+            ctx.event("war", "a fortified cache repelled a raid");
+            -0.012
+        }
+        None => 0.0,
     }
 }

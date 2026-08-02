@@ -1591,6 +1591,83 @@ function drawWorldOnCanvas(
     ctx.restore()
   }
 
+  if (world.supply_caches && world.supply_caches.length > 0) {
+    ctx.save()
+    for (const cache of world.supply_caches) {
+      const localX = cache.x - ox
+      const localY = cache.y - oy
+      if (localX < c0 - 1 || localX > c1 || localY < r0 - 1 || localY > r1) continue
+      const x = localX * TILE
+      const y = localY * TILE
+      const pad = Math.max(1, Math.floor(TILE * 0.16))
+      const boxX = x + pad
+      const boxY = y + Math.max(2, Math.floor(TILE * 0.34))
+      const boxW = Math.max(3, TILE - pad * 2)
+      const boxH = Math.max(3, TILE - Math.max(3, Math.floor(TILE * 0.45)) - pad)
+      const damage = Math.min(1, Math.max(0, (cache.damage ?? 0) / 100))
+
+      ctx.fillStyle = 'rgba(20, 14, 10, 0.4)'
+      ctx.fillRect(boxX + 1, boxY + 1, boxW, boxH)
+      ctx.fillStyle = damage >= 1 ? '#332c28' : cache.food + cache.water > 0 ? '#765034' : '#493a2e'
+      ctx.fillRect(boxX, boxY, boxW, boxH)
+      ctx.strokeStyle = '#b18455'
+      ctx.lineWidth = Math.max(1, TILE / 12)
+      ctx.strokeRect(boxX + 0.5, boxY + 0.5, Math.max(1, boxW - 1), Math.max(1, boxH - 1))
+      ctx.beginPath()
+      ctx.moveTo(boxX, boxY)
+      ctx.lineTo(boxX + boxW, boxY + boxH)
+      ctx.moveTo(boxX + boxW, boxY)
+      ctx.lineTo(boxX, boxY + boxH)
+      ctx.stroke()
+      if (damage > 0) {
+        ctx.strokeStyle = `rgba(34, 24, 20, ${0.45 + damage * 0.45})`
+        ctx.lineWidth = Math.max(1, TILE / 14)
+        ctx.beginPath()
+        ctx.moveTo(boxX + boxW * 0.2, boxY)
+        ctx.lineTo(boxX + boxW * 0.46, boxY + boxH * 0.55)
+        ctx.lineTo(boxX + boxW * 0.34, boxY + boxH)
+        if (damage > 0.55) {
+          ctx.moveTo(boxX + boxW * 0.82, boxY)
+          ctx.lineTo(boxX + boxW * 0.58, boxY + boxH)
+        }
+        ctx.stroke()
+      }
+
+      if (cache.fishing_weir && damage < 1) {
+        ctx.strokeStyle = '#c7b27d'
+        ctx.lineWidth = Math.max(1, TILE / 11)
+        ctx.beginPath()
+        const netY = y + TILE * 0.82
+        ctx.moveTo(x + TILE * 0.08, netY)
+        ctx.lineTo(x + TILE * 0.92, netY)
+        for (let netX = x + TILE * 0.14; netX < x + TILE * 0.9; netX += Math.max(2, TILE * 0.18)) {
+          ctx.moveTo(netX, y + TILE * 0.58)
+          ctx.lineTo(netX, y + TILE * 0.94)
+        }
+        ctx.stroke()
+      }
+
+      if (cache.food > 0) {
+        ctx.fillStyle = '#d56b3f'
+        ctx.beginPath()
+        ctx.arc(x + TILE * 0.34, y + TILE * 0.28, Math.max(1.5, TILE * 0.13), 0, Math.PI * 2)
+        ctx.fill()
+      }
+      if (cache.water > 0) {
+        ctx.fillStyle = '#55a8cc'
+        ctx.fillRect(x + TILE * 0.56, y + TILE * 0.14, Math.max(2, TILE * 0.2), Math.max(3, TILE * 0.3))
+      }
+      ctx.strokeStyle = lineageColor(cache.lineage_id)
+      ctx.lineWidth = Math.max(1, TILE / 9)
+      ctx.beginPath()
+      ctx.moveTo(x + TILE * 0.18, y + TILE * 0.38)
+      ctx.lineTo(x + TILE * 0.18, y + TILE * 0.02)
+      ctx.lineTo(x + TILE * 0.48, y + TILE * 0.12)
+      ctx.stroke()
+    }
+    ctx.restore()
+  }
+
   if (world.buildings && world.buildings.length > 0) {
     // Viewport-clip the building loop. Buildings are world-positioned;
     // c0/r0/c1/r1 are the tile-aligned visible window already computed

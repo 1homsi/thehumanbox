@@ -72,6 +72,32 @@ fn lineage_strategy_history_payload(sim: &Simulation) -> serde_json::Value {
     .unwrap()
 }
 
+fn lineage_campaign_options_payload(sim: &Simulation) -> serde_json::Value {
+    const STRATEGIES: [&str; 5] = ["hunt", "explore", "settle", "trade", "defend"];
+    let living_lineages: HashSet<&str> = sim
+        .organisms
+        .iter()
+        .filter(|organism| organism.alive)
+        .map(|organism| organism.lineage_id.as_str())
+        .collect();
+    let mut lineages = serde_json::Map::with_capacity(living_lineages.len());
+    for lineage_id in living_lineages {
+        let mut options = serde_json::Map::with_capacity(STRATEGIES.len());
+        for strategy in STRATEGIES {
+            let readiness = sim.lineage_strategy_readiness(lineage_id, strategy);
+            options.insert(
+                strategy.to_string(),
+                json!({
+                    "available": readiness.is_ok(),
+                    "reason": readiness.err(),
+                }),
+            );
+        }
+        lineages.insert(lineage_id.to_string(), serde_json::Value::Object(options));
+    }
+    serde_json::Value::Object(lineages)
+}
+
 impl Simulation {
     pub fn state_json(&mut self) -> serde_json::Value {
         let (cx, cy) = self.viewport_centroid();
@@ -315,6 +341,16 @@ impl Simulation {
             // on every frame avoids a short objective completing or expiring
             // entirely between deep/cold snapshots.
             obj.insert("lineage_strategies".to_string(), lineage_strategy_payload(self));
+            // Readiness changes on demographic/world events rather than as a
+            // campaign progresses. Refresh it with the other periodic state
+            // instead of rebuilding and transferring the nested map on every
+            // hot frame. The client retains the last value across sparse deltas.
+            if include_cold || force_full || self.tick_count.is_multiple_of(60) {
+                obj.insert(
+                    "lineage_campaign_options".to_string(),
+                    lineage_campaign_options_payload(self),
+                );
+            }
             obj.insert(
                 "lineage_strategy_history".to_string(),
                 lineage_strategy_history_payload(self),
@@ -714,6 +750,17 @@ impl Simulation {
                 self.serialized_building_state_revision = self.building_state_revision;
             }
         }
+        let supply_caches_changed =
+            self.supply_cache_state_revision != self.serialized_supply_cache_state_revision;
+        if include_cold || force_full || supply_caches_changed {
+            if let Some(obj) = payload.as_object_mut() {
+                obj.insert(
+                    "supply_caches".to_string(),
+                    serde_json::to_value(&self.supply_caches).unwrap(),
+                );
+                self.serialized_supply_cache_state_revision = self.supply_cache_state_revision;
+            }
+        }
         payload
     }
 }
@@ -771,6 +818,60 @@ mod schema_tests {
         for key in &["kind", "intensity", "wind_x", "wind_y"] {
             assert!(weather.contains_key(*key), "weather missing key `{}`", key);
         }
+    }
+
+    #[test]
+    fn supply_cache_wire_contract_exposes_visible_resource_counts() {
+        let mut sim = Simulation::new(421);
+        sim.supply_caches
+            .push(crate::sim::survival_resources::SupplyCache {
+                x: 40,
+                y: 41,
+                lineage_id: "wire".into(),
+                food: 3,
+                water: 2,
+                fishing_weir: true,
+                created_tick: 12,
+                last_used_tick: 18,
+                last_produced_tick: 16,
+                damage: 24,
+                last_damage_tick: Some(17),
+                last_repair_tick: None,
+            });
+
+        let payload = sim.state_json();
+        let cache = payload["supply_caches"][0].as_object().expect("cache object");
+        assert_eq!(cache["x"].as_i64(), Some(40));
+        assert_eq!(cache["y"].as_i64(), Some(41));
+        assert_eq!(cache["lineage_id"].as_str(), Some("wire"));
+        assert_eq!(cache["food"].as_u64(), Some(3));
+        assert_eq!(cache["water"].as_u64(), Some(2));
+        assert_eq!(cache["fishing_weir"].as_bool(), Some(true));
+        assert_eq!(cache["damage"].as_u64(), Some(24));
+    }
+
+    #[test]
+    fn incremental_payload_only_resends_supply_caches_after_state_changes() {
+        let mut sim = Simulation::new(422);
+        sim.tick_count = 5;
+
+        let initial = sim.state_json_incremental();
+        assert!(initial.get("supply_caches").is_none());
+
+        sim.supply_caches
+            .push(crate::sim::survival_resources::SupplyCache {
+                x: 44,
+                y: 45,
+                lineage_id: "wire".into(),
+                food: 1,
+                ..Default::default()
+            });
+        sim.supply_cache_state_revision = sim.supply_cache_state_revision.wrapping_add(1);
+        let changed = sim.state_json_incremental();
+        assert_eq!(changed["supply_caches"].as_array().map(Vec::len), Some(1));
+
+        let unchanged = sim.state_json_incremental();
+        assert!(unchanged.get("supply_caches").is_none());
     }
 
     #[test]
@@ -955,6 +1056,7 @@ mod schema_tests {
                 target: 60,
                 outcome: "completed".into(),
                 reason: None,
+                impact: Some("charted a frontier trail".into()),
             });
 
         let payload = sim.state_json();
@@ -966,8 +1068,16 @@ mod schema_tests {
         assert_eq!(strategies[&lid]["completed"].as_bool(), Some(false));
         assert_eq!(strategies[&lid]["status"].as_str(), Some("active"));
         assert!(!strategies.contains_key("expired"));
+        let campaign_options = payload["lineage_campaign_options"][&lid]
+            .as_object()
+            .expect("campaign options for living lineage");
+        for strategy in ["hunt", "explore", "settle", "trade", "defend"] {
+            assert!(campaign_options.contains_key(strategy));
+            assert!(campaign_options[strategy]["available"].is_boolean());
+        }
         let history = payload["lineage_strategy_history"].as_array().unwrap();
         assert_eq!(history.len(), 1);
+        assert_eq!(history[0]["impact"].as_str(), Some("charted a frontier trail"));
         assert_eq!(history[0]["lineage_id"].as_str(), Some(lid.as_str()));
         assert_eq!(history[0]["strategy"].as_str(), Some("explore"));
         assert_eq!(history[0]["outcome"].as_str(), Some("completed"));
@@ -976,8 +1086,13 @@ mod schema_tests {
         let strategies = incremental["lineage_strategies"].as_object().unwrap();
         assert_eq!(strategies[&lid]["strategy"].as_str(), Some("trade"));
         assert!(!strategies.contains_key("expired"));
+        assert!(incremental.get("lineage_campaign_options").is_none());
         let history = incremental["lineage_strategy_history"].as_array().unwrap();
         assert_eq!(history.len(), 1);
+
+        sim.tick_count = 480;
+        let periodic = sim.state_json_incremental();
+        assert!(periodic["lineage_campaign_options"][&lid]["explore"]["available"].is_boolean());
     }
 
     #[test]

@@ -11,6 +11,7 @@ interface Props {
   world: WorldState
   onClose: () => void
   onGuide?: (lineageId: string, strategy: LineageStrategy) => Promise<boolean>
+  onCancelGuide?: (lineageId: string) => Promise<boolean>
 }
 
 const GUIDANCE: Array<{
@@ -50,6 +51,18 @@ const GUIDANCE: Array<{
     reward: 'restored health, courage, and morale',
   },
 ]
+
+const CAMPAIGN_READINESS_REASON: Record<string, string> = {
+  lineage_not_living: 'lineage has ended',
+  no_capable_hunter: 'needs a hunter old enough to fight',
+  no_living_prey: 'no living prey remains',
+  no_mobile_explorer: 'needs a mobile explorer',
+  no_adult_worker: 'needs an adult worker',
+  no_capable_trader: 'needs an adult or elder trader',
+  no_foreign_lineage: 'needs another living lineage',
+  no_capable_defender: 'needs a defender old enough to fight',
+  unknown_strategy: 'unavailable',
+}
 
 function hasEnterableBuilding(world: WorldState, kinds: ReadonlySet<string>, lineageId: string): boolean {
   const matching = (world.buildings ?? []).filter((building) => {
@@ -130,9 +143,10 @@ const ART_EMOJI: Record<string, string> = {
   digital: '\u{1F5A5}\u{FE0F}',
 }
 
-export function CivStatsModal({ world, onClose, onGuide }: Props) {
+export function CivStatsModal({ world, onClose, onGuide, onCancelGuide }: Props) {
   const [guidanceBusy, setGuidanceBusy] = useState<Record<string, boolean>>({})
   const [guidanceResult, setGuidanceResult] = useState<Record<string, string>>({})
+  const [cancelConfirming, setCancelConfirming] = useState<Record<string, boolean>>({})
   const [showAllCampaigns, setShowAllCampaigns] = useState(false)
   const lineages = world.lineage_sizes ?? []
   const lineageNames = world.lineage_names ?? {}
@@ -176,6 +190,30 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
         setGuidanceResult((current) => ({
           ...current,
           [lineageId]: ok ? `${strategy} campaign started` : 'guidance rejected',
+        }))
+      })
+      .catch(() => {
+        setGuidanceResult((current) => ({ ...current, [lineageId]: 'guidance unavailable' }))
+      })
+      .finally(() => {
+        setGuidanceBusy((current) => ({ ...current, [lineageId]: false }))
+      })
+  }
+  const cancelGuidance = (lineageId: string) => {
+    if (!onCancelGuide || guidanceBusy[lineageId]) return
+    const active = activeStrategyFor(lineageId)
+    if (!active) return
+
+    setGuidanceBusy((current) => ({ ...current, [lineageId]: true }))
+    setGuidanceResult((current) => ({ ...current, [lineageId]: 'standing down…' }))
+    void onCancelGuide(lineageId)
+      .then((ok) => {
+        if (ok) {
+          setCancelConfirming((current) => ({ ...current, [lineageId]: false }))
+        }
+        setGuidanceResult((current) => ({
+          ...current,
+          [lineageId]: ok ? 'campaign stood down' : 'stand-down rejected',
         }))
       })
       .catch(() => {
@@ -407,12 +445,17 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                   <h4>Lineage campaigns</h4>
                 </div>
                 <span className="civ-campaign-board-help">
-                  Lineages still choose their own actions; successful aligned actions fill the goal.
+                  Lineages still choose their own actions. Goals scale with population, and 75% effort
+                  salvages a reduced reward.
                 </span>
               </div>
               <div className="civ-campaign-cards">
                 {lineages.map((lineage) => {
                   const active = activeStrategyFor(lineage.id)
+                  const campaignOptions = world.lineage_campaign_options?.[lineage.id] ?? {}
+                  const readyCampaignCount = GUIDANCE.filter(
+                    (strategy) => campaignOptions[strategy.value]?.available !== false,
+                  ).length
                   const meta = GUIDANCE.find((entry) => entry.value === active?.strategy)
                   const progress = active?.progress ?? 0
                   const target = active?.target ?? 0
@@ -445,7 +488,7 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                           </p>
                           <div className="civ-campaign-progress-copy">
                             <span>
-                              {progress}/{target} aligned actions
+                              {progress}/{target} collective effort
                             </span>
                             <span>{active.completed ? 'reward earned' : `${remaining} ticks left`}</span>
                           </div>
@@ -465,7 +508,8 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                         </>
                       ) : (
                         <p className="civ-campaign-description">
-                          Choose a soft objective to give this lineage a visible goal and completion reward.
+                          {readyCampaignCount}/{GUIDANCE.length} campaigns are viable now. Unavailable choices
+                          explain what the lineage still needs.
                         </p>
                       )}
 
@@ -482,13 +526,65 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                             }}
                           >
                             <option value="">{active ? 'change campaign…' : 'start campaign…'}</option>
-                            {GUIDANCE.map((strategy) => (
-                              <option key={strategy.value} value={strategy.value}>
-                                {strategy.label}
-                              </option>
-                            ))}
+                            {GUIDANCE.map((strategy) => {
+                              const readiness = campaignOptions[strategy.value]
+                              const reason = readiness?.reason
+                                ? (CAMPAIGN_READINESS_REASON[readiness.reason] ?? readiness.reason)
+                                : null
+                              return (
+                                <option
+                                  key={strategy.value}
+                                  value={strategy.value}
+                                  disabled={readiness?.available === false}
+                                >
+                                  {strategy.label}
+                                  {reason ? ` — ${reason}` : ''}
+                                </option>
+                              )
+                            })}
                           </select>
                         )}
+                        {active &&
+                          onCancelGuide &&
+                          (cancelConfirming[lineage.id] ? (
+                            <span className="civ-campaign-cancel-confirm">
+                              <button
+                                type="button"
+                                className="civ-campaign-cancel"
+                                disabled={Boolean(guidanceBusy[lineage.id])}
+                                onClick={() => cancelGuidance(lineage.id)}
+                              >
+                                confirm stand down
+                              </button>
+                              <button
+                                type="button"
+                                className="civ-campaign-keep"
+                                disabled={Boolean(guidanceBusy[lineage.id])}
+                                onClick={() =>
+                                  setCancelConfirming((current) => ({
+                                    ...current,
+                                    [lineage.id]: false,
+                                  }))
+                                }
+                              >
+                                keep
+                              </button>
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              className="civ-campaign-cancel"
+                              disabled={Boolean(guidanceBusy[lineage.id])}
+                              onClick={() =>
+                                setCancelConfirming((current) => ({
+                                  ...current,
+                                  [lineage.id]: true,
+                                }))
+                              }
+                            >
+                              stand down
+                            </button>
+                          ))}
                         {guidanceResult[lineage.id] && (
                           <span className="civ-strategy-status" role="status">
                             {guidanceResult[lineage.id]}
@@ -517,7 +613,15 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                 <div className="civ-campaign-history-list">
                   {(showAllCampaigns ? campaignHistory : campaignHistory.slice(0, 6)).map((campaign) => {
                     const icon =
-                      campaign.outcome === 'completed' ? '✓' : campaign.outcome === 'redirected' ? '↪' : '×'
+                      campaign.outcome === 'completed'
+                        ? '✓'
+                        : campaign.outcome === 'partial'
+                          ? '≈'
+                          : campaign.outcome === 'redirected'
+                            ? '↪'
+                            : campaign.outcome === 'cancelled'
+                              ? '■'
+                              : '×'
                     return (
                       <div
                         key={`${campaign.lineage_id}:${campaign.started_tick}:${campaign.ended_tick}:${campaign.strategy}:${campaign.outcome}`}
@@ -530,12 +634,17 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                           {campaign.lineage_name || lineageById(campaign.lineage_id)} · {campaign.strategy}
                         </span>
                         <span className="civ-campaign-result">
-                          {campaign.reason === 'lineage_extinct' ? 'lineage ended' : campaign.outcome}
+                          {campaign.reason === 'lineage_extinct'
+                            ? 'lineage ended'
+                            : campaign.reason === 'player_cancelled'
+                              ? 'stood down'
+                              : campaign.outcome}
                         </span>
                         <span className="civ-campaign-effort">
                           {campaign.progress}/{campaign.target}
                         </span>
                         <span className="civ-campaign-tick">t{campaign.ended_tick}</span>
+                        {campaign.impact && <span className="civ-campaign-impact">{campaign.impact}</span>}
                       </div>
                     )
                   })}

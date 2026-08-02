@@ -1,8 +1,5 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    ctx.org_mut().comfort = (ctx.org().comfort + 0.02).min(1.0);
-    ctx.think("share secret");
-    ctx.event("life", "share secret");
-    0.005
+    super::super::relationships::share_secret::apply(ctx)
 }

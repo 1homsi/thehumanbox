@@ -1398,6 +1398,40 @@ fn try_start_building(sim: &mut Simulation, lineage: &str, kind: BuildingKind, x
     start_building_at_valid_site(sim, lineage, kind, site_x, site_y)
 }
 
+/// Turns a completed settlement campaign into a real, funded construction
+/// project. This deliberately reuses the ordinary construction pipeline: the
+/// lineage still needs enough pooled materials and wealth, a reachable adult
+/// worker, a valid footprint, and room under the building cap. Campaigns do
+/// not conjure finished buildings or bypass ruin-retention rules.
+pub(crate) fn try_start_campaign_building(sim: &mut Simulation, lineage: &str) -> Option<BuildingKind> {
+    let era = lineage_era(sim, lineage);
+    let pop = lineage_pop(sim, lineage);
+    if pop < 3 {
+        return None;
+    }
+
+    let mut considered: HashSet<BuildingKind> = sim
+        .buildings
+        .iter()
+        .filter(|building| !building.decorative && building.owner_lineage.as_deref() == Some(lineage))
+        .map(|building| building.kind)
+        .collect();
+    let (center_x, center_y) = lineage_center(sim, lineage);
+    if center_x == 0 && center_y == 0 {
+        return None;
+    }
+
+    while let Some(kind) = next_target_building(era, pop, sim.population_limit(), &considered) {
+        considered.insert(kind);
+        let offset_x = (sim.next_building_id as i32 * 3) % 16 - 8;
+        let offset_y = (sim.next_building_id as i32 * 5) % 14 - 7;
+        if try_start_building(sim, lineage, kind, center_x + offset_x, center_y + offset_y) {
+            return Some(kind);
+        }
+    }
+    None
+}
+
 fn tick_buildings_construct(sim: &mut Simulation) {
     let functional_count = sim
         .buildings
@@ -2201,7 +2235,6 @@ fn tick_plague_watch(sim: &mut Simulation) {
 }
 
 fn tick_deforestation(sim: &mut Simulation) {
-    use crate::world::grid::WorldGrid;
     use crate::world::tiles::Biome;
     use rand::RngExt;
     let alive_lineages: HashSet<String> = sim
@@ -2226,8 +2259,7 @@ fn tick_deforestation(sim: &mut Simulation) {
                 }
                 let (x, y) = (cx + dx, cy + dy);
                 if sim.grid.biome_at(x, y) == Biome::Forest && sim.rng.random::<f32>() < 0.05 {
-                    let i = WorldGrid::idx(x, y);
-                    sim.grid.biome[i] = Biome::Grassland as u8;
+                    sim.grid.set_biome(x, y, Biome::Grassland);
                     cleared += 1;
                 }
             }

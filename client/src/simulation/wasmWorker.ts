@@ -16,6 +16,7 @@ import {
   runStorageRetry,
   type StorageRetry,
 } from './wasmPersistence'
+import { WEB_BASE_TICK_MS, WEB_POPULATION_LIMIT } from './webRuntime'
 
 type StartMsg = {
   type: 'start'
@@ -41,7 +42,7 @@ type InMsg =
   | { type: 'org_life'; id: string; requestId: number }
   | { type: 'speed'; tickMs: number; requestId?: number }
 
-const DEEP_FULL_EVERY_TICKS = 300n
+const DEEP_FULL_EVERY_TICKS = 600n
 // Full world saves can be tens of megabytes. Commands and shutdowns
 // checkpoint immediately; this slower cadence covers passive play without
 // repeatedly stalling the simulation worker on JSON serialization.
@@ -50,7 +51,7 @@ const DEFAULT_AUTOSAVE_MS = 30_000
 let sim: Sim | null = null
 let worldId = 'browser-own'
 let seed = '0'
-let tickMs = 120
+let tickMs = WEB_BASE_TICK_MS
 let stepsPerEmit = 1
 let autosaveEveryMs = DEFAULT_AUTOSAVE_MS
 let frameId = 0
@@ -140,6 +141,13 @@ function restoreSavedWorld(saved: SavedWorld): Sim {
     candidate.free()
     throw new Error(`save expected tick ${saved.tick}, restored tick ${restoredTick}`)
   }
+  candidate.setPopulationLimit(WEB_POPULATION_LIMIT)
+  return candidate
+}
+
+function createBrowserSimulation(nextSeed: string): Sim {
+  const candidate = new Sim(BigInt(nextSeed))
+  candidate.setPopulationLimit(WEB_POPULATION_LIMIT)
   return candidate
 }
 
@@ -229,7 +237,7 @@ async function retryReadStorage(): Promise<boolean> {
 
 async function retryResetStorage(resetSeed: string): Promise<boolean> {
   const recoveryId = await archiveAndDeleteWorld(worldId)
-  const candidate = new Sim(BigInt(resetSeed))
+  const candidate = createBrowserSimulation(resetSeed)
   replaceSimulation(candidate, resetSeed)
   markStorageReady(false)
   post({ type: 'reset_done', recoveryId })
@@ -430,6 +438,7 @@ async function start(msg: StartMsg) {
       if (!recovery) throw new Error('recovery save no longer exists')
       if (recovery.blob.byteLength === 0) throw new Error('recovery save is empty')
       const candidate = Sim.fromSerialized(BigInt(recovery.seed), recovery.blob)
+      candidate.setPopulationLimit(WEB_POPULATION_LIMIT)
       const recoveredTick = Number(candidate.tickCount())
       candidate.free()
       if (recoveredTick !== recovery.tick) {
@@ -474,6 +483,7 @@ async function start(msg: StartMsg) {
     try {
       if (saved.blob.byteLength === 0) throw new Error('save is empty')
       sim = Sim.fromSerialized(BigInt(saved.seed), saved.blob)
+      sim.setPopulationLimit(WEB_POPULATION_LIMIT)
       const restoredTick = Number(sim.tickCount())
       if (restoredTick !== saved.tick) {
         throw new Error(`save expected tick ${saved.tick}, restored tick ${restoredTick}`)
@@ -522,7 +532,7 @@ async function start(msg: StartMsg) {
     }
   }
   if (!sim) {
-    sim = new Sim(BigInt(seed))
+    sim = createBrowserSimulation(seed)
   }
 
   post({ type: 'ready', restored, tick: Number(sim.tickCount()), persistenceReady: storageReady })

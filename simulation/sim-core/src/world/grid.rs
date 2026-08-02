@@ -182,6 +182,14 @@ impl WorldGrid {
         }
     }
 
+    /// Change a runtime biome through one boundary so restoration, climate
+    /// drift, and deforestation all share the same bounds contract.
+    pub fn set_biome(&mut self, x: i32, y: i32, biome: Biome) {
+        if Self::in_bounds(x, y) {
+            self.biome[Self::idx(x, y)] = biome as u8;
+        }
+    }
+
     pub fn temp_at(&self, x: i32, y: i32) -> f32 {
         if Self::in_bounds(x, y) {
             self.temperature[Self::idx(x, y)]
@@ -345,10 +353,24 @@ impl WorldGrid {
         }
     }
 
+    pub fn relieve_pressure(&mut self, x: i32, y: i32, amount: f32) {
+        if Self::in_bounds(x, y) {
+            let i = Self::idx(x, y);
+            self.pressure[i] = (self.pressure[i] - amount).max(0.0);
+        }
+    }
+
     pub fn add_hazard(&mut self, x: i32, y: i32, amount: f32) {
         if Self::in_bounds(x, y) {
             let i = Self::idx(x, y);
             self.hazard[i] = (self.hazard[i] + amount).min(1.0);
+        }
+    }
+
+    pub fn relieve_hazard(&mut self, x: i32, y: i32, amount: f32) {
+        if Self::in_bounds(x, y) {
+            let i = Self::idx(x, y);
+            self.hazard[i] = (self.hazard[i] - amount).max(0.0);
         }
     }
 
@@ -1154,7 +1176,7 @@ impl WorldGrid {
             if forest_nb < 2 {
                 continue;
             }
-            self.biome[i] = Biome::Forest as u8;
+            self.set_biome(x, y, Biome::Forest);
             grew += 1;
         }
     }
@@ -1182,7 +1204,7 @@ impl WorldGrid {
                 continue;
             }
             // Demote to grassland; the underlying tile stays grass.
-            self.biome[i] = Biome::Grassland as u8;
+            self.set_biome(x, y, Biome::Grassland);
             died += 1;
         }
     }

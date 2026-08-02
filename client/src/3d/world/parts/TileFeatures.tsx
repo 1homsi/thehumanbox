@@ -130,8 +130,8 @@ function treeSpecies(b: number, hash: number): 0 | 1 | 2 {
   if (b === BIOME_ID.DESERT) return 2
   if (b === BIOME_ID.WETLAND) return hash & 0x1 ? 1 : 0
   const r = hash & 0x7
-  if (r < 4) return 1
-  if (r < 6) return 0
+  if (r < 5) return 0
+  if (r < 7) return 1
   return 2
 }
 
@@ -450,10 +450,10 @@ const BUSH_GEO = new SphereGeometry(0.55, 6, 5)
 const GRASS_TUFT_GEO = new ConeGeometry(0.18, 0.5, 4)
 const FLOWER_STEM = new CylinderGeometry(0.03, 0.035, 0.34, 4)
 const FLOWER_HEAD = new SphereGeometry(0.14, 6, 5)
-const PINE_TRUNK = new CylinderGeometry(0.16, 0.22, 1.4, 5)
-const PINE_CANOPY = new ConeGeometry(1.4, 3.2, 6)
-const OAK_TRUNK = new CylinderGeometry(0.2, 0.28, 1.6, 6)
-const OAK_CANOPY = new SphereGeometry(1.3, 6, 5)
+const PINE_TRUNK = new CylinderGeometry(0.18, 0.24, 2.0, 5)
+const PINE_CANOPY = new ConeGeometry(1.6, 4.4, 6)
+const OAK_TRUNK = new CylinderGeometry(0.22, 0.3, 2.2, 6)
+const OAK_CANOPY = new DodecahedronGeometry(1.55, 0)
 const PALM_TRUNK = new CylinderGeometry(0.12, 0.16, 2.6, 5)
 const PALM_FRONDS = new ConeGeometry(1.6, 0.6, 6)
 // Huts made substantially larger so they look like real dwellings
@@ -819,7 +819,7 @@ export function TileFeatures({
     [tiles, biomes, depthMap, width, height, pathTrail, suppressedHutTiles],
   )
 
-  const treeYAdjust = 0.7
+  const treeYAdjust = 1.0
   // Hut geometry yOffsets recalculated for 3.0-tall walls:
   // walls: center at half-height = 1.5 above ground
   // roof: top-of-walls (3.0) + half-cone-height (1.2) = 4.2
@@ -835,7 +835,7 @@ export function TileFeatures({
         positions={features.trees[0]}
         yOffset={treeYAdjust}
         geometry={PINE_TRUNK}
-        color="#5a3f25"
+        color="#684127"
         maxCount={20000}
         randomYaw
         scaleBase={0.85}
@@ -843,22 +843,33 @@ export function TileFeatures({
       />
       <InstanceLayer
         positions={features.trees[0]}
-        yOffset={treeYAdjust + 2.0}
+        yOffset={treeYAdjust + 2.7}
         geometry={PINE_CANOPY}
-        color="#264f25"
+        color="#1f3b2a"
         maxCount={20000}
         randomYaw
         scaleBase={0.85}
         scaleRange={0.55}
         wind={{ heightRef: 1.6, strength: 0.9 }}
       />
+      <InstanceLayer
+        positions={features.trees[0]}
+        yOffset={treeYAdjust + 3.35}
+        geometry={PINE_CANOPY}
+        color="#3f5930"
+        maxCount={20000}
+        randomYaw
+        scaleBase={0.56}
+        scaleRange={0.36}
+        wind={{ heightRef: 1.6, strength: 1.05 }}
+      />
 
       {/* Oak trees */}
       <InstanceLayer
         positions={features.trees[1]}
-        yOffset={0.8}
+        yOffset={1.1}
         geometry={OAK_TRUNK}
-        color="#6a4a2c"
+        color="#74472b"
         maxCount={15000}
         randomYaw
         scaleBase={0.85}
@@ -866,14 +877,25 @@ export function TileFeatures({
       />
       <InstanceLayer
         positions={features.trees[1]}
-        yOffset={2.3}
+        yOffset={3.0}
         geometry={OAK_CANOPY}
-        color="#37753c"
+        color="#4b5f32"
         maxCount={15000}
         randomYaw
         scaleBase={0.85}
         scaleRange={0.55}
         wind={{ heightRef: 1.3, strength: 1.1 }}
+      />
+      <InstanceLayer
+        positions={features.trees[1]}
+        yOffset={3.48}
+        geometry={OAK_CANOPY}
+        color="#738044"
+        maxCount={15000}
+        randomYaw
+        scaleBase={0.58}
+        scaleRange={0.36}
+        wind={{ heightRef: 1.3, strength: 1.2 }}
       />
 
       {/* Palm trees */}

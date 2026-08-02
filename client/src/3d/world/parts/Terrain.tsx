@@ -219,9 +219,10 @@ export function Terrain({ depthMap, biomes, width, height, season, pathTrail, on
       vertexColors: true,
       map: colorTex,
       bumpMap: bumpTex,
-      bumpScale: 0.45,
+      bumpScale: 0.18,
       roughness: 0.95,
       metalness: 0.0,
+      flatShading: true,
     })
     m.onBeforeCompile = (shader) => {
       shader.vertexShader = shader.vertexShader
@@ -274,7 +275,7 @@ export function Terrain({ depthMap, biomes, width, height, season, pathTrail, on
              #ifdef DECODE_VIDEO_TEXTURE
                sampledDiffuseColor = vec4( mix( pow( sampledDiffuseColor.rgb * 0.9478672986 + vec3( 0.0521327014 ), vec3( 2.4 ) ), sampledDiffuseColor.rgb * 0.0773993808, vec3( lessThanEqual( sampledDiffuseColor.rgb, vec3( 0.04045 ) ) ) ), sampledDiffuseColor.w );
              #endif
-             diffuseColor *= sampledDiffuseColor;
+             diffuseColor *= mix(vec4(1.0), sampledDiffuseColor, 0.42);
            #endif
           `,
         )

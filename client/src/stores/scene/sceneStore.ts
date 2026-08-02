@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { SceneId } from '../../scenes'
+import type { SceneId } from '../../scenes/core/types'
 
 interface SceneState {
   current: SceneId | null

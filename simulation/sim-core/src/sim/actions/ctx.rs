@@ -8,6 +8,7 @@ use crate::world::tiles::Tile;
 #[allow(dead_code)]
 pub struct ActionCtx<'a> {
     pub sim: &'a mut Simulation,
+    pub spatial: &'a SpatialIndex,
     pub idx: usize,
     pub ix: i32,
     pub iy: i32,
@@ -25,7 +26,7 @@ pub struct ActionCtx<'a> {
 }
 
 impl<'a> ActionCtx<'a> {
-    pub fn new(sim: &'a mut Simulation, idx: usize, ix: i32, iy: i32, spatial: &SpatialIndex) -> Self {
+    pub fn new(sim: &'a mut Simulation, idx: usize, ix: i32, iy: i32, spatial: &'a SpatialIndex) -> Self {
         let tick = sim.tick_count;
         let (sx, sy) = (sim.organisms[idx].x, sim.organisms[idx].y);
         let lid = sim.organisms[idx].lineage_id.clone();
@@ -75,6 +76,7 @@ impl<'a> ActionCtx<'a> {
 
         Self {
             sim,
+            spatial,
             idx,
             ix,
             iy,

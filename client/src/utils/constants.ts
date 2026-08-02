@@ -98,6 +98,7 @@ export const EVENT_ICONS: Record<string, string> = {
   hunt: '✦',
   era: '◈',
   strategy_complete: '✓',
+  strategy_partial: '≈',
   strategy_failed: '×',
   strategy_redirected: '↪',
 }
@@ -122,6 +123,7 @@ export const EVENT_COLORS: Record<string, string> = {
   hunt: '#ffaa44',
   era: '#ccaaff',
   strategy_complete: '#8fd49a',
+  strategy_partial: '#d9bd73',
   strategy_failed: '#e47c6d',
   strategy_redirected: '#d6a85f',
 }

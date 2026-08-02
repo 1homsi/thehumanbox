@@ -1,4 +1,13 @@
 pub(crate) fn directive_aligns_action(directive: &str, action: usize) -> bool {
+    if protection_target_id(directive).is_some() {
+        return directive_aligns_action("defend", action);
+    }
+    if area_guard_target(directive).is_some() {
+        return directive_aligns_action("defend", action);
+    }
+    if fire_response_target(directive).is_some() {
+        return matches!(action, 4621 | 4654 | 4665);
+    }
     match directive {
         "seek_food" | "forage" => {
             matches!(action, 8 | 19 | 26..=38 | 141..=150 | 336..=355 | 1140..=1189)
@@ -94,6 +103,24 @@ pub(crate) fn directive_aligns_action(directive: &str, action: usize) -> bool {
     }
 }
 
+pub(crate) fn protection_target_id(directive: &str) -> Option<&str> {
+    directive
+        .strip_prefix("protect:")
+        .filter(|target| !target.is_empty())
+}
+
+pub(crate) fn area_guard_target(directive: &str) -> Option<(i32, i32)> {
+    let coordinates = directive.strip_prefix("guard_area:")?;
+    let (x, y) = coordinates.split_once(':')?;
+    Some((x.parse().ok()?, y.parse().ok()?))
+}
+
+pub(crate) fn fire_response_target(directive: &str) -> Option<(i32, i32)> {
+    let coordinates = directive.strip_prefix("fire_response:")?;
+    let (x, y) = coordinates.split_once(':')?;
+    Some((x.parse().ok()?, y.parse().ok()?))
+}
+
 pub(crate) fn directive_action_boost(directive: &str, action: usize) -> f32 {
     if directive_aligns_action(directive, action) {
         0.08
@@ -112,7 +139,7 @@ pub(crate) fn preferred_action_boost(preferred: Option<usize>, action: usize) ->
 
 #[cfg(test)]
 mod tests {
-    use super::directive_aligns_action;
+    use super::{area_guard_target, directive_aligns_action, fire_response_target, protection_target_id};
 
     fn assert_range(strategy: &str, range: std::ops::RangeInclusive<usize>) {
         for action in range {
@@ -147,6 +174,36 @@ mod tests {
         assert!(directive_aligns_action("defend", 11));
         assert!(directive_aligns_action("defend", 103));
         assert!(directive_aligns_action("defend", 447));
+    }
+
+    #[test]
+    fn protection_duties_use_defensive_actions_and_preserve_the_ward_id() {
+        assert_eq!(protection_target_id("protect:ward-42"), Some("ward-42"));
+        assert_eq!(protection_target_id("protect:"), None);
+        assert_eq!(protection_target_id("defend"), None);
+        assert!(directive_aligns_action("protect:ward-42", 103));
+        assert!(!directive_aligns_action("protect:ward-42", 121));
+    }
+
+    #[test]
+    fn area_guard_duties_preserve_coordinates_and_use_defensive_actions() {
+        assert_eq!(area_guard_target("guard_area:42:73"), Some((42, 73)));
+        assert_eq!(area_guard_target("guard_area:42"), None);
+        assert_eq!(area_guard_target("guard_area:x:73"), None);
+        assert!(directive_aligns_action("guard_area:42:73", 101));
+        assert!(!directive_aligns_action("guard_area:42:73", 121));
+    }
+
+    #[test]
+    fn fire_response_duties_preserve_coordinates_and_only_use_real_response_actions() {
+        assert_eq!(fire_response_target("fire_response:42:73"), Some((42, 73)));
+        assert_eq!(fire_response_target("fire_response:42"), None);
+        assert_eq!(fire_response_target("fire_response:x:73"), None);
+        for action in [4621, 4654, 4665] {
+            assert!(directive_aligns_action("fire_response:42:73", action));
+        }
+        assert!(!directive_aligns_action("fire_response:42:73", 4620));
+        assert!(!directive_aligns_action("fire_response:42:73", 4653));
     }
 
     #[test]

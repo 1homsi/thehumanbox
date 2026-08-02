@@ -1,6 +1,165 @@
 use super::*;
 
 #[test]
+fn wildfire_displaces_wildlife_and_dogs_do_not_follow_owners_back_into_danger() {
+    let mut sim = Simulation::new(0xEC0_F1A1);
+    sim.tick_count = 1;
+    for organism in &mut sim.organisms {
+        organism.alive = false;
+    }
+    sim.organisms[0].alive = true;
+    sim.organisms[0].x = 135.0;
+    sim.organisms[0].y = 120.0;
+    let owner_id = sim.organisms[0].id.clone();
+    for y in 110..=130 {
+        for x in 105..=140 {
+            sim.grid.set(x, y, Tile::Grass);
+        }
+    }
+    sim.grid.set(123, 120, Tile::Fire);
+    *sim.grid.fire_intensity_mut(123, 120) = 1.0;
+    sim.physics.register_fire(123, 120);
+    sim.animals.clear();
+    let mut dog = Animal::new(10, 120.0, 120.0, AnimalKind::Dog);
+    dog.bonded_org = Some(owner_id);
+    sim.animals.push(dog);
+    sim.animals
+        .push(Animal::new(11, 120.0, 119.0, AnimalKind::Rabbit));
+    sim.animals.push(Animal::new(12, 120.0, 121.0, AnimalKind::Deer));
+
+    sim.tick_animals();
+
+    let dog = sim.animals.iter().find(|animal| animal.id == 10).unwrap();
+    assert!(
+        dog.x < 120.0,
+        "fire safety must override following the owner eastward"
+    );
+    assert!(sim
+        .events
+        .iter()
+        .any(|event| { event.actor == "wildlife" && event.detail == "3 wildlife fled an advancing fire" }));
+
+    let loaded = Simulation::from_save(sim.world_seed, sim.to_save_state());
+    let loaded_dog = loaded.animals.iter().find(|animal| animal.id == 10).unwrap();
+    assert_eq!((loaded_dog.x, loaded_dog.y), (dog.x, dog.y));
+    assert!(loaded
+        .events
+        .iter()
+        .any(|event| { event.actor == "wildlife" && event.detail == "3 wildlife fled an advancing fire" }));
+}
+
+#[test]
+fn succession_prefers_partner_then_oldest_child_before_friendship() {
+    let mut sim = Simulation::new(0x5A11_CCE5);
+    for organism in &mut sim.organisms {
+        organism.alive = false;
+    }
+    let dead = 0;
+    let partner = 1;
+    let younger_child = 2;
+    let older_child = 3;
+    let friend = 4;
+    for index in [dead, partner, younger_child, older_child, friend] {
+        sim.organisms[index].alive = true;
+    }
+    let dead_id = sim.organisms[dead].id.clone();
+    let partner_id = sim.organisms[partner].id.clone();
+    let friend_id = sim.organisms[friend].id.clone();
+    sim.organisms[dead].partner_id = Some(partner_id);
+    sim.organisms[younger_child].parent_id = dead_id.clone();
+    sim.organisms[younger_child].age = 200;
+    sim.organisms[older_child].father_id = Some(dead_id.clone());
+    sim.organisms[older_child].age = 600;
+    sim.organisms[dead].friends.insert(friend_id, "Friend".into());
+
+    assert_eq!(
+        choose_heir_index(&sim.organisms, dead),
+        Some((partner, HeirKind::Partner))
+    );
+
+    sim.organisms[partner].alive = false;
+    assert_eq!(
+        choose_heir_index(&sim.organisms, dead),
+        Some((older_child, HeirKind::Child))
+    );
+}
+
+#[test]
+fn familyless_death_bequeaths_to_strongest_friend_and_closes_the_live_bond() {
+    let mut sim = Simulation::new(0xF21E_1E6A);
+    for organism in &mut sim.organisms {
+        organism.alive = false;
+    }
+    let dead = 0;
+    let weaker_friend = 1;
+    let stronger_friend = 2;
+    let nearby_kin = 3;
+    for index in [dead, weaker_friend, stronger_friend, nearby_kin] {
+        sim.organisms[index].alive = true;
+        sim.organisms[index].energy = 1.0;
+        sim.organisms[index].hydration = 1.0;
+        sim.organisms[index].health = 1.0;
+        sim.organisms[index].wealth = 0;
+        sim.organisms[index].x = 100.0 + index as f32;
+        sim.organisms[index].y = 100.0;
+    }
+    sim.organisms[dead].lineage_id = "river".into();
+    sim.organisms[nearby_kin].lineage_id = "river".into();
+    sim.organisms[weaker_friend].lineage_id = "forest".into();
+    sim.organisms[stronger_friend].lineage_id = "mountain".into();
+    let dead_id = sim.organisms[dead].id.clone();
+    let weaker_id = sim.organisms[weaker_friend].id.clone();
+    let stronger_id = sim.organisms[stronger_friend].id.clone();
+    let dead_name = sim.organisms[dead].name.clone();
+    sim.organisms[dead]
+        .friends
+        .insert(weaker_id.clone(), "Weaker".into());
+    sim.organisms[dead]
+        .friends
+        .insert(stronger_id.clone(), "Stronger".into());
+    sim.organisms[weaker_friend]
+        .friends
+        .insert(dead_id.clone(), dead_name.clone());
+    sim.organisms[stronger_friend]
+        .friends
+        .insert(dead_id.clone(), dead_name.clone());
+    sim.organisms[dead].org_trust.insert(weaker_id.clone(), 0.30);
+    sim.organisms[weaker_friend]
+        .org_trust
+        .insert(dead_id.clone(), 0.30);
+    sim.organisms[dead].org_trust.insert(stronger_id.clone(), 0.80);
+    sim.organisms[stronger_friend]
+        .org_trust
+        .insert(dead_id.clone(), 0.75);
+    sim.organisms[dead].wealth = 47;
+    sim.organisms[dead].energy = 0.0;
+
+    assert_eq!(
+        choose_heir_index(&sim.organisms, dead),
+        Some((stronger_friend, HeirKind::Friend))
+    );
+    sim.tick();
+
+    assert!(!sim.organisms[dead].alive);
+    assert_eq!(sim.organisms[dead].wealth, 0);
+    assert_eq!(sim.organisms[stronger_friend].wealth, 47);
+    assert_eq!(sim.organisms[weaker_friend].wealth, 0);
+    assert_eq!(sim.organisms[nearby_kin].wealth, 0);
+    assert!(sim.organisms[stronger_friend].grief_ticks >= 140);
+    assert!(!sim.organisms[stronger_friend].friends.contains_key(&dead_id));
+    assert!(sim.organisms[stronger_friend].life_log.iter().any(|entry| {
+        entry.category == "loss"
+            && entry.related_id.as_deref() == Some(dead_id.as_str())
+            && entry.text.contains("lost my friend")
+    }));
+    assert!(sim.events.iter().any(|event| {
+        event.etype == "trade"
+            && event.detail.contains("inherited 47")
+            && event.detail.contains("closest friend")
+    }));
+}
+
+#[test]
 fn completing_a_strategy_objective_rewards_the_lineage_once() {
     let mut sim = Simulation::new(0x057A_7E6E);
     sim.tick_count = 100;
@@ -31,9 +190,8 @@ fn completing_a_strategy_objective_rewards_the_lineage_once() {
     assert_eq!(sim.lineage_strategy_objectives[&lineage_id].progress, 1);
     sim.record_strategy_progress(&lineage_id, "trade");
 
-    let completed_tick = sim.lineage_strategy_objectives[&lineage_id].completed_tick;
-    assert_eq!(completed_tick, Some(100));
-    assert_eq!(sim.lineage_strategy_objectives[&lineage_id].failed_tick, None);
+    assert!(!sim.lineage_strategy_objectives.contains_key(&lineage_id));
+    assert!(!sim.lineage_strategies.contains_key(&lineage_id));
     assert_eq!(sim.lineage_strategy_history.len(), 1);
     let campaign = sim.lineage_strategy_history.back().unwrap();
     assert_eq!(campaign.lineage_id, lineage_id);
@@ -77,7 +235,57 @@ fn completing_a_strategy_objective_rewards_the_lineage_once() {
 }
 
 #[test]
-fn replaying_a_completed_strategy_does_not_create_another_reward() {
+fn strategy_progress_announces_each_major_milestone_once() {
+    let mut sim = Simulation::new(0x4D11_3570);
+    sim.tick_count = 100;
+    let lineage_id = sim
+        .organisms
+        .iter()
+        .find(|organism| organism.alive)
+        .unwrap()
+        .lineage_id
+        .clone();
+    sim.lineage_names
+        .insert(lineage_id.clone(), "Pathmakers".to_string());
+    sim.start_strategy_objective(&lineage_id, "explore", 500);
+    sim.lineage_strategy_objectives
+        .get_mut(&lineage_id)
+        .unwrap()
+        .target = 8;
+
+    for _ in 0..7 {
+        sim.record_strategy_progress(&lineage_id, "explore");
+    }
+
+    let progress_events: Vec<&Event> = sim
+        .events
+        .iter()
+        .filter(|event| event.etype == "strategy_progress")
+        .collect();
+    assert_eq!(progress_events.len(), 3);
+    assert!(progress_events[0].detail.contains("25% (2/8)"));
+    assert!(progress_events[1].detail.contains("50% (4/8)"));
+    assert!(progress_events[2].detail.contains("75% (6/8)"));
+
+    sim.record_strategy_progress(&lineage_id, "explore");
+    assert_eq!(
+        sim.events
+            .iter()
+            .filter(|event| event.etype == "strategy_progress")
+            .count(),
+        3
+    );
+    assert_eq!(
+        sim.events
+            .iter()
+            .filter(|event| event.etype == "strategy_complete")
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn completed_strategy_is_idle_and_can_be_started_again_cleanly() {
     let mut sim = Simulation::new(0x000D_0B1E);
     sim.tick_count = 100;
     let lineage_id = sim
@@ -100,22 +308,33 @@ fn replaying_a_completed_strategy_does_not_create_another_reward() {
         organism.wealth = 0;
     }
     sim.record_strategy_progress(&lineage_id, "trade");
-    assert!(sim.lineage_strategy_objectives[&lineage_id]
-        .completed_tick
-        .is_some());
+    assert!(!sim.lineage_strategy_objectives.contains_key(&lineage_id));
     assert_eq!(sim.lineage_strategy_history.len(), 1);
 
-    sim.start_strategy_objective(&lineage_id, "trade", 300);
-    assert_eq!(sim.lineage_strategy_objectives[&lineage_id].target, 1);
-    assert_eq!(sim.lineage_strategy_objectives[&lineage_id].expires_tick, 300);
+    // Stray aligned actions after completion cannot pay the reward twice.
     sim.record_strategy_progress(&lineage_id, "trade");
-
     assert_eq!(sim.lineage_strategy_history.len(), 1);
     assert!(sim
         .organisms
         .iter()
         .filter(|organism| organism.alive && organism.lineage_id == lineage_id)
         .all(|organism| organism.wealth == 3));
+
+    sim.start_strategy_objective(&lineage_id, "trade", 300);
+    assert_eq!(sim.lineage_strategy_objectives[&lineage_id].progress, 0);
+    assert_eq!(sim.lineage_strategy_objectives[&lineage_id].expires_tick, 300);
+    sim.lineage_strategy_objectives
+        .get_mut(&lineage_id)
+        .unwrap()
+        .target = 1;
+    sim.record_strategy_progress(&lineage_id, "trade");
+
+    assert_eq!(sim.lineage_strategy_history.len(), 2);
+    assert!(sim
+        .organisms
+        .iter()
+        .filter(|organism| organism.alive && organism.lineage_id == lineage_id)
+        .all(|organism| organism.wealth == 6));
 }
 
 #[test]
@@ -149,9 +368,7 @@ fn expired_strategy_objective_records_failure_and_penalty_once() {
     sim.tick_count = 110;
     sim.resolve_strategy_objective_expirations();
 
-    let objective = &sim.lineage_strategy_objectives[&lineage_id];
-    assert_eq!(objective.completed_tick, None);
-    assert_eq!(objective.failed_tick, Some(110));
+    assert!(!sim.lineage_strategy_objectives.contains_key(&lineage_id));
     assert_eq!(sim.lineage_strategy_history.len(), 1);
     let campaign = sim.lineage_strategy_history.back().unwrap();
     assert_eq!(campaign.outcome, "expired");
@@ -172,7 +389,7 @@ fn expired_strategy_objective_records_failure_and_penalty_once() {
         .iter()
         .filter(|organism| organism.alive && organism.lineage_id == lineage_id)
         .all(|organism| {
-            (organism.hope - 0.46).abs() < f32::EPSILON && (organism.boredom - 0.13).abs() < f32::EPSILON
+            (organism.hope - 0.48).abs() < f32::EPSILON && (organism.boredom - 0.115).abs() < f32::EPSILON
         }));
 
     sim.resolve_strategy_objective_expirations();
@@ -184,6 +401,418 @@ fn expired_strategy_objective_records_failure_and_penalty_once() {
             .count(),
         1
     );
+}
+
+#[test]
+fn completing_campaign_returns_lineage_to_autonomy_without_erasing_personal_directives() {
+    let mut sim = Simulation::new(0xA070_10A0);
+    sim.tick_count = 500;
+    let lineage_id = sim
+        .organisms
+        .iter()
+        .find(|organism| organism.alive)
+        .unwrap()
+        .lineage_id
+        .clone();
+    let lineage_members: Vec<usize> = sim
+        .organisms
+        .iter()
+        .enumerate()
+        .filter(|(_, organism)| organism.alive && organism.lineage_id == lineage_id)
+        .map(|(index, _)| index)
+        .take(2)
+        .collect();
+    assert_eq!(lineage_members.len(), 2);
+    let guided = lineage_members[0];
+    sim.organisms[guided].age = sim.organisms[guided].max_age / 2;
+    let personally_directed = lineage_members[1];
+    sim.organisms[personally_directed].directive = "flee".to_string();
+    sim.organisms[personally_directed].directive_until = 900;
+
+    let command =
+        format!(r#"{{"cmd":"guide","lineage":"{lineage_id}","strategy":"explore","duration_ticks":600}}"#);
+    assert!(sim.apply_command_json(&command));
+    assert_eq!(sim.organisms[guided].directive, "explore");
+    assert_eq!(sim.organisms[personally_directed].directive, "flee");
+    sim.lineage_strategy_objectives
+        .get_mut(&lineage_id)
+        .unwrap()
+        .target = 1;
+
+    sim.record_strategy_progress(&lineage_id, "explore");
+
+    assert!(!sim.lineage_strategies.contains_key(&lineage_id));
+    assert!(!sim.lineage_strategy_objectives.contains_key(&lineage_id));
+    assert!(sim.organisms[guided].directive.is_empty());
+    assert_eq!(sim.organisms[guided].directive_until, 0);
+    assert_eq!(sim.organisms[personally_directed].directive, "flee");
+    assert_eq!(sim.organisms[personally_directed].directive_until, 900);
+    let state = sim.state_json();
+    assert_eq!(state["lineage_strategies"], serde_json::json!({}));
+}
+
+#[test]
+fn near_complete_strategy_salvages_a_reduced_reward() {
+    let mut sim = Simulation::new(0x50_1A_6E);
+    sim.tick_count = 100;
+    let lineage_id = sim
+        .organisms
+        .iter()
+        .find(|organism| organism.alive)
+        .unwrap()
+        .lineage_id
+        .clone();
+    sim.lineage_names
+        .insert(lineage_id.clone(), "Near Horizon".to_string());
+    sim.start_strategy_objective(&lineage_id, "trade", 110);
+    sim.lineage_strategies
+        .insert(lineage_id.clone(), ("trade".to_string(), 110));
+    let objective = sim.lineage_strategy_objectives.get_mut(&lineage_id).unwrap();
+    objective.progress = 8;
+    objective.target = 10;
+    for organism in sim
+        .organisms
+        .iter_mut()
+        .filter(|organism| organism.alive && organism.lineage_id == lineage_id)
+    {
+        organism.hope = 0.50;
+        organism.joy_ticks = 0;
+        organism.wealth = 0;
+    }
+
+    sim.tick_count = 110;
+    sim.resolve_strategy_objective_expirations();
+
+    let campaign = sim.lineage_strategy_history.back().unwrap();
+    assert_eq!(campaign.outcome, "partial");
+    assert_eq!(campaign.reason.as_deref(), Some("deadline"));
+    assert_eq!(campaign.progress, 8);
+    assert_eq!(campaign.target, 10);
+    assert_eq!(
+        sim.events
+            .iter()
+            .filter(|event| event.etype == "strategy_partial")
+            .count(),
+        1
+    );
+    assert_eq!(
+        sim.events
+            .iter()
+            .filter(|event| event.etype == "strategy_failed")
+            .count(),
+        0
+    );
+    assert!(sim
+        .organisms
+        .iter()
+        .filter(|organism| organism.alive && organism.lineage_id == lineage_id)
+        .all(|organism| {
+            (organism.hope - 0.53).abs() < f32::EPSILON && organism.joy_ticks == 60 && organism.wealth == 1
+        }));
+}
+
+#[test]
+fn strategy_targets_scale_with_population_and_action_frequency() {
+    let small_exploration = strategy_objective_target(1_200, 2, "explore");
+    let large_exploration = strategy_objective_target(1_200, 20, "explore");
+    let large_trade = strategy_objective_target(1_200, 20, "trade");
+
+    assert!(large_exploration > small_exploration * 8);
+    assert!(large_trade < large_exploration);
+    assert_eq!(strategy_objective_target(60, 1, "trade"), 30);
+}
+
+#[test]
+fn campaign_readiness_tracks_capable_people_prey_and_trade_partners() {
+    use crate::organism::animal::{Animal, AnimalKind};
+
+    let mut sim = Simulation::new(0x4EAD_1E55);
+    let lineage_id = sim.organisms[0].lineage_id.clone();
+    for organism in &mut sim.organisms {
+        organism.lineage_id.clone_from(&lineage_id);
+        organism.alive = true;
+        organism.age = organism.max_age / 2;
+        organism.health = 1.0;
+        organism.energy = 1.0;
+    }
+    sim.animals.clear();
+
+    assert_eq!(
+        sim.lineage_strategy_readiness(&lineage_id, "hunt"),
+        Err("no_living_prey")
+    );
+    assert_eq!(
+        sim.lineage_strategy_readiness(&lineage_id, "trade"),
+        Err("no_foreign_lineage")
+    );
+    for strategy in ["explore", "settle", "defend"] {
+        assert_eq!(sim.lineage_strategy_readiness(&lineage_id, strategy), Ok(()));
+    }
+
+    sim.animals
+        .push(Animal::new(99_001, 100.0, 100.0, AnimalKind::Deer));
+    assert_eq!(sim.lineage_strategy_readiness(&lineage_id, "hunt"), Ok(()));
+    sim.organisms.last_mut().unwrap().lineage_id = "foreign-lineage".to_string();
+    assert_eq!(sim.lineage_strategy_readiness(&lineage_id, "trade"), Ok(()));
+
+    for organism in sim
+        .organisms
+        .iter_mut()
+        .filter(|organism| organism.lineage_id == lineage_id)
+    {
+        organism.age = 0;
+    }
+    assert_eq!(
+        sim.lineage_strategy_readiness(&lineage_id, "explore"),
+        Err("no_mobile_explorer")
+    );
+    assert_eq!(
+        sim.lineage_strategy_readiness(&lineage_id, "settle"),
+        Err("no_adult_worker")
+    );
+    assert_eq!(
+        sim.lineage_strategy_readiness(&lineage_id, "defend"),
+        Err("no_capable_defender")
+    );
+}
+
+#[test]
+fn completed_exploration_campaign_changes_the_world_and_records_impact() {
+    let mut sim = Simulation::new(0x0E7F_10AE);
+    sim.tick_count = 100;
+    let lineage_id = sim
+        .organisms
+        .iter()
+        .find(|organism| organism.alive)
+        .unwrap()
+        .lineage_id
+        .clone();
+    let (frontier_x, frontier_y) = sim.lineage_campaign_frontier(&lineage_id).unwrap();
+    sim.territory.remove(&lineage_id);
+    sim.start_strategy_objective(&lineage_id, "explore", 200);
+    sim.lineage_strategy_objectives
+        .get_mut(&lineage_id)
+        .unwrap()
+        .target = 1;
+
+    sim.record_strategy_progress(&lineage_id, "explore");
+
+    assert!(sim
+        .territory
+        .get(&lineage_id)
+        .is_some_and(|tiles| !tiles.is_empty()));
+    assert!(sim.grid.trail_at(frontier_x, frontier_y, TrailKind::Path) > 0.0);
+    let campaign = sim.lineage_strategy_history.back().unwrap();
+    assert_eq!(campaign.outcome, "completed");
+    assert!(campaign
+        .impact
+        .as_deref()
+        .is_some_and(|impact| impact.contains("new land tiles") && impact.contains("frontier trails")));
+    assert!(sim
+        .story_history
+        .back()
+        .is_some_and(|story| story.story.contains("frontier trails")));
+}
+
+#[test]
+fn completed_defense_campaign_requires_material_for_a_real_fortification() {
+    let mut sim = Simulation::new(0x00DE_F3AD);
+    sim.tick_count = 100;
+    let lineage_id = sim
+        .organisms
+        .iter()
+        .find(|organism| organism.alive)
+        .unwrap()
+        .lineage_id
+        .clone();
+    for organism in sim
+        .organisms
+        .iter_mut()
+        .filter(|organism| organism.alive && organism.lineage_id == lineage_id)
+    {
+        organism.age = organism.max_age / 2;
+        organism.inv_wood = 0;
+        organism.inv_stone = 0;
+    }
+    let builder_index = sim
+        .organisms
+        .iter()
+        .position(|organism| organism.alive && organism.lineage_id == lineage_id)
+        .unwrap();
+    sim.organisms[builder_index].inv_wood = 1;
+    let fort_x = sim.organisms[builder_index].x.round() as i32;
+    let fort_y = sim.organisms[builder_index].y.round() as i32;
+    sim.start_strategy_objective(&lineage_id, "defend", 200);
+    sim.lineage_strategy_objectives
+        .get_mut(&lineage_id)
+        .unwrap()
+        .target = 1;
+
+    sim.record_strategy_progress(&lineage_id, "defend");
+
+    assert_eq!(sim.organisms[builder_index].inv_wood, 0);
+    assert!(sim.field_fortifications.iter().any(|fortification| {
+        fortification.x == fort_x && fortification.y == fort_y && fortification.lineage_id == lineage_id
+    }));
+    assert!(sim.active_structure_tiles.contains(&(fort_x, fort_y)));
+    assert!(sim.lineage_strategy_history.back().unwrap().impact.is_some());
+}
+
+#[test]
+fn completed_defense_campaign_does_not_conjure_a_free_fortification() {
+    let mut sim = Simulation::new(0x00DE_F300);
+    sim.tick_count = 100;
+    let lineage_id = sim
+        .organisms
+        .iter()
+        .find(|organism| organism.alive)
+        .unwrap()
+        .lineage_id
+        .clone();
+    for organism in sim
+        .organisms
+        .iter_mut()
+        .filter(|organism| organism.alive && organism.lineage_id == lineage_id)
+    {
+        organism.age = organism.max_age / 2;
+        organism.inv_wood = 0;
+        organism.inv_stone = 0;
+    }
+    sim.start_strategy_objective(&lineage_id, "defend", 200);
+    sim.lineage_strategy_objectives
+        .get_mut(&lineage_id)
+        .unwrap()
+        .target = 1;
+
+    sim.record_strategy_progress(&lineage_id, "defend");
+
+    assert!(sim.field_fortifications.is_empty());
+    assert_eq!(sim.lineage_strategy_history.back().unwrap().impact, None);
+}
+
+#[test]
+fn completed_settlement_campaign_starts_a_funded_unfinished_project() {
+    use crate::sim::buildings::BuildingKind;
+
+    let mut sim = Simulation::new(0x005E_771E);
+    sim.tick_count = 100;
+    sim.buildings.clear();
+    let lineage_id = sim
+        .organisms
+        .iter()
+        .find(|organism| organism.alive)
+        .unwrap()
+        .lineage_id
+        .clone();
+    sim.lineage_eras
+        .insert(lineage_id.clone(), crate::sim::era::Era::Stone);
+    for tile_y in 70..=130 {
+        for tile_x in 70..=130 {
+            sim.grid.set(tile_x, tile_y, Tile::Grass);
+            sim.grid.structure[WorldGrid::idx(tile_x, tile_y)] = 0.0;
+        }
+    }
+    for organism in sim
+        .organisms
+        .iter_mut()
+        .filter(|organism| organism.alive && organism.lineage_id == lineage_id)
+    {
+        organism.age = organism.max_age / 2;
+        organism.x = 100.0;
+        organism.y = 100.0;
+        organism.inv_wood = 9;
+        organism.inv_stone = 9;
+        organism.wealth = 100;
+    }
+    sim.start_strategy_objective(&lineage_id, "settle", 200);
+    sim.lineage_strategy_objectives
+        .get_mut(&lineage_id)
+        .unwrap()
+        .target = 1;
+
+    sim.record_strategy_progress(&lineage_id, "settle");
+
+    let project = sim
+        .buildings
+        .iter()
+        .find(|building| building.owner_lineage.as_deref() == Some(&lineage_id))
+        .expect("campaign should start a funded project");
+    assert_eq!(project.kind, BuildingKind::Hut);
+    assert!(
+        project.condition < 1.0,
+        "campaign must not grant a finished building"
+    );
+    assert!(!project.is_operational());
+    assert!(sim
+        .lineage_strategy_history
+        .back()
+        .unwrap()
+        .impact
+        .as_deref()
+        .is_some_and(|impact| impact.contains("funded a real hut construction project")));
+}
+
+#[test]
+fn completed_trade_campaign_launches_a_real_caravan_when_a_route_exists() {
+    use crate::sim::buildings::{Building, BuildingKind};
+
+    let mut sim = Simulation::new(0x07AD_ECA7);
+    sim.tick_count = 100;
+    sim.buildings.clear();
+    sim.trade_routes.clear();
+    sim.caravans.clear();
+    let mut lineages: Vec<String> = sim
+        .organisms
+        .iter()
+        .filter(|organism| organism.alive)
+        .map(|organism| organism.lineage_id.clone())
+        .collect();
+    lineages.sort();
+    lineages.dedup();
+    let sender_lineage = lineages[0].clone();
+    let receiver_lineage = lineages[1].clone();
+    let sender_index = sim
+        .organisms
+        .iter()
+        .position(|organism| organism.alive && organism.lineage_id == sender_lineage)
+        .unwrap();
+    let receiver_index = sim
+        .organisms
+        .iter()
+        .position(|organism| organism.alive && organism.lineage_id == receiver_lineage)
+        .unwrap();
+    sim.organisms[sender_index].x = 80.0;
+    sim.organisms[sender_index].y = 80.0;
+    sim.organisms[sender_index].inv_food = 6;
+    sim.organisms[receiver_index].x = 120.0;
+    sim.organisms[receiver_index].y = 80.0;
+    let mut sender_hut = Building::new(1, BuildingKind::Hut, 80, 80, Some(sender_lineage.clone()), 0);
+    sender_hut.condition = 1.0;
+    let mut receiver_hut = Building::new(2, BuildingKind::Hut, 120, 80, Some(receiver_lineage), 0);
+    receiver_hut.condition = 1.0;
+    sim.buildings.extend([sender_hut, receiver_hut]);
+    assert!(crate::sim::civ::trade_routes::establish_route(
+        &mut sim,
+        sender_index,
+        receiver_index
+    ));
+    sim.start_strategy_objective(&sender_lineage, "trade", 200);
+    sim.lineage_strategy_objectives
+        .get_mut(&sender_lineage)
+        .unwrap()
+        .target = 1;
+
+    sim.record_strategy_progress(&sender_lineage, "trade");
+
+    assert_eq!(sim.caravans.len(), 1);
+    assert_eq!(sim.caravans[0].sender_lineage, sender_lineage);
+    assert!(sim
+        .lineage_strategy_history
+        .back()
+        .unwrap()
+        .impact
+        .as_deref()
+        .is_some_and(|impact| impact.contains("launched a caravan")));
 }
 
 #[test]
@@ -244,7 +873,15 @@ fn loading_legacy_guidance_creates_a_playable_objective() {
     assert_eq!(objective.started_tick, 400);
     assert_eq!(objective.expires_tick, 1_000);
     assert_eq!(objective.progress, 0);
-    assert_eq!(objective.target, 300);
+    let population = loaded
+        .organisms
+        .iter()
+        .filter(|organism| organism.alive && organism.lineage_id == lineage_id)
+        .count();
+    assert_eq!(
+        objective.target,
+        strategy_objective_target(600, population, "settle")
+    );
     assert_eq!(objective.completed_tick, None);
     assert_eq!(objective.failed_tick, None);
 }
@@ -282,7 +919,15 @@ fn loading_repairs_zero_target_or_mismatched_guidance_objectives() {
     assert_eq!(objective.started_tick, 400);
     assert_eq!(objective.expires_tick, 1_000);
     assert_eq!(objective.progress, 0);
-    assert_eq!(objective.target, 300);
+    let population = loaded
+        .organisms
+        .iter()
+        .filter(|organism| organism.alive && organism.lineage_id == lineage_id)
+        .count();
+    assert_eq!(
+        objective.target,
+        strategy_objective_target(600, population, "trade")
+    );
     assert_eq!(objective.completed_tick, None);
     assert_eq!(objective.failed_tick, None);
 }
@@ -934,6 +1579,78 @@ fn stored_winter_provisions_feed_an_organism_after_carried_food_runs_out() {
 }
 
 #[test]
+fn preserved_meat_feeds_an_organism_after_loose_food_runs_out() {
+    let mut sim = Simulation::new(0xF00D_0121);
+    let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+    sim.organisms[idx].energy = 0.20;
+    sim.organisms[idx].inv_food = 0;
+    sim.organisms[idx].tools.insert("preserved_meat".into(), 2);
+
+    let (used_food, _) = use_needed_reserves(&mut sim.organisms[idx], 5);
+
+    assert!(used_food);
+    assert_eq!(sim.organisms[idx].tools.get("preserved_meat"), Some(&1));
+    assert!(sim.organisms[idx].energy > 0.20);
+}
+
+#[test]
+fn physical_survival_gear_outperforms_knowledge_without_an_item() {
+    let mut sim = Simulation::new(0x6E4A_0122);
+    let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
+    let bare_night = night_energy_drain(&sim.organisms[idx]);
+    let bare_cold = cold_exposure_multiplier(&sim.organisms[idx]);
+
+    sim.organisms[idx].discoveries.insert("torch".into());
+    sim.organisms[idx].discoveries.insert("leatherwork".into());
+    let knowledge_night = night_energy_drain(&sim.organisms[idx]);
+    let knowledge_cold = cold_exposure_multiplier(&sim.organisms[idx]);
+
+    sim.organisms[idx].give_tool("lantern");
+    sim.organisms[idx].give_tool("clothing");
+    let equipped_night = night_energy_drain(&sim.organisms[idx]);
+    let equipped_cold = cold_exposure_multiplier(&sim.organisms[idx]);
+
+    assert!(knowledge_night < bare_night);
+    assert!(equipped_night < knowledge_night);
+    assert!(knowledge_cold < bare_cold);
+    assert!(equipped_cold < knowledge_cold);
+    assert!(terrain_energy_multiplier(&sim.organisms[idx], Tile::Snow) < 1.0);
+
+    let clothing_snow = terrain_energy_multiplier(&sim.organisms[idx], Tile::Snow);
+    sim.organisms[idx].give_tool("sled");
+    assert!(terrain_energy_multiplier(&sim.organisms[idx], Tile::Snow) < clothing_snow);
+}
+
+#[test]
+fn canoe_prevents_early_deep_water_panic_and_rewards_crossing() {
+    let mut swimmer = Simulation::new(0xB047_0123);
+    swimmer.organisms.truncate(1);
+    let idx = 0;
+    let (x, y) = (100, 100);
+    swimmer.grid.set(x, y, Tile::Water);
+    swimmer.grid.depth[WorldGrid::idx(x, y)] = 0.60;
+    swimmer.organisms[idx].energy = 1.0;
+    swimmer.organisms[idx].health = 1.0;
+    swimmer.apply_water_fatigue(idx, x, y);
+    let swimmer_energy = swimmer.organisms[idx].energy;
+    let swimmer_health = swimmer.organisms[idx].health;
+
+    let mut paddler = Simulation::new(0xB047_0123);
+    paddler.organisms.truncate(1);
+    paddler.grid.set(x, y, Tile::Water);
+    paddler.grid.depth[WorldGrid::idx(x, y)] = 0.60;
+    paddler.organisms[idx].energy = 1.0;
+    paddler.organisms[idx].health = 1.0;
+    paddler.organisms[idx].give_tool("canoe");
+    paddler.apply_water_fatigue(idx, x, y);
+
+    assert!(paddler.organisms[idx].energy > swimmer_energy);
+    assert_eq!(paddler.organisms[idx].health, 1.0);
+    assert!(swimmer_health < 1.0);
+    assert!(watercraft_movement_bonus(&paddler.organisms[idx], &paddler.grid, Some((x, y))) > 0.0);
+}
+
+#[test]
 fn local_resource_verification_decays_stale_food_memory_nearby() {
     let mut sim = Simulation::new(109);
     let idx = sim.organisms.iter().position(|o| o.alive).unwrap();
@@ -1132,6 +1849,7 @@ fn save_load_preserves_social_continuity_and_rng_stream() {
         target: 80,
         outcome: "completed".to_string(),
         reason: None,
+        impact: Some("opened a durable route".to_string()),
     });
     sim.lineage_last_council.insert("lineage-a".to_string(), 12_000);
     sim.lineage_elders

@@ -6,7 +6,9 @@ pub mod persistence;
 pub mod serialize;
 pub mod simulation;
 pub mod spatial;
+pub mod survival_resources;
 pub mod utils;
+pub mod wildfire_response;
 pub mod world_events;
 
 pub mod agents;

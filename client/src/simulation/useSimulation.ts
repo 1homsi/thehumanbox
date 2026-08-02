@@ -29,8 +29,9 @@ import {
   type RuntimeControlResult,
   type RuntimeState,
 } from './runtimeControls'
+import { WEB_BASE_TICK_MS, WEB_WORLD_PUBLISH_MS } from './webRuntime'
 
-const WASM_BASE_TICK_MS = 120
+const WASM_BASE_TICK_MS = WEB_BASE_TICK_MS
 const RELOAD_CHECKPOINT_DEADLINE_MS = 6_000
 const RELOAD_CHECKPOINT_TIMEOUT_MS = 7_000
 
@@ -112,7 +113,6 @@ export function useSimulation(source: WorldSource = 'native'): {
   const snapshotPendingRef = useRef(false)
   const bootstrapPendingRef = useRef(true)
 
-  const REACT_THROTTLE_MS = 500
   const lastSetWorldAtRef = useRef<number>(0)
   const pendingSetWorldRef = useRef<WorldState | null>(null)
   const setWorldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -290,14 +290,15 @@ export function useSimulation(source: WorldSource = 'native'): {
         useWorldStore.getState().setWorld(w)
         setWorld(w)
       }
-      if (sinceLast >= REACT_THROTTLE_MS) {
+      const publishIntervalMs = effectiveSource === 'wasm' ? WEB_WORLD_PUBLISH_MS : 500
+      if (sinceLast >= publishIntervalMs) {
         publish(latest)
         if (setWorldTimerRef.current) {
           clearTimeout(setWorldTimerRef.current)
           setWorldTimerRef.current = null
         }
       } else if (setWorldTimerRef.current === null) {
-        const delay = REACT_THROTTLE_MS - sinceLast
+        const delay = publishIntervalMs - sinceLast
         setWorldTimerRef.current = setTimeout(() => {
           setWorldTimerRef.current = null
           const w = pendingSetWorldRef.current

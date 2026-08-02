@@ -4,6 +4,7 @@ import { useWorldStore } from '../stores/worldStore'
 import { EventRow } from './EventRow'
 
 const DRAMA_EVENT_TYPES = new Set([
+  'war',
   'war_declared',
   'battle',
   'challenge',
@@ -19,8 +20,11 @@ const DRAMA_EVENT_TYPES = new Set([
   'weather',
   'eruption',
   'strategy_complete',
+  'strategy_partial',
+  'strategy_progress',
   'strategy_failed',
   'strategy_redirected',
+  'strategy_cancelled',
 ])
 
 function EventLogImpl() {

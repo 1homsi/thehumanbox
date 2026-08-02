@@ -3319,7 +3319,7 @@ body.thb-photo-mode .header:hover {
 .try-3d-toast {
   position: fixed;
   left: 50%;
-  bottom: 76px;
+  bottom: 166px;
   transform: translateX(-50%);
   z-index: 9000;
   display: flex;
@@ -4115,6 +4115,42 @@ body.thb-colorblind .org-sick-badge {
 .civ-campaign-card-actions .civ-guide-select {
   max-width: 155px;
 }
+.civ-campaign-cancel {
+  padding: 3px 6px;
+  border: 1px solid rgba(191, 111, 83, 0.42);
+  border-radius: 3px;
+  background: rgba(89, 40, 31, 0.25);
+  color: #d8977d;
+  font: 8px/1.2 monospace;
+  cursor: pointer;
+}
+.civ-campaign-cancel-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.civ-campaign-keep {
+  padding: 3px 5px;
+  border: 1px solid rgba(130, 119, 104, 0.35);
+  border-radius: 3px;
+  background: rgba(45, 39, 32, 0.5);
+  color: #a99c8b;
+  font: 8px/1.2 monospace;
+  cursor: pointer;
+}
+.civ-campaign-keep:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+.civ-campaign-cancel:hover:not(:disabled) {
+  border-color: rgba(220, 132, 99, 0.7);
+  background: rgba(115, 49, 36, 0.38);
+  color: #f0b39b;
+}
+.civ-campaign-cancel:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
 .civ-campaign-history {
   display: grid;
   gap: 5px;
@@ -4157,6 +4193,9 @@ body.thb-colorblind .org-sick-badge {
 .civ-campaign-record--completed {
   color: #9fd49f;
 }
+.civ-campaign-record--partial {
+  color: #d9bd73;
+}
 .civ-campaign-record--expired {
   color: #d58d78;
 }
@@ -4165,6 +4204,9 @@ body.thb-colorblind .org-sick-badge {
 }
 .civ-campaign-record--redirected {
   color: #d0a66f;
+}
+.civ-campaign-record--cancelled {
+  color: #bb9380;
 }
 .civ-campaign-outcome {
   font-weight: 700;
@@ -4180,6 +4222,12 @@ body.thb-colorblind .org-sick-badge {
 .civ-campaign-effort,
 .civ-campaign-tick {
   white-space: nowrap;
+}
+.civ-campaign-impact {
+  grid-column: 2 / -1;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  line-height: 1.35;
 }
 .civ-campaign-tick {
   color: #786f64;
@@ -5023,12 +5071,12 @@ body.thb-colorblind .org-sick-badge {
 
 .sandbox-bar {
   position: relative;
-  flex: 0 0 64px;
+  flex: 0 0 154px;
   z-index: 60;
-  height: 64px;
+  height: 154px;
   display: flex;
   align-items: center;
-  padding: 4px 8px calc(4px + env(safe-area-inset-bottom, 0px));
+  padding: 5px 8px calc(5px + env(safe-area-inset-bottom, 0px));
   background: rgba(18, 15, 12, 0.97);
   border-top: 1px solid #4b3a2b;
   box-shadow: 0 -5px 18px rgba(0, 0, 0, 0.42);
@@ -5036,31 +5084,31 @@ body.thb-colorblind .org-sick-badge {
   -webkit-backdrop-filter: blur(10px);
 }
 .sandbox-dock {
-  display: flex;
+  display: grid;
+  grid-template-rows: 48px 48px 38px;
   width: 100%;
   min-width: 0;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  overflow-x: auto;
+  align-content: center;
+  gap: 3px;
+  overflow-x: hidden;
   overflow-y: hidden;
-  scrollbar-width: thin;
 }
 .sandbox-tabs,
 .sandbox-tools {
   display: flex;
-  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
   gap: 2px;
   align-items: center;
   padding: 0;
   flex-wrap: nowrap;
   justify-content: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
 }
 .sandbox-divider {
-  width: 1px;
-  height: 38px;
-  flex: 0 0 auto;
-  background: #4a392b;
+  display: none;
 }
 .sandbox-tab,
 .sandbox-tool {
@@ -5146,12 +5194,13 @@ body.thb-colorblind .org-sick-badge {
 }
 .sandbox-utility {
   display: flex;
+  width: 100%;
   min-width: 0;
-  flex: 0 1 auto;
   align-items: center;
+  justify-content: center;
   gap: 5px;
-  padding-left: 2px;
-  border-left: 1px solid #4a392b;
+  padding-top: 2px;
+  border-top: 1px solid rgba(74, 57, 43, 0.75);
 }
 .sandbox-save {
   display: flex;
@@ -5198,9 +5247,6 @@ body.thb-colorblind .org-sick-badge {
 }
 
 @media (max-width: 1100px) {
-  .sandbox-dock {
-    justify-content: flex-start;
-  }
   .sandbox-save > span {
     display: none;
   }
@@ -5208,9 +5254,12 @@ body.thb-colorblind .org-sick-badge {
 
 @media (max-width: 767px) {
   .sandbox-bar {
-    flex-basis: 56px;
-    height: 56px;
+    flex-basis: 140px;
+    height: 140px;
     padding: 3px 6px;
+  }
+  .sandbox-dock {
+    grid-template-rows: 43px 43px 36px;
   }
   .sandbox-tab,
   .sandbox-tool {
@@ -5222,8 +5271,7 @@ body.thb-colorblind .org-sick-badge {
   .sandbox-tool-label {
     font-size: 7px;
   }
-  .sandbox-status,
-  .sandbox-save-label {
+  .sandbox-status {
     display: none;
   }
 }

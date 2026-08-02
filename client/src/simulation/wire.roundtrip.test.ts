@@ -71,6 +71,15 @@ const knownDelta = () => ({
       status: 'active',
     },
   },
+  lineage_campaign_options: {
+    'lineage-1': {
+      hunt: { available: false, reason: 'no_living_prey' },
+      explore: { available: true, reason: null },
+      settle: { available: true, reason: null },
+      trade: { available: false, reason: 'no_foreign_lineage' },
+      defend: { available: true, reason: null },
+    },
+  },
   lineage_strategy_history: [
     {
       lineage_id: 'lineage-1',
@@ -82,6 +91,7 @@ const knownDelta = () => ({
       target: 80,
       outcome: 'redirected',
       reason: 'player_redirected',
+      impact: null as string | null,
     },
   ],
   trade_routes: [
@@ -111,6 +121,22 @@ const knownDelta = () => ({
       arrives_tick: 12600,
       from: [100, 80] as [number, number],
       to: [240, 160] as [number, number],
+    },
+  ],
+  supply_caches: [
+    {
+      x: 108,
+      y: 82,
+      lineage_id: 'lineage-1',
+      food: 3,
+      water: 2,
+      fishing_weir: true,
+      created_tick: 12200,
+      last_used_tick: 12320,
+      last_produced_tick: 12300,
+      damage: 24,
+      last_damage_tick: 12310,
+      last_repair_tick: null,
     },
   ],
 })
@@ -147,6 +173,10 @@ describe('wire round-trip', () => {
     expect(f.organisms_complete).toBe(false)
     expect(f.animals).toEqual([])
     expect(f.lineage_strategies?.['lineage-1']?.progress).toBe(18)
+    expect(f.lineage_campaign_options?.['lineage-1']?.hunt).toEqual({
+      available: false,
+      reason: 'no_living_prey',
+    })
     expect(f.lineage_strategy_history?.[0]).toMatchObject({
       lineage_name: 'Wayfinders',
       outcome: 'redirected',
@@ -166,6 +196,15 @@ describe('wire round-trip', () => {
       amount: 3,
       arrives_tick: 12600,
     })
+    expect(f.supply_caches?.[0]).toMatchObject({
+      x: 108,
+      y: 82,
+      lineage_id: 'lineage-1',
+      food: 3,
+      water: 2,
+      fishing_weir: true,
+      damage: 24,
+    })
   })
 
   it('also accepts a JSON-encoded frame (legacy path)', () => {
@@ -180,6 +219,47 @@ describe('wire round-trip', () => {
     const t = result.value.organisms_hot?.thoughts
     expect(Array.isArray(t)).toBe(true)
     expect((t as Array<[number, string]>)[0]).toEqual([0, 'exploring'])
+  })
+
+  it('accepts a near-complete campaign with a partial reward outcome', () => {
+    const partial = knownDelta()
+    partial.lineage_strategy_history[0].outcome = 'partial'
+    partial.lineage_strategy_history[0].reason = 'deadline'
+
+    const result = parseWorldFrame(msgpackEncode(partial))
+
+    expect(result.isOk()).toBe(true)
+    if (result.isErr()) return
+    expect(result.value.lineage_strategy_history?.[0]).toMatchObject({
+      outcome: 'partial',
+      reason: 'deadline',
+    })
+  })
+
+  it('accepts a player-cancelled campaign in persistent history', () => {
+    const cancelled = knownDelta()
+    cancelled.lineage_strategy_history[0].outcome = 'cancelled'
+    cancelled.lineage_strategy_history[0].reason = 'player_cancelled'
+
+    const result = parseWorldFrame(msgpackEncode(cancelled))
+
+    expect(result.isOk()).toBe(true)
+    if (result.isErr()) return
+    expect(result.value.lineage_strategy_history?.[0]).toMatchObject({
+      outcome: 'cancelled',
+      reason: 'player_cancelled',
+    })
+  })
+
+  it('accepts a durable world impact recorded by a completed campaign', () => {
+    const completed = knownDelta()
+    completed.lineage_strategy_history[0].impact = 'charted 48 new land tiles and blazed four frontier trails'
+
+    const result = parseWorldFrame(msgpackEncode(completed))
+
+    expect(result.isOk()).toBe(true)
+    if (result.isErr()) return
+    expect(result.value.lineage_strategy_history?.[0].impact).toContain('frontier trails')
   })
 
   it('rejects payloads missing required envelope fields', () => {
@@ -203,6 +283,11 @@ describe('wire round-trip', () => {
           completed_tick: -2,
         },
       },
+      lineage_campaign_options: {
+        'lineage-1': {
+          trade: { available: 'yes', reason: 'magic_shortcut' },
+        },
+      },
       lineage_strategy_history: [
         {
           lineage_id: 'lineage-1',
@@ -214,6 +299,7 @@ describe('wire round-trip', () => {
           target: 40,
           outcome: 'failed',
           reason: 'unknown_failure',
+          impact: 42,
         },
       ],
     }
@@ -227,7 +313,12 @@ describe('wire round-trip', () => {
     expect(result.error.issues).toContain('lineage_strategies.lineage-1.status is invalid')
     expect(result.error.issues).toContain('lineage_strategies.lineage-1.completed is not a boolean')
     expect(result.error.issues).toContain('lineage_strategies.lineage-1.completed_tick is invalid')
+    expect(result.error.issues).toContain(
+      'lineage_campaign_options.lineage-1.trade.available is not a boolean',
+    )
+    expect(result.error.issues).toContain('lineage_campaign_options.lineage-1.trade.reason is invalid')
     expect(result.error.issues).toContain('lineage_strategy_history.0.reason is invalid')
+    expect(result.error.issues).toContain('lineage_strategy_history.0.impact is invalid')
   })
 
   it('rejects malformed trade routes and caravans at the wire boundary', () => {

@@ -28,11 +28,14 @@ describe('SandboxToolbar local save recovery', () => {
     expect(markup).toContain('aria-label="World tools"')
     expect(markup).toContain('aria-pressed="true"')
     expect(markup).toContain('aria-label="Cursor — stop placing"')
+    expect(markup).toContain('<span class="sandbox-save-label">Save</span>')
+    expect(markup).not.toContain('save world')
   })
 
   it('keeps a retryable failed save actionable', () => {
     const markup = renderSaveButton(true, true)
-    expect(markup).toContain('↻ retry save')
+    expect(markup).toContain('<span class="sandbox-save-icon">↻</span>')
+    expect(markup).toContain('Retry save')
     expect(markup).not.toContain('disabled=""')
     expect(markup).toContain('temporary storage failure')
   })

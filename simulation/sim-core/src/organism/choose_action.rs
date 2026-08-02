@@ -6,7 +6,10 @@ use crate::world::{
     tiles::Tile,
 };
 
-use super::decision_bias::{directive_action_boost, directive_aligns_action, preferred_action_boost};
+use super::decision_bias::{
+    area_guard_target, directive_action_boost, directive_aligns_action, fire_response_target,
+    preferred_action_boost, protection_target_id,
+};
 use super::organism::{Organism, QRowExt, ACTION_ID_SPACE, N_ACTIONS};
 
 fn survival_relevant_action(
@@ -113,7 +116,14 @@ impl Organism {
         let fire_tile = self.nearest_visible(grid, Tile::Fire, flee_r);
         let fire_dangerous = tile == Tile::Fire || (!night && fire_tile.is_some());
         let critical = self.energy < 0.2 || self.hydration < 0.2;
-        if !critical && fire_dangerous {
+        let response_target =
+            (tick < self.directive_until && self.energy > 0.45 && self.health > 0.50 && !self.pregnant)
+                .then(|| fire_response_target(&self.directive))
+                .flatten()
+                .filter(|(x, y)| matches!(grid.get(*x, *y), Tile::Fire | Tile::Ash));
+        let prepared_to_suppress =
+            response_target.is_some_and(|(x, y)| grid.get(x, y) == Tile::Fire && self.inv_water > 0);
+        if !critical && fire_dangerous && !prepared_to_suppress {
             set_thought!("heat dangerous");
             if let Some((fx, fy)) = fire_tile {
                 if !night {
@@ -123,6 +133,33 @@ impl Organism {
                 }
             }
             return (rng.random_range(0..8), thought);
+        }
+
+        if let Some(target) = response_target {
+            let distance = (target.0 - ix).abs() + (target.1 - iy).abs();
+            match grid.get(target.0, target.1) {
+                Tile::Fire if self.inv_water > 0 => {
+                    if distance > 2 && distance < 80 {
+                        set_thought!("carrying water toward the wildfire");
+                        return (self.toward(target, grid), thought);
+                    }
+                    if distance <= 2 {
+                        set_thought!("throwing water onto the flames");
+                        return (4654, thought);
+                    }
+                }
+                Tile::Ash => {
+                    if distance > 2 && distance < 80 {
+                        set_thought!("returning to check the burned ground");
+                        return (self.toward(target, grid), thought);
+                    }
+                    if distance <= 2 {
+                        set_thought!("checking the ash for embers");
+                        return (4665, thought);
+                    }
+                }
+                _ => {}
+            }
         }
 
         if self.infection > 0.30 {
@@ -244,6 +281,31 @@ impl Organism {
                 return (self.toward(t, grid), thought);
             }
             set_thought!("hungry - searching");
+        }
+
+        // A protection promise is a real escort duty. Survival and immediate
+        // fire danger above still take precedence, but a healthy guard closes
+        // the distance before drifting into routine gathering or construction.
+        if tick < self.directive_until && needs_ok {
+            if let Some(target_id) = protection_target_id(&self.directive) {
+                if let Some(ward) = organisms.iter().find(|organism| {
+                    organism.alive && organism.id == target_id && !std::ptr::eq(*organism, self)
+                }) {
+                    let ward_position = (ward.x as i32, ward.y as i32);
+                    let distance = (ward_position.0 - ix).abs() + (ward_position.1 - iy).abs();
+                    if distance > 2 && distance < 80 {
+                        set_thought!(format!("guarding {}", ward.name));
+                        return (self.toward(ward_position, grid), thought);
+                    }
+                }
+            }
+            if let Some(guard_target) = area_guard_target(&self.directive) {
+                let distance = (guard_target.0 - ix).abs() + (guard_target.1 - iy).abs();
+                if distance > 2 && distance < 80 {
+                    set_thought!("returning to my guard post");
+                    return (self.toward(guard_target, grid), thought);
+                }
+            }
         }
 
         let needs_easy = self.hydration > 0.55 && self.energy > 0.50 && self.health > 0.55;
@@ -756,9 +818,7 @@ impl Organism {
                 return (148, thought);
             }
 
-            let has_blade = self.discoveries.contains("knife")
-                || self.discoveries.contains("axe")
-                || self.discoveries.contains("spear");
+            let has_blade = self.has_tool("knife") || self.has_tool("axe") || self.has_tool("spear");
             if has_blade
                 && self.boredom > 0.50
                 && self.near_shelter(grid, buildings)

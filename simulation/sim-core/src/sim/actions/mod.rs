@@ -4796,10 +4796,11 @@ fn action_uses_deferred_resource_charge(action: usize) -> bool {
 }
 
 fn action_requires_semantic_validation(action: usize) -> bool {
-    action >= 540
-        || BASE_ACTION_BANDS
-            .iter()
-            .any(|band| (band.start..=band.end).contains(&action))
+    !emergency_response::is_real_action(action)
+        && (action >= 540
+            || BASE_ACTION_BANDS
+                .iter()
+                .any(|band| (band.start..=band.end).contains(&action)))
 }
 
 fn action_output_at_capacity(org: &crate::organism::organism::Organism, action: usize) -> bool {
@@ -4884,7 +4885,23 @@ pub fn available_actions(
     a.extend(126..=140);
 
     if any_near {
-        a.extend(80..=89);
+        a.extend(80..=82);
+        if social::scold::can_apply_with_nearby(sim, idx, &near_buf) {
+            a.push(83);
+        }
+        if social::gossip::can_apply_with_nearby(sim, idx, &near_buf) {
+            a.push(84);
+        }
+        if social::greet_stranger::can_apply_with_nearby(sim, idx, &near_buf) {
+            a.push(85);
+        }
+        if social::apologize::can_apply_with_nearby(sim, idx, &near_buf) {
+            a.push(86);
+        }
+        a.extend(87..=88);
+        if social::befriend::can_apply_with_nearby(sim, idx, &near_buf) {
+            a.push(89);
+        }
     }
 
     if stranger_near || kin_near {
@@ -4894,7 +4911,13 @@ pub fn available_actions(
 
     a.extend(100..=101);
     if stranger_near {
-        a.extend([96, 97, 98, 99, 102, 103, 104, 105, 106].iter().copied());
+        a.extend([96, 97, 102, 103, 104, 105, 106].iter().copied());
+    }
+    if warfare::pillage::can_apply(sim, idx, ix, iy) {
+        a.push(98);
+    }
+    if warfare::sabotage::can_apply(sim, idx, ix, iy) {
+        a.push(99);
     }
     a.extend(191..=200);
 
@@ -4911,7 +4934,64 @@ pub fn available_actions(
     a.extend(201..=210);
 
     if any_near {
-        a.extend(226..=245);
+        if relationships::gift_food::can_apply_with_nearby(sim, idx, &near_buf) {
+            a.push(226);
+        }
+        if relationships::gift_tool::can_apply_with_nearby(sim, idx, &near_buf) {
+            a.push(227);
+        }
+        if relationships::express_gratitude::can_apply_with_nearby(sim, idx, &near_buf) {
+            a.push(228);
+        }
+        if relationships::ask_for_help::can_apply_with_nearby(sim, idx, &near_buf) {
+            a.push(229);
+        }
+        if relationships::share_burden::can_apply_with_nearby(sim, idx, &near_buf) {
+            a.push(230);
+        }
+        if relationships::comfort_grieving::can_apply_with_nearby(sim, idx, &near_buf) {
+            a.push(231);
+        }
+        if relationships::jealousy_outburst::can_apply_with_nearby(sim, idx, &near_buf) {
+            a.push(232);
+        }
+        if relationships::pledge_friendship::can_apply_with_nearby(sim, idx, &near_buf) {
+            a.push(233);
+        }
+        if relationships::reconcile::can_apply_with_nearby(sim, idx, &near_buf) {
+            a.push(234);
+        }
+        if relationships::defend_reputation::can_apply_with_nearby(sim, idx, &near_buf) {
+            a.push(235);
+        }
+        a.push(236);
+        if relationships::express_admiration::can_apply_with_nearby(sim, idx, &near_buf) {
+            a.push(237);
+        }
+        if relationships::ask_forgiveness::can_apply_with_nearby(sim, idx, &near_buf) {
+            a.push(238);
+        }
+        if relationships::offer_protection::can_apply_with_nearby(sim, idx, &near_buf, spatial) {
+            a.push(239);
+        }
+        if relationships::bond_ritual::can_apply_with_nearby(sim, idx, &near_buf) {
+            a.push(240);
+        }
+        if relationships::silent_companionship::can_apply_with_nearby(sim, idx, &near_buf) {
+            a.push(241);
+        }
+        if relationships::challenge_friend::can_apply_with_nearby(sim, idx, &near_buf) {
+            a.push(242);
+        }
+        if relationships::mentor_moment::can_apply_with_nearby(sim, idx, &near_buf) {
+            a.push(243);
+        }
+        if relationships::express_love::can_apply_with_nearby(sim, idx, &near_buf) {
+            a.push(244);
+        }
+        if relationships::resolve_conflict::can_apply_with_nearby(sim, idx, &near_buf) {
+            a.push(245);
+        }
     }
 
     a.extend(246..=260);
@@ -5001,15 +5081,27 @@ pub fn available_actions(
         candidates.dedup();
         extend_rotating_candidates(&mut a, candidates, phase);
     }
+    a.extend(ecological::REAL_ECOLOGICAL_ACTIONS);
+    a.extend(emergency_response::REAL_EMERGENCY_ACTIONS);
 
     let mut seen = std::collections::HashSet::with_capacity(a.len());
     a.retain(|action| {
         !action_output_at_capacity(org, *action)
+            && (!(51..=65).contains(action) && !(151..=165).contains(action)
+                || crafting::can_apply(sim, idx, *action, tile, near_water, near_fire))
             && (!action_requires_semantic_validation(*action) || semantically_eligible.contains(action))
             && agriculture::action_is_possible(sim, idx, *action, ix, iy, near_water)
+            && (!(371..=385).contains(action) || environment::action_is_possible(sim, idx, *action, ix, iy))
+            && (!(4380..=4429).contains(action) || ecological::action_is_possible(sim, idx, *action, ix, iy))
+            && exploration::action_is_possible(sim, idx, *action, ix, iy, near_water, near_rock)
+            && survival::action_is_possible(sim, idx, *action, ix, iy)
+            && warfare::action_is_possible(sim, idx, *action, ix, iy)
+            && emergency_response::action_is_possible(sim, idx, *action, ix, iy)
             && religion_expanded::action_is_possible(sim, idx, *action, &near_buf, sim.tick_count)
             && crate::sim::civ::trade_routes::action_is_possible(sim, idx, *action, &near_buf)
             && (*action != 2704 || crate::sim::civ::trade_routes::can_dispatch_caravan(sim, idx))
+            && (*action != 2263
+                || relationships_deep::rebuild_friendship::can_apply_with_nearby(sim, idx, &near_buf))
             && seen.insert(*action)
     });
 
@@ -5176,6 +5268,136 @@ pub fn try_apply(
     iy: i32,
     spatial: &crate::sim::spatial::SpatialIndex,
 ) -> Option<f32> {
+    if ((51..=65).contains(&action) || (151..=165).contains(&action))
+        && !crafting::can_apply(
+            sim,
+            idx,
+            action,
+            sim.grid.get(ix, iy),
+            (-2i32..=2).any(|dx| (-2i32..=2).any(|dy| matches!(sim.grid.get(ix + dx, iy + dy), Tile::Water))),
+            (-2i32..=2).any(|dx| {
+                (-2i32..=2).any(|dy| matches!(sim.grid.get(ix + dx, iy + dy), Tile::Fire | Tile::Campfire))
+            }),
+        )
+    {
+        return None;
+    }
+    if ((117..=125).contains(&action) || (211..=220).contains(&action))
+        && !exploration::action_is_possible(
+            sim,
+            idx,
+            action,
+            ix,
+            iy,
+            (-2i32..=2).any(|dx| (-2i32..=2).any(|dy| matches!(sim.grid.get(ix + dx, iy + dy), Tile::Water))),
+            [
+                (-1, 0),
+                (1, 0),
+                (0, -1),
+                (0, 1),
+                (-1, -1),
+                (1, -1),
+                (-1, 1),
+                (1, 1),
+            ]
+            .iter()
+            .any(|&(dx, dy)| matches!(sim.grid.get(ix + dx, iy + dy), Tile::Rock | Tile::Mineral)),
+        )
+    {
+        return None;
+    }
+    if (2160..=2212).contains(&action) && !survival::action_is_possible(sim, idx, action, ix, iy) {
+        return None;
+    }
+    if (371..=385).contains(&action) && !environment::action_is_possible(sim, idx, action, ix, iy) {
+        return None;
+    }
+    if (4380..=4429).contains(&action) && !ecological::action_is_possible(sim, idx, action, ix, iy) {
+        return None;
+    }
+    if ((96..=106).contains(&action) || (191..=200).contains(&action))
+        && !warfare::action_is_possible(sim, idx, action, ix, iy)
+    {
+        return None;
+    }
+    if (4620..=4669).contains(&action) && !emergency_response::action_is_possible(sim, idx, action, ix, iy) {
+        return None;
+    }
+    if action == 86 && !social::apologize::can_apply(sim, idx, spatial) {
+        return None;
+    }
+    if action == 84 && !social::gossip::can_apply(sim, idx, spatial) {
+        return None;
+    }
+    if action == 83 && !social::scold::can_apply(sim, idx, spatial) {
+        return None;
+    }
+    if action == 85 && !social::greet_stranger::can_apply(sim, idx, spatial) {
+        return None;
+    }
+    if action == 89 && !social::befriend::can_apply(sim, idx, spatial) {
+        return None;
+    }
+    if action == 226 && !relationships::gift_food::can_apply(sim, idx, spatial) {
+        return None;
+    }
+    if action == 227 && !relationships::gift_tool::can_apply(sim, idx, spatial) {
+        return None;
+    }
+    if action == 228 && !relationships::express_gratitude::can_apply(sim, idx, spatial) {
+        return None;
+    }
+    if action == 229 && !relationships::ask_for_help::can_apply(sim, idx, spatial) {
+        return None;
+    }
+    if action == 230 && !relationships::share_burden::can_apply(sim, idx, spatial) {
+        return None;
+    }
+    if action == 231 && !relationships::comfort_grieving::can_apply(sim, idx, spatial) {
+        return None;
+    }
+    if action == 232 && !relationships::jealousy_outburst::can_apply(sim, idx, spatial) {
+        return None;
+    }
+    if action == 233 && !relationships::pledge_friendship::can_apply(sim, idx, spatial) {
+        return None;
+    }
+    if action == 234 && !relationships::reconcile::can_apply(sim, idx, spatial) {
+        return None;
+    }
+    if action == 235 && !relationships::defend_reputation::can_apply(sim, idx, spatial) {
+        return None;
+    }
+    if action == 237 && !relationships::express_admiration::can_apply(sim, idx, spatial) {
+        return None;
+    }
+    if action == 238 && !relationships::ask_forgiveness::can_apply(sim, idx, spatial) {
+        return None;
+    }
+    if action == 245 && !relationships::resolve_conflict::can_apply(sim, idx, spatial) {
+        return None;
+    }
+    if action == 243 && !relationships::mentor_moment::can_apply(sim, idx, spatial) {
+        return None;
+    }
+    if action == 244 && !relationships::express_love::can_apply(sim, idx, spatial) {
+        return None;
+    }
+    if action == 239 && !relationships::offer_protection::can_apply(sim, idx, spatial) {
+        return None;
+    }
+    if action == 240 && !relationships::bond_ritual::can_apply(sim, idx, spatial) {
+        return None;
+    }
+    if action == 241 && !relationships::silent_companionship::can_apply(sim, idx, spatial) {
+        return None;
+    }
+    if action == 242 && !relationships::challenge_friend::can_apply(sim, idx, spatial) {
+        return None;
+    }
+    if action == 2263 && !relationships_deep::rebuild_friendship::can_apply(sim, idx, spatial) {
+        return None;
+    }
     let semantic_requirement = if action_requires_semantic_validation(action) {
         Some(eligible_band_for_action(sim, idx, action, ix, iy, spatial)?)
     } else {

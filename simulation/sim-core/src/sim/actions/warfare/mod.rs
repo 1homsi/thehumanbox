@@ -21,6 +21,18 @@ pub mod stand_guard;
 pub mod throw_stone;
 
 use super::ctx::ActionCtx;
+use crate::sim::simulation::Simulation;
+
+pub fn action_is_possible(sim: &Simulation, idx: usize, action: usize, x: i32, y: i32) -> bool {
+    match action {
+        98 => pillage::can_apply(sim, idx, x, y),
+        99 => sabotage::can_apply(sim, idx, x, y),
+        101 => stand_guard::can_apply(sim, idx, x, y),
+        198 => sim.can_raid_supply_cache(idx, x, y),
+        199 => intercept_raid::can_apply(sim, idx),
+        _ => true,
+    }
+}
 
 pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
     match action {

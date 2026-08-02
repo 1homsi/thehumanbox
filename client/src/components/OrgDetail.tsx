@@ -6,7 +6,7 @@ import { Tooltip } from './Tooltip'
 import { useOrgDetail } from '../hooks/useOrgDetail'
 import { useUIStore } from '../stores/store'
 import { useSceneStore } from '../stores/scene'
-import { hasBuiltHome, isAtHome } from '../scenes'
+import { hasBuiltHome, isAtHome } from '../scenes/shared/occupants'
 import { useWorldStore } from '../stores/worldStore'
 import { LifeModal } from './LifeModal'
 
@@ -169,6 +169,27 @@ const TOOL_ICON: Record<string, string> = {
   bow: '🏹',
   hammer: '🔨',
   wheel: '☸️',
+  spear: '🔱',
+  axe: '🪓',
+  knife: '🔪',
+  stone_tools: '🪨',
+  raft: '🛶',
+  canoe: '🛶',
+  paddle: '🥄',
+  sled: '🛷',
+  clothing: '🧥',
+  leather: '🟫',
+  drum: '🥁',
+  torch: '🔥',
+  torch_pitch: '🕯️',
+  lantern: '🏮',
+  pottery: '🏺',
+  flute: '🪈',
+  carved_bone: '🦴',
+  fishing_hook: '🪝',
+  fishing_line: '🧵',
+  loom: '🧶',
+  mortar: '🥣',
   mash: '🌾',
   wash: '🫙',
   spirit: '🥃',
@@ -213,6 +234,26 @@ const TOOL_ICON: Record<string, string> = {
   pastry: '🥐',
   stock: '📦',
   incident: '🚨',
+}
+
+const TOOL_EFFECT: Record<string, string> = {
+  spear: 'improves hunting and combat',
+  bow: 'greatly improves hunting and combat',
+  axe: 'improves woodcutting yield and combat',
+  knife: 'improves hunting and combat',
+  stone_tools: 'improves woodcutting and hunting',
+  basket: 'adds 4 carrying capacity',
+  sled: 'adds 6 carrying capacity and reduces snow fatigue',
+  net: 'greatly improves fishing',
+  fishing_hook: 'improves fishing; strongest with fishing line',
+  fishing_line: 'improves fishing; strongest with fishing hook',
+  clothing: 'reduces cold exposure and outdoor sleep fatigue',
+  torch: 'reduces night travel fatigue',
+  torch_pitch: 'reduces night travel fatigue',
+  lantern: 'provides the strongest night travel protection',
+  raft: 'reduces water fatigue and delays panic',
+  canoe: 'provides the strongest protection during water crossings',
+  preserved_meat: 'stored food consumed when loose food runs out',
 }
 
 interface Props {
@@ -767,7 +808,10 @@ export function OrgDetail({
               <div className="org-detail-section">INVENTORY</div>
               <div className="relation-list">
                 {entries.map(([kind, count]) => (
-                  <Tooltip key={kind} tip={`${kind.replace(/_/g, ' ')} ×${count}`}>
+                  <Tooltip
+                    key={kind}
+                    tip={`${kind.replace(/_/g, ' ')} ×${count}${TOOL_EFFECT[kind] ? ` — ${TOOL_EFFECT[kind]}` : ''}`}
+                  >
                     <span
                       className="relation-tag"
                       style={{ background: '#0a1a1a', color: '#88e6d4', cursor: 'default' }}

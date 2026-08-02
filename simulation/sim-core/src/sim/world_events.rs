@@ -808,7 +808,7 @@ pub fn tick_world_evolution(
         let hazard = grid.hazard[i];
 
         if biome == Biome::Forest && fert < 0.25 && pressure > 2.0 && rng.random::<f32>() < 0.003 {
-            grid.biome[i] = Biome::Grassland as u8;
+            grid.set_biome(x, y, Biome::Grassland);
             if grid.get(x, y) == Tile::Food {
                 grid.set(x, y, Tile::Grass);
             }
@@ -823,10 +823,10 @@ pub fn tick_world_evolution(
             }
         }
         if biome == Biome::Wetland && drought_active && fert < 0.35 && rng.random::<f32>() < 0.002 {
-            grid.biome[i] = Biome::Grassland as u8;
+            grid.set_biome(x, y, Biome::Grassland);
         }
         if biome == Biome::Grassland && fert < 0.07 && rng.random::<f32>() < 0.004 {
-            grid.biome[i] = Biome::Desert as u8;
+            grid.set_biome(x, y, Biome::Desert);
         }
 
         if biome == Biome::Desert
@@ -835,7 +835,7 @@ pub fn tick_world_evolution(
             && (season == "recovery" || season == "abundance")
             && rng.random::<f32>() < 0.001
         {
-            grid.biome[i] = Biome::Grassland as u8;
+            grid.set_biome(x, y, Biome::Grassland);
         }
         if biome == Biome::Grassland
             && fert > 0.80
@@ -847,7 +847,7 @@ pub fn tick_world_evolution(
                     .any(|dy| WorldGrid::in_bounds(x + dx, y + dy) && grid.get(x + dx, y + dy) == Tile::Water)
             });
             if near_water && rng.random::<f32>() < 0.0008 {
-                grid.biome[i] = Biome::Forest as u8;
+                grid.set_biome(x, y, Biome::Forest);
                 if grid.get(x, y) == Tile::Grass {
                     grid.set(x, y, Tile::Food);
                 }
@@ -861,7 +861,7 @@ pub fn tick_world_evolution(
                 })
             });
             if flood_adj && rng.random::<f32>() < 0.0003 {
-                grid.biome[i] = Biome::Wetland as u8;
+                grid.set_biome(x, y, Biome::Wetland);
             }
         }
 

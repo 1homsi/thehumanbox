@@ -245,6 +245,21 @@ export interface FarmInfo {
   progress?: number
 }
 
+export interface SupplyCacheInfo {
+  x: number
+  y: number
+  lineage_id: string
+  food: number
+  water: number
+  fishing_weir: boolean
+  created_tick: number
+  last_used_tick: number
+  last_produced_tick: number
+  damage?: number
+  last_damage_tick?: number | null
+  last_repair_tick?: number | null
+}
+
 export interface SettlementInfo {
   lineage_id: string
   name: string
@@ -344,11 +359,15 @@ export interface SimEvent {
     | 'drought'
     | 'outbreak'
     | 'build'
+    | 'war'
     | 'weather'
     | 'era'
     | 'strategy_complete'
+    | 'strategy_partial'
     | 'strategy_failed'
+    | 'strategy_progress'
     | 'strategy_redirected'
+    | 'strategy_cancelled'
   actor: string
   detail: string
 }
@@ -471,6 +490,7 @@ export interface WorldState {
   governments?: GovernmentInfo[]
   artworks?: ArtworkInfo[]
   farms?: FarmInfo[]
+  supply_caches?: SupplyCacheInfo[]
   settlements?: SettlementInfo[]
   vehicles?: VehicleInfo[]
   festivals?: FestivalInfo[]
@@ -488,6 +508,16 @@ export interface WorldState {
       status?: 'active' | 'completed'
     }
   >
+  lineage_campaign_options?: Record<
+    string,
+    Record<
+      string,
+      {
+        available: boolean
+        reason?: string | null
+      }
+    >
+  >
   lineage_strategy_history?: StrategyCampaignInfo[]
   lineage_era_progress?: LineageEraProgress[]
   lineage_currencies?: Record<string, string>
@@ -503,8 +533,9 @@ export interface StrategyCampaignInfo {
   ended_tick: number
   progress: number
   target: number
-  outcome: 'completed' | 'expired' | 'redirected' | 'failed'
-  reason?: 'deadline' | 'player_redirected' | 'lineage_extinct' | null
+  outcome: 'completed' | 'partial' | 'expired' | 'redirected' | 'cancelled' | 'failed'
+  reason?: 'deadline' | 'player_redirected' | 'player_cancelled' | 'lineage_extinct' | null
+  impact?: string | null
 }
 
 export interface LineageEraProgress {

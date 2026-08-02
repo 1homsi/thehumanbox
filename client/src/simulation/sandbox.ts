@@ -14,6 +14,7 @@ export type SandboxCommand =
       strategy: LineageStrategy
       duration_ticks?: number
     }
+  | { cmd: 'cancel_guide'; lineage: string }
 
 export type LineageStrategy = 'hunt' | 'explore' | 'settle' | 'trade' | 'defend'
 

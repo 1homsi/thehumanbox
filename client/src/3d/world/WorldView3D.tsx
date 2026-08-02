@@ -7,7 +7,7 @@ import {
   OrbitControls,
   Stats,
 } from '@react-three/drei'
-import { Vector3, TOUCH, PCFSoftShadowMap, ACESFilmicToneMapping, SRGBColorSpace, type Camera } from 'three'
+import { Vector3, TOUCH, PCFShadowMap, ACESFilmicToneMapping, SRGBColorSpace, type Camera } from 'three'
 import type { WorldState } from '../../types'
 import { useUIStore } from '../../stores/store'
 import { Terrain } from './parts/Terrain'
@@ -20,6 +20,7 @@ import { BuildingDamage3D } from './parts/BuildingDamage3D'
 import { BuildingSmoke3D } from './parts/BuildingSmoke3D'
 import { OrgLabels } from './parts/OrgLabels'
 import { TileFeatures } from './parts/TileFeatures'
+import { SupplyCaches3D } from './parts/SupplyCaches3D'
 import { Weather } from './parts/Weather'
 import { Birds } from './parts/Birds'
 import { Clouds3D } from './parts/Clouds3D'
@@ -61,7 +62,6 @@ import { FireLights } from './parts/FireLights'
 import { normalizeLineageEras } from '../../utils/lineageEras'
 import { LOW_PERF } from '../../lib/perf'
 import { useSceneStore } from '../../stores/scene'
-import { TimeOfDayTint } from './parts/TimeOfDayTint'
 import { CinematicGrade } from './parts/CinematicGrade'
 import { CameraBreath } from './parts/CameraBreath'
 import { Fireflies } from './parts/Fireflies'
@@ -114,6 +114,7 @@ const CAMERA_RADIUS = 1.6
 const FLOOR_CLEARANCE = 0.8
 const MIN_SEA_LEVEL = 0.6
 const MAX_ALTITUDE = 900
+const WORLD_SHADOWS = LOW_PERF ? false : { type: PCFShadowMap }
 
 const CAM_LS_KEY = 'thb-3d-cam-v1'
 
@@ -131,9 +132,9 @@ function defaultCameraPose(width?: number, height?: number): CameraTeleport {
   const dist = Math.min(340, span * 0.3)
   return {
     x: center.x,
-    y: Math.max(130, dist * 0.7),
-    z: center.z + dist,
-    lookAt: { x: center.x, y: 0, z: center.z },
+    y: Math.max(34, dist * 0.18),
+    z: center.z + dist * 0.52,
+    lookAt: { x: center.x, y: 4, z: center.z },
   }
 }
 
@@ -451,11 +452,11 @@ export default function WorldView3D({
     const cy = live.reduce((s, o) => s + o.y, 0) / live.length
     cameraCommand.teleport = {
       x: cx * TILE_SCALE,
-      y: 80,
-      z: cy * TILE_SCALE + 60,
+      y: 42,
+      z: cy * TILE_SCALE + 56,
       lookAt: {
         x: cx * TILE_SCALE,
-        y: 8,
+        y: 6,
         z: cy * TILE_SCALE,
       },
     }
@@ -692,9 +693,10 @@ export default function WorldView3D({
     >
       <KeyboardControls map={KEY_MAP}>
         <Canvas
+          className="world-view-3d-canvas"
           frameloop={threeFrameLoopForPause(rendererPaused)}
           camera={{ position: [cx - 80, 95, cz + 220], fov: 58, near: 0.5, far: 4000 }}
-          shadows={LOW_PERF ? false : { type: PCFSoftShadowMap }}
+          shadows={WORLD_SHADOWS}
           dpr={LOW_PERF ? [1, 1.5] : [1, 2]}
           gl={{ antialias: !LOW_PERF, powerPreference: 'high-performance' }}
           onCreated={({ gl }) => {
@@ -748,7 +750,12 @@ export default function WorldView3D({
                   moonIllum={world.cosmos?.moon_illum ?? 0.7}
                 />
                 <Birds3D width={grid.width} height={grid.height} dayProgress={dayProgress} />
-                <DistantMountains width={grid.width} height={grid.height} />
+                <DistantMountains
+                  width={grid.width}
+                  height={grid.height}
+                  dayProgress={dayProgress}
+                  weatherKind={world.weather?.kind ?? 'clear'}
+                />
                 <Fireflies3D
                   width={grid.width}
                   height={grid.height}
@@ -788,6 +795,13 @@ export default function WorldView3D({
                   height={grid.height}
                   pathTrail={grid.path_trail}
                   suppressedHutTiles={ruinedBuildingLocalTiles}
+                />
+                <SupplyCaches3D
+                  caches={world.supply_caches}
+                  depthMap={grid.depth_map!}
+                  biomes={grid.biomes!}
+                  originX={grid.origin_x ?? 0}
+                  originY={grid.origin_y ?? 0}
                 />
                 <GrassTufts
                   tiles={grid.tiles!}
@@ -1046,7 +1060,7 @@ export default function WorldView3D({
             {isTouch ? (
               <OrbitControls enableDamping touches={{ ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_PAN }} />
             ) : (
-              <PointerLockControls />
+              <PointerLockControls selector=".world-view-3d-canvas" />
             )}
           </Suspense>
         </Canvas>
@@ -1067,9 +1081,6 @@ export default function WorldView3D({
       )}
 
       {!ready && <div style={loadingStyle}>loading terrain…</div>}
-
-      {}
-      <TimeOfDayTint dayProgress={dayProgress} weatherKind={world?.weather?.kind ?? 'clear'} />
 
       {}
       <div className="thb-3d-vignette" style={vignetteStyle} />
@@ -1105,7 +1116,7 @@ const vignetteStyle: React.CSSProperties = {
   inset: 0,
   pointerEvents: 'none',
   background:
-    'radial-gradient(ellipse 80% 70% at 50% 45%, rgba(0,0,0,0) 45%, rgba(0,0,0,0.30) 80%, rgba(0,0,0,0.62) 100%)',
+    'radial-gradient(ellipse 88% 78% at 50% 45%, rgba(0,0,0,0) 52%, rgba(0,0,0,0.14) 82%, rgba(0,0,0,0.32) 100%)',
   mixBlendMode: 'multiply',
   zIndex: 4,
 }

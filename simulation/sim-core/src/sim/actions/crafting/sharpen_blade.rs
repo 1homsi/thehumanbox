@@ -1,9 +1,7 @@
 use super::super::ctx::ActionCtx;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    let has_blade = ctx.org().discoveries.contains("knife")
-        || ctx.org().discoveries.contains("axe")
-        || ctx.org().discoveries.contains("spear");
+    let has_blade = ctx.org().has_tool("knife") || ctx.org().has_tool("axe") || ctx.org().has_tool("spear");
     if !has_blade {
         ctx.think("nothing to sharpen");
         return 0.0;

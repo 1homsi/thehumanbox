@@ -62,6 +62,29 @@ describe('applyGridWire', () => {
     expect(second.food_trail).toBe(first.food_trail)
     expect(second.food_trail?.[0][0]).toBeCloseTo(0.8, 5)
   })
+
+  it('publishes restored biome maps on full frames and retains them across sparse deltas', () => {
+    const initial = emptyWire(2, 2)
+    initial.biomes = [
+      [0, 0],
+      [0, 0],
+    ]
+    const first = applyGridWire(initial, null)
+    expect(first.biomes?.[0][0]).toBe(0)
+
+    const restored = emptyWire(2, 2)
+    restored.biomes = [
+      [3, 0],
+      [0, 1],
+    ]
+    const second = applyGridWire(restored, first)
+    expect(second.biomes?.[0][0]).toBe(3)
+    expect(second.biomes?.[1][1]).toBe(1)
+
+    const delta = applyGridWire(emptyWire(2, 2), second)
+    expect(delta.biomes).toBe(second.biomes)
+    expect(delta.biomes?.[0][0]).toBe(3)
+  })
 })
 
 describe('expandOrgsSoa', () => {

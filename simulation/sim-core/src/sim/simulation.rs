@@ -1,3 +1,4 @@
+use super::age_stage::AgeStage;
 use super::config::{
     season_growth, DAY_LENGTH, DEFAULT_MAX_POPULATION, MAX_POPULATION_LIMIT, MIN_POPULATION_LIMIT, SEASONS,
     SEASON_LENGTH,
@@ -41,6 +42,88 @@ fn derive_mood(o: &Organism) -> String {
         "content"
     }
     .to_string()
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum HeirKind {
+    Partner,
+    Child,
+    Friend,
+    Kin,
+}
+
+impl HeirKind {
+    fn event_suffix(self) -> &'static str {
+        match self {
+            Self::Partner => "their partner",
+            Self::Child => "their child",
+            Self::Friend => "their closest friend",
+            Self::Kin => "their nearest kin",
+        }
+    }
+}
+
+fn choose_heir_index(organisms: &[Organism], dead_idx: usize) -> Option<(usize, HeirKind)> {
+    let dead = organisms.get(dead_idx)?;
+
+    if let Some(partner_id) = dead.partner_id.as_ref() {
+        if let Some(index) = organisms.iter().position(|o| o.alive && &o.id == partner_id) {
+            return Some((index, HeirKind::Partner));
+        }
+    }
+
+    let oldest_child = organisms
+        .iter()
+        .enumerate()
+        .filter(|(_, o)| {
+            o.alive && (o.parent_id == dead.id || o.father_id.as_deref() == Some(dead.id.as_str()))
+        })
+        .max_by(|(_, left), (_, right)| left.age.cmp(&right.age).then_with(|| right.id.cmp(&left.id)))
+        .map(|(index, _)| (index, HeirKind::Child));
+    if oldest_child.is_some() {
+        return oldest_child;
+    }
+
+    let closest_friend = organisms
+        .iter()
+        .enumerate()
+        .filter(|(index, o)| {
+            *index != dead_idx
+                && o.alive
+                && (dead.friends.contains_key(&o.id) || o.friends.contains_key(&dead.id))
+        })
+        .max_by(|(_, left), (_, right)| {
+            let left_mutual = dead.friends.contains_key(&left.id) && left.friends.contains_key(&dead.id);
+            let right_mutual = dead.friends.contains_key(&right.id) && right.friends.contains_key(&dead.id);
+            let left_trust = dead.org_trust.get(&left.id).copied().unwrap_or(0.0)
+                + left.org_trust.get(&dead.id).copied().unwrap_or(0.0);
+            let right_trust = dead.org_trust.get(&right.id).copied().unwrap_or(0.0)
+                + right.org_trust.get(&dead.id).copied().unwrap_or(0.0);
+            let left_distance = (left.x - dead.x).abs() + (left.y - dead.y).abs();
+            let right_distance = (right.x - dead.x).abs() + (right.y - dead.y).abs();
+            left_mutual
+                .cmp(&right_mutual)
+                .then_with(|| left_trust.total_cmp(&right_trust))
+                .then_with(|| right_distance.total_cmp(&left_distance))
+                .then_with(|| right.id.cmp(&left.id))
+        })
+        .map(|(index, _)| (index, HeirKind::Friend));
+    if closest_friend.is_some() {
+        return closest_friend;
+    }
+
+    organisms
+        .iter()
+        .enumerate()
+        .filter(|(index, o)| *index != dead_idx && o.alive && o.lineage_id == dead.lineage_id)
+        .min_by(|(_, left), (_, right)| {
+            let left_distance = (left.x - dead.x).abs() + (left.y - dead.y).abs();
+            let right_distance = (right.x - dead.x).abs() + (right.y - dead.y).abs();
+            left_distance
+                .total_cmp(&right_distance)
+                .then_with(|| left.id.cmp(&right.id))
+        })
+        .map(|(index, _)| (index, HeirKind::Kin))
 }
 
 fn fallback_walkable_step(
@@ -307,23 +390,83 @@ fn use_needed_reserves(org: &mut Organism, tick: u64) -> (bool, bool) {
         org.energy = (org.energy + 0.30).min(1.0);
         true
     } else if needs_food {
-        let stored = org.tools.get("winter_provisions").copied().unwrap_or(0);
-        if stored == 0 {
-            false
-        } else {
-            if stored == 1 {
-                org.tools.remove("winter_provisions");
+        let stored_food = ["winter_provisions", "preserved_meat"]
+            .into_iter()
+            .find(|good| org.tools.get(*good).copied().unwrap_or(0) > 0);
+        if let Some(good) = stored_food {
+            let stored = org.tools.get(good).copied().unwrap_or(0);
+            if stored <= 1 {
+                org.tools.remove(good);
             } else {
-                org.tools.insert("winter_provisions".into(), stored - 1);
+                org.tools.insert(good.to_string(), stored - 1);
             }
             org.energy = (org.energy + 0.30).min(1.0);
             true
+        } else {
+            false
         }
     } else {
         false
     };
 
     (used_food, used_water)
+}
+
+fn night_energy_drain(org: &Organism) -> f32 {
+    if org.has_tool("lantern") {
+        0.00012
+    } else if org.has_tool("torch") || org.has_tool("torch_pitch") {
+        0.00020
+    } else if org.discoveries.contains("torch") {
+        // Knowing how light works helps people stay near safe paths and fires,
+        // but it cannot replace carrying a light source.
+        0.00038
+    } else {
+        0.00050
+    }
+}
+
+fn cold_exposure_multiplier(org: &Organism) -> f32 {
+    if org.has_tool("clothing") {
+        0.42
+    } else if org.discoveries.contains("leatherwork")
+        || org.discoveries.contains("animal_hides")
+        || org.discoveries.contains("textiles")
+    {
+        0.82
+    } else {
+        1.0
+    }
+}
+
+fn watercraft_protection(org: &Organism) -> f32 {
+    if org.has_tool("canoe") {
+        0.18
+    } else if org.has_tool("raft") {
+        0.32
+    } else {
+        1.0
+    }
+}
+
+fn watercraft_movement_bonus(org: &Organism, grid: &WorldGrid, destination: Option<(i32, i32)>) -> f32 {
+    let Some((x, y)) = destination else {
+        return 0.0;
+    };
+    if grid.get(x, y) != Tile::Water || watercraft_protection(org) >= 1.0 {
+        return 0.0;
+    }
+    // Cancel the generic water penalty and add a small exploration reward.
+    0.0045 + grid.depth_at(x, y) * 0.012
+}
+
+fn terrain_energy_multiplier(org: &Organism, tile: Tile) -> f32 {
+    match tile {
+        Tile::Snow if org.has_tool("sled") => 0.58,
+        Tile::Snow if org.has_tool("clothing") => 0.82,
+        Tile::Water => (0.78 + watercraft_protection(org) * 0.22).min(1.0),
+        _ => 1.0,
+    }
 }
 
 fn resource_near(grid: &WorldGrid, x: i32, y: i32, tile: Tile) -> bool {
@@ -398,7 +541,7 @@ fn verify_local_danger_memory(org: &mut Organism, grid: &WorldGrid, animals: &[A
 
     decay_local_resource_memory(&mut org.danger_memory, x, y, 0.50, 0.72);
 }
-pub const SAVE_SCHEMA_VERSION: u32 = 5;
+pub const SAVE_SCHEMA_VERSION: u32 = 6;
 
 #[derive(Default, Clone, Serialize, Deserialize)]
 #[serde(default)]
@@ -573,6 +716,7 @@ pub struct StrategyCampaignRecord {
     pub target: u32,
     pub outcome: String,
     pub reason: Option<String>,
+    pub impact: Option<String>,
 }
 
 pub struct Simulation {
@@ -639,6 +783,7 @@ pub struct Simulation {
     pub trades: VecDeque<super::civ::economy::Trade>,
     pub trade_routes: Vec<super::civ::trade_routes::TradeRoute>,
     pub caravans: Vec<super::civ::trade_routes::Caravan>,
+    pub supply_caches: Vec<super::survival_resources::SupplyCache>,
     pub next_trade_route_id: u32,
     pub next_caravan_id: u32,
     pub water_use: HashMap<(i32, i32), u32>,
@@ -656,6 +801,8 @@ pub struct Simulation {
     /// without shipping the entire building list on every hot frame.
     pub(crate) building_state_revision: u64,
     pub(crate) serialized_building_state_revision: u64,
+    pub(crate) supply_cache_state_revision: u64,
+    pub(crate) serialized_supply_cache_state_revision: u64,
     pub(crate) active_structure_tiles: HashSet<(i32, i32)>,
     pub(crate) field_fortifications: Vec<super::warfare::FieldFortification>,
     pub(crate) settlement_tiers: HashMap<String, u8>,
@@ -708,6 +855,35 @@ fn invention_candidates(discoveries: &HashSet<String>) -> Vec<&'static str> {
 
 fn scarcity_driven_migration_season(season: &str) -> bool {
     matches!(season, "scarcity" | "decline")
+}
+
+pub(crate) fn strategy_objective_target(duration: u64, population: usize, strategy: &str) -> u32 {
+    // A campaign is collective work. Scaling by living population keeps a
+    // large lineage from finishing in a handful of ticks while preserving a
+    // reachable floor for tiny founder groups. The divisor reflects how often
+    // each action family naturally occurs in ordinary play.
+    let effort_divisor = match strategy {
+        "explore" => 18,
+        "settle" => 30,
+        "defend" => 50,
+        "hunt" => 80,
+        "trade" => 90,
+        _ => 50,
+    };
+    let population = u64::try_from(population.max(1)).unwrap_or(u64::MAX);
+    duration
+        .saturating_mul(population)
+        .div_ceil(effort_divisor)
+        .clamp(30, 20_000) as u32
+}
+
+fn strategy_progress_percent(objective: &StrategyObjective) -> u32 {
+    objective
+        .progress
+        .saturating_mul(100)
+        .checked_div(objective.target.max(1))
+        .unwrap_or(0)
+        .min(100)
 }
 
 impl Simulation {
@@ -806,6 +982,7 @@ impl Simulation {
             trades: VecDeque::new(),
             trade_routes: Vec::new(),
             caravans: Vec::new(),
+            supply_caches: Vec::new(),
             next_trade_route_id: 1,
             next_caravan_id: 1,
             water_use: HashMap::new(),
@@ -820,6 +997,8 @@ impl Simulation {
             slow_compute_tick: 0,
             building_state_revision: 0,
             serialized_building_state_revision: 0,
+            supply_cache_state_revision: 0,
+            serialized_supply_cache_state_revision: 0,
             active_structure_tiles: HashSet::new(),
             field_fortifications: Vec::new(),
             settlement_tiers: HashMap::new(),
@@ -832,8 +1011,8 @@ impl Simulation {
         sim
     }
 
-    /// Sets the natural population ceiling for this runtime. Hosted and WASM
-    /// worlds keep the conservative default; downloadable worlds can opt into
+    /// Sets the natural population ceiling for this runtime. Browser worlds
+    /// use a smaller responsive profile while downloadable worlds can opt into
     /// a much larger long game without changing the save format.
     pub fn set_population_limit(&mut self, limit: usize) -> usize {
         self.population_limit = limit.clamp(MIN_POPULATION_LIMIT, MAX_POPULATION_LIMIT);
@@ -844,10 +1023,91 @@ impl Simulation {
         self.population_limit
     }
 
+    pub(crate) fn lineage_strategy_readiness(
+        &self,
+        lineage_id: &str,
+        strategy: &str,
+    ) -> Result<(), &'static str> {
+        let is_member = |organism: &Organism| organism.alive && organism.lineage_id == lineage_id;
+        if !self.organisms.iter().any(is_member) {
+            return Err("lineage_not_living");
+        }
+
+        match strategy {
+            "hunt" => {
+                if !self
+                    .organisms
+                    .iter()
+                    .filter(|organism| is_member(organism))
+                    .any(|organism| organism.age_stage().can_combat())
+                {
+                    return Err("no_capable_hunter");
+                }
+                if !self.animals.iter().any(|animal| animal.alive) {
+                    return Err("no_living_prey");
+                }
+            }
+            "explore" => {
+                if !self
+                    .organisms
+                    .iter()
+                    .filter(|organism| is_member(organism))
+                    .any(|organism| !matches!(organism.age_stage(), AgeStage::Infant))
+                {
+                    return Err("no_mobile_explorer");
+                }
+            }
+            "settle" => {
+                if !self
+                    .organisms
+                    .iter()
+                    .filter(|organism| is_member(organism))
+                    .any(|organism| organism.age_stage() == AgeStage::Adult)
+                {
+                    return Err("no_adult_worker");
+                }
+            }
+            "trade" => {
+                if !self
+                    .organisms
+                    .iter()
+                    .filter(|organism| is_member(organism))
+                    .any(|organism| matches!(organism.age_stage(), AgeStage::Adult | AgeStage::Elder))
+                {
+                    return Err("no_capable_trader");
+                }
+                if !self
+                    .organisms
+                    .iter()
+                    .any(|organism| organism.alive && organism.lineage_id != lineage_id)
+                {
+                    return Err("no_foreign_lineage");
+                }
+            }
+            "defend" => {
+                if !self
+                    .organisms
+                    .iter()
+                    .filter(|organism| is_member(organism))
+                    .any(|organism| organism.age_stage().can_combat())
+                {
+                    return Err("no_capable_defender");
+                }
+            }
+            _ => return Err("unknown_strategy"),
+        }
+        Ok(())
+    }
+
     pub(crate) fn start_strategy_objective(&mut self, lineage_id: &str, strategy: &str, expires_tick: u64) {
         self.resolve_strategy_objective_expirations();
         let duration = expires_tick.saturating_sub(self.tick_count);
-        let target = duration.div_ceil(2).clamp(30, 1_200) as u32;
+        let population = self
+            .organisms
+            .iter()
+            .filter(|organism| organism.alive && organism.lineage_id == lineage_id)
+            .count();
+        let target = strategy_objective_target(duration, population, strategy);
         let continue_existing = self
             .lineage_strategy_objectives
             .get(lineage_id)
@@ -882,6 +1142,7 @@ impl Simulation {
                 &objective,
                 "redirected",
                 Some("player_redirected"),
+                None,
                 self.tick_count,
             );
             let lineage_name = self
@@ -921,6 +1182,7 @@ impl Simulation {
         objective: &StrategyObjective,
         outcome: &str,
         reason: Option<&str>,
+        impact: Option<String>,
         ended_tick: u64,
     ) {
         let lineage_name = self
@@ -938,14 +1200,255 @@ impl Simulation {
             target: objective.target,
             outcome: outcome.to_string(),
             reason: reason.map(str::to_string),
+            impact,
         });
         while self.lineage_strategy_history.len() > 40 {
             self.lineage_strategy_history.pop_front();
         }
     }
 
+    /// A terminal campaign belongs in history, not in the live directive map.
+    /// Clearing the matching personal directive immediately returns autonomous
+    /// choice to the lineage and makes the same campaign replayable without a
+    /// fake redirect through another strategy.
+    pub(crate) fn clear_lineage_strategy_guidance(&mut self, lineage_id: &str, strategy: &str) {
+        if self
+            .lineage_strategies
+            .get(lineage_id)
+            .is_some_and(|(active, _)| active == strategy)
+        {
+            self.lineage_strategies.remove(lineage_id);
+        }
+        if self
+            .lineage_strategy_objectives
+            .get(lineage_id)
+            .is_some_and(|objective| objective.strategy == strategy)
+        {
+            self.lineage_strategy_objectives.remove(lineage_id);
+        }
+        for organism in self
+            .organisms
+            .iter_mut()
+            .filter(|organism| organism.alive && organism.lineage_id == lineage_id)
+        {
+            if organism.directive == strategy {
+                organism.directive.clear();
+                organism.directive_until = 0;
+            }
+        }
+    }
+
+    pub(crate) fn cancel_lineage_strategy(&mut self, lineage_id: &str) -> bool {
+        self.resolve_strategy_objective_expirations();
+        let Some(objective) = self
+            .lineage_strategy_objectives
+            .get(lineage_id)
+            .filter(|objective| {
+                objective.expires_tick > self.tick_count
+                    && objective.completed_tick.is_none()
+                    && objective.failed_tick.is_none()
+            })
+            .cloned()
+        else {
+            return false;
+        };
+
+        self.archive_strategy_campaign(
+            lineage_id,
+            &objective,
+            "cancelled",
+            Some("player_cancelled"),
+            None,
+            self.tick_count,
+        );
+        let lineage_name = self
+            .lineage_names
+            .get(lineage_id)
+            .cloned()
+            .unwrap_or_else(|| "A lineage".to_string());
+        let detail = format!(
+            "stood down its {} campaign after {}/{} effort",
+            objective.strategy, objective.progress, objective.target
+        );
+        push_event(
+            &mut self.events,
+            self.tick_count,
+            "strategy_cancelled",
+            &lineage_name,
+            &detail,
+        );
+        self.story_history.push_back(StoryEntry {
+            tick: self.tick_count,
+            org_name: lineage_name.clone(),
+            lineage_id: lineage_id.to_string(),
+            story: format!("{lineage_name} {detail}"),
+        });
+        while self.story_history.len() > 80 {
+            self.story_history.pop_front();
+        }
+        self.clear_lineage_strategy_guidance(lineage_id, &objective.strategy);
+        true
+    }
+
+    fn apply_partial_strategy_reward(&mut self, lineage_id: &str, strategy: &str) {
+        for organism in self
+            .organisms
+            .iter_mut()
+            .filter(|organism| organism.alive && organism.lineage_id == lineage_id)
+        {
+            organism.hope = (organism.hope + 0.03).min(1.0);
+            organism.joy_ticks = organism.joy_ticks.saturating_add(60).min(1_200);
+            match strategy {
+                "hunt" => organism.inv_food = organism.inv_food.saturating_add(1).min(9),
+                "explore" => {
+                    organism.curiosity_drive = (organism.curiosity_drive + 0.04).min(1.0);
+                }
+                "settle" => organism.inv_wood = organism.inv_wood.saturating_add(1).min(9),
+                "trade" => organism.wealth = organism.wealth.saturating_add(1),
+                "defend" => {
+                    organism.health = (organism.health + 0.04).min(1.0);
+                    organism.fear_level = (organism.fear_level - 0.04).max(0.0);
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn lineage_campaign_center(&self, lineage_id: &str) -> Option<(i32, i32)> {
+        let mut count = 0i32;
+        let mut x_sum = 0.0f32;
+        let mut y_sum = 0.0f32;
+        for organism in self
+            .organisms
+            .iter()
+            .filter(|organism| organism.alive && organism.lineage_id == lineage_id)
+        {
+            count += 1;
+            x_sum += organism.x;
+            y_sum += organism.y;
+        }
+        (count > 0).then(|| {
+            (
+                (x_sum / count as f32).round() as i32,
+                (y_sum / count as f32).round() as i32,
+            )
+        })
+    }
+
+    fn lineage_campaign_anchor(&self, lineage_id: &str) -> Option<(i32, i32)> {
+        let (center_x, center_y) = self.lineage_campaign_center(lineage_id)?;
+        self.organisms
+            .iter()
+            .filter(|organism| organism.alive && organism.lineage_id == lineage_id)
+            .min_by_key(|organism| {
+                let x = organism.x.round() as i32;
+                let y = organism.y.round() as i32;
+                (x - center_x).pow(2) + (y - center_y).pow(2)
+            })
+            .map(|organism| (organism.x.round() as i32, organism.y.round() as i32))
+    }
+
+    fn lineage_campaign_frontier(&self, lineage_id: &str) -> Option<(i32, i32)> {
+        let fallback = self.lineage_campaign_center(lineage_id)?;
+        let [home_x, home_y, _] = self
+            .lineage_homes
+            .get(lineage_id)
+            .copied()
+            .unwrap_or([fallback.0, fallback.1, 0]);
+        self.organisms
+            .iter()
+            .filter(|organism| organism.alive && organism.lineage_id == lineage_id)
+            .max_by_key(|organism| {
+                let x = organism.x.round() as i32;
+                let y = organism.y.round() as i32;
+                (x - home_x).pow(2) + (y - home_y).pow(2)
+            })
+            .map(|organism| (organism.x.round() as i32, organism.y.round() as i32))
+    }
+
+    fn consume_lineage_material(&mut self, lineage_id: &str) -> Option<(i32, i32)> {
+        let builder = self.organisms.iter_mut().find(|organism| {
+            organism.alive
+                && organism.lineage_id == lineage_id
+                && organism.age_stage() == AgeStage::Adult
+                && (organism.inv_stone > 0 || organism.inv_wood > 0)
+        })?;
+        let location = (builder.x.round() as i32, builder.y.round() as i32);
+        if builder.inv_stone > 0 {
+            builder.inv_stone -= 1;
+        } else {
+            builder.inv_wood -= 1;
+        }
+        Some(location)
+    }
+
+    /// Apply an earned consequence through the same authoritative systems
+    /// used by autonomous actions. Each branch remains save-compatible and
+    /// visible on the world rather than existing only as a morale bonus.
+    fn apply_completed_strategy_world_impact(&mut self, lineage_id: &str, strategy: &str) -> Option<String> {
+        match strategy {
+            "hunt" => {
+                let (center_x, center_y) = self.lineage_campaign_anchor(lineage_id)?;
+                self.grid.leave_trail(center_x, center_y, TrailKind::Food, 3.0);
+                Some("established a shared food stockpile at the settlement".to_string())
+            }
+            "explore" => {
+                let (center_x, center_y) = self.lineage_campaign_frontier(lineage_id)?;
+                let before = self.territory.get(lineage_id).map_or(0, HashSet::len);
+                self.claim_territory(lineage_id, center_x, center_y, 6);
+                for distance in 0..=8 {
+                    for (dx, dy) in [(distance, 0), (-distance, 0), (0, distance), (0, -distance)] {
+                        self.grid
+                            .leave_trail(center_x + dx, center_y + dy, TrailKind::Path, 1.25);
+                    }
+                }
+                let after = self.territory.get(lineage_id).map_or(0, HashSet::len);
+                Some(format!(
+                    "charted {} new land tiles and blazed four frontier trails",
+                    after.saturating_sub(before)
+                ))
+            }
+            "settle" => super::civ::civ_tick::try_start_campaign_building(self, lineage_id)
+                .map(|kind| format!("funded a real {} construction project", kind.name())),
+            "trade" => {
+                let trader_index = self.organisms.iter().position(|organism| {
+                    organism.alive
+                        && organism.lineage_id == lineage_id
+                        && (organism.inv_food > 0
+                            || organism.inv_water > 0
+                            || organism.inv_wood > 0
+                            || organism.inv_stone > 0
+                            || organism.tools.values().any(|count| *count > 0))
+                })?;
+                super::civ::trade_routes::dispatch_caravan_on_route(self, trader_index)
+                    .then(|| "launched a caravan on an established trade route".to_string())
+            }
+            "defend" => {
+                let (center_x, center_y) = self.consume_lineage_material(lineage_id)?;
+                self.grid.add_structure(center_x, center_y, 0.12);
+                self.active_structure_tiles.insert((center_x, center_y));
+                if let Some(fortification) = self
+                    .field_fortifications
+                    .iter_mut()
+                    .find(|fortification| fortification.x == center_x && fortification.y == center_y)
+                {
+                    fortification.lineage_id = lineage_id.to_string();
+                } else {
+                    self.field_fortifications
+                        .push(super::warfare::FieldFortification {
+                            x: center_x,
+                            y: center_y,
+                            lineage_id: lineage_id.to_string(),
+                        });
+                }
+                Some("built a material-backed field fortification at the settlement".to_string())
+            }
+            _ => None,
+        }
+    }
+
     pub(crate) fn record_strategy_progress(&mut self, lineage_id: &str, strategy: &str) {
-        let completed_objective = {
+        let (completed_objective, crossed_milestone) = {
             let Some(objective) = self.lineage_strategy_objectives.get_mut(lineage_id) else {
                 return;
             };
@@ -959,14 +1462,42 @@ impl Simulation {
 
             objective.target = objective.target.max(1);
             objective.progress = objective.progress.min(objective.target);
+            let previous_percent = strategy_progress_percent(objective);
             objective.progress = objective.progress.saturating_add(1).min(objective.target);
+            let current_percent = strategy_progress_percent(objective);
+            let crossed_milestone = (objective.progress < objective.target)
+                .then(|| {
+                    [75, 50, 25]
+                        .into_iter()
+                        .find(|milestone| previous_percent < *milestone && current_percent >= *milestone)
+                        .map(|milestone| (milestone, objective.progress, objective.target))
+                })
+                .flatten();
             if objective.progress < objective.target {
-                None
+                (None, crossed_milestone)
             } else {
                 objective.completed_tick = Some(self.tick_count);
-                Some(objective.clone())
+                (Some(objective.clone()), None)
             }
         };
+
+        if let Some((milestone, progress, target)) = crossed_milestone {
+            let lineage_name = self
+                .lineage_names
+                .get(lineage_id)
+                .cloned()
+                .unwrap_or_else(|| "A lineage".to_string());
+            push_event(
+                &mut self.events,
+                self.tick_count,
+                "strategy_progress",
+                &lineage_name,
+                &format!(
+                    "{} campaign reached {}% ({}/{})",
+                    strategy, milestone, progress, target
+                ),
+            );
+        }
 
         let Some(completed_objective) = completed_objective else {
             return;
@@ -1014,20 +1545,29 @@ impl Simulation {
             }
         }
 
+        let world_impact = self.apply_completed_strategy_world_impact(lineage_id, strategy);
         self.archive_strategy_campaign(
             lineage_id,
             &completed_objective,
             "completed",
             None,
+            world_impact.clone(),
             self.tick_count,
         );
-        let story = format!("{lineage_name} {reward_description}");
+        let story = world_impact.as_ref().map_or_else(
+            || format!("{lineage_name} {reward_description}"),
+            |impact| format!("{lineage_name} {reward_description} and {impact}"),
+        );
+        let event_description = world_impact.as_ref().map_or_else(
+            || reward_description.to_string(),
+            |impact| format!("{reward_description}; {impact}"),
+        );
         push_event(
             &mut self.events,
             self.tick_count,
             "strategy_complete",
             &lineage_name,
-            reward_description,
+            &event_description,
         );
         self.story_history.push_back(StoryEntry {
             tick: self.tick_count,
@@ -1038,6 +1578,7 @@ impl Simulation {
         while self.story_history.len() > 80 {
             self.story_history.pop_front();
         }
+        self.clear_lineage_strategy_guidance(lineage_id, strategy);
     }
 
     pub(crate) fn resolve_strategy_objective_expirations(&mut self) {
@@ -1061,13 +1602,59 @@ impl Simulation {
                 objective.clone()
             };
 
+            let progress_percent = strategy_progress_percent(&expired_objective);
+
+            if progress_percent >= 75 {
+                self.apply_partial_strategy_reward(&lineage_id, &expired_objective.strategy);
+                self.archive_strategy_campaign(
+                    &lineage_id,
+                    &expired_objective,
+                    "partial",
+                    Some("deadline"),
+                    None,
+                    self.tick_count,
+                );
+                let lineage_name = self
+                    .lineage_names
+                    .get(&lineage_id)
+                    .cloned()
+                    .unwrap_or_else(|| "A lineage".to_string());
+                let detail = format!(
+                    "salvaged a reduced {} reward after reaching {}% of its objective",
+                    expired_objective.strategy, progress_percent
+                );
+                push_event(
+                    &mut self.events,
+                    self.tick_count,
+                    "strategy_partial",
+                    &lineage_name,
+                    &detail,
+                );
+                self.story_history.push_back(StoryEntry {
+                    tick: self.tick_count,
+                    org_name: lineage_name.clone(),
+                    lineage_id: lineage_id.clone(),
+                    story: format!("{lineage_name} {detail}"),
+                });
+                while self.story_history.len() > 80 {
+                    self.story_history.pop_front();
+                }
+                self.clear_lineage_strategy_guidance(&lineage_id, &expired_objective.strategy);
+                continue;
+            }
+
             for organism in self
                 .organisms
                 .iter_mut()
                 .filter(|organism| organism.alive && organism.lineage_id == lineage_id)
             {
-                organism.hope = (organism.hope - 0.04).max(0.0);
-                organism.boredom = (organism.boredom + 0.03).min(1.0);
+                let (hope_loss, boredom_gain) = if progress_percent >= 40 {
+                    (0.02, 0.015)
+                } else {
+                    (0.04, 0.03)
+                };
+                organism.hope = (organism.hope - hope_loss).max(0.0);
+                organism.boredom = (organism.boredom + boredom_gain).min(1.0);
             }
 
             self.archive_strategy_campaign(
@@ -1075,6 +1662,7 @@ impl Simulation {
                 &expired_objective,
                 "expired",
                 Some("deadline"),
+                None,
                 self.tick_count,
             );
             let lineage_name = self
@@ -1083,8 +1671,11 @@ impl Simulation {
                 .cloned()
                 .unwrap_or_else(|| "A lineage".to_string());
             let detail = format!(
-                "fell short of the {} objective at {}/{} effort",
-                expired_objective.strategy, expired_objective.progress, expired_objective.target
+                "fell short of the {} objective at {}/{} effort ({}%)",
+                expired_objective.strategy,
+                expired_objective.progress,
+                expired_objective.target,
+                progress_percent
             );
             push_event(
                 &mut self.events,
@@ -1102,6 +1693,7 @@ impl Simulation {
             while self.story_history.len() > 80 {
                 self.story_history.pop_front();
             }
+            self.clear_lineage_strategy_guidance(&lineage_id, &expired_objective.strategy);
         }
 
         let current_tick = self.tick_count;
@@ -1143,6 +1735,7 @@ impl Simulation {
                 &objective,
                 "failed",
                 Some("lineage_extinct"),
+                None,
                 self.tick_count,
             );
             let lineage_name = self
@@ -1257,6 +1850,7 @@ impl Simulation {
 
     pub fn tick(&mut self) {
         self.tick_count += 1;
+        self.tick_supply_caches();
         self.resolve_strategy_objective_expirations();
         if self.tick_count.is_multiple_of(60) {
             self.resolve_extinct_strategy_objectives();
@@ -1376,6 +1970,8 @@ impl Simulation {
                 self.physics.register_fire(x, y);
             }
         }
+
+        super::wildfire_response::tick_wildfire_response(self);
 
         // Drought, flood, and shoreline evolution mutate terrain after a
         // building's one-time completion effect. Operational wells and
@@ -1940,6 +2536,12 @@ impl Simulation {
         let storm_build: Option<(usize, Option<String>)> = self
             .should_start_emergency_shelter(idx)
             .then(|| (49, Some("must build shelter now!".to_string())));
+        let fire_response_action = crate::sim::actions::emergency_response::emergency_reflex_action(
+            self,
+            idx,
+            self.organisms[idx].x as i32,
+            self.organisms[idx].y as i32,
+        );
 
         let (action, new_thought, decision_origin): (usize, Option<String>, &'static str) =
             if let Some((action, thought)) = storm_build {
@@ -1965,6 +2567,12 @@ impl Simulation {
                 self.organisms[idx].fear_level =
                     (self.organisms[idx].fear_level + 0.07 + (2.5 - dist) * 0.02).min(1.0);
                 (dir, Some("wolf! run!".to_string()), "emergency_reflex")
+            } else if let Some(action) = fire_response_action {
+                (
+                    action,
+                    Some("responding to wildfire".to_string()),
+                    "emergency_reflex",
+                )
             } else {
                 self.refresh_lineage_guidance(idx);
                 let (oa_ix, oa_iy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
@@ -2035,6 +2643,7 @@ impl Simulation {
                 )
             };
             movement_reward = movement_step_feedback(&self.grid, ix, iy, action, destination);
+            movement_reward += watercraft_movement_bonus(&self.organisms[idx], &self.grid, destination);
             movement_reward +=
                 movement_momentum_feedback(&self.organisms[idx], &self.grid, (ix, iy), destination);
             movement_reward += urgent_resource_progress_feedback(&self.organisms[idx], (ix, iy), destination);
@@ -2695,17 +3304,30 @@ impl Simulation {
         }
         let hydration_mult = if water_near { 0.5 } else { 1.0 };
 
-        self.organisms[idx].energy = (self.organisms[idx].energy - 0.0022 * shelter_drain_mult).max(0.0);
+        let terrain_drain = terrain_energy_multiplier(&self.organisms[idx], self.grid.get(cx, cy));
+        self.organisms[idx].energy =
+            (self.organisms[idx].energy - 0.0022 * shelter_drain_mult * terrain_drain).max(0.0);
         self.organisms[idx].hydration = (self.organisms[idx].hydration - 0.0014 * hydration_mult).max(0.0);
 
+        let (took_cached_food, took_cached_water) = self.take_needed_cached_supplies(idx);
+        if took_cached_food || took_cached_water {
+            self.organisms[idx].think(
+                match (took_cached_food, took_cached_water) {
+                    (true, true) => "retrieving food and water from a cache",
+                    (true, false) => "retrieving food from a cache",
+                    (false, true) => "retrieving water from a cache",
+                    (false, false) => unreachable!(),
+                },
+                self.tick_count,
+            );
+        }
         let (used_food_reserve, _) = use_needed_reserves(&mut self.organisms[idx], self.tick_count);
         if used_food_reserve {
             self.organisms[idx].think("eating stored food", self.tick_count);
         }
         self.apply_water_fatigue(idx, cx, cy);
         if night {
-            let has_torch = self.organisms[idx].discoveries.contains("torch");
-            let night_base = if has_torch { 0.0002 } else { 0.0005 };
+            let night_base = night_energy_drain(&self.organisms[idx]);
             let night_drain = night_base * shelter_drain_mult;
             self.organisms[idx].energy = (self.organisms[idx].energy - night_drain).max(0.0);
         }
@@ -2719,7 +3341,12 @@ impl Simulation {
                 (temp - 30.0) / 70.0
             };
             let temp_shelter = 1.0 - shelter_strength * 0.60;
-            let drain = stress * 0.003 * (1.1 - resilience * 0.2) * temp_shelter;
+            let equipment = if temp < 10.0 {
+                cold_exposure_multiplier(&self.organisms[idx])
+            } else {
+                1.0
+            };
+            let drain = stress * 0.003 * (1.1 - resilience * 0.2) * temp_shelter * equipment;
             self.organisms[idx].energy = (self.organisms[idx].energy - drain).max(0.0);
             if temp > 40.0 {
                 self.organisms[idx].hydration = (self.organisms[idx].hydration - drain * 0.5).max(0.0);
@@ -4205,8 +4832,18 @@ impl Simulation {
                             .record_conversation_outcome(&a_id, &a_lid, &a_name, kind, None, tc);
                         if kind == "gossip" {
                             if let Some((tid, sentiment)) = &gossip_target {
-                                let cur = self.organisms[ci].org_trust.entry(tid.clone()).or_insert(0.0);
-                                *cur = (*cur + sentiment * 0.3).clamp(-1.0, 1.0);
+                                if let Some(target_idx) =
+                                    self.organisms.iter().position(|o| o.alive && o.id == *tid)
+                                {
+                                    crate::sim::actions::social::gossip::transmit_gossip(
+                                        &mut self.organisms,
+                                        idx,
+                                        ci,
+                                        target_idx,
+                                        *sentiment,
+                                        tc,
+                                    );
+                                }
                             }
                         }
                         let bystanders: Vec<usize> = self
@@ -4346,53 +4983,8 @@ impl Simulation {
             let dead = &self.organisms[idx];
             let bequest = dead.wealth;
             if bequest > 0 {
-                let dead_id = dead.id.clone();
                 let dead_name = dead.name.clone();
-                let dead_lid = dead.lineage_id.clone();
-                let partner_id = dead.partner_id.clone();
-                let heir_idx: Option<usize> = {
-                    let mut found: Option<usize> = None;
-                    if let Some(pid) = partner_id.as_ref() {
-                        found = self.organisms.iter().position(|o| o.alive && &o.id == pid);
-                    }
-                    if found.is_none() {
-                        let mut best: Option<(usize, u32)> = None;
-                        for (i, o) in self.organisms.iter().enumerate() {
-                            if !o.alive {
-                                continue;
-                            }
-                            if o.parent_id != dead_id && o.father_id.as_deref() != Some(&dead_id) {
-                                continue;
-                            }
-                            if let Some((_, a)) = best {
-                                if o.age <= a {
-                                    continue;
-                                }
-                            }
-                            best = Some((i, o.age));
-                        }
-                        found = best.map(|(i, _)| i);
-                    }
-                    if found.is_none() {
-                        let mut best: Option<(usize, i32)> = None;
-                        for (i, o) in self.organisms.iter().enumerate() {
-                            if !o.alive || o.lineage_id != dead_lid {
-                                continue;
-                            }
-                            let d = (o.x - self.organisms[idx].x).abs() as i32
-                                + (o.y - self.organisms[idx].y).abs() as i32;
-                            if let Some((_, bd)) = best {
-                                if d >= bd {
-                                    continue;
-                                }
-                            }
-                            best = Some((i, d));
-                        }
-                        found = best.map(|(i, _)| i);
-                    }
-                    found
-                };
-                if let Some(hi) = heir_idx {
+                if let Some((hi, heir_kind)) = choose_heir_index(&self.organisms, idx) {
                     self.organisms[hi].wealth = self.organisms[hi].wealth.saturating_add(bequest);
                     let heir_name = self.organisms[hi].name.clone();
                     push_event(
@@ -4400,7 +4992,13 @@ impl Simulation {
                         self.tick_count,
                         "trade",
                         &dead_name,
-                        &format!("{} inherited {} from {}", heir_name, bequest, dead_name),
+                        &format!(
+                            "{} inherited {} from {} as {}",
+                            heir_name,
+                            bequest,
+                            dead_name,
+                            heir_kind.event_suffix()
+                        ),
                     );
                 }
                 self.organisms[idx].wealth = 0;
@@ -4424,7 +5022,8 @@ impl Simulation {
                     o.lineage_id == dlid && (o.x as i32 - dx).abs() + (o.y as i32 - dy).abs() <= 12;
                 let child =
                     o.parent_id == dead_id_str || o.father_id.as_deref() == Some(dead_id_str.as_str());
-                let friend = o.friends.contains_key(&dead_id_str);
+                let friend =
+                    o.friends.contains_key(&dead_id_str) || self.organisms[idx].friends.contains_key(&o.id);
                 if near_kin || child || friend {
                     griever_set.insert(i);
                 }
@@ -4451,8 +5050,15 @@ impl Simulation {
 
             let dead_id = self.organisms[idx].id.clone();
             for gi in &grievers {
+                let is_friend = self.organisms[*gi].friends.contains_key(&dead_id)
+                    || self.organisms[idx].friends.contains_key(&self.organisms[*gi].id);
+                let witnessed = (self.organisms[*gi].x as i32 - dx).abs()
+                    + (self.organisms[*gi].y as i32 - dy).abs()
+                    <= 12;
                 let ms = self.organisms[*gi].traits.memory_strength;
-                Organism::remember(&mut self.organisms[*gi].danger_memory, dx, dy, 0.65, ms);
+                if witnessed {
+                    Organism::remember(&mut self.organisms[*gi].danger_memory, dx, dy, 0.65, ms);
+                }
                 self.organisms[*gi].fear_level = (self.organisms[*gi].fear_level + 0.22).min(1.0);
                 // Children of the dead get heavier grief AND get marked
                 // as orphaned for nearby kin to notice; adult mourners
@@ -4460,7 +5066,13 @@ impl Simulation {
                 let is_child = (self.organisms[*gi].parent_id == dead_id_str
                     || self.organisms[*gi].father_id.as_deref() == Some(dead_id_str.as_str()))
                     && self.organisms[*gi].age < 1000;
-                let grief_base = if is_child { 200 } else { 80 };
+                let grief_base = if is_child {
+                    200
+                } else if is_friend {
+                    140
+                } else {
+                    80
+                };
                 if is_child {
                     self.organisms[*gi].orphaned_tick = self.tick_count;
                     self.organisms[*gi].add_anchor(
@@ -4484,17 +5096,28 @@ impl Simulation {
                     );
                 }
                 self.organisms[*gi].grief_ticks = grief_base + self.rng.random_range(0u32..40);
-                self.organisms[*gi].think("mourning kin", self.tick_count);
+                let thought = if is_friend {
+                    "mourning friend"
+                } else {
+                    "mourning kin"
+                };
+                self.organisms[*gi].think(thought, self.tick_count);
                 let tc = self.tick_count;
                 let dn = dead_name.clone();
                 let di = dead_id.clone();
-                self.organisms[*gi].log_life_rel(
-                    tc,
-                    "loss",
-                    format!("witnessed {} die", dn),
-                    Some(di),
-                    Some(dn),
-                );
+                let loss_text = if is_friend {
+                    format!("lost my friend {dn}")
+                } else if is_child {
+                    format!("lost my parent {dn}")
+                } else if witnessed {
+                    format!("witnessed {dn} die")
+                } else {
+                    format!("learned that {dn} died")
+                };
+                self.organisms[*gi].log_life_rel(tc, "loss", loss_text, Some(di), Some(dn));
+                if is_friend {
+                    self.organisms[*gi].friends.remove(&dead_id);
+                }
 
                 for &((mx, my), v) in &inherited_food {
                     Organism::remember(&mut self.organisms[*gi].food_memory, mx, my, v * 0.4, ms);
@@ -4640,7 +5263,7 @@ impl Simulation {
             let valid = if kind.aquatic() {
                 tile == Tile::Water
             } else {
-                !matches!(tile, Tile::Void | Tile::Rock | Tile::Water | Tile::Fire)
+                matches!(tile, Tile::Grass | Tile::Food | Tile::Snow | Tile::Sand)
             };
             if valid {
                 let id = self.next_animal_id;
@@ -4699,8 +5322,50 @@ impl Simulation {
             .filter(|a| a.alive && matches!(a.kind, AnimalKind::Rabbit | AnimalKind::Deer))
             .map(|a| (a.x, a.y))
             .collect();
+        let fire_positions: Vec<(i32, i32)> = self
+            .physics
+            .active_fire_tiles()
+            .filter(|&(x, y)| self.grid.get(x, y) == Tile::Fire)
+            .collect();
+        let mut fire_displaced = HashSet::new();
+        let mut fire_deaths = 0usize;
         for animal in &mut self.animals {
-            animal.tick(&self.grid, &org_pos, &prey_pos_for_chase, &mut self.rng);
+            let outcome = animal.tick(
+                &mut self.grid,
+                &org_pos,
+                &prey_pos_for_chase,
+                &fire_positions,
+                &mut self.rng,
+            );
+            if outcome.fled_fire {
+                fire_displaced.insert(animal.id);
+            }
+            fire_deaths += usize::from(outcome.died_in_fire);
+        }
+        if fire_displaced.len() >= 3 {
+            let recently_reported = self.events.iter().rev().any(|event| {
+                event.actor == "wildlife"
+                    && event.detail.contains("wildlife fled an advancing fire")
+                    && self.tick_count.saturating_sub(event.tick) < 120
+            });
+            if !recently_reported {
+                push_event(
+                    &mut self.events,
+                    self.tick_count,
+                    "nature",
+                    "wildlife",
+                    &format!("{} wildlife fled an advancing fire", fire_displaced.len()),
+                );
+            }
+        }
+        if fire_deaths > 0 {
+            push_event(
+                &mut self.events,
+                self.tick_count,
+                "danger",
+                "wildlife",
+                &format!("{fire_deaths} wildlife were lost in the flames"),
+            );
         }
 
         let prey_positions: Vec<(usize, f32, f32, AnimalKind)> = self
@@ -4794,6 +5459,9 @@ impl Simulation {
             if !matches!(self.animals[ai].kind, AnimalKind::Dog) {
                 continue;
             }
+            if fire_displaced.contains(&self.animals[ai].id) {
+                continue;
+            }
             let bonded = self.animals[ai].bonded_org.clone();
             if let Some(bid) = bonded {
                 let (ax, ay) = (self.animals[ai].x, self.animals[ai].y);
@@ -4863,17 +5531,22 @@ impl Simulation {
         for (ai, oi) in bites {
             let dmg = 0.12 + self.rng.random::<f32>() * 0.08;
             let oname = self.organisms[oi].name.clone();
-            self.organisms[oi].health = (self.organisms[oi].health - dmg).max(0.0);
-            self.organisms[oi].think("a wolf attacks", self.tick_count);
-            self.organisms[oi].fear_level = (self.organisms[oi].fear_level + 0.25).min(1.0);
-            self.animals[ai].energy = (self.animals[ai].energy + 0.20).min(1.0);
-            push_event(
-                &mut self.events,
+            let protector = crate::sim::actions::relationships::offer_protection::intercept_danger_damage(
+                &mut self.organisms,
+                oi,
+                dmg,
                 self.tick_count,
-                "danger",
-                &oname,
-                "mauled by a wolf",
+                "a wolf",
             );
+            let message = if let Some(protector_idx) = protector {
+                self.animals[ai].energy = (self.animals[ai].energy + 0.12).min(1.0);
+                format!("shielded from a wolf by {}", self.organisms[protector_idx].name)
+            } else {
+                self.organisms[oi].think("a wolf attacks", self.tick_count);
+                self.animals[ai].energy = (self.animals[ai].energy + 0.20).min(1.0);
+                "mauled by a wolf".to_string()
+            };
+            push_event(&mut self.events, self.tick_count, "danger", &oname, &message);
         }
 
         let candidates: Vec<(usize, f32, f32, AnimalKind)> = self
@@ -4935,6 +5608,10 @@ impl Simulation {
                 (AnimalKind::Wolf, _) => 0.3,
                 (AnimalKind::Dog, _) => 0.0,
             };
+            let habitat_quality = Animal::habitat_quality(kind, &self.grid, px as i32, py as i32);
+            if habitat_quality < 0.20 {
+                continue;
+            }
 
             let local_density = self
                 .animals
@@ -4946,14 +5623,30 @@ impl Simulation {
             let total_alive = self.animals.iter().filter(|a| a.alive).count() as f32;
             let global_factor = (1.0 - (total_alive - 600.0).max(0.0) / 400.0).max(0.0);
 
-            let p = 0.0005 * biome_mult * density_factor * global_factor;
+            let p = 0.0005 * biome_mult * habitat_quality * density_factor * global_factor;
             if p > 0.0 && self.rng.random::<f32>() < p {
+                let mut birth_site = None;
+                for _ in 0..12 {
+                    let ox = self.rng.random_range(-3.0..3.0f32);
+                    let oy = self.rng.random_range(-3.0..3.0f32);
+                    let nx = (px + ox).max(1.0).min(WIDTH as f32 - 2.0);
+                    let ny = (py + oy).max(1.0).min(HEIGHT as f32 - 2.0);
+                    let tile = self.grid.get(nx as i32, ny as i32);
+                    let valid = if kind.aquatic() {
+                        tile == Tile::Water
+                    } else {
+                        matches!(tile, Tile::Grass | Tile::Food | Tile::Snow | Tile::Sand)
+                    };
+                    if valid && Animal::habitat_quality(kind, &self.grid, nx as i32, ny as i32) >= 0.20 {
+                        birth_site = Some((nx, ny));
+                        break;
+                    }
+                }
+                let Some((nx, ny)) = birth_site else {
+                    continue;
+                };
                 let nid = self.next_animal_id;
                 self.next_animal_id += 1;
-                let ox = self.rng.random_range(-3.0..3.0f32);
-                let oy = self.rng.random_range(-3.0..3.0f32);
-                let nx = (px + ox).max(1.0).min(WIDTH as f32 - 2.0);
-                let ny = (py + oy).max(1.0).min(HEIGHT as f32 - 2.0);
                 self.animals.push(Animal::new(nid, nx, ny, kind));
                 *kind_alive.entry(kind).or_insert(0) += 1;
                 if let Some(p) = self.animals.iter_mut().find(|a| a.id == pid) {
@@ -4996,11 +5689,13 @@ impl Simulation {
                         AnimalKind::Wolf => 0.10,
                         _ => 0.0,
                     };
-                    let weapon_bonus = if org.discoveries.contains("spear") {
+                    let weapon_bonus = if org.has_tool("bow") {
+                        0.26
+                    } else if org.has_tool("spear") {
                         0.22
-                    } else if org.discoveries.contains("stone_tools") {
+                    } else if org.has_tool("stone_tools") || org.has_tool("knife") {
                         0.12
-                    } else if org.discoveries.contains("hunt") {
+                    } else if org.discoveries.contains("hunt") || org.discoveries.contains("hunting") {
                         0.06
                     } else {
                         0.0
@@ -5032,8 +5727,10 @@ impl Simulation {
             let (ax, ay) = (self.animals[ai].x as i32, self.animals[ai].y as i32);
             self.animals[ai].alive = false;
             let ms = self.organisms[oi].traits.memory_strength;
-            let has_tools = self.organisms[oi].discoveries.contains("stone_tools")
-                || self.organisms[oi].discoveries.contains("spear");
+            let has_tools = self.organisms[oi].has_tool("stone_tools")
+                || self.organisms[oi].has_tool("knife")
+                || self.organisms[oi].has_tool("spear")
+                || self.organisms[oi].has_tool("bow");
             let tool_bonus = if has_tools { 0.10 } else { 0.0 };
             let hunter_lid = self.organisms[oi].lineage_id.clone();
             let hunter_x = self.organisms[oi].x;
@@ -5153,19 +5850,35 @@ impl Simulation {
         let ticks = self.organisms[idx].water_ticks.saturating_add(1);
         self.organisms[idx].water_ticks = ticks;
 
-        let fatigue = (ticks.saturating_sub(4) as f32 * 0.00045) + 0.0015 + depth * 0.004;
+        let protection = watercraft_protection(&self.organisms[idx]);
+        let fatigue = ((ticks.saturating_sub(4) as f32 * 0.00045) + 0.0015 + depth * 0.004) * protection;
         self.organisms[idx].energy = (self.organisms[idx].energy - fatigue).max(0.0);
 
-        if ticks > 12 || depth > 0.45 {
-            let panic = (ticks.saturating_sub(12) as f32 * 0.0007) + depth * 0.0025;
+        let panic_after = if protection <= 0.18 {
+            48
+        } else if protection < 1.0 {
+            32
+        } else {
+            12
+        };
+        let dangerous_depth = if protection < 1.0 { 0.85 } else { 0.45 };
+        if ticks > panic_after || depth > dangerous_depth {
+            let panic = (ticks.saturating_sub(panic_after) as f32 * 0.0007 + depth * 0.0025) * protection;
             self.organisms[idx].health = (self.organisms[idx].health - panic).max(0.0);
             self.organisms[idx].fear_level = (self.organisms[idx].fear_level + 0.025 + depth * 0.04).min(1.0);
-            self.organisms[idx].think("struggling in water", self.tick_count);
+            self.organisms[idx].think(
+                if protection < 1.0 {
+                    "steadying the watercraft"
+                } else {
+                    "struggling in water"
+                },
+                self.tick_count,
+            );
             let ms = self.organisms[idx].traits.memory_strength;
             Organism::remember(&mut self.organisms[idx].danger_memory, x, y, 0.85, ms);
         }
 
-        if ticks > 6 {
+        if ticks > 6 && protection >= 1.0 {
             if let Some(land) = self.nearest_land_from(x, y, 18) {
                 self.organisms[idx].wander_target = Some(land);
             }

@@ -24,8 +24,8 @@ export function useOrgDetail(id: string | null): UseOrgDetailResult {
       return res.json() as Promise<OrgDetail>
     },
     enabled: id != null,
-    refetchInterval: id != null ? 3000 : false,
-    staleTime: 1500,
+    refetchInterval: id != null ? (apiEnabled ? 3000 : 10_000) : false,
+    staleTime: apiEnabled ? 1500 : 8_000,
     retry: 1,
     refetchOnWindowFocus: false,
   })

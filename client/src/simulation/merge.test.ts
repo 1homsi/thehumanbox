@@ -165,6 +165,12 @@ describe('mergeFrame organism handling', () => {
             status: 'active',
           },
         },
+        lineage_campaign_options: {
+          'lin-a': {
+            trade: { available: false, reason: 'no_foreign_lineage' },
+            explore: { available: true, reason: null },
+          },
+        },
         lineage_strategy_history: [
           {
             lineage_id: 'lin-a',
@@ -185,6 +191,7 @@ describe('mergeFrame organism handling', () => {
 
     const inherited = mergeFrame(baseFrame({ frame_id: 2, tick: 301 }), caches)
     expect(inherited.next.lineage_strategies?.['lin-a']?.progress).toBe(40)
+    expect(inherited.next.lineage_campaign_options?.['lin-a']?.trade.reason).toBe('no_foreign_lineage')
     expect(inherited.next.lineage_strategy_history?.[0]?.outcome).toBe('completed')
     caches.prevWorld = inherited.next
 

@@ -16,7 +16,7 @@ const DIRS: [(i32, i32); 8] = [
     (1, 1),
 ];
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum AnimalKind {
     Rabbit,
     Deer,
@@ -67,6 +67,21 @@ impl AnimalKind {
     pub fn predator(self) -> bool {
         matches!(self, AnimalKind::Wolf)
     }
+    pub fn herbivore(self) -> bool {
+        matches!(
+            self,
+            AnimalKind::Rabbit | AnimalKind::Deer | AnimalKind::Boar | AnimalKind::Bird
+        )
+    }
+    fn fire_awareness_radius(self) -> i32 {
+        match self {
+            AnimalKind::Bird => 10,
+            AnimalKind::Deer => 8,
+            AnimalKind::Rabbit | AnimalKind::Boar | AnimalKind::Wolf => 7,
+            AnimalKind::Dog => 6,
+            AnimalKind::Fish => 0,
+        }
+    }
     pub fn name(self) -> &'static str {
         match self {
             AnimalKind::Rabbit => "rabbit",
@@ -78,6 +93,13 @@ impl AnimalKind {
             AnimalKind::Dog => "dog",
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct AnimalTickOutcome {
+    pub fled_fire: bool,
+    pub grazed: bool,
+    pub died_in_fire: bool,
 }
 
 pub struct Animal {
@@ -109,19 +131,60 @@ impl Animal {
 
     pub fn tick(
         &mut self,
-        grid: &WorldGrid,
+        grid: &mut WorldGrid,
         org_positions: &[(f32, f32)],
         prey_positions: &[(f32, f32)],
+        fire_positions: &[(i32, i32)],
         rng: &mut impl Rng,
-    ) {
+    ) -> AnimalTickOutcome {
+        let mut outcome = AnimalTickOutcome::default();
         if !self.alive {
-            return;
+            return outcome;
         }
         let (ix, iy) = (self.x as i32, self.y as i32);
 
+        if !self.kind.aquatic() {
+            let radius = self.kind.fire_awareness_radius();
+            let nearest_fire = fire_positions
+                .iter()
+                .map(|&(fire_x, fire_y)| ((fire_x - ix).abs() + (fire_y - iy).abs(), fire_y, fire_x))
+                .filter(|(distance, _, _)| *distance <= radius)
+                .min();
+            if let Some((distance, fire_y, fire_x)) = nearest_fire {
+                if distance == 0 {
+                    self.energy = (self.energy - 0.22).max(0.0);
+                    if self.energy <= 0.0 {
+                        self.alive = false;
+                        outcome.died_in_fire = true;
+                        return outcome;
+                    }
+                } else {
+                    self.energy = (self.energy - 0.004).max(0.0);
+                }
+                let away_x = (ix - fire_x).signum();
+                let away_y = (iy - fire_y).signum();
+                let flee_distance = self.kind.step_size().max(1) * 6;
+                self.move_toward(
+                    grid,
+                    ix,
+                    iy,
+                    ix + away_x * flee_distance,
+                    iy + away_y * flee_distance,
+                );
+                outcome.fled_fire = true;
+                return outcome;
+            }
+        }
+
         let on_food = grid.get(ix, iy) == Tile::Food;
-        if on_food && !self.kind.aquatic() {
-            self.energy = (self.energy + 0.04).min(1.0);
+        if on_food && self.kind.herbivore() {
+            if self.energy < 0.65 || rng.random::<f32>() < 0.08 {
+                grid.set(ix, iy, Tile::Grass);
+                self.energy = (self.energy + 0.16).min(1.0);
+                outcome.grazed = true;
+            } else {
+                self.energy = (self.energy + 0.01).min(1.0);
+            }
         }
         if self.kind.aquatic() && grid.get(ix, iy) == Tile::Water {
             self.energy = (self.energy + 0.02).min(1.0);
@@ -131,7 +194,7 @@ impl Animal {
         self.energy = (self.energy - drain).max(0.0);
         if self.energy <= 0.0 {
             self.alive = false;
-            return;
+            return outcome;
         }
 
         let step = self.kind.step_size();
@@ -147,7 +210,7 @@ impl Animal {
                 let tx = ix + ((px - self.x).signum() * step as f32) as i32;
                 let ty = iy + ((py - self.y).signum() * step as f32) as i32;
                 self.move_toward(grid, ix, iy, tx, ty);
-                return;
+                return outcome;
             }
         }
 
@@ -168,12 +231,12 @@ impl Animal {
                 }
                 if bd < i32::MAX {
                     self.move_toward(grid, ix, iy, best.0, best.1);
-                    return;
+                    return outcome;
                 }
             }
             let di = rng.random_range(0..8usize);
             self.move_toward(grid, ix, iy, ix + DIRS[di].0 * step, iy + DIRS[di].1 * step);
-            return;
+            return outcome;
         }
 
         let flee_r = self.kind.flee_radius();
@@ -216,6 +279,42 @@ impl Animal {
         };
 
         self.move_toward(grid, ix, iy, tx, ty);
+        outcome
+    }
+
+    pub fn habitat_quality(kind: AnimalKind, grid: &WorldGrid, x: i32, y: i32) -> f32 {
+        let mut score = 0.0;
+        let mut samples = 0.0;
+        for dy in -2i32..=2 {
+            for dx in -2i32..=2 {
+                if dx.abs() + dy.abs() > 3 {
+                    continue;
+                }
+                let tile = grid.get(x + dx, y + dy);
+                if kind.aquatic() {
+                    score += if tile == Tile::Water { 1.0 } else { 0.0 };
+                    samples += 1.0;
+                    continue;
+                }
+                let tile_score = match tile {
+                    Tile::Food => 1.0,
+                    Tile::Grass => 0.72,
+                    Tile::Snow => 0.34,
+                    Tile::Sand => 0.22,
+                    Tile::Ash | Tile::Fire | Tile::Scorched | Tile::Flooded => 0.0,
+                    Tile::Hut | Tile::Campfire | Tile::Rock | Tile::Water | Tile::Void | Tile::Mineral => {
+                        0.05
+                    }
+                };
+                score += tile_score;
+                samples += 1.0;
+            }
+        }
+        if samples <= 0.0 {
+            0.0
+        } else {
+            score / samples
+        }
     }
 
     fn move_toward(&mut self, grid: &WorldGrid, ix: i32, iy: i32, tx: i32, ty: i32) {
@@ -298,8 +397,89 @@ mod tests {
         animal.energy = 0.3;
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(3);
 
-        animal.tick(&grid, &[], &[], &mut rng);
+        animal.tick(&mut grid, &[], &[], &[], &mut rng);
 
         assert_ne!((animal.x as i32, animal.y as i32), (120, 120));
+    }
+
+    #[test]
+    fn prey_and_predators_flee_visible_fire_before_food_or_chase_targets() {
+        let mut grid = WorldGrid::new(8);
+        for y in 110..=130 {
+            for x in 110..=135 {
+                grid.set(x, y, Tile::Grass);
+            }
+        }
+        grid.set(124, 120, Tile::Fire);
+        *grid.fire_intensity_mut(124, 120) = 1.0;
+        grid.set(121, 120, Tile::Food);
+        let mut rabbit = Animal::new(1, 120.0, 120.0, AnimalKind::Rabbit);
+        let mut wolf = Animal::new(2, 122.0, 122.0, AnimalKind::Wolf);
+        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(4);
+
+        let fires = [(124, 120)];
+        let rabbit_outcome = rabbit.tick(&mut grid, &[], &[], &fires, &mut rng);
+        let wolf_outcome = wolf.tick(&mut grid, &[], &[(126.0, 122.0)], &fires, &mut rng);
+
+        assert!(rabbit_outcome.fled_fire);
+        assert!(rabbit.x < 120.0);
+        assert!(wolf_outcome.fled_fire);
+        assert!(wolf.x < 122.0);
+    }
+
+    #[test]
+    fn direct_flame_exposure_can_kill_weakened_wildlife() {
+        let mut grid = WorldGrid::new(9);
+        grid.set(120, 120, Tile::Fire);
+        *grid.fire_intensity_mut(120, 120) = 1.0;
+        let mut animal = Animal::new(3, 120.0, 120.0, AnimalKind::Deer);
+        animal.energy = 0.15;
+        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(5);
+
+        let outcome = animal.tick(&mut grid, &[], &[], &[(120, 120)], &mut rng);
+
+        assert!(outcome.died_in_fire);
+        assert!(!animal.alive);
+        assert_eq!(animal.energy, 0.0);
+    }
+
+    #[test]
+    fn hungry_herbivore_consumes_one_real_food_tile_but_wolf_does_not_graze() {
+        let mut grid = WorldGrid::new(10);
+        grid.set(120, 120, Tile::Food);
+        grid.set(125, 120, Tile::Food);
+        let mut deer = Animal::new(4, 120.0, 120.0, AnimalKind::Deer);
+        deer.energy = 0.40;
+        let mut wolf = Animal::new(5, 125.0, 120.0, AnimalKind::Wolf);
+        wolf.energy = 0.40;
+        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(6);
+
+        let deer_outcome = deer.tick(&mut grid, &[], &[], &[], &mut rng);
+        let wolf_outcome = wolf.tick(&mut grid, &[], &[], &[], &mut rng);
+
+        assert!(deer_outcome.grazed);
+        assert_eq!(grid.get(120, 120), Tile::Grass);
+        assert!(deer.energy > 0.50);
+        assert!(!wolf_outcome.grazed);
+        assert_eq!(grid.get(125, 120), Tile::Food);
+    }
+
+    #[test]
+    fn burned_ground_has_far_lower_breeding_quality_than_living_habitat() {
+        let mut green = WorldGrid::new(11);
+        let mut burned = WorldGrid::new(11);
+        for y in 116..=124 {
+            for x in 116..=124 {
+                green.set(x, y, if (x + y) % 3 == 0 { Tile::Food } else { Tile::Grass });
+                burned.set(x, y, if (x + y) % 4 == 0 { Tile::Fire } else { Tile::Ash });
+            }
+        }
+
+        let green_quality = Animal::habitat_quality(AnimalKind::Deer, &green, 120, 120);
+        let burned_quality = Animal::habitat_quality(AnimalKind::Deer, &burned, 120, 120);
+
+        assert!(green_quality > 0.75);
+        assert!(burned_quality < 0.05);
+        assert!(green_quality > burned_quality * 10.0);
     }
 }

@@ -1,28 +1,22 @@
 use super::super::ctx::ActionCtx;
-use crate::world::tiles::Tile;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    let grass_near = [
-        (-1i32, 0),
-        (1, 0),
-        (0, -1i32),
-        (0, 1),
-        (-1, -1),
-        (1, -1),
-        (-1, 1),
-        (1, 1),
-    ]
-    .iter()
-    .any(|&(dx, dy)| matches!(ctx.sim.grid.get(ctx.ix + dx, ctx.iy + dy), Tile::Grass));
-    if !grass_near {
-        ctx.think("searching for woodland to manage");
-        return 0.0;
+    ctx.org_mut().energy = (ctx.org().energy - 0.045).max(0.0);
+    for dy in -1i32..=1 {
+        for dx in -1i32..=1 {
+            let distance = dx.abs() + dy.abs();
+            let strength = if distance == 0 { 0.55 } else { 0.16 };
+            ctx.sim.grid.relieve_pressure(ctx.ix + dx, ctx.iy + dy, strength);
+            ctx.sim
+                .grid
+                .restore_fertility(ctx.ix + dx, ctx.iy + dy, strength * 0.09);
+        }
     }
-    ctx.think("tending the forest carefully");
+    ctx.think("thinning brush and protecting young woodland");
     ctx.discover("forest_management", "began managing a forest sustainably");
     ctx.event(
         "build",
-        "practised selective harvesting and replanting in the forest",
+        "reduced pressure on woodland through selective clearing and replanting",
     );
-    0.008
+    0.016
 }

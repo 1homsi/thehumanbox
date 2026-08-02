@@ -2,6 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { TILE_SCALE } from './constants'
+import { getWildernessPalette } from './wilderness-palette'
 
 interface Props {
   width: number
@@ -93,6 +94,7 @@ export function Clouds3D({ width, height, dayProgress = 0.5, weatherKind = 'clea
   const meshRef = useRef<THREE.InstancedMesh>(null)
   const matRef = useRef<THREE.MeshBasicMaterial>(null)
   const cloudTex = useMemo(() => getCloudTexture(), [])
+  const atmosphere = getWildernessPalette(dayProgress, weatherKind)
 
   const cx = width * TILE_SCALE * 0.5
   const cz = height * TILE_SCALE * 0.5
@@ -149,9 +151,7 @@ export function Clouds3D({ width, height, dayProgress = 0.5, weatherKind = 'clea
     const dayWeight = smoothstep(-0.12, 0.22, sunAlt)
 
     if (matRef.current) {
-      if (weatherKind === 'storm') _dayCol.setHex(0x5e6878)
-      else if (weatherKind === 'rain') _dayCol.setHex(0xaab4c2)
-      else _dayCol.setHex(0xffffff)
+      _dayCol.set(atmosphere.cloud)
       _nightCol.setHex(0x10141f)
       matRef.current.color.copy(_nightCol).lerp(_dayCol, dayWeight)
       const dayOpacity = weatherKind === 'storm' ? 0.85 : weatherKind === 'rain' ? 0.78 : 0.7

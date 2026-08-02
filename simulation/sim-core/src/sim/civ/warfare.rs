@@ -1036,7 +1036,7 @@ fn soldier_bonus(o: &crate::organism::organism::Organism) -> f32 {
         0.25
     } else if o.has_tool("sword") || o.has_tool("bow") {
         0.16
-    } else if o.has_tool("spear") || o.discoveries.contains("spear") {
+    } else if o.has_tool("spear") {
         0.10
     } else {
         0.0

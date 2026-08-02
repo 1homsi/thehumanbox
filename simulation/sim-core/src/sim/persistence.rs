@@ -18,6 +18,10 @@ use crate::world::tiles::Tile;
 #[serde(default)]
 pub(crate) struct GridSave {
     tiles: Vec<i8>,
+    /// Biomes evolve after world generation through climate drift,
+    /// deforestation, and restoration. Empty means a legacy save whose
+    /// deterministic seed-generated biome map should be retained.
+    biome: Vec<u8>,
     /// Water depth changes at runtime as droughts, floods, and completed
     /// infrastructure reshape the map, so it cannot be regenerated from the
     /// world seed on load.
@@ -174,6 +178,10 @@ pub(crate) struct OrgSave {
     // ── Friend network (previously dropped) ───────────────────────────
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     friends: HashMap<String, String>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    former_friends: HashMap<String, String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    acquaintances: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     anchor_events: Vec<(u64, String, f32)>,
     #[serde(default)]
@@ -364,6 +372,8 @@ pub struct SaveState {
     #[serde(default)]
     caravans: Vec<super::civ::trade_routes::Caravan>,
     #[serde(default)]
+    supply_caches: Vec<super::survival_resources::SupplyCache>,
+    #[serde(default)]
     next_trade_route_id: u32,
     #[serde(default)]
     next_caravan_id: u32,
@@ -499,6 +509,8 @@ fn org_to_save(o: &Organism) -> OrgSave {
         inv_wood: o.inv_wood,
         inv_stone: o.inv_stone,
         friends: o.friends.clone(),
+        former_friends: o.former_friends.clone(),
+        acquaintances: o.acquaintances.iter().cloned().collect(),
         anchor_events: o.anchor_events.clone(),
         memories: o.memories.clone(),
         zodiac: o.zodiac.clone(),
@@ -593,6 +605,14 @@ fn org_from_save(s: OrgSave, save_version: u32) -> Organism {
             })
             .collect()
     };
+    o.acquaintances = s.acquaintances.into_iter().collect();
+    // Upgrade saves created before durable acquaintances existed while their
+    // structured introduction records are still available.
+    o.acquaintances.extend(o.life_log.iter().filter_map(|entry| {
+        (entry.category == "introduction")
+            .then(|| entry.related_id.clone())
+            .flatten()
+    }));
     o.discoveries = s.discoveries.into_iter().collect();
     if s.home_x != 0.0 || s.home_y != 0.0 {
         o.home_x = s.home_x;
@@ -634,6 +654,9 @@ fn org_from_save(s: OrgSave, save_version: u32) -> Organism {
     o.inv_wood = s.inv_wood;
     o.inv_stone = s.inv_stone;
     o.friends = s.friends;
+    o.former_friends = s.former_friends;
+    o.acquaintances.extend(o.friends.keys().cloned());
+    o.acquaintances.extend(o.former_friends.keys().cloned());
     o.anchor_events = s.anchor_events;
     if !s.memories.entries.is_empty() {
         o.memories = s.memories;
@@ -783,6 +806,7 @@ impl Simulation {
             story_history: self.story_history.iter().rev().take(120).rev().cloned().collect(),
             grid: GridSave {
                 tiles: self.grid.tiles.clone(),
+                biome: self.grid.biome.clone(),
                 depth: self.grid.depth.clone(),
                 fire: self.grid.fire_intensity.clone(),
                 food_trail: self.grid.food_trail.clone(),
@@ -854,6 +878,7 @@ impl Simulation {
             trades: self.trades.iter().rev().take(500).rev().cloned().collect(),
             trade_routes: self.trade_routes.clone(),
             caravans: self.caravans.clone(),
+            supply_caches: self.supply_caches.clone(),
             next_trade_route_id: self.next_trade_route_id,
             next_caravan_id: self.next_caravan_id,
             water_use: self
@@ -969,6 +994,9 @@ impl Simulation {
         let mut grid = WorldGrid::new(seed);
         if state.grid.tiles.len() == expected {
             grid.tiles = state.grid.tiles;
+            if state.grid.biome.len() == expected {
+                grid.biome = state.grid.biome;
+            }
             if state.grid.depth.len() == expected {
                 grid.depth = state.grid.depth;
             }
@@ -1111,6 +1139,8 @@ impl Simulation {
             state.next_caravan_id,
             state.caravans.iter().map(|caravan| caravan.id),
         );
+        let mut supply_caches = state.supply_caches;
+        super::survival_resources::repair_supply_caches(&mut supply_caches);
 
         let mut sim = Simulation {
             grid,
@@ -1200,6 +1230,8 @@ impl Simulation {
             cached_territory: serde_json::Value::Null,
             building_state_revision: 1,
             serialized_building_state_revision: 0,
+            supply_cache_state_revision: 1,
+            serialized_supply_cache_state_revision: 0,
             buildings,
             next_building_id,
             governments: state.governments,
@@ -1229,6 +1261,7 @@ impl Simulation {
             trades: state.trades.into_iter().collect(),
             trade_routes: state.trade_routes,
             caravans: state.caravans,
+            supply_caches,
             next_trade_route_id,
             next_caravan_id,
             water_use: state
@@ -1298,6 +1331,19 @@ impl Simulation {
                     objective.expires_tick = *expires_tick;
                 }
             }
+        }
+        // Older saves could retain a completed/failed objective and its
+        // lineage directive until the original deadline. Terminal campaigns
+        // already live in history, so repair them to the same idle state the
+        // current runtime now produces.
+        let terminal_guidance: Vec<(String, String)> = sim
+            .lineage_strategy_objectives
+            .iter()
+            .filter(|(_, objective)| objective.completed_tick.is_some() || objective.failed_tick.is_some())
+            .map(|(lineage_id, objective)| (lineage_id.clone(), objective.strategy.clone()))
+            .collect();
+        for (lineage_id, strategy) in terminal_guidance {
+            sim.clear_lineage_strategy_guidance(&lineage_id, &strategy);
         }
         for (lineage_id, strategy, expires_tick) in legacy_objectives {
             sim.lineage_strategy_objectives.remove(&lineage_id);
@@ -1444,7 +1490,76 @@ mod tests {
     }
 
     #[test]
-    fn building_damage_round_trips_through_schema_v5() {
+    fn evolved_biomes_round_trip_while_legacy_saves_keep_seed_generated_terrain() {
+        use crate::world::tiles::Biome;
+
+        let seed = 0xB10B_E006;
+        let (x, y) = (123, 117);
+        let generated = WorldGrid::new(seed).biome_at(x, y);
+        let restored = if generated == Biome::Wetland {
+            Biome::Forest
+        } else {
+            Biome::Wetland
+        };
+        let mut sim = Simulation::new(seed);
+        sim.grid.set_biome(x, y, restored);
+
+        let saved = sim.to_save_state();
+        assert_eq!(Simulation::from_save(seed, saved).grid.biome_at(x, y), restored);
+
+        let mut legacy = sim.to_save_state();
+        legacy.grid.biome.clear();
+        assert_eq!(Simulation::from_save(seed, legacy).grid.biome_at(x, y), generated);
+    }
+
+    #[test]
+    fn loading_terminal_campaign_repairs_stale_guidance_and_directives() {
+        let seed = 0xCA4A_10AD;
+        let mut sim = Simulation::new(seed);
+        sim.tick_count = 500;
+        let lineage_id = sim
+            .organisms
+            .iter()
+            .find(|organism| organism.alive)
+            .unwrap()
+            .lineage_id
+            .clone();
+        let lineage_members: Vec<usize> = sim
+            .organisms
+            .iter()
+            .enumerate()
+            .filter(|(_, organism)| organism.alive && organism.lineage_id == lineage_id)
+            .map(|(index, _)| index)
+            .take(2)
+            .collect();
+        assert_eq!(lineage_members.len(), 2);
+        let defender = lineage_members[0];
+        sim.organisms[defender].age = sim.organisms[defender].max_age / 2;
+        let personally_directed = lineage_members[1];
+        sim.organisms[personally_directed].directive = "flee".to_string();
+        sim.organisms[personally_directed].directive_until = 900;
+        let command =
+            format!(r#"{{"cmd":"guide","lineage":"{lineage_id}","strategy":"defend","duration_ticks":600}}"#);
+        assert!(sim.apply_command_json(&command));
+
+        let mut state = sim.to_save_state();
+        state
+            .lineage_strategy_objectives
+            .get_mut(&lineage_id)
+            .unwrap()
+            .completed_tick = Some(500);
+        let loaded = Simulation::from_save(seed, state);
+
+        assert!(!loaded.lineage_strategies.contains_key(&lineage_id));
+        assert!(!loaded.lineage_strategy_objectives.contains_key(&lineage_id));
+        assert!(loaded.organisms[lineage_members[0]].directive.is_empty());
+        assert_eq!(loaded.organisms[lineage_members[0]].directive_until, 0);
+        assert_eq!(loaded.organisms[personally_directed].directive, "flee");
+        assert_eq!(loaded.organisms[personally_directed].directive_until, 900);
+    }
+
+    #[test]
+    fn building_damage_round_trips_through_current_schema() {
         use super::super::buildings::{Building, BuildingKind};
 
         let mut sim = Simulation::new(0xB01D);
@@ -1458,7 +1573,7 @@ mod tests {
         sim.buildings.push(building);
 
         let state = sim.to_save_state();
-        assert_eq!(state.version, 5);
+        assert_eq!(state.version, SAVE_SCHEMA_VERSION);
         let encoded = serde_json::to_string(&state).expect("serialize save state");
         let decoded: SaveState = serde_json::from_str(&encoded).expect("deserialize save state");
         let loaded = Simulation::from_save(sim.world_seed, decoded);

@@ -17,6 +17,8 @@ impl Default for PhysicsEngine {
 }
 
 impl PhysicsEngine {
+    const FIREBREAK_STRUCTURE: f32 = 0.12;
+
     pub fn new() -> Self {
         PhysicsEngine {
             tick_count: 0,
@@ -51,6 +53,10 @@ impl PhysicsEngine {
 
     pub fn register_fire(&mut self, x: i32, y: i32) {
         self.active_fire_tiles.insert((x, y));
+    }
+
+    pub(crate) fn active_fire_tiles(&self) -> impl Iterator<Item = (i32, i32)> + '_ {
+        self.active_fire_tiles.iter().copied()
     }
 
     /// Register fire tiles created before the physics engine existed, such as
@@ -115,7 +121,9 @@ impl PhysicsEngine {
                         let spread_chance = base * spread_mult;
                         if spread_chance > 0.0 {
                             for (nx, ny) in WorldGrid::neighbors(x, y) {
-                                if grid.get(nx, ny).flammable() && rng.random::<f32>() < spread_chance {
+                                if Self::fire_can_spread_to(grid, nx, ny)
+                                    && rng.random::<f32>() < spread_chance
+                                {
                                     self.new_fires.push((nx, ny));
                                 }
                             }
@@ -159,6 +167,10 @@ impl PhysicsEngine {
 
         self.burn_out = burn_out;
         self.new_fires = new_fires;
+    }
+
+    fn fire_can_spread_to(grid: &WorldGrid, x: i32, y: i32) -> bool {
+        grid.get(x, y).flammable() && grid.structure_at(x, y) < Self::FIREBREAK_STRUCTURE
     }
 
     fn lightning_strike(&mut self, grid: &mut WorldGrid, rng: &mut impl Rng) {
@@ -205,5 +217,22 @@ impl PhysicsEngine {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::PhysicsEngine;
+    use crate::world::{grid::WorldGrid, tiles::Tile};
+
+    #[test]
+    fn maintained_structure_breaks_wildfire_spread() {
+        let (x, y) = (80, 80);
+        let mut grid = WorldGrid::new(11);
+        grid.set(x, y, Tile::Grass);
+
+        assert!(PhysicsEngine::fire_can_spread_to(&grid, x, y));
+        grid.add_structure(x, y, PhysicsEngine::FIREBREAK_STRUCTURE);
+        assert!(!PhysicsEngine::fire_can_spread_to(&grid, x, y));
     }
 }

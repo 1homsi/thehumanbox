@@ -1,7 +1,5 @@
-/// Conservative ceiling used by the hosted world and browser/WASM builds.
-/// The downloadable desktop runtime can opt into a larger world through
-/// `Simulation::set_population_limit` without making the low-cost hosted
-/// service carry that workload.
+/// Conservative default for native simulations. Browser/WASM and downloadable
+/// desktop runtimes apply their own limits through `Simulation::set_population_limit`.
 pub const DEFAULT_MAX_POPULATION: usize = 350;
 pub const MIN_POPULATION_LIMIT: usize = 120;
 pub const MAX_POPULATION_LIMIT: usize = 5_000;

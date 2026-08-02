@@ -156,9 +156,10 @@ test("startup handshake rejects a silently minted replacement world", () => {
 
 test("rejects incompatible or incomplete saves before import", () => {
   assert.throws(
-    () => validateWorldSaveBytes(validSave({ version: 6 })),
+    () => validateWorldSaveBytes(validSave({ version: 7 })),
     /newer/,
   );
+  assert.doesNotThrow(() => validateWorldSaveBytes(validSave({ version: 6 })));
   assert.doesNotThrow(() => validateWorldSaveBytes(validSave({ version: 4 })));
   assert.throws(
     () => validateWorldSaveBytes(validSave({ grid: { tiles: [0] } })),

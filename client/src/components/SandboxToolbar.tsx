@@ -181,9 +181,7 @@ export function SandboxToolbar({
                 type="button"
                 onClick={onSave}
                 disabled={saveBusy || (saveError && !saveRetryable)}
-                aria-label={
-                  saveBusy ? 'saving' : saveError && saveRetryable ? '↻ retry save' : '💾 save world'
-                }
+                aria-label={saveBusy ? 'Saving' : saveError && saveRetryable ? 'Retry save' : 'Save'}
                 title={
                   saveError && saveRetryable
                     ? 'Retry saving this world on this device'
@@ -194,7 +192,7 @@ export function SandboxToolbar({
                   {saveError && saveRetryable ? '↻' : saveBusy ? '…' : '💾'}
                 </span>
                 <span className="sandbox-save-label">
-                  {saveBusy ? 'saving' : saveError && saveRetryable ? 'retry save' : 'save world'}
+                  {saveBusy ? 'Saving' : saveError && saveRetryable ? 'Retry save' : 'Save'}
                 </span>
               </button>
               {saveStatus && (

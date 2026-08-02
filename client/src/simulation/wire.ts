@@ -81,6 +81,7 @@ export type IncomingWorldFrame = Pick<
   trade_routes?: WorldState['trade_routes']
   caravans?: WorldState['caravans']
   farms?: WorldState['farms']
+  supply_caches?: WorldState['supply_caches']
   settlements?: WorldState['settlements']
   vehicles?: WorldState['vehicles']
   festivals?: WorldState['festivals']
@@ -88,6 +89,7 @@ export type IncomingWorldFrame = Pick<
   artworks?: WorldState['artworks']
   lineage_eras?: unknown
   lineage_strategies?: WorldState['lineage_strategies']
+  lineage_campaign_options?: WorldState['lineage_campaign_options']
   lineage_strategy_history?: WorldState['lineage_strategy_history']
   lineage_era_progress?: WorldState['lineage_era_progress']
   lineage_currencies?: WorldState['lineage_currencies']
@@ -330,6 +332,27 @@ export function parseWorldFrame(
   if (d.day_progress !== undefined && !isNum(d.day_progress)) issues.push('day_progress is not a number')
   if (d.season_progress !== undefined && !isNum(d.season_progress))
     issues.push('season_progress is not a number')
+  if (d.supply_caches !== undefined) {
+    if (!Array.isArray(d.supply_caches)) {
+      issues.push('supply_caches is not an array')
+    } else {
+      d.supply_caches.forEach((value, index) => {
+        if (value == null || typeof value !== 'object') {
+          issues.push(`supply_caches[${index}] is not an object`)
+          return
+        }
+        const cache = value as Record<string, unknown>
+        if (!isNum(cache.x) || !isNum(cache.y)) issues.push(`supply_caches[${index}] has invalid position`)
+        if (!isStr(cache.lineage_id)) issues.push(`supply_caches[${index}].lineage_id is not a string`)
+        validateNonNegativeNumber(cache.food, `supply_caches[${index}].food`, { integer: true })
+        validateNonNegativeNumber(cache.water, `supply_caches[${index}].water`, { integer: true })
+        if (cache.damage !== undefined) {
+          validateNonNegativeNumber(cache.damage, `supply_caches[${index}].damage`, { integer: true })
+        }
+        if (!isBool(cache.fishing_weir)) issues.push(`supply_caches[${index}].fishing_weir is not a boolean`)
+      })
+    }
+  }
   if (d.lineage_strategies !== undefined) {
     if (
       d.lineage_strategies == null ||
@@ -374,12 +397,57 @@ export function parseWorldFrame(
       }
     }
   }
+  if (d.lineage_campaign_options !== undefined) {
+    const reasons = new Set([
+      'lineage_not_living',
+      'no_capable_hunter',
+      'no_living_prey',
+      'no_mobile_explorer',
+      'no_adult_worker',
+      'no_capable_trader',
+      'no_foreign_lineage',
+      'no_capable_defender',
+      'unknown_strategy',
+    ])
+    if (
+      d.lineage_campaign_options == null ||
+      typeof d.lineage_campaign_options !== 'object' ||
+      Array.isArray(d.lineage_campaign_options)
+    ) {
+      issues.push('lineage_campaign_options is not an object')
+    } else {
+      for (const [lineageId, rawOptions] of Object.entries(
+        d.lineage_campaign_options as Record<string, unknown>,
+      )) {
+        if (!rawOptions || typeof rawOptions !== 'object' || Array.isArray(rawOptions)) {
+          issues.push(`lineage_campaign_options.${lineageId} is not an object`)
+          continue
+        }
+        for (const [strategyName, rawOption] of Object.entries(rawOptions)) {
+          const path = `lineage_campaign_options.${lineageId}.${strategyName}`
+          if (!rawOption || typeof rawOption !== 'object' || Array.isArray(rawOption)) {
+            issues.push(`${path} is not an object`)
+            continue
+          }
+          const option = rawOption as Record<string, unknown>
+          if (!isBool(option.available)) issues.push(`${path}.available is not a boolean`)
+          if (
+            option.reason !== undefined &&
+            option.reason !== null &&
+            (!isStr(option.reason) || !reasons.has(option.reason))
+          ) {
+            issues.push(`${path}.reason is invalid`)
+          }
+        }
+      }
+    }
+  }
   if (d.lineage_strategy_history !== undefined) {
     if (!Array.isArray(d.lineage_strategy_history)) {
       issues.push('lineage_strategy_history is not an array')
     } else {
-      const outcomes = new Set(['completed', 'expired', 'redirected', 'failed'])
-      const reasons = new Set(['deadline', 'player_redirected', 'lineage_extinct'])
+      const outcomes = new Set(['completed', 'partial', 'expired', 'redirected', 'cancelled', 'failed'])
+      const reasons = new Set(['deadline', 'player_redirected', 'player_cancelled', 'lineage_extinct'])
       for (const [index, rawCampaign] of d.lineage_strategy_history.entries()) {
         if (!rawCampaign || typeof rawCampaign !== 'object' || Array.isArray(rawCampaign)) {
           issues.push(`lineage_strategy_history.${index} is not an object`)
@@ -400,6 +468,9 @@ export function parseWorldFrame(
           (!isStr(campaign.reason) || !reasons.has(campaign.reason))
         ) {
           issues.push(`lineage_strategy_history.${index}.reason is invalid`)
+        }
+        if (campaign.impact !== undefined && campaign.impact !== null && !isStr(campaign.impact)) {
+          issues.push(`lineage_strategy_history.${index}.impact is invalid`)
         }
         for (const field of ['started_tick', 'ended_tick', 'progress', 'target'] as const) {
           if (!isNum(campaign[field]) || campaign[field] < 0) {

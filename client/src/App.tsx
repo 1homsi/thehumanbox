@@ -237,6 +237,16 @@ function LiveApp() {
     [sandboxControlsEnabled, sendCommand, setTemporarySandboxStatus],
   )
 
+  const cancelLineageGuidance = useCallback(
+    async (lineage: string) => {
+      if (!sandboxControlsEnabled) return false
+      const ok = await sendCommand({ cmd: 'cancel_guide', lineage })
+      setTemporarySandboxStatus(ok ? 'campaign stood down' : 'campaign cancellation failed')
+      return ok
+    },
+    [sandboxControlsEnabled, sendCommand, setTemporarySandboxStatus],
+  )
+
   const [threeDIssue, setThreeDIssue] = useState<'crash' | 'unsupported' | 'context' | null>(null)
 
   const handleThreeDFailure = useCallback((reason: 'crash' | 'unsupported' | 'context') => {
@@ -585,6 +595,7 @@ function LiveApp() {
             world={world}
             lineages={lineages}
             onGuide={sandboxControlsEnabled ? guideLineage : undefined}
+            onCancelGuide={sandboxControlsEnabled ? cancelLineageGuidance : undefined}
           />
         )}
 

@@ -68,6 +68,9 @@ fn compress_for_archive_clears_heavy_state_but_keeps_skeleton() {
         .insert("state".into(), vec![(0, 0.1), (1, 0.1), (2, 0.1)]);
     org.lineage_attitudes.insert("other".into(), 0.7);
     org.org_trust.insert("xyz".into(), 0.5);
+    org.friends.insert("friend".into(), "Friend".into());
+    org.former_friends.insert("former".into(), "Former".into());
+    org.acquaintances.insert("met".into());
     org.log_event("something happened".into());
     org.discoveries.insert("fire".into());
     org.father_id = Some("father77".into());
@@ -81,6 +84,9 @@ fn compress_for_archive_clears_heavy_state_but_keeps_skeleton() {
     assert!(org.q_table.is_empty());
     assert!(org.lineage_attitudes.is_empty());
     assert!(org.org_trust.is_empty());
+    assert!(org.friends.is_empty());
+    assert!(org.former_friends.is_empty());
+    assert!(org.acquaintances.is_empty());
     assert!(org.life_log.is_empty());
     assert!(org.discoveries.is_empty());
     assert_eq!(org.id, "abc12345");
@@ -758,6 +764,134 @@ fn wander_target_biases_tie_without_forcing_action() {
 
     assert_eq!(action, 3);
     assert_eq!(thought.as_deref(), Some("wandering"));
+}
+
+#[test]
+fn active_protector_moves_toward_their_ward_before_routine_work() {
+    let mut rng = StdRng::seed_from_u64(19);
+    let traits = Traits::random(&mut rng);
+    let mut grid = WorldGrid::new(4);
+    for x in 40..=70 {
+        for y in 40..=60 {
+            grid.set(x, y, Tile::Grass);
+        }
+    }
+    let mut protector = Organism::new(
+        "guard".into(),
+        "Ari".into(),
+        50.0,
+        50.0,
+        0,
+        "".into(),
+        "lin".into(),
+        5000,
+        traits.clone(),
+    );
+    let ward = Organism::new(
+        "ward".into(),
+        "Mira".into(),
+        58.0,
+        50.0,
+        0,
+        "".into(),
+        "lin".into(),
+        5000,
+        traits,
+    );
+    protector.energy = 0.90;
+    protector.hydration = 0.90;
+    protector.health = 0.90;
+    protector.directive = "protect:ward".into();
+    protector.directive_until = 500;
+
+    let (action, thought) =
+        protector.choose_action(&grid, &[], 100, 0.0, &[ward], false, 0, &mut rng, false, "", &[]);
+
+    assert_eq!(DIRECTIONS[action], (1, 0));
+    assert_eq!(thought.as_deref(), Some("guarding Mira"));
+}
+
+#[test]
+fn active_area_guard_returns_to_assigned_post_before_routine_work() {
+    let mut rng = StdRng::seed_from_u64(191);
+    let traits = Traits::random(&mut rng);
+    let mut grid = WorldGrid::new(4);
+    for x in 40..=70 {
+        for y in 40..=60 {
+            grid.set(x, y, Tile::Grass);
+        }
+    }
+    let mut guard = Organism::new(
+        "area-guard".into(),
+        "Tala".into(),
+        50.0,
+        50.0,
+        0,
+        "".into(),
+        "lin".into(),
+        5000,
+        traits,
+    );
+    guard.energy = 0.90;
+    guard.hydration = 0.90;
+    guard.health = 0.90;
+    guard.directive = "guard_area:58:50".into();
+    guard.directive_until = 500;
+
+    let (action, thought) =
+        guard.choose_action(&grid, &[], 100, 0.0, &[], false, 0, &mut rng, false, "", &[]);
+
+    assert_eq!(DIRECTIONS[action], (1, 0));
+    assert_eq!(thought.as_deref(), Some("returning to my guard post"));
+}
+
+#[test]
+fn prepared_fire_responder_approaches_suppresses_and_overhauls_instead_of_panicking() {
+    let mut rng = StdRng::seed_from_u64(0xF1A_E201);
+    let traits = Traits::random(&mut rng);
+    let mut grid = WorldGrid::new(4);
+    for x in 40..=70 {
+        for y in 40..=60 {
+            grid.set(x, y, Tile::Grass);
+        }
+    }
+    grid.set(58, 50, Tile::Fire);
+    *grid.fire_intensity_mut(58, 50) = 1.0;
+    let mut responder = Organism::new(
+        "fire-responder".into(),
+        "Ember".into(),
+        50.0,
+        50.0,
+        0,
+        "".into(),
+        "lin".into(),
+        5000,
+        traits,
+    );
+    responder.energy = 0.90;
+    responder.hydration = 0.90;
+    responder.health = 0.90;
+    responder.inv_water = 1;
+    responder.directive = "fire_response:58:50".into();
+    responder.directive_until = 500;
+
+    let (approach, thought) =
+        responder.choose_action(&grid, &[], 100, 0.0, &[], false, 0, &mut rng, false, "", &[]);
+    assert_eq!(DIRECTIONS[approach], (1, 0));
+    assert_eq!(thought.as_deref(), Some("carrying water toward the wildfire"));
+
+    responder.x = 56.0;
+    let (suppress, thought) =
+        responder.choose_action(&grid, &[], 100, 0.0, &[], false, 0, &mut rng, false, "", &[]);
+    assert_eq!(suppress, 4654);
+    assert_eq!(thought.as_deref(), Some("throwing water onto the flames"));
+
+    grid.set(58, 50, Tile::Ash);
+    responder.inv_water = 0;
+    let (overhaul, thought) =
+        responder.choose_action(&grid, &[], 100, 0.0, &[], false, 0, &mut rng, false, "", &[]);
+    assert_eq!(overhaul, 4665);
+    assert_eq!(thought.as_deref(), Some("checking the ash for embers"));
 }
 
 #[test]

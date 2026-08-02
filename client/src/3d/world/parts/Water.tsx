@@ -180,8 +180,8 @@ export function Water({ width, height, depthMap, dayProgress = 0.5 }: Props) {
                          * cos(vWavePos.y * 0.55 + uWaveTime * 1.3);
            sparkle += sin(vWavePos.x * 0.32 - uWaveTime * 1.1)
                     * cos(vWavePos.y * 0.42 + uWaveTime * 0.9);
-           sparkle = max(0.0, sparkle - 0.75) * 1.4;
-           gl_FragColor.rgb += vec3(sparkle * 0.6, sparkle * 0.55, sparkle * 0.5);
+           sparkle = max(0.0, sparkle - 0.82) * 0.7;
+           gl_FragColor.rgb += vec3(sparkle * 0.2, sparkle * 0.18, sparkle * 0.15);
 
            vec3 fresnelView = normalize(vViewPosition);
            float fres = pow(1.0 - clamp(dot(normal, fresnelView), 0.0, 1.0), 3.0);
@@ -192,7 +192,7 @@ export function Water({ width, height, depthMap, dayProgress = 0.5 }: Props) {
                             + vWavePos.x * 0.45 + vWavePos.y * 0.38));
            float foamNoise = 0.5 + 0.5 * sin(vWavePos.x * 1.7 + uWaveTime * 0.8)
                                        * cos(vWavePos.y * 1.5 - uWaveTime * 0.6);
-           float foam = clamp(foamBand * (0.45 + 0.55 * foamNoise), 0.0, 1.0) * 0.55;
+           float foam = clamp(foamBand * (0.45 + 0.55 * foamNoise), 0.0, 1.0) * 0.34;
            gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.92, 0.96, 0.98), foam);
          }`,
       )
@@ -207,8 +207,8 @@ export function Water({ width, height, depthMap, dayProgress = 0.5 }: Props) {
           color="#1f4870"
           transparent
           opacity={0.95}
-          roughness={0.35}
-          metalness={0.1}
+          roughness={0.78}
+          metalness={0.02}
           depthWrite={false}
           polygonOffset
           polygonOffsetFactor={1}
@@ -228,8 +228,8 @@ export function Water({ width, height, depthMap, dayProgress = 0.5 }: Props) {
           color="#3a78ac"
           transparent
           opacity={0.82}
-          roughness={0.18}
-          metalness={0.15}
+          roughness={0.72}
+          metalness={0.03}
           depthWrite={false}
           polygonOffset
           polygonOffsetFactor={1}

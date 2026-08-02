@@ -66,6 +66,10 @@ pub enum Command {
         #[serde(default = "default_strategy_duration", alias = "duration")]
         duration_ticks: u64,
     },
+    #[serde(alias = "cancel_strategy")]
+    CancelGuide {
+        lineage: String,
+    },
 }
 
 const MIN_STRATEGY_DURATION: u64 = 60;
@@ -318,7 +322,9 @@ impl Simulation {
                     .organisms
                     .iter()
                     .any(|organism| organism.alive && organism.lineage_id == lineage);
-                if !valid_strategy || !valid_duration || !living_lineage {
+                let strategy_ready =
+                    valid_strategy && self.lineage_strategy_readiness(&lineage, &strategy).is_ok();
+                if !valid_strategy || !valid_duration || !living_lineage || !strategy_ready {
                     return false;
                 }
 
@@ -343,13 +349,14 @@ impl Simulation {
                 self.lineage_strategies.insert(lineage, (strategy, expires_at));
                 true
             }
+            Command::CancelGuide { lineage } => self.cancel_lineage_strategy(&lineage),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::sim::simulation::Simulation;
+    use crate::sim::simulation::{strategy_objective_target, Simulation};
 
     struct ZeroRng;
 
@@ -482,6 +489,15 @@ mod tests {
             .unwrap()
             .lineage_id
             .clone();
+        for organism in sim
+            .organisms
+            .iter_mut()
+            .filter(|organism| organism.alive && organism.lineage_id == lineage)
+        {
+            organism.age = organism.max_age / 2;
+            organism.health = 1.0;
+            organism.energy = 1.0;
+        }
 
         let guide =
             format!(r#"{{"cmd":"guide","lineage":"{lineage}","strategy":"explore","duration_ticks":600}}"#);
@@ -512,7 +528,15 @@ mod tests {
         assert_eq!(objective.started_tick, 500);
         assert_eq!(objective.expires_tick, 1100);
         assert_eq!(objective.progress, 0);
-        assert_eq!(objective.target, 300);
+        let population = sim
+            .organisms
+            .iter()
+            .filter(|organism| organism.alive && organism.lineage_id == lineage)
+            .count();
+        assert_eq!(
+            objective.target,
+            strategy_objective_target(600, population, "explore")
+        );
         assert_eq!(objective.completed_tick, None);
         assert_eq!(sim.organisms[guided_index].directive, "explore");
         assert_eq!(sim.organisms[guided_index].directive_until, 1100);
@@ -556,5 +580,48 @@ mod tests {
         ] {
             assert!(!sim.apply_command_json(&invalid));
         }
+
+        if let Some(index) = protected_index {
+            sim.organisms[index].directive = "flee".to_string();
+            sim.organisms[index].directive_until = 700;
+        }
+        let cancel = format!(r#"{{"cmd":"cancel_guide","lineage":"{lineage}"}}"#);
+        assert!(sim.apply_command_json(&cancel));
+        assert!(!sim.lineage_strategies.contains_key(&lineage));
+        assert!(!sim.lineage_strategy_objectives.contains_key(&lineage));
+        assert!(sim.organisms[guided_index].directive.is_empty());
+        assert_eq!(sim.organisms[guided_index].directive_until, 0);
+        if let Some(index) = protected_index {
+            assert_eq!(sim.organisms[index].directive, "flee");
+            assert_eq!(sim.organisms[index].directive_until, 700);
+        }
+        let cancelled = sim.lineage_strategy_history.back().unwrap();
+        assert_eq!(cancelled.strategy, "defend");
+        assert_eq!(cancelled.outcome, "cancelled");
+        assert_eq!(cancelled.reason.as_deref(), Some("player_cancelled"));
+        assert!(sim
+            .events
+            .iter()
+            .any(|event| { event.etype == "strategy_cancelled" && event.detail.contains("stood down") }));
+        assert!(!sim.apply_command_json(&cancel));
+    }
+
+    #[test]
+    fn guide_rejects_a_structurally_impossible_campaign_without_changing_state() {
+        let mut sim = Simulation::new(5);
+        let lineage = sim.organisms[0].lineage_id.clone();
+        for organism in &mut sim.organisms {
+            organism.lineage_id.clone_from(&lineage);
+            organism.age = organism.max_age / 2;
+            organism.health = 1.0;
+            organism.energy = 1.0;
+        }
+        let trade =
+            format!(r#"{{"cmd":"guide","lineage":"{lineage}","strategy":"trade","duration_ticks":600}}"#);
+
+        assert!(!sim.apply_command_json(&trade));
+        assert!(sim.lineage_strategies.is_empty());
+        assert!(sim.lineage_strategy_objectives.is_empty());
+        assert!(sim.organisms.iter().all(|organism| organism.directive != "trade"));
     }
 }

@@ -444,6 +444,14 @@ pub struct Organism {
     // Unlike org_trust (which is anonymous and decays), friendships are recognized bonds.
     pub friends: HashMap<String, String>,
 
+    // Friendships that ended while both people were alive. This is distinct
+    // from bereavement and enables deliberate, person-specific repair later.
+    pub former_friends: HashMap<String, String>,
+
+    // Durable first-contact memory. The recent life log is intentionally capped,
+    // so whether two people have met cannot depend on an old entry surviving there.
+    pub acquaintances: HashSet<String>,
+
     // Accumulated descriptors: birth traits (handsome, curious) + earned ones (builder, sage).
     pub attributes: HashSet<String>,
 
@@ -475,7 +483,9 @@ impl Organism {
             Sex::Male => 12,
             Sex::Female => 8,
         };
-        base + (self.traits.resilience * 4.0) as u32
+        let equipment =
+            if self.has_tool("basket") { 4 } else { 0 } + if self.has_tool("sled") { 6 } else { 0 };
+        base + (self.traits.resilience * 4.0) as u32 + equipment
     }
 
     pub fn carry_room(&self) -> u32 {
@@ -596,6 +606,8 @@ impl Organism {
             is_leader: false,
             conversations: VecDeque::new(),
             friends: HashMap::new(),
+            former_friends: HashMap::new(),
+            acquaintances: HashSet::new(),
             attributes: HashSet::new(),
             anchor_events: Vec::new(),
             memories: {
@@ -638,8 +650,17 @@ impl Organism {
         if self.has_tool("bronze_spear") {
             return 1.4;
         }
-        if self.has_tool("stone_spear") {
+        if self.has_tool("bow") {
+            return 1.3;
+        }
+        if self.has_tool("stone_spear") || self.has_tool("spear") {
             return 1.2;
+        }
+        if self.has_tool("axe") || self.has_tool("knife") {
+            return 1.1;
+        }
+        if self.has_tool("stone_tools") {
+            return 1.05;
         }
         1.0
     }
@@ -669,6 +690,8 @@ impl Organism {
     // Promote an organism to named friend status.
     // Idempotent - safe to call repeatedly; only logs + mutates loneliness on first promotion.
     pub fn add_friend(&mut self, id: &str, name: &str, tick: u64) {
+        self.acquaintances.insert(id.to_string());
+        self.former_friends.remove(id);
         if !self.friends.contains_key(id) {
             let cap_bonus = (self.traits.social_tendency * 8.0) as usize;
             let max_friends: usize = 12 + cap_bonus;
@@ -699,6 +722,21 @@ impl Organism {
             self.joy_ticks = (self.joy_ticks + 120).min(1200);
             self.comfort = (self.comfort + 0.05).min(1.0);
         }
+    }
+
+    pub fn estrange_friend(&mut self, id: &str, name: &str, tick: u64, reason: &str) -> bool {
+        if self.friends.remove(id).is_none() {
+            return false;
+        }
+        self.former_friends.insert(id.to_string(), name.to_string());
+        self.log_life_rel(
+            tick,
+            "estrangement",
+            format!("my friendship with {name} ended after {reason}"),
+            Some(id.to_string()),
+            Some(name.to_string()),
+        );
+        true
     }
 
     pub fn trim_social_maps(&mut self) {
@@ -988,11 +1026,18 @@ impl Organism {
             _ => {}
         }
 
-        let has_leather = self.discoveries.contains("leatherwork")
+        let has_clothing = self.has_tool("clothing");
+        let knows_clothing = self.discoveries.contains("leatherwork")
             || self.discoveries.contains("animal_hides")
             || self.discoveries.contains("textiles");
         if night && !near_shelter {
-            let add = if has_leather { 0.0009 } else { 0.0015 };
+            let add = if has_clothing {
+                0.0006
+            } else if knows_clothing {
+                0.0012
+            } else {
+                0.0015
+            };
             self.sleep_debt = (self.sleep_debt + add).min(1.0);
         } else if near_shelter {
             self.sleep_debt = (self.sleep_debt - 0.010).max(0.0);
@@ -1193,6 +1238,8 @@ impl Organism {
         self.discoveries.clear();
         self.conversations.clear();
         self.friends.clear();
+        self.former_friends.clear();
+        self.acquaintances.clear();
         self.attributes.clear();
         self.memories.entries.clear();
         self.memories.entries.shrink_to_fit();

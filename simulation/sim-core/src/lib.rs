@@ -49,6 +49,11 @@ mod wasm_facade {
             self.inner.tick();
         }
 
+        #[wasm_bindgen(js_name = setPopulationLimit)]
+        pub fn set_population_limit(&mut self, limit: usize) -> usize {
+            self.inner.set_population_limit(limit)
+        }
+
         #[wasm_bindgen(js_name = tickN)]
         pub fn tick_n(&mut self, n: u32) {
             for _ in 0..n {
