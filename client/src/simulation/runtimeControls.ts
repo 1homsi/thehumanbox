@@ -2,6 +2,57 @@ import type { TimeControl } from './sandbox'
 
 export type RuntimeControl = 'pause' | 'resume' | 'speed'
 
+export const WASM_BASE_TICK_MS = 120
+export const MIN_WASM_TICK_MS = 16
+export const MIN_RUNTIME_SPEED = 0.25
+export const MAX_RUNTIME_SPEED = 50
+
+export interface WasmSpeedConfig {
+  tickMs: number
+  stepsPerEmit: number
+  speed: number
+}
+
+/**
+ * Keep fast worlds simulation-accurate by batching ticks instead of relying
+ * on sub-frame timers. The candidate search prefers the closest achievable
+ * rate while keeping the timer above the browser's practical floor.
+ */
+export function wasmSpeedConfig(
+  multiplier: number,
+  baseTickMs = WASM_BASE_TICK_MS,
+  minTickMs = MIN_WASM_TICK_MS,
+): WasmSpeedConfig | null {
+  if (
+    !Number.isFinite(multiplier) ||
+    multiplier < MIN_RUNTIME_SPEED ||
+    multiplier > MAX_RUNTIME_SPEED ||
+    !Number.isFinite(baseTickMs) ||
+    baseTickMs <= 0 ||
+    !Number.isFinite(minTickMs) ||
+    minTickMs <= 0
+  ) {
+    return null
+  }
+
+  const minimumSteps = Math.max(1, Math.ceil((multiplier * minTickMs) / baseTickMs))
+  const maxSteps = Math.min(256, Math.max(minimumSteps + 8, minimumSteps * 4))
+  let best: WasmSpeedConfig | null = null
+  let bestError = Number.POSITIVE_INFINITY
+
+  for (let steps = 1; steps <= maxSteps; steps += 1) {
+    const tickMs = Math.max(minTickMs, Math.round((baseTickMs * steps) / multiplier))
+    const speed = (baseTickMs * steps) / tickMs
+    const error = Math.abs(speed - multiplier)
+    if (error < bestError || (error === bestError && (best === null || steps < best.stepsPerEmit))) {
+      best = { tickMs, stepsPerEmit: steps, speed }
+      bestError = error
+    }
+  }
+
+  return best
+}
+
 export interface RuntimeState {
   paused: boolean
   speed: number
