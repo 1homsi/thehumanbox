@@ -5153,10 +5153,16 @@ body.thb-colorblind .org-sick-badge {
   padding-left: 2px;
   border-left: 1px solid #4a392b;
 }
+.sandbox-utility.has-save {
+  margin-left: auto;
+  flex: 0 0 auto;
+  gap: 8px;
+  padding-left: 10px;
+}
 .sandbox-save {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 5px;
   min-width: 0;
   color: #8fbaa0;
   font-size: 9px;
@@ -5164,45 +5170,90 @@ body.thb-colorblind .org-sick-badge {
 .sandbox-save.error {
   color: #e08070;
 }
-.sandbox-save button {
-  display: flex;
-  min-height: 38px;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 7px;
+.sandbox-save-button {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  place-items: center;
+  padding: 0;
   border: 1px solid #5e4a34;
-  border-radius: 4px;
-  background: #2b2219;
-  color: #e7d8bc;
+  border-radius: 8px;
+  background: rgba(43, 34, 25, 0.82);
+  color: #cbbfa8;
   font: inherit;
   cursor: pointer;
-  white-space: nowrap;
+  transition:
+    color 120ms ease,
+    background 120ms ease,
+    border-color 120ms ease,
+    transform 120ms ease;
 }
-.sandbox-save button:hover:not(:disabled) {
+.sandbox-save-button:hover:not(:disabled),
+.sandbox-save-button:focus-visible {
   border-color: #8a6a3e;
+  background: #382b20;
   color: #f0d088;
 }
-.sandbox-save button:disabled {
+.sandbox-save-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.sandbox-save-button:disabled {
   cursor: wait;
   opacity: 0.65;
 }
-.sandbox-save > span,
-.sandbox-save-status {
-  max-width: 170px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.sandbox-save.error .sandbox-save-button {
+  border-color: #8e4e43;
+  background: rgba(84, 38, 31, 0.7);
+  color: #f09b8d;
+}
+.sandbox-save.error .sandbox-save-button:hover:not(:disabled),
+.sandbox-save.error .sandbox-save-button:focus-visible {
+  border-color: #c76e5e;
+  background: rgba(111, 48, 39, 0.78);
+  color: #ffc0b4;
+}
+.sandbox-save-button.busy .sandbox-save-icon {
+  animation: sandbox-save-pulse 900ms ease-in-out infinite;
 }
 .sandbox-save-icon {
-  font-size: 13px;
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  font-size: 18px;
+  line-height: 1;
+}
+.sandbox-save-icon svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+.sandbox-save-label,
+.sandbox-save-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+@keyframes sandbox-save-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 @media (max-width: 1100px) {
   .sandbox-dock {
     justify-content: flex-start;
-  }
-  .sandbox-save > span {
-    display: none;
   }
 }
 

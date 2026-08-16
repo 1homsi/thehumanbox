@@ -88,6 +88,14 @@ export function SandboxToolbar({
     onClearArmed()
     if (cat.tools.some((tool) => tool.view)) onClearView?.()
   }
+  const saveActionLabel = saveBusy ? 'saving' : saveError && saveRetryable ? '↻ retry save' : 'save world'
+  const saveTitle = saveStatus
+    ? `${saveActionLabel} · ${saveStatus}`
+    : saveError && saveRetryable
+      ? 'Retry saving this world on this device'
+      : saveBusy
+        ? 'Saving this world on this device'
+        : 'Save this world on this device now'
 
   return (
     <section className="sandbox-bar" aria-label="World controls">
@@ -166,7 +174,7 @@ export function SandboxToolbar({
             </label>
           )}
         </div>
-        <div className="sandbox-utility">
+        <div className={clsx('sandbox-utility', onSave && 'has-save')}>
           {(armedToolId || status || runtimeStatus) && (
             <div className="sandbox-status" role="status" aria-live="polite">
               {status ??
@@ -179,19 +187,29 @@ export function SandboxToolbar({
             <div className={clsx('sandbox-save', saveError && 'error')}>
               <button
                 type="button"
+                className={clsx('sandbox-save-button', saveBusy && 'busy')}
                 onClick={onSave}
                 disabled={saveBusy || (saveError && !saveRetryable)}
-                aria-label={
-                  saveBusy ? 'saving' : saveError && saveRetryable ? '↻ retry save' : '💾 save world'
-                }
-                title={
-                  saveError && saveRetryable
-                    ? 'Retry saving this world on this device'
-                    : 'Save this world on this device now'
-                }
+                aria-label={saveActionLabel}
+                aria-busy={saveBusy}
+                title={saveTitle}
               >
-                <span className="sandbox-save-icon">
-                  {saveError && saveRetryable ? '↻' : saveBusy ? '…' : '💾'}
+                <span className="sandbox-save-icon" aria-hidden="true">
+                  {saveError && saveRetryable ? (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      <path d="M20 11a8 8 0 0 0-14.7-4.3L4 8" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M4 4v4h4" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M4 13a8 8 0 0 0 14.7 4.3L20 16" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M20 20v-4h-4" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  ) : saveBusy ? (
+                    <span className="sandbox-save-busy">…</span>
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      <path d="M5 4.5h11.2L19.5 7.8v11.7H5z" strokeLinejoin="round" />
+                      <path d="M8 4.5v5h7v-5M8.5 19.5v-5h7v5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
                 </span>
                 <span className="sandbox-save-label">
                   {saveBusy ? 'saving' : saveError && saveRetryable ? 'retry save' : 'save world'}
