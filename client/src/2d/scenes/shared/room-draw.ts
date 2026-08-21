@@ -1,5 +1,5 @@
 import type { SceneFixture } from '../../../scenes/core/types'
-import { ROOM_COLS, TILE_PX } from './RoomCanvas'
+import { ROOM_COLS, TILE_PX } from './room-constants'
 
 /** Fixture kinds that emit warm light and should punch through the night dim. */
 const FIRE_FIXTURE_KINDS = new Set([

@@ -2118,7 +2118,17 @@ function drawWorldOnCanvas(
       const bodyR = variant.bodyRadius * (org.sex === 'male' ? 1.05 : 0.95)
       const spriteSize = Math.round(Math.max(19, bodyR * 3.8))
       const target = isFocused(org) ? focusedShadows : dimShadows
-      target.ellipse(px + 1, py + spriteSize * 0.2, spriteSize * 0.27, spriteSize * 0.1, 0, 0, Math.PI * 2)
+      const shadowCx = px + 1
+      const shadowCy = py + spriteSize * 0.2
+      const shadowRx = spriteSize * 0.27
+      // moveTo to the ellipse's own start point first - ellipse()/arc() on a
+      // Path2D that already has a current point implicitly draws a straight
+      // line from there to the new arc's start. Without this, consecutive
+      // organisms' shadows in this shared path get bridged by an invisible
+      // edge (and the final fill's implicit close), which at low zoom reads
+      // as huge black wedges connecting unrelated organisms across the map.
+      target.moveTo(shadowCx + shadowRx, shadowCy)
+      target.ellipse(shadowCx, shadowCy, shadowRx, spriteSize * 0.1, 0, 0, Math.PI * 2)
       any = true
     }
     if (any) {
