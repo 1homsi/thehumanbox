@@ -319,6 +319,25 @@ function LiveApp() {
   }, [world, selectedOrgId])
 
   useEffect(() => {
+    // H toggles immersive mode (hides panels + bottom dock). Matches
+    // the observation-mode option in the command palette.
+    function onKey(e: KeyboardEvent): void {
+      if (e.key.toLowerCase() !== 'h' || e.metaKey || e.ctrlKey || e.altKey) return
+      const target = e.target as HTMLElement | null
+      if (
+        target &&
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+      ) {
+        return
+      }
+      const ui = useUIStore.getState()
+      ui.setViewFlag('hideUI', !ui.viewFlags.hideUI)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
+
+  useEffect(() => {
     if (!world) return
     const reconciledSelection = reconcileViewerSelection(selectedOrgId, world)
     if (reconciledSelection !== selectedOrgId) {
@@ -522,7 +541,7 @@ function LiveApp() {
           )}
         </main>
 
-        {world && sandboxControlsEnabled && (
+        {world && sandboxControlsEnabled && !viewFlags.hideUI && (
           <SandboxToolbar
             armedToolId={armedTool?.id ?? null}
             armedToolLabel={armedTool?.label ?? null}

@@ -20,23 +20,25 @@ const PALETTE: RoomPalette = {
   outside: '#1a1008',
 }
 
+// The long table spans cols 5-10, rows 4-5; stools sit at rows 3 and 7.
+// Seats keep occupants off the tabletop.
 const SLOTS: Record<number, Array<[number, number]>> = {
   0: [],
-  1: [[7, 5]],
+  1: [[7, 3]],
   2: [
-    [6, 5],
-    [8, 5],
+    [5, 3],
+    [9, 3],
   ],
   3: [
-    [5, 5],
-    [7, 5],
-    [9, 5],
+    [5, 3],
+    [7, 3],
+    [9, 3],
   ],
   4: [
-    [5, 4],
-    [7, 4],
-    [9, 4],
-    [11, 4],
+    [5, 3],
+    [9, 3],
+    [5, 7],
+    [9, 7],
   ],
 }
 
@@ -44,9 +46,9 @@ function slotsFor(n: number): Array<[number, number]> {
   if (SLOTS[n]) return SLOTS[n]
   const out: Array<[number, number]> = []
   for (let i = 0; i < n; i++) {
-    const col = i % 5
-    const row = Math.floor(i / 5)
-    out.push([4 + col * 2, 4 + row * 2])
+    const col = 3 + (i % 5) * 2
+    const row = i < 5 ? 3 : 7
+    out.push([col, row])
   }
   return out
 }

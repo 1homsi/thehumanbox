@@ -20,33 +20,36 @@ const PALETTE: RoomPalette = {
   outside: '#181410',
 }
 
+// Pews span cols 3-5 and 8-10 on rows 6-7; worshippers stand behind
+// them (row 5) or in the aisle, with the priest before the altar.
 const SLOTS: Record<number, Array<[number, number]>> = {
   0: [],
-  1: [[7, 6]],
+  1: [[7, 4]],
   2: [
-    [5, 6],
-    [9, 6],
+    [7, 4],
+    [5, 5],
   ],
   3: [
-    [5, 6],
-    [7, 7],
-    [9, 6],
+    [7, 4],
+    [5, 5],
+    [9, 5],
   ],
   4: [
-    [5, 6],
+    [7, 4],
+    [5, 5],
+    [9, 5],
     [7, 6],
-    [9, 6],
-    [11, 6],
   ],
 }
 
 function slotsFor(n: number): Array<[number, number]> {
   if (SLOTS[n]) return SLOTS[n]
-  const out: Array<[number, number]> = []
-  for (let i = 0; i < n; i++) {
-    const col = i % 5
-    const row = Math.floor(i / 5)
-    out.push([4 + col * 2, 5 + row * 2])
+  const out: Array<[number, number]> = [[7, 4]]
+  const aisle = [4, 6, 8, 10]
+  for (let i = 1; i < n; i++) {
+    const col = aisle[(i - 1) % aisle.length]
+    const row = i <= aisle.length ? 5 : 7
+    out.push([col, row])
   }
   return out
 }

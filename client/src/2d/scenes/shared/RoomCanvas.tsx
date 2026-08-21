@@ -137,8 +137,11 @@ export function RoomCanvas({
           deterministicAppearanceIndex(occ.org.id),
         )
         const size = 32
+        // Two-frame idle breath, phase-shifted per occupant so a full
+        // room doesn't bob in unison.
+        const bob = Math.sin(time * 0.0035 + i * 1.7) > 0 ? 0 : -1
         const dx = px - size / 2
-        const dy = py - 16
+        const dy = py - 16 + bob
         const isSelected = occ.org.id === selectedOrgId
         const isHovered = occ.org.id === hoveredId
 

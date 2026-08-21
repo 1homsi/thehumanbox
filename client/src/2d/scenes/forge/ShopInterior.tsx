@@ -40,6 +40,8 @@ const PALETTES: Record<string, RoomPalette> = {
   },
 }
 
+// Workstations sit on row 5 (anvil/forge fire/oven/table/sacks);
+// workers stand at rows 4 and 7 so nobody overlaps a fixture.
 function slotsFor(n: number): Array<[number, number]> {
   if (n === 0) return []
   if (n === 1) return [[7, 6]]
@@ -56,9 +58,9 @@ function slotsFor(n: number): Array<[number, number]> {
     ]
   const out: Array<[number, number]> = []
   for (let i = 0; i < n; i++) {
-    const col = i % 4
-    const row = Math.floor(i / 4)
-    out.push([4 + col * 2, 5 + row * 2])
+    const col = 4 + (i % 4) * 2
+    const row = i < 4 ? 4 : 7
+    out.push([col, row])
   }
   return out
 }

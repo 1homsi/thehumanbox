@@ -20,6 +20,8 @@ const PALETTE: RoomPalette = {
   outside: '#1a1208',
 }
 
+// Huts occupy (1,7) and (11,7); the square fire burns at (6,5).
+// Keep occupants between the fixtures.
 function slotsFor(n: number): Array<[number, number]> {
   if (n === 0) return []
   if (n === 1) return [[7, 6]]
@@ -39,13 +41,13 @@ function slotsFor(n: number): Array<[number, number]> {
       [4, 6],
       [6, 7],
       [9, 6],
-      [11, 7],
+      [10, 5],
     ]
   const out: Array<[number, number]> = []
   for (let i = 0; i < n; i++) {
-    const col = i % 5
-    const row = Math.floor(i / 5)
-    out.push([3 + col * 2, 5 + row * 2])
+    const col = 3 + (i % 4) * 2
+    const row = i < 4 ? 5 : 7
+    out.push([col, row])
   }
   return out
 }

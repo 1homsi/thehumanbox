@@ -2,14 +2,7 @@ import { useEffect, useRef } from 'react'
 import { drawPeopleTile, pickHumanSprite } from '../../../utils/sprites'
 import type { SceneContext } from '../../../scenes/core/types'
 import { deterministicAppearanceIndex, resolveAgeStage } from '../../world/character-visuals'
-import {
-  TILE_PX,
-  SCALE,
-  CANVAS_W,
-  CANVAS_H,
-  ROOM_COLS,
-  ROOM_ROWS,
-} from '../shared/RoomCanvas'
+import { TILE_PX, SCALE, CANVAS_W, CANVAS_H, ROOM_COLS, ROOM_ROWS } from '../shared/RoomCanvas'
 import {
   drawHostRing,
   drawHoverRing,
@@ -161,6 +154,9 @@ function eraOf(world: SceneContext['world'], lid: string): string {
   return (raw as Record<string, string> | undefined)?.[lid] ?? 'pre-stone'
 }
 
+// The table (later eras) spans cols 5-7, rows 6-7; the bench sits at
+// cols 9-11 row 7 and the hearth at cols 2-3 rows 7-8. Keep occupants
+// on the clear middle band.
 function occupantSlots(n: number): Array<[number, number]> {
   if (n === 0) return []
   if (n === 1) return [[7, 5]]
@@ -172,21 +168,21 @@ function occupantSlots(n: number): Array<[number, number]> {
   if (n === 3)
     return [
       [4, 5],
-      [7, 6],
+      [7, 5],
       [10, 5],
     ]
   if (n === 4)
     return [
       [4, 5],
-      [6, 6],
+      [6, 5],
       [9, 6],
       [11, 5],
     ]
   const out: Array<[number, number]> = []
   for (let i = 0; i < n; i++) {
-    const col = i % 5
-    const row = Math.floor(i / 5)
-    out.push([3 + col * 2, 5 + row * 2])
+    const col = 4 + (i % 5) * 2
+    const row = i < 5 ? 5 : 8
+    out.push([col, row])
   }
   return out
 }
@@ -414,8 +410,10 @@ export function HomeCanvas({ ctx: sceneCtx, selectedOrgId, onSelectOrg }: Props)
           deterministicAppearanceIndex(occ.org.id),
         )
         const size = 32
+        // Two-frame idle breath, phase-shifted per occupant.
+        const bob = Math.sin(time * 0.0035 + i * 1.7) > 0 ? 0 : -1
         const dx = px - size / 2
-        const dy = py - 16
+        const dy = py - 16 + bob
         const isSelected = occ.org.id === selectedOrgId
         const isHovered = occ.org.id === hoveredId
 

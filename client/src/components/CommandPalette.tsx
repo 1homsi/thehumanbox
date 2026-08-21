@@ -50,7 +50,7 @@ export function CommandPalette() {
       {
         id: 'hide-ui',
         label: viewFlags.hideUI ? 'Show UI' : 'Hide UI',
-        hint: 'immersive mode',
+        hint: 'immersive mode · H',
         run: () => setViewFlag('hideUI', !viewFlags.hideUI),
       },
     ]
