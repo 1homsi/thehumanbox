@@ -316,7 +316,10 @@ pub async fn list_worlds_handler() -> impl IntoResponse {
 }
 
 pub async fn world_meta_handler(Path(hash): Path<String>) -> Result<impl IntoResponse, StatusCode> {
-    let meta = crate::server::world_archive::read_world_meta(&hash).ok_or(StatusCode::NOT_FOUND)?;
+    let meta = tokio::task::spawn_blocking(move || crate::server::world_archive::read_world_meta(&hash))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::NOT_FOUND)?;
     Ok((
         [(
             axum::http::header::CACHE_CONTROL,
@@ -334,7 +337,10 @@ pub async fn world_save_handler(Path(hash): Path<String>) -> Result<impl IntoRes
         return Err(StatusCode::BAD_REQUEST);
     }
     let path = crate::server::world_store::world_save_path(&hash);
-    let bytes = std::fs::read(&path).map_err(|_| StatusCode::NOT_FOUND)?;
+    // Saves grow with the world; keep the multi-MB read off the reactor.
+    let bytes = tokio::task::spawn_blocking(move || std::fs::read(&path).map_err(|_| StatusCode::NOT_FOUND))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)??;
     Ok((
         [
             (axum::http::header::CONTENT_TYPE, "application/json".to_string()),
@@ -352,7 +358,10 @@ pub async fn world_save_handler(Path(hash): Path<String>) -> Result<impl IntoRes
 }
 
 pub async fn world_snapshot_handler(Path(hash): Path<String>) -> Result<impl IntoResponse, StatusCode> {
-    let bytes = crate::server::world_archive::read_world_snapshot(&hash).ok_or(StatusCode::NOT_FOUND)?;
+    let bytes = tokio::task::spawn_blocking(move || crate::server::world_archive::read_world_snapshot(&hash))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::NOT_FOUND)?;
     Ok((
         [
             (
@@ -397,8 +406,12 @@ pub async fn org_detail_handler(
         (org.to_detail_json(), needs_fallback)
     };
     if was_dead_with_empty_memories && detail.memories.is_empty() {
-        if let Some(ws) = s.world_store.as_ref() {
-            if let Ok(rows) = ws.load_memories_for(&id, 20) {
+        if let Some(ws) = s.world_store.clone() {
+            // rusqlite behind a std Mutex; query off the reactor.
+            if let Ok(rows) = tokio::task::spawn_blocking(move || ws.load_memories_for(&id, 20))
+                .await
+                .unwrap_or(Ok(Vec::new()))
+            {
                 detail.memories = rows
                     .into_iter()
                     .map(|m| crate::organism::organism::MemoryJson {
@@ -467,8 +480,12 @@ pub async fn org_life_handler(
         (org.to_life_json(), needs_fallback)
     };
     if was_dead_with_empty_memories && life.memories.is_empty() {
-        if let Some(ws) = s.world_store.as_ref() {
-            if let Ok(rows) = ws.load_memories_for(&id, 20) {
+        if let Some(ws) = s.world_store.clone() {
+            // rusqlite behind a std Mutex; query off the reactor.
+            if let Ok(rows) = tokio::task::spawn_blocking(move || ws.load_memories_for(&id, 20))
+                .await
+                .unwrap_or(Ok(Vec::new()))
+            {
                 life.memories = rows
                     .into_iter()
                     .map(|m| crate::organism::organism::MemoryJson {
