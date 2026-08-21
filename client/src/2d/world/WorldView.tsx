@@ -300,14 +300,6 @@ let _imgBuf: ImageData | null = null
 let _baseCanvas: HTMLCanvasElement | null = null
 let _ruinedBuildingSource: WorldState['buildings']
 let _ruinedBuildingTiles = new Set<string>()
-// Shore-foam geometry is fully determined by the terrain grid, so it is
-// baked into Path2Ds once per terrain rebuild instead of rescanning
-// every tile twice per frame (that scan alone touched 360k+ tiles/frame
-// on the 600x300 world).
-interface FoamPaths {
-  thin: Path2D
-  thick: Path2D[]
-}
 let _baseKey: {
   width: number
   height: number
@@ -318,62 +310,7 @@ let _baseKey: {
   biomes?: number[][]
   depth_map?: number[][]
   season?: string
-  foam?: FoamPaths
 } | null = null
-
-// Hut tiles are terrain-derived too; cache the positions per tiles array
-// so the settlement-ring pass stops rescanning all 180k tiles per frame.
-let _hutSource: number[][] | null = null
-let _hutTiles: Array<[number, number]> = []
-function hutTileList(tiles: number[][]): Array<[number, number]> {
-  if (tiles === _hutSource) return _hutTiles
-  const out: Array<[number, number]> = []
-  for (let row = 0; row < tiles.length; row++) {
-    const tr = tiles[row]
-    if (!tr) continue
-    for (let col = 0; col < tr.length; col++) {
-      if (tr[col] === TILE_ID.HUT) out.push([col, row])
-    }
-  }
-  _hutSource = tiles
-  _hutTiles = out
-  return out
-}
-
-function buildFoamPaths(tiles: number[][], width: number, height: number): FoamPaths {
-  const thin = new Path2D()
-  const thick = [new Path2D(), new Path2D(), new Path2D(), new Path2D()]
-  for (let row = 0; row < height; row++) {
-    for (let col = 0; col < width; col++) {
-      const shore = permanentWaterLandEdgeMask(tiles, row, col)
-      if (shore === 0) continue
-      const px = col * TILE
-      const py = row * TILE
-      // Same hash the animated pulse used, bucketed four ways so the
-      // shimmer keeps its spatial variety with four fills per frame.
-      let h = (col * 374761393 + row * 668265263) | 0
-      h = ((h ^ (h >>> 13)) * 1274126177) >>> 0
-      const tp = thick[h & 3]
-      if (shore & EDGE_NORTH) {
-        thin.rect(px, py, TILE, 1)
-        tp.rect(px, py, TILE, 2)
-      }
-      if (shore & EDGE_SOUTH) {
-        thin.rect(px, py + TILE - 1, TILE, 1)
-        tp.rect(px, py + TILE - 2, TILE, 2)
-      }
-      if (shore & EDGE_EAST) {
-        thin.rect(px + TILE - 1, py, 1, TILE)
-        tp.rect(px + TILE - 2, py, 2, TILE)
-      }
-      if (shore & EDGE_WEST) {
-        thin.rect(px, py, 1, TILE)
-        tp.rect(px, py, 2, TILE)
-      }
-    }
-  }
-  return { thin, thick }
-}
 
 function ruinedBuildingTiles(buildings: WorldState['buildings']): ReadonlySet<string> {
   if (buildings === _ruinedBuildingSource) return _ruinedBuildingTiles
