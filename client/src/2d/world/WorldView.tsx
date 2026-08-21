@@ -300,7 +300,15 @@ let _imgBuf: ImageData | null = null
 let _baseCanvas: HTMLCanvasElement | null = null
 let _ruinedBuildingSource: WorldState['buildings']
 let _ruinedBuildingTiles = new Set<string>()
-let _baseKey: {
+// Shore-foam geometry is fully determined by the terrain grid, so it is
+// baked into Path2Ds once per terrain rebuild instead of rescanning
+// every tile twice per frame (that scan alone touched 360k+ tiles/frame
+// on the 600x300 world).
+interface FoamPaths {
+  thin: Path2D
+  thick: Path2D[]
+}
+interface BaseLayerKey {
   width: number
   height: number
   origin_x: number
@@ -310,7 +318,99 @@ let _baseKey: {
   biomes?: number[][]
   depth_map?: number[][]
   season?: string
-} | null = null
+  foam?: FoamPaths
+}
+let _baseKey: BaseLayerKey | null = null
+
+// Hut tiles are terrain-derived too; cache the positions per tiles array
+// so the settlement-ring pass stops rescanning all 180k tiles per frame.
+let _hutSource: number[][] | null = null
+let _hutTiles: Array<[number, number]> = []
+function hutTileList(tiles: number[][]): Array<[number, number]> {
+  if (tiles === _hutSource) return _hutTiles
+  const out: Array<[number, number]> = []
+  for (let row = 0; row < tiles.length; row++) {
+    const tr = tiles[row]
+    if (!tr) continue
+    for (let col = 0; col < tr.length; col++) {
+      if (tr[col] === TILE_ID.HUT) out.push([col, row])
+    }
+  }
+  _hutSource = tiles
+  _hutTiles = out
+  return out
+}
+
+interface HutCluster {
+  cx: number
+  cy: number
+  count: number
+}
+let _hutClusterSource: Array<[number, number]> | null = null
+let _hutClusters: HutCluster[] = []
+function cachedHutClusters(hutPositions: Array<[number, number]>): HutCluster[] {
+  if (hutPositions === _hutClusterSource) return _hutClusters
+  const clusters: HutCluster[] = []
+  const usedInCluster = new Set<number>()
+  for (let i = 0; i < hutPositions.length; i++) {
+    if (usedInCluster.has(i)) continue
+    const [hx, hy] = hutPositions[i]
+    const cluster = [i]
+    for (let j = i + 1; j < hutPositions.length; j++) {
+      const [jx, jy] = hutPositions[j]
+      const d2 = (hx - jx) ** 2 + (hy - jy) ** 2
+      if (d2 < 64) {
+        cluster.push(j)
+        usedInCluster.add(j)
+      }
+    }
+    usedInCluster.add(i)
+    if (cluster.length < 3) continue
+    clusters.push({
+      cx: cluster.reduce((s, k) => s + hutPositions[k][0], 0) / cluster.length,
+      cy: cluster.reduce((s, k) => s + hutPositions[k][1], 0) / cluster.length,
+      count: cluster.length,
+    })
+  }
+  _hutClusterSource = hutPositions
+  _hutClusters = clusters
+  return clusters
+}
+
+function buildFoamPaths(tiles: number[][], width: number, height: number): FoamPaths {
+  const thin = new Path2D()
+  const thick = [new Path2D(), new Path2D(), new Path2D(), new Path2D()]
+  for (let row = 0; row < height; row++) {
+    for (let col = 0; col < width; col++) {
+      const shore = permanentWaterLandEdgeMask(tiles, row, col)
+      if (shore === 0) continue
+      const px = col * TILE
+      const py = row * TILE
+      // Same hash the animated pulse used, bucketed four ways so the
+      // shimmer keeps its spatial variety with four fills per frame.
+      let h = (col * 374761393 + row * 668265263) | 0
+      h = ((h ^ (h >>> 13)) * 1274126177) >>> 0
+      const tp = thick[h & 3]
+      if (shore & EDGE_NORTH) {
+        thin.rect(px, py, TILE, 1)
+        tp.rect(px, py, TILE, 2)
+      }
+      if (shore & EDGE_SOUTH) {
+        thin.rect(px, py + TILE - 1, TILE, 1)
+        tp.rect(px, py + TILE - 2, TILE, 2)
+      }
+      if (shore & EDGE_EAST) {
+        thin.rect(px + TILE - 1, py, 1, TILE)
+        tp.rect(px + TILE - 2, py, 2, TILE)
+      }
+      if (shore & EDGE_WEST) {
+        thin.rect(px, py, 1, TILE)
+        tp.rect(px, py, 2, TILE)
+      }
+    }
+  }
+  return { thin, thick }
+}
 
 function ruinedBuildingTiles(buildings: WorldState['buildings']): ReadonlySet<string> {
   if (buildings === _ruinedBuildingSource) return _ruinedBuildingTiles
@@ -515,6 +615,164 @@ function baseLayerMatches(
   )
 }
 
+// Downscaled copy of the base terrain, rebuilt only when the terrain or
+// the render scale changes. Drawing this 1:1 each frame is far cheaper
+// than having the browser rescale the full 4800x2400 base every frame.
+let _scaledBase: {
+  key: BaseLayerKey
+  scale: number
+  canvas: HTMLCanvasElement
+} | null = null
+
+function getScaledBase(scale: number): HTMLCanvasElement | null {
+  const baseCanvas = _baseCanvas
+  const key = _baseKey
+  if (!baseCanvas || !key) return null
+  if (_scaledBase && _scaledBase.key === key && _scaledBase.scale === scale) {
+    return _scaledBase.canvas
+  }
+  const w = Math.max(1, Math.round(baseCanvas.width * scale))
+  const h = Math.max(1, Math.round(baseCanvas.height * scale))
+  const canvas =
+    _scaledBase && _scaledBase.canvas.width === w && _scaledBase.canvas.height === h
+      ? _scaledBase.canvas
+      : document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')!
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'low'
+  ctx.drawImage(baseCanvas, 0, 0, w, h)
+  _scaledBase = { key, scale, canvas }
+  return canvas
+}
+
+// Food patches and mineral outcrops only change when the terrain grid
+// changes (full frames), but the naive loop was issuing ~6 fillRects
+// per food tile EVERY FRAME - profiling showed 300k fillRects/frame on
+// an ocean-heavy world. Bake them into a scaled overlay once per
+// (terrain, scale) and blit it like the base layer.
+let _tileDecor: {
+  key: BaseLayerKey
+  scale: number
+  canvas: HTMLCanvasElement
+} | null = null
+function getTileDecorLayer(scale: number): HTMLCanvasElement | null {
+  const key = _baseKey
+  if (!key) return null
+  if (_tileDecor && _tileDecor.key === key && _tileDecor.scale === scale) {
+    return _tileDecor.canvas
+  }
+  const w = Math.max(1, Math.round(key.width * TILE * scale))
+  const h = Math.max(1, Math.round(key.height * TILE * scale))
+  const canvas =
+    _tileDecor && _tileDecor.canvas.width === w && _tileDecor.canvas.height === h
+      ? _tileDecor.canvas
+      : document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')!
+  ctx.setTransform(scale, 0, 0, scale, 0, 0)
+  ctx.clearRect(0, 0, key.width * TILE, key.height * TILE)
+  ctx.imageSmoothingEnabled = false
+  const tiles = key.tiles
+  const ox = key.origin_x
+  const oy = key.origin_y
+  for (let row = 0; row < key.height; row++) {
+    const tileRow = tiles[row]
+    if (!tileRow) continue
+    for (let col = 0; col < key.width; col++) {
+      const tile = tileRow[col]
+      if (tile !== TILE_ID.FOOD && tile !== TILE_ID.MINERAL) continue
+      const seed = visualTileHash(col + ox, row + oy)
+      const px = col * TILE
+      const py = row * TILE
+      if (tile === TILE_ID.FOOD) drawFoodPatch(ctx, px, py, seed)
+      else drawMineralOutcrop(ctx, px, py, seed)
+    }
+  }
+  _tileDecor = { key, scale, canvas }
+  return canvas
+}
+
+// Ocean shimmer + night star-glints: same story as food tiles. The
+// dynamic loops issued thousands of 2x1 fillRects per frame over open
+// water. Bake both into half-resolution layers (they're 1-2px dots;
+// softness is invisible) and animate with two cheap alpha-blended
+// blits. Zoomed-in frames keep the original per-tile loops - bounds
+// make them tiny there.
+interface WaterFxLayers {
+  key: BaseLayerKey
+  scale: number
+  shimmer: HTMLCanvasElement
+  stars: HTMLCanvasElement
+}
+let _waterFx: WaterFxLayers | null = null
+function getWaterFxLayers(scale: number): WaterFxLayers | null {
+  const key = _baseKey
+  if (!key) return null
+  if (_waterFx && _waterFx.key === key && _waterFx.scale === scale) return _waterFx
+  const s = Math.max(0.05, scale / 2)
+  const w = Math.max(1, Math.round(key.width * TILE * s))
+  const h = Math.max(1, Math.round(key.height * TILE * s))
+  const make = (prev: HTMLCanvasElement | null): HTMLCanvasElement => {
+    const c = prev && prev.width === w && prev.height === h ? prev : document.createElement('canvas')
+    c.width = w
+    c.height = h
+    return c
+  }
+  const prevShimmer = _waterFx?.shimmer ?? null
+  const prevStars = _waterFx?.stars ?? null
+  const shimmer = make(prevShimmer)
+  const stars = make(prevStars)
+  const shCtx = shimmer.getContext('2d')!
+  const stCtx = stars.getContext('2d')!
+  shCtx.setTransform(1, 0, 0, 1, 0, 0)
+  shCtx.clearRect(0, 0, w, h)
+  stCtx.setTransform(1, 0, 0, 1, 0, 0)
+  stCtx.clearRect(0, 0, w, h)
+  shCtx.fillStyle = 'rgba(180,230,255,1)'
+  stCtx.fillStyle = 'rgba(255,255,255,1)'
+  const tiles = key.tiles
+  const dm = key.depth_map
+  for (let row = 0; row < key.height; row++) {
+    const tileRow = tiles[row]
+    if (!tileRow) continue
+    for (let col = 0; col < key.width; col++) {
+      const d = permanentWaterDepth(tileRow[col], dm?.[row]?.[col])
+      if (d === null) continue
+      let hash = (col * 374761393 + row * 668265263) | 0
+      hash = ((hash ^ (hash >>> 13)) * 1274126177) >>> 0
+      const px = (col * TILE + ((hash >>> 8) & 3)) * s
+      const py = (row * TILE + ((hash >>> 10) & 3)) * s
+      const pw = Math.max(1, Math.round(2 * s))
+      const ph = Math.max(1, Math.round(1 * s))
+      // ~25% of deep-water tiles sparkle; ~6% of all water glints.
+      if (d >= 180 && ((hash >>> 12) & 7) < 2) shCtx.fillRect(px, py, pw, ph)
+      if (((hash >>> 15) & 15) === 0) stCtx.fillRect(px, py, pw, ph)
+    }
+  }
+  _waterFx = { key, scale, shimmer, stars }
+  return _waterFx
+}
+
+// The dynamic canvas used to be world-sized (4800x2400 for the 600x300
+// grid) and its entire bitmap was re-uploaded to the GPU every frame -
+// tens of MB of texture traffic per frame that capped rendering at
+// slideshow framerates. The engine samples the texture linearly anyway,
+// so we render into a canvas sized for what the screen can actually
+// show at the current camera zoom. Quantized to 1/8 steps so pinch-
+// zooming doesn't thrash canvas/texture reallocation every frame.
+function pickRenderScale(zoom: number, lowPerf: boolean): number {
+  if (!Number.isFinite(zoom) || zoom <= 0) return 1
+  const dpr = Math.min(2, window.devicePixelRatio || 1)
+  const needed = zoom * dpr
+  if (needed >= 1) return 1
+  const stepped = Math.ceil(needed * 8) / 8
+  const floor = lowPerf ? 0.5 : 0.25
+  return Math.min(1, Math.max(floor, stepped))
+}
+
 function vnHash(x: number, y: number): number {
   let h = (x * 374761393 + y * 668265263) | 0
   h = ((h ^ (h >>> 13)) * 1274126177) | 0
@@ -716,6 +974,7 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
     biomes,
     depth_map,
     season,
+    foam: buildFoamPaths(tiles, width, height),
   }
   return canvas
 }
@@ -729,6 +988,7 @@ function drawWorldOnCanvas(
   viewFlags: ViewFlags,
   bounds?: { c0: number; c1: number; r0: number; r1: number },
   cameraZoom = 1,
+  renderScale = 1,
 ) {
   const { width, height, tiles, fire_intensity, structure } = world.grid
   const { food_trail, water_trail, path_trail, fertility, hazard } = world.grid
@@ -760,12 +1020,28 @@ function drawWorldOnCanvas(
   const W = width * TILE
   const H = height * TILE
   const t = Date.now()
+  // Zoomed-out frames skip the per-tile eye candy (fire glow gradients,
+  // hut smoke, wavelets): hundreds of gradient/particle draws over
+  // sub-2px tiles are invisible there but dominated frame time.
+  const overview = zoomDetailLevel(cameraZoom) === 'overview'
   const ruinedTiles = ruinedBuildingTiles(world.buildings)
-  ctx.imageSmoothingEnabled = false
+  // Below full resolution the frame is a minification, so bilinear
+  // filtering matches what the GPU's LINEAR texture sampling showed
+  // before; at 1:1 keep hard pixel-art edges.
+  ctx.imageSmoothingEnabled = renderScale < 1
 
   const base = getBaseLayerCanvas(world)
   if (!base) return
-  ctx.drawImage(base, 0, 0)
+  if (renderScale < 1) {
+    const scaled = getScaledBase(renderScale)
+    if (scaled) {
+      ctx.drawImage(scaled, 0, 0)
+    } else {
+      ctx.drawImage(base, 0, 0)
+    }
+  } else {
+    ctx.drawImage(base, 0, 0)
+  }
 
   const sp = world.season_progress ?? 0.5
   const seasonTints: Record<string, [number, number, number, number]> = {
@@ -857,53 +1133,54 @@ function drawWorldOnCanvas(
   }
 
   if (!world.is_day || (world.day_progress ?? 0) > 0.05) {
-    const tt = t * 0.001
-    ctx.fillStyle = world.is_day ? 'rgba(255,255,255,0.55)' : 'rgba(180,200,240,0.30)'
-    // Align to even boundaries so the star-on-water pattern stays
-    // stable as the camera pans (stride-2 sampling must visit the
-    // same cells from frame to frame).
-    for (let row = r0 & ~1; row < r1; row += 2) {
-      for (let col = c0 & ~1; col < c1; col += 2) {
-        if (!isPermanentWaterTile(tiles[row]?.[col])) continue
-        let h = (col * 374761393 + row * 668265263) | 0
-        h = ((h ^ (h >>> 13)) * 1274126177) >>> 0
-        const phase = ((h & 0xff) / 255) * Math.PI * 2
-        const blink = Math.sin(tt * 1.7 + phase) + Math.sin(tt * 0.9 + phase * 1.3)
-        if (blink < 1.3) continue
-        const px = col * TILE + ((h >>> 8) & 3)
-        const py = row * TILE + ((h >>> 10) & 3)
-        ctx.fillRect(px, py, 2, 1)
+    const waterFx = renderScale < 1 ? getWaterFxLayers(renderScale) : null
+    if (waterFx) {
+      // Baked star layer: one alpha-animated blit instead of a
+      // stride-2 scan over every water tile issuing thousands of
+      // 2x1 fillRects.
+      const blink = 0.5 + 0.5 * Math.sin(t * 0.0017)
+      ctx.globalAlpha = (world.is_day ? 0.55 : 0.42) * (0.35 + 0.65 * blink)
+      ctx.drawImage(waterFx.stars, 0, 0)
+      ctx.globalAlpha = 1
+    } else {
+      const tt = t * 0.001
+      ctx.fillStyle = world.is_day ? 'rgba(255,255,255,0.55)' : 'rgba(180,200,240,0.30)'
+      // Align to even boundaries so the star-on-water pattern stays
+      // stable as the camera pans (stride-2 sampling must visit the
+      // same cells from frame to frame).
+      for (let row = r0 & ~1; row < r1; row += 2) {
+        for (let col = c0 & ~1; col < c1; col += 2) {
+          if (!isPermanentWaterTile(tiles[row]?.[col])) continue
+          let h = (col * 374761393 + row * 668265263) | 0
+          h = ((h ^ (h >>> 13)) * 1274126177) >>> 0
+          const phase = ((h & 0xff) / 255) * Math.PI * 2
+          const blink = Math.sin(tt * 1.7 + phase) + Math.sin(tt * 0.9 + phase * 1.3)
+          if (blink < 1.3) continue
+          const px = col * TILE + ((h >>> 8) & 3)
+          const py = row * TILE + ((h >>> 10) & 3)
+          ctx.fillRect(px, py, 2, 1)
+        }
       }
     }
   }
 
+  // Shore foam: geometry is precomputed per terrain rebuild; each frame
+  // just fills the paths with animated alpha. The old version rescanned
+  // the visible grid twice per frame computing edge masks.
   {
-    const foamT = t * 0.0014
-    const fr0 = Math.max(0, r0)
-    const fr1 = Math.min(height, r1)
-    const fc0 = Math.max(0, c0)
-    const fc1 = Math.min(width, c1)
-    for (let pass = 0; pass < 2; pass++) {
-      ctx.fillStyle = pass === 0 ? 'rgba(255,255,255,0.30)' : 'rgba(255,255,255,0.55)'
-      for (let row = fr0; row < fr1; row++) {
-        for (let col = fc0; col < fc1; col++) {
-          const shore = permanentWaterLandEdgeMask(tiles, row, col)
-          if (shore === 0) continue
-          if (pass === 1) {
-            let h = (col * 374761393 + row * 668265263) | 0
-            h = ((h ^ (h >>> 13)) * 1274126177) >>> 0
-            const pulse = Math.sin(foamT + ((h & 0xff) / 255) * Math.PI * 2)
-            if (pulse < 0.25) continue
-          }
-          const px = col * TILE
-          const py = row * TILE
-          const th = pass === 1 ? 2 : 1
-          if (shore & EDGE_NORTH) ctx.fillRect(px, py, TILE, th)
-          if (shore & EDGE_SOUTH) ctx.fillRect(px, py + TILE - th, TILE, th)
-          if (shore & EDGE_EAST) ctx.fillRect(px + TILE - th, py, th, TILE)
-          if (shore & EDGE_WEST) ctx.fillRect(px, py, th, TILE)
-        }
+    const foam = _baseKey?.foam
+    if (foam) {
+      ctx.fillStyle = '#ffffff'
+      ctx.globalAlpha = 0.3
+      ctx.fill(foam.thin)
+      const foamT = t * 0.0014
+      for (let bucket = 0; bucket < foam.thick.length; bucket++) {
+        const pulse = Math.sin(foamT + (bucket * Math.PI) / 2)
+        if (pulse <= 0.25) continue
+        ctx.globalAlpha = 0.55 * Math.min(1, (pulse - 0.25) / 0.75)
+        ctx.fill(foam.thick[bucket])
       }
+      ctx.globalAlpha = 1
     }
   }
 
@@ -911,22 +1188,32 @@ function drawWorldOnCanvas(
   {
     const dm = world.grid.depth_map
     const shimmerT = t * 0.0015
-    ctx.fillStyle = 'rgba(180,230,255,0.28)'
-    for (let row = r0; row < r1; row++) {
-      for (let col = c0; col < c1; col++) {
-        const d = permanentWaterDepth(tiles[row]?.[col], dm?.[row]?.[col])
-        if (d === null || d < 180) continue
-        let h = (col * 374761393 + row * 668265263) | 0
-        h = ((h ^ (h >>> 13)) * 1274126177) >>> 0
-        const pulse = Math.sin(shimmerT * 2.1 + ((h & 0xff) / 255) * Math.PI * 2)
-        if (pulse < 0.6) continue
-        ctx.fillRect(col * TILE + ((h >>> 8) & 3), row * TILE + ((h >>> 10) & 3), 2, 1)
+    const waterFx = renderScale < 1 ? getWaterFxLayers(renderScale) : null
+    if (waterFx) {
+      // Baked shimmer layer: one blit instead of a full-grid scan
+      // issuing a fillRect for every pulsing deep-water tile.
+      const pulse = 0.5 + 0.5 * Math.sin(shimmerT * 2.1)
+      ctx.globalAlpha = 0.28 * (0.3 + 0.7 * pulse)
+      ctx.drawImage(waterFx.shimmer, 0, 0)
+      ctx.globalAlpha = 1
+    } else {
+      ctx.fillStyle = 'rgba(180,230,255,0.28)'
+      for (let row = r0; row < r1; row++) {
+        for (let col = c0; col < c1; col++) {
+          const d = permanentWaterDepth(tiles[row]?.[col], dm?.[row]?.[col])
+          if (d === null || d < 180) continue
+          let h = (col * 374761393 + row * 668265263) | 0
+          h = ((h ^ (h >>> 13)) * 1274126177) >>> 0
+          const pulse = Math.sin(shimmerT * 2.1 + ((h & 0xff) / 255) * Math.PI * 2)
+          if (pulse < 0.6) continue
+          ctx.fillRect(col * TILE + ((h >>> 8) & 3), row * TILE + ((h >>> 10) & 3), 2, 1)
+        }
       }
     }
 
     // Integer-aligned wavelets stay within the camera window instead of
     // scanning and antialiasing paths across the whole world.
-    if (!LOW_PERF) {
+    if (!LOW_PERF && !overview) {
       ctx.fillStyle = 'rgba(140,200,240,0.2)'
       const wavePhase = Math.floor(shimmerT * 3)
       for (let row = r0; row < r1; row += 2) {
@@ -944,10 +1231,20 @@ function drawWorldOnCanvas(
     }
   }
 
+  // Food patches and minerals are baked per (terrain, scale); zoomed-out
+  // frames blit that layer and only iterate for the animated tiles
+  // (fire/campfire/hut). The naive loop was ~6 fillRects per food tile
+  // every frame - hundreds of thousands of calls on grown worlds.
+  const bakedDecor = renderScale < 1 ? getTileDecorLayer(renderScale) : null
+  if (bakedDecor) ctx.drawImage(bakedDecor, 0, 0)
   for (let row = r0; row < r1; row++) {
     for (let col = c0; col < c1; col++) {
       const tile = tiles[row][col]
-      if (
+      if (bakedDecor) {
+        if (tile !== TILE_ID.FIRE && tile !== TILE_ID.CAMPFIRE && tile !== TILE_ID.HUT) {
+          continue
+        }
+      } else if (
         tile !== TILE_ID.FOOD &&
         tile !== TILE_ID.FIRE &&
         tile !== TILE_ID.CAMPFIRE &&
@@ -960,18 +1257,18 @@ function drawWorldOnCanvas(
       const py = row * TILE
       const seed = visualTileHash(col + ox, row + oy)
 
-      if (tile === TILE_ID.FOOD) {
+      if (!bakedDecor && tile === TILE_ID.FOOD) {
         drawFoodPatch(ctx, px, py, seed)
       }
 
-      if (tile === TILE_ID.MINERAL) {
+      if (!bakedDecor && tile === TILE_ID.MINERAL) {
         drawMineralOutcrop(ctx, px, py, seed)
       }
 
       if (tile === TILE_ID.FIRE || tile === TILE_ID.CAMPFIRE) {
         const fi = fire_intensity?.[row]?.[col] ?? 1
         const isCampfire = tile === TILE_ID.CAMPFIRE
-        if (!world.is_day) {
+        if (!world.is_day && !overview) {
           const fcx = px + TILE / 2
           const fcy = py + TILE / 2
           const flicker = 0.88 + Math.sin(t * 0.011 + col * 3.1 + row * 1.7) * 0.12
@@ -1007,7 +1304,7 @@ function drawWorldOnCanvas(
           )
         }
         const now = Date.now()
-        const smokeAlpha = !world.is_day ? 0.25 : 0
+        const smokeAlpha = !world.is_day && !overview ? 0.25 : 0
         if (smokeAlpha > 0) {
           for (let s = 0; s < 3; s++) {
             const phase = (now * 0.0008 + s * 0.4) % 1
@@ -1025,40 +1322,21 @@ function drawWorldOnCanvas(
     }
   }
 
-  // Settlement markers: draw a subtle ring around clusters of 3+ huts
+  // Settlement markers: draw a subtle ring around clusters of 3+ huts.
+  // Hut tile positions are cached per terrain grid, and the clustering
+  // itself (an O(n^2) scan) is cached with them - only the ring drawing
+  // is animated per frame.
   {
-    const hutPositions: [number, number][] = []
-    for (let row = r0; row < r1; row++) {
-      const tr = tiles[row]
-      if (!tr) continue
-      for (let col = c0; col < c1; col++) {
-        if (tr[col] === 8) hutPositions.push([col, row])
-      }
-    }
+    const hutPositions = hutTileList(tiles)
     if (hutPositions.length >= 3) {
-      const usedInCluster = new Set<number>()
-      for (let i = 0; i < hutPositions.length; i++) {
-        if (usedInCluster.has(i)) continue
-        const [hx, hy] = hutPositions[i]
-        const cluster = [i]
-        for (let j = i + 1; j < hutPositions.length; j++) {
-          const [jx, jy] = hutPositions[j]
-          const d2 = (hx - jx) ** 2 + (hy - jy) ** 2
-          if (d2 < 64) {
-            cluster.push(j)
-            usedInCluster.add(j)
-          }
-        }
-        usedInCluster.add(i)
-        if (cluster.length < 3) continue
-        const cx2 = cluster.reduce((s, k) => s + hutPositions[k][0], 0) / cluster.length
-        const cy2 = cluster.reduce((s, k) => s + hutPositions[k][1], 0) / cluster.length
-        const r2 = Math.sqrt(cluster.length) * TILE * 2.2 + TILE * 3
+      const clusters = cachedHutClusters(hutPositions)
+      for (const { cx: cx2, cy: cy2, count: clusterLength } of clusters) {
+        const r2 = Math.sqrt(clusterLength) * TILE * 2.2 + TILE * 3
         const px2 = cx2 * TILE + TILE / 2
         const py2 = cy2 * TILE + TILE / 2
         ctx.save()
         // Settlement ring
-        ctx.strokeStyle = `rgba(200,170,80,${Math.min(0.45, 0.2 + cluster.length * 0.04)})`
+        ctx.strokeStyle = `rgba(200,170,80,${Math.min(0.45, 0.2 + clusterLength * 0.04)})`
         ctx.lineWidth = 1.2
         ctx.setLineDash([4, 3])
         ctx.beginPath()
@@ -1066,7 +1344,7 @@ function drawWorldOnCanvas(
         ctx.stroke()
         ctx.setLineDash([])
         // Town hall icon for large settlements (5+ huts)
-        if (cluster.length >= 5) {
+        if (clusterLength >= 5) {
           const TH = TILE * 3.5 // town hall icon size
           const tx = px2 - TH / 2
           const ty = py2 - TH / 2
@@ -1818,6 +2096,39 @@ function drawWorldOnCanvas(
   }
 
   const characterDetail = zoomDetailLevel(cameraZoom)
+  // Batch every organism shadow into two paths (focused / dimmed) so the
+  // whole population costs two fills instead of hundreds of separate
+  // beginPath/ellipse/fill draw calls per frame.
+  {
+    const focusedShadows = new Path2D()
+    const dimShadows = new Path2D()
+    let any = false
+    for (const org of organisms) {
+      if (!org.alive) continue
+      if (org.home_x && org.home_y) {
+        const ddx = org.x - org.home_x
+        const ddy = org.y - org.home_y
+        if (ddx * ddx + ddy * ddy < 2.0) {
+          if ((org.sleep_debt ?? 0) > 0.4 || org.energy < 0.1 || org.health < 0.15) continue
+        }
+      }
+      const px = (org.x - ox) * TILE + TILE / 2
+      const py = (org.y - oy) * TILE + TILE / 2
+      const variant = orgVariant(org.id)
+      const bodyR = variant.bodyRadius * (org.sex === 'male' ? 1.05 : 0.95)
+      const spriteSize = Math.round(Math.max(19, bodyR * 3.8))
+      const target = isFocused(org) ? focusedShadows : dimShadows
+      target.ellipse(px + 1, py + spriteSize * 0.2, spriteSize * 0.27, spriteSize * 0.1, 0, 0, Math.PI * 2)
+      any = true
+    }
+    if (any) {
+      ctx.fillStyle = 'rgba(0,0,0,0.4)'
+      ctx.globalAlpha = 0.12
+      ctx.fill(dimShadows)
+      ctx.globalAlpha = 1
+      ctx.fill(focusedShadows)
+    }
+  }
   for (const org of organisms) {
     if (!org.alive) continue
     // Data-driven house entry: use actual sleep_debt, energy, health fields - no text matching
@@ -1843,11 +2154,6 @@ function drawWorldOnCanvas(
     const spriteSize = Math.round(Math.max(19, bodyR * 3.8))
     const spriteTop = py - spriteSize * 0.78
     ctx.globalAlpha = focused ? 1 : 0.12
-
-    ctx.fillStyle = 'rgba(0,0,0,0.4)'
-    ctx.beginPath()
-    ctx.ellipse(px + 1, py + spriteSize * 0.2, spriteSize * 0.27, spriteSize * 0.1, 0, 0, Math.PI * 2)
-    ctx.fill()
 
     const isSignaling = org.thought.startsWith('"') || org.thought.startsWith("'")
     if (standardDetail && (isSignaling || org.thought === 'sounding alarm')) {
@@ -2205,12 +2511,17 @@ function WorldSprite({
 
   const W = world.grid.width * TILE
   const H = world.grid.height * TILE
-  const dyn = useDynamicCanvas(W, H)
+  const [renderScale, setRenderScale] = useState(1)
+  const renderScaleRef = useRef(1)
+  // Even dimensions keep the pixel-art grid aligned when scaled.
+  const dynW = Math.max(TILE, Math.round((W * renderScale) / 2) * 2)
+  const dynH = Math.max(TILE, Math.round((H * renderScale) / 2) * 2)
+  const dyn = useDynamicCanvas(dynW, dynH)
 
   const hasDrawn = useRef(false)
   const cachedDepth = useRef<number[][] | null>(null)
   const cachedBiomes = useRef<number[][] | null>(null)
-  const filledOnce = useRef(false)
+  const filledDynId = useRef<string | null>(null)
   const orgInterpCache = useRef<OrgInterpCache>({
     source: null,
     prevSource: null,
@@ -2227,12 +2538,12 @@ function WorldSprite({
   })
 
   useLayoutEffect(() => {
-    if (filledOnce.current) return
+    if (filledDynId.current === dyn.id) return
+    filledDynId.current = dyn.id
     dyn.ctx.fillStyle = '#1a4a80'
-    dyn.ctx.fillRect(0, 0, W, H)
+    dyn.ctx.fillRect(0, 0, dynW, dynH)
     dyn.markDirty()
-    filledOnce.current = true
-  }, [dyn, W, H])
+  }, [dyn, dynW, dynH])
 
   const worldRef = useRef<WorldState | null>(world)
   const selectedOrgIdRef = useRef<string | null>(selectedOrgId)
@@ -2289,6 +2600,14 @@ function WorldSprite({
           : 1
 
       const renderZoom = cameraStateRef?.current.zoom ?? 1
+      // Adapt canvas resolution to the camera: zoomed-out views need a
+      // fraction of the world-sized bitmap, so skip uploading pixels the
+      // screen can't display anyway.
+      const targetScale = pickRenderScale(renderZoom, LOW_PERF)
+      if (targetScale !== renderScaleRef.current) {
+        renderScaleRef.current = targetScale
+        setRenderScale(targetScale)
+      }
       const detailBucket = zoomDetailLevel(renderZoom)
       const uiKey = `${selectedOrgIdRef.current ?? ''}|${overlayRef.current ?? ''}|${focusRef.current}|${viewFlagsRef.current.territory ? 't' : ''}${viewFlagsRef.current.names ? 'n' : ''}${viewFlagsRef.current.thoughts ? 'h' : ''}${viewFlagsRef.current.animals ? 'a' : ''}${viewFlagsRef.current.grid ? 'g' : ''}|${detailBucket}`
       const settled =
@@ -2397,6 +2716,8 @@ function WorldSprite({
         if (c1 > c0 && r1 > r0) bounds = { c0, c1, r0, r1 }
       }
 
+      const scale = renderScaleRef.current
+      dyn.ctx.setTransform(scale, 0, 0, scale, 0, 0)
       drawWorldOnCanvas(
         dyn.ctx,
         enrichedWorld,
@@ -2406,6 +2727,7 @@ function WorldSprite({
         viewFlagsRef.current,
         bounds,
         renderZoom,
+        scale,
       )
       dyn.markDirty()
 
@@ -2426,6 +2748,13 @@ function WorldSprite({
       _imgBuf = null
       _baseCanvas = null
       _baseKey = null
+      _scaledBase = null
+      _tileDecor = null
+      _waterFx = null
+      _hutSource = null
+      _hutTiles = []
+      _hutClusterSource = null
+      _hutClusters = []
     }
   }, [interp, dyn, onFirstDraw, cameraStateRef, viewportDims, rendererPaused])
 
