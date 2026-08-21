@@ -4522,11 +4522,18 @@ body.thb-colorblind .org-sick-badge {
   background: radial-gradient(ellipse at center, rgba(40, 28, 18, 0.4) 0%, rgba(8, 5, 3, 0.95) 100%);
   min-height: 0;
 }
-.scene-svg {
-  width: 100%;
-  max-width: 880px;
-  height: 100%;
-  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.55));
+/* Pixel-art interiors get a framed stage with a soft vignette so the
+   upscaled canvas reads as a lit diorama instead of a floating image. */
+.scene-stage--pixel {
+  padding: 24px;
+}
+.scene-stage--pixel > canvas {
+  border-radius: 4px;
+  box-shadow:
+    0 0 0 1px rgba(160, 130, 90, 0.28),
+    0 0 0 6px rgba(20, 14, 9, 0.9),
+    0 0 0 7px rgba(160, 130, 90, 0.16),
+    0 18px 40px rgba(0, 0, 0, 0.6);
 }
 .scene-occupants {
   flex: 0 0 auto;
@@ -4561,10 +4568,11 @@ body.thb-colorblind .org-sick-badge {
   background: #2a1f14;
 }
 .scene-occupant-chip--away {
-  opacity: 0.55;
+  opacity: 0.72;
+  border-style: dashed;
 }
 .scene-occupant-chip--away:hover {
-  opacity: 0.85;
+  opacity: 1;
 }
 .scene-occupant-chip--away .scene-occupant-role {
   color: #c08866;

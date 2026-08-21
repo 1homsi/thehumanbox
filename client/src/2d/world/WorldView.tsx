@@ -1700,9 +1700,12 @@ function drawWorldOnCanvas(
             : c.count >= 8
               ? `${name} town`
               : `${name} village`
-      const lx = (c.cx - ox) * TILE
-      const ly = (c.cy - oy) * TILE - TILE * 2
+      // Font must be set before measuring; clamp so edge settlements
+      // don't render half-off the world canvas.
       ctx.font = major ? 'bold 12px monospace' : '10px monospace'
+      const halfW = ctx.measureText(label).width / 2
+      const lx = Math.min(Math.max((c.cx - ox) * TILE, halfW + 4), Math.max(W - halfW - 4, halfW + 4))
+      const ly = Math.max((c.cy - oy) * TILE - TILE * 2, 10)
       ctx.fillStyle = 'rgba(0,0,0,0.65)'
       ctx.fillText(label, lx + 1, ly + 1)
       ctx.fillStyle = major ? '#ffd28a' : (c.tier ?? 0) >= 4 || c.count >= 8 ? '#e5c89a' : '#c8b890'
@@ -1876,13 +1879,19 @@ function drawWorldOnCanvas(
     }
 
     if (isSelected) {
-      ctx.strokeStyle = 'rgba(255,255,255,0.9)'
-      ctx.lineWidth = 1.5
-      ctx.setLineDash([3, 2])
+      ctx.save()
       ctx.beginPath()
       ctx.ellipse(px, py + 2, spriteSize * 0.42, spriteSize * 0.24, 0, 0, Math.PI * 2)
+      // soft warm halo makes the selection readable over any biome
+      ctx.strokeStyle = 'rgba(255, 210, 138, 0.35)'
+      ctx.lineWidth = 3.5
       ctx.stroke()
-      ctx.setLineDash([])
+      ctx.strokeStyle = 'rgba(255,255,255,0.95)'
+      ctx.lineWidth = 1.5
+      ctx.setLineDash([3, 2])
+      ctx.lineDashOffset = -t * 0.01
+      ctx.stroke()
+      ctx.restore()
     }
 
     if (standardDetail && org.lineage_id) {

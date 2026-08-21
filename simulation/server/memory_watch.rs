@@ -47,8 +47,18 @@ impl MemoryWatch {
             let mut ticker = tokio::time::interval(Duration::from_secs(3));
             loop {
                 ticker.tick().await;
-                let own = read_own_rss_kb().unwrap_or(0);
-                let (total, avail) = read_box_mem_kb().unwrap_or((0, 0));
+                // Sampling forks `ps` (macOS) or reads /proc (Linux); keep
+                // that blocking work off the async runtime workers.
+                let read = tokio::task::spawn_blocking(|| {
+                    let own = read_own_rss_kb().unwrap_or(0);
+                    let (total, avail) = read_box_mem_kb().unwrap_or((0, 0));
+                    (own, total, avail)
+                })
+                .await;
+                let (own, total, avail) = match read {
+                    Ok(v) => v,
+                    Err(_) => continue,
+                };
                 if own > 0 {
                     w.own_rss_kb.store(own, Ordering::Relaxed)
                 }

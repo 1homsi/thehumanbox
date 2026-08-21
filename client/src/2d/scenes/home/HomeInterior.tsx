@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import type { SceneContext } from '../../../scenes/core/types'
 import { useUIStore } from '../../../stores/store'
 import { HomeCanvas } from './HomeCanvas'
@@ -12,7 +11,6 @@ interface Props {
 export function HomeInterior({ ctx, onExit, onFocusOrg }: Props) {
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
   const { title, subtitle, occupants, away, isDay } = ctx
-  const [hover, setHover] = useState(0)
 
   return (
     <div className="scene-shell">
@@ -35,8 +33,8 @@ export function HomeInterior({ ctx, onExit, onFocusOrg }: Props) {
         </div>
       </div>
 
-      <div className="scene-stage scene-stage--pixel" onMouseMove={() => setHover((n) => n + 1)}>
-        <HomeCanvas ctx={ctx} selectedOrgId={selectedOrgId} onSelectOrg={onFocusOrg} hover={hover} />
+      <div className="scene-stage scene-stage--pixel">
+        <HomeCanvas ctx={ctx} selectedOrgId={selectedOrgId} onSelectOrg={onFocusOrg} />
       </div>
 
       {(occupants.length > 0 || away.length > 0) && (

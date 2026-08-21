@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo } from 'react'
 import type { SceneContext } from '../../../scenes/core/types'
 import { useUIStore } from '../../../stores/store'
 import { RoomCanvas, type RoomPalette } from '../shared/RoomCanvas'
@@ -66,7 +66,6 @@ function slotsFor(n: number): Array<[number, number]> {
 export function ShopInterior({ ctx, onExit, onFocusOrg }: Props) {
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
   const { title, subtitle, occupants, away, isDay, scene } = ctx
-  const [hover, setHover] = useState(0)
 
   const kind = scene.kind === 'forge' ? 'forge' : scene.kind === 'bakery' ? 'bakery' : 'mill'
   const palette = useMemo(() => PALETTES[kind], [kind])
@@ -94,7 +93,7 @@ export function ShopInterior({ ctx, onExit, onFocusOrg }: Props) {
         </div>
       </div>
 
-      <div className="scene-stage scene-stage--pixel" onMouseMove={() => setHover((n) => n + 1)}>
+      <div className="scene-stage scene-stage--pixel">
         <RoomCanvas
           ctx={ctx}
           palette={palette}
@@ -102,7 +101,6 @@ export function ShopInterior({ ctx, onExit, onFocusOrg }: Props) {
           occupantSlots={occupantSlots}
           selectedOrgId={selectedOrgId}
           onSelectOrg={onFocusOrg}
-          hover={hover}
         />
       </div>
 
