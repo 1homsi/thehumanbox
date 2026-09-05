@@ -946,18 +946,26 @@ export function useSimulation(source: WorldSource = 'native'): {
         ? 'reconnecting'
         : 'connecting'
 
-  return {
-    world,
-    connected,
-    status,
-    failedAttempts,
-    interp: {
+  // A fresh object here would change identity on every publish, and the
+  // 2D renderer's rAF effect depends on it - restarting that loop (and
+  // redoing per-frame setup) twice a second for no reason.
+  const interpRef = useRef<InterpRefs | null>(null)
+  if (interpRef.current === null) {
+    interpRef.current = {
       prev: prevWorldRef,
       current: currentWorldRef,
       prevServerAt: prevServerAtRef,
       currentServerAt: currentServerAtRef,
       currentReceivedAt: currentReceivedAtRef,
-    },
+    }
+  }
+
+  return {
+    world,
+    connected,
+    status,
+    failedAttempts,
+    interp: interpRef.current,
     idleParked,
     resume,
     sandboxAvailable,

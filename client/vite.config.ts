@@ -1,6 +1,6 @@
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
-import { writeFile } from 'node:fs/promises'
+import { readdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 function emitVersionJson(): Plugin {
@@ -17,8 +17,61 @@ function emitVersionJson(): Plugin {
   }
 }
 
+/**
+ * The simulation WASM (~3.4MB) used to download only after the whole JS
+ * bundle parsed, React mounted, and the worker booted - a fully serial
+ * chain. Injecting <link rel="preload"> tags into the HTML shell starts
+ * the WASM and worker-chunk downloads the moment the HTML arrives, in
+ * parallel with everything else. This cuts several seconds off first
+ * load on typical connections.
+ *
+ * Runs in closeBundle (post-build) because rolldown-vite does not fire
+ * generateBundle for config-level JS plugins.
+ */
+function preloadSimAssets(): Plugin {
+  const base = process.env.VITE_DESKTOP === '1' ? './' : '/'
+  return {
+    name: 'thb-preload-sim-assets',
+    apply: 'build',
+    async closeBundle() {
+      const distDir = path.resolve(__dirname, 'dist')
+      const htmlPath = path.join(distDir, 'index.html')
+      let html: string
+      try {
+        html = await readFile(htmlPath, 'utf8')
+      } catch {
+        return
+      }
+      if (html.includes('thb-preload-sim')) return
+      let names: string[]
+      try {
+        names = await readdir(path.join(distDir, 'assets'))
+      } catch {
+        return
+      }
+      const wasm = names.find((n) => /^sim_core_bg-.*\.wasm$/.test(n))
+      const worker = names.find((n) => /^wasmWorker-.*\.js$/.test(n))
+      if (!wasm && !worker) return
+      const join = (p: string) => (base === './' ? `./assets/${p}` : `${base}assets/${p}`)
+      const tags: string[] = ['<!-- thb-preload-sim -->']
+      // crossorigin matches fetch()'s default cors mode so the preload
+      // is reused instead of triggering a second download.
+      if (wasm) {
+        tags.push(
+          `<link rel="preload" href="${join(wasm)}" as="fetch" crossorigin fetchpriority="high" />`,
+        )
+      }
+      if (worker) {
+        tags.push(`<link rel="modulepreload" href="${join(worker)}" />`)
+      }
+      const next = html.replace('</head>', `  ${tags.join('\n  ')}\n</head>`)
+      if (next !== html) await writeFile(htmlPath, next, 'utf8')
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), emitVersionJson()],
+  plugins: [react(), emitVersionJson(), preloadSimAssets()],
 
   // Web is served at root with a Cloudflare SPA-fallback (any deep URL
   // returns /index.html), so absolute /assets/... is the only safe form
@@ -29,6 +82,15 @@ export default defineConfig({
 
   build: {
     chunkSizeWarningLimit: 400,
+
+    // rolldown-vite emits <link rel="modulepreload"> for EVERY chunk in
+    // the dependency map, including lazily-imported ones - which forced
+    // ~1.2MB of three.js/text-rendering/scene code into the critical
+    // path of every page load even though most sessions never open the
+    // 3D view. The vendor chunks are static imports of the entry anyway
+    // (discovered as soon as the entry downloads), so skipping the
+    // hints costs nothing; the wasm/worker preloads above stay.
+    modulePreload: false,
 
     rollupOptions: {
       output: {

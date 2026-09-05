@@ -75,6 +75,14 @@ export function drawCloudShape(
   }
 }
 
+export interface DecorRegion {
+  /** Inclusive tile bounds; sprites anchored outside are not painted. */
+  x0: number
+  y0: number
+  x1: number
+  y1: number
+}
+
 export function drawTrees(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -83,6 +91,7 @@ export function drawTrees(
   biomes?: number[][],
   originX = 0,
   originY = 0,
+  only?: DecorRegion,
 ) {
   if (!biomes || !ATLAS_TOWN.complete) return
   const TREE_SIZE = 16
@@ -167,6 +176,13 @@ export function drawTrees(
 
     placed[y * width + x] = 1
 
+    // Region-filtered repaints still run the global placement pass
+    // (tree existence depends on every higher-priority neighbour) but
+    // only paint sprites anchored inside the region.
+    if (only && (x < only.x0 - 2 || x > only.x1 + 2 || y < only.y0 - 2 || y > only.y1 + 2)) {
+      continue
+    }
+
     const sz = TREE_SIZE * (0.85 + ((r1 * 17) % 1) * 0.4)
     const cx = x * TILE + (TILE - sz) / 2 + (r1 - 0.5) * TILE * 0.5
     const cy = y * TILE + (TILE - sz) / 2 + (((r0 * 7) % 1) - 0.5) * TILE * 0.5
@@ -212,14 +228,17 @@ export function drawNaturalDecor(
   biomes?: number[][],
   originX = 0,
   originY = 0,
+  only?: DecorRegion,
 ) {
   if (!biomes) return
   ctx.save()
   for (let y = 1; y < height - 1; y++) {
+    if (only && (y < only.y0 - 1 || y > only.y1 + 1)) continue
     const tRow = tiles[y]
     const bRow = biomes[y]
     if (!tRow || !bRow) continue
     for (let x = 1; x < width - 1; x++) {
+      if (only && (x < only.x0 - 1 || x > only.x1 + 1)) continue
       const t = tRow[x]
       const biome = bRow[x] ?? 0
       const worldX = x + originX

@@ -779,6 +779,168 @@ function vnHash(x: number, y: number): number {
   return ((h >>> 0) & 0xffff) / 0xffff
 }
 
+// Tiles repainted per incremental base-layer update before falling back
+// to a full rebuild. Wildfires can touch thousands of tiles at once;
+// beyond this a full rebuild is simpler and comparable in cost.
+const MAX_INCREMENTAL_TILES = 6000
+
+function varAmountForTile(tid: number): number {
+  if (tid === 2 || tid === 9) return 2
+  if (tid === 1 || tid === 3) return 5
+  if (tid === 5) return 8
+  if (tid === 6) return 9
+  if (tid === 12) return 3
+  if (tid === 13) return 5
+  return 4
+}
+
+// Paint one tile's TILE x TILE pixel block into the base ImageData.
+// Extracted from the full-grid rebuild loop so incremental updates can
+// repaint individual tiles with byte-identical results.
+function paintTileBlock(
+  d: Uint8ClampedArray<ArrayBufferLike>,
+  W: number,
+  tiles: number[][],
+  biomes: number[][] | undefined,
+  depth_map: number[][] | undefined,
+  season: string | undefined,
+  row: number,
+  col: number,
+) {
+  const height = tiles.length
+  const tileRow = tiles[row]
+  const biomeRow = biomes?.[row]
+  const depthRow = depth_map?.[row]
+  const tileRowPrev = row > 0 ? tiles[row - 1] : undefined
+  const tileRowNext = row + 1 < height ? tiles[row + 1] : undefined
+  const rawTid = tileRow?.[col] ?? TILE_ID.VOID
+  const tid = baseTerrainTile(rawTid)
+  const rgb = TILE_RGB[tid] ?? TILE_RGB[0]
+  let r = rgb[0]
+  let g = rgb[1]
+  let b = rgb[2]
+
+  const isWater = isWaterTile(rawTid)
+  const isPermanentWater = isPermanentWaterTile(rawTid)
+  const wN = tileRowPrev?.[col]
+  const wS = tileRowNext?.[col]
+  const wW = col > 0 ? tileRow?.[col - 1] : undefined
+  const wE = tileRow?.[col + 1]
+  const touchesLand =
+    (wN !== undefined && !isWaterTile(wN)) ||
+    (wS !== undefined && !isWaterTile(wS)) ||
+    (wW !== undefined && !isWaterTile(wW)) ||
+    (wE !== undefined && !isWaterTile(wE))
+
+  const visualDepth = permanentWaterDepth(rawTid, depthRow?.[col])
+  if (visualDepth !== null) {
+    const t_ = 1 - Math.min(200, visualDepth) / 200
+    r = (100 - t_ * 28) | 0
+    g = (170 - t_ * 42) | 0
+    b = (220 - t_ * 30) | 0
+  }
+
+  if (isPermanentWater && touchesLand) {
+    r = (r * 0.68 + SHALLOW_RGB[0] * 0.32) | 0
+    g = (g * 0.68 + SHALLOW_RGB[1] * 0.32) | 0
+    b = (b * 0.68 + SHALLOW_RGB[2] * 0.32) | 0
+  }
+
+  if (!isWater && tid !== TILE_ID.ROCK && tid !== TILE_ID.SNOW) {
+    const bm = biomeRow?.[col] ?? 0
+    const bo = BIOME_RGBA[bm]
+    if (bo) {
+      const a = bo[3]
+      if (a > 0) {
+        const ia = 1 - a
+        r = (r * ia + bo[0] * a) | 0
+        g = (g * ia + bo[1] * a) | 0
+        b = (b * ia + bo[2] * a) | 0
+      }
+    }
+  }
+
+  const macro = valueNoise(col / 42, row / 42) * 0.65 + valueNoise(col / 13 + 7, row / 13 + 7) * 0.35
+  let shading = ((macro - 0.5) * (isWater ? 5 : 14)) | 0
+  if (!isWater) {
+    const grassy = tid === 1 || tid === 3 || tid === 6 || tid === 13
+    const landTint = SEASON_LAND_TINT[season ?? '']
+    if (grassy && landTint) {
+      let w = landTint.w * (0.55 + macro * 0.9)
+      if (w > 0.85) w = 0.85
+      const iw = 1 - w
+      r = (r * iw + landTint.rgb[0] * w) | 0
+      g = (g * iw + landTint.rgb[1] * w) | 0
+      b = (b * iw + landTint.rgb[2] * w) | 0
+      shading += ((macro - 0.5) * 8) | 0
+    }
+  }
+
+  const varAmt = varAmountForTile(tid)
+  const bx = col * TILE
+  const by = row * TILE
+  for (let ty = 0; ty < TILE; ty++) {
+    const gy = by + ty
+    let pi = (gy * W + bx) * 4
+    for (let tx = 0; tx < TILE; tx++, pi += 4) {
+      const gx = bx + tx
+      // Texture in small pixel-art clusters instead of independent
+      // per-pixel static. The macro field shapes broad biome patches;
+      // this 2x2 dither keeps nearby terrain readable at game scale.
+      const clusterX = gx >> 1
+      const clusterY = gy >> 1
+      let h = (clusterX * 374761393 + clusterY * 668265263) | 0
+      h = ((h ^ (h >>> 13)) * 1274126177) | 0
+      const dither = ((gx ^ gy) & 1) === 0 ? -1 : 1
+      const k = (((((h >>> 0) & 0xff) - 128) * varAmt) >> 7) + dither
+      let rr = r + k + shading
+      let gg = g + k + shading
+      let bb = b + k + shading
+      if (rr < 0) rr = 0
+      else if (rr > 255) rr = 255
+      if (gg < 0) gg = 0
+      else if (gg > 255) gg = 255
+      if (bb < 0) bb = 0
+      else if (bb > 255) bb = 255
+      d[pi] = rr
+      d[pi + 1] = gg
+      d[pi + 2] = bb
+      d[pi + 3] = 255
+    }
+  }
+}
+
+// Repaint one tile of the baked food/mineral decor layer after an
+// incremental terrain update.
+function updateTileDecorTile(tid: number, col: number, row: number, ox: number, oy: number) {
+  if (!_tileDecor) return
+  const ctx = _tileDecor.canvas.getContext('2d')!
+  const s = _tileDecor.scale
+  ctx.setTransform(s, 0, 0, s, 0, 0)
+  ctx.clearRect(col * TILE, row * TILE, TILE, TILE)
+  if (tid !== TILE_ID.FOOD && tid !== TILE_ID.MINERAL) return
+  const seed = visualTileHash(col + ox, row + oy)
+  const px = col * TILE
+  const py = row * TILE
+  if (tid === TILE_ID.FOOD) drawFoodPatch(ctx, px, py, seed)
+  else drawMineralOutcrop(ctx, px, py, seed)
+}
+
+// Refresh one region of the downscaled base copy after the full-res
+// base changed underneath it.
+function updateScaledBaseRegion(tx0: number, ty0: number, tx1: number, ty1: number) {
+  if (!_scaledBase || !_baseCanvas) return
+  const s = _scaledBase.scale
+  const ctx = _scaledBase.canvas.getContext('2d')!
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'low'
+  const sx = tx0 * TILE
+  const sy = ty0 * TILE
+  const sw = (tx1 - tx0 + 1) * TILE
+  const sh = (ty1 - ty0 + 1) * TILE
+  ctx.drawImage(_baseCanvas, sx, sy, sw, sh, Math.round(sx * s), Math.round(sy * s), Math.round(sw * s), Math.round(sh * s))
+}
+
 function valueNoise(x: number, y: number): number {
   const xi = Math.floor(x)
   const yi = Math.floor(y)
@@ -833,6 +995,103 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
     return _baseCanvas
   }
 
+  // ── Incremental update path ─────────────────────────────────────────
+  // The simulation re-sends the full tiles grid periodically (every 60
+  // ticks). The array identity changes but usually only a handful of
+  // tiles actually differ (fires, food, new huts). Diffing costs ~1ms;
+  // repainting just those tiles beats a full 11.5M-pixel rebuild that
+  // otherwise stalls the frame for hundreds of ms.
+  if (
+    _baseKey &&
+    _baseCanvas &&
+    _imgBuf &&
+    _imgBuf.width === width * TILE &&
+    _imgBuf.height === height * TILE &&
+    _baseKey.width === width &&
+    _baseKey.height === height &&
+    _baseKey.origin_x === origin_x &&
+    _baseKey.origin_y === origin_y &&
+    _baseKey.season === season &&
+    _baseKey.biomes === biomes &&
+    _baseKey.depth_map === depth_map &&
+    _baseKey.tiles !== tiles
+  ) {
+    const changes: Array<[number, number]> = []
+    let diffOverflow = false
+    const oldTiles = _baseKey.tiles
+    for (let row = 0; row < height; row++) {
+      const oldRow = oldTiles[row]
+      const newRow = tiles[row]
+      if (oldRow === newRow) continue
+      if (!oldRow || !newRow) {
+        diffOverflow = true
+        break
+      }
+      for (let col = 0; col < width; col++) {
+        if (oldRow[col] !== newRow[col]) {
+          changes.push([row, col])
+          if (changes.length > MAX_INCREMENTAL_TILES) {
+            diffOverflow = true
+            break
+          }
+        }
+      }
+      if (diffOverflow) break
+    }
+
+    if (!diffOverflow && changes.length > 0) {
+      const canvas = _baseCanvas
+      const baseCtx = canvas.getContext('2d')!
+      // Repaint changed tile blocks into the shared ImageData buffer.
+      for (const [row, col] of changes) {
+        paintTileBlock(_imgBuf.data, W, tiles, biomes, depth_map, season, row, col)
+        // Keep the baked decor layer in sync for food/mineral toggles.
+        updateTileDecorTile(tiles[row][col], col, row, origin_x, origin_y)
+      }
+      // Expanded dirty bounds (+3 tile margin covers tree canopies and
+      // foam edges). One region blit erases old sprites there; the
+      // filtered redraws below repaint whatever still belongs.
+      let bx0 = width
+      let by0 = height
+      let bx1 = 0
+      let by1 = 0
+      for (const [row, col] of changes) {
+        if (col < bx0) bx0 = col
+        if (col > bx1) bx1 = col
+        if (row < by0) by0 = row
+        if (row > by1) by1 = row
+      }
+      const m = Math.min(3, width, height)
+      bx0 = Math.max(0, bx0 - m)
+      by0 = Math.max(0, by0 - m)
+      bx1 = Math.min(width - 1, bx1 + m)
+      by1 = Math.min(height - 1, by1 + m)
+      baseCtx.imageSmoothingEnabled = false
+      baseCtx.putImageData(_imgBuf, 0, 0, bx0 * TILE, by0 * TILE, (bx1 - bx0 + 1) * TILE, (by1 - by0 + 1) * TILE)
+      const only = { x0: bx0, y0: by0, x1: bx1, y1: by1 }
+      if (biomes && ATLAS_TOWN.complete) {
+        drawTrees(baseCtx, width, height, tiles, biomes, origin_x, origin_y, only)
+      }
+      if (biomes) {
+        drawNaturalDecor(baseCtx, width, height, tiles, biomes, origin_x, origin_y, only)
+      }
+      // Refresh derived layers for the affected region.
+      updateScaledBaseRegion(bx0, by0, bx1, by1)
+      // Foam geometry is cheap to rebuild relative to pixels and keeps
+      // shoreline highlights correct after land/water flips.
+      _baseKey.foam = buildFoamPaths(tiles, width, height)
+      _baseKey.tiles = tiles
+      _baseKey.terrain_signature = terrainVisualSignature(tiles, width, height)
+      return canvas
+    }
+    if (!diffOverflow && changes.length === 0) {
+      // Fresh arrays, identical content - just re-point the cache.
+      _baseKey.tiles = tiles
+      return _baseCanvas
+    }
+    // diff overflow (or nothing changed): fall through to full rebuild.
+  }
+
   const canvas =
     _baseCanvas && _baseCanvas.width === W && _baseCanvas.height === H
       ? _baseCanvas
@@ -842,115 +1101,9 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
 
   const imgData = getReuseImgData(W, H)
   const d = imgData.data
-  const varAmtFor = (tid: number): number => {
-    if (tid === 2 || tid === 9) return 2
-    if (tid === 1 || tid === 3) return 5
-    if (tid === 5) return 8
-    if (tid === 6) return 9
-    if (tid === 12) return 3
-    if (tid === 13) return 5
-    return 4
-  }
-  const landTint = SEASON_LAND_TINT[season]
   for (let row = 0; row < height; row++) {
-    const tileRow = tiles[row]
-    const biomeRow = biomes?.[row]
-    const depthRow = depth_map?.[row]
-    const tileRowPrev = row > 0 ? tiles[row - 1] : undefined
-    const tileRowNext = row + 1 < height ? tiles[row + 1] : undefined
     for (let col = 0; col < width; col++) {
-      const rawTid = tileRow?.[col] ?? TILE_ID.VOID
-      const tid = baseTerrainTile(rawTid)
-      const rgb = TILE_RGB[tid] ?? TILE_RGB[0]
-      let [r, g, b] = rgb
-
-      const isWater = isWaterTile(rawTid)
-      const isPermanentWater = isPermanentWaterTile(rawTid)
-      const wN = tileRowPrev?.[col]
-      const wS = tileRowNext?.[col]
-      const wW = col > 0 ? tileRow?.[col - 1] : undefined
-      const wE = tileRow?.[col + 1]
-      const touchesLand =
-        (wN !== undefined && !isWaterTile(wN)) ||
-        (wS !== undefined && !isWaterTile(wS)) ||
-        (wW !== undefined && !isWaterTile(wW)) ||
-        (wE !== undefined && !isWaterTile(wE))
-
-      const visualDepth = permanentWaterDepth(rawTid, depthRow?.[col])
-      if (visualDepth !== null) {
-        const t_ = 1 - Math.min(200, visualDepth) / 200
-        r = (100 - t_ * 28) | 0
-        g = (170 - t_ * 42) | 0
-        b = (220 - t_ * 30) | 0
-      }
-
-      if (isPermanentWater && touchesLand) {
-        r = (r * 0.68 + SHALLOW_RGB[0] * 0.32) | 0
-        g = (g * 0.68 + SHALLOW_RGB[1] * 0.32) | 0
-        b = (b * 0.68 + SHALLOW_RGB[2] * 0.32) | 0
-      }
-
-      if (!isWater && tid !== TILE_ID.ROCK && tid !== TILE_ID.SNOW) {
-        const bm = biomeRow?.[col] ?? 0
-        const bo = BIOME_RGBA[bm]
-        if (bo) {
-          const a = bo[3]
-          if (a > 0) {
-            const ia = 1 - a
-            r = (r * ia + bo[0] * a) | 0
-            g = (g * ia + bo[1] * a) | 0
-            b = (b * ia + bo[2] * a) | 0
-          }
-        }
-      }
-
-      const macro = valueNoise(col / 42, row / 42) * 0.65 + valueNoise(col / 13 + 7, row / 13 + 7) * 0.35
-      let shading = ((macro - 0.5) * (isWater ? 5 : 14)) | 0
-      if (!isWater) {
-        const grassy = tid === 1 || tid === 3 || tid === 6 || tid === 13
-        if (grassy && landTint) {
-          let w = landTint.w * (0.55 + macro * 0.9)
-          if (w > 0.85) w = 0.85
-          const iw = 1 - w
-          r = (r * iw + landTint.rgb[0] * w) | 0
-          g = (g * iw + landTint.rgb[1] * w) | 0
-          b = (b * iw + landTint.rgb[2] * w) | 0
-          shading += ((macro - 0.5) * 8) | 0
-        }
-      }
-
-      const varAmt = varAmtFor(tid)
-      const bx = col * TILE,
-        by = row * TILE
-      for (let ty = 0; ty < TILE; ty++) {
-        const gy = by + ty
-        let pi = (gy * W + bx) * 4
-        for (let tx = 0; tx < TILE; tx++, pi += 4) {
-          const gx = bx + tx
-          // Texture in small pixel-art clusters instead of independent
-          // per-pixel static. The macro field shapes broad biome patches;
-          // this 2x2 dither keeps nearby terrain readable at game scale.
-          const clusterX = gx >> 1
-          const clusterY = gy >> 1
-          let h = (clusterX * 374761393 + clusterY * 668265263) | 0
-          h = ((h ^ (h >>> 13)) * 1274126177) | 0
-          const dither = ((gx ^ gy) & 1) === 0 ? -1 : 1
-          const k = (((((h >>> 0) & 0xff) - 128) * varAmt) >> 7) + dither
-          let rr = r + k + shading
-          let gg = g + k + shading
-          let bb = b + k + shading
-          if (rr < 0) rr = 0
-          else if (rr > 255) rr = 255
-          if (gg < 0) gg = 0
-          else if (gg > 255) gg = 255
-          if (bb < 0) bb = 0
-          else if (bb > 255) bb = 255
-          d[pi] = rr
-          d[pi + 1] = gg
-          d[pi + 2] = bb
-          d[pi + 3] = 255
-        }
-      }
+      paintTileBlock(d, W, tiles, biomes, depth_map, season, row, col)
     }
   }
 
@@ -1035,7 +1188,7 @@ function drawWorldOnCanvas(
   if (renderScale < 1) {
     const scaled = getScaledBase(renderScale)
     if (scaled) {
-      ctx.drawImage(scaled, 0, 0)
+      ctx.drawImage(scaled, 0, 0, W, H)
     } else {
       ctx.drawImage(base, 0, 0)
     }
@@ -1140,7 +1293,7 @@ function drawWorldOnCanvas(
       // 2x1 fillRects.
       const blink = 0.5 + 0.5 * Math.sin(t * 0.0017)
       ctx.globalAlpha = (world.is_day ? 0.55 : 0.42) * (0.35 + 0.65 * blink)
-      ctx.drawImage(waterFx.stars, 0, 0)
+      ctx.drawImage(waterFx.stars, 0, 0, W, H)
       ctx.globalAlpha = 1
     } else {
       const tt = t * 0.001
@@ -1194,7 +1347,7 @@ function drawWorldOnCanvas(
       // issuing a fillRect for every pulsing deep-water tile.
       const pulse = 0.5 + 0.5 * Math.sin(shimmerT * 2.1)
       ctx.globalAlpha = 0.28 * (0.3 + 0.7 * pulse)
-      ctx.drawImage(waterFx.shimmer, 0, 0)
+      ctx.drawImage(waterFx.shimmer, 0, 0, W, H)
       ctx.globalAlpha = 1
     } else {
       ctx.fillStyle = 'rgba(180,230,255,0.28)'
@@ -1236,7 +1389,7 @@ function drawWorldOnCanvas(
   // (fire/campfire/hut). The naive loop was ~6 fillRects per food tile
   // every frame - hundreds of thousands of calls on grown worlds.
   const bakedDecor = renderScale < 1 ? getTileDecorLayer(renderScale) : null
-  if (bakedDecor) ctx.drawImage(bakedDecor, 0, 0)
+  if (bakedDecor) ctx.drawImage(bakedDecor, 0, 0, W, H)
   for (let row = r0; row < r1; row++) {
     for (let col = c0; col < c1; col++) {
       const tile = tiles[row][col]
@@ -2755,16 +2908,14 @@ function WorldSprite({
     return () => {
       stopped = true
       cancelAnimationFrame(raf)
-      _imgBuf = null
-      _baseCanvas = null
-      _baseKey = null
-      _scaledBase = null
-      _tileDecor = null
-      _waterFx = null
-      _hutSource = null
-      _hutTiles = []
-      _hutClusterSource = null
-      _hutClusters = []
+      // NOTE: deliberately do NOT reset the module-level terrain caches
+      // (_baseCanvas/_baseKey/_tileDecor/_waterFx/...) here. They are
+      // keyed by world-data identity and invalidate themselves when the
+      // grid changes. This effect re-runs whenever any dep identity
+      // changes (e.g. a new interp wrapper or viewport measure), and
+      // wiping the caches here used to force a full 11.5M-pixel base
+      // rebuild several times per second - the single biggest source of
+      // frame stalls in the whole app.
     }
   }, [interp, dyn, onFirstDraw, cameraStateRef, viewportDims, rendererPaused])
 
@@ -2953,6 +3104,9 @@ export function WorldView({ world, interp, rendererPaused = false, sandboxArmed,
   const cameraStateRef = useRef({ x: cx, y: cy, zoom: 1.5 })
   const [dims, setDims] = useState({ w: 0, h: 0 })
   const [mapReady, setMapReady] = useState(false)
+  // Stable identity: WorldSprite's frame-loop effect depends on this
+  // callback - an inline arrow restarted that loop on every publish.
+  const handleFirstDraw = useCallback(() => setMapReady(true), [])
   const gameControlsRef = useRef<GameControls | null>(null)
   const rendererPausedRef = useRef(rendererPaused)
   rendererPausedRef.current = rendererPaused
@@ -3129,7 +3283,7 @@ export function WorldView({ world, interp, rendererPaused = false, sandboxArmed,
                 focus={focus}
                 viewFlags={viewFlags}
                 rendererPaused={rendererPaused}
-                onFirstDraw={() => setMapReady(true)}
+                onFirstDraw={handleFirstDraw}
                 atX={cx}
                 atY={cy}
                 cameraStateRef={cameraStateRef}

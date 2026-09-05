@@ -4,3 +4,22 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
   Cross-Origin-Opener-Policy: same-origin
+
+# Hashed build output is safe to cache forever. Without this every
+# revisit re-downloaded the full app and the 3.4MB simulation WASM.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Never cache the HTML shell - it references the hashed assets above.
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/version.json
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Unhashed static art. Cached for a day so repeat visits stay fast,
+# but a deploy replaces it within a day at worst.
+/sprites/*
+  Cache-Control: public, max-age=86400
+/models/*
+  Cache-Control: public, max-age=86400
