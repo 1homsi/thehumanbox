@@ -6,6 +6,7 @@ import { shorelineColors } from './landscape-style'
  * orchestrator file can stay focused on the per-frame pipeline.
  */
 
+import { drawVegetationSprite } from './vegetation-sprites'
 import { SPRITE, ATLAS_TOWN, drawTile } from '../../utils/sprites'
 import type { WorldState } from '../../types'
 import { TILE } from '../../world/palette'
@@ -227,13 +228,15 @@ export function drawTrees(
     ctx.fillStyle = 'rgba(20,24,18,0.24)'
     ctx.fillRect(
       Math.round(cx + (sz - shadowWidth) / 2),
-      Math.round(cy + sz * 0.77),
+      Math.round(cy + sz * 0.88),
       shadowWidth,
       Math.max(1, Math.round(sz * 0.1)),
     )
   }
   for (const { cx, cy, sz, sprite } of trees) {
-    drawTile(ctx, ATLAS_TOWN, sprite, Math.round(cx), Math.round(cy), Math.round(sz))
+    if (!drawVegetationSprite(ctx, sprite, cx, cy, sz)) {
+      drawTile(ctx, ATLAS_TOWN, sprite, Math.round(cx), Math.round(cy), Math.round(sz))
+    }
   }
 }
 

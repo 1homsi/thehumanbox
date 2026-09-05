@@ -74,8 +74,15 @@ export function SandboxToolbar({
     SANDBOX_CATEGORIES.find((category) => category.id === 'maps')?.tools.some((tool) =>
       isSandboxViewControlActive(tool.view, activeOverlay, activeViewFlags),
     ) ?? false
-  const runtimeStatus =
-    cat.id === 'time' ? `${runtimePaused ? 'paused' : 'running'} · ${formatSpeed(runtimeSpeed)}` : null
+  const runtimeStatus = `${runtimePaused ? 'paused' : 'running'} · ${formatSpeed(runtimeSpeed)}`
+  const toggleTime = () =>
+    onPick({
+      id: runtimePaused ? 'play' : 'pause',
+      label: runtimePaused ? 'play' : 'pause',
+      icon: runtimePaused ? '▶' : 'Ⅱ',
+      mode: 'instant',
+      time: { control: runtimePaused ? 'resume' : 'pause' },
+    })
   const selectCategory = (id: string) => {
     setCatId(id)
     try {
@@ -114,7 +121,9 @@ export function SandboxToolbar({
               onClick={() => selectCategory(c.id)}
               title={c.id === 'maps' && hasActiveMapLayer ? 'maps · layer active' : c.label}
             >
-              <span className="sandbox-tab-icon">{c.icon}</span>
+              <span className="sandbox-tab-icon" aria-hidden="true">
+                {c.icon}
+              </span>
               <span className="sandbox-tab-label">{c.label}</span>
             </button>
           ))}
@@ -129,7 +138,9 @@ export function SandboxToolbar({
             onClick={clearCurrentTool}
             title={cat.tools.some((tool) => tool.view) ? 'Clear map layers' : 'Cursor — stop placing'}
           >
-            <span className="sandbox-tool-icon">🖱️</span>
+            <span className="sandbox-tool-icon" aria-hidden="true">
+              🖱️
+            </span>
             <span className="sandbox-tool-label">
               {cat.tools.some((tool) => tool.view) ? 'clear' : 'cursor'}
             </span>
@@ -154,7 +165,9 @@ export function SandboxToolbar({
                 onClick={() => onPick(t)}
                 title={t.label}
               >
-                <span className="sandbox-tool-icon">{t.icon}</span>
+                <span className="sandbox-tool-icon" aria-hidden="true">
+                  {t.icon}
+                </span>
                 <span className="sandbox-tool-label">{t.label}</span>
               </button>
             )
@@ -175,6 +188,18 @@ export function SandboxToolbar({
           )}
         </div>
         <div className={clsx('sandbox-utility', onSave && 'has-save')}>
+          <button
+            type="button"
+            className={clsx('sandbox-playback', runtimePaused && 'paused')}
+            onClick={toggleTime}
+            aria-label={runtimePaused ? 'Resume simulation' : 'Pause simulation'}
+            title={runtimePaused ? 'Resume simulation' : 'Pause simulation'}
+          >
+            <svg aria-hidden="true" viewBox="0 0 20 20" width="18" height="18" fill="currentColor">
+              {runtimePaused ? <path d="M6 3l11 7-11 7z" /> : <path d="M4 3h4v14H4zM12 3h4v14h-4z" />}
+            </svg>
+            <span>{runtimePaused ? 'paused' : formatSpeed(runtimeSpeed)}</span>
+          </button>
           {(armedToolId || status || runtimeStatus) && (
             <div className="sandbox-status" role="status" aria-live="polite">
               {status ??

@@ -4,6 +4,7 @@ import type { SceneContext, SceneFixture } from '../../../scenes/core/types'
 import { deterministicAppearanceIndex, resolveAgeStage } from '../../world/character-visuals'
 import {
   collectNightLights,
+  drawRoomFloor,
   drawHostRing,
   drawHoverRing,
   drawNamePlate,
@@ -35,19 +36,6 @@ interface Props {
   occupantSlots: (n: number) => Array<[number, number]>
   selectedOrgId: string | null
   onSelectOrg: (id: string) => void
-}
-
-function drawFloor(ctx: CanvasRenderingContext2D, p: RoomPalette) {
-  for (let r = 1; r < ROOM_ROWS - 1; r++) {
-    for (let c = 1; c < ROOM_COLS - 1; c++) {
-      const x = c * TILE_PX
-      const y = r * TILE_PX
-      ctx.fillStyle = (r + c) % 2 === 0 ? p.floor : p.floorPlank
-      ctx.fillRect(x, y, TILE_PX, TILE_PX)
-      ctx.fillStyle = p.floorShade
-      ctx.fillRect(x, y + TILE_PX - 1, TILE_PX, 1)
-    }
-  }
 }
 
 function drawWalls(ctx: CanvasRenderingContext2D, p: RoomPalette, t: number) {
@@ -108,14 +96,14 @@ export function RoomCanvas({
     if (!c) return
     c.imageSmoothingEnabled = false
 
-    const fixtures = sceneCtx.fixtures
+    const fixtures = [...sceneCtx.fixtures].sort((a, b) => a.y - b.y || a.x - b.x)
     const slots = occupantSlots(sceneCtx.occupants.length)
     const nightLights = collectNightLights(fixtures)
 
     const paint = (time: number) => {
       c.fillStyle = palette.outside
       c.fillRect(0, 0, CANVAS_W, CANVAS_H)
-      drawFloor(c, palette)
+      drawRoomFloor(c, palette)
       for (const f of fixtures) drawFurniture(c, f, time)
       drawWalls(c, palette, time)
 

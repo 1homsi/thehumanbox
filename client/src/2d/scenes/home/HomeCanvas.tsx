@@ -4,6 +4,7 @@ import type { SceneContext } from '../../../scenes/core/types'
 import { deterministicAppearanceIndex, resolveAgeStage } from '../../world/character-visuals'
 import { TILE_PX, SCALE, CANVAS_W, CANVAS_H, ROOM_COLS, ROOM_ROWS } from '../shared/RoomCanvas'
 import {
+  drawRoomFloor,
   drawHostRing,
   drawHoverRing,
   drawNamePlate,
@@ -187,19 +188,6 @@ function occupantSlots(n: number): Array<[number, number]> {
   return out
 }
 
-function drawFloor(ctx: CanvasRenderingContext2D, p: (typeof ERA_PALETTE)[string]) {
-  for (let r = 1; r < ROOM_ROWS - 1; r++) {
-    for (let c = 1; c < ROOM_COLS - 1; c++) {
-      const x = c * TILE_PX
-      const y = r * TILE_PX
-      ctx.fillStyle = (r + c) % 2 === 0 ? p.floor : p.floorPlank
-      ctx.fillRect(x, y, TILE_PX, TILE_PX)
-      ctx.fillStyle = p.floorShade
-      ctx.fillRect(x, y + TILE_PX - 1, TILE_PX, 1)
-    }
-  }
-}
-
 function drawWalls(ctx: CanvasRenderingContext2D, p: (typeof ERA_PALETTE)[string], t: number) {
   ctx.fillStyle = p.wall
   ctx.fillRect(0, 0, CANVAS_W, TILE_PX)
@@ -333,6 +321,11 @@ function drawShelf(ctx: CanvasRenderingContext2D, x: number, y: number) {
 }
 
 function drawFixtures(ctx: CanvasRenderingContext2D, fixtures: FurnSlot[], t: number) {
+  ctx.fillStyle = 'rgba(23, 16, 12, 0.24)'
+  for (const f of fixtures) {
+    if (f.kind === 'mat' || f.kind === 'hearth') continue
+    ctx.fillRect(f.x * TILE_PX + 2, (f.y + f.h) * TILE_PX - 2, f.w * TILE_PX, 3)
+  }
   for (const f of fixtures) {
     const x = f.x * TILE_PX
     const y = f.y * TILE_PX
@@ -386,13 +379,13 @@ export function HomeCanvas({ ctx: sceneCtx, selectedOrgId, onSelectOrg }: Props)
     )
     const era = host ? eraOf(sceneCtx.world, host.lineage_id) : 'pre-stone'
     const palette = ERA_PALETTE[era] ?? ERA_PALETTE['stone']
-    const fixtures = fixturesLayout(era)
+    const fixtures = fixturesLayout(era).sort((a, b) => a.y + a.h - (b.y + b.h))
     const slots = occupantSlots(sceneCtx.occupants.length)
 
     const paint = (time: number) => {
       c.fillStyle = palette.outside
       c.fillRect(0, 0, CANVAS_W, CANVAS_H)
-      drawFloor(c, palette)
+      drawRoomFloor(c, palette)
       drawFixtures(c, fixtures, time)
       drawWalls(c, palette, time)
 

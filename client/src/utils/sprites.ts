@@ -28,9 +28,9 @@ export function loadAtlas(url: string): HTMLImageElement {
   return img
 }
 
-export const ATLAS_TOWN = loadAtlas('/sprites/tiny-town.png')
-export const ATLAS_CREATURE = loadAtlas('/sprites/tiny-creatures.png')
-export const ATLAS_PEOPLE = loadAtlas('/sprites/people/people.svg')
+export const ATLAS_TOWN = loadAtlas(`${import.meta.env.BASE_URL}sprites/tiny-town.png`)
+export const ATLAS_CREATURE = loadAtlas(`${import.meta.env.BASE_URL}sprites/tiny-creatures.png`)
+export const ATLAS_PEOPLE = loadAtlas(`${import.meta.env.BASE_URL}sprites/people/people.svg`)
 
 export const PEOPLE_CELL = HUMAN_ATLAS_CELL
 export const PEOPLE_COLS = HUMAN_ATLAS_FRAMES
@@ -45,11 +45,17 @@ export function drawPeopleTile(
   dx: number,
   dy: number,
   size: number,
+  flipped = false,
 ) {
   const img = ATLAS_PEOPLE
   if (!img.complete || img.naturalWidth === 0) return false
   const [col, row] = tile
-  ctx.drawImage(img, col * PEOPLE_CELL, row * PEOPLE_CELL, PEOPLE_CELL, PEOPLE_CELL, dx, dy, size, size)
+  ctx.save()
+  ctx.translate(flipped ? dx + size : dx, dy)
+  if (flipped) ctx.scale(-1, 1)
+  ctx.imageSmoothingEnabled = false
+  ctx.drawImage(img, col * PEOPLE_CELL, row * PEOPLE_CELL, PEOPLE_CELL, PEOPLE_CELL, 0, 0, size, size)
+  ctx.restore()
   return true
 }
 

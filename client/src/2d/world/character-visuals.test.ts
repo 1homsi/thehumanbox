@@ -1,5 +1,10 @@
+/// <reference types="node" />
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
+  characterMotion,
+  characterFrame,
+  compareCharacterDepth,
   HUMAN_APPEARANCES,
   HUMAN_ATLAS_CELL,
   HUMAN_ATLAS_COLS,
@@ -17,14 +22,14 @@ import {
 } from './character-visuals'
 
 describe('character visual atlas contract', () => {
-  it('describes the generated 4 by 30 atlas', () => {
+  it('describes the generated 4 by 60 atlas', () => {
     expect(HUMAN_ATLAS_CELL).toBe(32)
     expect(HUMAN_ATLAS_FRAMES).toBe(4)
     expect(HUMAN_ATLAS_COLS).toBe(4)
-    expect(HUMAN_APPEARANCES).toBe(3)
-    expect(HUMAN_ATLAS_ROWS).toBe(30)
+    expect(HUMAN_APPEARANCES).toBe(6)
+    expect(HUMAN_ATLAS_ROWS).toBe(60)
     expect(HUMAN_ATLAS_WIDTH).toBe(128)
-    expect(HUMAN_ATLAS_HEIGHT).toBe(960)
+    expect(HUMAN_ATLAS_HEIGHT).toBe(1920)
   })
 
   it('assigns every sex, life stage, and appearance a distinct row', () => {
@@ -41,12 +46,12 @@ describe('character visual atlas contract', () => {
     expect(Math.min(...rows)).toBe(0)
     expect(Math.max(...rows)).toBe(HUMAN_ATLAS_ROWS - 1)
     expect(humanAtlasRow('male', 'infant', 0)).toBe(0)
-    expect(humanAtlasRow('female', 'elder', 2)).toBe(29)
+    expect(humanAtlasRow('female', 'elder', 5)).toBe(59)
   })
 
   it('wraps appearance and animation frame indexes', () => {
-    expect(humanAtlasRow('male', 'infant', 3)).toBe(0)
-    expect(humanAtlasRow('male', 'infant', -1)).toBe(2)
+    expect(humanAtlasRow('male', 'infant', 6)).toBe(0)
+    expect(humanAtlasRow('male', 'infant', -1)).toBe(5)
     expect(wrapHumanFrame(0)).toBe(0)
     expect(wrapHumanFrame(5)).toBe(1)
     expect(wrapHumanFrame(-1)).toBe(3)
@@ -99,5 +104,42 @@ describe('character age and zoom visuals', () => {
     expect(zoomDetailLevel(2.19)).toBe('standard')
     expect(zoomDetailLevel(2.2)).toBe('detail')
     expect(zoomDetailLevel(Number.NaN)).toBe('standard')
+  })
+})
+
+describe('character motion and draw order', () => {
+  it('starts at rest, walks on displacement and rests after stopping', () => {
+    const idle = characterMotion(undefined, 5, 5, 600, 0)
+    expect(characterFrame(idle, 600)).toBe(0)
+    const moving = characterMotion(idle, 4, 5, 600, 0)
+    expect(moving.flipped).toBe(true)
+    expect(characterFrame(moving, 600)).toBe(3)
+    const stopped = characterMotion(moving, 4, 5, 1000, 0)
+    expect(characterFrame(stopped, 1000)).toBe(0)
+    expect(stopped.flipped).toBe(true)
+    expect(characterMotion(stopped, 6, 5, 1200, 0).flipped).toBe(false)
+  })
+  it('accumulates tiny movements without turning on coordinate jitter', () => {
+    const start = characterMotion(undefined, 1, 1, 0, 0)
+    const jitter = characterMotion(start, 0.999, 1, 10, 0)
+    expect(jitter.flipped).toBe(false)
+    expect(jitter.x).toBe(1)
+    const moved = characterMotion(jitter, 0.97, 1, 20, 0)
+    expect(moved.flipped).toBe(true)
+    expect(moved.movedAt).toBe(20)
+  })
+  it('paints people at the front last with stable equal-depth ordering', () => {
+    const people = [
+      { id: 'front', y: 4 },
+      { id: 'b', y: 1 },
+      { id: 'a', y: 1 },
+    ]
+    expect([...people].sort(compareCharacterDepth).map((person) => person.id)).toEqual(['a', 'b', 'front'])
+    expect(people[0].id).toBe('front')
+  })
+  it('ships an atlas matching the renderer dimensions and all appearance rows', () => {
+    const svg = readFileSync(new URL('../../../public/sprites/people/people.svg', import.meta.url), 'utf8')
+    expect(svg).toContain(`viewBox="0 0 ${HUMAN_ATLAS_WIDTH} ${HUMAN_ATLAS_HEIGHT}"`)
+    expect(svg.match(/<!-- sex /g)?.length).toBe(HUMAN_ATLAS_ROWS)
   })
 })
