@@ -129,7 +129,7 @@ async function createWindow(): Promise<void> {
   }
 
   const winState = loadWindowState();
-  mainWindow = new BrowserWindow({
+  const win = new BrowserWindow({
     x: winState.x,
     y: winState.y,
     width: winState.width,
@@ -153,43 +153,44 @@ async function createWindow(): Promise<void> {
       sandbox: true,
     },
   });
-  if (winState.maximized) mainWindow.maximize();
+  mainWindow = win;
+  if (winState.maximized) win.maximize();
 
   const persistDebounced = (() => {
     let t: NodeJS.Timeout | null = null;
     return () => {
       if (t) clearTimeout(t);
       t = setTimeout(() => {
-        if (mainWindow) persistWindowState(mainWindow);
+        if (win) persistWindowState(win);
       }, 400);
     };
   })();
-  mainWindow.on("resize", persistDebounced);
-  mainWindow.on("move", persistDebounced);
-  mainWindow.on("maximize", persistDebounced);
-  mainWindow.on("unmaximize", persistDebounced);
+  win.on("resize", persistDebounced);
+  win.on("move", persistDebounced);
+  win.on("maximize", persistDebounced);
+  win.on("unmaximize", persistDebounced);
 
-  mainWindow.on("minimize", () => {
-    mainWindow?.webContents.send("app:visibility", "minimized");
+  win.on("minimize", () => {
+    win?.webContents.send("app:visibility", "minimized");
   });
-  mainWindow.on("restore", () => {
-    mainWindow?.webContents.send("app:visibility", "restored");
+  win.on("restore", () => {
+    win?.webContents.send("app:visibility", "restored");
   });
-  mainWindow.on("hide", () => {
-    mainWindow?.webContents.send("app:visibility", "hidden");
+  win.on("hide", () => {
+    win?.webContents.send("app:visibility", "hidden");
   });
-  mainWindow.on("show", () => {
-    mainWindow?.webContents.send("app:visibility", "restored");
+  win.on("show", () => {
+    win?.webContents.send("app:visibility", "restored");
   });
 
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+  win.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url).catch(() => {});
     return { action: "deny" };
   });
 
-  mainWindow.webContents.on("did-fail-load", (_e, code, desc, url) => {
+  win.webContents.on("did-fail-load", (_e, code, desc, url) => {
     console.error(`[main] did-fail-load code=${code} desc=${desc} url=${url}`);
-    mainWindow?.loadURL(
+    win?.loadURL(
       renderBootError(
         `Renderer failed to load.\nURL: ${url}\nCode: ${code}\n${desc}`,
       ),
@@ -197,17 +198,17 @@ async function createWindow(): Promise<void> {
   });
 
   if (bootErrorUrl) {
-    await mainWindow.loadURL(bootErrorUrl);
+    await win.loadURL(bootErrorUrl);
   } else {
     const indexFile = path.join(__dirname, "..", "renderer", "index.html");
     const query: Record<string, string> = { desktop: "1" };
     if (apiBase) query.api = apiBase;
-    await mainWindow.loadFile(indexFile, { query });
-    if (isDev) mainWindow.webContents.openDevTools({ mode: "detach" });
+    await win.loadFile(indexFile, { query });
+    if (isDev) win.webContents.openDevTools({ mode: "detach" });
   }
 
-  mainWindow.on("closed", () => {
-    mainWindow = null;
+  win.on("closed", () => {
+    if (mainWindow === win) mainWindow = null;
   });
 }
 
