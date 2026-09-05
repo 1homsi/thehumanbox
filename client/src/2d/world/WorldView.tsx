@@ -938,7 +938,17 @@ function updateScaledBaseRegion(tx0: number, ty0: number, tx1: number, ty1: numb
   const sy = ty0 * TILE
   const sw = (tx1 - tx0 + 1) * TILE
   const sh = (ty1 - ty0 + 1) * TILE
-  ctx.drawImage(_baseCanvas, sx, sy, sw, sh, Math.round(sx * s), Math.round(sy * s), Math.round(sw * s), Math.round(sh * s))
+  ctx.drawImage(
+    _baseCanvas,
+    sx,
+    sy,
+    sw,
+    sh,
+    Math.round(sx * s),
+    Math.round(sy * s),
+    Math.round(sw * s),
+    Math.round(sh * s),
+  )
 }
 
 function valueNoise(x: number, y: number): number {
@@ -1067,7 +1077,15 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
       bx1 = Math.min(width - 1, bx1 + m)
       by1 = Math.min(height - 1, by1 + m)
       baseCtx.imageSmoothingEnabled = false
-      baseCtx.putImageData(_imgBuf, 0, 0, bx0 * TILE, by0 * TILE, (bx1 - bx0 + 1) * TILE, (by1 - by0 + 1) * TILE)
+      baseCtx.putImageData(
+        _imgBuf,
+        0,
+        0,
+        bx0 * TILE,
+        by0 * TILE,
+        (bx1 - bx0 + 1) * TILE,
+        (by1 - by0 + 1) * TILE,
+      )
       const only = { x0: bx0, y0: by0, x1: bx1, y1: by1 }
       if (biomes && ATLAS_TOWN.complete) {
         drawTrees(baseCtx, width, height, tiles, biomes, origin_x, origin_y, only)
