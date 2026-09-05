@@ -64,3 +64,23 @@ describe('SandboxToolbar runtime state', () => {
     expect(isRuntimeControlActive(tool('slow').time, true, 0.5)).toBe(true)
   })
 })
+
+describe('persistent transport controls', () => {
+  it('offers pause outside the time category', () => {
+    expect(renderSaveButton(false, false)).toContain('aria-label="Pause simulation"')
+  })
+  it('offers resume when the acknowledged world state is paused', () => {
+    const markup = renderToStaticMarkup(
+      <SandboxToolbar
+        armedToolId={null}
+        brush={2}
+        runtimePaused
+        onBrush={() => {}}
+        onPick={() => {}}
+        onClearArmed={() => {}}
+      />,
+    )
+    expect(markup).toContain('aria-label="Resume simulation"')
+    expect(markup).not.toContain('aria-label="Pause simulation"')
+  })
+})

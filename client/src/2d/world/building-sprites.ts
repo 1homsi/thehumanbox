@@ -1,3 +1,5 @@
+import { shade, hueShift } from './sprite-colors'
+
 export const PAD = 8
 export const PAD_TOP = 26
 export const PAD_BOT = 4
@@ -15,40 +17,6 @@ function mulberry32(seed: number) {
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296
   }
-}
-
-function hexToRgb(hex: string): [number, number, number] {
-  const n = parseInt(hex.slice(1), 16)
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
-}
-
-function shade(hex: string, f: number): string {
-  const [r, g, b] = hexToRgb(hex)
-  if (f >= 1) {
-    const k = f - 1
-    return `rgb(${Math.min(255, Math.round(r + (255 - r) * k))},${Math.min(255, Math.round(g + (255 - g) * k))},${Math.min(255, Math.round(b + (255 - b) * k))})`
-  }
-  return `rgb(${Math.round(r * f)},${Math.round(g * f)},${Math.round(b * f)})`
-}
-
-function hueShift(hex: string, deg: number, satF = 1, lumF = 1): string {
-  const [r, g, b] = hexToRgb(hex).map((v) => v / 255)
-  const mx = Math.max(r, g, b)
-  const mn = Math.min(r, g, b)
-  const l = (mx + mn) / 2
-  const d = mx - mn
-  let h = 0
-  const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1))
-  if (d !== 0) {
-    if (mx === r) h = ((g - b) / d) % 6
-    else if (mx === g) h = (b - r) / d + 2
-    else h = (r - g) / d + 4
-    h *= 60
-  }
-  h = (h + deg + 360) % 360
-  const s2 = Math.max(0, Math.min(1, s * satF))
-  const l2 = Math.max(0, Math.min(1, l * lumF))
-  return `hsl(${h.toFixed(0)},${(s2 * 100).toFixed(0)}%,${(l2 * 100).toFixed(0)}%)`
 }
 
 type Ctx = CanvasRenderingContext2D
@@ -79,6 +47,8 @@ function outline(ctx: Ctx, x: number, y: number, w: number, h: number) {
 function windowGlow(p: P, x: number, y: number, w: number, h: number, cool = false) {
   const g = cool ? GLOW_COOL : GLOW_WARM
   const lit = p.night > 0 && p.cond > 0.45
+  px(p.ctx, x - 1, y - 1, w + 2, h + 2, '#342f30')
+  px(p.ctx, x - 1, y + h, w + 2, 1, '#bba686')
   if (lit) {
     const a = 0.45 + p.night * 0.18
     px(p.ctx, x - 1, y - 1, w + 2, h + 2, `rgba(${g[0]},${g[1]},${g[2]},${0.16 * p.night})`)
@@ -148,6 +118,8 @@ function wallTexture(p: P, x: number, y: number, w: number, h: number, base: str
   px(p.ctx, x, y, w, h, base)
   px(p.ctx, x, y, w, 1, shade(base, 1.18))
   px(p.ctx, x, y + h - 2, w, 2, shade(base, 0.78))
+  px(p.ctx, x, y + 1, 1, Math.max(1, h - 3), shade(base, 1.1))
+  px(p.ctx, x + w - 2, y + 1, 2, Math.max(1, h - 3), shade(base, 0.84))
   const r = p.rng
   p.ctx.fillStyle = 'rgba(0,0,0,0.08)'
   for (let i = 0; i < (w * h) / 38; i++) {

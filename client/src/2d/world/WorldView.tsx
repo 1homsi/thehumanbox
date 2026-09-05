@@ -1,3 +1,4 @@
+import { drawFaunaSprite } from './fauna-sprites'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   Game,
@@ -55,10 +56,18 @@ import { oceanColor } from './landscape-style'
 
 import { LOW_PERF } from '../../lib/perf'
 import { syncRendererLoopPause } from '../../lib/desktopVisibility'
-import { deterministicAppearanceIndex, resolveAgeStage, zoomDetailLevel } from './character-visuals'
+import {
+  deterministicAppearanceIndex,
+  resolveAgeStage,
+  zoomDetailLevel,
+  characterMotion,
+  characterFrame,
+  compareCharacterDepth,
+  type CharacterMotion,
+} from './character-visuals'
 
-const _orgLastPos = new Map<string, { x: number; y: number; movedAt: number; phase: number }>()
-const _animalLastPos = new Map<number, { x: number; y: number; movedAt: number }>()
+const _orgLastPos = new Map<string, CharacterMotion>()
+const _animalLastPos = new Map<number, CharacterMotion>()
 function orgAnimPhase(id: string): number {
   let h = 2166136261 >>> 0
   for (let i = 0; i < id.length; i++) {
@@ -67,30 +76,10 @@ function orgAnimPhase(id: string): number {
   }
   return h % 800
 }
-function orgFrame(id: string, x: number, y: number, now: number): number {
-  const last = _orgLastPos.get(id)
-  let movedAt = last?.movedAt ?? 0
-  let phase = last?.phase
-  if (phase == null) phase = orgAnimPhase(id)
-  if (!last || Math.abs(last.x - x) > 0.02 || Math.abs(last.y - y) > 0.02) {
-    movedAt = now
-    _orgLastPos.set(id, { x, y, movedAt, phase })
-  }
-  if (now - movedAt > 350) return 0
-  return Math.floor(((now + phase) % 800) / 200)
-}
-
-function animalIsMoving(id: number, x: number, y: number, now: number): boolean {
-  const last = _animalLastPos.get(id)
-  if (!last) {
-    _animalLastPos.set(id, { x, y, movedAt: 0 })
-    return false
-  }
-  if (Math.abs(last.x - x) > 0.02 || Math.abs(last.y - y) > 0.02) {
-    _animalLastPos.set(id, { x, y, movedAt: now })
-    return true
-  }
-  return now - last.movedAt < 320
+function orgMotion(id: string, x: number, y: number, now: number): CharacterMotion {
+  const motion = characterMotion(_orgLastPos.get(id), x, y, now, orgAnimPhase(id))
+  _orgLastPos.set(id, motion)
+  return motion
 }
 
 interface OrgInterpCache {
@@ -2180,11 +2169,19 @@ function drawWorldOnCanvas(
         if (!visibleIds.has(id)) _animalLastPos.delete(id)
       }
     }
-    for (const animal of animals) {
+    for (const animal of [...animals].sort((a, b) => a.y - b.y || a.id - b.id)) {
+      if (
+        animal.x - ox < c0 - 3 ||
+        animal.x - ox > c1 + 3 ||
+        animal.y - oy < r0 - 3 ||
+        animal.y - oy > r1 + 3
+      )
+        continue
+      const motion = characterMotion(_animalLastPos.get(animal.id), animal.x, animal.y, t, 0)
+      _animalLastPos.set(animal.id, motion)
       const small = animal.kind === 'fish' || animal.kind === 'bird' || animal.kind === 'rabbit'
-      const size = small ? 11 : 14
-      const moving =
-        animal.kind === 'fish' || animal.kind === 'bird' || animalIsMoving(animal.id, animal.x, animal.y, t)
+      const size = small ? 14 : 20
+      const moving = animal.kind === 'fish' || animal.kind === 'bird' || t - motion.movedAt < 320
       const speed =
         animal.kind === 'fish'
           ? 0.0028
@@ -2204,7 +2201,8 @@ function drawWorldOnCanvas(
         ctx.ellipse(cx, cy + size * 0.42, size * 0.32, size * 0.14, 0, 0, Math.PI * 2)
         ctx.fill()
       }
-      const flip = (((animal.id * 2654435761) >>> 0) & 1) === 1
+      const flip = motion.flipped
+      if (drawFaunaSprite(ctx, animal.kind, animal.id, cx, cy, size, flip)) continue
       if (animal.kind === 'wolf' || animal.kind === 'dog') {
         drawCanineSprite(
           ctx,
@@ -2309,7 +2307,7 @@ function drawWorldOnCanvas(
       ctx.fill(focusedShadows)
     }
   }
-  for (const org of organisms) {
+  for (const org of [...organisms].sort(compareCharacterDepth)) {
     if (!org.alive) continue
     // Data-driven house entry: use actual sleep_debt, energy, health fields - no text matching
     if (org.home_x && org.home_y) {
@@ -2442,13 +2440,15 @@ function drawWorldOnCanvas(
       ctx.setLineDash([])
     }
 
-    const frame = orgFrame(org.id, org.x, org.y, t)
+    const motion = orgMotion(org.id, org.x, org.y, t)
+    const frame = characterFrame(motion, t)
     const drew = drawPeopleTile(
       ctx,
       pickHumanSprite(orgSex, stage, frame, deterministicAppearanceIndex(org.id)),
       Math.round(px - spriteSize / 2),
       Math.round(spriteTop),
       spriteSize,
+      motion.flipped,
     )
     if (!drew) {
       ctx.fillStyle = variant.hairColor

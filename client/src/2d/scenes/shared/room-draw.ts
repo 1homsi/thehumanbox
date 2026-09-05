@@ -1,5 +1,5 @@
 import type { SceneFixture } from '../../../scenes/core/types'
-import { ROOM_COLS, TILE_PX } from './room-constants'
+import { ROOM_COLS, ROOM_ROWS, TILE_PX } from './room-constants'
 
 /** Fixture kinds that emit warm light and should punch through the night dim. */
 const FIRE_FIXTURE_KINDS = new Set([
@@ -122,4 +122,30 @@ export function drawNightLights(ctx: CanvasRenderingContext2D, lights: LightSour
     ctx.fillRect(l.cx - l.radius, l.cy - l.radius, l.radius * 2, l.radius * 2)
   }
   ctx.restore()
+}
+
+export function drawRoomFloor(
+  ctx: CanvasRenderingContext2D,
+  palette: { floor: string; floorPlank: string; floorShade: string },
+) {
+  for (let row = 1; row < ROOM_ROWS - 1; row++) {
+    for (let col = 1; col < ROOM_COLS - 1; col++) {
+      const x = col * TILE_PX
+      const y = row * TILE_PX
+      ctx.fillStyle = (row + col) % 3 === 0 ? palette.floorPlank : palette.floor
+      ctx.fillRect(x, y, TILE_PX, TILE_PX)
+      ctx.fillStyle = palette.floorShade
+      ctx.fillRect(x, y + TILE_PX - 1, TILE_PX, 1)
+      // Alternate joints so the floor reads as boards rather than a checkerboard.
+      if ((col + row) % 2 === 0) ctx.fillRect(x, y, 1, TILE_PX)
+      ctx.fillStyle = 'rgba(255, 230, 183, 0.07)'
+      ctx.fillRect(x + 2, y + 2, TILE_PX - 4, 1)
+      ctx.fillStyle = 'rgba(25, 16, 12, 0.12)'
+      ctx.fillRect(x + 3 + (row % 3), y + 8, 5, 1)
+    }
+  }
+  // Contact shading tucks the floor underneath the room walls.
+  ctx.fillStyle = 'rgba(20, 14, 12, 0.22)'
+  ctx.fillRect(TILE_PX, TILE_PX, (ROOM_COLS - 2) * TILE_PX, 3)
+  ctx.fillRect(TILE_PX, TILE_PX, 2, (ROOM_ROWS - 2) * TILE_PX)
 }

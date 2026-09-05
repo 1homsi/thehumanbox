@@ -1,6 +1,6 @@
 export const HUMAN_ATLAS_CELL = 32
 export const HUMAN_ATLAS_FRAMES = 4
-export const HUMAN_APPEARANCES = 3
+export const HUMAN_APPEARANCES = 6
 
 export const HUMAN_STAGE_ORDER = ['infant', 'child', 'teen', 'adult', 'elder'] as const
 export const HUMAN_SEX_ORDER = ['male', 'female'] as const
@@ -73,4 +73,39 @@ export function zoomDetailLevel(zoom: number): CharacterDetailLevel {
   if (zoom < 0.8) return 'overview'
   if (zoom >= 2.2) return 'detail'
   return 'standard'
+}
+
+export interface CharacterMotion {
+  x: number
+  y: number
+  movedAt: number
+  phase: number
+  flipped: boolean
+}
+
+export function characterMotion(
+  previous: CharacterMotion | undefined,
+  x: number,
+  y: number,
+  now: number,
+  phase: number,
+): CharacterMotion {
+  const dx = x - (previous?.x ?? x)
+  const dy = y - (previous?.y ?? y)
+  const moved = Math.abs(dx) > 0.02 || Math.abs(dy) > 0.02
+  return {
+    x: moved || !previous ? x : previous.x,
+    y: moved || !previous ? y : previous.y,
+    movedAt: moved ? now : (previous?.movedAt ?? -Infinity),
+    phase: previous?.phase ?? phase,
+    flipped: Math.abs(dx) > 0.02 ? dx < 0 : (previous?.flipped ?? false),
+  }
+}
+
+export function characterFrame(motion: CharacterMotion, now: number): number {
+  return now - motion.movedAt > 350 ? 0 : Math.floor(((now + motion.phase) % 800) / 200)
+}
+
+export function compareCharacterDepth(a: { y: number; id: string }, b: { y: number; id: string }): number {
+  return a.y - b.y || a.id.localeCompare(b.id)
 }

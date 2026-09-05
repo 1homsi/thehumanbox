@@ -5037,8 +5037,8 @@ body.thb-colorblind .org-sick-badge {
   display: flex;
   align-items: center;
   padding: 4px 8px calc(4px + env(safe-area-inset-bottom, 0px));
-  background: rgba(18, 15, 12, 0.97);
-  border-top: 1px solid #4b3a2b;
+  background: linear-gradient(#30291f, #1a1713);
+  border-top: 1px solid #827052;
   box-shadow: 0 -5px 18px rgba(0, 0, 0, 0.42);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -5048,21 +5048,28 @@ body.thb-colorblind .org-sick-badge {
   width: 100%;
   min-width: 0;
   align-items: center;
-  justify-content: center;
-  gap: 7px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: thin;
+  justify-content: flex-start;
+  gap: 8px;
+  overflow: hidden;
 }
 .sandbox-tabs,
 .sandbox-tools {
   display: flex;
-  flex: 0 0 auto;
-  gap: 2px;
+  min-width: 0;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
   align-items: center;
   padding: 0;
   flex-wrap: nowrap;
-  justify-content: center;
+  justify-content: flex-start;
+}
+.sandbox-tabs {
+  flex: 0 1 42%;
+}
+.sandbox-tools {
+  flex: 1 1 0;
 }
 .sandbox-divider {
   width: 1px;
@@ -5077,13 +5084,14 @@ body.thb-colorblind .org-sick-badge {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1px;
-  min-width: 46px;
+  gap: 3px;
+  flex: 0 0 auto;
+  min-width: 54px;
   min-height: 48px;
   padding: 4px 5px;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 5px;
+  border-radius: 4px;
   color: #cbbfa8;
   cursor: pointer;
   font-family: inherit;
@@ -5122,7 +5130,8 @@ body.thb-colorblind .org-sick-badge {
 }
 .sandbox-tab-label,
 .sandbox-tool-label {
-  font-size: 8px;
+  font-size: 12px;
+  line-height: 1.2;
   letter-spacing: 0.04em;
 }
 .sandbox-brush {
@@ -5130,7 +5139,7 @@ body.thb-colorblind .org-sick-badge {
   align-items: center;
   gap: 5px;
   color: #cbbfa8;
-  font-size: 9px;
+  font-size: 12px;
   padding: 0 8px;
 }
 .sandbox-brush input {
@@ -5146,7 +5155,7 @@ body.thb-colorblind .org-sick-badge {
   max-width: 190px;
   padding: 4px 7px;
   color: #f0d088;
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.04em;
   white-space: nowrap;
   overflow: hidden;
@@ -5155,7 +5164,7 @@ body.thb-colorblind .org-sick-badge {
 .sandbox-utility {
   display: flex;
   min-width: 0;
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   align-items: center;
   gap: 5px;
   padding-left: 2px;
@@ -5269,20 +5278,72 @@ body.thb-colorblind .org-sick-badge {
   .sandbox-bar {
     flex-basis: 56px;
     height: 56px;
-    padding: 3px 6px;
+    padding: 3px 6px calc(3px + env(safe-area-inset-bottom, 0px));
   }
   .sandbox-tab,
   .sandbox-tool {
-    min-width: 40px;
+    min-width: 50px;
     min-height: 42px;
     padding: 3px 4px;
   }
   .sandbox-tab-label,
   .sandbox-tool-label {
-    font-size: 7px;
+    font-size: 12px;
   }
-  .sandbox-status,
-  .sandbox-save-label {
+  .sandbox-tabs {
+    flex-basis: 30%;
+  }
+  .sandbox-divider {
     display: none;
+  }
+}
+
+/* Keep transport and save reachable while category/tool strips scroll. */
+.sandbox-playback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex: 0 0 46px;
+  min-height: 44px;
+  border: 1px solid #746448;
+  border-radius: 4px;
+  background: #2d2b21;
+  color: #ead7a6;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.sandbox-playback:hover {
+  background: #46412b;
+}
+.sandbox-playback.paused {
+  color: #ffe2a1;
+  border-color: #c79a5a;
+}
+.sandbox-tab.active,
+.sandbox-tool.active {
+  box-shadow: inset 0 -2px #ddb768;
+}
+.sandbox-tools:focus-within,
+.sandbox-tabs:focus-within {
+  scroll-behavior: smooth;
+}
+@media (max-width: 1400px) {
+  .sandbox-status {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sandbox-tools:focus-within,
+  .sandbox-tabs:focus-within {
+    scroll-behavior: auto;
   }
 }
