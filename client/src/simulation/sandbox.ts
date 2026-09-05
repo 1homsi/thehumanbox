@@ -331,7 +331,10 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
       { id: 'play', label: 'play', icon: '▶️', mode: 'instant', time: { control: 'resume' } },
       { id: 'slow', label: 'slow', icon: '🐢', mode: 'instant', time: { control: 'speed', mult: 0.5 } },
       { id: 'normal', label: '1×', icon: '⏱️', mode: 'instant', time: { control: 'speed', mult: 1 } },
-      { id: 'fast', label: 'fast', icon: '⏩', mode: 'instant', time: { control: 'speed', mult: 3 } },
+      { id: 'fast2', label: '2×', icon: '⏩', mode: 'instant', time: { control: 'speed', mult: 2 } },
+      { id: 'fast4', label: '4×', icon: '⏩', mode: 'instant', time: { control: 'speed', mult: 4 } },
+      { id: 'fast10', label: '10×', icon: '⏭️', mode: 'instant', time: { control: 'speed', mult: 10 } },
+      { id: 'fast50', label: '50×', icon: '⚡', mode: 'instant', time: { control: 'speed', mult: 50 } },
     ],
   },
 ]

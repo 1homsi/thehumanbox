@@ -23,6 +23,8 @@ import { isDesktop } from '../lib/desktop'
 import { localSaveWorkerRequest } from './wasmPersistence'
 import {
   fetchRuntimeControlState,
+  WASM_BASE_TICK_MS,
+  wasmSpeedConfig,
   nextRuntimeState,
   reconcileRuntimeState,
   type RuntimeControl,
@@ -30,7 +32,6 @@ import {
   type RuntimeState,
 } from './runtimeControls'
 
-const WASM_BASE_TICK_MS = 120
 const RELOAD_CHECKPOINT_DEADLINE_MS = 6_000
 const RELOAD_CHECKPOINT_TIMEOUT_MS = 7_000
 
@@ -337,6 +338,7 @@ export function useSimulation(source: WorldSource = 'native'): {
           fatal?: boolean
           paused?: boolean
           tickMs?: number
+          speed?: number
         }
         if (m.type === 'frame' && typeof m.frame === 'string') {
           if (!announced) {
@@ -384,9 +386,11 @@ export function useSimulation(source: WorldSource = 'native'): {
               ok: m.ok === true,
               paused: typeof m.paused === 'boolean' ? m.paused : undefined,
               speed:
-                typeof m.tickMs === 'number' && Number.isFinite(m.tickMs) && m.tickMs > 0
-                  ? WASM_BASE_TICK_MS / m.tickMs
-                  : undefined,
+                typeof m.speed === 'number' && Number.isFinite(m.speed) && m.speed > 0
+                  ? m.speed
+                  : typeof m.tickMs === 'number' && Number.isFinite(m.tickMs) && m.tickMs > 0
+                    ? WASM_BASE_TICK_MS / m.tickMs
+                    : undefined,
             })
           }
         } else if (
@@ -781,7 +785,7 @@ export function useSimulation(source: WorldSource = 'native'): {
         | { type: 'retry_storage' }
         | { type: 'pause' }
         | { type: 'resume' }
-        | { type: 'speed'; tickMs: number },
+        | { type: 'speed'; tickMs: number; stepsPerEmit: number; speed: number },
     ): Promise<boolean> => {
       const worker = wasmWorkerRef.current
       if (!worker) return Promise.resolve(false)
@@ -803,7 +807,10 @@ export function useSimulation(source: WorldSource = 'native'): {
 
   const requestRuntimeFromWasm = useCallback(
     (
-      payload: { type: 'pause' } | { type: 'resume' } | { type: 'speed'; tickMs: number },
+      payload:
+        | { type: 'pause' }
+        | { type: 'resume' }
+        | { type: 'speed'; tickMs: number; stepsPerEmit: number; speed: number },
     ): Promise<RuntimeControlResult> => {
       const worker = wasmWorkerRef.current
       if (!worker) return Promise.resolve({ ok: false })
@@ -876,10 +883,8 @@ export function useSimulation(source: WorldSource = 'native'): {
           if (control === 'pause') result = await requestRuntimeFromWasm({ type: 'pause' })
           else if (control === 'resume') result = await requestRuntimeFromWasm({ type: 'resume' })
           else if (typeof mult === 'number' && Number.isFinite(mult) && mult > 0) {
-            result = await requestRuntimeFromWasm({
-              type: 'speed',
-              tickMs: Math.max(16, Math.round(WASM_BASE_TICK_MS / mult)),
-            })
+            const speed = wasmSpeedConfig(mult)
+            result = speed ? await requestRuntimeFromWasm({ type: 'speed', ...speed }) : { ok: false }
           } else {
             result = { ok: false }
           }

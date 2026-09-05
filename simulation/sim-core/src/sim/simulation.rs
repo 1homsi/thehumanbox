@@ -1255,6 +1255,12 @@ impl Simulation {
         }
     }
 
+    pub fn tick_n(&mut self, count: u32) {
+        for _ in 0..count {
+            self.tick();
+        }
+    }
+
     pub fn tick(&mut self) {
         self.tick_count += 1;
         self.resolve_strategy_objective_expirations();

@@ -4,6 +4,7 @@ import {
   nextRuntimeState,
   parseRuntimeControlResult,
   reconcileRuntimeState,
+  wasmSpeedConfig,
 } from './runtimeControls'
 
 afterEach(() => {
@@ -55,6 +56,22 @@ describe('parseRuntimeControlResult', () => {
     expect(parseRuntimeControlResult(true, { ok: false })).toEqual({ ok: false })
     expect(parseRuntimeControlResult(false, { ok: true })).toEqual({ ok: false })
     expect(parseRuntimeControlResult(true, null)).toEqual({ ok: false })
+  })
+})
+
+describe('wasmSpeedConfig', () => {
+  it('keeps the requested high-speed presets simulation-accurate', () => {
+    expect([2, 4, 10, 50].map((multiplier) => wasmSpeedConfig(multiplier))).toEqual([
+      { tickMs: 60, stepsPerEmit: 1, speed: 2 },
+      { tickMs: 30, stepsPerEmit: 1, speed: 4 },
+      { tickMs: 24, stepsPerEmit: 2, speed: 10 },
+      { tickMs: 24, stepsPerEmit: 10, speed: 50 },
+    ])
+  })
+
+  it('rejects speeds outside the supported runtime range', () => {
+    expect(wasmSpeedConfig(0.1)).toBeNull()
+    expect(wasmSpeedConfig(51)).toBeNull()
   })
 })
 

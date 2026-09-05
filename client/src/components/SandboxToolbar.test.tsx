@@ -59,8 +59,8 @@ describe('SandboxToolbar runtime state', () => {
   })
 
   it('marks only the acknowledged speed', () => {
-    expect(isRuntimeControlActive(tool('fast').time, false, 3)).toBe(true)
-    expect(isRuntimeControlActive(tool('normal').time, false, 3)).toBe(false)
+    expect(isRuntimeControlActive(tool('fast4').time, false, 4)).toBe(true)
+    expect(isRuntimeControlActive(tool('normal').time, false, 4)).toBe(false)
     expect(isRuntimeControlActive(tool('slow').time, true, 0.5)).toBe(true)
   })
 })

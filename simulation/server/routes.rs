@@ -151,7 +151,7 @@ pub async fn runtime_handler(
             StatusCode::BAD_REQUEST,
             Json(serde_json::json!({
                 "ok": false,
-                "error": "control must be pause, resume, or speed (0.25x to 8x)",
+                "error": "control must be pause, resume, or speed (0.25x to 50x)",
             })),
         )
             .into_response(),

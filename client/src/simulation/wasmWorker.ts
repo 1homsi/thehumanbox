@@ -16,6 +16,7 @@ import {
   runStorageRetry,
   type StorageRetry,
 } from './wasmPersistence'
+import { MAX_RUNTIME_SPEED, MIN_RUNTIME_SPEED, MIN_WASM_TICK_MS, WASM_BASE_TICK_MS } from './runtimeControls'
 
 type StartMsg = {
   type: 'start'
@@ -39,7 +40,13 @@ type InMsg =
   | { type: 'command'; json: string; requestId: number }
   | { type: 'org_detail'; id: string; requestId: number }
   | { type: 'org_life'; id: string; requestId: number }
-  | { type: 'speed'; tickMs: number; requestId?: number }
+  | {
+      type: 'speed'
+      tickMs: number
+      stepsPerEmit: number
+      speed: number
+      requestId?: number
+    }
 
 const DEEP_FULL_EVERY_TICKS = 300n
 // Full world saves can be tens of megabytes. Commands and shutdowns
@@ -50,8 +57,9 @@ const DEFAULT_AUTOSAVE_MS = 30_000
 let sim: Sim | null = null
 let worldId = 'browser-own'
 let seed = '0'
-let tickMs = 120
+let tickMs = WASM_BASE_TICK_MS
 let stepsPerEmit = 1
+let speed = 1
 let autosaveEveryMs = DEFAULT_AUTOSAVE_MS
 let frameId = 0
 let started = false
@@ -366,7 +374,7 @@ function tickOnce() {
 
 function startTickTimer() {
   if (tickTimer !== null) clearInterval(tickTimer)
-  tickTimer = setInterval(tickOnce, tickMs)
+  tickTimer = setInterval(tickOnce, Math.max(MIN_WASM_TICK_MS, tickMs))
 }
 
 function beginLoop(autosaveEveryMs: number) {
@@ -381,8 +389,8 @@ async function start(msg: StartMsg) {
   started = true
   worldId = msg.id
   seed = msg.seed
-  tickMs = msg.tickMs ?? tickMs
-  stepsPerEmit = msg.stepsPerEmit ?? stepsPerEmit
+  tickMs = Math.max(MIN_WASM_TICK_MS, msg.tickMs ?? tickMs)
+  stepsPerEmit = Math.max(1, Math.floor(msg.stepsPerEmit ?? stepsPerEmit))
   autosaveEveryMs = msg.autosaveEveryMs ?? DEFAULT_AUTOSAVE_MS
 
   try {
@@ -549,6 +557,7 @@ self.onmessage = (e: MessageEvent) => {
           ok: sim !== null,
           paused: manuallyPaused,
           tickMs,
+          speed,
         })
       }
       break
@@ -561,6 +570,7 @@ self.onmessage = (e: MessageEvent) => {
           ok: sim !== null,
           paused: manuallyPaused,
           tickMs,
+          speed,
         })
       }
       break
@@ -636,18 +646,33 @@ self.onmessage = (e: MessageEvent) => {
       })
       break
     case 'speed':
-      if (sim && Number.isFinite(msg.tickMs) && msg.tickMs > 0) {
-        tickMs = Math.max(16, msg.tickMs)
-        if (tickTimer !== null) startTickTimer()
-      }
-      if (msg.requestId !== undefined) {
-        post({
-          type: 'runtime_result',
-          requestId: msg.requestId,
-          ok: sim !== null && Number.isFinite(msg.tickMs) && msg.tickMs > 0,
-          paused: manuallyPaused,
-          tickMs,
-        })
+      {
+        const valid =
+          sim !== null &&
+          Number.isFinite(msg.tickMs) &&
+          msg.tickMs > 0 &&
+          Number.isFinite(msg.stepsPerEmit) &&
+          Number.isInteger(msg.stepsPerEmit) &&
+          msg.stepsPerEmit >= 1 &&
+          Number.isFinite(msg.speed) &&
+          msg.speed >= MIN_RUNTIME_SPEED &&
+          msg.speed <= MAX_RUNTIME_SPEED
+        if (valid) {
+          tickMs = Math.max(MIN_WASM_TICK_MS, msg.tickMs)
+          stepsPerEmit = msg.stepsPerEmit
+          speed = msg.speed
+          if (tickTimer !== null) startTickTimer()
+        }
+        if (msg.requestId !== undefined) {
+          post({
+            type: 'runtime_result',
+            requestId: msg.requestId,
+            ok: valid,
+            paused: manuallyPaused,
+            tickMs,
+            speed,
+          })
+        }
       }
       break
     case 'stop':

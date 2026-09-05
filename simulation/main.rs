@@ -45,6 +45,8 @@ const WS_BROADCAST_BUFFER: usize = 40;
 pub const WS_RESYNC_LAG_THRESHOLD: u64 = 3;
 const MIN_RUNTIME_TICK_MS: u64 = 16;
 const MAX_RUNTIME_TICK_MS: u64 = 5_000;
+const MIN_RUNTIME_SPEED: f64 = 0.25;
+const MAX_RUNTIME_SPEED: f64 = 50.0;
 
 fn bounded_interval_ms(value: Option<&str>, fallback: u64, min: u64, max: u64) -> u64 {
     value
@@ -61,6 +63,34 @@ fn tick_ms() -> u64 {
         MIN_RUNTIME_TICK_MS,
         MAX_RUNTIME_TICK_MS,
     )
+}
+
+fn runtime_speed_config(base_tick_ms: u64, multiplier: f64) -> (u64, u64) {
+    let minimum_steps = ((multiplier * MIN_RUNTIME_TICK_MS as f64) / base_tick_ms as f64)
+        .ceil()
+        .max(1.0) as u64;
+    let max_steps = minimum_steps
+        .saturating_mul(4)
+        .max(minimum_steps.saturating_add(8))
+        .min(256);
+    let mut best_tick_ms = base_tick_ms;
+    let mut best_steps = 1;
+    let mut best_error = f64::INFINITY;
+
+    for steps in 1..=max_steps {
+        let tick_ms = ((base_tick_ms as f64 * steps as f64) / multiplier)
+            .round()
+            .clamp(MIN_RUNTIME_TICK_MS as f64, MAX_RUNTIME_TICK_MS as f64) as u64;
+        let speed = base_tick_ms as f64 * steps as f64 / tick_ms as f64;
+        let error = (speed - multiplier).abs();
+        if error < best_error || (error == best_error && steps < best_steps) {
+            best_tick_ms = tick_ms;
+            best_steps = steps;
+            best_error = error;
+        }
+    }
+
+    (best_tick_ms, best_steps)
 }
 
 fn network_ms() -> u64 {
@@ -291,6 +321,7 @@ pub type SaveGate = Arc<tokio::sync::Mutex<()>>;
 pub struct RuntimeControl {
     paused: AtomicBool,
     tick_ms: AtomicU64,
+    steps_per_period: AtomicU64,
     base_tick_ms: u64,
 }
 
@@ -300,6 +331,7 @@ impl RuntimeControl {
         Self {
             paused: AtomicBool::new(false),
             tick_ms: AtomicU64::new(base_tick_ms),
+            steps_per_period: AtomicU64::new(1),
             base_tick_ms,
         }
     }
@@ -317,16 +349,20 @@ impl RuntimeControl {
     }
 
     pub fn speed(&self) -> f64 {
-        self.base_tick_ms as f64 / self.tick_ms() as f64
+        self.base_tick_ms as f64 * self.steps_per_period() as f64 / self.tick_ms() as f64
+    }
+
+    pub fn steps_per_period(&self) -> u32 {
+        self.steps_per_period.load(Ordering::Relaxed).min(u32::MAX as u64) as u32
     }
 
     pub fn set_speed(&self, multiplier: f64) -> Option<u64> {
-        if !multiplier.is_finite() || !(0.25..=8.0).contains(&multiplier) {
+        if !multiplier.is_finite() || !(MIN_RUNTIME_SPEED..=MAX_RUNTIME_SPEED).contains(&multiplier) {
             return None;
         }
-        let tick_ms = ((self.base_tick_ms as f64 / multiplier).round() as u64)
-            .clamp(MIN_RUNTIME_TICK_MS, MAX_RUNTIME_TICK_MS);
+        let (tick_ms, steps_per_period) = runtime_speed_config(self.base_tick_ms, multiplier);
         self.tick_ms.store(tick_ms, Ordering::Relaxed);
+        self.steps_per_period.store(steps_per_period, Ordering::Relaxed);
         Some(tick_ms)
     }
 }
@@ -681,6 +717,8 @@ async fn main() {
                 let tick_started = std::time::Instant::now();
                 let tick_outputs = {
                     let mut s: tokio::sync::MutexGuard<'_, _> = sim_clone.lock().await;
+                    let tick_count_before = s.tick_count;
+                    let steps_per_period = runtime_control.steps_per_period();
                     // The sim tick is a heavy CPU-bound chunk (movement
                     // decisions, action evaluation, world-event ticks,
                     // spatial-index rebuilds - 10-100ms at this pop).
@@ -691,9 +729,9 @@ async fn main() {
                     // Cloudflare). block_in_place tells the multi-thread
                     // runtime to spin up a replacement worker so siblings
                     // keep getting scheduled while this one churns.
-                    tokio::task::block_in_place(|| s.tick());
+                    tokio::task::block_in_place(|| s.tick_n(steps_per_period));
 
-                    if s.tick_count % 30 == 0 {
+                    if s.tick_count / 30 > tick_count_before / 30 {
                         let p = memory_watch_cl.pressure();
                         if !matches!(p, memory_watch::MemoryPressure::Normal) {
                             s.apply_memory_pressure(p);
@@ -929,7 +967,7 @@ async fn main() {
                         }
                     }
 
-                    if s.tick_count % DAY_LENGTH == 0
+                    if s.tick_count / DAY_LENGTH > tick_count_before / DAY_LENGTH
                         && !matches!(memory_watch_cl.pressure(), memory_watch::MemoryPressure::Critical)
                     {
                         let cur_tick = s.tick_count;
@@ -1012,7 +1050,7 @@ async fn main() {
                     // Reserve one periodic checkpoint. The snapshot itself is
                     // taken after acquiring the shared save gate below, so an
                     // older queued save can never overwrite a newer manual one.
-                    let pending_save = s.tick_count % SAVE_EVERY_TICKS == 0
+                    let pending_save = s.tick_count / SAVE_EVERY_TICKS > tick_count_before / SAVE_EVERY_TICKS
                         && save_in_progress
                             .compare_exchange(
                                 false,
@@ -1121,6 +1159,8 @@ async fn main() {
         let frame_clock_w = frame_clock.clone();
         let transport_stats_w = transport_stats.clone();
         tokio::spawn(async move {
+            let mut last_broadcast_tick = 0_u64;
+            let mut last_deep_full_tick = 0_u64;
             loop {
                 let cycle_started = std::time::Instant::now();
                 if tx_clone.receiver_count() == 0 {
@@ -1142,8 +1182,15 @@ async fn main() {
                 }
                 let (frame, full_payload) = {
                     let mut s = sim_clone.lock().await;
-                    let is_full_frame = s.tick_count % FULL_FRAME_EVERY_TICKS == 0;
-                    let is_deep_full = is_full_frame && (s.tick_count % 300 == 0);
+                    let is_full_frame =
+                        s.tick_count.saturating_sub(last_broadcast_tick) >= FULL_FRAME_EVERY_TICKS;
+                    let is_deep_full = s.tick_count.saturating_sub(last_deep_full_tick) >= 300;
+                    if is_full_frame {
+                        last_broadcast_tick = s.tick_count;
+                    }
+                    if is_deep_full {
+                        last_deep_full_tick = s.tick_count;
+                    }
                     let serialize_started = std::time::Instant::now();
                     let frame_id = next_frame_id(&frame_clock_w);
                     let (bytes, kind) = if is_full_frame {
@@ -1566,7 +1613,18 @@ mod tests {
         assert!(runtime.paused());
         assert_eq!(runtime.set_speed(2.0), Some(50));
         assert_eq!(runtime.tick_ms(), 50);
+        assert_eq!(runtime.steps_per_period(), 1);
         assert!((runtime.speed() - 2.0).abs() < f64::EPSILON);
+
+        assert_eq!(runtime.set_speed(10.0), Some(20));
+        assert_eq!(runtime.tick_ms(), 20);
+        assert_eq!(runtime.steps_per_period(), 2);
+        assert!((runtime.speed() - 10.0).abs() < f64::EPSILON);
+
+        assert_eq!(runtime.set_speed(50.0), Some(16));
+        assert_eq!(runtime.tick_ms(), 16);
+        assert_eq!(runtime.steps_per_period(), 8);
+        assert!((runtime.speed() - 50.0).abs() < f64::EPSILON);
 
         runtime.set_paused(false);
         assert!(!runtime.paused());
@@ -1576,7 +1634,7 @@ mod tests {
     fn runtime_control_rejects_unbounded_speeds() {
         let runtime = RuntimeControl::new(100);
         assert_eq!(runtime.set_speed(0.0), None);
-        assert_eq!(runtime.set_speed(9.0), None);
+        assert_eq!(runtime.set_speed(51.0), None);
         assert_eq!(runtime.set_speed(f64::NAN), None);
         assert_eq!(runtime.tick_ms(), 100);
     }
