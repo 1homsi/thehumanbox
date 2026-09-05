@@ -1,3 +1,4 @@
+import { shorelineColors } from './landscape-style'
 /**
  * Cosmetic / atmospheric decorations rendered onto the 2D world
  * canvas: trees (drawn into the cached base layer), clouds, and
@@ -92,9 +93,11 @@ export function drawTrees(
   originX = 0,
   originY = 0,
   only?: DecorRegion,
+  season = 'summer',
 ) {
   if (!biomes || !ATLAS_TOWN.complete) return
   const TREE_SIZE = 16
+  const trees: Array<{ cx: number; cy: number; sz: number; sprite: typeof SPRITE.trees.oak_mid }> = []
 
   const placed: Uint8Array = new Uint8Array(width * height)
   const order: number[] = []
@@ -208,6 +211,18 @@ export function drawTrees(
         sprite = SPRITE.trees.dead
         break
     }
+    const deciduous =
+      biome === BIOME_ID.GRASSLAND || biome === BIOME_ID.WETLAND || (biome === BIOME_ID.FOREST && r1 >= 0.45)
+    if (deciduous && season === 'autumn') {
+      sprite = r1 < 0.6 ? SPRITE.trees.autumn_yel : SPRITE.trees.autumn_red
+    } else if (deciduous && season === 'winter') {
+      sprite = SPRITE.trees.dead
+    }
+    trees.push({ cx, cy, sz, sprite })
+  }
+  // Place deterministically, then paint back-to-front so tree crowns overlap naturally.
+  trees.sort((a, b) => a.cy + a.sz - (b.cy + b.sz))
+  for (const { cx, cy, sz } of trees) {
     const shadowWidth = Math.max(4, Math.round(sz * 0.48))
     ctx.fillStyle = 'rgba(20,24,18,0.24)'
     ctx.fillRect(
@@ -216,6 +231,8 @@ export function drawTrees(
       shadowWidth,
       Math.max(1, Math.round(sz * 0.1)),
     )
+  }
+  for (const { cx, cy, sz, sprite } of trees) {
     drawTile(ctx, ATLAS_TOWN, sprite, Math.round(cx), Math.round(cy), Math.round(sz))
   }
 }
@@ -334,12 +351,13 @@ export function drawNaturalDecor(
       if (!isWaterTile(t)) {
         const beach = permanentWaterNeighborMask(tiles, y, x)
         if (beach !== 0) {
-          ctx.fillStyle = '#b9a66f'
+          const [bank, rim] = shorelineColors(t, biomes?.[y]?.[x] ?? 0)
+          ctx.fillStyle = bank
           if (beach & EDGE_NORTH) ctx.fillRect(px, py, TILE, 2)
           if (beach & EDGE_SOUTH) ctx.fillRect(px, py + TILE - 2, TILE, 2)
           if (beach & EDGE_WEST) ctx.fillRect(px, py, 2, TILE)
           if (beach & EDGE_EAST) ctx.fillRect(px + TILE - 2, py, 2, TILE)
-          ctx.fillStyle = '#ddc98e'
+          ctx.fillStyle = rim
           if (beach & EDGE_NORTH) ctx.fillRect(px + 1, py, TILE - 2, 1)
           if (beach & EDGE_SOUTH) ctx.fillRect(px + 1, py + TILE - 1, TILE - 2, 1)
           if (beach & EDGE_WEST) ctx.fillRect(px, py + 1, 1, TILE - 2)

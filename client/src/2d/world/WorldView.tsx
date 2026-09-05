@@ -51,6 +51,8 @@ import {
   territoryTileKey,
 } from '../../world/territory'
 
+import { oceanColor } from './landscape-style'
+
 import { LOW_PERF } from '../../lib/perf'
 import { syncRendererLoopPause } from '../../lib/desktopVisibility'
 import { deterministicAppearanceIndex, resolveAgeStage, zoomDetailLevel } from './character-visuals'
@@ -834,10 +836,7 @@ function paintTileBlock(
 
   const visualDepth = permanentWaterDepth(rawTid, depthRow?.[col])
   if (visualDepth !== null) {
-    const t_ = 1 - Math.min(200, visualDepth) / 200
-    r = (100 - t_ * 28) | 0
-    g = (170 - t_ * 42) | 0
-    b = (220 - t_ * 30) | 0
+    ;[r, g, b] = oceanColor(visualDepth)
   }
 
   if (isPermanentWater && touchesLand) {
@@ -1087,11 +1086,11 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
         (by1 - by0 + 1) * TILE,
       )
       const only = { x0: bx0, y0: by0, x1: bx1, y1: by1 }
-      if (biomes && ATLAS_TOWN.complete) {
-        drawTrees(baseCtx, width, height, tiles, biomes, origin_x, origin_y, only)
-      }
       if (biomes) {
         drawNaturalDecor(baseCtx, width, height, tiles, biomes, origin_x, origin_y, only)
+      }
+      if (biomes && ATLAS_TOWN.complete) {
+        drawTrees(baseCtx, width, height, tiles, biomes, origin_x, origin_y, only, season)
       }
       // Refresh derived layers for the affected region.
       updateScaledBaseRegion(bx0, by0, bx1, by1)
@@ -1128,11 +1127,11 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
   const baseCtx = canvas.getContext('2d')!
   baseCtx.imageSmoothingEnabled = false
   baseCtx.putImageData(imgData, 0, 0)
-  if (biomes && ATLAS_TOWN.complete) {
-    drawTrees(baseCtx, width, height, tiles, biomes, origin_x, origin_y)
-  }
   if (biomes) {
     drawNaturalDecor(baseCtx, width, height, tiles, biomes, origin_x, origin_y)
+  }
+  if (biomes && ATLAS_TOWN.complete) {
+    drawTrees(baseCtx, width, height, tiles, biomes, origin_x, origin_y, undefined, season)
   }
   _baseCanvas = canvas
   _baseKey = {
