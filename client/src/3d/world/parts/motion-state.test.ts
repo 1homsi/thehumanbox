@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
-import { updateOrgMotion, getOrgXY } from './motion-state'
-import type { OrganismState } from '../../../types'
+import {
+  updateOrgMotion,
+  getOrgXY,
+  updateAnimalMotion,
+  getAnimalSpeed,
+  getAnimalXY,
+  getAnimalHeading,
+} from './motion-state'
+import type { OrganismState, AnimalState } from '../../../types'
 
 let nextId = 0
 
@@ -41,6 +48,23 @@ describe('motion-state interpolation', () => {
   })
   afterEach(() => {
     vi.restoreAllMocks()
+  })
+
+  it('settles animal gait while retaining a valid zero heading', () => {
+    const animalId = 900000 + nextId
+    const animal = (y: number) => ({ id: animalId, kind: 'dog', x: 10, y }) as AnimalState
+    expect(getAnimalSpeed(animalId)).toBe(0)
+    updateAnimalMotion([animal(10)])
+    expect(getAnimalSpeed(animalId)).toBe(0)
+    nowMs = 1500
+    updateAnimalMotion([animal(12)])
+    expect(getAnimalSpeed(animalId)).toBeGreaterThan(0)
+    nowMs = 1600
+    getAnimalXY(animalId)
+    expect(getAnimalHeading(animalId)).toBe(0)
+    nowMs = 10000
+    expect(getAnimalSpeed(animalId)).toBeLessThan(0.001)
+    expect(getAnimalHeading(animalId)).toBe(0)
   })
 
   it('glides between snapshots instead of teleporting', () => {

@@ -1,4 +1,5 @@
-import { useMemo, useRef } from 'react'
+import { waterColorAt, waterTileAt } from './water-style'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { BufferAttribute, MeshStandardMaterial, PlaneGeometry } from 'three'
 import type { WebGLProgramParametersWithUniforms } from 'three'
@@ -9,36 +10,6 @@ interface Props {
   height: number
   depthMap?: number[][]
   dayProgress?: number
-}
-
-function waterColorAt(progress: number): [number, number, number] {
-  // Inner water surface colour through the day. Matches the SceneFog ramp.
-  const stops: Array<[number, [number, number, number]]> = [
-    [0.0, [0.32, 0.34, 0.5]],
-    [0.12, [0.32, 0.46, 0.62]],
-    [0.25, [0.18, 0.52, 0.7]],
-    [0.5, [0.13, 0.55, 0.76]],
-    [0.7, [0.2, 0.52, 0.72]],
-    [0.82, [0.36, 0.36, 0.5]],
-    [0.92, [0.14, 0.18, 0.32]],
-    [1.0, [0.08, 0.1, 0.24]],
-  ]
-  let lo = stops[0]
-  let hi = stops[stops.length - 1]
-  for (let i = 0; i < stops.length - 1; i++) {
-    if (progress >= stops[i][0] && progress <= stops[i + 1][0]) {
-      lo = stops[i]
-      hi = stops[i + 1]
-      break
-    }
-  }
-  const span = hi[0] - lo[0]
-  const t = span === 0 ? 0 : (progress - lo[0]) / span
-  return [
-    lo[1][0] + (hi[1][0] - lo[1][0]) * t,
-    lo[1][1] + (hi[1][1] - lo[1][1]) * t,
-    lo[1][2] + (hi[1][2] - lo[1][2]) * t,
-  ]
 }
 
 const SUB_X = 160
@@ -69,8 +40,7 @@ export function Water({ width, height, depthMap, dayProgress = 0.5 }: Props) {
       for (let i = 0; i < pos.count; i++) {
         const lx = pos.getX(i)
         const ly = pos.getY(i)
-        const col = Math.max(0, Math.min(width - 1, Math.floor((lx + PLANE_W / 2) / TILE_SCALE)))
-        const row = Math.max(0, Math.min(height - 1, Math.floor((ly + PLANE_H / 2) / TILE_SCALE)))
+        const [col, row] = waterTileAt(lx, ly, width, height, TILE_SCALE)
         const d = depthMap[row]?.[col] ?? 255
         const isLand = d >= 254
         mask[i] = isLand ? 1 : 0
@@ -80,7 +50,7 @@ export function Water({ width, height, depthMap, dayProgress = 0.5 }: Props) {
           let nearLand = false
           for (let dy = -1; dy <= 1 && !nearLand; dy++) {
             for (let dx = -1; dx <= 1 && !nearLand; dx++) {
-              const nd = depthMap[row + dy]?.[col + dx] ?? 255
+              const nd = depthMap[row + dy]?.[col + dx] ?? 0
               if (nd >= 254) nearLand = true
             }
           }
@@ -103,6 +73,8 @@ export function Water({ width, height, depthMap, dayProgress = 0.5 }: Props) {
     geo.setAttribute('normal', new BufferAttribute(normals, 3))
     return geo
   }, [PLANE_W, PLANE_H, width, height, depthMap])
+
+  useEffect(() => () => innerGeo.dispose(), [innerGeo])
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime()
