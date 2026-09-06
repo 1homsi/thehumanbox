@@ -183,7 +183,7 @@ export function MiniMap({ organisms, animals, tiles, depthMap, biomes, width, he
 
       const cx = (cameraSnapshot.x / TILE_SCALE / width) * MAP_W
       const cz = (cameraSnapshot.z / TILE_SCALE / height) * MAP_H
-      const yaw = Math.atan2(cameraSnapshot.dirX, cameraSnapshot.dirZ)
+      const yaw = Math.atan2(cameraSnapshot.dirX, -cameraSnapshot.dirZ)
       ctx.save()
       ctx.translate(cx, cz)
       ctx.rotate(yaw)
@@ -208,8 +208,8 @@ export function MiniMap({ organisms, animals, tiles, depthMap, biomes, width, he
   const clickPingRef = useRef<{ x: number; y: number; at: number } | null>(null)
   const onClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const rect = (e.target as HTMLCanvasElement).getBoundingClientRect()
-    const mx = e.clientX - rect.left
-    const my = e.clientY - rect.top
+    const mx = ((e.clientX - rect.left) / rect.width) * MAP_W
+    const my = ((e.clientY - rect.top) / rect.height) * MAP_H
     const tx = (mx / MAP_W) * width
     const ty = (my / MAP_H) * height
     const wx = tx * TILE_SCALE
@@ -229,7 +229,14 @@ export function MiniMap({ organisms, animals, tiles, depthMap, biomes, width, he
 
   return (
     <div className="thb-3d-minimap" style={miniMapWrap}>
-      <canvas ref={canvasRef} width={MAP_W} height={MAP_H} onClick={onClick} style={miniMapCanvas} />
+      <canvas
+        aria-label="World minimap. Click to move the camera."
+        ref={canvasRef}
+        width={MAP_W}
+        height={MAP_H}
+        onClick={onClick}
+        style={miniMapCanvas}
+      />
     </div>
   )
 }
@@ -241,9 +248,9 @@ const miniMapWrap: React.CSSProperties = {
   width: MAP_W + 4,
   height: MAP_H + 4,
   padding: 2,
-  background: 'rgba(12, 16, 24, 0.75)',
+  background: 'linear-gradient(135deg, rgba(29, 38, 44, 0.94), rgba(12, 20, 27, 0.9))',
   border: '1px solid rgba(255,255,255,0.12)',
-  borderRadius: 4,
+  borderRadius: 8,
   pointerEvents: 'auto',
   zIndex: 5,
 }

@@ -1,221 +1,16 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { useGLTF } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import {
-  BoxGeometry,
-  BufferGeometry,
-  CapsuleGeometry,
-  ConeGeometry,
-  CylinderGeometry,
-  Euler,
-  InstancedMesh,
-  Matrix4,
-  Quaternion,
-  SphereGeometry,
-  Vector3,
-} from 'three'
+import { Euler, InstancedMesh, Matrix4, Quaternion, Vector3 } from 'three'
 import type { AnimalState } from '../../../types'
 import { TILE_SCALE } from './constants'
 import { heightAt } from './terrain-utils'
-import { AnimatedFigure } from './AnimatedFigure'
-import { getAnimalXY, getAnimalHeading } from './motion-state'
+import { buildPartsByKind } from './animal-model'
+import { getAnimalXY, getAnimalHeading, getAnimalSpeed } from './motion-state'
 
 interface Props {
   animals: AnimalState[]
   depthMap: number[][]
   biomes: number[][]
-}
-
-const KIND_TINT: Record<string, string> = {
-  rabbit: '#cccccc',
-  deer: '#a8825a',
-  boar: '#6a5240',
-  bird: '#d4a040',
-  fish: '#88aaff',
-  wolf: '#555555',
-  dog: '#b08850',
-}
-
-function seededYaw(id: number): number {
-  const x = ((id + 1) * 9301 + 49297) % 233280
-  return (x / 233280) * Math.PI * 2
-}
-
-// A "part" is one InstancedMesh - geometry + material color + a local
-// transform applied after the root translation/rotation/scale. We keep
-// these declarative so a species is just an array of parts.
-interface PartDef {
-  geom: () => BufferGeometry
-  color: string
-  offset: [number, number, number]
-  rot: [number, number, number]
-  // Most parts have unit scale baked into the geometry; if not, override.
-  scale?: [number, number, number]
-}
-
-const TINT = (kind: string) => KIND_TINT[kind] ?? '#aa8855'
-
-function makeSphere(r: number, w: number, h: number) {
-  return new SphereGeometry(r, w, h)
-}
-function makeCapsule(r: number, l: number, cap: number, rad: number) {
-  return new CapsuleGeometry(r, l, cap, rad)
-}
-function makeCylinder(rt: number, rb: number, h: number, seg: number) {
-  return new CylinderGeometry(rt, rb, h, seg)
-}
-function makeBox(x: number, y: number, z: number) {
-  return new BoxGeometry(x, y, z)
-}
-function makeCone(r: number, h: number, seg: number) {
-  return new ConeGeometry(r, h, seg)
-}
-
-function buildPartsByKind(kind: AnimalState['kind']): PartDef[] {
-  const tint = TINT(kind)
-  switch (kind) {
-    case 'rabbit':
-      return [
-        { geom: () => makeSphere(0.25, 6, 5), color: tint, offset: [0, 0.25, 0], rot: [0, 0, 0] },
-        { geom: () => makeSphere(0.16, 5, 5), color: tint, offset: [0, 0.55, 0.05], rot: [0, 0, 0] },
-        {
-          geom: () => makeCylinder(0.025, 0.035, 0.28, 4),
-          color: tint,
-          offset: [-0.06, 0.78, 0.04],
-          rot: [0.1, 0, -0.15],
-        },
-        {
-          geom: () => makeCylinder(0.025, 0.035, 0.28, 4),
-          color: tint,
-          offset: [0.06, 0.78, 0.04],
-          rot: [0.1, 0, 0.15],
-        },
-      ]
-    case 'deer':
-      return [
-        // body
-        { geom: () => makeCapsule(0.28, 0.6, 4, 6), color: tint, offset: [0, 0.8, 0], rot: [0, 0, 0] },
-        // legs (dark) - 4
-        {
-          geom: () => makeCylinder(0.06, 0.05, 0.8, 4),
-          color: '#3a2a1a',
-          offset: [-0.18, 0.4, 0.35],
-          rot: [0, 0, 0],
-        },
-        {
-          geom: () => makeCylinder(0.06, 0.05, 0.8, 4),
-          color: '#3a2a1a',
-          offset: [0.18, 0.4, 0.35],
-          rot: [0, 0, 0],
-        },
-        {
-          geom: () => makeCylinder(0.06, 0.05, 0.8, 4),
-          color: '#3a2a1a',
-          offset: [-0.18, 0.4, -0.35],
-          rot: [0, 0, 0],
-        },
-        {
-          geom: () => makeCylinder(0.06, 0.05, 0.8, 4),
-          color: '#3a2a1a',
-          offset: [0.18, 0.4, -0.35],
-          rot: [0, 0, 0],
-        },
-        // head
-        { geom: () => makeSphere(0.22, 6, 5), color: tint, offset: [0, 1.2, 0.4], rot: [0, 0, 0] },
-        // antlers
-        {
-          geom: () => makeCylinder(0.02, 0.04, 0.35, 3),
-          color: '#6b4a2a',
-          offset: [-0.1, 1.5, 0.4],
-          rot: [0.4, 0, -0.4],
-        },
-        {
-          geom: () => makeCylinder(0.02, 0.04, 0.35, 3),
-          color: '#6b4a2a',
-          offset: [0.1, 1.5, 0.4],
-          rot: [0.4, 0, 0.4],
-        },
-      ]
-    case 'boar':
-      return [
-        { geom: () => makeCapsule(0.32, 0.55, 4, 6), color: tint, offset: [0, 0.45, 0], rot: [0, 0, 0] },
-        {
-          geom: () => makeCylinder(0.06, 0.05, 0.35, 4),
-          color: '#2a1a10',
-          offset: [-0.16, 0.18, 0.28],
-          rot: [0, 0, 0],
-        },
-        {
-          geom: () => makeCylinder(0.06, 0.05, 0.35, 4),
-          color: '#2a1a10',
-          offset: [0.16, 0.18, 0.28],
-          rot: [0, 0, 0],
-        },
-        {
-          geom: () => makeCylinder(0.06, 0.05, 0.35, 4),
-          color: '#2a1a10',
-          offset: [-0.16, 0.18, -0.28],
-          rot: [0, 0, 0],
-        },
-        {
-          geom: () => makeCylinder(0.06, 0.05, 0.35, 4),
-          color: '#2a1a10',
-          offset: [0.16, 0.18, -0.28],
-          rot: [0, 0, 0],
-        },
-        { geom: () => makeCone(0.18, 0.4, 5), color: tint, offset: [0, 0.55, 0.5], rot: [0, 0, 0] },
-      ]
-    case 'bird':
-      return [
-        { geom: () => makeSphere(0.16, 6, 5), color: tint, offset: [0, 1.3, 0], rot: [0, 0, 0] },
-        { geom: () => makeBox(0.3, 0.04, 0.18), color: tint, offset: [-0.18, 1.32, 0], rot: [0, 0, 0.3] },
-        { geom: () => makeBox(0.3, 0.04, 0.18), color: tint, offset: [0.18, 1.32, 0], rot: [0, 0, -0.3] },
-        {
-          geom: () => makeCone(0.04, 0.1, 4),
-          color: '#d8a040',
-          offset: [0, 1.32, 0.16],
-          rot: [Math.PI / 2, 0, 0],
-        },
-      ]
-    case 'wolf':
-      return [
-        { geom: () => makeCapsule(0.22, 0.7, 4, 6), color: tint, offset: [0, 0.55, 0], rot: [0, 0, 0] },
-        {
-          geom: () => makeCylinder(0.05, 0.04, 0.5, 4),
-          color: tint,
-          offset: [-0.14, 0.25, 0.32],
-          rot: [0, 0, 0],
-        },
-        {
-          geom: () => makeCylinder(0.05, 0.04, 0.5, 4),
-          color: tint,
-          offset: [0.14, 0.25, 0.32],
-          rot: [0, 0, 0],
-        },
-        {
-          geom: () => makeCylinder(0.05, 0.04, 0.5, 4),
-          color: tint,
-          offset: [-0.14, 0.25, -0.32],
-          rot: [0, 0, 0],
-        },
-        {
-          geom: () => makeCylinder(0.05, 0.04, 0.5, 4),
-          color: tint,
-          offset: [0.14, 0.25, -0.32],
-          rot: [0, 0, 0],
-        },
-        { geom: () => makeSphere(0.17, 6, 5), color: tint, offset: [0, 0.75, 0.42], rot: [0, 0, 0] },
-        { geom: () => makeCone(0.05, 0.12, 3), color: tint, offset: [-0.08, 0.92, 0.42], rot: [0, 0, -0.3] },
-        { geom: () => makeCone(0.05, 0.12, 3), color: tint, offset: [0.08, 0.92, 0.42], rot: [0, 0, 0.3] },
-      ]
-    case 'fish':
-      return [
-        { geom: () => makeCone(0.18, 0.55, 5), color: tint, offset: [0, 0, 0], rot: [Math.PI / 2, 0, 0] },
-        { geom: () => makeCone(0.12, 0.2, 4), color: tint, offset: [0, 0, -0.28], rot: [Math.PI / 2, 0, 0] },
-      ]
-    default:
-      return buildPartsByKind('rabbit')
-  }
 }
 
 interface InstancedSpeciesProps {
@@ -236,11 +31,14 @@ const scratchScale = new Vector3(1, 1, 1)
 
 function InstancedSpecies({ kind, ids, depthMap, biomes }: InstancedSpeciesProps) {
   const parts = useMemo(() => buildPartsByKind(kind), [kind])
+  const geometries = useMemo(() => parts.map((part) => part.geom()), [parts])
+  useEffect(() => () => geometries.forEach((geometry) => geometry.dispose()), [geometries])
   // One mesh per part. We size capacity to ids.length and let React
   // re-create instances when capacity changes (rare - populations move
   // slowly relative to render rate).
   const meshes = useRef<(InstancedMesh | null)[]>([])
   const count = ids.length
+  const quadruped = kind === 'deer' || kind === 'boar' || kind === 'wolf' || kind === 'dog'
 
   // Per-part baked local matrix (offset · rotation · scale). Computed
   // once per parts change, reused every frame.
@@ -267,41 +65,26 @@ function InstancedSpecies({ kind, ids, depthMap, biomes }: InstancedSpeciesProps
     return arr
   }, [ids, count])
 
-  // Last-frame position cache for derived heading fallback.
-  const lastPos = useRef<Float32Array>(new Float32Array(count * 2))
-  useEffect(() => {
-    lastPos.current = new Float32Array(count * 2)
-  }, [count])
-
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime()
-    const lp = lastPos.current
     for (let i = 0; i < count; i++) {
       const id = ids[i]
       const [tx, ty] = getAnimalXY(id)
       const groundY = heightAt(tx, ty, depthMap, biomes)
-      const predicted = getAnimalHeading(id)
-      let yaw: number
-      if (predicted !== 0) {
-        yaw = predicted
-      } else {
-        const lx = lp[i * 2],
-          lz = lp[i * 2 + 1]
-        const dx = tx - lx,
-          dz = ty - lz
-        if (dx * dx + dz * dz > 0.0005) {
-          yaw = Math.atan2(dx, dz)
-        } else {
-          yaw = seededYaw(id)
-        }
-      }
-      lp[i * 2] = tx
-      lp[i * 2 + 1] = ty
+      const yaw = getAnimalHeading(id)
 
+      const moving = Math.min(1, getAnimalSpeed(id) / 0.5)
+      const gait = Math.sin(t * 9 + breathPhases[i]) * moving
       const breath = 1 + Math.sin(t * 2.4 + breathPhases[i]) * 0.035
 
       // Root: T(world) · Ry(yaw) · S(1, breath, 1)
-      scratchVec.set(tx * TILE_SCALE, groundY, ty * TILE_SCALE)
+      scratchVec.set(
+        tx * TILE_SCALE,
+        kind === 'fish'
+          ? Math.min(-0.9, Math.max(groundY + 0.3, -1.1))
+          : groundY + (kind === 'rabbit' ? Math.max(0, gait) * 0.14 : 0),
+        ty * TILE_SCALE,
+      )
       scratchEuler.set(0, yaw, 0)
       scratchQuat.setFromEuler(scratchEuler)
       scratchScale.set(1, breath, 1)
@@ -311,6 +94,22 @@ function InstancedSpecies({ kind, ids, depthMap, biomes }: InstancedSpeciesProps
         const im = meshes.current[p]
         if (!im) continue
         partMat.copy(partLocalMats[p])
+        const part = parts[p]
+        const wing = kind === 'bird' && (p === 1 || p === 2)
+        const leg = quadruped && p >= 1 && p <= 4
+        if (wing || leg) {
+          const swing = wing ? Math.sin(t * 12 + breathPhases[i]) * 0.55 : gait * 0.35
+          const sign = wing ? (p === 1 ? 1 : -1) : p === 1 || p === 4 ? 1 : -1
+          scratchEuler.set(
+            part.rot[0] + (leg ? swing * sign : 0),
+            part.rot[1],
+            part.rot[2] + (wing ? swing * sign : 0),
+          )
+          scratchQuat.setFromEuler(scratchEuler)
+          scratchVec.set(...part.offset)
+          scratchScale.set(1, 1, 1)
+          partMat.compose(scratchVec, scratchQuat, scratchScale)
+        }
         finalMat.multiplyMatrices(rootMat, partMat)
         im.setMatrixAt(i, finalMat)
       }
@@ -333,11 +132,11 @@ function InstancedSpecies({ kind, ids, depthMap, biomes }: InstancedSpeciesProps
           ref={(m) => {
             meshes.current[p] = m
           }}
-          args={[part.geom(), undefined, count]}
+          args={[geometries[p], undefined, count]}
           castShadow
           frustumCulled={false}
         >
-          <meshStandardMaterial color={part.color} roughness={0.85} />
+          <meshStandardMaterial color={part.color} roughness={0.9} flatShading />
         </instancedMesh>
       ))}
     </>
@@ -345,8 +144,6 @@ function InstancedSpecies({ kind, ids, depthMap, biomes }: InstancedSpeciesProps
 }
 
 export function Animals3D({ animals, depthMap, biomes }: Props) {
-  const { scene, animations } = useGLTF('/models/fox.glb')
-
   // Group ids by kind. Stable order: source array order. We memoise
   // shallowly via animals identity - the wire merge layer keeps the
   // animals array stable across ticks when nothing changes.
@@ -365,34 +162,6 @@ export function Animals3D({ animals, depthMap, biomes }: Props) {
   return (
     <>
       {Array.from(byKind.entries()).map(([kind, ids]) => {
-        if (kind === 'dog') {
-          // Skinned-mesh GLB - keep the per-instance AnimatedFigure
-          // path (skinned-mesh instancing is a much bigger lift).
-          return ids.map((id) => {
-            const yaw = seededYaw(id)
-            const tint = TINT(kind)
-            return (
-              <AnimatedFigure
-                key={`dog-${id}`}
-                scene={scene}
-                animations={animations}
-                getPosition={() => {
-                  const [tx, ty] = getAnimalXY(id)
-                  const groundY = heightAt(tx, ty, depthMap, biomes)
-                  return [tx * TILE_SCALE, groundY, ty * TILE_SCALE]
-                }}
-                getHeading={() => {
-                  const h = getAnimalHeading(id)
-                  return h !== 0 ? h : yaw
-                }}
-                rotationY={yaw}
-                scale={0.012}
-                animation="Walk"
-                color={tint}
-              />
-            )
-          })
-        }
         return (
           <InstancedSpecies
             key={`species-${kind}`}
@@ -406,5 +175,3 @@ export function Animals3D({ animals, depthMap, biomes }: Props) {
     </>
   )
 }
-
-useGLTF.preload('/models/fox.glb')

@@ -3,6 +3,8 @@ import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import type { SceneContext } from '../../../scenes/core/types'
 import { useUIStore } from '../../../stores/store'
+import { VillagerFigure } from '../../world/parts/VillagerFigure'
+import type { OrganismState } from '../../../types'
 import { lineageColor } from '../../../utils/constants'
 
 interface Props {
@@ -54,6 +56,24 @@ function Walls({ color, floor }: { color: string; floor: string }) {
         <planeGeometry args={[W - T, D - T]} />
         <meshStandardMaterial color={floor} roughness={1} />
       </mesh>
+      {Array.from({ length: 14 }, (_, i) => (
+        <mesh key={`seam-${i}`} position={[-3.64 + i * 0.56, 0.006, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[0.012, D - T]} />
+          <meshStandardMaterial color="#4b3527" roughness={1} />
+        </mesh>
+      ))}
+      {[-3.8, 0, 3.8].map((x) => (
+        <mesh key={`post-${x}`} position={[x, H / 2, -2.86]} castShadow>
+          <boxGeometry args={[0.16, H, 0.14]} />
+          <meshStandardMaterial color="#654a36" roughness={0.95} />
+        </mesh>
+      ))}
+      {[0.15, 2.85].map((y) => (
+        <mesh key={`beam-${y}`} position={[0, y, -2.84]} castShadow>
+          <boxGeometry args={[W - T, 0.16, 0.16]} />
+          <meshStandardMaterial color="#654a36" roughness={0.95} />
+        </mesh>
+      ))}
     </group>
   )
 }
@@ -62,25 +82,26 @@ function Occupant({
   x,
   z,
   color,
+  org,
   selected,
   onClick,
 }: {
   x: number
   z: number
   color: string
+  org: OrganismState
   selected: boolean
   onClick: () => void
 }) {
   return (
     <group position={[x, 0, z]} onClick={onClick}>
-      <mesh position={[0, 0.55, 0]} castShadow>
-        <capsuleGeometry args={[0.22, 0.7, 4, 8]} />
-        <meshStandardMaterial color={color} roughness={0.7} />
-      </mesh>
-      <mesh position={[0, 1.18, 0]} castShadow>
-        <sphereGeometry args={[0.2, 12, 10]} />
-        <meshStandardMaterial color="#e6c8a8" roughness={0.6} />
-      </mesh>
+      <VillagerFigure
+        org={org}
+        tunicColor={color}
+        getPosition={() => [0, 0, 0]}
+        scale={0.55}
+        animation="Idle"
+      />
       {selected && (
         <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <ringGeometry args={[0.32, 0.4, 24]} />
@@ -138,6 +159,7 @@ export function SimpleRoom3D({ ctx, onExit, onFocusOrg, walls, furniture, metaSu
             return (
               <Occupant
                 key={occ.org.id}
+                org={occ.org}
                 x={x}
                 z={z}
                 color={lineageColor(occ.org.lineage_id)}

@@ -92,6 +92,11 @@ export function getAnimalXY(id: number): [number, number] {
   return advanceAndRead(e)
 }
 
+export function getAnimalSpeed(id: number): number {
+  const e = animalState.get(id)
+  return e ? Math.hypot(e.velX, e.velY) * glideFactor(e) : 0
+}
+
 export function getAnimalHeading(id: number): number {
   const e = animalState.get(id)
   if (!e) return 0

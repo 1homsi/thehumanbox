@@ -14,9 +14,13 @@ export function WorldHud() {
     if (!c) return
     const ctx = c.getContext('2d')
     if (!ctx) return
+    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    c.width = Math.round(COMPASS_W * dpr)
+    c.height = Math.round(COMPASS_H * dpr)
+    ctx.scale(dpr, dpr)
     const draw = () => {
       ctx.clearRect(0, 0, COMPASS_W, COMPASS_H)
-      const yaw = Math.atan2(cameraSnapshot.dirX, cameraSnapshot.dirZ)
+      const yaw = Math.atan2(cameraSnapshot.dirX, -cameraSnapshot.dirZ)
       const labels: { angle: number; text: string; major: boolean }[] = [
         { angle: 0, text: 'N', major: true },
         { angle: Math.PI / 4, text: 'NE', major: false },
@@ -60,7 +64,14 @@ export function WorldHud() {
 
   return (
     <div className="thb-3d-hud" style={wrap}>
-      <canvas ref={canvasRef} width={COMPASS_W} height={COMPASS_H} style={canvasStyle} />
+      <canvas
+        role="img"
+        aria-label="Camera compass: north points toward the top of the minimap"
+        ref={canvasRef}
+        width={COMPASS_W}
+        height={COMPASS_H}
+        style={canvasStyle}
+      />
     </div>
   )
 }
@@ -71,9 +82,9 @@ const wrap: React.CSSProperties = {
   right: 16,
   width: COMPASS_W + 4,
   padding: 2,
-  background: 'rgba(12, 16, 24, 0.75)',
+  background: 'linear-gradient(135deg, rgba(29, 38, 44, 0.94), rgba(12, 20, 27, 0.9))',
   border: '1px solid rgba(255,255,255,0.10)',
-  borderRadius: 4,
+  borderRadius: 8,
   pointerEvents: 'none',
   zIndex: 5,
 }
