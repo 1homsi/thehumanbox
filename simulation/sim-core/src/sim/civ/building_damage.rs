@@ -359,6 +359,39 @@ fn apply_repairs(sim: &mut Simulation, exposed: &HashSet<usize>) {
         if !pooled_resource_available(sim, &lineage, unit) {
             continue;
         }
+        // Recruiting reach is not working reach. Repairs should create real
+        // journeys just like new construction, rather than happen remotely.
+        let (width, height) = building.footprint();
+        let worker = &sim.organisms[worker_index];
+        let distance = (worker.x - worker.x.clamp(x as f32, x as f32 + f32::from(width) - 1.0)).abs()
+            + (worker.y - worker.y.clamp(y as f32, y as f32 + f32::from(height) - 1.0)).abs();
+        if distance > 3.0 {
+            let target = [
+                (x - 1, y),
+                (x, y - 1),
+                (x + i32::from(width), y),
+                (x, y + i32::from(height)),
+            ]
+            .into_iter()
+            .filter(|&(tx, ty)| sim.grid.get(tx, ty).walkable())
+            .min_by_key(|&(tx, ty)| ((worker.x - tx as f32).abs() + (worker.y - ty as f32).abs()) as i32);
+            if let Some(target) = target {
+                assigned_workers.insert(worker_index);
+                let worker = &mut sim.organisms[worker_index];
+                if worker
+                    .journey
+                    .as_ref()
+                    .is_none_or(|journey| journey.target != target)
+                {
+                    worker.begin_journey(
+                        target,
+                        &format!("going to repair a {}", kind.name()),
+                        sim.tick_count,
+                    );
+                }
+            }
+            continue;
+        }
         let repair_amount = 1.0 / plan.total_units() as f32;
 
         consume_pooled_resource(sim, &lineage, unit);
@@ -639,6 +672,32 @@ mod tests {
         assert!(
             (sim.buildings[besieged].damage_fraction() - battle_damage(BattleScale::Siege)).abs() < 0.000_01
         );
+    }
+
+    #[test]
+    fn repair_crews_travel_before_spending_materials() {
+        let mut sim = Simulation::new(703);
+        sim.buildings.clear();
+        sim.organisms.truncate(1);
+        let index = completed_house(&mut sim, 130, 130);
+        sim.buildings[index].damage = 0.5;
+        prepare_worker(&mut sim, 120, 130);
+        sim.organisms[0].inv_wood = 100;
+        sim.organisms[0].inv_stone = 100;
+        sim.organisms[0].wealth = 100;
+        sim.grid.set(129, 130, Tile::Grass);
+        sim.tick_count = REPAIR_TICK_OFFSET;
+        apply_repairs(&mut sim, &HashSet::new());
+        assert_eq!(sim.buildings[index].damage_fraction(), 0.5);
+        assert_eq!(sim.organisms[0].inv_wood, 100);
+        assert_eq!(sim.organisms[0].inv_stone, 100);
+        assert_eq!(sim.organisms[0].wealth, 100);
+        assert!(sim.organisms[0].journey.is_some());
+        assert!(sim.organisms[0].thought.contains("going to repair"));
+        prepare_worker(&mut sim, 129, 130);
+        apply_repairs(&mut sim, &HashSet::new());
+        assert!(sim.buildings[index].damage_fraction() < 0.5);
+        assert!(sim.organisms[0].thought.contains("repairing"));
     }
 
     #[test]

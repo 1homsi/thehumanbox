@@ -1,3 +1,4 @@
+import { drawWorkActivity, workActivity } from './activity-visuals'
 import { worldRenderScale, worldRenderWindow, interpolationFactor, shouldRenderFrame } from './render-timing'
 import { terrainDetail } from './terrain-detail'
 import { MapCameraController } from './MapCameraController'
@@ -226,16 +227,17 @@ function visualTileHash(col: number, row: number, salt = 0): number {
 }
 
 function drawFoodPatch(ctx: CanvasRenderingContext2D, px: number, py: number, seed: number) {
-  const berry = (seed & 1) === 0 ? '#e25757' : '#e2bd45'
-  ctx.fillStyle = '#244d2a'
-  ctx.fillRect(px + 2, py + 3, 5, 3)
-  ctx.fillRect(px + 3, py + 2, 3, 5)
-  ctx.fillStyle = '#4f8a43'
-  ctx.fillRect(px + 2, py + 3, 2, 2)
-  ctx.fillRect(px + 5, py + 2, 2, 2)
-  ctx.fillStyle = berry
-  ctx.fillRect(px + 3 + ((seed >>> 4) & 1), py + 3, 1, 1)
-  ctx.fillRect(px + 5, py + 5, 1, 1)
+  // Keep every resource tile legible without carpeting the whole landscape
+  // with identical dark bushes. Larger shrubs punctuate smaller forage plants.
+  const x = px + 2 + ((seed >>> 5) & 3)
+  const y = py + 2 + ((seed >>> 9) & 3)
+  const large = (seed & 7) === 0
+  ctx.fillStyle = '#536a3b'
+  ctx.fillRect(x, y + 1, large ? 4 : 2, large ? 3 : 2)
+  ctx.fillStyle = '#81924d'
+  ctx.fillRect(x + 1, y, large ? 3 : 1, large ? 2 : 1)
+  ctx.fillStyle = (seed & 1) === 0 ? '#b46e52' : '#b6a35c'
+  ctx.fillRect(x + 1, y + 1, 1, 1)
 }
 
 function drawMineralOutcrop(ctx: CanvasRenderingContext2D, px: number, py: number, seed: number) {
@@ -2258,6 +2260,16 @@ function drawWorldOnCanvas(
       org.y - oy >= r0 - 8 &&
       org.y - oy <= r1 + 8,
   )
+  for (const org of visibleOrganisms) orgMotion(org.id, org.x, org.y, t)
+  const restingAtHome = (org: OrganismState) => {
+    if (org.home_x == null || org.home_y == null) return false
+    if (ruinedTiles.has(`${Math.floor(org.home_x)},${Math.floor(org.home_y)}`)) return false
+    const motion = _orgLastPos.get(org.id)
+    if (motion && t - motion.movedAt <= 120) return false
+    const dx = org.x - org.home_x
+    const dy = org.y - org.home_y
+    return dx * dx + dy * dy < 2 && ((org.sleep_debt ?? 0) > 0.4 || org.energy < 0.1 || org.health < 0.15)
+  }
   const characterDetail = zoomDetailLevel(cameraZoom)
   // Batch every organism shadow into two paths (focused / dimmed) so the
   // whole population costs two fills instead of hundreds of separate
@@ -2268,13 +2280,7 @@ function drawWorldOnCanvas(
     let any = false
     for (const org of visibleOrganisms) {
       if (!org.alive) continue
-      if (org.home_x && org.home_y) {
-        const ddx = org.x - org.home_x
-        const ddy = org.y - org.home_y
-        if (ddx * ddx + ddy * ddy < 2.0) {
-          if ((org.sleep_debt ?? 0) > 0.4 || org.energy < 0.1 || org.health < 0.15) continue
-        }
-      }
+      if (restingAtHome(org)) continue
       const px = (org.x - ox) * TILE + TILE / 2
       const py = (org.y - oy) * TILE + TILE / 2
       const variant = orgVariant(org.id)
@@ -2304,14 +2310,7 @@ function drawWorldOnCanvas(
   }
   for (const org of visibleOrganisms.sort(compareCharacterDepth)) {
     if (!org.alive) continue
-    // Data-driven house entry: use actual sleep_debt, energy, health fields - no text matching
-    if (org.home_x && org.home_y) {
-      const ddx = org.x - org.home_x
-      const ddy = org.y - org.home_y
-      if (ddx * ddx + ddy * ddy < 2.0) {
-        if ((org.sleep_debt ?? 0) > 0.4 || org.energy < 0.1 || org.health < 0.15) continue
-      }
-    }
+    if (restingAtHome(org)) continue
     const px = (org.x - ox) * TILE + TILE / 2
     const py = (org.y - oy) * TILE + TILE / 2
     const focused = isFocused(org)
@@ -2435,7 +2434,7 @@ function drawWorldOnCanvas(
       ctx.setLineDash([])
     }
 
-    const motion = orgMotion(org.id, org.x, org.y, t)
+    const motion = _orgLastPos.get(org.id)!
     const frame = characterFrame(motion, t)
     const drew = drawPeopleTile(
       ctx,
@@ -2452,6 +2451,18 @@ function drawWorldOnCanvas(
       ctx.fill()
       ctx.fillStyle = variant.accent
       ctx.fillRect(Math.round(px - bodyR * 0.7), Math.round(py + bodyR * 0.15), bodyR * 1.4, 2)
+    }
+
+    if (standardDetail) {
+      drawWorkActivity(
+        ctx,
+        workActivity(org.thought ?? '', t - motion.movedAt <= 120),
+        px,
+        py,
+        motion.flipped,
+        t,
+        motion.phase,
+      )
     }
 
     const era = lineageErasMap[org.lineage_id] ?? ''
@@ -2807,7 +2818,9 @@ function WorldSprite({
       const uiKey = `${selectedOrgIdRef.current ?? ''}|${overlayRef.current ?? ''}|${focusRef.current}|${JSON.stringify(viewFlagsRef.current)}|${detailBucket}|${renderScale}|${renderWindow.x}|${renderWindow.y}`
       const settled =
         t >= PREDICT_CAP && lastDrawnT >= PREDICT_CAP && curServerAt === lastDrawnAt && uiKey === lastDrawnUI
-      if (settled) return
+      // Give the last walking pose time to settle before freezing a quiet map.
+      // Otherwise the last rendered footstep remains stuck indefinitely.
+      if (settled && now - currentReceivedAt > interval + 160) return
 
       let renderOrgs = w.viewport_organisms ?? w.organisms
       if (prev && cur === w) {

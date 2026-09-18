@@ -3,7 +3,7 @@
   <meta charset="UTF-8" /><title>Building asset review</title>
   <style>
     body {
-      background: #202a25;
+      background: #241e17;
       color: #e8dfc5;
       font: 14px system-ui;
       margin: 24px;
@@ -17,9 +17,9 @@
       gap: 12px;
     }
     .card {
-      background: #354235;
+      background: #342b20;
       padding: 14px;
-      border: 1px solid #53604b;
+      border: 1px solid #68553b;
       border-radius: 6px;
     }
     canvas {
@@ -72,11 +72,15 @@
         }
         root.append(card)
       }
-      for (const [label, condition, damage, ruined] of [
+      for (const [label, condition, damage, ruined, repairing] of [
         ['Foundation', 0.1, 0, false],
         ['Construction', 0.6, 0, false],
         ['Worn home', 1, 0.65, false],
         ['Ruins', 1, 1, true],
+        ['Early rebuilding', 1, 0.75, true, true],
+        ['Walls restored', 1, 0.35, true, true],
+        ['Roof restoration', 1, 0.08, true, true],
+        ['Repair crew on site', 1, 0.35, false, true],
       ]) {
         const card = document.createElement('div')
         card.className = 'card'
@@ -88,7 +92,7 @@
         ctx.translate(25, 40)
         drawBuilding(
           ctx,
-          { id: 8, kind: 'House', x: 0, y: 0, condition, damage, ruined },
+          { id: 8, kind: 'House', x: 0, y: 0, condition, damage, ruined, repairing },
           0,
           0,
           24,

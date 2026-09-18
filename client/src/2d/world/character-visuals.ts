@@ -81,6 +81,7 @@ export interface CharacterMotion {
   movedAt: number
   phase: number
   flipped: boolean
+  distance: number
 }
 
 export function characterMotion(
@@ -93,7 +94,10 @@ export function characterMotion(
   const dx = x - (previous?.x ?? x)
   const dy = y - (previous?.y ?? y)
   const moved = Math.abs(dx) > 0.02 || Math.abs(dy) > 0.02
+  const distance = Math.hypot(dx, dy)
+  // Large jumps are placements, not steps.
   return {
+    distance: (previous?.distance ?? 0) + (moved && distance < 4 ? distance : 0),
     x: moved || !previous ? x : previous.x,
     y: moved || !previous ? y : previous.y,
     movedAt: moved ? now : (previous?.movedAt ?? -Infinity),
@@ -103,7 +107,9 @@ export function characterMotion(
 }
 
 export function characterFrame(motion: CharacterMotion, now: number): number {
-  return now - motion.movedAt > 350 ? 0 : Math.floor(((now + motion.phase) % 800) / 200)
+  return now - motion.movedAt > 120
+    ? 0
+    : Math.floor(motion.distance * 4 + motion.phase / 200) % HUMAN_ATLAS_FRAMES
 }
 
 export function compareCharacterDepth(a: { y: number; id: string }, b: { y: number; id: string }): number {

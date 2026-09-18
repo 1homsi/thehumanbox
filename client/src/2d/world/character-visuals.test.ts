@@ -113,7 +113,7 @@ describe('character motion and draw order', () => {
     expect(characterFrame(idle, 600)).toBe(0)
     const moving = characterMotion(idle, 4, 5, 600, 0)
     expect(moving.flipped).toBe(true)
-    expect(characterFrame(moving, 600)).toBe(3)
+    expect(characterFrame(moving, 600)).toBe(0)
     const stopped = characterMotion(moving, 4, 5, 1000, 0)
     expect(characterFrame(stopped, 1000)).toBe(0)
     expect(stopped.flipped).toBe(true)
@@ -127,6 +127,15 @@ describe('character motion and draw order', () => {
     const moved = characterMotion(jitter, 0.97, 1, 20, 0)
     expect(moved.flipped).toBe(true)
     expect(moved.movedAt).toBe(20)
+  })
+  it('advances footsteps by distance, not elapsed wall time', () => {
+    const start = characterMotion(undefined, 0, 0, 0, 0)
+    const step = characterMotion(start, 0.3, 0, 40, 0)
+    expect(characterFrame(step, 40)).toBe(1)
+    expect(characterFrame(step, 100)).toBe(1)
+    expect(characterFrame(step, 200)).toBe(0)
+    const teleport = characterMotion(step, 50, 0, 80, 0)
+    expect(teleport.distance).toBe(step.distance)
   })
   it('paints people at the front last with stable equal-depth ordering', () => {
     const people = [

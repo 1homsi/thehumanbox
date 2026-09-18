@@ -1077,10 +1077,20 @@ function drawBuildingDamage(
   }
 
   if (state.isRepairing && detail !== 'overview') {
-    ctx.strokeStyle = '#f4d47c'
-    ctx.lineWidth = Math.max(1, tileSize * 0.07)
-    ctx.setLineDash([Math.max(2, tileSize * 0.2), Math.max(1, tileSize * 0.1)])
-    ctx.strokeRect(px - 1, py - 1, w + 2, h + 2)
+    // Timber scaffolding and stacked supplies belong on the site itself.
+    const left = Math.round(px - 2)
+    const top = Math.round(py + h * 0.15)
+    const bottom = Math.round(py + h)
+    const width = Math.max(5, Math.round(w * 0.4))
+    ctx.fillStyle = '#805631'
+    ctx.fillRect(left, top, 2, bottom - top)
+    ctx.fillRect(left + width, top, 2, bottom - top)
+    for (let y = top + 3; y < bottom; y += 5) {
+      ctx.fillStyle = '#b68c54'
+      ctx.fillRect(left, y, width + 2, 2)
+    }
+    ctx.fillStyle = '#aa9577'
+    ctx.fillRect(left + width + 4, bottom - 3, 5, 3)
   }
   ctx.restore()
 }
@@ -1106,7 +1116,33 @@ export function drawBuilding(
   drawBuildingShadow(ctx, px, py, w, h, tileSize)
 
   if (structural.isRuined) {
-    drawRuinedBuilding(ctx, building, structural, px, py, w, h, tileSize, detail)
+    const rebuilding = structural.integrity > 0.08
+    drawRuinedBuilding(
+      ctx,
+      building,
+      rebuilding ? { ...structural, isRepairing: false } : structural,
+      px,
+      py,
+      w,
+      h,
+      tileSize,
+      rebuilding ? 'overview' : detail,
+    )
+    // Repair progress persists even between worker visits. Reuse the actual
+    // construction stages so restored masonry rises out of the old footprint.
+    if (rebuilding) {
+      drawConstructionSite(
+        ctx,
+        building,
+        { ...structural, constructionProgress: structural.integrity },
+        px,
+        py,
+        w,
+        h,
+        tileSize,
+        detail,
+      )
+    }
     return
   }
 
