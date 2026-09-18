@@ -1042,8 +1042,6 @@ function drawBuildingDamage(
   const severity = Math.max(state.damage, 1 - state.integrity)
 
   ctx.save()
-  ctx.fillStyle = `rgba(30, 18, 13, ${0.1 + severity * 0.38})`
-  ctx.fillRect(px, py, w, h)
 
   if (detail !== 'overview') {
     ctx.strokeStyle = severity > 0.55 ? '#2b1712' : '#493126'
@@ -1060,16 +1058,22 @@ function drawBuildingDamage(
     ctx.stroke()
   }
 
-  if (detail === 'detail') {
-    drawProgressBar(
-      ctx,
-      px,
-      py,
-      w,
-      tileSize,
-      state.integrity,
-      state.isRepairing ? '#eac05b' : severity > 0.55 ? '#f05b43' : '#e28d3f',
-    )
+  // Wear belongs to the structure, not a floating health meter.
+  if (severity > 0.35) {
+    const chips = Math.min(7, Math.ceil(severity * 7))
+    for (let i = 0; i < chips; i++) {
+      const x = Math.round(px + w * (0.12 + visualHash(building, 90 + i) * 0.76))
+      const y = Math.round(py + h * (0.55 + visualHash(building, 110 + i) * 0.35))
+      const size = Math.max(2, Math.round(tileSize * (0.08 + severity * 0.1)))
+      ctx.fillStyle = '#665546'
+      ctx.fillRect(x, y, size + 1, size)
+      ctx.fillStyle = '#a39378'
+      ctx.fillRect(x, y, size, 1)
+      if (severity > 0.55) {
+        ctx.fillStyle = '#796a57'
+        ctx.fillRect(x, Math.round(py + h + 1), size, Math.max(1, size - 1))
+      }
+    }
   }
 
   if (state.isRepairing && detail !== 'overview') {
@@ -1115,7 +1119,7 @@ export function drawBuilding(
     const variant =
       (((building.id ?? 0) * 2654435761) ^ (building.x * 73856093) ^ (building.y * 19349663)) >>> 0
     const nightBucket = Math.max(0, Math.min(3, Math.round(nightFactor * 3)))
-    const condBucket = cond < 0.45 ? 0 : 1
+    const condBucket = structural.integrity < 0.45 ? 0 : 1
     const sprite = getBuildingSprite(k, fw, fh, tileSize, variant & 7, nightBucket, condBucket)
     if (sprite) {
       ctx.drawImage(sprite, Math.round(px - PAD), Math.round(py + h + PAD_BOT - sprite.height))

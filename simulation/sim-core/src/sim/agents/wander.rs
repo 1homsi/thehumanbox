@@ -7,6 +7,41 @@ use crate::world::tiles::Tile;
 
 impl Simulation {
     pub(crate) fn validate_or_assign_wander_target(&mut self, idx: usize) {
+        if let Some(journey) = self.organisms[idx].journey.clone() {
+            let org = &self.organisms[idx];
+            let distance = (journey.target.0 - org.x as i32)
+                .abs()
+                .max((journey.target.1 - org.y as i32).abs());
+            let arrived = distance <= 2;
+            let expired = self.tick_count >= journey.expires_at;
+            let invalid = !self.grid.get(journey.target.0, journey.target.1).walkable();
+            if arrived || expired || invalid {
+                let org = &mut self.organisms[idx];
+                org.journey = None;
+                org.wander_target = None;
+                if arrived {
+                    org.boredom *= 0.4;
+                    org.curiosity_drive *= 0.5;
+                    org.log_life(
+                        self.tick_count,
+                        "life",
+                        format!("arrived after {}", journey.description),
+                    );
+                    org.think("looking around a new place", self.tick_count);
+                } else {
+                    org.log_life(
+                        self.tick_count,
+                        "life",
+                        format!("ended journey: {}", journey.description),
+                    );
+                }
+                return;
+            }
+            // Keep an interrupted journey's destination until it completes;
+            // incidental needs may otherwise replace the wander suggestion.
+            self.organisms[idx].wander_target = Some(journey.target);
+            return;
+        }
         if let Some((tx, ty)) = self.organisms[idx].wander_target {
             if !self.is_good_land_target(tx, ty) {
                 self.organisms[idx].wander_target = None;
@@ -92,8 +127,7 @@ impl Simulation {
             let tx = tx.clamp(5, WIDTH as i32 - 5);
             let ty = ty.clamp(5, HEIGHT as i32 - 5);
             if self.is_good_land_target(tx, ty) {
-                self.organisms[idx].wander_target = Some((tx, ty));
-                self.organisms[idx].think("seeking elbow room", self.tick_count);
+                self.organisms[idx].begin_journey((tx, ty), "seeking open land", self.tick_count);
                 return;
             }
         }
@@ -124,12 +158,7 @@ impl Simulation {
         let min_dist = 60 + (curiosity * 90.0) as i32;
         let max_dist = 250 + (curiosity * 400.0) as i32;
         if let Some(target) = self.find_distant_land_target(x, y, min_dist, max_dist) {
-            self.organisms[idx].wander_target = Some(target);
-            self.organisms[idx].think("planning expedition", self.tick_count);
-            self.organisms[idx].log_event(format!(
-                "set out toward distant land at ({},{})",
-                target.0, target.1
-            ));
+            self.organisms[idx].begin_journey(target, "exploring distant land", self.tick_count);
         }
     }
 

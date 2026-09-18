@@ -85,7 +85,7 @@ function WorldSourceSection() {
           </>
         )}
       </div>
-      <div style={{ fontSize: 10, color: '#666', marginTop: 8, lineHeight: 1.5 }}>
+      <div style={{ fontSize: 12, color: 'var(--dialog-muted)', marginTop: 10, lineHeight: 1.6 }}>
         The web game runs and saves entirely in this browser. It never connects to a hosted simulation API.
         For the full native game and configurable local AI, download the desktop app.
       </div>

@@ -472,6 +472,18 @@ impl BuildingKind {
         }
     }
 
+    /// Unmaintained lifespan in the same years displayed by the world calendar.
+    pub fn service_life_years(self) -> u16 {
+        use BuildingKind::*;
+        match self {
+            Tent | Fence | Cart | MarketStall => 20,
+            Hut | Dovecote | Kennel => 50,
+            House | Inn | Workshop | Granary | Stable | Windmill | Watermill => 200,
+            Castle | Cathedral | Temple | Pyramid | Ziggurat | Monument | Coliseum => 600,
+            _ => 300,
+        }
+    }
+
     pub fn capacity(self) -> u8 {
         use BuildingKind::*;
         match self {

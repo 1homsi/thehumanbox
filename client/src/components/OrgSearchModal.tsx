@@ -252,7 +252,7 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
                     {discs.includes('cooking') && '🍖'}
                     {discs.includes('spear') && '🗡️'}
                   </span>
-                  <span className="org-search-meta" style={{ color: org.alive ? '#666' : '#444' }}>
+                  <span className="org-search-meta" style={{ color: 'var(--dialog-muted)' }}>
                     g{org.generation} · {Math.floor(org.age / DAY_LENGTH)}d
                   </span>
                   {org.alive && onTrack && (

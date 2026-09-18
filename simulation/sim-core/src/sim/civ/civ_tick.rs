@@ -1398,6 +1398,21 @@ fn try_start_building(sim: &mut Simulation, lineage: &str, kind: BuildingKind, x
     start_building_at_valid_site(sim, lineage, kind, site_x, site_y)
 }
 
+fn housing_target(sim: &Simulation, lineage: &str, era: Era, population: usize) -> Option<BuildingKind> {
+    use BuildingKind::*;
+    let capacity: usize = sim.buildings.iter()
+        .filter(|b| !b.decorative && !b.is_ruined() && b.owner_lineage.as_deref() == Some(lineage))
+        .filter(|b| matches!(b.kind, Hut | House | Manor | TownHouse | Apartment | Skyscraper))
+        // Reserved homes count too, so unfinished projects cannot cause a building flood.
+        .map(|b| usize::from(b.kind.capacity())).sum();
+    if capacity >= population {
+        return None;
+    }
+    [Apartment, TownHouse, House, Hut]
+        .into_iter()
+        .find(|kind| era >= kind.era_unlock() && construction_cost_available(sim, lineage, *kind))
+}
+
 fn tick_buildings_construct(sim: &mut Simulation) {
     let functional_count = sim
         .buildings
@@ -1445,13 +1460,25 @@ fn tick_buildings_construct(sim: &mut Simulation) {
             .filter(|b| !b.decorative && b.owner_lineage.as_deref() == Some(&lid))
             .map(|b| b.kind)
             .collect();
-        for _ in 0..builds_this_pass {
+        for project_index in 0..builds_this_pass {
             if functional_slots == 0 {
                 break;
             }
             let mut considered = existing.clone();
             let mut started = None;
-            while let Some(kind) = next_target_building(era, pop, sim.population_limit(), &considered) {
+            if project_index == 0 {
+                if let Some(kind) = housing_target(sim, &lid, era, pop) {
+                    let (cx, cy) = lineage_center(sim, &lid);
+                    if try_start_building(sim, &lid, kind, cx, cy) {
+                        started = Some(kind);
+                    }
+                }
+            }
+            while started.is_none() {
+                let Some(kind) = next_target_building(era, pop, sim.population_limit(), &considered) else {
+                    break;
+                };
+                // Existing civic projects retain their era and population gates.
                 considered.insert(kind);
                 let (cx, cy) = lineage_center(sim, &lid);
                 if cx == 0 && cy == 0 {
@@ -1579,7 +1606,9 @@ fn tick_building_progress(sim: &mut Simulation) {
     }
 
     let mut completed: Vec<(String, BuildingKind, i32, i32)> = Vec::new();
-    let (assigned_workers, building_changed): (HashSet<usize>, bool) = {
+    let mut approaches = Vec::new();
+    let mut working = Vec::new();
+    let building_changed = {
         let organisms = &sim.organisms;
         let mut by_lineage: HashMap<&str, Vec<Worker>> = HashMap::new();
         for (index, org) in organisms.iter().enumerate() {
@@ -1644,10 +1673,32 @@ fn tick_building_progress(sim: &mut Simulation) {
             if crew.is_empty() {
                 continue;
             }
-            let effort: f32 = crew.iter().map(|worker| worker.effort).sum();
+            let mut effort = 0.0;
             for worker in &crew {
                 assigned.insert(worker.index);
+                let (width, height) = building.footprint();
+                let distance = (worker.x - worker.x.clamp(bx, bx + f32::from(width) - 1.0)).abs()
+                    + (worker.y - worker.y.clamp(by, by + f32::from(height) - 1.0)).abs();
+                if distance > 3.0 {
+                    let target = [
+                        (building.x - 1, building.y),
+                        (building.x, building.y - 1),
+                        (building.x + i32::from(width), building.y),
+                        (building.x, building.y + i32::from(height)),
+                    ]
+                    .into_iter()
+                    .find(|&(x, y)| sim.grid.get(x, y).walkable());
+                    if let Some(target) = target {
+                        approaches.push((worker.index, target, building.kind));
+                    }
+                    continue;
+                }
+                effort += worker.effort;
+                working.push((worker.index, building.kind));
                 building.occupants.push(organisms[worker.index].id.clone());
+            }
+            if effort == 0.0 {
+                continue;
             }
             let labor = f32::from(building.kind.construction_cost().labor);
             building.condition = (building.condition + effort / labor).min(1.0);
@@ -1658,14 +1709,26 @@ fn tick_building_progress(sim: &mut Simulation) {
                 completed.push((owner.to_string(), building.kind, building.x, building.y));
             }
         }
-        (assigned, building_changed)
+        building_changed
     };
 
     if building_changed {
         sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
     }
-    for worker_index in assigned_workers {
-        sim.organisms[worker_index].energy = (sim.organisms[worker_index].energy - 0.006).max(0.0);
+    for (worker_index, target, kind) in approaches {
+        let worker = &mut sim.organisms[worker_index];
+        if worker.journey.as_ref().is_none_or(|j| j.target != target) {
+            worker.begin_journey(
+                target,
+                &format!("going to build a {}", kind.name()),
+                sim.tick_count,
+            );
+        }
+    }
+    for (worker_index, kind) in working {
+        let worker = &mut sim.organisms[worker_index];
+        worker.energy = (worker.energy - 0.006).max(0.0);
+        worker.thought = format!("building a {}", kind.name());
     }
     for (lineage, kind, x, y) in completed {
         // Construction knowledge is earned only when the project becomes
@@ -3294,6 +3357,39 @@ mod tests {
     }
 
     #[test]
+    fn housing_demand_counts_pending_homes_but_not_ruins_or_scenery() {
+        let mut sim = Simulation::new(703);
+        sim.buildings.clear();
+        let owner = sim.organisms[0].lineage_id.clone();
+        sim.organisms[0].inv_wood = 100;
+        sim.organisms[0].inv_stone = 100;
+        sim.organisms[0].wealth = 1000;
+        assert_eq!(
+            housing_target(&sim, &owner, Era::Stone, 4),
+            Some(BuildingKind::Hut)
+        );
+        let mut b = Building::new(1, BuildingKind::House, 30, 30, Some(owner.clone()), 0);
+        sim.buildings.push(b.clone());
+        assert_eq!(housing_target(&sim, &owner, Era::Bronze, 4), None);
+        assert_eq!(
+            housing_target(&sim, &owner, Era::Bronze, 8),
+            Some(BuildingKind::House)
+        );
+        sim.buildings[0].damage = 1.0;
+        assert_eq!(
+            housing_target(&sim, &owner, Era::Bronze, 4),
+            Some(BuildingKind::House)
+        );
+        b.decorative = true;
+        sim.buildings.push(b);
+        assert_eq!(
+            housing_target(&sim, &owner, Era::Bronze, 4),
+            Some(BuildingKind::House)
+        );
+        assert_eq!(housing_target(&sim, &owner, Era::PreStone, 4), None);
+    }
+
+    #[test]
     fn autonomous_diplomacy_respects_active_battles_and_keeps_one_treaty() {
         use crate::sim::warfare::{Battle, BattleScale, TreatyKind};
 
@@ -3892,6 +3988,32 @@ mod tests {
         let distance =
             (project.x as f32 - sim.organisms[0].x).abs() + (project.y as f32 - sim.organisms[0].y).abs();
         assert!(distance <= CONSTRUCTION_WORKER_REACH);
+    }
+
+    #[test]
+    fn builders_walk_to_the_site_before_contributing_labor() {
+        let mut sim = Simulation::new(704);
+        sim.organisms.clear();
+        sim.buildings.clear();
+        let mut worker = test_org("builder", "Builder", "lineage-a", 20.0, 10.0);
+        worker.age = 10_000;
+        sim.organisms.push(worker);
+        sim.grid.set(9, 10, crate::world::tiles::Tile::Grass);
+        sim.buildings.push(Building::new(
+            1,
+            BuildingKind::Hut,
+            10,
+            10,
+            Some("lineage-a".into()),
+            0,
+        ));
+        tick_building_progress(&mut sim);
+        assert_eq!(sim.buildings[0].condition, 0.0);
+        assert!(sim.organisms[0].journey.is_some());
+        sim.organisms[0].x = 9.0;
+        tick_building_progress(&mut sim);
+        assert!(sim.buildings[0].condition > 0.0);
+        assert!(sim.organisms[0].thought.contains("building a hut"));
     }
 
     #[test]

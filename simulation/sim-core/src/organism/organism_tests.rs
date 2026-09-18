@@ -939,3 +939,88 @@ fn movement_toward_target_does_not_step_into_mineral_tile() {
         .get(10 + DIRECTIONS[action].0, 10 + DIRECTIONS[action].1)
         .walkable());
 }
+
+#[test]
+fn committed_journey_moves_around_wall_instead_of_shuffling() {
+    let mut rng = StdRng::seed_from_u64(71);
+    let mut grid = WorldGrid::new(2);
+    for x in 20..80 {
+        for y in 20..80 {
+            grid.set(x, y, Tile::Sand);
+            grid.hazard[WorldGrid::idx(x, y)] = 0.0;
+        }
+    }
+    // The greedy direction used to bounce north/south against this wall.
+    for y in 43..=57 {
+        grid.set(52, y, Tile::Rock);
+    }
+    let mut org = Organism::new(
+        "journey".into(),
+        "Traveller".into(),
+        50.0,
+        50.0,
+        0,
+        "".into(),
+        "lin".into(),
+        5000,
+        Traits::random(&mut rng),
+    );
+    org.energy = 0.9;
+    org.hydration = 0.9;
+    org.health = 1.0;
+    org.age = 1600;
+    org.home_x = 50.0;
+    org.home_y = 50.0;
+    org.begin_journey((66, 50), "scouting the hills", 100);
+    for tick in 100..180 {
+        if (org.x - 66.0).abs().max((org.y - 50.0).abs()) <= 2.0 {
+            break;
+        }
+        let (action, _) = org.choose_action(
+            &grid,
+            &[],
+            tick,
+            0.0,
+            &[],
+            false,
+            0,
+            &mut rng,
+            false,
+            "test",
+            &[0, 1, 2, 3, 4, 5, 6, 7, 17, 24],
+        );
+        assert!(
+            action < 8,
+            "journey unexpectedly chose stationary action {action}"
+        );
+        let (dx, dy) = DIRECTIONS[action];
+        assert!(grid.get(org.x as i32 + dx, org.y as i32 + dy).walkable());
+        org.x += dx as f32;
+        org.y += dy as f32;
+    }
+    assert!(
+        (org.x - 66.0).abs().max((org.y - 50.0).abs()) <= 2.0,
+        "traveller never reached destination: {}, {}",
+        org.x,
+        org.y
+    );
+    // An urgent need takes priority even while a journey is active.
+    org.x = 50.0;
+    org.y = 50.0;
+    grid.set(50, 50, Tile::Food);
+    org.energy = 0.1;
+    let (action, _) = org.choose_action(
+        &grid,
+        &[],
+        110,
+        0.0,
+        &[],
+        false,
+        0,
+        &mut rng,
+        false,
+        "test",
+        &[0, 1, 2, 3, 4, 5, 6, 7, 8, 17],
+    );
+    assert_eq!(action, 8);
+}

@@ -16,7 +16,13 @@ import {
   runStorageRetry,
   type StorageRetry,
 } from './wasmPersistence'
-import { MAX_RUNTIME_SPEED, MIN_RUNTIME_SPEED, MIN_WASM_TICK_MS, WASM_BASE_TICK_MS } from './runtimeControls'
+import {
+  MAX_RUNTIME_SPEED,
+  MIN_RUNTIME_SPEED,
+  MIN_WASM_TICK_MS,
+  WASM_BASE_TICK_MS,
+  wasmTickDelay,
+} from './runtimeControls'
 
 type StartMsg = {
   type: 'start'
@@ -48,7 +54,9 @@ type InMsg =
       requestId?: number
     }
 
-const DEEP_FULL_EVERY_TICKS = 300n
+// Terrain and cold metadata refresh at the same real-time cadence at every speed.
+// A simulation-tick cadence makes fast-forward serialize huge snapshots 50x more often.
+const DEEP_FULL_EVERY_MS = 300 * WASM_BASE_TICK_MS
 // Full world saves can be tens of megabytes. Commands and shutdowns
 // checkpoint immediately; this slower cadence covers passive play without
 // repeatedly stalling the simulation worker on JSON serialization.
@@ -62,11 +70,13 @@ let stepsPerEmit = 1
 let speed = 1
 let autosaveEveryMs = DEFAULT_AUTOSAVE_MS
 let frameId = 0
+let lastEmittedAt = -Infinity
+let lastDeepFullAt = -Infinity
 let started = false
 let manuallyPaused = false
 let hiddenPaused = false
 let reloadPreparing = false
-let tickTimer: ReturnType<typeof setInterval> | null = null
+let tickTimer: ReturnType<typeof setTimeout> | null = null
 let saveTimer: ReturnType<typeof setInterval> | null = null
 let persistInFlight: Promise<boolean> | null = null
 let persistAgain = false
@@ -132,6 +142,8 @@ function emit(deepFull: boolean) {
   if (!sim) return
   frameId += 1
   const now = Date.now()
+  lastEmittedAt = performance.now()
+  if (deepFull) lastDeepFullAt = lastEmittedAt
   const frame = deepFull ? sim.fullFrame(frameId, now) : sim.deltaFrame(frameId, now)
   post({ type: 'frame', frame })
 }
@@ -356,7 +368,7 @@ async function retryStorage(): Promise<boolean> {
 
 function stopTimers() {
   if (tickTimer !== null) {
-    clearInterval(tickTimer)
+    clearTimeout(tickTimer)
     tickTimer = null
   }
   if (saveTimer !== null) {
@@ -366,15 +378,26 @@ function stopTimers() {
 }
 
 function tickOnce() {
-  if (manuallyPaused || hiddenPaused || reloadPreparing || !sim) return
-  sim.tickN(stepsPerEmit)
-  const tc = sim.tickCount()
-  emit(tc % DEEP_FULL_EVERY_TICKS === 0n)
+  const startedAt = performance.now()
+  let completed = 0
+  if (!manuallyPaused && !hiddenPaused && !reloadPreparing && sim) {
+    // Bound a fast-forward batch, yielding between slices for pause/save/input.
+    do {
+      sim.tickN(1)
+      completed += 1
+    } while (completed < stepsPerEmit && performance.now() - startedAt < 16)
+    if (tickMs >= WASM_BASE_TICK_MS || performance.now() - lastEmittedAt >= WASM_BASE_TICK_MS) {
+      emit(performance.now() - lastDeepFullAt >= DEEP_FULL_EVERY_MS)
+    }
+  }
+  const workMs = performance.now() - startedAt
+  const interval = completed > 0 ? (tickMs * completed) / stepsPerEmit : Math.max(250, tickMs)
+  tickTimer = setTimeout(tickOnce, wasmTickDelay(interval, workMs))
 }
 
 function startTickTimer() {
-  if (tickTimer !== null) clearInterval(tickTimer)
-  tickTimer = setInterval(tickOnce, Math.max(MIN_WASM_TICK_MS, tickMs))
+  if (tickTimer !== null) clearTimeout(tickTimer)
+  tickTimer = setTimeout(tickOnce, Math.max(MIN_WASM_TICK_MS, tickMs))
 }
 
 function beginLoop(autosaveEveryMs: number) {

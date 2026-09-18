@@ -417,6 +417,19 @@ impl Organism {
             return (17, thought);
         }
 
+        // A chosen journey is a short-lived commitment, not a tiny Q-score
+        // bonus that loses to every rewarding stationary activity. Survival,
+        // shelter and rest above still interrupt it, and nights remain local.
+        if !night && needs_easy && !should_rest && self.fear_level < 0.65 {
+            if let Some(journey) = &self.journey {
+                let distance = (journey.target.0 - ix).abs().max((journey.target.1 - iy).abs());
+                if tick < journey.expires_at && distance > 2 {
+                    set_thought!(&journey.description);
+                    return (self.toward(journey.target, grid), thought);
+                }
+            }
+        }
+
         if self.age < 900 && self.energy > 0.6 && self.hydration > 0.6 && !night {
             let kin_nearby = organisms.iter().any(|o| {
                 !std::ptr::eq(o, self)

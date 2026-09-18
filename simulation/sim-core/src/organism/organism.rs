@@ -307,6 +307,13 @@ pub struct ConversationEntry {
     pub id: String,
 }
 
+#[derive(Clone, Debug, Serialize, serde::Deserialize)]
+pub struct Journey {
+    pub target: (i32, i32),
+    pub description: String,
+    pub expires_at: u64,
+}
+
 pub struct Organism {
     pub id: String,
     pub name: String,
@@ -403,6 +410,7 @@ pub struct Organism {
     pub area_ticks: u32,
     pub last_area_cell: (i32, i32),
     pub wander_target: Option<(i32, i32)>,
+    pub journey: Option<Journey>,
     pub last_groomed: u64,
     pub last_fed_kin: u64,
     pub last_ancestral_thought: u64,
@@ -566,6 +574,7 @@ impl Organism {
             area_ticks: 0,
             last_area_cell: (x as i32, y as i32),
             wander_target: None,
+            journey: None,
             last_groomed: 0,
             last_fed_kin: 0,
             last_ancestral_thought: 0,
@@ -1698,12 +1707,49 @@ impl Organism {
         best
     }
 
+    pub(crate) fn begin_journey(&mut self, target: (i32, i32), description: &str, tick: u64) {
+        let distance = (target.0 - self.x as i32)
+            .abs()
+            .max((target.1 - self.y as i32).abs()) as u64;
+        self.wander_target = Some(target);
+        self.journey = Some(Journey {
+            target,
+            description: description.to_string(),
+            expires_at: tick + (distance * 4).clamp(80, 800),
+        });
+        self.think(description, tick);
+        self.log_life(
+            tick,
+            "life",
+            format!("set out: {} toward ({}, {})", description, target.0, target.1),
+        );
+    }
+
     pub(crate) fn toward(&self, target: (i32, i32), grid: &WorldGrid) -> usize {
         let (ix, iy) = (self.x as i32, self.y as i32);
         let (tx, ty) = target;
         let dx = tx - ix;
         let dy = ty - iy;
         let target_is_water = grid.get(tx, ty) == Tile::Water;
+        let direct = (ix + dx.signum(), iy + dy.signum());
+        let direct_tile = grid.get(direct.0, direct.1);
+        let blocked = !direct_tile.walkable()
+            || (!target_is_water && direct_tile == Tile::Water && grid.depth_at(direct.0, direct.1) > 0.18);
+        let distance = dx.abs().max(dy.abs());
+        let has_progress_step = blocked
+            && DIRECTIONS.iter().any(|&(sx, sy)| {
+                let (nx, ny) = (ix + sx, iy + sy);
+                let tile = grid.get(nx, ny);
+                tile.walkable()
+                    && tile != Tile::Fire
+                    && (target_is_water || tile != Tile::Water || grid.depth_at(nx, ny) <= 0.18)
+                    && (tx - nx).abs().max((ty - ny).abs()) < distance
+            });
+        if blocked && !has_progress_step && distance > 1 {
+            if let Some(action) = super::navigation::detour_step(grid, (ix, iy), target) {
+                return action;
+            }
+        }
         let mut best_action = 0;
         let mut best_score = f32::NEG_INFINITY;
         for (i, (adx, ady)) in DIRECTIONS.iter().enumerate() {

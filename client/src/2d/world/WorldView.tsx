@@ -1,4 +1,4 @@
-import { worldRenderScale, interpolationFactor, shouldRenderFrame } from './render-timing'
+import { worldRenderScale, worldRenderWindow, interpolationFactor, shouldRenderFrame } from './render-timing'
 import { terrainDetail } from './terrain-detail'
 import { MapCameraController } from './MapCameraController'
 import { WorldMapHud } from './WorldMapHud'
@@ -2032,10 +2032,11 @@ function drawWorldOnCanvas(
     const bdp = world.day_progress ?? 0.5
     const bNight = world.is_day ? 0 : Math.max(0, Math.min(1, 1 - Math.abs(bdp - 0.5) * 2))
     const buildingDetail = zoomDetailLevel(cameraZoom)
-    const sorted = [...world.buildings].sort(compareBuildingsByDepth)
+    const sorted = world.buildings
+      .filter((b) => b.x - ox >= cxLo && b.x - ox <= cxHi && b.y - oy >= ryLo && b.y - oy <= ryHi)
+      .sort(compareBuildingsByDepth)
     for (const b of sorted) {
       if (typeof b.x !== 'number' || typeof b.y !== 'number') continue
-      if (b.x < cxLo || b.x > cxHi || b.y < ryLo || b.y > ryHi) continue
       drawBuilding(
         ctx,
         {
@@ -2254,6 +2255,16 @@ function drawWorldOnCanvas(
     }
   }
 
+  // Canvas clipping saves pixels, but does not skip sprite work or text
+  // measurement. Cull before sorting and drawing off-screen people.
+  const visibleOrganisms = organisms.filter(
+    (org) =>
+      org.alive &&
+      org.x - ox >= c0 - 8 &&
+      org.x - ox <= c1 + 8 &&
+      org.y - oy >= r0 - 8 &&
+      org.y - oy <= r1 + 8,
+  )
   const characterDetail = zoomDetailLevel(cameraZoom)
   // Batch every organism shadow into two paths (focused / dimmed) so the
   // whole population costs two fills instead of hundreds of separate
@@ -2262,7 +2273,7 @@ function drawWorldOnCanvas(
     const focusedShadows = new Path2D()
     const dimShadows = new Path2D()
     let any = false
-    for (const org of organisms) {
+    for (const org of visibleOrganisms) {
       if (!org.alive) continue
       if (org.home_x && org.home_y) {
         const ddx = org.x - org.home_x
@@ -2298,7 +2309,7 @@ function drawWorldOnCanvas(
       ctx.fill(focusedShadows)
     }
   }
-  for (const org of [...organisms].sort(compareCharacterDepth)) {
+  for (const org of visibleOrganisms.sort(compareCharacterDepth)) {
     if (!org.alive) continue
     // Data-driven house entry: use actual sleep_debt, energy, health fields - no text matching
     if (org.home_x && org.home_y) {
@@ -2689,10 +2700,15 @@ function WorldSprite({
       LOW_PERF,
     ),
   )
+  const [renderWindow, setRenderWindow] = useState(() =>
+    cameraStateRef && viewportDims
+      ? worldRenderWindow(W, H, cameraStateRef.current, viewportDims)
+      : { x: 0, y: 0, width: W, height: H },
+  )
   const renderScaleRef = useRef(renderScale)
   // Even dimensions keep the pixel-art grid aligned when scaled.
-  const dynW = Math.max(TILE, Math.round((W * renderScale) / 2) * 2)
-  const dynH = Math.max(TILE, Math.round((H * renderScale) / 2) * 2)
+  const dynW = Math.max(TILE, Math.round((renderWindow.width * renderScale) / 2) * 2)
+  const dynH = Math.max(TILE, Math.round((renderWindow.height * renderScale) / 2) * 2)
   const dyn = useDynamicCanvas(dynW, dynH)
 
   const hasDrawn = useRef(false)
@@ -2764,7 +2780,9 @@ function WorldSprite({
       const fastMo = viewFlagsRef.current.fastMo
       const speedDiv = slowMo ? 0.5 : fastMo ? 2.0 : 1.0
       const interval = Math.max(50, curServerAt - prevServerAt) / speedDiv
-      const PREDICT_CAP = 2.0
+      // Never extrapolate beyond the last known position: delayed frames
+      // used to overshoot and snap people backwards, looking like pacing.
+      const PREDICT_CAP = 1.0
       const t = cur && prev ? interpolationFactor(now, currentReceivedAt, interval) : 1
 
       const renderZoom = cameraStateRef?.current.zoom ?? 1
@@ -2775,6 +2793,18 @@ function WorldSprite({
       if (targetScale !== renderScaleRef.current) {
         renderScaleRef.current = targetScale
         setRenderScale(targetScale)
+      }
+      if (cameraStateRef && viewportDims) {
+        const nextWindow = worldRenderWindow(W, H, cameraStateRef.current, viewportDims)
+        if (
+          nextWindow.x !== renderWindow.x ||
+          nextWindow.y !== renderWindow.y ||
+          nextWindow.width !== renderWindow.width ||
+          nextWindow.height !== renderWindow.height
+        ) {
+          setRenderWindow(nextWindow)
+          return
+        }
       }
       const detailBucket = zoomDetailLevel(renderZoom)
       const camera = cameraStateRef?.current
@@ -2886,7 +2916,7 @@ function WorldSprite({
       }
 
       const scale = renderScale
-      dyn.ctx.setTransform(scale, 0, 0, scale, 0, 0)
+      dyn.ctx.setTransform(scale, 0, 0, scale, -renderWindow.x * scale, -renderWindow.y * scale)
       drawWorldOnCanvas(
         dyn.ctx,
         enrichedWorld,
@@ -2923,12 +2953,34 @@ function WorldSprite({
       // rebuild several times per second - the single biggest source of
       // frame stalls in the whole app.
     }
-  }, [interp, dyn, onFirstDraw, cameraStateRef, viewportDims, rendererPaused, renderScale])
+  }, [
+    interp,
+    dyn,
+    onFirstDraw,
+    cameraStateRef,
+    viewportDims,
+    rendererPaused,
+    renderScale,
+    renderWindow,
+    W,
+    H,
+  ])
 
   return (
     <>
-      <Transform x={atX} y={atY} />
-      <Sprite width={W} height={H} dynamicSrc={dyn.id} color="#ffffff" zIndex={0} />
+      <Transform
+        x={atX - W / 2 + renderWindow.x + renderWindow.width / 2}
+        y={atY - H / 2 + renderWindow.y + renderWindow.height / 2}
+      />
+      {/* Cubeforge captures sprite dimensions at mount; resize the component with the texture window. */}
+      <Sprite
+        key={`${renderWindow.width}:${renderWindow.height}`}
+        width={renderWindow.width}
+        height={renderWindow.height}
+        dynamicSrc={dyn.id}
+        color="#ffffff"
+        zIndex={0}
+      />
     </>
   )
 }
