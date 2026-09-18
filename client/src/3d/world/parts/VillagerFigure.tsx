@@ -224,6 +224,7 @@ interface Props {
   getHeading?: () => number
   scale?: number
   animation: string
+  getAnimation?: () => string
   animate?: boolean
   timeScale?: number
   attentionYaw?: number
@@ -237,6 +238,7 @@ export function VillagerFigure({
   getHeading,
   scale = 1,
   animation,
+  getAnimation,
   animate = true,
   timeScale = 1,
   attentionYaw,
@@ -254,6 +256,8 @@ export function VillagerFigure({
   const kneeR = useRef<Group>(null)
   const cloak = useRef<Group>(null)
   const clock = useRef(idHash(org.id) % 100)
+  const travel = useRef<{ x: number; z: number } | null>(null)
+  const gaitPhase = useRef(((idHash(org.id) % 100) / 100) * Math.PI * 2)
   const pose = useRef({
     legSwing: 0,
     legsForward: 0,
@@ -288,10 +292,23 @@ export function VillagerFigure({
   useFrame((_, dt) => {
     if (!root.current) return
     const [x, y, z] = getPosition()
+    const previous = travel.current
+    const distance = previous ? Math.hypot(x - previous.x, z - previous.z) : 0
+    travel.current = { x, z }
     root.current.position.set(x, y, z)
     if (getHeading) root.current.rotation.y = getHeading()
 
     if (!animate || !body.current) return
+    dt = Math.min(dt, 0.05)
+    const activeAnimation = getAnimation?.() ?? animation
+    const running = activeAnimation === 'Running'
+    // One cycle covers two strides. Scale with the character so children
+    // take shorter steps; teleports never fast-forward the leg animation.
+    if (distance < 12 && (activeAnimation === 'Walking' || running)) {
+      const stride = Math.max(0.1, scale * (running ? 2.8 : 1.8))
+      gaitPhase.current = (gaitPhase.current + (distance / stride) * Math.PI * 2) % (Math.PI * 2)
+    }
+    const gait = gaitPhase.current
     clock.current += dt * timeScale
     const t = clock.current
 
@@ -315,25 +332,25 @@ export function VillagerFigure({
       elbowR = v
     }
 
-    switch (animation) {
+    switch (activeAnimation) {
       case 'Running': {
-        legSwing = Math.sin(t * 11) * 0.85
-        armSwing = -Math.sin(t * 11) * 0.7
-        bob = Math.abs(Math.sin(t * 11)) * 0.08
+        legSwing = Math.sin(gait) * 0.85
+        armSwing = -Math.sin(gait) * 0.7
+        bob = Math.abs(Math.sin(gait)) * 0.08
         lean = 0.28
         knee = 0.35
         setElbows(0.85)
-        spin = Math.sin(t * 11) * 0.06
+        spin = Math.sin(gait) * 0.06
         break
       }
       case 'Walking': {
-        legSwing = Math.sin(t * 6.5) * 0.5
-        armSwing = -Math.sin(t * 6.5) * 0.35
-        bob = Math.abs(Math.sin(t * 6.5)) * 0.04
+        legSwing = Math.sin(gait) * 0.5
+        armSwing = -Math.sin(gait) * 0.35
+        bob = Math.abs(Math.sin(gait)) * 0.04
         lean = 0.08
         knee = 0.18
         setElbows(0.35)
-        spin = Math.sin(t * 6.5) * 0.04
+        spin = Math.sin(gait) * 0.04
         break
       }
       case 'Sitting': {

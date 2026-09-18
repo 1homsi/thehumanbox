@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import {
   updateOrgMotion,
   getOrgXY,
+  getOrgVelocityXY,
+  getOrgHeading,
   updateAnimalMotion,
   getAnimalSpeed,
   getAnimalXY,
@@ -108,7 +110,41 @@ describe('motion-state interpolation', () => {
     nowMs = 6100
     const [x2] = getOrgXY(id)
     expect(Math.abs(x2 - x1)).toBeLessThan(0.01)
-    expect(x1).toBeLessThan(11.6)
+    expect(x1).toBe(11)
+  })
+
+  it('never overshoots a confirmed destination and stops its gait exactly there', () => {
+    updateOrgMotion([org(id, 10, 10)])
+    nowMs = 1120
+    updateOrgMotion([org(id, 11, 10)])
+    for (const time of [1180, 1240, 1400, 2000]) {
+      nowMs = time
+      expect(getOrgXY(id)[0]).toBeLessThanOrEqual(11)
+    }
+    expect(getOrgXY(id)).toEqual([11, 10])
+    expect(getOrgVelocityXY(id)).toEqual([0, 0])
+  })
+
+  it('does not restart from an old displayed position when no renderer sampled a segment', () => {
+    updateOrgMotion([org(id, 10, 10)])
+    nowMs = 1120
+    updateOrgMotion([org(id, 11, 10)])
+    nowMs = 1240
+    updateOrgMotion([org(id, 12, 10)])
+    expect(getOrgXY(id)[0]).toBe(11)
+    nowMs = 1300
+    expect(getOrgXY(id)[0]).toBeCloseTo(11.5)
+  })
+
+  it('does not turn faster because labels and effects read the same actor repeatedly', () => {
+    updateOrgMotion([org(id, 10, 10)])
+    nowMs = 1120
+    updateOrgMotion([org(id, 11, 10)])
+    nowMs = 1136
+    getOrgXY(id)
+    const heading = getOrgHeading(id)
+    for (let i = 0; i < 20; i++) getOrgXY(id)
+    expect(getOrgHeading(id)).toBe(heading)
   })
 
   it('snaps on teleport-scale moves rather than gliding across the map', () => {

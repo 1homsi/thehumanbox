@@ -26,11 +26,10 @@ const animalState = new Map<number, MotionEntry>()
 const TICK_MS = 100
 const MIN_ARRIVAL_MS = 120
 const MAX_ARRIVAL_MS = 1500
-const SEG_DUR_FACTOR = 1.08
-const MIN_SEG_MS = 150
+const SEG_DUR_FACTOR = 1
+const MIN_SEG_MS = 60
 const MAX_SEG_MS = 1600
-const GLIDE_DECAY_PER_S = 5
-const HEADING_TURN_RATE = Math.PI * 1.4
+const HEADING_TURN_RATE = Math.PI * 5
 const TELEPORT_DIST_SQ = 12 * 12
 const PRUNE_AFTER_MS = 15000
 const PRUNE_EVERY = 120
@@ -142,12 +141,14 @@ function ingestSnapshot(
   e.lastSeen = now
   e.targetX = targetX
   e.targetY = targetY
-  if (x === e.toX && y === e.toY) return
 
   const rawDt = now - e.lastArrival
   const dt = Math.max(MIN_ARRIVAL_MS, Math.min(MAX_ARRIVAL_MS, rawDt))
   e.arrivalEma = e.arrivalEma > 0 ? e.arrivalEma * 0.6 + dt * 0.4 : dt
   e.lastArrival = now
+  // Sample even when off-screen: new segments must not depend on render reads.
+  advanceAndRead(e)
+  if (x === e.toX && y === e.toY) return
 
   const jx = x - e.dispX
   const jy = y - e.dispY
@@ -177,32 +178,22 @@ function ingestSnapshot(
 }
 
 function glideFactor(e: MotionEntry): number {
-  const over = (performance.now() - e.segStart) * 0.001 - e.segDur * 0.001
-  if (over <= 0) return 1
-  return Math.exp(-GLIDE_DECAY_PER_S * over)
+  return performance.now() - e.segStart < e.segDur ? 1 : 0
 }
 
 function advanceAndRead(e: MotionEntry): [number, number] {
   const now = performance.now()
-  const frameDt = Math.max(0.001, (now - e.lastReadTime) * 0.001)
+  const frameDt = Math.max(0, (now - e.lastReadTime) * 0.001)
   e.lastReadTime = now
 
   const elapsed = now - e.segStart
-  const t = elapsed / e.segDur
+  const t = Math.max(0, Math.min(1, elapsed / e.segDur))
+  // Interpolate only confirmed travel; extrapolation makes stationary people
+  // slide through buildings and snap backwards when the next update arrives.
+  const outX = e.fromX + (e.toX - e.fromX) * t
+  const outY = e.fromY + (e.toY - e.fromY) * t
 
-  let outX: number
-  let outY: number
-  if (t <= 1) {
-    outX = e.fromX + (e.toX - e.fromX) * t
-    outY = e.fromY + (e.toY - e.fromY) * t
-  } else {
-    const overSec = (elapsed - e.segDur) * 0.001
-    const slide = (1 - Math.exp(-GLIDE_DECAY_PER_S * overSec)) / GLIDE_DECAY_PER_S
-    outX = e.toX + e.velX * slide
-    outY = e.toY + e.velY * slide
-  }
-
-  const g = t <= 1 ? 1 : glideFactor(e)
+  const g = glideFactor(e)
   const vx = e.velX * g
   const vy = e.velY * g
   if (vx * vx + vy * vy > 0.04) {
