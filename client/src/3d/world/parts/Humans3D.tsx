@@ -34,13 +34,13 @@ interface Props {
 // Cull radius for full skinned-mesh AnimatedFigure rendering. Past
 // this distance we drop to an InstancedMesh capsule LOD - one draw
 // call total for the entire far cohort.
-const NEAR_RADIUS_SQ = 280 * 280
+const NEAR_RADIUS_SQ = 120 * 120
 // Distance at which the AnimationMixer keeps ticking. Slightly tighter
 // than NEAR so animation work also drops off before the mesh swap.
-const ANIMATE_RADIUS_SQ = 220 * 220
+const ANIMATE_RADIUS_SQ = 90 * 90
 // Hard cap on full skinned-mesh figures regardless of camera distance.
 // Bounds worst-case CPU when the camera flies over a dense settlement.
-const MAX_SKINNED = LOW_PERF ? 36 : 80
+const MAX_SKINNED = LOW_PERF ? 16 : 32
 
 // Data-driven: organism is inside their home when they're genuinely at rest
 // Uses actual numeric fields - sleep_debt, energy - not thought text

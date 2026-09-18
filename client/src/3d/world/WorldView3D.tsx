@@ -7,7 +7,7 @@ import {
   OrbitControls,
   Stats,
 } from '@react-three/drei'
-import { Vector3, TOUCH, PCFSoftShadowMap, ACESFilmicToneMapping, SRGBColorSpace, type Camera } from 'three'
+import { Vector3, TOUCH, PCFShadowMap, NeutralToneMapping, SRGBColorSpace, type Camera } from 'three'
 import type { WorldState } from '../../types'
 import { useUIStore } from '../../stores/store'
 import { Terrain } from './parts/Terrain'
@@ -34,7 +34,6 @@ import { Vehicles3D } from './parts/Vehicles3D'
 import { Roads3D } from './parts/Roads3D'
 import { Boats3D } from './parts/Boats3D'
 import { Birds3D } from './parts/Birds3D'
-import { DistantMountains } from './parts/DistantMountains'
 import { Fireflies3D } from './parts/Fireflies3D'
 import { Butterflies3D } from './parts/Butterflies3D'
 import { Farms3D } from './parts/Farms3D'
@@ -61,9 +60,6 @@ import { FireLights } from './parts/FireLights'
 import { normalizeLineageEras } from '../../utils/lineageEras'
 import { LOW_PERF } from '../../lib/perf'
 import { useSceneStore } from '../../stores/scene'
-import { TimeOfDayTint } from './parts/TimeOfDayTint'
-import { CinematicGrade } from './parts/CinematicGrade'
-import { CameraBreath } from './parts/CameraBreath'
 import { Fireflies } from './parts/Fireflies'
 import { SocialBeams } from './parts/SocialBeams'
 import { TerritoryOverlay } from './parts/TerritoryOverlay'
@@ -79,6 +75,10 @@ import { threeFrameLoopForPause } from '../../lib/desktopVisibility'
 import { TILE_ID } from '../../world/terrain-ids'
 import { buildTerritoryIndex, lineageAtTerritoryTile } from '../../world/territory'
 import { hasRuinedBuildingAtWorldTile, isRuinedBuilding } from '../../world/building-state'
+
+const WORLD_SHADOWS = LOW_PERF ? false : { type: PCFShadowMap }
+const WORLD_DPR: number | [number, number] = LOW_PERF ? 1 : [1, 1.5]
+const WORLD_GL = { antialias: !LOW_PERF, powerPreference: 'high-performance' as const }
 
 type MoveKeys = 'forward' | 'back' | 'left' | 'right' | 'up' | 'down' | 'boost'
 
@@ -269,6 +269,7 @@ function FlyCamera({ depthMap, biomes, buildingAABBs, worldWidth, worldHeight }:
       followInitialized.current = false
     }
 
+    delta = Math.min(delta, 0.05)
     const speed = 30 * (k.boost ? 4 : 1)
 
     const forward = forwardScratch.current
@@ -362,6 +363,12 @@ export default function WorldView3D({
   onContextLost,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const [pointerLockFailed, setPointerLockFailed] = useState(false)
+  useEffect(() => {
+    const fallback = () => setPointerLockFailed(true)
+    document.addEventListener('pointerlockerror', fallback)
+    return () => document.removeEventListener('pointerlockerror', fallback)
+  }, [])
   const contextLostRef = useRef(onContextLost)
   contextLostRef.current = onContextLost
   const contextWatchdog = useRef<number | null>(null)
@@ -395,12 +402,11 @@ export default function WorldView3D({
     () => (world?.buildings ?? []).filter((building) => !isRuinedBuilding(building)),
     [world?.buildings],
   )
-  const ruinedBuildingLocalTiles = useMemo(() => {
+  const buildingLocalTiles = useMemo(() => {
     const tiles = new Set<string>()
     const originX = world?.grid.origin_x ?? 0
     const originY = world?.grid.origin_y ?? 0
     for (const building of world?.buildings ?? []) {
-      if (!isRuinedBuilding(building)) continue
       const footprintWidth = Math.max(1, Math.floor(building.footprint?.[0] ?? building.fw ?? 1))
       const footprintHeight = Math.max(1, Math.floor(building.footprint?.[1] ?? building.fh ?? 1))
       for (let dy = 0; dy < footprintHeight; dy++) {
@@ -617,13 +623,13 @@ export default function WorldView3D({
       if (!tRow) continue
       for (let col = 0; col < grid.width; col++) {
         if (tRow[col] !== TILE_ID.HUT) continue
-        if (ruinedBuildingLocalTiles.has(`${col},${row}`)) continue
+        if (buildingLocalTiles.has(`${col},${row}`)) continue
         const ground = heightAt(col, row, grid.depth_map, grid.biomes)
         out.push([col * TILE_SCALE, ground, row * TILE_SCALE])
       }
     }
     return out
-  }, [grid?.tiles, grid?.depth_map, grid?.biomes, grid?.height, grid?.width, ruinedBuildingLocalTiles])
+  }, [grid?.tiles, grid?.depth_map, grid?.biomes, grid?.height, grid?.width, buildingLocalTiles])
 
   const buildingAABBs = useMemo<BuildingAABB[]>(() => {
     if (!grid?.tiles || !grid?.depth_map || !grid?.biomes) return []
@@ -634,7 +640,7 @@ export default function WorldView3D({
       if (!tRow) continue
       for (let col = 0; col < grid.width; col++) {
         if (tRow[col] !== TILE_ID.HUT) continue
-        if (ruinedBuildingLocalTiles.has(`${col},${row}`)) continue
+        if (buildingLocalTiles.has(`${col},${row}`)) continue
         const ground = heightAt(col, row, grid.depth_map, grid.biomes)
         const cx = col * TILE_SCALE
         const cz = row * TILE_SCALE
@@ -673,12 +679,21 @@ export default function WorldView3D({
     grid?.biomes,
     grid?.height,
     grid?.width,
-    ruinedBuildingLocalTiles,
+    buildingLocalTiles,
     standingBuildings,
   ])
 
   const cx = (grid?.width ?? 150) * TILE_SCALE * 0.5
   const cz = (grid?.height ?? 75) * TILE_SCALE * 0.5
+  const cameraConfig = useMemo(
+    () => ({
+      position: [cx - 80, 95, cz + 220] as [number, number, number],
+      fov: 58,
+      near: 0.5,
+      far: 4000,
+    }),
+    [cx, cz],
+  )
 
   return (
     <div
@@ -693,13 +708,13 @@ export default function WorldView3D({
       <KeyboardControls map={KEY_MAP}>
         <Canvas
           frameloop={threeFrameLoopForPause(rendererPaused)}
-          camera={{ position: [cx - 80, 95, cz + 220], fov: 58, near: 0.5, far: 4000 }}
-          shadows={LOW_PERF ? false : { type: PCFSoftShadowMap }}
-          dpr={LOW_PERF ? [1, 1.5] : [1, 2]}
-          gl={{ antialias: !LOW_PERF, powerPreference: 'high-performance' }}
+          camera={cameraConfig}
+          shadows={WORLD_SHADOWS}
+          dpr={WORLD_DPR}
+          gl={WORLD_GL}
           onCreated={({ gl }) => {
-            gl.toneMapping = ACESFilmicToneMapping
-            gl.toneMappingExposure = 0.95
+            gl.toneMapping = NeutralToneMapping
+            gl.toneMappingExposure = 1
             gl.outputColorSpace = SRGBColorSpace
             const dom = gl.domElement
             dom.addEventListener('webglcontextlost', (e) => {
@@ -748,7 +763,6 @@ export default function WorldView3D({
                   moonIllum={world.cosmos?.moon_illum ?? 0.7}
                 />
                 <Birds3D width={grid.width} height={grid.height} dayProgress={dayProgress} />
-                <DistantMountains width={grid.width} height={grid.height} />
                 <Fireflies3D
                   width={grid.width}
                   height={grid.height}
@@ -766,6 +780,7 @@ export default function WorldView3D({
                   dayProgress={dayProgress}
                 />
                 <Terrain
+                  tiles={grid.tiles!}
                   depthMap={grid.depth_map!}
                   biomes={grid.biomes!}
                   width={grid.width}
@@ -787,7 +802,7 @@ export default function WorldView3D({
                   width={grid.width}
                   height={grid.height}
                   pathTrail={grid.path_trail}
-                  suppressedHutTiles={ruinedBuildingLocalTiles}
+                  suppressedHutTiles={buildingLocalTiles}
                 />
                 <GrassTufts
                   tiles={grid.tiles!}
@@ -1032,7 +1047,6 @@ export default function WorldView3D({
                 )}
               </>
             )}
-            <CinematicGrade dayProgress={dayProgress} weatherKind={world?.weather?.kind ?? 'clear'} />
             <FlyCamera
               depthMap={grid?.depth_map}
               biomes={grid?.biomes}
@@ -1040,11 +1054,19 @@ export default function WorldView3D({
               worldWidth={grid?.width}
               worldHeight={grid?.height}
             />
-            <CameraBreath enabled={!isTouch} />
             <CameraSync />
             {showFps && <Stats />}
-            {isTouch ? (
-              <OrbitControls enableDamping touches={{ ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_PAN }} />
+            {isTouch || pointerLockFailed ? (
+              <OrbitControls
+                enableDamping
+                dampingFactor={0.12}
+                target={[cx, 0, cz]}
+                enabled={!hasFollowTarget}
+                minDistance={8}
+                maxDistance={3000}
+                maxPolarAngle={Math.PI / 2 - 0.04}
+                touches={{ ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_PAN }}
+              />
             ) : (
               <PointerLockControls />
             )}
@@ -1069,7 +1091,6 @@ export default function WorldView3D({
       {!ready && <div style={loadingStyle}>loading terrain…</div>}
 
       {}
-      <TimeOfDayTint dayProgress={dayProgress} weatherKind={world?.weather?.kind ?? 'clear'} />
 
       {}
       <div className="thb-3d-vignette" style={vignetteStyle} />
@@ -1077,8 +1098,8 @@ export default function WorldView3D({
       <HelpOverlay />
 
       <div style={hudStyle}>
-        {isTouch
-          ? 'drag to orbit · pinch to zoom'
+        {isTouch || pointerLockFailed
+          ? 'drag to orbit · scroll or pinch to zoom · right-drag to pan'
           : 'click to look · WASD move · space/shift up/down · ctrl boost · C reset · F follow · J jump · R random · click map · esc release'}
         {hasFollowTarget && <span style={{ color: '#ff8a3a', marginLeft: 10 }}>· following</span>}
       </div>
@@ -1105,7 +1126,7 @@ const vignetteStyle: React.CSSProperties = {
   inset: 0,
   pointerEvents: 'none',
   background:
-    'radial-gradient(ellipse 80% 70% at 50% 45%, rgba(0,0,0,0) 45%, rgba(0,0,0,0.30) 80%, rgba(0,0,0,0.62) 100%)',
+    'radial-gradient(ellipse 80% 70% at 50% 45%, rgba(0,0,0,0) 45%, rgba(0,0,0,0.06) 80%, rgba(0,0,0,0.16) 100%)',
   mixBlendMode: 'multiply',
   zIndex: 4,
 }

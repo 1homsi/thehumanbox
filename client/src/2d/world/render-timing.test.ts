@@ -40,6 +40,24 @@ describe('viewport texture bounds', () => {
     expect(area.y + area.height).toBeGreaterThanOrEqual(1400)
     expect(area.width * area.height).toBeLessThan((4800 * 2400) / 10)
   })
+  it('reuses padded pixels during panning and small zoom changes', () => {
+    const viewport = { w: 1200, h: 800 }
+    const area = worldRenderWindow(4800, 2400, { x: 2400, y: 1200, zoom: 2 }, viewport)
+    for (let offset = 0; offset <= 60; offset += 5) {
+      expect(worldRenderWindow(4800, 2400, { x: 2400 + offset, y: 1200, zoom: 2.05 }, viewport, area)).toBe(
+        area,
+      )
+    }
+    const moved = worldRenderWindow(4800, 2400, { x: 3000, y: 1200, zoom: 2 }, viewport, area)
+    expect(moved).not.toBe(area)
+    expect(moved.width).toBe(area.width)
+    expect(moved.height).toBe(area.height)
+    expect(moved.x + moved.width).toBeGreaterThanOrEqual(3300)
+    const out = worldRenderWindow(4800, 2400, { x: 2400, y: 1200, zoom: 0.2 }, viewport, area)
+    expect(out.width).toBe(4800)
+    expect(out.height).toBe(2400)
+  })
+
   it('covers the whole map at overview zoom and clamps texture edges', () => {
     expect(worldRenderWindow(4800, 2400, { x: 2400, y: 1200, zoom: 0.2 }, { w: 1200, h: 800 })).toEqual({
       x: 0,

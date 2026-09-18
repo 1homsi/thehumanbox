@@ -9,7 +9,8 @@ function cornerHeight(ix: number, iy: number, depthMap: number[][], biomes: numb
     return base + terrainNoise(ix, iy) * rough
   }
   const depthFrac = Math.max(0, Math.min(1, 1 - d / 200))
-  return -depthFrac * MAX_DEPTH
+  // Even the shallowest water tile must stay below the water surface (-0.55).
+  return -0.85 - depthFrac * MAX_DEPTH
 }
 
 const DETAIL_AMP = 0.24

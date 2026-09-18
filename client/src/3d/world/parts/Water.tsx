@@ -12,9 +12,6 @@ interface Props {
   dayProgress?: number
 }
 
-const SUB_X = 160
-const SUB_Y = 80
-
 export function Water({ width, height, depthMap, dayProgress = 0.5 }: Props) {
   const outerMatRef = useRef<MeshStandardMaterial>(null)
   const innerMatRef = useRef<MeshStandardMaterial>(null)
@@ -32,7 +29,7 @@ export function Water({ width, height, depthMap, dayProgress = 0.5 }: Props) {
   // Build the inner plane geometry once. Land mask becomes a vertex
   // attribute the shader can read to skip displacement on land tiles.
   const innerGeo = useMemo(() => {
-    const geo = new PlaneGeometry(PLANE_W, PLANE_H, SUB_X, SUB_Y)
+    const geo = new PlaneGeometry(PLANE_W, PLANE_H, width, height)
     const pos = geo.attributes.position as BufferAttribute
     const mask = new Float32Array(pos.count)
     const shore = new Float32Array(pos.count)
@@ -45,7 +42,7 @@ export function Water({ width, height, depthMap, dayProgress = 0.5 }: Props) {
         const isLand = d >= 254
         mask[i] = isLand ? 1 : 0
         if (isLand) {
-          pos.setZ(i, -3.0)
+          pos.setZ(i, 0)
         } else {
           let nearLand = false
           for (let dy = -1; dy <= 1 && !nearLand; dy++) {
@@ -147,12 +144,13 @@ export function Water({ width, height, depthMap, dayProgress = 0.5 }: Props) {
       .replace(
         '#include <dithering_fragment>',
         `#include <dithering_fragment>
+         if (vLand >= 0.5) discard;
          if (vLand < 0.5) {
            float sparkle = sin(vWavePos.x * 0.6 + uWaveTime * 1.7)
                          * cos(vWavePos.y * 0.55 + uWaveTime * 1.3);
            sparkle += sin(vWavePos.x * 0.32 - uWaveTime * 1.1)
                     * cos(vWavePos.y * 0.42 + uWaveTime * 0.9);
-           sparkle = max(0.0, sparkle - 0.75) * 1.4;
+           sparkle = max(0.0, sparkle - 1.35) * 0.12;
            gl_FragColor.rgb += vec3(sparkle * 0.6, sparkle * 0.55, sparkle * 0.5);
 
            vec3 fresnelView = normalize(vViewPosition);
@@ -164,7 +162,7 @@ export function Water({ width, height, depthMap, dayProgress = 0.5 }: Props) {
                             + vWavePos.x * 0.45 + vWavePos.y * 0.38));
            float foamNoise = 0.5 + 0.5 * sin(vWavePos.x * 1.7 + uWaveTime * 0.8)
                                        * cos(vWavePos.y * 1.5 - uWaveTime * 0.6);
-           float foam = clamp(foamBand * (0.45 + 0.55 * foamNoise), 0.0, 1.0) * 0.55;
+           float foam = clamp(foamBand * (0.45 + 0.55 * foamNoise), 0.0, 1.0) * 0.12;
            gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.92, 0.96, 0.98), foam);
          }`,
       )
@@ -200,8 +198,8 @@ export function Water({ width, height, depthMap, dayProgress = 0.5 }: Props) {
           color="#3a78ac"
           transparent
           opacity={0.82}
-          roughness={0.18}
-          metalness={0.15}
+          roughness={0.6}
+          metalness={0.02}
           depthWrite={false}
           polygonOffset
           polygonOffsetFactor={1}

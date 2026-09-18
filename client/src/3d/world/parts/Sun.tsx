@@ -110,10 +110,10 @@ export function Sun({
 
   const dirMoonIntensity = (0.25 + 0.7 * moonIllum) * stormFactor * nightWeight
 
-  const ambientIntensity = nightWeight * 0.32 + dayWeight * (0.35 + dayStrength * 0.35)
-  const ambR = nightWeight * (0x5a / 255) + dayWeight * 1
-  const ambG = nightWeight * (0x68 / 255) + dayWeight * 1
-  const ambB = nightWeight * (0x90 / 255) + dayWeight * 1
+  const ambientIntensity = nightWeight * 0.7 + dayWeight * (0.65 + dayStrength * 0.2)
+  const ambR = nightWeight * 0.8 + dayWeight * 1
+  const ambG = nightWeight * 0.86 + dayWeight * 1
+  const ambB = nightWeight * 1 + dayWeight * 1
 
   const hemiSky = new Color()
     .setRGB(
@@ -135,14 +135,16 @@ export function Sun({
     <>
       <color attach="background" args={[new Color().setRGB(bgR, bgG, bgB).getHex()]} />
 
-      <Sky
-        distance={100000}
-        sunPosition={sunPos}
-        turbidity={skyTurbidity}
-        rayleigh={skyRayleigh}
-        mieCoefficient={0.005}
-        mieDirectionalG={0.85}
-      />
+      {dayWeight > 0.05 && (
+        <Sky
+          distance={100000}
+          sunPosition={sunPos}
+          turbidity={skyTurbidity}
+          rayleigh={skyRayleigh}
+          mieCoefficient={0.005}
+          mieDirectionalG={0.85}
+        />
+      )}
 
       <Stars radius={1600} depth={350} count={8500} factor={7} saturation={0.12} fade speed={0.6} />
 
@@ -218,7 +220,7 @@ export function Sun({
         intensity={dirSunIntensity}
         color={dirSunColor}
         castShadow
-        shadow-mapSize={[2048, 2048]}
+        shadow-mapSize={[1024, 1024]}
         shadow-bias={-0.00025}
         shadow-normalBias={0.06}
         shadow-camera-left={-shadowHalf}
@@ -238,41 +240,9 @@ export function Sun({
       <primitive
         attach="fog"
         object={(() => {
-          const stops: Array<[number, [number, number, number]]> = [
-            [0.0, [0.86, 0.7, 0.66]],
-            [0.12, [0.92, 0.82, 0.74]],
-            [0.25, [0.78, 0.84, 0.92]],
-            [0.5, [0.78, 0.88, 0.96]],
-            [0.7, [0.92, 0.82, 0.7]],
-            [0.82, [0.88, 0.62, 0.44]],
-            [0.92, [0.32, 0.3, 0.42]],
-            [1.0, [0.08, 0.08, 0.16]],
-          ]
-          const p = dayProgress
-          let lo = stops[0]
-          let hi = stops[stops.length - 1]
-          for (let i = 0; i < stops.length - 1; i++) {
-            if (p >= stops[i][0] && p <= stops[i + 1][0]) {
-              lo = stops[i]
-              hi = stops[i + 1]
-              break
-            }
-          }
-          const span = hi[0] - lo[0]
-          const t = span === 0 ? 0 : (p - lo[0]) / span
-          let r = lo[1][0] + (hi[1][0] - lo[1][0]) * t
-          let g = lo[1][1] + (hi[1][1] - lo[1][1]) * t
-          let b = lo[1][2] + (hi[1][2] - lo[1][2]) * t
-          if (weatherKind === 'storm') {
-            r = r * 0.4 + 0.32
-            g = g * 0.4 + 0.36
-            b = b * 0.4 + 0.44
-          } else if (weatherKind === 'rain') {
-            r = r * 0.7 + 0.15
-            g = g * 0.7 + 0.18
-            b = b * 0.7 + 0.22
-          }
-          const c = new Color(r, g, b)
+          // Use the same cyclic day/night mix as the lights. The former ramp
+          // jumped from dark blue to bright peach at midnight.
+          const c = new Color(bgR, bgG, bgB)
           const baseDensity =
             weatherKind === 'storm'
               ? 0.0024

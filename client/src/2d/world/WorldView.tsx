@@ -284,7 +284,7 @@ function drawPixelFire(
   }
 }
 
-import { TILE, TILE_RGB, BIOME_RGBA, THOUGHT_COLORS } from '../../world/palette'
+import { TILE, TILE_RGB, BIOME_RGBA, THOUGHT_COLORS, SEASON_LAND_TINT } from '../../world/palette'
 import { orgVariant } from '../../world/org-variant'
 import { drawTrees, drawClouds, drawNaturalDecor, scratchA, scratchB } from './decorations'
 
@@ -937,13 +937,6 @@ function valueNoise(x: number, y: number): number {
   const c = vnHash(xi, yi + 1)
   const d = vnHash(xi + 1, yi + 1)
   return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy
-}
-
-const SEASON_LAND_TINT: Record<string, { rgb: [number, number, number]; w: number }> = {
-  abundance: { rgb: [58, 138, 66], w: 0.22 },
-  recovery: { rgb: [92, 150, 64], w: 0.3 },
-  decline: { rgb: [150, 118, 44], w: 0.42 },
-  scarcity: { rgb: [128, 102, 56], w: 0.52 },
 }
 
 const SHALLOW_RGB: [number, number, number] = [116, 198, 208]
@@ -2706,6 +2699,7 @@ function WorldSprite({
       : { x: 0, y: 0, width: W, height: H },
   )
   const renderScaleRef = useRef(renderScale)
+  const zoomActivity = useRef({ zoom: 0, changedAt: 0 })
   // Even dimensions keep the pixel-art grid aligned when scaled.
   const dynW = Math.max(TILE, Math.round((renderWindow.width * renderScale) / 2) * 2)
   const dynH = Math.max(TILE, Math.round((renderWindow.height * renderScale) / 2) * 2)
@@ -2790,12 +2784,15 @@ function WorldSprite({
       // fraction of the world-sized bitmap, so skip uploading pixels the
       // screen can't display anyway.
       const targetScale = worldRenderScale(renderZoom, window.devicePixelRatio || 1, LOW_PERF)
-      if (targetScale !== renderScaleRef.current) {
+      if (zoomActivity.current.zoom !== renderZoom) {
+        zoomActivity.current = { zoom: renderZoom, changedAt: now }
+      }
+      if (targetScale !== renderScaleRef.current && now - zoomActivity.current.changedAt >= 150) {
         renderScaleRef.current = targetScale
         setRenderScale(targetScale)
       }
       if (cameraStateRef && viewportDims) {
-        const nextWindow = worldRenderWindow(W, H, cameraStateRef.current, viewportDims)
+        const nextWindow = worldRenderWindow(W, H, cameraStateRef.current, viewportDims, renderWindow)
         if (
           nextWindow.x !== renderWindow.x ||
           nextWindow.y !== renderWindow.y ||
@@ -2807,8 +2804,7 @@ function WorldSprite({
         }
       }
       const detailBucket = zoomDetailLevel(renderZoom)
-      const camera = cameraStateRef?.current
-      const uiKey = `${selectedOrgIdRef.current ?? ''}|${overlayRef.current ?? ''}|${focusRef.current}|${JSON.stringify(viewFlagsRef.current)}|${detailBucket}|${camera?.x}|${camera?.y}|${renderZoom}|${renderScale}`
+      const uiKey = `${selectedOrgIdRef.current ?? ''}|${overlayRef.current ?? ''}|${focusRef.current}|${JSON.stringify(viewFlagsRef.current)}|${detailBucket}|${renderScale}|${renderWindow.x}|${renderWindow.y}`
       const settled =
         t >= PREDICT_CAP && lastDrawnT >= PREDICT_CAP && curServerAt === lastDrawnAt && uiKey === lastDrawnUI
       if (settled) return
@@ -2896,23 +2892,13 @@ function WorldSprite({
         season_progress: lerpedSeason,
       }
 
-      // Compute the visible-tile window so per-tile overlay loops can
-      // skip rows/cols off-screen. We give a 4-tile margin so panning
-      // doesn't reveal blank borders before the next frame redraws.
-      let bounds: { c0: number; c1: number; r0: number; r1: number } | undefined
-      if (cameraStateRef && viewportDims && viewportDims.w > 0 && viewportDims.h > 0) {
-        const cam = cameraStateRef.current
-        const zoom = renderZoom > 0 ? renderZoom : 1
-        const halfW = viewportDims.w / (2 * zoom)
-        const halfH = viewportDims.h / (2 * zoom)
-        const MARGIN = 4
-        const wG = w.grid.width
-        const hG = w.grid.height
-        const c0 = Math.max(0, Math.floor((cam.x - halfW) / TILE) - MARGIN)
-        const c1 = Math.min(wG, Math.ceil((cam.x + halfW) / TILE) + MARGIN)
-        const r0 = Math.max(0, Math.floor((cam.y - halfH) / TILE) - MARGIN)
-        const r1 = Math.min(hG, Math.ceil((cam.y + halfH) / TILE) + MARGIN)
-        if (c1 > c0 && r1 > r0) bounds = { c0, c1, r0, r1 }
+      // Paint the entire padded texture, so moving the camera within it never
+      // exposes culled strips or requires an extra CPU redraw.
+      const bounds = {
+        c0: Math.max(0, Math.floor(renderWindow.x / TILE)),
+        c1: Math.min(w.grid.width, Math.ceil((renderWindow.x + renderWindow.width) / TILE)),
+        r0: Math.max(0, Math.floor(renderWindow.y / TILE)),
+        r1: Math.min(w.grid.height, Math.ceil((renderWindow.y + renderWindow.height) / TILE)),
       }
 
       const scale = renderScale

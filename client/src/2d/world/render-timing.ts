@@ -26,18 +26,26 @@ export function worldRenderWindow(
   worldHeight: number,
   camera: { x: number; y: number; zoom: number },
   viewport: { w: number; h: number },
+  previous?: RenderWindow,
 ): RenderWindow {
   const zoom = Number.isFinite(camera.zoom) && camera.zoom > 0 ? camera.zoom : 1
   const chunk = 128
-  const left = Math.max(0, Math.floor((camera.x - viewport.w / (2 * zoom)) / chunk) * chunk - chunk)
-  const top = Math.max(0, Math.floor((camera.y - viewport.h / (2 * zoom)) / chunk) * chunk - chunk)
-  const right = Math.min(worldWidth, Math.ceil((camera.x + viewport.w / (2 * zoom)) / chunk) * chunk + chunk)
-  const bottom = Math.min(
-    worldHeight,
-    Math.ceil((camera.y + viewport.h / (2 * zoom)) / chunk) * chunk + chunk,
+  const halfW = viewport.w / (2 * zoom)
+  const halfH = viewport.h / (2 * zoom)
+  const width = Math.min(worldWidth, Math.ceil((halfW * 2) / chunk) * chunk + chunk * 2)
+  const height = Math.min(worldHeight, Math.ceil((halfH * 2) / chunk) * chunk + chunk * 2)
+  // Keep the texture while its padded contents cover the visible map. Recenter
+  // only near an edge; ordinary camera movement is just a GPU transform.
+  if (
+    previous &&
+    previous.width * previous.height <= width * height * 4 &&
+    previous.x <= Math.max(0, camera.x - halfW - 32) &&
+    previous.y <= Math.max(0, camera.y - halfH - 32) &&
+    previous.x + previous.width >= Math.min(worldWidth, camera.x + halfW + 32) &&
+    previous.y + previous.height >= Math.min(worldHeight, camera.y + halfH + 32)
   )
-  // A camera outside the world still needs a valid texture while it is clamped.
-  const x = Math.min(left, Math.max(0, worldWidth - chunk))
-  const y = Math.min(top, Math.max(0, worldHeight - chunk))
-  return { x, y, width: Math.max(1, right - x), height: Math.max(1, bottom - y) }
+    return previous
+  const x = Math.max(0, Math.min(worldWidth - width, Math.floor((camera.x - width / 2) / chunk) * chunk))
+  const y = Math.max(0, Math.min(worldHeight - height, Math.floor((camera.y - height / 2) / chunk) * chunk))
+  return { x, y, width: Math.max(1, width), height: Math.max(1, height) }
 }

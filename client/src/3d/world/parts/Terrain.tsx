@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useThree } from '@react-three/fiber'
-import { BufferAttribute, BufferGeometry, Mesh, MeshStandardMaterial } from 'three'
-import { TILE_SCALE, BIOME_COLORS } from './constants'
+import { BufferAttribute, BufferGeometry, Color, Mesh, MeshStandardMaterial } from 'three'
+import { TILE_SCALE } from './constants'
 import { getTerrainTextures, biomeQuadrant } from './terrain-textures'
+import { groundColor, terrainSurfaceSignature } from './ground-color'
 import { heightAt } from './terrain-utils'
 
 interface Props {
+  tiles: number[][]
   depthMap: number[][]
   biomes: number[][]
   width: number
@@ -19,12 +21,6 @@ const WORN_PATH: [number, number, number] = [0.48, 0.38, 0.27]
 
 const TEX_TILES_PER_WORLD = 16
 
-const SEASON_TINT_3D: Record<string, { rgb: [number, number, number]; w: number }> = {
-  abundance: { rgb: [0.23, 0.54, 0.26], w: 0.18 },
-  recovery: { rgb: [0.36, 0.59, 0.25], w: 0.26 },
-  decline: { rgb: [0.59, 0.46, 0.17], w: 0.38 },
-  scarcity: { rgb: [0.5, 0.4, 0.22], w: 0.48 },
-}
 const BEACH_3D: [number, number, number] = [0.77, 0.69, 0.48]
 
 function vnHash3d(x: number, y: number): number {
@@ -47,7 +43,7 @@ function vNoise3d(x: number, y: number): number {
   return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy
 }
 
-export function Terrain({ depthMap, biomes, width, height, season, pathTrail, onTilePick }: Props) {
+export function Terrain({ tiles, depthMap, biomes, width, height, season, pathTrail, onTilePick }: Props) {
   const meshRef = useRef<Mesh>(null)
   const gl = useThree((s) => s.gl)
 
@@ -65,11 +61,18 @@ export function Terrain({ depthMap, biomes, width, height, season, pathTrail, on
     return tex
   }, [gl])
 
+  const surfaceSignature = useMemo(() => terrainSurfaceSignature(tiles, pathTrail), [tiles, pathTrail])
   const geometry = useMemo(() => {
     if (!depthMap || !biomes) return null
     const geo = new BufferGeometry()
 
-    const SUB = 2
+    const colorScratch = new Color()
+    const palette = Array.from({ length: 14 }, (_, tile) =>
+      Array.from({ length: 6 }, (_, biome) => groundColor(tile, biome, season)),
+    )
+    const tileColor = (x: number, y: number) =>
+      palette[tiles[y]?.[x] ?? 1]?.[biomes[y]?.[x] ?? 0] ?? palette[1][0]
+    const SUB = 1
     const gw = (width - 1) * SUB + 1
     const gh = (height - 1) * SUB + 1
     const positions = new Float32Array(gw * gh * 3)
@@ -110,10 +113,10 @@ export function Terrain({ depthMap, biomes, width, height, season, pathTrail, on
         const y1b = Math.min(height - 1, y0b + 1)
         const fx = Math.max(0, Math.min(1, tx - x0))
         const fy = Math.max(0, Math.min(1, ty - y0b))
-        const c00 = BIOME_COLORS[biomes[y0b]?.[x0] ?? 0] ?? BIOME_COLORS[0]
-        const c10 = BIOME_COLORS[biomes[y0b]?.[x1] ?? 0] ?? BIOME_COLORS[0]
-        const c01 = BIOME_COLORS[biomes[y1b]?.[x0] ?? 0] ?? BIOME_COLORS[0]
-        const c11 = BIOME_COLORS[biomes[y1b]?.[x1] ?? 0] ?? BIOME_COLORS[0]
+        const c00 = tileColor(x0, y0b)
+        const c10 = tileColor(x1, y0b)
+        const c01 = tileColor(x0, y1b)
+        const c11 = tileColor(x1, y1b)
         const lx = (a: number, c: number) => a + (c - a) * fx
         const ly = (a: number, c: number) => a + (c - a) * fy
         const r = ly(lx(c00[0], c10[0]), lx(c01[0], c11[0]))
@@ -122,22 +125,13 @@ export function Terrain({ depthMap, biomes, width, height, season, pathTrail, on
         const darken = d >= 254 ? 1.0 : 0.45
         const jitter =
           (vNoise3d(tx / 5.3, ty / 5.3) - 0.5) * 0.045 + (vNoise3d(tx / 17 + 31, ty / 17 + 31) - 0.5) * 0.06
-        const snow = d >= 254 ? Math.max(0, Math.min(0.55, (elev - 5.5) * 0.18)) : 0
+
         let baseR = r + jitter
         let baseG = g + jitter
         let baseB = bl + jitter
 
         if (d >= 254) {
           const macro = vNoise3d(tx / 34, ty / 34) * 0.6 + vNoise3d(tx / 11 + 5, ty / 11 + 5) * 0.4
-          const tint = season ? SEASON_TINT_3D[season] : undefined
-          if (tint) {
-            let w = tint.w * (0.5 + macro * 0.95)
-            if (w > 0.8) w = 0.8
-            const iw = 1 - w
-            baseR = baseR * iw + tint.rgb[0] * w
-            baseG = baseG * iw + tint.rgb[1] * w
-            baseB = baseB * iw + tint.rgb[2] * w
-          }
           const lum = 0.92 + macro * 0.16
           baseR *= lum
           baseG *= lum
@@ -164,9 +158,8 @@ export function Terrain({ depthMap, biomes, width, height, season, pathTrail, on
           }
         }
 
-        colors[i * 3] = (baseR + (1.0 - baseR) * snow) * darken
-        colors[i * 3 + 1] = (baseG + (1.0 - baseG) * snow) * darken
-        colors[i * 3 + 2] = (baseB + (1.0 - baseB) * snow) * darken
+        colorScratch.setRGB(baseR * darken, baseG * darken, baseB * darken).convertSRGBToLinear()
+        colorScratch.toArray(colors, i * 3)
       }
     }
 
@@ -212,14 +205,17 @@ export function Terrain({ depthMap, biomes, width, height, season, pathTrail, on
     geo.setIndex(new BufferAttribute(indices, 1))
     geo.computeVertexNormals()
     return geo
-  }, [depthMap, biomes, width, height, season, pathTrail])
+    // Signature tracks the visual contents, so food growth and tiny trail
+    // changes do not rebuild all vertices, normals and GPU buffers.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [surfaceSignature, depthMap, biomes, width, height, season])
 
   const material = useMemo(() => {
     const m = new MeshStandardMaterial({
       vertexColors: true,
       map: colorTex,
       bumpMap: bumpTex,
-      bumpScale: 0.45,
+      bumpScale: 0.06,
       roughness: 0.95,
       metalness: 0.0,
     })
@@ -274,7 +270,7 @@ export function Terrain({ depthMap, biomes, width, height, season, pathTrail, on
              #ifdef DECODE_VIDEO_TEXTURE
                sampledDiffuseColor = vec4( mix( pow( sampledDiffuseColor.rgb * 0.9478672986 + vec3( 0.0521327014 ), vec3( 2.4 ) ), sampledDiffuseColor.rgb * 0.0773993808, vec3( lessThanEqual( sampledDiffuseColor.rgb, vec3( 0.04045 ) ) ) ), sampledDiffuseColor.w );
              #endif
-             diffuseColor *= sampledDiffuseColor;
+             diffuseColor.rgb *= mix(vec3(1.0), vec3(dot(sampledDiffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722))), 0.25);
            #endif
           `,
         )
