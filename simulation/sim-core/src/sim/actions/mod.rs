@@ -4795,11 +4795,23 @@ fn action_uses_deferred_resource_charge(action: usize) -> bool {
     )
 }
 
+const BASE_SEMANTIC_VALIDATION: [bool; 540] = {
+    let mut required = [false; 540];
+    let mut index = 0;
+    while index < BASE_ACTION_BANDS.len() {
+        let band = &BASE_ACTION_BANDS[index];
+        let mut action = band.start;
+        while action <= band.end && action < required.len() {
+            required[action] = true;
+            action += 1;
+        }
+        index += 1;
+    }
+    required
+};
+
 fn action_requires_semantic_validation(action: usize) -> bool {
-    action >= 540
-        || BASE_ACTION_BANDS
-            .iter()
-            .any(|band| (band.start..=band.end).contains(&action))
+    action >= BASE_SEMANTIC_VALIDATION.len() || BASE_SEMANTIC_VALIDATION[action]
 }
 
 fn action_output_at_capacity(org: &crate::organism::organism::Organism, action: usize) -> bool {
@@ -5382,6 +5394,23 @@ mod tests {
             }
             organism.x = 300.0 + (other_index % 10) as f32 * 10.0;
             organism.y = 300.0 + (other_index / 10) as f32 * 10.0;
+        }
+    }
+
+    #[test]
+    fn semantic_validation_lookup_matches_band_tables() {
+        let legacy = |action: usize| {
+            action >= 540
+                || BASE_ACTION_BANDS
+                    .iter()
+                    .any(|band| (band.start..=band.end).contains(&action))
+        };
+        for action in (0..=u16::MAX as usize).chain([usize::MAX]) {
+            assert_eq!(
+                action_requires_semantic_validation(action),
+                legacy(action),
+                "lookup diverges from band tables at action {action}"
+            );
         }
     }
 
