@@ -1,3 +1,4 @@
+import { drawBoat } from './boat-sprite'
 import { crowdLabelIds } from './crowd-detail'
 import { drawWorkActivity, workActivity } from './activity-visuals'
 import { worldRenderScale, worldRenderWindow, interpolationFactor, shouldRenderFrame } from './render-timing'
@@ -2262,6 +2263,21 @@ export function drawWorldOnCanvas(
       org.y - oy >= r0 - 8 &&
       org.y - oy <= r1 + 8,
   )
+  const boatsByRider = new Map(
+    (world.vehicles ?? []).filter((v) => v.kind === 'boat' && v.rider_id).map((v) => [v.rider_id!, v]),
+  )
+  for (const boat of world.vehicles ?? []) {
+    if (
+      boat.kind !== 'boat' ||
+      boat.rider_id ||
+      boat.x - ox < c0 - 3 ||
+      boat.x - ox > c1 + 3 ||
+      boat.y - oy < r0 - 3 ||
+      boat.y - oy > r1 + 3
+    )
+      continue
+    drawBoat(ctx, (boat.x - ox) * TILE + TILE / 2, (boat.y - oy) * TILE + TILE / 2, t, false)
+  }
   for (const org of visibleOrganisms) orgMotion(org.id, org.x, org.y, t)
   const restingAtHome = (org: OrganismState) => {
     if (org.home_x == null || org.home_y == null) return false
@@ -2441,7 +2457,8 @@ export function drawWorldOnCanvas(
     }
 
     const motion = _orgLastPos.get(org.id)!
-    const frame = characterFrame(motion, t)
+    const boat = boatsByRider.get(org.id)
+    const frame = boat ? 0 : characterFrame(motion, t)
     const drew = drawPeopleTile(
       ctx,
       pickHumanSprite(orgSex, stage, frame, deterministicAppearanceIndex(org.id)),
@@ -2459,7 +2476,8 @@ export function drawWorldOnCanvas(
       ctx.fillRect(Math.round(px - bodyR * 0.7), Math.round(py + bodyR * 0.15), bodyR * 1.4, 2)
     }
 
-    if (standardDetail) {
+    if (boat) drawBoat(ctx, px, py, t, !boat.building && t - motion.movedAt <= 120, boat.building)
+    if (standardDetail && !boat) {
       drawWorkActivity(
         ctx,
         workActivity(org.thought ?? '', t - motion.movedAt <= 120),

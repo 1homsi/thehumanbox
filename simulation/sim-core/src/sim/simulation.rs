@@ -1556,6 +1556,12 @@ impl Simulation {
                 org_idx_by_id.insert(o.id.clone(), i);
             }
         }
+        for vehicle in &mut self.vehicles {
+            vehicle.occupants.retain(|id| org_idx_by_id.contains_key(id));
+            if vehicle.occupants.is_empty() {
+                vehicle.route.clear();
+            }
+        }
         for i in 0..self.organisms.len() {
             if self.organisms[i].alive {
                 let prev_len = self.organisms.len();
@@ -1948,7 +1954,9 @@ impl Simulation {
             .then(|| (49, Some("must build shelter now!".to_string())));
 
         let (action, new_thought, decision_origin): (usize, Option<String>, &'static str) =
-            if let Some((action, thought)) = storm_build {
+            if let Some(boat_action) = self.boat_action(idx) {
+                boat_action
+            } else if let Some((action, thought)) = storm_build {
                 (action, thought, "emergency_reflex")
             } else if let Some((dist, wx, wy)) = wolf_threat.filter(|(dist, _, _)| *dist <= 2.5) {
                 let fdx = (ox - wx).signum();
@@ -2018,8 +2026,8 @@ impl Simulation {
                 (chosen.0, chosen.1, decision_origin)
             };
         *self.decision_counts.entry(decision_origin).or_insert(0) += 1;
-        if let Some(t) = new_thought {
-            self.organisms[idx].think(&t, self.tick_count);
+        if let Some(ref t) = new_thought {
+            self.organisms[idx].think(t, self.tick_count);
         }
 
         let (ix, iy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
@@ -2686,6 +2694,12 @@ impl Simulation {
 
             if self.organisms[idx].grief_ticks > 0 && self.rng.random::<f32>() < shelter_strength * 0.12 {
                 self.organisms[idx].grief_ticks = self.organisms[idx].grief_ticks.saturating_sub(3);
+            }
+        }
+
+        if decision_origin.starts_with("boat_") {
+            if let Some(thought) = new_thought {
+                self.organisms[idx].think(&thought, self.tick_count);
             }
         }
 
@@ -5159,7 +5173,14 @@ impl Simulation {
     }
 
     fn apply_water_fatigue(&mut self, idx: usize, x: i32, y: i32) {
-        if self.grid.get(x, y) != Tile::Water {
+        if self.grid.get(x, y) != Tile::Water
+            || self.vehicles.iter().any(|v| {
+                v.kind == super::transportation::TransportKind::Boat
+                    && v.x == x
+                    && v.y == y
+                    && v.occupants.first() == Some(&self.organisms[idx].id)
+            })
+        {
             self.organisms[idx].water_ticks = 0;
             return;
         }

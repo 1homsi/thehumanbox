@@ -114,6 +114,10 @@ pub struct Vehicle {
     pub y: i32,
     pub occupants: Vec<String>,
     pub cargo: u32,
+    #[serde(default)]
+    pub route: Vec<(i32, i32)>,
+    #[serde(default)]
+    pub ready_tick: u64,
 }
 
 #[cfg(test)]

@@ -1568,6 +1568,8 @@ mod tests {
             y: 10,
             occupants: Vec::new(),
             cargo: 0,
+            route: Vec::new(),
+            ready_tick: 0,
         });
         state.battles.push(saved_battle("legacy-battle-a"));
         state.battles.push(saved_battle("legacy-battle-b"));

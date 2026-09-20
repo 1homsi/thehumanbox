@@ -258,6 +258,7 @@ export interface SettlementInfo {
 }
 
 export interface VehicleInfo {
+  building?: boolean
   id: number
   kind: string
   x: number

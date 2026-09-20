@@ -307,6 +307,10 @@ impl Simulation {
             })
         };
         if let Some(obj) = payload.as_object_mut() {
+            obj.insert("vehicles".into(), serde_json::Value::Array(self.vehicles.iter().map(|v| json!({
+                "id": v.id, "kind": v.kind.name(), "x": v.x, "y": v.y,
+                "rider_id": v.occupants.first(), "building": self.tick_count < v.ready_tick && !v.occupants.is_empty()
+            })).collect()));
             obj.insert(
                 "population_limit".to_string(),
                 serde_json::to_value(self.population_limit()).unwrap(),
