@@ -32,7 +32,12 @@ button.onclick = async () => {
     }
     const ctx = canvas.getContext('2d')!
     output.textContent = 'Canvas painting only (CubeForge excluded), warm mean/p95 milliseconds:\n'
-    for (const count of [1000, 5000, 10000]) {
+    const requestedCount = Number(new URLSearchParams(location.search).get('count'))
+    const counts =
+      Number.isInteger(requestedCount) && requestedCount > 0 && requestedCount <= 50000
+        ? [requestedCount]
+        : [1000, 5000, 10000]
+    for (const count of counts) {
       for (const zoom of [0.25, 2]) {
         world.organisms = Array.from({ length: count }, (_, i) => ({
           ...templates[i % templates.length],

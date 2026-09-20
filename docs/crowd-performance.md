@@ -6,7 +6,8 @@ synthetic moving crowd from a new seed; it never reads or writes saved worlds.
 The page calls the real world painter without CubeForge, React frame publication,
 or a running simulation. Every person is rendered. It measures synchronous canvas
 painting, not end-to-end FPS or GPU presentation time. Five warm-up frames and ten
-measured frames run for each population/zoom pair.
+measured frames run for each population/zoom pair. To test a specific population
+(up to 50,000), open `/crowd-benchmark.html?count=50000`.
 
 Local macOS in-app-browser results, September 20, 2026 (mean milliseconds):
 
@@ -52,3 +53,36 @@ CubeForge receives the game's rendered canvas as a dynamic texture, rather than
 one CubeForge entity per resident. Its dirty-texture upload path already skips
 unchanged canvases. The measured population-dependent painter bottleneck occurs
 before CubeForge, so this change does not modify that repository.
+
+## 50,000-person stress test
+
+The native fixture accepts a second argument for tick count, allowing a bounded
+run at populations beyond the game's 5,000-person limit:
+
+```sh
+cargo run --manifest-path simulation/Cargo.toml -p sim-core --release --example crowd_profile -- 50000 3
+```
+
+The fixture inserts residents directly, bypassing the normal population cap; it
+prints the surviving population after each tick. These tests do not enable 50,000
+people in the game or change any saved world.
+
+September 20 local results after the previous performance patch:
+
+| Test | Mean | p95 |
+|---|---:|---:|
+| Canvas, 50,000 moving people, zoom 0.25 | 105.7 ms/frame | 110.0 ms |
+| Canvas, 50,000 moving people, zoom 2 | 99.4 ms/frame | 104.1 ms |
+| Native simulation, 50,000 people, three ticks | 71,967 ms/tick | — |
+
+Rendering was rerun after the native stress process exited. The three native
+ticks took 67,973, 70,138, and 77,790 ms; all 50,000 residents survived each tick.
+The native run overlapped brief browser/check activity, so its timings are an
+approximate stress baseline, not a controlled comparison. Incremental serialization
+then took 45.45 ms for 4,812,166 bytes. A two-second native sample was dominated by
+`tick_organism` and string comparisons. Further profiling should target repeated
+population scans and lineage/relationship lookups before increasing the game cap.
+
+50,000 is not real-time-ready: canvas painting alone uses around 100 ms per frame,
+and the native simulation is far slower still. These are isolated synthetic tests,
+not an end-to-end browser/WASM frame-rate measurement or a mature-world benchmark.
