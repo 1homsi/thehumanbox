@@ -12,36 +12,42 @@ function isChunkLoadError(err: unknown): boolean {
   )
 }
 
-function maybeReload() {
+function maybeReload(onFailure: () => void = () => {}) {
   try {
     const last = Number(sessionStorage.getItem(RELOAD_KEY) || '0')
     const now = Date.now()
     if (now - last < RELOAD_COOLDOWN_MS) return false
     sessionStorage.setItem(RELOAD_KEY, String(now))
-    reloadAppSafely({
-      onFailure: () => sessionStorage.removeItem(RELOAD_KEY),
+    return reloadAppSafely({
+      onFailure: () => {
+        try {
+          sessionStorage.removeItem(RELOAD_KEY)
+        } catch {
+          // Storage may disappear while the checkpoint is pending.
+        }
+        onFailure()
+      },
       failureMessage: 'could not checkpoint the current world; renderer update was cancelled safely',
     })
-    return true
   } catch {
     return false
   }
 }
 
+export function loadWithChunkRecovery<T>(factory: () => Promise<T>): Promise<T> {
+  return factory().catch((err) => {
+    if (!isChunkLoadError(err)) throw err
+    return new Promise<T>((_resolve, reject) => {
+      // The callback exists before requesting reload: checkpoint failure may
+      // arrive synchronously or asynchronously. Either must release Suspense.
+      if (!maybeReload(() => reject(err))) reject(err)
+    })
+  })
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function lazyWithRetry<T extends ComponentType<any>>(factory: () => Promise<{ default: T }>) {
-  return lazy(() =>
-    factory().catch((err) => {
-      if (isChunkLoadError(err)) {
-        if (maybeReload()) {
-          return new Promise<{ default: T }>(() => {
-            /* hang until reload */
-          })
-        }
-      }
-      throw err
-    }),
-  )
+  return lazy(() => loadWithChunkRecovery(factory))
 }
 
 if (typeof window !== 'undefined') {

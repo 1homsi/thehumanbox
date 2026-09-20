@@ -2187,10 +2187,8 @@ impl Simulation {
                 self.organisms[idx].log_event(format!("shared knowledge with kin near ({},{})", ix, iy));
 
                 let actor_lid = self.organisms[idx].lineage_id.clone();
-                let neg_target: Option<(usize, String)> = self
-                    .organisms
-                    .iter()
-                    .enumerate()
+                let neg_target: Option<(usize, String)> = spatial
+                    .ordered_nearby(&self.organisms, ix as f32, iy as f32, 7)
                     .filter(|(i, o)| *i != idx && o.alive && o.lineage_id != actor_lid)
                     .filter(|(_, o)| (o.x - ix as f32).abs() + (o.y - iy as f32).abs() < 7.0)
                     .filter_map(|(i, o)| {
@@ -2412,10 +2410,8 @@ impl Simulation {
         } else if action == 20 {
             let lid = self.organisms[idx].lineage_id.clone();
             let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
-            let kin: Vec<usize> = self
-                .organisms
-                .iter()
-                .enumerate()
+            let kin: Vec<usize> = spatial
+                .ordered_nearby(&self.organisms, sx, sy, 5)
                 .filter(|(i, o)| *i != idx && o.alive && o.lineage_id == lid)
                 .filter(|(_, o)| (o.x - sx).abs() + (o.y - sy).abs() <= 5.0)
                 .map(|(i, _)| i)
@@ -2448,10 +2444,8 @@ impl Simulation {
         } else if action == 21 {
             let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
             let my_vocab = self.organisms[idx].vocabulary.clone();
-            let listeners: Vec<usize> = self
-                .organisms
-                .iter()
-                .enumerate()
+            let listeners: Vec<usize> = spatial
+                .ordered_nearby(&self.organisms, sx, sy, 6)
                 .filter(|(i, o)| *i != idx && o.alive)
                 .filter(|(_, o)| (o.x - sx).abs() + (o.y - sy).abs() <= 6.0)
                 .map(|(i, _)| i)
@@ -2786,10 +2780,8 @@ impl Simulation {
         if self.organisms[idx].inv_water >= 2 && self.tick_count % 7 == (idx as u64 % 7) {
             let lid = self.organisms[idx].lineage_id.clone();
             let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
-            let recipient = self
-                .organisms
-                .iter()
-                .enumerate()
+            let recipient = spatial
+                .ordered_nearby(&self.organisms, sx, sy, 3)
                 .filter(|(i, o)| *i != idx && o.alive && o.lineage_id == lid && o.hydration < 0.30)
                 .filter(|(_, o)| (o.x - sx).abs() + (o.y - sy).abs() < 2.5)
                 .min_by(|a, b| {
@@ -2835,10 +2827,8 @@ impl Simulation {
             if near_fire {
                 let lid = self.organisms[idx].lineage_id.clone();
                 let (fx, fy) = (self.organisms[idx].x, self.organisms[idx].y);
-                let listener = self
-                    .organisms
-                    .iter()
-                    .enumerate()
+                let listener = spatial
+                    .ordered_nearby(&self.organisms, fx, fy, 4)
                     .filter(|(i, o)| *i != idx && o.alive && o.lineage_id == lid && o.age < 1800)
                     .filter(|(_, o)| (o.x - fx).abs() + (o.y - fy).abs() < 3.5)
                     .min_by_key(|(_, o)| o.age)
@@ -2896,10 +2886,8 @@ impl Simulation {
         if self.organisms[idx].energy > 0.75 && self.tick_count % 5 == (idx as u64 % 5) {
             let lid = self.organisms[idx].lineage_id.clone();
             let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
-            let recipient = self
-                .organisms
-                .iter()
-                .enumerate()
+            let recipient = spatial
+                .ordered_nearby(&self.organisms, sx, sy, 3)
                 .filter(|(i, o)| *i != idx && o.alive && o.lineage_id == lid && o.energy < 0.30)
                 .filter(|(_, o)| (o.x - sx).abs() + (o.y - sy).abs() < 2.5)
                 .min_by(|a, b| {
@@ -3274,9 +3262,9 @@ impl Simulation {
                     "exploring" | "observing" | "satisfied" | "wary" | "coexisting peacefully"
                 )
             {
-                let nearest_lid: Option<String> = self
-                    .organisms
-                    .iter()
+                let nearest_lid: Option<String> = spatial
+                    .ordered_nearby(&self.organisms, ox, oy, 3)
+                    .map(|(_, o)| o)
                     .filter(|o| {
                         o.alive && o.lineage_id != lineage && (o.x - ox).abs() + (o.y - oy).abs() <= 3.0
                     })
@@ -3310,14 +3298,8 @@ impl Simulation {
             let my_lid = self.organisms[idx].lineage_id.clone();
             let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
 
-            let unknown_lid: Option<String> = self
-                .organisms
-                .iter()
-                .filter(|o| o.alive && o.lineage_id != my_lid)
-                .filter(|o| (o.x - ox).abs() + (o.y - oy).abs() <= 5.0)
-                .filter(|o| !self.organisms[idx].lineage_attitudes.contains_key(&o.lineage_id))
-                .map(|o| o.lineage_id.clone())
-                .next();
+            let unknown_lid =
+                super::spatial::first_unknown_nearby_lineage(&self.organisms, idx, spatial, spatial_buf);
             if let Some(stranger_lid) = unknown_lid {
                 self.organisms[idx]
                     .lineage_attitudes
@@ -3351,7 +3333,11 @@ impl Simulation {
                         let (elder_name, elder_ctx) = {
                             if let Some(eid) = self.lineage_elders.get(&my_lid) {
                                 let eid = eid.clone();
-                                if let Some(e) = self.organisms.iter().find(|o| o.alive && o.id == eid) {
+                                if let Some(e) = org_idx_by_id
+                                    .get(&eid)
+                                    .map(|&i| &self.organisms[i])
+                                    .filter(|o| o.alive)
+                                {
                                     let ctx = format!(
                                         "age:{} gen:{} memories:{}",
                                         e.age,
@@ -3436,15 +3422,15 @@ impl Simulation {
                 if self.organisms[idx].think_ready("threat", tick, 800) {
                     let (hostile_near, kin_near) = {
                         let org = &self.organisms[idx];
-                        let hostile = self
-                            .organisms
-                            .iter()
+                        let hostile = spatial
+                            .ordered_nearby(&self.organisms, ox2, oy2, 8)
+                            .map(|(_, o)| o)
                             .filter(|o| o.alive && o.lineage_id != org.lineage_id)
                             .filter(|o| (o.x - ox2).abs() + (o.y - oy2).abs() <= 8.0)
                             .any(|o| org.attitude_toward(&o.lineage_id) < -0.3);
-                        let kin = self
-                            .organisms
-                            .iter()
+                        let kin = spatial
+                            .ordered_nearby(&self.organisms, ox2, oy2, 8)
+                            .map(|(_, o)| o)
                             .filter(|o| o.alive && o.lineage_id == org.lineage_id)
                             .filter(|o| (o.x - ox2).abs() + (o.y - oy2).abs() <= 8.0)
                             .count();
@@ -3475,9 +3461,9 @@ impl Simulation {
                 let _ = last_think;
                 let (ox2, oy2) = (self.organisms[idx].x, self.organisms[idx].y);
                 let my_partner = self.organisms[idx].partner_id.clone();
-                let tempting = self
-                    .organisms
-                    .iter()
+                let tempting = spatial
+                    .ordered_nearby(&self.organisms, ox2, oy2, 4)
+                    .map(|(_, o)| o)
                     .find(|o| {
                         o.alive
                             && o.id != self.organisms[idx].id
@@ -3518,9 +3504,9 @@ impl Simulation {
                         })
                         .map(|o| (o.name.clone(), o.x, o.y));
                     if let Some((partner_name, px, py)) = partner {
-                        let third = self
-                            .organisms
-                            .iter()
+                        let third = spatial
+                            .ordered_nearby(&self.organisms, px, py, 5)
+                            .map(|(_, o)| o)
                             .find(|o| {
                                 o.alive
                                     && o.id != my_id
@@ -3557,9 +3543,9 @@ impl Simulation {
                 let my_age = self.organisms[idx].age;
                 let my_eng = self.organisms[idx].energy;
                 if my_sex == Sex::Male && my_age > 1200 && my_eng > 0.4 {
-                    let rival = self
-                        .organisms
-                        .iter()
+                    let rival = spatial
+                        .ordered_nearby(&self.organisms, ox2, oy2, 6)
+                        .map(|(_, o)| o)
                         .find(|o| {
                             o.alive
                                 && o.id != my_id
@@ -3922,7 +3908,12 @@ impl Simulation {
             const FRIEND_SEEK_MAX_TILES: f32 = 60.0;
             let best = friend_ids
                 .iter()
-                .filter_map(|fid| self.organisms.iter().find(|o| o.alive && &o.id == fid))
+                .filter_map(|fid| {
+                    org_idx_by_id
+                        .get(fid)
+                        .map(|&i| &self.organisms[i])
+                        .filter(|o| o.alive)
+                })
                 .map(|o| (o, (o.x - ox).hypot(o.y - oy)))
                 .filter(|(_, d)| *d <= FRIEND_SEEK_MAX_TILES)
                 .min_by_key(|(_, d)| (*d * 10.0) as i32)
@@ -3985,7 +3976,11 @@ impl Simulation {
                     .iter()
                     .any(|o| o.alive && o.id == aid && (o.x - ox).hypot(o.y - oy) < 8.0);
                 if partner_close && attraction_age >= 150 && self.rng.random::<f32>() < 0.08 {
-                    if let Some(pi) = self.organisms.iter().position(|o| o.alive && o.id == aid) {
+                    if let Some(pi) = org_idx_by_id
+                        .get(&aid)
+                        .copied()
+                        .filter(|&i| self.organisms[i].alive)
+                    {
                         let pid = self.organisms[pi].id.clone();
                         let pname = self.organisms[pi].name.clone();
                         let oid = self.organisms[idx].id.clone();
@@ -4078,7 +4073,11 @@ impl Simulation {
             let pid = pid.clone();
             if tc % 19 == (idx as u64 % 19) && self.rng.random::<f32>() < 0.0018 {
                 let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
-                if let Some(pi) = self.organisms.iter().position(|o| o.alive && o.id == pid) {
+                if let Some(pi) = org_idx_by_id
+                    .get(&pid)
+                    .copied()
+                    .filter(|&i| self.organisms[i].alive)
+                {
                     if (self.organisms[pi].x - ox).hypot(self.organisms[pi].y - oy) < 8.0 {
                         let a_mood = derive_mood(&self.organisms[idx]);
                         let b_mood = derive_mood(&self.organisms[pi]);
@@ -4238,10 +4237,8 @@ impl Simulation {
                                 *cur = (*cur + sentiment * 0.3).clamp(-1.0, 1.0);
                             }
                         }
-                        let bystanders: Vec<usize> = self
-                            .organisms
-                            .iter()
-                            .enumerate()
+                        let bystanders: Vec<usize> = spatial
+                            .ordered_nearby(&self.organisms, ox, oy, 5)
                             .filter(|(j, o)| {
                                 *j != idx && *j != ci && o.alive && (o.x - ox).abs() + (o.y - oy).abs() <= 5.0
                             })
