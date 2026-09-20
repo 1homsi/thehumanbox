@@ -159,15 +159,21 @@ function cracks(p: P, x: number, y: number, w: number, h: number) {
 
 function paintHut(p: P) {
   const { x0, y1, w, h } = p
-  const wallH = h * 0.52
+  // Low thatched dwellings, with timber and mud-plaster variants. Keeping
+  // the roof squat prevents a one-tile hut from swallowing the row behind it.
+  const timber = p.variant % 3 === 1
+  const wallH = h * 0.42
   const cx = x0 + w / 2
   const rw = w * 0.92
-  px(p.ctx, cx - rw / 2, y1 - wallH, rw, wallH, '#9c7a52')
+  px(p.ctx, cx - rw / 2, y1 - wallH, rw, wallH, timber ? '#806346' : '#b59b70')
   px(p.ctx, cx - rw / 2, y1 - wallH, rw, 1, '#b08a5e')
   px(p.ctx, cx - rw / 2, y1 - 2, rw, 2, '#7a5e3e')
   outline(p.ctx, cx - rw / 2, y1 - wallH, rw, wallH)
   const thatch = hueShift('#b89a4a', (p.rng() - 0.5) * 24, 1, 0.94 + p.rng() * 0.12)
-  const rh = h * 0.62
+  if (timber) {
+    for (let row = 2; row < wallH; row += 3) px(p.ctx, cx - rw / 2, y1 - row, rw, 1, '#54422f')
+  }
+  const rh = h * (p.variant % 3 === 2 ? 0.3 : 0.4)
   p.ctx.fillStyle = thatch
   p.ctx.beginPath()
   p.ctx.moveTo(cx - rw / 2 - 2, y1 - wallH + 0.5)
@@ -218,21 +224,27 @@ function paintTent(p: P) {
 
 function paintCottage(p: P) {
   const { x0, y1, w, h, rng } = p
-  const wallH = h * 0.55
+  const style = p.variant % 3
+  const wallH = h * (style === 1 ? 0.48 : 0.55)
   const wallY = y1 - wallH
-  const base = hueShift('#a6845a', (rng() - 0.5) * 18, 1, 0.92 + rng() * 0.18)
+  const wallColors = ['#c4b38d', '#9e987e', '#ac8962']
+  const roofColors = ['#874b32', '#565e58', '#a58c4d']
+  const base = hueShift(wallColors[style], (rng() - 0.5) * 12, 1, 0.95 + rng() * 0.1)
   wallTexture(p, x0, wallY, w, wallH, base)
-  if (rng() < 0.55) timberFrame(p, x0, wallY, w, wallH)
+  if (style === 0) timberFrame(p, x0, wallY, w, wallH)
   outline(p.ctx, x0, wallY, w, wallH)
-  const roof = hueShift('#7a3a20', (rng() - 0.5) * 30, 1, 0.9 + rng() * 0.2)
-  gableRoof(p, x0, wallY, w, h * 0.5, roof)
-  chimney(p, rng() < 0.5 ? x0 + 3 : x0 + w - 6, wallY - h * 0.18, 7)
-  door(p, x0 + w * (0.3 + rng() * 0.4), y1, Math.max(3, w * 0.16), wallH * 0.62)
-  const nWin = Math.max(1, Math.floor(w / 12))
-  for (let i = 0; i < nWin; i++) {
-    const wx = x0 + 3 + (i * (w - 8)) / Math.max(1, nWin - 1 || 1)
-    windowGlow(p, Math.min(wx, x0 + w - 6), wallY + wallH * 0.3, 3, 3)
-  }
+  const roof = hueShift(roofColors[style], (rng() - 0.5) * 12)
+  gableRoof(p, x0, wallY, w, h * (style === 1 ? 0.32 : 0.4), roof)
+  chimney(p, style === 2 ? x0 + 3 : x0 + w - 5, wallY - h * 0.18, 6)
+  // Put the entrance and window in separate bays even at the smallest scale.
+  const doorX = x0 + w * (style === 1 ? 0.7 : 0.3)
+  const windowX = x0 + w * (style === 1 ? 0.2 : 0.66)
+  door(p, doorX, y1, Math.max(3, w * 0.16), wallH * 0.62)
+  windowGlow(p, windowX, wallY + wallH * 0.26, 3, 3)
+  px(p.ctx, windowX - 1, wallY + wallH * 0.26, 1, 3, '#584e38')
+  px(p.ctx, windowX + 3, wallY + wallH * 0.26, 1, 3, '#584e38')
+  // Doorstep sits inside the footprint, leaving neighboring streets clear.
+  px(p.ctx, doorX - 2, y1 - 1, 4, 1, '#ada48a')
   cracks(p, x0, wallY, w, wallH)
 }
 

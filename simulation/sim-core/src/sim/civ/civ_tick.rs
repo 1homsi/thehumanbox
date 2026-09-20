@@ -1263,6 +1263,23 @@ fn construction_site_has_reachable_worker(sim: &Simulation, lineage: &str, x: i3
     })
 }
 
+// Automatic settlements leave a lane between structures. Exact player/action
+// placement still uses the strict footprint check; connected infrastructure
+// such as walls and bridges must remain possible.
+fn automatic_site_has_clearance(sim: &Simulation, kind: BuildingKind, x: i32, y: i32) -> bool {
+    if matches!(
+        kind,
+        BuildingKind::Bridge | BuildingKind::Wall | BuildingKind::Gate | BuildingKind::Aqueduct
+    ) {
+        return true;
+    }
+    let (w, h) = kind.footprint();
+    !sim.buildings.iter().filter(|b| !b.decorative).any(|b| {
+        let (bw, bh) = b.footprint();
+        building_footprints_overlap(x - 1, y - 2, w + 2, h + 4, b.x, b.y, bw, bh)
+    })
+}
+
 fn find_construction_site(
     sim: &Simulation,
     lineage: &str,
@@ -1271,6 +1288,7 @@ fn find_construction_site(
     preferred_y: i32,
 ) -> Option<(i32, i32)> {
     if construction_site_is_valid(sim, kind, preferred_x, preferred_y)
+        && automatic_site_has_clearance(sim, kind, preferred_x, preferred_y)
         && construction_site_has_reachable_worker(sim, lineage, preferred_x, preferred_y)
     {
         return Some((preferred_x, preferred_y));
@@ -1287,6 +1305,7 @@ fn find_construction_site(
                 let x = preferred_x + dx;
                 let y = preferred_y + dy;
                 if construction_site_is_valid(sim, kind, x, y)
+                    && automatic_site_has_clearance(sim, kind, x, y)
                     && construction_site_has_reachable_worker(sim, lineage, x, y)
                 {
                     return Some((x, y));
@@ -1447,6 +1466,23 @@ fn tick_buildings_construct(sim: &mut Simulation) {
         if pop < 3 {
             continue;
         }
+        // Finish a manageable number of projects before reserving more land
+        // and materials. Children and exhausted residents are not a workforce.
+        let workers = sim
+            .organisms
+            .iter()
+            .filter(|o| o.lineage_id == lid && can_work_on_construction(o))
+            .count();
+        let project_limit = workers.div_ceil(6).clamp(1, 3);
+        let pending = sim
+            .buildings
+            .iter()
+            .filter(|b| !b.decorative && !b.is_complete() && b.owner_lineage.as_deref() == Some(lid.as_str()))
+            .count();
+        let available_projects = project_limit.saturating_sub(pending);
+        if workers == 0 || available_projects == 0 {
+            continue;
+        }
         let builds_this_pass = if pop >= 40 {
             3
         } else if pop >= 20 {
@@ -1460,7 +1496,7 @@ fn tick_buildings_construct(sim: &mut Simulation) {
             .filter(|b| !b.decorative && b.owner_lineage.as_deref() == Some(&lid))
             .map(|b| b.kind)
             .collect();
-        for project_index in 0..builds_this_pass {
+        for project_index in 0..builds_this_pass.min(available_projects) {
             if functional_slots == 0 {
                 break;
             }
@@ -1770,8 +1806,64 @@ fn tick_building_progress(sim: &mut Simulation) {
     }
 }
 
+fn footprint_cells(kind: BuildingKind, x: i32, y: i32) -> impl Iterator<Item = (i32, i32)> {
+    let (w, h) = kind.footprint();
+    (y..y + i32::from(h)).flat_map(move |ty| (x..x + i32::from(w)).map(move |tx| (tx, ty)))
+}
+
+fn prop_site_is_clear(
+    grid: &crate::world::grid::WorldGrid,
+    occupied: &HashSet<(i32, i32)>,
+    kind: BuildingKind,
+    x: i32,
+    y: i32,
+) -> bool {
+    use crate::world::{
+        grid::{HEIGHT, WIDTH},
+        tiles::Tile,
+    };
+    footprint_cells(kind, x, y).all(|(tx, ty)| {
+        tx >= 0
+            && ty >= 0
+            && tx < WIDTH as i32
+            && ty < HEIGHT as i32
+            && !occupied.contains(&(tx, ty))
+            && matches!(
+                grid.get(tx, ty),
+                Tile::Grass | Tile::Food | Tile::Ash | Tile::Scorched | Tile::Snow | Tile::Sand
+            )
+    })
+}
+
+// Repair legacy decorative overlap without moving or deleting anyone's home,
+// construction project, or ruin. A tile set also reserves props added this tick.
+fn reconcile_prop_sites(sim: &mut Simulation) -> HashSet<(i32, i32)> {
+    let mut occupied: HashSet<_> = sim
+        .buildings
+        .iter()
+        .filter(|b| !b.decorative)
+        .flat_map(|b| footprint_cells(b.kind, b.x, b.y))
+        .collect();
+    let before = sim.buildings.len();
+    sim.buildings.retain(|b| {
+        if !b.decorative {
+            return true;
+        }
+        if !prop_site_is_clear(&sim.grid, &occupied, b.kind, b.x, b.y) {
+            return false;
+        }
+        occupied.extend(footprint_cells(b.kind, b.x, b.y));
+        true
+    });
+    if sim.buildings.len() != before {
+        sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
+    }
+    occupied
+}
+
 fn tick_scatter_props(sim: &mut Simulation) {
     use BuildingKind::*;
+    let mut occupied = reconcile_prop_sites(sim);
     let alive_lineages: HashSet<String> = sim
         .organisms
         .iter()
@@ -1914,11 +2006,18 @@ fn tick_scatter_props(sim: &mut Simulation) {
             (-5, 5),
             (0, 9),
         ];
-        let (dx, dy) = offsets[seed % offsets.len()];
+        let Some((site_x, site_y)) = (0..offsets.len()).find_map(|offset| {
+            let (dx, dy) = offsets[(seed + offset) % offsets.len()];
+            let (x, y) = (cx + dx, cy + dy);
+            prop_site_is_clear(&sim.grid, &occupied, kind, x, y).then_some((x, y))
+        }) else {
+            continue;
+        };
+        occupied.extend(footprint_cells(kind, site_x, site_y));
 
         let id = sim.next_building_id;
         sim.next_building_id += 1;
-        let mut prop = Building::new(id, kind, cx + dx, cy + dy, Some(lid.clone()), sim.tick_count);
+        let mut prop = Building::new(id, kind, site_x, site_y, Some(lid.clone()), sim.tick_count);
         prop.condition = 1.0;
         prop.decorative = true;
         new_buildings.push(prop);
@@ -3354,6 +3453,132 @@ mod tests {
         org.energy = 0.8;
         org.loneliness = 0.85;
         org
+    }
+
+    #[test]
+    fn scenery_respects_full_footprints_water_and_legacy_buildings() {
+        use crate::world::tiles::Tile;
+        let mut sim = Simulation::new(703);
+        sim.buildings.clear();
+        for y in 20..50 {
+            for x in 20..50 {
+                sim.grid.set(x, y, Tile::Grass);
+            }
+        }
+        let home = Building::new(1, BuildingKind::House, 30, 30, None, 0);
+        sim.buildings.push(home);
+        for (id, x, y) in [(2, 31, 31), (3, 35, 35), (4, 35, 35), (5, 40, 40)] {
+            let mut prop = Building::new(id, BuildingKind::Garden, x, y, None, 0);
+            prop.decorative = true;
+            sim.buildings.push(prop);
+        }
+        sim.grid.set(41, 41, Tile::Water);
+        let revision = sim.building_state_revision;
+        let occupied = reconcile_prop_sites(&mut sim);
+        assert_eq!(sim.buildings.iter().map(|b| b.id).collect::<Vec<_>>(), vec![1, 3]);
+        assert_ne!(sim.building_state_revision, revision);
+        assert!(!prop_site_is_clear(
+            &sim.grid,
+            &occupied,
+            BuildingKind::Garden,
+            29,
+            29
+        ));
+        assert!(!prop_site_is_clear(
+            &sim.grid,
+            &occupied,
+            BuildingKind::Garden,
+            40,
+            40
+        ));
+        assert!(prop_site_is_clear(
+            &sim.grid,
+            &occupied,
+            BuildingKind::Garden,
+            43,
+            43
+        ));
+        assert!(!prop_site_is_clear(
+            &sim.grid,
+            &occupied,
+            BuildingKind::Garden,
+            -1,
+            30
+        ));
+    }
+
+    #[test]
+    fn repeated_prop_scattering_never_stacks_same_tick_or_later_props() {
+        use crate::world::tiles::Tile;
+        let mut sim = Simulation::new(706);
+        sim.buildings.clear();
+        sim.organisms.clear();
+        for y in 20..60 {
+            for x in 20..60 {
+                sim.grid.set(x, y, Tile::Grass);
+            }
+        }
+        for clan in ["first", "second"] {
+            for i in 0..3 {
+                sim.organisms
+                    .push(test_org(&format!("{clan}-{i}"), "Resident", clan, 40.0, 40.0));
+            }
+        }
+        for _ in 0..30 {
+            tick_scatter_props(&mut sim);
+        }
+        assert!(!sim.buildings.is_empty());
+        let mut occupied = HashSet::new();
+        for b in &sim.buildings {
+            for tile in footprint_cells(b.kind, b.x, b.y) {
+                assert!(occupied.insert(tile), "overlapping prop at {tile:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn automatic_homes_leave_lanes_but_exact_placement_can_connect_walls() {
+        let mut sim = Simulation::new(704);
+        sim.buildings.clear();
+        sim.buildings
+            .push(Building::new(1, BuildingKind::House, 30, 30, None, 0));
+        assert!(!automatic_site_has_clearance(&sim, BuildingKind::House, 32, 30));
+        assert!(!automatic_site_has_clearance(&sim, BuildingKind::House, 30, 33));
+        assert!(automatic_site_has_clearance(&sim, BuildingKind::House, 33, 30));
+        assert!(automatic_site_has_clearance(&sim, BuildingKind::Wall, 32, 30));
+    }
+
+    #[test]
+    fn small_settlements_finish_existing_projects_before_starting_more() {
+        use crate::world::tiles::Tile;
+        let mut sim = Simulation::new(705);
+        sim.buildings.clear();
+        sim.organisms.clear();
+        for y in 20..60 {
+            for x in 20..60 {
+                sim.grid.set(x, y, Tile::Grass);
+            }
+        }
+        for i in 0..4 {
+            let mut worker = test_org(&format!("worker-{i}"), "Worker", "clan", 40.0, 40.0);
+            worker.age = worker.max_age / 2;
+            worker.inv_wood = 100;
+            worker.inv_stone = 100;
+            worker.wealth = 1000;
+            sim.organisms.push(worker);
+        }
+        sim.buildings.push(Building::new(
+            1,
+            BuildingKind::Hut,
+            40,
+            40,
+            Some("clan".into()),
+            0,
+        ));
+        let wood = sim.organisms[0].inv_wood;
+        tick_buildings_construct(&mut sim);
+        assert_eq!(sim.buildings.len(), 1);
+        assert_eq!(sim.organisms[0].inv_wood, wood);
     }
 
     #[test]
