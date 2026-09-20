@@ -1024,3 +1024,78 @@ fn committed_journey_moves_around_wall_instead_of_shuffling() {
     );
     assert_eq!(action, 8);
 }
+
+#[test]
+fn indexed_local_decisions_match_population_scan() {
+    use crate::sim::spatial::SpatialIndex;
+    let mut grid = WorldGrid::new(42);
+    for y in 10..100 {
+        for x in 10..100 {
+            grid.set(x, y, Tile::Grass);
+        }
+    }
+    grid.set(49, 49, Tile::Campfire);
+    grid.set(58, 50, Tile::Food);
+    grid.set(50, 59, Tile::Water);
+    let mut people: Vec<_> = (0..180)
+        .map(|i| {
+            let mut o = Organism::new(
+                format!("org-{i}"),
+                "Resident".into(),
+                12.0 + (i * 17 % 80) as f32,
+                12.0 + (i * 7 % 80) as f32,
+                1,
+                String::new(),
+                format!("kin-{}", i % 3),
+                5000,
+                Traits::default(),
+            );
+            o.age = 200 + i * 12;
+            o.energy = 0.15 + (i % 8) as f32 * 0.1;
+            o.hydration = 0.15 + (i % 7) as f32 * 0.1;
+            o.fear_level = if i % 5 == 0 { 0.7 } else { 0.0 };
+            o.infection = if i % 9 == 0 { 0.4 } else { 0.0 };
+            o
+        })
+        .collect();
+    people[0].x = 50.0;
+    people[0].y = 50.0;
+    let spatial = SpatialIndex::build(&people, 10);
+    for (i, org) in people.iter().enumerate().take(60) {
+        let mut near = spatial.query(org.x as i32, org.y as i32, 16);
+        near.sort_unstable();
+        for seed in 0..20 {
+            let mut full_rng = StdRng::seed_from_u64(seed);
+            let mut indexed_rng = StdRng::seed_from_u64(seed);
+            let full = org.choose_action(
+                &grid,
+                &[],
+                100,
+                0.1,
+                &people,
+                false,
+                0,
+                &mut full_rng,
+                false,
+                "",
+                &[0, 1, 2, 3, 4, 5, 6, 7, 17, 20, 21],
+            );
+            let indexed = org.choose_action_with_neighbors(
+                &grid,
+                &[],
+                100,
+                0.1,
+                &people,
+                false,
+                0,
+                &mut indexed_rng,
+                false,
+                "",
+                &[0, 1, 2, 3, 4, 5, 6, 7, 17, 20, 21],
+                Some(&near),
+            );
+            assert_eq!(full, indexed, "person {i}, seed {seed}");
+            assert_eq!(full_rng.random::<u64>(), indexed_rng.random::<u64>());
+        }
+    }
+}

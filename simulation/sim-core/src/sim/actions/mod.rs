@@ -4988,11 +4988,11 @@ pub fn available_actions(
         has_stone: org.inv_stone > 0,
     };
     let phase = stable_action_phase(&org.id, sim.tick_count);
-    let mut semantically_eligible = std::collections::HashSet::new();
+    let mut semantically_eligible = [false; crate::organism::organism::ACTION_ID_SPACE];
     for &band in BASE_ACTION_BANDS {
         if band_is_eligible(sim, idx, ix, iy, band, era, context) {
             a.extend(band.start..=band.end);
-            semantically_eligible.extend(band.start..=band.end);
+            semantically_eligible[band.start..=band.end].fill(true);
         }
     }
     let mut eligible_by_family = std::collections::BTreeMap::<usize, Vec<usize>>::new();
@@ -5000,7 +5000,7 @@ pub fn available_actions(
         if band_is_eligible(sim, idx, ix, iy, band, era, context) {
             let family = band.start / 60;
             debug_assert_eq!(family, band.end / 60);
-            semantically_eligible.extend(band.start..=band.end);
+            semantically_eligible[band.start..=band.end].fill(true);
             eligible_by_family
                 .entry(family)
                 .or_default()
@@ -5014,15 +5014,15 @@ pub fn available_actions(
         extend_rotating_candidates(&mut a, candidates, phase);
     }
 
-    let mut seen = std::collections::HashSet::with_capacity(a.len());
+    let mut seen = [false; crate::organism::organism::ACTION_ID_SPACE];
     a.retain(|action| {
         !action_output_at_capacity(org, *action)
-            && (!action_requires_semantic_validation(*action) || semantically_eligible.contains(action))
+            && (!action_requires_semantic_validation(*action) || semantically_eligible[*action])
             && agriculture::action_is_possible(sim, idx, *action, ix, iy, near_water)
             && religion_expanded::action_is_possible(sim, idx, *action, &near_buf, sim.tick_count)
             && crate::sim::civ::trade_routes::action_is_possible(sim, idx, *action, &near_buf)
             && (*action != 2704 || crate::sim::civ::trade_routes::can_dispatch_caravan(sim, idx))
-            && seen.insert(*action)
+            && !std::mem::replace(&mut seen[*action], true)
     });
 
     a

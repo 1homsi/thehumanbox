@@ -1,3 +1,4 @@
+import { crowdLabelIds } from './crowd-detail'
 import { drawWorkActivity, workActivity } from './activity-visuals'
 import { worldRenderScale, worldRenderWindow, interpolationFactor, shouldRenderFrame } from './render-timing'
 import { terrainDetail } from './terrain-detail'
@@ -1124,7 +1125,8 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
   return canvas
 }
 
-function drawWorldOnCanvas(
+// eslint-disable-next-line react-refresh/only-export-components -- shared by the isolated render benchmark
+export function drawWorldOnCanvas(
   ctx: CanvasRenderingContext2D,
   world: WorldState,
   selectedOrgId: string | null,
@@ -2271,10 +2273,13 @@ function drawWorldOnCanvas(
     return dx * dx + dy * dy < 2 && ((org.sleep_debt ?? 0) > 0.4 || org.energy < 0.1 || org.health < 0.15)
   }
   const characterDetail = zoomDetailLevel(cameraZoom)
+  const crowded = visibleOrganisms.length > 400
+  const labelIds =
+    characterDetail !== 'overview' && viewFlags.names ? crowdLabelIds(visibleOrganisms, cameraZoom) : null
   // Batch every organism shadow into two paths (focused / dimmed) so the
   // whole population costs two fills instead of hundreds of separate
   // beginPath/ellipse/fill draw calls per frame.
-  {
+  if (characterDetail !== 'overview' && !crowded) {
     const focusedShadows = new Path2D()
     const dimShadows = new Path2D()
     let any = false
@@ -2372,7 +2377,7 @@ function drawWorldOnCanvas(
       ctx.restore()
     }
 
-    if (standardDetail && org.lineage_id) {
+    if (standardDetail && (!crowded || isSelected) && org.lineage_id) {
       ctx.strokeStyle = lineageColor(org.lineage_id)
       ctx.lineWidth = org.traits ? 0.75 + org.traits.resilience : 1
       ctx.beginPath()
@@ -2401,14 +2406,15 @@ function drawWorldOnCanvas(
       else if (stage === 'infant' || stage === 'child') bodyFill = '#8db5d6'
       else bodyFill = '#b8b8a8'
     }
-    ctx.save()
-    ctx.globalAlpha *= viewFlags.health || viewFlags.age ? 0.3 : standardDetail ? 0.16 : 0.1
-    ctx.fillStyle = bodyFill
-    ctx.beginPath()
-    ctx.arc(px, py, bodyR + 1.5, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.restore()
-
+    if (isSelected || viewFlags.health || viewFlags.age || (standardDetail && !crowded)) {
+      ctx.save()
+      ctx.globalAlpha *= viewFlags.health || viewFlags.age ? 0.3 : standardDetail ? 0.16 : 0.1
+      ctx.fillStyle = bodyFill
+      ctx.beginPath()
+      ctx.arc(px, py, bodyR + 1.5, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.restore()
+    }
     if (standardDetail && viewFlags.fear && (org.fear_level ?? 0) > 0.25) {
       const fa = Math.min(0.55, (org.fear_level ?? 0) * 0.8)
       ctx.beginPath()
@@ -2539,7 +2545,7 @@ function drawWorldOnCanvas(
       ctx.fillRect(bx, by + 4, Math.round(barW * Math.max(0, Math.min(1, org.health))), 1)
     }
 
-    const showName = isSelected || (standardDetail && viewFlags.names)
+    const showName = isSelected || (standardDetail && viewFlags.names && (!labelIds || labelIds.has(org.id)))
     const showThought =
       (isSelected || (fullDetail && viewFlags.thoughts)) && org.thought && org.thought !== 'observing'
     const labelY = spriteTop - (showVitals ? 10 : 2)

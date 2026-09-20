@@ -1986,7 +1986,10 @@ impl Simulation {
                 let active_wander_action = self.organisms[idx]
                     .wander_target
                     .map(|target| self.organisms[idx].toward(target, &self.grid));
-                let chosen = self.organisms[idx].choose_action(
+                spatial.query_into(oa_ix, oa_iy, 16, spatial_buf);
+                // Preserve population order for tie-breaking and resource followers.
+                spatial_buf.sort_unstable();
+                let chosen = self.organisms[idx].choose_action_with_neighbors(
                     &self.grid,
                     &self.buildings,
                     self.tick_count,
@@ -1998,6 +2001,7 @@ impl Simulation {
                     animal_near,
                     &perception,
                     &avail,
+                    Some(spatial_buf),
                 );
                 let decision_origin = if active_wander_action == Some(chosen.0) {
                     "soft_wander"
@@ -3114,15 +3118,20 @@ impl Simulation {
             }
         }
 
-        let att_adjustments: Vec<(usize, f32)> = self
-            .organisms
+        spatial.query_into(ox as i32, oy as i32, 6, spatial_buf);
+        spatial_buf.sort_unstable();
+        let att_adjustments: Vec<(usize, f32)> = spatial_buf
             .iter()
-            .enumerate()
-            .filter(|(i, o)| *i != idx && o.alive && o.lineage_id != lineage)
-            .filter(|(_, o)| (o.x - ox).abs() + (o.y - oy).abs() <= 4.0)
-            .map(|(i, o)| {
-                let att = self.organisms[idx].attitude_toward(&o.lineage_id);
-                (i, att)
+            .copied()
+            .filter(|&i| {
+                let o = &self.organisms[i];
+                i != idx && o.alive && o.lineage_id != lineage && (o.x - ox).abs() + (o.y - oy).abs() <= 4.0
+            })
+            .map(|i| {
+                (
+                    i,
+                    self.organisms[idx].attitude_toward(&self.organisms[i].lineage_id),
+                )
             })
             .collect();
         for (_, att) in &att_adjustments {

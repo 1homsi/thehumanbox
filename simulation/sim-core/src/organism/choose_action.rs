@@ -83,6 +83,47 @@ impl Organism {
         cached_perception: &str,
         available: &[usize],
     ) -> (usize, Option<String>) {
+        self.choose_action_with_neighbors(
+            grid,
+            buildings,
+            tick,
+            epsilon,
+            organisms,
+            night,
+            weather_kind,
+            rng,
+            _animal_near,
+            cached_perception,
+            available,
+            None,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn choose_action_with_neighbors(
+        &self,
+        grid: &WorldGrid,
+        buildings: &[Building],
+        tick: u64,
+        epsilon: f32,
+        organisms: &[Organism],
+        night: bool,
+        weather_kind: u8,
+        rng: &mut impl Rng,
+        _animal_near: bool,
+        cached_perception: &str,
+        available: &[usize],
+        nearby: Option<&[usize]>,
+    ) -> (usize, Option<String>) {
+        // Use the tick's spatial index for bounded local checks, retaining the
+        // full population for long-distance partners, friends, and kin.
+        let nearby_people = || {
+            nearby.into_iter().flatten().map(|&i| &organisms[i]).chain(
+                organisms
+                    .iter()
+                    .take(if nearby.is_some() { 0 } else { organisms.len() }),
+            )
+        };
         let (ix, iy) = (self.x as i32, self.y as i32);
         let tile = grid.get(ix, iy);
         let mut thought: Option<String> = None;
@@ -126,8 +167,7 @@ impl Organism {
         }
 
         if self.infection > 0.30 {
-            let healthy_kin_nearby: Vec<(f32, f32)> = organisms
-                .iter()
+            let healthy_kin_nearby: Vec<(f32, f32)> = nearby_people()
                 .filter(|o| {
                     !std::ptr::eq(*o, self)
                         && o.alive
@@ -185,8 +225,7 @@ impl Organism {
                 set_thought!("moving to known water");
                 return (self.toward(t, grid), thought);
             }
-            let kin_at_water = organisms
-                .iter()
+            let kin_at_water = nearby_people()
                 .filter(|o| {
                     !std::ptr::eq(*o, self)
                         && o.alive
@@ -226,8 +265,7 @@ impl Organism {
                 set_thought!("moving to known food");
                 return (self.toward(t, grid), thought);
             }
-            let kin_eating = organisms
-                .iter()
+            let kin_eating = nearby_people()
                 .filter(|o| {
                     !std::ptr::eq(*o, self)
                         && o.alive
@@ -431,7 +469,7 @@ impl Organism {
         }
 
         if self.age < 900 && self.energy > 0.6 && self.hydration > 0.6 && !night {
-            let kin_nearby = organisms.iter().any(|o| {
+            let kin_nearby = nearby_people().any(|o| {
                 !std::ptr::eq(o, self)
                     && o.alive
                     && o.lineage_id == self.lineage_id
@@ -453,8 +491,7 @@ impl Organism {
         {
             let near_fire = (-3i32..=3)
                 .any(|dx| (-3i32..=3).any(|dy| matches!(grid.get(ix + dx, iy + dy), Tile::Campfire)));
-            let kin_nearby = organisms
-                .iter()
+            let kin_nearby = nearby_people()
                 .filter(|o| {
                     !std::ptr::eq(*o, self)
                         && o.alive
@@ -490,7 +527,7 @@ impl Organism {
         }
 
         if self.energy > 0.82 && needs_ok {
-            let hungry_kin_nearby = organisms.iter().any(|o| {
+            let hungry_kin_nearby = nearby_people().any(|o| {
                 !std::ptr::eq(o, self)
                     && o.alive
                     && o.lineage_id == self.lineage_id
@@ -727,8 +764,7 @@ impl Organism {
                 return (25, thought);
             }
 
-            let kin_nearby_n = organisms
-                .iter()
+            let kin_nearby_n = nearby_people()
                 .filter(|o| {
                     !std::ptr::eq(*o, self)
                         && o.alive
@@ -786,8 +822,7 @@ impl Organism {
                 return (166, thought);
             }
 
-            let kin_afraid = organisms
-                .iter()
+            let kin_afraid = nearby_people()
                 .filter(|o| {
                     !std::ptr::eq(*o, self)
                         && o.alive
@@ -820,7 +855,7 @@ impl Organism {
                 return (223, thought);
             }
 
-            let kid_kin = organisms.iter().any(|o| {
+            let kid_kin = nearby_people().any(|o| {
                 !std::ptr::eq(o, self)
                     && o.alive
                     && o.age < 500
