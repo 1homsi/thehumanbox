@@ -69,6 +69,7 @@ import {
   characterMotion,
   characterFrame,
   compareCharacterDepth,
+  selectCrowdSpriteRepresentatives,
   type CharacterMotion,
 } from './character-visuals'
 
@@ -2246,13 +2247,6 @@ export function drawWorldOnCanvas(
     return true
   }
 
-  if (_orgLastPos.size > Math.max(512, organisms.length * 3)) {
-    const visibleIds = new Set(organisms.map((organism) => organism.id))
-    for (const id of _orgLastPos.keys()) {
-      if (!visibleIds.has(id)) _orgLastPos.delete(id)
-    }
-  }
-
   // Canvas clipping saves pixels, but does not skip sprite work or text
   // measurement. Cull before sorting and drawing off-screen people.
   const visibleOrganisms = organisms.filter(
@@ -2266,6 +2260,26 @@ export function drawWorldOnCanvas(
   const boatsByRider = new Map(
     (world.vehicles ?? []).filter((v) => v.kind === 'boat' && v.rider_id).map((v) => [v.rider_id!, v]),
   )
+  const characterDetail = zoomDetailLevel(cameraZoom)
+  // Dense crowds contain many sprites on the same eight-pixel tile. Preserve
+  // individual animation nearby, but cap overlapping atlas draws when the
+  // viewport holds thousands of people. Selection and boats stay visible.
+  const drawnOrganisms =
+    visibleOrganisms.length > 6000
+      ? selectCrowdSpriteRepresentatives(
+          visibleOrganisms,
+          characterDetail === 'overview' ? 1 : characterDetail === 'detail' ? 3 : 2,
+          characterDetail === 'overview' ? Math.min(8, Math.max(2, Math.ceil(1 / cameraZoom))) : 1,
+          selectedOrgId,
+          new Set(boatsByRider.keys()),
+        )
+      : visibleOrganisms
+  if (_orgLastPos.size > Math.max(512, drawnOrganisms.length * 3)) {
+    const drawnIds = new Set(drawnOrganisms.map((organism) => organism.id))
+    for (const id of _orgLastPos.keys()) {
+      if (!drawnIds.has(id)) _orgLastPos.delete(id)
+    }
+  }
   for (const boat of world.vehicles ?? []) {
     if (
       boat.kind !== 'boat' ||
@@ -2278,7 +2292,7 @@ export function drawWorldOnCanvas(
       continue
     drawBoat(ctx, (boat.x - ox) * TILE + TILE / 2, (boat.y - oy) * TILE + TILE / 2, t, false)
   }
-  for (const org of visibleOrganisms) orgMotion(org.id, org.x, org.y, t)
+  for (const org of drawnOrganisms) orgMotion(org.id, org.x, org.y, t)
   const restingAtHome = (org: OrganismState) => {
     if (org.home_x == null || org.home_y == null) return false
     if (ruinedTiles.has(`${Math.floor(org.home_x)},${Math.floor(org.home_y)}`)) return false
@@ -2288,10 +2302,9 @@ export function drawWorldOnCanvas(
     const dy = org.y - org.home_y
     return dx * dx + dy * dy < 2 && ((org.sleep_debt ?? 0) > 0.4 || org.energy < 0.1 || org.health < 0.15)
   }
-  const characterDetail = zoomDetailLevel(cameraZoom)
   const crowded = visibleOrganisms.length > 400
   const labelIds =
-    characterDetail !== 'overview' && viewFlags.names ? crowdLabelIds(visibleOrganisms, cameraZoom) : null
+    characterDetail !== 'overview' && viewFlags.names ? crowdLabelIds(drawnOrganisms, cameraZoom) : null
   // Batch every organism shadow into two paths (focused / dimmed) so the
   // whole population costs two fills instead of hundreds of separate
   // beginPath/ellipse/fill draw calls per frame.
@@ -2299,7 +2312,7 @@ export function drawWorldOnCanvas(
     const focusedShadows = new Path2D()
     const dimShadows = new Path2D()
     let any = false
-    for (const org of visibleOrganisms) {
+    for (const org of drawnOrganisms) {
       if (!org.alive) continue
       if (restingAtHome(org)) continue
       const px = (org.x - ox) * TILE + TILE / 2
@@ -2329,7 +2342,7 @@ export function drawWorldOnCanvas(
       ctx.fill(focusedShadows)
     }
   }
-  for (const org of visibleOrganisms.sort(compareCharacterDepth)) {
+  for (const org of drawnOrganisms.sort(compareCharacterDepth)) {
     if (!org.alive) continue
     if (restingAtHome(org)) continue
     const px = (org.x - ox) * TILE + TILE / 2

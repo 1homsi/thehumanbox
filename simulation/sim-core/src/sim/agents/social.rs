@@ -1,5 +1,6 @@
 use crate::organism::organism::Organism;
 use crate::sim::simulation::{Event, History};
+use crate::sim::spatial::SpatialIndex;
 use crate::sim::world_events::push_event;
 use crate::world::tiles::Tile;
 use rand::{Rng, RngExt};
@@ -8,6 +9,7 @@ use rustc_hash::FxHashMap;
 pub fn signal_food(
     org_idx: usize,
     organisms: &mut [Organism],
+    spatial: &SpatialIndex,
     grid: &crate::world::grid::WorldGrid,
     tick: u64,
     events: &mut std::collections::VecDeque<Event>,
@@ -33,9 +35,8 @@ pub fn signal_food(
         }
     };
 
-    let nearby_indices: Vec<usize> = organisms
-        .iter()
-        .enumerate()
+    let nearby_indices: Vec<usize> = spatial
+        .ordered_nearby(organisms, organisms[org_idx].x, organisms[org_idx].y, 12)
         .filter(|(i, o)| *i != org_idx && o.alive)
         .filter(|(_, o)| (o.x - organisms[org_idx].x).abs() + (o.y - organisms[org_idx].y).abs() <= 12.0)
         .map(|(i, _)| i)
@@ -92,6 +93,7 @@ pub fn signal_food(
 pub fn sound_alarm(
     org_idx: usize,
     organisms: &mut [Organism],
+    spatial: &SpatialIndex,
     grid: &crate::world::grid::WorldGrid,
     tick: u64,
     events: &mut std::collections::VecDeque<Event>,
@@ -120,9 +122,8 @@ pub fn sound_alarm(
         return 0.0;
     };
 
-    let nearby_indices: Vec<usize> = organisms
-        .iter()
-        .enumerate()
+    let nearby_indices: Vec<usize> = spatial
+        .ordered_nearby(organisms, organisms[org_idx].x, organisms[org_idx].y, 14)
         .filter(|(i, o)| *i != org_idx && o.alive)
         .filter(|(_, o)| (o.x - organisms[org_idx].x).abs() + (o.y - organisms[org_idx].y).abs() <= 14.0)
         .map(|(i, _)| i)
@@ -172,6 +173,7 @@ pub fn sound_alarm(
 pub fn gift_knowledge(
     org_idx: usize,
     organisms: &mut [Organism],
+    spatial: &SpatialIndex,
     tick: u64,
     events: &mut std::collections::VecDeque<Event>,
     history: &mut History,
@@ -190,9 +192,8 @@ pub fn gift_knowledge(
         return 0.0;
     };
 
-    let target_idx = organisms
-        .iter()
-        .enumerate()
+    let target_idx = spatial
+        .ordered_nearby(organisms, organisms[org_idx].x, organisms[org_idx].y, 6)
         .filter(|(i, o)| *i != org_idx && o.alive && o.lineage_id != org_lineage)
         .filter(|(_, o)| (o.x - organisms[org_idx].x).abs() + (o.y - organisms[org_idx].y).abs() < 6.0)
         .filter(|(_, o)| (o.x as i32 - bx).abs() + (o.y as i32 - by).abs() < 25)
@@ -315,6 +316,7 @@ pub fn gift_knowledge(
 pub fn challenge_stranger(
     org_idx: usize,
     organisms: &mut [Organism],
+    spatial: &SpatialIndex,
     tick: u64,
     events: &mut std::collections::VecDeque<Event>,
     history: &mut History,
@@ -322,9 +324,8 @@ pub fn challenge_stranger(
     let org_lineage = organisms[org_idx].lineage_id.clone();
     let org_id = organisms[org_idx].id.clone();
 
-    let target_idx = organisms
-        .iter()
-        .enumerate()
+    let target_idx = spatial
+        .ordered_nearby(organisms, organisms[org_idx].x, organisms[org_idx].y, 3)
         .filter(|(i, o)| *i != org_idx && o.alive && o.lineage_id != org_lineage)
         .filter(|(_, o)| (o.x - organisms[org_idx].x).abs() + (o.y - organisms[org_idx].y).abs() < 3.0)
         .min_by(|(_, a), (_, b)| {
@@ -342,15 +343,17 @@ pub fn challenge_stranger(
     let target_lid = organisms[ti].lineage_id.clone();
     let target_name = organisms[ti].name.clone();
 
-    let kin_backing = organisms
-        .iter()
+    let kin_backing = spatial
+        .ordered_nearby(organisms, organisms[org_idx].x, organisms[org_idx].y, 4)
+        .map(|(_, o)| o)
         .filter(|o| o.alive && o.lineage_id == org_lineage)
         .filter(|o| (o.x - organisms[org_idx].x).abs() + (o.y - organisms[org_idx].y).abs() <= 4.0)
         .count()
         .saturating_sub(1);
 
-    let allied_backing = organisms
-        .iter()
+    let allied_backing = spatial
+        .ordered_nearby(organisms, organisms[org_idx].x, organisms[org_idx].y, 5)
+        .map(|(_, o)| o)
         .filter(|o| o.alive && o.lineage_id != org_lineage && o.lineage_id != target_lid)
         .filter(|o| organisms[org_idx].attitude_toward(&o.lineage_id) >= 0.4)
         .filter(|o| (o.x - organisms[org_idx].x).abs() + (o.y - organisms[org_idx].y).abs() <= 5.0)
@@ -387,8 +390,9 @@ pub fn challenge_stranger(
         ti_mem_trait,
     );
 
-    let target_kin = organisms
-        .iter()
+    let target_kin = spatial
+        .ordered_nearby(organisms, organisms[ti].x, organisms[ti].y, 4)
+        .map(|(_, o)| o)
         .filter(|o| o.alive && o.lineage_id == target_lid)
         .filter(|o| (o.x - organisms[ti].x).abs() + (o.y - organisms[ti].y).abs() <= 4.0)
         .count()
@@ -446,6 +450,7 @@ pub fn challenge_stranger(
 pub fn groom(
     org_idx: usize,
     organisms: &mut [Organism],
+    spatial: &SpatialIndex,
     tick: u64,
     events: &mut std::collections::VecDeque<Event>,
 ) -> f32 {
@@ -460,9 +465,8 @@ pub fn groom(
         .map(|(k, _)| k.clone())
         .collect();
 
-    let target_idx = organisms
-        .iter()
-        .enumerate()
+    let target_idx = spatial
+        .ordered_nearby(organisms, ox, oy, 3)
         .filter(|(i, o)| {
             if *i == org_idx || !o.alive {
                 return false;
@@ -554,6 +558,7 @@ pub fn groom(
 pub fn teach(
     org_idx: usize,
     organisms: &mut [Organism],
+    spatial: &SpatialIndex,
     tick: u64,
     events: &mut std::collections::VecDeque<Event>,
     rng: &mut impl Rng,
@@ -580,9 +585,8 @@ pub fn teach(
     // Previously only same-lineage kin could learn from elders/peers, so
     // discoveries died at tribe boundaries even when cross-lineage friendship
     // bonds had formed.
-    let target_idx = organisms
-        .iter()
-        .enumerate()
+    let target_idx = spatial
+        .ordered_nearby(organisms, ox, oy, 5)
         .filter(|(i, o)| {
             if *i == org_idx || !o.alive {
                 return false;
@@ -714,6 +718,7 @@ pub fn teach(
 pub fn share_food(
     org_idx: usize,
     organisms: &mut [Organism],
+    spatial: &SpatialIndex,
     tick: u64,
     events: &mut std::collections::VecDeque<Event>,
 ) -> f32 {
@@ -734,9 +739,8 @@ pub fn share_food(
     // food).
     let my_parent_id = organisms[org_idx].parent_id.clone();
     let my_id = organisms[org_idx].id.clone();
-    let target_idx = organisms
-        .iter()
-        .enumerate()
+    let target_idx = spatial
+        .ordered_nearby(organisms, ox, oy, 6)
         .filter(|(i, o)| *i != org_idx && o.alive && o.energy < 0.30)
         .filter(|(_, o)| {
             o.lineage_id == org_lineage || friend_ids.contains(&o.id) || high_trust.contains(&o.id)
@@ -847,7 +851,13 @@ fn recipient_source_trust_factor(recipient: &Organism, speaker_id: &str, same_li
     }
 }
 
-pub fn social_knowledge_share(org_idx: usize, organisms: &mut [Organism], tick: u64, rng: &mut impl Rng) {
+pub fn social_knowledge_share(
+    org_idx: usize,
+    organisms: &mut [Organism],
+    spatial: &SpatialIndex,
+    tick: u64,
+    rng: &mut impl Rng,
+) {
     let org_lineage = organisms[org_idx].lineage_id.clone();
     let org_id = organisms[org_idx].id.clone();
     let (ox, oy) = (organisms[org_idx].x as i32, organisms[org_idx].y as i32);
@@ -866,9 +876,8 @@ pub fn social_knowledge_share(org_idx: usize, organisms: &mut [Organism], tick: 
         .map(|(k, _)| k.clone())
         .collect();
 
-    let share_targets: Vec<(usize, f32)> = organisms
-        .iter()
-        .enumerate()
+    let share_targets: Vec<(usize, f32)> = spatial
+        .ordered_nearby(organisms, organisms[org_idx].x, organisms[org_idx].y, 4)
         .filter(|(_, o)| (o.x - organisms[org_idx].x).abs() + (o.y - organisms[org_idx].y).abs() <= 4.0)
         .filter_map(|(i, o)| {
             if i == org_idx || !o.alive {
@@ -1014,7 +1023,8 @@ mod tests {
         organisms[0].water_memory.insert((12, 50), 0.8);
         organisms[0].danger_memory.insert((20, 20), 0.7);
 
-        social_knowledge_share(0, &mut organisms, 42, &mut rng);
+        let spatial = SpatialIndex::build(&organisms, 10);
+        social_knowledge_share(0, &mut organisms, &spatial, 42, &mut rng);
 
         assert!(organisms[1].food_memory.get(&(40, 10)).copied().unwrap_or(0.0) > 0.04);
         assert!(organisms[1].water_memory.get(&(12, 50)).copied().unwrap_or(0.0) > 0.03);
@@ -1033,7 +1043,8 @@ mod tests {
         organisms[0].food_memory.insert((40, 10), 0.9);
         organisms[0].danger_memory.insert((20, 20), 0.7);
 
-        social_knowledge_share(0, &mut organisms, 42, &mut rng);
+        let spatial = SpatialIndex::build(&organisms, 10);
+        social_knowledge_share(0, &mut organisms, &spatial, 42, &mut rng);
 
         assert!(organisms[1].food_memory.is_empty());
         assert!(organisms[1].danger_memory.is_empty());
@@ -1055,7 +1066,8 @@ mod tests {
         organisms[1].org_trust.insert("speaker".into(), 0.60);
         organisms[2].org_trust.insert("speaker".into(), -0.60);
 
-        social_knowledge_share(0, &mut organisms, 42, &mut rng);
+        let spatial = SpatialIndex::build(&organisms, 10);
+        social_knowledge_share(0, &mut organisms, &spatial, 42, &mut rng);
 
         let trusting_food = organisms[1].food_memory.get(&(40, 10)).copied().unwrap_or(0.0);
         let skeptic_food = organisms[2].food_memory.get(&(40, 10)).copied().unwrap_or(0.0);
@@ -1080,7 +1092,8 @@ mod tests {
         organisms[1].grief_ticks = 20;
 
         let mut events = std::collections::VecDeque::new();
-        let reward = groom(0, &mut organisms, 120, &mut events);
+        let spatial = SpatialIndex::build(&organisms, 10);
+        let reward = groom(0, &mut organisms, &spatial, 120, &mut events);
 
         assert_eq!(reward, 0.018);
         assert!(organisms[1].infection < 0.40);
@@ -1103,7 +1116,8 @@ mod tests {
         organisms[1].infection = 0.40;
 
         let mut events = std::collections::VecDeque::new();
-        let reward = groom(0, &mut organisms, 120, &mut events);
+        let spatial = SpatialIndex::build(&organisms, 10);
+        let reward = groom(0, &mut organisms, &spatial, 120, &mut events);
 
         assert_eq!(reward, 0.0);
         assert_eq!(organisms[1].infection, 0.40);

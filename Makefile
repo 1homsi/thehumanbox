@@ -95,9 +95,10 @@ build-sim: ## cargo build --release for the simulation
 	$(CARGO_RELEASE) build --release --bin simulation-rs
 
 wasm: ## Build the browser WASM sim-core into client/src/wasm/sim-core (needs rustup + wasm-pack)
-	rustup target add wasm32-unknown-unknown >/dev/null 2>&1 || true
-	cd simulation && RUSTFLAGS='--cfg getrandom_backend="wasm_js"' \
-		rustup run stable wasm-pack build sim-core --target web --release \
+	rustup target add --toolchain stable wasm32-unknown-unknown >/dev/null 2>&1 || true
+	cd simulation && PATH="$$(dirname "$$(rustup which rustc --toolchain stable)"):$$PATH" \
+		RUSTFLAGS='--cfg getrandom_backend="wasm_js"' \
+		wasm-pack build sim-core --target web --release \
 		--out-dir ../../client/src/wasm/sim-core
 
 build-client: ## Production Vite build (web target)

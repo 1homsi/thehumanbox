@@ -70,3 +70,49 @@ It does not establish real-time 50,000-person simulation.
 The two gameplay limitations recorded separately in the audit (short straight
 boat crossings and simplified soil-pH action semantics) are unchanged; expanding
 those systems is feature work rather than remediation of these four bugs.
+
+## September 22 follow-up
+
+The remaining high-cost simulation paths were inspected against the Jev flag
+locations and a native 5,000-person sample. The per-person tick now reuses
+ordered spatial candidates for social actions, conversations, mate search,
+scouting, contagion and animal threats. A per-tick lineage index bounds kin
+reads, while relationship and asynchronous think-result lookups reuse ID
+indexes. The index iterators keep the old population ordering and recheck
+current liveness. A reflection branch that consumed and ignored a random draw
+was removed.
+
+Desktop lock recovery now checks a live `sim.pid` before replacing a stale lock
+directory, including token consistency. This prevents a data operation from
+removing a live orphan's lock and then rejecting it only after the rename.
+
+For the 2D painter, viewports with more than 6,000 visible people use a stable
+number of sprite representatives per map cell. The cell size tracks overview
+zoom; selected people and boat riders remain visible. The underlying world,
+simulation, resident selection and save data still contain every person.
+
+Sequential native release-binary runs of the same synthetic fixture on this
+machine gave the following results. Both 50,000-person first ticks retained
+all residents; this is still not a real-time population target.
+
+| Population | Previous patch | September 22 pass | Reduction |
+| --- | ---: | ---: | ---: |
+| 5,000, mean of 30 ticks | 379.50 ms/tick | 252.22 ms/tick | 33.5% |
+| 50,000, first tick | 58,200.28 ms | 10,916.04 ms | 81.2% |
+
+The 50,000-person isolated canvas benchmark in the in-app browser measured
+8.0 ms/frame at zoom 0.25 and 20.7 ms/frame at zoom 2. The September 20
+historical results were 105.7 and 99.4 ms/frame respectively; they were not
+rerun as a same-session A/B. This benchmark excludes the WASM simulation,
+React publication and CubeForge, so it does not establish end-to-end FPS.
+
+The full Jev CSV remains a list of batch-level suspects, many with no defect
+description. This follow-up fixes additional source-confirmed issues and the
+measured crowd bottlenecks; it does not convert all 160 flags into verified
+bugs or claim that every potential hotspot is gone. The coastal travel and
+soil-action limitations above remain feature work.
+
+Validation for this pass: 320 release-mode simulation tests, 216 client tests,
+eight desktop lock tests, Clippy with warnings denied, TypeScript, ESLint for
+the changed client files, the production Vite build with freshly rebuilt WASM,
+and a browser smoke test of a running saved world all passed.

@@ -614,6 +614,7 @@ fn tick_first_org(sim: &mut Simulation) {
     let mut lineage_counts = FxHashMap::default();
     lineage_counts.insert("lineage-a".to_string(), 1);
     let spatial = SpatialIndex::build(&sim.organisms, 10);
+    let animal_spatial = SpatialIndex::build_animals(&sim.animals, 10);
     let mut spatial_buf = Vec::new();
     let org_idx_by_id: FxHashMap<String, usize> = sim
         .organisms
@@ -622,7 +623,17 @@ fn tick_first_org(sim: &mut Simulation) {
         .filter(|(_, o)| o.alive)
         .map(|(i, o)| (o.id.clone(), i))
         .collect();
-    sim.tick_organism(0, 1, &lineage_counts, &spatial, &mut spatial_buf, &org_idx_by_id);
+    let mut lineage_members = lineage_member_index(&sim.organisms);
+    sim.tick_organism(
+        0,
+        1,
+        &lineage_counts,
+        &spatial,
+        &animal_spatial,
+        &mut spatial_buf,
+        &org_idx_by_id,
+        &mut lineage_members,
+    );
 }
 
 #[test]
@@ -1063,7 +1074,7 @@ fn wander_validation_clears_hazardous_existing_target() {
     sim.grid.set(80, 80, Tile::Grass);
     sim.grid.hazard[WorldGrid::idx(80, 80)] = 0.90;
 
-    sim.validate_or_assign_wander_target(idx);
+    sim.validate_or_assign_wander_target(idx, None);
 
     assert_ne!(sim.organisms[idx].wander_target, Some((80, 80)));
 }
@@ -1562,7 +1573,7 @@ fn curious_adults_choose_distant_land_expeditions() {
     let period = (450u64).saturating_sub((curiosity * 200.0) as u64).max(140);
     sim.tick_count = hash % period;
 
-    sim.validate_or_assign_wander_target(idx);
+    sim.validate_or_assign_wander_target(idx, None);
 
     let target = sim.organisms[idx]
         .wander_target
@@ -1806,6 +1817,7 @@ fn lonely_org_with_only_distant_friends_stays_put() {
     lineage_counts.insert("lid-a".into(), 1);
     lineage_counts.insert("lid-b".into(), 1);
     let spatial = SpatialIndex::build(&sim.organisms, 10);
+    let animal_spatial = SpatialIndex::build_animals(&sim.animals, 10);
     let mut spatial_buf: Vec<usize> = Vec::new();
     let org_idx_by_id: FxHashMap<String, usize> = sim
         .organisms
@@ -1814,13 +1826,16 @@ fn lonely_org_with_only_distant_friends_stays_put() {
         .filter(|(_, o)| o.alive)
         .map(|(i, o)| (o.id.clone(), i))
         .collect();
+    let mut lineage_members = lineage_member_index(&sim.organisms);
     sim.tick_organism(
         0,
         alive_count,
         &lineage_counts,
         &spatial,
+        &animal_spatial,
         &mut spatial_buf,
         &org_idx_by_id,
+        &mut lineage_members,
     );
 
     assert!(
@@ -1885,6 +1900,7 @@ fn lonely_org_with_nearby_friend_walks_toward_them() {
     lineage_counts.insert("lid-a".into(), 1);
     lineage_counts.insert("lid-b".into(), 1);
     let spatial2 = SpatialIndex::build(&sim.organisms, 10);
+    let animal_spatial2 = SpatialIndex::build_animals(&sim.animals, 10);
     let mut spatial_buf2: Vec<usize> = Vec::new();
     let org_idx_by_id2: FxHashMap<String, usize> = sim
         .organisms
@@ -1893,13 +1909,16 @@ fn lonely_org_with_nearby_friend_walks_toward_them() {
         .filter(|(_, o)| o.alive)
         .map(|(i, o)| (o.id.clone(), i))
         .collect();
+    let mut lineage_members = lineage_member_index(&sim.organisms);
     sim.tick_organism(
         0,
         2,
         &lineage_counts,
         &spatial2,
+        &animal_spatial2,
         &mut spatial_buf2,
         &org_idx_by_id2,
+        &mut lineage_members,
     );
 
     let wt = sim.organisms[0].wander_target;

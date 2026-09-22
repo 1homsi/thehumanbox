@@ -90,20 +90,23 @@ function readChildOwner(lockDir: string, token: string): ChildOwner | null {
   }
 }
 
-function liveSimulationPidRecord(root: string): number | null {
+function liveSimulationPidRecord(root: string): { pid: number; token: string | null } | null {
   try {
     const raw = fs.readFileSync(path.join(root, "sim.pid"), "utf8").trim();
     let pid: number;
+    let token: string | null = null;
     try {
-      const parsed = JSON.parse(raw) as { pid?: unknown } | number;
-      pid =
-        typeof parsed === "object" && parsed !== null
-          ? Number(parsed.pid)
-          : Number(parsed);
+      const parsed = JSON.parse(raw) as { pid?: unknown; token?: unknown } | number;
+      if (typeof parsed === "object" && parsed !== null) {
+        pid = Number(parsed.pid);
+        token = typeof parsed.token === "string" ? parsed.token : null;
+      } else {
+        pid = Number(parsed);
+      }
     } catch {
       pid = parseInt(raw, 10);
     }
-    return processIsAlive(pid) ? pid : null;
+    return processIsAlive(pid) ? { pid, token } : null;
   } catch {
     return null;
   }
@@ -138,7 +141,7 @@ export function acquireDataRootLock(
         const orphanPid = liveSimulationPidRecord(root);
         if (orphanPid !== null) {
           throw new Error(
-            `this save folder still has a live simulation pid record (${orphanPid}); reopen the app to recover it before changing world data`,
+            `this save folder still has a live simulation pid record (${orphanPid.pid}); reopen the app to recover it before changing world data`,
           );
         }
       }
@@ -190,6 +193,25 @@ export function acquireDataRootLock(
       ) {
         throw new Error(
           `this save folder still has an orphan simulation process (pid ${childOwner.pid}); reopen it before moving or resetting data`,
+        );
+      }
+      // Check the durable pid record before replacing the stale directory.
+      // A child may have recorded its pid but not child.json when Electron
+      // crashed. Otherwise a data operation can remove the child's live lock,
+      // only to reject the pid record after it has already been renamed away.
+      const livePid = liveSimulationPidRecord(root);
+      if (livePid && !allowOrphanRecovery) {
+        throw new Error(
+          `this save folder still has a live simulation pid record (${livePid.pid}); reopen the app to recover it before changing world data`,
+        );
+      }
+      if (
+        livePid &&
+        allowOrphanRecovery &&
+        (!owner || livePid.token !== owner.token || (childOwner && childOwner.pid !== livePid.pid))
+      ) {
+        throw new Error(
+          "the live simulation pid does not match the stale save-folder lock; refusing to recover it",
         );
       }
       if (!childOwner) {

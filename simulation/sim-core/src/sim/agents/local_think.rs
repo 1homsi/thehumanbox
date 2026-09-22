@@ -215,16 +215,6 @@ pub fn resolve(trigger: &ThinkTrigger, rng: &mut impl Rng) -> Option<LocalResult
             } else if em.contains("mourn") || em.contains("grief") {
                 ("resilience", 0.05)
             } else {
-                weighted_pick(
-                    rng,
-                    &[
-                        ("curiosity", (1.0 - cu) * 1.1),
-                        ("social_tendency", (1.0 - so) * 0.9),
-                        ("resilience", (1.0 - re) * 0.9),
-                        ("aggression", ag * 0.4),
-                        ("fear", fe * 0.3),
-                    ],
-                );
                 let t = weighted_pick(
                     rng,
                     &[

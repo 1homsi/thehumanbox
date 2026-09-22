@@ -252,7 +252,7 @@ mod tests {
         assert_eq!(restored.organisms[0].journey.as_ref().unwrap().target, target);
         restored.organisms[0].x = target.0 as f32;
         restored.organisms[0].y = target.1 as f32;
-        restored.validate_or_assign_wander_target(0);
+        restored.validate_or_assign_wander_target(0, None);
         assert!(restored.organisms[0].journey.is_none());
         assert!(restored.organisms[0].wander_target.is_none());
     }
@@ -262,7 +262,7 @@ mod tests {
         let mut sim = Simulation::new(42);
         sim.organisms[0].begin_journey((100, 100), "exploring", 0);
         sim.tick_count = 1000;
-        sim.validate_or_assign_wander_target(0);
+        sim.validate_or_assign_wander_target(0, None);
         assert!(sim.organisms[0].journey.is_none());
     }
 }

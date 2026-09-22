@@ -3192,24 +3192,25 @@ fn tick_disease_introduce(sim: &mut Simulation) {
 }
 
 fn tick_disease_spread(sim: &mut Simulation) {
-    let snapshots: Vec<(usize, f32, f32, Vec<String>)> = sim
+    // A contact only depends on current positions. Keep population order for
+    // contagion RNG while avoiding a full-population pass per infected person.
+    let spatial = SpatialIndex::build(&sim.organisms, 8);
+    let infected: Vec<(usize, Vec<String>)> = sim
         .organisms
         .iter()
         .enumerate()
-        .filter(|(_, o)| o.alive)
-        .map(|(i, o)| (i, o.x, o.y, o.diseases.iter().map(|(k, _)| k.clone()).collect()))
+        .filter(|(_, o)| o.alive && !o.diseases.is_empty())
+        .map(|(i, o)| (i, o.diseases.iter().map(|(k, _)| k.clone()).collect()))
         .collect();
     let mut new_infections: Vec<(usize, String)> = Vec::new();
-    for (i, x, y, ds) in &snapshots {
-        if ds.is_empty() {
-            continue;
-        }
-        for (j, ox, oy, _) in &snapshots {
-            if i == j {
+    for (i, ds) in &infected {
+        let (x, y) = (sim.organisms[*i].x, sim.organisms[*i].y);
+        for (j, target) in spatial.ordered_nearby(&sim.organisms, x, y, 3) {
+            if *i == j || !target.alive {
                 continue;
             }
-            let dx = x - ox;
-            let dy = y - oy;
+            let dx = x - target.x;
+            let dy = y - target.y;
             if dx * dx + dy * dy > 6.0 {
                 continue;
             }
@@ -3227,7 +3228,7 @@ fn tick_disease_spread(sim: &mut Simulation) {
                     _ => continue,
                 };
                 if sim.rng.random::<f32>() < kind.contagion() * 0.05 {
-                    new_infections.push((*j, d.clone()));
+                    new_infections.push((j, d.clone()));
                 }
             }
         }
