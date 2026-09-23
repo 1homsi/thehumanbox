@@ -50,6 +50,28 @@ fn lineage_member_index(organisms: &[Organism]) -> FxHashMap<String, Vec<usize>>
     members
 }
 
+fn nearby_human_positions(
+    organisms: &[Organism],
+    spatial: &SpatialIndex,
+    x: f32,
+    y: f32,
+    radius: i32,
+    candidates: &mut Vec<usize>,
+    positions: &mut Vec<(f32, f32)>,
+) {
+    positions.clear();
+    if radius <= 0 {
+        return;
+    }
+    spatial.query_into(x as i32, y as i32, radius, candidates);
+    // The former full scan used population order to resolve equal distances.
+    candidates.sort_unstable();
+    positions.extend(candidates.iter().filter_map(|&index| {
+        let person = &organisms[index];
+        person.alive.then_some((person.x, person.y))
+    }));
+}
+
 fn derive_mood(o: &Organism) -> String {
     if o.infection > 0.20 {
         "sick"
@@ -4817,12 +4839,12 @@ impl Simulation {
 
         use crate::world::tiles::Biome;
 
-        let org_pos: Vec<(f32, f32)> = self
-            .organisms
-            .iter()
-            .filter(|o| o.alive)
-            .map(|o| (o.x, o.y))
-            .collect();
+        // Animals only react to people within their chase/flee radius. Build
+        // this after human movement, then reuse the query buffers for every
+        // animal instead of scanning the entire population for each one.
+        let human_spatial = SpatialIndex::build(&self.organisms, 10);
+        let mut human_candidates = Vec::with_capacity(32);
+        let mut nearby_humans = Vec::with_capacity(32);
 
         let mut prey_pos_for_chase: Vec<(f32, f32)> = Vec::new();
         let mut wolf_pos_for_flee: Vec<(f32, f32)> = Vec::new();
@@ -4834,9 +4856,23 @@ impl Simulation {
             }
         }
         for animal in &mut self.animals {
+            let human_radius = if animal.kind.predator() {
+                20
+            } else {
+                animal.kind.flee_radius().ceil() as i32
+            };
+            nearby_human_positions(
+                &self.organisms,
+                &human_spatial,
+                animal.x,
+                animal.y,
+                human_radius,
+                &mut human_candidates,
+                &mut nearby_humans,
+            );
             animal.tick(
                 &self.grid,
-                &org_pos,
+                &nearby_humans,
                 &prey_pos_for_chase,
                 &wolf_pos_for_flee,
                 &mut self.rng,
