@@ -804,7 +804,7 @@ fn tick_first_org(sim: &mut Simulation) {
     lineage_counts.insert("lineage-a".to_string(), 1);
     let spatial = SpatialIndex::build(&sim.organisms, 10);
     let animal_spatial = SpatialIndex::build_animals(&sim.animals, 10);
-    let mut spatial_buf = Vec::new();
+    let mut buffers = TickBuffers::new();
     let org_idx_by_id: FxHashMap<String, usize> = sim
         .organisms
         .iter()
@@ -819,7 +819,7 @@ fn tick_first_org(sim: &mut Simulation) {
         &lineage_counts,
         &spatial,
         &animal_spatial,
-        &mut spatial_buf,
+        &mut buffers,
         &org_idx_by_id,
         &mut lineage_members,
     );
@@ -2144,7 +2144,7 @@ fn lonely_org_with_only_distant_friends_stays_put() {
     lineage_counts.insert("lid-b".into(), 1);
     let spatial = SpatialIndex::build(&sim.organisms, 10);
     let animal_spatial = SpatialIndex::build_animals(&sim.animals, 10);
-    let mut spatial_buf: Vec<usize> = Vec::new();
+    let mut buffers = TickBuffers::new();
     let org_idx_by_id: FxHashMap<String, usize> = sim
         .organisms
         .iter()
@@ -2159,7 +2159,7 @@ fn lonely_org_with_only_distant_friends_stays_put() {
         &lineage_counts,
         &spatial,
         &animal_spatial,
-        &mut spatial_buf,
+        &mut buffers,
         &org_idx_by_id,
         &mut lineage_members,
     );
@@ -2227,7 +2227,7 @@ fn lonely_org_with_nearby_friend_walks_toward_them() {
     lineage_counts.insert("lid-b".into(), 1);
     let spatial2 = SpatialIndex::build(&sim.organisms, 10);
     let animal_spatial2 = SpatialIndex::build_animals(&sim.animals, 10);
-    let mut spatial_buf2: Vec<usize> = Vec::new();
+    let mut buffers2 = TickBuffers::new();
     let org_idx_by_id2: FxHashMap<String, usize> = sim
         .organisms
         .iter()
@@ -2242,7 +2242,7 @@ fn lonely_org_with_nearby_friend_walks_toward_them() {
         &lineage_counts,
         &spatial2,
         &animal_spatial2,
-        &mut spatial_buf2,
+        &mut buffers2,
         &org_idx_by_id2,
         &mut lineage_members,
     );

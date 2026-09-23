@@ -189,3 +189,25 @@ before and 9,094.53/9,024.65 ms after. The small, inconsistent whole-tick
 differences do not establish a practical speedup at the game's population
 cap. The change removes the dog-count-times-population search; 50,000 people
 remain a synthetic, beyond-cap native fixture rather than browser/WASM proof.
+
+## Reused action eligibility buffers
+
+The simulation calculates available actions twice per person per tick: once to
+choose an action and again to learn from the resulting state. Both calls now
+reuse a tick-local action vector and the existing spatial-query vector instead
+of allocating new vectors for every call. Eligibility rules and candidate order
+are unchanged; a regression test checks fresh and reused results across terrain
+and era changes, including buffers containing stale entries.
+
+Paired baseline and changed release binaries on the same Mac, with 400 animals
+in both fixtures, gave these native results (milliseconds, before → after):
+
+| Fixture | Pair 1 | Pair 2 | Pair 3 |
+|---|---:|---:|---:|
+| 5,000 people, mean of 30 ticks | 160.73 → 148.12 | 153.84 → 147.43 | 168.50 → 162.49 |
+| 50,000 people, first tick | 6,486.28 → 6,079.00 | 6,218.74 → 6,022.37 | 9,110.00 → 8,653.67 |
+
+The 50,000-person fixture bypasses the game's population cap. These are
+synthetic native measurements; they do not establish the browser frame rate,
+WASM speed, or thermal behavior of a mature world. Absolute times varied
+substantially across pairs, so the exact gain should not be extrapolated.
