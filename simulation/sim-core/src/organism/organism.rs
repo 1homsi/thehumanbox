@@ -1381,6 +1381,19 @@ impl Organism {
         animal_near: bool,
         spatial: &crate::sim::spatial::SpatialIndex,
     ) -> String {
+        let mut nearby = Vec::with_capacity(16);
+        self.perceive_into(grid, organisms, night, animal_near, spatial, &mut nearby)
+    }
+
+    pub fn perceive_into(
+        &self,
+        grid: &WorldGrid,
+        organisms: &[Organism],
+        night: bool,
+        animal_near: bool,
+        spatial: &crate::sim::spatial::SpatialIndex,
+        nearby: &mut Vec<usize>,
+    ) -> String {
         let (ix, iy) = (self.x as i32, self.y as i32);
         let scan: i32 = if night {
             if self.traits.curiosity > 0.7 {
@@ -1469,25 +1482,29 @@ impl Organism {
             thirst as f32 / 2.0,
         );
 
-        // Spatial-bucketed neighbour scan instead of walking every
-        // organism in the world. Radius 5 in tile space; the index
-        // returns a slight superset (bucket-aligned), so we still
-        // apply the Manhattan-distance filter on hits.
+        // One bucket query covers both the five-tile social radius and the
+        // larger attitude radius. Keep the exact social distance check: the
+        // index returns a bucket-aligned superset.
         let mut org_near = 0u8;
         let mut kin_near = 0u8;
-        let mut buf: Vec<usize> = Vec::with_capacity(16);
-        spatial.query_into(self.x as i32, self.y as i32, 5, &mut buf);
-        for &i in &buf {
+        spatial.query_into(self.x as i32, self.y as i32, scan, nearby);
+        let mut nearest_lid: Option<&str> = None;
+        let mut nearest_d = 999.0f32;
+        for &i in nearby.iter() {
             let other = &organisms[i];
             if std::ptr::eq(other, self) || !other.alive {
                 continue;
             }
-            if (other.x - self.x).abs() + (other.y - self.y).abs() <= 5.0 {
+            let distance = (other.x - self.x).abs() + (other.y - self.y).abs();
+            if distance <= 5.0 {
                 org_near = 1;
                 if other.lineage_id == self.lineage_id {
                     kin_near = 1;
-                    break;
                 }
+            }
+            if other.lineage_id != self.lineage_id && distance < nearest_d {
+                nearest_d = distance;
+                nearest_lid = Some(&other.lineage_id);
             }
         }
 
@@ -1503,22 +1520,6 @@ impl Organism {
         };
 
         let att_char = {
-            let mut nearest_lid: Option<&str> = None;
-            let mut nearest_d = 999.0f32;
-            // Same spatial bucket reuse - nearest non-kin within `scan`.
-            buf.clear();
-            spatial.query_into(self.x as i32, self.y as i32, scan, &mut buf);
-            for &i in &buf {
-                let other = &organisms[i];
-                if std::ptr::eq(other, self) || !other.alive || other.lineage_id == self.lineage_id {
-                    continue;
-                }
-                let d = (other.x - self.x).abs() + (other.y - self.y).abs();
-                if d < nearest_d {
-                    nearest_d = d;
-                    nearest_lid = Some(&other.lineage_id);
-                }
-            }
             match nearest_lid {
                 Some(lid) if nearest_d <= scan as f32 => {
                     let att = self.attitude_toward(lid);

@@ -53,6 +53,7 @@ fn lineage_member_index(organisms: &[Organism]) -> FxHashMap<String, Vec<usize>>
 struct TickBuffers {
     spatial: Vec<usize>,
     available_actions: Vec<usize>,
+    perception: Vec<usize>,
 }
 
 impl TickBuffers {
@@ -60,6 +61,7 @@ impl TickBuffers {
         Self {
             spatial: Vec::with_capacity(32),
             available_actions: Vec::with_capacity(256),
+            perception: Vec::with_capacity(32),
         }
     }
 }
@@ -1904,6 +1906,7 @@ impl Simulation {
         let TickBuffers {
             spatial: spatial_buf,
             available_actions: available_buf,
+            perception: perception_buf,
         } = buffers;
         let night = self.is_night();
         let epsilon = (0.30 - self.organisms[idx].age as f32 * 0.00005).max(0.08);
@@ -2054,8 +2057,14 @@ impl Simulation {
             }
         }
 
-        let perception =
-            self.organisms[idx].perceive(&self.grid, &self.organisms, night, animal_near, spatial);
+        let perception = self.organisms[idx].perceive_into(
+            &self.grid,
+            &self.organisms,
+            night,
+            animal_near,
+            spatial,
+            perception_buf,
+        );
         let prior_lineage = self.organisms[idx].lineage_id.clone();
         self.validate_or_assign_wander_target_indexed(idx, spatial, lineage_members);
         if self.organisms[idx].lineage_id != prior_lineage {
@@ -3381,8 +3390,14 @@ impl Simulation {
             self.record_strategy_progress(&lineage_id, &strategy);
         }
 
-        let next_perception =
-            self.organisms[idx].perceive(&self.grid, &self.organisms, night, animal_near, spatial);
+        let next_perception = self.organisms[idx].perceive_into(
+            &self.grid,
+            &self.organisms,
+            night,
+            animal_near,
+            spatial,
+            perception_buf,
+        );
         let next_ix = self.organisms[idx].x as i32;
         let next_iy = self.organisms[idx].y as i32;
         crate::sim::actions::available_actions_into(

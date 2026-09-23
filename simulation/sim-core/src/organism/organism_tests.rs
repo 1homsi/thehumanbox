@@ -369,6 +369,126 @@ fn perception_encodes_carried_food_and_water_reserves() {
 }
 
 #[test]
+fn shared_perception_query_preserves_social_and_attitude_fields() {
+    use crate::sim::spatial::SpatialIndex;
+
+    fn previous_fields(
+        actor: &Organism,
+        people: &[Organism],
+        spatial: &SpatialIndex,
+        scan: i32,
+    ) -> (char, char, char) {
+        let mut nearby = Vec::new();
+        spatial.query_into(actor.x as i32, actor.y as i32, 5, &mut nearby);
+        let mut org_near = false;
+        let mut kin_near = false;
+        for &index in &nearby {
+            let other = &people[index];
+            if std::ptr::eq(other, actor) || !other.alive {
+                continue;
+            }
+            if (other.x - actor.x).abs() + (other.y - actor.y).abs() <= 5.0 {
+                org_near = true;
+                if other.lineage_id == actor.lineage_id {
+                    kin_near = true;
+                    break;
+                }
+            }
+        }
+
+        spatial.query_into(actor.x as i32, actor.y as i32, scan, &mut nearby);
+        let mut nearest: Option<&str> = None;
+        let mut nearest_distance = 999.0f32;
+        for &index in &nearby {
+            let other = &people[index];
+            if std::ptr::eq(other, actor) || !other.alive || other.lineage_id == actor.lineage_id {
+                continue;
+            }
+            let distance = (other.x - actor.x).abs() + (other.y - actor.y).abs();
+            if distance < nearest_distance {
+                nearest_distance = distance;
+                nearest = Some(&other.lineage_id);
+            }
+        }
+        let attitude = match nearest {
+            Some(lineage) if nearest_distance <= scan as f32 => {
+                let value = actor.attitude_toward(lineage);
+                if value >= 0.25 {
+                    'A'
+                } else if value <= -0.25 {
+                    'H'
+                } else {
+                    'N'
+                }
+            }
+            _ => 'X',
+        };
+        (
+            if org_near { '1' } else { '0' },
+            if kin_near { '1' } else { '0' },
+            attitude,
+        )
+    }
+
+    let grid = WorldGrid::new(0x5a11);
+    let mut reusable = Vec::new();
+    for shift in [0.0, 3.0, 10.0] {
+        let positions = [
+            (49.5, 49.5, "home", true),
+            (54.0, 49.5, "home", true),
+            (56.0, 49.5, "ally", true),
+            (49.5, 57.0, "enemy", true),
+            (50.0, 50.0, "enemy", false),
+            (42.0, 49.5, "neutral", true),
+            (65.0, 65.0, "enemy", true),
+        ];
+        let mut people: Vec<Organism> = positions
+            .iter()
+            .enumerate()
+            .map(|(index, &(x, y, lineage, alive))| {
+                let mut person = Organism::new(
+                    format!("resident-{index}"),
+                    "Resident".into(),
+                    x + shift,
+                    y + shift,
+                    1,
+                    String::new(),
+                    lineage.into(),
+                    10_000,
+                    Traits::default(),
+                );
+                person.x = x + shift;
+                person.y = y + shift;
+                person.alive = alive;
+                person
+            })
+            .collect();
+        people[0].lineage_attitudes.insert("ally".into(), 0.8);
+        people[0].lineage_attitudes.insert("enemy".into(), -0.8);
+
+        for bucket_size in [3, 5, 10, 16] {
+            let spatial = SpatialIndex::build(&people, bucket_size);
+            for (night, curiosity, scan) in [(false, 0.2, 8), (true, 0.2, 6), (true, 0.8, 8)] {
+                people[0].traits.curiosity = curiosity;
+                let expected = previous_fields(&people[0], &people, &spatial, scan);
+                let fresh = people[0].perceive(&grid, &people, night, false, &spatial);
+                reusable.push(usize::MAX);
+                let perception =
+                    people[0].perceive_into(&grid, &people, night, false, &spatial, &mut reusable);
+                assert_eq!(perception, fresh);
+                assert!(!reusable.contains(&usize::MAX));
+                let fields: Vec<char> = perception.chars().collect();
+                assert_eq!(
+                    (fields[7], fields[10], fields[11]),
+                    expected,
+                    "shift={shift}, bucket={bucket_size}, night={night}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
 fn hungry_organism_filters_learned_choice_to_survival_actions() {
     let mut rng = StdRng::seed_from_u64(0);
     let traits = Traits::random(&mut rng);
