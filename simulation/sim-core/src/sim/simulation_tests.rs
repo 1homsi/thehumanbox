@@ -1,6 +1,31 @@
 use super::*;
 
 #[test]
+fn lineage_wellbeing_snapshot_excludes_dead_members_and_refreshes_next_tick() {
+    let mut sim = Simulation::new(0xBEE1);
+    let lineage = sim.organisms[0].lineage_id.clone();
+    for org in &mut sim.organisms {
+        org.alive = false;
+    }
+    for (idx, energy) in [(0, 0.25), (1, 0.75), (2, 0.95)] {
+        let org = &mut sim.organisms[idx];
+        org.lineage_id = lineage.clone();
+        org.energy = energy;
+        org.alive = idx != 2;
+    }
+
+    sim.rebuild_lineage_aggregates();
+    let snapshot = sim.lineage_aggregates[&lineage];
+    assert_eq!(snapshot.population, 2);
+    assert!((snapshot.energy_sum - 1.0).abs() < f32::EPSILON);
+
+    sim.organisms[0].energy = 0.5;
+    assert_eq!(sim.lineage_aggregates[&lineage].energy_sum, 1.0);
+    sim.rebuild_lineage_aggregates();
+    assert!((sim.lineage_aggregates[&lineage].energy_sum - 1.25).abs() < f32::EPSILON);
+}
+
+#[test]
 fn completing_a_strategy_objective_rewards_the_lineage_once() {
     let mut sim = Simulation::new(0x057A_7E6E);
     sim.tick_count = 100;
