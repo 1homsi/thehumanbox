@@ -4824,14 +4824,23 @@ impl Simulation {
             .map(|o| (o.x, o.y))
             .collect();
 
-        let prey_pos_for_chase: Vec<(f32, f32)> = self
-            .animals
-            .iter()
-            .filter(|a| a.alive && matches!(a.kind, AnimalKind::Rabbit | AnimalKind::Deer))
-            .map(|a| (a.x, a.y))
-            .collect();
+        let mut prey_pos_for_chase: Vec<(f32, f32)> = Vec::new();
+        let mut wolf_pos_for_flee: Vec<(f32, f32)> = Vec::new();
+        for animal in self.animals.iter().filter(|animal| animal.alive) {
+            match animal.kind {
+                AnimalKind::Rabbit | AnimalKind::Deer => prey_pos_for_chase.push((animal.x, animal.y)),
+                AnimalKind::Wolf => wolf_pos_for_flee.push((animal.x, animal.y)),
+                _ => {}
+            }
+        }
         for animal in &mut self.animals {
-            animal.tick(&self.grid, &org_pos, &prey_pos_for_chase, &mut self.rng);
+            animal.tick(
+                &self.grid,
+                &org_pos,
+                &prey_pos_for_chase,
+                &wolf_pos_for_flee,
+                &mut self.rng,
+            );
         }
 
         let prey_positions: Vec<(usize, f32, f32, AnimalKind)> = self
