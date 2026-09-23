@@ -83,6 +83,79 @@ fn local_human_queries_preserve_animal_moves_and_rng() {
 }
 
 #[test]
+fn wolf_encounters_keep_population_order_and_pack_defence_at_bucket_edges() {
+    let mut people = Vec::new();
+    for i in 0..600 {
+        let mut person = Organism::new(
+            format!("person-{i}"),
+            "resident".into(),
+            10.0 + (i * 17 % 130) as f32 + if i % 2 == 0 { 0.1 } else { 0.8 },
+            10.0 + (i * 29 % 110) as f32 + if i % 3 == 0 { 0.9 } else { 0.2 },
+            1,
+            String::new(),
+            format!("lineage-{}", i % 5),
+            10_000,
+            crate::organism::traits::Traits::default(),
+        );
+        person.alive = i % 19 != 0;
+        person.energy = if i % 4 == 0 { 0.8 } else { 0.5 };
+        person.traits.aggression = if i % 3 == 0 { 0.3 } else { 0.7 };
+        people.push(person);
+    }
+    let spatial = SpatialIndex::build(&people, 10);
+    let mut candidates = Vec::new();
+    for (wx, wy) in [(49.9, 50.1), (50.1, 49.9), (99.8, 80.2), (300.0, 300.0)] {
+        ordered_human_candidates(&spatial, wx, wy, 3, &mut candidates);
+        let tame = |p: &Organism| {
+            p.alive
+                && p.energy >= 0.7
+                && p.traits.aggression <= 0.5
+                && (p.x - wx).abs() + (p.y - wy).abs() <= 2.5
+        };
+        let bite = |p: &Organism| p.alive && (p.x - wx).abs() + (p.y - wy).abs() <= 1.5;
+        let reference_tames: Vec<_> = people
+            .iter()
+            .enumerate()
+            .filter(|(_, p)| tame(p))
+            .map(|(index, _)| index)
+            .collect();
+        let indexed_tames: Vec<_> = candidates
+            .iter()
+            .copied()
+            .filter(|&index| tame(&people[index]))
+            .collect();
+        assert_eq!(indexed_tames, reference_tames, "taming at ({wx}, {wy})");
+
+        let pack_defence = |person: &Organism, neighbours: &[usize]| {
+            neighbours
+                .iter()
+                .filter(|&&index| {
+                    let kin = &people[index];
+                    kin.alive
+                        && kin.id != person.id
+                        && kin.lineage_id == person.lineage_id
+                        && (kin.x - wx).abs() + (kin.y - wy).abs() <= 3.0
+                })
+                .count()
+        };
+        let all_indices: Vec<_> = (0..people.len()).collect();
+        let reference_bites: Vec<_> = people
+            .iter()
+            .enumerate()
+            .filter(|(_, p)| bite(p))
+            .map(|(index, p)| (index, pack_defence(p, &all_indices)))
+            .collect();
+        let indexed_bites: Vec<_> = candidates
+            .iter()
+            .copied()
+            .filter(|&index| bite(&people[index]))
+            .map(|index| (index, pack_defence(&people[index], &candidates)))
+            .collect();
+        assert_eq!(indexed_bites, reference_bites, "bites at ({wx}, {wy})");
+    }
+}
+
+#[test]
 fn lineage_wellbeing_snapshot_excludes_dead_members_and_refreshes_next_tick() {
     let mut sim = Simulation::new(0xBEE1);
     let lineage = sim.organisms[0].lineage_id.clone();

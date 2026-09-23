@@ -63,13 +63,24 @@ fn nearby_human_positions(
     if radius <= 0 {
         return;
     }
-    spatial.query_into(x as i32, y as i32, radius, candidates);
-    // The former full scan used population order to resolve equal distances.
-    candidates.sort_unstable();
+    ordered_human_candidates(spatial, x, y, radius, candidates);
     positions.extend(candidates.iter().filter_map(|&index| {
         let person = &organisms[index];
         person.alive.then_some((person.x, person.y))
     }));
+}
+
+fn ordered_human_candidates(
+    spatial: &SpatialIndex,
+    x: f32,
+    y: f32,
+    radius: i32,
+    candidates: &mut Vec<usize>,
+) {
+    spatial.query_into(x as i32, y as i32, radius, candidates);
+    // Encounter rolls and nearest-target ties used population order in the
+    // former full scans. Keep that order before applying exact distances.
+    candidates.sort_unstable();
 }
 
 fn derive_mood(o: &Organism) -> String {
@@ -4845,6 +4856,7 @@ impl Simulation {
         let human_spatial = SpatialIndex::build(&self.organisms, 10);
         let mut human_candidates = Vec::with_capacity(32);
         let mut nearby_humans = Vec::with_capacity(32);
+        let mut wolf_candidates = Vec::with_capacity(32);
 
         let mut prey_pos_for_chase: Vec<(f32, f32)> = Vec::new();
         let mut wolf_pos_for_flee: Vec<(f32, f32)> = Vec::new();
@@ -4926,7 +4938,9 @@ impl Simulation {
             if a.energy >= 0.4 {
                 continue;
             }
-            for (oi, o) in self.organisms.iter().enumerate() {
+            ordered_human_candidates(&human_spatial, a.x, a.y, 3, &mut wolf_candidates);
+            for &oi in &wolf_candidates {
+                let o = &self.organisms[oi];
                 if !o.alive || o.energy < 0.7 {
                     continue;
                 }
@@ -5011,15 +5025,17 @@ impl Simulation {
                 continue;
             }
             let (ax, ay) = (a.x, a.y);
-            for (oi, o) in self.organisms.iter().enumerate() {
+            ordered_human_candidates(&human_spatial, ax, ay, 3, &mut wolf_candidates);
+            for &oi in &wolf_candidates {
+                let o = &self.organisms[oi];
                 if !o.alive {
                     continue;
                 }
                 let manh = (o.x - ax).abs() + (o.y - ay).abs();
                 if manh <= 1.5 {
-                    let kin_nearby = self
-                        .organisms
+                    let kin_nearby = wolf_candidates
                         .iter()
+                        .map(|&index| &self.organisms[index])
                         .filter(|k| k.alive && k.id != o.id && k.lineage_id == o.lineage_id)
                         .filter(|k| (k.x - ax).abs() + (k.y - ay).abs() <= 3.0)
                         .count();
