@@ -1031,7 +1031,16 @@ fn local_danger_verification_decays_stale_safe_area_memory() {
     sim.organisms[idx].danger_memory.insert((10, 10), 0.9);
     sim.organisms[idx].danger_memory.insert((11, 10), 0.8);
 
-    verify_local_danger_memory(&mut sim.organisms[idx], &sim.grid, &sim.animals, 10, 10);
+    let animal_spatial = SpatialIndex::build_animals(&sim.animals, 10);
+    verify_local_danger_memory(
+        &mut sim.organisms[idx],
+        &sim.grid,
+        &sim.animals,
+        &animal_spatial,
+        &mut Vec::new(),
+        10,
+        10,
+    );
 
     assert!(
         sim.organisms[idx]
@@ -1064,12 +1073,51 @@ fn local_danger_verification_keeps_memory_when_hazard_remains_nearby() {
     sim.grid.hazard[WorldGrid::idx(11, 10)] = 0.70;
     sim.organisms[idx].danger_memory.insert((11, 10), 0.8);
 
-    verify_local_danger_memory(&mut sim.organisms[idx], &sim.grid, &sim.animals, 10, 10);
+    let animal_spatial = SpatialIndex::build_animals(&sim.animals, 10);
+    verify_local_danger_memory(
+        &mut sim.organisms[idx],
+        &sim.grid,
+        &sim.animals,
+        &animal_spatial,
+        &mut Vec::new(),
+        10,
+        10,
+    );
 
     assert_eq!(
         sim.organisms[idx].danger_memory.get(&(11, 10)).copied(),
         Some(0.8)
     );
+}
+
+#[test]
+fn indexed_predator_danger_matches_full_scan_across_bucket_edges_and_deaths() {
+    let mut sim = Simulation::new(0xD09);
+    flatten_test_area(&mut sim, 50, 50);
+    sim.animals = vec![
+        Animal::new(0, 52.0, 50.0, AnimalKind::Wolf),
+        Animal::new(1, 50.0, 50.0, AnimalKind::Rabbit),
+        Animal::new(2, 120.0, 120.0, AnimalKind::Wolf),
+    ];
+    let animal_spatial = SpatialIndex::build_animals(&sim.animals, 10);
+    let mut candidates = Vec::new();
+    for killed_nearby_wolf in [false, true] {
+        if killed_nearby_wolf {
+            sim.animals[0].alive = false;
+        }
+        for (x, y) in [(49, 50), (50, 50), (56, 50), (60, 50)] {
+            let expected = sim.animals.iter().any(|animal| {
+                animal.alive
+                    && animal.kind.predator()
+                    && (animal.x - x as f32).abs() + (animal.y - y as f32).abs() <= 5.0
+            });
+            assert_eq!(
+                local_danger_present(&sim.grid, &sim.animals, &animal_spatial, &mut candidates, x, y),
+                expected,
+                "danger mismatch at ({x}, {y}) after death={killed_nearby_wolf}"
+            );
+        }
+    }
 }
 
 #[test]

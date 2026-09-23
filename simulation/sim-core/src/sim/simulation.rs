@@ -397,7 +397,14 @@ fn verify_local_resource_memory(org: &mut Organism, grid: &WorldGrid, x: i32, y:
     }
 }
 
-fn local_danger_present(grid: &WorldGrid, animals: &[Animal], x: i32, y: i32) -> bool {
+fn local_danger_present(
+    grid: &WorldGrid,
+    animals: &[Animal],
+    animal_spatial: &SpatialIndex,
+    candidates: &mut Vec<usize>,
+    x: i32,
+    y: i32,
+) -> bool {
     let terrain_danger = (-1i32..=1).any(|dx| {
         (-1i32..=1).any(|dy| {
             let nx = x + dx;
@@ -409,13 +416,28 @@ fn local_danger_present(grid: &WorldGrid, animals: &[Animal], x: i32, y: i32) ->
         return true;
     }
 
-    animals
-        .iter()
-        .any(|a| a.alive && a.kind.predator() && (a.x - x as f32).abs() + (a.y - y as f32).abs() <= 5.0)
+    // Animals do not move until tick_animals, after every human acts. The
+    // index may still contain animals killed earlier in this tick, so keep
+    // the live check at read time.
+    animal_spatial.query_into(x, y, 5, candidates);
+    candidates.iter().any(|&index| {
+        let animal = &animals[index];
+        animal.alive
+            && animal.kind.predator()
+            && (animal.x - x as f32).abs() + (animal.y - y as f32).abs() <= 5.0
+    })
 }
 
-fn verify_local_danger_memory(org: &mut Organism, grid: &WorldGrid, animals: &[Animal], x: i32, y: i32) {
-    if local_danger_present(grid, animals, x, y) {
+fn verify_local_danger_memory(
+    org: &mut Organism,
+    grid: &WorldGrid,
+    animals: &[Animal],
+    animal_spatial: &SpatialIndex,
+    candidates: &mut Vec<usize>,
+    x: i32,
+    y: i32,
+) {
+    if local_danger_present(grid, animals, animal_spatial, candidates, x, y) {
         let current_hazard = grid.hazard_at(x, y);
         if current_hazard >= 0.35 || matches!(grid.get(x, y), Tile::Fire) {
             let ms = org.traits.memory_strength;
@@ -2646,7 +2668,15 @@ impl Simulation {
         }
 
         verify_local_resource_memory(&mut self.organisms[idx], &self.grid, cx, cy);
-        verify_local_danger_memory(&mut self.organisms[idx], &self.grid, &self.animals, cx, cy);
+        verify_local_danger_memory(
+            &mut self.organisms[idx],
+            &self.grid,
+            &self.animals,
+            animal_spatial,
+            spatial_buf,
+            cx,
+            cy,
+        );
 
         if self.organisms[idx].carrying > 0 {
             self.organisms[idx].carrying -= 1;
