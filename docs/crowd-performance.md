@@ -211,3 +211,27 @@ The 50,000-person fixture bypasses the game's population cap. These are
 synthetic native measurements; they do not establish the browser frame rate,
 WASM speed, or thermal behavior of a mature world. Absolute times varied
 substantially across pairs, so the exact gain should not be extrapolated.
+
+## Shared perception neighbor query
+
+Each person forms a perception before choosing an action and again afterward.
+Both formerly queried the human spatial index twice for overlapping social and
+attitude neighborhoods, allocating a fresh candidate vector for each
+perception. One query now covers both exact-distance checks, and the vector is
+reused across residents for the tick. A reference test compares the social and
+attitude fields with the old two-query algorithm across bucket sizes,
+day/night sight ranges, dead residents, and bucket edges; it also checks that
+reused and fresh buffers produce the same full perception string.
+
+Two paired native comparisons against the preceding main revision, with 400
+animals in each fixture, measured (milliseconds, before → after):
+
+| Fixture | Pair 1 | Pair 2 |
+|---|---:|---:|
+| 5,000 people, mean of 30 ticks | 172.94 → 170.24 | 171.57 → 170.05 |
+| 50,000 people, first tick | 9,398.70 → 8,958.16 | 9,055.41 → 8,865.56 |
+
+The 5,000-person difference is small enough that these runs do not establish a
+practical whole-tick speedup at the game cap. The 50,000-person fixture bypasses
+that cap; its paired improvements varied with machine conditions. These results
+are native synthetic timings, not browser FPS or WASM measurements.
