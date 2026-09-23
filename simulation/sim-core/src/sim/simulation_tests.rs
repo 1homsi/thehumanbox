@@ -1,5 +1,14 @@
 use super::*;
 
+fn alive_resident_indices(sim: &Simulation) -> FxHashMap<String, usize> {
+    sim.organisms
+        .iter()
+        .enumerate()
+        .filter(|(_, resident)| resident.alive)
+        .map(|(index, resident)| (resident.id.clone(), index))
+        .collect()
+}
+
 #[test]
 fn local_human_queries_preserve_animal_moves_and_rng() {
     let mut sim = Simulation::new(0xA11A);
@@ -1745,7 +1754,8 @@ fn animal_population_does_not_respawn_without_living_adults() {
     let mut sim = Simulation::new(29);
     sim.animals.clear();
 
-    sim.tick_animals();
+    let resident_indices = alive_resident_indices(&sim);
+    sim.tick_animals(&resident_indices);
 
     assert_eq!(sim.animals.iter().filter(|a| a.alive).count(), 0);
 }
@@ -1974,8 +1984,9 @@ fn dense_animal_clusters_stop_reproducing() {
     sim.next_animal_id = 100;
     sim.tick_count = 5_000;
 
+    let resident_indices = alive_resident_indices(&sim);
     for _ in 0..2_000 {
-        sim.tick_animals();
+        sim.tick_animals(&resident_indices);
     }
 
     let alive = sim.animals.iter().filter(|a| a.alive).count();
@@ -1983,6 +1994,93 @@ fn dense_animal_clusters_stop_reproducing() {
         alive <= 35,
         "dense cluster ran away to {alive} animals - carrying-capacity factor isn't working"
     );
+}
+
+#[test]
+fn bonded_dog_still_comforts_living_owner_but_ignores_stale_dead_owner_entry() {
+    let mut sim = Simulation::new(0xD06);
+    flatten_test_area(&mut sim, 50, 50);
+    sim.organisms.clear();
+    let mut owner = Organism::new(
+        "owner".into(),
+        "Owner".into(),
+        51.0,
+        50.0,
+        1,
+        String::new(),
+        "lineage-a".into(),
+        10_000,
+        crate::organism::traits::Traits::default(),
+    );
+    owner.loneliness = 0.5;
+    owner.boredom = 0.5;
+    owner.comfort = 0.5;
+    sim.organisms.push(owner);
+    sim.animals.clear();
+    let mut dog = Animal::new(1, 50.0, 50.0, AnimalKind::Dog);
+    dog.bonded_org = Some("owner".into());
+    sim.animals.push(dog);
+    sim.tick_count = 100;
+    let resident_indices = alive_resident_indices(&sim);
+
+    sim.tick_animals(&resident_indices);
+    assert!((sim.organisms[0].loneliness - 0.496).abs() < 0.0001);
+    assert!((sim.organisms[0].boredom - 0.498).abs() < 0.0001);
+    assert!((sim.organisms[0].comfort - 0.501).abs() < 0.0001);
+
+    sim.organisms[0].alive = false;
+    sim.tick_animals(&resident_indices);
+    assert!((sim.organisms[0].loneliness - 0.496).abs() < 0.0001);
+    assert!((sim.organisms[0].comfort - 0.501).abs() < 0.0001);
+}
+
+#[test]
+fn archive_compaction_keeps_bonded_dog_owner_index_valid() {
+    let mut sim = Simulation::new(0xA2C4);
+    flatten_test_area(&mut sim, 50, 50);
+    sim.organisms.clear();
+    for i in 0..802 {
+        let mut archived = Organism::new(
+            format!("archived-{i}"),
+            "Archived".into(),
+            20.0,
+            20.0,
+            1,
+            String::new(),
+            "old-lineage".into(),
+            10_000,
+            crate::organism::traits::Traits::default(),
+        );
+        archived.alive = false;
+        sim.organisms.push(archived);
+    }
+    let owner = Organism::new(
+        "owner".into(),
+        "Owner".into(),
+        51.0,
+        50.0,
+        1,
+        String::new(),
+        "lineage-a".into(),
+        10_000,
+        crate::organism::traits::Traits::default(),
+    );
+    sim.organisms.push(owner);
+    sim.animals.clear();
+    let mut dog = Animal::new(1, 50.0, 50.0, AnimalKind::Dog);
+    dog.bonded_org = Some("owner".into());
+    sim.animals.push(dog);
+    sim.tick_count = 1199;
+    sim.last_immigration_tick = 1199;
+
+    sim.tick();
+
+    assert_eq!(sim.organisms.len(), 801);
+    assert_eq!(sim.organisms[800].id, "owner");
+    assert!(sim
+        .animals
+        .iter()
+        .any(|animal| animal.bonded_org.as_deref() == Some("owner")));
 }
 
 /// Friend-seek must respect the 60-tile distance cap. A lonely

@@ -10,8 +10,10 @@ fn main() {
     let count: usize = std::env::args().nth(1).unwrap_or("5000".into()).parse().unwrap();
     let ticks: usize = std::env::args().nth(2).unwrap_or("30".into()).parse().unwrap();
     let animal_count: Option<usize> = std::env::args().nth(3).map(|value| value.parse().unwrap());
+    let dog_count: usize = std::env::args().nth(4).unwrap_or("0".into()).parse().unwrap();
     assert!(count > 0 && count <= 50_000 && ticks > 0);
     assert!(animal_count.is_none_or(|count| count <= 400));
+    assert!(dog_count <= animal_count.unwrap_or(0));
     let mut sim = Simulation::new(42);
     sim.set_population_limit(count);
     sim.organisms.clear();
@@ -34,20 +36,26 @@ fn main() {
         sim.organisms.push(person);
     }
     if let Some(animal_count) = animal_count {
-        eprintln!("stress fixture: {animal_count} animals");
+        eprintln!("stress fixture: {animal_count} animals, {dog_count} bonded dogs");
         sim.animals.clear();
         for i in 0..animal_count {
-            let kind = if i % 8 == 0 {
+            let kind = if i < dog_count {
+                AnimalKind::Dog
+            } else if i % 8 == 0 {
                 AnimalKind::Wolf
             } else {
                 AnimalKind::Rabbit
             };
-            sim.animals.push(Animal::new(
+            let mut animal = Animal::new(
                 i,
                 35.0 + (i * 37 % 410) as f32,
                 35.0 + (i * 23 % 210) as f32,
                 kind,
-            ));
+            );
+            if kind == AnimalKind::Dog {
+                animal.bonded_org = Some(format!("crowd-{}", i * 37 % count));
+            }
+            sim.animals.push(animal);
         }
     }
     let start = Instant::now();

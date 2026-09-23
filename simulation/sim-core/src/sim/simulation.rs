@@ -1803,10 +1803,18 @@ impl Simulation {
                     }
                     true
                 });
+                // Retaining archived bodies shifts resident indices. Refresh
+                // the tick's ID map only on this rare path before dogs use it.
+                org_idx_by_id.clear();
+                for (i, o) in self.organisms.iter().enumerate() {
+                    if o.alive {
+                        org_idx_by_id.insert(o.id.clone(), i);
+                    }
+                }
             }
         }
 
-        self.tick_animals();
+        self.tick_animals(&org_idx_by_id);
         self.check_animal_catches();
 
         {
@@ -4815,7 +4823,7 @@ impl Simulation {
         }
     }
 
-    fn tick_animals(&mut self) {
+    fn tick_animals(&mut self, org_idx_by_id: &FxHashMap<String, usize>) {
         // Passive respawn floor. Without this, a transient extinction
         // (drought + hunting + wolves eating prey then starving) leaves
         // the world animal-less forever, since reproduction requires
@@ -4988,12 +4996,11 @@ impl Simulation {
             if let Some(bid) = bonded {
                 let (ax, ay) = (self.animals[ai].x, self.animals[ai].y);
                 let mut owner_idx: Option<usize> = None;
-                if let Some((oi, o)) = self
-                    .organisms
-                    .iter()
-                    .enumerate()
-                    .find(|(_, o)| o.alive && o.id == bid)
-                {
+                if let Some(oi) = org_idx_by_id.get(&bid).copied() {
+                    let o = &self.organisms[oi];
+                    if !o.alive || o.id != bid {
+                        continue;
+                    }
                     let dist = (o.x - ax).abs() + (o.y - ay).abs();
                     if dist > 3.0 {
                         let dx = (o.x - ax).signum();
