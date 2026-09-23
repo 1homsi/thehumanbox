@@ -110,3 +110,25 @@ the size of the gain varied substantially with machine conditions. These are
 short synthetic native runs, not browser/WASM timings or a promise of real-time
 simulation at either population. The 50,000-person fixture bypasses the game's
 population cap.
+
+## Local predator danger lookup
+
+Danger-memory verification now queries the existing animal spatial index for
+nearby predators. It keeps the same five-tile distance rule and checks each
+animal's current liveness, since hunting can kill an animal after the index is
+built. This avoids scanning every animal for every person as the ecosystem
+approaches its 400-animal cap.
+
+The `crowd_profile` fixture accepts an optional third argument for animal
+count (0–400). It creates a deterministic mix of wolves and rabbits without
+loading a saved world. For example:
+
+```sh
+cargo run --manifest-path simulation/Cargo.toml -p sim-core --release --example crowd_profile -- 50000 1 400
+```
+
+One paired native run on the lineage-reward baseline measured 7,486.70 ms
+before and 7,352.14 ms after for a first 50,000-person tick. That difference
+is too small, given machine variability, to claim a repeatable whole-tick
+speedup. The scaling improvement is the removal of the per-person scan across
+all animals; this benchmark does not measure browser performance.
