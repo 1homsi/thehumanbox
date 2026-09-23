@@ -549,6 +549,7 @@ pub(crate) struct LineageAggregate {
     pub x_sum: f32,
     pub y_sum: f32,
     pub literacy_sum: f32,
+    pub energy_sum: f32,
 }
 
 impl LineageAggregate {
@@ -756,6 +757,7 @@ impl Simulation {
             entry.x_sum += org.x;
             entry.y_sum += org.y;
             entry.literacy_sum += org.literacy;
+            entry.energy_sum += org.energy;
         }
     }
 
@@ -3222,9 +3224,21 @@ impl Simulation {
             }
         }
 
-        // Inline fold - no Vec allocation per organism per tick.
-        let (kin_sum, kin_count) = living_lineage_members(&self.organisms, lineage_members, &lineage)
-            .fold((0.0f32, 0u32), |(s, n), o| (s + o.energy, n + 1));
+        // The wellbeing reward uses the tick-start lineage snapshot. Reading
+        // every relative here makes dense lineages quadratic in population;
+        // a shared snapshot also avoids making the reward depend on which
+        // relative happened to act earlier in this tick. A lineage formed
+        // mid-tick has no snapshot yet, so use its live members once.
+        let (kin_sum, kin_count) = self
+            .lineage_aggregates
+            .get(&lineage)
+            .map(|stats| (stats.energy_sum, stats.population))
+            .unwrap_or_else(|| {
+                living_lineage_members(&self.organisms, lineage_members, &lineage)
+                    .fold((0.0f32, 0usize), |(sum, count), org| {
+                        (sum + org.energy, count + 1)
+                    })
+            });
         if kin_count >= 3 && self.organisms[idx].energy > 0.4 {
             let avg = kin_sum / kin_count as f32;
             reward += 0.003 * (avg - 0.5).max(0.0);

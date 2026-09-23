@@ -119,13 +119,13 @@ describe('character motion and draw order', () => {
       { id: 'next-tile', x: 11.1, y: 20.1 },
     ]
     const selected = selectCrowdSpriteRepresentatives(people, 2, 1, 'selected', new Set(['rider']))
-    expect(selected.map((person) => person.id)).toEqual([
-      'first', 'second', 'selected', 'rider', 'next-tile',
-    ])
-    expect(selectCrowdSpriteRepresentatives(people, 1, 1, null, new Set()).map((person) => person.id))
-      .toEqual(['first', 'next-tile'])
-    expect(selectCrowdSpriteRepresentatives(people, 1, 4, null, new Set()).map((person) => person.id))
-      .toEqual(['first'])
+    expect(selected.map((person) => person.id)).toEqual(['first', 'second', 'selected', 'rider', 'next-tile'])
+    expect(
+      selectCrowdSpriteRepresentatives(people, 1, 1, null, new Set()).map((person) => person.id),
+    ).toEqual(['first', 'next-tile'])
+    expect(
+      selectCrowdSpriteRepresentatives(people, 1, 4, null, new Set()).map((person) => person.id),
+    ).toEqual(['first'])
   })
 
   it('starts at rest, walks on displacement and rests after stopping', () => {

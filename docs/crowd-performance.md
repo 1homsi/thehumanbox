@@ -86,3 +86,27 @@ population scans and lineage/relationship lookups before increasing the game cap
 50,000 is not real-time-ready: canvas painting alone uses around 100 ms per frame,
 and the native simulation is far slower still. These are isolated synthetic tests,
 not an end-to-end browser/WASM frame-rate measurement or a mature-world benchmark.
+
+## September 24 lineage-reward pass
+
+The per-person wellbeing reward previously summed every living relative's
+energy for every person, making this one reward quadratic within large lineages.
+It now reads the lineage aggregate already collected at the start of each tick.
+This makes the reward a consistent tick-start signal for everyone in that
+lineage; a lineage formed during the tick still uses a live scan until its first
+aggregate exists. The aggregate ignores dead residents and refreshes each tick.
+
+On the same Mac, using the same release `crowd_profile` fixture before and after
+the change, with no concurrent benchmark process:
+
+| Native fixture | First comparison, before → after | Repeat, before → after |
+|---|---:|---:|
+| 5,000 people, mean of 8 ticks | 267.31 → 159.82 ms/tick | 162.10 → 199.00 ms/tick |
+| 50,000 people, first tick | 13,454.95 → 8,671.12 ms | 10,926.98 → 9,313.31 ms |
+
+The 5,000-person result is inconsistent across repeats, so this does not
+establish a gain at that size. Both 50,000-person comparisons were faster, but
+the size of the gain varied substantially with machine conditions. These are
+short synthetic native runs, not browser/WASM timings or a promise of real-time
+simulation at either population. The 50,000-person fixture bypasses the game's
+population cap.
