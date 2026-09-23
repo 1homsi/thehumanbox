@@ -164,3 +164,28 @@ in opposite directions (6,421 → 9,063 ms and 8,749 → 6,590 ms), showing that
 machine variability dominates this short stress comparison. The benefit here
 is bounding encounter work by nearby residents as the population grows; these
 native figures do not measure browser frame rate or WASM execution.
+
+## Bonded dog owner lookup
+
+Each dog previously searched the whole resident list by ID every tick to
+follow its owner and improve the owner's comfort. The animal tick now reuses
+the ID-to-index map already built for human decisions. It checks current
+liveness before acting and refreshes indices if archive cleanup removes dead
+residents and shifts their positions. A regression test covers that rare
+cleanup path and another covers comfort while the owner is alive and after
+death.
+
+The native fixture accepts an optional fourth argument for bonded dogs within
+the requested animal count, for example:
+
+```sh
+cargo run --manifest-path simulation/Cargo.toml -p sim-core --release --example crowd_profile -- 5000 10 400 40
+```
+
+Alternating saved baseline and changed binaries on the same Mac produced
+5,000-person ten-tick means of 155.47/174.14 ms before and 173.17/171.11 ms
+after. First ticks with 50,000 people and 40 dogs were 9,152.90/9,110.46 ms
+before and 9,094.53/9,024.65 ms after. The small, inconsistent whole-tick
+differences do not establish a practical speedup at the game's population
+cap. The change removes the dog-count-times-population search; 50,000 people
+remain a synthetic, beyond-cap native fixture rather than browser/WASM proof.
