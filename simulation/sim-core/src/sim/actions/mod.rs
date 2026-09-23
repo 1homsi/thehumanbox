@@ -4826,17 +4826,34 @@ pub fn available_actions(
     iy: i32,
     spatial: &crate::sim::spatial::SpatialIndex,
 ) -> Vec<usize> {
+    let mut actions = Vec::with_capacity(256);
+    let mut nearby = Vec::with_capacity(16);
+    available_actions_into(sim, idx, ix, iy, spatial, &mut actions, &mut nearby);
+    actions
+}
+
+/// Reuse both eligibility buffers while processing the population in a tick.
+/// The candidate order is significant to action selection, so this shares the
+/// same construction path as the allocating convenience function above.
+pub fn available_actions_into(
+    sim: &Simulation,
+    idx: usize,
+    ix: i32,
+    iy: i32,
+    spatial: &crate::sim::spatial::SpatialIndex,
+    actions: &mut Vec<usize>,
+    nearby: &mut Vec<usize>,
+) {
     let org = &sim.organisms[idx];
     let tile = sim.grid.get(ix, iy);
     let (sx, sy) = (org.x, org.y);
     let lid = &org.lineage_id;
 
-    let mut near_buf: Vec<usize> = Vec::with_capacity(16);
-    spatial.query_into(sx as i32, sy as i32, 6, &mut near_buf);
+    spatial.query_into(sx as i32, sy as i32, 6, nearby);
     let mut kin_near = false;
     let mut kin_count = 0;
     let mut stranger_near = false;
-    for &i in &near_buf {
+    for &i in nearby.iter() {
         if i == idx {
             continue;
         }
@@ -4874,7 +4891,8 @@ pub fn available_actions(
     let near_home = (org.home_x - org.x).abs() + (org.home_y - org.y).abs() <= 10.0;
     let needs_low = org.energy < 0.5 || org.hydration < 0.5;
 
-    let mut a: Vec<usize> = Vec::with_capacity(256);
+    actions.clear();
+    let a = actions;
 
     a.extend(0..=25);
 
@@ -5011,7 +5029,7 @@ pub fn available_actions(
     for candidates in eligible_by_family.values_mut() {
         candidates.sort_unstable();
         candidates.dedup();
-        extend_rotating_candidates(&mut a, candidates, phase);
+        extend_rotating_candidates(a, candidates, phase);
     }
 
     let mut seen = [false; crate::organism::organism::ACTION_ID_SPACE];
@@ -5019,13 +5037,11 @@ pub fn available_actions(
         !action_output_at_capacity(org, *action)
             && (!action_requires_semantic_validation(*action) || semantically_eligible[*action])
             && agriculture::action_is_possible(sim, idx, *action, ix, iy, near_water)
-            && religion_expanded::action_is_possible(sim, idx, *action, &near_buf, sim.tick_count)
-            && crate::sim::civ::trade_routes::action_is_possible(sim, idx, *action, &near_buf)
+            && religion_expanded::action_is_possible(sim, idx, *action, nearby, sim.tick_count)
+            && crate::sim::civ::trade_routes::action_is_possible(sim, idx, *action, nearby)
             && (*action != 2704 || crate::sim::civ::trade_routes::can_dispatch_caravan(sim, idx))
             && !std::mem::replace(&mut seen[*action], true)
     });
-
-    a
 }
 
 fn workshop_bonus(sim: &Simulation, ix: i32, iy: i32, action: usize) -> f32 {
@@ -5394,6 +5410,35 @@ mod tests {
             }
             organism.x = 300.0 + (other_index % 10) as f32 * 10.0;
             organism.y = 300.0 + (other_index / 10) as f32 * 10.0;
+        }
+    }
+
+    #[test]
+    fn reused_action_buffers_match_fresh_results_across_context_changes() {
+        let mut sim = Simulation::new(0xa110);
+        let idx = 0;
+        let lineage = sim.organisms[idx].lineage_id.clone();
+        let mut actions = Vec::new();
+        let mut nearby = Vec::new();
+
+        for (phase, era, tile) in [
+            (0, Era::PreStone, Tile::Grass),
+            (30, Era::Stone, Tile::Water),
+            (60, Era::Modern, Tile::Rock),
+            (90, Era::Information, Tile::Food),
+        ] {
+            sim.tick_count = phase;
+            sim.lineage_eras.insert(lineage.clone(), era);
+            let (x, y) = (sim.organisms[idx].x as i32, sim.organisms[idx].y as i32);
+            sim.grid.set(x, y, tile);
+            let spatial = SpatialIndex::build(&sim.organisms, 10);
+            let expected = available_actions(&sim, idx, x, y, &spatial);
+
+            actions.push(usize::MAX);
+            nearby.push(usize::MAX);
+            available_actions_into(&sim, idx, x, y, &spatial, &mut actions, &mut nearby);
+            assert_eq!(actions, expected, "action order changed at phase {phase}");
+            assert!(!nearby.contains(&usize::MAX));
         }
     }
 

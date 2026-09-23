@@ -50,6 +50,20 @@ fn lineage_member_index(organisms: &[Organism]) -> FxHashMap<String, Vec<usize>>
     members
 }
 
+struct TickBuffers {
+    spatial: Vec<usize>,
+    available_actions: Vec<usize>,
+}
+
+impl TickBuffers {
+    fn new() -> Self {
+        Self {
+            spatial: Vec::with_capacity(32),
+            available_actions: Vec::with_capacity(256),
+        }
+    }
+}
+
 fn nearby_human_positions(
     organisms: &[Organism],
     spatial: &SpatialIndex,
@@ -1634,7 +1648,7 @@ impl Simulation {
 
         let spatial = SpatialIndex::build(&self.organisms, 10);
         let animal_spatial = SpatialIndex::build_animals(&self.animals, 10);
-        let mut spatial_buf: Vec<usize> = Vec::with_capacity(32);
+        let mut buffers = TickBuffers::new();
         let mut org_idx_by_id: FxHashMap<String, usize> =
             FxHashMap::with_capacity_and_hasher(self.organisms.len(), Default::default());
         let mut lineage_members = lineage_member_index(&self.organisms);
@@ -1658,7 +1672,7 @@ impl Simulation {
                     &lineage_counts,
                     &spatial,
                     &animal_spatial,
-                    &mut spatial_buf,
+                    &mut buffers,
                     &org_idx_by_id,
                     &mut lineage_members,
                 );
@@ -1883,10 +1897,14 @@ impl Simulation {
         lineage_counts: &FxHashMap<String, usize>,
         spatial: &SpatialIndex,
         animal_spatial: &SpatialIndex,
-        spatial_buf: &mut Vec<usize>,
+        buffers: &mut TickBuffers,
         org_idx_by_id: &FxHashMap<String, usize>,
         lineage_members: &mut FxHashMap<String, Vec<usize>>,
     ) {
+        let TickBuffers {
+            spatial: spatial_buf,
+            available_actions: available_buf,
+        } = buffers;
         let night = self.is_night();
         let epsilon = (0.30 - self.organisms[idx].age as f32 * 0.00005).max(0.08);
 
@@ -2099,7 +2117,15 @@ impl Simulation {
             } else {
                 self.refresh_lineage_guidance(idx);
                 let (oa_ix, oa_iy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
-                let avail = crate::sim::actions::available_actions(self, idx, oa_ix, oa_iy, spatial);
+                crate::sim::actions::available_actions_into(
+                    self,
+                    idx,
+                    oa_ix,
+                    oa_iy,
+                    spatial,
+                    available_buf,
+                    spatial_buf,
+                );
                 let q_seen = self.organisms[idx].q_table.contains_key(&perception);
                 let active_directive = if self.tick_count < self.organisms[idx].directive_until
                     && !self.organisms[idx].directive.is_empty()
@@ -2125,7 +2151,7 @@ impl Simulation {
                     &mut self.rng,
                     animal_near,
                     &perception,
-                    &avail,
+                    available_buf,
                     Some(spatial_buf),
                 );
                 let decision_origin = if active_wander_action == Some(chosen.0) {
@@ -3359,13 +3385,21 @@ impl Simulation {
             self.organisms[idx].perceive(&self.grid, &self.organisms, night, animal_near, spatial);
         let next_ix = self.organisms[idx].x as i32;
         let next_iy = self.organisms[idx].y as i32;
-        let next_available = crate::sim::actions::available_actions(self, idx, next_ix, next_iy, spatial);
+        crate::sim::actions::available_actions_into(
+            self,
+            idx,
+            next_ix,
+            next_iy,
+            spatial,
+            available_buf,
+            spatial_buf,
+        );
         self.organisms[idx].learn_with_available_actions(
             &perception,
             action,
             reward,
             &next_perception,
-            Some(&next_available),
+            Some(available_buf),
         );
 
         if self.organisms[idx].energy > 0.7 && self.organisms[idx].hydration > 0.7 {
