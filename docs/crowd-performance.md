@@ -99,11 +99,14 @@ aggregate exists. The aggregate ignores dead residents and refreshes each tick.
 On the same Mac, using the same release `crowd_profile` fixture before and after
 the change, with no concurrent benchmark process:
 
-| Native fixture | Before | After |
+| Native fixture | First comparison, before → after | Repeat, before → after |
 |---|---:|---:|
-| 5,000 people, mean of 8 ticks | 267.31 ms/tick | 159.82 ms/tick |
-| 50,000 people, first tick | 13,454.95 ms | 8,671.12 ms |
+| 5,000 people, mean of 8 ticks | 267.31 → 159.82 ms/tick | 162.10 → 199.00 ms/tick |
+| 50,000 people, first tick | 13,454.95 → 8,671.12 ms | 10,926.98 → 9,313.31 ms |
 
-These are short synthetic native runs, not browser/WASM timings or a promise of
-real-time simulation at either population. The 50,000-person fixture bypasses
-the game's population cap.
+The 5,000-person result is inconsistent across repeats, so this does not
+establish a gain at that size. Both 50,000-person comparisons were faster, but
+the size of the gain varied substantially with machine conditions. These are
+short synthetic native runs, not browser/WASM timings or a promise of real-time
+simulation at either population. The 50,000-person fixture bypasses the game's
+population cap.
