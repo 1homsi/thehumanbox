@@ -132,3 +132,18 @@ before and 7,352.14 ms after for a first 50,000-person tick. That difference
 is too small, given machine variability, to claim a repeatable whole-tick
 speedup. The scaling improvement is the removal of the per-person scan across
 all animals; this benchmark does not measure browser performance.
+
+## Local human queries for wildlife
+
+The animal tick previously handed every animal a full list of living people,
+then searched that list for a person to chase or flee. It now builds a human
+spatial index after human movement and passes each animal only nearby people.
+The query radius follows that animal's existing chase or flee distance, and
+candidates retain population order so nearest-target ties resolve as before.
+A reference test compares movement and RNG results for all seven animal kinds.
+
+Two paired native first-tick runs with 50,000 people and 400 animals measured
+7,224.90 → 6,166.49 ms and 6,862.27 → 6,070.00 ms. This is a synthetic
+stress result beyond the game's human population cap, not a browser or WASM
+frame-rate measurement. The improvement varied across runs and does not show
+how much a mature 5,000-person world will gain.

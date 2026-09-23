@@ -1,6 +1,88 @@
 use super::*;
 
 #[test]
+fn local_human_queries_preserve_animal_moves_and_rng() {
+    let mut sim = Simulation::new(0xA11A);
+    flatten_test_area(&mut sim, 50, 50);
+    sim.organisms.clear();
+    for i in 0..96 {
+        let mut person = Organism::new(
+            format!("person-{i}"),
+            "resident".into(),
+            40.0 + (i * 7 % 30) as f32,
+            40.0 + (i * 11 % 25) as f32,
+            1,
+            String::new(),
+            "lineage-a".into(),
+            10_000,
+            crate::organism::traits::Traits::default(),
+        );
+        person.alive = i % 13 != 0;
+        sim.organisms.push(person);
+    }
+    let all_humans: Vec<_> = sim
+        .organisms
+        .iter()
+        .filter(|person| person.alive)
+        .map(|person| (person.x, person.y))
+        .collect();
+    let spatial = SpatialIndex::build(&sim.organisms, 10);
+    let mut candidates = Vec::new();
+    let mut local_humans = Vec::new();
+
+    for kind in [
+        AnimalKind::Rabbit,
+        AnimalKind::Deer,
+        AnimalKind::Boar,
+        AnimalKind::Bird,
+        AnimalKind::Fish,
+        AnimalKind::Wolf,
+        AnimalKind::Dog,
+    ] {
+        for (x, y) in [(49.0, 50.0), (60.0, 50.0), (200.0, 200.0)] {
+            let radius = if kind.predator() {
+                20
+            } else {
+                kind.flee_radius().ceil() as i32
+            };
+            nearby_human_positions(
+                &sim.organisms,
+                &spatial,
+                x,
+                y,
+                radius,
+                &mut candidates,
+                &mut local_humans,
+            );
+            let mut reference = Animal::new(1, x, y, kind);
+            let mut indexed = Animal::new(1, x, y, kind);
+            let mut reference_rng = ChaCha8Rng::seed_from_u64(0x51A);
+            let mut indexed_rng = ChaCha8Rng::seed_from_u64(0x51A);
+            reference.tick(&sim.grid, &all_humans, &[], &[(53.0, 50.0)], &mut reference_rng);
+            indexed.tick(&sim.grid, &local_humans, &[], &[(53.0, 50.0)], &mut indexed_rng);
+            assert_eq!(
+                (
+                    indexed.x,
+                    indexed.y,
+                    indexed.energy,
+                    indexed.alive,
+                    indexed_rng.random::<u64>()
+                ),
+                (
+                    reference.x,
+                    reference.y,
+                    reference.energy,
+                    reference.alive,
+                    reference_rng.random::<u64>()
+                ),
+                "{} moved differently at ({x}, {y})",
+                kind.name()
+            );
+        }
+    }
+}
+
+#[test]
 fn lineage_wellbeing_snapshot_excludes_dead_members_and_refreshes_next_tick() {
     let mut sim = Simulation::new(0xBEE1);
     let lineage = sim.organisms[0].lineage_id.clone();
