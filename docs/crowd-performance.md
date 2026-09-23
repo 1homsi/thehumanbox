@@ -147,3 +147,20 @@ Two paired native first-tick runs with 50,000 people and 400 animals measured
 stress result beyond the game's human population cap, not a browser or WASM
 frame-rate measurement. The improvement varied across runs and does not show
 how much a mature 5,000-person world will gain.
+
+## Local wolf encounters
+
+Wolf taming and bite checks previously scanned every resident for every wolf;
+pack-defence checks then scanned everyone again for each nearby victim. They now
+reuse the human index built for wildlife movement, retain population order for
+random encounter rolls, and apply the same exact-distance and kin predicates.
+A reference test covers fractional positions at spatial bucket edges, deaths,
+taming eligibility, bite order, and pack-defence counts.
+
+The 5,000-person, 400-animal fixture averaged 171.85 ms/tick before and
+170.49 ms/tick after over ten ticks, which does not establish a measurable
+whole-tick improvement. Two paired 50,000-person first-tick comparisons went
+in opposite directions (6,421 → 9,063 ms and 8,749 → 6,590 ms), showing that
+machine variability dominates this short stress comparison. The benefit here
+is bounding encounter work by nearby residents as the population grows; these
+native figures do not measure browser frame rate or WASM execution.
