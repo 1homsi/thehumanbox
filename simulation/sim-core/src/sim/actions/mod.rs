@@ -5163,6 +5163,7 @@ pub fn available_actions_into(
             && (!action_requires_semantic_validation(*action) || semantically_eligible[*action])
             && agriculture::action_is_possible(sim, idx, *action, ix, iy, near_water)
             && religion_expanded::action_is_possible(sim, idx, *action, nearby, sim.tick_count)
+            && relationships_deep::action_is_possible(sim, idx, *action, nearby)
             && crate::sim::civ::trade_routes::action_is_possible(sim, idx, *action, nearby)
             && (*action != 2704 || crate::sim::civ::trade_routes::can_dispatch_caravan(sim, idx))
             && !std::mem::replace(&mut seen[*action], true)
@@ -5339,6 +5340,14 @@ pub fn try_apply(
         let mut nearby_indices = Vec::with_capacity(16);
         spatial.query_into(actor.x as i32, actor.y as i32, 6, &mut nearby_indices);
         if !religion_expanded::action_is_possible(sim, idx, action, &nearby_indices, sim.tick_count) {
+            return None;
+        }
+    }
+    if matches!(action, 2220 | 2221) {
+        let actor = sim.organisms.get(idx)?;
+        let mut nearby_indices = Vec::with_capacity(16);
+        spatial.query_into(actor.x as i32, actor.y as i32, 6, &mut nearby_indices);
+        if !relationships_deep::action_is_possible(sim, idx, action, &nearby_indices) {
             return None;
         }
     }

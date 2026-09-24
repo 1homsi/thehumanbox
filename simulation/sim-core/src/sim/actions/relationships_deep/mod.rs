@@ -50,6 +50,46 @@ pub mod write_letter_to_estranged;
 pub mod write_letter_to_lost_love;
 
 use super::ctx::ActionCtx;
+use crate::organism::organism::Organism;
+use crate::sim::simulation::Simulation;
+
+fn emotion_ticks(organism: &Organism, action: usize) -> u32 {
+    match action {
+        2220 => organism.grief_ticks,
+        2221 => organism.joy_ticks,
+        _ => 0,
+    }
+}
+
+fn emotional_partner(sim: &Simulation, idx: usize, action: usize, nearby: &[usize]) -> Option<usize> {
+    let actor = sim.organisms.get(idx)?;
+    let actor_feels_it = emotion_ticks(actor, action) > 0;
+    nearby
+        .iter()
+        .copied()
+        .filter(|&other_idx| other_idx != idx)
+        .filter(|&other_idx| {
+            sim.organisms.get(other_idx).is_some_and(|other| {
+                other.alive
+                    && (other.x - actor.x).abs() + (other.y - actor.y).abs() <= 6.0
+                    && (actor_feels_it || emotion_ticks(other, action) > 0)
+            })
+        })
+        .min_by(|&left, &right| {
+            let a = &sim.organisms[left];
+            let b = &sim.organisms[right];
+            let a_distance = (a.x - actor.x).abs() + (a.y - actor.y).abs();
+            let b_distance = (b.x - actor.x).abs() + (b.y - actor.y).abs();
+            (emotion_ticks(a, action) == 0)
+                .cmp(&(emotion_ticks(b, action) == 0))
+                .then_with(|| a_distance.total_cmp(&b_distance))
+                .then_with(|| left.cmp(&right))
+        })
+}
+
+pub fn action_is_possible(sim: &Simulation, idx: usize, action: usize, nearby: &[usize]) -> bool {
+    !matches!(action, 2220 | 2221) || emotional_partner(sim, idx, action, nearby).is_some()
+}
 
 pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
     match action {
@@ -104,5 +144,77 @@ pub fn apply(action: usize, ctx: &mut ActionCtx) -> f32 {
         2268 => tie_friendship_cord::apply(ctx),
         2269 => knot_promise::apply(ctx),
         _ => 0.0,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::organism::traits::Traits;
+    use crate::sim::actions::try_apply;
+    use crate::sim::era::Era;
+    use crate::sim::spatial::SpatialIndex;
+
+    fn two_neighbors() -> (Simulation, SpatialIndex) {
+        let mut sim = Simulation::new(0xe100);
+        sim.organisms.clear();
+        for (id, name, x) in [("a", "Ari", 40.0), ("b", "Bea", 41.0)] {
+            let mut person = Organism::new(
+                id.into(),
+                name.into(),
+                x,
+                40.0,
+                1,
+                String::new(),
+                "kin".into(),
+                100_000,
+                Traits::default(),
+            );
+            person.age = 40_000;
+            sim.organisms.push(person);
+        }
+        sim.lineage_eras.insert("kin".into(), Era::Stone);
+        let spatial = SpatialIndex::build(&sim.organisms, 10);
+        (sim, spatial)
+    }
+
+    #[test]
+    fn sharing_grief_requires_a_present_feeling_neighbor_and_comforts_both_people() {
+        let (mut sim, spatial) = two_neighbors();
+        assert!(!action_is_possible(&sim, 0, 2220, &[1]));
+        assert!(try_apply(&mut sim, 0, 2220, 40, 40, &spatial).is_none());
+        assert!(sim.events.is_empty());
+
+        sim.organisms[1].grief_ticks = 80;
+        sim.organisms[0].loneliness = 0.50;
+        sim.organisms[1].loneliness = 0.40;
+        let actor_comfort = sim.organisms[0].comfort;
+        let partner_comfort = sim.organisms[1].comfort;
+        assert!(action_is_possible(&sim, 0, 2220, &[1]));
+        assert!(try_apply(&mut sim, 0, 2220, 40, 40, &spatial).is_some());
+        assert_eq!(sim.organisms[1].grief_ticks, 60);
+        assert!(sim.organisms[0].comfort > actor_comfort);
+        assert!(sim.organisms[1].comfort > partner_comfort);
+        assert!(sim.organisms[0].loneliness < 0.50);
+        assert!(sim.organisms[1].loneliness < 0.40);
+        assert!(sim.organisms[0].thought.contains("Bea"));
+        assert!(sim.organisms[1].thought.contains("Ari"));
+
+        sim.organisms[1].x = 60.0;
+        assert!(!action_is_possible(&sim, 0, 2220, &[1]));
+    }
+
+    #[test]
+    fn sharing_joy_spreads_a_real_mood_to_a_neighbor() {
+        let (mut sim, spatial) = two_neighbors();
+        assert!(!action_is_possible(&sim, 0, 2221, &[1]));
+        sim.organisms[0].joy_ticks = 90;
+        assert!(action_is_possible(&sim, 0, 2221, &[1]));
+        assert!(try_apply(&mut sim, 0, 2221, 40, 40, &spatial).is_some());
+        assert_eq!(sim.organisms[0].joy_ticks, 100);
+        assert_eq!(sim.organisms[1].joy_ticks, 30);
+
+        sim.organisms[1].alive = false;
+        assert!(!action_is_possible(&sim, 0, 2221, &[1]));
     }
 }
