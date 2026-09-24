@@ -38,7 +38,7 @@ import { getBuildingSprite, PAD as SPRITE_PAD, PAD_BOT as SPRITE_PAD_BOT } from 
 import { normalizeLineageEras } from '../../utils/lineageEras'
 import { useSceneStore } from '../../stores/scene'
 import { farmCropColor, farmProgress, farmStage } from '../../world/farms'
-import { activeStrategy, strategyTimeLabel } from '../../world/strategy-visuals'
+import { strategyBeaconPositions, strategyTimeLabel } from '../../world/strategy-visuals'
 import { TILE_ID, isPermanentWaterTile, isWaterTile } from '../../world/terrain-ids'
 import {
   EDGE_EAST,
@@ -2611,24 +2611,14 @@ export function drawWorldOnCanvas(
   // organisms and buildings. Otherwise a busy settlement can bury the
   // guidance label under hundreds of sprites.
   if (world.lineage_strategies) {
-    const settlementsByLineage = new Map(
-      (world.settlements ?? []).map((settlement) => [settlement.lineage_id, settlement]),
+    const beacons = strategyBeaconPositions(
+      world.lineage_strategies,
+      world.tick,
+      world.settlements,
+      world.lineage_homes,
+      organisms,
     )
-    for (const [lineage, entry] of Object.entries(world.lineage_strategies)) {
-      const strategy = activeStrategy(entry, world.tick)
-      if (!strategy) continue
-      const settlement = settlementsByLineage.get(lineage)
-      const home = world.lineage_homes?.[lineage]
-      const members = organisms.filter((organism) => organism.alive && organism.lineage_id === lineage)
-      if (!settlement && !home && members.length === 0) continue
-      const wx =
-        settlement?.center[0] ??
-        home?.[0] ??
-        members.reduce((sum, organism) => sum + organism.x, 0) / members.length
-      const wy =
-        settlement?.center[1] ??
-        home?.[1] ??
-        members.reduce((sum, organism) => sum + organism.y, 0) / members.length
+    for (const { strategy, x: wx, y: wy } of beacons) {
       const centerX = (wx - ox) * TILE + TILE / 2
       const centerY = (wy - oy) * TILE + TILE / 2
       if (centerX < -32 || centerX > W + 32 || centerY < -32 || centerY > H + 32) continue
