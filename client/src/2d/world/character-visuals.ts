@@ -81,6 +81,7 @@ export interface CharacterMotion {
   movedAt: number
   phase: number
   flipped: boolean
+  distance: number
 }
 
 export function characterMotion(
@@ -93,7 +94,10 @@ export function characterMotion(
   const dx = x - (previous?.x ?? x)
   const dy = y - (previous?.y ?? y)
   const moved = Math.abs(dx) > 0.02 || Math.abs(dy) > 0.02
+  const distance = Math.hypot(dx, dy)
+  // Large jumps are placements, not steps.
   return {
+    distance: (previous?.distance ?? 0) + (moved && distance < 4 ? distance : 0),
     x: moved || !previous ? x : previous.x,
     y: moved || !previous ? y : previous.y,
     movedAt: moved ? now : (previous?.movedAt ?? -Infinity),
@@ -103,9 +107,37 @@ export function characterMotion(
 }
 
 export function characterFrame(motion: CharacterMotion, now: number): number {
-  return now - motion.movedAt > 350 ? 0 : Math.floor(((now + motion.phase) % 800) / 200)
+  return now - motion.movedAt > 120
+    ? 0
+    : Math.floor(motion.distance * 4 + motion.phase / 200) % HUMAN_ATLAS_FRAMES
 }
 
 export function compareCharacterDepth(a: { y: number; id: string }, b: { y: number; id: string }): number {
   return a.y - b.y || a.id.localeCompare(b.id)
+}
+
+/** At crowd scale, keep a stable sample of sprites per tile while preserving
+ * selected residents and boat riders. The simulation and hit targets remain
+ * complete; only redundant overlapping canvas draws are reduced. */
+export function selectCrowdSpriteRepresentatives<T extends { id: string; x: number; y: number }>(
+  people: readonly T[],
+  maxPerTile: number,
+  tileSpan: number,
+  selectedId: string | null,
+  alwaysDraw: ReadonlySet<string>,
+): T[] {
+  const counts = new Map<string, number>()
+  const selected: T[] = []
+  for (const person of people) {
+    if (person.id === selectedId || alwaysDraw.has(person.id)) {
+      selected.push(person)
+      continue
+    }
+    const key = `${Math.floor(person.x / tileSpan)},${Math.floor(person.y / tileSpan)}`
+    const count = counts.get(key) ?? 0
+    if (count >= maxPerTile) continue
+    counts.set(key, count + 1)
+    selected.push(person)
+  }
+  return selected
 }

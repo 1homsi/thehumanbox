@@ -307,6 +307,13 @@ pub struct ConversationEntry {
     pub id: String,
 }
 
+#[derive(Clone, Debug, Serialize, serde::Deserialize)]
+pub struct Journey {
+    pub target: (i32, i32),
+    pub description: String,
+    pub expires_at: u64,
+}
+
 pub struct Organism {
     pub id: String,
     pub name: String,
@@ -403,6 +410,7 @@ pub struct Organism {
     pub area_ticks: u32,
     pub last_area_cell: (i32, i32),
     pub wander_target: Option<(i32, i32)>,
+    pub journey: Option<Journey>,
     pub last_groomed: u64,
     pub last_fed_kin: u64,
     pub last_ancestral_thought: u64,
@@ -566,6 +574,7 @@ impl Organism {
             area_ticks: 0,
             last_area_cell: (x as i32, y as i32),
             wander_target: None,
+            journey: None,
             last_groomed: 0,
             last_fed_kin: 0,
             last_ancestral_thought: 0,
@@ -1372,6 +1381,19 @@ impl Organism {
         animal_near: bool,
         spatial: &crate::sim::spatial::SpatialIndex,
     ) -> String {
+        let mut nearby = Vec::with_capacity(16);
+        self.perceive_into(grid, organisms, night, animal_near, spatial, &mut nearby)
+    }
+
+    pub fn perceive_into(
+        &self,
+        grid: &WorldGrid,
+        organisms: &[Organism],
+        night: bool,
+        animal_near: bool,
+        spatial: &crate::sim::spatial::SpatialIndex,
+        nearby: &mut Vec<usize>,
+    ) -> String {
         let (ix, iy) = (self.x as i32, self.y as i32);
         let scan: i32 = if night {
             if self.traits.curiosity > 0.7 {
@@ -1460,25 +1482,29 @@ impl Organism {
             thirst as f32 / 2.0,
         );
 
-        // Spatial-bucketed neighbour scan instead of walking every
-        // organism in the world. Radius 5 in tile space; the index
-        // returns a slight superset (bucket-aligned), so we still
-        // apply the Manhattan-distance filter on hits.
+        // One bucket query covers both the five-tile social radius and the
+        // larger attitude radius. Keep the exact social distance check: the
+        // index returns a bucket-aligned superset.
         let mut org_near = 0u8;
         let mut kin_near = 0u8;
-        let mut buf: Vec<usize> = Vec::with_capacity(16);
-        spatial.query_into(self.x as i32, self.y as i32, 5, &mut buf);
-        for &i in &buf {
+        spatial.query_into(self.x as i32, self.y as i32, scan, nearby);
+        let mut nearest_lid: Option<&str> = None;
+        let mut nearest_d = 999.0f32;
+        for &i in nearby.iter() {
             let other = &organisms[i];
             if std::ptr::eq(other, self) || !other.alive {
                 continue;
             }
-            if (other.x - self.x).abs() + (other.y - self.y).abs() <= 5.0 {
+            let distance = (other.x - self.x).abs() + (other.y - self.y).abs();
+            if distance <= 5.0 {
                 org_near = 1;
                 if other.lineage_id == self.lineage_id {
                     kin_near = 1;
-                    break;
                 }
+            }
+            if other.lineage_id != self.lineage_id && distance < nearest_d {
+                nearest_d = distance;
+                nearest_lid = Some(&other.lineage_id);
             }
         }
 
@@ -1494,22 +1520,6 @@ impl Organism {
         };
 
         let att_char = {
-            let mut nearest_lid: Option<&str> = None;
-            let mut nearest_d = 999.0f32;
-            // Same spatial bucket reuse - nearest non-kin within `scan`.
-            buf.clear();
-            spatial.query_into(self.x as i32, self.y as i32, scan, &mut buf);
-            for &i in &buf {
-                let other = &organisms[i];
-                if std::ptr::eq(other, self) || !other.alive || other.lineage_id == self.lineage_id {
-                    continue;
-                }
-                let d = (other.x - self.x).abs() + (other.y - self.y).abs();
-                if d < nearest_d {
-                    nearest_d = d;
-                    nearest_lid = Some(&other.lineage_id);
-                }
-            }
             match nearest_lid {
                 Some(lid) if nearest_d <= scan as f32 => {
                     let att = self.attitude_toward(lid);
@@ -1698,12 +1708,49 @@ impl Organism {
         best
     }
 
+    pub(crate) fn begin_journey(&mut self, target: (i32, i32), description: &str, tick: u64) {
+        let distance = (target.0 - self.x as i32)
+            .abs()
+            .max((target.1 - self.y as i32).abs()) as u64;
+        self.wander_target = Some(target);
+        self.journey = Some(Journey {
+            target,
+            description: description.to_string(),
+            expires_at: tick + (distance * 4).clamp(80, 800),
+        });
+        self.think(description, tick);
+        self.log_life(
+            tick,
+            "life",
+            format!("set out: {} toward ({}, {})", description, target.0, target.1),
+        );
+    }
+
     pub(crate) fn toward(&self, target: (i32, i32), grid: &WorldGrid) -> usize {
         let (ix, iy) = (self.x as i32, self.y as i32);
         let (tx, ty) = target;
         let dx = tx - ix;
         let dy = ty - iy;
         let target_is_water = grid.get(tx, ty) == Tile::Water;
+        let direct = (ix + dx.signum(), iy + dy.signum());
+        let direct_tile = grid.get(direct.0, direct.1);
+        let blocked = !direct_tile.walkable()
+            || (!target_is_water && direct_tile == Tile::Water && grid.depth_at(direct.0, direct.1) > 0.18);
+        let distance = dx.abs().max(dy.abs());
+        let has_progress_step = blocked
+            && DIRECTIONS.iter().any(|&(sx, sy)| {
+                let (nx, ny) = (ix + sx, iy + sy);
+                let tile = grid.get(nx, ny);
+                tile.walkable()
+                    && tile != Tile::Fire
+                    && (target_is_water || tile != Tile::Water || grid.depth_at(nx, ny) <= 0.18)
+                    && (tx - nx).abs().max((ty - ny).abs()) < distance
+            });
+        if blocked && !has_progress_step && distance > 1 {
+            if let Some(action) = super::navigation::detour_step(grid, (ix, iy), target) {
+                return action;
+            }
+        }
         let mut best_action = 0;
         let mut best_score = f32::NEG_INFINITY;
         for (i, (adx, ady)) in DIRECTIONS.iter().enumerate() {

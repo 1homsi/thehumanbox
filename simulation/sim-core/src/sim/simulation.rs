@@ -22,6 +22,83 @@ use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet, VecDeque};
 
+/// Preserve population order while limiting lineage-wide reads to its members.
+/// Liveness is checked at read time because residents can die during a tick.
+fn living_lineage_members<'a>(
+    organisms: &'a [Organism],
+    members: &'a FxHashMap<String, Vec<usize>>,
+    lineage_id: &'a str,
+) -> impl Iterator<Item = &'a Organism> {
+    members
+        .get(lineage_id)
+        .into_iter()
+        .flatten()
+        .map(move |&idx| &organisms[idx])
+        .filter(move |o| o.alive && o.lineage_id == lineage_id)
+}
+
+fn lineage_member_index(organisms: &[Organism]) -> FxHashMap<String, Vec<usize>> {
+    let mut members = FxHashMap::default();
+    for (idx, org) in organisms.iter().enumerate() {
+        if org.alive {
+            members
+                .entry(org.lineage_id.clone())
+                .or_insert_with(Vec::new)
+                .push(idx);
+        }
+    }
+    members
+}
+
+struct TickBuffers {
+    spatial: Vec<usize>,
+    available_actions: Vec<usize>,
+    perception: Vec<usize>,
+}
+
+impl TickBuffers {
+    fn new() -> Self {
+        Self {
+            spatial: Vec::with_capacity(32),
+            available_actions: Vec::with_capacity(256),
+            perception: Vec::with_capacity(32),
+        }
+    }
+}
+
+fn nearby_human_positions(
+    organisms: &[Organism],
+    spatial: &SpatialIndex,
+    x: f32,
+    y: f32,
+    radius: i32,
+    candidates: &mut Vec<usize>,
+    positions: &mut Vec<(f32, f32)>,
+) {
+    positions.clear();
+    if radius <= 0 {
+        return;
+    }
+    ordered_human_candidates(spatial, x, y, radius, candidates);
+    positions.extend(candidates.iter().filter_map(|&index| {
+        let person = &organisms[index];
+        person.alive.then_some((person.x, person.y))
+    }));
+}
+
+fn ordered_human_candidates(
+    spatial: &SpatialIndex,
+    x: f32,
+    y: f32,
+    radius: i32,
+    candidates: &mut Vec<usize>,
+) {
+    spatial.query_into(x as i32, y as i32, radius, candidates);
+    // Encounter rolls and nearest-target ties used population order in the
+    // former full scans. Keep that order before applying exact distances.
+    candidates.sort_unstable();
+}
+
 fn derive_mood(o: &Organism) -> String {
     if o.infection > 0.20 {
         "sick"
@@ -369,7 +446,14 @@ fn verify_local_resource_memory(org: &mut Organism, grid: &WorldGrid, x: i32, y:
     }
 }
 
-fn local_danger_present(grid: &WorldGrid, animals: &[Animal], x: i32, y: i32) -> bool {
+fn local_danger_present(
+    grid: &WorldGrid,
+    animals: &[Animal],
+    animal_spatial: &SpatialIndex,
+    candidates: &mut Vec<usize>,
+    x: i32,
+    y: i32,
+) -> bool {
     let terrain_danger = (-1i32..=1).any(|dx| {
         (-1i32..=1).any(|dy| {
             let nx = x + dx;
@@ -381,13 +465,28 @@ fn local_danger_present(grid: &WorldGrid, animals: &[Animal], x: i32, y: i32) ->
         return true;
     }
 
-    animals
-        .iter()
-        .any(|a| a.alive && a.kind.predator() && (a.x - x as f32).abs() + (a.y - y as f32).abs() <= 5.0)
+    // Animals do not move until tick_animals, after every human acts. The
+    // index may still contain animals killed earlier in this tick, so keep
+    // the live check at read time.
+    animal_spatial.query_into(x, y, 5, candidates);
+    candidates.iter().any(|&index| {
+        let animal = &animals[index];
+        animal.alive
+            && animal.kind.predator()
+            && (animal.x - x as f32).abs() + (animal.y - y as f32).abs() <= 5.0
+    })
 }
 
-fn verify_local_danger_memory(org: &mut Organism, grid: &WorldGrid, animals: &[Animal], x: i32, y: i32) {
-    if local_danger_present(grid, animals, x, y) {
+fn verify_local_danger_memory(
+    org: &mut Organism,
+    grid: &WorldGrid,
+    animals: &[Animal],
+    animal_spatial: &SpatialIndex,
+    candidates: &mut Vec<usize>,
+    x: i32,
+    y: i32,
+) {
+    if local_danger_present(grid, animals, animal_spatial, candidates, x, y) {
         let current_hazard = grid.hazard_at(x, y);
         if current_hazard >= 0.35 || matches!(grid.get(x, y), Tile::Fire) {
             let ms = org.traits.memory_strength;
@@ -521,6 +620,7 @@ pub(crate) struct LineageAggregate {
     pub x_sum: f32,
     pub y_sum: f32,
     pub literacy_sum: f32,
+    pub energy_sum: f32,
 }
 
 impl LineageAggregate {
@@ -728,6 +828,7 @@ impl Simulation {
             entry.x_sum += org.x;
             entry.y_sum += org.y;
             entry.literacy_sum += org.literacy;
+            entry.energy_sum += org.energy;
         }
     }
 
@@ -1548,12 +1649,20 @@ impl Simulation {
         let mut population_slots_used = growth::population_slots_used(&self.organisms);
 
         let spatial = SpatialIndex::build(&self.organisms, 10);
-        let mut spatial_buf: Vec<usize> = Vec::with_capacity(32);
+        let animal_spatial = SpatialIndex::build_animals(&self.animals, 10);
+        let mut buffers = TickBuffers::new();
         let mut org_idx_by_id: FxHashMap<String, usize> =
             FxHashMap::with_capacity_and_hasher(self.organisms.len(), Default::default());
+        let mut lineage_members = lineage_member_index(&self.organisms);
         for (i, o) in self.organisms.iter().enumerate() {
             if o.alive {
                 org_idx_by_id.insert(o.id.clone(), i);
+            }
+        }
+        for vehicle in &mut self.vehicles {
+            vehicle.occupants.retain(|id| org_idx_by_id.contains_key(id));
+            if vehicle.occupants.is_empty() {
+                vehicle.route.clear();
             }
         }
         for i in 0..self.organisms.len() {
@@ -1564,8 +1673,10 @@ impl Simulation {
                     population_slots_used,
                     &lineage_counts,
                     &spatial,
-                    &mut spatial_buf,
+                    &animal_spatial,
+                    &mut buffers,
                     &org_idx_by_id,
+                    &mut lineage_members,
                 );
 
                 if self.organisms.len() > prev_len {
@@ -1708,10 +1819,18 @@ impl Simulation {
                     }
                     true
                 });
+                // Retaining archived bodies shifts resident indices. Refresh
+                // the tick's ID map only on this rare path before dogs use it.
+                org_idx_by_id.clear();
+                for (i, o) in self.organisms.iter().enumerate() {
+                    if o.alive {
+                        org_idx_by_id.insert(o.id.clone(), i);
+                    }
+                }
             }
         }
 
-        self.tick_animals();
+        self.tick_animals(&org_idx_by_id);
         self.check_animal_catches();
 
         {
@@ -1779,9 +1898,16 @@ impl Simulation {
         population_slots_used: usize,
         lineage_counts: &FxHashMap<String, usize>,
         spatial: &SpatialIndex,
-        spatial_buf: &mut Vec<usize>,
+        animal_spatial: &SpatialIndex,
+        buffers: &mut TickBuffers,
         org_idx_by_id: &FxHashMap<String, usize>,
+        lineage_members: &mut FxHashMap<String, Vec<usize>>,
     ) {
+        let TickBuffers {
+            spatial: spatial_buf,
+            available_actions: available_buf,
+            perception: perception_buf,
+        } = buffers;
         let night = self.is_night();
         let epsilon = (0.30 - self.organisms[idx].age as f32 * 0.00005).max(0.08);
 
@@ -1903,12 +2029,19 @@ impl Simulation {
         let fear_trait = self.organisms[idx].traits.fear;
         let wolf_flee_radius = 6.0 + fear_trait * 8.0;
 
-        // Single pass over animals: detect any creature within perception
-        // range and the nearest threatening wolf at once, instead of two
-        // separate full scans of the animal list per organism per tick.
+        // Animal positions are stable until tick_animals, after all human
+        // actions. Query only local candidates, in original animal order.
         let mut animal_near = false;
         let mut wolf_threat: Option<(f32, f32, f32)> = None;
-        for a in self.animals.iter() {
+        animal_spatial.query_into(
+            ox as i32,
+            oy as i32,
+            wolf_flee_radius.max(8.0).ceil() as i32,
+            spatial_buf,
+        );
+        spatial_buf.sort_unstable();
+        for &animal_idx in spatial_buf.iter() {
+            let a = &self.animals[animal_idx];
             if !a.alive {
                 continue;
             }
@@ -1924,9 +2057,26 @@ impl Simulation {
             }
         }
 
-        let perception =
-            self.organisms[idx].perceive(&self.grid, &self.organisms, night, animal_near, spatial);
-        self.validate_or_assign_wander_target(idx);
+        let perception = self.organisms[idx].perceive_into(
+            &self.grid,
+            &self.organisms,
+            night,
+            animal_near,
+            spatial,
+            perception_buf,
+        );
+        let prior_lineage = self.organisms[idx].lineage_id.clone();
+        self.validate_or_assign_wander_target_indexed(idx, spatial, lineage_members);
+        if self.organisms[idx].lineage_id != prior_lineage {
+            if let Some(members) = lineage_members.get_mut(&prior_lineage) {
+                members.retain(|&member_idx| member_idx != idx);
+            }
+            let members = lineage_members
+                .entry(self.organisms[idx].lineage_id.clone())
+                .or_default();
+            let position = members.binary_search(&idx).unwrap_or_else(|position| position);
+            members.insert(position, idx);
+        }
         if let Some((_, wx, wy)) = wolf_threat {
             let wx_i = wx as i32;
             let wy_i = wy as i32;
@@ -1948,7 +2098,9 @@ impl Simulation {
             .then(|| (49, Some("must build shelter now!".to_string())));
 
         let (action, new_thought, decision_origin): (usize, Option<String>, &'static str) =
-            if let Some((action, thought)) = storm_build {
+            if let Some(boat_action) = self.boat_action(idx) {
+                boat_action
+            } else if let Some((action, thought)) = storm_build {
                 (action, thought, "emergency_reflex")
             } else if let Some((dist, wx, wy)) = wolf_threat.filter(|(dist, _, _)| *dist <= 2.5) {
                 let fdx = (ox - wx).signum();
@@ -1974,7 +2126,15 @@ impl Simulation {
             } else {
                 self.refresh_lineage_guidance(idx);
                 let (oa_ix, oa_iy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
-                let avail = crate::sim::actions::available_actions(self, idx, oa_ix, oa_iy, spatial);
+                crate::sim::actions::available_actions_into(
+                    self,
+                    idx,
+                    oa_ix,
+                    oa_iy,
+                    spatial,
+                    available_buf,
+                    spatial_buf,
+                );
                 let q_seen = self.organisms[idx].q_table.contains_key(&perception);
                 let active_directive = if self.tick_count < self.organisms[idx].directive_until
                     && !self.organisms[idx].directive.is_empty()
@@ -1986,7 +2146,10 @@ impl Simulation {
                 let active_wander_action = self.organisms[idx]
                     .wander_target
                     .map(|target| self.organisms[idx].toward(target, &self.grid));
-                let chosen = self.organisms[idx].choose_action(
+                spatial.query_into(oa_ix, oa_iy, 16, spatial_buf);
+                // Preserve population order for tie-breaking and resource followers.
+                spatial_buf.sort_unstable();
+                let chosen = self.organisms[idx].choose_action_with_neighbors(
                     &self.grid,
                     &self.buildings,
                     self.tick_count,
@@ -1997,7 +2160,8 @@ impl Simulation {
                     &mut self.rng,
                     animal_near,
                     &perception,
-                    &avail,
+                    available_buf,
+                    Some(spatial_buf),
                 );
                 let decision_origin = if active_wander_action == Some(chosen.0) {
                     "soft_wander"
@@ -2014,8 +2178,8 @@ impl Simulation {
                 (chosen.0, chosen.1, decision_origin)
             };
         *self.decision_counts.entry(decision_origin).or_insert(0) += 1;
-        if let Some(t) = new_thought {
-            self.organisms[idx].think(&t, self.tick_count);
+        if let Some(ref t) = new_thought {
+            self.organisms[idx].think(t, self.tick_count);
         }
 
         let (ix, iy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
@@ -2129,6 +2293,7 @@ impl Simulation {
             signal_reward += social::signal_food(
                 idx,
                 &mut self.organisms,
+                spatial,
                 &self.grid,
                 self.tick_count,
                 &mut self.events,
@@ -2138,6 +2303,7 @@ impl Simulation {
             let alarm_reward = social::sound_alarm(
                 idx,
                 &mut self.organisms,
+                spatial,
                 &self.grid,
                 self.tick_count,
                 &mut self.events,
@@ -2151,6 +2317,7 @@ impl Simulation {
                 signal_reward += social::challenge_stranger(
                     idx,
                     &mut self.organisms,
+                    spatial,
                     self.tick_count,
                     &mut self.events,
                     &mut self.history,
@@ -2166,6 +2333,7 @@ impl Simulation {
             signal_reward += social::gift_knowledge(
                 idx,
                 &mut self.organisms,
+                spatial,
                 self.tick_count,
                 &mut self.events,
                 &mut self.history,
@@ -2175,10 +2343,8 @@ impl Simulation {
                 self.organisms[idx].log_event(format!("shared knowledge with kin near ({},{})", ix, iy));
 
                 let actor_lid = self.organisms[idx].lineage_id.clone();
-                let neg_target: Option<(usize, String)> = self
-                    .organisms
-                    .iter()
-                    .enumerate()
+                let neg_target: Option<(usize, String)> = spatial
+                    .ordered_nearby(&self.organisms, ix as f32, iy as f32, 7)
                     .filter(|(i, o)| *i != idx && o.alive && o.lineage_id != actor_lid)
                     .filter(|(_, o)| (o.x - ix as f32).abs() + (o.y - iy as f32).abs() < 7.0)
                     .filter_map(|(i, o)| {
@@ -2209,11 +2375,8 @@ impl Simulation {
                             self.organisms[ti].discoveries.iter().cloned().collect();
                         let their_name = self.organisms[ti].name.clone();
                         let their_oid = self.organisms[ti].id.clone();
-                        let my_kin = self
-                            .organisms
-                            .iter()
-                            .filter(|o| o.alive && o.lineage_id == actor_lid)
-                            .count();
+                        let my_kin =
+                            living_lineage_members(&self.organisms, lineage_members, &actor_lid).count();
                         self.push_think_for(
                             idx,
                             ThinkTrigger {
@@ -2317,7 +2480,13 @@ impl Simulation {
             }
         } else if action == 16 {
             if self.tick_count - self.organisms[idx].last_groomed >= 60 {
-                signal_reward += social::groom(idx, &mut self.organisms, self.tick_count, &mut self.events);
+                signal_reward += social::groom(
+                    idx,
+                    &mut self.organisms,
+                    spatial,
+                    self.tick_count,
+                    &mut self.events,
+                );
             }
         } else if action == 17 {
             let sheltered = self.organisms[idx].near_shelter(&self.grid, &self.buildings);
@@ -2400,10 +2569,8 @@ impl Simulation {
         } else if action == 20 {
             let lid = self.organisms[idx].lineage_id.clone();
             let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
-            let kin: Vec<usize> = self
-                .organisms
-                .iter()
-                .enumerate()
+            let kin: Vec<usize> = spatial
+                .ordered_nearby(&self.organisms, sx, sy, 5)
                 .filter(|(i, o)| *i != idx && o.alive && o.lineage_id == lid)
                 .filter(|(_, o)| (o.x - sx).abs() + (o.y - sy).abs() <= 5.0)
                 .map(|(i, _)| i)
@@ -2436,10 +2603,8 @@ impl Simulation {
         } else if action == 21 {
             let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
             let my_vocab = self.organisms[idx].vocabulary.clone();
-            let listeners: Vec<usize> = self
-                .organisms
-                .iter()
-                .enumerate()
+            let listeners: Vec<usize> = spatial
+                .ordered_nearby(&self.organisms, sx, sy, 6)
                 .filter(|(i, o)| *i != idx && o.alive)
                 .filter(|(_, o)| (o.x - sx).abs() + (o.y - sy).abs() <= 6.0)
                 .map(|(i, _)| i)
@@ -2579,7 +2744,15 @@ impl Simulation {
         }
 
         verify_local_resource_memory(&mut self.organisms[idx], &self.grid, cx, cy);
-        verify_local_danger_memory(&mut self.organisms[idx], &self.grid, &self.animals, cx, cy);
+        verify_local_danger_memory(
+            &mut self.organisms[idx],
+            &self.grid,
+            &self.animals,
+            animal_spatial,
+            spatial_buf,
+            cx,
+            cy,
+        );
 
         if self.organisms[idx].carrying > 0 {
             self.organisms[idx].carrying -= 1;
@@ -2685,6 +2858,12 @@ impl Simulation {
             }
         }
 
+        if decision_origin.starts_with("boat_") {
+            if let Some(thought) = new_thought {
+                self.organisms[idx].think(&thought, self.tick_count);
+            }
+        }
+
         let shelter_drain_mult = if shelter_strength > 0.0 {
             (1.0 - shelter_strength * 0.35).max(0.65)
         } else {
@@ -2768,10 +2947,8 @@ impl Simulation {
         if self.organisms[idx].inv_water >= 2 && self.tick_count % 7 == (idx as u64 % 7) {
             let lid = self.organisms[idx].lineage_id.clone();
             let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
-            let recipient = self
-                .organisms
-                .iter()
-                .enumerate()
+            let recipient = spatial
+                .ordered_nearby(&self.organisms, sx, sy, 3)
                 .filter(|(i, o)| *i != idx && o.alive && o.lineage_id == lid && o.hydration < 0.30)
                 .filter(|(_, o)| (o.x - sx).abs() + (o.y - sy).abs() < 2.5)
                 .min_by(|a, b| {
@@ -2817,10 +2994,8 @@ impl Simulation {
             if near_fire {
                 let lid = self.organisms[idx].lineage_id.clone();
                 let (fx, fy) = (self.organisms[idx].x, self.organisms[idx].y);
-                let listener = self
-                    .organisms
-                    .iter()
-                    .enumerate()
+                let listener = spatial
+                    .ordered_nearby(&self.organisms, fx, fy, 4)
                     .filter(|(i, o)| *i != idx && o.alive && o.lineage_id == lid && o.age < 1800)
                     .filter(|(_, o)| (o.x - fx).abs() + (o.y - fy).abs() < 3.5)
                     .min_by_key(|(_, o)| o.age)
@@ -2878,10 +3053,8 @@ impl Simulation {
         if self.organisms[idx].energy > 0.75 && self.tick_count % 5 == (idx as u64 % 5) {
             let lid = self.organisms[idx].lineage_id.clone();
             let (sx, sy) = (self.organisms[idx].x, self.organisms[idx].y);
-            let recipient = self
-                .organisms
-                .iter()
-                .enumerate()
+            let recipient = spatial
+                .ordered_nearby(&self.organisms, sx, sy, 3)
                 .filter(|(i, o)| *i != idx && o.alive && o.lineage_id == lid && o.energy < 0.30)
                 .filter(|(_, o)| (o.x - sx).abs() + (o.y - sy).abs() < 2.5)
                 .min_by(|a, b| {
@@ -3114,15 +3287,20 @@ impl Simulation {
             }
         }
 
-        let att_adjustments: Vec<(usize, f32)> = self
-            .organisms
+        spatial.query_into(ox as i32, oy as i32, 6, spatial_buf);
+        spatial_buf.sort_unstable();
+        let att_adjustments: Vec<(usize, f32)> = spatial_buf
             .iter()
-            .enumerate()
-            .filter(|(i, o)| *i != idx && o.alive && o.lineage_id != lineage)
-            .filter(|(_, o)| (o.x - ox).abs() + (o.y - oy).abs() <= 4.0)
-            .map(|(i, o)| {
-                let att = self.organisms[idx].attitude_toward(&o.lineage_id);
-                (i, att)
+            .copied()
+            .filter(|&i| {
+                let o = &self.organisms[i];
+                i != idx && o.alive && o.lineage_id != lineage && (o.x - ox).abs() + (o.y - oy).abs() <= 4.0
+            })
+            .map(|i| {
+                (
+                    i,
+                    self.organisms[idx].attitude_toward(&self.organisms[i].lineage_id),
+                )
             })
             .collect();
         for (_, att) in &att_adjustments {
@@ -3152,12 +3330,21 @@ impl Simulation {
             }
         }
 
-        // Inline fold - no Vec allocation per organism per tick.
+        // The wellbeing reward uses the tick-start lineage snapshot. Reading
+        // every relative here makes dense lineages quadratic in population;
+        // a shared snapshot also avoids making the reward depend on which
+        // relative happened to act earlier in this tick. A lineage formed
+        // mid-tick has no snapshot yet, so use its live members once.
         let (kin_sum, kin_count) = self
-            .organisms
-            .iter()
-            .filter(|o| o.alive && o.lineage_id == lineage)
-            .fold((0.0f32, 0u32), |(s, n), o| (s + o.energy, n + 1));
+            .lineage_aggregates
+            .get(&lineage)
+            .map(|stats| (stats.energy_sum, stats.population))
+            .unwrap_or_else(|| {
+                living_lineage_members(&self.organisms, lineage_members, &lineage)
+                    .fold((0.0f32, 0usize), |(sum, count), org| {
+                        (sum + org.energy, count + 1)
+                    })
+            });
         if kin_count >= 3 && self.organisms[idx].energy > 0.4 {
             let avg = kin_sum / kin_count as f32;
             reward += 0.003 * (avg - 0.5).max(0.0);
@@ -3203,17 +3390,31 @@ impl Simulation {
             self.record_strategy_progress(&lineage_id, &strategy);
         }
 
-        let next_perception =
-            self.organisms[idx].perceive(&self.grid, &self.organisms, night, animal_near, spatial);
+        let next_perception = self.organisms[idx].perceive_into(
+            &self.grid,
+            &self.organisms,
+            night,
+            animal_near,
+            spatial,
+            perception_buf,
+        );
         let next_ix = self.organisms[idx].x as i32;
         let next_iy = self.organisms[idx].y as i32;
-        let next_available = crate::sim::actions::available_actions(self, idx, next_ix, next_iy, spatial);
+        crate::sim::actions::available_actions_into(
+            self,
+            idx,
+            next_ix,
+            next_iy,
+            spatial,
+            available_buf,
+            spatial_buf,
+        );
         self.organisms[idx].learn_with_available_actions(
             &perception,
             action,
             reward,
             &next_perception,
-            Some(&next_available),
+            Some(available_buf),
         );
 
         if self.organisms[idx].energy > 0.7 && self.organisms[idx].hydration > 0.7 {
@@ -3244,16 +3445,22 @@ impl Simulation {
             let thought = self.organisms[idx].thought.clone();
             if nearby_kin >= 1 && matches!(thought.as_str(), "exploring" | "observing" | "satisfied") {
                 self.organisms[idx].think("socializing", self.tick_count);
-                social::social_knowledge_share(idx, &mut self.organisms, self.tick_count, &mut self.rng);
+                social::social_knowledge_share(
+                    idx,
+                    &mut self.organisms,
+                    spatial,
+                    self.tick_count,
+                    &mut self.rng,
+                );
             } else if nearby_stranger_count >= 1
                 && matches!(
                     thought.as_str(),
                     "exploring" | "observing" | "satisfied" | "wary" | "coexisting peacefully"
                 )
             {
-                let nearest_lid: Option<String> = self
-                    .organisms
-                    .iter()
+                let nearest_lid: Option<String> = spatial
+                    .ordered_nearby(&self.organisms, ox, oy, 3)
+                    .map(|(_, o)| o)
                     .filter(|o| {
                         o.alive && o.lineage_id != lineage && (o.x - ox).abs() + (o.y - oy).abs() <= 3.0
                     })
@@ -3270,6 +3477,7 @@ impl Simulation {
                             social::social_knowledge_share(
                                 idx,
                                 &mut self.organisms,
+                                spatial,
                                 self.tick_count,
                                 &mut self.rng,
                             );
@@ -3287,14 +3495,8 @@ impl Simulation {
             let my_lid = self.organisms[idx].lineage_id.clone();
             let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
 
-            let unknown_lid: Option<String> = self
-                .organisms
-                .iter()
-                .filter(|o| o.alive && o.lineage_id != my_lid)
-                .filter(|o| (o.x - ox).abs() + (o.y - oy).abs() <= 5.0)
-                .filter(|o| !self.organisms[idx].lineage_attitudes.contains_key(&o.lineage_id))
-                .map(|o| o.lineage_id.clone())
-                .next();
+            let unknown_lid =
+                super::spatial::first_unknown_nearby_lineage(&self.organisms, idx, spatial, spatial_buf);
             if let Some(stranger_lid) = unknown_lid {
                 self.organisms[idx]
                     .lineage_attitudes
@@ -3316,10 +3518,7 @@ impl Simulation {
 
             let last_council = *self.lineage_last_council.get(&my_lid).unwrap_or(&0);
             if self.tick_count - last_council >= 6000 {
-                let (kin_sum, kin_count) = self
-                    .organisms
-                    .iter()
-                    .filter(|o| o.alive && o.lineage_id == my_lid)
+                let (kin_sum, kin_count) = living_lineage_members(&self.organisms, lineage_members, &my_lid)
                     .filter(|o| (o.x - ox).abs() + (o.y - oy).abs() <= 6.0)
                     .fold((0.0f32, 0u32), |(s, n), o| (s + o.energy, n + 1));
                 if kin_count >= 5 {
@@ -3328,7 +3527,11 @@ impl Simulation {
                         let (elder_name, elder_ctx) = {
                             if let Some(eid) = self.lineage_elders.get(&my_lid) {
                                 let eid = eid.clone();
-                                if let Some(e) = self.organisms.iter().find(|o| o.alive && o.id == eid) {
+                                if let Some(e) = org_idx_by_id
+                                    .get(&eid)
+                                    .map(|&i| &self.organisms[i])
+                                    .filter(|o| o.alive)
+                                {
                                     let ctx = format!(
                                         "age:{} gen:{} memories:{}",
                                         e.age,
@@ -3390,11 +3593,7 @@ impl Simulation {
                     && hydration > 0.85
                     && self.organisms[idx].think_ready("abundance", tick, 2400)
                 {
-                    let kin_count = self
-                        .organisms
-                        .iter()
-                        .filter(|o| o.alive && o.lineage_id == my_lid)
-                        .count();
+                    let kin_count = living_lineage_members(&self.organisms, lineage_members, &my_lid).count();
                     self.organisms[idx].mark_thought("abundance", tick);
                     self.push_think_for(
                         idx,
@@ -3413,15 +3612,15 @@ impl Simulation {
                 if self.organisms[idx].think_ready("threat", tick, 800) {
                     let (hostile_near, kin_near) = {
                         let org = &self.organisms[idx];
-                        let hostile = self
-                            .organisms
-                            .iter()
+                        let hostile = spatial
+                            .ordered_nearby(&self.organisms, ox2, oy2, 8)
+                            .map(|(_, o)| o)
                             .filter(|o| o.alive && o.lineage_id != org.lineage_id)
                             .filter(|o| (o.x - ox2).abs() + (o.y - oy2).abs() <= 8.0)
                             .any(|o| org.attitude_toward(&o.lineage_id) < -0.3);
-                        let kin = self
-                            .organisms
-                            .iter()
+                        let kin = spatial
+                            .ordered_nearby(&self.organisms, ox2, oy2, 8)
+                            .map(|(_, o)| o)
                             .filter(|o| o.alive && o.lineage_id == org.lineage_id)
                             .filter(|o| (o.x - ox2).abs() + (o.y - oy2).abs() <= 8.0)
                             .count();
@@ -3452,9 +3651,9 @@ impl Simulation {
                 let _ = last_think;
                 let (ox2, oy2) = (self.organisms[idx].x, self.organisms[idx].y);
                 let my_partner = self.organisms[idx].partner_id.clone();
-                let tempting = self
-                    .organisms
-                    .iter()
+                let tempting = spatial
+                    .ordered_nearby(&self.organisms, ox2, oy2, 4)
+                    .map(|(_, o)| o)
                     .find(|o| {
                         o.alive
                             && o.id != self.organisms[idx].id
@@ -3487,17 +3686,15 @@ impl Simulation {
                     let (ox2, oy2) = (self.organisms[idx].x, self.organisms[idx].y);
                     let my_id = self.organisms[idx].id.clone();
                     let my_sex = self.organisms[idx].sex;
-                    let partner = self
-                        .organisms
-                        .iter()
-                        .find(|o| {
-                            o.alive && o.id == partner_id && (o.x - ox2).abs() + (o.y - oy2).abs() <= 5.0
-                        })
+                    let partner = org_idx_by_id
+                        .get(&partner_id)
+                        .map(|&i| &self.organisms[i])
+                        .filter(|o| o.alive && (o.x - ox2).abs() + (o.y - oy2).abs() <= 5.0)
                         .map(|o| (o.name.clone(), o.x, o.y));
                     if let Some((partner_name, px, py)) = partner {
-                        let third = self
-                            .organisms
-                            .iter()
+                        let third = spatial
+                            .ordered_nearby(&self.organisms, px, py, 5)
+                            .map(|(_, o)| o)
                             .find(|o| {
                                 o.alive
                                     && o.id != my_id
@@ -3534,9 +3731,9 @@ impl Simulation {
                 let my_age = self.organisms[idx].age;
                 let my_eng = self.organisms[idx].energy;
                 if my_sex == Sex::Male && my_age > 1200 && my_eng > 0.4 {
-                    let rival = self
-                        .organisms
-                        .iter()
+                    let rival = spatial
+                        .ordered_nearby(&self.organisms, ox2, oy2, 6)
+                        .map(|(_, o)| o)
                         .find(|o| {
                             o.alive
                                 && o.id != my_id
@@ -3629,11 +3826,7 @@ impl Simulation {
                     (-6i32..=6).any(|ddy| self.grid.get(ox2 as i32 + ddx, oy2 as i32 + ddy) == Tile::Food)
                 });
                 if !food_nearby && self.tick_count - last_think_m >= 8000 {
-                    let kin_count = self
-                        .organisms
-                        .iter()
-                        .filter(|o| o.alive && o.lineage_id == my_lid)
-                        .count();
+                    let kin_count = living_lineage_members(&self.organisms, lineage_members, &my_lid).count();
                     self.organisms[idx].last_think_tick = self.tick_count;
                     self.push_think_for(
                         idx,
@@ -3715,7 +3908,13 @@ impl Simulation {
         }
 
         if self.organisms[idx].energy > 0.82 && self.tick_count - self.organisms[idx].last_fed_kin >= 180 {
-            social::share_food(idx, &mut self.organisms, self.tick_count, &mut self.events);
+            social::share_food(
+                idx,
+                &mut self.organisms,
+                spatial,
+                self.tick_count,
+                &mut self.events,
+            );
         }
 
         // Any organism with knowledge can teach nearby kin - not just elders.
@@ -3725,6 +3924,7 @@ impl Simulation {
             social::teach(
                 idx,
                 &mut self.organisms,
+                spatial,
                 self.tick_count,
                 &mut self.events,
                 &mut self.rng,
@@ -3793,11 +3993,17 @@ impl Simulation {
         }
 
         if let Some(ref pid) = self.organisms[idx].partner_id.clone() {
-            let partner_pos = self.organisms.iter().position(|o| &o.id == pid);
+            let partner_pos = org_idx_by_id.get(pid).copied();
             let dead = partner_pos.map(|p| !self.organisms[p].alive).unwrap_or(true);
             if dead {
                 let partner_name = partner_pos
                     .map(|p| self.organisms[p].name.clone())
+                    .or_else(|| {
+                        self.organisms
+                            .iter()
+                            .find(|o| &o.id == pid)
+                            .map(|o| o.name.clone())
+                    })
                     .unwrap_or_else(|| "partner".to_string());
                 let tc = self.tick_count;
                 let pid_owned = pid.clone();
@@ -3813,10 +4019,9 @@ impl Simulation {
             }
         }
         if let Some(ref aid) = self.organisms[idx].attracted_to.clone() {
-            let gone = !self
-                .organisms
-                .iter()
-                .any(|o| o.alive && &o.id == aid && o.partner_id.is_none());
+            let gone = !org_idx_by_id
+                .get(aid)
+                .is_some_and(|&i| self.organisms[i].alive && self.organisms[i].partner_id.is_none());
             if gone {
                 self.organisms[idx].attracted_to = None;
             }
@@ -3848,9 +4053,9 @@ impl Simulation {
             // across the entire map, defeating the cluster-breaking
             // work in spawn.rs / friend-seek.
             const MATE_SEEK_MAX_TILES: f32 = 80.0;
-            let target = self
-                .organisms
-                .iter()
+            let target = spatial
+                .ordered_nearby(&self.organisms, ox, oy, MATE_SEEK_MAX_TILES as i32)
+                .map(|(_, o)| o)
                 .filter(|o| o.alive && o.sex != my_sex && o.age > 1000 && o.partner_id.is_none())
                 .map(|o| {
                     let dist = (o.x - ox).hypot(o.y - oy);
@@ -3899,7 +4104,12 @@ impl Simulation {
             const FRIEND_SEEK_MAX_TILES: f32 = 60.0;
             let best = friend_ids
                 .iter()
-                .filter_map(|fid| self.organisms.iter().find(|o| o.alive && &o.id == fid))
+                .filter_map(|fid| {
+                    org_idx_by_id
+                        .get(fid)
+                        .map(|&i| &self.organisms[i])
+                        .filter(|o| o.alive)
+                })
                 .map(|o| (o, (o.x - ox).hypot(o.y - oy)))
                 .filter(|(_, d)| *d <= FRIEND_SEEK_MAX_TILES)
                 .min_by_key(|(_, d)| (*d * 10.0) as i32)
@@ -3909,14 +4119,16 @@ impl Simulation {
                 let short = &fname[..4.min(fname.len())];
                 self.organisms[idx].think(&format!("going to find {}", short), self.tick_count);
             }
-            // Prune dead friends from the list
-            let alive_ids: std::collections::HashSet<String> = self
-                .organisms
-                .iter()
-                .filter(|o| o.alive)
-                .map(|o| o.id.clone())
+            // Prune dead friends using the per-tick resident index.
+            let departed_friends: Vec<String> = self.organisms[idx]
+                .friends
+                .keys()
+                .filter(|id| !org_idx_by_id.get(*id).is_some_and(|&i| self.organisms[i].alive))
+                .cloned()
                 .collect();
-            self.organisms[idx].friends.retain(|id, _| alive_ids.contains(id));
+            for id in departed_friends {
+                self.organisms[idx].friends.remove(&id);
+            }
         }
 
         if is_unpartnered_adult
@@ -3925,10 +4137,8 @@ impl Simulation {
         {
             let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
             let my_sex = self.organisms[idx].sex;
-            let candidate = self
-                .organisms
-                .iter()
-                .enumerate()
+            let candidate = spatial
+                .ordered_nearby(&self.organisms, ox, oy, 120)
                 .find(|(i, o)| {
                     *i != idx
                         && o.alive
@@ -3957,12 +4167,16 @@ impl Simulation {
                 let aid = aid.clone();
                 let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
                 let attraction_age = tc.saturating_sub(self.organisms[idx].attraction_tick);
-                let partner_close = self
-                    .organisms
-                    .iter()
-                    .any(|o| o.alive && o.id == aid && (o.x - ox).hypot(o.y - oy) < 8.0);
+                let partner_close = org_idx_by_id.get(&aid).is_some_and(|&i| {
+                    let o = &self.organisms[i];
+                    o.alive && (o.x - ox).hypot(o.y - oy) < 8.0
+                });
                 if partner_close && attraction_age >= 150 && self.rng.random::<f32>() < 0.08 {
-                    if let Some(pi) = self.organisms.iter().position(|o| o.alive && o.id == aid) {
+                    if let Some(pi) = org_idx_by_id
+                        .get(&aid)
+                        .copied()
+                        .filter(|&i| self.organisms[i].alive)
+                    {
                         let pid = self.organisms[pi].id.clone();
                         let pname = self.organisms[pi].name.clone();
                         let oid = self.organisms[idx].id.clone();
@@ -4055,7 +4269,11 @@ impl Simulation {
             let pid = pid.clone();
             if tc % 19 == (idx as u64 % 19) && self.rng.random::<f32>() < 0.0018 {
                 let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
-                if let Some(pi) = self.organisms.iter().position(|o| o.alive && o.id == pid) {
+                if let Some(pi) = org_idx_by_id
+                    .get(&pid)
+                    .copied()
+                    .filter(|&i| self.organisms[i].alive)
+                {
                     if (self.organisms[pi].x - ox).hypot(self.organisms[pi].y - oy) < 8.0 {
                         let a_mood = derive_mood(&self.organisms[idx]);
                         let b_mood = derive_mood(&self.organisms[pi]);
@@ -4117,9 +4335,8 @@ impl Simulation {
                 let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
                 let chat_target: Option<usize> = {
                     let partner_id = self.organisms[idx].partner_id.clone();
-                    self.organisms
-                        .iter()
-                        .enumerate()
+                    spatial
+                        .ordered_nearby(&self.organisms, ox, oy, 6)
                         .filter(|(i, o)| {
                             *i != idx
                                 && o.alive
@@ -4215,10 +4432,8 @@ impl Simulation {
                                 *cur = (*cur + sentiment * 0.3).clamp(-1.0, 1.0);
                             }
                         }
-                        let bystanders: Vec<usize> = self
-                            .organisms
-                            .iter()
-                            .enumerate()
+                        let bystanders: Vec<usize> = spatial
+                            .ordered_nearby(&self.organisms, ox, oy, 5)
                             .filter(|(j, o)| {
                                 *j != idx && *j != ci && o.alive && (o.x - ox).abs() + (o.y - oy).abs() <= 5.0
                             })
@@ -4657,7 +4872,7 @@ impl Simulation {
         }
     }
 
-    fn tick_animals(&mut self) {
+    fn tick_animals(&mut self, org_idx_by_id: &FxHashMap<String, usize>) {
         // Passive respawn floor. Without this, a transient extinction
         // (drought + hunting + wolves eating prey then starving) leaves
         // the world animal-less forever, since reproduction requires
@@ -4692,21 +4907,45 @@ impl Simulation {
 
         use crate::world::tiles::Biome;
 
-        let org_pos: Vec<(f32, f32)> = self
-            .organisms
-            .iter()
-            .filter(|o| o.alive)
-            .map(|o| (o.x, o.y))
-            .collect();
+        // Animals only react to people within their chase/flee radius. Build
+        // this after human movement, then reuse the query buffers for every
+        // animal instead of scanning the entire population for each one.
+        let human_spatial = SpatialIndex::build(&self.organisms, 10);
+        let mut human_candidates = Vec::with_capacity(32);
+        let mut nearby_humans = Vec::with_capacity(32);
+        let mut wolf_candidates = Vec::with_capacity(32);
 
-        let prey_pos_for_chase: Vec<(f32, f32)> = self
-            .animals
-            .iter()
-            .filter(|a| a.alive && matches!(a.kind, AnimalKind::Rabbit | AnimalKind::Deer))
-            .map(|a| (a.x, a.y))
-            .collect();
+        let mut prey_pos_for_chase: Vec<(f32, f32)> = Vec::new();
+        let mut wolf_pos_for_flee: Vec<(f32, f32)> = Vec::new();
+        for animal in self.animals.iter().filter(|animal| animal.alive) {
+            match animal.kind {
+                AnimalKind::Rabbit | AnimalKind::Deer => prey_pos_for_chase.push((animal.x, animal.y)),
+                AnimalKind::Wolf => wolf_pos_for_flee.push((animal.x, animal.y)),
+                _ => {}
+            }
+        }
         for animal in &mut self.animals {
-            animal.tick(&self.grid, &org_pos, &prey_pos_for_chase, &mut self.rng);
+            let human_radius = if animal.kind.predator() {
+                20
+            } else {
+                animal.kind.flee_radius().ceil() as i32
+            };
+            nearby_human_positions(
+                &self.organisms,
+                &human_spatial,
+                animal.x,
+                animal.y,
+                human_radius,
+                &mut human_candidates,
+                &mut nearby_humans,
+            );
+            animal.tick(
+                &self.grid,
+                &nearby_humans,
+                &prey_pos_for_chase,
+                &wolf_pos_for_flee,
+                &mut self.rng,
+            );
         }
 
         let prey_positions: Vec<(usize, f32, f32, AnimalKind)> = self
@@ -4756,7 +4995,9 @@ impl Simulation {
             if a.energy >= 0.4 {
                 continue;
             }
-            for (oi, o) in self.organisms.iter().enumerate() {
+            ordered_human_candidates(&human_spatial, a.x, a.y, 3, &mut wolf_candidates);
+            for &oi in &wolf_candidates {
+                let o = &self.organisms[oi];
                 if !o.alive || o.energy < 0.7 {
                     continue;
                 }
@@ -4804,12 +5045,11 @@ impl Simulation {
             if let Some(bid) = bonded {
                 let (ax, ay) = (self.animals[ai].x, self.animals[ai].y);
                 let mut owner_idx: Option<usize> = None;
-                if let Some((oi, o)) = self
-                    .organisms
-                    .iter()
-                    .enumerate()
-                    .find(|(_, o)| o.alive && o.id == bid)
-                {
+                if let Some(oi) = org_idx_by_id.get(&bid).copied() {
+                    let o = &self.organisms[oi];
+                    if !o.alive || o.id != bid {
+                        continue;
+                    }
                     let dist = (o.x - ax).abs() + (o.y - ay).abs();
                     if dist > 3.0 {
                         let dx = (o.x - ax).signum();
@@ -4841,15 +5081,17 @@ impl Simulation {
                 continue;
             }
             let (ax, ay) = (a.x, a.y);
-            for (oi, o) in self.organisms.iter().enumerate() {
+            ordered_human_candidates(&human_spatial, ax, ay, 3, &mut wolf_candidates);
+            for &oi in &wolf_candidates {
+                let o = &self.organisms[oi];
                 if !o.alive {
                     continue;
                 }
                 let manh = (o.x - ax).abs() + (o.y - ay).abs();
                 if manh <= 1.5 {
-                    let kin_nearby = self
-                        .organisms
+                    let kin_nearby = wolf_candidates
                         .iter()
+                        .map(|&index| &self.organisms[index])
                         .filter(|k| k.alive && k.id != o.id && k.lineage_id == o.lineage_id)
                         .filter(|k| (k.x - ax).abs() + (k.y - ay).abs() <= 3.0)
                         .count();
@@ -5150,7 +5392,14 @@ impl Simulation {
     }
 
     fn apply_water_fatigue(&mut self, idx: usize, x: i32, y: i32) {
-        if self.grid.get(x, y) != Tile::Water {
+        if self.grid.get(x, y) != Tile::Water
+            || self.vehicles.iter().any(|v| {
+                v.kind == super::transportation::TransportKind::Boat
+                    && v.x == x
+                    && v.y == y
+                    && v.occupants.first() == Some(&self.organisms[idx].id)
+            })
+        {
             self.organisms[idx].water_ticks = 0;
             return;
         }

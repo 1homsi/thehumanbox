@@ -222,7 +222,7 @@ impl Simulation {
                 true
             }
             Command::Ignite { x, y, radius } => {
-                let r = radius.clamp(0, 12);
+                let r = radius.clamp(0, 21);
                 for dx in -r..=r {
                     for dy in -r..=r {
                         if dx * dx + dy * dy > r * r {

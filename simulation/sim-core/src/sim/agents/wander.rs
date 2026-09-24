@@ -2,11 +2,61 @@ use rand::RngExt;
 
 use crate::sim::config::{lineage_overcrowding_threshold, DEFAULT_MAX_POPULATION};
 use crate::sim::simulation::Simulation;
+use crate::sim::spatial::SpatialIndex;
 use crate::world::grid::{HEIGHT, WIDTH};
 use crate::world::tiles::Tile;
+use rustc_hash::FxHashMap;
 
 impl Simulation {
-    pub(crate) fn validate_or_assign_wander_target(&mut self, idx: usize) {
+    pub(crate) fn validate_or_assign_wander_target_indexed(
+        &mut self,
+        idx: usize,
+        spatial: &SpatialIndex,
+        lineage_members: &FxHashMap<String, Vec<usize>>,
+    ) {
+        self.validate_or_assign_wander_target(idx, Some((spatial, lineage_members)));
+    }
+
+    pub(crate) fn validate_or_assign_wander_target(
+        &mut self,
+        idx: usize,
+        indexed: Option<(&SpatialIndex, &FxHashMap<String, Vec<usize>>)>,
+    ) {
+        if let Some(journey) = self.organisms[idx].journey.clone() {
+            let org = &self.organisms[idx];
+            let distance = (journey.target.0 - org.x as i32)
+                .abs()
+                .max((journey.target.1 - org.y as i32).abs());
+            let arrived = distance <= 2;
+            let expired = self.tick_count >= journey.expires_at;
+            let invalid = !self.grid.get(journey.target.0, journey.target.1).walkable();
+            if arrived || expired || invalid {
+                let org = &mut self.organisms[idx];
+                org.journey = None;
+                org.wander_target = None;
+                if arrived {
+                    org.boredom *= 0.4;
+                    org.curiosity_drive *= 0.5;
+                    org.log_life(
+                        self.tick_count,
+                        "life",
+                        format!("arrived after {}", journey.description),
+                    );
+                    org.think("looking around a new place", self.tick_count);
+                } else {
+                    org.log_life(
+                        self.tick_count,
+                        "life",
+                        format!("ended journey: {}", journey.description),
+                    );
+                }
+                return;
+            }
+            // Keep an interrupted journey's destination until it completes;
+            // incidental needs may otherwise replace the wander suggestion.
+            self.organisms[idx].wander_target = Some(journey.target);
+            return;
+        }
         if let Some((tx, ty)) = self.organisms[idx].wander_target {
             if !self.is_good_land_target(tx, ty) {
                 self.organisms[idx].wander_target = None;
@@ -28,12 +78,10 @@ impl Simulation {
         let mut sumx = 0.0f32;
         let mut sumy = 0.0f32;
         let mut count = 0u32;
-        for o in &self.organisms {
-            if !o.alive || o.id == self.organisms[idx].id {
-                continue;
-            }
-            if o.lineage_id != lid {
-                continue;
+        let my_id = &self.organisms[idx].id;
+        let mut visit = |o: &crate::organism::organism::Organism| {
+            if !o.alive || o.id == *my_id || o.lineage_id != lid {
+                return;
             }
             let d = (o.x - mx).abs() + (o.y - my).abs();
             if d <= 8.0 {
@@ -41,15 +89,35 @@ impl Simulation {
                 sumy += o.y;
                 count += 1;
             }
+        };
+        if let Some((spatial, _)) = indexed {
+            for (_, o) in spatial.ordered_nearby(&self.organisms, mx, my, 8) {
+                visit(o);
+            }
+        } else {
+            for o in &self.organisms {
+                visit(o);
+            }
         }
         if count >= 2 {
             let curiosity = self.organisms[idx].traits.curiosity;
             let age = self.organisms[idx].age;
-            let lineage_total = self
-                .organisms
-                .iter()
-                .filter(|o| o.alive && o.lineage_id == lid)
-                .count();
+            let lineage_total = if let Some((_, lineage_members)) = indexed {
+                lineage_members
+                    .get(&lid)
+                    .into_iter()
+                    .flatten()
+                    .filter(|&&member_idx| {
+                        let o = &self.organisms[member_idx];
+                        o.alive && o.lineage_id == lid
+                    })
+                    .count()
+            } else {
+                self.organisms
+                    .iter()
+                    .filter(|o| o.alive && o.lineage_id == lid)
+                    .count()
+            };
             let population_limit = self.population_limit();
             let overcrowded = lineage_total >= lineage_overcrowding_threshold(population_limit);
             let fork_eligible = age >= 700 && curiosity >= 0.40 && count >= 4;
@@ -92,8 +160,7 @@ impl Simulation {
             let tx = tx.clamp(5, WIDTH as i32 - 5);
             let ty = ty.clamp(5, HEIGHT as i32 - 5);
             if self.is_good_land_target(tx, ty) {
-                self.organisms[idx].wander_target = Some((tx, ty));
-                self.organisms[idx].think("seeking elbow room", self.tick_count);
+                self.organisms[idx].begin_journey((tx, ty), "seeking open land", self.tick_count);
                 return;
             }
         }
@@ -124,12 +191,7 @@ impl Simulation {
         let min_dist = 60 + (curiosity * 90.0) as i32;
         let max_dist = 250 + (curiosity * 400.0) as i32;
         if let Some(target) = self.find_distant_land_target(x, y, min_dist, max_dist) {
-            self.organisms[idx].wander_target = Some(target);
-            self.organisms[idx].think("planning expedition", self.tick_count);
-            self.organisms[idx].log_event(format!(
-                "set out toward distant land at ({},{})",
-                target.0, target.1
-            ));
+            self.organisms[idx].begin_journey(target, "exploring distant land", self.tick_count);
         }
     }
 

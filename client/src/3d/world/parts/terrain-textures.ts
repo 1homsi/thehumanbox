@@ -1,6 +1,6 @@
 import { ClampToEdgeWrapping, DataTexture, LinearFilter, LinearMipMapLinearFilter, RGBAFormat } from 'three'
 import { BIOME_ID } from '../../../world/terrain-ids'
-const TILE = 1024
+const TILE = 256
 const ATLAS = TILE * 2
 
 let _cache: { color: DataTexture; bump: DataTexture } | null = null

@@ -385,44 +385,10 @@ function collectFeatures(
     }
   }
 
-  // Town halls: one large landmark per cluster of 5+ huts
+  // Buildings are authoritative simulation entities, never inferred from hut clusters.
   const town_halls: [number, number, number][] = []
-  const usedForTH = new Set<number>()
-  for (let i = 0; i < huts.length; i++) {
-    if (usedForTH.has(i)) continue
-    const [hx, hy, hz] = huts[i]
-    const cluster = [i]
-    for (let j = i + 1; j < huts.length; j++) {
-      if (usedForTH.has(j)) continue
-      const ddx = hx - huts[j][0]
-      const ddz = hz - huts[j][2]
-      if (ddx * ddx + ddz * ddz < 1764) cluster.push(j) // within 42 world units
-    }
-    if (cluster.length >= 5) {
-      const cx = cluster.reduce((s, k) => s + huts[k][0], 0) / cluster.length
-      const cz = cluster.reduce((s, k) => s + huts[k][2], 0) / cluster.length
-      town_halls.push([cx, hy, cz])
-      cluster.forEach((k) => usedForTH.add(k))
-    }
-  }
-
-  // Market stalls: one per campfire, offset to the side
   const stall_awnings: [number, number, number][] = []
   const stall_posts: [number, number, number][] = []
-  for (let i = 0; i < campfires.length; i++) {
-    const [cx, cy, cz] = campfires[i]
-    const angle = ((i * 137) % 360) * (Math.PI / 180)
-    const dist = 4.8
-    const sx = cx + Math.cos(angle) * dist
-    const sz = cz + Math.sin(angle) * dist
-    stall_awnings.push([sx, cy, sz])
-    stall_posts.push(
-      [sx - 1.4, cy, sz - 0.95],
-      [sx + 1.4, cy, sz - 0.95],
-      [sx - 1.4, cy, sz + 0.95],
-      [sx + 1.4, cy, sz + 0.95],
-    )
-  }
 
   return {
     trees,

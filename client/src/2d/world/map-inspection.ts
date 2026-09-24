@@ -56,10 +56,26 @@ export function inspectWorldTile(world: WorldState, x: number, y: number): TileI
   if (building) {
     const state = getBuildingState(building)
     result.title = building.kind.replace(/([a-z])([A-Z])/g, '$1 $2')
-    result.details = [
-      `${state.phase} · ${Math.round(state.integrity * 100)}% integrity`,
-      `${Math.round(state.constructionProgress * 100)}% built`,
-    ]
+    const condition = state.isRuined
+      ? state.integrity > 0.08
+        ? `Rebuilding · ${Math.round(state.integrity * 100)}% restored`
+        : 'Ruins · awaiting a funded rebuilding crew'
+      : !state.isComplete
+        ? `Under construction · ${Math.round(state.constructionProgress * 100)}% built`
+        : state.isRepairing
+          ? `Under repair · ${Math.round(state.integrity * 100)}% intact`
+          : state.isDamaged
+            ? `Weathered · ${Math.round(state.integrity * 100)}% intact`
+            : 'Standing · in good condition'
+    result.details = [condition]
+    const lineage = building.owner_lineage ?? building.lineage_id
+    if (lineage) result.details.push(`Belongs to ${world.lineage_names?.[lineage] ?? lineage}`)
+    if (building.occupants?.length) {
+      result.details.push(
+        `${building.occupants.length} ${state.isComplete ? 'occupants' : 'builders on site'}`,
+      )
+    }
+    if (state.isRuined) result.details.push('Rebuilding reuses the existing footprint')
     const kind = building.kind.toLowerCase()
     if (state.isOperational) {
       if (['forge', 'smithy', 'workshop'].includes(kind))

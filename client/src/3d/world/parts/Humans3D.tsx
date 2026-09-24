@@ -34,18 +34,20 @@ interface Props {
 // Cull radius for full skinned-mesh AnimatedFigure rendering. Past
 // this distance we drop to an InstancedMesh capsule LOD - one draw
 // call total for the entire far cohort.
-const NEAR_RADIUS_SQ = 280 * 280
+const NEAR_RADIUS_SQ = 120 * 120
 // Distance at which the AnimationMixer keeps ticking. Slightly tighter
 // than NEAR so animation work also drops off before the mesh swap.
-const ANIMATE_RADIUS_SQ = 220 * 220
+const ANIMATE_RADIUS_SQ = 90 * 90
 // Hard cap on full skinned-mesh figures regardless of camera distance.
 // Bounds worst-case CPU when the camera flies over a dense settlement.
-const MAX_SKINNED = LOW_PERF ? 36 : 80
+const MAX_SKINNED = LOW_PERF ? 16 : 32
 
 // Data-driven: organism is inside their home when they're genuinely at rest
 // Uses actual numeric fields - sleep_debt, energy - not thought text
 function isInsideHouse(o: OrganismState): boolean {
-  if (!o.home_x || !o.home_y) return false
+  if (o.home_x == null || o.home_y == null) return false
+  const [vx, vy] = getOrgVelocityXY(o.id)
+  if (Math.hypot(vx, vy) > 0.002) return false
   const dx = o.x - o.home_x
   const dy = o.y - o.home_y
   if (dx * dx + dy * dy >= 2.0) return false // not at home tile
@@ -56,15 +58,14 @@ function isInsideHouse(o: OrganismState): boolean {
 // Animation selected from actual organism state - fields first, thought text as weak fallback
 function pickAnim(o: OrganismState, isMoving: boolean): string {
   if (!o.alive) return 'Death'
+  // Locomotion wins while the body is actually translating. A tired or sick
+  // traveler must not slide across the terrain in a seated pose.
+  if (isMoving) return (o.fear_level ?? 0) > 0.8 ? 'Running' : 'Walking'
 
   // Hard data overrides first
   if ((o.sleep_debt ?? 0) > 0.55 || o.energy < 0.08 || o.health < 0.12) return 'Sitting' // exhausted / incapacitated
   if (o.grief_ticks && o.grief_ticks > 10) return 'Sitting' // grief - subdued posture
-  if ((o.fear_level ?? 0) > 0.8 && isMoving) return 'Running' // flight response from actual fear field
   if (o.infection > 0.55) return 'Sitting' // very sick → collapsed
-
-  // Trait-influenced: highly aggressive organism swings more
-  if ((o.traits?.aggression ?? 0) > 0.85 && isMoving) return 'Running'
 
   if (!isMoving) {
     const work = workAnimFromThought(o.thought || '')
@@ -93,7 +94,6 @@ function pickAnim(o: OrganismState, isMoving: boolean): string {
   if (t.includes('praising') || t.includes('blessing') || t.includes('coming-of-age')) return 'ThumbsUp'
   if (t.includes('yes')) return 'Yes'
   if (t.includes('no ')) return 'No'
-  if (t.includes('flee') || t.includes('raid') || t.includes('ambush')) return 'Running'
   if (t.includes('rest') || t.includes('sit') || t.includes('meditat')) return 'Sitting'
 
   return isMoving ? 'Walking' : 'Idle'
@@ -211,7 +211,16 @@ function buildHumanoidLodGeometry(): CapsuleGeometry {
   const armR = armL.clone()
   armR.translate(0.4, 0, 0)
   const merged = mergeGeometries([torso, head, legL, legR, armL, armR])
-  if (merged) merged.computeVertexNormals()
+  for (const part of [torso, head, legL, legR, armL, armR]) part.dispose()
+  if (merged) {
+    // Match the detailed figure's ground origin and 2.6-unit body height.
+    merged.computeBoundingBox()
+    const bounds = merged.boundingBox!
+    const factor = 2.6 / (bounds.max.y - bounds.min.y)
+    merged.translate(0, -bounds.min.y, 0)
+    merged.scale(factor, factor, factor)
+    merged.computeVertexNormals()
+  }
   return (merged ?? new CapsuleGeometry(0.18, 0.55, 4, 6)) as unknown as CapsuleGeometry
 }
 
@@ -245,20 +254,14 @@ function FarHumans({
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
   }, [count])
 
-  useFrame(({ clock }) => {
+  useFrame(() => {
     const mesh = meshRef.current
     if (!mesh) return
-    const t = clock.getElapsedTime()
     for (let i = 0; i < count; i++) {
       const o = organisms[i]
       const [tx, ty] = getOrgXY(o.id)
-      const [vx, vy] = getOrgVelocityXY(o.id)
-      const speed = Math.sqrt(vx * vx + vy * vy)
       const groundY = heightAt(tx, ty, depthMap, biomes)
-      const idHash = o.id ? o.id.charCodeAt(0) * 13 + o.id.charCodeAt(o.id.length - 1) : 0
-      const phase = idHash * 0.1
-      const bob = speed > 0.02 ? Math.abs(Math.sin(t * 12 + phase)) * Math.min(0.06, speed * 1.4) : 0
-      _pos.set(tx * TILE_SCALE, groundY + 0.45 + bob, ty * TILE_SCALE)
+      _pos.set(tx * TILE_SCALE, groundY, ty * TILE_SCALE)
       _euler.set(0, getOrgHeading(o.id), 0)
       _quat.setFromEuler(_euler)
       // Same per-org scale as the skinned figures so nothing snaps at the
@@ -331,7 +334,11 @@ export function Humans3D({ organisms, depthMap, biomes, lineageEras, sandboxArme
     }
     // Enforce a hard cap on skinned figures: keep the closest
     // MAX_SKINNED, demote the rest to the far cohort.
-    ranked.sort((a, b) => a.d - b.d)
+    ranked.sort((a, b) => {
+      if (a.o.id === selectedOrgId) return -1
+      if (b.o.id === selectedOrgId) return 1
+      return a.d - b.d
+    })
     for (let i = 0; i < ranked.length; i++) {
       if (i < MAX_SKINNED) near.push(ranked[i].o)
       else far.push(ranked[i].o)
@@ -416,6 +423,10 @@ export function Humans3D({ organisms, depthMap, biomes, lineageEras, sandboxArme
               getHeading={() => getOrgHeading(o.id)}
               scale={scale}
               animation={pickAnim(o, moving)}
+              getAnimation={() => {
+                const [vx, vy] = getOrgVelocityXY(o.id)
+                return pickAnim(o, Math.hypot(vx, vy) > 0.002)
+              }}
               animate={animate}
               timeScale={timeScale}
               attentionYaw={attentionById.get(o.id)}

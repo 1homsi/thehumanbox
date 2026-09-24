@@ -31,6 +31,7 @@ interface P {
   night: number
   cond: number
   kind: string
+  variant: number
 }
 
 function px(ctx: Ctx, x: number, y: number, w: number, h: number, c: string) {
@@ -158,15 +159,21 @@ function cracks(p: P, x: number, y: number, w: number, h: number) {
 
 function paintHut(p: P) {
   const { x0, y1, w, h } = p
-  const wallH = h * 0.52
+  // Low thatched dwellings, with timber and mud-plaster variants. Keeping
+  // the roof squat prevents a one-tile hut from swallowing the row behind it.
+  const timber = p.variant % 3 === 1
+  const wallH = h * 0.42
   const cx = x0 + w / 2
   const rw = w * 0.92
-  px(p.ctx, cx - rw / 2, y1 - wallH, rw, wallH, '#9c7a52')
+  px(p.ctx, cx - rw / 2, y1 - wallH, rw, wallH, timber ? '#806346' : '#b59b70')
   px(p.ctx, cx - rw / 2, y1 - wallH, rw, 1, '#b08a5e')
   px(p.ctx, cx - rw / 2, y1 - 2, rw, 2, '#7a5e3e')
   outline(p.ctx, cx - rw / 2, y1 - wallH, rw, wallH)
   const thatch = hueShift('#b89a4a', (p.rng() - 0.5) * 24, 1, 0.94 + p.rng() * 0.12)
-  const rh = h * 0.62
+  if (timber) {
+    for (let row = 2; row < wallH; row += 3) px(p.ctx, cx - rw / 2, y1 - row, rw, 1, '#54422f')
+  }
+  const rh = h * (p.variant % 3 === 2 ? 0.3 : 0.4)
   p.ctx.fillStyle = thatch
   p.ctx.beginPath()
   p.ctx.moveTo(cx - rw / 2 - 2, y1 - wallH + 0.5)
@@ -217,21 +224,27 @@ function paintTent(p: P) {
 
 function paintCottage(p: P) {
   const { x0, y1, w, h, rng } = p
-  const wallH = h * 0.55
+  const style = p.variant % 3
+  const wallH = h * (style === 1 ? 0.48 : 0.55)
   const wallY = y1 - wallH
-  const base = hueShift('#a6845a', (rng() - 0.5) * 18, 1, 0.92 + rng() * 0.18)
+  const wallColors = ['#c4b38d', '#9e987e', '#ac8962']
+  const roofColors = ['#874b32', '#565e58', '#a58c4d']
+  const base = hueShift(wallColors[style], (rng() - 0.5) * 12, 1, 0.95 + rng() * 0.1)
   wallTexture(p, x0, wallY, w, wallH, base)
-  if (rng() < 0.55) timberFrame(p, x0, wallY, w, wallH)
+  if (style === 0) timberFrame(p, x0, wallY, w, wallH)
   outline(p.ctx, x0, wallY, w, wallH)
-  const roof = hueShift('#7a3a20', (rng() - 0.5) * 30, 1, 0.9 + rng() * 0.2)
-  gableRoof(p, x0, wallY, w, h * 0.5, roof)
-  chimney(p, rng() < 0.5 ? x0 + 3 : x0 + w - 6, wallY - h * 0.18, 7)
-  door(p, x0 + w * (0.3 + rng() * 0.4), y1, Math.max(3, w * 0.16), wallH * 0.62)
-  const nWin = Math.max(1, Math.floor(w / 12))
-  for (let i = 0; i < nWin; i++) {
-    const wx = x0 + 3 + (i * (w - 8)) / Math.max(1, nWin - 1 || 1)
-    windowGlow(p, Math.min(wx, x0 + w - 6), wallY + wallH * 0.3, 3, 3)
-  }
+  const roof = hueShift(roofColors[style], (rng() - 0.5) * 12)
+  gableRoof(p, x0, wallY, w, h * (style === 1 ? 0.32 : 0.4), roof)
+  chimney(p, style === 2 ? x0 + 3 : x0 + w - 5, wallY - h * 0.18, 6)
+  // Put the entrance and window in separate bays even at the smallest scale.
+  const doorX = x0 + w * (style === 1 ? 0.7 : 0.3)
+  const windowX = x0 + w * (style === 1 ? 0.2 : 0.66)
+  door(p, doorX, y1, Math.max(3, w * 0.16), wallH * 0.62)
+  windowGlow(p, windowX, wallY + wallH * 0.26, 3, 3)
+  px(p.ctx, windowX - 1, wallY + wallH * 0.26, 1, 3, '#584e38')
+  px(p.ctx, windowX + 3, wallY + wallH * 0.26, 1, 3, '#584e38')
+  // Doorstep sits inside the footprint, leaving neighboring streets clear.
+  px(p.ctx, doorX - 2, y1 - 1, 4, 1, '#ada48a')
   cracks(p, x0, wallY, w, wallH)
 }
 
@@ -300,6 +313,80 @@ function paintManor(p: P) {
     windowGlow(p, wx, wallY + wallH * 0.32, 3, 5)
   }
   cracks(p, x0, wallY, w, wallH)
+}
+
+// Different rooflines and materials, not just recolors. The stable building ID
+// selects a plan once; day/night and damage never change its architecture.
+function paintDwelling(p: P) {
+  const plan = p.variant % 4
+  if (plan === 0) {
+    paintCottage(p)
+    return
+  }
+  const { x0, y1, w, h } = p
+  const wallH = h * (plan === 3 ? 0.7 : 0.5)
+  const top = y1 - wallH
+  const base = plan === 1 ? '#d0b994' : plan === 2 ? '#998775' : '#dfd1ac'
+  wallTexture(p, x0, top, w, wallH, base)
+  outline(p.ctx, x0, top, w, wallH)
+  if (plan === 1) {
+    // Low plaster courtyard home with a flat parapet and a shaded porch.
+    px(p.ctx, x0 - 1, top - 3, w + 2, 4, '#ab8f68')
+    px(p.ctx, x0, top - 3, w, 1, '#ead9b7')
+    px(p.ctx, x0 + w * 0.52, y1 - wallH * 0.55, w * 0.48 + 2, 3, '#785538')
+    px(p.ctx, x0 + w - 1, y1 - wallH * 0.55, 1, wallH * 0.55, '#67452d')
+  } else if (plan === 2) {
+    // Broad stone house with a slate hip roof.
+    hipRoof(p, x0, top, w, h * 0.34, '#586570')
+    chimney(p, x0 + w - 7, top - h * 0.2, 6)
+    for (let row = top + 4; row < y1; row += 4) px(p.ctx, x0 + 1, row, w - 2, 1, '#7c7065')
+  } else {
+    // Tall timber home with an overhanging upper floor.
+    timberFrame(p, x0, top, w, wallH)
+    px(p.ctx, x0 - 1, top + wallH * 0.5, w + 2, 2, '#60432e')
+    gableRoof(p, x0, top, w, h * 0.32, '#904b36')
+    windowGlow(p, x0 + w * 0.48, top + 3, 3, 4)
+  }
+  door(p, x0 + w * 0.35, y1, Math.max(3, w * 0.16), wallH * 0.6)
+  windowGlow(p, x0 + w * 0.7, top + wallH * 0.55, 3, 3)
+  cracks(p, x0, top, w, wallH)
+}
+
+function paintEarlyHome(p: P) {
+  if (p.variant % 3 === 0) {
+    paintHut(p)
+    return
+  }
+  const { x0, y1, w, h } = p
+  const top = y1 - h * 0.48
+  const turf = p.variant % 3 === 2
+  wallTexture(p, x0, top, w, y1 - top, turf ? '#8c8971' : '#886040')
+  if (!turf) {
+    for (let y = top + 3; y < y1; y += 3) px(p.ctx, x0 - 1, y, w + 2, 1, '#513922')
+  }
+  gableRoof(p, x0, top, w, h * 0.38, turf ? '#63784b' : '#9e8150')
+  door(p, x0 + w * 0.5, y1, Math.max(3, w * 0.25), h * 0.3)
+  cracks(p, x0, top, w, y1 - top)
+}
+
+function paintFortress(p: P) {
+  if (p.variant % 3 === 0) {
+    paintCastle(p)
+    return
+  }
+  const { x0, y1, w, h } = p
+  const keepW = w * 0.48
+  const keepX = x0 + (w - keepW) / 2
+  const keepY = y1 - h * 0.9
+  const stone = p.variant % 3 === 1 ? '#b8aa8e' : '#778592'
+  wallTexture(p, keepX, keepY, keepW, h * 0.9, stone)
+  outline(p.ctx, keepX, keepY, keepW, h * 0.9)
+  if (p.variant % 3 === 1) crenellation(p, keepX, keepY, keepW, '#8e826b')
+  else hipRoof(p, keepX, keepY, keepW, h * 0.16, '#454e6c')
+  windowGlow(p, keepX + keepW * 0.25, keepY + 5, 3, 5)
+  windowGlow(p, keepX + keepW * 0.68, keepY + 5, 3, 5)
+  // The low outer curtain keeps the tall inner keep legible.
+  paintCastle({ ...p, h: h * 0.58 })
 }
 
 function paintTemple(p: P) {
@@ -622,7 +709,8 @@ function paintFarm(p: P) {
 function paintModern(p: P) {
   const { x0, y1, w, h, rng, kind } = p
   const tall = kind === 'Skyscraper' || kind === 'OfficeTower' || kind === 'Apartment'
-  const bh = tall ? Math.min(h + 16, y1 - 8) : h * 0.85
+  const heightVariant = 0.72 + (p.variant % 4) * 0.08
+  const bh = tall ? Math.min((h + 16) * heightVariant, y1 - 8) : h * 0.85
   const by = y1 - bh
   const base =
     kind === 'Hospital' || kind === 'Hospital2' || kind === 'Clinic'
@@ -659,6 +747,16 @@ function paintModern(p: P) {
   if (kind === 'Hospital' || kind === 'Hospital2' || kind === 'Clinic') {
     px(p.ctx, x0 + w / 2 - 1, by + 2, 2, 6, '#c83030')
     px(p.ctx, x0 + w / 2 - 3, by + 4, 6, 2, '#c83030')
+  }
+  if (kind === 'Apartment') {
+    for (let y = by + 12; y < y1 - 7; y += 12) {
+      px(p.ctx, x0 + 1, y, w - 2, 2, '#bbc0bb')
+      px(p.ctx, x0 + 2, y - 2, w - 4, 1, '#4a525b')
+    }
+  }
+  if (kind === 'Skyscraper' && p.variant % 2 === 0) {
+    px(p.ctx, x0 + w * 0.4, by - 6, w * 0.2, 5, '#718393')
+    px(p.ctx, x0 + w / 2, by - 12, 1, 7, '#a9b9c8')
   }
   door(p, x0 + w / 2, y1, Math.max(4, w * 0.14), 6, '#2c3440')
 }
@@ -909,6 +1007,111 @@ function paintProp(p: P): boolean {
   }
 }
 
+function paintLandscape(p: P) {
+  const { x0, y1, w, h, kind } = p
+  const top = y1 - h * 0.35
+  const water = ['Pond', 'Reservoir', 'Aquaculture', 'Fountain'].includes(kind)
+  px(p.ctx, x0, top, w, h * 0.35, water ? '#497e98' : kind === 'Plaza' ? '#aaa08b' : '#637b45')
+  outline(p.ctx, x0, top, w, h * 0.35)
+  if (water) {
+    for (let i = 0; i < 5; i++)
+      px(p.ctx, x0 + 2 + p.rng() * (w - 6), top + 2 + p.rng() * (h * 0.35 - 4), 3, 1, '#93bac0')
+    if (kind === 'Fountain') {
+      px(p.ctx, x0 + w / 2 - 2, top - 7, 4, 10, '#c5bc9f')
+      px(p.ctx, x0 + w / 2 - 5, top - 7, 10, 2, '#c5bc9f')
+      px(p.ctx, x0 + w / 2, top - 11, 1, 5, '#95d1de')
+    }
+  } else if (kind === 'Cemetery') {
+    for (let i = 0; i < 6; i++) {
+      const x = x0 + 3 + ((i % 3) * (w - 6)) / 3
+      const y = top + 3 + Math.floor(i / 3) * h * 0.17
+      px(p.ctx, x, y - 3, 3, 5, '#b1aaa1')
+      px(p.ctx, x + 1, y - 2, 1, 2, '#57544e')
+    }
+  } else if (kind === 'PlayGround') {
+    px(p.ctx, x0 + 3, top - 8, 2, 14, '#a16a3e')
+    px(p.ctx, x0 + w - 5, top - 8, 2, 14, '#a16a3e')
+    px(p.ctx, x0 + 3, top - 8, w - 6, 2, '#c88e46')
+    px(p.ctx, x0 + w / 2, top - 6, 1, 8, '#d1c5a7')
+    px(p.ctx, x0 + w / 2 - 3, top + 2, 7, 2, '#bf5143')
+  } else {
+    px(p.ctx, x0 + w / 2 - 1, top, 3, h * 0.35, '#baa780')
+    if (kind !== 'Plaza')
+      for (let i = 0; i < 10; i++) {
+        const x = x0 + 2 + p.rng() * (w - 4)
+        const y = top + 2 + p.rng() * (h * 0.35 - 4)
+        px(p.ctx, x, y, 2, 2, kind === 'MushroomFarm' ? '#d8bba0' : ['#d9b653', '#bb7180', '#87a65d'][i % 3])
+      }
+  }
+}
+
+function paintCrossing(p: P) {
+  const { x0, y1, w, h, kind } = p
+  const stone = kind === 'Aqueduct'
+  const top = y1 - h * (stone ? 0.65 : 0.22)
+  px(p.ctx, x0, top, w, 4, stone ? '#b7ad98' : '#98744e')
+  for (let x = x0 + 2; x < x0 + w; x += 7) {
+    px(p.ctx, x, top + 4, 3, y1 - top - 4, stone ? '#958d7e' : '#614731')
+    px(p.ctx, x, top - 3, 1, 5, '#c4ad83')
+  }
+  px(p.ctx, x0, top - 3, w, 1, stone ? '#cbc2ad' : '#c4ad83')
+  if (['Port', 'Marina', 'Dock'].includes(kind)) {
+    px(p.ctx, x0 + w * 0.4, top + 7, w * 0.45, 4, '#704735')
+    px(p.ctx, x0 + w * 0.64, top - 5, 1, 13, '#ddd0ad')
+    px(p.ctx, x0 + w * 0.65, top - 4, 5, 6, '#ddd0ad')
+  }
+}
+
+function paintUtility(p: P) {
+  const { x0, y1, w, h, kind } = p
+  const cx = x0 + w / 2
+  if (kind === 'Drone') {
+    const cy = y1 - h * 0.4
+    px(p.ctx, cx - 4, cy - 2, 8, 4, '#a7b4bf')
+    for (const dx of [-w * 0.3, w * 0.3]) {
+      px(p.ctx, cx + Math.min(0, dx), cy, Math.abs(dx), 1, '#9aa6b0')
+      px(p.ctx, cx + dx - 3, cy - 3, 7, 1, '#c3ced2')
+      px(p.ctx, cx + dx, cy - 2, 1, 3, '#606b73')
+    }
+    px(p.ctx, cx, cy + 2, 2, 2, '#3c666e')
+  } else if (kind === 'FoodTruck') {
+    px(p.ctx, x0, y1 - h * 0.4, w * 0.75, h * 0.3, '#b98b53')
+    px(p.ctx, x0 + w * 0.7, y1 - h * 0.3, w * 0.3, h * 0.2, '#d4b785')
+    px(p.ctx, x0 + 2, y1 - h * 0.35, w * 0.45, h * 0.12, '#344d55')
+    px(p.ctx, x0 + 1, y1 - h * 0.4 - 2, w * 0.6, 2, '#bf6550')
+    for (const x of [x0 + w * 0.2, x0 + w * 0.8]) px(p.ctx, x - 2, y1 - 4, 4, 4, '#252a30')
+  } else if (kind === 'RoboticArm') {
+    px(p.ctx, cx - 5, y1 - 3, 10, 3, '#5f6d77')
+    px(p.ctx, cx - 2, y1 - h * 0.5, 4, h * 0.5 - 3, '#c19c49')
+    px(p.ctx, cx, y1 - h * 0.5, w * 0.3, 3, '#d9b85e')
+    px(p.ctx, cx + w * 0.3 - 1, y1 - h * 0.5, 2, h * 0.2, '#9da7ae')
+    px(p.ctx, cx - 2, y1 - h * 0.5 - 1, 4, 4, '#65717c')
+  } else if (['ParkingLot', 'Crosswalk'].includes(kind)) {
+    px(p.ctx, x0, y1 - h * 0.3, w, h * 0.3, '#50565d')
+    for (let x = x0 + 2; x < x0 + w - 2; x += 5) px(p.ctx, x, y1 - h * 0.28, 2, h * 0.24, '#d3d0b5')
+  } else if (kind === 'Crane' || kind === 'Gallows') {
+    px(p.ctx, cx - 2, y1 - h * 0.9, 3, h * 0.9, kind === 'Gallows' ? '#684c36' : '#cea44a')
+    px(p.ctx, x0, y1 - h * 0.9, w, 3, '#a98240')
+    px(p.ctx, x0 + w - 3, y1 - h * 0.9, 1, h * 0.42, '#575453')
+    px(p.ctx, cx - 5, y1 - 3, 10, 3, '#68666a')
+  } else if (kind === 'TelephonePole') {
+    px(p.ctx, cx, y1 - h, 2, h, '#715238')
+    px(p.ctx, cx - 5, y1 - h + 3, 12, 2, '#715238')
+    for (let i = -4; i <= 5; i += 3) px(p.ctx, cx + i, y1 - h, 1, 4, '#bbc3c6')
+  } else if (kind === 'SatelliteDish') {
+    px(p.ctx, cx - 1, y1 - h * 0.45, 2, h * 0.45, '#7e8a95')
+    hipRoof(p, x0 + w * 0.15, y1 - h * 0.45, w * 0.7, h * 0.24, '#b6c5ce')
+    px(p.ctx, cx, y1 - h * 0.85, 1, h * 0.35, '#526370')
+  } else {
+    px(p.ctx, x0 + 2, y1 - h * 0.6, w - 4, h * 0.5, '#414a57')
+    outline(p.ctx, x0 + 2, y1 - h * 0.6, w - 4, h * 0.5)
+    px(p.ctx, x0 + 4, y1 - h * 0.55, w - 8, h * 0.3, kind === 'Substation' ? '#b5a34f' : '#49929d')
+    px(p.ctx, x0 + 4, y1 - h * 0.45, Math.max(2, w - 10), 1, '#c4e2df')
+    px(p.ctx, x0 + 3, y1 - h * 0.1, 2, h * 0.1, '#7b7061')
+    px(p.ctx, x0 + w - 5, y1 - h * 0.1, 2, h * 0.1, '#7b7061')
+  }
+}
+
 const ARCHETYPE: Record<string, (p: P) => void | boolean> = {}
 
 function reg(painter: (p: P) => void | boolean, kinds: string[]) {
@@ -1046,6 +1249,42 @@ reg(paintProp, [
   'Fence',
 ])
 
+reg(paintDwelling, ['House'])
+reg(paintEarlyHome, ['Hut'])
+reg(paintFortress, ['Castle'])
+
+reg(paintLandscape, [
+  'Plaza',
+  'Fountain',
+  'Reservoir',
+  'Cemetery',
+  'Garden',
+  'Pond',
+  'PlayGround',
+  'MushroomFarm',
+  'Aquaculture',
+])
+reg(paintCrossing, ['Aqueduct', 'Bridge', 'Port', 'Dock', 'Marina'])
+reg(paintFuturistic, ['Hyperloop', 'Maglev', 'Megastructure'])
+reg(paintUtility, [
+  'Substation',
+  'Gallows',
+  'BillBoard',
+  'TelephonePole',
+  'ParkingLot',
+  'Crosswalk',
+  'Crane',
+  'SatelliteDish',
+  'RoboticArm',
+  'Drone',
+  'HoloBoard',
+  'NeonSign',
+  'ArcadeBox',
+  'FoodTruck',
+])
+
+export const BUILDING_SPRITE_KINDS = Object.freeze(Object.keys(ARCHETYPE))
+
 const spriteCache = new Map<string, HTMLCanvasElement>()
 
 export function hasBuildingSprite(kind: string): boolean {
@@ -1086,9 +1325,23 @@ export function getBuildingSprite(
     night,
     cond: condBucket === 0 ? 0.3 : 1,
     kind,
+    variant,
   }
   const ok = painter(p)
   if (ok === false) return null
+  if (condBucket === 0) {
+    // Tint only opaque sprite pixels, preserving the actual roof silhouette.
+    ctx.save()
+    ctx.globalCompositeOperation = 'source-atop'
+    ctx.fillStyle = 'rgba(63, 49, 32, 0.25)'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    for (let i = 0; i < 5; i++) {
+      const x = PAD + p.rng() * w
+      const y = p.y1 - p.h * (0.45 + p.rng() * 0.4)
+      px(ctx, x, y, 3, 2, '#4a3d30')
+    }
+    ctx.restore()
+  }
   if (spriteCache.size > 900) spriteCache.clear()
   spriteCache.set(key, canvas)
   return canvas

@@ -152,3 +152,9 @@ export function nextRuntimeState(
         : current.speed
   return reconcileRuntimeState(current, { ok: true, paused, speed })
 }
+
+/** Leave at least half of each worker cycle idle under load. Requested speed
+ * remains an upper bound; never queue catch-up work that starves controls. */
+export function wasmTickDelay(targetIntervalMs: number, workMs: number): number {
+  return Math.max(MIN_WASM_TICK_MS, targetIntervalMs - workMs, workMs)
+}

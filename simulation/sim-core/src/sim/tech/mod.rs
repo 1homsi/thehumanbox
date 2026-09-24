@@ -7,3 +7,5 @@ pub mod tech_progress;
 pub mod tech_tree;
 pub mod tools;
 pub mod transportation;
+
+pub mod boats;

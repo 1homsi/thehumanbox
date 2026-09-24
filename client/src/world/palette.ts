@@ -97,3 +97,10 @@ export const THOUGHT_COLORS: Record<string, string> = {
   'marking territory': '#e0a040',
   'marking the homeland': '#e8b050',
 }
+
+export const SEASON_LAND_TINT: Record<string, { rgb: [number, number, number]; w: number }> = {
+  abundance: { rgb: [58, 138, 66], w: 0.22 },
+  recovery: { rgb: [92, 150, 64], w: 0.3 },
+  decline: { rgb: [150, 118, 44], w: 0.42 },
+  scarcity: { rgb: [128, 102, 56], w: 0.52 },
+}

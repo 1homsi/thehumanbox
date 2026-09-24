@@ -1,5 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import type { ReactNode } from 'react'
+import './modal-theme.css'
 
 interface ModalProps {
   open: boolean
@@ -21,7 +22,7 @@ export function Modal({ open, onClose, className, title, hideTitle = false, chil
       <Dialog.Portal>
         <Dialog.Overlay className="lang-modal-backdrop" />
         <Dialog.Content
-          className={className}
+          className={`thb-modal ${className ?? ''}`}
           aria-describedby={undefined}
           style={{
             position: 'fixed',

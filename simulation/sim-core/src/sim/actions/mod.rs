@@ -244,6 +244,34 @@ enum Workspace {
     Postal,
 }
 
+const WORKSPACE_KIND_COUNT: usize = Workspace::Postal as usize + 1;
+const ALL_WORKSPACES: [Workspace; WORKSPACE_KIND_COUNT] = [
+    Workspace::Any,
+    Workspace::Education,
+    Workspace::Trade,
+    Workspace::Industry,
+    Workspace::Worship,
+    Workspace::Civic,
+    Workspace::Military,
+    Workspace::Transport,
+    Workspace::Healthcare,
+    Workspace::Recreation,
+    Workspace::Research,
+    Workspace::Cafe,
+    Workspace::Fashion,
+    Workspace::Butchery,
+    Workspace::Brewery,
+    Workspace::Workshop,
+    Workspace::Forge,
+    Workspace::Textile,
+    Workspace::Arts,
+    Workspace::Writing,
+    Workspace::Craft,
+    Workspace::Jewelry,
+    Workspace::Technical,
+    Workspace::Postal,
+];
+
 #[derive(Clone, Copy)]
 enum QualificationMode {
     All,
@@ -4359,6 +4387,35 @@ fn extend_rotating_candidates(actions: &mut Vec<usize>, candidates: &[usize], ph
     }
 }
 
+const ACTION_FAMILY_WIDTH: usize = 60;
+const ACTION_FAMILY_COUNT: usize = crate::organism::organism::ACTION_ID_SPACE.div_ceil(ACTION_FAMILY_WIDTH);
+
+fn mark_eligible_family_band(families: &mut [u64; ACTION_FAMILY_COUNT], start: usize, end: usize) {
+    let family = start / ACTION_FAMILY_WIDTH;
+    debug_assert_eq!(family, end / ACTION_FAMILY_WIDTH);
+    let width = end - start + 1;
+    debug_assert!(width <= ACTION_FAMILY_WIDTH);
+    families[family] |= ((1u64 << width) - 1) << (start % ACTION_FAMILY_WIDTH);
+}
+
+fn extend_rotating_family_masks(
+    actions: &mut Vec<usize>,
+    families: &[u64; ACTION_FAMILY_COUNT],
+    phase: usize,
+) {
+    let mut candidates = [0usize; ACTION_FAMILY_WIDTH];
+    for (family, &mask) in families.iter().enumerate() {
+        let mut remaining = mask;
+        let mut len = 0;
+        while remaining != 0 {
+            candidates[len] = family * ACTION_FAMILY_WIDTH + remaining.trailing_zeros() as usize;
+            len += 1;
+            remaining &= remaining - 1;
+        }
+        extend_rotating_candidates(actions, &candidates[..len], phase);
+    }
+}
+
 fn qualifies(org: &crate::organism::organism::Organism, requirement: Qualification) -> bool {
     let mut active_gates = 0;
     let mut passed_gates = 0;
@@ -4466,6 +4523,7 @@ fn workspace_matches(kind: BuildingKind, workspace: Workspace) -> bool {
     }
 }
 
+#[cfg(test)]
 fn near_complete_workspace(sim: &Simulation, lineage: &str, ix: i32, iy: i32, workspace: Workspace) -> bool {
     sim.buildings.iter().any(|building| {
         if !building.is_operational()
@@ -4484,6 +4542,7 @@ fn near_complete_workspace(sim: &Simulation, lineage: &str, ix: i32, iy: i32, wo
     })
 }
 
+#[cfg(test)]
 fn near_hut(sim: &Simulation, lineage: &str, ix: i32, iy: i32) -> bool {
     (-1..=1).any(|dx| (-1..=1).any(|dy| matches!(sim.grid.get(ix + dx, iy + dy), Tile::Hut)))
         || sim.buildings.iter().any(|building| {
@@ -4503,6 +4562,79 @@ fn near_hut(sim: &Simulation, lineage: &str, ix: i32, iy: i32) -> bool {
         })
 }
 
+struct LocalPlaceSnapshot {
+    workspaces: u32,
+    building_hut: bool,
+}
+
+fn local_place_snapshot(sim: &Simulation, lineage: &str, ix: i32, iy: i32) -> LocalPlaceSnapshot {
+    let mut snapshot = LocalPlaceSnapshot {
+        workspaces: 0,
+        building_hut: false,
+    };
+    for building in &sim.buildings {
+        if !building.is_operational() {
+            continue;
+        }
+        let (width, height) = building.footprint();
+        let nearest_x = ix.clamp(building.x, building.x + i32::from(width) - 1);
+        let nearest_y = iy.clamp(building.y, building.y + i32::from(height) - 1);
+        let distance = (nearest_x - ix).abs() + (nearest_y - iy).abs();
+        if distance > 8
+            || building
+                .owner_lineage
+                .as_deref()
+                .is_some_and(|owner| owner != lineage)
+        {
+            continue;
+        }
+        if distance <= 1 && building.kind == BuildingKind::Hut {
+            snapshot.building_hut = true;
+        }
+        for workspace in ALL_WORKSPACES {
+            if workspace_matches(building.kind, workspace) {
+                snapshot.workspaces |= 1 << (workspace as u32);
+            }
+        }
+    }
+    snapshot
+}
+
+/// An eligibility calculation holds `sim` immutably, so one nearby-building
+/// pass can serve all workspace and hut gates. The next calculation creates a
+/// fresh snapshot after any world changes.
+struct LocalPlaceCache {
+    snapshot: Option<LocalPlaceSnapshot>,
+    hut: Option<bool>,
+}
+
+impl LocalPlaceCache {
+    fn new() -> Self {
+        Self {
+            snapshot: None,
+            hut: None,
+        }
+    }
+
+    fn workspace(&mut self, sim: &Simulation, lineage: &str, ix: i32, iy: i32, workspace: Workspace) -> bool {
+        self.snapshot
+            .get_or_insert_with(|| local_place_snapshot(sim, lineage, ix, iy))
+            .workspaces
+            & (1 << (workspace as u32))
+            != 0
+    }
+
+    fn hut(&mut self, sim: &Simulation, lineage: &str, ix: i32, iy: i32) -> bool {
+        *self.hut.get_or_insert_with(|| {
+            (-1..=1).any(|dx| (-1..=1).any(|dy| matches!(sim.grid.get(ix + dx, iy + dy), Tile::Hut)))
+                || self
+                    .snapshot
+                    .get_or_insert_with(|| local_place_snapshot(sim, lineage, ix, iy))
+                    .building_hut
+        })
+    }
+}
+
 fn band_is_eligible(
     sim: &Simulation,
     idx: usize,
@@ -4511,6 +4643,7 @@ fn band_is_eligible(
     band: ActionBand,
     era: Era,
     context: EligibilityContext,
+    place_cache: &mut LocalPlaceCache,
 ) -> bool {
     let org = &sim.organisms[idx];
     if era < band.min_era || !qualifies(org, band.qualification) {
@@ -4552,15 +4685,15 @@ fn band_is_eligible(
         PlaceGate::Rock => context.near_rock,
         PlaceGate::Fire => context.near_fire,
         PlaceGate::Hut => matches!(sim.grid.get(ix, iy), Tile::Hut),
-        PlaceGate::NearHut => near_hut(sim, &org.lineage_id, ix, iy),
+        PlaceGate::NearHut => place_cache.hut(sim, &org.lineage_id, ix, iy),
         PlaceGate::HutOrRock => matches!(sim.grid.get(ix, iy), Tile::Hut) || context.near_rock,
-        PlaceGate::Workspace(workspace) => near_complete_workspace(sim, &org.lineage_id, ix, iy, workspace),
+        PlaceGate::Workspace(workspace) => place_cache.workspace(sim, &org.lineage_id, ix, iy, workspace),
         PlaceGate::FireAndWorkspace(workspace) => {
-            context.near_fire && near_complete_workspace(sim, &org.lineage_id, ix, iy, workspace)
+            context.near_fire && place_cache.workspace(sim, &org.lineage_id, ix, iy, workspace)
         }
         PlaceGate::ExperimentWorkspace(workspace) => {
             (context.near_fire || context.near_water)
-                && near_complete_workspace(sim, &org.lineage_id, ix, iy, workspace)
+                && place_cache.workspace(sim, &org.lineage_id, ix, iy, workspace)
         }
         PlaceGate::HomeAndWater => context.near_home && context.near_water,
     };
@@ -4655,6 +4788,7 @@ fn eligible_band_for_action(
         has_stone: org.inv_stone > 0,
     };
     let era = sim.era(&org.lineage_id);
+    let mut place_cache = LocalPlaceCache::new();
 
     BASE_ACTION_BANDS
         .iter()
@@ -4662,7 +4796,7 @@ fn eligible_band_for_action(
         .copied()
         .find(|band| {
             (band.start..=band.end).contains(&action)
-                && band_is_eligible(sim, idx, ix, iy, *band, era, context)
+                && band_is_eligible(sim, idx, ix, iy, *band, era, context, &mut place_cache)
         })
 }
 
@@ -4795,11 +4929,23 @@ fn action_uses_deferred_resource_charge(action: usize) -> bool {
     )
 }
 
+const BASE_SEMANTIC_VALIDATION: [bool; 540] = {
+    let mut required = [false; 540];
+    let mut index = 0;
+    while index < BASE_ACTION_BANDS.len() {
+        let band = &BASE_ACTION_BANDS[index];
+        let mut action = band.start;
+        while action <= band.end && action < required.len() {
+            required[action] = true;
+            action += 1;
+        }
+        index += 1;
+    }
+    required
+};
+
 fn action_requires_semantic_validation(action: usize) -> bool {
-    action >= 540
-        || BASE_ACTION_BANDS
-            .iter()
-            .any(|band| (band.start..=band.end).contains(&action))
+    action >= BASE_SEMANTIC_VALIDATION.len() || BASE_SEMANTIC_VALIDATION[action]
 }
 
 fn action_output_at_capacity(org: &crate::organism::organism::Organism, action: usize) -> bool {
@@ -4814,17 +4960,34 @@ pub fn available_actions(
     iy: i32,
     spatial: &crate::sim::spatial::SpatialIndex,
 ) -> Vec<usize> {
+    let mut actions = Vec::with_capacity(256);
+    let mut nearby = Vec::with_capacity(16);
+    available_actions_into(sim, idx, ix, iy, spatial, &mut actions, &mut nearby);
+    actions
+}
+
+/// Reuse both eligibility buffers while processing the population in a tick.
+/// The candidate order is significant to action selection, so this shares the
+/// same construction path as the allocating convenience function above.
+pub fn available_actions_into(
+    sim: &Simulation,
+    idx: usize,
+    ix: i32,
+    iy: i32,
+    spatial: &crate::sim::spatial::SpatialIndex,
+    actions: &mut Vec<usize>,
+    nearby: &mut Vec<usize>,
+) {
     let org = &sim.organisms[idx];
     let tile = sim.grid.get(ix, iy);
     let (sx, sy) = (org.x, org.y);
     let lid = &org.lineage_id;
 
-    let mut near_buf: Vec<usize> = Vec::with_capacity(16);
-    spatial.query_into(sx as i32, sy as i32, 6, &mut near_buf);
+    spatial.query_into(sx as i32, sy as i32, 6, nearby);
     let mut kin_near = false;
     let mut kin_count = 0;
     let mut stranger_near = false;
-    for &i in &near_buf {
+    for &i in nearby.iter() {
         if i == idx {
             continue;
         }
@@ -4862,7 +5025,8 @@ pub fn available_actions(
     let near_home = (org.home_x - org.x).abs() + (org.home_y - org.y).abs() <= 10.0;
     let needs_low = org.energy < 0.5 || org.hydration < 0.5;
 
-    let mut a: Vec<usize> = Vec::with_capacity(256);
+    actions.clear();
+    let a = actions;
 
     a.extend(0..=25);
 
@@ -4976,44 +5140,34 @@ pub fn available_actions(
         has_stone: org.inv_stone > 0,
     };
     let phase = stable_action_phase(&org.id, sim.tick_count);
-    let mut semantically_eligible = std::collections::HashSet::new();
+    let mut semantically_eligible = [false; crate::organism::organism::ACTION_ID_SPACE];
+    let mut place_cache = LocalPlaceCache::new();
     for &band in BASE_ACTION_BANDS {
-        if band_is_eligible(sim, idx, ix, iy, band, era, context) {
+        if band_is_eligible(sim, idx, ix, iy, band, era, context, &mut place_cache) {
             a.extend(band.start..=band.end);
-            semantically_eligible.extend(band.start..=band.end);
+            semantically_eligible[band.start..=band.end].fill(true);
         }
     }
-    let mut eligible_by_family = std::collections::BTreeMap::<usize, Vec<usize>>::new();
+    let mut eligible_by_family = [0u64; ACTION_FAMILY_COUNT];
     for &band in ACTION_BANDS {
-        if band_is_eligible(sim, idx, ix, iy, band, era, context) {
-            let family = band.start / 60;
-            debug_assert_eq!(family, band.end / 60);
-            semantically_eligible.extend(band.start..=band.end);
-            eligible_by_family
-                .entry(family)
-                .or_default()
-                .extend(band.start..=band.end);
+        if band_is_eligible(sim, idx, ix, iy, band, era, context, &mut place_cache) {
+            semantically_eligible[band.start..=band.end].fill(true);
+            mark_eligible_family_band(&mut eligible_by_family, band.start, band.end);
         }
     }
+    extend_rotating_family_masks(a, &eligible_by_family, phase);
 
-    for candidates in eligible_by_family.values_mut() {
-        candidates.sort_unstable();
-        candidates.dedup();
-        extend_rotating_candidates(&mut a, candidates, phase);
-    }
-
-    let mut seen = std::collections::HashSet::with_capacity(a.len());
+    let mut seen = [false; crate::organism::organism::ACTION_ID_SPACE];
     a.retain(|action| {
         !action_output_at_capacity(org, *action)
-            && (!action_requires_semantic_validation(*action) || semantically_eligible.contains(action))
+            && (!action_requires_semantic_validation(*action) || semantically_eligible[*action])
             && agriculture::action_is_possible(sim, idx, *action, ix, iy, near_water)
-            && religion_expanded::action_is_possible(sim, idx, *action, &near_buf, sim.tick_count)
-            && crate::sim::civ::trade_routes::action_is_possible(sim, idx, *action, &near_buf)
+            && religion_expanded::action_is_possible(sim, idx, *action, nearby, sim.tick_count)
+            && relationships_deep::action_is_possible(sim, idx, *action, nearby)
+            && crate::sim::civ::trade_routes::action_is_possible(sim, idx, *action, nearby)
             && (*action != 2704 || crate::sim::civ::trade_routes::can_dispatch_caravan(sim, idx))
-            && seen.insert(*action)
+            && !std::mem::replace(&mut seen[*action], true)
     });
-
-    a
 }
 
 fn workshop_bonus(sim: &Simulation, ix: i32, iy: i32, action: usize) -> f32 {
@@ -5186,6 +5340,14 @@ pub fn try_apply(
         let mut nearby_indices = Vec::with_capacity(16);
         spatial.query_into(actor.x as i32, actor.y as i32, 6, &mut nearby_indices);
         if !religion_expanded::action_is_possible(sim, idx, action, &nearby_indices, sim.tick_count) {
+            return None;
+        }
+    }
+    if matches!(action, 2220 | 2221) {
+        let actor = sim.organisms.get(idx)?;
+        let mut nearby_indices = Vec::with_capacity(16);
+        spatial.query_into(actor.x as i32, actor.y as i32, 6, &mut nearby_indices);
+        if !relationships_deep::action_is_possible(sim, idx, action, &nearby_indices) {
             return None;
         }
     }
@@ -5386,6 +5548,147 @@ mod tests {
     }
 
     #[test]
+    fn local_place_cache_matches_building_checks_and_refreshes_after_world_changes() {
+        let mut sim = Simulation::new(0xcace);
+        let lineage = sim.organisms[0].lineage_id.clone();
+        let (x, y) = (sim.organisms[0].x as i32, sim.organisms[0].y as i32);
+        sim.buildings.clear();
+
+        for (id, kind, dx, owner, condition, decorative) in [
+            (1, BuildingKind::Market, 1, Some(lineage.clone()), 1.0, false),
+            (2, BuildingKind::Library, 7, None, 1.0, false),
+            (3, BuildingKind::Hut, 2, Some(lineage.clone()), 1.0, false),
+            (4, BuildingKind::Hospital, 3, Some("other".into()), 1.0, false),
+            (5, BuildingKind::Forge, 4, Some(lineage.clone()), 0.5, false),
+            (6, BuildingKind::Cafe, 2, Some(lineage.clone()), 1.0, true),
+        ] {
+            let mut building = Building::new(id, kind, x + dx, y, owner, 0);
+            building.condition = condition;
+            building.decorative = decorative;
+            sim.buildings.push(building);
+        }
+
+        let workspaces = [
+            Workspace::Any,
+            Workspace::Education,
+            Workspace::Trade,
+            Workspace::Industry,
+            Workspace::Worship,
+            Workspace::Civic,
+            Workspace::Military,
+            Workspace::Transport,
+            Workspace::Healthcare,
+            Workspace::Recreation,
+            Workspace::Research,
+            Workspace::Cafe,
+            Workspace::Fashion,
+            Workspace::Butchery,
+            Workspace::Brewery,
+            Workspace::Workshop,
+            Workspace::Forge,
+            Workspace::Textile,
+            Workspace::Arts,
+            Workspace::Writing,
+            Workspace::Craft,
+            Workspace::Jewelry,
+            Workspace::Technical,
+            Workspace::Postal,
+        ];
+        assert_eq!(workspaces.len(), WORKSPACE_KIND_COUNT);
+        for (index, &workspace) in workspaces.iter().enumerate() {
+            assert_eq!(workspace as usize, index);
+        }
+        for (query_x, query_y, query_lineage) in [
+            (x, y, lineage.as_str()),
+            (x + 35, y + 35, lineage.as_str()),
+            (x, y, "other"),
+        ] {
+            let mut cache = LocalPlaceCache::new();
+            for workspace in workspaces {
+                let expected = near_complete_workspace(&sim, query_lineage, query_x, query_y, workspace);
+                assert_eq!(
+                    cache.workspace(&sim, query_lineage, query_x, query_y, workspace),
+                    expected
+                );
+                assert_eq!(
+                    cache.workspace(&sim, query_lineage, query_x, query_y, workspace),
+                    expected
+                );
+            }
+            assert_eq!(
+                cache.hut(&sim, query_lineage, query_x, query_y),
+                near_hut(&sim, query_lineage, query_x, query_y)
+            );
+        }
+
+        sim.buildings.clear();
+        let mut market = Building::new(7, BuildingKind::Market, x + 1, y, Some(lineage.clone()), 0);
+        market.condition = 1.0;
+        sim.buildings.push(market);
+        assert!(LocalPlaceCache::new().workspace(&sim, &lineage, x, y, Workspace::Trade));
+        sim.buildings[0].damage = 1.0;
+        assert!(!LocalPlaceCache::new().workspace(&sim, &lineage, x, y, Workspace::Trade));
+
+        let (remote_x, remote_y) = (x + 35, y + 35);
+        for dx in -1..=1 {
+            for dy in -1..=1 {
+                sim.grid.set(remote_x + dx, remote_y + dy, Tile::Grass);
+            }
+        }
+        let mut old_cache = LocalPlaceCache::new();
+        assert!(!old_cache.hut(&sim, &lineage, remote_x, remote_y));
+        sim.grid.set(remote_x, remote_y, Tile::Hut);
+        assert!(!old_cache.hut(&sim, &lineage, remote_x, remote_y));
+        assert!(LocalPlaceCache::new().hut(&sim, &lineage, remote_x, remote_y));
+    }
+
+    #[test]
+    fn reused_action_buffers_match_fresh_results_across_context_changes() {
+        let mut sim = Simulation::new(0xa110);
+        let idx = 0;
+        let lineage = sim.organisms[idx].lineage_id.clone();
+        let mut actions = Vec::new();
+        let mut nearby = Vec::new();
+
+        for (phase, era, tile) in [
+            (0, Era::PreStone, Tile::Grass),
+            (30, Era::Stone, Tile::Water),
+            (60, Era::Modern, Tile::Rock),
+            (90, Era::Information, Tile::Food),
+        ] {
+            sim.tick_count = phase;
+            sim.lineage_eras.insert(lineage.clone(), era);
+            let (x, y) = (sim.organisms[idx].x as i32, sim.organisms[idx].y as i32);
+            sim.grid.set(x, y, tile);
+            let spatial = SpatialIndex::build(&sim.organisms, 10);
+            let expected = available_actions(&sim, idx, x, y, &spatial);
+
+            actions.push(usize::MAX);
+            nearby.push(usize::MAX);
+            available_actions_into(&sim, idx, x, y, &spatial, &mut actions, &mut nearby);
+            assert_eq!(actions, expected, "action order changed at phase {phase}");
+            assert!(!nearby.contains(&usize::MAX));
+        }
+    }
+
+    #[test]
+    fn semantic_validation_lookup_matches_band_tables() {
+        let legacy = |action: usize| {
+            action >= 540
+                || BASE_ACTION_BANDS
+                    .iter()
+                    .any(|band| (band.start..=band.end).contains(&action))
+        };
+        for action in (0..=u16::MAX as usize).chain([usize::MAX]) {
+            assert_eq!(
+                action_requires_semantic_validation(action),
+                legacy(action),
+                "lookup diverges from band tables at action {action}"
+            );
+        }
+    }
+
+    #[test]
     fn pre_stone_adult_does_not_receive_late_era_or_specialist_catalogue() {
         let mut sim = Simulation::new(11);
         let idx = 0;
@@ -5528,6 +5831,37 @@ mod tests {
             seen.extend(actions);
         }
         assert_eq!(seen.len(), candidates.len());
+    }
+
+    #[test]
+    fn compact_family_masks_preserve_sorted_unique_rotation() {
+        for stride in [1, 3, 7] {
+            let mut families = [0u64; ACTION_FAMILY_COUNT];
+            let mut reference = std::collections::BTreeMap::<usize, Vec<usize>>::new();
+            for (index, band) in ACTION_BANDS.iter().enumerate() {
+                if index % stride != 0 {
+                    continue;
+                }
+                mark_eligible_family_band(&mut families, band.start, band.end);
+                reference
+                    .entry(band.start / ACTION_FAMILY_WIDTH)
+                    .or_default()
+                    .extend(band.start..=band.end);
+            }
+            for candidates in reference.values_mut() {
+                candidates.sort_unstable();
+                candidates.dedup();
+            }
+            for phase in [0, 1, 17, 59, 101, 4095] {
+                let mut expected = Vec::new();
+                for candidates in reference.values() {
+                    extend_rotating_candidates(&mut expected, candidates, phase);
+                }
+                let mut actual = Vec::new();
+                extend_rotating_family_masks(&mut actual, &families, phase);
+                assert_eq!(actual, expected, "stride {stride}, phase {phase}");
+            }
+        }
     }
 
     #[test]

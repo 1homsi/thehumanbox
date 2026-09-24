@@ -54,6 +54,24 @@ describe('map inspection and interior access', () => {
     expect(scene).toEqual({ kind: 'tavern', lineageId: 'clan' })
     expect(scene && resolveTavernScene(state, scene)).not.toBeNull()
   })
+  it('explains rebuilding progress without calling ruins fully built', () => {
+    const state = world([
+      {
+        id: 4,
+        kind: 'House',
+        x: 100,
+        y: 200,
+        condition: 1,
+        damage: 0.45,
+        ruined: true,
+        owner_lineage: 'clan',
+      },
+    ])
+    const details = inspectWorldTile(state, 100, 200)?.details ?? []
+    expect(details).toContain('Rebuilding · 55% restored')
+    expect(details).toContain('Belongs to Willow')
+    expect(details.join(' ')).not.toContain('100% built')
+  })
   it('counts settlement huts in the local grid instead of indexing global coordinates', () => {
     const scene = resolveSettlementScene(world(), {
       kind: 'settlement',

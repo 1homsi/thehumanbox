@@ -1,4 +1,5 @@
-import { useMemo, useRef } from 'react'
+import { visitDustCandidates, pruneDustEmitters } from './dust-budget'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { InstancedMesh, Object3D, SphereGeometry } from 'three'
 import type { OrganismState } from '../../../types'
@@ -32,7 +33,12 @@ export function FootstepDust({ organisms, depthMap, biomes }: Props) {
   const meshRef = useRef<InstancedMesh>(null)
   const pool = useRef<Particle[]>([])
   const lastSpawn = useRef<Map<string, [number, number]>>(new Map())
+  const nextParticle = useRef(0)
+  const nextEmitter = useRef(0)
   const { camera } = useThree()
+  useEffect(() => {
+    pruneDustEmitters(lastSpawn.current, new Set(organisms.filter((o) => o.alive).map((o) => o.id)))
+  }, [organisms])
 
   useMemo(() => {
     pool.current = []
@@ -41,38 +47,30 @@ export function FootstepDust({ organisms, depthMap, biomes }: Props) {
     }
   }, [])
 
-  useFrame(({ clock }) => {
+  useFrame(() => {
     const mesh = meshRef.current
     if (!mesh) return
     const now = performance.now()
-    const t = clock.getElapsedTime()
-    void t
 
-    for (const o of organisms) {
-      if (!o.alive) continue
+    nextEmitter.current = visitDustCandidates(organisms.length, nextEmitter.current, (index) => {
+      const o = organisms[index]
+      if (!o.alive) return false
       const [tx, ty] = getOrgXY(o.id)
       const wx = tx * TILE_SCALE
       const wz = ty * TILE_SCALE
       const dx = wx - camera.position.x
       const dz = wz - camera.position.z
-      if (dx * dx + dz * dz > NEAR_RADIUS_SQ) continue
+      if (dx * dx + dz * dz > NEAR_RADIUS_SQ) return false
       const [vx, vy] = getOrgVelocityXY(o.id)
       const speed = Math.hypot(vx, vy)
-      if (speed < 0.04) continue
+      if (speed < 0.04) return false
       const last = lastSpawn.current.get(o.id)
       const movedSq = last ? (tx - last[0]) ** 2 + (ty - last[1]) ** 2 : Infinity
-      if (movedSq < 0.2) continue
+      if (movedSq < 0.2) return false
       lastSpawn.current.set(o.id, [tx, ty])
 
-      let slot = 0
-      let oldestAge = -1
-      for (let i = 0; i < pool.current.length; i++) {
-        const age = now - pool.current[i].born
-        if (age > oldestAge) {
-          oldestAge = age
-          slot = i
-        }
-      }
+      const slot = nextParticle.current
+      nextParticle.current = (slot + 1) % N_PARTICLES
       const groundY = heightAt(tx, ty, depthMap, biomes)
       const offX = -vx * 0.4 + (Math.random() - 0.5) * 0.3
       const offZ = -vy * 0.4 + (Math.random() - 0.5) * 0.3
@@ -84,7 +82,8 @@ export function FootstepDust({ organisms, depthMap, biomes }: Props) {
         vz: -vy * 0.8 + (Math.random() - 0.5) * 0.6,
         born: now,
       }
-    }
+      return true
+    })
 
     for (let i = 0; i < N_PARTICLES; i++) {
       const p = pool.current[i]

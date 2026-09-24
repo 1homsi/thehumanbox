@@ -369,6 +369,126 @@ fn perception_encodes_carried_food_and_water_reserves() {
 }
 
 #[test]
+fn shared_perception_query_preserves_social_and_attitude_fields() {
+    use crate::sim::spatial::SpatialIndex;
+
+    fn previous_fields(
+        actor: &Organism,
+        people: &[Organism],
+        spatial: &SpatialIndex,
+        scan: i32,
+    ) -> (char, char, char) {
+        let mut nearby = Vec::new();
+        spatial.query_into(actor.x as i32, actor.y as i32, 5, &mut nearby);
+        let mut org_near = false;
+        let mut kin_near = false;
+        for &index in &nearby {
+            let other = &people[index];
+            if std::ptr::eq(other, actor) || !other.alive {
+                continue;
+            }
+            if (other.x - actor.x).abs() + (other.y - actor.y).abs() <= 5.0 {
+                org_near = true;
+                if other.lineage_id == actor.lineage_id {
+                    kin_near = true;
+                    break;
+                }
+            }
+        }
+
+        spatial.query_into(actor.x as i32, actor.y as i32, scan, &mut nearby);
+        let mut nearest: Option<&str> = None;
+        let mut nearest_distance = 999.0f32;
+        for &index in &nearby {
+            let other = &people[index];
+            if std::ptr::eq(other, actor) || !other.alive || other.lineage_id == actor.lineage_id {
+                continue;
+            }
+            let distance = (other.x - actor.x).abs() + (other.y - actor.y).abs();
+            if distance < nearest_distance {
+                nearest_distance = distance;
+                nearest = Some(&other.lineage_id);
+            }
+        }
+        let attitude = match nearest {
+            Some(lineage) if nearest_distance <= scan as f32 => {
+                let value = actor.attitude_toward(lineage);
+                if value >= 0.25 {
+                    'A'
+                } else if value <= -0.25 {
+                    'H'
+                } else {
+                    'N'
+                }
+            }
+            _ => 'X',
+        };
+        (
+            if org_near { '1' } else { '0' },
+            if kin_near { '1' } else { '0' },
+            attitude,
+        )
+    }
+
+    let grid = WorldGrid::new(0x5a11);
+    let mut reusable = Vec::new();
+    for shift in [0.0, 3.0, 10.0] {
+        let positions = [
+            (49.5, 49.5, "home", true),
+            (54.0, 49.5, "home", true),
+            (56.0, 49.5, "ally", true),
+            (49.5, 57.0, "enemy", true),
+            (50.0, 50.0, "enemy", false),
+            (42.0, 49.5, "neutral", true),
+            (65.0, 65.0, "enemy", true),
+        ];
+        let mut people: Vec<Organism> = positions
+            .iter()
+            .enumerate()
+            .map(|(index, &(x, y, lineage, alive))| {
+                let mut person = Organism::new(
+                    format!("resident-{index}"),
+                    "Resident".into(),
+                    x + shift,
+                    y + shift,
+                    1,
+                    String::new(),
+                    lineage.into(),
+                    10_000,
+                    Traits::default(),
+                );
+                person.x = x + shift;
+                person.y = y + shift;
+                person.alive = alive;
+                person
+            })
+            .collect();
+        people[0].lineage_attitudes.insert("ally".into(), 0.8);
+        people[0].lineage_attitudes.insert("enemy".into(), -0.8);
+
+        for bucket_size in [3, 5, 10, 16] {
+            let spatial = SpatialIndex::build(&people, bucket_size);
+            for (night, curiosity, scan) in [(false, 0.2, 8), (true, 0.2, 6), (true, 0.8, 8)] {
+                people[0].traits.curiosity = curiosity;
+                let expected = previous_fields(&people[0], &people, &spatial, scan);
+                let fresh = people[0].perceive(&grid, &people, night, false, &spatial);
+                reusable.push(usize::MAX);
+                let perception =
+                    people[0].perceive_into(&grid, &people, night, false, &spatial, &mut reusable);
+                assert_eq!(perception, fresh);
+                assert!(!reusable.contains(&usize::MAX));
+                let fields: Vec<char> = perception.chars().collect();
+                assert_eq!(
+                    (fields[7], fields[10], fields[11]),
+                    expected,
+                    "shift={shift}, bucket={bucket_size}, night={night}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
 fn hungry_organism_filters_learned_choice_to_survival_actions() {
     let mut rng = StdRng::seed_from_u64(0);
     let traits = Traits::random(&mut rng);
@@ -938,4 +1058,164 @@ fn movement_toward_target_does_not_step_into_mineral_tile() {
     assert!(grid
         .get(10 + DIRECTIONS[action].0, 10 + DIRECTIONS[action].1)
         .walkable());
+}
+
+#[test]
+fn committed_journey_moves_around_wall_instead_of_shuffling() {
+    let mut rng = StdRng::seed_from_u64(71);
+    let mut grid = WorldGrid::new(2);
+    for x in 20..80 {
+        for y in 20..80 {
+            grid.set(x, y, Tile::Sand);
+            grid.hazard[WorldGrid::idx(x, y)] = 0.0;
+        }
+    }
+    // The greedy direction used to bounce north/south against this wall.
+    for y in 43..=57 {
+        grid.set(52, y, Tile::Rock);
+    }
+    let mut org = Organism::new(
+        "journey".into(),
+        "Traveller".into(),
+        50.0,
+        50.0,
+        0,
+        "".into(),
+        "lin".into(),
+        5000,
+        Traits::random(&mut rng),
+    );
+    org.energy = 0.9;
+    org.hydration = 0.9;
+    org.health = 1.0;
+    org.age = 1600;
+    org.home_x = 50.0;
+    org.home_y = 50.0;
+    org.begin_journey((66, 50), "scouting the hills", 100);
+    for tick in 100..180 {
+        if (org.x - 66.0).abs().max((org.y - 50.0).abs()) <= 2.0 {
+            break;
+        }
+        let (action, _) = org.choose_action(
+            &grid,
+            &[],
+            tick,
+            0.0,
+            &[],
+            false,
+            0,
+            &mut rng,
+            false,
+            "test",
+            &[0, 1, 2, 3, 4, 5, 6, 7, 17, 24],
+        );
+        assert!(
+            action < 8,
+            "journey unexpectedly chose stationary action {action}"
+        );
+        let (dx, dy) = DIRECTIONS[action];
+        assert!(grid.get(org.x as i32 + dx, org.y as i32 + dy).walkable());
+        org.x += dx as f32;
+        org.y += dy as f32;
+    }
+    assert!(
+        (org.x - 66.0).abs().max((org.y - 50.0).abs()) <= 2.0,
+        "traveller never reached destination: {}, {}",
+        org.x,
+        org.y
+    );
+    // An urgent need takes priority even while a journey is active.
+    org.x = 50.0;
+    org.y = 50.0;
+    grid.set(50, 50, Tile::Food);
+    org.energy = 0.1;
+    let (action, _) = org.choose_action(
+        &grid,
+        &[],
+        110,
+        0.0,
+        &[],
+        false,
+        0,
+        &mut rng,
+        false,
+        "test",
+        &[0, 1, 2, 3, 4, 5, 6, 7, 8, 17],
+    );
+    assert_eq!(action, 8);
+}
+
+#[test]
+fn indexed_local_decisions_match_population_scan() {
+    use crate::sim::spatial::SpatialIndex;
+    let mut grid = WorldGrid::new(42);
+    for y in 10..100 {
+        for x in 10..100 {
+            grid.set(x, y, Tile::Grass);
+        }
+    }
+    grid.set(49, 49, Tile::Campfire);
+    grid.set(58, 50, Tile::Food);
+    grid.set(50, 59, Tile::Water);
+    let mut people: Vec<_> = (0..180)
+        .map(|i| {
+            let mut o = Organism::new(
+                format!("org-{i}"),
+                "Resident".into(),
+                12.0 + (i * 17 % 80) as f32,
+                12.0 + (i * 7 % 80) as f32,
+                1,
+                String::new(),
+                format!("kin-{}", i % 3),
+                5000,
+                Traits::default(),
+            );
+            o.age = 200 + i * 12;
+            o.energy = 0.15 + (i % 8) as f32 * 0.1;
+            o.hydration = 0.15 + (i % 7) as f32 * 0.1;
+            o.fear_level = if i % 5 == 0 { 0.7 } else { 0.0 };
+            o.infection = if i % 9 == 0 { 0.4 } else { 0.0 };
+            o
+        })
+        .collect();
+    people[0].x = 50.0;
+    people[0].y = 50.0;
+    let spatial = SpatialIndex::build(&people, 10);
+    for (i, org) in people.iter().enumerate().take(60) {
+        let mut near = spatial.query(org.x as i32, org.y as i32, 16);
+        near.sort_unstable();
+        for seed in 0..20 {
+            let mut full_rng = StdRng::seed_from_u64(seed);
+            let mut indexed_rng = StdRng::seed_from_u64(seed);
+            let full = org.choose_action(
+                &grid,
+                &[],
+                100,
+                0.1,
+                &people,
+                false,
+                0,
+                &mut full_rng,
+                false,
+                "",
+                &[0, 1, 2, 3, 4, 5, 6, 7, 17, 20, 21],
+            );
+            let indexed = org.choose_action_with_neighbors(
+                &grid,
+                &[],
+                100,
+                0.1,
+                &people,
+                false,
+                0,
+                &mut indexed_rng,
+                false,
+                "",
+                &[0, 1, 2, 3, 4, 5, 6, 7, 17, 20, 21],
+                Some(&near),
+            );
+            assert_eq!(full, indexed, "person {i}, seed {seed}");
+            assert_eq!(full_rng.random::<u64>(), indexed_rng.random::<u64>());
+        }
+    }
 }

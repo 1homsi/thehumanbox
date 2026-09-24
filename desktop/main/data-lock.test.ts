@@ -143,3 +143,47 @@ test("data operations refuse a live pid record even when its lock directory was 
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("data operations preserve a stale lock when its child has a live pid record", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "thb-live-pid-in-lock-"));
+  const lockDir = path.join(root, ".thehumanbox-data.lock");
+  try {
+    mkdirSync(lockDir);
+    const owner = { pid: 2_147_483_647, token: "old-owner", acquiredAt: 1 };
+    writeFileSync(path.join(lockDir, "owner.json"), JSON.stringify(owner));
+    writeFileSync(
+      path.join(root, "sim.pid"),
+      JSON.stringify({ pid: process.pid, token: owner.token }),
+    );
+    assert.throws(() => acquireDataRootLock(root), /live simulation pid record/);
+    assert.deepEqual(JSON.parse(readFileSync(path.join(lockDir, "owner.json"), "utf8")), owner);
+    const recovered = acquireDataRootLock(root, process.pid, true);
+    assert.equal(recovered.recoveredToken, owner.token);
+    recovered.release();
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("recovery refuses a live pid whose token differs from the stale lock", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "thb-mismatched-pid-lock-"));
+  const lockDir = path.join(root, ".thehumanbox-data.lock");
+  try {
+    mkdirSync(lockDir);
+    writeFileSync(
+      path.join(lockDir, "owner.json"),
+      JSON.stringify({ pid: 2_147_483_647, token: "old-owner", acquiredAt: 1 }),
+    );
+    writeFileSync(
+      path.join(root, "sim.pid"),
+      JSON.stringify({ pid: process.pid, token: "different-owner" }),
+    );
+    assert.throws(
+      () => acquireDataRootLock(root, process.pid, true),
+      /does not match the stale save-folder lock/,
+    );
+    assert.equal(existsSync(path.join(lockDir, "owner.json")), true);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

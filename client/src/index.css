@@ -1,4 +1,13 @@
 :root {
+  --dialog-surface: #28201a;
+  --dialog-inset: #1f1812;
+  --dialog-hover: #32271f;
+  --dialog-border: #594330;
+  --dialog-text: #f5e9d4;
+  --dialog-muted: #bfae90;
+  --dialog-accent: #e0bd78;
+  --dialog-backdrop: rgb(17 12 8 / 72%);
+  --dialog-font: ui-monospace, Menlo, monospace;
   color-scheme: dark;
   font-synthesis: none;
   text-rendering: optimizeLegibility;

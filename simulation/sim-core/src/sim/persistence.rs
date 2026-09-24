@@ -157,6 +157,8 @@ pub(crate) struct OrgSave {
     #[serde(default)]
     directive_until: u64,
     #[serde(default)]
+    journey: Option<crate::organism::organism::Journey>,
+    #[serde(default)]
     last_groomed: u64,
     #[serde(default)]
     last_fed_kin: u64,
@@ -491,6 +493,7 @@ fn org_to_save(o: &Organism) -> OrgSave {
         sleep_debt: o.sleep_debt,
         directive: o.directive.clone(),
         directive_until: o.directive_until,
+        journey: o.journey.clone(),
         last_groomed: o.last_groomed,
         last_fed_kin: o.last_fed_kin,
         last_ancestral_thought: o.last_ancestral_thought,
@@ -626,6 +629,7 @@ fn org_from_save(s: OrgSave, save_version: u32) -> Organism {
     o.sleep_debt = s.sleep_debt;
     o.directive = s.directive;
     o.directive_until = s.directive_until;
+    o.journey = s.journey;
     o.last_groomed = s.last_groomed;
     o.last_fed_kin = s.last_fed_kin;
     o.last_ancestral_thought = s.last_ancestral_thought;
@@ -1564,6 +1568,8 @@ mod tests {
             y: 10,
             occupants: Vec::new(),
             cargo: 0,
+            route: Vec::new(),
+            ready_tick: 0,
         });
         state.battles.push(saved_battle("legacy-battle-a"));
         state.battles.push(saved_battle("legacy-battle-b"));

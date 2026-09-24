@@ -39,6 +39,18 @@ use transport::{
 pub type SharedSim = Arc<Mutex<Simulation>>;
 pub type Tx = broadcast::Sender<Arc<Vec<u8>>>;
 
+fn first_organism_indices(
+    organisms: &[organism::organism::Organism],
+) -> std::collections::HashMap<String, usize> {
+    let mut index = std::collections::HashMap::with_capacity(organisms.len());
+    for (i, org) in organisms.iter().enumerate() {
+        // The prior linear search chose the first match if an old save had
+        // duplicate IDs; preserve that behavior while indexing the batch.
+        index.entry(org.id.clone()).or_insert(i);
+    }
+    index
+}
+
 const LEGACY_SAVE_PATH: &str = "world.save";
 const DAY_LENGTH: u64 = 600;
 const WS_BROADCAST_BUFFER: usize = 40;
@@ -741,15 +753,18 @@ async fn main() {
                     {
                         let mut results = think_res_clone.lock().await;
                         let tick = s.tick_count;
+                        let org_index: std::collections::HashMap<String, usize> = if results.is_empty() {
+                            std::collections::HashMap::new()
+                        } else {
+                            first_organism_indices(&s.organisms)
+                        };
                         for r in results.drain(..) {
-                            let actor_name = s
-                                .organisms
-                                .iter()
-                                .find(|o| o.id == r.org_id)
-                                .map(|o| o.name.clone())
+                            let actor_name = org_index
+                                .get(&r.org_id)
+                                .map(|&i| s.organisms[i].name.clone())
                                 .unwrap_or_default();
                             let mut invented: Option<String> = None;
-                            if let Some(org) = s.organisms.iter_mut().find(|o| o.id == r.org_id) {
+                            if let Some(org) = org_index.get(&r.org_id).map(|&i| &mut s.organisms[i]) {
                                 if let (Some(lid), Some(delta)) = (&r.target_lineage, r.attitude_delta) {
                                     org.update_attitude(lid, delta);
                                 }
@@ -815,11 +830,9 @@ async fn main() {
                             }
                             if let (Some(alliance), Some(their_lid)) = (&r.alliance_type, &r.target_lineage) {
                                 let their_oid = r.target_org_id.as_deref().unwrap_or("");
-                                let actor_lid = s
-                                    .organisms
-                                    .iter()
-                                    .find(|o| o.id == r.org_id)
-                                    .map(|o| o.lineage_id.clone())
+                                let actor_lid = org_index
+                                    .get(&r.org_id)
+                                    .map(|&i| s.organisms[i].lineage_id.clone())
                                     .unwrap_or_default();
                                 for org in s.organisms.iter_mut() {
                                     if org.lineage_id == actor_lid {
@@ -830,20 +843,19 @@ async fn main() {
                                 }
                                 match alliance.as_str() {
                                     "food_sharing" => {
-                                        let actor_food: Vec<_> = s
-                                            .organisms
-                                            .iter()
-                                            .find(|o| o.id == r.org_id)
+                                        let actor_food: Vec<_> = org_index
+                                            .get(&r.org_id)
+                                            .map(|&i| &s.organisms[i])
                                             .map(|o| o.food_memory.iter().map(|(&k, &v)| (k, v)).collect())
                                             .unwrap_or_default();
-                                        let target_food: Vec<_> = s
-                                            .organisms
-                                            .iter()
-                                            .find(|o| o.id == their_oid)
+                                        let target_food: Vec<_> = org_index
+                                            .get(their_oid)
+                                            .map(|&i| &s.organisms[i])
                                             .map(|o| o.food_memory.iter().map(|(&k, &v)| (k, v)).collect())
                                             .unwrap_or_default();
                                         use crate::organism::organism::Organism as Org;
-                                        if let Some(actor) = s.organisms.iter_mut().find(|o| o.id == r.org_id)
+                                        if let Some(actor) =
+                                            org_index.get(&r.org_id).map(|&i| &mut s.organisms[i])
                                         {
                                             let ms = actor.traits.memory_strength;
                                             for (k, v) in &target_food {
@@ -851,7 +863,7 @@ async fn main() {
                                             }
                                         }
                                         if let Some(target) =
-                                            s.organisms.iter_mut().find(|o| o.id == their_oid)
+                                            org_index.get(their_oid).map(|&i| &mut s.organisms[i])
                                         {
                                             let ms = target.traits.memory_strength;
                                             for (k, v) in &actor_food {
@@ -862,14 +874,17 @@ async fn main() {
                                     "defense_pact" => {
                                         let pact_disc =
                                             format!("pact:{}", &their_lid[..their_lid.len().min(8)]);
-                                        if let Some(org) = s.organisms.iter_mut().find(|o| o.id == r.org_id) {
+                                        if let Some(org) =
+                                            org_index.get(&r.org_id).map(|&i| &mut s.organisms[i])
+                                        {
                                             if !org.discoveries.contains(&pact_disc) {
                                                 org.discoveries.insert(pact_disc.clone());
                                             }
                                         }
                                         let actor_disc =
                                             format!("pact:{}", &actor_lid[..actor_lid.len().min(8)]);
-                                        if let Some(org) = s.organisms.iter_mut().find(|o| o.id == their_oid)
+                                        if let Some(org) =
+                                            org_index.get(their_oid).map(|&i| &mut s.organisms[i])
                                         {
                                             if !org.discoveries.contains(&actor_disc) {
                                                 org.discoveries.insert(actor_disc.clone());
@@ -877,26 +892,27 @@ async fn main() {
                                         }
                                     }
                                     "knowledge_exchange" => {
-                                        let actor_disc: Vec<String> = s
-                                            .organisms
-                                            .iter()
-                                            .find(|o| o.id == r.org_id)
+                                        let actor_disc: Vec<String> = org_index
+                                            .get(&r.org_id)
+                                            .map(|&i| &s.organisms[i])
                                             .map(|o| o.discoveries.iter().cloned().collect())
                                             .unwrap_or_default();
-                                        let their_disc: Vec<String> = s
-                                            .organisms
-                                            .iter()
-                                            .find(|o| o.id == their_oid)
+                                        let their_disc: Vec<String> = org_index
+                                            .get(their_oid)
+                                            .map(|&i| &s.organisms[i])
                                             .map(|o| o.discoveries.iter().cloned().collect())
                                             .unwrap_or_default();
-                                        if let Some(org) = s.organisms.iter_mut().find(|o| o.id == r.org_id) {
+                                        if let Some(org) =
+                                            org_index.get(&r.org_id).map(|&i| &mut s.organisms[i])
+                                        {
                                             for d in &their_disc {
                                                 if !org.discoveries.contains(d) {
                                                     org.discoveries.insert(d.clone());
                                                 }
                                             }
                                         }
-                                        if let Some(org) = s.organisms.iter_mut().find(|o| o.id == their_oid)
+                                        if let Some(org) =
+                                            org_index.get(their_oid).map(|&i| &mut s.organisms[i])
                                         {
                                             for d in &actor_disc {
                                                 if !org.discoveries.contains(d) {
@@ -922,7 +938,7 @@ async fn main() {
                                 );
                             }
                             if let (Some(teaching), Some(child_id)) = (&r.teaching, &r.target_org_id) {
-                                if let Some(child) = s.organisms.iter_mut().find(|o| o.id == *child_id) {
+                                if let Some(child) = org_index.get(child_id).map(|&i| &mut s.organisms[i]) {
                                     child.discoveries.insert(teaching.clone());
                                     child.log_event(format!("taught: {}", teaching));
                                 }
@@ -933,8 +949,13 @@ async fn main() {
                     {
                         let cur_tick = s.tick_count;
                         let mut store = stories_clone.lock().await;
+                        let org_index: std::collections::HashMap<String, usize> = if store.is_empty() {
+                            std::collections::HashMap::new()
+                        } else {
+                            first_organism_indices(&s.organisms)
+                        };
                         for (org_id, story) in store.drain() {
-                            if let Some(org) = s.organisms.iter_mut().find(|o| o.id == org_id) {
+                            if let Some(org) = org_index.get(&org_id).map(|&i| &mut s.organisms[i]) {
                                 org.daily_story = story.clone();
                                 let name = org.name.clone();
                                 let lid = org.lineage_id.clone();

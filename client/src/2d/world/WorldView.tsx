@@ -1,9 +1,27 @@
+import { drawBoat } from './boat-sprite'
+import { crowdLabelIds } from './crowd-detail'
+import { drawWorkActivity, workActivity } from './activity-visuals'
+import { worldRenderScale, worldRenderWindow, interpolationFactor, shouldRenderFrame } from './render-timing'
 import { terrainDetail } from './terrain-detail'
 import { MapCameraController } from './MapCameraController'
+import { CanvasCameraController } from './CanvasCameraController'
+import { World2DErrorBoundary } from './World2DErrorBoundary'
 import { WorldMapHud } from './WorldMapHud'
 import { isMapControl, type MapCommand } from './camera-controls'
 import { drawFaunaSprite } from './fauna-sprites'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import {
+  Game,
+  World,
+  Entity,
+  Transform,
+  Sprite,
+  Camera2D,
+  useEntity,
+  useGame,
+  useDynamicCanvas,
+  type GameControls,
+} from 'cubeforge'
 import type { AnimalState, OrganismState, WorldState } from '../../types'
 import type { InterpRefs } from '../../simulation/useSimulation'
 import { useUIStore, type ViewFlags } from '../../stores/store'
@@ -22,7 +40,7 @@ import { getBuildingSprite, PAD as SPRITE_PAD, PAD_BOT as SPRITE_PAD_BOT } from 
 import { normalizeLineageEras } from '../../utils/lineageEras'
 import { useSceneStore } from '../../stores/scene'
 import { farmCropColor, farmProgress, farmStage } from '../../world/farms'
-import { activeStrategy, strategyTimeLabel } from '../../world/strategy-visuals'
+import { strategyBeaconPositions, strategyTimeLabel } from '../../world/strategy-visuals'
 import { TILE_ID, isPermanentWaterTile, isWaterTile } from '../../world/terrain-ids'
 import {
   EDGE_EAST,
@@ -47,6 +65,7 @@ import { oceanColor } from './landscape-style'
 
 import { LOW_PERF } from '../../lib/perf'
 import { logger } from '../../lib/logger'
+import { syncRendererLoopPause } from '../../lib/desktopVisibility'
 import {
   deterministicAppearanceIndex,
   resolveAgeStage,
@@ -54,6 +73,7 @@ import {
   characterMotion,
   characterFrame,
   compareCharacterDepth,
+  selectCrowdSpriteRepresentatives,
   type CharacterMotion,
 } from './character-visuals'
 
@@ -214,16 +234,17 @@ function visualTileHash(col: number, row: number, salt = 0): number {
 }
 
 function drawFoodPatch(ctx: CanvasRenderingContext2D, px: number, py: number, seed: number) {
-  const berry = (seed & 1) === 0 ? '#e25757' : '#e2bd45'
-  ctx.fillStyle = '#244d2a'
-  ctx.fillRect(px + 2, py + 3, 5, 3)
-  ctx.fillRect(px + 3, py + 2, 3, 5)
-  ctx.fillStyle = '#4f8a43'
-  ctx.fillRect(px + 2, py + 3, 2, 2)
-  ctx.fillRect(px + 5, py + 2, 2, 2)
-  ctx.fillStyle = berry
-  ctx.fillRect(px + 3 + ((seed >>> 4) & 1), py + 3, 1, 1)
-  ctx.fillRect(px + 5, py + 5, 1, 1)
+  // Keep every resource tile legible without carpeting the whole landscape
+  // with identical dark bushes. Larger shrubs punctuate smaller forage plants.
+  const x = px + 2 + ((seed >>> 5) & 3)
+  const y = py + 2 + ((seed >>> 9) & 3)
+  const large = (seed & 7) === 0
+  ctx.fillStyle = '#536a3b'
+  ctx.fillRect(x, y + 1, large ? 4 : 2, large ? 3 : 2)
+  ctx.fillStyle = '#81924d'
+  ctx.fillRect(x + 1, y, large ? 3 : 1, large ? 2 : 1)
+  ctx.fillStyle = (seed & 1) === 0 ? '#b46e52' : '#b6a35c'
+  ctx.fillRect(x + 1, y + 1, 1, 1)
 }
 
 function drawMineralOutcrop(ctx: CanvasRenderingContext2D, px: number, py: number, seed: number) {
@@ -272,7 +293,7 @@ function drawPixelFire(
   }
 }
 
-import { TILE, TILE_RGB, BIOME_RGBA, THOUGHT_COLORS } from '../../world/palette'
+import { TILE, TILE_RGB, BIOME_RGBA, THOUGHT_COLORS, SEASON_LAND_TINT } from '../../world/palette'
 import { orgVariant } from '../../world/org-variant'
 import { drawTrees, drawClouds, drawNaturalDecor, scratchA, scratchB } from './decorations'
 
@@ -738,20 +759,6 @@ function getWaterFxLayers(scale: number): WaterFxLayers | null {
   return _waterFx
 }
 
-// Cache terrain and decoration layers at a resolution appropriate for
-// the viewport. Quantized steps avoid rebuilding them on every zoom event.
-// The visible canvas itself stays viewport-sized and uses Canvas 2D;
-// presenting a 2D bitmap must not depend on WebGL availability.
-function pickRenderScale(zoom: number, lowPerf: boolean): number {
-  if (!Number.isFinite(zoom) || zoom <= 0) return 1
-  const dpr = Math.min(2, window.devicePixelRatio || 1)
-  const needed = zoom * dpr
-  if (needed >= 1) return 1
-  const stepped = Math.ceil(needed * 8) / 8
-  const floor = lowPerf ? 0.5 : 0.25
-  return Math.min(1, Math.max(floor, stepped))
-}
-
 function vnHash(x: number, y: number): number {
   let h = (x * 374761393 + y * 668265263) | 0
   h = Math.imul(h ^ (h >>> 13), 1274126177) | 0
@@ -941,13 +948,6 @@ function valueNoise(x: number, y: number): number {
   return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy
 }
 
-const SEASON_LAND_TINT: Record<string, { rgb: [number, number, number]; w: number }> = {
-  abundance: { rgb: [58, 138, 66], w: 0.22 },
-  recovery: { rgb: [92, 150, 64], w: 0.3 },
-  decline: { rgb: [150, 118, 44], w: 0.42 },
-  scarcity: { rgb: [128, 102, 56], w: 0.52 },
-}
-
 const SHALLOW_RGB: [number, number, number] = [116, 198, 208]
 
 function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
@@ -1131,7 +1131,8 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
   return canvas
 }
 
-function drawWorldOnCanvas(
+// eslint-disable-next-line react-refresh/only-export-components -- shared by the isolated render benchmark
+export function drawWorldOnCanvas(
   ctx: CanvasRenderingContext2D,
   world: WorldState,
   selectedOrgId: string | null,
@@ -2034,10 +2035,11 @@ function drawWorldOnCanvas(
     const bdp = world.day_progress ?? 0.5
     const bNight = world.is_day ? 0 : Math.max(0, Math.min(1, 1 - Math.abs(bdp - 0.5) * 2))
     const buildingDetail = zoomDetailLevel(cameraZoom)
-    const sorted = [...world.buildings].sort(compareBuildingsByDepth)
+    const sorted = world.buildings
+      .filter((b) => b.x - ox >= cxLo && b.x - ox <= cxHi && b.y - oy >= ryLo && b.y - oy <= ryHi)
+      .sort(compareBuildingsByDepth)
     for (const b of sorted) {
       if (typeof b.x !== 'number' || typeof b.y !== 'number') continue
-      if (b.x < cxLo || b.x > cxHi || b.y < ryLo || b.y > ryHi) continue
       drawBuilding(
         ctx,
         {
@@ -2249,30 +2251,74 @@ function drawWorldOnCanvas(
     return true
   }
 
-  if (_orgLastPos.size > Math.max(512, organisms.length * 3)) {
-    const visibleIds = new Set(organisms.map((organism) => organism.id))
+  // Canvas clipping saves pixels, but does not skip sprite work or text
+  // measurement. Cull before sorting and drawing off-screen people.
+  const visibleOrganisms = organisms.filter(
+    (org) =>
+      org.alive &&
+      org.x - ox >= c0 - 8 &&
+      org.x - ox <= c1 + 8 &&
+      org.y - oy >= r0 - 8 &&
+      org.y - oy <= r1 + 8,
+  )
+  const boatsByRider = new Map(
+    (world.vehicles ?? []).filter((v) => v.kind === 'boat' && v.rider_id).map((v) => [v.rider_id!, v]),
+  )
+  const characterDetail = zoomDetailLevel(cameraZoom)
+  // Dense crowds contain many sprites on the same eight-pixel tile. Preserve
+  // individual animation nearby, but cap overlapping atlas draws when the
+  // viewport holds thousands of people. Selection and boats stay visible.
+  const drawnOrganisms =
+    visibleOrganisms.length > 6000
+      ? selectCrowdSpriteRepresentatives(
+          visibleOrganisms,
+          characterDetail === 'overview' ? 1 : characterDetail === 'detail' ? 3 : 2,
+          characterDetail === 'overview' ? Math.min(8, Math.max(2, Math.ceil(1 / cameraZoom))) : 1,
+          selectedOrgId,
+          new Set(boatsByRider.keys()),
+        )
+      : visibleOrganisms
+  if (_orgLastPos.size > Math.max(512, drawnOrganisms.length * 3)) {
+    const drawnIds = new Set(drawnOrganisms.map((organism) => organism.id))
     for (const id of _orgLastPos.keys()) {
-      if (!visibleIds.has(id)) _orgLastPos.delete(id)
+      if (!drawnIds.has(id)) _orgLastPos.delete(id)
     }
   }
-
-  const characterDetail = zoomDetailLevel(cameraZoom)
+  for (const boat of world.vehicles ?? []) {
+    if (
+      boat.kind !== 'boat' ||
+      boat.rider_id ||
+      boat.x - ox < c0 - 3 ||
+      boat.x - ox > c1 + 3 ||
+      boat.y - oy < r0 - 3 ||
+      boat.y - oy > r1 + 3
+    )
+      continue
+    drawBoat(ctx, (boat.x - ox) * TILE + TILE / 2, (boat.y - oy) * TILE + TILE / 2, t, false)
+  }
+  for (const org of drawnOrganisms) orgMotion(org.id, org.x, org.y, t)
+  const restingAtHome = (org: OrganismState) => {
+    if (org.home_x == null || org.home_y == null) return false
+    if (ruinedTiles.has(`${Math.floor(org.home_x)},${Math.floor(org.home_y)}`)) return false
+    const motion = _orgLastPos.get(org.id)
+    if (motion && t - motion.movedAt <= 120) return false
+    const dx = org.x - org.home_x
+    const dy = org.y - org.home_y
+    return dx * dx + dy * dy < 2 && ((org.sleep_debt ?? 0) > 0.4 || org.energy < 0.1 || org.health < 0.15)
+  }
+  const crowded = visibleOrganisms.length > 400
+  const labelIds =
+    characterDetail !== 'overview' && viewFlags.names ? crowdLabelIds(drawnOrganisms, cameraZoom) : null
   // Batch every organism shadow into two paths (focused / dimmed) so the
   // whole population costs two fills instead of hundreds of separate
   // beginPath/ellipse/fill draw calls per frame.
-  {
+  if (characterDetail !== 'overview' && !crowded) {
     const focusedShadows = new Path2D()
     const dimShadows = new Path2D()
     let any = false
-    for (const org of organisms) {
+    for (const org of drawnOrganisms) {
       if (!org.alive) continue
-      if (org.home_x && org.home_y) {
-        const ddx = org.x - org.home_x
-        const ddy = org.y - org.home_y
-        if (ddx * ddx + ddy * ddy < 2.0) {
-          if ((org.sleep_debt ?? 0) > 0.4 || org.energy < 0.1 || org.health < 0.15) continue
-        }
-      }
+      if (restingAtHome(org)) continue
       const px = (org.x - ox) * TILE + TILE / 2
       const py = (org.y - oy) * TILE + TILE / 2
       const variant = orgVariant(org.id)
@@ -2300,16 +2346,9 @@ function drawWorldOnCanvas(
       ctx.fill(focusedShadows)
     }
   }
-  for (const org of [...organisms].sort(compareCharacterDepth)) {
+  for (const org of drawnOrganisms.sort(compareCharacterDepth)) {
     if (!org.alive) continue
-    // Data-driven house entry: use actual sleep_debt, energy, health fields - no text matching
-    if (org.home_x && org.home_y) {
-      const ddx = org.x - org.home_x
-      const ddy = org.y - org.home_y
-      if (ddx * ddx + ddy * ddy < 2.0) {
-        if ((org.sleep_debt ?? 0) > 0.4 || org.energy < 0.1 || org.health < 0.15) continue
-      }
-    }
+    if (restingAtHome(org)) continue
     const px = (org.x - ox) * TILE + TILE / 2
     const py = (org.y - oy) * TILE + TILE / 2
     const focused = isFocused(org)
@@ -2371,7 +2410,7 @@ function drawWorldOnCanvas(
       ctx.restore()
     }
 
-    if (standardDetail && org.lineage_id) {
+    if (standardDetail && (!crowded || isSelected) && org.lineage_id) {
       ctx.strokeStyle = lineageColor(org.lineage_id)
       ctx.lineWidth = org.traits ? 0.75 + org.traits.resilience : 1
       ctx.beginPath()
@@ -2400,14 +2439,15 @@ function drawWorldOnCanvas(
       else if (stage === 'infant' || stage === 'child') bodyFill = '#8db5d6'
       else bodyFill = '#b8b8a8'
     }
-    ctx.save()
-    ctx.globalAlpha *= viewFlags.health || viewFlags.age ? 0.3 : standardDetail ? 0.16 : 0.1
-    ctx.fillStyle = bodyFill
-    ctx.beginPath()
-    ctx.arc(px, py, bodyR + 1.5, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.restore()
-
+    if (isSelected || viewFlags.health || viewFlags.age || (standardDetail && !crowded)) {
+      ctx.save()
+      ctx.globalAlpha *= viewFlags.health || viewFlags.age ? 0.3 : standardDetail ? 0.16 : 0.1
+      ctx.fillStyle = bodyFill
+      ctx.beginPath()
+      ctx.arc(px, py, bodyR + 1.5, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.restore()
+    }
     if (standardDetail && viewFlags.fear && (org.fear_level ?? 0) > 0.25) {
       const fa = Math.min(0.55, (org.fear_level ?? 0) * 0.8)
       ctx.beginPath()
@@ -2433,8 +2473,9 @@ function drawWorldOnCanvas(
       ctx.setLineDash([])
     }
 
-    const motion = orgMotion(org.id, org.x, org.y, t)
-    const frame = characterFrame(motion, t)
+    const motion = _orgLastPos.get(org.id)!
+    const boat = boatsByRider.get(org.id)
+    const frame = boat ? 0 : characterFrame(motion, t)
     const drew = drawPeopleTile(
       ctx,
       pickHumanSprite(orgSex, stage, frame, deterministicAppearanceIndex(org.id)),
@@ -2450,6 +2491,19 @@ function drawWorldOnCanvas(
       ctx.fill()
       ctx.fillStyle = variant.accent
       ctx.fillRect(Math.round(px - bodyR * 0.7), Math.round(py + bodyR * 0.15), bodyR * 1.4, 2)
+    }
+
+    if (boat) drawBoat(ctx, px, py, t, !boat.building && t - motion.movedAt <= 120, boat.building)
+    if (standardDetail && !boat) {
+      drawWorkActivity(
+        ctx,
+        workActivity(org.thought ?? '', t - motion.movedAt <= 120),
+        px,
+        py,
+        motion.flipped,
+        t,
+        motion.phase,
+      )
     }
 
     const era = lineageErasMap[org.lineage_id] ?? ''
@@ -2526,7 +2580,7 @@ function drawWorldOnCanvas(
       ctx.fillRect(bx, by + 4, Math.round(barW * Math.max(0, Math.min(1, org.health))), 1)
     }
 
-    const showName = isSelected || (standardDetail && viewFlags.names)
+    const showName = isSelected || (standardDetail && viewFlags.names && (!labelIds || labelIds.has(org.id)))
     const showThought =
       (isSelected || (fullDetail && viewFlags.thoughts)) && org.thought && org.thought !== 'observing'
     const labelY = spriteTop - (showVitals ? 10 : 2)
@@ -2560,24 +2614,14 @@ function drawWorldOnCanvas(
   // organisms and buildings. Otherwise a busy settlement can bury the
   // guidance label under hundreds of sprites.
   if (world.lineage_strategies) {
-    const settlementsByLineage = new Map(
-      (world.settlements ?? []).map((settlement) => [settlement.lineage_id, settlement]),
+    const beacons = strategyBeaconPositions(
+      world.lineage_strategies,
+      world.tick,
+      world.settlements,
+      world.lineage_homes,
+      organisms,
     )
-    for (const [lineage, entry] of Object.entries(world.lineage_strategies)) {
-      const strategy = activeStrategy(entry, world.tick)
-      if (!strategy) continue
-      const settlement = settlementsByLineage.get(lineage)
-      const home = world.lineage_homes?.[lineage]
-      const members = organisms.filter((organism) => organism.alive && organism.lineage_id === lineage)
-      if (!settlement && !home && members.length === 0) continue
-      const wx =
-        settlement?.center[0] ??
-        home?.[0] ??
-        members.reduce((sum, organism) => sum + organism.x, 0) / members.length
-      const wy =
-        settlement?.center[1] ??
-        home?.[1] ??
-        members.reduce((sum, organism) => sum + organism.y, 0) / members.length
+    for (const { strategy, x: wx, y: wy } of beacons) {
       const centerX = (wx - ox) * TILE + TILE / 2
       const centerY = (wy - oy) * TILE + TILE / 2
       if (centerX < -32 || centerX > W + 32 || centerY < -32 || centerY > H + 32) continue
@@ -2653,7 +2697,28 @@ function drawWorldOnCanvas(
   }
 }
 
-function WorldCanvas({
+function paintWorldTexture(
+  ctx: CanvasRenderingContext2D,
+  world: WorldState,
+  selectedOrgId: string | null,
+  overlay: string | null,
+  focus: string,
+  viewFlags: ViewFlags,
+  renderWindow: ReturnType<typeof worldRenderWindow>,
+  zoom: number,
+  scale: number,
+) {
+  const bounds = {
+    c0: Math.max(0, Math.floor(renderWindow.x / TILE)),
+    c1: Math.min(world.grid.width, Math.ceil((renderWindow.x + renderWindow.width) / TILE)),
+    r0: Math.max(0, Math.floor(renderWindow.y / TILE)),
+    r1: Math.min(world.grid.height, Math.ceil((renderWindow.y + renderWindow.height) / TILE)),
+  }
+  ctx.setTransform(scale, 0, 0, scale, -renderWindow.x * scale, -renderWindow.y * scale)
+  drawWorldOnCanvas(ctx, world, selectedOrgId, overlay, focus, viewFlags, bounds, zoom, scale)
+}
+
+function WorldSprite({
   world,
   interp,
   selectedOrgId,
@@ -2663,6 +2728,8 @@ function WorldCanvas({
   rendererPaused,
   onFirstDraw,
   onDrawError,
+  atX,
+  atY,
   cameraStateRef,
   viewportDims,
 }: {
@@ -2675,14 +2742,39 @@ function WorldCanvas({
   rendererPaused: boolean
   onFirstDraw: () => void
   onDrawError: (message: string) => void
+  atX: number
+  atY: number
   cameraStateRef?: React.MutableRefObject<{ x: number; y: number; zoom: number }>
   viewportDims?: { w: number; h: number }
 }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const entityId = useEntity()
+  const engine = useGame()
+
+  const W = world.grid.width * TILE
+  const H = world.grid.height * TILE
+  const [renderScale, setRenderScale] = useState(() =>
+    worldRenderScale(
+      viewportDims ? Math.min(viewportDims.w / W, viewportDims.h / H) * 0.95 : 1,
+      window.devicePixelRatio || 1,
+      LOW_PERF,
+    ),
+  )
+  const [renderWindow, setRenderWindow] = useState(() =>
+    cameraStateRef && viewportDims
+      ? worldRenderWindow(W, H, cameraStateRef.current, viewportDims)
+      : { x: 0, y: 0, width: W, height: H },
+  )
+  const renderScaleRef = useRef(renderScale)
+  const zoomActivity = useRef({ zoom: 0, changedAt: 0 })
+  // Even dimensions keep the pixel-art grid aligned when scaled.
+  const dynW = Math.max(TILE, Math.round((renderWindow.width * renderScale) / 2) * 2)
+  const dynH = Math.max(TILE, Math.round((renderWindow.height * renderScale) / 2) * 2)
+  const dyn = useDynamicCanvas(dynW, dynH)
 
   const hasDrawn = useRef(false)
   const cachedDepth = useRef<number[][] | null>(null)
   const cachedBiomes = useRef<number[][] | null>(null)
+  const filledDynId = useRef<string | null>(null)
   const orgInterpCache = useRef<OrgInterpCache>({
     source: null,
     prevSource: null,
@@ -2698,6 +2790,14 @@ function WorldCanvas({
     prevById: new Map(),
   })
 
+  useLayoutEffect(() => {
+    if (filledDynId.current === dyn.id) return
+    filledDynId.current = dyn.id
+    dyn.ctx.fillStyle = '#1a4a80'
+    dyn.ctx.fillRect(0, 0, dynW, dynH)
+    dyn.markDirty()
+  }, [dyn, dynW, dynH])
+
   const worldRef = useRef<WorldState | null>(world)
   const selectedOrgIdRef = useRef<string | null>(selectedOrgId)
   const overlayRef = useRef<string | null>(overlay)
@@ -2709,67 +2809,115 @@ function WorldCanvas({
   focusRef.current = focus
   viewFlagsRef.current = viewFlags
 
-  useEffect(() => {
-    if (rendererPaused || !viewportDims || !cameraStateRef) return
-    const canvas = canvasRef.current
-    const ctx = canvas?.getContext('2d')
-    if (!canvas || !ctx) {
-      onDrawError('The browser could not create a 2D canvas. Try reloading this page.')
-      return
+  // A window/scale change can allocate a new canvas and move the Cubeforge
+  // sprite in the same React commit. Paint that canvas and update its ECS
+  // geometry before the renderer can display the new placement. Otherwise a
+  // zoom-out briefly stretches the old window into the new one, and a pan
+  // displays old pixels at the new coordinates until the next 30fps tick.
+  useLayoutEffect(() => {
+    const w = interp?.current.current ?? worldRef.current
+    if (!w) return
+    const grid = {
+      ...w.grid,
+      depth_map: cachedDepth.current ?? w.grid.depth_map,
+      biomes: cachedBiomes.current ?? w.grid.biomes,
     }
-    const dpr = Math.min(2, window.devicePixelRatio || 1)
-    canvas.width = Math.max(1, Math.round(viewportDims.w * dpr))
-    canvas.height = Math.max(1, Math.round(viewportDims.h * dpr))
+    const zoom = cameraStateRef?.current.zoom ?? 1
+    paintWorldTexture(
+      dyn.ctx,
+      { ...w, grid },
+      selectedOrgIdRef.current,
+      overlayRef.current,
+      focusRef.current,
+      viewFlagsRef.current,
+      renderWindow,
+      zoom,
+      renderScale,
+    )
+    const sprite = engine.ecs.getComponent(entityId, 'Sprite')
+    if (sprite) {
+      sprite.width = renderWindow.width
+      sprite.height = renderWindow.height
+    }
+    const transform = engine.ecs.getComponent(entityId, 'Transform')
+    if (transform) {
+      transform.x = atX - W / 2 + renderWindow.x + renderWindow.width / 2
+      transform.y = atY - H / 2 + renderWindow.y + renderWindow.height / 2
+    }
+    dyn.markDirty()
+    if (!interp && !hasDrawn.current) {
+      hasDrawn.current = true
+      requestAnimationFrame(() => requestAnimationFrame(onFirstDraw))
+    }
+  }, [dyn, engine, entityId, interp, cameraStateRef, renderWindow, renderScale, atX, atY, W, H, onFirstDraw])
+
+  useEffect(() => {
+    if (!interp || rendererPaused) return
     let raf = 0
     let stopped = false
     let lastDrawnAt: number = 0
     let lastDrawnT: number = -1
     let lastDrawnUI: string = ''
-    let lowPerfFrameSkip = 0
+    let lastFrameAt = -Infinity
 
-    const tick = () => {
+    const tick = (now: number) => {
       if (stopped) return
       raf = requestAnimationFrame(tick)
 
-      if (LOW_PERF) {
-        lowPerfFrameSkip = (lowPerfFrameSkip + 1) % 2
-        if (lowPerfFrameSkip === 1) return
-      }
+      if (document.hidden || !shouldRenderFrame(now, lastFrameAt, LOW_PERF ? 24 : 30)) return
+      lastFrameAt = now
 
-      const w = worldRef.current
+      const w = interp.current.current ?? worldRef.current
       if (!w) return
 
       if (w.grid.depth_map) cachedDepth.current = w.grid.depth_map as number[][]
       if (w.grid.biomes) cachedBiomes.current = w.grid.biomes as number[][]
 
-      const cur = interp?.current.current
-      const prev = interp?.prev.current
-      const curServerAt = interp?.currentServerAt.current ?? 0
-      const prevServerAt = interp?.prevServerAt.current ?? 0
-      const currentReceivedAt = interp?.currentReceivedAt.current ?? 0
+      const cur = interp.current.current
+      const prev = interp.prev.current
+      const curServerAt = interp.currentServerAt.current
+      const prevServerAt = interp.prevServerAt.current
+      const currentReceivedAt = interp.currentReceivedAt.current
       const slowMo = viewFlagsRef.current.slowMo
       const fastMo = viewFlagsRef.current.fastMo
       const speedDiv = slowMo ? 0.5 : fastMo ? 2.0 : 1.0
       const interval = Math.max(50, curServerAt - prevServerAt) / speedDiv
-      const RENDER_LAG_MS = Math.min(120, interval * 0.5)
-      const PREDICT_CAP = 2.0
-      const t =
-        cur && prev && interval > 0
-          ? Math.max(
-              0,
-              Math.min(PREDICT_CAP, (performance.now() - currentReceivedAt - RENDER_LAG_MS) / interval),
-            )
-          : 1
+      // Never extrapolate beyond the last known position: delayed frames
+      // used to overshoot and snap people backwards, looking like pacing.
+      const PREDICT_CAP = 1.0
+      const t = cur && prev ? interpolationFactor(now, currentReceivedAt, interval) : 1
 
       const renderZoom = cameraStateRef?.current.zoom ?? 1
       // Adapt canvas resolution to the camera: zoomed-out views need a
       // fraction of the world-sized bitmap, so skip uploading pixels the
       // screen can't display anyway.
+      const targetScale = worldRenderScale(renderZoom, window.devicePixelRatio || 1, LOW_PERF)
+      if (zoomActivity.current.zoom !== renderZoom) {
+        zoomActivity.current = { zoom: renderZoom, changedAt: now }
+      }
+      if (targetScale !== renderScaleRef.current && now - zoomActivity.current.changedAt >= 150) {
+        renderScaleRef.current = targetScale
+        setRenderScale(targetScale)
+      }
+      if (cameraStateRef && viewportDims) {
+        const nextWindow = worldRenderWindow(W, H, cameraStateRef.current, viewportDims, renderWindow)
+        if (
+          nextWindow.x !== renderWindow.x ||
+          nextWindow.y !== renderWindow.y ||
+          nextWindow.width !== renderWindow.width ||
+          nextWindow.height !== renderWindow.height
+        ) {
+          setRenderWindow(nextWindow)
+          return
+        }
+      }
       const detailBucket = zoomDetailLevel(renderZoom)
-      const uiKey = `${selectedOrgIdRef.current ?? ''}|${overlayRef.current ?? ''}|${focusRef.current}|${viewFlagsRef.current.territory ? 't' : ''}${viewFlagsRef.current.names ? 'n' : ''}${viewFlagsRef.current.thoughts ? 'h' : ''}${viewFlagsRef.current.animals ? 'a' : ''}${viewFlagsRef.current.grid ? 'g' : ''}|${detailBucket}|${cameraStateRef.current.x}|${cameraStateRef.current.y}|${renderZoom}`
+      const uiKey = `${selectedOrgIdRef.current ?? ''}|${overlayRef.current ?? ''}|${focusRef.current}|${JSON.stringify(viewFlagsRef.current)}|${detailBucket}|${renderScale}|${renderWindow.x}|${renderWindow.y}`
       const settled =
         t >= PREDICT_CAP && lastDrawnT >= PREDICT_CAP && curServerAt === lastDrawnAt && uiKey === lastDrawnUI
-      if (settled) return
+      // Give the last walking pose time to settle before freezing a quiet map.
+      // Otherwise the last rendered footstep remains stuck indefinitely.
+      if (settled && now - currentReceivedAt > interval + 160) return
 
       let renderOrgs = w.viewport_organisms ?? w.organisms
       if (prev && cur === w) {
@@ -2854,57 +3002,28 @@ function WorldCanvas({
         season_progress: lerpedSeason,
       }
 
-      // Compute the visible-tile window so per-tile overlay loops can
-      // skip rows/cols off-screen. We give a 4-tile margin so panning
-      // doesn't reveal blank borders before the next frame redraws.
-      let bounds: { c0: number; c1: number; r0: number; r1: number } | undefined
-      if (cameraStateRef && viewportDims && viewportDims.w > 0 && viewportDims.h > 0) {
-        const cam = cameraStateRef.current
-        const zoom = renderZoom > 0 ? renderZoom : 1
-        const halfW = viewportDims.w / (2 * zoom)
-        const halfH = viewportDims.h / (2 * zoom)
-        const MARGIN = 4
-        const wG = w.grid.width
-        const hG = w.grid.height
-        const c0 = Math.max(0, Math.floor((cam.x - halfW) / TILE) - MARGIN)
-        const c1 = Math.min(wG, Math.ceil((cam.x + halfW) / TILE) + MARGIN)
-        const r0 = Math.max(0, Math.floor((cam.y - halfH) / TILE) - MARGIN)
-        const r1 = Math.min(hG, Math.ceil((cam.y + halfH) / TILE) + MARGIN)
-        if (c1 > c0 && r1 > r0) bounds = { c0, c1, r0, r1 }
-      }
-
-      const scale = pickRenderScale(renderZoom, LOW_PERF)
-      const cam = cameraStateRef.current
-      ctx.setTransform(1, 0, 0, 1, 0, 0)
-      ctx.fillStyle = '#1a4a80'
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
-      ctx.setTransform(
-        dpr * renderZoom,
-        0,
-        0,
-        dpr * renderZoom,
-        dpr * (viewportDims.w / 2 - cam.x * renderZoom),
-        dpr * (viewportDims.h / 2 - cam.y * renderZoom),
-      )
+      // Paint the entire padded texture, so camera movement within it never
+      // exposes culled strips or requires an extra CPU redraw.
       try {
-        drawWorldOnCanvas(
-          ctx,
+        paintWorldTexture(
+          dyn.ctx,
           enrichedWorld,
           selectedOrgIdRef.current,
           overlayRef.current,
           focusRef.current,
           viewFlagsRef.current,
-          bounds,
+          renderWindow,
           renderZoom,
-          scale,
+          renderScale,
         )
       } catch (error) {
         stopped = true
         cancelAnimationFrame(raf)
-        logger.error('2d-world', 'Drawing failed', error)
+        logger.error('2d-world', 'GPU world drawing failed', error)
         onDrawError('The world could not be drawn. Retry the renderer to restore the map.')
         return
       }
+      dyn.markDirty()
 
       lastDrawnAt = curServerAt
       lastDrawnT = t
@@ -2912,7 +3031,7 @@ function WorldCanvas({
 
       if (!hasDrawn.current) {
         hasDrawn.current = true
-        onFirstDraw()
+        requestAnimationFrame(() => requestAnimationFrame(onFirstDraw))
       }
     }
 
@@ -2929,7 +3048,273 @@ function WorldCanvas({
       // rebuild several times per second - the single biggest source of
       // frame stalls in the whole app.
     }
-  }, [interp, onFirstDraw, onDrawError, cameraStateRef, viewportDims, rendererPaused])
+  }, [
+    interp,
+    dyn,
+    onFirstDraw,
+    onDrawError,
+    cameraStateRef,
+    viewportDims,
+    rendererPaused,
+    renderScale,
+    renderWindow,
+    W,
+    H,
+  ])
+
+  return (
+    <>
+      <Transform
+        x={atX - W / 2 + renderWindow.x + renderWindow.width / 2}
+        y={atY - H / 2 + renderWindow.y + renderWindow.height / 2}
+      />
+      {/* Geometry is synchronized with the painted texture before each handoff. */}
+      <Sprite
+        width={renderWindow.width}
+        height={renderWindow.height}
+        dynamicSrc={dyn.id}
+        color="#ffffff"
+        zIndex={0}
+      />
+    </>
+  )
+}
+
+function canUseWorldGPU(): boolean {
+  try {
+    if (new URLSearchParams(window.location.search).get('renderer') === 'canvas') return false
+    const canvas = document.createElement('canvas')
+    const gl = canvas.getContext('webgl2', { alpha: false, antialias: false })
+    if (!gl) return false
+    gl.getExtension('WEBGL_lose_context')?.loseContext()
+    return true
+  } catch {
+    return false
+  }
+}
+
+function CanvasWorldFallback({
+  world,
+  interp,
+  selectedOrgId,
+  overlay,
+  focus,
+  viewFlags,
+  rendererPaused,
+  onFirstDraw,
+  onDrawError,
+  cameraStateRef,
+  viewportDims,
+}: {
+  world: WorldState
+  interp?: InterpRefs
+  selectedOrgId: string | null
+  overlay: string | null
+  focus: string
+  viewFlags: ViewFlags
+  rendererPaused: boolean
+  onFirstDraw: () => void
+  onDrawError: (message: string) => void
+  cameraStateRef: React.MutableRefObject<{ x: number; y: number; zoom: number }>
+  viewportDims: { w: number; h: number }
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const hasDrawn = useRef(false)
+  const cachedDepth = useRef<number[][] | null>(null)
+  const cachedBiomes = useRef<number[][] | null>(null)
+  const orgCache = useRef<OrgInterpCache>({
+    source: null,
+    prevSource: null,
+    frameId: -1,
+    items: [],
+    prevById: new Map(),
+  })
+  const animalCache = useRef<AnimalInterpCache>({
+    source: null,
+    prevSource: null,
+    frameId: -1,
+    items: [],
+    prevById: new Map(),
+  })
+  const latest = useRef({ world, selectedOrgId, overlay, focus, viewFlags })
+  latest.current = { world, selectedOrgId, overlay, focus, viewFlags }
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    let context: CanvasRenderingContext2D | null = null
+    try {
+      context = canvas?.getContext('2d', { alpha: false }) ?? null
+    } catch (error) {
+      logger.error('2d-world', 'Canvas setup failed', error)
+    }
+    if (!canvas || !context) {
+      onDrawError('The browser could not create a 2D canvas. Try reloading this page.')
+      return
+    }
+    const ctx = context
+    const dpr = Math.min(2, window.devicePixelRatio || 1)
+    canvas.width = Math.max(1, Math.round(viewportDims.w * dpr))
+    canvas.height = Math.max(1, Math.round(viewportDims.h * dpr))
+    let raf = 0
+    let stopped = false
+    let lastFrameAt = -Infinity
+    let lastWorld: WorldState | null = null
+    let lastServerAt = -1
+    let lastT = -1
+    let lastUI = ''
+
+    const tick = (now: number) => {
+      if (stopped) return
+      if (!rendererPaused) raf = requestAnimationFrame(tick)
+      if (document.hidden || !shouldRenderFrame(now, lastFrameAt, LOW_PERF ? 20 : 30)) return
+      lastFrameAt = now
+
+      const { world: snapshot, selectedOrgId, overlay, focus, viewFlags } = latest.current
+      const w = interp?.current.current ?? snapshot
+      if (!w) return
+      if (w.grid.depth_map) cachedDepth.current = w.grid.depth_map as number[][]
+      if (w.grid.biomes) cachedBiomes.current = w.grid.biomes as number[][]
+
+      const prev = interp?.prev.current
+      const serverAt = interp?.currentServerAt.current ?? 0
+      const interval =
+        Math.max(50, serverAt - (interp?.prevServerAt.current ?? 0)) /
+        (viewFlags.slowMo ? 0.5 : viewFlags.fastMo ? 2 : 1)
+      const receivedAt = interp?.currentReceivedAt.current ?? 0
+      const t = prev && interp?.current.current ? interpolationFactor(now, receivedAt, interval) : 1
+      const cam = cameraStateRef.current
+      const zoom = cam.zoom
+      const uiKey = `${selectedOrgId ?? ''}|${overlay ?? ''}|${focus}|${JSON.stringify(viewFlags)}|${zoomDetailLevel(zoom)}|${cam.x}|${cam.y}|${zoom}`
+      if (
+        w === lastWorld &&
+        serverAt === lastServerAt &&
+        t === lastT &&
+        uiKey === lastUI &&
+        now - receivedAt > interval + 160
+      )
+        return
+
+      let renderOrgs = w.viewport_organisms?.length ? w.viewport_organisms : w.organisms
+      if (prev && interp?.current.current === w) {
+        const previous = prev.viewport_organisms?.length ? prev.viewport_organisms : prev.organisms
+        const cache = orgCache.current
+        if (cache.prevSource !== previous) {
+          cache.prevSource = previous
+          cache.prevById.clear()
+          for (const org of previous) cache.prevById.set(org.id, org)
+        }
+        if (cache.source !== renderOrgs || cache.frameId !== w.frame_id) {
+          cache.source = renderOrgs
+          cache.frameId = w.frame_id
+          cache.items = renderOrgs.map((org) => ({ ...org }))
+        }
+        for (let i = 0; i < renderOrgs.length; i++) {
+          const org = renderOrgs[i]
+          const out = cache.items[i]
+          const before = cache.prevById.get(org.id)
+          out.x = before?.alive && org.alive ? before.x + (org.x - before.x) * t : org.x
+          out.y = before?.alive && org.alive ? before.y + (org.y - before.y) * t : org.y
+        }
+        renderOrgs = cache.items
+      }
+
+      let renderAnimals = w.viewport_animals?.length ? w.viewport_animals : w.animals
+      if (prev && interp?.current.current === w) {
+        const previous = prev.viewport_animals?.length ? prev.viewport_animals : prev.animals
+        const cache = animalCache.current
+        if (cache.prevSource !== previous) {
+          cache.prevSource = previous
+          cache.prevById.clear()
+          for (const animal of previous) cache.prevById.set(animal.id, animal)
+        }
+        if (cache.source !== renderAnimals || cache.frameId !== w.frame_id) {
+          cache.source = renderAnimals
+          cache.frameId = w.frame_id
+          cache.items = renderAnimals.map((animal) => ({ ...animal }))
+        }
+        for (let i = 0; i < renderAnimals.length; i++) {
+          const animal = renderAnimals[i]
+          const out = cache.items[i]
+          const before = cache.prevById.get(animal.id)
+          out.x = before ? before.x + (animal.x - before.x) * t : animal.x
+          out.y = before ? before.y + (animal.y - before.y) * t : animal.y
+        }
+        renderAnimals = cache.items
+      }
+
+      const lerpCycle = (before: number, after: number) => {
+        let delta = after - before
+        if (delta > 0.5) delta -= 1
+        if (delta < -0.5) delta += 1
+        return (((before + delta * t) % 1) + 1) % 1
+      }
+
+      const enriched: WorldState = {
+        ...w,
+        grid: {
+          ...w.grid,
+          depth_map: cachedDepth.current ?? w.grid.depth_map,
+          biomes: cachedBiomes.current ?? w.grid.biomes,
+        },
+        viewport_organisms: renderOrgs,
+        viewport_animals: renderAnimals,
+        day_progress: prev ? lerpCycle(prev.day_progress, w.day_progress) : w.day_progress,
+        season_progress: prev ? lerpCycle(prev.season_progress, w.season_progress) : w.season_progress,
+      }
+      const halfW = viewportDims.w / (2 * zoom)
+      const halfH = viewportDims.h / (2 * zoom)
+      const bounds = {
+        c0: Math.max(0, Math.floor((cam.x - halfW) / TILE) - 4),
+        c1: Math.min(w.grid.width, Math.ceil((cam.x + halfW) / TILE) + 4),
+        r0: Math.max(0, Math.floor((cam.y - halfH) / TILE) - 4),
+        r1: Math.min(w.grid.height, Math.ceil((cam.y + halfH) / TILE) + 4),
+      }
+      ctx.setTransform(1, 0, 0, 1, 0, 0)
+      ctx.fillStyle = '#1a4a80'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.setTransform(
+        dpr * zoom,
+        0,
+        0,
+        dpr * zoom,
+        dpr * (viewportDims.w / 2 - cam.x * zoom),
+        dpr * (viewportDims.h / 2 - cam.y * zoom),
+      )
+      try {
+        drawWorldOnCanvas(
+          ctx,
+          enriched,
+          selectedOrgId,
+          overlay,
+          focus,
+          viewFlags,
+          bounds,
+          zoom,
+          worldRenderScale(zoom, dpr, LOW_PERF),
+        )
+      } catch (error) {
+        stopped = true
+        cancelAnimationFrame(raf)
+        logger.error('2d-world', 'Canvas drawing failed', error)
+        onDrawError('The world could not be drawn. Retry the renderer to restore the map.')
+        return
+      }
+      lastWorld = w
+      lastServerAt = serverAt
+      lastT = t
+      lastUI = uiKey
+      if (!hasDrawn.current) {
+        hasDrawn.current = true
+        onFirstDraw()
+      }
+    }
+
+    raf = requestAnimationFrame(tick)
+    return () => {
+      stopped = true
+      cancelAnimationFrame(raf)
+    }
+  }, [cameraStateRef, interp, onDrawError, onFirstDraw, rendererPaused, viewportDims])
 
   return (
     <canvas
@@ -2982,11 +3367,49 @@ export function WorldView({
   const cameraStateRef = useRef({ x: cx, y: cy, zoom: 1.5 })
   const [dims, setDims] = useState({ w: 0, h: 0 })
   const [mapReady, setMapReady] = useState(false)
-  // Stable identity: WorldCanvas's frame-loop effect depends on this
-  // callback - an inline arrow restarted that loop on every publish.
-  const handleFirstDraw = useCallback(() => setMapReady(true), [])
+  const [renderBackend, setRenderBackend] = useState<'gpu' | 'canvas'>(() =>
+    canUseWorldGPU() ? 'gpu' : 'canvas',
+  )
   const [drawError, setDrawError] = useState<string | null>(null)
   const [rendererKey, setRendererKey] = useState(0)
+  // Stable identity: WorldSprite's frame-loop effect depends on this
+  // callback - an inline arrow restarted that loop on every publish.
+  const handleFirstDraw = useCallback(() => setMapReady(true), [])
+  const gameControlsRef = useRef<GameControls | null>(null)
+  const handleGPUFailure = useCallback(() => {
+    gameControlsRef.current = null
+    setMapReady(false)
+    setRenderBackend('canvas')
+  }, [])
+  const rendererPausedRef = useRef(rendererPaused)
+  rendererPausedRef.current = rendererPaused
+
+  const handleGameReady = useCallback((controls: GameControls) => {
+    gameControlsRef.current = controls
+    syncRendererLoopPause(controls, rendererPausedRef.current)
+  }, [])
+
+  useEffect(() => {
+    const controls = gameControlsRef.current
+    if (controls) syncRendererLoopPause(controls, rendererPaused)
+  }, [rendererPaused])
+
+  useEffect(() => {
+    if (renderBackend !== 'gpu' || mapReady || dims.w === 0 || dims.h === 0) return
+    // Cubeforge reports some WebGL setup failures inside Game instead of
+    // throwing. Its error UI sits behind the startup cover, so recover if a
+    // first frame never arrives.
+    const timeout = window.setTimeout(handleGPUFailure, 10_000)
+    return () => window.clearTimeout(timeout)
+  }, [renderBackend, mapReady, dims.w, dims.h, handleGPUFailure])
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (renderBackend !== 'gpu' || !container) return
+    const lost = () => handleGPUFailure()
+    container.addEventListener('webglcontextlost', lost, true)
+    return () => container.removeEventListener('webglcontextlost', lost, true)
+  }, [renderBackend, handleGPUFailure])
 
   const followTarget = followOrgId
     ? (() => {
@@ -3151,34 +3574,91 @@ export function WorldView({
       }}
       onClick={handleClick}
     >
-      {dims.w > 0 && dims.h > 0 && (
-        <>
-          <WorldCanvas
-            key={rendererKey}
-            world={world}
-            interp={interp}
-            selectedOrgId={selectedOrgId}
-            overlay={overlay}
-            focus={focus}
-            viewFlags={viewFlags}
-            rendererPaused={rendererPaused}
-            onFirstDraw={handleFirstDraw}
-            onDrawError={setDrawError}
-            cameraStateRef={cameraStateRef}
-            viewportDims={dims}
-          />
-          <MapCameraController
-            commandRef={commandRef}
-            worldW={W}
-            worldH={H}
-            containerW={dims.w}
-            containerH={dims.h}
-            containerEl={containerRef.current}
-            cameraStateRef={cameraStateRef}
-            followTarget={followTarget}
-          />
-        </>
-      )}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: '#1a4a80',
+          zIndex: 10,
+          pointerEvents: 'none',
+          opacity: mapReady ? 0 : 1,
+          transition: 'opacity 280ms ease-out',
+        }}
+      />
+      {dims.w > 0 &&
+        dims.h > 0 &&
+        (renderBackend === 'gpu' ? (
+          <World2DErrorBoundary key={rendererKey} onCrash={handleGPUFailure}>
+            <Game
+              mode="onDemand"
+              gravity={0}
+              width={dims.w}
+              height={dims.h}
+              onReady={handleGameReady}
+              style={{ display: 'block' }}
+            >
+              <World background="#1a4a80">
+                <Camera2D />
+
+                <Entity>
+                  <WorldSprite
+                    world={world}
+                    interp={interp}
+                    selectedOrgId={selectedOrgId}
+                    overlay={overlay}
+                    focus={focus}
+                    viewFlags={viewFlags}
+                    rendererPaused={rendererPaused}
+                    onFirstDraw={handleFirstDraw}
+                    onDrawError={setDrawError}
+                    atX={cx}
+                    atY={cy}
+                    cameraStateRef={cameraStateRef}
+                    viewportDims={dims}
+                  />
+                </Entity>
+
+                <MapCameraController
+                  commandRef={commandRef}
+                  worldW={W}
+                  worldH={H}
+                  containerW={dims.w}
+                  containerH={dims.h}
+                  containerEl={containerRef.current}
+                  cameraStateRef={cameraStateRef}
+                  followTarget={followTarget}
+                />
+              </World>
+            </Game>
+          </World2DErrorBoundary>
+        ) : (
+          <>
+            <CanvasWorldFallback
+              key={rendererKey}
+              world={world}
+              interp={interp}
+              selectedOrgId={selectedOrgId}
+              overlay={overlay}
+              focus={focus}
+              viewFlags={viewFlags}
+              rendererPaused={rendererPaused}
+              onFirstDraw={handleFirstDraw}
+              onDrawError={setDrawError}
+              cameraStateRef={cameraStateRef}
+              viewportDims={dims}
+            />
+            <CanvasCameraController
+              commandRef={commandRef}
+              worldW={W}
+              worldH={H}
+              containerW={dims.w}
+              containerH={dims.h}
+              containerEl={containerRef.current}
+              cameraStateRef={cameraStateRef}
+              followTarget={followTarget}
+            />
+          </>
+        ))}
       {drawError && (
         <div
           role="alert"
@@ -3196,6 +3676,7 @@ export function WorldView({
           <button
             onClick={() => {
               setDrawError(null)
+              setMapReady(false)
               setRendererKey((key) => key + 1)
             }}
           >

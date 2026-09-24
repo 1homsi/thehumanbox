@@ -7,6 +7,7 @@ import {
   type HumanSex,
 } from '../2d/world/character-visuals'
 import { pickAnimalTile, SPRITE, TILE_PX, type Tile } from './sprite-layout'
+import { rasterizedAtlas } from './rasterized-atlas'
 
 export { pickAnimalTile, SPRITE, TILE_PX }
 export type { AgeStage, Tile }
@@ -39,6 +40,8 @@ export function pickHumanSprite(sex: HumanSex, stage: AgeStage, frame: number, a
   return [wrapHumanFrame(frame), humanAtlasRow(sex, stage, appearance)]
 }
 
+const mirroredPeople = new WeakMap<HTMLCanvasElement, HTMLCanvasElement>()
+
 export function drawPeopleTile(
   ctx: CanvasRenderingContext2D,
   tile: Tile,
@@ -47,15 +50,31 @@ export function drawPeopleTile(
   size: number,
   flipped = false,
 ) {
-  const img = ATLAS_PEOPLE
-  if (!img.complete || img.naturalWidth === 0) return false
+  const img = rasterizedAtlas(ATLAS_PEOPLE)
+  if (!img) return false
   const [col, row] = tile
-  ctx.save()
-  ctx.translate(flipped ? dx + size : dx, dy)
-  if (flipped) ctx.scale(-1, 1)
-  ctx.imageSmoothingEnabled = false
-  ctx.drawImage(img, col * PEOPLE_CELL, row * PEOPLE_CELL, PEOPLE_CELL, PEOPLE_CELL, 0, 0, size, size)
-  ctx.restore()
+  let source = img
+  let sx = col * PEOPLE_CELL
+  if (flipped) {
+    let mirrored = mirroredPeople.get(img)
+    if (!mirrored) {
+      mirrored = document.createElement('canvas')
+      mirrored.width = img.width
+      mirrored.height = img.height
+      const mirrorCtx = mirrored.getContext('2d')
+      if (!mirrorCtx) return false
+      mirrorCtx.translate(img.width, 0)
+      mirrorCtx.scale(-1, 1)
+      mirrorCtx.drawImage(img, 0, 0)
+      mirroredPeople.set(img, mirrored)
+    }
+    source = mirrored
+    sx = img.width - (col + 1) * PEOPLE_CELL
+  }
+  const smoothing = ctx.imageSmoothingEnabled
+  if (smoothing) ctx.imageSmoothingEnabled = false
+  ctx.drawImage(source, sx, row * PEOPLE_CELL, PEOPLE_CELL, PEOPLE_CELL, dx, dy, size, size)
+  if (smoothing) ctx.imageSmoothingEnabled = true
   return true
 }
 

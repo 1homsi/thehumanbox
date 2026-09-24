@@ -112,6 +112,7 @@ impl Animal {
         grid: &WorldGrid,
         org_positions: &[(f32, f32)],
         prey_positions: &[(f32, f32)],
+        wolf_positions: &[(f32, f32)],
         rng: &mut impl Rng,
     ) {
         if !self.alive {
@@ -186,8 +187,26 @@ impl Animal {
         } else {
             None
         };
+        // Prey should react to the wolves that actually hunt them. Keep the
+        // predator list separate from people so only rabbits and deer flee;
+        // boars, birds and tamed dogs retain their existing behavior.
+        let nearest_wolf = if matches!(self.kind, AnimalKind::Rabbit | AnimalKind::Deer) {
+            wolf_positions
+                .iter()
+                .map(|&(wx, wy)| ((wx - self.x).abs() + (wy - self.y).abs(), wx, wy))
+                .filter(|&(distance, _, _)| distance < 9.0)
+                .min_by(|(a, _, _), (b, _, _)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+        } else {
+            None
+        };
+        let nearest_threat = match (nearest_org, nearest_wolf) {
+            (Some(person), Some(wolf)) => Some(if wolf.0 < person.0 { wolf } else { person }),
+            (Some(person), None) => Some(person),
+            (None, Some(wolf)) => Some(wolf),
+            (None, None) => None,
+        };
 
-        let (tx, ty): (i32, i32) = if let Some((_, ox, oy)) = nearest_org {
+        let (tx, ty): (i32, i32) = if let Some((_, ox, oy)) = nearest_threat {
             let fdx = self.x - ox;
             let fdy = self.y - oy;
             let len = (fdx * fdx + fdy * fdy).sqrt().max(0.001);
@@ -298,8 +317,35 @@ mod tests {
         animal.energy = 0.3;
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(3);
 
-        animal.tick(&grid, &[], &[], &mut rng);
+        animal.tick(&grid, &[], &[], &[], &mut rng);
 
         assert_ne!((animal.x as i32, animal.y as i32), (120, 120));
+    }
+
+    #[test]
+    fn rabbits_and_deer_flee_the_nearest_wolf_instead_of_wandering_toward_it() {
+        let mut grid = WorldGrid::new(7);
+        for x in 45..=55 {
+            for y in 45..=55 {
+                grid.set(x, y, Tile::Grass);
+            }
+        }
+
+        for kind in [AnimalKind::Rabbit, AnimalKind::Deer] {
+            let mut without_wolf = Animal::new(1, 50.0, 50.0, kind);
+            let mut with_wolf = Animal::new(2, 50.0, 50.0, kind);
+            let mut calm_rng = rand_chacha::ChaCha8Rng::seed_from_u64(3);
+            let mut wary_rng = rand_chacha::ChaCha8Rng::seed_from_u64(3);
+
+            without_wolf.tick(&grid, &[(46.0, 50.0)], &[], &[], &mut calm_rng);
+            with_wolf.tick(&grid, &[(46.0, 50.0)], &[], &[(53.0, 50.0)], &mut wary_rng);
+
+            assert!(
+                without_wolf.x > 50.0,
+                "{} should flee the nearby person",
+                kind.name()
+            );
+            assert!(with_wolf.x < 50.0, "{} should flee the closer wolf", kind.name());
+        }
     }
 }

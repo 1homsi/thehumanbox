@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { AnimationClip, AnimationMixer, Color, Group, Mesh, MeshStandardMaterial, Object3D } from 'three'
+import {
+  AnimationClip,
+  AnimationMixer,
+  type AnimationAction,
+  Color,
+  Group,
+  Mesh,
+  MeshStandardMaterial,
+  Object3D,
+} from 'three'
 import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js'
 
 interface Props {
@@ -55,22 +64,29 @@ export function AnimatedFigure({
 
   const mixer = useMemo(() => new AnimationMixer(clonedScene), [clonedScene])
 
+  const previousAction = useRef<AnimationAction | null>(null)
+  useEffect(() => {
+    previousAction.current = null
+    return () => {
+      mixer.stopAllAction()
+      mixer.uncacheRoot(clonedScene)
+    }
+  }, [mixer, clonedScene])
+
   useEffect(() => {
     const clip = animations.find((a) => a.name === animation)
     if (!clip) return
     const action = mixer.clipAction(clip)
-    action
-      .reset()
-      .fadeIn(fadeMs / 1000)
-      .play()
-    return () => {
-      action.fadeOut(fadeMs / 1000)
-      action.stop()
-    }
+    const previous = previousAction.current
+    if (previous === action) return
+    action.reset().setEffectiveWeight(1).setEffectiveTimeScale(1).play()
+    if (previous) action.crossFadeFrom(previous, fadeMs / 1000, false)
+    else action.fadeIn(fadeMs / 1000)
+    previousAction.current = action
   }, [mixer, animations, animation, fadeMs])
 
   useFrame((_, dt) => {
-    if (animate) mixer.update(dt * timeScale)
+    if (animate) mixer.update(Math.min(dt, 0.05) * timeScale)
     if (getPosition && ref.current) {
       const [x, y, z] = getPosition()
       ref.current.position.set(x, y, z)

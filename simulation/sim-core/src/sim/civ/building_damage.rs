@@ -20,6 +20,7 @@ enum DamageCause {
     Flood,
     Storm,
     Battle,
+    Age,
 }
 
 impl DamageCause {
@@ -29,6 +30,7 @@ impl DamageCause {
             Self::Flood => "flooding",
             Self::Storm => "a storm",
             Self::Battle => "battle",
+            Self::Age => "age and neglect",
         }
     }
 }
@@ -212,6 +214,18 @@ fn exposure_for(
         });
     }
 
+    // Calendar-based wear is batched once a day, not once per organism or frame.
+    // Repairs subtract wear, so a maintained building can outlive its nominal life.
+    if sim.tick_count.is_multiple_of(crate::sim::cosmos::DAY_LENGTH)
+        && sim.tick_count.saturating_sub(building.built_at_tick) >= crate::sim::cosmos::DAY_LENGTH
+        && !building.is_ruined()
+    {
+        return Some(Exposure {
+            amount: 1.0
+                / (building.kind.service_life_years() as f32 * crate::sim::cosmos::YEAR_LENGTH_DAYS as f32),
+            cause: DamageCause::Age,
+        });
+    }
     None
 }
 
@@ -286,6 +300,12 @@ fn apply_damage(sim: &mut Simulation) -> HashSet<usize> {
 fn apply_repairs(sim: &mut Simulation, exposed: &HashSet<usize>) {
     let mut assigned_workers = HashSet::new();
     let mut restored_events = Vec::new();
+    let living_lineages: HashSet<String> = sim
+        .organisms
+        .iter()
+        .filter(|o| o.alive)
+        .map(|o| o.lineage_id.clone())
+        .collect();
 
     for building_index in 0..sim.buildings.len() {
         if exposed.contains(&building_index) {
@@ -299,16 +319,25 @@ fn apply_repairs(sim: &mut Simulation, exposed: &HashSet<usize>) {
         {
             continue;
         }
-        let Some(lineage) = building.owner_lineage.clone() else {
+        // Do not spend whole material units on imperceptible daily wear.
+        if building.damage_fraction() < 0.08 && !building.is_ruined() {
             continue;
-        };
+        }
+        let reclaimable = building.is_ruined()
+            && building
+                .owner_lineage
+                .as_ref()
+                .is_none_or(|owner| !living_lineages.contains(owner));
         let (x, y, kind) = (building.x, building.y, building.kind);
         let Some(worker_index) = sim
             .organisms
             .iter()
             .enumerate()
             .filter(|(index, _)| !assigned_workers.contains(index))
-            .filter(|(_, org)| org.lineage_id == lineage && can_repair(org))
+            .filter(|(_, org)| {
+                can_repair(org)
+                    && (reclaimable || building.owner_lineage.as_deref() == Some(org.lineage_id.as_str()))
+            })
             .filter_map(|(index, org)| {
                 let distance = (org.x - x as f32).abs() + (org.y - y as f32).abs();
                 (distance <= REPAIR_REACH).then_some((distance, index))
@@ -322,11 +351,45 @@ fn apply_repairs(sim: &mut Simulation, exposed: &HashSet<usize>) {
         else {
             continue;
         };
+        let lineage = sim.organisms[worker_index].lineage_id.clone();
         let plan = repair_plan(kind);
         let Some(unit) = plan.next_unit(building.damage_fraction()) else {
             continue;
         };
         if !pooled_resource_available(sim, &lineage, unit) {
+            continue;
+        }
+        // Recruiting reach is not working reach. Repairs should create real
+        // journeys just like new construction, rather than happen remotely.
+        let (width, height) = building.footprint();
+        let worker = &sim.organisms[worker_index];
+        let distance = (worker.x - worker.x.clamp(x as f32, x as f32 + f32::from(width) - 1.0)).abs()
+            + (worker.y - worker.y.clamp(y as f32, y as f32 + f32::from(height) - 1.0)).abs();
+        if distance > 3.0 {
+            let target = [
+                (x - 1, y),
+                (x, y - 1),
+                (x + i32::from(width), y),
+                (x, y + i32::from(height)),
+            ]
+            .into_iter()
+            .filter(|&(tx, ty)| sim.grid.get(tx, ty).walkable())
+            .min_by_key(|&(tx, ty)| ((worker.x - tx as f32).abs() + (worker.y - ty as f32).abs()) as i32);
+            if let Some(target) = target {
+                assigned_workers.insert(worker_index);
+                let worker = &mut sim.organisms[worker_index];
+                if worker
+                    .journey
+                    .as_ref()
+                    .is_none_or(|journey| journey.target != target)
+                {
+                    worker.begin_journey(
+                        target,
+                        &format!("going to repair a {}", kind.name()),
+                        sim.tick_count,
+                    );
+                }
+            }
             continue;
         }
         let repair_amount = 1.0 / plan.total_units() as f32;
@@ -335,7 +398,15 @@ fn apply_repairs(sim: &mut Simulation, exposed: &HashSet<usize>) {
         assigned_workers.insert(worker_index);
         sim.organisms[worker_index].energy = (sim.organisms[worker_index].energy - 0.008).max(0.0);
 
+        sim.organisms[worker_index].thought = if reclaimable {
+            format!("reclaiming an abandoned {}", kind.name())
+        } else {
+            format!("repairing our {}", kind.name())
+        };
         let building = &mut sim.buildings[building_index];
+        if reclaimable {
+            building.owner_lineage = Some(lineage.clone());
+        }
         let was_ruined = building.is_ruined();
         if was_ruined && building.ruined_at_tick.is_none() {
             // Damage at 100% is independently recognized as a ruin. Latch
@@ -431,6 +502,61 @@ mod tests {
         worker.health = 1.0;
         worker.x = x as f32;
         worker.y = y as f32;
+    }
+
+    #[test]
+    fn unmaintained_houses_age_into_ruins_and_stone_wonders_last_longer() {
+        let mut sim = Simulation::new(701);
+        sim.buildings.clear();
+        sim.organisms.clear();
+        sim.weather.kind = 0;
+        for (id, kind, x) in [(1, BuildingKind::House, 30), (2, BuildingKind::Castle, 40)] {
+            let mut b = Building::new(id, kind, x, 30, None, 0);
+            b.condition = 1.0;
+            let (w, h) = b.footprint();
+            for y in 30..30 + i32::from(h) {
+                for xx in x..x + i32::from(w) {
+                    sim.grid.set(xx, y, Tile::Grass);
+                }
+            }
+            sim.buildings.push(b);
+        }
+        // Drive just the once-daily lifecycle, not millions of unrelated AI ticks.
+        for day in 1..=201 * crate::sim::cosmos::YEAR_LENGTH_DAYS {
+            sim.tick_count = day * crate::sim::cosmos::DAY_LENGTH;
+            tick_building_damage(&mut sim);
+        }
+        assert!(sim.buildings[0].is_ruined());
+        assert!(!sim.buildings[1].is_ruined());
+        assert!(sim.buildings[1].damage_fraction() > 0.3);
+    }
+
+    #[test]
+    fn a_new_lineage_can_pay_to_reclaim_an_abandoned_ruin() {
+        let mut sim = Simulation::new(702);
+        sim.buildings.clear();
+        let i = completed_house(&mut sim, 30, 30);
+        sim.buildings[i].owner_lineage = Some("extinct-lineage".into());
+        sim.buildings[i].damage = 1.0;
+        sim.buildings[i].ruined_at_tick = Some(1);
+        prepare_worker(&mut sim, 30, 30);
+        sim.organisms[0].inv_wood = 100;
+        sim.organisms[0].inv_stone = 100;
+        sim.organisms[0].wealth = 100;
+        sim.tick_count = 10;
+        apply_repairs(&mut sim, &HashSet::new());
+        assert_eq!(
+            sim.buildings[i].owner_lineage.as_deref(),
+            Some(sim.organisms[0].lineage_id.as_str())
+        );
+        assert!(sim.buildings[i].damage < 1.0);
+        assert!(sim.buildings[i].is_ruined());
+        for _ in 0..repair_plan(BuildingKind::House).total_units() {
+            sim.tick_count += REPAIR_TICK_INTERVAL;
+            apply_repairs(&mut sim, &HashSet::new());
+        }
+        assert!(sim.buildings[i].is_operational());
+        assert_eq!((sim.buildings[i].x, sim.buildings[i].y), (30, 30));
     }
 
     #[test]
@@ -546,6 +672,32 @@ mod tests {
         assert!(
             (sim.buildings[besieged].damage_fraction() - battle_damage(BattleScale::Siege)).abs() < 0.000_01
         );
+    }
+
+    #[test]
+    fn repair_crews_travel_before_spending_materials() {
+        let mut sim = Simulation::new(703);
+        sim.buildings.clear();
+        sim.organisms.truncate(1);
+        let index = completed_house(&mut sim, 130, 130);
+        sim.buildings[index].damage = 0.5;
+        prepare_worker(&mut sim, 120, 130);
+        sim.organisms[0].inv_wood = 100;
+        sim.organisms[0].inv_stone = 100;
+        sim.organisms[0].wealth = 100;
+        sim.grid.set(129, 130, Tile::Grass);
+        sim.tick_count = REPAIR_TICK_OFFSET;
+        apply_repairs(&mut sim, &HashSet::new());
+        assert_eq!(sim.buildings[index].damage_fraction(), 0.5);
+        assert_eq!(sim.organisms[0].inv_wood, 100);
+        assert_eq!(sim.organisms[0].inv_stone, 100);
+        assert_eq!(sim.organisms[0].wealth, 100);
+        assert!(sim.organisms[0].journey.is_some());
+        assert!(sim.organisms[0].thought.contains("going to repair"));
+        prepare_worker(&mut sim, 129, 130);
+        apply_repairs(&mut sim, &HashSet::new());
+        assert!(sim.buildings[index].damage_fraction() < 0.5);
+        assert!(sim.organisms[0].thought.contains("repairing"));
     }
 
     #[test]

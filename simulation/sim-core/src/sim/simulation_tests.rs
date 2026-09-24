@@ -1,5 +1,194 @@
 use super::*;
 
+fn alive_resident_indices(sim: &Simulation) -> FxHashMap<String, usize> {
+    sim.organisms
+        .iter()
+        .enumerate()
+        .filter(|(_, resident)| resident.alive)
+        .map(|(index, resident)| (resident.id.clone(), index))
+        .collect()
+}
+
+#[test]
+fn local_human_queries_preserve_animal_moves_and_rng() {
+    let mut sim = Simulation::new(0xA11A);
+    flatten_test_area(&mut sim, 50, 50);
+    sim.organisms.clear();
+    for i in 0..96 {
+        let mut person = Organism::new(
+            format!("person-{i}"),
+            "resident".into(),
+            40.0 + (i * 7 % 30) as f32,
+            40.0 + (i * 11 % 25) as f32,
+            1,
+            String::new(),
+            "lineage-a".into(),
+            10_000,
+            crate::organism::traits::Traits::default(),
+        );
+        person.alive = i % 13 != 0;
+        sim.organisms.push(person);
+    }
+    let all_humans: Vec<_> = sim
+        .organisms
+        .iter()
+        .filter(|person| person.alive)
+        .map(|person| (person.x, person.y))
+        .collect();
+    let spatial = SpatialIndex::build(&sim.organisms, 10);
+    let mut candidates = Vec::new();
+    let mut local_humans = Vec::new();
+
+    for kind in [
+        AnimalKind::Rabbit,
+        AnimalKind::Deer,
+        AnimalKind::Boar,
+        AnimalKind::Bird,
+        AnimalKind::Fish,
+        AnimalKind::Wolf,
+        AnimalKind::Dog,
+    ] {
+        for (x, y) in [(49.0, 50.0), (60.0, 50.0), (200.0, 200.0)] {
+            let radius = if kind.predator() {
+                20
+            } else {
+                kind.flee_radius().ceil() as i32
+            };
+            nearby_human_positions(
+                &sim.organisms,
+                &spatial,
+                x,
+                y,
+                radius,
+                &mut candidates,
+                &mut local_humans,
+            );
+            let mut reference = Animal::new(1, x, y, kind);
+            let mut indexed = Animal::new(1, x, y, kind);
+            let mut reference_rng = ChaCha8Rng::seed_from_u64(0x51A);
+            let mut indexed_rng = ChaCha8Rng::seed_from_u64(0x51A);
+            reference.tick(&sim.grid, &all_humans, &[], &[(53.0, 50.0)], &mut reference_rng);
+            indexed.tick(&sim.grid, &local_humans, &[], &[(53.0, 50.0)], &mut indexed_rng);
+            assert_eq!(
+                (
+                    indexed.x,
+                    indexed.y,
+                    indexed.energy,
+                    indexed.alive,
+                    indexed_rng.random::<u64>()
+                ),
+                (
+                    reference.x,
+                    reference.y,
+                    reference.energy,
+                    reference.alive,
+                    reference_rng.random::<u64>()
+                ),
+                "{} moved differently at ({x}, {y})",
+                kind.name()
+            );
+        }
+    }
+}
+
+#[test]
+fn wolf_encounters_keep_population_order_and_pack_defence_at_bucket_edges() {
+    let mut people = Vec::new();
+    for i in 0..600 {
+        let mut person = Organism::new(
+            format!("person-{i}"),
+            "resident".into(),
+            10.0 + (i * 17 % 130) as f32 + if i % 2 == 0 { 0.1 } else { 0.8 },
+            10.0 + (i * 29 % 110) as f32 + if i % 3 == 0 { 0.9 } else { 0.2 },
+            1,
+            String::new(),
+            format!("lineage-{}", i % 5),
+            10_000,
+            crate::organism::traits::Traits::default(),
+        );
+        person.alive = i % 19 != 0;
+        person.energy = if i % 4 == 0 { 0.8 } else { 0.5 };
+        person.traits.aggression = if i % 3 == 0 { 0.3 } else { 0.7 };
+        people.push(person);
+    }
+    let spatial = SpatialIndex::build(&people, 10);
+    let mut candidates = Vec::new();
+    for (wx, wy) in [(49.9, 50.1), (50.1, 49.9), (99.8, 80.2), (300.0, 300.0)] {
+        ordered_human_candidates(&spatial, wx, wy, 3, &mut candidates);
+        let tame = |p: &Organism| {
+            p.alive
+                && p.energy >= 0.7
+                && p.traits.aggression <= 0.5
+                && (p.x - wx).abs() + (p.y - wy).abs() <= 2.5
+        };
+        let bite = |p: &Organism| p.alive && (p.x - wx).abs() + (p.y - wy).abs() <= 1.5;
+        let reference_tames: Vec<_> = people
+            .iter()
+            .enumerate()
+            .filter(|(_, p)| tame(p))
+            .map(|(index, _)| index)
+            .collect();
+        let indexed_tames: Vec<_> = candidates
+            .iter()
+            .copied()
+            .filter(|&index| tame(&people[index]))
+            .collect();
+        assert_eq!(indexed_tames, reference_tames, "taming at ({wx}, {wy})");
+
+        let pack_defence = |person: &Organism, neighbours: &[usize]| {
+            neighbours
+                .iter()
+                .filter(|&&index| {
+                    let kin = &people[index];
+                    kin.alive
+                        && kin.id != person.id
+                        && kin.lineage_id == person.lineage_id
+                        && (kin.x - wx).abs() + (kin.y - wy).abs() <= 3.0
+                })
+                .count()
+        };
+        let all_indices: Vec<_> = (0..people.len()).collect();
+        let reference_bites: Vec<_> = people
+            .iter()
+            .enumerate()
+            .filter(|(_, p)| bite(p))
+            .map(|(index, p)| (index, pack_defence(p, &all_indices)))
+            .collect();
+        let indexed_bites: Vec<_> = candidates
+            .iter()
+            .copied()
+            .filter(|&index| bite(&people[index]))
+            .map(|index| (index, pack_defence(&people[index], &candidates)))
+            .collect();
+        assert_eq!(indexed_bites, reference_bites, "bites at ({wx}, {wy})");
+    }
+}
+
+#[test]
+fn lineage_wellbeing_snapshot_excludes_dead_members_and_refreshes_next_tick() {
+    let mut sim = Simulation::new(0xBEE1);
+    let lineage = sim.organisms[0].lineage_id.clone();
+    for org in &mut sim.organisms {
+        org.alive = false;
+    }
+    for (idx, energy) in [(0, 0.25), (1, 0.75), (2, 0.95)] {
+        let org = &mut sim.organisms[idx];
+        org.lineage_id = lineage.clone();
+        org.energy = energy;
+        org.alive = idx != 2;
+    }
+
+    sim.rebuild_lineage_aggregates();
+    let snapshot = sim.lineage_aggregates[&lineage];
+    assert_eq!(snapshot.population, 2);
+    assert!((snapshot.energy_sum - 1.0).abs() < f32::EPSILON);
+
+    sim.organisms[0].energy = 0.5;
+    assert_eq!(sim.lineage_aggregates[&lineage].energy_sum, 1.0);
+    sim.rebuild_lineage_aggregates();
+    assert!((sim.lineage_aggregates[&lineage].energy_sum - 1.25).abs() < f32::EPSILON);
+}
+
 #[test]
 fn completing_a_strategy_objective_rewards_the_lineage_once() {
     let mut sim = Simulation::new(0x057A_7E6E);
@@ -614,7 +803,8 @@ fn tick_first_org(sim: &mut Simulation) {
     let mut lineage_counts = FxHashMap::default();
     lineage_counts.insert("lineage-a".to_string(), 1);
     let spatial = SpatialIndex::build(&sim.organisms, 10);
-    let mut spatial_buf = Vec::new();
+    let animal_spatial = SpatialIndex::build_animals(&sim.animals, 10);
+    let mut buffers = TickBuffers::new();
     let org_idx_by_id: FxHashMap<String, usize> = sim
         .organisms
         .iter()
@@ -622,7 +812,17 @@ fn tick_first_org(sim: &mut Simulation) {
         .filter(|(_, o)| o.alive)
         .map(|(i, o)| (o.id.clone(), i))
         .collect();
-    sim.tick_organism(0, 1, &lineage_counts, &spatial, &mut spatial_buf, &org_idx_by_id);
+    let mut lineage_members = lineage_member_index(&sim.organisms);
+    sim.tick_organism(
+        0,
+        1,
+        &lineage_counts,
+        &spatial,
+        &animal_spatial,
+        &mut buffers,
+        &org_idx_by_id,
+        &mut lineage_members,
+    );
 }
 
 #[test]
@@ -995,7 +1195,16 @@ fn local_danger_verification_decays_stale_safe_area_memory() {
     sim.organisms[idx].danger_memory.insert((10, 10), 0.9);
     sim.organisms[idx].danger_memory.insert((11, 10), 0.8);
 
-    verify_local_danger_memory(&mut sim.organisms[idx], &sim.grid, &sim.animals, 10, 10);
+    let animal_spatial = SpatialIndex::build_animals(&sim.animals, 10);
+    verify_local_danger_memory(
+        &mut sim.organisms[idx],
+        &sim.grid,
+        &sim.animals,
+        &animal_spatial,
+        &mut Vec::new(),
+        10,
+        10,
+    );
 
     assert!(
         sim.organisms[idx]
@@ -1028,12 +1237,51 @@ fn local_danger_verification_keeps_memory_when_hazard_remains_nearby() {
     sim.grid.hazard[WorldGrid::idx(11, 10)] = 0.70;
     sim.organisms[idx].danger_memory.insert((11, 10), 0.8);
 
-    verify_local_danger_memory(&mut sim.organisms[idx], &sim.grid, &sim.animals, 10, 10);
+    let animal_spatial = SpatialIndex::build_animals(&sim.animals, 10);
+    verify_local_danger_memory(
+        &mut sim.organisms[idx],
+        &sim.grid,
+        &sim.animals,
+        &animal_spatial,
+        &mut Vec::new(),
+        10,
+        10,
+    );
 
     assert_eq!(
         sim.organisms[idx].danger_memory.get(&(11, 10)).copied(),
         Some(0.8)
     );
+}
+
+#[test]
+fn indexed_predator_danger_matches_full_scan_across_bucket_edges_and_deaths() {
+    let mut sim = Simulation::new(0xD09);
+    flatten_test_area(&mut sim, 50, 50);
+    sim.animals = vec![
+        Animal::new(0, 52.0, 50.0, AnimalKind::Wolf),
+        Animal::new(1, 50.0, 50.0, AnimalKind::Rabbit),
+        Animal::new(2, 120.0, 120.0, AnimalKind::Wolf),
+    ];
+    let animal_spatial = SpatialIndex::build_animals(&sim.animals, 10);
+    let mut candidates = Vec::new();
+    for killed_nearby_wolf in [false, true] {
+        if killed_nearby_wolf {
+            sim.animals[0].alive = false;
+        }
+        for (x, y) in [(49, 50), (50, 50), (56, 50), (60, 50)] {
+            let expected = sim.animals.iter().any(|animal| {
+                animal.alive
+                    && animal.kind.predator()
+                    && (animal.x - x as f32).abs() + (animal.y - y as f32).abs() <= 5.0
+            });
+            assert_eq!(
+                local_danger_present(&sim.grid, &sim.animals, &animal_spatial, &mut candidates, x, y),
+                expected,
+                "danger mismatch at ({x}, {y}) after death={killed_nearby_wolf}"
+            );
+        }
+    }
 }
 
 #[test]
@@ -1063,7 +1311,7 @@ fn wander_validation_clears_hazardous_existing_target() {
     sim.grid.set(80, 80, Tile::Grass);
     sim.grid.hazard[WorldGrid::idx(80, 80)] = 0.90;
 
-    sim.validate_or_assign_wander_target(idx);
+    sim.validate_or_assign_wander_target(idx, None);
 
     assert_ne!(sim.organisms[idx].wander_target, Some((80, 80)));
 }
@@ -1506,7 +1754,8 @@ fn animal_population_does_not_respawn_without_living_adults() {
     let mut sim = Simulation::new(29);
     sim.animals.clear();
 
-    sim.tick_animals();
+    let resident_indices = alive_resident_indices(&sim);
+    sim.tick_animals(&resident_indices);
 
     assert_eq!(sim.animals.iter().filter(|a| a.alive).count(), 0);
 }
@@ -1562,7 +1811,7 @@ fn curious_adults_choose_distant_land_expeditions() {
     let period = (450u64).saturating_sub((curiosity * 200.0) as u64).max(140);
     sim.tick_count = hash % period;
 
-    sim.validate_or_assign_wander_target(idx);
+    sim.validate_or_assign_wander_target(idx, None);
 
     let target = sim.organisms[idx]
         .wander_target
@@ -1735,8 +1984,9 @@ fn dense_animal_clusters_stop_reproducing() {
     sim.next_animal_id = 100;
     sim.tick_count = 5_000;
 
+    let resident_indices = alive_resident_indices(&sim);
     for _ in 0..2_000 {
-        sim.tick_animals();
+        sim.tick_animals(&resident_indices);
     }
 
     let alive = sim.animals.iter().filter(|a| a.alive).count();
@@ -1744,6 +1994,93 @@ fn dense_animal_clusters_stop_reproducing() {
         alive <= 35,
         "dense cluster ran away to {alive} animals - carrying-capacity factor isn't working"
     );
+}
+
+#[test]
+fn bonded_dog_still_comforts_living_owner_but_ignores_stale_dead_owner_entry() {
+    let mut sim = Simulation::new(0xD06);
+    flatten_test_area(&mut sim, 50, 50);
+    sim.organisms.clear();
+    let mut owner = Organism::new(
+        "owner".into(),
+        "Owner".into(),
+        51.0,
+        50.0,
+        1,
+        String::new(),
+        "lineage-a".into(),
+        10_000,
+        crate::organism::traits::Traits::default(),
+    );
+    owner.loneliness = 0.5;
+    owner.boredom = 0.5;
+    owner.comfort = 0.5;
+    sim.organisms.push(owner);
+    sim.animals.clear();
+    let mut dog = Animal::new(1, 50.0, 50.0, AnimalKind::Dog);
+    dog.bonded_org = Some("owner".into());
+    sim.animals.push(dog);
+    sim.tick_count = 100;
+    let resident_indices = alive_resident_indices(&sim);
+
+    sim.tick_animals(&resident_indices);
+    assert!((sim.organisms[0].loneliness - 0.496).abs() < 0.0001);
+    assert!((sim.organisms[0].boredom - 0.498).abs() < 0.0001);
+    assert!((sim.organisms[0].comfort - 0.501).abs() < 0.0001);
+
+    sim.organisms[0].alive = false;
+    sim.tick_animals(&resident_indices);
+    assert!((sim.organisms[0].loneliness - 0.496).abs() < 0.0001);
+    assert!((sim.organisms[0].comfort - 0.501).abs() < 0.0001);
+}
+
+#[test]
+fn archive_compaction_keeps_bonded_dog_owner_index_valid() {
+    let mut sim = Simulation::new(0xA2C4);
+    flatten_test_area(&mut sim, 50, 50);
+    sim.organisms.clear();
+    for i in 0..802 {
+        let mut archived = Organism::new(
+            format!("archived-{i}"),
+            "Archived".into(),
+            20.0,
+            20.0,
+            1,
+            String::new(),
+            "old-lineage".into(),
+            10_000,
+            crate::organism::traits::Traits::default(),
+        );
+        archived.alive = false;
+        sim.organisms.push(archived);
+    }
+    let owner = Organism::new(
+        "owner".into(),
+        "Owner".into(),
+        51.0,
+        50.0,
+        1,
+        String::new(),
+        "lineage-a".into(),
+        10_000,
+        crate::organism::traits::Traits::default(),
+    );
+    sim.organisms.push(owner);
+    sim.animals.clear();
+    let mut dog = Animal::new(1, 50.0, 50.0, AnimalKind::Dog);
+    dog.bonded_org = Some("owner".into());
+    sim.animals.push(dog);
+    sim.tick_count = 1199;
+    sim.last_immigration_tick = 1199;
+
+    sim.tick();
+
+    assert_eq!(sim.organisms.len(), 801);
+    assert_eq!(sim.organisms[800].id, "owner");
+    assert!(sim
+        .animals
+        .iter()
+        .any(|animal| animal.bonded_org.as_deref() == Some("owner")));
 }
 
 /// Friend-seek must respect the 60-tile distance cap. A lonely
@@ -1806,7 +2143,8 @@ fn lonely_org_with_only_distant_friends_stays_put() {
     lineage_counts.insert("lid-a".into(), 1);
     lineage_counts.insert("lid-b".into(), 1);
     let spatial = SpatialIndex::build(&sim.organisms, 10);
-    let mut spatial_buf: Vec<usize> = Vec::new();
+    let animal_spatial = SpatialIndex::build_animals(&sim.animals, 10);
+    let mut buffers = TickBuffers::new();
     let org_idx_by_id: FxHashMap<String, usize> = sim
         .organisms
         .iter()
@@ -1814,13 +2152,16 @@ fn lonely_org_with_only_distant_friends_stays_put() {
         .filter(|(_, o)| o.alive)
         .map(|(i, o)| (o.id.clone(), i))
         .collect();
+    let mut lineage_members = lineage_member_index(&sim.organisms);
     sim.tick_organism(
         0,
         alive_count,
         &lineage_counts,
         &spatial,
-        &mut spatial_buf,
+        &animal_spatial,
+        &mut buffers,
         &org_idx_by_id,
+        &mut lineage_members,
     );
 
     assert!(
@@ -1885,7 +2226,8 @@ fn lonely_org_with_nearby_friend_walks_toward_them() {
     lineage_counts.insert("lid-a".into(), 1);
     lineage_counts.insert("lid-b".into(), 1);
     let spatial2 = SpatialIndex::build(&sim.organisms, 10);
-    let mut spatial_buf2: Vec<usize> = Vec::new();
+    let animal_spatial2 = SpatialIndex::build_animals(&sim.animals, 10);
+    let mut buffers2 = TickBuffers::new();
     let org_idx_by_id2: FxHashMap<String, usize> = sim
         .organisms
         .iter()
@@ -1893,13 +2235,16 @@ fn lonely_org_with_nearby_friend_walks_toward_them() {
         .filter(|(_, o)| o.alive)
         .map(|(i, o)| (o.id.clone(), i))
         .collect();
+    let mut lineage_members = lineage_member_index(&sim.organisms);
     sim.tick_organism(
         0,
         2,
         &lineage_counts,
         &spatial2,
-        &mut spatial_buf2,
+        &animal_spatial2,
+        &mut buffers2,
         &org_idx_by_id2,
+        &mut lineage_members,
     );
 
     let wt = sim.organisms[0].wander_target;

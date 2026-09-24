@@ -27,10 +27,12 @@ it('shows the map HUD without WebGL and redraws a settled world when the camera 
   } as InterpRefs
   await act(async () => harness.root.render(<WorldView world={state} interp={interp} />))
   await harness.flush(5)
-  expect(harness.contextTypes.every((type) => type === '2d')).toBe(true)
+  expect(harness.contextTypes[0]).toBe('webgl2')
+  expect(harness.contextTypes.slice(1).every((type) => type === '2d')).toBe(true)
   expect(document.querySelector('[role="alert"]')).toBeNull()
   expect(document.querySelector('[aria-label="World terrain and inhabitants"]')).not.toBeNull()
-  expect(document.body.textContent).toContain('Fit')
+  const map = document.querySelector('[aria-label="Interactive world map"]') as HTMLDivElement
+  expect((map.firstElementChild as HTMLDivElement).style.opacity).toBe('0')
   const mainCanvas = document.querySelector(
     'canvas[aria-label="World terrain and inhabitants"]',
   ) as HTMLCanvasElement
@@ -38,9 +40,11 @@ it('shows the map HUD without WebGL and redraws a settled world when the camera 
   const calls = drawMain.mock.calls.length
   await harness.flush(2)
   expect(drawMain.mock.calls.length).toBe(calls)
-  const zoom = document.querySelector('button[aria-label="Zoom in"]') as HTMLButtonElement
-  expect(zoom).not.toBeNull()
-  await act(async () => zoom.click())
+  await act(async () =>
+    map.dispatchEvent(
+      new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: -100, clientX: 400, clientY: 250 }),
+    ),
+  )
   await harness.flush(3)
   expect(drawMain.mock.calls.length).toBeGreaterThan(calls)
   await act(async () => harness.root.unmount())
@@ -64,7 +68,15 @@ it('renders a snapshot without interpolation and offers a working retry after a 
   await act(async () => retry.click())
   await harness.flush(5)
   expect(document.querySelector('[role="alert"]')).toBeNull()
-  expect(document.body.textContent).toContain('Fit')
+  expect(document.querySelector('[aria-label="World terrain and inhabitants"]')).not.toBeNull()
+  await act(async () => harness.root.unmount())
+  expect(harness.frames.size).toBe(0)
+})
+
+it('shows a recovery message when the browser cannot create a 2D context', async () => {
+  const harness = setup({ fail2d: true })
+  await act(async () => harness.root.render(<WorldView world={world()} />))
+  expect(document.querySelector('[role="alert"]')?.textContent).toContain('could not create a 2D canvas')
   await act(async () => harness.root.unmount())
   expect(harness.frames.size).toBe(0)
 })
@@ -101,7 +113,7 @@ function world(): WorldState {
   } as unknown as WorldState
 }
 
-function setup() {
+function setup({ fail2d = false }: { fail2d?: boolean } = {}) {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   vi.stubGlobal(
     'ResizeObserver',
@@ -139,6 +151,7 @@ function setup() {
   ) {
     contextTypes.push(type)
     if (type !== '2d') throw new Error('WebGL unavailable')
+    if (fail2d) throw new Error('Canvas 2D unavailable')
     if (!contexts.has(this)) {
       const properties: Record<string, unknown> = {
         canvas: this,
@@ -158,6 +171,7 @@ function setup() {
   } as HTMLCanvasElement['getContext'])
   const frames = new Map<number, FrameRequestCallback>()
   let id = 0
+  let now = 0
   vi.stubGlobal('requestAnimationFrame', (fn: FrameRequestCallback) => {
     frames.set(++id, fn)
     return id
@@ -169,7 +183,8 @@ function setup() {
       await act(async () => {
         const pending = [...frames.values()]
         frames.clear()
-        for (const fn of pending) fn(performance.now())
+        now += 50
+        for (const fn of pending) fn(now)
       })
   }
   return { root, frames, flush, drawImage, contextTypes, contexts }

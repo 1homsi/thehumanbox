@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="UTF-8" /><title>Building asset review</title>
+  <style>
+    body {
+      background: #241e17;
+      color: #e8dfc5;
+      font: 14px system-ui;
+      margin: 24px;
+    }
+    h1 {
+      font-size: 24px;
+    }
+    #gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 12px;
+    }
+    .card {
+      background: #342b20;
+      padding: 14px;
+      border: 1px solid #68553b;
+      border-radius: 6px;
+    }
+    canvas {
+      image-rendering: pixelated;
+      max-width: 100%;
+    }
+    .label {
+      margin-bottom: 8px;
+    }
+    p {
+      color: #c4c6ae;
+    }
+    button {
+      padding: 8px;
+      margin: 0 8px 16px 0;
+    }
+  </style>
+  <h1>Architecture across the ages</h1>
+  <p>Stable variants · daylight and night · damage · construction and ruins. Development review gallery.</p>
+  <button id="night">Toggle night</button
+  ><button id="damage">Toggle damage</button>
+  <div id="gallery"></div>
+  <script type="module">
+    import { BUILDING_SPRITE_KINDS, getBuildingSprite } from '/src/2d/world/building-sprites.ts'
+    import { drawBuilding, resolveBuildingFootprint } from '/src/2d/world/buildings2d.ts'
+    let night = 0,
+      damage = 0
+    function render() {
+      const root = document.querySelector('#gallery')
+      root.replaceChildren()
+      const featured = ['Hut', 'House', 'TownHouse', 'Manor', 'Castle', 'Apartment', 'Skyscraper', 'Biodome']
+      for (const kind of [...featured, ...BUILDING_SPRITE_KINDS.filter((k) => !featured.includes(k))]) {
+        const b = { kind, x: 0, y: 0, condition: 1 }
+        const [fw, fh] = resolveBuildingFootprint(b)
+        const card = document.createElement('div')
+        card.className = 'card'
+        const label = document.createElement('div')
+        label.className = 'label'
+        label.textContent = kind
+        card.append(label)
+        for (let v = 0; v < (featured.includes(kind) ? 4 : 1); v++) {
+          const sprite = getBuildingSprite(kind, fw, fh, 12, v, night, damage ? 0 : 1)
+          if (sprite) {
+            const canvas = document.createElement('canvas')
+            canvas.width = sprite.width
+            canvas.height = sprite.height
+            canvas.getContext('2d').drawImage(sprite, 0, 0)
+            card.append(canvas)
+          }
+        }
+        root.append(card)
+      }
+      for (const [label, condition, damage, ruined, repairing] of [
+        ['Foundation', 0.1, 0, false],
+        ['Construction', 0.6, 0, false],
+        ['Worn home', 1, 0.65, false],
+        ['Ruins', 1, 1, true],
+        ['Early rebuilding', 1, 0.75, true, true],
+        ['Walls restored', 1, 0.35, true, true],
+        ['Roof restoration', 1, 0.08, true, true],
+        ['Repair crew on site', 1, 0.35, false, true],
+      ]) {
+        const card = document.createElement('div')
+        card.className = 'card'
+        card.textContent = label
+        const c = document.createElement('canvas')
+        c.width = 160
+        c.height = 140
+        const ctx = c.getContext('2d')
+        ctx.translate(25, 40)
+        drawBuilding(
+          ctx,
+          { id: 8, kind: 'House', x: 0, y: 0, condition, damage, ruined, repairing },
+          0,
+          0,
+          24,
+          night / 3,
+          'detail',
+        )
+        card.append(c)
+        root.append(card)
+      }
+    }
+    document.querySelector('#night').onclick = () => {
+      night = night ? 0 : 3
+      render()
+    }
+    document.querySelector('#damage').onclick = () => {
+      damage = damage ? 0 : 1
+      render()
+    }
+    render()
+  </script>
+</html>

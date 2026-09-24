@@ -5,6 +5,7 @@ import {
   parseRuntimeControlResult,
   reconcileRuntimeState,
   wasmSpeedConfig,
+  wasmTickDelay,
 } from './runtimeControls'
 
 afterEach(() => {
@@ -117,5 +118,15 @@ describe('nextRuntimeState', () => {
     expect(
       nextRuntimeState({ paused: false, speed: 1 }, 'speed', 8, { ok: true, paused: false, speed: 6.25 }),
     ).toEqual({ paused: false, speed: 6.25 })
+  })
+})
+
+describe('worker CPU budget', () => {
+  it('maintains normal tick cadence when work is cheap', () => {
+    expect(wasmTickDelay(120, 5)).toBe(115)
+  })
+  it('leaves CPU headroom instead of scheduling catch-up work under load', () => {
+    expect(wasmTickDelay(24, 80)).toBe(80)
+    expect(wasmTickDelay(16, 1)).toBe(16)
   })
 })

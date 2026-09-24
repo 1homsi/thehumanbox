@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>3D movement review</title>
+    <style>
+      body {
+        margin: 0;
+        background: #211b15;
+        color: #eadfc8;
+        font: 14px monospace;
+      }
+      header {
+        padding: 16px;
+        display: flex;
+        gap: 24px;
+        align-items: center;
+      }
+      button {
+        background: #463622;
+        color: #eadfc8;
+        border: 1px solid #967442;
+        padding: 8px 14px;
+        cursor: pointer;
+      }
+      #scene {
+        height: calc(100vh - 70px);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/3d/world/movement-gallery.tsx"></script>
+  </body>
+</html>

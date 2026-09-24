@@ -17,6 +17,7 @@ import {
   deterministicAppearanceIndex,
   humanAtlasRow,
   resolveAgeStage,
+  selectCrowdSpriteRepresentatives,
   wrapHumanFrame,
   zoomDetailLevel,
 } from './character-visuals'
@@ -108,12 +109,31 @@ describe('character age and zoom visuals', () => {
 })
 
 describe('character motion and draw order', () => {
+  it('reduces overlapping crowd sprites while keeping selected people and boat riders', () => {
+    const people = [
+      { id: 'first', x: 10.1, y: 20.1 },
+      { id: 'second', x: 10.3, y: 20.4 },
+      { id: 'third', x: 10.5, y: 20.6 },
+      { id: 'selected', x: 10.7, y: 20.8 },
+      { id: 'rider', x: 10.9, y: 20.9 },
+      { id: 'next-tile', x: 11.1, y: 20.1 },
+    ]
+    const selected = selectCrowdSpriteRepresentatives(people, 2, 1, 'selected', new Set(['rider']))
+    expect(selected.map((person) => person.id)).toEqual(['first', 'second', 'selected', 'rider', 'next-tile'])
+    expect(
+      selectCrowdSpriteRepresentatives(people, 1, 1, null, new Set()).map((person) => person.id),
+    ).toEqual(['first', 'next-tile'])
+    expect(
+      selectCrowdSpriteRepresentatives(people, 1, 4, null, new Set()).map((person) => person.id),
+    ).toEqual(['first'])
+  })
+
   it('starts at rest, walks on displacement and rests after stopping', () => {
     const idle = characterMotion(undefined, 5, 5, 600, 0)
     expect(characterFrame(idle, 600)).toBe(0)
     const moving = characterMotion(idle, 4, 5, 600, 0)
     expect(moving.flipped).toBe(true)
-    expect(characterFrame(moving, 600)).toBe(3)
+    expect(characterFrame(moving, 600)).toBe(0)
     const stopped = characterMotion(moving, 4, 5, 1000, 0)
     expect(characterFrame(stopped, 1000)).toBe(0)
     expect(stopped.flipped).toBe(true)
@@ -127,6 +147,15 @@ describe('character motion and draw order', () => {
     const moved = characterMotion(jitter, 0.97, 1, 20, 0)
     expect(moved.flipped).toBe(true)
     expect(moved.movedAt).toBe(20)
+  })
+  it('advances footsteps by distance, not elapsed wall time', () => {
+    const start = characterMotion(undefined, 0, 0, 0, 0)
+    const step = characterMotion(start, 0.3, 0, 40, 0)
+    expect(characterFrame(step, 40)).toBe(1)
+    expect(characterFrame(step, 100)).toBe(1)
+    expect(characterFrame(step, 200)).toBe(0)
+    const teleport = characterMotion(step, 50, 0, 80, 0)
+    expect(teleport.distance).toBe(step.distance)
   })
   it('paints people at the front last with stable equal-depth ordering', () => {
     const people = [
