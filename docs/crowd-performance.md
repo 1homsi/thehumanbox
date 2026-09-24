@@ -268,3 +268,26 @@ incremental-state byte count after ten ticks. The 50,000-person fixture exceeds
 the game cap, and these synthetic native figures do not measure browser FPS,
 WASM speed, or laptop heat. Animal runs varied more, so their exact gain is
 uncertain.
+
+## Compact action-family sampling
+
+Available actions are calculated twice per person per tick. The generated
+action families previously used a new `BTreeMap` and per-family vectors to
+collect, sort, and deduplicate eligible action IDs each time. Each family now
+uses a 60-bit mask, and the rotating sampler reads the bits in the same sorted
+order without heap allocations. A parity test compares the resulting sampled
+action order against the former collection method for sparse and overlapping
+subsets of the real action catalogue.
+
+Alternating the before and after native release binaries on the same Mac gave
+these 5,000-person, ten-tick means (milliseconds per tick):
+
+| Fixture | Pair 1, before → after | Pair 2, before → after |
+|---|---:|---:|
+| No added buildings | 219.07 → 210.92 | 213.12 → 211.54 |
+| 1,200 completed buildings | 492.89 → 483.57 | 491.84 → 480.70 |
+
+One paired 50,000-person, 1,200-building first tick measured 12,059.41 →
+11,649.69 ms. The 5,000-person gain is modest, roughly 2% in this fixture;
+50,000 exceeds the game cap. These native synthetic measurements do not prove
+a browser FPS or thermal improvement.

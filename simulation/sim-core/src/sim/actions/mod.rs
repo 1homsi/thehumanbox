@@ -4361,6 +4361,35 @@ fn extend_rotating_candidates(actions: &mut Vec<usize>, candidates: &[usize], ph
     }
 }
 
+const ACTION_FAMILY_WIDTH: usize = 60;
+const ACTION_FAMILY_COUNT: usize = crate::organism::organism::ACTION_ID_SPACE.div_ceil(ACTION_FAMILY_WIDTH);
+
+fn mark_eligible_family_band(families: &mut [u64; ACTION_FAMILY_COUNT], start: usize, end: usize) {
+    let family = start / ACTION_FAMILY_WIDTH;
+    debug_assert_eq!(family, end / ACTION_FAMILY_WIDTH);
+    let width = end - start + 1;
+    debug_assert!(width <= ACTION_FAMILY_WIDTH);
+    families[family] |= ((1u64 << width) - 1) << (start % ACTION_FAMILY_WIDTH);
+}
+
+fn extend_rotating_family_masks(
+    actions: &mut Vec<usize>,
+    families: &[u64; ACTION_FAMILY_COUNT],
+    phase: usize,
+) {
+    let mut candidates = [0usize; ACTION_FAMILY_WIDTH];
+    for (family, &mask) in families.iter().enumerate() {
+        let mut remaining = mask;
+        let mut len = 0;
+        while remaining != 0 {
+            candidates[len] = family * ACTION_FAMILY_WIDTH + remaining.trailing_zeros() as usize;
+            len += 1;
+            remaining &= remaining - 1;
+        }
+        extend_rotating_candidates(actions, &candidates[..len], phase);
+    }
+}
+
 fn qualifies(org: &crate::organism::organism::Organism, requirement: Qualification) -> bool {
     let mut active_gates = 0;
     let mut passed_gates = 0;
@@ -5044,24 +5073,14 @@ pub fn available_actions_into(
             semantically_eligible[band.start..=band.end].fill(true);
         }
     }
-    let mut eligible_by_family = std::collections::BTreeMap::<usize, Vec<usize>>::new();
+    let mut eligible_by_family = [0u64; ACTION_FAMILY_COUNT];
     for &band in ACTION_BANDS {
         if band_is_eligible(sim, idx, ix, iy, band, era, context, &mut place_cache) {
-            let family = band.start / 60;
-            debug_assert_eq!(family, band.end / 60);
             semantically_eligible[band.start..=band.end].fill(true);
-            eligible_by_family
-                .entry(family)
-                .or_default()
-                .extend(band.start..=band.end);
+            mark_eligible_family_band(&mut eligible_by_family, band.start, band.end);
         }
     }
-
-    for candidates in eligible_by_family.values_mut() {
-        candidates.sort_unstable();
-        candidates.dedup();
-        extend_rotating_candidates(a, candidates, phase);
-    }
+    extend_rotating_family_masks(a, &eligible_by_family, phase);
 
     let mut seen = [false; crate::organism::organism::ACTION_ID_SPACE];
     a.retain(|action| {
@@ -5716,6 +5735,37 @@ mod tests {
             seen.extend(actions);
         }
         assert_eq!(seen.len(), candidates.len());
+    }
+
+    #[test]
+    fn compact_family_masks_preserve_sorted_unique_rotation() {
+        for stride in [1, 3, 7] {
+            let mut families = [0u64; ACTION_FAMILY_COUNT];
+            let mut reference = std::collections::BTreeMap::<usize, Vec<usize>>::new();
+            for (index, band) in ACTION_BANDS.iter().enumerate() {
+                if index % stride != 0 {
+                    continue;
+                }
+                mark_eligible_family_band(&mut families, band.start, band.end);
+                reference
+                    .entry(band.start / ACTION_FAMILY_WIDTH)
+                    .or_default()
+                    .extend(band.start..=band.end);
+            }
+            for candidates in reference.values_mut() {
+                candidates.sort_unstable();
+                candidates.dedup();
+            }
+            for phase in [0, 1, 17, 59, 101, 4095] {
+                let mut expected = Vec::new();
+                for candidates in reference.values() {
+                    extend_rotating_candidates(&mut expected, candidates, phase);
+                }
+                let mut actual = Vec::new();
+                extend_rotating_family_masks(&mut actual, &families, phase);
+                assert_eq!(actual, expected, "stride {stride}, phase {phase}");
+            }
+        }
     }
 
     #[test]
