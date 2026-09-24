@@ -244,6 +244,8 @@ enum Workspace {
     Postal,
 }
 
+const WORKSPACE_KIND_COUNT: usize = Workspace::Postal as usize + 1;
+
 #[derive(Clone, Copy)]
 enum QualificationMode {
     All,
@@ -4503,6 +4505,32 @@ fn near_hut(sim: &Simulation, lineage: &str, ix: i32, iy: i32) -> bool {
         })
 }
 
+/// Workspace and hut checks can scan the whole building list. An eligibility
+/// calculation holds `sim` immutably, so repeated bands can share their
+/// results; the next calculation creates a new cache after world changes.
+struct LocalPlaceCache {
+    workspaces: [Option<bool>; WORKSPACE_KIND_COUNT],
+    hut: Option<bool>,
+}
+
+impl LocalPlaceCache {
+    fn new() -> Self {
+        Self {
+            workspaces: [None; WORKSPACE_KIND_COUNT],
+            hut: None,
+        }
+    }
+
+    fn workspace(&mut self, sim: &Simulation, lineage: &str, ix: i32, iy: i32, workspace: Workspace) -> bool {
+        *self.workspaces[workspace as usize]
+            .get_or_insert_with(|| near_complete_workspace(sim, lineage, ix, iy, workspace))
+    }
+
+    fn hut(&mut self, sim: &Simulation, lineage: &str, ix: i32, iy: i32) -> bool {
+        *self.hut.get_or_insert_with(|| near_hut(sim, lineage, ix, iy))
+    }
+}
+
 fn band_is_eligible(
     sim: &Simulation,
     idx: usize,
@@ -4511,6 +4539,7 @@ fn band_is_eligible(
     band: ActionBand,
     era: Era,
     context: EligibilityContext,
+    place_cache: &mut LocalPlaceCache,
 ) -> bool {
     let org = &sim.organisms[idx];
     if era < band.min_era || !qualifies(org, band.qualification) {
@@ -4552,15 +4581,15 @@ fn band_is_eligible(
         PlaceGate::Rock => context.near_rock,
         PlaceGate::Fire => context.near_fire,
         PlaceGate::Hut => matches!(sim.grid.get(ix, iy), Tile::Hut),
-        PlaceGate::NearHut => near_hut(sim, &org.lineage_id, ix, iy),
+        PlaceGate::NearHut => place_cache.hut(sim, &org.lineage_id, ix, iy),
         PlaceGate::HutOrRock => matches!(sim.grid.get(ix, iy), Tile::Hut) || context.near_rock,
-        PlaceGate::Workspace(workspace) => near_complete_workspace(sim, &org.lineage_id, ix, iy, workspace),
+        PlaceGate::Workspace(workspace) => place_cache.workspace(sim, &org.lineage_id, ix, iy, workspace),
         PlaceGate::FireAndWorkspace(workspace) => {
-            context.near_fire && near_complete_workspace(sim, &org.lineage_id, ix, iy, workspace)
+            context.near_fire && place_cache.workspace(sim, &org.lineage_id, ix, iy, workspace)
         }
         PlaceGate::ExperimentWorkspace(workspace) => {
             (context.near_fire || context.near_water)
-                && near_complete_workspace(sim, &org.lineage_id, ix, iy, workspace)
+                && place_cache.workspace(sim, &org.lineage_id, ix, iy, workspace)
         }
         PlaceGate::HomeAndWater => context.near_home && context.near_water,
     };
@@ -4655,6 +4684,7 @@ fn eligible_band_for_action(
         has_stone: org.inv_stone > 0,
     };
     let era = sim.era(&org.lineage_id);
+    let mut place_cache = LocalPlaceCache::new();
 
     BASE_ACTION_BANDS
         .iter()
@@ -4662,7 +4692,7 @@ fn eligible_band_for_action(
         .copied()
         .find(|band| {
             (band.start..=band.end).contains(&action)
-                && band_is_eligible(sim, idx, ix, iy, *band, era, context)
+                && band_is_eligible(sim, idx, ix, iy, *band, era, context, &mut place_cache)
         })
 }
 
@@ -5007,15 +5037,16 @@ pub fn available_actions_into(
     };
     let phase = stable_action_phase(&org.id, sim.tick_count);
     let mut semantically_eligible = [false; crate::organism::organism::ACTION_ID_SPACE];
+    let mut place_cache = LocalPlaceCache::new();
     for &band in BASE_ACTION_BANDS {
-        if band_is_eligible(sim, idx, ix, iy, band, era, context) {
+        if band_is_eligible(sim, idx, ix, iy, band, era, context, &mut place_cache) {
             a.extend(band.start..=band.end);
             semantically_eligible[band.start..=band.end].fill(true);
         }
     }
     let mut eligible_by_family = std::collections::BTreeMap::<usize, Vec<usize>>::new();
     for &band in ACTION_BANDS {
-        if band_is_eligible(sim, idx, ix, iy, band, era, context) {
+        if band_is_eligible(sim, idx, ix, iy, band, era, context, &mut place_cache) {
             let family = band.start / 60;
             debug_assert_eq!(family, band.end / 60);
             semantically_eligible[band.start..=band.end].fill(true);
@@ -5411,6 +5442,89 @@ mod tests {
             organism.x = 300.0 + (other_index % 10) as f32 * 10.0;
             organism.y = 300.0 + (other_index / 10) as f32 * 10.0;
         }
+    }
+
+    #[test]
+    fn local_place_cache_matches_building_checks_and_refreshes_after_world_changes() {
+        let mut sim = Simulation::new(0xcace);
+        let lineage = sim.organisms[0].lineage_id.clone();
+        let (x, y) = (sim.organisms[0].x as i32, sim.organisms[0].y as i32);
+        sim.buildings.clear();
+
+        for (id, kind, dx, owner, condition, decorative) in [
+            (1, BuildingKind::Market, 1, Some(lineage.clone()), 1.0, false),
+            (2, BuildingKind::Library, 7, None, 1.0, false),
+            (3, BuildingKind::Hut, 2, Some(lineage.clone()), 1.0, false),
+            (4, BuildingKind::Hospital, 3, Some("other".into()), 1.0, false),
+            (5, BuildingKind::Forge, 4, Some(lineage.clone()), 0.5, false),
+            (6, BuildingKind::Cafe, 2, Some(lineage.clone()), 1.0, true),
+        ] {
+            let mut building = Building::new(id, kind, x + dx, y, owner, 0);
+            building.condition = condition;
+            building.decorative = decorative;
+            sim.buildings.push(building);
+        }
+
+        let workspaces = [
+            Workspace::Any,
+            Workspace::Education,
+            Workspace::Trade,
+            Workspace::Industry,
+            Workspace::Worship,
+            Workspace::Civic,
+            Workspace::Military,
+            Workspace::Transport,
+            Workspace::Healthcare,
+            Workspace::Recreation,
+            Workspace::Research,
+            Workspace::Cafe,
+            Workspace::Fashion,
+            Workspace::Butchery,
+            Workspace::Brewery,
+            Workspace::Workshop,
+            Workspace::Forge,
+            Workspace::Textile,
+            Workspace::Arts,
+            Workspace::Writing,
+            Workspace::Craft,
+            Workspace::Jewelry,
+            Workspace::Technical,
+            Workspace::Postal,
+        ];
+        assert_eq!(workspaces.len(), WORKSPACE_KIND_COUNT);
+        for (index, &workspace) in workspaces.iter().enumerate() {
+            assert_eq!(workspace as usize, index);
+        }
+        for (query_x, query_y, query_lineage) in [
+            (x, y, lineage.as_str()),
+            (x + 35, y + 35, lineage.as_str()),
+            (x, y, "other"),
+        ] {
+            let mut cache = LocalPlaceCache::new();
+            for workspace in workspaces {
+                let expected = near_complete_workspace(&sim, query_lineage, query_x, query_y, workspace);
+                assert_eq!(
+                    cache.workspace(&sim, query_lineage, query_x, query_y, workspace),
+                    expected
+                );
+                assert_eq!(
+                    cache.workspace(&sim, query_lineage, query_x, query_y, workspace),
+                    expected
+                );
+            }
+            assert_eq!(
+                cache.hut(&sim, query_lineage, query_x, query_y),
+                near_hut(&sim, query_lineage, query_x, query_y)
+            );
+        }
+
+        sim.buildings.clear();
+        let mut market = Building::new(7, BuildingKind::Market, x + 1, y, Some(lineage.clone()), 0);
+        market.condition = 1.0;
+        sim.buildings.push(market);
+        assert!(LocalPlaceCache::new().workspace(&sim, &lineage, x, y, Workspace::Trade));
+        sim.buildings[0].damage = 1.0;
+        assert!(!LocalPlaceCache::new().workspace(&sim, &lineage, x, y, Workspace::Trade));
     }
 
     #[test]
