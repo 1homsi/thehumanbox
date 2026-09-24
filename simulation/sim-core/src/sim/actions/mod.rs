@@ -245,6 +245,32 @@ enum Workspace {
 }
 
 const WORKSPACE_KIND_COUNT: usize = Workspace::Postal as usize + 1;
+const ALL_WORKSPACES: [Workspace; WORKSPACE_KIND_COUNT] = [
+    Workspace::Any,
+    Workspace::Education,
+    Workspace::Trade,
+    Workspace::Industry,
+    Workspace::Worship,
+    Workspace::Civic,
+    Workspace::Military,
+    Workspace::Transport,
+    Workspace::Healthcare,
+    Workspace::Recreation,
+    Workspace::Research,
+    Workspace::Cafe,
+    Workspace::Fashion,
+    Workspace::Butchery,
+    Workspace::Brewery,
+    Workspace::Workshop,
+    Workspace::Forge,
+    Workspace::Textile,
+    Workspace::Arts,
+    Workspace::Writing,
+    Workspace::Craft,
+    Workspace::Jewelry,
+    Workspace::Technical,
+    Workspace::Postal,
+];
 
 #[derive(Clone, Copy)]
 enum QualificationMode {
@@ -4497,6 +4523,7 @@ fn workspace_matches(kind: BuildingKind, workspace: Workspace) -> bool {
     }
 }
 
+#[cfg(test)]
 fn near_complete_workspace(sim: &Simulation, lineage: &str, ix: i32, iy: i32, workspace: Workspace) -> bool {
     sim.buildings.iter().any(|building| {
         if !building.is_operational()
@@ -4515,6 +4542,7 @@ fn near_complete_workspace(sim: &Simulation, lineage: &str, ix: i32, iy: i32, wo
     })
 }
 
+#[cfg(test)]
 fn near_hut(sim: &Simulation, lineage: &str, ix: i32, iy: i32) -> bool {
     (-1..=1).any(|dx| (-1..=1).any(|dy| matches!(sim.grid.get(ix + dx, iy + dy), Tile::Hut)))
         || sim.buildings.iter().any(|building| {
@@ -4534,29 +4562,76 @@ fn near_hut(sim: &Simulation, lineage: &str, ix: i32, iy: i32) -> bool {
         })
 }
 
-/// Workspace and hut checks can scan the whole building list. An eligibility
-/// calculation holds `sim` immutably, so repeated bands can share their
-/// results; the next calculation creates a new cache after world changes.
+struct LocalPlaceSnapshot {
+    workspaces: u32,
+    building_hut: bool,
+}
+
+fn local_place_snapshot(sim: &Simulation, lineage: &str, ix: i32, iy: i32) -> LocalPlaceSnapshot {
+    let mut snapshot = LocalPlaceSnapshot {
+        workspaces: 0,
+        building_hut: false,
+    };
+    for building in &sim.buildings {
+        if !building.is_operational() {
+            continue;
+        }
+        let (width, height) = building.footprint();
+        let nearest_x = ix.clamp(building.x, building.x + i32::from(width) - 1);
+        let nearest_y = iy.clamp(building.y, building.y + i32::from(height) - 1);
+        let distance = (nearest_x - ix).abs() + (nearest_y - iy).abs();
+        if distance > 8
+            || building
+                .owner_lineage
+                .as_deref()
+                .is_some_and(|owner| owner != lineage)
+        {
+            continue;
+        }
+        if distance <= 1 && building.kind == BuildingKind::Hut {
+            snapshot.building_hut = true;
+        }
+        for workspace in ALL_WORKSPACES {
+            if workspace_matches(building.kind, workspace) {
+                snapshot.workspaces |= 1 << (workspace as u32);
+            }
+        }
+    }
+    snapshot
+}
+
+/// An eligibility calculation holds `sim` immutably, so one nearby-building
+/// pass can serve all workspace and hut gates. The next calculation creates a
+/// fresh snapshot after any world changes.
 struct LocalPlaceCache {
-    workspaces: [Option<bool>; WORKSPACE_KIND_COUNT],
+    snapshot: Option<LocalPlaceSnapshot>,
     hut: Option<bool>,
 }
 
 impl LocalPlaceCache {
     fn new() -> Self {
         Self {
-            workspaces: [None; WORKSPACE_KIND_COUNT],
+            snapshot: None,
             hut: None,
         }
     }
 
     fn workspace(&mut self, sim: &Simulation, lineage: &str, ix: i32, iy: i32, workspace: Workspace) -> bool {
-        *self.workspaces[workspace as usize]
-            .get_or_insert_with(|| near_complete_workspace(sim, lineage, ix, iy, workspace))
+        self.snapshot
+            .get_or_insert_with(|| local_place_snapshot(sim, lineage, ix, iy))
+            .workspaces
+            & (1 << (workspace as u32))
+            != 0
     }
 
     fn hut(&mut self, sim: &Simulation, lineage: &str, ix: i32, iy: i32) -> bool {
-        *self.hut.get_or_insert_with(|| near_hut(sim, lineage, ix, iy))
+        *self.hut.get_or_insert_with(|| {
+            (-1..=1).any(|dx| (-1..=1).any(|dy| matches!(sim.grid.get(ix + dx, iy + dy), Tile::Hut)))
+                || self
+                    .snapshot
+                    .get_or_insert_with(|| local_place_snapshot(sim, lineage, ix, iy))
+                    .building_hut
+        })
     }
 }
 
@@ -5544,6 +5619,18 @@ mod tests {
         assert!(LocalPlaceCache::new().workspace(&sim, &lineage, x, y, Workspace::Trade));
         sim.buildings[0].damage = 1.0;
         assert!(!LocalPlaceCache::new().workspace(&sim, &lineage, x, y, Workspace::Trade));
+
+        let (remote_x, remote_y) = (x + 35, y + 35);
+        for dx in -1..=1 {
+            for dy in -1..=1 {
+                sim.grid.set(remote_x + dx, remote_y + dy, Tile::Grass);
+            }
+        }
+        let mut old_cache = LocalPlaceCache::new();
+        assert!(!old_cache.hut(&sim, &lineage, remote_x, remote_y));
+        sim.grid.set(remote_x, remote_y, Tile::Hut);
+        assert!(!old_cache.hut(&sim, &lineage, remote_x, remote_y));
+        assert!(LocalPlaceCache::new().hut(&sim, &lineage, remote_x, remote_y));
     }
 
     #[test]

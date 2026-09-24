@@ -291,3 +291,20 @@ One paired 50,000-person, 1,200-building first tick measured 12,059.41 →
 11,649.69 ms. The 5,000-person gain is modest, roughly 2% in this fixture;
 50,000 exceeds the game cap. These native synthetic measurements do not prove
 a browser FPS or thermal improvement.
+
+## One local-building pass for workspace eligibility
+
+An action calculation now scans the buildings once and records every eligible
+workspace type plus nearby operational huts. Previously, each distinct
+workspace gate could scan all buildings even after repeated gates were cached.
+The snapshot is discarded after the calculation so construction, damage, and
+grid changes are visible to the next decision. A reference test compares all
+24 workspace types and huts with the original predicates across ownership,
+distance, condition, and a hut tile appearing between decisions.
+
+Two alternating native release comparisons with 5,000 residents, 1,200
+completed buildings, and ten ticks measured 510.94 → 397.82 and 506.16 →
+406.08 ms/tick. The first attempted baseline run overlapped an unrelated
+CPU-heavy linter and was excluded. The useful paired runs suggest roughly
+20% lower tick cost for this synthetic building-heavy world, with the same
+incremental-state byte count. They do not measure WASM, browser FPS, or heat.
