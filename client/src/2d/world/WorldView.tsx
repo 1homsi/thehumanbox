@@ -16,6 +16,7 @@ import {
   Sprite,
   Camera2D,
   useEntity,
+  useGame,
   useDynamicCanvas,
   type GameControls,
 } from 'cubeforge'
@@ -2703,6 +2704,27 @@ export function drawWorldOnCanvas(
   }
 }
 
+function paintWorldTexture(
+  ctx: CanvasRenderingContext2D,
+  world: WorldState,
+  selectedOrgId: string | null,
+  overlay: string | null,
+  focus: string,
+  viewFlags: ViewFlags,
+  renderWindow: ReturnType<typeof worldRenderWindow>,
+  zoom: number,
+  scale: number,
+) {
+  const bounds = {
+    c0: Math.max(0, Math.floor(renderWindow.x / TILE)),
+    c1: Math.min(world.grid.width, Math.ceil((renderWindow.x + renderWindow.width) / TILE)),
+    r0: Math.max(0, Math.floor(renderWindow.y / TILE)),
+    r1: Math.min(world.grid.height, Math.ceil((renderWindow.y + renderWindow.height) / TILE)),
+  }
+  ctx.setTransform(scale, 0, 0, scale, -renderWindow.x * scale, -renderWindow.y * scale)
+  drawWorldOnCanvas(ctx, world, selectedOrgId, overlay, focus, viewFlags, bounds, zoom, scale)
+}
+
 function WorldSprite({
   world,
   interp,
@@ -2730,7 +2752,8 @@ function WorldSprite({
   cameraStateRef?: React.MutableRefObject<{ x: number; y: number; zoom: number }>
   viewportDims?: { w: number; h: number }
 }) {
-  useEntity()
+  const entityId = useEntity()
+  const engine = useGame()
 
   const W = world.grid.width * TILE
   const H = world.grid.height * TILE
@@ -2790,6 +2813,44 @@ function WorldSprite({
   overlayRef.current = overlay
   focusRef.current = focus
   viewFlagsRef.current = viewFlags
+
+  // A window/scale change can allocate a new canvas and move the Cubeforge
+  // sprite in the same React commit. Paint that canvas and update its ECS
+  // geometry before the renderer can display the new placement. Otherwise a
+  // zoom-out briefly stretches the old window into the new one, and a pan
+  // displays old pixels at the new coordinates until the next 30fps tick.
+  useLayoutEffect(() => {
+    const w = interp?.current.current ?? worldRef.current
+    if (!w) return
+    const grid = {
+      ...w.grid,
+      depth_map: cachedDepth.current ?? w.grid.depth_map,
+      biomes: cachedBiomes.current ?? w.grid.biomes,
+    }
+    const zoom = cameraStateRef?.current.zoom ?? 1
+    paintWorldTexture(
+      dyn.ctx,
+      { ...w, grid },
+      selectedOrgIdRef.current,
+      overlayRef.current,
+      focusRef.current,
+      viewFlagsRef.current,
+      renderWindow,
+      zoom,
+      renderScale,
+    )
+    const sprite = engine.ecs.getComponent(entityId, 'Sprite')
+    if (sprite) {
+      sprite.width = renderWindow.width
+      sprite.height = renderWindow.height
+    }
+    const transform = engine.ecs.getComponent(entityId, 'Transform')
+    if (transform) {
+      transform.x = atX - W / 2 + renderWindow.x + renderWindow.width / 2
+      transform.y = atY - H / 2 + renderWindow.y + renderWindow.height / 2
+    }
+    dyn.markDirty()
+  }, [dyn, engine, entityId, interp, cameraStateRef, renderWindow, renderScale, atX, atY, W, H])
 
   useEffect(() => {
     if (!interp || rendererPaused) return
@@ -2942,27 +3003,18 @@ function WorldSprite({
         season_progress: lerpedSeason,
       }
 
-      // Paint the entire padded texture, so moving the camera within it never
+      // Paint the entire padded texture, so camera movement within it never
       // exposes culled strips or requires an extra CPU redraw.
-      const bounds = {
-        c0: Math.max(0, Math.floor(renderWindow.x / TILE)),
-        c1: Math.min(w.grid.width, Math.ceil((renderWindow.x + renderWindow.width) / TILE)),
-        r0: Math.max(0, Math.floor(renderWindow.y / TILE)),
-        r1: Math.min(w.grid.height, Math.ceil((renderWindow.y + renderWindow.height) / TILE)),
-      }
-
-      const scale = renderScale
-      dyn.ctx.setTransform(scale, 0, 0, scale, -renderWindow.x * scale, -renderWindow.y * scale)
-      drawWorldOnCanvas(
+      paintWorldTexture(
         dyn.ctx,
         enrichedWorld,
         selectedOrgIdRef.current,
         overlayRef.current,
         focusRef.current,
         viewFlagsRef.current,
-        bounds,
+        renderWindow,
         renderZoom,
-        scale,
+        renderScale,
       )
       dyn.markDirty()
 
@@ -3008,9 +3060,8 @@ function WorldSprite({
         x={atX - W / 2 + renderWindow.x + renderWindow.width / 2}
         y={atY - H / 2 + renderWindow.y + renderWindow.height / 2}
       />
-      {/* Cubeforge captures sprite dimensions at mount; resize the component with the texture window. */}
+      {/* Geometry is synchronized with the painted texture before each handoff. */}
       <Sprite
-        key={`${renderWindow.width}:${renderWindow.height}`}
         width={renderWindow.width}
         height={renderWindow.height}
         dynamicSrc={dyn.id}
