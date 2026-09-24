@@ -235,3 +235,36 @@ The 5,000-person difference is small enough that these runs do not establish a
 practical whole-tick speedup at the game cap. The 50,000-person fixture bypasses
 that cap; its paired improvements varied with machine conditions. These results
 are native synthetic timings, not browser FPS or WASM measurements.
+
+## Local workspace eligibility in building-heavy worlds
+
+`crowd_profile` accepts an optional fifth argument for completed buildings
+(0–1,500). When nonzero, it sets up a deterministic mixture of owned
+buildings and supplied information-era residents so workspace-gated actions
+are exercised. For example:
+
+```sh
+cargo run --manifest-path simulation/Cargo.toml -p sim-core --release --example crowd_profile -- 5000 10 0 0 1200
+```
+
+Workspace and nearby-hut eligibility previously scanned the building list for
+every qualifying action band. A single availability calculation now remembers
+each local result and shares it across bands. The cache ends with that
+calculation, so a building completed, damaged, or ruined before the next
+decision is checked again. A regression test compares all workspace types and
+hut checks with their uncached predicates across ownership, location, and
+building condition.
+
+Paired native release runs on the same Mac measured (before → after):
+
+| Fixture | Pair 1 | Pair 2 |
+|---|---:|---:|
+| 5,000 people, 1,200 buildings, mean of 10 ticks | 362.64 → 318.45 ms/tick | 374.73 → 331.67 ms/tick |
+| 5,000 people, 400 animals, 1,200 buildings, mean of 10 ticks | 365.80 → 358.41 ms/tick | 408.82 → 364.37 ms/tick |
+
+The 50,000-person, 1,200-building first tick measured 12,673.10 → 10,821.38
+ms in one pair. All four 5,000-person runs without animals produced the same
+incremental-state byte count after ten ticks. The 50,000-person fixture exceeds
+the game cap, and these synthetic native figures do not measure browser FPS,
+WASM speed, or laptop heat. Animal runs varied more, so their exact gain is
+uncertain.
