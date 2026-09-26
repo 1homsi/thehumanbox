@@ -81,7 +81,8 @@ fn clamp_cmd_coord(v: i32) -> i32 {
     v.clamp(-100_000, 100_000)
 }
 
-fn tile_from_name(name: &str) -> Option<Tile> {    Some(match name {
+fn tile_from_name(name: &str) -> Option<Tile> {
+    Some(match name {
         "grass" => Tile::Grass,
         "water" => Tile::Water,
         "food" => Tile::Food,
@@ -151,8 +152,12 @@ impl Simulation {
                     .map(|l| {
                         // A caller-supplied lineage id reaches byte-slicing
                         // sites (`&lid[..6]`) in the log/telemetry paths, so
-                        // a non-ASCII id would panic the tick loop. Keep
-                        // generated ids safe and clamp anything supplied.
+                        // clamp the length of anything supplied. Note this
+                        // bounds *characters*, not bytes, and does not make
+                        // the id ASCII: `chars().take(64)` happily keeps 64
+                        // three-byte characters. The slicing sites are
+                        // therefore still required to be char-boundary safe
+                        // — see `economy_tick::lid_short`.
                         l.chars().take(64).collect()
                     })
                     .unwrap_or_else(|| {

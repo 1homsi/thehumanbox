@@ -1656,8 +1656,7 @@ impl Organism {
                 // is not walkable, so counting it here made an organism
                 // believe it was sheltered while `find_shelter_tile` could
                 // never return the rock it was looking for.
-                matches!(grid.get(nx, ny), Tile::Hut | Tile::Campfire)
-                    || grid.structure_at(nx, ny) >= 0.35
+                matches!(grid.get(nx, ny), Tile::Hut | Tile::Campfire) || grid.structure_at(nx, ny) >= 0.35
             })
         });
         legacy_shelter
@@ -2168,7 +2167,7 @@ impl Organism {
                 None
             },
             vocabulary: if include_cold {
-                Some(self.vocabulary.as_hashmap())
+                Some(self.vocabulary.words())
             } else {
                 None
             },
@@ -2273,7 +2272,7 @@ impl Organism {
         OrgDetailJson {
             base: self.to_json(),
             thought_history,
-            vocabulary: self.vocabulary.as_hashmap(),
+            vocabulary: self.vocabulary.words(),
             daily_story: self.daily_story.clone(),
             life_log,
             conversations: self.conversations.iter().rev().take(25).rev().cloned().collect(),

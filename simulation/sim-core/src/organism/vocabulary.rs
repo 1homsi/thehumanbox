@@ -113,7 +113,6 @@ pub const CONCEPTS: &[&str] = &[
     "find",
     "see",
     "hear",
-    "hide",
     "watch",
     "follow",
     "lead",
@@ -214,6 +213,11 @@ pub const CONCEPTS: &[&str] = &[
     "eclipse",
     "clay",
     "mud",
+    // Was listed twice: also appeared in the action-verb group further up.
+    // `concept_index` resolves a name to one slot, so the earlier copy was
+    // unreachable by name - it could never be spoken, touched, or forgotten,
+    // and the HashMap wire format silently overwrote it on every save. This
+    // is the copy lookups resolved to, so it is the one kept.
     "hide",
     "fur",
     "feather",
@@ -450,6 +454,17 @@ pub fn gen_phoneme_word(rng: &mut impl Rng) -> String {
     gen_word(rng)
 }
 
+/// Reserved key used to carry `Vocabulary::last_used` through the
+/// `HashMap<String, String>` wire format. Not a concept, so older
+/// readers ignore it and `from_hashmap` skips it.
+///
+/// Only ever emitted by `as_hashmap`, which exists for the
+/// serialise/deserialise round trip. Anything that treats the map as
+/// *words* - snapshots, LLM prompts, the client, the lab - must use
+/// `words` instead, or this clock blob gets rendered as if it were a
+/// word the organism speaks.
+const LAST_USED_KEY: &str = "__thb_last_used";
+
 /// Per-organism vocabulary. Internally a positional `Vec<String>`
 /// indexed by `CONCEPTS` position - no per-organism `HashMap`
 /// allocations, no key Strings, and slot lookups are an O(1) hash
@@ -461,11 +476,6 @@ pub fn gen_phoneme_word(rng: &mut impl Rng) -> String {
 /// impl converts to and from the previous `HashMap<String, String>`
 /// shape, so persisted saves and client wire frames keep working
 /// with no migration.
-/// Reserved key used to carry `Vocabulary::last_used` through the
-/// `HashMap<String, String>` wire format. Not a concept, so older
-/// readers ignore it and `from_hashmap` skips it.
-const LAST_USED_KEY: &str = "__thb_last_used";
-
 #[derive(Default, Clone)]
 pub struct Vocabulary {
     /// One slot per concept (same length and order as `CONCEPTS`).
@@ -646,12 +656,16 @@ impl Vocabulary {
         concept
     }
 
-    /// Compatibility view exposing the per-concept word map for
-    /// callers (serialisation, snapshots) that still want a
-    /// HashMap. Allocates - use sparingly; for hot reads prefer
-    /// `word_for`.
-    pub fn as_hashmap(&self) -> HashMap<String, String> {
-        let mut out = HashMap::with_capacity(self.slots.len() + 1);
+    /// The words this organism currently knows, keyed by concept.
+    ///
+    /// This is the view for anything that *reads* the vocabulary as
+    /// language: snapshots sent to the client and the lab, the
+    /// narration and conversation LLM prompts, the org-detail API.
+    /// It deliberately omits `LAST_USED_KEY`.
+    ///
+    /// Allocates - use sparingly; for hot reads prefer `word_for`.
+    pub fn words(&self) -> HashMap<String, String> {
+        let mut out = HashMap::with_capacity(self.slots.len());
         for (i, w) in self.slots.iter().enumerate() {
             if !w.is_empty() {
                 if let Some(concept) = CONCEPTS.get(i) {
@@ -659,9 +673,18 @@ impl Vocabulary {
                 }
             }
         }
-        // Carry the forgetting clock through the HashMap wire format.
-        // Without it every save/load reset `last_used` to 0, and `decay`
-        // then treated each word as unused since tick 0.
+        out
+    }
+
+    /// The word map *plus* the reserved `LAST_USED_KEY` clock blob.
+    ///
+    /// Only for the `Serialize`/`from_hashmap` round trip, which needs
+    /// `last_used` to survive a save/load - without it every load reset
+    /// the forgetting clock to 0 and `decay` treated each word as unused
+    /// since tick 0. Never pass this to a consumer that treats the map
+    /// as words; use [`Vocabulary::words`] there.
+    pub fn as_hashmap(&self) -> HashMap<String, String> {
+        let mut out = self.words();
         if self.last_used.iter().any(|&t| t != 0) {
             let packed = self
                 .last_used
@@ -743,5 +766,98 @@ impl<'de> Deserialize<'de> for Vocabulary {
     fn deserialize<D: Deserializer<'de>>(deser: D) -> Result<Self, D::Error> {
         let map = HashMap::<String, String>::deserialize(deser)?;
         Ok(Vocabulary::from_hashmap(&map))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand::rngs::StdRng;
+    use rand::SeedableRng;
+
+    fn vocab() -> Vocabulary {
+        let mut rng = StdRng::seed_from_u64(7);
+        Vocabulary::generate(&mut rng)
+    }
+
+    /// The regression this guards: `words()` feeds snapshots, the client,
+    /// the lab, and the narration/conversation prompts. When it carried
+    /// the reserved clock blob, `__thb_last_used` was rendered as if it
+    /// were one of the organism's words - a ~400-number string.
+    #[test]
+    fn words_never_exposes_the_reserved_clock_key() {
+        let mut v = vocab();
+        v.touch_concept("food", 500);
+        v.touch_concept("danger", 900);
+        let words = v.words();
+        assert!(
+            !words.contains_key(LAST_USED_KEY),
+            "words() leaked the reserved clock key"
+        );
+        // Sanity: the clock really is set, so this is not a vacuous pass.
+        assert!(v.as_hashmap().contains_key(LAST_USED_KEY));
+        assert!(!words.is_empty());
+    }
+
+    /// A duplicate concept name is silently destructive: `concept_index`
+    /// resolves the name to one slot, so the other slot is unreachable by
+    /// name (never spoken, never touched, therefore never forgotten) and
+    /// both collide on the same key in the HashMap wire format, so one word
+    /// is overwritten on every save. Guard the invariant directly.
+    #[test]
+    fn concepts_are_unique() {
+        let mut seen = std::collections::HashSet::new();
+        let dupes: Vec<&str> = CONCEPTS.iter().filter(|c| !seen.insert(**c)).copied().collect();
+        assert!(dupes.is_empty(), "duplicate concepts in CONCEPTS: {dupes:?}");
+        // `concept_index` is the reverse map; a duplicate breaks its 1:1
+        // relationship with CONCEPTS, so its length must equal the list.
+        assert_eq!(concept_index().len(), CONCEPTS.len());
+    }
+
+    #[test]
+    fn words_holds_only_real_concepts() {
+        let v = vocab();
+        let words = v.words();
+        for k in words.keys() {
+            assert!(
+                CONCEPTS.contains(&k.as_str()),
+                "words() returned a non-concept key {k:?}"
+            );
+        }
+        assert_eq!(words.len(), v.len());
+    }
+
+    /// The behaviour the reserved key exists to protect: the forgetting
+    /// clock must survive a save/load, or `decay` reads 0 as "unused
+    /// since tick 0" and wipes a freshly-loaded vocabulary.
+    #[test]
+    fn the_clock_survives_a_serde_round_trip() {
+        let mut v = vocab();
+        v.touch_concept("food", 5_000);
+        let json = serde_json::to_string(&v).unwrap();
+        let back: Vocabulary = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.known_word("food"), v.known_word("food"));
+        assert_eq!(back.len(), v.len());
+
+        // A word touched at tick 5000 must survive a decay pass at 5100
+        // (100 ticks later, under a 200-tick threshold).
+        let mut back = back;
+        back.decay(5_100, 200);
+        assert_eq!(
+            back.known_word("food"),
+            v.known_word("food"),
+            "decay forgot a freshly-used word right after a reload"
+        );
+    }
+
+    #[test]
+    fn from_hashmap_ignores_the_reserved_key_as_a_concept() {
+        let mut map = HashMap::new();
+        map.insert("food".to_string(), "kra".to_string());
+        map.insert(LAST_USED_KEY.to_string(), "7,7,7".to_string());
+        let v = Vocabulary::from_hashmap(&map);
+        assert_eq!(v.known_word("food"), Some("kra"));
+        // The clock entry must not have been mistaken for a word.
+        assert!(!v.words().contains_key(LAST_USED_KEY));
     }
 }

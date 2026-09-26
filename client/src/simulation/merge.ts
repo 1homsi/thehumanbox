@@ -13,7 +13,14 @@ function mergeDefined<T extends object>(target: T, src: Partial<T>): T {
   for (const k in src) {
     const v = (src as Record<string, unknown>)[k]
     if (v === undefined) continue
-    if (tgt[k] !== v) {
+    // `null` is applied as a delete below, so it is a no-op when the key is
+    // already absent. A bare `tgt[k] !== v` treated "cleared" and "never
+    // set" as different, so every field the wire nulls out looked changed on
+    // every frame — reallocating every organism 10x/s and defeating the
+    // identity fast path the rest of this module exists to provide.
+    const cur = tgt[k]
+    const differs = v === null ? cur !== undefined && cur !== null : cur !== v
+    if (differs) {
       changed = true
       break
     }

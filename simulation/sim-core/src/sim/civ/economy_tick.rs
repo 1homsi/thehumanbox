@@ -778,11 +778,22 @@ fn update_wealth_labels(sim: &mut Simulation) {
     }
 }
 
+/// First six *characters* of a lineage id, for event text.
+///
+/// Deliberately not `&lid[..6]`: that is a byte slice and panics when byte 6
+/// falls inside a multi-byte character. `command.rs` clamps caller-supplied
+/// lineage ids with `chars().take(64)`, which bounds the character count but
+/// says nothing about the byte layout, so a caller-supplied id is still free
+/// to be non-ASCII and split a 6-byte prefix.
 fn lid_short(lid: &str) -> &str {
-    if lid.len() > 6 {
-        &lid[..6]
-    } else {
-        lid
+    match lid.char_indices().nth(6) {
+        // The 7th character starts exactly at byte 6, so the first six
+        // characters are all single-byte and `lid[..6]` is on a boundary.
+        Some((6, _)) => &lid[..6],
+        // Fewer than six characters, or the 6th is multi-byte: fall back to
+        // the largest boundary at or before six characters.
+        Some((byte, _)) => &lid[..byte],
+        None => lid,
     }
 }
 
@@ -889,5 +900,27 @@ mod tests {
         assert_eq!(sim.organisms[0].wealth, 3);
         assert_eq!(sim.governments["guard"].treasury, 3);
         assert!(sim.governments["guard"].conscription);
+    }
+
+    #[test]
+    fn lid_short_never_splits_a_character() {
+        // ASCII: a clean six-byte prefix.
+        assert_eq!(lid_short("abcdefgh"), "abcdef");
+        assert_eq!(lid_short("abc"), "abc");
+        assert_eq!(lid_short(""), "");
+
+        // Three-byte characters: `&lid[..6]` would have split the third one
+        // and panicked. Six whole characters is 18 bytes.
+        assert_eq!(
+            lid_short("\u{65e5}\u{672c}\u{8a9e}\u{306e}\u{7dcf}\u{7dcf}"),
+            "\u{65e5}\u{672c}\u{8a9e}\u{306e}\u{7dcf}\u{7dcf}"
+        );
+        // Fewer than six characters must come back whole.
+        assert_eq!(lid_short("\u{65e5}\u{672c}\u{8a9e}"), "\u{65e5}\u{672c}\u{8a9e}");
+
+        // A mixed prefix: five ASCII then a three-byte character. The sixth
+        // character spans bytes 5..8, so the old `&lid[..6]` split it and
+        // panicked; six whole characters is "abcde日".
+        assert_eq!(lid_short("abcde\u{65e5}\u{672c}"), "abcde\u{65e5}");
     }
 }

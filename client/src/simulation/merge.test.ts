@@ -251,6 +251,87 @@ describe('mergeFrame lineage strategy handling', () => {
   })
 })
 
+describe('mergeFrame null-clear identity stability', () => {
+  // A delta whose only content is "this field is now cleared" must not
+  // allocate. The server sends the -32768 sentinel every frame for an
+  // organism with no wander target, which the wire turns into an explicit
+  // `null`. Comparing that `null` against a cached `undefined` with `!==`
+  // reported a change forever, so every organism was reallocated 10x/s even
+  // when nothing about it had changed.
+  const noTargetDelta = (frameId: number) =>
+    baseFrame({
+      frame_id: frameId,
+      organisms_hot: {
+        ids: ['a'],
+        target_xs: [-32768],
+        target_ys: [-32768],
+      },
+    } as Partial<IncomingWorldFrame>)
+
+  function seed(): { caches: MergeCaches; org: OrganismState } {
+    const caches = emptyCaches()
+    const org = { id: 'a', name: 'Alia', x: 5, y: 5 } as unknown as OrganismState
+    mergeFrame(baseFrame({ frame_kind: 'full', organisms_complete: true, organisms: [org] }), caches)
+    return { caches, org: caches.organisms.get('a')! }
+  }
+
+  it('reuses the cached organism when the wire clears a never-set field', () => {
+    const { caches, org } = seed()
+    expect('target_x' in org).toBe(false)
+
+    mergeFrame(noTargetDelta(2), caches)
+    const after1 = caches.organisms.get('a')!
+    expect(after1).toBe(org)
+    expect('target_x' in after1).toBe(false)
+
+    // And it stays stable over many frames, not just the first.
+    for (let i = 3; i < 25; i++) mergeFrame(noTargetDelta(i), caches)
+    expect(caches.organisms.get('a')).toBe(org)
+  })
+
+  it('still clears a field that was previously set', () => {
+    const caches = emptyCaches()
+    const org = { id: 'a', name: 'Alia', target_x: 40 } as unknown as OrganismState
+    mergeFrame(baseFrame({ frame_kind: 'full', organisms_complete: true, organisms: [org] }), caches)
+    expect(caches.organisms.get('a')!.target_x).toBe(40)
+
+    mergeFrame(noTargetDelta(2), caches)
+    const after = caches.organisms.get('a')!
+    expect('target_x' in after).toBe(false)
+  })
+
+  it('keeps identity across a clear-then-reassert cycle', () => {
+    const caches = emptyCaches()
+    const org = { id: 'a', name: 'Alia' } as unknown as OrganismState
+    mergeFrame(baseFrame({ frame_kind: 'full', organisms_complete: true, organisms: [org] }), caches)
+    mergeFrame(noTargetDelta(2), caches)
+    const cleared = caches.organisms.get('a')!
+
+    // A real target reappears, then is cleared again. The second clear must
+    // reuse the object the reassert produced.
+    mergeFrame(
+      baseFrame({
+        frame_id: 3,
+        organisms_hot: { ids: ['a'], target_xs: [120], target_ys: [-32768] },
+      } as Partial<IncomingWorldFrame>),
+      caches,
+    )
+    const reasserted = caches.organisms.get('a')!
+    expect(reasserted).not.toBe(cleared)
+    expect(reasserted.target_x).toBe(120)
+
+    // Clearing a field that *was* set is a real change, so it allocates.
+    mergeFrame(noTargetDelta(4), caches)
+    const recleared = caches.organisms.get('a')!
+    expect(recleared).not.toBe(reasserted)
+    expect('target_x' in recleared).toBe(false)
+
+    // From here on the field is absent again, so clears must be free.
+    for (let i = 5; i < 30; i++) mergeFrame(noTargetDelta(i), caches)
+    expect(caches.organisms.get('a')).toBe(recleared)
+  })
+})
+
 describe('mergeFrame trade network handling', () => {
   it('retains moving routes across sparse deltas and accepts authoritative empty arrays', () => {
     const caches = emptyCaches()

@@ -321,7 +321,9 @@ pub async fn list_worlds_handler() -> impl IntoResponse {
 fn validate_world_hash(hash: &str) -> Result<(), StatusCode> {
     let safe = !hash.is_empty()
         && hash.len() <= 64
-        && hash.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+        && hash
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
     if safe {
         Ok(())
     } else {
@@ -459,7 +461,7 @@ pub async fn org_conversations_handler(
         (
             org.name.clone(),
             org.lineage_id.clone(),
-            org.vocabulary.as_hashmap(),
+            org.vocabulary.words(),
             convos,
         )
     };

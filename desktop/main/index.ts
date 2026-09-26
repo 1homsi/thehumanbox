@@ -15,7 +15,7 @@ import * as path from "node:path";
 import { registerIpc } from "./ipc";
 import { runExclusiveDesktopOperation } from "./exclusive-operation";
 import { startSim, stopSim, activeSim } from "./sim-process";
-import { loadSettings, prepareDataRoot } from "./settings";
+import { loadSettings, prepareDataRoot, type Settings } from "./settings";
 import {
   checkForUpdatesNow,
   initUpdater,
@@ -92,7 +92,11 @@ function persistWindowState(win: BrowserWindow): void {
   }
 }
 
-function renderBootError(detail: string): string {
+function renderBootError(
+  detail: string,
+  heading = "The Human Box couldn't start the local simulation",
+  hint = "Check the logs for details, then restart the local simulation from Settings.",
+): string {
   const safe = detail.replace(
     /[<>&]/g,
     (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[c]!,
@@ -107,25 +111,47 @@ function renderBootError(detail: string): string {
   kbd{background:#2a241d;padding:2px 6px;border-radius:3px;font-family:inherit}
   p{color:#bfae90}
 </style></head><body><div class="wrap">
-<h1>The Human Box couldn't start the local simulation</h1>
+<h1>${heading}</h1>
 <pre>${safe}</pre>
 <p>Open DevTools with <kbd>Cmd</kbd>+<kbd>Opt</kbd>+<kbd>I</kbd> (macOS) or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> (Win/Linux) for more.</p>
-<p>Check the logs for details, then restart the local simulation from Settings.</p>
+<p>${hint}</p>
 </div></body></html>`)}`;
 }
 
 async function createWindow(): Promise<void> {
-  const settings = loadSettings();
-
+  let settings: Settings | null = null;
   let apiBase: string | null = null;
   let bootErrorUrl: string | null = null;
+
+  // `loadSettings` throws on a corrupt or unreadable settings.json rather
+  // than reverting to defaults, which would reset `saveLocationOverride` and
+  // could orphan existing worlds. This read therefore has to sit inside the
+  // boot error path: it used to run *outside* the try below, so the throw
+  // rejected `createWindow` before any BrowserWindow existed — and
+  // `app.whenReady().then(...)` had no catch — leaving a corrupt settings
+  // file to produce a silently windowless app instead of the actionable
+  // message the throw was written to deliver.
   try {
-    const sim = await startSim(settings);
-    apiBase = `127.0.0.1:${sim.port}`;
+    settings = loadSettings();
   } catch (err) {
     const msg = (err as Error).message ?? String(err);
-    console.error("[main] failed to start local sim:", err);
-    bootErrorUrl = renderBootError(msg);
+    console.error("[main] could not read settings:", err);
+    bootErrorUrl = renderBootError(
+      msg,
+      "The Human Box couldn't read its settings",
+      "Repair or remove the file named above, then relaunch. Your existing worlds are untouched.",
+    );
+  }
+
+  if (settings) {
+    try {
+      const sim = await startSim(settings);
+      apiBase = `127.0.0.1:${sim.port}`;
+    } catch (err) {
+      const msg = (err as Error).message ?? String(err);
+      console.error("[main] failed to start local sim:", err);
+      bootErrorUrl = renderBootError(msg);
+    }
   }
 
   const winState = loadWindowState();
@@ -565,9 +591,36 @@ app.whenReady().then(async () => {
   });
 });
 
+// Backstop for any boot step that rejects. Without this the `.then` chain's
+// rejection was unhandled: the app stayed running with no window, no tray,
+// no shortcuts, and no IPC handlers, which reads as a silent hang rather than
+// a startup failure. `dialog` is used because by this point every step above
+// it may not have run.
+void app.whenReady().catch((err: unknown) => {
+  const msg = (err as Error)?.message ?? String(err);
+  console.error("[main] startup failed:", err);
+  try {
+    dialog.showErrorBox("The Human Box couldn't start", msg);
+  } catch {
+    // No GUI available (e.g. headless CI); the log line above is all we have.
+  }
+  app.exit(1);
+});
+
 app.on("will-quit", () => {
   globalShortcut.unregisterAll();
 });
+
+// Latch for the quit sequence.
+//
+// `app.quit()` re-fires `before-quit`, and `stopSim` deliberately *retains*
+// `current` when it cannot confirm the child exited (to prevent a second
+// writer). Together those meant `before-quit` re-entered `shutdownThenQuit`
+// forever: each pass preventDefault'd the quit, retried a doomed
+// SIGTERM/SIGKILL sequence, and called `app.quit()` again. Cmd+Q hung the app
+// indefinitely with no diagnostic. Once shutdown has been attempted, let every
+// subsequent `before-quit` through so the quit completes.
+let isQuitting = false;
 
 // Electron discards the promise returned by an `app.on` listener, so a
 // rejection inside an `async` handler is unobservable. `stopSimOnce`
@@ -576,6 +629,8 @@ app.on("will-quit", () => {
 // so the app ignored Cmd+Q for the rest of the session. Quit regardless,
 // and log the failure.
 function shutdownThenQuit(): void {
+  if (isQuitting) return;
+  isQuitting = true;
   void stopSim()
     .catch((err) => {
       console.error("[main] stopSim failed during quit:", err);
@@ -594,6 +649,10 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", (e) => {
+  // Second and later passes belong to the `app.quit()` that
+  // `shutdownThenQuit` issued. Do not preventDefault them, or the quit can
+  // never complete.
+  if (isQuitting) return;
   if (activeSim()) {
     e.preventDefault();
     shutdownThenQuit();
