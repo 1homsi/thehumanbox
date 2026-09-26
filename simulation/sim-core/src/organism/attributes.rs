@@ -352,7 +352,9 @@ pub fn check_earned_attributes(org: &mut Organism) -> bool {
     if disc.contains("fire-making") || disc.contains("fire") {
         attrs.insert("fire-keeper".into());
     }
-    if disc.contains("toolmaking") || disc.contains("stone_tools") {
+    // The canonical discovery name is `tool_making`; `toolmaking` is never
+    // inserted anywhere, so it was dead weight in the condition.
+    if disc.contains("tool_making") || disc.contains("stone_tools") {
         attrs.insert("toolmaker".into());
     }
     if disc.contains("axe") {
@@ -385,7 +387,9 @@ pub fn check_earned_attributes(org: &mut Organism) -> bool {
     if disc.contains("glassblowing") || disc.contains("glass") {
         attrs.insert("glassblower".into());
     }
-    if disc.contains("leatherworking") || disc.contains("tanning") {
+    // The canonical discovery name is `leatherwork`; `leatherworking` and
+    // `tanning` are never inserted, so `tanner` was unreachable.
+    if disc.contains("leatherwork") {
         attrs.insert("tanner".into());
     }
 

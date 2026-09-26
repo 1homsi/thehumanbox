@@ -70,7 +70,7 @@ lint: lint-rust lint-client lint-lab ## Lint everything
 
 lint-rust: ## cargo fmt --check + clippy (whole workspace)
 	$(CARGO_RELEASE) fmt --all -- --check
-	$(CARGO_RELEASE) clippy --workspace --all-targets -- -W clippy::all
+	$(CARGO_RELEASE) clippy --workspace --all-targets --locked -- -D warnings
 
 lint-client: ## eslint + prettier check
 	cd client && pnpm lint

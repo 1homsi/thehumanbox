@@ -465,7 +465,14 @@ pub struct AppState {
     pub sim: SharedSim,
     pub tx: Tx,
     pub latest_full: LatestFull,
+    /// Timestamp of the last *deep full* frame. This is a 30 s cadence at
+    /// the default `TICK_MS` and is NOT a liveness signal — use
+    /// `last_tick_at` for that.
     pub latest_full_at: Arc<std::sync::atomic::AtomicU64>,
+    /// Timestamp of the last simulation tick. Written from the tick loop on
+    /// every tick, so `/health` reflects real progress rather than the
+    /// frame-publication cadence.
+    pub last_tick_at: Arc<std::sync::atomic::AtomicU64>,
     pub transport_stats: SharedTransportStats,
     pub llm_stats: crate::server::llm_stats::SharedLlmStats,
     pub memory_watch: crate::server::memory_watch::SharedMemoryWatch,
@@ -587,6 +594,7 @@ async fn main() {
     let (tx, _rx) = broadcast::channel::<Arc<Vec<u8>>>(WS_BROADCAST_BUFFER);
     let latest_full: LatestFull = Arc::new(std::sync::RwLock::new(None));
     let latest_full_at: Arc<std::sync::atomic::AtomicU64> = Arc::new(std::sync::atomic::AtomicU64::new(0));
+    let last_tick_at: Arc<std::sync::atomic::AtomicU64> = Arc::new(std::sync::atomic::AtomicU64::new(0));
     let frame_clock: FrameClock = Arc::new(AtomicU64::new(0));
     let transport_stats: SharedTransportStats = Arc::new(TransportStats::default());
     let llm_stats: llm_stats::SharedLlmStats = Arc::new(llm_stats::LlmStats::default());
@@ -704,6 +712,7 @@ async fn main() {
         let convo_tx2 = convo_tx.clone();
         let memory_watch_cl = memory_watch.clone();
         let transport_stats_s = transport_stats.clone();
+        let last_tick_at_w = last_tick_at.clone();
         let world_store = world_store.clone();
         let save_in_progress = Arc::new(std::sync::atomic::AtomicBool::new(false));
         let pending_save_task = pending_save_task.clone();
@@ -1163,6 +1172,7 @@ async fn main() {
                     let _ = convo_tx2.try_send(c);
                 }
                 let runtime_tick_ms = runtime_control.tick_ms();
+                last_tick_at_w.store(transport::now_ms(), std::sync::atomic::Ordering::Relaxed);
                 transport_stats_s.record_sim_tick(tick_started.elapsed().as_millis() as u64, runtime_tick_ms);
                 if sleep_until_period_end_or_shutdown(tick_started, runtime_tick_ms, &mut shutdown).await {
                     break;
@@ -1309,6 +1319,7 @@ async fn main() {
     let compression = CompressionLayer::new().gzip(true);
 
     latest_full_at.store(transport::now_ms(), std::sync::atomic::Ordering::Relaxed);
+    last_tick_at.store(transport::now_ms(), std::sync::atomic::Ordering::Relaxed);
     let start_ms = transport::now_ms();
     let og_cache: OgCache = Arc::new(tokio::sync::Mutex::new(None));
 
@@ -1370,6 +1381,7 @@ async fn main() {
         tx,
         latest_full,
         latest_full_at: latest_full_at.clone(),
+        last_tick_at: last_tick_at.clone(),
         transport_stats,
         llm_stats,
         memory_watch,

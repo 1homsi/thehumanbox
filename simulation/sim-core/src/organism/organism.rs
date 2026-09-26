@@ -685,11 +685,18 @@ impl Organism {
             let _ = MAX_FRIENDS;
             let max_friends = max_friends.min(MAX_FRIENDS);
             if self.friends.len() >= max_friends {
+                // `friends` is a std HashMap, so with the trust key
+                // quantised to 3 decimals an eviction tie was broken by
+                // per-process hash order — which friend got dropped then
+                // differed run to run, and that cascaded into every social
+                // system keyed on friendship. Break ties on the id.
                 let weakest = self
                     .friends
                     .keys()
-                    .min_by_key(|fid| {
-                        (self.org_trust.get(fid.as_str()).copied().unwrap_or(0.0) * 1000.0) as i32
+                    .min_by(|a, b| {
+                        let ta = self.org_trust.get(a.as_str()).copied().unwrap_or(0.0);
+                        let tb = self.org_trust.get(b.as_str()).copied().unwrap_or(0.0);
+                        ta.total_cmp(&tb).then_with(|| a.cmp(b))
                     })
                     .cloned();
                 if let Some(k) = weakest {
@@ -1645,7 +1652,11 @@ impl Organism {
             (-radius..=radius).any(|dy| {
                 let nx = ix + dx;
                 let ny = iy + dy;
-                matches!(grid.get(nx, ny), Tile::Hut | Tile::Rock | Tile::Campfire)
+                // Must stay in sync with `find_shelter_tile`: `Tile::Rock`
+                // is not walkable, so counting it here made an organism
+                // believe it was sheltered while `find_shelter_tile` could
+                // never return the rock it was looking for.
+                matches!(grid.get(nx, ny), Tile::Hut | Tile::Campfire)
                     || grid.structure_at(nx, ny) >= 0.35
             })
         });
@@ -1759,7 +1770,10 @@ impl Organism {
             let progress = *adx * dx + *ady * dy;
             let mut score = progress as f32;
             let t = grid.get(nx, ny);
-            if !t.walkable() {
+            // `Fire` is technically walkable, but standing in it burns and
+            // costs reward, so exclude it the same way `has_progress_step`
+            // and `navigation::detour_step` already do.
+            if !t.walkable() || t == Tile::Fire {
                 score = f32::NEG_INFINITY;
             }
             if t == Tile::Water {
@@ -1902,6 +1916,23 @@ impl Organism {
             let resilience_softening = 1.0 - self.traits.resilience.clamp(0.0, 1.0) * 0.20;
             observed_reward * fear_weight * resilience_softening
         } else if observed_reward < 0.006 {
+            // NOTE: the 0.006 threshold is calibrated, not arbitrary. The
+            // first-attempt novelty bonus is `0.004 + curiosity * 0.008`, so
+            // a cautious organism (curiosity 0.1) gets 0.0048 — *below* the
+            // threshold and therefore penalised — while a curious one
+            // (0.9) gets 0.0112 and is not. `organism_tests.rs::
+            // curious_organisms_value_genuinely_new_choices` pins exactly
+            // that split. Do not "fix" this into a plain `== 0.0` test
+            // without re-tuning: it would make every organism's first
+            // attempt net-positive and collapse the curiosity gradient.
+            //
+            // Known wart (see docs/audit-2026-09.md): because the same
+            // threshold also catches small *positive* repeat rewards, ~16%
+            // of all learning updates are negative and 98% of those are
+            // repeats of actions that succeeded. Fixing that properly needs
+            // an explicit success flag plumbed into `learn`, plus a
+            // `--sweep-seeds` before/after, because it changes what the
+            // world learns.
             observed_reward - 0.006
         } else {
             observed_reward

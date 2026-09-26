@@ -174,6 +174,11 @@ impl Era {
     pub fn required_discoveries(self) -> &'static [&'static str] {
         self.spec().discoveries
     }
+    /// Raw, *unfiltered* threshold. Note this is not monotonic on its own —
+    /// `modern` (30) is below `industrial` (40) — because
+    /// [`Self::population_gate`] is the accessor callers should use. Use
+    /// `population_gate` for gating; this is only for the world-size
+    /// rescaling that `population_gate` is built on.
     pub fn pop_threshold(self) -> usize {
         self.spec().pop_threshold
     }

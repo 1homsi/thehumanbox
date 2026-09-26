@@ -22,6 +22,12 @@ pub(crate) struct GridSave {
     /// infrastructure reshape the map, so it cannot be regenerated from the
     /// world seed on load.
     depth: Vec<f32>,
+    /// Biomes are rewritten at runtime by the world-evolution pass (forest
+    /// clearing for farmland, grassland desertifying during droughts, rivers
+    /// and wetlands forming). Regenerating them from the seed on load threw
+    /// all of that away and, because fertility regrowth is capped per biome,
+    /// re-capped recovered tiles to their pre-evolution biome's ceiling.
+    biome: Vec<u8>,
     fire: Vec<f32>,
     food_trail: Vec<f32>,
     water_trail: Vec<f32>,
@@ -788,6 +794,7 @@ impl Simulation {
             grid: GridSave {
                 tiles: self.grid.tiles.clone(),
                 depth: self.grid.depth.clone(),
+                biome: self.grid.biome.clone(),
                 fire: self.grid.fire_intensity.clone(),
                 food_trail: self.grid.food_trail.clone(),
                 water_trail: self.grid.water_trail.clone(),
@@ -975,6 +982,9 @@ impl Simulation {
             grid.tiles = state.grid.tiles;
             if state.grid.depth.len() == expected {
                 grid.depth = state.grid.depth;
+            }
+            if state.grid.biome.len() == expected {
+                grid.biome = state.grid.biome;
             }
             if state.grid.fire.len() == expected {
                 grid.fire_intensity = state.grid.fire;

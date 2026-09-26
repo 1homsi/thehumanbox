@@ -5084,7 +5084,7 @@ pub fn available_actions_into(
         a.extend(261..=275);
     }
 
-    if any_near || org.inv_food > 0 || org.inv_wood > 0 {
+    if any_near || org.inv_food > 0 || org.inv_wood > 0 || org.wealth > 0 {
         a.extend(276..=295);
     }
 
@@ -5107,7 +5107,10 @@ pub fn available_actions_into(
 
     a.extend(371..=385);
 
-    if kin_near {
+    // Several bands in 436..=455 declare `SocialGate::Stranger` or
+    // `KinAndStranger`, so gating on kin alone made them unreachable. The
+    // governance range above already learned this; mirror it.
+    if kin_near || stranger_near {
         a.extend(436..=455);
     }
 
@@ -5266,7 +5269,10 @@ fn aspiration_bonus(aspiration: &str, action: usize) -> f32 {
             matches!(action, 316..=335 | 3120..=3169 | 3300..=3349 | 5160..=5209)
         }
         "healer" => {
-            matches!(action, 246..=260 | 1320..=1369 | 3060..=3109 | 4920..=4969)
+            // `3060..=3109` is `celestial_work` (astronomy) - every other
+            // range here is a medical/care family, so it looks like a
+            // copy/paste slip rather than an intentional cross-interest.
+            matches!(action, 246..=260 | 1320..=1369 | 3420..=3469 | 4920..=4969)
         }
         _ => false,
     };

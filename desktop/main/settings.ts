@@ -50,12 +50,35 @@ function settingsPath(): string {
 
 export function loadSettings(): Settings {
   const p = settingsPath();
+  let raw: string;
   try {
-    const raw = fs.readFileSync(p, "utf8");
+    raw = fs.readFileSync(p, "utf8");
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      return structuredClone(DEFAULT_SETTINGS);
+    }
+    // Any other read failure (EACCES, EBUSY, EIO) is not "no settings
+    // yet". Swallowing it returned the defaults, which reset
+    // `saveLocationOverride`, made the app open a *different* data root,
+    // and then — because `settings:set` compares against this same failed
+    // read — wrote those defaults back over the real file on the next save.
+    throw new Error(
+      `settings.json at ${p} is unreadable (${(err as Error).message}). ` +
+        `Refusing to fall back to defaults, which would reset the save ` +
+        `location and could orphan existing worlds. Restore or remove the ` +
+        `file, then relaunch.`,
+    );
+  }
+  try {
     const parsed = JSON.parse(raw) as Partial<Settings>;
     return mergeWithDefaults(parsed);
-  } catch {
-    return { ...DEFAULT_SETTINGS };
+  } catch (err) {
+    throw new Error(
+      `settings.json at ${p} is corrupt (${(err as Error).message}). ` +
+        `Refusing to fall back to defaults, which would reset the save ` +
+        `location and could orphan existing worlds. Repair or remove the ` +
+        `file, then relaunch.`,
+    );
   }
 }
 

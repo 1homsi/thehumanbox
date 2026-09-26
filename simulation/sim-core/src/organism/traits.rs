@@ -2,7 +2,12 @@ use rand::{Rng, RngExt};
 use rand_distr::{Distribution, Normal};
 use serde::Serialize;
 
+/// `#[serde(default)]` is load-bearing: this struct sits inside every
+/// `OrgSave`, so without a container default a single newly added trait
+/// would make every existing save fail to parse — and the load path
+/// answers a parse failure by starting a brand-new world.
 #[derive(Clone, Debug, Serialize, serde::Deserialize)]
+#[serde(default)]
 pub struct Traits {
     pub curiosity: f32,
     pub aggression: f32,
