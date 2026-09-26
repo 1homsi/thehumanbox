@@ -2094,12 +2094,22 @@ fn lonely_org_with_only_distant_friends_stays_put() {
     // Wipe founders so we control the cast.
     sim.organisms.clear();
 
+    // Use a private RNG for the cast rather than `sim.rng`. The shared
+    // stream is advanced by `Simulation::new` (and by every id minted during
+    // founder spawn), so drawing traits from it made this test's fixture
+    // silently change whenever unrelated spawn code consumed a different
+    // number of values.
+    let mut cast_rng = {
+        use rand::SeedableRng;
+        rand_chacha::ChaCha8Rng::seed_from_u64(0xdef0)
+    };
+
     // Lonely main org at (50, 50).
-    let mut traits = Traits::random(&mut sim.rng);
+    let mut traits = Traits::random(&mut cast_rng);
     apply_sex_traits(&mut traits, Sex::Female);
     let mut me = Organism::new(
         "me-id".into(),
-        generate_name(&mut sim.rng, Sex::Female),
+        generate_name(&mut cast_rng, Sex::Female),
         50.0,
         50.0,
         1,
@@ -2117,7 +2127,7 @@ fn lonely_org_with_only_distant_friends_stays_put() {
     me.friends.insert("far-id".into(), "FarFriend".into());
     sim.organisms.push(me);
 
-    let mut friend_traits = Traits::random(&mut sim.rng);
+    let mut friend_traits = Traits::random(&mut cast_rng);
     apply_sex_traits(&mut friend_traits, Sex::Male);
     let mut far = Organism::new(
         "far-id".into(),
@@ -2255,6 +2265,66 @@ fn lonely_org_with_nearby_friend_walks_toward_them() {
             (tx - 70).abs() <= 5 && (ty - 70).abs() <= 5,
             "wander_target {:?} should point near (70,70)",
             wt
+        );
+    }
+}
+
+/// Regression guard for the determinism work in this PR.
+///
+/// Ids used to be minted with `Uuid::new_v4()` (OS entropy) and several
+/// systems iterated randomly-seeded `std` `HashMap`/`HashSet`s while drawing
+/// from `sim.rng`, so `--seed 42` produced a different world on every run and
+/// the documented `--sweep-seeds` gate was measuring noise.
+///
+/// This pins the part that is now guaranteed: the generated world — grid,
+/// organism ids, lineage ids, and the RNG stream itself — is identical for
+/// two `Simulation::new(seed)` calls in the same process. That is the
+/// precondition for every downstream comparison; see
+/// `docs/audit-2026-09.md` for the residual long tail.
+#[test]
+fn same_seed_produces_the_same_generated_world() {
+    fn fingerprint(seed: u64) -> (Vec<String>, Vec<String>, u64, u64) {
+        let sim = Simulation::new(seed);
+        let org_ids: Vec<String> = sim.organisms.iter().map(|o| o.id.clone()).collect();
+        let mut lineage_ids: Vec<String> =
+            sim.organisms.iter().map(|o| o.lineage_id.clone()).collect();
+        lineage_ids.sort();
+        lineage_ids.dedup();
+        let mut tiles: u64 = 0;
+        for y in 0..crate::world::grid::HEIGHT as i32 {
+            for x in 0..crate::world::grid::WIDTH as i32 {
+                tiles = tiles
+                    .wrapping_mul(31)
+                    .wrapping_add(sim.grid.get(x, y) as i64 as u64);
+            }
+        }
+        (org_ids, lineage_ids, tiles, sim.tick_count)
+    }
+
+    let a = fingerprint(42);
+    let b = fingerprint(42);
+    assert_eq!(a.0, b.0, "organism ids differ for the same seed (uuid entropy?)");
+    assert_eq!(a.1, b.1, "lineage ids differ for the same seed");
+    assert_eq!(a.2, b.2, "generated terrain differs for the same seed");
+
+    // A different seed must still produce a different world, otherwise the
+    // assertion above would pass vacuously.
+    let c = fingerprint(43);
+    assert_ne!(a.1, c.1, "different seeds produced identical lineage ids");
+}
+
+/// The seeded RNG stream must advance identically, since every system draws
+/// from it in a fixed order now that the hash-order iteration sites are
+/// sorted.
+#[test]
+fn same_seed_yields_the_same_rng_stream() {
+    let mut a = Simulation::new(7);
+    let mut b = Simulation::new(7);
+    for _ in 0..64 {
+        assert_eq!(
+            a.rng.random::<u64>(),
+            b.rng.random::<u64>(),
+            "seeded RNG streams diverged"
         );
     }
 }

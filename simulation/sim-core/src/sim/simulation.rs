@@ -2925,7 +2925,10 @@ impl Simulation {
             {
                 self.organisms[idx].think("feeling weak", self.tick_count);
             }
-            self.organisms[idx].infection *= 0.997;
+            // Decay happens once, in the `med_mult` block below, which
+            // already defaults to 0.997. Applying it here as well made
+            // untreated infection recover at 0.997^2 and shifted every
+            // medicine tier by the extra factor.
         }
 
         if self.organisms[idx].infection > 0.01 {

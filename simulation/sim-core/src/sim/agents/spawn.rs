@@ -1,5 +1,21 @@
 use rand::RngExt;
-use uuid::Uuid;
+
+/// Mint a short organism/lineage id from the *seeded* stream.
+///
+/// Ids used to come from `Uuid::new_v4()`, which reads OS entropy rather
+/// than `self.rng`. Ids are not cosmetic here: they are hashed into wander
+/// schedules (`organism.rs:1075`, `wander.rs:176`), wedding slots
+/// (`moments.rs:868`), reflection slots, and the vocabulary seed on load
+/// (`persistence.rs:540`). So OS entropy leaked straight into simulation
+/// outcomes and `--seed 42` produced a different world on every run.
+pub(crate) fn seeded_id(rng: &mut impl RngExt, len: usize) -> String {
+    let mut s = String::with_capacity(len);
+    while s.len() < len {
+        s.push_str(&format!("{:016x}", rng.random::<u64>()));
+    }
+    s.truncate(len);
+    s
+}
 
 use crate::organism::organism::{apply_sex_traits, generate_name, generate_tribe_name, Organism, Sex};
 use crate::organism::traits::Traits;
@@ -80,7 +96,7 @@ impl Simulation {
         let mut tribe_anchor: std::collections::HashMap<String, (f32, f32)> =
             std::collections::HashMap::new();
         for &(ax, ay) in &anchors {
-            let lineage_id = Uuid::new_v4().to_string()[..8].to_string();
+            let lineage_id = seeded_id(&mut self.rng, 8);
             let tribe_name = generate_tribe_name(&mut self.rng);
             self.lineage_names.insert(lineage_id.clone(), tribe_name);
             tribe_anchor.insert(lineage_id.clone(), (ax as f32, ay as f32));
@@ -126,7 +142,10 @@ impl Simulation {
         let target = N_TRIBES * TRIBE_SIZE;
         let still_needed = target.saturating_sub(self.organisms.len());
         if still_needed > 0 {
-            let tribe_ids: Vec<String> = self.lineage_names.keys().cloned().collect();
+            // Sorted: `lineage_names` is a std HashMap, so hash order decided
+            // which tribe absorbed the spillover founders.
+            let mut tribe_ids: Vec<String> = self.lineage_names.keys().cloned().collect();
+            tribe_ids.sort();
             let n_tribes = tribe_ids.len();
             let mut all_land: Vec<(i32, i32)> = (2..(HEIGHT as i32 - 2))
                 .flat_map(|y| (2..(WIDTH as i32 - 2)).map(move |x| (x, y)))
@@ -219,7 +238,7 @@ impl Simulation {
         let (anchor_x, anchor_y, _) = scored[self.rng.random_range(0..top)];
 
         let tribe_size = self.rng.random_range(8usize..=14);
-        let lineage_id = Uuid::new_v4().to_string()[..8].to_string();
+        let lineage_id = seeded_id(&mut self.rng, 8);
         let tribe_name = generate_tribe_name(&mut self.rng);
         self.lineage_names.insert(lineage_id.clone(), tribe_name.clone());
 
@@ -247,7 +266,7 @@ impl Simulation {
             land.swap(k, j);
             let (lx, ly) = land[k];
 
-            let id = Uuid::new_v4().to_string()[..8].to_string();
+            let id = seeded_id(&mut self.rng, 8);
             let sex = if k % 2 == 0 { Sex::Male } else { Sex::Female };
             let mut traits = Traits::random(&mut self.rng);
             apply_sex_traits(&mut traits, sex);
@@ -323,7 +342,7 @@ impl Simulation {
     }
 
     pub(crate) fn fork_new_tribe(&mut self, idx: usize, anchor_x: i32, anchor_y: i32) {
-        let new_lid = Uuid::new_v4().to_string()[..8].to_string();
+        let new_lid = seeded_id(&mut self.rng, 8);
         let new_name = generate_tribe_name(&mut self.rng);
         self.lineage_names.insert(new_lid.clone(), new_name.clone());
 

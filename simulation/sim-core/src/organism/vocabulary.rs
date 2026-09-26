@@ -461,6 +461,11 @@ pub fn gen_phoneme_word(rng: &mut impl Rng) -> String {
 /// impl converts to and from the previous `HashMap<String, String>`
 /// shape, so persisted saves and client wire frames keep working
 /// with no migration.
+/// Reserved key used to carry `Vocabulary::last_used` through the
+/// `HashMap<String, String>` wire format. Not a concept, so older
+/// readers ignore it and `from_hashmap` skips it.
+const LAST_USED_KEY: &str = "__thb_last_used";
+
 #[derive(Default, Clone)]
 pub struct Vocabulary {
     /// One slot per concept (same length and order as `CONCEPTS`).
@@ -529,6 +534,7 @@ impl Vocabulary {
         snapshots: &[HashMap<String, String>],
         rng: &mut impl Rng,
         adopt_rate: f32,
+        tick: u64,
     ) {
         self.ensure_capacity();
         for (i, &concept) in CONCEPTS.iter().enumerate() {
@@ -541,10 +547,20 @@ impl Vocabulary {
                     *counts.entry(w.as_str()).or_insert(0) += 1;
                 }
             }
-            if let Some((&majority, _)) = counts.iter().max_by_key(|(_, &c)| c) {
+            // `HashMap::iter().max_by_key` resolves ties in iteration order,
+            // so which word "won" depended on per-process hash seeding.
+            // Break ties on the word itself for a reproducible result.
+            let majority = counts
+                .iter()
+                .max_by(|a, b| a.1.cmp(b.1).then_with(|| b.0.cmp(a.0)))
+                .map(|(&w, _)| w);
+            if let Some(majority) = majority {
                 let mine = self.slots.get(i).map(|s| s.as_str()).unwrap_or("");
                 if mine != majority {
                     self.slots[i] = majority.to_string();
+                    // An adopted word is one the organism now uses, so it
+                    // must not be forgotten by the very next decay pass.
+                    self.touch(i, tick);
                 }
             }
         }
@@ -589,9 +605,32 @@ impl Vocabulary {
                 continue;
             }
             let last = self.last_used[i];
+            if last == 0 {
+                // Never explicitly used. Start the forgetting clock now
+                // instead of reading 0 as "last used at tick 0", which
+                // wiped every concept an organism had not personally
+                // spoken about the moment the world passed `threshold_ticks`.
+                self.last_used[i] = tick;
+                continue;
+            }
             if tick.saturating_sub(last) > threshold_ticks {
                 self.slots[i] = String::new();
             }
+        }
+    }
+
+    /// Borrowed word for a concept, or `None` when the organism has
+    /// forgotten it. `word_for` cannot express this: it falls back to the
+    /// English concept name, so two organisms who both forgot a word
+    /// compared as recognising each other's signal.
+    pub fn known_word<'a>(&'a self, concept: &str) -> Option<&'a str> {
+        let idx = concept_index();
+        let i = *idx.get(concept)?;
+        let w = self.slots.get(i)?;
+        if w.is_empty() {
+            None
+        } else {
+            Some(w.as_str())
         }
     }
 
@@ -612,11 +651,25 @@ impl Vocabulary {
     /// HashMap. Allocates - use sparingly; for hot reads prefer
     /// `word_for`.
     pub fn as_hashmap(&self) -> HashMap<String, String> {
-        let mut out = HashMap::with_capacity(self.slots.len());
+        let mut out = HashMap::with_capacity(self.slots.len() + 1);
         for (i, w) in self.slots.iter().enumerate() {
             if !w.is_empty() {
-                out.insert(CONCEPTS[i].to_string(), w.clone());
+                if let Some(concept) = CONCEPTS.get(i) {
+                    out.insert(concept.to_string(), w.clone());
+                }
             }
+        }
+        // Carry the forgetting clock through the HashMap wire format.
+        // Without it every save/load reset `last_used` to 0, and `decay`
+        // then treated each word as unused since tick 0.
+        if self.last_used.iter().any(|&t| t != 0) {
+            let packed = self
+                .last_used
+                .iter()
+                .map(|t| t.to_string())
+                .collect::<Vec<_>>()
+                .join(",");
+            out.insert(LAST_USED_KEY.to_string(), packed);
         }
         out
     }
@@ -627,11 +680,24 @@ impl Vocabulary {
         let mut slots = vec![String::new(); CONCEPTS.len()];
         let idx = concept_index();
         for (k, v) in map {
+            if k == LAST_USED_KEY {
+                continue;
+            }
             if let Some(&i) = idx.get(k.as_str()) {
                 slots[i] = v.clone();
             }
         }
-        let last_used = vec![0u64; slots.len()];
+        let mut last_used = vec![0u64; slots.len()];
+        if let Some(packed) = map.get(LAST_USED_KEY) {
+            for (i, part) in packed.split(',').enumerate() {
+                if i >= last_used.len() {
+                    break;
+                }
+                if let Ok(t) = part.parse::<u64>() {
+                    last_used[i] = t;
+                }
+            }
+        }
         Vocabulary { slots, last_used }
     }
 

@@ -98,7 +98,15 @@ impl PhysicsEngine {
 
         let mut campfire_burn_out: Vec<(i32, i32)> = Vec::new();
 
-        for &(x, y) in &self.active_fire_tiles {
+        // Iterate in a stable order. `active_fire_tiles` is a `HashSet` with
+        // per-process random seeding, and this loop draws from `rng` once per
+        // flammable neighbour, so both the *number* and the *order* of draws
+        // per physics tick depended on hash order. That diverged the shared
+        // RNG stream and with it every downstream system. Measured: four
+        // processes with the same seed produced 60/61/62/66 fires.
+        let mut fire_tiles: Vec<(i32, i32)> = self.active_fire_tiles.iter().copied().collect();
+        fire_tiles.sort_unstable();
+        for &(x, y) in &fire_tiles {
             match grid.get(x, y) {
                 Tile::Fire => {
                     let intensity = grid.fire_intensity(x, y);

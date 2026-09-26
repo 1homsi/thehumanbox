@@ -798,6 +798,12 @@ const GENERIC_SPECS: Record<string, GenericSpec> = {
   Granary: { color: '#b88848', width: 5, height: 4, depth: 5, yOffset: 2.4 },
   Barracks: { color: '#5a5a5a', width: 6, height: 3.5, depth: 5, yOffset: 1.75 },
   Tavern: { color: '#7a4a28', width: 5, height: 4, depth: 5, yOffset: 2.0 },
+  // `Inn` and `Bakery` were missing from this table while still being live
+  // `BuildingKind`s with window specs / workshop polish, so they rendered as
+  // no mesh at all — at best floating window boxes at night, at worst their
+  // roof/awning layers floating with nothing underneath.
+  Inn: { color: '#8a6a48', width: 6, height: 4, depth: 5, yOffset: 2.0 },
+  Bakery: { color: '#c8a070', width: 4, height: 3.5, depth: 4, yOffset: 1.75 },
   Brewery: { color: '#7a4a28', width: 5, height: 5, depth: 5, yOffset: 2.5 },
   Butcher: { color: '#a04848', width: 4, height: 3.5, depth: 4, yOffset: 1.75 },
   Fishmonger: { color: '#6890b0', width: 4, height: 3.5, depth: 4, yOffset: 1.75 },
@@ -1268,14 +1274,39 @@ function getGenericRoof(s: GenericSpec): ConeGeometry {
 const tmp = new Object3D()
 
 const MAT_POOL = new Map<string, MeshStandardMaterial>()
+const MAT_POOL_MAX = 512
+
+// `emissiveIntensity` is driven by a continuously-varying day/night factor.
+// Using the raw float in the cache key minted a brand-new material on every
+// publish, and because `material` is element #2 of the instanced-mesh `args`,
+// R3F tore down and rebuilt up to ~130 InstancedMeshes per publish. The
+// rebuilt meshes kept their constructor identity matrices, so lit geometry
+// (hut hearths, doors, windows) piled up at world (0,0,0) until the next
+// building-list change. Quantizing keeps the key space finite and bounded.
+const EMISSIVE_STEPS = 16
+
+function emissiveKey(v: number | undefined): string {
+  if (v === undefined) return ''
+  return String(Math.round(v * EMISSIVE_STEPS) / EMISSIVE_STEPS)
+}
 
 function getMat(
   color: string,
   opts?: { emissive?: string; emissiveIntensity?: number },
 ): MeshStandardMaterial {
-  const key = `${color}|${opts?.emissive ?? ''}|${opts?.emissiveIntensity ?? 0}`
+  const key = `${color}|${opts?.emissive ?? ''}|${emissiveKey(opts?.emissiveIntensity)}`
   let m = MAT_POOL.get(key)
-  if (!m) {
+  if (m) return m
+  if (MAT_POOL.size >= MAT_POOL_MAX) {
+    // Bounded pool: drop the oldest entry rather than growing without limit
+    // over a long session.
+    const oldest = MAT_POOL.keys().next().value
+    if (oldest !== undefined) {
+      MAT_POOL.delete(oldest)
+      MAT_POOL.get(oldest)?.dispose()
+    }
+  }
+  {
     m = new MeshStandardMaterial({ color, roughness: 0.85 })
     if (opts?.emissive) {
       m.emissive.set(opts.emissive)
@@ -1387,6 +1418,13 @@ function Layer({
     vary,
     jitter,
     perInstanceColor,
+    // `material` is element 1 of the instanced-mesh `args`. When R3F
+    // reconstructs the mesh because `args` changed, the replacement starts
+    // from constructor identity matrices; without this dep the effect would
+    // not re-run and the layer would render unpositioned boxes at the world
+    // origin. Include it as a safety net so a future material swap can
+    // never orphan the instance matrices.
+    material,
   ])
 
   if (count === 0) return null

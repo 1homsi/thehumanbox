@@ -23,6 +23,16 @@ for seed in $SEEDS; do
   profile="$TMPDIR/$seed.csv"
   "$BIN" --seed "$seed" --ticks "$TICKS" --every "$TICKS" \
     --profile "$profile" --profile-every "$PROFILE_EVERY" >/dev/null
+  # A profile with no samples (only the header) makes every awk below
+  # report 0, so the budget check passed while measuring nothing. This is
+  # reachable via the documented `make perf-gate TICKS=<small>`, which has
+  # no lower bound against PROFILE_EVERY.
+  profile_rows=$(awk 'NR > 1' "$profile" | wc -l | tr -d ' ')
+  if [[ "$profile_rows" -eq 0 ]]; then
+    echo "no performance samples collected for seed $seed (TICKS=$TICKS PROFILE_EVERY=$PROFILE_EVERY)" >&2
+    echo "raise TICKS or lower PROFILE_EVERY so at least one tick is sampled" >&2
+    exit 1
+  fi
   max_ms=$(awk -F, 'NR > 1 && $3 > max { max = $3 } END { printf "%.3f", max + 0 }' "$profile")
   mean_ms=$(awk -F, 'NR > 1 { sum += $3; n += 1 } END { printf "%.3f", n ? sum / n : 0 }' "$profile")
   peak_rss_kb=$(awk -F, 'NR > 1 && $4 > max { max = $4 } END { printf "%.0f", max + 0 }' "$profile")

@@ -132,12 +132,16 @@ fn consume_pooled_resource(sim: &mut Simulation, lineage: &str, unit: RepairUnit
 }
 
 fn battle_damage(scale: BattleScale) -> f32 {
+    // Monotonic in participant count (`BattleScale::min_participants` is
+    // 2/6/10/20/40). `exposure_for` takes a max over active battles, so a
+    // non-monotonic table made a 10-strong siege more destructive than a
+    // full-scale war.
     match scale {
         BattleScale::Skirmish => 0.001,
         BattleScale::Raid => 0.002,
-        BattleScale::Siege => 0.0075,
         BattleScale::Battle => 0.0045,
         BattleScale::War => 0.006,
+        BattleScale::Siege => 0.0075,
     }
 }
 

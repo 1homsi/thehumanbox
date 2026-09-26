@@ -315,7 +315,22 @@ pub async fn list_worlds_handler() -> impl IntoResponse {
     )
 }
 
+/// World hashes are used to build filesystem paths, so they must be a
+/// restricted token. `axum` percent-decodes the `Path` segment, so a
+/// request for `/worlds/..%2F..%2Fetc/meta` arrives here as `../../etc`.
+fn validate_world_hash(hash: &str) -> Result<(), StatusCode> {
+    let safe = !hash.is_empty()
+        && hash.len() <= 64
+        && hash.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+    if safe {
+        Ok(())
+    } else {
+        Err(StatusCode::BAD_REQUEST)
+    }
+}
+
 pub async fn world_meta_handler(Path(hash): Path<String>) -> Result<impl IntoResponse, StatusCode> {
+    validate_world_hash(&hash)?;
     let meta = tokio::task::spawn_blocking(move || crate::server::world_archive::read_world_meta(&hash))
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
@@ -330,12 +345,7 @@ pub async fn world_meta_handler(Path(hash): Path<String>) -> Result<impl IntoRes
 }
 
 pub async fn world_save_handler(Path(hash): Path<String>) -> Result<impl IntoResponse, StatusCode> {
-    let safe = hash
-        .chars()
-        .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
-    if !safe || hash.len() > 64 {
-        return Err(StatusCode::BAD_REQUEST);
-    }
+    validate_world_hash(&hash)?;
     let path = crate::server::world_store::world_save_path(&hash);
     // Saves grow with the world; keep the multi-MB read off the reactor.
     let bytes = tokio::task::spawn_blocking(move || std::fs::read(&path).map_err(|_| StatusCode::NOT_FOUND))
@@ -358,6 +368,7 @@ pub async fn world_save_handler(Path(hash): Path<String>) -> Result<impl IntoRes
 }
 
 pub async fn world_snapshot_handler(Path(hash): Path<String>) -> Result<impl IntoResponse, StatusCode> {
+    validate_world_hash(&hash)?;
     let bytes = tokio::task::spawn_blocking(move || crate::server::world_archive::read_world_snapshot(&hash))
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
@@ -800,10 +811,15 @@ pub async fn health_handler(State(s): State<AppState>) -> impl IntoResponse {
     };
     let llm_failing = narration_err_ratio > 0.5 || think_err_ratio > 0.5;
 
-    // Sim alive check: latest_full should refresh every ~3s. If it's
-    // been stale for 30s the sim is wedged.
+    // Sim alive check. This must key off the *tick* heartbeat, not the
+    // deep-full frame cadence: a deep full is emitted every 300 ticks
+    // (30 s at the default TICK_MS=100) and is skipped entirely while no
+    // WebSocket client is connected, so using it here returned 503 for
+    // roughly half of every minute on an idle server.
+    let last_tick = s.last_tick_at.load(std::sync::atomic::Ordering::Relaxed);
+    let last_tick_age_ms = now.saturating_sub(last_tick);
     let stale_ms = 30_000;
-    let sim_alive = last_full > 0 && last_full_age_ms < stale_ms;
+    let sim_alive = last_tick > 0 && last_tick_age_ms < stale_ms;
 
     let degraded = mem_elevated || mem_critical || groq_starved || llm_failing;
     let status_code = if sim_alive {
@@ -818,6 +834,7 @@ pub async fn health_handler(State(s): State<AppState>) -> impl IntoResponse {
         "degraded": degraded,
         "uptime_ms": now.saturating_sub(s.start_ms),
         "last_full_frame_age_ms": last_full_age_ms,
+        "last_tick_age_ms": last_tick_age_ms,
         "memory": {
             "pressure": format!("{:?}", pressure),
             "box_available_mb": s.memory_watch.box_available_mb(),

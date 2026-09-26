@@ -264,6 +264,13 @@ export function OrgDetail({
   const on = (oid: string) => organisms?.find((o) => o.id === oid)?.name ?? (oid ?? '').slice(0, 5)
   const ageInDays = Math.floor(org.age / DAY_LENGTH)
   const color = lineageColor(org.lineage_id)
+  // `traits`, `name` and `lineage_id` are cold fields. The server omits
+  // them from periodic "full" frames (which still set `organisms_complete`),
+  // so a cache entry seeded from one has none of them. `OrgCard` already
+  // guards exactly this case; without the same guard here, selecting an
+  // organism during that window threw on `org.traits.curiosity` and took
+  // down the whole app via the top-level ErrorBoundary.
+  if (!org.traits || !org.name || !org.lineage_id) return null
   const isSick = org.infection > 0.15
   const carrying = org.carrying > 0
 
@@ -346,22 +353,22 @@ export function OrgDetail({
         </div>
 
         <div className="org-detail-chips">
+          {/* `wealth` is not in the server's `OrgJson`, so interpolating it
+              here printed a fabricated "rich · 0" for every rich organism. */}
           {org.discoveries?.includes('rich') && (
             <span
               className="relation-tag"
               style={{ background: '#2a1f08', color: '#ffd966', cursor: 'default' }}
-              title={`Wealth: ${org.wealth ?? 0}`}
             >
-              {'\u{1F4B0}'} rich · {org.wealth ?? 0}
+              {'\u{1F4B0}'} rich
             </span>
           )}
           {org.discoveries?.includes('poor') && (
             <span
               className="relation-tag"
               style={{ background: '#1a1a2a', color: '#7a8898', cursor: 'default' }}
-              title={`Wealth: ${org.wealth ?? 0}`}
             >
-              {'\u{1FAA8}'} poor · {org.wealth ?? 0}
+              {'\u{1FAA8}'} poor
             </span>
           )}
           {(org.age_stage ?? null) && (

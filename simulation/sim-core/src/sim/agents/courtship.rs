@@ -699,7 +699,9 @@ pub fn generate_conversation_with_req(
     super::convo_req::ConversationReq,
 ) {
     let (mut conv_a, mut conv_b) = generate_conversation(a, b, tick, kind, rng);
-    let id = uuid::Uuid::new_v4().to_string();
+    // Derived from the seeded stream so a seed reproduces a world; this id
+    // is also what pairs the two sides of a conversation in the client.
+    let id = crate::sim::agents::spawn::seeded_id(rng, 32);
     conv_a.id = id.clone();
     conv_b.id = id.clone();
 

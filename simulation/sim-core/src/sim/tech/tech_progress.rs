@@ -42,7 +42,18 @@ pub fn tick_tech_progress(
 
     let tech = all_tech();
 
-    for (lid, disc) in lineage_discoveries.iter() {
+    // Iterate lineages in sorted order. This loop draws from `rng` for
+    // every candidate node, so `HashMap` iteration order decided which
+    // lineage consumed which slice of the shared stream — and therefore
+    // which lineage got which invention on which tick. (The comparator
+    // further down also drew from `rng`, so the number of draws depended
+    // on `max_by`'s internal comparison pattern; that is hoisted out too.)
+    let mut lineage_ids: Vec<&String> = lineage_discoveries.keys().collect();
+    lineage_ids.sort();
+    for lid in lineage_ids {
+        let Some(disc) = lineage_discoveries.get(lid) else {
+            continue;
+        };
         let pop = *lineage_pop.get(lid).unwrap_or(&0);
         if pop == 0 {
             continue;
@@ -74,15 +85,24 @@ pub fn tick_tech_progress(
 
             // Discoveries come from the people best positioned to make them,
             // with a small random term so one permanent genius does not author
-            // an entire civilization's history.
+            // an entire civilization's history. The jitter is drawn once per
+            // candidate up front: drawing it inside `max_by` made the number
+            // of RNG draws depend on the comparator's internal call pattern
+            // rather than on the roster.
+            let jitter: Vec<f32> = members.iter().map(|_| rng.random::<f32>() * 0.15).collect();
             let pick = members
                 .iter()
                 .copied()
-                .max_by(|a, b| {
-                    let a_score = researcher_score(&organisms[*a]) + rng.random::<f32>() * 0.15;
-                    let b_score = researcher_score(&organisms[*b]) + rng.random::<f32>() * 0.15;
+                .enumerate()
+                .max_by(|(ai, a), (bi, b)| {
+                    let a_score = researcher_score(&organisms[*a]) + jitter[*ai];
+                    let b_score = researcher_score(&organisms[*b]) + jitter[*bi];
                     a_score.total_cmp(&b_score)
                 })
+                // `max_by` yields the *enumerated* item, so the winner has to
+                // be looked up through the enumerate index, not the organism
+                // index it carries.
+                .map(|(member_slot, _)| members[member_slot])
                 .unwrap_or(members[0]);
             organisms[pick].discoveries.insert(node.name.to_string());
             let name = organisms[pick].name.clone();

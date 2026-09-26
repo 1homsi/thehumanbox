@@ -47,7 +47,16 @@ def exact_dedup(records: list[Record], key: str = "prompt") -> list[Record]:
     seen: set[str] = set()
     out: list[Record] = []
     for record in records:
-        value = str(record.get(key, ""))
+        # A missing key used to coerce to `""`, so every record without the
+        # key hashed identically and `exact_dedup` silently discarded all but
+        # the first — a chat-format SFT file (messages/metadata only) lost
+        # 99.9% of its data with a success exit code. Fail loudly instead.
+        if key not in record:
+            raise KeyError(
+                f"dedup key {key!r} missing from record; refusing to treat "
+                f"records without it as identical (records: {len(records)})"
+            )
+        value = str(record[key])
         if value in seen:
             continue
         seen.add(value)
@@ -61,7 +70,12 @@ def near_dedup(
     kept: list[Record] = []
     fingerprints: list[int] = []
     for record in records:
-        text = str(record.get(key, ""))
+        if key not in record:
+            raise KeyError(
+                f"dedup key {key!r} missing from record; refusing to treat "
+                f"records without it as identical (records: {len(records)})"
+            )
+        text = str(record[key])
         fingerprint = simhash(text, bits=bits)
         duplicate = False
         for existing in fingerprints:

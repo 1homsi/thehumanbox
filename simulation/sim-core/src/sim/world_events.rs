@@ -431,7 +431,6 @@ fn end_drought(
     events: &mut std::collections::VecDeque<super::simulation::Event>,
 ) {
     drought.active = false;
-    drought.rain_relief = 0;
     // Only restore tiles proportionally to rain_relief. A drought that
     // ended via the rng cutoff (rain_relief == 0) doesn't fully refill;
     // some tiles stay dry permanently. This is the geographic memory
@@ -439,7 +438,10 @@ fn end_drought(
     // scars instead of fully reverting to pre-drought.
     let total = drought.dried_tiles.len();
     // 0 relief → restore 50% of tiles; >= 200 ticks of rain → 100%.
+    // Read `rain_relief` BEFORE clearing it: zeroing first made `frac` a
+    // compile-time constant 0.5 and silently discarded every tick of rain.
     let frac = ((drought.rain_relief as f32 / 200.0).clamp(0.0, 1.0) * 0.5) + 0.5;
+    drought.rain_relief = 0;
     let restore_count = ((total as f32) * frac).round() as usize;
     let mut restored = 0usize;
     // Restore deepest-water tiles first (those closer to other water)

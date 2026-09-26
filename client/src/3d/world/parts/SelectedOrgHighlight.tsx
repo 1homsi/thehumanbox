@@ -89,8 +89,10 @@ export function SelectedOrgHighlight({ organisms, depthMap, biomes }: Props) {
     const destRing = destRingRef.current
     const dots = dotsRef.current
     if (destRing && dots) {
-      const dtx = target.target_x
-      const dty = target.target_y
+      // `null` is the server's explicit "no destination" signal, so it must
+      // hide the indicator rather than fall through to the arithmetic.
+      const dtx = target.target_x ?? undefined
+      const dty = target.target_y ?? undefined
       const distSq =
         dtx !== undefined && dty !== undefined ? (dtx - tx) * (dtx - tx) + (dty - ty) * (dty - ty) : 0
       if (dtx !== undefined && dty !== undefined && distSq > 4) {

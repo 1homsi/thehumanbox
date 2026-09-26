@@ -569,16 +569,34 @@ app.on("will-quit", () => {
   globalShortcut.unregisterAll();
 });
 
-app.on("window-all-closed", async () => {
-  await stopSim();
-  if (process.platform !== "darwin") app.quit();
+// Electron discards the promise returned by an `app.on` listener, so a
+// rejection inside an `async` handler is unobservable. `stopSimOnce`
+// rejects on purpose when SIGKILL cannot be confirmed, which left
+// `e.preventDefault()` already called and `app.quit()` never reached —
+// so the app ignored Cmd+Q for the rest of the session. Quit regardless,
+// and log the failure.
+function shutdownThenQuit(): void {
+  void stopSim()
+    .catch((err) => {
+      console.error("[main] stopSim failed during quit:", err);
+    })
+    .finally(() => app.quit());
+}
+
+app.on("window-all-closed", () => {
+  void stopSim()
+    .catch((err) => {
+      console.error("[main] stopSim failed on window-all-closed:", err);
+    })
+    .finally(() => {
+      if (process.platform !== "darwin") app.quit();
+    });
 });
 
-app.on("before-quit", async (e) => {
+app.on("before-quit", (e) => {
   if (activeSim()) {
     e.preventDefault();
-    await stopSim();
-    app.quit();
+    shutdownThenQuit();
   }
 });
 

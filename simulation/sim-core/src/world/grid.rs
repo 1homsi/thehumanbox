@@ -220,9 +220,14 @@ impl WorldGrid {
         }
         let i = Self::idx(x, y);
         match kind {
-            TrailKind::Food => self.food_trail[i] = (self.food_trail[i] + strength).min(3.0),
-            TrailKind::Water => self.water_trail[i] = (self.water_trail[i] + strength).min(3.0),
-            TrailKind::Path => self.path_trail[i] = (self.path_trail[i] + strength).min(5.0),
+            TrailKind::Food => self.food_trail[i] = (self.food_trail[i] + strength).clamp(0.0, 3.0),
+            // Clamp both ends: `raid_stockpile` leaves a *negative* trail
+            // on a tile, and a negative value was never decayed (decay
+            // only scales `> 0.0`) yet was pruned from `trail_dirty`,
+            // freezing the residue forever and permanently suppressing
+            // plant growth there.
+            TrailKind::Water => self.water_trail[i] = (self.water_trail[i] + strength).clamp(0.0, 3.0),
+            TrailKind::Path => self.path_trail[i] = (self.path_trail[i] + strength).clamp(0.0, 5.0),
         }
         self.trail_dirty.insert(i as u32);
     }
