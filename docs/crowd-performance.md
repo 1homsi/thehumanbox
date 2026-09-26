@@ -4,10 +4,13 @@ Reproduce the isolated canvas benchmark with `cd client && npm run dev`, then op
 `/crowd-benchmark.html` in the in-app browser and click Run. It creates a private,
 synthetic moving crowd from a new seed; it never reads or writes saved worlds.
 The page calls the real world painter without CubeForge, React frame publication,
-or a running simulation. Every person is rendered. It measures synchronous canvas
+or a running simulation. Normal viewport and crowd-detail rules apply. It measures synchronous canvas
 painting, not end-to-end FPS or GPU presentation time. Five warm-up frames and ten
 measured frames run for each population/zoom pair. To test a specific population
 (up to 50,000), open `/crowd-benchmark.html?count=50000`.
+The optional `samples` parameter selects 1–300 measured frames per population/zoom
+pair; five warm-up frames are always excluded. For longer comparisons, use
+`/crowd-benchmark.html?count=5000&samples=120`.
 
 Local macOS in-app-browser results, September 20, 2026 (mean milliseconds):
 
@@ -26,6 +29,29 @@ and decorative rings are omitted in large crowds; names are bounded by screen
 space. Sprites, movement, explicit health/age overlays, and selected-person
 inspection remain. Mirrored sprite cells use a cached atlas instead of changing
 canvas transforms for every person.
+
+### September 26: prepare the people atlas once per frame
+
+The cached people atlas was still revalidated through image DOM properties for
+every resident. At overview scales, drawing also disabled and restored image
+smoothing for every sprite. The population pass now resolves the atlas once,
+keeps nearest-neighbor sampling throughout that pass, and restores the previous
+smoothing state afterward. Subsequent frames still check atlas loading/source
+changes, and standalone sprite draws retain their existing behavior.
+
+Two alternating original/changed comparisons on the same Mac in the in-app
+browser, with 5,000 moving residents and 120 measured frames per zoom, produced:
+
+| Zoom | Pair 1 mean / p95, before → after (ms) | Pair 2 mean / p95, before → after (ms) |
+|---:|---:|---:|
+| 0.25 | 5.5 / 6.2 → 3.9 / 4.4 | 5.4 / 5.9 → 4.1 / 4.3 |
+| 2 | 6.1 / 6.7 → 4.3 / 4.6 | 6.1 / 7.1 → 4.3 / 4.6 |
+
+These runs show 24–30% less synchronous canvas painting time. They exclude
+simulation, texture upload, and GPU presentation, and do not measure laptop heat
+or establish an end-to-end frame-rate guarantee. Tests cover prepared-atlas
+reuse, an unloaded/replaced atlas on the next frame, mirrored cells, and
+restoring smoothing for standalone calls.
 
 Run the separate native simulation stress test with:
 
