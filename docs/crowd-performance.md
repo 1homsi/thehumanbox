@@ -236,6 +236,47 @@ practical whole-tick speedup at the game cap. The 50,000-person fixture bypasses
 that cap; its paired improvements varied with machine conditions. These results
 are native synthetic timings, not browser FPS or WASM measurements.
 
+## Indexed reproduction partners
+
+An eligible mother previously searched all residents for her bonded partner,
+then searched the same list twice more on conception to inherit his traits and
+attributes. Reproduction now resolves the father once through the resident ID
+index already built for the tick. It rechecks his current position and liveness;
+the emergency nearest-adult selection for populations below 30 is preserved.
+
+The existing `crowd_profile` fixture starts at its population ceiling, where
+reproduction exits immediately. Use the separate reproduction-phase fixture to
+exercise this work below the ceiling:
+
+```sh
+cargo run --manifest-path simulation/Cargo.toml -p sim-core --release --example reproduction_profile -- 4000 30
+```
+
+This fixture has healthy paired adults, with fathers stored after mothers;
+one quarter of couples are nearby and the rest are separated. Each round
+resets pregnancy eligibility and pending births. It times the actual
+reproduction calls, including child creation and population-slot accounting,
+but excludes setup, the shared index, and outcome serialization.
+
+Three alternating native release comparisons against `73e1283e` on an Apple
+M4 Pro with Rust 1.94.1 measured these 30-round means (milliseconds per pass):
+
+| Residents | Pair 1, before → after | Pair 2, before → after | Pair 3, before → after |
+|---|---:|---:|---:|
+| 300 | 0.260 → 0.183 | 0.266 → 0.182 | 0.265 → 0.187 |
+| 4,000 | 18.031 → 2.575 | 18.497 → 2.581 | 19.410 → 2.916 |
+
+All runs matched pregnancy counts (841 / 10,733 across 30 rounds respectively)
+and the fixture's outcome fingerprints, which cover parent IDs, child names,
+sex, traits, attributes, lifespan, and position. Regression tests also cover
+partners moving or dying after index creation, new bonds, strict distance
+boundaries, emergency selection order, and seeded inheritance/random draws.
+
+The roughly 85% reduction applies to this reproduction phase at 4,000 people,
+not whole simulation ticks, browser FPS, WASM performance, or laptop heat.
+Savings depend on the number of eligible mothers; worlds at their population
+ceiling skip this work already.
+
 ## Local workspace eligibility in building-heavy worlds
 
 `crowd_profile` accepts an optional fifth argument for completed buildings
