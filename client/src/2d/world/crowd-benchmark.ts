@@ -33,6 +33,11 @@ button.onclick = async () => {
     const ctx = canvas.getContext('2d')!
     output.textContent = 'Canvas painting only (CubeForge excluded), warm mean/p95 milliseconds:\n'
     const requestedCount = Number(new URLSearchParams(location.search).get('count'))
+    const requestedSamples = Number(new URLSearchParams(location.search).get('samples'))
+    const sampleCount =
+      Number.isInteger(requestedSamples) && requestedSamples > 0 && requestedSamples <= 300
+        ? requestedSamples
+        : 10
     const counts =
       Number.isInteger(requestedCount) && requestedCount > 0 && requestedCount <= 50000
         ? [requestedCount]
@@ -53,7 +58,7 @@ button.onclick = async () => {
         canvas.width = zoom === 0.25 ? world.grid.width * 8 * scale : 64 * 8
         canvas.height = zoom === 0.25 ? world.grid.height * 8 * scale : 48 * 8
         const samples: number[] = []
-        for (let frame = 0; frame < 15; frame++) {
+        for (let frame = 0; frame < sampleCount + 5; frame++) {
           await nextFrame()
           for (const org of world.organisms) org.x += 0.015
           ctx.setTransform(scale, 0, 0, scale, zoom === 2 ? -800 : 0, zoom === 2 ? -800 : 0)

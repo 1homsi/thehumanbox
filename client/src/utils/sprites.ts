@@ -42,6 +42,11 @@ export function pickHumanSprite(sex: HumanSex, stage: AgeStage, frame: number, a
 
 const mirroredPeople = new WeakMap<HTMLCanvasElement, HTMLCanvasElement>()
 
+/** Resolve the current atlas once per population pass, including load/source changes. */
+export function getPeopleAtlas(): HTMLCanvasElement | null {
+  return rasterizedAtlas(ATLAS_PEOPLE)
+}
+
 export function drawPeopleTile(
   ctx: CanvasRenderingContext2D,
   tile: Tile,
@@ -49,8 +54,9 @@ export function drawPeopleTile(
   dy: number,
   size: number,
   flipped = false,
+  atlas: HTMLCanvasElement | null = getPeopleAtlas(),
 ) {
-  const img = rasterizedAtlas(ATLAS_PEOPLE)
+  const img = atlas
   if (!img) return false
   const [col, row] = tile
   let source = img
