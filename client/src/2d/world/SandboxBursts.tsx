@@ -16,7 +16,7 @@ export function SandboxBursts({ bursts, width, height }: { bursts: Burst[]; widt
             <div className="burst-impact burst-impact-late" style={{ left: b.x, top: b.y }} />
             <div
               className="burst-ring burst-shockwave"
-              style={{ left: b.x, top: b.y, '--burst-r': `${Math.max(24, b.r * 1.5)}px` } as CSSProperties}
+              style={{ left: b.x, top: b.y, '--burst-r': `${Math.max(48, b.r * 1.5)}px` } as CSSProperties}
             />
           </div>
         ) : b.kind === 'bolt' ? (
@@ -32,7 +32,7 @@ export function SandboxBursts({ bursts, width, height }: { bursts: Burst[]; widt
           <div
             key={b.id}
             className={`burst-ring burst-${b.kind}`}
-            style={{ left: b.x, top: b.y, '--burst-r': `${Math.max(10, b.r)}px` } as CSSProperties}
+            style={{ left: b.x, top: b.y, '--burst-r': `${Math.max(22, b.r)}px` } as CSSProperties}
           >
             {(b.kind === 'heal' || b.kind === 'plague') &&
               [0, 1, 2, 3, 4].map((i) => (

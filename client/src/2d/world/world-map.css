@@ -346,6 +346,9 @@ body.thb-photo-mode .map2d-glass {
 .burst-impact-late {
   opacity: 0;
   animation-delay: 300ms;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
 }
 .burst-shockwave {
   color: #ff8a3d;
