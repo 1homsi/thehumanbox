@@ -68,6 +68,11 @@ pub enum Command {
     },
 }
 
+/// Natural breeding stops near 1000 animals (see `tick_animals`), so the
+/// player's cap sits just above that. A lower cap meant a mature world had
+/// already filled it and every animal tool silently failed.
+const SANDBOX_ANIMAL_CAP: usize = 1100;
+
 const MIN_STRATEGY_DURATION: u64 = 60;
 const MAX_STRATEGY_DURATION: u64 = 7200;
 
@@ -298,7 +303,7 @@ impl Simulation {
                 true
             }
             Command::SpawnAnimal { x, y, kind } => {
-                if self.animals.iter().filter(|a| a.alive).count() >= 400 {
+                if self.animals.iter().filter(|a| a.alive).count() >= SANDBOX_ANIMAL_CAP {
                     return false;
                 }
                 let k = kind.as_deref().map(animal_from_name).unwrap_or(AnimalKind::Deer);
@@ -430,12 +435,20 @@ mod tests {
             }
         }
 
-        let far = format!(r#"{{"cmd":"heal","x":{},"y":{},"radius":2.0}}"#, x + 50.0, y + 50.0);
+        let far = format!(
+            r#"{{"cmd":"heal","x":{},"y":{},"radius":2.0}}"#,
+            x + 50.0,
+            y + 50.0
+        );
         assert!(!sim.apply_command_json(&far));
         let near = format!(r#"{{"cmd":"heal","x":{x},"y":{y},"radius":2.0}}"#);
         assert!(sim.apply_command_json(&near));
 
-        let miss = format!(r#"{{"cmd":"smite","x":{},"y":{},"radius":2.0}}"#, x + 50.0, y + 50.0);
+        let miss = format!(
+            r#"{{"cmd":"smite","x":{},"y":{},"radius":2.0}}"#,
+            x + 50.0,
+            y + 50.0
+        );
         assert!(!sim.apply_command_json(&miss));
         assert!(sim.organisms[target].alive);
         let hit = format!(r#"{{"cmd":"smite","x":{x},"y":{y},"radius":2.0}}"#);
@@ -465,6 +478,15 @@ mod tests {
         let before = sim.animals.len();
         assert!(sim.apply_command_json(r#"{"cmd":"spawn_animal","x":80.0,"y":80.0,"kind":"wolf"}"#));
         assert_eq!(sim.animals.len(), before + 1);
+    }
+
+    #[test]
+    fn spawn_animal_still_works_in_a_crowded_mature_world() {
+        let mut sim = Simulation::new(1);
+        while sim.animals.iter().filter(|a| a.alive).count() < 700 {
+            assert!(sim.apply_command_json(r#"{"cmd":"spawn_animal","x":80.0,"y":80.0,"kind":"deer"}"#));
+        }
+        assert!(sim.apply_command_json(r#"{"cmd":"spawn_animal","x":80.0,"y":80.0,"kind":"wolf"}"#));
     }
 
     #[test]
