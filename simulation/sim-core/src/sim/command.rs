@@ -144,6 +144,7 @@ impl Simulation {
                 let lid = lineage
                     .filter(|lineage| !lineage.is_empty())
                     .unwrap_or_else(|| format!("L{}", &Uuid::new_v4().to_string()[..6]));
+                let before = self.organisms.len();
                 for _ in 0..n {
                     if crate::sim::growth::population_slots_used(&self.organisms) >= self.population_limit() {
                         break;
@@ -161,7 +162,9 @@ impl Simulation {
                         &mut self.rng,
                     );
                 }
-                true
+                // Report failure when the world is full so the player sees
+                // why nobody appeared instead of a silent "applied".
+                self.organisms.len() > before
             }
             Command::Smite { x, y, radius } => {
                 let r = if radius <= 0.0 { 3.0 } else { radius };
@@ -175,24 +178,27 @@ impl Simulation {
                         best = Some((i, d));
                     }
                 }
-                if let Some((i, _)) = best {
-                    let o = &mut self.organisms[i];
-                    o.alive = false;
-                    o.health = 0.0;
-                }
+                let Some((i, _)) = best else {
+                    return false;
+                };
+                let o = &mut self.organisms[i];
+                o.alive = false;
+                o.health = 0.0;
                 true
             }
             Command::Heal { x, y, radius } => {
                 let r = if radius <= 0.0 { 4.0 } else { radius };
+                let mut healed = 0;
                 for o in self.organisms.iter_mut() {
                     if o.alive && (o.x - x).hypot(o.y - y) <= r {
                         o.health = 1.0;
                         o.energy = 1.0;
                         o.hydration = 1.0;
                         o.infection = 0.0;
+                        healed += 1;
                     }
                 }
-                true
+                healed > 0
             }
             Command::Paint { x, y, tile, radius } => {
                 let Some(t) = tile_from_name(&tile) else {
@@ -408,8 +414,33 @@ mod tests {
         let alive_before = alive(&sim);
 
         assert_eq!(crate::sim::growth::population_slots_used(&sim.organisms), 120);
-        assert!(sim.apply_command_json(r#"{"cmd":"spawn","x":100.0,"y":100.0,"count":1}"#));
+        // A full world rejects the spawn so the player is told nothing happened.
+        assert!(!sim.apply_command_json(r#"{"cmd":"spawn","x":100.0,"y":100.0,"count":1}"#));
         assert_eq!(alive(&sim), alive_before);
+    }
+
+    #[test]
+    fn smite_and_heal_report_whether_anyone_was_in_range() {
+        let mut sim = Simulation::new(1);
+        let target = sim.organisms.iter().position(|o| o.alive).unwrap();
+        let (x, y) = (sim.organisms[target].x, sim.organisms[target].y);
+        for (i, o) in sim.organisms.iter_mut().enumerate() {
+            if i != target {
+                o.alive = false;
+            }
+        }
+
+        let far = format!(r#"{{"cmd":"heal","x":{},"y":{},"radius":2.0}}"#, x + 50.0, y + 50.0);
+        assert!(!sim.apply_command_json(&far));
+        let near = format!(r#"{{"cmd":"heal","x":{x},"y":{y},"radius":2.0}}"#);
+        assert!(sim.apply_command_json(&near));
+
+        let miss = format!(r#"{{"cmd":"smite","x":{},"y":{},"radius":2.0}}"#, x + 50.0, y + 50.0);
+        assert!(!sim.apply_command_json(&miss));
+        assert!(sim.organisms[target].alive);
+        let hit = format!(r#"{{"cmd":"smite","x":{x},"y":{y},"radius":2.0}}"#);
+        assert!(sim.apply_command_json(&hit));
+        assert!(!sim.organisms[target].alive);
     }
 
     #[test]
