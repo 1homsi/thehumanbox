@@ -7,6 +7,7 @@ import { MapCameraController } from './MapCameraController'
 import { CanvasCameraController } from './CanvasCameraController'
 import { World2DErrorBoundary } from './World2DErrorBoundary'
 import { WorldMapHud } from './WorldMapHud'
+import { SandboxBursts, burstForTool, useSandboxBursts } from './SandboxBursts'
 import { isMapControl, type MapCommand } from './camera-controls'
 import { drawFaunaSprite } from './fauna-sprites'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
@@ -3331,6 +3332,8 @@ interface Props {
   rendererPaused?: boolean
   sandboxArmed?: boolean
   sandboxLabel?: string | null
+  /** Armed tool id, used to pick the effect that plays where it lands. */
+  sandboxToolId?: string | null
   sandboxStatus?: string | null
   sandboxRadius?: number
   onSandboxApply?: (worldX: number, worldY: number) => void
@@ -3342,10 +3345,12 @@ export function WorldView({
   rendererPaused = false,
   sandboxArmed,
   sandboxLabel,
+  sandboxToolId,
   sandboxStatus,
   sandboxRadius,
   onSandboxApply,
 }: Props) {
+  const { bursts, spawn: spawnBurst } = useSandboxBursts()
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
   const followOrgId = useUIStore((s) => s.followOrgId)
   const overlay = useUIStore((s) => s.overlay)
@@ -3465,6 +3470,8 @@ export function WorldView({
         Math.round(worldY) >= oy + world.grid.height
       )
         return
+      const burst = burstForTool(sandboxToolId)
+      if (burst) spawnBurst(burst, sx, sy, (sandboxRadius ?? 0) * TILE * zoom)
       onSandboxApply(worldX, worldY)
       return
     }
@@ -3684,6 +3691,7 @@ export function WorldView({
           </button>
         </div>
       )}
+      <SandboxBursts bursts={bursts} width={dims.w} height={dims.h} />
       {mapReady && !viewFlags.hideUI && (
         <WorldMapHud
           world={world}

@@ -144,3 +144,166 @@ body.thb-photo-mode .map2d-glass {
   outline: 2px solid #e9d4a0;
   outline-offset: -2px;
 }
+
+/* ── God-tool effects ────────────────────────────────────────────────── */
+.sandbox-bursts {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 6;
+}
+.burst-flash {
+  position: absolute;
+  inset: 0;
+  background: #fff7d6;
+  opacity: 0;
+  animation: burst-flash 260ms steps(3, end) forwards;
+}
+@keyframes burst-flash {
+  0% {
+    opacity: 0.32;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.burst-bolt {
+  position: absolute;
+  inset: 0;
+  animation: burst-bolt 650ms steps(6, end) forwards;
+}
+.burst-bolt polyline {
+  fill: none;
+  stroke-linejoin: miter;
+  stroke-linecap: square;
+}
+.burst-bolt-glow {
+  stroke: #f3d17a;
+  stroke-width: 10;
+  opacity: 0.45;
+}
+.burst-bolt-core {
+  stroke: #fffbe8;
+  stroke-width: 4;
+}
+@keyframes burst-bolt {
+  0%,
+  30% {
+    opacity: 1;
+  }
+  40% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.burst-impact {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  background: #fffbe8;
+  box-shadow:
+    -12px 0 0 #f3d17a,
+    12px 0 0 #f3d17a,
+    0 -12px 0 #f3d17a,
+    0 12px 0 #f3d17a,
+    -8px -8px 0 #e8b64c,
+    8px -8px 0 #e8b64c,
+    -8px 8px 0 #e8b64c,
+    8px 8px 0 #e8b64c;
+  animation: burst-impact 650ms steps(5, end) forwards;
+}
+@keyframes burst-impact {
+  0% {
+    transform: scale(0.6);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+.burst-ring {
+  position: absolute;
+  width: calc(var(--burst-r) * 2);
+  height: calc(var(--burst-r) * 2);
+  margin: calc(var(--burst-r) * -1) 0 0 calc(var(--burst-r) * -1);
+  border: 3px solid currentColor;
+  box-sizing: border-box;
+  animation: burst-ring 800ms steps(6, end) forwards;
+}
+.burst-heal {
+  color: #9be07a;
+  border-radius: 50%;
+  animation-duration: 900ms;
+}
+.burst-spawn {
+  color: #f3e7c6;
+  border-style: dashed;
+  border-radius: 50%;
+}
+.burst-fire {
+  color: #ff8a3d;
+  border-radius: 50%;
+  border-width: 4px;
+}
+.burst-plague {
+  color: #b6d65a;
+  border-style: dotted;
+  border-radius: 50%;
+  animation-duration: 900ms;
+}
+.burst-paint {
+  color: #e8b64c;
+  animation-duration: 450ms;
+}
+@keyframes burst-ring {
+  0% {
+    transform: scale(0.35);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.15);
+    opacity: 0;
+  }
+}
+.burst-spark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  background: currentColor;
+  box-shadow: 0 -4px 0 currentColor;
+  transform: translate(calc((var(--i) - 2) * 9px), 0);
+  animation: burst-spark 900ms steps(6, end) forwards;
+  animation-delay: calc(var(--i) * 40ms);
+}
+@keyframes burst-spark {
+  0% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  100% {
+    opacity: 0;
+    translate: 0 -28px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .burst-flash {
+    display: none;
+  }
+  .burst-bolt,
+  .burst-impact,
+  .burst-ring,
+  .burst-spark {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+}
