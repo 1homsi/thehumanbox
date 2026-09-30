@@ -387,3 +387,61 @@
     animation: none;
   }
 }
+
+/* ── Cards, chips and bars inside drawers and dialogs ────────────────── */
+.org-card,
+.org-detail,
+.civ-summary,
+.stats-num-card {
+  background: var(--px-wood);
+  border: 2px solid var(--px-ink);
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px var(--px-groove);
+}
+.org-card.dead {
+  box-shadow: none;
+}
+.civ-summary-chip,
+.attitude-tag,
+.relation-tag,
+.org-tag {
+  background: var(--px-inset);
+  border: 1px solid var(--px-ink);
+  border-radius: 0;
+  box-shadow: var(--px-sunken-shadow);
+}
+.civ-summary-btn,
+.icon-btn {
+  border: 2px solid var(--px-ink);
+  border-radius: 0;
+  background: var(--px-raised);
+  box-shadow: var(--px-raised-shadow);
+  color: var(--px-text);
+}
+.civ-summary-btn:hover,
+.icon-btn:hover {
+  background: var(--px-raised-hover);
+  color: #fff3d6;
+}
+.bar-track,
+.trait-bar-wrap {
+  height: 4px;
+  background: var(--px-inset);
+  border-radius: 0;
+  box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.5);
+}
+.bar-fill,
+.trait-bar {
+  border-radius: 0;
+}
+.stats-section-title {
+  color: var(--px-gold-text);
+  letter-spacing: 0.14em;
+  text-shadow: 0 1px 0 #000;
+}
+.stats-num {
+  color: var(--px-gold-text);
+}
+.stats-num-label {
+  color: var(--px-muted);
+}
