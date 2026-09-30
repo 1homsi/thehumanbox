@@ -28,7 +28,13 @@ export const DOCK_TABS: DockTab[] = [
     tip: 'Terrain, resources, and buildings',
     groups: ['terrain', 'resources', 'build'],
   },
-  { id: 'powers', label: 'powers', icon: '⛈️', tip: 'Weather, drought, and disasters', groups: ['nature', 'disasters'] },
+  {
+    id: 'powers',
+    label: 'powers',
+    icon: '⛈️',
+    tip: 'Weather, drought, and disasters',
+    groups: ['nature', 'disasters'],
+  },
   { id: 'maps', label: 'maps', icon: '🗺️', tip: 'Map layers you can switch on and off', groups: ['maps'] },
 ]
 

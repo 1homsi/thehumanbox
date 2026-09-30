@@ -124,7 +124,13 @@ export function SandboxToolbar({
         {DOCK_TABS.map((tab) => (
           <Tooltip
             key={tab.id}
-            tip={<TipCard title={tab.label} body={tab.tip} how={tabEngaged(tab.id) ? 'a tool or layer here is on' : undefined} />}
+            tip={
+              <TipCard
+                title={tab.label}
+                body={tab.tip}
+                how={tabEngaged(tab.id) ? 'a tool or layer here is on' : undefined}
+              />
+            }
           >
             <button
               type="button"
@@ -162,7 +168,13 @@ export function SandboxToolbar({
               return (
                 <Tooltip
                   key={tool.id}
-                  tip={<TipCard title={tool.label} body={toolTip(tool)} how={active && !tool.view ? 'click again or press esc to stop' : toolHowTo(tool)} />}
+                  tip={
+                    <TipCard
+                      title={tool.label}
+                      body={toolTip(tool)}
+                      how={active && !tool.view ? 'click again or press esc to stop' : toolHowTo(tool)}
+                    />
+                  }
                 >
                   <button
                     type="button"
@@ -186,7 +198,11 @@ export function SandboxToolbar({
             tip={
               <TipCard
                 title={runtimePaused ? 'resume' : 'pause'}
-                body={runtimePaused ? 'Time is stopped. Start the world again.' : `Stop time. Running at ${formatSpeed(runtimeSpeed)}.`}
+                body={
+                  runtimePaused
+                    ? 'Time is stopped. Start the world again.'
+                    : `Stop time. Running at ${formatSpeed(runtimeSpeed)}.`
+                }
                 how="space"
               />
             }
@@ -205,13 +221,20 @@ export function SandboxToolbar({
             {speedTools.map((tool) => (
               <Tooltip
                 key={tool.id}
-                tip={<TipCard title={`speed ${tool.label}`} body={tool.label === '1×' ? 'Normal speed.' : `Run time ${tool.label} faster.`} />}
+                tip={
+                  <TipCard
+                    title={`speed ${tool.label}`}
+                    body={tool.label === '1×' ? 'Normal speed.' : `Run time ${tool.label} faster.`}
+                  />
+                }
               >
                 <button
                   type="button"
                   className={clsx(
                     'dock-speed',
-                    !runtimePaused && isRuntimeControlActive(tool.time, runtimePaused, runtimeSpeed) && 'active',
+                    !runtimePaused &&
+                      isRuntimeControlActive(tool.time, runtimePaused, runtimeSpeed) &&
+                      'active',
                   )}
                   onClick={() => onPick(tool)}
                   aria-label={`Speed ${tool.label}`}
@@ -226,28 +249,28 @@ export function SandboxToolbar({
           <WorldToolSearch onPick={onPick} />
           {onSave && (
             <Tooltip tip={<TipCard title={saveActionLabel} body={saveTitle} />}>
-            <div className={clsx('sandbox-save', saveError && 'error')}>
-              <button
-                type="button"
-                className={clsx('dock-mini', 'sandbox-save-button', saveBusy && 'busy')}
-                onClick={onSave}
-                disabled={saveBusy || (saveError && !saveRetryable)}
-                aria-label={saveActionLabel}
-                aria-busy={saveBusy}
-              >
-                <span className="sandbox-save-icon" aria-hidden="true">
-                  <ToolSprite icon="💾" size={24} />
-                </span>
-                <span className="sandbox-save-label">
-                  {saveBusy ? 'saving' : saveError && saveRetryable ? 'retry save' : 'save world'}
-                </span>
-              </button>
-              {saveStatus && (
-                <span className="sandbox-save-status" role="status">
-                  {saveStatus}
-                </span>
-              )}
-            </div>
+              <div className={clsx('sandbox-save', saveError && 'error')}>
+                <button
+                  type="button"
+                  className={clsx('dock-mini', 'sandbox-save-button', saveBusy && 'busy')}
+                  onClick={onSave}
+                  disabled={saveBusy || (saveError && !saveRetryable)}
+                  aria-label={saveActionLabel}
+                  aria-busy={saveBusy}
+                >
+                  <span className="sandbox-save-icon" aria-hidden="true">
+                    <ToolSprite icon="💾" size={24} />
+                  </span>
+                  <span className="sandbox-save-label">
+                    {saveBusy ? 'saving' : saveError && saveRetryable ? 'retry save' : 'save world'}
+                  </span>
+                </button>
+                {saveStatus && (
+                  <span className="sandbox-save-status" role="status">
+                    {saveStatus}
+                  </span>
+                )}
+              </div>
             </Tooltip>
           )}
         </div>

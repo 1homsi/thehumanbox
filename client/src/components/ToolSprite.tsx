@@ -369,14 +369,7 @@ const sprites = {
     '.....ss.....',
   ],
   dots: ['.ww..ww..ww.', '.ww..ww..ww.'],
-  crown: [
-    '.y...y...y..',
-    '.yy.yyy.yy..',
-    '.yyyyyyyyy..',
-    '.yryybyyry..',
-    '.yyyyyyyyy..',
-    '.RRRRRRRRR..',
-  ],
+  crown: ['.y...y...y..', '.yy.yyy.yy..', '.yyyyyyyyy..', '.yryybyyry..', '.yyyyyyyyy..', '.RRRRRRRRR..'],
   moon: [
     '...wwww.....',
     '..www.......',
@@ -533,8 +526,7 @@ function centredViewBox(name: string, rows: readonly string[]): string {
       maxY = Math.max(maxY, y)
     })
   })
-  const box =
-    maxX < 0 ? '0 0 12 12' : `${(minX + maxX + 1) / 2 - 6} ${(minY + maxY + 1) / 2 - 6} 12 12`
+  const box = maxX < 0 ? '0 0 12 12' : `${(minX + maxX + 1) / 2 - 6} ${(minY + maxY + 1) / 2 - 6} 12 12`
   viewBoxes.set(name, box)
   return box
 }

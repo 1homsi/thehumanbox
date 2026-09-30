@@ -127,7 +127,9 @@ export function AppHeader({ world, connected, sickOrgs }: Props) {
             tip={tip(
               'people',
               `${livePopulation.toLocaleString()} alive${populationLimit ? ` · the land can naturally support ${populationLimit.toLocaleString()}` : ''}.`,
-              nextPopulationMilestone ? `next milestone ${nextPopulationMilestone.toLocaleString()}` : undefined,
+              nextPopulationMilestone
+                ? `next milestone ${nextPopulationMilestone.toLocaleString()}`
+                : undefined,
             )}
           >
             <span className={clsx('hdr-chip', 'population-badge', nearPopulationLimit && 'near-limit')}>
@@ -151,7 +153,12 @@ export function AppHeader({ world, connected, sickOrgs }: Props) {
           </Tooltip>
         )}
         {world && (
-          <Tooltip tip={tip(`season: ${world.season}`, 'Affects food growth, drought risk, and how fast energy drains.')}>
+          <Tooltip
+            tip={tip(
+              `season: ${world.season}`,
+              'Affects food growth, drought risk, and how fast energy drains.',
+            )}
+          >
             <span className={clsx('hdr-chip', 'season-badge', `season-${world.season}`)}>{world.season}</span>
           </Tooltip>
         )}
@@ -171,7 +178,9 @@ export function AppHeader({ world, connected, sickOrgs }: Props) {
           })()}
         {world?.current_era && world.current_era !== 'genesis' && world.current_era !== 'equilibrium' && (
           <Tooltip tip={tip(`era: ${world.current_era}`, 'Shapes resources and how people behave.')}>
-            <span className={clsx('hdr-chip', 'era-badge', `era-${world.current_era}`)}>{world.current_era}</span>
+            <span className={clsx('hdr-chip', 'era-badge', `era-${world.current_era}`)}>
+              {world.current_era}
+            </span>
           </Tooltip>
         )}
         {world?.drought && (
@@ -200,7 +209,10 @@ export function AppHeader({ world, connected, sickOrgs }: Props) {
         )}
         {sickOrgs > 0 && (
           <Tooltip
-            tip={tip('sickness', `${sickOrgs} ${sickOrgs > 1 ? 'people are' : 'person is'} sick. It spreads through close contact.`)}
+            tip={tip(
+              'sickness',
+              `${sickOrgs} ${sickOrgs > 1 ? 'people are' : 'person is'} sick. It spreads through close contact.`,
+            )}
           >
             <span className="hdr-chip sick-badge">
               <ToolSprite icon="🦠" size={16} />
@@ -217,13 +229,20 @@ export function AppHeader({ world, connected, sickOrgs }: Props) {
               <span className="btn-label">stats</span>
             </button>
           </Tooltip>
-          <Tooltip tip={tip('civilization', 'Eras, governments, religions, buildings, books, art, and headlines.')}>
+          <Tooltip
+            tip={tip('civilization', 'Eras, governments, religions, buildings, books, art, and headlines.')}
+          >
             <button className="hdr-btn" data-tour="civ-btn" onClick={openCiv}>
               <ToolSprite icon="👑" size={16} />
               <span className="btn-label">civ</span>
             </button>
           </Tooltip>
-          <Tooltip tip={tip('find people', 'Search everyone, alive or dead, by name, thought, lineage, or discovery.')}>
+          <Tooltip
+            tip={tip(
+              'find people',
+              'Search everyone, alive or dead, by name, thought, lineage, or discovery.',
+            )}
+          >
             <button className="hdr-btn" data-tour="search-btn" onClick={openOrgSearch}>
               <ToolSprite icon="🔍" size={16} />
               <span className="btn-label">search</span>
@@ -233,7 +252,9 @@ export function AppHeader({ world, connected, sickOrgs }: Props) {
             <button className="hdr-btn" data-tour="chronicles-btn" onClick={openChronicles}>
               <ToolSprite icon="📖" size={16} />
               <span className="btn-label">chronicles</span>
-              {world.story_history?.length > 0 && <span className="btn-count">{world.story_history.length}</span>}
+              {world.story_history?.length > 0 && (
+                <span className="btn-count">{world.story_history.length}</span>
+              )}
             </button>
           </Tooltip>
           <div className="more-menu" ref={moreRef}>
@@ -260,7 +281,9 @@ export function AppHeader({ world, connected, sickOrgs }: Props) {
       )}
       {world && (
         <div className="header-panels">
-          <Tooltip tip={tip(leftOpen ? 'close world panel' : 'world panel', 'History, lineages, and the event log.')}>
+          <Tooltip
+            tip={tip(leftOpen ? 'close world panel' : 'world panel', 'History, lineages, and the event log.')}
+          >
             <button
               className={clsx('hdr-btn', 'panel-toggle-btn', 'panel-toggle-left')}
               onClick={toggleLeft}
@@ -271,7 +294,9 @@ export function AppHeader({ world, connected, sickOrgs }: Props) {
               <span className="btn-label">world</span>
             </button>
           </Tooltip>
-          <Tooltip tip={tip(panelOpen ? 'close people panel' : 'people panel', 'Everyone alive, plus the dead.')}>
+          <Tooltip
+            tip={tip(panelOpen ? 'close people panel' : 'people panel', 'Everyone alive, plus the dead.')}
+          >
             <button
               className={clsx('hdr-btn', 'panel-toggle-btn')}
               onClick={togglePanel}

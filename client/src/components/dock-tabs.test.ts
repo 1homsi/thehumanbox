@@ -5,7 +5,7 @@ import { SANDBOX_CATEGORIES } from '../simulation/sandbox'
 import { DOCK_TABS, SPEED_TOOL_IDS, TIME_CATEGORY_ID, groupsFor, resolveTab } from './dock-tabs'
 import { toolTip, toolFailure } from './tool-tips'
 import { ToolSprite } from './ToolSprite'
-import { burstForTool } from '../2d/world/SandboxBursts'
+import { burstForTool } from '../2d/world/sandbox-bursts'
 
 const dockCategories = SANDBOX_CATEGORIES.filter((c) => c.id !== TIME_CATEGORY_ID)
 const dockTools = dockCategories.flatMap((c) => c.tools)
@@ -15,14 +15,19 @@ describe('dock layout stays complete as tools are added', () => {
   it('places every tool category in exactly one tab', () => {
     for (const category of dockCategories) {
       const tabs = DOCK_TABS.filter((tab) => tab.groups.includes(category.id))
-      expect(tabs.map((t) => t.id), `category ${category.id}`).toHaveLength(1)
+      expect(
+        tabs.map((t) => t.id),
+        `category ${category.id}`,
+      ).toHaveLength(1)
     }
   })
 
   it('names every tool uniquely within its tab', () => {
     for (const tab of DOCK_TABS) {
       const labels = groupsFor(tab.id).flatMap((g) => g.tools.map((t) => t.label))
-      expect(new Set(labels).size, `duplicate tool names in ${tab.id}: ${labels.join(', ')}`).toBe(labels.length)
+      expect(new Set(labels).size, `duplicate tool names in ${tab.id}: ${labels.join(', ')}`).toBe(
+        labels.length,
+      )
     }
   })
 
@@ -36,12 +41,15 @@ describe('dock layout stays complete as tools are added', () => {
     for (const tool of dockTools) {
       expect(toolTip(tool), `tooltip for ${tool.id}`).not.toBe(tool.label)
       expect(toolFailure(tool), `failure text for ${tool.id}`).toBeTruthy()
-      expect(renderToStaticMarkup(createElement(ToolSprite, { icon: tool.icon })), `sprite for ${tool.id}`).not.toBe(
-        cursorSprite,
-      )
+      expect(
+        renderToStaticMarkup(createElement(ToolSprite, { icon: tool.icon })),
+        `sprite for ${tool.id}`,
+      ).not.toBe(cursorSprite)
     }
     for (const tab of DOCK_TABS) {
-      expect(renderToStaticMarkup(createElement(ToolSprite, { icon: tab.icon })), `tab ${tab.id}`).not.toBe(cursorSprite)
+      expect(renderToStaticMarkup(createElement(ToolSprite, { icon: tab.icon })), `tab ${tab.id}`).not.toBe(
+        cursorSprite,
+      )
     }
   })
 
@@ -60,7 +68,11 @@ describe('dock layout stays complete as tools are added', () => {
 
   it('offers only speeds that exist as time tools', () => {
     const time = SANDBOX_CATEGORIES.find((c) => c.id === TIME_CATEGORY_ID)?.tools ?? []
-    for (const id of SPEED_TOOL_IDS) expect(time.some((t) => t.id === id), id).toBe(true)
+    for (const id of SPEED_TOOL_IDS)
+      expect(
+        time.some((t) => t.id === id),
+        id,
+      ).toBe(true)
   })
 
   it('restores tabs saved by the older one-tab-per-category dock', () => {

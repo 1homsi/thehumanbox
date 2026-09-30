@@ -32,7 +32,8 @@ const click = (el: Element | null) => {
   if (!el) throw new Error('missing element')
   act(() => (el as HTMLElement).click())
 }
-const tab = (id: string) => container.querySelector(`.dock-tab:nth-child(${DOCK_TABS.findIndex((t) => t.id === id) + 1})`)
+const tab = (id: string) =>
+  container.querySelector(`.dock-tab:nth-child(${DOCK_TABS.findIndex((t) => t.id === id) + 1})`)
 const tile = (label: string) => container.querySelector(`.dock-tile[aria-label="${label}"]`)
 
 // Recent Node versions shadow happy-dom's storage, so give the dock a
