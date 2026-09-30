@@ -909,6 +909,74 @@ fn hydrated_organisms_leave_water_instead_of_lingering() {
 }
 
 #[test]
+fn builder_packs_shelter_beside_a_hut_on_the_home_tile() {
+    let mut rng = StdRng::seed_from_u64(0);
+    let traits = Traits::random(&mut rng);
+    let mut grid = WorldGrid::new(2);
+    for x in 5..=15 {
+        for y in 5..=15 {
+            grid.set(x, y, Tile::Grass);
+        }
+    }
+    grid.set(10, 10, Tile::Hut);
+
+    let mut org = Organism::new(
+        "id".into(),
+        "Builder".into(),
+        11.0,
+        10.0,
+        0,
+        "".into(),
+        "lin".into(),
+        5000,
+        traits,
+    );
+    org.home_x = 10.0;
+    org.home_y = 10.0;
+    org.hydration = 0.9;
+    org.energy = 0.9;
+    org.health = 1.0;
+    org.carrying = 2;
+    org.carrying_type = 1;
+
+    let (action, thought) = org.choose_action(&grid, &[], 100, 0.0, &[], false, 0, &mut rng, false, "", &[]);
+    assert_eq!(thought.as_deref(), Some("packing shelter"));
+    assert_eq!(action, 17);
+}
+
+#[test]
+fn hydrated_wader_in_shallows_keeps_going_instead_of_turning_back() {
+    let mut rng = StdRng::seed_from_u64(0);
+    let traits = Traits::random(&mut rng);
+    let mut grid = WorldGrid::new(2);
+    for x in 5..=20 {
+        grid.set(x, 10, Tile::Grass);
+    }
+    grid.set(10, 10, Tile::Water);
+    grid.depth[WorldGrid::idx(10, 10)] = 0.1;
+
+    let mut org = Organism::new(
+        "id".into(),
+        "Wader".into(),
+        10.0,
+        10.0,
+        0,
+        "".into(),
+        "lin".into(),
+        5000,
+        traits,
+    );
+    org.hydration = 0.95;
+    org.energy = 0.9;
+    org.health = 1.0;
+    org.water_ticks = 1;
+    org.wander_target = Some((20, 10));
+
+    let (_, thought) = org.choose_action(&grid, &[], 100, 0.0, &[], false, 0, &mut rng, false, "", &[]);
+    assert_ne!(thought.as_deref(), Some("swimming ashore"));
+}
+
+#[test]
 fn movement_toward_land_avoids_deep_water_step() {
     let mut rng = StdRng::seed_from_u64(0);
     let traits = Traits::random(&mut rng);

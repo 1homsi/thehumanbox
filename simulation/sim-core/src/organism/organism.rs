@@ -1716,7 +1716,9 @@ impl Organism {
         self.journey = Some(Journey {
             target,
             description: description.to_string(),
-            expires_at: tick + (distance * 4).clamp(80, 800),
+            // Long trips need room: at the old 800-tick cap most distant
+            // journeys expired before arriving.
+            expires_at: tick + (distance * 4).clamp(80, 2400),
         });
         self.think(description, tick);
         self.log_life(

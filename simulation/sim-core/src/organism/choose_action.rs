@@ -137,8 +137,15 @@ impl Organism {
             set_thought!("drinking");
             return (9, thought);
         }
+        // Wading through shallows is part of a route: `toward` only steps into
+        // them when no dry step makes progress. Sending every hydrated wader
+        // straight back ashore made people bounce between shore and water.
+        let deep = grid.depth_at(ix, iy) > 0.18;
         if tile == Tile::Water
-            && (self.hydration >= 0.75 || self.water_ticks > 5 || self.energy < 0.55 || self.health < 0.90)
+            && ((deep && self.hydration >= 0.75)
+                || self.water_ticks > 5
+                || self.energy < 0.55
+                || self.health < 0.90)
         {
             if let Some(land) = self.nearest_land(grid, 14) {
                 set_thought!("swimming ashore");
@@ -289,12 +296,20 @@ impl Organism {
         let at_home_zone = dist_home < 6.0;
         let in_shelter = self.near_shelter(grid, buildings);
 
+        // Someone mid-journey skips optional chores (wood, saplings) so the
+        // trip actually arrives; quick food and water top-ups still happen.
+        let journeying = self.journey.as_ref().is_some_and(|journey| {
+            tick < journey.expires_at && (journey.target.0 - ix).abs().max((journey.target.1 - iy).abs()) > 2
+        });
+
         if needs_easy && !night && !fire_dangerous {
             if self.carrying > 0 && self.carrying_type != 2 {
                 if at_home_zone {
                     let hx = self.home_x as i32;
                     let hy = self.home_y as i32;
-                    let on_home = ix == hx && iy == hy;
+                    // Next to home counts: a hut on the home tile can't be
+                    // walked onto, which left builders circling it forever.
+                    let on_home = (ix - hx).abs() <= 1 && (iy - hy).abs() <= 1;
                     if !on_home {
                         set_thought!("building shelter");
                         return (self.toward((hx, hy), grid), thought);
@@ -311,6 +326,7 @@ impl Organism {
                 }
             }
             if self.carrying == 0
+                && !journeying
                 && !in_shelter
                 && self.energy > 0.55
                 && self.hydration > 0.55
@@ -350,7 +366,12 @@ impl Organism {
             let has_blade = self.discoveries.contains("stone_tools")
                 || self.discoveries.contains("axe")
                 || self.discoveries.contains("tool_making");
-            if has_blade && self.inv_wood < 3 && self.energy > 0.55 && rng.random::<f32>() < 0.30 {
+            if has_blade
+                && !journeying
+                && self.inv_wood < 3
+                && self.energy > 0.55
+                && rng.random::<f32>() < 0.30
+            {
                 if tile == Tile::Grass {
                     set_thought!("chopping wood");
                     return (27, thought);
@@ -361,6 +382,7 @@ impl Organism {
                 }
             }
             if self.discoveries.contains("forestry")
+                && !journeying
                 && self.inv_wood == 0
                 && dist_home < 8.0
                 && self.energy > 0.50

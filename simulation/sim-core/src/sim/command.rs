@@ -1,6 +1,7 @@
 use crate::organism::animal::{Animal, AnimalKind};
 use crate::sim::agents::growth::spawn_organism_with_home;
 use crate::sim::simulation::Simulation;
+use crate::sim::world_events::push_event;
 use crate::world::grid::{WorldGrid, HEIGHT, WIDTH};
 use crate::world::tiles::Tile;
 use rand::RngExt;
@@ -130,6 +131,32 @@ fn protected(tile: Tile) -> bool {
 }
 
 impl Simulation {
+    /// Guiding a lineage to explore sends its adults on one shared journey to
+    /// distant good land. A directive alone only nudged action scores, so
+    /// "explore" rarely made anyone travel.
+    fn launch_lineage_expedition(&mut self, lineage: &str) {
+        let members: Vec<usize> = self
+            .organisms
+            .iter()
+            .enumerate()
+            .filter(|(_, o)| o.alive && o.lineage_id == lineage && o.age >= 700)
+            .map(|(i, _)| i)
+            .collect();
+        if members.is_empty() {
+            return;
+        }
+        let n = members.len() as f32;
+        let cx = members.iter().map(|&i| self.organisms[i].x).sum::<f32>() / n;
+        let cy = members.iter().map(|&i| self.organisms[i].y).sum::<f32>() / n;
+        let Some(target) = self.find_distant_land_target(cx as i32, cy as i32, 40, 140) else {
+            return;
+        };
+        let tick = self.tick_count;
+        for i in members {
+            self.organisms[i].begin_journey(target, "on an expedition", tick);
+        }
+    }
+
     pub(crate) fn refresh_lineage_guidance(&mut self, organism_index: usize) {
         let Some(organism) = self.organisms.get(organism_index) else {
             return;
@@ -165,8 +192,12 @@ impl Simulation {
                     .filter(|lineage| !lineage.is_empty())
                     .unwrap_or_else(|| format!("L{}", &Uuid::new_v4().to_string()[..6]));
                 let before = self.organisms.len();
+                // God spawns get a little room above the natural cap so the
+                // tool still works in a mature world that sits at its limit.
+                // Births still stop at the cap, so the world settles back.
+                let cap = self.population_limit() + self.population_limit() / 10;
                 for _ in 0..n {
-                    if crate::sim::growth::population_slots_used(&self.organisms) >= self.population_limit() {
+                    if crate::sim::growth::population_slots_used(&self.organisms) >= cap {
                         break;
                     }
                     let jx = (x + self.rng.random_range(-2.0..2.0)).clamp(2.0, WIDTH as f32 - 2.0);
@@ -201,9 +232,17 @@ impl Simulation {
                 let Some((i, _)) = best else {
                     return false;
                 };
-                let o = &mut self.organisms[i];
-                o.alive = false;
-                o.health = 0.0;
+                // Health below zero hands the death to the normal tick, which
+                // records it, counts it in history and lets kin grieve.
+                self.organisms[i].health = -1.0;
+                let name = self.organisms[i].name.clone();
+                push_event(
+                    &mut self.events,
+                    self.tick_count,
+                    "smite",
+                    &name,
+                    "was struck down by lightning",
+                );
                 true
             }
             Command::Heal { x, y, radius } => {
@@ -334,12 +373,19 @@ impl Simulation {
                 }
                 let r = if radius <= 0 { 4 } else { radius.clamp(1, 12) };
                 let (fx, fy, fr) = (x as f32, y as f32, r as f32);
+                let mut killed = 0;
                 for o in self.organisms.iter_mut() {
                     if o.alive && (o.x - fx).hypot(o.y - fy) <= fr {
-                        o.alive = false;
-                        o.health = 0.0;
+                        o.health = -1.0;
+                        killed += 1;
                     }
                 }
+                let what = match killed {
+                    0 => "a meteor fell from the sky".to_string(),
+                    1 => "a meteor fell and killed one person".to_string(),
+                    n => format!("a meteor fell and killed {n} people"),
+                };
+                push_event(&mut self.events, self.tick_count, "meteor", "the sky", &what);
                 for a in self.animals.iter_mut() {
                     if a.alive && (a.x - fx).hypot(a.y - fy) <= fr {
                         a.alive = false;
@@ -420,6 +466,9 @@ impl Simulation {
                         organism.directive_until = expires_at;
                     }
                 }
+                if strategy == "explore" {
+                    self.launch_lineage_expedition(&lineage);
+                }
                 self.start_strategy_objective(&lineage, &strategy, expires_at);
                 self.lineage_strategies.insert(lineage, (strategy, expires_at));
                 true
@@ -489,9 +538,15 @@ mod tests {
         let alive_before = alive(&sim);
 
         assert_eq!(crate::sim::growth::population_slots_used(&sim.organisms), 120);
-        // A full world rejects the spawn so the player is told nothing happened.
+        // At the natural cap a god spawn still fits in the 10% headroom and
+        // does not take the pending birth's slot.
+        assert!(sim.apply_command_json(r#"{"cmd":"spawn","x":100.0,"y":100.0,"count":1}"#));
+        assert_eq!(alive(&sim), alive_before + 1);
+        assert!(sim.organisms[1].pregnant, "the pending birth is untouched");
+        // Past the headroom the world is full and the player is told so.
+        assert!(sim.apply_command_json(r#"{"cmd":"spawn","x":100.0,"y":100.0,"count":50}"#));
+        assert_eq!(crate::sim::growth::population_slots_used(&sim.organisms), 132);
         assert!(!sim.apply_command_json(r#"{"cmd":"spawn","x":100.0,"y":100.0,"count":1}"#));
-        assert_eq!(alive(&sim), alive_before);
     }
 
     #[test]
@@ -523,7 +578,11 @@ mod tests {
         assert!(sim.organisms[target].alive);
         let hit = format!(r#"{{"cmd":"smite","x":{x},"y":{y},"radius":2.0}}"#);
         assert!(sim.apply_command_json(&hit));
-        assert!(!sim.organisms[target].alive);
+        assert!(sim.organisms[target].health < 0.0);
+        let deaths = sim.history.deaths_combat;
+        sim.tick();
+        assert!(!sim.organisms[target].alive, "dies through the normal death path");
+        assert_eq!(sim.history.deaths_combat, deaths + 1, "and is counted in history");
     }
 
     #[test]
@@ -564,12 +623,42 @@ mod tests {
         sim.organisms[target].x = cx as f32 + 1.0;
         sim.organisms[target].y = cy as f32;
         assert!(sim.apply_command_json(&format!(r#"{{"cmd":"meteor","x":{cx},"y":{cy},"radius":4}}"#)));
-        assert!(!sim.organisms[target].alive);
+        assert!(sim.organisms[target].health < 0.0);
         assert_eq!(sim.grid.get(cx, cy), Tile::Rock);
         assert_eq!(sim.grid.get(cx + 3, cy), Tile::Ash);
         assert_eq!(sim.grid.get(cx + 5, cy), Tile::Fire);
         assert_eq!(sim.grid.get(cx + 8, cy), Tile::Grass);
         assert!(!sim.apply_command_json(r#"{"cmd":"meteor","x":-50,"y":-50,"radius":4}"#));
+    }
+
+    #[test]
+    fn guiding_a_lineage_to_explore_sends_adults_on_one_shared_journey() {
+        let mut sim = Simulation::new(3);
+        let lineage = sim
+            .organisms
+            .iter()
+            .find(|o| o.alive)
+            .map(|o| o.lineage_id.clone())
+            .expect("a living lineage");
+        for o in sim.organisms.iter_mut().filter(|o| o.lineage_id == lineage) {
+            o.age = 1000;
+        }
+        let cmd =
+            format!(r#"{{"cmd":"guide","lineage":"{lineage}","strategy":"explore","duration_ticks":1200}}"#);
+        assert!(sim.apply_command_json(&cmd));
+        let targets: std::collections::HashSet<(i32, i32)> = sim
+            .organisms
+            .iter()
+            .filter(|o| o.alive && o.lineage_id == lineage && o.age >= 700)
+            .filter_map(|o| o.journey.as_ref().map(|j| j.target))
+            .collect();
+        let travellers = sim
+            .organisms
+            .iter()
+            .filter(|o| o.alive && o.lineage_id == lineage && o.journey.is_some())
+            .count();
+        assert!(travellers > 0, "someone set out");
+        assert_eq!(targets.len(), 1, "adults share one destination");
     }
 
     #[test]

@@ -2181,6 +2181,21 @@ impl Simulation {
         if let Some(ref t) = new_thought {
             self.organisms[idx].think(t, self.tick_count);
         }
+        // A single step away from remembered danger was undone by the next
+        // tick's routine, so people flip-flopped on the spot. Commit to the
+        // retreat by aiming the wander target further along the flee step.
+        if action < 8
+            && new_thought.as_deref() == Some("avoiding danger")
+            && self.organisms[idx].journey.is_none()
+        {
+            let (dx, dy) = DIRECTIONS[action];
+            let o = &mut self.organisms[idx];
+            let (ox, oy) = (o.x as i32, o.y as i32);
+            o.wander_target = Some((
+                (ox + dx * 8).clamp(1, WIDTH as i32 - 2),
+                (oy + dy * 8).clamp(1, HEIGHT as i32 - 2),
+            ));
+        }
 
         let (ix, iy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
 
