@@ -34,6 +34,8 @@ const TOOL_TIPS: Record<string, string> = {
   drought_off: 'End the drought.',
   fire: 'Set the brush area ablaze. Fire spreads to nearby flammable land.',
   plague: 'Start an outbreak that spreads through close contact.',
+  poison: 'Sicken everyone inside the brush area.',
+  meteor: 'Crash a meteor. Kills everything it hits and leaves a burning crater.',
 }
 
 export function toolTip(tool: SandboxTool): string {
@@ -54,6 +56,7 @@ export function toolFailure(tool: SandboxTool): string {
       return 'the world is full, no room for more people'
     case 'smite':
     case 'heal':
+    case 'poison':
       return 'no one there'
     case 'deer':
     case 'rabbit':

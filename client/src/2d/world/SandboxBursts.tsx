@@ -7,7 +7,19 @@ export function SandboxBursts({ bursts, width, height }: { bursts: Burst[]; widt
   return (
     <div className="sandbox-bursts" aria-hidden="true">
       {bursts.map((b) =>
-        b.kind === 'bolt' ? (
+        b.kind === 'meteor' ? (
+          <div key={b.id}>
+            <div className="burst-flash burst-flash-late" />
+            <div className="burst-meteor" style={{ left: b.x, top: b.y }}>
+              <span className="burst-meteor-rock" />
+            </div>
+            <div className="burst-impact burst-impact-late" style={{ left: b.x, top: b.y }} />
+            <div
+              className="burst-ring burst-shockwave"
+              style={{ left: b.x, top: b.y, '--burst-r': `${Math.max(24, b.r * 1.5)}px` } as CSSProperties}
+            />
+          </div>
+        ) : b.kind === 'bolt' ? (
           <div key={b.id}>
             <div className="burst-flash" />
             <svg className="burst-bolt" width={width} height={height} shapeRendering="crispEdges">

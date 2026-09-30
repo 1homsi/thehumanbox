@@ -421,6 +421,28 @@ const sprites = {
     '..g.ggg.g...',
     '.....g......',
   ],
+  poison: [
+    '....ss......',
+    '....ww......',
+    '....ww......',
+    '...wggw.....',
+    '..wgGggw....',
+    '.wggoogGw...',
+    '.wgGoogGw...',
+    '.wggGggGw...',
+    '..wwwwww....',
+  ],
+  meteor: [
+    '.........yy.',
+    '........yy..',
+    '.......yy...',
+    '....rry.....',
+    '...rRRrr....',
+    '..rRssRr....',
+    '..rRssRr....',
+    '...rRRr.....',
+    '....rr......',
+  ],
   search: [
     '...wwww.....',
     '..w....w....',
@@ -501,6 +523,8 @@ const icons: Record<string, keyof typeof sprites> = {
   '◧': 'panelLeft',
   '◨': 'panelRight',
   '🌼': 'bloom',
+  '🧪': 'poison',
+  '☄️': 'meteor',
 }
 
 const viewBoxes = new Map<string, string>()

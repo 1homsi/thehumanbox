@@ -59,6 +59,21 @@ pub enum Command {
         #[serde(default)]
         kind: Option<String>,
     },
+    /// Infect everyone inside the radius with the existing sickness.
+    Poison {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
+    /// Kill everything inside the radius, leave a rock crater ringed with
+    /// ash, and set the land around it burning.
+    Meteor {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
+    },
     #[serde(alias = "set_strategy")]
     Guide {
         lineage: String,
@@ -302,6 +317,61 @@ impl Simulation {
                 }
                 true
             }
+            Command::Poison { x, y, radius } => {
+                let r = if radius <= 0.0 { 3.0 } else { radius };
+                let mut poisoned = 0;
+                for o in self.organisms.iter_mut() {
+                    if o.alive && (o.x - x).hypot(o.y - y) <= r {
+                        o.infection = o.infection.max(0.85);
+                        poisoned += 1;
+                    }
+                }
+                poisoned > 0
+            }
+            Command::Meteor { x, y, radius } => {
+                if !WorldGrid::in_bounds(x, y) {
+                    return false;
+                }
+                let r = if radius <= 0 { 4 } else { radius.clamp(1, 12) };
+                let (fx, fy, fr) = (x as f32, y as f32, r as f32);
+                for o in self.organisms.iter_mut() {
+                    if o.alive && (o.x - fx).hypot(o.y - fy) <= fr {
+                        o.alive = false;
+                        o.health = 0.0;
+                    }
+                }
+                for a in self.animals.iter_mut() {
+                    if a.alive && (a.x - fx).hypot(a.y - fy) <= fr {
+                        a.alive = false;
+                    }
+                }
+                let outer = r + 2;
+                for dx in -outer..=outer {
+                    for dy in -outer..=outer {
+                        let (nx, ny) = (x + dx, y + dy);
+                        if !WorldGrid::in_bounds(nx, ny) {
+                            continue;
+                        }
+                        let cur = self.grid.get(nx, ny);
+                        if protected(cur) || cur == Tile::Void {
+                            continue;
+                        }
+                        let d2 = dx * dx + dy * dy;
+                        if d2 * 4 <= r * r {
+                            self.grid.set(nx, ny, Tile::Rock);
+                            *self.grid.fire_intensity_mut(nx, ny) = 0.0;
+                        } else if d2 <= r * r {
+                            self.grid.set(nx, ny, Tile::Ash);
+                            *self.grid.fire_intensity_mut(nx, ny) = 0.0;
+                        } else if d2 <= outer * outer && cur != Tile::Water {
+                            self.grid.set(nx, ny, Tile::Fire);
+                            *self.grid.fire_intensity_mut(nx, ny) = 1.0;
+                            self.physics.register_fire(nx, ny);
+                        }
+                    }
+                }
+                true
+            }
             Command::SpawnAnimal { x, y, kind } => {
                 if self.animals.iter().filter(|a| a.alive).count() >= SANDBOX_ANIMAL_CAP {
                     return false;
@@ -454,6 +524,52 @@ mod tests {
         let hit = format!(r#"{{"cmd":"smite","x":{x},"y":{y},"radius":2.0}}"#);
         assert!(sim.apply_command_json(&hit));
         assert!(!sim.organisms[target].alive);
+    }
+
+    #[test]
+    fn poison_infects_only_people_in_range() {
+        let mut sim = Simulation::new(1);
+        let target = sim.organisms.iter().position(|o| o.alive).unwrap();
+        let (x, y) = (sim.organisms[target].x, sim.organisms[target].y);
+        sim.organisms[target].infection = 0.0;
+
+        let miss = format!(
+            r#"{{"cmd":"poison","x":{},"y":{},"radius":0.5}}"#,
+            x + 90.0,
+            y + 90.0
+        );
+        let reached_far = sim
+            .organisms
+            .iter()
+            .any(|o| o.alive && (o.x - x - 90.0).hypot(o.y - y - 90.0) <= 0.5);
+        assert_eq!(sim.apply_command_json(&miss), reached_far);
+
+        let hit = format!(r#"{{"cmd":"poison","x":{x},"y":{y},"radius":0.5}}"#);
+        assert!(sim.apply_command_json(&hit));
+        assert!(sim.organisms[target].infection >= 0.85);
+    }
+
+    #[test]
+    fn meteor_kills_in_range_and_leaves_a_burning_crater() {
+        use crate::world::tiles::Tile;
+
+        let mut sim = Simulation::new(1);
+        let (cx, cy) = (100, 100);
+        for dx in -8..=8 {
+            for dy in -8..=8 {
+                sim.grid.set(cx + dx, cy + dy, Tile::Grass);
+            }
+        }
+        let target = sim.organisms.iter().position(|o| o.alive).unwrap();
+        sim.organisms[target].x = cx as f32 + 1.0;
+        sim.organisms[target].y = cy as f32;
+        assert!(sim.apply_command_json(&format!(r#"{{"cmd":"meteor","x":{cx},"y":{cy},"radius":4}}"#)));
+        assert!(!sim.organisms[target].alive);
+        assert_eq!(sim.grid.get(cx, cy), Tile::Rock);
+        assert_eq!(sim.grid.get(cx + 3, cy), Tile::Ash);
+        assert_eq!(sim.grid.get(cx + 5, cy), Tile::Fire);
+        assert_eq!(sim.grid.get(cx + 8, cy), Tile::Grass);
+        assert!(!sim.apply_command_json(r#"{"cmd":"meteor","x":-50,"y":-50,"radius":4}"#));
     }
 
     #[test]

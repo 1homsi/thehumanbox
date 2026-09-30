@@ -307,3 +307,51 @@ body.thb-photo-mode .map2d-glass {
     animation-delay: 0ms;
   }
 }
+.burst-meteor {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+.burst-meteor-rock {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  background: #8e4036;
+  box-shadow:
+    4px -4px 0 #cd6950,
+    8px -8px 0 #efd28a,
+    12px -12px 0 #f3d17a,
+    16px -16px 0 rgba(243, 209, 122, 0.6),
+    20px -20px 0 rgba(243, 209, 122, 0.3);
+  animation: burst-meteor-fall 320ms steps(8, end) forwards;
+}
+@keyframes burst-meteor-fall {
+  0% {
+    transform: translate(260px, -300px);
+    opacity: 1;
+  }
+  99% {
+    transform: translate(0, 0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+}
+.burst-flash-late {
+  animation-delay: 300ms;
+}
+.burst-impact-late {
+  opacity: 0;
+  animation-delay: 300ms;
+}
+.burst-shockwave {
+  color: #ff8a3d;
+  border-radius: 50%;
+  border-width: 4px;
+  opacity: 0;
+  animation-delay: 320ms;
+  animation-duration: 580ms;
+}
