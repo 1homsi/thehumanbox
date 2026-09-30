@@ -33,6 +33,8 @@ function hideSplash() {
   setTimeout(() => splash.parentNode?.removeChild(splash), 400)
 }
 window.addEventListener('thb-world-ready', hideSplash, { once: true })
+// A local WebAssembly world routinely needs several seconds to boot, so the
+// reload hint waits long enough that it only appears when startup is stuck.
 setTimeout(() => {
   const hint = document.getElementById('thb-splash-hint')
   const reload = document.getElementById('thb-splash-reload')
@@ -40,7 +42,7 @@ setTimeout(() => {
     hint.classList.add('show')
   }
   reload?.addEventListener('click', () => reloadAppSafely(), { once: true })
-}, 6_000)
+}, 15_000)
 setTimeout(hideSplash, 30_000)
 
 type SnapshotProgress = { loaded: number; total: number | null }
