@@ -178,7 +178,7 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
       },
       {
         id: 'drink',
-        label: 'water',
+        label: 'spring',
         icon: '💧',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'paint', x, y, tile: 'water', radius: b }),

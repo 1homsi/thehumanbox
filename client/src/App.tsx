@@ -9,6 +9,7 @@ import {
 } from './simulation/worldSource'
 import { SimulationDataProvider } from './simulation/SimulationDataProvider'
 import { SandboxToolbar } from './components/SandboxToolbar'
+import { toolFailure } from './components/tool-tips'
 import type { LineageStrategy, SandboxTool } from './simulation/sandbox'
 import { DesktopDownloadToast } from './components/DesktopDownloadToast'
 import { CommandPalette } from './components/CommandPalette'
@@ -42,9 +43,9 @@ import { UpdateToast } from './components/UpdateToast'
 import { DesktopUpdateToast } from './components/DesktopUpdateToast'
 import { useCurrentScene } from './stores/scene'
 import type { OrganismState } from './types'
-import { TILE_ID } from './world/terrain-ids'
 import clsx from 'clsx'
 import './App.css'
+import './pixel-theme.css'
 
 const WorldView3D = lazyWithRetry(() => import('./3d/world/WorldView3D'))
 const SceneView = lazyWithRetry(() =>
@@ -214,8 +215,9 @@ function LiveApp() {
       const x = Math.round(wx)
       const y = Math.round(wy)
       setSandboxStatus(`${label} -> ${x}, ${y}`)
-      void sendCommand(armedTool.build(x, y, brush)).then((ok) => {
-        setTemporarySandboxStatus(ok ? `${label} applied at ${x}, ${y}` : `${label} failed`)
+      const tool = armedTool
+      void sendCommand(tool.build!(x, y, brush)).then((ok) => {
+        setTemporarySandboxStatus(ok ? `${label} applied at ${x}, ${y}` : `${label} · ${toolFailure(tool)}`)
       })
     },
     [armedTool, brush, sandboxControlsEnabled, sendCommand, setTemporarySandboxStatus],
@@ -430,13 +432,7 @@ function LiveApp() {
 
   const selectedOrg = selectedOrgId ? (world?.organisms.find((o) => o.id === selectedOrgId) ?? null) : null
 
-  const gridTiles = world?.grid.tiles
   const orgList = world?.organisms
-  const fireTiles = useMemo(
-    () => (gridTiles ? gridTiles.reduce((n, row) => n + row.filter((t) => t === TILE_ID.FIRE).length, 0) : 0),
-    [gridTiles],
-  )
-
   const sickOrgs = useMemo(
     () => (orgList ? orgList.filter((o) => o.alive && o.infection > 0.15).length : 0),
     [orgList],
@@ -482,7 +478,7 @@ function LiveApp() {
   return (
     <SimulationDataProvider value={simulationData}>
       <div className="app">
-        <AppHeader world={world ?? null} connected={connected} fireTiles={fireTiles} sickOrgs={sickOrgs} />
+        <AppHeader world={world ?? null} connected={connected} sickOrgs={sickOrgs} />
         <HeadlineTicker world={world ?? null} enabled={viewFlags.headlineTicker} />
 
         {threeDIssue && (
@@ -543,6 +539,7 @@ function LiveApp() {
                   rendererPaused={desktopRendererPaused}
                   sandboxArmed={sandboxControlsEnabled && !!armedTool}
                   sandboxLabel={armedTool?.label}
+                  sandboxToolId={armedTool?.id}
                   sandboxStatus={sandboxStatus}
                   sandboxRadius={(() => {
                     const preview = armedTool?.build?.(0, 0, brush)
