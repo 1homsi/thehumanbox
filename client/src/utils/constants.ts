@@ -100,6 +100,8 @@ export const EVENT_ICONS: Record<string, string> = {
   strategy_complete: '✓',
   strategy_failed: '×',
   strategy_redirected: '↪',
+  smite: 'ϟ',
+  meteor: '☄',
 }
 
 export const EVENT_COLORS: Record<string, string> = {
@@ -124,6 +126,8 @@ export const EVENT_COLORS: Record<string, string> = {
   strategy_complete: '#8fd49a',
   strategy_failed: '#e47c6d',
   strategy_redirected: '#d6a85f',
+  smite: '#fff2a8',
+  meteor: '#ff8a3d',
 }
 
 export const HIDDEN_EVENT_TYPES = new Set(['dawn', 'dusk', 'season'])

@@ -5,6 +5,17 @@ import { useUIStore } from '../stores/store'
 import { Tooltip } from './Tooltip'
 import { MoreDropdown } from './MoreDropdown'
 import { ToolSprite } from './ToolSprite'
+import { vegetationSeason } from '../2d/world/landscape-style'
+
+// The simulation names seasons by what they do to food; the header shows
+// the calendar name (autumn used to read as "decline", as if the world
+// were dying) and explains the effect in the tooltip.
+const SEASON_TIPS: Record<string, string> = {
+  recovery: 'The land is recovering. Food starts growing back.',
+  abundance: 'Food is plentiful.',
+  decline: 'Food growth is slowing ahead of winter.',
+  scarcity: 'Food is scarce. Winter is the hardest season.',
+}
 import { getDesktop } from '../lib/desktop'
 
 interface Props {
@@ -155,11 +166,13 @@ export function AppHeader({ world, connected, sickOrgs }: Props) {
         {world && (
           <Tooltip
             tip={tip(
-              `season: ${world.season}`,
-              'Affects food growth, drought risk, and how fast energy drains.',
+              vegetationSeason(world.season),
+              SEASON_TIPS[world.season] ?? 'Affects food growth and drought risk.',
             )}
           >
-            <span className={clsx('hdr-chip', 'season-badge', `season-${world.season}`)}>{world.season}</span>
+            <span className={clsx('hdr-chip', 'season-badge', `season-${world.season}`)}>
+              {vegetationSeason(world.season)}
+            </span>
           </Tooltip>
         )}
         {world?.cosmos &&

@@ -148,6 +148,15 @@ describe('character motion and draw order', () => {
     expect(moved.flipped).toBe(true)
     expect(moved.movedAt).toBe(20)
   })
+  it('keeps facing while walking mostly up or down', () => {
+    const start = characterMotion(undefined, 5, 5, 0, 0)
+    const left = characterMotion(start, 4, 5, 10, 0)
+    expect(left.flipped).toBe(true)
+    const wobbleRight = characterMotion(left, 4.1, 4, 20, 0)
+    expect(wobbleRight.flipped).toBe(true)
+    const wobbleLeft = characterMotion(wobbleRight, 4.05, 3, 30, 0)
+    expect(wobbleLeft.flipped).toBe(true)
+  })
   it('advances footsteps by distance, not elapsed wall time', () => {
     const start = characterMotion(undefined, 0, 0, 0, 0)
     const step = characterMotion(start, 0.3, 0, 40, 0)
