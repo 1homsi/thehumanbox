@@ -143,7 +143,7 @@ fn battle_damage(scale: BattleScale) -> f32 {
     // well be intended specialisation rather than a balance slip. Rescaling it
     // is a design call that needs its own balance pass, and
     // `siege_damage_reaches_a_besieged_building` pins the current value.
-    // Tracked in docs/audit-2026-09.md rather than silently "fixed".
+    // Left as is on purpose rather than silently "fixed".
     match scale {
         BattleScale::Skirmish => 0.001,
         BattleScale::Raid => 0.002,

@@ -1927,7 +1927,7 @@ impl Organism {
             // without re-tuning: it would make every organism's first
             // attempt net-positive and collapse the curiosity gradient.
             //
-            // Known wart (see docs/audit-2026-09.md): because the same
+            // Known wart: because the same
             // threshold also catches small *positive* repeat rewards, ~16%
             // of all learning updates are negative and 98% of those are
             // repeats of actions that succeeded. Fixing that properly needs

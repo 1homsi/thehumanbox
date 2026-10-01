@@ -2359,8 +2359,7 @@ fn lonely_org_with_nearby_friend_walks_toward_them() {
 /// This pins the part that is now guaranteed: the generated world — grid,
 /// organism ids, lineage ids, and the RNG stream itself — is identical for
 /// two `Simulation::new(seed)` calls in the same process. That is the
-/// precondition for every downstream comparison; see
-/// `docs/audit-2026-09.md` for the residual long tail.
+/// precondition for every downstream comparison.
 #[test]
 fn same_seed_produces_the_same_generated_world() {
     fn fingerprint(seed: u64) -> (Vec<String>, Vec<String>, u64, u64) {
@@ -2402,8 +2401,8 @@ fn same_seed_produces_the_same_generated_world() {
 /// Bound is deliberate: measured on seed 42, population and the decision
 /// histogram are bit-identical through 200 ticks and first diverge by 300
 /// (`learned_q` / `seed_or_explore` counts drift while population stays
-/// equal). The remaining non-determinism is tracked in
-/// `docs/audit-2026-09.md`; raise this bound only once those sites are fixed.
+/// equal). Some non-determinism remains (hash-set iteration order in a few
+/// sites); raise this bound only once those sites are fixed.
 const DETERMINISM_TICKS: u64 = 200;
 
 fn tick_fingerprint(seed: u64, ticks: u64) -> (usize, Vec<(String, u64)>, u64, u64) {
