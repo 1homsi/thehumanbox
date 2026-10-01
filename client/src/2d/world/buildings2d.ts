@@ -389,7 +389,10 @@ export type BuildingLike = Pick<
   | 'integrity'
   | 'ruined'
   | 'repairing'
->
+> & {
+  /** Architectural tier of the owning tribe's era (see ERA_TIERS). */
+  tier?: number
+}
 
 /**
  * Uses the footprint supplied by the simulation whenever possible. The local
@@ -1156,7 +1159,16 @@ export function drawBuilding(
       (((building.id ?? 0) * 2654435761) ^ (building.x * 73856093) ^ (building.y * 19349663)) >>> 0
     const nightBucket = Math.max(0, Math.min(3, Math.round(nightFactor * 3)))
     const condBucket = structural.integrity < 0.45 ? 0 : 1
-    const sprite = getBuildingSprite(k, fw, fh, tileSize, variant & 7, nightBucket, condBucket)
+    const sprite = getBuildingSprite(
+      k,
+      fw,
+      fh,
+      tileSize,
+      variant & 7,
+      nightBucket,
+      condBucket,
+      building.tier ?? 0,
+    )
     if (sprite) {
       ctx.drawImage(sprite, Math.round(px - PAD), Math.round(py + h + PAD_BOT - sprite.height))
       drawBuildingDamage(ctx, building, structural, px, py, w, h, tileSize, detail)
