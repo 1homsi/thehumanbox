@@ -15,6 +15,17 @@ export type SandboxCommand =
   | { cmd: 'earthquake'; x: number; y: number; radius?: number }
   | { cmd: 'war'; x: number; y: number }
   | { cmd: 'peace'; x: number; y: number }
+  | { cmd: 'harvest'; x: number; y: number; radius?: number }
+  | { cmd: 'cure'; x: number; y: number; radius?: number }
+  | { cmd: 'arm'; x: number; y: number; radius?: number }
+  | { cmd: 'bounty'; x: number; y: number; radius?: number }
+  | { cmd: 'douse'; x: number; y: number; radius?: number }
+  | { cmd: 'banish'; x: number; y: number; radius?: number }
+  | { cmd: 'blight'; x: number; y: number; radius?: number }
+  | { cmd: 'frenzy'; x: number; y: number; radius?: number }
+  | { cmd: 'flood'; x: number; y: number; radius?: number }
+  | { cmd: 'blizzard'; x: number; y: number; radius?: number }
+  | { cmd: 'thunder'; x: number; y: number; radius?: number }
   | {
       cmd: 'guide'
       lineage: string
@@ -92,6 +103,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         mode: 'point',
         build: (x, y) => ({ cmd: 'spawn', x, y, count: 5 }),
       },
+    ],
+  },
+  {
+    id: 'good',
+    label: 'helpful',
+    icon: '✨',
+    tools: [
       {
         id: 'heal',
         label: 'heal',
@@ -99,20 +117,6 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'heal', x, y, radius: 2 + b }),
       },
-      {
-        id: 'smite',
-        label: 'smite',
-        icon: '💀',
-        mode: 'point',
-        build: (x, y, b) => ({ cmd: 'smite', x, y, radius: 2 + b }),
-      },
-    ],
-  },
-  {
-    id: 'divine',
-    label: 'divine',
-    icon: '✨',
-    tools: [
       {
         id: 'bless',
         label: 'bless',
@@ -128,6 +132,78 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         build: (x, y, b) => ({ cmd: 'inspire', x, y, radius: 2 + b }),
       },
       {
+        id: 'peace',
+        label: 'peace',
+        icon: '🕊️',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'peace', x, y }),
+      },
+      {
+        id: 'cure',
+        label: 'cure',
+        icon: '💊',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'cure', x, y, radius: 6 + b }),
+      },
+      {
+        id: 'harvest',
+        label: 'harvest',
+        icon: '🌾',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'harvest', x, y, radius: 3 + b }),
+      },
+      {
+        id: 'arm',
+        label: 'arm',
+        icon: '🗡️',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'arm', x, y, radius: 2 + b }),
+      },
+      {
+        id: 'bounty',
+        label: 'bounty',
+        icon: '🎁',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'bounty', x, y, radius: 2 + b }),
+      },
+      {
+        id: 'douse',
+        label: 'douse',
+        icon: '🪣',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'douse', x, y, radius: 3 + b }),
+      },
+      {
+        id: 'banish',
+        label: 'banish',
+        icon: '🛡️',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'banish', x, y, radius: 4 + b }),
+      },
+      { id: 'rain', label: 'rain', icon: '🌧️', mode: 'instant', fire: { cmd: 'weather', kind: 'rain' } },
+      { id: 'clear', label: 'clear', icon: '☀️', mode: 'instant', fire: { cmd: 'weather', kind: 'clear' } },
+      {
+        id: 'drought_off',
+        label: 'end dry',
+        icon: '🌦️',
+        mode: 'instant',
+        fire: { cmd: 'drought', active: false },
+      },
+    ],
+  },
+  {
+    id: 'bad',
+    label: 'deadly',
+    icon: '💀',
+    tools: [
+      {
+        id: 'smite',
+        label: 'smite',
+        icon: '💀',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'smite', x, y, radius: 2 + b }),
+      },
+      {
         id: 'war',
         label: 'war',
         icon: '⚔️',
@@ -135,11 +211,76 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         build: (x, y) => ({ cmd: 'war', x, y }),
       },
       {
-        id: 'peace',
-        label: 'peace',
-        icon: '🕊️',
+        id: 'frenzy',
+        label: 'frenzy',
+        icon: '😡',
         mode: 'point',
-        build: (x, y) => ({ cmd: 'peace', x, y }),
+        build: (x, y, b) => ({ cmd: 'frenzy', x, y, radius: 2 + b }),
+      },
+      {
+        id: 'thunder',
+        label: 'thunder',
+        icon: '🌩️',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'thunder', x, y, radius: 5 + b }),
+      },
+      {
+        id: 'fire',
+        label: 'fire',
+        icon: '🔥',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'ignite', x, y, radius: 1 + b }),
+      },
+      { id: 'plague', label: 'plague', icon: '🦠', mode: 'instant', fire: { cmd: 'outbreak', count: 12 } },
+      {
+        id: 'poison',
+        label: 'poison',
+        icon: '🧪',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'poison', x, y, radius: 1 + b }),
+      },
+      {
+        id: 'blight',
+        label: 'blight',
+        icon: '🥀',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'blight', x, y, radius: 3 + b }),
+      },
+      {
+        id: 'earthquake',
+        label: 'quake',
+        icon: '〽️',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'earthquake', x, y, radius: 3 + b }),
+      },
+      {
+        id: 'meteor',
+        label: 'meteor',
+        icon: '☄️',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'meteor', x, y, radius: 2 + b }),
+      },
+      {
+        id: 'flood',
+        label: 'flood',
+        icon: '🌊',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'flood', x, y, radius: 2 + b }),
+      },
+      {
+        id: 'blizzard',
+        label: 'blizzard',
+        icon: '🌨️',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'blizzard', x, y, radius: 4 + b }),
+      },
+      { id: 'storm', label: 'storm', icon: '⛈️', mode: 'instant', fire: { cmd: 'weather', kind: 'storm' } },
+      {
+        id: 'drought_on',
+        label: 'drought',
+        icon: '🏜️',
+        mode: 'instant',
+        fire: { cmd: 'drought', active: true },
       },
     ],
   },
@@ -361,62 +502,44 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
     ],
   },
   {
-    id: 'nature',
-    label: 'nature',
-    icon: '🌧️',
-    tools: [
-      { id: 'rain', label: 'rain', icon: '🌧️', mode: 'instant', fire: { cmd: 'weather', kind: 'rain' } },
-      { id: 'storm', label: 'storm', icon: '⛈️', mode: 'instant', fire: { cmd: 'weather', kind: 'storm' } },
-      { id: 'clear', label: 'clear', icon: '☀️', mode: 'instant', fire: { cmd: 'weather', kind: 'clear' } },
-      {
-        id: 'drought_on',
-        label: 'drought',
-        icon: '🏜️',
-        mode: 'instant',
-        fire: { cmd: 'drought', active: true },
-      },
-      {
-        id: 'drought_off',
-        label: 'end dry',
-        icon: '🌦️',
-        mode: 'instant',
-        fire: { cmd: 'drought', active: false },
-      },
-    ],
-  },
-  {
-    id: 'disasters',
-    label: 'disasters',
-    icon: '🔥',
+    id: 'monsters',
+    label: 'monsters',
+    icon: '🧟',
     tools: [
       {
-        id: 'fire',
-        label: 'fire',
-        icon: '🔥',
+        id: 'zombie',
+        label: 'zombie',
+        icon: '🧟',
         mode: 'point',
-        build: (x, y, b) => ({ cmd: 'ignite', x, y, radius: 1 + b }),
-      },
-      { id: 'plague', label: 'plague', icon: '🦠', mode: 'instant', fire: { cmd: 'outbreak', count: 12 } },
-      {
-        id: 'poison',
-        label: 'poison',
-        icon: '🧪',
-        mode: 'point',
-        build: (x, y, b) => ({ cmd: 'poison', x, y, radius: 1 + b }),
+        build: (x, y) => ({ cmd: 'spawn_animal', x, y, kind: 'zombie' }),
       },
       {
-        id: 'earthquake',
-        label: 'quake',
-        icon: '〽️',
+        id: 'demon',
+        label: 'demon',
+        icon: '👹',
         mode: 'point',
-        build: (x, y, b) => ({ cmd: 'earthquake', x, y, radius: 3 + b }),
+        build: (x, y) => ({ cmd: 'spawn_animal', x, y, kind: 'demon' }),
       },
       {
-        id: 'meteor',
-        label: 'meteor',
-        icon: '☄️',
+        id: 'dragon',
+        label: 'dragon',
+        icon: '🐉',
         mode: 'point',
-        build: (x, y, b) => ({ cmd: 'meteor', x, y, radius: 2 + b }),
+        build: (x, y) => ({ cmd: 'spawn_animal', x, y, kind: 'dragon' }),
+      },
+      {
+        id: 'alien',
+        label: 'alien',
+        icon: '👽',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'spawn_animal', x, y, kind: 'alien' }),
+      },
+      {
+        id: 'ufo',
+        label: 'ufo',
+        icon: '🛸',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'spawn_animal', x, y, kind: 'ufo' }),
       },
     ],
   },

@@ -92,13 +92,13 @@ describe('world dock buttons', () => {
   })
 
   it('puts an armed tool away when its tile is clicked again', () => {
-    const smite = SANDBOX_CATEGORIES.flatMap((c) => c.tools).find((t) => t.id === 'smite') as SandboxTool
-    const props = render({ armedToolId: 'smite', armedToolLabel: 'smite' })
-    expect(tile('smite')?.getAttribute('aria-pressed')).toBe('true')
+    const person = SANDBOX_CATEGORIES.flatMap((c) => c.tools).find((t) => t.id === 'spawn1') as SandboxTool
+    const props = render({ armedToolId: 'spawn1', armedToolLabel: 'person' })
+    expect(tile('person')?.getAttribute('aria-pressed')).toBe('true')
     expect(tab('life')?.classList.contains('engaged')).toBe(true)
-    click(tile('smite'))
+    click(tile('person'))
     expect(props.onClearArmed).toHaveBeenCalledTimes(1)
-    expect(props.onPick).not.toHaveBeenCalledWith(smite)
+    expect(props.onPick).not.toHaveBeenCalledWith(person)
   })
 
   it('marks active map layers on their tiles and tab', () => {

@@ -46,6 +46,22 @@ const TOOL_TIPS: Record<string, string> = {
   inspire: 'Teach everyone in the brush area something new and raise their literacy.',
   war: 'Turn the two tribes nearest the click against each other.',
   peace: 'Make the two tribes nearest the click friends.',
+  cure: 'End every sickness across a wide area and keep people safe from it for a while.',
+  harvest: 'Make the land fertile and grow food across it.',
+  arm: 'Teach the adults in the brush area to make and use weapons, so they can fight back.',
+  bounty: 'Fill everyone’s packs with food, wood and stone.',
+  douse: 'Put out every fire in the brush area.',
+  banish: 'Destroy every monster and predator in the brush area.',
+  frenzy: 'Turn neighbours on each other. Everyone in the brush area gets hurt.',
+  thunder: 'Rain lightning across the brush area. Strikes people, animals and dry grass.',
+  blight: 'Rot the crops and spoil the food people carry.',
+  flood: 'Drown the land: a lake in the middle, flooded ground around it.',
+  blizzard: 'Bury the land in snow and chill everyone caught in it.',
+  zombie: 'Raise a zombie. Its victims rise as zombies too.',
+  demon: 'Summon a demon. It scorches the ground and sets fires as it hunts.',
+  dragon: 'Summon a dragon. It flies, breathes fire, and takes an army to kill.',
+  alien: 'Drop an alien. It zaps people from a distance.',
+  ufo: 'Send a UFO. It abducts people for a while, then leaves.',
 }
 
 export function toolTip(tool: SandboxTool): string {
@@ -69,7 +85,22 @@ export function toolFailure(tool: SandboxTool): string {
     case 'poison':
     case 'bless':
     case 'inspire':
+    case 'cure':
+    case 'arm':
+    case 'bounty':
+    case 'frenzy':
       return 'no one there'
+    case 'banish':
+      return 'nothing to banish'
+    case 'douse':
+      return 'no fire there'
+    case 'thunder':
+      return 'the lightning hit nothing'
+    case 'harvest':
+    case 'blight':
+    case 'flood':
+    case 'blizzard':
+      return 'nothing here to change'
     case 'war':
     case 'peace':
       return 'needs two tribes nearby'
@@ -84,7 +115,12 @@ export function toolFailure(tool: SandboxTool): string {
     case 'cow':
     case 'horse':
     case 'chicken':
-      return 'too many animals already'
+    case 'zombie':
+    case 'demon':
+    case 'dragon':
+    case 'alien':
+    case 'ufo':
+      return 'too many creatures already'
     default:
       return 'did not work here'
   }

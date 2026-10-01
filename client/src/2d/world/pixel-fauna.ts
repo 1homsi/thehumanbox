@@ -16,6 +16,17 @@ const PALETTE: Record<string, string> = {
   m: '#3a2616', // mane, tail
   r: '#d8463a', // comb
   y: '#e9b949', // beak, feet
+  g: '#86a86a', // zombie skin
+  t: '#5b6f8f', // zombie rags
+  R: '#b8332a', // demon
+  l: '#ffd34d', // glowing eyes, ufo lights
+  F: '#ff8a2a', // demon flames
+  d: '#3f8f5a', // dragon scales
+  e: '#d2d27a', // dragon belly
+  a: '#a6e38f', // alien skin
+  A: '#5d9a52', // alien suit
+  q: '#aab4bf', // ufo hull
+  c: '#8fd8ff', // ufo dome
 }
 
 type Frames = [string[], string[]]
@@ -112,6 +123,108 @@ const SPRITES: Record<string, Frames> = {
   chicken: [
     ['.....rr.', '....www.', '....wowy', '.wwwwww.', 'wwwwwww.', '.wwwww..', '..y.y...'],
     ['.....rr.', '....www.', '....wowy', '.wwwwww.', 'wwwwwww.', '.wwwww..', '...yy...'],
+  ],
+  zombie: [
+    [
+      '...gg.....',
+      '..gggg....',
+      '..goggg...',
+      '..gggg....',
+      '...ttgggg.',
+      '..tttt....',
+      '..tttt....',
+      '..t..t....',
+      '..k..k....',
+    ],
+    [
+      '...gg.....',
+      '..gggg....',
+      '..goggg...',
+      '..gggg....',
+      '...ttgggg.',
+      '..tttt....',
+      '..tttt....',
+      '...tt.....',
+      '...kk.....',
+    ],
+  ],
+  demon: [
+    [
+      '.R......R.',
+      '.RR....RR.',
+      '..RRRRRR..',
+      '..RlRRlR..',
+      '..RRRRRR..',
+      '...RwwR...',
+      '..RRRRRR..',
+      '.R.RRRR.R.',
+      '...R..R...',
+      '..FF..FF..',
+    ],
+    [
+      '.R......R.',
+      '.RR....RR.',
+      '..RRRRRR..',
+      '..RlRRlR..',
+      '..RRRRRR..',
+      '...RwwR...',
+      '..RRRRRR..',
+      '.R.RRRR.R.',
+      '..R....R..',
+      '.FF....FF.',
+    ],
+  ],
+  dragon: [
+    [
+      '.....d........',
+      '....dd....dd..',
+      '...ddd...dddd.',
+      '..dddd..ddodd.',
+      'dddddddddddd..',
+      '.deeeeeeedd...',
+      '..dddddddd....',
+      '..d..d..d.....',
+    ],
+    [
+      '..............',
+      '..........dd..',
+      '.........dddd.',
+      '.........ddodd',
+      'dddddddddddd..',
+      '.ddeeeeeedd...',
+      '..dddddddd....',
+      '.dd..d..d.....',
+    ],
+  ],
+  alien: [
+    [
+      '..aaaa..',
+      '.aaaaaa.',
+      '.aoaaoa.',
+      '.aaaaaa.',
+      '..aaaa..',
+      '...aa...',
+      '..AAAA..',
+      '.A.AA.A.',
+      '...AA...',
+      '..A..A..',
+    ],
+    [
+      '..aaaa..',
+      '.aaaaaa.',
+      '.aoaaoa.',
+      '.aaaaaa.',
+      '..aaaa..',
+      '...aa...',
+      '..AAAA..',
+      '.A.AA.A.',
+      '...AA...',
+      '...AA...',
+    ],
+  ],
+  ufo: [
+    ['....cccc....', '...cccccc...', '.qqqqqqqqqq.', 'qqlqqlqqlqqq', '.qqqqqqqqqq.', '...l....l...'],
+    ['....cccc....', '...cccccc...', '.qqqqqqqqqq.', 'qqqlqqlqqlqq', '.qqqqqqqqqq.', '....l..l....'],
   ],
 }
 

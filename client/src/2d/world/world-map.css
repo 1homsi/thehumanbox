@@ -330,3 +330,29 @@ body.thb-photo-mode .map2d-tool-hint {
     opacity: 0;
   }
 }
+
+.burst-grow {
+  color: #8fd06a;
+  border-radius: 50%;
+  border-width: 4px;
+  animation-duration: 1000ms;
+}
+.burst-water {
+  color: #7cc8ff;
+  border-radius: 50%;
+  border-width: 4px;
+  animation-duration: 900ms;
+}
+.burst-blight {
+  color: #9a6b3c;
+  border-style: dotted;
+  border-radius: 50%;
+  animation-duration: 900ms;
+}
+.burst-frost {
+  color: #e6f4ff;
+  border-style: dashed;
+  border-radius: 50%;
+  border-width: 3px;
+  animation-duration: 1000ms;
+}

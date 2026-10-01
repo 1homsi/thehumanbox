@@ -12,6 +12,9 @@ import { burstForTool, useSandboxBursts } from './sandbox-bursts'
 import { isMapControl, type MapCommand } from './camera-controls'
 import { drawFaunaSprite } from './fauna-sprites'
 import { drawPixelFauna } from './pixel-fauna'
+
+/** Drawn sizes for summoned monsters; a dragon dwarfs everything else. */
+const MONSTER_SIZES: Record<string, number> = { zombie: 16, demon: 20, dragon: 32, alien: 14, ufo: 26 }
 import { drawEmote, emoteFor } from './activity-emotes'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -2188,8 +2191,10 @@ export function drawWorldOnCanvas(
       const motion = characterMotion(_animalLastPos.get(animal.id), animal.x, animal.y, t, 0)
       _animalLastPos.set(animal.id, motion)
       const small = animal.kind === 'fish' || animal.kind === 'bird' || animal.kind === 'rabbit'
+      const flyer = animal.kind === 'dragon' || animal.kind === 'ufo'
       const size =
-        animal.kind === 'chicken'
+        MONSTER_SIZES[animal.kind] ??
+        (animal.kind === 'chicken'
           ? 10
           : animal.kind === 'bear' || animal.kind === 'cow' || animal.kind === 'horse'
             ? 22
@@ -2197,7 +2202,7 @@ export function drawWorldOnCanvas(
               ? 14
               : animal.kind === 'sheep'
                 ? 18
-                : 20
+                : 20)
       const moving = animal.kind === 'fish' || animal.kind === 'bird' || t - motion.movedAt < 320
       const speed =
         animal.kind === 'fish'
@@ -2210,15 +2215,32 @@ export function drawWorldOnCanvas(
       // Standing grazers dip slowly, as if eating, instead of freezing.
       const grazer = ['deer', 'sheep', 'cow', 'horse', 'rabbit'].includes(animal.kind)
       const amp =
-        animal.kind === 'fish' ? 1.4 : animal.kind === 'bird' ? 1.6 : moving ? 0.55 : grazer ? 0.45 : 0
+        animal.kind === 'fish'
+          ? 1.4
+          : animal.kind === 'bird' || flyer
+            ? 1.6
+            : moving
+              ? 0.55
+              : grazer
+                ? 0.45
+                : 0
       const phase = (moving || !grazer ? t * speed : t * 0.0012) + animal.id * 0.7
       const yOff = Math.sin(phase) * amp
       const cx = (animal.x - ox) * TILE + TILE / 2
       const cy = (animal.y - oy) * TILE + TILE / 2 + yOff
       if (animal.kind !== 'fish' && animal.kind !== 'bird') {
-        ctx.fillStyle = 'rgba(0,0,0,0.3)'
+        // Flyers cast a smaller, fainter shadow further below them.
+        ctx.fillStyle = flyer ? 'rgba(0,0,0,0.18)' : 'rgba(0,0,0,0.3)'
         ctx.beginPath()
-        ctx.ellipse(cx, cy + size * 0.42, size * 0.32, size * 0.14, 0, 0, Math.PI * 2)
+        ctx.ellipse(
+          cx,
+          cy + size * (flyer ? 0.9 : 0.42),
+          size * (flyer ? 0.24 : 0.32),
+          size * (flyer ? 0.1 : 0.14),
+          0,
+          0,
+          Math.PI * 2,
+        )
         ctx.fill()
       }
       const flip = motion.flipped

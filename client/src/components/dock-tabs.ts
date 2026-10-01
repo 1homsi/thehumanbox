@@ -24,8 +24,8 @@ export const DOCK_TABS: DockTab[] = [
     id: 'life',
     label: 'life',
     icon: '🚶',
-    tip: 'People, divine powers, and animals',
-    groups: ['life', 'divine', 'animals'],
+    tip: 'People, animals, and monsters',
+    groups: ['life', 'animals', 'monsters'],
   },
   {
     id: 'world',
@@ -38,8 +38,8 @@ export const DOCK_TABS: DockTab[] = [
     id: 'powers',
     label: 'powers',
     icon: '⛈️',
-    tip: 'Weather, drought, and disasters',
-    groups: ['nature', 'disasters'],
+    tip: 'Helpful powers, then deadly ones',
+    groups: ['good', 'bad'],
   },
   { id: 'maps', label: 'maps', icon: '🗺️', tip: 'Map layers you can switch on and off', groups: ['maps'] },
 ]
@@ -56,7 +56,11 @@ export function groupsFor(tabId: string): SandboxCategory[] {
 }
 
 /** Resolve a stored tab id, accepting the category ids older saves used. */
+/** Groups older docks had, mapped to the tab that now holds their tools. */
+const RETIRED_GROUPS: Record<string, string> = { divine: 'powers', nature: 'powers', disasters: 'powers' }
+
 export function resolveTab(saved: string | null): string {
-  const tab = DOCK_TABS.find((t) => t.id === saved || (saved !== null && t.groups.includes(saved)))
+  const id = saved !== null ? (RETIRED_GROUPS[saved] ?? saved) : null
+  const tab = DOCK_TABS.find((t) => t.id === id || (id !== null && t.groups.includes(id)))
   return tab ? tab.id : DOCK_TABS[0].id
 }

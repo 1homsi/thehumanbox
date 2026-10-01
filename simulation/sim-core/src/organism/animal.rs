@@ -31,11 +31,17 @@ pub enum AnimalKind {
     Cow,
     Horse,
     Chicken,
+    // Monsters: summoned with god powers, never born or spawned naturally.
+    Zombie,
+    Demon,
+    Dragon,
+    Alien,
+    Ufo,
 }
 
 impl AnimalKind {
     /// Every kind, for tables and tests.
-    pub const ALL: [AnimalKind; 12] = [
+    pub const ALL: [AnimalKind; 17] = [
         AnimalKind::Rabbit,
         AnimalKind::Deer,
         AnimalKind::Boar,
@@ -48,6 +54,18 @@ impl AnimalKind {
         AnimalKind::Cow,
         AnimalKind::Horse,
         AnimalKind::Chicken,
+        AnimalKind::Zombie,
+        AnimalKind::Demon,
+        AnimalKind::Dragon,
+        AnimalKind::Alien,
+        AnimalKind::Ufo,
+    ];
+    pub const MONSTERS: [AnimalKind; 5] = [
+        AnimalKind::Zombie,
+        AnimalKind::Demon,
+        AnimalKind::Dragon,
+        AnimalKind::Alien,
+        AnimalKind::Ufo,
     ];
     pub fn drain(self) -> f32 {
         match self {
@@ -63,6 +81,10 @@ impl AnimalKind {
             AnimalKind::Cow => 0.0004,
             AnimalKind::Horse => 0.0005,
             AnimalKind::Chicken => 0.0006,
+            // Monsters do not eat. A UFO's energy is its visit: it leaves
+            // after roughly 1200 ticks.
+            AnimalKind::Zombie | AnimalKind::Demon | AnimalKind::Dragon | AnimalKind::Alien => 0.0,
+            AnimalKind::Ufo => 0.0007,
         }
     }
     pub fn flee_radius(self) -> f32 {
@@ -79,6 +101,11 @@ impl AnimalKind {
             AnimalKind::Cow => 2.5,
             AnimalKind::Horse => 5.0,
             AnimalKind::Chicken => 3.0,
+            AnimalKind::Zombie
+            | AnimalKind::Demon
+            | AnimalKind::Dragon
+            | AnimalKind::Alien
+            | AnimalKind::Ufo => 0.0,
         }
     }
     pub fn step_size(self) -> i32 {
@@ -95,13 +122,34 @@ impl AnimalKind {
             AnimalKind::Cow => 1,
             AnimalKind::Horse => 3,
             AnimalKind::Chicken => 1,
+            AnimalKind::Zombie => 1,
+            AnimalKind::Demon => 2,
+            AnimalKind::Dragon => 3,
+            AnimalKind::Alien => 1,
+            AnimalKind::Ufo => 2,
         }
     }
     pub fn aquatic(self) -> bool {
         matches!(self, AnimalKind::Fish)
     }
+    /// Hunts other animals, and people when hungry.
     pub fn predator(self) -> bool {
         matches!(self, AnimalKind::Wolf | AnimalKind::Bear)
+    }
+    /// Summoned creatures that hunt people whether or not they are hungry.
+    pub fn monster(self) -> bool {
+        matches!(
+            self,
+            AnimalKind::Zombie | AnimalKind::Demon | AnimalKind::Dragon | AnimalKind::Alien | AnimalKind::Ufo
+        )
+    }
+    /// Anything people should fear and flee.
+    pub fn hostile(self) -> bool {
+        self.predator() || self.monster()
+    }
+    /// Crosses water and rock.
+    pub fn flies(self) -> bool {
+        matches!(self, AnimalKind::Dragon | AnimalKind::Ufo)
     }
     /// Animals predators hunt, and which flee from them.
     pub fn is_prey(self) -> bool {
@@ -128,6 +176,16 @@ impl AnimalKind {
             AnimalKind::Deer | AnimalKind::Sheep | AnimalKind::Cow | AnimalKind::Horse
         )
     }
+    /// The name with "a" or "an", for event and thought text.
+    pub fn a_name(self) -> String {
+        let name = self.name();
+        let article = if name.starts_with(['a', 'e', 'i', 'o', 'u']) {
+            "an"
+        } else {
+            "a"
+        };
+        format!("{article} {name}")
+    }
     pub fn name(self) -> &'static str {
         match self {
             AnimalKind::Rabbit => "rabbit",
@@ -142,6 +200,11 @@ impl AnimalKind {
             AnimalKind::Cow => "cow",
             AnimalKind::Horse => "horse",
             AnimalKind::Chicken => "chicken",
+            AnimalKind::Zombie => "zombie",
+            AnimalKind::Demon => "demon",
+            AnimalKind::Dragon => "dragon",
+            AnimalKind::Alien => "alien",
+            AnimalKind::Ufo => "ufo",
         }
     }
 }
@@ -191,7 +254,7 @@ impl Animal {
         let (ix, iy) = (self.x as i32, self.y as i32);
 
         let on_food = grid.get(ix, iy) == Tile::Food;
-        if on_food && !self.kind.aquatic() {
+        if on_food && !self.kind.aquatic() && !self.kind.monster() {
             self.energy = (self.energy + 0.04).min(1.0);
         }
         if self.kind.aquatic() && grid.get(ix, iy) == Tile::Water {
@@ -207,9 +270,12 @@ impl Animal {
 
         let step = self.kind.step_size();
 
-        // A fed predator rests and roams instead of stalking.
-        if self.kind.predator() && self.energy <= 0.85 {
-            let target = prey_positions
+        // A fed predator rests and roams instead of stalking. Monsters
+        // always stalk, and only people.
+        let monster = self.kind.monster();
+        if monster || (self.kind.predator() && self.energy <= 0.85) {
+            let prey: &[(f32, f32)] = if monster { &[] } else { prey_positions };
+            let target = prey
                 .iter()
                 .chain(org_positions.iter())
                 .map(|&(ox, oy)| ((ox - self.x).abs() + (oy - self.y).abs(), ox, oy))
@@ -285,7 +351,7 @@ impl Animal {
                 ix + (fdx / len * 4.0).round() as i32,
                 iy + (fdy / len * 4.0).round() as i32,
             )
-        } else if self.energy < 0.55 && rng.random::<f32>() < 0.35 {
+        } else if !self.kind.monster() && self.energy < 0.55 && rng.random::<f32>() < 0.35 {
             let mut best_d = 999i32;
             let mut best_t = (ix, iy);
             for ddx in -10i32..=10 {
@@ -335,6 +401,9 @@ impl Animal {
     }
 
     fn move_toward(&mut self, grid: &WorldGrid, ix: i32, iy: i32, tx: i32, ty: i32) {
+        let flies = self.kind.flies();
+        // Demons walk through fire; dragons and UFOs fly over everything.
+        let fireproof = flies || self.kind == AnimalKind::Demon;
         let blocks_water = !self.kind.aquatic();
         let mut best_score = i32::MAX;
         let mut best_step = (0i32, 0i32);
@@ -346,14 +415,19 @@ impl Animal {
                 continue;
             }
             let t = grid.get(nx, ny);
-            if matches!(t, Tile::Void | Tile::Rock | Tile::Fire) {
+            if t == Tile::Void {
                 continue;
             }
-            if blocks_water && t == Tile::Water {
-                continue;
-            }
-            if !blocks_water && t != Tile::Water {
-                continue;
+            if !flies {
+                if t == Tile::Rock || (t == Tile::Fire && !fireproof) {
+                    continue;
+                }
+                if blocks_water && t == Tile::Water {
+                    continue;
+                }
+                if !blocks_water && t != Tile::Water {
+                    continue;
+                }
             }
             let score = (tx - nx).abs() + (ty - ny).abs();
             if score < best_score {

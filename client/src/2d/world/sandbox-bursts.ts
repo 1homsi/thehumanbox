@@ -19,6 +19,10 @@ export type BurstKind =
   | 'fire'
   | 'plague'
   | 'paint'
+  | 'grow'
+  | 'water'
+  | 'blight'
+  | 'frost'
 
 export interface Burst {
   id: number
@@ -45,6 +49,10 @@ const LIFETIME_MS: Record<BurstKind, number> = {
   fire: 700,
   plague: 900,
   paint: 450,
+  grow: 1000,
+  water: 900,
+  blight: 900,
+  frost: 1000,
 }
 
 /** Which effect a sandbox tool plays, keyed by tool id. */
@@ -67,7 +75,32 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'cow':
     case 'horse':
     case 'chicken':
+    case 'zombie':
+    case 'demon':
+    case 'dragon':
+    case 'alien':
+    case 'ufo':
       return 'spawn'
+    case 'cure':
+      return 'heal'
+    case 'harvest':
+      return 'grow'
+    case 'arm':
+      return 'inspire'
+    case 'bounty':
+      return 'bless'
+    case 'douse':
+    case 'flood':
+      return 'water'
+    case 'banish':
+    case 'thunder':
+      return 'bolt'
+    case 'frenzy':
+      return 'war'
+    case 'blight':
+      return 'blight'
+    case 'blizzard':
+      return 'frost'
     case 'fire':
       return 'fire'
     case 'meteor':
