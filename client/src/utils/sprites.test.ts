@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, expect, it, vi } from 'vitest'
 let drawPeopleTile: typeof import('./sprites').drawPeopleTile
+let getPeopleAtlas: typeof import('./sprites').getPeopleAtlas
+let peopleImage: typeof import('./sprites').ATLAS_PEOPLE
 const canvases: { width: number; height: number; getContext: ReturnType<typeof vi.fn> }[] = []
 beforeAll(async () => {
   vi.stubGlobal(
@@ -20,7 +22,26 @@ beforeAll(async () => {
       return canvas
     },
   })
-  ;({ drawPeopleTile } = await import('./sprites'))
+  ;({ drawPeopleTile, getPeopleAtlas, ATLAS_PEOPLE: peopleImage } = await import('./sprites'))
+})
+
+it('shares a prepared atlas within a frame and rechecks loading and replacement on the next frame', () => {
+  const atlas = getPeopleAtlas()
+  expect(atlas).not.toBeNull()
+  const ctx = { drawImage: vi.fn(), imageSmoothingEnabled: false }
+  Object.defineProperty(peopleImage, 'complete', { value: false, configurable: true })
+  // A prepared pass does not touch the image's DOM properties per resident.
+  expect(drawPeopleTile(ctx as unknown as CanvasRenderingContext2D, [0, 0], 1, 2, 24, false, atlas)).toBe(
+    true,
+  )
+  expect(ctx.drawImage.mock.calls[0][0]).toBe(atlas)
+  expect(getPeopleAtlas()).toBeNull()
+  expect(drawPeopleTile(ctx as unknown as CanvasRenderingContext2D, [0, 0], 1, 2, 24, false, null)).toBe(
+    false,
+  )
+  Object.defineProperty(peopleImage, 'complete', { value: true, configurable: true })
+  peopleImage.src = 'replacement-people.svg'
+  expect(getPeopleAtlas()).not.toBe(atlas)
 })
 afterAll(() => vi.unstubAllGlobals())
 it('draws mirrored atlas cells at unchanged world bounds and reuses the mirrored atlas', () => {

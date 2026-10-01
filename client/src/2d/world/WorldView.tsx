@@ -30,6 +30,7 @@ import {
   ATLAS_TOWN,
   onAnyAtlasLoaded,
   drawPeopleTile,
+  getPeopleAtlas,
   pickAnimalTile,
   pickHumanSprite,
   ATLAS_CREATURE,
@@ -2346,6 +2347,11 @@ export function drawWorldOnCanvas(
       ctx.fill(focusedShadows)
     }
   }
+  // Sample atlas readiness/source once and keep nearest-neighbor sampling for
+  // the population pass instead of checking and toggling it for every sprite.
+  const peopleAtlas = getPeopleAtlas()
+  const populationSmoothing = ctx.imageSmoothingEnabled
+  ctx.imageSmoothingEnabled = false
   for (const org of drawnOrganisms.sort(compareCharacterDepth)) {
     if (!org.alive) continue
     if (restingAtHome(org)) continue
@@ -2483,6 +2489,7 @@ export function drawWorldOnCanvas(
       Math.round(spriteTop),
       spriteSize,
       motion.flipped,
+      peopleAtlas,
     )
     if (!drew) {
       ctx.fillStyle = variant.hairColor
@@ -2608,6 +2615,7 @@ export function drawWorldOnCanvas(
       ctx.fillText(org.thought, px, thoughtY)
     }
   }
+  ctx.imageSmoothingEnabled = populationSmoothing
   ctx.globalAlpha = 1
 
   // Player strategy beacons are a HUD overlay, so draw them after all
