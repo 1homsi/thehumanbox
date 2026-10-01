@@ -359,11 +359,20 @@ function syncFile(filePath: string): void {
 export function atomicWriteNewFile(
   filePath: string,
   data: string | Uint8Array,
+  options: { overwrite?: boolean } = {},
 ): void {
+  const { overwrite = true } = options;
+  if (!overwrite && fs.existsSync(filePath)) {
+    throw new Error(`refusing to overwrite existing file: ${filePath}`);
+  }
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   const tempPath = path.join(
     path.dirname(filePath),
-    `.${path.basename(filePath)}.${process.pid}.${Date.now()}.tmp`,
+    // `randomUUID` rather than `Date.now()`: two writes in the same
+    // millisecond produced the same temp name, and the losing call's
+    // `openSync(..., "wx")` threw EEXIST and then unlinked the *winner's*
+    // in-flight temp file.
+    `.${path.basename(filePath)}.${process.pid}.${randomUUID()}.tmp`,
   );
   let fd: number | null = null;
   try {
@@ -795,7 +804,8 @@ export function restoreParkedLiveWorld(
   let quarantinePath: string | null = null;
   let failedMarker: string | null = null;
   if (fs.existsSync(markerPath)) {
-    const rawFailedHash = fs.readFileSync(markerPath, "utf8").trim();
+    const markerContents = fs.readFileSync(markerPath, "utf8");
+    const rawFailedHash = markerContents.trim();
     try {
       validateWorldHash(rawFailedHash);
       failedHash = rawFailedHash;
@@ -826,8 +836,16 @@ export function restoreParkedLiveWorld(
         }
       }
     }
+    // Preserve the current marker by *copying* it, not renaming it away.
+    // Two separate renames left a window in which `worlds/_live` did not
+    // exist at all. This function exists to run after a crash, so being
+    // killed in that window is the expected case — and the leftover
+    // `_live.failed-reset-<token>` matched none of the recovery scanners
+    // (`.next-`, `.rollback-`, `.reset-`), so the next boot found no live
+    // world and silently minted a brand-new empty one while the player's
+    // real world sat unreferenced on disk.
     failedMarker = `${markerPath}.failed-reset-${token}`;
-    fs.renameSync(markerPath, failedMarker);
+    atomicWriteNewFile(failedMarker, markerContents, { overwrite: true });
   }
 
   try {

@@ -1451,12 +1451,19 @@ fn tick_buildings_construct(sim: &mut Simulation) {
     if functional_slots == 0 {
         return;
     }
-    let alive_lineages: HashSet<String> = sim
+    // Sort before iterating: this loop consumes a shared `functional_slots`
+    // budget and derives building offsets from `next_building_id`, so
+    // `HashSet` order decided *which* lineage got the hospital. `std`
+    // HashSet is randomly seeded per process, which broke seed
+    // reproducibility.
+    let mut alive_lineages: Vec<String> = sim
         .organisms
         .iter()
         .filter(|o| o.alive)
         .map(|o| o.lineage_id.clone())
         .collect();
+    alive_lineages.sort();
+    alive_lineages.dedup();
     for lid in alive_lineages {
         if functional_slots == 0 {
             break;
@@ -1864,12 +1871,17 @@ fn reconcile_prop_sites(sim: &mut Simulation) -> HashSet<(i32, i32)> {
 fn tick_scatter_props(sim: &mut Simulation) {
     use BuildingKind::*;
     let mut occupied = reconcile_prop_sites(sim);
-    let alive_lineages: HashSet<String> = sim
+    // Sorted: this loop mutates the shared `next_building_id` counter and
+    // the shared `occupied` set, so iteration order decided prop kind,
+    // site, and building id.
+    let mut alive_lineages: Vec<String> = sim
         .organisms
         .iter()
         .filter(|o| o.alive)
         .map(|o| o.lineage_id.clone())
         .collect();
+    alive_lineages.sort();
+    alive_lineages.dedup();
     let mut new_buildings: Vec<Building> = Vec::new();
     for lid in alive_lineages {
         let pop = lineage_pop(sim, &lid);
@@ -2366,12 +2378,17 @@ fn tick_deforestation(sim: &mut Simulation) {
     use crate::world::grid::WorldGrid;
     use crate::world::tiles::Biome;
     use rand::RngExt;
-    let alive_lineages: HashSet<String> = sim
+    // Sorted: this loop draws from `sim.rng` and carries a 2-tile budget,
+    // so hash order decided which lineage lost forest and shifted the
+    // shared RNG stream.
+    let mut alive_lineages: Vec<String> = sim
         .organisms
         .iter()
         .filter(|o| o.alive)
         .map(|o| o.lineage_id.clone())
         .collect();
+    alive_lineages.sort();
+    alive_lineages.dedup();
     for lid in alive_lineages {
         if lineage_pop(sim, &lid) < 5 {
             continue;
@@ -2445,7 +2462,9 @@ fn seat_building_for(gov_kind: &str) -> Option<BuildingKind> {
 }
 
 fn tick_governments(sim: &mut Simulation) {
-    let lineages: Vec<String> = sim
+    // Sorted: `pick_leaders` (called below) rolls for coups against
+    // `sim.rng`, so HashSet order decided who became monarch.
+    let mut lineages: Vec<String> = sim
         .organisms
         .iter()
         .filter(|o| o.alive)
@@ -2453,6 +2472,7 @@ fn tick_governments(sim: &mut Simulation) {
         .collect::<HashSet<_>>()
         .into_iter()
         .collect();
+    lineages.sort();
     let alive_set: HashSet<&str> = lineages.iter().map(|s| s.as_str()).collect();
     sim.governments.retain(|k, _| alive_set.contains(k.as_str()));
     for lid in &lineages {
@@ -2741,7 +2761,13 @@ fn tick_religion_schism(sim: &mut Simulation) {
             *counts.entry(rid.clone()).or_insert(0) += 1;
         }
     }
-    let big = counts.iter().filter(|(_, n)| **n >= 12).max_by_key(|(_, n)| **n);
+    // `max_by_key` returns the *last* maximum in iteration order, so a tie
+    // between equally-followed faiths was resolved by HashMap order. Break
+    // ties on the religion id.
+    let big = counts
+        .iter()
+        .filter(|(_, n)| **n >= 12)
+        .max_by(|a, b| a.1.cmp(b.1).then_with(|| b.0.cmp(a.0)));
     let Some((parent_id, _)) = big else {
         return;
     };
@@ -2805,7 +2831,10 @@ fn tick_religion_schism(sim: &mut Simulation) {
 fn tick_religion_founding(sim: &mut Simulation) {
     use crate::sim::actions::religion_expanded::{create_religion, recount_religion_adherents};
 
-    let lineages: Vec<String> = sim
+    // Sorted: this loop draws from `sim.rng` per candidate kind, so
+    // HashSet order changed which faiths were founded and shifted the
+    // shared RNG stream.
+    let mut lineages: Vec<String> = sim
         .organisms
         .iter()
         .filter(|o| o.alive)
@@ -2813,6 +2842,7 @@ fn tick_religion_founding(sim: &mut Simulation) {
         .collect::<HashSet<_>>()
         .into_iter()
         .collect();
+    lineages.sort();
     for lid in lineages {
         let pop = lineage_pop(sim, &lid);
         if pop < 5 {
@@ -2902,9 +2932,12 @@ fn tick_religion_adherents(sim: &mut Simulation) {
             .or_insert(r.id.clone());
     }
     let total_followers: u32 = adherents_by_id.values().sum();
+    // Tie-break on the religion id: `max_by_key` returns the last maximum in
+    // iteration order, so undecided organisms converted to a
+    // hash-order-dependent faith.
     let dominant: Option<(String, u32)> = adherents_by_id
         .iter()
-        .max_by_key(|(_, n)| **n)
+        .max_by(|a, b| a.1.cmp(b.1).then_with(|| b.0.cmp(a.0)))
         .map(|(id, n)| (id.clone(), *n));
     let convert_chance = 0.005f32;
     for org in sim.organisms.iter_mut() {

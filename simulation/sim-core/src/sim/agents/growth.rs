@@ -12,7 +12,7 @@ use crate::world::{
     tiles::{Biome, Tile},
 };
 use rand::{Rng, RngExt};
-use uuid::Uuid;
+use rustc_hash::FxHashMap;
 
 pub fn is_pending_birth(organism: &Organism) -> bool {
     !organism.alive && organism.age == 0 && !organism.parent_id.is_empty() && organism.father_id.is_some()
@@ -46,7 +46,7 @@ pub fn spawn_organism_with_home(
     lineage_id: String,
     rng: &mut impl Rng,
 ) {
-    let id = Uuid::new_v4().to_string()[..8].to_string();
+    let id = crate::sim::agents::spawn::seeded_id(rng, 8);
     let sex = Sex::random(rng);
     let mut traits = Traits::random(rng);
     apply_sex_traits(&mut traits, sex);
@@ -97,6 +97,53 @@ pub fn spawn_organism_with_home(
     organisms.push(org);
 }
 
+fn reproduction_partner_index(
+    org_idx: usize,
+    organisms: &[Organism],
+    org_idx_by_id: &FxHashMap<String, usize>,
+    critical: bool,
+    partner_dist: f32,
+) -> Option<usize> {
+    let org = &organisms[org_idx];
+    if critical {
+        // Population recovery still chooses the nearest living adult male,
+        // including the original vector-order tie break, without requiring a bond.
+        organisms
+            .iter()
+            .enumerate()
+            .filter(|(_, o)| {
+                o.alive
+                    && o.sex == Sex::Male
+                    && o.age > 1000
+                    && (o.x - org.x).hypot(o.y - org.y) < partner_dist
+            })
+            .min_by(|(_, a), (_, b)| {
+                let da = (a.x - org.x).hypot(a.y - org.y);
+                let db = (b.x - org.x).hypot(b.y - org.y);
+                da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
+            })
+            .map(|(idx, _)| idx)
+    } else {
+        let partner_idx = *org_idx_by_id.get(org.partner_id.as_ref()?)?;
+        let partner = &organisms[partner_idx];
+        // The index is shared for the tick, but movement and death can happen
+        // between residents' decisions. Recheck the partner's current state.
+        (partner.alive
+            && partner.sex == Sex::Male
+            && (partner.x - org.x).hypot(partner.y - org.y) < partner_dist)
+            .then_some(partner_idx)
+    }
+}
+
+/// Population accounting and the existing living-resident index for this tick.
+/// Resident indices must stay valid; pending children may be appended.
+pub struct ReproductionPopulation<'a> {
+    pub slots_used: usize,
+    pub limit: usize,
+    pub lineage_counts: &'a FxHashMap<String, usize>,
+    pub org_idx_by_id: &'a FxHashMap<String, usize>,
+}
+
 #[allow(clippy::if_same_then_else)]
 pub fn try_reproduce(
     org_idx: usize,
@@ -105,11 +152,9 @@ pub fn try_reproduce(
     tick: u64,
     events: &mut std::collections::VecDeque<Event>,
     rng: &mut impl Rng,
-    population_slots_used: usize,
-    population_limit: usize,
-    lineage_counts: &rustc_hash::FxHashMap<String, usize>,
+    population: ReproductionPopulation<'_>,
 ) {
-    if population_slots_used >= population_limit {
+    if population.slots_used >= population.limit {
         return;
     }
 
@@ -118,13 +163,19 @@ pub fn try_reproduce(
         return;
     }
 
-    let lineage_limit = natural_lineage_limit(population_limit);
-    if lineage_counts.get(&org.lineage_id).copied().unwrap_or(0) >= lineage_limit {
+    let lineage_limit = natural_lineage_limit(population.limit);
+    if population
+        .lineage_counts
+        .get(&org.lineage_id)
+        .copied()
+        .unwrap_or(0)
+        >= lineage_limit
+    {
         return;
     }
 
-    let critical = population_slots_used < 30;
-    let low_pop = population_slots_used < 80;
+    let critical = population.slots_used < 30;
+    let low_pop = population.slots_used < 80;
     let (e_min, h_min, hp_min, cooldown, partner_dist) = if critical {
         (0.18, 0.18, 0.22, 350u64, 200.0f32)
     } else if low_pop {
@@ -144,34 +195,16 @@ pub fn try_reproduce(
     }
 
     let (org_x, org_y) = (org.x, org.y);
-    let partner_id: String = if critical {
-        let nearest = organisms
-            .iter()
-            .filter(|o| {
-                o.alive
-                    && o.sex == Sex::Male
-                    && o.age > 1000
-                    && (o.x - org_x).hypot(o.y - org_y) < partner_dist
-            })
-            .min_by(|a, b| {
-                let da = (a.x - org_x).hypot(a.y - org_y);
-                let db = (b.x - org_x).hypot(b.y - org_y);
-                da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
-            });
-        match nearest {
-            Some(o) => o.id.clone(),
-            None => return,
-        }
-    } else {
-        let Some(pid) = org.partner_id.clone() else { return };
-        let bonded_nearby = organisms.iter().any(|o| {
-            o.alive && o.id == pid && o.sex == Sex::Male && (o.x - org_x).hypot(o.y - org_y) < partner_dist
-        });
-        if !bonded_nearby {
-            return;
-        }
-        pid
+    let Some(partner_idx) = reproduction_partner_index(
+        org_idx,
+        organisms,
+        population.org_idx_by_id,
+        critical,
+        partner_dist,
+    ) else {
+        return;
     };
+    let partner_id = organisms[partner_idx].id.clone();
 
     let biome = grid.biome_at(org_x as i32, org_y as i32);
     let biome_mult = match biome {
@@ -215,12 +248,8 @@ pub fn try_reproduce(
         return;
     };
 
-    let father_traits = organisms
-        .iter()
-        .find(|o| o.id == partner_id)
-        .map(|o| o.traits.clone())
-        .unwrap_or_else(|| organisms[org_idx].traits.clone());
-    let child_traits = organisms[org_idx].traits.mix(&father_traits, rng).mutate(rng);
+    let father_traits = &organisms[partner_idx].traits;
+    let child_traits = organisms[org_idx].traits.mix(father_traits, rng).mutate(rng);
 
     let child_sex = Sex::random(rng);
     let mut child_traits_sexed = child_traits;
@@ -231,7 +260,7 @@ pub fn try_reproduce(
             ..=(18000.0 + 8000.0 * child_traits_sexed.resilience) as u32,
     );
 
-    let child_id = Uuid::new_v4().to_string()[..8].to_string();
+    let child_id = crate::sim::agents::spawn::seeded_id(rng, 8);
     let mut child_name = generate_name(rng, child_sex);
     let mut namesake: Option<String> = None;
     if rng.random::<f32>() < 0.15 {
@@ -432,11 +461,7 @@ pub fn try_reproduce(
 
     // Collect parent attribute snapshots before mutating child
     let mother_attrs = organisms[org_idx].attributes.clone();
-    let father_attrs = organisms
-        .iter()
-        .find(|o| o.id == partner_id)
-        .map(|o| o.attributes.clone())
-        .unwrap_or_default();
+    let father_attrs = organisms[partner_idx].attributes.clone();
 
     assign_birth_attributes(&mut child, rng);
     inherit_attributes_from_parents(&mut child, &mother_attrs, &father_attrs, rng);
@@ -674,6 +699,163 @@ mod tests {
         child.father_id = Some("father".to_string());
         child.age = 0;
         child
+    }
+
+    fn living_index(organisms: &[Organism]) -> FxHashMap<String, usize> {
+        organisms
+            .iter()
+            .enumerate()
+            .filter(|(_, o)| o.alive)
+            .map(|(i, o)| (o.id.clone(), i))
+            .collect()
+    }
+
+    #[test]
+    fn bonded_partner_lookup_rechecks_current_state() {
+        let mut rng = StdRng::seed_from_u64(1);
+        let mut mother = test_organism("mother", Sex::Female, true, &mut rng);
+        mother.partner_id = Some("father".to_string());
+        let nearby = test_organism("unrelated", Sex::Male, true, &mut rng);
+        let father = test_organism("father", Sex::Male, true, &mut rng);
+        let mut organisms = vec![mother, nearby, father];
+        let ids = living_index(&organisms);
+        // Appending an unborn child doesn't invalidate the tick's indices.
+        organisms.push(pending_child("mother", &mut rng));
+        let partner =
+            |orgs: &[Organism], distance| reproduction_partner_index(0, orgs, &ids, false, distance);
+        assert_eq!(partner(&organisms, 40.0), Some(2));
+        organisms[2].x = 60.0;
+        assert_eq!(partner(&organisms, 40.0), None); // strict distance boundary
+        assert_eq!(partner(&organisms, 100.0), Some(2)); // low-population range
+        organisms[2].x = 120.0;
+        assert_eq!(partner(&organisms, 100.0), None);
+        organisms[2].x = 20.0;
+        organisms[2].alive = false; // died after the index was built
+        assert_eq!(partner(&organisms, 40.0), None);
+        organisms[2].alive = true;
+        organisms[2].sex = Sex::Female;
+        assert_eq!(partner(&organisms, 40.0), None);
+        organisms[2].sex = Sex::Male;
+        organisms[0].partner_id = Some("missing".to_string());
+        assert_eq!(partner(&organisms, 40.0), None);
+        organisms[0].partner_id = None;
+        assert_eq!(partner(&organisms, 40.0), None);
+        // A new bond formed during this tick is visible immediately.
+        organisms[0].partner_id = Some("unrelated".to_string());
+        assert_eq!(partner(&organisms, 40.0), Some(1));
+    }
+
+    #[test]
+    fn emergency_partner_lookup_keeps_nearest_adult_and_tie_order() {
+        let mut rng = StdRng::seed_from_u64(2);
+        let mother = test_organism("mother", Sex::Female, true, &mut rng);
+        let mut first = test_organism("first", Sex::Male, true, &mut rng);
+        first.age = 4_000;
+        first.x = 40.0;
+        let mut second = test_organism("second", Sex::Male, true, &mut rng);
+        second.age = 4_000;
+        second.x = 30.0;
+        let mut organisms = vec![mother, first, second];
+        let ids = living_index(&organisms);
+        let partner = |orgs: &[Organism]| reproduction_partner_index(0, orgs, &ids, true, 200.0);
+        assert_eq!(partner(&organisms), Some(2));
+        organisms[2].x = 40.0;
+        assert_eq!(partner(&organisms), Some(1));
+        organisms[1].alive = false;
+        assert_eq!(partner(&organisms), Some(2));
+        organisms[2].age = 1000;
+        assert_eq!(partner(&organisms), None);
+        organisms[2].age = 1001;
+        organisms[2].sex = Sex::Female;
+        assert_eq!(partner(&organisms), None);
+        organisms[2].sex = Sex::Male;
+        organisms[2].x = 220.0;
+        assert_eq!(partner(&organisms), None);
+    }
+
+    #[test]
+    fn seeded_reproduction_preserves_father_inheritance() {
+        let mut rng = StdRng::seed_from_u64(42);
+        let mut mother = test_organism("mother", Sex::Female, true, &mut rng);
+        mother.age = 4_000;
+        mother.traits = Traits::default();
+        mother.partner_id = Some("father".to_string());
+        let mut father = test_organism("father", Sex::Male, true, &mut rng);
+        father.age = 4_000;
+        father.traits = Traits {
+            curiosity: 0.9,
+            aggression: 0.1,
+            fear: 0.9,
+            memory_strength: 0.1,
+            social_tendency: 0.9,
+            resilience: 0.1,
+        };
+        father
+            .attributes
+            .extend(["amber-eyed".to_string(), "iron-willed".to_string()]);
+        let mut organisms = vec![mother, father];
+        let mut grid = WorldGrid::new(42);
+        grid.tiles.fill(Tile::Grass as i8);
+        grid.biome.fill(Biome::Grassland as u8);
+        grid.fertility.fill(0.75);
+        let mut events = VecDeque::new();
+        let lineages = lineage_population_slots(&organisms);
+        let ids = living_index(&organisms);
+        // A normal-sized world uses its bonded partner even with this small fixture.
+        let mut rng = StdRng::seed_from_u64(42);
+        try_reproduce(
+            0,
+            &mut organisms,
+            &grid,
+            4_000,
+            &mut events,
+            &mut rng,
+            ReproductionPopulation {
+                slots_used: 80,
+                limit: 350,
+                lineage_counts: &lineages,
+                org_idx_by_id: &ids,
+            },
+        );
+        assert_eq!(organisms.len(), 3);
+        let child = &organisms[2];
+        let mut attributes: Vec<_> = child.attributes.iter().collect();
+        attributes.sort();
+        // Captured from the population-scan implementation with the same seed.
+        // Covers both genetic inheritance and the father's innate attributes,
+        // and guards against changing subsequent random decisions.
+        for (actual, expected) in [
+            (child.traits.curiosity, 0.53371954),
+            (child.traits.aggression, 0.5322892),
+            (child.traits.fear, 0.46756086),
+            (child.traits.memory_strength, 0.52452236),
+            (child.traits.social_tendency, 0.85434127),
+            (child.traits.resilience, 0.6086737),
+        ] {
+            assert!((actual - expected).abs() < 1e-6);
+        }
+        assert_eq!(
+            attributes,
+            [
+                "forager",
+                "freckled",
+                "headstrong",
+                "iron-willed",
+                "learned",
+                "night-walker",
+                "secretive",
+                "sharp-featured",
+                "suspicious",
+                "talkative",
+                "tall",
+                "wiry",
+            ]
+        );
+        assert_eq!(rng.random::<u64>(), 14_977_164_611_009_984_470);
+        assert_eq!(child.father_id.as_deref(), Some("father"));
+        assert_eq!(child.parent_id, "mother");
+        assert!(is_pending_birth(child));
+        assert!(organisms[0].pregnant);
     }
 
     #[test]

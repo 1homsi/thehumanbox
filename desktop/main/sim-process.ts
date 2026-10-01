@@ -615,6 +615,21 @@ async function startSimOnce(
     );
   }
 
+  // Re-check liveness: the child can exit during the `waitForPort` window,
+  // in which case its `exit`/`close` handler ran `releaseOwnership` while
+  // `current` was still null, and installing it now would register a dead
+  // process as the running simulation. `activeSim()` would then report
+  // `running: true` for a dead port, and `stopSimOnce`'s early return below
+  // would never clear `current`.
+  if (!alive || exitCode !== null) {
+    await waitForChildTermination(child, 3_000);
+    throw new Error(
+      "simulation-rs exited immediately after binding its port" +
+        (exitCode !== null ? ` (exit code ${exitCode})` : "") +
+        `\n\nlast output from simulation-rs:\n${tail.join("").trim().slice(-1200)}`,
+    );
+  }
+
   current = { port, child, pidFile, pidToken, dataLock };
   return current!;
 }
@@ -674,7 +689,15 @@ async function stopSimOnce(
     console.warn("[sim] checkpoint before stop was unavailable");
   }
 
-  if (childTerminationConfirmed(child)) return;
+  if (childTerminationConfirmed(child)) {
+    // Clear `current` here rather than returning early. `releaseOwnership`
+    // is normally driven by the exit/close listeners, but the startup path
+    // above proves that can be missed, and a stale `current` makes
+    // `activeSim()` report a running sim forever and re-enters the
+    // `before-quit` preventDefault loop.
+    current = null;
+    return;
+  }
 
   try {
     if (process.platform === "win32") child.kill();

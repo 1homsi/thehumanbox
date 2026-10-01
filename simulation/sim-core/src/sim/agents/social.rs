@@ -18,7 +18,14 @@ pub fn signal_food(
     let (ix, iy) = (organisms[org_idx].x as i32, organisms[org_idx].y as i32);
     let org_lineage = organisms[org_idx].lineage_id.clone();
     let org_id = organisms[org_idx].id.clone();
-    let signal_word = organisms[org_idx].vocabulary.word_for("food").to_string();
+    // `word_for` falls back to the English concept name when the word has
+    // been forgotten, so two organisms who both forgot "food" would compare
+    // equal and count as recognising each other's signal. Capture the real
+    // word (if any) so a forgotten word is treated as missing.
+    let signal_word = organisms[org_idx]
+        .vocabulary
+        .known_word("food")
+        .map(str::to_string);
     organisms[org_idx].vocabulary.touch_concept("food", tick);
 
     let best = Organism::best_remembered(
@@ -43,19 +50,21 @@ pub fn signal_food(
         .collect();
 
     if nearby_indices.is_empty() {
-        organisms[org_idx].think(&format!("\"{}\" (no one hears)", signal_word), tick);
+        organisms[org_idx].think(
+            &format!("\"{}\" (no one hears)", signal_word.as_deref().unwrap_or("~")),
+            tick,
+        );
         return 0.0;
     }
 
-    let mem_trait = organisms[org_idx].traits.memory_strength;
     let my_vocab = organisms[org_idx].vocabulary.clone();
     let mut reached = 0usize;
     let mut understood = 0usize;
 
     for &ni in &nearby_indices {
-        let their_word = organisms[ni].vocabulary.word_for("food").to_string();
+        let their_word = organisms[ni].vocabulary.known_word("food").map(str::to_string);
         organisms[ni].vocabulary.touch_concept("food", tick);
-        let recognizes = their_word == signal_word;
+        let recognizes = signal_word.is_some() && their_word == signal_word;
         let is_kin = organisms[ni].lineage_id == org_lineage;
         let trust = *organisms[ni].org_trust.get(&org_id).unwrap_or(&0.0);
 
@@ -70,7 +79,17 @@ pub fn signal_food(
             base_strength * 0.3
         };
 
-        Organism::remember(&mut organisms[ni].food_memory, bx, by, strength, mem_trait);
+        // `remember` scales by the *owner's* recall. Use the listener's own
+        // memory strength, not the speaker's, or a forgetful signaller
+        // imparts a stronger memory than a sharp one.
+        let listener_mem_trait = organisms[ni].traits.memory_strength;
+        Organism::remember(
+            &mut organisms[ni].food_memory,
+            bx,
+            by,
+            strength,
+            listener_mem_trait,
+        );
 
         organisms[ni].vocabulary.absorb_from(&my_vocab, rng);
         if recognizes {
@@ -79,13 +98,14 @@ pub fn signal_food(
         reached += 1;
     }
 
-    organisms[org_idx].think(&format!("\"{}\" ({}/{})", signal_word, understood, reached), tick);
+    let spoken = signal_word.as_deref().unwrap_or("~");
+    organisms[org_idx].think(&format!("\"{}\" ({}/{})", spoken, understood, reached), tick);
     push_event(
         events,
         tick,
         "signal",
         &organisms[org_idx].name.clone(),
-        &format!("\"{}\" → {}/{} understood", signal_word, understood, reached),
+        &format!("\"{}\" → {}/{} understood", spoken, understood, reached),
     );
     0.025 * (understood.min(4) as f32)
 }
@@ -103,7 +123,10 @@ pub fn sound_alarm(
     let org_lineage = organisms[org_idx].lineage_id.clone();
     let on_fire = grid.get(ix, iy) == Tile::Fire;
     let concept = if on_fire { "fire" } else { "danger" };
-    let signal_word = organisms[org_idx].vocabulary.word_for(concept).to_string();
+    let signal_word = organisms[org_idx]
+        .vocabulary
+        .known_word(concept)
+        .map(str::to_string);
     organisms[org_idx].vocabulary.touch_concept(concept, tick);
 
     let danger_loc = if on_fire {
@@ -130,18 +153,20 @@ pub fn sound_alarm(
         .collect();
 
     if nearby_indices.is_empty() {
-        organisms[org_idx].think(&format!("\"{}\" (silence)", signal_word), tick);
+        organisms[org_idx].think(
+            &format!("\"{}\" (silence)", signal_word.as_deref().unwrap_or("~")),
+            tick,
+        );
         return 0.0;
     }
 
-    let mem_trait = organisms[org_idx].traits.memory_strength;
     let my_vocab = organisms[org_idx].vocabulary.clone();
     let mut kin_warned = 0usize;
 
     for &ni in &nearby_indices {
-        let their_word = organisms[ni].vocabulary.word_for(concept).to_string();
+        let their_word = organisms[ni].vocabulary.known_word(concept).map(str::to_string);
         organisms[ni].vocabulary.touch_concept(concept, tick);
-        let recognizes = their_word == signal_word;
+        let recognizes = signal_word.is_some() && their_word == signal_word;
         let is_kin = organisms[ni].lineage_id == org_lineage;
 
         let strength = match (is_kin, recognizes) {
@@ -151,7 +176,14 @@ pub fn sound_alarm(
             (false, false) => 0.08,
         };
 
-        Organism::remember(&mut organisms[ni].danger_memory, dlx, dly, strength, mem_trait);
+        let listener_mem_trait = organisms[ni].traits.memory_strength;
+        Organism::remember(
+            &mut organisms[ni].danger_memory,
+            dlx,
+            dly,
+            strength,
+            listener_mem_trait,
+        );
 
         organisms[ni].vocabulary.absorb_from(&my_vocab, rng);
         if is_kin {
@@ -159,13 +191,24 @@ pub fn sound_alarm(
         }
     }
 
-    organisms[org_idx].think(&format!("\"{}!\" ({} warned)", signal_word, kin_warned), tick);
+    organisms[org_idx].think(
+        &format!(
+            "\"{}!\" ({} warned)",
+            signal_word.as_deref().unwrap_or("~"),
+            kin_warned
+        ),
+        tick,
+    );
     push_event(
         events,
         tick,
         "alarm",
         &organisms[org_idx].name.clone(),
-        &format!("\"{}\" warned {}", signal_word, kin_warned),
+        &format!(
+            "\"{}\" warned {}",
+            signal_word.as_deref().unwrap_or("~"),
+            kin_warned
+        ),
     );
     0.022 * (kin_warned.min(4) as f32)
 }
@@ -212,7 +255,9 @@ pub fn gift_knowledge(
     let target_lid = organisms[ti].lineage_id.clone();
     let target_id = organisms[ti].id.clone();
     let target_name = organisms[ti].name.clone();
-    let mem_trait = organisms[org_idx].traits.memory_strength;
+    // The memory is written into the *recipient*, so scale it by the
+    // recipient's recall, not the giver's.
+    let mem_trait = organisms[ti].traits.memory_strength;
 
     let prev_att = organisms[org_idx].attitude_toward(&target_lid);
     Organism::remember(&mut organisms[ti].food_memory, bx, by, 0.4, mem_trait);
@@ -280,8 +325,11 @@ pub fn gift_knowledge(
     let reward_add = if new_att >= 0.0 { 0.014 } else { -0.003 };
 
     if new_att >= 0.25 {
-        let their_snap = organisms[ti].vocabulary.as_hashmap();
-        let my_snap = organisms[org_idx].vocabulary.as_hashmap();
+        // `absorb_from` reads only the word slots, so the words view is
+        // equivalent to the round-tripped `as_hashmap` here without the
+        // cost of packing and re-parsing the forgetting clock.
+        let their_snap = organisms[ti].vocabulary.words();
+        let my_snap = organisms[org_idx].vocabulary.words();
         organisms[org_idx].vocabulary.absorb_from(
             &crate::organism::vocabulary::Vocabulary::from_hashmap(&their_snap),
             rng,
@@ -605,7 +653,9 @@ pub fn teach(
     };
 
     let target_name = organisms[ti].name.clone();
-    let mem_trait = organisms[org_idx].traits.memory_strength;
+    // Shared memories land in the student's store, so use the student's
+    // recall trait.
+    let mem_trait = organisms[ti].traits.memory_strength;
 
     // Elders share full memory banks; knowledgeable non-elders share a subset
     if is_elder {
@@ -975,17 +1025,22 @@ pub fn social_knowledge_share(
         organisms[org_idx].think("sharing what I know", tick);
     }
 
+    // `words`, not `as_hashmap`: `converge_with` only ever looks a real
+    // concept up in these maps, so carrying the reserved clock blob would
+    // cost a ~400-number string per peer per conversation for nothing.
     let peer_snapshots: Vec<std::collections::HashMap<String, String>> = share_targets
         .iter()
-        .map(|&(ki, _)| organisms[ki].vocabulary.as_hashmap())
+        .map(|&(ki, _)| organisms[ki].vocabulary.words())
         .collect();
     organisms[org_idx]
         .vocabulary
-        .converge_with(&peer_snapshots, rng, 0.40);
+        .converge_with(&peer_snapshots, rng, 0.40, tick);
     let mut all_snapshots = peer_snapshots.clone();
-    all_snapshots.push(my_vocab.as_hashmap());
+    all_snapshots.push(my_vocab.words());
     for &(ki, _) in &share_targets {
-        organisms[ki].vocabulary.converge_with(&all_snapshots, rng, 0.40);
+        organisms[ki]
+            .vocabulary
+            .converge_with(&all_snapshots, rng, 0.40, tick);
     }
 }
 

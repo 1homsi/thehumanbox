@@ -72,7 +72,8 @@ def main() -> int:
     workdir.mkdir(parents=True, exist_ok=True)
     traces = workdir / "traces.jsonl"
     dataset = workdir / "dataset.jsonl"
-    sft = workdir / "sft.jsonl"
+    sft = workdir / "sft_train.jsonl"
+    valid_sft = workdir / "sft_valid.jsonl"
     eval_out = workdir / "eval.json"
 
     # Stage 1: capture
@@ -94,18 +95,21 @@ def main() -> int:
         "--output", str(dataset),
     ])
 
-    # Stage 3: prepare SFT pairs
+    # Stage 3: prepare SFT pairs.
+    # The subcommand takes --train-output/--valid-output; passing --output
+    # made argparse exit 2, so every pipeline run aborted here.
     run("prepare-sft-dataset", [
         sys.executable, "scripts/prepare_sft_dataset.py",
         "--input", str(dataset),
-        "--output", str(sft),
+        "--train-output", str(sft),
+        "--valid-output", str(valid_sft),
     ])
 
     # Stage 4 (optional): eval
     if args.eval_model:
         run("run-thought-eval", [
             sys.executable, "scripts/run_thought_eval.py",
-            "--dataset", str(sft),
+            "--input", str(sft),
             "--model", args.eval_model,
             "--output", str(eval_out),
         ])

@@ -20,7 +20,16 @@ test('replacing a window retains the new window and routes old events to their o
     close() { this.destroyed = true; this.emit('closed') }
     isDestroyed() { return this.destroyed }
   }
-  const app = { setName() {}, isPackaged: true, on() {}, whenReady: () => ({ then() {} }) }
+  // `whenReady` never settles: this test drives `createWindow` /
+  // `createWindowReplace` directly and is not about the boot chain, so
+  // letting it run would only add unrelated side effects (it needs a real
+  // Promise, since the module attaches a `.catch` backstop to it).
+  const app = {
+    setName() {},
+    isPackaged: true,
+    on() {},
+    whenReady: () => new Promise<void>(() => {}),
+  }
   const context = vm.createContext({
     exports: {}, __dirname, process, console, setTimeout, clearTimeout,
     require: (id: string) => {

@@ -5107,6 +5107,13 @@ pub fn available_actions_into(
 
     a.extend(371..=385);
 
+    // Coarse pre-filter only. Every band in 436..=455 lives in
+    // `BASE_ACTION_BANDS`, which the loop at the end of this function walks
+    // separately and adds whenever `band_is_eligible` approves it — so this
+    // mask cannot make a band unreachable, and widening it (e.g. to
+    // `kin_near || stranger_near`) is a no-op. Left as `kin_near` to match its
+    // neighbours; `stranger_gated_actions_in_the_436_range_are_reachable_without_kin`
+    // guards the authority that actually decides.
     if kin_near {
         a.extend(436..=455);
     }
@@ -5266,7 +5273,10 @@ fn aspiration_bonus(aspiration: &str, action: usize) -> f32 {
             matches!(action, 316..=335 | 3120..=3169 | 3300..=3349 | 5160..=5209)
         }
         "healer" => {
-            matches!(action, 246..=260 | 1320..=1369 | 3060..=3109 | 4920..=4969)
+            // `3060..=3109` is `celestial_work` (astronomy) - every other
+            // range here is a medical/care family, so it looks like a
+            // copy/paste slip rather than an intentional cross-interest.
+            matches!(action, 246..=260 | 1320..=1369 | 3420..=3469 | 4920..=4969)
         }
         _ => false,
     };
@@ -6044,6 +6054,56 @@ mod tests {
                 .count();
             assert_eq!(matches, 1, "domestic action {action} must have one semantic gate");
         }
+    }
+
+    /// The `436..=455` pre-filter is a coarse `kin_near` superset, but every
+    /// band in that range lives in `BASE_ACTION_BANDS`, which
+    /// `available_actions_into` walks separately and adds whenever
+    /// `band_is_eligible` approves it. So the pre-filter is redundant and the
+    /// semantic gates are the only real authority — bands 438/451
+    /// (`SocialGate::None`) and 446/450/454 (`SocialGate::Stranger`) must stay
+    /// reachable with no kin present. This guards that authority so a future
+    /// "optimisation" of the pre-filter cannot quietly make them unreachable.
+    #[test]
+    fn stranger_gated_actions_in_the_436_range_are_reachable_without_kin() {
+        const STRANGER_GATED: usize = 446; // Medieval, Stranger, Water, officer/sailor
+
+        let mut sim = Simulation::new(0xB0A7);
+        let idx = 0;
+        let lineage = sim.organisms[idx].lineage_id.clone();
+        sim.lineage_eras.insert(lineage.clone(), Era::Medieval);
+
+        // Adult, wealthy enough to qualify, with the two discoveries band 446
+        // requires. `move_other_organisms_far_away` clears the default roster
+        // so the only neighbour is the one this test places.
+        sim.organisms[idx].age = sim.organisms[idx].max_age / 2;
+        sim.organisms[idx].specialty = Some("officer".to_string());
+        sim.organisms[idx].literacy = 1.0;
+        sim.organisms[idx]
+            .discoveries
+            .extend(["warfare", "navigation"].into_iter().map(str::to_string));
+
+        let (x, y) = (sim.organisms[0].x as i32, sim.organisms[0].y as i32);
+        sim.grid.set(x, y, Tile::Grass);
+        sim.grid.set(x, y + 1, Tile::Water); // PlaceGate::Water
+        move_other_organisms_far_away(&mut sim, idx);
+
+        // Nobody nearby: the Stranger gate must genuinely block it.
+        assert!(
+            !actions_for(&sim, idx).contains(&STRANGER_GATED),
+            "action {STRANGER_GATED} must need a stranger nearby"
+        );
+
+        // A stranger, and no kin.
+        sim.organisms[1].lineage_id = "lineage-stranger".to_string();
+        sim.organisms[1].alive = true;
+        sim.organisms[1].x = x as f32 + 1.0;
+        sim.organisms[1].y = y as f32;
+        assert!(
+            actions_for(&sim, idx).contains(&STRANGER_GATED),
+            "action {STRANGER_GATED} is gated on SocialGate::Stranger and must be \
+             offered when a stranger is near, even with no kin present"
+        );
     }
 
     #[test]

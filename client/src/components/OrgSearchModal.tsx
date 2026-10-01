@@ -78,11 +78,15 @@ export function OrgSearchModal({ organisms, onTrack, onClose, lineageNames }: Pr
         if (discF === 'shelter' && !(o.discoveries ?? []).includes('shelter')) return false
         if (aspirationF !== 'all' && o.aspiration !== aspirationF) return false
         if (sexF !== 'all' && o.sex !== sexF) return false
+        // `name` and `lineage_id` are cold fields and are genuinely absent
+        // for an organism whose cache entry was seeded from a cold-less
+        // frame, so the search box threw a TypeError on the first
+        // keystroke.
         if (
           q &&
-          !o.name.toLowerCase().includes(q) &&
-          !o.thought.toLowerCase().includes(q) &&
-          !o.lineage_id.toLowerCase().includes(q)
+          !(o.name ?? '').toLowerCase().includes(q) &&
+          !(o.thought ?? '').toLowerCase().includes(q) &&
+          !(o.lineage_id ?? '').toLowerCase().includes(q)
         )
           return false
         return true

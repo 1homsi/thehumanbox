@@ -333,8 +333,14 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
                       objectiveTarget > 0
                         ? Math.max(0, Math.min(100, Math.round((objectiveProgress / objectiveTarget) * 100)))
                         : 0
+                    // `discoveries` is a cold field the server omits with
+                    // `skip_serializing_if`, so it is genuinely absent on
+                    // periodic full frames. `OrgCard` and the other 15 call
+                    // sites already guard this; this was the one that did
+                    // not, and a throw here propagates to the top-level
+                    // ErrorBoundary and replaces the whole app.
                     const hasBrewing = world.organisms.some(
-                      (o) => o.alive && o.lineage_id === l.id && o.discoveries.includes('brewing'),
+                      (o) => o.alive && o.lineage_id === l.id && (o.discoveries ?? []).includes('brewing'),
                     )
                     const canEnterTavern = hasEnterableBuilding(world, TAVERN_BUILDINGS, l.id)
                     return (
