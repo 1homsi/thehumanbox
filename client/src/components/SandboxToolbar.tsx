@@ -12,7 +12,7 @@ import {
   type SandboxViewFlag,
 } from '../simulation/sandbox'
 import { DOCK_TABS, SPEED_TOOL_IDS, TIME_CATEGORY_ID, groupsFor, resolveTab } from './dock-tabs'
-import { WASM_BASE_TICK_MS } from '../simulation/runtimeControls'
+import { WASM_BASE_TICK_MS, isRuntimeControlActive } from '../simulation/runtimeControls'
 
 const TAB_STORAGE_KEY = 'thb-sandbox-category'
 
@@ -109,15 +109,6 @@ export function SandboxToolbar({
   const achieved = useAchievedSpeed(runtimePaused)
   // Past what the machine can sustain, say what it is really doing.
   const lagging = !runtimePaused && achieved !== null && runtimeSpeed > 10 && achieved < runtimeSpeed * 0.8
-  // The runtime rounds a request to a rate it can batch (5000x becomes
-  // ~1920x), so light whichever button is closest on a log scale.
-  const activeSpeedId = speedTools.reduce<{ id: string | null; d: number }>(
-    (best, t) => {
-      const d = Math.abs(Math.log((t.time?.mult ?? 1) / Math.max(runtimeSpeed, 0.01)))
-      return d < best.d ? { id: t.id, d } : best
-    },
-    { id: null, d: Infinity },
-  ).id
   const weather = useWorldStore((s) => s.world?.weather?.kind)
   const drought = useWorldStore((s) => s.world?.drought ?? false)
   const [flashId, setFlashId] = useState<string | null>(null)
@@ -319,7 +310,12 @@ export function SandboxToolbar({
               >
                 <button
                   type="button"
-                  className={clsx('dock-speed', !runtimePaused && tool.id === activeSpeedId && 'active')}
+                  className={clsx(
+                    'dock-speed',
+                    !runtimePaused &&
+                      isRuntimeControlActive(tool.time, runtimePaused, runtimeSpeed) &&
+                      'active',
+                  )}
                   onClick={() => onPick(tool)}
                   aria-label={`Speed ${tool.label}`}
                 >

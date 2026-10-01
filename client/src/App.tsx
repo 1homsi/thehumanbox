@@ -169,7 +169,11 @@ function LiveApp() {
           enabled = !ui.viewFlags[tool.view.value]
           ui.setViewFlag(tool.view.value, enabled)
         }
-        setTemporarySandboxStatus(`${tool.label} map ${enabled ? 'on' : 'off'}`)
+        setTemporarySandboxStatus(
+          tool.id.endsWith('_view')
+            ? `${tool.label} ${enabled ? 'shown' : 'hidden'}`
+            : `${tool.label} map ${enabled ? 'on' : 'off'}`,
+        )
         return
       }
       if (tool.mode === 'instant') {
@@ -240,16 +244,10 @@ function LiveApp() {
     [sandboxControlsEnabled, sendCommand, setTemporarySandboxStatus],
   )
 
-  const [threeDIssue, setThreeDIssue] = useState<'crash' | 'unsupported' | 'context' | null>(null)
-
-  const handleThreeDFailure = useCallback((reason: 'crash' | 'unsupported' | 'context') => {
-    setThreeDIssue(reason)
+  // When the 3D view fails it quietly falls back to the classic map; the
+  // player can turn 3D back on from settings.
+  const handleThreeDFailure = useCallback(() => {
     useUIStore.getState().setViewFlag('threeD', false)
-  }, [])
-
-  const retryThreeD = useCallback(() => {
-    setThreeDIssue(null)
-    useUIStore.getState().setViewFlag('threeD', true)
   }, [])
 
   const webglOk = useMemo(() => webglAvailable(), [])
@@ -263,7 +261,7 @@ function LiveApp() {
   const openDesktopSettings = useUIStore((s) => s.openDesktopSettings)
 
   useEffect(() => {
-    if (viewFlags.threeD && !webglOk) handleThreeDFailure('unsupported')
+    if (viewFlags.threeD && !webglOk) handleThreeDFailure()
   }, [viewFlags.threeD, webglOk, handleThreeDFailure])
 
   useEffect(() => {
@@ -487,18 +485,6 @@ function LiveApp() {
         <AppHeader world={world ?? null} connected={connected} sickOrgs={sickOrgs} />
         <HeadlineTicker world={world ?? null} enabled={viewFlags.headlineTicker} />
 
-        {threeDIssue && (
-          <div className="fallback-banner">
-            {threeDIssue === 'unsupported'
-              ? '⚠ 3D needs WebGL, which this browser does not support — showing the classic view.'
-              : threeDIssue === 'context'
-                ? '⚠ The 3D view lost its graphics context — returned to the classic view.'
-                : '⚠ The 3D view hit a rendering error — returned to the classic view.'}{' '}
-            {threeDIssue !== 'unsupported' && <button onClick={retryThreeD}>try 3D again</button>}{' '}
-            <button onClick={() => setThreeDIssue(null)}>dismiss</button>
-          </div>
-        )}
-
         <DesktopDownloadToast />
         <CommandPalette />
         <PhotoModeExit />
@@ -530,7 +516,7 @@ function LiveApp() {
                   <SceneView world={world} />
                 </Suspense>
               ) : viewFlags.threeD && webglOk ? (
-                <ThreeDErrorBoundary onCrash={() => handleThreeDFailure('crash')}>
+                <ThreeDErrorBoundary onCrash={() => handleThreeDFailure()}>
                   <Suspense fallback={<ThreeDLoading />}>
                     <WorldView3D
                       world={world}
@@ -538,7 +524,7 @@ function LiveApp() {
                       rendererPaused={desktopRendererPaused}
                       sandboxArmed={sandboxControlsEnabled && !!armedTool}
                       onSandboxApply={handleSandboxApply}
-                      onContextLost={() => handleThreeDFailure('context')}
+                      onContextLost={() => handleThreeDFailure()}
                     />
                   </Suspense>
                 </ThreeDErrorBoundary>
@@ -600,6 +586,10 @@ function LiveApp() {
             activeViewFlags={{
               territory: viewFlags.territory,
               history: viewFlags.history,
+              names: viewFlags.names,
+              thoughts: viewFlags.thoughts,
+              animals: viewFlags.animals,
+              grid: viewFlags.grid,
             }}
             onBrush={setBrush}
             onPick={onPickTool}

@@ -21,6 +21,13 @@ const TOOL_TIPS: Record<string, string> = {
   hazard_map: 'Show dangerous ground.',
   routes_map: 'Show the paths people walk most.',
   migration_map: 'Show where lineages have travelled over time.',
+  fertility_map: 'Show how fertile the soil is.',
+  age_map: 'Colour people by age.',
+  threat_map: 'Show where predators and monsters threaten people.',
+  names_view: 'Show people’s names over their heads.',
+  thoughts_view: 'Show what people are thinking.',
+  animals_view: 'Show or hide animals on the map.',
+  grid_view: 'Draw the tile grid.',
   deer: 'Release a deer.',
   rabbit: 'Release a rabbit.',
   boar: 'Release a boar.',
@@ -62,6 +69,19 @@ const TOOL_TIPS: Record<string, string> = {
   dragon: 'Summon a dragon. It flies, breathes fire, and takes an army to kill.',
   alien: 'Drop an alien. It zaps people from a distance.',
   ufo: 'Send a UFO. It abducts people for a while, then leaves.',
+  biome_grassland: 'Paint open meadow: grass and the odd tree.',
+  biome_forest: 'Paint forest: trees, wood and plenty of food.',
+  biome_jungle: 'Paint jungle: a dense canopy and the most food of any land.',
+  biome_savanna: 'Paint savanna: golden grass and flat-topped acacias.',
+  biome_desert: 'Paint desert: sand, cactus and little to eat.',
+  biome_badlands: 'Paint badlands: red rock pillars and dust.',
+  biome_wetland: 'Paint wetland: reeds, marsh and good soil.',
+  biome_tundra: 'Paint tundra: cold, snowy, and hard to live on.',
+  biome_taiga: 'Paint taiga: snowy pine forest.',
+  love: 'Single adults pair up and feel ready for children.',
+  tame: 'Turn wolves and bears into loyal dogs bonded to the nearest person.',
+  meteor_shower: 'Rain several small meteors across the brush area.',
+  volcano: 'Raise a volcano: a burning crater, a rock cone and an ash apron. Kills anyone where it rises.',
 }
 
 export function toolTip(tool: SandboxTool): string {
@@ -89,7 +109,10 @@ export function toolFailure(tool: SandboxTool): string {
     case 'arm':
     case 'bounty':
     case 'frenzy':
+    case 'love':
       return 'no one there'
+    case 'tame':
+      return 'no wolves or bears there'
     case 'banish':
       return 'nothing to banish'
     case 'douse':
@@ -100,6 +123,8 @@ export function toolFailure(tool: SandboxTool): string {
     case 'blight':
     case 'flood':
     case 'blizzard':
+    case 'volcano':
+    case 'meteor_shower':
       return 'nothing here to change'
     case 'war':
     case 'peace':
@@ -122,6 +147,7 @@ export function toolFailure(tool: SandboxTool): string {
     case 'ufo':
       return 'too many creatures already'
     default:
+      if (tool.id.startsWith('biome_')) return 'no land to paint there'
       return 'did not work here'
   }
 }

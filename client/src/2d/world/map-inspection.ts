@@ -18,7 +18,18 @@ const TILE_NAMES: Record<number, string> = {
   12: 'Snow',
   13: 'Sand',
 }
-const BIOME_NAMES = ['Grassland', 'Forest', 'Desert', 'Wetland', 'Tundra', 'Volcanic', 'Jungle', 'Savanna']
+const BIOME_NAMES = [
+  'Grassland',
+  'Forest',
+  'Desert',
+  'Wetland',
+  'Tundra',
+  'Volcanic',
+  'Jungle',
+  'Savanna',
+  'Taiga',
+  'Badlands',
+]
 export interface TileInspection {
   title: string
   subtitle: string

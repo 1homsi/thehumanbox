@@ -3,10 +3,8 @@ import { useUIStore, useViewFlag } from '../stores/store'
 import { Tooltip } from './Tooltip'
 
 export function MoreDropdown() {
-  const overlay = useUIStore((s) => s.overlay)
   const focus = useUIStore((s) => s.focus)
   const leftOpen = useUIStore((s) => s.leftOpen)
-  const setOverlay = useUIStore((s) => s.setOverlay)
   const setFocus = useUIStore((s) => s.setFocus)
   const setViewFlag = useUIStore((s) => s.setViewFlag)
   const setTerritoryView = useUIStore((s) => s.setTerritoryView)
@@ -16,10 +14,6 @@ export function MoreDropdown() {
   const openNotable = useUIStore((s) => s.openNotable)
 
   const territory = useViewFlag('territory')
-  const names = useViewFlag('names')
-  const thoughts = useViewFlag('thoughts')
-  const animals = useViewFlag('animals')
-  const grid = useViewFlag('grid')
   const lineageDot = useViewFlag('lineageDot')
   const health = useViewFlag('health')
   const age = useViewFlag('age')
@@ -40,74 +34,6 @@ export function MoreDropdown() {
 
   return (
     <div className="more-dropdown">
-      <div className="more-dropdown-section">overlays</div>
-      <div className="more-dropdown-grid">
-        <Tooltip tip="Population density heatmap — where organisms cluster">
-          <button
-            className={clsx('lang-btn', overlay === 'density' && 'active')}
-            aria-pressed={!!(overlay === 'density')}
-            onClick={() => setOverlay(overlay === 'density' ? null : 'density')}
-          >
-            👥 crowd
-          </button>
-        </Tooltip>
-        <Tooltip tip="Combat and death hotspots">
-          <button
-            className={clsx('lang-btn', overlay === 'hazard' && 'active')}
-            aria-pressed={!!(overlay === 'hazard')}
-            onClick={() => setOverlay(overlay === 'hazard' ? null : 'hazard')}
-          >
-            ⚠ hazard
-          </button>
-        </Tooltip>
-        <Tooltip tip="Soil fertility — where food grows best">
-          <button
-            className={clsx('lang-btn', overlay === 'fertility' && 'active')}
-            aria-pressed={!!(overlay === 'fertility')}
-            onClick={() => setOverlay(overlay === 'fertility' ? null : 'fertility')}
-          >
-            ✿ fertile
-          </button>
-        </Tooltip>
-        <Tooltip tip="Building density">
-          <button
-            className={clsx('lang-btn', overlay === 'structures' && 'active')}
-            aria-pressed={!!(overlay === 'structures')}
-            onClick={() => setOverlay(overlay === 'structures' ? null : 'structures')}
-          >
-            ⌂ builds
-          </button>
-        </Tooltip>
-        <Tooltip tip="Food / water / path stigmergy blended">
-          <button
-            className={clsx('lang-btn', overlay === 'trails' && 'active')}
-            aria-pressed={!!(overlay === 'trails')}
-            onClick={() => setOverlay(overlay === 'trails' ? null : 'trails')}
-          >
-            ⋯ trails
-          </button>
-        </Tooltip>
-        <Tooltip tip="Per-tile mean age">
-          <button
-            className={clsx('lang-btn', overlay === 'age' && 'active')}
-            aria-pressed={!!(overlay === 'age')}
-            onClick={() => setOverlay(overlay === 'age' ? null : 'age')}
-          >
-            ⏳ age
-          </button>
-        </Tooltip>
-        <Tooltip tip="Where organisms feel fearful">
-          <button
-            className={clsx('lang-btn', overlay === 'threat' && 'active')}
-            aria-pressed={!!(overlay === 'threat')}
-            onClick={() => setOverlay(overlay === 'threat' ? null : 'threat')}
-          >
-            🜸 threat
-          </button>
-        </Tooltip>
-      </div>
-
-      <div className="more-dropdown-divider" />
       <div className="more-dropdown-section">focus</div>
       <div className="more-dropdown-grid">
         <Tooltip tip="Show every organism (clear the focus filter)">
@@ -164,62 +90,6 @@ export function MoreDropdown() {
             ✦ thriving
           </button>
         </Tooltip>
-      </div>
-
-      <div className="more-dropdown-divider" />
-      <div className="more-dropdown-section">view</div>
-      <div className="more-dropdown-grid">
-        {!threeD && (
-          <Tooltip tip="Outline each lineage's claimed territory">
-            <button
-              className={clsx('lang-btn', territory && 'active')}
-              aria-pressed={!!territory}
-              onClick={() => setTerritoryView(!territory)}
-            >
-              ⬡ territory
-            </button>
-          </Tooltip>
-        )}
-        <Tooltip tip="Show each organism's name">
-          <button
-            className={clsx('lang-btn', names && 'active')}
-            aria-pressed={!!names}
-            onClick={() => setViewFlag('names', !names)}
-          >
-            Aa names
-          </button>
-        </Tooltip>
-        {!threeD && (
-          <Tooltip tip="Show speech bubbles with current thoughts">
-            <button
-              className={clsx('lang-btn', thoughts && 'active')}
-              aria-pressed={!!thoughts}
-              onClick={() => setViewFlag('thoughts', !thoughts)}
-            >
-              💭 thoughts
-            </button>
-          </Tooltip>
-        )}
-        <Tooltip tip="Show wild animals roaming the world">
-          <button
-            className={clsx('lang-btn', animals && 'active')}
-            aria-pressed={!!animals}
-            onClick={() => setViewFlag('animals', !animals)}
-          >
-            🦌 animals
-          </button>
-        </Tooltip>
-        {!threeD && (
-          <Tooltip tip="Show the tile grid lines">
-            <button
-              className={clsx('lang-btn', grid && 'active')}
-              aria-pressed={!!grid}
-              onClick={() => setViewFlag('grid', !grid)}
-            >
-              ⊞ grid
-            </button>
-          </Tooltip>
-        )}
       </div>
 
       <div className="more-dropdown-divider" />

@@ -165,6 +165,10 @@ export function biomeQuadrant(biomeId: number): number {
       return 3
     case BIOME_ID.SAVANNA:
       return 1
+    case BIOME_ID.TAIGA:
+      return 2
+    case BIOME_ID.BADLANDS:
+      return 1
     default:
       return 0
   }

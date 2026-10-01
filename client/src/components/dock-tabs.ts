@@ -31,8 +31,8 @@ export const DOCK_TABS: DockTab[] = [
     id: 'world',
     label: 'world',
     icon: '⛰️',
-    tip: 'Terrain, resources, and buildings',
-    groups: ['terrain', 'resources', 'build'],
+    tip: 'Terrain, biomes, resources, and buildings',
+    groups: ['terrain', 'biomes', 'resources', 'build'],
   },
   {
     id: 'powers',
@@ -41,14 +41,20 @@ export const DOCK_TABS: DockTab[] = [
     tip: 'Helpful powers, then deadly ones',
     groups: ['good', 'bad'],
   },
-  { id: 'maps', label: 'maps', icon: '🗺️', tip: 'Map layers you can switch on and off', groups: ['maps'] },
+  {
+    id: 'maps',
+    label: 'maps',
+    icon: '🗺️',
+    tip: 'Map layers and what the map shows',
+    groups: ['maps', 'view'],
+  },
 ]
 
 /** Time controls live in the dock's time panel rather than in a tab. */
 export const TIME_CATEGORY_ID = 'time'
 
 /** Speeds offered as buttons under the play control, by time-tool id. */
-export const SPEED_TOOL_IDS = ['normal', 'fast2', 'fast4', 'fast10', 'fast40', 'fast500', 'fast5000']
+export const SPEED_TOOL_IDS = ['normal', 'fast2', 'fast4', 'fast10']
 
 export function groupsFor(tabId: string): SandboxCategory[] {
   const tab = DOCK_TABS.find((t) => t.id === tabId) ?? DOCK_TABS[0]

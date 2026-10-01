@@ -1850,6 +1850,7 @@ impl Simulation {
         }
 
         self.tick_animals(&org_idx_by_id);
+        self.tick_colonization();
         self.check_animal_catches();
 
         {

@@ -183,6 +183,43 @@ pub enum Command {
         #[serde(default)]
         radius: f32,
     },
+    /// Repaint the land inside the radius as a biome.
+    PaintBiome {
+        x: i32,
+        y: i32,
+        biome: String,
+        #[serde(default)]
+        radius: i32,
+    },
+    /// Raise a volcano: a rock cone around a burning crater, an ash apron,
+    /// and death for anyone standing where it rises.
+    Volcano {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
+    },
+    /// Several small meteors scattered across the radius.
+    MeteorShower {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
+    /// Single adults in range pair up and feel ready for children.
+    Love {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
+    /// Wolves and bears in range become dogs bonded to the nearest person.
+    Tame {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
     #[serde(alias = "set_strategy")]
     Guide {
         lineage: String,
@@ -1113,6 +1150,213 @@ impl Simulation {
                 }
                 struck
             }
+            Command::PaintBiome { x, y, biome, radius } => {
+                use crate::world::tiles::Biome;
+                let kind = match biome.as_str() {
+                    "grassland" => Biome::Grassland,
+                    "forest" => Biome::Forest,
+                    "desert" => Biome::Desert,
+                    "wetland" => Biome::Wetland,
+                    "tundra" => Biome::Tundra,
+                    "jungle" => Biome::Jungle,
+                    "savanna" => Biome::Savanna,
+                    "taiga" => Biome::Taiga,
+                    "badlands" => Biome::Badlands,
+                    _ => return false,
+                };
+                let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
+                let r = if radius <= 0 { 4 } else { radius.min(24) };
+                let mut painted = 0;
+                for dx in -r..=r {
+                    for dy in -r..=r {
+                        let (nx, ny) = (x + dx, y + dy);
+                        if !WorldGrid::in_bounds(nx, ny) || dx * dx + dy * dy > r * r {
+                            continue;
+                        }
+                        let tile = self.grid.get(nx, ny);
+                        if matches!(
+                            tile,
+                            Tile::Water | Tile::Void | Tile::Rock | Tile::Hut | Tile::Fire | Tile::Mineral
+                        ) {
+                            continue;
+                        }
+                        let i = WorldGrid::idx(nx, ny);
+                        self.grid.biome[i] = kind as u8;
+                        self.grid.fertility[i] = kind.base_fertility();
+                        // The ground follows the biome: sand for dry lands,
+                        // snow patches in the cold, grass elsewhere.
+                        let roll = self.rng.random::<f32>();
+                        let ground = match kind {
+                            Biome::Desert | Biome::Badlands => Tile::Sand,
+                            Biome::Tundra if roll < 0.4 => Tile::Snow,
+                            Biome::Taiga if roll < 0.15 => Tile::Snow,
+                            Biome::Jungle | Biome::Forest if roll < kind.initial_food_chance() => Tile::Food,
+                            _ => Tile::Grass,
+                        };
+                        if tile != Tile::Food || ground != Tile::Grass {
+                            self.grid.set(nx, ny, ground);
+                        }
+                        painted += 1;
+                    }
+                }
+                painted > 0
+            }
+            Command::Volcano { x, y, radius } => {
+                use crate::world::tiles::Biome;
+                let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
+                let r = if radius <= 0 { 6 } else { radius.clamp(3, 12) };
+                let rf = r as f32;
+                let mut changed = false;
+                for dx in -r * 2..=r * 2 {
+                    for dy in -r * 2..=r * 2 {
+                        let (nx, ny) = (x + dx, y + dy);
+                        if !WorldGrid::in_bounds(nx, ny) || self.grid.get(nx, ny) == Tile::Void {
+                            continue;
+                        }
+                        let i = WorldGrid::idx(nx, ny);
+                        let d = ((dx * dx + dy * dy) as f32).sqrt();
+                        if d <= 1.5 {
+                            self.grid.set(nx, ny, Tile::Fire);
+                            *self.grid.fire_intensity_mut(nx, ny) = 1.0;
+                            self.physics.register_fire(nx, ny);
+                        } else if d < rf * 0.6 {
+                            self.grid.set(nx, ny, Tile::Rock);
+                        } else if d < rf * 1.2 {
+                            self.grid.set(nx, ny, Tile::Ash);
+                        } else if d < rf * 1.5
+                            && self.grid.get(nx, ny).flammable()
+                            && self.rng.random::<f32>() < 0.3
+                        {
+                            self.grid.set(nx, ny, Tile::Fire);
+                            *self.grid.fire_intensity_mut(nx, ny) = 1.0;
+                            self.physics.register_fire(nx, ny);
+                        } else {
+                            continue;
+                        }
+                        self.grid.biome[i] = Biome::Volcanic as u8;
+                        self.grid.elevation[i] =
+                            self.grid.elevation[i].max(0.3 + (1.0 - d / (rf * 2.0)) * 0.6);
+                        changed = true;
+                    }
+                }
+                let mut killed = 0;
+                for o in self.organisms.iter_mut() {
+                    if o.alive && (o.x - x as f32).hypot(o.y - y as f32) < rf * 0.6 {
+                        o.health = -1.0;
+                        killed += 1;
+                    }
+                }
+                for a in self.animals.iter_mut() {
+                    if a.alive && (a.x - x as f32).hypot(a.y - y as f32) < rf * 0.6 {
+                        a.alive = false;
+                    }
+                }
+                let detail = if killed > 0 {
+                    format!("burst from the ground and buried {killed} people")
+                } else {
+                    "burst from the ground".to_string()
+                };
+                push_event(&mut self.events, self.tick_count, "danger", "a volcano", &detail);
+                changed
+            }
+            Command::MeteorShower { x, y, radius } => {
+                let r = if radius <= 0.0 { 10.0 } else { radius.min(40.0) };
+                let mut hit = false;
+                for _ in 0..5 {
+                    let angle = self.rng.random::<f32>() * std::f32::consts::TAU;
+                    let dist = self.rng.random::<f32>().sqrt() * r;
+                    let (mx, my) = ((x + angle.cos() * dist) as i32, (y + angle.sin() * dist) as i32);
+                    hit |= self.apply_command(Command::Meteor {
+                        x: mx,
+                        y: my,
+                        radius: 2,
+                    });
+                }
+                hit
+            }
+            Command::Love { x, y, radius } => {
+                use crate::organism::organism::Sex;
+                let r = if radius <= 0.0 { 5.0 } else { radius.min(32.0) };
+                let in_range: Vec<usize> = (0..self.organisms.len())
+                    .filter(|&i| {
+                        let o = &self.organisms[i];
+                        o.alive && o.age >= 700 && (o.x - x).hypot(o.y - y) <= r
+                    })
+                    .collect();
+                let mut paired = 0;
+                for &i in &in_range {
+                    if self.organisms[i].sex != Sex::Female || self.organisms[i].partner_id.is_some() {
+                        continue;
+                    }
+                    let lineage = self.organisms[i].lineage_id.clone();
+                    let Some(&j) = in_range.iter().find(|&&j| {
+                        let o = &self.organisms[j];
+                        o.sex == Sex::Male && o.partner_id.is_none() && o.lineage_id == lineage
+                    }) else {
+                        continue;
+                    };
+                    let (a, b) = (self.organisms[i].id.clone(), self.organisms[j].id.clone());
+                    self.organisms[i].partner_id = Some(b);
+                    self.organisms[j].partner_id = Some(a);
+                    paired += 1;
+                }
+                for &i in &in_range {
+                    let o = &mut self.organisms[i];
+                    // Ready for children now rather than after the usual wait.
+                    o.last_reproduced = 0;
+                    o.joy_ticks = o.joy_ticks.saturating_add(400).min(1_200);
+                    o.hope = (o.hope + 0.2).min(1.0);
+                    o.think("in love", self.tick_count);
+                }
+                if !in_range.is_empty() {
+                    let detail = if paired > 0 {
+                        format!("brought {paired} couples together")
+                    } else {
+                        format!("filled {} hearts with love", in_range.len())
+                    };
+                    push_event(&mut self.events, self.tick_count, "bless", "the gods", &detail);
+                }
+                !in_range.is_empty()
+            }
+            Command::Tame { x, y, radius } => {
+                let r = if radius <= 0.0 { 6.0 } else { radius.min(32.0) };
+                let mut tamed = 0;
+                for ai in 0..self.animals.len() {
+                    let a = &self.animals[ai];
+                    if !a.alive
+                        || !matches!(a.kind, AnimalKind::Wolf | AnimalKind::Bear)
+                        || (a.x - x).hypot(a.y - y) > r
+                    {
+                        continue;
+                    }
+                    let (ax, ay) = (a.x, a.y);
+                    let owner = self
+                        .organisms
+                        .iter()
+                        .filter(|o| o.alive)
+                        .min_by(|p, q| (p.x - ax).hypot(p.y - ay).total_cmp(&(q.x - ax).hypot(q.y - ay)))
+                        .map(|o| o.id.clone());
+                    let a = &mut self.animals[ai];
+                    a.kind = AnimalKind::Dog;
+                    a.energy = 1.0;
+                    a.bonded_org = owner;
+                    if a.name.is_none() {
+                        a.name = Some(crate::organism::animal::pick_dog_name(&mut self.rng));
+                    }
+                    tamed += 1;
+                }
+                if tamed > 0 {
+                    let what = if tamed == 1 { "beast" } else { "beasts" };
+                    push_event(
+                        &mut self.events,
+                        self.tick_count,
+                        "bless",
+                        "the gods",
+                        &format!("tamed {tamed} wild {what} into loyal dogs"),
+                    );
+                }
+                tamed > 0
+            }
             Command::Guide {
                 lineage,
                 strategy,
@@ -1764,21 +2008,44 @@ mod tests {
     }
 
     #[test]
+    fn biome_brush_volcano_love_and_tame() {
+        use crate::organism::animal::{Animal, AnimalKind};
+        use crate::world::tiles::{Biome, Tile};
+        let (mut sim, target) = sim_with_person_at_100();
+
+        assert!(
+            sim.apply_command_json(r#"{"cmd":"paint_biome","x":100,"y":100,"radius":3,"biome":"badlands"}"#)
+        );
+        assert_eq!(sim.grid.biome_at(101, 100), Biome::Badlands);
+        assert_eq!(sim.grid.get(101, 100), Tile::Sand);
+        assert!(!sim.apply_command_json(r#"{"cmd":"paint_biome","x":100,"y":100,"biome":"candy"}"#));
+
+        sim.animals.clear();
+        sim.animals.push(Animal::new(1, 101.0, 100.0, AnimalKind::Wolf));
+        assert!(sim.apply_command_json(r#"{"cmd":"tame","x":100.0,"y":100.0,"radius":4.0}"#));
+        assert!(sim.animals[0].kind == AnimalKind::Dog);
+        assert!(sim.animals[0].bonded_org.is_some());
+
+        sim.organisms[target].last_reproduced = 999;
+        assert!(sim.apply_command_json(r#"{"cmd":"love","x":100.0,"y":100.0,"radius":2.0}"#));
+        assert_eq!(sim.organisms[target].last_reproduced, 0);
+
+        assert!(sim.apply_command_json(r#"{"cmd":"volcano","x":100,"y":100,"radius":6}"#));
+        assert_eq!(sim.grid.get(100, 100), Tile::Fire);
+        assert_eq!(sim.grid.get(102, 100), Tile::Rock);
+        assert_eq!(sim.grid.biome_at(105, 100), Biome::Volcanic);
+        assert!(sim.organisms[target].health < 0.0);
+
+        assert!(sim.apply_command_json(r#"{"cmd":"meteor_shower","x":150.0,"y":150.0,"radius":8.0}"#));
+    }
+
+    #[test]
     fn a_zombie_outbreak_grows_only_by_its_victims() {
         use crate::organism::animal::{Animal, AnimalKind};
         let mut sim = Simulation::new(42);
         for _ in 0..300 {
             sim.tick();
         }
-        let deaths = |sim: &Simulation| {
-            let h = &sim.history;
-            h.deaths_old_age
-                + h.deaths_starvation
-                + h.deaths_dehydration
-                + h.deaths_sickness
-                + h.deaths_combat
-        };
-        let start = deaths(&sim);
         let (x, y) = sim
             .organisms
             .iter()
@@ -1788,23 +2055,24 @@ mod tests {
         let id = sim.next_animal_id;
         sim.next_animal_id += 1;
         sim.animals.push(Animal::new(id, x, y, AnimalKind::Zombie));
+        let mut risen = 0usize;
         for _ in 0..400 {
             sim.tick();
+            risen += sim
+                .events
+                .iter()
+                .filter(|e| e.tick == sim.tick_count && e.detail == "rose as a zombie")
+                .count();
             let zombies = sim
                 .animals
                 .iter()
                 .filter(|a| a.alive && a.kind == AnimalKind::Zombie)
                 .count();
-            // A killing bite raises the zombie this tick; the death itself is
-            // recorded on the next, so count the fatally bitten too.
-            let dying = sim
-                .organisms
-                .iter()
-                .filter(|o| o.alive && o.health <= 0.0)
-                .count();
-            let dead = (deaths(&sim) - start) as usize + dying;
-            // One zombie per person it killed, never a runaway.
-            assert!(zombies <= dead + 1, "{zombies} zombies but only {dead} died");
+            // The first zombie plus one per victim who rose, never a runaway.
+            assert!(
+                zombies <= risen + 1,
+                "{zombies} zombies but only {risen} victims rose"
+            );
         }
     }
 

@@ -216,6 +216,8 @@ pub fn try_reproduce(
         Biome::Forest => 1.30,
         Biome::Jungle => 1.25,
         Biome::Savanna => 0.85,
+        Biome::Taiga => 0.6,
+        Biome::Badlands => 0.35,
     };
 
     let local_fert = {
@@ -335,6 +337,8 @@ pub fn try_reproduce(
             Biome::Volcanic => "I was born on the burning land",
             Biome::Jungle => "I was born in the green dark of the jungle",
             Biome::Savanna => "I was born on the golden plains under the wide sky",
+            Biome::Taiga => "I was born among the snow-heavy pines",
+            Biome::Badlands => "I was born among the red rocks where the wind cuts",
         };
         child.memories.insert(
             MemoryEntry::new(MemoryKind::Place, biome_text, tick)

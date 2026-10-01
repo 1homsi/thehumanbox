@@ -11,6 +11,10 @@ pub enum Biome {
     Jungle = 6,
     /// Hot and semi-dry: golden grass and scattered trees.
     Savanna = 7,
+    /// Cold forest: dense snowy pines.
+    Taiga = 8,
+    /// Hot, dry uplands: red rock and dust.
+    Badlands = 9,
 }
 
 impl Biome {
@@ -23,12 +27,14 @@ impl Biome {
             5 => Biome::Volcanic,
             6 => Biome::Jungle,
             7 => Biome::Savanna,
+            8 => Biome::Taiga,
+            9 => Biome::Badlands,
             _ => Biome::Grassland,
         }
     }
     /// Covered in trees people can fell for wood.
     pub fn wooded(self) -> bool {
-        matches!(self, Biome::Forest | Biome::Jungle)
+        matches!(self, Biome::Forest | Biome::Jungle | Biome::Taiga)
     }
     pub fn base_temp(self) -> f32 {
         match self {
@@ -40,6 +46,8 @@ impl Biome {
             Biome::Volcanic => 80.0,
             Biome::Jungle => 30.0,
             Biome::Savanna => 31.0,
+            Biome::Taiga => 2.0,
+            Biome::Badlands => 36.0,
         }
     }
     pub fn food_growth_mult(self) -> f32 {
@@ -52,6 +60,8 @@ impl Biome {
             Biome::Volcanic => 0.15,
             Biome::Jungle => 2.6,
             Biome::Savanna => 0.7,
+            Biome::Taiga => 0.9,
+            Biome::Badlands => 0.15,
         }
     }
     pub fn initial_food_chance(self) -> f32 {
@@ -64,6 +74,8 @@ impl Biome {
             Biome::Volcanic => 0.03,
             Biome::Jungle => 0.26,
             Biome::Savanna => 0.07,
+            Biome::Taiga => 0.08,
+            Biome::Badlands => 0.02,
         }
     }
     pub fn rock_chance(self) -> f32 {
@@ -84,6 +96,8 @@ impl Biome {
             Biome::Volcanic => 0.18,
             Biome::Jungle => 0.92,
             Biome::Savanna => 0.5,
+            Biome::Taiga => 0.5,
+            Biome::Badlands => 0.15,
         }
     }
 }

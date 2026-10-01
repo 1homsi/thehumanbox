@@ -30,6 +30,8 @@ export const BIOME_ID = {
   VOLCANIC: 5,
   JUNGLE: 6,
   SAVANNA: 7,
+  TAIGA: 8,
+  BADLANDS: 9,
 } as const
 
 export function isWaterTile(tile: number | undefined): boolean {

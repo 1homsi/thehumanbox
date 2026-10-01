@@ -686,7 +686,7 @@ impl WorldGrid {
                     Biome::Tundra
                 } else if t < 7.0 {
                     if m > 0.45 {
-                        Biome::Forest
+                        Biome::Taiga
                     } else {
                         Biome::Tundra
                     }
@@ -706,6 +706,9 @@ impl WorldGrid {
                     Biome::Grassland
                 } else if m > 0.21 {
                     Biome::Savanna
+                } else if e > 0.2 {
+                    // Dry uplands erode into red badlands.
+                    Biome::Badlands
                 } else {
                     Biome::Desert
                 };
@@ -737,6 +740,7 @@ impl WorldGrid {
                 } else {
                     match biome {
                         Biome::Desert if detail > -0.15 => Tile::Sand,
+                        Biome::Badlands => Tile::Sand,
                         Biome::Tundra if t < -6.0 || detail > 0.2 => Tile::Snow,
                         _ => Tile::Grass,
                     }

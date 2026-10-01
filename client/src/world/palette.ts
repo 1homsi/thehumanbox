@@ -34,6 +34,9 @@ export const BIOME_OVERLAYS: Record<number, string> = {
   // Jungle: deep wet green. Savanna: sun-bleached gold.
   6: 'rgba(16,78,34,0.34)',
   7: 'rgba(196,170,72,0.30)',
+  // Taiga: cold blue-green. Badlands: rust red.
+  8: 'rgba(40,82,78,0.30)',
+  9: 'rgba(186,84,44,0.42)',
 }
 
 export function parseHex(h: string): [number, number, number] {
