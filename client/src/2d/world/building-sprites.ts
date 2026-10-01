@@ -32,6 +32,8 @@ interface P {
   cond: number
   kind: string
   variant: number
+  /** Architectural era of the owning tribe (see ERA_TIERS). */
+  tier: number
 }
 
 function px(ctx: Ctx, x: number, y: number, w: number, h: number, c: string) {
@@ -1114,6 +1116,304 @@ function paintUtility(p: P) {
 
 const ARCHETYPE: Record<string, (p: P) => void | boolean> = {}
 
+/**
+ * Architectural tiers, from the owning tribe's era. Homes are drawn in their
+ * tribe's current style, so a town visibly modernises as it advances: huts
+ * become cottages, stone houses, timber, brick, apartments, glass towers.
+ */
+export const ERA_TIERS: Record<string, number> = {
+  pre_stone: 0,
+  stone: 0,
+  bronze: 1,
+  iron: 1,
+  classical: 2,
+  medieval: 3,
+  renaissance: 4,
+  industrial: 5,
+  modern: 6,
+  information: 6,
+  atomic: 6,
+  space: 7,
+  digital: 7,
+  quantum: 7,
+  solar: 7,
+}
+/** Tier for an era name; eras past Solar are all the far future. */
+export function eraTier(era: string | undefined | null): number {
+  if (!era) return 0
+  return ERA_TIERS[era.toLowerCase().replace(/[-\s]/g, '_')] ?? 8
+}
+
+/** The least modern style each home kind can take. */
+const HOME_KIND_TIER: Record<string, number> = {
+  Hut: 0,
+  Tent: 0,
+  House: 1,
+  Manor: 3,
+  TownHouse: 4,
+  Apartment: 6,
+  Skyscraper: 7,
+}
+
+function paintClassicalHome(p: P) {
+  // Whitewashed stone under terracotta tiles, a porch on two columns.
+  const { x0, y1, w, h, rng } = p
+  const wallH = h * 0.52
+  const top = y1 - wallH
+  const base = hueShift('#e6dcc6', (rng() - 0.5) * 10, 0.9, 0.96 + rng() * 0.06)
+  wallTexture(p, x0, top, w, wallH, base)
+  outline(p.ctx, x0, top, w, wallH)
+  const roof = hueShift('#b5532f', (rng() - 0.5) * 14)
+  gableRoof(p, x0, top, w, h * 0.26, roof, 2)
+  for (let x = x0 + 1; x < x0 + w - 1; x += 3) px(p.ctx, x, top - 1, 1, 1, shade(roof, 0.7))
+  const porch = w * 0.4
+  px(p.ctx, x0 + w * 0.08, top + 2, porch, 2, shade(base, 0.85))
+  px(p.ctx, x0 + w * 0.1, top + 4, 2, wallH - 4, '#f4eee0')
+  px(p.ctx, x0 + w * 0.1 + porch - 4, top + 4, 2, wallH - 4, '#f4eee0')
+  door(p, x0 + w * 0.1 + porch / 2, y1, Math.max(3, w * 0.14), wallH * 0.6, '#5a3a22')
+  windowGlow(p, x0 + w * 0.7, top + wallH * 0.32, 3, 4)
+  cracks(p, x0, top, w, wallH)
+}
+
+function smoke(p: P, x: number, y: number) {
+  for (let i = 0; i < 3; i++) {
+    const a = 0.28 - i * 0.07
+    px(p.ctx, x - i + p.rng() * 2, y - 3 - i * 3, 3 + i, 2, `rgba(205,205,205,${a})`)
+  }
+}
+
+function paintRowhouse(p: P) {
+  // Industrial terraced brick: soot-dark walls, slate roof, smoking chimneys.
+  const { x0, y1, w, h, rng } = p
+  const wallH = h * 0.7
+  const top = y1 - wallH
+  const base = hueShift('#8a4a34', (rng() - 0.5) * 12, 1, 0.92 + rng() * 0.1)
+  wallTexture(p, x0, top, w, wallH, base)
+  for (let y = top + 3; y < y1 - 1; y += 3) px(p.ctx, x0 + 1, y, w - 2, 1, shade(base, 0.82))
+  outline(p.ctx, x0, top, w, wallH)
+  gableRoof(p, x0, top, w, h * 0.22, '#3e4650', 1)
+  chimney(p, x0 + 2, top - h * 0.12, 7)
+  chimney(p, x0 + w - 5, top - h * 0.12, 7)
+  smoke(p, x0 + 3, top - h * 0.12 - 7)
+  const floors = wallH > 14 ? 2 : 1
+  for (let f = 0; f < floors; f++) {
+    const fy = top + 3 + f * (wallH / floors)
+    windowGlow(p, x0 + w * 0.2, fy, 3, 4)
+    windowGlow(p, x0 + w * 0.68, fy, 3, 4)
+  }
+  door(p, x0 + w * 0.45, y1, Math.max(3, w * 0.16), wallH * 0.4, '#2a2626')
+  cracks(p, x0, top, w, wallH)
+}
+
+function paintGlassTower(p: P) {
+  // A tall glass tower with mullions and a sky reflection band.
+  const { x0, y1, w, h, rng, night } = p
+  const bh = Math.min(h + 18 + (p.variant % 3) * 4, y1 - 4)
+  const top = y1 - bh
+  const glass = night > 0 ? '#1c2a3e' : hueShift('#5f86a8', (rng() - 0.5) * 20)
+  px(p.ctx, x0, top, w, bh, glass)
+  px(p.ctx, x0 + w * 0.55, top, w * 0.45, bh, 'rgba(0,0,0,0.18)')
+  for (let x = x0 + 2; x < x0 + w - 1; x += 3) px(p.ctx, x, top, 1, bh, 'rgba(255,255,255,0.12)')
+  for (let y = top + 4; y < y1; y += 4) {
+    px(p.ctx, x0, y, w, 1, 'rgba(10,20,30,0.35)')
+    if (night > 0)
+      for (let x = x0 + 1; x < x0 + w - 2; x += 3)
+        if (rng() < 0.4) px(p.ctx, x, y + 1, 2, 2, 'rgba(255,224,150,0.8)')
+  }
+  // Sky reflection sweeping down the tower.
+  p.ctx.fillStyle = 'rgba(220,240,255,0.22)'
+  p.ctx.beginPath()
+  p.ctx.moveTo(x0, top + bh * 0.2)
+  p.ctx.lineTo(x0 + w * 0.5, top)
+  p.ctx.lineTo(x0 + w * 0.7, top)
+  p.ctx.lineTo(x0, top + bh * 0.4)
+  p.ctx.closePath()
+  p.ctx.fill()
+  outline(p.ctx, x0, top, w, bh)
+  px(p.ctx, x0 + w / 2, top - 5, 1, 5, '#c9d4dd')
+  px(p.ctx, x0 + w / 2, top - 6, 1, 1, night > 0 ? '#ff5050' : '#e8eef2')
+}
+
+function paintFutureHome(p: P) {
+  // Far-future arcology: stepped white terraces with a garden on every
+  // shelf and a glowing spine, so it outgrows the glass towers before it.
+  const { ctx, x0, y1, w, h, night, variant } = p
+  const cx = Math.round(x0 + w / 2)
+  const levels = 3 + (variant % 2)
+  const glow = variant % 3 === 2 ? '255,190,110' : '90,220,255'
+  const levelH = Math.max(4, Math.floor((h * 1.1) / levels))
+  for (let i = 0; i < levels; i++) {
+    const lw = Math.max(4, Math.round(w * (1 - i * 0.22)))
+    const lx = cx - Math.floor(lw / 2)
+    const ly = y1 - (i + 1) * levelH
+    px(ctx, lx, ly, lw, levelH, '#e9eef3')
+    px(ctx, lx + Math.ceil(lw / 2), ly, Math.floor(lw / 2), levelH, '#cfd8e1')
+    px(ctx, lx + 1, ly + Math.floor(levelH / 2), lw - 2, 1, `rgba(${glow},${0.5 + night * 0.45})`)
+    outline(ctx, lx, ly, lw, levelH)
+  }
+  // Hanging gardens on the exposed shelves, drawn last so no level hides them.
+  for (let i = 0; i < levels; i++) {
+    const lw = Math.max(4, Math.round(w * (1 - i * 0.22)))
+    const lx = cx - Math.floor(lw / 2)
+    const ly = y1 - (i + 1) * levelH
+    const nw = Math.max(4, Math.round(w * (1 - (i + 1) * 0.22)))
+    const shelf = i === levels - 1 ? lw : Math.max(1, Math.floor((lw - nw) / 2))
+    for (const sx of i === levels - 1 ? [lx] : [lx, lx + lw - shelf]) {
+      px(ctx, sx, ly - 1, shelf, 2, '#4c9a45')
+      px(ctx, sx, ly - 2, Math.max(1, shelf - 1), 1, '#6cbf55')
+      px(ctx, sx, ly + 1, 1, 2, '#3e7f3a')
+    }
+  }
+  const top = y1 - levels * levelH
+  px(ctx, cx - 1, top - 5, 2, 4, '#cfd8e1')
+  px(ctx, cx - 1, top - 6, 2, 1, `rgba(${glow},${0.75 + night * 0.25})`)
+}
+
+/** Homes in their tribe's style; a kind never drops below its own tier. */
+function paintEraHome(p: P) {
+  const tier = Math.max(HOME_KIND_TIER[p.kind] ?? 0, p.tier)
+  switch (tier) {
+    case 0:
+      return paintEarlyHome(p)
+    case 1:
+      return paintCottage(p)
+    case 2:
+      return paintClassicalHome(p)
+    case 3:
+      return p.kind === 'Manor' ? paintManor(p) : paintDwelling(p)
+    case 4:
+      return paintTownhouse(p, false)
+    case 5:
+      return paintRowhouse(p)
+    case 6:
+      return paintModern({ ...p, kind: 'Apartment' })
+    case 7:
+      return paintGlassTower(p)
+    default:
+      return paintFutureHome(p)
+  }
+}
+
+function paintPowerPlant(p: P) {
+  const { x0, y1, w, h, night } = p
+  if (p.tier < 6) {
+    // Coal: a brick hall and a tall smoking stack.
+    paintIndustrial({ ...p, kind: 'Factory' })
+    px(p.ctx, x0 + w - 6, y1 - h - 10, 4, h * 0.7 + 10, '#5e4b40')
+    px(p.ctx, x0 + w - 7, y1 - h - 11, 6, 2, '#3e322b')
+    smoke(p, x0 + w - 5, y1 - h - 11)
+    smoke(p, x0 + w - 3, y1 - h - 16)
+    return
+  }
+  // Nuclear: a broad, waisted cooling tower trailing steam, beside a
+  // reactor dome. The waist and flared lip are what read as "nuclear".
+  const tw = w * 0.66
+  const tx = x0
+  const th = Math.min(h * 0.9, tw * 1.25)
+  const waist = tw * 0.16
+  p.ctx.fillStyle = '#d2cdc3'
+  p.ctx.beginPath()
+  p.ctx.moveTo(tx, y1)
+  p.ctx.quadraticCurveTo(tx + waist * 2.2, y1 - th * 0.62, tx + waist * 0.7, y1 - th)
+  p.ctx.lineTo(tx + tw - waist * 0.7, y1 - th)
+  p.ctx.quadraticCurveTo(tx + tw - waist * 2.2, y1 - th * 0.62, tx + tw, y1)
+  p.ctx.closePath()
+  p.ctx.fill()
+  p.ctx.strokeStyle = OUTLINE
+  p.ctx.stroke()
+  // Shaded far side, and the dark mouth at the top.
+  p.ctx.fillStyle = 'rgba(0,0,0,0.16)'
+  p.ctx.beginPath()
+  p.ctx.moveTo(tx + tw * 0.62, y1)
+  p.ctx.quadraticCurveTo(tx + tw * 0.6, y1 - th * 0.62, tx + tw * 0.6, y1 - th)
+  p.ctx.lineTo(tx + tw - waist * 0.7, y1 - th)
+  p.ctx.quadraticCurveTo(tx + tw - waist * 2.2, y1 - th * 0.62, tx + tw, y1)
+  p.ctx.closePath()
+  p.ctx.fill()
+  px(p.ctx, tx + waist * 0.7, y1 - th, tw - waist * 1.4, 2, '#5e5a54')
+  for (let i = 0; i < 4; i++) {
+    const a = 0.9 - i * 0.16
+    px(p.ctx, tx + waist - i, y1 - th - 3 - i * 4, tw - waist * 2 + i * 3, 3, `rgba(244,244,244,${a})`)
+  }
+  const dx = x0 + w * 0.8
+  const dr = Math.min(w * 0.2, h * 0.4)
+  px(p.ctx, dx - dr, y1 - dr * 0.6, dr * 2, dr * 0.6, '#9aa4ae')
+  p.ctx.fillStyle = '#dfe4e8'
+  p.ctx.beginPath()
+  p.ctx.arc(dx, y1 - dr * 0.6, dr, Math.PI, 0)
+  p.ctx.fill()
+  p.ctx.strokeStyle = OUTLINE
+  p.ctx.stroke()
+  px(p.ctx, dx - 1, y1 - dr * 1.6, 2, 2, night > 0 ? '#ff6040' : '#c94a3a')
+}
+
+function paintSpaceport(p: P) {
+  // A launch pad with its gantry and a rocket standing ready.
+  const { x0, y1, w, h, night } = p
+  px(p.ctx, x0, y1 - 3, w, 3, '#6f7378')
+  px(p.ctx, x0, y1 - 3, w, 1, '#9aa0a6')
+  const gx = x0 + w * 0.22
+  const gh = h * 1.25
+  px(p.ctx, gx, y1 - gh, 3, gh, '#b84a32')
+  for (let y = y1 - gh + 2; y < y1 - 3; y += 4) px(p.ctx, gx, y, 3, 1, '#6e2a1c')
+  px(p.ctx, gx + 3, y1 - gh * 0.8, 4, 1, '#b84a32')
+  const rx = x0 + w * 0.6
+  const rw = Math.max(5, w * 0.16)
+  const rh = h * 1.15
+  const ry = y1 - 3 - rh
+  px(p.ctx, rx - rw / 2, ry + rw, rw, rh - rw, '#eef1f4')
+  px(p.ctx, rx, ry + rw, rw / 2, rh - rw, 'rgba(0,0,0,0.12)')
+  p.ctx.fillStyle = '#eef1f4'
+  p.ctx.beginPath()
+  p.ctx.moveTo(rx - rw / 2, ry + rw)
+  p.ctx.lineTo(rx + rw / 2, ry + rw)
+  p.ctx.lineTo(rx, ry - 1)
+  p.ctx.closePath()
+  p.ctx.fill()
+  p.ctx.strokeStyle = OUTLINE
+  p.ctx.stroke()
+  outline(p.ctx, rx - rw / 2, ry + rw, rw, rh - rw)
+  px(p.ctx, rx - rw / 2 - 2, y1 - 9, 2, 6, '#c8392b')
+  px(p.ctx, rx + rw / 2, y1 - 9, 2, 6, '#c8392b')
+  px(p.ctx, rx - rw / 2, ry + rh * 0.35, rw, 2, '#2f4f8a')
+  windowGlow(p, rx - 1, ry + rw + 3, 2, 2, true)
+  if (night > 0) px(p.ctx, gx + 1, y1 - gh - 1, 1, 1, '#ff5050')
+}
+
+function paintFusionPlant(p: P) {
+  // A squat hall wearing a glowing magnetic torus.
+  const { x0, y1, w, h, night } = p
+  const cx = x0 + w / 2
+  wallTexture(p, x0 + 1, y1 - h * 0.45, w - 2, h * 0.45, '#3f4758')
+  outline(p.ctx, x0 + 1, y1 - h * 0.45, w - 2, h * 0.45)
+  const ry = y1 - h * 0.55
+  p.ctx.strokeStyle = `rgba(255,110,230,${0.75 + night * 0.2})`
+  p.ctx.lineWidth = 3
+  p.ctx.beginPath()
+  p.ctx.ellipse(cx, ry, w * 0.36, h * 0.16, 0, 0, Math.PI * 2)
+  p.ctx.stroke()
+  p.ctx.strokeStyle = 'rgba(255,220,250,0.9)'
+  p.ctx.lineWidth = 1
+  p.ctx.beginPath()
+  p.ctx.ellipse(cx, ry, w * 0.36, h * 0.16, 0, 0, Math.PI * 2)
+  p.ctx.stroke()
+  p.ctx.lineWidth = 1
+  px(p.ctx, cx - 2, ry - 2, 4, 4, `rgba(255,240,255,${0.7 + night * 0.3})`)
+}
+
+function paintOrbitalLift(p: P) {
+  // A tether climbing out of sight from an anchored base.
+  const { x0, y1, w, h, night } = p
+  const cx = x0 + w / 2
+  wallTexture(p, x0 + 1, y1 - h * 0.35, w - 2, h * 0.35, '#5a6372')
+  outline(p.ctx, x0 + 1, y1 - h * 0.35, w - 2, h * 0.35)
+  px(p.ctx, cx - 1, y1 - h - 22, 2, h + 22 - h * 0.35, '#c9d4dd')
+  px(p.ctx, cx, y1 - h - 22, 1, h + 22 - h * 0.35, 'rgba(255,255,255,0.6)')
+  px(p.ctx, cx - 3, y1 - h * 0.85, 6, 4, '#eef1f4')
+  outline(p.ctx, cx - 3, y1 - h * 0.85, 6, 4)
+  px(p.ctx, x0 + 1, y1 - h * 0.35, w - 2, 1, `rgba(90,220,255,${0.7 + night * 0.3})`)
+}
+
 function reg(painter: (p: P) => void | boolean, kinds: string[]) {
   for (const k of kinds) ARCHETYPE[k] = painter
 }
@@ -1283,6 +1583,14 @@ reg(paintUtility, [
   'FoodTruck',
 ])
 
+// Homes follow their tribe's era; these landmarks get their own art.
+reg(paintEraHome, ['Hut', 'House', 'Manor', 'TownHouse', 'Apartment', 'Skyscraper'])
+reg(paintPowerPlant, ['PowerPlant'])
+reg(paintSpaceport, ['Spaceport'])
+reg(paintFusionPlant, ['FusionPlant'])
+reg(paintOrbitalLift, ['OrbitalLift'])
+reg(paintGlassTower, ['OfficeTower'])
+
 export const BUILDING_SPRITE_KINDS = Object.freeze(Object.keys(ARCHETYPE))
 
 const spriteCache = new Map<string, HTMLCanvasElement>()
@@ -1299,10 +1607,11 @@ export function getBuildingSprite(
   variant: number,
   night: number,
   condBucket: number,
+  tier = 0,
 ): HTMLCanvasElement | null {
   const painter = ARCHETYPE[kind]
   if (!painter) return null
-  const key = `${kind}|${fw}x${fh}|${tile}|v${variant}|n${night}|c${condBucket}`
+  const key = `${kind}|${fw}x${fh}|${tile}|v${variant}|n${night}|c${condBucket}|t${tier}`
   const hit = spriteCache.get(key)
   if (hit) return hit
 
@@ -1326,6 +1635,7 @@ export function getBuildingSprite(
     cond: condBucket === 0 ? 0.3 : 1,
     kind,
     variant,
+    tier,
   }
   const ok = painter(p)
   if (ok === false) return null

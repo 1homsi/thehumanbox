@@ -14,6 +14,17 @@ import { drawFaunaSprite } from './fauna-sprites'
 import { drawPixelFauna } from './pixel-fauna'
 import { drawMountains } from './mountains'
 
+/** Each tribe's architectural tier, from the era it has reached. */
+function lineageEraTiers(
+  eras: Array<{ lineage_id: string; era_name: string }> | Record<string, string> | undefined,
+): Map<string, number> {
+  const out = new Map<string, number>()
+  if (!eras) return out
+  if (Array.isArray(eras)) for (const e of eras) out.set(e.lineage_id, eraTier(e.era_name))
+  else for (const [id, era] of Object.entries(eras)) out.set(id, eraTier(era))
+  return out
+}
+
 /**
  * Drawn sizes for summoned monsters. Zombies, demons and aliens are drawn
  * at one pixel per sprite pixel, the size of a person; the dragon and the
@@ -49,7 +60,7 @@ import {
   drawTile,
 } from '../../utils/sprites'
 import { compareBuildingsByDepth, drawBuilding } from './buildings2d'
-import { getBuildingSprite, PAD as SPRITE_PAD, PAD_BOT as SPRITE_PAD_BOT } from './building-sprites'
+import { eraTier, getBuildingSprite, PAD as SPRITE_PAD, PAD_BOT as SPRITE_PAD_BOT } from './building-sprites'
 import { normalizeLineageEras } from '../../utils/lineageEras'
 import { useSceneStore } from '../../stores/scene'
 import { farmCropColor, farmProgress, farmStage } from '../../world/farms'
@@ -2054,6 +2065,7 @@ export function drawWorldOnCanvas(
     const sorted = world.buildings
       .filter((b) => b.x - ox >= cxLo && b.x - ox <= cxHi && b.y - oy >= ryLo && b.y - oy <= ryHi)
       .sort(compareBuildingsByDepth)
+    const tiers = lineageEraTiers(world.lineage_eras)
     for (const b of sorted) {
       if (typeof b.x !== 'number' || typeof b.y !== 'number') continue
       drawBuilding(
@@ -2071,6 +2083,7 @@ export function drawWorldOnCanvas(
           footprint: b.footprint,
           fw: b.fw,
           fh: b.fh,
+          tier: b.owner_lineage ? (tiers.get(b.owner_lineage) ?? 0) : 0,
         },
         ox,
         oy,
