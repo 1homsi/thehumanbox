@@ -51,6 +51,7 @@ export interface DesktopBridge {
     channel:
       | "updater:available"
       | "updater:downloaded"
+      | "updater:error"
       | "menu:openSettings"
       | "app:visibility",
     cb: (payload: unknown) => void,
