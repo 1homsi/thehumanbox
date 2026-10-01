@@ -1411,10 +1411,65 @@ pub(crate) fn try_start_building_at(
 }
 
 fn try_start_building(sim: &mut Simulation, lineage: &str, kind: BuildingKind, x: i32, y: i32) -> bool {
+    try_start_building_with(sim, lineage, kind, x, y, &mut FailedSites::default())
+}
+
+/// Site searches that came up empty during one lineage's construction pass.
+///
+/// A failed search scans up to 625 tiles against every building and worker,
+/// and a pass used to repeat it for each candidate kind. Every check except a
+/// bridge's only gets stricter as the footprint grows, so a footprint that
+/// covers a failed one around the same anchor fails too and can be skipped.
+#[derive(Default)]
+struct FailedSites(Vec<(i32, i32, u8, u8, bool)>);
+
+impl FailedSites {
+    fn key(kind: BuildingKind, x: i32, y: i32) -> Option<(i32, i32, u8, u8, bool)> {
+        if kind == BuildingKind::Bridge {
+            return None;
+        }
+        let (w, h) = kind.footprint();
+        let clearance_exempt = matches!(
+            kind,
+            BuildingKind::Wall | BuildingKind::Gate | BuildingKind::Aqueduct
+        );
+        Some((x, y, w, h, clearance_exempt))
+    }
+
+    fn covers(&self, kind: BuildingKind, x: i32, y: i32) -> bool {
+        let Some((x, y, w, h, exempt)) = Self::key(kind, x, y) else {
+            return false;
+        };
+        self.0
+            .iter()
+            .any(|&(fx, fy, fw, fh, fe)| fx == x && fy == y && fe == exempt && w >= fw && h >= fh)
+    }
+}
+
+fn try_start_building_with(
+    sim: &mut Simulation,
+    lineage: &str,
+    kind: BuildingKind,
+    x: i32,
+    y: i32,
+    failed: &mut FailedSites,
+) -> bool {
+    // Starting rejects a project the lineage cannot pay for, and the search
+    // does not mutate, so checking cost first is the same decision without
+    // the scan.
+    if !construction_cost_available(sim, lineage, kind) || failed.covers(kind, x, y) {
+        return false;
+    }
     let Some((site_x, site_y)) = find_construction_site(sim, lineage, kind, x, y) else {
+        failed.0.extend(FailedSites::key(kind, x, y));
         return false;
     };
-    start_building_at_valid_site(sim, lineage, kind, site_x, site_y)
+    let started = start_building_at_valid_site(sim, lineage, kind, site_x, site_y);
+    if started {
+        // Starting can prune abandoned ruins and free land.
+        failed.0.clear();
+    }
+    started
 }
 
 fn housing_target(sim: &Simulation, lineage: &str, era: Era, population: usize) -> Option<BuildingKind> {
@@ -1497,6 +1552,7 @@ fn tick_buildings_construct(sim: &mut Simulation) {
         } else {
             1
         };
+        let mut failed_sites = FailedSites::default();
         let mut existing: HashSet<BuildingKind> = sim
             .buildings
             .iter()
@@ -1512,7 +1568,7 @@ fn tick_buildings_construct(sim: &mut Simulation) {
             if project_index == 0 {
                 if let Some(kind) = housing_target(sim, &lid, era, pop) {
                     let (cx, cy) = lineage_center(sim, &lid);
-                    if try_start_building(sim, &lid, kind, cx, cy) {
+                    if try_start_building_with(sim, &lid, kind, cx, cy, &mut failed_sites) {
                         started = Some(kind);
                     }
                 }
@@ -1529,7 +1585,7 @@ fn tick_buildings_construct(sim: &mut Simulation) {
                 }
                 let offset_x = (sim.next_building_id as i32 * 3) % 16 - 8;
                 let offset_y = (sim.next_building_id as i32 * 5) % 14 - 7;
-                if try_start_building(sim, &lid, kind, cx + offset_x, cy + offset_y) {
+                if try_start_building_with(sim, &lid, kind, cx + offset_x, cy + offset_y, &mut failed_sites) {
                     started = Some(kind);
                     break;
                 }
