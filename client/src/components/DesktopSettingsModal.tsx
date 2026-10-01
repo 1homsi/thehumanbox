@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react'
+import clsx from 'clsx'
 import { Modal } from './Modal'
+import { ToolSprite } from './ToolSprite'
+import { useUIStore, useViewFlag } from '../stores/store'
+import { startTour, isTourSupported } from '../tour/tour'
+import { useIsMobile } from '../hooks/useIsMobile'
+import { useSimulationData } from '../simulation/simulationData'
+import { LOW_PERF } from '../lib/perf'
+import { readLowPerf, toggleLowPerf } from '../lib/perf-mode'
 import { getDesktop } from '../lib/desktop'
 import type {
   DesktopBridge,
@@ -175,8 +183,149 @@ const POPULATION_CAP_PRESETS: ReadonlyArray<readonly [number, string]> = [
   [2000, 'experimental'],
 ]
 
+type TabId = 'world' | 'display' | 'access' | 'performance' | 'help' | 'simulation' | 'ai' | 'app'
+
+const WEB_TABS: ReadonlyArray<{ id: TabId; label: string; icon: string }> = [
+  { id: 'world', label: 'world', icon: '🗺️' },
+  { id: 'display', label: 'display', icon: '☀️' },
+  { id: 'access', label: 'accessibility', icon: '✨' },
+  { id: 'performance', label: 'performance', icon: '🐢' },
+  { id: 'help', label: 'help', icon: '📖' },
+]
+
+const DESKTOP_TABS: ReadonlyArray<{ id: TabId; label: string; icon: string }> = [
+  { id: 'simulation', label: 'simulation', icon: '⏱️' },
+  { id: 'ai', label: 'ai model', icon: '💡' },
+  { id: 'app', label: 'app', icon: '⚙️' },
+]
+
+/** Preferences that apply in both the web game and the desktop app. */
+function DisplayTab() {
+  const setViewFlag = useUIStore((s) => s.setViewFlag)
+  const threeD = useViewFlag('threeD')
+  const photoMode = useViewFlag('photoMode')
+  const headlineTicker = useViewFlag('headlineTicker')
+  const randomTour = useViewFlag('randomTour')
+  return (
+    <>
+      <SettingRow title="3D world" desc="Free-fly 3D view of the same world. WASD and mouse to move.">
+        <Switch
+          checked={!!threeD}
+          onChange={(v) => setViewFlag('threeD', v)}
+          label="3D world"
+          onHover={() => void import('../3d/world/WorldView3D')}
+        />
+      </SettingRow>
+      <SettingRow
+        title="Photo mode"
+        desc="Hide every panel and the dock for clean screenshots. Press Esc or hover the top edge to get the header back."
+      >
+        <Switch checked={!!photoMode} onChange={(v) => setViewFlag('photoMode', v)} label="Photo mode" />
+      </SettingRow>
+      <SettingRow
+        title="Headline ticker"
+        desc="A scrolling strip of births, deaths and discoveries at the top."
+      >
+        <Switch
+          checked={!!headlineTicker}
+          onChange={(v) => setViewFlag('headlineTicker', v)}
+          label="Headline ticker"
+        />
+      </SettingRow>
+      <SettingRow
+        title="Auto-follow"
+        desc="Follow a different person every few seconds. Click anyone to stop."
+      >
+        <Switch checked={!!randomTour} onChange={(v) => setViewFlag('randomTour', v)} label="Auto-follow" />
+      </SettingRow>
+    </>
+  )
+}
+
+function AccessibilityTab() {
+  const setViewFlag = useUIStore((s) => s.setViewFlag)
+  const colorBlind = useViewFlag('colorBlind')
+  return (
+    <SettingRow
+      title="Colorblind palette"
+      desc="Red-green safe colors for tribes, seasons and status markers."
+    >
+      <Switch
+        checked={!!colorBlind}
+        onChange={(v) => setViewFlag('colorBlind', v)}
+        label="Colorblind palette"
+      />
+    </SettingRow>
+  )
+}
+
+function PerformanceTab() {
+  const chosen = readLowPerf()
+  const automatic = LOW_PERF && !chosen
+  return (
+    <SettingRow
+      title="Low-performance mode"
+      desc={
+        automatic
+          ? 'On automatically for this device. Lower frame rate and resolution, fewer effects, no 3D shadows.'
+          : 'Lower frame rate and resolution, fewer effects, no 3D shadows. Reloads the game (your world is saved first).'
+      }
+    >
+      <Switch
+        checked={LOW_PERF}
+        onChange={() => toggleLowPerf()}
+        label="Low-performance mode"
+        disabled={automatic}
+      />
+    </SettingRow>
+  )
+}
+
+function HelpTab({ onClose }: { onClose: () => void }) {
+  const openAbout = useUIStore((s) => s.openAbout)
+  const nerdStats = useUIStore((s) => s.nerdStats)
+  const setNerdStats = useUIStore((s) => s.setNerdStats)
+  const { playerWorldKind } = useSimulationData()
+  const isMobile = useIsMobile()
+  return (
+    <>
+      {!isMobile && isTourSupported() && (
+        <SettingRow title="Guided tour" desc="A short walkthrough of the map, the dock and the panels.">
+          <button
+            className="lang-btn"
+            onClick={() => {
+              onClose()
+              startTour(playerWorldKind)
+            }}
+          >
+            start tour
+          </button>
+        </SettingRow>
+      )}
+      <SettingRow title="About" desc="Version, build and links.">
+        <button
+          className="lang-btn"
+          onClick={() => {
+            onClose()
+            openAbout()
+          }}
+        >
+          open
+        </button>
+      </SettingRow>
+      <SettingRow
+        title="Stats for nerds"
+        desc="Tick counter, connection status and build details in the header."
+      >
+        <Switch checked={!!nerdStats} onChange={setNerdStats} label="Stats for nerds" />
+      </SettingRow>
+    </>
+  )
+}
+
 export function DesktopSettingsModal({ onClose }: Props) {
   const desktop = getDesktop()
+  const [tab, setTab] = useState<TabId>('world')
   const [settings, setSettings] = useState<DesktopSettings | null>(null)
   const [status, setStatus] = useState<SimStatus | null>(null)
   const [busy, setBusy] = useState(false)
@@ -188,30 +337,6 @@ export function DesktopSettingsModal({ onClose }: Props) {
     void desktop.settings.get().then(setSettings)
     void desktop.sim.status().then(setStatus)
   }, [desktop])
-
-  if (!desktop) {
-    return (
-      <Modal open onClose={onClose} className="settings-modal" title="Settings" hideTitle>
-        <div className="lang-modal-header">
-          <span className="lang-modal-title">SETTINGS</span>
-          <button aria-label="Close" className="close-btn" onClick={onClose}>
-            ✕
-          </button>
-        </div>
-        <div style={{ padding: 16, overflowY: 'auto', maxHeight: '70vh' }}>
-          <WorldSourceSection />
-        </div>
-      </Modal>
-    )
-  }
-
-  if (!settings) {
-    return (
-      <Modal open onClose={onClose} className="settings-modal" title="Desktop Settings" hideTitle>
-        <div style={{ padding: 24, color: '#999', fontSize: 12 }}>loading…</div>
-      </Modal>
-    )
-  }
 
   const update = (patch: Partial<DesktopSettings>) => setSettings((s) => (s ? { ...s, ...patch } : s))
   const updateModel = (patch: Partial<DesktopSettings['model']>) =>
@@ -277,278 +402,320 @@ export function DesktopSettingsModal({ onClose }: Props) {
     }
   }
 
+  async function exportDesktopWorld() {
+    if (!desktop) return
+    setSafetyMessage('checkpointing world for export…')
+    try {
+      const result = await desktop.world.exportActive()
+      setSafetyMessage(result.exported ? `world exported to ${result.filePath}` : 'export cancelled')
+    } catch (error) {
+      setSafetyMessage(`export failed: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+
+  async function resetDesktopWorld() {
+    if (!desktop) return
+    setSafetyMessage(null)
+    setBusy(true)
+    try {
+      const result = await desktop.world.resetLocal()
+      setSafetyMessage(result.reset ? 'new world started; previous world archived' : 'reset cancelled')
+    } catch (error) {
+      setSafetyMessage(`reset failed safely: ${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const tabs = desktop ? [...WEB_TABS.slice(0, 1), ...DESKTOP_TABS, ...WEB_TABS.slice(1)] : WEB_TABS
+  const desktopTab = tab === 'simulation' || tab === 'ai' || tab === 'app'
   const justSaved = savedAt && Date.now() - savedAt < 2500
 
   return (
-    <Modal open onClose={onClose} className="settings-modal" title="Desktop Settings" hideTitle>
+    <Modal open onClose={onClose} className="settings-modal" title="Settings" hideTitle>
       <div className="lang-modal-header">
-        <span className="lang-modal-title">DESKTOP SETTINGS</span>
-        <span className="tree-modal-sub">
-          v{desktop.appVersion} · {desktop.platform}
-        </span>
+        <span className="lang-modal-title">SETTINGS</span>
+        {desktop && (
+          <span className="tree-modal-sub">
+            v{desktop.appVersion} · {desktop.platform}
+          </span>
+        )}
         <button aria-label="Close" className="close-btn" onClick={onClose}>
           ✕
         </button>
       </div>
-
-      <div style={{ padding: 16, overflowY: 'auto', maxHeight: '70vh' }}>
-        <Section title="Local simulation">
-          <div style={{ fontSize: 11, color: '#bfae90', lineHeight: 1.5 }}>
-            Your world runs natively on this computer and stays in your chosen save folder.
-          </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
-            <button onClick={restart} disabled={busy} style={btnPrimary}>
-              {busy ? 'restarting…' : 'apply + restart'}
-            </button>
-            {status && (
-              <span style={{ fontSize: 11, color: '#888' }}>
-                {status.running ? `local sim @ :${status.port}` : 'no local sim running'}
-                {status.error && <span style={{ color: '#e85040', marginLeft: 6 }}>{status.error}</span>}
-              </span>
-            )}
-          </div>
-        </Section>
-
-        <Section title="Simulation">
-          <Field label={`Tick interval — ${settings.tickMs} ms`}>
-            <input
-              type="range"
-              min={30}
-              max={2000}
-              step={10}
-              value={settings.tickMs}
-              onChange={(e) => update({ tickMs: parseInt(e.target.value, 10) })}
-              style={{ width: '100%' }}
-            />
-            <div style={{ fontSize: 10, color: '#666', marginTop: 4 }}>
-              Lower = faster world (more CPU). Default 100 ms.
-            </div>
-          </Field>
-          <Field label={`World capacity — ${settings.populationCap.toLocaleString()} people`}>
-            <input
-              type="range"
-              min={120}
-              max={5000}
-              step={20}
-              value={settings.populationCap}
-              onChange={(e) => update({ populationCap: parseInt(e.target.value, 10) })}
-              style={{ width: '100%' }}
-            />
-            <div className="desktop-cap-presets" role="group" aria-label="World capacity presets">
-              {POPULATION_CAP_PRESETS.map(([cap, label]) => (
-                <button
-                  key={cap}
-                  type="button"
-                  className={settings.populationCap === cap ? 'active' : ''}
-                  onClick={() => update({ populationCap: cap })}
-                >
-                  {cap.toLocaleString()} · {label}
-                </button>
-              ))}
-            </div>
-            <div style={{ fontSize: 10, color: '#777', marginTop: 6, lineHeight: 1.5 }}>
-              Every size can reach the full era ladder. Larger worlds spread the late-era population gates
-              across a bigger civilization. 500 is tuned for the default speed; 1,000+ needs a fast machine
-              and 5,000 is unproven. Applies after restart.
-            </div>
-          </Field>
-        </Section>
-
-        <Section title="AI model (optional)">
-          <Field label="Provider">
-            <select
-              value={settings.model.provider}
-              onChange={(e) => {
-                const provider = e.target.value as ModelProvider
-                const defaults = PROVIDER_DEFAULTS[provider]
-                updateModel({
-                  provider,
-                  apiUrl: defaults.url,
-                  modelName: defaults.model,
-                })
-              }}
-              style={inputStyle}
+      <div className="settings-layout">
+        <nav className="settings-tabs" aria-label="Settings sections">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              className={clsx('settings-tab', tab === t.id && 'active')}
+              aria-pressed={tab === t.id}
+              onClick={() => setTab(t.id)}
             >
-              <option value="none">none (sim still runs, just no LLM narration)</option>
-              <option value="ollama">Ollama (local)</option>
-              <option value="llama-cpp">llama.cpp (local)</option>
-              <option value="custom">Custom OpenAI-compatible endpoint</option>
-            </select>
-          </Field>
-          {settings.model.provider !== 'none' && (
+              <ToolSprite icon={t.icon} size={16} />
+              <span>{t.label}</span>
+            </button>
+          ))}
+        </nav>
+        <div className="settings-pane">
+          {tab === 'world' &&
+            (desktop ? (
+              <Section title="Your world">
+                <SettingRow title="Export world" desc="Save a portable copy of the current world.">
+                  <button className="lang-btn" onClick={() => void exportDesktopWorld()} disabled={busy}>
+                    export…
+                  </button>
+                </SettingRow>
+                <SettingRow title="Start a new world" desc="The current world is archived first.">
+                  <button
+                    className="lang-btn danger"
+                    onClick={() => void resetDesktopWorld()}
+                    disabled={busy}
+                  >
+                    start new…
+                  </button>
+                </SettingRow>
+                {safetyMessage && <div className="settings-note">{safetyMessage}</div>}
+              </Section>
+            ) : (
+              <WorldSourceSection />
+            ))}
+          {tab === 'display' && (
+            <Section title="Display">
+              <DisplayTab />
+            </Section>
+          )}
+          {tab === 'access' && (
+            <Section title="Accessibility">
+              <AccessibilityTab />
+            </Section>
+          )}
+          {tab === 'performance' && (
+            <Section title="Performance">
+              <PerformanceTab />
+            </Section>
+          )}
+          {tab === 'help' && (
+            <Section title="Help">
+              <HelpTab onClose={onClose} />
+            </Section>
+          )}
+
+          {desktopTab && desktop && !settings && <div className="settings-note">loading…</div>}
+          {desktopTab && desktop && settings && (
             <>
-              <Field label="API URL">
-                <input
-                  type="text"
-                  value={settings.model.apiUrl}
-                  onChange={(e) => updateModel({ apiUrl: e.target.value })}
-                  style={inputStyle}
-                />
-              </Field>
-              <Field label="API key">
-                <input
-                  type="password"
-                  value={settings.model.apiKey}
-                  onChange={(e) => updateModel({ apiKey: e.target.value })}
-                  placeholder={
-                    settings.model.provider === 'ollama' || settings.model.provider === 'llama-cpp'
-                      ? '(not needed for local)'
-                      : 'sk-...'
-                  }
-                  style={inputStyle}
-                />
-              </Field>
-              <Field label="Model name">
-                <input
-                  type="text"
-                  value={settings.model.modelName}
-                  onChange={(e) => updateModel({ modelName: e.target.value })}
-                  style={inputStyle}
-                />
-              </Field>
+              {tab === 'simulation' && (
+                <Section title="Local simulation">
+                  <SettingRow
+                    title="Simulation process"
+                    desc={
+                      status
+                        ? status.running
+                          ? `Running natively on this computer (port ${status.port}).`
+                          : 'Not running.'
+                        : 'Your world runs natively on this computer.'
+                    }
+                  >
+                    <button className="lang-btn" onClick={restart} disabled={busy}>
+                      {busy ? 'restarting…' : 'apply + restart'}
+                    </button>
+                  </SettingRow>
+                  {status?.error && <div className="settings-note error">{status.error}</div>}
+                  <Field label={`Tick interval: ${settings.tickMs} ms`}>
+                    <input
+                      type="range"
+                      min={30}
+                      max={2000}
+                      step={10}
+                      value={settings.tickMs}
+                      onChange={(e) => update({ tickMs: parseInt(e.target.value, 10) })}
+                      style={{ width: '100%' }}
+                    />
+                    <div className="settings-note">Lower is a faster world and more CPU. Default 100 ms.</div>
+                  </Field>
+                  <Field label={`World capacity: ${settings.populationCap.toLocaleString()} people`}>
+                    <input
+                      type="range"
+                      min={120}
+                      max={5000}
+                      step={20}
+                      value={settings.populationCap}
+                      onChange={(e) => update({ populationCap: parseInt(e.target.value, 10) })}
+                      style={{ width: '100%' }}
+                    />
+                    <div className="desktop-cap-presets" role="group" aria-label="World capacity presets">
+                      {POPULATION_CAP_PRESETS.map(([cap, label]) => (
+                        <button
+                          key={cap}
+                          type="button"
+                          className={settings.populationCap === cap ? 'active' : ''}
+                          onClick={() => update({ populationCap: cap })}
+                        >
+                          {cap.toLocaleString()} · {label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="settings-note">
+                      Natural births stop at this size; you can still add people yourself. 500 suits the
+                      default speed, 1,000+ needs a fast machine. Applies after restart.
+                    </div>
+                  </Field>
+                </Section>
+              )}
+              {tab === 'ai' && (
+                <Section title="AI model (optional)">
+                  <Field label="Provider">
+                    <select
+                      value={settings.model.provider}
+                      onChange={(e) => {
+                        const provider = e.target.value as ModelProvider
+                        const defaults = PROVIDER_DEFAULTS[provider]
+                        updateModel({ provider, apiUrl: defaults.url, modelName: defaults.model })
+                      }}
+                      style={inputStyle}
+                    >
+                      <option value="none">none (the world still runs, just no narration)</option>
+                      <option value="ollama">Ollama (local)</option>
+                      <option value="llama-cpp">llama.cpp (local)</option>
+                      <option value="custom">Custom OpenAI-compatible endpoint</option>
+                    </select>
+                  </Field>
+                  {settings.model.provider !== 'none' && (
+                    <>
+                      <Field label="API URL">
+                        <input
+                          type="text"
+                          value={settings.model.apiUrl}
+                          onChange={(e) => updateModel({ apiUrl: e.target.value })}
+                          style={inputStyle}
+                        />
+                      </Field>
+                      <Field label="API key">
+                        <input
+                          type="password"
+                          value={settings.model.apiKey}
+                          onChange={(e) => updateModel({ apiKey: e.target.value })}
+                          placeholder={
+                            settings.model.provider === 'ollama' || settings.model.provider === 'llama-cpp'
+                              ? '(not needed for local)'
+                              : 'sk-...'
+                          }
+                          style={inputStyle}
+                        />
+                      </Field>
+                      <Field label="Model name">
+                        <input
+                          type="text"
+                          value={settings.model.modelName}
+                          onChange={(e) => updateModel({ modelName: e.target.value })}
+                          style={inputStyle}
+                        />
+                      </Field>
+                    </>
+                  )}
+                  <div className="settings-note">
+                    The simulation runs without AI. To add narration, point it at a model server on your
+                    computer.
+                  </div>
+                </Section>
+              )}
+              {tab === 'app' && (
+                <>
+                  <Section title="Updates">
+                    <SettingRow
+                      title="Automatic updates"
+                      desc="Check for new versions and offer to install them."
+                    >
+                      <Switch
+                        checked={settings.autoUpdate}
+                        onChange={(v) => update({ autoUpdate: v })}
+                        label="Automatic updates"
+                      />
+                    </SettingRow>
+                    <UpdateCheckButton desktop={desktop} />
+                  </Section>
+                  <Section title="Startup and background">
+                    <SettingRow title="Launch at sign-in" desc="Open The Human Box when you log in.">
+                      <Switch
+                        checked={settings.autoLaunch}
+                        onChange={(v) => update({ autoLaunch: v })}
+                        label="Launch at sign-in"
+                      />
+                    </SettingRow>
+                    <SettingRow title="Start hidden" desc="Start in the tray without opening a window.">
+                      <Switch
+                        checked={settings.startMinimized}
+                        onChange={(v) => update({ startMinimized: v })}
+                        label="Start hidden"
+                      />
+                    </SettingRow>
+                    <SettingRow
+                      title="Pause when hidden"
+                      desc="Stop drawing while the window is minimized. Saves CPU."
+                    >
+                      <Switch
+                        checked={settings.pauseWhenHidden}
+                        onChange={(v) => update({ pauseWhenHidden: v })}
+                        label="Pause when hidden"
+                      />
+                    </SettingRow>
+                  </Section>
+                  <Section title="Save folder">
+                    <code className="settings-path">
+                      {settings.saveLocationOverride ?? 'default (app data folder)'}
+                    </code>
+                    <div className="settings-actions">
+                      <button
+                        className="lang-btn"
+                        onClick={async () => {
+                          const dir = await desktop?.app.pickSaveDir()
+                          if (dir) await migrateSaveFolder(dir)
+                        }}
+                        disabled={busy}
+                      >
+                        move…
+                      </button>
+                      {settings.saveLocationOverride && (
+                        <button
+                          className="lang-btn"
+                          onClick={() => void migrateSaveFolder(null)}
+                          disabled={busy}
+                        >
+                          move back to default
+                        </button>
+                      )}
+                    </div>
+                    <div className="settings-note">
+                      Moving checkpoints and copies the whole worlds folder first. The old folder stays as a
+                      backup.
+                    </div>
+                    {safetyMessage && <div className="settings-note">{safetyMessage}</div>}
+                  </Section>
+                  <Section title="Tools">
+                    <div className="settings-actions">
+                      <button className="lang-btn" onClick={() => void desktop?.app.screenshot()}>
+                        take screenshot
+                      </button>
+                      <button className="lang-btn" onClick={() => void desktop?.app.openWorlds()}>
+                        open worlds folder
+                      </button>
+                      <button className="lang-btn" onClick={() => void desktop?.app.openLogs()}>
+                        open logs folder
+                      </button>
+                    </div>
+                  </Section>
+                </>
+              )}
+              <div className="settings-footer">
+                <button className="lang-btn active" onClick={save} disabled={busy}>
+                  {busy ? 'saving…' : 'save settings'}
+                </button>
+                {justSaved && <span className="settings-saved">saved</span>}
+                <span className="settings-note">Tick and model changes apply after a restart.</span>
+              </div>
             </>
           )}
-          <div style={{ fontSize: 10, color: '#666', lineHeight: 1.5 }}>
-            The desktop simulation runs without AI. To add narration, point it at a model server running on
-            your computer.
-          </div>
-        </Section>
-
-        <Section title="Updates">
-          <Toggle
-            checked={settings.autoUpdate}
-            onChange={(v) => update({ autoUpdate: v })}
-            label="Auto-check for updates and prompt when ready"
-          />
-          <UpdateCheckButton desktop={desktop} />
-        </Section>
-
-        <Section title="Desktop behaviour">
-          <Toggle
-            checked={settings.autoLaunch}
-            onChange={(v) => update({ autoLaunch: v })}
-            label="Launch automatically when I sign in"
-          />
-          <Toggle
-            checked={settings.startMinimized}
-            onChange={(v) => update({ startMinimized: v })}
-            label="Start hidden in the tray (no window on launch)"
-          />
-          <Toggle
-            checked={settings.pauseWhenHidden}
-            onChange={(v) => update({ pauseWhenHidden: v })}
-            label="Pause renderer when window is minimized or hidden (saves CPU)"
-          />
-        </Section>
-
-        <Section title="Save location">
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <code
-              style={{
-                flex: 1,
-                minWidth: 180,
-                fontSize: 10,
-                color: '#bfae90',
-                background: '#1a1612',
-                border: '1px solid #3a2e25',
-                borderRadius: 4,
-                padding: '6px 8px',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {settings.saveLocationOverride ?? 'default (app data folder)'}
-            </code>
-            <button
-              onClick={async () => {
-                const dir = await desktop?.app.pickSaveDir()
-                if (dir) await migrateSaveFolder(dir)
-              }}
-              disabled={busy}
-              style={btnSecondary}
-            >
-              migrate…
-            </button>
-            {settings.saveLocationOverride && (
-              <button onClick={() => void migrateSaveFolder(null)} disabled={busy} style={btnSecondary}>
-                migrate to default
-              </button>
-            )}
-          </div>
-          <div style={{ fontSize: 10, color: '#666', marginTop: 6 }}>
-            Migration checkpoints and copies the complete worlds folder before switching. The previous folder
-            stays untouched as a rollback backup.
-          </div>
-          {safetyMessage && (
-            <div style={{ fontSize: 10, color: '#bfae90', marginTop: 6, lineHeight: 1.45 }}>
-              {safetyMessage}
-            </div>
-          )}
-        </Section>
-
-        <Section title="Tools">
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button onClick={() => void desktop?.app.screenshot()} style={btnSecondary}>
-              take screenshot
-            </button>
-            <button onClick={() => void desktop?.app.openWorlds()} style={btnSecondary}>
-              open worlds folder
-            </button>
-            <button onClick={() => void desktop?.app.openLogs()} style={btnSecondary}>
-              open logs folder
-            </button>
-            <button
-              onClick={async () => {
-                setSafetyMessage('checkpointing world for export…')
-                try {
-                  const result = await desktop.world.exportActive()
-                  setSafetyMessage(
-                    result.exported ? `world exported to ${result.filePath}` : 'export cancelled',
-                  )
-                } catch (error) {
-                  setSafetyMessage(`export failed: ${error instanceof Error ? error.message : String(error)}`)
-                }
-              }}
-              disabled={busy}
-              style={btnSecondary}
-            >
-              export world save…
-            </button>
-            <button
-              onClick={async () => {
-                setSafetyMessage(null)
-                setBusy(true)
-                try {
-                  const result = await desktop.world.resetLocal()
-                  setSafetyMessage(
-                    result.reset ? 'new world started; previous world archived' : 'reset cancelled',
-                  )
-                } catch (error) {
-                  setSafetyMessage(
-                    `reset failed safely: ${error instanceof Error ? error.message : String(error)}`,
-                  )
-                } finally {
-                  setBusy(false)
-                }
-              }}
-              disabled={busy}
-              style={{ ...btnSecondary, color: '#ff9b6b', borderColor: '#7a3f32' }}
-            >
-              start a new world…
-            </button>
-          </div>
-        </Section>
-
-        <div style={{ display: 'flex', gap: 8, marginTop: 16, alignItems: 'center' }}>
-          <button onClick={save} disabled={busy} style={btnPrimary}>
-            {busy ? 'saving…' : 'save settings'}
-          </button>
-          {justSaved && <span style={{ fontSize: 11, color: '#7ed957' }}>saved</span>}
-          <span style={{ flex: 1 }} />
-          <span style={{ fontSize: 10, color: '#666' }}>
-            Restart for tick and model changes to take full effect.
-          </span>
         </div>
       </div>
     </Modal>
@@ -582,7 +749,7 @@ function UpdateCheckButton({ desktop }: { desktop: DesktopBridge }) {
 
   return (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
-      <button onClick={check} disabled={checking} style={btnSecondary}>
+      <button className="lang-btn" onClick={check} disabled={checking}>
         {checking ? 'checking...' : 'check for updates'}
       </button>
       {result && (
@@ -601,40 +768,61 @@ function UpdateCheckButton({ desktop }: { desktop: DesktopBridge }) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 18 }}>
-      <div
-        style={{ fontSize: 10, color: '#999', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}
-      >
-        {title}
-      </div>
+    <section className="settings-section">
+      <h3 className="settings-section-title">{title}</h3>
       {children}
+    </section>
+  )
+}
+
+function SettingRow({ title, desc, children }: { title: string; desc: string; children: React.ReactNode }) {
+  return (
+    <div className="settings-row">
+      <div className="settings-row-text">
+        <div className="settings-row-title">{title}</div>
+        <div className="settings-row-desc">{desc}</div>
+      </div>
+      <div className="settings-row-control">{children}</div>
     </div>
+  )
+}
+
+function Switch({
+  checked,
+  onChange,
+  label,
+  disabled,
+  onHover,
+}: {
+  checked: boolean
+  onChange: (v: boolean) => void
+  label: string
+  disabled?: boolean
+  onHover?: () => void
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      className={clsx('px-switch', checked && 'on')}
+      onClick={() => onChange(!checked)}
+      onMouseEnter={onHover}
+      onFocus={onHover}
+    >
+      <span className="px-switch-knob" />
+    </button>
   )
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 10 }}>
-      <div style={{ fontSize: 10, color: '#777', marginBottom: 4 }}>{label}</div>
+    <div className="settings-field">
+      <div className="settings-field-label">{label}</div>
       {children}
     </div>
-  )
-}
-
-function Toggle({
-  checked,
-  onChange,
-  label,
-}: {
-  checked: boolean
-  onChange: (v: boolean) => void
-  label: string
-}) {
-  return (
-    <label className="desktop-toggle-row">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-      <span>{label}</span>
-    </label>
   )
 }
 
@@ -647,28 +835,4 @@ const inputStyle: React.CSSProperties = {
   borderRadius: 3,
   fontSize: 12,
   fontFamily: 'inherit',
-}
-
-const btnPrimary: React.CSSProperties = {
-  background: '#3a2d22',
-  border: '1px solid #5e5648',
-  color: '#f0d088',
-  padding: '6px 14px',
-  borderRadius: 4,
-  fontSize: 11,
-  letterSpacing: '0.06em',
-  textTransform: 'uppercase',
-  cursor: 'pointer',
-}
-
-const btnSecondary: React.CSSProperties = {
-  background: 'transparent',
-  border: '1px solid #443329',
-  color: '#bfae90',
-  padding: '5px 12px',
-  borderRadius: 4,
-  fontSize: 10,
-  letterSpacing: '0.05em',
-  textTransform: 'uppercase',
-  cursor: 'pointer',
 }

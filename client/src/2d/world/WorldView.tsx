@@ -1200,7 +1200,7 @@ export function drawWorldOnCanvas(
   } else {
     ctx.drawImage(base, 0, 0)
   }
-  if (!overview && renderScale >= 1) {
+  if (!overview && !LOW_PERF && renderScale >= 1) {
     drawTreeSway(
       ctx,
       t,
@@ -2919,10 +2919,7 @@ function WorldSprite({
       const curServerAt = interp.currentServerAt.current
       const prevServerAt = interp.prevServerAt.current
       const currentReceivedAt = interp.currentReceivedAt.current
-      const slowMo = viewFlagsRef.current.slowMo
-      const fastMo = viewFlagsRef.current.fastMo
-      const speedDiv = slowMo ? 0.5 : fastMo ? 2.0 : 1.0
-      const interval = Math.max(50, curServerAt - prevServerAt) / speedDiv
+      const interval = Math.max(50, curServerAt - prevServerAt)
       // Never extrapolate beyond the last known position: delayed frames
       // used to overshoot and snap people backwards, looking like pacing.
       const PREDICT_CAP = 1.0
@@ -3218,9 +3215,7 @@ function CanvasWorldFallback({
 
       const prev = interp?.prev.current
       const serverAt = interp?.currentServerAt.current ?? 0
-      const interval =
-        Math.max(50, serverAt - (interp?.prevServerAt.current ?? 0)) /
-        (viewFlags.slowMo ? 0.5 : viewFlags.fastMo ? 2 : 1)
+      const interval = Math.max(50, serverAt - (interp?.prevServerAt.current ?? 0))
       const receivedAt = interp?.currentReceivedAt.current ?? 0
       const t = prev && interp?.current.current ? interpolationFactor(now, receivedAt, interval) : 1
       const cam = cameraStateRef.current
@@ -3736,7 +3731,6 @@ export function WorldView({
         <WorldMapHud
           world={world}
           cameraRef={cameraStateRef}
-          commandRef={commandRef}
           viewport={dims}
           container={containerRef.current}
           toolLabel={sandboxArmed ? sandboxLabel : null}

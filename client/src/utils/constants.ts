@@ -1,7 +1,11 @@
+import { useUIStore } from '../stores/store'
 import type { OrganismState } from '../types'
 
+// Read the flag from the store, not the body class: the class is applied in
+// an effect after render, so components rendering on the toggle drew the old
+// palette and kept it until something else re-rendered them.
 export function isColorBlind(): boolean {
-  return typeof document !== 'undefined' && !!document.body?.classList?.contains('thb-colorblind')
+  return useUIStore.getState().viewFlags.colorBlind
 }
 
 const CB_SAFE_BLUE = '#3a86ff'

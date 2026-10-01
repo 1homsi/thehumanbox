@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, Suspense } from 'react'
 import { lazyWithRetry } from './utils/lazyWithRetry'
 import { useSimulation } from './simulation/useSimulation'
 import {
@@ -257,6 +257,7 @@ function LiveApp() {
   const toggleLeft = useUIStore((s) => s.toggleLeft)
   const overlay = useUIStore((s) => s.overlay)
   const viewFlags = useUIStore((s) => s.viewFlags)
+  const palette = viewFlags.colorBlind ? 'colorblind' : 'standard'
   const openDesktopSettings = useUIStore((s) => s.openDesktopSettings)
 
   useEffect(() => {
@@ -343,6 +344,9 @@ function LiveApp() {
       if (event.key === 'Escape') {
         setArmedTool(null)
         setTemporarySandboxStatus(null)
+        // Esc also leaves photo mode, which hides every other way out.
+        const ui = useUIStore.getState()
+        if (ui.viewFlags.photoMode) ui.setViewFlag('photoMode', false)
       }
     }
     window.addEventListener('keydown', clearTool)
@@ -504,12 +508,14 @@ function LiveApp() {
                   {leftOpen && <div className="panel-overlay panel-overlay-left" onClick={toggleLeft} />}
                   <aside className={clsx('panel', 'panel-left', leftOpen && 'open')}>
                     {leftOpen && (
-                      <>
+                      // Keyed by palette: these bake lineage colours in at
+                      // render, so the colourblind toggle remounts them.
+                      <Fragment key={palette}>
                         <HistoryGrid />
                         <LineagesList />
                         <EventLog />
                         <WorldFooter world={world} />
-                      </>
+                      </Fragment>
                     )}
                   </aside>
                 </>
@@ -549,7 +555,13 @@ function LiveApp() {
                 />
               )}
 
-              <RightPanel world={world} liveOrgs={liveOrgs} deadOrgs={deadOrgs} selectedOrg={selectedOrg} />
+              <RightPanel
+                key={palette}
+                world={world}
+                liveOrgs={liveOrgs}
+                deadOrgs={deadOrgs}
+                selectedOrg={selectedOrg}
+              />
             </div>
           ) : (
             <div className="waiting">

@@ -186,6 +186,15 @@
   outline: none;
 }
 
+/* The dock's folder tabs stick up into the world from its top-left edge.
+ * Anything anchored to the bottom of the world clears them by this much. */
+:root:has(.sandbox-bar) {
+  --dock-tab-clear: 36px;
+}
+body.thb-photo-mode {
+  --dock-tab-clear: 0px;
+}
+
 /* ── Drawers ────────────────────────────────────────────────────────
  * On desktop the world and people drawers slide over the world instead of
  * squeezing it. Animating their width resized the world canvas on every
@@ -216,6 +225,7 @@
   .panel-left,
   .panel-left.open {
     left: 0;
+    bottom: var(--dock-tab-clear, 0px);
     width: 240px;
     transform: translateX(-100%);
     border-right: 2px solid var(--px-ink);
@@ -444,4 +454,308 @@
 }
 .stats-num-label {
   color: var(--px-muted);
+}
+
+/* ── Settings ────────────────────────────────────────────────────────── */
+.thb-modal.settings-modal {
+  width: min(780px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+}
+.settings-layout {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  min-height: min(56vh, 440px);
+  max-height: min(70vh, 640px);
+}
+.settings-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 8px;
+  background: var(--px-inset);
+  border-right: 2px solid var(--px-ink);
+  box-shadow: 1px 0 0 var(--px-groove);
+  overflow-y: auto;
+}
+.settings-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border: 0;
+  background: transparent;
+  color: var(--px-muted);
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-align: left;
+  cursor: pointer;
+}
+.settings-tab:hover {
+  color: var(--px-text);
+  background: rgba(232, 182, 76, 0.07);
+}
+.settings-tab.active {
+  color: var(--px-gold-text);
+  background: var(--px-active);
+  box-shadow: inset 3px 0 0 var(--px-gold);
+}
+.settings-tab:focus-visible {
+  outline: 2px solid var(--px-gold);
+  outline-offset: -2px;
+}
+.settings-pane {
+  padding: 4px 18px 16px;
+  overflow-y: auto;
+  scrollbar-color: var(--px-brass) var(--px-inset);
+  scrollbar-width: thin;
+}
+.settings-section {
+  margin: 0;
+  padding-top: 14px;
+}
+.settings-section + .settings-section {
+  margin-top: 6px;
+  border-top: 2px solid var(--px-ink);
+  box-shadow: inset 0 1px 0 var(--px-groove);
+}
+.settings-section-title {
+  margin: 0 0 6px;
+  color: var(--px-gold-text);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 0 #000;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--px-groove);
+}
+.settings-row:last-child {
+  border-bottom: 0;
+}
+.settings-row-text {
+  flex: 1;
+  min-width: 0;
+}
+.settings-row-title {
+  color: var(--px-text);
+  font-size: 13px;
+  margin-bottom: 3px;
+}
+.settings-row-desc,
+.settings-note {
+  color: var(--px-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.settings-note {
+  margin-top: 6px;
+}
+.settings-note.error {
+  color: #ff9b8a;
+}
+.settings-row-control {
+  flex-shrink: 0;
+}
+.settings-field {
+  margin: 12px 0;
+}
+.settings-field-label {
+  color: var(--px-text);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.settings-path {
+  display: block;
+  padding: 7px 9px;
+  background: var(--px-inset);
+  border: 2px solid var(--px-ink);
+  box-shadow: var(--px-sunken-shadow);
+  color: var(--px-text);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.settings-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 2px solid var(--px-ink);
+}
+.settings-footer .settings-note {
+  margin: 0 0 0 auto;
+}
+.settings-saved {
+  color: #8fd06a;
+  font-size: 11px;
+}
+.lang-btn.danger {
+  color: #ffb4a6;
+}
+.lang-btn.danger:hover {
+  background: #6a2d24;
+  color: #ffd9cf;
+}
+
+/* Pixel on/off switch. */
+.px-switch {
+  position: relative;
+  width: 40px;
+  height: 20px;
+  padding: 0;
+  border: 2px solid var(--px-ink);
+  background: var(--px-inset);
+  box-shadow: var(--px-sunken-shadow);
+  cursor: pointer;
+}
+.px-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  background: var(--px-raised);
+  box-shadow: var(--px-raised-shadow);
+  transition: left 120ms steps(3, end);
+}
+.px-switch.on {
+  background: #6b4f22;
+}
+.px-switch.on .px-switch-knob {
+  left: 22px;
+  background: var(--px-gold);
+  box-shadow:
+    inset 1px 1px 0 #f3d17a,
+    inset -1px -1px 0 #9c7a3e;
+}
+.px-switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.px-switch:focus-visible {
+  outline: 2px solid var(--px-gold);
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .settings-layout {
+    grid-template-columns: 1fr;
+  }
+  .settings-tabs {
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 2px solid var(--px-ink);
+  }
+}
+
+/* Photo mode hides the dock and ticker too; Esc brings everything back. */
+body.thb-photo-mode .sandbox-bar,
+body.thb-photo-mode .headline-ticker,
+body.thb-photo-mode .thb-action-ticker {
+  display: none !important;
+}
+
+/* ── Stats: tribal relations ────────────────────────────────────────── */
+.stats-rel-name {
+  min-width: 0;
+  max-width: 110px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 10px;
+}
+.stats-rel-muted,
+.stats-rel-empty {
+  color: var(--px-muted);
+  font-size: 9px;
+}
+.stats-rel-empty {
+  padding: 8px 0;
+  font-size: 11px;
+}
+.stats-rel-bar-wrap {
+  height: 8px;
+  background: var(--px-inset);
+  border: 2px solid var(--px-ink);
+  border-radius: 0;
+}
+.stats-rel-bar {
+  height: 100%;
+  border-radius: 0;
+}
+.stats-rel-status {
+  border: 2px solid var(--px-ink);
+  border-radius: 0;
+  padding: 0 5px;
+}
+.stats-rel-status.status-ally {
+  background: #2d4a22;
+  color: #b9e59a;
+}
+.stats-rel-status.status-neutral {
+  background: var(--px-raised);
+  color: var(--px-muted);
+}
+.stats-rel-status.status-rivals {
+  background: #5a1f19;
+  color: #ffb0a6;
+}
+
+/* ── No rounded corners ─────────────────────────────────────────────
+ * The pixel frame has square corners everywhere. Older per-surface styles
+ * rounded boxes, chips and pills inside dialogs, drawers and menus; square
+ * them all here rather than chasing each class. Switch knobs and spinners
+ * keep their own shapes. */
+:is(.thb-modal, .panel-left, .panel-right, .more-dropdown, .cmd-panel, .world-tool-search)
+  :not(.px-switch-knob, .waiting-spinner, svg *) {
+  border-radius: 0 !important;
+}
+
+/* ── Civilization dialog: boxes on the shared frame ─────────────────── */
+.civ-modal :is(.civ-section, .civ-calendar, .civ-campaign-board) {
+  background: var(--px-wood-dark);
+  border: 2px solid var(--px-ink);
+  box-shadow: inset 0 0 0 1px var(--px-groove);
+}
+.civ-modal .civ-campaign-card {
+  background: var(--px-inset);
+  border: 2px solid var(--px-ink);
+  box-shadow: var(--px-sunken-shadow);
+}
+.civ-modal :is(.civ-campaign-badge, .civ-chip, .civ-row-tag) {
+  background: var(--px-raised);
+  border: 2px solid var(--px-ink);
+  color: var(--px-muted);
+}
+.civ-modal .civ-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 1;
+}
+
+/* World-history rows have no name column; the text always fills the rest
+ * of the row instead of landing in the name track. */
+.chronicle-row > .chronicle-text:nth-child(2) {
+  grid-column: 2 / -1;
+}
+.chronicle-row {
+  border-bottom: 2px solid var(--px-ink);
+  box-shadow: 0 1px 0 var(--px-groove);
 }

@@ -3,6 +3,7 @@ import 'shepherd.js/dist/css/shepherd.css'
 import { trackEvent } from '../lib/observability'
 import type { PlayerWorldKind } from '../simulation/worldSource'
 import { tourWorldCopy } from '../simulation/playerWorldCopy'
+import { useUIStore } from '../stores/store'
 
 const TOUR_KEY = 'thb-tour-completed-v1'
 
@@ -36,6 +37,20 @@ interface StepDef {
   title: string
   text: string
   on?: 'top' | 'bottom' | 'left' | 'right' | 'auto'
+  /** Drawers are closed overlays by default; open this one for the step. */
+  drawer?: 'left' | 'right'
+}
+
+// Matches the drawer slide in pixel-theme.css.
+const DRAWER_SLIDE_MS = 240
+
+function drawerOpen(drawer: 'left' | 'right'): boolean {
+  const ui = useUIStore.getState()
+  return drawer === 'left' ? ui.leftOpen : ui.panelOpen
+}
+
+function setDrawer(drawer: 'left' | 'right', open: boolean) {
+  useUIStore.setState(drawer === 'left' ? { leftOpen: open } : { panelOpen: open })
 }
 
 function tourSteps(worldKind: PlayerWorldKind): StepDef[] {
@@ -51,8 +66,8 @@ function tourSteps(worldKind: PlayerWorldKind): StepDef[] {
       selector: '.header-badges',
       title: 'World pulse',
       text:
-        'These badges show what the world is doing right now: day or night, current season, ' +
-        'global era, weather, active fires, and how many humans are sick.',
+        'How many people are alive, the season, day or night, and the era the world has reached. ' +
+        'Hover any of them for more.',
       on: 'bottom',
     },
     {
@@ -64,20 +79,31 @@ function tourSteps(worldKind: PlayerWorldKind): StepDef[] {
       on: 'auto',
     },
     {
-      selector: '.panel-left, [data-tour="left-panel"]',
-      title: 'World stats',
+      selector: '.sandbox-bar',
+      title: 'Your powers',
       text:
-        'On the left: population history, the lineages alive right now, recent events, and ' +
-        'the civilisation summary. The "view all" button in the civ panel opens the full breakdown.',
+        'The dock holds everything you can do to the world. The tabs on its top edge switch ' +
+        'between life, world, powers and maps. Pick a tool, then click the map; Esc puts it ' +
+        'down. Pause and speed live on the right.',
+      on: 'top',
+    },
+    {
+      selector: '.panel-left, [data-tour="left-panel"]',
+      title: 'World drawer',
+      text:
+        'The world drawer: history, the tribes alive right now, recent events, and the ' +
+        'civilisation summary. Open it from the button at the top right.',
       on: 'right',
+      drawer: 'left',
     },
     {
       selector: '[data-tour="right-panel"], .panel-right',
-      title: 'Organism inspector',
+      title: 'People drawer',
       text:
-        'On the right: every living and dead organism. Click any name to read their life log, ' +
-        'see who their parents and friends are, and follow them on the map.',
+        'The people drawer: everyone alive and everyone who has died. Click a name to read ' +
+        'their life, see their family and friends, and follow them on the map.',
       on: 'left',
+      drawer: 'right',
     },
     {
       selector: '[data-tour="stats-btn"]',
@@ -111,8 +137,14 @@ function tourSteps(worldKind: PlayerWorldKind): StepDef[] {
       selector: '[data-tour="more-btn"]',
       title: 'More',
       text:
-        'Hidden under here: map overlays (heat, fertility, hazard, density), the experimental 3D ' +
-        'world, a focus filter for highlighting sub-groups, photo mode, and this tour.',
+        'Map overlays (crowds, hazards, fertility, threats), focus filters that highlight the ' +
+        'sick, the hungry or the elders, and what to draw over each person.',
+      on: 'bottom',
+    },
+    {
+      selector: '[data-tour="settings-btn"]',
+      title: 'Settings',
+      text: 'The 3D world, photo mode, the colourblind palette, low-performance mode, and this tour.',
       on: 'bottom',
     },
     {
@@ -125,6 +157,26 @@ function tourSteps(worldKind: PlayerWorldKind): StepDef[] {
 }
 
 let activeTour: ReturnType<typeof createTour> | null = null
+
+/** Opens a drawer for its step and closes it again if the tour opened it. */
+function drawerHooks(drawer: 'left' | 'right') {
+  let openedByTour = false
+  return {
+    beforeShowPromise: () =>
+      new Promise<void>((resolve) => {
+        openedByTour = !drawerOpen(drawer)
+        if (!openedByTour) return resolve()
+        setDrawer(drawer, true)
+        window.setTimeout(resolve, DRAWER_SLIDE_MS)
+      }),
+    when: {
+      hide: () => {
+        if (openedByTour) setDrawer(drawer, false)
+        openedByTour = false
+      },
+    },
+  }
+}
 
 function createTour() {
   return new Shepherd.Tour({
@@ -177,6 +229,7 @@ export function startTour(worldKind: PlayerWorldKind = 'local') {
       title: step.title,
       text: step.text,
       attachTo: attach,
+      ...(step.drawer ? drawerHooks(step.drawer) : {}),
       buttons: [
         ...(isFirst
           ? []
