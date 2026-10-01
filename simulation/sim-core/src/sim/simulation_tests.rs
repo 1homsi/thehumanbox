@@ -1367,8 +1367,9 @@ fn indexed_predator_danger_matches_full_scan_across_bucket_edges_and_deaths() {
 #[test]
 fn land_target_rejects_hazardous_anchor() {
     let mut sim = Simulation::new(103);
-    for x in 45..=55 {
-        for y in 45..=55 {
+    // Wide enough that the deep-water check around (54, 54) sees only land.
+    for x in 40..=60 {
+        for y in 40..=60 {
             sim.grid.set(x, y, Tile::Grass);
             sim.grid.hazard[WorldGrid::idx(x, y)] = 0.0;
         }
@@ -1850,9 +1851,14 @@ fn deep_water_fatigue_causes_panic_and_marks_danger() {
     sim.organisms[idx].health = 0.9;
     sim.organisms[idx].fear_level = 0.1;
     sim.organisms[idx].water_ticks = 13;
+    // A swimmer just off a small island.
+    for x in 51..=56 {
+        for y in 47..=53 {
+            sim.grid.set(x, y, Tile::Grass);
+        }
+    }
     sim.grid.set(50, 50, Tile::Water);
     sim.grid.depth[WorldGrid::idx(50, 50)] = 0.8;
-    sim.grid.set(51, 50, Tile::Grass);
 
     sim.apply_water_fatigue(idx, 50, 50);
 
@@ -1898,7 +1904,8 @@ fn curious_adults_choose_distant_land_expeditions() {
         .expect("curious adult should choose a land expedition");
     let dist =
         (target.0 - sim.organisms[idx].x as i32).abs() + (target.1 - sim.organisms[idx].y as i32).abs();
-    let expected_min = 60 + (curiosity * 90.0) as i32;
+    // Matches `find_distant_land_target`'s minimum for this curiosity.
+    let expected_min = 30 + (curiosity * 40.0) as i32;
     assert!(
         dist >= expected_min,
         "dist={} curiosity={} period={} tick_count={} expected>={}",

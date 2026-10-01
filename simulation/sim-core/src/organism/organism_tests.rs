@@ -981,7 +981,12 @@ fn movement_toward_land_avoids_deep_water_step() {
     let mut rng = StdRng::seed_from_u64(0);
     let traits = Traits::random(&mut rng);
     let mut grid = WorldGrid::new(2);
-    grid.set(10, 10, Tile::Grass);
+    // Open land around the walker, with one deep pool straight ahead.
+    for x in 5..=25 {
+        for y in 5..=15 {
+            grid.set(x, y, Tile::Grass);
+        }
+    }
     grid.set(11, 10, Tile::Water);
     let wi = WorldGrid::idx(11, 10);
     grid.depth[wi] = 0.9;

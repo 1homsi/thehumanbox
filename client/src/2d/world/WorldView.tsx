@@ -12,6 +12,7 @@ import { burstForTool, useSandboxBursts } from './sandbox-bursts'
 import { isMapControl, type MapCommand } from './camera-controls'
 import { drawFaunaSprite } from './fauna-sprites'
 import { drawPixelFauna } from './pixel-fauna'
+import { drawMountains } from './mountains'
 
 /** Drawn sizes for summoned monsters; a dragon dwarfs everything else. */
 const MONSTER_SIZES: Record<string, number> = { zombie: 16, demon: 20, dragon: 32, alien: 14, ufo: 26 }
@@ -1081,6 +1082,7 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
       if (biomes && ATLAS_TOWN.complete) {
         drawTrees(baseCtx, width, height, tiles, biomes, origin_x, origin_y, only, season)
       }
+      drawMountains(baseCtx, width, height, tiles, biomes, origin_x, origin_y, only)
       baseCtx.restore()
       // Refresh derived layers for the affected region.
       updateScaledBaseRegion(bx0, by0, bx1, by1)
@@ -1123,6 +1125,7 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
   if (biomes && ATLAS_TOWN.complete) {
     drawTrees(baseCtx, width, height, tiles, biomes, origin_x, origin_y, undefined, season)
   }
+  drawMountains(baseCtx, width, height, tiles, biomes, origin_x, origin_y)
   _baseCanvas = canvas
   _baseKey = {
     width,

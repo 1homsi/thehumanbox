@@ -8,7 +8,7 @@ use crate::world::{
 use rand::{Rng, RngExt};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
 
 pub const N_ACTIONS: usize = 538;
 
@@ -359,8 +359,8 @@ pub struct Organism {
     pub last_reproduced: u64,
     pub last_challenged: u64,
 
-    pub lineage_attitudes: HashMap<String, f32>,
-    pub org_trust: HashMap<String, f32>,
+    pub lineage_attitudes: BTreeMap<String, f32>,
+    pub org_trust: BTreeMap<String, f32>,
 
     pub traits: Traits,
     pub infection: f32,
@@ -371,7 +371,7 @@ pub struct Organism {
     pub daily_story: String,
     pub last_story_tick: u64,
     pub life_log: VecDeque<LifeEvent>,
-    pub discoveries: HashSet<String>,
+    pub discoveries: BTreeSet<String>,
 
     pub home_x: f32,
     pub home_y: f32,
@@ -386,7 +386,7 @@ pub struct Organism {
     pub directive: String,
     pub directive_until: u64,
     pub last_think_tick: u64,
-    pub last_think_by_kind: HashMap<String, u64>,
+    pub last_think_by_kind: BTreeMap<String, u64>,
 
     pub loneliness: f32,
     pub boredom: f32,
@@ -448,9 +448,9 @@ pub struct Organism {
     pub specialty: Option<String>,
     pub religion_id: Option<String>,
     pub degrees: Vec<String>,
-    pub tools: HashMap<String, u8>,
+    pub tools: BTreeMap<String, u8>,
     pub diseases: Vec<(String, u64)>,
-    pub disease_immunity: HashMap<String, u64>,
+    pub disease_immunity: BTreeMap<String, u64>,
     pub mounted_vehicle: Option<u32>,
     pub is_leader: bool,
 
@@ -458,10 +458,10 @@ pub struct Organism {
 
     // Named friends: org_id → name. Forms from repeated positive interaction.
     // Unlike org_trust (which is anonymous and decays), friendships are recognized bonds.
-    pub friends: HashMap<String, String>,
+    pub friends: BTreeMap<String, String>,
 
     // Accumulated descriptors: birth traits (handsome, curious) + earned ones (builder, sage).
-    pub attributes: HashSet<String>,
+    pub attributes: BTreeSet<String>,
 
     pub anchor_events: Vec<(u64, String, f32)>,
 
@@ -537,8 +537,8 @@ impl Organism {
             q_table: FxHashMap::default(),
             last_reproduced: 0,
             last_challenged: 0,
-            lineage_attitudes: HashMap::new(),
-            org_trust: HashMap::new(),
+            lineage_attitudes: BTreeMap::new(),
+            org_trust: BTreeMap::new(),
             traits,
             infection: 0.0,
             carrying: 0,
@@ -547,7 +547,7 @@ impl Organism {
             daily_story: String::new(),
             last_story_tick: 0,
             life_log: VecDeque::new(),
-            discoveries: HashSet::new(),
+            discoveries: BTreeSet::new(),
             home_x: x,
             home_y: y,
             home_furniture: Vec::new(),
@@ -559,7 +559,7 @@ impl Organism {
             directive: String::new(),
             directive_until: 0,
             last_think_tick: 0,
-            last_think_by_kind: HashMap::new(),
+            last_think_by_kind: BTreeMap::new(),
             loneliness: 0.0,
             boredom: 0.0,
             fear_level: 0.0,
@@ -606,14 +606,14 @@ impl Organism {
             specialty: None,
             religion_id: None,
             degrees: Vec::new(),
-            tools: HashMap::new(),
+            tools: BTreeMap::new(),
             diseases: Vec::new(),
-            disease_immunity: HashMap::new(),
+            disease_immunity: BTreeMap::new(),
             mounted_vehicle: None,
             is_leader: false,
             conversations: VecDeque::new(),
-            friends: HashMap::new(),
-            attributes: HashSet::new(),
+            friends: BTreeMap::new(),
+            attributes: BTreeSet::new(),
             anchor_events: Vec::new(),
             memories: {
                 let mut m = super::memory::MemoryStore::default();
@@ -731,7 +731,7 @@ impl Organism {
         const MAX_ATTITUDES: usize = 24;
         const ATT_KEEP: usize = 18;
         if self.org_trust.len() > MAX_TRUST {
-            let mut v: Vec<(String, f32)> = self.org_trust.drain().collect();
+            let mut v: Vec<(String, f32)> = std::mem::take(&mut self.org_trust).into_iter().collect();
             v.sort_by(|a, b| {
                 b.1.abs()
                     .partial_cmp(&a.1.abs())
@@ -741,7 +741,7 @@ impl Organism {
             self.org_trust = v.into_iter().collect();
         }
         if self.lineage_attitudes.len() > MAX_ATTITUDES {
-            let mut v: Vec<(String, f32)> = self.lineage_attitudes.drain().collect();
+            let mut v: Vec<(String, f32)> = std::mem::take(&mut self.lineage_attitudes).into_iter().collect();
             v.sort_by(|a, b| {
                 b.1.abs()
                     .partial_cmp(&a.1.abs())
@@ -785,8 +785,6 @@ impl Organism {
             row.shrink_to_fit();
         }
         self.q_table.shrink_to_fit();
-        self.org_trust.shrink_to_fit();
-        self.lineage_attitudes.shrink_to_fit();
     }
 
     pub fn store_conversation(&mut self, entry: ConversationEntry) {
@@ -2208,7 +2206,7 @@ impl Organism {
             },
             is_elder: if include_cold { Some(self.is_elder) } else { None },
             friends: if include_cold && !self.friends.is_empty() {
-                Some(self.friends.clone())
+                Some(self.friends.clone().into_iter().collect())
             } else {
                 None
             },
@@ -2225,7 +2223,7 @@ impl Organism {
                 None
             },
             tools: if include_cold && !self.tools.is_empty() {
-                Some(self.tools.clone())
+                Some(self.tools.clone().into_iter().collect())
             } else {
                 None
             },

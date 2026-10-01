@@ -786,7 +786,7 @@ pub struct Simulation {
     pub(crate) cached_territory: serde_json::Value,
 }
 
-fn invention_candidates(discoveries: &HashSet<String>) -> Vec<&'static str> {
+fn invention_candidates(discoveries: &std::collections::BTreeSet<String>) -> Vec<&'static str> {
     let has = |s: &str| discoveries.contains(s);
     let mut v = Vec::new();
     if has("fire") && has("wood") && !has("cooking") {
