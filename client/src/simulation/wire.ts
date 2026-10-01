@@ -235,8 +235,12 @@ export function expandOrgsSoa(soa: OrgsHotSoa): ExpandedOrgDelta[] {
     if (hasYs) entry.y = soa.ys![i] / 10
     if (hasVxs) entry.vx = soa.vxs![i] / 10
     if (hasVys) entry.vy = soa.vys![i] / 10
-    if (hasTargetXs) entry.target_x = soa.target_xs![i] !== -32768 ? soa.target_xs![i] : undefined
-    if (hasTargetYs) entry.target_y = soa.target_ys![i] !== -32768 ? soa.target_ys![i] : undefined
+    // -32768 is the server's "no destination" sentinel. It must become an
+    // explicit `null` so the merge can apply the clear; `undefined` is the
+    // merge's "unchanged" token, which pinned the last non-null target
+    // forever.
+    if (hasTargetXs) entry.target_x = soa.target_xs![i] !== -32768 ? soa.target_xs![i] : null
+    if (hasTargetYs) entry.target_y = soa.target_ys![i] !== -32768 ? soa.target_ys![i] : null
     if (hasEnergies) entry.energy = soa.energies![i] / 100
     if (hasHydrs) entry.hydration = soa.hydrations![i] / 100
     if (hasHealths) entry.health = soa.healths![i] / 100

@@ -12,8 +12,15 @@ function mergeDefined<T extends object>(target: T, src: Partial<T>): T {
   const tgt = target as Record<string, unknown>
   for (const k in src) {
     const v = (src as Record<string, unknown>)[k]
-    if (v === null || v === undefined) continue
-    if (tgt[k] !== v) {
+    if (v === undefined) continue
+    // `null` is applied as a delete below, so it is a no-op when the key is
+    // already absent. A bare `tgt[k] !== v` treated "cleared" and "never
+    // set" as different, so every field the wire nulls out looked changed on
+    // every frame — reallocating every organism 10x/s and defeating the
+    // identity fast path the rest of this module exists to provide.
+    const cur = tgt[k]
+    const differs = v === null ? cur !== undefined && cur !== null : cur !== v
+    if (differs) {
       changed = true
       break
     }
@@ -22,7 +29,15 @@ function mergeDefined<T extends object>(target: T, src: Partial<T>): T {
   const out = { ...target } as Record<string, unknown>
   for (const k in src) {
     const v = (src as Record<string, unknown>)[k]
-    if (v !== null && v !== undefined) out[k] = v
+    if (v === undefined) continue
+    // An explicit `null` is the wire's "this was cleared" signal (see
+    // `wire.ts`, where a -32768 wander-target sentinel and an absent
+    // partner both become null). Skipping it here — as this function
+    // previously did — made the merge union-only, so a cleared
+    // `partner_id` / `target_x` stayed frozen at its last non-null value
+    // until the next cold frame.
+    if (v === null) delete out[k]
+    else out[k] = v
   }
   return out as T
 }
@@ -74,7 +89,13 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
   const fullFrameOrgs: OrganismState[] = parsed.organisms ?? []
   const deltaFrameOrgs: ExpandedOrgDelta[] = parsed.organisms_hot ? expandOrgsSoa(parsed.organisms_hot) : []
 
-  if (parsed.organisms_complete && fullFrameOrgs.length > 0) {
+  // An `organisms_complete` frame is authoritative, including when it is
+  // empty (total extinction). The extra `length > 0` guard meant an empty
+  // complete frame fell through to the delta branch and left the whole
+  // organism cache — and therefore `world.organisms` and the store's
+  // `byId` — frozen on the last-known roster. Compare the animals branch
+  // below, which rebuilds unconditionally.
+  if (parsed.organisms_complete) {
     const next = new Map<string, OrganismState>()
     for (const org of fullFrameOrgs) {
       const existing = caches.organisms.get(org.id)

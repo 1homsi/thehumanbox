@@ -77,8 +77,12 @@ export interface OrganismState extends ExtendedEmotions {
   sleep_debt?: number
   vx?: number
   vy?: number
-  target_x?: number
-  target_y?: number
+  // `null` means "the server cleared this" (a -32768 wander-target
+  // sentinel). `undefined` means "not in this frame" and leaves the cached
+  // value alone. Collapsing the two — as the type previously implied — is
+  // what let a stale destination or partner persist indefinitely.
+  target_x?: number | null
+  target_y?: number | null
   partner_id?: string | null
   father_id?: string | null
   children_count?: number

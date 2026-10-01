@@ -458,10 +458,12 @@ fn utterance_with_meaning(
     rng: &mut impl Rng,
 ) -> (String, String) {
     // `pick_concept_and_word` takes a `&HashMap<String, String>` - go
-    // through the as_hashmap view rather than reaching into the
-    // (now-positional) slots directly.
-    let v = speaker.vocabulary.as_hashmap();
-    let lv = listener.vocabulary.as_hashmap();
+    // through the words view rather than reaching into the
+    // (now-positional) slots directly. `words`, not `as_hashmap`: this
+    // map feeds the conversation prompt, which must never see the
+    // reserved `__thb_last_used` clock blob as if it were a word.
+    let v = speaker.vocabulary.words();
+    let lv = listener.vocabulary.words();
     let v = &v;
     let lv = &lv;
 
@@ -699,7 +701,9 @@ pub fn generate_conversation_with_req(
     super::convo_req::ConversationReq,
 ) {
     let (mut conv_a, mut conv_b) = generate_conversation(a, b, tick, kind, rng);
-    let id = uuid::Uuid::new_v4().to_string();
+    // Derived from the seeded stream so a seed reproduces a world; this id
+    // is also what pairs the two sides of a conversation in the client.
+    let id = crate::sim::agents::spawn::seeded_id(rng, 32);
     conv_a.id = id.clone();
     conv_b.id = id.clone();
 
@@ -719,7 +723,7 @@ pub fn generate_conversation_with_req(
         mood,
         tribe_name: tribe,
         partner_of,
-        vocab: o.vocabulary.as_hashmap(),
+        vocab: o.vocabulary.words(),
         recent,
     };
     let a_partner = a

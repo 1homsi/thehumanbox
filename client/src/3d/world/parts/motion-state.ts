@@ -42,7 +42,9 @@ export function updateOrgMotion(organisms: OrganismState[]) {
     if (!o.alive) continue
     const entry = orgState.get(o.id)
     if (entry) {
-      ingestSnapshot(entry, o.x, o.y, now, o.target_x, o.target_y)
+      // `null` means the server cleared the wander target; `undefined` means
+      // the field was absent from this frame and the cached one still stands.
+      ingestSnapshot(entry, o.x, o.y, now, o.target_x ?? undefined, o.target_y ?? undefined)
     } else {
       orgState.set(o.id, fresh(o.x, o.y, now))
     }

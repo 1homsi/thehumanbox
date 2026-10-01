@@ -132,6 +132,18 @@ fn consume_pooled_resource(sim: &mut Simulation, lineage: &str, unit: RepairUnit
 }
 
 fn battle_damage(scale: BattleScale) -> f32 {
+    // NOTE: this table is *not* monotonic in `BattleScale::min_participants`
+    // (Skirmish 2, Raid 6, Siege 10, Battle 20, War 40 -> 0.001, 0.002,
+    // 0.0075, 0.0045, 0.006), so a 10-strong siege does more building damage
+    // per interval than a 40-strong war. `exposure_for` max'es over nearby
+    // battles, so the siege value wins whenever one is active.
+    //
+    // Left as-is deliberately: sieges are the scale whose purpose is breaking
+    // structures, so a higher per-building rate for fewer participants may
+    // well be intended specialisation rather than a balance slip. Rescaling it
+    // is a design call that needs its own balance pass, and
+    // `siege_damage_reaches_a_besieged_building` pins the current value.
+    // Tracked in docs/audit-2026-09.md rather than silently "fixed".
     match scale {
         BattleScale::Skirmish => 0.001,
         BattleScale::Raid => 0.002,

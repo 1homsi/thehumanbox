@@ -135,7 +135,13 @@ fn fallback_walkable_step(
         let nx = ix + dx;
         let ny = iy + dy;
         let tile = grid.get(nx, ny);
-        if !tile.walkable() {
+        // Fire is `walkable()` but burns and drains the organism, so treat it
+        // as a non-destination here as well. Scoring in `toward` already
+        // penalises it, but scoring is advisory: when every neighbour scores
+        // `-inf` it falls through to direction 0, which may be fire. This is
+        // the choke point every move passes through, so the invariant holds
+        // no matter which caller chose the action.
+        if !tile.walkable() || tile == Tile::Fire {
             continue;
         }
         let alignment = (dx * rdx + dy * rdy) as f32;
@@ -184,7 +190,13 @@ fn safe_flee_target(
                 let tx = (raw_tx + dx).clamp(5, WIDTH as i32 - 5);
                 let ty = (raw_ty + dy).clamp(5, HEIGHT as i32 - 5);
                 let tile = grid.get(tx, ty);
-                if !tile.walkable() {
+                // Never nominate fire as somewhere to flee *to*. The hazard
+                // term below already penalises it, but a fire tile is the
+                // worst possible destination when the point of the search is
+                // to escape, and the movement executor now refuses it anyway
+                // — so choosing it just burns the flee on an unreachable
+                // target.
+                if !tile.walkable() || tile == Tile::Fire {
                     continue;
                 }
                 let progress =
@@ -227,7 +239,11 @@ fn movement_step_feedback(
     };
 
     let mut feedback = 0.001;
-    if !requested_tile.walkable() {
+    // Fire is walkable but is not a legal destination, so asking for it is
+    // the same kind of blocked request as asking for a wall. Keeping this in
+    // step with the executor's rule matters: otherwise the learner is neither
+    // rewarded nor penalised for choosing flames.
+    if !requested_tile.walkable() || requested_tile == Tile::Fire {
         feedback -= 0.006;
     }
     if (mx, my) != requested {
@@ -2192,7 +2208,13 @@ impl Simulation {
             let (dx, dy) = DIRECTIONS[action];
             let (nx, ny) = (ix + dx, iy + dy);
             let next_tile = self.grid.get(nx, ny);
-            let destination = if next_tile.walkable() {
+            // `walkable()` alone is not enough: `Tile::Fire` passes it, so a
+            // direction chosen while the organism was surrounded by fire (or
+            // any action whose scoring preferred fire) walked it into the
+            // flames. Fire is never a valid destination, so route it through
+            // the fallback, which picks the best genuinely safe neighbour and
+            // returns `None` when the organism is trapped.
+            let destination = if next_tile.walkable() && next_tile != Tile::Fire {
                 Some((nx, ny))
             } else {
                 fallback_walkable_step(
@@ -2925,7 +2947,10 @@ impl Simulation {
             {
                 self.organisms[idx].think("feeling weak", self.tick_count);
             }
-            self.organisms[idx].infection *= 0.997;
+            // Decay happens once, in the `med_mult` block below, which
+            // already defaults to 0.997. Applying it here as well made
+            // untreated infection recover at 0.997^2 and shifted every
+            // medicine tier by the extra factor.
         }
 
         if self.organisms[idx].infection > 0.01 {

@@ -600,6 +600,23 @@ export function useSimulation(source: WorldSource = 'native'): {
       }
       const ws = new WebSocket(WS_URL)
       ws.binaryType = 'arraybuffer'
+      // Detach the outgoing socket before adopting a new one. Without this
+      // its `onclose` can still fire afterwards and flip `connected` back to
+      // false, discard the new socket's buffered frames, and set
+      // `bootstrapPendingRef = true` — which nothing clears except a resync
+      // that has already been consumed, leaving the world frozen until a
+      // tab hide/show. `parkSocket` nulls its handlers for the same reason.
+      if (existing) {
+        existing.onopen = null
+        existing.onclose = null
+        existing.onmessage = null
+        existing.onerror = null
+        try {
+          existing.close()
+        } catch {
+          /* noop */
+        }
+      }
       wsRef.current = ws
 
       ws.onopen = () => {
@@ -612,6 +629,8 @@ export function useSimulation(source: WorldSource = 'native'): {
       }
       ws.onclose = () => {
         if (destroyed) return
+        // Ignore a close event from a socket we have already replaced.
+        if (wsRef.current !== ws) return
         setConnected(false)
         attempts += 1
         setFailedAttempts(attempts)

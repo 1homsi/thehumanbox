@@ -5,7 +5,6 @@ use crate::world::grid::{WorldGrid, HEIGHT, WIDTH};
 use crate::world::tiles::Tile;
 use rand::RngExt;
 use serde::Deserialize;
-use uuid::Uuid;
 
 #[derive(Deserialize)]
 #[serde(tag = "cmd", rename_all = "snake_case")]
@@ -73,6 +72,13 @@ const MAX_STRATEGY_DURATION: u64 = 7200;
 
 fn default_strategy_duration() -> u64 {
     1200
+}
+
+/// Clamp a command coordinate to a range where `coord + offset` cannot
+/// overflow `i32`. Command payloads are untrusted JSON, and the handlers
+/// add a radius-sized offset before calling `WorldGrid::in_bounds`.
+fn clamp_cmd_coord(v: i32) -> i32 {
+    v.clamp(-100_000, 100_000)
 }
 
 fn tile_from_name(name: &str) -> Option<Tile> {
@@ -143,7 +149,20 @@ impl Simulation {
                 let n = count.clamp(1, 50);
                 let lid = lineage
                     .filter(|lineage| !lineage.is_empty())
-                    .unwrap_or_else(|| format!("L{}", &Uuid::new_v4().to_string()[..6]));
+                    .map(|l| {
+                        // A caller-supplied lineage id reaches byte-slicing
+                        // sites (`&lid[..6]`) in the log/telemetry paths, so
+                        // clamp the length of anything supplied. Note this
+                        // bounds *characters*, not bytes, and does not make
+                        // the id ASCII: `chars().take(64)` happily keeps 64
+                        // three-byte characters. The slicing sites are
+                        // therefore still required to be char-boundary safe
+                        // — see `economy_tick::lid_short`.
+                        l.chars().take(64).collect()
+                    })
+                    .unwrap_or_else(|| {
+                        format!("L{}", crate::sim::agents::spawn::seeded_id(&mut self.rng, 6))
+                    });
                 for _ in 0..n {
                     if crate::sim::growth::population_slots_used(&self.organisms) >= self.population_limit() {
                         break;
@@ -164,7 +183,10 @@ impl Simulation {
                 true
             }
             Command::Smite { x, y, radius } => {
-                let r = if radius <= 0.0 { 3.0 } else { radius };
+                // Clamp the upper bound too: `radius: 1e30` parses to
+                // `f32::INFINITY`, which made `d <= r` true for every
+                // organism in the world.
+                let r = if radius <= 0.0 { 3.0 } else { radius.min(32.0) };
                 let mut best: Option<(usize, f32)> = None;
                 for (i, o) in self.organisms.iter().enumerate() {
                     if !o.alive {
@@ -183,7 +205,7 @@ impl Simulation {
                 true
             }
             Command::Heal { x, y, radius } => {
-                let r = if radius <= 0.0 { 4.0 } else { radius };
+                let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
                 for o in self.organisms.iter_mut() {
                     if o.alive && (o.x - x).hypot(o.y - y) <= r {
                         o.health = 1.0;
@@ -198,6 +220,10 @@ impl Simulation {
                 let Some(t) = tile_from_name(&tile) else {
                     return false;
                 };
+                // `x`/`y` arrive straight from JSON, so `x + dx` could
+                // overflow `i32` (and panic in debug builds, which run the
+                // command handler while holding the sim mutex).
+                let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
                 let r = radius.clamp(0, 24);
                 for dx in -r..=r {
                     for dy in -r..=r {
@@ -222,6 +248,7 @@ impl Simulation {
                 true
             }
             Command::Ignite { x, y, radius } => {
+                let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
                 let r = radius.clamp(0, 21);
                 for dx in -r..=r {
                     for dy in -r..=r {

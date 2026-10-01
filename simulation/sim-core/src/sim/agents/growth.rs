@@ -13,7 +13,6 @@ use crate::world::{
 };
 use rand::{Rng, RngExt};
 use rustc_hash::FxHashMap;
-use uuid::Uuid;
 
 pub fn is_pending_birth(organism: &Organism) -> bool {
     !organism.alive && organism.age == 0 && !organism.parent_id.is_empty() && organism.father_id.is_some()
@@ -47,7 +46,7 @@ pub fn spawn_organism_with_home(
     lineage_id: String,
     rng: &mut impl Rng,
 ) {
-    let id = Uuid::new_v4().to_string()[..8].to_string();
+    let id = crate::sim::agents::spawn::seeded_id(rng, 8);
     let sex = Sex::random(rng);
     let mut traits = Traits::random(rng);
     apply_sex_traits(&mut traits, sex);
@@ -261,7 +260,7 @@ pub fn try_reproduce(
             ..=(18000.0 + 8000.0 * child_traits_sexed.resilience) as u32,
     );
 
-    let child_id = Uuid::new_v4().to_string()[..8].to_string();
+    let child_id = crate::sim::agents::spawn::seeded_id(rng, 8);
     let mut child_name = generate_name(rng, child_sex);
     let mut namesake: Option<String> = None;
     if rng.random::<f32>() < 0.15 {

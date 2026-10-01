@@ -443,7 +443,10 @@ pub fn try_spawn_raids(
         }
     }
 
-    let lineage_ids: Vec<String> = pop_per_lineage.keys().cloned().collect();
+    // Sorted: the loop below draws from `rng` per lineage, so HashMap order
+    // decided the raid outcome and shifted the shared RNG stream.
+    let mut lineage_ids: Vec<String> = pop_per_lineage.keys().cloned().collect();
+    lineage_ids.sort();
     for a_lid in &lineage_ids {
         let a_pop = pop_per_lineage.get(a_lid).map(|v| v.len()).unwrap_or(0);
         if a_pop < RAID_MIN_POP {
@@ -481,7 +484,15 @@ pub fn try_spawn_raids(
             continue;
         }
 
-        candidates.sort_by(|x, y| x.1.partial_cmp(&y.1).unwrap_or(std::cmp::Ordering::Equal));
+        // `lineage_attitudes` is a std `HashMap`, so equal attitudes (very
+        // common once values saturate) were tie-broken by per-process hash
+        // order — i.e. the raid target changed run to run. Break ties on the
+        // lineage id so the choice is reproducible.
+        candidates.sort_by(|x, y| {
+            x.1.partial_cmp(&y.1)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| x.0.cmp(&y.0))
+        });
         let (b_lid, _) = candidates.remove(0);
 
         if rng.random::<f32>() > 0.35 {
@@ -579,7 +590,10 @@ pub fn try_spawn_border_wars(
         }
     }
 
-    let lineages: Vec<&String> = pop_per_lineage.keys().collect();
+    // Sorted: the pair loop draws from `rng` and `break`s after the first
+    // match, so HashMap order decided which pair went to war.
+    let mut lineages: Vec<&String> = pop_per_lineage.keys().collect();
+    lineages.sort();
     for i in 0..lineages.len() {
         let a_lid = lineages[i];
         let a_pop = pop_per_lineage.get(a_lid).map(|v| v.len()).unwrap_or(0);
@@ -844,13 +858,18 @@ pub fn tick_battles(
             let def_style = combat_style_for(&organisms[di], def_era);
             let a_bonus = soldier_bonus(&organisms[ai]) + att_policy_bonus;
             let d_bonus = soldier_bonus(&organisms[di]) + def_policy_bonus;
-            let a_dmg =
-                base_dmg * damage_multiplier(att_style) * (1.0 + a_bonus) * (0.7 + rng.random::<f32>() * 0.6);
-            let d_dmg = base_dmg
-                * damage_multiplier(def_style)
-                * (1.0 + d_bonus)
+            // A defender behind a completed wall/field fortification takes
+            // reduced damage. This multiplier has to sit on `a_dmg` (the
+            // damage dealt *to* the defender); putting it on `d_dmg` made a
+            // defensive structure boost the defender's own output by 50%
+            // while granting no mitigation at all.
+            let a_dmg = base_dmg
+                * damage_multiplier(att_style)
+                * (1.0 + a_bonus)
                 * (0.7 + rng.random::<f32>() * 0.6)
-                * if defender_wall_bonus { 1.5 } else { 1.0 };
+                * if defender_wall_bonus { 0.65 } else { 1.0 };
+            let d_dmg =
+                base_dmg * damage_multiplier(def_style) * (1.0 + d_bonus) * (0.7 + rng.random::<f32>() * 0.6);
 
             organisms[di].health = (organisms[di].health - a_dmg).max(0.0);
             if organisms[di].health <= 0.0 && organisms[di].alive {

@@ -1479,7 +1479,13 @@ pub(super) fn tick_friend_gravitation(sim: &mut Simulation) {
         let (ox, oy) = (o.x, o.y);
         let my_lid = o.lineage_id.as_str();
         let mut best: Option<(f32, f32, f32)> = None;
-        for friend_id in o.friends.keys() {
+        // `friends` is a std HashMap and the `d >= b` guard keeps the
+        // *first* candidate at the minimal distance, so equal-distance
+        // friends (common on a grid) were picked by hash order. Sort for a
+        // reproducible walk target.
+        let mut friend_ids: Vec<&String> = o.friends.keys().collect();
+        friend_ids.sort();
+        for friend_id in friend_ids {
             let Some(&fi) = id_to_idx.get(friend_id.as_str()) else {
                 continue;
             };
