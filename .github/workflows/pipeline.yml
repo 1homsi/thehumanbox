@@ -15,9 +15,47 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Which parts of the repo a PR touches. Pushes to main always run
+  # everything; PRs skip suites whose inputs did not change.
+  changes:
+    name: Detect changed areas
+    if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    outputs:
+      sim: ${{ github.event_name != 'pull_request' || steps.filter.outputs.sim == 'true' }}
+      client: ${{ github.event_name != 'pull_request' || steps.filter.outputs.client == 'true' }}
+      desktop: ${{ github.event_name != 'pull_request' || steps.filter.outputs.desktop == 'true' }}
+      lab: ${{ github.event_name != 'pull_request' || steps.filter.outputs.lab == 'true' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            ci: &ci
+              - '.github/**'
+              - 'Makefile'
+            sim:
+              - *ci
+              - 'simulation/**'
+              - 'scripts/perf-gate.sh'
+            client:
+              - *ci
+              - 'client/**'
+              - 'simulation/sim-core/**'
+              - 'simulation/Cargo.*'
+            desktop:
+              - *ci
+              - 'desktop/**'
+            lab:
+              - *ci
+              - 'lab/**'
+
   simulation-lint:
     name: Simulation lint (fmt + clippy)
-    if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
+    needs: [changes]
+    if: ${{ needs.changes.outputs.sim == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
@@ -43,7 +81,8 @@ jobs:
 
   simulation-tests:
     name: Simulation tests (release workspace)
-    if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
+    needs: [changes]
+    if: ${{ needs.changes.outputs.sim == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
@@ -64,33 +103,10 @@ jobs:
         # suite lives there after the core was split out for the wasm build).
         run: cargo test --release --locked --workspace
 
-  simulation-headless:
-    name: Simulation headless smoke
-    if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 8
-    env:
-      CARGO_INCREMENTAL: 0
-      CARGO_NET_RETRY: 10
-      RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
-    steps:
-      - uses: actions/checkout@v7
-      - name: Install mold linker
-        run: sudo apt-get install -y mold
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: simulation -> target
-      - name: headless smoke (6000 ticks, fixed seed)
-        working-directory: simulation
-        run: |
-          cargo build --release --locked --bin headless
-          ./target/release/headless --seed 42 --ticks 6000 --every 6000
-        timeout-minutes: 4
-
   simulation-performance:
     name: Simulation performance budget
-    if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
+    needs: [changes]
+    if: ${{ needs.changes.outputs.sim == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     env:
@@ -101,6 +117,7 @@ jobs:
       MAX_TICK_MS: 80
       MAX_RSS_MB: 256
       SEEDS: "42 1337 2026"
+      # This also covers the old headless smoke test: seed 42 runs 8000 ticks.
     steps:
       - uses: actions/checkout@v7
       - name: Install mold linker
@@ -117,7 +134,8 @@ jobs:
 
   test-frontend:
     name: Test frontend
-    if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
+    needs: [changes]
+    if: ${{ needs.changes.outputs.client == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -151,7 +169,8 @@ jobs:
 
   build-wasm:
     name: Build wasm sim-core
-    if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
+    needs: [changes]
+    if: ${{ needs.changes.outputs.client == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
@@ -160,15 +179,41 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # The wasm only depends on sim-core and its locked deps, so an unchanged
+      # source tree restores the previous build instead of a 5 minute compile.
+      # Every release bumps the simulation-rs version in Cargo.toml and
+      # Cargo.lock, which does not change the wasm, so those lines are left
+      # out of the key.
+      - name: Compute wasm cache key
+        id: wasm-key
+        run: |
+          {
+            find simulation/sim-core -type f -not -path '*/target/*' -print0 | sort -z | xargs -0 sha256sum
+            sed '/^name = "simulation-rs"$/{n;d;}' simulation/Cargo.lock
+            grep -v '^version = ' simulation/Cargo.toml
+          } | sha256sum | cut -c1-32 > /tmp/wasm-key
+          echo "key=wasm-sim-core-$(cat /tmp/wasm-key)" >> "$GITHUB_OUTPUT"
+      - name: Restore wasm build
+        id: wasm-cache
+        uses: actions/cache@v4
+        with:
+          path: client/src/wasm/sim-core
+          key: ${{ steps.wasm-key.outputs.key }}
       - uses: dtolnay/rust-toolchain@stable
+        if: steps.wasm-cache.outputs.cache-hit != 'true'
         with:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
+        if: steps.wasm-cache.outputs.cache-hit != 'true'
         with:
           workspaces: simulation -> target
       - name: Install wasm-pack
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+        if: steps.wasm-cache.outputs.cache-hit != 'true'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
       - name: Build wasm sim-core
+        if: steps.wasm-cache.outputs.cache-hit != 'true'
         working-directory: simulation
         run: |
           RUSTFLAGS='--cfg getrandom_backend="wasm_js"' \
@@ -182,8 +227,8 @@ jobs:
 
   build-frontend:
     name: Build frontend
-    if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
-    needs: [test-frontend, build-wasm]
+    needs: [changes, test-frontend, build-wasm]
+    if: ${{ needs.changes.outputs.client == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -231,7 +276,8 @@ jobs:
 
   test-desktop:
     name: Typecheck desktop
-    if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
+    needs: [changes]
+    if: ${{ needs.changes.outputs.desktop == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -256,7 +302,8 @@ jobs:
 
   test-lab:
     name: Test lab
-    if: ${{ !contains(github.event.head_commit.message, '[skip-bump]') }}
+    needs: [changes]
+    if: ${{ needs.changes.outputs.lab == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -350,13 +397,25 @@ jobs:
 
   release-gate:
     name: Release gate (all checks completed)
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    needs: [simulation-lint, simulation-tests, simulation-headless, simulation-performance, test-frontend, build-wasm, build-frontend, test-desktop, test-lab]
+    # always() so the gate decides from the results itself. Every suite runs
+    # on main, so anything other than success blocks the release.
+    if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[skip-bump]') }}
+    needs: [changes, simulation-lint, simulation-tests, simulation-performance, test-frontend, build-wasm, build-frontend, test-desktop, test-lab]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
       - name: Confirm release prerequisites
-        run: echo "All test, wasm, frontend, desktop, and lab checks completed successfully."
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "results: $RESULTS"
+          for result in $RESULTS; do
+            if [ "$result" != "success" ]; then
+              echo "a required check did not succeed ($result)" >&2
+              exit 1
+            fi
+          done
+          echo "All test, wasm, frontend, desktop, and lab checks completed successfully."
 
   publish-release:
     name: Publish desktop release
