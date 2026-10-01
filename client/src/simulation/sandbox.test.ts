@@ -31,7 +31,12 @@ describe('sandbox map controls', () => {
       'threat_map',
     ])
     const view = SANDBOX_CATEGORIES.find((category) => category.id === 'view')
-    expect(view?.tools.map((tool) => tool.id)).toEqual(['names_view', 'thoughts_view', 'animals_view', 'grid_view'])
+    expect(view?.tools.map((tool) => tool.id)).toEqual([
+      'names_view',
+      'thoughts_view',
+      'animals_view',
+      'grid_view',
+    ])
   })
 
   it('marks only the selected data overlay active', () => {
