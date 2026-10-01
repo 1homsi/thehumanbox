@@ -1,3 +1,4 @@
+import { drawBuilding } from '../2d/world/buildings2d'
 import { ERA_HOMES } from '../2d/world/era-home-catalog'
 import { getBuildingSprite } from '../2d/world/building-sprites'
 
@@ -51,9 +52,21 @@ render()
 export function verifyAllSprites() {
   const failures: string[] = []
   let renders = 0
+  let worldMapDraws = 0
   const eraHashes = new Map<string, Set<string>>()
   const globalHashes = new Set<string>()
   for (const home of ERA_HOMES) {
+    const mapPixels = [home.kind, home.wire].map((kind) => {
+      const canvas = document.createElement('canvas')
+      canvas.width = 128
+      canvas.height = 128
+      const ctx = canvas.getContext('2d')!
+      drawBuilding(ctx, { id: 1, kind, x: 3, y: 3, footprint: home.footprint, condition: 1 }, 0, 0, 12)
+      worldMapDraws++
+      return ctx.getImageData(0, 0, 128, 128).data
+    })
+    if (!mapPixels[0].every((value, index) => value === mapPixels[1][index]))
+      failures.push(`${home.kind}: wire and canonical world-map sprites differ`)
     for (const tile of [8, 12, 16]) {
       for (const [night, condition] of [
         [0, 1],
@@ -102,6 +115,7 @@ export function verifyAllSprites() {
     homes: ERA_HOMES.length,
     eras: eraHashes.size,
     renders,
+    worldMapDraws,
     distinctDaySprites: globalHashes.size,
     failures,
   }

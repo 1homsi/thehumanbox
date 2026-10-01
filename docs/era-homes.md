@@ -15,7 +15,7 @@ Sprites use the existing Canvas pixel-art pipeline. They render at the current t
 
 ## Review the sprites
 
-From `client`, run `pnpm dev` and open `/home-catalog.html`. This developer-only page renders the actual world-map sprites for any era and has night/damage toggles. **Verify all sprites** renders all 1,050 homes at tile sizes 8, 12 and 16 in intact/damaged day/night states (12,600 renders), checking nonempty pixels, canvas clipping and 30 distinct images per era.
+From `client`, run `pnpm dev` and open `/home-catalog.html`. This developer-only page renders the actual world-map sprites for any era and has night/damage toggles. **Verify all sprites** renders all 1,050 homes at tile sizes 8, 12 and 16 in intact/damaged day/night states (12,600 renders), checking nonempty pixels, canvas clipping and 30 distinct images per era. It also compares 2,100 actual world-map draws to ensure canonical and wire names produce the same artwork.
 
 The PNG above is a contact sheet of the same sprites at tile size 12, with eras in simulation ladder order. Within each row, every consecutive trio is a single/twin/enclosed plan.
 

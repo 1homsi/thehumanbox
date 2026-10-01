@@ -356,6 +356,8 @@ const FOOTPRINTS: Record<string, [number, number]> = {
 }
 
 function normKind(kind: string): string {
+  const home = eraHome(kind)
+  if (home) return home.kind
   return kind
     .toLowerCase()
     .replace(/_([a-z])/g, (_, c) => c.toUpperCase())
