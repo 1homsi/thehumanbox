@@ -29,6 +29,8 @@ fn color(grid: &WorldGrid, x: i32, y: i32) -> [u8; 3] {
                 Biome::Volcanic => [96, 70, 64],
                 Biome::Jungle => [34, 92, 40],
                 Biome::Savanna => [176, 172, 84],
+                Biome::Taiga => [52, 86, 70],
+                Biome::Badlands => [178, 98, 62],
             };
             // Light relief shading from elevation.
             shade(base, 0.8 + elev * 0.45)
@@ -54,14 +56,15 @@ fn main() {
         }
         let land = grid.tiles.iter().filter(|&&t| t != Tile::Water as i8).count();
         let rock = grid.tiles.iter().filter(|&&t| t == Tile::Rock as i8).count();
-        let mut biomes = [0usize; 8];
+        let mut biomes = [0usize; 10];
         for (i, &t) in grid.tiles.iter().enumerate() {
             if t != Tile::Water as i8 {
                 biomes[grid.biome[i] as usize] += 1;
             }
         }
         let share: Vec<String> = [
-            "grass", "forest", "desert", "wetland", "tundra", "volcanic", "jungle", "savanna",
+            "grass", "forest", "desert", "wetland", "tundra", "volcanic", "jungle", "savanna", "taiga",
+            "badlands",
         ]
         .iter()
         .zip(biomes)

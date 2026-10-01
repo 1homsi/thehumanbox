@@ -1021,6 +1021,13 @@ pub fn tick_world_evolution(
                 org.traits.social_tendency = (org.traits.social_tendency + 0.0005).clamp(0.1, 0.9);
                 org.traits.resilience = (org.traits.resilience + 0.0005).clamp(0.1, 0.9);
             }
+            Biome::Taiga => {
+                org.traits.resilience = (org.traits.resilience + 0.001).clamp(0.1, 0.9);
+            }
+            Biome::Badlands => {
+                org.traits.resilience = (org.traits.resilience + 0.001).clamp(0.1, 0.9);
+                org.traits.aggression = (org.traits.aggression + 0.0005).clamp(0.1, 0.9);
+            }
             Biome::Forest => {
                 org.traits.social_tendency = (org.traits.social_tendency + 0.001).clamp(0.1, 0.9);
                 org.traits.curiosity = (org.traits.curiosity + 0.0005).clamp(0.1, 0.9);

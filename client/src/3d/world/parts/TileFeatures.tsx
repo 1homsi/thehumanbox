@@ -56,6 +56,10 @@ function biomeTreeRule(b: number): { chance: number; spacing: number } {
       return { chance: 0.55, spacing: 1 }
     case BIOME_ID.SAVANNA:
       return { chance: 0.05, spacing: 6 }
+    case BIOME_ID.TAIGA:
+      return { chance: 0.4, spacing: 2 }
+    case BIOME_ID.BADLANDS:
+      return { chance: 0.02, spacing: 7 }
     default:
       return { chance: 0.0, spacing: 0 }
   }
@@ -141,6 +145,24 @@ function biomeUndergrowthRule(b: number): {
         bushColor: '#6e7d34',
         tuftColor: '#c2ab5e',
         flowerColor: '#f0c24a',
+      }
+    case BIOME_ID.TAIGA:
+      return {
+        bush: 0.1,
+        tuft: 0.12,
+        flower: 0.01,
+        bushColor: '#2f5248',
+        tuftColor: '#5f7a6a',
+        flowerColor: '#e8eef2',
+      }
+    case BIOME_ID.BADLANDS:
+      return {
+        bush: 0.03,
+        tuft: 0.04,
+        flower: 0.0,
+        bushColor: '#7a4a2e',
+        tuftColor: '#a86a40',
+        flowerColor: '#f0a050',
       }
     default:
       return { bush: 0.0, tuft: 0.0, flower: 0.0, bushColor: '#000', tuftColor: '#000', flowerColor: '#000' }

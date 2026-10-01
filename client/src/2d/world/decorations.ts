@@ -169,9 +169,11 @@ export function drawTrees(
           ? t === TILE_ID.SNOW || t === TILE_ID.GRASS || t === TILE_ID.FOOD
           : biome === BIOME_ID.VOLCANIC
             ? t === TILE_ID.ASH || t === TILE_ID.SCORCHED || t === TILE_ID.GRASS
-            : biome === BIOME_ID.SAVANNA
+            : biome === BIOME_ID.SAVANNA || biome === BIOME_ID.BADLANDS
               ? t === TILE_ID.GRASS || t === TILE_ID.FOOD || t === TILE_ID.SAND
-              : t === TILE_ID.GRASS || t === TILE_ID.FOOD
+              : biome === BIOME_ID.TAIGA
+                ? t === TILE_ID.GRASS || t === TILE_ID.FOOD || t === TILE_ID.SNOW
+                : t === TILE_ID.GRASS || t === TILE_ID.FOOD
     if (!supportsTree) continue
     // Mountains own their ground: no trees on a range or at its foot,
     // where the canopy would poke out from behind the rock.
@@ -221,6 +223,15 @@ export function drawTrees(
       case BIOME_ID.SAVANNA:
         chance = 0.05
         spacing = 6
+        break
+      case BIOME_ID.TAIGA:
+        // Close ranks of dark pines.
+        chance = 0.45
+        spacing = 2
+        break
+      case BIOME_ID.BADLANDS:
+        chance = 0.025
+        spacing = 7
         break
     }
     if (r0 > chance) continue
@@ -272,6 +283,12 @@ export function drawTrees(
         break
       case BIOME_ID.JUNGLE:
         sprite = r1 < 0.62 ? SPRITE.trees.oak_dark : SPRITE.trees.bush
+        break
+      case BIOME_ID.TAIGA:
+        sprite = r1 < 0.7 ? SPRITE.trees.conifer_dk : SPRITE.trees.conifer
+        break
+      case BIOME_ID.BADLANDS:
+        sprite = r1 < 0.5 ? SPRITE.trees.dead : SPRITE.trees.cactus
         break
       case BIOME_ID.SAVANNA:
         // Flat-topped acacias are drawn by hand; the atlas has none.
@@ -400,6 +417,21 @@ export function drawNaturalDecor(
         ctx.fillStyle = 'rgba(245,250,255,0.7)'
         ctx.fillRect(snowX - 2, snowY, 4, 1)
         ctx.fillRect(snowX - 1, snowY - 1, 3, 1)
+        continue
+      }
+      if (biome === BIOME_ID.BADLANDS && t === TILE_ID.SAND && r0 < 0.07) {
+        // A wind-cut red rock pillar with a lit face and a flat cap.
+        const bx = Math.round(px + TILE / 2 + (r1 - 0.5) * TILE * 0.4)
+        const by = Math.round(py + TILE - 1)
+        const hgt = 4 + Math.floor(r2 * 5)
+        ctx.fillStyle = 'rgba(40,16,8,0.3)'
+        ctx.fillRect(bx - 2, by, 6, 1)
+        ctx.fillStyle = '#8a3f22'
+        ctx.fillRect(bx - 2, by - hgt, 4, hgt)
+        ctx.fillStyle = '#c26a3e'
+        ctx.fillRect(bx - 2, by - hgt, 2, hgt)
+        ctx.fillStyle = '#e09160'
+        ctx.fillRect(bx - 3, by - hgt - 1, 6, 1)
         continue
       }
       if (t !== TILE_ID.GRASS && t !== TILE_ID.FOOD) continue

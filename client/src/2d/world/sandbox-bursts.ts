@@ -82,7 +82,13 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'ufo':
       return 'spawn'
     case 'cure':
+    case 'love':
       return 'heal'
+    case 'tame':
+      return 'peace'
+    case 'volcano':
+    case 'meteor_shower':
+      return 'meteor'
     case 'harvest':
       return 'grow'
     case 'arm':
@@ -127,6 +133,16 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'shelter':
     case 'campfire':
       return 'paint'
+    case 'biome_grassland':
+    case 'biome_forest':
+    case 'biome_jungle':
+    case 'biome_savanna':
+    case 'biome_desert':
+    case 'biome_badlands':
+    case 'biome_wetland':
+    case 'biome_tundra':
+    case 'biome_taiga':
+      return 'grow'
     default:
       return null
   }

@@ -26,6 +26,11 @@ export type SandboxCommand =
   | { cmd: 'flood'; x: number; y: number; radius?: number }
   | { cmd: 'blizzard'; x: number; y: number; radius?: number }
   | { cmd: 'thunder'; x: number; y: number; radius?: number }
+  | { cmd: 'paint_biome'; x: number; y: number; biome: string; radius?: number }
+  | { cmd: 'volcano'; x: number; y: number; radius?: number }
+  | { cmd: 'meteor_shower'; x: number; y: number; radius?: number }
+  | { cmd: 'love'; x: number; y: number; radius?: number }
+  | { cmd: 'tame'; x: number; y: number; radius?: number }
   | {
       cmd: 'guide'
       lineage: string
@@ -51,7 +56,7 @@ export type TimeControl = { control: 'pause' | 'resume' | 'speed'; mult?: number
 
 export type SandboxOverlay = 'density' | 'hazard' | 'fertility' | 'structures' | 'trails' | 'age' | 'threat'
 
-export type SandboxViewFlag = 'territory' | 'history'
+export type SandboxViewFlag = 'territory' | 'history' | 'names' | 'thoughts' | 'animals' | 'grid'
 
 export type SandboxViewControl =
   { control: 'overlay'; value: SandboxOverlay } | { control: 'flag'; value: SandboxViewFlag }
@@ -180,6 +185,20 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'banish', x, y, radius: 4 + b }),
       },
+      {
+        id: 'love',
+        label: 'love',
+        icon: '💞',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'love', x, y, radius: 4 + b }),
+      },
+      {
+        id: 'tame',
+        label: 'tame',
+        icon: '🦮',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'tame', x, y, radius: 4 + b }),
+      },
       { id: 'rain', label: 'rain', icon: '🌧️', mode: 'instant', fire: { cmd: 'weather', kind: 'rain' } },
       { id: 'clear', label: 'clear', icon: '☀️', mode: 'instant', fire: { cmd: 'weather', kind: 'clear' } },
       {
@@ -259,6 +278,20 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '☄️',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'meteor', x, y, radius: 2 + b }),
+      },
+      {
+        id: 'meteor_shower',
+        label: 'starfall',
+        icon: '🌠',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'meteor_shower', x, y, radius: 8 + b }),
+      },
+      {
+        id: 'volcano',
+        label: 'volcano',
+        icon: '🌋',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'volcano', x, y, radius: 4 + b }),
       },
       {
         id: 'flood',
@@ -348,6 +381,76 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
     ],
   },
   {
+    id: 'biomes',
+    label: 'biomes',
+    icon: '🌳',
+    tools: [
+      {
+        id: 'biome_grassland',
+        label: 'meadow',
+        icon: '🌱',
+        mode: 'point',
+        build: (x, y, r) => ({ cmd: 'paint_biome', x, y, biome: 'grassland', radius: 3 + r }),
+      },
+      {
+        id: 'biome_forest',
+        label: 'forest',
+        icon: '🌳',
+        mode: 'point',
+        build: (x, y, r) => ({ cmd: 'paint_biome', x, y, biome: 'forest', radius: 3 + r }),
+      },
+      {
+        id: 'biome_jungle',
+        label: 'jungle',
+        icon: '🌴',
+        mode: 'point',
+        build: (x, y, r) => ({ cmd: 'paint_biome', x, y, biome: 'jungle', radius: 3 + r }),
+      },
+      {
+        id: 'biome_savanna',
+        label: 'savanna',
+        icon: '🦒',
+        mode: 'point',
+        build: (x, y, r) => ({ cmd: 'paint_biome', x, y, biome: 'savanna', radius: 3 + r }),
+      },
+      {
+        id: 'biome_desert',
+        label: 'desert',
+        icon: '🌵',
+        mode: 'point',
+        build: (x, y, r) => ({ cmd: 'paint_biome', x, y, biome: 'desert', radius: 3 + r }),
+      },
+      {
+        id: 'biome_badlands',
+        label: 'badlands',
+        icon: '🟥',
+        mode: 'point',
+        build: (x, y, r) => ({ cmd: 'paint_biome', x, y, biome: 'badlands', radius: 3 + r }),
+      },
+      {
+        id: 'biome_wetland',
+        label: 'wetland',
+        icon: '🪷',
+        mode: 'point',
+        build: (x, y, r) => ({ cmd: 'paint_biome', x, y, biome: 'wetland', radius: 3 + r }),
+      },
+      {
+        id: 'biome_tundra',
+        label: 'tundra',
+        icon: '🧊',
+        mode: 'point',
+        build: (x, y, r) => ({ cmd: 'paint_biome', x, y, biome: 'tundra', radius: 3 + r }),
+      },
+      {
+        id: 'biome_taiga',
+        label: 'taiga',
+        icon: '🌲',
+        mode: 'point',
+        build: (x, y, r) => ({ cmd: 'paint_biome', x, y, biome: 'taiga', radius: 3 + r }),
+      },
+    ],
+  },
+  {
     id: 'resources',
     label: 'resources',
     icon: '🍎',
@@ -414,6 +517,62 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🧭',
         mode: 'instant',
         view: { control: 'flag', value: 'history' },
+      },
+      {
+        id: 'fertility_map',
+        label: 'fertile',
+        icon: '🌼',
+        mode: 'instant',
+        view: { control: 'overlay', value: 'fertility' },
+      },
+      {
+        id: 'age_map',
+        label: 'age',
+        icon: '⏳',
+        mode: 'instant',
+        view: { control: 'overlay', value: 'age' },
+      },
+      {
+        id: 'threat_map',
+        label: 'threat',
+        icon: '⚠️',
+        mode: 'instant',
+        view: { control: 'overlay', value: 'threat' },
+      },
+    ],
+  },
+  {
+    id: 'view',
+    label: 'view',
+    icon: '👁️',
+    tools: [
+      {
+        id: 'names_view',
+        label: 'names',
+        icon: '🏷️',
+        mode: 'instant',
+        view: { control: 'flag', value: 'names' },
+      },
+      {
+        id: 'thoughts_view',
+        label: 'thoughts',
+        icon: '💭',
+        mode: 'instant',
+        view: { control: 'flag', value: 'thoughts' },
+      },
+      {
+        id: 'animals_view',
+        label: 'animals',
+        icon: '🐾',
+        mode: 'instant',
+        view: { control: 'flag', value: 'animals' },
+      },
+      {
+        id: 'grid_view',
+        label: 'grid',
+        icon: '#️⃣',
+        mode: 'instant',
+        view: { control: 'flag', value: 'grid' },
       },
     ],
   },
@@ -558,7 +717,7 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
       { id: 'fast40', label: '40×', icon: '⚡', mode: 'instant', time: { control: 'speed', mult: 40 } },
       { id: 'fast50', label: '50×', icon: '⚡', mode: 'instant', time: { control: 'speed', mult: 50 } },
       { id: 'fast500', label: '500×', icon: '⚡', mode: 'instant', time: { control: 'speed', mult: 500 } },
-      { id: 'fast5000', label: '5k×', icon: '⚡', mode: 'instant', time: { control: 'speed', mult: 5000 } },
+      { id: 'fast5000', label: '5000×', icon: '⚡', mode: 'instant', time: { control: 'speed', mult: 5000 } },
     ],
   },
 ]

@@ -1371,6 +1371,8 @@ struct WorldReport {
     volcanic_tiles: usize,
     jungle_tiles: usize,
     savanna_tiles: usize,
+    taiga_tiles: usize,
+    badlands_tiles: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1464,6 +1466,8 @@ fn build_world_report(seed: u64) -> WorldReport {
     let mut volcanic_tiles = 0usize;
     let mut jungle_tiles = 0usize;
     let mut savanna_tiles = 0usize;
+    let mut taiga_tiles = 0usize;
+    let mut badlands_tiles = 0usize;
 
     for y in 0..HEIGHT as i32 {
         for x in 0..WIDTH as i32 {
@@ -1504,6 +1508,8 @@ fn build_world_report(seed: u64) -> WorldReport {
                 Biome::Volcanic => volcanic_tiles += 1,
                 Biome::Jungle => jungle_tiles += 1,
                 Biome::Savanna => savanna_tiles += 1,
+                Biome::Taiga => taiga_tiles += 1,
+                Biome::Badlands => badlands_tiles += 1,
             }
         }
     }
@@ -1526,6 +1532,8 @@ fn build_world_report(seed: u64) -> WorldReport {
         volcanic_tiles,
         jungle_tiles,
         savanna_tiles,
+        taiga_tiles,
+        badlands_tiles,
     }
 }
 
@@ -1581,7 +1589,7 @@ fn print_world_report(seed: u64) {
         report.largest_component_ratio() * 100.0,
     );
     println!(
-        " biomes grass={} forest={} wetland={} desert={} tundra={} volcanic={} jungle={} savanna={}",
+        " biomes grass={} forest={} wetland={} desert={} tundra={} volcanic={} jungle={} savanna={} taiga={} badlands={}",
         report.grassland_tiles,
         report.forest_tiles,
         report.wetland_tiles,
@@ -1590,6 +1598,8 @@ fn print_world_report(seed: u64) {
         report.volcanic_tiles,
         report.jungle_tiles,
         report.savanna_tiles,
+        report.taiga_tiles,
+        report.badlands_tiles,
     );
     println!(
         " quality_score={:.3} verdict={}",
@@ -1720,6 +1730,8 @@ mod tests {
             volcanic_tiles: 0,
             jungle_tiles: 0,
             savanna_tiles: 0,
+            taiga_tiles: 0,
+            badlands_tiles: 0,
         };
 
         assert_eq!(report.verdict(), WorldVerdict::Harsh);
@@ -1743,6 +1755,8 @@ mod tests {
             volcanic_tiles: 0,
             jungle_tiles: 0,
             savanna_tiles: 0,
+            taiga_tiles: 0,
+            badlands_tiles: 0,
         };
 
         assert_eq!(report.verdict(), WorldVerdict::Fragmented);

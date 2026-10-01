@@ -868,16 +868,3 @@ body.thb-photo-mode .thb-action-ticker {
     background: var(--dock-wood);
   }
 }
-
-/* Seven speeds in one row: 1x to 5000x. */
-.sandbox-bar .dock-time {
-  width: 226px;
-}
-.sandbox-bar .dock-speeds {
-  grid-template-columns: repeat(7, 1fr);
-  gap: 3px;
-}
-.sandbox-bar .dock-speed {
-  font-size: 10px;
-  letter-spacing: 0;
-}
