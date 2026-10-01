@@ -2513,3 +2513,43 @@ fn a_new_tribe_leaves_as_a_band_on_one_journey() {
         assert_eq!((o.home_x, o.home_y), (40.0, 40.0));
     }
 }
+
+#[test]
+fn armed_kin_fight_back_and_kill_attacking_wolves() {
+    use crate::organism::animal::{Animal, AnimalKind};
+    let mut sim = Simulation::new(3);
+    let lineage = sim.organisms[0].lineage_id.clone();
+    let mut killed = 0;
+    for round in 0..60 {
+        let group: Vec<usize> = sim
+            .organisms
+            .iter()
+            .enumerate()
+            .filter(|(_, o)| o.alive && o.lineage_id == lineage)
+            .map(|(i, _)| i)
+            .take(4)
+            .collect();
+        if group.len() < 2 {
+            break;
+        }
+        for &i in &group {
+            let o = &mut sim.organisms[i];
+            o.x = 120.0;
+            o.y = 90.0;
+            o.age = 2000;
+            o.health = 1.0;
+            o.traits.aggression = 0.9;
+            o.discoveries.insert("spear".to_string());
+        }
+        let id = 90_000 + round;
+        let mut wolf = Animal::new(id, 120.5, 90.0, AnimalKind::Wolf);
+        wolf.energy = 0.3;
+        sim.animals.push(wolf);
+        sim.tick();
+        if !sim.animals.iter().any(|a| a.id == id && a.alive) {
+            killed += 1;
+        }
+        sim.animals.retain(|a| a.id != id);
+    }
+    assert!(killed > 0, "armed defenders killed at least one wolf");
+}

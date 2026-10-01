@@ -309,7 +309,7 @@ impl Organism {
                     let hy = self.home_y as i32;
                     // Next to home counts: a hut on the home tile can't be
                     // walked onto, which left builders circling it forever.
-                    let on_home = (ix - hx).abs() <= 1 && (iy - hy).abs() <= 1;
+                    let on_home = (ix - hx).abs() <= 2 && (iy - hy).abs() <= 2;
                     if !on_home {
                         set_thought!("building shelter");
                         return (self.toward((hx, hy), grid), thought);
@@ -370,7 +370,9 @@ impl Organism {
                 && !journeying
                 && self.inv_wood < 3
                 && self.energy > 0.55
-                && rng.random::<f32>() < 0.30
+                // A started trip continues; re-rolling every tick made people
+                // zig-zag between this and their other targets.
+                && (self.thought == "heading to the trees" || rng.random::<f32>() < 0.30)
             {
                 if tile == Tile::Grass {
                     set_thought!("chopping wood");
@@ -388,7 +390,7 @@ impl Organism {
                 && !journeying
                 && self.inv_stone < 2
                 && self.energy > 0.55
-                && rng.random::<f32>() < 0.15
+                && (self.thought == "heading to the quarry" || rng.random::<f32>() < 0.15)
             {
                 let rock_adjacent = crate::organism::organism::DIRECTIONS
                     .iter()
@@ -652,7 +654,10 @@ impl Organism {
                     .map(|o| (o.x as i32, o.y as i32));
                 if let Some(pp) = partner {
                     let dist = (pp.0 - ix).abs() + (pp.1 - iy).abs();
-                    if dist > 4 && dist < 40 && rng.random::<f32>() < 0.30 {
+                    if dist > 4
+                        && dist < 40
+                        && (self.thought == "walking with partner" || rng.random::<f32>() < 0.30)
+                    {
                         set_thought!("walking with partner");
                         return (self.toward(pp, grid), thought);
                     }
@@ -988,8 +993,19 @@ impl Organism {
                 opts[rng.random_range(0..opts.len())]
             };
             set_thought!(explore_thought);
-            let last_dx = (self.x - self.prev_x).signum() as i32;
-            let last_dy = (self.y - self.prev_y).signum() as i32;
+            // prev_x is reset after everyone moves, so it always equals x
+            // here; the smoothed velocity is the real last direction.
+            let sign = |v: f32| {
+                if v > 0.3 {
+                    1
+                } else if v < -0.3 {
+                    -1
+                } else {
+                    0
+                }
+            };
+            let last_dx = sign(self.vx_smooth);
+            let last_dy = sign(self.vy_smooth);
             if (last_dx != 0 || last_dy != 0) && rng.random::<f32>() < 0.75 {
                 let target = (ix + last_dx * 5, iy + last_dy * 5);
                 return (self.toward(target, grid), thought);
@@ -1047,7 +1063,11 @@ impl Organism {
             return (pick, thought);
         }
 
-        let active_wander_action = self.wander_target.and_then(|wt| {
+        // At night (or pregnant) near shelter, stay put. Following the wander
+        // target out of shelter range, then being sent back by "finding
+        // shelter", was the largest source of back-and-forth steps.
+        let settled = (night || self.pregnant) && self.has_shelter_within(grid, buildings, 3);
+        let active_wander_action = self.wander_target.filter(|_| !settled).and_then(|wt| {
             let dist = (wt.0 - ix).abs() + (wt.1 - iy).abs();
             if dist > 4 && self.energy > 0.20 && self.hydration > 0.20 {
                 Some(self.toward(wt, grid))

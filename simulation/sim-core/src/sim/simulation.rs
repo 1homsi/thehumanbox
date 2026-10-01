@@ -2065,7 +2065,7 @@ impl Simulation {
             if d <= 8.0 {
                 animal_near = true;
             }
-            if matches!(a.kind, AnimalKind::Wolf)
+            if a.kind.predator()
                 && d <= wolf_flee_radius
                 && wolf_threat.map(|(bd, _, _)| d < bd).unwrap_or(true)
             {
@@ -2200,17 +2200,24 @@ impl Simulation {
         // A single step away from remembered danger was undone by the next
         // tick's routine, so people flip-flopped on the spot. Commit to the
         // retreat by aiming the wander target further along the flee step.
-        if action < 8
-            && new_thought.as_deref() == Some("avoiding danger")
-            && self.organisms[idx].journey.is_none()
-        {
+        if action < 8 && new_thought.as_deref() == Some("avoiding danger") {
             let (dx, dy) = DIRECTIONS[action];
             let o = &mut self.organisms[idx];
             let (ox, oy) = (o.x as i32, o.y as i32);
-            o.wander_target = Some((
-                (ox + dx * 8).clamp(1, WIDTH as i32 - 2),
-                (oy + dy * 8).clamp(1, HEIGHT as i32 - 2),
-            ));
+            // A journey that leads back toward the danger is abandoned, or it
+            // walks them straight back on the next tick.
+            if o.journey
+                .as_ref()
+                .is_some_and(|j| (j.target.0 - ox) * dx + (j.target.1 - oy) * dy < 0)
+            {
+                o.journey = None;
+            }
+            if o.journey.is_none() {
+                o.wander_target = Some((
+                    (ox + dx * 8).clamp(1, WIDTH as i32 - 2),
+                    (oy + dy * 8).clamp(1, HEIGHT as i32 - 2),
+                ));
+            }
         }
 
         let (ix, iy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
@@ -4879,18 +4886,28 @@ impl Simulation {
     fn spawn_animals(&mut self, count: usize) {
         for _ in 0..count {
             let r = self.rng.random::<f32>();
-            let kind = if r < 0.32 {
+            let kind = if r < 0.24 {
                 AnimalKind::Rabbit
-            } else if r < 0.55 {
+            } else if r < 0.40 {
                 AnimalKind::Deer
-            } else if r < 0.70 {
+            } else if r < 0.50 {
                 AnimalKind::Boar
-            } else if r < 0.84 {
+            } else if r < 0.62 {
                 AnimalKind::Bird
-            } else if r < 0.92 {
+            } else if r < 0.70 {
                 AnimalKind::Fish
-            } else {
+            } else if r < 0.76 {
                 AnimalKind::Wolf
+            } else if r < 0.79 {
+                AnimalKind::Bear
+            } else if r < 0.87 {
+                AnimalKind::Sheep
+            } else if r < 0.93 {
+                AnimalKind::Cow
+            } else if r < 0.97 {
+                AnimalKind::Horse
+            } else {
+                AnimalKind::Chicken
             };
             self.spawn_animal_of_kind(kind);
         }
@@ -4936,6 +4953,11 @@ impl Simulation {
                 (AnimalKind::Bird, 8),
                 (AnimalKind::Fish, 6),
                 (AnimalKind::Wolf, 4),
+                (AnimalKind::Bear, 2),
+                (AnimalKind::Sheep, 6),
+                (AnimalKind::Cow, 4),
+                (AnimalKind::Horse, 4),
+                (AnimalKind::Chicken, 4),
             ];
             for &(kind, floor) in PER_KIND_FLOOR {
                 let count = self.animals.iter().filter(|a| a.alive && a.kind == kind).count();
@@ -4962,8 +4984,8 @@ impl Simulation {
         let mut wolf_pos_for_flee: Vec<(f32, f32)> = Vec::new();
         for animal in self.animals.iter().filter(|animal| animal.alive) {
             match animal.kind {
-                AnimalKind::Rabbit | AnimalKind::Deer => prey_pos_for_chase.push((animal.x, animal.y)),
-                AnimalKind::Wolf => wolf_pos_for_flee.push((animal.x, animal.y)),
+                kind if kind.is_prey() => prey_pos_for_chase.push((animal.x, animal.y)),
+                kind if kind.predator() => wolf_pos_for_flee.push((animal.x, animal.y)),
                 _ => {}
             }
         }
@@ -4995,12 +5017,12 @@ impl Simulation {
             .animals
             .iter()
             .enumerate()
-            .filter(|(_, a)| a.alive && matches!(a.kind, AnimalKind::Rabbit | AnimalKind::Deer))
+            .filter(|(_, a)| a.alive && a.kind.is_prey())
             .map(|(i, a)| (i, a.x, a.y, a.kind))
             .collect();
         let mut kills: Vec<(usize, usize)> = Vec::new();
         for (pi, pred) in self.animals.iter().enumerate() {
-            if !pred.alive || !matches!(pred.kind, AnimalKind::Wolf) {
+            if !pred.alive || !pred.kind.predator() {
                 continue;
             }
             if pred.energy > 0.85 {
@@ -5022,8 +5044,9 @@ impl Simulation {
                 continue;
             }
             let gain = match self.animals[vi].kind {
-                AnimalKind::Rabbit => 0.40,
-                AnimalKind::Deer => 0.65,
+                AnimalKind::Rabbit | AnimalKind::Chicken => 0.40,
+                AnimalKind::Deer | AnimalKind::Sheep => 0.65,
+                AnimalKind::Cow | AnimalKind::Horse => 0.80,
                 _ => 0.20,
             };
             self.animals[vi].alive = false;
@@ -5120,7 +5143,8 @@ impl Simulation {
 
         let mut bites: Vec<(usize, usize)> = Vec::new();
         for (ai, a) in self.animals.iter().enumerate() {
-            if !a.alive || !matches!(a.kind, AnimalKind::Wolf) {
+            // Only hungry predators attack, like their prey hunting above.
+            if !a.alive || !a.kind.predator() || a.energy > 0.85 {
                 continue;
             }
             let (ax, ay) = (a.x, a.y);
@@ -5152,10 +5176,15 @@ impl Simulation {
             }
         }
         for (ai, oi) in bites {
-            let dmg = 0.12 + self.rng.random::<f32>() * 0.08;
+            if !self.animals[ai].alive || !self.organisms[oi].alive {
+                continue;
+            }
+            let beast = self.animals[ai].kind;
+            let bear = beast == AnimalKind::Bear;
+            let dmg = if bear { 0.22 } else { 0.12 } + self.rng.random::<f32>() * 0.08;
             let oname = self.organisms[oi].name.clone();
             self.organisms[oi].health = (self.organisms[oi].health - dmg).max(0.0);
-            self.organisms[oi].think("a wolf attacks", self.tick_count);
+            self.organisms[oi].think(&format!("a {} attacks", beast.name()), self.tick_count);
             self.organisms[oi].fear_level = (self.organisms[oi].fear_level + 0.25).min(1.0);
             self.animals[ai].energy = (self.animals[ai].energy + 0.20).min(1.0);
             push_event(
@@ -5163,8 +5192,56 @@ impl Simulation {
                 self.tick_count,
                 "danger",
                 &oname,
-                "mauled by a wolf",
+                &format!("mauled by a {}", beast.name()),
             );
+
+            // People fight back: the victim and nearby kin strike at the
+            // wolf. Weapons, numbers and boldness decide whether it dies.
+            let (ax, ay) = (self.animals[ai].x, self.animals[ai].y);
+            let victim_lineage = self.organisms[oi].lineage_id.clone();
+            ordered_human_candidates(&human_spatial, ax, ay, 3, &mut wolf_candidates);
+            let defenders: Vec<usize> = wolf_candidates
+                .iter()
+                .copied()
+                .filter(|&k| {
+                    let o = &self.organisms[k];
+                    o.alive
+                        && o.age >= 700
+                        && (k == oi || o.lineage_id == victim_lineage)
+                        && (o.x - ax).abs() + (o.y - ay).abs() <= 3.0
+                })
+                .take(4)
+                .collect();
+            let strike = |o: &crate::organism::organism::Organism| -> f32 {
+                let armed = o.discoveries.contains("spear")
+                    || o.discoveries.contains("hunting")
+                    || o.discoveries.contains("bow");
+                0.10 + if armed { 0.16 } else { 0.0 } + o.traits.aggression * 0.10
+            };
+            // A bear takes far more to bring down than a wolf.
+            let toughness = if bear { 0.45 } else { 1.0 };
+            let kill_p =
+                (defenders.iter().map(|&k| strike(&self.organisms[k])).sum::<f32>() * toughness).min(0.85);
+            let health_ok = self.organisms[oi].health > 0.0;
+            if !defenders.is_empty() && health_ok && self.rng.random::<f32>() < kill_p {
+                self.animals[ai].alive = false;
+                for &k in &defenders {
+                    let o = &mut self.organisms[k];
+                    o.fear_level = (o.fear_level - 0.2).max(0.0);
+                    o.think(&format!("fought off a {}", beast.name()), self.tick_count);
+                }
+                let o = &mut self.organisms[oi];
+                o.inv_food = o.inv_food.saturating_add(if bear { 4 } else { 2 }).min(9);
+                let detail = if defenders.len() > 1 {
+                    format!("killed a {} with {} others", beast.name(), defenders.len() - 1)
+                } else {
+                    format!("killed the {} that attacked them", beast.name())
+                };
+                push_event(&mut self.events, self.tick_count, "hunt", &oname, &detail);
+            } else if !defenders.is_empty() {
+                // Driven back: a sated wolf stops hunting for a while.
+                self.animals[ai].energy = self.animals[ai].energy.max(0.9);
+            }
         }
 
         let candidates: Vec<(usize, f32, f32, AnimalKind)> = self
@@ -5183,6 +5260,11 @@ impl Simulation {
                 AnimalKind::Fish => 110,
                 AnimalKind::Wolf => 45,
                 AnimalKind::Dog => 40,
+                AnimalKind::Bear => 18,
+                AnimalKind::Sheep => 90,
+                AnimalKind::Cow => 70,
+                AnimalKind::Horse => 60,
+                AnimalKind::Chicken => 80,
             }
         };
         let mut kind_alive: HashMap<AnimalKind, usize> = HashMap::new();
@@ -5225,6 +5307,20 @@ impl Simulation {
                 (AnimalKind::Wolf, Biome::Grassland) => 0.8,
                 (AnimalKind::Wolf, _) => 0.3,
                 (AnimalKind::Dog, _) => 0.0,
+                (AnimalKind::Bear, Biome::Forest) => 1.3,
+                (AnimalKind::Bear, Biome::Tundra) => 1.1,
+                (AnimalKind::Bear, _) => 0.2,
+                (AnimalKind::Sheep, Biome::Grassland) => 1.5,
+                (AnimalKind::Sheep, Biome::Tundra) => 0.8,
+                (AnimalKind::Sheep, _) => 0.5,
+                (AnimalKind::Cow, Biome::Grassland) => 1.4,
+                (AnimalKind::Cow, Biome::Wetland) => 1.0,
+                (AnimalKind::Cow, _) => 0.3,
+                (AnimalKind::Horse, Biome::Grassland) => 1.5,
+                (AnimalKind::Horse, _) => 0.4,
+                (AnimalKind::Chicken, Biome::Grassland) => 1.2,
+                (AnimalKind::Chicken, Biome::Forest) => 0.8,
+                (AnimalKind::Chicken, _) => 0.4,
             };
 
             let local_density = self
@@ -5285,6 +5381,11 @@ impl Simulation {
                         AnimalKind::Bird => 0.16,
                         AnimalKind::Fish => 0.26,
                         AnimalKind::Wolf => 0.10,
+                        AnimalKind::Bear => 0.05,
+                        AnimalKind::Sheep => 0.28,
+                        AnimalKind::Cow => 0.30,
+                        AnimalKind::Horse => 0.12,
+                        AnimalKind::Chicken => 0.34,
                         _ => 0.0,
                     };
                     let weapon_bonus = if org.discoveries.contains("spear") {
@@ -5319,6 +5420,11 @@ impl Simulation {
                 AnimalKind::Fish => ("fish", 0.32, 1u8, 0.00f32, 2u8),
                 AnimalKind::Wolf => ("wolf", 0.45, 2u8, 0.90f32, 1u8),
                 AnimalKind::Dog => ("dog", 0.0, 0u8, 0.00f32, 0u8),
+                AnimalKind::Bear => ("bear", 0.70, 4u8, 0.95f32, 3u8),
+                AnimalKind::Sheep => ("sheep", 0.45, 2u8, 0.90f32, 2u8),
+                AnimalKind::Cow => ("cow", 0.70, 4u8, 0.85f32, 4u8),
+                AnimalKind::Horse => ("horse", 0.55, 3u8, 0.80f32, 3u8),
+                AnimalKind::Chicken => ("chicken", 0.22, 1u8, 0.00f32, 1u8),
             };
             let (ax, ay) = (self.animals[ai].x as i32, self.animals[ai].y as i32);
             self.animals[ai].alive = false;

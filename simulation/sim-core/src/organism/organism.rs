@@ -1091,7 +1091,10 @@ impl Organism {
                     .id
                     .bytes()
                     .fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64));
-                let angle = ((hash ^ tick) as f32) * 0.0000014;
+                // Mix the tick in before narrowing: the raw hash is ~1e19, so
+                // `(hash ^ tick) as f32` dropped the tick and every trip for a
+                // given person pointed the same way.
+                let angle = ((hash ^ tick.wrapping_mul(0x9E37_79B9_7F4A_7C15)) % 6283) as f32 * 0.001;
                 let dist = 120.0 + self.traits.curiosity * 380.0;
                 let tx = (self.x + angle.sin() * dist).round() as i32;
                 let ty = (self.y + angle.cos() * dist).round() as i32;
@@ -1141,7 +1144,7 @@ impl Organism {
                 .max(300);
             let offset = id_hash % period;
             if tick % period == offset {
-                let angle = ((id_hash ^ tick) as f32) * 0.0000014;
+                let angle = ((id_hash ^ tick.wrapping_mul(0x9E37_79B9_7F4A_7C15)) % 6283) as f32 * 0.001;
                 let dist = 150.0 + self.traits.curiosity * 400.0;
                 let tx = (self.x + angle.sin() * dist).round() as i32;
                 let ty = (self.y + angle.cos() * dist).round() as i32;
@@ -1778,6 +1781,13 @@ impl Organism {
             let ny = iy + ady;
             let progress = *adx * dx + *ady * dy;
             let mut score = progress as f32;
+            // Mild momentum: stepping straight back against the current
+            // velocity costs a little, so equal-progress options around an
+            // obstacle don't alternate every tick. A real reversal with full
+            // progress still wins.
+            if *adx as f32 * self.vx_smooth + *ady as f32 * self.vy_smooth < -0.5 {
+                score -= 1.5;
+            }
             let t = grid.get(nx, ny);
             // `Fire` is technically walkable, but standing in it burns and
             // costs reward, so exclude it the same way `has_progress_step`

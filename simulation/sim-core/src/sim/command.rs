@@ -160,6 +160,11 @@ fn animal_from_name(name: &str) -> AnimalKind {
         "fish" => AnimalKind::Fish,
         "wolf" => AnimalKind::Wolf,
         "dog" => AnimalKind::Dog,
+        "bear" => AnimalKind::Bear,
+        "sheep" => AnimalKind::Sheep,
+        "cow" => AnimalKind::Cow,
+        "horse" => AnimalKind::Horse,
+        "chicken" => AnimalKind::Chicken,
         _ => AnimalKind::Deer,
     }
 }
@@ -1014,6 +1019,24 @@ mod tests {
         assert_eq!(sim.organisms[0].lineage_attitudes.get(&b).copied(), Some(-1.0));
         assert!(sim.apply_command_json(r#"{"cmd":"peace","x":50.0,"y":50.0}"#));
         assert_eq!(sim.organisms[other].lineage_attitudes.get(&a).copied(), Some(1.0));
+    }
+
+    #[test]
+    fn every_animal_kind_can_be_spawned_by_name() {
+        use crate::organism::animal::AnimalKind;
+        let mut sim = Simulation::new(1);
+        for kind in AnimalKind::ALL {
+            let cmd = format!(
+                r#"{{"cmd":"spawn_animal","x":120.0,"y":90.0,"kind":"{}"}}"#,
+                kind.name()
+            );
+            assert!(sim.apply_command_json(&cmd), "{}", kind.name());
+            assert!(
+                sim.animals.last().unwrap().kind == kind,
+                "{} spawned as itself",
+                kind.name()
+            );
+        }
     }
 
     #[test]
