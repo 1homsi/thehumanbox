@@ -82,6 +82,17 @@ jobs:
         with:
           targets: wasm32-unknown-unknown, ${{ matrix.sim_target }}
 
+      # The wasm is platform independent and the pipeline already built it;
+      # rebuilding it here cost 5 to 9 minutes per OS. A manual dispatch has
+      # no pipeline artifact, so it falls back to building.
+      - name: Reuse wasm sim-core from the pipeline
+        id: wasm
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: sim-core-wasm
+          path: client/src/wasm/sim-core
+
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: simulation
@@ -99,11 +110,13 @@ jobs:
           cp simulation/target/${{ matrix.sim_target }}/release/${{ matrix.bin_name }} desktop/resources/bin/
 
       - name: Install wasm-pack
+        if: steps.wasm.outcome != 'success'
         uses: taiki-e/install-action@v2
         with:
           tool: wasm-pack
 
       - name: Build wasm sim-core (renderer imports it)
+        if: steps.wasm.outcome != 'success'
         shell: bash
         working-directory: simulation
         env:
@@ -128,14 +141,6 @@ jobs:
         working-directory: client
         run: pnpm install --frozen-lockfile
 
-      - name: Build client
-        working-directory: client
-        run: pnpm run build
-        env:
-          VITE_GIT_SHA:      ${{ github.sha }}
-          VITE_POSTHOG_KEY:  ${{ secrets.VITE_POSTHOG_KEY }}
-          VITE_POSTHOG_HOST: ${{ secrets.VITE_POSTHOG_HOST || 'https://us.i.posthog.com' }}
-
       - name: Install desktop deps
         working-directory: desktop
         run: pnpm install --frozen-lockfile
@@ -151,6 +156,11 @@ jobs:
           # WIN_CSC_KEY_PASSWORD via repo secrets and flip the flags in
           # electron-builder.yml.
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          # `pnpm run release` builds the renderer (the client with
+          # VITE_DESKTOP=1) itself, so the client is built once, here.
+          VITE_GIT_SHA:      ${{ github.sha }}
+          VITE_POSTHOG_KEY:  ${{ secrets.VITE_POSTHOG_KEY }}
+          VITE_POSTHOG_HOST: ${{ secrets.VITE_POSTHOG_HOST || 'https://us.i.posthog.com' }}
         run: pnpm run release
 
       - name: Upload artifact (debug, if release upload fails)

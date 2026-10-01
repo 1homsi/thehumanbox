@@ -19,10 +19,20 @@ if [[ ! -x "$BIN" ]]; then
   exit 2
 fi
 
+# Seeds are independent, so run them at once (CI runners have several
+# cores) and check each profile afterwards.
+pids=()
+for seed in $SEEDS; do
+  "$BIN" --seed "$seed" --ticks "$TICKS" --every "$TICKS" \
+    --profile "$TMPDIR/$seed.csv" --profile-every "$PROFILE_EVERY" >/dev/null &
+  pids+=("$!")
+done
+for pid in "${pids[@]}"; do
+  wait "$pid" || { echo "headless run failed (pid $pid)" >&2; exit 1; }
+done
+
 for seed in $SEEDS; do
   profile="$TMPDIR/$seed.csv"
-  "$BIN" --seed "$seed" --ticks "$TICKS" --every "$TICKS" \
-    --profile "$profile" --profile-every "$PROFILE_EVERY" >/dev/null
   # A profile with no samples (only the header) makes every awk below
   # report 0, so the budget check passed while measuring nothing. This is
   # reachable via the documented `make perf-gate TICKS=<small>`, which has
