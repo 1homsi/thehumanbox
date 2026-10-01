@@ -1287,3 +1287,51 @@ fn indexed_local_decisions_match_population_scan() {
         }
     }
 }
+
+#[test]
+fn toolmakers_fetch_stone_from_nearby_rock() {
+    let traits = Traits::random(&mut StdRng::seed_from_u64(0));
+    let mut grid = WorldGrid::new(2);
+    for x in 0..=30 {
+        for y in 0..=20 {
+            grid.set(x, y, Tile::Sand);
+        }
+    }
+    grid.set(16, 10, Tile::Rock);
+    let mut org = Organism::new(
+        "id".into(),
+        "Mason".into(),
+        10.0,
+        10.0,
+        0,
+        "".into(),
+        "lin".into(),
+        5000,
+        traits,
+    );
+    org.home_x = 10.0;
+    org.home_y = 10.0;
+    org.hydration = 0.9;
+    org.energy = 0.9;
+    org.health = 1.0;
+    org.discoveries.insert("stone_tools".into());
+
+    let thoughts: Vec<Option<String>> = (0..200)
+        .map(|seed| {
+            let mut rng = StdRng::seed_from_u64(seed);
+            org.choose_action(&grid, &[], 100, 0.0, &[], false, 0, &mut rng, false, "", &[])
+                .1
+        })
+        .collect();
+    assert!(thoughts
+        .iter()
+        .any(|t| t.as_deref() == Some("heading to the quarry")));
+
+    org.x = 15.0;
+    let quarried = (0..200).any(|seed| {
+        let mut rng = StdRng::seed_from_u64(seed);
+        org.choose_action(&grid, &[], 100, 0.0, &[], false, 0, &mut rng, false, "", &[])
+            == (29, Some("quarrying stone".to_string()))
+    });
+    assert!(quarried, "next to rock they quarry");
+}
