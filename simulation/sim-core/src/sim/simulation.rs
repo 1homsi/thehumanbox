@@ -707,6 +707,8 @@ pub struct Simulation {
     pub drought: DroughtState,
     pub weather: WeatherState,
     pub flood_tiles: Vec<(i32, i32, u64)>,
+    /// Player-planted crops, orchards and saplings, keyed by tile index.
+    pub plantings: std::collections::BTreeMap<u32, crate::sim::tech::plantings::Planting>,
     pub story_history: VecDeque<StoryEntry>,
     pub pending_thinks: Vec<ThinkTrigger>,
     pub pending_convos: Vec<crate::sim::convo_req::ConversationReq>,
@@ -776,6 +778,9 @@ pub struct Simulation {
     /// without shipping the entire building list on every hot frame.
     pub(crate) building_state_revision: u64,
     pub(crate) serialized_building_state_revision: u64,
+    /// Bumped whenever a planting is added, removed or changes stage.
+    pub(crate) planting_revision: u64,
+    pub(crate) serialized_planting_revision: u64,
     pub(crate) active_structure_tiles: HashSet<(i32, i32)>,
     pub(crate) field_fortifications: Vec<super::warfare::FieldFortification>,
     pub(crate) settlement_tiers: HashMap<String, u8>,
@@ -882,6 +887,7 @@ impl Simulation {
             drought: DroughtState::default(),
             weather: WeatherState::default(),
             flood_tiles: Vec::new(),
+            plantings: Default::default(),
             story_history: VecDeque::new(),
             pending_thinks: Vec::new(),
             pending_convos: Vec::new(),
@@ -941,6 +947,8 @@ impl Simulation {
             slow_compute_tick: 0,
             building_state_revision: 0,
             serialized_building_state_revision: 0,
+            planting_revision: 0,
+            serialized_planting_revision: 0,
             active_structure_tiles: HashSet::default(),
             field_fortifications: Vec::new(),
             settlement_tiers: HashMap::default(),
@@ -1851,6 +1859,7 @@ impl Simulation {
 
         self.tick_animals(&org_idx_by_id);
         self.tick_colonization();
+        self.tick_plantings();
         self.check_animal_catches();
 
         {

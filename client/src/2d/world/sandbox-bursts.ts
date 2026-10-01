@@ -142,6 +142,9 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'biome_wetland':
     case 'biome_tundra':
     case 'biome_taiga':
+    case 'plant_crop':
+    case 'plant_orchard':
+    case 'plant_sapling':
       return 'grow'
     default:
       return null

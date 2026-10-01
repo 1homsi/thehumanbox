@@ -9,3 +9,4 @@ pub mod tools;
 pub mod transportation;
 
 pub mod boats;
+pub mod plantings;

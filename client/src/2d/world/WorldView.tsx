@@ -64,6 +64,7 @@ import { eraTier, getBuildingSprite, PAD as SPRITE_PAD, PAD_BOT as SPRITE_PAD_BO
 import { normalizeLineageEras } from '../../utils/lineageEras'
 import { useSceneStore } from '../../stores/scene'
 import { farmCropColor, farmProgress, farmStage } from '../../world/farms'
+import { drawPlanting } from './plantings'
 import { strategyBeaconPositions, strategyTimeLabel } from '../../world/strategy-visuals'
 import { TILE_ID, isPermanentWaterTile, isWaterTile } from '../../world/terrain-ids'
 import {
@@ -2047,6 +2048,16 @@ export function drawWorldOnCanvas(
       }
     }
     ctx.restore()
+  }
+
+  if (world.plantings && world.plantings.length >= 4) {
+    const flat = world.plantings
+    for (let i = 0; i + 3 < flat.length; i += 4) {
+      const localX = flat[i]! - ox
+      const localY = flat[i + 1]! - oy
+      if (localX < c0 - 1 || localX > c1 || localY < r0 - 1 || localY > r1) continue
+      drawPlanting(ctx, localX * TILE, localY * TILE, flat[i + 2]!, flat[i + 3]!)
+    }
   }
 
   if (world.buildings && world.buildings.length > 0) {
