@@ -725,6 +725,23 @@ impl Simulation {
                 self.serialized_building_state_revision = self.building_state_revision;
             }
         }
+        if include_cold || force_full || self.planting_revision != self.serialized_planting_revision {
+            if let Some(obj) = payload.as_object_mut() {
+                // Flat [x, y, kind, stage, ...] - fields can hold thousands.
+                let mut flat: Vec<u32> = Vec::with_capacity(self.plantings.len() * 4);
+                for (&i, p) in &self.plantings {
+                    let i = i as usize;
+                    flat.extend([
+                        (i % crate::world::grid::WIDTH) as u32,
+                        (i / crate::world::grid::WIDTH) as u32,
+                        p.kind.id() as u32,
+                        p.stage() as u32,
+                    ]);
+                }
+                obj.insert("plantings".to_string(), json!(flat));
+                self.serialized_planting_revision = self.planting_revision;
+            }
+        }
         payload
     }
 }

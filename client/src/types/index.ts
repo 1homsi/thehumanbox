@@ -493,6 +493,8 @@ export interface WorldState {
   governments?: GovernmentInfo[]
   artworks?: ArtworkInfo[]
   farms?: FarmInfo[]
+  /** Player plantings as flat [x, y, kind, stage, ...]. */
+  plantings?: number[]
   settlements?: SettlementInfo[]
   vehicles?: VehicleInfo[]
   festivals?: FestivalInfo[]

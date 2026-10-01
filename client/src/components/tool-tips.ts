@@ -15,6 +15,10 @@ const TOOL_TIPS: Record<string, string> = {
   snow: 'Paint snow.',
   food: 'Scatter food for humans and animals to gather.',
   drink: 'Add fresh drinking water.',
+  plant_crop:
+    'Sow a field. It ripens into grain, and regrows after it is eaten. Rain helps; drought and fire ruin it.',
+  plant_orchard: 'Plant fruit trees. Slow to grow, then they bear fruit again and again.',
+  plant_sapling: 'Plant young trees that grow into a forest.',
   territory_map: 'Show the land each tribe claims.',
   settlement_map: 'Highlight towns and buildings.',
   population_map: 'Show where people crowd together.',

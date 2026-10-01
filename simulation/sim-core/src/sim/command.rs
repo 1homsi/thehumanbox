@@ -183,6 +183,14 @@ pub enum Command {
         #[serde(default)]
         radius: f32,
     },
+    /// Plant crops, an orchard or saplings inside the radius.
+    Plant {
+        x: i32,
+        y: i32,
+        kind: String,
+        #[serde(default)]
+        radius: i32,
+    },
     /// Repaint the land inside the radius as a biome.
     PaintBiome {
         x: i32,
@@ -849,6 +857,7 @@ impl Simulation {
                         }
                     }
                 }
+                grown += self.ripen_plantings(cx, cy, ri);
                 if grown > 0 {
                     push_event(
                         &mut self.events,
@@ -998,6 +1007,7 @@ impl Simulation {
                         }
                     }
                 }
+                withered += self.wither_plantings(x, y, r);
                 let rf = r as f32;
                 for o in self.organisms.iter_mut() {
                     if o.alive && (o.x - x as f32).hypot(o.y - y as f32) <= rf {
@@ -1149,6 +1159,13 @@ impl Simulation {
                     }
                 }
                 struck
+            }
+            Command::Plant { x, y, kind, radius } => {
+                let Some(kind) = crate::sim::tech::plantings::PlantKind::parse(&kind) else {
+                    return false;
+                };
+                let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
+                self.plant(x, y, kind, radius) > 0
             }
             Command::PaintBiome { x, y, biome, radius } => {
                 use crate::world::tiles::Biome;

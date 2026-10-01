@@ -314,6 +314,8 @@ pub struct SaveState {
     rng: Option<ChaCha8Rng>,
     flood_tiles: Vec<(i32, i32, u64)>,
     #[serde(default)]
+    plantings: std::collections::BTreeMap<u32, crate::sim::tech::plantings::Planting>,
+    #[serde(default)]
     territory: HashMap<String, Vec<[i32; 2]>>,
     #[serde(default)]
     last_immigration_tick: u64,
@@ -852,6 +854,7 @@ impl Simulation {
             pending_thinks: self.pending_thinks.clone(),
             rng: Some(self.rng.clone()),
             flood_tiles: self.flood_tiles.clone(),
+            plantings: self.plantings.clone(),
             territory: self
                 .territory
                 .iter()
@@ -1167,6 +1170,7 @@ impl Simulation {
                 wind_last_tick: state.weather.wind_last_tick,
             },
             flood_tiles: state.flood_tiles,
+            plantings: state.plantings,
             story_history: state.story_history.into_iter().collect(),
             pending_thinks: state.pending_thinks,
             pending_convos: Vec::new(),
@@ -1234,6 +1238,8 @@ impl Simulation {
             cached_territory: serde_json::Value::Null,
             building_state_revision: 1,
             serialized_building_state_revision: 0,
+            planting_revision: 1,
+            serialized_planting_revision: 0,
             buildings,
             next_building_id,
             governments: state.governments,
