@@ -1,6 +1,5 @@
 use super::organism::Organism;
 use rand::{Rng, RngExt};
-use std::collections::HashSet;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // INHERITABLE SETS
@@ -251,8 +250,8 @@ pub fn assign_birth_attributes(org: &mut Organism, rng: &mut impl Rng) {
 
 pub fn inherit_attributes_from_parents(
     child: &mut Organism,
-    mother_attrs: &HashSet<String>,
-    father_attrs: &HashSet<String>,
+    mother_attrs: &std::collections::BTreeSet<String>,
+    father_attrs: &std::collections::BTreeSet<String>,
     rng: &mut impl Rng,
 ) {
     for attr in INHERITABLE_PHYSICAL {

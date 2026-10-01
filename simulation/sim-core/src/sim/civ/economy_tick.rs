@@ -400,7 +400,13 @@ fn wage_for(name: &str) -> u32 {
     }
 }
 
-fn surplus(food: u8, water: u8, wood: u8, stone: u8, tools: &HashMap<String, u8>) -> Option<(String, u8)> {
+fn surplus(
+    food: u8,
+    water: u8,
+    wood: u8,
+    stone: u8,
+    tools: &std::collections::BTreeMap<String, u8>,
+) -> Option<(String, u8)> {
     for k in TRADABLE_TOOLS {
         let c = tools.get(*k).copied().unwrap_or(0);
         if c >= 2 {
@@ -422,7 +428,14 @@ fn surplus(food: u8, water: u8, wood: u8, stone: u8, tools: &HashMap<String, u8>
     None
 }
 
-fn lacks(food: u8, water: u8, wood: u8, stone: u8, tools: &HashMap<String, u8>, kind: &str) -> bool {
+fn lacks(
+    food: u8,
+    water: u8,
+    wood: u8,
+    stone: u8,
+    tools: &std::collections::BTreeMap<String, u8>,
+    kind: &str,
+) -> bool {
     match kind {
         "food" => food == 0,
         "water" => water == 0,
@@ -475,7 +488,7 @@ struct BarterRow {
     water: u8,
     wood: u8,
     stone: u8,
-    tools: HashMap<String, u8>,
+    tools: std::collections::BTreeMap<String, u8>,
 }
 
 fn run_barter(sim: &mut Simulation, tick: u64) {
@@ -586,7 +599,7 @@ struct CurrencyRow {
     water: u8,
     wood: u8,
     stone: u8,
-    tools: HashMap<String, u8>,
+    tools: std::collections::BTreeMap<String, u8>,
     wealth: u32,
     era: Era,
     barter: bool,

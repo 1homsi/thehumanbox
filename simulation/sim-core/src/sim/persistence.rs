@@ -101,8 +101,8 @@ pub(crate) struct OrgSave {
     last_reproduced: u64,
     last_challenged: u64,
     water_ticks: u32,
-    lineage_attitudes: HashMap<String, f32>,
-    org_trust: HashMap<String, f32>,
+    lineage_attitudes: std::collections::BTreeMap<String, f32>,
+    org_trust: std::collections::BTreeMap<String, f32>,
     traits: crate::organism::traits::Traits,
     infection: f32,
     carrying: u32,
@@ -180,8 +180,8 @@ pub(crate) struct OrgSave {
     #[serde(default)]
     inv_stone: u8,
     // ── Friend network (previously dropped) ───────────────────────────
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    friends: HashMap<String, String>,
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    friends: std::collections::BTreeMap<String, String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     anchor_events: Vec<(u64, String, f32)>,
     #[serde(default)]
@@ -191,7 +191,7 @@ pub(crate) struct OrgSave {
     #[serde(default)]
     birth_tick: u64,
     #[serde(default)]
-    last_think_by_kind: HashMap<String, u64>,
+    last_think_by_kind: std::collections::BTreeMap<String, u64>,
     #[serde(default)]
     mood: f32,
     #[serde(default)]
@@ -235,11 +235,11 @@ pub(crate) struct OrgSave {
     #[serde(default)]
     degrees: Vec<String>,
     #[serde(default)]
-    tools: HashMap<String, u8>,
+    tools: std::collections::BTreeMap<String, u8>,
     #[serde(default)]
     diseases: Vec<(String, u64)>,
     #[serde(default)]
-    disease_immunity: HashMap<String, u64>,
+    disease_immunity: std::collections::BTreeMap<String, u64>,
     #[serde(default)]
     mounted_vehicle: Option<u32>,
     #[serde(default)]
