@@ -27,6 +27,11 @@ const TOOL_TIPS: Record<string, string> = {
   wolf: 'Release a wolf.',
   bird: 'Release a bird.',
   fish: 'Release a fish.',
+  bear: 'Release a bear. It hunts, and attacks people when hungry.',
+  sheep: 'Release a sheep. Sheep graze and keep together.',
+  cow: 'Release a cow. Slow, and a big meal for hunters.',
+  horse: 'Release a horse. Fast and skittish.',
+  chicken: 'Release a chicken.',
   rain: 'Start rain. Helps dry land recover.',
   storm: 'Summon a storm. Drains energy and can strike with lightning.',
   clear: 'Clear the skies.',
@@ -74,6 +79,11 @@ export function toolFailure(tool: SandboxTool): string {
     case 'wolf':
     case 'bird':
     case 'fish':
+    case 'bear':
+    case 'sheep':
+    case 'cow':
+    case 'horse':
+    case 'chicken':
       return 'too many animals already'
     default:
       return 'did not work here'

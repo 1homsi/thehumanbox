@@ -11,6 +11,7 @@ import { SandboxBursts } from './SandboxBursts'
 import { burstForTool, useSandboxBursts } from './sandbox-bursts'
 import { isMapControl, type MapCommand } from './camera-controls'
 import { drawFaunaSprite } from './fauna-sprites'
+import { drawPixelFauna } from './pixel-fauna'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   Game,
@@ -298,7 +299,7 @@ function drawPixelFire(
 
 import { TILE, TILE_RGB, BIOME_RGBA, THOUGHT_COLORS, SEASON_LAND_TINT } from '../../world/palette'
 import { orgVariant } from '../../world/org-variant'
-import { drawTrees, drawClouds, drawNaturalDecor, scratchA, scratchB } from './decorations'
+import { drawTrees, drawTreeSway, drawClouds, drawNaturalDecor, scratchA, scratchB } from './decorations'
 
 const fpsSamples: number[] = []
 
@@ -1197,6 +1198,14 @@ export function drawWorldOnCanvas(
     }
   } else {
     ctx.drawImage(base, 0, 0)
+  }
+  if (!overview && renderScale >= 1) {
+    drawTreeSway(
+      ctx,
+      t,
+      { x0: c0 * TILE, y0: r0 * TILE, x1: c1 * TILE, y1: r1 * TILE },
+      { storm: world.weather?.kind === 'storm', windX: world.weather?.wind_x ?? 0 },
+    )
   }
 
   const sp = world.season_progress ?? 0.5
@@ -2178,7 +2187,16 @@ export function drawWorldOnCanvas(
       const motion = characterMotion(_animalLastPos.get(animal.id), animal.x, animal.y, t, 0)
       _animalLastPos.set(animal.id, motion)
       const small = animal.kind === 'fish' || animal.kind === 'bird' || animal.kind === 'rabbit'
-      const size = small ? 14 : 20
+      const size =
+        animal.kind === 'chicken'
+          ? 10
+          : animal.kind === 'bear' || animal.kind === 'cow' || animal.kind === 'horse'
+            ? 22
+            : small
+              ? 14
+              : animal.kind === 'sheep'
+                ? 18
+                : 20
       const moving = animal.kind === 'fish' || animal.kind === 'bird' || t - motion.movedAt < 320
       const speed =
         animal.kind === 'fish'
@@ -2188,8 +2206,11 @@ export function drawWorldOnCanvas(
             : animal.kind === 'wolf' || animal.kind === 'dog'
               ? 0.0042
               : 0.0036
-      const amp = animal.kind === 'fish' ? 1.4 : animal.kind === 'bird' ? 1.6 : moving ? 0.55 : 0
-      const phase = t * speed + animal.id * 0.7
+      // Standing grazers dip slowly, as if eating, instead of freezing.
+      const grazer = ['deer', 'sheep', 'cow', 'horse', 'rabbit'].includes(animal.kind)
+      const amp =
+        animal.kind === 'fish' ? 1.4 : animal.kind === 'bird' ? 1.6 : moving ? 0.55 : grazer ? 0.45 : 0
+      const phase = (moving || !grazer ? t * speed : t * 0.0012) + animal.id * 0.7
       const yOff = Math.sin(phase) * amp
       const cx = (animal.x - ox) * TILE + TILE / 2
       const cy = (animal.y - oy) * TILE + TILE / 2 + yOff
@@ -2200,6 +2221,8 @@ export function drawWorldOnCanvas(
         ctx.fill()
       }
       const flip = motion.flipped
+      const step = moving ? Math.floor(t / 200 + animal.id) & 1 : 0
+      if (drawPixelFauna(ctx, animal.kind, cx, cy, size, flip, step)) continue
       if (drawFaunaSprite(ctx, animal.kind, animal.id, cx, cy, size, flip)) continue
       if (animal.kind === 'wolf' || animal.kind === 'dog') {
         drawCanineSprite(

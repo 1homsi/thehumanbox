@@ -38,7 +38,7 @@ function InstancedSpecies({ kind, ids, depthMap, biomes }: InstancedSpeciesProps
   // slowly relative to render rate).
   const meshes = useRef<(InstancedMesh | null)[]>([])
   const count = ids.length
-  const quadruped = kind === 'deer' || kind === 'boar' || kind === 'wolf' || kind === 'dog'
+  const quadruped = ['deer', 'boar', 'wolf', 'dog', 'bear', 'sheep', 'cow', 'horse'].includes(kind)
 
   // Per-part baked local matrix (offset · rotation · scale). Computed
   // once per parts change, reused every frame.

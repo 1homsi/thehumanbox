@@ -16,6 +16,16 @@ export function kindIcon(kind: string): string {
       return '🐺'
     case 'dog':
       return '🐕'
+    case 'bear':
+      return '🐻'
+    case 'sheep':
+      return '🐑'
+    case 'cow':
+      return '🐄'
+    case 'horse':
+      return '🐎'
+    case 'chicken':
+      return '🐔'
     default:
       return '🐾'
   }

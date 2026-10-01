@@ -62,6 +62,11 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'wolf':
     case 'bird':
     case 'fish':
+    case 'bear':
+    case 'sheep':
+    case 'cow':
+    case 'horse':
+    case 'chicken':
       return 'spawn'
     case 'fire':
       return 'fire'
