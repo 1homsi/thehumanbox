@@ -1,3 +1,4 @@
+import { eraHome } from './era-home-catalog'
 import { getBuildingSprite, hasBuildingSprite, PAD, PAD_BOT } from './building-sprites'
 import type { Building } from '../../types'
 import { getBuildingState, type BuildingState } from '../../world/building-state'
@@ -362,6 +363,8 @@ function normKind(kind: string): string {
 }
 
 export function buildingFootprint(kind: string): [number, number] {
+  const home = eraHome(kind)
+  if (home) return home.footprint
   const k = FOOTPRINTS[kind] ?? FOOTPRINTS[normKind(kind)]
   return k ?? [1, 1]
 }
@@ -372,6 +375,7 @@ function positiveTileSpan(value: number | undefined, fallback: number): number {
 }
 
 export function buildingEmoji(kind: string): string {
+  if (eraHome(kind)) return '\u{1F3E0}'
   return BUILDING_EMOJI[kind] ?? BUILDING_EMOJI[normKind(kind)] ?? '\u{1F3DA}\u{FE0F}'
 }
 

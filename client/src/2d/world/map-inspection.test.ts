@@ -28,6 +28,14 @@ function world(buildings: Building[] = []): WorldState {
 }
 
 describe('map inspection and interior access', () => {
+  it('shows named catalog homes and their housing capacity from wire kinds', () => {
+    const state = world([
+      { id: 7, kind: 'medieval_enclosed_cruck_cottage', x: 100, y: 200, footprint: [3, 3], condition: 1 },
+    ])
+    const tile = inspectWorldTile(state, 102, 202)
+    expect(tile?.title).toBe('Enclosed Cruck Cottage')
+    expect(tile?.details).toContain('medieval home · capacity 8')
+  })
   it('reads resources in world coordinates even when the grid has an origin', () => {
     const tile = inspectWorldTile(world(), 101, 200)
     expect(tile?.title).toBe('Wild food')

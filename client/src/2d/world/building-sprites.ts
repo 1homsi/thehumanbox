@@ -1,3 +1,5 @@
+import { ERA_HOMES } from './era-home-catalog'
+import { paintCatalogHome } from './era-home-sprites'
 import { shade, hueShift } from './sprite-colors'
 
 export const PAD = 8
@@ -1590,6 +1592,11 @@ reg(paintSpaceport, ['Spaceport'])
 reg(paintFusionPlant, ['FusionPlant'])
 reg(paintOrbitalLift, ['OrbitalLift'])
 reg(paintGlassTower, ['OfficeTower'])
+
+reg(
+  paintCatalogHome,
+  ERA_HOMES.map((home) => home.kind),
+)
 
 export const BUILDING_SPRITE_KINDS = Object.freeze(Object.keys(ARCHETYPE))
 
