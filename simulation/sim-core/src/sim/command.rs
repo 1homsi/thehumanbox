@@ -308,6 +308,12 @@ impl Simulation {
                     .unwrap_or_else(|| {
                         format!("L{}", crate::sim::agents::spawn::seeded_id(&mut self.rng, 6))
                     });
+                // A new lineage needs a name, or its people show as
+                // "undefined" wherever the tribe name is displayed.
+                if !self.lineage_names.contains_key(&lid) {
+                    let name = crate::organism::organism::generate_tribe_name(&mut self.rng);
+                    self.lineage_names.insert(lid.clone(), name);
+                }
                 let before = self.organisms.len();
                 // God spawns get a little room above the natural cap so the
                 // tool still works in a mature world that sits at its limit.
@@ -941,6 +947,15 @@ mod tests {
         sim.animals[deer].y = 150.0;
         assert!(sim.apply_command_json(r#"{"cmd":"smite","x":150.0,"y":150.0,"radius":3.0}"#));
         assert!(!sim.animals[deer].alive);
+    }
+
+    #[test]
+    fn a_spawned_tribe_gets_a_name() {
+        let mut sim = Simulation::new(1);
+        let before = sim.organisms.len();
+        assert!(sim.apply_command_json(r#"{"cmd":"spawn","x":300.0,"y":200.0,"count":5}"#));
+        let lid = sim.organisms[before].lineage_id.clone();
+        assert!(sim.lineage_names.get(&lid).is_some_and(|n| !n.is_empty()));
     }
 
     #[test]

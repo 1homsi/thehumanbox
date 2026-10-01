@@ -12,6 +12,7 @@ import { burstForTool, useSandboxBursts } from './sandbox-bursts'
 import { isMapControl, type MapCommand } from './camera-controls'
 import { drawFaunaSprite } from './fauna-sprites'
 import { drawPixelFauna } from './pixel-fauna'
+import { drawEmote, emoteFor } from './activity-emotes'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   Game,
@@ -2537,6 +2538,10 @@ export function drawWorldOnCanvas(
         motion.phase,
       )
     }
+    if (standardDetail) {
+      const emote = emoteFor(org)
+      if (emote) drawEmote(ctx, emote, px, py - bodyR * 2.4, t, motion.phase)
+    }
 
     const era = lineageErasMap[org.lineage_id] ?? ''
     if (standardDetail && era && era !== 'pre-stone' && era !== 'stone') {
@@ -2612,7 +2617,10 @@ export function drawWorldOnCanvas(
       ctx.fillRect(bx, by + 4, Math.round(barW * Math.max(0, Math.min(1, org.health))), 1)
     }
 
-    const showName = isSelected || (standardDetail && viewFlags.names && (!labelIds || labelIds.has(org.id)))
+    // Someone born or spawned since the last full frame has no name yet;
+    // drawing it printed the word "undefined".
+    const showName =
+      !!org.name && (isSelected || (standardDetail && viewFlags.names && (!labelIds || labelIds.has(org.id))))
     const showThought =
       (isSelected || (fullDetail && viewFlags.thoughts)) && org.thought && org.thought !== 'observing'
     const labelY = spriteTop - (showVitals ? 10 : 2)
