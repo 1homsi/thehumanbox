@@ -31,7 +31,7 @@ pub struct WorldGrid {
     /// a HashSet so leave_trail can `insert` without worrying about
     /// duplicates; decay passes compact entries that decay back to
     /// zero so the set self-prunes.
-    pub trail_dirty: std::collections::HashSet<u32>,
+    pub trail_dirty: rustc_hash::FxHashSet<u32>,
 }
 
 impl WorldGrid {
@@ -52,7 +52,7 @@ impl WorldGrid {
             pressure: vec![0.0f32; size],
             elevation: vec![0.0f32; size],
             depth: vec![0.0f32; size],
-            trail_dirty: std::collections::HashSet::new(),
+            trail_dirty: rustc_hash::FxHashSet::default(),
         };
         g.generate(seed);
         g.enforce_ocean_border();
@@ -298,7 +298,7 @@ impl WorldGrid {
     /// the given factors, and removes the index from the dirty set
     /// once all three layers are within `TRAIL_EPS` of zero.
     fn decay_dirty(
-        dirty: &mut std::collections::HashSet<u32>,
+        dirty: &mut rustc_hash::FxHashSet<u32>,
         food: &mut [f32],
         water: &mut [f32],
         path: &mut [f32],

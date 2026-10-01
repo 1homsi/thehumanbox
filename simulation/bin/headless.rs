@@ -9,7 +9,9 @@ pub use sim_core::{organism, physics, sim, world};
 
 use serde_json::json;
 use sim::simulation::Simulation;
-use std::collections::{HashMap, HashSet};
+// Ordered maps: the report sorts by count, and ties then list by name
+// instead of hash order, so two runs of one seed print identically.
+use std::collections::{BTreeMap as HashMap, BTreeSet as HashSet};
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use world::grid::{WorldGrid, HEIGHT, WIDTH};
@@ -979,7 +981,7 @@ fn print_coverage_row(tick: u64, sim: &Simulation) {
     }
     let pct = |x: usize| (x as f32 * 100.0 / n).round() as i32;
 
-    let mut buckets: std::collections::HashMap<(i32, i32), u32> = std::collections::HashMap::new();
+    let mut buckets: HashMap<(i32, i32), u32> = HashMap::new();
     for o in &alive {
         let k = (o.x as i32 / 30, o.y as i32 / 30);
         *buckets.entry(k).or_insert(0) += 1;

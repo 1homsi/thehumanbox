@@ -924,7 +924,7 @@ mod tests {
 
     #[test]
     fn every_shape_appears_across_seeds() {
-        let mut seen = std::collections::HashSet::new();
+        let mut seen = rustc_hash::FxHashSet::default();
         for seed in 0..60u64 {
             let mut rng = StdRng::seed_from_u64(seed);
             seen.insert(format!("{:?}", WorldShape::pick(&mut rng)));

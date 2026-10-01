@@ -2,12 +2,12 @@ use crate::sim::age_stage::AgeStage;
 use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
 use rand::RngExt;
-use std::collections::{HashMap, HashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 pub(super) fn tick_mood(sim: &mut Simulation) {
     use crate::organism::memory::{MemoryEntry, MemoryKind};
     let tick = sim.tick_count;
-    let mut partner_pos: HashMap<String, (f32, f32, String)> = HashMap::new();
+    let mut partner_pos: HashMap<String, (f32, f32, String)> = HashMap::default();
     for o in sim.organisms.iter() {
         if o.alive {
             partner_pos.insert(o.id.clone(), (o.x, o.y, o.name.clone()));
@@ -96,7 +96,7 @@ pub(super) fn tick_mood(sim: &mut Simulation) {
 
 pub(super) fn tick_grudge_recall(sim: &mut Simulation) {
     use crate::organism::memory::MemoryKind;
-    use std::collections::HashSet;
+    use rustc_hash::FxHashSet as HashSet;
     let n = sim.organisms.len();
     if n == 0 {
         return;
@@ -106,7 +106,7 @@ pub(super) fn tick_grudge_recall(sim: &mut Simulation) {
         if !o.alive {
             continue;
         }
-        let mut foes: HashSet<String> = HashSet::with_capacity(4);
+        let mut foes: HashSet<String> = HashSet::with_capacity_and_hasher(4, Default::default());
         for m in o.memories.entries.iter() {
             if foes.len() >= 4 {
                 break;
@@ -179,14 +179,14 @@ pub(super) fn tick_partner_pillow_talk(sim: &mut Simulation) {
     use crate::organism::memory::{MemoryEntry, MemoryKind};
     let tick = sim.tick_count;
     let pairs: Vec<(usize, usize)> = {
-        let mut by_id: std::collections::HashMap<&str, usize> = std::collections::HashMap::new();
+        let mut by_id: rustc_hash::FxHashMap<&str, usize> = rustc_hash::FxHashMap::default();
         for (i, o) in sim.organisms.iter().enumerate() {
             if o.alive {
                 by_id.insert(o.id.as_str(), i);
             }
         }
         let mut out: Vec<(usize, usize)> = Vec::new();
-        let mut seen: std::collections::HashSet<(usize, usize)> = std::collections::HashSet::new();
+        let mut seen: rustc_hash::FxHashSet<(usize, usize)> = rustc_hash::FxHashSet::default();
         for (i, o) in sim.organisms.iter().enumerate() {
             if !o.alive {
                 continue;
@@ -639,7 +639,7 @@ pub(super) fn tick_dream_sharing(sim: &mut Simulation) {
         return;
     }
     let mut shares: Vec<(usize, usize)> = Vec::new();
-    let mut by_id: HashMap<String, usize> = HashMap::new();
+    let mut by_id: HashMap<String, usize> = HashMap::default();
     for (i, o) in sim.organisms.iter().enumerate() {
         if o.alive {
             by_id.insert(o.id.clone(), i);
@@ -761,13 +761,13 @@ pub(super) fn tick_storyteller(sim: &mut Simulation) {
 pub(super) fn tick_separations(sim: &mut Simulation) {
     use rand::RngExt;
     let tick = sim.tick_count;
-    let mut by_id: HashMap<String, usize> = HashMap::new();
+    let mut by_id: HashMap<String, usize> = HashMap::default();
     for (i, o) in sim.organisms.iter().enumerate() {
         if o.alive {
             by_id.insert(o.id.clone(), i);
         }
     }
-    let mut seen: HashSet<(usize, usize)> = HashSet::new();
+    let mut seen: HashSet<(usize, usize)> = HashSet::default();
     let mut strained: Vec<(usize, usize, String, String)> = Vec::new();
     for (i, o) in sim.organisms.iter().enumerate() {
         if !o.alive {
@@ -831,9 +831,9 @@ pub(super) fn tick_weddings(sim: &mut Simulation) {
         return;
     }
     let pairs: Vec<(usize, usize, String, f32, f32)> = {
-        let mut seen: HashSet<(usize, usize)> = HashSet::new();
+        let mut seen: HashSet<(usize, usize)> = HashSet::default();
         let mut out: Vec<(usize, usize, String, f32, f32)> = Vec::new();
-        let mut by_id: HashMap<String, usize> = HashMap::new();
+        let mut by_id: HashMap<String, usize> = HashMap::default();
         for (i, o) in sim.organisms.iter().enumerate() {
             if o.alive {
                 by_id.insert(o.id.clone(), i);
@@ -1285,7 +1285,7 @@ pub(super) fn tick_festivals(sim: &mut Simulation) {
     if sim.organisms.is_empty() {
         return;
     }
-    let mut lineage_stats: HashMap<String, (u32, u32, u32)> = HashMap::new();
+    let mut lineage_stats: HashMap<String, (u32, u32, u32)> = HashMap::default();
     for o in sim.organisms.iter() {
         if !o.alive {
             continue;
@@ -1412,7 +1412,7 @@ pub(super) fn tick_evening_gathering(sim: &mut Simulation) {
     }
     // Group eligible buildings by owning lineage once, so each adult only
     // scans its own lineage's gathering spots instead of every building.
-    let mut buildings_by_lineage: HashMap<&str, Vec<(f32, f32)>> = HashMap::new();
+    let mut buildings_by_lineage: HashMap<&str, Vec<(f32, f32)>> = HashMap::default();
     for b in sim.buildings.iter() {
         if !b.is_operational() {
             continue;
@@ -1464,7 +1464,7 @@ pub(super) fn tick_friend_gravitation(sim: &mut Simulation) {
         return;
     }
     // O(1) friend resolution instead of a full organisms scan per friend.
-    let mut id_to_idx: HashMap<&str, usize> = HashMap::with_capacity(n);
+    let mut id_to_idx: HashMap<&str, usize> = HashMap::with_capacity_and_hasher(n, Default::default());
     for (idx, o) in sim.organisms.iter().enumerate() {
         if o.alive {
             id_to_idx.insert(o.id.as_str(), idx);
@@ -2018,8 +2018,9 @@ pub(super) fn tick_witnessed_events(sim: &mut Simulation) {
     }
 
     let n = sim.organisms.len();
-    let mut by_name: HashMap<String, usize> = HashMap::with_capacity(n);
-    let mut by_lineage: HashMap<String, Vec<usize>> = HashMap::with_capacity(sim.lineage_names.len().max(8));
+    let mut by_name: HashMap<String, usize> = HashMap::with_capacity_and_hasher(n, Default::default());
+    let mut by_lineage: HashMap<String, Vec<usize>> =
+        HashMap::with_capacity_and_hasher(sim.lineage_names.len().max(8), Default::default());
     for (i, o) in sim.organisms.iter().enumerate() {
         if !o.alive {
             continue;

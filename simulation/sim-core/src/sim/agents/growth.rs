@@ -508,13 +508,13 @@ pub fn deliver_births(
     events: &mut std::collections::VecDeque<Event>,
     history: &mut History,
 ) {
-    let unborn_map: std::collections::HashMap<String, usize> = organisms
+    let unborn_map: rustc_hash::FxHashMap<String, usize> = organisms
         .iter()
         .enumerate()
         .filter(|(_, organism)| is_pending_birth(organism))
         .map(|(index, organism)| (organism.parent_id.clone(), index))
         .collect();
-    let mother_map: std::collections::HashMap<String, usize> = organisms
+    let mother_map: rustc_hash::FxHashMap<String, usize> = organisms
         .iter()
         .enumerate()
         .filter(|(_, organism)| organism.sex == Sex::Female)

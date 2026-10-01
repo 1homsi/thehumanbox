@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use rustc_hash::FxHashSet as HashSet;
 
 use crate::sim::age_stage::AgeStage;
 use crate::sim::buildings::{Building, BuildingKind, REPAIR_ACTIVITY_TICKS};
@@ -260,7 +260,7 @@ fn apply_damage(sim: &mut Simulation) -> HashSet<usize> {
         })
         .collect();
 
-    let mut exposed = HashSet::new();
+    let mut exposed = HashSet::default();
     let mut ruined_events = Vec::new();
     for (index, exposure) in exposures {
         exposed.insert(index);
@@ -310,7 +310,7 @@ fn apply_damage(sim: &mut Simulation) -> HashSet<usize> {
 }
 
 fn apply_repairs(sim: &mut Simulation, exposed: &HashSet<usize>) {
-    let mut assigned_workers = HashSet::new();
+    let mut assigned_workers = HashSet::default();
     let mut restored_events = Vec::new();
     let living_lineages: HashSet<String> = sim
         .organisms
@@ -586,7 +586,7 @@ mod tests {
         sim.organisms[0].inv_stone = 100;
         sim.organisms[0].wealth = 100;
         sim.tick_count = 10;
-        apply_repairs(&mut sim, &HashSet::new());
+        apply_repairs(&mut sim, &HashSet::default());
         assert_eq!(
             sim.buildings[i].owner_lineage.as_deref(),
             Some(sim.organisms[0].lineage_id.as_str())
@@ -595,7 +595,7 @@ mod tests {
         assert!(sim.buildings[i].is_ruined());
         for _ in 0..repair_plan(BuildingKind::House).total_units() {
             sim.tick_count += REPAIR_TICK_INTERVAL;
-            apply_repairs(&mut sim, &HashSet::new());
+            apply_repairs(&mut sim, &HashSet::default());
         }
         assert!(sim.buildings[i].is_operational());
         assert_eq!((sim.buildings[i].x, sim.buildings[i].y), (30, 30));
@@ -729,7 +729,7 @@ mod tests {
         sim.organisms[0].wealth = 100;
         sim.grid.set(129, 130, Tile::Grass);
         sim.tick_count = REPAIR_TICK_OFFSET;
-        apply_repairs(&mut sim, &HashSet::new());
+        apply_repairs(&mut sim, &HashSet::default());
         assert_eq!(sim.buildings[index].damage_fraction(), 0.5);
         assert_eq!(sim.organisms[0].inv_wood, 100);
         assert_eq!(sim.organisms[0].inv_stone, 100);
@@ -737,7 +737,7 @@ mod tests {
         assert!(sim.organisms[0].journey.is_some());
         assert!(sim.organisms[0].thought.contains("going to repair"));
         prepare_worker(&mut sim, 129, 130);
-        apply_repairs(&mut sim, &HashSet::new());
+        apply_repairs(&mut sim, &HashSet::default());
         assert!(sim.buildings[index].damage_fraction() < 0.5);
         assert!(sim.organisms[0].thought.contains("repairing"));
     }

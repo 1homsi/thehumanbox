@@ -1201,7 +1201,7 @@ mod tests {
         let before = sim.organisms.len();
         assert!(sim.apply_command_json(r#"{"cmd":"spawn","x":100.0,"y":100.0,"count":5}"#));
 
-        let lineages: std::collections::HashSet<&str> = sim.organisms[before..]
+        let lineages: rustc_hash::FxHashSet<&str> = sim.organisms[before..]
             .iter()
             .map(|organism| organism.lineage_id.as_str())
             .collect();
@@ -1327,7 +1327,7 @@ mod tests {
         let cmd =
             format!(r#"{{"cmd":"guide","lineage":"{lineage}","strategy":"explore","duration_ticks":1200}}"#);
         assert!(sim.apply_command_json(&cmd));
-        let targets: std::collections::HashSet<(i32, i32)> = sim
+        let targets: rustc_hash::FxHashSet<(i32, i32)> = sim
             .organisms
             .iter()
             .filter(|o| o.alive && o.lineage_id == lineage && o.age >= 700)

@@ -1,6 +1,6 @@
 use rand::{Rng, RngExt};
+use rustc_hash::FxHashMap as HashMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::collections::HashMap;
 use std::sync::OnceLock;
 
 pub const CONCEPTS: &[&str] = &[
@@ -551,7 +551,7 @@ impl Vocabulary {
             if rng.random::<f32>() >= adopt_rate {
                 continue;
             }
-            let mut counts: HashMap<&str, usize> = HashMap::new();
+            let mut counts: HashMap<&str, usize> = HashMap::default();
             for snap in snapshots {
                 if let Some(w) = snap.get(concept) {
                     *counts.entry(w.as_str()).or_insert(0) += 1;
@@ -665,7 +665,7 @@ impl Vocabulary {
     ///
     /// Allocates - use sparingly; for hot reads prefer `word_for`.
     pub fn words(&self) -> HashMap<String, String> {
-        let mut out = HashMap::with_capacity(self.slots.len());
+        let mut out = HashMap::with_capacity_and_hasher(self.slots.len(), Default::default());
         for (i, w) in self.slots.iter().enumerate() {
             if !w.is_empty() {
                 if let Some(concept) = CONCEPTS.get(i) {
@@ -806,7 +806,7 @@ mod tests {
     /// is overwritten on every save. Guard the invariant directly.
     #[test]
     fn concepts_are_unique() {
-        let mut seen = std::collections::HashSet::new();
+        let mut seen = rustc_hash::FxHashSet::default();
         let dupes: Vec<&str> = CONCEPTS.iter().filter(|c| !seen.insert(**c)).copied().collect();
         assert!(dupes.is_empty(), "duplicate concepts in CONCEPTS: {dupes:?}");
         // `concept_index` is the reverse map; a duplicate breaks its 1:1
@@ -852,7 +852,7 @@ mod tests {
 
     #[test]
     fn from_hashmap_ignores_the_reserved_key_as_a_concept() {
-        let mut map = HashMap::new();
+        let mut map = HashMap::default();
         map.insert("food".to_string(), "kra".to_string());
         map.insert(LAST_USED_KEY.to_string(), "7,7,7".to_string());
         let v = Vocabulary::from_hashmap(&map);

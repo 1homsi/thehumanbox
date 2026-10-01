@@ -178,7 +178,7 @@ mod tests {
 
     #[test]
     fn lunar_cycle_visits_all_phases() {
-        let mut seen = std::collections::HashSet::new();
+        let mut seen = rustc_hash::FxHashSet::default();
         for d in 0..LUNAR_CYCLE_DAYS {
             seen.insert(moon_phase_at(d * DAY_LENGTH));
         }
@@ -193,7 +193,7 @@ mod tests {
 
     #[test]
     fn zodiac_covers_year() {
-        let mut seen = std::collections::HashSet::new();
+        let mut seen = rustc_hash::FxHashSet::default();
         for d in 0..YEAR_LENGTH_DAYS {
             seen.insert(ZodiacSign::from_birth_tick(d * DAY_LENGTH));
         }

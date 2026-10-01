@@ -5840,7 +5840,7 @@ mod tests {
     #[test]
     fn rotating_family_sample_stays_bounded_and_eventually_exposes_every_action() {
         let candidates: Vec<usize> = (1200..=1249).collect();
-        let mut seen = std::collections::HashSet::new();
+        let mut seen = rustc_hash::FxHashSet::default();
         for phase in 0..candidates.len() {
             let mut actions = Vec::new();
             extend_rotating_candidates(&mut actions, &candidates, phase);

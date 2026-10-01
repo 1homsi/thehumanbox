@@ -93,8 +93,7 @@ impl Simulation {
         }
         anchors.truncate(N_TRIBES);
 
-        let mut tribe_anchor: std::collections::HashMap<String, (f32, f32)> =
-            std::collections::HashMap::new();
+        let mut tribe_anchor: rustc_hash::FxHashMap<String, (f32, f32)> = rustc_hash::FxHashMap::default();
         for &(ax, ay) in &anchors {
             let lineage_id = seeded_id(&mut self.rng, 8);
             let tribe_name = generate_tribe_name(&mut self.rng);

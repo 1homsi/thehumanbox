@@ -13,7 +13,7 @@ use crate::sim::spatial::SpatialIndex;
 use crate::sim::world_events::push_event;
 use crate::sim::world_milestones::Milestone;
 use rand::RngExt;
-use std::collections::{HashMap, HashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 pub fn tick_civ(sim: &mut Simulation, spatial: Option<&SpatialIndex>) {
     let tick = sim.tick_count;
@@ -1709,7 +1709,7 @@ fn tick_building_progress(sim: &mut Simulation) {
     let mut working = Vec::new();
     let building_changed = {
         let organisms = &sim.organisms;
-        let mut by_lineage: HashMap<&str, Vec<Worker>> = HashMap::new();
+        let mut by_lineage: HashMap<&str, Vec<Worker>> = HashMap::default();
         for (index, org) in organisms.iter().enumerate() {
             if !can_work_on_construction(org) {
                 continue;
@@ -1730,7 +1730,7 @@ fn tick_building_progress(sim: &mut Simulation) {
                 });
         }
 
-        let mut assigned = HashSet::new();
+        let mut assigned = HashSet::default();
         let mut building_changed = false;
         for building in sim.buildings.iter_mut() {
             if building.is_complete() || building.decorative {
@@ -2343,7 +2343,7 @@ fn tick_diplomacy(sim: &mut Simulation) {
         establish_treaty, has_active_battle_between, has_active_treaty, TreatyKind,
     };
     let tick = sim.tick_count;
-    let mut sums: HashMap<(String, String), (f32, u32)> = HashMap::new();
+    let mut sums: HashMap<(String, String), (f32, u32)> = HashMap::default();
     for o in sim.organisms.iter().filter(|o| o.alive) {
         for (other, att) in o.lineage_attitudes.iter() {
             if other == &o.lineage_id {
@@ -2471,7 +2471,7 @@ fn tick_deforestation(sim: &mut Simulation) {
 }
 
 fn tick_dynasty_watch(sim: &mut Simulation) {
-    let mut pop_now: HashMap<String, u32> = HashMap::new();
+    let mut pop_now: HashMap<String, u32> = HashMap::default();
     for o in sim.organisms.iter().filter(|o| o.alive) {
         *pop_now.entry(o.lineage_id.clone()).or_insert(0) += 1;
     }
@@ -2641,8 +2641,8 @@ fn try_enact_law(g: &mut Government, era: Era, tick: u64) {
 }
 
 fn tick_leader_influence(sim: &mut Simulation) {
-    let leader_attitudes: std::collections::HashMap<String, Vec<(String, f32)>> = {
-        let mut out: std::collections::HashMap<String, Vec<(String, f32)>> = std::collections::HashMap::new();
+    let leader_attitudes: rustc_hash::FxHashMap<String, Vec<(String, f32)>> = {
+        let mut out: rustc_hash::FxHashMap<String, Vec<(String, f32)>> = rustc_hash::FxHashMap::default();
         for o in sim.organisms.iter() {
             if !o.alive || !o.is_leader {
                 continue;
@@ -2687,7 +2687,7 @@ fn pick_leaders(sim: &mut Simulation, lineages: &[String]) {
     // Single O(n) pass: clear every leader flag and bucket eligible
     // (adult/elder) candidates by lineage, instead of re-scanning the whole
     // organism list once per lineage.
-    let mut candidates_by_lineage: HashMap<String, Vec<(usize, f32)>> = HashMap::new();
+    let mut candidates_by_lineage: HashMap<String, Vec<(usize, f32)>> = HashMap::default();
     for i in 0..sim.organisms.len() {
         let o = &mut sim.organisms[i];
         o.is_leader = false;
@@ -2811,7 +2811,7 @@ fn pick_leaders(sim: &mut Simulation, lineages: &[String]) {
 fn tick_religion_schism(sim: &mut Simulation) {
     use crate::sim::actions::religion_expanded::{create_religion, recount_religion_adherents};
     use rand::RngExt;
-    let mut counts: HashMap<String, u32> = HashMap::new();
+    let mut counts: HashMap<String, u32> = HashMap::default();
     for o in sim.organisms.iter().filter(|o| o.alive) {
         if let Some(rid) = o.religion_id.as_ref() {
             *counts.entry(rid.clone()).or_insert(0) += 1;
@@ -2975,13 +2975,13 @@ fn tick_religion_adherents(sim: &mut Simulation) {
     if sim.religions.is_empty() {
         return;
     }
-    let mut adherents_by_id: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
+    let mut adherents_by_id: rustc_hash::FxHashMap<String, u32> = rustc_hash::FxHashMap::default();
     for o in sim.organisms.iter().filter(|o| o.alive) {
         if let Some(rid) = o.religion_id.as_ref() {
             *adherents_by_id.entry(rid.clone()).or_insert(0) += 1;
         }
     }
-    let mut religion_by_lineage: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    let mut religion_by_lineage: rustc_hash::FxHashMap<String, String> = rustc_hash::FxHashMap::default();
     for r in sim.religions.iter() {
         religion_by_lineage
             .entry(r.founder_lineage.clone())
@@ -3618,7 +3618,7 @@ mod tests {
             tick_scatter_props(&mut sim);
         }
         assert!(!sim.buildings.is_empty());
-        let mut occupied = HashSet::new();
+        let mut occupied = HashSet::default();
         for b in &sim.buildings {
             for tile in footprint_cells(b.kind, b.x, b.y) {
                 assert!(occupied.insert(tile), "overlapping prop at {tile:?}");

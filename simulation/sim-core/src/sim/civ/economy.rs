@@ -1,6 +1,6 @@
 use crate::sim::era::Era;
+use rustc_hash::FxHashMap as HashMap;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Specialty {

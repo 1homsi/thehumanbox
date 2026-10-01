@@ -1,5 +1,5 @@
 use rustc_hash::FxHashMap;
-use std::collections::{HashMap, HashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use std::io;
 
 use rand::SeedableRng;
@@ -1082,7 +1082,7 @@ impl Simulation {
         }
 
         let active_structure_tiles: HashSet<(i32, i32)> = {
-            let mut hs = HashSet::new();
+            let mut hs = HashSet::default();
             for y in 0..HEIGHT as i32 {
                 for x in 0..WIDTH as i32 {
                     if grid.structure_at(x, y) > 0.0 {
@@ -1192,7 +1192,7 @@ impl Simulation {
                 .collect(),
             lineage_homes: state.lineage_homes,
             lineage_eras: state.lineage_eras,
-            lineage_aggregates: HashMap::new(),
+            lineage_aggregates: HashMap::default(),
             current_era: if state.current_era.is_empty() {
                 "genesis".to_string()
             } else {
@@ -1230,7 +1230,7 @@ impl Simulation {
                 .into_iter()
                 .map(|(lid, tiles)| (lid, tiles.into_iter().map(|[x, y]| (x, y)).collect()))
                 .collect(),
-            tile_owner: std::collections::HashMap::new(),
+            tile_owner: rustc_hash::FxHashMap::default(),
             cached_territory: serde_json::Value::Null,
             building_state_revision: 1,
             serialized_building_state_revision: 0,
@@ -1243,9 +1243,9 @@ impl Simulation {
             next_artwork_id,
             festivals: state.festivals,
             next_festival_id,
-            action_counts: HashMap::new(),
-            decision_counts: HashMap::new(),
-            workshop_hits: HashMap::new(),
+            action_counts: HashMap::default(),
+            decision_counts: HashMap::default(),
+            workshop_hits: HashMap::default(),
             last_witness_tick: state.last_witness_tick,
             books: state.books,
             next_book_id,
@@ -1277,7 +1277,7 @@ impl Simulation {
         // semantics - order is unstable but the next claim_territory
         // call refreshes it deterministically).
         {
-            let mut owner = std::collections::HashMap::new();
+            let mut owner = rustc_hash::FxHashMap::default();
             for (lid, tiles) in sim.territory.iter() {
                 for &p in tiles {
                     owner.insert(p, lid.clone());
@@ -1290,7 +1290,7 @@ impl Simulation {
         // Strategy guidance existed before campaign objectives. Upgrade active
         // legacy guidance in-place so an imported local world immediately
         // gains a real target instead of displaying 0/0 forever.
-        let living_lineages: std::collections::HashSet<String> = sim
+        let living_lineages: rustc_hash::FxHashSet<String> = sim
             .organisms
             .iter()
             .filter(|organism| organism.alive || super::agents::growth::is_pending_birth(organism))

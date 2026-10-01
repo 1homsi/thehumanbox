@@ -7,8 +7,9 @@ use crate::world::{
 };
 use rand::{Rng, RngExt};
 use rustc_hash::FxHashMap;
+use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
-use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 pub const N_ACTIONS: usize = 538;
 
@@ -543,7 +544,7 @@ impl Organism {
             infection: 0.0,
             carrying: 0,
             carrying_type: 0,
-            vocabulary: Vocabulary::from_hashmap(&std::collections::HashMap::new()),
+            vocabulary: Vocabulary::from_hashmap(&rustc_hash::FxHashMap::default()),
             daily_story: String::new(),
             last_story_tick: 0,
             life_log: VecDeque::new(),

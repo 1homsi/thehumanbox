@@ -1,6 +1,6 @@
 use crate::world::{grid::WorldGrid, tiles::Tile};
 use rand::{Rng, RngExt};
-use std::collections::HashSet;
+use rustc_hash::FxHashSet as HashSet;
 
 pub struct PhysicsEngine {
     pub tick_count: u64,
@@ -21,7 +21,7 @@ impl PhysicsEngine {
         PhysicsEngine {
             tick_count: 0,
             growth_mult: 1.0,
-            active_fire_tiles: HashSet::new(),
+            active_fire_tiles: HashSet::default(),
             burn_out: Vec::new(),
             new_fires: Vec::new(),
         }

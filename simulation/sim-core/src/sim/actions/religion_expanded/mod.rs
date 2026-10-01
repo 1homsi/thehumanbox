@@ -18,7 +18,7 @@ use super::ctx::ActionCtx;
 use crate::sim::culture::{pick_religion_name, Religion, ReligionKind};
 use crate::sim::era::Era;
 use crate::sim::simulation::Simulation;
-use std::collections::{HashMap, HashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 pub(super) const MIN_SCHISM_AGE_TICKS: u64 = 2_000;
 pub(super) const MIN_SCHISM_MEMBERS: usize = 3;
@@ -173,7 +173,7 @@ pub(crate) fn create_religion(
 }
 
 pub(crate) fn recount_religion_adherents(sim: &mut Simulation) {
-    let mut counts: HashMap<&str, u32> = HashMap::new();
+    let mut counts: HashMap<&str, u32> = HashMap::default();
     for religion_id in sim
         .organisms
         .iter()
@@ -207,7 +207,7 @@ pub(crate) fn repair_persisted_religions(
     religions.dedup_by(|left, right| left.id == right.id);
 
     let valid_ids: HashSet<&str> = religions.iter().map(|religion| religion.id.as_str()).collect();
-    let mut live_adherents = HashMap::<String, u32>::new();
+    let mut live_adherents = HashMap::<String, u32>::default();
     for organism in organisms {
         let Some(religion_id) = organism.religion_id.clone() else {
             continue;

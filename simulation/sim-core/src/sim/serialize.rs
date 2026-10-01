@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use serde_json::json;
 
@@ -130,14 +130,14 @@ impl Simulation {
     ) -> serde_json::Value {
         let needs_slow = self.tick_count == 0 || self.tick_count.saturating_sub(self.slow_compute_tick) >= 60;
         if needs_slow {
-            let alive_lineages: std::collections::HashSet<String> = self
+            let alive_lineages: rustc_hash::FxHashSet<String> = self
                 .organisms
                 .iter()
                 .filter(|o| o.alive)
                 .map(|o| o.lineage_id.clone())
                 .collect();
 
-            let mut att_totals: HashMap<(String, String), (f32, u32)> = HashMap::new();
+            let mut att_totals: HashMap<(String, String), (f32, u32)> = HashMap::default();
             for org in self.organisms.iter().filter(|o| o.alive) {
                 for (other_lid, &att) in &org.lineage_attitudes {
                     if alive_lineages.contains(other_lid) {
@@ -172,7 +172,7 @@ impl Simulation {
             )
             .unwrap();
 
-            let mut lineage_sizes: HashMap<String, usize> = HashMap::new();
+            let mut lineage_sizes: HashMap<String, usize> = HashMap::default();
             for org in self.organisms.iter().filter(|o| o.alive) {
                 *lineage_sizes.entry(org.lineage_id.clone()).or_insert(0) += 1;
             }
@@ -185,7 +185,7 @@ impl Simulation {
             .unwrap();
 
             // Compute contested tiles: any tile claimed by 2+ lineages
-            let mut tile_claim_count: HashMap<(i32, i32), u32> = HashMap::new();
+            let mut tile_claim_count: HashMap<(i32, i32), u32> = HashMap::default();
             for tiles in self.territory.values() {
                 for &tile in tiles {
                     *tile_claim_count.entry(tile).or_insert(0) += 1;
@@ -421,8 +421,8 @@ impl Simulation {
                     .map(|(lid, era)| json!({ "lineage_id": lid, "era_name": era.name() }))
                     .collect();
                 obj.insert("lineage_eras".to_string(), serde_json::Value::Array(eras_json));
-                let mut lineage_discoveries: HashMap<String, HashSet<String>> = HashMap::new();
-                let mut lineage_pop: HashMap<String, usize> = HashMap::new();
+                let mut lineage_discoveries: HashMap<String, HashSet<String>> = HashMap::default();
+                let mut lineage_pop: HashMap<String, usize> = HashMap::default();
                 for org in self.organisms.iter().filter(|o| o.alive) {
                     *lineage_pop.entry(org.lineage_id.clone()).or_insert(0) += 1;
                     let entry = lineage_discoveries.entry(org.lineage_id.clone()).or_default();
@@ -597,7 +597,7 @@ impl Simulation {
                     .collect();
                 obj.insert("headlines".to_string(), serde_json::Value::Array(headlines_json));
 
-                let mut lineage_alive: HashMap<&str, u32> = HashMap::new();
+                let mut lineage_alive: HashMap<&str, u32> = HashMap::default();
                 for o in self.organisms.iter().filter(|o| o.alive) {
                     *lineage_alive.entry(o.lineage_id.as_str()).or_insert(0) += 1;
                 }
@@ -675,7 +675,7 @@ impl Simulation {
                     .collect();
                 obj.insert("trades".to_string(), serde_json::Value::Array(trades_json));
 
-                let currencies: std::collections::HashMap<String, &str> = self
+                let currencies: rustc_hash::FxHashMap<String, &str> = self
                     .lineage_eras
                     .iter()
                     .map(|(lid, era)| (lid.clone(), crate::sim::economy::currency_unit_for_era(*era)))

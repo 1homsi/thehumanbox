@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::sim::civ::economy::{
     currency_unit_for_era, military_issue_for_era, PriceTable, Trade, MILITARY_EQUIPMENT_COST, TRADABLE_TOOLS,
@@ -149,7 +149,7 @@ fn collect_income_taxes(
     earned: &[u32],
     tick: u64,
 ) -> HashMap<String, u64> {
-    let mut contributors: HashMap<String, Vec<usize>> = HashMap::new();
+    let mut contributors: HashMap<String, Vec<usize>> = HashMap::default();
     for (idx, org) in sim.organisms.iter().enumerate() {
         if org.alive
             && earned.get(idx).copied().unwrap_or(0) > 0
@@ -161,7 +161,7 @@ fn collect_income_taxes(
         }
     }
 
-    let mut collected = HashMap::new();
+    let mut collected = HashMap::default();
     for (lineage, mut members) in contributors {
         let rate = policies[&lineage].tax_rate;
         let total_income: u64 = members.iter().map(|index| u64::from(earned[*index])).sum();
@@ -263,9 +263,9 @@ fn claim_productive_income(
 }
 
 fn fund_public_services(sim: &mut Simulation, policies: &HashMap<String, FiscalPolicy>, tick: u64) {
-    let mut spent: HashMap<String, u64> = HashMap::new();
-    let mut funded_education: HashSet<String> = HashSet::new();
-    let mut funded_healthcare: HashSet<String> = HashSet::new();
+    let mut spent: HashMap<String, u64> = HashMap::default();
+    let mut funded_education: HashSet<String> = HashSet::default();
+    let mut funded_healthcare: HashSet<String> = HashSet::default();
     for org in sim.organisms.iter_mut() {
         if !org.alive {
             continue;
@@ -756,7 +756,7 @@ fn run_currency_trade(sim: &mut Simulation, tick: u64) {
 }
 
 fn update_wealth_labels(sim: &mut Simulation) {
-    let mut by_lineage: HashMap<String, Vec<(usize, u32)>> = HashMap::new();
+    let mut by_lineage: HashMap<String, Vec<(usize, u32)>> = HashMap::default();
     for (i, o) in sim.organisms.iter().enumerate() {
         if !o.alive {
             continue;
