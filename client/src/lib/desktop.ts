@@ -80,6 +80,7 @@ export interface DesktopBridge {
     channel: 'updater:available' | 'updater:downloaded',
     cb: (payload: UpdateInfo | null) => void,
   ): () => void
+  on(channel: 'updater:error', cb: (payload: { message: string } | null) => void): () => void
   on(channel: 'menu:openSettings', cb: (payload: null) => void): () => void
   on(channel: 'app:visibility', cb: (payload: DesktopVisibility) => void): () => void
 }

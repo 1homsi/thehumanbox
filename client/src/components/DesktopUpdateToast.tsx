@@ -24,9 +24,17 @@ export function DesktopUpdateToast() {
       setDismissed(false)
       setError(null)
     })
+    // Surface updater failures instead of leaving the app silently stuck.
+    const offError = desktop.on('updater:error', (payload) => {
+      if (!payload?.message) return
+      setError(`update failed: ${payload.message}`)
+      setInstalling(false)
+      setDismissed(false)
+    })
     return () => {
       offAvailable()
       offDownloaded()
+      offError()
     }
   }, [desktop])
 
@@ -83,7 +91,7 @@ export function DesktopUpdateToast() {
 
 const wrap: React.CSSProperties = {
   position: 'fixed',
-  bottom: 76,
+  bottom: 150,
   right: 16,
   zIndex: 1500,
   display: 'flex',

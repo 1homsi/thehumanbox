@@ -1,6 +1,7 @@
 import { app, BrowserWindow, dialog } from 'electron'
-import { autoUpdater, UpdateInfo } from 'electron-updater'
+import { autoUpdater, UpdateDownloadedEvent, UpdateInfo } from 'electron-updater'
 import { loadSettings } from './settings'
+import { appBundleFromExe, hasDeveloperIdSignature, startUnsignedMacInstall } from './mac-unsigned-install'
 
 export type UpdateCheckStatus = 'checking' | 'available' | 'downloaded' | 'up-to-date' | 'unsupported' | 'error'
 
@@ -13,13 +14,41 @@ export interface UpdateCheckResult {
 
 let initialized = false
 let latestStatus: UpdateCheckResult = { status: 'up-to-date' }
+let downloadedFile: string | null = null
+
+/** Unsigned macOS builds can't use Squirrel.Mac; see mac-unsigned-install.ts. */
+function usesUnsignedMacInstall(): boolean {
+  if (process.platform !== 'darwin' || !app.isPackaged) return false
+  const bundle = appBundleFromExe(process.execPath)
+  return bundle !== null && !hasDeveloperIdSignature(bundle)
+}
+
+function installNow(): UpdateCheckResult {
+  if (!usesUnsignedMacInstall()) {
+    setImmediate(() => autoUpdater.quitAndInstall())
+    return latestStatus
+  }
+  if (!downloadedFile) {
+    return { ...latestStatus, message: 'The downloaded update file is missing. Check for updates again.' }
+  }
+  const result = startUnsignedMacInstall(downloadedFile, process.execPath, process.pid)
+  if (!result.started) {
+    const message = result.message ?? 'The update could not be installed.'
+    void dialog.showMessageBox({ type: 'error', title: 'Update failed', message: 'The update could not be installed.', detail: message })
+    return { ...latestStatus, message }
+  }
+  setImmediate(() => app.quit())
+  return latestStatus
+}
 
 export function initUpdater(getWindow: () => BrowserWindow | null): void {
   if (initialized) return
   initialized = true
 
   autoUpdater.autoDownload = true
-  autoUpdater.autoInstallOnAppQuit = true
+  // Squirrel.Mac can't install over an unsigned app, so those builds install
+  // explicitly from the "Restart and update" prompt instead of on quit.
+  autoUpdater.autoInstallOnAppQuit = !usesUnsignedMacInstall()
 
   autoUpdater.on('update-available', (info: UpdateInfo) => {
     latestStatus = {
@@ -44,7 +73,8 @@ export function initUpdater(getWindow: () => BrowserWindow | null): void {
     }
   })
 
-  autoUpdater.on('update-downloaded', async (info: UpdateInfo) => {
+  autoUpdater.on('update-downloaded', async (info: UpdateDownloadedEvent) => {
+    downloadedFile = info.downloadedFile
     latestStatus = {
       status: 'downloaded',
       version: info.version,
@@ -63,14 +93,13 @@ export function initUpdater(getWindow: () => BrowserWindow | null): void {
       message: `Version ${info.version} is ready to install.`,
       detail: 'The app will restart and apply the update.',
     })
-    if (response === 0) {
-      setImmediate(() => autoUpdater.quitAndInstall())
-    }
+    if (response === 0) installNow()
   })
 
   autoUpdater.on('error', (err) => {
     latestStatus = { status: 'error', message: err.message }
     console.error('[updater]', err)
+    getWindow()?.webContents.send('updater:error', { message: err.message })
   })
 
   if (!app.isPackaged) {
@@ -137,6 +166,5 @@ export function installDownloadedUpdate(): UpdateCheckResult {
       message: latestStatus.message ?? 'No downloaded update is ready to install.',
     }
   }
-  setImmediate(() => autoUpdater.quitAndInstall())
-  return latestStatus
+  return installNow()
 }
