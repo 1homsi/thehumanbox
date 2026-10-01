@@ -8,6 +8,8 @@ export type SandboxCommand =
   | { cmd: 'drought'; active: boolean }
   | { cmd: 'outbreak'; count?: number }
   | { cmd: 'spawn_animal'; x: number; y: number; kind?: string }
+  | { cmd: 'poison'; x: number; y: number; radius?: number }
+  | { cmd: 'meteor'; x: number; y: number; radius?: number }
   | {
       cmd: 'guide'
       lineage: string
@@ -178,7 +180,7 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
       },
       {
         id: 'drink',
-        label: 'water',
+        label: 'spring',
         icon: '💧',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'paint', x, y, tile: 'water', radius: b }),
@@ -320,6 +322,20 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         build: (x, y, b) => ({ cmd: 'ignite', x, y, radius: 1 + b }),
       },
       { id: 'plague', label: 'plague', icon: '🦠', mode: 'instant', fire: { cmd: 'outbreak', count: 12 } },
+      {
+        id: 'poison',
+        label: 'poison',
+        icon: '🧪',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'poison', x, y, radius: 1 + b }),
+      },
+      {
+        id: 'meteor',
+        label: 'meteor',
+        icon: '☄️',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'meteor', x, y, radius: 2 + b }),
+      },
     ],
   },
   {

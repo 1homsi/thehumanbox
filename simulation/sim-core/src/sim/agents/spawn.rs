@@ -353,14 +353,47 @@ impl Simulation {
             .cloned()
             .unwrap_or_default();
 
-        self.organisms[idx].lineage_id = new_lid.clone();
-        self.organisms[idx].home_x = anchor_x as f32;
-        self.organisms[idx].home_y = anchor_y as f32;
-        self.organisms[idx].wander_target = Some((anchor_x, anchor_y));
-        self.organisms[idx].think("founding new tribe", self.tick_count);
+        // A founder leaves with a small band (partner first, then nearby
+        // adult kin) and they travel together. Lone founders rarely had
+        // anyone to raise a family with, so most new tribes died out.
+        let old_lid = self.organisms[idx].lineage_id.clone();
+        let (fx, fy) = (self.organisms[idx].x, self.organisms[idx].y);
+        let partner = self.organisms[idx].partner_id.clone();
+        let mut band: Vec<(bool, f32, usize)> = self
+            .organisms
+            .iter()
+            .enumerate()
+            .filter(|&(i, o)| {
+                i != idx
+                    && o.alive
+                    && o.lineage_id == old_lid
+                    && o.age >= 700
+                    && (o.x - fx).hypot(o.y - fy) <= 10.0
+            })
+            .map(|(i, o)| {
+                (
+                    partner.as_deref() != Some(o.id.as_str()),
+                    (o.x - fx).hypot(o.y - fy),
+                    i,
+                )
+            })
+            .collect();
+        band.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.total_cmp(&b.1)));
+        let followers: Vec<usize> = band.into_iter().take(4).map(|(_, _, i)| i).collect();
+
+        let tick = self.tick_count;
+        for &member in std::iter::once(&idx).chain(followers.iter()) {
+            let o = &mut self.organisms[member];
+            o.lineage_id = new_lid.clone();
+            o.home_x = anchor_x as f32;
+            o.home_y = anchor_y as f32;
+            o.begin_journey((anchor_x, anchor_y), "founding new tribe", tick);
+        }
         self.organisms[idx].log_event(format!(
-            "broke from the {} and set out to found the {}",
-            old_name, new_name
+            "broke from the {} and set out with {} others to found the {}",
+            old_name,
+            followers.len(),
+            new_name
         ));
         push_event(
             &mut self.events,

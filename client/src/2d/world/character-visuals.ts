@@ -102,7 +102,10 @@ export function characterMotion(
     y: moved || !previous ? y : previous.y,
     movedAt: moved ? now : (previous?.movedAt ?? -Infinity),
     phase: previous?.phase ?? phase,
-    flipped: Math.abs(dx) > 0.02 ? dx < 0 : (previous?.flipped ?? false),
+    // Only turn on mostly sideways steps: someone walking up or down with a
+    // slight horizontal wobble used to flip left and right every frame.
+    flipped:
+      Math.abs(dx) > 0.02 && Math.abs(dx) >= Math.abs(dy) * 0.5 ? dx < 0 : (previous?.flipped ?? false),
   }
 }
 

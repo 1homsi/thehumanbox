@@ -121,16 +121,17 @@ impl Simulation {
             let population_limit = self.population_limit();
             let overcrowded = lineage_total >= lineage_overcrowding_threshold(population_limit);
             let fork_eligible = age >= 700 && curiosity >= 0.40 && count >= 4;
+            // Forks now take a band of up to five, so they happen less often.
             let fork_chance = if overcrowded {
-                0.7
+                0.35
             } else if population_limit > DEFAULT_MAX_POPULATION {
                 // Large desktop worlds need stable, growing civilizations to
                 // reach their late eras. Expeditions still happen, but they
                 // no longer fragment every settlement at the hosted-world
                 // rate long before a lineage can mature.
-                0.08
+                0.04
             } else {
-                0.35
+                0.12
             };
             if (fork_eligible || (overcrowded && age >= 700 && count >= 3))
                 && self.rng.random::<f32>() < fork_chance
@@ -188,8 +189,10 @@ impl Simulation {
         }
 
         let (x, y) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
-        let min_dist = 60 + (curiosity * 90.0) as i32;
-        let max_dist = 250 + (curiosity * 400.0) as i32;
+        // Reachable destinations: targets up to ~650 tiles away rarely
+        // arrived before the journey expired, so explorers looped.
+        let min_dist = 30 + (curiosity * 40.0) as i32;
+        let max_dist = 90 + (curiosity * 110.0) as i32;
         if let Some(target) = self.find_distant_land_target(x, y, min_dist, max_dist) {
             self.organisms[idx].begin_journey(target, "exploring distant land", self.tick_count);
         }

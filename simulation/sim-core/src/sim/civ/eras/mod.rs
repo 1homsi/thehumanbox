@@ -193,15 +193,19 @@ impl Era {
             .map(Era::pop_threshold)
             .max()
             .unwrap_or(0);
+        // Pending births count against the population limit, so a living
+        // world never sits exactly at its cap. Gating late eras on the full
+        // cap froze advancement; 90% of it is reachable and still demanding.
+        let reachable = (population_limit * 9).div_ceil(10);
         if raw <= BASELINE_WORLD_CAPACITY {
-            return raw.min(population_limit);
+            return raw.min(reachable);
         }
-        if population_limit <= BASELINE_WORLD_CAPACITY {
-            return population_limit;
+        if reachable <= BASELINE_WORLD_CAPACITY {
+            return reachable;
         }
 
         let raw_span = FINAL_ERA_RAW_THRESHOLD - BASELINE_WORLD_CAPACITY;
-        let world_span = population_limit - BASELINE_WORLD_CAPACITY;
+        let world_span = reachable - BASELINE_WORLD_CAPACITY;
         let late_progress = raw - BASELINE_WORLD_CAPACITY;
         BASELINE_WORLD_CAPACITY + late_progress.saturating_mul(world_span).div_ceil(raw_span)
     }
@@ -281,7 +285,12 @@ mod tests {
                 .map(|era| era.population_gate(population_limit))
                 .collect();
             assert!(gates.windows(2).all(|window| window[0] <= window[1]));
-            assert_eq!(Era::Eldritch.population_gate(population_limit), population_limit);
+            let reachable = (population_limit * 9).div_ceil(10);
+            assert_eq!(Era::Eldritch.population_gate(population_limit), reachable);
+            assert!(
+                reachable < population_limit,
+                "the final era never needs a full cap"
+            );
         }
 
         assert_eq!(Era::Atomic.population_gate(500), Era::Atomic.pop_threshold());
@@ -289,7 +298,9 @@ mod tests {
             Era::Posthuman.population_gate(500),
             Era::Posthuman.pop_threshold()
         );
-        assert_eq!(Era::Interstellar.population_gate(500), 354);
+        assert_eq!(Era::Interstellar.population_gate(500), 353);
+        // A hosted 350 world can reach Posthuman with pending births.
+        assert!(Era::Posthuman.population_gate(350) <= 315);
         assert_eq!(Era::Modern.population_gate(500), Era::Industrial.pop_threshold());
     }
 }

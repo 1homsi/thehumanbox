@@ -22,12 +22,13 @@ function renderSaveButton(saveError: boolean, saveRetryable: boolean, saveBusy =
 }
 
 describe('SandboxToolbar local save recovery', () => {
-  it('presents one labeled dock with understandable category and cursor states', () => {
+  it('presents one labeled dock with tabs, grouped tools, and time speeds', () => {
     const markup = renderSaveButton(false, false)
     expect(markup).toContain('aria-label="World controls"')
     expect(markup).toContain('aria-label="World tools"')
     expect(markup).toContain('aria-pressed="true"')
-    expect(markup).toContain('aria-label="Cursor — stop placing"')
+    expect(markup).toContain('aria-label="animals"')
+    expect(markup).toContain('aria-label="Speed 4×"')
   })
 
   it('keeps a retryable failed save actionable', () => {

@@ -1,6 +1,7 @@
 use crate::organism::animal::{Animal, AnimalKind};
 use crate::sim::agents::growth::spawn_organism_with_home;
 use crate::sim::simulation::Simulation;
+use crate::sim::world_events::push_event;
 use crate::world::grid::{WorldGrid, HEIGHT, WIDTH};
 use crate::world::tiles::Tile;
 use rand::RngExt;
@@ -58,6 +59,21 @@ pub enum Command {
         #[serde(default)]
         kind: Option<String>,
     },
+    /// Infect everyone inside the radius with the existing sickness.
+    Poison {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
+    /// Kill everything inside the radius, leave a rock crater ringed with
+    /// ash, and set the land around it burning.
+    Meteor {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
+    },
     #[serde(alias = "set_strategy")]
     Guide {
         lineage: String,
@@ -66,6 +82,11 @@ pub enum Command {
         duration_ticks: u64,
     },
 }
+
+/// Natural breeding stops near 1000 animals (see `tick_animals`), so the
+/// player's cap sits just above that. A lower cap meant a mature world had
+/// already filled it and every animal tool silently failed.
+const SANDBOX_ANIMAL_CAP: usize = 1100;
 
 const MIN_STRATEGY_DURATION: u64 = 60;
 const MAX_STRATEGY_DURATION: u64 = 7200;
@@ -116,6 +137,32 @@ fn protected(tile: Tile) -> bool {
 }
 
 impl Simulation {
+    /// Guiding a lineage to explore sends its adults on one shared journey to
+    /// distant good land. A directive alone only nudged action scores, so
+    /// "explore" rarely made anyone travel.
+    fn launch_lineage_expedition(&mut self, lineage: &str) {
+        let members: Vec<usize> = self
+            .organisms
+            .iter()
+            .enumerate()
+            .filter(|(_, o)| o.alive && o.lineage_id == lineage && o.age >= 700)
+            .map(|(i, _)| i)
+            .collect();
+        if members.is_empty() {
+            return;
+        }
+        let n = members.len() as f32;
+        let cx = members.iter().map(|&i| self.organisms[i].x).sum::<f32>() / n;
+        let cy = members.iter().map(|&i| self.organisms[i].y).sum::<f32>() / n;
+        let Some(target) = self.find_distant_land_target(cx as i32, cy as i32, 40, 140) else {
+            return;
+        };
+        let tick = self.tick_count;
+        for i in members {
+            self.organisms[i].begin_journey(target, "on an expedition", tick);
+        }
+    }
+
     pub(crate) fn refresh_lineage_guidance(&mut self, organism_index: usize) {
         let Some(organism) = self.organisms.get(organism_index) else {
             return;
@@ -163,8 +210,13 @@ impl Simulation {
                     .unwrap_or_else(|| {
                         format!("L{}", crate::sim::agents::spawn::seeded_id(&mut self.rng, 6))
                     });
+                let before = self.organisms.len();
+                // God spawns get a little room above the natural cap so the
+                // tool still works in a mature world that sits at its limit.
+                // Births still stop at the cap, so the world settles back.
+                let cap = self.population_limit() + self.population_limit() / 10;
                 for _ in 0..n {
-                    if crate::sim::growth::population_slots_used(&self.organisms) >= self.population_limit() {
+                    if crate::sim::growth::population_slots_used(&self.organisms) >= cap {
                         break;
                     }
                     let jx = (x + self.rng.random_range(-2.0..2.0)).clamp(2.0, WIDTH as f32 - 2.0);
@@ -180,7 +232,9 @@ impl Simulation {
                         &mut self.rng,
                     );
                 }
-                true
+                // Report failure when the world is full so the player sees
+                // why nobody appeared instead of a silent "applied".
+                self.organisms.len() > before
             }
             Command::Smite { x, y, radius } => {
                 // Clamp the upper bound too: `radius: 1e30` parses to
@@ -197,24 +251,35 @@ impl Simulation {
                         best = Some((i, d));
                     }
                 }
-                if let Some((i, _)) = best {
-                    let o = &mut self.organisms[i];
-                    o.alive = false;
-                    o.health = 0.0;
-                }
+                let Some((i, _)) = best else {
+                    return false;
+                };
+                // Health below zero hands the death to the normal tick, which
+                // records it, counts it in history and lets kin grieve.
+                self.organisms[i].health = -1.0;
+                let name = self.organisms[i].name.clone();
+                push_event(
+                    &mut self.events,
+                    self.tick_count,
+                    "smite",
+                    &name,
+                    "was struck down by lightning",
+                );
                 true
             }
             Command::Heal { x, y, radius } => {
                 let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
+                let mut healed = 0;
                 for o in self.organisms.iter_mut() {
                     if o.alive && (o.x - x).hypot(o.y - y) <= r {
                         o.health = 1.0;
                         o.energy = 1.0;
                         o.hydration = 1.0;
                         o.infection = 0.0;
+                        healed += 1;
                     }
                 }
-                true
+                healed > 0
             }
             Command::Paint { x, y, tile, radius } => {
                 let Some(t) = tile_from_name(&tile) else {
@@ -318,8 +383,70 @@ impl Simulation {
                 }
                 true
             }
+            Command::Poison { x, y, radius } => {
+                let r = if radius <= 0.0 { 3.0 } else { radius.min(32.0) };
+                let mut poisoned = 0;
+                for o in self.organisms.iter_mut() {
+                    if o.alive && (o.x - x).hypot(o.y - y) <= r {
+                        o.infection = o.infection.max(0.85);
+                        poisoned += 1;
+                    }
+                }
+                poisoned > 0
+            }
+            Command::Meteor { x, y, radius } => {
+                if !WorldGrid::in_bounds(x, y) {
+                    return false;
+                }
+                let r = if radius <= 0 { 4 } else { radius.clamp(1, 12) };
+                let (fx, fy, fr) = (x as f32, y as f32, r as f32);
+                let mut killed = 0;
+                for o in self.organisms.iter_mut() {
+                    if o.alive && (o.x - fx).hypot(o.y - fy) <= fr {
+                        o.health = -1.0;
+                        killed += 1;
+                    }
+                }
+                let what = match killed {
+                    0 => "a meteor fell from the sky".to_string(),
+                    1 => "a meteor fell and killed one person".to_string(),
+                    n => format!("a meteor fell and killed {n} people"),
+                };
+                push_event(&mut self.events, self.tick_count, "meteor", "the sky", &what);
+                for a in self.animals.iter_mut() {
+                    if a.alive && (a.x - fx).hypot(a.y - fy) <= fr {
+                        a.alive = false;
+                    }
+                }
+                let outer = r + 2;
+                for dx in -outer..=outer {
+                    for dy in -outer..=outer {
+                        let (nx, ny) = (x + dx, y + dy);
+                        if !WorldGrid::in_bounds(nx, ny) {
+                            continue;
+                        }
+                        let cur = self.grid.get(nx, ny);
+                        if protected(cur) || cur == Tile::Void {
+                            continue;
+                        }
+                        let d2 = dx * dx + dy * dy;
+                        if d2 * 4 <= r * r {
+                            self.grid.set(nx, ny, Tile::Rock);
+                            *self.grid.fire_intensity_mut(nx, ny) = 0.0;
+                        } else if d2 <= r * r {
+                            self.grid.set(nx, ny, Tile::Ash);
+                            *self.grid.fire_intensity_mut(nx, ny) = 0.0;
+                        } else if d2 <= outer * outer && cur != Tile::Water {
+                            self.grid.set(nx, ny, Tile::Fire);
+                            *self.grid.fire_intensity_mut(nx, ny) = 1.0;
+                            self.physics.register_fire(nx, ny);
+                        }
+                    }
+                }
+                true
+            }
             Command::SpawnAnimal { x, y, kind } => {
-                if self.animals.iter().filter(|a| a.alive).count() >= 400 {
+                if self.animals.iter().filter(|a| a.alive).count() >= SANDBOX_ANIMAL_CAP {
                     return false;
                 }
                 let k = kind.as_deref().map(animal_from_name).unwrap_or(AnimalKind::Deer);
@@ -365,6 +492,9 @@ impl Simulation {
                         organism.directive.clone_from(&strategy);
                         organism.directive_until = expires_at;
                     }
+                }
+                if strategy == "explore" {
+                    self.launch_lineage_expedition(&lineage);
                 }
                 self.start_strategy_objective(&lineage, &strategy, expires_at);
                 self.lineage_strategies.insert(lineage, (strategy, expires_at));
@@ -435,8 +565,127 @@ mod tests {
         let alive_before = alive(&sim);
 
         assert_eq!(crate::sim::growth::population_slots_used(&sim.organisms), 120);
+        // At the natural cap a god spawn still fits in the 10% headroom and
+        // does not take the pending birth's slot.
         assert!(sim.apply_command_json(r#"{"cmd":"spawn","x":100.0,"y":100.0,"count":1}"#));
-        assert_eq!(alive(&sim), alive_before);
+        assert_eq!(alive(&sim), alive_before + 1);
+        assert!(sim.organisms[1].pregnant, "the pending birth is untouched");
+        // Past the headroom the world is full and the player is told so.
+        assert!(sim.apply_command_json(r#"{"cmd":"spawn","x":100.0,"y":100.0,"count":50}"#));
+        assert_eq!(crate::sim::growth::population_slots_used(&sim.organisms), 132);
+        assert!(!sim.apply_command_json(r#"{"cmd":"spawn","x":100.0,"y":100.0,"count":1}"#));
+    }
+
+    #[test]
+    fn smite_and_heal_report_whether_anyone_was_in_range() {
+        let mut sim = Simulation::new(1);
+        let target = sim.organisms.iter().position(|o| o.alive).unwrap();
+        let (x, y) = (sim.organisms[target].x, sim.organisms[target].y);
+        for (i, o) in sim.organisms.iter_mut().enumerate() {
+            if i != target {
+                o.alive = false;
+            }
+        }
+
+        let far = format!(
+            r#"{{"cmd":"heal","x":{},"y":{},"radius":2.0}}"#,
+            x + 50.0,
+            y + 50.0
+        );
+        assert!(!sim.apply_command_json(&far));
+        let near = format!(r#"{{"cmd":"heal","x":{x},"y":{y},"radius":2.0}}"#);
+        assert!(sim.apply_command_json(&near));
+
+        let miss = format!(
+            r#"{{"cmd":"smite","x":{},"y":{},"radius":2.0}}"#,
+            x + 50.0,
+            y + 50.0
+        );
+        assert!(!sim.apply_command_json(&miss));
+        assert!(sim.organisms[target].alive);
+        let hit = format!(r#"{{"cmd":"smite","x":{x},"y":{y},"radius":2.0}}"#);
+        assert!(sim.apply_command_json(&hit));
+        assert!(sim.organisms[target].health < 0.0);
+        let deaths = sim.history.deaths_combat;
+        sim.tick();
+        assert!(!sim.organisms[target].alive, "dies through the normal death path");
+        assert_eq!(sim.history.deaths_combat, deaths + 1, "and is counted in history");
+    }
+
+    #[test]
+    fn poison_infects_only_people_in_range() {
+        let mut sim = Simulation::new(1);
+        let target = sim.organisms.iter().position(|o| o.alive).unwrap();
+        let (x, y) = (sim.organisms[target].x, sim.organisms[target].y);
+        sim.organisms[target].infection = 0.0;
+
+        let miss = format!(
+            r#"{{"cmd":"poison","x":{},"y":{},"radius":0.5}}"#,
+            x + 90.0,
+            y + 90.0
+        );
+        let reached_far = sim
+            .organisms
+            .iter()
+            .any(|o| o.alive && (o.x - x - 90.0).hypot(o.y - y - 90.0) <= 0.5);
+        assert_eq!(sim.apply_command_json(&miss), reached_far);
+
+        let hit = format!(r#"{{"cmd":"poison","x":{x},"y":{y},"radius":0.5}}"#);
+        assert!(sim.apply_command_json(&hit));
+        assert!(sim.organisms[target].infection >= 0.85);
+    }
+
+    #[test]
+    fn meteor_kills_in_range_and_leaves_a_burning_crater() {
+        use crate::world::tiles::Tile;
+
+        let mut sim = Simulation::new(1);
+        let (cx, cy) = (100, 100);
+        for dx in -8..=8 {
+            for dy in -8..=8 {
+                sim.grid.set(cx + dx, cy + dy, Tile::Grass);
+            }
+        }
+        let target = sim.organisms.iter().position(|o| o.alive).unwrap();
+        sim.organisms[target].x = cx as f32 + 1.0;
+        sim.organisms[target].y = cy as f32;
+        assert!(sim.apply_command_json(&format!(r#"{{"cmd":"meteor","x":{cx},"y":{cy},"radius":4}}"#)));
+        assert!(sim.organisms[target].health < 0.0);
+        assert_eq!(sim.grid.get(cx, cy), Tile::Rock);
+        assert_eq!(sim.grid.get(cx + 3, cy), Tile::Ash);
+        assert_eq!(sim.grid.get(cx + 5, cy), Tile::Fire);
+        assert_eq!(sim.grid.get(cx + 8, cy), Tile::Grass);
+        assert!(!sim.apply_command_json(r#"{"cmd":"meteor","x":-50,"y":-50,"radius":4}"#));
+    }
+
+    #[test]
+    fn guiding_a_lineage_to_explore_sends_adults_on_one_shared_journey() {
+        let mut sim = Simulation::new(3);
+        let lineage = sim
+            .organisms
+            .iter()
+            .find(|o| o.alive)
+            .map(|o| o.lineage_id.clone())
+            .expect("a living lineage");
+        for o in sim.organisms.iter_mut().filter(|o| o.lineage_id == lineage) {
+            o.age = 1000;
+        }
+        let cmd =
+            format!(r#"{{"cmd":"guide","lineage":"{lineage}","strategy":"explore","duration_ticks":1200}}"#);
+        assert!(sim.apply_command_json(&cmd));
+        let targets: std::collections::HashSet<(i32, i32)> = sim
+            .organisms
+            .iter()
+            .filter(|o| o.alive && o.lineage_id == lineage && o.age >= 700)
+            .filter_map(|o| o.journey.as_ref().map(|j| j.target))
+            .collect();
+        let travellers = sim
+            .organisms
+            .iter()
+            .filter(|o| o.alive && o.lineage_id == lineage && o.journey.is_some())
+            .count();
+        assert!(travellers > 0, "someone set out");
+        assert_eq!(targets.len(), 1, "adults share one destination");
     }
 
     #[test]
@@ -461,6 +710,15 @@ mod tests {
         let before = sim.animals.len();
         assert!(sim.apply_command_json(r#"{"cmd":"spawn_animal","x":80.0,"y":80.0,"kind":"wolf"}"#));
         assert_eq!(sim.animals.len(), before + 1);
+    }
+
+    #[test]
+    fn spawn_animal_still_works_in_a_crowded_mature_world() {
+        let mut sim = Simulation::new(1);
+        while sim.animals.iter().filter(|a| a.alive).count() < 700 {
+            assert!(sim.apply_command_json(r#"{"cmd":"spawn_animal","x":80.0,"y":80.0,"kind":"deer"}"#));
+        }
+        assert!(sim.apply_command_json(r#"{"cmd":"spawn_animal","x":80.0,"y":80.0,"kind":"wolf"}"#));
     }
 
     #[test]

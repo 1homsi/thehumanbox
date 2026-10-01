@@ -1,0 +1,447 @@
+/* ── Pixel theme ─────────────────────────────────────────────────────────
+ * One visual language for every surface around the world: dialogs, drawers,
+ * menus, toasts, the tour, and the controls inside them. It matches the
+ * header and world dock: dark wood, an ink outline with a brass inner line,
+ * gold for active state, raised buttons and sunken readouts/inputs.
+ * Loaded after App.css so it wins over the older per-surface styles. The
+ * shared --px-* tokens live on :root in index.css. */
+
+/* ── Frames ─────────────────────────────────────────────────────────── */
+.thb-modal[class],
+.world-tool-search,
+.cmd-panel,
+.more-dropdown,
+.welcome-modal,
+.shepherd-element.thb-shepherd,
+.desktop-toast,
+.update-toast,
+.idle-resume-panel {
+  background: var(--px-wood);
+  color: var(--px-text);
+  border: 2px solid var(--px-ink);
+  border-radius: 0;
+  box-shadow: var(--px-frame-shadow);
+  font-family: var(--dialog-font);
+  scrollbar-color: var(--px-brass) var(--px-inset);
+  scrollbar-width: thin;
+}
+
+/* ── Dialog title bars ──────────────────────────────────────────────── */
+.thb-modal :is(.lang-modal-header, .cv-modal-head, .worlds-head),
+.thb-shepherd .shepherd-header {
+  background: var(--px-grain);
+  border-bottom: 2px solid var(--px-ink);
+  box-shadow:
+    inset 0 -2px 0 var(--px-brass),
+    inset 0 2px 0 var(--px-brass);
+  border-radius: 0;
+}
+.thb-modal :is(.lang-modal-title, .cv-modal-title, .worlds-title),
+.world-tool-search header span,
+.thb-shepherd .shepherd-title,
+.welcome-title,
+.desktop-toast-title,
+.idle-resume-title {
+  color: var(--px-gold-text);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-shadow: 0 2px 0 #000;
+}
+.thb-modal :is(.lang-modal-title, .cv-modal-title, .worlds-title) {
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────── */
+.lang-btn,
+.close-btn,
+.welcome-btn,
+.idle-resume-btn,
+.desktop-toast-close,
+.desktop-toast-copy,
+.desktop-toast-primary,
+.desktop-toast-secondary,
+.world-tool-search header button,
+.thb-shepherd .shepherd-button {
+  border: 2px solid var(--px-ink);
+  border-radius: 0;
+  clip-path: var(--px-notch);
+  background: var(--px-raised);
+  box-shadow: var(--px-raised-shadow);
+  color: var(--px-text);
+  font-family: var(--dialog-font);
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: background 90ms ease;
+}
+.lang-btn {
+  min-height: 26px;
+  padding: 3px 10px;
+  font-size: 11px;
+}
+.lang-btn:hover,
+.close-btn:hover,
+.welcome-btn:hover,
+.idle-resume-btn:hover,
+.desktop-toast-close:hover,
+.desktop-toast-copy:hover,
+.desktop-toast-secondary:hover,
+.world-tool-search header button:hover,
+.thb-shepherd .shepherd-button:hover {
+  background: var(--px-raised-hover);
+  color: #fff3d6;
+  border-color: var(--px-ink);
+}
+.lang-btn:active,
+.close-btn:active,
+.welcome-btn:active,
+.idle-resume-btn:active,
+.thb-shepherd .shepherd-button:active {
+  box-shadow: var(--px-pressed-shadow);
+}
+.lang-btn.active {
+  background: var(--px-active);
+  border-color: var(--px-gold);
+  color: var(--px-gold-text);
+  box-shadow:
+    inset 2px 2px 0 #9c7a3e,
+    inset -2px -3px 0 #3a2a15;
+}
+/* The one primary action per surface is a gold plate. */
+.welcome-btn--primary,
+.desktop-toast-primary,
+.idle-resume-btn,
+.thb-shepherd .shepherd-button:not(.shepherd-button-secondary) {
+  background: #c9973f;
+  color: #1f150b;
+  box-shadow:
+    inset 2px 2px 0 #f3d17a,
+    inset -2px -3px 0 #7a5522;
+}
+.welcome-btn--primary:hover,
+.desktop-toast-primary:hover,
+.idle-resume-btn:hover,
+.thb-shepherd .shepherd-button:not(.shepherd-button-secondary):hover {
+  background: #dcaa4c;
+  color: #1f150b;
+}
+.close-btn,
+.thb-modal .close-btn {
+  display: inline-grid;
+  place-items: center;
+  min-width: 30px;
+  min-height: 30px;
+  padding: 0 6px;
+  font-size: 12px;
+  color: var(--px-text);
+  border-radius: 0;
+}
+.close-btn:hover,
+.thb-modal .close-btn:hover {
+  background: #6a2d24;
+  color: #ffd9cf;
+}
+:is(.lang-btn, .close-btn, .welcome-btn, .thb-shepherd .shepherd-button):focus-visible {
+  outline: 2px solid var(--px-gold);
+  outline-offset: -4px;
+}
+
+/* ── Chips and inputs ───────────────────────────────────────────────── */
+.filter-chip {
+  border: 2px solid var(--px-ink);
+  border-radius: 0;
+  clip-path: var(--px-notch);
+  background: var(--px-inset);
+  box-shadow: var(--px-sunken-shadow);
+  color: var(--px-muted);
+  font-family: var(--dialog-font);
+  font-size: 10px;
+  padding: 3px 9px;
+}
+.filter-chip:hover {
+  color: var(--px-text);
+  border-color: var(--px-ink);
+}
+.filter-chip.active,
+.thb-modal .filter-chip.active {
+  background: var(--px-active);
+  border-color: var(--px-gold);
+  color: var(--px-gold-text);
+  box-shadow: none;
+}
+.thb-modal :is(input[type='text'], input[type='search'], input:not([type]), select, textarea),
+.world-tool-search input,
+.cmd-input {
+  background: var(--px-inset);
+  color: var(--px-text);
+  border: 2px solid var(--px-ink);
+  border-radius: 0;
+  box-shadow: var(--px-sunken-shadow);
+  font-family: var(--dialog-font);
+}
+.thb-modal :is(input, select, textarea):focus,
+.world-tool-search input:focus,
+.cmd-input:focus {
+  border-color: var(--px-gold);
+  outline: none;
+}
+
+/* ── Drawers ────────────────────────────────────────────────────────
+ * On desktop the world and people drawers slide over the world instead of
+ * squeezing it. Animating their width resized the world canvas on every
+ * frame, which made the whole map jitter while a drawer opened. */
+@media (min-width: 768px) {
+  .layout {
+    position: relative;
+  }
+  .panel-left,
+  .panel-left.open,
+  .panel-right,
+  .panel-right.open {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 50;
+    padding: 8px 12px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background: var(--px-wood-dark);
+    scrollbar-color: var(--px-brass) var(--px-inset);
+    scrollbar-width: thin;
+    visibility: hidden;
+    transition:
+      transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+      visibility 0s linear 0.22s;
+  }
+  .panel-left,
+  .panel-left.open {
+    left: 0;
+    width: 240px;
+    transform: translateX(-100%);
+    border-right: 2px solid var(--px-ink);
+    box-shadow:
+      inset -2px 0 0 var(--px-brass),
+      6px 0 0 rgba(0, 0, 0, 0.3);
+  }
+  .panel-right,
+  .panel-right.open {
+    right: 0;
+    width: 320px;
+    transform: translateX(100%);
+    border-left: 2px solid var(--px-ink);
+    box-shadow:
+      inset 2px 0 0 var(--px-brass),
+      -6px 0 0 rgba(0, 0, 0, 0.3);
+  }
+  .panel-left.open,
+  .panel-right.open {
+    transform: none;
+    visibility: visible;
+    transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+@media (max-width: 767px) {
+  .panel-left,
+  .panel-right {
+    background: var(--px-wood-dark);
+  }
+  .panel-right {
+    border-top: 2px solid var(--px-ink);
+    border-radius: 0;
+    box-shadow: inset 0 2px 0 var(--px-brass);
+  }
+  .panel-left {
+    border-right: 2px solid var(--px-ink);
+    box-shadow: inset -2px 0 0 var(--px-brass);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel-left,
+  .panel-right,
+  .panel-left.open,
+  .panel-right.open {
+    transition: none;
+  }
+}
+.section-title {
+  color: var(--px-gold-text);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  padding: 6px 0 4px;
+  border-bottom: 2px solid var(--px-ink);
+  box-shadow: 0 1px 0 var(--px-groove);
+  text-shadow: 0 1px 0 #000;
+}
+.lineage-row:hover {
+  background: rgba(232, 182, 76, 0.07);
+}
+.lineage-row.active {
+  background: var(--px-active);
+  border-color: var(--px-gold);
+  border-radius: 0;
+}
+
+/* ── Menus ──────────────────────────────────────────────────────────── */
+.more-dropdown {
+  padding: 8px;
+  gap: 6px;
+}
+.more-dropdown-section {
+  color: var(--px-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  padding: 4px 2px 0;
+}
+.more-dropdown-divider {
+  height: 2px;
+  background: var(--px-ink);
+  box-shadow: 0 1px 0 var(--px-groove);
+}
+.cmd-row-active {
+  background: var(--px-active);
+  color: var(--px-gold-text);
+}
+
+/* ── Welcome, tour, and toasts ──────────────────────────────────────── */
+.welcome-modal {
+  padding: 24px 22px 18px;
+}
+.welcome-body,
+.desktop-toast-sub,
+.idle-resume-sub,
+.thb-shepherd .shepherd-text {
+  color: var(--px-text);
+}
+.welcome-dot {
+  border-radius: 0;
+}
+.thb-shepherd .shepherd-arrow:before {
+  background: var(--px-wood);
+  border-color: var(--px-brass);
+}
+.thb-shepherd .shepherd-header {
+  padding: 12px 16px 10px;
+}
+.thb-shepherd .shepherd-cancel-icon {
+  color: var(--px-muted);
+}
+.desktop-toast-cmd {
+  background: var(--px-inset);
+  border: 2px solid var(--px-ink);
+  border-radius: 0;
+  box-shadow: var(--px-sunken-shadow);
+}
+
+/* ── In-app startup screen ──────────────────────────────────────────────
+ * Continues the boot splash on the same surface, with no card. */
+.waiting {
+  background: #1a130d;
+  color: var(--px-muted);
+  font-family: var(--dialog-font);
+}
+.waiting-title {
+  color: var(--px-gold-text);
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-shadow: 0 2px 0 #000;
+}
+.waiting-sub {
+  color: var(--px-muted);
+}
+.waiting-spinner {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 0;
+  background: var(--px-gold);
+  box-shadow:
+    20px 0 0 var(--px-brass),
+    40px 0 0 var(--px-groove);
+  margin-right: 40px;
+  animation: px-steps 0.9s steps(3, end) infinite;
+}
+@keyframes px-steps {
+  0% {
+    box-shadow:
+      20px 0 0 var(--px-brass),
+      40px 0 0 var(--px-groove);
+    background: var(--px-gold);
+  }
+  33% {
+    box-shadow:
+      20px 0 0 var(--px-gold),
+      40px 0 0 var(--px-brass);
+    background: var(--px-groove);
+  }
+  66% {
+    box-shadow:
+      20px 0 0 var(--px-groove),
+      40px 0 0 var(--px-gold);
+    background: var(--px-brass);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .waiting-spinner {
+    animation: none;
+  }
+}
+
+/* ── Cards, chips and bars inside drawers and dialogs ────────────────── */
+.org-card,
+.org-detail,
+.civ-summary,
+.stats-num-card {
+  background: var(--px-wood);
+  border: 2px solid var(--px-ink);
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px var(--px-groove);
+}
+.org-card.dead {
+  box-shadow: none;
+}
+.civ-summary-chip,
+.attitude-tag,
+.relation-tag,
+.org-tag {
+  background: var(--px-inset);
+  border: 1px solid var(--px-ink);
+  border-radius: 0;
+  box-shadow: var(--px-sunken-shadow);
+}
+.civ-summary-btn,
+.icon-btn {
+  border: 2px solid var(--px-ink);
+  border-radius: 0;
+  background: var(--px-raised);
+  box-shadow: var(--px-raised-shadow);
+  color: var(--px-text);
+}
+.civ-summary-btn:hover,
+.icon-btn:hover {
+  background: var(--px-raised-hover);
+  color: #fff3d6;
+}
+.bar-track,
+.trait-bar-wrap {
+  height: 4px;
+  background: var(--px-inset);
+  border-radius: 0;
+  box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.5);
+}
+.bar-fill,
+.trait-bar {
+  border-radius: 0;
+}
+.stats-section-title {
+  color: var(--px-gold-text);
+  letter-spacing: 0.14em;
+  text-shadow: 0 1px 0 #000;
+}
+.stats-num {
+  color: var(--px-gold-text);
+}
+.stats-num-label {
+  color: var(--px-muted);
+}

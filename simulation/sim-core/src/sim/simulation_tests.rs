@@ -2475,3 +2475,42 @@ fn same_seed_yields_the_same_rng_stream() {
     // Negative control: a seed-insensitive RNG would pass the assertion above.
     assert_ne!(a, draws(8), "different seeds produced the same RNG stream");
 }
+
+#[test]
+fn a_new_tribe_leaves_as_a_band_on_one_journey() {
+    let mut sim = Simulation::new(5);
+    let founder = sim.organisms.iter().position(|o| o.alive).unwrap();
+    let old = sim.organisms[founder].lineage_id.clone();
+    let (fx, fy) = (sim.organisms[founder].x, sim.organisms[founder].y);
+    let kin: Vec<usize> = sim
+        .organisms
+        .iter()
+        .enumerate()
+        .filter(|&(i, o)| i != founder && o.alive)
+        .map(|(i, _)| i)
+        .take(6)
+        .collect();
+    for (n, &i) in kin.iter().enumerate() {
+        let o = &mut sim.organisms[i];
+        o.lineage_id = old.clone();
+        o.age = 1200;
+        o.x = fx + n as f32;
+        o.y = fy;
+    }
+    sim.organisms[founder].age = 1200;
+
+    sim.fork_new_tribe(founder, 40, 40);
+
+    let new = sim.organisms[founder].lineage_id.clone();
+    assert_ne!(new, old);
+    let band: Vec<_> = sim
+        .organisms
+        .iter()
+        .filter(|o| o.alive && o.lineage_id == new)
+        .collect();
+    assert_eq!(band.len(), 5, "founder plus four followers");
+    for o in band {
+        assert_eq!(o.journey.as_ref().map(|j| j.target), Some((40, 40)));
+        assert_eq!((o.home_x, o.home_y), (40.0, 40.0));
+    }
+}

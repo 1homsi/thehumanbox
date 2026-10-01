@@ -23,6 +23,13 @@ fn lookahead_ticks_for_values(look_ms: Option<&str>, tick_ms: Option<&str>) -> f
 }
 
 static LOOKAHEAD_TICKS: std::sync::LazyLock<f32> = std::sync::LazyLock::new(|| {
+    // The browser build simulates in the same tab that renders, so there is
+    // no network latency to hide. Predicting ahead there made delta frames
+    // lead the true position while every full frame (true positions) pulled
+    // people back, which read as jittering in place.
+    if cfg!(target_arch = "wasm32") {
+        return 0.0;
+    }
     lookahead_ticks_for_values(
         std::env::var("LOOKAHEAD_MS").ok().as_deref(),
         std::env::var("TICK_MS").ok().as_deref(),

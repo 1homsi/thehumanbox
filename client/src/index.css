@@ -1,13 +1,53 @@
 :root {
-  --dialog-surface: #28201a;
-  --dialog-inset: #1f1812;
-  --dialog-hover: #32271f;
-  --dialog-border: #594330;
-  --dialog-text: #f5e9d4;
-  --dialog-muted: #bfae90;
-  --dialog-accent: #e0bd78;
-  --dialog-backdrop: rgb(17 12 8 / 72%);
+  --px-ink: #110c08;
+  --px-wood: #2b2118;
+  --px-wood-dark: #231a13;
+  --px-grain: repeating-linear-gradient(0deg, #2b2118 0 22px, #231a13 22px 24px);
+  --px-inset: #1a130d;
+  --px-groove: #3f3022;
+  --px-brass: #8a6a3e;
+  --px-gold: #e8b64c;
+  --px-gold-text: #f3d17a;
+  --px-text: #e7d8bc;
+  --px-muted: #9d8c6e;
+  --px-raised: #45362a;
+  --px-raised-hover: #54422f;
+  --px-raised-hi: #6a5439;
+  --px-raised-lo: #2a1f15;
+  --px-active: #5c4527;
+  --px-notch: polygon(
+    0 3px,
+    3px 3px,
+    3px 0,
+    calc(100% - 3px) 0,
+    calc(100% - 3px) 3px,
+    100% 3px,
+    100% calc(100% - 3px),
+    calc(100% - 3px) calc(100% - 3px),
+    calc(100% - 3px) 100%,
+    3px 100%,
+    3px calc(100% - 3px),
+    0 calc(100% - 3px)
+  );
+  /* Frames: ink outline, brass inner line, hard drop shadow. */
+  --px-frame-shadow:
+    inset 0 0 0 2px var(--px-brass), inset 0 0 0 4px rgba(0, 0, 0, 0.35), 0 6px 0 rgba(0, 0, 0, 0.45),
+    0 18px 48px rgba(0, 0, 0, 0.55);
+  --px-raised-shadow: inset 2px 2px 0 var(--px-raised-hi), inset -2px -3px 0 var(--px-raised-lo);
+  --px-pressed-shadow: inset 2px 3px 0 var(--px-raised-lo), inset -2px -2px 0 var(--px-raised-hi);
+  --px-sunken-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.45), inset -1px -1px 0 rgba(255, 255, 255, 0.06);
+
+  /* The shared dialog tokens now resolve to the pixel palette. */
+  --dialog-surface: var(--px-wood);
+  --dialog-inset: var(--px-inset);
+  --dialog-hover: #3a2c1e;
+  --dialog-border: var(--px-brass);
+  --dialog-text: var(--px-text);
+  --dialog-muted: var(--px-muted);
+  --dialog-accent: var(--px-gold-text);
+  --dialog-backdrop: rgb(10 7 4 / 74%);
   --dialog-font: ui-monospace, Menlo, monospace;
+
   color-scheme: dark;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
