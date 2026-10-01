@@ -1,31 +1,3 @@
-/* Armed-tool hint, in the same pixel frame as the dock; it sits above the
- * dock's tabs. */
-.map2d-tool-hint {
-  position: absolute;
-  color: var(--px-text);
-  background: var(--px-wood);
-  border: 2px solid var(--px-ink);
-  box-shadow: var(--px-frame-shadow);
-  font: 11px/1.4 var(--dialog-font);
-  letter-spacing: 0.03em;
-  left: 50%;
-  bottom: calc(var(--dock-tab-clear, 0px) + 12px);
-  transform: translateX(-50%);
-  z-index: 13;
-  padding: 7px 14px 8px;
-  display: grid;
-  text-align: center;
-  pointer-events: none;
-}
-.map2d-tool-hint strong {
-  color: var(--px-gold-text);
-  text-transform: capitalize;
-}
-.map2d-tool-hint span {
-  color: var(--px-muted);
-  font-size: 10px;
-  white-space: nowrap;
-}
 .map2d-brush {
   display: none;
   pointer-events: none;
@@ -36,16 +8,6 @@
   border-radius: 50%;
   background: #ffed9c20;
   box-shadow: 0 0 0 1px #203b40a0;
-}
-body.thb-3d-immersive .map2d-tool-hint,
-body.thb-photo-mode .map2d-tool-hint {
-  display: none;
-}
-@media (max-width: 600px) {
-  .map2d-tool-hint {
-    bottom: calc(var(--dock-tab-clear, 0px) + 8px);
-    max-width: calc(100% - 16px);
-  }
 }
 .map2d-world::after {
   content: '';

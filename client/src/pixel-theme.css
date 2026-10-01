@@ -855,3 +855,29 @@ body.thb-photo-mode .thb-action-ticker {
 .confirm-actions .lang-btn {
   min-width: 84px;
 }
+
+/* An instant tool flashes gold when it fires. */
+.dock-tile.flash {
+  animation: dock-tile-flash 450ms steps(4) 1;
+}
+@keyframes dock-tile-flash {
+  0% {
+    background: #c9973f;
+  }
+  100% {
+    background: var(--dock-wood);
+  }
+}
+
+/* Seven speeds in one row: 1x to 5000x. */
+.sandbox-bar .dock-time {
+  width: 226px;
+}
+.sandbox-bar .dock-speeds {
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.sandbox-bar .dock-speed {
+  font-size: 10px;
+  letter-spacing: 0;
+}

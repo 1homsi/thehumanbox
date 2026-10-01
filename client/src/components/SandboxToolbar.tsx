@@ -2,7 +2,8 @@ import { WorldToolSearch } from './WorldToolSearch'
 import { ToolSprite } from './ToolSprite'
 import { Tooltip } from './Tooltip'
 import { toolHowTo, toolTip } from './tool-tips'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useWorldStore } from '../stores/worldStore'
 import clsx from 'clsx'
 import {
   SANDBOX_CATEGORIES,
@@ -11,7 +12,7 @@ import {
   type SandboxViewFlag,
 } from '../simulation/sandbox'
 import { DOCK_TABS, SPEED_TOOL_IDS, TIME_CATEGORY_ID, groupsFor, resolveTab } from './dock-tabs'
-import { isRuntimeControlActive } from '../simulation/runtimeControls'
+import { WASM_BASE_TICK_MS } from '../simulation/runtimeControls'
 
 const TAB_STORAGE_KEY = 'thb-sandbox-category'
 
@@ -59,6 +60,31 @@ function TipCard({ title, body, how }: { title: string; body?: string; how?: str
   )
 }
 
+/**
+ * Speed the world is really running at, from how fast its tick advances
+ * (1× is one tick per base interval). Null until there are samples.
+ */
+function useAchievedSpeed(paused: boolean): number | null {
+  const tick = useWorldStore((s) => s.world?.tick ?? 0)
+  const samples = useRef<[number, number][]>([])
+  const [speed, setSpeed] = useState<number | null>(null)
+  useEffect(() => {
+    if (paused) {
+      samples.current = []
+      return
+    }
+    const now = performance.now()
+    const list = samples.current
+    list.push([now, tick])
+    while (list.length > 2 && now - list[0][0] > 3000) list.shift()
+    const [t0, k0] = list[0]
+    if (now - t0 >= 1000 && tick > k0) {
+      setSpeed(((tick - k0) / ((now - t0) / 1000)) * (WASM_BASE_TICK_MS / 1000))
+    }
+  }, [tick, paused])
+  return speed
+}
+
 export function SandboxToolbar({
   armedToolId,
   brush,
@@ -80,8 +106,29 @@ export function SandboxToolbar({
   const groups = groupsFor(tabId)
   const timeTools = SANDBOX_CATEGORIES.find((c) => c.id === TIME_CATEGORY_ID)?.tools ?? []
   const speedTools = SPEED_TOOL_IDS.flatMap((id) => timeTools.filter((t) => t.id === id))
+  const achieved = useAchievedSpeed(runtimePaused)
+  // Past what the machine can sustain, say what it is really doing.
+  const lagging = !runtimePaused && achieved !== null && runtimeSpeed > 10 && achieved < runtimeSpeed * 0.8
+  // The runtime rounds a request to a rate it can batch (5000x becomes
+  // ~1920x), so light whichever button is closest on a log scale.
+  const activeSpeedId = speedTools.reduce<{ id: string | null; d: number }>(
+    (best, t) => {
+      const d = Math.abs(Math.log((t.time?.mult ?? 1) / Math.max(runtimeSpeed, 0.01)))
+      return d < best.d ? { id: t.id, d } : best
+    },
+    { id: null, d: Infinity },
+  ).id
+  const weather = useWorldStore((s) => s.world?.weather?.kind)
+  const drought = useWorldStore((s) => s.world?.drought ?? false)
+  const [flashId, setFlashId] = useState<string | null>(null)
   const isViewActive = (tool: SandboxTool) =>
     isSandboxViewControlActive(tool.view, activeOverlay, activeViewFlags)
+  // Weather and drought are states of the world, so their tiles light up
+  // while that state holds, and clicking a lit one switches it off.
+  const isStateActive = (tool: SandboxTool) =>
+    (tool.id === 'rain' && weather === 'rain') ||
+    (tool.id === 'storm' && weather === 'storm') ||
+    (tool.id === 'drought_on' && drought)
   const tabEngaged = (id: string) =>
     groupsFor(id).some((c) => c.tools.some((t) => armedToolId === t.id || isViewActive(t)))
 
@@ -102,8 +149,20 @@ export function SandboxToolbar({
     }
   }
   const pickTool = (tool: SandboxTool) => {
-    if (armedToolId === tool.id) onClearArmed()
-    else onPick(tool)
+    if (armedToolId === tool.id) return onClearArmed()
+    if (tool.mode === 'instant') {
+      // Instant tools fire straight away; a flash shows the click landed.
+      setFlashId(tool.id)
+      window.setTimeout(() => setFlashId((id) => (id === tool.id ? null : id)), 450)
+      if (isStateActive(tool)) {
+        const off: SandboxTool =
+          tool.id === 'drought_on'
+            ? { ...tool, fire: { cmd: 'drought', active: false } }
+            : { ...tool, fire: { cmd: 'weather', kind: 'clear' } }
+        return onPick(off)
+      }
+    }
+    onPick(tool)
   }
 
   // Tooltips describe tools and the world view explains the armed one, so
@@ -160,11 +219,21 @@ export function SandboxToolbar({
         )}
       </div>
 
-      <div className="dock-tools" role="group" aria-label={`${tabId} tools`}>
+      <div
+        className="dock-tools"
+        role="group"
+        aria-label={`${tabId} tools`}
+        onWheel={(e) => {
+          // A mouse wheel scrolls the tool strip sideways when it overflows.
+          const el = e.currentTarget
+          if (el.scrollWidth > el.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX))
+            el.scrollLeft += e.deltaY
+        }}
+      >
         {groups.map((group) => (
           <div className="dock-group" key={group.id} role="group" aria-label={group.label}>
             {group.tools.map((tool) => {
-              const active = armedToolId === tool.id || isViewActive(tool)
+              const active = armedToolId === tool.id || isViewActive(tool) || isStateActive(tool)
               return (
                 <Tooltip
                   key={tool.id}
@@ -172,13 +241,19 @@ export function SandboxToolbar({
                     <TipCard
                       title={tool.label}
                       body={toolTip(tool)}
-                      how={active && !tool.view ? 'click again or press esc to stop' : toolHowTo(tool)}
+                      how={
+                        isStateActive(tool)
+                          ? 'happening now · click again to end it'
+                          : active && !tool.view
+                            ? 'click again or press esc to stop'
+                            : toolHowTo(tool)
+                      }
                     />
                   }
                 >
                   <button
                     type="button"
-                    className={clsx('dock-tile', active && 'active')}
+                    className={clsx('dock-tile', active && 'active', flashId === tool.id && 'flash')}
                     aria-label={tool.label}
                     aria-pressed={active}
                     onClick={() => pickTool(tool)}
@@ -201,7 +276,9 @@ export function SandboxToolbar({
                 body={
                   runtimePaused
                     ? 'Time is stopped. Start the world again.'
-                    : `Stop time. Running at ${formatSpeed(runtimeSpeed)}.`
+                    : lagging
+                      ? `Asked for ${formatSpeed(runtimeSpeed)}; this computer is running about ${formatSpeed(Math.round(achieved ?? 0))}, as fast as it can.`
+                      : `Stop time. Running at ${formatSpeed(runtimeSpeed)}.`
                 }
                 how="space"
               />
@@ -214,7 +291,13 @@ export function SandboxToolbar({
               aria-label={runtimePaused ? 'Resume simulation' : 'Pause simulation'}
             >
               <ToolSprite icon={runtimePaused ? '▶️' : '⏸️'} size={24} />
-              <span>{runtimePaused ? 'paused' : formatSpeed(runtimeSpeed)}</span>
+              <span>
+                {runtimePaused
+                  ? 'paused'
+                  : lagging
+                    ? `≈${formatSpeed(Math.round(achieved ?? 0))}`
+                    : formatSpeed(runtimeSpeed)}
+              </span>
             </button>
           </Tooltip>
           <div className="dock-speeds">
@@ -223,19 +306,20 @@ export function SandboxToolbar({
                 key={tool.id}
                 tip={
                   <TipCard
-                    title={`speed ${tool.label}`}
-                    body={tool.label === '1×' ? 'Normal speed.' : `Run time ${tool.label} faster.`}
+                    title={`speed ${formatSpeed(tool.time?.mult ?? 1)}`}
+                    body={
+                      tool.label === '1×'
+                        ? 'Normal speed.'
+                        : (tool.time?.mult ?? 1) > 40
+                          ? `Run time ${formatSpeed(tool.time?.mult ?? 1)} faster, or as fast as this computer can.`
+                          : `Run time ${tool.label} faster.`
+                    }
                   />
                 }
               >
                 <button
                   type="button"
-                  className={clsx(
-                    'dock-speed',
-                    !runtimePaused &&
-                      isRuntimeControlActive(tool.time, runtimePaused, runtimeSpeed) &&
-                      'active',
-                  )}
+                  className={clsx('dock-speed', !runtimePaused && tool.id === activeSpeedId && 'active')}
                   onClick={() => onPick(tool)}
                   aria-label={`Speed ${tool.label}`}
                 >

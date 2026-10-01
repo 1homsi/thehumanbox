@@ -72,7 +72,8 @@ describe('wasmSpeedConfig', () => {
 
   it('rejects speeds outside the supported runtime range', () => {
     expect(wasmSpeedConfig(0.1)).toBeNull()
-    expect(wasmSpeedConfig(51)).toBeNull()
+    expect(wasmSpeedConfig(5001)).toBeNull()
+    expect(wasmSpeedConfig(5000)).not.toBeNull()
   })
 })
 

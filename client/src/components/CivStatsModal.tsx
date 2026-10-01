@@ -280,8 +280,8 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
         <div className="civ-calendar">
           <div className="civ-cal-item">
             <span className="civ-cal-label">year</span>
-            <span className="civ-cal-value">{world.cosmos.year}</span>
-            <span className="civ-cal-sub">day {world.cosmos.day_of_year} of 84</span>
+            <span className="civ-cal-value">{world.cosmos.year + 1}</span>
+            <span className="civ-cal-sub">day {world.cosmos.day_of_year + 1} of 84</span>
           </div>
           <span className="civ-cal-sep" aria-hidden="true" />
           <div className="civ-cal-item">

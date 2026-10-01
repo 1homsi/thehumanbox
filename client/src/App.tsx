@@ -550,7 +550,6 @@ function LiveApp() {
                   sandboxArmed={sandboxControlsEnabled && !!armedTool}
                   sandboxLabel={armedTool?.label}
                   sandboxToolId={armedTool?.id}
-                  sandboxStatus={sandboxStatus}
                   sandboxRadius={(() => {
                     const preview = armedTool?.build?.(0, 0, brush)
                     return preview && 'radius' in preview ? (preview.radius ?? 0) : 0

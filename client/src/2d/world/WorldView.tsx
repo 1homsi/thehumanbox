@@ -1498,7 +1498,7 @@ export function drawWorldOnCanvas(
     }
   }
 
-  // Settlement markers: draw a subtle ring around clusters of 3+ huts.
+  // Settlement markers: a town hall over clusters of 5+ huts.
   // Hut tile positions are cached per terrain grid, and the clustering
   // itself (an O(n^2) scan) is cached with them - only the ring drawing
   // is animated per frame.
@@ -1507,18 +1507,11 @@ export function drawWorldOnCanvas(
     if (hutPositions.length >= 3) {
       const clusters = cachedHutClusters(hutPositions)
       for (const { cx: cx2, cy: cy2, count: clusterLength } of clusters) {
-        const r2 = Math.sqrt(clusterLength) * TILE * 2.2 + TILE * 3
         const px2 = cx2 * TILE + TILE / 2
         const py2 = cy2 * TILE + TILE / 2
         ctx.save()
-        // Settlement ring
-        ctx.strokeStyle = `rgba(200,170,80,${Math.min(0.45, 0.2 + clusterLength * 0.04)})`
-        ctx.lineWidth = 1.2
-        ctx.setLineDash([4, 3])
-        ctx.beginPath()
-        ctx.arc(px2, py2, r2, 0, Math.PI * 2)
-        ctx.stroke()
-        ctx.setLineDash([])
+        // No ring: town names and the borders layer already mark
+        // settlements, and dozens of dashed circles cluttered the map.
         // Town hall icon for large settlements (5+ huts)
         if (clusterLength >= 5) {
           const TH = TILE * 3.5 // town hall icon size
@@ -3398,7 +3391,6 @@ interface Props {
   sandboxLabel?: string | null
   /** Armed tool id, used to pick the effect that plays where it lands. */
   sandboxToolId?: string | null
-  sandboxStatus?: string | null
   sandboxRadius?: number
   onSandboxApply?: (worldX: number, worldY: number) => void
 }
@@ -3410,7 +3402,6 @@ export function WorldView({
   sandboxArmed,
   sandboxLabel,
   sandboxToolId,
-  sandboxStatus,
   sandboxRadius,
   onSandboxApply,
 }: Props) {
@@ -3764,7 +3755,6 @@ export function WorldView({
           container={containerRef.current}
           toolLabel={sandboxArmed ? sandboxLabel : null}
           toolRadius={sandboxRadius}
-          toolStatus={sandboxStatus}
         />
       )}
     </div>
