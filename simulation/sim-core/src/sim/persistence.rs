@@ -706,6 +706,11 @@ fn animal_to_save(a: &Animal) -> AnimalSave {
         AnimalKind::Cow => 9,
         AnimalKind::Horse => 10,
         AnimalKind::Chicken => 11,
+        AnimalKind::Zombie => 12,
+        AnimalKind::Demon => 13,
+        AnimalKind::Dragon => 14,
+        AnimalKind::Alien => 15,
+        AnimalKind::Ufo => 16,
     };
     AnimalSave {
         id: a.id,
@@ -734,6 +739,11 @@ fn animal_from_save(s: AnimalSave) -> Animal {
         9 => AnimalKind::Cow,
         10 => AnimalKind::Horse,
         11 => AnimalKind::Chicken,
+        12 => AnimalKind::Zombie,
+        13 => AnimalKind::Demon,
+        14 => AnimalKind::Dragon,
+        15 => AnimalKind::Alien,
+        16 => AnimalKind::Ufo,
         _ => AnimalKind::Rabbit,
     };
     let mut a = Animal::new(s.id, s.x, s.y, kind);

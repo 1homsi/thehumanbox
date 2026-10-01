@@ -488,7 +488,7 @@ fn local_danger_present(
     candidates.iter().any(|&index| {
         let animal = &animals[index];
         animal.alive
-            && animal.kind.predator()
+            && animal.kind.hostile()
             && (animal.x - x as f32).abs() + (animal.y - y as f32).abs() <= 5.0
     })
 }
@@ -2049,6 +2049,7 @@ impl Simulation {
         // actions. Query only local candidates, in original animal order.
         let mut animal_near = false;
         let mut wolf_threat: Option<(f32, f32, f32)> = None;
+        let mut threat_kind = AnimalKind::Wolf;
         animal_spatial.query_into(
             ox as i32,
             oy as i32,
@@ -2065,11 +2066,12 @@ impl Simulation {
             if d <= 8.0 {
                 animal_near = true;
             }
-            if a.kind.predator()
+            if a.kind.hostile()
                 && d <= wolf_flee_radius
                 && wolf_threat.map(|(bd, _, _)| d < bd).unwrap_or(true)
             {
                 wolf_threat = Some((d, a.x, a.y));
+                threat_kind = a.kind;
             }
         }
 
@@ -2138,7 +2140,11 @@ impl Simulation {
                 self.organisms[idx].wander_target = Some((tx, ty));
                 self.organisms[idx].fear_level =
                     (self.organisms[idx].fear_level + 0.07 + (2.5 - dist) * 0.02).min(1.0);
-                (dir, Some("wolf! run!".to_string()), "emergency_reflex")
+                (
+                    dir,
+                    Some(format!("{}! run!", threat_kind.name())),
+                    "emergency_reflex",
+                )
             } else {
                 self.refresh_lineage_guidance(idx);
                 let (oa_ix, oa_iy) = (self.organisms[idx].x as i32, self.organisms[idx].y as i32);
@@ -4985,12 +4991,12 @@ impl Simulation {
         for animal in self.animals.iter().filter(|animal| animal.alive) {
             match animal.kind {
                 kind if kind.is_prey() => prey_pos_for_chase.push((animal.x, animal.y)),
-                kind if kind.predator() => wolf_pos_for_flee.push((animal.x, animal.y)),
+                kind if kind.hostile() => wolf_pos_for_flee.push((animal.x, animal.y)),
                 _ => {}
             }
         }
         for animal in &mut self.animals {
-            let human_radius = if animal.kind.predator() {
+            let human_radius = if animal.kind.hostile() {
                 20
             } else {
                 animal.kind.flee_radius().ceil() as i32
@@ -5144,9 +5150,18 @@ impl Simulation {
         let mut bites: Vec<(usize, usize)> = Vec::new();
         for (ai, a) in self.animals.iter().enumerate() {
             // Only hungry predators attack, like their prey hunting above.
-            if !a.alive || !a.kind.predator() || a.energy > 0.85 {
+            // Monsters always do; a UFO abducts instead (see tick_monsters).
+            let monster = a.kind.monster();
+            if !a.alive || a.kind == AnimalKind::Ufo || !(monster || (a.kind.predator() && a.energy <= 0.85))
+            {
                 continue;
             }
+            // Aliens shoot and dragons breathe from a little further away.
+            let reach = match a.kind {
+                AnimalKind::Alien => 3.0,
+                AnimalKind::Dragon => 2.0,
+                _ => 1.5,
+            };
             let (ax, ay) = (a.x, a.y);
             ordered_human_candidates(&human_spatial, ax, ay, 3, &mut wolf_candidates);
             for &oi in &wolf_candidates {
@@ -5155,7 +5170,7 @@ impl Simulation {
                     continue;
                 }
                 let manh = (o.x - ax).abs() + (o.y - ay).abs();
-                if manh <= 1.5 {
+                if manh <= reach {
                     let kin_nearby = wolf_candidates
                         .iter()
                         .map(|&index| &self.organisms[index])
@@ -5168,32 +5183,61 @@ impl Simulation {
                     } else {
                         0.0
                     };
-                    let bite_p = (0.18 + a.energy * 0.10 + weak_bonus) * pack_defence;
+                    let base = match a.kind {
+                        AnimalKind::Zombie => 0.30,
+                        AnimalKind::Demon => 0.28,
+                        AnimalKind::Dragon => 0.22,
+                        AnimalKind::Alien => 0.20,
+                        _ => 0.18 + a.energy * 0.10,
+                    };
+                    let bite_p = (base + weak_bonus) * pack_defence;
                     if self.rng.random::<f32>() < bite_p {
                         bites.push((ai, oi));
                     }
                 }
             }
         }
+        let mut risen: Vec<(f32, f32)> = Vec::new();
         for (ai, oi) in bites {
             if !self.animals[ai].alive || !self.organisms[oi].alive {
                 continue;
             }
             let beast = self.animals[ai].kind;
             let bear = beast == AnimalKind::Bear;
-            let dmg = if bear { 0.22 } else { 0.12 } + self.rng.random::<f32>() * 0.08;
+            let base_dmg = match beast {
+                AnimalKind::Bear => 0.22,
+                AnimalKind::Zombie => 0.14,
+                AnimalKind::Demon => 0.20,
+                AnimalKind::Dragon => 0.30,
+                AnimalKind::Alien => 0.18,
+                _ => 0.12,
+            };
+            let dmg = base_dmg + self.rng.random::<f32>() * 0.08;
             let oname = self.organisms[oi].name.clone();
             self.organisms[oi].health = (self.organisms[oi].health - dmg).max(0.0);
-            self.organisms[oi].think(&format!("a {} attacks", beast.name()), self.tick_count);
-            self.organisms[oi].fear_level = (self.organisms[oi].fear_level + 0.25).min(1.0);
+            self.organisms[oi].think(&format!("{} attacks", beast.a_name()), self.tick_count);
+            let fright = if beast.monster() { 0.4 } else { 0.25 };
+            self.organisms[oi].fear_level = (self.organisms[oi].fear_level + fright).min(1.0);
             self.animals[ai].energy = (self.animals[ai].energy + 0.20).min(1.0);
-            push_event(
-                &mut self.events,
-                self.tick_count,
-                "danger",
-                &oname,
-                &format!("mauled by a {}", beast.name()),
-            );
+            let detail = match beast {
+                AnimalKind::Zombie => "bitten by a zombie".to_string(),
+                AnimalKind::Demon => "clawed by a demon".to_string(),
+                AnimalKind::Dragon => "scorched by a dragon".to_string(),
+                AnimalKind::Alien => "zapped by an alien".to_string(),
+                _ => format!("mauled by {}", beast.a_name()),
+            };
+            push_event(&mut self.events, self.tick_count, "danger", &oname, &detail);
+            // A zombie's victim gets back up as one of them.
+            if beast == AnimalKind::Zombie && self.organisms[oi].health <= 0.0 {
+                risen.push((self.organisms[oi].x, self.organisms[oi].y));
+                push_event(
+                    &mut self.events,
+                    self.tick_count,
+                    "danger",
+                    &oname,
+                    "rose as a zombie",
+                );
+            }
 
             // People fight back: the victim and nearby kin strike at the
             // wolf. Weapons, numbers and boldness decide whether it dies.
@@ -5218,8 +5262,16 @@ impl Simulation {
                     || o.discoveries.contains("bow");
                 0.10 + if armed { 0.16 } else { 0.0 } + o.traits.aggression * 0.10
             };
-            // A bear takes far more to bring down than a wolf.
-            let toughness = if bear { 0.45 } else { 1.0 };
+            // A bear takes far more to bring down than a wolf, and a dragon
+            // more than anything.
+            let toughness = match beast {
+                AnimalKind::Bear => 0.45,
+                AnimalKind::Zombie => 0.8,
+                AnimalKind::Demon => 0.35,
+                AnimalKind::Dragon => 0.12,
+                AnimalKind::Alien => 0.5,
+                _ => 1.0,
+            };
             let kill_p =
                 (defenders.iter().map(|&k| strike(&self.organisms[k])).sum::<f32>() * toughness).min(0.85);
             let health_ok = self.organisms[oi].health > 0.0;
@@ -5228,12 +5280,14 @@ impl Simulation {
                 for &k in &defenders {
                     let o = &mut self.organisms[k];
                     o.fear_level = (o.fear_level - 0.2).max(0.0);
-                    o.think(&format!("fought off a {}", beast.name()), self.tick_count);
+                    o.think(&format!("fought off {}", beast.a_name()), self.tick_count);
                 }
-                let o = &mut self.organisms[oi];
-                o.inv_food = o.inv_food.saturating_add(if bear { 4 } else { 2 }).min(9);
+                if !beast.monster() {
+                    let o = &mut self.organisms[oi];
+                    o.inv_food = o.inv_food.saturating_add(if bear { 4 } else { 2 }).min(9);
+                }
                 let detail = if defenders.len() > 1 {
-                    format!("killed a {} with {} others", beast.name(), defenders.len() - 1)
+                    format!("killed {} with {} others", beast.a_name(), defenders.len() - 1)
                 } else {
                     format!("killed the {} that attacked them", beast.name())
                 };
@@ -5243,6 +5297,12 @@ impl Simulation {
                 self.animals[ai].energy = self.animals[ai].energy.max(0.9);
             }
         }
+        for (x, y) in risen {
+            let id = self.next_animal_id;
+            self.next_animal_id += 1;
+            self.animals.push(Animal::new(id, x, y, AnimalKind::Zombie));
+        }
+        self.tick_monsters(&human_spatial);
 
         let candidates: Vec<(usize, f32, f32, AnimalKind)> = self
             .animals
@@ -5265,6 +5325,12 @@ impl Simulation {
                 AnimalKind::Cow => 70,
                 AnimalKind::Horse => 60,
                 AnimalKind::Chicken => 80,
+                // Summoned, never born.
+                AnimalKind::Zombie
+                | AnimalKind::Demon
+                | AnimalKind::Dragon
+                | AnimalKind::Alien
+                | AnimalKind::Ufo => 0,
             }
         };
         let mut kind_alive: HashMap<AnimalKind, usize> = HashMap::new();
@@ -5321,6 +5387,8 @@ impl Simulation {
                 (AnimalKind::Chicken, Biome::Grassland) => 1.2,
                 (AnimalKind::Chicken, Biome::Forest) => 0.8,
                 (AnimalKind::Chicken, _) => 0.4,
+                // Monsters never breed.
+                _ => 0.0,
             };
 
             let local_density = self
@@ -5350,6 +5418,81 @@ impl Simulation {
         }
 
         self.animals.retain(|a| a.alive);
+    }
+
+    /// What monsters do besides biting: dragons set fires near people,
+    /// demons scorch the ground they walk on, and UFOs abduct people.
+    fn tick_monsters(&mut self, human_spatial: &SpatialIndex) {
+        let mut nearby = Vec::with_capacity(16);
+        for ai in 0..self.animals.len() {
+            let a = &self.animals[ai];
+            if !a.alive || !a.kind.monster() {
+                continue;
+            }
+            let (kind, ax, ay) = (a.kind, a.x, a.y);
+            match kind {
+                AnimalKind::Dragon => {
+                    if self.rng.random::<f32>() >= 0.05 {
+                        continue;
+                    }
+                    ordered_human_candidates(human_spatial, ax, ay, 6, &mut nearby);
+                    let Some(&oi) = nearby.iter().find(|&&oi| {
+                        let o = &self.organisms[oi];
+                        o.alive && (o.x - ax).abs() + (o.y - ay).abs() <= 6.0
+                    }) else {
+                        continue;
+                    };
+                    let (tx, ty) = (self.organisms[oi].x as i32, self.organisms[oi].y as i32);
+                    for (dx, dy) in [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)] {
+                        self.ignite(tx + dx, ty + dy);
+                    }
+                }
+                AnimalKind::Demon => {
+                    let (x, y) = (ax as i32, ay as i32);
+                    let roll = self.rng.random::<f32>();
+                    if roll < 0.01 {
+                        self.ignite(x, y);
+                    } else if roll < 0.10
+                        && matches!(self.grid.get(x, y), Tile::Grass | Tile::Food | Tile::Snow)
+                    {
+                        self.grid.set(x, y, Tile::Scorched);
+                    }
+                }
+                AnimalKind::Ufo => {
+                    if self.rng.random::<f32>() >= 0.04 {
+                        continue;
+                    }
+                    ordered_human_candidates(human_spatial, ax, ay, 2, &mut nearby);
+                    let Some(&oi) = nearby.iter().find(|&&oi| {
+                        let o = &self.organisms[oi];
+                        o.alive && o.health > 0.0 && (o.x - ax).abs() + (o.y - ay).abs() <= 1.5
+                    }) else {
+                        continue;
+                    };
+                    // Health below zero hands the death to the normal tick.
+                    self.organisms[oi].health = -1.0;
+                    let name = self.organisms[oi].name.clone();
+                    push_event(
+                        &mut self.events,
+                        self.tick_count,
+                        "danger",
+                        &name,
+                        "was abducted by a UFO",
+                    );
+                }
+                _ => {}
+            }
+        }
+    }
+
+    /// Sets a burnable tile alight.
+    fn ignite(&mut self, x: i32, y: i32) {
+        if !WorldGrid::in_bounds(x, y) || !self.grid.get(x, y).flammable() {
+            return;
+        }
+        self.grid.set(x, y, Tile::Fire);
+        *self.grid.fire_intensity_mut(x, y) = 1.0;
+        self.physics.register_fire(x, y);
     }
 
     fn check_animal_catches(&mut self) {
@@ -5425,6 +5568,12 @@ impl Simulation {
                 AnimalKind::Cow => ("cow", 0.70, 4u8, 0.85f32, 4u8),
                 AnimalKind::Horse => ("horse", 0.55, 3u8, 0.80f32, 3u8),
                 AnimalKind::Chicken => ("chicken", 0.22, 1u8, 0.00f32, 1u8),
+                // Never caught: their catch chance above is zero.
+                AnimalKind::Zombie
+                | AnimalKind::Demon
+                | AnimalKind::Dragon
+                | AnimalKind::Alien
+                | AnimalKind::Ufo => continue,
             };
             let (ax, ay) = (self.animals[ai].x as i32, self.animals[ai].y as i32);
             self.animals[ai].alive = false;

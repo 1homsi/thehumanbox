@@ -17,6 +17,11 @@ const KIND_TINT: Record<string, string> = {
   fish: '#88aaff',
   wolf: '#555555',
   dog: '#b08850',
+  zombie: '#86a86a',
+  demon: '#b8332a',
+  dragon: '#3f8f5a',
+  alien: '#a6e38f',
+  ufo: '#aab4bf',
 }
 
 // A "part" is one InstancedMesh - geometry + material color + a local

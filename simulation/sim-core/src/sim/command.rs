@@ -106,6 +106,83 @@ pub enum Command {
         #[serde(default)]
         radius: i32,
     },
+    /// Make the land fertile and grow food across it.
+    Harvest {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
+    /// End every sickness inside the radius and protect people from it for a while.
+    Cure {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
+    /// Teach everyone inside the radius to make and use weapons.
+    Arm {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
+    /// Fill everyone's packs with food, wood and stone.
+    Bounty {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
+    /// Put out every fire inside the radius.
+    Douse {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
+    },
+    /// Destroy every monster and predator inside the radius.
+    Banish {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
+    /// Kill the crops and spoil the stores inside the radius.
+    Blight {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
+    },
+    /// Turn neighbours on each other.
+    Frenzy {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
+    /// Drown the land inside the radius.
+    Flood {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
+    },
+    /// Bury the land in snow and chill everyone inside the radius.
+    Blizzard {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
+    },
+    /// Rain several lightning strikes across the radius.
+    Thunder {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
     #[serde(alias = "set_strategy")]
     Guide {
         lineage: String,
@@ -168,6 +245,11 @@ fn animal_from_name(name: &str) -> AnimalKind {
         "cow" => AnimalKind::Cow,
         "horse" => AnimalKind::Horse,
         "chicken" => AnimalKind::Chicken,
+        "zombie" => AnimalKind::Zombie,
+        "demon" => AnimalKind::Demon,
+        "dragon" => AnimalKind::Dragon,
+        "alien" => AnimalKind::Alien,
+        "ufo" => AnimalKind::Ufo,
         _ => AnimalKind::Deer,
     }
 }
@@ -382,13 +464,13 @@ impl Simulation {
                     }
                     (_, Some((i, _))) => {
                         self.animals[i].alive = false;
-                        let kind = self.animals[i].kind.name();
+                        let kind = self.animals[i].kind.a_name();
                         push_event(
                             &mut self.events,
                             self.tick_count,
                             "smite",
                             "lightning",
-                            &format!("struck down a {kind}"),
+                            &format!("struck down {kind}"),
                         );
                         true
                     }
@@ -705,6 +787,331 @@ impl Simulation {
                 self.next_animal_id += 1;
                 self.animals.push(Animal::new(id, cx, cy, k));
                 true
+            }
+            Command::Harvest { x, y, radius } => {
+                let r = if radius <= 0.0 { 5.0 } else { radius.min(24.0) };
+                let (cx, cy, ri) = (x as i32, y as i32, r.ceil() as i32);
+                let mut grown = 0;
+                for dx in -ri..=ri {
+                    for dy in -ri..=ri {
+                        let (nx, ny) = (cx + dx, cy + dy);
+                        if !WorldGrid::in_bounds(nx, ny) || ((dx * dx + dy * dy) as f32) > r * r {
+                            continue;
+                        }
+                        let tile = self.grid.get(nx, ny);
+                        if !matches!(
+                            tile,
+                            Tile::Grass | Tile::Food | Tile::Ash | Tile::Scorched | Tile::Sand
+                        ) {
+                            continue;
+                        }
+                        self.grid.fertility[WorldGrid::idx(nx, ny)] = 1.0;
+                        if tile != Tile::Food && self.rng.random::<f32>() < 0.55 {
+                            self.grid.set(nx, ny, Tile::Food);
+                            grown += 1;
+                        }
+                    }
+                }
+                if grown > 0 {
+                    push_event(
+                        &mut self.events,
+                        self.tick_count,
+                        "bless",
+                        "the land",
+                        "bloomed with food",
+                    );
+                }
+                grown > 0
+            }
+            Command::Cure { x, y, radius } => {
+                let r = if radius <= 0.0 { 10.0 } else { radius.min(48.0) };
+                let until = self.tick_count + 6_000;
+                let mut cured = 0;
+                for o in self.organisms.iter_mut() {
+                    if !o.alive || (o.x - x).hypot(o.y - y) > r {
+                        continue;
+                    }
+                    if o.infection <= 0.0 && o.diseases.is_empty() {
+                        continue;
+                    }
+                    for (disease, _) in o.diseases.drain(..) {
+                        o.disease_immunity.insert(disease, until);
+                    }
+                    o.infection = 0.0;
+                    o.health = o.health.max(0.6);
+                    o.think("the sickness lifted", self.tick_count);
+                    cured += 1;
+                }
+                if cured > 0 {
+                    push_event(
+                        &mut self.events,
+                        self.tick_count,
+                        "bless",
+                        "the gods",
+                        &format!("cured {cured} people"),
+                    );
+                }
+                cured > 0
+            }
+            Command::Arm { x, y, radius } => {
+                let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
+                let mut armed = 0;
+                for o in self.organisms.iter_mut() {
+                    if !o.alive || o.age < 700 || (o.x - x).hypot(o.y - y) > r {
+                        continue;
+                    }
+                    for skill in ["stone_tools", "hunting", "spear", "bow"] {
+                        o.discoveries.insert(skill.to_string());
+                    }
+                    o.fear_level = (o.fear_level - 0.3).max(0.0);
+                    o.think("the gods taught me to fight", self.tick_count);
+                    armed += 1;
+                }
+                if armed > 0 {
+                    push_event(
+                        &mut self.events,
+                        self.tick_count,
+                        "inspire",
+                        "the gods",
+                        &format!("armed {armed} people"),
+                    );
+                }
+                armed > 0
+            }
+            Command::Bounty { x, y, radius } => {
+                let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
+                let mut gifted = 0;
+                for o in self.organisms.iter_mut() {
+                    if !o.alive || (o.x - x).hypot(o.y - y) > r {
+                        continue;
+                    }
+                    o.inv_food = o.inv_food.saturating_add(5).min(9);
+                    o.inv_wood = o.inv_wood.saturating_add(5).min(9);
+                    o.inv_stone = o.inv_stone.saturating_add(4).min(9);
+                    o.comfort = (o.comfort + 0.2).min(1.0);
+                    o.think("found a gift from the gods", self.tick_count);
+                    gifted += 1;
+                }
+                if gifted > 0 {
+                    push_event(
+                        &mut self.events,
+                        self.tick_count,
+                        "bless",
+                        "the gods",
+                        &format!("gave {gifted} people food, wood and stone"),
+                    );
+                }
+                gifted > 0
+            }
+            Command::Douse { x, y, radius } => {
+                let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
+                let r = if radius <= 0 { 5 } else { radius.min(24) };
+                let mut doused = 0;
+                for dx in -r..=r {
+                    for dy in -r..=r {
+                        let (nx, ny) = (x + dx, y + dy);
+                        if !WorldGrid::in_bounds(nx, ny) || dx * dx + dy * dy > r * r {
+                            continue;
+                        }
+                        if self.grid.get(nx, ny) == Tile::Fire {
+                            self.grid.set(nx, ny, Tile::Ash);
+                            *self.grid.fire_intensity_mut(nx, ny) = 0.0;
+                            doused += 1;
+                        }
+                    }
+                }
+                doused > 0
+            }
+            Command::Banish { x, y, radius } => {
+                let r = if radius <= 0.0 { 6.0 } else { radius.min(32.0) };
+                let mut banished = 0;
+                for a in self.animals.iter_mut() {
+                    if a.alive && a.kind.hostile() && (a.x - x).hypot(a.y - y) <= r {
+                        a.alive = false;
+                        banished += 1;
+                    }
+                }
+                if banished > 0 {
+                    let what = if banished == 1 { "creature" } else { "creatures" };
+                    push_event(
+                        &mut self.events,
+                        self.tick_count,
+                        "smite",
+                        "the gods",
+                        &format!("banished {banished} {what}"),
+                    );
+                }
+                banished > 0
+            }
+            Command::Blight { x, y, radius } => {
+                let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
+                let r = if radius <= 0 { 5 } else { radius.min(24) };
+                let mut withered = 0;
+                for dx in -r..=r {
+                    for dy in -r..=r {
+                        let (nx, ny) = (x + dx, y + dy);
+                        if !WorldGrid::in_bounds(nx, ny) || dx * dx + dy * dy > r * r {
+                            continue;
+                        }
+                        let i = WorldGrid::idx(nx, ny);
+                        self.grid.fertility[i] *= 0.15;
+                        if self.grid.get(nx, ny) == Tile::Food {
+                            self.grid.set(nx, ny, Tile::Scorched);
+                            withered += 1;
+                        }
+                    }
+                }
+                let rf = r as f32;
+                for o in self.organisms.iter_mut() {
+                    if o.alive && (o.x - x as f32).hypot(o.y - y as f32) <= rf {
+                        o.inv_food = 0;
+                        o.think("our food rotted", self.tick_count);
+                        withered += 1;
+                    }
+                }
+                if withered > 0 {
+                    push_event(
+                        &mut self.events,
+                        self.tick_count,
+                        "danger",
+                        "a blight",
+                        "rotted the crops",
+                    );
+                }
+                withered > 0
+            }
+            Command::Frenzy { x, y, radius } => {
+                let r = if radius <= 0.0 { 4.0 } else { radius.min(24.0) };
+                let mut maddened = 0;
+                for o in self.organisms.iter_mut() {
+                    if !o.alive || (o.x - x).hypot(o.y - y) > r {
+                        continue;
+                    }
+                    let hurt = 0.15 + self.rng.random::<f32>() * 0.25;
+                    o.health = (o.health - hurt).max(0.01);
+                    o.fear_level = (o.fear_level + 0.4).min(1.0);
+                    o.hope = (o.hope - 0.3).max(0.0);
+                    o.think("fought a neighbour in a frenzy", self.tick_count);
+                    maddened += 1;
+                }
+                if maddened > 1 {
+                    push_event(
+                        &mut self.events,
+                        self.tick_count,
+                        "war",
+                        "a frenzy",
+                        &format!("set {maddened} people on each other"),
+                    );
+                }
+                maddened > 0
+            }
+            Command::Flood { x, y, radius } => {
+                let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
+                let r = if radius <= 0 { 4 } else { radius.min(20) };
+                let mut flooded = 0;
+                for dx in -r..=r {
+                    for dy in -r..=r {
+                        let (nx, ny) = (x + dx, y + dy);
+                        if !WorldGrid::in_bounds(nx, ny) || dx * dx + dy * dy > r * r {
+                            continue;
+                        }
+                        let tile = self.grid.get(nx, ny);
+                        if matches!(tile, Tile::Void | Tile::Rock | Tile::Water | Tile::Mineral) {
+                            continue;
+                        }
+                        // The deep middle becomes a lake; the rim floods.
+                        let deep = (dx * dx + dy * dy) * 4 <= r * r;
+                        self.grid
+                            .set(nx, ny, if deep { Tile::Water } else { Tile::Flooded });
+                        *self.grid.fire_intensity_mut(nx, ny) = 0.0;
+                        flooded += 1;
+                    }
+                }
+                let rf = r as f32;
+                for o in self.organisms.iter_mut() {
+                    if o.alive && (o.x - x as f32).hypot(o.y - y as f32) <= rf {
+                        o.health = (o.health - 0.2).max(0.01);
+                        o.fear_level = (o.fear_level + 0.3).min(1.0);
+                        o.think("the water rose around us", self.tick_count);
+                    }
+                }
+                if flooded > 0 {
+                    push_event(
+                        &mut self.events,
+                        self.tick_count,
+                        "danger",
+                        "a flood",
+                        "swept over the land",
+                    );
+                }
+                flooded > 0
+            }
+            Command::Blizzard { x, y, radius } => {
+                let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
+                let r = if radius <= 0 { 6 } else { radius.min(24) };
+                let mut frozen = 0;
+                for dx in -r..=r {
+                    for dy in -r..=r {
+                        let (nx, ny) = (x + dx, y + dy);
+                        if !WorldGrid::in_bounds(nx, ny) || dx * dx + dy * dy > r * r {
+                            continue;
+                        }
+                        match self.grid.get(nx, ny) {
+                            Tile::Grass | Tile::Food | Tile::Ash | Tile::Scorched | Tile::Sand => {
+                                self.grid.set(nx, ny, Tile::Snow);
+                                frozen += 1;
+                            }
+                            Tile::Fire => {
+                                self.grid.set(nx, ny, Tile::Snow);
+                                *self.grid.fire_intensity_mut(nx, ny) = 0.0;
+                                frozen += 1;
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                let rf = r as f32;
+                for o in self.organisms.iter_mut() {
+                    if o.alive && (o.x - x as f32).hypot(o.y - y as f32) <= rf {
+                        o.energy = (o.energy - 0.35).max(0.05);
+                        o.health = (o.health - 0.1).max(0.01);
+                        o.think("freezing in the blizzard", self.tick_count);
+                    }
+                }
+                if frozen > 0 {
+                    push_event(
+                        &mut self.events,
+                        self.tick_count,
+                        "danger",
+                        "a blizzard",
+                        "buried the land in snow",
+                    );
+                }
+                frozen > 0
+            }
+            Command::Thunder { x, y, radius } => {
+                let r = if radius <= 0.0 { 8.0 } else { radius.min(32.0) };
+                let mut struck = false;
+                for _ in 0..6 {
+                    let angle = self.rng.random::<f32>() * std::f32::consts::TAU;
+                    let dist = self.rng.random::<f32>().sqrt() * r;
+                    let (sx, sy) = (x + angle.cos() * dist, y + angle.sin() * dist);
+                    struck |= self.apply_command(Command::Smite {
+                        x: sx,
+                        y: sy,
+                        radius: 2.0,
+                    });
+                    if self.rng.random::<f32>() < 0.35 {
+                        let (tx, ty) = (sx as i32, sy as i32);
+                        if WorldGrid::in_bounds(tx, ty) && self.grid.get(tx, ty).flammable() {
+                            self.grid.set(tx, ty, Tile::Fire);
+                            *self.grid.fire_intensity_mut(tx, ty) = 1.0;
+                            self.physics.register_fire(tx, ty);
+                            struck = true;
+                        }
+                    }
+                }
+                struck
             }
             Command::Guide {
                 lineage,
@@ -1207,6 +1614,176 @@ mod tests {
             r#"{"cmd":"guide","lineage":"missing","strategy":"hunt","duration_ticks":600}"#.to_string(),
         ] {
             assert!(!sim.apply_command_json(&invalid));
+        }
+    }
+
+    /// A sim with one living adult standing on open grass at (100, 100).
+    fn sim_with_person_at_100() -> (Simulation, usize) {
+        use crate::world::tiles::Tile;
+        let mut sim = Simulation::new(7);
+        for dx in -10..=10 {
+            for dy in -10..=10 {
+                sim.grid.set(100 + dx, 100 + dy, Tile::Grass);
+            }
+        }
+        let target = sim.organisms.iter().position(|o| o.alive).unwrap();
+        let o = &mut sim.organisms[target];
+        o.x = 100.0;
+        o.y = 100.0;
+        o.age = 2_000;
+        o.health = 1.0;
+        o.energy = 1.0;
+        (sim, target)
+    }
+
+    #[test]
+    fn helpful_powers_heal_feed_arm_and_protect() {
+        use crate::organism::animal::{Animal, AnimalKind};
+        use crate::world::tiles::Tile;
+        let (mut sim, target) = sim_with_person_at_100();
+
+        assert!(sim.apply_command_json(r#"{"cmd":"harvest","x":100.0,"y":100.0,"radius":5.0}"#));
+        let food = (95..=105)
+            .flat_map(|x| (95..=105).map(move |y| (x, y)))
+            .filter(|&(x, y)| sim.grid.get(x, y) == Tile::Food)
+            .count();
+        assert!(food > 10, "harvest grew {food} food tiles");
+
+        sim.organisms[target].infection = 0.9;
+        sim.organisms[target].diseases.push(("plague".to_string(), 0));
+        assert!(sim.apply_command_json(r#"{"cmd":"cure","x":100.0,"y":100.0}"#));
+        assert_eq!(sim.organisms[target].infection, 0.0);
+        assert!(sim.organisms[target].diseases.is_empty());
+        assert!(
+            sim.organisms[target]
+                .disease_immunity
+                .get("plague")
+                .copied()
+                .unwrap_or(0)
+                > sim.tick_count
+        );
+
+        assert!(sim.apply_command_json(r#"{"cmd":"arm","x":100.0,"y":100.0,"radius":1.0}"#));
+        assert!(sim.organisms[target].discoveries.contains("spear"));
+
+        sim.organisms[target].inv_food = 0;
+        assert!(sim.apply_command_json(r#"{"cmd":"bounty","x":100.0,"y":100.0,"radius":1.0}"#));
+        assert!(sim.organisms[target].inv_food >= 5 && sim.organisms[target].inv_wood >= 5);
+
+        sim.grid.set(102, 100, Tile::Fire);
+        assert!(sim.apply_command_json(r#"{"cmd":"douse","x":100,"y":100,"radius":4}"#));
+        assert_eq!(sim.grid.get(102, 100), Tile::Ash);
+
+        let id = sim.next_animal_id;
+        sim.next_animal_id += 1;
+        sim.animals
+            .push(Animal::new(id, 103.0, 100.0, AnimalKind::Dragon));
+        sim.animals
+            .push(Animal::new(id + 1, 104.0, 100.0, AnimalKind::Deer));
+        assert!(sim.apply_command_json(r#"{"cmd":"banish","x":100.0,"y":100.0,"radius":6.0}"#));
+        assert!(!sim
+            .animals
+            .iter()
+            .any(|a| a.alive && a.kind == AnimalKind::Dragon));
+        assert!(sim.animals.iter().any(|a| a.alive && a.kind == AnimalKind::Deer));
+    }
+
+    #[test]
+    fn harmful_powers_spoil_flood_freeze_and_hurt() {
+        use crate::world::tiles::Tile;
+        let (mut sim, target) = sim_with_person_at_100();
+
+        sim.grid.set(101, 100, Tile::Food);
+        sim.organisms[target].inv_food = 6;
+        assert!(sim.apply_command_json(r#"{"cmd":"blight","x":100,"y":100,"radius":3}"#));
+        assert_ne!(sim.grid.get(101, 100), Tile::Food);
+        assert_eq!(sim.organisms[target].inv_food, 0);
+
+        assert!(sim.apply_command_json(r#"{"cmd":"frenzy","x":100.0,"y":100.0,"radius":1.0}"#));
+        assert!(sim.organisms[target].health < 1.0);
+
+        let energy = sim.organisms[target].energy;
+        assert!(sim.apply_command_json(r#"{"cmd":"blizzard","x":100,"y":100,"radius":4}"#));
+        assert_eq!(sim.grid.get(103, 100), Tile::Snow);
+        assert!(sim.organisms[target].energy < energy);
+
+        assert!(sim.apply_command_json(r#"{"cmd":"flood","x":100,"y":100,"radius":4}"#));
+        assert_eq!(sim.grid.get(100, 100), Tile::Water);
+        assert_eq!(sim.grid.get(103, 100), Tile::Flooded);
+    }
+
+    #[test]
+    fn thunder_strikes_someone_in_range() {
+        let (mut sim, target) = sim_with_person_at_100();
+        // Pack everyone else far away so the strikes have one target.
+        for (i, o) in sim.organisms.iter_mut().enumerate() {
+            if i != target {
+                o.x = 10.0;
+                o.y = 10.0;
+            }
+        }
+        sim.animals.clear();
+        let mut struck = false;
+        for _ in 0..20 {
+            sim.apply_command_json(r#"{"cmd":"thunder","x":100.0,"y":100.0,"radius":1.0}"#);
+            if sim.organisms[target].health < 0.0 {
+                struck = true;
+                break;
+            }
+        }
+        assert!(struck);
+    }
+
+    #[test]
+    fn zombies_turn_their_victims() {
+        use crate::organism::animal::{Animal, AnimalKind};
+        let (mut sim, target) = sim_with_person_at_100();
+        sim.animals.clear();
+        let mut risen = false;
+        for _ in 0..400 {
+            if !sim
+                .animals
+                .iter()
+                .any(|a| a.alive && a.kind == AnimalKind::Zombie)
+            {
+                let id = sim.next_animal_id;
+                sim.next_animal_id += 1;
+                let (x, y) = (sim.organisms[target].x, sim.organisms[target].y);
+                sim.animals.push(Animal::new(id, x, y, AnimalKind::Zombie));
+            }
+            if sim.organisms[target].alive {
+                sim.organisms[target].health = sim.organisms[target].health.min(0.05);
+            }
+            sim.tick();
+            if sim.events.iter().any(|e| e.detail.contains("rose as a zombie")) {
+                risen = true;
+                break;
+            }
+        }
+        assert!(risen);
+    }
+
+    #[test]
+    fn monsters_are_never_born_or_hunted_for_meat() {
+        use crate::organism::animal::{Animal, AnimalKind};
+        let mut sim = Simulation::new(3);
+        sim.animals.clear();
+        for (i, kind) in AnimalKind::MONSTERS.into_iter().enumerate() {
+            let mut a = Animal::new(i, 60.0 + i as f32 * 20.0, 60.0, kind);
+            a.energy = 1.0;
+            sim.animals.push(a);
+        }
+        sim.next_animal_id = 100;
+        for _ in 0..1_000 {
+            sim.tick();
+        }
+        for kind in AnimalKind::MONSTERS {
+            let count = sim.animals.iter().filter(|a| a.alive && a.kind == kind).count();
+            assert!(
+                count <= 1 || kind == AnimalKind::Zombie,
+                "{} multiplied to {count}",
+                kind.name()
+            );
         }
     }
 }

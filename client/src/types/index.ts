@@ -342,6 +342,11 @@ export interface AnimalState {
     | 'cow'
     | 'horse'
     | 'chicken'
+    | 'zombie'
+    | 'demon'
+    | 'dragon'
+    | 'alien'
+    | 'ufo'
   name?: string
 }
 
