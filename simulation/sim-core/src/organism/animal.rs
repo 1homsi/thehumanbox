@@ -83,7 +83,9 @@ impl AnimalKind {
             AnimalKind::Chicken => 0.0006,
             // Monsters do not eat. A UFO's energy is its visit: it leaves
             // after roughly 1200 ticks.
-            AnimalKind::Zombie | AnimalKind::Demon | AnimalKind::Dragon | AnimalKind::Alien => 0.0,
+            // Zombies slowly rot (about 2500 ticks), so outbreaks burn out.
+            AnimalKind::Zombie => 0.00032,
+            AnimalKind::Demon | AnimalKind::Dragon | AnimalKind::Alien => 0.0,
             AnimalKind::Ufo => 0.0007,
         }
     }

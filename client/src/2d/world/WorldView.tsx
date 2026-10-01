@@ -14,8 +14,12 @@ import { drawFaunaSprite } from './fauna-sprites'
 import { drawPixelFauna } from './pixel-fauna'
 import { drawMountains } from './mountains'
 
-/** Drawn sizes for summoned monsters; a dragon dwarfs everything else. */
-const MONSTER_SIZES: Record<string, number> = { zombie: 16, demon: 20, dragon: 32, alien: 14, ufo: 26 }
+/**
+ * Drawn sizes for summoned monsters. Zombies, demons and aliens are drawn
+ * at one pixel per sprite pixel, the size of a person; the dragon and the
+ * UFO are drawn double and dwarf everything else.
+ */
+const MONSTER_SIZES: Record<string, number> = { zombie: 10, demon: 12, dragon: 32, alien: 8, ufo: 26 }
 import { drawEmote, emoteFor } from './activity-emotes'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {

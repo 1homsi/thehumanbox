@@ -1764,6 +1764,51 @@ mod tests {
     }
 
     #[test]
+    fn a_zombie_outbreak_grows_only_by_its_victims() {
+        use crate::organism::animal::{Animal, AnimalKind};
+        let mut sim = Simulation::new(42);
+        for _ in 0..300 {
+            sim.tick();
+        }
+        let deaths = |sim: &Simulation| {
+            let h = &sim.history;
+            h.deaths_old_age
+                + h.deaths_starvation
+                + h.deaths_dehydration
+                + h.deaths_sickness
+                + h.deaths_combat
+        };
+        let start = deaths(&sim);
+        let (x, y) = sim
+            .organisms
+            .iter()
+            .find(|o| o.alive)
+            .map(|o| (o.x, o.y))
+            .unwrap();
+        let id = sim.next_animal_id;
+        sim.next_animal_id += 1;
+        sim.animals.push(Animal::new(id, x, y, AnimalKind::Zombie));
+        for _ in 0..400 {
+            sim.tick();
+            let zombies = sim
+                .animals
+                .iter()
+                .filter(|a| a.alive && a.kind == AnimalKind::Zombie)
+                .count();
+            // A killing bite raises the zombie this tick; the death itself is
+            // recorded on the next, so count the fatally bitten too.
+            let dying = sim
+                .organisms
+                .iter()
+                .filter(|o| o.alive && o.health <= 0.0)
+                .count();
+            let dead = (deaths(&sim) - start) as usize + dying;
+            // One zombie per person it killed, never a runaway.
+            assert!(zombies <= dead + 1, "{zombies} zombies but only {dead} died");
+        }
+    }
+
+    #[test]
     fn monsters_are_never_born_or_hunted_for_meat() {
         use crate::organism::animal::{Animal, AnimalKind};
         let mut sim = Simulation::new(3);

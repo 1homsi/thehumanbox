@@ -29,6 +29,8 @@ describe('terrain wire IDs', () => {
       WETLAND: 3,
       TUNDRA: 4,
       VOLCANIC: 5,
+      JUNGLE: 6,
+      SAVANNA: 7,
     })
   })
 

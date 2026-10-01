@@ -140,6 +140,7 @@ export function drawTrees(
   season = vegetationSeason(season)
   const TREE_SIZE = 25
   const trees: PlacedTree[] = []
+  const acacias: { x: number; y: number; s: number }[] = []
 
   const placed: Uint8Array = new Uint8Array(width * height)
   const order: number[] = []
@@ -167,7 +168,9 @@ export function drawTrees(
           ? t === TILE_ID.SNOW || t === TILE_ID.GRASS || t === TILE_ID.FOOD
           : biome === BIOME_ID.VOLCANIC
             ? t === TILE_ID.ASH || t === TILE_ID.SCORCHED || t === TILE_ID.GRASS
-            : t === TILE_ID.GRASS || t === TILE_ID.FOOD
+            : biome === BIOME_ID.SAVANNA
+              ? t === TILE_ID.GRASS || t === TILE_ID.FOOD || t === TILE_ID.SAND
+              : t === TILE_ID.GRASS || t === TILE_ID.FOOD
     if (!supportsTree) continue
 
     const worldX = x + originX
@@ -202,6 +205,15 @@ export function drawTrees(
       case BIOME_ID.VOLCANIC:
         chance = 0.05
         spacing = 4
+        break
+      case BIOME_ID.JUNGLE:
+        // A closed canopy: trees almost shoulder to shoulder.
+        chance = 0.62
+        spacing = 1
+        break
+      case BIOME_ID.SAVANNA:
+        chance = 0.05
+        spacing = 6
         break
     }
     if (r0 > chance) continue
@@ -251,6 +263,21 @@ export function drawTrees(
       case BIOME_ID.VOLCANIC:
         sprite = SPRITE.trees.dead
         break
+      case BIOME_ID.JUNGLE:
+        sprite = r1 < 0.62 ? SPRITE.trees.oak_dark : SPRITE.trees.bush
+        break
+      case BIOME_ID.SAVANNA:
+        // Flat-topped acacias are drawn by hand; the atlas has none.
+        if (r1 < 0.75) {
+          acacias.push({
+            x: x * TILE + TILE / 2 + (r1 - 0.5) * TILE * 0.5,
+            y: y * TILE + TILE,
+            s: 0.9 + r0 * 4,
+          })
+          continue
+        }
+        sprite = SPRITE.trees.dead
+        break
     }
     const deciduous =
       biome === BIOME_ID.GRASSLAND || biome === BIOME_ID.WETLAND || (biome === BIOME_ID.FOREST && r1 >= 0.45)
@@ -292,6 +319,29 @@ export function drawTrees(
       drawTile(ctx, ATLAS_TOWN, sprite, Math.round(cx), Math.round(cy), Math.round(sz))
     }
   }
+  acacias.sort((a, b) => a.y - b.y)
+  for (const a of acacias) drawAcacia(ctx, a.x, a.y, a.s)
+}
+
+/** A savanna acacia: thin forked trunk under a wide, flat canopy. */
+function drawAcacia(ctx: CanvasRenderingContext2D, x: number, baseY: number, scale: number) {
+  const cx = Math.round(x)
+  const by = Math.round(baseY)
+  const trunk = Math.round(9 * Math.min(1.3, scale))
+  const half = Math.round(8 * Math.min(1.3, scale))
+  ctx.fillStyle = 'rgba(0,0,0,0.22)'
+  ctx.fillRect(cx - half + 2, by - 1, half * 2 - 2, 2)
+  ctx.fillStyle = '#5a3b22'
+  ctx.fillRect(cx, by - trunk, 1, trunk)
+  ctx.fillRect(cx - 2, by - trunk, 2, 1)
+  ctx.fillRect(cx + 1, by - trunk - 1, 2, 1)
+  const top = by - trunk - 4
+  ctx.fillStyle = '#3f4f22'
+  ctx.fillRect(cx - half, top + 2, half * 2, 2)
+  ctx.fillStyle = '#6e7d34'
+  ctx.fillRect(cx - half + 1, top + 1, half * 2 - 2, 2)
+  ctx.fillStyle = '#93a14a'
+  ctx.fillRect(cx - half + 3, top, half * 2 - 7, 1)
 }
 
 export function drawNaturalDecor(
@@ -346,6 +396,30 @@ export function drawNaturalDecor(
         continue
       }
       if (t !== TILE_ID.GRASS && t !== TILE_ID.FOOD) continue
+
+      if (biome === BIOME_ID.SAVANNA && r0 < 0.2) {
+        // Tall dry grass in tufts.
+        const gx = Math.round(px + TILE / 2 + (r1 - 0.5) * TILE * 0.5)
+        const gy = Math.round(py + TILE / 2 + (r2 - 0.5) * TILE * 0.4)
+        ctx.fillStyle = '#b9a45a'
+        ctx.fillRect(gx - 2, gy - 2, 1, 3)
+        ctx.fillRect(gx, gy - 3, 1, 4)
+        ctx.fillRect(gx + 2, gy - 2, 1, 3)
+        ctx.fillStyle = '#e1cd7c'
+        ctx.fillRect(gx, gy - 3, 1, 1)
+        continue
+      }
+      if (biome === BIOME_ID.JUNGLE && r0 < 0.14) {
+        // Ferns in the undergrowth.
+        const fx = Math.round(px + TILE / 2 + (r1 - 0.5) * TILE * 0.5)
+        const fy = Math.round(py + TILE / 2 + (r2 - 0.5) * TILE * 0.4)
+        ctx.fillStyle = '#1f5a28'
+        ctx.fillRect(fx - 2, fy, 5, 1)
+        ctx.fillRect(fx - 1, fy - 1, 3, 1)
+        ctx.fillStyle = '#3f8a3a'
+        ctx.fillRect(fx, fy - 2, 1, 2)
+        continue
+      }
 
       if (
         biome === BIOME_ID.GRASSLAND &&

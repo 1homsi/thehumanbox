@@ -700,12 +700,14 @@ impl WorldGrid {
                     } else {
                         Biome::Desert
                     }
-                } else if m > 0.62 {
-                    Biome::Forest
-                } else if m > 0.48 && e < 0.12 {
+                } else if m > 0.53 {
+                    Biome::Jungle
+                } else if m > 0.47 && e < 0.12 {
                     Biome::Wetland
-                } else if m > 0.27 {
+                } else if m > 0.37 {
                     Biome::Grassland
+                } else if m > 0.21 {
+                    Biome::Savanna
                 } else {
                     Biome::Desert
                 };
@@ -720,9 +722,12 @@ impl WorldGrid {
                 } else if e > ROCK_LINE {
                     Tile::Rock
                 } else if e > FOOTHILLS {
-                    if vein > 0.32 && rng.random::<f32>() < 0.35 {
+                    // Outcrops and veins come from noise, so they form
+                    // connected clusters off the range instead of speckle.
+                    let outcrop = Self::fbm(u * 7.0 + 70.0, v * 7.0 + 3.0, seed ^ 0x0c7);
+                    if vein > 0.36 {
                         Tile::Mineral
-                    } else if rng.random::<f32>() < 0.07 + (e - FOOTHILLS) * 0.5 {
+                    } else if outcrop > 0.42 - (e - FOOTHILLS) * 1.6 {
                         Tile::Rock
                     } else if t < 2.0 {
                         Tile::Snow
@@ -741,6 +746,17 @@ impl WorldGrid {
                 self.tiles[i] = tile as i8;
             }
         }
+        // Fold tiny rock clusters back into grass: they read as noise on
+        // the map. Ranges and volcano cones are far larger.
+        let rock_mask: Vec<bool> = self.tiles.iter().map(|&t| t == Tile::Rock as i8).collect();
+        for comp in landmasses(&rock_mask) {
+            if comp.len() < 8 {
+                for i in comp {
+                    self.tiles[i] = Tile::Grass as i8;
+                }
+            }
+        }
+
         // River mouths spread into marshy deltas.
         for i in 0..SIZE {
             if !is_river[i] || flow[i] < river_at * 4.0 || coast[i] > 3 {
@@ -774,12 +790,9 @@ impl WorldGrid {
                     } else if d < rf * 0.6 {
                         self.tiles[i] = Tile::Rock as i8;
                     } else if d < rf * 1.2 {
-                        self.tiles[i] = if rng.random::<f32>() < 0.55 {
-                            Tile::Ash
-                        } else {
-                            Tile::Rock
-                        } as i8;
-                    } else if d < rf * 1.6 && rng.random::<f32>() < 0.12 {
+                        // A clean ash apron around the cone.
+                        self.tiles[i] = Tile::Ash as i8;
+                    } else if d < rf * 1.6 && Self::corner_hash(x as u32, y as u32, seed ^ 0x7a1) > 0.75 {
                         self.tiles[i] = Tile::Mineral as i8;
                     }
                     if d < rf * 1.9 {
@@ -835,14 +848,12 @@ impl WorldGrid {
             if self.tiles[i] != Tile::Grass as i8 {
                 continue;
             }
+            // Lone rock tiles read as noise on the map; open ground keeps its
+            // stones as drawn decoration instead.
             let biome = Biome::from_u8(self.biome[i]);
-            if rng.random::<f32>() < biome.rock_chance() * 0.15 {
-                self.tiles[i] = Tile::Rock as i8;
-            } else {
-                let river_bonus = if near_water[i] <= 3 { 2.0 } else { 1.0 };
-                if rng.random::<f32>() < biome.initial_food_chance() * river_bonus {
-                    self.tiles[i] = Tile::Food as i8;
-                }
+            let river_bonus = if near_water[i] <= 3 { 2.0 } else { 1.0 };
+            if rng.random::<f32>() < biome.initial_food_chance() * river_bonus {
+                self.tiles[i] = Tile::Food as i8;
             }
         }
 

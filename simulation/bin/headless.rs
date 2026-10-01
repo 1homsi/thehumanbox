@@ -1369,6 +1369,8 @@ struct WorldReport {
     desert_tiles: usize,
     tundra_tiles: usize,
     volcanic_tiles: usize,
+    jungle_tiles: usize,
+    savanna_tiles: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1460,6 +1462,8 @@ fn build_world_report(seed: u64) -> WorldReport {
     let mut desert_tiles = 0usize;
     let mut tundra_tiles = 0usize;
     let mut volcanic_tiles = 0usize;
+    let mut jungle_tiles = 0usize;
+    let mut savanna_tiles = 0usize;
 
     for y in 0..HEIGHT as i32 {
         for x in 0..WIDTH as i32 {
@@ -1498,6 +1502,8 @@ fn build_world_report(seed: u64) -> WorldReport {
                 Biome::Desert => desert_tiles += 1,
                 Biome::Tundra => tundra_tiles += 1,
                 Biome::Volcanic => volcanic_tiles += 1,
+                Biome::Jungle => jungle_tiles += 1,
+                Biome::Savanna => savanna_tiles += 1,
             }
         }
     }
@@ -1518,6 +1524,8 @@ fn build_world_report(seed: u64) -> WorldReport {
         desert_tiles,
         tundra_tiles,
         volcanic_tiles,
+        jungle_tiles,
+        savanna_tiles,
     }
 }
 
@@ -1573,13 +1581,15 @@ fn print_world_report(seed: u64) {
         report.largest_component_ratio() * 100.0,
     );
     println!(
-        " biomes grass={} forest={} wetland={} desert={} tundra={} volcanic={}",
+        " biomes grass={} forest={} wetland={} desert={} tundra={} volcanic={} jungle={} savanna={}",
         report.grassland_tiles,
         report.forest_tiles,
         report.wetland_tiles,
         report.desert_tiles,
         report.tundra_tiles,
         report.volcanic_tiles,
+        report.jungle_tiles,
+        report.savanna_tiles,
     );
     println!(
         " quality_score={:.3} verdict={}",
@@ -1708,6 +1718,8 @@ mod tests {
             desert_tiles: 4_000,
             tundra_tiles: 2_000,
             volcanic_tiles: 0,
+            jungle_tiles: 0,
+            savanna_tiles: 0,
         };
 
         assert_eq!(report.verdict(), WorldVerdict::Harsh);
@@ -1729,6 +1741,8 @@ mod tests {
             desert_tiles: 1_500,
             tundra_tiles: 500,
             volcanic_tiles: 0,
+            jungle_tiles: 0,
+            savanna_tiles: 0,
         };
 
         assert_eq!(report.verdict(), WorldVerdict::Fragmented);

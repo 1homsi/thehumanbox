@@ -184,9 +184,9 @@ fn start_travel(action: usize, ctx: &mut ActionCtx) -> f32 {
             let biome = grid.biome_at(x, y);
             let matches = match action {
                 1447 => biome == Biome::Desert,
-                1448 => biome == Biome::Grassland,
+                1448 => matches!(biome, Biome::Grassland | Biome::Savanna),
                 1449 => biome == Biome::Tundra,
-                1451 => biome == Biome::Forest,
+                1451 => biome.wooded(),
                 1452 => biome == Biome::Wetland,
                 1445 | 1446 | 1453 | 1454 | 1461 | 1462 | 1472 => {
                     (-2..=2).any(|dx| (-2..=2).any(|dy| grid.get(x + dx, y + dy) == Tile::Water))

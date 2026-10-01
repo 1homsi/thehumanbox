@@ -692,6 +692,9 @@ pub struct StrategyCampaignRecord {
     pub reason: Option<String>,
 }
 
+/// Safety ceiling on a zombie outbreak; past it, victims stay dead.
+const MAX_ZOMBIES: usize = 250;
+
 pub struct Simulation {
     pub grid: WorldGrid,
     pub physics: PhysicsEngine,
@@ -5198,8 +5201,15 @@ impl Simulation {
             }
         }
         let mut risen: Vec<(f32, f32)> = Vec::new();
+        let mut zombies = self
+            .animals
+            .iter()
+            .filter(|a| a.alive && a.kind == AnimalKind::Zombie)
+            .count();
         for (ai, oi) in bites {
-            if !self.animals[ai].alive || !self.organisms[oi].alive {
+            // Someone already at zero health dies this tick; biting them
+            // again must not count, or every zombie around them raised one.
+            if !self.animals[ai].alive || !self.organisms[oi].alive || self.organisms[oi].health <= 0.0 {
                 continue;
             }
             let beast = self.animals[ai].kind;
@@ -5219,16 +5229,35 @@ impl Simulation {
             let fright = if beast.monster() { 0.4 } else { 0.25 };
             self.organisms[oi].fear_level = (self.organisms[oi].fear_level + fright).min(1.0);
             self.animals[ai].energy = (self.animals[ai].energy + 0.20).min(1.0);
-            let detail = match beast {
-                AnimalKind::Zombie => "bitten by a zombie".to_string(),
-                AnimalKind::Demon => "clawed by a demon".to_string(),
-                AnimalKind::Dragon => "scorched by a dragon".to_string(),
-                AnimalKind::Alien => "zapped by an alien".to_string(),
-                _ => format!("mauled by {}", beast.a_name()),
-            };
-            push_event(&mut self.events, self.tick_count, "danger", &oname, &detail);
-            // A zombie's victim gets back up as one of them.
-            if beast == AnimalKind::Zombie && self.organisms[oi].health <= 0.0 {
+            let killed = self.organisms[oi].health <= 0.0;
+            if killed && beast.monster() {
+                // Exactly zero can heal back above zero before the death
+                // check runs; below zero hands the death to the normal tick,
+                // as smite does, so a monster's kill is final.
+                self.organisms[oi].health = -1.0;
+            }
+            // Monsters attack constantly, so only their kills make the log.
+            if !beast.monster() {
+                push_event(
+                    &mut self.events,
+                    self.tick_count,
+                    "danger",
+                    &oname,
+                    &format!("mauled by {}", beast.a_name()),
+                );
+            } else if killed && beast != AnimalKind::Zombie {
+                push_event(
+                    &mut self.events,
+                    self.tick_count,
+                    "danger",
+                    &oname,
+                    &format!("killed by {}", beast.a_name()),
+                );
+            }
+            // A zombie's victim gets back up as one of them, while the
+            // horde has room to grow.
+            if beast == AnimalKind::Zombie && killed && zombies < MAX_ZOMBIES {
+                zombies += 1;
                 risen.push((self.organisms[oi].x, self.organisms[oi].y));
                 push_event(
                     &mut self.events,
@@ -5344,6 +5373,8 @@ impl Simulation {
             }
             let biome = self.grid.biome_at(px as i32, py as i32);
             let biome_mult: f32 = match (kind, biome) {
+                (AnimalKind::Bird | AnimalKind::Boar, Biome::Jungle) => 1.5,
+                (AnimalKind::Deer | AnimalKind::Horse | AnimalKind::Cow, Biome::Savanna) => 1.4,
                 (AnimalKind::Rabbit, Biome::Grassland) => 1.5,
                 (AnimalKind::Rabbit, Biome::Wetland) => 1.3,
                 (AnimalKind::Rabbit, Biome::Forest) => 1.0,
