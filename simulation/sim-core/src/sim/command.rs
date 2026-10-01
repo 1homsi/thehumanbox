@@ -66,6 +66,38 @@ pub enum Command {
         #[serde(default)]
         radius: f32,
     },
+    /// Heal, energise and cheer everyone inside the radius.
+    Bless {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
+    /// Raise literacy and give each person inside the radius one discovery
+    /// they are ready for.
+    Inspire {
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        radius: f32,
+    },
+    /// Crack the ground, damage buildings and hurt people inside the radius.
+    Earthquake {
+        x: i32,
+        y: i32,
+        #[serde(default)]
+        radius: i32,
+    },
+    /// Turn the two tribes nearest the point against each other.
+    War {
+        x: f32,
+        y: f32,
+    },
+    /// Make the two tribes nearest the point friends.
+    Peace {
+        x: f32,
+        y: f32,
+    },
     /// Kill everything inside the radius, leave a rock crater ringed with
     /// ash, and set the land around it burning.
     Meteor {
@@ -137,6 +169,60 @@ fn protected(tile: Tile) -> bool {
 }
 
 impl Simulation {
+    /// Sets how the two lineages nearest (x, y) feel about each other:
+    /// -1 is war, +1 is friendship. Fails unless two tribes are around.
+    fn set_nearest_tribes_relation(&mut self, x: f32, y: f32, attitude: f32) -> bool {
+        let mut by_lineage: Vec<(String, f32)> = Vec::new();
+        for o in self
+            .organisms
+            .iter()
+            .filter(|o| o.alive && !o.lineage_id.is_empty())
+        {
+            let d = (o.x - x).hypot(o.y - y);
+            match by_lineage.iter_mut().find(|(lid, _)| *lid == o.lineage_id) {
+                Some((_, best)) => *best = best.min(d),
+                None => by_lineage.push((o.lineage_id.clone(), d)),
+            }
+        }
+        by_lineage.sort_by(|a, b| a.1.total_cmp(&b.1));
+        let [(a, _), (b, _), ..] = by_lineage.as_slice() else {
+            return false;
+        };
+        let (a, b) = (a.clone(), b.clone());
+        for o in self.organisms.iter_mut().filter(|o| o.alive) {
+            if o.lineage_id == a {
+                o.lineage_attitudes.insert(b.clone(), attitude);
+            } else if o.lineage_id == b {
+                o.lineage_attitudes.insert(a.clone(), attitude);
+            }
+        }
+        let name = |lid: &str| {
+            self.lineage_names
+                .get(lid)
+                .cloned()
+                .unwrap_or_else(|| lid.to_string())
+        };
+        let (an, bn) = (name(&a), name(&b));
+        let (kind, detail) = if attitude < 0.0 {
+            ("war", format!("{an} and {bn} turned on each other"))
+        } else {
+            ("peace", format!("{an} and {bn} made peace"))
+        };
+        push_event(&mut self.events, self.tick_count, kind, "the gods", &detail);
+        true
+    }
+
+    /// Lineage of the closest living person within `radius`, if any.
+    fn nearest_living_lineage(&self, x: f32, y: f32, radius: f32) -> Option<String> {
+        self.organisms
+            .iter()
+            .filter(|o| o.alive && !o.lineage_id.is_empty())
+            .map(|o| (o, (o.x - x).hypot(o.y - y)))
+            .filter(|&(_, d)| d <= radius)
+            .min_by(|a, b| a.1.total_cmp(&b.1))
+            .map(|(o, _)| o.lineage_id.clone())
+    }
+
     /// Guiding a lineage to explore sends its adults on one shared journey to
     /// distant good land. A directive alone only nudged action scores, so
     /// "explore" rarely made anyone travel.
@@ -207,6 +293,13 @@ impl Simulation {
                         // — see `economy_tick::lid_short`.
                         l.chars().take(64).collect()
                     })
+                    .or_else(|| {
+                        // One new person joins the nearest tribe so they have
+                        // kin to live with; a group founds its own lineage.
+                        (n == 1)
+                            .then(|| self.nearest_living_lineage(x, y, 30.0))
+                            .flatten()
+                    })
                     .unwrap_or_else(|| {
                         format!("L{}", crate::sim::agents::spawn::seeded_id(&mut self.rng, 6))
                     });
@@ -241,31 +334,52 @@ impl Simulation {
                 // `f32::INFINITY`, which made `d <= r` true for every
                 // organism in the world.
                 let r = if radius <= 0.0 { 3.0 } else { radius.min(32.0) };
-                let mut best: Option<(usize, f32)> = None;
-                for (i, o) in self.organisms.iter().enumerate() {
-                    if !o.alive {
-                        continue;
+                let nearest_person = self
+                    .organisms
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, o)| o.alive)
+                    .map(|(i, o)| (i, (o.x - x).hypot(o.y - y)))
+                    .filter(|&(_, d)| d <= r)
+                    .min_by(|a, b| a.1.total_cmp(&b.1));
+                let nearest_animal = self
+                    .animals
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, a)| a.alive)
+                    .map(|(i, a)| (i, (a.x - x).hypot(a.y - y)))
+                    .filter(|&(_, d)| d <= r)
+                    .min_by(|a, b| a.1.total_cmp(&b.1));
+                // Lightning strikes whatever living thing is closest.
+                match (nearest_person, nearest_animal) {
+                    (Some((i, dp)), animal) if animal.is_none_or(|(_, da)| dp <= da) => {
+                        // Health below zero hands the death to the normal
+                        // tick, which records it and lets kin grieve.
+                        self.organisms[i].health = -1.0;
+                        let name = self.organisms[i].name.clone();
+                        push_event(
+                            &mut self.events,
+                            self.tick_count,
+                            "smite",
+                            &name,
+                            "was struck down by lightning",
+                        );
+                        true
                     }
-                    let d = (o.x - x).hypot(o.y - y);
-                    if d <= r && best.map(|(_, bd)| d < bd).unwrap_or(true) {
-                        best = Some((i, d));
+                    (_, Some((i, _))) => {
+                        self.animals[i].alive = false;
+                        let kind = self.animals[i].kind.name();
+                        push_event(
+                            &mut self.events,
+                            self.tick_count,
+                            "smite",
+                            "lightning",
+                            &format!("struck down a {kind}"),
+                        );
+                        true
                     }
+                    _ => false,
                 }
-                let Some((i, _)) = best else {
-                    return false;
-                };
-                // Health below zero hands the death to the normal tick, which
-                // records it, counts it in history and lets kin grieve.
-                self.organisms[i].health = -1.0;
-                let name = self.organisms[i].name.clone();
-                push_event(
-                    &mut self.events,
-                    self.tick_count,
-                    "smite",
-                    &name,
-                    "was struck down by lightning",
-                );
-                true
             }
             Command::Heal { x, y, radius } => {
                 let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
@@ -276,6 +390,12 @@ impl Simulation {
                         o.energy = 1.0;
                         o.hydration = 1.0;
                         o.infection = 0.0;
+                        healed += 1;
+                    }
+                }
+                for a in self.animals.iter_mut() {
+                    if a.alive && (a.x - x).hypot(a.y - y) <= r {
+                        a.energy = 1.0;
                         healed += 1;
                     }
                 }
@@ -394,6 +514,121 @@ impl Simulation {
                 }
                 poisoned > 0
             }
+            Command::Bless { x, y, radius } => {
+                let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
+                let mut blessed = 0;
+                for o in self.organisms.iter_mut() {
+                    if o.alive && (o.x - x).hypot(o.y - y) <= r {
+                        o.health = 1.0;
+                        o.energy = 1.0;
+                        o.hydration = 1.0;
+                        o.infection = 0.0;
+                        o.hope = (o.hope + 0.35).min(1.0);
+                        o.comfort = (o.comfort + 0.25).min(1.0);
+                        o.joy_ticks = o.joy_ticks.saturating_add(600).min(1_200);
+                        o.think("blessed by the gods", self.tick_count);
+                        blessed += 1;
+                    }
+                }
+                if blessed > 0 {
+                    push_event(
+                        &mut self.events,
+                        self.tick_count,
+                        "bless",
+                        "the gods",
+                        &format!("blessed {blessed} people"),
+                    );
+                }
+                blessed > 0
+            }
+            Command::Inspire { x, y, radius } => {
+                let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
+                let tech = crate::sim::tech::tech_tree::all_tech();
+                let tick = self.tick_count;
+                let mut inspired = 0;
+                for i in 0..self.organisms.len() {
+                    let o = &self.organisms[i];
+                    if !o.alive || (o.x - x).hypot(o.y - y) > r {
+                        continue;
+                    }
+                    let ready: Vec<&str> = tech
+                        .iter()
+                        .filter(|node| !o.discoveries.contains(node.name))
+                        .filter(|node| node.prerequisites.iter().all(|p| o.discoveries.contains(*p)))
+                        .map(|node| node.name)
+                        .collect();
+                    let learned = (!ready.is_empty()).then(|| ready[self.rng.random_range(0..ready.len())]);
+                    let o = &mut self.organisms[i];
+                    o.literacy = (o.literacy + 0.15).min(1.0);
+                    if let Some(name) = learned {
+                        o.discoveries.insert(name.to_string());
+                        o.think(&format!("inspired: {}", name.replace('_', " ")), tick);
+                    }
+                    inspired += 1;
+                }
+                if inspired > 0 {
+                    push_event(
+                        &mut self.events,
+                        tick,
+                        "inspire",
+                        "the gods",
+                        &format!("inspired {inspired} people"),
+                    );
+                }
+                inspired > 0
+            }
+            Command::Earthquake { x, y, radius } => {
+                if !WorldGrid::in_bounds(x, y) {
+                    return false;
+                }
+                let r = if radius <= 0 { 5 } else { radius.clamp(1, 16) };
+                // Jagged fault lines: random rock and sand cracks, more near
+                // the centre. Protected tiles (huts, campfires) are spared.
+                for dx in -r..=r {
+                    for dy in -r..=r {
+                        let d2 = dx * dx + dy * dy;
+                        if d2 > r * r {
+                            continue;
+                        }
+                        let (nx, ny) = (x + dx, y + dy);
+                        let cur = self.grid.get(nx, ny);
+                        if protected(cur) || matches!(cur, Tile::Water | Tile::Void) {
+                            continue;
+                        }
+                        let near = 1.0 - (d2 as f32).sqrt() / r as f32;
+                        if self.rng.random::<f32>() < 0.12 + 0.30 * near {
+                            let crack = if self.rng.random::<f32>() < 0.6 {
+                                Tile::Rock
+                            } else {
+                                Tile::Sand
+                            };
+                            self.grid.set(nx, ny, crack);
+                            *self.grid.fire_intensity_mut(nx, ny) = 0.0;
+                        }
+                    }
+                }
+                let (fx, fy, fr) = (x as f32, y as f32, r as f32);
+                let mut hurt = 0;
+                for o in self.organisms.iter_mut() {
+                    let d = (o.x - fx).hypot(o.y - fy);
+                    if o.alive && d <= fr {
+                        o.health -= 0.25 + 0.35 * (1.0 - d / fr);
+                        o.fear_level = (o.fear_level + 0.5).min(1.0);
+                        hurt += 1;
+                    }
+                }
+                let buildings = crate::sim::civ::building_damage::quake_damage(self, x, y, r);
+                push_event(
+                    &mut self.events,
+                    self.tick_count,
+                    "earthquake",
+                    "the earth",
+                    &format!("shook, hurting {hurt} people and damaging {buildings} buildings"),
+                );
+                true
+            }
+            Command::War { x, y } => self.set_nearest_tribes_relation(x, y, -1.0),
+            Command::Peace { x, y } => self.set_nearest_tribes_relation(x, y, 1.0),
             Command::Meteor { x, y, radius } => {
                 if !WorldGrid::in_bounds(x, y) {
                     return false;
@@ -686,6 +921,99 @@ mod tests {
             .count();
         assert!(travellers > 0, "someone set out");
         assert_eq!(targets.len(), 1, "adults share one destination");
+    }
+
+    #[test]
+    fn smite_strikes_the_nearest_animal_when_no_one_is_closer() {
+        let mut sim = Simulation::new(1);
+        for o in sim.organisms.iter_mut() {
+            o.x = 10.0;
+            o.y = 10.0;
+        }
+        assert!(sim.apply_command_json(r#"{"cmd":"spawn_animal","x":150.0,"y":150.0,"kind":"deer"}"#));
+        let deer = sim.animals.len() - 1;
+        sim.animals[deer].x = 150.0;
+        sim.animals[deer].y = 150.0;
+        assert!(sim.apply_command_json(r#"{"cmd":"smite","x":150.0,"y":150.0,"radius":3.0}"#));
+        assert!(!sim.animals[deer].alive);
+    }
+
+    #[test]
+    fn one_new_person_joins_the_nearest_tribe() {
+        let mut sim = Simulation::new(1);
+        let host = sim.organisms.iter().position(|o| o.alive).unwrap();
+        let (x, y) = (sim.organisms[host].x, sim.organisms[host].y);
+        let lineage = sim.organisms[host].lineage_id.clone();
+        let before = sim.organisms.len();
+        let cmd = format!(r#"{{"cmd":"spawn","x":{x},"y":{y},"count":1}}"#);
+        assert!(sim.apply_command_json(&cmd));
+        assert_eq!(sim.organisms.len(), before + 1);
+        assert_eq!(sim.organisms[before].lineage_id, lineage);
+    }
+
+    #[test]
+    fn bless_and_inspire_change_people_in_range() {
+        let mut sim = Simulation::new(1);
+        let target = sim.organisms.iter().position(|o| o.alive).unwrap();
+        let (x, y) = (sim.organisms[target].x, sim.organisms[target].y);
+        sim.organisms[target].health = 0.3;
+        sim.organisms[target].hope = 0.1;
+        assert!(sim.apply_command_json(&format!(r#"{{"cmd":"bless","x":{x},"y":{y},"radius":1.0}}"#)));
+        assert_eq!(sim.organisms[target].health, 1.0);
+        assert!(sim.organisms[target].hope > 0.4);
+
+        let known = sim.organisms[target].discoveries.len();
+        let literacy = sim.organisms[target].literacy;
+        assert!(sim.apply_command_json(&format!(r#"{{"cmd":"inspire","x":{x},"y":{y},"radius":1.0}}"#)));
+        assert!(sim.organisms[target].literacy > literacy);
+        assert_eq!(sim.organisms[target].discoveries.len(), known + 1);
+    }
+
+    #[test]
+    fn earthquake_cracks_land_and_hurts_people() {
+        use crate::world::tiles::Tile;
+        let mut sim = Simulation::new(1);
+        for dx in -6..=6 {
+            for dy in -6..=6 {
+                sim.grid.set(100 + dx, 100 + dy, Tile::Grass);
+            }
+        }
+        let target = sim.organisms.iter().position(|o| o.alive).unwrap();
+        sim.organisms[target].x = 100.0;
+        sim.organisms[target].y = 100.0;
+        sim.organisms[target].health = 1.0;
+        assert!(sim.apply_command_json(r#"{"cmd":"earthquake","x":100,"y":100,"radius":5}"#));
+        assert!(sim.organisms[target].health < 0.5);
+        let cracked = (-5..=5)
+            .flat_map(|dx| (-5..=5).map(move |dy| (dx, dy)))
+            .filter(|&(dx, dy)| sim.grid.get(100 + dx, 100 + dy) != Tile::Grass)
+            .count();
+        assert!(cracked > 5, "the ground cracked ({cracked} tiles)");
+    }
+
+    #[test]
+    fn war_and_peace_set_attitudes_between_the_nearest_tribes() {
+        let mut sim = Simulation::new(1);
+        let a = sim.organisms[0].lineage_id.clone();
+        let other = sim
+            .organisms
+            .iter()
+            .position(|o| o.alive && o.lineage_id != a)
+            .unwrap();
+        let b = sim.organisms[other].lineage_id.clone();
+        for o in sim.organisms.iter_mut() {
+            if o.lineage_id == a || o.lineage_id == b {
+                o.x = 50.0;
+                o.y = 50.0;
+            } else {
+                o.x = 300.0;
+                o.y = 200.0;
+            }
+        }
+        assert!(sim.apply_command_json(r#"{"cmd":"war","x":50.0,"y":50.0}"#));
+        assert_eq!(sim.organisms[0].lineage_attitudes.get(&b).copied(), Some(-1.0));
+        assert!(sim.apply_command_json(r#"{"cmd":"peace","x":50.0,"y":50.0}"#));
+        assert_eq!(sim.organisms[other].lineage_attitudes.get(&a).copied(), Some(1.0));
     }
 
     #[test]

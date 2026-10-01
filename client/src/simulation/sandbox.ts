@@ -10,6 +10,11 @@ export type SandboxCommand =
   | { cmd: 'spawn_animal'; x: number; y: number; kind?: string }
   | { cmd: 'poison'; x: number; y: number; radius?: number }
   | { cmd: 'meteor'; x: number; y: number; radius?: number }
+  | { cmd: 'bless'; x: number; y: number; radius?: number }
+  | { cmd: 'inspire'; x: number; y: number; radius?: number }
+  | { cmd: 'earthquake'; x: number; y: number; radius?: number }
+  | { cmd: 'war'; x: number; y: number }
+  | { cmd: 'peace'; x: number; y: number }
   | {
       cmd: 'guide'
       lineage: string
@@ -75,8 +80,8 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
     tools: [
       {
         id: 'spawn1',
-        label: 'spawn',
-        icon: '✚',
+        label: 'person',
+        icon: '🚶',
         mode: 'point',
         build: (x, y) => ({ cmd: 'spawn', x, y, count: 1 }),
       },
@@ -90,7 +95,7 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
       {
         id: 'heal',
         label: 'heal',
-        icon: '💚',
+        icon: '❤️',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'heal', x, y, radius: 2 + b }),
       },
@@ -100,6 +105,41 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '💀',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'smite', x, y, radius: 2 + b }),
+      },
+    ],
+  },
+  {
+    id: 'divine',
+    label: 'divine',
+    icon: '✨',
+    tools: [
+      {
+        id: 'bless',
+        label: 'bless',
+        icon: '✨',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'bless', x, y, radius: 2 + b }),
+      },
+      {
+        id: 'inspire',
+        label: 'inspire',
+        icon: '💡',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'inspire', x, y, radius: 2 + b }),
+      },
+      {
+        id: 'war',
+        label: 'war',
+        icon: '⚔️',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'war', x, y }),
+      },
+      {
+        id: 'peace',
+        label: 'peace',
+        icon: '🕊️',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'peace', x, y }),
       },
     ],
   },
@@ -328,6 +368,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🧪',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'poison', x, y, radius: 1 + b }),
+      },
+      {
+        id: 'earthquake',
+        label: 'quake',
+        icon: '〽️',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'earthquake', x, y, radius: 3 + b }),
       },
       {
         id: 'meteor',

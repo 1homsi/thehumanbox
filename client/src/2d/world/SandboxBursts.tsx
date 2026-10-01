@@ -34,7 +34,7 @@ export function SandboxBursts({ bursts, width, height }: { bursts: Burst[]; widt
             className={`burst-ring burst-${b.kind}`}
             style={{ left: b.x, top: b.y, '--burst-r': `${Math.max(22, b.r)}px` } as CSSProperties}
           >
-            {(b.kind === 'heal' || b.kind === 'plague') &&
+            {['heal', 'plague', 'bless', 'inspire', 'peace'].includes(b.kind) &&
               [0, 1, 2, 3, 4].map((i) => (
                 <span key={i} className="burst-spark" style={{ '--i': i } as CSSProperties} />
               ))}

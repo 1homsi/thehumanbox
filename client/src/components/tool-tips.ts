@@ -2,10 +2,10 @@ import type { SandboxTool } from '../simulation/sandbox'
 
 /** One-line descriptions shown in dock tooltips, keyed by sandbox tool id. */
 const TOOL_TIPS: Record<string, string> = {
-  spawn1: 'Place one new human where you click.',
+  spawn1: 'Place one person. They join the nearest tribe.',
   spawn5: 'Place a small tribe of five humans where you click.',
-  heal: 'Restore the health of everyone in the brush area.',
-  smite: 'Strike down the nearest human inside the brush area.',
+  heal: 'Restore the health of every person and animal in the brush area.',
+  smite: 'Strike down the nearest person or animal inside the brush area.',
   shelter: 'Build a hut on one tile.',
   campfire: 'Light a campfire on one tile.',
   grass: 'Paint grassland.',
@@ -36,6 +36,11 @@ const TOOL_TIPS: Record<string, string> = {
   plague: 'Start an outbreak that spreads through close contact.',
   poison: 'Sicken everyone inside the brush area.',
   meteor: 'Crash a meteor. Kills everything it hits and leaves a burning crater.',
+  earthquake: 'Shake the land. Cracks the ground, damages buildings and hurts people.',
+  bless: 'Heal and cheer everyone in the brush area.',
+  inspire: 'Teach everyone in the brush area something new and raise their literacy.',
+  war: 'Turn the two tribes nearest the click against each other.',
+  peace: 'Make the two tribes nearest the click friends.',
 }
 
 export function toolTip(tool: SandboxTool): string {
@@ -57,7 +62,12 @@ export function toolFailure(tool: SandboxTool): string {
     case 'smite':
     case 'heal':
     case 'poison':
+    case 'bless':
+    case 'inspire':
       return 'no one there'
+    case 'war':
+    case 'peace':
+      return 'needs two tribes nearby'
     case 'deer':
     case 'rabbit':
     case 'boar':
