@@ -111,6 +111,7 @@
 .welcome-btn--primary,
 .desktop-toast-primary,
 .idle-resume-btn,
+.lang-btn.primary,
 .thb-shepherd .shepherd-button:not(.shepherd-button-secondary) {
   background: #c9973f;
   color: #1f150b;
@@ -121,6 +122,7 @@
 .welcome-btn--primary:hover,
 .desktop-toast-primary:hover,
 .idle-resume-btn:hover,
+.lang-btn.primary:hover,
 .thb-shepherd .shepherd-button:not(.shepherd-button-secondary):hover {
   background: #dcaa4c;
   color: #1f150b;
@@ -758,4 +760,98 @@ body.thb-photo-mode .thb-action-ticker {
 .chronicle-row {
   border-bottom: 2px solid var(--px-ink);
   box-shadow: 0 1px 0 var(--px-groove);
+}
+
+/* Small pixel tag for experimental settings. */
+.settings-beta {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 5px;
+  vertical-align: 2px;
+  background: var(--px-active);
+  border: 2px solid var(--px-ink);
+  color: var(--px-gold-text);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+/* Photo mode's only visible control; fades out while the pointer rests. */
+.photo-mode-exit {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  z-index: 200;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--px-wood);
+  border: 2px solid var(--px-ink);
+  box-shadow: var(--px-frame-shadow);
+  color: var(--px-text);
+  font: 11px/1.4 var(--dialog-font);
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.photo-mode-exit.visible,
+.photo-mode-exit:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+.photo-mode-exit:hover {
+  background: var(--px-raised-hover);
+}
+.photo-mode-exit kbd {
+  padding: 0 4px;
+  background: var(--px-inset);
+  border: 2px solid var(--px-ink);
+  color: var(--px-gold-text);
+  font: inherit;
+  font-size: 10px;
+}
+
+/* Themed confirm, in place of the browser's own dialog. */
+.thb-modal.confirm-modal {
+  width: min(420px, calc(100vw - 32px));
+  padding: 0 0 14px;
+}
+.confirm-modal > [data-radix-dialog-title],
+.confirm-modal > h2 {
+  margin: 0;
+  padding: 10px 14px;
+  background: var(--px-grain);
+  border-bottom: 2px solid var(--px-ink);
+  box-shadow: inset 0 -2px 0 var(--px-brass);
+  color: var(--px-gold-text);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.confirm-body {
+  padding: 12px 14px 4px;
+  color: var(--px-text);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.confirm-body p {
+  margin: 0 0 8px;
+}
+.confirm-body p + p {
+  color: var(--px-muted);
+}
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 14px 0;
+}
+.confirm-actions .lang-btn {
+  min-width: 84px;
 }

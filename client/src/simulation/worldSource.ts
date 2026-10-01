@@ -1,3 +1,5 @@
+import { showNotice } from '../lib/confirm'
+
 export type WorldSource = 'native' | 'wasm'
 export type PlayerWorldKind = 'local'
 export type DesktopWorldMode = 'local' | null | undefined
@@ -111,7 +113,8 @@ export function reloadAppSafely(options: AppReloadOptions = {}): boolean {
 
   if (options.requireLocalWorld) {
     options.onFailure?.()
-    window.alert(
+    void showNotice(
+      'World still loading',
       options.unavailableMessage ??
         'The local world is still loading. Wait a moment, then try refreshing again.',
     )
@@ -152,7 +155,7 @@ export function clearOwnWorldSeed() {
 export function requestOwnWorldReset(): boolean {
   const snapshot = readLocalWorldRequestSnapshot()
   if (!snapshot) {
-    window.alert('Browser storage is unavailable. The current world was not reset.')
+    void showNotice('Browser storage unavailable', 'The current world was not reset.')
     return false
   }
   try {
@@ -161,7 +164,7 @@ export function requestOwnWorldReset(): boolean {
     window.localStorage.removeItem(SEED_KEY)
   } catch {
     restoreLocalWorldRequestSnapshot(snapshot)
-    window.alert('Browser storage is unavailable. The current world was not reset.')
+    void showNotice('Browser storage unavailable', 'The current world was not reset.')
     return false
   }
   return reloadAppSafely({
@@ -192,12 +195,12 @@ export function clearOwnWorldResetRequest() {
 
 export function requestOwnWorldRecovery(recoveryId: string): boolean {
   if (!recoveryId.startsWith(`${OWN_WORLD_ID}:recovery:`)) {
-    window.alert('That recovery save is not valid for this local world.')
+    void showNotice('Can’t restore that save', 'That recovery save is not valid for this local world.')
     return false
   }
   const snapshot = readLocalWorldRequestSnapshot()
   if (!snapshot) {
-    window.alert('Browser storage is unavailable. The recovery request was not started.')
+    void showNotice('Browser storage unavailable', 'The recovery was not started.')
     return false
   }
   try {
@@ -205,7 +208,7 @@ export function requestOwnWorldRecovery(recoveryId: string): boolean {
     window.localStorage.removeItem(RESET_KEY)
   } catch {
     restoreLocalWorldRequestSnapshot(snapshot)
-    window.alert('Browser storage is unavailable. The recovery request was not started.')
+    void showNotice('Browser storage unavailable', 'The recovery was not started.')
     return false
   }
   return reloadAppSafely({

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import clsx from 'clsx'
 import { Modal } from './Modal'
+import { askConfirm } from '../lib/confirm'
 import { ToolSprite } from './ToolSprite'
 import { useUIStore, useViewFlag } from '../stores/store'
 import { startTour, isTourSupported } from '../tour/tour'
@@ -67,10 +68,12 @@ function WorldSourceSection() {
     }
   }
 
-  function confirmReset() {
-    const confirmed = window.confirm(
-      'Start a new private world?\n\nThe current save will be kept in Recovery saves. Use “export save” first if you also want a portable file.',
-    )
+  async function confirmReset() {
+    const confirmed = await askConfirm({
+      title: 'Start a new world?',
+      body: 'Your current world is kept in recovery saves.\n\nUse “export save” first if you also want a file you can move.',
+      confirmLabel: 'start new',
+    })
     if (confirmed) requestOwnWorldReset()
   }
 
@@ -125,14 +128,13 @@ function WorldSourceSection() {
               <button
                 className="lang-btn"
                 disabled={storageBusy}
-                onClick={() => {
-                  if (
-                    window.confirm(
-                      `Restore the recovery from tick ${recovery.tick.toLocaleString()}?\n\nIt will be validated before becoming active, and the recovery copy remains available.`,
-                    )
-                  ) {
-                    requestOwnWorldRecovery(recovery.id)
-                  }
+                onClick={async () => {
+                  const confirmed = await askConfirm({
+                    title: 'Restore this save?',
+                    body: `Restore the recovery from tick ${recovery.tick.toLocaleString()}.\n\nIt is checked before it becomes active, and the recovery copy stays available.`,
+                    confirmLabel: 'restore',
+                  })
+                  if (confirmed) requestOwnWorldRecovery(recovery.id)
                 }}
               >
                 restore…
@@ -141,7 +143,13 @@ function WorldSourceSection() {
                 className="lang-btn"
                 disabled={storageBusy}
                 onClick={async () => {
-                  if (!window.confirm(`Permanently delete the recovery from tick ${recovery.tick}?`)) return
+                  const confirmed = await askConfirm({
+                    title: 'Delete this save?',
+                    body: `The recovery from tick ${recovery.tick.toLocaleString()} is deleted for good.`,
+                    confirmLabel: 'delete',
+                    danger: true,
+                  })
+                  if (!confirmed) return
                   setStorageBusy(true)
                   try {
                     await deleteWorld(recovery.id)
@@ -208,7 +216,7 @@ function DisplayTab() {
   const randomTour = useViewFlag('randomTour')
   return (
     <>
-      <SettingRow title="3D world" desc="Free-fly 3D view of the same world. WASD and mouse to move.">
+      <SettingRow title="3D world" desc="Free-fly 3D view of the same world. WASD and mouse to move." beta>
         <Switch
           checked={!!threeD}
           onChange={(v) => setViewFlag('threeD', v)}
@@ -378,13 +386,12 @@ export function DesktopSettingsModal({ onClose }: Props) {
   async function migrateSaveFolder(targetDir: string | null) {
     if (!desktop || !settings) return
     const label = targetDir ?? 'the default app data folder'
-    if (
-      !window.confirm(
-        `Move active storage to ${label}?\n\nThe simulation will checkpoint and restart. The current folder is kept as a backup. The destination must not already contain a worlds folder.`,
-      )
-    ) {
-      return
-    }
+    const confirmed = await askConfirm({
+      title: 'Move the save folder?',
+      body: `Move active storage to ${label}.\n\nThe simulation saves and restarts. The current folder is kept as a backup, and the destination must not already contain a worlds folder.`,
+      confirmLabel: 'move',
+    })
+    if (!confirmed) return
     setBusy(true)
     setSafetyMessage('checkpointing and copying worlds…')
     try {
@@ -775,11 +782,24 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-function SettingRow({ title, desc, children }: { title: string; desc: string; children: React.ReactNode }) {
+function SettingRow({
+  title,
+  desc,
+  beta,
+  children,
+}: {
+  title: string
+  desc: string
+  beta?: boolean
+  children: React.ReactNode
+}) {
   return (
     <div className="settings-row">
       <div className="settings-row-text">
-        <div className="settings-row-title">{title}</div>
+        <div className="settings-row-title">
+          {title}
+          {beta && <span className="settings-beta">beta</span>}
+        </div>
         <div className="settings-row-desc">{desc}</div>
       </div>
       <div className="settings-row-control">{children}</div>

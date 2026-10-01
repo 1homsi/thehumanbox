@@ -9,6 +9,8 @@ import {
 } from './simulation/worldSource'
 import { SimulationDataProvider } from './simulation/SimulationDataProvider'
 import { SandboxToolbar } from './components/SandboxToolbar'
+import { PhotoModeExit } from './components/PhotoModeExit'
+import { ConfirmHost } from './components/ConfirmDialog'
 import { toolFailure } from './components/tool-tips'
 import type { LineageStrategy, SandboxTool } from './simulation/sandbox'
 import { DesktopDownloadToast } from './components/DesktopDownloadToast'
@@ -499,6 +501,8 @@ function LiveApp() {
 
         <DesktopDownloadToast />
         <CommandPalette />
+        <PhotoModeExit />
+        <ConfirmHost />
 
         <main className="main" data-tour="world-canvas">
           {world ? (

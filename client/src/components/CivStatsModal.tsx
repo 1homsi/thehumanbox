@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import type { WorldState } from '../types'
 import type { LineageStrategy } from '../simulation/sandbox'
 import { Modal } from './Modal'
+import { askConfirm } from '../lib/confirm'
 import { normalizeLineageEras } from '../utils/lineageEras'
 import { useSceneStore } from '../stores/scene'
 import { farmStage } from '../world/farms'
@@ -155,16 +156,18 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
     const strategy = world.lineage_strategies?.[lineageId]
     return strategy && strategy.expires_tick > world.tick ? strategy : undefined
   }
-  const guideLineage = (lineageId: string, strategy: LineageStrategy) => {
+  const guideLineage = async (lineageId: string, strategy: LineageStrategy) => {
     if (!onGuide || guidanceBusy[lineageId]) return
     const active = activeStrategyFor(lineageId)
     if (
       active &&
       !active.completed &&
       active.strategy !== strategy &&
-      !window.confirm(
-        `Redirect ${lineageById(lineageId)} from ${active.strategy} to ${strategy}? Current progress will be archived.`,
-      )
+      !(await askConfirm({
+        title: 'Change campaign?',
+        body: `Redirect ${lineageById(lineageId)} from ${active.strategy} to ${strategy}.\n\nProgress on the current campaign is archived.`,
+        confirmLabel: 'redirect',
+      }))
     ) {
       return
     }

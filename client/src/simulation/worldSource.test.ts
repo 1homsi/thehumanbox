@@ -9,6 +9,9 @@ import {
   resolveWorldSource,
   shouldUseSimulationApi,
 } from './worldSource'
+import { showNotice } from '../lib/confirm'
+
+vi.mock('../lib/confirm', () => ({ showNotice: vi.fn(() => Promise.resolve()) }))
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -139,7 +142,7 @@ describe('reloadAppSafely', () => {
     ).toBe(false)
     expect(target.location.reload).not.toHaveBeenCalled()
     expect(onFailure).toHaveBeenCalledOnce()
-    expect(target.alert).toHaveBeenCalledWith('wait for local world')
+    expect(showNotice).toHaveBeenCalledWith('World still loading', 'wait for local world')
   })
 })
 

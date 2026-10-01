@@ -425,16 +425,6 @@ export function MoreDropdown() {
           </div>
         </>
       )}
-      <div className="more-dropdown-divider" />
-      <button
-        className="lang-btn more-dropdown-settings"
-        onClick={() => {
-          closeMore()
-          useUIStore.getState().openDesktopSettings()
-        }}
-      >
-        ⚙ display, accessibility, performance and help are in settings
-      </button>
     </div>
   )
 }
