@@ -329,7 +329,19 @@ export interface AnimalState {
   id: number
   x: number
   y: number
-  kind: 'rabbit' | 'deer' | 'boar' | 'bird' | 'fish' | 'wolf' | 'dog'
+  kind:
+    | 'rabbit'
+    | 'deer'
+    | 'boar'
+    | 'bird'
+    | 'fish'
+    | 'wolf'
+    | 'dog'
+    | 'bear'
+    | 'sheep'
+    | 'cow'
+    | 'horse'
+    | 'chicken'
   name?: string
 }
 

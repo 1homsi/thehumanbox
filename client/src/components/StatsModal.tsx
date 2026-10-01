@@ -128,6 +128,7 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
             <RelationsTable
               relations={world.tribal_relations ?? []}
               lineageSizes={world.lineage_sizes ?? []}
+              lineageNames={world.lineage_names}
             />
           </section>
 

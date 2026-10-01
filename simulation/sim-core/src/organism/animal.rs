@@ -25,9 +25,30 @@ pub enum AnimalKind {
     Fish,
     Wolf,
     Dog,
+    // Appended so saved worlds keep their numeric kinds (see persistence.rs).
+    Bear,
+    Sheep,
+    Cow,
+    Horse,
+    Chicken,
 }
 
 impl AnimalKind {
+    /// Every kind, for tables and tests.
+    pub const ALL: [AnimalKind; 12] = [
+        AnimalKind::Rabbit,
+        AnimalKind::Deer,
+        AnimalKind::Boar,
+        AnimalKind::Bird,
+        AnimalKind::Fish,
+        AnimalKind::Wolf,
+        AnimalKind::Dog,
+        AnimalKind::Bear,
+        AnimalKind::Sheep,
+        AnimalKind::Cow,
+        AnimalKind::Horse,
+        AnimalKind::Chicken,
+    ];
     pub fn drain(self) -> f32 {
         match self {
             AnimalKind::Rabbit => 0.0007,
@@ -37,6 +58,11 @@ impl AnimalKind {
             AnimalKind::Fish => 0.0004,
             AnimalKind::Wolf => 0.0008,
             AnimalKind::Dog => 0.0006,
+            AnimalKind::Bear => 0.0009,
+            AnimalKind::Sheep => 0.0005,
+            AnimalKind::Cow => 0.0004,
+            AnimalKind::Horse => 0.0005,
+            AnimalKind::Chicken => 0.0006,
         }
     }
     pub fn flee_radius(self) -> f32 {
@@ -48,6 +74,11 @@ impl AnimalKind {
             AnimalKind::Fish => 0.0,
             AnimalKind::Wolf => 0.0,
             AnimalKind::Dog => 0.0,
+            AnimalKind::Bear => 0.0,
+            AnimalKind::Sheep => 4.0,
+            AnimalKind::Cow => 2.5,
+            AnimalKind::Horse => 5.0,
+            AnimalKind::Chicken => 3.0,
         }
     }
     pub fn step_size(self) -> i32 {
@@ -59,13 +90,43 @@ impl AnimalKind {
             AnimalKind::Fish => 1,
             AnimalKind::Wolf => 2,
             AnimalKind::Dog => 2,
+            AnimalKind::Bear => 1,
+            AnimalKind::Sheep => 1,
+            AnimalKind::Cow => 1,
+            AnimalKind::Horse => 3,
+            AnimalKind::Chicken => 1,
         }
     }
     pub fn aquatic(self) -> bool {
         matches!(self, AnimalKind::Fish)
     }
     pub fn predator(self) -> bool {
-        matches!(self, AnimalKind::Wolf)
+        matches!(self, AnimalKind::Wolf | AnimalKind::Bear)
+    }
+    /// Animals predators hunt, and which flee from them.
+    pub fn is_prey(self) -> bool {
+        matches!(
+            self,
+            AnimalKind::Rabbit
+                | AnimalKind::Deer
+                | AnimalKind::Sheep
+                | AnimalKind::Cow
+                | AnimalKind::Horse
+                | AnimalKind::Chicken
+        )
+    }
+    /// Grazers stop to eat; herd animals drift toward others.
+    pub fn grazes(self) -> bool {
+        matches!(
+            self,
+            AnimalKind::Deer | AnimalKind::Sheep | AnimalKind::Cow | AnimalKind::Horse | AnimalKind::Rabbit
+        )
+    }
+    pub fn herds(self) -> bool {
+        matches!(
+            self,
+            AnimalKind::Deer | AnimalKind::Sheep | AnimalKind::Cow | AnimalKind::Horse
+        )
     }
     pub fn name(self) -> &'static str {
         match self {
@@ -76,6 +137,11 @@ impl AnimalKind {
             AnimalKind::Fish => "fish",
             AnimalKind::Wolf => "wolf",
             AnimalKind::Dog => "dog",
+            AnimalKind::Bear => "bear",
+            AnimalKind::Sheep => "sheep",
+            AnimalKind::Cow => "cow",
+            AnimalKind::Horse => "horse",
+            AnimalKind::Chicken => "chicken",
         }
     }
 }
@@ -90,6 +156,9 @@ pub struct Animal {
     pub last_reproduced: u64,
     pub bonded_org: Option<String>,
     pub name: Option<String>,
+    /// Direction kept between ticks so calm animals walk somewhere instead
+    /// of picking a new random direction every tick. Not persisted.
+    pub heading: u8,
 }
 
 impl Animal {
@@ -104,6 +173,7 @@ impl Animal {
             last_reproduced: 0,
             bonded_org: None,
             name: None,
+            heading: (id % 8) as u8,
         }
     }
 
@@ -137,7 +207,8 @@ impl Animal {
 
         let step = self.kind.step_size();
 
-        if self.kind.predator() {
+        // A fed predator rests and roams instead of stalking.
+        if self.kind.predator() && self.energy <= 0.85 {
             let target = prey_positions
                 .iter()
                 .chain(org_positions.iter())
@@ -190,7 +261,7 @@ impl Animal {
         // Prey should react to the wolves that actually hunt them. Keep the
         // predator list separate from people so only rabbits and deer flee;
         // boars, birds and tamed dogs retain their existing behavior.
-        let nearest_wolf = if matches!(self.kind, AnimalKind::Rabbit | AnimalKind::Deer) {
+        let nearest_wolf = if self.kind.is_prey() {
             wolf_positions
                 .iter()
                 .map(|&(wx, wy)| ((wx - self.x).abs() + (wy - self.y).abs(), wx, wy))
@@ -230,11 +301,37 @@ impl Animal {
             }
             best_t
         } else {
-            let di = rng.random_range(0..8usize);
-            (ix + DIRS[di].0 * step, iy + DIRS[di].1 * step)
+            let tile = grid.get(ix, iy);
+            // Grazers often stop to eat on grass.
+            if self.kind.grazes() && matches!(tile, Tile::Grass | Tile::Food) && rng.random::<f32>() < 0.55 {
+                return;
+            }
+            // Herd animals drift toward the nearest other grazer they can see.
+            if self.kind.herds() && rng.random::<f32>() < 0.3 {
+                let herd = prey_positions
+                    .iter()
+                    .map(|&(px, py)| ((px - self.x).abs() + (py - self.y).abs(), px, py))
+                    .filter(|&(d, _, _)| d > 3.0 && d < 14.0)
+                    .min_by(|a, b| a.0.total_cmp(&b.0));
+                if let Some((_, px, py)) = herd {
+                    self.move_toward(grid, ix, iy, px as i32, py as i32);
+                    return;
+                }
+            }
+            // Otherwise keep walking the same way for a while.
+            if rng.random::<f32>() < 0.12 {
+                self.heading = rng.random_range(0..8u8);
+            }
+            let (hx, hy) = DIRS[usize::from(self.heading % 8)];
+            (ix + hx * step, iy + hy * step)
         };
 
+        let (bx, by) = (self.x, self.y);
         self.move_toward(grid, ix, iy, tx, ty);
+        if self.x == bx && self.y == by {
+            // Blocked: turn so the next tick tries a new direction.
+            self.heading = rng.random_range(0..8u8);
+        }
     }
 
     fn move_toward(&mut self, grid: &WorldGrid, ix: i32, iy: i32, tx: i32, ty: i32) {

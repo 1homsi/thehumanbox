@@ -20,7 +20,13 @@ export interface DockTab {
 }
 
 export const DOCK_TABS: DockTab[] = [
-  { id: 'life', label: 'life', icon: '🚶', tip: 'People, fate, and animals', groups: ['life', 'animals'] },
+  {
+    id: 'life',
+    label: 'life',
+    icon: '🚶',
+    tip: 'People, divine powers, and animals',
+    groups: ['life', 'divine', 'animals'],
+  },
   {
     id: 'world',
     label: 'world',

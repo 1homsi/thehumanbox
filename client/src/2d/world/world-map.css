@@ -1,103 +1,29 @@
-.map2d-glass {
-  color: #f3f0de;
-  background: linear-gradient(145deg, rgba(23, 43, 43, 0.96), rgba(14, 29, 34, 0.92));
-  border: 1px solid #b8ccaa40;
-  border-radius: 14px;
-  box-shadow:
-    0 8px 28px #071b2940,
-    inset 0 1px #ffffff0d;
-  font:
-    12px/1.5 system-ui,
-    sans-serif;
-}
-.map2d-glass button {
-  font: inherit;
-  color: #f3f0de;
-  background: #ffffff0b;
-  border: 1px solid #d1ddbd30;
-  border-radius: 7px;
-  cursor: pointer;
-  min-height: 34px;
-}
-.map2d-glass button:hover {
-  background: #d7e6a727;
-  border-color: #d8d99a90;
-}
-.map2d-glass button:focus-visible {
-  outline: 2px solid #eed49c;
-  outline-offset: 2px;
-}
-.map2d-eyebrow {
-  font-size: 9px;
-  letter-spacing: 1.6px;
-  color: #d5d7a3;
-  text-transform: uppercase;
-}
-.map2d-person {
-  position: absolute;
-  left: 18px;
-  bottom: 18px;
-  z-index: 12;
-  width: 268px;
-  padding: 14px;
-}
-.map2d-person > div:first-child {
-  display: grid;
-  gap: 3px;
-}
-.map2d-person strong {
-  font:
-    600 20px/1.2 Georgia,
-    serif;
-}
-.map2d-person > div:first-child > span:last-child {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  color: #bcd0c0;
-}
-.map2d-vitals {
-  display: flex;
-  gap: 12px;
-  margin: 12px 0;
-}
-.map2d-vitals label {
-  flex: 1;
-  min-width: 0;
-  font-size: 10px;
-  color: #bcd0c0;
-}
-.map2d-vitals meter {
-  display: block;
-  width: 100%;
-  height: 9px;
-  accent-color: #b4d587;
-}
-.map2d-person-actions {
-  display: flex;
-  gap: 6px;
-}
-.map2d-person-actions button {
-  flex: 1;
-}
+/* Armed-tool hint, in the same pixel frame as the dock; it sits above the
+ * dock's tabs. */
 .map2d-tool-hint {
   position: absolute;
+  color: var(--px-text);
+  background: var(--px-wood);
+  border: 2px solid var(--px-ink);
+  box-shadow: var(--px-frame-shadow);
+  font: 11px/1.4 var(--dialog-font);
+  letter-spacing: 0.03em;
   left: 50%;
-  bottom: 18px;
+  bottom: calc(var(--dock-tab-clear, 0px) + 12px);
   transform: translateX(-50%);
   z-index: 13;
-  padding: 9px 17px;
+  padding: 7px 14px 8px;
   display: grid;
   text-align: center;
   pointer-events: none;
 }
 .map2d-tool-hint strong {
-  color: #f1d69a;
+  color: var(--px-gold-text);
   text-transform: capitalize;
 }
 .map2d-tool-hint span {
-  color: #bcd0c0;
-  font-size: 11px;
+  color: var(--px-muted);
+  font-size: 10px;
   white-space: nowrap;
 }
 .map2d-brush {
@@ -111,24 +37,13 @@
   background: #ffed9c20;
   box-shadow: 0 0 0 1px #203b40a0;
 }
-body.thb-3d-immersive .map2d-glass,
-body.thb-photo-mode .map2d-glass {
+body.thb-3d-immersive .map2d-tool-hint,
+body.thb-photo-mode .map2d-tool-hint {
   display: none;
 }
-@media (max-width: 900px) {
-  .map2d-person {
-    width: 225px;
-  }
-}
 @media (max-width: 600px) {
-  .map2d-person {
-    bottom: 8px;
-    left: 8px;
-    width: 210px;
-    padding: 9px;
-  }
   .map2d-tool-hint {
-    bottom: 8px;
+    bottom: calc(var(--dock-tab-clear, 0px) + 8px);
     max-width: calc(100% - 16px);
   }
 }
@@ -239,7 +154,7 @@ body.thb-photo-mode .map2d-glass {
   animation: burst-ring 800ms steps(6, end) forwards;
 }
 .burst-heal {
-  color: #9be07a;
+  color: #ff6b6b;
   border-radius: 50%;
   animation-duration: 900ms;
 }
@@ -357,4 +272,61 @@ body.thb-photo-mode .map2d-glass {
   opacity: 0;
   animation-delay: 320ms;
   animation-duration: 580ms;
+}
+.burst-bless {
+  color: #f3d17a;
+  border-radius: 50%;
+  border-width: 4px;
+  animation-duration: 1000ms;
+}
+.burst-inspire {
+  color: #7cc8ff;
+  border-radius: 50%;
+  border-style: dashed;
+  animation-duration: 1000ms;
+}
+.burst-peace {
+  color: #f6f1e4;
+  border-radius: 50%;
+}
+.burst-war {
+  color: #e2574c;
+  border-width: 4px;
+  animation-name: burst-war;
+}
+@keyframes burst-war {
+  0%,
+  40% {
+    transform: scale(0.6) rotate(45deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.3) rotate(45deg);
+    opacity: 0;
+  }
+}
+.burst-quake {
+  color: #b98a5a;
+  border-style: dashed;
+  border-width: 4px;
+  animation-name: burst-quake;
+}
+@keyframes burst-quake {
+  0% {
+    transform: scale(0.4) translateX(0);
+    opacity: 1;
+  }
+  20% {
+    transform: scale(0.7) translateX(-4px);
+  }
+  40% {
+    transform: scale(0.85) translateX(4px);
+  }
+  60% {
+    transform: scale(1) translateX(-3px);
+  }
+  100% {
+    transform: scale(1.2) translateX(0);
+    opacity: 0;
+  }
 }

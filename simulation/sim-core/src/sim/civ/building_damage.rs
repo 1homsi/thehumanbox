@@ -458,6 +458,36 @@ fn apply_repairs(sim: &mut Simulation, exposed: &HashSet<usize>) {
     }
 }
 
+/// Earthquake god tool: damages every completed, damageable building whose
+/// origin lies within `radius` of (x, y), more at the centre. Returns how
+/// many buildings were hit.
+pub(crate) fn quake_damage(sim: &mut Simulation, x: i32, y: i32, radius: i32) -> usize {
+    let tick = sim.tick_count;
+    let r = radius.max(1) as f32;
+    let mut hit = 0;
+    for building in sim.buildings.iter_mut() {
+        if !building.is_complete() || building.decorative || !supports_damage(building.kind) {
+            continue;
+        }
+        let d = ((building.x - x) as f32).hypot((building.y - y) as f32);
+        if d > r {
+            continue;
+        }
+        let was_ruined = building.is_ruined();
+        let amount = 0.35 + 0.45 * (1.0 - d / r);
+        building.damage = (building.damage_fraction() + amount).min(1.0);
+        building.last_damage_tick = Some(tick);
+        if !was_ruined && building.damage_fraction() >= 1.0 {
+            building.ruined_at_tick = Some(tick);
+        }
+        hit += 1;
+    }
+    if hit > 0 {
+        sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
+    }
+    hit
+}
+
 pub(crate) fn tick_building_damage(sim: &mut Simulation) {
     if sim.tick_count == 0 || !sim.tick_count.is_multiple_of(DAMAGE_TICK_INTERVAL) {
         return;

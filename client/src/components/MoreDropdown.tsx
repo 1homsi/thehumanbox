@@ -1,40 +1,6 @@
 import clsx from 'clsx'
 import { useUIStore, useViewFlag } from '../stores/store'
-import { startTour, isTourSupported } from '../tour/tour'
-import { useIsMobile } from '../hooks/useIsMobile'
-import { useSimulationData } from '../simulation/simulationData'
 import { Tooltip } from './Tooltip'
-import { reloadAppSafely } from '../simulation/worldSource'
-
-function readLowPerf(): boolean {
-  try {
-    return window.localStorage?.getItem('thb-perf') === 'low'
-  } catch {
-    return false
-  }
-}
-
-function toggleLowPerf() {
-  let wasLowPerf = false
-  try {
-    wasLowPerf = readLowPerf()
-    if (wasLowPerf) window.localStorage.removeItem('thb-perf')
-    else window.localStorage.setItem('thb-perf', 'low')
-  } catch {
-    return
-  }
-  reloadAppSafely({
-    onFailure: () => {
-      try {
-        if (wasLowPerf) window.localStorage.setItem('thb-perf', 'low')
-        else window.localStorage.removeItem('thb-perf')
-      } catch {
-        /* keep the current renderer mode if storage became unavailable */
-      }
-    },
-    failureMessage: 'could not checkpoint the current world; performance-mode refresh was cancelled safely',
-  })
-}
 
 export function MoreDropdown() {
   const overlay = useUIStore((s) => s.overlay)
@@ -47,13 +13,7 @@ export function MoreDropdown() {
   const toggleLeft = useUIStore((s) => s.toggleLeft)
   const openLanguages = useUIStore((s) => s.openLanguages)
   const openFamilyTree = useUIStore((s) => s.openFamilyTree)
-  const openAbout = useUIStore((s) => s.openAbout)
   const openNotable = useUIStore((s) => s.openNotable)
-  const nerdStats = useUIStore((s) => s.nerdStats)
-  const setNerdStats = useUIStore((s) => s.setNerdStats)
-  const isMobile = useIsMobile()
-  const tourAvailable = !isMobile && isTourSupported()
-  const { playerWorldKind } = useSimulationData()
 
   const territory = useViewFlag('territory')
   const names = useViewFlag('names')
@@ -75,12 +35,6 @@ export function MoreDropdown() {
   const threeD = useViewFlag('threeD')
   const hideUI = useViewFlag('hideUI')
   const orgPov = useViewFlag('orgPov')
-  const photoMode = useViewFlag('photoMode')
-  const headlineTicker = useViewFlag('headlineTicker')
-  const randomTour = useViewFlag('randomTour')
-  const slowMo = useViewFlag('slowMo')
-  const fastMo = useViewFlag('fastMo')
-  const colorBlind = useViewFlag('colorBlind')
 
   const closeMore = () => useUIStore.setState({ showMore: false })
 
@@ -443,153 +397,44 @@ export function MoreDropdown() {
             ✦ notable
           </button>
         </Tooltip>
-        <Tooltip tip="Build info, versions, and links">
-          <button
-            className="lang-btn"
-            onClick={() => {
-              openAbout()
-              closeMore()
-            }}
-          >
-            ⓘ about
-          </button>
-        </Tooltip>
-        {tourAvailable && (
-          <Tooltip tip="Guided walkthrough of the app">
-            <button
-              className="lang-btn"
-              onClick={() => {
-                closeMore()
-                startTour(playerWorldKind)
-              }}
-            >
-              🎓 tour
-            </button>
-          </Tooltip>
-        )}
-        <Tooltip tip="Show technical readouts: tick counter, connection status, version commits, build timestamps">
-          <button
-            className={clsx('lang-btn', nerdStats && 'active')}
-            aria-pressed={!!nerdStats}
-            onClick={() => setNerdStats(!nerdStats)}
-          >
-            🔧 stats for nerds
-          </button>
-        </Tooltip>
       </div>
 
+      {threeD && (
+        <>
+          <div className="more-dropdown-divider" />
+          <div className="more-dropdown-section">3d view</div>
+          <div className="more-dropdown-grid">
+            <Tooltip tip="Hide sidebars in 3D mode for immersion">
+              <button
+                className={clsx('lang-btn', hideUI && 'active')}
+                aria-pressed={!!hideUI}
+                onClick={() => setViewFlag('hideUI', !hideUI)}
+              >
+                ▤ hide ui
+              </button>
+            </Tooltip>
+            <Tooltip tip="First-person camera from the selected person's head">
+              <button
+                className={clsx('lang-btn', orgPov && 'active')}
+                aria-pressed={!!orgPov}
+                onClick={() => setViewFlag('orgPov', !orgPov)}
+              >
+                👁 org POV
+              </button>
+            </Tooltip>
+          </div>
+        </>
+      )}
       <div className="more-dropdown-divider" />
-      <div className="more-dropdown-section">experiments</div>
-      <div className="more-dropdown-grid">
-        <Tooltip tip="Free-fly 3D world. WASD + mouse. Desktop only.">
-          <button
-            className={clsx('lang-btn', threeD && 'active')}
-            aria-pressed={!!threeD}
-            onClick={() => setViewFlag('threeD', !threeD)}
-            onMouseEnter={() => {
-              void import('../3d/world/WorldView3D')
-            }}
-            onFocus={() => {
-              void import('../3d/world/WorldView3D')
-            }}
-          >
-            ◈ 3d world
-          </button>
-        </Tooltip>
-        {threeD && (
-          <Tooltip tip="Hide sidebars in 3D mode for immersion">
-            <button
-              className={clsx('lang-btn', hideUI && 'active')}
-              aria-pressed={!!hideUI}
-              onClick={() => setViewFlag('hideUI', !hideUI)}
-            >
-              ▤ hide ui
-            </button>
-          </Tooltip>
-        )}
-        {threeD && (
-          <Tooltip tip="First-person camera from the selected org's head (3D only)">
-            <button
-              className={clsx('lang-btn', orgPov && 'active')}
-              aria-pressed={!!orgPov}
-              onClick={() => setViewFlag('orgPov', !orgPov)}
-            >
-              👁 org POV
-            </button>
-          </Tooltip>
-        )}
-        <Tooltip tip="Hide every panel for clean screenshots. Move the mouse to the top-left to bring the header back.">
-          <button
-            className={clsx('lang-btn', photoMode && 'active')}
-            aria-pressed={!!photoMode}
-            onClick={() => setViewFlag('photoMode', !photoMode)}
-          >
-            📷 photo mode
-          </button>
-        </Tooltip>
-        <Tooltip tip="Scrolling ticker at the top: births, deaths, and what they carried">
-          <button
-            className={clsx('lang-btn', headlineTicker && 'active')}
-            aria-pressed={!!headlineTicker}
-            onClick={() => setViewFlag('headlineTicker', !headlineTicker)}
-          >
-            ⋮⋮⋮ ticker
-          </button>
-        </Tooltip>
-        <Tooltip tip="Auto-cycle the selected org every 8 seconds. Click an org to pause.">
-          <button
-            className={clsx('lang-btn', randomTour && 'active')}
-            aria-pressed={!!randomTour}
-            onClick={() => setViewFlag('randomTour', !randomTour)}
-          >
-            🎲 tour
-          </button>
-        </Tooltip>
-        <Tooltip tip="0.5× client-side motion lerp for cinematic playback">
-          <button
-            className={clsx('lang-btn', slowMo && 'active')}
-            aria-pressed={!!slowMo}
-            onClick={() => {
-              const v = !slowMo
-              setViewFlag('slowMo', v)
-              if (v) setViewFlag('fastMo', false)
-            }}
-          >
-            ◐ slow-mo
-          </button>
-        </Tooltip>
-        <Tooltip tip="2× client-side motion lerp">
-          <button
-            className={clsx('lang-btn', fastMo && 'active')}
-            aria-pressed={!!fastMo}
-            onClick={() => {
-              const v = !fastMo
-              setViewFlag('fastMo', v)
-              if (v) setViewFlag('slowMo', false)
-            }}
-          >
-            ◑ fast-mo
-          </button>
-        </Tooltip>
-        <Tooltip tip="Deuteranopia-safe lineage palette (red-green swap)">
-          <button
-            className={clsx('lang-btn', colorBlind && 'active')}
-            aria-pressed={!!colorBlind}
-            onClick={() => setViewFlag('colorBlind', !colorBlind)}
-          >
-            ◓ colorblind
-          </button>
-        </Tooltip>
-        <Tooltip tip="Low-perf mode: 30fps cap, fewer effects, viewport clipping. Reloads the page.">
-          <button
-            className={clsx('lang-btn', readLowPerf() && 'active')}
-            aria-pressed={readLowPerf()}
-            onClick={toggleLowPerf}
-          >
-            🐢 low-perf
-          </button>
-        </Tooltip>
-      </div>
+      <button
+        className="lang-btn more-dropdown-settings"
+        onClick={() => {
+          closeMore()
+          useUIStore.getState().openDesktopSettings()
+        }}
+      >
+        ⚙ display, accessibility, performance and help are in settings
+      </button>
     </div>
   )
 }

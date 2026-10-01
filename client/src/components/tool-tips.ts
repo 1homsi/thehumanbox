@@ -2,10 +2,10 @@ import type { SandboxTool } from '../simulation/sandbox'
 
 /** One-line descriptions shown in dock tooltips, keyed by sandbox tool id. */
 const TOOL_TIPS: Record<string, string> = {
-  spawn1: 'Place one new human where you click.',
+  spawn1: 'Place one person. They join the nearest tribe.',
   spawn5: 'Place a small tribe of five humans where you click.',
-  heal: 'Restore the health of everyone in the brush area.',
-  smite: 'Strike down the nearest human inside the brush area.',
+  heal: 'Restore the health of every person and animal in the brush area.',
+  smite: 'Strike down the nearest person or animal inside the brush area.',
   shelter: 'Build a hut on one tile.',
   campfire: 'Light a campfire on one tile.',
   grass: 'Paint grassland.',
@@ -27,6 +27,11 @@ const TOOL_TIPS: Record<string, string> = {
   wolf: 'Release a wolf.',
   bird: 'Release a bird.',
   fish: 'Release a fish.',
+  bear: 'Release a bear. It hunts, and attacks people when hungry.',
+  sheep: 'Release a sheep. Sheep graze and keep together.',
+  cow: 'Release a cow. Slow, and a big meal for hunters.',
+  horse: 'Release a horse. Fast and skittish.',
+  chicken: 'Release a chicken.',
   rain: 'Start rain. Helps dry land recover.',
   storm: 'Summon a storm. Drains energy and can strike with lightning.',
   clear: 'Clear the skies.',
@@ -36,6 +41,11 @@ const TOOL_TIPS: Record<string, string> = {
   plague: 'Start an outbreak that spreads through close contact.',
   poison: 'Sicken everyone inside the brush area.',
   meteor: 'Crash a meteor. Kills everything it hits and leaves a burning crater.',
+  earthquake: 'Shake the land. Cracks the ground, damages buildings and hurts people.',
+  bless: 'Heal and cheer everyone in the brush area.',
+  inspire: 'Teach everyone in the brush area something new and raise their literacy.',
+  war: 'Turn the two tribes nearest the click against each other.',
+  peace: 'Make the two tribes nearest the click friends.',
 }
 
 export function toolTip(tool: SandboxTool): string {
@@ -53,17 +63,27 @@ export function toolFailure(tool: SandboxTool): string {
   switch (tool.id) {
     case 'spawn1':
     case 'spawn5':
-      return 'the world is full, no room for more people'
+      return 'the world cannot hold any more people'
     case 'smite':
     case 'heal':
     case 'poison':
+    case 'bless':
+    case 'inspire':
       return 'no one there'
+    case 'war':
+    case 'peace':
+      return 'needs two tribes nearby'
     case 'deer':
     case 'rabbit':
     case 'boar':
     case 'wolf':
     case 'bird':
     case 'fish':
+    case 'bear':
+    case 'sheep':
+    case 'cow':
+    case 'horse':
+    case 'chicken':
       return 'too many animals already'
     default:
       return 'did not work here'

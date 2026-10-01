@@ -6,7 +6,19 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  * next frame shows the result. Effects are screen-space DOM, which keeps
  * them independent of the GPU or canvas renderer underneath.
  */
-export type BurstKind = 'bolt' | 'meteor' | 'heal' | 'spawn' | 'fire' | 'plague' | 'paint'
+export type BurstKind =
+  | 'bolt'
+  | 'meteor'
+  | 'heal'
+  | 'bless'
+  | 'inspire'
+  | 'quake'
+  | 'war'
+  | 'peace'
+  | 'spawn'
+  | 'fire'
+  | 'plague'
+  | 'paint'
 
 export interface Burst {
   id: number
@@ -23,6 +35,11 @@ export interface Burst {
 const LIFETIME_MS: Record<BurstKind, number> = {
   bolt: 650,
   meteor: 900,
+  bless: 1000,
+  inspire: 1000,
+  quake: 900,
+  war: 900,
+  peace: 900,
   heal: 900,
   spawn: 800,
   fire: 700,
@@ -45,11 +62,26 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'wolf':
     case 'bird':
     case 'fish':
+    case 'bear':
+    case 'sheep':
+    case 'cow':
+    case 'horse':
+    case 'chicken':
       return 'spawn'
     case 'fire':
       return 'fire'
     case 'meteor':
       return 'meteor'
+    case 'bless':
+      return 'bless'
+    case 'inspire':
+      return 'inspire'
+    case 'earthquake':
+      return 'quake'
+    case 'war':
+      return 'war'
+    case 'peace':
+      return 'peace'
     case 'poison':
       return 'plague'
     case 'grass':

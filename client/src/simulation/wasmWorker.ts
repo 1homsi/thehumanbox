@@ -61,6 +61,7 @@ const DEEP_FULL_EVERY_MS = 300 * WASM_BASE_TICK_MS
 // checkpoint immediately; this slower cadence covers passive play without
 // repeatedly stalling the simulation worker on JSON serialization.
 const DEFAULT_AUTOSAVE_MS = 30_000
+const LOCK_WAIT_MS = 4_000
 
 let sim: Sim | null = null
 let worldId = 'browser-own'
@@ -112,15 +113,22 @@ async function acquireWorldLock(id: string): Promise<boolean> {
     resolveDecision(acquired)
   }
 
+  // After a reload the previous page's worker can hold the lock for a moment
+  // while it shuts down, so wait briefly instead of giving up at once.
+  const wait = new AbortController()
+  const giveUp = setTimeout(() => wait.abort(), LOCK_WAIT_MS)
   void navigator.locks
-    .request(`thehumanbox-world:${id}`, { mode: 'exclusive', ifAvailable: true }, async (lock) => {
+    .request(`thehumanbox-world:${id}`, { mode: 'exclusive', signal: wait.signal }, async (lock) => {
+      clearTimeout(giveUp)
       decide(lock !== null)
       if (!lock) return
       releaseWorldLock = releaseHold
       await hold
     })
     .catch((error: unknown) => {
+      clearTimeout(giveUp)
       decide(false)
+      if (wait.signal.aborted) return
       post({
         type: 'error',
         message: `could not lock local save: ${error instanceof Error ? error.message : String(error)}`,

@@ -85,6 +85,46 @@ export interface DecorRegion {
   y1: number
 }
 
+type PlacedTree = { cx: number; cy: number; sz: number; sprite: typeof SPRITE.trees.oak_mid }
+
+/** Trees painted into the cached base layer, kept so the frame can sway them. */
+let swayTrees: PlacedTree[] = []
+
+/**
+ * Trees are baked into the static base layer, so each frame redraws just the
+ * canopy of the visible ones a pixel or two to the side. Over the identical
+ * baked canopy that reads as leaves moving in the wind rather than a second
+ * tree. Stronger in storms; skipped when zoomed out, where it is invisible.
+ */
+export function drawTreeSway(
+  ctx: CanvasRenderingContext2D,
+  now: number,
+  view: { x0: number; y0: number; x1: number; y1: number },
+  wind: { storm: boolean; windX: number },
+) {
+  if (!ATLAS_TOWN.complete || swayTrees.length === 0) return
+  const amp = wind.storm ? 2.4 : 1.2
+  const lean = Math.max(-1, Math.min(1, wind.windX)) * (wind.storm ? 1 : 0.4)
+  for (const tree of swayTrees) {
+    const { cx, cy, sz, sprite } = tree
+    if (cx + sz < view.x0 || cx > view.x1 || cy + sz < view.y0 || cy > view.y1) continue
+    if (sprite === SPRITE.trees.cactus || sprite === SPRITE.trees.dead) continue
+    const phase = cx * 0.13 + cy * 0.071
+    const gust = 0.6 + 0.4 * Math.sin(now / 2300 + cx * 0.01)
+    const sway = Math.round((Math.sin(now / 620 + phase) * amp + lean) * gust)
+    if (sway === 0) continue
+    const canopy = sz * 0.62
+    ctx.save()
+    ctx.beginPath()
+    ctx.rect(cx - 3, cy, sz + 6, canopy)
+    ctx.clip()
+    if (!drawVegetationSprite(ctx, sprite, cx + sway, cy, sz)) {
+      drawTile(ctx, ATLAS_TOWN, sprite, Math.round(cx + sway), Math.round(cy), Math.round(sz))
+    }
+    ctx.restore()
+  }
+}
+
 export function drawTrees(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -99,7 +139,7 @@ export function drawTrees(
   if (!biomes || !ATLAS_TOWN.complete) return
   season = vegetationSeason(season)
   const TREE_SIZE = 25
-  const trees: Array<{ cx: number; cy: number; sz: number; sprite: typeof SPRITE.trees.oak_mid }> = []
+  const trees: PlacedTree[] = []
 
   const placed: Uint8Array = new Uint8Array(width * height)
   const order: number[] = []
@@ -223,6 +263,20 @@ export function drawTrees(
   }
   // Place deterministically, then paint back-to-front so tree crowns overlap naturally.
   trees.sort((a, b) => a.cy + a.sz - (b.cy + b.sz))
+  if (only) {
+    // A region repaint only re-places trees inside it; keep the rest.
+    const inRegion = (t: PlacedTree) =>
+      t.cx >= (only.x0 - 3) * TILE &&
+      t.cx <= (only.x1 + 4) * TILE &&
+      t.cy >= (only.y0 - 3) * TILE &&
+      t.cy <= (only.y1 + 4) * TILE
+    swayTrees = swayTrees
+      .filter((t) => !inRegion(t))
+      .concat(trees)
+      .sort((a, b) => a.cy + a.sz - (b.cy + b.sz))
+  } else {
+    swayTrees = trees
+  }
   for (const { cx, cy, sz } of trees) {
     const shadowWidth = Math.max(4, Math.round(sz * 0.48))
     ctx.fillStyle = 'rgba(20,24,18,0.24)'

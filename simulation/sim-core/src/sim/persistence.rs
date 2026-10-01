@@ -701,6 +701,11 @@ fn animal_to_save(a: &Animal) -> AnimalSave {
         AnimalKind::Fish => 4,
         AnimalKind::Wolf => 5,
         AnimalKind::Dog => 6,
+        AnimalKind::Bear => 7,
+        AnimalKind::Sheep => 8,
+        AnimalKind::Cow => 9,
+        AnimalKind::Horse => 10,
+        AnimalKind::Chicken => 11,
     };
     AnimalSave {
         id: a.id,
@@ -724,6 +729,11 @@ fn animal_from_save(s: AnimalSave) -> Animal {
         4 => AnimalKind::Fish,
         5 => AnimalKind::Wolf,
         6 => AnimalKind::Dog,
+        7 => AnimalKind::Bear,
+        8 => AnimalKind::Sheep,
+        9 => AnimalKind::Cow,
+        10 => AnimalKind::Horse,
+        11 => AnimalKind::Chicken,
         _ => AnimalKind::Rabbit,
     };
     let mut a = Animal::new(s.id, s.x, s.y, kind);
@@ -1766,5 +1776,22 @@ mod tests {
             ),
             500
         );
+    }
+}
+
+#[cfg(test)]
+mod animal_kind_save_tests {
+    use super::*;
+
+    #[test]
+    fn every_animal_kind_survives_a_save() {
+        for kind in AnimalKind::ALL {
+            let a = Animal::new(1, 10.0, 10.0, kind);
+            assert!(
+                animal_from_save(animal_to_save(&a)).kind == kind,
+                "{}",
+                kind.name()
+            );
+        }
     }
 }

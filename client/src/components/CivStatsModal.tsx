@@ -270,6 +270,9 @@ export function CivStatsModal({ world, onClose, onGuide }: Props) {
 
   return (
     <Modal open onClose={onClose} className="civ-modal" title={'\u{1F30D} Civilization'}>
+      <button aria-label="Close" className="close-btn civ-close" onClick={onClose}>
+        ✕
+      </button>
       {world.cosmos && (
         <div className="civ-calendar">
           <div className="civ-cal-item">
