@@ -52,6 +52,10 @@ function biomeTreeRule(b: number): { chance: number; spacing: number } {
       return { chance: 0.04, spacing: 6 }
     case BIOME_ID.VOLCANIC:
       return { chance: 0.06, spacing: 4 }
+    case BIOME_ID.JUNGLE:
+      return { chance: 0.55, spacing: 1 }
+    case BIOME_ID.SAVANNA:
+      return { chance: 0.05, spacing: 6 }
     default:
       return { chance: 0.0, spacing: 0 }
   }
@@ -119,6 +123,24 @@ function biomeUndergrowthRule(b: number): {
         bushColor: '#5a4a3a',
         tuftColor: '#6a5848',
         flowerColor: '#ff6628',
+      }
+    case BIOME_ID.JUNGLE:
+      return {
+        bush: 0.4,
+        tuft: 0.3,
+        flower: 0.1,
+        bushColor: '#1f5a28',
+        tuftColor: '#2f7a34',
+        flowerColor: '#ff5a8a',
+      }
+    case BIOME_ID.SAVANNA:
+      return {
+        bush: 0.06,
+        tuft: 0.4,
+        flower: 0.02,
+        bushColor: '#6e7d34',
+        tuftColor: '#c2ab5e',
+        flowerColor: '#f0c24a',
       }
     default:
       return { bush: 0.0, tuft: 0.0, flower: 0.0, bushColor: '#000', tuftColor: '#000', flowerColor: '#000' }

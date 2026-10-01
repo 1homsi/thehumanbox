@@ -8,11 +8,13 @@ export const BIOME_COLORS: [number, number, number][] = [
   [0.32, 0.54, 0.42],
   [0.86, 0.88, 0.92],
   [0.32, 0.26, 0.24],
+  [0.13, 0.36, 0.16],
+  [0.72, 0.66, 0.36],
 ]
 
-export const BIOME_ELEVATION: number[] = [0.0, 1.5, -0.2, -0.4, 4.0, 9.0]
+export const BIOME_ELEVATION: number[] = [0.0, 1.5, -0.2, -0.4, 4.0, 9.0, 1.0, 0.2]
 
-export const BIOME_ROUGHNESS: number[] = [0.6, 1.2, 0.4, 0.3, 2.2, 3.2]
+export const BIOME_ROUGHNESS: number[] = [0.6, 1.2, 0.4, 0.3, 2.2, 3.2, 1.0, 0.5]
 
 export const OCEAN_EXTENT = 40000
 

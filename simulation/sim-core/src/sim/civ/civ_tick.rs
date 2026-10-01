@@ -2460,7 +2460,7 @@ fn tick_deforestation(sim: &mut Simulation) {
                     break 'scan;
                 }
                 let (x, y) = (cx + dx, cy + dy);
-                if sim.grid.biome_at(x, y) == Biome::Forest && sim.rng.random::<f32>() < 0.05 {
+                if sim.grid.biome_at(x, y).wooded() && sim.rng.random::<f32>() < 0.05 {
                     let i = WorldGrid::idx(x, y);
                     sim.grid.biome[i] = Biome::Grassland as u8;
                     cleared += 1;
