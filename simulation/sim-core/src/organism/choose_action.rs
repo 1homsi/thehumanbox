@@ -381,6 +381,27 @@ impl Organism {
                     return (self.toward(t, grid), thought);
                 }
             }
+            // Stone only comes from quarrying next to rock, and nothing sent
+            // people there, so tribes on grassland held no stone and could
+            // build nothing but huts. Toolmakers now fetch some.
+            if has_blade
+                && !journeying
+                && self.inv_stone < 2
+                && self.energy > 0.55
+                && rng.random::<f32>() < 0.15
+            {
+                let rock_adjacent = crate::organism::organism::DIRECTIONS
+                    .iter()
+                    .any(|&(dx, dy)| matches!(grid.get(ix + dx, iy + dy), Tile::Rock | Tile::Mineral));
+                if rock_adjacent {
+                    set_thought!("quarrying stone");
+                    return (29, thought);
+                }
+                if let Some(t) = self.nearest_visible(grid, Tile::Rock, 14) {
+                    set_thought!("heading to the quarry");
+                    return (self.toward(t, grid), thought);
+                }
+            }
             if self.discoveries.contains("forestry")
                 && !journeying
                 && self.inv_wood == 0

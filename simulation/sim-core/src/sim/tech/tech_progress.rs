@@ -110,6 +110,41 @@ pub fn tick_tech_progress(
             let detail = format!("{} discovered {}", lname, node.name.replace('_', " "));
             push_event(events, tick, "build", &name, &detail);
         }
+
+        spread_tribal_knowledge(rng, organisms, members, disc, profile.literacy);
+    }
+}
+
+/// What one member of a tribe knows slowly becomes common knowledge: each
+/// research tick every known discovery may pass to one more member, faster in
+/// a literate tribe. Without this the discoveries that unlock new eras sat
+/// with a handful of people and were lost when they died.
+fn spread_tribal_knowledge(
+    rng: &mut ChaCha8Rng,
+    organisms: &mut [Organism],
+    members: &[usize],
+    known: &HashSet<String>,
+    literacy: f32,
+) {
+    let chance = 0.02 + literacy.clamp(0.0, 1.0) * 0.10;
+    // Sorted so the RNG draws don't depend on hash-set iteration order.
+    let mut discoveries: Vec<&String> = known.iter().collect();
+    discoveries.sort_unstable();
+    let mut learners: Vec<usize> = Vec::new();
+    for discovery in discoveries {
+        if rng.random::<f32>() >= chance {
+            continue;
+        }
+        learners.clear();
+        learners.extend(members.iter().copied().filter(|&m| {
+            let o = &organisms[m];
+            o.alive && o.age >= 300 && !o.discoveries.contains(discovery.as_str())
+        }));
+        if learners.is_empty() {
+            continue;
+        }
+        let pick = learners[rng.random_range(0..learners.len())];
+        organisms[pick].discoveries.insert(discovery.clone());
     }
 }
 
@@ -337,6 +372,38 @@ mod tests {
     use super::*;
     use crate::sim::civ::government::{GovernmentKind, Law};
     use crate::sim::simulation::Simulation;
+
+    #[test]
+    fn tribal_knowledge_spreads_to_members_who_lack_it() {
+        let mut sim = Simulation::new(1);
+        let lineage = sim.organisms[0].lineage_id.clone();
+        let members: Vec<usize> = sim
+            .organisms
+            .iter()
+            .enumerate()
+            .filter(|(_, o)| o.alive && o.lineage_id == lineage)
+            .map(|(i, _)| i)
+            .collect();
+        assert!(members.len() >= 2);
+        for &m in &members {
+            sim.organisms[m].age = 1000;
+            sim.organisms[m].discoveries.remove("printing");
+        }
+        sim.organisms[members[0]]
+            .discoveries
+            .insert("printing".to_string());
+        let known: HashSet<String> = ["printing".to_string()].into_iter().collect();
+
+        let mut rng = <ChaCha8Rng as rand::SeedableRng>::seed_from_u64(9);
+        for _ in 0..200 {
+            spread_tribal_knowledge(&mut rng, &mut sim.organisms, &members, &known, 1.0);
+        }
+        let knowers = members
+            .iter()
+            .filter(|&&m| sim.organisms[m].discoveries.contains("printing"))
+            .count();
+        assert!(knowers >= 2, "the discovery reached another member");
+    }
 
     #[test]
     fn scholars_literacy_and_institutions_raise_research_capacity() {

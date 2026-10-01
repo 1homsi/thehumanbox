@@ -4646,10 +4646,13 @@ fn band_is_eligible(
     place_cache: &mut LocalPlaceCache,
 ) -> bool {
     let org = &sim.organisms[idx];
-    if era < band.min_era || !qualifies(org, band.qualification) {
+    if era < band.min_era {
         return false;
     }
 
+    // Cheap gates run first; `qualifies` hashes discovery names, and this
+    // runs for every action band of every organism each tick. All gates must
+    // pass, so the order does not change the result.
     let stage = org.age_stage();
     let age_ok = match band.age {
         AgeGate::Child => matches!(stage, AgeStage::Infant | AgeStage::Child),
@@ -4670,6 +4673,10 @@ fn band_is_eligible(
         SocialGate::KinAndStranger => context.kin_near && context.stranger_near,
     };
     if !social_ok {
+        return false;
+    }
+
+    if !qualifies(org, band.qualification) {
         return false;
     }
 
