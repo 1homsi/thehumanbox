@@ -922,14 +922,7 @@ const sprites = {
     's...s...s...',
     'ssssssssssss',
   ],
-  v_eye: [
-    '............',
-    '...wwwwww...',
-    '.wwwbbbbwww.',
-    'wwwbbobbbwww',
-    '.wwwbbbbwww.',
-    '...wwwwww...',
-  ],
+  v_eye: ['............', '...wwwwww...', '.wwwbbbbwww.', 'wwwbbobbbwww', '.wwwbbbbwww.', '...wwwwww...'],
 } satisfies Record<string, string[]>
 
 const icons: Record<string, keyof typeof sprites> = {
