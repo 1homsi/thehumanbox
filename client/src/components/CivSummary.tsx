@@ -57,9 +57,9 @@ function CivSummaryImpl({ world }: Props) {
         <div className="civ-summary-row" style={{ marginBottom: 4 }}>
           <span
             className="civ-summary-chip"
-            title={`Year ${world.cosmos.year} · day ${world.cosmos.day_of_year}`}
+            title={`Year ${world.cosmos.year + 1}, day ${world.cosmos.day_of_year + 1} of 84. A year is 84 days.`}
           >
-            year {world.cosmos.year}
+            year {world.cosmos.year + 1} · day {world.cosmos.day_of_year + 1}
           </span>
           <span className="civ-summary-chip" title={`Moon: ${world.cosmos.moon_phase.replace(/_/g, ' ')}`}>
             {moonGlyphs[world.cosmos.moon_phase] ?? '🌑'} {world.cosmos.moon_phase.replace(/_/g, ' ')}

@@ -48,7 +48,7 @@ export const DOCK_TABS: DockTab[] = [
 export const TIME_CATEGORY_ID = 'time'
 
 /** Speeds offered as buttons under the play control, by time-tool id. */
-export const SPEED_TOOL_IDS = ['normal', 'fast2', 'fast4', 'fast10']
+export const SPEED_TOOL_IDS = ['normal', 'fast2', 'fast4', 'fast10', 'fast40', 'fast500', 'fast5000']
 
 export function groupsFor(tabId: string): SandboxCategory[] {
   const tab = DOCK_TABS.find((t) => t.id === tabId) ?? DOCK_TABS[0]

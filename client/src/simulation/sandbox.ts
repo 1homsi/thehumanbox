@@ -555,7 +555,10 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
       { id: 'fast2', label: '2×', icon: '⏩', mode: 'instant', time: { control: 'speed', mult: 2 } },
       { id: 'fast4', label: '4×', icon: '⏩', mode: 'instant', time: { control: 'speed', mult: 4 } },
       { id: 'fast10', label: '10×', icon: '⏭️', mode: 'instant', time: { control: 'speed', mult: 10 } },
+      { id: 'fast40', label: '40×', icon: '⚡', mode: 'instant', time: { control: 'speed', mult: 40 } },
       { id: 'fast50', label: '50×', icon: '⚡', mode: 'instant', time: { control: 'speed', mult: 50 } },
+      { id: 'fast500', label: '500×', icon: '⚡', mode: 'instant', time: { control: 'speed', mult: 500 } },
+      { id: 'fast5000', label: '5k×', icon: '⚡', mode: 'instant', time: { control: 'speed', mult: 5000 } },
     ],
   },
 ]

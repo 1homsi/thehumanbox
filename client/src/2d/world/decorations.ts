@@ -7,6 +7,7 @@ import { shorelineColors, vegetationSeason, landscapeHash } from './landscape-st
  */
 
 import { drawVegetationSprite } from './vegetation-sprites'
+import { isHighAt } from './mountains'
 import { SPRITE, ATLAS_TOWN, drawTile } from '../../utils/sprites'
 import type { WorldState } from '../../types'
 import { TILE } from '../../world/palette'
@@ -172,6 +173,12 @@ export function drawTrees(
               ? t === TILE_ID.GRASS || t === TILE_ID.FOOD || t === TILE_ID.SAND
               : t === TILE_ID.GRASS || t === TILE_ID.FOOD
     if (!supportsTree) continue
+    // Mountains own their ground: no trees on a range or at its foot,
+    // where the canopy would poke out from behind the rock.
+    let nearRange = false
+    for (let dy = -1; dy <= 1 && !nearRange; dy++)
+      for (let dx = -1; dx <= 1; dx++) if (isHighAt(tiles, x + dx, y + dy)) nearRange = true
+    if (nearRange) continue
 
     const worldX = x + originX
     const worldY = y + originY

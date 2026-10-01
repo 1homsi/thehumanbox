@@ -10,19 +10,10 @@ interface Props {
   viewport: MapSize
   container: HTMLDivElement | null
   toolLabel?: string | null
-  toolStatus?: string | null
   toolRadius?: number
 }
 
-export function WorldMapHud({
-  world,
-  cameraRef,
-  viewport,
-  container,
-  toolLabel,
-  toolRadius = 0,
-  toolStatus,
-}: Props) {
+export function WorldMapHud({ world, cameraRef, viewport, container, toolLabel, toolRadius = 0 }: Props) {
   const brush = useRef<HTMLDivElement>(null)
   const ox = world.grid.origin_x ?? 0,
     oy = world.grid.origin_y ?? 0
@@ -60,19 +51,5 @@ export function WorldMapHud({
     }
   }, [container, toolLabel, toolRadius, cameraRef, viewport, world.grid.width, world.grid.height, ox, oy])
 
-  return (
-    <>
-      {toolLabel && (
-        <div className="map2d-tool-hint" data-map-ui role="status">
-          <strong>{toolLabel}</strong>
-          <span>
-            {toolStatus?.includes('applied') || toolStatus?.includes('failed')
-              ? toolStatus
-              : 'Click to apply · drag to pan · Esc to cancel'}
-          </span>
-        </div>
-      )}
-      {toolLabel && <div className="map2d-brush" ref={brush} aria-hidden="true" />}
-    </>
-  )
+  return <>{toolLabel && <div className="map2d-brush" ref={brush} aria-hidden="true" />}</>
 }

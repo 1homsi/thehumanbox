@@ -174,7 +174,10 @@ export function AppHeader({ world, connected, sickOrgs }: Props) {
             const label = world.cosmos.moon_phase.replace(/_/g, ' ')
             return (
               <Tooltip
-                tip={tip(`moon: ${label}`, `Year ${world.cosmos.year}, day ${world.cosmos.day_of_year}.`)}
+                tip={tip(
+                  `moon: ${label}`,
+                  `Year ${world.cosmos.year + 1}, day ${world.cosmos.day_of_year + 1}.`,
+                )}
               >
                 <span className="hdr-chip moon-badge">
                   <ToolSprite icon="🌙" size={16} />

@@ -44,7 +44,7 @@ export function StatsModal({ world: liveWorld, onClose }: Props) {
         <span className="tree-modal-sub">
           {world.cosmos ? (
             <>
-              year {world.cosmos.year} · day {world.cosmos.day_of_year} ·{' '}
+              year {world.cosmos.year + 1} · day {world.cosmos.day_of_year + 1} ·{' '}
             </>
           ) : (
             <>day {currentDay} · </>

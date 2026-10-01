@@ -58,7 +58,8 @@ pub const WS_RESYNC_LAG_THRESHOLD: u64 = 3;
 const MIN_RUNTIME_TICK_MS: u64 = 16;
 const MAX_RUNTIME_TICK_MS: u64 = 5_000;
 const MIN_RUNTIME_SPEED: f64 = 0.25;
-const MAX_RUNTIME_SPEED: f64 = 50.0;
+// Past ~30x most machines run flat out; the cap only bounds the request.
+const MAX_RUNTIME_SPEED: f64 = 5000.0;
 
 fn bounded_interval_ms(value: Option<&str>, fallback: u64, min: u64, max: u64) -> u64 {
     value
@@ -81,10 +82,13 @@ fn runtime_speed_config(base_tick_ms: u64, multiplier: f64) -> (u64, u64) {
     let minimum_steps = ((multiplier * MIN_RUNTIME_TICK_MS as f64) / base_tick_ms as f64)
         .ceil()
         .max(1.0) as u64;
+    // Each batch runs while holding the world lock, so keep one to ~64
+    // ticks: past that, commands and frames would stall for over a second
+    // and the machine is CPU-bound anyway.
     let max_steps = minimum_steps
         .saturating_mul(4)
         .max(minimum_steps.saturating_add(8))
-        .min(256);
+        .min(64);
     let mut best_tick_ms = base_tick_ms;
     let mut best_steps = 1;
     let mut best_error = f64::INFINITY;
@@ -1667,7 +1671,7 @@ mod tests {
     fn runtime_control_rejects_unbounded_speeds() {
         let runtime = RuntimeControl::new(100);
         assert_eq!(runtime.set_speed(0.0), None);
-        assert_eq!(runtime.set_speed(51.0), None);
+        assert_eq!(runtime.set_speed(5001.0), None);
         assert_eq!(runtime.set_speed(f64::NAN), None);
         assert_eq!(runtime.tick_ms(), 100);
     }

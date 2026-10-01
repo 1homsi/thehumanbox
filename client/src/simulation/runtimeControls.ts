@@ -5,7 +5,8 @@ export type RuntimeControl = 'pause' | 'resume' | 'speed'
 export const WASM_BASE_TICK_MS = 120
 export const MIN_WASM_TICK_MS = 16
 export const MIN_RUNTIME_SPEED = 0.25
-export const MAX_RUNTIME_SPEED = 50
+// Past ~30x most machines run flat out; the cap only bounds the request.
+export const MAX_RUNTIME_SPEED = 5000
 
 export interface WasmSpeedConfig {
   tickMs: number

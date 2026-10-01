@@ -37,8 +37,6 @@ const EIGHT: [(i32, i32); 8] = [
 
 /// Elevation (0..1 over land) where ground turns to bare, impassable rock.
 const ROCK_LINE: f32 = 0.55;
-/// Elevation where peaks carry snow.
-const SNOW_LINE: f32 = 0.93;
 /// Elevation where foothills begin: stony ground with mineral veins.
 const FOOTHILLS: f32 = 0.40;
 
@@ -717,9 +715,9 @@ impl WorldGrid {
                 let vein = Self::fbm(u * 9.0 + 40.0, v * 9.0 + 11.0, seed ^ 0x6a5);
                 let tile = if is_lake[i] || is_river[i] {
                     Tile::Water
-                } else if e > SNOW_LINE || (e > ROCK_LINE + 0.14 && t < -4.0) {
-                    Tile::Snow
                 } else if e > ROCK_LINE {
+                    // Summits stay impassable rock; the map draws their snow
+                    // from height, so nobody settles on a peak.
                     Tile::Rock
                 } else if e > FOOTHILLS {
                     // Outcrops and veins come from noise, so they form
