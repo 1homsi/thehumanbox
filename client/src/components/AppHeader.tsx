@@ -43,12 +43,7 @@ export function AppHeader({ world, connected, sickOrgs }: Props) {
 
   const moreRef = useRef<HTMLDivElement>(null)
   const livePopulation = world?.lineage_sizes?.reduce((total, lineage) => total + lineage.count, 0) ?? 0
-  const populationLimit = world?.population_limit
-  const nextPopulationMilestone = [100, 500, 1000, 5000].find(
-    (target) => target > livePopulation && (populationLimit === undefined || target <= populationLimit),
-  )
-  const nearPopulationLimit =
-    populationLimit !== undefined && populationLimit > 0 && livePopulation >= populationLimit * 0.9
+  const nextPopulationMilestone = [100, 250, 500, 1000, 2500, 5000].find((target) => target > livePopulation)
 
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
@@ -137,16 +132,15 @@ export function AppHeader({ world, connected, sickOrgs }: Props) {
           <Tooltip
             tip={tip(
               'people',
-              `${livePopulation.toLocaleString()} alive${populationLimit ? ` · the land can naturally support ${populationLimit.toLocaleString()}` : ''}.`,
+              `${livePopulation.toLocaleString()} alive.`,
               nextPopulationMilestone
                 ? `next milestone ${nextPopulationMilestone.toLocaleString()}`
                 : undefined,
             )}
           >
-            <span className={clsx('hdr-chip', 'population-badge', nearPopulationLimit && 'near-limit')}>
+            <span className={clsx('hdr-chip', 'population-badge')}>
               <ToolSprite icon="🚶" size={16} />
               {livePopulation.toLocaleString()}
-              {populationLimit ? <span className="hdr-dim">/ {populationLimit.toLocaleString()}</span> : null}
             </span>
           </Tooltip>
         )}

@@ -120,6 +120,9 @@ pub enum Command {
 /// already filled it and every animal tool silently failed.
 const SANDBOX_ANIMAL_CAP: usize = 1100;
 
+/// Safety ceiling for player-spawned people (births have their own limit).
+const SANDBOX_PEOPLE_LIMIT: usize = 5000;
+
 const MIN_STRATEGY_DURATION: u64 = 60;
 const MAX_STRATEGY_DURATION: u64 = 7200;
 
@@ -315,10 +318,10 @@ impl Simulation {
                     self.lineage_names.insert(lid.clone(), name);
                 }
                 let before = self.organisms.len();
-                // God spawns get a little room above the natural cap so the
-                // tool still works in a mature world that sits at its limit.
-                // Births still stop at the cap, so the world settles back.
-                let cap = self.population_limit() + self.population_limit() / 10;
+                // Players can add as many people as they like. Births still
+                // respect the natural population limit; this ceiling only
+                // keeps a runaway click-fest from freezing the simulation.
+                let cap = SANDBOX_PEOPLE_LIMIT;
                 for _ in 0..n {
                     if crate::sim::growth::population_slots_used(&self.organisms) >= cap {
                         break;
@@ -811,15 +814,13 @@ mod tests {
         let alive_before = alive(&sim);
 
         assert_eq!(crate::sim::growth::population_slots_used(&sim.organisms), 120);
-        // At the natural cap a god spawn still fits in the 10% headroom and
-        // does not take the pending birth's slot.
+        // Players can keep adding people past the natural limit, and the
+        // pending birth keeps its slot.
         assert!(sim.apply_command_json(r#"{"cmd":"spawn","x":100.0,"y":100.0,"count":1}"#));
         assert_eq!(alive(&sim), alive_before + 1);
         assert!(sim.organisms[1].pregnant, "the pending birth is untouched");
-        // Past the headroom the world is full and the player is told so.
         assert!(sim.apply_command_json(r#"{"cmd":"spawn","x":100.0,"y":100.0,"count":50}"#));
-        assert_eq!(crate::sim::growth::population_slots_used(&sim.organisms), 132);
-        assert!(!sim.apply_command_json(r#"{"cmd":"spawn","x":100.0,"y":100.0,"count":1}"#));
+        assert_eq!(crate::sim::growth::population_slots_used(&sim.organisms), 171);
     }
 
     #[test]

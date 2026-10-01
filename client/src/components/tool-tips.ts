@@ -63,7 +63,7 @@ export function toolFailure(tool: SandboxTool): string {
   switch (tool.id) {
     case 'spawn1':
     case 'spawn5':
-      return 'the world is full, no room for more people'
+      return 'the world cannot hold any more people'
     case 'smite':
     case 'heal':
     case 'poison':
