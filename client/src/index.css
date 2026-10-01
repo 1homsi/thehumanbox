@@ -58,6 +58,18 @@
 body {
   margin: 0;
   overflow: hidden;
+  /* A game, not a document: drags and double-clicks shouldn't select text. */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Fields the player types into still select normally. */
+input,
+textarea,
+select,
+[contenteditable='true'] {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 #root {
