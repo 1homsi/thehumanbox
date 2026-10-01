@@ -1,6 +1,7 @@
 use rand::RngExt;
 use rand_chacha::ChaCha8Rng;
-use std::collections::{HashMap, HashSet, VecDeque};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use std::collections::VecDeque;
 
 use super::tech_tree::all_tech;
 use crate::organism::organism::Organism;
@@ -25,9 +26,9 @@ pub fn tick_tech_progress(
         return;
     }
 
-    let mut lineage_discoveries: HashMap<String, HashSet<String>> = HashMap::new();
-    let mut lineage_pop: HashMap<String, usize> = HashMap::new();
-    let mut lineage_members: HashMap<String, Vec<usize>> = HashMap::new();
+    let mut lineage_discoveries: HashMap<String, HashSet<String>> = HashMap::default();
+    let mut lineage_pop: HashMap<String, usize> = HashMap::default();
+    let mut lineage_members: HashMap<String, Vec<usize>> = HashMap::default();
     for (i, org) in organisms.iter().enumerate() {
         if !org.alive {
             continue;

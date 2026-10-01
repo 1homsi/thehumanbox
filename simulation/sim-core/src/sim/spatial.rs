@@ -1,6 +1,6 @@
 use crate::organism::animal::Animal;
 use crate::organism::organism::Organism;
-use std::collections::HashMap;
+use rustc_hash::FxHashMap as HashMap;
 
 pub struct SpatialIndex {
     buckets: HashMap<(i32, i32), Vec<usize>>,
@@ -9,7 +9,8 @@ pub struct SpatialIndex {
 
 impl SpatialIndex {
     pub fn build(organisms: &[Organism], bucket_size: i32) -> Self {
-        let mut buckets: HashMap<(i32, i32), Vec<usize>> = HashMap::with_capacity(organisms.len() / 4 + 8);
+        let mut buckets: HashMap<(i32, i32), Vec<usize>> =
+            HashMap::with_capacity_and_hasher(organisms.len() / 4 + 8, Default::default());
         for (i, org) in organisms.iter().enumerate() {
             if !org.alive {
                 continue;
@@ -21,7 +22,8 @@ impl SpatialIndex {
     }
 
     pub fn build_animals(animals: &[Animal], bucket_size: i32) -> Self {
-        let mut buckets: HashMap<(i32, i32), Vec<usize>> = HashMap::with_capacity(animals.len() / 4 + 8);
+        let mut buckets: HashMap<(i32, i32), Vec<usize>> =
+            HashMap::with_capacity_and_hasher(animals.len() / 4 + 8, Default::default());
         for (i, a) in animals.iter().enumerate() {
             if !a.alive {
                 continue;

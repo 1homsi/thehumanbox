@@ -669,7 +669,7 @@ fn active_directive_biases_tie_without_forcing_action() {
 
 #[test]
 fn equal_q_actions_do_not_always_choose_the_highest_id() {
-    let mut chosen = std::collections::HashSet::new();
+    let mut chosen = rustc_hash::FxHashSet::default();
     let mut grid = WorldGrid::new(4);
     for x in 40..=60 {
         for y in 40..=60 {
@@ -723,7 +723,7 @@ fn equal_q_actions_do_not_always_choose_the_highest_id() {
 
 #[test]
 fn untried_actions_are_not_ranked_by_numeric_id() {
-    let mut chosen = std::collections::HashSet::new();
+    let mut chosen = rustc_hash::FxHashSet::default();
     let mut grid = WorldGrid::new(4);
     for x in 40..=60 {
         for y in 40..=60 {

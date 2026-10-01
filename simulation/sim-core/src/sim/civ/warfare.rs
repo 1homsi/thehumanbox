@@ -1,5 +1,5 @@
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
 
 use super::era::Era;
 use super::government::{Government, LawKind};
@@ -425,7 +425,7 @@ pub fn try_spawn_raids(
         return out;
     }
 
-    let mut pop_per_lineage: HashMap<String, Vec<usize>> = HashMap::new();
+    let mut pop_per_lineage: HashMap<String, Vec<usize>> = HashMap::default();
     for (i, o) in organisms.iter().enumerate() {
         if !o.alive {
             continue;
@@ -433,7 +433,7 @@ pub fn try_spawn_raids(
         pop_per_lineage.entry(o.lineage_id.clone()).or_default().push(i);
     }
 
-    let mut already_engaged: HashSet<String> = HashSet::new();
+    let mut already_engaged: HashSet<String> = HashSet::default();
     for b in active_battles {
         if b.ended_tick.is_some() {
             continue;
@@ -572,7 +572,7 @@ pub fn try_spawn_border_wars(
         return out;
     }
 
-    let mut pop_per_lineage: HashMap<String, Vec<usize>> = HashMap::new();
+    let mut pop_per_lineage: HashMap<String, Vec<usize>> = HashMap::default();
     for (i, o) in organisms.iter().enumerate() {
         if !o.alive {
             continue;
@@ -580,7 +580,7 @@ pub fn try_spawn_border_wars(
         pop_per_lineage.entry(o.lineage_id.clone()).or_default().push(i);
     }
 
-    let mut already_engaged: HashSet<String> = HashSet::new();
+    let mut already_engaged: HashSet<String> = HashSet::default();
     for b in active_battles {
         if b.ended_tick.is_some() {
             continue;
@@ -1321,7 +1321,7 @@ mod tests {
             org.x = position as f32;
             org.y = 0.0;
         }
-        let populations = HashMap::from([("guard".to_string(), indices)]);
+        let populations = HashMap::from_iter([("guard".to_string(), indices)]);
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(84);
 
         let selected = pick_combatants(

@@ -658,7 +658,7 @@ fn small_lineage_cannot_advance_before_living_world_meets_population_gate() {
 }
 
 fn prepare_technological_era_boundary(sim: &mut Simulation, era: crate::sim::era::Era) {
-    let alive_lineages: std::collections::HashSet<String> = sim
+    let alive_lineages: rustc_hash::FxHashSet<String> = sim
         .organisms
         .iter()
         .filter(|org| org.alive)
@@ -1951,8 +1951,8 @@ fn founders_spread_across_world_sectors() {
             HEIGHT
         );
 
-        use std::collections::HashMap;
-        let mut by_lid: HashMap<String, Vec<(f32, f32)>> = HashMap::new();
+        use rustc_hash::FxHashMap as HashMap;
+        let mut by_lid: HashMap<String, Vec<(f32, f32)>> = HashMap::default();
         for o in &alive {
             by_lid.entry(o.lineage_id.clone()).or_default().push((o.x, o.y));
         }
@@ -2042,7 +2042,7 @@ fn population_does_not_reconverge_after_growth_window() {
 
     let cw = 60i32;
     let ch = 60i32;
-    let mut buckets: std::collections::HashMap<(i32, i32), u32> = Default::default();
+    let mut buckets: rustc_hash::FxHashMap<(i32, i32), u32> = Default::default();
     for o in &alive {
         let cx = (o.x as i32) / cw;
         let cy = (o.y as i32) / ch;
@@ -2411,6 +2411,7 @@ fn same_seed_produces_the_same_generated_world() {
 /// equal). Some non-determinism remains (hash-set iteration order in a few
 /// sites); raise this bound only once those sites are fixed.
 const DETERMINISM_TICKS: u64 = 200;
+const LONG_DETERMINISM_TICKS: u64 = 3_000;
 
 fn tick_fingerprint(seed: u64, ticks: u64) -> (usize, Vec<(String, u64)>, u64, u64) {
     let mut sim = Simulation::new(seed);
@@ -2559,4 +2560,28 @@ fn armed_kin_fight_back_and_kill_attacking_wolves() {
         sim.animals.retain(|a| a.id != id);
     }
     assert!(killed > 0, "armed defenders killed at least one wolf");
+}
+
+/// Long runs of one seed must not drift: every person's position and
+/// thought, and the random stream, match tick for tick. Iterating a
+/// randomly seeded hash collection anywhere in the tick breaks this.
+#[test]
+fn same_seed_stays_identical_over_a_long_run() {
+    let (mut a, mut b) = (Simulation::new(42), Simulation::new(42));
+    for _ in 0..LONG_DETERMINISM_TICKS {
+        a.tick();
+        b.tick();
+        assert!(a.rng == b.rng, "random stream diverged at tick {}", a.tick_count);
+        let first = a.organisms.iter().zip(b.organisms.iter()).position(|(x, y)| {
+            x.id != y.id
+                || x.x.to_bits() != y.x.to_bits()
+                || x.y.to_bits() != y.y.to_bits()
+                || x.thought != y.thought
+        });
+        assert!(
+            first.is_none() && a.organisms.len() == b.organisms.len(),
+            "people diverged at tick {} (index {first:?})",
+            a.tick_count
+        );
+    }
 }

@@ -19,8 +19,9 @@ use crate::world::{
 use rand::{RngExt, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::VecDeque;
 
 /// Preserve population order while limiting lineage-wide reads to its members.
 /// Liveness is checked at read time because residents can die during a tick.
@@ -882,30 +883,30 @@ impl Simulation {
             pending_thinks: Vec::new(),
             pending_convos: Vec::new(),
             pending_memory_flushes: Vec::new(),
-            lineage_names: HashMap::new(),
-            lineage_strategies: HashMap::new(),
-            lineage_strategy_objectives: HashMap::new(),
+            lineage_names: HashMap::default(),
+            lineage_strategies: HashMap::default(),
+            lineage_strategy_objectives: HashMap::default(),
             lineage_strategy_history: VecDeque::new(),
-            lineage_last_council: HashMap::new(),
-            lineage_elders: HashMap::new(),
-            lineage_negotiations: HashMap::new(),
+            lineage_last_council: HashMap::default(),
+            lineage_elders: HashMap::default(),
+            lineage_negotiations: HashMap::default(),
             pop_history: VecDeque::new(),
-            lineage_centroid_history: HashMap::new(),
-            lineage_homes: HashMap::new(),
-            lineage_eras: HashMap::new(),
-            lineage_aggregates: HashMap::new(),
+            lineage_centroid_history: HashMap::default(),
+            lineage_homes: HashMap::default(),
+            lineage_eras: HashMap::default(),
+            lineage_aggregates: HashMap::default(),
             buildings: Vec::new(),
             next_building_id: 1,
-            governments: HashMap::new(),
+            governments: HashMap::default(),
             religions: Vec::new(),
             next_religion_id: 1,
             artworks: Vec::new(),
             next_artwork_id: 1,
             festivals: Vec::new(),
             next_festival_id: 1,
-            action_counts: HashMap::new(),
-            decision_counts: HashMap::new(),
-            workshop_hits: HashMap::new(),
+            action_counts: HashMap::default(),
+            decision_counts: HashMap::default(),
+            workshop_hits: HashMap::default(),
             last_witness_tick: 0,
             books: Vec::new(),
             next_book_id: 1,
@@ -917,15 +918,15 @@ impl Simulation {
             next_battle_id: 1,
             treaties: Vec::new(),
             outbreaks: Vec::new(),
-            milestones_achieved: HashSet::new(),
-            lineage_peak_pop: HashMap::new(),
+            milestones_achieved: HashSet::default(),
+            lineage_peak_pop: HashMap::default(),
             headlines: VecDeque::new(),
             trades: VecDeque::new(),
             trade_routes: Vec::new(),
             caravans: Vec::new(),
             next_trade_route_id: 1,
             next_caravan_id: 1,
-            water_use: HashMap::new(),
+            water_use: HashMap::default(),
             current_era: "genesis".to_string(),
             sex_words,
             world_seed: seed,
@@ -937,11 +938,11 @@ impl Simulation {
             slow_compute_tick: 0,
             building_state_revision: 0,
             serialized_building_state_revision: 0,
-            active_structure_tiles: HashSet::new(),
+            active_structure_tiles: HashSet::default(),
             field_fortifications: Vec::new(),
-            settlement_tiers: HashMap::new(),
-            territory: HashMap::new(),
-            tile_owner: HashMap::new(),
+            settlement_tiers: HashMap::default(),
+            territory: HashMap::default(),
+            tile_owner: HashMap::default(),
             cached_territory: serde_json::Value::Null,
         };
         sim.spawn_founders();
@@ -1351,7 +1352,7 @@ impl Simulation {
                 while self.lineage_strategy_history.len() > 16 {
                     self.lineage_strategy_history.pop_front();
                 }
-                let alive_lineages: std::collections::HashSet<String> = self
+                let alive_lineages: rustc_hash::FxHashSet<String> = self
                     .organisms
                     .iter()
                     .filter(|o| o.alive)
@@ -1597,7 +1598,7 @@ impl Simulation {
         }
 
         if self.tick_count.is_multiple_of(200) {
-            let mut candidates: HashMap<String, (String, u32)> = HashMap::new();
+            let mut candidates: HashMap<String, (String, u32)> = HashMap::default();
             for org in self.organisms.iter().filter(|o| o.alive) {
                 let e = candidates
                     .entry(org.lineage_id.clone())
@@ -1610,8 +1611,7 @@ impl Simulation {
             for (lid, (id, _)) in candidates {
                 self.lineage_elders.insert(lid, id);
             }
-            let elder_ids: std::collections::HashSet<String> =
-                self.lineage_elders.values().cloned().collect();
+            let elder_ids: rustc_hash::FxHashSet<String> = self.lineage_elders.values().cloned().collect();
             let tc = self.tick_count;
             for org in self.organisms.iter_mut() {
                 let was_elder = org.is_elder;
@@ -4692,7 +4692,7 @@ impl Simulation {
             //         + named friends regardless of distance
             // Without these, a parent's death didn't reach their
             // distant children or cross-tribe friends.
-            let mut griever_set: std::collections::HashSet<usize> = std::collections::HashSet::new();
+            let mut griever_set: rustc_hash::FxHashSet<usize> = rustc_hash::FxHashSet::default();
             for (i, o) in self.organisms.iter().enumerate() {
                 if i == idx || !o.alive {
                     continue;
@@ -5333,7 +5333,7 @@ impl Simulation {
                 | AnimalKind::Ufo => 0,
             }
         };
-        let mut kind_alive: HashMap<AnimalKind, usize> = HashMap::new();
+        let mut kind_alive: HashMap<AnimalKind, usize> = HashMap::default();
         for a in self.animals.iter().filter(|a| a.alive) {
             *kind_alive.entry(a.kind).or_insert(0) += 1;
         }
@@ -5549,7 +5549,7 @@ impl Simulation {
             }
         }
 
-        let mut caught: std::collections::HashSet<usize> = std::collections::HashSet::new();
+        let mut caught: rustc_hash::FxHashSet<usize> = rustc_hash::FxHashSet::default();
         for (oi, ai) in to_catch {
             if caught.contains(&ai) {
                 continue;
@@ -5828,7 +5828,7 @@ impl Simulation {
     }
 
     fn sample_lineage_centroids(&mut self) {
-        let mut sums: HashMap<&str, (f32, f32, u32)> = HashMap::new();
+        let mut sums: HashMap<&str, (f32, f32, u32)> = HashMap::default();
         for o in self.organisms.iter().filter(|o| o.alive) {
             let e = sums.entry(o.lineage_id.as_str()).or_insert((0.0, 0.0, 0));
             e.0 += o.x;
@@ -5967,7 +5967,7 @@ impl Simulation {
             for &t in &taken {
                 wset.insert(t);
             }
-            let taken_set: std::collections::HashSet<(i32, i32)> = taken.iter().copied().collect();
+            let taken_set: rustc_hash::FxHashSet<(i32, i32)> = taken.iter().copied().collect();
             let mut buildings_captured = false;
             for b in self.buildings.iter_mut() {
                 if taken_set.contains(&(b.x, b.y)) {
@@ -6059,11 +6059,11 @@ impl Simulation {
 
     fn update_lineage_eras(&mut self) {
         use super::era::{determine_era_for_lineage, Era};
-        let mut agg: HashMap<String, (HashSet<String>, usize)> = HashMap::new();
+        let mut agg: HashMap<String, (HashSet<String>, usize)> = HashMap::default();
         for org in self.organisms.iter().filter(|o| o.alive) {
             let entry = agg
                 .entry(org.lineage_id.clone())
-                .or_insert_with(|| (HashSet::new(), 0));
+                .or_insert_with(|| (HashSet::default(), 0));
             entry.1 += 1;
             for d in org.discoveries.iter() {
                 entry.0.insert(d.clone());

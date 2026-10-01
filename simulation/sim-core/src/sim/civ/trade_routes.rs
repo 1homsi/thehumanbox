@@ -1,4 +1,5 @@
-use std::collections::{BTreeSet, HashMap, HashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use std::collections::BTreeSet;
 
 use serde::{Deserialize, Serialize};
 
@@ -827,8 +828,8 @@ pub(crate) fn repair_loaded_state(sim: &mut Simulation) {
         }
     }
     sim.trade_routes.sort_by_key(|route| route.id);
-    let mut route_ids = HashSet::new();
-    let mut route_pairs = HashSet::new();
+    let mut route_ids = HashSet::default();
+    let mut route_pairs = HashSet::default();
     sim.trade_routes.retain(|route| {
         route.id > 0
             && route.id < u32::MAX
@@ -852,8 +853,8 @@ pub(crate) fn repair_loaded_state(sim: &mut Simulation) {
             caravan.dispatch_state = caravan.dispatch_state.chars().take(512).collect();
         }
     }
-    let mut caravan_ids = HashSet::new();
-    let mut caravans_per_route = HashMap::<u32, usize>::new();
+    let mut caravan_ids = HashSet::default();
+    let mut caravans_per_route = HashMap::<u32, usize>::default();
     sim.caravans.retain(|caravan| {
         let route_matches = valid_routes
             .get(&caravan.route_id)
@@ -1139,7 +1140,7 @@ mod tests {
 
     #[test]
     fn id_allocator_wraps_around_exhausting_imported_ids() {
-        let used = HashSet::from([1, u32::MAX - 1]);
+        let used = HashSet::from_iter([1, u32::MAX - 1]);
         let mut next = u32::MAX - 1;
 
         assert_eq!(allocate_available_id(&mut next, &used), Some(2));

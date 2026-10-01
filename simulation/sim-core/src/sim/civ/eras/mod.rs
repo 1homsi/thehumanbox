@@ -1,5 +1,5 @@
+use rustc_hash::FxHashSet as HashSet;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 
 pub mod atomic;
 pub mod bronze;
@@ -248,14 +248,14 @@ mod tests {
 
     #[test]
     fn pre_stone_with_no_discoveries() {
-        let d: HashSet<String> = HashSet::new();
+        let d: HashSet<String> = HashSet::default();
         assert_eq!(determine_era_for_lineage(&d, 0, 350), Era::PreStone);
         assert_eq!(determine_era_for_lineage(&d, 100, 350), Era::PreStone);
     }
 
     #[test]
     fn stone_with_stone_discoveries() {
-        let mut d: HashSet<String> = HashSet::new();
+        let mut d: HashSet<String> = HashSet::default();
         d.insert("fire".to_string());
         d.insert("stone_tools".to_string());
         d.insert("shelter".to_string());
@@ -271,7 +271,7 @@ mod tests {
 
     #[test]
     fn every_era_has_unique_name() {
-        let mut seen: HashSet<&str> = HashSet::new();
+        let mut seen: HashSet<&str> = HashSet::default();
         for e in LADDER.iter() {
             assert!(seen.insert(e.name()), "duplicate era name: {}", e.name());
         }

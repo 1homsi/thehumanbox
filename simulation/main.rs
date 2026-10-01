@@ -1051,7 +1051,7 @@ async fn main() {
                                     age_days,
                                     tribe_name,
                                     life_log: o.life_log.iter().map(|e| e.text.clone()).collect(),
-                                    vocab: o.vocabulary.words(),
+                                    vocab: o.vocabulary.words().into_iter().collect(),
                                     partner_name,
                                     children: o.children_count,
                                     era: era.clone(),
