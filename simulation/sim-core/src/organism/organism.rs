@@ -204,10 +204,18 @@ fn best_remembered_cell(
         if dist > max_dist {
             continue;
         }
-        let local_danger = nearby_memory_strength(danger, cell, 1);
-        let score = strength * (1.0 + urgency * 0.35)
-            - (dist / max_dist) * distance_weight
-            - local_danger * danger_weight;
+        let base = strength * (1.0 + urgency * 0.35) - (dist / max_dist) * distance_weight;
+        // Danger only lowers the score, so skip its 9 lookups when this cell
+        // can't win anyway or nothing dangerous is remembered.
+        if base <= best_score {
+            continue;
+        }
+        let local_danger = if danger.is_empty() {
+            0.0
+        } else {
+            nearby_memory_strength(danger, cell, 1)
+        };
+        let score = base - local_danger * danger_weight;
         if score > best_score {
             best_score = score;
             best = Some(cell);

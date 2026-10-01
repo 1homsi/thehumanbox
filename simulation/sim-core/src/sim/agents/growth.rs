@@ -431,13 +431,32 @@ pub fn try_reproduce(
         "leather",
         "weaving",
     ];
-    for d in &organisms[org_idx].discoveries {
-        if always_inherit.contains(&d.as_str()) {
-            child.discoveries.insert(d.clone());
-        } else if sometimes_inherit.contains(&d.as_str()) && rng.random::<f32>() < 0.85 {
-            child.discoveries.insert(d.clone());
-        } else if rng.random::<f32>() < 0.40 {
-            child.discoveries.insert(d.clone());
+    // Children learn from both parents. Advanced knowledge used to pass only
+    // from the mother at 40%, so the discoveries that unlock new eras mostly
+    // died with whoever made them. Each parent who knows something is an
+    // independent chance to pass it on. Sorted so the RNG draws don't depend
+    // on hash-set iteration order.
+    let mut parent_knowledge: Vec<(&str, u8)> = Vec::new();
+    for parent in [org_idx, partner_idx] {
+        for d in &organisms[parent].discoveries {
+            match parent_knowledge.iter_mut().find(|(name, _)| *name == d.as_str()) {
+                Some((_, knowers)) => *knowers += 1,
+                None => parent_knowledge.push((d.as_str(), 1)),
+            }
+        }
+    }
+    parent_knowledge.sort_unstable_by(|a, b| a.0.cmp(b.0));
+    for (d, knowers) in parent_knowledge {
+        let per_parent = if always_inherit.contains(&d) {
+            1.0
+        } else if sometimes_inherit.contains(&d) {
+            0.85
+        } else {
+            0.65
+        };
+        let chance = 1.0 - (1.0f32 - per_parent).powi(i32::from(knowers));
+        if chance >= 1.0 || rng.random::<f32>() < chance {
+            child.discoveries.insert(d.to_string());
         }
     }
 
