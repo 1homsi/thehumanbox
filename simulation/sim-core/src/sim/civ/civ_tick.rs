@@ -4736,6 +4736,53 @@ mod tests {
     }
 
     #[test]
+    fn a_lone_crew_works_the_school_before_older_huts_and_wonders() {
+        let mut sim = Simulation::new(0x5C01);
+        sim.organisms.clear();
+        sim.buildings.clear();
+        let mut worker = test_org("worker", "Worker", "lineage-a", 10.0, 10.0);
+        worker.age = 10_000;
+        sim.organisms.push(worker);
+        // The hut was started first and sits first in the list.
+        sim.buildings.push(Building::new(
+            1,
+            BuildingKind::Hut,
+            10,
+            10,
+            Some("lineage-a".into()),
+            0,
+        ));
+        sim.buildings.push(Building::new(
+            2,
+            BuildingKind::School,
+            11,
+            10,
+            Some("lineage-a".into()),
+            0,
+        ));
+        sim.tick_count = 20;
+        tick_building_progress(&mut sim);
+        assert!(sim.buildings[1].condition > 0.0, "the school got no crew");
+        assert_eq!(sim.buildings[0].condition, 0.0, "the hut took the only worker");
+    }
+
+    #[test]
+    fn the_research_building_a_tribe_lacks_is_always_next() {
+        let mut have: HashSet<BuildingKind> = HashSet::default();
+        for expect in [
+            BuildingKind::School,
+            BuildingKind::Library,
+            BuildingKind::Observatory,
+            BuildingKind::University,
+        ] {
+            assert_eq!(research_target(Era::Renaissance, 45, 350, &have), Some(expect));
+            have.insert(expect);
+        }
+        assert_eq!(research_target(Era::Renaissance, 45, 350, &have), None);
+        assert_eq!(research_target(Era::Iron, 45, 350, &HashSet::default()), None);
+    }
+
+    #[test]
     fn construction_stalls_without_active_workers_then_completes_with_labor() {
         let mut sim = Simulation::new(0x1AB0);
         sim.organisms.clear();
@@ -5142,53 +5189,5 @@ mod faith_tests {
         // Too small a tribe has no use for them yet.
         let small = next_target_building(Era::Renaissance, 5, 350, &HashSet::default()).unwrap();
         assert_ne!(small, BuildingKind::University);
-    }
-
-    #[test]
-    fn a_grown_tribe_raises_a_laboratory_even_while_its_town_is_busy() {
-        let mut sim = Simulation::new(7);
-        let known: Vec<&'static str> = crate::sim::tech::tech_tree::all_tech()
-            .iter()
-            .filter(|n| n.era <= Era::Space)
-            .map(|n| n.name)
-            .collect();
-        for o in sim.organisms.iter_mut() {
-            for d in &known {
-                o.discoveries.insert((*d).to_string());
-            }
-        }
-        for _ in 0..10_000 {
-            sim.tick();
-        }
-        let mut lids: Vec<String> = sim
-            .organisms
-            .iter()
-            .filter(|o| o.alive)
-            .map(|o| o.lineage_id.clone())
-            .collect();
-        lids.sort();
-        lids.dedup();
-        let grown: Vec<&String> = lids
-            .iter()
-            .filter(|l| lineage_pop(&sim, l) >= 25 && lineage_era(&sim, l) >= Era::Renaissance)
-            .collect();
-        assert!(!grown.is_empty(), "no tribe grew up in time to test");
-        for lid in grown {
-            let lab = sim.buildings.iter().any(|b| {
-                b.owner_lineage.as_deref() == Some(lid.as_str())
-                    && matches!(b.kind, BuildingKind::Observatory | BuildingKind::University)
-            });
-            let kinds: Vec<String> = sim
-                .buildings
-                .iter()
-                .filter(|b| b.owner_lineage.as_deref() == Some(lid.as_str()) && !b.decorative)
-                .map(|b| format!("{:?}{}", b.kind, if b.is_complete() { "" } else { "*" }))
-                .collect();
-            assert!(
-                lab,
-                "a tribe of {} has no observatory or university: {kinds:?}",
-                lineage_pop(&sim, lid)
-            );
-        }
     }
 }
