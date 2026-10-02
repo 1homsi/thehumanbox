@@ -498,7 +498,7 @@ impl Simulation {
 
     /// Called after a power lands. `at` is where it landed, or `None` for
     /// powers that touch the whole world (weather, ending a drought).
-    fn adjust_faith(&mut self, lineage: &str, delta: i32) {
+    pub(crate) fn adjust_faith(&mut self, lineage: &str, delta: i32) {
         let f = self.prayers.faith.entry(lineage.to_string()).or_default();
         *f = (*f + delta).clamp(FAITH_RANGE.0, FAITH_RANGE.1);
     }
