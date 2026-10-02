@@ -440,6 +440,11 @@ body.thb-photo-mode .headline-ticker {
   background: #220800;
   color: #ee7733;
 }
+.season-badge.season-scarcity.hard-winter {
+  background: #0d1824;
+  color: #b9e2ff;
+  text-shadow: 0 0 4px rgba(170, 220, 255, 0.55);
+}
 .season-badge.season-recovery {
   background: #001a1a;
   color: #55ccdd;

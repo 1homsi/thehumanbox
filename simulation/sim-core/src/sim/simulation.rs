@@ -711,6 +711,8 @@ pub struct Simulation {
     pub plantings: std::collections::BTreeMap<u32, crate::sim::tech::plantings::Planting>,
     /// Prayers tribes send the player, and the faith answering them earns.
     pub prayers: crate::sim::civ::prayers::PrayerState,
+    /// This winter is a hard one: colder, hungrier, sicker.
+    pub hard_winter: bool,
     pub story_history: VecDeque<StoryEntry>,
     pub pending_thinks: Vec<ThinkTrigger>,
     pub pending_convos: Vec<crate::sim::convo_req::ConversationReq>,
@@ -891,6 +893,7 @@ impl Simulation {
             flood_tiles: Vec::new(),
             plantings: Default::default(),
             prayers: Default::default(),
+            hard_winter: false,
             story_history: VecDeque::new(),
             pending_thinks: Vec::new(),
             pending_convos: Vec::new(),
@@ -2996,7 +2999,7 @@ impl Simulation {
         }
 
         // Winters are cold and summers warm; shelter softens both.
-        let temp = self.grid.temp_at(cx, cy) + crate::sim::seasons::season_temperature(self.season());
+        let temp = self.grid.temp_at(cx, cy) + self.season_temperature_now();
         let resilience = self.organisms[idx].traits.resilience;
         if !(10.0..=30.0).contains(&temp) {
             let stress = if temp < 10.0 {

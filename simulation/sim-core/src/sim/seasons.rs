@@ -16,6 +16,10 @@ pub const WILD_FOOD_STEP: u64 = 300;
 const ROT: f32 = 0.02;
 /// Share of wild food that withers in each winter step.
 const WINTER_DIEBACK: f32 = 0.12;
+/// Chance that a winter turns out hard.
+pub const HARD_WINTER_CHANCE: f32 = 0.3;
+/// Extra cold in a hard winter, in degrees.
+const HARD_WINTER_CHILL: f32 = 8.0;
 
 /// Carried food spoils on this cadence.
 pub const SPOIL_STEP: u64 = 600;
@@ -70,7 +74,40 @@ pub(crate) fn forage_season(season: &str) -> f32 {
 }
 
 impl Simulation {
+    /// Today's temperature offset: the season, and a hard winter's bite.
+    pub(crate) fn season_temperature_now(&self) -> f32 {
+        season_temperature(self.season()) - if self.hard_winter { HARD_WINTER_CHILL } else { 0.0 }
+    }
+
+    /// Each winter is rolled as it arrives; some turn out hard.
+    fn tick_winter_omen(&mut self) {
+        use crate::sim::config::SEASON_LENGTH;
+        let into_year = self.tick_count % (SEASON_LENGTH * 4);
+        if into_year == SEASON_LENGTH * 2 {
+            self.hard_winter = self.rng.random::<f32>() < HARD_WINTER_CHANCE;
+            if self.hard_winter {
+                crate::sim::world_events::push_event(
+                    &mut self.events,
+                    self.tick_count,
+                    "weather",
+                    "the sky",
+                    "a hard winter is coming",
+                );
+                self.headlines.push_back((
+                    self.tick_count,
+                    "\u{2744}\u{FE0F} A hard winter is coming.".to_string(),
+                ));
+                while self.headlines.len() > 80 {
+                    self.headlines.pop_front();
+                }
+            }
+        } else if into_year == SEASON_LENGTH * 3 {
+            self.hard_winter = false;
+        }
+    }
+
     pub(crate) fn tick_wild_food(&mut self) {
+        self.tick_winter_omen();
         if self.tick_count > 0 && self.tick_count.is_multiple_of(SPOIL_STEP) {
             spoil_carried_food(&mut self.organisms);
             self.winter_sickness();
@@ -78,10 +115,10 @@ impl Simulation {
         if !self.tick_count.is_multiple_of(WILD_FOOD_STEP) || self.tick_count == 0 {
             return;
         }
-        let loss = if self.season() == "scarcity" {
-            WINTER_DIEBACK
-        } else {
-            ROT
+        let loss = match (self.season(), self.hard_winter) {
+            ("scarcity", true) => WINTER_DIEBACK * 2.0,
+            ("scarcity", false) => WINTER_DIEBACK,
+            _ => ROT,
         };
         // A god's fields and orchards keep to their own season.
         for i in 0..WIDTH * HEIGHT {
@@ -98,6 +135,7 @@ impl Simulation {
     /// medicine catch it less often.
     fn winter_sickness(&mut self) {
         let chance = match self.season() {
+            "scarcity" if self.hard_winter => 0.35,
             "scarcity" => 0.22,
             "decline" => 0.06,
             _ => return,
@@ -120,12 +158,28 @@ impl Simulation {
             if self.rng.random::<f32>() >= chance * (1.0 - healers * 0.6) {
                 continue;
             }
+            // The illness of the age: fever early on, flu once people
+            // crowd into towns, influenza in the modern world.
+            use crate::sim::civ::era::Era;
+            let era = self.era(&lineage);
+            let illness = if era >= Era::Modern {
+                "influenza"
+            } else if era >= Era::Bronze {
+                "flu"
+            } else {
+                "fever"
+            };
             let sick = (members.len() / 10).clamp(1, 4);
+            let tick = self.tick_count;
             for k in 0..sick {
-                let i = members[(k * 7 + self.tick_count as usize) % members.len()];
+                let i = members[(k * 7 + tick as usize) % members.len()];
                 let o = &mut self.organisms[i];
-                o.infection = o.infection.max(0.7);
-                o.think("a fever came with the cold", self.tick_count);
+                let immune = o.disease_immunity.get(illness).is_some_and(|&until| until > tick);
+                if !immune && !o.diseases.iter().any(|(d, _)| d == illness) {
+                    o.diseases.push((illness.to_string(), tick));
+                }
+                o.infection = o.infection.max(0.4);
+                o.think("a fever came with the cold", tick);
             }
             let name = self
                 .lineage_names
@@ -213,11 +267,29 @@ mod tests {
         let mut fevers = 0;
         for _ in 0..40 {
             sim.winter_sickness();
-            fevers = sim.organisms.iter().filter(|o| o.infection >= 0.7).count();
+            fevers = sim.organisms.iter().filter(|o| !o.diseases.is_empty()).count();
             if fevers > 0 {
                 break;
             }
         }
         assert!(fevers > 0);
+    }
+
+    #[test]
+    fn some_winters_are_hard_and_end_with_spring() {
+        let mut sim = Simulation::new(4);
+        let mut hard = 0;
+        for year in 0..40u64 {
+            sim.tick_count = year * SEASON_LENGTH * 4 + SEASON_LENGTH * 2;
+            sim.tick_winter_omen();
+            if sim.hard_winter {
+                hard += 1;
+                assert!(sim.season_temperature_now() < season_temperature("scarcity"));
+            }
+            sim.tick_count += SEASON_LENGTH;
+            sim.tick_winter_omen();
+            assert!(!sim.hard_winter, "spring ends a hard winter");
+        }
+        assert!((4..=24).contains(&hard), "{hard} hard winters in 40");
     }
 }
