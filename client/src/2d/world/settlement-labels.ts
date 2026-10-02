@@ -29,17 +29,21 @@ export interface PlacedLabel extends SettlementLabel {
   scale: number
 }
 
-/** Map-pixel scale that keeps labels at least their design size on screen. */
+/**
+ * Map-pixel scale for labels: they grow as the camera pulls out so they stay
+ * readable, and shrink a little as it moves in so a close view is not all
+ * name, settling at the size of the people's name tags.
+ */
 export function labelScale(zoom: number): number {
-  return Math.max(1, 1 / Math.max(0.05, zoom))
+  return Math.max(0.75, 1 / Math.max(0.05, zoom))
 }
 
 export function titleFont(major: boolean, scale: number): string {
-  return major ? `bold ${Math.round(12 * scale)}px monospace` : `${Math.round(10 * scale)}px monospace`
+  return major ? `bold ${(12 * scale).toFixed(2)}px monospace` : `${(10 * scale).toFixed(2)}px monospace`
 }
 
 export function subFont(scale: number): string {
-  return `${Math.round(8 * scale)}px monospace`
+  return `${(8 * scale).toFixed(2)}px monospace`
 }
 
 /** Plaque size in design pixels, before scaling. */
@@ -97,7 +101,7 @@ export function drawSettlementLabels(ctx: Ctx, placed: readonly PlacedLabel[]) {
     ctx.fillRect(left, top, Math.round(p.w), Math.round(p.h))
     if (p.major || p.alert) {
       ctx.fillStyle = p.alert ? 'rgba(255,110,90,0.85)' : 'rgba(255,210,138,0.45)'
-      ctx.fillRect(left, top, Math.round(p.w), Math.max(1, Math.round(p.scale)))
+      ctx.fillRect(left, top, Math.round(p.w), Math.max(p.scale, 0.5))
     }
     const titleY = top + (TITLE_H / 2 + 1) * p.scale
     ctx.font = titleFont(p.major, p.scale)

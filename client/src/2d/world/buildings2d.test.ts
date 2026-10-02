@@ -65,3 +65,14 @@ describe('2D building layout', () => {
     expect(buildings.sort(compareBuildingsByDepth).map(({ id }) => id)).toEqual([1, 3, 9])
   })
 })
+
+describe('ruins', () => {
+  it('break apart in the material the building was made of', async () => {
+    const { ruinMaterial } = await import('./buildings2d')
+    expect(ruinMaterial('hut').wall).toBe('#7a5636')
+    expect(ruinMaterial('house', 0).wall).toBe('#7a5636')
+    expect(ruinMaterial('house', 3).wall).toBe('#8b8173')
+    expect(ruinMaterial('apartment', 6).wall).toBe('#8d9196')
+    expect(ruinMaterial('temple', 2).wall).toBe('#8b8173')
+  })
+})

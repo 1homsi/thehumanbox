@@ -14,7 +14,7 @@ function overlaps(a: { cx: number; cy: number; w: number; h: number }, b: typeof
 
 describe('settlement labels', () => {
   it('stay readable on screen when the camera zooms out', () => {
-    expect(labelScale(2)).toBe(1)
+    expect(labelScale(4)).toBe(0.75)
     expect(labelScale(1)).toBe(1)
     expect(labelScale(0.25)).toBe(4)
   })

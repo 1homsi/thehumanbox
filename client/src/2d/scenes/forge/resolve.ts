@@ -38,7 +38,8 @@ export function resolveForgeScene(world: WorldState, scene: SceneId): SceneConte
     else away.push(entry)
   }
 
-  const ownerLineage = (building as { owner_lineage?: string }).owner_lineage ?? ''
+  const owned = building as { owner_lineage?: string | null; lineage_id?: string | null }
+  const ownerLineage = owned.owner_lineage ?? owned.lineage_id ?? ''
   const lineageName =
     world.lineage_names?.[ownerLineage] ?? (ownerLineage ? ownerLineage.slice(0, 6) : 'unowned')
 
