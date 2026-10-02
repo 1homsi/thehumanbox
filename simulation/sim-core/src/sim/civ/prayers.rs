@@ -276,6 +276,12 @@ impl Simulation {
         }
     }
 
+    /// The gods' standing across the world: answered prayers minus
+    /// forsaken ones.
+    pub(crate) fn prayers_faith_total(&self) -> i32 {
+        self.prayers.faith.values().sum()
+    }
+
     fn lineage_alive(&self, lineage: &str) -> bool {
         self.lineage_aggregates
             .get(lineage)

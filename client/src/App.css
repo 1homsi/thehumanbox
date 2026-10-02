@@ -5555,3 +5555,25 @@ body.thb-colorblind .org-sick-badge {
     animation: none;
   }
 }
+
+/* ── The world has fallen silent ───────────────────────────────────── */
+.world-silent-stats {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 14px;
+  margin: 12px 0 0;
+}
+
+.world-silent-stats dt {
+  opacity: 0.7;
+}
+
+.world-silent-stats dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.world-silent-forsaken {
+  font-weight: 400;
+  opacity: 0.7;
+}
