@@ -25,7 +25,7 @@ impl Simulation {
             .filter_map(|(id, _)| {
                 self.organisms.iter().position(|o| &o.id == id).filter(|&i| {
                     let o = &self.organisms[i];
-                    !o.alive && !(o.max_age > 0 && o.age >= o.max_age)
+                    !o.alive && (o.max_age == 0 || o.age < o.max_age)
                 })
             })
             .map(|i| (i, (self.organisms[i].x - x).hypot(self.organisms[i].y - y)))
