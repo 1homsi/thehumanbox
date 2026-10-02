@@ -848,6 +848,11 @@ body.thb-photo-mode .headline-ticker {
   align-items: baseline;
   font-size: 9px;
   line-height: 1.4;
+  cursor: pointer;
+}
+.event-row:hover .event-actor,
+.event-row:focus-visible .event-actor {
+  text-decoration: underline;
 }
 .event-tick {
   color: #777;
