@@ -68,6 +68,7 @@ import { drawPlanting } from './plantings'
 import { drawBlessings, drawFireworks, updateWorldMoments, worldMomentsActive } from './world-moments'
 import { drawPrayerBubble, mergePrayerBubbles, prayerAtPoint, prayerBubbleScale } from './prayer-bubbles'
 import { PERIL_HELP, remainingLine } from '../../world/tribe-peril'
+import { drawCaravanSprite, drawRoad, drawTraffic } from './roads'
 import { battleAge, drawBattle } from './battles'
 import {
   drawSettlementLabels,
@@ -495,17 +496,6 @@ function ruinedBuildingTiles(buildings: WorldState['buildings']): ReadonlySet<st
 const MAX_TRADE_ROUTES_2D = 48
 const MAX_CARAVANS_2D = 64
 
-function cargoGlyph(cargo: string): string {
-  const normalized = cargo.toLowerCase()
-  if (normalized.includes('food') || normalized.includes('fruit')) return '🍎'
-  if (normalized.includes('grain') || normalized.includes('wheat')) return '🌾'
-  if (normalized.includes('wood') || normalized.includes('timber')) return '🪵'
-  if (normalized.includes('stone') || normalized.includes('ore')) return '🪨'
-  if (normalized.includes('water')) return '💧'
-  if (normalized.includes('cloth') || normalized.includes('wool')) return '🧶'
-  return '📦'
-}
-
 function isFinitePoint(point: [number, number]): boolean {
   return Number.isFinite(point[0]) && Number.isFinite(point[1])
 }
@@ -515,6 +505,7 @@ function drawTradeNetwork2D(
   world: WorldState,
   bounds: { c0: number; c1: number; r0: number; r1: number },
   now: number,
+  layer: 'roads' | 'caravans',
 ) {
   if (!world.trade_routes?.length && !world.caravans?.length) return
 
@@ -562,84 +553,38 @@ function drawTradeNetwork2D(
 
   if (visibleRoutes.length === 0 && visibleCaravans.length === 0) return
 
-  ctx.save()
-  ctx.lineCap = 'round'
-  ctx.lineJoin = 'round'
-  ctx.setLineDash([Math.max(4, TILE * 0.75), Math.max(3, TILE * 0.5)])
-
-  for (const route of visibleRoutes) {
-    const ax = route.a_center[0] - ox
-    const ay = route.a_center[1] - oy
-    const bx = route.b_center[0] - ox
-    const by = route.b_center[1] - oy
-
-    const startX = (ax + 0.5) * TILE
-    const startY = (ay + 0.5) * TILE
-    const endX = (bx + 0.5) * TILE
-    const endY = (by + 0.5) * TILE
-    const gradient = ctx.createLinearGradient(startX, startY, endX, endY)
-    gradient.addColorStop(0, lineageColor(route.lineage_a))
-    gradient.addColorStop(1, lineageColor(route.lineage_b))
-    ctx.globalAlpha = 0.3 + Math.min(0.2, Math.log2(route.deliveries + route.volume + 1) * 0.035)
-    ctx.strokeStyle = gradient
-    ctx.lineWidth = Math.min(2.25, 0.9 + Math.log2(route.deliveries + 1) * 0.15)
-    ctx.beginPath()
-    ctx.moveTo(startX, startY)
-    ctx.lineTo(endX, endY)
-    ctx.stroke()
-
-    ctx.setLineDash([])
-    ctx.globalAlpha = 0.55
-    for (const [x, y, lineage] of [
-      [startX, startY, route.lineage_a],
-      [endX, endY, route.lineage_b],
-    ] as const) {
-      ctx.beginPath()
-      ctx.arc(x, y, Math.max(2.25, TILE * 0.2), 0, Math.PI * 2)
-      ctx.fillStyle = lineageColor(lineage)
-      ctx.fill()
-      ctx.lineWidth = 1
-      ctx.strokeStyle = 'rgba(12, 15, 18, 0.82)'
-      ctx.stroke()
+  // Roads lie on the ground under the towns; carts and trucks travel on top.
+  const tiers = lineageEraTiers(world.lineage_eras)
+  const tierOf = (a: string, b: string) => Math.max(tiers.get(a) ?? 0, tiers.get(b) ?? 0)
+  if (layer === 'roads') {
+    for (const route of visibleRoutes) {
+      const startX = (route.a_center[0] - ox + 0.5) * TILE
+      const startY = (route.a_center[1] - oy + 0.5) * TILE
+      const endX = (route.b_center[0] - ox + 0.5) * TILE
+      const endY = (route.b_center[1] - oy + 0.5) * TILE
+      const tier = tierOf(route.lineage_a, route.lineage_b)
+      drawRoad(ctx, startX, startY, endX, endY, tier, TILE)
+      drawTraffic(
+        ctx,
+        startX,
+        startY,
+        endX,
+        endY,
+        tier,
+        TILE,
+        now,
+        Math.round(route.a_center[0] * 31 + route.b_center[1]),
+      )
     }
-    ctx.setLineDash([Math.max(4, TILE * 0.75), Math.max(3, TILE * 0.5)])
+    return
   }
-
-  ctx.setLineDash([])
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.font = `${Math.max(10, Math.round(TILE * 0.9))}px sans-serif`
   for (const { caravan, localX, localY } of visibleCaravans) {
     const px = (localX + 0.5) * TILE
-    const py = (localY + 0.5) * TILE + Math.sin(now / 170 + caravan.id * 0.73) * 1.2
+    const py = (localY + 0.5) * TILE + Math.sin(now / 170 + caravan.id * 0.73) * 0.6
     const angle = Math.atan2(caravan.to[1] - caravan.from[1], caravan.to[0] - caravan.from[0])
-    const radius = Math.max(6, TILE * 0.48)
-    ctx.save()
-    ctx.translate(px, py)
-    ctx.globalAlpha = 0.96
-    ctx.fillStyle = 'rgba(11, 14, 16, 0.82)'
-    ctx.beginPath()
-    ctx.arc(0, 0, radius + 2, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.strokeStyle = lineageColor(caravan.sender_lineage)
-    ctx.lineWidth = 2
-    ctx.beginPath()
-    ctx.arc(0, 0, radius, 0, Math.PI * 2)
-    ctx.stroke()
-    ctx.rotate(angle)
-    ctx.fillStyle = lineageColor(caravan.sender_lineage)
-    ctx.beginPath()
-    ctx.moveTo(radius + 3, 0)
-    ctx.lineTo(radius - 1, -3)
-    ctx.lineTo(radius - 1, 3)
-    ctx.closePath()
-    ctx.fill()
-    ctx.rotate(-angle)
-    ctx.fillStyle = '#ffffff'
-    ctx.fillText(cargoGlyph(caravan.cargo), 0, 0)
-    ctx.restore()
+    const tier = tiers.get(caravan.sender_lineage) ?? 0
+    drawCaravanSprite(ctx, px, py, angle, tier, lineageColor(caravan.sender_lineage), TILE)
   }
-  ctx.restore()
 }
 
 onAnyAtlasLoaded(() => {
@@ -2205,6 +2150,7 @@ export function drawWorldOnCanvas(
     }
   }
 
+  drawTradeNetwork2D(ctx, world, { c0, c1, r0, r1 }, t, 'roads')
   // Collected with the buildings, drawn above everything else on the map.
   const settlementLabels: SettlementLabel[] = []
   if (world.buildings && world.buildings.length > 0) {
@@ -2344,7 +2290,7 @@ export function drawWorldOnCanvas(
     }
   }
 
-  drawTradeNetwork2D(ctx, world, { c0, c1, r0, r1 }, t)
+  drawTradeNetwork2D(ctx, world, { c0, c1, r0, r1 }, t, 'caravans')
 
   if (viewFlags.animals && animals.length > 0) {
     ctx.save()
