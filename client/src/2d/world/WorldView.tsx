@@ -69,6 +69,7 @@ import { drawBlessings, drawFireworks, updateWorldMoments, worldMomentsActive } 
 import { drawPrayerBubble, mergePrayerBubbles, prayerAtPoint, prayerBubbleScale } from './prayer-bubbles'
 import { PERIL_HELP, remainingLine } from '../../world/tribe-peril'
 import { drawCaravanSprite, drawRoad, drawTraffic } from './roads'
+import { drawSmog } from './smog'
 import { battleAge, drawBattle } from './battles'
 import { drawWard } from './wards'
 import {
@@ -2888,6 +2889,9 @@ export function drawWorldOnCanvas(
     }
   }
 
+  for (const source of world.smog ?? []) {
+    drawSmog(ctx, source, (source.x - ox) * TILE, (source.y - oy) * TILE, TILE, t)
+  }
   drawEraTraffic(ctx, world, ox, oy, W, H, cameraZoom, t)
   for (const battle of world.battles ?? []) {
     const age = battleAge(battle, world.tick)

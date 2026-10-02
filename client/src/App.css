@@ -5768,6 +5768,23 @@ body.thb-colorblind .org-sick-badge {
   font-size: 10px;
   line-height: 1.3;
 }
+.tribe-spark {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 4px;
+  font-size: 9px;
+  color: #9aa38c;
+}
+.tribe-spark polyline {
+  stroke: currentColor;
+}
+.tribe-spark.up {
+  color: #8fd18a;
+}
+.tribe-spark.down {
+  color: #ff9f8c;
+}
 .tribe-card-losses {
   margin-top: 3px;
   font-size: 9px;

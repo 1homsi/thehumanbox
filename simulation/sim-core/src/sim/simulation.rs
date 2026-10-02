@@ -721,6 +721,8 @@ pub struct Simulation {
     pub flood_tiles: Vec<(i32, i32, u64)>,
     /// The gods' wards over the land (see `civ::wards`).
     pub wards: Vec<super::civ::wards::Ward>,
+    /// Today's smoke from industry (runtime; recomputed daily).
+    pub(crate) smog: Vec<super::civ::smog::SmogSource>,
     /// Player-planted crops, orchards and saplings, keyed by tile index.
     pub plantings: std::collections::BTreeMap<u32, crate::sim::tech::plantings::Planting>,
     /// Prayers tribes send the player, and the faith answering them earns.
@@ -917,6 +919,7 @@ impl Simulation {
             weather: WeatherState::default(),
             flood_tiles: Vec::new(),
             wards: Vec::new(),
+            smog: Vec::new(),
             plantings: Default::default(),
             prayers: Default::default(),
             hard_winter: false,
@@ -1924,6 +1927,7 @@ impl Simulation {
         self.tick_plantings();
         self.tick_prayers();
         self.tick_wards();
+        self.tick_smog();
         self.tick_wild_food();
         self.check_animal_catches();
 
