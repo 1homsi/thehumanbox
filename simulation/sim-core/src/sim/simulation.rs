@@ -490,6 +490,7 @@ fn local_danger_present(
         let animal = &animals[index];
         animal.alive
             && animal.kind.hostile()
+            && !animal.sleeping
             && (animal.x - x as f32).abs() + (animal.y - y as f32).abs() <= 5.0
     })
 }
@@ -2098,6 +2099,7 @@ impl Simulation {
                 animal_near = true;
             }
             if a.kind.hostile()
+                && !a.sleeping
                 && d <= wolf_flee_radius
                 && wolf_threat.map(|(bd, _, _)| d < bd).unwrap_or(true)
             {
@@ -5035,6 +5037,14 @@ impl Simulation {
 
         use crate::world::tiles::Biome;
 
+        // Wild bears sleep the winter through: they keep still, need little
+        // and neither hunt nor frighten anyone until spring.
+        let winter = self.season() == "scarcity";
+        for animal in &mut self.animals {
+            animal.sleeping =
+                winter && animal.alive && animal.kind == AnimalKind::Bear && animal.bonded_org.is_none();
+        }
+
         // Animals only react to people within their chase/flee radius. Build
         // this after human movement, then reuse the query buffers for every
         // animal instead of scanning the entire population for each one.
@@ -5045,7 +5055,11 @@ impl Simulation {
 
         let mut prey_pos_for_chase: Vec<(f32, f32)> = Vec::new();
         let mut wolf_pos_for_flee: Vec<(f32, f32)> = Vec::new();
-        for animal in self.animals.iter().filter(|animal| animal.alive) {
+        for animal in self
+            .animals
+            .iter()
+            .filter(|animal| animal.alive && !animal.sleeping)
+        {
             match animal.kind {
                 kind if kind.is_prey() => prey_pos_for_chase.push((animal.x, animal.y)),
                 kind if kind.hostile() => wolf_pos_for_flee.push((animal.x, animal.y)),
@@ -5053,6 +5067,10 @@ impl Simulation {
             }
         }
         for animal in &mut self.animals {
+            if animal.sleeping {
+                animal.energy = animal.energy.max(0.5);
+                continue;
+            }
             let human_radius = if animal.kind.hostile() {
                 20
             } else {
@@ -5085,7 +5103,7 @@ impl Simulation {
             .collect();
         let mut kills: Vec<(usize, usize)> = Vec::new();
         for (pi, pred) in self.animals.iter().enumerate() {
-            if !pred.alive || !pred.kind.predator() {
+            if !pred.alive || !pred.kind.predator() || pred.sleeping {
                 continue;
             }
             if pred.energy > 0.85 {
@@ -5209,7 +5227,10 @@ impl Simulation {
             // Only hungry predators attack, like their prey hunting above.
             // Monsters always do; a UFO abducts instead (see tick_monsters).
             let monster = a.kind.monster();
-            if !a.alive || a.kind == AnimalKind::Ufo || !(monster || (a.kind.predator() && a.energy <= 0.85))
+            if !a.alive
+                || a.sleeping
+                || a.kind == AnimalKind::Ufo
+                || !(monster || (a.kind.predator() && a.energy <= 0.85))
             {
                 continue;
             }

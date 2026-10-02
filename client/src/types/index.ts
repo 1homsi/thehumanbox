@@ -348,6 +348,8 @@ export interface AnimalState {
     | 'alien'
     | 'ufo'
   name?: string
+  /** Asleep for the winter (wild bears). */
+  sleeping?: boolean
 }
 
 export interface PrayerInfo {
