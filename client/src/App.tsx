@@ -42,6 +42,7 @@ import {
 import { WorldView } from './2d/world/WorldView'
 import { EventLog } from './components/EventLog'
 import { HistoryGrid } from './components/HistoryGrid'
+import { WildlifePanel } from './components/WildlifePanel'
 import { LineagesList } from './components/LineagesList'
 import { WorldFooter } from './components/WorldFooter'
 import { AppHeader } from './components/AppHeader'
@@ -585,6 +586,7 @@ function LiveApp() {
                   // render, so the colourblind toggle remounts them.
                   <Fragment key={palette}>
                     <HistoryGrid />
+                    <WildlifePanel />
                     <LineagesList />
                     <EventLog />
                     <WorldFooter world={world} />

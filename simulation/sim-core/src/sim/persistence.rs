@@ -1286,6 +1286,8 @@ impl Simulation {
             fallen: Default::default(),
             revive_cooldown: HashMap::default(),
             teach_cooldown: HashMap::default(),
+            grave_queue: Vec::new(),
+            cemeteries: HashMap::default(),
             orphans_cared: Default::default(),
             recent_deaths: HashMap::default(),
             faith_empty_since: HashMap::default(),
