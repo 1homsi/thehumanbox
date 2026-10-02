@@ -5041,8 +5041,10 @@ impl Simulation {
         // and neither hunt nor frighten anyone until spring.
         let winter = self.season() == "scarcity";
         for animal in &mut self.animals {
-            animal.sleeping =
-                winter && animal.alive && animal.kind == AnimalKind::Bear && animal.bonded_org.is_none();
+            let wild = animal.alive && animal.bonded_org.is_none();
+            animal.sleeping = winter && wild && animal.kind == AnimalKind::Bear;
+            // Birds fly south for the winter and come back with the spring.
+            animal.away = winter && wild && animal.kind == AnimalKind::Bird;
         }
 
         // Animals only react to people within their chase/flee radius. Build
@@ -5058,7 +5060,7 @@ impl Simulation {
         for animal in self
             .animals
             .iter()
-            .filter(|animal| animal.alive && !animal.sleeping)
+            .filter(|animal| animal.alive && !animal.sleeping && !animal.away)
         {
             match animal.kind {
                 kind if kind.is_prey() => prey_pos_for_chase.push((animal.x, animal.y)),
@@ -5067,7 +5069,7 @@ impl Simulation {
             }
         }
         for animal in &mut self.animals {
-            if animal.sleeping {
+            if animal.sleeping || animal.away {
                 animal.energy = animal.energy.max(0.5);
                 continue;
             }
@@ -5098,7 +5100,7 @@ impl Simulation {
             .animals
             .iter()
             .enumerate()
-            .filter(|(_, a)| a.alive && a.kind.is_prey())
+            .filter(|(_, a)| a.alive && !a.away && a.kind.is_prey())
             .map(|(i, a)| (i, a.x, a.y, a.kind))
             .collect();
         let mut kills: Vec<(usize, usize)> = Vec::new();
@@ -5408,10 +5410,18 @@ impl Simulation {
         }
         self.tick_monsters(&human_spatial);
 
+        let breeding_season = matches!(self.season(), "recovery" | "abundance");
         let candidates: Vec<(usize, f32, f32, AnimalKind)> = self
             .animals
             .iter()
-            .filter(|a| a.alive && a.energy > 0.70 && self.tick_count.saturating_sub(a.last_reproduced) > 800)
+            // Young are born in spring and summer, not in the lean months.
+            .filter(|a| {
+                a.alive
+                    && breeding_season
+                    && !a.away
+                    && a.energy > 0.70
+                    && self.tick_count.saturating_sub(a.last_reproduced) > 800
+            })
             .map(|a| (a.id, a.x, a.y, a.kind))
             .collect();
 
@@ -5623,7 +5633,7 @@ impl Simulation {
             animal_spatial.query_into(ox, oy, 3, &mut nearby_animals);
             for &ai in &nearby_animals {
                 let animal = &self.animals[ai];
-                if !animal.alive {
+                if !animal.alive || animal.away {
                     continue;
                 }
                 let (ax, ay) = (animal.x as i32, animal.y as i32);

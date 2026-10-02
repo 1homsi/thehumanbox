@@ -2343,6 +2343,7 @@ export function drawWorldOnCanvas(
     // Sleeping animals get a drifting 'z', drawn over every sprite.
     const sleepers: [number, number, number][] = []
     for (const animal of [...animals].sort((a, b) => a.y - b.y || a.id - b.id)) {
+      if (animal.away) continue
       if (
         animal.x - ox < c0 - 3 ||
         animal.x - ox > c1 + 3 ||

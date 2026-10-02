@@ -350,6 +350,8 @@ export interface AnimalState {
   name?: string
   /** Asleep for the winter (wild bears). */
   sleeping?: boolean
+  /** Flown south for the winter (wild birds); not drawn. */
+  away?: boolean
 }
 
 export interface PrayerInfo {
