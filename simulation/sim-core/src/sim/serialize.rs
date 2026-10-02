@@ -326,6 +326,10 @@ impl Simulation {
             // on every frame avoids a short objective completing or expiring
             // entirely between deep/cold snapshots.
             obj.insert("lineage_strategies".to_string(), lineage_strategy_payload(self));
+            obj.insert(
+                "hard_winter".to_string(),
+                serde_json::Value::Bool(self.hard_winter),
+            );
             // Prayers are the player's to-do list; they must never lag.
             let now = self.tick_count;
             let prayers: Vec<serde_json::Value> = self

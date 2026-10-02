@@ -318,6 +318,8 @@ pub struct SaveState {
     #[serde(default)]
     prayers: crate::sim::civ::prayers::PrayerState,
     #[serde(default)]
+    hard_winter: bool,
+    #[serde(default)]
     territory: HashMap<String, Vec<[i32; 2]>>,
     #[serde(default)]
     last_immigration_tick: u64,
@@ -858,6 +860,7 @@ impl Simulation {
             flood_tiles: self.flood_tiles.clone(),
             plantings: self.plantings.clone(),
             prayers: self.prayers.clone(),
+            hard_winter: self.hard_winter,
             territory: self
                 .territory
                 .iter()
@@ -1175,6 +1178,7 @@ impl Simulation {
             flood_tiles: state.flood_tiles,
             plantings: state.plantings,
             prayers: state.prayers,
+            hard_winter: state.hard_winter,
             story_history: state.story_history.into_iter().collect(),
             pending_thinks: state.pending_thinks,
             pending_convos: Vec::new(),

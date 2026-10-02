@@ -162,13 +162,28 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer }: Props)
         )}
         {world && (
           <Tooltip
-            tip={tip(
-              vegetationSeason(world.season),
-              SEASON_TIPS[world.season] ?? 'Affects food growth and drought risk.',
-            )}
+            tip={
+              world.hard_winter
+                ? tip(
+                    'hard winter',
+                    'Colder than usual. Wild food dies back fast and fevers spread.',
+                    'Tribes will pray for food and cures.',
+                  )
+                : tip(
+                    vegetationSeason(world.season),
+                    SEASON_TIPS[world.season] ?? 'Affects food growth and drought risk.',
+                  )
+            }
           >
-            <span className={clsx('hdr-chip', 'season-badge', `season-${world.season}`)}>
-              {vegetationSeason(world.season)}
+            <span
+              className={clsx(
+                'hdr-chip',
+                'season-badge',
+                `season-${world.season}`,
+                world.hard_winter && 'hard-winter',
+              )}
+            >
+              {world.hard_winter ? 'hard winter' : vegetationSeason(world.season)}
             </span>
           </Tooltip>
         )}

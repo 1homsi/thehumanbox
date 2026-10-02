@@ -515,6 +515,8 @@ export interface WorldState {
   /** Player plantings as flat [x, y, kind, stage, ...]. */
   plantings?: number[]
   prayers?: PrayerInfo[]
+  /** This winter is a hard one. */
+  hard_winter?: boolean
   faith?: FaithInfo
   settlements?: SettlementInfo[]
   vehicles?: VehicleInfo[]

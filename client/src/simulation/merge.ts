@@ -200,6 +200,7 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     farms: parsed.farms ?? base?.farms,
     plantings: parsed.plantings ?? base?.plantings,
     prayers: parsed.prayers ?? base?.prayers,
+    hard_winter: parsed.hard_winter ?? base?.hard_winter,
     faith: parsed.faith ?? base?.faith,
     settlements: parsed.settlements ?? base?.settlements,
     vehicles: parsed.vehicles ?? base?.vehicles,
