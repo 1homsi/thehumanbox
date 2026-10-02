@@ -12,7 +12,7 @@ const TOOL_TIPS: Record<string, string> = {
   water: 'Paint water.',
   rock: 'Paint rock.',
   sand: 'Paint sand.',
-  snow: 'Paint snow.',
+  snow: 'Paint snow. On warm land it melts away again.',
   food: 'Scatter food for humans and animals to gather.',
   drink: 'Add fresh drinking water.',
   plant_crop:
@@ -70,7 +70,7 @@ const TOOL_TIPS: Record<string, string> = {
   blight: 'Rot the crops, spoil the food people carry and sour the soil for years.',
   flood:
     'Drown the land: a lake in the middle, flooded ground around it. The water drains and leaves rich silt.',
-  blizzard: 'Bury the land in snow and chill everyone caught in it.',
+  blizzard: 'Bury the land in snow and chill everyone caught in it. The snow melts as the land warms.',
   zombie: 'Raise a zombie. Its victims rise as zombies too.',
   demon: 'Summon a demon. It scorches the ground and sets fires as it hunts.',
   dragon: 'Summon a dragon. It flies, breathes fire, and takes an army to kill.',
