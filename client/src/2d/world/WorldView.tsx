@@ -66,6 +66,7 @@ import { useSceneStore } from '../../stores/scene'
 import { farmCropColor, farmProgress, farmStage } from '../../world/farms'
 import { drawPlanting } from './plantings'
 import { drawPrayerBubble, mergePrayerBubbles } from './prayer-bubbles'
+import { drawPrayerFeedback, prayerEffectsActive, updatePrayerFeedback } from './prayer-feedback'
 import { prayerTimeLeft } from '../../world/prayers'
 import { useCameraFocus } from '../../stores/camera-focus'
 import { strategyBeaconPositions, strategyTimeLabel } from '../../world/strategy-visuals'
@@ -2748,6 +2749,15 @@ export function drawWorldOnCanvas(
     }
   }
 
+  updatePrayerFeedback(world.prayers, world.faith, t)
+  if (!viewFlags.hideUI) {
+    drawPrayerFeedback(
+      ctx,
+      (x, y) => [(x - ox) * TILE + TILE / 2, (y - oy) * TILE],
+      Math.max(1, 1.6 / Math.max(0.05, cameraZoom)),
+      t,
+    )
+  }
   if (world.prayers && world.prayers.length > 0 && !viewFlags.hideUI) {
     // Keep bubbles readable when zoomed out: never smaller than ~21px on
     // screen, never larger than their pixel-art size when zoomed in.
@@ -3026,7 +3036,11 @@ function WorldSprite({
       const detailBucket = zoomDetailLevel(renderZoom)
       const uiKey = `${selectedOrgIdRef.current ?? ''}|${overlayRef.current ?? ''}|${focusRef.current}|${JSON.stringify(viewFlagsRef.current)}|${detailBucket}|${renderScale}|${renderWindow.x}|${renderWindow.y}`
       const settled =
-        t >= PREDICT_CAP && lastDrawnT >= PREDICT_CAP && curServerAt === lastDrawnAt && uiKey === lastDrawnUI
+        t >= PREDICT_CAP &&
+        lastDrawnT >= PREDICT_CAP &&
+        curServerAt === lastDrawnAt &&
+        uiKey === lastDrawnUI &&
+        !prayerEffectsActive()
       // Give the last walking pose time to settle before freezing a quiet map.
       // Otherwise the last rendered footstep remains stuck indefinitely.
       if (settled && now - currentReceivedAt > interval + 160) return
@@ -3300,7 +3314,8 @@ function CanvasWorldFallback({
         serverAt === lastServerAt &&
         t === lastT &&
         uiKey === lastUI &&
-        now - receivedAt > interval + 160
+        now - receivedAt > interval + 160 &&
+        !prayerEffectsActive()
       )
         return
 

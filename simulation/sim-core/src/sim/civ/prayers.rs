@@ -117,6 +117,7 @@ impl Simulation {
 
     pub(crate) fn tick_prayers(&mut self) {
         let now = self.tick_count;
+        self.settle_rain_prayers(now);
         self.expire_prayers(now);
         if now.is_multiple_of(MOOD_TICKS) {
             self.tick_blessings(now);
@@ -189,7 +190,11 @@ impl Simulation {
                 },
                 PrayerKind::Knowledge,
             );
-            consider(if self.drought.active { 0.4 } else { 0.0 }, PrayerKind::Rain);
+            let raining = self.weather.kind >= 1;
+            consider(
+                if self.drought.active && !raining { 0.4 } else { 0.0 },
+                PrayerKind::Rain,
+            );
             consider(if n.people <= 4 { 0.3 } else { 0.0 }, PrayerKind::Children);
             let Some((_, kind)) = best else { continue };
             let id = self.prayers.next_id;
@@ -206,6 +211,33 @@ impl Simulation {
             let name = self.tribe_name(&lineage);
             push_event(&mut self.events, now, "prayer", &name, kind.plea());
         }
+    }
+
+    /// When rain comes by itself, prayers for rain are settled: nobody
+    /// was forsaken, but the gods earned no thanks either.
+    fn settle_rain_prayers(&mut self, now: u64) {
+        let rained = self.weather.kind >= 1 || !self.drought.active;
+        if !rained || !self.prayers.active.iter().any(|p| p.kind == PrayerKind::Rain) {
+            return;
+        }
+        let settled: Vec<String> = self
+            .prayers
+            .active
+            .iter()
+            .filter(|p| p.kind == PrayerKind::Rain)
+            .map(|p| p.lineage.clone())
+            .collect();
+        self.prayers.active.retain(|p| p.kind != PrayerKind::Rain);
+        for lineage in settled {
+            self.prayers.quiet_until.insert(lineage, now + PRAYER_COOLDOWN);
+        }
+        push_event(
+            &mut self.events,
+            now,
+            "weather",
+            "the sky",
+            "the rains came by themselves",
+        );
     }
 
     fn expire_prayers(&mut self, now: u64) {
@@ -465,6 +497,25 @@ mod tests {
         );
         sim.apply_command_json(&cmd);
         assert!(sim.prayers.active.is_empty());
+    }
+
+    #[test]
+    fn natural_rain_settles_rain_prayers_without_faith_or_blame() {
+        let (mut sim, lineage) = tribe_sim();
+        sim.drought.active = true;
+        sim.weather.kind = 0;
+        check(&mut sim);
+        assert_eq!(sim.prayers.active.first().map(|p| p.kind), Some(PrayerKind::Rain));
+        sim.weather.kind = 1;
+        sim.tick_count += 1;
+        sim.tick_prayers();
+        assert!(sim.prayers.active.is_empty());
+        assert_eq!(sim.prayers.faith.get(&lineage), None);
+        assert_eq!(sim.prayers.forsaken, 0);
+        // And nobody prays for rain while it is raining.
+        sim.tick_count += PRAYER_COOLDOWN;
+        check(&mut sim);
+        assert!(sim.prayers.active.iter().all(|p| p.kind != PrayerKind::Rain));
     }
 
     #[test]

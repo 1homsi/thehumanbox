@@ -715,6 +715,23 @@ body.thb-photo-mode .headline-ticker {
   width: 36px;
   text-align: right;
 }
+.lineage-faith {
+  width: 22px;
+  color: #d9b45a;
+  font-size: 9px;
+  text-align: right;
+}
+.lineage-faith.low {
+  color: #8f8579;
+}
+.lineage-faith.blessed {
+  color: #ffe08a;
+  text-shadow: 0 0 4px rgba(255, 214, 110, 0.75);
+}
+.lineage-faith.despair {
+  color: #9a8f86;
+  font-style: italic;
+}
 .lineage-strat {
   color: #99aacc;
   font-size: 8px;
