@@ -45,6 +45,18 @@ function LineagesListImpl() {
     }),
   )
   const lineageNames = useWorldStore((s) => s.world?.lineage_names)
+  // Faith per tribe, with a flag for blessed (+) or despairing (-).
+  const faith = useWorldStore(
+    useShallow((s) => {
+      const f = s.world?.faith
+      const out: Record<string, string> = {}
+      if (!f) return out
+      for (const [lid, n] of Object.entries(f.by_lineage)) out[lid] = `${n}`
+      for (const lid of f.blessed) out[lid] = `${out[lid] ?? 0}+`
+      for (const lid of f.despairing) out[lid] = `${out[lid] ?? 0}-`
+      return out
+    }),
+  )
 
   const rows = useMemo((): LineageRow[] => {
     const out: LineageRow[] = []
@@ -79,6 +91,7 @@ function LineagesListImpl() {
               <span className="lineage-dot" style={{ background: lineageColor(r.id) }} />
               <span className="lineage-id">{r.name}</span>
               <span className="lineage-count">{r.count}</span>
+              <FaithMark stamp={faith[r.id]} />
               <span className="lineage-gen">
                 g{r.minGen}
                 {r.maxGen > r.minGen ? `-${r.maxGen}` : ''}
@@ -93,6 +106,30 @@ function LineagesListImpl() {
         )}
       </div>
     </>
+  )
+}
+
+/** The gods' standing with a tribe: answered minus forsaken prayers. */
+function FaithMark({ stamp }: { stamp: string | undefined }) {
+  if (!stamp) return <span className="lineage-faith" />
+  const n = parseInt(stamp, 10) || 0
+  const blessed = stamp.endsWith('+')
+  const despairing = stamp.endsWith('-')
+  const tip = blessed
+    ? `faith ${n} · blessed by an answered prayer`
+    : despairing
+      ? `faith ${n} · despairing after an unanswered prayer`
+      : `faith ${n}`
+  return (
+    <span
+      className={
+        'lineage-faith' + (n < 0 ? ' low' : '') + (blessed ? ' blessed' : '') + (despairing ? ' despair' : '')
+      }
+      title={tip}
+      aria-label={tip}
+    >
+      ✧{n}
+    </span>
   )
 }
 
