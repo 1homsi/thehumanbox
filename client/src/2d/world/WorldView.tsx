@@ -66,7 +66,14 @@ import { useSceneStore } from '../../stores/scene'
 import { farmCropColor, farmProgress, farmStage } from '../../world/farms'
 import { drawPlanting } from './plantings'
 import { drawPrayerBubble, mergePrayerBubbles, prayerAtPoint, prayerBubbleScale } from './prayer-bubbles'
-import { drawPrayerFeedback, prayerEffectsActive, updatePrayerFeedback } from './prayer-feedback'
+import {
+  celebrating,
+  drawCelebrationGlyph,
+  drawPrayerFeedback,
+  drawPrayingGlyph,
+  prayerEffectsActive,
+  updatePrayerFeedback,
+} from './prayer-feedback'
 import { drawLaunch, drawPlane, flightPosition, launchProgress, padEmpty } from './era-traffic'
 import { prayerTimeLeft } from '../../world/prayers'
 import { useCameraFocus } from '../../stores/camera-focus'
@@ -2432,6 +2439,8 @@ export function drawWorldOnCanvas(
   const labelIds =
     characterDetail !== 'overview' && viewFlags.names ? crowdLabelIds(drawnOrganisms, cameraZoom) : null
   const labelPlacer = new LabelPlacer()
+  // Where each praying tribe gathers, for the raised-hands glyphs.
+  const prayerSpots = new Map((world.prayers ?? []).map((p) => [p.lineage_id, p] as const))
   // Batch every organism shadow into two paths (focused / dimmed) so the
   // whole population costs two fills instead of hundreds of separate
   // beginPath/ellipse/fill draw calls per frame.
@@ -2720,6 +2729,15 @@ export function drawWorldOnCanvas(
     const showThought =
       (isSelected || (fullDetail && viewFlags.thoughts)) && org.thought && org.thought !== 'observing'
     const labelY = spriteTop - (showVitals ? 10 : 2)
+    if (standardDetail && !viewFlags.hideUI) {
+      const seed = org.id.charCodeAt(0) + org.id.charCodeAt(org.id.length - 1)
+      const spot = prayerSpots.get(org.lineage_id)
+      if (celebrating(org.lineage_id, org.x, org.y, t)) {
+        drawCelebrationGlyph(ctx, px, spriteTop, t, seed)
+      } else if (spot && seed % 2 === 0 && Math.hypot(org.x - spot.x, org.y - spot.y) <= 8) {
+        drawPrayingGlyph(ctx, px, spriteTop, t, seed)
+      }
+    }
     // Names and thoughts that would sit on top of another label are left
     // out; the selected person's always shows.
     const nameShown =

@@ -121,6 +121,7 @@ impl Simulation {
         self.expire_prayers(now);
         if now.is_multiple_of(MOOD_TICKS) {
             self.tick_blessings(now);
+            self.gather_to_pray();
         }
         if !now.is_multiple_of(PRAYER_CHECK_TICKS) {
             return;
@@ -312,6 +313,39 @@ impl Simulation {
     /// forsaken ones.
     pub(crate) fn prayers_faith_total(&self) -> i32 {
         self.prayers.faith.values().sum()
+    }
+
+    /// While a tribe prays, some of its people drift to where the prayer
+    /// was raised and gather there. It is a soft pull: hunger, thirst or
+    /// danger still win, and nobody abandons a journey for it.
+    fn gather_to_pray(&mut self) {
+        use rand::RngExt;
+        if self.prayers.active.is_empty() {
+            return;
+        }
+        let spots: Vec<(String, i32, i32)> = self
+            .prayers
+            .active
+            .iter()
+            .map(|p| (p.lineage.clone(), p.x, p.y))
+            .collect();
+        for (lineage, x, y) in spots {
+            for i in 0..self.organisms.len() {
+                let o = &self.organisms[i];
+                if !o.alive || o.lineage_id != lineage || o.journey.is_some() {
+                    continue;
+                }
+                let d = (o.x - x as f32).hypot(o.y - y as f32);
+                if !(3.0..=25.0).contains(&d) || o.energy < 0.5 || o.hydration < 0.5 {
+                    continue;
+                }
+                if self.rng.random::<f32>() < 0.3 {
+                    let jx = self.rng.random_range(-2..=2);
+                    let jy = self.rng.random_range(-2..=2);
+                    self.organisms[i].wander_target = Some((x + jx, y + jy));
+                }
+            }
+        }
     }
 
     fn lineage_alive(&self, lineage: &str) -> bool {
@@ -516,6 +550,36 @@ mod tests {
         sim.tick_count += PRAYER_COOLDOWN;
         check(&mut sim);
         assert!(sim.prayers.active.iter().all(|p| p.kind != PrayerKind::Rain));
+    }
+
+    #[test]
+    fn a_praying_tribe_gathers_where_the_prayer_was_raised() {
+        let (mut sim, _) = tribe_sim();
+        for o in sim.organisms.iter_mut() {
+            o.energy = 0.2;
+        }
+        check(&mut sim);
+        let p = sim.prayers.active[0].clone();
+        for (k, o) in sim.organisms.iter_mut().enumerate() {
+            o.energy = 0.9;
+            o.hydration = 0.9;
+            o.journey = None;
+            o.wander_target = None;
+            o.x = (p.x + 10 + (k % 3) as i32) as f32;
+            o.y = p.y as f32;
+        }
+        for _ in 0..10 {
+            sim.gather_to_pray();
+        }
+        let drawn = sim
+            .organisms
+            .iter()
+            .filter(|o| {
+                o.wander_target
+                    .is_some_and(|(tx, ty)| (tx - p.x).abs() <= 2 && (ty - p.y).abs() <= 2)
+            })
+            .count();
+        assert!(drawn > 0, "some of the tribe heads for the prayer");
     }
 
     #[test]

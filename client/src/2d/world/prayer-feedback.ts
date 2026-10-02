@@ -5,11 +5,14 @@ import type { FaithInfo, PrayerInfo } from '../../types'
 interface Effect {
   x: number
   y: number
+  lineage: string
   answered: boolean
   start: number
 }
 
 const LIFE_MS = 1800
+/** How long a tribe dances after its prayer is answered. */
+const CELEBRATE_MS = 5000
 let previous = new Map<number, PrayerInfo>()
 let effects: Effect[] = []
 
@@ -25,16 +28,32 @@ export function updatePrayerFeedback(
     const despairing = new Set(faith.despairing)
     for (const [id, p] of previous) {
       if (current.has(id)) continue
-      if (blessed.has(p.lineage_id)) effects.push({ x: p.x, y: p.y, answered: true, start: now })
-      else if (despairing.has(p.lineage_id)) effects.push({ x: p.x, y: p.y, answered: false, start: now })
+      if (blessed.has(p.lineage_id))
+        effects.push({ x: p.x, y: p.y, lineage: p.lineage_id, answered: true, start: now })
+      else if (despairing.has(p.lineage_id))
+        effects.push({ x: p.x, y: p.y, lineage: p.lineage_id, answered: false, start: now })
     }
   }
   previous = current
-  effects = effects.filter((e) => now - e.start < LIFE_MS).slice(-24)
+  effects = effects.filter((e) => now - e.start < (e.answered ? CELEBRATE_MS : LIFE_MS)).slice(-24)
 }
 
 export function prayerEffectsActive(): boolean {
   return effects.length > 0
+}
+
+/** True when a person of `lineage` at (x, y) is near a prayer just answered. */
+export function celebrating(lineage: string, x: number, y: number, now: number): boolean {
+  for (const e of effects) {
+    if (
+      e.answered &&
+      e.lineage === lineage &&
+      now - e.start < CELEBRATE_MS &&
+      Math.hypot(e.x - x, e.y - y) <= 12
+    )
+      return true
+  }
+  return false
 }
 
 /** For tests: forget everything seen so far. */
@@ -55,6 +74,7 @@ export function drawPrayerFeedback(
   now: number,
 ) {
   for (const e of effects) {
+    if (now - e.start >= LIFE_MS) continue
     const t = Math.min(1, (now - e.start) / LIFE_MS)
     const [px, py] = toPx(e.x, e.y)
     ctx.save()
@@ -97,4 +117,37 @@ export function drawPrayerFeedback(
     }
     ctx.restore()
   }
+}
+
+/** Raised hands above a praying person: two small golden marks, pulsing. */
+export function drawPrayingGlyph(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  now: number,
+  seed: number,
+) {
+  const a = 0.78 + 0.22 * Math.sin(now * 0.004 + seed)
+  ctx.fillStyle = `rgba(247,215,116,${a})`
+  ctx.fillRect(Math.round(x - 3), Math.round(y - 4), 1, 3)
+  ctx.fillRect(Math.round(x + 2), Math.round(y - 4), 1, 3)
+  ctx.fillRect(Math.round(x - 2), Math.round(y - 5), 1, 1)
+  ctx.fillRect(Math.round(x + 1), Math.round(y - 5), 1, 1)
+}
+
+/** A bouncing note above a celebrating person. */
+export function drawCelebrationGlyph(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  now: number,
+  seed: number,
+) {
+  const hop = Math.round(Math.abs(Math.sin(now * 0.008 + seed)) * 3)
+  const nx = Math.round(x - 1)
+  const ny = Math.round(y - 6 - hop)
+  ctx.fillStyle = '#ffe08a'
+  ctx.fillRect(nx, ny + 3, 2, 2)
+  ctx.fillRect(nx + 1, ny, 1, 4)
+  ctx.fillRect(nx + 2, ny, 1, 1)
 }
