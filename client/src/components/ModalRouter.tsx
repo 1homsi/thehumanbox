@@ -124,6 +124,7 @@ export function ModalRouter({ world, lineages, onGuide }: Props) {
           <AllLineagesModal
             lineages={lineages}
             lineageNames={world.lineage_names}
+            peril={world.tribes_in_peril}
             onClose={closeAllLineages}
           />
         </Suspense>
