@@ -4,6 +4,10 @@ use crate::sim::tech::buildings::BuildingKind;
 use crate::world::tiles::Tile;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
+    if super::build_well::well_within_reach(ctx.sim, ctx.ix, ctx.iy) {
+        ctx.think("the well is close enough");
+        return 0.0;
+    }
     if matches!(ctx.tile, Tile::Sand | Tile::Grass) && ctx.chance(0.30) {
         start_project(
             ctx,

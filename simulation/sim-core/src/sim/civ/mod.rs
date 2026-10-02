@@ -11,5 +11,6 @@ pub mod moments;
 pub mod prayers;
 pub mod settlements;
 pub mod trade_routes;
+pub mod vacancy;
 pub mod warfare;
 pub mod world_milestones;

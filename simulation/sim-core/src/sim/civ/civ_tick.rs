@@ -94,6 +94,7 @@ pub fn tick_civ(sim: &mut Simulation, spatial: Option<&SpatialIndex>) {
     }
     if tick > 0 && tick.is_multiple_of(crate::sim::cosmos::DAY_LENGTH) {
         tick_lunar_observation(sim);
+        super::vacancy::tick_vacancy(sim);
     }
     if tick > 0 && tick.is_multiple_of(crate::sim::cosmos::DAY_LENGTH * 6) {
         tick_maybe_eclipse(sim);
@@ -1567,9 +1568,12 @@ fn tick_buildings_construct(sim: &mut Simulation) {
             let mut started = None;
             if project_index == 0 {
                 if let Some(kind) = housing_target(sim, &lid, era, pop) {
-                    let (cx, cy) = lineage_center(sim, &lid);
-                    if try_start_building_with(sim, &lid, kind, cx, cy, &mut failed_sites) {
-                        started = Some(kind);
+                    // Move into a home a vanished tribe left before raising one.
+                    if !super::vacancy::move_into_empty_home(sim, &lid) {
+                        let (cx, cy) = lineage_center(sim, &lid);
+                        if try_start_building_with(sim, &lid, kind, cx, cy, &mut failed_sites) {
+                            started = Some(kind);
+                        }
                     }
                 }
             }
@@ -2093,6 +2097,12 @@ fn tick_scatter_props(sim: &mut Simulation) {
         }) else {
             continue;
         };
+        // Scenery wells still look like wells: one per neighbourhood.
+        if kind == Well
+            && crate::sim::actions::construction::build_well::well_within_reach(sim, site_x, site_y)
+        {
+            continue;
+        }
         occupied.extend(footprint_cells(kind, site_x, site_y));
 
         let id = sim.next_building_id;
