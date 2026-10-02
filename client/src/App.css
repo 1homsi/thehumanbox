@@ -5817,6 +5817,13 @@ body.thb-colorblind .org-sick-badge {
   font-size: 9px;
   color: #9ac6a6;
 }
+.wildlife-danger {
+  color: #ff9f8c;
+}
+.wildlife-away {
+  color: #8c9aa8;
+  font-size: 9px;
+}
 .tribe-card-losses {
   margin-top: 3px;
   font-size: 9px;
