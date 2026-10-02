@@ -1,7 +1,7 @@
 // Player-planted crops, orchards and saplings. The sim sends them as a flat
 // [x, y, kind, stage, ...] list; stage runs 0-3 while growing and 4 when ripe.
 
-export const PLANT_KIND = { CROP: 0, ORCHARD: 1, SAPLING: 2 } as const
+export const PLANT_KIND = { CROP: 0, ORCHARD: 1, SAPLING: 2, FLOWER: 3 } as const
 
 export interface PlantingCell {
   x: number
@@ -132,8 +132,37 @@ function drawSapling(ctx: Ctx, x: number, y: number, stage: number) {
   px(ctx, x + 5, y + 3, 1, 2, '#36672c')
 }
 
+const PETALS = ['#e85d75', '#f2c64a', '#b48ae6', '#f4f1ea', '#ff9a52']
+
+// A small bed of flowers: shoots, then leaves and buds, then bright blooms
+// whose colours vary from tile to tile so a planted meadow looks wild.
+function drawFlowers(ctx: Ctx, x: number, y: number, stage: number) {
+  const h = (Math.imul(x, 0x9e3779b1) ^ Math.imul(y, 0x85ebca6b)) >>> 0
+  const spots: [number, number][] = [
+    [1, 5],
+    [4, 7],
+    [6, 4],
+    [3, 4],
+  ]
+  spots.forEach(([sx, sy], k) => {
+    const stem = Math.min(3, stage + 1)
+    px(ctx, x + sx, y + sy - stem + 1, 1, stem, '#4f8a3c')
+    if (stage >= 2) px(ctx, x + sx + 1, y + sy - 1, 1, 1, '#6fa64c')
+    const top = y + sy - stem
+    if (stage === 4) {
+      const c = PETALS[(h >>> (k * 3)) % PETALS.length]!
+      px(ctx, x + sx - 1, top, 3, 1, c)
+      px(ctx, x + sx, top - 1, 1, 3, c)
+      px(ctx, x + sx, top, 1, 1, '#ffe08a')
+    } else if (stage === 3) {
+      px(ctx, x + sx, top, 1, 1, PETALS[(h >>> (k * 3)) % PETALS.length]!)
+    }
+  })
+}
+
 export function drawPlanting(ctx: Ctx, x: number, y: number, kind: number, stage: number) {
   if (kind === PLANT_KIND.CROP) drawCrop(ctx, x, y, stage)
   else if (kind === PLANT_KIND.ORCHARD) drawOrchard(ctx, x, y, stage)
+  else if (kind === PLANT_KIND.FLOWER) drawFlowers(ctx, x, y, stage)
   else drawSapling(ctx, x, y, stage)
 }

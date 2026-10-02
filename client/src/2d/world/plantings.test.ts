@@ -17,7 +17,7 @@ describe('plantings', () => {
       fillStyle: '',
       fillRect: (x: number, y: number, w: number, h: number) => rects.push([x, y, w, h]),
     } as unknown as CanvasRenderingContext2D
-    for (const kind of [0, 1, 2]) {
+    for (const kind of [0, 1, 2, 3]) {
       for (let stage = 0; stage <= 4; stage++) drawPlanting(ctx, 16, 24, kind, stage)
     }
     expect(rects.length).toBeGreaterThan(0)
