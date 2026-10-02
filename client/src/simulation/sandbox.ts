@@ -21,6 +21,7 @@ export type SandboxCommand =
   | { cmd: 'bounty'; x: number; y: number; radius?: number }
   | { cmd: 'douse'; x: number; y: number; radius?: number }
   | { cmd: 'banish'; x: number; y: number; radius?: number }
+  | { cmd: 'revive'; x: number; y: number }
   | { cmd: 'rename_tribe'; lineage: string; name: string }
   | { cmd: 'teach'; lineage: string }
   | { cmd: 'ward'; x: number; y: number; radius?: number }
@@ -125,6 +126,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '❤️',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'heal', x, y, radius: 2 + b }),
+      },
+      {
+        id: 'revive',
+        label: 'revive',
+        icon: '☥',
+        mode: 'point',
+        build: (x, y) => ({ cmd: 'revive', x, y }),
       },
       {
         id: 'bless',
