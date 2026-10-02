@@ -5685,3 +5685,9 @@ body.thb-colorblind .org-sick-badge {
   color: #ffe0a0;
   font-weight: 700;
 }
+
+/* Rows about prayers stand out in the event log. */
+.event-row.godly {
+  box-shadow: inset 2px 0 0 #d9b45a;
+  background: rgba(217, 180, 90, 0.06);
+}

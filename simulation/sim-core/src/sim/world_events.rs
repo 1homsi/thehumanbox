@@ -557,6 +557,31 @@ pub fn tick_outbreak(
     }
 }
 
+/// Event kinds worth keeping in the log ahead of everyday chatter.
+pub fn is_news(etype: &str) -> bool {
+    matches!(
+        etype,
+        "prayer"
+            | "answered"
+            | "forsaken"
+            | "outbreak"
+            | "building_ruined"
+            | "meteor"
+            | "era"
+            | "era_advance"
+            | "disease_death"
+            | "smite"
+            | "war_declared"
+            | "battle"
+            | "treaty"
+            | "weather"
+            | "drought"
+            | "milestone"
+            | "eruption"
+            | "danger"
+    )
+}
+
 pub fn push_event(
     events: &mut std::collections::VecDeque<super::simulation::Event>,
     tick: u64,
@@ -571,7 +596,21 @@ pub fn push_event(
         detail: detail.to_string(),
     });
     if events.len() > MAX_RECENT_EVENTS {
-        events.pop_front();
+        // Everyday chatter makes room first, so prayers, ruins, plagues and
+        // new ages stay in the log long after the small talk has scrolled
+        // away. If the log is all news, the oldest goes.
+        let chatter = events
+            .iter()
+            .take(MAX_RECENT_EVENTS / 2)
+            .position(|e| !is_news(&e.etype));
+        match chatter {
+            Some(i) => {
+                events.remove(i);
+            }
+            None => {
+                events.pop_front();
+            }
+        }
     }
 }
 
@@ -1079,5 +1118,36 @@ mod tests {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod news_tests {
+    use super::*;
+
+    #[test]
+    fn news_outlasts_a_flood_of_everyday_chatter() {
+        let mut events = std::collections::VecDeque::new();
+        push_event(&mut events, 1, "prayer", "Ashari", "pray for food");
+        for t in 0..5_000 {
+            push_event(&mut events, t, "social", "someone", "said hello");
+        }
+        assert_eq!(events.len(), MAX_RECENT_EVENTS);
+        assert!(events.iter().any(|e| e.etype == "prayer"));
+        // Order stays chronological.
+        assert!(events
+            .iter()
+            .zip(events.iter().skip(1))
+            .all(|(a, b)| a.tick <= b.tick || a.etype == "prayer"));
+    }
+
+    #[test]
+    fn a_log_full_of_news_drops_the_oldest() {
+        let mut events = std::collections::VecDeque::new();
+        for t in 0..(MAX_RECENT_EVENTS as u64 + 10) {
+            push_event(&mut events, t, "weather", "the sky", "rain");
+        }
+        assert_eq!(events.len(), MAX_RECENT_EVENTS);
+        assert_eq!(events.front().unwrap().tick, 10);
     }
 }
