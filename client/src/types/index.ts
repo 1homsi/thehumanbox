@@ -363,6 +363,13 @@ export interface WardInfo {
   until: number
 }
 
+/** A chimney fouling the air; `s` is how thick its smoke is. */
+export interface SmogInfo {
+  x: number
+  y: number
+  s: number
+}
+
 export type PerilCause =
   | 'sickness'
   | 'hunger'
@@ -565,6 +572,8 @@ export interface WorldState {
   tribe_losses?: Record<string, Record<string, number>>
   /** The gods' wards over the land. */
   wards?: WardInfo[]
+  /** Smoke from industry. */
+  smog?: SmogInfo[]
   /** Tribes on the brink, and what is killing them. */
   tribes_in_peril?: TribePeril[]
   settlements?: SettlementInfo[]

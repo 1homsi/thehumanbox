@@ -19,7 +19,7 @@ const TOOL_TIPS: Record<string, string> = {
     'Sow a field in spring or summer. It ripens into grain and regrows after it is eaten. Nothing grows in winter, and a hard winter’s frost kills unripe fields.',
   plant_orchard:
     'Plant fruit trees. Slow to grow, then they bear fruit again and again. They sleep through winter.',
-  plant_sapling: 'Plant young trees that grow into a forest.',
+  plant_sapling: 'Plant young trees that grow into a forest. Woods around a factory drink in its smoke.',
   plant_flowers: 'Plant flowers. They bloom through spring and summer, and people near them are happier.',
   territory_map: 'Show the land each tribe claims.',
   settlement_map: 'Highlight towns and buildings.',

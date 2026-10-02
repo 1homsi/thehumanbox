@@ -389,6 +389,16 @@ impl Simulation {
                         .collect(),
                 ),
             );
+            obj.insert(
+                "smog".to_string(),
+                serde_json::Value::Array(
+                    self.smog
+                        .iter()
+                        .filter(|s| s.strength > 0.05)
+                        .map(|s| json!({"x": s.x, "y": s.y, "s": (f64::from(s.strength) * 100.0).round() / 100.0}))
+                        .collect(),
+                ),
+            );
             let mut peril: Vec<(&String, &crate::sim::civ::peril::Peril)> = self.tribe_peril.iter().collect();
             peril.sort_by(|a, b| a.0.cmp(b.0));
             obj.insert(

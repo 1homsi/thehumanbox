@@ -1183,6 +1183,7 @@ impl Simulation {
             },
             flood_tiles: state.flood_tiles,
             wards: state.wards,
+            smog: Vec::new(),
             plantings: state.plantings,
             prayers: state.prayers,
             hard_winter: state.hard_winter,
