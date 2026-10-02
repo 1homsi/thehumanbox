@@ -5,8 +5,8 @@ export const PERIL_HELP: Record<PerilCause, { reason: string; tool: string; acti
   sickness: { reason: 'sickness is taking them', tool: 'cure', action: 'cure them' },
   hunger: { reason: 'they are starving', tool: 'harvest', action: 'send a harvest' },
   thirst: { reason: 'they have no water', tool: 'rain', action: 'send rain' },
-  no_children: { reason: 'no one is left to raise children', tool: 'love', action: 'kindle love' },
-  old_age: { reason: 'they are growing old', tool: 'bless', action: 'bless them' },
+  no_children: { reason: 'no one is left to raise children', tool: 'spawn1', action: 'send a newcomer' },
+  old_age: { reason: 'they are growing old', tool: 'spawn1', action: 'send young blood' },
   dwindling: { reason: 'their numbers keep falling', tool: 'bless', action: 'bless them' },
 }
 

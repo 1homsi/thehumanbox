@@ -639,7 +639,11 @@ impl Organism {
                 .map(|o| (o.x as i32, o.y as i32));
             if let Some(tp) = target {
                 let dist = (tp.0 - ix).abs() + (tp.1 - iy).abs();
-                if dist > 3 && dist < 60 {
+                // Hysteresis: set out only from a little way off, then keep
+                // going until close. A single threshold had people step in,
+                // drift out past it, and turn back every few ticks.
+                let start = if self.thought == "drawn to someone" { 2 } else { 6 };
+                if dist > start && dist < 60 {
                     set_thought!("drawn to someone");
                     return (self.toward(tp, grid), thought);
                 }
@@ -654,9 +658,10 @@ impl Organism {
                     .map(|o| (o.x as i32, o.y as i32));
                 if let Some(pp) = partner {
                     let dist = (pp.0 - ix).abs() + (pp.1 - iy).abs();
-                    if dist > 4
+                    let walking = self.thought == "walking with partner";
+                    if dist > if walking { 2 } else { 6 }
                         && dist < 40
-                        && (self.thought == "walking with partner" || rng.random::<f32>() < 0.30)
+                        && (walking || rng.random::<f32>() < 0.30)
                     {
                         set_thought!("walking with partner");
                         return (self.toward(pp, grid), thought);

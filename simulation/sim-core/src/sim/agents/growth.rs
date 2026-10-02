@@ -46,8 +46,24 @@ pub fn spawn_organism_with_home(
     lineage_id: String,
     rng: &mut impl Rng,
 ) {
+    spawn_organism_as(grid, organisms, x, y, home_x, home_y, lineage_id, None, rng);
+}
+
+/// `spawn_organism_with_home` with the newcomer's sex chosen by the caller.
+#[allow(clippy::too_many_arguments)]
+pub fn spawn_organism_as(
+    grid: &WorldGrid,
+    organisms: &mut Vec<Organism>,
+    x: f32,
+    y: f32,
+    home_x: f32,
+    home_y: f32,
+    lineage_id: String,
+    sex: Option<Sex>,
+    rng: &mut impl Rng,
+) {
     let id = crate::sim::agents::spawn::seeded_id(rng, 8);
-    let sex = Sex::random(rng);
+    let sex = sex.unwrap_or_else(|| Sex::random(rng));
     let mut traits = Traits::random(rng);
     apply_sex_traits(&mut traits, sex);
     let max_age = rng.random_range(
