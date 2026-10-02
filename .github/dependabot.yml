@@ -33,11 +33,6 @@ updates:
         update-types:
           - minor
           - patch
-      react-three:
-        patterns:
-          - "@react-three/*"
-          - "three"
-          - "@types/three"
     ignore:
       - dependency-name: "*"
         update-types:

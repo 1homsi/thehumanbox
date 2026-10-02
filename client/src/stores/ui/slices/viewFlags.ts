@@ -26,19 +26,17 @@ const DEFAULTS: ViewFlags = {
   pregnancy: false,
   history: false,
   fps: false,
-  threeD: false,
   hideUI: false,
   photoMode: false,
   randomTour: false,
   slowMo: false,
   fastMo: false,
   colorBlind: false,
-  orgPov: false,
   territoryMap: false,
   headlineTicker: false,
 }
 
-const TRACKED_FLAGS: Set<keyof ViewFlags> = new Set(['threeD', 'orgPov', 'photoMode', 'randomTour', 'hideUI'])
+const TRACKED_FLAGS: Set<keyof ViewFlags> = new Set(['photoMode', 'randomTour', 'hideUI'])
 const MAP_FLAGS = ['territory', 'history'] as const
 const MAP_FLAGS_STORAGE_KEY = 'thb-map-view-flags'
 
@@ -52,8 +50,8 @@ function readSavedMapFlags(): Partial<ViewFlags> {
     const flags = Object.fromEntries(
       MAP_FLAGS.filter((key) => typeof parsed[key] === 'boolean').map((key) => [key, parsed[key]]),
     ) as Partial<ViewFlags>
-    // Migrate the old renderer-specific 3D toggle into the one shared
-    // territory preference, then keep the legacy flag dormant.
+    // Migrate the old renderer-specific territory toggle into the one
+    // shared territory preference, then keep the legacy flag dormant.
     if (parsed.territoryMap === true) flags.territory = true
     flags.territoryMap = false
     return flags
@@ -76,12 +74,7 @@ function saveMapFlags(flags: ViewFlags): void {
 
 function initialViewFlags(): ViewFlags {
   if (typeof window === 'undefined') return DEFAULTS
-  const initial = { ...DEFAULTS, ...readSavedMapFlags() }
-  const params = new URLSearchParams(window.location.search)
-  if (params.get('3d') === '1' || params.has('view3d')) {
-    return { ...initial, threeD: true }
-  }
-  return initial
+  return { ...DEFAULTS, ...readSavedMapFlags() }
 }
 
 export const createViewFlagsSlice: StateCreator<UIState, [], [], ViewFlagsSlice> = (set) => ({

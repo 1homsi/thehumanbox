@@ -13,7 +13,7 @@ export type SceneId =
 
 export type SceneKind = SceneId['kind']
 
-export type RenderMode = '2d' | '3d'
+export type RenderMode = '2d'
 
 export type OccupantRole =
   'host' | 'partner' | 'child' | 'kin' | 'guest' | 'stranger' | 'patron' | 'worshipper' | 'brewer' | 'priest'

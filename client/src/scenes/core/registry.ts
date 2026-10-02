@@ -11,7 +11,7 @@ export function registerScene(kind: SceneKind, mode: RenderMode, renderer: Scene
 export function getSceneRenderer(kind: SceneKind, mode: RenderMode): SceneRenderer | undefined {
   const entry = registry[kind]
   if (!entry) return undefined
-  return entry[mode] ?? entry['2d'] ?? entry['3d']
+  return entry[mode]
 }
 
 export function listRegisteredScenes(): SceneKind[] {

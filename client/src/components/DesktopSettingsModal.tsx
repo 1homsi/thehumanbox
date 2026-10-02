@@ -210,20 +210,11 @@ const DESKTOP_TABS: ReadonlyArray<{ id: TabId; label: string; icon: string }> = 
 /** Preferences that apply in both the web game and the desktop app. */
 function DisplayTab() {
   const setViewFlag = useUIStore((s) => s.setViewFlag)
-  const threeD = useViewFlag('threeD')
   const photoMode = useViewFlag('photoMode')
   const headlineTicker = useViewFlag('headlineTicker')
   const randomTour = useViewFlag('randomTour')
   return (
     <>
-      <SettingRow title="3D world" desc="Free-fly 3D view of the same world. WASD and mouse to move." beta>
-        <Switch
-          checked={!!threeD}
-          onChange={(v) => setViewFlag('threeD', v)}
-          label="3D world"
-          onHover={() => void import('../3d/world/WorldView3D')}
-        />
-      </SettingRow>
       <SettingRow
         title="Photo mode"
         desc="Hide every panel and the dock for clean screenshots. Press Esc or hover the top edge to get the header back."
@@ -275,8 +266,8 @@ function PerformanceTab() {
       title="Low-performance mode"
       desc={
         automatic
-          ? 'On automatically for this device. Lower frame rate and resolution, fewer effects, no 3D shadows.'
-          : 'Lower frame rate and resolution, fewer effects, no 3D shadows. Reloads the game (your world is saved first).'
+          ? 'On automatically for this device. Lower frame rate and resolution, fewer effects.'
+          : 'Lower frame rate and resolution, fewer effects. Reloads the game (your world is saved first).'
       }
     >
       <Switch

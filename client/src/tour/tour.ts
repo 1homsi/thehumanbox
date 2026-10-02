@@ -144,7 +144,7 @@ function tourSteps(worldKind: PlayerWorldKind): StepDef[] {
     {
       selector: '[data-tour="settings-btn"]',
       title: 'Settings',
-      text: 'The 3D world, photo mode, the colourblind palette, low-performance mode, and this tour.',
+      text: 'Photo mode, the colourblind palette, low-performance mode, and this tour.',
       on: 'bottom',
     },
     {

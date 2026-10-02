@@ -7,13 +7,11 @@ export function MoreDropdown() {
   const leftOpen = useUIStore((s) => s.leftOpen)
   const setFocus = useUIStore((s) => s.setFocus)
   const setViewFlag = useUIStore((s) => s.setViewFlag)
-  const setTerritoryView = useUIStore((s) => s.setTerritoryView)
   const toggleLeft = useUIStore((s) => s.toggleLeft)
   const openLanguages = useUIStore((s) => s.openLanguages)
   const openFamilyTree = useUIStore((s) => s.openFamilyTree)
   const openNotable = useUIStore((s) => s.openNotable)
 
-  const territory = useViewFlag('territory')
   const lineageDot = useViewFlag('lineageDot')
   const health = useViewFlag('health')
   const age = useViewFlag('age')
@@ -26,9 +24,6 @@ export function MoreDropdown() {
   const hazard = useViewFlag('hazard')
   const history = useViewFlag('history')
   const fps = useViewFlag('fps')
-  const threeD = useViewFlag('threeD')
-  const hideUI = useViewFlag('hideUI')
-  const orgPov = useViewFlag('orgPov')
 
   const closeMore = () => useUIStore.setState({ showMore: false })
 
@@ -95,109 +90,105 @@ export function MoreDropdown() {
       <div className="more-dropdown-divider" />
       <div className="more-dropdown-section">organism decorations</div>
       <div className="more-dropdown-grid">
-        {!threeD && (
-          <>
-            <Tooltip tip="Colored dot per organism showing tribe affiliation">
-              <button
-                className={clsx('lang-btn', lineageDot && 'active')}
-                aria-pressed={!!lineageDot}
-                onClick={() => setViewFlag('lineageDot', !lineageDot)}
-              >
-                ⬤ lineage
-              </button>
-            </Tooltip>
-            <Tooltip tip="Ring tint by health">
-              <button
-                className={clsx('lang-btn', health && 'active')}
-                aria-pressed={!!health}
-                onClick={() => setViewFlag('health', !health)}
-              >
-                ♥ health
-              </button>
-            </Tooltip>
-            <Tooltip tip="Age tint: child / adult / elder">
-              <button
-                className={clsx('lang-btn', age && 'active')}
-                aria-pressed={!!age}
-                onClick={() => setViewFlag('age', !age)}
-              >
-                ⏳ age
-              </button>
-            </Tooltip>
-            <Tooltip tip="Fear halo around frightened organisms">
-              <button
-                className={clsx('lang-btn', fear && 'active')}
-                aria-pressed={!!fear}
-                onClick={() => setViewFlag('fear', !fear)}
-              >
-                ⚠ fear
-              </button>
-            </Tooltip>
-            <Tooltip tip="Bond line between partners">
-              <button
-                className={clsx('lang-btn', partners && 'active')}
-                aria-pressed={!!partners}
-                onClick={() => setViewFlag('partners', !partners)}
-              >
-                ♥♥ pairs
-              </button>
-            </Tooltip>
-            <Tooltip tip="Pregnancy marker">
-              <button
-                className={clsx('lang-btn', pregnancy && 'active')}
-                aria-pressed={!!pregnancy}
-                onClick={() => setViewFlag('pregnancy', !pregnancy)}
-              >
-                ◯ pregnant
-              </button>
-            </Tooltip>
-            <Tooltip tip="Food / water / path stigmergy">
-              <button
-                className={clsx('lang-btn', trails && 'active')}
-                aria-pressed={!!trails}
-                onClick={() => setViewFlag('trails', !trails)}
-              >
-                ⋯ trails
-              </button>
-            </Tooltip>
-            <Tooltip tip="Highlight huts and campfires">
-              <button
-                className={clsx('lang-btn', structures && 'active')}
-                aria-pressed={!!structures}
-                onClick={() => setViewFlag('structures', !structures)}
-              >
-                ⌂ builds
-              </button>
-            </Tooltip>
-            <Tooltip tip="Soil fertility heat">
-              <button
-                className={clsx('lang-btn', fertility && 'active')}
-                aria-pressed={!!fertility}
-                onClick={() => setViewFlag('fertility', !fertility)}
-              >
-                ✿ fertility
-              </button>
-            </Tooltip>
-            <Tooltip tip="Hazard scars — violence and death">
-              <button
-                className={clsx('lang-btn', hazard && 'active')}
-                aria-pressed={!!hazard}
-                onClick={() => setViewFlag('hazard', !hazard)}
-              >
-                ✶ hazard
-              </button>
-            </Tooltip>
-            <Tooltip tip="Per-lineage drift over the last ~60 sim-days">
-              <button
-                className={clsx('lang-btn', history && 'active')}
-                aria-pressed={!!history}
-                onClick={() => setViewFlag('history', !history)}
-              >
-                ↝ history
-              </button>
-            </Tooltip>
-          </>
-        )}
+        <Tooltip tip="Colored dot per organism showing tribe affiliation">
+          <button
+            className={clsx('lang-btn', lineageDot && 'active')}
+            aria-pressed={!!lineageDot}
+            onClick={() => setViewFlag('lineageDot', !lineageDot)}
+          >
+            ⬤ lineage
+          </button>
+        </Tooltip>
+        <Tooltip tip="Ring tint by health">
+          <button
+            className={clsx('lang-btn', health && 'active')}
+            aria-pressed={!!health}
+            onClick={() => setViewFlag('health', !health)}
+          >
+            ♥ health
+          </button>
+        </Tooltip>
+        <Tooltip tip="Age tint: child / adult / elder">
+          <button
+            className={clsx('lang-btn', age && 'active')}
+            aria-pressed={!!age}
+            onClick={() => setViewFlag('age', !age)}
+          >
+            ⏳ age
+          </button>
+        </Tooltip>
+        <Tooltip tip="Fear halo around frightened organisms">
+          <button
+            className={clsx('lang-btn', fear && 'active')}
+            aria-pressed={!!fear}
+            onClick={() => setViewFlag('fear', !fear)}
+          >
+            ⚠ fear
+          </button>
+        </Tooltip>
+        <Tooltip tip="Bond line between partners">
+          <button
+            className={clsx('lang-btn', partners && 'active')}
+            aria-pressed={!!partners}
+            onClick={() => setViewFlag('partners', !partners)}
+          >
+            ♥♥ pairs
+          </button>
+        </Tooltip>
+        <Tooltip tip="Pregnancy marker">
+          <button
+            className={clsx('lang-btn', pregnancy && 'active')}
+            aria-pressed={!!pregnancy}
+            onClick={() => setViewFlag('pregnancy', !pregnancy)}
+          >
+            ◯ pregnant
+          </button>
+        </Tooltip>
+        <Tooltip tip="Food / water / path stigmergy">
+          <button
+            className={clsx('lang-btn', trails && 'active')}
+            aria-pressed={!!trails}
+            onClick={() => setViewFlag('trails', !trails)}
+          >
+            ⋯ trails
+          </button>
+        </Tooltip>
+        <Tooltip tip="Highlight huts and campfires">
+          <button
+            className={clsx('lang-btn', structures && 'active')}
+            aria-pressed={!!structures}
+            onClick={() => setViewFlag('structures', !structures)}
+          >
+            ⌂ builds
+          </button>
+        </Tooltip>
+        <Tooltip tip="Soil fertility heat">
+          <button
+            className={clsx('lang-btn', fertility && 'active')}
+            aria-pressed={!!fertility}
+            onClick={() => setViewFlag('fertility', !fertility)}
+          >
+            ✿ fertility
+          </button>
+        </Tooltip>
+        <Tooltip tip="Hazard scars — violence and death">
+          <button
+            className={clsx('lang-btn', hazard && 'active')}
+            aria-pressed={!!hazard}
+            onClick={() => setViewFlag('hazard', !hazard)}
+          >
+            ✶ hazard
+          </button>
+        </Tooltip>
+        <Tooltip tip="Per-lineage drift over the last ~60 sim-days">
+          <button
+            className={clsx('lang-btn', history && 'active')}
+            aria-pressed={!!history}
+            onClick={() => setViewFlag('history', !history)}
+          >
+            ↝ history
+          </button>
+        </Tooltip>
         <Tooltip tip="Frames-per-second and frame timing">
           <button
             className={clsx('lang-btn', fps && 'active')}
@@ -207,17 +198,6 @@ export function MoreDropdown() {
             ⏱ perf
           </button>
         </Tooltip>
-        {threeD && (
-          <Tooltip tip="Territory overlay — lineage claims and contested zones">
-            <button
-              className={clsx('lang-btn', territory && 'active')}
-              aria-pressed={!!territory}
-              onClick={() => setTerritoryView(!territory)}
-            >
-              ⬡ territory
-            </button>
-          </Tooltip>
-        )}
       </div>
 
       <div className="more-dropdown-divider" />
@@ -268,33 +248,6 @@ export function MoreDropdown() {
           </button>
         </Tooltip>
       </div>
-
-      {threeD && (
-        <>
-          <div className="more-dropdown-divider" />
-          <div className="more-dropdown-section">3d view</div>
-          <div className="more-dropdown-grid">
-            <Tooltip tip="Hide sidebars in 3D mode for immersion">
-              <button
-                className={clsx('lang-btn', hideUI && 'active')}
-                aria-pressed={!!hideUI}
-                onClick={() => setViewFlag('hideUI', !hideUI)}
-              >
-                ▤ hide ui
-              </button>
-            </Tooltip>
-            <Tooltip tip="First-person camera from the selected person's head">
-              <button
-                className={clsx('lang-btn', orgPov && 'active')}
-                aria-pressed={!!orgPov}
-                onClick={() => setViewFlag('orgPov', !orgPov)}
-              >
-                👁 org POV
-              </button>
-            </Tooltip>
-          </div>
-        </>
-      )}
     </div>
   )
 }

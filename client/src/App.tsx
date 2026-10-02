@@ -42,9 +42,6 @@ import { WorldFooter } from './components/WorldFooter'
 import { AppHeader } from './components/AppHeader'
 import { RightPanel } from './components/RightPanel'
 import { ModalRouter } from './components/ModalRouter'
-import { ThreeDLoading } from './components/ThreeDLoading'
-import { ThreeDErrorBoundary } from './components/ThreeDErrorBoundary'
-import { webglAvailable } from './lib/webgl'
 import { MobileBanner } from './components/MobileBanner'
 import { WelcomeModal } from './components/WelcomeModal'
 import { UpdateToast } from './components/UpdateToast'
@@ -55,7 +52,6 @@ import clsx from 'clsx'
 import './App.css'
 import './pixel-theme.css'
 
-const WorldView3D = lazyWithRetry(() => import('./3d/world/WorldView3D'))
 const SceneView = lazyWithRetry(() =>
   import('./scenes/components/SceneView').then((m) => ({ default: m.SceneView })),
 )
@@ -284,14 +280,6 @@ function LiveApp() {
     [sandboxControlsEnabled, sendCommand, setTemporarySandboxStatus],
   )
 
-  // When the 3D view fails it quietly falls back to the classic map; the
-  // player can turn 3D back on from settings.
-  const handleThreeDFailure = useCallback(() => {
-    useUIStore.getState().setViewFlag('threeD', false)
-  }, [])
-
-  const webglOk = useMemo(() => webglAvailable(), [])
-
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
   const leftOpen = useUIStore((s) => s.leftOpen)
   const toggleLeft = useUIStore((s) => s.toggleLeft)
@@ -299,10 +287,6 @@ function LiveApp() {
   const viewFlags = useUIStore((s) => s.viewFlags)
   const palette = viewFlags.colorBlind ? 'colorblind' : 'standard'
   const openDesktopSettings = useUIStore((s) => s.openDesktopSettings)
-
-  useEffect(() => {
-    if (viewFlags.threeD && !webglOk) handleThreeDFailure()
-  }, [viewFlags.threeD, webglOk, handleThreeDFailure])
 
   useEffect(() => {
     if (window.thbDesktop?.platform === 'darwin') {
@@ -448,17 +432,6 @@ function LiveApp() {
   }, [localStartupFailed, world])
 
   useEffect(() => {
-    if (viewFlags.threeD && viewFlags.hideUI) {
-      document.body.classList.add('thb-3d-immersive')
-    } else {
-      document.body.classList.remove('thb-3d-immersive')
-    }
-    return () => {
-      document.body.classList.remove('thb-3d-immersive')
-    }
-  }, [viewFlags.threeD, viewFlags.hideUI])
-
-  useEffect(() => {
     if (viewFlags.photoMode) document.body.classList.add('thb-photo-mode')
     else document.body.classList.remove('thb-photo-mode')
     return () => {
@@ -539,41 +512,24 @@ function LiveApp() {
         <main className="main" data-tour="world-canvas">
           {world ? (
             <div className="layout">
-              {(!viewFlags.threeD || !viewFlags.hideUI) && (
-                <>
-                  {leftOpen && <div className="panel-overlay panel-overlay-left" onClick={toggleLeft} />}
-                  <aside className={clsx('panel', 'panel-left', leftOpen && 'open')}>
-                    {leftOpen && (
-                      // Keyed by palette: these bake lineage colours in at
-                      // render, so the colourblind toggle remounts them.
-                      <Fragment key={palette}>
-                        <HistoryGrid />
-                        <LineagesList />
-                        <EventLog />
-                        <WorldFooter world={world} />
-                      </Fragment>
-                    )}
-                  </aside>
-                </>
-              )}
+              {leftOpen && <div className="panel-overlay panel-overlay-left" onClick={toggleLeft} />}
+              <aside className={clsx('panel', 'panel-left', leftOpen && 'open')}>
+                {leftOpen && (
+                  // Keyed by palette: these bake lineage colours in at
+                  // render, so the colourblind toggle remounts them.
+                  <Fragment key={palette}>
+                    <HistoryGrid />
+                    <LineagesList />
+                    <EventLog />
+                    <WorldFooter world={world} />
+                  </Fragment>
+                )}
+              </aside>
 
               {currentScene ? (
                 <Suspense fallback={null}>
                   <SceneView world={world} />
                 </Suspense>
-              ) : viewFlags.threeD && webglOk ? (
-                <ThreeDErrorBoundary onCrash={() => handleThreeDFailure()}>
-                  <Suspense fallback={<ThreeDLoading />}>
-                    <WorldView3D
-                      world={world}
-                      hideUI={viewFlags.hideUI}
-                      rendererPaused={desktopRendererPaused}
-                      sandboxArmed={sandboxControlsEnabled && !!armedTool}
-                      onSandboxApply={handleSandboxApply}
-                      onContextLost={() => handleThreeDFailure()}
-                    />
-                  </Suspense>
-                </ThreeDErrorBoundary>
               ) : (
                 <WorldView
                   world={world}

@@ -18,7 +18,7 @@ Live: [thehumanbox.com](https://thehumanbox.com)
 ```
 thehumanbox/
 ├── simulation/   Rust simulation engine + WebSocket server
-├── client/       React/Vite frontend (2D + optional 3D world)
+├── client/       React/Vite frontend (2D pixel world)
 └── lab/          Python workspace for model experiments and eval tooling
 ```
 
@@ -117,8 +117,6 @@ text instantly; the LLM rewrites in place when it returns.
 ## What you can do
 
 - Watch the live 2D map and follow any organism through their day.
-- Toggle to a 3D world for a flyover (lazy-loaded so 2D-only users
-  pay nothing).
 - Open the Civilization modal to see lineages, religions,
   governments, buildings, books, artworks, headlines, trades, and
   the goods each tribe is producing right now.

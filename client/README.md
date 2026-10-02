@@ -15,11 +15,9 @@ simulation never stops, even when nobody's watching.
 ## Stack
 
 - **React + TypeScript + Vite (rolldown)**
-- **2D HTML canvas** for the default world view — biome rendering,
+- **2D HTML canvas** for the world view — biome rendering,
   fire/weather overlays, organism markers, heatmap overlays, sprite
   decorations, animated lake shimmer, weather effects
-- **@react-three/fiber + three.js** for the optional 3D world,
-  loaded lazily so 2D-only users never pay for the chunk
 - **Zustand** for UI + world state, **TanStack Query** for on-demand
   organism detail fetches
 - **MessagePack** decode of binary WS frames (no per-tick JSON parse)
@@ -28,7 +26,7 @@ simulation never stops, even when nobody's watching.
 
 ## What's on screen
 
-- **Live map** in 2D or 3D. Pan, zoom, click to follow an organism.
+- **Live map**. Pan, zoom, click to follow an organism.
 - **World pulse** in the header: day/night, season, era, weather,
   active fires, sick count.
 - **Lineage and population panels** — every tribe alive right now,
@@ -93,7 +91,6 @@ pnpm run build   # outputs to dist/
 src/
 ├── App.tsx, main.tsx, App.css, index.css
 ├── 2d/               2D world rendering (WorldView), 2D scenes (home, tavern, temple)
-├── 3d/               3D world rendering (WorldView3D), 3D scenes, terrain, water, sun
 ├── scenes/           Shared scene types, registry, core resolver
 ├── components/       Modals, panels, inspectors, civ stats, family tree
 ├── tour/             Shepherd-based desktop onboarding
