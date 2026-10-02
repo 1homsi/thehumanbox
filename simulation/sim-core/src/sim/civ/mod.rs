@@ -15,5 +15,6 @@ pub mod refugees;
 pub mod settlements;
 pub mod trade_routes;
 pub mod vacancy;
+pub mod wards;
 pub mod warfare;
 pub mod world_milestones;
