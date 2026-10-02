@@ -1,5 +1,5 @@
 import { drawBoat } from './boat-sprite'
-import { crowdLabelIds } from './crowd-detail'
+import { crowdLabelIds, LabelPlacer, labelWidth } from './crowd-detail'
 import { drawWorkActivity, workActivity } from './activity-visuals'
 import { worldRenderScale, worldRenderWindow, interpolationFactor, shouldRenderFrame } from './render-timing'
 import { terrainDetail } from './terrain-detail'
@@ -2385,6 +2385,7 @@ export function drawWorldOnCanvas(
   const crowded = visibleOrganisms.length > 400
   const labelIds =
     characterDetail !== 'overview' && viewFlags.names ? crowdLabelIds(drawnOrganisms, cameraZoom) : null
+  const labelPlacer = new LabelPlacer()
   // Batch every organism shadow into two paths (focused / dimmed) so the
   // whole population costs two fills instead of hundreds of separate
   // beginPath/ellipse/fill draw calls per frame.
@@ -2673,8 +2674,15 @@ export function drawWorldOnCanvas(
     const showThought =
       (isSelected || (fullDetail && viewFlags.thoughts)) && org.thought && org.thought !== 'observing'
     const labelY = spriteTop - (showVitals ? 10 : 2)
+    // Names and thoughts that would sit on top of another label are left
+    // out; the selected person's always shows.
+    const nameShown =
+      showName && labelPlacer.place(px, labelY, labelWidth(org.name, isSelected ? 10 : 9), 10, isSelected)
+    const thoughtShown =
+      showThought &&
+      labelPlacer.place(px, labelY - (nameShown ? 10 : 0), labelWidth(org.thought ?? '', 8), 9, isSelected)
 
-    if (showName) {
+    if (nameShown) {
       ctx.font = isSelected ? 'bold 10px monospace' : '9px monospace'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'bottom'
@@ -2685,13 +2693,13 @@ export function drawWorldOnCanvas(
       ctx.fillText(org.name, px, labelY)
     }
 
-    if (showThought) {
+    if (thoughtShown) {
       ctx.font = '8px monospace'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'bottom'
       ctx.lineWidth = 2.5
       ctx.strokeStyle = 'rgba(0,0,0,0.85)'
-      const thoughtY = labelY - (showName ? 10 : 0)
+      const thoughtY = labelY - (nameShown ? 10 : 0)
       ctx.strokeText(org.thought, px, thoughtY)
       ctx.fillStyle = isSelected ? 'rgba(180,220,255,1)' : 'rgba(180,220,255,0.9)'
       ctx.fillText(org.thought, px, thoughtY)
