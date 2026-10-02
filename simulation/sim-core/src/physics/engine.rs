@@ -2,6 +2,21 @@ use crate::world::{grid::WorldGrid, tiles::Tile};
 use rand::{Rng, RngExt};
 use rustc_hash::FxHashSet as HashSet;
 
+/// How much slower scorched ground greens than ash does.
+const SCORCHED_RECOVERY: f32 = 0.3;
+
+/// How much richer ash leaves the soil when grass grows back over it.
+/// Volcanic ash weathers into the best soil there is; burned forest feeds
+/// the next crop; ash on desert sand is only dried-out grass.
+fn ash_soil_bonus(biome: crate::world::tiles::Biome) -> f32 {
+    use crate::world::tiles::Biome;
+    match biome {
+        Biome::Volcanic => 0.5,
+        Biome::Desert | Biome::Badlands => 0.0,
+        _ => 0.2,
+    }
+}
+
 /// Chance per physics step that fertile open grass sprouts wild food.
 pub const WILD_FOOD_GROWTH: f32 = 0.0004;
 
@@ -216,10 +231,97 @@ impl PhysicsEngine {
                             grid.set(x, y, Tile::Food);
                         }
                     }
-                    Tile::Ash if rng.random::<f32>() < recover_rate => grid.set(x, y, Tile::Grass),
+                    Tile::Ash if rng.random::<f32>() < recover_rate => {
+                        grid.set(x, y, Tile::Grass);
+                        grid.enrich_soil(x, y, ash_soil_bonus(grid.biome_at(x, y)));
+                    }
+                    // Blighted and burned-black ground greens again as its
+                    // soil comes back: slowly, and slower still on poor soil.
+                    Tile::Scorched => {
+                        let i = WorldGrid::idx(x, y);
+                        let cap = grid.biome_at(x, y).base_fertility().max(0.05);
+                        let health = (grid.fertility[i] / cap).clamp(0.15, 1.0);
+                        if rng.random::<f32>() < recover_rate * SCORCHED_RECOVERY * health {
+                            grid.set(x, y, Tile::Grass);
+                        }
+                    }
                     _ => {}
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::world::tiles::Biome;
+    use rand::SeedableRng;
+
+    fn patch(grid: &mut WorldGrid, tile: Tile, biome: Biome, fertility: f32) {
+        for x in 10..30 {
+            for y in 10..30 {
+                grid.set(x, y, tile);
+                let i = WorldGrid::idx(x, y);
+                grid.biome[i] = biome as u8;
+                grid.fertility[i] = fertility;
+            }
+        }
+    }
+
+    fn count(grid: &WorldGrid, tile: Tile) -> usize {
+        (10..30)
+            .flat_map(|x| (10..30).map(move |y| (x, y)))
+            .filter(|&(x, y)| grid.get(x, y) == tile)
+            .count()
+    }
+
+    #[test]
+    fn ash_grows_back_over_richer_soil() {
+        let mut grid = WorldGrid::new(7);
+        let mut rng = rand::rngs::StdRng::seed_from_u64(7);
+        let mut engine = PhysicsEngine::new();
+        engine.food_season = 0.0;
+        patch(&mut grid, Tile::Ash, Biome::Volcanic, 0.1);
+        for _ in 0..4000 {
+            engine.grow_plants(&mut grid, &mut rng);
+        }
+        assert!(count(&grid, Tile::Ash) < 40, "ash never greened");
+        let regrown = (10..30)
+            .flat_map(|x| (10..30).map(move |y| (x, y)))
+            .filter(|&(x, y)| grid.get(x, y) == Tile::Grass)
+            .map(|(x, y)| grid.fertility_at(x, y))
+            .fold(f32::INFINITY, f32::min);
+        assert!(
+            regrown > Biome::Volcanic.base_fertility() + 0.3,
+            "volcanic ash left poor soil: {regrown}"
+        );
+    }
+
+    #[test]
+    fn scorched_ground_greens_as_its_soil_returns() {
+        let mut grid = WorldGrid::new(8);
+        let mut rng = rand::rngs::StdRng::seed_from_u64(8);
+        let mut engine = PhysicsEngine::new();
+        engine.food_season = 0.0;
+        patch(&mut grid, Tile::Scorched, Biome::Grassland, 0.72);
+        for _ in 0..6000 {
+            engine.grow_plants(&mut grid, &mut rng);
+        }
+        let healthy_left = count(&grid, Tile::Scorched);
+        assert!(
+            healthy_left < 200,
+            "healthy scorched ground stayed black: {healthy_left}/400"
+        );
+
+        // Blighted soil holds the scar much longer.
+        patch(&mut grid, Tile::Scorched, Biome::Grassland, 0.05);
+        for _ in 0..6000 {
+            engine.grow_plants(&mut grid, &mut rng);
+        }
+        assert!(
+            count(&grid, Tile::Scorched) > healthy_left,
+            "poor soil recovered as fast as good soil"
+        );
     }
 }

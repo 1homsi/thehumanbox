@@ -558,6 +558,16 @@ pub fn tick_outbreak(
 }
 
 /// Event kinds worth keeping in the log ahead of everyday chatter.
+/// Most flooded tiles the world tracks draining at once.
+pub const MAX_FLOOD_TILES: usize = 8000;
+/// Ticks a flood's rim stays under water, and its deep middle.
+pub const FLOOD_RIM_TICKS: u64 = 1200;
+pub const FLOOD_DEEP_TICKS: u64 = 2400;
+/// Ticks a drained lake bed stays flooded before it dries.
+const FLOOD_SHALLOW_TICKS: u64 = 900;
+/// How much richer the soil is where floodwater drains away.
+const FLOOD_SILT: f32 = 0.25;
+
 pub fn is_news(etype: &str) -> bool {
     matches!(
         etype,
@@ -778,17 +788,40 @@ pub fn tick_world_evolution(
         }
     }
 
+    // Floodwater drains: a flood's deep middle shallows to flooded ground
+    // first, and flooded ground dries to grass over a layer of rich silt.
     let mut i = 0;
+    let mut shallowed = Vec::new();
+    let mut drained = 0;
     while i < flood_tiles.len() {
         let (fx, fy, expiry) = flood_tiles[i];
         if tick > expiry {
-            if grid.get(fx, fy) == Tile::Flooded {
-                grid.set(fx, fy, Tile::Grass);
+            match grid.get(fx, fy) {
+                Tile::Water => {
+                    grid.set(fx, fy, Tile::Flooded);
+                    shallowed.push((fx, fy, tick + FLOOD_SHALLOW_TICKS));
+                }
+                Tile::Flooded => {
+                    grid.set(fx, fy, Tile::Grass);
+                    grid.enrich_soil(fx, fy, FLOOD_SILT);
+                    drained += 1;
+                }
+                _ => {}
             }
             flood_tiles.swap_remove(i);
         } else {
             i += 1;
         }
+    }
+    flood_tiles.extend(shallowed);
+    if drained >= 12 {
+        push_event(
+            events,
+            tick,
+            "weather",
+            "the floodwaters",
+            "drained away and left rich silt behind",
+        );
     }
 
     {
@@ -828,14 +861,6 @@ pub fn tick_world_evolution(
                 "world",
                 &format!("volcanic eruption at ({},{})", x, y),
             );
-        }
-    }
-
-    for _ in 0..20 {
-        let x = rng.random_range(0..WIDTH as i32);
-        let y = rng.random_range(0..HEIGHT as i32);
-        if grid.get(x, y) == Tile::Scorched && rng.random::<f32>() < 0.002 {
-            grid.set(x, y, Tile::Grass);
         }
     }
 
