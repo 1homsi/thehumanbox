@@ -12,7 +12,7 @@ const TOOL_TIPS: Record<string, string> = {
   water: 'Paint water.',
   rock: 'Paint rock.',
   sand: 'Paint sand.',
-  snow: 'Paint snow.',
+  snow: 'Paint snow. On warm land it melts away again.',
   food: 'Scatter food for humans and animals to gather.',
   drink: 'Add fresh drinking water.',
   plant_crop:
@@ -50,7 +50,7 @@ const TOOL_TIPS: Record<string, string> = {
   clear: 'Clear the skies.',
   drought_on: 'Start a drought. Water shrinks and thirst rises.',
   drought_off: 'End the drought.',
-  fire: 'Set the brush area ablaze. Fire spreads to nearby flammable land.',
+  fire: 'Set the brush area ablaze. Fire spreads to nearby flammable land; the ash it leaves grows back richer.',
   plague: 'Start an outbreak that spreads through close contact.',
   poison: 'Sicken everyone inside the brush area.',
   meteor: 'Crash a meteor. Kills everything it hits and leaves a burning crater.',
@@ -67,9 +67,10 @@ const TOOL_TIPS: Record<string, string> = {
   banish: 'Destroy every monster and predator in the brush area.',
   frenzy: 'Turn neighbours on each other. Everyone in the brush area gets hurt.',
   thunder: 'Rain lightning across the brush area. Strikes people, animals and dry grass.',
-  blight: 'Rot the crops and spoil the food people carry.',
-  flood: 'Drown the land: a lake in the middle, flooded ground around it.',
-  blizzard: 'Bury the land in snow and chill everyone caught in it.',
+  blight: 'Rot the crops, spoil the food people carry and sour the soil for years.',
+  flood:
+    'Drown the land: a lake in the middle, flooded ground around it. The water drains and leaves rich silt.',
+  blizzard: 'Bury the land in snow and chill everyone caught in it. The snow melts as the land warms.',
   zombie: 'Raise a zombie. Its victims rise as zombies too.',
   demon: 'Summon a demon. It scorches the ground and sets fires as it hunts.',
   dragon: 'Summon a dragon. It flies, breathes fire, and takes an army to kill.',
@@ -87,7 +88,8 @@ const TOOL_TIPS: Record<string, string> = {
   love: 'Single adults pair up and feel ready for children.',
   tame: 'Turn wolves and bears into loyal dogs bonded to the nearest person.',
   meteor_shower: 'Rain several small meteors across the brush area.',
-  volcano: 'Raise a volcano: a burning crater, a rock cone and an ash apron. Kills anyone where it rises.',
+  volcano:
+    'Raise a volcano: a burning crater, a rock cone and an ash apron that weathers into the richest soil. Kills anyone where it rises.',
 }
 
 export function toolTip(tool: SandboxTool): string {
