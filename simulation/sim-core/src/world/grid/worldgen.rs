@@ -845,6 +845,7 @@ impl WorldGrid {
         }
 
         // Scattered stones and the first wild food.
+        const WILD_FOOD_DENSITY: f32 = 0.35;
         let near_water = distance_from(|i| self.tiles[i] == Tile::Water as i8 && land[i]);
         for i in 0..SIZE {
             if self.tiles[i] != Tile::Grass as i8 {
@@ -854,7 +855,9 @@ impl WorldGrid {
             // stones as drawn decoration instead.
             let biome = Biome::from_u8(self.biome[i]);
             let river_bonus = if near_water[i] <= 3 { 2.0 } else { 1.0 };
-            if rng.random::<f32>() < biome.initial_food_chance() * river_bonus {
+            // A third of the old carpet of food: enough to found a tribe,
+            // not enough to feed a nation without work (or a god).
+            if rng.random::<f32>() < biome.initial_food_chance() * river_bonus * WILD_FOOD_DENSITY {
                 self.tiles[i] = Tile::Food as i8;
             }
         }

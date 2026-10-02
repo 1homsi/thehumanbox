@@ -3,6 +3,7 @@ pub mod command;
 pub mod config;
 pub mod cosmos;
 pub mod persistence;
+pub mod seasons;
 pub mod serialize;
 pub mod simulation;
 pub mod spatial;

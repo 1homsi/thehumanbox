@@ -1440,6 +1440,7 @@ impl Simulation {
 
         let season = self.season();
         self.physics.growth_mult = season_growth(season);
+        self.physics.food_season = crate::sim::seasons::food_season(season);
 
         if self.tick_count.is_multiple_of(5) {
             let wet = self.weather.is_wet(self.tick_count);
@@ -1870,6 +1871,7 @@ impl Simulation {
         self.tick_colonization();
         self.tick_plantings();
         self.tick_prayers();
+        self.tick_wild_food();
         self.check_animal_catches();
 
         {
@@ -2639,7 +2641,12 @@ impl Simulation {
         } else if action == 19 {
             let fi = WorldGrid::idx(ix, iy);
             let fert = self.grid.fertility[fi];
-            if matches!(self.grid.get(ix, iy), Tile::Grass) && self.rng.random::<f32>() < 0.10 + fert * 0.18 {
+            // Foraging finds what the season grows: plenty in spring, roots
+            // and scraps in winter, and little where the land is picked over.
+            let season = crate::sim::seasons::forage_season(self.season());
+            let picked_over = 1.0 / (1.0 + self.grid.pressure[fi] * 0.6);
+            let chance = (0.10 + fert * 0.18) * season * picked_over;
+            if matches!(self.grid.get(ix, iy), Tile::Grass) && self.rng.random::<f32>() < chance {
                 self.grid.set(ix, iy, Tile::Food);
                 self.grid.reduce_fertility(ix, iy, 0.03);
                 signal_reward += 0.02;
@@ -2988,7 +2995,8 @@ impl Simulation {
             self.organisms[idx].energy = (self.organisms[idx].energy - night_drain).max(0.0);
         }
 
-        let temp = self.grid.temp_at(cx, cy);
+        // Winters are cold and summers warm; shelter softens both.
+        let temp = self.grid.temp_at(cx, cy) + crate::sim::seasons::season_temperature(self.season());
         let resilience = self.organisms[idx].traits.resilience;
         if !(10.0..=30.0).contains(&temp) {
             let stress = if temp < 10.0 {
