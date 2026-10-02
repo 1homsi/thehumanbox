@@ -26,6 +26,7 @@ describe('tribe status', () => {
     expect(s.sick).toBe(1)
     expect(s.faith).toBe(3)
     expect(s.blessed).toBe(true)
+    expect(s.lostFaith).toBe(false)
     expect(s.prayer?.kind).toBe('hunger')
   })
 

@@ -5,6 +5,7 @@
 //! faith grows. A prayer left unanswered leaves the tribe feeling forsaken.
 use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
+use rand::RngExt;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -22,6 +23,12 @@ pub const BLESSING_TICKS: u64 = 2400;
 pub const DESPAIR_TICKS: u64 = 1800;
 /// A tribe stuck in one era this long asks for wisdom.
 pub const STALLED_ERA_TICKS: u64 = 7200;
+/// At or below this faith a tribe has given up on its gods.
+pub const LOST_FAITH: i32 = -6;
+/// Faith stays within these bounds.
+const FAITH_RANGE: (i32, i32) = (-10, 30);
+/// Quiet time between unasked gifts counting towards a tribe's faith.
+const GIFT_COOLDOWN: u64 = 600;
 /// Blessings and despair act on people at this cadence.
 const MOOD_TICKS: u64 = 60;
 
@@ -95,6 +102,8 @@ pub struct PrayerState {
     pub despair_until: BTreeMap<String, u64>,
     /// The era each tribe was last seen in, and since when.
     pub era_since: BTreeMap<String, (u8, u64)>,
+    /// Earliest tick an unasked gift may again raise a tribe's faith.
+    pub gift_quiet_until: BTreeMap<String, u64>,
 }
 
 #[derive(Default)]
@@ -143,6 +152,13 @@ impl Simulation {
         for (lineage, n) in needs {
             if self.prayers.active.iter().any(|p| p.lineage == lineage)
                 || self.prayers.quiet_until.get(&lineage).is_some_and(|&t| now < t)
+            {
+                continue;
+            }
+            // A tribe that has lost faith rarely bothers praying; only real
+            // desperation brings it to its knees.
+            if self.prayers.faith.get(&lineage).is_some_and(|&f| f <= LOST_FAITH)
+                && self.rng.random::<f32>() >= 0.1
             {
                 continue;
             }
@@ -259,7 +275,7 @@ impl Simulation {
                 continue;
             }
             self.prayers.forsaken += 1;
-            *self.prayers.faith.entry(p.lineage.clone()).or_default() -= 1;
+            self.adjust_faith(&p.lineage, -1);
             self.prayers
                 .quiet_until
                 .insert(p.lineage.clone(), now + PRAYER_COOLDOWN);
@@ -348,6 +364,60 @@ impl Simulation {
         }
     }
 
+    /// Help nobody asked for still counts: a tribe that feels the gods'
+    /// kindness unprompted grows a little more faithful, which is how a
+    /// tribe that lost its faith is won back.
+    fn unasked_gifts(&mut self, kinds: &[PrayerKind], at: Option<(f32, f32)>, answered: &[String]) {
+        let Some((x, y)) = at else { return };
+        let gift = kinds.iter().any(|k| {
+            matches!(
+                k,
+                PrayerKind::Hunger | PrayerKind::Thirst | PrayerKind::Sickness | PrayerKind::Knowledge
+            )
+        });
+        if !gift {
+            return;
+        }
+        let now = self.tick_count;
+        let near: Vec<String> = self
+            .lineage_aggregates
+            .iter()
+            .filter(|(lid, a)| {
+                let (cx, cy) = a.center();
+                a.population > 0
+                    && (cx as f32 - x).hypot(cy as f32 - y) <= ANSWER_RADIUS
+                    && !answered.contains(lid)
+                    && !self.prayers.active.iter().any(|p| &p.lineage == *lid)
+                    && self.prayers.gift_quiet_until.get(*lid).is_none_or(|&t| now >= t)
+            })
+            .map(|(lid, _)| lid.clone())
+            .collect();
+        let mut near = near;
+        near.sort();
+        for lineage in near {
+            self.adjust_faith(&lineage, 1);
+            self.prayers
+                .gift_quiet_until
+                .insert(lineage.clone(), now + GIFT_COOLDOWN);
+            for o in self
+                .organisms
+                .iter_mut()
+                .filter(|o| o.alive && o.lineage_id == lineage)
+            {
+                o.hope = (o.hope + 0.1).min(1.0);
+                o.gratitude = (o.gratitude + 0.1).min(1.0);
+            }
+            let name = self.tribe_name(&lineage);
+            push_event(
+                &mut self.events,
+                now,
+                "answered",
+                &name,
+                "felt an unasked gift from the gods",
+            );
+        }
+    }
+
     fn lineage_alive(&self, lineage: &str) -> bool {
         self.lineage_aggregates
             .get(lineage)
@@ -356,8 +426,13 @@ impl Simulation {
 
     /// Called after a power lands. `at` is where it landed, or `None` for
     /// powers that touch the whole world (weather, ending a drought).
+    fn adjust_faith(&mut self, lineage: &str, delta: i32) {
+        let f = self.prayers.faith.entry(lineage.to_string()).or_default();
+        *f = (*f + delta).clamp(FAITH_RANGE.0, FAITH_RANGE.1);
+    }
+
     pub(crate) fn answer_prayers(&mut self, kinds: &[PrayerKind], at: Option<(f32, f32)>) {
-        if kinds.is_empty() || self.prayers.active.is_empty() {
+        if kinds.is_empty() {
             return;
         }
         let now = self.tick_count;
@@ -368,9 +443,10 @@ impl Simulation {
                     && at.is_none_or(|(x, y)| (x - p.x as f32).hypot(y - p.y as f32) <= ANSWER_RADIUS)
             });
         self.prayers.active = kept;
+        let mut answered_lineages: Vec<String> = Vec::new();
         for p in answered {
             self.prayers.answered += 1;
-            *self.prayers.faith.entry(p.lineage.clone()).or_default() += 1;
+            self.adjust_faith(&p.lineage, 1);
             self.prayers
                 .quiet_until
                 .insert(p.lineage.clone(), now + PRAYER_COOLDOWN);
@@ -396,7 +472,9 @@ impl Simulation {
             let name = self.tribe_name(&p.lineage);
             let detail = format!("give thanks: the gods answered their {} prayer", p.kind.name());
             push_event(&mut self.events, now, "answered", &name, &detail);
+            answered_lineages.push(p.lineage);
         }
+        self.unasked_gifts(kinds, at, &answered_lineages);
     }
 }
 
@@ -580,6 +658,42 @@ mod tests {
             })
             .count();
         assert!(drawn > 0, "some of the tribe heads for the prayer");
+    }
+
+    #[test]
+    fn a_faithless_tribe_rarely_prays_and_unasked_gifts_win_it_back() {
+        let (mut sim, lineage) = tribe_sim();
+        sim.prayers.faith.insert(lineage.clone(), LOST_FAITH - 2);
+        for o in sim.organisms.iter_mut() {
+            o.energy = 0.2;
+        }
+        let mut prayed = 0;
+        for _ in 0..40 {
+            check(&mut sim);
+            if sim.prayers.active.drain(..).next().is_some() {
+                prayed += 1;
+            }
+            sim.prayers.quiet_until.clear();
+        }
+        assert!(prayed < 15, "a faithless tribe prayed {prayed} times in 40");
+
+        // A harvest nobody asked for counts, once per cooldown.
+        sim.rebuild_lineage_aggregates();
+        let (cx, cy) = sim.lineage_aggregates[&lineage].center();
+        let before = sim.prayers.faith[&lineage];
+        let cmd = format!(r#"{{"cmd":"bless","x":{cx},"y":{cy},"radius":8}}"#);
+        sim.apply_command_json(&cmd);
+        sim.apply_command_json(&cmd);
+        assert_eq!(sim.prayers.faith[&lineage], before + 1);
+    }
+
+    #[test]
+    fn faith_stays_within_bounds() {
+        let (mut sim, lineage) = tribe_sim();
+        for _ in 0..50 {
+            sim.adjust_faith(&lineage, -1);
+        }
+        assert_eq!(sim.prayers.faith[&lineage], FAITH_RANGE.0);
     }
 
     #[test]
