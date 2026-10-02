@@ -5812,6 +5812,11 @@ body.thb-colorblind .org-sick-badge {
   border: 1px solid #8a7a52;
   padding: 0 3px;
 }
+.tribe-card-relations {
+  margin-top: 3px;
+  font-size: 9px;
+  color: #9ac6a6;
+}
 .tribe-card-losses {
   margin-top: 3px;
   font-size: 9px;
