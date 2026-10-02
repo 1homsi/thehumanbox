@@ -967,7 +967,7 @@ export const RUIN_CRUMBLE_TICKS = 12_000
 
 /** What a ruin's broken walls are made of. */
 export function ruinMaterial(kind: string, tier = 0): { wall: string; shade: string; top: string } {
-  const k = normKind(kind)
+  const k = kind.toLowerCase()
   if (/^(hut|tent|cabin|lean_?to|longhouse|yurt)/.test(k) || (tier <= 1 && /house|home/.test(k)))
     return { wall: '#7a5636', shade: '#553a24', top: '#9a7449' }
   if (
