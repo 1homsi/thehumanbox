@@ -60,6 +60,9 @@ pub fn tick_civ(sim: &mut Simulation, spatial: Option<&SpatialIndex>) {
         tick_dynasty_watch(sim);
         forget_vanished_tribes(sim);
     }
+    if tick > 0 && tick.is_multiple_of(super::festivals::FESTIVAL_STEP) {
+        sim.tick_festivals();
+    }
     if tick > 0 && tick.is_multiple_of(super::graves::GRAVE_STEP) {
         sim.tick_graves();
     }

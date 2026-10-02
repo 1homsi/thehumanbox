@@ -10,6 +10,7 @@ import { lossLine, PERIL_HELP, perilOf, remainingLine } from '../world/tribe-per
 import { activeBattles, enemiesOf } from '../2d/world/battles'
 import { relationsLine, relationsOf } from '../world/diplomacy'
 import { leadershipOf } from '../world/leadership'
+import { festivalLabel } from '../2d/world/festivals'
 import { tribeStatus } from '../world/tribe-status'
 import { ToolSprite } from './ToolSprite'
 
@@ -73,6 +74,7 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
   )
   const relations = relationsLine(relationsOf(world, status.id))
   const leadership = leadershipOf(world, status.id)
+  const festival = festivalLabel(world.festivals, status.id)
   const peril = perilOf(world, status.id)
   const losses = lossLine(world.tribe_losses?.[status.id])
   const help = peril ? PERIL_HELP[peril.cause] : null
@@ -137,6 +139,7 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
           )}
         </div>
       )}
+      {festival && <div className="tribe-card-festival">♫ {festival} is under way</div>}
       <div className="tribe-card-sub">
         {status.people} {status.people === 1 ? 'person' : 'people'}
         {status.era && ` · ${status.era} age`}

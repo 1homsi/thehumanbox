@@ -273,9 +273,13 @@ export interface VehicleInfo {
 
 export interface FestivalInfo {
   name: string
+  kind?: string
   lineage_id?: string
   started?: number
   ends?: number
+  /** Where it is held, in tiles. */
+  x?: number
+  y?: number
 }
 
 export interface LifeEvent {

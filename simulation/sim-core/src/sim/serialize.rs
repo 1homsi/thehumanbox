@@ -399,6 +399,26 @@ impl Simulation {
                         .collect(),
                 ),
             );
+            obj.insert(
+                "festivals".to_string(),
+                serde_json::Value::Array(
+                    self.festivals
+                        .iter()
+                        .filter(|f| now < f.start_tick + u64::from(f.duration_ticks))
+                        .map(|f| {
+                            json!({
+                                "name": f.name,
+                                "kind": f.kind.name(),
+                                "lineage_id": f.lineage_id,
+                                "started": f.start_tick,
+                                "ends": f.start_tick + u64::from(f.duration_ticks),
+                                "x": f.center[0],
+                                "y": f.center[1],
+                            })
+                        })
+                        .collect(),
+                ),
+            );
             let mut peril: Vec<(&String, &crate::sim::civ::peril::Peril)> = self.tribe_peril.iter().collect();
             peril.sort_by(|a, b| a.0.cmp(b.0));
             obj.insert(
