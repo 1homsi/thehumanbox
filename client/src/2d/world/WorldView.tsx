@@ -74,7 +74,18 @@ import {
   prayerEffectsActive,
   updatePrayerFeedback,
 } from './prayer-feedback'
-import { drawLaunch, drawPlane, flightPosition, launchProgress, padEmpty } from './era-traffic'
+import {
+  drawLaunch,
+  drawPlane,
+  drawRail,
+  drawTrain,
+  flightPosition,
+  launchProgress,
+  padEmpty,
+  railLinks,
+  trainProgress,
+  type RailLink,
+} from './era-traffic'
 import { prayerTimeLeft } from '../../world/prayers'
 import { useCameraFocus } from '../../stores/camera-focus'
 import { strategyBeaconPositions, strategyTimeLabel } from '../../world/strategy-visuals'
@@ -1171,6 +1182,28 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
   return canvas
 }
 
+let _railSource: WorldState['buildings'] | undefined
+let _rails: RailLink[] = []
+/** Rail links only change when the building list does. */
+function cachedRailLinks(buildings: WorldState['buildings']): RailLink[] {
+  if (buildings !== _railSource) {
+    _railSource = buildings
+    _rails = railLinks(
+      (buildings ?? []).map((b) => ({
+        id: b.id,
+        kind: b.kind,
+        x: b.x,
+        y: b.y,
+        fw: b.fw,
+        fh: b.fh,
+        ruined: b.ruined,
+        owner: b.owner_lineage ?? b.lineage_id ?? undefined,
+      })),
+    )
+  }
+  return _rails
+}
+
 /** Rockets lifting off from spaceports and aircraft over modern tribes. */
 function drawEraTraffic(
   ctx: CanvasRenderingContext2D,
@@ -2104,6 +2137,34 @@ export function drawWorldOnCanvas(
       }
     }
     ctx.restore()
+  }
+
+  // Railways between each tribe's train stations, with trains shuttling
+  // along them in the style of the tribe's age.
+  const links = cachedRailLinks(world.buildings)
+  if (links.length > 0) {
+    const tiers = lineageEraTiers(world.lineage_eras)
+    for (const link of links) {
+      drawRail(
+        ctx,
+        (link.a.x - ox) * TILE,
+        (link.a.y - oy) * TILE,
+        (link.b.x - ox) * TILE,
+        (link.b.y - oy) * TILE,
+      )
+    }
+    for (const link of links) {
+      drawTrain(
+        ctx,
+        (link.a.x - ox) * TILE,
+        (link.a.y - oy) * TILE,
+        (link.b.x - ox) * TILE,
+        (link.b.y - oy) * TILE,
+        trainProgress(link, world.tick),
+        tiers.get(link.owner) ?? 5,
+        t,
+      )
+    }
   }
 
   if (world.plantings && world.plantings.length >= 4) {
