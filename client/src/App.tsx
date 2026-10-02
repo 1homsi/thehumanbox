@@ -19,7 +19,9 @@ import { askConfirm } from './lib/confirm'
 import { toolFailure } from './components/tool-tips'
 import { SANDBOX_CATEGORIES, type LineageStrategy, type SandboxTool } from './simulation/sandbox'
 import { newPerils } from './world/peril-watch'
-import { prayerTool } from './world/prayers'
+import { prayerRows, prayerTool } from './world/prayers'
+import { shortcutFor, typingTarget } from './world/shortcuts'
+import { tribeHome } from './world/tribe-peril'
 import { useCameraFocus } from './stores/camera-focus'
 import type { PrayerInfo } from './types'
 import { DesktopDownloadToast } from './components/DesktopDownloadToast'
@@ -357,6 +359,38 @@ function LiveApp() {
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [world, selectedOrgId])
+
+  // Game keys: speeds, the next prayer, the next tribe on the brink.
+  const brinkIndex = useRef(0)
+  useEffect(() => {
+    const onGameKey = (event: KeyboardEvent) => {
+      if (!sandboxControlsEnabled || event.repeat || typingTarget(event.target)) return
+      const action = shortcutFor(event)
+      if (!action) return
+      event.preventDefault()
+      if (action.kind === 'speed') {
+        const tool = SANDBOX_CATEGORIES.flatMap((c) => c.tools).find((t) => t.id === action.tool)
+        if (tool) onPickTool(tool)
+      } else if (action.kind === 'prayer') {
+        const prayers = world?.prayers ?? []
+        const first = prayerRows(prayers, world?.tick ?? 0)[0]
+        if (first) handleAnswerPrayer(first.prayer)
+        else setTemporarySandboxStatus('no one is praying')
+      } else {
+        const perils = [...(world?.tribes_in_peril ?? [])].sort((a, b) => a.population - b.population)
+        if (!world || perils.length === 0) {
+          setTemporarySandboxStatus('no tribe is on the brink')
+          return
+        }
+        const peril = perils[brinkIndex.current++ % perils.length]!
+        useUIStore.getState().setFocus(`lineage:${peril.lineage_id}`)
+        const home = tribeHome(world, peril.lineage_id)
+        if (home) useCameraFocus.getState().focusTile(Math.round(home.x), Math.round(home.y))
+      }
+    }
+    window.addEventListener('keydown', onGameKey)
+    return () => window.removeEventListener('keydown', onGameKey)
+  }, [onPickTool, sandboxControlsEnabled, world, handleAnswerPrayer, setTemporarySandboxStatus])
 
   useEffect(() => {
     const togglePlayback = (event: KeyboardEvent) => {

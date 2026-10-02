@@ -1,5 +1,6 @@
 import clsx from 'clsx'
 import { useUIStore, useViewFlag } from '../stores/store'
+import { SHORTCUT_HELP } from '../world/shortcuts'
 import { Tooltip } from './Tooltip'
 
 export function MoreDropdown() {
@@ -246,6 +247,20 @@ export function MoreDropdown() {
           >
             ⏸ on brink
           </button>
+        </Tooltip>
+        <Tooltip
+          tip={
+            <span className="tip-card">
+              <strong>keys</strong>
+              {SHORTCUT_HELP.map(([key, what]) => (
+                <span key={key}>
+                  <b>{key}</b> {what}
+                </span>
+              ))}
+            </span>
+          }
+        >
+          <button className="lang-btn">⌨ keys</button>
         </Tooltip>
         <Tooltip tip="Top organisms by age, family size, friends, wealth, knowledge, joy, grief…">
           <button
