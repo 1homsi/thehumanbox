@@ -140,8 +140,8 @@ pub enum Command {
         #[serde(default)]
         radius: i32,
     },
-    /// Ward a place for a season: no raid or battle begins inside, and
-    /// beasts do not strike there.
+    /// Ward a place for a season: no raid or battle begins inside, beasts
+    /// do not strike there, and no sickness spreads or arrives.
     Ward {
         x: f32,
         y: f32,
@@ -341,7 +341,7 @@ fn prayer_answers(cmd: &Command) -> Option<PrayerAnswer> {
         Command::Cure { x, y, .. } => (&[Sickness], at(*x, *y)),
         Command::Inspire { x, y, .. } => (&[Knowledge], at(*x, *y)),
         Command::Peace { x, y } => (&[Peace], at(*x, *y)),
-        Command::Ward { x, y, .. } => (&[Danger, Peace], at(*x, *y)),
+        Command::Ward { x, y, .. } => (&[Danger, Peace, Sickness], at(*x, *y)),
         Command::Harvest { x, y, .. } | Command::Bounty { x, y, .. } => (&[Hunger], at(*x, *y)),
         Command::Plant { x, y, kind, .. } if kind != "sapling" => (&[Hunger], at(*x as f32, *y as f32)),
         Command::Paint { x, y, tile, .. } if tile == "food" => (&[Hunger], at(*x as f32, *y as f32)),
