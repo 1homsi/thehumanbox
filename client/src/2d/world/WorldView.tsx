@@ -65,6 +65,7 @@ import { normalizeLineageEras } from '../../utils/lineageEras'
 import { useSceneStore } from '../../stores/scene'
 import { farmCropColor, farmProgress, farmStage } from '../../world/farms'
 import { drawPlanting } from './plantings'
+import { drawBlessings, drawFireworks, updateWorldMoments, worldMomentsActive } from './world-moments'
 import { drawPrayerBubble, mergePrayerBubbles, prayerAtPoint, prayerBubbleScale } from './prayer-bubbles'
 import {
   celebrating,
@@ -2883,6 +2884,12 @@ export function drawWorldOnCanvas(
   }
 
   drawEraTraffic(ctx, world, ox, oy, W, H, cameraZoom, t)
+  updateWorldMoments(world, t)
+  {
+    const toPx = (x: number, y: number): [number, number] => [(x - ox) * TILE + TILE / 2, (y - oy) * TILE]
+    drawBlessings(ctx, world, toPx, t)
+    drawFireworks(ctx, toPx, t)
+  }
   updatePrayerFeedback(world.prayers, world.faith, t)
   if (!viewFlags.hideUI) {
     drawPrayerFeedback(
@@ -3174,7 +3181,8 @@ function WorldSprite({
         lastDrawnT >= PREDICT_CAP &&
         curServerAt === lastDrawnAt &&
         uiKey === lastDrawnUI &&
-        !prayerEffectsActive()
+        !prayerEffectsActive() &&
+        !worldMomentsActive()
       // Give the last walking pose time to settle before freezing a quiet map.
       // Otherwise the last rendered footstep remains stuck indefinitely.
       if (settled && now - currentReceivedAt > interval + 160) return
@@ -3449,7 +3457,8 @@ function CanvasWorldFallback({
         t === lastT &&
         uiKey === lastUI &&
         now - receivedAt > interval + 160 &&
-        !prayerEffectsActive()
+        !prayerEffectsActive() &&
+        !worldMomentsActive()
       )
         return
 
