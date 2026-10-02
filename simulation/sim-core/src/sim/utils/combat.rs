@@ -11,6 +11,10 @@ impl Simulation {
         let Some(ti) = target else {
             return 0.0;
         };
+        // No raid lands under the gods' ward.
+        if self.warded(self.organisms[ti].x, self.organisms[ti].y) {
+            return 0.0;
+        }
 
         let dmg = if ambush { 0.10 } else { 0.06 };
         self.organisms[ti].health = (self.organisms[ti].health - dmg).max(0.0);
