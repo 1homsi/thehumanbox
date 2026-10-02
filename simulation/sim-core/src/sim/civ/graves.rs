@@ -82,7 +82,7 @@ impl Simulation {
         if self.grave_queue.is_empty() {
             return;
         }
-        let queue: Vec<(String, f32, f32)> = self.grave_queue.drain(..).collect();
+        let queue: Vec<(String, f32, f32)> = std::mem::take(&mut self.grave_queue);
         let mut occupied: FxHashSet<(i32, i32)> = self
             .buildings
             .iter()
