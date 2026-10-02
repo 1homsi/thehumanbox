@@ -11,8 +11,8 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
         0.12 // bare hands - hard without tools
     };
 
-    if ctx.chance(success_p) {
-        ctx.org_mut().inv_food = ctx.org().inv_food.saturating_add(1);
+    // Game has to be there to be caught: the animal dies and feeds the hunter.
+    if ctx.chance(success_p) && ctx.catch_small_prey(5.0) > 0 {
         ctx.think("caught small game");
         ctx.discover("trapping-game", "learned to hunt small game");
         0.012 + (success_p - 0.12) * 0.05
