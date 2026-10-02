@@ -1448,6 +1448,7 @@ impl Simulation {
         let season = self.season();
         self.physics.growth_mult = season_growth(season);
         self.physics.food_season = crate::sim::seasons::food_season(season);
+        self.physics.season_temp = self.season_temperature_now();
 
         if self.tick_count.is_multiple_of(5) {
             let wet = self.weather.is_wet(self.tick_count);
