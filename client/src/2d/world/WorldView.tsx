@@ -65,6 +65,9 @@ import { normalizeLineageEras } from '../../utils/lineageEras'
 import { useSceneStore } from '../../stores/scene'
 import { farmCropColor, farmProgress, farmStage } from '../../world/farms'
 import { drawPlanting } from './plantings'
+import { drawPrayerBubble, mergePrayerBubbles } from './prayer-bubbles'
+import { prayerTimeLeft } from '../../world/prayers'
+import { useCameraFocus } from '../../stores/camera-focus'
 import { strategyBeaconPositions, strategyTimeLabel } from '../../world/strategy-visuals'
 import { TILE_ID, isPermanentWaterTile, isWaterTile } from '../../world/terrain-ids'
 import {
@@ -2745,6 +2748,31 @@ export function drawWorldOnCanvas(
     }
   }
 
+  if (world.prayers && world.prayers.length > 0 && !viewFlags.hideUI) {
+    // Keep bubbles readable when zoomed out: never smaller than ~21px on
+    // screen, never larger than their pixel-art size when zoomed in.
+    const bubbleScale = Math.max(1, 1.6 / Math.max(0.05, cameraZoom))
+    // Bubbles that would overlap merge into one with a count, most urgent
+    // on top, so a crowded valley doesn't turn into a pile of speech.
+    const merged = mergePrayerBubbles(
+      world.prayers.map((prayer) => ({
+        prayer,
+        x: (prayer.x - ox) * TILE + TILE / 2,
+        y: (prayer.y - oy) * TILE,
+        left: prayerTimeLeft(prayer, world.tick),
+      })),
+      16 * bubbleScale,
+    )
+    for (const { x, y, prayer, left, count } of merged) {
+      if (x < -32 || x > W + 32 || y < -32 || y > H + 32) continue
+      ctx.save()
+      ctx.translate(Math.round(x), Math.round(y - 8))
+      ctx.scale(bubbleScale, bubbleScale)
+      drawPrayerBubble(ctx, 0, 0, prayer.kind, left, t, prayer.x + prayer.y, count)
+      ctx.restore()
+    }
+  }
+
   if (viewFlags.fps) {
     fpsSamples.push(t)
     if (fpsSamples.length > 60) fpsSamples.shift()
@@ -3449,6 +3477,16 @@ export function WorldView({
   const containerRef = useRef<HTMLDivElement>(null)
   const commandRef = useRef<MapCommand | null>(null)
   const cameraStateRef = useRef({ x: cx, y: cy, zoom: 1.5 })
+  // Other panels (the prayer list) ask the camera to look at a tile.
+  const focusRequest = useCameraFocus((s) => s.request)
+  useEffect(() => {
+    if (!focusRequest) return
+    commandRef.current = {
+      kind: 'focus',
+      x: (focusRequest.x - ox + 0.5) * TILE,
+      y: (focusRequest.y - oy + 0.5) * TILE,
+    }
+  }, [focusRequest, ox, oy])
   const [dims, setDims] = useState({ w: 0, h: 0 })
   const [mapReady, setMapReady] = useState(false)
   const [renderBackend, setRenderBackend] = useState<'gpu' | 'canvas'>(() =>

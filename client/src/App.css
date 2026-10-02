@@ -5460,3 +5460,98 @@ body.thb-colorblind .org-sick-badge {
   color: #9d8c6e;
   font-size: 10px;
 }
+
+/* ── Prayers: the player's to-do list ─────────────────────────────── */
+.header .prayer-chip-wrap {
+  order: 1;
+  display: inline-flex;
+}
+
+.header .hdr-chip.prayer-chip {
+  cursor: pointer;
+  color: #f6e7b4;
+  font-family: inherit;
+}
+
+.header .hdr-chip.prayer-chip:hover,
+.header .hdr-chip.prayer-chip.active {
+  color: #fff6d2;
+  filter: brightness(1.15);
+}
+
+.header .hdr-chip.prayer-chip.urgent {
+  color: #ffb4a8;
+  animation: prayer-urgent 1.1s steps(2, end) infinite;
+}
+
+@keyframes prayer-urgent {
+  50% {
+    color: #ff6a58;
+  }
+}
+
+.prayer-list {
+  position: fixed;
+  z-index: 210;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 260px;
+  max-width: min(340px, calc(100vw - 32px));
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: 4px;
+  background: var(--px-wood, #2c231f);
+  color: var(--px-text, #f2e6cc);
+  border: 2px solid var(--px-ink, #140e0a);
+  box-shadow: var(--px-frame-shadow, 0 4px 16px rgba(0, 0, 0, 0.5));
+}
+
+.prayer-row {
+  display: grid;
+  grid-template-columns: 16px 1fr 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.prayer-row:hover,
+.prayer-row:focus-visible {
+  background: rgba(255, 228, 160, 0.1);
+  outline: none;
+}
+
+.prayer-text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.prayer-time {
+  height: 4px;
+  background: rgba(0, 0, 0, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+
+.prayer-time > span {
+  display: block;
+  height: 100%;
+  background: #c9a043;
+}
+
+.prayer-time.low > span {
+  background: #d0453a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header .hdr-chip.prayer-chip.urgent {
+    animation: none;
+  }
+}

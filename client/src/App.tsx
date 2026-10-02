@@ -12,7 +12,10 @@ import { SandboxToolbar } from './components/SandboxToolbar'
 import { PhotoModeExit } from './components/PhotoModeExit'
 import { ConfirmHost } from './components/ConfirmDialog'
 import { toolFailure } from './components/tool-tips'
-import type { LineageStrategy, SandboxTool } from './simulation/sandbox'
+import { SANDBOX_CATEGORIES, type LineageStrategy, type SandboxTool } from './simulation/sandbox'
+import { prayerTool } from './world/prayers'
+import { useCameraFocus } from './stores/camera-focus'
+import type { PrayerInfo } from './types'
 import { DesktopDownloadToast } from './components/DesktopDownloadToast'
 import { CommandPalette } from './components/CommandPalette'
 import { HeadlineTicker } from './components/HeadlineTicker'
@@ -212,6 +215,18 @@ function LiveApp() {
       })
     },
     [pauseSim, resume, setSpeed, sendCommand, setTemporarySandboxStatus],
+  )
+
+  // Answering a prayer: look at the tribe and pick up the power that helps.
+  const handleAnswerPrayer = useCallback(
+    (prayer: PrayerInfo) => {
+      useCameraFocus.getState().focusTile(prayer.x, prayer.y)
+      const id = prayerTool(prayer.kind)
+      const tool = SANDBOX_CATEGORIES.flatMap((c) => c.tools).find((t) => t.id === id)
+      if (!tool || armedTool?.id === tool.id) return
+      onPickTool(tool)
+    },
+    [armedTool, onPickTool],
   )
 
   const handleSandboxApply = useCallback(
@@ -482,7 +497,12 @@ function LiveApp() {
   return (
     <SimulationDataProvider value={simulationData}>
       <div className="app">
-        <AppHeader world={world ?? null} connected={connected} sickOrgs={sickOrgs} />
+        <AppHeader
+          world={world ?? null}
+          connected={connected}
+          sickOrgs={sickOrgs}
+          onAnswerPrayer={handleAnswerPrayer}
+        />
         <HeadlineTicker world={world ?? null} enabled={viewFlags.headlineTicker} />
 
         <DesktopDownloadToast />

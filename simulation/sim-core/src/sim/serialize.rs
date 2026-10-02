@@ -326,6 +326,36 @@ impl Simulation {
             // on every frame avoids a short objective completing or expiring
             // entirely between deep/cold snapshots.
             obj.insert("lineage_strategies".to_string(), lineage_strategy_payload(self));
+            // Prayers are the player's to-do list; they must never lag.
+            let now = self.tick_count;
+            let prayers: Vec<serde_json::Value> = self
+                .prayers
+                .active
+                .iter()
+                .map(|p| {
+                    json!({
+                        "id": p.id,
+                        "lineage_id": p.lineage,
+                        "tribe": self.lineage_names.get(&p.lineage).cloned().unwrap_or_default(),
+                        "kind": p.kind.name(),
+                        "x": p.x,
+                        "y": p.y,
+                        "created": p.created,
+                        "expires": p.expires,
+                    })
+                })
+                .collect();
+            obj.insert("prayers".to_string(), serde_json::Value::Array(prayers));
+            obj.insert(
+                "faith".to_string(),
+                json!({
+                    "by_lineage": self.prayers.faith,
+                    "answered": self.prayers.answered,
+                    "forsaken": self.prayers.forsaken,
+                    "blessed": self.prayers.blessed_until.iter().filter(|(_, &t)| now < t).map(|(l, _)| l).collect::<Vec<_>>(),
+                    "despairing": self.prayers.despair_until.iter().filter(|(_, &t)| now < t).map(|(l, _)| l).collect::<Vec<_>>(),
+                }),
+            );
             obj.insert(
                 "lineage_strategy_history".to_string(),
                 lineage_strategy_history_payload(self),
