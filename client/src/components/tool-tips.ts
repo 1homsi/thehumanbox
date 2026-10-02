@@ -55,7 +55,8 @@ const TOOL_TIPS: Record<string, string> = {
   fire: 'Set the brush area ablaze. Fire spreads to nearby flammable land; the ash it leaves grows back richer.',
   plague: 'Start an outbreak that spreads through close contact.',
   poison: 'Sicken everyone inside the brush area.',
-  meteor: 'Crash a meteor. Kills everything it hits and leaves a burning crater.',
+  meteor:
+    'Crash a meteor. Kills everything it hits and leaves a burning crater, with ore in its floor to mine.',
   earthquake: 'Shake the land. Cracks the ground, damages buildings and hurts people.',
   bless: 'Heal and cheer everyone in the brush area.',
   inspire: 'Teach everyone in the brush area something new and raise their literacy.',
