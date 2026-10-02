@@ -35,3 +35,18 @@ export function visibleLineages<T extends { count: number; peril?: unknown }>(
   const endangered = sorted.filter((r) => r.peril).length
   return sorted.slice(0, Math.max(limit, endangered))
 }
+
+/** Where a tribe lives: its settlement, or the middle of its people. */
+export function tribeHome(
+  world: Pick<WorldState, 'settlements' | 'organisms'>,
+  lineage: string,
+): { x: number; y: number } | null {
+  const home = world.settlements?.find((s) => s.lineage_id === lineage)
+  if (home) return { x: home.center[0], y: home.center[1] }
+  const people = world.organisms.filter((o) => o.alive !== false && o.lineage_id === lineage)
+  if (people.length === 0) return null
+  return {
+    x: people.reduce((n, o) => n + o.x, 0) / people.length,
+    y: people.reduce((n, o) => n + o.y, 0) / people.length,
+  }
+}
