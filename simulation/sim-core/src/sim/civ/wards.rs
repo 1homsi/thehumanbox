@@ -1,5 +1,6 @@
 //! A god's ward over a place: for a season no raid or battle begins inside
-//! it, and the beasts that prowl its edge do not strike. It is how a player
+//! it, the beasts that prowl its edge do not strike, and no plague spreads
+//! within it or finds a way in. It is how a player
 //! shields a tribe on the brink without killing anyone to do it.
 
 use crate::sim::simulation::Simulation;
@@ -167,6 +168,49 @@ mod tests {
             .events
             .iter()
             .any(|e| e.detail == "turned an attack away from the Ashfolk"));
+    }
+
+    #[test]
+    fn a_ward_stops_a_plague_spreading_inside_it() {
+        use crate::organism::organism::Organism;
+        let mut sim = Simulation::new(54);
+        sim.organisms.clear();
+        for i in 0..2 {
+            let mut o = Organism::new(
+                format!("p{i}"),
+                format!("p{i}"),
+                100.0 + i as f32,
+                100.0,
+                0,
+                String::new(),
+                "clan".into(),
+                20_000,
+                Default::default(),
+            );
+            o.alive = true;
+            o.age = 9_000;
+            sim.organisms.push(o);
+        }
+        sim.organisms[0].diseases.push(("plague".to_string(), 0));
+        let mut spread = false;
+        for round in 0..400u64 {
+            sim.tick_count = 1_000 + round;
+            sim.organisms[1].diseases.clear();
+            crate::sim::civ::civ_tick::tick_disease_spread_for_test(&mut sim);
+            spread |= !sim.organisms[1].diseases.is_empty();
+        }
+        assert!(spread, "the plague never spread in the open");
+
+        sim.cast_ward(100.0, 100.0, 8.0);
+        for round in 0..400u64 {
+            sim.tick_count = 1_000 + round;
+            sim.organisms[1].diseases.clear();
+            crate::sim::civ::civ_tick::tick_disease_spread_for_test(&mut sim);
+            assert!(
+                sim.organisms[1].diseases.is_empty(),
+                "the plague crossed the ward"
+            );
+        }
     }
 
     #[test]

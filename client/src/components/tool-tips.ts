@@ -68,7 +68,7 @@ const TOOL_TIPS: Record<string, string> = {
   bounty: 'Fill everyone’s packs with food, wood and stone.',
   douse: 'Put out every fire in the brush area.',
   banish: 'Destroy every monster and predator in the brush area.',
-  ward: 'Ward a place for a season: no raid or battle begins inside, and beasts will not strike there.',
+  ward: 'Ward a place for a season: no raid or battle begins inside, beasts will not strike there, and no sickness spreads.',
   frenzy: 'Turn neighbours on each other. Everyone in the brush area gets hurt.',
   thunder: 'Rain lightning across the brush area. Strikes people, animals and dry grass.',
   blight: 'Rot the crops, spoil the food people carry and sour the soil for years.',
