@@ -7,6 +7,11 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     if !matches!(ctx.tile, Tile::Grass | Tile::Sand | Tile::Snow) {
         return 0.0;
     }
+    // Nobody raises a hut while the tribe already has a bed for everyone.
+    if !crate::sim::civ::vacancy::short_of_housing(ctx.sim, &ctx.lid) {
+        ctx.think("there is room enough at home");
+        return 0.0;
+    }
 
     // Reward scales with environmental need: storm exposure and poor health
     let weather_kind = ctx.sim.weather.kind;
