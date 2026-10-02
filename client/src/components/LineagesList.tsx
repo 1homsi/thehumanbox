@@ -3,6 +3,8 @@ import { useShallow } from 'zustand/react/shallow'
 import { lineageColor } from '../utils/constants'
 import { useUIStore } from '../stores/store'
 import { useWorldStore } from '../stores/worldStore'
+import { PERIL_HELP, remainingLine, visibleLineages } from '../world/tribe-peril'
+import type { PerilCause } from '../types'
 
 interface LineageRow {
   id: string
@@ -10,6 +12,8 @@ interface LineageRow {
   count: number
   minGen: number
   maxGen: number
+  /** Set while the tribe is on the brink. */
+  peril?: PerilCause
 }
 
 /**
@@ -58,6 +62,14 @@ function LineagesListImpl() {
     }),
   )
 
+  const peril = useWorldStore(
+    useShallow((s) => {
+      const out: Record<string, PerilCause> = {}
+      for (const p of s.world?.tribes_in_peril ?? []) out[p.lineage_id] = p.cause
+      return out
+    }),
+  )
+
   const rows = useMemo((): LineageRow[] => {
     const out: LineageRow[] = []
     for (const lid in stamps) {
@@ -68,29 +80,41 @@ function LineagesListImpl() {
         count,
         minGen,
         maxGen,
+        peril: peril[lid],
       })
     }
-    return out.sort((a, b) => b.count - a.count)
-  }, [stamps, lineageNames])
+    return out
+  }, [stamps, lineageNames, peril])
+  const shown = visibleLineages(rows)
 
   return (
     <>
       <div className="section-title">LINEAGES ({rows.length})</div>
       <div className="lineage-list">
-        {rows.slice(0, 5).map((r) => {
+        {shown.map((r) => {
           const active = focus === `lineage:${r.id}`
+          const brink = r.peril
+            ? `On the brink: ${remainingLine(r.count)}, ${PERIL_HELP[r.peril].reason}. Click to help them.`
+            : null
           return (
             <button
               key={r.id}
               type="button"
-              className={'lineage-row' + (active ? ' active' : '')}
+              className={'lineage-row' + (active ? ' active' : '') + (r.peril ? ' peril' : '')}
               onClick={() => setFocus(active ? 'all' : `lineage:${r.id}`)}
               aria-pressed={active}
-              title={active ? 'Show all lineages' : `Focus ${r.name}`}
+              title={active ? 'Show all lineages' : (brink ?? `Focus ${r.name}`)}
             >
               <span className="lineage-dot" style={{ background: lineageColor(r.id) }} />
               <span className="lineage-id">{r.name}</span>
-              <span className="lineage-count">{r.count}</span>
+              <span className="lineage-count">
+                {r.peril && (
+                  <span className="lineage-peril" aria-label="on the brink">
+                    ⚠
+                  </span>
+                )}
+                {r.count}
+              </span>
               <FaithMark stamp={faith[r.id]} />
               <span className="lineage-gen">
                 g{r.minGen}
@@ -99,7 +123,7 @@ function LineagesListImpl() {
             </button>
           )
         })}
-        {rows.length > 5 && (
+        {rows.length > shown.length && (
           <button className="view-all-btn" onClick={openAllLineages}>
             view all ({rows.length})
           </button>
