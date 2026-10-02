@@ -5563,3 +5563,9 @@ body.thb-colorblind .org-sick-badge {
   font-weight: 400;
   opacity: 0.7;
 }
+
+/* First-prayer hint: bottom-left, clear of the update toast. */
+.update-toast.prayer-hint {
+  right: auto;
+  left: 20px;
+}
