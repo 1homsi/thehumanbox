@@ -1,4 +1,7 @@
 import { memo, useMemo, useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
+import { useUIStore } from '../stores/store'
+import { tribeEvents } from '../world/tribe-events'
 import { HIDDEN_EVENT_TYPES } from '../utils/constants'
 import { useWorldStore } from '../stores/worldStore'
 import { EventRow } from './EventRow'
@@ -17,6 +20,20 @@ function savedImportantOnly(): boolean {
 
 function EventLogImpl() {
   const events = useWorldStore((s) => s.world?.events)
+  // With a tribe focused, the log is that tribe's own story.
+  const focus = useUIStore((s) => s.focus)
+  const lineage = focus.startsWith('lineage:') ? focus.slice('lineage:'.length) : null
+  const scopeKey = useWorldStore(
+    useShallow((s) => {
+      if (!lineage || !s.world) return null
+      const name = s.world.lineage_names?.[lineage]
+      if (!name) return null
+      return [
+        name,
+        ...s.world.organisms.filter((o) => o.alive && o.lineage_id === lineage).map((o) => o.name),
+      ]
+    }),
+  )
   const [dramaOnly, setDramaOnlyState] = useState(savedImportantOnly)
   const setDramaOnly = (update: (v: boolean) => boolean) =>
     setDramaOnlyState((v) => {
@@ -31,6 +48,14 @@ function EventLogImpl() {
 
   const recent = useMemo(() => {
     if (!events) return []
+    if (scopeKey) {
+      const [name, ...members] = scopeKey
+      return tribeEvents(
+        events,
+        { name: name!, members: new Set(members) },
+        (e) => !HIDDEN_EVENT_TYPES.has(e.type) && (!dramaOnly || isNewsEvent(e)),
+      )
+    }
     const out = []
     for (let i = events.length - 1; i >= 0 && out.length < 20; i--) {
       const e = events[i]
@@ -39,12 +64,12 @@ function EventLogImpl() {
       out.push(e)
     }
     return out
-  }, [events, dramaOnly])
+  }, [events, dramaOnly, scopeKey])
 
   return (
     <>
       <div className="section-title" id="event-log-heading">
-        EVENTS
+        EVENTS{scopeKey ? ` · ${scopeKey[0]}` : ''}
         <button
           onClick={() => setDramaOnly((v) => !v)}
           title={
