@@ -283,6 +283,9 @@ fn laboratory_weight(kind: BuildingKind) -> f32 {
 /// Primitive discoveries can emerge from direct practice. Formal knowledge
 /// increasingly requires literate specialists, institutions, and recent
 /// experimental work; modern science additionally needs an operational lab.
+/// A working lab is where its experiments happen, so it is the lab that is
+/// required: hands-on experiments are rare in a village, and demanding them
+/// as well left tribes stuck at the Space age for good.
 fn research_requirements_met(era: crate::sim::civ::era::Era, profile: &ResearchProfile) -> bool {
     use crate::sim::civ::era::Era;
 
@@ -299,10 +302,7 @@ fn research_requirements_met(era: crate::sim::civ::era::Era, profile: &ResearchP
             && specialists > 0
             && (profile.recent_experiments > 0 || profile.research_sites > 0.0)
     } else {
-        profile.literacy >= 0.30
-            && specialists > 0
-            && profile.recent_experiments > 0
-            && profile.laboratory_capacity > 0.0
+        profile.literacy >= 0.30 && specialists > 0 && profile.laboratory_capacity > 0.0
     }
 }
 
@@ -484,11 +484,119 @@ mod tests {
         assert!(research_requirements_met(Era::Renaissance, &formal));
         assert!(!research_requirements_met(Era::Modern, &formal));
 
-        let experimental_lab = ResearchProfile {
-            recent_experiments: 1,
+        let with_lab = ResearchProfile {
             laboratory_capacity: 0.2,
             ..formal
         };
-        assert!(research_requirements_met(Era::Modern, &experimental_lab));
+        assert!(research_requirements_met(Era::Modern, &with_lab));
+        assert!(research_requirements_met(Era::Eldritch, &with_lab));
+        let unlettered = ResearchProfile {
+            literacy: 0.1,
+            ..with_lab
+        };
+        assert!(!research_requirements_met(Era::Eldritch, &unlettered));
+    }
+
+    /// Builds a mature tribe (lettered, specialised, with a lab and fresh
+    /// experiments) and returns the tick each era's secrets were all known.
+    fn era_timeline(
+        seed: u64,
+        members: usize,
+        horizon: u64,
+        literacy: f32,
+        scholar_every: usize,
+        experiment_every: usize,
+    ) -> Vec<(crate::sim::civ::era::Era, u64)> {
+        use crate::sim::civ::era::{determine_era_for_lineage, Era, LADDER};
+        let mut sim = Simulation::new(seed);
+        sim.organisms.truncate(members);
+        for (i, o) in sim.organisms.iter_mut().enumerate() {
+            o.lineage_id = "L".into();
+            o.alive = true;
+            o.literacy = literacy;
+            o.specialty = (i % scholar_every == 0).then(|| "scholar".to_string());
+        }
+        for o in sim.organisms.iter_mut() {
+            for d in ["foraging", "fire", "shelter", "stone_tools"] {
+                o.discoveries.insert(d.to_string());
+            }
+        }
+        let lineage_names: HashMap<String, String> = HashMap::default();
+        let mut lab = Building::new(1, BuildingKind::ResearchLab, 5, 5, Some("L".into()), 1);
+        lab.condition = 1.0;
+        let mut library = Building::new(2, BuildingKind::Library, 6, 6, Some("L".into()), 1);
+        library.condition = 1.0;
+        let buildings = [lab, library];
+        let governments: HashMap<String, Government> = HashMap::default();
+        let mut events = VecDeque::new();
+        let mut rng = <ChaCha8Rng as rand::SeedableRng>::seed_from_u64(seed);
+        let mut reached: Vec<(Era, u64)> = Vec::new();
+        let mut best = Era::PreStone;
+        let mut tick = 0;
+        while tick < horizon && best < *LADDER.last().unwrap() {
+            tick += TICK_INTERVAL;
+            for (i, o) in sim.organisms.iter_mut().enumerate() {
+                if i % experiment_every == 0 {
+                    o.last_experiment_tick = tick;
+                }
+                o.age = 2_000;
+            }
+            tick_tech_progress(
+                tick,
+                &mut rng,
+                &mut sim.organisms,
+                &mut events,
+                &lineage_names,
+                &buildings,
+                &governments,
+            );
+            events.clear();
+            let known: HashSet<String> = sim
+                .organisms
+                .iter()
+                .flat_map(|o| o.discoveries.iter().cloned())
+                .collect();
+            let era = determine_era_for_lineage(&known, 10_000, 10_000);
+            if era > best {
+                best = era;
+                reached.push((era, tick));
+            }
+        }
+        reached
+    }
+
+    #[test]
+    fn a_modest_tribe_with_a_lab_climbs_every_age_to_the_last() {
+        use crate::sim::civ::era::{Era, LADDER};
+        let last = *LADDER.last().unwrap();
+        assert_eq!(last, Era::Rebirth);
+        // Fifteen people, a tenth of them readers, a few scholars and the odd
+        // experiment: nothing like an ideal tribe, and still it must get there.
+        for seed in [5, 6] {
+            let reached = era_timeline(seed, 15, 400_000, 0.35, 8, 4);
+            let (era, tick) = *reached.last().expect("it climbed at all");
+            assert_eq!(
+                era,
+                last,
+                "seed {seed} stalled at {} after {tick} ticks",
+                era.name()
+            );
+            // The later ages are worth waiting for, not skipped in a blink.
+            let space = reached.iter().find(|(e, _)| *e >= Era::Space).unwrap().1;
+            assert!(tick > space + 5_000, "the far future arrived too cheaply");
+        }
+    }
+
+    #[test]
+    fn nobody_without_a_laboratory_learns_past_the_industrial_age() {
+        use crate::sim::civ::era::Era;
+        let lettered = ResearchProfile {
+            literacy: 0.6,
+            scholars: 3,
+            research_sites: 0.5,
+            ..ResearchProfile::default()
+        };
+        assert!(!research_requirements_met(Era::Space, &lettered));
+        assert!(!research_requirements_met(Era::Digital, &lettered));
     }
 }

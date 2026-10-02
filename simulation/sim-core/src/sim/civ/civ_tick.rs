@@ -1559,6 +1559,38 @@ fn tick_buildings_construct(sim: &mut Simulation) {
             .filter(|b| !b.decorative && !b.is_complete() && b.owner_lineage.as_deref() == Some(lid.as_str()))
             .count();
         let available_projects = project_limit.saturating_sub(pending);
+        // Labs come before everything: a stalled wonder or a run of huts must
+        // not keep a tribe from the schools its sciences depend on, so the next
+        // research building is started even when the town is busy.
+        if workers > 0 && functional_slots > 0 {
+            let owned: HashSet<BuildingKind> = sim
+                .buildings
+                .iter()
+                .filter(|b| !b.decorative && b.owner_lineage.as_deref() == Some(&lid))
+                .map(|b| b.kind)
+                .collect();
+            if let Some(kind) = research_target(era, pop, sim.population_limit(), &owned) {
+                let (cx, cy) = lineage_center(sim, &lid);
+                if (cx, cy) != (0, 0) {
+                    let mut failed_sites = FailedSites::default();
+                    let offset_x = (sim.next_building_id as i32 * 3) % 16 - 8;
+                    let offset_y = (sim.next_building_id as i32 * 5) % 14 - 7;
+                    if super::vacancy::take_over_empty(sim, &lid, kind)
+                        || try_start_building_with(
+                            sim,
+                            &lid,
+                            kind,
+                            cx + offset_x,
+                            cy + offset_y,
+                            &mut failed_sites,
+                        )
+                    {
+                        functional_slots -= 1;
+                        continue;
+                    }
+                }
+            }
+        }
         if workers == 0 || available_projects == 0 {
             continue;
         }
@@ -1770,7 +1802,14 @@ fn tick_building_progress(sim: &mut Simulation) {
 
         let mut assigned = HashSet::default();
         let mut building_changed = false;
-        for building in sim.buildings.iter_mut() {
+        // Schools and laboratories get their crews first: handing hands out
+        // in build order left the newest research project with no one while
+        // older huts and wonders kept every worker, and a tribe without a lab
+        // never learns anything past the Industrial age.
+        let mut order: Vec<usize> = (0..sim.buildings.len()).collect();
+        order.sort_by_key(|&i| (!is_research_building(sim.buildings[i].kind), i));
+        for building_index in order {
+            let building = &mut sim.buildings[building_index];
             if building.is_complete() || building.decorative {
                 continue;
             }
@@ -2166,6 +2205,41 @@ fn devout_target(
     Some(if temple_ready { Temple } else { Shrine })
 }
 
+/// Modern science needs somewhere to be done, and without a laboratory no
+/// tribe learns anything past the Industrial age. A tribe raises its
+/// schools, observatory and university ahead of the rest of the town so the
+/// ages beyond are never held up behind a long list of market stalls.
+fn research_target(
+    era: Era,
+    pop: usize,
+    population_limit: usize,
+    existing: &HashSet<BuildingKind>,
+) -> Option<BuildingKind> {
+    use BuildingKind::*;
+    const RESEARCH_FIRST: [(Era, usize, BuildingKind); 6] = [
+        (Era::Classical, 18, School),
+        (Era::Classical, 18, Library),
+        (Era::Classical, 22, Observatory),
+        (Era::Renaissance, 40, University),
+        (Era::Information, 140, Datacenter),
+        (Era::Digital, 180, ResearchLab),
+    ];
+    RESEARCH_FIRST.into_iter().find_map(|(from, base, kind)| {
+        (era >= from
+            && pop >= construction_population_requirement(base, population_limit)
+            && !existing.contains(&kind))
+        .then_some(kind)
+    })
+}
+
+fn is_research_building(kind: BuildingKind) -> bool {
+    use BuildingKind::*;
+    matches!(
+        kind,
+        School | Library | Observatory | University | Datacenter | ResearchLab
+    )
+}
+
 fn next_target_building(
     era: Era,
     pop: usize,
@@ -2175,6 +2249,9 @@ fn next_target_building(
     use BuildingKind::*;
     let mut wishlist: Vec<BuildingKind> = Vec::new();
     let meets = |base| pop >= construction_population_requirement(base, population_limit);
+    if let Some(kind) = research_target(era, pop, population_limit, existing) {
+        return Some(kind);
+    }
     if era >= Era::Stone && meets(3) {
         wishlist.push(Hut);
         wishlist.push(Tent);
@@ -4659,6 +4736,53 @@ mod tests {
     }
 
     #[test]
+    fn a_lone_crew_works_the_school_before_older_huts_and_wonders() {
+        let mut sim = Simulation::new(0x5C01);
+        sim.organisms.clear();
+        sim.buildings.clear();
+        let mut worker = test_org("worker", "Worker", "lineage-a", 10.0, 10.0);
+        worker.age = 10_000;
+        sim.organisms.push(worker);
+        // The hut was started first and sits first in the list.
+        sim.buildings.push(Building::new(
+            1,
+            BuildingKind::Hut,
+            10,
+            10,
+            Some("lineage-a".into()),
+            0,
+        ));
+        sim.buildings.push(Building::new(
+            2,
+            BuildingKind::School,
+            11,
+            10,
+            Some("lineage-a".into()),
+            0,
+        ));
+        sim.tick_count = 20;
+        tick_building_progress(&mut sim);
+        assert!(sim.buildings[1].condition > 0.0, "the school got no crew");
+        assert_eq!(sim.buildings[0].condition, 0.0, "the hut took the only worker");
+    }
+
+    #[test]
+    fn the_research_building_a_tribe_lacks_is_always_next() {
+        let mut have: HashSet<BuildingKind> = HashSet::default();
+        for expect in [
+            BuildingKind::School,
+            BuildingKind::Library,
+            BuildingKind::Observatory,
+            BuildingKind::University,
+        ] {
+            assert_eq!(research_target(Era::Renaissance, 45, 350, &have), Some(expect));
+            have.insert(expect);
+        }
+        assert_eq!(research_target(Era::Renaissance, 45, 350, &have), None);
+        assert_eq!(research_target(Era::Iron, 45, 350, &HashSet::default()), None);
+    }
+
+    #[test]
     fn construction_stalls_without_active_workers_then_completes_with_labor() {
         let mut sim = Simulation::new(0x1AB0);
         sim.organisms.clear();
@@ -5043,5 +5167,27 @@ mod faith_tests {
         assert!(sim.territory.contains_key(&living));
         assert!(!sim.territory.contains_key("gone"));
         assert!(!sim.lineage_homes.contains_key("gone"));
+    }
+
+    #[test]
+    fn a_tribe_raises_its_schools_and_laboratories_before_the_rest_of_the_town() {
+        let mut existing: HashSet<BuildingKind> = HashSet::default();
+        let mut order = Vec::new();
+        for _ in 0..5 {
+            let kind = next_target_building(Era::Renaissance, 45, 350, &existing).unwrap();
+            existing.insert(kind);
+            order.push(kind);
+        }
+        for lab in [
+            BuildingKind::School,
+            BuildingKind::Library,
+            BuildingKind::Observatory,
+            BuildingKind::University,
+        ] {
+            assert!(order[..4].contains(&lab), "{lab:?} came late: {order:?}");
+        }
+        // Too small a tribe has no use for them yet.
+        let small = next_target_building(Era::Renaissance, 5, 350, &HashSet::default()).unwrap();
+        assert_ne!(small, BuildingKind::University);
     }
 }
