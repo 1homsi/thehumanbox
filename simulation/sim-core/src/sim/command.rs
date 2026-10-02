@@ -303,6 +303,37 @@ fn protected(tile: Tile) -> bool {
     matches!(tile, Tile::Hut | Tile::Campfire)
 }
 
+/// Which prayers a power can answer, and where it landed (`None` for
+/// powers that reach the whole world).
+/// The prayer kinds a power answers, and where it landed.
+type PrayerAnswer = (
+    &'static [crate::sim::civ::prayers::PrayerKind],
+    Option<(f32, f32)>,
+);
+
+fn prayer_answers(cmd: &Command) -> Option<PrayerAnswer> {
+    use crate::sim::civ::prayers::PrayerKind::*;
+    let at = |x: f32, y: f32| Some((x, y));
+    Some(match cmd {
+        Command::Spawn { x, y, .. } | Command::Love { x, y, .. } => (&[Children], at(*x, *y)),
+        Command::Heal { x, y, .. } | Command::Bless { x, y, .. } => (&[Sickness, Hunger, Thirst], at(*x, *y)),
+        Command::Cure { x, y, .. } => (&[Sickness], at(*x, *y)),
+        Command::Inspire { x, y, .. } => (&[Knowledge], at(*x, *y)),
+        Command::Peace { x, y } => (&[Peace], at(*x, *y)),
+        Command::Harvest { x, y, .. } | Command::Bounty { x, y, .. } => (&[Hunger], at(*x, *y)),
+        Command::Plant { x, y, kind, .. } if kind != "sapling" => (&[Hunger], at(*x as f32, *y as f32)),
+        Command::Paint { x, y, tile, .. } if tile == "food" => (&[Hunger], at(*x as f32, *y as f32)),
+        Command::Paint { x, y, tile, .. } if tile == "water" => (&[Thirst], at(*x as f32, *y as f32)),
+        Command::Smite { x, y, .. }
+        | Command::Banish { x, y, .. }
+        | Command::Thunder { x, y, .. }
+        | Command::Arm { x, y, .. } => (&[Danger], at(*x, *y)),
+        Command::Weather { kind } if kind == "rain" || kind == "storm" => (&[Rain, Thirst], None),
+        Command::Drought { active: false } => (&[Rain], None),
+        _ => return None,
+    })
+}
+
 impl Simulation {
     /// Sets how the two lineages nearest (x, y) feel about each other:
     /// -1 is war, +1 is friendship. Fails unless two tribes are around.
@@ -412,6 +443,17 @@ impl Simulation {
     }
 
     pub fn apply_command(&mut self, cmd: Command) -> bool {
+        let answers = prayer_answers(&cmd);
+        let applied = self.apply_command_inner(cmd);
+        if applied {
+            if let Some((kinds, at)) = answers {
+                self.answer_prayers(kinds, at);
+            }
+        }
+        applied
+    }
+
+    fn apply_command_inner(&mut self, cmd: Command) -> bool {
         match cmd {
             Command::Spawn { x, y, count, lineage } => {
                 let n = count.clamp(1, 50);

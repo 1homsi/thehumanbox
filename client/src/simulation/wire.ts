@@ -82,6 +82,8 @@ export type IncomingWorldFrame = Pick<
   caravans?: WorldState['caravans']
   farms?: WorldState['farms']
   plantings?: WorldState['plantings']
+  prayers?: WorldState['prayers']
+  faith?: WorldState['faith']
   settlements?: WorldState['settlements']
   vehicles?: WorldState['vehicles']
   festivals?: WorldState['festivals']

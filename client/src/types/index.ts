@@ -350,6 +350,25 @@ export interface AnimalState {
   name?: string
 }
 
+export interface PrayerInfo {
+  id: number
+  lineage_id: string
+  tribe: string
+  kind: string
+  x: number
+  y: number
+  created: number
+  expires: number
+}
+
+export interface FaithInfo {
+  by_lineage: Record<string, number>
+  answered: number
+  forsaken: number
+  blessed: string[]
+  despairing: string[]
+}
+
 export interface SimEvent {
   tick: number
   type:
@@ -495,6 +514,8 @@ export interface WorldState {
   farms?: FarmInfo[]
   /** Player plantings as flat [x, y, kind, stage, ...]. */
   plantings?: number[]
+  prayers?: PrayerInfo[]
+  faith?: FaithInfo
   settlements?: SettlementInfo[]
   vehicles?: VehicleInfo[]
   festivals?: FestivalInfo[]

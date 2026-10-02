@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
-import type { WorldState } from '../types'
+import type { PrayerInfo, WorldState } from '../types'
 import { useUIStore } from '../stores/store'
 import { Tooltip } from './Tooltip'
 import { MoreDropdown } from './MoreDropdown'
@@ -17,14 +17,16 @@ const SEASON_TIPS: Record<string, string> = {
   scarcity: 'Food is scarce. Winter is the hardest season.',
 }
 import { getDesktop } from '../lib/desktop'
+import { PrayerChip } from './PrayerChip'
 
 interface Props {
   world: WorldState | null
   connected: boolean
   sickOrgs: number
+  onAnswerPrayer: (prayer: PrayerInfo) => void
 }
 
-export function AppHeader({ world, connected, sickOrgs }: Props) {
+export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer }: Props) {
   const showMore = useUIStore((s) => s.showMore)
   const panelOpen = useUIStore((s) => s.panelOpen)
   const isFullscreen = useUIStore((s) => s.isFullscreen)
@@ -128,6 +130,7 @@ export function AppHeader({ world, connected, sickOrgs }: Props) {
         )}
       </div>
       <div className="header-badges">
+        {world && <PrayerChip world={world} onAnswer={onAnswerPrayer} />}
         {world && livePopulation > 0 && (
           <Tooltip
             tip={tip(

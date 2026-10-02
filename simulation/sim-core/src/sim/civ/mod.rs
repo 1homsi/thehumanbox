@@ -8,6 +8,7 @@ pub mod eras;
 pub use eras as era;
 pub mod government;
 pub mod moments;
+pub mod prayers;
 pub mod settlements;
 pub mod trade_routes;
 pub mod warfare;

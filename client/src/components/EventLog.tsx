@@ -21,6 +21,8 @@ const DRAMA_EVENT_TYPES = new Set([
   'strategy_complete',
   'strategy_failed',
   'strategy_redirected',
+  'prayer',
+  'forsaken',
 ])
 
 function EventLogImpl() {

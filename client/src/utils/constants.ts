@@ -111,6 +111,10 @@ export const EVENT_ICONS: Record<string, string> = {
   earthquake: '≋',
   war: '⚔',
   peace: '☮',
+  prayer: '⁂',
+  answered: '✧',
+  forsaken: '…',
+  building_ruined: '⌂',
 }
 
 export const EVENT_COLORS: Record<string, string> = {
@@ -142,6 +146,10 @@ export const EVENT_COLORS: Record<string, string> = {
   earthquake: '#b98a5a',
   war: '#e2574c',
   peace: '#f6f1e4',
+  prayer: '#f2e2a0',
+  answered: '#f3d17a',
+  forsaken: '#a59a8c',
+  building_ruined: '#d9774e',
 }
 
 export const HIDDEN_EVENT_TYPES = new Set(['dawn', 'dusk', 'season'])

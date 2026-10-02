@@ -709,6 +709,8 @@ pub struct Simulation {
     pub flood_tiles: Vec<(i32, i32, u64)>,
     /// Player-planted crops, orchards and saplings, keyed by tile index.
     pub plantings: std::collections::BTreeMap<u32, crate::sim::tech::plantings::Planting>,
+    /// Prayers tribes send the player, and the faith answering them earns.
+    pub prayers: crate::sim::civ::prayers::PrayerState,
     pub story_history: VecDeque<StoryEntry>,
     pub pending_thinks: Vec<ThinkTrigger>,
     pub pending_convos: Vec<crate::sim::convo_req::ConversationReq>,
@@ -844,7 +846,7 @@ impl Simulation {
         self.pending_convos.push(req);
     }
 
-    fn rebuild_lineage_aggregates(&mut self) {
+    pub(crate) fn rebuild_lineage_aggregates(&mut self) {
         self.lineage_aggregates.clear();
         self.lineage_aggregates.reserve(self.lineage_names.len().max(8));
         for org in self.organisms.iter().filter(|org| org.alive) {
@@ -888,6 +890,7 @@ impl Simulation {
             weather: WeatherState::default(),
             flood_tiles: Vec::new(),
             plantings: Default::default(),
+            prayers: Default::default(),
             story_history: VecDeque::new(),
             pending_thinks: Vec::new(),
             pending_convos: Vec::new(),
@@ -1860,6 +1863,7 @@ impl Simulation {
         self.tick_animals(&org_idx_by_id);
         self.tick_colonization();
         self.tick_plantings();
+        self.tick_prayers();
         self.check_animal_catches();
 
         {
