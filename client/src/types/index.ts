@@ -517,6 +517,8 @@ export interface WorldState {
   prayers?: PrayerInfo[]
   /** This winter is a hard one. */
   hard_winter?: boolean
+  /** Autumn's forecast that the coming winter will be hard. */
+  hard_winter_ahead?: boolean
   faith?: FaithInfo
   settlements?: SettlementInfo[]
   vehicles?: VehicleInfo[]

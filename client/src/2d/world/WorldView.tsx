@@ -989,7 +989,8 @@ function getBaseLayerCanvas(world: WorldState): HTMLCanvasElement | null {
   const W = width * TILE
   const H = height * TILE
 
-  const season = world.season
+  // A hard winter frosts the land beyond an ordinary winter's browns.
+  const season = world.hard_winter && world.season === 'scarcity' ? 'hard_winter' : world.season
   const terrain_signature =
     _baseKey?.tiles === tiles ? _baseKey.terrain_signature : terrainVisualSignature(tiles, width, height)
   if (

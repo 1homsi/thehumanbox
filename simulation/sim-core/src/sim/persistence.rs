@@ -320,6 +320,8 @@ pub struct SaveState {
     #[serde(default)]
     hard_winter: bool,
     #[serde(default)]
+    hard_winter_ahead: bool,
+    #[serde(default)]
     territory: HashMap<String, Vec<[i32; 2]>>,
     #[serde(default)]
     last_immigration_tick: u64,
@@ -861,6 +863,7 @@ impl Simulation {
             plantings: self.plantings.clone(),
             prayers: self.prayers.clone(),
             hard_winter: self.hard_winter,
+            hard_winter_ahead: self.hard_winter_ahead,
             territory: self
                 .territory
                 .iter()
@@ -1179,6 +1182,7 @@ impl Simulation {
             plantings: state.plantings,
             prayers: state.prayers,
             hard_winter: state.hard_winter,
+            hard_winter_ahead: state.hard_winter_ahead,
             story_history: state.story_history.into_iter().collect(),
             pending_thinks: state.pending_thinks,
             pending_convos: Vec::new(),

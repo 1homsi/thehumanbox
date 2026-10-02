@@ -79,30 +79,38 @@ impl Simulation {
         season_temperature(self.season()) - if self.hard_winter { HARD_WINTER_CHILL } else { 0.0 }
     }
 
-    /// Each winter is rolled as it arrives; some turn out hard.
+    /// Each winter is foretold as autumn begins, giving tribes (and their
+    /// gods) a season to prepare; the hard ones arrive as winter does.
     fn tick_winter_omen(&mut self) {
         use crate::sim::config::SEASON_LENGTH;
         let into_year = self.tick_count % (SEASON_LENGTH * 4);
-        if into_year == SEASON_LENGTH * 2 {
-            self.hard_winter = self.rng.random::<f32>() < HARD_WINTER_CHANCE;
-            if self.hard_winter {
-                crate::sim::world_events::push_event(
-                    &mut self.events,
-                    self.tick_count,
-                    "weather",
-                    "the sky",
-                    "a hard winter is coming",
+        if into_year == SEASON_LENGTH {
+            self.hard_winter_ahead = self.rng.random::<f32>() < HARD_WINTER_CHANCE;
+            if self.hard_winter_ahead {
+                self.announce_winter(
+                    "the elders fear a hard winter",
+                    "\u{2744}\u{FE0F} The elders fear a hard winter.",
                 );
-                self.headlines.push_back((
-                    self.tick_count,
-                    "\u{2744}\u{FE0F} A hard winter is coming.".to_string(),
-                ));
-                while self.headlines.len() > 80 {
-                    self.headlines.pop_front();
-                }
+            }
+        } else if into_year == SEASON_LENGTH * 2 {
+            self.hard_winter = self.hard_winter_ahead;
+            self.hard_winter_ahead = false;
+            if self.hard_winter {
+                self.announce_winter(
+                    "a hard winter has come",
+                    "\u{2744}\u{FE0F} A hard winter has come.",
+                );
             }
         } else if into_year == SEASON_LENGTH * 3 {
             self.hard_winter = false;
+        }
+    }
+
+    fn announce_winter(&mut self, detail: &str, headline: &str) {
+        crate::sim::world_events::push_event(&mut self.events, self.tick_count, "weather", "the sky", detail);
+        self.headlines.push_back((self.tick_count, headline.to_string()));
+        while self.headlines.len() > 80 {
+            self.headlines.pop_front();
         }
     }
 
@@ -280,8 +288,13 @@ mod tests {
         let mut sim = Simulation::new(4);
         let mut hard = 0;
         for year in 0..40u64 {
-            sim.tick_count = year * SEASON_LENGTH * 4 + SEASON_LENGTH * 2;
+            sim.tick_count = year * SEASON_LENGTH * 4 + SEASON_LENGTH;
             sim.tick_winter_omen();
+            let foretold = sim.hard_winter_ahead;
+            sim.tick_count += SEASON_LENGTH;
+            sim.tick_winter_omen();
+            assert_eq!(sim.hard_winter, foretold, "the omen comes true");
+            assert!(!sim.hard_winter_ahead);
             if sim.hard_winter {
                 hard += 1;
                 assert!(sim.season_temperature_now() < season_temperature("scarcity"));

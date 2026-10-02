@@ -330,6 +330,10 @@ impl Simulation {
                 "hard_winter".to_string(),
                 serde_json::Value::Bool(self.hard_winter),
             );
+            obj.insert(
+                "hard_winter_ahead".to_string(),
+                serde_json::Value::Bool(self.hard_winter_ahead),
+            );
             // Prayers are the player's to-do list; they must never lag.
             let now = self.tick_count;
             let prayers: Vec<serde_json::Value> = self
