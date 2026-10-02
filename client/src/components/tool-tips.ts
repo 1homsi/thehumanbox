@@ -16,8 +16,9 @@ const TOOL_TIPS: Record<string, string> = {
   food: 'Scatter food for humans and animals to gather.',
   drink: 'Add fresh drinking water.',
   plant_crop:
-    'Sow a field. It ripens into grain, and regrows after it is eaten. Rain helps; drought and fire ruin it.',
-  plant_orchard: 'Plant fruit trees. Slow to grow, then they bear fruit again and again.',
+    'Sow a field in spring or summer. It ripens into grain and regrows after it is eaten. Nothing grows in winter, and a hard winter’s frost kills unripe fields.',
+  plant_orchard:
+    'Plant fruit trees. Slow to grow, then they bear fruit again and again. They sleep through winter.',
   plant_sapling: 'Plant young trees that grow into a forest.',
   territory_map: 'Show the land each tribe claims.',
   settlement_map: 'Highlight towns and buildings.',

@@ -123,6 +123,18 @@ fn destroys(tile: Tile) -> bool {
     )
 }
 
+/// How fast each kind grows in each season: crops and fruit wait out the
+/// winter, young trees creep along.
+fn season_growth(kind: PlantKind, season: &str) -> f32 {
+    match (kind, season) {
+        (_, "abundance") => 1.2,
+        (PlantKind::Sapling, "scarcity") => 0.3,
+        (_, "scarcity") => 0.0,
+        (PlantKind::Crop, "decline") => 0.7,
+        _ => 1.0,
+    }
+}
+
 fn biome_growth(biome: Biome) -> f32 {
     match biome {
         Biome::Wetland | Biome::Jungle => 1.25,
@@ -240,11 +252,8 @@ impl Simulation {
         } else {
             1.0
         };
-        let season = match self.season() {
-            "abundance" => 1.2,
-            "scarcity" => 0.6,
-            _ => 1.0,
-        };
+        let season_name = self.season();
+        let hard_winter = self.hard_winter;
         let mut dead: Vec<u32> = Vec::new();
         let mut eaten: Vec<(i32, i32)> = Vec::new();
         let mut forests = 0;
@@ -262,8 +271,16 @@ impl Simulation {
                 continue;
             };
             let stage = p.stage();
+            let winter = season_name == "scarcity";
             if p.ripe {
                 if tile == Tile::Food {
+                    // Produce left in the field through winter rots away.
+                    if winter && p.kind != PlantKind::Sapling && self.rng.random::<f32>() < 0.003 {
+                        self.grid.set(x, y, Tile::Grass);
+                        p.ripe = false;
+                        p.growth = p.kind.regrow_from();
+                        changed = true;
+                    }
                     continue;
                 }
                 // Someone ate it: start the next crop.
@@ -274,7 +291,13 @@ impl Simulation {
                 changed = true;
                 continue;
             }
-            if tile == Tile::Snow {
+            // A hard winter's frost kills fields that have not ripened.
+            if winter && hard_winter && p.kind == PlantKind::Crop && self.rng.random::<f32>() < 0.01 {
+                dead.push(i);
+                continue;
+            }
+            let season = season_growth(p.kind, season_name);
+            if tile == Tile::Snow || season <= 0.0 {
                 continue;
             }
             let near_water = [
@@ -443,6 +466,44 @@ mod tests {
         assert_eq!(sim.plantings.len(), 1);
         sim.apply_command_json(r#"{"cmd":"meteor","x":97,"y":95,"radius":2}"#);
         assert!(sim.plantings.is_empty());
+    }
+
+    #[test]
+    fn crops_wait_out_winter_and_a_hard_winter_kills_unripe_fields() {
+        use crate::sim::config::SEASON_LENGTH;
+        let mut sim = flat_sim();
+        sim.apply_command_json(r#"{"cmd":"plant","x":100,"y":100,"kind":"crop","radius":2}"#);
+        sim.apply_command_json(r#"{"cmd":"plant","x":110,"y":100,"kind":"sapling","radius":0}"#);
+        let crop = WorldGrid::idx(100, 100) as u32;
+        let tree = WorldGrid::idx(110, 100) as u32;
+        // Midwinter in an ordinary year: crops stand still, the tree grows.
+        sim.tick_count = SEASON_LENGTH * 2;
+        for _ in 0..30 {
+            sim.tick_count += PLANT_STEP_TICKS;
+            sim.tick_plantings();
+        }
+        assert_eq!(sim.plantings[&crop].growth, 0);
+        assert!(sim.plantings[&tree].growth > 0);
+        // A hard winter's frost kills the unripe field.
+        sim.hard_winter = true;
+        let fields = sim
+            .plantings
+            .values()
+            .filter(|p| p.kind == PlantKind::Crop)
+            .count();
+        for _ in 0..250 {
+            sim.tick_count += PLANT_STEP_TICKS;
+            sim.tick_plantings();
+        }
+        let left = sim
+            .plantings
+            .values()
+            .filter(|p| p.kind == PlantKind::Crop)
+            .count();
+        assert!(
+            left * 4 < fields,
+            "{left} of {fields} fields survived a hard winter"
+        );
     }
 
     #[test]
