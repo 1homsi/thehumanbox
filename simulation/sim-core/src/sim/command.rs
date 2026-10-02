@@ -560,6 +560,8 @@ impl Simulation {
                         // Health below zero hands the death to the normal
                         // tick, which records it and lets kin grieve.
                         self.organisms[i].health = -1.0;
+                        self.organisms[i]
+                            .mark_harm(crate::organism::organism::Harm::Disaster, self.tick_count);
                         let name = self.organisms[i].name.clone();
                         push_event(
                             &mut self.events,
@@ -839,6 +841,7 @@ impl Simulation {
                     let d = (o.x - fx).hypot(o.y - fy);
                     if o.alive && d <= fr {
                         o.health -= 0.25 + 0.35 * (1.0 - d / fr);
+                        o.mark_harm(crate::organism::organism::Harm::Disaster, self.tick_count);
                         o.fear_level = (o.fear_level + 0.5).min(1.0);
                         hurt += 1;
                     }
@@ -865,6 +868,7 @@ impl Simulation {
                 for o in self.organisms.iter_mut() {
                     if o.alive && (o.x - fx).hypot(o.y - fy) <= fr {
                         o.health = -1.0;
+                        o.mark_harm(crate::organism::organism::Harm::Disaster, self.tick_count);
                         killed += 1;
                     }
                 }
@@ -1131,6 +1135,7 @@ impl Simulation {
                     }
                     let hurt = 0.15 + self.rng.random::<f32>() * 0.25;
                     o.health = (o.health - hurt).max(0.01);
+                    o.mark_harm(crate::organism::organism::Harm::Fight, self.tick_count);
                     o.fear_level = (o.fear_level + 0.4).min(1.0);
                     o.hope = (o.hope - 0.3).max(0.0);
                     o.think("fought a neighbour in a frenzy", self.tick_count);
@@ -1185,6 +1190,7 @@ impl Simulation {
                 for o in self.organisms.iter_mut() {
                     if o.alive && (o.x - x as f32).hypot(o.y - y as f32) <= rf {
                         o.health = (o.health - 0.2).max(0.01);
+                        o.mark_harm(crate::organism::organism::Harm::Disaster, self.tick_count);
                         o.fear_level = (o.fear_level + 0.3).min(1.0);
                         o.think("the water rose around us", self.tick_count);
                     }
@@ -1238,6 +1244,7 @@ impl Simulation {
                     if o.alive && (o.x - x as f32).hypot(o.y - y as f32) <= rf {
                         o.energy = (o.energy - 0.35).max(0.05);
                         o.health = (o.health - 0.1).max(0.01);
+                        o.mark_harm(crate::organism::organism::Harm::Disaster, self.tick_count);
                         o.think("freezing in the blizzard", self.tick_count);
                     }
                 }
@@ -1386,6 +1393,7 @@ impl Simulation {
                 for o in self.organisms.iter_mut() {
                     if o.alive && (o.x - x as f32).hypot(o.y - y as f32) < rf * 0.6 {
                         o.health = -1.0;
+                        o.mark_harm(crate::organism::organism::Harm::Disaster, self.tick_count);
                         killed += 1;
                     }
                 }
@@ -1659,10 +1667,15 @@ mod tests {
         let hit = format!(r#"{{"cmd":"smite","x":{x},"y":{y},"radius":2.0}}"#);
         assert!(sim.apply_command_json(&hit));
         assert!(sim.organisms[target].health < 0.0);
-        let deaths = sim.history.deaths_combat;
+        let (deaths, combat) = (sim.history.deaths_disaster, sim.history.deaths_combat);
         sim.tick();
         assert!(!sim.organisms[target].alive, "dies through the normal death path");
-        assert_eq!(sim.history.deaths_combat, deaths + 1, "and is counted in history");
+        assert_eq!(
+            sim.history.deaths_disaster,
+            deaths + 1,
+            "and is counted as the gods' lightning"
+        );
+        assert_eq!(sim.history.deaths_combat, combat, "not as combat");
     }
 
     #[test]

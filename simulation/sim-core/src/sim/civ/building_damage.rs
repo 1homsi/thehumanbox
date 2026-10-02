@@ -538,6 +538,7 @@ pub(crate) fn strike_buildings(
             let inside = ox >= bx && ox < bx + fw && oy >= by && oy < by + fh;
             if inside {
                 o.health = (o.health - 0.35).max(0.05);
+                o.mark_harm(crate::organism::organism::Harm::Disaster, sim.tick_count);
                 o.fear_level = (o.fear_level + 0.4).min(1.0);
             }
             if inside || occupants.contains(&o.id) {

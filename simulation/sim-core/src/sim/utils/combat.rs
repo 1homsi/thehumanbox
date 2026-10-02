@@ -14,6 +14,7 @@ impl Simulation {
 
         let dmg = if ambush { 0.10 } else { 0.06 };
         self.organisms[ti].health = (self.organisms[ti].health - dmg).max(0.0);
+        self.organisms[ti].mark_harm(crate::organism::organism::Harm::War, self.tick_count);
         self.organisms[ti].fear_level = (self.organisms[ti].fear_level + 0.15).min(1.0);
 
         let their = self.organisms[ti].lineage_id.clone();

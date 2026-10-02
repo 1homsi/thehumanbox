@@ -354,7 +354,18 @@ export interface AnimalState {
   away?: boolean
 }
 
-export type PerilCause = 'sickness' | 'hunger' | 'thirst' | 'no_children' | 'old_age' | 'dwindling'
+export type PerilCause =
+  | 'sickness'
+  | 'hunger'
+  | 'thirst'
+  | 'no_children'
+  | 'old_age'
+  | 'dwindling'
+  | 'war'
+  | 'beasts'
+  | 'drowning'
+  | 'fire'
+  | 'disaster'
 
 export interface TribePeril {
   lineage_id: string
@@ -425,6 +436,10 @@ export interface WorldHistory {
   deaths_dehydration: number
   deaths_sickness: number
   deaths_combat: number
+  deaths_beasts?: number
+  deaths_drowning?: number
+  deaths_fire?: number
+  deaths_disaster?: number
   sickness_events: number
   alliances_formed: number
   challenges_total: number

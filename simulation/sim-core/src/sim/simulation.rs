@@ -623,6 +623,12 @@ pub struct History {
     pub deaths_dehydration: u64,
     pub deaths_sickness: u64,
     pub deaths_combat: u64,
+    /// Killed by wolves, bears or monsters.
+    pub deaths_beasts: u64,
+    pub deaths_drowning: u64,
+    pub deaths_fire: u64,
+    /// Earthquakes, meteors, floods, storms, volcanoes, collapsing roofs.
+    pub deaths_disaster: u64,
     pub sickness_events: u64,
     pub alliances_formed: u64,
     pub challenges_total: u64,
@@ -772,6 +778,8 @@ pub struct Simulation {
     /// Tribes the world has warned are on the brink (runtime; re-detected
     /// within one check after a load).
     pub(crate) tribe_peril: HashMap<String, super::civ::peril::Peril>,
+    /// Each tribe's recent deaths and their causes, newest last (runtime).
+    pub(crate) recent_deaths: HashMap<String, VecDeque<(u64, &'static str)>>,
     pub headlines: VecDeque<(u64, String)>,
     pub trades: VecDeque<super::civ::economy::Trade>,
     pub trade_routes: Vec<super::civ::trade_routes::TradeRoute>,
@@ -948,6 +956,7 @@ impl Simulation {
             milestones_achieved: HashSet::default(),
             lineage_peak_pop: HashMap::default(),
             tribe_peril: HashMap::default(),
+            recent_deaths: HashMap::default(),
             headlines: VecDeque::new(),
             trades: VecDeque::new(),
             trade_routes: Vec::new(),
@@ -1592,6 +1601,7 @@ impl Simulation {
                 &mut self.events,
             );
             self.battles.extend(new_wars);
+            let standing: Vec<bool> = self.organisms.iter().map(|o| o.alive).collect();
             super::warfare::tick_battles(
                 self.tick_count,
                 &mut self.rng,
@@ -1608,6 +1618,17 @@ impl Simulation {
                     grid: &self.grid,
                 },
             );
+            // The fallen are their tribes' war dead.
+            let fallen: Vec<String> = self
+                .organisms
+                .iter()
+                .zip(&standing)
+                .filter(|(o, &was)| was && !o.alive)
+                .map(|(o, _)| o.lineage_id.clone())
+                .collect();
+            for lineage in fallen {
+                self.note_death(&lineage, "war");
+            }
             self.apply_conquests();
         }
         super::civ::building_damage::tick_building_damage(self);
@@ -2854,6 +2875,7 @@ impl Simulation {
                 self.organisms[idx].health = (self.organisms[idx].health + 0.0005).min(1.0);
             }
             self.organisms[idx].health = (self.organisms[idx].health - fire_dmg).max(0.0);
+            self.organisms[idx].mark_harm(crate::organism::organism::Harm::Fire, self.tick_count);
             self.grid.add_hazard(cx, cy, 0.025);
             let ms = self.organisms[idx].traits.memory_strength;
             Organism::remember(&mut self.organisms[idx].danger_memory, cx, cy, 0.8, ms);
@@ -3037,6 +3059,7 @@ impl Simulation {
             self.organisms[idx].energy = (self.organisms[idx].energy - 0.001 * inf).max(0.0);
             if inf > 0.6 {
                 self.organisms[idx].health = (self.organisms[idx].health - 0.001 * (inf - 0.6)).max(0.0);
+                self.organisms[idx].mark_harm(crate::organism::organism::Harm::Sickness, self.tick_count);
             }
             let thought = self.organisms[idx].thought.clone();
             if inf > 0.25
@@ -4612,23 +4635,67 @@ impl Simulation {
             }
         };
 
+        let mut noted: Option<(String, &'static str)> = None;
         let org = &mut self.organisms[idx];
         if org.energy <= 0.0 || org.hydration <= 0.0 || org.health <= 0.0 {
             org.alive = false;
             org.think("dying", self.tick_count);
-            let cause = if org.health <= 0.0 && org.infection > 0.3 {
-                self.history.deaths_sickness += 1;
-                "sickness"
-            } else if org.energy <= 0.0 {
-                self.history.deaths_starvation += 1;
-                "starvation"
-            } else if org.hydration <= 0.0 {
-                self.history.deaths_dehydration += 1;
-                "dehydration"
+            use crate::organism::organism::Harm;
+            // A wound is told by what dealt it; before, every death from
+            // lost health that was not a fever counted as combat, so cold
+            // water, wolves and earthquakes all read as war.
+            let harm = if org.health <= 0.0 {
+                org.fatal_harm(self.tick_count)
             } else {
-                self.history.deaths_combat += 1;
-                "combat"
+                None
             };
+            let cause = match harm {
+                Some(Harm::Beast) => {
+                    self.history.deaths_beasts += 1;
+                    "beasts"
+                }
+                Some(Harm::Drowning) => {
+                    self.history.deaths_drowning += 1;
+                    "drowning"
+                }
+                Some(Harm::Fire) => {
+                    self.history.deaths_fire += 1;
+                    "fire"
+                }
+                Some(Harm::Disaster) => {
+                    self.history.deaths_disaster += 1;
+                    "disaster"
+                }
+                Some(Harm::Sickness) => {
+                    self.history.deaths_sickness += 1;
+                    "sickness"
+                }
+                Some(Harm::War) => {
+                    self.history.deaths_combat += 1;
+                    "war"
+                }
+                Some(Harm::Fight) => {
+                    self.history.deaths_combat += 1;
+                    "combat"
+                }
+                None if org.health <= 0.0 && org.infection > 0.3 => {
+                    self.history.deaths_sickness += 1;
+                    "sickness"
+                }
+                None if org.energy <= 0.0 => {
+                    self.history.deaths_starvation += 1;
+                    "starvation"
+                }
+                None if org.hydration <= 0.0 => {
+                    self.history.deaths_dehydration += 1;
+                    "dehydration"
+                }
+                None => {
+                    self.history.deaths_combat += 1;
+                    "combat"
+                }
+            };
+            noted = Some((org.lineage_id.clone(), cause));
             // Migration-pressure signal: an organism dying far from
             // where it was born is the simulation's emergent answer
             // to "the elders left home and never came back." Fires
@@ -4655,9 +4722,14 @@ impl Simulation {
             org.alive = false;
             org.think("died of old age", self.tick_count);
             self.history.deaths_old_age += 1;
+            noted = Some((org.lineage_id.clone(), "old_age"));
             let msg = format!("gen{} age {} - old age", org.generation, org.age);
             let name = org.name.clone();
             push_event(&mut self.events, self.tick_count, "died", &name, &msg);
+        }
+
+        if let Some((lineage, cause)) = noted {
+            self.note_death(&lineage, cause);
         }
 
         if !self.organisms[idx].alive {
@@ -5315,6 +5387,7 @@ impl Simulation {
             let dmg = base_dmg + self.rng.random::<f32>() * 0.08;
             let oname = self.organisms[oi].name.clone();
             self.organisms[oi].health = (self.organisms[oi].health - dmg).max(0.0);
+            self.organisms[oi].mark_harm(crate::organism::organism::Harm::Beast, self.tick_count);
             self.organisms[oi].think(&format!("{} attacks", beast.a_name()), self.tick_count);
             let fright = if beast.monster() { 0.4 } else { 0.25 };
             self.organisms[oi].fear_level = (self.organisms[oi].fear_level + fright).min(1.0);
@@ -5325,6 +5398,7 @@ impl Simulation {
                 // check runs; below zero hands the death to the normal tick,
                 // as smite does, so a monster's kill is final.
                 self.organisms[oi].health = -1.0;
+                self.organisms[oi].mark_harm(crate::organism::organism::Harm::Beast, self.tick_count);
             }
             // Monsters attack constantly, so only their kills make the log.
             if !beast.monster() {
@@ -5609,6 +5683,7 @@ impl Simulation {
                     };
                     // Health below zero hands the death to the normal tick.
                     self.organisms[oi].health = -1.0;
+                    self.organisms[oi].mark_harm(crate::organism::organism::Harm::Beast, self.tick_count);
                     let name = self.organisms[oi].name.clone();
                     push_event(
                         &mut self.events,
@@ -5850,6 +5925,7 @@ impl Simulation {
         if ticks > 12 || depth > 0.45 {
             let panic = (ticks.saturating_sub(12) as f32 * 0.0007) + depth * 0.0025;
             self.organisms[idx].health = (self.organisms[idx].health - panic).max(0.0);
+            self.organisms[idx].mark_harm(crate::organism::organism::Harm::Drowning, self.tick_count);
             self.organisms[idx].fear_level = (self.organisms[idx].fear_level + 0.025 + depth * 0.04).min(1.0);
             self.organisms[idx].think("struggling in water", self.tick_count);
             let ms = self.organisms[idx].traits.memory_strength;
