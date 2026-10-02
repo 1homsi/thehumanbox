@@ -314,6 +314,8 @@ pub struct SaveState {
     rng: Option<ChaCha8Rng>,
     flood_tiles: Vec<(i32, i32, u64)>,
     #[serde(default)]
+    wards: Vec<crate::sim::civ::wards::Ward>,
+    #[serde(default)]
     plantings: std::collections::BTreeMap<u32, crate::sim::tech::plantings::Planting>,
     #[serde(default)]
     prayers: crate::sim::civ::prayers::PrayerState,
@@ -860,6 +862,7 @@ impl Simulation {
             pending_thinks: self.pending_thinks.clone(),
             rng: Some(self.rng.clone()),
             flood_tiles: self.flood_tiles.clone(),
+            wards: self.wards.clone(),
             plantings: self.plantings.clone(),
             prayers: self.prayers.clone(),
             hard_winter: self.hard_winter,
@@ -1179,6 +1182,7 @@ impl Simulation {
                 wind_last_tick: state.weather.wind_last_tick,
             },
             flood_tiles: state.flood_tiles,
+            wards: state.wards,
             plantings: state.plantings,
             prayers: state.prayers,
             hard_winter: state.hard_winter,

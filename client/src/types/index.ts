@@ -355,6 +355,14 @@ export interface AnimalState {
   away?: boolean
 }
 
+export interface WardInfo {
+  x: number
+  y: number
+  radius: number
+  cast: number
+  until: number
+}
+
 export type PerilCause =
   | 'sickness'
   | 'hunger'
@@ -555,6 +563,8 @@ export interface WorldState {
   faith?: FaithInfo
   /** Each tribe's dead of the last few seasons, by cause. */
   tribe_losses?: Record<string, Record<string, number>>
+  /** The gods' wards over the land. */
+  wards?: WardInfo[]
   /** Tribes on the brink, and what is killing them. */
   tribes_in_peril?: TribePeril[]
   settlements?: SettlementInfo[]

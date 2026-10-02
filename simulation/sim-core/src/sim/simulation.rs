@@ -719,6 +719,8 @@ pub struct Simulation {
     pub drought: DroughtState,
     pub weather: WeatherState,
     pub flood_tiles: Vec<(i32, i32, u64)>,
+    /// The gods' wards over the land (see `civ::wards`).
+    pub wards: Vec<super::civ::wards::Ward>,
     /// Player-planted crops, orchards and saplings, keyed by tile index.
     pub plantings: std::collections::BTreeMap<u32, crate::sim::tech::plantings::Planting>,
     /// Prayers tribes send the player, and the faith answering them earns.
@@ -912,6 +914,7 @@ impl Simulation {
             drought: DroughtState::default(),
             weather: WeatherState::default(),
             flood_tiles: Vec::new(),
+            wards: Vec::new(),
             plantings: Default::default(),
             prayers: Default::default(),
             hard_winter: false,
@@ -1593,6 +1596,7 @@ impl Simulation {
                 &self.battles,
                 &mut self.events,
             );
+            let new_battles = self.turn_away_warded(new_battles);
             self.battles.extend(new_battles);
             let new_wars = super::warfare::try_spawn_border_wars(
                 self.tick_count,
@@ -1603,6 +1607,7 @@ impl Simulation {
                 &self.battles,
                 &mut self.events,
             );
+            let new_wars = self.turn_away_warded(new_wars);
             self.battles.extend(new_wars);
             let standing: Vec<bool> = self.organisms.iter().map(|o| o.alive).collect();
             super::warfare::tick_battles(
@@ -1915,6 +1920,7 @@ impl Simulation {
         self.tick_colonization();
         self.tick_plantings();
         self.tick_prayers();
+        self.tick_wards();
         self.tick_wild_food();
         self.check_animal_catches();
 
@@ -5375,6 +5381,10 @@ impl Simulation {
             // Someone already at zero health dies this tick; biting them
             // again must not count, or every zombie around them raised one.
             if !self.animals[ai].alive || !self.organisms[oi].alive || self.organisms[oi].health <= 0.0 {
+                continue;
+            }
+            // Beasts will not strike under the gods' ward.
+            if self.warded(self.organisms[oi].x, self.organisms[oi].y) {
                 continue;
             }
             let beast = self.animals[ai].kind;

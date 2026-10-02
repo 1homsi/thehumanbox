@@ -70,6 +70,7 @@ import { drawPrayerBubble, mergePrayerBubbles, prayerAtPoint, prayerBubbleScale 
 import { PERIL_HELP, remainingLine } from '../../world/tribe-peril'
 import { drawCaravanSprite, drawRoad, drawTraffic } from './roads'
 import { battleAge, drawBattle } from './battles'
+import { drawWard } from './wards'
 import {
   drawSettlementLabels,
   labelScale,
@@ -2904,6 +2905,9 @@ export function drawWorldOnCanvas(
       t,
       age,
     )
+  }
+  for (const ward of world.wards ?? []) {
+    drawWard(ctx, ward, (ward.x - ox) * TILE + TILE / 2, (ward.y - oy) * TILE + TILE / 2, TILE, world.tick, t)
   }
   if (placedSettlementLabels.length > 0) drawSettlementLabels(ctx, placedSettlementLabels)
   updateWorldMoments(world, t)

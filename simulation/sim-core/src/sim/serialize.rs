@@ -379,6 +379,16 @@ impl Simulation {
                 }
             }
             obj.insert("tribe_losses".to_string(), serde_json::Value::Object(losses));
+            obj.insert(
+                "wards".to_string(),
+                serde_json::Value::Array(
+                    self.wards
+                        .iter()
+                        .filter(|w| now < w.until)
+                        .map(|w| json!({"x": w.x, "y": w.y, "radius": w.radius, "cast": w.cast, "until": w.until}))
+                        .collect(),
+                ),
+            );
             let mut peril: Vec<(&String, &crate::sim::civ::peril::Peril)> = self.tribe_peril.iter().collect();
             peril.sort_by(|a, b| a.0.cmp(b.0));
             obj.insert(

@@ -94,6 +94,7 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'arm':
       return 'inspire'
     case 'bounty':
+    case 'ward':
       return 'bless'
     case 'douse':
     case 'flood':
