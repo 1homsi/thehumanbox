@@ -324,6 +324,9 @@ fn prayer_answers(cmd: &Command) -> Option<PrayerAnswer> {
         Command::Plant { x, y, kind, .. } if kind != "sapling" => (&[Hunger], at(*x as f32, *y as f32)),
         Command::Paint { x, y, tile, .. } if tile == "food" => (&[Hunger], at(*x as f32, *y as f32)),
         Command::Paint { x, y, tile, .. } if tile == "water" => (&[Thirst], at(*x as f32, *y as f32)),
+        Command::Paint { x, y, tile, .. } if tile == "hut" || tile == "campfire" => {
+            (&[Shelter], at(*x as f32, *y as f32))
+        }
         Command::Smite { x, y, .. }
         | Command::Banish { x, y, .. }
         | Command::Thunder { x, y, .. }
