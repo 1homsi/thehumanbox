@@ -4,6 +4,7 @@ import type { PrayerInfo, WorldState } from '../types'
 import { lineageColor } from '../utils/constants'
 import { PRAYER_KINDS } from '../world/prayers'
 import { PERIL_HELP, perilOf, remainingLine } from '../world/tribe-peril'
+import { activeBattles, enemiesOf } from '../2d/world/battles'
 import { tribeStatus } from '../world/tribe-status'
 import { ToolSprite } from './ToolSprite'
 
@@ -38,6 +39,10 @@ export function TribeCard({ world, onAnswer, onTool }: Props) {
   const status = tribeStatus(world, focus.slice('lineage:'.length))
   if (!status) return null
   const prayer = status.prayer
+  const enemies = enemiesOf(world.battles, status.id).map((l) => world.lineage_names?.[l] ?? l.slice(0, 6))
+  const field = activeBattles(world.battles).find(
+    (b) => b.attackers.includes(status.id) || b.defenders.includes(status.id),
+  )
   const peril = perilOf(world, status.id)
   const help = peril ? PERIL_HELP[peril.cause] : null
   const lookAtTribe = (tool: string) => {
@@ -65,6 +70,17 @@ export function TribeCard({ world, onAnswer, onTool }: Props) {
           </span>
           <button className="tribe-peril-help" onClick={() => lookAtTribe(help.tool)}>
             {help.action}
+          </button>
+        </div>
+      )}
+      {enemies.length > 0 && field && (
+        <div className="tribe-peril tribe-war" role="status">
+          <span>⚔ at war with {enemies.join(', ')}</span>
+          <button
+            className="tribe-peril-help"
+            onClick={() => onTool('peace', { x: field.location[0], y: field.location[1] })}
+          >
+            make peace
           </button>
         </div>
       )}

@@ -68,6 +68,7 @@ import { drawPlanting } from './plantings'
 import { drawBlessings, drawFireworks, updateWorldMoments, worldMomentsActive } from './world-moments'
 import { drawPrayerBubble, mergePrayerBubbles, prayerAtPoint, prayerBubbleScale } from './prayer-bubbles'
 import { PERIL_HELP, remainingLine } from '../../world/tribe-peril'
+import { battleAge, drawBattle } from './battles'
 import {
   drawSettlementLabels,
   labelScale,
@@ -2928,6 +2929,23 @@ export function drawWorldOnCanvas(
   }
 
   drawEraTraffic(ctx, world, ox, oy, W, H, cameraZoom, t)
+  for (const battle of world.battles ?? []) {
+    const age = battleAge(battle, world.tick)
+    if (age === null) continue
+    const [bx, by] = battle.location
+    drawBattle(
+      ctx,
+      battle,
+      (bx - ox) * TILE + TILE / 2,
+      (by - oy) * TILE + TILE / 2,
+      TILE,
+      labelScale(cameraZoom),
+      lineageColor(battle.attackers[0]),
+      lineageColor(battle.defenders[0]),
+      t,
+      age,
+    )
+  }
   if (settlementLabels.length > 0 && !viewFlags.hideUI) {
     const scale = labelScale(cameraZoom)
     const measure = (text: string, kind: 'major' | 'minor' | 'sub') => {
