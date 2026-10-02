@@ -39,6 +39,10 @@ const GLYPHS: Record<string, { rows: string[]; colors: Record<string, string> }>
     rows: ['.......', '..ww...', '.wwwww.', 'wwwwwww', '..wwwk.', '...w...', '.......'],
     colors: { w: '#9aa8b4', k: '#f0b54a' },
   },
+  fire: {
+    rows: ['...o...', '..oo...', '..ooy..', '.oyyyo.', '.oyyyo.', 'ooyryoo', '.ooroo.'],
+    colors: { o: '#e8632f', y: '#ffd34d', r: '#c8392b' },
+  },
   shelter: {
     rows: ['...r...', '..rrr..', '.rrrrr.', 'rrrrrrr', '.wwdww.', '.wwdww.', '.wwdww.'],
     colors: { r: '#b5532f', w: '#d8c29c', d: '#5a3a22' },

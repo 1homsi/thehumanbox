@@ -331,7 +331,8 @@ fn prayer_answers(cmd: &Command) -> Option<PrayerAnswer> {
         | Command::Banish { x, y, .. }
         | Command::Thunder { x, y, .. }
         | Command::Arm { x, y, .. } => (&[Danger], at(*x, *y)),
-        Command::Weather { kind } if kind == "rain" || kind == "storm" => (&[Rain, Thirst], None),
+        Command::Weather { kind } if kind == "rain" || kind == "storm" => (&[Rain, Thirst, Fire], None),
+        Command::Douse { x, y, .. } => (&[Fire], at(*x as f32, *y as f32)),
         Command::Drought { active: false } => (&[Rain], None),
         _ => return None,
     })
