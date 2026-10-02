@@ -2630,3 +2630,44 @@ fn few_people_pace_in_place_in_front_of_obstacles() {
         "{pacing} of {tracked} people pace in place"
     );
 }
+
+/// Nobody migrates into a silent world, and a dwindling world is rescued
+/// by newcomers only once its gods have earned the people's faith.
+#[test]
+fn newcomers_follow_faith_and_never_revive_a_silent_world() {
+    let survivors = |sim: &Simulation| sim.organisms.iter().filter(|o| o.alive).count();
+    let dwindle = |sim: &mut Simulation| {
+        let keep: Vec<String> = sim
+            .organisms
+            .iter()
+            .filter(|o| o.alive)
+            .take(8)
+            .map(|o| o.id.clone())
+            .collect();
+        sim.organisms.retain(|o| keep.contains(&o.id));
+        sim.last_immigration_tick = 0;
+        sim.tick_count = 1_000;
+    };
+
+    let mut silent = Simulation::new(5);
+    silent.organisms.clear();
+    silent.tick_count = 1_000;
+    silent.tick();
+    assert_eq!(survivors(&silent), 0, "nobody migrates into an empty world");
+
+    let mut faithless = Simulation::new(5);
+    dwindle(&mut faithless);
+    let before = survivors(&faithless);
+    faithless.tick();
+    assert!(survivors(&faithless) <= before, "no rescue without faith");
+
+    let mut faithful = Simulation::new(5);
+    dwindle(&mut faithful);
+    faithful.prayers.faith.insert("someone".into(), 3);
+    let before = survivors(&faithful);
+    faithful.tick();
+    assert!(
+        survivors(&faithful) > before,
+        "word of answered prayers draws newcomers"
+    );
+}

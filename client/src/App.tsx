@@ -4,6 +4,7 @@ import { useSimulation } from './simulation/useSimulation'
 import {
   getWorldSource,
   reloadAppSafely,
+  requestOwnWorldReset,
   resolvePlayerWorldKind,
   shouldUseSimulationApi,
 } from './simulation/worldSource'
@@ -11,6 +12,8 @@ import { SimulationDataProvider } from './simulation/SimulationDataProvider'
 import { SandboxToolbar } from './components/SandboxToolbar'
 import { PhotoModeExit } from './components/PhotoModeExit'
 import { ConfirmHost } from './components/ConfirmDialog'
+import { WorldSilent } from './components/WorldSilent'
+import { askConfirm } from './lib/confirm'
 import { toolFailure } from './components/tool-tips'
 import { SANDBOX_CATEGORIES, type LineageStrategy, type SandboxTool } from './simulation/sandbox'
 import { prayerTool } from './world/prayers'
@@ -227,6 +230,28 @@ function LiveApp() {
       onPickTool(tool)
     },
     [armedTool, onPickTool],
+  )
+
+  // After the last person dies: seed new people by hand, or start over.
+  const handleSeedPeople = useCallback(() => {
+    const tool = SANDBOX_CATEGORIES.flatMap((c) => c.tools).find((t) => t.id === 'spawn5')
+    if (tool && armedTool?.id !== tool.id) onPickTool(tool)
+    setSandboxStatus('click the land to seed a new tribe')
+  }, [armedTool, onPickTool])
+  const handleNewWorld = useMemo(
+    () =>
+      getWorldSource() === 'wasm'
+        ? () => {
+            void askConfirm({
+              title: 'Start a new world?',
+              body: 'This silent world is kept in recovery saves.',
+              confirmLabel: 'start new',
+            }).then((ok) => {
+              if (ok) requestOwnWorldReset()
+            })
+          }
+        : null,
+    [],
   )
 
   const handleSandboxApply = useCallback(
@@ -509,6 +534,7 @@ function LiveApp() {
         <CommandPalette />
         <PhotoModeExit />
         <ConfirmHost />
+        <WorldSilent world={world ?? null} onSeed={handleSeedPeople} onNewWorld={handleNewWorld} />
 
         <main className="main" data-tour="world-canvas">
           {world ? (

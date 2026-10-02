@@ -1654,9 +1654,15 @@ impl Simulation {
         }
         let sparse_quadrants = quadrant_counts.iter().flatten().filter(|&&n| n <= 6).count();
         let world_is_clumped = sparse_quadrants >= 5;
-        let immig_cooldown = if alive_count_before_loop < 60 {
+        // Newcomers seek out a world whose gods answer prayers. A silent
+        // world stays silent: nobody migrates into an empty land, and a
+        // dwindling world is only rescued once its gods have earned faith.
+        let gods_trusted = self.prayers_faith_total() > 0;
+        let immig_cooldown = if alive_count_before_loop == 0 {
+            None
+        } else if alive_count_before_loop < 60 && gods_trusted {
             Some(200u64)
-        } else if alive_count_before_loop < 100 {
+        } else if alive_count_before_loop < 100 && gods_trusted {
             Some(600u64)
         } else if world_is_clumped {
             Some(1500u64)
