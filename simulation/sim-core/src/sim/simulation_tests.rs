@@ -2585,3 +2585,48 @@ fn same_seed_stays_identical_over_a_long_run() {
         );
     }
 }
+
+/// People used to pace between two tiles in front of mountains, walls of
+/// huts and lake shores because each greedy step undid the last. Routing
+/// around obstacles keeps the share of people stuck pacing small.
+#[test]
+fn few_people_pace_in_place_in_front_of_obstacles() {
+    let mut sim = Simulation::new(42);
+    for _ in 0..1500 {
+        sim.tick();
+    }
+    let window = 40;
+    let mut tracks: std::collections::BTreeMap<String, Vec<(f32, f32)>> = Default::default();
+    for _ in 0..window {
+        for o in sim.organisms.iter().filter(|o| o.alive) {
+            tracks.entry(o.id.clone()).or_default().push((o.x, o.y));
+        }
+        sim.tick();
+    }
+    let (mut tracked, mut pacing) = (0, 0);
+    for t in tracks.values().filter(|t| t.len() == window) {
+        tracked += 1;
+        let mut path = 0.0f32;
+        let mut reversals = 0;
+        let mut last: Option<(f32, f32)> = None;
+        for w in t.windows(2) {
+            let (dx, dy) = (w[1].0 - w[0].0, w[1].1 - w[0].1);
+            if dx.hypot(dy) > 0.01 {
+                path += dx.hypot(dy);
+                if last.is_some_and(|(lx, ly)| lx * dx + ly * dy < 0.0) {
+                    reversals += 1;
+                }
+                last = Some((dx, dy));
+            }
+        }
+        let net = (t[window - 1].0 - t[0].0).hypot(t[window - 1].1 - t[0].1);
+        if path >= 0.3 && net < path * 0.25 && reversals > 6 {
+            pacing += 1;
+        }
+    }
+    assert!(tracked > 50, "enough people to judge: {tracked}");
+    assert!(
+        pacing * 100 < tracked * 12,
+        "{pacing} of {tracked} people pace in place"
+    );
+}
