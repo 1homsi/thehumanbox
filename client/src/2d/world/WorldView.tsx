@@ -1356,6 +1356,23 @@ export function drawWorldOnCanvas(
     }
   }
 
+  // A hard winter: a cold grey sky and snow that keeps falling, rain or not.
+  const hardWinter = !!world.hard_winter && world.season === 'scarcity'
+  if (hardWinter) {
+    ctx.fillStyle = 'rgba(196,214,232,0.09)'
+    ctx.fillRect(0, 0, W, H)
+    const wx = world.weather?.wind_x ?? 0.3
+    const flakes = LOW_PERF ? 160 : 320
+    for (let i = 0; i < flakes; i++) {
+      const drift = Math.sin(t * 0.0011 + i * 1.3) * 7 + wx * 14
+      const fx = (((i * 137 + t * 0.1 + drift) % W) + W) % W
+      const fy = (i * 251 + t * (0.18 + (i % 3) * 0.05)) % H
+      const size = 1 + ((i * 7) % 2)
+      ctx.fillStyle = `rgba(245,249,255,${0.5 + ((i * 13) % 5) * 0.08})`
+      ctx.fillRect(fx, fy, size, size)
+    }
+  }
+
   if (world.weather && world.weather.kind !== 'clear') {
     const wi = Math.max(0, Math.min(1, world.weather.intensity ?? 0))
     const kind = world.weather.kind
@@ -1373,7 +1390,7 @@ export function drawWorldOnCanvas(
       const isStorm = kind === 'storm'
       const wx = world.weather.wind_x ?? 0.4
       const wy = world.weather.wind_y ?? 0.0
-      if (world.season === 'scarcity' && !isStorm) {
+      if (world.season === 'scarcity' && !isStorm && !hardWinter) {
         ctx.fillStyle = `rgba(240,246,255,${0.35 + wi * 0.3})`
         const flakes = Math.round(90 * (0.4 + wi * 0.6))
         for (let i = 0; i < flakes; i++) {
@@ -1383,7 +1400,7 @@ export function drawWorldOnCanvas(
           const sz = 1 + ((i * 7) % 2)
           ctx.fillRect(sxp, syp, sz, sz)
         }
-      } else {
+      } else if (!(hardWinter && !isStorm)) {
         ctx.strokeStyle = isStorm
           ? `rgba(180,195,230,${0.1 + wi * 0.1})`
           : `rgba(170,190,225,${0.08 + wi * 0.08})`
