@@ -2,35 +2,7 @@ import { memo, useMemo, useState } from 'react'
 import { HIDDEN_EVENT_TYPES } from '../utils/constants'
 import { useWorldStore } from '../stores/worldStore'
 import { EventRow } from './EventRow'
-
-const DRAMA_EVENT_TYPES = new Set([
-  'war_declared',
-  'battle',
-  'challenge',
-  'era',
-  'milestone',
-  'treaty',
-  'government_changed',
-  'outbreak',
-  'festival',
-  'death',
-  'died',
-  'drought',
-  'weather',
-  'eruption',
-  'strategy_complete',
-  'strategy_failed',
-  'strategy_redirected',
-  'prayer',
-  'forsaken',
-  'answered',
-  'building_ruined',
-  'meteor',
-  'era_advance',
-  'disease_death',
-  'smite',
-  'danger',
-])
+import { isNewsEvent } from '../world/news'
 
 const FILTER_KEY = 'thb-event-filter-v1'
 
@@ -63,7 +35,7 @@ function EventLogImpl() {
     for (let i = events.length - 1; i >= 0 && out.length < 20; i--) {
       const e = events[i]
       if (HIDDEN_EVENT_TYPES.has(e.type)) continue
-      if (dramaOnly && !DRAMA_EVENT_TYPES.has(e.type)) continue
+      if (dramaOnly && !isNewsEvent(e)) continue
       out.push(e)
     }
     return out

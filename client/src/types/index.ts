@@ -160,6 +160,7 @@ export interface BattleInfo {
   location: [number, number]
   started_tick: number
   ended: boolean
+  ended_tick?: number | null
   outcome?: string | null
   casualties_a: number
   casualties_d: number
@@ -418,6 +419,8 @@ export interface SimEvent {
     | 'strategy_redirected'
   actor: string
   detail: string
+  /** Set by the sim on events worth the player's attention. */
+  news?: boolean
 }
 
 export interface TribalRelation {
