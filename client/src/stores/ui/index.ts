@@ -8,6 +8,7 @@ import {
   createOverlaySlice,
   createViewFlagsSlice,
   createNerdStatsSlice,
+  createPauseOnPerilSlice,
   createFullscreenSlice,
   createInteriorSlice,
 } from './slices'
@@ -22,6 +23,7 @@ export const useUIStore = create<UIState>()((...a) => ({
   ...createOverlaySlice(...a),
   ...createViewFlagsSlice(...a),
   ...createNerdStatsSlice(...a),
+  ...createPauseOnPerilSlice(...a),
   ...createFullscreenSlice(...a),
   ...createInteriorSlice(...a),
 }))

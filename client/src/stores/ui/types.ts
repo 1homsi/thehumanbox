@@ -34,6 +34,7 @@ import type {
   OverlaySlice,
   ViewFlagsSlice,
   NerdStatsSlice,
+  PauseOnPerilSlice,
   FullscreenSlice,
   InteriorSlice,
 } from './slices'
@@ -45,5 +46,6 @@ export type UIState = SelectionSlice &
   OverlaySlice &
   ViewFlagsSlice &
   NerdStatsSlice &
+  PauseOnPerilSlice &
   FullscreenSlice &
   InteriorSlice

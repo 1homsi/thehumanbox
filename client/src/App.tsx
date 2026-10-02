@@ -18,6 +18,7 @@ import { TribeCard } from './components/TribeCard'
 import { askConfirm } from './lib/confirm'
 import { toolFailure } from './components/tool-tips'
 import { SANDBOX_CATEGORIES, type LineageStrategy, type SandboxTool } from './simulation/sandbox'
+import { newPerils } from './world/peril-watch'
 import { prayerTool } from './world/prayers'
 import { useCameraFocus } from './stores/camera-focus'
 import type { PrayerInfo } from './types'
@@ -415,6 +416,25 @@ function LiveApp() {
       useUIStore.getState().selectOrg(reconciledSelection)
     }
   }, [world, selectedOrgId])
+
+  // Optionally stop the clock when a tribe newly falls on the brink.
+  const seenPerils = useRef(new Set<string>())
+  const perilSeeded = useRef(false)
+  useEffect(() => {
+    if (!world) return
+    const fresh = newPerils(seenPerils.current, world.tribes_in_peril)
+    // The first look only learns who is already in danger: loading a save
+    // must not pause for tribes that were on the brink before.
+    if (!perilSeeded.current) {
+      perilSeeded.current = true
+      return
+    }
+    if (fresh.length > 0 && useUIStore.getState().pauseOnPeril) {
+      pauseSim()
+      const names = fresh.map((p) => p.tribe).join(', ')
+      setTemporarySandboxStatus(`paused: ${names} on the brink`)
+    }
+  }, [world, pauseSim, setTemporarySandboxStatus])
 
   const lastHeadlineTickRef = useRef<number>(0)
   useEffect(() => {
