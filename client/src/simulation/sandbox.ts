@@ -21,6 +21,7 @@ export type SandboxCommand =
   | { cmd: 'bounty'; x: number; y: number; radius?: number }
   | { cmd: 'douse'; x: number; y: number; radius?: number }
   | { cmd: 'banish'; x: number; y: number; radius?: number }
+  | { cmd: 'ward'; x: number; y: number; radius?: number }
   | { cmd: 'blight'; x: number; y: number; radius?: number }
   | { cmd: 'frenzy'; x: number; y: number; radius?: number }
   | { cmd: 'flood'; x: number; y: number; radius?: number }
@@ -178,6 +179,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🪣',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'douse', x, y, radius: 3 + b }),
+      },
+      {
+        id: 'ward',
+        label: 'ward',
+        icon: '🔰',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'ward', x, y, radius: 6 + b * 2 }),
       },
       {
         id: 'banish',
