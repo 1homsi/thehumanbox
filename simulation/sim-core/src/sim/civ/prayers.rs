@@ -43,6 +43,7 @@ pub enum PrayerKind {
     Children,
     Peace,
     Knowledge,
+    Shelter,
 }
 
 impl PrayerKind {
@@ -56,6 +57,7 @@ impl PrayerKind {
             PrayerKind::Children => "children",
             PrayerKind::Peace => "peace",
             PrayerKind::Knowledge => "knowledge",
+            PrayerKind::Shelter => "shelter",
         }
     }
 
@@ -70,6 +72,7 @@ impl PrayerKind {
             PrayerKind::Children => "pray for children",
             PrayerKind::Peace => "pray for the war to end",
             PrayerKind::Knowledge => "pray for wisdom",
+            PrayerKind::Shelter => "pray for shelter from the cold",
         }
     }
 }
@@ -207,6 +210,13 @@ impl Simulation {
                 },
                 PrayerKind::Knowledge,
             );
+            // In the cold, a tribe sleeping in the open asks for roofs.
+            if self.season() == "scarcity" {
+                let room = self.shelter_room(&lineage, cx, cy);
+                if (room as f32) < n.people as f32 * 0.6 {
+                    consider(if self.hard_winter { 0.7 } else { 0.35 }, PrayerKind::Shelter);
+                }
+            }
             let raining = self.weather.kind >= 1;
             consider(
                 if self.drought.active && !raining { 0.4 } else { 0.0 },
@@ -418,6 +428,26 @@ impl Simulation {
         }
     }
 
+    /// Beds a tribe has: its standing homes plus huts raised near its camp.
+    fn shelter_room(&self, lineage: &str, cx: f32, cy: f32) -> usize {
+        let homes: usize = self
+            .buildings
+            .iter()
+            .filter(|b| b.owner_lineage.as_deref() == Some(lineage) && b.provides_shelter_for(lineage))
+            .map(|b| usize::from(b.kind.capacity()))
+            .sum();
+        let (cx, cy) = (cx as i32, cy as i32);
+        let mut huts = 0;
+        for y in cy - 10..=cy + 10 {
+            for x in cx - 10..=cx + 10 {
+                if self.grid.get(x, y) == crate::world::tiles::Tile::Hut {
+                    huts += 2;
+                }
+            }
+        }
+        homes + huts
+    }
+
     fn lineage_alive(&self, lineage: &str) -> bool {
         self.lineage_aggregates
             .get(lineage)
@@ -600,6 +630,10 @@ mod tests {
         check(&mut sim);
         assert!(sim.prayers.active.is_empty());
         sim.tick_count += STALLED_ERA_TICKS;
+        // Out of winter, so a roofless tribe's call for shelter doesn't win.
+        while sim.season() == "scarcity" {
+            sim.tick_count += crate::sim::config::SEASON_LENGTH;
+        }
         check(&mut sim);
         let prayer = sim.prayers.active.first().expect("a prayer").clone();
         assert_eq!(prayer.kind, PrayerKind::Knowledge);
@@ -694,6 +728,26 @@ mod tests {
             sim.adjust_faith(&lineage, -1);
         }
         assert_eq!(sim.prayers.faith[&lineage], FAITH_RANGE.0);
+    }
+
+    #[test]
+    fn a_tribe_out_in_the_cold_prays_for_shelter_and_a_hut_answers() {
+        use crate::sim::config::SEASON_LENGTH;
+        let (mut sim, lineage) = tribe_sim();
+        sim.buildings
+            .retain(|b| b.owner_lineage.as_deref() != Some(&lineage));
+        sim.tick_count = SEASON_LENGTH * 2;
+        sim.hard_winter = true;
+        check(&mut sim);
+        let p = sim.prayers.active.first().expect("a prayer").clone();
+        assert_eq!(p.kind, PrayerKind::Shelter);
+        let cmd = format!(
+            r#"{{"cmd":"paint","x":{},"y":{},"tile":"hut","radius":0}}"#,
+            p.x + 1,
+            p.y
+        );
+        sim.apply_command_json(&cmd);
+        assert!(sim.prayers.active.is_empty());
     }
 
     #[test]
