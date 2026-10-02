@@ -198,6 +198,11 @@ pub enum Command {
         #[serde(default)]
         radius: i32,
     },
+    /// Give a tribe a name of the player's choosing.
+    RenameTribe {
+        lineage: String,
+        name: String,
+    },
     /// Repaint the land inside the radius as a biome.
     PaintBiome {
         x: i32,
@@ -1077,6 +1082,7 @@ impl Simulation {
                 doused > 0
             }
             Command::Ward { x, y, radius } => self.cast_ward(x, y, radius),
+            Command::RenameTribe { lineage, name } => self.rename_tribe(&lineage, &name),
             Command::Banish { x, y, radius } => {
                 let r = if radius <= 0.0 { 6.0 } else { radius.min(32.0) };
                 let mut banished = 0;

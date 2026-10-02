@@ -560,7 +560,12 @@ function LiveApp() {
               )}
 
               {!currentScene && !viewFlags.hideUI && (
-                <TribeCard world={world} onAnswer={handleAnswerPrayer} onTool={handlePickToolAt} />
+                <TribeCard
+                  world={world}
+                  onAnswer={handleAnswerPrayer}
+                  onTool={handlePickToolAt}
+                  onRename={(lineage, name) => void sendCommand({ cmd: 'rename_tribe', lineage, name })}
+                />
               )}
 
               <RightPanel

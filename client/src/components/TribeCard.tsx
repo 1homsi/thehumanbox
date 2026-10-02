@@ -1,4 +1,5 @@
 import clsx from 'clsx'
+import { useState } from 'react'
 import { useUIStore } from '../stores/store'
 import { popHistory } from '../stores/worldStore'
 import { sparklinePoints, trend } from '../world/pop-history'
@@ -15,6 +16,8 @@ interface Props {
   onAnswer: (prayer: PrayerInfo) => void
   /** Pick up a dock tool by id, looking at the tribe. */
   onTool: (toolId: string, at: { x: number; y: number }) => void
+  /** Give the tribe a name of the player's choosing. */
+  onRename: (lineage: string, name: string) => void
 }
 
 function Need({ label, value }: { label: string; value: number }) {
@@ -52,7 +55,8 @@ function Sparkline({ lineage }: { lineage: string }) {
  * gods, and what they are praying for. Appears when a tribe is focused from
  * the tribe list or the territory map.
  */
-export function TribeCard({ world, onAnswer, onTool }: Props) {
+export function TribeCard({ world, onAnswer, onTool, onRename }: Props) {
+  const [editing, setEditing] = useState<string | null>(null)
   const focus = useUIStore((s) => s.focus)
   const setFocus = useUIStore((s) => s.setFocus)
   if (!focus.startsWith('lineage:')) return null
@@ -75,7 +79,33 @@ export function TribeCard({ world, onAnswer, onTool }: Props) {
     <div className="tribe-card" role="region" aria-label={`${status.name} tribe`}>
       <div className="tribe-card-head">
         <span className="lineage-dot" style={{ background: lineageColor(status.id) }} />
-        <span className="tribe-card-name">{status.name}</span>
+        {editing === null ? (
+          <button
+            className="tribe-card-name tribe-card-rename"
+            title="Rename this tribe"
+            onClick={() => setEditing(status.name)}
+          >
+            {status.name} <span aria-hidden="true">✎</span>
+          </button>
+        ) : (
+          <input
+            className="tribe-card-name-input"
+            autoFocus
+            maxLength={24}
+            value={editing}
+            aria-label="Tribe name"
+            onChange={(e) => setEditing(e.target.value)}
+            onBlur={() => setEditing(null)}
+            onKeyDown={(e) => {
+              e.stopPropagation()
+              if (e.key === 'Enter') {
+                const name = editing.trim()
+                if (name && name !== status.name) onRename(status.id, name)
+                setEditing(null)
+              } else if (e.key === 'Escape') setEditing(null)
+            }}
+          />
+        )}
         <button className="tribe-card-close" aria-label="Close" onClick={() => setFocus('all')}>
           ×
         </button>
