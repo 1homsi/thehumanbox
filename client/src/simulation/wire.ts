@@ -87,6 +87,7 @@ export type IncomingWorldFrame = Pick<
   hard_winter_ahead?: WorldState['hard_winter_ahead']
   faith?: WorldState['faith']
   tribes_in_peril?: WorldState['tribes_in_peril']
+  tribe_losses?: WorldState['tribe_losses']
   settlements?: WorldState['settlements']
   vehicles?: WorldState['vehicles']
   festivals?: WorldState['festivals']

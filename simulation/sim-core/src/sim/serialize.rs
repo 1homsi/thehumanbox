@@ -364,6 +364,21 @@ impl Simulation {
                     "despairing": self.prayers.despair_until.iter().filter(|(_, &t)| now < t).map(|(l, _)| l).collect::<Vec<_>>(),
                 }),
             );
+            // Each tribe's recent dead by cause, so the player can see why it shrinks.
+            let mut losses = serde_json::Map::new();
+            for (lineage, deaths) in &self.recent_deaths {
+                let mut by_cause = serde_json::Map::new();
+                for &(at, cause) in deaths {
+                    if now.saturating_sub(at) <= crate::sim::civ::peril::DEATH_WINDOW {
+                        let n = by_cause.get(cause).and_then(|v| v.as_u64()).unwrap_or(0);
+                        by_cause.insert(cause.to_string(), json!(n + 1));
+                    }
+                }
+                if !by_cause.is_empty() {
+                    losses.insert(lineage.clone(), serde_json::Value::Object(by_cause));
+                }
+            }
+            obj.insert("tribe_losses".to_string(), serde_json::Value::Object(losses));
             let mut peril: Vec<(&String, &crate::sim::civ::peril::Peril)> = self.tribe_peril.iter().collect();
             peril.sort_by(|a, b| a.0.cmp(b.0));
             obj.insert(

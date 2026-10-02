@@ -50,3 +50,29 @@ export function tribeHome(
     y: people.reduce((n, o) => n + o.y, 0) / people.length,
   }
 }
+
+/** How each cause of death reads on a tribe card. */
+const LOSS_WORDS: Record<string, string> = {
+  war: 'war',
+  combat: 'fights',
+  beasts: 'beasts',
+  drowning: 'drowning',
+  fire: 'fire',
+  disaster: 'disaster',
+  sickness: 'sickness',
+  starvation: 'hunger',
+  dehydration: 'thirst',
+  old_age: 'old age',
+}
+
+/** "3 to war · 1 to old age", worst first; null when nobody died lately. */
+export function lossLine(losses: Record<string, number> | undefined): string | null {
+  const rows = Object.entries(losses ?? {})
+    .filter(([, n]) => n > 0)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+  if (rows.length === 0) return null
+  return rows
+    .slice(0, 3)
+    .map(([cause, n]) => `${n} to ${LOSS_WORDS[cause] ?? cause.replace(/_/g, ' ')}`)
+    .join(' · ')
+}

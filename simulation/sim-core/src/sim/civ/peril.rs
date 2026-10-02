@@ -446,6 +446,19 @@ mod cause_tests {
     }
 
     #[test]
+    fn the_player_can_see_what_a_tribe_has_lost_lately() {
+        let mut sim = Simulation::new(34);
+        sim.tick_count = 5_000;
+        sim.note_death("clan", "war");
+        sim.note_death("clan", "war");
+        sim.note_death("clan", "old_age");
+        let payload = sim.state_json();
+        let losses = &payload["tribe_losses"]["clan"];
+        assert_eq!(losses["war"], 2);
+        assert_eq!(losses["old_age"], 1);
+    }
+
+    #[test]
     fn a_tribe_hunted_by_beasts_is_told_so() {
         let mut sim = Simulation::new(33);
         sim.organisms.clear();
