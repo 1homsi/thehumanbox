@@ -67,6 +67,7 @@ import { farmCropColor, farmProgress, farmStage } from '../../world/farms'
 import { drawPlanting } from './plantings'
 import { drawBlessings, drawFireworks, updateWorldMoments, worldMomentsActive } from './world-moments'
 import { drawPrayerBubble, mergePrayerBubbles, prayerAtPoint, prayerBubbleScale } from './prayer-bubbles'
+import { PERIL_HELP, remainingLine } from '../../world/tribe-peril'
 import {
   drawSettlementLabels,
   labelScale,
@@ -2299,11 +2300,14 @@ export function drawWorldOnCanvas(
       }
     }
     const lineageNames = world.lineage_names ?? {}
+    // A tribe on the brink is always named, at every zoom, whatever its size.
+    const perilBy = new Map((world.tribes_in_peril ?? []).map((p) => [p.lineage_id, p]))
     for (const c of clusters) {
       const major = (c.tier ?? (c.count >= 12 ? 5 : 0)) >= 5
+      const peril = perilBy.get(c.lineage)
       const showSettlementLabel =
         c.tier !== 0 && !(c.tier === undefined && c.count < 4) && (buildingDetail !== 'overview' || major)
-      if (!showSettlementLabel) continue
+      if (!showSettlementLabel && !peril) continue
       const name = c.name ?? lineageNames[c.lineage] ?? c.lineage.slice(0, 6)
       const title =
         c.tier !== undefined
@@ -2319,11 +2323,18 @@ export function drawWorldOnCanvas(
         x: (c.cx - ox) * TILE,
         y: (c.cy - oy) * TILE,
         title,
-        sub:
-          c.population !== undefined ? `${c.population} people · ${c.count} buildings` : `${c.count} bldgs`,
+        sub: peril
+          ? `⚠ ${remainingLine(peril.population)} · ${PERIL_HELP[peril.cause].reason}`
+          : c.population !== undefined
+            ? `${c.population} people · ${c.count} buildings`
+            : `${c.count} bldgs`,
         major,
-        priority: (c.tier ?? (c.count >= 12 ? 5 : c.count >= 8 ? 4 : 2)) * 10000 + (c.population ?? c.count),
+        priority:
+          (peril ? 1_000_000 : 0) +
+          (c.tier ?? (c.count >= 12 ? 5 : c.count >= 8 ? 4 : 2)) * 10000 +
+          (c.population ?? c.count),
         color: major ? '#ffd28a' : (c.tier ?? 0) >= 4 || c.count >= 8 ? '#e5c89a' : '#c8b890',
+        alert: !!peril,
       })
     }
   }

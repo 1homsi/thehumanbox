@@ -354,6 +354,17 @@ export interface AnimalState {
   away?: boolean
 }
 
+export type PerilCause = 'sickness' | 'hunger' | 'thirst' | 'no_children' | 'old_age' | 'dwindling'
+
+export interface TribePeril {
+  lineage_id: string
+  tribe: string
+  population: number
+  peak: number
+  cause: PerilCause
+  since: number
+}
+
 export interface PrayerInfo {
   id: number
   lineage_id: string
@@ -524,6 +535,8 @@ export interface WorldState {
   /** Autumn's forecast that the coming winter will be hard. */
   hard_winter_ahead?: boolean
   faith?: FaithInfo
+  /** Tribes on the brink, and what is killing them. */
+  tribes_in_peril?: TribePeril[]
   settlements?: SettlementInfo[]
   vehicles?: VehicleInfo[]
   festivals?: FestivalInfo[]

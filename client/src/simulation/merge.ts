@@ -203,6 +203,7 @@ export function mergeFrame(parsed: IncomingWorldFrame, caches: MergeCaches): Mer
     hard_winter: parsed.hard_winter ?? base?.hard_winter,
     hard_winter_ahead: parsed.hard_winter_ahead ?? base?.hard_winter_ahead,
     faith: parsed.faith ?? base?.faith,
+    tribes_in_peril: parsed.tribes_in_peril ?? base?.tribes_in_peril,
     settlements: parsed.settlements ?? base?.settlements,
     vehicles: parsed.vehicles ?? base?.vehicles,
     festivals: parsed.festivals ?? base?.festivals,

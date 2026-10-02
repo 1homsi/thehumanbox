@@ -364,6 +364,26 @@ impl Simulation {
                     "despairing": self.prayers.despair_until.iter().filter(|(_, &t)| now < t).map(|(l, _)| l).collect::<Vec<_>>(),
                 }),
             );
+            let mut peril: Vec<(&String, &crate::sim::civ::peril::Peril)> = self.tribe_peril.iter().collect();
+            peril.sort_by(|a, b| a.0.cmp(b.0));
+            obj.insert(
+                "tribes_in_peril".to_string(),
+                serde_json::Value::Array(
+                    peril
+                        .into_iter()
+                        .map(|(lineage, p)| {
+                            json!({
+                                "lineage_id": lineage,
+                                "tribe": self.lineage_names.get(lineage).cloned().unwrap_or_default(),
+                                "population": p.population,
+                                "peak": p.peak,
+                                "cause": p.cause.name(),
+                                "since": p.since,
+                            })
+                        })
+                        .collect(),
+                ),
+            );
             obj.insert(
                 "lineage_strategy_history".to_string(),
                 lineage_strategy_history_payload(self),

@@ -764,6 +764,9 @@ pub struct Simulation {
     pub outbreaks: Vec<super::medicine::Outbreak>,
     pub milestones_achieved: HashSet<String>,
     pub lineage_peak_pop: HashMap<String, u32>,
+    /// Tribes the world has warned are on the brink (runtime; re-detected
+    /// within one check after a load).
+    pub(crate) tribe_peril: HashMap<String, super::civ::peril::Peril>,
     pub headlines: VecDeque<(u64, String)>,
     pub trades: VecDeque<super::civ::economy::Trade>,
     pub trade_routes: Vec<super::civ::trade_routes::TradeRoute>,
@@ -939,6 +942,7 @@ impl Simulation {
             outbreaks: Vec::new(),
             milestones_achieved: HashSet::default(),
             lineage_peak_pop: HashMap::default(),
+            tribe_peril: HashMap::default(),
             headlines: VecDeque::new(),
             trades: VecDeque::new(),
             trade_routes: Vec::new(),
