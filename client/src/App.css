@@ -5472,6 +5472,20 @@ body.thb-colorblind .org-sick-badge {
 }
 
 /* ── Prayers: the player's to-do list ─────────────────────────────── */
+.header .hdr-chip.peril-chip {
+  order: 0;
+  cursor: pointer;
+  color: #ffb4a8;
+  border-color: #8a3b2e;
+  background: rgba(200, 60, 40, 0.16);
+  font-family: inherit;
+}
+
+.header .hdr-chip.peril-chip:hover {
+  color: #ffd2c6;
+  filter: brightness(1.15);
+}
+
 .header .prayer-chip-wrap {
   order: 1;
   display: inline-flex;
