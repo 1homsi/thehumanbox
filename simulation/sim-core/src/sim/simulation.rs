@@ -607,6 +607,11 @@ pub struct Event {
     pub etype: String,
     pub actor: String,
     pub detail: String,
+    /// Worth the player's attention (see `world_events::is_news`). The log's
+    /// "important" view shows exactly these, so the sim and the client never
+    /// disagree about what matters.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub news: bool,
 }
 
 #[derive(Default, Clone, Serialize, Deserialize)]

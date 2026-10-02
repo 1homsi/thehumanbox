@@ -407,6 +407,8 @@ export interface SimEvent {
     | 'strategy_redirected'
   actor: string
   detail: string
+  /** Set by the sim on events worth the player's attention. */
+  news?: boolean
 }
 
 export interface TribalRelation {
