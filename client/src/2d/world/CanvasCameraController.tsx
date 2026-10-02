@@ -1,6 +1,15 @@
 import { useEffect, useRef, type MutableRefObject } from 'react'
 import { useUIStore } from '../../stores/store'
-import { clampMapCamera, isMapControl, zoomMapAt, type MapCamera, type MapCommand } from './camera-controls'
+import {
+  clampMapCamera,
+  initialMapCamera,
+  isMapControl,
+  MAX_MAP_ZOOM,
+  minMapZoom,
+  zoomMapAt,
+  type MapCamera,
+  type MapCommand,
+} from './camera-controls'
 
 interface Props {
   worldW: number
@@ -24,7 +33,7 @@ export function CanvasCameraController({
 }: Props) {
   const initialized = useRef(false)
   const previousFollow = useRef(false)
-  const minZoom = Math.min(containerW / worldW, containerH / worldH) * 0.85
+  const minZoom = minMapZoom({ w: worldW, h: worldH }, { w: containerW, h: containerH })
   const apply = (next: MapCamera) => {
     const bounded = clampMapCamera(next, { w: worldW, h: worldH }, { w: containerW, h: containerH })
     cameraStateRef.current = bounded
@@ -33,10 +42,12 @@ export function CanvasCameraController({
   applyRef.current = apply
 
   useEffect(() => {
+    const opening = initialMapCamera({ w: worldW, h: worldH }, { w: containerW, h: containerH })
+    // Wait for the viewport to be measured; this effect runs again when it is.
+    if (!opening) return
     if (!initialized.current) {
       initialized.current = true
-      const zoom = Math.min(containerW / worldW, containerH / worldH) * 0.95
-      applyRef.current({ x: worldW / 2, y: worldH / 2, zoom })
+      applyRef.current(opening)
     } else applyRef.current(cameraStateRef.current)
   }, [worldW, worldH, containerW, containerH, cameraStateRef])
 
@@ -56,7 +67,7 @@ export function CanvasCameraController({
     }
     const zoom = (factor: number, point = { x: containerW / 2, y: containerH / 2 }) => {
       const current = cameraStateRef.current
-      const next = Math.max(minZoom, Math.min(8, current.zoom * factor))
+      const next = Math.max(minZoom, Math.min(MAX_MAP_ZOOM, current.zoom * factor))
       applyRef.current(zoomMapAt(current, next, point, { w: containerW, h: containerH }))
     }
     const onDown = (e: PointerEvent) => {
@@ -133,13 +144,10 @@ export function CanvasCameraController({
       if (command) {
         commandRef.current = null
         stopFollow()
-        if (command.kind === 'fit')
-          applyRef.current({
-            x: worldW / 2,
-            y: worldH / 2,
-            zoom: Math.min(containerW / worldW, containerH / worldH) * 0.95,
-          })
-        else if (command.kind === 'zoom') zoom(command.factor)
+        if (command.kind === 'fit') {
+          const opening = initialMapCamera({ w: worldW, h: worldH }, { w: containerW, h: containerH })
+          if (opening) applyRef.current(opening)
+        } else if (command.kind === 'zoom') zoom(command.factor)
         else applyRef.current({ x: command.x, y: command.y, zoom: Math.max(cameraStateRef.current.zoom, 2) })
       }
       if (keys.size && document.activeElement === containerEl) {
@@ -196,7 +204,7 @@ export function CanvasCameraController({
         applyRef.current(
           zoomMapAt(
             current,
-            Math.max(minZoom, Math.min(8, (current.zoom * next) / distance)),
+            Math.max(minZoom, Math.min(MAX_MAP_ZOOM, (current.zoom * next) / distance)),
             { x: (a.clientX + b.clientX) / 2 - rect.left, y: (a.clientY + b.clientY) / 2 - rect.top },
             { w: containerW, h: containerH },
           ),
