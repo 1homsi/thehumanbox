@@ -2216,6 +2216,26 @@ impl Simulation {
         if let Some(ref t) = new_thought {
             self.organisms[idx].think(t, self.tick_count);
         }
+        // A goal walled off by mountains or water is given up rather than
+        // paced at forever.
+        {
+            let o = &mut self.organisms[idx];
+            let blocked = o.route.get_mut().unreachable.take();
+            if let Some(goal) = blocked {
+                let mut gave_up = false;
+                if o.journey.as_ref().is_some_and(|j| j.target == goal) {
+                    o.journey = None;
+                    gave_up = true;
+                }
+                if o.wander_target == Some(goal) {
+                    o.wander_target = None;
+                    gave_up = true;
+                }
+                if gave_up {
+                    o.think("the way is blocked", self.tick_count);
+                }
+            }
+        }
         // A single step away from remembered danger was undone by the next
         // tick's routine, so people flip-flopped on the spot. Commit to the
         // retreat by aiming the wander target further along the flee step.

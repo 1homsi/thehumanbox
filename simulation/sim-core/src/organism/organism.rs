@@ -420,6 +420,8 @@ pub struct Organism {
     pub last_area_cell: (i32, i32),
     pub wander_target: Option<(i32, i32)>,
     pub journey: Option<Journey>,
+    /// Remembered route around obstacles; runtime only, never saved.
+    pub route: std::cell::RefCell<super::navigation::RouteCache>,
     pub last_groomed: u64,
     pub last_fed_kin: u64,
     pub last_ancestral_thought: u64,
@@ -584,6 +586,7 @@ impl Organism {
             last_area_cell: (x as i32, y as i32),
             wander_target: None,
             journey: None,
+            route: Default::default(),
             last_groomed: 0,
             last_fed_kin: 0,
             last_ancestral_thought: 0,
@@ -1729,6 +1732,10 @@ impl Organism {
     }
 
     pub(crate) fn begin_journey(&mut self, target: (i32, i32), description: &str, tick: u64) {
+        // Don't set out again for somewhere we just found no way to reach.
+        if self.route.get_mut().recently_blocked(target) {
+            return;
+        }
         let distance = (target.0 - self.x as i32)
             .abs()
             .max((target.1 - self.y as i32).abs()) as u64;
@@ -1759,18 +1766,36 @@ impl Organism {
         let blocked = !direct_tile.walkable()
             || (!target_is_water && direct_tile == Tile::Water && grid.depth_at(direct.0, direct.1) > 0.18);
         let distance = dx.abs().max(dy.abs());
-        let has_progress_step = blocked
-            && DIRECTIONS.iter().any(|&(sx, sy)| {
-                let (nx, ny) = (ix + sx, iy + sy);
-                let tile = grid.get(nx, ny);
-                tile.walkable()
-                    && tile != Tile::Fire
-                    && (target_is_water || tile != Tile::Water || grid.depth_at(nx, ny) <= 0.18)
-                    && (tx - nx).abs().max((ty - ny).abs()) < distance
-            });
-        if blocked && !has_progress_step && distance > 1 {
-            if let Some(action) = super::navigation::detour_step(grid, (ix, iy), target) {
-                return action;
+        // Already routing around something toward this goal: keep to the
+        // route, or the greedy step below walks straight back into it.
+        if let Some(action) = self.route.borrow_mut().follow(grid, (ix, iy), target) {
+            return action;
+        }
+        if blocked && distance > 1 {
+            let mut route = self.route.borrow_mut();
+            let plan = if route.skip_blocked(target) {
+                None
+            } else {
+                super::navigation::plan_route(grid, (ix, iy), target)
+            };
+            match plan {
+                Some(steps) => {
+                    route.goal = target;
+                    route.steps = steps;
+                    route.next = 0;
+                    if let Some(action) = route.follow(grid, (ix, iy), target) {
+                        return action;
+                    }
+                }
+                None => {
+                    if !route.recently_blocked(target) {
+                        route.mark_blocked(target);
+                    }
+                    drop(route);
+                    if let Some(action) = super::navigation::detour_step(grid, (ix, iy), target) {
+                        return action;
+                    }
+                }
             }
         }
         let mut best_action = 0;
