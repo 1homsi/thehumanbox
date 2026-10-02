@@ -739,7 +739,7 @@ impl Simulation {
                     .iter()
                     .filter(|t| t.expires_tick > now)
                     .rev()
-                    .take(16)
+                    .take(64)
                     .map(|t| {
                         json!({
                             "tick": t.signed_tick,

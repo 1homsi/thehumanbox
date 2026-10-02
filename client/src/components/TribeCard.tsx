@@ -8,6 +8,7 @@ import { lineageColor } from '../utils/constants'
 import { PRAYER_KINDS } from '../world/prayers'
 import { lossLine, PERIL_HELP, perilOf, remainingLine } from '../world/tribe-peril'
 import { activeBattles, enemiesOf } from '../2d/world/battles'
+import { relationsLine, relationsOf } from '../world/diplomacy'
 import { tribeStatus } from '../world/tribe-status'
 import { ToolSprite } from './ToolSprite'
 
@@ -69,6 +70,7 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
   const field = activeBattles(world.battles).find(
     (b) => b.attackers.includes(status.id) || b.defenders.includes(status.id),
   )
+  const relations = relationsLine(relationsOf(world, status.id))
   const peril = perilOf(world, status.id)
   const losses = lossLine(world.tribe_losses?.[status.id])
   const help = peril ? PERIL_HELP[peril.cause] : null
@@ -142,6 +144,7 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
       <Need label="water" value={status.water} />
       <Need label="health" value={status.health} />
       {losses && <div className="tribe-card-losses">lost lately: {losses}</div>}
+      {relations && <div className="tribe-card-relations">{relations}</div>}
       <div className="tribe-card-row">
         <span
           className={clsx('tribe-faith', status.blessed && 'blessed', status.despairing && 'despair')}
