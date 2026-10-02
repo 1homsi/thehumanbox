@@ -34,6 +34,8 @@ interface P {
   variant: number
   /** Architectural era of the owning tribe (see ERA_TIERS). */
   tier: number
+  /** A passing visual state ('empty' for a spaceport whose rocket is away). */
+  state: string
 }
 
 function px(ctx: Ctx, x: number, y: number, w: number, h: number, c: string) {
@@ -1656,6 +1658,13 @@ function paintSpaceport(p: P) {
   for (let y = y1 - gh + 2; y < y1 - 3; y += 4) px(p.ctx, gx, y, 3, 1, '#6e2a1c')
   px(p.ctx, gx + 3, y1 - gh * 0.8, 4, 1, '#b84a32')
   const rx = x0 + w * 0.6
+  if (p.state === 'empty') {
+    // The rocket is away: a scorched pad and a lit beacon.
+    px(p.ctx, rx - 5, y1 - 4, 10, 1, '#3a3532')
+    px(p.ctx, rx - 3, y1 - 5, 6, 1, '#4a4440')
+    if (night > 0) px(p.ctx, gx + 1, y1 - gh - 1, 1, 1, '#ff5050')
+    return
+  }
   const rw = Math.max(5, w * 0.16)
   const rh = h * 1.15
   const ry = y1 - 3 - rh
@@ -1906,10 +1915,11 @@ export function getBuildingSprite(
   night: number,
   condBucket: number,
   tier = 0,
+  state = '',
 ): HTMLCanvasElement | null {
   const painter = ARCHETYPE[kind]
   if (!painter) return null
-  const key = `${kind}|${fw}x${fh}|${tile}|v${variant}|n${night}|c${condBucket}|t${tier}`
+  const key = `${kind}|${fw}x${fh}|${tile}|v${variant}|n${night}|c${condBucket}|t${tier}|s${state}`
   const hit = spriteCache.get(key)
   if (hit) return hit
 
@@ -1934,6 +1944,7 @@ export function getBuildingSprite(
     kind,
     variant,
     tier,
+    state,
   }
   const ok = painter(p)
   if (ok === false) return null
