@@ -13,6 +13,8 @@ use serde::{Deserialize, Serialize};
 
 /// Plantings advance in steps this many ticks apart.
 pub const PLANT_STEP_TICKS: u64 = 10;
+/// How often blooming flowers cheer the people around them.
+const BLOOM_STEP: u64 = 60;
 /// Most plantings the world keeps, so a long brush stroke can't grow
 /// without bound.
 pub const MAX_PLANTINGS: usize = 4000;
@@ -23,6 +25,8 @@ pub enum PlantKind {
     Crop,
     Orchard,
     Sapling,
+    /// Blooms in place instead of fruiting; people nearby are happier.
+    Flower,
 }
 
 impl PlantKind {
@@ -31,6 +35,7 @@ impl PlantKind {
             "crop" | "crops" | "seeds" => Some(PlantKind::Crop),
             "orchard" | "fruit" => Some(PlantKind::Orchard),
             "sapling" | "tree" | "trees" => Some(PlantKind::Sapling),
+            "flower" | "flowers" => Some(PlantKind::Flower),
             _ => None,
         }
     }
@@ -40,6 +45,7 @@ impl PlantKind {
             PlantKind::Crop => 0,
             PlantKind::Orchard => 1,
             PlantKind::Sapling => 2,
+            PlantKind::Flower => 3,
         }
     }
 
@@ -50,6 +56,7 @@ impl PlantKind {
             PlantKind::Crop => 500,
             PlantKind::Orchard => 1100,
             PlantKind::Sapling => 1600,
+            PlantKind::Flower => 250,
         }
     }
 
@@ -59,6 +66,7 @@ impl PlantKind {
             PlantKind::Crop => 150,
             PlantKind::Orchard => 700,
             PlantKind::Sapling => 0,
+            PlantKind::Flower => 0,
         }
     }
 }
@@ -127,6 +135,7 @@ fn destroys(tile: Tile) -> bool {
 /// winter, young trees creep along.
 fn season_growth(kind: PlantKind, season: &str) -> f32 {
     match (kind, season) {
+        (PlantKind::Flower, "abundance" | "recovery") => 1.4,
         (_, "abundance") => 1.2,
         (PlantKind::Sapling, "scarcity") => 0.3,
         (_, "scarcity") => 0.0,
@@ -172,6 +181,7 @@ impl Simulation {
                     PlantKind::Crop => true,
                     PlantKind::Orchard => (nx + ny) % 2 == 0,
                     PlantKind::Sapling => r == 0 || self.rng.random::<f32>() < 0.45,
+                    PlantKind::Flower => r == 0 || self.rng.random::<f32>() < 0.7,
                 };
                 if !spaced || self.plantings.len() >= MAX_PLANTINGS {
                     continue;
@@ -272,6 +282,15 @@ impl Simulation {
             };
             let stage = p.stage();
             let winter = season_name == "scarcity";
+            if p.kind == PlantKind::Flower && p.ripe {
+                // Blooms last until the cold, then die back to the root.
+                if winter && self.rng.random::<f32>() < 0.02 {
+                    p.ripe = false;
+                    p.growth = 0;
+                    changed = true;
+                }
+                continue;
+            }
             if p.ripe {
                 if tile == Tile::Food {
                     // Produce left in the field through winter rots away.
@@ -328,6 +347,7 @@ impl Simulation {
                     p.ripe = true;
                     self.grid.set(x, y, Tile::Food);
                 }
+                PlantKind::Flower => p.ripe = true,
                 PlantKind::Sapling => {
                     let idx = i as usize;
                     self.grid.biome[idx] = forest_for(biome) as u8;
@@ -347,6 +367,9 @@ impl Simulation {
         if changed {
             self.planting_revision = self.planting_revision.wrapping_add(1);
         }
+        if self.tick_count.is_multiple_of(BLOOM_STEP) {
+            self.flowers_cheer();
+        }
         if forests >= 6 {
             push_event(
                 &mut self.events,
@@ -357,6 +380,32 @@ impl Simulation {
             );
         }
         self.learn_farming_from(&eaten);
+    }
+
+    /// People near blooming flowers grow a little happier.
+    fn flowers_cheer(&mut self) {
+        let blooms: std::collections::BTreeSet<u32> = self
+            .plantings
+            .iter()
+            .filter(|(_, p)| p.kind == PlantKind::Flower && p.ripe)
+            .map(|(&i, _)| i)
+            .collect();
+        if blooms.is_empty() {
+            return;
+        }
+        for o in self.organisms.iter_mut().filter(|o| o.alive) {
+            let (ox, oy) = (o.x as i32, o.y as i32);
+            let near = (-3..=3).any(|dy| {
+                (-3..=3).any(|dx| {
+                    let (x, y) = (ox + dx, oy + dy);
+                    WorldGrid::in_bounds(x, y) && blooms.contains(&(WorldGrid::idx(x, y) as u32))
+                })
+            });
+            if near {
+                o.hope = (o.hope + 0.02).min(1.0);
+                o.comfort = (o.comfort + 0.02).min(1.0);
+            }
+        }
     }
 
     /// Tribes that eat from the gods' fields may learn to farm themselves.
@@ -504,6 +553,30 @@ mod tests {
             left * 4 < fields,
             "{left} of {fields} fields survived a hard winter"
         );
+    }
+
+    #[test]
+    fn flowers_bloom_cheer_people_nearby_and_wilt_in_winter() {
+        use crate::sim::config::SEASON_LENGTH;
+        let mut sim = flat_sim();
+        sim.apply_command_json(r#"{"cmd":"plant","x":100,"y":100,"kind":"flowers","radius":0}"#);
+        let i = WorldGrid::idx(100, 100) as u32;
+        run(&mut sim, 40);
+        assert!(sim.plantings[&i].ripe, "in bloom");
+        assert_eq!(sim.grid.get(100, 100), Tile::Grass, "flowers are not food");
+        let mut fresh = Simulation::new(7);
+        let mut person = fresh.organisms.remove(0);
+        person.x = 101.0;
+        person.y = 100.0;
+        person.hope = 0.2;
+        person.alive = true;
+        sim.organisms.push(person);
+        sim.flowers_cheer();
+        assert!(sim.organisms[0].hope > 0.2);
+        // Winter takes the blooms.
+        sim.tick_count = SEASON_LENGTH * 2;
+        run(&mut sim, 300);
+        assert!(!sim.plantings[&i].ripe);
     }
 
     #[test]

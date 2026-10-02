@@ -145,6 +145,7 @@ export function burstForTool(toolId: string | null | undefined): BurstKind | nul
     case 'plant_crop':
     case 'plant_orchard':
     case 'plant_sapling':
+    case 'plant_flowers':
       return 'grow'
     default:
       return null
