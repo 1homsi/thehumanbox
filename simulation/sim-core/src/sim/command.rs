@@ -713,7 +713,11 @@ impl Simulation {
                         break;
                     }
                     if o.alive && o.infection < 0.2 {
+                        // A god's curse is the real thing: plague, whatever the age.
                         o.infection = 0.85;
+                        if !o.diseases.iter().any(|(d, _)| d == "plague") {
+                            o.diseases.push(("plague".to_string(), self.tick_count));
+                        }
                         hit += 1;
                     }
                 }
