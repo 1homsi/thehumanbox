@@ -115,27 +115,28 @@ pub(crate) fn empty_homes(sim: &Simulation) -> FxHashSet<usize> {
     empty
 }
 
-/// Move a tribe that needs room into the nearest empty home a vanished
-/// tribe left behind. True when it moved.
-pub(crate) fn move_into_empty_home(sim: &mut Simulation, lineage: &str) -> bool {
+/// Hand a tribe the nearest standing building a vanished tribe left within
+/// reach that `wanted` accepts. Returns its kind when it took one over.
+fn take_over(
+    sim: &mut Simulation,
+    lineage: &str,
+    wanted: impl Fn(BuildingKind) -> bool,
+    verb: &str,
+) -> Option<BuildingKind> {
     let tribes = living_tribes(sim);
-    let Some(t) = tribes.get(lineage) else {
-        return false;
-    };
+    let t = tribes.get(lineage)?;
     let (cx, cy) = (t.x, t.y);
     let best = sim
         .buildings
         .iter()
         .enumerate()
-        .filter(|(_, b)| !b.decorative && b.is_complete() && !b.is_ruined() && is_home(b.kind))
+        .filter(|(_, b)| !b.decorative && b.is_complete() && !b.is_ruined() && wanted(b.kind))
         .filter(|(_, b)| b.owner_lineage.as_deref().is_none_or(|l| !tribes.contains_key(l)))
         .map(|(i, b)| ((b.x as f32 - cx).hypot(b.y as f32 - cy), i))
         .filter(|(d, _)| *d <= MOVE_IN_RADIUS as f32)
         .min_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
     drop(tribes);
-    let Some((_, i)) = best else {
-        return false;
-    };
+    let (_, i) = best?;
     let kind = sim.buildings[i].kind;
     sim.buildings[i].owner_lineage = Some(lineage.to_string());
     sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
@@ -145,20 +146,79 @@ pub(crate) fn move_into_empty_home(sim: &mut Simulation, lineage: &str) -> bool 
         .cloned()
         .unwrap_or_else(|| "a tribe".to_string());
     let detail = format!(
-        "moved into an empty {} left by those who came before",
+        "{verb} empty {} left by those who came before",
         kind.name().replace('_', " ")
     );
     push_event(&mut sim.events, sim.tick_count, "life", &name, &detail);
-    true
+    Some(kind)
+}
+
+/// Move a tribe that needs room into the nearest empty home a vanished
+/// tribe left behind. True when it moved.
+pub(crate) fn move_into_empty_home(sim: &mut Simulation, lineage: &str) -> bool {
+    take_over(sim, lineage, is_home, "moved into an").is_some()
+}
+
+/// Before raising a `kind`, a tribe takes over one a vanished tribe left
+/// standing nearby: a town hall stands empty only until someone needs one.
+pub(crate) fn take_over_empty(sim: &mut Simulation, lineage: &str, kind: BuildingKind) -> bool {
+    take_over(sim, lineage, |k| k == kind, "took over the").is_some()
+}
+
+/// Buildings whose ruins stay as the world's history instead of crumbling.
+fn landmark(kind: BuildingKind) -> bool {
+    use BuildingKind::*;
+    matches!(
+        kind,
+        Cathedral
+            | Castle
+            | Pyramid
+            | Ziggurat
+            | Coliseum
+            | University
+            | Observatory
+            | Stadium
+            | Museum
+            | Temple
+            | Monument
+            | Obelisk
+            | Mausoleum
+            | GraveStone
+    )
+}
+
+/// Wells and bridges reshape the land and serve whoever comes by; they are
+/// never left to fall in.
+fn weathers(kind: BuildingKind) -> bool {
+    !matches!(kind, BuildingKind::Well | BuildingKind::Bridge)
+}
+
+/// Indices of standing buildings other than homes whose tribe has died out.
+pub(crate) fn abandoned_buildings(sim: &Simulation) -> Vec<usize> {
+    let living: FxHashSet<&str> = sim
+        .organisms
+        .iter()
+        .filter(|o| o.alive)
+        .map(|o| o.lineage_id.as_str())
+        .collect();
+    sim.buildings
+        .iter()
+        .enumerate()
+        .filter(|(_, b)| !b.decorative && b.is_complete() && !b.is_ruined())
+        .filter(|(_, b)| !is_home(b.kind) && weathers(b.kind))
+        .filter(|(_, b)| b.owner_lineage.as_deref().is_none_or(|l| !living.contains(l)))
+        .map(|(i, _)| i)
+        .collect()
 }
 
 /// Once a day: empty homes weather without anyone to mend them, and the
 /// ruins of homes nobody needs crumble away.
 pub(crate) fn tick_vacancy(sim: &mut Simulation) {
     let now = sim.tick_count;
-    let empty = empty_homes(sim);
+    let mut neglected: Vec<usize> = empty_homes(sim).into_iter().collect();
+    neglected.extend(abandoned_buildings(sim));
     let mut changed = false;
-    for &i in &empty {
+    for &i in &neglected {
         let b = &mut sim.buildings[i];
         let life = f32::from(b.kind.service_life_years().max(1));
         let wear = 1.0 / (HUT_NEGLECT_DAYS * life / 50.0);
@@ -170,6 +230,12 @@ pub(crate) fn tick_vacancy(sim: &mut Simulation) {
         changed = true;
     }
 
+    let living: FxHashSet<String> = sim
+        .organisms
+        .iter()
+        .filter(|o| o.alive)
+        .map(|o| o.lineage_id.clone())
+        .collect();
     // A tribe still short of room may yet rebuild its fallen homes.
     let needs_room: FxHashSet<String> = living_tribes(sim)
         .iter()
@@ -180,7 +246,8 @@ pub(crate) fn tick_vacancy(sim: &mut Simulation) {
         .buildings
         .iter()
         .map(|b| {
-            is_home(b.kind)
+            let gone_tribe = b.owner_lineage.as_deref().is_none_or(|l| !living.contains(l));
+            (is_home(b.kind) || (gone_tribe && weathers(b.kind) && !landmark(b.kind)))
                 && !b.decorative
                 && b.ruined_at_tick
                     .is_some_and(|t| now.saturating_sub(t) >= CRUMBLE_TICKS)
@@ -190,6 +257,12 @@ pub(crate) fn tick_vacancy(sim: &mut Simulation) {
         })
         .collect();
     let crumbled = gone.iter().filter(|&&g| g).count();
+    let homes = sim
+        .buildings
+        .iter()
+        .zip(&gone)
+        .filter(|(b, &g)| g && is_home(b.kind))
+        .count();
     if crumbled > 0 {
         let mut i = 0;
         sim.buildings.retain(|_| {
@@ -197,10 +270,11 @@ pub(crate) fn tick_vacancy(sim: &mut Simulation) {
             !gone[i - 1]
         });
         changed = true;
-        let detail = if crumbled == 1 {
-            "an empty home crumbled back into the earth".to_string()
-        } else {
-            format!("{crumbled} empty homes crumbled back into the earth")
+        let detail = match (crumbled, homes == crumbled) {
+            (1, true) => "an empty home crumbled back into the earth".to_string(),
+            (1, false) => "an abandoned building crumbled back into the earth".to_string(),
+            (n, true) => format!("{n} empty homes crumbled back into the earth"),
+            (n, false) => format!("{n} abandoned buildings crumbled back into the earth"),
         };
         push_event(&mut sim.events, now, "life", "the old village", &detail);
     }
@@ -345,5 +419,74 @@ mod tests {
             1,
             "a needed home crumbled before it could be rebuilt"
         );
+    }
+
+    fn built(id: u32, kind: BuildingKind, x: i32, owner: &str) -> Building {
+        let mut b = Building::new(id, kind, x, 40, Some(owner.to_string()), 0);
+        b.condition = 1.0;
+        b
+    }
+
+    #[test]
+    fn a_tribe_takes_over_a_vanished_tribes_hall_instead_of_building_one() {
+        let mut sim = world();
+        for i in 0..6 {
+            sim.organisms.push(person(&format!("p{i}"), "clan", 40.0, 40.0));
+        }
+        sim.buildings.push(built(1, BuildingKind::CityHall, 48, "gone"));
+        sim.buildings.push(built(2, BuildingKind::Forge, 46, "gone"));
+        assert!(
+            !take_over_empty(&mut sim, "clan", BuildingKind::Market),
+            "took over a kind nobody left"
+        );
+        assert!(take_over_empty(&mut sim, "clan", BuildingKind::CityHall));
+        assert_eq!(sim.buildings[0].owner_lineage.as_deref(), Some("clan"));
+        assert_eq!(sim.buildings[1].owner_lineage.as_deref(), Some("gone"));
+        assert!(sim
+            .events
+            .iter()
+            .any(|e| e.detail.contains("took over the empty city hall")));
+    }
+
+    #[test]
+    fn a_vanished_tribes_workshops_crumble_but_its_monuments_and_wells_remain() {
+        let mut sim = world();
+        sim.buildings
+            .push(built(1, BuildingKind::MarketStall, 40, "gone"));
+        sim.buildings.push(built(2, BuildingKind::Temple, 50, "gone"));
+        sim.buildings.push(built(3, BuildingKind::Well, 60, "gone"));
+        for b in &mut sim.buildings {
+            // Long neglected already: one more day tips them over.
+            b.damage = 0.999;
+        }
+        days(&mut sim, 1);
+        assert!(sim.buildings[0].is_ruined());
+        assert!(sim.buildings[1].is_ruined());
+        assert!(!sim.buildings[2].is_ruined(), "a well fell in");
+
+        days(&mut sim, CRUMBLE_TICKS / DAY_LENGTH + 1);
+        let kinds: Vec<BuildingKind> = sim.buildings.iter().map(|b| b.kind).collect();
+        assert!(
+            !kinds.contains(&BuildingKind::MarketStall),
+            "the stall never crumbled"
+        );
+        assert!(
+            kinds.contains(&BuildingKind::Temple),
+            "the temple ruin was erased from history"
+        );
+        assert!(kinds.contains(&BuildingKind::Well));
+        assert!(sim
+            .events
+            .iter()
+            .any(|e| e.detail.contains("abandoned building crumbled")));
+    }
+
+    #[test]
+    fn a_living_tribes_workshop_is_not_neglected() {
+        let mut sim = world();
+        sim.organisms.push(person("p0", "clan", 40.0, 40.0));
+        sim.buildings.push(built(1, BuildingKind::Forge, 41, "clan"));
+        days(&mut sim, 30);
+        assert_eq!(sim.buildings[0].damage, 0.0);
     }
 }
