@@ -59,7 +59,7 @@ import {
   ATLAS_CREATURE,
   drawTile,
 } from '../../utils/sprites'
-import { compareBuildingsByDepth, drawBuilding } from './buildings2d'
+import { compareBuildingsByDepth, drawBuilding, RUIN_CRUMBLE_TICKS } from './buildings2d'
 import { eraTier, getBuildingSprite, PAD as SPRITE_PAD, PAD_BOT as SPRITE_PAD_BOT } from './building-sprites'
 import { normalizeLineageEras } from '../../utils/lineageEras'
 import { useSceneStore } from '../../stores/scene'
@@ -2240,7 +2240,11 @@ export function drawWorldOnCanvas(
           footprint: b.footprint,
           fw: b.fw,
           fh: b.fh,
-          tier: b.owner_lineage ? (tiers.get(b.owner_lineage) ?? 0) : 0,
+          // The sim sends the owner as `lineage_id`; reading only
+          // `owner_lineage` left every building in the Stone Age style.
+          tier: tiers.get(b.owner_lineage ?? b.lineage_id ?? '') ?? 0,
+          ruinAge:
+            b.ruined && b.ruined_at_tick != null ? (world.tick - b.ruined_at_tick) / RUIN_CRUMBLE_TICKS : 0,
           state: b.kind === 'Spaceport' && padEmpty(b.id, world.tick) ? 'empty' : undefined,
         },
         ox,
