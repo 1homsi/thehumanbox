@@ -5,6 +5,8 @@ const TOOL_TIPS: Record<string, string> = {
   spawn1: 'Send one grown person. Beside a tribe they join it, as the man or woman it is missing.',
   spawn5: 'Found a new tribe: five young adults, in couples, where you click.',
   heal: 'Restore the health of every person and animal in the brush area.',
+  revive:
+    'Raise someone who died within the last season, near where you click. Not the very old, and once per tribe per season.',
   smite: 'Strike down the nearest person or animal inside the brush area.',
   shelter: 'Build a hut on one tile.',
   campfire: 'Light a campfire on one tile.',
@@ -125,6 +127,8 @@ export function toolFailure(tool: SandboxTool): string {
       return 'no wolves or bears there'
     case 'banish':
       return 'nothing to banish'
+    case 'revive':
+      return 'no one who died lately lies here'
     case 'douse':
       return 'no fire there'
     case 'thunder':

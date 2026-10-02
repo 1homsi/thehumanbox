@@ -152,6 +152,11 @@ pub enum Command {
     Teach {
         lineage: String,
     },
+    /// Raise someone who died within the last season, near the point.
+    Revive {
+        x: f32,
+        y: f32,
+    },
     /// Destroy every monster and predator inside the radius.
     Banish {
         x: f32,
@@ -1101,6 +1106,7 @@ impl Simulation {
                 doused > 0
             }
             Command::Ward { x, y, radius } => self.cast_ward(x, y, radius),
+            Command::Revive { x, y } => self.revive_near(x, y),
             Command::RenameTribe { lineage, name } => self.rename_tribe(&lineage, &name),
             Command::Teach { lineage } => self.teach_tribe(&lineage),
             Command::Banish { x, y, radius } => {

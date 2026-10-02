@@ -782,6 +782,10 @@ pub struct Simulation {
     /// Tribes the world has warned are on the brink (runtime; re-detected
     /// within one check after a load).
     pub(crate) tribe_peril: HashMap<String, super::civ::peril::Peril>,
+    /// The recently dead, newest last: who died and when (runtime).
+    pub(crate) fallen: VecDeque<(String, u64)>,
+    /// When each tribe last had someone raised from the dead (runtime).
+    pub(crate) revive_cooldown: HashMap<String, u64>,
     /// When each tribe was last taught by the gods (runtime).
     pub(crate) teach_cooldown: HashMap<String, u64>,
     /// Where grown people died, waiting for a gravestone (runtime).
@@ -972,6 +976,8 @@ impl Simulation {
             milestones_achieved: HashSet::default(),
             lineage_peak_pop: HashMap::default(),
             tribe_peril: HashMap::default(),
+            fallen: VecDeque::new(),
+            revive_cooldown: HashMap::default(),
             teach_cooldown: HashMap::default(),
             grave_queue: Vec::new(),
             cemeteries: HashMap::default(),
@@ -4764,6 +4770,11 @@ impl Simulation {
 
         if let Some((lineage, cause)) = noted {
             self.note_death(&lineage, cause);
+            let id = self.organisms[idx].id.clone();
+            self.fallen.push_back((id, self.tick_count));
+            while self.fallen.len() > 96 {
+                self.fallen.pop_front();
+            }
         }
         if let Some(g) = grave {
             if self.grave_queue.len() < 200 {

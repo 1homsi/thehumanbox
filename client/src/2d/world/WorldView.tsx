@@ -72,6 +72,7 @@ import { drawCaravanSprite, drawRoad, drawTraffic } from './roads'
 import { drawSmog } from './smog'
 import { battleAge, drawBattle } from './battles'
 import { drawWard } from './wards'
+import { motionTime } from '../../lib/motion'
 import {
   drawSettlementLabels,
   labelScale,
@@ -575,7 +576,7 @@ function drawTradeNetwork2D(
         endY,
         tier,
         TILE,
-        now,
+        motionTime(now),
         Math.round(route.a_center[0] * 31 + route.b_center[1]),
       )
     }
@@ -2890,7 +2891,7 @@ export function drawWorldOnCanvas(
   }
 
   for (const source of world.smog ?? []) {
-    drawSmog(ctx, source, (source.x - ox) * TILE, (source.y - oy) * TILE, TILE, t)
+    drawSmog(ctx, source, (source.x - ox) * TILE, (source.y - oy) * TILE, TILE, motionTime(t))
   }
   drawEraTraffic(ctx, world, ox, oy, W, H, cameraZoom, t)
   for (const battle of world.battles ?? []) {
@@ -2906,12 +2907,20 @@ export function drawWorldOnCanvas(
       labelScale(cameraZoom),
       lineageColor(battle.attackers[0]),
       lineageColor(battle.defenders[0]),
-      t,
+      motionTime(t),
       age,
     )
   }
   for (const ward of world.wards ?? []) {
-    drawWard(ctx, ward, (ward.x - ox) * TILE + TILE / 2, (ward.y - oy) * TILE + TILE / 2, TILE, world.tick, t)
+    drawWard(
+      ctx,
+      ward,
+      (ward.x - ox) * TILE + TILE / 2,
+      (ward.y - oy) * TILE + TILE / 2,
+      TILE,
+      world.tick,
+      motionTime(t),
+    )
   }
   if (placedSettlementLabels.length > 0) drawSettlementLabels(ctx, placedSettlementLabels)
   updateWorldMoments(world, t)

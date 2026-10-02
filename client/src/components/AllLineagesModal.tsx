@@ -1,4 +1,6 @@
 import type { OrganismState, TribePeril } from '../types'
+import { useUIStore } from '../stores/store'
+import { factsLine, type LineageFacts } from '../world/lineage-facts'
 import { PERIL_HELP, remainingLine, visibleLineages } from '../world/tribe-peril'
 import { lineageColor, lineageWord } from '../utils/constants'
 import { Modal } from './Modal'
@@ -14,10 +16,12 @@ interface Props {
   lineages: Record<string, LineageInfo>
   lineageNames?: Record<string, string>
   peril?: TribePeril[]
+  facts?: Record<string, LineageFacts>
   onClose: () => void
 }
 
-export function AllLineagesModal({ lineages, lineageNames, peril, onClose }: Props) {
+export function AllLineagesModal({ lineages, lineageNames, peril, facts, onClose }: Props) {
+  const setFocus = useUIStore((s) => s.setFocus)
   const tribeName = (lid: string) => lineageNames?.[lid] ?? (lid ?? '').slice(0, 6)
   const brink = new Map((peril ?? []).map((p) => [p.lineage_id, p.cause]))
   const rows = visibleLineages(
@@ -38,7 +42,20 @@ export function AllLineagesModal({ lineages, lineageNames, peril, onClose }: Pro
           {rows.map(({ lid, info, peril: cause }) => (
             <div
               key={lid}
-              className={'lineage-row' + (cause ? ' peril' : '')}
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                setFocus(`lineage:${lid}`)
+                onClose()
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setFocus(`lineage:${lid}`)
+                  onClose()
+                }
+              }}
+              className={'lineage-row all-lineages-row' + (cause ? ' peril' : '')}
               title={
                 cause ? `On the brink: ${remainingLine(info.count)}, ${PERIL_HELP[cause].reason}` : undefined
               }
@@ -56,6 +73,7 @@ export function AllLineagesModal({ lineages, lineageNames, peril, onClose }: Pro
               <span className="lineage-strat">
                 {lineageWord(info.orgs, 'home') || lineageWord(info.orgs, 'food') || ''}
               </span>
+              <span className="lineage-facts">{factsLine(facts?.[lid])}</span>
             </div>
           ))}
         </div>

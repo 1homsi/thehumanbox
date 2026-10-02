@@ -1283,6 +1283,8 @@ impl Simulation {
             milestones_achieved: state.milestones_achieved,
             lineage_peak_pop: state.lineage_peak_pop,
             tribe_peril: HashMap::default(),
+            fallen: Default::default(),
+            revive_cooldown: HashMap::default(),
             teach_cooldown: HashMap::default(),
             grave_queue: Vec::new(),
             cemeteries: HashMap::default(),

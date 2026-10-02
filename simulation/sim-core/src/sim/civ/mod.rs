@@ -15,6 +15,7 @@ pub mod peril;
 pub mod prayers;
 pub mod refugees;
 pub mod rename;
+pub mod revive;
 pub mod settlements;
 pub mod smog;
 pub mod teach;
