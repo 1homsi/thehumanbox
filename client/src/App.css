@@ -5838,6 +5838,19 @@ body.thb-colorblind .org-sick-badge {
   cursor: pointer;
   text-decoration: underline dotted;
 }
+.all-lineages-row {
+  flex-wrap: wrap;
+  cursor: pointer;
+}
+.all-lineages-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.lineage-facts {
+  flex-basis: 100%;
+  padding-left: 14px;
+  font-size: 9px;
+  color: #9c9684;
+}
 .tribe-card-losses {
   margin-top: 3px;
   font-size: 9px;
