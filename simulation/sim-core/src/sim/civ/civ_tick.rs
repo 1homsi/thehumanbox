@@ -59,6 +59,9 @@ pub fn tick_civ(sim: &mut Simulation, spatial: Option<&SpatialIndex>) {
     if tick.is_multiple_of(300) {
         tick_dynasty_watch(sim);
     }
+    if tick > 0 && tick.is_multiple_of(super::refugees::REFUGE_STEP) {
+        sim.tick_refugees();
+    }
     if tick > 0 && tick.is_multiple_of(super::peril::PERIL_STEP) {
         sim.tick_tribe_peril();
     }
