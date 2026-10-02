@@ -252,6 +252,16 @@ function LiveApp() {
     [],
   )
 
+  // Pick up a dock tool by id while looking at a spot (the tribe card).
+  const handlePickToolAt = useCallback(
+    (toolId: string, at: { x: number; y: number }) => {
+      useCameraFocus.getState().focusTile(at.x, at.y)
+      const tool = SANDBOX_CATEGORIES.flatMap((c) => c.tools).find((t) => t.id === toolId)
+      if (tool && armedTool?.id !== tool.id) onPickTool(tool)
+    },
+    [armedTool, onPickTool],
+  )
+
   const handleSandboxApply = useCallback(
     (wx: number, wy: number) => {
       if (!sandboxControlsEnabled || !armedTool?.build) return
@@ -550,7 +560,7 @@ function LiveApp() {
               )}
 
               {!currentScene && !viewFlags.hideUI && (
-                <TribeCard world={world} onAnswer={handleAnswerPrayer} />
+                <TribeCard world={world} onAnswer={handleAnswerPrayer} onTool={handlePickToolAt} />
               )}
 
               <RightPanel

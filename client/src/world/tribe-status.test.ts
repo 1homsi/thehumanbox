@@ -15,6 +15,21 @@ describe('tribe status', () => {
     prayers: [
       { id: 1, lineage_id: 'a', tribe: 'Ashari', kind: 'hunger', x: 1, y: 1, created: 0, expires: 9 },
     ],
+    lineage_era_progress: [
+      {
+        lineage_id: 'a',
+        era_name: 'stone',
+        next_era: 'bronze',
+        pop: 2,
+        pop_required: 8,
+        pop_ready: false,
+        required: ['copper_smelting', 'pottery', 'farming'],
+        known: ['pottery'],
+        missing: ['copper_smelting', 'farming'],
+        discovery_ready: false,
+        ready: false,
+      },
+    ],
   } as unknown as WorldState
 
   it('averages needs over living members and gathers faith and prayers', () => {
@@ -28,6 +43,13 @@ describe('tribe status', () => {
     expect(s.blessed).toBe(true)
     expect(s.lostFaith).toBe(false)
     expect(s.prayer?.kind).toBe('hunger')
+    expect(s.nextAge).toEqual({
+      era: 'bronze',
+      known: 1,
+      required: 3,
+      missing: ['copper smelting', 'farming'],
+      peopleNeeded: 6,
+    })
   })
 
   it('is empty for a tribe with nobody left', () => {
