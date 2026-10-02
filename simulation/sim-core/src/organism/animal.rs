@@ -224,6 +224,8 @@ pub struct Animal {
     /// Direction kept between ticks so calm animals walk somewhere instead
     /// of picking a new random direction every tick. Not persisted.
     pub heading: u8,
+    /// Asleep for the winter (wild bears). Recomputed every tick, not saved.
+    pub sleeping: bool,
 }
 
 impl Animal {
@@ -239,6 +241,7 @@ impl Animal {
             bonded_org: None,
             name: None,
             heading: (id % 8) as u8,
+            sleeping: false,
         }
     }
 
@@ -453,6 +456,8 @@ pub struct AnimalJson {
     pub kind: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub sleeping: bool,
 }
 
 impl Animal {
@@ -463,6 +468,7 @@ impl Animal {
             y: (self.y * 10.0).round() / 10.0,
             kind: self.kind.name(),
             name: self.name.clone(),
+            sleeping: self.sleeping,
         }
     }
 }

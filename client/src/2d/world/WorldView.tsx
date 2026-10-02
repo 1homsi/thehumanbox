@@ -2340,6 +2340,8 @@ export function drawWorldOnCanvas(
         if (!visibleIds.has(id)) _animalLastPos.delete(id)
       }
     }
+    // Sleeping animals get a drifting 'z', drawn over every sprite.
+    const sleepers: [number, number, number][] = []
     for (const animal of [...animals].sort((a, b) => a.y - b.y || a.id - b.id)) {
       if (
         animal.x - ox < c0 - 3 ||
@@ -2403,6 +2405,7 @@ export function drawWorldOnCanvas(
         )
         ctx.fill()
       }
+      if (animal.sleeping) sleepers.push([cx, cy - size * 0.55, animal.id])
       const flip = motion.flipped
       const step = moving ? Math.floor(t / 200 + animal.id) & 1 : 0
       if (drawPixelFauna(ctx, animal.kind, cx, cy, size, flip, step)) continue
@@ -2440,6 +2443,15 @@ export function drawWorldOnCanvas(
         ctx.ellipse(cx, cy, size * 0.32, size * 0.22, 0, 0, Math.PI * 2)
         ctx.fill()
       }
+    }
+    for (const [zx, zy, id] of sleepers) {
+      const rise = ((t / 1800 + id * 0.37) % 1) * 6
+      ctx.globalAlpha = 0.85 - rise / 10
+      ctx.font = 'bold 7px monospace'
+      ctx.textAlign = 'center'
+      ctx.fillStyle = '#e8eef8'
+      ctx.fillText('z', zx + rise * 0.6, zy - rise)
+      ctx.globalAlpha = 1
     }
     ctx.restore()
   }

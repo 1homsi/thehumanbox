@@ -170,7 +170,7 @@ impl Simulation {
             let beasts = self
                 .animals
                 .iter()
-                .filter(|a| a.alive && a.kind.hostile() && (a.x - cx).hypot(a.y - cy) < 16.0)
+                .filter(|a| a.alive && !a.sleeping && a.kind.hostile() && (a.x - cx).hypot(a.y - cy) < 16.0)
                 .map(|a| if a.kind.monster() { 3 } else { 1 })
                 .sum::<u32>();
             let mut best: Option<(f32, PrayerKind)> = None;

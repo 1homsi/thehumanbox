@@ -2671,3 +2671,32 @@ fn newcomers_follow_faith_and_never_revive_a_silent_world() {
         "word of answered prayers draws newcomers"
     );
 }
+
+/// Wild bears sleep the winter through: they stay put until spring.
+#[test]
+fn wild_bears_hibernate_through_winter() {
+    use crate::organism::animal::{Animal, AnimalKind};
+    let mut sim = Simulation::new(12);
+    sim.animals.clear();
+    // A quiet patch of grass far from everyone.
+    for y in 20..30 {
+        for x in 20..30 {
+            sim.grid.set(x, y, Tile::Grass);
+        }
+    }
+    sim.organisms.retain(|o| (o.x - 25.0).hypot(o.y - 25.0) > 60.0);
+    sim.animals.push(Animal::new(9001, 25.0, 25.0, AnimalKind::Bear));
+    sim.tick_count = crate::sim::config::SEASON_LENGTH * 2 + 5;
+    for _ in 0..30 {
+        sim.tick();
+    }
+    let bear = sim.animals.iter().find(|a| a.id == 9001).expect("bear");
+    assert!(bear.sleeping, "a wild bear sleeps in winter");
+    assert_eq!((bear.x, bear.y), (25.0, 25.0), "and stays where it lay down");
+    sim.tick_count = crate::sim::config::SEASON_LENGTH * 3 + 5;
+    sim.tick();
+    assert!(
+        !sim.animals.iter().find(|a| a.id == 9001).unwrap().sleeping,
+        "it wakes in spring"
+    );
+}
