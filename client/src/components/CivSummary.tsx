@@ -11,7 +11,8 @@ function CivSummaryImpl({ world }: Props) {
   const openCiv = useUIStore((s) => s.openCiv)
   const lineageNames = world.lineage_names ?? {}
   const buildings = world.buildings ?? []
-  const religions = world.religions ?? []
+  // Faiths with no one left to keep them are not counted (the sim forgets them soon after).
+  const religions = (world.religions ?? []).filter((r) => (r.adherents ?? 1) > 0)
   const books = world.books ?? []
   const headlines = world.headlines ?? []
 

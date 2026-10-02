@@ -58,6 +58,7 @@ pub fn tick_civ(sim: &mut Simulation, spatial: Option<&SpatialIndex>) {
     }
     if tick.is_multiple_of(300) {
         tick_dynasty_watch(sim);
+        forget_vanished_tribes(sim);
     }
     if tick > 0 && tick.is_multiple_of(super::refugees::REFUGE_STEP) {
         sim.tick_refugees();
@@ -3086,6 +3087,69 @@ fn tick_religion_adherents(sim: &mut Simulation) {
     for r in sim.religions.iter_mut() {
         r.adherents = adherents_by_id.get(&r.id).copied().unwrap_or(0);
     }
+    forget_empty_faiths(sim);
+}
+
+/// A tribe that has died out holds no land and keeps no home: its claims
+/// stayed on the territory map, and counted towards contested ground, long
+/// after the last of its people was gone.
+fn forget_vanished_tribes(sim: &mut Simulation) {
+    let living: HashSet<String> = sim
+        .organisms
+        .iter()
+        .filter(|o| o.alive)
+        .map(|o| o.lineage_id.clone())
+        .collect();
+    let before = sim.territory.len();
+    sim.territory.retain(|lineage, _| living.contains(lineage));
+    sim.lineage_homes.retain(|lineage, _| living.contains(lineage));
+    if sim.territory.len() != before {
+        // Rebuild the map's territory on the next snapshot.
+        sim.slow_compute_tick = 0;
+    }
+}
+
+/// Ticks a faith lingers with no one keeping it before it is forgotten.
+const FAITH_FORGOTTEN_TICKS: u64 = 3_000;
+
+/// A faith nobody keeps any more fades from the world. Before this every
+/// faith ever founded stayed on the books: an old world counted 68 of them
+/// for nine living tribes.
+fn forget_empty_faiths(sim: &mut Simulation) {
+    let now = sim.tick_count;
+    let mut forgotten: Vec<String> = Vec::new();
+    for r in &sim.religions {
+        if r.adherents > 0 {
+            sim.faith_empty_since.remove(&r.id);
+            continue;
+        }
+        let since = *sim.faith_empty_since.entry(r.id.clone()).or_insert(now);
+        if now.saturating_sub(since) >= FAITH_FORGOTTEN_TICKS {
+            forgotten.push(r.id.clone());
+        }
+    }
+    if forgotten.is_empty() {
+        return;
+    }
+    let names: Vec<String> = sim
+        .religions
+        .iter()
+        .filter(|r| forgotten.contains(&r.id))
+        .map(|r| r.name.clone())
+        .collect();
+    sim.religions.retain(|r| !forgotten.contains(&r.id));
+    for id in &forgotten {
+        sim.faith_empty_since.remove(id);
+    }
+    for name in names {
+        push_event(
+            &mut sim.events,
+            now,
+            "life",
+            &name,
+            "was forgotten: no one keeps the faith any more",
+        );
+    }
 }
 
 fn tick_religion_effects(sim: &mut Simulation) {
@@ -4902,5 +4966,60 @@ mod disease_teeth_tests {
                 .count(),
             3
         );
+    }
+}
+
+#[cfg(test)]
+mod faith_tests {
+    use super::*;
+    use crate::sim::civ::culture::{Religion, ReligionKind};
+
+    fn faith(id: &str, name: &str) -> Religion {
+        Religion {
+            id: id.into(),
+            kind: ReligionKind::Animism,
+            name: name.into(),
+            founded_tick: 1,
+            founder_lineage: "clan".into(),
+            adherents: 0,
+            last_milestone: None,
+        }
+    }
+
+    #[test]
+    fn a_faith_nobody_keeps_is_forgotten_and_a_kept_one_is_not() {
+        let mut sim = Simulation::new(41);
+        sim.religions = vec![faith("kept", "The Living Way"), faith("lost", "The Old Path")];
+        for o in &mut sim.organisms {
+            o.religion_id = None;
+        }
+        sim.organisms[0].alive = true;
+        sim.organisms[0].religion_id = Some("kept".into());
+        sim.events.clear();
+        for step in 0..=(FAITH_FORGOTTEN_TICKS / 240 + 1) {
+            sim.tick_count = 1_000 + step * 240;
+            tick_religion_adherents(&mut sim);
+        }
+        let left: Vec<&str> = sim.religions.iter().map(|r| r.id.as_str()).collect();
+        assert_eq!(left, vec!["kept"]);
+        assert!(sim
+            .events
+            .iter()
+            .any(|e| e.actor == "The Old Path" && e.detail.contains("was forgotten")));
+    }
+
+    #[test]
+    fn a_vanished_tribe_holds_no_land() {
+        let mut sim = Simulation::new(42);
+        let living = sim.organisms.iter().find(|o| o.alive).unwrap().lineage_id.clone();
+        sim.territory
+            .insert(living.clone(), [(1, 1)].into_iter().collect());
+        sim.territory
+            .insert("gone".into(), [(2, 2)].into_iter().collect());
+        sim.lineage_homes.insert("gone".into(), [2, 2, 0]);
+        forget_vanished_tribes(&mut sim);
+        assert!(sim.territory.contains_key(&living));
+        assert!(!sim.territory.contains_key("gone"));
+        assert!(!sim.lineage_homes.contains_key("gone"));
     }
 }
