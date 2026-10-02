@@ -292,7 +292,9 @@ impl Simulation {
             org.home_x = anchor_x as f32;
             org.home_y = anchor_y as f32;
             org.sex = sex;
-            org.age = self.rng.random_range(2000u32..=5000);
+            // Grown travellers, whatever their lifespan: an absolute age
+            // made the long-lived ones arrive as infants.
+            org.age = (max_age as f32 * self.rng.random_range(0.35f32..0.45)) as u32;
             org.energy = 0.85;
             org.hydration = 0.85;
             org.health = 0.95;
