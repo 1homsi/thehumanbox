@@ -27,7 +27,7 @@ export type SandboxCommand =
   | { cmd: 'blizzard'; x: number; y: number; radius?: number }
   | { cmd: 'thunder'; x: number; y: number; radius?: number }
   | { cmd: 'paint_biome'; x: number; y: number; biome: string; radius?: number }
-  | { cmd: 'plant'; x: number; y: number; kind: 'crop' | 'orchard' | 'sapling'; radius?: number }
+  | { cmd: 'plant'; x: number; y: number; kind: 'crop' | 'orchard' | 'sapling' | 'flowers'; radius?: number }
   | { cmd: 'volcano'; x: number; y: number; radius?: number }
   | { cmd: 'meteor_shower'; x: number; y: number; radius?: number }
   | { cmd: 'love'; x: number; y: number; radius?: number }
@@ -490,6 +490,13 @@ export const SANDBOX_CATEGORIES: SandboxCategory[] = [
         icon: '🪴',
         mode: 'point',
         build: (x, y, b) => ({ cmd: 'plant', x, y, kind: 'sapling', radius: 2 + b }),
+      },
+      {
+        id: 'plant_flowers',
+        label: 'flowers',
+        icon: '🌸',
+        mode: 'point',
+        build: (x, y, b) => ({ cmd: 'plant', x, y, kind: 'flowers', radius: 1 + b }),
       },
     ],
   },

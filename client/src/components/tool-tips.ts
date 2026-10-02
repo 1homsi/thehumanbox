@@ -20,6 +20,7 @@ const TOOL_TIPS: Record<string, string> = {
   plant_orchard:
     'Plant fruit trees. Slow to grow, then they bear fruit again and again. They sleep through winter.',
   plant_sapling: 'Plant young trees that grow into a forest.',
+  plant_flowers: 'Plant flowers. They bloom through spring and summer, and people near them are happier.',
   territory_map: 'Show the land each tribe claims.',
   settlement_map: 'Highlight towns and buildings.',
   population_map: 'Show where people crowd together.',

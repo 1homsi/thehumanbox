@@ -11,6 +11,7 @@ export const PRAYER_KINDS: Record<string, { plea: string; tool: string; icon: st
   peace: { plea: 'pray for the war to end', tool: 'peace', icon: '🕊️' },
   knowledge: { plea: 'pray for wisdom', tool: 'inspire', icon: '💡' },
   shelter: { plea: 'pray for shelter from the cold', tool: 'shelter', icon: '🛖' },
+  fire: { plea: 'beg the gods to put out the fire', tool: 'douse', icon: '🪣' },
 }
 
 export function prayerTool(kind: string): string | null {

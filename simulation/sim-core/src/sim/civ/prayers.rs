@@ -44,6 +44,7 @@ pub enum PrayerKind {
     Peace,
     Knowledge,
     Shelter,
+    Fire,
 }
 
 impl PrayerKind {
@@ -58,6 +59,7 @@ impl PrayerKind {
             PrayerKind::Peace => "peace",
             PrayerKind::Knowledge => "knowledge",
             PrayerKind::Shelter => "shelter",
+            PrayerKind::Fire => "fire",
         }
     }
 
@@ -73,6 +75,7 @@ impl PrayerKind {
             PrayerKind::Peace => "pray for the war to end",
             PrayerKind::Knowledge => "pray for wisdom",
             PrayerKind::Shelter => "pray for shelter from the cold",
+            PrayerKind::Fire => "beg the gods to put out the fire",
         }
     }
 }
@@ -130,6 +133,7 @@ impl Simulation {
     pub(crate) fn tick_prayers(&mut self) {
         let now = self.tick_count;
         self.settle_rain_prayers(now);
+        self.settle_fire_prayers(now);
         self.expire_prayers(now);
         if now.is_multiple_of(MOOD_TICKS) {
             self.tick_blessings(now);
@@ -179,6 +183,15 @@ impl Simulation {
                     best = Some((score, kind));
                 }
             };
+            let fires = self.fires_near(cx as i32, cy as i32);
+            consider(
+                if fires >= 3 {
+                    (1.1 + fires as f32 * 0.02).min(1.5)
+                } else {
+                    0.0
+                },
+                PrayerKind::Fire,
+            );
             consider(
                 if beasts >= 3 {
                     1.0 + beasts as f32 * 0.1
@@ -237,6 +250,35 @@ impl Simulation {
             });
             let name = self.tribe_name(&lineage);
             push_event(&mut self.events, now, "prayer", &name, kind.plea());
+        }
+    }
+
+    /// Burning tiles within reach of a tribe's camp.
+    fn fires_near(&self, cx: i32, cy: i32) -> usize {
+        let mut fires = 0;
+        for y in cy - 12..=cy + 12 {
+            for x in cx - 12..=cx + 12 {
+                if self.grid.get(x, y) == crate::world::tiles::Tile::Fire {
+                    fires += 1;
+                }
+            }
+        }
+        fires
+    }
+
+    /// A fire that burns out by itself settles the prayer to put it out.
+    fn settle_fire_prayers(&mut self, now: u64) {
+        let out: Vec<usize> = self
+            .prayers
+            .active
+            .iter()
+            .enumerate()
+            .filter(|(_, p)| p.kind == PrayerKind::Fire && self.fires_near(p.x, p.y) == 0)
+            .map(|(i, _)| i)
+            .collect();
+        for i in out.into_iter().rev() {
+            let p = self.prayers.active.remove(i);
+            self.prayers.quiet_until.insert(p.lineage, now + PRAYER_COOLDOWN);
         }
     }
 
@@ -746,6 +788,21 @@ mod tests {
             p.x + 1,
             p.y
         );
+        sim.apply_command_json(&cmd);
+        assert!(sim.prayers.active.is_empty());
+    }
+
+    #[test]
+    fn a_tribe_beside_a_fire_begs_for_it_to_be_put_out() {
+        let (mut sim, lineage) = tribe_sim();
+        let (cx, cy) = sim.lineage_aggregates[&lineage].center();
+        for dx in 0..4 {
+            sim.grid.set(cx + 3 + dx, cy, crate::world::tiles::Tile::Fire);
+        }
+        check(&mut sim);
+        let p = sim.prayers.active.first().expect("a prayer").clone();
+        assert_eq!(p.kind, PrayerKind::Fire);
+        let cmd = format!(r#"{{"cmd":"douse","x":{},"y":{},"radius":8}}"#, p.x, p.y);
         sim.apply_command_json(&cmd);
         assert!(sim.prayers.active.is_empty());
     }
