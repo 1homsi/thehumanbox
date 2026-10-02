@@ -2,9 +2,14 @@ use crate::world::{grid::WorldGrid, tiles::Tile};
 use rand::{Rng, RngExt};
 use rustc_hash::FxHashSet as HashSet;
 
+/// Chance per physics step that fertile open grass sprouts wild food.
+pub const WILD_FOOD_GROWTH: f32 = 0.0004;
+
 pub struct PhysicsEngine {
     pub tick_count: u64,
     pub growth_mult: f32,
+    /// How readily wild food sprouts this season (none in winter).
+    pub food_season: f32,
     active_fire_tiles: HashSet<(i32, i32)>,
     burn_out: Vec<(i32, i32)>,
     new_fires: Vec<(i32, i32)>,
@@ -21,6 +26,7 @@ impl PhysicsEngine {
         PhysicsEngine {
             tick_count: 0,
             growth_mult: 1.0,
+            food_season: 1.0,
             active_fire_tiles: HashSet::default(),
             burn_out: Vec::new(),
             new_fires: Vec::new(),
@@ -193,7 +199,9 @@ impl PhysicsEngine {
 
     fn grow_plants(&self, grid: &mut WorldGrid, rng: &mut impl Rng) {
         use crate::world::grid::{TrailKind, HEIGHT, WIDTH};
-        let base_grow = 0.0055 * self.growth_mult;
+        // Wild food sprouts slowly enough that people eat into it, and not
+        // at all in winter (see `sim::seasons` for the dieback).
+        let base_grow = WILD_FOOD_GROWTH * self.food_season;
         let recover_rate = 0.0018 * (self.growth_mult * 0.7).max(0.4);
 
         for y in 0..HEIGHT as i32 {
