@@ -21,6 +21,7 @@ export type SandboxCommand =
   | { cmd: 'bounty'; x: number; y: number; radius?: number }
   | { cmd: 'douse'; x: number; y: number; radius?: number }
   | { cmd: 'banish'; x: number; y: number; radius?: number }
+  | { cmd: 'rename_tribe'; lineage: string; name: string }
   | { cmd: 'ward'; x: number; y: number; radius?: number }
   | { cmd: 'blight'; x: number; y: number; radius?: number }
   | { cmd: 'frenzy'; x: number; y: number; radius?: number }
