@@ -230,13 +230,17 @@ fn main() {
     );
     let h = &sim.history;
     println!(
-        "births:      {}  |  deaths: old={} starv={} dehy={} sick={} combat={}",
+        "births:      {}  |  deaths: old={} starv={} dehy={} sick={} combat={} beasts={} drowned={} fire={} disaster={}",
         h.births,
         h.deaths_old_age,
         h.deaths_starvation,
         h.deaths_dehydration,
         h.deaths_sickness,
-        h.deaths_combat
+        h.deaths_combat,
+        h.deaths_beasts,
+        h.deaths_drowning,
+        h.deaths_fire,
+        h.deaths_disaster
     );
     println!(
         "alliances:   {}  challenges: {}  gifts: {}",

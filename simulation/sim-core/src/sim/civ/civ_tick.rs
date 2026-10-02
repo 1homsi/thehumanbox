@@ -3496,6 +3496,7 @@ fn tick_disease_spread(sim: &mut Simulation) {
             // and the treatments of later eras take most of the harm away.
             let harm = kind.lethality() * DISEASE_HARM * healer * (1.0 - treatment_relief(era, kind));
             o.health -= harm;
+            o.last_harm = Some((crate::organism::organism::Harm::Sickness, tick));
             o.infection = o.infection.max((kind.lethality() * 8.0).min(0.7));
             if o.health <= 0.0 {
                 // Below zero hands the death to the person's own tick, after

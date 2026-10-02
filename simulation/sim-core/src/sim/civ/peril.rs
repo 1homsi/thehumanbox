@@ -8,6 +8,9 @@ use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
 use rustc_hash::FxHashMap;
 
+/// Ticks of a tribe's deaths that its peril looks back over.
+pub(crate) const DEATH_WINDOW: u64 = 3_000;
+
 /// Smallest peak a tribe must have reached for its decline to be news.
 const PERIL_MIN_PEAK: u32 = 8;
 /// Ticks between checks.
@@ -22,6 +25,11 @@ pub enum PerilCause {
     NoChildren,
     OldAge,
     Dwindling,
+    War,
+    Beasts,
+    Drowning,
+    Fire,
+    Disaster,
 }
 
 impl PerilCause {
@@ -33,6 +41,11 @@ impl PerilCause {
             PerilCause::NoChildren => "no_children",
             PerilCause::OldAge => "old_age",
             PerilCause::Dwindling => "dwindling",
+            PerilCause::War => "war",
+            PerilCause::Beasts => "beasts",
+            PerilCause::Drowning => "drowning",
+            PerilCause::Fire => "fire",
+            PerilCause::Disaster => "disaster",
         }
     }
 
@@ -44,6 +57,11 @@ impl PerilCause {
             PerilCause::NoChildren => "no one is left to raise children",
             PerilCause::OldAge => "they are growing old",
             PerilCause::Dwindling => "their numbers keep falling",
+            PerilCause::War => "war is killing them",
+            PerilCause::Beasts => "beasts are hunting them",
+            PerilCause::Drowning => "the water is taking them",
+            PerilCause::Fire => "fire is taking them",
+            PerilCause::Disaster => "disaster after disaster strikes them",
         }
     }
 }
@@ -100,6 +118,48 @@ impl Census {
 }
 
 impl Simulation {
+    /// Remember a death in its tribe's recent history.
+    pub(crate) fn note_death(&mut self, lineage: &str, cause: &'static str) {
+        let now = self.tick_count;
+        let deaths = self.recent_deaths.entry(lineage.to_string()).or_default();
+        deaths.push_back((now, cause));
+        while deaths.len() > 64
+            || deaths
+                .front()
+                .is_some_and(|&(t, _)| now.saturating_sub(t) > DEATH_WINDOW)
+        {
+            deaths.pop_front();
+        }
+    }
+
+    /// A violent cause behind at least half a tribe's recent deaths.
+    fn violent_cause(&self, lineage: &str) -> Option<PerilCause> {
+        let now = self.tick_count;
+        let deaths = self.recent_deaths.get(lineage)?;
+        let recent: Vec<&str> = deaths
+            .iter()
+            .filter(|&&(t, _)| now.saturating_sub(t) <= DEATH_WINDOW)
+            .map(|&(_, c)| c)
+            .collect();
+        let mut best: Option<(PerilCause, usize)> = None;
+        for (name, cause) in [
+            ("war", PerilCause::War),
+            ("combat", PerilCause::War),
+            ("beasts", PerilCause::Beasts),
+            ("drowning", PerilCause::Drowning),
+            ("fire", PerilCause::Fire),
+            ("disaster", PerilCause::Disaster),
+        ] {
+            let n = recent.iter().filter(|&&c| c == name).count();
+            let n = n + best.filter(|(c, _)| *c == cause).map_or(0, |(_, m)| m);
+            if n > best.map_or(0, |(_, m)| m) {
+                best = Some((cause, n));
+            }
+        }
+        best.filter(|&(_, n)| n >= 2 && n * 2 >= recent.len())
+            .map(|(c, _)| c)
+    }
+
     fn census(&self) -> FxHashMap<String, Census> {
         let mut census: FxHashMap<String, Census> = FxHashMap::default();
         for o in self.organisms.iter().filter(|o| o.alive) {
@@ -140,6 +200,7 @@ impl Simulation {
                 .get(lineage)
                 .cloned()
                 .unwrap_or_else(|| "a tribe".to_string());
+            let violent = self.violent_cause(lineage);
             match self.tribe_peril.get_mut(lineage) {
                 Some(_) if recovered(c.population, peak) => {
                     news.push((
@@ -156,10 +217,10 @@ impl Simulation {
                 Some(peril) => {
                     peril.population = c.population;
                     peril.peak = peak;
-                    peril.cause = c.cause();
+                    peril.cause = violent.unwrap_or_else(|| c.cause());
                 }
                 None if in_peril(c.population, peak) => {
-                    let cause = c.cause();
+                    let cause = violent.unwrap_or_else(|| c.cause());
                     let remain = if c.population == 1 {
                         "only one remains".to_string()
                     } else {
@@ -189,6 +250,8 @@ impl Simulation {
         }
         // Tribes that are gone are mourned by the dynasty watch instead.
         self.tribe_peril.retain(|lineage, _| census.contains_key(lineage));
+        self.recent_deaths
+            .retain(|lineage, _| census.contains_key(lineage));
         for (kind, actor, detail, headline) in news {
             push_event(&mut self.events, now, kind, &actor, &detail);
             self.headlines.push_back((now, headline));
@@ -297,5 +360,125 @@ mod tests {
         let mut sim = world(people, 14);
         sim.tick_tribe_peril();
         assert!(sim.tribe_peril.is_empty());
+    }
+}
+
+#[cfg(test)]
+mod cause_tests {
+    use super::*;
+    use crate::organism::organism::{Harm, Organism};
+
+    fn victim(sim: &mut Simulation, harm: Harm) -> usize {
+        let mut o = Organism::new(
+            "v".into(),
+            "v".into(),
+            100.0,
+            100.0,
+            0,
+            String::new(),
+            "clan".into(),
+            20_000,
+            Default::default(),
+        );
+        o.alive = true;
+        o.age = 9_000;
+        // Below zero hands the death to the person's own tick.
+        o.health = -1.0;
+        o.mark_harm(harm, sim.tick_count);
+        sim.organisms.push(o);
+        sim.organisms.len() - 1
+    }
+
+    #[test]
+    fn a_death_is_counted_by_what_dealt_it() {
+        for (harm, column) in [
+            (Harm::Beast, "beasts"),
+            (Harm::Drowning, "drowning"),
+            (Harm::Fire, "fire"),
+            (Harm::Disaster, "disaster"),
+            (Harm::War, "combat"),
+        ] {
+            let mut sim = Simulation::new(31);
+            sim.organisms.clear();
+            let idx = victim(&mut sim, harm);
+            let before = sim.history.clone();
+            sim.tick();
+            assert!(!sim.organisms[idx].alive);
+            let h = &sim.history;
+            let grew = |a: u64, b: u64| a == b + 1;
+            let counted = match column {
+                "beasts" => grew(h.deaths_beasts, before.deaths_beasts),
+                "drowning" => grew(h.deaths_drowning, before.deaths_drowning),
+                "fire" => grew(h.deaths_fire, before.deaths_fire),
+                "disaster" => grew(h.deaths_disaster, before.deaths_disaster),
+                _ => grew(h.deaths_combat, before.deaths_combat),
+            };
+            assert!(counted, "{harm:?} was not counted as {column}");
+            if column != "combat" {
+                assert_eq!(
+                    h.deaths_combat, before.deaths_combat,
+                    "{harm:?} still counted as combat"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn an_old_wound_does_not_decide_a_later_death() {
+        let mut sim = Simulation::new(32);
+        sim.organisms.clear();
+        let idx = victim(&mut sim, Harm::Beast);
+        sim.organisms[idx].last_harm = Some((Harm::Beast, 0));
+        sim.tick_count = crate::organism::organism::HARM_MEMORY * 3;
+        let beasts = sim.history.deaths_beasts;
+        for _ in 0..20 {
+            if !sim.organisms[idx].alive {
+                break;
+            }
+            sim.organisms[idx].health = -1.0;
+            sim.tick();
+        }
+        assert!(!sim.organisms[idx].alive);
+        assert_eq!(
+            sim.history.deaths_beasts, beasts,
+            "a wound from long ago decided the death"
+        );
+    }
+
+    #[test]
+    fn a_tribe_hunted_by_beasts_is_told_so() {
+        let mut sim = Simulation::new(33);
+        sim.organisms.clear();
+        for i in 0..3 {
+            let mut o = Organism::new(
+                format!("p{i}"),
+                format!("p{i}"),
+                50.0,
+                50.0,
+                0,
+                String::new(),
+                "clan".into(),
+                20_000,
+                Default::default(),
+            );
+            o.alive = true;
+            o.age = 9_000;
+            o.energy = 0.9;
+            o.hydration = 0.9;
+            o.sex = if i == 0 {
+                crate::organism::organism::Sex::Male
+            } else {
+                crate::organism::organism::Sex::Female
+            };
+            sim.organisms.push(o);
+        }
+        sim.lineage_peak_pop.insert("clan".into(), 20);
+        sim.tick_count = 5_000;
+        for _ in 0..4 {
+            sim.note_death("clan", "beasts");
+        }
+        sim.note_death("clan", "old_age");
+        sim.tick_tribe_peril();
+        assert_eq!(sim.tribe_peril["clan"].cause, PerilCause::Beasts);
     }
 }

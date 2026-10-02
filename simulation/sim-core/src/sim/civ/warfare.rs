@@ -872,12 +872,14 @@ pub fn tick_battles(
                 base_dmg * damage_multiplier(def_style) * (1.0 + d_bonus) * (0.7 + rng.random::<f32>() * 0.6);
 
             organisms[di].health = (organisms[di].health - a_dmg).max(0.0);
+            organisms[di].mark_harm(crate::organism::organism::Harm::War, tick);
             if organisms[di].health <= 0.0 && organisms[di].alive {
                 organisms[di].alive = false;
                 battle.casualties_d += 1;
                 *history_combat_deaths += 1;
             }
             organisms[ai].health = (organisms[ai].health - d_dmg).max(0.0);
+            organisms[ai].mark_harm(crate::organism::organism::Harm::War, tick);
             if organisms[ai].health <= 0.0 && organisms[ai].alive {
                 organisms[ai].alive = false;
                 battle.casualties_a += 1;

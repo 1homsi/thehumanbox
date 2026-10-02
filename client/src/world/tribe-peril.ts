@@ -8,6 +8,11 @@ export const PERIL_HELP: Record<PerilCause, { reason: string; tool: string; acti
   no_children: { reason: 'no one is left to raise children', tool: 'spawn1', action: 'send a newcomer' },
   old_age: { reason: 'they are growing old', tool: 'spawn1', action: 'send young blood' },
   dwindling: { reason: 'their numbers keep falling', tool: 'bless', action: 'bless them' },
+  war: { reason: 'war is killing them', tool: 'peace', action: 'make peace' },
+  beasts: { reason: 'beasts are hunting them', tool: 'banish', action: 'drive off the beasts' },
+  drowning: { reason: 'the water is taking them', tool: 'grass', action: 'raise dry land' },
+  fire: { reason: 'fire is taking them', tool: 'douse', action: 'douse the flames' },
+  disaster: { reason: 'disaster after disaster strikes them', tool: 'bless', action: 'bless them' },
 }
 
 export function perilOf(world: Pick<WorldState, 'tribes_in_peril'>, lineage: string): TribePeril | null {
@@ -17,4 +22,16 @@ export function perilOf(world: Pick<WorldState, 'tribes_in_peril'>, lineage: str
 /** "only 3 left", "the last one" */
 export function remainingLine(population: number): string {
   return population === 1 ? 'the last one' : `only ${population} left`
+}
+
+/** Rows to show in the panel: every tribe on the brink, then the largest. */
+export function visibleLineages<T extends { count: number; peril?: unknown }>(
+  rows: readonly T[],
+  limit = 5,
+): T[] {
+  const sorted = [...rows].sort(
+    (a, b) => Number(!!b.peril) - Number(!!a.peril) || (a.peril ? a.count - b.count : b.count - a.count),
+  )
+  const endangered = sorted.filter((r) => r.peril).length
+  return sorted.slice(0, Math.max(limit, endangered))
 }

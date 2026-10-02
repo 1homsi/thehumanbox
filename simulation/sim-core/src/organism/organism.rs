@@ -323,6 +323,41 @@ pub struct Journey {
     pub expires_at: u64,
 }
 
+/// What can wound a person.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Harm {
+    /// A brawl, duel or thrown stone between neighbours.
+    Fight,
+    /// A battle between tribes at war.
+    War,
+    /// A wolf, bear or monster.
+    Beast,
+    Drowning,
+    Fire,
+    /// An earthquake, meteor, flood, blizzard, lightning, volcano or a
+    /// collapsing building.
+    Disaster,
+    Sickness,
+}
+
+impl Harm {
+    /// How the death is told, and the history column it counts in.
+    pub fn name(self) -> &'static str {
+        match self {
+            Harm::Fight => "combat",
+            Harm::War => "war",
+            Harm::Beast => "beasts",
+            Harm::Drowning => "drowning",
+            Harm::Fire => "fire",
+            Harm::Disaster => "disaster",
+            Harm::Sickness => "sickness",
+        }
+    }
+}
+
+/// Ticks a wound stays the likely cause of a death that follows it.
+pub const HARM_MEMORY: u64 = 1_200;
+
 pub struct Organism {
     pub id: String,
     pub name: String,
@@ -416,6 +451,9 @@ pub struct Organism {
     pub orphaned_tick: u64,
     pub sleep_debt: f32,
     pub water_ticks: u32,
+    /// What last hurt this person, and when: a death is told by its true
+    /// cause instead of every wound counting as combat. Runtime only.
+    pub last_harm: Option<(Harm, u64)>,
     pub area_ticks: u32,
     pub last_area_cell: (i32, i32),
     pub wander_target: Option<(i32, i32)>,
@@ -475,6 +513,18 @@ pub struct Organism {
 }
 
 impl Organism {
+    /// Remember what just hurt this person.
+    pub fn mark_harm(&mut self, harm: Harm, tick: u64) {
+        self.last_harm = Some((harm, tick));
+    }
+
+    /// The recent wound most likely to have killed this person.
+    pub fn fatal_harm(&self, tick: u64) -> Option<Harm> {
+        self.last_harm
+            .filter(|&(_, at)| tick.saturating_sub(at) <= HARM_MEMORY)
+            .map(|(h, _)| h)
+    }
+
     pub fn think_ready(&self, scenario: &str, tick: u64, cooldown: u64) -> bool {
         let last = self.last_think_by_kind.get(scenario).copied().unwrap_or(0);
         tick.saturating_sub(last) >= cooldown
@@ -582,6 +632,7 @@ impl Organism {
             orphaned_tick: 0,
             sleep_debt: 0.0,
             water_ticks: 0,
+            last_harm: None,
             area_ticks: 0,
             last_area_cell: (x as i32, y as i32),
             wander_target: None,
