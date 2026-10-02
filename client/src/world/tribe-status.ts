@@ -1,5 +1,8 @@
 import type { OrganismState, PrayerInfo, WorldState } from '../types'
 
+/** At or below this faith a tribe has given up on its gods (matches the sim). */
+export const LOST_FAITH = -6
+
 export interface TribeStatus {
   id: string
   name: string
@@ -13,6 +16,8 @@ export interface TribeStatus {
   faith: number
   blessed: boolean
   despairing: boolean
+  /** Gave up on the gods: rarely prays until helped unasked. */
+  lostFaith: boolean
   prayer: PrayerInfo | null
 }
 
@@ -59,6 +64,7 @@ export function tribeStatus(world: WorldState, id: string): TribeStatus | null {
     faith: faith?.by_lineage[id] ?? 0,
     blessed: !!faith?.blessed.includes(id),
     despairing: !!faith?.despairing.includes(id),
+    lostFaith: (faith?.by_lineage[id] ?? 0) <= LOST_FAITH,
     prayer: world.prayers?.find((p) => p.lineage_id === id) ?? null,
   }
 }

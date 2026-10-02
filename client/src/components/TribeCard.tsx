@@ -55,10 +55,20 @@ export function TribeCard({ world, onAnswer }: Props) {
       <div className="tribe-card-row">
         <span
           className={clsx('tribe-faith', status.blessed && 'blessed', status.despairing && 'despair')}
-          title="Answered prayers minus forsaken ones"
+          title={
+            status.lostFaith
+              ? 'They have given up on the gods and rarely pray. Help them unasked to win them back.'
+              : 'Answered prayers minus forsaken ones'
+          }
         >
           ✧ faith {status.faith}
-          {status.blessed ? ' · blessed' : status.despairing ? ' · despairing' : ''}
+          {status.blessed
+            ? ' · blessed'
+            : status.lostFaith
+              ? ' · lost faith'
+              : status.despairing
+                ? ' · despairing'
+                : ''}
         </span>
         {status.sick > 0 && <span className="tribe-sick">{status.sick} sick</span>}
       </div>
