@@ -553,6 +553,8 @@ export interface WorldState {
   /** Autumn's forecast that the coming winter will be hard. */
   hard_winter_ahead?: boolean
   faith?: FaithInfo
+  /** Each tribe's dead of the last few seasons, by cause. */
+  tribe_losses?: Record<string, Record<string, number>>
   /** Tribes on the brink, and what is killing them. */
   tribes_in_peril?: TribePeril[]
   settlements?: SettlementInfo[]

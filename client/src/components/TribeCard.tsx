@@ -3,7 +3,7 @@ import { useUIStore } from '../stores/store'
 import type { PrayerInfo, WorldState } from '../types'
 import { lineageColor } from '../utils/constants'
 import { PRAYER_KINDS } from '../world/prayers'
-import { PERIL_HELP, perilOf, remainingLine } from '../world/tribe-peril'
+import { lossLine, PERIL_HELP, perilOf, remainingLine } from '../world/tribe-peril'
 import { activeBattles, enemiesOf } from '../2d/world/battles'
 import { tribeStatus } from '../world/tribe-status'
 import { ToolSprite } from './ToolSprite'
@@ -44,6 +44,7 @@ export function TribeCard({ world, onAnswer, onTool }: Props) {
     (b) => b.attackers.includes(status.id) || b.defenders.includes(status.id),
   )
   const peril = perilOf(world, status.id)
+  const losses = lossLine(world.tribe_losses?.[status.id])
   const help = peril ? PERIL_HELP[peril.cause] : null
   const lookAtTribe = (tool: string) => {
     const home = world.settlements?.find((s) => s.lineage_id === status.id)
@@ -87,6 +88,7 @@ export function TribeCard({ world, onAnswer, onTool }: Props) {
       <Need label="food" value={status.food} />
       <Need label="water" value={status.water} />
       <Need label="health" value={status.health} />
+      {losses && <div className="tribe-card-losses">lost lately: {losses}</div>}
       <div className="tribe-card-row">
         <span
           className={clsx('tribe-faith', status.blessed && 'blessed', status.despairing && 'despair')}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PERIL_HELP, perilOf, remainingLine, tribeHome } from './tribe-peril'
+import { lossLine, PERIL_HELP, perilOf, remainingLine, tribeHome } from './tribe-peril'
 
 describe('tribe peril', () => {
   it('finds the tribe on the brink', () => {
@@ -35,5 +35,14 @@ describe('tribe peril', () => {
     expect(tribeHome({ settlements, organisms }, 'a')).toEqual({ x: 40, y: 50 })
     expect(tribeHome({ settlements, organisms }, 'b')).toEqual({ x: 20, y: 30 })
     expect(tribeHome({ settlements, organisms }, 'c')).toBeNull()
+  })
+
+  it('tells what a tribe has lost lately, worst first', () => {
+    expect(lossLine({ old_age: 1, war: 3, starvation: 2 })).toBe('3 to war · 2 to hunger · 1 to old age')
+    expect(lossLine({ war: 1, beasts: 1, fire: 1, drowning: 1 })).toBe(
+      '1 to beasts · 1 to drowning · 1 to fire',
+    )
+    expect(lossLine({})).toBeNull()
+    expect(lossLine(undefined)).toBeNull()
   })
 })
