@@ -1279,6 +1279,7 @@ impl Simulation {
             lineage_peak_pop: state.lineage_peak_pop,
             tribe_peril: HashMap::default(),
             recent_deaths: HashMap::default(),
+            faith_empty_since: HashMap::default(),
             headlines: state.headlines.into_iter().collect(),
             trades: state.trades.into_iter().collect(),
             trade_routes: state.trade_routes,

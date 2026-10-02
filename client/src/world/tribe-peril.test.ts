@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PERIL_HELP, perilOf, remainingLine } from './tribe-peril'
+import { PERIL_HELP, perilOf, remainingLine, tribeHome } from './tribe-peril'
 
 describe('tribe peril', () => {
   it('finds the tribe on the brink', () => {
@@ -24,5 +24,16 @@ describe('tribe peril', () => {
   it('counts who is left', () => {
     expect(remainingLine(1)).toBe('the last one')
     expect(remainingLine(4)).toBe('only 4 left')
+  })
+
+  it('finds where a tribe lives', () => {
+    const settlements = [{ lineage_id: 'a', center: [40, 50] }] as never
+    const organisms = [
+      { lineage_id: 'b', x: 10, y: 20, alive: true },
+      { lineage_id: 'b', x: 30, y: 40, alive: true },
+    ] as never
+    expect(tribeHome({ settlements, organisms }, 'a')).toEqual({ x: 40, y: 50 })
+    expect(tribeHome({ settlements, organisms }, 'b')).toEqual({ x: 20, y: 30 })
+    expect(tribeHome({ settlements, organisms }, 'c')).toBeNull()
   })
 })
