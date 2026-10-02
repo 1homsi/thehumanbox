@@ -60,6 +60,9 @@ pub fn tick_civ(sim: &mut Simulation, spatial: Option<&SpatialIndex>) {
         tick_dynasty_watch(sim);
         forget_vanished_tribes(sim);
     }
+    if tick > 0 && tick.is_multiple_of(super::orphans::ORPHAN_STEP) {
+        sim.tick_orphans();
+    }
     if tick > 0 && tick.is_multiple_of(super::refugees::REFUGE_STEP) {
         sim.tick_refugees();
     }

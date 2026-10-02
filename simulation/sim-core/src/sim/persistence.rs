@@ -1283,6 +1283,7 @@ impl Simulation {
             milestones_achieved: state.milestones_achieved,
             lineage_peak_pop: state.lineage_peak_pop,
             tribe_peril: HashMap::default(),
+            orphans_cared: Default::default(),
             recent_deaths: HashMap::default(),
             faith_empty_since: HashMap::default(),
             headlines: state.headlines.into_iter().collect(),
