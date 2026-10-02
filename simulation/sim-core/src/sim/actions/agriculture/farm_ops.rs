@@ -115,10 +115,14 @@ pub(crate) fn can_prepare_plot(sim: &Simulation, idx: usize, x: i32, y: i32) -> 
     {
         return false;
     }
-    farm_index_at(sim, x, y).is_none_or(|farm_idx| {
-        let farm = &sim.farms[farm_idx];
-        farm.harvested && !farm.prepared && can_claim_plot(sim, &farm.owner_lineage, &org.lineage_id)
-    })
+    match farm_index_at(sim, x, y) {
+        Some(farm_idx) => {
+            let farm = &sim.farms[farm_idx];
+            farm.harvested && !farm.prepared && can_claim_plot(sim, &farm.owner_lineage, &org.lineage_id)
+        }
+        // New ground only while the tribe has fewer plots than it can use.
+        None => crate::sim::civ::fields::can_open_new_plot(sim, &org.lineage_id),
+    }
 }
 
 pub(crate) fn can_plant_crop(
@@ -146,7 +150,7 @@ pub(crate) fn can_plant_crop(
                 && (!require_prepared || farm.prepared)
                 && can_claim_plot(sim, &farm.owner_lineage, &org.lineage_id)
         }
-        None => !require_prepared,
+        None => !require_prepared && crate::sim::civ::fields::can_open_new_plot(sim, &org.lineage_id),
     }
 }
 
