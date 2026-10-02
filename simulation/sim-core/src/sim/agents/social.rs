@@ -419,6 +419,7 @@ pub fn challenge_stranger(
     };
 
     organisms[ti].health = (organisms[ti].health - damage).max(0.0);
+    organisms[ti].mark_harm(crate::organism::organism::Harm::Fight, tick);
 
     organisms[org_idx].update_attitude(&target_lid, -0.20);
     organisms[ti].update_attitude(&org_lineage, -0.30);
@@ -448,6 +449,7 @@ pub fn challenge_stranger(
 
     if organisms[ti].health > 0.5 && target_kin >= 2 {
         organisms[org_idx].health = (organisms[org_idx].health - 0.015).max(0.0);
+        organisms[org_idx].mark_harm(crate::organism::organism::Harm::Fight, tick);
     }
 
     let org_name = organisms[org_idx].name.clone();

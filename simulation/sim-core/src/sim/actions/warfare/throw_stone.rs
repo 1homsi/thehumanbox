@@ -12,6 +12,7 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     };
     let o = &mut ctx.sim.organisms[ki];
     o.health = (o.health - 0.03).max(0.0);
+    o.mark_harm(crate::organism::organism::Harm::Fight, ctx.tick);
     o.fear_level = (o.fear_level + 0.05).min(1.0);
     ctx.think("hurling a stone");
     0.004

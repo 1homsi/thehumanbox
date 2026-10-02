@@ -1,6 +1,29 @@
 import { memo } from 'react'
 import { useWorldStore } from '../stores/worldStore'
+import type { WorldHistory } from '../types'
 import { Tooltip } from './Tooltip'
+
+/** Each row of the world's history: label, explanation, and its count. */
+const ROWS: Array<[string, string, (h: WorldHistory) => number | undefined]> = [
+  ['births', 'Total people ever born into this world', (h) => h.births],
+  ['old age', 'Deaths from old age: people who lived a full life', (h) => h.deaths_old_age],
+  ['starvation', 'Deaths from hunger or thirst: not enough food or water', (h) => h.deaths_starvation],
+  ['sickness', 'Deaths from disease', (h) => h.deaths_sickness],
+  ['combat', 'Deaths in fights between neighbours and in wars between tribes', (h) => h.deaths_combat],
+  ['beasts', 'Killed by wolves, bears and monsters', (h) => h.deaths_beasts],
+  ['drowned', 'Drowned in deep or rising water', (h) => h.deaths_drowning],
+  ['fire', 'Killed by wildfire', (h) => h.deaths_fire],
+  [
+    'disaster',
+    "Killed by earthquakes, meteors, floods, storms, volcanoes and the gods' lightning",
+    (h) => h.deaths_disaster,
+  ],
+  ['alliances', 'Alliances formed between tribes', (h) => h.alliances_formed],
+  ['challenges', 'Territorial challenges: one person confronting another', (h) => h.challenges_total],
+  ['gifts', 'Food given between people: kinship and friendship', (h) => h.gifts_total],
+  ['droughts', 'Droughts: seasons of water scarcity', (h) => h.droughts],
+  ['outbreaks', 'Disease outbreaks that swept through the population', (h) => h.outbreaks],
+]
 
 function HistoryGridImpl() {
   const h = useWorldStore((s) => s.world?.history)
@@ -9,66 +32,21 @@ function HistoryGridImpl() {
     <>
       <div className="section-title">WORLD HISTORY</div>
       <div className="history-grid">
-        <Tooltip tip="Total organisms ever born into this world">
-          <span className="hist-label" style={{ cursor: 'default' }}>
-            births
-          </span>
-        </Tooltip>
-        <span className="hist-val">{h.births}</span>
-        <Tooltip tip="Deaths from old age - organisms that lived a full life">
-          <span className="hist-label" style={{ cursor: 'default' }}>
-            old age
-          </span>
-        </Tooltip>
-        <span className="hist-val">{h.deaths_old_age}</span>
-        <Tooltip tip="Deaths from starvation or dehydration - not enough food or water">
-          <span className="hist-label" style={{ cursor: 'default' }}>
-            starvation
-          </span>
-        </Tooltip>
-        <span className="hist-val">{h.deaths_starvation}</span>
-        <Tooltip tip="Deaths from disease - infection spread between organisms">
-          <span className="hist-label" style={{ cursor: 'default' }}>
-            sickness
-          </span>
-        </Tooltip>
-        <span className="hist-val">{h.deaths_sickness}</span>
-        <Tooltip tip="Deaths from combat - organisms killed in territorial or resource disputes">
-          <span className="hist-label" style={{ cursor: 'default' }}>
-            combat
-          </span>
-        </Tooltip>
-        <span className="hist-val">{h.deaths_combat}</span>
-        <Tooltip tip="Lineage alliances formed - mutual cooperation agreements between tribes">
-          <span className="hist-label" style={{ cursor: 'default' }}>
-            alliances
-          </span>
-        </Tooltip>
-        <span className="hist-val">{h.alliances_formed}</span>
-        <Tooltip tip="Total territorial challenges issued - one organism confronting another">
-          <span className="hist-label" style={{ cursor: 'default' }}>
-            challenges
-          </span>
-        </Tooltip>
-        <span className="hist-val">{h.challenges_total}</span>
-        <Tooltip tip="Food gifted between organisms - social bonding and kin support behaviour">
-          <span className="hist-label" style={{ cursor: 'default' }}>
-            gifts
-          </span>
-        </Tooltip>
-        <span className="hist-val">{h.gifts_total}</span>
-        <Tooltip tip="Drought events - periods of water scarcity that forced migration and die-offs">
-          <span className="hist-label" style={{ cursor: 'default' }}>
-            droughts
-          </span>
-        </Tooltip>
-        <span className="hist-val">{h.droughts}</span>
-        <Tooltip tip="Disease outbreaks - epidemic events that swept through the population">
-          <span className="hist-label" style={{ cursor: 'default' }}>
-            outbreaks
-          </span>
-        </Tooltip>
-        <span className="hist-val">{h.outbreaks}</span>
+        {ROWS.map(([label, tip, value]) => {
+          const n = value(h)
+          // Saves from before a cause was told apart have no count for it.
+          if (n === undefined) return null
+          return (
+            <span key={label} style={{ display: 'contents' }}>
+              <Tooltip tip={tip}>
+                <span className="hist-label" style={{ cursor: 'default' }}>
+                  {label}
+                </span>
+              </Tooltip>
+              <span className="hist-val">{n}</span>
+            </span>
+          )
+        })}
       </div>
     </>
   )
