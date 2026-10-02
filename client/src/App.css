@@ -5824,6 +5824,11 @@ body.thb-colorblind .org-sick-badge {
   color: #8c9aa8;
   font-size: 9px;
 }
+.tribe-card-festival {
+  font-size: 9px;
+  color: #ffd98a;
+  margin-bottom: 2px;
+}
 .tribe-card-leader {
   font-size: 9px;
   color: #d9c48a;

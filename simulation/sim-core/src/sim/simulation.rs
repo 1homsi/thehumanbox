@@ -782,6 +782,8 @@ pub struct Simulation {
     /// Tribes the world has warned are on the brink (runtime; re-detected
     /// within one check after a load).
     pub(crate) tribe_peril: HashMap<String, super::civ::peril::Peril>,
+    /// When each tribe last began a festival (runtime).
+    pub(crate) festival_last: HashMap<String, u64>,
     /// The recently dead, newest last: who died and when (runtime).
     pub(crate) fallen: VecDeque<(String, u64)>,
     /// When each tribe last had someone raised from the dead (runtime).
@@ -976,6 +978,7 @@ impl Simulation {
             milestones_achieved: HashSet::default(),
             lineage_peak_pop: HashMap::default(),
             tribe_peril: HashMap::default(),
+            festival_last: HashMap::default(),
             fallen: VecDeque::new(),
             revive_cooldown: HashMap::default(),
             teach_cooldown: HashMap::default(),

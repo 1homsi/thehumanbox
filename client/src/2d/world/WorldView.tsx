@@ -73,6 +73,7 @@ import { drawSmog } from './smog'
 import { battleAge, drawBattle } from './battles'
 import { drawWard } from './wards'
 import { motionTime } from '../../lib/motion'
+import { drawFestival } from './festivals'
 import {
   drawSettlementLabels,
   labelScale,
@@ -2909,6 +2910,19 @@ export function drawWorldOnCanvas(
       lineageColor(battle.defenders[0]),
       motionTime(t),
       age,
+    )
+  }
+  for (const fest of world.festivals ?? []) {
+    if (fest.x === undefined || fest.y === undefined) continue
+    drawFestival(
+      ctx,
+      fest,
+      (fest.x - ox) * TILE + TILE / 2,
+      (fest.y - oy) * TILE + TILE / 2,
+      TILE,
+      world.tick,
+      motionTime(t),
+      lineageColor(fest.lineage_id),
     )
   }
   for (const ward of world.wards ?? []) {

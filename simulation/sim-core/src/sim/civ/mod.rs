@@ -5,6 +5,7 @@ pub mod economy;
 pub mod economy_tick;
 pub mod education;
 pub mod eras;
+pub mod festivals;
 pub mod fields;
 pub use eras as era;
 pub mod government;
