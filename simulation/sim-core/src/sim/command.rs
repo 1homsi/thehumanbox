@@ -1156,14 +1156,26 @@ impl Simulation {
                             continue;
                         }
                         let tile = self.grid.get(nx, ny);
-                        if matches!(tile, Tile::Void | Tile::Rock | Tile::Water | Tile::Mineral) {
+                        if matches!(
+                            tile,
+                            Tile::Void | Tile::Rock | Tile::Water | Tile::Mineral | Tile::Hut
+                        ) {
                             continue;
                         }
                         // The deep middle becomes a lake; the rim floods.
+                        // Both drain away again (see `tick_world_evolution`).
                         let deep = (dx * dx + dy * dy) * 4 <= r * r;
                         self.grid
                             .set(nx, ny, if deep { Tile::Water } else { Tile::Flooded });
                         *self.grid.fire_intensity_mut(nx, ny) = 0.0;
+                        if self.flood_tiles.len() < crate::sim::world_events::MAX_FLOOD_TILES {
+                            let stay = if deep {
+                                crate::sim::world_events::FLOOD_DEEP_TICKS
+                            } else {
+                                crate::sim::world_events::FLOOD_RIM_TICKS
+                            };
+                            self.flood_tiles.push((nx, ny, self.tick_count + stay));
+                        }
                         flooded += 1;
                     }
                 }

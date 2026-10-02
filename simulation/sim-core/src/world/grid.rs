@@ -6,6 +6,9 @@ use serde::Serialize;
 
 pub const WIDTH: usize = 600;
 pub const HEIGHT: usize = 300;
+/// How far enriched soil settles back toward its biome's fertility each
+/// time the world layers decay (every 500 ticks).
+pub const SOIL_SETTLE: f32 = 0.002;
 
 pub const VP_W: usize = WIDTH;
 pub const VP_H: usize = HEIGHT;
@@ -352,6 +355,17 @@ impl WorldGrid {
         }
     }
 
+    /// Leave rich soil on a tile: floodwater silt and weathered ash push
+    /// fertility past the biome's usual level, and it settles back over a
+    /// few years (see `decay_world_layers`).
+    pub fn enrich_soil(&mut self, x: i32, y: i32, amount: f32) {
+        if Self::in_bounds(x, y) {
+            let i = Self::idx(x, y);
+            let cap = Biome::from_u8(self.biome[i]).base_fertility();
+            self.fertility[i] = (self.fertility[i].max(cap) + amount).min(1.0);
+        }
+    }
+
     pub fn add_hazard(&mut self, x: i32, y: i32, amount: f32) {
         if Self::in_bounds(x, y) {
             let i = Self::idx(x, y);
@@ -407,6 +421,10 @@ impl WorldGrid {
                     0.000300
                 };
                 *v = (*v + rate).min(cap);
+            } else if *v > cap {
+                // Silt and ash wear out: rich soil settles back to the
+                // biome's own level over a few years of farming.
+                *v = (*v - SOIL_SETTLE).max(cap);
             }
         }
         for v in &mut self.hazard {
