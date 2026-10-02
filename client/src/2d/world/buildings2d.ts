@@ -392,6 +392,8 @@ export type BuildingLike = Pick<
 > & {
   /** Architectural tier of the owning tribe's era (see ERA_TIERS). */
   tier?: number
+  /** A passing visual state, such as a spaceport whose rocket is away. */
+  state?: string
 }
 
 /**
@@ -1168,6 +1170,7 @@ export function drawBuilding(
       nightBucket,
       condBucket,
       building.tier ?? 0,
+      building.state ?? '',
     )
     if (sprite) {
       ctx.drawImage(sprite, Math.round(px - PAD), Math.round(py + h + PAD_BOT - sprite.height))
