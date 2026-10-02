@@ -11,6 +11,8 @@ export function MoreDropdown() {
   const openLanguages = useUIStore((s) => s.openLanguages)
   const openFamilyTree = useUIStore((s) => s.openFamilyTree)
   const openNotable = useUIStore((s) => s.openNotable)
+  const pauseOnPeril = useUIStore((s) => s.pauseOnPeril)
+  const setPauseOnPeril = useUIStore((s) => s.setPauseOnPeril)
 
   const lineageDot = useViewFlag('lineageDot')
   const health = useViewFlag('health')
@@ -234,6 +236,15 @@ export function MoreDropdown() {
             }}
           >
             ⊞ world
+          </button>
+        </Tooltip>
+        <Tooltip tip="Pause the game whenever a tribe newly falls on the brink">
+          <button
+            className={clsx('lang-btn', pauseOnPeril && 'active')}
+            aria-pressed={pauseOnPeril}
+            onClick={() => setPauseOnPeril(!pauseOnPeril)}
+          >
+            ⏸ on brink
           </button>
         </Tooltip>
         <Tooltip tip="Top organisms by age, family size, friends, wealth, knowledge, joy, grief…">
