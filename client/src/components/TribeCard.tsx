@@ -3,6 +3,7 @@ import { useUIStore } from '../stores/store'
 import type { PrayerInfo, WorldState } from '../types'
 import { lineageColor } from '../utils/constants'
 import { PRAYER_KINDS } from '../world/prayers'
+import { PERIL_HELP, perilOf, remainingLine } from '../world/tribe-peril'
 import { tribeStatus } from '../world/tribe-status'
 import { ToolSprite } from './ToolSprite'
 
@@ -37,6 +38,12 @@ export function TribeCard({ world, onAnswer, onTool }: Props) {
   const status = tribeStatus(world, focus.slice('lineage:'.length))
   if (!status) return null
   const prayer = status.prayer
+  const peril = perilOf(world, status.id)
+  const help = peril ? PERIL_HELP[peril.cause] : null
+  const lookAtTribe = (tool: string) => {
+    const home = world.settlements?.find((s) => s.lineage_id === status.id)
+    if (home) onTool(tool, { x: home.center[0], y: home.center[1] })
+  }
 
   return (
     <div className="tribe-card" role="region" aria-label={`${status.name} tribe`}>
@@ -51,6 +58,16 @@ export function TribeCard({ world, onAnswer, onTool }: Props) {
         {status.people} {status.people === 1 ? 'person' : 'people'}
         {status.era && ` · ${status.era} age`}
       </div>
+      {peril && help && (
+        <div className="tribe-peril" role="alert">
+          <span>
+            ⚠ on the brink: {remainingLine(peril.population)} of {peril.peak}, {help.reason}
+          </span>
+          <button className="tribe-peril-help" onClick={() => lookAtTribe(help.tool)}>
+            {help.action}
+          </button>
+        </div>
+      )}
       <Need label="food" value={status.food} />
       <Need label="water" value={status.water} />
       <Need label="health" value={status.health} />
@@ -81,10 +98,7 @@ export function TribeCard({ world, onAnswer, onTool }: Props) {
             <button
               className="tribe-inspire"
               title="Inspire them: speeds up their next discovery"
-              onClick={() => {
-                const home = world.settlements?.find((s) => s.lineage_id === status.id)
-                if (home) onTool('inspire', { x: home.center[0], y: home.center[1] })
-              }}
+              onClick={() => lookAtTribe('inspire')}
             >
               ✦ inspire
             </button>
