@@ -1476,11 +1476,41 @@ fn housing_target(sim: &Simulation, lineage: &str, era: Era, population: usize) 
     use BuildingKind::*;
     let capacity: usize = sim.buildings.iter()
         .filter(|b| !b.decorative && !b.is_ruined() && b.owner_lineage.as_deref() == Some(lineage))
-        .filter(|b| matches!(b.kind, Hut | House | Manor | TownHouse | Apartment | Skyscraper))
+        .filter(|b| b.function() == crate::sim::buildings::BuildingFunction::Housing)
         // Reserved homes count too, so unfinished projects cannot cause a building flood.
         .map(|b| usize::from(b.kind.capacity())).sum();
     if capacity >= population {
         return None;
+    }
+    // Stable per-lineage rotation gives every catalog type a chance without
+    // consuming simulation RNG or depending on hash-map iteration order.
+    let owned_homes = sim
+        .buildings
+        .iter()
+        .filter(|b| {
+            !b.decorative
+                && !b.is_ruined()
+                && b.owner_lineage.as_deref() == Some(lineage)
+                && b.function() == crate::sim::buildings::BuildingFunction::Housing
+        })
+        .count();
+    let lineage_offset = lineage.bytes().fold(0usize, |hash, byte| {
+        hash.wrapping_mul(31).wrapping_add(usize::from(byte))
+    });
+    for candidate_era in crate::sim::era::LADDER
+        .iter()
+        .copied()
+        .rev()
+        .filter(|e| *e <= era)
+    {
+        let homes = crate::sim::tech::era_homes::for_era(candidate_era);
+        let offset = lineage_offset.wrapping_add(owned_homes) % homes.len();
+        for index in 0..homes.len() {
+            let kind = homes[(offset + index) % homes.len()];
+            if construction_cost_available(sim, lineage, kind) {
+                return Some(kind);
+            }
+        }
     }
     [Apartment, TownHouse, House, Hut]
         .into_iter()
@@ -3679,29 +3709,127 @@ mod tests {
         sim.organisms[0].inv_wood = 100;
         sim.organisms[0].inv_stone = 100;
         sim.organisms[0].wealth = 1000;
-        assert_eq!(
-            housing_target(&sim, &owner, Era::Stone, 4),
-            Some(BuildingKind::Hut)
-        );
-        let mut b = Building::new(1, BuildingKind::House, 30, 30, Some(owner.clone()), 0);
+        let selected = housing_target(&sim, &owner, Era::Stone, 4).unwrap();
+        assert_eq!(selected.era_unlock(), Era::Stone);
+        assert!(crate::sim::tech::era_homes::spec(selected).is_some());
+        let mut b = Building::new(1, selected, 30, 30, Some(owner.clone()), 0);
+        let population = usize::from(selected.capacity());
         sim.buildings.push(b.clone());
-        assert_eq!(housing_target(&sim, &owner, Era::Bronze, 4), None);
+        assert_eq!(housing_target(&sim, &owner, Era::Bronze, population), None);
         assert_eq!(
-            housing_target(&sim, &owner, Era::Bronze, 8),
-            Some(BuildingKind::House)
+            housing_target(&sim, &owner, Era::Bronze, population + 1)
+                .unwrap()
+                .era_unlock(),
+            Era::Bronze
         );
         sim.buildings[0].damage = 1.0;
-        assert_eq!(
-            housing_target(&sim, &owner, Era::Bronze, 4),
-            Some(BuildingKind::House)
-        );
+        assert!(housing_target(&sim, &owner, Era::Bronze, population).is_some());
         b.decorative = true;
         sim.buildings.push(b);
+        assert!(housing_target(&sim, &owner, Era::Bronze, population).is_some());
         assert_eq!(
-            housing_target(&sim, &owner, Era::Bronze, 4),
-            Some(BuildingKind::House)
+            housing_target(&sim, &owner, Era::PreStone, 4)
+                .unwrap()
+                .era_unlock(),
+            Era::PreStone
         );
-        assert_eq!(housing_target(&sim, &owner, Era::PreStone, 4), None);
+        sim.organisms[0].inv_wood = 0;
+        sim.organisms[0].inv_stone = 0;
+        sim.organisms[0].wealth = 0;
+        assert_eq!(housing_target(&sim, &owner, Era::Stone, population), None);
+    }
+
+    #[test]
+    fn housing_rotation_reaches_all_thirty_types_in_every_era() {
+        let mut sim = Simulation::new(704);
+        sim.buildings.clear();
+        let owner = sim.organisms[0].lineage_id.clone();
+        sim.organisms[0].inv_wood = 100;
+        sim.organisms[0].inv_stone = 100;
+        sim.organisms[0].wealth = 1000;
+        for era in crate::sim::era::LADDER {
+            sim.buildings.clear();
+            let mut selected = HashSet::default();
+            for id in 0..30 {
+                let kind = housing_target(&sim, &owner, era, 10000).unwrap();
+                assert_eq!(kind.era_unlock(), era);
+                assert_eq!(housing_target(&sim, &owner, era, 10000), Some(kind));
+                selected.insert(kind);
+                sim.buildings
+                    .push(Building::new(id, kind, 30, 30, Some(owner.clone()), 0));
+            }
+            assert_eq!(selected.len(), 30, "{} housing rotation stalled", era.name());
+        }
+    }
+
+    #[test]
+    fn housing_falls_back_to_affordable_earlier_eras_and_ignores_foreign_homes() {
+        let mut sim = Simulation::new(705);
+        sim.buildings.clear();
+        let owner = sim.organisms[0].lineage_id.clone();
+        sim.organisms[0].inv_wood = 100;
+        sim.organisms[0].inv_stone = 100;
+        for org in sim.organisms.iter_mut().filter(|org| org.lineage_id == owner) {
+            org.wealth = 0;
+        }
+        let future = crate::sim::tech::era_homes::for_era(Era::Eldritch)[0];
+        let mut foreign = Building::new(1, future, 30, 30, Some("other".into()), 0);
+        foreign.condition = 1.0;
+        sim.buildings.push(foreign);
+        let chosen = housing_target(&sim, &owner, Era::Eldritch, 1).unwrap();
+        assert_eq!(chosen.era_unlock(), Era::Renaissance);
+    }
+
+    #[test]
+    fn catalog_homes_in_every_era_reserve_resources_and_complete_with_real_labor() {
+        let mut sim = Simulation::new(707);
+        sim.organisms.clear();
+        sim.buildings.clear();
+        let mut worker = test_org("builder", "Builder", "owner", 10.0, 10.0);
+        worker.age = 10_000;
+        worker.specialty = Some("builder".into());
+        sim.organisms.push(worker);
+        for era in crate::sim::era::LADDER {
+            sim.buildings.clear();
+            sim.lineage_eras.insert("owner".into(), era);
+            let kind = crate::sim::tech::era_homes::for_era(era)[29];
+            let cost = kind.construction_cost();
+            sim.organisms[0].inv_wood = cost.wood as u8;
+            sim.organisms[0].inv_stone = cost.stone as u8;
+            sim.organisms[0].wealth = cost.wealth;
+            sim.organisms[0].energy = 1.0;
+            let (width, height) = kind.footprint();
+            for y in 10..10 + i32::from(height) {
+                for x in 10..10 + i32::from(width) {
+                    sim.grid.set(x, y, crate::world::tiles::Tile::Grass);
+                }
+            }
+            assert!(
+                try_start_building_at(&mut sim, "owner", kind, 10, 10),
+                "{}",
+                era.name()
+            );
+            assert_eq!(
+                (
+                    sim.organisms[0].inv_wood,
+                    sim.organisms[0].inv_stone,
+                    sim.organisms[0].wealth
+                ),
+                (0, 0, 0)
+            );
+            assert!(!sim.buildings[0].provides_shelter_for("owner"));
+            for _ in 0..200 {
+                sim.tick_count += 1;
+                sim.organisms[0].energy = 1.0;
+                tick_building_progress(&mut sim);
+                if sim.buildings[0].is_complete() {
+                    break;
+                }
+            }
+            assert!(sim.buildings[0].provides_shelter_for("owner"), "{}", era.name());
+            assert!(sim.organisms[0].discoveries.contains(kind.name()));
+            assert!(sim.organisms[0].discoveries.contains("shelter"));
+        }
     }
 
     #[test]
