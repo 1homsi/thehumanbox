@@ -1,4 +1,3 @@
-import { eraHome } from './era-home-catalog'
 import type { WorldState } from '../../types'
 import type { SceneId } from '../../scenes/core/types'
 import { buildingContainsWorldTile, getBuildingState } from '../../world/building-state'
@@ -67,8 +66,7 @@ export function inspectWorldTile(world: WorldState, x: number, y: number): TileI
     .sort((a, b) => b.y - a.y || b.id - a.id)[0]
   if (building) {
     const state = getBuildingState(building)
-    const home = eraHome(building.kind)
-    result.title = home ? home.label : building.kind.replace(/([a-z])([A-Z])/g, '$1 $2')
+    result.title = building.kind.replace(/([a-z])([A-Z])/g, '$1 $2')
     const condition = state.isRuined
       ? state.integrity > 0.08
         ? `Rebuilding · ${Math.round(state.integrity * 100)}% restored`
@@ -81,7 +79,6 @@ export function inspectWorldTile(world: WorldState, x: number, y: number): TileI
             ? `Weathered · ${Math.round(state.integrity * 100)}% intact`
             : 'Standing · in good condition'
     result.details = [condition]
-    if (home) result.details.push(`${home.era} home · capacity ${home.capacity}`)
     const lineage = building.owner_lineage ?? building.lineage_id
     if (lineage) result.details.push(`Belongs to ${world.lineage_names?.[lineage] ?? lineage}`)
     if (building.occupants?.length) {

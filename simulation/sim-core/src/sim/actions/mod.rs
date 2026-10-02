@@ -4547,7 +4547,7 @@ fn near_hut(sim: &Simulation, lineage: &str, ix: i32, iy: i32) -> bool {
     (-1..=1).any(|dx| (-1..=1).any(|dy| matches!(sim.grid.get(ix + dx, iy + dy), Tile::Hut)))
         || sim.buildings.iter().any(|building| {
             if !building.is_operational()
-                || building.function() != BuildingFunction::Housing
+                || building.kind != BuildingKind::Hut
                 || building
                     .owner_lineage
                     .as_deref()
@@ -4588,7 +4588,7 @@ fn local_place_snapshot(sim: &Simulation, lineage: &str, ix: i32, iy: i32) -> Lo
         {
             continue;
         }
-        if distance <= 1 && building.function() == BuildingFunction::Housing {
+        if distance <= 1 && building.kind == BuildingKind::Hut {
             snapshot.building_hut = true;
         }
         for workspace in ALL_WORKSPACES {
