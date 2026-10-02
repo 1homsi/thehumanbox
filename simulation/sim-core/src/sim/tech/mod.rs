@@ -9,8 +9,4 @@ pub mod tools;
 pub mod transportation;
 
 pub mod boats;
-pub mod era_homes;
 pub mod plantings;
-
-#[cfg(test)]
-mod era_home_tests;
