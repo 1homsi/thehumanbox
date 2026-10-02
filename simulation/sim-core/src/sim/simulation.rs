@@ -784,6 +784,10 @@ pub struct Simulation {
     pub(crate) tribe_peril: HashMap<String, super::civ::peril::Peril>,
     /// When each tribe was last taught by the gods (runtime).
     pub(crate) teach_cooldown: HashMap<String, u64>,
+    /// Where grown people died, waiting for a gravestone (runtime).
+    pub(crate) grave_queue: Vec<(String, f32, f32)>,
+    /// Where each tribe's cemetery lies (runtime; found again after a load).
+    pub(crate) cemeteries: HashMap<String, (i32, i32)>,
     /// Orphans already taken in, so each is told of once (runtime).
     pub(crate) orphans_cared: HashSet<String>,
     /// Each tribe's recent deaths and their causes, newest last (runtime).
@@ -969,6 +973,8 @@ impl Simulation {
             lineage_peak_pop: HashMap::default(),
             tribe_peril: HashMap::default(),
             teach_cooldown: HashMap::default(),
+            grave_queue: Vec::new(),
+            cemeteries: HashMap::default(),
             orphans_cared: HashSet::default(),
             recent_deaths: HashMap::default(),
             faith_empty_since: HashMap::default(),
@@ -4655,6 +4661,7 @@ impl Simulation {
         };
 
         let mut noted: Option<(String, &'static str)> = None;
+        let mut grave: Option<(String, f32, f32)> = None;
         let org = &mut self.organisms[idx];
         if org.energy <= 0.0 || org.hydration <= 0.0 || org.health <= 0.0 {
             org.alive = false;
@@ -4715,6 +4722,13 @@ impl Simulation {
                 }
             };
             noted = Some((org.lineage_id.clone(), cause));
+            if matches!(
+                crate::sim::agents::age_stage::AgeStage::from_age(org.age, org.max_age),
+                crate::sim::agents::age_stage::AgeStage::Adult
+                    | crate::sim::agents::age_stage::AgeStage::Elder
+            ) {
+                grave = Some((org.lineage_id.clone(), org.x, org.y));
+            }
             // Migration-pressure signal: an organism dying far from
             // where it was born is the simulation's emergent answer
             // to "the elders left home and never came back." Fires
@@ -4742,6 +4756,7 @@ impl Simulation {
             org.think("died of old age", self.tick_count);
             self.history.deaths_old_age += 1;
             noted = Some((org.lineage_id.clone(), "old_age"));
+            grave = Some((org.lineage_id.clone(), org.x, org.y));
             let msg = format!("gen{} age {} - old age", org.generation, org.age);
             let name = org.name.clone();
             push_event(&mut self.events, self.tick_count, "died", &name, &msg);
@@ -4749,6 +4764,11 @@ impl Simulation {
 
         if let Some((lineage, cause)) = noted {
             self.note_death(&lineage, cause);
+        }
+        if let Some(g) = grave {
+            if self.grave_queue.len() < 200 {
+                self.grave_queue.push(g);
+            }
         }
 
         if !self.organisms[idx].alive {
