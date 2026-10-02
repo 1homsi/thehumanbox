@@ -543,6 +543,7 @@ function LiveApp() {
                     return preview && 'radius' in preview ? (preview.radius ?? 0) : 0
                   })()}
                   onSandboxApply={handleSandboxApply}
+                  onPrayerClick={handleAnswerPrayer}
                 />
               )}
 
