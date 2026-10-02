@@ -7,16 +7,28 @@ export interface WelcomeStepCopy {
 
 const LOCAL_WELCOME_STEPS: readonly WelcomeStepCopy[] = [
   {
-    title: 'This is your Human Box',
+    title: 'You are their god',
     body:
-      'A private living world running on your device. Tiny humans are born, learn, build, ' +
-      'fight, pray, die, and pass their stories on.',
+      'A world of small tribes who cannot make it alone. They hunt, farm, build, fall in love and ' +
+      'go to war, and when trouble comes they pray to you.',
   },
   {
-    title: 'Watch it evolve — or shape it',
+    title: 'Answer their prayers',
     body:
-      'Follow any human, explore their family and memories, or use the game controls to change ' +
-      'time, place buildings, and create disasters.',
+      'A bubble over a tribe is a plea: hunger, thirst, sickness, fire, danger. Click it and the power ' +
+      'that helps is in your hand. Answered prayers win their faith; ignored ones cost it.',
+  },
+  {
+    title: 'Keep them alive',
+    body:
+      'A tribe on the brink turns red, with ⚠ in the header. Send newcomers, ward them from raids, ' +
+      'make peace, cure them. A forgotten tribe dies out, and when the last one goes the world falls silent.',
+  },
+  {
+    title: 'Lift them through the ages',
+    body:
+      'Each age remakes their world: huts become towns, tracks become roads, then come factories, ' +
+      'railways and rockets. Inspire them to learn, plant forests around their mills, or bring the sky down.',
   },
   {
     title: 'Private and local by default',
@@ -35,7 +47,7 @@ export function tourWorldCopy(worldKind: PlayerWorldKind): { opening: string; cl
   void worldKind
   return {
     opening:
-      'This is your private living world. Watch hundreds of tiny humans build a civilisation, or use the game controls to shape what happens.',
+      'These tribes need you. Answer their prayers, keep them alive and lift them through the ages, or see what becomes of them without you.',
     closing:
       'Your world is saved on this device. Open Settings whenever you want to export it or start a new world.',
   }
