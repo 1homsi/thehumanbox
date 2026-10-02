@@ -1573,6 +1573,18 @@ fn tick_buildings_construct(sim: &mut Simulation) {
                     }
                 }
             }
+            // A devout tribe honours the gods who answered it before anything else.
+            if started.is_none() {
+                if let Some(kind) = devout_target(sim, &lid, era, pop, &considered) {
+                    considered.insert(kind);
+                    let (cx, cy) = lineage_center(sim, &lid);
+                    if (cx, cy) != (0, 0)
+                        && try_start_building_with(sim, &lid, kind, cx, cy, &mut failed_sites)
+                    {
+                        started = Some(kind);
+                    }
+                }
+            }
             while started.is_none() {
                 let Some(kind) = next_target_building(era, pop, sim.population_limit(), &considered) else {
                     break;
@@ -2095,6 +2107,31 @@ fn tick_scatter_props(sim: &mut Simulation) {
         sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
     }
     cap_buildings(sim);
+}
+
+/// Faith at which a tribe raises a place of worship to its gods.
+const DEVOUT_FAITH: i32 = 8;
+
+/// A shrine (or, from the Bronze Age, a temple) for a tribe whose prayers
+/// the gods have answered often, if it has no place of worship yet.
+fn devout_target(
+    sim: &Simulation,
+    lid: &str,
+    era: Era,
+    pop: usize,
+    considered: &HashSet<BuildingKind>,
+) -> Option<BuildingKind> {
+    use BuildingKind::*;
+    if era < Era::Stone || sim.prayers.faith.get(lid).is_none_or(|&f| f < DEVOUT_FAITH) {
+        return None;
+    }
+    let worship = [Shrine, Temple, Cathedral, Mosque, Synagogue, Pagoda];
+    if worship.iter().any(|k| considered.contains(k)) {
+        return None;
+    }
+    let temple_ready =
+        era >= Era::Bronze && pop >= construction_population_requirement(12, sim.population_limit());
+    Some(if temple_ready { Temple } else { Shrine })
 }
 
 fn next_target_building(
@@ -4358,6 +4395,30 @@ mod tests {
             );
         }
         assert_eq!(construction_population_requirement(40, 350), 40);
+    }
+
+    #[test]
+    fn devout_tribes_raise_a_place_of_worship_first() {
+        let mut sim = Simulation::new(3);
+        let lid = sim.organisms[0].lineage_id.clone();
+        let none = HashSet::default();
+        assert_eq!(
+            devout_target(&sim, &lid, Era::Stone, 10, &none),
+            None,
+            "not devout yet"
+        );
+        sim.prayers.faith.insert(lid.clone(), DEVOUT_FAITH);
+        assert_eq!(
+            devout_target(&sim, &lid, Era::Stone, 10, &none),
+            Some(BuildingKind::Shrine)
+        );
+        assert_eq!(
+            devout_target(&sim, &lid, Era::Bronze, 40, &none),
+            Some(BuildingKind::Temple)
+        );
+        let mut has_shrine = HashSet::default();
+        has_shrine.insert(BuildingKind::Shrine);
+        assert_eq!(devout_target(&sim, &lid, Era::Bronze, 40, &has_shrine), None);
         assert_eq!(construction_population_requirement(100, 350), 60);
         assert_eq!(construction_population_requirement(240, 500), 240);
     }
