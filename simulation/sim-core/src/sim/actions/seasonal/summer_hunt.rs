@@ -5,7 +5,10 @@ pub fn apply(ctx: &mut ActionCtx) -> f32 {
     if !(3000..6000).contains(&season_tick) {
         return 0.0;
     }
-    ctx.org_mut().inv_food = ctx.org_mut().inv_food.saturating_add(1);
+    if ctx.catch_small_prey(8.0) == 0 {
+        ctx.think("the summer hunt found nothing");
+        return 0.0;
+    }
     ctx.think("hunting in the long summer days");
     ctx.discover("summer_hunting", "organized a summer hunting expedition");
     ctx.event("build", "summer hunt yields fresh provisions");

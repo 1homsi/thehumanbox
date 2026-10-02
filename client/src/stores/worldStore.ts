@@ -1,6 +1,11 @@
 import { create } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
 import type { OrganismState, WorldState } from '../types'
+import { recordPopulations, type PopHistory } from '../world/pop-history'
+
+/** Each tribe's headcount over time, sampled as snapshots arrive. */
+export const popHistory: PopHistory = new Map()
+const popSampling = { lastTick: -Infinity }
 
 interface WorldStore {
   world: WorldState | null
@@ -12,6 +17,7 @@ export const useWorldStore = create<WorldStore>((set, get) => ({
   world: null,
   byId: new Map(),
   setWorld: (world) => {
+    recordPopulations(popHistory, popSampling, world)
     // Diff against the previous map: reuse the entries whose
     // reference equals the incoming one, only allocate a new Map
     // when membership actually changed. With the mergeDefined
