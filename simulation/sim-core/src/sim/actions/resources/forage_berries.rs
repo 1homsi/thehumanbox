@@ -1,10 +1,8 @@
 use super::super::ctx::ActionCtx;
-use crate::world::tiles::Tile;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if matches!(ctx.tile, Tile::Grass) && ctx.chance(0.18) {
-        let o = ctx.org_mut();
-        o.inv_food = o.inv_food.saturating_add(1);
+    // Berries grow on the wild food patches; picking one clears it.
+    if ctx.chance(0.6) && ctx.take_wild_food(2) {
         ctx.think("picking berries");
         ctx.discover("berry-picking", "found a berry patch");
         0.012
