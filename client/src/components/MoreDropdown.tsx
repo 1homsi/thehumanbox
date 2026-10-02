@@ -1,6 +1,8 @@
 import clsx from 'clsx'
 import { useUIStore, useViewFlag } from '../stores/store'
 import { SHORTCUT_HELP } from '../world/shortcuts'
+import { saveMapPicture } from '../lib/mapPicture'
+import { useWorldStore } from '../stores/worldStore'
 import { Tooltip } from './Tooltip'
 
 export function MoreDropdown() {
@@ -261,6 +263,17 @@ export function MoreDropdown() {
           }
         >
           <button className="lang-btn">⌨ keys</button>
+        </Tooltip>
+        <Tooltip tip="Save a picture of the world as it looks now">
+          <button
+            className="lang-btn"
+            onClick={() => {
+              void saveMapPicture(useWorldStore.getState().world?.tick)
+              closeMore()
+            }}
+          >
+            ▣ picture
+          </button>
         </Tooltip>
         <Tooltip tip="Top organisms by age, family size, friends, wealth, knowledge, joy, grief…">
           <button
