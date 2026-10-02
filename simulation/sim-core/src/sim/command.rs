@@ -148,6 +148,10 @@ pub enum Command {
         #[serde(default)]
         radius: f32,
     },
+    /// Teach a tribe the next secret it still lacks for its next age.
+    Teach {
+        lineage: String,
+    },
     /// Destroy every monster and predator inside the radius.
     Banish {
         x: f32,
@@ -1083,6 +1087,7 @@ impl Simulation {
             }
             Command::Ward { x, y, radius } => self.cast_ward(x, y, radius),
             Command::RenameTribe { lineage, name } => self.rename_tribe(&lineage, &name),
+            Command::Teach { lineage } => self.teach_tribe(&lineage),
             Command::Banish { x, y, radius } => {
                 let r = if radius <= 0.0 { 6.0 } else { radius.min(32.0) };
                 let mut banished = 0;

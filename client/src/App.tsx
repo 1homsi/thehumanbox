@@ -619,6 +619,13 @@ function LiveApp() {
                   onAnswer={handleAnswerPrayer}
                   onTool={handlePickToolAt}
                   onRename={(lineage, name) => void sendCommand({ cmd: 'rename_tribe', lineage, name })}
+                  onTeach={(lineage) =>
+                    void sendCommand({ cmd: 'teach', lineage }).then((ok) =>
+                      setTemporarySandboxStatus(
+                        ok ? 'the gods taught them a secret' : 'they cannot be taught again yet',
+                      ),
+                    )
+                  }
                 />
               )}
 
