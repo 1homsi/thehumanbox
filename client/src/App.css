@@ -5691,3 +5691,39 @@ body.thb-colorblind .org-sick-badge {
   box-shadow: inset 2px 0 0 #d9b45a;
   background: rgba(217, 180, 90, 0.06);
 }
+
+.tribe-next {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.tribe-next-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+  color: #ccaaff;
+}
+.tribe-next .tribe-need-bar {
+  display: block;
+}
+.tribe-next .tribe-need-bar > span {
+  background: #a98ce0;
+}
+.tribe-next-missing {
+  margin-top: 3px;
+  opacity: 0.75;
+  font-size: 10px;
+}
+.tribe-inspire {
+  border: 1px solid #6a5340;
+  background: rgba(124, 200, 255, 0.08);
+  color: #9fd4ff;
+  font: inherit;
+  font-size: 10px;
+  padding: 1px 6px;
+  cursor: pointer;
+}
+.tribe-inspire:hover {
+  background: rgba(124, 200, 255, 0.18);
+}

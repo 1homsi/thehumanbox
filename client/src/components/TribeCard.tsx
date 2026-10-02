@@ -9,6 +9,8 @@ import { ToolSprite } from './ToolSprite'
 interface Props {
   world: WorldState
   onAnswer: (prayer: PrayerInfo) => void
+  /** Pick up a dock tool by id, looking at the tribe. */
+  onTool: (toolId: string, at: { x: number; y: number }) => void
 }
 
 function Need({ label, value }: { label: string; value: number }) {
@@ -28,7 +30,7 @@ function Need({ label, value }: { label: string; value: number }) {
  * gods, and what they are praying for. Appears when a tribe is focused from
  * the tribe list or the territory map.
  */
-export function TribeCard({ world, onAnswer }: Props) {
+export function TribeCard({ world, onAnswer, onTool }: Props) {
   const focus = useUIStore((s) => s.focus)
   const setFocus = useUIStore((s) => s.setFocus)
   if (!focus.startsWith('lineage:')) return null
@@ -72,6 +74,38 @@ export function TribeCard({ world, onAnswer }: Props) {
         </span>
         {status.sick > 0 && <span className="tribe-sick">{status.sick} sick</span>}
       </div>
+      {status.nextAge && (
+        <div className="tribe-next">
+          <div className="tribe-next-head">
+            <span>next: {status.nextAge.era} age</span>
+            <button
+              className="tribe-inspire"
+              title="Inspire them: speeds up their next discovery"
+              onClick={() => {
+                const home = world.settlements?.find((s) => s.lineage_id === status.id)
+                if (home) onTool('inspire', { x: home.center[0], y: home.center[1] })
+              }}
+            >
+              ✦ inspire
+            </button>
+          </div>
+          <span className="tribe-need-bar">
+            <span
+              style={{
+                width: `${Math.round((status.nextAge.known / Math.max(1, status.nextAge.required)) * 100)}%`,
+              }}
+            />
+          </span>
+          {status.nextAge.missing.length > 0 && (
+            <div className="tribe-next-missing">
+              still to learn: {status.nextAge.missing.slice(0, 3).join(', ')}
+            </div>
+          )}
+          {status.nextAge.peopleNeeded > 0 && (
+            <div className="tribe-next-missing">needs {status.nextAge.peopleNeeded} more people</div>
+          )}
+        </div>
+      )}
       {prayer && (
         <button className="tribe-card-prayer" onClick={() => onAnswer(prayer)}>
           <ToolSprite icon={PRAYER_KINDS[prayer.kind]?.icon ?? '🙏'} size={16} />
