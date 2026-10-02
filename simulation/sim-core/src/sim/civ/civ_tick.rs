@@ -3477,6 +3477,10 @@ fn tick_disease_introduce(sim: &mut Simulation) {
         return;
     }
     let pick = alive[sim.rng.random_range(0..alive.len())];
+    // A warded place is spared the new sickness that comes out of nowhere.
+    if sim.warded(sim.organisms[pick].x, sim.organisms[pick].y) {
+        return;
+    }
     let name = kind.name().to_string();
     let already = sim.organisms[pick].diseases.iter().any(|(d, _)| d == &name);
     let immune = sim.organisms[pick]
@@ -3497,6 +3501,11 @@ fn tick_disease_introduce(sim: &mut Simulation) {
         &org_name,
         &format!("contracted {}", kind.name()),
     );
+}
+
+#[cfg(test)]
+pub(crate) fn tick_disease_spread_for_test(sim: &mut Simulation) {
+    tick_disease_spread(sim);
 }
 
 fn tick_disease_spread(sim: &mut Simulation) {
@@ -3520,6 +3529,10 @@ fn tick_disease_spread(sim: &mut Simulation) {
             let dx = x - target.x;
             let dy = y - target.y;
             if dx * dx + dy * dy > 6.0 {
+                continue;
+            }
+            // Under the gods' ward no one catches what a neighbour carries.
+            if sim.warded(target.x, target.y) {
                 continue;
             }
             for d in ds {
