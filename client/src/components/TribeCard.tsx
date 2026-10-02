@@ -9,6 +9,7 @@ import { PRAYER_KINDS } from '../world/prayers'
 import { lossLine, PERIL_HELP, perilOf, remainingLine } from '../world/tribe-peril'
 import { activeBattles, enemiesOf } from '../2d/world/battles'
 import { relationsLine, relationsOf } from '../world/diplomacy'
+import { leadershipOf } from '../world/leadership'
 import { tribeStatus } from '../world/tribe-status'
 import { ToolSprite } from './ToolSprite'
 
@@ -71,6 +72,7 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
     (b) => b.attackers.includes(status.id) || b.defenders.includes(status.id),
   )
   const relations = relationsLine(relationsOf(world, status.id))
+  const leadership = leadershipOf(world, status.id)
   const peril = perilOf(world, status.id)
   const losses = lossLine(world.tribe_losses?.[status.id])
   const help = peril ? PERIL_HELP[peril.cause] : null
@@ -114,6 +116,27 @@ export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props)
           ×
         </button>
       </div>
+      {leadership && (
+        <div className="tribe-card-leader">
+          {leadership.government}
+          {leadership.leader && (
+            <>
+              {' · led by '}
+              <button
+                className="tribe-leader-link"
+                title="Follow the leader"
+                onClick={() => {
+                  const ui = useUIStore.getState()
+                  ui.selectOrg(leadership.leader!.id)
+                  ui.followOrg(leadership.leader!.id)
+                }}
+              >
+                {leadership.leader.name}
+              </button>
+            </>
+          )}
+        </div>
+      )}
       <div className="tribe-card-sub">
         {status.people} {status.people === 1 ? 'person' : 'people'}
         {status.era && ` · ${status.era} age`}
