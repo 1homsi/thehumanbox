@@ -121,6 +121,70 @@ impl<'a> ActionCtx<'a> {
         }
     }
 
+    /// Gather one wild food tile within `radius`, nearest first; the tile
+    /// goes back to grass. Food has to come from somewhere: before this,
+    /// foraging, herb-gathering and stockpile raids made it from nothing.
+    pub fn take_wild_food(&mut self, radius: i32) -> bool {
+        let (ix, iy) = (self.ix, self.iy);
+        let mut best: Option<(i32, i32, i32)> = None;
+        for dy in -radius..=radius {
+            for dx in -radius..=radius {
+                let d = dx.abs() + dy.abs();
+                if d > radius || self.sim.grid.get(ix + dx, iy + dy) != Tile::Food {
+                    continue;
+                }
+                if best.is_none_or(|(_, _, bd)| d < bd) {
+                    best = Some((ix + dx, iy + dy, d));
+                }
+            }
+        }
+        let Some((x, y, _)) = best else {
+            return false;
+        };
+        self.sim.grid.set(x, y, Tile::Grass);
+        self.sim.grid.reduce_fertility(x, y, 0.02);
+        let o = &mut self.sim.organisms[self.idx];
+        o.inv_food = o.inv_food.saturating_add(1);
+        true
+    }
+
+    /// Catch a small wild animal within `radius`: it dies and feeds the
+    /// hunter. Returns the food gained, 0 when nothing was in reach.
+    pub fn catch_small_prey(&mut self, radius: f32) -> u8 {
+        use crate::organism::animal::AnimalKind;
+        let (x, y) = (self.sx, self.sy);
+        let prey = self
+            .sim
+            .animals
+            .iter()
+            .enumerate()
+            .filter(|(_, a)| a.alive && a.bonded_org.is_none() && !a.sleeping && !a.away)
+            .filter(|(_, a)| {
+                matches!(
+                    a.kind,
+                    AnimalKind::Rabbit
+                        | AnimalKind::Chicken
+                        | AnimalKind::Bird
+                        | AnimalKind::Boar
+                        | AnimalKind::Deer
+                )
+            })
+            .map(|(i, a)| (i, (a.x - x).abs() + (a.y - y).abs()))
+            .filter(|&(_, d)| d <= radius)
+            .min_by(|a, b| a.1.total_cmp(&b.1));
+        let Some((i, _)) = prey else {
+            return 0;
+        };
+        let food = match self.sim.animals[i].kind {
+            AnimalKind::Deer | AnimalKind::Boar => 3,
+            _ => 1,
+        };
+        self.sim.animals[i].alive = false;
+        let o = &mut self.sim.organisms[self.idx];
+        o.inv_food = o.inv_food.saturating_add(food);
+        food
+    }
+
     pub fn consume_material(&mut self) {
         let o = &mut self.sim.organisms[self.idx];
         if o.inv_stone > 0 {
@@ -333,5 +397,58 @@ impl<'a> ActionCtx<'a> {
             self.discover(spec.discovery, spec.event_msg);
         }
         spec.reward
+    }
+}
+
+#[cfg(test)]
+mod food_tests {
+    use super::*;
+    use crate::organism::animal::{Animal, AnimalKind};
+    use crate::sim::spatial::SpatialIndex;
+
+    fn world() -> Simulation {
+        let mut sim = Simulation::new(81);
+        sim.animals.clear();
+        for y in 90..110 {
+            for x in 90..110 {
+                sim.grid.set(x, y, Tile::Grass);
+            }
+        }
+        let o = &mut sim.organisms[0];
+        o.alive = true;
+        o.x = 100.0;
+        o.y = 100.0;
+        o.inv_food = 0;
+        sim
+    }
+
+    fn ctx(sim: &mut Simulation) -> ActionCtx<'_> {
+        let spatial = SpatialIndex::build(&sim.organisms, 10);
+        ActionCtx::new(sim, 0, 100, 100, &spatial)
+    }
+
+    #[test]
+    fn foraging_takes_a_real_food_tile_and_finds_nothing_on_bare_grass() {
+        let mut sim = world();
+        assert!(!ctx(&mut sim).take_wild_food(2), "food from bare grass");
+        sim.grid.set(101, 100, Tile::Food);
+        assert!(ctx(&mut sim).take_wild_food(2));
+        assert_eq!(sim.organisms[0].inv_food, 1);
+        assert_eq!(sim.grid.get(101, 100), Tile::Grass, "the patch was not used up");
+    }
+
+    #[test]
+    fn hunting_needs_a_real_animal_and_kills_it() {
+        let mut sim = world();
+        assert_eq!(ctx(&mut sim).catch_small_prey(5.0), 0, "game from nowhere");
+        sim.animals.push(Animal::new(1, 102.0, 100.0, AnimalKind::Rabbit));
+        assert_eq!(ctx(&mut sim).catch_small_prey(5.0), 1);
+        assert!(!sim.animals[0].alive);
+        assert_eq!(sim.organisms[0].inv_food, 1);
+        // A tame animal is not game.
+        let mut pet = Animal::new(2, 101.0, 100.0, AnimalKind::Chicken);
+        pet.bonded_org = Some("someone".into());
+        sim.animals.push(pet);
+        assert_eq!(ctx(&mut sim).catch_small_prey(5.0), 0);
     }
 }

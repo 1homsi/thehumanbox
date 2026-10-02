@@ -1,12 +1,11 @@
 use super::super::ctx::ActionCtx;
-use crate::world::tiles::Tile;
 
 pub fn apply(ctx: &mut ActionCtx) -> f32 {
-    if !matches!(ctx.tile, Tile::Food | Tile::Grass) {
+    // Herbs grow among the wild food patches, and gathering one clears it.
+    if !ctx.take_wild_food(1) {
         ctx.think("no herbs here");
         return 0.0;
     }
-    ctx.sim.organisms[ctx.idx].inv_food = ctx.sim.organisms[ctx.idx].inv_food.saturating_add(1);
     ctx.think("harvesting medicinal herbs");
     ctx.discover("medicinal_herbs", "harvested medicinal herbs from the wild");
     0.010

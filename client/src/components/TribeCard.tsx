@@ -1,5 +1,7 @@
 import clsx from 'clsx'
 import { useUIStore } from '../stores/store'
+import { popHistory } from '../stores/worldStore'
+import { sparklinePoints, trend } from '../world/pop-history'
 import type { PrayerInfo, WorldState } from '../types'
 import { lineageColor } from '../utils/constants'
 import { PRAYER_KINDS } from '../world/prayers'
@@ -23,6 +25,24 @@ function Need({ label, value }: { label: string; value: number }) {
       <span className="tribe-need-bar">
         <span style={{ width: `${Math.round(value * 100)}%` }} />
       </span>
+    </div>
+  )
+}
+
+/** How a tribe's numbers have moved over the last few seasons. */
+function Sparkline({ lineage }: { lineage: string }) {
+  const samples = popHistory.get(lineage) ?? []
+  if (samples.length < 3) return null
+  const direction = trend(samples)
+  return (
+    <div
+      className={clsx('tribe-spark', direction)}
+      title={`${samples[0]} → ${samples[samples.length - 1]} people lately`}
+    >
+      <svg width="72" height="14" viewBox="0 0 72 14" aria-hidden="true">
+        <polyline points={sparklinePoints(samples, 72, 14)} fill="none" strokeWidth="1.5" />
+      </svg>
+      <span>{direction === 'up' ? 'growing' : direction === 'down' ? 'shrinking' : 'steady'}</span>
     </div>
   )
 }
@@ -85,6 +105,7 @@ export function TribeCard({ world, onAnswer, onTool }: Props) {
           </button>
         </div>
       )}
+      <Sparkline lineage={status.id} />
       <Need label="food" value={status.food} />
       <Need label="water" value={status.water} />
       <Need label="health" value={status.health} />
