@@ -1519,6 +1519,9 @@ impl Simulation {
             self.weather.is_wet(self.tick_count),
             &season_str,
         );
+        if self.tick_count > 0 && self.tick_count.is_multiple_of(super::civ::fields::FIELD_STEP) {
+            super::civ::fields::tick_fields(self);
+        }
 
         if self.tick_count.is_multiple_of(300) {
             let ignited_fires = tick_world_evolution(
