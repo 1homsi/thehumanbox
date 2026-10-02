@@ -14,6 +14,7 @@ import { PhotoModeExit } from './components/PhotoModeExit'
 import { ConfirmHost } from './components/ConfirmDialog'
 import { WorldSilent } from './components/WorldSilent'
 import { PrayerHint } from './components/PrayerHint'
+import { TribeCard } from './components/TribeCard'
 import { askConfirm } from './lib/confirm'
 import { toolFailure } from './components/tool-tips'
 import { SANDBOX_CATEGORIES, type LineageStrategy, type SandboxTool } from './simulation/sandbox'
@@ -546,6 +547,10 @@ function LiveApp() {
                   onSandboxApply={handleSandboxApply}
                   onPrayerClick={handleAnswerPrayer}
                 />
+              )}
+
+              {!currentScene && !viewFlags.hideUI && (
+                <TribeCard world={world} onAnswer={handleAnswerPrayer} />
               )}
 
               <RightPanel
