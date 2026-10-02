@@ -21,6 +21,32 @@ pub const HARD_WINTER_CHANCE: f32 = 0.3;
 /// Extra cold in a hard winter, in degrees.
 const HARD_WINTER_CHILL: f32 = 8.0;
 
+/// Most preserved provisions a person keeps for winter.
+const PROVISIONS_CAP: u8 = 8;
+
+/// Autumn is for laying food by: people move spare pouch food into
+/// preserved winter stores, far more eagerly when the elders have foretold
+/// a hard winter. Stores never spoil.
+fn store_for_winter(
+    organisms: &mut [crate::organism::organism::Organism],
+    eager: bool,
+    tick: u64,
+    rng: &mut impl rand::Rng,
+) {
+    let chance = if eager { 0.8 } else { 0.25 };
+    for o in organisms.iter_mut().filter(|o| o.alive && o.inv_food >= 3) {
+        let stored = o.tools.get("winter_provisions").copied().unwrap_or(0);
+        if stored >= PROVISIONS_CAP || rng.random::<f32>() >= chance {
+            continue;
+        }
+        o.inv_food -= 1;
+        o.tools.insert("winter_provisions".into(), stored + 1);
+        if eager {
+            o.think("storing food for the hard winter", tick);
+        }
+    }
+}
+
 /// Carried food spoils on this cadence.
 pub const SPOIL_STEP: u64 = 600;
 
@@ -116,6 +142,12 @@ impl Simulation {
 
     pub(crate) fn tick_wild_food(&mut self) {
         self.tick_winter_omen();
+        if self.tick_count > 0 && self.tick_count.is_multiple_of(WILD_FOOD_STEP) && self.season() == "decline"
+        {
+            let eager = self.hard_winter_ahead;
+            let tick = self.tick_count;
+            store_for_winter(&mut self.organisms, eager, tick, &mut self.rng);
+        }
         if self.tick_count > 0 && self.tick_count.is_multiple_of(SPOIL_STEP) {
             spoil_carried_food(&mut self.organisms);
             self.winter_sickness();
@@ -304,5 +336,36 @@ mod tests {
             assert!(!sim.hard_winter, "spring ends a hard winter");
         }
         assert!((4..=24).contains(&hard), "{hard} hard winters in 40");
+    }
+
+    #[test]
+    fn autumn_lays_food_by_and_a_foretold_hard_winter_more_so() {
+        use rand::SeedableRng;
+        let mut calm = Simulation::new(4);
+        let mut warned = Simulation::new(4);
+        for sim in [&mut calm, &mut warned] {
+            sim.organisms.truncate(20);
+            for o in sim.organisms.iter_mut() {
+                o.inv_food = 9;
+                o.tools.remove("winter_provisions");
+            }
+        }
+        let stored = |sim: &Simulation| -> u32 {
+            sim.organisms
+                .iter()
+                .map(|o| o.tools.get("winter_provisions").copied().unwrap_or(0) as u32)
+                .sum()
+        };
+        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
+        for _ in 0..5 {
+            store_for_winter(&mut calm.organisms, false, 0, &mut rng);
+            store_for_winter(&mut warned.organisms, true, 0, &mut rng);
+        }
+        assert!(stored(&calm) > 0);
+        assert!(stored(&warned) > stored(&calm));
+        assert!(warned
+            .organisms
+            .iter()
+            .all(|o| o.tools.get("winter_provisions").copied().unwrap_or(0) <= PROVISIONS_CAP));
     }
 }
