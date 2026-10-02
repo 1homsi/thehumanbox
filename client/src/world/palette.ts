@@ -109,4 +109,6 @@ export const SEASON_LAND_TINT: Record<string, { rgb: [number, number, number]; w
   recovery: { rgb: [92, 150, 64], w: 0.3 },
   decline: { rgb: [150, 118, 44], w: 0.42 },
   scarcity: { rgb: [128, 102, 56], w: 0.52 },
+  /** A hard winter: frost over everything. */
+  hard_winter: { rgb: [196, 206, 212], w: 0.58 },
 }

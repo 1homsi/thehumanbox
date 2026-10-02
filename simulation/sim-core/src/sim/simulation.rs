@@ -713,6 +713,8 @@ pub struct Simulation {
     pub prayers: crate::sim::civ::prayers::PrayerState,
     /// This winter is a hard one: colder, hungrier, sicker.
     pub hard_winter: bool,
+    /// Autumn's forecast that the coming winter will be hard.
+    pub hard_winter_ahead: bool,
     pub story_history: VecDeque<StoryEntry>,
     pub pending_thinks: Vec<ThinkTrigger>,
     pub pending_convos: Vec<crate::sim::convo_req::ConversationReq>,
@@ -894,6 +896,7 @@ impl Simulation {
             plantings: Default::default(),
             prayers: Default::default(),
             hard_winter: false,
+            hard_winter_ahead: false,
             story_history: VecDeque::new(),
             pending_thinks: Vec::new(),
             pending_convos: Vec::new(),

@@ -169,10 +169,16 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer }: Props)
                     'Colder than usual. Wild food dies back fast and fevers spread.',
                     'Tribes will pray for food and cures.',
                   )
-                : tip(
-                    vegetationSeason(world.season),
-                    SEASON_TIPS[world.season] ?? 'Affects food growth and drought risk.',
-                  )
+                : world.hard_winter_ahead
+                  ? tip(
+                      `${vegetationSeason(world.season)} · hard winter ahead`,
+                      'The elders fear a hard winter. Wild food will be scarce and fevers will spread.',
+                      'Plant crops and orchards now, before the cold comes.',
+                    )
+                  : tip(
+                      vegetationSeason(world.season),
+                      SEASON_TIPS[world.season] ?? 'Affects food growth and drought risk.',
+                    )
             }
           >
             <span
@@ -184,6 +190,11 @@ export function AppHeader({ world, connected, sickOrgs, onAnswerPrayer }: Props)
               )}
             >
               {world.hard_winter ? 'hard winter' : vegetationSeason(world.season)}
+              {world.hard_winter_ahead && !world.hard_winter && (
+                <span className="season-omen" aria-label="hard winter ahead">
+                  ❄
+                </span>
+              )}
             </span>
           </Tooltip>
         )}

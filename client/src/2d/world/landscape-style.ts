@@ -26,10 +26,13 @@ export function shorelineColors(tile: number, biome: number): readonly [string, 
 export function vegetationSeason(season: string): string {
   return (
     (
-      { recovery: 'spring', abundance: 'summer', decline: 'autumn', scarcity: 'winter' } as Record<
-        string,
-        string
-      >
+      {
+        recovery: 'spring',
+        abundance: 'summer',
+        decline: 'autumn',
+        scarcity: 'winter',
+        hard_winter: 'winter',
+      } as Record<string, string>
     )[season] ?? season
   )
 }
