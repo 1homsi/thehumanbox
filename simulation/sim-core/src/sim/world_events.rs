@@ -604,6 +604,7 @@ pub fn push_event(
         etype: etype.to_string(),
         actor: actor.to_string(),
         detail: detail.to_string(),
+        news: is_news(etype),
     });
     if events.len() > MAX_RECENT_EVENTS {
         // Everyday chatter makes room first, so prayers, ruins, plagues and
@@ -1109,6 +1110,17 @@ pub fn tick_world_evolution(
 mod tests {
     use super::*;
     use std::collections::VecDeque;
+
+    #[test]
+    fn news_is_flagged_on_the_event_itself() {
+        let mut events = std::collections::VecDeque::new();
+        push_event(&mut events, 1, "prayer", "a tribe", "prays for rain");
+        push_event(&mut events, 2, "died", "someone", "old age");
+        assert!(events[0].news);
+        assert!(!events[1].news);
+        let json = serde_json::to_value(&events[1]).unwrap();
+        assert!(json.get("news").is_none(), "chatter carries no flag on the wire");
+    }
 
     #[test]
     fn recent_events_keep_enough_context_for_debugging() {
