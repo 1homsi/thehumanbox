@@ -16,6 +16,7 @@ pub mod refugees;
 pub mod rename;
 pub mod settlements;
 pub mod smog;
+pub mod teach;
 pub mod trade_routes;
 pub mod vacancy;
 pub mod wards;

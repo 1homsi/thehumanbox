@@ -782,6 +782,8 @@ pub struct Simulation {
     /// Tribes the world has warned are on the brink (runtime; re-detected
     /// within one check after a load).
     pub(crate) tribe_peril: HashMap<String, super::civ::peril::Peril>,
+    /// When each tribe was last taught by the gods (runtime).
+    pub(crate) teach_cooldown: HashMap<String, u64>,
     /// Orphans already taken in, so each is told of once (runtime).
     pub(crate) orphans_cared: HashSet<String>,
     /// Each tribe's recent deaths and their causes, newest last (runtime).
@@ -966,6 +968,7 @@ impl Simulation {
             milestones_achieved: HashSet::default(),
             lineage_peak_pop: HashMap::default(),
             tribe_peril: HashMap::default(),
+            teach_cooldown: HashMap::default(),
             orphans_cared: HashSet::default(),
             recent_deaths: HashMap::default(),
             faith_empty_since: HashMap::default(),

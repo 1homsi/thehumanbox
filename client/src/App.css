@@ -5743,7 +5743,13 @@ body.thb-colorblind .org-sick-badge {
   opacity: 0.75;
   font-size: 10px;
 }
+.tribe-next-actions {
+  display: inline-flex;
+  gap: 4px;
+  flex: none;
+}
 .tribe-inspire {
+  white-space: nowrap;
   border: 1px solid #6a5340;
   background: rgba(124, 200, 255, 0.08);
   color: #9fd4ff;

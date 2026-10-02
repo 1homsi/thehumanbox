@@ -18,6 +18,8 @@ interface Props {
   onTool: (toolId: string, at: { x: number; y: number }) => void
   /** Give the tribe a name of the player's choosing. */
   onRename: (lineage: string, name: string) => void
+  /** Teach the tribe the next secret it lacks. */
+  onTeach: (lineage: string) => void
 }
 
 function Need({ label, value }: { label: string; value: number }) {
@@ -55,7 +57,7 @@ function Sparkline({ lineage }: { lineage: string }) {
  * gods, and what they are praying for. Appears when a tribe is focused from
  * the tribe list or the territory map.
  */
-export function TribeCard({ world, onAnswer, onTool, onRename }: Props) {
+export function TribeCard({ world, onAnswer, onTool, onRename, onTeach }: Props) {
   const [editing, setEditing] = useState<string | null>(null)
   const focus = useUIStore((s) => s.focus)
   const setFocus = useUIStore((s) => s.setFocus)
@@ -164,13 +166,24 @@ export function TribeCard({ world, onAnswer, onTool, onRename }: Props) {
         <div className="tribe-next">
           <div className="tribe-next-head">
             <span>next: {status.nextAge.era} age</span>
-            <button
-              className="tribe-inspire"
-              title="Inspire them: speeds up their next discovery"
-              onClick={() => lookAtTribe('inspire')}
-            >
-              ✦ inspire
-            </button>
+            <span className="tribe-next-actions">
+              <button
+                className="tribe-inspire"
+                title="Inspire them: speeds up their next discovery"
+                onClick={() => lookAtTribe('inspire')}
+              >
+                ✦ inspire
+              </button>
+              {status.nextAge.missing.length > 0 && (
+                <button
+                  className="tribe-inspire"
+                  title="Teach them the next secret they lack (once a season)"
+                  onClick={() => onTeach(status.id)}
+                >
+                  ✎ teach
+                </button>
+              )}
+            </span>
           </div>
           <span className="tribe-need-bar">
             <span
