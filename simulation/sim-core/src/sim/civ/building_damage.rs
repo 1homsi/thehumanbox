@@ -15,12 +15,19 @@ const RUIN_REOPEN_DAMAGE: f32 = 0.001;
 const FIRE_STATION_RANGE: i32 = 14;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum DamageCause {
+pub(crate) enum DamageCause {
     Fire,
     Flood,
     Storm,
     Battle,
     Age,
+    Meteor,
+    Lightning,
+    Quake,
+    Lava,
+    Frost,
+    Buried,
+    Dragonfire,
 }
 
 impl DamageCause {
@@ -31,6 +38,13 @@ impl DamageCause {
             Self::Storm => "a storm",
             Self::Battle => "battle",
             Self::Age => "age and neglect",
+            Self::Meteor => "a falling star",
+            Self::Lightning => "lightning",
+            Self::Quake => "an earthquake",
+            Self::Lava => "lava",
+            Self::Frost => "the weight of snow",
+            Self::Buried => "the rising rock",
+            Self::Dragonfire => "dragonfire",
         }
     }
 }
@@ -168,7 +182,8 @@ fn exposure_for(
                 Tile::Fire => {
                     strongest_fire = strongest_fire.max(sim.grid.fire_intensity(tile_x, tile_y).max(0.35));
                 }
-                Tile::Flooded => flooded += 1,
+                // A home standing in a lake is as flooded as one in a puddle.
+                Tile::Flooded | Tile::Water => flooded += 1,
                 _ => {}
             }
         }
@@ -285,28 +300,39 @@ fn apply_damage(sim: &mut Simulation) -> HashSet<usize> {
     }
 
     for (lineage, kind, x, y, cause) in ruined_events {
-        push_event(
-            &mut sim.events,
-            sim.tick_count,
-            "building_ruined",
-            &lineage,
-            &format!("{} at ({},{}) was ruined by {}", kind.name(), x, y, cause.label()),
-        );
-        let lineage_name = sim.lineage_names.get(&lineage).cloned().unwrap_or(lineage);
-        sim.headlines.push_back((
-            sim.tick_count,
-            format!(
-                "\u{1F525} A {} of the {} fell to {}.",
-                kind.name(),
-                lineage_name,
-                cause.label()
-            ),
-        ));
-        while sim.headlines.len() > 80 {
-            sim.headlines.pop_front();
-        }
+        announce_ruin(sim, lineage, kind, x, y, cause);
     }
     exposed
+}
+
+fn announce_ruin(
+    sim: &mut Simulation,
+    lineage: String,
+    kind: BuildingKind,
+    x: i32,
+    y: i32,
+    cause: DamageCause,
+) {
+    push_event(
+        &mut sim.events,
+        sim.tick_count,
+        "building_ruined",
+        &lineage,
+        &format!("{} at ({},{}) was ruined by {}", kind.name(), x, y, cause.label()),
+    );
+    let lineage_name = sim.lineage_names.get(&lineage).cloned().unwrap_or(lineage);
+    sim.headlines.push_back((
+        sim.tick_count,
+        format!(
+            "\u{1F525} A {} of the {} fell to {}.",
+            kind.name(),
+            lineage_name,
+            cause.label()
+        ),
+    ));
+    while sim.headlines.len() > 80 {
+        sim.headlines.pop_front();
+    }
 }
 
 fn apply_repairs(sim: &mut Simulation, exposed: &HashSet<usize>) {
@@ -458,34 +484,75 @@ fn apply_repairs(sim: &mut Simulation, exposed: &HashSet<usize>) {
     }
 }
 
-/// Earthquake god tool: damages every completed, damageable building whose
-/// origin lies within `radius` of (x, y), more at the centre. Returns how
-/// many buildings were hit.
-pub(crate) fn quake_damage(sim: &mut Simulation, x: i32, y: i32, radius: i32) -> usize {
+/// A disaster landing on the world: every completed building with any part
+/// of its footprint within `radius` of (x, y) takes `core` damage at the
+/// centre, falling to `edge` at the rim. Returns how many were hit.
+pub(crate) fn strike_buildings(
+    sim: &mut Simulation,
+    x: i32,
+    y: i32,
+    radius: f32,
+    core: f32,
+    edge: f32,
+    cause: DamageCause,
+) -> usize {
     let tick = sim.tick_count;
-    let r = radius.max(1) as f32;
+    let r = radius.max(0.5);
     let mut hit = 0;
+    let mut ruined = Vec::new();
     for building in sim.buildings.iter_mut() {
         if !building.is_complete() || building.decorative || !supports_damage(building.kind) {
             continue;
         }
-        let d = ((building.x - x) as f32).hypot((building.y - y) as f32);
+        let (nx, ny) = building.closest_footprint_tile(x, y);
+        let d = ((nx - x) as f32).hypot((ny - y) as f32);
         if d > r {
             continue;
         }
         let was_ruined = building.is_ruined();
-        let amount = 0.35 + 0.45 * (1.0 - d / r);
+        let amount = edge + (core - edge) * (1.0 - d / r);
         building.damage = (building.damage_fraction() + amount).min(1.0);
         building.last_damage_tick = Some(tick);
         if !was_ruined && building.damage_fraction() >= 1.0 {
             building.ruined_at_tick = Some(tick);
+            let (fw, fh) = building.footprint();
+            ruined.push((
+                building
+                    .owner_lineage
+                    .clone()
+                    .unwrap_or_else(|| "world".to_string()),
+                building.kind,
+                (building.x, building.y, i32::from(fw), i32::from(fh)),
+                building.occupants.clone(),
+            ));
         }
         hit += 1;
     }
     if hit > 0 {
         sim.building_state_revision = sim.building_state_revision.wrapping_add(1);
     }
+    for (lineage, kind, (bx, by, fw, fh), occupants) in ruined {
+        // Whoever was inside is hurt; the household loses its home.
+        for o in sim.organisms.iter_mut().filter(|o| o.alive) {
+            let (ox, oy) = (o.x as i32, o.y as i32);
+            let inside = ox >= bx && ox < bx + fw && oy >= by && oy < by + fh;
+            if inside {
+                o.health = (o.health - 0.35).max(0.05);
+                o.fear_level = (o.fear_level + 0.4).min(1.0);
+            }
+            if inside || occupants.contains(&o.id) {
+                o.hope = (o.hope - 0.15).max(0.0);
+                o.think("our home was destroyed", tick);
+            }
+        }
+        announce_ruin(sim, lineage, kind, bx, by, cause);
+    }
     hit
+}
+
+/// Earthquake god tool: shakes buildings near (x, y), worst at the centre.
+pub(crate) fn quake_damage(sim: &mut Simulation, x: i32, y: i32, radius: i32) -> usize {
+    strike_buildings(sim, x, y, radius as f32, 0.8, 0.35, DamageCause::Quake)
 }
 
 pub(crate) fn tick_building_damage(sim: &mut Simulation) {
@@ -520,10 +587,24 @@ pub(crate) fn tick_building_damage(sim: &mut Simulation) {
 mod tests {
     use super::*;
 
+    /// Buildings stand on dry ground; standing water on a footprint is
+    /// flooding.
+    fn dry_footprint(sim: &mut Simulation, building: &Building) {
+        let (w, h) = building.footprint();
+        for ty in building.y..building.y + i32::from(h) {
+            for tx in building.x..building.x + i32::from(w) {
+                if matches!(sim.grid.get(tx, ty), Tile::Water | Tile::Flooded) {
+                    sim.grid.set(tx, ty, Tile::Grass);
+                }
+            }
+        }
+    }
+
     fn completed_house(sim: &mut Simulation, x: i32, y: i32) -> usize {
         let lineage = sim.organisms[0].lineage_id.clone();
         let mut building = Building::new(900, BuildingKind::House, x, y, Some(lineage), 1);
         building.condition = 1.0;
+        dry_footprint(sim, &building);
         sim.buildings.push(building);
         sim.buildings.len() - 1
     }
@@ -532,6 +613,7 @@ mod tests {
         let lineage = sim.organisms[0].lineage_id.clone();
         let mut building = Building::new(id, kind, x, y, Some(lineage), 1);
         building.condition = 1.0;
+        dry_footprint(sim, &building);
         sim.buildings.push(building);
         sim.buildings.len() - 1
     }
@@ -854,5 +936,99 @@ mod tests {
         assert!(sim.buildings[index].ruined_at_tick.is_some());
         assert!(sim.buildings[index].is_ruined());
         assert!(!sim.buildings[index].is_operational());
+    }
+}
+
+#[cfg(test)]
+mod disaster_tests {
+    use super::*;
+
+    /// A finished house on open grass, with nobody near enough to be the
+    /// nearest living thing for lightning.
+    fn house_world() -> (Simulation, u32) {
+        let mut sim = Simulation::new(3);
+        for y in 85..120 {
+            for x in 85..120 {
+                sim.grid.set(x, y, Tile::Grass);
+            }
+        }
+        sim.organisms.retain(|o| (o.x - 102.0).hypot(o.y - 102.0) > 40.0);
+        sim.animals.clear();
+        let mut house = Building::new(900, BuildingKind::House, 101, 101, None, 1);
+        house.condition = 1.0;
+        sim.buildings.push(house);
+        (sim, 900)
+    }
+
+    fn damage(sim: &Simulation, id: u32) -> f32 {
+        sim.buildings
+            .iter()
+            .find(|b| b.id == id)
+            .map_or(1.0, |b| b.damage_fraction())
+    }
+
+    #[test]
+    fn every_disaster_that_lands_on_a_home_damages_it() {
+        for (cmd, at_least) in [
+            (r#"{"cmd":"meteor","x":102,"y":102,"radius":4}"#, 0.99),
+            (r#"{"cmd":"volcano","x":102,"y":102,"radius":5}"#, 0.99),
+            (r#"{"cmd":"earthquake","x":102,"y":102,"radius":6}"#, 0.5),
+            (r#"{"cmd":"smite","x":102,"y":102,"radius":2}"#, 0.3),
+            (r#"{"cmd":"flood","x":102,"y":102,"radius":6}"#, 0.25),
+            (r#"{"cmd":"blizzard","x":102,"y":102,"radius":6}"#, 0.1),
+            (
+                r#"{"cmd":"paint","x":102,"y":102,"tile":"water","radius":2}"#,
+                0.99,
+            ),
+            (
+                r#"{"cmd":"paint","x":102,"y":102,"tile":"rock","radius":2}"#,
+                0.99,
+            ),
+        ] {
+            let (mut sim, id) = house_world();
+            assert!(sim.apply_command_json(cmd), "{cmd} had no effect");
+            assert!(damage(&sim, id) >= at_least, "{cmd}: damage {}", damage(&sim, id));
+        }
+    }
+
+    #[test]
+    fn a_home_standing_in_a_lake_keeps_flooding() {
+        let (mut sim, id) = house_world();
+        for y in 99..105 {
+            for x in 99..105 {
+                sim.grid.set(x, y, Tile::Water);
+            }
+        }
+        for _ in 0..10 {
+            sim.tick_count += DAMAGE_TICK_INTERVAL;
+            tick_building_damage(&mut sim);
+        }
+        assert!(damage(&sim, id) > 0.02);
+    }
+
+    #[test]
+    fn a_ruined_home_hurts_who_is_inside_and_is_announced() {
+        let (mut sim, id) = house_world();
+        let person = sim.organisms.iter_mut().find(|o| o.alive).expect("someone");
+        person.x = 101.0;
+        person.y = 101.0;
+        person.health = 1.0;
+        let pid = person.id.clone();
+        let hit = strike_buildings(&mut sim, 101, 101, 2.0, 1.0, 1.0, DamageCause::Meteor);
+        assert_eq!(hit, 1);
+        assert!(damage(&sim, id) >= 1.0);
+        let p = sim.organisms.iter().find(|o| o.id == pid).unwrap();
+        assert!(p.health < 0.7);
+        assert!(sim
+            .events
+            .iter()
+            .any(|e| e.etype == "building_ruined" && e.detail.contains("a falling star")));
+    }
+
+    #[test]
+    fn distant_disasters_spare_the_home() {
+        let (mut sim, id) = house_world();
+        sim.apply_command_json(r#"{"cmd":"meteor","x":140,"y":140,"radius":4}"#);
+        assert_eq!(damage(&sim, id), 0.0);
     }
 }
