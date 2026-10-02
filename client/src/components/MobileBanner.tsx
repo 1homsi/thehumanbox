@@ -32,9 +32,7 @@ export function MobileBanner() {
       <span className="mobile-banner__icon" aria-hidden="true">
         🖥
       </span>
-      <span className="mobile-banner__text">
-        Best experienced on desktop &mdash; full UI, 3D world, panels.
-      </span>
+      <span className="mobile-banner__text">Best experienced on desktop &mdash; full UI and panels.</span>
       <button type="button" className="mobile-banner__close" onClick={close} aria-label="Dismiss">
         ×
       </button>

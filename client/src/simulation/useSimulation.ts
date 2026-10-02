@@ -4,7 +4,6 @@ import { WS_BASE, API_BASE, IS_LOCAL_SERVER } from '../lib/config'
 import { useWorldStore } from '../stores/worldStore'
 import { fetchSnapshotWithProgress, parseWorldFrame } from './wire'
 import { mergeFrame, type MergeCaches } from './merge'
-import { updateOrgMotion, updateAnimalMotion } from '../3d/world/parts/motion-state'
 import { logger } from '../lib/logger'
 import {
   type LocalWorldReloadDetail,
@@ -257,9 +256,6 @@ export function useSimulation(source: WorldSource = 'native'): {
           organismCache.current = caches.organisms
           animalCache.current = caches.animals
           gridCache.current = grid
-
-          updateOrgMotion(next.viewport_organisms ?? next.organisms ?? [])
-          updateAnimalMotion(next.viewport_animals ?? next.animals ?? [])
 
           prevWorldRef.current = currentWorldRef.current
           prevServerAtRef.current = currentServerAtRef.current

@@ -83,13 +83,11 @@ export default defineConfig({
   build: {
     chunkSizeWarningLimit: 400,
 
-    // rolldown-vite emits <link rel="modulepreload"> for EVERY chunk in
-    // the dependency map, including lazily-imported ones - which forced
-    // ~1.2MB of three.js/text-rendering/scene code into the critical
-    // path of every page load even though most sessions never open the
-    // 3D view. The vendor chunks are static imports of the entry anyway
-    // (discovered as soon as the entry downloads), so skipping the
-    // hints costs nothing; the wasm/worker preloads above stay.
+    // rolldown-vite emits <link rel="modulepreload"> for every chunk in
+    // the dependency map, including lazily imported ones. The vendor
+    // chunks are static imports of the entry anyway (discovered as soon as
+    // the entry downloads), so skipping the hints costs nothing; the
+    // wasm/worker preloads above stay.
     modulePreload: false,
 
     rollupOptions: {
@@ -103,17 +101,6 @@ export default defineConfig({
           if (id.includes('@tanstack'))                               return 'query-vendor'
           if (id.includes('/zustand/') || id.includes('/neverthrow/') ||
               id.includes('/zod/')     || id.includes('/clsx/'))      return 'state-vendor'
-          // Split the troika/SDF/bidi text rendering stack into its own
-          // chunk so the initial WorldView3D paint doesn't pay the
-          // download cost up front. Browsers fetch sibling chunks in
-          // parallel, so first-paint reaches the canvas sooner.
-          if (id.includes('/troika-')
-              || id.includes('/webgl-sdf-generator')
-              || id.includes('/bidi-js'))                             return 'text-vendor'
-          // three.js core into its own chunk for the same parallel-
-          // fetch reason — it's stable and rarely changes, so once
-          // cached it sticks across deploys.
-          if (id.includes('/three/') || id.includes('three-stdlib'))  return 'three-vendor'
         },
       },
     },

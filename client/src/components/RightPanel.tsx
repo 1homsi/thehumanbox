@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import type { OrganismState, WorldState } from '../types'
-import { useUIStore, useViewFlag } from '../stores/store'
+import { useUIStore } from '../stores/store'
 import { OrgCard } from './OrgCard'
 import { OrgDetail } from './OrgDetail'
 import { CivSummary } from './CivSummary'
@@ -33,8 +33,6 @@ export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
   const throttledDead = useThrottledValue(deadOrgs)
   const panelOpen = useUIStore((s) => s.panelOpen)
   const followOrgId = useUIStore((s) => s.followOrgId)
-  const threeD = useViewFlag('threeD')
-  const hideUI = useViewFlag('hideUI')
   const selectOrg = useUIStore((s) => s.selectOrg)
   const followOrg = useUIStore((s) => s.followOrg)
   const togglePanel = useUIStore((s) => s.togglePanel)
@@ -68,10 +66,7 @@ export function RightPanel({ world, liveOrgs, deadOrgs, selectedOrg }: Props) {
   return (
     <>
       {panelOpen && <div className="panel-overlay" onClick={togglePanel} />}
-      <aside
-        data-tour="right-panel"
-        className={clsx('panel', 'panel-right', panelOpen && 'open', threeD && hideUI && 'hidden-by-3d')}
-      >
+      <aside data-tour="right-panel" className={clsx('panel', 'panel-right', panelOpen && 'open')}>
         {panelOpen && (
           <>
             {selectedOrg && (

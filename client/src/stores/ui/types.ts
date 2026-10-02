@@ -16,14 +16,12 @@ export interface ViewFlags {
   pregnancy: boolean
   history: boolean
   fps: boolean
-  threeD: boolean
   hideUI: boolean
   photoMode: boolean
   randomTour: boolean
   slowMo: boolean
   fastMo: boolean
   colorBlind: boolean
-  orgPov: boolean
   territoryMap: boolean
   headlineTicker: boolean
 }

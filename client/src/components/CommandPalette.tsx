@@ -43,11 +43,6 @@ export function CommandPalette() {
         run: () => setViewFlag('randomTour', !viewFlags.randomTour),
       },
       {
-        id: 'three-d',
-        label: viewFlags.threeD ? 'Switch to 2D' : 'Switch to 3D',
-        run: () => setViewFlag('threeD', !viewFlags.threeD),
-      },
-      {
         id: 'hide-ui',
         label: viewFlags.hideUI ? 'Show UI' : 'Hide UI',
         hint: 'immersive mode · H',

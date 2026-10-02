@@ -176,7 +176,6 @@ body.thb-app-minimized *::after {
   margin-right: 8px;
   color: #6b8e5a;
 }
-body.thb-3d-immersive .headline-ticker,
 body.thb-photo-mode .headline-ticker {
   display: none;
 }
@@ -1517,36 +1516,12 @@ body.thb-photo-mode .headline-ticker {
   margin: 2px 0;
 }
 
-/* In 3D + hide-ui mode the right panel folds out of the way too. */
-.panel.hidden-by-3d {
-  display: none;
-}
-
-/* 3D immersive: hide every sidebar / floating panel / overlay so
-   only the canvas + header are visible. Header stays so the user
-   can still toggle 3d / hide-ui off. */
-body.thb-3d-immersive .panel,
-body.thb-3d-immersive .panel-overlay,
-body.thb-3d-immersive .panel-toggle-btn,
-body.thb-3d-immersive .thb-3d-minimap,
-body.thb-3d-immersive .thb-3d-hud,
-body.thb-3d-immersive .thb-3d-orgcard,
-body.thb-3d-immersive .thb-3d-vignette,
-body.thb-3d-immersive .thb-3d-tint,
-body.thb-3d-immersive .thb-3d-helpbtn,
-body.thb-3d-immersive .thb-3d-help {
-  display: none !important;
-}
-
 /* Photo mode: hide every chrome element so only the canvas / world is
    visible. Header fades to a thin ghost strip but reappears on hover
    so the user can still toggle the mode off. */
 body.thb-photo-mode .panel,
 body.thb-photo-mode .panel-overlay,
 body.thb-photo-mode .panel-toggle-btn,
-body.thb-photo-mode .thb-3d-minimap,
-body.thb-photo-mode .thb-3d-hud,
-body.thb-photo-mode .thb-3d-orgcard,
 body.thb-photo-mode .thb-action-ticker {
   display: none !important;
 }
@@ -3326,12 +3301,6 @@ body.thb-photo-mode .header:hover {
 }
 
 @media (max-width: 600px) {
-  .thb-3d-minimap {
-    display: none !important;
-  }
-  .thb-3d-hud {
-    top: 60px !important;
-  }
   .desktop-toast {
     bottom: calc(116px + env(safe-area-inset-bottom, 0px));
     left: 12px;
