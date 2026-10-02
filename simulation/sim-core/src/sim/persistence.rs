@@ -1277,6 +1277,7 @@ impl Simulation {
             outbreaks: state.outbreaks,
             milestones_achieved: state.milestones_achieved,
             lineage_peak_pop: state.lineage_peak_pop,
+            tribe_peril: HashMap::default(),
             headlines: state.headlines.into_iter().collect(),
             trades: state.trades.into_iter().collect(),
             trade_routes: state.trade_routes,

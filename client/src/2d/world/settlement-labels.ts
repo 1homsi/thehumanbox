@@ -16,6 +16,8 @@ export interface SettlementLabel {
   /** Higher claims its place first. */
   priority: number
   color: string
+  /** A tribe on the brink: red rule and subtitle. */
+  alert?: boolean
 }
 
 export interface PlacedLabel extends SettlementLabel {
@@ -93,8 +95,8 @@ export function drawSettlementLabels(ctx: Ctx, placed: readonly PlacedLabel[]) {
     const top = Math.round(p.cy - p.h / 2)
     ctx.fillStyle = 'rgba(22,17,11,0.66)'
     ctx.fillRect(left, top, Math.round(p.w), Math.round(p.h))
-    if (p.major) {
-      ctx.fillStyle = 'rgba(255,210,138,0.45)'
+    if (p.major || p.alert) {
+      ctx.fillStyle = p.alert ? 'rgba(255,110,90,0.85)' : 'rgba(255,210,138,0.45)'
       ctx.fillRect(left, top, Math.round(p.w), Math.max(1, Math.round(p.scale)))
     }
     const titleY = top + (TITLE_H / 2 + 1) * p.scale
@@ -104,7 +106,7 @@ export function drawSettlementLabels(ctx: Ctx, placed: readonly PlacedLabel[]) {
     ctx.fillStyle = p.color
     ctx.fillText(p.title, p.cx, titleY)
     ctx.font = subFont(p.scale)
-    ctx.fillStyle = '#a99d86'
+    ctx.fillStyle = p.alert ? '#ff9f8c' : '#a99d86'
     ctx.fillText(p.sub, p.cx, top + (TITLE_H + SUB_H / 2) * p.scale)
   }
   ctx.restore()
