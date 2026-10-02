@@ -2,8 +2,8 @@ import type { SandboxTool } from '../simulation/sandbox'
 
 /** One-line descriptions shown in dock tooltips, keyed by sandbox tool id. */
 const TOOL_TIPS: Record<string, string> = {
-  spawn1: 'Place one person. They join the nearest tribe.',
-  spawn5: 'Place a small tribe of five humans where you click.',
+  spawn1: 'Send one grown person. Beside a tribe they join it, as the man or woman it is missing.',
+  spawn5: 'Found a new tribe: five young adults, in couples, where you click.',
   heal: 'Restore the health of every person and animal in the brush area.',
   smite: 'Strike down the nearest person or animal inside the brush area.',
   shelter: 'Build a hut on one tile.',

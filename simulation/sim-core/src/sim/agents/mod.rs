@@ -4,6 +4,7 @@ pub mod courtship;
 pub mod growth;
 pub mod local_think;
 pub mod memory_pressure;
+pub mod newcomers;
 pub mod social;
 pub mod spawn;
 pub mod wander;

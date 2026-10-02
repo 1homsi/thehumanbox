@@ -15,7 +15,7 @@ describe('tribe peril', () => {
 
   it('offers a power for every cause', () => {
     for (const help of Object.values(PERIL_HELP)) {
-      expect(help.tool).toMatch(/^[a-z]+$/)
+      expect(help.tool).toMatch(/^[a-z0-9]+$/)
       expect(help.reason.length).toBeGreaterThan(0)
     }
     expect(PERIL_HELP.thirst.tool).toBe('rain')
