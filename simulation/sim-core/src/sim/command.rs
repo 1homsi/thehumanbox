@@ -912,6 +912,7 @@ impl Simulation {
                     }
                 }
                 let outer = r + 2;
+                let mut ore_left = 0usize;
                 for dx in -outer..=outer {
                     for dy in -outer..=outer {
                         let (nx, ny) = (x + dx, y + dy);
@@ -924,7 +925,12 @@ impl Simulation {
                         }
                         let d2 = dx * dx + dy * dy;
                         if d2 * 4 <= r * r {
-                            self.grid.set(nx, ny, Tile::Rock);
+                            // The meteorite itself: part of the crater floor is
+                            // ore, which tribes can mine.
+                            let ore = (self.rng.random::<f32>() < 0.45) && (dx, dy) != (0, 0);
+                            self.grid
+                                .set(nx, ny, if ore { Tile::Mineral } else { Tile::Rock });
+                            ore_left += usize::from(ore);
                             *self.grid.fire_intensity_mut(nx, ny) = 0.0;
                         } else if d2 <= r * r {
                             self.grid.set(nx, ny, Tile::Ash);
@@ -935,6 +941,15 @@ impl Simulation {
                             self.physics.register_fire(nx, ny);
                         }
                     }
+                }
+                if ore_left > 0 {
+                    push_event(
+                        &mut self.events,
+                        self.tick_count,
+                        "meteor",
+                        "the sky",
+                        &format!("the meteorite left {ore_left} tiles of ore in its crater"),
+                    );
                 }
                 true
             }
@@ -2143,6 +2158,32 @@ mod tests {
         assert!(sim.apply_command_json(r#"{"cmd":"flood","x":100,"y":100,"radius":4}"#));
         assert_eq!(sim.grid.get(100, 100), Tile::Water);
         assert_eq!(sim.grid.get(103, 100), Tile::Flooded);
+    }
+
+    #[test]
+    fn a_meteor_leaves_ore_in_its_crater_but_not_at_the_centre() {
+        use crate::world::tiles::Tile;
+        let mut sim = Simulation::new(3);
+        for y in 80..120 {
+            for x in 80..120 {
+                sim.grid.set(x, y, Tile::Grass);
+            }
+        }
+        sim.events.clear();
+        assert!(sim.apply_command_json(r#"{"cmd":"meteor","x":100,"y":100,"radius":8}"#));
+        let ore: Vec<(i32, i32)> = (80..120)
+            .flat_map(|y| (80..120).map(move |x| (x, y)))
+            .filter(|&(x, y)| sim.grid.get(x, y) == Tile::Mineral)
+            .collect();
+        assert!(!ore.is_empty(), "the crater has no ore");
+        assert!(ore
+            .iter()
+            .all(|&(x, y)| (x - 100) * (x - 100) + (y - 100) * (y - 100) <= 8 * 8 / 4 + 1));
+        assert_ne!(sim.grid.get(100, 100), Tile::Mineral);
+        assert!(sim
+            .events
+            .iter()
+            .any(|e| e.detail.contains("tiles of ore in its crater")));
     }
 
     #[test]
