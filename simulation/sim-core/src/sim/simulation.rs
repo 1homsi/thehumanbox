@@ -5507,6 +5507,15 @@ impl Simulation {
                     for (dx, dy) in [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)] {
                         self.ignite(tx + dx, ty + dy);
                     }
+                    crate::sim::civ::building_damage::strike_buildings(
+                        self,
+                        tx,
+                        ty,
+                        2.5,
+                        0.3,
+                        0.12,
+                        crate::sim::civ::building_damage::DamageCause::Dragonfire,
+                    );
                 }
                 AnimalKind::Demon => {
                     let (x, y) = (ax as i32, ay as i32);
@@ -5547,7 +5556,7 @@ impl Simulation {
     }
 
     /// Sets a burnable tile alight.
-    fn ignite(&mut self, x: i32, y: i32) {
+    pub(crate) fn ignite(&mut self, x: i32, y: i32) {
         if !WorldGrid::in_bounds(x, y) || !self.grid.get(x, y).flammable() {
             return;
         }

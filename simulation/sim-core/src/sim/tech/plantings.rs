@@ -214,6 +214,20 @@ impl Simulation {
         withered
     }
 
+    /// Frost kills fields of crops; orchards and saplings ride it out.
+    pub(crate) fn frost_plantings(&mut self, x: i32, y: i32, radius: i32) -> usize {
+        let before = self.plantings.len();
+        self.plantings.retain(|&i, p| {
+            let (px, py) = xy(i);
+            p.kind != PlantKind::Crop || !in_disc(px - x, py - y, radius)
+        });
+        let killed = before - self.plantings.len();
+        if killed > 0 {
+            self.planting_revision = self.planting_revision.wrapping_add(1);
+        }
+        killed
+    }
+
     pub(crate) fn tick_plantings(&mut self) {
         if self.plantings.is_empty() || !self.tick_count.is_multiple_of(PLANT_STEP_TICKS) {
             return;
@@ -417,6 +431,18 @@ mod tests {
         run(&mut sim, 1);
         assert!(sim.plantings.values().all(|p| p.ripe));
         assert_eq!(sim.wither_plantings(100, 100, 3), n);
+    }
+
+    #[test]
+    fn frost_kills_crops_but_not_trees_and_meteors_kill_both() {
+        let mut sim = flat_sim();
+        sim.apply_command_json(r#"{"cmd":"plant","x":95,"y":95,"kind":"crop","radius":1}"#);
+        sim.apply_command_json(r#"{"cmd":"plant","x":97,"y":95,"kind":"orchard","radius":0}"#);
+        sim.apply_command_json(r#"{"cmd":"blizzard","x":96,"y":95,"radius":4}"#);
+        assert!(sim.plantings.values().all(|p| p.kind == PlantKind::Orchard));
+        assert_eq!(sim.plantings.len(), 1);
+        sim.apply_command_json(r#"{"cmd":"meteor","x":97,"y":95,"radius":2}"#);
+        assert!(sim.plantings.is_empty());
     }
 
     #[test]

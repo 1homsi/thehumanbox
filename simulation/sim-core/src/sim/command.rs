@@ -491,8 +491,23 @@ impl Simulation {
                     .map(|(i, a)| (i, (a.x - x).hypot(a.y - y)))
                     .filter(|&(_, d)| d <= r)
                     .min_by(|a, b| a.1.total_cmp(&b.1));
+                // Lightning also cracks roofs where it lands, and sometimes
+                // sets them alight.
+                let (bx, by) = (x as i32, y as i32);
+                let roofs = crate::sim::civ::building_damage::strike_buildings(
+                    self,
+                    bx,
+                    by,
+                    1.5,
+                    0.45,
+                    0.2,
+                    crate::sim::civ::building_damage::DamageCause::Lightning,
+                );
+                if roofs > 0 && self.rng.random::<f32>() < 0.4 {
+                    self.ignite(bx, by);
+                }
                 // Lightning strikes whatever living thing is closest.
-                match (nearest_person, nearest_animal) {
+                let struck = match (nearest_person, nearest_animal) {
                     (Some((i, dp)), animal) if animal.is_none_or(|(_, da)| dp <= da) => {
                         // Health below zero hands the death to the normal
                         // tick, which records it and lets kin grieve.
@@ -520,7 +535,8 @@ impl Simulation {
                         true
                     }
                     _ => false,
-                }
+                };
+                struck || roofs > 0
             }
             Command::Heal { x, y, radius } => {
                 let r = if radius <= 0.0 { 4.0 } else { radius.min(32.0) };
@@ -551,6 +567,23 @@ impl Simulation {
                 // command handler while holding the sim mutex).
                 let (x, y) = (clamp_cmd_coord(x), clamp_cmd_coord(y));
                 let r = radius.clamp(0, 24);
+                // Pouring the sea or raising rock over a building wrecks it.
+                let wrecks = match t {
+                    Tile::Water => Some(crate::sim::civ::building_damage::DamageCause::Flood),
+                    Tile::Rock | Tile::Mineral => Some(crate::sim::civ::building_damage::DamageCause::Buried),
+                    _ => None,
+                };
+                if let Some(cause) = wrecks {
+                    crate::sim::civ::building_damage::strike_buildings(
+                        self,
+                        x,
+                        y,
+                        r as f32 + 0.5,
+                        1.0,
+                        1.0,
+                        cause,
+                    );
+                }
                 for dx in -r..=r {
                     for dy in -r..=r {
                         if dx * dx + dy * dy > r * r {
@@ -789,6 +822,16 @@ impl Simulation {
                     n => format!("a meteor fell and killed {n} people"),
                 };
                 push_event(&mut self.events, self.tick_count, "meteor", "the sky", &what);
+                crate::sim::civ::building_damage::strike_buildings(
+                    self,
+                    x,
+                    y,
+                    r as f32 + 1.0,
+                    1.0,
+                    0.45,
+                    crate::sim::civ::building_damage::DamageCause::Meteor,
+                );
+                self.wither_plantings(x, y, r + 2);
                 for a in self.animals.iter_mut() {
                     if a.alive && (a.x - fx).hypot(a.y - fy) <= fr {
                         a.alive = false;
@@ -1090,6 +1133,15 @@ impl Simulation {
                         "a flood",
                         "swept over the land",
                     );
+                    crate::sim::civ::building_damage::strike_buildings(
+                        self,
+                        x,
+                        y,
+                        r as f32,
+                        0.35,
+                        0.1,
+                        crate::sim::civ::building_damage::DamageCause::Flood,
+                    );
                 }
                 flooded > 0
             }
@@ -1133,6 +1185,16 @@ impl Simulation {
                         "a blizzard",
                         "buried the land in snow",
                     );
+                    crate::sim::civ::building_damage::strike_buildings(
+                        self,
+                        x,
+                        y,
+                        r as f32,
+                        0.15,
+                        0.05,
+                        crate::sim::civ::building_damage::DamageCause::Frost,
+                    );
+                    self.frost_plantings(x, y, r);
                 }
                 frozen > 0
             }
@@ -1274,7 +1336,19 @@ impl Simulation {
                     "burst from the ground".to_string()
                 };
                 push_event(&mut self.events, self.tick_count, "danger", "a volcano", &detail);
-                changed
+                // The cone buries what it rises under; the ash fall cracks
+                // roofs further out.
+                let hit = crate::sim::civ::building_damage::strike_buildings(
+                    self,
+                    x,
+                    y,
+                    rf * 1.2,
+                    1.0,
+                    0.3,
+                    crate::sim::civ::building_damage::DamageCause::Lava,
+                );
+                self.wither_plantings(x, y, (rf * 1.5) as i32);
+                changed || hit > 0
             }
             Command::MeteorShower { x, y, radius } => {
                 let r = if radius <= 0.0 { 10.0 } else { radius.min(40.0) };
