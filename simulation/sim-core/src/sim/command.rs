@@ -1,5 +1,4 @@
 use crate::organism::animal::{Animal, AnimalKind};
-use crate::sim::agents::growth::spawn_organism_with_home;
 use crate::sim::simulation::Simulation;
 use crate::sim::world_events::push_event;
 use crate::world::grid::{WorldGrid, HEIGHT, WIDTH};
@@ -491,17 +490,18 @@ impl Simulation {
                     self.lineage_names.insert(lid.clone(), name);
                 }
                 let before = self.organisms.len();
+                let sexes = self.newcomer_sexes(&lid, n);
                 // Players can add as many people as they like. Births still
                 // respect the natural population limit; this ceiling only
                 // keeps a runaway click-fest from freezing the simulation.
                 let cap = SANDBOX_PEOPLE_LIMIT;
-                for _ in 0..n {
+                for sex in sexes {
                     if crate::sim::growth::population_slots_used(&self.organisms) >= cap {
                         break;
                     }
                     let jx = (x + self.rng.random_range(-2.0..2.0)).clamp(2.0, WIDTH as f32 - 2.0);
                     let jy = (y + self.rng.random_range(-2.0..2.0)).clamp(2.0, HEIGHT as f32 - 2.0);
-                    spawn_organism_with_home(
+                    crate::sim::agents::growth::spawn_organism_as(
                         &self.grid,
                         &mut self.organisms,
                         jx,
@@ -509,9 +509,11 @@ impl Simulation {
                         jx,
                         jy,
                         lid.clone(),
+                        sex,
                         &mut self.rng,
                     );
                 }
+                self.welcome_newcomers(before, &lid);
                 // Report failure when the world is full so the player sees
                 // why nobody appeared instead of a silent "applied".
                 self.organisms.len() > before

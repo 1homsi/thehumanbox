@@ -28,6 +28,12 @@ use crate::world::tiles::Tile;
 
 impl Simulation {
     pub(crate) fn spawn_founders(&mut self) {
+        let first = self.organisms.len();
+        self.place_founders();
+        self.grow_founders(first);
+    }
+
+    fn place_founders(&mut self) {
         const N_TRIBES: usize = 12;
         const TRIBE_SIZE: usize = 10;
         const TRIBE_RADIUS: i32 = 16;
