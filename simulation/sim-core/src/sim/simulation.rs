@@ -775,6 +775,8 @@ pub struct Simulation {
     pub(crate) tribe_peril: HashMap<String, super::civ::peril::Peril>,
     /// Each tribe's recent deaths and their causes, newest last (runtime).
     pub(crate) recent_deaths: HashMap<String, VecDeque<(u64, &'static str)>>,
+    /// When each faith lost its last follower (runtime).
+    pub(crate) faith_empty_since: HashMap<String, u64>,
     pub headlines: VecDeque<(u64, String)>,
     pub trades: VecDeque<super::civ::economy::Trade>,
     pub trade_routes: Vec<super::civ::trade_routes::TradeRoute>,
@@ -952,6 +954,7 @@ impl Simulation {
             lineage_peak_pop: HashMap::default(),
             tribe_peril: HashMap::default(),
             recent_deaths: HashMap::default(),
+            faith_empty_since: HashMap::default(),
             headlines: VecDeque::new(),
             trades: VecDeque::new(),
             trade_routes: Vec::new(),
