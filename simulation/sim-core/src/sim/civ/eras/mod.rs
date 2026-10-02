@@ -1,13 +1,17 @@
 use rustc_hash::FxHashSet as HashSet;
 use serde::{Deserialize, Serialize};
 
+pub mod akashic;
 pub mod atomic;
 pub mod bronze;
+pub mod chronal;
 pub mod classical;
 pub mod cyber;
+pub mod demiurge;
 pub mod digital;
 pub mod dyson;
 pub mod eldritch;
+pub mod entropic;
 pub mod fusion;
 pub mod galactic;
 pub mod genetic;
@@ -22,12 +26,17 @@ pub mod martian;
 pub mod medieval;
 pub mod modern;
 pub mod multiverse;
+pub mod mythic;
 pub mod nebular;
 pub mod neural;
+pub mod omega;
+pub mod oneiric;
 pub mod orbital;
+pub mod pantheon;
 pub mod posthuman;
 pub mod pre_stone;
 pub mod quantum;
+pub mod rebirth;
 pub mod renaissance;
 pub mod singularity;
 pub mod solar;
@@ -36,6 +45,7 @@ pub mod stellar;
 pub mod stone;
 pub mod transcendent;
 pub mod universal;
+pub mod voidborn;
 
 pub struct EraSpec {
     pub name: &'static str,
@@ -80,9 +90,19 @@ pub enum Era {
     Multiverse,
     Transcendent,
     Eldritch,
+    Voidborn,
+    Chronal,
+    Akashic,
+    Entropic,
+    Oneiric,
+    Mythic,
+    Demiurge,
+    Pantheon,
+    Omega,
+    Rebirth,
 }
 
-pub const LADDER: [Era; 35] = [
+pub const LADDER: [Era; 45] = [
     Era::PreStone,
     Era::Stone,
     Era::Bronze,
@@ -118,6 +138,16 @@ pub const LADDER: [Era; 35] = [
     Era::Multiverse,
     Era::Transcendent,
     Era::Eldritch,
+    Era::Voidborn,
+    Era::Chronal,
+    Era::Akashic,
+    Era::Entropic,
+    Era::Oneiric,
+    Era::Mythic,
+    Era::Demiurge,
+    Era::Pantheon,
+    Era::Omega,
+    Era::Rebirth,
 ];
 
 /// The original technology ladder was balanced around the hosted world's
@@ -126,6 +156,11 @@ pub const LADDER: [Era; 35] = [
 /// capacity selected for this world.
 const BASELINE_WORLD_CAPACITY: usize = 350;
 const FINAL_ERA_RAW_THRESHOLD: usize = 1260;
+
+/// The population a living world can really be counted on to reach.
+pub(crate) fn reachable_population(population_limit: usize) -> usize {
+    (population_limit * 85).div_ceil(100)
+}
 
 impl Era {
     pub fn spec(self) -> &'static EraSpec {
@@ -165,6 +200,16 @@ impl Era {
             Era::Multiverse => &multiverse::SPEC,
             Era::Transcendent => &transcendent::SPEC,
             Era::Eldritch => &eldritch::SPEC,
+            Era::Voidborn => &voidborn::SPEC,
+            Era::Chronal => &chronal::SPEC,
+            Era::Akashic => &akashic::SPEC,
+            Era::Entropic => &entropic::SPEC,
+            Era::Oneiric => &oneiric::SPEC,
+            Era::Mythic => &mythic::SPEC,
+            Era::Demiurge => &demiurge::SPEC,
+            Era::Pantheon => &pantheon::SPEC,
+            Era::Omega => &omega::SPEC,
+            Era::Rebirth => &rebirth::SPEC,
         }
     }
 
@@ -195,8 +240,9 @@ impl Era {
             .unwrap_or(0);
         // Pending births count against the population limit, so a living
         // world never sits exactly at its cap. Gating late eras on the full
-        // cap froze advancement; 90% of it is reachable and still demanding.
-        let reachable = (population_limit * 9).div_ceil(10);
+        // cap froze advancement; a living world hovers a little under it, so
+        // 85% is reachable at any moment and still demanding.
+        let reachable = reachable_population(population_limit);
         if raw <= BASELINE_WORLD_CAPACITY {
             return raw.min(reachable);
         }
@@ -285,8 +331,8 @@ mod tests {
                 .map(|era| era.population_gate(population_limit))
                 .collect();
             assert!(gates.windows(2).all(|window| window[0] <= window[1]));
-            let reachable = (population_limit * 9).div_ceil(10);
-            assert_eq!(Era::Eldritch.population_gate(population_limit), reachable);
+            let reachable = reachable_population(population_limit);
+            assert_eq!(Era::Rebirth.population_gate(population_limit), reachable);
             assert!(
                 reachable < population_limit,
                 "the final era never needs a full cap"
@@ -298,9 +344,9 @@ mod tests {
             Era::Posthuman.population_gate(500),
             Era::Posthuman.pop_threshold()
         );
-        assert_eq!(Era::Interstellar.population_gate(500), 353);
+        assert_eq!(Era::Interstellar.population_gate(500), 352);
         // A hosted 350 world can reach Posthuman with pending births.
-        assert!(Era::Posthuman.population_gate(350) <= 315);
+        assert!(Era::Posthuman.population_gate(350) <= reachable_population(350));
         assert_eq!(Era::Modern.population_gate(500), Era::Industrial.pop_threshold());
     }
 }

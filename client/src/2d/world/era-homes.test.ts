@@ -10,6 +10,7 @@ describe('era tiers', () => {
     expect(eraTier('atomic')).toBe(6)
     expect(eraTier('space')).toBe(7)
     expect(eraTier('kardashev-2')).toBe(8)
+    for (const far of ['eldritch', 'voidborn', 'chronal', 'rebirth']) expect(eraTier(far)).toBe(8)
     expect(eraTier(undefined)).toBe(0)
   })
 })
