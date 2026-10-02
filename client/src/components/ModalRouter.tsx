@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import { lineageFacts } from '../world/lineage-facts'
 import { lazyWithRetry as lazy } from '../utils/lazyWithRetry'
 import type { WorldState, OrganismState } from '../types'
 import type { LineageStrategy } from '../simulation/sandbox'
@@ -125,6 +126,7 @@ export function ModalRouter({ world, lineages, onGuide }: Props) {
             lineages={lineages}
             lineageNames={world.lineage_names}
             peril={world.tribes_in_peril}
+            facts={lineageFacts(world)}
             onClose={closeAllLineages}
           />
         </Suspense>
