@@ -688,6 +688,7 @@ impl Simulation {
                             "location": [b.location.0, b.location.1],
                             "started_tick": b.started_tick,
                             "ended": b.ended_tick.is_some(),
+                            "ended_tick": b.ended_tick,
                             "outcome": b.outcome.map(|o| format!("{:?}", o)),
                             "casualties_a": b.casualties_a,
                             "casualties_d": b.casualties_d,
