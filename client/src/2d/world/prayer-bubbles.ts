@@ -157,3 +157,38 @@ export function mergePrayerBubbles<T>(spots: BubbleSpot<T>[], spacing: number) {
   }
   return out
 }
+
+/** World-pixel scale of bubbles at a camera zoom (matches the draw). */
+export function prayerBubbleScale(zoom: number): number {
+  return Math.max(1, 1.6 / Math.max(0.05, zoom))
+}
+
+/**
+ * The prayer whose bubble covers a point in map pixels, if any. Uses the
+ * same anchor and box as `drawPrayerBubble`, padded a little for fingers.
+ */
+export function prayerAtPoint<T extends { x: number; y: number }>(
+  prayers: readonly T[],
+  px: number,
+  py: number,
+  origin: { x: number; y: number },
+  tile: number,
+  zoom: number,
+): T | null {
+  const s = prayerBubbleScale(zoom)
+  let best: T | null = null
+  let bestD = Infinity
+  for (const p of prayers) {
+    const ax = (p.x - origin.x) * tile + tile / 2
+    const ay = (p.y - origin.y) * tile - 8
+    const lx = (px - ax) / s
+    const ly = (py - ay) / s
+    if (lx < -10 || lx > 10 || ly < -20 || ly > 0) continue
+    const d = Math.hypot(lx, ly + 11)
+    if (d < bestD) {
+      bestD = d
+      best = p
+    }
+  }
+  return best
+}

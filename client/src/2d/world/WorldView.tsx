@@ -45,7 +45,7 @@ import {
   useDynamicCanvas,
   type GameControls,
 } from 'cubeforge'
-import type { AnimalState, OrganismState, WorldState } from '../../types'
+import type { AnimalState, OrganismState, PrayerInfo, WorldState } from '../../types'
 import type { InterpRefs } from '../../simulation/useSimulation'
 import { useUIStore, type ViewFlags } from '../../stores/store'
 import { lineageColor, cbFireRgba } from '../../utils/constants'
@@ -65,7 +65,7 @@ import { normalizeLineageEras } from '../../utils/lineageEras'
 import { useSceneStore } from '../../stores/scene'
 import { farmCropColor, farmProgress, farmStage } from '../../world/farms'
 import { drawPlanting } from './plantings'
-import { drawPrayerBubble, mergePrayerBubbles } from './prayer-bubbles'
+import { drawPrayerBubble, mergePrayerBubbles, prayerAtPoint, prayerBubbleScale } from './prayer-bubbles'
 import { drawPrayerFeedback, prayerEffectsActive, updatePrayerFeedback } from './prayer-feedback'
 import { prayerTimeLeft } from '../../world/prayers'
 import { useCameraFocus } from '../../stores/camera-focus'
@@ -2769,7 +2769,7 @@ export function drawWorldOnCanvas(
   if (world.prayers && world.prayers.length > 0 && !viewFlags.hideUI) {
     // Keep bubbles readable when zoomed out: never smaller than ~21px on
     // screen, never larger than their pixel-art size when zoomed in.
-    const bubbleScale = Math.max(1, 1.6 / Math.max(0.05, cameraZoom))
+    const bubbleScale = prayerBubbleScale(cameraZoom)
     // Bubbles that would overlap merge into one with a count, most urgent
     // on top, so a crowded valley doesn't turn into a pile of speech.
     const merged = mergePrayerBubbles(
@@ -3468,6 +3468,8 @@ interface Props {
   sandboxToolId?: string | null
   sandboxRadius?: number
   onSandboxApply?: (worldX: number, worldY: number) => void
+  /** A prayer bubble on the map was clicked. */
+  onPrayerClick?: (prayer: PrayerInfo) => void
 }
 
 export function WorldView({
@@ -3479,6 +3481,7 @@ export function WorldView({
   sandboxToolId,
   sandboxRadius,
   onSandboxApply,
+  onPrayerClick,
 }: Props) {
   const { bursts, spawn: spawnBurst } = useSandboxBursts()
   const selectedOrgId = useUIStore((s) => s.selectedOrgId)
@@ -3512,6 +3515,7 @@ export function WorldView({
   }, [focusRequest, ox, oy])
   const [dims, setDims] = useState({ w: 0, h: 0 })
   const [mapReady, setMapReady] = useState(false)
+  const [overPrayer, setOverPrayer] = useState(false)
   const [renderBackend, setRenderBackend] = useState<'gpu' | 'canvas'>(() =>
     canUseWorldGPU() ? 'gpu' : 'canvas',
   )
@@ -3616,6 +3620,22 @@ export function WorldView({
       return
     }
 
+    // A prayer bubble is a button: clicking it goes to help that tribe.
+    if (onPrayerClick && world.prayers?.length && !viewFlags.hideUI) {
+      const prayer = prayerAtPoint(
+        world.prayers,
+        canvasTileX * TILE,
+        canvasTileY * TILE,
+        { x: ox, y: oy },
+        TILE,
+        zoom,
+      )
+      if (prayer) {
+        onPrayerClick(prayer)
+        return
+      }
+    }
+
     const tx = Math.floor(worldX)
     const ty = Math.floor(worldY)
 
@@ -3703,7 +3723,7 @@ export function WorldView({
         flex: 1,
         minWidth: 0,
         overflow: 'hidden',
-        cursor: sandboxArmed ? 'crosshair' : 'grab',
+        cursor: sandboxArmed ? 'crosshair' : overPrayer ? 'pointer' : 'grab',
         position: 'relative',
         // touch-action: none stops the browser from claiming
         // two-finger pinch as page-zoom; the gesture handler
@@ -3715,6 +3735,16 @@ export function WorldView({
         const down = pointerDownPos.current
         if (down && ((e.clientX - down.x) ** 2 + (e.clientY - down.y) ** 2 > 36 || e.pointerId !== down.id))
           down.moved = true
+        // Show a hand over prayer bubbles so they read as buttons.
+        let hovering = false
+        if (!sandboxArmed && !down && world.prayers?.length && containerRef.current) {
+          const rect = containerRef.current.getBoundingClientRect()
+          const { x: camX, y: camY, zoom } = cameraStateRef.current
+          const mx = camX + (e.clientX - rect.left - dims.w / 2) / zoom
+          const my = camY + (e.clientY - rect.top - dims.h / 2) / zoom
+          hovering = !!prayerAtPoint(world.prayers, mx, my, { x: ox, y: oy }, TILE, zoom)
+        }
+        if (hovering !== overPrayer) setOverPrayer(hovering)
       }}
       onPointerCancel={() => {
         if (pointerDownPos.current) pointerDownPos.current.moved = true
