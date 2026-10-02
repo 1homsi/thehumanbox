@@ -1,7 +1,16 @@
 import { useEffect, useRef, type MutableRefObject } from 'react'
 import { useCamera, useGestures } from 'cubeforge'
 import { useUIStore } from '../../stores/store'
-import { clampMapCamera, isMapControl, zoomMapAt, type MapCamera, type MapCommand } from './camera-controls'
+import {
+  clampMapCamera,
+  initialMapCamera,
+  isMapControl,
+  MAX_MAP_ZOOM,
+  minMapZoom,
+  zoomMapAt,
+  type MapCamera,
+  type MapCommand,
+} from './camera-controls'
 
 interface Props {
   worldW: number
@@ -26,7 +35,7 @@ export function MapCameraController({
   const camera = useCamera()
   const initialized = useRef(false)
   const previousFollow = useRef(false)
-  const minZoom = Math.min(containerW / worldW, containerH / worldH) * 0.85
+  const minZoom = minMapZoom({ w: worldW, h: worldH }, { w: containerW, h: containerH })
   const apply = (next: MapCamera) => {
     const bounded = clampMapCamera(next, { w: worldW, h: worldH }, { w: containerW, h: containerH })
     camera.setZoom(bounded.zoom)
@@ -38,10 +47,12 @@ export function MapCameraController({
 
   useEffect(() => {
     let raf = 0
+    const opening = initialMapCamera({ w: worldW, h: worldH }, { w: containerW, h: containerH })
+    // Wait for the viewport to be measured; this effect runs again when it is.
+    if (!opening) return
     const init = () => {
       if (initialized.current) return
-      const zoom = Math.min(containerW / worldW, containerH / worldH) * 0.95
-      applyRef.current({ x: worldW / 2, y: worldH / 2, zoom })
+      applyRef.current(opening)
       const position = camera.getPosition()
       if (Math.abs(position.x - worldW / 2) < 2 && Math.abs(position.y - worldH / 2) < 2)
         initialized.current = true
@@ -67,7 +78,7 @@ export function MapCameraController({
     }
     const zoom = (factor: number, point = { x: containerW / 2, y: containerH / 2 }) => {
       const current = cameraStateRef.current
-      const next = Math.max(minZoom, Math.min(8, current.zoom * factor))
+      const next = Math.max(minZoom, Math.min(MAX_MAP_ZOOM, current.zoom * factor))
       applyRef.current(zoomMapAt(current, next, point, { w: containerW, h: containerH }))
     }
     const onDown = (e: PointerEvent) => {
@@ -144,13 +155,10 @@ export function MapCameraController({
       if (command) {
         commandRef.current = null
         stopFollow()
-        if (command.kind === 'fit')
-          applyRef.current({
-            x: worldW / 2,
-            y: worldH / 2,
-            zoom: Math.min(containerW / worldW, containerH / worldH) * 0.95,
-          })
-        else if (command.kind === 'zoom') zoom(command.factor)
+        if (command.kind === 'fit') {
+          const opening = initialMapCamera({ w: worldW, h: worldH }, { w: containerW, h: containerH })
+          if (opening) applyRef.current(opening)
+        } else if (command.kind === 'zoom') zoom(command.factor)
         else applyRef.current({ x: command.x, y: command.y, zoom: Math.max(cameraStateRef.current.zoom, 2) })
       }
       if (keys.size && document.activeElement === containerEl) {
@@ -193,7 +201,10 @@ export function MapCameraController({
     {
       onPinch: ({ delta }) => {
         const current = cameraStateRef.current
-        applyRef.current({ ...current, zoom: Math.max(minZoom, Math.min(8, current.zoom * (1 + delta))) })
+        applyRef.current({
+          ...current,
+          zoom: Math.max(minZoom, Math.min(MAX_MAP_ZOOM, current.zoom * (1 + delta))),
+        })
       },
     },
     { target: containerEl },

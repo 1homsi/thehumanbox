@@ -68,6 +68,14 @@ import { drawPlanting } from './plantings'
 import { drawBlessings, drawFireworks, updateWorldMoments, worldMomentsActive } from './world-moments'
 import { drawPrayerBubble, mergePrayerBubbles, prayerAtPoint, prayerBubbleScale } from './prayer-bubbles'
 import {
+  drawSettlementLabels,
+  labelScale,
+  placeSettlementLabels,
+  subFont,
+  titleFont,
+  type SettlementLabel,
+} from './settlement-labels'
+import {
   celebrating,
   drawCelebrationGlyph,
   drawPrayerFeedback,
@@ -2195,6 +2203,8 @@ export function drawWorldOnCanvas(
     }
   }
 
+  // Collected with the buildings, drawn above everything else on the map.
+  const settlementLabels: SettlementLabel[] = []
   if (world.buildings && world.buildings.length > 0) {
     // Viewport-clip the building loop. Buildings are world-positioned;
     // c0/r0/c1/r1 are the tile-aligned visible window already computed
@@ -2289,16 +2299,13 @@ export function drawWorldOnCanvas(
       }
     }
     const lineageNames = world.lineage_names ?? {}
-    ctx.save()
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
     for (const c of clusters) {
       const major = (c.tier ?? (c.count >= 12 ? 5 : 0)) >= 5
       const showSettlementLabel =
         c.tier !== 0 && !(c.tier === undefined && c.count < 4) && (buildingDetail !== 'overview' || major)
       if (!showSettlementLabel) continue
       const name = c.name ?? lineageNames[c.lineage] ?? c.lineage.slice(0, 6)
-      const label =
+      const title =
         c.tier !== undefined
           ? c.tier >= 5
             ? `${name.toUpperCase()} CITY`
@@ -2308,25 +2315,17 @@ export function drawWorldOnCanvas(
             : c.count >= 8
               ? `${name} town`
               : `${name} village`
-      // Font must be set before measuring; clamp so edge settlements
-      // don't render half-off the world canvas.
-      ctx.font = major ? 'bold 12px monospace' : '10px monospace'
-      const halfW = ctx.measureText(label).width / 2
-      const lx = Math.min(Math.max((c.cx - ox) * TILE, halfW + 4), Math.max(W - halfW - 4, halfW + 4))
-      const ly = Math.max((c.cy - oy) * TILE - TILE * 2, 10)
-      ctx.fillStyle = 'rgba(0,0,0,0.65)'
-      ctx.fillText(label, lx + 1, ly + 1)
-      ctx.fillStyle = major ? '#ffd28a' : (c.tier ?? 0) >= 4 || c.count >= 8 ? '#e5c89a' : '#c8b890'
-      ctx.fillText(label, lx, ly)
-      ctx.font = '8px monospace'
-      ctx.fillStyle = '#8a8170'
-      ctx.fillText(
-        c.population !== undefined ? `${c.population} people · ${c.count} buildings` : `${c.count} bldgs`,
-        lx,
-        ly + 10,
-      )
+      settlementLabels.push({
+        x: (c.cx - ox) * TILE,
+        y: (c.cy - oy) * TILE,
+        title,
+        sub:
+          c.population !== undefined ? `${c.population} people · ${c.count} buildings` : `${c.count} bldgs`,
+        major,
+        priority: (c.tier ?? (c.count >= 12 ? 5 : c.count >= 8 ? 4 : 2)) * 10000 + (c.population ?? c.count),
+        color: major ? '#ffd28a' : (c.tier ?? 0) >= 4 || c.count >= 8 ? '#e5c89a' : '#c8b890',
+      })
     }
-    ctx.restore()
   }
 
   drawTradeNetwork2D(ctx, world, { c0, c1, r0, r1 }, t)
@@ -2914,6 +2913,17 @@ export function drawWorldOnCanvas(
   }
 
   drawEraTraffic(ctx, world, ox, oy, W, H, cameraZoom, t)
+  if (settlementLabels.length > 0 && !viewFlags.hideUI) {
+    const scale = labelScale(cameraZoom)
+    const measure = (text: string, kind: 'major' | 'minor' | 'sub') => {
+      ctx.font = kind === 'sub' ? subFont(1) : titleFont(kind === 'major', 1)
+      return ctx.measureText(text).width
+    }
+    drawSettlementLabels(
+      ctx,
+      placeSettlementLabels(settlementLabels, scale, measure, { w: W, h: H }, TILE * 2),
+    )
+  }
   updateWorldMoments(world, t)
   {
     const toPx = (x: number, y: number): [number, number] => [(x - ox) * TILE + TILE / 2, (y - oy) * TILE]

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clampMapCamera, screenToMap, zoomMapAt } from './camera-controls'
+import { clampMapCamera, initialMapCamera, minMapZoom, screenToMap, zoomMapAt } from './camera-controls'
 
 const viewport = { w: 800, h: 600 }
 const world = { w: 4800, h: 2400 }
@@ -40,5 +40,22 @@ describe('2D map navigation', () => {
       y: 1200,
       zoom: 0.2,
     })
+  })
+  it('waits for a measured viewport before choosing the opening view', () => {
+    expect(initialMapCamera(world, { w: 0, h: 0 })).toBeNull()
+    expect(initialMapCamera(world, { w: 800, h: 0 })).toBeNull()
+    const opening = initialMapCamera(world, viewport)!
+    expect(opening.x).toBe(2400)
+    expect(opening.y).toBe(1200)
+    // The whole world fits, with a little sea around it.
+    expect(opening.zoom * world.w).toBeLessThanOrEqual(viewport.w)
+    expect(opening.zoom).toBeGreaterThan(minMapZoom(world, viewport))
+  })
+  it('never keeps a camera zoomed to nothing', () => {
+    for (const zoom of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+      const camera = clampMapCamera({ x: 10, y: 10, zoom }, world, viewport)
+      expect(camera.zoom).toBeCloseTo(initialMapCamera(world, viewport)!.zoom)
+      expect(camera.x).toBe(2400)
+    }
   })
 })
