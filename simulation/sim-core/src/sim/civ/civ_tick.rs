@@ -1582,8 +1582,9 @@ fn tick_buildings_construct(sim: &mut Simulation) {
                 if let Some(kind) = devout_target(sim, &lid, era, pop, &considered) {
                     considered.insert(kind);
                     let (cx, cy) = lineage_center(sim, &lid);
-                    if (cx, cy) != (0, 0)
-                        && try_start_building_with(sim, &lid, kind, cx, cy, &mut failed_sites)
+                    if super::vacancy::take_over_empty(sim, &lid, kind)
+                        || ((cx, cy) != (0, 0)
+                            && try_start_building_with(sim, &lid, kind, cx, cy, &mut failed_sites))
                     {
                         started = Some(kind);
                     }
@@ -1595,6 +1596,11 @@ fn tick_buildings_construct(sim: &mut Simulation) {
                 };
                 // Existing civic projects retain their era and population gates.
                 considered.insert(kind);
+                // A vanished tribe's empty hall nearby serves as well as a new one.
+                if super::vacancy::take_over_empty(sim, &lid, kind) {
+                    started = Some(kind);
+                    break;
+                }
                 let (cx, cy) = lineage_center(sim, &lid);
                 if cx == 0 && cy == 0 {
                     break;
