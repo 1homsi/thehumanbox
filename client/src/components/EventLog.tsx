@@ -23,11 +23,39 @@ const DRAMA_EVENT_TYPES = new Set([
   'strategy_redirected',
   'prayer',
   'forsaken',
+  'answered',
+  'building_ruined',
+  'meteor',
+  'era_advance',
+  'disease_death',
+  'smite',
+  'danger',
 ])
+
+const FILTER_KEY = 'thb-event-filter-v1'
+
+/** The log opens on what matters; the everyday chatter is one click away. */
+function savedImportantOnly(): boolean {
+  try {
+    return window.localStorage.getItem(FILTER_KEY) !== 'all'
+  } catch {
+    return true
+  }
+}
 
 function EventLogImpl() {
   const events = useWorldStore((s) => s.world?.events)
-  const [dramaOnly, setDramaOnly] = useState(false)
+  const [dramaOnly, setDramaOnlyState] = useState(savedImportantOnly)
+  const setDramaOnly = (update: (v: boolean) => boolean) =>
+    setDramaOnlyState((v) => {
+      const next = update(v)
+      try {
+        window.localStorage.setItem(FILTER_KEY, next ? 'important' : 'all')
+      } catch {
+        // The choice simply resets next time.
+      }
+      return next
+    })
 
   const recent = useMemo(() => {
     if (!events) return []
@@ -47,7 +75,11 @@ function EventLogImpl() {
         EVENTS
         <button
           onClick={() => setDramaOnly((v) => !v)}
-          title="show only dramatic events"
+          title={
+            dramaOnly
+              ? 'Showing what matters. Click to show everything.'
+              : 'Showing everything. Click to show only what matters.'
+          }
           style={{
             marginLeft: 8,
             fontSize: 9,
@@ -61,7 +93,7 @@ function EventLogImpl() {
             textTransform: 'uppercase',
           }}
         >
-          ⚔ drama
+          {dramaOnly ? '★ important' : '≡ all'}
         </button>
       </div>
       <div className="event-log" role="log" aria-live="polite" aria-labelledby="event-log-heading">
