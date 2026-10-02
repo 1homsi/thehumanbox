@@ -76,6 +76,7 @@ import {
   placeSettlementLabels,
   subFont,
   titleFont,
+  type PlacedLabel,
   type SettlementLabel,
 } from './settlement-labels'
 import {
@@ -2291,6 +2292,17 @@ export function drawWorldOnCanvas(
   }
 
   drawTradeNetwork2D(ctx, world, { c0, c1, r0, r1 }, t, 'caravans')
+  // Town names claim their place before people's name tags, so the two never
+  // pile on each other; the names step aside for the towns.
+  let placedSettlementLabels: PlacedLabel[] = []
+  if (settlementLabels.length > 0 && !viewFlags.hideUI) {
+    const scale = labelScale(cameraZoom)
+    const measure = (text: string, kind: 'major' | 'minor' | 'sub') => {
+      ctx.font = kind === 'sub' ? subFont(1) : titleFont(kind === 'major', 1)
+      return ctx.measureText(text).width
+    }
+    placedSettlementLabels = placeSettlementLabels(settlementLabels, scale, measure, { w: W, h: H }, TILE * 2)
+  }
 
   if (viewFlags.animals && animals.length > 0) {
     ctx.save()
@@ -2493,6 +2505,7 @@ export function drawWorldOnCanvas(
   const labelIds =
     characterDetail !== 'overview' && viewFlags.names ? crowdLabelIds(drawnOrganisms, cameraZoom) : null
   const labelPlacer = new LabelPlacer()
+  for (const p of placedSettlementLabels) labelPlacer.place(p.cx, p.cy + p.h / 2, p.w, p.h, true)
   // Where each praying tribe gathers, for the raised-hands glyphs.
   const prayerSpots = new Map((world.prayers ?? []).map((p) => [p.lineage_id, p] as const))
   // Batch every organism shadow into two paths (focused / dimmed) so the
@@ -2892,17 +2905,7 @@ export function drawWorldOnCanvas(
       age,
     )
   }
-  if (settlementLabels.length > 0 && !viewFlags.hideUI) {
-    const scale = labelScale(cameraZoom)
-    const measure = (text: string, kind: 'major' | 'minor' | 'sub') => {
-      ctx.font = kind === 'sub' ? subFont(1) : titleFont(kind === 'major', 1)
-      return ctx.measureText(text).width
-    }
-    drawSettlementLabels(
-      ctx,
-      placeSettlementLabels(settlementLabels, scale, measure, { w: W, h: H }, TILE * 2),
-    )
-  }
+  if (placedSettlementLabels.length > 0) drawSettlementLabels(ctx, placedSettlementLabels)
   updateWorldMoments(world, t)
   {
     const toPx = (x: number, y: number): [number, number] => [(x - ox) * TILE + TILE / 2, (y - oy) * TILE]
