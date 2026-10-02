@@ -1284,6 +1284,8 @@ impl Simulation {
             lineage_peak_pop: state.lineage_peak_pop,
             tribe_peril: HashMap::default(),
             teach_cooldown: HashMap::default(),
+            grave_queue: Vec::new(),
+            cemeteries: HashMap::default(),
             orphans_cared: Default::default(),
             recent_deaths: HashMap::default(),
             faith_empty_since: HashMap::default(),

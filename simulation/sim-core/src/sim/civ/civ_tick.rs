@@ -60,6 +60,9 @@ pub fn tick_civ(sim: &mut Simulation, spatial: Option<&SpatialIndex>) {
         tick_dynasty_watch(sim);
         forget_vanished_tribes(sim);
     }
+    if tick > 0 && tick.is_multiple_of(super::graves::GRAVE_STEP) {
+        sim.tick_graves();
+    }
     if tick > 0 && tick.is_multiple_of(super::orphans::ORPHAN_STEP) {
         sim.tick_orphans();
     }
@@ -1901,12 +1904,12 @@ fn tick_building_progress(sim: &mut Simulation) {
     }
 }
 
-fn footprint_cells(kind: BuildingKind, x: i32, y: i32) -> impl Iterator<Item = (i32, i32)> {
+pub(super) fn footprint_cells(kind: BuildingKind, x: i32, y: i32) -> impl Iterator<Item = (i32, i32)> {
     let (w, h) = kind.footprint();
     (y..y + i32::from(h)).flat_map(move |ty| (x..x + i32::from(w)).map(move |tx| (tx, ty)))
 }
 
-fn prop_site_is_clear(
+pub(super) fn prop_site_is_clear(
     grid: &crate::world::grid::WorldGrid,
     occupied: &HashSet<(i32, i32)>,
     kind: BuildingKind,
