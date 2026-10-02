@@ -2700,3 +2700,41 @@ fn wild_bears_hibernate_through_winter() {
         "it wakes in spring"
     );
 }
+
+/// Birds fly south for the winter, and young animals are only born in
+/// spring and summer.
+#[test]
+fn birds_migrate_and_animals_breed_in_season() {
+    use crate::organism::animal::AnimalKind;
+    let winter = crate::sim::config::SEASON_LENGTH * 2 + 5;
+    let mut sim = Simulation::new(14);
+    sim.tick_count = winter;
+    let before = sim.animals.iter().filter(|a| a.alive).count();
+    let max_id = sim.animals.iter().map(|a| a.id).max().unwrap_or(0);
+    for _ in 0..200 {
+        sim.tick();
+    }
+    let birds: Vec<_> = sim
+        .animals
+        .iter()
+        .filter(|a| a.alive && a.kind == AnimalKind::Bird)
+        .collect();
+    assert!(!birds.is_empty());
+    assert!(birds.iter().all(|b| b.away), "every wild bird is away in winter");
+    // Respawn floors may top up, but no young are born in winter.
+    let born = sim
+        .animals
+        .iter()
+        .filter(|a| a.id > max_id && a.kind != AnimalKind::Zombie)
+        .count();
+    assert!(born <= before / 4, "{born} animals appeared in winter");
+    sim.tick_count = crate::sim::config::SEASON_LENGTH * 3 + 5;
+    sim.tick();
+    assert!(
+        sim.animals
+            .iter()
+            .filter(|a| a.kind == AnimalKind::Bird)
+            .all(|b| !b.away),
+        "birds return in spring"
+    );
+}

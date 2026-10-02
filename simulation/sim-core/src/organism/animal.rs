@@ -226,6 +226,8 @@ pub struct Animal {
     pub heading: u8,
     /// Asleep for the winter (wild bears). Recomputed every tick, not saved.
     pub sleeping: bool,
+    /// Flown south for the winter (wild birds). Recomputed every tick.
+    pub away: bool,
 }
 
 impl Animal {
@@ -242,6 +244,7 @@ impl Animal {
             name: None,
             heading: (id % 8) as u8,
             sleeping: false,
+            away: false,
         }
     }
 
@@ -458,6 +461,8 @@ pub struct AnimalJson {
     pub name: Option<String>,
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub sleeping: bool,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub away: bool,
 }
 
 impl Animal {
@@ -469,6 +474,7 @@ impl Animal {
             kind: self.kind.name(),
             name: self.name.clone(),
             sleeping: self.sleeping,
+            away: self.away,
         }
     }
 }
