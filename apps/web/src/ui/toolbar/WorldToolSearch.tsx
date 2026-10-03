@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ToolSprite } from './ToolSprite'
 import { Tooltip } from './Tooltip'
@@ -6,27 +6,66 @@ import type { SandboxTool } from '../../simulation/sandbox'
 import { searchWorldTools } from './tool-search'
 import './world-tool-search.css'
 
+type ToolResult = ReturnType<typeof searchWorldTools>[number]
+
+// The dialog body holds a button and sprite for every world tool. It is mounted
+// even while the dialog is closed, and the toolbar re-renders with every world
+// frame, so the list only re-renders when the results or the handler change.
+const ToolResults = memo(function ToolResults({
+  results,
+  onPick,
+}: {
+  results: ToolResult[]
+  onPick: (tool: SandboxTool) => void
+}) {
+  return (
+    <div className="tool-search-results">
+      {results.map(({ category, tool }) => (
+        <button key={tool.id} onClick={() => onPick(tool)}>
+          <span className="tool-search-icon" aria-hidden="true">
+            <ToolSprite icon={tool.icon} />
+          </span>
+          <span>
+            <strong>{tool.label}</strong>
+            <small>
+              {category} · {tool.mode === 'point' ? 'place on the map' : 'apply immediately'}
+            </small>
+          </span>
+          <span aria-hidden="true">→</span>
+        </button>
+      ))}
+    </div>
+  )
+})
+
 export function WorldToolSearch({ onPick }: { onPick: (tool: SandboxTool) => void }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const dialog = useRef<HTMLDialogElement>(null)
   const input = useRef<HTMLInputElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
-  const results = searchWorldTools(query)
+  const results = useMemo(() => searchWorldTools(query), [query])
+  const onPickRef = useRef(onPick)
+  useEffect(() => {
+    onPickRef.current = onPick
+  })
   useEffect(() => {
     if (open) {
       dialog.current?.showModal()
       input.current?.focus()
     } else dialog.current?.close()
   }, [open])
-  const close = () => {
+  const close = useCallback(() => {
     setOpen(false)
     trigger.current?.focus()
-  }
-  const pick = (tool: SandboxTool) => {
-    onPick(tool)
-    close()
-  }
+  }, [])
+  const pick = useCallback(
+    (tool: SandboxTool) => {
+      onPickRef.current(tool)
+      close()
+    },
+    [close],
+  )
   return (
     <>
       <Tooltip
@@ -88,22 +127,7 @@ export function WorldToolSearch({ onPick }: { onPick: (tool: SandboxTool) => voi
             <p className="tool-search-count" role="status">
               {results.length} tools{query ? ' found' : ' available'} · choose a tool to continue
             </p>
-            <div className="tool-search-results">
-              {results.map(({ category, tool }) => (
-                <button key={tool.id} onClick={() => pick(tool)}>
-                  <span className="tool-search-icon" aria-hidden="true">
-                    <ToolSprite icon={tool.icon} />
-                  </span>
-                  <span>
-                    <strong>{tool.label}</strong>
-                    <small>
-                      {category} · {tool.mode === 'point' ? 'place on the map' : 'apply immediately'}
-                    </small>
-                  </span>
-                  <span aria-hidden="true">→</span>
-                </button>
-              ))}
-            </div>
+            <ToolResults results={results} onPick={pick} />
             {!results.length && (
               <p className="tool-search-empty">
                 No matching tools. Try a terrain type, animal, map layer, or time control.

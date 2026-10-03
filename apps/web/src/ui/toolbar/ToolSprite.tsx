@@ -1,3 +1,5 @@
+import { memo, type ReactElement } from 'react'
+
 const palette: Record<string, string> = {
   o: '#332c29',
   g: '#86ab59',
@@ -1163,7 +1165,30 @@ function centredViewBox(name: string, rows: readonly string[]): string {
   return box
 }
 
-export function ToolSprite({ icon, size = 24 }: { icon: string; size?: number }) {
+// The pixel rects for a sprite never change, but the toolbar and header re-render
+// on every world frame. Building ~100 <rect> elements per icon per render
+// dominated the live app's React time, so each sprite's element list is built once
+// and reused (React skips diffing children that are the same element objects).
+const spriteRects = new Map<string, ReactElement[]>()
+
+function rectsFor(name: string, rows: readonly string[]): ReactElement[] {
+  let rects = spriteRects.get(name)
+  if (!rects) {
+    rects = rows.flatMap((row, y) =>
+      [...row].flatMap((pixel, x) =>
+        pixel === '.'
+          ? []
+          : [<rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill={palette[pixel]} />],
+      ),
+    )
+    spriteRects.set(name, rects)
+  }
+  return rects
+}
+
+const SPRITE_STYLE = { display: 'block', flexShrink: 0 } as const
+
+export const ToolSprite = memo(function ToolSprite({ icon, size = 24 }: { icon: string; size?: number }) {
   const name = icons[icon] ?? 'cursor'
   const rows = sprites[name]
   return (
@@ -1174,15 +1199,9 @@ export function ToolSprite({ icon, size = 24 }: { icon: string; size?: number })
       shapeRendering="crispEdges"
       aria-hidden="true"
       focusable="false"
-      style={{ display: 'block', flexShrink: 0 }}
+      style={SPRITE_STYLE}
     >
-      {rows.flatMap((row, y) =>
-        [...row].flatMap((pixel, x) =>
-          pixel === '.'
-            ? []
-            : [<rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill={palette[pixel]} />],
-        ),
-      )}
+      {rectsFor(name, rows)}
     </svg>
   )
-}
+})
