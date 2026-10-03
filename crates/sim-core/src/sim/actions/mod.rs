@@ -15,6 +15,7 @@ mod eligibility;
 mod registered;
 mod registry;
 mod reservation;
+mod resolved;
 #[cfg(test)]
 mod tests;
 
@@ -27,6 +28,8 @@ use eligibility::*;
 use registry::ActionDef;
 pub use registry::{registered_actions, FIRST_REGISTERED_ID, LAST_REGISTERED_ID};
 use reservation::*;
+pub(crate) use resolved::discovery_bit;
+use resolved::{OrgGate, ResolvedBand};
 
 const ACTIONS_PER_BAND: usize = 8;
 

@@ -196,21 +196,19 @@ pub fn available_actions_into(
     let phase = stable_action_phase(&org.id, sim.tick_count);
     let mut semantically_eligible = [false; crate::organism::organism::ACTION_ID_SPACE];
     let mut place_cache = LocalPlaceCache::new();
-    for &band in BASE_ACTION_BANDS {
-        if band_is_eligible(sim, idx, ix, iy, band, era, context, &mut place_cache) {
+    let tables = resolved::tables();
+    let gate = tables.org_gate(org);
+    for resolved in &tables.base {
+        let band = resolved.band;
+        if band_is_eligible(sim, idx, ix, iy, resolved, era, context, &gate, &mut place_cache) {
             a.extend(band.start..=band.end);
             semantically_eligible[band.start..=band.end].fill(true);
         }
     }
     let mut eligible_by_family = [0u64; ACTION_FAMILY_COUNT];
-    for &band in ACTION_BANDS {
-        if band_is_eligible(sim, idx, ix, iy, band, era, context, &mut place_cache) {
-            semantically_eligible[band.start..=band.end].fill(true);
-            mark_eligible_family_band(&mut eligible_by_family, band.start, band.end);
-        }
-    }
-    for band in registry::bands() {
-        if band_is_eligible(sim, idx, ix, iy, band, era, context, &mut place_cache) {
+    for resolved in tables.banded.iter().chain(&tables.registered) {
+        let band = resolved.band;
+        if band_is_eligible(sim, idx, ix, iy, resolved, era, context, &gate, &mut place_cache) {
             semantically_eligible[band.start..=band.end].fill(true);
             mark_eligible_family_band(&mut eligible_by_family, band.start, band.end);
         }
