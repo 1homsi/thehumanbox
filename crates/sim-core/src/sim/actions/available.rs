@@ -194,7 +194,7 @@ pub fn available_actions_into(
         has_stone: org.inv_stone > 0,
     };
     let phase = stable_action_phase(&org.id, sim.tick_count);
-    let mut semantically_eligible = [false; crate::organism::organism::ACTION_ID_SPACE];
+    let mut semantically_eligible = ActionSet::new();
     let mut place_cache = LocalPlaceCache::new();
     let tables = resolved::tables();
     let gate = tables.org_gate(org);
@@ -202,29 +202,53 @@ pub fn available_actions_into(
         let band = resolved.band;
         if band_is_eligible(sim, idx, ix, iy, resolved, era, context, &gate, &mut place_cache) {
             a.extend(band.start..=band.end);
-            semantically_eligible[band.start..=band.end].fill(true);
+            semantically_eligible.insert_range(band.start, band.end);
         }
     }
     let mut eligible_by_family = [0u64; ACTION_FAMILY_COUNT];
     for resolved in tables.banded.iter().chain(&tables.registered) {
         let band = resolved.band;
         if band_is_eligible(sim, idx, ix, iy, resolved, era, context, &gate, &mut place_cache) {
-            semantically_eligible[band.start..=band.end].fill(true);
+            semantically_eligible.insert_range(band.start, band.end);
             mark_eligible_family_band(&mut eligible_by_family, band.start, band.end);
         }
     }
     extend_rotating_family_masks(a, &eligible_by_family, phase);
 
-    let mut seen = [false; crate::organism::organism::ACTION_ID_SPACE];
+    // A dead organism is turned down for every action by the trade-route check.
+    let actor_alive = org.alive;
+    let mut seen = ActionSet::new();
     a.retain(|action| {
-        !action_output_at_capacity(org, *action)
-            && (!action_requires_semantic_validation(*action) || semantically_eligible[*action])
-            && agriculture::action_is_possible(sim, idx, *action, ix, iy, near_water)
-            && religion_expanded::action_is_possible(sim, idx, *action, nearby, sim.tick_count)
-            && relationships_deep::action_is_possible(sim, idx, *action, nearby)
-            && crate::sim::civ::trade_routes::action_is_possible(sim, idx, *action, nearby)
-            && (*action != 2704 || crate::sim::civ::trade_routes::can_dispatch_caravan(sim, idx))
-            && registry::is_possible(sim, idx, *action, ix, iy)
-            && !std::mem::replace(&mut seen[*action], true)
+        let action = *action;
+        // Cheap, selective checks first: the context checks below can be costly,
+        // and most candidates fail the semantic one.
+        let context_check = CONTEXT_CHECKED[action];
+        actor_alive
+            && !(context_check && action_output_at_capacity(org, action))
+            && (!action_requires_semantic_validation(action) || semantically_eligible.contains(action))
+            && (!context_check
+                || (agriculture::action_is_possible(sim, idx, action, ix, iy, near_water)
+                    && religion_expanded::action_is_possible(sim, idx, action, nearby, sim.tick_count)
+                    && relationships_deep::action_is_possible(sim, idx, action, nearby)
+                    && crate::sim::civ::trade_routes::action_is_possible(sim, idx, action, nearby)
+                    && (action != 2704 || crate::sim::civ::trade_routes::can_dispatch_caravan(sim, idx))))
+            && registry::is_possible(sim, idx, action, ix, iy)
+            && seen.insert(action)
     });
 }
+
+/// The ids that the per-module checks in the filter above can turn down; every
+/// other id passes all of them, so they are not called for it. A table lookup
+/// replaces what used to be four jump-table calls per candidate. When one of
+/// those modules starts judging a new id, add it here (the test
+/// `ids_without_a_context_check_pass_every_context_check` catches a miss).
+pub(super) const CONTEXT_CHECKED: [bool; crate::organism::organism::ACTION_ID_SPACE] = {
+    let mut table = [false; crate::organism::organism::ACTION_ID_SPACE];
+    let mut action = 0;
+    while action < table.len() {
+        table[action] = matches!(action, 38 | 287..=289 | 336..=355 | 456..=469 | 473 | 474 | 2220 | 2221 | 2704)
+            || butchery::output_key(action).is_some();
+        action += 1;
+    }
+    table
+};
