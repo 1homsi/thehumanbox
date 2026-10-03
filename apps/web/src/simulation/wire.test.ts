@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { applyGridWire, expandOrgsSoa } from './wire'
-import type { GridWire } from '../types'
+import type { GridWire } from '../shared/types'
 
 const emptyWire = (w = 4, h = 3): GridWire => ({
   width: w,

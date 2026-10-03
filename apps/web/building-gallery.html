@@ -43,8 +43,8 @@
   ><button id="damage">Toggle damage</button>
   <div id="gallery"></div>
   <script type="module">
-    import { BUILDING_SPRITE_KINDS, getBuildingSprite } from '/src/2d/world/building-sprites.ts'
-    import { drawBuilding, resolveBuildingFootprint } from '/src/2d/world/buildings2d.ts'
+    import { BUILDING_SPRITE_KINDS, getBuildingSprite } from '/src/game/render/building-sprites.ts'
+    import { drawBuilding, resolveBuildingFootprint } from '/src/game/render/buildings2d.ts'
     let night = 0,
       damage = 0
     function render() {
