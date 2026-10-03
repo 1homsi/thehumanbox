@@ -37,16 +37,20 @@ jobs:
               - 'Makefile'
             sim:
               - *ci
-              - 'simulation/**'
-              - 'scripts/perf-gate.sh'
+              - 'apps/server/**'
+              - 'crates/**'
+              - 'Cargo.*'
+              - 'rustfmt.toml'
+              - 'clippy.toml'
+              - 'tools/perf-gate.sh'
             client:
               - *ci
-              - 'client/**'
-              - 'simulation/sim-core/**'
-              - 'simulation/Cargo.*'
+              - 'apps/web/**'
+              - 'crates/sim-core/**'
+              - 'Cargo.*'
             desktop:
               - *ci
-              - 'desktop/**'
+              - 'apps/desktop/**'
 
   simulation-lint:
     name: Simulation lint (fmt + clippy)
@@ -67,12 +71,10 @@ jobs:
           components: clippy, rustfmt
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: simulation -> target
+          workspaces: . -> target
       - name: cargo fmt --check
-        working-directory: simulation
         run: cargo fmt --all -- --check
       - name: cargo clippy
-        working-directory: simulation
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
   simulation-tests:
@@ -92,9 +94,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: simulation -> target
+          workspaces: . -> target
       - name: cargo test --release --locked --workspace
-        working-directory: simulation
         # --workspace so the sim-core crate's tests run too (the bulk of the
         # suite lives there after the core was split out for the wasm build).
         run: cargo test --release --locked --workspace
@@ -121,12 +122,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: simulation -> target
+          workspaces: . -> target
       - name: Build headless benchmark
-        working-directory: simulation
         run: cargo build --release --locked --bin headless
       - name: Enforce multi-seed tick budget
-        run: scripts/perf-gate.sh
+        run: tools/perf-gate.sh
 
   test-frontend:
     name: Test frontend
@@ -143,24 +143,24 @@ jobs:
         with:
           node-version-file: .node-version
           cache: pnpm
-          cache-dependency-path: client/pnpm-lock.yaml
+          cache-dependency-path: apps/web/pnpm-lock.yaml
       - name: pnpm install
-        working-directory: client
+        working-directory: apps/web
         run: pnpm install --frozen-lockfile
 
       - id: ts
         run: echo "build_ts=$(date -u +%s)" >> "$GITHUB_OUTPUT"
 
       - name: pnpm lint
-        working-directory: client
+        working-directory: apps/web
         run: pnpm lint
 
       - name: pnpm format:check
-        working-directory: client
+        working-directory: apps/web
         run: pnpm format:check
 
       - name: pnpm test
-        working-directory: client
+        working-directory: apps/web
         run: pnpm test
 
   build-wasm:
@@ -184,16 +184,17 @@ jobs:
         id: wasm-key
         run: |
           {
-            find simulation/sim-core -type f -not -path '*/target/*' -print0 | sort -z | xargs -0 sha256sum
-            sed '/^name = "simulation-rs"$/{n;d;}' simulation/Cargo.lock
-            grep -v '^version = ' simulation/Cargo.toml
+            find crates/sim-core -type f -not -path '*/target/*' -print0 | sort -z | xargs -0 sha256sum
+            sed '/^name = "simulation-rs"$/{n;d;}' Cargo.lock
+            grep -v '^version = ' apps/server/Cargo.toml
+            cat Cargo.toml
           } | sha256sum | cut -c1-32 > /tmp/wasm-key
           echo "key=wasm-sim-core-$(cat /tmp/wasm-key)" >> "$GITHUB_OUTPUT"
       - name: Restore wasm build
         id: wasm-cache
         uses: actions/cache@v6
         with:
-          path: client/src/wasm/sim-core
+          path: apps/web/src/wasm/sim-core
           key: ${{ steps.wasm-key.outputs.key }}
       - uses: dtolnay/rust-toolchain@stable
         if: steps.wasm-cache.outputs.cache-hit != 'true'
@@ -202,7 +203,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         if: steps.wasm-cache.outputs.cache-hit != 'true'
         with:
-          workspaces: simulation -> target
+          workspaces: . -> target
       - name: Install wasm-pack
         if: steps.wasm-cache.outputs.cache-hit != 'true'
         uses: taiki-e/install-action@v2
@@ -210,15 +211,14 @@ jobs:
           tool: wasm-pack
       - name: Build wasm sim-core
         if: steps.wasm-cache.outputs.cache-hit != 'true'
-        working-directory: simulation
         run: |
           RUSTFLAGS='--cfg getrandom_backend="wasm_js"' \
-            wasm-pack build sim-core --target web --release \
-            --out-dir ../../client/src/wasm/sim-core
+            wasm-pack build crates/sim-core --target web --release \
+            --out-dir ../../apps/web/src/wasm/sim-core
       - uses: actions/upload-artifact@v7
         with:
           name: sim-core-wasm
-          path: client/src/wasm/sim-core
+          path: apps/web/src/wasm/sim-core
           retention-days: 7
 
   build-frontend:
@@ -236,9 +236,9 @@ jobs:
         with:
           node-version-file: .node-version
           cache: pnpm
-          cache-dependency-path: client/pnpm-lock.yaml
+          cache-dependency-path: apps/web/pnpm-lock.yaml
       - name: pnpm install
-        working-directory: client
+        working-directory: apps/web
         run: pnpm install --frozen-lockfile
 
       - id: ts
@@ -248,10 +248,10 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: sim-core-wasm
-          path: client/src/wasm/sim-core
+          path: apps/web/src/wasm/sim-core
 
       - name: pnpm run build
-        working-directory: client
+        working-directory: apps/web
         run: pnpm run build
         env:
           VITE_GIT_SHA:      ${{ github.sha }}
@@ -267,7 +267,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: client-dist
-          path: client/dist
+          path: apps/web/dist
           retention-days: 7
 
   test-desktop:
@@ -285,15 +285,15 @@ jobs:
         with:
           node-version-file: .node-version
           cache: pnpm
-          cache-dependency-path: desktop/pnpm-lock.yaml
+          cache-dependency-path: apps/desktop/pnpm-lock.yaml
       - name: pnpm install
-        working-directory: desktop
+        working-directory: apps/desktop
         run: pnpm install --frozen-lockfile
       - name: tsc --noEmit
-        working-directory: desktop
+        working-directory: apps/desktop
         run: pnpm exec tsc -p tsconfig.json --noEmit
       - name: desktop main-process tests
-        working-directory: desktop
+        working-directory: apps/desktop
         run: pnpm run test:main
 
   bump-version:
@@ -321,7 +321,7 @@ jobs:
         id: bump
         run: |
           set -euo pipefail
-          CURRENT=$(grep '^version = ' simulation/Cargo.toml | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+          CURRENT=$(grep '^version = ' apps/server/Cargo.toml | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
           # Rollover scheme: patch increments to 99, then jumps to next
           # minor with patch reset to 0. e.g. 0.0.99 -> 0.1.0, 0.1.99 -> 0.2.0.
@@ -341,20 +341,20 @@ jobs:
           echo "Bumping $CURRENT -> $NEW"
           echo "new=$NEW" >> "$GITHUB_OUTPUT"
 
-          sed -i -E "0,/^version = \"[^\"]+\"$/s//version = \"$NEW\"/" simulation/Cargo.toml
+          sed -i -E "0,/^version = \"[^\"]+\"$/s//version = \"$NEW\"/" apps/server/Cargo.toml
 
           awk -v new="$NEW" '
             /^name = "simulation-rs"$/ { hit = 1; print; next }
             hit && /^version = / { sub(/"[^"]+"/, "\"" new "\""); hit = 0 }
             { print }
-          ' simulation/Cargo.lock > simulation/Cargo.lock.tmp
-          mv simulation/Cargo.lock.tmp simulation/Cargo.lock
+          ' Cargo.lock > Cargo.lock.tmp
+          mv Cargo.lock.tmp Cargo.lock
 
           tmp=$(mktemp)
-          jq --arg v "$NEW" '.version = $v' client/package.json > "$tmp" && mv "$tmp" client/package.json
+          jq --arg v "$NEW" '.version = $v' apps/web/package.json > "$tmp" && mv "$tmp" apps/web/package.json
 
           tmp=$(mktemp)
-          jq --arg v "$NEW" '.version = $v' desktop/package.json > "$tmp" && mv "$tmp" desktop/package.json
+          jq --arg v "$NEW" '.version = $v' apps/desktop/package.json > "$tmp" && mv "$tmp" apps/desktop/package.json
 
       - name: Commit + push as bump bot
         env:
@@ -363,7 +363,7 @@ jobs:
           set -euo pipefail
           git config user.name  "thb-bumpbot"
           git config user.email "bumpbot@thehumanbox.com"
-          git add simulation/Cargo.toml simulation/Cargo.lock client/package.json desktop/package.json
+          git add apps/server/Cargo.toml Cargo.lock apps/web/package.json apps/desktop/package.json
           git commit -m "chore: release $NEW [skip-bump]"
           git pull --rebase origin main
           git push
@@ -442,12 +442,12 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: client-dist
-          path: client/dist
+          path: apps/web/dist
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: client
+          workingDirectory: apps/web
           command: pages deploy dist --project-name=thehumanbox --branch=main

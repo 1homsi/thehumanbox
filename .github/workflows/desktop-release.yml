@@ -20,7 +20,7 @@ on:
         required: true
         type: string
       version:
-        description: 'Numeric version to stamp into desktop/package.json (e.g. 0.2.1)'
+        description: 'Numeric version to stamp into apps/desktop/package.json (e.g. 0.2.1)'
         required: true
         type: string
   workflow_dispatch:
@@ -29,7 +29,7 @@ on:
         description: 'Existing release tag to upload to (e.g. v0.2.1)'
         required: true
       version:
-        description: 'Numeric version to stamp into desktop/package.json (e.g. 0.2.1)'
+        description: 'Numeric version to stamp into apps/desktop/package.json (e.g. 0.2.1)'
         required: true
 
 permissions:
@@ -65,7 +65,7 @@ jobs:
         run: echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
 
       # The triggering SHA is the user's push, not the bump-bot's commit
-      # that updated desktop/package.json's version. Stamp the version in
+      # that updated apps/desktop/package.json's version. Stamp the version in
       # explicitly so electron-builder names artifacts + publishes to the
       # right release tag.
       - name: Stamp desktop version
@@ -73,9 +73,9 @@ jobs:
         run: |
           set -euo pipefail
           tmp=$(mktemp)
-          jq --arg v "${{ inputs.version }}" '.version = $v' desktop/package.json > "$tmp"
-          mv "$tmp" desktop/package.json
-          echo "desktop/package.json version → $(jq -r .version desktop/package.json)"
+          jq --arg v "${{ inputs.version }}" '.version = $v' apps/desktop/package.json > "$tmp"
+          mv "$tmp" apps/desktop/package.json
+          echo "apps/desktop/package.json version → $(jq -r .version apps/desktop/package.json)"
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -91,23 +91,22 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: sim-core-wasm
-          path: client/src/wasm/sim-core
+          path: apps/web/src/wasm/sim-core
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: simulation
+          workspaces: .
           key: ${{ matrix.sim_target }}
 
       - name: Build simulation binary
         shell: bash
-        working-directory: simulation
         run: cargo build --release --locked --bin simulation-rs --target ${{ matrix.sim_target }}
 
-      - name: Stage simulation binary into desktop/resources/bin/
+      - name: Stage simulation binary into apps/desktop/resources/bin/
         shell: bash
         run: |
-          mkdir -p desktop/resources/bin
-          cp simulation/target/${{ matrix.sim_target }}/release/${{ matrix.bin_name }} desktop/resources/bin/
+          mkdir -p apps/desktop/resources/bin
+          cp target/${{ matrix.sim_target }}/release/${{ matrix.bin_name }} apps/desktop/resources/bin/
 
       - name: Install wasm-pack
         if: steps.wasm.outcome != 'success'
@@ -118,10 +117,9 @@ jobs:
       - name: Build wasm sim-core (renderer imports it)
         if: steps.wasm.outcome != 'success'
         shell: bash
-        working-directory: simulation
         env:
           RUSTFLAGS: '--cfg getrandom_backend="wasm_js"'
-        run: wasm-pack build sim-core --target web --release --out-dir ../../client/src/wasm/sim-core
+        run: wasm-pack build crates/sim-core --target web --release --out-dir ../../apps/web/src/wasm/sim-core
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6
@@ -134,23 +132,23 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
           cache-dependency-path: |
-            client/pnpm-lock.yaml
-            desktop/pnpm-lock.yaml
+            apps/web/pnpm-lock.yaml
+            apps/desktop/pnpm-lock.yaml
 
       - name: Install client deps
-        working-directory: client
+        working-directory: apps/web
         run: pnpm install --frozen-lockfile
 
       - name: Install desktop deps
-        working-directory: desktop
+        working-directory: apps/desktop
         run: pnpm install --frozen-lockfile
 
       - name: Build + package desktop
-        working-directory: desktop
+        working-directory: apps/desktop
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EP_GH_IGNORE_TIME: 'true'
-          # Code signing intentionally disabled for now — see desktop/README.md
+          # Code signing intentionally disabled for now — see apps/desktop/README.md
           # for the bypass instructions users get on first launch. When we
           # have certs, wire CSC_LINK / CSC_KEY_PASSWORD / WIN_CSC_LINK /
           # WIN_CSC_KEY_PASSWORD via repo secrets and flip the flags in
@@ -168,5 +166,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: desktop-${{ matrix.label }}-out
-          path: desktop/out
+          path: apps/desktop/out
           retention-days: 7
