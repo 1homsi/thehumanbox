@@ -2,6 +2,7 @@ import { Result, ok, err } from 'neverthrow'
 import { decode as msgpackDecode } from '@msgpack/msgpack'
 import { gunzipSync } from 'fflate'
 import type { WorldState, GridState, GridWire, OrganismState, AnimalState } from '../shared/types'
+import { PATH_TRAIL_HOT } from '../shared/types'
 
 export type ParseError = { kind: 'json'; message: string } | { kind: 'schema'; issues: string[] }
 
@@ -482,6 +483,24 @@ export function parseWorldFrame(
   return ok(decoded as IncomingWorldFrame)
 }
 
+/** `row, col` pairs sorted row-major with duplicates removed. */
+function sortedUniqueCells(pairs: number[], width: number): Int32Array {
+  const n = pairs.length >> 1
+  const keys = new Float64Array(n)
+  for (let i = 0; i < n; i++) keys[i] = pairs[i * 2] * width + pairs[i * 2 + 1]
+  keys.sort()
+  const out: number[] = []
+  let prev = -1
+  for (let i = 0; i < n; i++) {
+    const key = keys[i]
+    if (key === prev) continue
+    prev = key
+    const row = Math.floor(key / width)
+    out.push(row, key - row * width)
+  }
+  return Int32Array.from(out)
+}
+
 function take2D(existing: number[][] | undefined, h: number, w: number, fill: number): number[][] {
   if (existing && existing.length === h && existing[0]?.length === w) {
     for (let r = 0; r < h; r++) {
@@ -512,17 +531,21 @@ export function applyGridWire(wire: GridWire, cache: GridState | null): GridStat
   let food_trail = cache?.food_trail
   let water_trail = cache?.water_trail
   let path_trail = cache?.path_trail
+  let path_trail_hot = cache?.path_trail_hot
   if (wire.trails) {
     food_trail = take2D(food_trail, h, w, 0)
     water_trail = take2D(water_trail, h, w, 0)
     path_trail = take2D(path_trail, h, w, 0)
+    const hot: number[] = []
     for (const [row, col, f, wv, p] of wire.trails) {
       if (row < h && col < w) {
         food_trail[row][col] = f / 100
         water_trail[row][col] = wv / 100
         path_trail[row][col] = p / 100
+        if (p / 100 >= PATH_TRAIL_HOT) hot.push(row, col)
       }
     }
+    path_trail_hot = sortedUniqueCells(hot, w)
   }
 
   let fertility = cache?.fertility
@@ -564,6 +587,7 @@ export function applyGridWire(wire: GridWire, cache: GridState | null): GridStat
     food_trail,
     water_trail,
     path_trail,
+    path_trail_hot,
     fertility,
     hazard,
   }
