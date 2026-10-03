@@ -1340,3 +1340,88 @@ fn toolmakers_fetch_stone_from_nearby_rock() {
     });
     assert!(quarried, "next to rock they quarry");
 }
+
+/// The frame builder converts organisms with `to_json_value_with`; the serde
+/// derive on `OrgJson` (still what the detail API serialises) is the
+/// reference. They must give equal values and equal bytes for every field,
+/// cold or hot, including the sparse and optional ones.
+#[test]
+fn direct_org_value_matches_the_serde_conversion() {
+    use crate::sim::simulation::Simulation;
+    let mut checked = 0;
+    for seed in [42u64, 7] {
+        let mut sim = Simulation::new(seed);
+        for _ in 0..900 {
+            sim.tick();
+        }
+        // Make sure the sparse and optional fields are all populated on some
+        // organisms, plus values serde turns into null.
+        for (n, org) in sim.organisms.iter_mut().enumerate() {
+            match n % 4 {
+                0 => {
+                    org.joy_ticks = 7;
+                    org.aspiration = "to build a bridge".into();
+                    org.father_id = Some("f-1".into());
+                    org.friends.insert("a-1".into(), "Ada".into());
+                    org.friends.insert("b-2".into(), "Bo".into());
+                    org.attributes.insert("kind".into());
+                    org.attributes.insert("brave".into());
+                    org.anchor_events.push((12, "first fire".into(), 0.63));
+                    org.tools.insert("axe".into(), 2);
+                    org.tools.insert("net".into(), 1);
+                    org.home_furniture = vec!["bed".into(), "hearth".into()];
+                    org.home_style_seed = 4;
+                    org.zodiac = "owl".into();
+                    org.birth_tick = 31;
+                    // Two long ids that share their first eight characters.
+                    org.org_trust.insert("abcdefgh-one".into(), 0.9);
+                    org.org_trust.insert("abcdefgh-two".into(), -0.7);
+                    org.org_trust.insert("zz".into(), 0.05);
+                    org.lineage_attitudes.insert("rival".into(), -0.4);
+                    org.lineage_attitudes.insert("kin".into(), 0.05);
+                }
+                1 => {
+                    org.x = f32::NAN;
+                    org.energy = f32::INFINITY;
+                    org.father_id = None;
+                }
+                _ => {}
+            }
+        }
+        for org in &sim.organisms {
+            // `learning_summary` scans each row once; the previous version
+            // scanned them twice. Same numbers, to the bit.
+            let states = org.q_table.len();
+            let old_promising = org.q_table.values().filter(|row| row.max_q() > 0.01).count();
+            let old_confidence = if states == 0 {
+                0.0
+            } else {
+                let total: f32 = org
+                    .q_table
+                    .values()
+                    .map(|row| (row.max_q().max(0.0) / 0.25).clamp(0.0, 1.0))
+                    .sum();
+                (total / states as f32 * 100.0).round() / 100.0
+            };
+            let learning = org.learning_summary();
+            assert_eq!(learning.states, states);
+            assert_eq!(learning.promising_states, old_promising);
+            assert_eq!(learning.confidence.to_bits(), old_confidence.to_bits());
+
+            for cold in [true, false] {
+                let reference = serde_json::to_value(org.to_json_with(cold)).unwrap();
+                let direct = org.to_json_value_with(cold);
+                assert_eq!(direct, reference, "org {} cold={cold}", org.id);
+                assert_eq!(
+                    serde_json::to_vec(&direct).unwrap(),
+                    serde_json::to_vec(&reference).unwrap()
+                );
+                checked += 1;
+            }
+        }
+    }
+    assert!(
+        checked > 100,
+        "the worlds must hold organisms to compare ({checked})"
+    );
+}

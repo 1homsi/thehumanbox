@@ -342,7 +342,7 @@ impl Simulation {
             let mut organisms_json: Vec<serde_json::Value> = Vec::with_capacity(self.organisms.len());
             for o in self.organisms.iter() {
                 if o.alive {
-                    organisms_json.push(serde_json::to_value(o.to_json_with(per_org_cold)).unwrap());
+                    organisms_json.push(o.to_json_value_with(per_org_cold));
                 }
             }
             let mut animals_json: Vec<serde_json::Value> = Vec::with_capacity(self.animals.len());

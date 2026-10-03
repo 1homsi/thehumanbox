@@ -676,6 +676,29 @@ impl Vocabulary {
         out
     }
 
+    /// [`Vocabulary::words`] as a JSON object, built directly in key order.
+    /// Converting the `HashMap` through `serde_json::to_value` inserted ~120
+    /// keys one at a time into a `BTreeMap` (a string comparison walk per
+    /// key); here the concepts are visited in their precomputed sorted order
+    /// so the map is bulk-built from sorted input.
+    pub fn words_value(&self) -> serde_json::Value {
+        static SORTED: OnceLock<Vec<usize>> = OnceLock::new();
+        let order = SORTED.get_or_init(|| {
+            let mut order: Vec<usize> = (0..CONCEPTS.len()).collect();
+            order.sort_by_key(|&i| CONCEPTS[i]);
+            order
+        });
+        serde_json::Value::Object(
+            order
+                .iter()
+                .filter_map(|&i| {
+                    let word = self.slots.get(i).filter(|w| !w.is_empty())?;
+                    Some((CONCEPTS[i].to_string(), serde_json::Value::String(word.clone())))
+                })
+                .collect(),
+        )
+    }
+
     /// The word map *plus* the reserved `LAST_USED_KEY` clock blob.
     ///
     /// Only for the `Serialize`/`from_hashmap` round trip, which needs
@@ -837,6 +860,33 @@ mod tests {
         // `concept_index` is the reverse map; a duplicate breaks its 1:1
         // relationship with CONCEPTS, so its length must equal the list.
         assert_eq!(concept_index().len(), CONCEPTS.len());
+    }
+
+    /// `words_value` builds the JSON object directly in sorted order; it must
+    /// equal converting `words()` through serde for every mix of known and
+    /// forgotten words.
+    #[test]
+    fn words_value_matches_the_converted_hash_map() {
+        for seed in 0..30u64 {
+            let mut rng = StdRng::seed_from_u64(seed);
+            let mut v = Vocabulary::generate(&mut rng);
+            assert_eq!(
+                serde_json::to_vec(&v.words_value()).unwrap(),
+                serde_json::to_vec(&serde_json::to_value(v.words()).unwrap()).unwrap()
+            );
+            for (n, concept) in CONCEPTS.iter().enumerate() {
+                if n % (seed as usize % 5 + 2) == 0 {
+                    v.touch_concept(concept, 500 + n as u64);
+                }
+            }
+            v.decay(2_000_000, 100_000 + seed * 60_000);
+            assert_eq!(v.words_value(), serde_json::to_value(v.words()).unwrap());
+            assert_eq!(
+                serde_json::to_vec(&v.words_value()).unwrap(),
+                serde_json::to_vec(&serde_json::to_value(v.words()).unwrap()).unwrap()
+            );
+        }
+        assert_eq!(Vocabulary::default().words_value(), serde_json::json!({}));
     }
 
     #[test]
