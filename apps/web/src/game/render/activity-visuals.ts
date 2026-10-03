@@ -1,8 +1,19 @@
 /** Work poses come from current actions, never professions or planned jobs. */
 export type WorkActivity = 'build' | 'chop' | 'mine' | 'farm' | 'fish' | 'gather' | 'rest' | null
 
+const thoughtActivities = new Map<string, WorkActivity>()
+
 export function workActivity(thought: string, moving: boolean): WorkActivity {
   if (moving) return null
+  const cached = thoughtActivities.get(thought)
+  if (cached !== undefined) return cached
+  const activity = activityForThought(thought)
+  if (thoughtActivities.size >= 5000) thoughtActivities.clear()
+  thoughtActivities.set(thought, activity)
+  return activity
+}
+
+function activityForThought(thought: string): WorkActivity {
   const t = thought.toLowerCase()
   if (/\b(seeking|looking|searching|heading|walking|traveling|going|planning|wanting)\b/.test(t)) return null
   if (/repairing|rebuilding|reclaiming|building|constructing|raising/.test(t)) return 'build'
@@ -27,8 +38,7 @@ export function drawWorkActivity(
   if (!activity) return
   ctx.save()
   ctx.translate(Math.round(x), Math.round(y))
-  ctx.scale(flipped ? -1 : 1, 1)
-  const swing = Math.sin(time / 180 + phase)
+  if (flipped) ctx.scale(-1, 1)
   if (activity === 'rest') {
     ctx.fillStyle = '#c8d3db'
     ctx.fillRect(5, -12, 3, 1)
@@ -49,6 +59,7 @@ export function drawWorkActivity(
     ctx.fillStyle = '#d99a59'
     ctx.fillRect(14, 1, 2, 2)
   } else if (activity === 'gather' || activity === 'farm') {
+    const swing = Math.sin(time / 180 + phase)
     ctx.fillStyle = '#9e703e'
     ctx.fillRect(5, 0, 5, 3)
     ctx.fillStyle = '#88a34c'
@@ -56,6 +67,7 @@ export function drawWorkActivity(
     ctx.fillStyle = '#d6b389'
     ctx.fillRect(3 + Math.round(swing), -3 + Math.round(swing), 3, 2)
   } else {
+    const swing = Math.sin(time / 180 + phase)
     ctx.translate(4, -4)
     ctx.rotate(-0.8 + swing * 0.85)
     ctx.fillStyle = '#b38b52'

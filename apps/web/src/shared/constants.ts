@@ -48,13 +48,26 @@ export function cbFireRgba(r: number, g: number, b: number, a: number): string {
   return `rgba(${r},${g},${b},${a})`
 }
 
+// A lineage's colour is a pure function of its id (and the colour-blind palette flag),
+// but it is asked for per person per frame, so it is computed once per id and palette.
+const lineageColors = [new Map<string, string>(), new Map<string, string>()]
+
 export function lineageColor(lineageId: string | null | undefined): string {
   if (!lineageId || typeof lineageId !== 'string') return 'hsl(0, 0%, 55%)'
 
+  const colorBlind = isColorBlind()
+  const cache = lineageColors[colorBlind ? 1 : 0]
+  const cached = cache.get(lineageId)
+  if (cached !== undefined) return cached
+  const color = computeLineageColor(lineageId, colorBlind)
+  if (cache.size >= 4096) cache.clear()
+  cache.set(lineageId, color)
+  return color
+}
+
+function computeLineageColor(lineageId: string, colorBlind: boolean): string {
   let h = 0
   for (const c of lineageId) h = Math.imul(h * 31 + c.charCodeAt(0), 1) >>> 0
-
-  const colorBlind = isColorBlind()
 
   let hue: number
   if (colorBlind) {
