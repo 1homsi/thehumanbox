@@ -110,7 +110,7 @@ profile: ## Headless perf profile CSV — `make profile OUT=a.csv TICKS=12000`
 
 perf-gate: ## Multi-seed sim budget — `make perf-gate TICKS=8000 MAX_TICK_MS=80`
 	$(CARGO_RELEASE) build --release --locked --bin headless
-	TICKS=$(TICKS) MAX_TICK_MS=$${MAX_TICK_MS:-80} tools/perf-gate.sh
+	TICKS=$(TICKS) MAX_TICK_MS=$${MAX_TICK_MS:-80} scripts/perf-gate.sh
 
 metrics: ## Scrape /metrics once from a running sim — `make metrics HOST=...`
 	@curl -s $(HOST)/metrics

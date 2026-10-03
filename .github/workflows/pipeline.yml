@@ -42,7 +42,7 @@ jobs:
               - 'Cargo.*'
               - 'rustfmt.toml'
               - 'clippy.toml'
-              - 'tools/perf-gate.sh'
+              - 'scripts/perf-gate.sh'
             client:
               - *ci
               - 'apps/web/**'
@@ -126,7 +126,7 @@ jobs:
       - name: Build headless benchmark
         run: cargo build --release --locked --bin headless
       - name: Enforce multi-seed tick budget
-        run: tools/perf-gate.sh
+        run: scripts/perf-gate.sh
 
   test-frontend:
     name: Test frontend
