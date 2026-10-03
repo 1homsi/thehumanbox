@@ -398,23 +398,6 @@ impl Simulation {
                 }
             }
 
-            if let Some(&gi) = grievers.first() {
-                let energy = self.organisms[gi].energy;
-                let lid = self.organisms[gi].lineage_id.clone();
-                self.push_think_for(
-                    gi,
-                    ThinkTrigger {
-                        org_id: self.organisms[gi].id.clone(),
-                        org_name: self.organisms[gi].name.clone(),
-                        lineage_id: lid,
-                        scenario: "grief".to_string(),
-                        energy_avg: energy,
-                        context: format!("lost {} - {} kin mourn", dead_name, griever_count),
-                        ..Default::default()
-                    },
-                );
-            }
-
             self.grid.add_hazard(dx, dy, 0.45);
             self.grid.reduce_fertility(dx, dy, 0.08);
             for (ndx, ndy) in [(-1i32, 0), (1, 0), (0, -1i32), (0, 1)] {

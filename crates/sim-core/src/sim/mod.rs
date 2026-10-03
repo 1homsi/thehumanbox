@@ -17,10 +17,8 @@ pub mod tech;
 pub use storage::{persistence, serialize};
 
 pub use agents::age_stage;
-pub use agents::convo_req;
 pub use agents::courtship;
 pub use agents::growth;
-pub use agents::local_think;
 pub use agents::memory_pressure;
 pub use agents::social;
 

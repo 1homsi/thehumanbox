@@ -5,7 +5,6 @@ impl Simulation {
     pub(super) fn org_act(&mut self, f: &mut OrgFrame<'_>) {
         let action = f.action;
         let idx = f.idx;
-        let lineage_members = &mut *f.lineage_members;
         let perception = std::mem::take(&mut f.perception);
         let spatial = f.spatial;
 
@@ -191,7 +190,7 @@ impl Simulation {
                     })
                     .next();
 
-                if let Some((ti, their_lid)) = neg_target {
+                if let Some((_, their_lid)) = neg_target {
                     let neg_key = {
                         let (a, b) = (actor_lid.clone(), their_lid.clone());
                         if a < b {
@@ -203,29 +202,6 @@ impl Simulation {
                     let last_neg = *self.lineage_negotiations.get(&neg_key).unwrap_or(&0);
                     if self.tick_count - last_neg >= 6000 {
                         self.lineage_negotiations.insert(neg_key, self.tick_count);
-                        let my_disc: Vec<String> = self.organisms[idx].discoveries.iter().cloned().collect();
-                        let their_disc: Vec<String> =
-                            self.organisms[ti].discoveries.iter().cloned().collect();
-                        let their_name = self.organisms[ti].name.clone();
-                        let their_oid = self.organisms[ti].id.clone();
-                        let my_kin =
-                            living_lineage_members(&self.organisms, lineage_members, &actor_lid).count();
-                        self.push_think_for(
-                            idx,
-                            ThinkTrigger {
-                                org_id: self.organisms[idx].id.clone(),
-                                org_name: self.organisms[idx].name.clone(),
-                                lineage_id: actor_lid.clone(),
-                                scenario: "negotiation".to_string(),
-                                target_lineage: Some(their_lid),
-                                target_org_id: Some(their_oid),
-                                discoveries: my_disc,
-                                other_name: Some(their_name),
-                                other_discoveries: their_disc,
-                                kin_count: my_kin,
-                                ..Default::default()
-                            },
-                        );
                     }
                 }
             }
@@ -296,18 +272,6 @@ impl Simulation {
                         "build",
                         &name,
                         "discovered fire",
-                    );
-                    self.push_think_for(
-                        idx,
-                        ThinkTrigger {
-                            org_id: self.organisms[idx].id.clone(),
-                            org_name: self.organisms[idx].name.clone(),
-                            lineage_id: self.organisms[idx].lineage_id.clone(),
-                            scenario: "discovery".to_string(),
-                            context: "fire".to_string(),
-                            discoveries: self.organisms[idx].discoveries.iter().cloned().collect(),
-                            ..Default::default()
-                        },
                     );
                 }
             }

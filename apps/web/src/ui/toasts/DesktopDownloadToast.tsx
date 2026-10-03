@@ -79,9 +79,7 @@ export function DesktopDownloadToast() {
         ×
       </button>
       <div className="desktop-toast-title">Run The Human Box locally</div>
-      <div className="desktop-toast-sub">
-        Your own private world, no shared latency, full local AI hooks. Free.
-      </div>
+      <div className="desktop-toast-sub">Your own private world with no shared latency. Free.</div>
       {mac ? (
         <div className="desktop-toast-cmd-row">
           <code className="desktop-toast-cmd">{INSTALL_CMD}</code>

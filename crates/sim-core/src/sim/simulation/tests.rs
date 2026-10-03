@@ -1467,14 +1467,6 @@ fn save_load_preserves_social_continuity_and_rng_stream() {
         .insert("lineage-a".to_string(), "elder-a".to_string());
     sim.lineage_negotiations
         .insert(("lineage-a".to_string(), "lineage-b".to_string()), 11_500);
-    sim.pending_thinks.push(ThinkTrigger {
-        org_id: "org-a".to_string(),
-        org_name: "Org A".to_string(),
-        lineage_id: "lineage-a".to_string(),
-        scenario: "migration".to_string(),
-        context: "food scarce".to_string(),
-        ..Default::default()
-    });
 
     let mut expected_rng = sim.rng.clone();
     let expected_next: u64 = expected_rng.random();
@@ -1511,8 +1503,6 @@ fn save_load_preserves_social_continuity_and_rng_stream() {
             .get(&("lineage-a".to_string(), "lineage-b".to_string())),
         Some(&11_500)
     );
-    assert_eq!(loaded.pending_thinks.len(), 1);
-    assert_eq!(loaded.pending_thinks[0].scenario, "migration");
     assert_eq!(loaded.rng.random::<u64>(), expected_next);
 
     let _ = std::fs::remove_file(&path_s);
@@ -1674,33 +1664,6 @@ fn save_load_preserves_civilization_and_personal_progress() {
 
     let _ = std::fs::remove_file(&path_s);
     let _ = std::fs::remove_file(format!("{}.tmp", path_s));
-}
-
-#[test]
-fn queued_think_triggers_copy_live_organism_traits() {
-    let mut sim = Simulation::new(13);
-    let org_idx = sim.organisms.iter().position(|o| o.alive).unwrap();
-    sim.organisms[org_idx].traits.aggression = 0.91;
-    sim.organisms[org_idx].traits.fear = 0.12;
-    sim.organisms[org_idx].traits.social_tendency = 0.34;
-    sim.organisms[org_idx].traits.curiosity = 0.56;
-    sim.organisms[org_idx].traits.resilience = 0.78;
-
-    sim.push_think_for(
-        org_idx,
-        ThinkTrigger {
-            org_id: sim.organisms[org_idx].id.clone(),
-            scenario: "first_contact".to_string(),
-            ..Default::default()
-        },
-    );
-
-    let trigger = sim.pending_thinks.last().unwrap();
-    assert_eq!(trigger.aggression, 0.91);
-    assert_eq!(trigger.fear, 0.12);
-    assert_eq!(trigger.social_tendency, 0.34);
-    assert_eq!(trigger.curiosity, 0.56);
-    assert_eq!(trigger.resilience, 0.78);
 }
 
 #[test]

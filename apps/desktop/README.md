@@ -51,24 +51,16 @@ Stored as JSON at `app.getPath('userData') + '/settings.json'`. Schema:
   "mode": "local",
   "tickMs": 100,
   "populationCap": 500,
-  "model": {
-    "provider": "none",
-    "apiUrl": "",
-    "apiKey": "",
-    "modelName": ""
-  },
   "saveLocationOverride": null,
   "autoUpdate": true
 }
 ```
 
-Model providers supported: `ollama`, `llama-cpp`, any custom local
-OpenAI-compatible endpoint, and `none`. The
-simulation reads `NARRATION_LLM_URL/KEY/MODEL` and
-`THINK_LLM_URL/KEY/MODEL` env vars; the Electron sim-process wrapper
-translates settings into process-local environment variables when spawning.
-
-`none` is the default and explicitly clears inherited API keys/endpoints, so a private desktop world makes no AI network calls unless the player opts into a provider. The default 500-person capacity is the tested balanced tier; larger presets extend the scale of late-era civilizations and are marked accordingly in Settings.
+The Electron sim-process wrapper translates these settings into
+process-local environment variables when it spawns the simulation. There is
+no AI model integration: a desktop world makes no AI network calls. The default
+500-person capacity is the tested balanced tier; larger presets extend the
+scale of late-era civilizations and are marked accordingly in Settings.
 
 Save-folder changes use the same safety model: checkpoint, take exclusive
 ownership of both folders, copy into staging, switch only after the copy is

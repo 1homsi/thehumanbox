@@ -1035,13 +1035,6 @@ export function OrgDetail({
             </div>
           </>
         )}
-
-        {detail?.daily_story && (
-          <>
-            <div className="org-detail-section">TODAY'S STORY</div>
-            <div className="daily-story">{detail.daily_story}</div>
-          </>
-        )}
       </div>
     </>
   )

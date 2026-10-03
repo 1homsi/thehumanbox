@@ -1655,15 +1655,6 @@ body.thb-photo-mode .header:hover {
   color: #889;
 }
 
-/* Daily story */
-.daily-story {
-  font-size: 10px;
-  color: #aaccdd;
-  font-style: italic;
-  line-height: 1.55;
-  margin-bottom: 4px;
-}
-
 /* ── Language modal ───────────────────────────────────────────────── */
 .lang-modal-backdrop {
   position: fixed;

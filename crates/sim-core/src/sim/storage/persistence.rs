@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::organism::animal::{Animal, AnimalKind};
 use crate::organism::organism::Organism;
 use crate::physics::engine::PhysicsEngine;
-use crate::sim::simulation::{Event, History, Simulation, StoryEntry, ThinkTrigger, SAVE_SCHEMA_VERSION};
+use crate::sim::simulation::{Event, History, Simulation, StoryEntry, SAVE_SCHEMA_VERSION};
 use crate::sim::world_events::{DroughtState, WeatherState};
 use crate::world::grid::{WorldGrid, HEIGHT, WIDTH};
 use crate::world::tiles::Tile;
@@ -108,7 +108,6 @@ pub(crate) struct OrgSave {
     carrying: u32,
     carrying_type: u8,
     vocabulary: crate::organism::vocabulary::Vocabulary,
-    daily_story: String,
     last_story_tick: u64,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     life_log_legacy: Vec<String>,
@@ -310,7 +309,6 @@ pub struct SaveState {
     lineage_last_council: HashMap<String, u64>,
     lineage_elders: HashMap<String, String>,
     lineage_negotiations: Vec<NegotiationSave>,
-    pending_thinks: Vec<ThinkTrigger>,
     rng: Option<ChaCha8Rng>,
     flood_tiles: Vec<(i32, i32, u64)>,
     #[serde(default)]
@@ -474,7 +472,6 @@ fn org_to_save(o: &Organism) -> OrgSave {
         carrying: o.carrying,
         carrying_type: o.carrying_type,
         vocabulary: o.vocabulary.clone(),
-        daily_story: o.daily_story.clone(),
         last_story_tick: o.last_story_tick,
         life_log_legacy: Vec::new(),
         life_log: o.life_log.iter().cloned().collect(),
@@ -593,7 +590,6 @@ fn org_from_save(s: OrgSave, save_version: u32) -> Organism {
     o.infection = s.infection;
     o.carrying = s.carrying;
     o.carrying_type = s.carrying_type;
-    o.daily_story = s.daily_story;
     o.last_story_tick = s.last_story_tick;
     // Prefer the structured LifeEvent log; fall back to legacy string
     // log only if no structured entries exist (handles pre-LifeEvent
@@ -859,7 +855,6 @@ impl Simulation {
                     tick,
                 })
                 .collect(),
-            pending_thinks: self.pending_thinks.clone(),
             rng: Some(self.rng.clone()),
             flood_tiles: self.flood_tiles.clone(),
             wards: self.wards.clone(),
@@ -1189,8 +1184,6 @@ impl Simulation {
             hard_winter: state.hard_winter,
             hard_winter_ahead: state.hard_winter_ahead,
             story_history: state.story_history.into_iter().collect(),
-            pending_thinks: state.pending_thinks,
-            pending_convos: Vec::new(),
             pending_memory_flushes: Vec::new(),
             lineage_strategies: state.lineage_strategies,
             lineage_strategy_objectives: state.lineage_strategy_objectives,

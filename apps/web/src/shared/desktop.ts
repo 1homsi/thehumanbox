@@ -1,19 +1,12 @@
 import type { DesktopVisibility } from './desktopVisibility'
 
 export type SimMode = 'local'
-export type ModelProvider = 'ollama' | 'llama-cpp' | 'custom' | 'none'
 export type { DesktopVisibility } from './desktopVisibility'
 
 export interface DesktopSettings {
   mode: SimMode
   tickMs: number
   populationCap: number
-  model: {
-    provider: ModelProvider
-    apiUrl: string
-    apiKey: string
-    modelName: string
-  }
   saveLocationOverride: string | null
   autoUpdate: boolean
   autoLaunch: boolean

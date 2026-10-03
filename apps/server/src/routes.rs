@@ -525,13 +525,6 @@ pub async fn transport_handler(State(s): State<AppState>) -> impl IntoResponse {
     )
 }
 
-pub async fn llm_handler(State(s): State<AppState>) -> impl IntoResponse {
-    (
-        [(axum::http::header::CACHE_CONTROL, "no-store".to_string())],
-        Json(s.llm_stats.snapshot()),
-    )
-}
-
 /// Prometheus text-format metrics. Exposes the existing AtomicU64
 /// counters and gauge values in the canonical `name value` form so
 /// any Prometheus-compatible scraper can ingest. No external deps -
@@ -540,10 +533,8 @@ pub async fn llm_handler(State(s): State<AppState>) -> impl IntoResponse {
 /// Naming follows the convention `thb_<subsystem>_<metric>_<unit>`.
 /// Counters end in `_total`. Gauges have no `_total` suffix.
 pub async fn metrics_handler(State(s): State<AppState>) -> impl IntoResponse {
-    let llm = s.llm_stats.snapshot();
     let transport = s.transport_stats.snapshot();
     let pressure = s.memory_watch.pressure();
-    let groq_available = s.groq_limiter.available();
     let last_full = s.latest_full_at.load(std::sync::atomic::Ordering::Relaxed);
     let last_full_age_ms = crate::transport::now_ms().saturating_sub(last_full);
     let uptime_ms = crate::transport::now_ms().saturating_sub(s.start_ms);
@@ -624,12 +615,6 @@ pub async fn metrics_handler(State(s): State<AppState>) -> impl IntoResponse {
     let _ = writeln!(body, "thb_world_day_of_year {}", day_of_year);
     let _ = writeln!(
         body,
-        "# HELP thb_groq_rate_available Permits remaining in the Groq per-minute bucket"
-    );
-    let _ = writeln!(body, "# TYPE thb_groq_rate_available gauge");
-    let _ = writeln!(body, "thb_groq_rate_available {}", groq_available);
-    let _ = writeln!(
-        body,
         "# HELP thb_last_full_frame_age_ms Milliseconds since last full frame was generated"
     );
     let _ = writeln!(body, "# TYPE thb_last_full_frame_age_ms gauge");
@@ -665,53 +650,6 @@ pub async fn metrics_handler(State(s): State<AppState>) -> impl IntoResponse {
         body,
         "thb_transport_frames_total{{kind=\"resync\"}} {}",
         transport.resync_frames
-    );
-
-    // LLM per-lane.
-    for (lane_name, lane) in [
-        ("narration", &llm.narration),
-        ("think", &llm.think),
-        ("conversation", &llm.conversation),
-    ] {
-        let _ = writeln!(
-            body,
-            "thb_llm_calls_total{{lane=\"{}\"}} {}",
-            lane_name, lane.calls
-        );
-        let _ = writeln!(
-            body,
-            "thb_llm_errors_total{{lane=\"{}\"}} {}",
-            lane_name, lane.errors
-        );
-        let _ = writeln!(body, "thb_llm_avg_ms{{lane=\"{}\"}} {}", lane_name, lane.avg_ms);
-        let _ = writeln!(body, "thb_llm_p95_ms{{lane=\"{}\"}} {}", lane_name, lane.p95_ms);
-    }
-    let _ = writeln!(body, "thb_llm_429_total{{lane=\"think\"}} {}", llm.think_429);
-    let _ = writeln!(
-        body,
-        "thb_llm_429_total{{lane=\"narration\"}} {}",
-        llm.narration_429
-    );
-    let _ = writeln!(
-        body,
-        "thb_llm_429_total{{lane=\"conversation\"}} {}",
-        llm.conversation_429
-    );
-    let _ = writeln!(body, "thb_llm_5xx_total{{lane=\"think\"}} {}", llm.think_5xx);
-    let _ = writeln!(
-        body,
-        "thb_llm_5xx_total{{lane=\"narration\"}} {}",
-        llm.narration_5xx
-    );
-    let _ = writeln!(
-        body,
-        "thb_llm_5xx_total{{lane=\"conversation\"}} {}",
-        llm.conversation_5xx
-    );
-    let _ = writeln!(
-        body,
-        "thb_llm_local_fallback_total{{lane=\"think\"}} {}",
-        llm.think_local_fallback
     );
 
     (
@@ -795,22 +733,6 @@ pub async fn health_handler(State(s): State<AppState>) -> impl IntoResponse {
     let mem_critical = matches!(pressure, crate::sim::memory_pressure::MemoryPressure::Critical);
     let mem_elevated = matches!(pressure, crate::sim::memory_pressure::MemoryPressure::Elevated);
 
-    let groq_avail = s.groq_limiter.available();
-    let groq_starved = groq_avail == 0;
-
-    let llm_snap = s.llm_stats.snapshot();
-    let narration_err_ratio = if llm_snap.narration.calls > 0 {
-        llm_snap.narration.errors as f64 / llm_snap.narration.calls as f64
-    } else {
-        0.0
-    };
-    let think_err_ratio = if llm_snap.think.calls > 0 {
-        llm_snap.think.errors as f64 / llm_snap.think.calls as f64
-    } else {
-        0.0
-    };
-    let llm_failing = narration_err_ratio > 0.5 || think_err_ratio > 0.5;
-
     // Sim alive check. This must key off the *tick* heartbeat, not the
     // deep-full frame cadence: a deep full is emitted every 300 ticks
     // (30 s at the default TICK_MS=100) and is skipped entirely while no
@@ -821,7 +743,7 @@ pub async fn health_handler(State(s): State<AppState>) -> impl IntoResponse {
     let stale_ms = 30_000;
     let sim_alive = last_tick > 0 && last_tick_age_ms < stale_ms;
 
-    let degraded = mem_elevated || mem_critical || groq_starved || llm_failing;
+    let degraded = mem_elevated || mem_critical;
     let status_code = if sim_alive {
         axum::http::StatusCode::OK
     } else {
@@ -839,15 +761,6 @@ pub async fn health_handler(State(s): State<AppState>) -> impl IntoResponse {
             "pressure": format!("{:?}", pressure),
             "box_available_mb": s.memory_watch.box_available_mb(),
             "rss_mb": s.memory_watch.rss_mb(),
-        },
-        "groq": {
-            "available_permits": groq_avail,
-            "starved": groq_starved,
-        },
-        "llm": {
-            "narration_err_ratio": narration_err_ratio,
-            "think_err_ratio": think_err_ratio,
-            "failing": llm_failing,
         },
     });
 
