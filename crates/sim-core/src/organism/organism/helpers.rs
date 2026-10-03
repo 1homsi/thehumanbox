@@ -49,6 +49,40 @@ pub(super) fn nearby_memory_strength(
     radius: i32,
 ) -> f32 {
     let mut best = memory.get(&cell).copied().unwrap_or(0.0);
+    // A handful of remembered cells is quicker to walk once than to look
+    // up the other (2r+1)^2 - 1 neighbours one by one; the strongest wins
+    // either way.
+    if memory.len() <= 16 {
+        for (&(x, y), &v) in memory {
+            if (x, y) != cell && (x - cell.0).abs() <= radius && (y - cell.1).abs() <= radius && v > best {
+                best = v;
+            }
+        }
+        return best;
+    }
+    for dx in -radius..=radius {
+        for dy in -radius..=radius {
+            if dx == 0 && dy == 0 {
+                continue;
+            }
+            if let Some(v) = memory.get(&(cell.0 + dx, cell.1 + dy)) {
+                if *v > best {
+                    best = *v;
+                }
+            }
+        }
+    }
+    best
+}
+
+/// The lookup-per-neighbour version, kept to check the walk against.
+#[cfg(test)]
+pub(super) fn nearby_memory_strength_reference(
+    memory: &FxHashMap<(i32, i32), f32>,
+    cell: (i32, i32),
+    radius: i32,
+) -> f32 {
+    let mut best = memory.get(&cell).copied().unwrap_or(0.0);
     for dx in -radius..=radius {
         for dy in -radius..=radius {
             if dx == 0 && dy == 0 {
@@ -104,5 +138,46 @@ pub(super) fn reserve_char(count: u8, stocked_at: u8) -> char {
         '2'
     } else {
         '1'
+    }
+}
+
+#[cfg(test)]
+mod memory_tests {
+    use super::*;
+
+    #[test]
+    fn nearby_strength_walk_matches_the_lookups() {
+        let mut state = 0x2545_F491_4F6C_DD1Du64;
+        let mut next = move || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        };
+        let mut found = 0;
+        for round in 0..20_000 {
+            let n = [0usize, 1, 3, 8, 16, 17, 30][(next() % 7) as usize];
+            let mut memory = FxHashMap::default();
+            for _ in 0..n {
+                let k = ((next() % 9) as i32 - 4, (next() % 9) as i32 - 4);
+                let v = match next() % 12 {
+                    0 => f32::NAN,
+                    1 => 0.0,
+                    _ => (next() % 1000) as f32 / 1000.0,
+                };
+                memory.insert(k, v);
+            }
+            let cell = ((next() % 9) as i32 - 4, (next() % 9) as i32 - 4);
+            for radius in [0, 1, 2] {
+                let a = nearby_memory_strength(&memory, cell, radius);
+                let b = nearby_memory_strength_reference(&memory, cell, radius);
+                assert!(
+                    a.to_bits() == b.to_bits() || (a.is_nan() && b.is_nan()),
+                    "round {round}: {a} vs {b}"
+                );
+                found += usize::from(a > 0.0);
+            }
+        }
+        assert!(found > 10_000);
     }
 }
