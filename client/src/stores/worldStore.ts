@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { useShallow } from 'zustand/react/shallow'
 import type { OrganismState, WorldState } from '../types'
 import { recordPopulations, type PopHistory } from '../world/pop-history'
 
@@ -46,15 +45,4 @@ export const useWorldStore = create<WorldStore>((set, get) => ({
 
 export function useOrganism(id: string | null | undefined): OrganismState | undefined {
   return useWorldStore((s) => (id ? s.byId.get(id) : undefined))
-}
-
-export function useLiveOrganismIds(): string[] {
-  return useWorldStore(
-    useShallow((s) => {
-      if (!s.world) return [] as string[]
-      const out: string[] = []
-      for (const o of s.world.organisms) if (o.alive) out.push(o.id)
-      return out
-    }),
-  )
 }

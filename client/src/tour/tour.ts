@@ -7,14 +7,6 @@ import { useUIStore } from '../stores/store'
 
 const TOUR_KEY = 'thb-tour-completed-v1'
 
-export function hasSeenTour(): boolean {
-  try {
-    return window.localStorage.getItem(TOUR_KEY) === '1'
-  } catch {
-    return false
-  }
-}
-
 export function isTourSupported(): boolean {
   if (typeof window === 'undefined') return false
   try {

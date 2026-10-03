@@ -44,15 +44,3 @@ export function trackEvent(name: string, props?: Record<string, unknown>): void 
     queued.push(() => client?.capture(name, props))
   }
 }
-
-export function identifyUser(id: string, traits?: Record<string, unknown>): void {
-  if (client) {
-    client.identify(id, traits)
-  } else if (loading && queued.length < 50) {
-    queued.push(() => client?.identify(id, traits))
-  }
-}
-
-export function analyticsReady(): boolean {
-  return client !== null
-}
