@@ -1,16 +1,26 @@
 use super::*;
 
+fn add_member(entry: &mut LineageAggregate, org: &Organism) {
+    entry.population += 1;
+    entry.x_sum += org.x;
+    entry.y_sum += org.y;
+    entry.literacy_sum += org.literacy;
+    entry.energy_sum += org.energy;
+}
+
 impl Simulation {
     pub(crate) fn rebuild_lineage_aggregates(&mut self) {
         self.lineage_aggregates.clear();
         self.lineage_aggregates.reserve(self.lineage_names.len().max(8));
+        // Copy a lineage's id only the first time the tick meets it.
         for org in self.organisms.iter().filter(|org| org.alive) {
-            let entry = self.lineage_aggregates.entry(org.lineage_id.clone()).or_default();
-            entry.population += 1;
-            entry.x_sum += org.x;
-            entry.y_sum += org.y;
-            entry.literacy_sum += org.literacy;
-            entry.energy_sum += org.energy;
+            if let Some(entry) = self.lineage_aggregates.get_mut(&org.lineage_id) {
+                add_member(entry, org);
+            } else {
+                let mut entry = LineageAggregate::default();
+                add_member(&mut entry, org);
+                self.lineage_aggregates.insert(org.lineage_id.clone(), entry);
+            }
         }
     }
 

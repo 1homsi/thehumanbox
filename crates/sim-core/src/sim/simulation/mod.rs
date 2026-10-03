@@ -297,4 +297,6 @@ impl Simulation {
 }
 
 #[cfg(test)]
+mod aggregate_tests;
+#[cfg(test)]
 mod tests;

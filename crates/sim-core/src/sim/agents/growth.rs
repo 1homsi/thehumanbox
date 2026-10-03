@@ -26,12 +26,17 @@ pub fn population_slots_used(organisms: &[Organism]) -> usize {
 }
 
 pub fn lineage_population_slots(organisms: &[Organism]) -> rustc_hash::FxHashMap<String, usize> {
-    let mut counts = rustc_hash::FxHashMap::default();
+    let mut counts: rustc_hash::FxHashMap<String, usize> = rustc_hash::FxHashMap::default();
     for organism in organisms
         .iter()
         .filter(|organism| organism.alive || is_pending_birth(organism))
     {
-        *counts.entry(organism.lineage_id.clone()).or_insert(0) += 1;
+        // Copy a lineage's id only the first time it appears.
+        if let Some(count) = counts.get_mut(&organism.lineage_id) {
+            *count += 1;
+        } else {
+            counts.insert(organism.lineage_id.clone(), 1);
+        }
     }
     counts
 }
@@ -526,6 +531,55 @@ pub fn try_reproduce(
 
 pub const PREGNANCY_DURATION: u64 = 1200;
 
+/// Unborn children whose mothers can no longer carry them, each with its
+/// mother's index when she can be found. `any_unborn` says whether there are
+/// any at all, which is nearly always "no": then there is nothing to look up.
+fn unborn_cancellations(organisms: &[Organism], any_unborn: bool) -> Vec<(usize, Option<usize>)> {
+    if !any_unborn {
+        return Vec::new();
+    }
+    // Only needed to find the mothers of unborn children, and only for the
+    // length of this lookup: borrow the ids instead of copying them.
+    let mother_map: rustc_hash::FxHashMap<&str, usize> = organisms
+        .iter()
+        .enumerate()
+        .filter(|(_, organism)| organism.sex == Sex::Female)
+        .map(|(index, organism)| (organism.id.as_str(), index))
+        .collect();
+    organisms
+        .iter()
+        .enumerate()
+        .filter(|(_, organism)| is_pending_birth(organism))
+        .filter_map(|(child_idx, child)| {
+            let mother_idx = mother_map.get(child.parent_id.as_str()).copied();
+            let viable = mother_idx.is_some_and(|index| organisms[index].alive && organisms[index].pregnant);
+            (!viable).then_some((child_idx, mother_idx))
+        })
+        .collect()
+}
+
+/// The lookup as it was, with a map of copied ids built on every call, kept
+/// to check the lazy borrowing one against.
+#[cfg(test)]
+fn unborn_cancellations_reference(organisms: &[Organism]) -> Vec<(usize, Option<usize>)> {
+    let mother_map: rustc_hash::FxHashMap<String, usize> = organisms
+        .iter()
+        .enumerate()
+        .filter(|(_, organism)| organism.sex == Sex::Female)
+        .map(|(index, organism)| (organism.id.clone(), index))
+        .collect();
+    organisms
+        .iter()
+        .enumerate()
+        .filter(|(_, organism)| is_pending_birth(organism))
+        .filter_map(|(child_idx, child)| {
+            let mother_idx = mother_map.get(&child.parent_id).copied();
+            let viable = mother_idx.is_some_and(|index| organisms[index].alive && organisms[index].pregnant);
+            (!viable).then_some((child_idx, mother_idx))
+        })
+        .collect()
+}
+
 pub fn deliver_births(
     organisms: &mut [Organism],
     tick: u64,
@@ -538,26 +592,11 @@ pub fn deliver_births(
         .filter(|(_, organism)| is_pending_birth(organism))
         .map(|(index, organism)| (organism.parent_id.clone(), index))
         .collect();
-    let mother_map: rustc_hash::FxHashMap<String, usize> = organisms
-        .iter()
-        .enumerate()
-        .filter(|(_, organism)| organism.sex == Sex::Female)
-        .map(|(index, organism)| (organism.id.clone(), index))
-        .collect();
 
     // An unborn record reserves a population slot. If its mother dies (or a
     // damaged/old save loses the pregnancy flag), cancel it explicitly so it
     // can neither appear later as a ghost birth nor reserve capacity forever.
-    let cancellations: Vec<(usize, Option<usize>)> = organisms
-        .iter()
-        .enumerate()
-        .filter(|(_, organism)| is_pending_birth(organism))
-        .filter_map(|(child_idx, child)| {
-            let mother_idx = mother_map.get(&child.parent_id).copied();
-            let viable = mother_idx.is_some_and(|index| organisms[index].alive && organisms[index].pregnant);
-            (!viable).then_some((child_idx, mother_idx))
-        })
-        .collect();
+    let cancellations = unborn_cancellations(organisms, !unborn_map.is_empty());
     for (child_idx, mother_idx) in cancellations {
         let child_name = organisms[child_idx].name.clone();
         organisms[child_idx].age = 1;
@@ -956,5 +995,44 @@ mod tests {
         assert!(organisms[1].alive);
         assert!(!organisms[0].pregnant);
         assert_eq!(history.births, 1);
+    }
+
+    #[test]
+    fn unborn_cancellations_match_the_original_lookup() {
+        let mut rng = StdRng::seed_from_u64(11);
+        let mut cancelled = 0;
+        let mut kept = 0;
+        for round in 0..300u64 {
+            let mut organisms: Vec<Organism> = Vec::new();
+            let adults = 4 + (round % 7) as usize;
+            for i in 0..adults {
+                let sex = if (round + i as u64).is_multiple_of(3) {
+                    Sex::Male
+                } else {
+                    Sex::Female
+                };
+                let alive = !(round * 7 + i as u64).is_multiple_of(5);
+                let mut adult = test_organism(&format!("adult-{i}"), sex, alive, &mut rng);
+                adult.pregnant = (round + i as u64).is_multiple_of(2);
+                organisms.push(adult);
+            }
+            // Unborn children of present, absent, dead and male "mothers".
+            for c in 0..(round % 5) as usize {
+                let mother = format!("adult-{}", (round as usize + c * 3) % (adults + 2));
+                let mut child = pending_child(&mother, &mut rng);
+                child.id = format!("child-{c}");
+                organisms.push(child);
+            }
+            let any = organisms.iter().any(is_pending_birth);
+            let fast = unborn_cancellations(&organisms, any);
+            let original = unborn_cancellations_reference(&organisms);
+            assert_eq!(fast, original, "round {round}");
+            cancelled += original.len();
+            kept += organisms.iter().filter(|o| is_pending_birth(o)).count() - original.len();
+        }
+        assert!(
+            cancelled > 100 && kept > 100,
+            "{cancelled} cancelled, {kept} kept"
+        );
     }
 }
