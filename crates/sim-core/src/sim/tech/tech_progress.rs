@@ -26,20 +26,38 @@ pub fn tick_tech_progress(
         return;
     }
 
-    let mut lineage_discoveries: HashMap<String, HashSet<String>> = HashMap::default();
-    let mut lineage_pop: HashMap<String, usize> = HashMap::default();
-    let mut lineage_members: HashMap<String, Vec<usize>> = HashMap::default();
+    // One pass over the living, borrowing every name: a lineage id and its
+    // discoveries are copied once per lineage, not once per person.
+    struct Tribe<'a> {
+        discoveries: HashSet<&'a str>,
+        members: Vec<usize>,
+    }
+    let mut tribes: HashMap<&str, Tribe> = HashMap::default();
     for (i, org) in organisms.iter().enumerate() {
         if !org.alive {
             continue;
         }
-        let entry = lineage_discoveries.entry(org.lineage_id.clone()).or_default();
+        let tribe = tribes.entry(org.lineage_id.as_str()).or_insert_with(|| Tribe {
+            discoveries: HashSet::default(),
+            members: Vec::new(),
+        });
         for d in org.discoveries.iter() {
-            entry.insert(d.clone());
+            tribe.discoveries.insert(d.as_str());
         }
-        *lineage_pop.entry(org.lineage_id.clone()).or_insert(0) += 1;
-        lineage_members.entry(org.lineage_id.clone()).or_default().push(i);
+        tribe.members.push(i);
     }
+    // The research loop below changes `organisms`, so the tribes it walks must
+    // own their names.
+    let mut tribes: Vec<(String, HashSet<String>, Vec<usize>)> = tribes
+        .into_iter()
+        .map(|(lineage, tribe)| {
+            (
+                lineage.to_string(),
+                tribe.discoveries.into_iter().map(str::to_string).collect(),
+                tribe.members,
+            )
+        })
+        .collect();
 
     let tech = all_tech();
 
@@ -49,22 +67,14 @@ pub fn tick_tech_progress(
     // which lineage got which invention on which tick. (The comparator
     // further down also drew from `rng`, so the number of draws depended
     // on `max_by`'s internal comparison pattern; that is hoisted out too.)
-    let mut lineage_ids: Vec<&String> = lineage_discoveries.keys().collect();
-    lineage_ids.sort();
-    for lid in lineage_ids {
-        let Some(disc) = lineage_discoveries.get(lid) else {
-            continue;
-        };
-        let pop = *lineage_pop.get(lid).unwrap_or(&0);
+    tribes.sort_by(|a, b| a.0.cmp(&b.0));
+    for (lid, disc, members) in &tribes {
+        let pop = members.len();
         if pop == 0 {
             continue;
         }
 
         let pop_factor = (0.75 + pop as f32 / 6.0).clamp(0.75, 6.0);
-        let members = match lineage_members.get(lid) {
-            Some(members) if !members.is_empty() => members,
-            _ => continue,
-        };
         let profile = research_profile(tick, lid, members, organisms, buildings, governments.get(lid));
 
         for node in tech.iter() {
@@ -368,6 +378,111 @@ pub fn seed_baseline_discoveries(organisms: &mut [Organism], tick: u64) {
     }
 }
 
+/// The aggregation as it was before borrowing, kept to check the new one against.
+#[cfg(test)]
+fn tick_tech_progress_reference(
+    tick: u64,
+    rng: &mut ChaCha8Rng,
+    organisms: &mut [Organism],
+    events: &mut VecDeque<Event>,
+    lineage_names: &HashMap<String, String>,
+    buildings: &[Building],
+    governments: &HashMap<String, Government>,
+) {
+    if tick == 0 || !tick.is_multiple_of(TICK_INTERVAL) {
+        return;
+    }
+
+    let mut lineage_discoveries: HashMap<String, HashSet<String>> = HashMap::default();
+    let mut lineage_pop: HashMap<String, usize> = HashMap::default();
+    let mut lineage_members: HashMap<String, Vec<usize>> = HashMap::default();
+    for (i, org) in organisms.iter().enumerate() {
+        if !org.alive {
+            continue;
+        }
+        let entry = lineage_discoveries.entry(org.lineage_id.clone()).or_default();
+        for d in org.discoveries.iter() {
+            entry.insert(d.clone());
+        }
+        *lineage_pop.entry(org.lineage_id.clone()).or_insert(0) += 1;
+        lineage_members.entry(org.lineage_id.clone()).or_default().push(i);
+    }
+
+    let tech = all_tech();
+
+    // Iterate lineages in sorted order. This loop draws from `rng` for
+    // every candidate node, so `HashMap` iteration order decided which
+    // lineage consumed which slice of the shared stream — and therefore
+    // which lineage got which invention on which tick. (The comparator
+    // further down also drew from `rng`, so the number of draws depended
+    // on `max_by`'s internal comparison pattern; that is hoisted out too.)
+    let mut lineage_ids: Vec<&String> = lineage_discoveries.keys().collect();
+    lineage_ids.sort();
+    for lid in lineage_ids {
+        let Some(disc) = lineage_discoveries.get(lid) else {
+            continue;
+        };
+        let pop = *lineage_pop.get(lid).unwrap_or(&0);
+        if pop == 0 {
+            continue;
+        }
+
+        let pop_factor = (0.75 + pop as f32 / 6.0).clamp(0.75, 6.0);
+        let members = match lineage_members.get(lid) {
+            Some(members) if !members.is_empty() => members,
+            _ => continue,
+        };
+        let profile = research_profile(tick, lid, members, organisms, buildings, governments.get(lid));
+
+        for node in tech.iter() {
+            if disc.contains(node.name) {
+                continue;
+            }
+            if !node.prerequisites.iter().all(|p| disc.contains(*p)) {
+                continue;
+            }
+            if !research_requirements_met(node.era, &profile) {
+                continue;
+            }
+
+            let evidence = evidence_multiplier(node.name, &profile);
+            let p = (BASE_RATE * node.discovery_rate * pop_factor * profile.capacity * evidence).min(0.85);
+            if rng.random::<f32>() >= p {
+                continue;
+            }
+
+            // Discoveries come from the people best positioned to make them,
+            // with a small random term so one permanent genius does not author
+            // an entire civilization's history. The jitter is drawn once per
+            // candidate up front: drawing it inside `max_by` made the number
+            // of RNG draws depend on the comparator's internal call pattern
+            // rather than on the roster.
+            let jitter: Vec<f32> = members.iter().map(|_| rng.random::<f32>() * 0.15).collect();
+            let pick = members
+                .iter()
+                .copied()
+                .enumerate()
+                .max_by(|(ai, a), (bi, b)| {
+                    let a_score = researcher_score(&organisms[*a]) + jitter[*ai];
+                    let b_score = researcher_score(&organisms[*b]) + jitter[*bi];
+                    a_score.total_cmp(&b_score)
+                })
+                // `max_by` yields the *enumerated* item, so the winner has to
+                // be looked up through the enumerate index, not the organism
+                // index it carries.
+                .map(|(member_slot, _)| members[member_slot])
+                .unwrap_or(members[0]);
+            organisms[pick].discoveries.insert(node.name.to_string());
+            let name = organisms[pick].name.clone();
+            let lname = lineage_names.get(lid).cloned().unwrap_or_else(|| lid.clone());
+            let detail = format!("{} discovered {}", lname, node.name.replace('_', " "));
+            push_event(events, tick, "build", &name, &detail);
+        }
+
+        spread_tribal_knowledge(rng, organisms, members, disc, profile.literacy);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -598,5 +713,80 @@ mod tests {
         };
         assert!(!research_requirements_met(Era::Space, &lettered));
         assert!(!research_requirements_met(Era::Digital, &lettered));
+    }
+
+    /// Two identical worlds, one run through the borrowing aggregation and one
+    /// through the original, must end every research round with the same
+    /// discoveries, the same events and the same position in the random stream.
+    #[test]
+    fn borrowed_aggregation_matches_the_original() {
+        let mut inventions = 0usize;
+        for seed in [7u64, 42] {
+            let mut fast = Simulation::new(seed);
+            let mut original = Simulation::new(seed);
+            fast.tick_n(1_200);
+            original.tick_n(1_200);
+            for world in [&mut fast, &mut original] {
+                for (i, o) in world.organisms.iter_mut().enumerate() {
+                    if o.alive {
+                        o.literacy = 0.45;
+                        o.last_experiment_tick = world.tick_count.saturating_sub(100);
+                        o.specialty = (i % 5 == 0).then(|| "scholar".to_string());
+                    }
+                }
+            }
+            let mut rng_fast = fast.rng.clone();
+            let mut rng_original = original.rng.clone();
+            let mut events_fast = VecDeque::new();
+            let mut events_original = VecDeque::new();
+            for round in 1..=300u64 {
+                let tick = round * TICK_INTERVAL;
+                tick_tech_progress(
+                    tick,
+                    &mut rng_fast,
+                    &mut fast.organisms,
+                    &mut events_fast,
+                    &fast.lineage_names,
+                    &fast.buildings,
+                    &fast.governments,
+                );
+                tick_tech_progress_reference(
+                    tick,
+                    &mut rng_original,
+                    &mut original.organisms,
+                    &mut events_original,
+                    &original.lineage_names,
+                    &original.buildings,
+                    &original.governments,
+                );
+                let summary = |events: &VecDeque<Event>| {
+                    events
+                        .iter()
+                        .map(|e| (e.tick, e.etype.clone(), e.actor.clone(), e.detail.clone()))
+                        .collect::<Vec<_>>()
+                };
+                assert_eq!(
+                    summary(&events_fast),
+                    summary(&events_original),
+                    "seed {seed} round {round}"
+                );
+                for (a, b) in fast.organisms.iter().zip(&original.organisms) {
+                    let known = |o: &Organism| o.discoveries.iter().cloned().collect::<Vec<_>>();
+                    assert_eq!(known(a), known(b), "seed {seed} round {round}: {}", a.id);
+                }
+                assert_eq!(
+                    rng_fast.random::<u64>(),
+                    rng_original.random::<u64>(),
+                    "seed {seed} round {round}: the random streams diverged"
+                );
+                inventions += events_fast.len();
+                events_fast.clear();
+                events_original.clear();
+            }
+        }
+        assert!(
+            inventions > 20,
+            "too few inventions to mean anything: {inventions}"
+        );
     }
 }

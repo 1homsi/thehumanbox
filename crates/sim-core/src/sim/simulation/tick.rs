@@ -65,7 +65,7 @@ impl Simulation {
 
         let _phase = self.tick_count % DAY_LENGTH;
 
-        let season_str = season.to_string();
+        let season_str: &str = season;
         let drought_was_active = self.drought.active;
         tick_drought(
             &mut self.drought,
@@ -73,7 +73,7 @@ impl Simulation {
             &self.organisms,
             &self.weather,
             self.tick_count,
-            &season_str,
+            season_str,
             &mut self.history,
             &mut self.events,
             &mut self.rng,
@@ -91,7 +91,7 @@ impl Simulation {
             &mut self.organisms,
             &mut self.grid,
             self.tick_count,
-            &season_str,
+            season_str,
             &mut self.history,
             &mut self.events,
             &mut self.rng,
@@ -102,7 +102,7 @@ impl Simulation {
             &mut self.physics,
             &mut self.organisms,
             self.tick_count,
-            &season_str,
+            season_str,
             &mut self.events,
             &mut self.rng,
         );
@@ -111,7 +111,7 @@ impl Simulation {
             self.tick_count,
             self.drought.active,
             self.weather.is_wet(self.tick_count),
-            &season_str,
+            season_str,
         );
         if self.tick_count > 0
             && self
@@ -127,7 +127,7 @@ impl Simulation {
                 &mut self.organisms,
                 &mut self.flood_tiles,
                 self.tick_count,
-                &season_str,
+                season_str,
                 self.drought.active,
                 &self.weather,
                 &mut self.events,

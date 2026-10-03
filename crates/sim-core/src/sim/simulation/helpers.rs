@@ -14,13 +14,15 @@ pub(super) fn living_lineage_members<'a>(
 }
 
 pub(super) fn lineage_member_index(organisms: &[Organism]) -> FxHashMap<String, Vec<usize>> {
-    let mut members = FxHashMap::default();
+    let mut members: FxHashMap<String, Vec<usize>> = FxHashMap::default();
     for (idx, org) in organisms.iter().enumerate() {
         if org.alive {
-            members
-                .entry(org.lineage_id.clone())
-                .or_insert_with(Vec::new)
-                .push(idx);
+            // Copy a lineage's id only the first time it appears.
+            if let Some(indices) = members.get_mut(&org.lineage_id) {
+                indices.push(idx);
+            } else {
+                members.insert(org.lineage_id.clone(), vec![idx]);
+            }
         }
     }
     members
