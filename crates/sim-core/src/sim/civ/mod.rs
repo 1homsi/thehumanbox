@@ -1,26 +1,17 @@
-pub mod building_damage;
 pub mod civ_tick;
-pub mod culture;
-pub mod economy;
-pub mod economy_tick;
-pub mod eras;
-pub mod festivals;
-pub mod fields;
-pub use eras as era;
-pub mod government;
-pub mod graves;
 pub mod moments;
-pub mod orphans;
-pub mod peril;
-pub mod prayers;
-pub mod refugees;
-pub mod rename;
-pub mod revive;
-pub mod settlements;
-pub mod smog;
-pub mod teach;
-pub mod trade_routes;
-pub mod vacancy;
-pub mod wards;
-pub mod warfare;
-pub mod world_milestones;
+
+pub mod divine;
+pub mod land;
+pub mod progress;
+pub mod society;
+
+// Every module keeps its old path (civ::graves, civ::era, ...).
+pub use divine::{peril, prayers, rename, revive, teach, wards};
+pub use eras as era;
+pub use land::{building_damage, fields, smog};
+pub use progress::{eras, world_milestones};
+pub use society::{
+    culture, economy, economy_tick, festivals, government, graves, orphans, refugees, settlements,
+    trade_routes, vacancy, warfare,
+};

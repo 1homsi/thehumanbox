@@ -297,16 +297,16 @@ pub struct SaveState {
     #[serde(default)]
     lineage_homes: HashMap<String, [i32; 3]>,
     #[serde(default)]
-    lineage_eras: HashMap<String, super::era::Era>,
+    lineage_eras: HashMap<String, crate::sim::era::Era>,
     current_era: String,
     sex_words: Vec<String>,
     pub(crate) world_seed: u64,
     lineage_names: HashMap<String, String>,
     lineage_strategies: HashMap<String, (String, u64)>,
     #[serde(default)]
-    lineage_strategy_objectives: HashMap<String, super::simulation::StrategyObjective>,
+    lineage_strategy_objectives: HashMap<String, crate::sim::simulation::StrategyObjective>,
     #[serde(default)]
-    lineage_strategy_history: Vec<super::simulation::StrategyCampaignRecord>,
+    lineage_strategy_history: Vec<crate::sim::simulation::StrategyCampaignRecord>,
     lineage_last_council: HashMap<String, u64>,
     lineage_elders: HashMap<String, String>,
     lineage_negotiations: Vec<NegotiationSave>,
@@ -330,45 +330,45 @@ pub struct SaveState {
     #[serde(default)]
     settlement_tiers: HashMap<String, u8>,
     #[serde(default)]
-    buildings: Vec<super::buildings::Building>,
+    buildings: Vec<crate::sim::buildings::Building>,
     #[serde(default)]
     next_building_id: u32,
     #[serde(default)]
-    governments: HashMap<String, super::government::Government>,
+    governments: HashMap<String, crate::sim::government::Government>,
     #[serde(default)]
-    religions: Vec<super::culture::Religion>,
+    religions: Vec<crate::sim::culture::Religion>,
     #[serde(default)]
     next_religion_id: u32,
     #[serde(default)]
-    artworks: Vec<super::culture::Artwork>,
+    artworks: Vec<crate::sim::culture::Artwork>,
     #[serde(default)]
     next_artwork_id: u32,
     #[serde(default)]
-    festivals: Vec<super::culture::Festival>,
+    festivals: Vec<crate::sim::culture::Festival>,
     #[serde(default)]
     next_festival_id: u32,
     #[serde(default)]
     last_witness_tick: u64,
     #[serde(default)]
-    books: Vec<super::language_tech::Book>,
+    books: Vec<crate::sim::language_tech::Book>,
     #[serde(default)]
     next_book_id: u32,
     #[serde(default)]
-    farms: Vec<super::agriculture::Farm>,
+    farms: Vec<crate::sim::agriculture::Farm>,
     #[serde(default)]
     next_farm_id: u32,
     #[serde(default)]
-    vehicles: Vec<super::transportation::Vehicle>,
+    vehicles: Vec<crate::sim::transportation::Vehicle>,
     #[serde(default)]
     next_vehicle_id: u32,
     #[serde(default)]
-    battles: Vec<super::warfare::Battle>,
+    battles: Vec<crate::sim::warfare::Battle>,
     #[serde(default)]
     next_battle_id: u32,
     #[serde(default)]
-    treaties: Vec<super::warfare::Treaty>,
+    treaties: Vec<crate::sim::warfare::Treaty>,
     #[serde(default)]
-    outbreaks: Vec<super::medicine::Outbreak>,
+    outbreaks: Vec<crate::sim::medicine::Outbreak>,
     #[serde(default)]
     milestones_achieved: HashSet<String>,
     #[serde(default)]
@@ -376,11 +376,11 @@ pub struct SaveState {
     #[serde(default)]
     headlines: Vec<(u64, String)>,
     #[serde(default)]
-    trades: Vec<super::economy::Trade>,
+    trades: Vec<crate::sim::economy::Trade>,
     #[serde(default)]
-    trade_routes: Vec<super::civ::trade_routes::TradeRoute>,
+    trade_routes: Vec<crate::sim::civ::trade_routes::TradeRoute>,
     #[serde(default)]
-    caravans: Vec<super::civ::trade_routes::Caravan>,
+    caravans: Vec<crate::sim::civ::trade_routes::Caravan>,
     #[serde(default)]
     next_trade_route_id: u32,
     #[serde(default)]
@@ -388,7 +388,7 @@ pub struct SaveState {
     #[serde(default)]
     water_use: Vec<WaterUseSave>,
     #[serde(default)]
-    field_fortifications: Vec<super::warfare::FieldFortification>,
+    field_fortifications: Vec<crate::sim::warfare::FieldFortification>,
 }
 
 fn mem_encode(m: &FxHashMap<(i32, i32), f32>) -> HashMap<String, f32> {
@@ -423,7 +423,7 @@ fn repaired_next_animal_id(saved_next: usize, animals: &[AnimalSave]) -> usize {
         .fold(saved_next, |next, animal| next.max(animal.id.saturating_add(1)))
 }
 
-fn repaired_next_religion_id(saved_next: u32, religions: &[super::culture::Religion]) -> u32 {
+fn repaired_next_religion_id(saved_next: u32, religions: &[crate::sim::culture::Religion]) -> u32 {
     repaired_next_u32_id(
         saved_next,
         religions.iter().filter_map(|religion| {
@@ -1134,7 +1134,7 @@ impl Simulation {
             }
         }
         let mut religions = state.religions;
-        super::actions::religion_expanded::repair_persisted_religions(&mut organisms, &mut religions);
+        crate::sim::actions::religion_expanded::repair_persisted_religions(&mut organisms, &mut religions);
         let next_religion_id = repaired_next_religion_id(state.next_religion_id, &religions);
         let next_artwork_id =
             repaired_next_u32_id(state.next_artwork_id, state.artworks.iter().map(|a| a.id));
@@ -1143,7 +1143,7 @@ impl Simulation {
         let next_book_id = repaired_next_u32_id(state.next_book_id, state.books.iter().map(|b| b.id));
         let next_farm_id = repaired_next_u32_id(state.next_farm_id, state.farms.iter().map(|f| f.id));
         let mut farms = state.farms;
-        super::agriculture::deduplicate_farm_plots(&mut farms);
+        crate::sim::agriculture::deduplicate_farm_plots(&mut farms);
         let next_vehicle_id =
             repaired_next_u32_id(state.next_vehicle_id, state.vehicles.iter().map(|v| v.id));
         // Battle IDs currently encode tick and lineages rather than this
@@ -1151,7 +1151,7 @@ impl Simulation {
         // the eventual numeric-ID migration instead of resetting it to one.
         let next_battle_id = repaired_next_sequence(state.next_battle_id, state.battles.len());
         let mut treaties = state.treaties;
-        super::warfare::consolidate_treaties(&mut treaties, state.tick_count);
+        crate::sim::warfare::consolidate_treaties(&mut treaties, state.tick_count);
         let next_trade_route_id = repaired_next_u32_id(
             state.next_trade_route_id,
             state.trade_routes.iter().map(|route| route.id),
@@ -1167,7 +1167,7 @@ impl Simulation {
             organisms,
             animals: state.animals.into_iter().map(animal_from_save).collect(),
             tick_count: state.tick_count,
-            population_limit: super::config::DEFAULT_MAX_POPULATION,
+            population_limit: crate::sim::config::DEFAULT_MAX_POPULATION,
             events: state.events.into_iter().collect(),
             history: state.history,
             drought,
@@ -1326,7 +1326,7 @@ impl Simulation {
         let living_lineages: rustc_hash::FxHashSet<String> = sim
             .organisms
             .iter()
-            .filter(|organism| organism.alive || super::agents::growth::is_pending_birth(organism))
+            .filter(|organism| organism.alive || crate::sim::agents::growth::is_pending_birth(organism))
             .map(|organism| organism.lineage_id.clone())
             .collect();
         let loaded_tick = sim.tick_count;
@@ -1374,12 +1374,12 @@ impl Simulation {
         // Old/imported saves may predate terrain effects for completed wells
         // and bridges. Reassert only operational infrastructure so an
         // unfinished project still grants no world effect.
-        super::civ_tick::reconcile_operational_infrastructure(&mut sim);
+        crate::sim::civ_tick::reconcile_operational_infrastructure(&mut sim);
         // The saved map is a cache, not source-of-truth. Rebuild it from
         // living residents and operational buildings so extinct/imported
         // stale rows disappear immediately on load without emitting events.
-        super::civ::settlements::rebuild_tiers(&mut sim);
-        super::civ::trade_routes::repair_loaded_state(&mut sim);
+        crate::sim::civ::settlements::rebuild_tiers(&mut sim);
+        crate::sim::civ::trade_routes::repair_loaded_state(&mut sim);
         sim
     }
 
@@ -1419,14 +1419,14 @@ impl Simulation {
 mod tests {
     use super::*;
 
-    fn saved_battle(id: &str) -> super::super::warfare::Battle {
-        super::super::warfare::Battle {
+    fn saved_battle(id: &str) -> crate::sim::warfare::Battle {
+        crate::sim::warfare::Battle {
             id: id.to_string(),
             attackers: Vec::new(),
             defenders: Vec::new(),
             attacker_orgs: Vec::new(),
             defender_orgs: Vec::new(),
-            scale: super::super::warfare::BattleScale::Skirmish,
+            scale: crate::sim::warfare::BattleScale::Skirmish,
             location: (10, 10),
             started_tick: 1,
             ended_tick: None,
@@ -1512,7 +1512,7 @@ mod tests {
 
     #[test]
     fn building_damage_round_trips_through_schema_v5() {
-        use super::super::buildings::{Building, BuildingKind};
+        use crate::sim::buildings::{Building, BuildingKind};
 
         let mut sim = Simulation::new(0xB01D);
         sim.buildings.clear();
@@ -1542,7 +1542,7 @@ mod tests {
 
     #[test]
     fn loading_latches_timestamp_less_full_damage_as_a_ruin() {
-        use super::super::buildings::{Building, BuildingKind};
+        use crate::sim::buildings::{Building, BuildingKind};
 
         let mut state = SaveState {
             version: SAVE_SCHEMA_VERSION,
@@ -1561,11 +1561,11 @@ mod tests {
 
     #[test]
     fn legacy_default_counters_advance_past_all_persisted_ids() {
-        use super::super::agriculture::{CropKind, Farm};
-        use super::super::buildings::{Building, BuildingKind};
-        use super::super::culture::{ArtKind, Artwork, Festival, FestivalKind, Religion, ReligionKind};
-        use super::super::language_tech::{Book, BookTopic};
-        use super::super::transportation::{TransportKind, Vehicle};
+        use crate::sim::agriculture::{CropKind, Farm};
+        use crate::sim::buildings::{Building, BuildingKind};
+        use crate::sim::culture::{ArtKind, Artwork, Festival, FestivalKind, Religion, ReligionKind};
+        use crate::sim::language_tech::{Book, BookTopic};
+        use crate::sim::transportation::{TransportKind, Vehicle};
 
         let mut state = SaveState::default();
         state.animals.push(AnimalSave {
@@ -1652,7 +1652,7 @@ mod tests {
 
     #[test]
     fn loading_repairs_dangling_religions_and_exact_live_adherent_counts() {
-        use super::super::culture::{Religion, ReligionKind};
+        use crate::sim::culture::{Religion, ReligionKind};
 
         let mut state = SaveState {
             version: SAVE_SCHEMA_VERSION,
@@ -1759,7 +1759,7 @@ mod tests {
 
     #[test]
     fn loading_consolidates_treaties_to_one_active_record_per_pair() {
-        use super::super::warfare::{Treaty, TreatyKind};
+        use crate::sim::warfare::{Treaty, TreatyKind};
 
         let mut state = SaveState {
             tick_count: 50,
