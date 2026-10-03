@@ -12,7 +12,22 @@ import {
 import { TILE } from '../../model/palette'
 
 import { drawClouds, scratchA, scratchB } from '.././decorations'
+import { firstPairAtRow } from '.././grid-cells'
+import { PATH_TRAIL_HOT } from '../../../shared/types'
 import type { DrawFrame } from './frame'
+
+// Path traffic arrives as whole percents, so a frame draws hundreds of worn-track tiles
+// from at most ~50 distinct strengths: build each style string once.
+const pathTrailStyles = new Map<number, string>()
+function pathTrailStyle(p: number): string {
+  let style = pathTrailStyles.get(p)
+  if (style === undefined) {
+    if (pathTrailStyles.size >= 4096) pathTrailStyles.clear()
+    style = `rgba(160,130,80,${Math.min(0.28, p * 0.3)})`
+    pathTrailStyles.set(p, style)
+  }
+  return style
+}
 
 /** Map overlays (hazard, fertility, trails, age, threat, density, territory, history) and the view-flag layers. */
 export function draw_overlays(f: DrawFrame) {
@@ -345,14 +360,30 @@ export function draw_overlays(f: DrawFrame) {
   // Always show high-traffic paths subtly (helps map feel lived-in)
   if (path_trail) {
     ctx.save()
-    for (let row = r0; row < r1; row++) {
-      const pr = path_trail[row]
-      if (!pr) continue
-      for (let col = c0; col < c1; col++) {
-        const p = pr[col] ?? 0
-        if (p < 0.55) continue
-        ctx.fillStyle = `rgba(160,130,80,${Math.min(0.28, p * 0.3)})`
+    const hot = world.grid.path_trail_hot
+    if (hot) {
+      // Only the busy cells were listed when the frame was decoded; walk those, in the
+      // same row-major order as the full scan below.
+      for (let i = firstPairAtRow(hot, r0); i < hot.length; i += 2) {
+        const row = hot[i]
+        if (row >= r1) break
+        const col = hot[i + 1]
+        if (col < c0 || col >= c1) continue
+        const p = path_trail[row]?.[col] ?? 0
+        if (p < PATH_TRAIL_HOT) continue
+        ctx.fillStyle = pathTrailStyle(p)
         ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
+      }
+    } else {
+      for (let row = r0; row < r1; row++) {
+        const pr = path_trail[row]
+        if (!pr) continue
+        for (let col = c0; col < c1; col++) {
+          const p = pr[col] ?? 0
+          if (p < PATH_TRAIL_HOT) continue
+          ctx.fillStyle = pathTrailStyle(p)
+          ctx.fillRect(col * TILE, row * TILE, TILE, TILE)
+        }
       }
     }
     ctx.restore()

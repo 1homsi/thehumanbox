@@ -488,9 +488,18 @@ export interface GridState {
   food_trail?: number[][]
   water_trail?: number[][]
   path_trail?: number[][]
+  /**
+   * Cells whose `path_trail` is at least `PATH_TRAIL_HOT` (a superset: re-check the value),
+   * as flattened `row, col` pairs in row-major order. Lets the renderer skip scanning the
+   * whole grid for the handful of busy paths. Absent when the grid was not built from a wire.
+   */
+  path_trail_hot?: Int32Array
   fertility?: number[][]
   hazard?: number[][]
 }
+
+/** Path traffic at or above this is drawn as a worn track on the map. */
+export const PATH_TRAIL_HOT = 0.55
 
 export interface GridWire {
   width: number
