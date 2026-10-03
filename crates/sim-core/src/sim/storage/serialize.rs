@@ -102,6 +102,11 @@ impl FramePayload {
         Some(&mut self.rest)
     }
 
+    /// Set the typed grid section.
+    pub fn set_grid(&mut self, grid: crate::world::grid::GridJson) {
+        self.grid = Some(grid);
+    }
+
     /// Add or replace a top-level entry (the transport stamps frame metadata
     /// this way).
     pub fn insert(&mut self, key: &str, value: serde_json::Value) {
@@ -139,35 +144,44 @@ impl From<serde_json::Value> for FramePayload {
     }
 }
 
+/// One top-level entry of a [`FramePayload`].
+pub enum FrameEntry<'a> {
+    Json(&'a serde_json::Value),
+    Grid(&'a crate::world::grid::GridJson),
+    HotOrganisms(&'a crate::organism::organism::OrgsHotSoa),
+}
+
+impl serde::Serialize for FrameEntry<'_> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        match self {
+            FrameEntry::Json(value) => value.serialize(serializer),
+            FrameEntry::Grid(grid) => grid.serialize(serializer),
+            FrameEntry::HotOrganisms(soa) => soa.serialize(serializer),
+        }
+    }
+}
+
+impl FramePayload {
+    /// The top-level entries in key order (the order `Serialize` writes them).
+    pub fn entries(&self) -> Vec<(&str, FrameEntry<'_>)> {
+        // `rest` is already sorted (a `BTreeMap`); slot the typed sections in.
+        let mut entries: Vec<(&str, FrameEntry<'_>)> = Vec::with_capacity(self.rest.len() + 2);
+        entries.extend(self.rest.iter().map(|(k, v)| (k.as_str(), FrameEntry::Json(v))));
+        if let Some(grid) = &self.grid {
+            entries.push(("grid", FrameEntry::Grid(grid)));
+        }
+        if let Some(soa) = &self.organisms_hot {
+            entries.push(("organisms_hot", FrameEntry::HotOrganisms(soa)));
+        }
+        entries.sort_by(|a, b| a.0.cmp(b.0));
+        entries
+    }
+}
+
 impl serde::Serialize for FramePayload {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         use serde::ser::SerializeMap;
-
-        enum Entry<'a> {
-            Json(&'a serde_json::Value),
-            Grid(&'a crate::world::grid::GridJson),
-            Hot(&'a crate::organism::organism::OrgsHotSoa),
-        }
-        impl serde::Serialize for Entry<'_> {
-            fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-                match self {
-                    Entry::Json(value) => value.serialize(serializer),
-                    Entry::Grid(grid) => grid.serialize(serializer),
-                    Entry::Hot(soa) => soa.serialize(serializer),
-                }
-            }
-        }
-
-        // `rest` is already sorted (a `BTreeMap`); slot the typed sections in.
-        let mut entries: Vec<(&str, Entry<'_>)> = Vec::with_capacity(self.rest.len() + 2);
-        entries.extend(self.rest.iter().map(|(k, v)| (k.as_str(), Entry::Json(v))));
-        if let Some(grid) = &self.grid {
-            entries.push(("grid", Entry::Grid(grid)));
-        }
-        if let Some(soa) = &self.organisms_hot {
-            entries.push(("organisms_hot", Entry::Hot(soa)));
-        }
-        entries.sort_by(|a, b| a.0.cmp(b.0));
+        let entries = self.entries();
         let mut map = serializer.serialize_map(Some(entries.len()))?;
         for (key, entry) in &entries {
             map.serialize_entry(key, entry)?;

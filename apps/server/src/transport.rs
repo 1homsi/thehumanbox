@@ -232,7 +232,7 @@ pub fn encode_frame(
     payload.insert("frame_id", serde_json::json!(frame_id));
     payload.insert("server_sent_at_ms", serde_json::json!(server_sent_at_ms));
     payload.insert("frame_kind", serde_json::json!(frame_kind));
-    let raw = match rmp_serde::to_vec_named(&payload) {
+    let raw = match crate::frame_codec::encode(&payload) {
         Ok(v) => v,
         Err(_) => return Vec::new(),
     };
