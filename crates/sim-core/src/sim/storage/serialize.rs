@@ -99,6 +99,100 @@ impl Simulation {
         self.state_json_inner(vp_cx, vp_cy, false, false)
     }
 
+    /// The top-level frame fields that come before the per-kind extras: the
+    /// grid, the organism and animal sections and the world clock. The three
+    /// large sections arrive already converted to `Value` and are moved into
+    /// the object. Embedding them through `json!` instead re-serialises each
+    /// one into a fresh copy of itself (a deep clone of every tile, organism
+    /// and animal) and then drops the original.
+    fn entity_head(
+        &self,
+        grid: serde_json::Value,
+        organisms_key: &'static str,
+        organisms: serde_json::Value,
+        animals: serde_json::Value,
+        complete: bool,
+    ) -> serde_json::Value {
+        let mut head = json!({
+            "tick":               self.tick_count,
+            "organisms_complete": complete,
+            "animals_complete":   complete,
+            "is_day":             !self.is_night(),
+            "day_progress":       ((self.tick_count % DAY_LENGTH) as f32 / DAY_LENGTH as f32 * 1000.0).round() / 1000.0,
+            "season":             self.season(),
+            "season_progress":    (self.season_progress() * 1000.0).round() / 1000.0,
+            "drought":            self.drought.active,
+            "weather":            { "kind": self.weather.phase(self.tick_count), "intensity": self.weather.effective_intensity(self.tick_count), "wind_x": self.weather.wind_x, "wind_y": self.weather.wind_y },
+            "cosmos": {
+                "moon_phase":    crate::sim::cosmos::moon_phase_at(self.tick_count).label(),
+                "moon_illum":    crate::sim::cosmos::moon_phase_at(self.tick_count).illumination(),
+                "year":          crate::sim::cosmos::current_year(self.tick_count),
+                "day_of_year":   crate::sim::cosmos::day_of_year(self.tick_count),
+            },
+        });
+        if let Some(obj) = head.as_object_mut() {
+            obj.insert("grid".to_string(), grid);
+            obj.insert(organisms_key.to_string(), organisms);
+            obj.insert("animals".to_string(), animals);
+        }
+        head
+    }
+
+    /// The previous construction, kept as the reference the tests compare
+    /// `entity_head` against.
+    #[cfg(test)]
+    fn entity_head_reference(
+        &self,
+        grid: serde_json::Value,
+        organisms: serde_json::Value,
+        animals: serde_json::Value,
+        complete: bool,
+    ) -> serde_json::Value {
+        if complete {
+            json!({
+                "tick":               self.tick_count,
+                "grid":               grid,
+                "organisms":          organisms,
+                "organisms_complete": true,
+                "animals":            animals,
+                "animals_complete":   true,
+                "is_day":             !self.is_night(),
+                "day_progress":       ((self.tick_count % DAY_LENGTH) as f32 / DAY_LENGTH as f32 * 1000.0).round() / 1000.0,
+                "season":             self.season(),
+                "season_progress":    (self.season_progress() * 1000.0).round() / 1000.0,
+                "drought":            self.drought.active,
+                "weather":            { "kind": self.weather.phase(self.tick_count), "intensity": self.weather.effective_intensity(self.tick_count), "wind_x": self.weather.wind_x, "wind_y": self.weather.wind_y },
+                "cosmos": {
+                    "moon_phase":    crate::sim::cosmos::moon_phase_at(self.tick_count).label(),
+                    "moon_illum":    crate::sim::cosmos::moon_phase_at(self.tick_count).illumination(),
+                    "year":          crate::sim::cosmos::current_year(self.tick_count),
+                    "day_of_year":   crate::sim::cosmos::day_of_year(self.tick_count),
+                },
+            })
+        } else {
+            json!({
+                "tick":               self.tick_count,
+                "grid":               grid,
+                "organisms_hot":      organisms,
+                "organisms_complete": false,
+                "animals":            animals,
+                "animals_complete":   false,
+                "is_day":             !self.is_night(),
+                "day_progress":       ((self.tick_count % DAY_LENGTH) as f32 / DAY_LENGTH as f32 * 1000.0).round() / 1000.0,
+                "season":             self.season(),
+                "season_progress":    (self.season_progress() * 1000.0).round() / 1000.0,
+                "drought":            self.drought.active,
+                "weather":            { "kind": self.weather.phase(self.tick_count), "intensity": self.weather.effective_intensity(self.tick_count), "wind_x": self.weather.wind_x, "wind_y": self.weather.wind_y },
+                "cosmos": {
+                    "moon_phase":    crate::sim::cosmos::moon_phase_at(self.tick_count).label(),
+                    "moon_illum":    crate::sim::cosmos::moon_phase_at(self.tick_count).illumination(),
+                    "year":          crate::sim::cosmos::current_year(self.tick_count),
+                    "day_of_year":   crate::sim::cosmos::day_of_year(self.tick_count),
+                },
+            })
+        }
+    }
+
     fn viewport_centroid(&self) -> (i32, i32) {
         let mut sx: f32 = 0.0;
         let mut sy: f32 = 0.0;
@@ -255,26 +349,13 @@ impl Simulation {
             for a in self.animals.iter() {
                 animals_json.push(serde_json::to_value(a.to_json()).unwrap());
             }
-            json!({
-                "tick":               self.tick_count,
-                "grid":               serde_json::to_value(grid_json).unwrap(),
-                "organisms":          organisms_json,
-                "organisms_complete": true,
-                "animals":            animals_json,
-                "animals_complete":   true,
-                "is_day":             !self.is_night(),
-                "day_progress":       ((self.tick_count % DAY_LENGTH) as f32 / DAY_LENGTH as f32 * 1000.0).round() / 1000.0,
-                "season":             self.season(),
-                "season_progress":    (self.season_progress() * 1000.0).round() / 1000.0,
-                "drought":            self.drought.active,
-                "weather":            { "kind": self.weather.phase(self.tick_count), "intensity": self.weather.effective_intensity(self.tick_count), "wind_x": self.weather.wind_x, "wind_y": self.weather.wind_y },
-                "cosmos": {
-                    "moon_phase":    crate::sim::cosmos::moon_phase_at(self.tick_count).label(),
-                    "moon_illum":    crate::sim::cosmos::moon_phase_at(self.tick_count).illumination(),
-                    "year":          crate::sim::cosmos::current_year(self.tick_count),
-                    "day_of_year":   crate::sim::cosmos::day_of_year(self.tick_count),
-                },
-            })
+            self.entity_head(
+                serde_json::to_value(grid_json).unwrap(),
+                "organisms",
+                serde_json::Value::Array(organisms_json),
+                serde_json::Value::Array(animals_json),
+                true,
+            )
         } else {
             let mut soa = OrgsHotSoa::with_capacity(self.organisms.len() / 2);
             let lookahead = *LOOKAHEAD_TICKS;
@@ -292,26 +373,13 @@ impl Simulation {
                     animals_json.push(serde_json::to_value(a.to_json()).unwrap());
                 }
             }
-            json!({
-                "tick":               self.tick_count,
-                "grid":               serde_json::to_value(grid_json).unwrap(),
-                "organisms_hot":      serde_json::to_value(&soa).unwrap(),
-                "organisms_complete": false,
-                "animals":            animals_json,
-                "animals_complete":   false,
-                "is_day":             !self.is_night(),
-                "day_progress":       ((self.tick_count % DAY_LENGTH) as f32 / DAY_LENGTH as f32 * 1000.0).round() / 1000.0,
-                "season":             self.season(),
-                "season_progress":    (self.season_progress() * 1000.0).round() / 1000.0,
-                "drought":            self.drought.active,
-                "weather":            { "kind": self.weather.phase(self.tick_count), "intensity": self.weather.effective_intensity(self.tick_count), "wind_x": self.weather.wind_x, "wind_y": self.weather.wind_y },
-                "cosmos": {
-                    "moon_phase":    crate::sim::cosmos::moon_phase_at(self.tick_count).label(),
-                    "moon_illum":    crate::sim::cosmos::moon_phase_at(self.tick_count).illumination(),
-                    "year":          crate::sim::cosmos::current_year(self.tick_count),
-                    "day_of_year":   crate::sim::cosmos::day_of_year(self.tick_count),
-                },
-            })
+            self.entity_head(
+                serde_json::to_value(grid_json).unwrap(),
+                "organisms_hot",
+                serde_json::to_value(&soa).unwrap(),
+                serde_json::Value::Array(animals_json),
+                false,
+            )
         };
         if let Some(obj) = payload.as_object_mut() {
             obj.insert("vehicles".into(), serde_json::Value::Array(self.vehicles.iter().map(|v| json!({
@@ -1226,5 +1294,52 @@ mod schema_tests {
         assert_eq!(settlement["capacity"].as_u64(), Some(6));
         assert!(settlement["score"].as_u64().is_some_and(|score| score >= 24));
         assert_eq!(settlement["center"].as_array().map(Vec::len), Some(2));
+    }
+
+    /// `entity_head` moves the grid, organism and animal sections into the
+    /// frame; the old `json!` construction deep-copied them. On a world that
+    /// has run for a while both must give the same bytes for every frame kind.
+    #[test]
+    fn entity_head_matches_the_deep_copy_reference() {
+        let mut sim = Simulation::new(42);
+        for _ in 0..400 {
+            sim.tick();
+        }
+        for complete in [true, false] {
+            let frame = if complete {
+                sim.state_json_periodic_full()
+            } else {
+                sim.state_json_incremental()
+            };
+            let key = if complete { "organisms" } else { "organisms_hot" };
+            let section = |name: &str| frame[name].clone();
+            let (grid, organisms, animals) = (section("grid"), section(key), section("animals"));
+            assert!(organisms.as_array().is_some_and(|a| !a.is_empty()) || !complete);
+
+            let new = sim.entity_head(
+                grid.clone(),
+                key_static(key),
+                organisms.clone(),
+                animals.clone(),
+                complete,
+            );
+            let old = sim.entity_head_reference(grid, organisms, animals, complete);
+            assert_eq!(new, old);
+            assert_eq!(
+                serde_json::to_vec(&new).unwrap(),
+                serde_json::to_vec(&old).unwrap()
+            );
+            // And the head is exactly what the real frame starts from.
+            for (k, v) in new.as_object().unwrap() {
+                assert_eq!(frame.get(k), Some(v), "frame disagrees on `{k}`");
+            }
+        }
+    }
+
+    fn key_static(key: &str) -> &'static str {
+        match key {
+            "organisms" => "organisms",
+            _ => "organisms_hot",
+        }
     }
 }

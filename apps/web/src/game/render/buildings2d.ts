@@ -354,16 +354,34 @@ const FOOTPRINTS: Record<string, [number, number]> = {
   Aquaculture: [3, 3],
 }
 
+// Building kinds are a small closed set, but the lookup helpers below run for every
+// building on every frame (and several times inside the depth sort), so the regex
+// rewrite and the footprint fallback are computed once per distinct kind.
+const normKindCache = new Map<string, string>()
+const NORM_KIND_CACHE_MAX = 2048
+
 function normKind(kind: string): string {
-  return kind
+  const cached = normKindCache.get(kind)
+  if (cached !== undefined) return cached
+  const normalized = kind
     .toLowerCase()
     .replace(/_([a-z])/g, (_, c) => c.toUpperCase())
     .replace(/^([a-z])/, (_, c) => c.toUpperCase())
+  if (normKindCache.size >= NORM_KIND_CACHE_MAX) normKindCache.clear()
+  normKindCache.set(kind, normalized)
+  return normalized
 }
 
+const DEFAULT_FOOTPRINT: [number, number] = [1, 1]
+const footprintCache = new Map<string, [number, number]>()
+
 export function buildingFootprint(kind: string): [number, number] {
-  const k = FOOTPRINTS[kind] ?? FOOTPRINTS[normKind(kind)]
-  return k ?? [1, 1]
+  const cached = footprintCache.get(kind)
+  if (cached !== undefined) return cached
+  const found = FOOTPRINTS[kind] ?? FOOTPRINTS[normKind(kind)] ?? DEFAULT_FOOTPRINT
+  if (footprintCache.size >= NORM_KIND_CACHE_MAX) footprintCache.clear()
+  footprintCache.set(kind, found)
+  return found
 }
 
 function positiveTileSpan(value: number | undefined, fallback: number): number {
@@ -431,6 +449,28 @@ export function compareBuildingsByDepth(a: BuildingLike, b: BuildingLike): numbe
     (Number.isFinite(a.x) ? a.x : 0) - (Number.isFinite(b.x) ? b.x : 0) ||
     a.id - b.id
   )
+}
+
+/**
+ * Sorts a copy of `buildings` into the same order as
+ * `[...buildings].sort(compareBuildingsByDepth)`, but resolves each building's
+ * depth key once instead of twice per comparison.
+ */
+export function sortBuildingsByDepth<T extends BuildingLike>(buildings: readonly T[]): T[] {
+  const n = buildings.length
+  const depth = new Float64Array(n)
+  const left = new Float64Array(n)
+  const order = new Array<number>(n)
+  for (let i = 0; i < n; i++) {
+    const b = buildings[i]
+    depth[i] = buildingDepthKey(b)
+    left[i] = Number.isFinite(b.x) ? b.x : 0
+    order[i] = i
+  }
+  order.sort((i, j) => depth[i] - depth[j] || left[i] - left[j] || buildings[i].id - buildings[j].id)
+  const out = new Array<T>(n)
+  for (let i = 0; i < n; i++) out[i] = buildings[order[i]]
+  return out
 }
 
 export type BuildingVisualDetail = 'overview' | 'standard' | 'detail'

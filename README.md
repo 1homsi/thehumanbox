@@ -25,8 +25,14 @@ thehumanbox/
 │   ├── sim-core/   The simulation engine (native + WebAssembly)
 │   └── headless/   Deterministic headless runs: sweeps, perf gate
 ├── scripts/        Dev and CI helpers, and the published desktop installer
-└── docs/           Images and notes
+└── docs/           Architecture, development guide, how to add actions
 ```
+
+## Working on the code
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): what runs where, how a tick and a decision work, where each kind of change goes.
+- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md): setup, the checks CI runs, profiling and proving a change is behaviour-neutral.
+- [docs/ADDING_ACTIONS.md](docs/ADDING_ACTIONS.md): a new action is one file and one line.
 
 ## Desktop app
 
