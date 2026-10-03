@@ -195,6 +195,25 @@ pub enum BuildingFunction {
     Recreation,
 }
 
+impl BuildingFunction {
+    /// The lowercase name frames carry: what `format!("{:?}", f).to_lowercase()`
+    /// gave, without allocating.
+    pub fn label(self) -> &'static str {
+        match self {
+            BuildingFunction::Housing => "housing",
+            BuildingFunction::Education => "education",
+            BuildingFunction::Worship => "worship",
+            BuildingFunction::Trade => "trade",
+            BuildingFunction::Industry => "industry",
+            BuildingFunction::Healthcare => "healthcare",
+            BuildingFunction::Military => "military",
+            BuildingFunction::Civic => "civic",
+            BuildingFunction::Infrastructure => "infrastructure",
+            BuildingFunction::Recreation => "recreation",
+        }
+    }
+}
+
 /// Resources committed when a settlement opens a construction site.
 ///
 /// Organisms currently carry raw wood and stone rather than dozens of refined
