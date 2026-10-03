@@ -5,8 +5,9 @@ TICKS        ?= 6000
 HOST         ?= http://localhost:8000
 OUT          ?= profile.csv
 TAG          ?=
+WORLDS_DIR   ?= apps/server/worlds
 
-CARGO_RELEASE := cd simulation && cargo
+CARGO_RELEASE := cargo
 
 .PHONY: help sim client desktop-dev desktop-pack desktop-release \
         headless test test-backend test-frontend test-desktop \
@@ -29,19 +30,19 @@ help: ## Show this help (default)
 # ── Run servers ─────────────────────────────────────────────────────
 
 sim: ## Run the Rust simulation server (release)
-	$(CARGO_RELEASE) run --release --bin simulation-rs
+	cd apps/server && $(CARGO_RELEASE) run --release --bin simulation-rs
 
 client: ## Run the Vite client dev server
-	cd client && pnpm dev
+	cd apps/web && pnpm dev
 
 desktop-dev: ## Run the Electron desktop app from source
-	cd desktop && pnpm run dev
+	cd apps/desktop && pnpm run dev
 
 desktop-pack: ## Package the desktop installer for the current platform (no publish)
-	cd desktop && pnpm run pack
+	cd apps/desktop && pnpm run pack
 
 desktop-release: ## Build + publish desktop installers to GitHub Releases (requires GH_TOKEN)
-	cd desktop && pnpm run release
+	cd apps/desktop && pnpm run release
 
 # ── Tests ───────────────────────────────────────────────────────────
 
@@ -51,10 +52,10 @@ test-backend: ## Rust simulation tests (release, locked, whole workspace)
 	$(CARGO_RELEASE) test --release --locked --workspace
 
 test-frontend: ## Client unit tests
-	cd client && pnpm test
+	cd apps/web && pnpm test
 
 test-desktop: ## Desktop tsc typecheck
-	cd desktop && pnpm exec tsc -p tsconfig.json --noEmit
+	cd apps/desktop && pnpm exec tsc -p tsconfig.json --noEmit
 
 # ── Lint + format ───────────────────────────────────────────────────
 
@@ -65,8 +66,8 @@ lint-rust: ## cargo fmt --check + clippy (whole workspace)
 	$(CARGO_RELEASE) clippy --workspace --all-targets --locked -- -D warnings
 
 lint-client: ## eslint + prettier check
-	cd client && pnpm lint
-	cd client && pnpm format:check
+	cd apps/web && pnpm lint
+	cd apps/web && pnpm format:check
 
 fmt: fmt-rust fmt-client ## Auto-format the entire tree
 
@@ -74,7 +75,7 @@ fmt-rust: ## cargo fmt --all
 	$(CARGO_RELEASE) fmt --all
 
 fmt-client: ## prettier write
-	cd client && pnpm format
+	cd apps/web && pnpm format
 
 # ── Build ───────────────────────────────────────────────────────────
 
@@ -83,18 +84,18 @@ build: build-sim wasm build-client ## Build sim, wasm, and client for production
 build-sim: ## cargo build --release for the simulation
 	$(CARGO_RELEASE) build --release --bin simulation-rs
 
-wasm: ## Build the browser WASM sim-core into client/src/wasm/sim-core (needs rustup + wasm-pack)
+wasm: ## Build the browser WASM sim-core into apps/web/src/wasm/sim-core (needs rustup + wasm-pack)
 	rustup target add --toolchain stable wasm32-unknown-unknown >/dev/null 2>&1 || true
-	cd simulation && PATH="$$(dirname "$$(rustup which rustc --toolchain stable)"):$$PATH" \
+	PATH="$$(dirname "$$(rustup which rustc --toolchain stable)"):$$PATH" \
 		RUSTFLAGS='--cfg getrandom_backend="wasm_js"' \
-		wasm-pack build sim-core --target web --release \
-		--out-dir ../../client/src/wasm/sim-core
+		wasm-pack build crates/sim-core --target web --release \
+		--out-dir ../../apps/web/src/wasm/sim-core
 
 build-client: ## Production Vite build (web target)
-	cd client && pnpm run build
+	cd apps/web && pnpm run build
 
 build-desktop: ## Build desktop bundle (renderer with VITE_DESKTOP=1 + main process)
-	cd desktop && pnpm run build
+	cd apps/desktop && pnpm run build
 
 # ── Smoke + perf ────────────────────────────────────────────────────
 
@@ -105,11 +106,11 @@ headless: ## Headless deterministic run — `make headless SEED=42 TICKS=6000`
 profile: ## Headless perf profile CSV — `make profile OUT=a.csv TICKS=12000`
 	$(CARGO_RELEASE) run --release --bin headless -- \
 		--seed $(SEED) --ticks $(TICKS) --every $(TICKS) \
-		--profile ../$(OUT) --profile-every 100
+		--profile $(OUT) --profile-every 100
 
 perf-gate: ## Multi-seed sim budget — `make perf-gate TICKS=8000 MAX_TICK_MS=80`
 	$(CARGO_RELEASE) build --release --locked --bin headless
-	TICKS=$(TICKS) MAX_TICK_MS=$${MAX_TICK_MS:-80} scripts/perf-gate.sh
+	TICKS=$(TICKS) MAX_TICK_MS=$${MAX_TICK_MS:-80} tools/perf-gate.sh
 
 metrics: ## Scrape /metrics once from a running sim — `make metrics HOST=...`
 	@curl -s $(HOST)/metrics
@@ -122,20 +123,20 @@ snapshot: ## Hit /snapshot on a running sim (binary, msgpack/gzip)
 # ── Worlds / state ──────────────────────────────────────────────────
 
 wipe: ## Wipe the local live world.save (next launch starts fresh)
-	rm -f simulation/world.save
-	rm -rf worlds/
+	rm -f apps/server/world.save
+	rm -rf $(WORLDS_DIR)/
 
 wipe-archive: ## Move local worlds/ to a timestamped backup instead of deleting
-	@if [ -d worlds ]; then \
-		dest="worlds-archive-$$(date +%Y%m%d-%H%M%S)"; \
-		mv worlds "$$dest" && echo "archived → $$dest"; \
+	@if [ -d $(WORLDS_DIR) ]; then \
+		dest="$(WORLDS_DIR)-archive-$$(date +%Y%m%d-%H%M%S)"; \
+		mv $(WORLDS_DIR) "$$dest" && echo "archived → $$dest"; \
 	else \
 		echo "no worlds/ to archive"; \
 	fi
 
 worlds-list: ## List the locally archived worlds with their meta
-	@if [ -d worlds ]; then \
-		for d in worlds/*/; do \
+	@if [ -d $(WORLDS_DIR) ]; then \
+		for d in $(WORLDS_DIR)/*/; do \
 			name=$$(basename "$$d"); \
 			meta="$$d/meta.json"; \
 			if [ -f "$$meta" ]; then \
@@ -149,19 +150,19 @@ worlds-list: ## List the locally archived worlds with their meta
 	fi
 
 logs: ## Tail the local sim log (only when launched via redirect)
-	@tail -f simulation/sim.log 2>/dev/null || echo "no simulation/sim.log — run sim with > sim.log first"
+	@tail -f apps/server/sim.log 2>/dev/null || echo "no apps/server/sim.log — run sim with > sim.log first"
 
 # ── Install ─────────────────────────────────────────────────────────
 
 install: install-client install-desktop install-sim ## Install every JS + Rust dep
 
-install-client: ## pnpm install in client/
-	cd client && pnpm install
+install-client: ## pnpm install in apps/web/
+	cd apps/web && pnpm install
 
-install-desktop: ## pnpm install in desktop/
-	cd desktop && pnpm install
+install-desktop: ## pnpm install in apps/desktop/
+	cd apps/desktop && pnpm install
 
-install-sim: ## cargo fetch in simulation/
+install-sim: ## cargo fetch for the workspace
 	$(CARGO_RELEASE) fetch
 
 # ── Clean ───────────────────────────────────────────────────────────
@@ -171,11 +172,11 @@ clean: clean-sim clean-client clean-desktop ## Remove every build artifact
 clean-sim: ## cargo clean
 	$(CARGO_RELEASE) clean
 
-clean-client: ## rm client/dist + client/node_modules/.vite
-	rm -rf client/dist client/node_modules/.vite
+clean-client: ## rm apps/web/dist + apps/web/node_modules/.vite
+	rm -rf apps/web/dist apps/web/node_modules/.vite
 
-clean-desktop: ## rm desktop/dist + desktop/out
-	rm -rf desktop/dist desktop/out
+clean-desktop: ## rm apps/desktop/dist + apps/desktop/out
+	rm -rf apps/desktop/dist apps/desktop/out
 
 # ── CI / release ────────────────────────────────────────────────────
 

@@ -1,0 +1,3 @@
+[workspace]
+resolver = "2"
+members = ["apps/server", "crates/sim-core", "crates/headless"]

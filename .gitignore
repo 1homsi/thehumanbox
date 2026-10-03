@@ -1,13 +1,16 @@
 # Rust
-simulation/target/
-simulation/*.save
-simulation/.env
+/target/
+apps/server/*.save
+apps/server/.env
 
 # Node
-client/node_modules/
-client/dist/
-client/dist-ssr/
-client/*.local
+apps/web/node_modules/
+apps/web/dist/
+apps/web/dist-ssr/
+apps/web/*.local
+apps/desktop/node_modules/
+apps/desktop/dist/
+apps/desktop/out/
 
 # Misc
 .DS_Store

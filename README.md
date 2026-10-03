@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="client/public/favicon-32x32.png" alt="The Human Box" width="64" height="64" />
+  <img src="apps/web/public/favicon-32x32.png" alt="The Human Box" width="64" height="64" />
 </p>
 
 # The Human Box
@@ -17,9 +17,16 @@ Live: [thehumanbox.com](https://thehumanbox.com)
 
 ```
 thehumanbox/
-├── simulation/   Rust simulation engine + WebSocket server
-├── client/       React/Vite frontend (2D pixel world)
-└── desktop/      Electron app that wraps the client and the local simulation
+├── apps/
+│   ├── web/        React/Vite frontend (2D pixel world)
+│   ├── desktop/    Electron app that wraps the web client and the local simulation
+│   └── server/     Rust WebSocket server around the engine
+├── crates/
+│   ├── sim-core/   The simulation engine (native + WebAssembly)
+│   └── headless/   Deterministic headless runs: sweeps, perf gate
+├── tools/          Dev and CI helper scripts
+├── scripts/        Published installer (its raw URL is documented below)
+└── docs/           Images and notes
 ```
 
 ## Desktop app
@@ -37,13 +44,13 @@ Windows + Linux: grab the installer from
 prompt, Linux users `chmod +x` the AppImage or install the `.deb`.
 
 The app is **not code-signed yet**, which is why the bypass step is
-needed. Source: [`desktop/`](desktop/).
+needed. Source: [`apps/desktop/`](apps/desktop/).
 
 ## Quick start
 
 **Simulation** (Rust):
 ```bash
-cd simulation
+cd apps/server
 cp .env.example .env        # set GROQ_API_KEY for narration / dialogue
 cargo run --release --bin simulation-rs
 ```
@@ -53,7 +60,7 @@ templated text.
 
 **Client** (Vite):
 ```bash
-cd client
+cd apps/web
 pnpm install
 pnpm run dev
 ```
@@ -71,7 +78,7 @@ their parents — and then they get to live.
 
 - 600×300 tile grid of biomes: grassland, forest, desert, wetland,
   tundra, volcanic. Elevation, rivers, lakes, weather, four seasons.
-- 35 historical eras from PreStone through Stone, Bronze, Iron,
+- 45 historical eras from PreStone through Stone, Bronze, Iron,
   Classical, Medieval, Renaissance, Industrial, Modern, Information,
   and onward to Atomic, Space, Digital, Quantum, Genetic, Orbital,
   Lunar, Martian, Cyber, Neural, Posthuman, Interstellar, Singularity,

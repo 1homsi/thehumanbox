@@ -1,0 +1,13 @@
+[package]
+name = "headless"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "headless"
+path = "src/main.rs"
+
+[dependencies]
+sim-core   = { path = "../sim-core" }
+serde_json = "1"
