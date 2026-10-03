@@ -1,4 +1,3 @@
-use crate::sim::era::Era;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -140,62 +139,5 @@ impl Milestone {
             Milestone::MoonLanding => "feet stand upon the moon",
             Milestone::InternetAge => "minds are linked across every land",
         }
-    }
-
-    pub fn era_at_least(self) -> Era {
-        match self {
-            Milestone::FirstFire
-            | Milestone::FirstTool
-            | Milestone::FirstShelter
-            | Milestone::FirstBirth
-            | Milestone::FirstDeath
-            | Milestone::FirstSpeech => Era::Stone,
-            Milestone::FirstReligion | Milestone::Pop100 | Milestone::FirstWar | Milestone::GreatFamine => {
-                Era::Bronze
-            }
-            Milestone::FirstWriting | Milestone::FirstTreaty | Milestone::EmpireBorn => Era::Iron,
-            Milestone::FirstBook
-            | Milestone::FirstSchool
-            | Milestone::FirstUniversity
-            | Milestone::FirstPlague
-            | Milestone::FirstShip
-            | Milestone::Pop500
-            | Milestone::GoldenAge
-            | Milestone::GreatPlague
-            | Milestone::RepublicBorn
-            | Milestone::GuildFormed => Era::Classical,
-            Milestone::Renaissance => Era::Renaissance,
-            Milestone::FirstFactory
-            | Milestone::FirstHospital
-            | Milestone::FirstElectricity
-            | Milestone::FirstTrain
-            | Milestone::FirstVehicle
-            | Milestone::Pop1000
-            | Milestone::Revolution
-            | Milestone::Enlightenment
-            | Milestone::GreatFire
-            | Milestone::GreatFlood => Era::Industrial,
-            Milestone::FirstPlane | Milestone::DemocracyBorn | Milestone::MoonLanding => Era::Modern,
-            Milestone::FirstComputer
-            | Milestone::FirstSatellite
-            | Milestone::FirstAI
-            | Milestone::Pop5000
-            | Milestone::InternetAge => Era::Information,
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn first_fire_in_stone_era() {
-        assert_eq!(Milestone::FirstFire.era_at_least(), Era::Stone);
-    }
-
-    #[test]
-    fn moon_landing_in_modern_era() {
-        assert_eq!(Milestone::MoonLanding.era_at_least(), Era::Modern);
     }
 }

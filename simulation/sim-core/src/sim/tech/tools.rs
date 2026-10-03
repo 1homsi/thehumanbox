@@ -105,71 +105,6 @@ impl ToolKind {
         }
     }
 
-    pub fn combat_bonus(self) -> f32 {
-        match self {
-            ToolKind::StoneSpear => 0.20,
-            ToolKind::BronzeSpear => 0.35,
-            ToolKind::IronSword => 0.50,
-            ToolKind::Bow => 0.40,
-            ToolKind::Crossbow => 0.80,
-            ToolKind::Musket => 2.00,
-            ToolKind::Rifle => 4.00,
-            ToolKind::StoneAxe | ToolKind::BronzeAxe => 0.15,
-            ToolKind::Hammer => 0.10,
-            _ => 0.0,
-        }
-    }
-
-    pub fn gather_bonus(self) -> f32 {
-        match self {
-            ToolKind::StoneAxe => 2.00,
-            ToolKind::BronzeAxe => 2.50,
-            ToolKind::Saw => 3.00,
-            ToolKind::FishingRod => 1.50,
-            ToolKind::Hammer => 0.40,
-            _ => 0.0,
-        }
-    }
-
-    pub fn hunt_bonus(self) -> f32 {
-        match self {
-            ToolKind::StoneSpear => 0.50,
-            ToolKind::BronzeSpear => 0.90,
-            ToolKind::Bow => 1.20,
-            ToolKind::Crossbow => 1.80,
-            ToolKind::Musket => 3.00,
-            ToolKind::Rifle => 5.00,
-            ToolKind::IronSword => 0.80,
-            _ => 0.0,
-        }
-    }
-
-    pub fn knowledge_bonus(self) -> f32 {
-        match self {
-            ToolKind::Book => 2.00,
-            ToolKind::Sextant => 0.60,
-            ToolKind::Telescope => 1.20,
-            ToolKind::Microscope => 1.50,
-            ToolKind::Camera => 0.80,
-            ToolKind::Radio => 1.50,
-            ToolKind::Phone => 3.00,
-            ToolKind::Computer => 10.00,
-            _ => 0.0,
-        }
-    }
-
-    pub fn build_bonus(self) -> f32 {
-        match self {
-            ToolKind::Hammer => 1.50,
-            ToolKind::Saw => 1.20,
-            ToolKind::StoneAxe => 0.60,
-            ToolKind::BronzeAxe => 1.00,
-            ToolKind::IronPlow => 0.80,
-            ToolKind::Plow => 1.00,
-            _ => 0.0,
-        }
-    }
-
     pub fn all() -> &'static [ToolKind] {
         &[
             ToolKind::StoneAxe,
@@ -196,13 +131,4 @@ impl ToolKind {
             ToolKind::Phone,
         ]
     }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ToolRole {
-    Combat,
-    Gather,
-    Hunt,
-    Knowledge,
-    Build,
 }

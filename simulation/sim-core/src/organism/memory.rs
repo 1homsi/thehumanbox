@@ -178,33 +178,6 @@ impl MemoryStore {
         v
     }
 
-    pub fn most_salient(&self) -> Option<&MemoryEntry> {
-        self.entries.iter().max_by(|a, b| {
-            a.salience
-                .partial_cmp(&b.salience)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        })
-    }
-
-    pub fn most_salient_of(&self, kind: MemoryKind) -> Option<&MemoryEntry> {
-        self.entries.iter().filter(|e| e.kind == kind).max_by(|a, b| {
-            a.salience
-                .partial_cmp(&b.salience)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        })
-    }
-
-    pub fn recall_about(&self, related_id: &str) -> Option<&MemoryEntry> {
-        self.entries
-            .iter()
-            .filter(|e| e.related_id.as_deref() == Some(related_id))
-            .max_by(|a, b| {
-                a.salience
-                    .partial_cmp(&b.salience)
-                    .unwrap_or(std::cmp::Ordering::Equal)
-            })
-    }
-
     pub fn pick_for_reflection(&self, prefer_emotion: Option<bool>) -> Option<&MemoryEntry> {
         let candidates: Vec<&MemoryEntry> = self
             .entries

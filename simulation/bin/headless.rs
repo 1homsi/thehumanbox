@@ -1,5 +1,4 @@
 #![allow(clippy::needless_range_loop, clippy::explicit_counter_loop)]
-#![allow(dead_code)]
 
 // Sim core comes from the shared `sim-core` crate now (no more #[path]
 // includes that recompiled the core into this binary separately).
@@ -1049,15 +1048,7 @@ struct SweepResult {
     peak_pop: usize,
     extinction_tick: Option<u64>,
     births: u64,
-    deaths_old_age: u64,
-    deaths_starvation: u64,
-    deaths_dehydration: u64,
-    deaths_sickness: u64,
-    deaths_combat: u64,
     surviving_lineages: usize,
-    alive_samples: Vec<usize>,
-    lineage_samples: Vec<usize>,
-    ticks_run: u64,
     verdict: Verdict,
     religions: usize,
     adherents: u32,
@@ -1214,11 +1205,6 @@ fn run_one_seed(seed: u64, max_ticks: u64) -> SweepResult {
         peak_pop,
         extinction_tick,
         births: h.births,
-        deaths_old_age: h.deaths_old_age,
-        deaths_starvation: h.deaths_starvation,
-        deaths_dehydration: h.deaths_dehydration,
-        deaths_sickness: h.deaths_sickness,
-        deaths_combat: h.deaths_combat,
         surviving_lineages,
         religions: sim.religions.len(),
         adherents: adherents_total,
@@ -1234,9 +1220,6 @@ fn run_one_seed(seed: u64, max_ticks: u64) -> SweepResult {
         total_children: total_kids,
         round9_total,
         round9_active,
-        alive_samples,
-        lineage_samples,
-        ticks_run,
         verdict,
     }
 }

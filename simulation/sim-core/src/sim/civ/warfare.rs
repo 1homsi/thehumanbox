@@ -150,27 +150,6 @@ pub struct Treaty {
     pub expires_tick: u64,
 }
 
-pub fn pick_combat_style(era: Era, has_gun: bool) -> CombatStyle {
-    let order = [
-        CombatStyle::Modern,
-        CombatStyle::Rifle,
-        CombatStyle::Musket,
-        CombatStyle::Pike,
-        CombatStyle::Sword,
-        CombatStyle::Spear,
-        CombatStyle::Brawl,
-    ];
-    for s in order.iter().copied() {
-        if !has_gun && matches!(s, CombatStyle::Musket | CombatStyle::Rifle | CombatStyle::Modern) {
-            continue;
-        }
-        if era >= s.era_unlock() {
-            return s;
-        }
-    }
-    CombatStyle::Brawl
-}
-
 pub fn damage_multiplier(style: CombatStyle) -> f32 {
     match style {
         CombatStyle::Brawl => 1.0,
@@ -1128,17 +1107,6 @@ mod tests {
             signed_tick,
             expires_tick,
         }
-    }
-
-    #[test]
-    fn combat_style_progression() {
-        assert_eq!(pick_combat_style(Era::PreStone, false), CombatStyle::Brawl);
-        assert_eq!(pick_combat_style(Era::Stone, false), CombatStyle::Spear);
-        assert_eq!(pick_combat_style(Era::Bronze, false), CombatStyle::Sword);
-        assert_eq!(pick_combat_style(Era::Medieval, false), CombatStyle::Pike);
-        assert_eq!(pick_combat_style(Era::Renaissance, true), CombatStyle::Musket);
-        assert_eq!(pick_combat_style(Era::Industrial, true), CombatStyle::Rifle);
-        assert_eq!(pick_combat_style(Era::Modern, true), CombatStyle::Modern);
     }
 
     #[test]

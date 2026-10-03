@@ -124,40 +124,12 @@ impl TreatmentKind {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ActiveDisease {
-    pub kind: DiseaseKind,
-    pub started_tick: u64,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Outbreak {
     pub kind: DiseaseKind,
     pub epicenter: [i32; 2],
     pub started_tick: u64,
     pub affected_count: u32,
     pub deaths: u32,
-}
-
-pub fn pick_introduction(era: Era, seed: u64) -> Option<DiseaseKind> {
-    let candidates: Vec<DiseaseKind> = [
-        DiseaseKind::Cold,
-        DiseaseKind::Flu,
-        DiseaseKind::Fever,
-        DiseaseKind::Plague,
-        DiseaseKind::Cholera,
-        DiseaseKind::Pox,
-        DiseaseKind::Tuberculosis,
-        DiseaseKind::Influenza,
-        DiseaseKind::Malaria,
-        DiseaseKind::Scurvy,
-    ]
-    .into_iter()
-    .filter(|d| d.era_appearance() <= era)
-    .collect();
-    if candidates.is_empty() {
-        return None;
-    }
-    Some(candidates[(seed as usize) % candidates.len()])
 }
 
 #[cfg(test)]
@@ -167,11 +139,5 @@ mod tests {
     #[test]
     fn plague_more_lethal_than_cold() {
         assert!(DiseaseKind::Plague.lethality() > DiseaseKind::Cold.lethality());
-    }
-
-    #[test]
-    fn introduction_respects_era() {
-        let d = pick_introduction(Era::Stone, 0).unwrap();
-        assert!(d.era_appearance() <= Era::Stone);
     }
 }

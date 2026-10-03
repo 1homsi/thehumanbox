@@ -1,9 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-pub fn env_or(key: &str, default: &str) -> String {
-    std::env::var(key).unwrap_or_else(|_| default.to_string())
-}
-
 fn lane_env(lane_key: &str, fallback_key: &str, default: &str) -> String {
     std::env::var(lane_key)
         .or_else(|_| std::env::var(fallback_key))
@@ -13,12 +9,6 @@ fn lane_env(lane_key: &str, fallback_key: &str, default: &str) -> String {
 fn lane_key(lane_key_env: &str) -> String {
     std::env::var(lane_key_env)
         .or_else(|_| std::env::var("LLM_KEY"))
-        .or_else(|_| std::env::var("GROQ_API_KEY"))
-        .unwrap_or_default()
-}
-
-pub fn llm_key_default() -> String {
-    std::env::var("LLM_KEY")
         .or_else(|_| std::env::var("GROQ_API_KEY"))
         .unwrap_or_default()
 }
@@ -39,15 +29,6 @@ pub static THINK_LLM_MODEL: std::sync::LazyLock<String> =
     std::sync::LazyLock::new(|| lane_env("THINK_LLM_MODEL", "LLM_MODEL", DEFAULT_LLM_MODEL));
 pub static THINK_LLM_KEY: std::sync::LazyLock<String> =
     std::sync::LazyLock::new(|| lane_key("THINK_LLM_KEY"));
-
-#[allow(dead_code)]
-pub static LLM_URL: std::sync::LazyLock<String> =
-    std::sync::LazyLock::new(|| env_or("LLM_URL", DEFAULT_LLM_URL));
-#[allow(dead_code)]
-pub static LLM_MODEL: std::sync::LazyLock<String> =
-    std::sync::LazyLock::new(|| env_or("LLM_MODEL", DEFAULT_LLM_MODEL));
-#[allow(dead_code)]
-pub static LLM_KEY: std::sync::LazyLock<String> = std::sync::LazyLock::new(llm_key_default);
 
 #[derive(Serialize)]
 pub struct GroqMessage {

@@ -70,20 +70,6 @@ impl InformationMedium {
             InformationMedium::Internet => Era::Information,
         }
     }
-    pub fn reach_multiplier(self) -> f32 {
-        match self {
-            InformationMedium::Oral => 1.0,
-            InformationMedium::Cave | InformationMedium::Stone => 1.5,
-            InformationMedium::Scroll => 4.0,
-            InformationMedium::Codex => 8.0,
-            InformationMedium::Book => 20.0,
-            InformationMedium::Pamphlet => 50.0,
-            InformationMedium::Newspaper => 200.0,
-            InformationMedium::Radio => 800.0,
-            InformationMedium::Television => 4000.0,
-            InformationMedium::Internet => 50000.0,
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -183,11 +169,6 @@ mod tests {
     fn writing_evolves_with_era() {
         assert_eq!(WritingSystem::for_era(Era::Stone), WritingSystem::None);
         assert_eq!(WritingSystem::for_era(Era::Information), WritingSystem::Digital);
-    }
-
-    #[test]
-    fn internet_reaches_far() {
-        assert!(InformationMedium::Internet.reach_multiplier() > InformationMedium::Oral.reach_multiplier());
     }
 
     #[test]

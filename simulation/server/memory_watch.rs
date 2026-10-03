@@ -98,12 +98,10 @@ impl MemoryWatch {
         pressure_from_u8(self.pressure.load(Ordering::Relaxed))
     }
 
-    #[allow(dead_code)]
     pub fn rss_mb(&self) -> u64 {
         self.own_rss_kb.load(Ordering::Relaxed) / 1024
     }
 
-    #[allow(dead_code)]
     pub fn box_available_mb(&self) -> u64 {
         self.box_available_kb.load(Ordering::Relaxed) / 1024
     }

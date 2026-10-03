@@ -21,10 +21,6 @@ pub fn world_save_path(hash: &str) -> PathBuf {
     world_dir(hash).join("world.save")
 }
 
-pub fn world_meta_path(hash: &str) -> PathBuf {
-    world_dir(hash).join("meta.json")
-}
-
 pub fn world_sqlite_path(hash: &str) -> PathBuf {
     world_dir(hash).join(SQLITE_FILE)
 }
@@ -56,27 +52,6 @@ pub fn mint_world_hash(seed: u64, born_at_ms: u64) -> String {
         h = h.wrapping_mul(1099511628211);
     }
     format!("{:016x}", h)
-}
-
-pub fn list_world_hashes() -> Vec<String> {
-    let mut out = Vec::new();
-    let Ok(read) = std::fs::read_dir(worlds_root()) else {
-        return out;
-    };
-    for entry in read.flatten() {
-        let path = entry.path();
-        if !path.is_dir() {
-            continue;
-        }
-        let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
-            continue;
-        };
-        if name.starts_with('_') || name.starts_with('.') {
-            continue;
-        }
-        out.push(name.to_string());
-    }
-    out
 }
 
 pub struct WorldStore {
@@ -188,15 +163,6 @@ impl WorldStore {
             out.push(row?);
         }
         Ok(out)
-    }
-
-    pub fn prune_older_than(&self, before_tick: u64) -> rusqlite::Result<usize> {
-        let conn = self.conn.lock().expect("world_store conn poisoned");
-        let n = conn.execute(
-            "DELETE FROM memories WHERE flushed_tick < ?",
-            params![before_tick as i64],
-        )?;
-        Ok(n)
     }
 
     pub fn memory_count(&self) -> rusqlite::Result<u64> {

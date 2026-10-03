@@ -36,20 +36,6 @@ impl Biome {
     pub fn wooded(self) -> bool {
         matches!(self, Biome::Forest | Biome::Jungle | Biome::Taiga)
     }
-    pub fn base_temp(self) -> f32 {
-        match self {
-            Biome::Grassland => 22.0,
-            Biome::Forest => 18.0,
-            Biome::Desert => 45.0,
-            Biome::Wetland => 20.0,
-            Biome::Tundra => -5.0,
-            Biome::Volcanic => 80.0,
-            Biome::Jungle => 30.0,
-            Biome::Savanna => 31.0,
-            Biome::Taiga => 2.0,
-            Biome::Badlands => 36.0,
-        }
-    }
     pub fn food_growth_mult(self) -> f32 {
         match self {
             Biome::Grassland => 1.0,
@@ -76,14 +62,6 @@ impl Biome {
             Biome::Savanna => 0.07,
             Biome::Taiga => 0.08,
             Biome::Badlands => 0.02,
-        }
-    }
-    pub fn rock_chance(self) -> f32 {
-        match self {
-            Biome::Volcanic => 0.14,
-            Biome::Tundra => 0.08,
-            Biome::Desert => 0.06,
-            _ => 0.03,
         }
     }
     pub fn base_fertility(self) -> f32 {
@@ -147,9 +125,5 @@ impl Tile {
 
     pub fn flammable(self) -> bool {
         matches!(self, Tile::Grass | Tile::Food)
-    }
-
-    pub fn is_warm(self) -> bool {
-        matches!(self, Tile::Fire | Tile::Campfire)
     }
 }

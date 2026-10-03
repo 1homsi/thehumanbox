@@ -49,36 +49,6 @@ impl AgeStage {
     pub fn can_teach(self) -> bool {
         matches!(self, AgeStage::Adult | AgeStage::Elder)
     }
-
-    pub fn move_speed_mult(self) -> f32 {
-        match self {
-            AgeStage::Infant => 0.40,
-            AgeStage::Child => 0.70,
-            AgeStage::Teen => 1.00,
-            AgeStage::Adult => 1.00,
-            AgeStage::Elder => 0.70,
-        }
-    }
-
-    pub fn energy_decay_mult(self) -> f32 {
-        match self {
-            AgeStage::Infant => 1.3,
-            AgeStage::Child => 0.9,
-            AgeStage::Teen => 1.0,
-            AgeStage::Adult => 1.0,
-            AgeStage::Elder => 1.3,
-        }
-    }
-
-    pub fn as_u8(self) -> u8 {
-        match self {
-            AgeStage::Infant => 0,
-            AgeStage::Child => 1,
-            AgeStage::Teen => 2,
-            AgeStage::Adult => 3,
-            AgeStage::Elder => 4,
-        }
-    }
 }
 
 #[cfg(test)]

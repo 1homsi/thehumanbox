@@ -29,15 +29,6 @@ impl ReligionKind {
             ReligionKind::Secular => Era::Industrial,
         }
     }
-    pub fn comfort_boost(self) -> f32 {
-        match self {
-            ReligionKind::Animism => 0.0008,
-            ReligionKind::Polytheism => 0.0010,
-            ReligionKind::Monotheism => 0.0012,
-            ReligionKind::Philosophical => 0.0006,
-            ReligionKind::Secular => 0.0002,
-        }
-    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

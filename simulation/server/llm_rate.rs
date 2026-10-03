@@ -40,11 +40,9 @@ impl GroqRateLimiter {
         }
     }
 
-    #[allow(dead_code)]
     pub fn available(&self) -> usize {
         self.sem.available_permits()
     }
-    #[allow(dead_code)]
     pub fn capacity(&self) -> usize {
         self.capacity
     }
