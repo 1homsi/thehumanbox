@@ -24,8 +24,23 @@ pub(super) struct ResolvedQual {
     all_gates: bool,
 }
 
+/// What a band needs from the situation, as masks over `ctx` bits (see
+/// `ctx_bits` in `eligibility.rs`) and workspace kinds, plus the few gates that
+/// are costly enough to be worked out only when everything else has passed.
+#[derive(Clone, Copy)]
+pub(super) struct GateReq {
+    pub(super) ctx: u32,
+    pub(super) workspaces: u32,
+    pub(super) lazy: u8,
+}
+
+pub(super) const LAZY_NEAR_HUT: u8 = 1;
+pub(super) const LAZY_BRIDGE_SITE: u8 = 2;
+pub(super) const LAZY_BRIDGE_MATERIALS: u8 = 4;
+
 pub(super) struct ResolvedBand {
     pub(super) band: ActionBand,
+    pub(super) req: GateReq,
     qual: ResolvedQual,
 }
 
@@ -91,6 +106,7 @@ impl ResolvedTables {
                 .iter()
                 .map(|&band| ResolvedBand {
                     band,
+                    req: GateReq::new(band),
                     qual: ResolvedQual::new(band.qualification, &discoveries, &specialties),
                 })
                 .collect()
@@ -122,6 +138,62 @@ impl ResolvedTables {
             is_leader: org.is_leader,
             literacy: org.literacy,
         }
+    }
+}
+
+impl GateReq {
+    fn new(band: ActionBand) -> Self {
+        use crate::sim::actions::eligibility::ctx;
+        let mut req = Self {
+            ctx: 0,
+            workspaces: 0,
+            lazy: 0,
+        };
+        req.ctx |= match band.social {
+            SocialGate::None => 0,
+            SocialGate::Anyone => ctx::ANYONE,
+            SocialGate::Kin => ctx::KIN,
+            SocialGate::KinCount(count) => ctx::kin_count_at_least(count),
+            SocialGate::Stranger => ctx::STRANGER,
+            SocialGate::KinAndStranger => ctx::KIN_AND_STRANGER,
+        };
+        match band.place {
+            PlaceGate::Anywhere => {}
+            PlaceGate::BuildableLand => req.ctx |= ctx::TILE_BUILDABLE,
+            PlaceGate::Home => req.ctx |= ctx::NEAR_HOME,
+            PlaceGate::WildLand => req.ctx |= ctx::WILD_LAND,
+            PlaceGate::Water => req.ctx |= ctx::NEAR_WATER,
+            PlaceGate::BridgeSite => req.lazy |= LAZY_BRIDGE_SITE,
+            PlaceGate::Rock => req.ctx |= ctx::NEAR_ROCK,
+            PlaceGate::Fire => req.ctx |= ctx::NEAR_FIRE,
+            PlaceGate::Hut => req.ctx |= ctx::TILE_HUT,
+            PlaceGate::NearHut => req.lazy |= LAZY_NEAR_HUT,
+            PlaceGate::HutOrRock => req.ctx |= ctx::HUT_OR_ROCK,
+            PlaceGate::Workspace(workspace) => req.workspaces |= 1 << (workspace as u32),
+            PlaceGate::FireAndWorkspace(workspace) => {
+                req.ctx |= ctx::NEAR_FIRE;
+                req.workspaces |= 1 << (workspace as u32);
+            }
+            PlaceGate::ExperimentWorkspace(workspace) => {
+                req.ctx |= ctx::FIRE_OR_WATER;
+                req.workspaces |= 1 << (workspace as u32);
+            }
+            PlaceGate::HomeAndWater => req.ctx |= ctx::HOME_AND_WATER,
+        }
+        match band.resource {
+            ResourceGate::None => {}
+            ResourceGate::Food => req.ctx |= ctx::HAS_FOOD,
+            ResourceGate::CarriedFood => req.ctx |= ctx::HAS_CARRIED_FOOD,
+            ResourceGate::Materials => req.ctx |= ctx::HAS_MATERIALS,
+            ResourceGate::BridgeMaterials => req.lazy |= LAZY_BRIDGE_MATERIALS,
+            ResourceGate::TradeGoods => req.ctx |= ctx::HAS_TRADE_GOODS,
+            ResourceGate::Wealth => req.ctx |= ctx::HAS_WEALTH,
+            ResourceGate::Wood => req.ctx |= ctx::HAS_WOOD,
+            ResourceGate::WoodAndStone => req.ctx |= ctx::HAS_WOOD_AND_STONE,
+            ResourceGate::Stone => req.ctx |= ctx::HAS_STONE,
+            ResourceGate::Metalworking => req.ctx |= ctx::HAS_METALWORKING_INPUTS,
+        }
+        req
     }
 }
 
