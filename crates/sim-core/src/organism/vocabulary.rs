@@ -438,6 +438,12 @@ fn concept_index() -> &'static HashMap<&'static str, usize> {
     IDX.get_or_init(|| CONCEPTS.iter().enumerate().map(|(i, &c)| (c, i)).collect())
 }
 
+/// Concept indices in the order `concept_index` iterates its map.
+fn concept_order() -> &'static [usize] {
+    static ORDER: OnceLock<Vec<usize>> = OnceLock::new();
+    ORDER.get_or_init(|| concept_index().iter().map(|(_, &i)| i).collect())
+}
+
 fn gen_syllable(rng: &mut impl Rng) -> String {
     let mut s = String::new();
     s.push(CONSONANTS[rng.random_range(0..CONSONANTS.len())] as char);
@@ -595,22 +601,40 @@ impl Vocabulary {
         child
     }
 
-    pub fn absorb_from(&mut self, other: &Vocabulary, rng: &mut impl Rng) {
-        let idx = concept_index();
-        let mut candidates: Vec<usize> = Vec::new();
-        for (&_concept, &i) in idx.iter() {
-            let mine = self.text(i);
-            let theirs = other.text(i);
-            if !mine.is_empty() && !theirs.is_empty() && mine != theirs {
-                candidates.push(i);
-            }
+    /// Whether slot `i` holds a word in both vocabularies and they differ.
+    fn differs_from(&self, other: &Vocabulary, i: usize) -> bool {
+        let (Some(&mine), Some(&theirs)) = (self.slots.get(i), other.slots.get(i)) else {
+            return false;
+        };
+        if mine.is_empty() || theirs.is_empty() {
+            return false;
         }
-        if candidates.is_empty() {
+        if mine.len != Word::LONG && theirs.len != Word::LONG {
+            // Inline words are zero-padded, so equal words are equal bytes.
+            return mine.len != theirs.len || mine.bytes != theirs.bytes;
+        }
+        self.text(i) != other.text(i)
+    }
+
+    pub fn absorb_from(&mut self, other: &Vocabulary, rng: &mut impl Rng) {
+        // Only one differing word is ever picked, and only one time in
+        // seventeen: count them without collecting, and walk to the chosen
+        // one (in the order `concept_index` iterates, as the collected list
+        // had) only when it is picked.
+        let differing = (0..CONCEPTS.len())
+            .filter(|&i| self.differs_from(other, i))
+            .count();
+        if differing == 0 {
             return;
         }
         if rng.random::<f32>() < 0.06 {
-            let i = candidates[rng.random_range(0..candidates.len())];
-            if i < other.slots.len() {
+            let pick = rng.random_range(0..differing);
+            let chosen = concept_order()
+                .iter()
+                .copied()
+                .filter(|&i| self.differs_from(other, i))
+                .nth(pick);
+            if let Some(i) = chosen {
                 self.ensure_capacity();
                 self.set(i, other.text(i));
             }
