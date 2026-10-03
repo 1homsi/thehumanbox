@@ -465,6 +465,7 @@ pub(super) fn eligible_band_for_action(
         .iter()
         .chain(ACTION_BANDS)
         .copied()
+        .chain(registry::bands())
         .find(|band| {
             (band.start..=band.end).contains(&action)
                 && band_is_eligible(sim, idx, ix, iy, *band, era, context, &mut place_cache)

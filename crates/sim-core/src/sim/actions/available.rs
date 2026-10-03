@@ -209,6 +209,12 @@ pub fn available_actions_into(
             mark_eligible_family_band(&mut eligible_by_family, band.start, band.end);
         }
     }
+    for band in registry::bands() {
+        if band_is_eligible(sim, idx, ix, iy, band, era, context, &mut place_cache) {
+            semantically_eligible[band.start..=band.end].fill(true);
+            mark_eligible_family_band(&mut eligible_by_family, band.start, band.end);
+        }
+    }
     extend_rotating_family_masks(a, &eligible_by_family, phase);
 
     let mut seen = [false; crate::organism::organism::ACTION_ID_SPACE];
@@ -220,6 +226,7 @@ pub fn available_actions_into(
             && relationships_deep::action_is_possible(sim, idx, *action, nearby)
             && crate::sim::civ::trade_routes::action_is_possible(sim, idx, *action, nearby)
             && (*action != 2704 || crate::sim::civ::trade_routes::can_dispatch_caravan(sim, idx))
+            && registry::is_possible(sim, idx, *action, ix, iy)
             && !std::mem::replace(&mut seen[*action], true)
     });
 }
