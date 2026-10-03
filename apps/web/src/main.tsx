@@ -2,8 +2,8 @@ import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 import App from './App.tsx'
-import { ErrorBoundary } from './components/ErrorBoundary'
-import { initAnalytics } from './lib/observability'
+import { ErrorBoundary } from './ui/ErrorBoundary'
+import { initAnalytics } from './shared/observability'
 import { reloadAppSafely } from './simulation/worldSource'
 
 initAnalytics()

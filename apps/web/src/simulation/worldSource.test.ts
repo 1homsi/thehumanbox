@@ -9,9 +9,9 @@ import {
   resolveWorldSource,
   shouldUseSimulationApi,
 } from './worldSource'
-import { showNotice } from '../lib/confirm'
+import { showNotice } from '../shared/confirm'
 
-vi.mock('../lib/confirm', () => ({ showNotice: vi.fn(() => Promise.resolve()) }))
+vi.mock('../shared/confirm', () => ({ showNotice: vi.fn(() => Promise.resolve()) }))
 
 afterEach(() => {
   vi.unstubAllGlobals()

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { WorldState, GridState, OrganismState, AnimalState, OrgDetail, OrgLife } from '../types'
-import { WS_BASE, API_BASE, IS_LOCAL_SERVER } from '../lib/config'
-import { useWorldStore } from '../stores/worldStore'
+import type { WorldState, GridState, OrganismState, AnimalState, OrgDetail, OrgLife } from '../shared/types'
+import { WS_BASE, API_BASE, IS_LOCAL_SERVER } from '../shared/config'
+import { useWorldStore } from '../state/worldStore'
 import { fetchSnapshotWithProgress, parseWorldFrame } from './wire'
 import { mergeFrame, type MergeCaches } from './merge'
-import { logger } from '../lib/logger'
+import { logger } from '../shared/logger'
 import {
   type LocalWorldReloadDetail,
   type WorldSource,
@@ -18,7 +18,7 @@ import {
   hasOwnWorldResetRequest,
 } from './worldSource'
 import { canSendSandboxCommand, type SandboxCommand } from './sandbox'
-import { isDesktop } from '../lib/desktop'
+import { isDesktop } from '../shared/desktop'
 import { localSaveWorkerRequest } from './wasmPersistence'
 import {
   fetchRuntimeControlState,
