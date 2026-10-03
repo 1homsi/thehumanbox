@@ -43,13 +43,19 @@ export function resolveAgeStage(character: CharacterAge): AgeStage {
   return 'elder'
 }
 
+const appearanceCache = new Map<string, number>()
 export function deterministicAppearanceIndex(id: string): number {
+  const cached = appearanceCache.get(id)
+  if (cached !== undefined) return cached
   let hash = 2166136261
   for (let i = 0; i < id.length; i++) {
     hash ^= id.charCodeAt(i)
     hash = Math.imul(hash, 16777619)
   }
-  return (hash >>> 0) % HUMAN_APPEARANCES
+  const index = (hash >>> 0) % HUMAN_APPEARANCES
+  if (appearanceCache.size >= 20000) appearanceCache.clear()
+  appearanceCache.set(id, index)
+  return index
 }
 
 export function wrapHumanFrame(frame: number): number {

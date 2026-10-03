@@ -27,11 +27,28 @@ const RULES: Array<[Emote, RegExp]> = [
   ['idea', /\b(inspired|discover|invent|idea|experiment)/],
 ]
 
-export function emoteFor(org: EmoteSource): Emote | null {
-  const t = (org.thought ?? '').toLowerCase()
+// People think one of a few hundred distinct thoughts, so which rule a thought matches
+// is worked out once per thought instead of running ten regexes per person per frame.
+const thoughtEmotes = new Map<string, Emote | null>()
+function emoteForThought(thought: string): Emote | null {
+  const cached = thoughtEmotes.get(thought)
+  if (cached !== undefined) return cached
+  const t = thought.toLowerCase()
+  let found: Emote | null = null
   for (const [emote, pattern] of RULES) {
-    if (pattern.test(t)) return emote
+    if (pattern.test(t)) {
+      found = emote
+      break
+    }
   }
+  if (thoughtEmotes.size >= 5000) thoughtEmotes.clear()
+  thoughtEmotes.set(thought, found)
+  return found
+}
+
+export function emoteFor(org: EmoteSource): Emote | null {
+  const byThought = emoteForThought(org.thought ?? '')
+  if (byThought) return byThought
   if ((org.fear_level ?? 0) > 0.7) return 'fear'
   if ((org.infection ?? 0) > 0.4) return 'sick'
   if ((org.grief_ticks ?? 0) > 40) return 'grief'
@@ -67,6 +84,37 @@ const ICONS: Record<Emote, string[]> = {
   joy: ['.......', 'y.....y', '.......', '.y...y.', '..yyy..', '.......', '.......'],
 }
 
+interface EmotePixels {
+  size: number
+  /** Column, row and colour of every painted pixel, in the row-major order they are drawn. */
+  cols: Uint8Array
+  rowIdx: Uint8Array
+  colors: string[]
+}
+
+const emotePixels = new Map<Emote, EmotePixels>()
+function pixelsFor(emote: Emote): EmotePixels {
+  let px = emotePixels.get(emote)
+  if (px) return px
+  const rows = ICONS[emote]
+  const cols: number[] = []
+  const rowIdx: number[] = []
+  const colors: string[] = []
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r]
+    for (let c = 0; c < row.length; c++) {
+      const color = COLORS[row[c]]
+      if (!color) continue
+      cols.push(c)
+      rowIdx.push(r)
+      colors.push(color)
+    }
+  }
+  px = { size: rows.length, cols: Uint8Array.from(cols), rowIdx: Uint8Array.from(rowIdx), colors }
+  emotePixels.set(emote, px)
+  return px
+}
+
 /** Draws `emote` in a small bubble whose bottom sits at (x, y). */
 export function drawEmote(
   ctx: CanvasRenderingContext2D,
@@ -76,21 +124,22 @@ export function drawEmote(
   time: number,
   phase: number,
 ) {
-  const rows = ICONS[emote]
+  // The pixel list is flattened once per emote, and the fill colour is only set when it
+  // changes along the same draw order (the bubble first, then the pixels row by row).
+  const { size, cols, rowIdx, colors } = pixelsFor(emote)
   const bob = Math.round(Math.sin(time / 420 + phase) * 1.2)
-  const size = rows.length
   const x0 = Math.round(x - size / 2) - 1
   const y0 = Math.round(y - size - 2) + bob
   ctx.fillStyle = 'rgba(26,19,13,0.82)'
   ctx.fillRect(x0 - 1, y0 - 1, size + 4, size + 4)
   ctx.fillRect(x0 + 1, y0 + size + 3, 2, 1)
-  for (let r = 0; r < size; r++) {
-    const row = rows[r]
-    for (let c = 0; c < row.length; c++) {
-      const color = COLORS[row[c]]
-      if (!color) continue
+  let last = ''
+  for (let i = 0; i < colors.length; i++) {
+    const color = colors[i]
+    if (color !== last) {
       ctx.fillStyle = color
-      ctx.fillRect(x0 + 1 + c, y0 + 1 + r, 1, 1)
+      last = color
     }
+    ctx.fillRect(x0 + 1 + cols[i], y0 + 1 + rowIdx[i], 1, 1)
   }
 }

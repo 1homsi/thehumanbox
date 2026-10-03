@@ -110,7 +110,8 @@ export function draw_people(f: DrawFrame) {
   for (const org of drawnOrganisms) orgMotion(org.id, org.x, org.y, t)
   const restingAtHome = (org: OrganismState) => {
     if (org.home_x == null || org.home_y == null) return false
-    if (ruinedTiles.has(`${Math.floor(org.home_x)},${Math.floor(org.home_y)}`)) return false
+    if (ruinedTiles.size > 0 && ruinedTiles.has(`${Math.floor(org.home_x)},${Math.floor(org.home_y)}`))
+      return false
     const motion = _orgLastPos.get(org.id)
     if (motion && t - motion.movedAt <= 120) return false
     const dx = org.x - org.home_x

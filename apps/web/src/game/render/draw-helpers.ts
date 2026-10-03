@@ -26,13 +26,19 @@ export const MONSTER_SIZES: Record<string, number> = { zombie: 10, demon: 12, dr
 
 export const _orgLastPos = new Map<string, CharacterMotion>()
 export const _animalLastPos = new Map<number, CharacterMotion>()
+const animPhaseCache = new Map<string, number>()
 export function orgAnimPhase(id: string): number {
+  const cached = animPhaseCache.get(id)
+  if (cached !== undefined) return cached
   let h = 2166136261 >>> 0
   for (let i = 0; i < id.length; i++) {
     h ^= id.charCodeAt(i)
     h = Math.imul(h, 16777619) >>> 0
   }
-  return h % 800
+  const phase = h % 800
+  if (animPhaseCache.size >= 20000) animPhaseCache.clear()
+  animPhaseCache.set(id, phase)
+  return phase
 }
 export function orgMotion(id: string, x: number, y: number, now: number): CharacterMotion {
   const motion = characterMotion(_orgLastPos.get(id), x, y, now, orgAnimPhase(id))
