@@ -1006,14 +1006,14 @@ mod tests {
             let mut organisms: Vec<Organism> = Vec::new();
             let adults = 4 + (round % 7) as usize;
             for i in 0..adults {
-                let sex = if (round + i as u64) % 3 == 0 {
+                let sex = if (round + i as u64).is_multiple_of(3) {
                     Sex::Male
                 } else {
                     Sex::Female
                 };
-                let alive = (round * 7 + i as u64) % 5 != 0;
+                let alive = !(round * 7 + i as u64).is_multiple_of(5);
                 let mut adult = test_organism(&format!("adult-{i}"), sex, alive, &mut rng);
-                adult.pregnant = (round + i as u64) % 2 == 0;
+                adult.pregnant = (round + i as u64).is_multiple_of(2);
                 organisms.push(adult);
             }
             // Unborn children of present, absent, dead and male "mothers".

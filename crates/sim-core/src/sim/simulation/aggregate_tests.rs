@@ -18,10 +18,7 @@ fn member_index_matches_the_cloning_version() {
         let mut original: FxHashMap<String, Vec<usize>> = FxHashMap::default();
         for (idx, org) in sim.organisms.iter().enumerate() {
             if org.alive {
-                original
-                    .entry(org.lineage_id.clone())
-                    .or_insert_with(Vec::new)
-                    .push(idx);
+                original.entry(org.lineage_id.clone()).or_default().push(idx);
             }
         }
         // The same keys in the same table order, each with the same members.
@@ -114,7 +111,9 @@ fn lineage_aggregates_match_the_cloning_version() {
 
 /// Territory as the maps hold it: lineages, their tiles and the tile owners,
 /// each in the order the maps yield them, because later claims read that order.
-fn territory_state(sim: &Simulation) -> (Vec<(String, Vec<(i32, i32)>)>, Vec<((i32, i32), String)>) {
+type TerritoryState = (Vec<(String, Vec<(i32, i32)>)>, Vec<((i32, i32), String)>);
+
+fn territory_state(sim: &Simulation) -> TerritoryState {
     (
         sim.territory
             .iter()
