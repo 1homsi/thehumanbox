@@ -2,7 +2,7 @@ import init, { Sim } from '../../wasm/sim-core/sim_core'
 import { parseWorldFrame } from '../../simulation/wire'
 import { mergeFrame } from '../../simulation/merge'
 import { useUIStore } from '../../state/store'
-import { drawWorldOnCanvas } from './WorldView'
+import { drawWorldOnCanvas } from './draw-world'
 const output = document.querySelector<HTMLPreElement>('#results')!
 const canvas = document.querySelector<HTMLCanvasElement>('#world')!
 const button = document.querySelector<HTMLButtonElement>('#run')!
