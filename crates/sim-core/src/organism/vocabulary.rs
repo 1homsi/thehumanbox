@@ -757,8 +757,33 @@ impl Vocabulary {
 // HashMap<String, String> - existing saves and the client wire
 // decoder don't need to change.
 impl Serialize for Vocabulary {
+    /// The same map `as_hashmap` builds, but borrowing the concept names and
+    /// words instead of cloning ~120 strings per organism per save. The
+    /// hasher, capacity and insertion order are identical (`&str` hashes like
+    /// `String`), so the entries come out in the same order and the bytes do
+    /// not change.
     fn serialize<S: Serializer>(&self, ser: S) -> Result<S::Ok, S::Error> {
-        self.as_hashmap().serialize(ser)
+        use std::fmt::Write as _;
+        let mut out: HashMap<&str, &str> =
+            HashMap::with_capacity_and_hasher(self.slots.len(), Default::default());
+        for (i, w) in self.slots.iter().enumerate() {
+            if !w.is_empty() {
+                if let Some(concept) = CONCEPTS.get(i) {
+                    out.insert(concept, w.as_str());
+                }
+            }
+        }
+        let mut packed = String::new();
+        if self.last_used.iter().any(|&t| t != 0) {
+            for (i, t) in self.last_used.iter().enumerate() {
+                if i > 0 {
+                    packed.push(',');
+                }
+                let _ = write!(packed, "{t}");
+            }
+            out.insert(LAST_USED_KEY, packed.as_str());
+        }
+        out.serialize(ser)
     }
 }
 
@@ -848,6 +873,47 @@ mod tests {
             v.known_word("food"),
             "decay forgot a freshly-used word right after a reload"
         );
+    }
+
+    /// `Serialize` borrows instead of building `as_hashmap`'s owned map; the
+    /// bytes (including the order the hash map iterates in) must be the same
+    /// for vocabularies with every mix of forgotten words and clock values.
+    #[test]
+    fn serialize_matches_the_owned_hashmap_byte_for_byte() {
+        let mut checked = 0;
+        for seed in 0..40u64 {
+            let mut rng = StdRng::seed_from_u64(seed);
+            let mut v = Vocabulary::generate(&mut rng);
+            let reference = |v: &Vocabulary| serde_json::to_string(&v.as_hashmap()).unwrap();
+            assert_eq!(
+                serde_json::to_string(&v).unwrap(),
+                reference(&v),
+                "fresh, seed {seed}"
+            );
+
+            for (n, concept) in CONCEPTS.iter().enumerate() {
+                if n % (seed as usize % 7 + 2) == 0 {
+                    v.touch_concept(concept, 1_000 + n as u64 * (seed + 1));
+                }
+            }
+            assert_eq!(
+                serde_json::to_string(&v).unwrap(),
+                reference(&v),
+                "touched, seed {seed}"
+            );
+
+            // Forget a seed-dependent share of the words.
+            v.decay(1_000_000 + seed, 50_000 + seed * 9_000);
+            assert_eq!(
+                serde_json::to_string(&v).unwrap(),
+                reference(&v),
+                "decayed, seed {seed}"
+            );
+            checked += usize::from(v.len() < CONCEPTS.len());
+        }
+        assert!(checked > 0, "some vocabularies must have forgotten words");
+        let empty = Vocabulary::default();
+        assert_eq!(serde_json::to_string(&empty).unwrap(), "{}");
     }
 
     #[test]

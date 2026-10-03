@@ -878,13 +878,26 @@ impl Simulation {
 /// main runtime. Atomic rename + parent-dir fsync mirror the
 /// previous in-line behaviour.
 pub fn write_save_to_disk(state: &SaveState, path: &str) -> io::Result<()> {
-    let json = serde_json::to_string(state).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
     let tmp_path = format!("{}.tmp", path);
-    {
-        use std::io::Write;
-        let mut f = std::fs::File::create(&tmp_path)?;
-        f.write_all(json.as_bytes())?;
-        f.sync_all()?;
+    // Stream the JSON into the file instead of building the whole document
+    // in memory first: a save is tens of MB, and the intermediate `String`
+    // (grown by doubling) briefly cost about twice that again in RSS.
+    let written = (|| -> io::Result<()> {
+        let file = std::fs::File::create(&tmp_path)?;
+        let mut out = io::BufWriter::with_capacity(1 << 20, file);
+        serde_json::to_writer(&mut out, state).map_err(|e| {
+            if e.is_io() {
+                io::Error::from(e)
+            } else {
+                io::Error::new(io::ErrorKind::InvalidData, e)
+            }
+        })?;
+        let file = out.into_inner().map_err(|e| e.into_error())?;
+        file.sync_all()
+    })();
+    if let Err(error) = written {
+        let _ = std::fs::remove_file(&tmp_path);
+        return Err(error);
     }
     std::fs::rename(&tmp_path, path)?;
     if let Some(parent) = std::path::Path::new(path).parent() {

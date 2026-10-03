@@ -1417,6 +1417,43 @@ fn save_result_writes_schema_version_and_cleans_temp_file() {
     let _ = std::fs::remove_file(&path_s);
 }
 
+/// The save is streamed into the file; the bytes must equal what building the
+/// whole document in memory (the previous implementation) produced, on a world
+/// that has run long enough to have vocabularies, memories and trails.
+#[test]
+fn streamed_save_matches_the_in_memory_document() {
+    let mut sim = Simulation::new(23);
+    for _ in 0..600 {
+        sim.tick();
+    }
+    let state = sim.to_save_state();
+    let expected = serde_json::to_string(&state).unwrap();
+
+    let mut path = std::env::temp_dir();
+    path.push(format!(
+        "thehumanbox-stream-save-test-{}.json",
+        std::process::id()
+    ));
+    let path_s = path.to_string_lossy().to_string();
+    let tmp_s = format!("{}.tmp", path_s);
+    crate::sim::persistence::write_save_to_disk(&state, &path_s).unwrap();
+    let written = std::fs::read(&path_s).unwrap();
+    assert!(written.len() > 100_000, "the world should produce a real save");
+    assert!(
+        written == expected.as_bytes(),
+        "streamed save differs from the in-memory one"
+    );
+    assert!(!std::path::Path::new(&tmp_s).exists());
+    let _ = std::fs::remove_file(&path_s);
+
+    // A destination that cannot be created is an error and leaves nothing behind.
+    let mut missing = std::env::temp_dir();
+    missing.push(format!("thehumanbox-no-such-dir-{}", std::process::id()));
+    missing.push("world.save");
+    assert!(crate::sim::persistence::write_save_to_disk(&state, &missing.to_string_lossy()).is_err());
+    assert!(!missing.exists());
+}
+
 #[test]
 fn save_load_preserves_social_continuity_and_rng_stream() {
     use rand::RngExt;
