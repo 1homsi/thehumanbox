@@ -1,4 +1,4 @@
-import { showNotice } from '../lib/confirm'
+import { showNotice } from '../shared/confirm'
 
 export type WorldSource = 'native' | 'wasm'
 export type PlayerWorldKind = 'local'

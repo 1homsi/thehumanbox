@@ -1,7 +1,7 @@
 import { Result, ok, err } from 'neverthrow'
 import { decode as msgpackDecode } from '@msgpack/msgpack'
 import { gunzipSync } from 'fflate'
-import type { WorldState, GridState, GridWire, OrganismState, AnimalState } from '../types'
+import type { WorldState, GridState, GridWire, OrganismState, AnimalState } from '../shared/types'
 
 export type ParseError = { kind: 'json'; message: string } | { kind: 'schema'; issues: string[] }
 
