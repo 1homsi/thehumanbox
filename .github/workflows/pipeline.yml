@@ -26,7 +26,6 @@ jobs:
       sim: ${{ github.event_name != 'pull_request' || steps.filter.outputs.sim == 'true' }}
       client: ${{ github.event_name != 'pull_request' || steps.filter.outputs.client == 'true' }}
       desktop: ${{ github.event_name != 'pull_request' || steps.filter.outputs.desktop == 'true' }}
-      lab: ${{ github.event_name != 'pull_request' || steps.filter.outputs.lab == 'true' }}
     steps:
       - uses: actions/checkout@v7
       - uses: dorny/paths-filter@v4
@@ -48,9 +47,6 @@ jobs:
             desktop:
               - *ci
               - 'desktop/**'
-            lab:
-              - *ci
-              - 'lab/**'
 
   simulation-lint:
     name: Simulation lint (fmt + clippy)
@@ -300,29 +296,6 @@ jobs:
         working-directory: desktop
         run: pnpm run test:main
 
-  test-lab:
-    name: Test lab
-    needs: [changes]
-    if: ${{ needs.changes.outputs.lab == 'true' }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.11'
-          cache: pip
-          cache-dependency-path: lab/pyproject.toml
-      - name: Install lab
-        working-directory: lab
-        run: python -m pip install -e '.[dev]'
-      - name: ruff check
-        working-directory: lab
-        run: python -m ruff check .
-      - name: pytest
-        working-directory: lab
-        run: python -m pytest
-
   bump-version:
     name: Bump version
     # Only runs for direct pushes to main (post-merge). PRs go through
@@ -400,7 +373,7 @@ jobs:
     # always() so the gate decides from the results itself. Every suite runs
     # on main, so anything other than success blocks the release.
     if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[skip-bump]') }}
-    needs: [changes, simulation-lint, simulation-tests, simulation-performance, test-frontend, build-wasm, build-frontend, test-desktop, test-lab]
+    needs: [changes, simulation-lint, simulation-tests, simulation-performance, test-frontend, build-wasm, build-frontend, test-desktop]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
@@ -415,7 +388,7 @@ jobs:
               exit 1
             fi
           done
-          echo "All test, wasm, frontend, desktop, and lab checks completed successfully."
+          echo "All test, wasm, frontend, and desktop checks completed successfully."
 
   publish-release:
     name: Publish desktop release

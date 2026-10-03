@@ -61,21 +61,6 @@ updates:
       prefix: desktop(deps)
       include: scope
 
-  - package-ecosystem: pip
-    directory: /lab
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 3
-    groups:
-      pip-minor-and-patch:
-        update-types:
-          - minor
-          - patch
-    commit-message:
-      prefix: lab(deps)
-      include: scope
-
   - package-ecosystem: github-actions
     directory: /
     schedule:
