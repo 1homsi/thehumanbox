@@ -20,9 +20,9 @@ impl Simulation {
         let (ox, oy) = (self.organisms[idx].x, self.organisms[idx].y);
         let lineage = self.organisms[idx].lineage_id.clone();
         let soc = self.organisms[idx].traits.social_tendency;
-        // One query serves every neighbour scan below: the index buckets are
-        // wider than any of their radii, so each radius reaches the same
-        // buckets, and every scan applies its own exact distance.
+        // One query serves every neighbour scan below: the widest radius
+        // reaches every candidate the narrower ones could, and each scan
+        // applies its own exact distance.
         spatial.query_into(ox as i32, oy as i32, 6, spatial_buf);
         spatial_buf.sort_unstable();
         let kin_count = spatial_buf
