@@ -46,7 +46,7 @@ pub(super) fn category_for(action: usize) -> Option<&'static str> {
         5760..=5809 => "fashion",
         5820..=5869 => "butchery",
         5880..=5929 => "distillation",
-        _ => return None,
+        _ => return registry::category(action),
     })
 }
 
