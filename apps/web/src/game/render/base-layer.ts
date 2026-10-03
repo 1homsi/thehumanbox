@@ -457,6 +457,22 @@ export function varAmountForTile(tid: number): number {
   return 4
 }
 
+const clusterNoiseScratch = new Int32Array(TILE / 2)
+
+// RGBA pixels are written as one 32-bit word instead of four byte stores. Only valid on
+// little-endian hosts (every browser target), where the word is 0xAABBGGRR.
+const LITTLE_ENDIAN = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1
+const pixelWordViews = new WeakMap<Uint8ClampedArray<ArrayBufferLike>, Uint32Array>()
+function pixelWords(d: Uint8ClampedArray<ArrayBufferLike>): Uint32Array | null {
+  if (!LITTLE_ENDIAN || d.byteOffset % 4 !== 0 || d.length % 4 !== 0) return null
+  let view = pixelWordViews.get(d)
+  if (!view) {
+    view = new Uint32Array(d.buffer, d.byteOffset, d.length >> 2)
+    pixelWordViews.set(d, view)
+  }
+  return view
+}
+
 // Paint one tile's TILE x TILE pixel block into the base ImageData.
 // Extracted from the full-grid rebuild loop so incremental updates can
 // repaint individual tiles with byte-identical results.
@@ -520,7 +536,8 @@ export function paintTileBlock(
     }
   }
 
-  const macro = valueNoise(col / 42, row / 42) * 0.65 + valueNoise(col / 13 + 7, row / 13 + 7) * 0.35
+  const macro =
+    macroNoise.at(col / 42, row / 42) * 0.65 + macroNoiseFine.at(col / 13 + 7, row / 13 + 7) * 0.35
   let shading = ((macro - 0.5) * (isWater ? 5 : 25)) | 0
   if (!isWater) {
     const grassy = tid === 1 || tid === 3 || tid === 6 || tid === 13
@@ -539,20 +556,36 @@ export function paintTileBlock(
   const varAmt = varAmountForTile(tid)
   const bx = col * TILE
   const by = row * TILE
+  // The texture noise is constant over each 2x2 pixel cluster, so it is hashed once per
+  // cluster (a tile block is TILE/2 clusters wide) instead of once per pixel.
+  const clusterNoise = clusterNoiseScratch
+  const words = pixelWords(d)
+  // Only these tiles carry surface marks; for the rest (mostly water) skip the per-pixel call.
+  const hasDetail =
+    tid === TILE_ID.SAND ||
+    tid === TILE_ID.ROCK ||
+    tid === TILE_ID.SNOW ||
+    tid === TILE_ID.GRASS ||
+    tid === TILE_ID.FOOD
   for (let ty = 0; ty < TILE; ty++) {
     const gy = by + ty
+    if ((ty & 1) === 0) {
+      const clusterY = gy >> 1
+      for (let cx = 0; cx < TILE / 2; cx++) {
+        const clusterX = (bx >> 1) + cx
+        let h = (clusterX * 374761393 + clusterY * 668265263) | 0
+        h = Math.imul(h ^ (h >>> 13), 1274126177) | 0
+        clusterNoise[cx] = ((((h >>> 0) & 0xff) - 128) * varAmt) >> 7
+      }
+    }
     let pi = (gy * W + bx) * 4
     for (let tx = 0; tx < TILE; tx++, pi += 4) {
       const gx = bx + tx
       // Texture in small pixel-art clusters instead of independent
       // per-pixel static. The macro field shapes broad biome patches;
       // this 2x2 dither keeps nearby terrain readable at game scale.
-      const clusterX = gx >> 1
-      const clusterY = gy >> 1
-      let h = (clusterX * 374761393 + clusterY * 668265263) | 0
-      h = Math.imul(h ^ (h >>> 13), 1274126177) | 0
       const dither = ((gx ^ gy) & 1) === 0 ? -1 : 1
-      const k = (((((h >>> 0) & 0xff) - 128) * varAmt) >> 7) + dither + terrainDetail(tid, gx, gy)
+      const k = clusterNoise[tx >> 1] + dither + (hasDetail ? terrainDetail(tid, gx, gy) : 0)
       let rr = r + k + shading
       let gg = g + k + shading
       let bb = b + k + shading
@@ -562,10 +595,14 @@ export function paintTileBlock(
       else if (gg > 255) gg = 255
       if (bb < 0) bb = 0
       else if (bb > 255) bb = 255
-      d[pi] = rr
-      d[pi + 1] = gg
-      d[pi + 2] = bb
-      d[pi + 3] = 255
+      if (words) {
+        words[pi >> 2] = 0xff000000 | (bb << 16) | (gg << 8) | rr
+      } else {
+        d[pi] = rr
+        d[pi + 1] = gg
+        d[pi + 2] = bb
+        d[pi + 3] = 255
+      }
     }
   }
 }
@@ -624,6 +661,43 @@ export function valueNoise(x: number, y: number): number {
   const d = vnHash(xi + 1, yi + 1)
   return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy
 }
+
+/**
+ * `valueNoise` for a sweep over neighbouring tiles. Each call blends the four hashed corners
+ * of the lattice cell it falls in; consecutive tiles share a cell for dozens of steps, so the
+ * corners are kept until the cell changes. Returns exactly what `valueNoise` returns.
+ */
+class CellNoise {
+  private xi = Number.NaN
+  private yi = Number.NaN
+  private a = 0
+  private b = 0
+  private c = 0
+  private d = 0
+  at(x: number, y: number): number {
+    const xi = Math.floor(x)
+    const yi = Math.floor(y)
+    const fx = x - xi
+    const fy = y - yi
+    const sx = fx * fx * (3 - 2 * fx)
+    const sy = fy * fy * (3 - 2 * fy)
+    if (xi !== this.xi || yi !== this.yi) {
+      this.xi = xi
+      this.yi = yi
+      this.a = vnHash(xi, yi)
+      this.b = vnHash(xi + 1, yi)
+      this.c = vnHash(xi, yi + 1)
+      this.d = vnHash(xi + 1, yi + 1)
+    }
+    const a = this.a
+    const b = this.b
+    const c = this.c
+    const d = this.d
+    return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy
+  }
+}
+const macroNoise = new CellNoise()
+const macroNoiseFine = new CellNoise()
 
 export const SHALLOW_RGB: [number, number, number] = [116, 198, 208]
 
