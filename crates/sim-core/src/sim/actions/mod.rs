@@ -7,6 +7,7 @@ use ctx::ActionCtx;
 
 #[macro_use]
 mod band_types;
+mod action_set;
 mod available;
 mod band_table;
 mod base_bands;
@@ -19,6 +20,7 @@ mod resolved;
 #[cfg(test)]
 mod tests;
 
+use action_set::ActionSet;
 pub use available::{available_actions, available_actions_into};
 use band_table::*;
 use band_types::*;

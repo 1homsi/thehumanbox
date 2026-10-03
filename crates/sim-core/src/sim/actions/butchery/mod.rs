@@ -53,7 +53,7 @@ use super::ctx::ActionCtx;
 
 pub const OUTPUT_CAP: u8 = 12;
 
-pub fn output_key(action: usize) -> Option<&'static str> {
+pub const fn output_key(action: usize) -> Option<&'static str> {
     Some(match action {
         5820..=5821 | 5824..=5830 => "carcass",
         5822 => "pelvis",

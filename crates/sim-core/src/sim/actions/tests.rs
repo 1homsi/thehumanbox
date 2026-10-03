@@ -1146,3 +1146,47 @@ fn established_route_dispatches_tool_cargo_without_a_foreign_visitor() {
     assert_eq!(sim.caravans[0].cargo, "cloth");
     assert_eq!(sim.caravans[0].amount, 2);
 }
+
+/// `CONTEXT_CHECKED` lets the candidate filter skip the per-module checks for
+/// most ids. This holds it to that promise on a world that has been lived in.
+#[test]
+fn ids_without_a_context_check_pass_every_context_check() {
+    let mut sim = Simulation::new(0xc0de);
+    for round in 0..4 {
+        for _ in 0..150 {
+            sim.tick();
+        }
+        for idx in 0..sim.organisms.len() {
+            let org = &sim.organisms[idx];
+            if !org.alive {
+                continue;
+            }
+            let (ix, iy) = (org.x as i32, org.y as i32);
+            for action in (0..crate::organism::organism::ACTION_ID_SPACE)
+                .filter(|a| !super::available::CONTEXT_CHECKED[*a])
+            {
+                assert!(
+                    !action_output_at_capacity(org, action),
+                    "capacity, action {action}"
+                );
+                assert!(
+                    agriculture::action_is_possible(&sim, idx, action, ix, iy, true)
+                        && agriculture::action_is_possible(&sim, idx, action, ix, iy, false),
+                    "agriculture, action {action}, round {round}"
+                );
+                assert!(
+                    religion_expanded::action_is_possible(&sim, idx, action, &[], sim.tick_count),
+                    "religion, action {action}, round {round}"
+                );
+                assert!(
+                    relationships_deep::action_is_possible(&sim, idx, action, &[]),
+                    "relationships, action {action}, round {round}"
+                );
+                assert!(
+                    crate::sim::civ::trade_routes::action_is_possible(&sim, idx, action, &[]),
+                    "trade routes, action {action}, round {round}"
+                );
+            }
+        }
+    }
+}
